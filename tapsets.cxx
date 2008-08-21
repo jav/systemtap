@@ -3253,7 +3253,7 @@ dwarf_query::add_probe_point(const string& funcname,
     }
   else if (dwfl_module_relocations (dw.module) > 0)
     {
-      // This is arelocatable module; libdwfl already knows its
+      // This is a relocatable module; libdwfl already knows its
       // sections, so we can relativize addr.
       int idx = dwfl_module_relocate_address (dw.module, &reloc_addr);
       const char* r_s = dwfl_module_relocation_info (dw.module, idx, NULL);
@@ -3262,12 +3262,15 @@ dwarf_query::add_probe_point(const string& funcname,
       blacklist_section = reloc_section;
 
      if(reloc_section == "" && dwfl_module_relocations (dw.module) == 1)
-	blacklist_section = this->get_blacklist_section(addr);
+       {
+         blacklist_section = this->get_blacklist_section(addr);
+         reloc_section = ".dynamic";
+       }
     }
   else
     {
       blacklist_section = this->get_blacklist_section(addr);
-      reloc_section = "";
+      reloc_section = ".absolute";
     }
 
   if (sess.verbose > 1)
@@ -6558,14 +6561,10 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
   derived_probe (q.base_probe, new probe_point (*q.base_loc) /* .components soon rewritten */ ),
   return_p (q.has_return), module (module), pid (pid), section (section), address (addr)
 {
-  // Assert relocation invariants
-  if (section == "" && dwfl_addr != addr) // addr should be absolute
-    throw semantic_error ("missing relocation base against", q.base_loc->tok);
-  if (section != "" && dwfl_addr == addr) // addr should be an offset
-    throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
-
-  // For now, we don't try to handle relocatable addresses
-  if (section != "") throw semantic_error ("cannot relocate user-space probes yet", q.base_loc->tok);
+  // We may receive probes on two types of ELF objects: ET_EXEC or ET_DYN.
+  // ET_EXEC ones need no further relocation on the addr(==dwfl_addr), whereas
+  // ET_DYN ones do (addr += run-time mmap base address).  We tell these apart
+  // by the incoming section value (".absolute" vs. ".dynamic").
 
   this->tok = q.base_probe->tok;
 
@@ -6737,6 +6736,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "struct stap_uprobe_spec {";
   s.op->newline(1) << "struct stap_task_finder_target finder;";
   s.op->newline() << "unsigned long address;";
+  s.op->newline() << "const char *pathname;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
   s.op->newline() << "unsigned return_p:1;";
@@ -6748,10 +6748,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "{";
       s.op->line() << " .finder = {";
       if (p->pid != 0)
-        s.op->line() << " .pid=" << p->pid << ", ";
-      else
+        s.op->line() << " .pid=" << p->pid;
+      else if (p->section == ".absolute")
         s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
+      // else ".dynamic" gets pathname=0, pid=0, activating task_finder "global tracing" 
       s.op->line() << "},";
+      if (p->section != ".absolute")
+        s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
       s.op->line() << " .address=0x" << hex << p->address << dec << "UL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
@@ -6785,9 +6788,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 
-  // XXX: This sort of plain process.begin/end callback will only work
-  // for uprobes on unrelocatable executables.
-  //
+
+
   // NB: Because these utrace callbacks only occur before / after
   // userspace instructions run, there is no concurrency control issue
   // between active uprobe callbacks and these registration /
@@ -6801,14 +6803,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // calls occur outside the critical section.
 
   s.op->newline();
-  s.op->newline() << "static int stap_uprobe_process_found (struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
-  s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
-  s.op->newline() << "int spec_index = (sups - stap_uprobe_specs);";
+  s.op->newline() << "static int stap_uprobe_change (struct task_struct *tsk, int register_p, unsigned long relocation, struct stap_uprobe_spec *sups) {";
+  s.op->newline(1) << "int spec_index = (sups - stap_uprobe_specs);";
   s.op->newline() << "int handled_p = 0;";
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "int i;";
-  // s.op->newline() << "printk (KERN_EMERG \"probe %d %d %d %p\\n\", tsk->tgid, register_p, process_p, tgt);";
-  s.op->newline() << "if (! process_p) return 0;"; // we don't care about threads
   s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
 
   s.op->newline() << "for (i=0; i<NUMUPROBES; i++) {"; // XXX: slow linear search
@@ -6819,17 +6818,18 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "sup->spec_index = spec_index;";
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "sup->urp.u.pid = tsk->tgid;";
-  s.op->newline() << "sup->urp.u.vaddr = sups->address;";
+  s.op->newline() << "sup->urp.u.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->urp.handler = &enter_uretprobe_probe;";
   s.op->newline() << "rc = register_uretprobe (& sup->urp);";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "sup->up.pid = tsk->tgid;";
-  s.op->newline() << "sup->up.vaddr = sups->address;";
+  s.op->newline() << "sup->up.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
   s.op->newline() << "rc = register_uprobe (& sup->up);";
   s.op->newline(-1) << "}";
 
   s.op->newline() << "if (rc) {"; // failed to register
+  s.op->newline() << "printk (KERN_WARNING \"uprobe failed pid %d addr %p rc %d\\n\", tsk->tgid, (void*)(relocation + sups->address), rc);";
   s.op->newline(1) << "sup->spec_index = -1;";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "handled_p = 1;"; // success
@@ -6866,6 +6866,31 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->assert_0_indent();
 
+
+  // The task_finder_callback we use for ET_EXEC targets.
+  s.op->newline();
+  s.op->newline() << "static int stap_uprobe_process_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {";
+
+  s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
+  s.op->newline() << "if (! process_p) return 0;";
+  s.op->newline(0) << "return stap_uprobe_change (tsk, register_p, 0, sups);";
+  s.op->newline(-1) << "}";
+
+  // The task_finder_vm_callback we use for ET_DYN targets.
+  s.op->newline();
+  s.op->newline() << "static int stap_uprobe_vmchange_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int map_p, char *vm_path, unsigned long vm_start, unsigned long vm_end, unsigned long vm_pgoff) {";
+  s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
+  // 1 - shared libraries' executable segments load from offset 0 - ld.so convention
+  s.op->newline() << "if (vm_pgoff != 0) return 0;"; 
+  // 2 - the shared library we're interested in
+  s.op->newline() << "if (strcmp (vm_path, sups->pathname)) return 0;"; 
+  // 3 - probe address within the mapping limits; test should not fail
+  s.op->newline() << "if (vm_end >= sups->address) return 0;"; 
+  s.op->newline(0) << "return stap_uprobe_change (tsk, map_p, vm_start, sups);";
+  s.op->newline(-1) << "}";
+  s.op->assert_0_indent();
+
+
   s.op->newline();
 }
 
@@ -6885,7 +6910,8 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_uprobe_spec *sups = & stap_uprobe_specs[i];";
   s.op->newline() << "probe_point = sups->pp;"; // for error messages
-  s.op->newline() << "sups->finder.callback = & stap_uprobe_process_found;";
+  s.op->newline() << "if (sups->finder.pathname) sups->finder.callback = & stap_uprobe_process_found;";
+  s.op->newline() << "else if (sups->pathname) sups->finder.vm_callback = & stap_uprobe_vmchange_found;";
   s.op->newline() << "rc = stap_register_task_finder_target (& sups->finder);";
 
   // NB: if (rc), there is no need (XXX: nor any way) to clean up any

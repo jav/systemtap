@@ -4429,7 +4429,13 @@ dump_unwindsyms (Dwfl_Module *m,
               else if (n > 0)
                 {
                   assert (secname != NULL);
-                  // secname adequately set
+                  // secname adequately set 
+
+                  // NB: it may be an empty string for ET_DYN objects
+                  // like shared libraries, as their relocation base
+                  // is implicit.
+                  if (secname[0] == '\0')
+                    secname = ".dynamic";
                 }
               else 
                 {
