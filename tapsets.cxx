@@ -5684,7 +5684,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Output task finder callback routine that gets called for all
   // itrace probe types.
-  s.op->newline() << "static int _stp_itrace_probe_cb(struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
+  s.op->newline() << "static int _stp_itrace_probe_cb(struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {";
   s.op->indent(1);
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "struct stap_itrace_probe *p = container_of(tgt, struct stap_itrace_probe, tgt);";
@@ -6283,7 +6283,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Output task_finder callback routine that gets called for all
   // utrace probe types.
-  s.op->newline() << "static int _stp_utrace_probe_cb(struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
+  s.op->newline() << "static int _stp_utrace_probe_cb(struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {";
   s.op->indent(1);
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";

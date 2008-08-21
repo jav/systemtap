@@ -27,19 +27,21 @@ atomic_t __stp_attach_count = ATOMIC_INIT (0);
 #define debug_task_finder_report()	/* empty */
 #endif
 
-typedef int (*stap_task_finder_callback)(struct task_struct *tsk,
+typedef int (*stap_task_finder_callback)(struct stap_task_finder_target *tgt,
+					 struct task_struct *tsk,
 					 int register_p,
-					 int process_p,
-					 struct stap_task_finder_target *tgt);
+					 int process_p);
 
-typedef int (*stap_task_finder_vm_callback)(struct task_struct *tsk,
+typedef int (*stap_task_finder_vm_callback)(struct stap_task_finder_target *tgt,
+					    struct task_struct *tsk,
 					    int map_p, char *vm_path,
 					    unsigned long vm_start,
 					    unsigned long vm_end,
 					    unsigned long vm_pgoff);
 
 #ifdef DEBUG_TASK_FINDER_VMA
-int __stp_tf_vm_cb(struct task_struct *tsk,
+int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
+		   struct task_struct *tsk,
 		   int map_p, char *vm_path,
 		   unsigned long vm_start,
 		   unsigned long vm_end,
@@ -443,8 +445,9 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				continue;
 
 			if (cb_tgt->callback != NULL) {
-				int rc = cb_tgt->callback(tsk, register_p,
-							  process_p, cb_tgt);
+				int rc = cb_tgt->callback(cb_tgt, tsk,
+							  register_p,
+							  process_p);
 				if (rc != 0) {
 					_stp_error("callback for %d failed: %d",
 						   (int)tsk->pid, rc);
@@ -655,9 +658,9 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 		int rc;
 
 		// Call the callback
-		rc = tgt->callback(tsk, 0,
-				   (tsk->signal == NULL) || (atomic_read(&tsk->signal->live) == 0),
-				   tgt);
+		rc = tgt->callback(tgt, tsk, 0,
+				   ((tsk->signal == NULL)
+				    || (atomic_read(&tsk->signal->live) == 0)));
 		if (rc != 0) {
 			_stp_error("death callback for %d failed: %d",
 				   (int)tsk->pid, rc);
@@ -728,7 +731,8 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 #endif
 				if (mmpath) {
 					// Call the callback
-					rc = tgt->vm_callback(tsk, 1, mmpath,
+					rc = tgt->vm_callback(tgt, tsk, 1,
+							      mmpath,
 							      vma->vm_start,
 							      vma->vm_end,
 							      (vma->vm_pgoff
@@ -863,7 +867,7 @@ __stp_target_call_vm_callback(struct stap_task_finder_target *tgt,
 			   rc, (int)tsk->pid);
 	}
 	else {
-		rc = tgt->vm_callback(tsk, 1, mmpath, vma->vm_start,
+		rc = tgt->vm_callback(tgt, tsk, 1, mmpath, vma->vm_start,
 				      vma->vm_end,
 				      (vma->vm_pgoff << PAGE_SHIFT));
 		if (rc != 0) {
@@ -939,8 +943,8 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 		   : ((syscall_no == MMAP2_SYSCALL_NO(tsk)) ? "mmap2"
 		      : ((syscall_no == MPROTECT_SYSCALL_NO(tsk)) ? "mprotect"
 			 : ((syscall_no == MUNMAP_SYSCALL_NO(tsk)) ? "munmap"
-			    : "UNKNOWN"))),
-		   arg0, rv);
+			    : "UNKNOWN")))),
+		  arg0, rv);
 #endif
 
 	// Try to find the vma info we might have saved.
@@ -982,7 +986,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 				// FIXME: We'll need to figure out to
 				// retrieve the path of a deleted
 				// vma.
-				rc = tgt->vm_callback(tsk, 0, NULL,
+				rc = tgt->vm_callback(tgt, tsk, 0, NULL,
 						      entry->vm_start,
 						      entry->vm_end,
 						      (entry->vm_pgoff
@@ -1016,7 +1020,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 				// FIXME: We'll need to figure out to
 				// retrieve the path of a deleted
 				// vma.
-				rc = tgt->vm_callback(tsk, 0, NULL,
+				rc = tgt->vm_callback(tgt, tsk, 0, NULL,
 						      entry->vm_start,
 						      entry->vm_end,
 						      (entry->vm_pgoff
@@ -1149,9 +1153,8 @@ stap_start_task_finder(void)
 				// the thread is a thread group
 				// leader, it is a process.
 				if (cb_tgt->callback != NULL) {
-					rc = cb_tgt->callback(tsk, 1,
-							      (tsk->pid == tsk->tgid),
-							      cb_tgt);
+					rc = cb_tgt->callback(cb_tgt, tsk, 1,
+							      (tsk->pid == tsk->tgid));
 					if (rc != 0) {
 						_stp_error("attach callback for %d failed: %d",
 							   (int)tsk->pid, rc);

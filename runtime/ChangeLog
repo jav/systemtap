@@ -1,3 +1,15 @@
+2008-08-21  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_tf_vm_cb): Added task finder target
+	parameter.
+	(__stp_utrace_attach_match_filename): Updated task finder callback
+	call.
+	(__stp_utrace_task_finder_target_death): Ditto.
+	(__stp_utrace_task_finder_target_quiesce): Ditto.
+	(__stp_target_call_vm_callback): Ditto.
+	(__stp_utrace_task_finder_target_syscall_exit): Ditto.
+	(stap_start_task_finder): Ditto.
+
 2008-08-20  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c: Supports original and new utrace interfaces.
