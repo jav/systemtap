@@ -6886,7 +6886,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // 1 - shared libraries' executable segments load from offset 0 - ld.so convention
   s.op->newline() << "if (vm_pgoff != 0) return 0;"; 
   // 2 - the shared library we're interested in
-  s.op->newline() << "if (strcmp (vm_path, sups->pathname)) return 0;"; 
+  s.op->newline() << "if (vm_path == NULL || strcmp (vm_path, sups->pathname)) return 0;"; 
   // 3 - probe address within the mapping limits; test should not fail
   s.op->newline() << "if (vm_end >= sups->address) return 0;"; 
   s.op->newline(0) << "return stap_uprobe_change (tsk, map_p, vm_start, sups);";
