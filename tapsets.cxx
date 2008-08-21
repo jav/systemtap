@@ -3265,6 +3265,7 @@ dwarf_query::add_probe_point(const string& funcname,
        {
          blacklist_section = this->get_blacklist_section(addr);
          reloc_section = ".dynamic";
+         reloc_addr = addr;
        }
     }
   else
@@ -6880,6 +6881,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "static int stap_uprobe_vmchange_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int map_p, char *vm_path, unsigned long vm_start, unsigned long vm_end, unsigned long vm_pgoff) {";
   s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
+  s.op->newline() << "printk (KERN_INFO \"vmchange pid %d map_p %d path %s vms %p vme %p vmp %p\\n\", tsk->tgid, map_p, vm_path, (void*) vm_start, (void*) vm_end, (void*) vm_pgoff);";
+  s.op->newline() << "printk (KERN_INFO \"sups %p pp %s path %s address %p\\n\", sups, sups->pp, sups->pathname ?: \"\", (void*) sups->address);";
   // 1 - shared libraries' executable segments load from offset 0 - ld.so convention
   s.op->newline() << "if (vm_pgoff != 0) return 0;"; 
   // 2 - the shared library we're interested in
