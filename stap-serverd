@@ -78,7 +78,7 @@ function listen {
 		advertise_presence
 		first=0
 	    fi
-	    wait %nc
+	    wait '%nc' >/dev/null 2>&1
 	    rc=$?
             if test $rc = 127 -o $rc = 0; then
 		break; # success
@@ -110,11 +110,11 @@ function terminate {
 
     # Kill the running 'avahi-publish-service' job
     kill -s SIGTERM %avahi-publish-service 2> /dev/null
-    wait %avahi-publish-service 2> /dev/null
+    wait '%avahi-publish-service' >/dev/null 2>&1
 
     # Kill any running 'nc -l' job.
     kill -s SIGTERM "%nc -l" 2> /dev/null
-    wait "%nc - l" 2> /dev/null
+    wait "%nc - l"  >/dev/null 2>&1
 
     # Clean up
     cd `dirname $tmpdir`
