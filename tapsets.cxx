@@ -6881,14 +6881,18 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "static int stap_uprobe_vmchange_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int map_p, char *vm_path, unsigned long vm_start, unsigned long vm_end, unsigned long vm_pgoff) {";
   s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
-  s.op->newline() << "printk (KERN_INFO \"vmchange pid %d map_p %d path %s vms %p vme %p vmp %p\\n\", tsk->tgid, map_p, vm_path, (void*) vm_start, (void*) vm_end, (void*) vm_pgoff);";
-  s.op->newline() << "printk (KERN_INFO \"sups %p pp %s path %s address %p\\n\", sups, sups->pp, sups->pathname ?: \"\", (void*) sups->address);";
   // 1 - shared libraries' executable segments load from offset 0 - ld.so convention
   s.op->newline() << "if (vm_pgoff != 0) return 0;"; 
   // 2 - the shared library we're interested in
   s.op->newline() << "if (vm_path == NULL || strcmp (vm_path, sups->pathname)) return 0;"; 
   // 3 - probe address within the mapping limits; test should not fail
-  s.op->newline() << "if (vm_end >= sups->address) return 0;"; 
+  s.op->newline() << "if (vm_end <= vm_start + sups->address) return 0;"; 
+  
+  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
+  s.op->newline() << "printk (KERN_INFO \"vmchange pid %d map_p %d path %s vms %p vme %p vmp %p\\n\", tsk->tgid, map_p, vm_path, (void*) vm_start, (void*) vm_end, (void*) vm_pgoff);";
+  s.op->newline() << "printk (KERN_INFO \"sups %p pp %s path %s address %p\\n\", sups, sups->pp, sups->pathname ?: \"\", (void*) sups->address);";
+  s.op->newline() << "#endif";
+
   s.op->newline(0) << "return stap_uprobe_change (tsk, map_p, vm_start, sups);";
   s.op->newline(-1) << "}";
   s.op->assert_0_indent();

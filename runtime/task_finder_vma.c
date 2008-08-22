@@ -133,11 +133,13 @@ __stp_tf_add_vma(struct task_struct *tsk, unsigned long addr,
 	hlist_for_each_entry(entry, node, head, hlist) {
 		if (tsk->pid == entry->pid
 		    && addr == entry->addr) {
-			printk(KERN_NOTICE
-			       "vma (pid: %d, vm_start: 0x%lx) present?\n",
-			       tsk->pid, vma->vm_start);
-			mutex_unlock(&__stp_tf_vma_mutex);
-			return -EBUSY;	/* Already there */
+#if DEBUG_TASK_FINDER_VMA
+                  printk(KERN_NOTICE
+                         "vma (pid: %d, vm_start: 0x%lx) present?\n",
+                         tsk->pid, vma->vm_start);
+#endif
+                  mutex_unlock(&__stp_tf_vma_mutex);
+                  return -EBUSY;	/* Already there */
 		}
 	}
 
