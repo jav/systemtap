@@ -4645,9 +4645,9 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
         string retro_name = funcname;
 	if (filename != "")
           {
-	  retro_name += ("@" + string (filename));
+            retro_name += ("@" + string (filename));
             if (line > 0)
-	  retro_name += (":" + lex_cast<string> (line));
+              retro_name += (":" + lex_cast<string> (line));
           }
         comps.push_back
           (new probe_point::component
@@ -6614,9 +6614,11 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
       {
         string retro_name = function;
 	if (filename != "")
-	  retro_name += ("@" + string (filename));
-	if (line != -1)
-	  retro_name += (":" + lex_cast<string> (line));
+          {
+            retro_name += ("@" + string (filename));
+            if (line > 0)
+              retro_name += (":" + lex_cast<string> (line));
+          }
         comps.push_back
           (new probe_point::component
            (fn_or_stmt, new literal_string (retro_name)));

@@ -1,5 +1,9 @@
 2008-08-24  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx (uprobe_derived_probe ctor): Ditto.
+
+2008-08-24  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapsets.cxx (query_statement): Leave empty string for unknown file
 	name.
 	(dwarf_derived_probe ctor): Don't synthesize "@filename:lineno"
@@ -20,7 +24,7 @@
 2008-08-20  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client: Ignore SIGHUP and SIGPIPE.
-	(initialization): Set b_specified.: 
+	(initialization): Set b_specified.:
 	(parse_options): Handle the -b option. Quote $stap_arg. Use process_m.
 	(process_m): New function.
 	(process_o): Set stdout_redirection to simply the filename.
@@ -204,7 +208,7 @@
 	* Makefile.in: Regenerated.
 
 2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
-	 
+
        * main.cxx (main): Don't override $PATH etc.
        * tapsets.cxx (base_query ctor, dwarf_builder::build,
        itrace_builder, utrace_derived_probe): Use find_executable()
@@ -215,7 +219,7 @@
 
 	* util.cxx (find_executable): Reorganize, simplify, canonicalize.
 	* util.h, hash.cxx: Corresponding changes.
-	
+
 2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (example index): Only warn and instruct on index
@@ -337,7 +341,7 @@
 
 2008-08-04  Stan Cox  <scox@redhat.com>
 
-	* tapsets.cxx (dwarf_var_expanding_copy_visitor::visit_target_symbol): 
+	* tapsets.cxx (dwarf_var_expanding_copy_visitor::visit_target_symbol):
 	Add support for $$vars, $$parms, and $$locals.
 	* stapprobes.5.in: Likewise.
 	* doc/langref.tex: Likewise.
@@ -516,12 +520,12 @@
 	which may be unrelocatable.
 
 2008-07-11  Frank Ch. Eigler  <fche@elastic.org>
-	
+
 	* hash.cxx (find_hash): Mix in -d MODULE names.
 
 2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
 
-	* main.cxx (main): If "-k" (save temp directory) was supplied, 
+	* main.cxx (main): If "-k" (save temp directory) was supplied,
 	disable caching.
 
 2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
@@ -808,14 +812,14 @@
 	* tapsets.cxx (dwarf_assert, dwfl_assert): Move to
 	dwarf_wrappers.h.
 	(iterate_over_srcfile_lines, has_single_line_record,
-	 query_srcfile_line): Use dwarf_line_t wrapper. 
+	 query_srcfile_line): Use dwarf_line_t wrapper.
 	(die_has_pc): Take a reference to a Dwarf_Die instead of a
 	pointer. Clean up use of dwfl_assert.
 	(query_cu): Check that statement raw address matches the beginning
 	of a statement record.
 	* elaborate.h: Include iosfwd instead of iostream.
 	(literal_map_t, resolve_prologue_endings,): New typedef.
-	
+
 
 2008-06-10  Jim Keniston  <jkenisto@us.ibm.com>
 
@@ -849,7 +853,7 @@
 	(lexer::scan): Ditto.  Interpret "$#" as the argc value in all
 	cases.
 	* parse.h: Corresponding decl changes.
-	
+
 2008-06-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6470
@@ -882,8 +886,8 @@
 
 2008-06-06  Stan Cox  <scox@redhat.com>
 
-	* tapsets.cxx (dwflpp::iterate_over_srcfile_lines): 
-	Add parameter line_type_relative.  
+	* tapsets.cxx (dwflpp::iterate_over_srcfile_lines):
+	Add parameter line_type_relative.
 	(enum line_t): New.
 	(dwarf_query::line_type): New.
 	(dwarf_query::parse_function_spec): Set line_type.
@@ -1015,7 +1019,7 @@
 	* tapsets.cxx: Convert .funcname to funcname when adding it
 	to our symbol table.  Accept all weak symbols except those
 	that map to sys_ni_syscall.
-	
+
 2008-05-23  Srinivasa DS <srinivasa@in.ibm.com>
 	PR 6429: Inerim fix to avoid compilation error of systemtap module
 	* runtime/transport/symbols.c:  added definitions of struct
@@ -1047,7 +1051,7 @@
 
 	* elaborate.cxx (dead_assignment_remover::visit_binary_expression): New.
 	(dead_assignment_remover::visit_assignment): Allow rhs simplification.
-	
+
 2008-05-20  Tim Moore  <timoore@redhat.com>
 
 	* configure.ac: Check for tr1/unordered_map header.
@@ -1110,7 +1114,7 @@
 	x86_64 remains in regs.c.
 	* tapset/{i686,x86_64}/registers.stp: Moved register-lookup
 	code from runtime/regs.c to here.
-	
+
 2008-05-12  Jim Keniston  <jkenisto@us.ibm.com>
 
 	(2008-05-06 in dwarfless branch)
@@ -1560,7 +1564,7 @@
 2008-02-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR5792.
-	* parse.cxx (eval_pp_conditional): Support wildcards in 
+	* parse.cxx (eval_pp_conditional): Support wildcards in
 	%( kernel_v/kernel_vr/arch ==/!= "*foo?" %) operands.
 	* NEWS, stap.1.in: Document this.
 
@@ -1592,7 +1596,7 @@
 	(register_standard_tapsets): Added new 'format' marker probe
 	optional parameter.
 	* stapprobes.5.in (parts): Documented new "format" probe
-	component. 
+	component.
 
 2008-02-19  Roland McGrath  <roland@redhat.com>
 
@@ -1861,7 +1865,7 @@
 	* configure: Regenerated.
 
 2008-01-17  Srinivasa DS <srinivasa@in.ibm.com>
-	
+
 	PR 5483
 	* tapsets.cxx : Possible fix for making systemtap compatible with
 	the elfutils-0.131
