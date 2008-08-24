@@ -3395,7 +3395,7 @@ query_statement (string const & func,
 {
   try
     {
-      q->add_probe_point(func, file ? file : "?",
+      q->add_probe_point(func, file ? file : "",
                          line, scope_die, stmt_addr);
     }
   catch (const semantic_error& e)
@@ -4587,9 +4587,11 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
       {
         string retro_name = funcname;
 	if (filename != "")
+          {
 	  retro_name += ("@" + string (filename));
-	if (line != -1)
+            if (line > 0)
 	  retro_name += (":" + lex_cast<string> (line));
+          }
         comps.push_back
           (new probe_point::component
            (fn_or_stmt, new literal_string (retro_name)));
