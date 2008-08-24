@@ -2,4 +2,11 @@
 
 // Tests if all probes in the process tapset are resolvable.
 
-probe process.* {}
+probe   process.create,
+        process.start,
+        process.exec,
+        process.exec_complete,
+        process.exit,
+        process.release
+{
+}

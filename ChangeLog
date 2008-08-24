@@ -1,3 +1,10 @@
+2008-08-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (query_statement): Leave empty string for unknown file
+	name.
+	(dwarf_derived_probe ctor): Don't synthesize "@filename:lineno"
+	probe point pieces for unknown files/lines.
+
 2008-08-21  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (itrace_derived_probe_group::emit_module_decls):
