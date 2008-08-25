@@ -1,3 +1,10 @@
+2008-08-25  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (EXTRA_DIST): html_footer.tmpl, systemtapcorner.gif,
+	systemtaplogo.png, html_header.tmpl and systemtap.css moved to html
+	subdir.
+	* Makefile.in, aclocal.m4: Regenerated.
+
 2008-08-25  Dave Brolley  <brolley@redhat.com>
 
 	* systemtap.base/warnings.exp: Allow 30 seconds for completion.

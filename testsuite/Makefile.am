@@ -34,11 +34,11 @@ EXTRA_DIST = execrc config lib systemtap \
 	systemtap.pass1-4 systemtap.samples systemtap.printf \
 	systemtap.maps systemtap.base \
 	systemtap.examples/examples-index-gen.pl \
-        systemtap.examples/systemtap.css \
-        systemtap.examples/systemtapcorner.gif \
-        systemtap.examples/systemtaplogo.png \
-        systemtap.examples/html_footer.tmpl \
-        systemtap.examples/html_header.tmpl
+        systemtap.examples/html/systemtap.css \
+        systemtap.examples/html/systemtapcorner.gif \
+        systemtap.examples/html/systemtaplogo.png \
+        systemtap.examples/html/html_footer.tmpl \
+        systemtap.examples/html/html_header.tmpl
 
 
 # $(srcdir)/These values point the test suite to the install tree, and 
