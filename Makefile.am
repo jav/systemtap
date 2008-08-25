@@ -248,7 +248,7 @@ installcheck:
 	  echo "$(DESTDIR)$(bindir)/stap is not recent, run make install"; \
 	  exit -1; \
 	fi;
-	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" EXTRA_SYSTEMTAP_PATH="$(EXTRA_SYSTEMTAP_PATH)"
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
 rpm:	systemtap.spec dist
 	rpmbuild --define "_sourcedir $(PWD)/" -ba $(srcdir)/systemtap.spec

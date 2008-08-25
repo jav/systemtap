@@ -102,8 +102,10 @@ function parse_options {
 			script_file=$first_token
 			cmdline1="$cmdline2"
 			cmdline2=
-		    else
+		    elif test "$first_char" != "'"; then
 			cmdline2="$cmdline2 '$first_token'"
+		    else
+			cmdline2="$cmdline2 $first_token"
 		    fi
 		    advance_p=$(($advance_p + 1))
 		    break
@@ -381,13 +383,15 @@ function package_request {
 #   client -> "request:"
 #   client -> $tar_client
 function send_request {
-    # Send the request file. We need to redirect to /dev/null
-    # in order to workaround a nc bug. It closes the connection
-    # early if stdin from the other side is not provided.
-    until nc $server $(($port + 1)) < $tar_client > /dev/null
+    # Send the request file.
+    for ((attempt=0; $attempt < 10; ++attempt))
     do
+	if nc -w10 $server $(($port+1)) < $tar_client > /dev/null 2>&1; then
+	    return;
+	fi
 	sleep 1
     done
+    fatal "ERROR: Unable to connect to server while sending request file"
 }
 
 # function: receive_response
@@ -398,13 +402,15 @@ function receive_response {
     tar_server=`mktemp -t $tmpdir_prefix_client.server.tgz.XXXXXX` || \
 	fatal "ERROR: cannot create temporary file " $tar_server
 
-    # Retrieve the file. We need to redirect stdin from /dev/zero to work
-    # around a bug in nc. It closes the connection early is stdin is not
-    # provided.
-    until nc $server $(($port + 1)) < /dev/zero > $tar_server
+    # Retrieve the file. Wait for up to 5 minutes for a response.
+    for ((attempt=0; $attempt < 300; ++attempt))
     do
+	if nc -d $server $(($port+1)) > $tar_server 2>/dev/null; then
+	    return;
+	fi
 	sleep 1
     done
+    fatal "ERROR: Unable to connect to server while receiving response file"
 }
 
 # function: unpack_response
@@ -516,8 +522,8 @@ function choose_server {
 	fi
     done
 
-    if test num_servers = 0; then
-	fatal "ERROR: cannot find a server"
+    if test $num_servers = 0; then
+	fatal "ERROR: unable to find a server"
     fi
 
     fatal "ERROR: unable to connect to a server"
@@ -527,10 +533,15 @@ function choose_server {
 #
 # Establish connection with the given server
 function connect_to_server {
-    until echo "request:" | nc $1 $2 > /dev/null
+    for ((attempt=0; $attempt < 10; ++attempt))
     do
+	if echo "request:" | nc -w10 $1 $2 >/dev/null 2>&1; then
+	    return 0
+	fi
 	sleep 1
     done
+
+    return 1
 }
 
 # function: disconnect_from_server
