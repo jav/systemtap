@@ -237,7 +237,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "#ifdef STP_OVERLOAD";
   o->newline() << "c->cycles_sum = 0;";
   o->newline() << "c->cycles_base = 0;";
-  o->newline() << "#endif";  
+  o->newline() << "#endif";
   */
 }
 
@@ -1220,7 +1220,7 @@ struct dwflpp
 
     // XXX: it is probably desirable to search other CU's declarations
     // in the same module.
-    
+
     if (v->find(name) == v->end())
       return NULL;
 
@@ -1257,15 +1257,15 @@ struct dwflpp
     dwarf_query * q = static_cast<dwarf_query *>(data);
     int lineno = lines[0];
     auto_free_ref<Dwarf_Line**> free_srcsp(srcsp);
-    
+
     get_module_dwarf();
 
-    if (line_type == RELATIVE) 
+    if (line_type == RELATIVE)
       {
 	Dwarf_Addr addr;
 	Dwarf_Line *line;
 	int line_number;
-	
+
 	dwarf_assert ("dwarf_entrypc", dwarf_entrypc (this->function, &addr));
 	line = dwarf_getsrc_die (this->cu, addr);
 	dwarf_assert ("dwarf_getsrc_die", line == NULL);
@@ -1274,7 +1274,7 @@ struct dwflpp
       }
     else if (line_type == WILDCARD)
       function_line (&lineno);
-    
+
     for (int l = lineno; ; l = l + 1)
       {
 	set<int> lines_probed;
@@ -2125,12 +2125,12 @@ struct dwflpp
           else
             {
               // We have the pointer: cast it to an integral type via &(*(...))
-              
+
               // NB: per bug #1187, at one point char*-like types were
               // automagically converted here to systemtap string values.
               // For several reasons, this was taken back out, leaving
               // pointer-to-string "conversion" (copying) to tapset functions.
-              
+
               ty = pe_long;
               if (typetag == DW_TAG_array_type)
                 c_translate_array (pool, 1, module_bias, typedie, tail, NULL, 0);
@@ -2669,7 +2669,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
   assert (module);
   assert (cu);
   dwarf_query * q = static_cast<dwarf_query *>(data);
-  
+
   string key = module_name + ":" + cu_name;
   cu_function_cache_t *v = cu_function_cache[key];
   if (v == 0)
@@ -2680,7 +2680,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
       if (q->sess.verbose > 4)
         clog << "function cache " << key << " size " << v->size() << endl;
     }
-  
+
   string subkey = q->function;
   if (v->find(subkey) != v->end())
     {
@@ -2699,7 +2699,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
             {
               if (q->sess.verbose > 4)
                 clog << "function cache " << key << " match " << func_name << " vs " << subkey << endl;
-              
+
               rc = (*callback)(& die, data);
               if (rc != DWARF_CB_OK) break;
             }
@@ -3025,7 +3025,7 @@ dwarf_query::build_blacklist()
   blfn_ret += ")$";
   blfile += ")$";
 
-  if (sess.verbose > 2) 
+  if (sess.verbose > 2)
     {
       clog << "blacklist regexps:" << endl;
       clog << "blfn: " << blfn << endl;
@@ -3073,7 +3073,7 @@ dwarf_query::parse_function_spec(string & spec)
 
   while (i != e && *i != ':' && *i != '+')
     file += *i++;
-  if (*i == ':') 
+  if (*i == ':')
     {
       if (*(i + 1) == '*')
 	line_type = WILDCARD;
@@ -3101,7 +3101,7 @@ dwarf_query::parse_function_spec(string & spec)
       if (line_type != WILDCARD)
 	{
 	  string::const_iterator dash = i;
-	  
+
 	  while (dash != e && *dash != '-')
 	    dash++;
 	  if (dash == e)
@@ -3113,7 +3113,7 @@ dwarf_query::parse_function_spec(string & spec)
 	      line[1] = lex_cast<int>(string(dash + 1, e));
 	    }
 	}
-      
+
       if (sess.verbose>2)
 	clog << "parsed '" << spec
 	     << "' -> func '"<< function
@@ -3395,7 +3395,7 @@ query_statement (string const & func,
 {
   try
     {
-      q->add_probe_point(func, file ? file : "?",
+      q->add_probe_point(func, file ? file : "",
                          line, scope_die, stmt_addr);
     }
   catch (const semantic_error& e)
@@ -3705,7 +3705,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  if (rc != DWARF_CB_OK)
 	    q->query_done = true;
 
-          if (q->sess.prologue_searching 
+          if (q->sess.prologue_searching
               && !q->has_statement_str && !q->has_statement_num) // PR 2608
             if (! q->filtered_functions.empty())
               q->dw.resolve_prologue_endings (q->filtered_functions);
@@ -4297,7 +4297,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       Dwarf_Die *scopes;
       if (dwarf_getscopes_die (scope_die, &scopes) == 0)
 	return;
-	
+
       target_symbol *tsym = new target_symbol;
       print_format* pf = new print_format;
 
@@ -4323,7 +4323,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
         {
           tsym->tok = e->tok;
           tsym->base_name = "$return";
-          
+
           // Ignore any variable that isn't accessible.
           tsym->saved_conversion_error = 0;
           this->visit_target_symbol(tsym); // NB: throws nothing ...
@@ -4355,16 +4355,16 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
                     if (e->base_name == "$$locals")
                       continue;
                     break;
-                    
+
                   default:
                     continue;
                   }
-                
+
                 const char *diename = dwarf_diename (&result);
                 tsym->tok = e->tok;
                 tsym->base_name = "$";
                 tsym->base_name += diename;
-                
+
                 // Ignore any variable that isn't accessible.
                 tsym->saved_conversion_error = 0;
                 this->visit_target_symbol(tsym); // NB: throws nothing ...
@@ -4587,9 +4587,11 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
       {
         string retro_name = funcname;
 	if (filename != "")
+          {
 	  retro_name += ("@" + string (filename));
-	if (line != -1)
+            if (line > 0)
 	  retro_name += (":" + lex_cast<string> (line));
+          }
         comps.push_back
           (new probe_point::component
            (fn_or_stmt, new literal_string (retro_name)));
@@ -5019,7 +5021,7 @@ dwarf_builder::build(systemtap_session & sess,
         sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
       if (! sess.sym_stext)
         sess.sym_stext = lookup_symbol_address (km, "_stext");
-      
+
       if (sess.verbose > 2)
         {
           clog << "control symbols:"
@@ -5103,7 +5105,7 @@ symbol_table::read_symbols(FILE *f, const string& path)
       line++;
       if (ret < 3)
         {
-          cerr << "Symbol table error: Line " 
+          cerr << "Symbol table error: Line "
                << line
                << " of symbol list from "
                << path
@@ -5684,7 +5686,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Output task finder callback routine that gets called for all
   // itrace probe types.
-  s.op->newline() << "static int _stp_itrace_probe_cb(struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
+  s.op->newline() << "static int _stp_itrace_probe_cb(struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {";
   s.op->indent(1);
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "struct stap_itrace_probe *p = container_of(tgt, struct stap_itrace_probe, tgt);";
@@ -6283,7 +6285,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Output task_finder callback routine that gets called for all
   // utrace probe types.
-  s.op->newline() << "static int _stp_utrace_probe_cb(struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
+  s.op->newline() << "static int _stp_utrace_probe_cb(struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {";
   s.op->indent(1);
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";
@@ -8133,7 +8135,7 @@ mark_builder::build(systemtap_session & sess,
 	      mark_cache_const_iterator_pair_t ret;
 	      mark_cache_const_iterator_t it;
 	      bool matching_format_string = false;
-		  
+
 	      ret = mark_cache.equal_range(name);
 	      for (it = ret.first; it != ret.second; ++it)
 	        {

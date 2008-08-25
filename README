@@ -25,7 +25,7 @@ Build steps:
 
 - Install the kernel-debuginfo, kernel-[smp-]devel, gcc and libcap-devel
   packages (or see below if you are building your own kernels from source).
-  If avaialable, install your distribution's copy of elfutils and its
+  If available, install your distribution's copy of elfutils and its
   development headers/libraries.
 
 - Or if desired, download an elfutils source release to build in
@@ -48,13 +48,15 @@ Build steps:
   Consider configuring with "--enable-dejazilla" to automatically
   contribute to our public test result database.
 
-  % make all check
+  % make all
   % sudo make install
+
+  To run the full test suite:
   % sudo make installcheck
 
 Tips:
 
-- Systemtap looks for the debug info in these locations:
+- By default, systemtap looks for the debug info in these locations:
   /boot/vmlinux-`uname -r`
   /usr/lib/debug/lib/modules/`uname -r`/vmlinux
   /lib/modules/`uname -r`/vmlinux
@@ -65,16 +67,13 @@ Building a kernel.org kernel:
 - Build the kernel using your normal procedures.  Enable
   CONFIG_DEBUG_INFO, CONFIG_KPROBES, and optionally CONFIG_RELAY and
   CONFIG_DEBUG_FS.
+- Run "make install modules_install headers_install" as needed.
 - Boot into the kernel.
 - Make sure the large unstripped kernel image 'vmlinux' from your
   build can be found by systemtap (see above)  You can just symlink
   it to one of these locations.
-- Symlink your source directory to these two places, though systemtap
-  does not at present use such source code. 
-  - /usr/src/kernels/`uname -r`
-  - /lib/modules/`uname -r`/source
 - Symlink your build directory to here:
-  - /lib/modules/`uname -r`/build
+  /lib/modules/`uname -r`/build
 - For example, if your kernel source is in /home/me/linux/2.6.17-rc6
   and you build your kernel in the source directory, you would do
   this (be sure you are running the right kernel or `uname -r`

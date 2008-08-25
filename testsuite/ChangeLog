@@ -1,3 +1,7 @@
+2008-08-22  Wenji Huang  <wenji.huang@oracle.com>
+
+	* buildok/process-all-probes.stp: Change system-wide probes to detailed 	ones to avoid including user space ones.
+
 2008-08-15  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/utrace_p4.exp: Change system-wide probes from
