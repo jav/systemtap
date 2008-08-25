@@ -1,3 +1,25 @@
+2008-08-25  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (installcheck): Remove $(EXTRA_SYSTEMTAP_PATH) from
+	invocation of $(MAKE).
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Regenerated.
+	* stap-client (parse_options): Don't quote an argument if it is already
+	quoted.
+	(send_request): Timeout after 10 seconds.
+	(receive_response): Timeout after 5 minutes.
+	(choose_server): Add missing $ to variable reference.
+	(connect_to_server): Timeout after 10 seconds.
+	* stap-server (receive_request): Don't check for a "request:"
+	message. Timeout after 10 seconds.
+	(send_response): Timeout after 10 seconds.
+	* stap-serverd (initialization): Remove tmpdir_prefix_serverd and
+	port2. No need for a temp directory.
+	(listen): Fifo no longer necessary. Call nc and pipe the output to
+	process_request in the background.
+	(process_request): New function.
+	(fatal): Kill stap-server followed by nc. No tmpdir to remove.
+
 2008-08-24  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (query_statement): Leave empty string for unknown file

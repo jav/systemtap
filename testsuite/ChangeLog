@@ -1,3 +1,8 @@
+2008-08-25  Dave Brolley  <brolley@redhat.com>
+
+	* systemtap.base/warnings.exp: Allow 30 seconds for completion.
+	* Makefile.in: Regenerated.
+
 2008-08-22  Wenji Huang  <wenji.huang@oracle.com>
 
 	* buildok/process-all-probes.stp: Change system-wide probes to detailed 	ones to avoid including user space ones.
