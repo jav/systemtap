@@ -152,7 +152,6 @@ top_srcdir = @top_srcdir@
 PDF_FILES = tutorial.pdf langref.pdf
 DOC_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap
 SUFFIXES = ps pdf dvi ps tex
-EXTRA_DIST = tutorial.tex langref.tex tutorial nomencl.sty
 all: all-am
 
 .SUFFIXES:

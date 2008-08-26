@@ -1,3 +1,8 @@
+2008-08-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am: Removed dist-related targets and macros.
+	* Makefile.in: Regenerated.
+
 2008-07-14  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.in: Regenerated.

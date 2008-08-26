@@ -1,7 +1,7 @@
 # Makefile.am --- automake input file for systemtap testsuite
 ## process this file with automake to produce Makefile.in
 
-AUTOMAKE_OPTIONS = dejagnu
+AUTOMAKE_OPTIONS = dejagnu no-dist
 
 all-local:
 	@echo Run \"make check\" or \"make installcheck\".
@@ -26,22 +26,7 @@ installcheck: site.exp
 	-$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU RUNTESTFLAGS="$(RUNTESTFLAGS) --tool_opts \'install $(TOOL_OPTS)\'"
 	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 
-SRCDIR = $(shell cd $(srcdir); pwd)
-
-EXTRA_DIST = execrc config lib systemtap \
-	parseok parseko semok semko transok transko buildok buildok \
-	systemtap.syscall systemtap.stress systemtap.string \
-	systemtap.pass1-4 systemtap.samples systemtap.printf \
-	systemtap.maps systemtap.base \
-	systemtap.examples/examples-index-gen.pl \
-        systemtap.examples/html/systemtap.css \
-        systemtap.examples/html/systemtapcorner.gif \
-        systemtap.examples/html/systemtaplogo.png \
-        systemtap.examples/html/html_footer.tmpl \
-        systemtap.examples/html/html_header.tmpl
-
-
-# $(srcdir)/These values point the test suite to the install tree, and 
+# $(srcdir)/These values point the test suite to the install tree, and
 # are overridden by "make check" from full source/build tree
 SYSTEMTAP_RUNTIME=$(DESTDIR)$(pkgdatadir)/runtime
 SYSTEMTAP_TAPSET=$(DESTDIR)$(pkgdatadir)/tapset
