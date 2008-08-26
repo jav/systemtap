@@ -1,5 +1,7 @@
 2008-08-26  David Smith  <dsmith@redhat.com>
 
+	* buildrun.cxx (compile_pass): Added autoconf-dpath-path.c.
+
 	* Makefile.am: Simplified "rpm" target a bit.
 	* Makefile.in: Regenerated.
 
