@@ -1,5 +1,8 @@
 2008-08-26  David Smith  <dsmith@redhat.com>
 
+	* Makefile.am: Simplified "rpm" target a bit.
+	* Makefile.in: Regenerated.
+
 	* Makefile.am: Moved tar archive creation step from "rpm" target
 	into "dist-gzip" target.
 	* Makefile.in: Regenerated.
