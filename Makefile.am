@@ -234,9 +234,12 @@ installcheck:
 #     --define "with_bundled_elfutils 1" --define "elfutils_version 0.135"
 RPMBUILDFLAGS=
 
-rpm:
+dist-gzip:
 	cd $(srcdir); git status | grep working.directory.clean || (echo "You should commit your changes before 'make rpm'.")
 	(cd $(srcdir); git archive --prefix=systemtap-$(VERSION)/ --format=tar HEAD) | gzip > systemtap-$(VERSION).tar.gz
+
+rpm:
+	$(MAKE) $(AM_MAKEFLAGS) dist-gzip
 	mkdir -p `rpm --eval %_specdir`
 	mkdir -p `rpm --eval %_srcrpmdir`
 	mkdir -p `rpm --eval %_rpmdir`

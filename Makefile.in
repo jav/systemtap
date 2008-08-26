@@ -317,8 +317,9 @@ TEST_COV_DIR = coverage
 # XXX: leaves behind man pages
 SUBDIRS = testsuite doc
 
-# Any extra flags such as
+# Any extra flags, such as:
 #     --define "with_docs 0"
+#     --define "with_bundled_elfutils 1" --define "elfutils_version 0.135"
 RPMBUILDFLAGS = 
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -1453,9 +1454,12 @@ installcheck:
 	fi;
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
-rpm:
+dist-gzip:
 	cd $(srcdir); git status | grep working.directory.clean || (echo "You should commit your changes before 'make rpm'.")
 	(cd $(srcdir); git archive --prefix=systemtap-$(VERSION)/ --format=tar HEAD) | gzip > systemtap-$(VERSION).tar.gz
+
+rpm:
+	$(MAKE) $(AM_MAKEFLAGS) dist-gzip
 	mkdir -p `rpm --eval %_specdir`
 	mkdir -p `rpm --eval %_srcrpmdir`
 	mkdir -p `rpm --eval %_rpmdir`
