@@ -1,3 +1,8 @@
+2008-08-27  Wenji Huang  <wenji.huang@oracle.com>
+
+	* semok/nodwf02.stp: Make syscall.q* optional.
+	* semok/nodwf05.stp: Ditto.
+
 2008-08-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (AUTOMAKE_OPTIONS): Add no-dist.  Remove dist-related

@@ -28,7 +28,7 @@ probe
 	syscall.n*,
 	/* skip o */
 	syscall.p*,
-	syscall.q*,
+	syscall.q* ?,
 	syscall.r*,
 	/* skip s */
 	syscall.t*,
