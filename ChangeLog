@@ -1,3 +1,10 @@
+2008-08-27  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (add_global_var_display): New.
+	(semantic_pass): Call it.
+	(dead_assignment_remover::visit_assignment): Don't remove written
+	but unread global variables.
+
 2008-08-26  David Smith  <dsmith@redhat.com>
 
 	* buildrun.cxx (compile_pass): Added autoconf-dpath-path.c.

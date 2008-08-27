@@ -1144,6 +1144,180 @@ semantic_pass_symbols (systemtap_session& s)
 }
 
 
+// Keep unread global variables for probe end value display.
+void add_global_var_display (systemtap_session& s)
+{
+  varuse_collecting_visitor vut;
+  for (unsigned i=0; i<s.probes.size(); i++)
+    {
+      s.probes[i]->body->visit (& vut);
+
+      if (s.probes[i]->sole_location()->condition)
+	s.probes[i]->sole_location()->condition->visit (& vut);
+    }
+
+  for (unsigned g=0; g < s.globals.size(); g++)
+    {
+      vardecl* l = s.globals[g];
+      if (vut.read.find (l) != vut.read.end()
+          || vut.written.find (l) == vut.written.end()
+	  || l->type == pe_stats)
+	continue;
+
+      print_format* pf = new print_format;
+      probe* p = new probe;
+      probe_point* pl = new probe_point;
+      probe_point::component* c = new probe_point::component("end");
+      token* print_tok = new token;
+      vector<derived_probe*> dps;
+
+      pl->components.push_back (c);
+      token* p_tok = new token;
+      p_tok->type = tok_identifier;
+      p_tok->content = "probe";
+      p->tok = p_tok;
+      p->locations.push_back (pl);
+      print_tok->type = tok_identifier;
+      print_tok->content = "printf";
+
+      // Create a symbol
+      symbol* g_sym = new symbol;
+      g_sym->name = l->name;
+      g_sym->tok = l->tok;
+      g_sym->type = l->type;
+      g_sym->referent = l; 
+
+      pf->print_to_stream = true;
+      pf->print_with_format = true;
+      pf->print_with_delim = false;
+      pf->print_with_newline = false;
+      pf->print_char = false;
+      pf->raw_components += l->name;
+      pf->tok = print_tok;
+
+      if (l->index_types.size() == 0) // Scalar
+	{
+	  if (l->type == pe_string)
+	    pf->raw_components += "=\"%#s\"\\n";
+	  else
+	    pf->raw_components += "=%#x\\n";
+	  pf->args.push_back(g_sym);
+	  pf->components = print_format::string_to_components(pf->raw_components);
+	  expr_statement* feb = new expr_statement;
+	  feb->value = pf;
+	  feb->tok = print_tok;
+	  block *b = new block;
+	  b->statements.push_back(feb);
+	  p->body = b;
+
+	  derive_probes (s, p, dps);
+
+	  // Repopulate the type info.  Should semantic_pass_types do this?
+	  ((class symbol*)
+	   ((class print_format*)
+	    ((class expr_statement*)
+	     ((class block*)dps[0]->body)->statements[0])->value)->args[0])->type = g_sym->type;
+	}
+      else			// Array
+	{
+	  int idx_count = l->index_types.size();
+	  token* idx_tok[idx_count];
+	  symbol* idx_sym[idx_count];
+	  vardecl* idx_v[idx_count];
+	  // Create a foreach loop
+	  token* fe_tok = new token;
+	  fe_tok->type = tok_identifier;
+	  fe_tok->content = "foreach";
+	  foreach_loop* fe = new foreach_loop;
+	  fe->sort_direction = 0;
+	  fe->limit = NULL;
+
+	  // Create indices for the foreach loop
+	  for (int i=0; i < idx_count; i++)
+	    {
+	      idx_tok[i] = new token;
+	      idx_tok[i]->type = tok_identifier;
+	      char *idx_name;
+	      if (asprintf (&idx_name, "idx%d", i) < 0)
+		return;
+	      idx_tok[i]->content = idx_name;
+	      idx_sym[i] = new symbol;
+	      idx_sym[i]->tok = idx_tok[i];
+	      idx_sym[i]->name = idx_name;
+	      idx_v[i] = new vardecl;
+	      idx_v[i]->name = idx_name;
+	      idx_v[i]->tok = idx_tok[i];
+	      idx_v[i]->type = l->index_types[i];
+	      idx_sym[i]->referent = idx_v[i];
+	      fe->indexes.push_back (idx_sym[i]);
+	    }
+
+	  // Create a printf for the foreach loop
+	  for (int i=0; i < idx_count; i++)
+	    if (l->index_types[i] == pe_string)
+	      pf->raw_components += "[\"%#s\"]";
+	    else
+	      pf->raw_components += "[%#d]";
+	  if (l->type == pe_string)
+	    pf->raw_components += "=\"%#s\"\\n";
+	  else
+	    pf->raw_components += "=%#x\\n";
+
+	  // Create an index for the array
+	  struct arrayindex* ai = new arrayindex;
+	  ai->tok = l->tok;
+	  ai->base = g_sym;
+	  for (int i=0; i < idx_count; i++)
+	    {
+	      ai->indexes.push_back (idx_sym[i]);
+	      pf->args.push_back(idx_sym[i]);
+	    }
+	  pf->args.push_back(ai);
+  
+	  pf->components = print_format::string_to_components(pf->raw_components);
+	  expr_statement* feb = new expr_statement;
+	  feb->value = pf;
+	  block *b = new block;
+	  fe->base = g_sym;
+	  fe->block = (statement*)feb;
+	  b->statements.push_back(fe);
+	  p->body = b;
+
+	  derive_probes (s, p, dps);
+
+	  // Repopulate the type info.  Should semantic_pass_types do this?
+	  print_format* dpf = ((print_format*)
+			       ((expr_statement*)
+				((foreach_loop*)
+				 ((block*)dps[0]->body)->statements[0])->block)->value);
+	  for (int i=0; i < idx_count; i++)
+	    {
+	      // printf argument types
+	      dpf->args[i]->type = l->index_types[i];
+	      // arrayindex indices types
+	      ((struct arrayindex*)dpf->args[idx_count])->indexes[i]->type = l->index_types[i];
+	      dps[0]->locals.push_back(idx_v[i]);
+	    }
+	  // arrayindex type
+	  dpf->args[idx_count]->type = l->type;
+	}
+
+      symresolution_info sym (s);
+      sym.current_function = 0;
+      sym.current_probe = dps[0];
+      dps[0]->body->visit (& sym);
+
+      // Add created probe
+      for (unsigned i = 0; i < dps.size(); i++)
+	{
+	  derived_probe* dp = dps[i];
+	  s.probes.push_back (dp);
+	  dp->join_group (s);
+	}
+
+      vut.read.insert (l);
+    }
+}
 
 int
 semantic_pass (systemtap_session& s)
@@ -1159,6 +1333,7 @@ semantic_pass (systemtap_session& s)
       if (rc == 0) rc = semantic_pass_conditions (s);
       if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize1 (s);
       if (rc == 0) rc = semantic_pass_types (s);
+      if (rc == 0) add_global_var_display (s);
       if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize2 (s);
       if (rc == 0) rc = semantic_pass_vars (s);
       if (rc == 0) rc = semantic_pass_stats (s);
@@ -1745,16 +1920,16 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
         {
           if (l->tok->location.file == s.user_file->name && // !tapset
               ! s.suppress_warnings)
-            s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
+	      s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
           else if (s.verbose>2)
             clog << "Eliding unused global variable "
                  << l->name << endl;
 	  if (s.tapset_compile_coverage) {
-            s.unused_globals.push_back(s.globals[i]);
+	    s.unused_globals.push_back(s.globals[i]);
 	  }
-          s.globals.erase(s.globals.begin() + i);
-          relaxed_p = false;
-          // don't increment i
+	  s.globals.erase(s.globals.begin() + i);
+	  relaxed_p = false;
+	  // don't increment i
         }
       else
         {
@@ -1831,6 +2006,7 @@ dead_assignment_remover::visit_assignment (assignment* e)
       current_expr = &e->right;
       e->right->visit (this);
       current_expr = last_expr;
+
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
         {
           // NB: Not so fast!  The left side could be an array whose
@@ -1838,10 +2014,21 @@ dead_assignment_remover::visit_assignment (assignment* e)
           // OK if we could replace the array assignment with a 
           // statement-expression containing all the index expressions
           // and the rvalue... but we can't.
+	  // Another possibility is that we have an unread global variable
+	  // which are kept for probe end value display.
+
+	  bool is_global = false;
+	  vector<vardecl*>::iterator it;
+	  for (it = session.globals.begin(); it != session.globals.end(); it++)
+	    if (leftvar->name == (*it)->name)
+	      {
+		is_global = true;
+		break;
+	      }
 
           varuse_collecting_visitor vut;
           e->left->visit (& vut);
-          if (vut.side_effect_free ()) // XXX: use _wrt() once we track focal_vars
+          if (vut.side_effect_free () && !is_global) // XXX: use _wrt() once we track focal_vars
             {
               /* PR 1119: NB: This is not necessary here.  A write-only
                  variable will also be elided soon at the next _opt2 iteration.
@@ -2156,7 +2343,8 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
 
   varuse_collecting_visitor vut;
   s->value->visit (& vut);
-  if (vut.side_effect_free_wrt (focal_vars) &&
+   
+ if (vut.side_effect_free_wrt (focal_vars) &&
       *current_stmt == s) // we're not nested any deeper than expected 
     {
       /* PR 1119: NB: this message is not a good idea here.  It can

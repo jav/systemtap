@@ -1,3 +1,11 @@
+2008-08-27  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/global_end.exp: New.
+	* systemtap.base/global_end.stp: New.
+	* systemtap.base/bench.exp: Bump up ok.
+	* systemtap.base/optim_arridx.exp: Consider unread globals.
+	* systemtap.base/optim_arridx.stp: Fix typos.
+
 2008-08-27  Wenji Huang  <wenji.huang@oracle.com>
 
 	* semok/nodwf02.stp: Make syscall.q* optional.

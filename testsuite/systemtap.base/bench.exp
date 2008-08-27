@@ -11,4 +11,4 @@ expect {
     eof { }
 }
 wait
-if {$ok == 15} { pass "$test ($ok)" } { fail "$test ($ok)" }
+if {$ok == 18} { pass "$test ($ok)" } { fail "$test ($ok)" }

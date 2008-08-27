@@ -1,0 +1,30 @@
+global alpha, beta, gamma, iota
+
+probe begin {
+ gamma = "abcdefghijklmnopqrstuvwxyz"
+
+ iota["one"] = "eleven"
+ iota["two"] = "twelve"
+
+ alpha["one",1] = 1
+ alpha["one",2] = 2
+ alpha["two",1] = 3
+ alpha["two",2] = 4
+
+ beta["one",1] = 1
+ beta["one",2] = 2
+ beta["two",1] = 3
+ beta["two",2] = 4
+}
+
+probe timer.ms(2000) {
+  exit ()
+}
+
+probe end {
+foreach ([i,j] in beta)
+  printf("[%#s,%#x]=%#x ", i, j, beta[i,j])
+print("\n")
+exit()
+}
+
