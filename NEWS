@@ -2,10 +2,10 @@
 
 - Global variables which are written to but never read are now
   automatically displayed when the session does a shutdown.  For example: 
-  global running_tasks 
-  probe timer.profile {tc=task_current();
-  		       running_tasks[task_pid(tc),task_tid(tc)] = execname()} 
-  probe timer.ms(8000) {exit()}
+
+      global running_tasks 
+      probe timer.profile {running_tasks[pid(),tid()] = execname()} 
+      probe timer.ms(8000) {exit()}
 
 - A formatted string representation of the variables, parameters, or local
   variables at a probe point is now supported via the special $$vars,
