@@ -1,3 +1,6 @@
+2008-08-28  Zhaolei  <zhaolei@cn.fujitsu.com>
+	* socket.stp: Make _get_sock_addr return correct address in kernel
+	before 2.6.16.
 
 2008-08-04  Wenji Huang <wenji.huang@oracle.com>
 

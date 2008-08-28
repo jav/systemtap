@@ -910,7 +910,14 @@ function _success_check(ret:long)
 function _get_sock_addr:long (file:long)
 %{ /* pure */
 	struct file *filep = (struct file *)(long)(THIS->file);
-	struct socket *sockp = filep? kread(&(filep->private_data)) : NULL;
+	struct socket *sockp;
+	if (filep) {
+		struct dentry *dentry = kread(&(filep->f_dentry));
+		struct inode *inode = kread(&(dentry->d_inode));
+		sockp = &container_of(inode, struct socket_alloc, vfs_inode)->socket;
+	} else {
+		sockp = NULL;
+	}
 	if (sockp == NULL)
 		THIS->__retvalue = -1;
 	else
