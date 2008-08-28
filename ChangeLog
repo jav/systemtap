@@ -1,3 +1,8 @@
+2008-08-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (add_global_var_display): Render array indexes
+	in [key,key,key] vs. [key][key][key] form.
+
 2008-08-27  Stan Cox  <scox@redhat.com>
 
 	* elaborate.cxx (add_global_var_display): New.

@@ -9,10 +9,10 @@ set ok 0
 expect {
     -timeout 180
     -re {one,0x1.*one,0x2.*two,0x1.*two,0x2} { incr ok; exp_continue }
-    -re {alpha."one"..1.=0x1} { incr ok; exp_continue }
-    -re {alpha."one"..2.=0x2} { incr ok; exp_continue }
-    -re {alpha."two"..1.=0x3} { incr ok; exp_continue }
-    -re {alpha."two"..2.=0x4} { incr ok; exp_continue }
+    -re {alpha."one".1.=0x1} { incr ok; exp_continue }
+    -re {alpha."one".2.=0x2} { incr ok; exp_continue }
+    -re {alpha."two".1.=0x3} { incr ok; exp_continue }
+    -re {alpha."two".2.=0x4} { incr ok; exp_continue }
     -re {gamma="abcdefghijklmnopqrstuvwxyz"} { incr ok; exp_continue }
     -re {iota."one".="eleven"} { incr ok; exp_continue }
     -re {iota."two".="twelve"} { incr ok; exp_continue }
