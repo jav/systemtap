@@ -1,9 +1,9 @@
-%define release 1
-%define with_sqlite 1
-%define with_docs 1
-%define with_crash 0
-%define with_bundled_elfutils 0
-%define elfutils_version 0.127
+%{!?release: %define release 1}
+%{!?with_sqllite: %define with_sqlite 1}
+%{!?with_docs: %define with_docs 1}
+%{!?with_crash: %define with_crash 0}
+%{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
+%{!?elfutils_version: %define elfutils_version 0.127}
 
 Name: systemtap
 # for version, see also configure.ac
@@ -158,14 +158,14 @@ chmod 755 $RPM_BUILD_ROOT%{_bindir}/staprun
 # Copy over the testsuite
 cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
 
-#%if %{with_docs}
+%if %{with_docs}
 # We want the manuals in the special doc dir, not the generic doc install dir.
 # We build it in place and then move it away so it doesn't get installed
 # twice. rpm can specify itself where the (versioned) docs go with the
 # %doc directive.
 mkdir docs.installed
 mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/*.pdf docs.installed/
-#%endif
+%endif
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}

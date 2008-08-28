@@ -53,10 +53,10 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
     make_cmd += " >/dev/null";
   else
     make_cmd += " -s >/dev/null 2>&1";
-  
+
   if (s.verbose > 1) clog << "Running " << make_cmd << endl;
   rc = system (make_cmd.c_str());
-  
+
   return rc;
 }
 
@@ -110,6 +110,7 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-real-parent.c, -DSTAPCONF_REAL_PARENT,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-uaccess.c, -DSTAPCONF_LINUX_UACCESS_H,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-oneachcpu-retry.c, -DSTAPCONF_ONEACHCPU_RETRY,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-dpath-path.c, -DSTAPCONF_DPATH_PATH,)" << endl;
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
    * homegrown safe-access functions) is deemed undesireable, so we'll skip
@@ -132,7 +133,7 @@ compile_pass (systemtap_session& s)
   o << "EXTRA_CFLAGS += -freorder-blocks" << endl; // improve on -Os
 
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
-    
+
   // Assumes linux 2.6 kbuild
   o << "EXTRA_CFLAGS += -Wno-unused -Werror" << endl;
   o << "EXTRA_CFLAGS += -I\"" << s.runtime_path << "\"" << endl;
@@ -153,7 +154,7 @@ compile_pass (systemtap_session& s)
 	     << strerror(errno) << endl
 	     << "Make sure kernel devel is installed." << endl;
 	return rc;
-    }  
+    }
 
   // Run make
   string make_cmd = string("make")
@@ -161,7 +162,7 @@ compile_pass (systemtap_session& s)
   make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
 
   rc = run_make_cmd(s, make_cmd);
-  
+
   return rc;
 }
 
@@ -273,23 +274,23 @@ run_pass (systemtap_session& s)
     + (s.verbose>1 ? "-v " : "")
     + (s.verbose>2 ? "-v " : "")
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
-  
+
   if (s.cmd != "")
     staprun_cmd += "-c " + cmdstr_quoted(s.cmd) + " ";
-  
+
   if (s.target_pid)
     staprun_cmd += "-t " + stringify(s.target_pid) + " ";
-  
+
   if (s.buffer_size)
     staprun_cmd += "-b " + stringify(s.buffer_size) + " ";
-  
+
   if (s.need_uprobes)
     staprun_cmd += "-u ";
 
   staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
-  
+
   if (s.verbose>1) clog << "Running " << staprun_cmd << endl;
-  
+
   rc = system (staprun_cmd.c_str ());
   return rc;
 }

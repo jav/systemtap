@@ -1,3 +1,63 @@
+2008-08-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (add_global_var_display): Render array indexes
+	in [key,key,key] vs. [key][key][key] form.
+
+2008-08-27  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (add_global_var_display): New.
+	(semantic_pass): Call it.
+	(dead_assignment_remover::visit_assignment): Don't remove written
+	but unread global variables.
+	* NEWS, stap.1.in: Document
+
+2008-08-26  David Smith  <dsmith@redhat.com>
+
+	* buildrun.cxx (compile_pass): Added autoconf-dpath-path.c.
+
+	* Makefile.am: Simplified "rpm" target a bit.
+	* Makefile.in: Regenerated.
+
+	* Makefile.am: Moved tar archive creation step from "rpm" target
+	into "dist-gzip" target.
+	* Makefile.in: Regenerated.
+
+2008-08-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (AUTOMAKE_OPTIONS): Add "no-dist".  Remove all
+	"make dist"-oriented targets and macros.  
+	(rpm): Rewrite.  Allow parametrization with RPMBUILDFLAGS=.
+	* Makefile.in: Regenerated.
+	* systemtap.spec: Make configuration macros at top overridable.
+
+2008-08-25  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_module_init): Make
+	sure we count the number of utrace probes correctly.
+	(utrace_derived_probe_group::emit_module_exit): Ditto.
+
+2008-08-25  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (installcheck): Remove $(EXTRA_SYSTEMTAP_PATH) from
+	invocation of $(MAKE).
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Regenerated.
+	* stap-client (parse_options): Don't quote an argument if it is already
+	quoted.
+	(send_request): Timeout after 10 seconds.
+	(receive_response): Timeout after 5 minutes.
+	(choose_server): Add missing $ to variable reference.
+	(connect_to_server): Timeout after 10 seconds.
+	* stap-server (receive_request): Don't check for a "request:"
+	message. Timeout after 10 seconds.
+	(send_response): Timeout after 10 seconds.
+	* stap-serverd (initialization): Remove tmpdir_prefix_serverd and
+	port2. No need for a temp directory.
+	(listen): Fifo no longer necessary. Call nc and pipe the output to
+	process_request in the background.
+	(process_request): New function.
+	(fatal): Kill stap-server followed by nc. No tmpdir to remove.
+
 2008-08-24  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (uprobe_derived_probe ctor): Ditto.

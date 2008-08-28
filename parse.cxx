@@ -88,7 +88,7 @@ tt2str(token_type tt)
 ostream&
 operator << (ostream& o, const source_loc& loc)
 {
-  o << loc.file << ":" 
+  o << loc.file << ":"
     << loc.line << ":"
     << loc.column;
 
@@ -111,14 +111,14 @@ operator << (ostream& o, const token& t)
       o << "'";
     }
 
-  o << " at " 
+  o << " at "
     << t.location;
 
   return o;
 }
 
 
-void 
+void
 parser::print_error  (const parse_error &pe)
 {
   cerr << "parse error: " << pe.what () << endl;
@@ -143,7 +143,7 @@ parser::print_error  (const parse_error &pe)
 }
 
 
-const token* 
+const token*
 parser::last ()
 {
   return last_t;
@@ -194,11 +194,11 @@ bool eval_pp_conditional (systemtap_session& s,
     {
       string target_kernel_vr = s.kernel_release;
       string target_kernel_v = s.kernel_base_release;
-      
+
       if (! (r->type == tok_string))
         throw parse_error ("expected string literal", r);
 
-      string target = (l->content == "kernel_vr" ? 
+      string target = (l->content == "kernel_vr" ?
                        target_kernel_vr.c_str() :
                        target_kernel_v.c_str());
       string query = r->content;
@@ -247,7 +247,7 @@ bool eval_pp_conditional (systemtap_session& s,
       if (! (r->type == tok_string))
         throw parse_error ("expected string literal", r);
       string query_architecture = r->content;
-      
+
       int nomatch = fnmatch (query_architecture.c_str(),
                              target_architecture.c_str(),
                              FNM_NOESCAPE); // still spooky
@@ -259,9 +259,9 @@ bool eval_pp_conditional (systemtap_session& s,
         result = nomatch;
       else
         throw parse_error ("expected '==' or '!='", op);
-      
+
       return result;
-    }  
+    }
   else if (l->type == tok_string && r->type == tok_string)
     {
       string lhs = l->content;
@@ -307,7 +307,7 @@ parser::scan_pp (bool wildcard)
       const token* t = input.scan (wildcard); // NB: not recursive!
       if (t == 0) // EOF
         return t;
-      
+
       if (! (t->type == tok_operator && t->content == "%(")) // ordinary token
         return t;
 
@@ -349,7 +349,7 @@ parser::scan_pp (bool wildcard)
             }
           catch (const parse_error &e)
             {
-              if (result) throw e; // propagate errors if THEN branch taken 
+              if (result) throw e; // propagate errors if THEN branch taken
               continue;
             }
 
@@ -370,7 +370,7 @@ parser::scan_pp (bool wildcard)
 
           continue;
         }
-      
+
       if (m && m->type == tok_operator && m->content == "%:") // ELSE
         {
           delete m; // "%:"
@@ -380,10 +380,10 @@ parser::scan_pp (bool wildcard)
               try
                 {
                   m = result ? input.scan (wildcard) : scan_pp (wildcard);
-                } 
+                }
               catch (const parse_error& e)
                 {
-                  if (!result) throw e; // propagate errors if ELSE branch taken 
+                  if (!result) throw e; // propagate errors if ELSE branch taken
                   continue;
                 }
 
@@ -397,7 +397,7 @@ parser::scan_pp (bool wildcard)
               if (!m)
                 throw parse_error ("incomplete conditional - missing %)", t);
               if (!result)
-                my_enqueued_pp.push_back (m);                
+                my_enqueued_pp.push_back (m);
               if (result)
                 delete m; // do nothing, just dispose of unkept ELSE token
 
@@ -466,7 +466,7 @@ tok_is(token const * t, token_type tt, string const & expected)
 }
 
 
-const token* 
+const token*
 parser::expect_known (token_type tt, string const & expected)
 {
   const token *t = next();
@@ -476,7 +476,7 @@ parser::expect_known (token_type tt, string const & expected)
 }
 
 
-const token* 
+const token*
 parser::expect_unknown (token_type tt, string & target)
 {
   const token *t = next();
@@ -487,7 +487,7 @@ parser::expect_unknown (token_type tt, string & target)
 }
 
 
-const token* 
+const token*
 parser::expect_unknown2 (token_type tt1, token_type tt2, string & target)
 {
   const token *t = next();
@@ -498,20 +498,20 @@ parser::expect_unknown2 (token_type tt1, token_type tt2, string & target)
 }
 
 
-const token* 
+const token*
 parser::expect_op (std::string const & expected)
 {
   return expect_known (tok_operator, expected);
 }
 
 
-const token* 
+const token*
 parser::expect_kw (std::string const & expected)
 {
   return expect_known (tok_identifier, expected);
 }
 
-const token* 
+const token*
 parser::expect_number (int64_t & value)
 {
   bool neg = false;
@@ -537,8 +537,8 @@ parser::expect_number (int64_t & value)
       || (neg && (unsigned long long) value > 9223372036854775808ULL)
       || (unsigned long long) value > 18446744073709551615ULL
       || value < -9223372036854775807LL-1)
-    throw parse_error ("number invalid or out of range"); 
-  
+    throw parse_error ("number invalid or out of range");
+
   if (neg)
     value = -value;
 
@@ -546,28 +546,28 @@ parser::expect_number (int64_t & value)
 }
 
 
-const token* 
+const token*
 parser::expect_ident (std::string & target)
 {
   return expect_unknown (tok_identifier, target);
 }
 
 
-const token* 
+const token*
 parser::expect_ident_or_keyword (std::string & target)
 {
   return expect_unknown2 (tok_identifier, tok_keyword, target);
 }
 
 
-bool 
+bool
 parser::peek_op (std::string const & op)
 {
   return tok_is (peek(), tok_operator, op);
 }
 
 
-bool 
+bool
 parser::peek_kw (std::string const & kw)
 {
   return tok_is (peek(), tok_identifier, kw);
@@ -576,7 +576,7 @@ parser::peek_kw (std::string const & kw)
 
 
 lexer::lexer (istream& i, const string& in, systemtap_session& s):
-  input (i), input_name (in), cursor_suspend_count(0), 
+  input (i), input_name (in), cursor_suspend_count(0),
   cursor_line (1), cursor_column (1), session(s)
 { }
 
@@ -593,7 +593,7 @@ lexer::input_peek (unsigned n)
 }
 
 
-int 
+int
 lexer::input_get ()
 {
   int c = input_peek (0);
@@ -691,7 +691,7 @@ lexer::scan (bool wildcard)
           idx = (idx * 10) + (c2 - '0');
           c2 = input_peek ();
         } while (c2 > 0 &&
-                 isdigit (c2) && 
+                 isdigit (c2) &&
                  idx <= session.args.size()); // prevent overflow
       if (idx == 0 ||
           idx-1 >= session.args.size())
@@ -736,7 +736,7 @@ lexer::scan (bool wildcard)
           || n->content == "string"
           || n->content == "long")
         n->type = tok_keyword;
-      
+
       return n;
     }
 
@@ -781,7 +781,7 @@ lexer::scan (bool wildcard)
 	  if (c == '\"') // closing double-quotes
 	    break;
 	  else if (c == '\\') // see also input_put
-	    {	      
+	    {
 	      c = input_get ();
 	      switch (c)
 		{
@@ -795,7 +795,7 @@ lexer::scan (bool wildcard)
 		case '0' ... '7': // NB: need only match the first digit
 		case '\\':
 		  // Pass these escapes through to the string value
-		  // being parsed; it will be emitted into a C literal. 
+		  // being parsed; it will be emitted into a C literal.
 
 		  n->content.push_back('\\');
 
@@ -918,7 +918,7 @@ lexer::scan (bool wildcard)
         {
           n->content = s2;
           input_get (); // swallow other character
-        }   
+        }
       else
         {
           n->content = s1;
@@ -985,7 +985,7 @@ parser::parse ()
 	{
 	  print_error (pe);
           if (pe.skip_some) // for recovery
-            try 
+            try
               {
                 // Quietly swallow all tokens until the next '}'.
                 while (1)
@@ -1018,7 +1018,7 @@ parser::parse ()
       delete f;
       return 0;
     }
-  
+
   return f;
 }
 
@@ -1041,16 +1041,16 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
   while (1)
     {
       probe_point * pp = parse_probe_point ();
-      
+
       const token* t = peek ();
-      if (equals_ok && t 
+      if (equals_ok && t
           && t->type == tok_operator && t->content == "=")
         {
           aliases.push_back(pp);
           next ();
           continue;
         }
-      else if (equals_ok && t 
+      else if (equals_ok && t
           && t->type == tok_operator && t->content == "+=")
         {
           aliases.push_back(pp);
@@ -1172,7 +1172,7 @@ parser::parse_statement ()
       n->tok = next ();
       return n;
     }
-  else if (t && t->type == tok_operator && t->content == "{")  
+  else if (t && t->type == tok_operator && t->content == "{")
     return parse_stmt_block ();
   else if (t && t->type == tok_keyword && t->content == "if")
     return parse_if_statement ();
@@ -1220,7 +1220,7 @@ parser::parse_global (vector <vardecl*>& globals, vector<probe*>&)
       for (unsigned i=0; i<globals.size(); i++)
 	if (globals[i]->name == t->content)
 	  throw parse_error ("duplicate global name");
-      
+
       vardecl* d = new vardecl;
       d->name = t->content;
       d->tok = t;
@@ -1326,7 +1326,7 @@ parser::parse_functiondecl (std::vector<functiondecl*>& functions)
 	  else if (t->type == tok_keyword && t->content == "long")
 	    vd->type = pe_long;
 	  else throw parse_error ("expected 'string' or 'long'");
-	  
+
 	  t = next ();
 	}
       if (t->type == tok_operator && t->content == ")")
@@ -1420,11 +1420,11 @@ parser::parse_probe_point ()
           // fall through
         }
 
-      if (t && t->type == tok_operator 
+      if (t && t->type == tok_operator
           && (t->content == "{" || t->content == "," ||
               t->content == "=" || t->content == "+=" ))
         break;
-      
+
       throw parse_error ("expected one of '. , ( ? ! { = +='");
     }
 
@@ -1463,7 +1463,7 @@ parser::parse_literal ()
 	      || (neg && (unsigned long long) value > 9223372036854775808ULL)
 	      || (unsigned long long) value > 18446744073709551615ULL
 	      || value < -9223372036854775807LL-1)
-	    throw parse_error ("number invalid or out of range"); 
+	    throw parse_error ("number invalid or out of range");
 
 	  if (neg)
 	    value = -value;
@@ -1633,7 +1633,7 @@ parser::parse_for_loop ()
       if (! (t->type == tok_operator && t->content == ";"))
 	throw parse_error ("expected ';'");
     }
-  
+
   // increment + ")"
   t = peek ();
   if (t && t->type == tok_operator && t->content == ")")
@@ -1679,7 +1679,7 @@ parser::parse_while_loop ()
   t = next ();
   if (! (t->type == tok_operator && t->content == ")"))
     throw parse_error ("expected ')'");
-  
+
   // block
   s->block = parse_statement ();
 
@@ -1746,7 +1746,7 @@ parser::parse_foreach_loop ()
               next ();
               break;
             }
-          else 
+          else
             throw parse_error ("expected ',' or ']'");
         }
       else
@@ -1756,7 +1756,7 @@ parser::parse_foreach_loop ()
   t = next ();
   if (! (t->type == tok_keyword && t->content == "in"))
     throw parse_error ("expected 'in'");
- 
+
   s->base = parse_indexable();
 
   t = peek ();
@@ -1800,7 +1800,7 @@ parser::parse_assignment ()
 
   const token* t = peek ();
   // right-associative operators
-  if (t && t->type == tok_operator 
+  if (t && t->type == tok_operator
       && (t->content == "=" ||
 	  t->content == "<<<" ||
 	  t->content == "+=" ||
@@ -1814,7 +1814,7 @@ parser::parse_assignment ()
 	  t->content == "^=" ||
 	  t->content == "|=" ||
 	  t->content == ".=" ||
-	  false)) 
+	  false))
     {
       // NB: lvalueness is checked during elaboration / translation
       assignment* e = new assignment;
@@ -1860,7 +1860,7 @@ expression*
 parser::parse_logical_or ()
 {
   expression* op1 = parse_logical_and ();
-  
+
   const token* t = peek ();
   while (t && t->type == tok_operator && t->content == "||")
     {
@@ -1999,7 +1999,7 @@ parser::parse_array_in ()
               next ();
               break;
             }
-          else 
+          else
             throw parse_error ("expected ',' or ']'");
         }
       else
@@ -2033,7 +2033,7 @@ parser::parse_comparison ()
   expression* op1 = parse_shift ();
 
   const token* t = peek ();
-  while (t && t->type == tok_operator 
+  while (t && t->type == tok_operator
       && (t->content == ">" ||
           t->content == "<" ||
           t->content == "==" ||
@@ -2061,7 +2061,7 @@ parser::parse_shift ()
   expression* op1 = parse_concatenation ();
 
   const token* t = peek ();
-  while (t && t->type == tok_operator && 
+  while (t && t->type == tok_operator &&
          (t->content == "<<" || t->content == ">>"))
     {
       binary_expression* e = new binary_expression;
@@ -2108,7 +2108,7 @@ parser::parse_additive ()
   expression* op1 = parse_multiplicative ();
 
   const token* t = peek ();
-  while (t && t->type == tok_operator 
+  while (t && t->type == tok_operator
       && (t->content == "+" || t->content == "-"))
     {
       binary_expression* e = new binary_expression;
@@ -2131,7 +2131,7 @@ parser::parse_multiplicative ()
   expression* op1 = parse_unary ();
 
   const token* t = peek ();
-  while (t && t->type == tok_operator 
+  while (t && t->type == tok_operator
       && (t->content == "*" || t->content == "/" || t->content == "%"))
     {
       binary_expression* e = new binary_expression;
@@ -2152,9 +2152,9 @@ expression*
 parser::parse_unary ()
 {
   const token* t = peek ();
-  if (t && t->type == tok_operator 
-      && (t->content == "+" || 
-          t->content == "-" || 
+  if (t && t->type == tok_operator
+      && (t->content == "+" ||
+          t->content == "-" ||
           t->content == "!" ||
           t->content == "~" ||
           false))
@@ -2181,7 +2181,7 @@ parser::parse_crement () // as in "increment" / "decrement"
   // cases like "4++".
 
   const token* t = peek ();
-  if (t && t->type == tok_operator 
+  if (t && t->type == tok_operator
       && (t->content == "++" || t->content == "--"))
     {
       pre_crement* e = new pre_crement;
@@ -2194,9 +2194,9 @@ parser::parse_crement () // as in "increment" / "decrement"
 
   // post-crement or non-crement
   expression *op1 = parse_value ();
-  
+
   t = peek ();
-  if (t && t->type == tok_operator 
+  if (t && t->type == tok_operator
       && (t->content == "++" || t->content == "--"))
     {
       post_crement* e = new post_crement;
@@ -2285,7 +2285,7 @@ parser::parse_indexable ()
 
 // var, indexable[index], func(parms), printf("...", ...), $var, $var->member, @stat_op(stat)
 expression*
-parser::parse_symbol () 
+parser::parse_symbol ()
 {
   hist_op *hop = NULL;
   symbol *sym = NULL;
@@ -2294,7 +2294,7 @@ parser::parse_symbol ()
 
   if (!hop)
     {
-      // If we didn't get a hist_op, then we did get an identifier. We can 
+      // If we didn't get a hist_op, then we did get an identifier. We can
       // now scrutinize this identifier for the various magic forms of identifier
       // (printf, @stat_op, and $var...)
 
@@ -2321,7 +2321,7 @@ parser::parse_symbol ()
 	  expect_op(")");
 	  return sop;
 	}
-      
+
       else if (print_format::parse_print(name,
 	 pf_stream, pf_format, pf_delim, pf_newline, pf_char))
 	{
@@ -2342,16 +2342,16 @@ parser::parse_symbol ()
 	      // construct. This is sort of gross but it avoids
 	      // promoting histogram references to typeful
 	      // expressions.
-	      
+
 	      hop = NULL;
 	      t = parse_hist_op_or_bare_name(hop, name);
 	      assert(hop);
-	      
+
 	      // It is, sadly, possible that even while parsing a
 	      // hist_op, we *mis-guessed* and the user wishes to
 	      // print(@hist_op(foo)[bucket]), a scalar. In that case
 	      // we must parse the arrayindex and print an expression.
-	      
+
 	      if (!peek_op ("["))
 		fmt->hist = hop;
 	      else
@@ -2410,7 +2410,7 @@ parser::parse_symbol ()
 	  expect_op(")");
 	  return fmt;
 	}
-      
+
       else if (name.size() > 0 && name[0] == '$')
 	{
 	  // target_symbol time
@@ -2421,20 +2421,20 @@ parser::parse_symbol ()
 	    {
 	      string c;
 	      if (peek_op ("->"))
-		{ 
-		  next(); 
+		{
+		  next();
 		  expect_ident_or_keyword (c);
 		  tsym->components.push_back
 		    (make_pair (target_symbol::comp_struct_member, c));
 		}
 	      else if (peek_op ("["))
-		{ 
+		{
 		  next();
 		  expect_unknown (tok_number, c);
 		  expect_op ("]");
 		  tsym->components.push_back
 		    (make_pair (target_symbol::comp_literal_array_index, c));
-		}	    
+		}
 	      else
 		break;
 	    }
@@ -2479,8 +2479,8 @@ parser::parse_symbol ()
 	  sym->tok = t;
 	}
     }
-  
-  // By now, either we had a hist_op in the first place, or else 
+
+  // By now, either we had a hist_op in the first place, or else
   // we had a plain word and it was converted to a symbol.
 
   assert (!hop != !sym); // logical XOR
@@ -2502,9 +2502,9 @@ parser::parse_symbol ()
         {
           ai->indexes.push_back (parse_expression ());
           if (peek_op ("]"))
-            { 
-	      next(); 
-	      break; 
+            {
+	      next();
+	      break;
 	    }
           else if (peek_op (","))
 	    {
@@ -2523,7 +2523,7 @@ parser::parse_symbol ()
 
   if (hop)
     throw parse_error("base histogram operator where expression expected", t);
-  
-  return sym;  
+
+  return sym;
 }
 

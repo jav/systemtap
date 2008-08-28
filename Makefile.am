@@ -1,7 +1,7 @@
 # Makefile.am --- automake input file for systemtap
 ## process this file with automake to produce Makefile.in
 
-AUTOMAKE_OPTIONS = dist-bzip2
+AUTOMAKE_OPTIONS = no-dist
 
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 
@@ -10,7 +10,9 @@ AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR=
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
-dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
+man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
+# see also configure.ac
+
 bin_PROGRAMS = stap staprun
 bin_SCRIPTS = stap-client stap-server stap-serverd stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server
 stap_SOURCES = main.cxx \
@@ -23,7 +25,7 @@ BUILT_SOURCES =
 CLEANFILES =
 
 # Arrange for git_version.h to be regenerated at every "make".
-# Code fragment is based upon RadeonHD.am. 
+# Code fragment is based upon RadeonHD.am.
 
 # The stamp file which is never created ensures that git_version.h is updated
 # before every build. Having git_version.h in foo_SOURCES ensures a recompile
@@ -50,13 +52,6 @@ git_version.stamp:
 		fi; \
 	fi
 
-dist-gitversion: git_version.stamp
-	if test -f "git_version.h"; then \
-		sed -e 's|^#undef GIT_IS_DIST.*|#define GIT_IS_DIST 1|' \
-			"git_version.h" > "$(distdir)/git_version.h"; \
-	fi
-
-
 git_version.h:
 	$(srcdir)/git_version.sh -k --srcdir $(srcdir) -o git_version.h
 
@@ -74,9 +69,6 @@ stapio_CPPFLAGS = $(AM_CPPFLAGS)
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
 if BUILD_ELFUTILS
-# This tells automake's "make distcheck" what we need to compile.
-DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
-
 stap_CPPFLAGS += -Iinclude-elfutils
 stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
@@ -113,7 +105,7 @@ staprun_LDADD = @PROCFLAGS@ @cap_LIBS@
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
-	runtime/staprun/relay.c runtime/staprun/relay_old.c 
+	runtime/staprun/relay.c runtime/staprun/relay_old.c
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 stapio_LDADD = @PROCFLAGS@ -lpthread
 
@@ -151,15 +143,6 @@ endif
 # Get extra libs as needed
 LDADD =
 
-EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
-	     parse.h staptree.h tapsets.h translate.h \
-	     cache.h hash.h mdfour.h util.h staplog.c coveragedb.h \
-	     testsuite systemtap.spec runtime tapset \
-	     dwarf_wrappers.h \
-	     git_version.h git_version.sh \
-	     stap-client stap-server stap-serverd stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server \
-	     systemtap.spec
-
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 
@@ -170,11 +153,6 @@ $(EXAMPLE_SOURCE_DIR)/index.html: $(EXAMPLE_META_FILES) $(EXAMPLE_INDEX_GEN)
 	@echo "    cd $(EXAMPLE_SOURCE_DIR) && \\ "
 	@echo "    perl examples-index-gen.pl"
 	@echo "to regenerate it."
-
-dist-hook: dist-gitversion
-	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
-	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
-	find $(distdir) -name 'stap' -o -name '*.log' -o -name '*.sum' -o -name 'site.exp' | xargs rm -rf
 
 install-data-local:
 	(cd $(srcdir)/runtime; for f in *.[ch]; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/$$f; done)
@@ -248,7 +226,23 @@ installcheck:
 	  echo "$(DESTDIR)$(bindir)/stap is not recent, run make install"; \
 	  exit -1; \
 	fi;
-	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" EXTRA_SYSTEMTAP_PATH="$(EXTRA_SYSTEMTAP_PATH)"
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
-rpm:	systemtap.spec dist
-	rpmbuild --define "_sourcedir $(PWD)/" -ba $(srcdir)/systemtap.spec
+
+# Any extra flags, such as:
+#     --define "with_docs 0"
+#     --define "with_bundled_elfutils 1" --define "elfutils_version 0.135"
+RPMBUILDFLAGS=
+
+.PHONY: dist-gzip
+dist-gzip:
+	cd $(srcdir); git status | grep working.directory.clean || (echo "You should commit your changes before 'make rpm'.")
+	(cd $(srcdir); git archive --prefix=systemtap-$(VERSION)/ --format=tar HEAD) | gzip > systemtap-$(VERSION).tar.gz
+
+rpm: dist-gzip
+	mkdir -p `rpm --eval %_specdir`
+	mkdir -p `rpm --eval %_srcrpmdir`
+	mkdir -p `rpm --eval %_rpmdir`
+	mkdir -p `rpm --eval %_builddir`
+	mkdir -p `rpm --eval %_buildroot`
+	rpmbuild --define "_sourcedir $(PWD)/" -ta systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)

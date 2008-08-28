@@ -161,7 +161,7 @@ if test "$enable_docs" == "yes"; then
 fi
 AM_CONDITIONAL([BUILD_DOCS], [test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"])
 
-AC_CHECK_HEADERS([sys/capability.h], , 
+AC_CHECK_HEADERS([sys/capability.h], ,
   [AC_MSG_ERROR([cannot find required libcap header (libcap-devel may need to be installed)])])
 
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used

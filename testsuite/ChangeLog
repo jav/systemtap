@@ -1,3 +1,34 @@
+2008-08-27  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/global_end.exp: New.
+	* systemtap.base/global_end.stp: New.
+	* systemtap.base/bench.exp: Bump up ok.
+	* systemtap.base/optim_arridx.exp: Consider unread globals.
+	* systemtap.base/optim_arridx.stp: Fix typos.
+
+2008-08-27  Wenji Huang  <wenji.huang@oracle.com>
+
+	* semok/nodwf02.stp: Make syscall.q* optional.
+	* semok/nodwf05.stp: Ditto.
+
+2008-08-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (AUTOMAKE_OPTIONS): Add no-dist.  Remove dist-related
+	targets.
+	* Makefile.in: Regenerated.
+
+2008-08-25  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (EXTRA_DIST): html_footer.tmpl, systemtapcorner.gif,
+	systemtaplogo.png, html_header.tmpl and systemtap.css moved to html
+	subdir.
+	* Makefile.in, aclocal.m4: Regenerated.
+
+2008-08-25  Dave Brolley  <brolley@redhat.com>
+
+	* systemtap.base/warnings.exp: Allow 30 seconds for completion.
+	* Makefile.in: Regenerated.
+
 2008-08-22  Wenji Huang  <wenji.huang@oracle.com>
 
 	* buildok/process-all-probes.stp: Change system-wide probes to detailed 	ones to avoid including user space ones.

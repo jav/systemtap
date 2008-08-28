@@ -1,3 +1,7 @@
+2008-08-28  Zhaolei  <zhaolei@cn.fujitsu.com>
+	* socket.stp: Make _get_sock_addr return correct address in kernel
+	before 2.6.16.
+
 2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	* utrace.stp: New file, for use by utrace $var expansions.
@@ -50,7 +54,7 @@
 2008-06-20  wcohen  <wcohen@redhat.com>
 
 	* dev.stp: New.
-	
+
 2008-06-19  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* aux_syscalls.stp: Output unknown bits in _stp_lookup_or_str.
@@ -171,9 +175,9 @@
 	PR 5231
 	* ioblock.stp (ioblock.end): Set bytes_done depending on kernel
 	version.
-	
+
 2008-04-29  Frank Ch. Eigler  <fche@elastic.org>
-	
+
 	PR 6466
 	* tcp.stp (tcp_sockstate_str, tcp_sockopt_str): Initialize
 	number->string lookup tables here, instead of "probe begin(-1)"
@@ -210,7 +214,7 @@
 	register unification
 
 2008-02-28  Will Cohen  <wcohen@redhat.com>
-	
+
 	PR433780
 	* errno.stp (returnstr): Handle unified i386/x86_64 reg names.
 
@@ -220,7 +224,7 @@
 	on xen kernel.
 
 2008-01-25  Will Cohen  <wcohen@redhat.com>
-	
+
 	PR5554
 	* syscalls.stp (__is_user_regs): Modify to work with older kernels.
 
@@ -278,7 +282,7 @@
 	(kexec_load): Ditto.
 	(mbind): Ditto.
 	(move_pages): Ditto.
-	
+
 2007-12-17  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
@@ -320,13 +324,13 @@
 
 2007-11-12  Martin Hunt  <hunt@redhat.com>
 
-	* logging.stp (print_char): Remove.  Now implemented by 
+	* logging.stp (print_char): Remove.  Now implemented by
 	stap.
 	(log): Add a comment that it is deprecated.
-	
+
 2007-11-12  Martin Hunt  <hunt@redhat.com>
-	
-	* syscalls2.stp (sys_remap_file_pages: : Change kernel 
+
+	* syscalls2.stp (sys_remap_file_pages: : Change kernel
 	version check to >= 2.6.24.
 
 2007-11-8  Zhaolei  <zhaolei@cn.fujitsu.com>
@@ -433,14 +437,14 @@
 	sa_restorer field for IA64.
 
 2007-10-09  Martin Hunt  <hunt@redhat.com>
-	
+
 	* syscalls2.stp (sys_signal): Call
 	_sighandler_str().
 
 	* aux_syscalls.stp (_stp_sigset_str): Don't
 	include SIG_0.
 	(_sighandler_str): New.
-	
+
 2007-10-09  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* queue_stats.stp (qsq_start): Add destruction for qs_utime.
@@ -458,16 +462,16 @@
 
 	* syscalls2.stp (rt_sigaction, sigaction): Call
 	_struct_sigaction_u().
-	
-	* aux_syscalls.stp (_struct_timeval): Removed. No longer 
-	necessary now that we have structure access in scripts. 
+
+	* aux_syscalls.stp (_struct_timeval): Removed. No longer
+	necessary now that we have structure access in scripts.
 	(_struct_timespec): Ditto.
 	(_struct_itimerval): Ditto.
 	(_struct_timezone_u): Remove random CATCH_DEREF_FAULT()
 	line.
 	(_stp_sigset_str): New.
 	(_struct_sigaction_u): New.
-	
+
 2007-10-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	* inet.stp: New tapset for htonl and friends.
@@ -489,7 +493,7 @@
 
 2007-10-01  Martin Hunt  <hunt@redhat.com>
 
-	* aux_syscalls.stp (_str_lookup_str): Print unmatched 
+	* aux_syscalls.stp (_str_lookup_str): Print unmatched
 	values in hex.
 
 2007-10-01  Zhaolei  <zhaolei@cn.fujitsu.com>
@@ -509,7 +513,7 @@
 	(_shmat_flags_str): Ditto.
 	(_at_flag_str): Ditto.
 	(get_mmap_args): Complete rewrite for safety and correctness.
-	
+
 2007-09-27  Wenji Huang  <wenji.huang@oracle.com>
 
         * rpc.stp (clones_from_clnt, tasks_from_clnt): Fix for kernel >= 2.6.22.
@@ -550,7 +554,7 @@
 
 	Added __page_index() to work around problem dereferencing unions
 	in stap language.
-	
+
 	Made generic.fop.sendfile conditional on kernel <= 2.6.22.
 	generic_file_sendfile() was removed in 2.6.23.
 
@@ -615,7 +619,7 @@
 
 2007-09-24  Frank Ch. Eigler  <fche@elastic.org>
 
-	* aux_syscalls.stp: Add missing CATCH_DEREF_FAULT()s. 
+	* aux_syscalls.stp: Add missing CATCH_DEREF_FAULT()s.
 
 2007-09-24  Frank Ch. Eigler  <fche@elastic.org>
 
@@ -768,21 +772,21 @@
 	* syscalls2.stp (sys_tee.return): Make optional
 
 2007-08-23  Martin Hunt  <hunt@redhat.com>
-	
+
 	* aux_syscalls.stp (_struct_compat_timeval_u): Fix
 	array reference.
 	(_struct_compat_timespec_u): Cast args to long.
 
 2007-08-23  Martin Hunt  <hunt@redhat.com>
-	
+
 	From Cai Fei <caifei@cn.fujitsu.com>
 	* aux_syscalls.stp (_waitid_opt_str): New.
 	(_wait4_opt_str): Just handle wait4 options.
 	* syscalls2.stp (sys_waitid): Use _waitid_opt_str.
-	
+
 2007-08-23  Wenji Huang  <wenji.huang@oracle.com>
 
-        * rpc.stp (sunrpc.svc.process, sunrpc.svc.recv): Modify evaluating 
+        * rpc.stp (sunrpc.svc.process, sunrpc.svc.recv): Modify evaluating
 	sv_name,sv_prog,sv_nrthreads in kernel>=2.6.19.
 	(sunrpc.sched.delay,sunrpc.sched.delay): Fix typo.
 	(sunrpc.*.return): Change name by adding "return".
@@ -805,49 +809,49 @@
 	* syscalls.stp (compat_sys_epoll_ctl): New.
 	(compat_sys_epoll_wait): New.
 	(sys_epoll_pwait): New.
-	(compat_sys_epoll_pwait): New.	
+	(compat_sys_epoll_pwait): New.
 	(compat_sys_keyctl): New.
 	(compat_sys_mq_open): New.
-	(compat_sys_futex): New.			      
+	(compat_sys_futex): New.
 	(compat_sys_mq_timedsend): New.
 	(compat_sys_mq_timedreceive): New.
 	(compat_sys_mq_notify): New.
 	(compat_sys_mq_getsetattr): New.
 	(init_module): Make optional and quote args.
 	(sys_eventfd): New.
-	
+
 	* syscalls2.stp (sys_splice): New.
 	(sys_vmsplice): New.
-	(compat_sys_vmsplice): New.	
+	(compat_sys_vmsplice): New.
 	(sys_tee): New.
-	(sys_signalfd): New.	
-	(compat_sys_signalfd): New.	
+	(sys_signalfd): New.
+	(compat_sys_signalfd): New.
 	(sys_timerfd): New.
 	(compat_sys_timerfd): New.
 	(old32_readdir): New.
-	
+
 2007-08-22  Martin Hunt  <hunt@redhat.com>
-	
+
 	* aux_syscalls.stp (_utimensat_flag_str): New.
 	(_dfd_str): New.
 	(_struct_timeval2_u): Deleted.
 	(_struct_timeval_u): Take a number of structs to decode.
-	(_struct_compat_timeval2_u): Deleted	
-	(_struct_compat_timeval_u): Take a number of structs to decode.	
+	(_struct_compat_timeval2_u): Deleted
+	(_struct_compat_timeval_u): Take a number of structs to decode.
 	(_struct_timespec_u): Take a number of structs to decode.
 	Recognize UTIME_NOW and UTIME_OMIT.
 	(_struct_compat_timespec_u): Ditto.
-	
+
 	* syscalls.stp (compat_sys_old_getrlimit): Removed.
 	(sys_migrate_pages): New.
 	(sys_move_pages): New.
 
 	* syscalls2.stp (compat_sys_sigprocmask): Removed. Calls
 	sys_sigprocmask.
-	(compat_sys_sysinfo): New.	
+	(compat_sys_sysinfo): New.
 	(compat_sys_rt_sigtimedwait): New.
 	(sys_utimensat, compat_sys_utimensat): New.
-	
+
 	* ppc64/syscalls.stp (compat_sys_sigpending): Removed.
 	Calls sys_ func.
 	(compat_sys_setrlimit): Ditto.
@@ -856,11 +860,11 @@
 	(compat_sys_getrusage): Ditto.
 	(compat_sys_wait4): Ditto.
 	(compat_sys_sched_setaffinity): Ditto.
-	(compat_sys_sched_getaffinity): Ditto.	
-	
+	(compat_sys_sched_getaffinity): Ditto.
+
 2007-08-22  Wenji Huang  <wenji.huang@oracle.com>
 
-        * nfsd.stp (nfsd.proc?.*): Modify evaluating client_ip 
+        * nfsd.stp (nfsd.proc?.*): Modify evaluating client_ip
 	with function addr_from_rqst to make it compatible in kernel>=2.6.19
 	(nfsd.proc4.compound,nfsd.read,nfsd.write): Fix typo.
 	(nfsd.unlink): Fix reference to variable iap.
@@ -903,7 +907,7 @@
         * nfs.stp (nfs.fop.aio_read, nfs.fop.aio_write): Modify evaluating count.
 	(__iov_length): New function.
 	(nfs.fop.sendfile, nfs.aop.set_page_dirty, nfs.aop.prepare_write,
-	 nfs.aop.release_page): Fix typo. 
+	 nfs.aop.release_page): Fix typo.
 
 2007-08-17  Martin Hunt  <hunt@redhat.com>
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
@@ -928,10 +932,10 @@
 
 	From zhaolei@cn.fujitsu.com
 	Remove PF_UNIX. PF_LOCAL is correct.
-	
-2007-08-16  Martin Hunt  <hunt@redhat.com>	
 
-	* aux_syscalls.stp (__get_argv): Add parameter to 
+2007-08-16  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (__get_argv): Add parameter to
 	optionally skip the first argv (argv[0]).
 	(__get_compat_argv): Ditto.
 
@@ -939,8 +943,8 @@
 	For argstr use filename plus argv starting at [1].
 	(compat_execve): Ditto.
 	* ppc64/syscalls.stp (sys32_exevve): Ditto.
-	
-	From Cai Fei <caifei@cn.fujitsu.com>	
+
+	From Cai Fei <caifei@cn.fujitsu.com>
 	* syscalls.stp (sts_getpgid): Add pid arg.
 
 2007-08-16  Wenji Huang  <wenji.huang@oracle.com>
@@ -961,7 +965,7 @@
 	* aux_syscalls.stp (get_mmap_args): Moved here.
 	* syscalls.stp: Add sys32_alarm.
 	* syscalls2.stp: Add sys32_uname.
-	
+
 2007-08-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* context.stp (cpuid, cpu): Use smp_processor_id().
@@ -997,7 +1001,7 @@
 
 	* tapset/syscalls.stp (syscall.compat_execve,
 	syscall.compat_execve.return):
-	* tapset/syscalls2.stp (syscall.compat_sys_semtimedop, 
+	* tapset/syscalls2.stp (syscall.compat_sys_semtimedop,
 	syscall.compat_sys_semtimedop.return):
 	* tapset/i686/syscalls.stp (syscall.set_zone_reclaim,
 	syscall.set_zone_reclaim.return): Make optional.
@@ -1014,13 +1018,13 @@
 2007-07-31  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls*: Move sys32_sysctl to arch dirs.
-	
+
 2007-07-31  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp (clock_nanosleep): Fix flags string.
 	* syscalls2.stp: Fix typo.
 
-2007-07-31  Martin Hunt  <hunt@redhat.com>	
+2007-07-31  Martin Hunt  <hunt@redhat.com>
 
 	* */syscalls.stp: Added mmap functions.
 	Continued moving common compatibility functions to
@@ -1052,9 +1056,9 @@
 	(semctl): Make optional.
 	(compat_sys_semctl): New.
 	(semget): Make optional.
-	(semop): Make optional.	
-	(semtimedop): Make optional.		
-	(compat_sys_semtimedop): New.	
+	(semop): Make optional.
+	(semtimedop): Make optional.
+	(compat_sys_semtimedop): New.
 	(send): Make optional.
 	(sendmsg): Make optional.
 	(compat_sys_sendmsg): New.
@@ -1074,7 +1078,7 @@
 	(sysctl): Add probe on sys32.
 
 2007-07-31  Frank Ch. Eigler  <fche@elastic.org>
-	
+
 	PR 4793
 	* ppc64/syscalls.stp: Remove duplicate sys_request_key{,.return}
 	aliases.
@@ -1105,7 +1109,7 @@
 2007-07-16  Martin Hunt  <hunt@redhat.com>
 	(compat_sys_io_submit): Fix typo.
 
-2007-07-16  Martin Hunt  <hunt@redhat.com>	
+2007-07-16  Martin Hunt  <hunt@redhat.com>
 	* syscalls.stp (compat_sys_fcntl64, compat_sys_fcntl): Add.
 	(compat_sys_fstatfs64): Add.
 	(compat_sys_getdents, compat_sys_getdents64): Add.
@@ -1127,9 +1131,9 @@
 	(sys_select): Don't try to print fd_sets.
 	(compat_sys_select): Add.
 	(compat_sys_statfs64): Add.
-	 
+
 	* ppc/syscalls.stp: Remove duplicated probes.
-	
+
 	* aux_syscalls.stp (_nfsctl_cmd_str): New.
 	(_fd_set_u): Removed. Not used.
 
@@ -1141,10 +1145,10 @@
 
 2007-07-10  Martin Hunt  <hunt@redhat.com>
 
-	* aux_syscalls.stp (_struct_compat_timeval2_u): 
+	* aux_syscalls.stp (_struct_compat_timeval2_u):
 	Fixes.
 
-2007-07-10  Martin Hunt  <hunt@redhat.com>	
+2007-07-10  Martin Hunt  <hunt@redhat.com>
 	* syscall*.stp: Major reorganization work.
 	* aux_syscalls.stp (_sigprocmask_how_str): Rewrite
 	in C so real arch-dependent header files
@@ -1154,7 +1158,7 @@
 2007-07-09  Martin Hunt  <hunt@redhat.com>
 	* syscalls2.stp (compat_sys_settimeofday): New.
 
-2007-07-09  Martin Hunt  <hunt@redhat.com>	
+2007-07-09  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls2.stp (compat_sys_utimes): New.
 	* ppc64/syscalls.stp (compat_sys_utimes): Removed.
@@ -1181,21 +1185,21 @@
 
 2007-06-15  Martin Hunt  <hunt@redhat.com>
 
-	* syscalls.stp: Add sys_fcntl64, sys_oabi_fstat64, 
+	* syscalls.stp: Add sys_fcntl64, sys_oabi_fstat64,
 	  sys_oabi_lstat64.
 	* syscalls2.stp: Fix sys_send. Add sys_sendfile64.
 	* errno.stp: Add arm support.
 
 2007-06-14  Mike Mason <mmlnx@us.ibm.com>
 
-	* socket.stp: removed extra assignment to "size" in 
+	* socket.stp: removed extra assignment to "size" in
 	socket.aio_write.return
 
 2007-06-07  Martin Hunt  <hunt@redhat.com>
 	Fallout from PR 3331 fix. Sometimes glibc and the
 	kernel disagree about signed vs unsigned.
 	* aux_syscalls.stp: Rename __uid() to __int32().
-	* syscalls.stp: Change syscall.chown, syscall.fchown, 
+	* syscalls.stp: Change syscall.chown, syscall.fchown,
 	syscall.lchown, and syscall.lseek to use __int32().
 	* syscalls2.stp: Change syscall.setregid, syscall.resgid,
 	syscall.resuid, and syscall.setreuid to use __int32().
@@ -1210,16 +1214,16 @@
 	* syscalls2.stp: Make optional sys_nice, sys_rt_sigreturn,
 	sys_signal, sys_sigprocmask, sys_utime
 	(syscall.old_getrlimit): Moved into syscall.getrlimit.
-	
+
 2007-05-16  Will Cohen  <wcohen@redhat.com>
 	PR 4471
 	* syscall2.stp: Correct sys_pipe function args for ia64.
-	
+
 2007-05-16  Will Cohen  <wcohen@redhat.com>
 
 	PR 4510
 	* scheduler.stp: Correct function argument.
-	
+
 2007-05-09  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls2.stp: Added compat_sys_pause to syscall.pause.
@@ -1330,7 +1334,7 @@
 	(backtrace): Just use _stp_stack_snprint().
 	(print_stack): Use new _stp_print* functions.
 	(probefunc): Use _stp_symbol_snprint.
-	
+
 2007-01-26  Josh Stone  <joshua.i.stone@intel.com>
 
 	* vfs.stp (ppos_pos): Change deref() to kread() so i686 passes.
@@ -1369,14 +1373,14 @@
 2007-01-12  Mike Mason <mmlnx@us.ibm.com>
 
 	* x86_64/syscalls.stp: added ? to request_key aliases
-	to prevent syscall.* failures on some kernels 
+	to prevent syscall.* failures on some kernels
 
 2006-12-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guij@cn.ibm.com>
-	* ioscheduler.stp, nfsd.stp, nfs.stp, nfs_proc.stp, 
+	* ioscheduler.stp, nfsd.stp, nfs.stp, nfs_proc.stp,
 	rpc.stp, vfs.stp: patch for 2.6.19 kernel
-	
+
 2006-12-18  Frank Ch. Eigler  <fche@elastic.org>
 
 	* vfs.stp (ppos_pos): Protect contents with deref(), though
@@ -1391,13 +1395,13 @@
 
 	From Gui Jian <guij@cn.ibm.com>
 	* nfs.stp, nfs_proc.stp, rpc.stp: patch for 2.6.9 kernel
-	
+
 2006-11-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guij@cn.ibm.com>
-	* scheduler.stp, vfs.stp: made idle_balance and 
+	* scheduler.stp, vfs.stp: made idle_balance and
 	buffer_migrate_page optinal.
-	
+
 2006-11-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	* context.stp (caller_addr): Declare return type.
@@ -1435,7 +1439,7 @@
 	(stack_used): New.
 	(stack_unused): New.
 	(called_addr): New.
-	(caller): New.	
+	(caller): New.
 
 2006-10-12  Li Guanglei <guanglei@cn.ibm.com>
 	* ioscheduler.stp: bugfix to avoid refer to NULL pointer
@@ -1463,7 +1467,7 @@
 	Use gettimeofday_ns as the base unit.
 
 2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
-	
+
 	From Gui Jian <guijian@cn.ibm.com>
 
 	* rpc.stp: Some changes and more comments of RPC tapset
@@ -1474,48 +1478,48 @@
 	* string.stp: Fix docs.
 
 2006-09-12  Li Guanglei <guanglei@cn.ibm.com>
-	
+
 	From Li Xuepeng <xuepengl@cn.ibm.com>
 
-	* nfsd.stp, nfs_proc.stp, nfs.stp: 
+	* nfsd.stp, nfs_proc.stp, nfs.stp:
 	Change NFS file identifier. Change NFS version data type
-	from String to INT. Add version variable to nfs_open 
+	from String to INT. Add version variable to nfs_open
 	and nfs_release.
-	
+
 2006-09-11  Li Guanglei <guanglei@cn.ibm.com>
-	
+
 	From Gui Jian(guijian@cn.ibm.com>
 	* rpc.stp: tapsets for RPC activities.
-	
+
 2006-08-30  Li Guanglei <guanglei@cn.ibm.com>
 
-	* signal.stp: some changes to arguments and comments 
+	* signal.stp: some changes to arguments and comments
 	of signal tapset
-	
+
 2006-08-25  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Li Xuepeng:
 	* vfs.stp,nfsd.stp,nfs.stp: bug fixes and more error checking
-	
+
 2006-08-23  Li Guanglei <guanglei@cn.ibm.com>
 
 	* vfs.stp: New tapset from Thomas Zanussi(trz@us.ibm.com) to probe
 	vfs layer activities.
 	* nfs.stp: New tapset from Li Xuepeng(xuepengl@cn.ibm.com) to probe
 	nfs file operations and nfs address space operations on client side.
-	* nfs_proc.stp: New tapset from Li Xuepeng to probe some nfs RPC 
+	* nfs_proc.stp: New tapset from Li Xuepeng to probe some nfs RPC
 	procedure stub functions on client side.
-	* nfsd.stp: New tapset from Li Xuepeng to probe nfs server side 
-	activities, including some RPC procedure stub functions, nfsd 
+	* nfsd.stp: New tapset from Li Xuepeng to probe nfs server side
+	activities, including some RPC procedure stub functions, nfsd
 	dispatch routine, and nfsd_* functions
-	
+
 2006-08-22  Li Guanglei <guanglei@cn.ibm.com>
 
 	* signal.stp: More variables for signal.do_action and
 	signal.procmask. New function of get_sigset(). Minor
 	changes to naming of signal.pend and its comments
 
-	
+
 2006-08-21  Martin Hunt  <hunt@redhat.com>
 
 	* string.stp (substr): Rewrite. Make the 3rd parameter
@@ -1524,30 +1528,30 @@
 2006-08-17  Josh Stone  <joshua.i.stone@intel.com>
 
 	* signal.stp: Changes on behalf of Manoj S Pattabhiraman:
-	1. As per the suggestions, i have removed the argstr from the 
+	1. As per the suggestions, i have removed the argstr from the
 	probe points.
-	2. Added some checks to find whether the signals generated are 
+	2. Added some checks to find whether the signals generated are
 	USER or Kernel Mode in signal_handle probe.
 
 2006-08-17  Li Guanglei <guanglei@cn.ibm.com>
 
 	* signal.stp: update signal tapsets based on the discussion
 	with Josh Stone on mailinglist:
-	1. Added "send2queue" and "name" variable for signal.send.part* 
-	2. Added signal.send.return probe alias 
+	1. Added "send2queue" and "name" variable for signal.send.part*
+	2. Added signal.send.return probe alias
 	3. Added signal.checkperm and signal.checkperm.return probe alias
 	4. Commented out signal.handle_stop
 	5. Alias all signal syscalls to syscall tapsets.
 
 2006-08-15  Thang Nguyen  <thang.p.nguyen@intel.com>
 
-	* ioblock.stp:  Added safety checks for __bio_ino() and 
-	__bio_start_sect(). 
+	* ioblock.stp:  Added safety checks for __bio_ino() and
+	__bio_start_sect().
 
 2006-08-09  Thang Nguyen  <thang.p.nguyen@intel.com>
 
 	* ioblock.stp: Merged io.stp from Tom Zanussi (IBM) into existing
-	ioblock.stp.  Removed/Renamed duplicate variables and probes.	
+	ioblock.stp.  Removed/Renamed duplicate variables and probes.
 
 2006-08-09  Josh Stone  <joshua.i.stone@intel.com>
 
@@ -1578,31 +1582,31 @@
 	* return.stp: Removed.  Use $return instead.
 
 2006-07-17  Tom Zanussi <zanussi@us.ibm.com>
-	
+
 	* ioblock.stp: add null bi_bdev check to bio_devname()
 
 2006-07-17  Li Guanglei <guanglei@cn.ibm.com>
-	
-	* syscalls.stp: make sys_acct, sys_add_key, sys_keyctl 
-	and sys_modify_ldt optional on ppc64 since they are 
+
+	* syscalls.stp: make sys_acct, sys_add_key, sys_keyctl
+	and sys_modify_ldt optional on ppc64 since they are
 	weak symbol.
 	* ppc64/syscalls.stp: remove syscall.acct, syscall.add_key
-	and syscall.umask since they are already defined in 
+	and syscall.umask since they are already defined in
 	syscalls.stp
-	
+
 2006-07-04  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp, syscalls2.stp: Use user_string_quoted().
 
 2006-07-04  Li Guanglei <guanglei@cn.ibm.com>
-	
-	* syscalls.stp, syscalls2.stp, ppc64/syscalls.stp: 
-	fix syscall.lstat, syscall.lstat64, syscall.newlstat. 
-	* ppc64/syscalls.stp: fix syscall.compat_sys_statfs and 
+
+	* syscalls.stp, syscalls2.stp, ppc64/syscalls.stp:
+	fix syscall.lstat, syscall.lstat64, syscall.newlstat.
+	* ppc64/syscalls.stp: fix syscall.compat_sys_statfs and
 	syscall.sys32_open
 
 2006-07-04  Li Guanglei <guanglei@cn.ibm.com>
-	
+
 	* memory.stp: add addr_to_node() from Jose R. Santos
 	(jrs@us.ibm.com)
 	* syscalls.stp: typo for syscall.lstat
@@ -1613,17 +1617,17 @@
 	on faults, just return <unknown>.
 	(user_string2): New function.
 	(user_string_warn): New function.
-	
+
 2006-06-26  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_stp_ctime): New function.
 	(_struct_utimbuf_u): New function.
 
 2006-06-25  Li Guanglei <guanglei@cn.ibm.com>
-	
-	* syscalls.stp: Changes to AIO related syscalls(io_setup, 
+
+	* syscalls.stp: Changes to AIO related syscalls(io_setup,
 	io_submit, io_getevents, io_cancel, io_destroy)
-	
+
 2006-06-23  Thang Nguyen  <thang.p.nguyen@intel.com>
 
 	* tcp.stp: Refined variables and added more
@@ -1653,10 +1657,10 @@
 
 2006-06-09  Martin Hunt  <hunt@redhat.com>
 
-	* syscalls2.stp: Fixed the uid and gid calls.	
+	* syscalls2.stp: Fixed the uid and gid calls.
 
 2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
-	
+
 	* syscalls.stp: made sys_ftruncate64 optional since it doesn't
 	exist on 2.6.16*/ppc64
 
@@ -1685,7 +1689,7 @@
 	* syscalls2.stp (sys_write): Use text_strn().
 	* syscalls.stp (sys_lseek): Fix.
 	(sys_llseek): Fix.
-	
+
 	* string.stp (text_str): New.
 	(text_strn): New.
 
@@ -1698,22 +1702,22 @@
 	(add_key): Comment out. This syscall is added by a xen patch
 	and may not be present.
 	(tux): Ditto.
-	
+
 	* syscalls.stp (accept): Fix arg name.
 
 2006-05-25  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp: Add sys_fcntl and sys_listen.
 
-	* syscalls2.stp: Commented out sys_socketcall because it only calls 
+	* syscalls2.stp: Commented out sys_socketcall because it only calls
 	other system calls which are already probed.
 
 2006-05-25  Martin Hunt  <hunt@redhat.com>
-	
+
 	* syscall*.stp: Change "0x%p" to "%p".
 
 2006-05-25  Li Guanglei <guanglei@cn.ibm.com>
-	
+
 	* scheduler.stp: add prev_task and next_task variable.
 
 2006-05-24  Josh Stone  <joshua.i.stone@intel.com>
@@ -1731,7 +1735,7 @@
 
 	* tapset/ioscheduler.stp: change . to -> operator to get the
 	elevator name
-	
+
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
 	* tapset/LKET/*: tracing tapsets of LKET
@@ -1743,7 +1747,7 @@
 
 	* tapset/tskschedule.stp: deleted, merge into scheduler.stp
 	* tapset/scheduler.stp:   incorporate tskschedule.stp
-	
+
 2006-05-17  Josh Stone  <joshua.i.stone@intel.com>
 
 	* process.stp: Rename signal.send to signal_send and process.complete
@@ -1792,7 +1796,7 @@
 2006-05-14  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_sys_open_flag_str): Rewrite in C so it
-	is complete and works on different archs.	
+	is complete and works on different archs.
 
 2006-05-09  Josh Stone  <joshua.i.stone@intel.com>
 
@@ -1839,18 +1843,18 @@
 
 2006-03-06  Martin Hunt  <hunt@redhat.com>
 
-	* system.stp: New tapset. 
+	* system.stp: New tapset.
 
 2006-03-01  Martin Hunt  <hunt@redhat.com>
 
-	* aux_syscalls.stp (_struct_sockaddr_u): Parse sockaddr. 
+	* aux_syscalls.stp (_struct_sockaddr_u): Parse sockaddr.
 
 	* syscalls.stp (bind): Call _struct_sockaddr_u().
 
 	* errno.stp (errno_str): Complete rewrite in C for speed and
 	accuracy.
 	(returnstr): New function for syscall tapet.
-	
+
 2006-02-22  Frank Ch. Eigler  <fche@elastic.org>
 
 	* timestamp.stp (get_cycles): New function.
@@ -1881,9 +1885,9 @@
 	* aux_syscalls.stp (_struct_timeval_u): New function.
 	(_struct_timeval): New function.
 	(_struct_timespec_u): New function.
-	(_struct_timespec): New function.	
+	(_struct_timespec): New function.
 	(_struct_itimerval_u): New function:
-	(_struct_itimerval): New function:	
+	(_struct_itimerval): New function:
 	(_signal_name): New function.
 	(_module_flags_str): Fixed.
 
@@ -1891,13 +1895,13 @@
 	_struct_itimerval_u().
 
 	* syscalls.stp: Latest version. Many changes.
-	
+
 2006-02-08  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp(_msync_flag_str): Fix.
 	(_wait_opt_str): Fix.
 	* syscalls.stp: Latest.
-	
+
 2006-02-07  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp: Latest.

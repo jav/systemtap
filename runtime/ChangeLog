@@ -1,3 +1,13 @@
+2008-08-26  David Smith  <dsmith@redhat.com>
+
+	* autoconf-d_path-path.c: New file.
+
+	* task_finder.c (__stp_get_mm_path): Uses STAPCONF_DPATH_PATH
+	instead of a kernel version check to determine how to call
+	d_path().
+	(__stp_utrace_task_finder_target_quiesce): Ditto.
+	(__stp_target_call_vm_callback): Ditto.
+
 2008-08-21  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_tf_vm_cb): Added task finder target

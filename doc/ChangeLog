@@ -1,4 +1,13 @@
-2008-07-14    <brolley@redhat.com>
+2008-08-28  Stan Cox  <scox@redhat.com>
+
+	* langref.tex: Document written but unread global variable display.
+
+2008-08-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am: Removed dist-related targets and macros.
+	* Makefile.in: Regenerated.
+
+2008-07-14  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.in: Regenerated.
 

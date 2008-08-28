@@ -38,4 +38,3 @@ SUFFIXES = ps pdf dvi ps tex
 	latex -output-directory=$$pwd $<; \
 	latex -output-directory=$$pwd $<
 
-EXTRA_DIST = tutorial.tex langref.tex tutorial nomencl.sty

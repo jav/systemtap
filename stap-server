@@ -47,29 +47,26 @@ function initialization {
 # function: receive_request
 #
 # Receive a tar file representing the request from the client:
-# The protocol is:
-#   client -> "request:"
-#   client -> $tar_client
 function receive_request {
-    # Request from the client is on stdin
-    read
-    line=$REPLY
-
-    # Check to see that it is a client request
-    test "$line" = "request:" || \
-	fatal "ERROR: client request, '$line' is incorrect"
-
     # Create a place to receive the client's tar file
     tar_client=`mktemp -t $tmpdir_prefix_server.client.tgz.XXXXXX` || \
 	fatal "ERROR: cannot create temporary tar file " $tar_client
 
-    # Receive the file. We need to redirect stdin from /dev/zero to work
-    # around a bug in nc. It closes the connection early is stdin is not
-    # provided.
-    nc -l $port < /dev/zero > $tar_client &
+    # Receive the file.
+    nc -ld $port > $tar_client 2>/dev/null &
 
-    # Wait for the transfer to complete.
-    wait '%nc' >/dev/null 2>&1
+    # Wait for 10 seconds before timing out
+    for ((t=0; $t < 10; ++t))
+    do
+	if jobs '%nc -l' >/dev/null 2>&1; then
+	    sleep 1
+	else
+	    return
+	fi
+    done
+
+    # We have timed out. fatal will kill the job.
+    fatal "Timed out waiting for client request file"
 }
 
 # function: unpack_request
@@ -386,11 +383,21 @@ function package_response {
 #
 # Wait for the client to take the response file.
 function send_response {
-    # Now send it. We need to redirect to /dev/null
-    # in order to workaround a nc bug. It closes the connection
-    # early if stdin from the other side is not provided.
-    nc -l $port < $tar_server > /dev/null &
-    wait '%nc' >/dev/null 2>&1
+    # Now send it.
+    nc -l $port < $tar_server > /dev/null 2>&1 &
+
+    # Wait for 10 seconds before timing out
+    for ((t=0; $t < 10; ++t))
+    do
+	if jobs '%nc -l' >/dev/null 2>&1; then
+	    sleep 1
+	else
+	    return
+	fi
+    done
+
+    # We have timed out. fatal will kill the job.
+    fatal "Timed out waiting to send response file"
 }
 
 # function: fatal [ MESSAGE ]

@@ -5,11 +5,14 @@ set ::result_string {# globals
 arr1:long [long, long]
 arr2:long [long]
 arr3:long [long]
+elide_idx1:long
+elide_global_a:long
+elide_global_b:long
 # functions
 fna:long (a:long)
 return a
 fnb:long (a:long, b:long)
-return ((a) + (b)) + (printf(""))
+return (a) + (b)
 exit:unknown ()
 %{
     atomic_set (&session_state, STAP_SESSION_STOPPING);
@@ -23,32 +26,51 @@ begin /* <- begin */
   k:long
   b:long
   m:long
-  arr1:long [long]
-  arr2:long [long, long]
   aa:long
   bb:long
   cc:long
   dd:long
   ee:long
 {
+(arr2[(elide_idx1) = (1)]) = (10)
 (arr2[(idx2) = (2)]) = (20)
+(arr2[3]) = (30)
 (arr2[(j) = (4)]) = (40)
 (arr1[fna((k) = (0)), k]) = (1)
 (arr1[(b) = (1), b]) = (2)
-fnb((arr3[0]) = (4), arr3[0])
+(arr1[2, 2]) = (3)
+(arr3[0]) = (4)
 (m) = (1)
-for (2; (m) <= (10); (m)++) ;
-printf("%d %d %d %d\\n", arr1[0], arr2[0, 0], idx2, j)
+for (2; (m) <= (10); (m)++) (arr2[m]) = ((m) * (10))
+printf("%d %d %d %d\\n", arr1[0, 0], arr2[0], idx2, j)
 (aa) = (fna(1))
-(bb) = (fnb((cc) = (1), 2))
+(bb) = (fnb((cc) = (1), (elide_global_a) = (2)))
 for (1; (bb) < (10); (bb)++) (cc) += (bb)
 for ((dd) = (1); (dd) < (10); 1) (dd) += (1)
-if (1) (ee) = (1)
+if ((elide_global_b) = (1)) (ee) = (1)
 
 (cc) = ((dd) = (5))
 (cc) = ((4) + ((cc) = (1)))
-printf("%d %d %d %d %d", aa, bb, cc, dd, ee)
+printf("%d %d %d %d %d\\n", aa, bb, cc, dd, ee)
 exit()
+}
+end /* <- end */
+  # locals
+  idx0:long
+{
+foreach ([idx0] in arr3) printf("arr3[%#d]=%#x\\n", idx0, arr3[idx0])
+}
+end /* <- end */
+{
+printf("elide_idx1=%#x\\n", elide_idx1)
+}
+end /* <- end */
+{
+printf("elide_global_a=%#x\\n", elide_global_a)
+}
+end /* <- end */
+{
+printf("elide_global_b=%#x\\n", elide_global_b)
 }
 }
 

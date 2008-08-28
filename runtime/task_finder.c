@@ -336,11 +336,11 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 		vma = vma->vm_next;
 	}
 	if (vma) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25)
+#ifdef STAPCONF_DPATH_PATH
+		rc = d_path(&(vma->vm_file->f_path), buf, buflen);
+#else
 		rc = d_path(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt,
 			    buf, buflen);
-#else
-		rc = d_path(&(vma->vm_file->f_path), buf, buflen);
 #endif
 	}
 	else {
@@ -731,12 +731,12 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 		vma = mm->mmap;
 		while (vma) {
 			if (vma->vm_file) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25)
-				mmpath = d_path(vma->vm_file->f_dentry,
-						vma->vm_file->f_vfsmnt,
+#ifdef STAPCONF_DPATH_PATH
+				mmpath = d_path(&(vma->vm_file->f_path),
 						mmpath_buf, PATH_MAX);
 #else
-				mmpath = d_path(&(vma->vm_file->f_path),
+				mmpath = d_path(vma->vm_file->f_dentry,
+						vma->vm_file->f_vfsmnt,
 						mmpath_buf, PATH_MAX);
 #endif
 				if (mmpath) {
@@ -865,11 +865,11 @@ __stp_target_call_vm_callback(struct stap_task_finder_target *tgt,
 	}
 
 	// Grab the path associated with this vma.
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25)
+#ifdef STAPCONF_DPATH_PATH
+	mmpath = d_path(&(vma->vm_file->f_path), mmpath_buf, PATH_MAX);
+#else
 	mmpath = d_path(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt,
 			mmpath_buf, PATH_MAX);
-#else
-	mmpath = d_path(&(vma->vm_file->f_path), mmpath_buf, PATH_MAX);
 #endif
 	if (mmpath == NULL || IS_ERR(mmpath)) {
 		rc = -PTR_ERR(mmpath);

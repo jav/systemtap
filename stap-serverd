@@ -22,11 +22,10 @@ trap 'terminate' SIGTERM SIGINT
 # function: initialization PORT
 function initialization {
     # Default settings.
-    tmpdir_prefix_serverd=stap.serverd
     avahi_type=_stap._tcp
     port=$1
     test "X$port" = "X" && port=65000
-    port2=$(($port + 1))
+    export port2=$(($port + 1))
     if netstat -atn | awk '{print $4}' | cut -f2 -d: | egrep -q "^($port|$port2)\$"; then
         # Whoops, the port is busy; try another one.
         initialization $((1024+($port + $RANDOM)%64000))
@@ -53,43 +52,41 @@ function advertise_presence {
 #
 # Listen for and handle requests to the server.
 function listen {
-    # Work in a temporary directory
-    tmpdir=`mktemp -dt $tmpdir_prefix_serverd.XXXXXX` || \
-	fatal "ERROR: cannot create temporary directory " $tmpdir
-    cd $tmpdir
-
-    # Create a fifo for communicating with the server
-    local fifo_name=$tmpdir_prefix_serverd.fifo
-    mknod $fifo_name p || \
-	fatal "ERROR: cannot create temporary fifo " $tmpdir/$fifo_name
-
     # Loop forever accepting requests
-    first=1
-    set -o pipefail # We want the status of 'nc' not 'stap-server'.
     while true
     do
-	# Run this in the background and wait for it. This way any signals
-	# received (i.e. SIGTERM) will be processed. Make sure we don't
-	# advertise our presence until we're actually listening.
 	for ((attempt=0; $attempt < 5; ++attempt))
 	do
-	    nc -l $port < $fifo_name | stap-server $((port + 1)) > $fifo_name 2>&1 &
-	    if test $first = 1; then
-		advertise_presence
-		first=0
-	    fi
-	    wait '%nc' >/dev/null 2>&1
+            nc -ld $port 2>/dev/null | process_request &
+	    wait '%nc -l'
 	    rc=$?
-            if test $rc = 127 -o $rc = 0; then
-		break; # success
+	    if test $rc = 0 -o $rc = 127; then
+		break; # port was read ok
             fi
-	    sleep 1
 	done
 	if test $attempt = 5; then
 	    fatal "ERROR: cannot listen on port $port. rc==$rc"
 	fi
     done
-    set +o pipefail # restore
+}
+
+# function: process_request
+#
+# Process an incoming request on stdin
+function process_request {
+    read
+    case $REPLY in
+	request:)
+	    stap-server $port2 >/dev/null 2>&1 &
+	    wait '%stap-server'
+	    rc=$?
+	    test $rc = 127 && rc=0
+	    ;;
+	*)
+	    rc=1
+    esac
+
+    exit $rc
 }
 
 # function: fatal [ MESSAGE ]
@@ -112,13 +109,13 @@ function terminate {
     kill -s SIGTERM %avahi-publish-service 2> /dev/null
     wait '%avahi-publish-service' >/dev/null 2>&1
 
-    # Kill any running 'nc -l' job.
-    kill -s SIGTERM "%nc -l" 2> /dev/null
-    wait "%nc - l"  >/dev/null 2>&1
+    # Kill any running 'stap-server' job.
+    kill -s SIGTERM "%stap-server" 2> /dev/null
+    wait "%stap-server"  >/dev/null 2>&1
 
-    # Clean up
-    cd `dirname $tmpdir`
-    rm -fr $tmpdir
+    # Kill any running 'nc -l' job.
+    kill -s SIGTERM "%?nc -l" 2> /dev/null
+    wait "%?nc - l"  >/dev/null 2>&1
 
     exit
 }
@@ -127,4 +124,5 @@ function terminate {
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
 initialization "$@"
+advertise_presence
 listen

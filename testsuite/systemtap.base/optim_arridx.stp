@@ -1,7 +1,7 @@
 global arr1, arr2, arr3, elide_idx1, elide_global_a, elide_global_b
 
 function fna(a:long) {return a}
-function fnb(a:long, b:long) {return a+b+printf("")}
+function fnb(a:long, b:long) {return a+b}
 
 probe begin {
   // array indices
@@ -16,7 +16,7 @@ probe begin {
   m = 1
   for (elide_n=2; m <= 10; m++)
     arr2[m] = m * 10
-  printf ("%d %d %d %d\n", arr1[0], arr2[0,0], idx2, j)
+  printf ("%d %d %d %d\n", arr1[0,0], arr2[0], idx2, j)
   
   // function args
   aa = fna(elide_aa = 1)
@@ -40,6 +40,6 @@ probe begin {
   // binary expression
   cc = ((elide_hh = 4) + (cc = 1))
 
-  printf("%d %d %d %d %d", aa, bb, cc, dd, ee)
+  printf("%d %d %d %d %d\n", aa, bb, cc, dd, ee)
   exit ()
 }

@@ -179,13 +179,13 @@ string find_executable(const string& name)
           // Split PATH up.
           vector<string> dirs;
           tokenize(string(path), dirs, string(":"));
-          
+
           // Search the path looking for the first executable of the right name.
           for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); i++)
             {
               string fname = *i + "/" + name;
               const char *f = fname.c_str();
-              
+
               // Look for a normal executable file.
               if (access(f, X_OK) == 0
                   && stat(f, &st) == 0
@@ -198,7 +198,7 @@ string find_executable(const string& name)
         }
     }
 
-  
+
   // Could not find the program on the $PATH.  We'll just fall back to
   // the unqualified name, which our caller will probably fail with.
   if (retpath == "")
@@ -206,8 +206,8 @@ string find_executable(const string& name)
 
   // Canonicalize the path name.
   char *cf = canonicalize_file_name (retpath.c_str());
-  if (cf) 
-    { 
+  if (cf)
+    {
       retpath = string(cf);
       free (cf);
     }
@@ -234,8 +234,8 @@ const string cmdstr_quoted(const string& cmd)
 	string::size_type pos = 0;
 
 	quoted_cmd += quote;
-	for (string::size_type quote_pos = cmd.find(quote, pos); 
-			quote_pos != string::npos; 
+	for (string::size_type quote_pos = cmd.find(quote, pos);
+			quote_pos != string::npos;
 			quote_pos = cmd.find(quote, pos)) {
 		quoted_cmd += cmd.substr(pos, quote_pos - pos);
 		quoted_cmd += replace;
