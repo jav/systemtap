@@ -4,6 +4,7 @@
 	(semantic_pass): Call it.
 	(dead_assignment_remover::visit_assignment): Don't remove written
 	but unread global variables.
+	* NEWS, stap.1.in: Document
 
 2008-08-26  David Smith  <dsmith@redhat.com>
 

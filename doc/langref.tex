@@ -495,7 +495,9 @@ found. Because of possible concurrency limits, such as multiple probe handlers,
 each global variable used by a probe is automatically read- or write-locked
 while the handler is running. A global declaration may be written at the
 outermost level anywhere in a script file, not just within a block of code.
-The following declaration marks \texttt{var1} and \texttt{var2} as global.
+Global variables which are written but never read will be displayed
+automatically at session shutdown.  The following declaration marks 
+\texttt{var1} and \texttt{var2} as global.
 The translator will infer a value type for each, and if the variable is used
 as an array, its key types.
 
