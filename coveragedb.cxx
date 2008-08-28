@@ -35,7 +35,7 @@ void print_coverage_info(systemtap_session &s)
         clog << "probe: "
 	     << used_probe_list[j]->locations[k]->tok->location << endl;
     }
-    
+
     clog << "----" << endl;
     // for each probe print used and unused variables
     for (unsigned j=0; j<s.probes[i]->locals.size(); ++j) {
@@ -210,7 +210,7 @@ sql_update_used_probes(sqlite3 *db, systemtap_session &s)
 		    increment_element(db, x);
 	    }
     }
-    
+
     // for each probe update used and unused variables
     for (unsigned j=0; j<s.probes[i]->locals.size(); ++j) {
 	    struct source_loc place = s.probes[i]->locals[j]->tok->location;

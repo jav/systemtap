@@ -63,7 +63,7 @@ public:
   {
     return line != 0;
   }
-  
+
   int lineno() const
   {
     int lineval;

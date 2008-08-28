@@ -153,12 +153,12 @@ struct c_unparser: public unparser, public visitor
 // for function or probe bodies.  Member functions should exactly match
 // the corresponding c_unparser logic and traversal sequence,
 // to ensure interlocking naming and declaration of temp variables.
-struct c_tmpcounter: 
+struct c_tmpcounter:
   public traversing_visitor
 {
   c_unparser* parent;
-  c_tmpcounter (c_unparser* p): 
-    parent (p) 
+  c_tmpcounter (c_unparser* p):
+    parent (p)
   {
     parent->tmpvar_counter = 0;
   }
@@ -187,7 +187,7 @@ struct c_tmpcounter:
   void visit_stat_op (stat_op* e);
 };
 
-struct c_unparser_assignment: 
+struct c_unparser_assignment:
   public throwing_visitor
 {
   c_unparser* parent;
@@ -201,12 +201,12 @@ struct c_unparser_assignment:
     throwing_visitor ("invalid lvalue type"),
     parent (p), op (o), rvalue (0), post (pp) {}
 
-  void prepare_rvalue (string const & op, 
+  void prepare_rvalue (string const & op,
 		       tmpvar & rval,
 		       token const*  tok);
 
-  void c_assignop(tmpvar & res, 
-		  var const & lvar, 
+  void c_assignop(tmpvar & res,
+		  var const & lvar,
 		  tmpvar const & tmp,
 		  token const*  tok);
 
@@ -216,7 +216,7 @@ struct c_unparser_assignment:
 };
 
 
-struct c_tmpcounter_assignment: 
+struct c_tmpcounter_assignment:
   public traversing_visitor
 // leave throwing for illegal lvalues to the c_unparser_assignment instance
 {
@@ -242,13 +242,13 @@ ostream & operator<<(ostream & o, var const & v);
 
 /*
   Some clarification on the runtime structures involved in statistics:
-  
+
   The basic type for collecting statistics in the runtime is struct
   stat_data. This contains the count, min, max, sum, and possibly
   histogram fields.
-  
+
   There are two places struct stat_data shows up.
-  
+
   1. If you declare a statistic variable of any sort, you want to make
   a struct _Stat. A struct _Stat* is also called a Stat. Struct _Stat
   contains a per-CPU array of struct stat_data values, as well as a
@@ -269,7 +269,7 @@ ostream & operator<<(ostream & o, var const & v);
   Because, at the moment, the runtime does not support the concept of
   a statistic which collects multiple histogram types, we may need to
   instantiate one pmap or struct _Stat for each histogram variation
-  the user wants to track.  
+  the user wants to track.
  */
 
 class var
@@ -369,36 +369,36 @@ public:
       case pe_stats:
         {
           // See also mapvar::init().
-          
+
           string prefix = value() + " = _stp_stat_init (";
           // Check for errors during allocation.
           string suffix = "if (" + value () + " == NULL) rc = -ENOMEM;";
-          
+
           switch (sd.type)
             {
             case statistic_decl::none:
               prefix += "HIST_NONE";
               break;
-              
+
             case statistic_decl::linear:
               prefix += string("HIST_LINEAR")
-                + ", " + stringify(sd.linear_low) 
-                + ", " + stringify(sd.linear_high) 
+                + ", " + stringify(sd.linear_low)
+                + ", " + stringify(sd.linear_high)
                 + ", " + stringify(sd.linear_step);
               break;
-              
+
             case statistic_decl::logarithmic:
               prefix += string("HIST_LOG");
               break;
-              
+
             default:
               throw semantic_error("unsupported stats type for " + value());
             }
-          
+
           prefix = prefix + "); ";
           return string (prefix + suffix);
         }
-        
+
       default:
 	throw semantic_error("unsupported initializer for " + value());
       }
@@ -432,7 +432,7 @@ ostream & operator<<(ostream & o, var const & v)
 struct stmt_expr
 {
   c_unparser & c;
-  stmt_expr(c_unparser & c) : c(c) 
+  stmt_expr(c_unparser & c) : c(c)
   {
     c.o->newline() << "({";
     c.o->indent(1);
@@ -452,8 +452,8 @@ protected:
   string override_value;
 
 public:
-  tmpvar(exp_type ty, 
-	 unsigned & counter) 
+  tmpvar(exp_type ty,
+	 unsigned & counter)
     : var(true, ty, ("__tmp" + stringify(counter++))), overridden(false)
   {}
 
@@ -473,7 +473,7 @@ public:
       return override_value;
     else
       return var::value();
-  }  
+  }
 };
 
 ostream & operator<<(ostream & o, tmpvar const & v)
@@ -484,7 +484,7 @@ ostream & operator<<(ostream & o, tmpvar const & v)
 struct aggvar
   : public var
 {
-  aggvar(unsigned & counter) 
+  aggvar(unsigned & counter)
     : var(true, pe_stats, ("__tmp" + stringify(counter++)))
   {}
 
@@ -506,16 +506,16 @@ struct mapvar
 {
   vector<exp_type> index_types;
   int maxsize;
-  mapvar (bool local, exp_type ty, 
+  mapvar (bool local, exp_type ty,
 	  statistic_decl const & sd,
-	  string const & name, 
+	  string const & name,
 	  vector<exp_type> const & index_types,
 	  int maxsize)
     : var (local, ty, sd, name),
       index_types (index_types),
       maxsize (maxsize)
   {}
-  
+
   static string shortname(exp_type e);
   static string key_typename(exp_type e);
   static string value_typename(exp_type e);
@@ -571,7 +571,7 @@ struct mapvar
   {
     if (!is_parallel())
       throw semantic_error("aggregating non-parallel map type");
-    
+
     return "_stp_pmap_agg (" + value() + ")";
   }
 
@@ -579,7 +579,7 @@ struct mapvar
   {
     if (!is_parallel())
       throw semantic_error("fetching aggregate of non-parallel map type");
-    
+
     return "_stp_pmap_get_agg(" + value() + ")";
   }
 
@@ -636,7 +636,7 @@ struct mapvar
 
     // impedance matching: empty strings -> NULL
     if (type() == pe_string)
-      res += (call_prefix("set", indices) 
+      res += (call_prefix("set", indices)
 	      + ", (" + val.value() + "[0] ? " + val.value() + " : NULL))");
     else if (type() == pe_long)
       res += (call_prefix("set", indices) + ", " + val.value() + ")");
@@ -664,11 +664,11 @@ struct mapvar
     assert (sd.type != statistic_decl::none);
     return "(" + fetch_existing_aggregate() + "->hist.buckets)";
   }
-		
+
   string init () const
   {
     string mtype = is_parallel() ? "pmap" : "map";
-    string prefix = value() + " = _stp_" + mtype + "_new_" + keysym() + " (" + 
+    string prefix = value() + " = _stp_" + mtype + "_new_" + keysym() + " (" +
       (maxsize > 0 ? stringify(maxsize) : "MAXMAPENTRIES") ;
 
     // See also var::init().
@@ -686,9 +686,9 @@ struct mapvar
 
 	  case statistic_decl::linear:
 	    // FIXME: check for "reasonable" values in linear stats
-	    prefix = prefix + ", HIST_LINEAR" 
-	      + ", " + stringify(sdecl().linear_low) 
-	      + ", " + stringify(sdecl().linear_high) 
+	    prefix = prefix + ", HIST_LINEAR"
+	      + ", " + stringify(sdecl().linear_low)
+	      + ", " + stringify(sdecl().linear_high)
 	      + ", " + stringify(sdecl().linear_step);
 	    break;
 
@@ -725,25 +725,25 @@ class itervar
 public:
 
   itervar (symbol* e, unsigned & counter)
-    : referent_ty(e->referent->type), 
+    : referent_ty(e->referent->type),
       name("__tmp" + stringify(counter++))
   {
     if (referent_ty == pe_unknown)
       throw semantic_error("iterating over unknown reference type", e->tok);
   }
-  
+
   string declare () const
   {
     return "struct map_node *" + name + ";";
   }
-  
+
   string start (mapvar const & mv) const
   {
     string res;
 
     if (mv.type() != referent_ty)
       throw semantic_error("inconsistent iterator type in itervar::start()");
-    
+
     if (mv.is_parallel())
       return "_stp_map_start (" + mv.fetch_existing_aggregate() + ")";
     else
@@ -765,7 +765,7 @@ public:
   {
     return "l->" + name;
   }
-  
+
   string get_key (exp_type ty, unsigned i) const
   {
     // bug translator/1175: runtime uses base index 1 for the first dimension
@@ -802,8 +802,8 @@ translator_output::translator_output (ostream& f):
 
 translator_output::translator_output (const string& filename, size_t bufsize):
   buf (new char[bufsize]),
-  o2 (new ofstream (filename.c_str ())), 
-  o (*o2), 
+  o2 (new ofstream (filename.c_str ())),
+  o (*o2),
   tablevel (0)
 {
   o2->rdbuf()->pubsetbuf(buf, bufsize);
@@ -919,15 +919,15 @@ c_unparser::emit_common_header ()
           tmp_probe_contents[oss.str()] = dp->name; // save it
 
           // XXX: probe locals need not be recursion-nested, only function locals
-          
+
           o->newline() << "struct " << dp->name << "_locals {";
           o->indent(1);
           for (unsigned j=0; j<dp->locals.size(); j++)
             {
               vardecl* v = dp->locals[j];
-              try 
+              try
                 {
-                  o->newline() << c_typename (v->type) << " " 
+                  o->newline() << c_typename (v->type) << " "
                                << c_varname (v->name) << ";";
                 } catch (const semantic_error& e) {
                 semantic_error e2 (e);
@@ -937,7 +937,7 @@ c_unparser::emit_common_header ()
             }
 
           // NB: This part is finicky.  The logic here must
-          // match up with 
+          // match up with
           c_tmpcounter ct (this);
           dp->emit_probe_context_vars (o);
           dp->body->visit (& ct);
@@ -955,9 +955,9 @@ c_unparser::emit_common_header ()
       for (unsigned j=0; j<fd->locals.size(); j++)
         {
 	  vardecl* v = fd->locals[j];
-	  try 
+	  try
 	    {
-	      o->newline() << c_typename (v->type) << " " 
+	      o->newline() << c_typename (v->type) << " "
 			   << c_varname (v->name) << ";";
 	    } catch (const semantic_error& e) {
 	      semantic_error e2 (e);
@@ -968,9 +968,9 @@ c_unparser::emit_common_header ()
       for (unsigned j=0; j<fd->formal_args.size(); j++)
         {
           vardecl* v = fd->formal_args[j];
-	  try 
+	  try
 	    {
-	      o->newline() << c_typename (v->type) << " " 
+	      o->newline() << c_typename (v->type) << " "
 			   << c_varname (v->name) << ";";
 	    } catch (const semantic_error& e) {
 	      semantic_error e2 (e);
@@ -1077,7 +1077,7 @@ c_unparser::emit_module_init ()
   vector<derived_probe_group*> g = all_session_groups (*session);
   for (unsigned i=0; i<g.size(); i++)
     g[i]->emit_module_decls (*session);
-  
+
   o->newline();
   o->newline() << "int systemtap_module_init (void) {";
   o->newline(1) << "int rc = 0;";
@@ -1091,7 +1091,7 @@ c_unparser::emit_module_init ()
   o->newline() << "{";
   o->newline(1) << "const char* release = UTS_RELEASE;";
 
-  // NB: This UTS_RELEASE compile-time macro directly checks only that 
+  // NB: This UTS_RELEASE compile-time macro directly checks only that
   // the compile-time kbuild tree matches the compile-time debuginfo/etc.
   // It does not check the run time kernel value.  However, this is
   // probably OK since the kbuild modversions system aims to prevent
@@ -1131,10 +1131,10 @@ c_unparser::emit_module_init ()
   o->newline() << "rc = -ENOMEM;";
   o->newline() << "goto out;";
   o->newline(-1) << "}";
-  
+
   for (unsigned i=0; i<session->globals.size(); i++)
     {
-      vardecl* v = session->globals[i];      
+      vardecl* v = session->globals[i];
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).init();
       else
@@ -1150,7 +1150,7 @@ c_unparser::emit_module_init ()
       o->newline() << "rwlock_init (& global.s_" << c_varname (v->name) << "_lock);";
     }
 
-  // initialize each Stat used for timing information 
+  // initialize each Stat used for timing information
   o->newline() << "#ifdef STP_TIMING";
   set<string> basest_names;
   for (unsigned i=0; i<session->probes.size(); i++)
@@ -1170,7 +1170,7 @@ c_unparser::emit_module_init ()
   // intended to help debug problems with systemtap modules.
 
   o->newline() << "_stp_print_kernel_info("
-	       << "\"" << VERSION 
+	       << "\"" << VERSION
 	       << "/" << dwfl_version (NULL) << "\""
 	       << ", (num_online_cpus() * sizeof(struct context))"
 	       << ", " << session->probes.size()
@@ -1197,7 +1197,7 @@ c_unparser::emit_module_init ()
 
   // All registrations were successful.  Consider the system started.
   o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
-  // NB: only other valid state value is ERROR, in which case we don't 
+  // NB: only other valid state value is ERROR, in which case we don't
   o->newline(1) << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
   o->newline(-1) << "return 0;";
 
@@ -1210,7 +1210,7 @@ c_unparser::emit_module_init ()
   // as this is our only chance.
   for (unsigned i=0; i<session->globals.size(); i++)
     {
-      vardecl* v = session->globals[i];      
+      vardecl* v = session->globals[i];
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).fini();
       else
@@ -1238,9 +1238,9 @@ c_unparser::emit_module_exit ()
   o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
   o->newline(1) << "return;";
   o->indent(-1);
-  
+
   o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_RUNNING)";
-  // NB: only other valid state value is ERROR, in which case we don't 
+  // NB: only other valid state value is ERROR, in which case we don't
   o->newline(1) << "atomic_set (&session_state, STAP_SESSION_STOPPING);";
   o->indent(-1);
   // This signals any other probes that may be invoked in the next little
@@ -1254,7 +1254,7 @@ c_unparser::emit_module_exit ()
   o->newline(1) << "int i;";
   o->newline() << "holdon = 0;";
   o->newline() << "for (i=0; i < NR_CPUS; i++)";
-  o->newline(1) << "if (cpu_possible (i) && " 
+  o->newline(1) << "if (cpu_possible (i) && "
                 << "atomic_read (& ((struct context *)per_cpu_ptr(contexts, i))->busy)) "
                 << "holdon = 1;";
   o->newline () << "schedule ();";
@@ -1273,7 +1273,7 @@ c_unparser::emit_module_exit ()
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
-      vardecl* v = session->globals[i];      
+      vardecl* v = session->globals[i];
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).fini();
       else
@@ -1297,7 +1297,7 @@ c_unparser::emit_module_exit ()
             basest_names.insert (nm);
             // NB: check for null stat object
             o->newline() << "if (likely (time_" << p->name << ")) {";
-            o->newline(1) << "const char *probe_point = " 
+            o->newline(1) << "const char *probe_point = "
                          << lex_cast_qstring (* p->locations[0])
                          << (p->locations.size() > 1 ? "\"+\"" : "")
                          << (p->locations.size() > 1 ? lex_cast_qstring(p->locations.size()-1) : "")
@@ -1357,7 +1357,7 @@ c_unparser::emit_function (functiondecl* v)
   o->newline() << "#define THIS l";
   o->newline() << "if (0) goto out;"; // make sure out: is marked used
 
-  // set this, in case embedded-c code sets last_error but doesn't otherwise identify itself 
+  // set this, in case embedded-c code sets last_error but doesn't otherwise identify itself
   o->newline() << "c->last_stmt = " << lex_cast_qstring(*v->tok) << ";";
 
   // check/increment nesting level
@@ -1373,7 +1373,7 @@ c_unparser::emit_function (functiondecl* v)
   for (unsigned i=0; i<v->locals.size(); i++)
     {
       if (v->locals[i]->index_types.size() > 0) // array?
-	throw semantic_error ("array locals not supported, missing global declaration?", 
+	throw semantic_error ("array locals not supported, missing global declaration?",
                               v->locals[i]->tok);
 
       o->newline() << getvar (v->locals[i]).init();
@@ -1448,7 +1448,7 @@ c_unparser::emit_probe (derived_probe* v)
   // NB: This code *could* be enclosed in an "if (session->timing)".  That would
   // recognize more duplicate probe handlers, but then the generated code could
   // be very different with or without -t.
-  oss << "c->statp = & time_" << v->basest()->name << ";" << endl; 
+  oss << "c->statp = & time_" << v->basest()->name << ";" << endl;
 
   v->body->print(oss);
 
@@ -1510,7 +1510,7 @@ c_unparser::emit_probe (derived_probe* v)
       o->newline() << "struct " << v->name << "_locals * __restrict__ l =";
       o->newline(1) << "& c->locals[0]." << v->name << ";";
       o->newline(-1) << "(void) l;"; // make sure "l" is marked used
-      
+
       o->newline() << "#ifdef STP_TIMING";
       o->newline() << "c->statp = & time_" << v->basest()->name << ";";
       o->newline() << "#endif";
@@ -1530,7 +1530,7 @@ c_unparser::emit_probe (derived_probe* v)
       for (unsigned j=0; j<v->locals.size(); j++)
         {
 	  if (v->locals[j]->index_types.size() > 0) // array?
-            throw semantic_error ("array locals not supported, missing global declaration?", 
+            throw semantic_error ("array locals not supported, missing global declaration?",
                                   v->locals[j]->tok);
 	  else if (v->locals[j]->type == pe_long)
 	    o->newline() << "l->" << c_varname (v->locals[j]->name)
@@ -1557,7 +1557,7 @@ c_unparser::emit_probe (derived_probe* v)
 
       o->newline(-1) << "out:";
       // NB: no need to uninitialize locals, except if arrays/stats can
-      // someday be local 
+      // someday be local
 
       // XXX: do this flush only if the body included a
       // print/printf/etc. routine!
@@ -1569,12 +1569,12 @@ c_unparser::emit_probe (derived_probe* v)
       o->newline(-1) << "}\n";
     }
 
-  
+
   this->current_probe = 0;
 }
 
 
-void 
+void
 c_unparser::emit_locks(const varuse_collecting_visitor& vut)
 {
   o->newline() << "{";
@@ -1613,7 +1613,7 @@ c_unparser::emit_locks(const varuse_collecting_visitor& vut)
 	    continue;
 	}
 
-      string lockcall = 
+      string lockcall =
         string (write_p ? "write" : "read") +
         "_trylock (& global.s_" + v->name + "_lock)";
 
@@ -1637,7 +1637,7 @@ c_unparser::emit_locks(const varuse_collecting_visitor& vut)
 }
 
 
-void 
+void
 c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
 {
   unsigned numvars = 0;
@@ -1682,7 +1682,7 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
 
       // fall through to next variable; thus the reverse ordering
     }
-  
+
   // emit plain "unlock" label, used if the very first lock failed.
   o->newline(-1) << "unlock_: ;";
   o->indent(1);
@@ -1704,7 +1704,7 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
 }
 
 
-void 
+void
 c_unparser::collect_map_index_types(vector<vardecl *> const & vars,
 				    set< pair<vector<exp_type>, exp_type> > & types)
 {
@@ -1746,7 +1746,7 @@ mapvar::key_typename(exp_type e)
       return "STRING";
     default:
       throw semantic_error("array key is neither string nor long");
-    }	      
+    }
   return "";
 }
 
@@ -1761,7 +1761,7 @@ mapvar::shortname(exp_type e)
       return "s";
     default:
       throw semantic_error("array type is neither string nor long");
-    }	      
+    }
   return "";
 }
 
@@ -1770,7 +1770,7 @@ void
 c_unparser::emit_map_type_instantiations ()
 {
   set< pair<vector<exp_type>, exp_type> > types;
-  
+
   collect_map_index_types(session->globals, types);
 
   for (unsigned i = 0; i < session->probes.size(); ++i)
@@ -1799,7 +1799,7 @@ c_unparser::emit_map_type_instantiations ()
       for (unsigned j = 0; j < i->first.size(); ++j)
 	{
 	  o->newline() << "#undef KEY" << (j+1) << "_TYPE";
-	}      
+	}
 
       /* FIXME
        * For pmaps, we also need to include map-gen.c, because we might be accessing
@@ -1819,7 +1819,7 @@ c_unparser::emit_map_type_instantiations ()
 	  for (unsigned j = 0; j < i->first.size(); ++j)
 	    {
 	      o->newline() << "#undef KEY" << (j+1) << "_TYPE";
-	    }      
+	    }
 	}
     }
 
@@ -1835,9 +1835,9 @@ c_unparser::c_typename (exp_type e)
   switch (e)
     {
     case pe_long: return string("int64_t");
-    case pe_string: return string("string_t"); 
+    case pe_string: return string("string_t");
     case pe_stats: return string("Stat");
-    case pe_unknown: 
+    case pe_unknown:
     default:
       throw semantic_error ("cannot expand unknown type");
     }
@@ -1892,9 +1892,9 @@ c_unparser::c_expression (expression *e)
 }
 
 
-void 
+void
 c_unparser::c_assign (var& lvalue, const string& rvalue, const token *tok)
-{  
+{
   switch (lvalue.type())
     {
     case pe_string:
@@ -1950,9 +1950,9 @@ c_unparser::c_assign (const string& lvalue, const string& rvalue,
 }
 
 
-void 
-c_unparser_assignment::c_assignop(tmpvar & res, 
-				  var const & lval, 
+void
+c_unparser_assignment::c_assignop(tmpvar & res,
+				  var const & lval,
 				  tmpvar const & rval,
 				  token const * tok)
 {
@@ -1965,7 +1965,7 @@ c_unparser_assignment::c_assignop(tmpvar & res,
   // lval: the lvalue of the expression, which may be damaged
   // rval: the rvalue of the expression, which is a temporary or constant
 
-  // we'd like to work with a local tmpvar so we can overwrite it in 
+  // we'd like to work with a local tmpvar so we can overwrite it in
   // some optimized cases
 
   translator_output* o = parent->o;
@@ -1973,7 +1973,7 @@ c_unparser_assignment::c_assignop(tmpvar & res,
   if (res.type() == pe_string)
     {
       if (post)
-	throw semantic_error ("post assignment on strings not supported", 
+	throw semantic_error ("post assignment on strings not supported",
 			      tok);
       if (op == "=")
 	{
@@ -2064,31 +2064,31 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 }
 
 
-void 
-c_unparser::c_declare(exp_type ty, const string &name) 
+void
+c_unparser::c_declare(exp_type ty, const string &name)
 {
   o->newline() << c_typename (ty) << " " << c_varname (name) << ";";
 }
 
 
-void 
-c_unparser::c_declare_static(exp_type ty, const string &name) 
+void
+c_unparser::c_declare_static(exp_type ty, const string &name)
 {
   o->newline() << "static " << c_typename (ty) << " " << c_varname (name) << ";";
 }
 
 
-void 
-c_unparser::c_strcpy (const string& lvalue, const string& rvalue) 
+void
+c_unparser::c_strcpy (const string& lvalue, const string& rvalue)
 {
-  o->newline() << "strlcpy (" 
-		   << lvalue << ", " 
+  o->newline() << "strlcpy ("
+		   << lvalue << ", "
 		   << rvalue << ", MAXSTRINGLEN);";
 }
 
 
-void 
-c_unparser::c_strcpy (const string& lvalue, expression* rvalue) 
+void
+c_unparser::c_strcpy (const string& lvalue, expression* rvalue)
 {
   o->newline() << "strlcpy (" << lvalue << ", ";
   rvalue->visit (this);
@@ -2096,17 +2096,17 @@ c_unparser::c_strcpy (const string& lvalue, expression* rvalue)
 }
 
 
-void 
-c_unparser::c_strcat (const string& lvalue, const string& rvalue) 
+void
+c_unparser::c_strcat (const string& lvalue, const string& rvalue)
 {
-  o->newline() << "strlcat (" 
-	       << lvalue << ", " 
+  o->newline() << "strlcat ("
+	       << lvalue << ", "
 	       << rvalue << ", MAXSTRINGLEN);";
 }
 
 
-void 
-c_unparser::c_strcat (const string& lvalue, expression* rvalue) 
+void
+c_unparser::c_strcat (const string& lvalue, expression* rvalue)
 {
   o->newline() << "strlcat (" << lvalue << ", ";
   rvalue->visit (this);
@@ -2116,7 +2116,7 @@ c_unparser::c_strcat (const string& lvalue, expression* rvalue)
 
 bool
 c_unparser::is_local(vardecl const *r, token const *tok)
-{  
+{
   if (current_probe)
     {
       for (unsigned i=0; i<current_probe->locals.size(); i++)
@@ -2145,7 +2145,7 @@ c_unparser::is_local(vardecl const *r, token const *tok)
       if (session->globals[i] == r)
 	return false;
     }
-  
+
   if (tok)
     throw semantic_error ("unresolved symbol", tok);
   else
@@ -2153,24 +2153,24 @@ c_unparser::is_local(vardecl const *r, token const *tok)
 }
 
 
-tmpvar 
-c_unparser::gensym(exp_type ty) 
-{ 
-  return tmpvar (ty, tmpvar_counter); 
+tmpvar
+c_unparser::gensym(exp_type ty)
+{
+  return tmpvar (ty, tmpvar_counter);
 }
 
-aggvar 
-c_unparser::gensym_aggregate() 
-{ 
-  return aggvar (tmpvar_counter); 
+aggvar
+c_unparser::gensym_aggregate()
+{
+  return aggvar (tmpvar_counter);
 }
 
 
-var 
-c_unparser::getvar(vardecl *v, token const *tok) 
-{ 
+var
+c_unparser::getvar(vardecl *v, token const *tok)
+{
   bool loc = is_local (v, tok);
-  if (loc)    
+  if (loc)
     return var (loc, v->type, v->name);
   else
     {
@@ -2184,9 +2184,9 @@ c_unparser::getvar(vardecl *v, token const *tok)
 }
 
 
-mapvar 
-c_unparser::getmap(vardecl *v, token const *tok) 
-{   
+mapvar
+c_unparser::getmap(vardecl *v, token const *tok)
+{
   if (v->arity < 1)
     throw semantic_error("attempt to use scalar where map expected", tok);
   statistic_decl sd;
@@ -2199,9 +2199,9 @@ c_unparser::getmap(vardecl *v, token const *tok)
 }
 
 
-itervar 
+itervar
 c_unparser::getiter(symbol *s)
-{ 
+{
   return itervar (s, tmpvar_counter);
 }
 
@@ -2392,9 +2392,9 @@ struct arrayindex_downcaster
   : public traversing_visitor
 {
   arrayindex *& arr;
-  
+
   arrayindex_downcaster (arrayindex *& arr)
-    : arr(arr) 
+    : arr(arr)
   {}
 
   void visit_arrayindex (arrayindex* e)
@@ -2405,7 +2405,7 @@ struct arrayindex_downcaster
 
 
 static bool
-expression_is_arrayindex (expression *e, 
+expression_is_arrayindex (expression *e,
 			  arrayindex *& hist)
 {
   arrayindex *h = NULL;
@@ -2423,7 +2423,7 @@ expression_is_arrayindex (expression *e,
 void
 c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (s->base, array, hist);
 
@@ -2433,17 +2433,17 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
       parent->o->newline() << iv.declare();
     }
   else
-   { 
+   {
      // See commentary in c_tmpcounter::visit_arrayindex for
      // discussion of tmpvars required to look into @hist_op(...)
      // expressions.
 
      // First make sure we have exactly one pe_long variable to use as
      // our bucket index.
-     
+
      if (s->indexes.size() != 1 || s->indexes[0]->referent->type != pe_long)
        throw semantic_error("Invalid indexing of histogram", s->tok);
-      
+
       // Then declare what we need to form the aggregate we're
       // iterating over, and all the tmpvars needed by our call to
       // load_aggregate().
@@ -2460,7 +2460,7 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 	    throw semantic_error("expected arrayindex expression in iterated hist_op", s->tok);
 
 	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
-	    {	      
+	    {
 	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
 	      ix.declare (*parent);
 	      arr->indexes[i]->visit(this);
@@ -2487,7 +2487,7 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 void
 c_unparser::visit_foreach_loop (foreach_loop *s)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (s->base, array, hist);
 
@@ -2496,14 +2496,14 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       mapvar mv = getmap (array->referent, s->tok);
       itervar iv = getiter (array);
       vector<var> keys;
-      
+
       string ctr = stringify (label_counter++);
       string toplabel = "top_" + ctr;
       string contlabel = "continue_" + ctr;
       string breaklabel = "break_" + ctr;
-      
+
       // NB: structure parallels for_loop
-      
+
       // initialization
 
       tmpvar *res_limit = NULL;
@@ -2513,7 +2513,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  res_limit = new tmpvar(gensym(pe_long));
 	  c_assign (res_limit->value(), s->limit, "foreach limit");
 	}
-      
+
       // aggregate array if required
       if (mv.is_parallel())
 	{
@@ -2554,7 +2554,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	    }
         }
       else
-	{      
+	{
 	  // sort array if desired
 	  if (s->sort_direction)
 	    {
@@ -2574,11 +2574,11 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	}
 
       // NB: sort direction sense is opposite in runtime, thus the negation
-      
+
       if (mv.is_parallel())
 	aggregations_active.insert(mv.value());
       o->newline() << iv << " = " << iv.start (mv) << ";";
-      
+
       tmpvar *limitv = NULL;
       if (s->limit)
       {
@@ -2599,7 +2599,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       record_actions(1);
 
       o->newline() << "if (! (" << iv << ")) goto " << breaklabel << ";";
-      
+
       // body
       loop_break_labels.push_back (breaklabel);
       loop_continue_labels.push_back (contlabel);
@@ -2628,12 +2628,12 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       o->newline(-1) << "}";
       loop_break_labels.pop_back ();
       loop_continue_labels.pop_back ();
-      
+
       // iteration
       o->newline(-1) << contlabel << ":";
       o->newline(1) << iv << " = " << iv.next (mv) << ";";
       o->newline() << "goto " << toplabel << ";";
-      
+
       // exit
       o->newline(-1) << breaklabel << ":";
       o->newline(1) << "; /* dummy statement */";
@@ -2667,10 +2667,10 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  limitv = new tmpvar(gensym (pe_long));
 	  o->newline() << *limitv << " = 0LL;";
 	}
-      
+
       // XXX: break / continue don't work here yet
       record_actions(1, true);
-      o->newline() << "for (" << bucketvar << " = 0; " 
+      o->newline() << "for (" << bucketvar << " = 0; "
 		   << bucketvar << " < " << v.buckets() << "; "
 		   << bucketvar << "++) { ";
       o->newline(1);
@@ -2744,17 +2744,17 @@ struct delete_statement_operand_visitor:
   void visit_arrayindex (arrayindex* e);
 };
 
-void 
+void
 delete_statement_operand_visitor::visit_symbol (symbol* e)
 {
   assert (e->referent != 0);
   if (e->referent->arity > 0)
     {
-      mapvar mvar = parent->getmap(e->referent, e->tok);  
+      mapvar mvar = parent->getmap(e->referent, e->tok);
       /* NB: Memory deallocation/allocation operations
        are not generally safe.
       parent->o->newline() << mvar.fini ();
-      parent->o->newline() << mvar.init ();  
+      parent->o->newline() << mvar.init ();
       */
       if (mvar.is_parallel())
 	parent->o->newline() << "_stp_pmap_clear (" << mvar.value() << ");";
@@ -2763,7 +2763,7 @@ delete_statement_operand_visitor::visit_symbol (symbol* e)
     }
   else
     {
-      var v = parent->getvar(e->referent, e->tok);  
+      var v = parent->getvar(e->referent, e->tok);
       switch (e->type)
 	{
 	case pe_stats:
@@ -2782,10 +2782,10 @@ delete_statement_operand_visitor::visit_symbol (symbol* e)
     }
 }
 
-void 
+void
 delete_statement_operand_tmp_visitor::visit_arrayindex (arrayindex* e)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
 
@@ -2808,10 +2808,10 @@ delete_statement_operand_tmp_visitor::visit_arrayindex (arrayindex* e)
     }
 }
 
-void 
+void
 delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
 
@@ -2819,7 +2819,7 @@ delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
     {
       vector<tmpvar> idx;
       parent->load_map_indices (e, idx);
-      
+
       {
 	mapvar mvar = parent->getmap (array->referent, e->tok);
 	parent->o->newline() << mvar.del (idx) << ";";
@@ -2932,7 +2932,7 @@ c_unparser::visit_binary_expression (binary_expression* e)
       e->left->type != pe_long ||
       e->right->type != pe_long)
     throw semantic_error ("expected numeric types", e->tok);
-  
+
   if (e->op == "+" ||
       e->op == "-" ||
       e->op == "*" ||
@@ -2995,7 +2995,7 @@ c_unparser::visit_binary_expression (binary_expression* e)
       o->newline(-1) << "})";
     }
   else
-    throw semantic_error ("operator not yet implemented", e->tok); 
+    throw semantic_error ("operator not yet implemented", e->tok);
 }
 
 
@@ -3059,13 +3059,13 @@ c_unparser::visit_logical_and_expr (logical_and_expr* e)
 }
 
 
-void 
+void
 c_tmpcounter::visit_array_in (array_in* e)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->operand->base, array, hist);
-  
+
   if (array)
     {
       assert (array->referent != 0);
@@ -3078,7 +3078,7 @@ c_tmpcounter::visit_array_in (array_in* e)
 	  ix.declare (*parent);
 	  e->operand->indexes[i]->visit(this);
 	}
-      
+
       // A boolean result.
       tmpvar res = parent->gensym (e->type);
       res.declare (*parent);
@@ -3100,18 +3100,18 @@ c_tmpcounter::visit_array_in (array_in* e)
 void
 c_unparser::visit_array_in (array_in* e)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->operand->base, array, hist);
-  
+
   if (array)
     {
-      stmt_expr block(*this);  
-      
+      stmt_expr block(*this);
+
       vector<tmpvar> idx;
       load_map_indices (e->operand, idx);
       // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-      
+
       tmpvar res = gensym (pe_long);
       mapvar mvar = getmap (array->referent, e->tok);
       c_assign (res, mvar.exists(idx), e->tok);
@@ -3189,7 +3189,7 @@ c_unparser::visit_concatenation (concatenation* e)
     throw semantic_error ("expected string types", e->tok);
 
   tmpvar t = gensym (e->type);
-  
+
   o->line() << "({ ";
   o->indent(1);
   // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
@@ -3242,7 +3242,7 @@ c_unparser::visit_assignment (assignment* e)
 
       if (e->right->type != pe_long)
 	throw semantic_error ("non-number right operand to <<< expression", e->right->tok);
-	
+
     }
   else
     {
@@ -3326,7 +3326,7 @@ c_tmpcounter_assignment::prepare_rvalue (tmpvar & rval)
     }
 }
 
-void 
+void
 c_tmpcounter_assignment::c_assignop(tmpvar & res)
 {
   if (res.type() == pe_string)
@@ -3380,7 +3380,7 @@ c_tmpcounter_assignment::visit_symbol (symbol *e)
 
 
 void
-c_unparser_assignment::prepare_rvalue (string const & op, 
+c_unparser_assignment::prepare_rvalue (string const & op,
 				       tmpvar & rval,
 				       token const * tok)
 {
@@ -3422,13 +3422,13 @@ c_unparser_assignment::visit_symbol (symbol *e)
   prepare_rvalue (op, rval, e->tok);
 
   var lvar = parent->getvar (e->referent, e->tok);
-  c_assignop (res, lvar, rval, e->tok);     
+  c_assignop (res, lvar, rval, e->tok);
 
   parent->o->newline() << res << ";";
 }
 
 
-void 
+void
 c_unparser::visit_target_symbol (target_symbol* e)
 {
   throw semantic_error("cannot translate general target-symbol expression", e->tok);
@@ -3438,7 +3438,7 @@ c_unparser::visit_target_symbol (target_symbol* e)
 void
 c_tmpcounter::load_map_indices(arrayindex *e)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
 
@@ -3446,7 +3446,7 @@ c_tmpcounter::load_map_indices(arrayindex *e)
     {
       assert (array->referent != 0);
       vardecl* r = array->referent;
-      
+
       // One temporary per index dimension, except in the case of
       // number or string constants.
       for (unsigned i=0; i<r->index_types.size(); i++)
@@ -3469,26 +3469,26 @@ void
 c_unparser::load_map_indices(arrayindex *e,
 			     vector<tmpvar> & idx)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
 
   if (array)
     {
       idx.clear();
-      
+
       assert (array->referent != 0);
       vardecl* r = array->referent;
-      
+
       if (r->index_types.size() == 0 ||
 	  r->index_types.size() != e->indexes.size())
 	throw semantic_error ("invalid array reference", e->tok);
-      
+
       for (unsigned i=0; i<r->index_types.size(); i++)
 	{
 	  if (r->index_types[i] != e->indexes[i]->type)
 	    throw semantic_error ("array index type mismatch", e->indexes[i]->tok);
-	  
+
 	  tmpvar ix = gensym (r->index_types[i]);
 	  if (e->indexes[i]->tok->type == tok_number
 	      || e->indexes[i]->tok->type == tok_string)
@@ -3514,31 +3514,31 @@ c_unparser::load_map_indices(arrayindex *e,
       //	   << lex_cast_qstring(*e->indexes[0]->tok) << ";";
       c_assign (ix.value(), e->indexes[0], "array index copy");
       idx.push_back(ix);
-    }  
+    }
 }
 
 
-void 
+void
 c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
 {
   symbol *sym = get_symbol_within_expression (e);
-  
+
   if (sym->referent->type != pe_stats)
     throw semantic_error ("unexpected aggregate of non-statistic", sym->tok);
-  
+
   var v = getvar(sym->referent, e->tok);
 
   if (sym->referent->arity == 0)
     {
       // o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
-      o->newline() << agg << " = _stp_stat_get (" << v << ", 0);";	  
+      o->newline() << agg << " = _stp_stat_get (" << v << ", 0);";
     }
   else
     {
       arrayindex *arr = NULL;
       if (!expression_is_arrayindex (e, arr))
 	throw semantic_error("unexpected aggregate of non-arrayindex", e->tok);
-      
+
       vector<tmpvar> idx;
       load_map_indices (arr, idx);
       mapvar mvar = getmap (sym->referent, sym->tok);
@@ -3548,25 +3548,25 @@ c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
 }
 
 
-string 
+string
 c_unparser::histogram_index_check(var & base, tmpvar & idx) const
 {
   return "((" + idx.value() + " >= 0)"
-    + " && (" + idx.value() + " < " + base.buckets() + "))"; 
+    + " && (" + idx.value() + " < " + base.buckets() + "))";
 }
 
 
 void
 c_tmpcounter::visit_arrayindex (arrayindex *e)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
 
   if (array)
     {
       load_map_indices(e);
-      
+
       // The index-expression result.
       tmpvar res = parent->gensym (e->type);
       res.declare (*parent);
@@ -3580,18 +3580,18 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
       // temporaries. The reason is that we're in the branch handling
       // histogram-indexing, and the histogram might be build over an
       // indexable entity itself. For example if we have:
-      // 
+      //
       //  global foo
       //  ...
       //  foo[getpid(), geteuid()] <<< 1
       //  ...
       //  print @log_hist(foo[pid, euid])[bucket]
-      //  
+      //
       // We are looking at the @log_hist(...)[bucket] expression, so
       // allocating one tmpvar for calculating bucket (the "index" of
       // this arrayindex expression), and one tmpvar for storing the
       // result in, just as normal.
-      //      
+      //
       // But we are *also* going to call load_aggregate on foo, which
       // will itself require tmpvars for each of its indices. Since
       // this is not handled by delving into the subexpression (it
@@ -3601,17 +3601,17 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
       // (bucket) tmpvar, then all the index tmpvars of our
       // pe_stat-valued subexpression, then our result.
 
-      
+
       // First all the stuff related to indexing into the histogram
 
       if (e->indexes.size() != 1)
 	throw semantic_error("Invalid indexing of histogram", e->tok);
       tmpvar ix = parent->gensym (pe_long);
-      ix.declare (*parent);      
+      ix.declare (*parent);
       e->indexes[0]->visit(this);
       tmpvar res = parent->gensym (pe_long);
       res.declare (*parent);
-      
+
       // Then the aggregate, and all the tmpvars needed by our call to
       // load_aggregate().
 
@@ -3627,7 +3627,7 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
 	    throw semantic_error("expected arrayindex expression in indexed hist_op", e->tok);
 
 	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
-	    {	      
+	    {
 	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
 	      ix.declare (*parent);
 	      arr->indexes[i]->visit(this);
@@ -3639,8 +3639,8 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
 
 void
 c_unparser::visit_arrayindex (arrayindex* e)
-{  
-  symbol *array;  
+{
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
 
@@ -3650,16 +3650,16 @@ c_unparser::visit_arrayindex (arrayindex* e)
       if (array->referent->type == pe_stats)
 	throw semantic_error ("statistic-valued array in rvalue context", e->tok);
 
-      stmt_expr block(*this);  
+      stmt_expr block(*this);
 
       // NB: Do not adjust the order of the next few lines; the tmpvar
       // allocation order must remain the same between
       // c_unparser::visit_arrayindex and c_tmpcounter::visit_arrayindex
-      
+
       vector<tmpvar> idx;
       load_map_indices (e, idx);
       tmpvar res = gensym (e->type);
-  
+
       mapvar mvar = getmap (array->referent, e->tok);
       // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
       c_assign (res, mvar.get(idx), e->tok);
@@ -3671,21 +3671,21 @@ c_unparser::visit_arrayindex (arrayindex* e)
       // See commentary in c_tmpcounter::visit_arrayindex
 
       assert(hist);
-      stmt_expr block(*this);  
+      stmt_expr block(*this);
 
       // NB: Do not adjust the order of the next few lines; the tmpvar
       // allocation order must remain the same between
       // c_unparser::visit_arrayindex and c_tmpcounter::visit_arrayindex
-      
+
       vector<tmpvar> idx;
       load_map_indices (e, idx);
       tmpvar res = gensym (e->type);
-      
+
       aggvar agg = gensym_aggregate ();
 
       // These should have faulted during elaboration if not true.
       assert(idx.size() == 1);
-      assert(idx[0].type() == pe_long);	
+      assert(idx[0].type() == pe_long);
 
       symbol *sym = get_symbol_within_expression (hist->stat);
 
@@ -3699,7 +3699,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
 
       if (aggregations_active.count(v->value()))
 	load_aggregate(hist->stat, agg, true);
-      else 
+      else
         load_aggregate(hist->stat, agg, false);
 
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
@@ -3719,7 +3719,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
 
       o->newline(-1) << "}";
       o->newline() << res << ";";
-            
+
       delete v;
     }
 }
@@ -3728,14 +3728,14 @@ c_unparser::visit_arrayindex (arrayindex* e)
 void
 c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
 
   if (array)
     {
       parent->load_map_indices(e);
- 
+
       // The expression rval, lval, and result.
       exp_type ty = rvalue ? rvalue->type : e->type;
       tmpvar rval = parent->parent->gensym (ty);
@@ -3760,14 +3760,14 @@ c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
 void
 c_unparser_assignment::visit_arrayindex (arrayindex *e)
 {
-  symbol *array;  
+  symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
 
   if (array)
     {
 
-      stmt_expr block(*parent);  
+      stmt_expr block(*parent);
 
       translator_output *o = parent->o;
 
@@ -3778,14 +3778,14 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       // allocation order must remain the same between
       // c_unparser_assignment::visit_arrayindex and
       // c_tmpcounter_assignment::visit_arrayindex
-  
+
       vector<tmpvar> idx;
       parent->load_map_indices (e, idx);
       exp_type ty = rvalue ? rvalue->type : e->type;
       tmpvar rvar = parent->gensym (ty);
       tmpvar lvar = parent->gensym (ty);
       tmpvar res = parent->gensym (ty);
-  
+
       // NB: because these expressions are nestable, emit this construct
       // thusly:
       // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
@@ -3801,7 +3801,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       // e.g. ++a[a[c]=5] could deadlock
       //
       //
-      // There is an exception to the above form: if we're doign a <<< assigment to 
+      // There is an exception to the above form: if we're doign a <<< assigment to
       // a statistic-valued map, there's a special form we follow:
       //
       // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs);
@@ -3835,12 +3835,12 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  if (op != "=") // don't bother fetch slot if we will just overwrite it
 	    parent->c_assign (lvar, mvar.get(idx), e->tok);
-	  c_assignop (res, lvar, rvar, e->tok); 
+	  c_assignop (res, lvar, rvar, e->tok);
 	  o->newline() << mvar.set (idx, lvar) << ";";
 	}
 
       o->newline() << res << ";";
-    } 
+    }
   else
     {
       throw semantic_error("cannot assign to histogram buckets", e->tok);
@@ -3874,7 +3874,7 @@ c_unparser::visit_functioncall (functioncall* e)
   if (r->formal_args.size() != e->args.size())
     throw semantic_error ("invalid length argument list", e->tok);
 
-  stmt_expr block(*this);  
+  stmt_expr block(*this);
 
   // NB: we store all actual arguments in temporary variables,
   // to avoid colliding sharing of context variables with
@@ -3953,7 +3953,7 @@ c_tmpcounter::visit_print_format (print_format* e)
 	      arrayindex *arr = NULL;
 	      if (!expression_is_arrayindex (e->hist->stat, arr))
 		throw semantic_error("expected arrayindex expression in printed hist_op", e->tok);
-	      
+
 	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
 	      ix.declare (*parent);
 	      arr->indexes[i]->visit(this);
@@ -3968,7 +3968,7 @@ c_tmpcounter::visit_print_format (print_format* e)
 	  tmpvar t = parent->gensym (e->args[i]->type);
 	  if (e->args[i]->type == pe_unknown)
 	    {
-	      throw semantic_error("unknown type of arg to print operator", 
+	      throw semantic_error("unknown type of arg to print operator",
 				   e->args[i]->tok);
 	    }
 
@@ -3980,14 +3980,14 @@ c_tmpcounter::visit_print_format (print_format* e)
 
       // And the result
       exp_type ty = e->print_to_stream ? pe_long : pe_string;
-      tmpvar res = parent->gensym (ty);      
+      tmpvar res = parent->gensym (ty);
       if (ty == pe_string)
 	res.declare (*parent);
     }
 }
 
 
-void 
+void
 c_unparser::visit_print_format (print_format* e)
 {
   // Print formats can contain a general argument list *or* a special
@@ -3996,7 +3996,7 @@ c_unparser::visit_print_format (print_format* e)
 
   if (e->hist)
     {
-      stmt_expr block(*this);  
+      stmt_expr block(*this);
       symbol *sym = get_symbol_within_expression (e->hist->stat);
       aggvar agg = gensym_aggregate ();
 
@@ -4011,7 +4011,7 @@ c_unparser::visit_print_format (print_format* e)
       {
 	if (aggregations_active.count(v->value()))
 	  load_aggregate(e->hist->stat, agg, true);
-	else 
+	else
           load_aggregate(e->hist->stat, agg, false);
 
         // PR 2142+2610: empty aggregates
@@ -4029,11 +4029,11 @@ c_unparser::visit_print_format (print_format* e)
     }
   else
     {
-      stmt_expr block(*this);  
+      stmt_expr block(*this);
 
       // Compute actual arguments
       vector<tmpvar> tmp;
-      
+
       for (unsigned i=0; i<e->args.size(); i++)
 	{
 	  tmpvar t = gensym(e->args[i]->type);
@@ -4051,11 +4051,11 @@ c_unparser::visit_print_format (print_format* e)
 	    tmp[i].override(c_expression(e->args[i]));
 	  else
 	    c_assign (t.value(), e->args[i],
-		      "print format actual argument evaluation");	  
+		      "print format actual argument evaluation");
 	}
 
       std::vector<print_format::format_component> components;
-      
+
       if (e->print_with_format)
 	{
 	  components = e->components;
@@ -4099,13 +4099,13 @@ c_unparser::visit_print_format (print_format* e)
 
       // Allocate the result
       exp_type ty = e->print_to_stream ? pe_long : pe_string;
-      tmpvar res = gensym (ty);      
+      tmpvar res = gensym (ty);
       int use_print = 0;
 
       string format_string = print_format::components_to_string(components);
       if (tmp.size() == 0 || (tmp.size() == 1 && format_string == "%s"))
 	use_print = 1;
-      else if (tmp.size() == 1 
+      else if (tmp.size() == 1
 	       && e->args[0]->tok->type == tok_string
 	       && format_string == "%s\\n")
 	{
@@ -4155,7 +4155,7 @@ c_unparser::visit_print_format (print_format* e)
 		o->line() << tmp[0].value() << ");";
 	      else
 		o->line() << '"' << format_string << "\");";
-	      return; 
+	      return;
 	    }
 	  if (use_print)
 	    {
@@ -4176,7 +4176,7 @@ c_unparser::visit_print_format (print_format* e)
 	o->newline() << "_stp_snprintf (" << res.value() << ", MAXSTRINGLEN, ";
 
       o->line() << '"' << format_string << '"';
-      
+
       /* Generate the actual arguments. Make sure that they match the expected type of the
 	 format specifier.  */
       arg_ix = 0;
@@ -4203,7 +4203,7 @@ c_unparser::visit_print_format (print_format* e)
 }
 
 
-void 
+void
 c_tmpcounter::visit_stat_op (stat_op* e)
 {
   symbol *sym = get_symbol_within_expression (e->stat);
@@ -4232,14 +4232,14 @@ c_tmpcounter::visit_stat_op (stat_op* e)
     }
 }
 
-void 
+void
 c_unparser::visit_stat_op (stat_op* e)
 {
   // Stat ops can be *applied* to two types of expression:
   //
-  //  1. An arrayindex expression on a pe_stats-valued array. 
+  //  1. An arrayindex expression on a pe_stats-valued array.
   //
-  //  2. A symbol of type pe_stats. 
+  //  2. A symbol of type pe_stats.
 
   // FIXME: classify the expression the stat_op is being applied to,
   // call appropriate stp_get_stat() / stp_pmap_get_stat() helper,
@@ -4248,12 +4248,12 @@ c_unparser::visit_stat_op (stat_op* e)
   // FIXME: also note that summarizing anything is expensive, and we
   // really ought to pass a timeout handler into the summary routine,
   // check its response, possibly exit if it ran out of cycles.
-  
+
   {
     stmt_expr block(*this);
     symbol *sym = get_symbol_within_expression (e->stat);
     aggvar agg = gensym_aggregate ();
-    tmpvar res = gensym (pe_long);    
+    tmpvar res = gensym (pe_long);
     var v = getvar(sym->referent, e->tok);
     {
       if (aggregations_active.count(v.value()))
@@ -4301,13 +4301,13 @@ c_unparser::visit_stat_op (stat_op* e)
           break;
         }
       o->indent(-1);
-    }    
+    }
     o->newline() << res << ";";
   }
 }
 
 
-void 
+void
 c_unparser::visit_hist_op (hist_op*)
 {
   // Hist ops can only occur in a limited set of circumstances:
@@ -4387,13 +4387,13 @@ dump_unwindsyms (Dwfl_Module *m,
   map<unsigned, addrmap_t> addrmap; // per-relocation-base sorted addrmap
 
   Dwarf_Addr extra_offset = 0;
-  
+
   for (int i = 1 /* XXX: why not 0? */ ; i < syments; ++i)
     {
       GElf_Sym sym;
       const char *name = dwfl_module_getsym(m, i, &sym, NULL);
       if (name)
-        { 
+        {
           // NB: Yey, we found the kernel's _stext value.
           // Sess.sym_stext may be unset (0) at this point, since
           // there may have been no kernel probes set.  We could
@@ -4431,11 +4431,11 @@ dump_unwindsyms (Dwfl_Module *m,
                   assert (secname != NULL);
                   // secname adequately set
                 }
-              else 
+              else
                 {
                   assert (n == 0);
                   // sym_addr is absolute, as it must be since there are no relocation bases
-                  secname = ".absolute"; // sentinel 
+                  secname = ".absolute"; // sentinel
                 }
 
               // Compute our section number
@@ -4443,7 +4443,7 @@ dump_unwindsyms (Dwfl_Module *m,
               for (secidx=0; secidx<seclist.size(); secidx++)
                 if (seclist[secidx]==secname) break;
 
-              if (secidx == seclist.size()) // new section name 
+              if (secidx == seclist.size()) // new section name
                 seclist.push_back (secname);
 
               (addrmap[secidx])[sym_addr] = name;
@@ -4461,7 +4461,7 @@ dump_unwindsyms (Dwfl_Module *m,
         {
           if (it->first < extra_offset)
             continue; // skip symbols that occur before our chosen base address
-          
+
           c->output << "  { 0x" << hex << it->first-extra_offset << dec
                     << ", " << lex_cast_qstring (it->second) << " }," << endl;
         }
@@ -4481,10 +4481,10 @@ dump_unwindsyms (Dwfl_Module *m,
 
   c->output << "struct _stp_module _stp_module_" << stpmod_idx << " = {" << endl;
   c->output << ".name = " << lex_cast_qstring (modname) << ", " << endl;
-  c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ", " << endl; 
+  c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ", " << endl;
   c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"
-            << "sizeof(struct _stp_section), " << endl; 
-  
+            << "sizeof(struct _stp_section), " << endl;
+
   c->output << "};" << endl << endl;
 
   c->undone_unwindsym_modules.erase (modname);
@@ -4510,7 +4510,7 @@ emit_symbol_data (systemtap_session& s)
   // XXX: copied from tapsets.cxx, sadly
   static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
   static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-  
+
   static char *debuginfo_path = (debuginfo_env_arr ?
                                  debuginfo_env_arr : debuginfo_path_arr);
   static const  char *debug_path = (debuginfo_env_arr ?
@@ -4524,7 +4524,7 @@ emit_symbol_data (systemtap_session& s)
       dwfl_offline_section_address,
       & debuginfo_path
     };
-  
+
   Dwfl *dwfl = dwfl_begin (&kernel_callbacks);
   if (!dwfl)
     throw semantic_error ("cannot open dwfl");
@@ -4615,7 +4615,7 @@ translate_pass (systemtap_session& s)
   try
     {
       // This is at the very top of the file.
-      
+
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING 10";
       s.op->newline() << "#endif";
@@ -4663,7 +4663,7 @@ translate_pass (systemtap_session& s)
 
       if (s.bulk_mode)
 	  s.op->newline() << "#define STP_BULKMODE";
-	  
+
       if (s.timing)
 	s.op->newline() << "#define STP_TIMING";
 

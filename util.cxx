@@ -173,7 +173,7 @@ find_executable(const char *name, string& retpath)
   if (!p)
     return false;
   path = p;
-	
+
   // Split PATH up.
   tokenize(path, dirs, string(":"));
 
@@ -215,8 +215,8 @@ const string cmdstr_quoted(const string& cmd)
 	string::size_type pos = 0;
 
 	quoted_cmd += quote;
-	for (string::size_type quote_pos = cmd.find(quote, pos); 
-			quote_pos != string::npos; 
+	for (string::size_type quote_pos = cmd.find(quote, pos);
+			quote_pos != string::npos;
 			quote_pos = cmd.find(quote, pos)) {
 		quoted_cmd += cmd.substr(pos, quote_pos - pos);
 		quoted_cmd += replace;
