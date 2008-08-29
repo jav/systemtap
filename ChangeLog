@@ -1,3 +1,11 @@
+2008-08-29  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
+	Pushed quiesce logic down into the task_finder layer.
+	(utrace_derived_probe_group::emit_module_decls): Removed quiesce
+	handler routines.  Syscall probe handler detaches if systemtap
+	state isn't correct.
+
 2008-08-29  Wenji Huang <wenji.huang@oracle.com>
 
 	* main.cxx (printscript): Print variable name and type for listing mode.
