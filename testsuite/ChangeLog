@@ -1,3 +1,9 @@
+2008-08-29  David Smith  <dsmith@redhat.com>
+
+	PR6841
+	* systemtap.base/utrace_p5.exp: Added system-wide syscall test for
+	bug 6841 fix.
+
 2008-08-27  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/global_end.exp: New.
