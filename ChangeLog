@@ -6,12 +6,34 @@
 	* Makefile.in: Regenerated.
 	* configure: Regenerated.
 
+2008-08-29  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (add_global_var_display): Repopulate symbol/type info.
+
+2008-08-29  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
+	Pushed quiesce logic down into the task_finder layer.
+	(utrace_derived_probe_group::emit_module_decls): Removed quiesce
+	handler routines.  Syscall probe handler detaches if systemtap
+	state isn't correct.
+
+2008-08-29  Wenji Huang <wenji.huang@oracle.com>
+
+	* main.cxx (printscript): Print variable name and type for listing mode.
+
+2008-08-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (add_global_var_display): Render array indexes
+	in [key,key,key] vs. [key][key][key] form.
+
 2008-08-27  Stan Cox  <scox@redhat.com>
 
 	* elaborate.cxx (add_global_var_display): New.
 	(semantic_pass): Call it.
 	(dead_assignment_remover::visit_assignment): Don't remove written
 	but unread global variables.
+	* NEWS, stap.1.in: Document
 
 2008-08-26  David Smith  <dsmith@redhat.com>
 

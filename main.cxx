@@ -79,7 +79,7 @@ usage (systemtap_session& s, int exitcode)
     << "   -u         unoptimized translation" << (s.unoptimized ? " [set]" : "") << endl
     << "   -w         suppress warnings" << (s.suppress_warnings ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
-    << "   -P         prologue-searching for function probes" 
+    << "   -P         prologue-searching for function probes"
     << (s.prologue_searching ? " [set]" : "") << endl
     << "   -b         bulk (percpu file) mode" << (s.bulk_mode ? " [set]" : "") << endl
     << "   -s NUM     buffer size in megabytes, instead of "
@@ -165,7 +165,7 @@ printscript(systemtap_session& s, ostream& o)
             {
               assert (a->alias_names.size() >= 1);
               a->alias_names[0]->print(tmps); // XXX: [0] is arbitrary; perhaps print all
-            }            
+            }
           else
             {
               assert (second->locations.size() >= 1);
@@ -179,6 +179,18 @@ printscript(systemtap_session& s, ostream& o)
           if (seen.find (pp) == seen.end())
             {
               o << pp << endl;
+              if (s.verbose) {
+	              for (unsigned j=0; j<p->locals.size(); j++)
+		            {
+        		      vardecl* v = p->locals[j];
+	        	      if (j>0)
+			      	o << ", ";
+        		      else
+		      		o << "  ";
+		              v->printsig (o);
+		            }
+	              o << endl;
+              }
               seen.insert (pp);
             }
         }
@@ -193,7 +205,7 @@ printscript(systemtap_session& s, ostream& o)
           ec->print (o);
           o << endl;
         }
-      
+
       if (s.globals.size() > 0)
         o << "# globals" << endl;
       for (unsigned i=0; i<s.globals.size(); i++)
@@ -207,7 +219,7 @@ printscript(systemtap_session& s, ostream& o)
             }
           o << endl;
         }
-      
+
       if (s.functions.size() > 0)
         o << "# functions" << endl;
       for (unsigned i=0; i<s.functions.size(); i++)
@@ -230,7 +242,7 @@ printscript(systemtap_session& s, ostream& o)
               o << endl;
             }
         }
-      
+
       if (s.probes.size() > 0)
         o << "# probes" << endl;
       for (unsigned i=0; i<s.probes.size(); i++)
@@ -349,7 +361,7 @@ main (int argc, char * const argv [])
   s.ignore_dwarf = false;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
-  if (s_p != NULL)  
+  if (s_p != NULL)
   {
     s.include_path.push_back (s_p);
   }
@@ -581,6 +593,7 @@ main (int argc, char * const argv [])
         case 'l':
 	  s.suppress_warnings = true;
           s.listing_mode = true;
+          s.unoptimized = true;
           s.last_pass = 2;
           if (have_script)
             {
@@ -733,7 +746,7 @@ main (int argc, char * const argv [])
     const char* tmpdir_env = getenv("TMPDIR");
     if (! tmpdir_env)
       tmpdir_env = "/tmp";
-    
+
     string stapdir = "/stapXXXXXX";
     string tmpdirt = tmpdir_env + stapdir;
     mode_t mask = umask(0);
@@ -756,7 +769,7 @@ main (int argc, char * const argv [])
   // directory.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
 
-  // Set up our handler to catch routine signals, to allow clean 
+  // Set up our handler to catch routine signals, to allow clean
   // and reasonably timely exit.
   setup_signals(&handle_interrupt);
 

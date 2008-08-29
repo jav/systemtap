@@ -346,7 +346,7 @@ struct print_format: public expression
 
   static std::string components_to_string(std::vector<format_component> const & components);
   static std::vector<format_component> string_to_components(std::string const & str);
-  static bool parse_print(const std::string &name, bool &stream, 
+  static bool parse_print(const std::string &name, bool &stream,
 	            bool &format, bool &delim, bool &newline, bool &_char);
 
   void print (std::ostream& o) const;

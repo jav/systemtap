@@ -27,7 +27,7 @@ using namespace std;
 expression::expression ():
   type (pe_unknown), tok (0)
 {
-} 
+}
 
 
 expression::~expression ()
@@ -38,7 +38,7 @@ expression::~expression ()
 statement::statement ():
   tok (0)
 {
-} 
+}
 
 
 statement::~statement ()
@@ -68,7 +68,7 @@ symboldecl::symboldecl ():
   tok (0),
   type (pe_unknown)
 {
-} 
+}
 
 
 symboldecl::~symboldecl ()
@@ -110,8 +110,8 @@ probe_point::component::component ():
 }
 
 
-probe_point::component::component (std::string const & f, literal * a): 
-  functor(f), arg(a) 
+probe_point::component::component (std::string const & f, literal * a):
+  functor(f), arg(a)
 {
 }
 
@@ -140,7 +140,7 @@ vardecl::set_arity (int a)
     }
 }
 
-bool 
+bool
 vardecl::compatible_arity (int a)
 {
   if (a == 0 && maxsize > 0)
@@ -216,15 +216,15 @@ void literal_number::print (ostream& o) const
 
 void binary_expression::print (ostream& o) const
 {
-  o << "(" << *left << ") " 
-    << op 
+  o << "(" << *left << ") "
+    << op
     << " (" << *right << ")";
 }
 
 
 void unary_expression::print (ostream& o) const
 {
-  o << op << '(' << *operand << ")"; 
+  o << op << '(' << *operand << ")";
 }
 
 void array_in::print (ostream& o) const
@@ -241,7 +241,7 @@ void array_in::print (ostream& o) const
 
 void post_crement::print (ostream& o) const
 {
-  o << '(' << *operand << ")" << op; 
+  o << '(' << *operand << ")" << op;
 }
 
 
@@ -249,7 +249,7 @@ void ternary_expression::print (ostream& o) const
 {
   o << "(" << *cond << ")?("
     << *truevalue << "):("
-    << *falsevalue << ")"; 
+    << *falsevalue << ")";
 }
 
 
@@ -346,7 +346,7 @@ void functioncall::print (ostream& o) const
   for (unsigned i=0; i<args.size(); i++)
     o << (i>0 ? ", " : "") << *args[i];
   o << ")";
-}  
+}
 
 
 bool
@@ -398,7 +398,7 @@ print_format::parse_print(const std::string &name,
 }
 
 
-string 
+string
 print_format::components_to_string(vector<format_component> const & components)
 {
   ostringstream oss;
@@ -452,7 +452,7 @@ print_format::components_to_string(vector<format_component> const & components)
 	  else if (i->prectype != prec_unspecified && i->precision > 0)
 	    oss << '.' << i->precision;
 
-	  switch (i->type)	
+	  switch (i->type)
 	    {
 	    case conv_binary:
 	      oss << "b";
@@ -485,11 +485,11 @@ print_format::components_to_string(vector<format_component> const & components)
 	    case conv_string:
 	      oss << 's';
 	      break;
-	      
+
 	    case conv_memory:
 	      oss << 'm';
 	      break;
-	      
+
 	    case conv_size:
 	      oss << 'n';
 	      break;
@@ -501,8 +501,8 @@ print_format::components_to_string(vector<format_component> const & components)
     }
   return oss.str ();
 }
- 
-vector<print_format::format_component> 
+
+vector<print_format::format_component>
 print_format::string_to_components(string const & str)
 {
   format_component curr;
@@ -511,7 +511,7 @@ print_format::string_to_components(string const & str)
   curr.clear();
 
   string::const_iterator i = str.begin();
-  
+
   while (i != str.end())
     {
       if (*i != '%')
@@ -532,7 +532,7 @@ print_format::string_to_components(string const & str)
           i += 2;
 	  continue;
 	}
-      else 
+      else
 	{
 	  assert(*i == '%');
 	  if (curr.type != conv_unspecified)
@@ -544,11 +544,11 @@ print_format::string_to_components(string const & str)
 	    }
 	}
       ++i;
-      
+
       if (i == str.end())
 	break;
 
-      // Now we are definitely parsing a conversion. 
+      // Now we are definitely parsing a conversion.
       // Begin by parsing flags (which are optional).
 
       switch (*i)
@@ -557,22 +557,22 @@ print_format::string_to_components(string const & str)
 	  curr.flags |= static_cast<unsigned long>(fmt_flag_zeropad);
 	  ++i;
 	  break;
-	  
+
 	case '+':
 	  curr.flags |= static_cast<unsigned long>(fmt_flag_plus);
 	  ++i;
 	  break;
-	  
+
 	case '-':
 	  curr.flags |= static_cast<unsigned long>(fmt_flag_left);
 	  ++i;
 	  break;
-	  
+
 	case ' ':
 	  curr.flags |= static_cast<unsigned long>(fmt_flag_space);
 	  ++i;
 	  break;
-	  
+
 	case '#':
 	  curr.flags |= static_cast<unsigned long>(fmt_flag_special);
 	  ++i;
@@ -642,28 +642,28 @@ print_format::string_to_components(string const & str)
 	case 'b':
 	  curr.type = conv_binary;
 	  break;
-	  
+
 	case 's':
 	  curr.type = conv_string;
 	  break;
-	  
+
 	case 'm':
 	  curr.type = conv_memory;
 	  break;
-	  
+
 	case 'd':
 	case 'i':
 	  curr.type = conv_signed_decimal;
 	  break;
-	  
+
 	case 'o':
 	  curr.type = conv_unsigned_octal;
 	  break;
-	  
+
 	case 'u':
 	  curr.type = conv_unsigned_decimal;
 	  break;
-	  
+
 	case 'p':
 	  curr.type = conv_unsigned_ptr;
 	  break;
@@ -671,7 +671,7 @@ print_format::string_to_components(string const & str)
 	case 'X':
 	  curr.type = conv_unsigned_uppercase_hex;
 	  break;
-	  
+
 	case 'x':
 	  curr.type = conv_unsigned_lowercase_hex;
 	  break;
@@ -679,24 +679,24 @@ print_format::string_to_components(string const & str)
 	case 'n':
 	  curr.type = conv_size;
 	  break;
-	  
+
 	default:
 	  break;
 	}
-      
+
       if (curr.type == conv_unspecified)
 	throw parse_error("invalid or missing conversion specifier");
-      
+
       ++i;
       res.push_back(curr);
-      curr.clear();      
+      curr.clear();
     }
 
   // If there's a remaining partly-composed conversion, fail.
   if (!curr.is_empty())
     {
       if (curr.type == conv_literal)
-	res.push_back(curr);      
+	res.push_back(curr);
       else
 	throw parse_error("trailing incomplete print format conversion");
     }
@@ -744,7 +744,7 @@ void stat_op::print (ostream& o) const
     case sc_min:
       o << "min(";
       break;
-      
+
     case sc_max:
       o << "max(";
       break;
@@ -753,7 +753,7 @@ void stat_op::print (ostream& o) const
   o << ")";
 }
 
-void 
+void
 hist_op::print (ostream& o) const
 {
   o << '@';
@@ -849,7 +849,7 @@ void foreach_loop::print (ostream& o) const
 
 void null_statement::print (ostream& o) const
 {
-  o << ";"; 
+  o << ";";
 }
 
 
@@ -944,7 +944,7 @@ void probe::printsig (ostream& o) const
       alias->printsig (o);
       return;
     }
-    
+
   for (unsigned i=0; i<locations.size(); i++)
     {
       if (i > 0) o << ",";
@@ -1205,7 +1205,7 @@ symbol::visit (visitor* u)
   u->visit_symbol (this);
 }
 
-void 
+void
 target_symbol::visit (visitor* u)
 {
   u->visit_target_symbol(this);
@@ -1241,7 +1241,7 @@ hist_op::visit (visitor *u)
   u->visit_hist_op (this);
 }
 
-void 
+void
 indexable::print_indexable (std::ostream& o) const
 {
   const symbol *sym;
@@ -1253,10 +1253,10 @@ indexable::print_indexable (std::ostream& o) const
     {
       assert (hist);
       hist->print (o);
-    }  
+    }
 }
 
-void 
+void
 indexable::visit_indexable (visitor* u)
 {
   symbol *sym;
@@ -1272,42 +1272,42 @@ indexable::visit_indexable (visitor* u)
 }
 
 
-bool 
+bool
 indexable::is_symbol(symbol *& sym_out)
 {
   sym_out = NULL;
   return false;
 }
 
-bool 
+bool
 indexable::is_hist_op(hist_op *& hist_out)
 {
   hist_out = NULL;
   return false;
 }
 
-bool 
+bool
 indexable::is_const_symbol(const symbol *& sym_out) const
 {
   sym_out = NULL;
   return false;
 }
 
-bool 
+bool
 indexable::is_const_hist_op(const hist_op *& hist_out) const
 {
   hist_out = NULL;
   return false;
 }
 
-bool 
+bool
 symbol::is_symbol(symbol *& sym_out)
 {
   sym_out = this;
   return true;
 }
 
-bool 
+bool
 symbol::is_const_symbol(const symbol *& sym_out) const
 {
   sym_out = this;
@@ -1320,14 +1320,14 @@ symbol::get_tok() const
   return tok;
 }
 
-bool 
+bool
 hist_op::is_hist_op(hist_op *& hist_out)
 {
   hist_out = this;
   return true;
 }
 
-bool 
+bool
 hist_op::is_const_hist_op(const hist_op *& hist_out) const
 {
   hist_out = this;
@@ -1343,7 +1343,7 @@ hist_op::get_tok() const
 void
 classify_indexable(indexable* ix,
 		   symbol *& array_out,
-		   hist_op *& hist_out) 
+		   hist_op *& hist_out)
 {
   array_out = NULL;
   hist_out = NULL;
@@ -1356,7 +1356,7 @@ classify_indexable(indexable* ix,
 void
 classify_const_indexable(const indexable* ix,
 			 const symbol *& array_out,
-			 const hist_op *& hist_out) 
+			 const hist_op *& hist_out)
 {
   array_out = NULL;
   hist_out = NULL;
@@ -1366,7 +1366,7 @@ classify_const_indexable(const indexable* ix,
 
 // ------------------------------------------------------------------------
 
-bool 
+bool
 visitor::is_active_lvalue(expression *e)
 {
   for (unsigned i = 0; i < active_lvalues.size(); ++i)
@@ -1377,13 +1377,13 @@ visitor::is_active_lvalue(expression *e)
   return false;
 }
 
-void 
+void
 visitor::push_active_lvalue(expression *e)
 {
   active_lvalues.push_back(e);
 }
 
-void 
+void
 visitor::pop_active_lvalue()
 {
   assert(!active_lvalues.empty());
@@ -1438,7 +1438,7 @@ traversing_visitor::visit_for_loop (for_loop* s)
 void
 traversing_visitor::visit_foreach_loop (foreach_loop* s)
 {
-  symbol *array = NULL;  
+  symbol *array = NULL;
   hist_op *hist = NULL;
   classify_indexable (s->base, array, hist);
   if (array)
@@ -1622,7 +1622,7 @@ traversing_visitor::visit_hist_op (hist_op* e)
 
 
 void
-functioncall_traversing_visitor::visit_functioncall (functioncall* e) 
+functioncall_traversing_visitor::visit_functioncall (functioncall* e)
 {
   traversing_visitor::visit_functioncall (e);
 
@@ -1651,7 +1651,7 @@ varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
   // Kludge(tm): we look for a magic string within the function body.
   // $target variables as rvalues will have this; lvalues won't.
   // Also, explicit side-effect-free tapset functions will have this.
-  
+
   assert (current_function); // only they get embedded code
   if (s->code.find ("/* pure */") != string::npos)
     return;
@@ -1677,7 +1677,7 @@ varuse_collecting_visitor::visit_print_format (print_format* e)
   // NB: Instead of being top-level statements, "print" and "printf"
   // are implemented as statement-expressions containing a
   // print_format.  They have side-effects, but not via the
-  // embedded-code detection method above. 
+  // embedded-code detection method above.
   //
   // But sprint and sprintf don't have side-effects.
 
@@ -1801,7 +1801,7 @@ varuse_collecting_visitor::visit_foreach_loop (foreach_loop* s)
   // NB: we duplicate so don't bother call
   // functioncall_traversing_visitor::visit_foreach_loop (s);
 
-  symbol *array = NULL;  
+  symbol *array = NULL;
   hist_op *hist = NULL;
   classify_indexable (s->base, array, hist);
   if (array)
@@ -1813,7 +1813,7 @@ varuse_collecting_visitor::visit_foreach_loop (foreach_loop* s)
   // array in addition to the "read" one already noted above.
   if (s->sort_direction)
     {
-      symbol *array = NULL;  
+      symbol *array = NULL;
       hist_op *hist = NULL;
       classify_indexable (s->base, array, hist);
       if (array) this->written.insert (array->referent);
@@ -2148,7 +2148,7 @@ deep_copy_visitor::visit_for_loop (for_loop* s)
   require <expr_statement*> (this, &(n->init), s->init);
   require <expression*> (this, &(n->cond), s->cond);
   require <expr_statement*> (this, &(n->incr), s->incr);
-  require <statement*> (this, &(n->block), s->block);  
+  require <statement*> (this, &(n->block), s->block);
   provide <for_loop*> (this, n);
 }
 
@@ -2447,7 +2447,7 @@ deep_copy_visitor::visit_hist_op (hist_op* e)
   provide <hist_op*> (this, n);
 }
 
-block* 
+block*
 deep_copy_visitor::deep_copy (block* b)
 {
   block* n;
@@ -2456,7 +2456,7 @@ deep_copy_visitor::deep_copy (block* b)
   return n;
 }
 
-statement* 
+statement*
 deep_copy_visitor::deep_copy (statement* s)
 {
   statement* n;

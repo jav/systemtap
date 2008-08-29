@@ -351,7 +351,9 @@ Variables may be declared global, so that they are shared amongst all
 probes and live as long as the entire systemtap session.  There is one
 namespace for all global variables, regardless of which script file
 they are found within.  A global declaration may be written at the
-outermost level anywhere, not within a block of code.  The following
+outermost level anywhere, not within a block of code.  Global
+variables which are written but never read will be displayed
+automatically at session shutdown.  The following
 declaration marks a few variables as global.  The translator will
 infer for each its value type, and if it is used as an array, its key
 types.  Optionally, scalar globals may be initialized with a string

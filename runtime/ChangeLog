@@ -1,3 +1,11 @@
+2008-08-29  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_attach_match_filename): Don't call
+	the callback when the interesting thread is found, call it when
+	the tread is quiesced.
+	(stap_start_task_finder): Ditto.
+	(__stp_utrace_task_finder_target_quiesce): Call the callback.
+
 2008-08-26  David Smith  <dsmith@redhat.com>
 
 	* autoconf-d_path-path.c: New file.

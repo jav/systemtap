@@ -23,7 +23,7 @@
 struct derived_probe;
 struct match_node;
 
-struct symresolution_info: public traversing_visitor 
+struct symresolution_info: public traversing_visitor
 {
 protected:
   systemtap_session& session;
@@ -185,7 +185,7 @@ typedef std::map<std::string, literal*> literal_map_t;
 struct derived_probe_builder
 {
   virtual void build(systemtap_session & sess,
-		     probe* base, 
+		     probe* base,
 		     probe_point* location,
 		     literal_map_t const & parameters,
 		     std::vector<derived_probe*> & finished_results) = 0;
