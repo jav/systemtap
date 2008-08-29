@@ -1,6 +1,7 @@
 2008-08-29  Dave Brolley  <brolley@redhat.com>
 
 	* stap-server.8.in: New man page.
+	* NEWS: Announce the availability of the client/server.
 	* Makefile.am (man_MANS): Add stap-server.8.
 	* configure.ac (AC_CONFIG_FILE): Add stap-server.8.
 	* Makefile.in: Regenerated.
