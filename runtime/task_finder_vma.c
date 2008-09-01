@@ -133,7 +133,7 @@ __stp_tf_add_vma(struct task_struct *tsk, unsigned long addr,
 	hlist_for_each_entry(entry, node, head, hlist) {
 		if (tsk->pid == entry->pid
 		    && addr == entry->addr) {
-#if DEBUG_TASK_FINDER_VMA
+#ifdef DEBUG_TASK_FINDER_VMA
                   printk(KERN_NOTICE
                          "vma (pid: %d, vm_start: 0x%lx) present?\n",
                          tsk->pid, vma->vm_start);
