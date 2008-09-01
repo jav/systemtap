@@ -5063,8 +5063,8 @@ dwarf_builder::build(systemtap_session & sess,
       if (! kern_dw)
         {
           kern_dw = new dwflpp(sess);
-          // XXX: PR 3498
-          kern_dw->setup_kernel(false);
+          // XXX: PR 3498, PR 6864
+          kern_dw->setup_kernel(true);
         }
       dw = kern_dw;
     }
@@ -5595,11 +5595,12 @@ struct itrace_builder: public derived_probe_builder
 		     vector<derived_probe *> & finished_results)
   {
     string path;
-    int64_t pid;
+    int64_t pid = 0;
     int single_step;
 
     bool has_path = get_param (parameters, TOK_PROCESS, path);
     bool has_pid = get_param (parameters, TOK_PROCESS, pid);
+    // XXX: PR 6445 needs !has_path && !has_pid support
     assert (has_path || has_pid);
 
     single_step = 1;
@@ -5979,8 +5980,6 @@ struct utrace_builder: public derived_probe_builder
     bool has_pid = get_param (parameters, TOK_PROCESS, pid);
     enum utrace_derived_probe_flags flags = UDPF_NONE;
 
-    assert (has_path || has_pid);
-
     if (has_null_param (parameters, TOK_THREAD))
       {
 	if (has_null_param (parameters, TOK_BEGIN))
@@ -6020,6 +6019,8 @@ struct utrace_builder: public derived_probe_builder
 	if (pid < 2)
 	  throw semantic_error ("process pid must be greater than 1",
 				location->tok);
+
+        // XXX: could we use /proc/$pid/exe in unwindsym_modules and elsewhere?
       }
 
     finished_results.push_back(new utrace_derived_probe(sess, base, location,
@@ -6351,7 +6352,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "break;";
       s.op->indent(-1);
   }
-      
+
   if (flags_seen[UDPF_SYSCALL] || flags_seen[UDPF_SYSCALL_RETURN])
     {
       s.op->newline() << "case UDPF_SYSCALL:";
