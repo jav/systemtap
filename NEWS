@@ -1,5 +1,21 @@
 * What's new
 
+- Prototype systemtap client and compile server are now available.
+  These allow you to compile a systemtap module on a host other than
+  the one which it will be run, providing the client and server
+  are compatible. Other than using a server for passes 1 through
+  4, the client behaves like the 'stap' front end itself. This
+  means, among other things, that the client will automatically
+  load the resulting module on the local host unless -p[1234]
+  was specified. See stap-server(8) for more details.
+
+- Global variables which are written to but never read are now
+  automatically displayed when the session does a shutdown.  For example: 
+
+      global running_tasks 
+      probe timer.profile {running_tasks[pid(),tid()] = execname()} 
+      probe timer.ms(8000) {exit()}
+
 - A formatted string representation of the variables, parameters, or local
   variables at a probe point is now supported via the special $$vars,
   $$parms, and $$locals context variables, which expand to a string

@@ -27,7 +27,7 @@ stringify(T t)
 }
 
 
-template <typename OUT, typename IN> 
+template <typename OUT, typename IN>
 inline OUT lex_cast(IN const & in)
 {
   std::stringstream ss;
@@ -39,7 +39,7 @@ inline OUT lex_cast(IN const & in)
 }
 
 
-template <typename OUT, typename IN> 
+template <typename OUT, typename IN>
 inline OUT
 lex_cast_hex(IN const & in)
 {
@@ -54,7 +54,7 @@ lex_cast_hex(IN const & in)
 
 // Return as quoted string, so that when compiled as a C literal, it
 // would print to the user out nicely.
-template <typename IN> 
+template <typename IN>
 inline std::string
 lex_cast_qstring(IN const & in)
 {
@@ -74,7 +74,7 @@ lex_cast_qstring(IN const & in)
           out2 += "01234567" [(c >> 6) & 0x07];
           out2 += "01234567" [(c >> 3) & 0x07];
           out2 += "01234567" [(c >> 0) & 0x07];
-        }        
+        }
       else if (c == '"' || c == '\\')
         {
           out2 += '\\';

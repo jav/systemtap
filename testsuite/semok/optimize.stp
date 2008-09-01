@@ -10,7 +10,6 @@ function zoo (x) {
 }
 
 probe begin {
-  b <<< "hello"
   a = b + 2
   zoo (zoo (5))
   b = "goodbye"

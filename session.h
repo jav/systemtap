@@ -52,16 +52,16 @@ struct module_cache;
 struct statistic_decl
 {
   statistic_decl()
-    : type(none), 
+    : type(none),
       linear_low(0), linear_high(0), linear_step(0)
-  {}    
+  {}
   enum { none, linear, logarithmic } type;
   int64_t linear_low;
   int64_t linear_high;
   int64_t linear_step;
   bool operator==(statistic_decl const & other)
   {
-    return type == other.type 
+    return type == other.type
       && linear_low == other.linear_low
       && linear_high == other.linear_high
       && linear_step == other.linear_step;

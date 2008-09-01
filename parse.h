@@ -33,7 +33,7 @@ enum parse_context
   };
 
 
-enum token_type 
+enum token_type
   {
     tok_junk, tok_identifier, tok_operator, tok_string, tok_number,
     tok_embedded, tok_keyword
@@ -55,11 +55,11 @@ struct parse_error: public std::runtime_error
 {
   const token* tok;
   bool skip_some;
-  parse_error (const std::string& msg): 
+  parse_error (const std::string& msg):
     runtime_error (msg), tok (0), skip_some (true) {}
-  parse_error (const std::string& msg, const token* t): 
+  parse_error (const std::string& msg, const token* t):
     runtime_error (msg), tok (t), skip_some (true) {}
-  parse_error (const std::string& msg, bool skip): 
+  parse_error (const std::string& msg, bool skip):
     runtime_error (msg), tok (0), skip_some (skip) {}
 };
 
@@ -141,7 +141,7 @@ private:
 
   const token* last_t; // the last value returned by peek() or next()
   const token* next_t; // lookahead token
-  
+
   // expectations
   const token* expect_known (token_type tt, std::string const & expected);
   const token* expect_unknown (token_type tt, std::string & target);

@@ -341,23 +341,41 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	return rc;
 }
 
+/*
+ * All user threads get an engine with __STP_TASK_FINDER_EVENTS events
+ * attached to it so the task_finder layer can monitor new thread
+ * creation/death.
+ */
 #define __STP_TASK_FINDER_EVENTS (UTRACE_EVENT(CLONE)		\
 				  | UTRACE_EVENT(EXEC)		\
 				  | UTRACE_EVENT(DEATH))
 
-#define __STP_ATTACHED_TASK_BASE_EVENTS (UTRACE_EVENT(DEATH))
+/* 
+ * __STP_TASK_BASE_EVENTS: base events for stap_task_finder_target's
+ * without a vm_callback
+ *
+ * __STP_TASK_VM_BASE_EVENTS: base events for
+ * stap_task_finder_target's with a vm_callback
+ */
+#define __STP_TASK_BASE_EVENTS	(UTRACE_EVENT(DEATH))
 
-#define __STP_ATTACHED_TASK_VM_BASE_EVENTS (__STP_ATTACHED_TASK_BASE_EVENTS \
-					    | UTRACE_EVENT(SYSCALL_ENTRY) \
-					    | UTRACE_EVENT(SYSCALL_EXIT))
+#define __STP_TASK_VM_BASE_EVENTS (__STP_TASK_BASE_EVENTS	\
+				   | UTRACE_EVENT(SYSCALL_ENTRY)\
+				   | UTRACE_EVENT(SYSCALL_EXIT))
 
-#define __STP_ATTACHED_TASK_VM_EVENTS (__STP_ATTACHED_TASK_BASE_EVENTS	\
-				       | UTRACE_STOP			\
-				       | UTRACE_EVENT(QUIESCE))
+/*
+ * All "interesting" threads get an engine with
+ * __STP_ATTACHED_TASK_EVENTS events attached to it.  After the thread
+ * quiesces, we reset the events to __STP_ATTACHED_TASK_BASE_EVENTS
+ * events.
+ */
+#define __STP_ATTACHED_TASK_EVENTS (__STP_TASK_BASE_EVENTS	\
+				    | UTRACE_STOP		\
+				    | UTRACE_EVENT(QUIESCE))
 
-#define __STP_ATTACHED_TASK_EVENTS(tgt) \
-	((((tgt)->vm_callback) == NULL) ? __STP_ATTACHED_TASK_BASE_EVENTS \
-	 : __STP_ATTACHED_TASK_VM_EVENTS)
+#define __STP_ATTACHED_TASK_BASE_EVENTS(tgt) \
+	((((tgt)->vm_callback) == NULL) ? __STP_TASK_BASE_EVENTS \
+	 : __STP_TASK_VM_BASE_EVENTS)
 
 static int
 stap_utrace_attach(struct task_struct *tsk,
@@ -444,31 +462,40 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 			if (cb_tgt == NULL)
 				continue;
 
-			if (cb_tgt->callback != NULL) {
-				int rc = cb_tgt->callback(cb_tgt, tsk,
-							  register_p,
-							  process_p);
-				if (rc != 0) {
-					_stp_error("callback for %d failed: %d",
-						   (int)tsk->pid, rc);
-					break;
-				}
-			}
-
 			// Set up events we need for attached tasks.
+			// When register_p is set, we won't actually
+			// call the callback here - we'll call it when
+			// the thread gets quiesced.  When register_p
+			// isn't set, we can go ahead and call the
+			// callback.
 			if (register_p) {
 				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
 							cb_tgt,
-							__STP_ATTACHED_TASK_EVENTS(cb_tgt));
+							__STP_ATTACHED_TASK_EVENTS);
 				if (rc != 0 && rc != EPERM)
 					break;
 				cb_tgt->engine_attached = 1;
 			}
 			else {
+				if (cb_tgt->callback != NULL) {
+					rc = cb_tgt->callback(cb_tgt, tsk,
+							      register_p,
+							      process_p);
+					if (rc != 0) {
+						_stp_error("callback for %d failed: %d",
+							   (int)tsk->pid, rc);
+						break;
+					}
+				}
+
 				rc = stap_utrace_detach(tsk, &cb_tgt->ops);
 				if (rc != 0)
 					break;
-				cb_tgt->engine_attached = 0;
+
+				// Note that we don't want to set
+				// engine_attached to 0 here - only
+				// when *all* threads using this
+				// engine have been detached.
 			}
 		}
 	}
@@ -685,18 +712,32 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 	struct stap_task_finder_target *tgt = engine->data;
 	int rc;
 
-	// Turn off quiesce handling (and turn on syscall handling).
-	rc = utrace_set_events(tsk, engine, __STP_ATTACHED_TASK_VM_BASE_EVENTS);
-	if (rc != 0)
-		_stp_error("utrace_set_events returned error %d on pid %d",
-			   rc, (int)tsk->pid);
-
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
 		return UTRACE_DETACH;
 	}
 
-	if (tgt != NULL && tgt->vm_callback != NULL) {
+	if (tgt == NULL)
+		return UTRACE_DETACH;
+
+	// Turn off quiesce handling
+	rc = utrace_set_events(tsk, engine,
+			       __STP_ATTACHED_TASK_BASE_EVENTS(tgt));
+	if (rc != 0)
+		_stp_error("utrace_set_events returned error %d on pid %d",
+			   rc, (int)tsk->pid);
+
+	if (tgt->callback != NULL) {
+		/* Call the callback.  Assume that if the thread is a
+		 * thread group leader, it is a process. */
+		rc = tgt->callback(tgt, tsk, 1, (tsk->pid == tsk->tgid));
+		if (rc != 0) {
+			_stp_error("callback for %d failed: %d",
+				   (int)tsk->pid, rc);
+		}
+	}
+
+	if (tgt->vm_callback != NULL) {
 		struct mm_struct *mm;
 		char *mmpath_buf;
 		char *mmpath;
@@ -1148,24 +1189,11 @@ stap_start_task_finder(void)
 						    callback_list);
 				if (cb_tgt == NULL)
 					continue;
-					
-				// Call the callback.  Assume that if
-				// the thread is a thread group
-				// leader, it is a process.
-				if (cb_tgt->callback != NULL) {
-					rc = cb_tgt->callback(cb_tgt, tsk, 1,
-							      (tsk->pid == tsk->tgid));
-					if (rc != 0) {
-						_stp_error("attach callback for %d failed: %d",
-							   (int)tsk->pid, rc);
-						goto stf_err;
-					}
-				}
 
 				// Set up events we need for attached tasks.
 				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
 							cb_tgt,
-							__STP_ATTACHED_TASK_EVENTS(cb_tgt));
+							__STP_ATTACHED_TASK_EVENTS);
 				if (rc != 0 && rc != EPERM)
 					goto stf_err;
 				cb_tgt->engine_attached = 1;

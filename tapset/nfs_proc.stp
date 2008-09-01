@@ -4,39 +4,81 @@
 %}
 
 %{
+/*Get rpc_clnt from inode, same as kernel function NFS_CLIENT*/
+	struct rpc_clnt *_stap_NFS_CLIENT(struct inode *inode, struct context * __restrict__ c);
+/*Get ip address from a rpc_clnt*/
+	__u32 _get_ip_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c);
+/*Get protocol types from a rpc_clnt*/
+	int _get_prot_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c);
 /*Get ip address from a rpc_task*/
 	__u32 get_ip(struct rpc_task *, struct context * __restrict__);
 /*Get protocol types from a rpc_task*/
 	int get_prot(struct rpc_task *, struct context * __restrict__);
 %}
 %{
-     __u32 get_ip(struct rpc_task * task, struct context * __restrict__ c)
-     {
-        struct rpc_clnt * tk_client;
-        struct rpc_xprt * cl_xprt;
-        struct sockaddr_in *addr;
-        tk_client = kread(&(task->tk_client));
-        cl_xprt= kread(&(tk_client->cl_xprt));
-        addr = (struct sockaddr_in *)&(cl_xprt->addr);
-        if (kread(&(addr->sin_family)) != AF_INET)
-                /* Now consider ipv4 only */
-                return 0;
-        return kread(&(addr->sin_addr.s_addr));
+    struct rpc_clnt *_stap_NFS_CLIENT(struct inode *inode, struct context * __restrict__ c) {
+	struct super_block *i_sb;
+	struct nfs_server *server;
+	i_sb = kread(&(inode->i_sb));
+	server = kread(&(i_sb->s_fs_info));
+	return kread(&(server->client));
+	CATCH_DEREF_FAULT();
+	return NULL;
+    }
+
+    __u32 _get_ip_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c) {
+	struct rpc_xprt * cl_xprt;
+	struct sockaddr_in *addr;
+	cl_xprt= kread(&(clnt->cl_xprt));
+	addr = (struct sockaddr_in *)&(cl_xprt->addr);
+	if (kread(&(addr->sin_family)) != AF_INET)
+		/* Now consider ipv4 only */
+		return 0;
+	return kread(&(addr->sin_addr.s_addr));
 	CATCH_DEREF_FAULT();
 	return -1;
-     }
-     int get_prot(struct rpc_task * task, struct context * __restrict__ c)
-     {
-        struct rpc_clnt * tk_client;
-        struct rpc_xprt * cl_xprt;
-        tk_client = kread(&(task->tk_client));
-        cl_xprt= kread(&(tk_client->cl_xprt));
+    }
 
-        return kread(&(cl_xprt->prot));
+    int _get_prot_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c) {
+	struct rpc_xprt * cl_xprt;
+	cl_xprt= kread(&(clnt->cl_xprt));
+	return kread(&(cl_xprt->prot));
+	CATCH_DEREF_FAULT();
+	return -1;
+    }
+
+    __u32 get_ip(struct rpc_task * task, struct context * __restrict__ c) {
+	struct rpc_clnt * clnt;
+	clnt = kread(&(task->tk_client));
+	return _get_ip_from_client(clnt, c);
+	CATCH_DEREF_FAULT();
+	return -1;
+    }
+
+    int get_prot(struct rpc_task * task, struct context * __restrict__ c) {
+	struct rpc_clnt * clnt;
+	clnt = kread(&(task->tk_client));
+	return _get_prot_from_client(clnt, c);
 	CATCH_DEREF_FAULT();
 	return -1;
     }
 %}
+
+function stap_NFS_CLIENT:long(inode:long) %{ /* pure */
+	struct inode *inode = (struct inode *)(long)THIS->inode;
+	THIS->__retvalue = (long)_stap_NFS_CLIENT(inode, CONTEXT);
+%}
+
+function get_ip_from_client:long(clnt:long) %{ /* pure */
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+	THIS->__retvalue = _get_ip_from_client(clnt, CONTEXT);
+%}
+
+function get_prot_from_client:long(clnt:long) %{ /* pure */
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+	THIS->__retvalue = _get_prot_from_client(clnt, CONTEXT);
+%}
+
 /*
   0:get ip address
   1:get proto
@@ -656,8 +698,9 @@ probe nfs.proc.read_setup.return = nfs.proc2.read_setup.return ,
 probe nfs.proc2.read_setup = kernel.function("nfs_proc_read_setup") ?,
                        module("nfs").function("nfs_proc_read_setup")?
 {
-	server_ip = __nfs_read_data_info($data,0)
-        prot = __nfs_read_data_info($data,1)
+	client = stap_NFS_CLIENT($data->inode)
+	server_ip = get_ip_from_client(client)
+	prot = get_prot_from_client(client)
         version =2
 
         count = $data->args->count
@@ -680,8 +723,9 @@ probe nfs.proc2.read_setup.return = kernel.function("nfs_proc_read_setup").retur
 probe nfs.proc3.read_setup = kernel.function("nfs3_proc_read_setup") ?,
                        module("nfs").function("nfs3_proc_read_setup")?
 {
-	server_ip = __nfs_read_data_info($data,0)
-        prot = __nfs_read_data_info($data,1)
+	client = stap_NFS_CLIENT($data->inode)
+	server_ip = get_ip_from_client(client)
+	prot = get_prot_from_client(client)
         version =3
 	fh = 
 
@@ -705,8 +749,9 @@ probe nfs.proc3.read_setup.return = kernel.function("nfs3_proc_read_setup").retu
 probe nfs.proc4.read_setup = kernel.function("nfs4_proc_read_setup") ?,
                        module("nfs").function("nfs4_proc_read_setup")?
 {
-	server_ip = __nfs_read_data_info($data,0)
-        prot = __nfs_read_data_info($data,1)
+	client = stap_NFS_CLIENT($data->inode)
+	server_ip = get_ip_from_client(client)
+	prot = get_prot_from_client(client)
         version =4
 
         count = $data->args->count
@@ -877,8 +922,9 @@ probe nfs.proc.write_setup.return = nfs.proc2.write_setup.return,
 probe nfs.proc2.write_setup = kernel.function("nfs_proc_write_setup") ?,
                               module("nfs").function("nfs_proc_write_setup") ?
 {
-	server_ip = __nfs_write_data_info($data,0)
-        prot = __nfs_write_data_info($data,1)
+	client = stap_NFS_CLIENT($data->inode)
+	server_ip = get_ip_from_client(client)
+	prot = get_prot_from_client(client)
         version =2
 
         count = $data->args->count
@@ -901,8 +947,9 @@ probe nfs.proc2.write_setup.return = kernel.function("nfs_proc_write_setup").ret
 probe nfs.proc3.write_setup = kernel.function("nfs3_proc_write_setup") ?,
                               module("nfs").function("nfs3_proc_write_setup") ?
 {
-	server_ip = __nfs_write_data_info($data,0)
-        prot = __nfs_write_data_info($data,1)
+	client = stap_NFS_CLIENT($data->inode)
+	server_ip = get_ip_from_client(client)
+	prot = get_prot_from_client(client)
         version =3
 
         count = $data->args->count
@@ -925,8 +972,9 @@ probe nfs.proc3.write_setup.return = kernel.function("nfs3_proc_write_setup").re
 probe nfs.proc4.write_setup = kernel.function("nfs4_proc_write_setup") ?,
                               module("nfs").function("nfs4_proc_write_setup") ?
 {
-	server_ip = __nfs_write_data_info($data,0)
-        prot = __nfs_write_data_info($data,1)
+	client = stap_NFS_CLIENT($data->inode)
+	server_ip = get_ip_from_client(client)
+	prot = get_prot_from_client(client)
         version =4
 
         count = $data->args->count
@@ -1100,8 +1148,9 @@ probe nfs.proc.commit_setup.return =nfs.proc3.commit_setup.return,
 probe nfs.proc3.commit_setup = kernel.function("nfs3_proc_commit_setup") ?,
                               module("nfs").function("nfs3_proc_commit_setup") ?
 {
-	server_ip = __nfs_write_data_info($data,0)
-        prot = __nfs_write_data_info($data,1)
+	client = stap_NFS_CLIENT($data->inode)
+	server_ip = get_ip_from_client(client)
+	prot = get_prot_from_client(client)
         version =3
 
         count = $data->args->count
@@ -1123,8 +1172,9 @@ probe nfs.proc3.commit_setup.return = kernel.function("nfs3_proc_commit_setup") 
 probe nfs.proc4.commit_setup = kernel.function("nfs4_proc_commit_setup") ?,
                               module("nfs").function("nfs4_proc_commit_setup") ?
 {
-	server_ip = __nfs_write_data_info($data,0)
-        prot = __nfs_write_data_info($data,1)
+	client = stap_NFS_CLIENT($data->inode)
+	server_ip = get_ip_from_client(client)
+	prot = get_prot_from_client(client)
         version =4
 
         count = $data->args->count
