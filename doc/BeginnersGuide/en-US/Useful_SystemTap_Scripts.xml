@@ -1,0 +1,23 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<chapter id="useful-systemtap-scripts">
+	<title>Useful SystemTap Scripts</title>
+	<remark>
+		short intro, reference to online source (http://sourceware.org/systemtap/examples/subsystem-index.html); "always updated"
+	</remark>
+	
+	<remark>short description of gnuplot (?) for better GUI of results</remark>
+	
+	<remark>case studies and more info on some scripts here - http://sourceware.org/systemtap/wiki/WarStories</remark>
+	
+	<xi:include href="Useful_Scripts-Disk.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-IO.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-Kernel.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-Network.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-Signals.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-Syscalls.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-Others.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</chapter>
+

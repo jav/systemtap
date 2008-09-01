@@ -1,0 +1,20 @@
+<?xml version='1.0'?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<book>
+	<xi:include href="Book_Info.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Preface.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Introduction.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Understanding_How_SystemTap_Works.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Using_SystemTap.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_SystemTap_Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Errors.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Tips_Tricks.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="References.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<!-- 	
+		<xi:include href="" xmlns:xi="http://www.w3.org/2001/XInclude" /> 
+	-->
+	<xi:include href="Appendix.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</book>
+
