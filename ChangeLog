@@ -1,3 +1,7 @@
+2008-09-01  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (add_global_var_display): Also handle statistics.
+
 2008-08-29  Dave Brolley  <brolley@redhat.com>
 
 	* stap-server.8.in: New man page.
