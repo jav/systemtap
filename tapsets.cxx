@@ -958,9 +958,6 @@ struct dwflpp
       throw semantic_error ("cannot open dwfl");
     dwfl_report_begin (dwfl);
 
-    // XXX: need to map module_name to fully-qualified directory names,
-    // searching PATH etc.
-
     // XXX: should support buildid-based naming
 
     Dwfl_Module *mod = dwfl_report_offline (dwfl,
@@ -1002,6 +999,10 @@ struct dwflpp
       }
     while (off > 0);
     dwfl_assert("dwfl_getmodules", off == 0);
+
+    // PR6864 XXX: For dwarfless case (if .../vmlinux is missing), then the
+    // "kernel" module is not reported in the loop above.  However, we
+    // may be able to make do with symbol table data.
   }
 
 
@@ -3876,7 +3877,7 @@ static int
 query_module (Dwfl_Module *mod,
               void **,
 	      const char *name,
-              Dwarf_Addr,
+              Dwarf_Addr addr,
 	      void *arg)
 {
   base_query *q = static_cast<base_query *>(arg);
@@ -3888,22 +3889,30 @@ query_module (Dwfl_Module *mod,
         {
           mi = q->sess.module_cache->cache[name] = new module_info(name);
 
-          const char *path = NULL; // XXX: unbreak this
+          mi->mod = mod;
+          mi->addr = addr;
 
-          if (q->sess.ignore_vmlinux && path && name == TOK_KERNEL)
+          const char* debug_filename = "";
+          const char* main_filename = "";
+          (void) dwfl_module_info (mod, NULL, NULL,
+                                   NULL, NULL, NULL,
+                                   & main_filename,
+                                   & debug_filename);
+
+          if (q->sess.ignore_vmlinux && name == TOK_KERNEL)
             {
               // report_kernel() in elfutils found vmlinux, but pretend it didn't.
               // Given a non-null path, returning 1 means keep reporting modules.
               mi->dwarf_status = info_absent;
             }
-          else if (path)
+          else if (debug_filename || main_filename)
             {
-              mi->elf_path = path;
+              mi->elf_path = debug_filename ?: main_filename;
             }
-
-          // No vmlinux.  Here returning 0 to report_kernel() means go ahead
-          // and keep reporting modules.
-          mi->dwarf_status = info_absent;
+          else if (name == TOK_KERNEL)
+            {
+              mi->dwarf_status = info_absent;
+            }
         }
       // OK, enough of that module_info caching business.
 
@@ -5055,30 +5064,9 @@ dwarf_builder::build(systemtap_session & sess,
         {
           kern_dw = new dwflpp(sess);
           // XXX: PR 3498
-          kern_dw->setup_kernel();
+          kern_dw->setup_kernel(false);
         }
       dw = kern_dw;
-
-#if 0
-      // Extract some kernel-side blacklist/relocation information.
-      // XXX: This really should be per-module rather than per-kernel, since
-      // .ko's may conceivably contain __kprobe-marked code
-      Dwfl_Module* km = 0;
-      kern_dw->iterate_over_modules(&query_kernel_module, &km);
-      if (km)
-        {
-
-          if (sess.verbose > 2)
-            {
-              clog << "control symbols:"
-                // abbreviate the names - they're for our debugging only anyway
-                   << " kts: 0x" << hex << sess.sym_kprobes_text_start
-                   << " kte: 0x" << sess.sym_kprobes_text_end
-                   << " stext: 0x" << sess.sym_stext
-                   << dec << endl;
-            }
-        }
-#endif
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
@@ -5452,7 +5440,6 @@ module_info::get_symtab(dwarf_query *q)
               sess.sym_kprobes_text_end =
                 sym_table->lookup_symbol_address("__kprobes_text_end");
               sess.sym_stext = sym_table->lookup_symbol_address("_stext");
-              bias = sym_table->lookup_symbol_address("_text");
             }
         }
     }
