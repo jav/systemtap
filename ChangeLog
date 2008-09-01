@@ -1,3 +1,25 @@
+2008-09-01  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR4225 merge.
+	* tapsets.cxx: Add prototype user-space probing support.  Collateral
+	damage breaks symbol-table-only (dwarfless) probing, PR6864.
+	(setup_user, setup_kernel): Split & reorganized.
+	(class uprobe_derived_probe): Nearly all new code.
+	(base_query): Add "has_module" and "has_process" flags.
+	(dwarf_builder): Add "user_dw" map.
+	(dwarf_query::add_probe_point): Use ".dynamic" pseudo-reloc-base for
+	ET_DYN modules; ".absolute" for ET_EXEC.
+	(register_patterns): Register process(...) uprobe-based probes.
+	(task_finder_derived_probe_group::create_session_group): Let runtime
+	code assert CONFIG_UTRACE.
+	(base_query ctor, dwarf_builder::build, itrace_builder,
+	utrace_derived_probe): Use find_executable() to resolve FOO path in
+	process("FOO").
+	(utrace_derived_probe ctor): Reverse-engineer probe point.
+	* main.cxx (main): Don't override $PATH etc.
+	* util.cxx (find_executable): Reorganize, simplify, canonicalize.
+	* util.h, hash.cxx: Corresponding changes.
+
 2008-08-29  Dave Brolley  <brolley@redhat.com>
 
 	* stap-server.8.in: New man page.
@@ -82,10 +104,6 @@
 	process_request in the background.
 	(process_request): New function.
 	(fatal): Kill stap-server followed by nc. No tmpdir to remove.
-
-2008-08-24  Frank Ch. Eigler  <fche@elastic.org>
-
-	* tapsets.cxx (uprobe_derived_probe ctor): Ditto.
 
 2008-08-24  Frank Ch. Eigler  <fche@elastic.org>
 
@@ -291,19 +309,6 @@
 	* Makefile.am (install-data-local): Use INSTALL_PROGRAM for executable
 	stp scripts.
 	* Makefile.in: Regenerated.
-
-2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
-
-       * main.cxx (main): Don't override $PATH etc.
-       * tapsets.cxx (base_query ctor, dwarf_builder::build,
-       itrace_builder, utrace_derived_probe): Use find_executable()
-       to resolve FOO path in process("FOO").
-       * util.cxx (find_executable): Duplicate execvp logic.
-
-2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
-
-	* util.cxx (find_executable): Reorganize, simplify, canonicalize.
-	* util.h, hash.cxx: Corresponding changes.
 
 2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
 

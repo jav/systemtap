@@ -1,3 +1,8 @@
+2008-09-01  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR4225 merge.
+	* utrace.stp: New file, for use by utrace $var expansions.
+
 2008-09-01  Zhaolei  <zhaolei@cn.fujitsu.com>
 	* nfs_proc.stp: Fix memory access error in nfs.proc.read_setup,
 	nfs.proc.write_setup and nfs.proc.commit_setup.
@@ -5,10 +10,6 @@
 2008-08-28  Zhaolei  <zhaolei@cn.fujitsu.com>
 	* socket.stp: Make _get_sock_addr return correct address in kernel
 	before 2.6.16.
-
-2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
-
-	* utrace.stp: New file, for use by utrace $var expansions.
 
 2008-08-04  Wenji Huang <wenji.huang@oracle.com>
 
