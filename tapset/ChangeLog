@@ -1,3 +1,7 @@
+2008-09-01  Zhaolei  <zhaolei@cn.fujitsu.com>
+	* nfs_proc.stp: Fix memory access error in nfs.proc.read_setup,
+	nfs.proc.write_setup and nfs.proc.commit_setup.
+
 2008-08-28  Zhaolei  <zhaolei@cn.fujitsu.com>
 	* socket.stp: Make _get_sock_addr return correct address in kernel
 	before 2.6.16.
@@ -8,12 +12,12 @@
 
 2008-08-04  Wenji Huang <wenji.huang@oracle.com>
 
-        * syscall.stp: Change $path to $pathname for 2.6.27.
-        * syscall2.stp: Ditto.
+	* syscall.stp: Change $path to $pathname for 2.6.27.
+	* syscall2.stp: Ditto.
 
 2008-08-03  Wenji Huang <wenji.huang@oracle.com>
 
-        * vfs.stp(add_to_page_cache): Correct for 2.6.27.
+	* vfs.stp(add_to_page_cache): Correct for 2.6.27.
 
 2008-07-25  Zhaolei  <zhaolei@cn.fujitsu.com>
 

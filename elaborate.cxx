@@ -1170,6 +1170,7 @@ void add_global_var_display (systemtap_session& s)
       probe_point::component* c = new probe_point::component("end");
       token* print_tok = new token;
       vector<derived_probe*> dps;
+      block *b = new block;
 
       pl->components.push_back (c);
       token* p_tok = new token;
@@ -1206,17 +1207,7 @@ void add_global_var_display (systemtap_session& s)
 	  expr_statement* feb = new expr_statement;
 	  feb->value = pf;
 	  feb->tok = print_tok;
-	  block *b = new block;
 	  b->statements.push_back(feb);
-	  p->body = b;
-
-	  derive_probes (s, p, dps);
-
-	  // Repopulate the type info.  Should semantic_pass_types do this?
-	  ((class symbol*)
-	   ((class print_format*)
-	    ((class expr_statement*)
-	     ((class block*)dps[0]->body)->statements[0])->value)->args[0])->type = g_sym->type;
 	}
       else			// Array
 	{
@@ -1283,44 +1274,28 @@ void add_global_var_display (systemtap_session& s)
 	  pf->components = print_format::string_to_components(pf->raw_components);
 	  expr_statement* feb = new expr_statement;
 	  feb->value = pf;
-	  block *b = new block;
 	  fe->base = g_sym;
 	  fe->block = (statement*)feb;
 	  b->statements.push_back(fe);
-	  p->body = b;
-
-	  derive_probes (s, p, dps);
-
-	  // Repopulate the type info.  Should semantic_pass_types do this?
-	  print_format* dpf = ((print_format*)
-			       ((expr_statement*)
-				((foreach_loop*)
-				 ((block*)dps[0]->body)->statements[0])->block)->value);
-	  for (int i=0; i < idx_count; i++)
-	    {
-	      // printf argument types
-	      dpf->args[i]->type = l->index_types[i];
-	      // arrayindex indices types
-	      ((struct arrayindex*)dpf->args[idx_count])->indexes[i]->type = l->index_types[i];
-	      dps[0]->locals.push_back(idx_v[i]);
-	    }
-	  // arrayindex type
-	  dpf->args[idx_count]->type = l->type;
 	}
 
-      symresolution_info sym (s);
-      sym.current_function = 0;
-      sym.current_probe = dps[0];
-      dps[0]->body->visit (& sym);
-
       // Add created probe
+      p->body = b;
+      derive_probes (s, p, dps);
       for (unsigned i = 0; i < dps.size(); i++)
 	{
 	  derived_probe* dp = dps[i];
 	  s.probes.push_back (dp);
 	  dp->join_group (s);
 	}
+      // Repopulate symbol and type info
+      symresolution_info sym (s);
+      sym.current_function = 0;
+      sym.current_probe = dps[0];
+      dps[0]->body->visit (& sym);
 
+      semantic_pass_types(s);
+      // Mark that variable is read
       vut.read.insert (l);
     }
 }

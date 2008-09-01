@@ -179,6 +179,18 @@ printscript(systemtap_session& s, ostream& o)
           if (seen.find (pp) == seen.end())
             {
               o << pp << endl;
+              if (s.verbose) {
+	              for (unsigned j=0; j<p->locals.size(); j++)
+		            {
+        		      vardecl* v = p->locals[j];
+	        	      if (j>0)
+			      	o << ", ";
+        		      else
+		      		o << "  ";
+		              v->printsig (o);
+		            }
+	              o << endl;
+              }
               seen.insert (pp);
             }
         }
@@ -581,6 +593,7 @@ main (int argc, char * const argv [])
         case 'l':
 	  s.suppress_warnings = true;
           s.listing_mode = true;
+          s.unoptimized = true;
           s.last_pass = 2;
           if (have_script)
             {

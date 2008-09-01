@@ -73,6 +73,23 @@ set thread_end_script {
 }
 set thread_end_script_output "thread_ends = \\d+\r\n"
 
+# Script that tests the bug 6841 fix.
+set bz6841_script {
+    global proc,name
+    probe begin { printf("systemtap starting probe\n") }
+    probe process.syscall {
+	proc[pid()] <<< 1
+	name[pid()] = execname()
+    }
+    probe end { printf("systemtap ending probe\n")
+	foreach(p+ in proc) {
+	    printf("%s(%d) issues syscall %d times\n",
+		   name[p], p, @sum(proc[p]))
+	}
+    }
+}
+set bz6841_script_output ".+ issues syscall \\d+ times\r\n"
+
 # Try to find utrace_attach symbol in /proc/kallsyms
 set path "/proc/kallsyms"
 if {! [catch {exec grep -q utrace_attach $path} dummy]} {
@@ -180,6 +197,16 @@ if {$utrace_support_found == 0} {
     set script [format $thread_end_script $multi_exepath]
     stap_run $TEST_NAME run_utrace_p5_multi $thread_end_script_output \
 	-e $script
+}
+
+set TEST_NAME "UTRACE_P5_07"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    stap_run $TEST_NAME run_utrace_p5_multi $bz6841_script_output \
+	-e $bz6841_script
 }
 
 # Cleanup
