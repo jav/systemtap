@@ -1,0 +1,11 @@
+/* utrace-only subset of register accessors */
+
+
+%{
+#include "syscall.h"
+%}
+
+
+function _utrace_syscall_nr:long () %{
+   THIS->__retvalue = __stp_user_syscall_nr(CONTEXT->regs); /* pure */
+%}

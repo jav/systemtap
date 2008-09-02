@@ -1172,10 +1172,7 @@ void add_global_var_display (systemtap_session& s)
       block *b = new block;
 
       pl->components.push_back (c);
-      token* p_tok = new token;
-      p_tok->type = tok_identifier;
-      p_tok->content = "probe";
-      p->tok = p_tok;
+      p->tok = l->tok;
       p->locations.push_back (pl);
       print_tok->type = tok_identifier;
       print_tok->content = "printf";
@@ -1211,13 +1208,9 @@ void add_global_var_display (systemtap_session& s)
       else			// Array
 	{
 	  int idx_count = l->index_types.size();
-	  token* idx_tok[idx_count];
 	  symbol* idx_sym[idx_count];
 	  vardecl* idx_v[idx_count];
 	  // Create a foreach loop
-	  token* fe_tok = new token;
-	  fe_tok->type = tok_identifier;
-	  fe_tok->content = "foreach";
 	  foreach_loop* fe = new foreach_loop;
 	  fe->sort_direction = 0;
 	  fe->limit = NULL;
@@ -1225,19 +1218,16 @@ void add_global_var_display (systemtap_session& s)
 	  // Create indices for the foreach loop
 	  for (int i=0; i < idx_count; i++)
 	    {
-	      idx_tok[i] = new token;
-	      idx_tok[i]->type = tok_identifier;
 	      char *idx_name;
 	      if (asprintf (&idx_name, "idx%d", i) < 0)
 		return;
-	      idx_tok[i]->content = idx_name;
 	      idx_sym[i] = new symbol;
-	      idx_sym[i]->tok = idx_tok[i];
 	      idx_sym[i]->name = idx_name;
+	      idx_sym[i]->tok = l->tok;
 	      idx_v[i] = new vardecl;
 	      idx_v[i]->name = idx_name;
-	      idx_v[i]->tok = idx_tok[i];
 	      idx_v[i]->type = l->index_types[i];
+	      idx_v[i]->tok = l->tok;
 	      idx_sym[i]->referent = idx_v[i];
 	      fe->indexes.push_back (idx_sym[i]);
 	    }
@@ -1274,25 +1264,22 @@ void add_global_var_display (systemtap_session& s)
 	  if (l->type == pe_stats)
 	    {
 	      struct stat_op* so [5];
-	      token* so_tok [5];
-	      
-	      for (unsigned sti = 0; sti < (sizeof(so_tok)/sizeof(token*)); sti++)
-		{
-		  so_tok[sti] = new token;
-		  so_tok[sti]->type = tok_identifier;
-		}
 	      const stat_component_type stypes[] = {sc_count, sc_min, sc_max, sc_sum, sc_average};
-	      for (unsigned si = 0; si < (sizeof(so_tok)/sizeof(token*)); si++)
+	      for (unsigned si = 0;
+		   si < (sizeof(so)/sizeof(struct stat_op*));
+		   si++)
 		{
 		  so[si]= new stat_op;
 		  so[si]->ctype = stypes[si];
 		  so[si]->type = pe_long;
 		  so[si]->stat = ai;
-		  so[si]->tok = so_tok[si];
+		  so[si]->tok = l->tok;
 		}
 	  
 	      ai->type = pe_stats;
-	      for (unsigned si = 0; si < (sizeof(so_tok)/sizeof(token*)); si++)	      
+	      for (unsigned si = 0;
+		   si < (sizeof(so)/sizeof(struct stat_op*));
+		   si++)
 		pf->args.push_back(so[si]);
 	    }
 	  else

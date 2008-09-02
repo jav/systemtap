@@ -10,7 +10,7 @@ int copy_file(const char *src, const char *dest);
 int create_dir(const char *dir);
 void tokenize(const std::string& str, std::vector<std::string>& tokens,
 	      const std::string& delimiters);
-bool find_executable(const char *name, std::string& retpath);
+std::string find_executable(const std::string& name);
 const std::string cmdstr_quoted(const std::string& cmd);
 
 

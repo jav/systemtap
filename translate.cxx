@@ -4429,7 +4429,13 @@ dump_unwindsyms (Dwfl_Module *m,
               else if (n > 0)
                 {
                   assert (secname != NULL);
-                  // secname adequately set
+                  // secname adequately set 
+
+                  // NB: it may be an empty string for ET_DYN objects
+                  // like shared libraries, as their relocation base
+                  // is implicit.
+                  if (secname[0] == '\0')
+                    secname = ".dynamic";
                 }
               else
                 {
@@ -4507,7 +4513,7 @@ emit_symbol_data (systemtap_session& s)
 
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, s.unwindsym_modules };
 
-  // XXX: copied from tapsets.cxx, sadly
+  // XXX: copied from tapsets.cxx dwflpp::, sadly
   static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
   static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
 
@@ -4546,6 +4552,7 @@ emit_symbol_data (systemtap_session& s)
 
 
   // ---- step 2: process any user modules (files) listed
+  // XXX: see dwflpp::setup_user.
   static const Dwfl_Callbacks user_callbacks =
     {
       NULL, /* dwfl_linux_kernel_find_elf, */

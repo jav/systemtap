@@ -154,49 +154,68 @@ tokenize(const string& str, vector<string>& tokens,
 }
 
 
-//  Find an executable by name in $PATH.
-bool
-find_executable(const char *name, string& retpath)
-{
-  const char *p;
-  string path;
-  vector<string> dirs;
-  struct stat st1, st2;
+// Resolve an executable name to a canonical full path name, with the
+// same policy as execvp().  A program name not containing a slash
+// will be searched along the $PATH.
 
-  if (*name == '/')
+string find_executable(const string& name)
+{
+  string retpath;
+
+  if (name.size() == 0)
+    return name;
+
+  struct stat st;
+
+  if (name.find('/') != string::npos) // slash in the path already?
     {
       retpath = name;
-      return true;
     }
-
-  p = getenv("PATH");
-  if (!p)
-    return false;
-  path = p;
-
-  // Split PATH up.
-  tokenize(path, dirs, string(":"));
-
-  // Search the path looking for the first executable of the right name.
-  for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); i++)
+  else // Nope, search $PATH.
     {
-      string fname = *i + "/" + name;
-      const char *f = fname.c_str();
-
-      // Look for a normal executable file.
-      if (access(f, X_OK) == 0
-	  && lstat(f, &st1) == 0
-	  && stat(f, &st2) == 0
-	  && S_ISREG(st2.st_mode))
+      char *path = getenv("PATH");
+      if (path)
         {
-	  // Found it!
-	  retpath = fname;
-	  return true;
-	}
+          // Split PATH up.
+          vector<string> dirs;
+          tokenize(string(path), dirs, string(":"));
+
+          // Search the path looking for the first executable of the right name.
+          for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); i++)
+            {
+              string fname = *i + "/" + name;
+              const char *f = fname.c_str();
+
+              // Look for a normal executable file.
+              if (access(f, X_OK) == 0
+                  && stat(f, &st) == 0
+                  && S_ISREG(st.st_mode))
+                {
+                  retpath = fname;
+                  break;
+                }
+            }
+        }
     }
 
-  return false;
+
+  // Could not find the program on the $PATH.  We'll just fall back to
+  // the unqualified name, which our caller will probably fail with.
+  if (retpath == "")
+    retpath = name;
+
+  // Canonicalize the path name.
+  char *cf = canonicalize_file_name (retpath.c_str());
+  if (cf)
+    {
+      retpath = string(cf);
+      free (cf);
+    }
+
+  return retpath;
 }
+
+
 
 const string cmdstr_quoted(const string& cmd)
 {

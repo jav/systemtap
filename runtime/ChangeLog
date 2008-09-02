@@ -1,3 +1,8 @@
+2008-09-01  Frank Ch. Eigler  <fche@elastic.org>
+
+	* task_finder.c: Move CONFIG_UTRACE assertion here.
+	* task_finder_vma.c (__stp_tf_add_vma): Make printk conditional.
+
 2008-08-29  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_utrace_attach_match_filename): Don't call

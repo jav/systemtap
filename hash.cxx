@@ -126,16 +126,14 @@ find_hash (systemtap_session& s, const string& script)
   h.add(s.runtime_path);
 
   // Hash compiler path, size, and mtime.  We're just going to assume
-  // we'll be using gcc, which should be correct most of the time.
-  string gcc_path;
-  if (find_executable("gcc", gcc_path))
+  // we'll be using gcc. XXX: getting kbuild to spit out out would be
+  // better.
+  string gcc_path = find_executable ("gcc");
+  if (stat(gcc_path.c_str(), &st) == 0)
     {
-      if (stat(gcc_path.c_str(), &st) == 0)
-        {
-	  h.add(gcc_path);
-	  h.add(st.st_size);
-	  h.add(st.st_mtime);
-	}
+      h.add(gcc_path);
+      h.add(st.st_size);
+      h.add(st.st_mtime);
     }
 
   // Hash the systemtap size and mtime.  We could use VERSION/DATE,
