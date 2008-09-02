@@ -1,0 +1,25 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+<section id="useful-signals">
+	<title>Signals</title>
+	<remark>
+		http://sourceware.org/systemtap/examples/subsystem-index.html
+	</remark>
+	
+	<remark>
+		Signal Counts by Process ID - http://sourceware.org/systemtap/examples/process/sig_by_pid.stp
+	</remark>
+	
+	<remark>
+		Signal Counts by Process Name - http://sourceware.org/systemtap/examples/process/sig_by_proc.stp
+	</remark>	
+	
+	<remark>
+		Track SIGKILL Signals - http://sourceware.org/systemtap/examples/process/sigkill.stp
+	</remark>
+	
+	<remark>
+		System-Wide Count of Syscalls by PID - http://sourceware.org/systemtap/examples/process/syscalls_by_pid.stp
+	</remark>
+	</section>
