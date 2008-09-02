@@ -1,4 +1,4 @@
-2008-09-01  Frank Ch. Eigler  <fche@elastic.org>
+2008-09-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR4225 merge.
 	* tapsets.cxx: Add prototype user-space probing support.  Collateral
@@ -19,6 +19,15 @@
 	* main.cxx (main): Don't override $PATH etc.
 	* util.cxx (find_executable): Reorganize, simplify, canonicalize.
 	* util.h, hash.cxx: Corresponding changes.
+
+2008-09-02  Wenji Huang  <wenji.huang@oracle.com>
+
+	* tapsets.cxx (query_func_info): Disable prologue searching in
+	no-dwarf testing.
+
+2008-09-01  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (add_global_var_display): Also handle statistics.
 
 2008-08-29  Dave Brolley  <brolley@redhat.com>
 
@@ -72,7 +81,7 @@
 2008-08-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (AUTOMAKE_OPTIONS): Add "no-dist".  Remove all
-	"make dist"-oriented targets and macros.  
+	"make dist"-oriented targets and macros.
 	(rpm): Rewrite.  Allow parametrization with RPMBUILDFLAGS=.
 	* Makefile.in: Regenerated.
 	* systemtap.spec: Make configuration macros at top overridable.

@@ -1,0 +1,31 @@
+<?xml version='1.0'?>
+<!DOCTYPE bookinfo PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<bookinfo id="SystemTap_Beginners_Guide-Product_Name_and_Version">
+	<title>SystemTap Beginners Guide</title>
+	<subtitle>For use with Red Hat Enterprise Linux 5</subtitle>
+	<issuenum>0.1</issuenum>
+	<edition>1.0</edition>
+	<productname>Red Hat Enterprise Linux</productname>
+	<productnumber>5</productnumber>
+	<pubsnumber>1</pubsnumber>
+	<abstract><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of &PRODUCT; in finer detail. The <citetitle>SystemTap Beginners Guide</citetitle> is recommended for users who have taken <ulink url="https://www.redhat.com/courses/rh133_red_hat_linux_system_administration_and_rhct_exam/">RHCT</ulink> or have a similar level of expertise in &PRODUCT;.</para></abstract>
+	<corpauthor>
+		<inlinemediaobject>
+			<imageobject>
+				<imagedata format='SVG' fileref="Common_Content/images/title_logo.svg" />
+			</imageobject>
+			<textobject><phrase>Logo</phrase></textobject>
+		</inlinemediaobject>
+	</corpauthor>
+	<copyright>
+		<year>&YEAR;</year>
+		<holder>&HOLDER;</holder>
+	</copyright>
+	<xi:include href="Common_Content/Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Author_Group.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</bookinfo>
+
+
+

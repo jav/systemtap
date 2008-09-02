@@ -3453,7 +3453,8 @@ query_func_info (Dwarf_Addr entrypc,
       else
 	{
           if (q->sess.prologue_searching
-              && !q->has_statement_str && !q->has_statement_num) // PR 2608
+              && !q->has_statement_str && !q->has_statement_num 
+              && !q->sess.ignore_vmlinux && !q->sess.ignore_dwarf) // PR 2608
             {
               if (fi.prologue_end == 0)
                 throw semantic_error("could not find prologue-end "

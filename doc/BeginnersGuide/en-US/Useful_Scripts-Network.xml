@@ -1,0 +1,18 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<section id="useful-network">
+	<title>Network</title>
+	<remark>
+		http://sourceware.org/systemtap/examples/subsystem-index.html
+	</remark>
+	
+	<remark>
+		Periodic Listing of Processes Using Network Interfaces - http://sourceware.org/systemtap/examples/network/nettop.stp
+	</remark>
+	
+	<remark>
+		Trace Functions called in Network Socket Code - http://sourceware.org/systemtap/examples/network/socket-trace.stp
+	</remark>
+	</section>

@@ -1160,8 +1160,7 @@ void add_global_var_display (systemtap_session& s)
     {
       vardecl* l = s.globals[g];
       if (vut.read.find (l) != vut.read.end()
-          || vut.written.find (l) == vut.written.end()
-	  || l->type == pe_stats)
+          || vut.written.find (l) == vut.written.end())
 	continue;
 
       print_format* pf = new print_format;
@@ -1255,7 +1254,9 @@ void add_global_var_display (systemtap_session& s)
                 pf->raw_components += "%#d";
             }
           pf->raw_components += "]";
-	  if (l->type == pe_string)
+	  if (l->type == pe_stats)
+	    pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
+	  else if (l->type == pe_string)
 	    pf->raw_components += "=\"%#s\"\\n";
 	  else
 	    pf->raw_components += "=%#x\\n";
@@ -1264,12 +1265,38 @@ void add_global_var_display (systemtap_session& s)
 	  struct arrayindex* ai = new arrayindex;
 	  ai->tok = l->tok;
 	  ai->base = g_sym;
+
 	  for (int i=0; i < idx_count; i++)
 	    {
 	      ai->indexes.push_back (idx_sym[i]);
 	      pf->args.push_back(idx_sym[i]);
 	    }
-	  pf->args.push_back(ai);
+	  if (l->type == pe_stats)
+	    {
+	      struct stat_op* so [5];
+	      token* so_tok [5];
+	      
+	      for (unsigned sti = 0; sti < (sizeof(so_tok)/sizeof(token*)); sti++)
+		{
+		  so_tok[sti] = new token;
+		  so_tok[sti]->type = tok_identifier;
+		}
+	      const stat_component_type stypes[] = {sc_count, sc_min, sc_max, sc_sum, sc_average};
+	      for (unsigned si = 0; si < (sizeof(so_tok)/sizeof(token*)); si++)
+		{
+		  so[si]= new stat_op;
+		  so[si]->ctype = stypes[si];
+		  so[si]->type = pe_long;
+		  so[si]->stat = ai;
+		  so[si]->tok = so_tok[si];
+		}
+	  
+	      ai->type = pe_stats;
+	      for (unsigned si = 0; si < (sizeof(so_tok)/sizeof(token*)); si++)	      
+		pf->args.push_back(so[si]);
+	    }
+	  else
+	    pf->args.push_back(ai);
 
 	  pf->components = print_format::string_to_components(pf->raw_components);
 	  expr_statement* feb = new expr_statement;
