@@ -6790,9 +6790,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // unregister old uprobe
   s.op->newline(-1) << "} else if (!register_p && "
                     << "sup->spec_index == spec_index && " // a u[ret]probe set up for this probe point
-                    << "((sups->return_p && sup->urp.u.pid == tsk->tgid) ||" // dying uretprobe
-                    << "(!sups->return_p && sup->up.pid == tsk->tgid))) {"; // dying uprobe
-  // XXX: or just check sup->spec_index == spec_index?
+                    << "((sups->return_p && sup->urp.u.pid == tsk->tgid && sup->urp.u.vaddr == relocation + sups->address) ||" // dying uretprobe
+                    << "(!sups->return_p && sup->up.pid == tsk->tgid && sup->up.vaddr == relocation + sups->address))) {"; // dying uprobe
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
   s.op->newline() << "printk (KERN_WARNING \"uretprobe unregister pid %d addr %p\\n\", sup->up.pid, (void*) sup->up.vaddr);";
@@ -6806,9 +6805,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline(1) << "sup->spec_index = -1;";
   s.op->newline() << "handled_p = 1;";
-  // XXX: Do we need to keep searching the array for other processes, or
-  // can we break just like for the register-new case?
-
+  s.op->newline() << "break;"; // exit to-free slot search
   s.op->newline(-1) << "}"; // if/else
 
   s.op->newline(-1) << "}"; // stap_uprobes[] loop
