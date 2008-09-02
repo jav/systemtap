@@ -1,5 +1,30 @@
 * What's new
 
+- All user-space-related probes support $PATH-resolved executable
+  names, so
+
+     probe process("ls").syscall {}
+     probe process("./a.out").syscall {}
+
+  work now, instead of just
+
+     probe process("/bin/ls").syscall {}
+     probe process("/my/directory/a.out").syscall {}
+
+- Prototype symbolic user-space probing support:
+
+     # stap -e 'probe process("ls").function("*").call {
+                   log (probefunc()." ".$$parms)
+                }' \
+            -c 'ls -l'
+
+  This requires:
+  - debugging information for the named program
+  - a version of utrace in the kernel that is compatible with the "uprobes"
+    kernel module prototype.  This includes RHEL5 and older Fedora, but not
+    yet current lkml-track utrace; a "pass 4a"-time build failure means
+    your system cannot use this yet.
+
 - Prototype systemtap client and compile server are now available.
   These allow you to compile a systemtap module on a host other than
   the one which it will be run, providing the client and server
@@ -10,10 +35,10 @@
   was specified. See stap-server(8) for more details.
 
 - Global variables which are written to but never read are now
-  automatically displayed when the session does a shutdown.  For example: 
+  automatically displayed when the session does a shutdown.  For example:
 
-      global running_tasks 
-      probe timer.profile {running_tasks[pid(),tid()] = execname()} 
+      global running_tasks
+      probe timer.profile {running_tasks[pid(),tid()] = execname()}
       probe timer.ms(8000) {exit()}
 
 - A formatted string representation of the variables, parameters, or local
@@ -109,7 +134,7 @@
      printf ("%*d", four, two)                // prints  <space><space><space>2
 
 - Preprocessor conditional expressions can now include wildcard style
-  matches on kernel versions. 
+  matches on kernel versions.
   %( kernel_vr != "*xen" %? foo %: bar %)
 
 - Prototype support for user-space probing is showing some progress.
@@ -303,12 +328,12 @@
   handlers are invoked, as a safety improvement.
 
 - Add an optional numeric parameter for begin/end probe specifications,
-  to order their execution.  
+  to order their execution.
      probe begin(10) { } /* comes after */ probe begin(-10) {}
 
 - Add an optional array size declaration, which is handy for very small
   or very large ones.
-     global little[5], big[20000] 
+     global little[5], big[20000]
 
 - Include some example scripts along with the documentation.
 
