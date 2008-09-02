@@ -1,3 +1,8 @@
+2008-09-02  Wenji Huang  <wenji.huang@oracle.com>
+
+	* tapsets.cxx (query_func_info): Disable prologue searching in
+	no-dwarf testing.
+
 2008-09-01  Stan Cox  <scox@redhat.com>
 
 	* elaborate.cxx (add_global_var_display): Also handle statistics.
