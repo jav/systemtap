@@ -3,10 +3,13 @@
 ]>
 
 <bookinfo id="SystemTap_Beginners_Guide-Product_Name_and_Version">
-	<title>Red Hat Enterprise Linux</title>
-	<subtitle>SystemTap Beginners Guide</subtitle>
+	<title>SystemTap Beginners Guide</title>
+	<subtitle>For use with Red Hat Enterprise Linux 5</subtitle>
 	<issuenum>0.1</issuenum>
-	<productnumber>0</productnumber>
+	<edition>1.0</edition>
+	<productname>Red Hat Enterprise Linux</productname>
+	<productnumber>5</productnumber>
+	<pubsnumber>1</pubsnumber>
 	<abstract><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of &PRODUCT; in finer detail. The <citetitle>SystemTap Beginners Guide</citetitle> is recommended for users who have taken <ulink url="https://www.redhat.com/courses/rh133_red_hat_linux_system_administration_and_rhct_exam/">RHCT</ulink> or have a similar level of expertise in &PRODUCT;.</para></abstract>
 	<corpauthor>
 		<inlinemediaobject>

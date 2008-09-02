@@ -15,6 +15,9 @@
 	<!-- 	
 		<xi:include href="" xmlns:xi="http://www.w3.org/2001/XInclude" /> 
 	-->
-	<xi:include href="Appendix.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+		
+<!-- 	<xi:include href="Appendix.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
+	
+	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="Revision_History.xml"/>
 </book>
 
