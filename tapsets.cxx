@@ -3453,7 +3453,7 @@ query_func_info (Dwarf_Addr entrypc,
       else
 	{
           if (q->sess.prologue_searching
-              && !q->has_statement_str && !q->has_statement_num 
+              && !q->has_statement_str && !q->has_statement_num
               && !q->sess.ignore_vmlinux && !q->sess.ignore_dwarf) // PR 2608
             {
               if (fi.prologue_end == 0)
@@ -6751,6 +6751,10 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "int i;";
   s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
 
+  s.op->newline() << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "printk (KERN_WARNING \"uprobe idx %d change pid %d register_p %d reloc %p pp %s\\n\", spec_index, tsk->tgid, register_p, (void*) relocation, sups->pp);";
+  s.op->newline() << "#endif";
+
   s.op->newline() << "for (i=0; i<NUMUPROBES; i++) {"; // XXX: slow linear search
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
 
@@ -6761,17 +6765,23 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "sup->urp.u.pid = tsk->tgid;";
   s.op->newline() << "sup->urp.u.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->urp.handler = &enter_uretprobe_probe;";
+  s.op->newline() << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "printk (KERN_WARNING \"uretprobe register pid %d addr %p\\n\", sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
+  s.op->newline() << "#endif";
   s.op->newline() << "rc = register_uretprobe (& sup->urp);";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "sup->up.pid = tsk->tgid;";
   s.op->newline() << "sup->up.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
+  s.op->newline() << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "printk (KERN_WARNING \"uprobe register pid %d addr %p\\n\", sup->up.pid, (void*) sup->up.vaddr);";
+  s.op->newline() << "#endif";
   s.op->newline() << "rc = register_uprobe (& sup->up);";
   s.op->newline(-1) << "}";
 
   s.op->newline() << "if (rc) {"; // failed to register
-  s.op->newline() << "printk (KERN_WARNING \"uprobe failed pid %d addr %p rc %d\\n\", tsk->tgid, (void*)(relocation + sups->address), rc);";
-  s.op->newline(1) << "sup->spec_index = -1;";
+  s.op->newline(1) << "printk (KERN_WARNING \"uprobe failed pid %d addr %p rc %d\\n\", tsk->tgid, (void*)(relocation + sups->address), rc);";
+  s.op->newline() << "sup->spec_index = -1;";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "handled_p = 1;"; // success
   s.op->newline(-1) << "}";
@@ -6779,15 +6789,22 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // unregister old uprobe
   s.op->newline(-1) << "} else if (!register_p && "
+                    << "sup->spec_index == spec_index && " // a u[ret]probe set up for this probe point
                     << "((sups->return_p && sup->urp.u.pid == tsk->tgid) ||" // dying uretprobe
                     << "(!sups->return_p && sup->up.pid == tsk->tgid))) {"; // dying uprobe
   // XXX: or just check sup->spec_index == spec_index?
-  s.op->newline(1) << "sup->spec_index = -1;";
   s.op->newline() << "if (sups->return_p) {";
-  s.op->newline(1) << "unregister_uretprobe (& sup->urp);";
+  s.op->newline(1) << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "printk (KERN_WARNING \"uretprobe unregister pid %d addr %p\\n\", sup->up.pid, (void*) sup->up.vaddr);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "unregister_uretprobe (& sup->urp);";
   s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "unregister_uprobe (& sup->up);";
+  s.op->newline(1) << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "printk (KERN_WARNING \"uprobe unregister pid %d addr %p\\n\", sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "unregister_uprobe (& sup->up);";
   s.op->newline(-1) << "}";
+  s.op->newline(1) << "sup->spec_index = -1;";
   s.op->newline() << "handled_p = 1;";
   // XXX: Do we need to keep searching the array for other processes, or
   // can we break just like for the register-new case?
@@ -6886,11 +6903,23 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
   s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // free slot
-  s.op->newline() << "if (sups->return_p) unregister_uretprobe (&sup->urp);";
-  s.op->newline() << "else unregister_uprobe (&sup->up);";
+
+  s.op->newline() << "if (sups->return_p) {";
+  s.op->newline(1) << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "printk (KERN_WARNING \"uretprobe unregister2 index %d pid %d addr %p\\n\", sup->spec_index, sup->up.pid, (void*) sup->up.vaddr);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "unregister_uretprobe (& sup->urp);";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "printk (KERN_WARNING \"uprobe unregister2 index %d pid %d addr %p\\n\", sup->spec_index, sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "unregister_uprobe (& sup->up);";
+  s.op->newline(-1) << "}";
+
   s.op->newline() << "sup->spec_index = -1;";
-  // s.op->newline() << "atomic_add (sdp->u.krp.nmissed, & skipped_count);";
-  // s.op->newline() << "atomic_add (sdp->u.krp.kp.nmissed, & skipped_count);";
+
+  // XXX: uprobe missed counts?
+
   s.op->newline(-1) << "}";
 
   s.op->newline() << "mutex_destroy (& stap_uprobes_lock);";

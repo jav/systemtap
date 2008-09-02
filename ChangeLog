@@ -1,5 +1,14 @@
 2008-09-02  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR4225.
+	* tapsets.cxx (generated stap_uprobe_change): Fix major thinko that
+	falsely triggered a slew of uprobe_unregister's for each plain
+	register.
+	(uprobe_derived_probe_group::emit_module_init): Add code to generate
+	printk's for uprobe activities, if -DDEBUG_UPROBES.
+
+2008-09-02  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR4225 merge.
 	* tapsets.cxx: Add prototype user-space probing support.  Collateral
 	damage breaks symbol-table-only (dwarfless) probing, PR6864.
