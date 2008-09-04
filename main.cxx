@@ -121,16 +121,15 @@ usage (systemtap_session& s, int exitcode)
 #ifdef HAVE_LIBSQLITE3
     << "   -q         generate information on tapset coverage" << endl
 #endif /* HAVE_LIBSQLITE3 */
+#if 0 /* PR6864: disable temporarily; should merge with -d somehow */
     << "   --kelf     make do with symbol table from vmlinux" << endl
     << "   --kmap[=FILE]" << endl
     << "              make do with symbol table from nm listing" << endl
-    << "   --ignore-vmlinux" << endl
-    << "              for testing, pretend vmlinux can't be found" << endl
-    << "   --ignore-dwarf" << endl
-    << "              for testing, pretend vmlinux and modules lack debug info"
+#endif
+  // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
+  // only, and don't belong in the eyesight of a plain user.
     << endl
     ;
-  // -d: dump safety-related external references
 
   exit (exitcode);
 }
