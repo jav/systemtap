@@ -69,6 +69,8 @@ usage (systemtap_session& s, int exitcode)
     << endl
     << "   or: stap [options] -l PROBE     List matching probes."
     << endl
+    << "   or: stap [options] -L PROBE     List matching probes and local variables."
+    << endl
     << endl
     << "Options:" << endl
     << "   --         end of translator options, script options follow" << endl
@@ -177,19 +179,14 @@ printscript(systemtap_session& s, ostream& o)
           // print the alias head name once.
           if (seen.find (pp) == seen.end())
             {
-              o << pp << endl;
-              if (s.verbose) {
-	              for (unsigned j=0; j<p->locals.size(); j++)
-		            {
-        		      vardecl* v = p->locals[j];
-	        	      if (j>0)
-			      	o << ", ";
-        		      else
-		      		o << "  ";
-		              v->printsig (o);
-		            }
-	              o << endl;
-              }
+              o << pp;
+              for (unsigned j=0; j<p->locals.size(); j++)
+	            {
+      		      o << " ";
+       	      vardecl* v = p->locals[j];
+		      v->printsig (o);
+		    }
+	      o << endl;
               seen.insert (pp);
             }
         }
@@ -421,7 +418,7 @@ main (int argc, char * const argv [])
         { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:",
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:",
                                                           long_options, NULL);
       if (grc < 0)
         break;
@@ -589,10 +586,12 @@ main (int argc, char * const argv [])
           usage (s, 0);
           break;
 
+        case 'L':
+          s.unoptimized = true;
+
         case 'l':
 	  s.suppress_warnings = true;
           s.listing_mode = true;
-          s.unoptimized = true;
           s.last_pass = 2;
           if (have_script)
             {

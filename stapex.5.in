@@ -106,6 +106,11 @@ To list the probeable functions in the kernel, use the listings mode.
 % stap \-l \[aq]kernel.function("*")\[aq]
 .ESAMPLE
 
+To list the probeable functions and local variables in the kernel, use another listings mode.
+.SAMPLE
+% stap \-L \[aq]kernel.function("*")\[aq]
+.ESAMPLE
+
 .SH MORE EXAMPLES
 
 Larger examples, demos and samples can be found in

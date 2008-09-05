@@ -1,3 +1,7 @@
+2008-09-05  Wenji Huang  <wenji.huang@oracle.com>
+
+	* systemtap.base/cmd_parse.stp: Add test for "-L" option.
+
 2008-09-01  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/global_end.stp: Also check statistics.

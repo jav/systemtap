@@ -54,6 +54,15 @@ stap \- systemtap script translator/driver
 [
 .I ARGUMENTS
 ]
+.br
+.B stap
+[
+.I OPTIONS
+]
+.BI \-L " PROBE"
+[
+.I ARGUMENTS
+]
 
 .SH DESCRIPTION
 
@@ -172,6 +181,9 @@ a specific process.
 Instead of running a probe script, just list all available probe
 points matching the given pattern.  The pattern may include wildcards
 and aliases.
+.TP
+.BI \-L " PROBE"
+Similar to "-l", but list probe points and local variables.
 .TP
 .B \-\-kelf
 For names and addresses of functions to probe,

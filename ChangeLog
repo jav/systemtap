@@ -1,3 +1,9 @@
+2008-09-05  Wenji Huang  <wenji.huang@oracle.com>
+
+        PR 6731.
+        * main.cxx (usage,main,printscript): Improve listing mode with "-L".
+        * stap.1.in, stapex.5.in: Document it.
+
 2008-09-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	* main.cxx (usage): Remove some dwarfless items.
