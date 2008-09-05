@@ -41,6 +41,7 @@ bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT)
 @BUILD_ELFUTILS_TRUE@am__append_3 = stamp-elfutils
 @BUILD_ELFUTILS_TRUE@am__append_4 = stamp-elfutils
 @BUILD_ELFUTILS_FALSE@stap_DEPENDENCIES =
+@BUILD_ELFUTILS_TRUE@am__append_5 = install-elfutils
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
 noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
@@ -111,7 +112,7 @@ stapio_LINK = $(CCLD) $(stapio_CFLAGS) $(CFLAGS) $(stapio_LDFLAGS) \
 	$(LDFLAGS) -o $@
 am_staprun_OBJECTS = staprun-staprun.$(OBJEXT) \
 	staprun-staprun_funcs.$(OBJEXT) staprun-ctl.$(OBJEXT) \
-	staprun-common.$(OBJEXT) staprun-cap.$(OBJEXT)
+	staprun-common.$(OBJEXT)
 staprun_OBJECTS = $(am_staprun_OBJECTS)
 staprun_DEPENDENCIES =
 staprun_LINK = $(CCLD) $(staprun_CFLAGS) $(CFLAGS) $(staprun_LDFLAGS) \
@@ -217,7 +218,6 @@ am__untar = @am__untar@
 bindir = @bindir@
 build_alias = @build_alias@
 builddir = @builddir@
-cap_LIBS = @cap_LIBS@
 datadir = @datadir@
 datarootdir = @datarootdir@
 docdir = @docdir@
@@ -286,14 +286,14 @@ stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ $(am__append_2)
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_CPPFLAGS = $(AM_CPPFLAGS)
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
+PHONIES = $(am__append_5) dist-gzip
 @BUILD_ELFUTILS_TRUE@stap_DEPENDENCIES = lib-elfutils/libdw.so
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
-	runtime/staprun/ctl.c runtime/staprun/common.c \
-	runtime/staprun/cap.c
+	runtime/staprun/ctl.c runtime/staprun/common.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
 staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -DSINGLE_THREADED
-staprun_LDADD = @PROCFLAGS@ @cap_LIBS@
+staprun_LDADD = @PROCFLAGS@
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
@@ -523,7 +523,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapio-relay.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapio-relay_old.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapio-stapio.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-cap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-ctl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-staprun.Po@am__quote@
@@ -738,20 +737,6 @@ staprun-common.obj: runtime/staprun/common.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/common.c' object='staprun-common.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(staprun_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -c -o staprun-common.obj `if test -f 'runtime/staprun/common.c'; then $(CYGPATH_W) 'runtime/staprun/common.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/common.c'; fi`
-
-staprun-cap.o: runtime/staprun/cap.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(staprun_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -MT staprun-cap.o -MD -MP -MF $(DEPDIR)/staprun-cap.Tpo -c -o staprun-cap.o `test -f 'runtime/staprun/cap.c' || echo '$(srcdir)/'`runtime/staprun/cap.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/staprun-cap.Tpo $(DEPDIR)/staprun-cap.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/cap.c' object='staprun-cap.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(staprun_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -c -o staprun-cap.o `test -f 'runtime/staprun/cap.c' || echo '$(srcdir)/'`runtime/staprun/cap.c
-
-staprun-cap.obj: runtime/staprun/cap.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(staprun_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -MT staprun-cap.obj -MD -MP -MF $(DEPDIR)/staprun-cap.Tpo -c -o staprun-cap.obj `if test -f 'runtime/staprun/cap.c'; then $(CYGPATH_W) 'runtime/staprun/cap.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/cap.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/staprun-cap.Tpo $(DEPDIR)/staprun-cap.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/cap.c' object='staprun-cap.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(staprun_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -c -o staprun-cap.obj `if test -f 'runtime/staprun/cap.c'; then $(CYGPATH_W) 'runtime/staprun/cap.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/cap.c'; fi`
 
 .cxx.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -1358,8 +1343,6 @@ cscope:
 @BUILD_ELFUTILS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@	touch $@
 @BUILD_ELFUTILS_TRUE@lib-elfutils/libdw.so: stamp-elfutils ;
-
-@BUILD_ELFUTILS_TRUE@.PHONY: install-elfutils
 @BUILD_ELFUTILS_TRUE@install-elfutils:
 @BUILD_ELFUTILS_TRUE@	mkdir -p $(DESTDIR)$(pkglibdir)
 @BUILD_ELFUTILS_TRUE@	for file in lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so*; do \
@@ -1456,7 +1439,8 @@ installcheck:
 	fi;
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
-.PHONY: dist-gzip
+.PHONY: $(PHONIES)
+
 dist-gzip:
 	cd $(srcdir); git status | grep working.directory.clean || (echo "You should commit your changes before 'make rpm'.")
 	(cd $(srcdir); git archive --prefix=systemtap-$(VERSION)/ --format=tar HEAD) | gzip > systemtap-$(VERSION).tar.gz

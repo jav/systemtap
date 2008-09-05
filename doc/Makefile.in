@@ -111,7 +111,6 @@ am__untar = @am__untar@
 bindir = @bindir@
 build_alias = @build_alias@
 builddir = @builddir@
-cap_LIBS = @cap_LIBS@
 datadir = @datadir@
 datarootdir = @datarootdir@
 docdir = @docdir@

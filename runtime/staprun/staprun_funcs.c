@@ -43,7 +43,7 @@ int insert_module(const char *path, const char *special_options, char **options)
 	char *opts;
 	int fd, saved_errno;
 	struct stat sbuf;
-		
+
 	dbug(2, "inserting module\n");
 
 	if (special_options)
@@ -71,7 +71,7 @@ int insert_module(const char *path, const char *special_options, char **options)
 		perr("Error opening '%s'", path);
 		return -1;
 	}
-	
+
 	/* Now that the file is open, figure out how big it is. */
 	if (fstat(fd, &sbuf) < 0) {
 		_perr("Error stat'ing '%s'", path);
@@ -87,9 +87,9 @@ int insert_module(const char *path, const char *special_options, char **options)
 		free(opts);
 		return -1;
 	}
-	    
+
 	/* Actually insert the module */
-	ret = do_cap(CAP_SYS_MODULE, init_module, file, sbuf.st_size, opts);
+	ret = init_module(file, sbuf.st_size, opts);
 	saved_errno = errno;
 
 	/* Cleanup. */
@@ -99,7 +99,7 @@ int insert_module(const char *path, const char *special_options, char **options)
 
 	if (ret != 0) {
 		err("Error inserting module '%s': %s\n", path, moderror(saved_errno));
-		return -1; 
+		return -1;
 	}
 	return 0;
 }
@@ -120,8 +120,7 @@ int mountfs(void)
 	rc = stat(DEBUGFSDIR, &sb);
 	if (rc == 0 && S_ISDIR(sb.st_mode)) {
 		/* If we can mount the debugfs dir correctly, we're done. */
-		rc = do_cap(CAP_SYS_ADMIN, mount, "debugfs", DEBUGFSDIR,
-			    "debugfs", 0, NULL); 
+          	rc = mount ("debugfs", DEBUGFSDIR, "debugfs", 0, NULL);
 		if (rc == 0)
 			return 0;
 		/* If we got ENODEV, that means that debugfs isn't
@@ -132,7 +131,7 @@ int mountfs(void)
 			return -1;
 		}
 	}
-	
+
 	/* DEBUGFSDIR couldn't be mounted.  So, try RELAYFSDIR. */
 
 	/* If the relayfs dir is already mounted correctly, we're done. */
@@ -159,11 +158,12 @@ int mountfs(void)
 		/* To ensure the directory gets created with the
 		 * proper group, we'll have to temporarily switch to
 		 * root. */
-		if (do_cap(CAP_SETUID, setuid, 0) < 0) {
+                /* XXX: Why not just chown() the thing? */
+		if (setuid (0) < 0) {
 			_perr("Couldn't change user while creating %s", RELAYFSDIR);
 			return -1;
 		}
-		if (do_cap(CAP_SETGID, setgid, 0) < 0) {
+		if (setgid (0) < 0) {
 			_perr("Couldn't change group while creating %s", RELAYFSDIR);
 			return -1;
 		}
@@ -174,11 +174,11 @@ int mountfs(void)
 		saved_errno = errno;
 
 		/* Restore everything we changed. */
-		if (do_cap(CAP_SETGID, setgid, gid) < 0) {
+		if (setgid (gid) < 0) {
 			_perr("Couldn't restore group while creating %s", RELAYFSDIR);
 			return -1;
 		}
-		if (do_cap(CAP_SETUID, setuid, uid) < 0) {
+		if (setuid (uid) < 0) {
 			_perr("Couldn't restore user while creating %s", RELAYFSDIR);
 			return -1;
 		}
@@ -192,7 +192,7 @@ int mountfs(void)
 	}
 
 	/* Now that we're sure the directory exists, try mounting RELAYFSDIR. */
-	if (do_cap(CAP_SYS_ADMIN, mount, "relayfs", RELAYFSDIR, "relayfs", 0, NULL) < 0) {
+	if (mount ("relayfs", RELAYFSDIR, "relayfs", 0, NULL) < 0) {
 		perr("Couldn't mount %s", RELAYFSDIR);
 		return -1;
 	}
@@ -262,13 +262,13 @@ check_path(void)
 		     "  Unable to canonicalize that directory",	staplib_dir_path);
 		return -1;
 	}
-	
+
 	/* Use realpath() to canonicalize the module path. */
 	if (realpath(modpath, module_realpath) == NULL) {
 		perr("Unable to canonicalize path \"%s\"", modpath);
 		return -1;
 	}
-	
+
 	/* To make sure the user can't specify something like
 	 * /lib/modules/`uname -r`/systemtapmod.ko, put a '/' on the
 	 * end of staplib_dir_realpath. */

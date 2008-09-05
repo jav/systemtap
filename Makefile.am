@@ -68,6 +68,8 @@ staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_CPPFLAGS = $(AM_CPPFLAGS)
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
+
+PHONIES =
 if BUILD_ELFUTILS
 stap_CPPFLAGS += -Iinclude-elfutils
 stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
@@ -85,7 +87,7 @@ stamp-elfutils: config.status
 stap_DEPENDENCIES = lib-elfutils/libdw.so
 lib-elfutils/libdw.so: stamp-elfutils ;
 
-.PHONY: install-elfutils
+PHONIES += install-elfutils
 install-elfutils:
 	mkdir -p $(DESTDIR)$(pkglibdir)
 	for file in lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so*; do \
@@ -95,12 +97,11 @@ install-exec-local: install-elfutils
 endif
 
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
-	runtime/staprun/ctl.c runtime/staprun/common.c \
-	runtime/staprun/cap.c
+	runtime/staprun/ctl.c runtime/staprun/common.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
 staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -DSINGLE_THREADED
-staprun_LDADD = @PROCFLAGS@ @cap_LIBS@
+staprun_LDADD = @PROCFLAGS@
 
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
@@ -234,7 +235,10 @@ installcheck:
 #     --define "with_bundled_elfutils 1" --define "elfutils_version 0.135"
 RPMBUILDFLAGS=
 
-.PHONY: dist-gzip
+PHONIES += dist-gzip
+
+.PHONY: $(PHONIES)
+
 dist-gzip:
 	cd $(srcdir); git status | grep working.directory.clean || (echo "You should commit your changes before 'make rpm'.")
 	(cd $(srcdir); git archive --prefix=systemtap-$(VERSION)/ --format=tar HEAD) | gzip > systemtap-$(VERSION).tar.gz
