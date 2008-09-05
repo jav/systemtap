@@ -229,7 +229,7 @@ exit 0
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_libexecdir}/%{name}
-%{_mandir}/man8/staprun.8
+%{_mandir}/man8/staprun.8*
 
 %doc README AUTHORS NEWS COPYING
 
@@ -241,7 +241,7 @@ exit 0
 %defattr(-,root,root)
 %{_bindir}/stap-client
 %{_bindir}/stap-find-servers
-%{_mandir}/man8/stap-server.8
+%{_mandir}/man8/stap-server.8*
 
 %files server
 %defattr(-,root,root)
@@ -251,7 +251,7 @@ exit 0
 %{_bindir}/stap-find-servers
 %{_bindir}/stap-find-or-start-server
 %{_bindir}/stap-stop-server
-%{_mandir}/man8/stap-server.8
+%{_mandir}/man8/stap-server.8*
 
 %changelog
 * Tue Jul 15 2008 Frank Ch. Eigler <fche@redhat.com> - 0.7-1
