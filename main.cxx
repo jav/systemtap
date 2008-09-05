@@ -180,10 +180,11 @@ printscript(systemtap_session& s, ostream& o)
           if (seen.find (pp) == seen.end())
             {
               o << pp;
+              // This list will be empty unless s.unoptimized = true -- i.e., -L mode
               for (unsigned j=0; j<p->locals.size(); j++)
 	            {
       		      o << " ";
-       	      vardecl* v = p->locals[j];
+                      vardecl* v = p->locals[j];
 		      v->printsig (o);
 		    }
 	      o << endl;
@@ -587,7 +588,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'L':
-          s.unoptimized = true;
+          s.unoptimized = true; // This causes retention of variables for listing_mode
 
         case 'l':
 	  s.suppress_warnings = true;

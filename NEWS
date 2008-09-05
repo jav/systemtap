@@ -1,5 +1,12 @@
 * What's new
 
+- Probe listing mode is improved: "-L" lists available script-level variables
+
+     % stap -L 'syscall.*open*'
+     syscall.mq_open name:string name_uaddr:long filename:string mode:long u_attr_uaddr:long oflag:long argstr:string
+     syscall.open name:string filename:string flags:long mode:long argstr:string
+     syscall.openat name:string filename:string flags:long mode:long argstr:string
+
 - All user-space-related probes support $PATH-resolved executable
   names, so
 
