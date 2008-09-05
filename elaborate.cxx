@@ -1194,15 +1194,35 @@ void add_global_var_display (systemtap_session& s)
 
       if (l->index_types.size() == 0) // Scalar
 	{
-	  if (l->type == pe_string)
+	  if (l->type == pe_stats)
+	    pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
+	  else if (l->type == pe_string)
 	    pf->raw_components += "=\"%#s\"\\n";
 	  else
 	    pf->raw_components += "=%#x\\n";
-	  pf->args.push_back(g_sym);
 	  pf->components = print_format::string_to_components(pf->raw_components);
 	  expr_statement* feb = new expr_statement;
 	  feb->value = pf;
 	  feb->tok = print_tok;
+	  if (l->type == pe_stats)
+	    {
+	      struct stat_op* so [5];
+	      const stat_component_type stypes[] = {sc_count, sc_min, sc_max, sc_sum, sc_average};
+
+	      for (unsigned si = 0;
+		   si < (sizeof(so)/sizeof(struct stat_op*));
+		   si++)
+		{
+		  so[si]= new stat_op;
+		  so[si]->ctype = stypes[si];
+		  so[si]->type = pe_long;
+		  so[si]->stat = g_sym;
+		  so[si]->tok = l->tok;
+		  pf->args.push_back(so[si]);
+		}
+	    }
+	  else
+	    pf->args.push_back(g_sym);
 	  b->statements.push_back(feb);
 	}
       else			// Array
@@ -1265,6 +1285,8 @@ void add_global_var_display (systemtap_session& s)
 	    {
 	      struct stat_op* so [5];
 	      const stat_component_type stypes[] = {sc_count, sc_min, sc_max, sc_sum, sc_average};
+
+	      ai->type = pe_stats;
 	      for (unsigned si = 0;
 		   si < (sizeof(so)/sizeof(struct stat_op*));
 		   si++)
@@ -1274,13 +1296,8 @@ void add_global_var_display (systemtap_session& s)
 		  so[si]->type = pe_long;
 		  so[si]->stat = ai;
 		  so[si]->tok = l->tok;
+		  pf->args.push_back(so[si]);
 		}
-	  
-	      ai->type = pe_stats;
-	      for (unsigned si = 0;
-		   si < (sizeof(so)/sizeof(struct stat_op*));
-		   si++)
-		pf->args.push_back(so[si]);
 	    }
 	  else
 	    pf->args.push_back(ai);

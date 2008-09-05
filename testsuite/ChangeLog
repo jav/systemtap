@@ -1,3 +1,8 @@
+2008-09-05  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/global_end.stp: Also check scalar statistics.
+	* systemtap.base/global_end.exp: Likeewise.
+
 2008-09-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4255.
