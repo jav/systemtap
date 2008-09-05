@@ -46,7 +46,6 @@ Requires: crash
 %if %{with_docs}
 BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
 %endif
-Requires: avahi-tools nc
 
 %description
 SystemTap is an instrumentation system for systems running Linux 2.6.
@@ -60,7 +59,6 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: kernel >= 2.6.9-11
 Requires(pre): shadow-utils
-Requires: avahi-tools nc
 
 %description runtime
 SystemTap runtime is the runtime component of an instrumentation
@@ -77,6 +75,32 @@ Requires: systemtap dejagnu
 %description testsuite
 The testsuite allows testing of the entire SystemTap toolchain
 without having to rebuild from sources.
+
+%package client
+Summary: Instrumentation System Client
+Group: Development/System
+License: GPLv2+
+URL: http://sourceware.org/systemtap/
+Requires: systemtap-runtime = %{version}-%{release}
+Requires: avahi-tools nc mktemp grep sed tar which coreutils util-linux-ng
+
+%description client
+SystemTap client is the client component of an instrumentation
+system for systems running Linux 2.6.  Developers can write
+instrumentation to collect data on the operation of the system.
+
+%package server
+Summary: Instrumentation System Server
+Group: Development/System
+License: GPLv2+
+URL: http://sourceware.org/systemtap/
+Requires: systemtap
+Requires: avahi-tools nc net-tools gawk mktemp grep sed tar coreutils util-linux-ng
+
+%description server
+SystemTap server is the server component of an instrumentation
+system for systems running Linux 2.6.  Developers can write
+instrumentation to collect data on the operation of the system.
 
 %prep
 %setup -q %{?setup_elfutils}
@@ -184,8 +208,6 @@ exit 0
 %endif
 
 %{_bindir}/stap
-%{_bindir}/stap-server
-%{_bindir}/stap-serverd
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 
@@ -206,13 +228,8 @@ exit 0
 %files runtime
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
-%{_bindir}/stap-client
-%{_bindir}/stap-find-servers
-%{_bindir}/stap-start-server
-%{_bindir}/stap-find-or-start-server
-%{_bindir}/stap-stop-server
 %{_libexecdir}/%{name}
-%{_mandir}/man8/*
+%{_mandir}/man8/staprun.8
 
 %doc README AUTHORS NEWS COPYING
 
@@ -220,6 +237,21 @@ exit 0
 %defattr(-,root,root)
 %{_datadir}/%{name}/testsuite
 
+%files client
+%defattr(-,root,root)
+%{_bindir}/stap-client
+%{_bindir}/stap-find-servers
+%{_mandir}/man8/stap-server.8
+
+%files server
+%defattr(-,root,root)
+%{_bindir}/stap-server
+%{_bindir}/stap-serverd
+%{_bindir}/stap-start-server
+%{_bindir}/stap-find-servers
+%{_bindir}/stap-find-or-start-server
+%{_bindir}/stap-stop-server
+%{_mandir}/man8/stap-server.8
 
 %changelog
 * Tue Jul 15 2008 Frank Ch. Eigler <fche@redhat.com> - 0.7-1
