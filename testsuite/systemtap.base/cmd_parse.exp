@@ -5,76 +5,68 @@ if {![installtest_p]} {
     return
 }
 
-# stap -c 'echo "hello world"' -e 'probe begin {}'
-spawn stap -c {echo "hello world"} -e {probe begin {}}
+spawn stap -c {echo "hello world"} -we {probe begin {}}
 expect {
     -timeout 60
     "hello world" {pass "cmd_parse1"}
     timeout {fail "cmd_parse1: unexpected timeout"}
     eof {fail "cmd_parse1: unexpected EOF"}
 }
-wait
+wait;close
 
-# stap -c 'echo "hello "\"world\"' -e 'probe begin {}'
-spawn stap -c {echo "hello "\"world\"} -e {probe begin {}}
+spawn stap -c {echo "hello "\"world\"} -we {probe begin {}}
 expect {
     -timeout 60
     "hello \"world\"" {pass "cmd_parse2"}
     timeout {fail "cmd_parse2: unexpected timeout"}
     eof {fail "cmd_parse2: unexpected EOF"}
 }
-wait
+wait;close
 
-#stap -c '(a="hello world"; echo $a)' -e 'probe begin {}'
-spawn stap -c {(a="hello world"; echo $a)} -e {probe begin {}}
+spawn stap -c {sh -c '(a="hello world"; echo $a)'} -we {probe begin {}}
 expect {
     -timeout 60
     "hello world" {pass "cmd_parse3"}
     timeout {fail "cmd_parse3: unexpected timeout"}
     eof {fail "cmd_parse3: unexpected EOF"}
 }
-wait
+wait;close
 
-#stap -c '(a="hello "\"world\"; echo $a)' -e 'probe begin {}'
-spawn stap -c {(a="hello "\"world\"; echo $a)} -e {probe begin {}}
+spawn stap -c {sh -c '(a="hello "\"world\"; echo $a)'} -we {probe begin {}}
 expect {
     -timeout 60
     "hello \"world\"" {pass "cmd_parse4"}
     timeout {fail "cmd_parse4: unexpected timeout"}
     eof {fail "cmd_parse4: unexpected EOF"}
 }
-wait
+wait;close
 
-#stap -c '(a="hello "world; echo $a)' -e 'probe begin {}'
-spawn stap -c {(a="hello "world; echo $a)} -e {probe begin {}}
+spawn stap -c {sh -c '(a="hello "world; echo $a)'} -we {probe begin {}}
 expect {
     -timeout 60
     "hello world" {pass "cmd_parse5"}
     timeout {fail "cmd_parse5: unexpected timeout"}
     eof {fail "cmd_parse5: unexpected EOF"}
 }
-wait
+wait;close
 
-#stap -c '(((a=42+7)); echo "The answer is $a")' -e 'probe begin {}'
-# NB: not  ((a=42+7)) - must not assume bash
-spawn stap -c {(a=49; echo "The answer is $a")} -e {probe begin {}}
+spawn stap -c {bash -c '((a=42+7)); echo "The answer is $a"'} -we {probe begin {}}
 expect {
     -timeout 60
     "The answer is 49" {pass "cmd_parse6"}
     timeout {fail "cmd_parse6: unexpected timeout"}
     eof {fail "cmd_parse6: unexpected EOF"}
 }
-wait
+wait;close
 
-#stap -c '(echo "Hello World" 1>&2) > /dev/null' -e 'probe begin {}'
-spawn stap -c {(echo "Hello World" 1>&2) > /dev/null} -e {probe begin {}}
+spawn stap -c {sh -c '(echo "Hello World" 1>&2) > /dev/null'} -we {probe begin {}}
 expect {
     -timeout 60
     "Hello World" {pass "cmd_parse7"}
     timeout {fail "cmd_parse7: unexpected timeout"}
     eof {fail "cmd_parse7: unexpected EOF"}
 }
-wait
+wait;close
 
 spawn stap -l {vm.*}
 expect {
@@ -83,7 +75,7 @@ expect {
     timeout {fail "cmd_parse8: unexpected timeout"}
     eof {fail "cmd_parse8: unexpected EOF"}
 }
-wait
+wait;close
 
 spawn stap -e {probe begin { printf("%d %s\n", argc, argv[$1]) exit() }} 1
 expect {
@@ -92,7 +84,7 @@ expect {
     timeout { fail "cmd_parse9 timeout" }
     eof { fail "cmd_parse9 eof" }
 }
-wait
+wait;close
 
 spawn stap -e {probe begin { printf("%d %s\n", argc, argv[$1]) exit() }} 5 a b c d
 expect {
@@ -101,7 +93,7 @@ expect {
     timeout { fail "cmd_parse10 timeout" }
     eof { fail "cmd_parse10 eof" }
 }
-wait
+wait;close
 
 spawn stap -e {probe begin { printf("%d %s\n", argc, argv[$1]) exit() }} 10 a b c d
 expect {
@@ -110,7 +102,7 @@ expect {
     timeout { fail "cmd_parse11 timeout" }
     eof { fail "cmd_parse11 eof" }
 }
-wait
+wait;close
 
 spawn stap -e {probe begin { printf("%d %s\n", argc, argv[0]) exit() }}
 expect {
@@ -119,7 +111,7 @@ expect {
     timeout { fail "cmd_parse12 timeout" }
     eof { fail "cmd_parse12 eof" }
 }
-wait
+wait;close
 
 spawn stap -L syscall.a*
 expect {
@@ -128,4 +120,4 @@ expect {
     timeout {fail "cmd_parse13: unexpected timeout"}
     eof {fail "cmd_parse13: unexpected EOF"}
 }
-wait
+wait;close

@@ -1,3 +1,8 @@
+2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (utrace_derived_probe ctor): Handle
+	process.* probe point reverse engineering (pid- and path-less).
+
 2008-09-05  Stan Cox  <scox@redhat.com>
 
 	* elaborate.cxx (add_global_var_display): Handle scalar statistics.

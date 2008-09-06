@@ -1,3 +1,10 @@
+2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6445
+	* task_finder.c (stap_start_task_finder): When _stp_target
+	is set (stap -c or -x mode), restrict initial utrace attach 
+	iteration to target process only.
+
 2008-09-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	* task_finder.c: Move CONFIG_UTRACE assertion here.

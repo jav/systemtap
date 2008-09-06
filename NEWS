@@ -1,5 +1,17 @@
 * What's new
 
+- Target process mode (stap -c CMD or -x PID) now implicitly restricts all
+  "process.*" probes to the given child process.  (It does not effect
+  kernel.* or other probe types.)  The CMD string is now executed directly,
+  rather than via a /bin/sh -c subshell.
+
+     % stap -e 'probe process.syscall, process.end {
+                   printf("%s %d %s\n", execname(), pid(), pp())}'\
+            -c ls
+     ls 2323 process.syscall 
+     ls 2323 process.syscall 
+     ls 2323 process.end
+
 - Probe listing mode is improved: "-L" lists available script-level variables
 
      % stap -L 'syscall.*open*'
