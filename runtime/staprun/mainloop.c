@@ -13,6 +13,8 @@
 #include "staprun.h"
 #include <sys/utsname.h>
 #include <sys/ptrace.h>
+#include <wordexp.h>
+
 
 /* globals */
 int ncpus;
@@ -109,53 +111,52 @@ void start_cmd(void)
   a.sa_handler = SIG_IGN;
   sigaction(SIGINT, &a, NULL);
 
-  dbug(1, "execing target_cmd %s\n", target_cmd);
   if ((pid = fork()) < 0) {
     _perr("fork");
     exit(1);
   } else if (pid == 0) {
     /* We're in the target process.	 Let's start the execve of target_cmd, */
     int rc;
+    wordexp_t words;
 
     a.sa_handler = SIG_DFL;
     sigaction(SIGINT, &a, NULL);
 
+    /* Formerly, we just execl'd(sh,-c,$target_cmd).  But this does't
+       work well if target_cmd is a shell builtin.  We really want to
+       probe a new child process, not a mishmash of shell-interpreted
+       stuff. */
+    rc = wordexp (target_cmd, & words, WRDE_NOCMD);
+    if (rc != 0) { _perr ("wordexp parsing error"); _exit (1); }
+    if (words.we_wordc < 1) { _perr ("empty target_cmd"); _exit (1); }
+
     rc = ptrace (PTRACE_TRACEME, 0, 0, 0);
     if (rc < 0) perror ("ptrace me");
 
-    if (execl("/bin/sh", "sh", "-c", target_cmd, NULL) < 0)
+#if 0
+    dbug(1, "blocking briefly\n");
+    raise (SIGCONT); /* Harmless; just passes control to parent. */
+#endif
+
+    dbug(1, "execing target_cmd %s\n", target_cmd);
+
+    /* Note that execvp() is not a direct system call; it does a $PATH
+       search in glibc.  We would like to filter out these dummy syscalls
+       from the utrace events seen by scripts. */
+    if (execvp (words.we_wordv[0], words.we_wordv) < 0)
       perror(target_cmd);
+
+      /* (There is no need to wordfree() words; they are or will be gone.) */
+
     _exit(1);
   } else {
-    /* We're back in the parent.  Since we forked a sh -c, we need to wait until
-       the shell itself has been exec'd (one SIGTRAP via ptrace), and then again
-       until the (first?) target command has been. */
-    int status;
+    /* We're in the parent.  The child will parse target_cmd and execv()
+       the result.  It will be stopped thereabouts and send us a SIGTRAP. */
     target_pid = pid;
+    int status;
     waitpid (target_pid, &status, 0);
-    if (WIFSTOPPED (status))
-      {
-        /* OK, we got the first exec.  Let the shell start. */
-        int rc = ptrace (PTRACE_CONT, target_pid, 0, 0);
-        if (rc < 0) perror ("ptrace continue");
-        /* Now we wait until the shell has evaluated the command line,
-           and is about to exec the child process(es).  */
-        waitpid (target_pid, &status, 0);
-        /* That's it.  The child process has either died, or is just
-           about to exec the real command.  We can sit back and relax;
-           once we get our STP_START message, we will PTRACE_DETACH
-           and let it run free.  */
-      }
-    else
-      {
-        /* Who knows, maybe the shell failed to exec; maybe we're OOM;
-           whatever.  We should get a SIGCHLD before too long and wind
-           up the session. */
-        _perr ("unexpected status %d from sh -c %s", status, target_cmd);
-      }
+    dbug(1, "waited for target_cmd %s pid %d status %x\n", target_cmd, target_pid, (unsigned) status);
   }
-
-
 }
 
 /**
@@ -362,6 +363,7 @@ int stp_main_loop(void)
             kill(target_pid, SIGKILL);
           cleanup_and_exit(0);
         } else if (target_cmd) {
+          dbug(1, "detaching pid %d\n", target_pid);
           int rc = ptrace (PTRACE_DETACH, target_pid, 0, 0);
           if (rc < 0)
             {
