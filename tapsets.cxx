@@ -5868,8 +5868,11 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   vector<probe_point::component*> comps;
   if (hp)
     comps.push_back (new probe_point::component(TOK_PROCESS, new literal_string(path)));
-  else
+  else if (pid != 0)
     comps.push_back (new probe_point::component(TOK_PROCESS, new literal_number(pid)));
+  else
+    comps.push_back (new probe_point::component(TOK_PROCESS));
+
   switch (flags)
     {
     case UDPF_THREAD_BEGIN:
