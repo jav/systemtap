@@ -1,3 +1,7 @@
+2008-09-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (build_blacklist): Add some x86 raw port-io spots.
+
 2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (utrace_derived_probe ctor): Handle

@@ -2919,6 +2919,8 @@ dwarf_query::build_blacklist()
 
   blfile += "kernel/kprobes.c"; // first alternative, no "|"
   blfile += "|arch/.*/kernel/kprobes.c";
+  blfile += "|include/asm/io.h";
+  blfile += "|drivers/ide/ide-iops.c";
 
   // XXX: it would be nice if these blacklisted functions were pulled
   // in dynamically, instead of being statically defined here.
