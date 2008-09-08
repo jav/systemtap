@@ -1,0 +1,46 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<section id="scripts">
+	<title>SystemTap Scripts</title>
+	
+	<para>
+		For the most part, SystemTap scripts are the foundation of each SystemTap session. The SystemTap scripts you use or write yourself instruct SystemTap on what type of information to trap, and what to do once that information is trapped.
+	</para>
+	
+	<para>
+		As stated in <xref linkend="understanding-how-systemtap-works"/>, SystemTap scripts are made up of two components: <emphasis>events</emphasis> and <emphasis>handlers</emphasis>. Once a SystemTap session is underway, SystemTap monitors the operating system for the specified events and executes the handlers as they occur. 
+	</para>
+	
+<note>
+	<title>Note</title>
+	<para>An event and its corresponding handler is collectively called a <emphasis>probe</emphasis>. A SystemTap script can have multiple probes, in the same manner that each event can have multiple corresponding handlers.</para>
+</note>	
+	
+	<para>
+		In terms of application development, using events and handlers is similar to inserting <command>print</command> statements in a program's sequence of commands. These <command>print</command> statements allow you to view a history of commands executed once the program is run. 
+	</para>	
+	
+	<para>
+		SystemTap scripts go one step further by allowing you more flexibility with regard to handlers. Events serve as the triggers for handlers to run; handlers can be specified to trap specified data and print it in a certain manner. 
+	</para>
+	
+	
+
+	<section id="systemtapscript-format">
+		<title>Format</title>
+		<para>
+			SystemTap scripts use the following format:
+		</para>
+	</section>
+	
+	<!--	<section id="SystemTap_Beginners_Guide-Test-Section_2_Test">
+		<title>Section 2 Test</title>
+		<para>
+			Test of a section
+		</para>
+	</section>-->
+
+</section>
+
