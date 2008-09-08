@@ -5,15 +5,36 @@
 <chapter id="introduction">
 	<title>Introduction</title>
 	<para>
-		A short introduction on SystemTap_Beginners_Guide
+		SystemTap is a tracing and probing tool that provides users deep technical insight into what the operating system (particularly, the kernel) is doing at any given time. It provides information similar to the output of tools like <command>netstat</command>, <command>ps</command>, <command>top</command>, and <command>iostat</command>; however, SystemTap is designed to provide information that is more "granular" in nature.  
 	</para>
 	
-<formalpara>
+	<para>
+		For system administrators, SystemTap can be used as a performance monitoring tool for &PROD;. It is most useful when other similar tools cannot precisely pinpoint a bottleneck in the system, requiring a deep analysis of kernel activity. In the same manner, application developers can also use SystemTap to monitor, in finer detail, how their application behaves.
+	</para>
+	  
+<!--	
+	<para>
+		SystemTap was developed as a Linux version of the DTrace tool (for <trademark>Sun Solaris</trademark>).
+	</para>	
+	-->
+<section id="goals">
 	<title>Goals</title>
-	<para>TBD</para> 
-</formalpara>	
+	<para>The goal of SystemTap is to provide infrastructure to monitor the running Linux kernel for detailed analysis. This can assist in identifying the underlying cause of a performance or functional problem.</para>
+	
+	<para>Without SystemTap, monitoring the activity of a running kernel would require a tedious instrument, recompile, install, and reboot sequence. SystemTap is designed to eliminate this, allowing you to gather the same information by simply running its suite of tools against specific <firstterm>tapsets</firstterm> or SystemTap scripts.</para> 
+		
+	<para>However, SystemTap was initially designed for users with intermediate to advanced knowledge of the kernel. This could present a steep learning curve for administrators or developers whose knowledge of the Linux kernel is little to none.</para>
+	
+	<para>In line with that, the main goal of the <citetitle>SystemTap Beginner's Guide</citetitle> is two-fold:</para>
+	
+	<itemizedlist>
+		<listitem><para>To introduce users to SystemTap, familiarize them with its architecture, and provide setup instructions for all kernel types.</para></listitem>
+		
+		<listitem><para>To provide pre-written SystemTap scripts for monitoring and forensic tasks, along with instructions on how to analyze their output.</para></listitem>  
+	</itemizedlist>	
+<!-- </formalpara>	 -->
 <remark>above,  Short description on the underlying goals of SystemTap_Beginners_Guide, what we want to teach users.</remark>
-
+</section>
 	
 	<section id="intro-usage">
 		<title>Usage</title>
@@ -25,7 +46,7 @@
 	<section id="intro-systemtap-vs-others">
 		<title>SystemTap Versus Other Monitoring Tools</title>
 		<remark>
-			Short summary; when is SystemTap suitable vs other popular monitoring tools (e.g. top, Oprofile, /proc)
+			** Short summary; when is SystemTap suitable vs other popular monitoring tools (e.g. top, Oprofile, /proc)
 		</remark>
 		
 <formalpara>
