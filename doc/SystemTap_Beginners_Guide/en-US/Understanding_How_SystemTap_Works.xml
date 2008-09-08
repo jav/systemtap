@@ -26,10 +26,6 @@
 		
 		<remark>
 			** add design advantages? e.g. "building kmods on-the-fly allows safer execution of script etc etc"
-		</remark>
-		
-		<remark>
-			test
 		</remark>	
 		
 		<para>A SystemTap session begins when you run a SystemTap script. This session occurs in the following fashion:</para>
