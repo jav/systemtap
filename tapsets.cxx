@@ -2919,6 +2919,8 @@ dwarf_query::build_blacklist()
 
   blfile += "kernel/kprobes.c"; // first alternative, no "|"
   blfile += "|arch/.*/kernel/kprobes.c";
+  blfile += "|include/asm/io.h";
+  blfile += "|drivers/ide/ide-iops.c";
 
   // XXX: it would be nice if these blacklisted functions were pulled
   // in dynamically, instead of being statically defined here.
@@ -5868,8 +5870,11 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   vector<probe_point::component*> comps;
   if (hp)
     comps.push_back (new probe_point::component(TOK_PROCESS, new literal_string(path)));
-  else
+  else if (pid != 0)
     comps.push_back (new probe_point::component(TOK_PROCESS, new literal_number(pid)));
+  else
+    comps.push_back (new probe_point::component(TOK_PROCESS));
+
   switch (flags)
     {
     case UDPF_THREAD_BEGIN:

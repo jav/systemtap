@@ -360,7 +360,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 				  | UTRACE_EVENT(EXEC)		\
 				  | UTRACE_EVENT(DEATH))
 
-/* 
+/*
  * __STP_TASK_BASE_EVENTS: base events for stap_task_finder_target's
  * without a vm_callback
  *
@@ -460,7 +460,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		else if (tgt->pid != 0)
 			continue;
 		/* Notice that "pid == 0" (which means to probe all
-		 * threads) falls through. */ 
+		 * threads) falls through. */
 
 		list_for_each(cb_node, &tgt->callback_list_head) {
 			struct stap_task_finder_target *cb_tgt;
@@ -1137,6 +1137,11 @@ stap_start_task_finder(void)
 		char *mmpath;
 		size_t mmpathlen;
 		struct list_head *tgt_node;
+
+                /* Skip over processes other than that specified with
+                   stap -c or -x. */
+                if (_stp_target && tsk->tgid != _stp_target)
+                  continue;
 
 		rc = stap_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
 					__STP_TASK_FINDER_EVENTS);

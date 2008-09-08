@@ -161,9 +161,6 @@ if test "$enable_docs" == "yes"; then
 fi
 AM_CONDITIONAL([BUILD_DOCS], [test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"])
 
-AC_CHECK_HEADERS([sys/capability.h], ,
-  [AC_MSG_ERROR([cannot find required libcap header (libcap-devel may need to be installed)])])
-
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
 build_elfutils=no
@@ -214,16 +211,6 @@ x86_64) PROCFLAGS=-m64 ;;
 *) PROCFLAGS=""
 esac
 AC_SUBST([PROCFLAGS])
-
-# -lcap is used for staprun, so PROCFLAGS comes in to play
-SAVE_LIBS="$LIBS"
-SAVE_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $PROCFLAGS"
-AC_CHECK_LIB(cap, cap_init, [], [AC_MSG_ERROR(need $PROCFLAGS -lcap)])
-cap_LIBS="$LIBS"
-AC_SUBST(cap_LIBS)
-LIBS="$SAVE_LIBS"
-CFLAGS="$SAVE_CFLAGS"
 
 # Use tr1/unordered_map if available
 AC_LANG_PUSH(C++)

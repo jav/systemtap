@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  *
- * staprun.c - SystemTap module loader 
+ * staprun.c - SystemTap module loader
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,14 +34,14 @@ extern long delete_module(const char *, unsigned int);
 int send_relocations ();
 
 
-static int run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
+static int run_as(int exec_p, uid_t uid, gid_t gid, const char *path, char *const argv[])
 {
 	pid_t pid;
 	int rstatus;
 
 	if (verbose >= 2) {
 		int i = 0;
-		err("execing: ");
+		err(exec_p ? "execing: ": "spawning: ");
 		while (argv[i]) {
 			err("%s ", argv[i]);
 			i++;
@@ -49,36 +49,43 @@ static int run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
 		err("\n");
 	}
 
-	if ((pid = fork()) < 0) {
-		_perr("fork");
-		return -1;
-	} else if (pid == 0) {
-		/* Make sure we run as the full user.  If we're
-		 * switching to a non-root user, this won't allow
-		 * that process to switch back to root (since the
-		 * original process is setuid). */
-		if (uid != getuid()) {
-			if (do_cap(CAP_SETGID, setresgid, gid, gid, gid) < 0) {
-				_perr("setresgid");
-				exit(1);
-			}
-			if (do_cap(CAP_SETUID, setresuid, uid, uid, uid) < 0) {
-				_perr("setresuid");
-				exit(1);
-			}
-		}
+        if (exec_p)
+          pid = 0;
+        else
+          pid = fork();
 
-		/* Actually run the command. */
-		if (execv(path, argv) < 0)
-			perror(path);
-		_exit(1);
-	}
+        if (pid < 0)
+          {
+            _perr("fork");
+            return -1;
+          }
+
+	if (pid == 0) /* child process, or exec_p */
+          {
+            /* Make sure we run as the full user.  If we're
+             * switching to a non-root user, this won't allow
+             * that process to switch back to root (since the
+             * original process is setuid). */
+            if (setresgid (gid, gid, gid) < 0) {
+              _perr("setresgid");
+              exit(1);
+            }
+            if (setresuid (uid, uid, uid) < 0) {
+              _perr("setresuid");
+              exit(1);
+            }
+
+            /* Actually run the command. */
+            if (execv(path, argv) < 0)
+              perror(path);
+            _exit(1);
+          }
 
 	if (waitpid(pid, &rstatus, 0) < 0)
-		return -1;
+          return -1;
 
 	if (WIFEXITED(rstatus))
-		return WEXITSTATUS(rstatus);
+          return WEXITSTATUS(rstatus);
 	return -1;
 }
 
@@ -104,14 +111,13 @@ static int enable_uprobes(void)
 	argv[i++] = "unregister_uprobe";
 	argv[i++] = "/proc/kallsyms";
 	argv[i] = NULL;
-	if (run_as(uid, gid, argv[0], argv) == 0)
+	if (run_as(0, uid, gid, argv[0], argv) == 0)
 		return 0;
 
 	/*
 	 * TODO: If user can't setresuid to root here, staprun will exit.
 	 * Is there a situation where that would fail but the subsequent
-	 * attempt to use CAP_SYS_MODULE privileges (in insert_module())
-	 * would succeed?
+	 * attempt to insert_module() would succeed?
 	 */
 	dbug(2, "Inserting uprobes module from /lib/modules, if any.\n");
 	i = 0;
@@ -119,7 +125,7 @@ static int enable_uprobes(void)
 	argv[i++] = "-q";
 	argv[i++] = "uprobes";
 	argv[i] = NULL;
-	if (run_as(0, 0, argv[0], argv) == 0)
+	if (run_as(0, 0, 0, argv[0], argv) == 0)
 		return 0;
 
 	dbug(2, "Inserting uprobes module from SystemTap runtime.\n");
@@ -169,9 +175,9 @@ static int remove_module(const char *name, int verb)
 	}
 
 	/* Call init_ctl_channel() which actually attempts an open()
-	 * of the control channel. This is better than using access() because 
+	 * of the control channel. This is better than using access() because
 	 * an open on an already open channel will fail, preventing us from attempting
-	 * to remove an in-use module. 
+	 * to remove an in-use module.
 	 */
 	if (init_ctl_channel(name, 0) < 0) {
 		if (verb)
@@ -186,7 +192,7 @@ static int remove_module(const char *name, int verb)
 	if (setpriority(PRIO_PROCESS, 0, 0) < 0)
 		_perr("setpriority");
 
-	ret = do_cap(CAP_SYS_MODULE, delete_module, name, 0);
+	ret = delete_module (name, 0);
 	if (ret != 0) {
 		err("Error removing module '%s': %s.\n", name, strerror(errno));
 		return 1;
@@ -202,9 +208,6 @@ int init_staprun(void)
 
 	if (mountfs() < 0)
 		return -1;
-
-	/* We're done with CAP_SYS_ADMIN. */
-	drop_cap(CAP_SYS_ADMIN);
 
 	if (delete_mod)
 		exit(remove_module(modname, 1));
@@ -269,25 +272,14 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	init_cap();
-		
 	if (check_permissions() != 1)
 		usage(argv[0]);
-
-	/* now bump the priority */
-	rc = do_cap(CAP_SYS_NICE, setpriority, PRIO_PROCESS, 0, -10);
-	/* failure is not fatal in this case */
-	if (rc < 0)
-		_perr("setpriority");
-
-	/* We're done with CAP_SYS_NICE. */
-	drop_cap(CAP_SYS_NICE);
 
 	if (init_staprun())
 		exit(1);
 
 	argv[0] = PKGLIBDIR "/stapio";
-	if (execv(argv[0], argv) < 0) {
+	if (run_as (1, getuid(), getgid(), argv[0], argv) < 0) {
 		perror(argv[0]);
 		goto err;
 	}
@@ -337,7 +329,7 @@ int send_relocation_kernel ()
   FILE* kallsyms = fopen ("/proc/kallsyms", "r");
   if (kallsyms == NULL)
     {
-      perror("cannot open /proc/kallsyms");    
+      perror("cannot open /proc/kallsyms");
       // ... and the kernel module will almost certainly fail to initialize.
     }
   else
@@ -404,18 +396,18 @@ void send_relocation_modules ()
 
       module_section_file = globbuf.gl_pathv[i];
 
-      /* Tokenize the file name.  
+      /* Tokenize the file name.
          Sample gl_pathv[]: /sys/modules/zlib_deflate/sections/.text
          Pieces:                         ^^^^^^^^^^^^          ^^^^^
       */
-      section_name = rindex (module_section_file, '/'); 
+      section_name = rindex (module_section_file, '/');
       if (! section_name) continue;
       section_name ++;
 
       if (!strcmp (section_name, ".")) continue;
       if (!strcmp (section_name, "..")) continue;
-      
-      module_name = index (module_section_file, '/'); 
+
+      module_name = index (module_section_file, '/');
       if (! module_name) continue;
       module_name ++;
       module_name = index (module_name, '/');
@@ -436,7 +428,7 @@ void send_relocation_modules ()
           /* Now we destructively modify the string, but by now the file
              is open so we won't need the full name again. */
           *module_name_end = '\0';
-          
+
           send_a_relocation (module_name, section_name, section_address);
         }
 
@@ -454,7 +446,7 @@ void send_relocation_modules ()
              same time that a probeworthy module is being unloaded. */
         }
     }
-  
+
   globfree (& globbuf);
 }
 

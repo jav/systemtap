@@ -18,7 +18,6 @@ Source: ftp://sourceware.org/pub/%{name}/releases/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: kernel >= 2.6.9-11
-BuildRequires: libcap-devel
 %if %{with_sqlite}
 BuildRequires: sqlite-devel
 Requires: sqlite

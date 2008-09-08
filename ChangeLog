@@ -1,8 +1,26 @@
+2008-09-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (build_blacklist): Add some x86 raw port-io spots.
+
+2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (utrace_derived_probe ctor): Handle
+	process.* probe point reverse engineering (pid- and path-less).
+
+2008-09-05  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (add_global_var_display): Handle scalar statistics.
+
+2008-09-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac, Makefile.am, systemtap.spec: Don't look for libcap.
+	* configure, Makefile.in: Regenerated.
+
 2008-09-05  Wenji Huang  <wenji.huang@oracle.com>
 
-        PR 6731.
-        * main.cxx (usage,main,printscript): Improve listing mode with "-L".
-        * stap.1.in, stapex.5.in: Document it.
+	PR 6731.
+	* main.cxx (usage,main,printscript): Improve listing mode with "-L".
+	* stap.1.in, stapex.5.in: Document it.
 
 2008-09-04  Frank Ch. Eigler  <fche@elastic.org>
 

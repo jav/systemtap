@@ -1,3 +1,16 @@
+2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* mainloop.c (start_cmd): Rewrite to use wordexp/execvp/ptrace.
+	(stp_main_loop): Use ptrace detach to resume target process.
+
+2008-09-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	* staprun.c (run_as): Teach it to exec too.  Update callers.
+	Always do set[ug]id as dictated.
+	* staprun.h (do_cap): Remove.  Update all callers.
+	* staprun_funcs.c: Ditto.
+	* cap.c: Removed.  Update headers.
+
 2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6736.

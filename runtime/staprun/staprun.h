@@ -33,7 +33,6 @@
 #include <sys/wait.h>
 #include <sys/statfs.h>
 #include <linux/version.h>
-#include <sys/capability.h>
 
 #define dbug(level, args...) {if (verbose>=level) {fprintf(stderr,"%s:%s:%d ",__name__,__FUNCTION__, __LINE__); fprintf(stderr,args);}}
 
@@ -58,17 +57,6 @@ extern char *__name__;
 		fprintf(stderr, ": %s\n", strerror(_errno));	\
 	} while (0)
 #define overflow_error() _err("Internal buffer overflow. Please file a bug report.\n")
-		
-#define do_cap(cap,func,args...) ({			\
-			int _rc, _saved_errno;		\
-			add_cap(cap);			\
-			_rc = func(args);		\
-			_saved_errno = errno;		\
-			del_cap(cap);			\
-			errno = _saved_errno;		\
-			_rc;				\
-		})					\
-
 
 /* Error checking version of sprintf() - returns 1 if overflow error */
 #define sprintf_chk(str, args...) ({			\
@@ -123,12 +111,6 @@ void close_relayfs(void);
 int init_oldrelayfs(void);
 void close_oldrelayfs(int);
 void setup_signals(void);
-/* cap.c */
-void print_cap(char *text);
-void init_cap(void);
-void add_cap(cap_value_t cap);
-void del_cap(cap_value_t cap);
-void drop_cap(cap_value_t cap);
 /* staprun_funcs.c */
 void setup_staprun_signals(void);
 const char *moderror(int err);
@@ -147,7 +129,7 @@ void setup_signals(void);
 int set_clexec(int fd);
 
 /*
- * variables 
+ * variables
  */
 extern int control_channel;
 extern int ncpus;

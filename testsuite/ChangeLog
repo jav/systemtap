@@ -1,3 +1,18 @@
+2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/cmd_parse.exp: Adapt to sh-c-less "stap -c"
+	execution.
+
+2008-09-05  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/global_end.stp: Also check scalar statistics.
+	* systemtap.base/global_end.exp: Likeewise.
+
+2008-09-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4255.
+	* systemtap.base/uprobes.{exp,stp}: New file.
+
 2008-09-05  Wenji Huang  <wenji.huang@oracle.com>
 
 	* systemtap.base/cmd_parse.stp: Add test for "-L" option.
