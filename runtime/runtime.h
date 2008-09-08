@@ -88,6 +88,7 @@ static struct
 #ifdef STP_PERFMON
 #include "perf.c"
 #endif
+#include "addr-map.c"
 
 /* Support functions for int64_t module parameters. */
 int param_set_int64_t(const char *val, struct kernel_param *kp)
