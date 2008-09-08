@@ -201,6 +201,8 @@
 
 #define deref(size, addr) ({ \
     intptr_t _i; \
+    if (lookup_bad_addr((unsigned long)addr)) \
+      __deref_bad(); \
     switch (size) { \
       case 1: _i = kread((u8 *)(addr)); break; \
       case 2: _i = kread((u16 *)(addr)); break; \
@@ -213,6 +215,8 @@
   })
 
 #define store_deref(size, addr, value) ({ \
+    if (lookup_bad_addr((unsigned long)addr)) \
+      __store_deref_bad(); \
     switch (size) { \
       case 1: kwrite((u8 *)(addr), (value)); break; \
       case 2: kwrite((u16 *)(addr), (value)); break; \
@@ -234,30 +238,36 @@ extern void __store_deref_bad(void);
     int _bad = 0;							      \
     u8 _b; u16 _w; u32 _l;	                                              \
     intptr_t _v;							      \
-    switch (size)							      \
-      {									      \
-      case 1: __get_user_asm(_b,addr,_bad,"b","b","=q",1); _v = _b; break;    \
-      case 2: __get_user_asm(_w,addr,_bad,"w","w","=r",1); _v = _w; break;    \
-      case 4: __get_user_asm(_l,addr,_bad,"l","","=r",1); _v = _l; break;     \
-      default: _v = __get_user_bad();					      \
-      }									      \
-    if (_bad)								      \
-      DEREF_FAULT(addr);							      \
+    if (lookup_bad_addr((unsigned long)addr))                                 \
+      _bad = 1;                                                               \
+    else                                                                      \
+      switch (size)                                                           \
+        {                                                                     \
+        case 1: __get_user_asm(_b,addr,_bad,"b","b","=q",1); _v = _b; break;  \
+        case 2: __get_user_asm(_w,addr,_bad,"w","w","=r",1); _v = _w; break;  \
+        case 4: __get_user_asm(_l,addr,_bad,"l","","=r",1); _v = _l; break;   \
+        default: _v = __get_user_bad();                                       \
+        }                                                                     \
+    if (_bad)                                                                 \
+      DEREF_FAULT(addr);						      \
     _v;									      \
   })
 
 #define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
-    switch (size)							      \
-      {									      \
-      case 1: __put_user_asm(((u8)(value)),addr,_bad,"b","b","iq",1); break;  \
-      case 2: __put_user_asm(((u16)(value)),addr,_bad,"w","w","ir",1); break; \
-      case 4: __put_user_asm(((u32)(value)),addr,_bad,"l","k","ir",1); break; \
-      default: __put_user_bad();					      \
-      }									      \
-    if (_bad)								      \
-      STORE_DEREF_FAULT(addr);							      \
+    if (lookup_bad_addr((unsigned long)addr))                                 \
+      _bad = 1;                                                               \
+    else                                                                      \
+      switch (size)                                                           \
+        {                                                                     \
+        case 1: __put_user_asm(((u8)(value)),addr,_bad,"b","b","iq",1); break;\
+        case 2: __put_user_asm(((u16)(value)),addr,_bad,"w","w","ir",1); break;\
+        case 4: __put_user_asm(((u32)(value)),addr,_bad,"l","k","ir",1); break;\
+        default: __put_user_bad();                                            \
+        }                                                                     \
+    if (_bad)                                                                 \
+      STORE_DEREF_FAULT(addr);                                                \
   })
 
 
@@ -268,14 +278,17 @@ extern void __store_deref_bad(void);
     int _bad = 0;							      \
     u8 _b; u16 _w; u32 _l; u64 _q;					      \
     intptr_t _v;							      \
-    switch (size)							      \
-      {									      \
-      case 1: __get_user_asm(_b,addr,_bad,"b","b","=q",1); _v = _b; break;    \
-      case 2: __get_user_asm(_w,addr,_bad,"w","w","=r",1); _v = _w; break;    \
-      case 4: __get_user_asm(_l,addr,_bad,"l","","=r",1); _v = _l; break;     \
-      case 8: __get_user_asm(_q,addr,_bad,"q","","=r",1); _v = _q; break;     \
-      default: _v = __get_user_bad();					      \
-      }									      \
+    if (lookup_bad_addr((unsigned long)addr))                                 \
+      _bad = 1;                                                               \
+    else                                                                      \
+      switch (size)                                                           \
+        {                                                                     \
+        case 1: __get_user_asm(_b,addr,_bad,"b","b","=q",1); _v = _b; break;  \
+        case 2: __get_user_asm(_w,addr,_bad,"w","w","=r",1); _v = _w; break;  \
+        case 4: __get_user_asm(_l,addr,_bad,"l","","=r",1); _v = _l; break;   \
+        case 8: __get_user_asm(_q,addr,_bad,"q","","=r",1); _v = _q; break;   \
+        default: _v = __get_user_bad();                                       \
+        }                                                                     \
     if (_bad)								      \
       DEREF_FAULT(addr);							      \
     _v;									      \
@@ -284,14 +297,17 @@ extern void __store_deref_bad(void);
 #define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
-    switch (size)							      \
-      {									      \
-      case 1: __put_user_asm(((u8)(value)),addr,_bad,"b","b","iq",1); break;  \
-      case 2: __put_user_asm(((u16)(value)),addr,_bad,"w","w","ir",1); break; \
-      case 4: __put_user_asm(((u32)(value)),addr,_bad,"l","k","ir",1); break; \
-      case 8: __put_user_asm(((u64)(value)),addr,_bad,"q","","Zr",1); break;  \
-      default: __put_user_bad();					      \
-      }									      \
+    if (lookup_bad_addr((unsigned long)addr))                                 \
+      _bad = 1;                                                               \
+    else                                                                      \
+      switch (size)                                                           \
+        {                                                                     \
+        case 1: __put_user_asm(((u8)(value)),addr,_bad,"b","b","iq",1); break; \
+        case 2: __put_user_asm(((u16)(value)),addr,_bad,"w","w","ir",1); break;\
+        case 4: __put_user_asm(((u32)(value)),addr,_bad,"l","k","ir",1); break;\
+        case 8: __put_user_asm(((u64)(value)),addr,_bad,"q","","Zr",1); break; \
+        default: __put_user_bad();                                      \
+        }                                                               \
     if (_bad)								      \
       STORE_DEREF_FAULT(addr);							      \
   })
@@ -301,13 +317,16 @@ extern void __store_deref_bad(void);
   ({									\
      int _bad = 0;							\
      intptr_t _v=0;							\
-	switch (size){							\
-	case 1: __get_user_size(_v, addr, 1, _bad); break; 		\
-	case 2: __get_user_size(_v, addr, 2, _bad); break;  		\
-	case 4: __get_user_size(_v, addr, 4, _bad); break;  		\
-	case 8: __get_user_size(_v, addr, 8, _bad); break;  		\
-	default: __get_user_unknown(); break;				\
-	}								\
+     if (lookup_bad_addr((unsigned long)addr))                          \
+       _bad = 1;                                                        \
+     else                                                               \
+       switch (size){							\
+       case 1: __get_user_size(_v, addr, 1, _bad); break; 		\
+       case 2: __get_user_size(_v, addr, 2, _bad); break;  		\
+       case 4: __get_user_size(_v, addr, 4, _bad); break;  		\
+       case 8: __get_user_size(_v, addr, 8, _bad); break;  		\
+       default: __get_user_unknown(); break;				\
+       }								\
     if (_bad)  								\
 	DEREF_FAULT(addr);						\
      _v;								\
@@ -316,13 +335,16 @@ extern void __store_deref_bad(void);
 #define store_deref(size, addr, value)					\
   ({									\
     int _bad=0;								\
-	switch (size){							\
-	case 1: __put_user_size(value, addr, 1, _bad); break;		\
-	case 2: __put_user_size(value, addr, 2, _bad); break;		\
-	case 4: __put_user_size(value, addr, 4, _bad); break;		\
-	case 8: __put_user_size(value, addr, 8, _bad); break;		\
-	default: __put_user_unknown(); break;				\
-	}								\
+    if (lookup_bad_addr((unsigned long)addr))                           \
+      _bad = 1;                                                         \
+    else                                                                \
+      switch (size){							\
+      case 1: __put_user_size(value, addr, 1, _bad); break;		\
+      case 2: __put_user_size(value, addr, 2, _bad); break;		\
+      case 4: __put_user_size(value, addr, 4, _bad); break;		\
+      case 8: __put_user_size(value, addr, 8, _bad); break;		\
+      default: __put_user_unknown(); break;				\
+      }                                                                 \
     if (_bad)								\
 	   STORE_DEREF_FAULT(addr);						\
    })
@@ -373,30 +395,36 @@ extern void __store_deref_bad(void);
   ({									      \
     int _bad = 0;							      \
     intptr_t _v;							      \
-    switch (size)							      \
-      {									      \
-      case 1: __stp_get_user_asm(_v,addr,_bad,"lbz"); break;		      \
-      case 2: __stp_get_user_asm(_v,addr,_bad,"lhz"); break;		      \
-      case 4: __stp_get_user_asm(_v,addr,_bad,"lwz"); break;		      \
-      case 8: __stp_get_user_asm(_v,addr,_bad,"ld"); break;			      \
-      default: _v = __get_user_bad();					      \
-      }									      \
+    if (lookup_bad_addr((unsigned long)addr))                                 \
+      _bad = 1;                                                               \
+    else                                                                      \
+      switch (size)                                                           \
+        {                                                                     \
+        case 1: __stp_get_user_asm(_v,addr,_bad,"lbz"); break;                \
+        case 2: __stp_get_user_asm(_v,addr,_bad,"lhz"); break;                \
+        case 4: __stp_get_user_asm(_v,addr,_bad,"lwz"); break;                \
+        case 8: __stp_get_user_asm(_v,addr,_bad,"ld"); break;                 \
+        default: _v = __get_user_bad();                                       \
+        }                                                                     \
     if (_bad)								      \
-      DEREF_FAULT(addr);							      \
+      DEREF_FAULT(addr);						      \
     _v;									      \
   })
 
 #define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
-    switch (size)							      \
-      {									      \
-      case 1: __stp_put_user_asm(((u8)(value)),addr,_bad,"stb"); break;     \
-      case 2: __stp_put_user_asm(((u16)(value)),addr,_bad,"sth"); break;    \
-      case 4: __stp_put_user_asm(((u32)(value)),addr,_bad,"stw"); break;    \
-      case 8: __stp_put_user_asm(((u64)(value)),addr,_bad, "std"); break;         \
-      default: __put_user_bad();					      \
-      }									      \
+    if (lookup_bad_addr((unsigned long)addr))                                 \
+      _bad = 1;                                                               \
+    else                                                                      \
+      switch (size)                                                           \
+        {                                                                     \
+        case 1: __stp_put_user_asm(((u8)(value)),addr,_bad,"stb"); break;     \
+        case 2: __stp_put_user_asm(((u16)(value)),addr,_bad,"sth"); break;    \
+        case 4: __stp_put_user_asm(((u32)(value)),addr,_bad,"stw"); break;    \
+        case 8: __stp_put_user_asm(((u64)(value)),addr,_bad, "std"); break;   \
+        default: __put_user_bad();                                            \
+        }                                                                     \
     if (_bad)								      \
       STORE_DEREF_FAULT(addr);							      \
   })
@@ -541,12 +569,15 @@ extern void __store_deref_bad(void);
   ({									\
      int _bad = 0;							\
      intptr_t _v=0;							\
-	switch (size){							\
-	case 1: __stp_get_user_asm_byte(_v, addr, _bad); break; 	\
-	case 2: __stp_get_user_asm_half(_v, addr, _bad); break; 	\
-	case 4: __stp_get_user_asm_word(_v, addr, _bad); break; 	\
-	default: __get_user_bad(); break;				\
-	}								\
+     if (lookup_bad_addr((unsigned long)addr))                          \
+      _bad = 1;                                                         \
+    else                                                                \
+      switch (size){							\
+      case 1: __stp_get_user_asm_byte(_v, addr, _bad); break;           \
+      case 2: __stp_get_user_asm_half(_v, addr, _bad); break;           \
+      case 4: __stp_get_user_asm_word(_v, addr, _bad); break;           \
+      default: __get_user_bad(); break;                                 \
+      }                                                                 \
     if (_bad)  								\
 	DEREF_FAULT(addr);						\
      _v;								\
@@ -555,13 +586,16 @@ extern void __store_deref_bad(void);
 #define store_deref(size, addr, value)					\
   ({									\
     int _bad=0;								\
-	switch (size){							\
-	case 1: __stp_put_user_asm_byte(value, addr, _bad); break;	\
-	case 2: __stp_put_user_asm_half(value, addr, _bad); break;	\
-	case 4: __stp_put_user_asm_word(value, addr, _bad); break;	\
-	case 8: __stp_put_user_asm_dword(value, addr, _bad); break;	\
-	default: __put_user_bad(); break;				\
-	}								\
+    if (lookup_bad_addr((unsigned long)addr))                           \
+      _bad = 1;                                                         \
+    else                                                                \
+      switch (size){							\
+      case 1: __stp_put_user_asm_byte(value, addr, _bad); break;	\
+      case 2: __stp_put_user_asm_half(value, addr, _bad); break;	\
+      case 4: __stp_put_user_asm_word(value, addr, _bad); break;	\
+      case 8: __stp_put_user_asm_dword(value, addr, _bad); break;	\
+      default: __put_user_bad(); break;                                 \
+      }                                                                 \
     if (_bad)								\
 	   STORE_DEREF_FAULT(addr);						\
    })
@@ -624,28 +658,31 @@ extern void __store_deref_bad(void);
 	u8 _b; u16 _w; u32 _l; u64 _q;				\
 	int _bad = 0;						\
 	intptr_t _v = 0;					\
-	switch (size) {						\
-	case 1: {						\
+        if (lookup_bad_addr((unsigned long)addr))               \
+          _bad = 1;                                             \
+        else                                                    \
+          switch (size) {		                	\
+          case 1: {                                             \
 		__stp_get_asm(_b, addr, _bad, 1);		\
 		_v = _b;					\
 		break;						\
-		};						\
-	case 2: {						\
+          };                                                    \
+          case 2: {						\
 		__stp_get_asm(_w, addr, _bad, 2);		\
 		_v = _w;					\
 		break;						\
-		};						\
-	case 4: {						\
+          };                                                    \
+          case 4: {						\
 		__stp_get_asm(_l, addr, _bad, 4);		\
 		_v = _l;					\
 		break;						\
-		};						\
-	case 8: {						\
+          };                                                    \
+          case 8: {						\
 		__stp_get_asm(_q, addr, _bad, 8);		\
 		_v = _q;					\
 		break;						\
-		};						\
-	default:						\
+          };                                                    \
+          default:						\
 		_bad = -EFAULT;					\
 	}							\
 	if (_bad)						\
@@ -657,12 +694,17 @@ extern void __store_deref_bad(void);
 ({                                                              \
         int _bad = 0;                                           \
 	int i;							\
-        for(i=0;i<size;i++){                                    \
-		__stp_put_asm((u8)(value>>((size-i-1)*8)&0xff),	\
-                             (u64)addr+i,_bad); 		\
-		if (_bad)					\
-			STORE_DEREF_FAULT(addr);			\
-        }                                                       \
+        if (lookup_bad_addr((unsigned long)addr))               \
+          _bad = 1;                                             \
+        else                                                    \
+          for(i=0;i<size;i++){                                  \
+            __stp_put_asm((u8)(value>>((size-i-1)*8)&0xff),     \
+                          (u64)addr+i,_bad);                    \
+            if (_bad)                                           \
+              break;                                            \
+          }                                                     \
+        if (_bad)                                               \
+          STORE_DEREF_FAULT(addr);                              \
 })
 
 
