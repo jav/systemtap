@@ -5846,6 +5846,8 @@ struct utrace_var_expanding_copy_visitor: public var_expanding_copy_visitor
   enum utrace_derived_probe_flags flags;
   bool target_symbol_seen;
 
+  void visit_target_symbol_arg (target_symbol* e);
+  void visit_target_symbol_syscall (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
 };
 
@@ -5923,18 +5925,61 @@ utrace_derived_probe::join_group (systemtap_session& s)
 
 
 void
-utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 {
-  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+  string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
+  int argnum = atoi (argnum_s.c_str());
 
-  if (flags != UDPF_SYSCALL && flags != UDPF_SYSCALL_RETURN)
-    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
-			  e->tok);
+  if (flags != UDPF_SYSCALL)
+    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" support $argN.", e->tok);
 
-  if (e->base_name != "$syscall")
-    throw semantic_error ("invalid target symbol for utrace probe, $syscall expected",
-			  e->tok);
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("utrace target variable '$argN' may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("utrace target variable '$argN' may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid use of utrace target variable '$argN'",
+				e->tok);
+	  break;
+	}
+    }
 
+  // FIXME: max argnument number should not be hardcoded.
+  if (argnum < 1 || argnum > 6)
+    throw semantic_error ("invalid syscall argument number (1-6)", e->tok);
+
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue)
+    throw semantic_error("utrace '$argN' variable is read-only", e->tok);
+
+  // Remember that we've seen a target variable.
+  target_symbol_seen = true;
+
+  // We're going to substitute a synthesized '_utrace_syscall_arg'
+  // function call for the '$argN' reference.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = "_utrace_syscall_arg";
+  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+  literal_number *num = new literal_number(argnum - 1);
+  num->tok = e->tok;
+  n->args.push_back(num);
+
+  provide <functioncall*> (this, n);
+}
+
+void
+utrace_var_expanding_copy_visitor::visit_target_symbol_syscall (target_symbol* e)
+{
   if (e->components.size() > 0)
     {
       switch (e->components[0].first)
@@ -5956,12 +6001,12 @@ utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 
   bool lvalue = is_active_lvalue(e);
   if (lvalue)
-    throw semantic_error("utrace $syscall variable is read-only", e->tok);
+    throw semantic_error("utrace '$syscall' variable is read-only", e->tok);
 
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
-  // We're going to substitute a synthesized '_syscall_nr_get'
+  // We're going to substitute a synthesized '_utrace_syscall_nr'
   // function call for the '$syscall' reference.
   functioncall* n = new functioncall;
   n->tok = e->tok;
@@ -5969,6 +6014,24 @@ utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
   provide <functioncall*> (this, n);
+}
+
+void
+utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+{
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (flags != UDPF_SYSCALL && flags != UDPF_SYSCALL_RETURN)
+    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
+			  e->tok);
+
+  if (e->base_name.substr(0,4) == "$arg")
+    visit_target_symbol_arg(e);
+  else if (e->base_name == "$syscall")
+    visit_target_symbol_syscall(e);
+  else
+    throw semantic_error ("invalid target symbol for utrace probe, $syscall or $argN expected",
+			  e->tok);
 }
 
 

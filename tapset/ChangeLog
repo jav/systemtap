@@ -1,5 +1,9 @@
 2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
+	* utrace.stp: Added _utrace_syscall_arg().
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
 	* marker.stp : New file, including marker context variable accessors.
 
 2008-09-01  Frank Ch. Eigler  <fche@elastic.org>

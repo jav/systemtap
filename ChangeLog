@@ -1,5 +1,16 @@
 2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
+	* stapprobes.5.in: Added a description about $argN.
+	* NEWS: Ditto.
+	* tapsets.cxx (utrace_var_expanding_copy_visitor): Added
+	visit_target_symbol_arg() and visit_target_symbol_syscall().
+	(visit_target_symbol_arg): New function for handling $argN.
+	(visit_target_symbol_syscall): New function for handling $syscall.
+	(visit_target_symbol): Use visit_target_symbol_arg() and
+	visit_target_symbol_syscall().
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
 	* stapprobes.5.in : Added a line for $name context variable.
 	* translate.cxx (c_unparser::emit_common_header): Add marker_name and
 	marker_format fields to context.

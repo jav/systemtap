@@ -5,7 +5,10 @@
 #include "syscall.h"
 %}
 
-
 function _utrace_syscall_nr:long () %{
    THIS->__retvalue = __stp_user_syscall_nr(CONTEXT->regs); /* pure */
+%}
+
+function _utrace_syscall_arg:long (n:long) %{
+   THIS->__retvalue = *__stp_user_syscall_arg(current, CONTEXT->regs, (int)THIS->n); /* pure */
 %}
