@@ -15,6 +15,11 @@
 
 2008-09-09  Mark Wielaard  <mwielaard@redhat.com>
 
+	* sym.c (_stp_mod_sec_lookup): New function, extracted from
+	_stp_kallsyms_lookup.
+
+2008-09-09  Mark Wielaard  <mwielaard@redhat.com>
+
 	* sym.c (_stp_kallsyms_lookup): Correct this_section_offset
 	calculation.
 
