@@ -520,6 +520,8 @@ and string parameters are passed in a type-safe manner.
 
 The marker format string associated with a marker is available in
 .BR $format .
+And also the marker name string is avalable in
+.BR $name .
 
 .SS PERFORMANCE MONITORING HARDWARE
 

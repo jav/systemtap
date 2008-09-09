@@ -881,6 +881,8 @@ c_unparser::emit_common_header ()
   o->newline() << "struct kretprobe_instance *pi;";
   o->newline() << "int regparm;";
   o->newline() << "va_list *mark_va_list;";
+  o->newline() << "const char * marker_name;";
+  o->newline() << "const char * marker_format;";
   o->newline() << "void *data;";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "Stat *statp;";

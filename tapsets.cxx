@@ -221,6 +221,8 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
   o->newline() << "c->regparm = 0;";
+  o->newline() << "c->marker_name = NULL;";
+  o->newline() << "c->marker_format = NULL;";
   o->newline() << "c->probe_point = 0;";
   if (! interruptible)
     o->newline() << "c->actionremaining = MAXACTION;";
@@ -7758,7 +7760,7 @@ struct mark_var_expanding_copy_visitor: public var_expanding_copy_visitor
 
   void visit_target_symbol (target_symbol* e);
   void visit_target_symbol_arg (target_symbol* e);
-  void visit_target_symbol_format (target_symbol* e);
+  void visit_target_symbol_context (target_symbol* e);
 };
 
 
@@ -7865,48 +7867,37 @@ mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol_format (target_symbol* e)
+mark_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
 {
-  static bool function_synthesized = false;
+  string sname = e->base_name;
 
   if (is_active_lvalue (e))
-    throw semantic_error("write to marker format not permitted", e->tok);
+    throw semantic_error("write to marker '" + sname + "' not permitted", e->tok);
 
   if (e->components.size() > 0)
     {
       switch (e->components[0].first)
 	{
 	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("marker format may not be used as array",
+	  throw semantic_error("marker '" + sname + "' may not be used as array",
 			       e->tok);
 	  break;
 	case target_symbol::comp_struct_member:
-	  throw semantic_error("marker format may not be used as a structure",
+	  throw semantic_error("marker '" + sname + "' may not be used as a structure",
 			       e->tok);
 	  break;
 	default:
-	  throw semantic_error ("invalid marker format use", e->tok);
+	  throw semantic_error ("invalid marker '" + sname + "' use", e->tok);
 	  break;
 	}
     }
 
-  string fname = string("_mark_format_get");
-
-  // Synthesize a function (if not already synthesized).
-  if (! function_synthesized)
-    {
-      function_synthesized = true;
-      functiondecl *fdecl = new functiondecl;
-      fdecl->tok = e->tok;
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = e->tok;
-
-      ec->code = string("strlcpy (THIS->__retvalue, CONTEXT->data, MAXSTRINGLEN); /* pure */");
-      fdecl->name = fname;
-      fdecl->body = ec;
-      fdecl->type = pe_string;
-      sess.functions.push_back(fdecl);
-    }
+  string fname;
+  if (e->base_name == "$format") {
+    fname = string("_mark_format_get");
+  } else {
+    fname = string("_mark_name_get");
+  }
 
   // Synthesize a functioncall.
   functioncall* n = new functioncall;
@@ -7923,10 +7914,10 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 
   if (e->base_name.substr(0,4) == "$arg")
     visit_target_symbol_arg (e);
-  else if (e->base_name == "$format")
-    visit_target_symbol_format (e);
+  else if (e->base_name == "$format" || e->base_name == "$name")
+    visit_target_symbol_context (e);
   else
-    throw semantic_error ("invalid target symbol for marker, $argN or $format expected",
+    throw semantic_error ("invalid target symbol for marker, $argN, $name or $format expected",
 			  e->tok);
 }
 
@@ -8225,8 +8216,8 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = smp->pp;";
-  s.op->newline() << "c->data = (char *)smp->format;";
-
+  s.op->newline() << "c->marker_name = smp->name;";
+  s.op->newline() << "c->marker_format = smp->format;";
   s.op->newline() << "c->mark_va_list = args;";
   s.op->newline() << "(*smp->ph) (c);";
   s.op->newline() << "c->mark_va_list = NULL;";
