@@ -12,3 +12,7 @@ function _utrace_syscall_nr:long () %{
 function _utrace_syscall_arg:long (n:long) %{
    THIS->__retvalue = *__stp_user_syscall_arg(current, CONTEXT->regs, (int)THIS->n); /* pure */
 %}
+
+function _utrace_syscall_return:long () %{
+   THIS->__retvalue = *__stp_user_syscall_return_value(current, CONTEXT->regs); /* pure */
+%}

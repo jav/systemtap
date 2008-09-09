@@ -5847,7 +5847,7 @@ struct utrace_var_expanding_copy_visitor: public var_expanding_copy_visitor
   bool target_symbol_seen;
 
   void visit_target_symbol_arg (target_symbol* e);
-  void visit_target_symbol_syscall (target_symbol* e);
+  void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
 };
 
@@ -5978,22 +5978,24 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 }
 
 void
-utrace_var_expanding_copy_visitor::visit_target_symbol_syscall (target_symbol* e)
+utrace_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
 {
+  string sname = e->base_name;
+
   if (e->components.size() > 0)
     {
       switch (e->components[0].first)
 	{
 	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("utrace target variable '$syscall' may not be used as array",
+	  throw semantic_error("utrace target variable '" + sname + "' may not be used as array",
 			       e->tok);
 	  break;
 	case target_symbol::comp_struct_member:
-	  throw semantic_error("utrace target variable '$syscall' may not be used as a structure",
+	  throw semantic_error("utrace target variable '" + sname + "' may not be used as a structure",
 			       e->tok);
 	  break;
 	default:
-	  throw semantic_error ("invalid use of utrace target variable '$syscall'",
+	  throw semantic_error ("invalid use of utrace target variable '" + sname + "'",
 				e->tok);
 	  break;
 	}
@@ -6001,7 +6003,17 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_syscall (target_symbol* e
 
   bool lvalue = is_active_lvalue(e);
   if (lvalue)
-    throw semantic_error("utrace '$syscall' variable is read-only", e->tok);
+    throw semantic_error("utrace '" + sname + "' variable is read-only", e->tok);
+
+  string fname;
+  if (sname == "$return")
+    {
+      if (flags != UDPF_SYSCALL_RETURN)
+	throw semantic_error ("only \"process(PATH_OR_PID).syscall.return\" support $return.", e->tok);
+      fname = "_utrace_syscall_return";
+    }
+  else
+    fname = "_utrace_syscall_nr";
 
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
@@ -6010,7 +6022,7 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_syscall (target_symbol* e
   // function call for the '$syscall' reference.
   functioncall* n = new functioncall;
   n->tok = e->tok;
-  n->function = "_utrace_syscall_nr";
+  n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
   provide <functioncall*> (this, n);
@@ -6027,10 +6039,10 @@ utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 
   if (e->base_name.substr(0,4) == "$arg")
     visit_target_symbol_arg(e);
-  else if (e->base_name == "$syscall")
-    visit_target_symbol_syscall(e);
+  else if (e->base_name == "$syscall" || e->base_name == "$return")
+    visit_target_symbol_context(e);
   else
-    throw semantic_error ("invalid target symbol for utrace probe, $syscall or $argN expected",
+    throw semantic_error ("invalid target symbol for utrace probe, $syscall, $return or $argN expected",
 			  e->tok);
 }
 

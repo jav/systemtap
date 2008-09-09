@@ -427,11 +427,14 @@ context variable, and the first 6 arguments of the system call
 are available in the
 .BR $argN
 (ex. $arg1, $arg2, ...) context variable.
-
 A
 .B .syscall.return
 probe gets called when a thread described by PID or PATH returns from a
-system call.  The system call number is available in the "$syscall"
+system call.  The system call number is available in the
+.BR $syscall
+context variable, and the return value of the system call is available
+in the
+.BR $return
 context variable.
 A
 .B .itrace
