@@ -236,23 +236,18 @@ __stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
 #endif
 
 #if defined(__ia64__)
+#define __stp_user_syscall_arg(task, regs, n) \
+	____stp_user_syscall_arg(task, regs, n, &c->unwaddr)
+
 static inline long *
-__stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
-		       unsigned int n)
+____stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
+			 unsigned int n, unsigned long **cache)
 {
-	struct ia64_stap_get_arbsp_param pa;
 	if (n > 5) {
 		_stp_error("syscall arg > 5");
 		return NULL;
 	}
-
-	pa.ip = regs->cr_iip;
-	unw_init_running(ia64_stap_get_arbsp, &pa);
-	if (pa.address == 0)
-		return NULL;
-
-	return ia64_rse_skip_regs(pa.address, n);
-
+	return __ia64_fetch_register(n + 32, regs, cache);
 }
 #endif
 

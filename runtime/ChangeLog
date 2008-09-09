@@ -1,5 +1,16 @@
 2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
+	* regs-ia64.c (__ia64_fetch_register): Return the address of the
+	 register.
+	(ia64_fetch_register): Use __ia64_fetch_register.
+	* syscall.h (____stp_user_syscall_arg): Use __ia64_fetch_register.
+	(__stp_user_syscall_arg): Wrapping ____stp_user_syscall_arg to pass the
+	unwind address cache.
+	* task_finder.c (__stp_utrace_task_finder_target_syscall_): Added dummy
+	unwind address cache.
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
 	* syscall.h: Added ia64 support.
 
 2008-09-09  Mark Wielaard  <mwielaard@redhat.com>

@@ -843,6 +843,9 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 	struct vm_area_struct *vma;
 	unsigned long *arg0_addr, arg0;
 	int rc;
+#if defined(__ia64__)
+	struct { unsigned long *unwaddr; } _c = {.unwaddr = NULL}, *c = &_c;
+#endif
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
@@ -950,6 +953,9 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
 	struct __stp_tf_vma_entry *entry = NULL;
+#if defined(__ia64__)
+	struct { unsigned long *unwaddr; } _c = {.unwaddr = NULL}, *c = &_c;
+#endif
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
