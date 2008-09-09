@@ -1,0 +1,4 @@
+#! stap -p2
+
+# treat $return as a pointer/structure
+probe process("/bin/cat").syscall.return { print($return->foo) }

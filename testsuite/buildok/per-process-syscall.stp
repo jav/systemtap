@@ -1,0 +1,18 @@
+#! stap -p4
+#
+# per-process syscall trace test
+
+probe process.syscall {
+print($syscall)
+print($arg1)
+print($arg2)
+print($arg3)
+print($arg4)
+print($arg5)
+print($arg6)
+}
+
+probe process.syscall.return {
+print($syscall)
+print($return)
+}

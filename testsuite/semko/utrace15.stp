@@ -1,0 +1,4 @@
+#! stap -p2
+
+# write to $argN
+probe process("/bin/cat").syscall { $arg1 = 1 }

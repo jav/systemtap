@@ -1,0 +1,4 @@
+#! stap -p2
+
+# write to $return
+probe process("/bin/cat").syscall.return { $return = 1 }
