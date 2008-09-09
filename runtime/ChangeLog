@@ -1,3 +1,8 @@
+2008-09-09  Mark Wielaard  <mwielaard@redhat.com>
+
+	* sym.c (_stp_kallsyms_lookup): Correct this_section_offset
+	calculation.
+
 2008-09-08  Tim Moore  <timoore@redhat.com>
 
 	PR 1288

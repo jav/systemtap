@@ -41,10 +41,11 @@
 	<step><para>Once the SystemTap session is terminated, the hooked events are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>    
 </procedure>
 
-<para>This sequence is driver from a single command-line program: <command>stap</command>. This program is SystemTap's main front-end tool. For more information about <command>stap</command>, refer to <command>man stap</command> (once SystemTap is set up on your machine).</para>
+<para>This sequence is driven from a single command-line program: <command>stap</command>. This program is SystemTap's main front-end tool. For more information about <command>stap</command>, refer to <command>man stap</command> (once SystemTap is set up on your machine).</para>
 
 </section>
-	
+<xi:include href="Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<!--	
 	<section id="understanding-scripts">
 		<title>SystemTap Scripts</title>
 		
@@ -52,7 +53,7 @@
 			** definition, significance, structure, very basic examples, reference to later chapter (how to read library of preset SystemTap scripts in this book, using them)
 		</remark>
 	</section>
-	
+	-->
 	<section id="understanding-tapsets">
 		 <title>Tapsets</title>
 		
