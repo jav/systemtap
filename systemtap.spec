@@ -81,7 +81,7 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap-runtime = %{version}-%{release}
-Requires: avahi-tools nc mktemp grep sed tar which coreutils util-linux-ng
+Requires: avahi-tools nc mktemp
 
 %description client
 SystemTap client is the client component of an instrumentation
@@ -94,7 +94,7 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap
-Requires: avahi-tools nc net-tools gawk mktemp grep sed tar coreutils util-linux-ng
+Requires: avahi-tools nc net-tools mktemp
 
 %description server
 SystemTap server is the server component of an instrumentation
