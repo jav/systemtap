@@ -66,7 +66,15 @@
 #define MUNMAP_SYSCALL_NO(tsk)		91
 #define MREMAP_SYSCALL_NO(tsk)		163
 #endif
- 
+
+#if defined(__ia64__)
+#define MMAP_SYSCALL_NO(tsk)		1151
+#define MMAP2_SYSCALL_NO(tsk)		1172
+#define MPROTECT_SYSCALL_NO(tsk)	1155
+#define MUNMAP_SYSCALL_NO(tsk)		1152
+#define MREMAP_SYSCALL_NO(tsk)		1156
+#endif
+
 #if !defined(MMAP_SYSCALL_NO) || !defined(MMAP2_SYSCALL_NO)		\
 	|| !defined(MPROTECT_SYSCALL_NO) || !defined(MUNMAP_SYSCALL_NO)	\
 	|| !defined(MREMAP_SYSCALL_NO)
@@ -92,6 +100,14 @@ static inline unsigned long
 __stp_user_syscall_nr(struct pt_regs *regs)
 {
 	return regs->gpr[0];
+}
+#endif
+
+#if defined(__ia64__)
+static inline unsigned long
+__stp_user_syscall_nr(struct pt_regs *regs)
+{
+        return regs->r15;
 }
 #endif
 
@@ -127,6 +143,14 @@ __stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
 {
 	return &regs->gpr[3];
 } 
+#endif
+
+#if defined(__ia64__)
+static inline long *
+__stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
+{
+	return &regs->r8;
+}
 #endif
 
 #if defined(__i386__) || defined(__x86_64__)
@@ -208,6 +232,27 @@ __stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
 		_stp_error("syscall arg > 5");
 		return NULL;
 	}
+}
+#endif
+
+#if defined(__ia64__)
+static inline long *
+__stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
+		       unsigned int n)
+{
+	struct ia64_stap_get_arbsp_param pa;
+	if (n > 5) {
+		_stp_error("syscall arg > 5");
+		return NULL;
+	}
+
+	pa.ip = regs->cr_iip;
+	unw_init_running(ia64_stap_get_arbsp, &pa);
+	if (pa.address == 0)
+		return NULL;
+
+	return ia64_rse_skip_regs(pa.address, n);
+
 }
 #endif
 
