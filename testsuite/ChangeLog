@@ -1,3 +1,8 @@
+2008-09-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/uprobes.*: Tweak regexps for read-only src tree
+	tolerance.
+
 2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/cmd_parse.exp: Adapt to sh-c-less "stap -c"
