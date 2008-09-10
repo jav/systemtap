@@ -8,7 +8,7 @@ AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
-AC_PROG_MKDIR_P
+AM_PROG_MKDIR_P
 AC_PROG_LN_S
 AC_PROG_CC
 AC_PROG_CXX
@@ -182,6 +182,9 @@ if test $build_elfutils = no; then
   save_LIBS="$LIBS"
   AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
     AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
+    [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
+  AC_CHECK_LIB(dw, dwarf_getelf,[],[
+    AC_MSG_ERROR([elfutils, libdw too old, need 0.126+])],
     [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
   stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
   LIBS="$save_LIBS"

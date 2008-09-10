@@ -69,15 +69,13 @@ static struct
 #ifdef CONFIG_FRAME_POINTER
 /* Just because frame pointers are available does not mean we can trust them. */
 #ifndef STP_USE_DWARF_UNWINDER
-#if defined (__i386__) || defined (__arm__)
 #define STP_USE_FRAME_POINTER
-#endif
 #endif
 #endif
 
 /* dwarf unwinder only tested so far on i386 and x86_64,
    but globally disabled for now */
-#if 0 
+#if 0
 // !defined(STP_USE_FRAME_BUFFER) && (defined(__i386__) || defined(__x86_64__))
 #define STP_USE_DWARF_UNWINDER
 #endif
