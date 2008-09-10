@@ -6,6 +6,8 @@
 	packages.  Make sure systemattap-runtime only picks up
 	staprun.8* man pages. Create new systemtap-client and
 	systemtap-server packages.
+	* NEWS: Add network security warning for the systemtap
+	client/server.
 
 2008-09-10  Mark Wielaard  <mjw@redhat.com>
 
