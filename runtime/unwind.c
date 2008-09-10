@@ -676,6 +676,7 @@ int unwind(struct unwind_frame_info *frame)
 	signed ptrType = -1;
 	uleb128_t retAddrReg = 0;
 	struct _stp_module *m;
+	struct _stp_section *s = NULL;
 	struct unwind_state state;
 
 	dbug_unwind(1, "pc=%lx, %lx", pc, UNW_PC(frame));
@@ -683,7 +684,7 @@ int unwind(struct unwind_frame_info *frame)
 	if (UNW_PC(frame) == 0)
 		return -EINVAL;
 
-	m = NULL /*_stp_get_unwind_info(pc) */;
+	m = _stp_mod_sec_lookup (pc, &s);
 	if (unlikely(m == NULL)) {
 		dbug_unwind(1, "No module found for pc=%lx", pc);
 		return -EINVAL;

@@ -1,3 +1,11 @@
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* unwind.c (unwind): Use _stp_mod_sec_lookup to get module and
+	unwind tables.
+	* runtime.h (STP_USE_FRAME_BUFFER): Disable by default for now.
+	* stack-x86_64.c (__stp_stack_print): Add levels to
+	_stp_stack_print_fallback call.
+
 2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	* regs-ia64.c (__ia64_fetch_register): Return the address of the
