@@ -54,9 +54,10 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 		fp = next_fp;
 	}
 #else
+#ifdef STP_USE_DWARF_UNWINDER
 	struct unwind_frame_info info;
 	arch_unw_init_frame_info(&info, regs);
-	
+
 	while (levels && !arch_unw_user_mode(&info)) {
 		int ret = unwind(&info);
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
@@ -71,5 +72,8 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 			_stp_stack_print_fallback(context, UNW_SP(&info), verbose, levels);
 		break;
 	}
+#else /* ! STP_USE_DWARF_UNWINDER */
+	_stp_stack_print_fallback(context, (unsigned long)&REG_SP(regs), verbose, levels);
 #endif /* STP_USE_FRAME_POINTER */
+#endif
 }
