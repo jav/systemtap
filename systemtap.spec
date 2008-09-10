@@ -240,6 +240,7 @@ exit 0
 %defattr(-,root,root)
 %{_bindir}/stap-client
 %{_bindir}/stap-find-servers
+%{_bindir}/stap-find-or-start-server
 %{_mandir}/man8/stap-server.8*
 
 %files server
@@ -247,8 +248,6 @@ exit 0
 %{_bindir}/stap-server
 %{_bindir}/stap-serverd
 %{_bindir}/stap-start-server
-%{_bindir}/stap-find-servers
-%{_bindir}/stap-find-or-start-server
 %{_bindir}/stap-stop-server
 %{_mandir}/man8/stap-server.8*
 
