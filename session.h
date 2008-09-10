@@ -131,7 +131,7 @@ struct systemtap_session
   // resolved globals/functions/probes for the run as a whole
   std::vector<stapfile*> files;
   std::vector<vardecl*> globals;
-  std::vector<functiondecl*> functions;
+  std::map<std::string,functiondecl*> functions;
   std::vector<derived_probe*> probes; // see also *_probes groups below
   std::vector<embeddedcode*> embeds;
   std::map<std::string, statistic_decl> stat_decls;

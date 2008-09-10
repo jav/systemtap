@@ -147,6 +147,8 @@ printscript(systemtap_session& s, ostream& o)
 
       for (unsigned i=0; i<s.probes.size(); i++)
         {
+          if (pending_interrupts) return;
+
           derived_probe* p = s.probes[i];
           // NB: p->basest() is not so interesting;
           // p->almost_basest() doesn't quite work, so ...
@@ -198,6 +200,7 @@ printscript(systemtap_session& s, ostream& o)
         o << "# global embedded code" << endl;
       for (unsigned i=0; i<s.embeds.size(); i++)
         {
+          if (pending_interrupts) return;
           embeddedcode* ec = s.embeds[i];
           ec->print (o);
           o << endl;
@@ -207,6 +210,7 @@ printscript(systemtap_session& s, ostream& o)
         o << "# globals" << endl;
       for (unsigned i=0; i<s.globals.size(); i++)
         {
+          if (pending_interrupts) return;
           vardecl* v = s.globals[i];
           v->printsig (o);
           if (s.verbose && v->init)
@@ -219,9 +223,10 @@ printscript(systemtap_session& s, ostream& o)
 
       if (s.functions.size() > 0)
         o << "# functions" << endl;
-      for (unsigned i=0; i<s.functions.size(); i++)
+      for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
         {
-          functiondecl* f = s.functions[i];
+          if (pending_interrupts) return;
+          functiondecl* f = it->second;
           f->printsig (o);
           o << endl;
           if (f->locals.size() > 0)
@@ -244,6 +249,7 @@ printscript(systemtap_session& s, ostream& o)
         o << "# probes" << endl;
       for (unsigned i=0; i<s.probes.size(); i++)
         {
+          if (pending_interrupts) return;
           derived_probe* p = s.probes[i];
           p->printsig (o);
           o << endl;

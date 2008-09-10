@@ -1090,6 +1090,7 @@ struct dwflpp
 
     for (unsigned i=0; i<v->size(); i++)
       {
+        if (pending_interrupts) return;
         Dwarf_Die die = v->at(i);
         int rc = (*callback)(& die, data);
         if (rc != DWARF_CB_OK) break;
@@ -2659,6 +2660,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
     {
       for (cu_function_cache_t::iterator it = v->begin(); it != v->end(); it++)
         {
+        if (pending_interrupts) return DWARF_CB_ABORT;
           string func_name = it->first;
           Dwarf_Die die = it->second;
           if (function_name_matches_pattern (func_name, subkey))
@@ -4428,6 +4430,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
                   }
 
                 const char *diename = dwarf_diename (&result);
+                if (! diename) continue;
+
                 tsym->tok = e->tok;
                 tsym->base_name = "$";
                 tsym->base_name += diename;
@@ -4526,7 +4530,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       v->tok = e->tok;
       fdecl->formal_args.push_back(v);
     }
-  q.sess.functions.push_back(fdecl);
+  q.sess.functions[fdecl->name]=fdecl;
 
   // Synthesize a functioncall.
   functioncall* n = new functioncall;
@@ -7684,7 +7688,7 @@ procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
       v->tok = e->tok;
       fdecl->formal_args.push_back(v);
     }
-  sess.functions.push_back(fdecl);
+  sess.functions[fdecl->name]=fdecl;
 
   // Synthesize a functioncall.
   functioncall* n = new functioncall;
@@ -7930,7 +7934,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
   fdecl->name = fname;
   fdecl->body = ec;
   fdecl->type = mark_args[argnum-1]->stp_type;
-  sess.functions.push_back(fdecl);
+  sess.functions[fdecl->name]=fdecl;
 
   // Synthesize a functioncall.
   functioncall* n = new functioncall;
@@ -8838,7 +8842,7 @@ perfmon_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   fdecl->name = fname;
   fdecl->body = ec;
   fdecl->type = pe_long;
-  sess.functions.push_back(fdecl);
+  sess.functions[fdecl->name]=fdecl;
 
   // Synthesize a functioncall.
   functioncall* n = new functioncall;

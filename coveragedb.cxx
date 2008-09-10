@@ -62,11 +62,12 @@ void print_coverage_info(systemtap_session &s)
   }
   // print out used functions
   clog << "---- used functions----- " << endl;
-  for (unsigned i=0; i<s.functions.size(); i++) {
-     clog << "function: " << s.functions[i]->tok->location
-	  << " "  << s.functions[i]->name
-	  << endl;
-  }
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
+    {
+      clog << "function: " << it->second->tok->location
+           << " "  << it->second->name
+           << endl;
+    }
   // print out unused functions
   clog << "---- unused functions----- " << endl;
   for (unsigned i=0; i<s.unused_functions.size(); i++) {
@@ -262,15 +263,16 @@ void
 sql_update_used_functions(sqlite3 *db, systemtap_session &s)
 {
   // update db used functions
-  for (unsigned i=0; i<s.functions.size(); i++) {
-    struct source_loc place = s.functions[i]->tok->location;
-    coverage_element x(place);
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
+    {
+      struct source_loc place = it->second->tok->location;
+      coverage_element x(place);
 
-    x.type = db_type_function;
-    x.name = s.functions[i]->name;
-    x.compiled = 1;
-    increment_element(db, x);
-  }
+      x.type = db_type_function;
+      x.name = it->second->name;
+      x.compiled = 1;
+      increment_element(db, x);
+    }
 }
 
 

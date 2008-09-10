@@ -948,9 +948,9 @@ c_unparser::emit_common_header ()
         }
     }
 
-  for (unsigned i=0; i<session->functions.size(); i++)
+  for (map<string,functiondecl*>::iterator it = session->functions.begin(); it != session->functions.end(); it++)
     {
-      functiondecl* fd = session->functions[i];
+      functiondecl* fd = it->second;
       o->newline()
         << "struct function_" << c_varname (fd->name) << "_locals {";
       o->indent(1);
@@ -1778,8 +1778,8 @@ c_unparser::emit_map_type_instantiations ()
   for (unsigned i = 0; i < session->probes.size(); ++i)
     collect_map_index_types(session->probes[i]->locals, types);
 
-  for (unsigned i = 0; i < session->functions.size(); ++i)
-    collect_map_index_types(session->functions[i]->locals, types);
+  for (map<string,functiondecl*>::iterator it = session->functions.begin(); it != session->functions.end(); it++)
+    collect_map_index_types(it->second->locals, types);
 
   if (!types.empty())
     o->newline() << "#include \"alloc.c\"";
@@ -4350,7 +4350,7 @@ static void *get_unwind_data (Dwfl_Module *m, size_t *l)
   GElf_Shdr *shdr, shdr_mem;
   Elf_Scn *scn = NULL;
   Elf_Data *data = NULL;
-  
+
   dw = dwfl_module_getdwarf(m, &bias);
   if (dw != NULL)
     {
@@ -4468,7 +4468,7 @@ dump_unwindsyms (Dwfl_Module *m,
               else if (n > 0)
                 {
                   assert (secname != NULL);
-                  // secname adequately set 
+                  // secname adequately set
 
                   // NB: it may be an empty string for ET_DYN objects
                   // like shared libraries, as their relocation base
@@ -4807,19 +4807,19 @@ translate_pass (systemtap_session& s)
       s.op->newline(-1) << "};";
       s.op->assert_0_indent();
 
-      for (unsigned i=0; i<s.functions.size(); i++)
+      for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
 	{
           if (pending_interrupts) return 1;
 	  s.op->newline();
-	  s.up->emit_functionsig (s.functions[i]);
+	  s.up->emit_functionsig (it->second);
 	}
       s.op->assert_0_indent();
 
-      for (unsigned i=0; i<s.functions.size(); i++)
+      for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
 	{
           if (pending_interrupts) return 1;
 	  s.op->newline();
-	  s.up->emit_function (s.functions[i]);
+	  s.up->emit_function (it->second);
 	}
       s.op->assert_0_indent();
 
