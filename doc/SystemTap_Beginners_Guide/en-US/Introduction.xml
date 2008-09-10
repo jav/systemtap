@@ -19,13 +19,13 @@
 	-->
 <section id="goals">
 	<title>Goals</title>
-	<para>The goal of SystemTap is to provide infrastructure to monitor the running Linux kernel for detailed analysis. This can assist in identifying the underlying cause of a performance or functional problem.</para>
+	<para>SystemTap provides the infrastructure to monitor the running Linux kernel for detailed analysis. This can assist in identifying the underlying cause of a performance or functional problem.</para>
 	
-	<para>Without SystemTap, monitoring the activity of a running kernel would require a tedious instrument, recompile, install, and reboot sequence. SystemTap is designed to eliminate this, allowing you to gather the same information by simply running its suite of tools against specific <firstterm>tapsets</firstterm> or SystemTap scripts.</para> 
+	<para>Without SystemTap, monitoring the activity of a running kernel would require a tedious instrument, recompile, install, and reboot sequence. SystemTap is designed to eliminate this, allowing users to gather the same information by simply running its suite of tools against specific <firstterm>tapsets</firstterm> or SystemTap scripts.</para> 
 		
 	<para>However, SystemTap was initially designed for users with intermediate to advanced knowledge of the kernel. This could present a steep learning curve for administrators or developers whose knowledge of the Linux kernel is little to none.</para>
 	
-	<para>In line with that, the main goal of the <citetitle>SystemTap Beginner's Guide</citetitle> is two-fold:</para>
+	<para>In line with that, the main goals of the <citetitle>SystemTap Beginner's Guide</citetitle> are as follows:</para>
 	
 	<itemizedlist>
 		<listitem><para>To introduce users to SystemTap, familiarize them with its architecture, and provide setup instructions for all kernel types.</para></listitem>
@@ -34,15 +34,16 @@
 	</itemizedlist>	
 <!-- </formalpara>	 -->
 <remark>above,  Short description on the underlying goals of SystemTap_Beginners_Guide, what we want to teach users.</remark>
-</section>
 	
+</section>
+<!--	
 	<section id="intro-usage">
 		<title>Usage</title>
 		<remark>
 			This section describes the practical uses of SystemTap, at a conceptual level. What a beginner can use SystemTap for, and what an advanced user can use SystemTap for.   
 		</remark>
 	</section>
-	
+	-->
 	<section id="intro-systemtap-vs-others">
 		<title>SystemTap Versus Other Monitoring Tools</title>
 		<remark>
