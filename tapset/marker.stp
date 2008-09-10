@@ -1,0 +1,22 @@
+//
+// kernel marker tapset
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+/* marker-only context accessors */
+
+
+function _mark_name_get:string () %{
+	strlcpy (THIS->__retvalue,
+		 (CONTEXT->marker_name)?CONTEXT->marker_name:"",
+		 MAXSTRINGLEN); /* pure */
+%}
+
+function _mark_format_get:string () %{
+	strlcpy (THIS->__retvalue,
+		 (CONTEXT->marker_format)?CONTEXT->marker_format:"",
+		 MAXSTRINGLEN); /* pure */
+%}

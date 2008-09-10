@@ -1,0 +1,4 @@
+#! stap -p2
+
+# treat $argN as a pointer
+probe process("/bin/cat").syscall { print($arg1->foo) }

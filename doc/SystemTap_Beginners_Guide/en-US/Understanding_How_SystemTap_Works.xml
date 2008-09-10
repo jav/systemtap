@@ -8,21 +8,52 @@
 		Short summary; probes, handlers, events
 	</remark>
 		
+	<para>SystemTap allows users to write and reuse simple scripts to deeply examine the activities of a running Linux system. These scripts can be designed to extract data, filter it, and summarize it quickly (and safely), enabling the diagnosis of complex performance (or even functional) problems.</para>
+	
+	<para>  The essential idea behind a SystemTap script is to name <emphasis>events</emphasis>, and to give them <emphasis>handlers</emphasis>. When SystemTap runs the script, SystemTap monitors for the event; once the event occurs, the Linux kernel then runs the handler as a quick sub-routine, then resumes.</para>
+		
+	<para>There are several kind of events; entering/exiting a function, timer expiration, session termination, etc. A handler is a series of script language statements that specify the work to be done whenever the event occurs. This work normally includes extracting data from the event context, storing them into internal variables, or printing results.</para>
+		
 	<section id="understanding-architecture-tools">
 		<title>Architecture</title>
 		<remark>
-			add diagram, describe architecture, enumerate common tools
+			** add diagram, describe architecture, enumerate common tools
 		</remark>
-	</section>
+		
+		<remark>
+			** architecture diagram must be simpler, if at all included
+		</remark>
+		
+		<remark>
+			** add design advantages? e.g. "building kmods on-the-fly allows safer execution of script etc etc"
+		</remark>	
+		
+		<para>A SystemTap session begins when you run a SystemTap script. This session occurs in the following fashion:</para>
+			
+<procedure>
+	<title>SystemTap Session</title>
+	<step><para>SystemTap first translates the script to C, running the system C compiler to create a kernel module from it.</para></step>
 	
+	<step><para>SystemTap then loads the module, then enables all the probed events by "hooking" those events into the kernel.</para></step>
+		
+	<step><para>As the events occur, their corresponding handlers are executed.</para></step>
+	
+	<step><para>Once the SystemTap session is terminated, the hooked events are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>    
+</procedure>
+
+<para>This sequence is driven from a single command-line program: <command>stap</command>. This program is SystemTap's main front-end tool. For more information about <command>stap</command>, refer to <command>man stap</command> (once SystemTap is set up on your machine).</para>
+
+</section>
+<xi:include href="Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<!--	
 	<section id="understanding-scripts">
 		<title>SystemTap Scripts</title>
 		
 		<remark>
-			definition, significance, structure, very basic examples, reference to later chapter (how to read library of preset SystemTap scripts in this book, using them)
+			** definition, significance, structure, very basic examples, reference to later chapter (how to read library of preset SystemTap scripts in this book, using them)
 		</remark>
 	</section>
-	
+	-->
 	<section id="understanding-tapsets">
 		 <title>Tapsets</title>
 		

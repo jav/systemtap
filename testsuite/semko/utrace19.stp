@@ -1,0 +1,4 @@
+#! stap -p2
+
+# access to $return from syscall entry
+probe process("/bin/cat").syscall { print($return) }

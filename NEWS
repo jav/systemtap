@@ -1,7 +1,13 @@
 * What's new
 
+- Additional context variables are available on user-space syscall probes.
+  - $argN ($arg1, $arg2, ... $arg6) in process(PATH_OR_PID).syscall
+    gives you the argument of the system call.
+  - $return in process(PATH_OR_PID).syscall.return gives you the return
+    value of the system call.
+
 - Target process mode (stap -c CMD or -x PID) now implicitly restricts all
-  "process.*" probes to the given child process.  (It does not effect
+  "process.*" probes to the given child process.  (It does not affect
   kernel.* or other probe types.)  The CMD string is now executed directly,
   rather than via a /bin/sh -c subshell.
 

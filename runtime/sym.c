@@ -98,7 +98,7 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
                   unsigned long this_section_addr = _stp_modules[midx]->sections[secidx].addr;
                   unsigned long this_section_offset;
                   if (addr < this_section_addr) continue;
-                  this_section_offset = this_section_addr - addr;
+                  this_section_offset = addr - this_section_addr;
                   if (this_section_offset < closest_section_offset)
                     {
                       closest_section_offset = this_section_offset;

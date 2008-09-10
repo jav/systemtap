@@ -1,3 +1,37 @@
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* stapprobes.5.in: Added a description about $return.
+	* NEWS: Ditto.
+	* tapsets.cxx (utrace_var_expanding_copy_visitor): Change
+	visit_target_symbol_syscall() to visit_target_symbol_context().
+	(utrace_var_expanding_copy_visitor::visit_target_symbol_context):
+	Handle not only $syscall but also $return.
+	(utrace_var_expanding_copy_visitor::visit_target_symbol): Ditto.
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* stapprobes.5.in: Added a description about $argN.
+	* NEWS: Ditto.
+	* tapsets.cxx (utrace_var_expanding_copy_visitor): Added
+	visit_target_symbol_arg() and visit_target_symbol_syscall().
+	(visit_target_symbol_arg): New function for handling $argN.
+	(visit_target_symbol_syscall): New function for handling $syscall.
+	(visit_target_symbol): Use visit_target_symbol_arg() and
+	visit_target_symbol_syscall().
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* stapprobes.5.in : Added a line for $name context variable.
+	* translate.cxx (c_unparser::emit_common_header): Add marker_name and
+	marker_format fields to context.
+	* tapsets.cxx (common_probe_entryfn_prologue) : Ditto.
+	(mark_derived_probe_group::emit_module_decls) : Ditto.
+	(mark_var_expanding_copy_visitor) : change visit_target_symbol_format
+	to visit_target_symbol_context.
+	(mark_var_expanding_copy_visitor::visit_target_symbol_context): handle
+	not only $format but also $name.
+	(mark_var_expanding_copy_visitor::visit_target_symbol): Ditto.
+
 2008-09-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (build_blacklist): Add some x86 raw port-io spots.

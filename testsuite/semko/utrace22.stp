@@ -1,0 +1,4 @@
+#! stap -p2
+
+# access to $argN from syscall return
+probe process("/bin/cat").syscall.return { print($arg1) }

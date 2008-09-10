@@ -230,3 +230,48 @@ if {$kernel_markers_found == 0} {
 		    [lindex $kernel_marker_names 0] "foo"]
     stap_compile $TEST_NAME 0 $script
 }
+
+set TEST_NAME "K_MARKER18"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that prints the name string of a
+    # marker.
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$name}]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "K_MARKER19"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that writes to a marker name string
+    # (which isn't allowed).
+    set script [format $kernel_script_arg2 \
+		    [lindex $kernel_marker_names 0] {\$name}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "K_MARKER20"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that treats the marker name string as a
+    # structure (which isn't allowed).
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$name->foo}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "K_MARKER21"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that treats the marker name string like
+    # an array (which isn't allowed).
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$name\[0\]}]
+    stap_compile $TEST_NAME 0 $script
+}
+

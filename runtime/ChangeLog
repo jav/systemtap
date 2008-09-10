@@ -1,3 +1,31 @@
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* regs-ia64.c (__ia64_fetch_register): Return the address of the
+	 register.
+	(ia64_fetch_register): Use __ia64_fetch_register.
+	* syscall.h (____stp_user_syscall_arg): Use __ia64_fetch_register.
+	(__stp_user_syscall_arg): Wrapping ____stp_user_syscall_arg to pass the
+	unwind address cache.
+	* task_finder.c (__stp_utrace_task_finder_target_syscall_): Added dummy
+	unwind address cache.
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* syscall.h: Added ia64 support.
+
+2008-09-09  Mark Wielaard  <mwielaard@redhat.com>
+
+	* sym.c (_stp_kallsyms_lookup): Correct this_section_offset
+	calculation.
+
+2008-09-08  Tim Moore  <timoore@redhat.com>
+
+	PR 1288
+	* addr-map.c: New file with functions for looking up addresses
+	* loc2c-runtime.h (deref, store_deref): Use lookup_bad_addr to
+	avoid dereferencing known dangerous addresses.
+	* runtime.h: Include addr-map.c.
+
 2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6445
