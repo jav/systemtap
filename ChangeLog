@@ -1,5 +1,9 @@
 2008-09-10  Mark Wielaard  <mjw@redhat.com>
 
+	* translate.cxx (dump_unwindsyms): Output module_base.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
 	* translate.cxx (get_unwind_data): New function.
 	(dump_unwindsyms): Output unwind data.
 

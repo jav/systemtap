@@ -34,6 +34,8 @@ struct _stp_module {
 	/* is unloading. */
   	unsigned long module; /* XXX: why not struct module * ? */
 	
+  	unsigned long module_base;
+
 	/* the stack unwind data for this module */
 	void *unwind_data;
 	void *unwind_hdr;	

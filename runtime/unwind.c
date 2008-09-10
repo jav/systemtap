@@ -550,10 +550,27 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 	return result && ptr.p8 == end && (targetLoc == 0 || state->label == NULL);
 }
 
+// This is an address inside a module, adjust.
+static unsigned long
+adjustStartLoc (unsigned long startLoc,
+		struct _stp_module *m,
+		struct _stp_section *s)
+{
+  if (startLoc && (strcmp (m->name, "kernel") != 0))
+    {
+      startLoc = _stp_module_relocate (m->name, s->name,
+				       startLoc);
+      startLoc -= m->module_base;
+    }
+  return startLoc;
+}
+
 /* If we previously created an unwind header, then use it now to binary search */
 /* for the FDE corresponding to pc. */
 
-static u32 *_stp_search_unwind_hdr(unsigned long pc, struct _stp_module *m)
+static u32 *_stp_search_unwind_hdr(unsigned long pc,
+				   struct _stp_module *m,
+				   struct _stp_section *s)
 {
 	const u8 *ptr, *end, *hdr = m->unwind_hdr;
 	unsigned long startLoc;
@@ -600,6 +617,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct _stp_module *m)
 	do {
 		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
 		startLoc = read_pointer(&cur, cur + tableSize, hdr[3]);
+		startLoc = adjustStartLoc(startLoc, m, s);
 		if (pc < startLoc)
 			num /= 2;
 		else {
@@ -608,7 +626,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct _stp_module *m)
 		}
 	} while (startLoc && num > 1);
 
-	if (num == 1 && (startLoc = read_pointer(&ptr, ptr + tableSize, hdr[3])) != 0 && pc >= startLoc)
+	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s)) != 0 && pc >= startLoc)
 		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
 
 	dbug_unwind(1, "returning fde=%lx startLoc=%lx", fde, startLoc);
@@ -695,7 +713,7 @@ int unwind(struct unwind_frame_info *frame)
 		goto err;
 	}
 
-	fde = _stp_search_unwind_hdr(pc, m);
+	fde = _stp_search_unwind_hdr(pc, m, s);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, fde);
 
 	/* found the fde, now set startLoc and endLoc */
@@ -705,6 +723,8 @@ int unwind(struct unwind_frame_info *frame)
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			startLoc = adjustStartLoc(startLoc, m, s);
+
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s", startLoc, _stp_eh_enc_name(ptrType));
 			if (!(ptrType & DW_EH_PE_indirect))
 				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
@@ -734,6 +754,7 @@ int unwind(struct unwind_frame_info *frame)
 
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			startLoc = adjustStartLoc(startLoc, m, s);
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;

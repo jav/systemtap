@@ -1,5 +1,12 @@
 2008-09-10  Mark Wielaard  <mjw@redhat.com>
 
+	* sym.h (_stp_module): Add module_base field.
+	* unwind.c (adjustStartLoc): New function.
+	(_stp_search_unwind_hdr): Use adjustStartLoc.
+	(unwind): Likewise.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
 	* unwind.c (unwind): Use _stp_mod_sec_lookup to get module and
 	unwind tables.
 	* runtime.h (STP_USE_FRAME_BUFFER): Disable by default for now.
