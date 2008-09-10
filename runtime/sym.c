@@ -73,6 +73,37 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 }
 
 
+/* Return module owner and fills in closest section of the address
+   if found, return NULL otherwise.
+   XXX: needs to be address-space-specific. */
+static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
+					       struct _stp_section **sec)
+{
+  struct _stp_module *m = NULL;
+  unsigned midx = 0;
+  unsigned long closest_section_offset = ~0;
+  for (midx = 0; midx < _stp_num_modules; midx++)
+    {
+      unsigned secidx;
+      for (secidx = 0; secidx < _stp_modules[midx]->num_sections; secidx++)
+	{
+	  unsigned long this_section_addr;
+	  unsigned long this_section_offset;
+	  this_section_addr = _stp_modules[midx]->sections[secidx].addr;
+	  if (addr < this_section_addr) continue;
+	  this_section_offset = addr - this_section_addr;
+	  if (this_section_offset < closest_section_offset)
+	    {
+	      closest_section_offset = this_section_offset;
+	      m = _stp_modules[midx];
+	      *sec = & m->sections[secidx];
+	    }
+	}
+      }
+  return m;
+}
+
+
 /* XXX: needs to be address-space-specific. */
 static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbolsize,
                                         unsigned long *offset, 
@@ -86,29 +117,7 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	unsigned long flags;
 	unsigned end, begin = 0;
 
-        /* Find the closest section (and its owner module); fill in m & sec. */
-        {
-          unsigned midx = 0;
-          unsigned long closest_section_offset = ~0;
-          for (midx = 0; midx < _stp_num_modules; midx++)
-            {
-              unsigned secidx;
-              for (secidx = 0; secidx < _stp_modules[midx]->num_sections; secidx++)
-                {
-                  unsigned long this_section_addr = _stp_modules[midx]->sections[secidx].addr;
-                  unsigned long this_section_offset;
-                  if (addr < this_section_addr) continue;
-                  this_section_offset = addr - this_section_addr;
-                  if (this_section_offset < closest_section_offset)
-                    {
-                      closest_section_offset = this_section_offset;
-                      m = _stp_modules[midx];
-                      sec = & m->sections[secidx];
-                    }
-                }
-            }
-        }
-        
+	m = _stp_mod_sec_lookup(addr, &sec);
         if (unlikely (m == NULL || sec == NULL))
           return NULL;
         

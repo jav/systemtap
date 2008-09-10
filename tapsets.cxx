@@ -221,6 +221,8 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
   o->newline() << "c->regparm = 0;";
+  o->newline() << "c->marker_name = NULL;";
+  o->newline() << "c->marker_format = NULL;";
   o->newline() << "c->probe_point = 0;";
   if (! interruptible)
     o->newline() << "c->actionremaining = MAXACTION;";
@@ -5844,6 +5846,8 @@ struct utrace_var_expanding_copy_visitor: public var_expanding_copy_visitor
   enum utrace_derived_probe_flags flags;
   bool target_symbol_seen;
 
+  void visit_target_symbol_arg (target_symbol* e);
+  void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
 };
 
@@ -5921,6 +5925,110 @@ utrace_derived_probe::join_group (systemtap_session& s)
 
 
 void
+utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
+{
+  string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
+  int argnum = atoi (argnum_s.c_str());
+
+  if (flags != UDPF_SYSCALL)
+    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" support $argN.", e->tok);
+
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("utrace target variable '$argN' may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("utrace target variable '$argN' may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid use of utrace target variable '$argN'",
+				e->tok);
+	  break;
+	}
+    }
+
+  // FIXME: max argnument number should not be hardcoded.
+  if (argnum < 1 || argnum > 6)
+    throw semantic_error ("invalid syscall argument number (1-6)", e->tok);
+
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue)
+    throw semantic_error("utrace '$argN' variable is read-only", e->tok);
+
+  // Remember that we've seen a target variable.
+  target_symbol_seen = true;
+
+  // We're going to substitute a synthesized '_utrace_syscall_arg'
+  // function call for the '$argN' reference.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = "_utrace_syscall_arg";
+  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+  literal_number *num = new literal_number(argnum - 1);
+  num->tok = e->tok;
+  n->args.push_back(num);
+
+  provide <functioncall*> (this, n);
+}
+
+void
+utrace_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
+{
+  string sname = e->base_name;
+
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("utrace target variable '" + sname + "' may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("utrace target variable '" + sname + "' may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid use of utrace target variable '" + sname + "'",
+				e->tok);
+	  break;
+	}
+    }
+
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue)
+    throw semantic_error("utrace '" + sname + "' variable is read-only", e->tok);
+
+  string fname;
+  if (sname == "$return")
+    {
+      if (flags != UDPF_SYSCALL_RETURN)
+	throw semantic_error ("only \"process(PATH_OR_PID).syscall.return\" support $return.", e->tok);
+      fname = "_utrace_syscall_return";
+    }
+  else
+    fname = "_utrace_syscall_nr";
+
+  // Remember that we've seen a target variable.
+  target_symbol_seen = true;
+
+  // We're going to substitute a synthesized '_utrace_syscall_nr'
+  // function call for the '$syscall' reference.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+  provide <functioncall*> (this, n);
+}
+
+void
 utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
@@ -5929,44 +6037,13 @@ utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
     throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
 			  e->tok);
 
-  if (e->base_name != "$syscall")
-    throw semantic_error ("invalid target symbol for utrace probe, $syscall expected",
+  if (e->base_name.substr(0,4) == "$arg")
+    visit_target_symbol_arg(e);
+  else if (e->base_name == "$syscall" || e->base_name == "$return")
+    visit_target_symbol_context(e);
+  else
+    throw semantic_error ("invalid target symbol for utrace probe, $syscall, $return or $argN expected",
 			  e->tok);
-
-  if (e->components.size() > 0)
-    {
-      switch (e->components[0].first)
-	{
-	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("utrace target variable '$syscall' may not be used as array",
-			       e->tok);
-	  break;
-	case target_symbol::comp_struct_member:
-	  throw semantic_error("utrace target variable '$syscall' may not be used as a structure",
-			       e->tok);
-	  break;
-	default:
-	  throw semantic_error ("invalid use of utrace target variable '$syscall'",
-				e->tok);
-	  break;
-	}
-    }
-
-  bool lvalue = is_active_lvalue(e);
-  if (lvalue)
-    throw semantic_error("utrace $syscall variable is read-only", e->tok);
-
-  // Remember that we've seen a target variable.
-  target_symbol_seen = true;
-
-  // We're going to substitute a synthesized '_syscall_nr_get'
-  // function call for the '$syscall' reference.
-  functioncall* n = new functioncall;
-  n->tok = e->tok;
-  n->function = "_utrace_syscall_nr";
-  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-
-  provide <functioncall*> (this, n);
 }
 
 
@@ -7758,7 +7835,7 @@ struct mark_var_expanding_copy_visitor: public var_expanding_copy_visitor
 
   void visit_target_symbol (target_symbol* e);
   void visit_target_symbol_arg (target_symbol* e);
-  void visit_target_symbol_format (target_symbol* e);
+  void visit_target_symbol_context (target_symbol* e);
 };
 
 
@@ -7865,48 +7942,37 @@ mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol_format (target_symbol* e)
+mark_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
 {
-  static bool function_synthesized = false;
+  string sname = e->base_name;
 
   if (is_active_lvalue (e))
-    throw semantic_error("write to marker format not permitted", e->tok);
+    throw semantic_error("write to marker '" + sname + "' not permitted", e->tok);
 
   if (e->components.size() > 0)
     {
       switch (e->components[0].first)
 	{
 	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("marker format may not be used as array",
+	  throw semantic_error("marker '" + sname + "' may not be used as array",
 			       e->tok);
 	  break;
 	case target_symbol::comp_struct_member:
-	  throw semantic_error("marker format may not be used as a structure",
+	  throw semantic_error("marker '" + sname + "' may not be used as a structure",
 			       e->tok);
 	  break;
 	default:
-	  throw semantic_error ("invalid marker format use", e->tok);
+	  throw semantic_error ("invalid marker '" + sname + "' use", e->tok);
 	  break;
 	}
     }
 
-  string fname = string("_mark_format_get");
-
-  // Synthesize a function (if not already synthesized).
-  if (! function_synthesized)
-    {
-      function_synthesized = true;
-      functiondecl *fdecl = new functiondecl;
-      fdecl->tok = e->tok;
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = e->tok;
-
-      ec->code = string("strlcpy (THIS->__retvalue, CONTEXT->data, MAXSTRINGLEN); /* pure */");
-      fdecl->name = fname;
-      fdecl->body = ec;
-      fdecl->type = pe_string;
-      sess.functions.push_back(fdecl);
-    }
+  string fname;
+  if (e->base_name == "$format") {
+    fname = string("_mark_format_get");
+  } else {
+    fname = string("_mark_name_get");
+  }
 
   // Synthesize a functioncall.
   functioncall* n = new functioncall;
@@ -7923,10 +7989,10 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 
   if (e->base_name.substr(0,4) == "$arg")
     visit_target_symbol_arg (e);
-  else if (e->base_name == "$format")
-    visit_target_symbol_format (e);
+  else if (e->base_name == "$format" || e->base_name == "$name")
+    visit_target_symbol_context (e);
   else
-    throw semantic_error ("invalid target symbol for marker, $argN or $format expected",
+    throw semantic_error ("invalid target symbol for marker, $argN, $name or $format expected",
 			  e->tok);
 }
 
@@ -8225,8 +8291,8 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = smp->pp;";
-  s.op->newline() << "c->data = (char *)smp->format;";
-
+  s.op->newline() << "c->marker_name = smp->name;";
+  s.op->newline() << "c->marker_format = smp->format;";
   s.op->newline() << "c->mark_va_list = args;";
   s.op->newline() << "(*smp->ph) (c);";
   s.op->newline() << "c->mark_va_list = NULL;";

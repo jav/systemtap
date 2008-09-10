@@ -1,3 +1,48 @@
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* sym.h (_stp_module): Rename module_base to dwarf_module_base.
+	* unwind.c (adjustStartLoc): Document and use dwarf_module_base.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* runtime.h (CONFIG_FRAME_POINTER): Don't enable when
+	STP_USE_DWARF_UNWINDER is already defined.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* sym.h (_stp_module): Add module_base field.
+	* unwind.c (adjustStartLoc): New function.
+	(_stp_search_unwind_hdr): Use adjustStartLoc.
+	(unwind): Likewise.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* unwind.c (unwind): Use _stp_mod_sec_lookup to get module and
+	unwind tables.
+	* runtime.h (STP_USE_FRAME_BUFFER): Disable by default for now.
+	* stack-x86_64.c (__stp_stack_print): Add levels to
+	_stp_stack_print_fallback call.
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* regs-ia64.c (__ia64_fetch_register): Return the address of the
+	 register.
+	(ia64_fetch_register): Use __ia64_fetch_register.
+	* syscall.h (____stp_user_syscall_arg): Use __ia64_fetch_register.
+	(__stp_user_syscall_arg): Wrapping ____stp_user_syscall_arg to pass the
+	unwind address cache.
+	* task_finder.c (__stp_utrace_task_finder_target_syscall_): Added dummy
+	unwind address cache.
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* syscall.h: Added ia64 support.
+
+2008-09-09  Mark Wielaard  <mwielaard@redhat.com>
+
+	* sym.c (_stp_mod_sec_lookup): New function, extracted from
+	_stp_kallsyms_lookup.
+
 2008-09-09  Mark Wielaard  <mwielaard@redhat.com>
 
 	* sym.c (_stp_kallsyms_lookup): Correct this_section_offset

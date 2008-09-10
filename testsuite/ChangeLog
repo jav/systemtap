@@ -1,3 +1,24 @@
+2008-09-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/uprobes.*: Tweak regexps for read-only src tree
+	tolerance.
+
+2008-09-09  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* buildok/per-process-syscall.stp: New test, for process.syscall test.
+	* semko/utrace15.stp: Ditto.
+	* semko/utrace16.stp: Ditto.
+	* semko/utrace17.stp: Ditto.
+	* semko/utrace18.stp: Ditto.
+	* semko/utrace19.stp: Ditto.
+	* semko/utrace20.stp: Ditto.
+	* semko/utrace21.stp: Ditto.
+	* semko/utrace22.stp: Ditto.
+
+2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* systemtap.base/marker.exp : Added testcases of $name.
+
 2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/cmd_parse.exp: Adapt to sh-c-less "stap -c"

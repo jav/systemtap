@@ -6,7 +6,7 @@
 	<title>SystemTap Scripts</title>
 	
 	<para>
-		For the most part, SystemTap scripts are the foundation of each SystemTap session. The SystemTap scripts you use or write yourself instruct SystemTap on what type of information to trap, and what to do once that information is trapped.
+		For the most part, SystemTap scripts are the foundation of each SystemTap session. SystemTap scripts instruct SystemTap on what type of information to trap, and what to do once that information is trapped.
 	</para>
 	
 	<para>
@@ -15,7 +15,7 @@
 	
 <note>
 	<title>Note</title>
-	<para>An event and its corresponding handler is collectively called a <emphasis>probe</emphasis>. A SystemTap script can have multiple probes, in the same manner that each event can have multiple corresponding handlers.</para>
+	<para>An event and its corresponding handler is collectively called a <emphasis>probe</emphasis>. A SystemTap script can have multiple probes.</para>
 </note>	
 	
 	<para>
@@ -26,13 +26,105 @@
 		SystemTap scripts go one step further by allowing you more flexibility with regard to handlers. Events serve as the triggers for handlers to run; handlers can be specified to trap specified data and print it in a certain manner. 
 	</para>
 	
-	
+<formalpara id="scriptformats">
+	<title>Format</title>
+	<para>
+		SystemTap scripts use the file extension <filename>.stp</filename>, and are written in the following format:
+	</para>
+</formalpara>	
+<screen>
+probe	<replaceable>[event]</replaceable>,
+<replaceable>[another event]</replaceable>
 
-	<section id="systemtapscript-format">
-		<title>Format</title>
-		<para>
-			SystemTap scripts use the following format:
-		</para>
+{
+	<replaceable>[handler]</replaceable>
+
+	exit()
+}
+</screen>		
+	<para>The <replaceable>exit()</replaceable> condition is optional, but it is recommended since it safely terminates the session once the script successfully traps the required information.</para>	
+	
+<important>
+	<title>Important</title>
+	<para>
+		<xref linkend="scripts"/> is designed to introduce readers to the basics of SystemTap scripts. To understand SystemTap scripts better, it is advisable that you refer to <xref linkend="useful-systemtap-scripts"/>; each section therein provides a detailed explanation of the script, its events, handlers, and expected output.
+	</para>
+</important>	
+	<section id="systemtapscript-events">
+		<title>Events</title>
+	
+<para>
+	SystemTap supports multiple events per probe; as shown in <xref linkend="scriptformats"/>, multiple events are delimited by a comma (<command>,</command>). Sample <replaceable>[event]</replaceable>s include:</para>
+
+<variablelist>
+	
+<varlistentry>
+	<term>begin</term>
+	<listitem>
+		<para>The startup of a SystemTap session; i.e. as soon as the SystemTap script is run.</para>
+	</listitem>	
+</varlistentry>	
+
+<varlistentry>
+	<term>end</term>
+	<listitem>
+		<para>The end of a SystemTap session.</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>kernel.function("<replaceable>[function]</replaceable>")</term>
+	<listitem>
+		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that the kernel function <command>sys_open</command> is used. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
+		
+		<para>When defining functions, you can use asterisk (<command>*</command>) for wildcards. You can also trace the entry/exit of a function in a kernel source file. Consider the following example:</para>
+<example id="wildcards"><title>Wildcards and Kernel Source Files in an Event</title>
+<programlisting>
+probe kernel.function("*@net/socket.c") { }
+probe kernel.function("*@net/socket.c").return { }
+</programlisting>	
+</example>	
+
+<para>In the previous example, the first probe's event specifies the entry of ALL functions in the kernel source file <filename>net/socket.c</filename>. The second probe specifies the exit of all those functions. Note that in this example, no handler was specified; as such, no information will be displayed.</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>syscall.<replaceable>[system_call]</replaceable></term>
+	<listitem>
+		<para>The entry to the system call <replaceable>[system_call]</replaceable>. Similar to <command>kerne.function</command>, appending a <command>return</command> to the statement specifies the exit of the system call. For example, to specify the entry of the system call <command>close</command>, use <command>syscall.close.return</command>.</para>
+		
+		<para>To identify what system calls are made by a specific program/command, use <command>strace <replaceable>command</replaceable></command>.</para>
+	</listitem>	
+</varlistentry>
+<!--	
+<varlistentry>
+	<term></term>
+	<listitem>
+		<para></para>
+	</listitem>	
+</varlistentry>
+-->
+	
+</variablelist>
+
+
+	</section>
+	
+	<section id="systemtapscript-handlers">
+		<title>Handlers</title>
+
+<para>
+	SystemTap supports a wide variety of functions that can trap data when triggered by events. One way to display these functions is to use the <command>print()</command>   
+</para>	
+		
+<!--		
+<para>
+	<xref linkend="wildcards"/> illustrates an example of a SystemTap script that contains no handlers. SystemTap will still be able to run the script, but no information will be displayed. 	
+</para>
+-->
+
+
 	</section>
 	
 	<!--	<section id="SystemTap_Beginners_Guide-Test-Section_2_Test">
