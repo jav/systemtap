@@ -1,3 +1,8 @@
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* translate.cxx (get_unwind_data): New function.
+	(dump_unwindsyms): Output unwind data.
+
 2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	* stapprobes.5.in: Added a description about $return.

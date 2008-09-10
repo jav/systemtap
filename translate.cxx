@@ -4340,6 +4340,43 @@ struct unwindsym_dump_context
 };
 
 
+// Get the .debug_frame section for the given module.
+// l will be set to the length of the size of the unwind data if found.
+static void *get_unwind_data (Dwfl_Module *m, size_t *l)
+{
+  Dwarf_Addr bias = 0;
+  Dwarf *dw;
+  GElf_Ehdr *ehdr, ehdr_mem;
+  GElf_Shdr *shdr, shdr_mem;
+  Elf_Scn *scn = NULL;
+  Elf_Data *data = NULL;
+  
+  dw = dwfl_module_getdwarf(m, &bias);
+  if (dw != NULL)
+    {
+      Elf *elf = dwarf_getelf(dw);
+      ehdr = gelf_getehdr(elf, &ehdr_mem);
+      while ((scn = elf_nextscn(elf, scn)))
+	{
+	  shdr = gelf_getshdr(scn, &shdr_mem);
+	  if (strcmp(elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name),
+		     ".debug_frame") == 0)
+	    {
+	      data = elf_rawdata(scn, NULL);
+	      break;
+	    }
+	}
+    }
+
+  if (data != NULL)
+    {
+      *l = data->d_size;
+      return data->d_buf;
+    }
+
+  return NULL;
+}
+
 static int
 dump_unwindsyms (Dwfl_Module *m,
                  void **userdata __attribute__ ((unused)),
@@ -4459,6 +4496,31 @@ dump_unwindsyms (Dwfl_Module *m,
         }
     }
 
+  // Add unwind data to be included if it exists for this module.
+  size_t len = 0;
+  void *unwind = get_unwind_data (m, &len);
+  if (unwind != NULL)
+    {
+      c->output << "#ifdef STP_USE_DWARF_UNWINDER" << endl;
+      c->output << "static uint8_t _stp_module_" << stpmod_idx
+		<< "_unwind_data[] = " << endl;
+      c->output << "  {";
+      for (size_t i = 0; i < len; i++)
+	{
+	  int h = ((uint8_t *)unwind)[i];
+	  c->output << "0x" << hex << h << dec << ",";
+	  if ((i + 1) % 16 == 0)
+	    c->output << endl << "   ";
+	}
+      c->output << "};" << endl;
+      c->output << "#endif /* STP_USE_DWARF_UNWINDER */" << endl;
+    }
+  else
+    {
+      c->session.print_warning ("No unwind data for " + modname
+				+ ", " + dwfl_errmsg (-1));
+    }
+
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
       c->output << "struct _stp_symbol "
@@ -4489,6 +4551,26 @@ dump_unwindsyms (Dwfl_Module *m,
 
   c->output << "struct _stp_module _stp_module_" << stpmod_idx << " = {" << endl;
   c->output << ".name = " << lex_cast_qstring (modname) << ", " << endl;
+
+  if (unwind != NULL)
+    {
+      c->output << "#ifdef STP_USE_DWARF_UNWINDER" << endl;
+      c->output << ".unwind_data = "
+		<< "_stp_module_" << stpmod_idx << "_unwind_data, " << endl;
+      c->output << ".unwind_data_len = " << len << ", " << endl;
+      c->output << "#else" << endl;
+    }
+
+  c->output << ".unwind_data = NULL, " << endl;
+  c->output << ".unwind_data_len = 0, " << endl;
+
+  if (unwind != NULL)
+    c->output << "#endif /* STP_USE_DWARF_UNWINDER */" << endl;
+
+  c->output << ".unwind_hdr = NULL, " << endl;
+  c->output << ".unwind_hdr_len = 0, " << endl;
+  c->output << ".unwind_is_ehframe = 0, " << endl;
+
   c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ", " << endl;
   c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"
             << "sizeof(struct _stp_section), " << endl;
