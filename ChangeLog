@@ -1,5 +1,10 @@
 2008-09-10  Mark Wielaard  <mjw@redhat.com>
 
+	* translate.cxx (dump_unwindsyms): Rename module_base output to
+	dwarf_module_base.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
 	* translate.cxx (dump_unwindsyms): Output module_base.
 
 2008-09-10  Mark Wielaard  <mjw@redhat.com>

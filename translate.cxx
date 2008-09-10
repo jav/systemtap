@@ -4551,7 +4551,7 @@ dump_unwindsyms (Dwfl_Module *m,
 
   c->output << "struct _stp_module _stp_module_" << stpmod_idx << " = {" << endl;
   c->output << ".name = " << lex_cast_qstring (modname) << ", " << endl;
-  c->output << ".module_base = 0x" << hex << base << dec << ", " << endl;
+  c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", " << endl;
 
   if (unwind != NULL)
     {

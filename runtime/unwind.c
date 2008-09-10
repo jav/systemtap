@@ -550,7 +550,9 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 	return result && ptr.p8 == end && (targetLoc == 0 || state->label == NULL);
 }
 
-// This is an address inside a module, adjust.
+// If this is an address inside a module, adjust for section relocation
+// and the elfutils base relocation done during loading of the .dwarf_frame
+// in translate.cxx.
 static unsigned long
 adjustStartLoc (unsigned long startLoc,
 		struct _stp_module *m,
@@ -560,7 +562,7 @@ adjustStartLoc (unsigned long startLoc,
     {
       startLoc = _stp_module_relocate (m->name, s->name,
 				       startLoc);
-      startLoc -= m->module_base;
+      startLoc -= m->dwarf_module_base;
     }
   return startLoc;
 }
