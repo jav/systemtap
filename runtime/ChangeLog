@@ -1,5 +1,10 @@
 2008-09-10  Mark Wielaard  <mjw@redhat.com>
 
+	* runtime.h (CONFIG_FRAME_POINTER): Don't enable when
+	STP_USE_DWARF_UNWINDER is already defined.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
 	* sym.h (_stp_module): Add module_base field.
 	* unwind.c (adjustStartLoc): New function.
 	(_stp_search_unwind_hdr): Use adjustStartLoc.
