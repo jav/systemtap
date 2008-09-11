@@ -32,7 +32,7 @@
 		SystemTap scripts use the file extension <filename>.stp</filename>, and are written in the following format:
 	</para>
 </formalpara>	
-<screen>
+<programlisting>
 probe	<replaceable>[event]</replaceable>,
 <replaceable>[another event]</replaceable>
 
@@ -41,7 +41,7 @@ probe	<replaceable>[event]</replaceable>,
 
 	exit()
 }
-</screen>		
+</programlisting>		
 	<para>The <replaceable>exit()</replaceable> condition is optional, but it is recommended since it safely terminates the session once the script successfully traps the required information.</para>	
 	
 <important>
@@ -108,17 +108,164 @@ probe kernel.function("*@net/socket.c").return { }
 	
 </variablelist>
 
-
+<important>
+	<title>Important</title>
+	<para>
+	SystemTap supports the use of a large collection of probe events. For more information about supported events, refer to <command>man stapprobes</command>. The <citetitle>SEE ALSO</citetitle> section of <command>man stapprobes</command> also contains links to other <command>man</command> pages that discuss supported events for specific subsystems and components.
+	</para>	
+</important>
 	</section>
 	
 	<section id="systemtapscript-handlers">
 		<title>Handlers</title>
 
 <para>
-	SystemTap supports a wide variety of functions that can trap data when triggered by events. One way to display these functions is to use the <command>print()</command>   
+Consider the following sample script:
+</para>
+
+<example id="helloworld"><title>Hello World</title>
+<programlisting>
+probe begin
+{
+  printf ("hello world\n")
+  exit ()
+}
+</programlisting>	
+</example>
+
+<para>
+	In <xref linkend="helloworld"/>, the event <command>begin</command> (i.e. the start of the session) triggers the handler enclosed in <command>{ }</command>, which simply prints <command>hello world</command>, then exits.
+</para>	
+
+<formalpara id="printf">
+	<title>printf ( ) Statements</title>
+<para>
+	The <command>printf ()</command> statement is one of the simplest handler tools for printing data. <command>printf ()</command> can also be used to trap data using a wide variety of SystemTap handler functions using the following format:
+</para>
+</formalpara>
+
+<programlisting>
+printf ("<replaceable>[format string]</replaceable>\n", <replaceable>[argument]</replaceable>)
+</programlisting>
+
+<para>
+	The <replaceable>[format string]</replaceable> region specifies how <replaceable>[argument]</replaceable> should be displayed. The format string of <xref linkend="helloworld"/> simply instructs SystemTap to print <command>hello world</command>, and contains no arguments. 
+</para>
+
+<para>
+	You can use the variables <command>%s</command> (for strings) and <command>%d</command> (for numbers) in format strings, depending on your list of arguments. Format strings can have multiple variables, each matching a corresponding argument; multiple arguments are delimited by a comma (<command>,</command>) and space.
+</para>
+
+<para>
+	To illustrate this, consider the following probe example:
+</para>
+
+<example id="syscall-open">
+	<title>Using Variables In printf ( ) Statements</title>
+<programlisting>
+# This probe will need to be manually terminated with Ctrl-C
+probe syscall.open
+{
+  printf ("%s(%d) open\n", execname(), pid())
+}	
+</programlisting>	
+</example>
+
+<para>
+<xref linkend="syscall-open"/> instructs SystemTap to probe all entries to the system call <command>open</command>; for each event, it prints the current <command>execname()</command> (which is a string) and <command>pid()</command> (which is a number), followed by the word <command>open</command>. A snippet of this probe's output would look like:
+</para>
+
+<screen>
+vmware-guestd(2206) open
+hald(2360) open
+hald(2360) open
+hald(2360) open
+df(3433) open
+df(3433) open
+df(3433) open
+hald(2360) open
+</screen>
+
+<formalpara>
+	<title>Handler Functions</title>
+	<para>SystemTap supports a wide variety of handler functions that can be used as <command>printf ()</command> arguments. <xref linkend="syscall-open"/> uses the handler functions <command>execname()</command> (current process name) and <command>pid()</command> (current process ID).</para>
+</formalpara>		
+	<para>The following is a list of commonly-used handler functions:</para>
+	
+<variablelist>
+
+<varlistentry>
+	<term>tid()</term>
+	<listitem>
+		<para>The ID of the current thread.</para>
+	</listitem>	
+</varlistentry>	
+
+<varlistentry>
+	<term>uid()</term>
+	<listitem>
+		<para>The ID of the current user.</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>cpu()</term>
+	<listitem>
+		<para>The current CPU number.</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>gettimeofday_s()</term>
+	<listitem>
+		<para>The number of seconds since UNIX epoch (January 1, 1970).</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>get_cycles()</term>
+	<listitem>
+		<para>A snapshot of the hardware cycle counter.</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>pp()</term>
+	<listitem>
+		<para>A string describing the probe point currently being handled.</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>probefunc()</term>
+	<listitem>
+		<para>If known, the name of the function in which the probe was placed.</para>
+	</listitem>	
+</varlistentry>
+<!--	
+<varlistentry>
+	<term></term>
+	<listitem>
+		<para></para>
+	</listitem>	
+</varlistentry>
+-->	
+</variablelist>		
+
+<para>For more information about supported handler functions, refer to <command>man stapfuncs</command>.</para>
+
+
+<!--	
+<para>
+	<replaceable>[variable]</replaceable> can be either <command>%s</command> for strings, or <command>%d</command> for numbers, depending on the <replaceable>[handler function]</replaceable> used. Each <command>printf ()</command> statement can contain multiple <replaceable>[variable]</replaceable>s, with each one corresponding to a matching <replaceable>[handler function]</replaceable>. Multiple <replaceable>[handler function]</replaceable>s are delimited by comma (<command>,</command>). 
+</para>	
+
+	<command>printf ()</command> is a SystemTap-supported C statement, and can also trap data using a wide variety
+	
+	SystemTap supports a wide variety of handler functions that can trap data when triggered by events. One way to display these functions is to use the <command>print()</command>   
 </para>	
 		
-<!--		
+		
 <para>
 	<xref linkend="wildcards"/> illustrates an example of a SystemTap script that contains no handlers. SystemTap will still be able to run the script, but no information will be displayed. 	
 </para>
