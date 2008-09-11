@@ -4517,8 +4517,13 @@ dump_unwindsyms (Dwfl_Module *m,
     }
   else
     {
+      // There would be only a small benefit to warning.  A user
+      // likely can't do anything about this; backtraces for the
+      // affected module would just get all icky heuristicy.
+#if 0
       c->session.print_warning ("No unwind data for " + modname
 				+ ", " + dwfl_errmsg (-1));
+#endif
     }
 
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
