@@ -114,6 +114,8 @@ probe kernel.function("*@net/socket.c").return { }
 	SystemTap supports the use of a large collection of probe events. For more information about supported events, refer to <command>man stapprobes</command>. The <citetitle>SEE ALSO</citetitle> section of <command>man stapprobes</command> also contains links to other <command>man</command> pages that discuss supported events for specific subsystems and components.
 	</para>	
 </important>
+
+<remark>is reference appropriate? too advanced for readers (it seems so to me)? please advise.</remark> 
 	</section>
 	
 	<section id="systemtapscript-handlers">
@@ -142,6 +144,9 @@ probe begin
 <para>
 	The <command>printf ()</command> statement is one of the simplest handler tools for printing data. <command>printf ()</command> can also be used to trap data using a wide variety of SystemTap handler functions using the following format:
 </para>
+
+<remark>is "handler tool" appropriate?</remark>
+
 </formalpara>
 
 <programlisting>
@@ -175,6 +180,8 @@ probe syscall.open
 <xref linkend="syscall-open"/> instructs SystemTap to probe all entries to the system call <command>open</command>; for each event, it prints the current <command>execname()</command> (which is a string) and <command>pid()</command> (which is a number), followed by the word <command>open</command>. A snippet of this probe's output would look like:
 </para>
 
+<remark>editorial review: does a clarification that "variable1" is to "argument1", "variable2" is to "argument2", or is this clear enough?</remark>
+
 <screen>
 vmware-guestd(2206) open
 hald(2360) open
@@ -187,11 +194,13 @@ hald(2360) open
 </screen>
 
 <formalpara>
-	<title>Handler Functions</title>
+	<title>Handler Functions</title>	
 	<para>SystemTap supports a wide variety of handler functions that can be used as <command>printf ()</command> arguments. <xref linkend="syscall-open"/> uses the handler functions <command>execname()</command> (current process name) and <command>pid()</command> (current process ID).</para>
 </formalpara>		
-	<para>The following is a list of commonly-used handler functions:</para>
-	
+
+<remark>is "handler function" an appropriate term?</remark>
+
+	<para>The following is a list of commonly-used handler functions:</para>	
 <variablelist>
 
 <varlistentry>
@@ -254,6 +263,7 @@ hald(2360) open
 
 <para>For more information about supported handler functions, refer to <command>man stapfuncs</command>.</para>
 
+<remark>will need a complete listing of supported handler functions? also, handler function descriptions seem ambiguous, please advise.</remark>
 
 <!--	
 <para>
