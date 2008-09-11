@@ -145,9 +145,9 @@ probe begin
 	The <command>printf ()</command> statement is one of the simplest handler tools for printing data. <command>printf ()</command> can also be used to trap data using a wide variety of SystemTap handler functions using the following format:
 </para>
 
+</formalpara>
 <remark>is "handler tool" appropriate?</remark>
 
-</formalpara>
 
 <programlisting>
 printf ("<replaceable>[format string]</replaceable>\n", <replaceable>[argument]</replaceable>)
