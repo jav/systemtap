@@ -8,6 +8,7 @@ set fp [open $path "w"]
 puts $fp "int main (int argc, char *argv[])"
 puts $fp "{"
 puts $fp "if (argc > 1) main (argc - 1, argv);"
+puts $fp "return 0;"
 puts $fp "}"
 close $fp
 
@@ -30,8 +31,8 @@ expect {
     -re {^Disabling[^\r\n]*\r\n} { exp_continue }
     -re {^Uprobes[^\r\n]*\r\n} { exp_continue }
     -re {^Cache[^\r\n]*\r\n} { exp_continue }
-    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*call\r\n} { incr ok; exp_continue }
-    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*return\r\n} { incr ok; exp_continue }
+    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*call argc=0x[1-5][^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*return return=0x0[^\r\n]*\r\n} { incr ok; exp_continue }
     -timeout 30
     timeout { }
     eof { }
