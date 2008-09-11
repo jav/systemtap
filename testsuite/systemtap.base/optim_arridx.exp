@@ -9,15 +9,15 @@ elide_idx1:long
 elide_global_a:long
 elide_global_b:long
 # functions
-fna:long (a:long)
-return a
-fnb:long (a:long, b:long)
-return (a) + (b)
 exit:unknown ()
 %{
     atomic_set (&session_state, STAP_SESSION_STOPPING);
     _stp_exit ();
 %}
+fna:long (a:long)
+return a
+fnb:long (a:long, b:long)
+return (a) + (b)
 # probes
 begin /* <- begin */
   # locals
