@@ -912,8 +912,8 @@ semantic_pass_stats (systemtap_session & sess)
 {
   stat_decl_collector sdc(sess);
 
-  for (unsigned i = 0; i < sess.functions.size(); ++i)
-    sess.functions[i]->body->visit (&sdc);
+  for (map<string,functiondecl*>::iterator it = sess.functions.begin(); it != sess.functions.end(); it++)
+    it->second->body->visit (&sdc);
 
   for (unsigned i = 0; i < sess.probes.size(); ++i)
     sess.probes[i]->body->visit (&sdc);
@@ -946,9 +946,9 @@ semantic_pass_vars (systemtap_session & sess)
   map<functiondecl *, set<vardecl *> *> fmv;
   no_var_mutation_during_iteration_check chk(sess, fmv);
 
-  for (unsigned i = 0; i < sess.functions.size(); ++i)
+  for (map<string,functiondecl*>::iterator it = sess.functions.begin(); it != sess.functions.end(); it++)
     {
-      functiondecl * fn = sess.functions[i];
+      functiondecl * fn = it->second;
       if (fn->body)
 	{
 	  set<vardecl *> * m = new set<vardecl *>();
@@ -958,10 +958,10 @@ semantic_pass_vars (systemtap_session & sess)
 	}
     }
 
-  for (unsigned i = 0; i < sess.functions.size(); ++i)
+  for (map<string,functiondecl*>::iterator it = sess.functions.begin(); it != sess.functions.end(); it++)
     {
-      if (sess.functions[i]->body)
-	sess.functions[i]->body->visit (&chk);
+      functiondecl * fn = it->second;
+      if (fn->body) fn->body->visit (&chk);
     }
 
   for (unsigned i = 0; i < sess.probes.size(); ++i)
@@ -1072,7 +1072,7 @@ semantic_pass_symbols (systemtap_session& s)
         s.globals.push_back (dome->globals[i]);
 
       for (unsigned i=0; i<dome->functions.size(); i++)
-        s.functions.push_back (dome->functions[i]);
+        s.functions[dome->functions[i]->name] = dome->functions[i];
 
       for (unsigned i=0; i<dome->embeds.size(); i++)
         s.embeds.push_back (dome->embeds[i]);
@@ -1735,11 +1735,12 @@ symresolution_info::find_var (const string& name, int arity)
 functiondecl*
 symresolution_info::find_function (const string& name, unsigned arity)
 {
-  for (unsigned j = 0; j < session.functions.size(); j++)
+  // the common path
+  if (session.functions.find(name) != session.functions.end())
     {
-      functiondecl* fd = session.functions[j];
-      if (fd->name == name &&
-          fd->formal_args.size() == arity)
+      functiondecl* fd = session.functions[name];
+      assert (fd->name == name);
+      if (fd->formal_args.size() == arity)
         return fd;
     }
 
@@ -1785,25 +1786,30 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
       if (s.probes[i]->sole_location()->condition)
         s.probes[i]->sole_location()->condition->visit (& ftv);
     }
-  for (unsigned i=0; i<s.functions.size(); /* see below */)
+  vector<functiondecl*> new_unused_functions;
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
     {
-      if (ftv.traversed.find(s.functions[i]) == ftv.traversed.end())
+      functiondecl* fd = it->second;
+      if (ftv.traversed.find(fd) == ftv.traversed.end())
         {
-          if (s.functions[i]->tok->location.file == s.user_file->name && // !tapset
+          if (fd->tok->location.file == s.user_file->name && // !tapset
               ! s.suppress_warnings)
-	    s.print_warning ("eliding unused function '" + s.functions[i]->name + "'", s.functions[i]->tok);
+	    s.print_warning ("eliding unused function '" + fd->name + "'", fd->tok);
           else if (s.verbose>2)
-            clog << "Eliding unused function " << s.functions[i]->name
+            clog << "Eliding unused function " << fd->name
                  << endl;
-	  if (s.tapset_compile_coverage) {
-	    s.unused_functions.push_back (s.functions[i]);
-	  }
-          s.functions.erase (s.functions.begin() + i);
+          // s.functions.erase (it); // NB: can't, since we're already iterating upon it
+          new_unused_functions.push_back (fd);
           relaxed_p = false;
-          // NB: don't increment i
         }
-      else
-        i++;
+    }
+  for (unsigned i=0; i<new_unused_functions.size(); i++)
+    {
+      map<string,functiondecl*>::iterator where = s.functions.find (new_unused_functions[i]->name);
+      assert (where != s.functions.end());
+      s.functions.erase (where);
+      if (s.tapset_compile_coverage)
+        s.unused_functions.push_back (new_unused_functions[i]);
     }
 }
 
@@ -1877,53 +1883,55 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
           }
       }
 
-  for (unsigned i=0; i<s.functions.size(); i++)
-    for (unsigned j=0; j<s.functions[i]->locals.size(); /* see below */)
-      {
-        vardecl* l = s.functions[i]->locals[j];
-        if (vut.read.find (l) == vut.read.end() &&
-            vut.written.find (l) == vut.written.end())
-          {
-            if (l->tok->location.file == s.user_file->name && // !tapset
-                ! s.suppress_warnings)
-              s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
-            else if (s.verbose>2)
-              clog << "Eliding unused local variable "
-                   << l->name << " in function " << s.functions[i]->name
-                   << endl;
-	    if (s.tapset_compile_coverage) {
-              s.functions[i]->unused_locals.push_back
-		    (s.functions[i]->locals[j]);
-	    }
-            s.functions[i]->locals.erase(s.functions[i]->locals.begin() + j);
-            relaxed_p = false;
-            // don't increment j
-          }
-        else
-          {
-            if (vut.written.find (l) == vut.written.end())
-              if (iterations == 0 && ! s.suppress_warnings)
-                {
-                  stringstream o;
-                  vector<vardecl*>::iterator it;
-                  for ( it = s.functions[i]->formal_args.begin() ;
-                        it != s.functions[i]->formal_args.end(); it++)
-                    if (l->name != (*it)->name)
-                      o << " " << (*it)->name;
-                  for (it = s.functions[i]->locals.begin(); it != s.functions[i]->locals.end(); it++)
-                    if (l->name != (*it)->name)
-                      o << " " << (*it)->name;
-                  for (it = s.globals.begin(); it != s.globals.end(); it++)
-                    if (l->name != (*it)->name)
-                      o << " " << (*it)->name;
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
+    {
+      functiondecl *fd = it->second;
+      for (unsigned j=0; j<fd->locals.size(); /* see below */)
+        {
+          vardecl* l = fd->locals[j];
+          if (vut.read.find (l) == vut.read.end() &&
+              vut.written.find (l) == vut.written.end())
+            {
+              if (l->tok->location.file == s.user_file->name && // !tapset
+                  ! s.suppress_warnings)
+                s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
+              else if (s.verbose>2)
+                clog << "Eliding unused local variable "
+                     << l->name << " in function " << fd->name
+                     << endl;
+              if (s.tapset_compile_coverage) {
+                fd->unused_locals.push_back (fd->locals[j]);
+              }
+              fd->locals.erase(fd->locals.begin() + j);
+              relaxed_p = false;
+              // don't increment j
+            }
+          else
+            {
+              if (vut.written.find (l) == vut.written.end())
+                if (iterations == 0 && ! s.suppress_warnings)
+                  {
+                    stringstream o;
+                    vector<vardecl*>::iterator it;
+                    for (it = fd->formal_args.begin() ;
+                         it != fd->formal_args.end(); it++)
+                      if (l->name != (*it)->name)
+                        o << " " << (*it)->name;
+                    for (it = fd->locals.begin(); it != fd->locals.end(); it++)
+                      if (l->name != (*it)->name)
+                        o << " " << (*it)->name;
+                    for (it = s.globals.begin(); it != s.globals.end(); it++)
+                      if (l->name != (*it)->name)
+                        o << " " << (*it)->name;
 
-                  s.print_warning ("read-only local variable '" + l->name + "' " +
-                                   (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
-                }
+                    s.print_warning ("read-only local variable '" + l->name + "' " +
+                                     (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
+                  }
 
-            j++;
-          }
-      }
+              j++;
+            }
+        }
+    }
   for (unsigned i=0; i<s.globals.size(); /* see below */)
     {
       vardecl* l = s.globals[i];
@@ -1932,7 +1940,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
         {
           if (l->tok->location.file == s.user_file->name && // !tapset
               ! s.suppress_warnings)
-	      s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
+            s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
           else if (s.verbose>2)
             clog << "Eliding unused global variable "
                  << l->name << endl;
@@ -2144,8 +2152,8 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
 
   for (unsigned i=0; i<s.probes.size(); i++)
     s.probes[i]->body->visit (& dar);
-  for (unsigned i=0; i<s.functions.size(); i++)
-    s.functions[i]->body->visit (& dar);
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
+    it->second->body->visit (& dar);
   // The rewrite operation is performed within the visitor.
 
   // XXX: we could also zap write-only globals here
@@ -2390,6 +2398,8 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 
   for (unsigned i=0; i<s.probes.size(); i++)
     {
+      if (pending_interrupts) break;
+
       derived_probe* p = s.probes[i];
 
       duv.focal_vars.clear ();
@@ -2411,9 +2421,11 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
           // XXX: possible duplicate warnings; see below
         }
     }
-  for (unsigned i=0; i<s.functions.size(); i++)
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
     {
-      functiondecl* fn = s.functions[i];
+      if (pending_interrupts) break;
+
+      functiondecl* fn = it->second;
       duv.focal_vars.clear ();
       duv.focal_vars.insert (fn->locals.begin(),
                              fn->locals.end());
@@ -2788,9 +2800,9 @@ void semantic_pass_opt5 (systemtap_session& s, bool& relaxed_p)
       vuv.current_stmt = & p->body;
       p->body->visit (& vuv);
     }
-  for (unsigned i=0; i<s.functions.size(); i++)
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
     {
-      functiondecl* fn = s.functions[i];
+      functiondecl* fn = it->second;
       vuv.current_stmt = & fn->body;
       fn->body->visit (& vuv);
     }
@@ -2854,30 +2866,34 @@ void semantic_pass_opt6 (systemtap_session& s, bool& relaxed_p)
   // Walk through all the functions, looking for duplicates.
   map<string, functiondecl*> functionsig_map;
   map<functiondecl*, functiondecl*> duplicate_function_map;
-  for (unsigned i=0; i < s.functions.size(); /* see below */)
+
+
+  vector<functiondecl*> newly_zapped_functions;
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
     {
-      string functionsig = get_functionsig(s.functions[i]);
+      functiondecl *fd = it->second;
+      string functionsig = get_functionsig(fd);
 
       if (functionsig_map.count(functionsig) == 0)
 	{
 	  // This function is unique.  Remember it.
-	  functionsig_map[functionsig] = s.functions[i];
-	  i++;
+	  functionsig_map[functionsig] = fd;
 	}
       else
         {
 	  // This function is a duplicate.
-	  duplicate_function_map[s.functions[i]]
-	    = functionsig_map[functionsig];
-
-	  // Remove the duplicate function (since we don't need it
-	  // anymore).
-	  s.functions.erase (s.functions.begin() + i);
-
+	  duplicate_function_map[fd] = functionsig_map[functionsig];
+          newly_zapped_functions.push_back (fd);
 	  relaxed_p = false;
-          // NB: don't increment i
 	}
     }
+  for (unsigned i=0; i<newly_zapped_functions.size(); i++)
+    {
+      map<string,functiondecl*>::iterator where = s.functions.find (newly_zapped_functions[i]->name);
+      assert (where != s.functions.end());
+      s.functions.erase (where);
+    }
+
 
   // If we have duplicate functions, traverse down the tree, replacing
   // the appropriate function calls.
@@ -2971,21 +2987,21 @@ semantic_pass_types (systemtap_session& s)
       ti.num_newly_resolved = 0;
       ti.num_still_unresolved = 0;
 
-      for (unsigned j=0; j<s.functions.size(); j++)
+  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
         {
           if (pending_interrupts) break;
 
-          functiondecl* fn = s.functions[j];
+          functiondecl* fd = it->second;
           ti.current_probe = 0;
-          ti.current_function = fn;
+          ti.current_function = fd;
           ti.t = pe_unknown;
-          fn->body->visit (& ti);
+          fd->body->visit (& ti);
 	  // NB: we don't have to assert a known type for
 	  // functions here, to permit a "void" function.
 	  // The translator phase will omit the "retvalue".
 	  //
-          // if (fn->type == pe_unknown)
-          //   ti.unresolved (fn->tok);
+          // if (fd->type == pe_unknown)
+          //   ti.unresolved (fd->tok);
         }
 
       for (unsigned j=0; j<s.probes.size(); j++)

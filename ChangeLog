@@ -1,3 +1,49 @@
+2008-09-10  Josh Stone  <joshua.i.stone@intel.com>
+
+	* main.cxx (printscript): Ensure no variables are printed in probe lists
+	unless -L was specified.
+
+2008-09-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR6876: translator speedup for many $vars
+	* session.h (systemtap_session.functions): vector->map.
+	* coveragedb.cxx, elaborate.cxx, main.cxx, tapsets.cxx, translate.cxx:
+	Adapt all users.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Check for dwarf_getelf. elfutils 0.126+.
+	Use AM_PROG_MKDIR_P instead of AC_PROG_MKDIR_P.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* config.in: Likewise.
+	* configure: Likewise.
+
+2008-09-10  Dave Brolley  <brolley@redhat.com>
+
+	* systemtap.spec: Remove avahi-tools and nc from dependencies
+	for systemtap and systemtap-runtime packages. Remove stap-*
+	scripts from %files of systemtap and systemtap-runtime
+	packages.  Make sure systemattap-runtime only picks up
+	staprun.8* man pages. Create new systemtap-client and
+	systemtap-server packages.
+	* NEWS: Add network security warning for the systemtap
+	client/server.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* translate.cxx (dump_unwindsyms): Rename module_base output to
+	dwarf_module_base.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* translate.cxx (dump_unwindsyms): Output module_base.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* translate.cxx (get_unwind_data): New function.
+	(dump_unwindsyms): Output unwind data.
+
 2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	* stapprobes.5.in: Added a description about $return.

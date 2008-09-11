@@ -1,3 +1,36 @@
+2008-09-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	* runtime.h (STP_USE_FRAME_POINTER): Remove architecture #if's.
+	All will activate it if CONFIG_FRAME_POINTER unless
+	STP_USE_DWARF_UNWINDER.
+	* stack-i386.c: (__stp_stack_print): Handle !DWARF and !FRAME
+	configuration.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* sym.h (_stp_module): Rename module_base to dwarf_module_base.
+	* unwind.c (adjustStartLoc): Document and use dwarf_module_base.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* runtime.h (CONFIG_FRAME_POINTER): Don't enable when
+	STP_USE_DWARF_UNWINDER is already defined.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* sym.h (_stp_module): Add module_base field.
+	* unwind.c (adjustStartLoc): New function.
+	(_stp_search_unwind_hdr): Use adjustStartLoc.
+	(unwind): Likewise.
+
+2008-09-10  Mark Wielaard  <mjw@redhat.com>
+
+	* unwind.c (unwind): Use _stp_mod_sec_lookup to get module and
+	unwind tables.
+	* runtime.h (STP_USE_FRAME_BUFFER): Disable by default for now.
+	* stack-x86_64.c (__stp_stack_print): Add levels to
+	_stp_stack_print_fallback call.
+
 2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	* regs-ia64.c (__ia64_fetch_register): Return the address of the
@@ -12,6 +45,11 @@
 2008-09-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	* syscall.h: Added ia64 support.
+
+2008-09-09  Mark Wielaard  <mwielaard@redhat.com>
+
+	* sym.c (_stp_mod_sec_lookup): New function, extracted from
+	_stp_kallsyms_lookup.
 
 2008-09-09  Mark Wielaard  <mwielaard@redhat.com>
 

@@ -33,7 +33,12 @@ struct _stp_module {
 	/* any notifier hooks that will tell us when a module */
 	/* is unloading. */
   	unsigned long module; /* XXX: why not struct module * ? */
-	
+
+	 /* This is to undo .debug_frame relocation performed by elfutils, */
+	 /* which is done during the translate phase when we encode the    */
+	 /* unwind data into the module. See adjustStartLoc() in unwind.c. */
+  	unsigned long dwarf_module_base;
+
 	/* the stack unwind data for this module */
 	void *unwind_data;
 	void *unwind_hdr;	
