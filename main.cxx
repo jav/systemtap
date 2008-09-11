@@ -182,14 +182,15 @@ printscript(systemtap_session& s, ostream& o)
           if (seen.find (pp) == seen.end())
             {
               o << pp;
-              // This list will be empty unless s.unoptimized = true -- i.e., -L mode
-              for (unsigned j=0; j<p->locals.size(); j++)
-	            {
-      		      o << " ";
-                      vardecl* v = p->locals[j];
-		      v->printsig (o);
-		    }
-	      o << endl;
+              // Print the locals for -L mode only
+              if (s.unoptimized)
+                for (unsigned j=0; j<p->locals.size(); j++)
+                  {
+                    o << " ";
+                    vardecl* v = p->locals[j];
+                    v->printsig (o);
+                  }
+              o << endl;
               seen.insert (pp);
             }
         }
