@@ -79,7 +79,8 @@ private:
   int input_peek (unsigned n=0);
   std::istream& input;
   std::string input_name;
-  std::vector<int> lookahead;
+  std::vector<char> input_contents;
+  int input_pointer; // index into input_contents
   unsigned cursor_suspend_count;
   unsigned cursor_line;
   unsigned cursor_column;
