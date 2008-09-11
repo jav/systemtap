@@ -1,0 +1,19 @@
+# This test ensures that "-l" lists only include probe names, and not any of
+# the local variables.  There was a bug that "-l" would print variables that
+# couldn't be optimized away, due to an incorrect assumption in the
+# implementation.
+
+# NB: This is a bit abusively formed.  Currently -l internally writes "probe"
+# and "{}" around its argument.  For this test we want to introduce a variable
+# that can't be optimized away.  The trailing comment mark lets the auto "{}"
+# get ignored.
+spawn stap -l "begin { if (a) next }#"
+
+expect {
+    # the output should not include anything else, like the 'a' local.
+    -re "^begin\r\n$" {
+        pass "probe list is correct"
+        return
+    }
+}
+fail "probe list is incorrect"
