@@ -50,19 +50,27 @@ function match_server {
     local rc=1 # not found yet
 
     # Loop over the avahi service descriptors.
-    while read
+    read || exit $rc
+    while test "X$REPLY" != "X"
     do
+	server_name=
+	server_ip=
+	server_port=
+	server_sysinfo=
+
 	# Examine the next service descriptor
 	# Is it a stap server?
-	(echo $REPLY | grep -q "^=.*_stap") || continue
+	if ! echo $REPLY | grep -q "=.* .* IPv4 .*_stap"; then
+	    read || exit $rc
+	    continue
+	fi
+	REPLY=
 	
 	# Get the details of the service
-	local service_tag equal data
+	local service_tag equal service_data
 	while read service_tag equal service_data
 	do
 	    case $service_tag in
-		'=' )
-		    break ;;
 		hostname )
 		    server_name=`expr "$service_data" : '\[\([^]]*\)\]'`
 		    ;;
@@ -74,12 +82,12 @@ function match_server {
 		    local attempt
 		    for ((attempt=0; $attempt < 5; ++attempt))
 		    do
-			server_ip=`expr "$server_ip" : '^\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)$'`
+			server_ip=`expr "$server_ip" : '\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)$'`
 			if test "X$server_ip" != "X"; then
 			    break
 			fi
 		        # Resolve the server.domain to an ip address.
-			server_ip=`avahi-resolve-host-name $hostname`
+			server_ip=`avahi-resolve-host-name $server_name`
 			server_ip=`expr "$server_ip" : '.*	\(.*\)$'`
 		    done
 		    ;;
@@ -90,7 +98,9 @@ function match_server {
 		    server_sysinfo=`expr "$service_data" : '\[.*\"\(sysinfo=[^]]*\)\"\]'`
 		    ;;
 		* )
-		    break ;;
+		    REPLY="$service_tag $equal $service_data"
+		    break
+		    ;;
 	    esac
 	done
 
@@ -100,7 +110,7 @@ function match_server {
 	fi
 
 	# It's compatible, or we're finding all servers. Print a summary line
-	echo $server_name $server_ip $server_port "'$server_sysinfo'"
+	echo "$server_name $server_ip $server_port '$server_sysinfo'"
 	rc=0
     done
 

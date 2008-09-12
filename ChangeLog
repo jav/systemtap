@@ -1,3 +1,10 @@
+2008-09-12  Dave Brolley  <brolley@redhat.com>
+
+	* stap-find-servers (match_server): Don't read past the start of the
+	next server description. Don't use '^' at the start of the regexp
+	on calls to 'expr'.
+	* systemtap.spec: client and server sub packages require avahi.
+
 2008-09-10  Josh Stone  <joshua.i.stone@intel.com>
 
 	* main.cxx (printscript): Ensure no variables are printed in probe lists
