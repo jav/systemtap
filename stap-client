@@ -659,6 +659,12 @@ function staprun_PATH {
     # staprun may invoke 'stap'. So we can use the current PATH if we were
     # not invoked as 'stap' or we are not the first 'stap' on the PATH.
     local first_stap=`which stap 2>/dev/null`
+
+    if test "X$first_stap" = "X"; then
+	echo "$PATH"
+	return
+    fi
+
     if test `which $0 2>/dev/null` != $first_stap; then
 	echo "$PATH"
 	return
