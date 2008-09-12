@@ -100,14 +100,14 @@ staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -DSINGLE_THREADED
+staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -DSINGLE_THREADED -fno-strict-aliasing
 staprun_LDADD = @PROCFLAGS@
 
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c
-stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
+stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -fno-strict-aliasing
 stapio_LDADD = @PROCFLAGS@ -lpthread
 
 install-exec-hook:

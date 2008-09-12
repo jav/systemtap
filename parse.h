@@ -16,7 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
-
+#include <stdint.h>
 
 struct source_loc
 {

@@ -23,6 +23,10 @@ struct stap_task_finder_target;
 #define __STP_TF_STOPPING	2
 #define __STP_TF_STOPPED	3
 atomic_t __stp_task_finder_state = ATOMIC_INIT(__STP_TF_STARTING);
+atomic_t __stp_inuse_count = ATOMIC_INIT (0);
+
+#define __stp_tf_handler_start() (atomic_inc(&__stp_inuse_count))
+#define __stp_tf_handler_end() (atomic_dec(&__stp_inuse_count))
 
 #ifdef DEBUG_TASK_FINDER
 atomic_t __stp_attach_count = ATOMIC_INIT (0);
@@ -30,7 +34,9 @@ atomic_t __stp_attach_count = ATOMIC_INIT (0);
 #define debug_task_finder_attach() (atomic_inc(&__stp_attach_count))
 #define debug_task_finder_detach() (atomic_dec(&__stp_attach_count))
 #define debug_task_finder_report() (_stp_dbug(__FUNCTION__, __LINE__, \
-	"attach count: %d\n", atomic_read(&__stp_attach_count)))
+					      "attach count: %d, inuse count: %d\n", \
+					      atomic_read(&__stp_attach_count), \
+					      atomic_read(&__stp_inuse_count)))
 #else
 #define debug_task_finder_attach()	/* empty */
 #define debug_task_finder_detach()	/* empty */
@@ -587,17 +593,24 @@ __stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
 	char *mmpath_buf;
 	char *mmpath;
 
-	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
-		return UTRACE_RESUME;
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
+		debug_task_finder_detach();
+		return UTRACE_DETACH;
+	}
+
+	__stp_tf_handler_start();
 
 	// On clone, attach to the child.
 	rc = stap_utrace_attach(child, engine->ops, 0,
 				__STP_TASK_FINDER_EVENTS);
-	if (rc != 0 && rc != EPERM)
+	if (rc != 0 && rc != EPERM) {
+		__stp_tf_handler_end();
 		return UTRACE_RESUME;
+	}
 
 	__stp_utrace_attach_match_tsk(parent, child, 1,
 				      (clone_flags & CLONE_THREAD) == 0);
+	__stp_tf_handler_end();
 	return UTRACE_RESUME;
 }
 
@@ -622,8 +635,12 @@ __stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
 	struct stap_task_finder_target *tgt;
 	int found_node = 0;
 
-	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
-		return UTRACE_RESUME;
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
+		debug_task_finder_detach();
+		return UTRACE_DETACH;
+	}
+
+	__stp_tf_handler_start();
 
 	// When exec'ing, we need to let callers detach from the
 	// parent thread (if necessary).  For instance, assume
@@ -646,6 +663,7 @@ __stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
 	// relative.
 	__stp_utrace_attach_match_tsk(tsk, tsk, 1, 1);
 
+	__stp_tf_handler_end();
 	return UTRACE_RESUME;
 }
 
@@ -682,6 +700,7 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 		return UTRACE_DETACH;
 	}
 
+	__stp_tf_handler_start();
 	// The first implementation of this added a
 	// UTRACE_EVENT(DEATH) handler to
 	// __stp_utrace_task_finder_ops.  However, dead threads don't
@@ -703,6 +722,7 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 				   (int)tsk->pid, rc);
 		}
 	}
+	__stp_tf_handler_end();
 	debug_task_finder_detach();
 	return UTRACE_DETACH;
 }
@@ -727,8 +747,12 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 		return UTRACE_DETACH;
 	}
 
-	if (tgt == NULL)
+	if (tgt == NULL) {
+		debug_task_finder_detach();
 		return UTRACE_DETACH;
+	}
+
+	__stp_tf_handler_start();
 
 	// Turn off quiesce handling
 	rc = utrace_set_events(tsk, engine,
@@ -807,6 +831,7 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 	}
 
 utftq_out:
+	__stp_tf_handler_end();
 	return UTRACE_RESUME;
 }
 
@@ -865,6 +890,7 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 	    && syscall_no != MUNMAP_SYSCALL_NO(tsk))
 		return UTRACE_RESUME;
 
+	__stp_tf_handler_start();
 
 	// We need the first syscall argument to see what address
 	// we're operating on.
@@ -889,6 +915,7 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 			mmput(mm);
 		}
 	}
+	__stp_tf_handler_end();
 	return UTRACE_RESUME;
 }
 
@@ -1003,6 +1030,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 			    : "UNKNOWN")))),
 		  arg0, rv);
 #endif
+	__stp_tf_handler_start();
 
 	// Try to find the vma info we might have saved.
 	if (arg0 != (unsigned long)NULL)
@@ -1110,6 +1138,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 		// Cleanup by deleting the saved vma info.
 		__stp_tf_remove_vma_entry(entry);
 	}
+	__stp_tf_handler_end();
 	return UTRACE_RESUME;
 }
 
@@ -1232,12 +1261,30 @@ stap_start_task_finder(void)
 static void
 stap_stop_task_finder(void)
 {
+#ifdef DEBUG_TASK_FINDER
+	int i = 0;
+#endif
+
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPING);
 	debug_task_finder_report();
 	stap_utrace_detach_ops(&__stp_utrace_task_finder_ops);
 	__stp_task_finder_cleanup();
 	debug_task_finder_report();
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPED);
+
+	/* Now that all the engines are detached, make sure
+	 * all the callbacks are finished.  If they aren't, we'll
+	 * crash the kernel when the module is removed. */
+	while (atomic_read(&__stp_inuse_count) != 0) {
+		schedule();
+#ifdef DEBUG_TASK_FINDER
+		i++;
+#endif
+	}
+#ifdef DEBUG_TASK_FINDER
+	if (i > 0)
+		printk(KERN_ERR "it took %d polling loops to quit.\n", i);
+#endif
 }
 
 
