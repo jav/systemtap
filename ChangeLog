@@ -1,3 +1,7 @@
+2008-09-12  Wenji Huang <wenji.huang@oracle.com>
+
+	* elaborate.cxx (add_global_var_display): Don't, in listing mode.
+
 2008-09-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6871.

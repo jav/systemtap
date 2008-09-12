@@ -1147,6 +1147,8 @@ semantic_pass_symbols (systemtap_session& s)
 // Keep unread global variables for probe end value display.
 void add_global_var_display (systemtap_session& s)
 {
+  if (s.listing_mode) return; // avoid end probe in listings_mode
+
   varuse_collecting_visitor vut;
   for (unsigned i=0; i<s.probes.size(); i++)
     {
