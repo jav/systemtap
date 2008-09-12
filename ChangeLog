@@ -1,3 +1,7 @@
+2008-09-12  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (staprun_PATH): Ensure that $first_stap is not empty.
+	
 2008-09-12  Masami Hiramatsu <mhiramat@redhat.com>
 
 	BZ 6028
