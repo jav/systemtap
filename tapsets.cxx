@@ -4747,7 +4747,7 @@ void
 dwarf_derived_probe::emit_probe_local_init(translator_output * o)
 {
   // emit bsp cache setup
-  o->newline() << "bspcache(c->unwaddr, c->regs, c->probe_point);";
+  o->newline() << "bspcache(c->unwaddr, c->regs);";
 }
 
 // ------------------------------------------------------------------------

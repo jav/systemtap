@@ -1,3 +1,9 @@
+2008-09-12  Masami Hiramatsu <mhiramat@redhat.com>
+
+	BZ 6028
+	* tapsets.cxx (dwarf_derived_probe::emit_probe_local_init): Use REG_IP
+	instead of pp to check probe address.
+
 2008-09-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	GCC 4.4 (var-tracking) build-compatilibity.
