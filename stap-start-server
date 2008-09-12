@@ -19,7 +19,7 @@ server_pid=$!
 # Make sure the server is started
 for ((attempt=0; $attempt < 5; ++attempt))
 do
-  stap-find-servers >/dev/null 2>&1 && echo $server_pid && exit 0
+  (ps -a | grep $server_pid) >/dev/null 2>&1 && echo $server_pid && exit 0
   sleep 1
 done
 
