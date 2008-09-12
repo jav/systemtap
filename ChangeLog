@@ -5,6 +5,17 @@
 	on calls to 'expr'.
 	* systemtap.spec: client and server sub packages require avahi.
 
+2008-09-12  Wenji Huang <wenji.huang@oracle.com>
+
+	* elaborate.cxx (add_global_var_display): Don't, in listing mode.
+
+2008-09-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6871.
+	* tapsets.cxx (query_cu): Search for prologues for user-space probes.
+	(query_func_info): Use prologue_end if available; silently back down
+	to entrypc probing if needed.
+
 2008-09-10  Josh Stone  <joshua.i.stone@intel.com>
 
 	* main.cxx (printscript): Ensure no variables are printed in probe lists

@@ -3458,13 +3458,8 @@ query_func_info (Dwarf_Addr entrypc,
 	}
       else
 	{
-          if (q->sess.prologue_searching
-              && !q->has_statement_str && !q->has_statement_num
-              && !q->sess.ignore_vmlinux && !q->sess.ignore_dwarf) // PR 2608
+          if (fi.prologue_end != 0)
             {
-              if (fi.prologue_end == 0)
-                throw semantic_error("could not find prologue-end "
-                                     "for probed function '" + fi.name + "'");
               query_statement (fi.name, fi.decl_file, fi.decl_line,
                                &fi.die, fi.prologue_end, q);
             }
@@ -3718,7 +3713,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  if (rc != DWARF_CB_OK)
 	    q->query_done = true;
 
-          if (q->sess.prologue_searching
+          if ((q->sess.prologue_searching || q->has_process) // PR 6871
               && !q->has_statement_str && !q->has_statement_num) // PR 2608
             if (! q->filtered_functions.empty())
               q->dw.resolve_prologue_endings (q->filtered_functions);
