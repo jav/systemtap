@@ -126,7 +126,7 @@ static void ia64_store_register(int regno,
 
 #else /* if defined __ia64__ */
 
-#define bspcache(cache, regs, pp) do {} while(0)
+#define bspcache(cache, regs) do {} while(0)
 
 #endif /* if defined __ia64__ */
 
