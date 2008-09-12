@@ -5,6 +5,7 @@
 autom4te.*
 cscope.files
 cscope*out
+gmon.out
 config.h
 config.log
 config.status
