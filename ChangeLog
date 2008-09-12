@@ -1,4 +1,16 @@
+2008-09-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	GCC 4.4 (var-tracking) build-compatilibity.
+	* parse.h: #include <stdint.h>.
+	* tapsets.cxx (utrace_...::visit_target_symbol_arg): Use
+	lex_cast<int>(foo) instead of atoi(foo.c_str()) for simpler
+	c++ object lifetime.
+	* Makefile.am (staprun_CFLAGS, stapio_CFLAGS): Add
+	-fno-strict-aliasing, since that code is too casual with pointers.
+	* Makefile.in: Regenerated.
+
 2008-09-12  Dave Brolley  <brolley@redhat.com>
+
 	PR6881.
 	From Eugeniy Meshcheryakov eugen@debian.org:
 	* stap-server.8.in: Correct formatting problems.

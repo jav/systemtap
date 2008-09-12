@@ -5927,7 +5927,7 @@ void
 utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 {
   string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
-  int argnum = atoi (argnum_s.c_str());
+  int argnum = lex_cast<int>(argnum_s);
 
   if (flags != UDPF_SYSCALL)
     throw semantic_error ("only \"process(PATH_OR_PID).syscall\" support $argN.", e->tok);
