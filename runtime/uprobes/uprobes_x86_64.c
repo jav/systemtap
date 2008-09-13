@@ -43,7 +43,7 @@ static const unsigned long good_insns_64[256 / 64] = {
 	W(0x30, 1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0), /* 30 */
 	W(0x40, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)| /* 40 */
 	W(0x50, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 50 */
-	W(0x60, 0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0)| /* 60 */
+	W(0x60, 0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,0)| /* 60 */
 	W(0x70, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* 70 */
 	W(0x80, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 80 */
 	W(0x90, 1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1)| /* 90 */
@@ -68,7 +68,7 @@ static const unsigned long good_insns_32[256 / 64] = {
 	W(0x30, 1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1), /* 30 */
 	W(0x40, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 40 */
 	W(0x50, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 50 */
-	W(0x60, 1,1,1,0,0,0,0,0,1,1,1,1,0,0,0,0)| /* 60 */
+	W(0x60, 1,1,1,0,1,1,0,0,1,1,1,1,0,0,0,0)| /* 60 */
 	W(0x70, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* 70 */
 	W(0x80, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 80 */
 	W(0x90, 1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1)| /* 90 */
@@ -138,7 +138,8 @@ static const unsigned long good_2byte_insns[256 / 64] = {
  * others -- Do we need to support these?
  * 0f - (floating-point?) prefetch instructions
  * 07, 17, 1f - pop es, pop ss, pop ds
- * 26, 2e, 36, 3e, 64, 65 - es:, cs:, ss:, ds:, fs:, gs: segment prefixes
+ * 26, 2e, 36, 3e - es:, cs:, ss:, ds: segment prefixes --
+ *	but 64 and 65 (fs: and gs:) seems to be used, so we support them.
  * 67 - addr16 prefix
  * 9b - wait/fwait
  * ce - into
@@ -165,10 +166,10 @@ static inline int check_legacy_prefix(u8 byte)
 	case 0x2e:
 	case 0x36:
 	case 0x3e:
-	case 0x64:
-	case 0x65:
 	case 0xf0:
 		return -1;
+	case 0x64:
+	case 0x65:
 	case 0x66:
 	case 0x67:
 	case 0xf2:
