@@ -1,7 +1,58 @@
+2008-09-12  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (staprun_PATH): Ensure that $first_stap is not empty.
+	* stap-start-server: Use 'ps' to check that the server started.
+	
+2008-09-12  Masami Hiramatsu <mhiramat@redhat.com>
+
+	BZ 6028
+	* tapsets.cxx (dwarf_derived_probe::emit_probe_local_init): Use REG_IP
+	instead of pp to check probe address.
+
+2008-09-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	GCC 4.4 (var-tracking) build-compatilibity.
+	* parse.h: #include <stdint.h>.
+	* tapsets.cxx (utrace_...::visit_target_symbol_arg): Use
+	lex_cast<int>(foo) instead of atoi(foo.c_str()) for simpler
+	c++ object lifetime.
+	* Makefile.am (staprun_CFLAGS, stapio_CFLAGS): Add
+	-fno-strict-aliasing, since that code is too casual with pointers.
+	* Makefile.in: Regenerated.
+
+2008-09-12  Dave Brolley  <brolley@redhat.com>
+
+	PR6881.
+	From Eugeniy Meshcheryakov eugen@debian.org:
+	* stap-server.8.in: Correct formatting problems.
+
+2008-09-12  Dave Brolley  <brolley@redhat.com>
+
+	* stap-find-servers (match_server): Don't read past the start of the
+	next server description. Don't use '^' at the start of the regexp
+	on calls to 'expr'.
+	* systemtap.spec: client and server sub packages require avahi.
+
+2008-09-12  Wenji Huang <wenji.huang@oracle.com>
+
+	* elaborate.cxx (add_global_var_display): Don't, in listing mode.
+
+2008-09-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6871.
+	* tapsets.cxx (query_cu): Search for prologues for user-space probes.
+	(query_func_info): Use prologue_end if available; silently back down
+	to entrypc probing if needed.
+
 2008-09-10  Josh Stone  <joshua.i.stone@intel.com>
 
 	* main.cxx (printscript): Ensure no variables are printed in probe lists
 	unless -L was specified.
+
+2008-09-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	* parse.cxx, parse.h: Rewrite scanner lookahead data structure
+	to a simple ~fixed vector.
 
 2008-09-10  Frank Ch. Eigler  <fche@elastic.org>
 

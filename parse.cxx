@@ -15,6 +15,7 @@
 #include "util.h"
 
 #include <iostream>
+
 #include <fstream>
 #include <cctype>
 #include <cstdlib>
@@ -24,6 +25,8 @@
 #include <sstream>
 #include <cstring>
 #include <cctype>
+#include <iterator>
+
 extern "C" {
 #include <fnmatch.h>
 }
@@ -576,20 +579,23 @@ parser::peek_kw (std::string const & kw)
 
 
 lexer::lexer (istream& i, const string& in, systemtap_session& s):
-  input (i), input_name (in), cursor_suspend_count(0),
+  input (i), input_name (in),
+  input_pointer (0), cursor_suspend_count(0),
   cursor_line (1), cursor_column (1), session(s)
-{ }
+{
+  char c;
+  while(input.get(c))
+    input_contents.push_back(c);
+}
 
 
 int
 lexer::input_peek (unsigned n)
 {
-  while (lookahead.size() <= n)
-    {
-      int c = input.get ();
-      lookahead.push_back (input ? c : -1);
-    }
-  return lookahead[n];
+  if (input_contents.size() > (input_pointer + n))
+    return (int)(unsigned char)input_contents[input_pointer+n];
+  else
+    return -1;
 }
 
 
@@ -597,7 +603,7 @@ int
 lexer::input_get ()
 {
   int c = input_peek (0);
-  lookahead.erase (lookahead.begin ());
+  input_pointer ++;
 
   if (c < 0) return c; // EOF
 
@@ -617,6 +623,7 @@ lexer::input_get ()
         cursor_column ++;
     }
 
+  // clog << "[" << (char)c << "]";
   return c;
 }
 
@@ -624,13 +631,9 @@ lexer::input_get ()
 void
 lexer::input_put (const string& chars)
 {
-  // clog << "[put:" << chars << "]";
-  for (int i=chars.size()-1; i>=0; i--)
-    {
-      int c = chars[i];
-      lookahead.insert (lookahead.begin(), c);
-      cursor_suspend_count ++;
-    }
+  // clog << "[put:" << chars << " @" << input_pointer << "]";
+  input_contents.insert (input_contents.begin() + input_pointer, chars.begin(), chars.end());
+  cursor_suspend_count += chars.size();
 }
 
 

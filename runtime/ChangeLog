@@ -1,3 +1,25 @@
+2008-09-12  Masami Hiramatsu <mhiramat@redhat.com>
+
+	BZ 6028
+	* regs-ia64.c (bspcache): Use REG_IP instead of pp to check probe
+	address.
+
+2008-09-12  David Smith  <dsmith@redhat.com>
+
+	BZ 6755
+	* task_finder.c: Added 'inuse' count to know when handlers are still
+	running.
+	(__stp_utrace_task_finder_report_clone): If state isn't correct,
+	detach.  Increase 'inuse' count when starting, decrement when
+	exiting.
+	(__stp_utrace_task_finder_report_exec): Ditto.
+	(__stp_utrace_task_finder_target_death): Ditto.
+	(__stp_utrace_task_finder_target_quiesce): Increase 'inuse' count
+	when starting, decrement when exiting.
+	(__stp_utrace_task_finder_target_syscall_entry): Ditto.
+	(__stp_utrace_task_finder_target_syscall_exit): Ditto.
+	(stap_stop_task_finder): Wait until all callbacks are finished.
+
 2008-09-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* runtime.h (STP_USE_FRAME_POINTER): Remove architecture #if's.

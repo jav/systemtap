@@ -39,10 +39,10 @@ static void ia64_stap_get_arbsp(struct unw_frame_info *info, void *arg)
  * bspcache: get cached unwound address and
  * 	     set a probe local cache of the offset of unwound address.
  */
-#define bspcache(cache, regs, pp)\
+#define bspcache(cache, regs)\
 	if(regs) {\
 		static unsigned __offset = 0; /* probe local cache */\
-		static const char * __pp = NULL; /* reference probe point */\
+		static void * __ip = NULL; /* reference ip */\
 		unsigned long *bsp;\
 		asm volatile("{ flushrs }\n"); /* flushrs for fixing bsp */\
 		bsp = (void*)ia64_getreg(_IA64_REG_AR_BSP);\
@@ -53,10 +53,10 @@ static void ia64_stap_get_arbsp(struct unw_frame_info *info, void *arg)
 			if (pa.address != 0) {\
 				__offset = ia64_rse_num_regs(pa.address, bsp)\
 					-(regs->cr_ifs & 127);\
-				__pp = (const char *)pp;\
+				__ip = (void *)REG_IP(regs);\
 				cache = pa.address;\
 			}\
-		} else if (pp == __pp)\
+		} else if ((void *)REG_IP(regs) == __ip)\
 			cache = ia64_rse_skip_regs(bsp,\
 				-(__offset + (regs->cr_ifs & 127)));\
 	}
@@ -126,7 +126,7 @@ static void ia64_store_register(int regno,
 
 #else /* if defined __ia64__ */
 
-#define bspcache(cache, regs, pp) do {} while(0)
+#define bspcache(cache, regs) do {} while(0)
 
 #endif /* if defined __ia64__ */
 

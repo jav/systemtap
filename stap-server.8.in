@@ -6,19 +6,19 @@ stap-server \- systemtap server and related utilities
 .SH SYNOPSIS
 
 .br
-.B stap-start-server
+.B stap\-start\-server
 .br
-.B stap-find-servers
+.B stap\-find\-servers
 [
-.B --all
+.B \-\-all
 ]
 .br
-.B stap-find-or-start-server
+.B stap\-find\-or\-start\-server
 .br
-.B stap-stop-server
+.B stap\-stop\-server
 .I PID
 .br
-.B stap-client
+.B stap\-client
 [
 .I ARGUMENTS
 ]
@@ -26,17 +26,16 @@ stap-server \- systemtap server and related utilities
 .SH DESCRIPTION
 
 The systemtap server listens for connections from
-.I stap-client
+.I stap\-client
 on the local network and accepts requests to run the
 .I stap
 front end.
 
 .PP
 The
-.I stap-start-server
-program attempts to start a systemtap server (
-.I stap-serverd
-) on the local host. Upon
+.I stap\-start\-server
+program attempts to start a systemtap server (\fIstap-serverd\fP)
+on the local host. Upon
 successful startup, the server listens for connections on a random port and
 advertises its presence on the local network using the
 .I avahi
@@ -45,71 +44,71 @@ echoed to stdout and the exit code is 0. Otherwise, nothing is echoed and the ex
 
 .PP
 The
-.I stap-find-servers
+.I stap\-find\-servers
 program attempts to find systemtap servers running on the local network.
 The details of any servers found are echoed to stdout.
 If servers are found, then the exit code is 0, otherwise it is 1.
 
 .PP
 The
-.I stap-find-or-start-server
+.I stap\-find\-or\-start\-server
 program attempts to find a compatible systemtap server running on the local network
 using
-.I stap-find-servers.
+.IR stap\-find\-servers .
 If a compatible server is found,
-.I stap-find-or-start-server
+.I stap\-find\-or\-start\-server
 echos '0' to stdout and the exit code is 0. Otherwise
-.I stap-find-or-start-server
+.I stap\-find\-or\-start\-server
 attempts to start a server on the local network using
-.I stap-start-server.
+.IR stap\-start\-server .
 If successful, the process id of the new server is echoed to stdout and the
 exit code is 0. If no server can be found or started, nothing is echoed
 to stdout and the exit code is 1.
 
 .PP
 The
-.I stap-stop-server
+.I stap\-stop\-server
 program verifies that the given process id is that of a running systemtap server
 on the local host and, if so, attempts to shut down the server by sending it the
 SIGTERM signal. If a process id is provided and it is that of a running systemtap
 server, the exit code is 0. Otherwise the exit code is 1.
-.I stap-stop-server
+.I stap\-stop\-server
 does not verify that the server actually shuts down.
 
 .PP
 The
-.I stap-client
+.I stap\-client
 program is analagous to the
 .I stap
 front end except that it attempts to find a compatible systemtap server on the
 local network and then attempts to use that server for actions related to
 passes 1 through 4. Pass 5 actions, if requested, are performed on the localhost
 using
-.I staprun
-. Upon successful completion, the exit code is 0. Otherwise the exit code
+.IR staprun .
+Upon successful completion, the exit code is 0. Otherwise the exit code
 is 1.
 
 .SH OPTIONS
 The
-.I stap-find-servers
+.I stap\-find\-servers
 program supports the following option.  Any other option
 is ignored.
 .TP
-.B \--all
+.B \-\-all
 Instructs
-.I stap-find-servers
+.I stap\-find\-servers
 to report all systemtap servers on the local network regardless of compatibility.
 The default behavior is to report only servers which are compatible with
 systemtap on the local host.
 
 .SH ARGUMENTS
 The
-.I stap-stop-server
+.I stap\-stop\-server
 program requires a process id argument which identifies the server to be stopped.
 
 .PP
 The
-.I stap-client
+.I stap\-client
 program accepts the same arguments and options as the
 .I stap
 front end.
@@ -120,33 +119,33 @@ See the
 manual page for a collection of sample scripts.
 .PP
 Here is a very basic example of how to use
-.I stap-client.
+.IR stap\-client .
 .PP
 To find out if a compatible systemtap server is running on your local network
 .PP
-\& $ stap-find-servers
+\& $ stap\-find\-servers
 .PP
 If no servers are reported, you can start one using
 .PP
-\& $ stap-start-server
+\& $ stap\-start\-server
 .PP
 You could also have accomplished both of the previous two steps using
 .PP
-\& $ stap-find-or-start-server
+\& $ stap\-find\-or\-start\-server
 .PP
 To compile and execute a simple example using the server
 .PP
-\& $ stap-client \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
+\& $ stap\-client \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
 .br
 \& Hello World!
 .PP
 If a process id was echoed by
-.I stap-start-server
+.I stap\-start\-server
 or
-.I stap-find-or-start-server
+.I stap\-find\-or\-start\-server
 then you can stop the server using
 .PP
-\& $ stap-stop-server PID
+\& $ stap\-stop\-server PID
 .PP
 where PID is the process id that was echoed.
 

@@ -103,14 +103,14 @@ probe signal.send.return = _signal.send.*.return
     retstr = returnstr(1)
 }
 
-/* 
+/*
  * Return values for "__group_send_sig_info" and "specific_send_sig_info"
  *
- * - return 0 if  the signal is sucessfully sent to a process, 
+ * - return 0 if  the signal is sucessfully sent to a process,
  *   which means the following:
  *     <1> the signal is ignored by receiving process
  *     <2> this is a non-RT signal and we already have one queued
- *     <3> the signal is successfully added into the sigqueue of 
+ *     <3> the signal is successfully added into the sigqueue of
  *        receiving process
  *
  * - return -EAGAIN if the sigqueue is overflow the signal was RT
@@ -133,7 +133,7 @@ probe _signal.send.part4.return = kernel.function("specific_send_sig_info").retu
 
 %( kernel_v <= "2.6.25" %?
 /*
- * - return 0 if the signal is either sucessfully added into the 
+ * - return 0 if the signal is either sucessfully added into the
  *   sigqueue of receiving process or a SI_TIMER entry is already
  *   queued so just increment the overrun count
  *
@@ -149,7 +149,7 @@ probe _signal.send.part2.return = kernel.function("send_group_sigqueue").return
 %)
 
 /*
- * - return 0 if the signal is either sucessfully added into the 
+ * - return 0 if the signal is either sucessfully added into the
  *   sigqueue of receiving process or a SI_TIMER entry is already
  *   queued so just increment the overrun count
  *
@@ -189,14 +189,14 @@ probe signal.checkperm = kernel.function("check_kill_permission")
         si_code="SI_KERNEL (SIGFPE, SIGSEGV, SIGTRAP, SIGCHLD, SIGPOLL)"
     else if (sinfo <= 0)
         si_code="SI_USER or SI_TIMER or SI_ASYNCIO"
-}  
+}
 
 probe signal.checkperm.return = kernel.function("check_kill_permission").return
 {
     name = "signal.checkperm"
     retstr = returnstr(1)
 }
-	
+
 
 /* probe signal.wakeup
  *
@@ -205,10 +205,10 @@ probe signal.checkperm.return = kernel.function("check_kill_permission").return
  * Argument:
  *  sig_pid: pid of the process to be woke up
  *  pid_name: name of the process to be woke up
- *  resume: indicate whether to wake up a task in STOPPED or 
+ *  resume: indicate whether to wake up a task in STOPPED or
             TRACED state
- *  state_mask: a string representation indicates the mask 
- *              of task states that can be woken 
+ *  state_mask: a string representation indicates the mask
+ *              of task states that can be woken
  */
 probe signal.wakeup = kernel.function("signal_wake_up")
 {
@@ -246,7 +246,7 @@ probe signal.check_ignored.return = kernel.function("sig_ignored").return ?
 /* probe signal.handle_stop
  *
  *  For now, just comment it out since at the time handle_stop_signal()
- *  is called, it doesn't know whether current signal is STOP/COUNT. 
+ *  is called, it doesn't know whether current signal is STOP/COUNT.
  *  So the calling of handle_stop_signal() doesn't mean that the Kernel
  *  is now processing the STOP/COUNT signal
  *
@@ -367,7 +367,7 @@ probe signal.send_sig_queue.return =
 
 /* probe signal.pending
  *
- * Used to examine the set of signals that are pending for 
+ * Used to examine the set of signals that are pending for
  * delivery to the calling thread
  *
  * long do_sigpending(void __user *set, unsigned long sigsetsize)
@@ -395,8 +395,8 @@ probe signal.pending.return = kernel.function("do_sigpending").return
  *  sinfo  : address of siginfo table.
  *  ka_addr : Address of the k_sigaction table associated with the signal
  *  oldset_addr : Address of a bit mask array of blocked signals
- *  regs   : Address in the Kernel Mode stack area 
- *  
+ *  regs   : Address in the Kernel Mode stack area
+ *
  */
 probe signal.handle = kernel.function("handle_signal")
 {
@@ -409,7 +409,7 @@ probe signal.handle = kernel.function("handle_signal")
     regs = $regs
 
     // Check whether the signal is a User Mode or Kernel mode Signal.
-    
+
     if (sinfo == 0 && sig_code <= 0)
         sig_mode = "User Mode Signal"
     else if (sinfo >=  1)
@@ -506,7 +506,7 @@ probe signal.procmask.return = kernel.function("sigprocmask").return
 
 /*
  * probe signal.flush
- * 
+ *
  * Flush all pending signals for a task.
  *
  * void flush_signals(struct task_struct *t)
@@ -517,16 +517,16 @@ probe signal.flush = kernel.function("flush_signals")
     task = $t
     sig_pid = $t->pid
     pid_name = kernel_string($t->comm)
-} 
+}
 
 function get_sa_flags:long (act:long) %{ /* pure */
-	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);	
+	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);
 	THIS->__retvalue = kread(&act->sa.sa_flags);
 	CATCH_DEREF_FAULT();
 %}
 
 function get_sa_handler:long (act:long) %{ /* pure */
-	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);	
+	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);
 	THIS->__retvalue = (long)kread(&act->sa.sa_handler);
 	CATCH_DEREF_FAULT();
 %}
@@ -608,13 +608,10 @@ function sa_handler_str(handler) {
 /*
  * Signals start from 1 not 0.
  */
-function signal_str(num) {
-	return __sig[num]
-}
-
 global __sig[64]
 
-probe begin(-1) {	
+function signal_str(num) {
+    if (!(64 in __sig)) {
 	__sig[1] = "HUP"
 	__sig[2] = "INT"
 	__sig[3] = "QUIT"
@@ -679,4 +676,6 @@ probe begin(-1) {
 	__sig[62] = "RTMIN+30"
 	__sig[63] = "RTMIN+31"
 	__sig[64] = "RTMIN+32"
+    }
+    return __sig[num]
 }

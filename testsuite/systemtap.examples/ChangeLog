@@ -1,3 +1,8 @@
+2008-09-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	* io/traceio2.stp: Make compatible with RHEL5.
+	* general/para-callgraph.meta: Tweak quoting for dejagnu passage.
+
 2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* general/para-callgraph*: Extend.

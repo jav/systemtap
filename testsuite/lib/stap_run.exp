@@ -34,6 +34,7 @@ proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args }
     expect {
 	-timeout 180
 	-re {^WARNING: cannot find module [^\r]*DWARF[^\r]*\r\n} {exp_continue}
+	-re {^WARNING: No unwind data for /.+\r\n} {exp_continue}
 	-re {^Pass\ ([1234]):[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms\.\r\n}
 	{set pass$expect_out(1,string) "\t$expect_out(2,string)\t$expect_out(3,string)\t$expect_out(4,string)"; exp_continue}
 	-re {^Pass\ ([34]): using cached [^\r]+\r\n}
