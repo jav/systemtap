@@ -1,5 +1,9 @@
 2008-09-15  Mark Wielaard  <mjw@redhat.com>
 
+	* x86_64/syscalls.stp (syscall.vm86_warning): Add argstr.
+
+2008-09-15  Mark Wielaard  <mjw@redhat.com>
+
 	* vfs.stp: Fix 2.6.27 detection.
 	* syscall.stp: Likewise.
 	* syscall2.stp: Likewise.
