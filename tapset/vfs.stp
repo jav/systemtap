@@ -744,7 +744,7 @@ probe vfs.do_mpage_readpage.return = kernel.function ("do_mpage_readpage").retur
 	units = "pages"
 }
 
-%( kernel_v > "2.6.26" %?
+%( kernel_v >= "2.6.27" %?
 probe vfs.add_to_page_cache = kernel.function ("add_to_page_cache_locked")
 %:
 probe vfs.add_to_page_cache = kernel.function ("add_to_page_cache")
@@ -761,7 +761,7 @@ probe vfs.add_to_page_cache = kernel.function ("add_to_page_cache")
 	argstr = sprintf("%d, %d", ino, index)
 }
 
-%( kernel_v > "2.6.26" %?
+%( kernel_v >= "2.6.27" %?
 probe vfs.add_to_page_cache.return = kernel.function ("add_to_page_cache_locked").return
 %:
 probe vfs.add_to_page_cache.return = kernel.function ("add_to_page_cache").return

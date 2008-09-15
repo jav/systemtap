@@ -1,3 +1,9 @@
+2008-09-15  Mark Wielaard  <mjw@redhat.com>
+
+	* vfs.stp: Fix 2.6.27 detection.
+	* syscall.stp: Likewise.
+	* syscall2.stp: Likewise.
+
 2008-09-12  Wenji Huang <wenji.huang@oracle.com>
 
 	* signal.stp: Initialize __sig in a function.
