@@ -5,7 +5,7 @@
 <chapter id="introduction">
 	<title>Introduction</title>
 	<para>
-		SystemTap is a tracing and probing tool that provides users deep technical insight into what the operating system (particularly, the kernel) is doing at any given time. It provides information similar to the output of tools like <command>netstat</command>, <command>ps</command>, <command>top</command>, and <command>iostat</command>; however, SystemTap is designed to provide information that is more "granular" in nature.  
+		SystemTap is a tracing and probing tool that provides users to study and monitor the activities of the operating system (particularly, the kernel) in fine detail. It provides information similar to the output of tools like <command>netstat</command>, <command>ps</command>, <command>top</command>, and <command>iostat</command>; however, SystemTap is designed to provide information that is more "granular" in nature.  
 	</para>
 	
 	<para>
@@ -23,7 +23,7 @@
 	
 	<para>Without SystemTap, monitoring the activity of a running kernel would require a tedious instrument, recompile, install, and reboot sequence. SystemTap is designed to eliminate this, allowing users to gather the same information by simply running its suite of tools against specific <firstterm>tapsets</firstterm> or SystemTap scripts.</para> 
 		
-	<para>However, SystemTap was initially designed for users with intermediate to advanced knowledge of the kernel. This could present a steep learning curve for administrators or developers whose knowledge of the Linux kernel is little to none.</para>
+	<para>However, SystemTap was initially designed for users with intermediate to advanced knowledge of the kernel. As such, much of the existing documentation for SystemTap is primarily for advanced users. This could present a steep learning curve for administrators or developers whose knowledge of the Linux kernel is little to none.</para>
 	
 	<para>In line with that, the main goals of the <citetitle>SystemTap Beginner's Guide</citetitle> are as follows:</para>
 	

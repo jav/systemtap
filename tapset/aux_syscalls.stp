@@ -134,13 +134,10 @@ function _struct_compat_utimbuf_modtime:long(uaddr:long)
 #endif
 %} 
 
-%{
-#define STP_UTIME_NOW  ((1l << 30) - 1l)
-#define STP_UTIME_OMIT ((1l << 30) - 2l)
-%}
-
 function _struct_timespec_u:string(uaddr:long, n:long)
 %{ /* pure */
+#define STP_UTIME_NOW  ((1l << 30) - 1l)
+#define STP_UTIME_OMIT ((1l << 30) - 2l)
 	int n = (int)THIS->n;
 	struct timespec ts[n];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
@@ -168,10 +165,14 @@ function _struct_timespec_u:string(uaddr:long, n:long)
 			}
 		}
 	}
+#undef STP_UTIME_NOW
+#undef STP_UTIME_OMIT
 %}
 function _struct_compat_timespec_u:string(uaddr:long, n:long)
 %{ /* pure */
 #ifdef CONFIG_COMPAT
+#define STP_UTIME_NOW  ((1l << 30) - 1l)
+#define STP_UTIME_OMIT ((1l << 30) - 2l)
 	int n = (int)THIS->n;
 	struct compat_timespec ts[n];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
@@ -199,6 +200,8 @@ function _struct_compat_timespec_u:string(uaddr:long, n:long)
 			}
 		}
 	}
+#undef STP_UTIME_NOW
+#undef STP_UTIME_OMIT
 #endif
 %}
 
@@ -256,16 +259,31 @@ function _struct_compat_itimerval_u:string(uaddr:long)
 #endif
 %}
 
-
 %{
-#include <linux/version.h>
+// Needed for function _struct_sockaddr_u. Unfortunately cannot be
+// inlined into the function since these header files define static
+// functions themselves.
 #include <linux/socket.h>
 #include <linux/in.h>
+#include <linux/netlink.h>
+%}
+
+function _struct_sockaddr_u:string(uaddr:long, len:long)
+%{ /* pure */
+#include <linux/version.h>
 #include <linux/in6.h>
 #include <linux/un.h>
-#include <linux/netlink.h>
 #include <linux/if_packet.h>
 
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		char buf[128];
+		size_t len = THIS->len < 128 ? THIS->len : 128;
+		if(_stp_copy_from_user(buf, ptr, len))
+			strlcpy (THIS->__retvalue, "[...]", MAXSTRINGLEN);
+		else {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,11)
 #define LPORT   (inet->inet.num)
 #define DADDR   (&inet->inet.daddr)
@@ -274,10 +292,9 @@ function _struct_compat_itimerval_u:string(uaddr:long)
 #define DADDR   (&inet->daddr)
 #endif
 
-//FIXME. Not done yet.
-
-void _stp_sockaddr_str(char *str, const int strlen, char *buf, int len)
-{
+	//FIXME. Not done yet.
+	char *str = THIS->__retvalue;
+	const int strlen = MAXSTRINGLEN;
 	struct sockaddr *sa = (struct sockaddr *)buf;
 	if ((sa->sa_family == AF_INET)&&(len == sizeof(struct sockaddr_in)))
 	{
@@ -321,29 +338,15 @@ void _stp_sockaddr_str(char *str, const int strlen, char *buf, int len)
 	{
 		if (len >= sizeof(sa_family_t))
 		{
-			snprintf(str, strlen, "{unknown sockaddr with sa=%d, salen=%d}", sa->sa_family, len);
+			snprintf(str, strlen, "{unknown sockaddr with sa=%d, salen=%d}", sa->sa_family, (int) len);
 		}
 		else
 		{
-			snprintf(str, strlen, "{unknown sockaddr with salen=%d}", len);
+			snprintf(str, strlen, "{unknown sockaddr with salen=%d}", (int)len);
 		}
 	}
-}
-%}
-
-function _struct_sockaddr_u:string(uaddr:long, len:long)
-%{ /* pure */
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
-	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		char buf[128];
-		size_t len = THIS->len < 128 ? THIS->len : 128;
-		if(_stp_copy_from_user(buf, ptr, len))
-			strlcpy (THIS->__retvalue, "[...]", MAXSTRINGLEN);
-		else
-			_stp_sockaddr_str(THIS->__retvalue, MAXSTRINGLEN, buf, len);
 	}
+}	
 %}
 
 function _struct_rlimit_u:string(uaddr:long)
@@ -517,124 +520,6 @@ function __get_compat_argv:string(a:long, first:long)
 	*str = 0;
 #endif
 %}
-
-/*
- * Return a integer member value of struct
- * timezone user  space pointer  parameter
- * CALLERS:
- *    syscall.gettimeofday
- *    syscall.settimeofday
- */
-/*
-function __uget_tz_m:long(u_addr:long,member:long)
-%{
-   struct timezone tz;
-   char *ptr = (char *)(unsigned long)THIS->u_addr;
-   size_t sz = sizeof(struct timezone);
-
-   if(copy_from_user(&tz,ptr,sz))
-      THIS->__retvalue = -EFAULT;
-   else if(THIS->member == 0)
-      THIS->__retvalue = tz.tz_minuteswest;
-   else
-      THIS->__retvalue = tz.tz_dsttime;
-%}
-*/
-/*
- * Return integer member value of struct
- * timex user  space  pointer  parameter
- * CALLERS:
- *    syscall.adjtimex
- */
-/*
-function __uget_timex_m:long(u_addr:long,member:long)
-%{
-   struct timex tx;
-   char *ptr = (char *)(unsigned long)THIS->u_addr;
-   size_t sz = sizeof(struct timex);
-
-   if(copy_from_user(&tx,ptr,sz)) {
-      THIS->__retvalue = -EFAULT;
-   } else
-   switch(THIS->member) {
-      case 0:  THIS->__retvalue =  tx.modes;
-               break;
-      case 1:  THIS->__retvalue =  tx.offset;
-               break;
-      case 2:  THIS->__retvalue =  tx.freq;
-               break;
-      case 3:  THIS->__retvalue =  tx.maxerror;
-               break;
-      case 4:  THIS->__retvalue =  tx.esterror;
-               break;
-      case 5:  THIS->__retvalue =  tx.status;
-               break;
-      case 6:  THIS->__retvalue =  tx.constant;
-               break;
-      case 7:  THIS->__retvalue =  tx.precision;
-               break;
-      case 8:  THIS->__retvalue =  tx.tolerance;
-               break;
-      case 9:  THIS->__retvalue =  tx.time.tv_sec;
-               break;
-      case 10: THIS->__retvalue = tx.time.tv_usec;
-               break;
-      case 11: THIS->__retvalue = tx.tick;
-               break;
-      default: THIS->__retvalue = -1;
-   }
-%}
-*/
-/*
- * Return the clock_t member  value of the
- * struct tms user space pointer parameter
- * CALLERS:
- *    syscall.times
- */
-/*
-%{ #include <linux/times.h> %}
-function __uget_tms_m:long(u_addr:long,member:long)
-%{
-   struct tms tms;
-   char *ptr = (char *)(unsigned long)THIS->u_addr;
-   size_t sz = sizeof(struct tms);
-
-   if(copy_from_user(&tms,ptr,sz))
-      THIS->__retvalue = -EFAULT;
-   switch(THIS->member) {
-      case 0:  THIS->__retvalue =  tms.tms_utime;
-               break;
-      case 1:  THIS->__retvalue =  tms.tms_stime;
-               break;
-      case 2:  THIS->__retvalue =  tms.tms_cutime;
-               break;
-      case 3:  THIS->__retvalue =  tms.tms_cstime;
-               break;
-      default: THIS->__retvalue = -1;
-   }
-%}
-*/
-/*
- * Return a time_t / long  member  value of the
- * struct timespec user space pointer parameter
- * CALLERS:
- *    syscall.nanosleep
- */
-/*
-function __uget_ts_m:long(u_addr:long,member:long)
-%{
-   struct timespec ts;
-   char *ptr = (char *)(unsigned long)THIS->u_addr;
-   size_t sz = sizeof(struct timespec);
-
-   if(copy_from_user(&ts,ptr,sz))
-      THIS->__retvalue = -EFAULT;
-   else if(THIS->member == 0)
-      THIS->__retvalue = ts.tv_sec;
-   else
-      THIS->__retvalue = ts.tv_nsec;
-%}
-*/
 
 /*
  * Return the  symbolic string  representation
@@ -915,13 +800,10 @@ function _recvflags_str(f) {
    return substr(bs,0,strlen(bs)-1)
 }
 
-%{
-#include <linux/mman.h>
-%}
-
 /* `man mlockall` for more information */
 function _mlockall_flags_str:string(flags:long)
 %{ /* pure */
+	#include <linux/mman.h>
 	int len;
 	long f = THIS->flags;
 	char *str = THIS->__retvalue;
@@ -973,11 +855,9 @@ function _shutdown_how_str(how) {
    return sprintf("UNKNOWN VALUE: %d", how)
 }
 
-%{
-#include <linux/reboot.h>
-%}
 function _reboot_magic_str:string(magic:long)
 %{ /* pure */
+	#include <linux/reboot.h>
 	int magic = (int)THIS->magic;
 	switch (magic) {
 	case LINUX_REBOOT_MAGIC1:
@@ -1756,6 +1636,7 @@ function _shmat_flags_str:string(f:long)
 
 
 %{
+#include <linux/mman.h>
 const _stp_val_array const _stp_mprotect_list[] = {
 	{0, "PROT_NONE"},
 	V(PROT_READ),
@@ -1772,6 +1653,7 @@ function _mprotect_prot_str:string(prot:long)
 %}
 
 %{
+#include <linux/mman.h>
 const _stp_val_array const _stp_mmap_list[] = {
 	V(MAP_SHARED),
 	V(MAP_PRIVATE),

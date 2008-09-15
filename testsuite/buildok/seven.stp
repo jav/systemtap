@@ -6,7 +6,7 @@
 
 # first: enums and ints
 
-%( kernel_v <= "2.6.26" %?
+%( kernel_v < "2.6.27" %?
 probe kernel.function("find_pid") 
 {
 %( kernel_v >= "2.6.17" %?

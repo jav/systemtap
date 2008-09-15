@@ -287,6 +287,9 @@ run_pass (systemtap_session& s)
   if (s.need_uprobes)
     staprun_cmd += "-u ";
 
+  if (s.load_only)
+    staprun_cmd += "-L ";
+
   staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
 
   if (s.verbose>1) clog << "Running " << staprun_cmd << endl;

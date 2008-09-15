@@ -5,7 +5,7 @@
 
 probe kernel.function("pipe_write")
 {
-%( kernel_v > "2.6.26" %?
+%( kernel_v >= "2.6.27" %?
 	printf("0x%x\n", $write_pipefifo_fops->llseek)
 %:
 	printf("0x%x\n", $write_fifo_fops->llseek)
