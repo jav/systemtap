@@ -13,9 +13,12 @@
 		As stated in <xref linkend="understanding-how-systemtap-works"/>, SystemTap scripts are made up of two components: <emphasis>events</emphasis> and <emphasis>handlers</emphasis>. Once a SystemTap session is underway, SystemTap monitors the operating system for the specified events and executes the handlers as they occur. 
 	</para>
 	
+	
 <note>
 	<title>Note</title>
 	<para>An event and its corresponding handler is collectively called a <emphasis>probe</emphasis>. A SystemTap script can have multiple probes.</para>
+	
+	<para>A probe's handler is also commonly referred to as a <emphasis>probe body</emphasis>.</para>
 </note>	
 	
 	<para>
@@ -92,11 +95,34 @@ probe kernel.function("*@net/socket.c").return { }
 <varlistentry>
 	<term>syscall.<replaceable>[system_call]</replaceable></term>
 	<listitem>
-		<para>The entry to the system call <replaceable>[system_call]</replaceable>. Similar to <command>kerne.function</command>, appending a <command>return</command> to the statement specifies the exit of the system call. For example, to specify the entry of the system call <command>close</command>, use <command>syscall.close.return</command>.</para>
+		<para>The entry to the system call <replaceable>[system_call]</replaceable>. Similar to <command>kernel.function</command>, appending a <command>return</command> to the statement specifies the exit of the system call. For example, to specify the entry of the system call <command>close</command>, use <command>syscall.close.return</command>.</para>
 		
 		<para>To identify what system calls are made by a specific program/command, use <command>strace <replaceable>command</replaceable></command>.</para>
 	</listitem>	
 </varlistentry>
+
+<varlistentry>
+	<term>timer.ms()</term>
+	<listitem>
+		<para>An event that specifies a handler to be executed "after X number of milliseconds". For example:</para>
+		
+<example id="timer"><title>Using timer.ms</title>		
+<programlisting>
+probe timer.ms(4000)
+{
+	exit()
+}
+</programlisting>
+</example>
+
+<para>
+	<xref linkend="timer"/> is an example of a probe that allows you to terminate the script after 4000 milliseconds (or 4 seconds). When used in conjunction with another probe that traps a large quantity of data, a probe using <command>timer.ms()</command> allows you to limit the information your script is collecting (and printing out).
+</para>	
+		
+	</listitem>	
+</varlistentry>
+
+<!--<remark>add timer.ms() to events list!</remark>-->
 <!--	
 <varlistentry>
 	<term></term>
@@ -119,7 +145,7 @@ probe kernel.function("*@net/socket.c").return { }
 	</section>
 	
 	<section id="systemtapscript-handlers">
-		<title>Handlers</title>
+		<title>Handlers/Probe Body</title>
 
 <para>
 Consider the following sample script:
@@ -172,7 +198,8 @@ printf ("<replaceable>[format string]</replaceable>\n", <replaceable>[argument]<
 probe syscall.open
 {
   printf ("%s(%d) open\n", execname(), pid())
-}	
+}
+	
 </programlisting>	
 </example>
 

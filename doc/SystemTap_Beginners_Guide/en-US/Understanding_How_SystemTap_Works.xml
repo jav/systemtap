@@ -34,7 +34,7 @@
 	<title>SystemTap Session</title>
 	<step><para>SystemTap first translates the script to C, running the system C compiler to create a kernel module from it.</para></step>
 	
-	<step><para>SystemTap then loads the module, then enables all the probed events by "hooking" those events into the kernel.</para></step>
+	<step><para>SystemTap loads the module, then enables all the probed events by "hooking" those events into the kernel.</para></step>
 		
 	<step><para>As the events occur, their corresponding handlers are executed.</para></step>
 	
