@@ -1,3 +1,8 @@
+2008-09-15  Mark Wielaard  <mjw@redhat.com>
+
+	* buildok/seventeen.stp: Fix 2.6.27 detection.
+	* testsuite/buildok/seven.stp: Likewise.
+
 2008-09-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/uprobes.stp: Use printf in case pp() is long enough

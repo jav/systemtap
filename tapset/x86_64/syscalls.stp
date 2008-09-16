@@ -120,6 +120,7 @@ probe syscall.mmap2.return = kernel.function("sys32_mmap2").return {
 #
 probe syscall.vm86_warning = kernel.function("sys32_vm86_warning") {
 	name = "vm86_warning"
+	argstr = ""
 }
 probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return {
 	name = "wm86_warning"
