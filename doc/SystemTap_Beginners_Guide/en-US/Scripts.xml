@@ -122,6 +122,29 @@ probe timer.ms(4000)
 	</listitem>	
 </varlistentry>
 
+<varlistentry>
+	<term>module("<replaceable>[module]</replaceable>").function("<replaceable>[function]</replaceable>")</term>
+	<listitem>
+		<para>Allows you to probe functions within modules. For example:</para>
+		
+<example id="eventsmodules"><title>Module Probe</title>
+<programlisting>
+probe module("ext3").function("*") { }
+probe module("ext3").function("*").return { }
+</programlisting>	
+</example>
+
+	<para>
+		The first probe in <xref linkend="eventsmodules"/> points to the entry of <emphasis>all</emphasis> functions for the <filename>ext3</filename> module. The second probe points to the exits of all entries for that same module; the use of the <command>.return</command> suffix is similar to <command>kernel.function()</command>. Note that the probes in <xref linkend="eventsmodules"/> also do not contain probe bodies, and as such will not print any useful data (as in <xref linkend="wildcards"/>). 
+	</para>	
+	
+	<para>
+		A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>[kernel version]</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
+	</para>	
+
+	</listitem>	
+</varlistentry>
+
 <!--<remark>add timer.ms() to events list!</remark>-->
 <!--	
 <varlistentry>
@@ -276,6 +299,56 @@ hald(2360) open
 	<term>probefunc()</term>
 	<listitem>
 		<para>If known, the name of the function in which the probe was placed.</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>thread_indent()</term>
+	<listitem>
+		<para>This particular handler function is quite useful, providing you with a way to better organize your print results. When used with an indentation parameter (for example, <command>-1</command>), it allows the probe to internally store an "indentation counter" for each thread (identified by ID, as in <command>tid</command>). It then returns a string with some generic trace data along with an appropriate number of indentation spaces.</para>
+		
+		<para>The generic data included in the returned string includes a timestamp (number of microseconds since the most recent initial indentation), a process name, and the thread ID. This allows you to identify what functions were called, who called them, and the duration of each function call.
+		</para>	
+		
+		<para>
+			Consider the following example on the use of <command>thread_indent()</command>:
+		</para>
+		
+<example id="thread_indent"><title>Using thread_indent()</title>
+<programlisting>
+probe kernel.function("*@net/socket.c") 
+{
+	printf ("%s -> %s\n", thread_indent(1), probefunc())
+}
+probe kernel.function("*@net/socket.c").return 
+{
+	printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
+}
+</programlisting>
+</example>
+	<para><xref linkend="thread_indent"/> prints out the <command>thread_indent()</command> and probe functions at each event in the following format:</para>
+	
+<screen>
+     0 ftp(7223): -&gt; sys_socketcall
+  1159 ftp(7223): -&gt; sys_socket
+  2173 ftp(7223):   -&gt; __sock_create
+  2286 ftp(7223):    -&gt; sock_alloc_inode
+  2737 ftp(7223):    &lt;- sock_alloc_inode
+  3349 ftp(7223):    -&gt; sock_alloc
+  3389 ftp(7223):    &lt;- sock_alloc
+  3417 ftp(7223):   &lt;- __sock_create
+  4117 ftp(7223):   -&gt; sock_create
+  4160 ftp(7223):   &lt;- sock_create
+  4301 ftp(7223):   -&gt; sock_map_fd
+  4644 ftp(7223):    -&gt; sock_map_file
+  4699 ftp(7223):    &lt;- sock_map_file
+  4715 ftp(7223):   &lt;- sock_map_fd
+  4732 ftp(7223): &lt;- sys_socket
+  4775 ftp(7223): &lt;- sys_socketcall
+</screen>
+
+<remark>remember to add a reference later to "tapsets" from here, to clarify that thread_indent is defined in tapsets as a special function of sorts</remark>
+	
 	</listitem>	
 </varlistentry>
 <!--	
