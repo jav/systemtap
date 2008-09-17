@@ -1,5 +1,9 @@
 2008-09-17  Mark Wielaard  <mjw@redhat.com>
 
+	* forkwait.c: Low byte of flags is always set to SIGCHLD.
+
+2008-09-17  Mark Wielaard  <mjw@redhat.com>
+
 	* timer.c: Timer id can be arbitrary number.
 
 2008-09-17  Mark Wielaard  <mjw@redhat.com>
