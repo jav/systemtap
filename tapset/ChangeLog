@@ -1,3 +1,8 @@
+2008-09-17  Mark Wielaard  <mjw@redhat.com>
+
+	* aux_syscalls.stp: Removed commented out code. Removed unneeded
+	unpure embedded C-code.
+
 2008-09-15  Mark Wielaard  <mjw@redhat.com>
 
 	* x86_64/syscalls.stp (syscall.vm86_warning): Add argstr.
