@@ -108,6 +108,7 @@ usage (systemtap_session& s, int exitcode)
     << "   -c CMD     start the probes, run CMD, and exit when it finishes"
     << endl
     << "   -x PID     sets target() to PID" << endl
+    << "   -F         load module and start probes, then detach" << endl
     << "   -d OBJECT  add unwind/symbol data for OBJECT file";
   if (s.unwindsym_modules.size() == 0)
     clog << endl;
@@ -363,6 +364,7 @@ main (int argc, char * const argv [])
   s.consult_symtab = false;
   s.ignore_vmlinux = false;
   s.ignore_dwarf = false;
+  s.load_only = false;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)
@@ -426,7 +428,7 @@ main (int argc, char * const argv [])
         { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:",
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:F",
                                                           long_options, NULL);
       if (grc < 0)
         break;
@@ -610,6 +612,10 @@ main (int argc, char * const argv [])
           cmdline_script = string("probe ") + string(optarg) + " {}";
           have_script = true;
           break;
+
+        case 'F':
+          s.load_only = true;
+	  break;
 
         case 0:
           switch (long_opt)

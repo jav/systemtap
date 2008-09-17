@@ -1,5 +1,10 @@
 * What's new
 
+- The stap "-F" flag activates "flight recorder" mode, which consists of
+  translating the given script as usual, but implicitly launching it into
+  the background with staprun's existing "-L" (launch) option.  A user
+  can later reattach to the module with "staprun -A MODULENAME".
+
 - Additional context variables are available on user-space syscall probes.
   - $argN ($arg1, $arg2, ... $arg6) in process(PATH_OR_PID).syscall
     gives you the argument of the system call.

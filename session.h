@@ -104,6 +104,7 @@ struct systemtap_session
   bool prologue_searching;
   bool tapset_compile_coverage;
   bool need_uprobes;
+  bool load_only; // flight recorder mode
 
   // Cache data
   bool use_cache;
