@@ -56,25 +56,15 @@ probe	<replaceable>[event]</replaceable>,
 	<section id="systemtapscript-events">
 		<title>Events</title>
 	
-<para>
-	SystemTap supports multiple events per probe; as shown in <xref linkend="scriptformats"/>, multiple events are delimited by a comma (<command>,</command>). Sample <replaceable>[event]</replaceable>s include:</para>
+<para>SystemTap events can be broadly classified into two types: <firstterm>synchronous</firstterm> and <firstterm>asynchronous</firstterm>.</para>
+
+<formalpara><title>Synchronous Events</title>
+	<para>A <firstterm>synchronous</firstterm> event occurs when any processor executes an instruction matched by the specification. This gives other events a reference point (or instruction address) from which more contextual data may be available.</para>
+</formalpara>
+
+<para>Examples of synchronous events include:</para>
 
 <variablelist>
-	
-<varlistentry>
-	<term>begin</term>
-	<listitem>
-		<para>The startup of a SystemTap session; i.e. as soon as the SystemTap script is run.</para>
-	</listitem>	
-</varlistentry>	
-
-<varlistentry>
-	<term>end</term>
-	<listitem>
-		<para>The end of a SystemTap session.</para>
-	</listitem>	
-</varlistentry>
-
 <varlistentry>
 	<term>kernel.function("<replaceable>[function]</replaceable>")</term>
 	<listitem>
@@ -100,6 +90,56 @@ probe kernel.function("*@net/socket.c").return { }
 		<para>To identify what system calls are made by a specific program/command, use <command>strace <replaceable>command</replaceable></command>.</para>
 	</listitem>	
 </varlistentry>
+	
+<varlistentry>
+	<term>module("<replaceable>[module]</replaceable>").function("<replaceable>[function]</replaceable>")</term>
+	<listitem>
+		<para>Allows you to probe functions within modules. For example:</para>
+		
+		<example id="eventsmodules"><title>Module Probe</title>
+			<programlisting>
+				probe module("ext3").function("*") { }
+				probe module("ext3").function("*").return { }
+			</programlisting>	
+		</example>
+		
+		<para>
+			The first probe in <xref linkend="eventsmodules"/> points to the entry of <emphasis>all</emphasis> functions for the <filename>ext3</filename> module. The second probe points to the exits of all entries for that same module; the use of the <command>.return</command> suffix is similar to <command>kernel.function()</command>. Note that the probes in <xref linkend="eventsmodules"/> also do not contain probe bodies, and as such will not print any useful data (as in <xref linkend="wildcards"/>). 
+		</para>	
+		
+		<para>
+			A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>[kernel version]</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
+		</para>	
+		
+	</listitem>	
+</varlistentry>	
+</variablelist>	
+
+	
+<formalpara>
+	<title>Asynchronous Events</title>
+	<para><firstterm>Asynchronous</firstterm> events, on the other hand, do not point to any reference point. This family of probe points consists mainly of counters, timers, and similar constructs.</para>
+</formalpara>
+
+	<para>Examples of asynchronous events include:</para>
+
+<variablelist>
+	
+<varlistentry>
+	<term>begin</term>
+	<listitem>
+		<para>The startup of a SystemTap session; i.e. as soon as the SystemTap script is run.</para>
+	</listitem>	
+</varlistentry>	
+
+<varlistentry>
+	<term>end</term>
+	<listitem>
+		<para>The end of a SystemTap session.</para>
+	</listitem>	
+</varlistentry>
+
+
 
 <varlistentry>
 	<term>timer.ms()</term>
@@ -122,28 +162,7 @@ probe timer.ms(4000)
 	</listitem>	
 </varlistentry>
 
-<varlistentry>
-	<term>module("<replaceable>[module]</replaceable>").function("<replaceable>[function]</replaceable>")</term>
-	<listitem>
-		<para>Allows you to probe functions within modules. For example:</para>
-		
-<example id="eventsmodules"><title>Module Probe</title>
-<programlisting>
-probe module("ext3").function("*") { }
-probe module("ext3").function("*").return { }
-</programlisting>	
-</example>
 
-	<para>
-		The first probe in <xref linkend="eventsmodules"/> points to the entry of <emphasis>all</emphasis> functions for the <filename>ext3</filename> module. The second probe points to the exits of all entries for that same module; the use of the <command>.return</command> suffix is similar to <command>kernel.function()</command>. Note that the probes in <xref linkend="eventsmodules"/> also do not contain probe bodies, and as such will not print any useful data (as in <xref linkend="wildcards"/>). 
-	</para>	
-	
-	<para>
-		A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>[kernel version]</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
-	</para>	
-
-	</listitem>	
-</varlistentry>
 
 <!--<remark>add timer.ms() to events list!</remark>-->
 <!--	
@@ -164,7 +183,12 @@ probe module("ext3").function("*").return { }
 	</para>	
 </important>
 
+<para>
+	SystemTap supports multiple events per probe; as shown in <xref linkend="scriptformats"/>, multiple events are delimited by a comma (<command>,</command>). If multiple events are specified in a single probe, SystemTap will execute the handler when any of the specified events occur. 
+</para>	
+
 <remark>is reference appropriate? too advanced for readers (it seems so to me)? please advise.</remark> 
+
 	</section>
 	
 	<section id="systemtapscript-handlers">
