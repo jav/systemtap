@@ -34,13 +34,13 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 #ifdef STP_BULKMODE
 	{
 #ifdef NO_PERCPU_HEADERS
-		void *buf = relay_reserve(_stp_utt->rchan, len);		
+		void *buf = utt_reserve(_stp_utt, len);
 		if (likely(buf))
 			memcpy(buf, pb->buf, len);
 		else
 			atomic_inc (&_stp_transport_failures);
 #else
-		void *buf = relay_reserve(_stp_utt->rchan,
+		void *buf = utt_reserve(_stp_utt,
 					sizeof(struct _stp_trace) + len);
 		if (likely(buf)) {
 			struct _stp_trace t = {	.sequence = _stp_seq_inc(),
@@ -56,7 +56,7 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 		void *buf;
 		unsigned long flags;
 		spin_lock_irqsave(&_stp_print_lock, flags);
-		buf = relay_reserve(_stp_utt->rchan, len);		
+		buf = utt_reserve(_stp_utt, len);
 		if (likely(buf))
 			memcpy(buf, pb->buf, len);
 		else
