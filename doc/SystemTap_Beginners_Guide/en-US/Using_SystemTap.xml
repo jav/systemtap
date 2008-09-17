@@ -12,10 +12,16 @@
 		<remark>
 			required packages, installation thru yum, repos (?); possibly, a script to install all required packages
 		</remark>
+		
+		<remark>
+			notes in ~/Desktop/SystemTap/aug21chatlog and ~/Desktop/SystemTap/noted_wcohenmeeting 
+		</remark>	
 <formalpara>
 	<title>Cross-Compiling</title>
 	<para>TBD</para>
 </formalpara>	
+<remark>cross-compiling script from here: http://sources.redhat.com/ml/systemtap/2008-q3/msg00310.html</remark>
+
 <remark>above; add short description, significance, howto, script (test first)</remark>
 		
 	</section>
