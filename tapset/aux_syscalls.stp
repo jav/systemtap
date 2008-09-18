@@ -855,9 +855,15 @@ function _shutdown_how_str(how) {
    return sprintf("UNKNOWN VALUE: %d", how)
 }
 
+%{
+// Needed for function __reboot_magic_str:string. Unfortunately cannot
+// be inlined into the function since these header file defines static
+// functions on some architectures.
+#include <linux/reboot.h>
+%}
+
 function _reboot_magic_str:string(magic:long)
 %{ /* pure */
-	#include <linux/reboot.h>
 	int magic = (int)THIS->magic;
 	switch (magic) {
 	case LINUX_REBOOT_MAGIC1:
