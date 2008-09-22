@@ -185,6 +185,10 @@ and aliases.
 .BI \-L " PROBE"
 Similar to "-l", but list probe points and local variables.
 .TP
+.BI \-F
+Load module and start probes, then detach from the module leaving the
+probes running.
+.TP
 .B \-\-kelf
 For names and addresses of functions to probe,
 consult the symbol tables in the kernel and modules.

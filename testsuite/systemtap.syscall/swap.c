@@ -1,6 +1,5 @@
 /* COVERAGE: swapon swapoff */
 #include <unistd.h>
-#include <asm/page.h>
 #include <sys/swap.h>
 
 

@@ -12,7 +12,7 @@ int main ()
 	int status;
 	
 	child = fork();
-	// clone (CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID) = NNNN
+	// clone (CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD) = NNNN
 	if (!child) {
 		int i = 0xfffff;
 		while (i > 0) i--;
