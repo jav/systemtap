@@ -1,3 +1,8 @@
+2008-09-22  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* socket.stp (socket.aio_read/write): Fix the semantic error
+	caused by the difference of kernel versions.
+
 2008-09-18  Mark Wielaard  <mjw@redhat.com>
 
 	* aux_syscalls.stp (_reboot_magic_str): Moved reboot.h include out.
