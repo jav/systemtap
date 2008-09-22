@@ -30,7 +30,7 @@
 		
 		<para>A SystemTap session begins when you run a SystemTap script. This session occurs in the following fashion:</para>
 			
-<procedure>
+<procedure id="systemtapsession">
 	<title>SystemTap Session</title>
 	<step><para>SystemTap first translates the script to C, running the system C compiler to create a kernel module from it.</para></step>
 	
