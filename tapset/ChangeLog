@@ -1,3 +1,7 @@
+2008-09-23  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* socket.stp (socket.aio_read/write): Fix version-checking method.
+
 2008-09-22  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* socket.stp (socket.aio_read/write): Fix the semantic error

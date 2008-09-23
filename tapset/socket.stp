@@ -226,10 +226,10 @@ probe socket.aio_write = kernel.function ("sock_aio_write")
 {
 	name = "socket.aio_write"
 	_sock = _get_sock_addr ($iocb->ki_filp)
-%( kernel_v <= "2.6.15" %?
+%( kernel_v < "2.6.16" %?
 	size = $size
 %:
-	%( kernel_v <= "2.6.18" %?
+	%( kernel_v < "2.6.19" %?
 		size = $count
 	%:
 		size = _get_sock_size ($iov, $nr_segs)
@@ -304,10 +304,10 @@ probe socket.aio_read = kernel.function ("sock_aio_read")
 {
 	name = "socket.aio_read"
 	_sock = _get_sock_addr ($iocb->ki_filp)
-%( kernel_v <= "2.6.15" %?
+%( kernel_v < "2.6.16" %?
 	size = $size
 %:
-	%( kernel_v <= "2.6.18" %?
+	%( kernel_v < "2.6.19" %?
 		size = $count
 	%:
 		size = _get_sock_size ($iov, $nr_segs)
