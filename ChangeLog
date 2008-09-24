@@ -1,3 +1,8 @@
+2008-09-24  Mark Wielaard  <mjw@redhat.com>
+
+	* dwarf_wrappers.cxx (dwfl_assert(string,bool)): Call
+	dwfl_assert(string,int), not dwarf_assert().
+
 2008-09-12  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client (staprun_PATH): Ensure that $first_stap is not empty.
