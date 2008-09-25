@@ -1,0 +1,4 @@
+#!/bin/sh
+# Per bz3016, this should get through the semantic pass without warnings.
+stap -p2 -e 'probe kernel.function("do_mpage_readpage") { printf("\n page ->inuse %u",$page->inuse);exit();}'
+exit 0

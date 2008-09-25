@@ -381,3 +381,5 @@
 
 - Many minor bug fixes, performance, tapset, and error message
   improvements.
+
+- Modify translator code to identify members of anonymous structs / unions.

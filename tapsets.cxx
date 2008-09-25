@@ -1776,9 +1776,33 @@ struct dwflpp
     // Output each sibling's name to 'o'.
     while (dwarf_tag (die) == DW_TAG_member)
       {
-	const char *member = (dwarf_diename_integrate (die) ?: "<anonymous>");
+	const char *member = dwarf_diename_integrate (die) ;
+	
+	if ( member != NULL )
 
-	o << " " << member;
+		o << " " << member;
+
+	else
+	    { 
+		Dwarf_Die temp_die = *die; 
+		Dwarf_Attribute temp_attr ;
+		
+		 if (!dwarf_attr_integrate (&temp_die, DW_AT_type, &temp_attr))
+                        {
+                          clog<<"\n Error in obtaining type attribute for "
+			      <<(dwarf_diename(&temp_die)?:"<anonymous>");
+                          return ;
+                        }
+
+                   if ( ! dwarf_formref_die (&temp_attr,&temp_die))
+                        {
+                          clog<<"\n Error in decoding type attribute for "
+			      <<(dwarf_diename(&temp_die)?:"<anonymous>");
+                          return ;
+                        }
+		   print_members(&temp_die,o);
+
+	    }
 
 	if (dwarf_siblingof (die, &die_mem) != 0)
 	  break;
@@ -1797,7 +1821,15 @@ struct dwflpp
   {
     Dwarf_Die *die = vardie;
     Dwarf_Die struct_die;
+    Dwarf_Attribute temp_attr;
+
     unsigned i = 0;
+
+    static unsigned int func_call_level ;
+    static unsigned int dwarf_error_flag ; // indicates current error is dwarf error
+    static unsigned int dwarf_error_count ; // keeps track of no of dwarf errors
+    static semantic_error saved_dwarf_error("");
+
     while (i < components.size())
       {
         /* XXX: This would be desirable, but we don't get the target_symbol token,
@@ -1855,9 +1887,7 @@ struct dwflpp
 	    switch (dwarf_child (die, die_mem))
 	      {
 	      case 1:		/* No children.  */
-		throw semantic_error ("empty struct "
-				      + string (dwarf_diename_integrate (die) ?: "<anonymous>"));
-		break;
+		return NULL;
 	      case -1:		/* Error.  */
 	      default:		/* Shouldn't happen */
 		throw semantic_error (string (typetag == DW_TAG_union_type ? "union" : "struct")
@@ -1872,14 +1902,60 @@ struct dwflpp
 	    while (dwarf_tag (die) != DW_TAG_member
 		   || ({ const char *member = dwarf_diename_integrate (die);
 		       member == NULL || string(member) != components[i].second; }))
+	    {
+	      if ( dwarf_diename (die) == NULL )  // handling Anonymous structs/unions
+		{ 
+		   Dwarf_Die temp_die = *die;
+		   Dwarf_Die temp_die_2;
+
+		   try 
+		    {		   
+		      if (!dwarf_attr_integrate (&temp_die, DW_AT_type, &temp_attr))
+                       { 
+			  dwarf_error_flag ++ ;
+			  dwarf_error_count ++;
+			  throw semantic_error(" Error in obtaining type attribute for "+ string(dwarf_diename(&temp_die)?:"<anonymous>"));
+                	}
+
+	              if ( !dwarf_formref_die (&temp_attr, &temp_die))
+        	        { 
+			  dwarf_error_flag ++ ;
+			  dwarf_error_count ++;
+			  throw semantic_error(" Error in decoding DW_AT_type attribute for " + string(dwarf_diename(&temp_die)?:"<anonymous>")); 
+                	}
+
+		      func_call_level ++ ;
+
+                      Dwarf_Die *result_die = translate_components(pool, tail, pc, components, &temp_die, &temp_die_2, &temp_attr );
+
+		      func_call_level -- ;
+
+		      if (result_die != NULL)
+			{ 
+			  memcpy(die_mem, &temp_die_2, sizeof(Dwarf_Die));
+			  memcpy(attr_mem, &temp_attr, sizeof(Dwarf_Attribute));
+			  return die_mem;
+			}
+		     }
+		   catch (const semantic_error& e)
+		     { 
+			if ( !dwarf_error_flag ) //not a dwarf error
+				throw;
+			else
+				{
+				  dwarf_error_flag = 0 ;
+				  saved_dwarf_error = e ;
+				}
+		     }
+		}
 	      if (dwarf_siblingof (die, die_mem) != 0)
-	      {
-		  stringstream alternatives;
-		  print_members (&struct_die, alternatives);
-		  throw semantic_error ("field '" + components[i].second
-					+ "' not found (alternatives:"
-					+ alternatives.str () + ")");
-	      }
+		{ 
+		  if ( func_call_level == 0 && dwarf_error_count ) // this is parent call & a dwarf error has been reported in a branch somewhere
+			throw semantic_error( saved_dwarf_error );
+		  else	
+		  	 return NULL;
+		}
+	    }
 
 	    if (dwarf_attr_integrate (die, DW_AT_data_member_location,
 				      attr_mem) == NULL)
@@ -2161,6 +2237,13 @@ struct dwflpp
     Dwarf_Die die_mem, *die = NULL;
     die = translate_components (&pool, &tail, pc, components,
 				&vardie, &die_mem, &attr_mem);
+    if(!die)
+	{ 
+	  die = dwarf_formref_die (&attr_mem, &vardie);
+          stringstream alternatives;
+          print_members(die,alternatives); 
+	  throw semantic_error("Translation failure :  \n ALTERNATIVES [ " + alternatives.str() + " ] \n");
+	}
 
     /* Translate the assignment part, either
        x = $foo->bar->baz[NN]
@@ -2228,6 +2311,14 @@ struct dwflpp
     Dwarf_Die die_mem, *die = NULL;
     die = translate_components (&pool, &tail, pc, components,
 				vardie, &die_mem, &attr_mem);
+    if(!die)
+	{ 
+	  die = dwarf_formref_die (&attr_mem, vardie);
+          stringstream alternatives;
+          print_members(die,alternatives); 
+	  throw semantic_error("Translation failure : \n ALTERNATIVES [ " + alternatives.str() + " ] \n");
+	}
+
 
     /* Translate the assignment part, either
        x = $return->bar->baz[NN]
