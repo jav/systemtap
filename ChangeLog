@@ -1,3 +1,23 @@
+2008-09-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	BZ 6829: avoid calling unregister_uprobe() when responding
+	to a task-finder exec/exit callback, as uprobes likes to
+	clean such things up by itself.
+
+2008-09-12  Prerna Saxena  <prerna@linux.vnet.ibm.com>
+
+	BZ 3016 : Handling members of anonymous structs/unions
+	* tapsets.cxx (translate_components, print_members) : enable
+	translator to identify members of anonymous structs / unions.
+	* testsuite/semok/thirtythree.stp : New test-case.
+	* NEWS : Modify translator code to identify members of anonymous
+	structs/unions.
+
+2008-09-24  Mark Wielaard  <mjw@redhat.com>
+
+	* dwarf_wrappers.cxx (dwfl_assert(string,bool)): Call
+	dwfl_assert(string,int), not dwarf_assert().
+
 2008-09-12  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client (staprun_PATH): Ensure that $first_stap is not empty.

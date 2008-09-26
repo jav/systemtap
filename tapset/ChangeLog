@@ -1,3 +1,16 @@
+2008-09-23  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* socket.stp (socket.aio_read/write): Fix version-checking method.
+
+2008-09-22  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* socket.stp (socket.aio_read/write): Fix the semantic error
+	caused by the difference of kernel versions.
+
+2008-09-18  Mark Wielaard  <mjw@redhat.com>
+
+	* aux_syscalls.stp (_reboot_magic_str): Moved reboot.h include out.
+
 2008-09-17  Mark Wielaard  <mjw@redhat.com>
 
 	* aux_syscalls.stp: Removed commented out code. Removed unneeded

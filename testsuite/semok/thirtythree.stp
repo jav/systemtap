@@ -1,0 +1,5 @@
+#! stap -p2
+# Per bz3016, this should get through the semantic pass without warnings.
+probe kernel.function("do_mpage_readpage") {
+       printf("\n page ->inuse %u",$page->inuse)
+}

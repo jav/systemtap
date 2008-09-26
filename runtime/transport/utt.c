@@ -31,6 +31,96 @@
 
 static int utt_overwrite_flag = 0;
 
+/*
+ *	utt_switch_subbuf - switch to a new sub-buffer
+ *
+ *	Most of this function is deadcopy of relay_switch_subbuf.
+ */
+size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
+			 size_t length)
+{
+	void *old, *new;
+	size_t old_subbuf, new_subbuf;
+
+	if (unlikely(buf == NULL))
+		return 0;
+
+	if (unlikely(length > buf->chan->subbuf_size))
+		goto toobig;
+
+	if (buf->offset != buf->chan->subbuf_size + 1) {
+		buf->prev_padding = buf->chan->subbuf_size - buf->offset;
+		old_subbuf = buf->subbufs_produced % buf->chan->n_subbufs;
+		buf->padding[old_subbuf] = buf->prev_padding;
+		buf->subbufs_produced++;
+		buf->dentry->d_inode->i_size += buf->chan->subbuf_size -
+			buf->padding[old_subbuf];
+		smp_mb();
+		if (waitqueue_active(&buf->read_wait))
+			/*
+			 * Calling wake_up_interruptible() and __mod_timer()
+			 * from here will deadlock if we happen to be logging
+			 * from the scheduler and timer (trying to re-grab
+			 * rq->lock/timer->base->lock), so just set a flag.
+			 */
+			atomic_set(&utt->wakeup, 1);
+	}
+
+	old = buf->data;
+	new_subbuf = buf->subbufs_produced % buf->chan->n_subbufs;
+	new = buf->start + new_subbuf * buf->chan->subbuf_size;
+	buf->offset = 0;
+	if (!buf->chan->cb->subbuf_start(buf, new, old, buf->prev_padding)) {
+		buf->offset = buf->chan->subbuf_size + 1;
+		return 0;
+	}
+	buf->data = new;
+	buf->padding[new_subbuf] = 0;
+
+	if (unlikely(length + buf->offset > buf->chan->subbuf_size))
+		goto toobig;
+
+	return length;
+
+toobig:
+	buf->chan->last_toobig = length;
+	return 0;
+}
+
+static void __utt_wakeup_readers(struct rchan_buf *buf)
+{
+	if (buf && waitqueue_active(&buf->read_wait) &&
+	    buf->subbufs_produced != buf->subbufs_consumed)
+		wake_up_interruptible(&buf->read_wait);
+}
+
+static void __utt_wakeup_timer(unsigned long val)
+{
+	struct utt_trace *utt = (struct utt_trace *)val;
+	int i;
+
+	if (atomic_read(&utt->wakeup)) {
+		atomic_set(&utt->wakeup, 0);
+		if (utt->is_global)
+			__utt_wakeup_readers(utt->rchan->buf[0]);
+		else
+			for_each_possible_cpu(i)
+				__utt_wakeup_readers(utt->rchan->buf[i]);
+	}
+
+ 	mod_timer(&utt->timer, jiffies + UTT_TIMER_INTERVAL);
+}
+
+static void __utt_timer_init(struct utt_trace * utt)
+{
+	atomic_set(&utt->wakeup, 0);
+	init_timer(&utt->timer);
+	utt->timer.expires = jiffies + UTT_TIMER_INTERVAL;
+	utt->timer.function = __utt_wakeup_timer;
+	utt->timer.data = (unsigned long)utt;
+	add_timer(&utt->timer);
+}
+
 void utt_set_overwrite(int overwrite)
 {
 	utt_overwrite_flag = overwrite;
@@ -241,6 +331,8 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 		goto err;
 	utt->rchan->private_data = utt;
 
+	utt->is_global = utts->is_global;
+
 	utt->trace_state = Utt_trace_setup;
 
 	utts->err = 0;
@@ -274,6 +366,7 @@ int utt_trace_startstop(struct utt_trace *utt, int start,
 		    utt->trace_state == Utt_trace_stopped) {
 			if (trace_seq)
 				(*trace_seq)++;
+			__utt_timer_init(utt);
 			smp_mb();
 			utt->trace_state = Utt_trace_running;
 			ret = 0;
@@ -281,6 +374,7 @@ int utt_trace_startstop(struct utt_trace *utt, int start,
 	} else {
 		if (utt->trace_state == Utt_trace_running) {
 			utt->trace_state = Utt_trace_stopped;
+			del_timer_sync(&utt->timer);
 			relay_flush(utt->rchan);
 			ret = 0;
 		}

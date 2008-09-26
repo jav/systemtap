@@ -214,15 +214,26 @@ probe socket.recvmsg.return = kernel.function ("sock_recvmsg").return
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
+ *
+ * 2.6.9~2.6.15:
+ *     static ssize_t sock_aio_write(struct kiocb *iocb, const char __user *ubuf, size_t size, loff_t pos);
+ * 2.6.16~2.6.18:
+ *     static ssize_t sock_aio_write(struct kiocb *iocb, const char __user *ubuf, size_t count, loff_t pos);
+ * 2.6.19~2.6.26:
+ *     static ssize_t sock_aio_write(struct kiocb *iocb, const struct iovec *iov, unsigned long nr_segs, loff_t pos);
  */
 probe socket.aio_write = kernel.function ("sock_aio_write")
 {
 	name = "socket.aio_write"
 	_sock = _get_sock_addr ($iocb->ki_filp)
-%( kernel_v < "2.6.19" %?
-	size = $count
+%( kernel_v < "2.6.16" %?
+	size = $size
 %:
-	size = _get_sock_size ($iov, $nr_segs)
+	%( kernel_v < "2.6.19" %?
+		size = $count
+	%:
+		size = _get_sock_size ($iov, $nr_segs)
+	%)
 %)
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
@@ -281,15 +292,26 @@ probe socket.aio_write.return = kernel.function ("sock_aio_write").return
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
+ *
+ * 2.6.9~2.6.15:
+ *     static ssize_t sock_aio_read(struct kiocb *iocb, char __user *ubuf, size_t size, loff_t pos);
+ * 2.6.16~2.6.18:
+ *     static ssize_t sock_aio_read(struct kiocb *iocb, char __user *ubuf, size_t count, loff_t pos);
+ * 2.6.19~2.6.26:
+ *     static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov, unsigned long nr_segs, loff_t pos);
  */
 probe socket.aio_read = kernel.function ("sock_aio_read")
 {
 	name = "socket.aio_read"
 	_sock = _get_sock_addr ($iocb->ki_filp)
-%( kernel_v < "2.6.19" %?
-        size = $count
+%( kernel_v < "2.6.16" %?
+	size = $size
 %:
-        size = _get_sock_size ($iov, $nr_segs)
+	%( kernel_v < "2.6.19" %?
+		size = $count
+	%:
+		size = _get_sock_size ($iov, $nr_segs)
+	%)
 %)
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)

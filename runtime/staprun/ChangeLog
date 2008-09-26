@@ -1,3 +1,9 @@
+2008-09-18  David Smith  <dsmith@redhat.com>
+
+	PR 6903.
+	* staprun_funcs.c (check_permissions): Instead of checking the
+	effective uid, check the real uid for root permissions.
+
 2008-09-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* mainloop.c (start_cmd): Rewrite to use wordexp/execvp/ptrace.

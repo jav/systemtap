@@ -24,9 +24,11 @@
 
 #define UTRACE_ORIG_VERSION
 
-#define UTRACE_RESUME	UTRACE_ACTION_RESUME
-#define UTRACE_DETACH	UTRACE_ACTION_DETACH
-#define UTRACE_STOP	UTRACE_ACTION_QUIESCE
+enum utrace_resume_action {
+	UTRACE_STOP = UTRACE_ACTION_QUIESCE,
+	UTRACE_RESUME = UTRACE_ACTION_RESUME,
+	UTRACE_DETACH = UTRACE_ACTION_DETACH,
+};
 
 static inline struct utrace_attached_engine *
 utrace_attach_task(struct task_struct *target, int flags,
@@ -38,11 +40,17 @@ utrace_attach_task(struct task_struct *target, int flags,
 static inline int __must_check
 utrace_control(struct task_struct *target,
 	       struct utrace_attached_engine *engine,
-	       unsigned long action)
+	       enum utrace_resume_action action)
 {
-	if (action == UTRACE_DETACH)
+	switch (action) {
+	case UTRACE_DETACH:
 		return utrace_detach(target, engine);
-	return -EINVAL;
+	case UTRACE_STOP:
+		return utrace_set_flags(target, engine,
+					(engine->flags | UTRACE_ACTION_QUIESCE));
+	default:
+		return -EINVAL;
+	}
 }
 
 static inline int __must_check
@@ -51,6 +59,19 @@ utrace_set_events(struct task_struct *target,
 		  unsigned long eventmask)
 {
 	return utrace_set_flags(target, engine, eventmask);
+}
+
+static inline void
+utrace_engine_put(struct utrace_attached_engine *engine)
+{
+	return;
+}
+
+static inline int __must_check
+utrace_barrier(struct task_struct *target,
+	       struct utrace_attached_engine *engine)
+{
+	return 0;
 }
 #endif
 

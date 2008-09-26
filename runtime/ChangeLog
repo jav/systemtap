@@ -1,3 +1,28 @@
+2008-09-26  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__STP_ATTACHED_TASK_EVENTS): Removed UTRACE_STOP,
+	which isn't needed anymore.
+
+2008-09-25  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_attach): Added action flag to know
+	to request the thread to be stopped or not.
+	(stap_utrace_attach): Now just calls __stp_utrace_attach().
+	(__stp_utrace_task_finder_target_quiesce): Handles
+	utrace_set_events() errors properly.
+	
+	* utrace_compatibility.h (enum utrace_resume_action): Added
+	utrace_resume_action enum.
+	(utrace_control): Added UTRACE_STOP support.
+	(utrace_engine_put): New.
+	(utrace_barrier): New.
+
+2008-09-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6487, 6504.
+	From Masami Hiramatsu <mhiramat@redhat.com>
+	* print_new.c (stp_print_flush): Use new utt_reserve().
+
 2008-09-12  Masami Hiramatsu <mhiramat@redhat.com>
 
 	BZ 6028
