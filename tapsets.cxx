@@ -6932,7 +6932,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // register new uprobe
   s.op->newline() << "if (register_p && sup->spec_index < 0) {";
-  s.op->newline(1) << "sup->spec_index = spec_index;";
+  // PR6829: we need to check that the sup we're about to reuse is really completely free.
+  // See PR6829 notes below.
+  s.op->newline(1) << "if (sup->spec_index == -1 && sup->up.kdata != NULL) continue;";
+  s.op->newline() << "else if (sup->spec_index == -2 && sup->urp.u.kdata != NULL) continue;";
+  s.op->newline() << "sup->spec_index = spec_index;";
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "sup->urp.u.pid = tsk->tgid;";
   s.op->newline() << "sup->urp.u.vaddr = relocation + sups->address;";
@@ -6968,15 +6972,22 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
   s.op->newline() << "printk (KERN_WARNING \"uretprobe unregister pid %d addr %p\\n\", sup->up.pid, (void*) sup->up.vaddr);";
   s.op->newline() << "#endif";
-  s.op->newline() << "unregister_uretprobe (& sup->urp);";
+  // NB: We must not actually uregister uprobes when a target process execs or exits;
+  // uprobes does that by itself asynchronously.  We can reuse the up/urp struct after
+  // uprobes clears the sup->urp->kdata pointer. PR6829
+  // s.op->newline() << "unregister_uretprobe (& sup->urp);";
+  s.op->newline() << "sup->spec_index = -2;";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
   s.op->newline() << "printk (KERN_WARNING \"uprobe unregister pid %d addr %p\\n\", sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
   s.op->newline() << "#endif";
-  s.op->newline() << "unregister_uprobe (& sup->up);";
+  // NB: We must not actually unregister uprobes ... same as above, except that
+  // here it's the sup->up->kdata field that will get cleared.  To tell the two
+  // cases apart, we use spec_index -2 vs -1.
+  // s.op->newline() << "unregister_uprobe (& sup->up);";
+  s.op->newline() << "sup->spec_index = -1;";
   s.op->newline(-1) << "}";
-  s.op->newline(1) << "sup->spec_index = -1;";
-  s.op->newline() << "handled_p = 1;";
+  s.op->newline(1) << "handled_p = 1;";
   s.op->newline() << "break;"; // exit to-free slot search
   s.op->newline(-1) << "}"; // if/else
 
@@ -7037,6 +7048,9 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (j=0; j<NUMUPROBES; j++) {";
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
   s.op->newline() << "sup->spec_index = -1;"; // free slot
+  // NB: we assume the rest of the struct (specificaly, sup->up) is
+  // initialized to zero.  This is so that we can use
+  // sup->up->kdata = NULL for "really free!"  PR 6829.
   s.op->newline(-1) << "}";
   s.op->newline() << "mutex_init (& stap_uprobes_lock);";
 
@@ -7077,6 +7091,8 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
   s.op->newline() << "printk (KERN_WARNING \"uretprobe unregister2 index %d pid %d addr %p\\n\", sup->spec_index, sup->up.pid, (void*) sup->up.vaddr);";
   s.op->newline() << "#endif";
+  // NB: PR6829 does not change that we still need to unregister at
+  // *this* time -- when the script as a whole exits.
   s.op->newline() << "unregister_uretprobe (& sup->urp);";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
