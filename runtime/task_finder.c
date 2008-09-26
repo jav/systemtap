@@ -387,7 +387,6 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
  * events.
  */
 #define __STP_ATTACHED_TASK_EVENTS (__STP_TASK_BASE_EVENTS	\
-				    | UTRACE_STOP		\
 				    | UTRACE_EVENT(QUIESCE))
 
 #define __STP_ATTACHED_TASK_BASE_EVENTS(tgt) \
