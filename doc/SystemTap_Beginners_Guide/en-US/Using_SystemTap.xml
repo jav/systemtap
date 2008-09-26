@@ -108,14 +108,60 @@ uname -r
 	<section id="using-usage">
 		<title>Usage</title>
 		<remark>
-			basic commands (e.g. stap), useful options per command (e.g. stap -vv), tool references (man pages, related kernel-doc), references within book (i.e. errors chapter)
+			- basic commands (e.g. stap), useful options per command (e.g. stap -vv), tool references (man pages, related kernel-doc), references within book (i.e. errors chapter)
 		</remark>
 		
 		<remark>
-			running systemtap scripts
+			- running systemtap scripts
 		</remark>
+<!--		
+		<remark>- Tapsets: short intro on usage</remark>
+		-->
+		<para>
+			SystemTap scripts are run through the command <command>stap</command>. <command>stap</command> can run SystemTap scripts from standard input or from file. Below is a list of common options available to you: 
+		</para>
 		
-		<remark>Tapsets: short intro on usage</remark>
+<variablelist>
+
+<varlistentry>
+	<term>-v</term>
+	<listitem>
+		<para>Makes the output of the SystemTap session more verbose. You can repeat this option to (for example, <command>stap -vvv script.stp</command>); provide more details on the script's execution. This option is particularly useful if you encounter any errors in running the script.</para>
+		
+		<para>For more information about common SystemTap script errors, refer to <xref linkend="errors"/>.</para>
+	</listitem>	
+</varlistentry>	
+	
+<varlistentry>
+	<term>-I <replaceable>[directory]</replaceable></term>
+	<listitem>
+		<para>Check the script against additional tapsets found in  <command><replaceable>[directory]</replaceable></command>. This is useful if you have additional tapsets that are not included in <filename>/usr/share/systemtap/tapset/</filename>; for more information about tapsets, refer to <xref linkend="understanding-tapsets"/>.</para>
+	</listitem>	
+</varlistentry>	
+
+<varlistentry>
+	<term>-o <replaceable>[filename]</replaceable></term>
+	<listitem>
+		<para>Sends the standard output to file (<replaceable>[filename]</replaceable>).</para>
+	</listitem>	
+</varlistentry>	
+
+<!--	
+<varlistentry>
+	<term></term>
+	<listitem>
+		<para></para>
+	</listitem>	
+</varlistentry>	
+			-->
+</varlistentry>
+
+<remark>any other useful options worth noting here for beginners?</remark>
+
+<para>For more information about <command>stap</command>, refer to <command>man stap</command>.</para>
+
+<para>To run SystemTap instrumentation (i.e. the kernel module built from SystemTap scripts during a cross-instrumentation), use <command>staprun</command> instead. For more information about <command>staprun</command> and cross-instrumentation, refer to <xref linkend="cross-compiling"/>.</para>
+
 	</section>
 
 </chapter>

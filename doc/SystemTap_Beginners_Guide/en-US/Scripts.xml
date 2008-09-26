@@ -45,7 +45,7 @@ probe	<replaceable>[event]</replaceable>,
 	exit()
 }
 </programlisting>		
-	<para>The <replaceable>exit()</replaceable> condition is optional, but it is recommended since it safely terminates the session once the script successfully traps the required information.</para>	
+	<para>The <replaceable>exit()</replaceable> condition is optional; this condition safely terminates the session once the script successfully traps the required information the first time.</para>	
 	
 <important>
 	<title>Important</title>
@@ -68,7 +68,7 @@ probe	<replaceable>[event]</replaceable>,
 <varlistentry>
 	<term>kernel.function("<replaceable>[function]</replaceable>")</term>
 	<listitem>
-		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that the kernel function <command>sys_open</command> is used. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
+		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that occurs when the kernel function <command>sys_open</command> is called by any thread in the system. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
 		
 		<para>When defining functions, you can use asterisk (<command>*</command>) for wildcards. You can also trace the entry/exit of a function in a kernel source file. Consider the following example:</para>
 <example id="wildcards"><title>Wildcards and Kernel Source Files in an Event</title>
@@ -142,7 +142,7 @@ probe kernel.function("*@net/socket.c").return { }
 
 
 <varlistentry>
-	<term>timer.ms()</term>
+	<term>timer events</term>
 	<listitem>
 		<para>An event that specifies a handler to be executed "after X number of milliseconds". For example:</para>
 		
@@ -156,7 +156,23 @@ probe timer.ms(4000)
 </example>
 
 <para>
-	<xref linkend="timer"/> is an example of a probe that allows you to terminate the script after 4000 milliseconds (or 4 seconds). When used in conjunction with another probe that traps a large quantity of data, a probe using <command>timer.ms()</command> allows you to limit the information your script is collecting (and printing out).
+	<xref linkend="timer"/> is an example of a probe that allows you to terminate the script after 4000 milliseconds. Note that you can also use the following timer events:
+</para>
+	
+<itemizedlist>
+<listitem><para><command>timer.s(<replaceable>[seconds]</replaceable>)</command></para></listitem>
+
+<listitem><para><command>timer.us(<replaceable>[microseconds]</replaceable>)</command></para></listitem>
+
+<listitem><para><command>timer.ns(<replaceable>[nanoseconds]</replaceable>)</command></para></listitem>
+
+<listitem><para><command>timer.hz(<replaceable>[hertz]</replaceable>)</command></para></listitem>
+
+<listitem><para><command>timer.jiffies(<replaceable>[jiffies]</replaceable>)</command></para></listitem>
+
+</itemizedlist>
+<para>
+	When used in conjunction with another probe that traps a large quantity of data, timer events allow you to limit the information your script is collecting (and printing out).
 </para>	
 		
 	</listitem>	
@@ -215,11 +231,10 @@ probe begin
 <formalpara id="printf">
 	<title>printf ( ) Statements</title>
 <para>
-	The <command>printf ()</command> statement is one of the simplest handler tools for printing data. <command>printf ()</command> can also be used to trap data using a wide variety of SystemTap handler functions using the following format:
+	The <command>printf ()</command> statement is one of the simplest functions for printing data. <command>printf ()</command> can also be used to trap data using a wide variety of SystemTap handler functions using the following format:
 </para>
 
 </formalpara>
-<remark>is "handler tool" appropriate?</remark>
 
 
 <programlisting>
@@ -233,6 +248,11 @@ printf ("<replaceable>[format string]</replaceable>\n", <replaceable>[argument]<
 <para>
 	You can use the variables <command>%s</command> (for strings) and <command>%d</command> (for numbers) in format strings, depending on your list of arguments. Format strings can have multiple variables, each matching a corresponding argument; multiple arguments are delimited by a comma (<command>,</command>) and space.
 </para>
+
+<note>
+	<title>Note</title>
+	<para>Semantically, the SystemTap <command>printf</command> function is very similar to its C language counterpart. The aforementioned syntax and format for SystemTap's <command>printf</command> function is identical to that of the C-style <command>printf</command>.</para>
+</note>	
 
 <para>
 	To illustrate this, consider the following probe example:
