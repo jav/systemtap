@@ -1,5 +1,9 @@
 2008-09-26  Frank Ch. Eigler  <fche@elastic.org>
 
+	* elaborate.cxx (add_global_var_display): Implicitly sort arrays.
+
+2008-09-26  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 6916
 	* elaborate.cxx (systemtap_session::print_error): Fix
 	duplicate elimination in face of token compression.
