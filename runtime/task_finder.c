@@ -89,7 +89,7 @@ struct stap_task_finder_target {
 	size_t pathlen;
 
 /* public: */
-    	const char *pathname;
+	const char *pathname;
 	pid_t pid;
 	stap_task_finder_callback callback;
 	stap_task_finder_vm_callback vm_callback;
@@ -148,8 +148,8 @@ static int
 stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 {
 	// Since this __stp_task_finder_list is (currently) only
-        // written to in one big setup operation before the task
-        // finder process is started, we don't need to lock it.
+	// written to in one big setup operation before the task
+	// finder process is started, we don't need to lock it.
 	struct list_head *node;
 	struct stap_task_finder_target *tgt = NULL;
 	int found_node = 0;
@@ -258,6 +258,7 @@ stap_utrace_detach(struct task_struct *tsk,
 				   rc, tsk->pid);
 			break;
 		}
+		utrace_engine_put(engine);
 	}
 	return rc;
 }
@@ -386,7 +387,6 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
  * events.
  */
 #define __STP_ATTACHED_TASK_EVENTS (__STP_TASK_BASE_EVENTS	\
-				    | UTRACE_STOP		\
 				    | UTRACE_EVENT(QUIESCE))
 
 #define __STP_ATTACHED_TASK_BASE_EVENTS(tgt) \
@@ -394,9 +394,10 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	 : __STP_TASK_VM_BASE_EVENTS)
 
 static int
-stap_utrace_attach(struct task_struct *tsk,
-		   const struct utrace_engine_ops *ops, void *data,
-		   unsigned long event_flags)
+__stp_utrace_attach(struct task_struct *tsk,
+		    const struct utrace_engine_ops *ops, void *data,
+		    unsigned long event_flags,
+		    enum utrace_resume_action action)
 {
 	struct utrace_attached_engine *engine;
 	struct mm_struct *mm;
@@ -428,13 +429,49 @@ stap_utrace_attach(struct task_struct *tsk,
 	}
 	else {
 		rc = utrace_set_events(tsk, engine, event_flags);
-		if (rc == 0)
+		if (rc == -EINPROGRESS) {
+			/*
+			 * It's running our callback, so we have to
+			 * synchronize.  We can't keep rcu_read_lock,
+			 * so the task pointer might die.  But it's
+			 * safe to call utrace_barrier() even with a
+			 * stale task pointer, if we have an engine
+			 * ref.
+			 */
+			rc = utrace_barrier(tsk, engine);
+			if (rc != 0)
+				_stp_error("utrace_barrier returned error %d on pid %d",
+					   rc, (int)tsk->pid);
+		}
+		if (rc == 0) {
 			debug_task_finder_attach();
+
+			if (action != UTRACE_RESUME) {
+				rc = utrace_control(tsk, engine, UTRACE_STOP);
+				/* EINPROGRESS means we must wait for
+				 * a callback, which is what we want. */
+				if (rc != 0 && rc != -EINPROGRESS)
+					_stp_error("utrace_control returned error %d on pid %d",
+						   rc, (int)tsk->pid);
+				else
+					rc = 0;
+			}
+
+		}
 		else
-			_stp_error("utrace_set_events returned error %d on pid %d",
+			_stp_error("utrace_set_events2 returned error %d on pid %d",
 				   rc, (int)tsk->pid);
+		utrace_engine_put(engine);
 	}
 	return rc;
+}
+
+static int
+stap_utrace_attach(struct task_struct *tsk,
+		   const struct utrace_engine_ops *ops, void *data,
+		   unsigned long event_flags)
+{
+	return __stp_utrace_attach(tsk, ops, data, event_flags, UTRACE_RESUME);
 }
 
 static inline void
@@ -485,9 +522,10 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 			// isn't set, we can go ahead and call the
 			// callback.
 			if (register_p) {
-				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
-							cb_tgt,
-							__STP_ATTACHED_TASK_EVENTS);
+				rc = __stp_utrace_attach(tsk, &cb_tgt->ops,
+							 cb_tgt,
+							 __STP_ATTACHED_TASK_EVENTS,
+							 UTRACE_STOP);
 				if (rc != 0 && rc != EPERM)
 					break;
 				cb_tgt->engine_attached = 1;
@@ -601,8 +639,8 @@ __stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
 	__stp_tf_handler_start();
 
 	// On clone, attach to the child.
-	rc = stap_utrace_attach(child, engine->ops, 0,
-				__STP_TASK_FINDER_EVENTS);
+	rc = __stp_utrace_attach(child, engine->ops, 0,
+				 __STP_TASK_FINDER_EVENTS, UTRACE_RESUME);
 	if (rc != 0 && rc != EPERM) {
 		__stp_tf_handler_end();
 		return UTRACE_RESUME;
@@ -757,6 +795,22 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 	// Turn off quiesce handling
 	rc = utrace_set_events(tsk, engine,
 			       __STP_ATTACHED_TASK_BASE_EVENTS(tgt));
+
+	if (rc == -EINPROGRESS) {
+		/*
+		 * It's running our callback, so we have to
+		 * synchronize.  We can't keep rcu_read_lock,
+		 * so the task pointer might die.  But it's
+		 * safe to call utrace_barrier() even with
+		 * a stale task pointer, if we have an engine ref.
+		 */
+		rc = utrace_barrier(tsk, engine);
+		if (rc != 0)
+			_stp_error("utrace_barrier returned error %d on pid %d",
+				   rc, (int)tsk->pid);
+		rc = utrace_set_events(tsk, engine,
+				       __STP_ATTACHED_TASK_BASE_EVENTS(tgt));
+	}
 	if (rc != 0)
 		_stp_error("utrace_set_events returned error %d on pid %d",
 			   rc, (int)tsk->pid);
@@ -1173,13 +1227,14 @@ stap_start_task_finder(void)
 		size_t mmpathlen;
 		struct list_head *tgt_node;
 
-                /* Skip over processes other than that specified with
-                   stap -c or -x. */
-                if (_stp_target && tsk->tgid != _stp_target)
-                  continue;
+		/* Skip over processes other than that specified with
+		 * stap -c or -x. */
+		if (_stp_target && tsk->tgid != _stp_target)
+			continue;
 
-		rc = stap_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
-					__STP_TASK_FINDER_EVENTS);
+		rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
+					 __STP_TASK_FINDER_EVENTS,
+					 UTRACE_RESUME);
 		if (rc == EPERM) {
 			/* Ignore EPERM errors, which mean this wasn't
 			 * a thread we can attach to. */
@@ -1242,16 +1297,17 @@ stap_start_task_finder(void)
 					continue;
 
 				// Set up events we need for attached tasks.
-				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
-							cb_tgt,
-							__STP_ATTACHED_TASK_EVENTS);
+				rc = __stp_utrace_attach(tsk, &cb_tgt->ops,
+							 cb_tgt,
+							 __STP_ATTACHED_TASK_EVENTS,
+							 UTRACE_STOP);
 				if (rc != 0 && rc != EPERM)
 					goto stf_err;
 				cb_tgt->engine_attached = 1;
 			}
 		}
 	} while_each_thread(grp, tsk);
- stf_err:
+stf_err:
 	rcu_read_unlock();
 
 	_stp_kfree(mmpath_buf);

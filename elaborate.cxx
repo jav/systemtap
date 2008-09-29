@@ -1424,26 +1424,43 @@ systemtap_session::print_token (ostream& o, const token* tok)
 void
 systemtap_session::print_error (const semantic_error& e)
 {
-  string message_str;
-  stringstream message;
+  string message_str[2];
 
   // NB: we don't print error messages during listing mode.
   if (listing_mode) return;
 
-  message << "semantic error: " << e.what ();
-  if (e.tok1 || e.tok2)
-    message << ": ";
-  if (e.tok1) print_token (message, e.tok1);
-  message << e.msg2;
-  if (e.tok2) print_token (message, e.tok2);
-  message << endl;
-  message_str = message.str();
+  // We generate two messages.  The second one ([1]) is printed
+  // without token compression, for purposes of duplicate elimination.
+  // This way, the same message that may be generated once with a
+  // compressed and once with an uncompressed token still only gets
+  // printed once.
+  for (int i=0; i<2; i++)
+    {
+      stringstream message;
+      
+      message << "semantic error: " << e.what ();
+      if (e.tok1 || e.tok2)
+        message << ": ";
+      if (e.tok1) 
+        {
+          if (i == 0) print_token (message, e.tok1);
+          else message << *e.tok1;
+        }
+      message << e.msg2;
+      if (e.tok2) 
+        {
+          if (i == 0) print_token (message, e.tok2);
+          else message << *e.tok2;
+        }
+      message << endl;
+      message_str[i] = message.str();
+    }
 
   // Duplicate elimination
-  if (seen_errors.find (message_str) == seen_errors.end())
+  if (seen_errors.find (message_str[1]) == seen_errors.end())
     {
-      seen_errors.insert (message_str);
-      cerr << message_str;
+      seen_errors.insert (message_str[1]);
+      cerr << message_str[0];
     }
 
   if (e.chain)

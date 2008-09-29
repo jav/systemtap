@@ -42,5 +42,5 @@ void dwarf_assert(const string& desc, int rc)
 void dwfl_assert(const std::string& desc, bool condition)
 {
     if (!condition)
-        dwarf_assert(desc, -1);
+        dwfl_assert(desc, -1);
 }

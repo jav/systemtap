@@ -1,5 +1,9 @@
 * What's new
 
+- The translator can resolve members of anonymous structs / unions:
+    given            struct { int foo; struct { int bar; }; } *p;
+    this now works:  $p->bar
+
 - The stap "-F" flag activates "flight recorder" mode, which consists of
   translating the given script as usual, but implicitly launching it into
   the background with staprun's existing "-L" (launch) option.  A user

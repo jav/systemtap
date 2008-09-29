@@ -26,11 +26,10 @@ proc stap_run_alternatives {args} {
     verbose -log "starting $args"
     eval spawn $args
     expect { 
-	-re {semantic error: .+ \(alternatives: [a-zA-Z_]}
-	    { set alternatives_found 1 }
+	-re {semantic error: .+ \(alternatives: [a-zA-Z_]} {incr alternatives_found; exp_continue}
         -re {[^\r]*\r} { verbose -log $expect_out(0,string); exp_continue } 
         eof { }
-        timeout { exp_continue } 
+        timeout { } 
     }
     set results [wait]
     verbose -log "wait results: $results"
@@ -39,8 +38,8 @@ proc stap_run_alternatives {args} {
 
 set test "LOCAL1"
 set rc [stap_run_alternatives stap -vu -p2 -e $local1_script]
-if {$rc == 1} { pass $test } else { fail $test }
+if {$rc == 1} { pass $test } else { fail "$test ($rc)" }
 
 set test "STRUCT1"
 set rc [stap_run_alternatives stap -vu -p2 -e $struct1_script]
-if {$rc == 1} { pass $test } else { fail $test }
+if {$rc == 1} { pass $test } else { fail "$test ($rc)" }
