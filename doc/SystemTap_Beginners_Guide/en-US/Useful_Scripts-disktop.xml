@@ -1,0 +1,212 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="useful-disk-disktop">
+		<title>Summarizing Disk Read/Write Traffic</title>
+		
+		
+		<remark>
+			NO ENTRY IN WAR STORIES: Summarize Disk Read/Write Traffic
+			http://sourceware.org/systemtap/examples/io/disktop.stp
+		</remark>
+				
+		
+	<para>This section describes how to identify which processes are performing the heaviest disk reads/writes to the system.</para>
+	
+<formalpara id="scriptdisktop">
+		<title>disktop.stp</title>
+<para>
+<programlisting>
+#!/usr/bin/env stap 
+#
+# Copyright (C) 2007 Oracle Corp.
+#
+# Get the status of reading/writing disk every 5 seconds, output top ten entries 
+#
+# This is free software,GNU General Public License (GPL); either version 2, or (at your option) any
+# later version.
+#
+# Usage:
+#  ./disktop.stp
+#
+
+global io_stat,device
+global read_bytes,write_bytes
+
+probe kernel.function("vfs_read").return {
+	if ($return>0) {
+		dev = __file_dev($file)
+		devname = __find_bdevname(dev,__file_bdev($file))
+
+		if (devname!="N/A") {/*skip read from cache*/
+			io_stat[pid(),execname(),uid(),ppid(),"R"] += $return
+			device[pid(),execname(),uid(),ppid(),"R"] = devname
+			read_bytes += $return
+		}
+	}
+}
+
+probe kernel.function("vfs_write").return {
+	if ($return>0) {
+		dev = __file_dev($file)
+		devname = __find_bdevname(dev,__file_bdev($file))
+
+		if (devname!="N/A") { /*skip update cache*/
+			io_stat[pid(),execname(),uid(),ppid(),"W"] += $return
+			device[pid(),execname(),uid(),ppid(),"W"] = devname
+			write_bytes += $return
+		}
+	}
+}
+
+probe timer.ms(5000) {
+	/* skip non-read/write disk */
+	if (read_bytes+write_bytes) {
+
+		printf("\n%-25s, %-8s%4dKb/sec, %-7s%6dKb, %-7s%6dKb\n\n",ctime(gettimeofday_s()),"Average:",
+      		((read_bytes+write_bytes)/1024)/5,"Read:",read_bytes/1024,"Write:",write_bytes/1024)
+
+		/* print header */
+		printf("%8s %8s %8s %25s %8s %4s %12s\n","UID","PID","PPID","CMD","DEVICE","T","BYTES")
+	}
+	/* print top ten I/O */
+	foreach ([process,cmd,userid,parent,action] in io_stat- limit 10)
+	  printf("%8d %8d %8d %25s %8s %4s %12d\n",userid,process,parent,cmd,device[process,cmd,userid,parent,action],action,io_stat[process,cmd,userid,parent,action])
+
+	/* clear data */
+	delete io_stat
+	delete device
+	read_bytes = 0
+	write_bytes = 0	
+}
+
+probe end{
+	delete io_stat
+	delete device
+	delete read_bytes
+	delete write_bytes	
+}
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="scriptdisktop"/> outputs the top ten processes responsible for the heaviest reads/writes to disk. <xref linkend="disktopoutput"/> displays a sample output for this script, and includes the following data per listed process:</para>
+
+<itemizedlist>
+	<listitem><para><command>UID</command> &mdash; user ID. A user ID of <command>0</command> refers to the root user.</para></listitem>
+	
+	<listitem><para><command>PID</command> &mdash; the ID of the listed process.</para></listitem>
+	
+	<listitem><para><command>PPID</command> &mdash; the process ID of the listed process's <emphasis>parent process</emphasis>.</para></listitem>
+	
+	<listitem><para><command>CMD</command> &mdash; the name of the listed process.</para></listitem>
+	
+	<listitem><para><command>DEVICE</command> &mdash; which storage device the listed process is reading from or writing to.</para></listitem>
+	
+	<listitem><para><command>T</command> &mdash; the type of action performed by the listed process; <command>W</command> refers to write, while <command>R</command> refers to read.</para></listitem>
+	
+	<listitem><para><command>BYTES</command> &mdash; the amount of data read to or written from disk.</para></listitem>
+</itemizedlist>	
+	
+	
+<example id="disktopoutput">
+	<title><xref linkend="scriptdisktop"/> Sample Output</title>
+<screen>
+[...]
+Mon Sep 29 03:38:28 2008 , Average:  19Kb/sec, Read:       7Kb, Write:     89Kb
+
+UID      PID     PPID                       CMD   DEVICE    T        BYTES
+0    26319    26294                   firefox     sda5    W        90229
+0     2758     2757           pam_timestamp_c     sda5    R         8064
+0     2885        1                     cupsd     sda5    W         1678
+
+Mon Sep 29 03:38:38 2008 , Average:   1Kb/sec, Read:       7Kb, Write:      1Kb
+
+UID      PID     PPID                       CMD   DEVICE    T        BYTES
+0     2758     2757           pam_timestamp_c     sda5    R         8064
+0     2885        1                     cupsd     sda5    W         1678
+</screen>
+</example>
+
+<para>
+
+
+
+
+
+
+
+
+
+<para><xref linkend="scriptdiskusage"/> outputs raw statistics on both CPU and disk usage per second. I/O usage is tracked through the events <command>ioblock.request</command> and <command>ioblock.request.end</command>, which track each request (and request completion) for a generic block I/O. CPU usage is tracked through <command>scheduler.cpu_on</command> and <command>scheduler.cpu_off</command>, which are activated whenever a process begins (and ends) a command execution on a CPU.</para>
+	
+<section id="gnuplotexplain">
+	<title>gnuplot</title>
+<para>Running <xref linkend="scriptdiskusage"/> by itself hardly presents any data that is useful, as in <xref linkend="rawdiskusagegraph"/>.</para>
+
+<example id="rawdiskusagegraph"><title>Raw disk-usage-graph.stp Output</title>
+<screen>
+[...]	
+62
+5
+3
+4
+6
+4
+4
+5
+5
+3
+6
+5
+e
+pause 1
+</screen>
+</example>
+
+<para>However, refining the output of <xref linkend="scriptdiskusage"/> through <command>gnuplot</command> presents us with a more useful result. <command>gnuplot</command> is a lightweight, command-line driven plotting program that helps you display data in a graphical format.</para>
+
+<para>By piping <xref linkend="scriptdiskusage"/> output to <command>gnuplot</command> (as in <command>stap disk-usage-graph.stp | gnuplot</command>), we get a graphical output similar to the following:</para>
+
+<figure id="gnuoutputsample">
+	<title>Graphical Output Sample</title>
+<mediaobject>
+	<imageobject>
+		<imagedata fileref="images/gnuplotsample.png" format="PNG"/>
+	</imageobject>
+	<textobject>
+		<phrase>Sample output</phrase>
+	</textobject>
+	<caption>
+		<para>
+			Sample output of <xref linkend="scriptdiskusage"/> when piped through <command>gnuplot</command>
+		</para>
+	</caption>
+</mediaobject>
+</figure>
+
+<para><xref linkend="gnuoutputsample"/> presents a cleaner, more useful graphical output. This graph can show you the level of utilization for both I/O and CPU, in real time.</para>
+
+<remark>
+	question: does this script also capture stap process? i.e. does the graph also include CPU utilization by systemtap while the script is running?
+</remark>	
+
+
+		<remark>
+			http://sourceware.org/systemtap/examples/subsystem-index.html
+		</remark>
+		
+		<remark>
+			Graphing Disk and CPU Utilization - http://sourceware.org/systemtap/examples/general/graphs.stp 
+		</remark>	
+	
+	
+		<remark>
+			Summarize Disk Read/Write Traffic
+			http://sourceware.org/systemtap/examples/io/disktop.stp
+		</remark>
+	</section>		
+	</section>
+
