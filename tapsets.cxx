@@ -2242,7 +2242,9 @@ struct dwflpp
 	  die = dwarf_formref_die (&attr_mem, &vardie);
           stringstream alternatives;
           print_members(die,alternatives); 
-	  throw semantic_error("Translation failure :  \n ALTERNATIVES [ " + alternatives.str() + " ] \n");
+	  throw semantic_error("unable to find local '" + local + "'"
+                               + " near pc " + lex_cast_hex<string>(pc)
+                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
 	}
 
     /* Translate the assignment part, either
@@ -2316,7 +2318,9 @@ struct dwflpp
 	  die = dwarf_formref_die (&attr_mem, vardie);
           stringstream alternatives;
           print_members(die,alternatives); 
-	  throw semantic_error("Translation failure : \n ALTERNATIVES [ " + alternatives.str() + " ] \n");
+	  throw semantic_error("unable to find return value"
+                               " near pc " + lex_cast_hex<string>(pc)
+                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
 	}
 
 

@@ -45,7 +45,7 @@ probe	<replaceable>[event]</replaceable>,
 	exit()
 }
 </programlisting>		
-	<para>The <replaceable>exit()</replaceable> condition is optional, but it is recommended since it safely terminates the session once the script successfully traps the required information.</para>	
+	<para>The <replaceable>exit()</replaceable> condition is optional; this condition safely terminates the session once the script successfully traps the required information the first time.</para>	
 	
 <important>
 	<title>Important</title>
@@ -56,29 +56,19 @@ probe	<replaceable>[event]</replaceable>,
 	<section id="systemtapscript-events">
 		<title>Events</title>
 	
-<para>
-	SystemTap supports multiple events per probe; as shown in <xref linkend="scriptformats"/>, multiple events are delimited by a comma (<command>,</command>). Sample <replaceable>[event]</replaceable>s include:</para>
+<para>SystemTap events can be broadly classified into two types: <firstterm>synchronous</firstterm> and <firstterm>asynchronous</firstterm>.</para>
+
+<formalpara><title>Synchronous Events</title>
+	<para>A <firstterm>synchronous</firstterm> event occurs when any processor executes an instruction matched by the specification. This gives other events a reference point (or instruction address) from which more contextual data may be available.</para>
+</formalpara>
+
+<para>Examples of synchronous events include:</para>
 
 <variablelist>
-	
-<varlistentry>
-	<term>begin</term>
-	<listitem>
-		<para>The startup of a SystemTap session; i.e. as soon as the SystemTap script is run.</para>
-	</listitem>	
-</varlistentry>	
-
-<varlistentry>
-	<term>end</term>
-	<listitem>
-		<para>The end of a SystemTap session.</para>
-	</listitem>	
-</varlistentry>
-
 <varlistentry>
 	<term>kernel.function("<replaceable>[function]</replaceable>")</term>
 	<listitem>
-		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that the kernel function <command>sys_open</command> is used. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
+		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that occurs when the kernel function <command>sys_open</command> is called by any thread in the system. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
 		
 		<para>When defining functions, you can use asterisk (<command>*</command>) for wildcards. You can also trace the entry/exit of a function in a kernel source file. Consider the following example:</para>
 <example id="wildcards"><title>Wildcards and Kernel Source Files in an Event</title>
@@ -100,9 +90,59 @@ probe kernel.function("*@net/socket.c").return { }
 		<para>To identify what system calls are made by a specific program/command, use <command>strace <replaceable>command</replaceable></command>.</para>
 	</listitem>	
 </varlistentry>
+	
+<varlistentry>
+	<term>module("<replaceable>[module]</replaceable>").function("<replaceable>[function]</replaceable>")</term>
+	<listitem>
+		<para>Allows you to probe functions within modules. For example:</para>
+		
+		<example id="eventsmodules"><title>Module Probe</title>
+			<programlisting>
+				probe module("ext3").function("*") { }
+				probe module("ext3").function("*").return { }
+			</programlisting>	
+		</example>
+		
+		<para>
+			The first probe in <xref linkend="eventsmodules"/> points to the entry of <emphasis>all</emphasis> functions for the <filename>ext3</filename> module. The second probe points to the exits of all entries for that same module; the use of the <command>.return</command> suffix is similar to <command>kernel.function()</command>. Note that the probes in <xref linkend="eventsmodules"/> also do not contain probe bodies, and as such will not print any useful data (as in <xref linkend="wildcards"/>). 
+		</para>	
+		
+		<para>
+			A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>[kernel version]</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
+		</para>	
+		
+	</listitem>	
+</varlistentry>	
+</variablelist>	
+
+	
+<formalpara>
+	<title>Asynchronous Events</title>
+	<para><firstterm>Asynchronous</firstterm> events, on the other hand, do not point to any reference point. This family of probe points consists mainly of counters, timers, and similar constructs.</para>
+</formalpara>
+
+	<para>Examples of asynchronous events include:</para>
+
+<variablelist>
+	
+<varlistentry>
+	<term>begin</term>
+	<listitem>
+		<para>The startup of a SystemTap session; i.e. as soon as the SystemTap script is run.</para>
+	</listitem>	
+</varlistentry>	
 
 <varlistentry>
-	<term>timer.ms()</term>
+	<term>end</term>
+	<listitem>
+		<para>The end of a SystemTap session.</para>
+	</listitem>	
+</varlistentry>
+
+
+
+<varlistentry>
+	<term>timer events</term>
 	<listitem>
 		<para>An event that specifies a handler to be executed "after X number of milliseconds". For example:</para>
 		
@@ -116,34 +156,29 @@ probe timer.ms(4000)
 </example>
 
 <para>
-	<xref linkend="timer"/> is an example of a probe that allows you to terminate the script after 4000 milliseconds (or 4 seconds). When used in conjunction with another probe that traps a large quantity of data, a probe using <command>timer.ms()</command> allows you to limit the information your script is collecting (and printing out).
+	<xref linkend="timer"/> is an example of a probe that allows you to terminate the script after 4000 milliseconds. Note that you can also use the following timer events:
+</para>
+	
+<itemizedlist>
+<listitem><para><command>timer.s(<replaceable>[seconds]</replaceable>)</command></para></listitem>
+
+<listitem><para><command>timer.us(<replaceable>[microseconds]</replaceable>)</command></para></listitem>
+
+<listitem><para><command>timer.ns(<replaceable>[nanoseconds]</replaceable>)</command></para></listitem>
+
+<listitem><para><command>timer.hz(<replaceable>[hertz]</replaceable>)</command></para></listitem>
+
+<listitem><para><command>timer.jiffies(<replaceable>[jiffies]</replaceable>)</command></para></listitem>
+
+</itemizedlist>
+<para>
+	When used in conjunction with another probe that traps a large quantity of data, timer events allow you to limit the information your script is collecting (and printing out).
 </para>	
 		
 	</listitem>	
 </varlistentry>
 
-<varlistentry>
-	<term>module("<replaceable>[module]</replaceable>").function("<replaceable>[function]</replaceable>")</term>
-	<listitem>
-		<para>Allows you to probe functions within modules. For example:</para>
-		
-<example id="eventsmodules"><title>Module Probe</title>
-<programlisting>
-probe module("ext3").function("*") { }
-probe module("ext3").function("*").return { }
-</programlisting>	
-</example>
 
-	<para>
-		The first probe in <xref linkend="eventsmodules"/> points to the entry of <emphasis>all</emphasis> functions for the <filename>ext3</filename> module. The second probe points to the exits of all entries for that same module; the use of the <command>.return</command> suffix is similar to <command>kernel.function()</command>. Note that the probes in <xref linkend="eventsmodules"/> also do not contain probe bodies, and as such will not print any useful data (as in <xref linkend="wildcards"/>). 
-	</para>	
-	
-	<para>
-		A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>[kernel version]</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
-	</para>	
-
-	</listitem>	
-</varlistentry>
 
 <!--<remark>add timer.ms() to events list!</remark>-->
 <!--	
@@ -164,7 +199,12 @@ probe module("ext3").function("*").return { }
 	</para>	
 </important>
 
+<para>
+	SystemTap supports multiple events per probe; as shown in <xref linkend="scriptformats"/>, multiple events are delimited by a comma (<command>,</command>). If multiple events are specified in a single probe, SystemTap will execute the handler when any of the specified events occur. 
+</para>	
+
 <remark>is reference appropriate? too advanced for readers (it seems so to me)? please advise.</remark> 
+
 	</section>
 	
 	<section id="systemtapscript-handlers">
@@ -191,11 +231,10 @@ probe begin
 <formalpara id="printf">
 	<title>printf ( ) Statements</title>
 <para>
-	The <command>printf ()</command> statement is one of the simplest handler tools for printing data. <command>printf ()</command> can also be used to trap data using a wide variety of SystemTap handler functions using the following format:
+	The <command>printf ()</command> statement is one of the simplest functions for printing data. <command>printf ()</command> can also be used to trap data using a wide variety of SystemTap handler functions using the following format:
 </para>
 
 </formalpara>
-<remark>is "handler tool" appropriate?</remark>
 
 
 <programlisting>
@@ -209,6 +248,11 @@ printf ("<replaceable>[format string]</replaceable>\n", <replaceable>[argument]<
 <para>
 	You can use the variables <command>%s</command> (for strings) and <command>%d</command> (for numbers) in format strings, depending on your list of arguments. Format strings can have multiple variables, each matching a corresponding argument; multiple arguments are delimited by a comma (<command>,</command>) and space.
 </para>
+
+<note>
+	<title>Note</title>
+	<para>Semantically, the SystemTap <command>printf</command> function is very similar to its C language counterpart. The aforementioned syntax and format for SystemTap's <command>printf</command> function is identical to that of the C-style <command>printf</command>.</para>
+</note>	
 
 <para>
 	To illustrate this, consider the following probe example:
