@@ -28,7 +28,7 @@
 <formalpara>
 	<title>Preparing For Installation</title>
 		<para>
-			To view what kernels and kernel versions are installed on your system, check the contents of <filename>/boot</filename>. Each installed kernel/kernel version has a corresponding <filename>vmlinuz-<replaceable>[kernel version]</replaceable></filename> there.
+			To view what kernels and kernel versions are installed on your system, check the contents of <filename>/boot</filename>. Each installed kernel/kernel version has a corresponding <filename>vmlinuz-<replaceable>kernel version</replaceable></filename> there.
 		</para>
 </formalpara>		
 		<para>
@@ -86,7 +86,7 @@ uname -r
 </step>
 
 <step>
-	<para>Install the debugging RPMs using <command>rpm -ivh <replaceable>[RPM]</replaceable></command> or <command>yum localinstall <replaceable>[RPM]</replaceable></command>.</para>
+	<para>Install the debugging RPMs using <command>rpm -ivh <replaceable>RPM</replaceable></command> or <command>yum localinstall <replaceable>RPM</replaceable></command>.</para>
 </step>
 
 <step>
@@ -133,23 +133,23 @@ uname -r
 </varlistentry>	
 	
 <varlistentry>
-	<term>-I <replaceable>[directory]</replaceable></term>
+	<term>-I <replaceable>directory</replaceable></term>
 	<listitem>
-		<para>Check the script against additional tapsets found in  <command><replaceable>[directory]</replaceable></command>. This is useful if you have additional tapsets that are not included in <filename>/usr/share/systemtap/tapset/</filename>; for more information about tapsets, refer to <xref linkend="understanding-tapsets"/>.</para>
+		<para>Check the script against additional tapsets found in  <command><replaceable>directory</replaceable></command>. This is useful if you have additional tapsets that are not included in <filename>/usr/share/systemtap/tapset/</filename>; for more information about tapsets, refer to <xref linkend="understanding-tapsets"/>.</para>
 	</listitem>	
 </varlistentry>	
 
 <varlistentry>
-	<term>-o <replaceable>[filename]</replaceable></term>
+	<term>-o <replaceable>filename</replaceable></term>
 	<listitem>
-		<para>Sends the standard output to file (<replaceable>[filename]</replaceable>).</para>
+		<para>Sends the standard output to file (<replaceable>filename</replaceable>).</para>
 	</listitem>	
 </varlistentry>	
 
 <varlistentry>
-	<term>-e "<replaceable>[script]</replaceable></term>
+	<term>-e "<replaceable>script</replaceable></term>
 	<listitem>
-		<para>Run given <command><replaceable>[script]</replaceable></command>.</para>
+		<para>Run given <command><replaceable>script</replaceable></command>.</para>
 	</listitem>
 </varlistentry>
 

@@ -36,11 +36,11 @@
 	</para>
 </formalpara>	
 <programlisting>
-probe	<replaceable>[event]</replaceable>,
-<replaceable>[another event]</replaceable>
+probe	<replaceable>event</replaceable>,
+<replaceable>another event</replaceable>
 
 {
-	<replaceable>[handler]</replaceable>
+	<replaceable>handler</replaceable>
 
 	exit()
 }
@@ -66,7 +66,7 @@ probe	<replaceable>[event]</replaceable>,
 
 <variablelist>
 <varlistentry>
-	<term>kernel.function("<replaceable>[function]</replaceable>")</term>
+	<term>kernel.function("<replaceable>function</replaceable>")</term>
 	<listitem>
 		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that occurs when the kernel function <command>sys_open</command> is called by any thread in the system. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
 		
@@ -83,16 +83,16 @@ probe kernel.function("*@net/socket.c").return { }
 </varlistentry>
 
 <varlistentry>
-	<term>syscall.<replaceable>[system_call]</replaceable></term>
+	<term>syscall.<replaceable>system_call</replaceable></term>
 	<listitem>
-		<para>The entry to the system call <replaceable>[system_call]</replaceable>. Similar to <command>kernel.function</command>, appending a <command>return</command> to the statement specifies the exit of the system call. For example, to specify the entry of the system call <command>close</command>, use <command>syscall.close.return</command>.</para>
+		<para>The entry to the system call <replaceable>system_call</replaceable>. Similar to <command>kernel.function</command>, appending a <command>return</command> to the statement specifies the exit of the system call. For example, to specify the entry of the system call <command>close</command>, use <command>syscall.close.return</command>.</para>
 		
 		<para>To identify what system calls are made by a specific program/command, use <command>strace <replaceable>command</replaceable></command>.</para>
 	</listitem>	
 </varlistentry>
 	
 <varlistentry>
-	<term>module("<replaceable>[module]</replaceable>").function("<replaceable>[function]</replaceable>")</term>
+	<term>module("<replaceable>module</replaceable>").function("<replaceable>function</replaceable>")</term>
 	<listitem>
 		<para>Allows you to probe functions within modules. For example:</para>
 		
@@ -108,7 +108,7 @@ probe kernel.function("*@net/socket.c").return { }
 		</para>	
 		
 		<para>
-			A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>[kernel version]</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
+			A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>kernel version</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
 		</para>	
 		
 	</listitem>	
@@ -160,15 +160,15 @@ probe timer.ms(4000)
 </para>
 	
 <itemizedlist>
-<listitem><para><command>timer.s(<replaceable>[seconds]</replaceable>)</command></para></listitem>
+<listitem><para><command>timer.s(<replaceable>seconds</replaceable>)</command></para></listitem>
 
-<listitem><para><command>timer.us(<replaceable>[microseconds]</replaceable>)</command></para></listitem>
+<listitem><para><command>timer.us(<replaceable>microseconds</replaceable>)</command></para></listitem>
 
-<listitem><para><command>timer.ns(<replaceable>[nanoseconds]</replaceable>)</command></para></listitem>
+<listitem><para><command>timer.ns(<replaceable>nanoseconds</replaceable>)</command></para></listitem>
 
-<listitem><para><command>timer.hz(<replaceable>[hertz]</replaceable>)</command></para></listitem>
+<listitem><para><command>timer.hz(<replaceable>hertz</replaceable>)</command></para></listitem>
 
-<listitem><para><command>timer.jiffies(<replaceable>[jiffies]</replaceable>)</command></para></listitem>
+<listitem><para><command>timer.jiffies(<replaceable>jiffies</replaceable>)</command></para></listitem>
 
 </itemizedlist>
 <para>
@@ -238,11 +238,11 @@ probe begin
 
 
 <programlisting>
-printf ("<replaceable>[format string]</replaceable>\n", <replaceable>[argument]</replaceable>)
+printf ("<replaceable>format string</replaceable>\n", <replaceable>argument</replaceable>)
 </programlisting>
 
 <para>
-	The <replaceable>[format string]</replaceable> region specifies how <replaceable>[argument]</replaceable> should be displayed. The format string of <xref linkend="helloworld"/> simply instructs SystemTap to print <command>hello world</command>, and contains no arguments. 
+	The <replaceable>format string</replaceable> region specifies how <replaceable>argument</replaceable> should be displayed. The format string of <xref linkend="helloworld"/> simply instructs SystemTap to print <command>hello world</command>, and contains no arguments. 
 </para>
 
 <para>
@@ -411,7 +411,7 @@ probe kernel.function("*@net/socket.c").return
 
 <!--	
 <para>
-	<replaceable>[variable]</replaceable> can be either <command>%s</command> for strings, or <command>%d</command> for numbers, depending on the <replaceable>[handler function]</replaceable> used. Each <command>printf ()</command> statement can contain multiple <replaceable>[variable]</replaceable>s, with each one corresponding to a matching <replaceable>[handler function]</replaceable>. Multiple <replaceable>[handler function]</replaceable>s are delimited by comma (<command>,</command>). 
+	<replaceable>variable</replaceable> can be either <command>%s</command> for strings, or <command>%d</command> for numbers, depending on the <replaceable>handler function</replaceable> used. Each <command>printf ()</command> statement can contain multiple <replaceable>variable</replaceable>s, with each one corresponding to a matching <replaceable>handler function</replaceable>. Multiple <replaceable>handler function</replaceable>s are delimited by comma (<command>,</command>). 
 </para>	
 
 	<command>printf ()</command> is a SystemTap-supported C statement, and can also trap data using a wide variety
