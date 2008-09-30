@@ -4,6 +4,12 @@
 
 <chapter id="useful-systemtap-scripts">
 	<title>Useful SystemTap Scripts</title>
+	
+	<para>This chapter enumerates several SystemTap scripts you can use to monitor and investigate different subsystems. All of these scripts are available at the following link:</para>
+	
+	<para><ulink url="http://sourceware.org/systemtap/examples/subsystem-index.html">http://sourceware.org/systemtap/examples/subsystem-index.html</ulink></para>
+		
+		
 	<remark>
 		short intro, reference to online source (http://sourceware.org/systemtap/examples/subsystem-index.html); "always updated"
 	</remark>
@@ -13,6 +19,7 @@
 	<remark>case studies and more info on some scripts here - http://sourceware.org/systemtap/wiki/WarStories</remark>
 	
 	<xi:include href="Useful_Scripts-Disk.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-disktop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-IO.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Kernel.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Network.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />

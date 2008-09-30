@@ -3,8 +3,9 @@
 ]>
 
 
-	<section id="useful-disk">
-		<title>Disk</title>
+	<section id="useful-disk-graphwithgnuplot">
+		<title>Real-Time Graphing of Disk and CPU Utilization</title>
+		
 		<remark>
 			http://sourceware.org/systemtap/examples/subsystem-index.html
 		</remark>
@@ -12,10 +13,127 @@
 		<remark>
 			Graphing Disk and CPU Utilization - http://sourceware.org/systemtap/examples/general/graphs.stp 
 		</remark>	
+
+	<para>This section describes how you can graph disk and CPU utilization in real-time, i.e. in samples of 1 second each.</para>
+	
+<formalpara id="scriptdiskusage">
+		<title>disk-usage-graph.stp</title>
+<para>
+<programlisting>
+#! stap
+# disk I/O stats
+probe begin { qnames["ioblock"] ++; qsq_start ("ioblock") }
+probe ioblock.request { qs_wait ("ioblock") qs_run("ioblock") }
+probe ioblock.end { qs_done ("ioblock") }
+# CPU utilization
+probe begin { qnames["cpu"] ++; qsq_start ("cpu") }
+probe scheduler.cpu_on { if (!idle) {qs_wait ("cpu") qs_run ("cpu") }}
+probe scheduler.cpu_off { if (!idle) qs_done ("cpu") }
+# ------------------------------------------------------------------------
+# utilization history tracking
+global N
+probe begin { N = 50 }
+global qnames, util, histidx
+function qsq_util_reset(q) {
+  u=qsq_utilization (q, 100)
+  qsq_start (q)
+  return u
+}
+probe timer.ms(100) {  # collect utilization percentages frequently
+  histidx = (histidx + 1) % N  # into circular buffer
+  foreach (q in qnames)
+    util[histidx,q] = qsq_util_reset(q)
+}
+# ------------------------------------------------------------------------
+# general gnuplot graphical report generation
+probe timer.ms(1000) {
+  # emit gnuplot command to display recent history
+  printf ("set yrange [0:100]\n")
+  printf ("plot ")
+  foreach (q in qnames+)
+    {
+      if (++nq >= 2) printf (", ")
+      printf ("'-' title \"%s\" with lines", q)
+    }
+  printf ("\n")
+  foreach (q in qnames+) {
+    for (i = (histidx + 1) % N; i != histidx; i = (i + 1) % N)
+      printf("%d\n", util[i,q])
+    printf ("e\n")
+  }
+  printf ("pause 1\n")
+}
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="scriptdiskusage"/> outputs raw statistics on both CPU and disk usage per second. I/O usage is tracked through the events <command>ioblock.request</command> and <command>ioblock.request.end</command>, which track each request (and request completion) for a generic block I/O. CPU usage is tracked through <command>scheduler.cpu_on</command> and <command>scheduler.cpu_off</command>, which are activated whenever a process begins (and ends) a command execution on a CPU.</para>
+	
+<section id="gnuplotexplain">
+	<title>gnuplot</title>
+<para>Running <xref linkend="scriptdiskusage"/> by itself hardly presents any data that is useful, as in <xref linkend="rawdiskusagegraph"/>.</para>
+
+<example id="rawdiskusagegraph"><title>Raw disk-usage-graph.stp Output</title>
+<screen>
+[...]	
+62
+5
+3
+4
+6
+4
+4
+5
+5
+3
+6
+5
+e
+pause 1
+</screen>
+</example>
+
+<para>However, refining the output of <xref linkend="scriptdiskusage"/> through <command>gnuplot</command> presents us with a more useful result. <command>gnuplot</command> is a lightweight, command-line driven plotting program that helps you display data in a graphical format.</para>
+
+<para>By piping <xref linkend="scriptdiskusage"/> output to <command>gnuplot</command> (as in <command>stap disk-usage-gr<remark>
+			http://sourceware.org/systemtap/examples/subsystem-index.html
+		</remark>
 		
+		<remark>
+			Graphing Disk and CPU Utilization - http://sourceware.org/systemtap/examples/general/graphs.stp 
+		</remark>	aph.stp | gnuplot</command>), we get a graphical output similar to the following:</para>
+
+<figure id="gnuoutputsample">
+	<title>Graphical Output Sample</title>
+<mediaobject>
+	<imageobject>
+		<imagedata fileref="images/gnuplotsample.png" format="PNG"/>
+	</imageobject>
+	<textobject>
+		<phrase>Sample output</phrase>
+	</textobject>
+	<caption>
+		<para>
+			Sample output of <xref linkend="scriptdiskusage"/> when piped through <command>gnuplot</command>
+		</para>
+	</caption>
+</mediaobject>
+</figure>
+
+<para><xref linkend="gnuoutputsample"/> presents a cleaner, more useful graphical output. This graph can show you the level of utilization for both I/O and CPU, in real time.</para>
+
+<remark>
+	question: does this script also capture stap process? i.e. does the graph also include CPU utilization by systemtap while the script is running?
+</remark>	
+
+
+		
+<!--	
+	disktop has no entry in war stories
 		<remark>
 			Summarize Disk Read/Write Traffic
 			http://sourceware.org/systemtap/examples/io/disktop.stp
-		</remark>	
+		</remark>-->
+	</section>		
 	</section>
 

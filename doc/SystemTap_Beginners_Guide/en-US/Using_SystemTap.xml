@@ -7,30 +7,186 @@
 	<remark>
 		short intro, contents of chapter
 	</remark>
+	
+	<para>
+		This chapter instructs users how to install SystemTap, and provides an introduction on how to run SystemTap scripts.
+	</para>	
+	
 	<section id="using-setup">
 		<title>Setup and Installation</title>
 		<remark>
 			required packages, installation thru yum, repos (?); possibly, a script to install all required packages
 		</remark>
-<formalpara>
-	<title>Cross-Compiling</title>
-	<para>TBD</para>
-</formalpara>	
-<remark>above; add short description, significance, howto, script (test first)</remark>
 		
-	</section>
+		<remark>
+			notes in ~/Desktop/SystemTap/aug21chatlog and ~/Desktop/SystemTap/noted_wcohenmeeting 
+		</remark>	
+		
+		<para>
+			To deploy SystemTap, you need to install the SystemTap packages along with the corresponding set of debug RPMs of your kernel. This means that if your system has multiple kernels installed, and you wish to use SystemTap on more than one kernel, you will need to install the debug RPMs for <emphasis>each</emphasis> of those kernels.
+		</para>
+<formalpara>
+	<title>Preparing For Installation</title>
+		<para>
+			To view what kernels and kernel versions are installed on your system, check the contents of <filename>/boot</filename>. Each installed kernel/kernel version has a corresponding <filename>vmlinuz-<replaceable>[kernel version]</replaceable></filename> there.
+		</para>
+</formalpara>		
+		<para>
+			To determine what kernel your system is currently using, use:
+		</para>
+		
+<screen>
+uname -r
+</screen>
+		
+		<para>
+			You will also need to configure <command>yum</command> to point to a repository that houses the necessary debug RPMs. One such repository is:
+		</para>
+		
+		<para><ulink url="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/5Client/en/os/i386/Debuginfo/">ftp://ftp.redhat.com/pub/redhat/linux/enterprise/5Client/en/os/i386/Debuginfo/</ulink></para>
+		
+		<remark>find any other such repository, if only for RHEL</remark>	
+			
+			
+<procedure id="installproper">
+	<title>Deploying SystemTap</title>
 	
+<step>
+	<para>Once you've decided which kernels you need to use SystemTap with, install the following packages:</para>
+	
+	<itemizedlist>
+		<listitem><para><filename>systemtap</filename></para></listitem>
+		<listitem><para><filename>systemtap-runtime</filename></para></listitem>
+	</itemizedlist>
+	
+	<para>This will install the SystemTap suite of tools.</para> 
+</step>
+
+<step>
+	<para>Next, you'll need to download and install the necessary debug RPMs for your kernel. Most debugging RPMs for Red Hat Enterprise Linux 5 can be found at the following link:</para>
+	
+	<para>The necessary debugging RPMs are as follows:</para>
+	
+<itemizedlist>
+	<listitem><para><filename>kernel-debuginfo</filename></para></listitem>
+	<listitem><para><filename>kernel-debuginfo-common</filename></para></listitem>
+	<listitem><para><filename>kernel-devel</filename></para></listitem>
+</itemizedlist>
+
+<para>For example, if you wish to use SystemTap on kernel version <filename>2.6.18-53.el5</filename>, then you need to download the following debugging RPMs:</para>
+
+<example id="debuggingrpmlist">
+	<title>Sample List of Debugging RPMs</title>
+<itemizedlist>
+	<listitem><para><filename>kernel-debuginfo-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
+	<listitem><para><filename>kernel-debuginfo-common-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
+	<listitem><para><filename>kernel-devel-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
+</itemizedlist>
+</example>
+</step>
+
+<step>
+	<para>Install the debugging RPMs using <command>rpm -ivh <replaceable>[RPM]</replaceable></command> or <command>yum localinstall <replaceable>[RPM]</replaceable></command>.</para>
+</step>
+
+<step>
+	<para>
+		Restart the system, loading the appropriate kernel at the <command>grub</command> screen.
+	</para>	
+</step>	
+</procedure>
+
+
+<!--		
+<itemizedlist>
+	<listitem><para><filename>systemtap</filename></para></listitem>
+	<listitem><para><filename>systemtap-runtime</filename></para></listitem>
+</itemizedlist>	
+		-->		
+	</section>
+	<xi:include href="CrossInstrumenting.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
 	<section id="using-usage">
 		<title>Usage</title>
 		<remark>
-			basic commands (e.g. stap), useful options per command (e.g. stap -vv), tool references (man pages, related kernel-doc), references within book (i.e. errors chapter)
+			- basic commands (e.g. stap), useful options per command (e.g. stap -vv), tool references (man pages, related kernel-doc), references within book (i.e. errors chapter)
 		</remark>
 		
 		<remark>
-			running systemtap scripts
+			- running systemtap scripts
 		</remark>
+<!--		
+		<remark>- Tapsets: short intro on usage</remark>
+		-->
+		<para>
+			SystemTap scripts are run through the command <command>stap</command>. <command>stap</command> can run SystemTap scripts from standard input or from file. Below is a list of common options available to you: 
+		</para>
 		
-		<remark>Tapsets: short intro on usage</remark>
+<variablelist>
+
+<varlistentry>
+	<term>-v</term>
+	<listitem>
+		<para>Makes the output of the SystemTap session more verbose. You can repeat this option to (for example, <command>stap -vvv script.stp</command>); provide more details on the script's execution. This option is particularly useful if you encounter any errors in running the script.</para>
+		
+		<para>For more information about common SystemTap script errors, refer to <xref linkend="errors"/>.</para>
+	</listitem>	
+</varlistentry>	
+	
+<varlistentry>
+	<term>-I <replaceable>[directory]</replaceable></term>
+	<listitem>
+		<para>Check the script against additional tapsets found in  <command><replaceable>[directory]</replaceable></command>. This is useful if you have additional tapsets that are not included in <filename>/usr/share/systemtap/tapset/</filename>; for more information about tapsets, refer to <xref linkend="understanding-tapsets"/>.</para>
+	</listitem>	
+</varlistentry>	
+
+<varlistentry>
+	<term>-o <replaceable>[filename]</replaceable></term>
+	<listitem>
+		<para>Sends the standard output to file (<replaceable>[filename]</replaceable>).</para>
+	</listitem>	
+</varlistentry>	
+
+<varlistentry>
+	<term>-e "<replaceable>[script]</replaceable></term>
+	<listitem>
+		<para>Run given <command><replaceable>[script]</replaceable></command>.</para>
+	</listitem>
+</varlistentry>
+
+<!--	
+<varlistentry>
+	<term></term>
+	<listitem>
+		<para></para>
+	</listitem>	
+</varlistentry>	
+			-->
+</variablelist>
+
+<para>You can also instruct <command>stap</command> to run scripts from standard input using the switch <command>-</command>. To illustrate:</para>
+
+<example id="stdinstap">
+	<title>Running Scripts From Standard Input</title>
+<programlisting>
+echo "probe timer.s(1) {exit()}" | stap -
+</programlisting>
+</example>
+
+<para><xref linkend="stdinstap"/> instructs <command>stap</command> to run the script passed by <command>echo</command> to standard input. Any <command>stap</command> options you wish to use should be inserted before the <command>-</command> switch; for instance, to make the example in <xref linkend="stdinstap"/> more verbose, the command would be:</para>
+
+<para><command>echo "probe timer.s(1) {exit()}" | stap -v -</command></para>
+
+<remark>any other useful options worth noting here for beginners?</remark>
+
+<para>For more information about <command>stap</command>, refer to <command>man stap</command>.</para>
+
+<para>To run SystemTap instrumentation (i.e. the kernel module built from SystemTap scripts during a cross-instrumentation), use <command>staprun</command> instead. For more information about <command>staprun</command> and cross-instrumentation, refer to <xref linkend="cross-compiling"/>.</para>
+
+<note>
+	<title>Note</title>
+	<para>The <command>stap</command> options <command>-v</command> and <command>-o</command> also work for <command>staprun</command>. For more information about <command>staprun</command>, refer to <command>man staprun</command>.</para>
+</note>	
+
 	</section>
 
 </chapter>

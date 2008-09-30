@@ -30,9 +30,12 @@
 		
 		<para>A SystemTap session begins when you run a SystemTap script. This session occurs in the following fashion:</para>
 			
-<procedure>
+<procedure id="systemtapsession">
 	<title>SystemTap Session</title>
-	<step><para>SystemTap first translates the script to C, running the system C compiler to create a kernel module from it.</para></step>
+	
+	<step><para>First, SystemTap checks the script against the existing tapset library (normally in <filename>/usr/share/systemtap/tapset/</filename> for any tapsets used.</para></step>
+	
+	<step><para>SystemTap then translates the script to C, running the system C compiler to create a kernel module from it.</para></step>
 	
 	<step><para>SystemTap loads the module, then enables all the probed events by "hooking" those events into the kernel.</para></step>
 		
@@ -59,7 +62,34 @@
 		
 		<remark>
 			definition, significance, difference with stap scripts (previous section), library of tapsets in system: location
-		</remark>	
+		</remark>
+		
+		<para>
+			<firstterm>Tapsets</firstterm> are scripts that form a library of pre-written probes and functions to be used in SystemTap scripts. When a user runs a SystemTap script, SystemTap checks the script's probe events and handlers against the tapset library; SystemTap then loads the corresponding probes and functions before translating the script to C (refer to <xref linkend="understanding-architecture-tools"/> for information on what transpires in a SystemTap session).
+		</para>
+<!--		
+		<para>
+			Simply put, the tapset library is an abstraction layer designed to make it easier for users to define events and functions. In a way, tapsets provide useful "aliases" for functions that users may want to specify as an event; knowing the proper alias to use is, for the most part, easier than understanding how to specify a specific kernel function.
+		</para>	
+		-->
+		<para>
+			Like SystemTap scripts, tapsets use the filename extension <filename>.stp</filename>. The standard library of tapsets is located in <filename>/usr/share/systemtap/tapset/</filename> by default. However, unlike SystemTap scripts, tapsets are not meant for direct execution; rather, they constitute the library from which other scripts can pull definitions.
+		</para>	
+		
+		
+		<para>
+			Simply put, the tapset library is an abstraction layer designed to make it easier for users to define events and functions. In a manner of speaking, tapsets provide useful "aliases" for functions that users may want to specify as an event; knowing the proper alias to use is, for the most part, easier than understanding how to specify a specific kernel function.
+		</para>	
+				
+		<para>
+			Several handlers and functions in <xref linkend="systemtapscript-events"/> and <xref linkend="systemtapscript-handlers"/> are defined in tapsets. For example, <command>thread_indent()</command> is defined in <filename>indent.stp</filename>.
+		</para>
+		
+		
+<remark>
+	any other details to be included? i dont want to dwell too long here, though, since IMHO tapset development is beyond the scope of this "beginner's guide"
+</remark>	
+		
 	</section>
 
 </chapter>
