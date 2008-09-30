@@ -113,64 +113,71 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
   struct addr_map_entry* max_entry = 0;
   struct addr_map_entry* new_entry = 0;
   size_t existing = 0;
-  
+
+  /* Loop allocating memory for a new entry in the map. */
   while (1)
     {
-      size_t old_size;
+      size_t old_size = 0;
       spin_lock(&addr_map_lock);
       old_map = blackmap;
-      if (!blackmap)
+      if (old_map)
+        old_size = old_map->size;
+      /* Either this is the first time through the loop, or we
+         allocated a map previous time, but someone has come in and
+         added an entry while we were sleeping. */
+      if (!new_map || (new_map && new_map->size < old_size + 1))
         {
-          existing = 0;
-          old_size = 0;
-        }
-      else
-        {
-          min_entry = lookup_addr_aux(min_addr, blackmap);
-          max_entry = lookup_addr_aux(max_addr, blackmap);
-          if (min_entry || max_entry)
-            {
-              if (existing_min)
-                *existing_min = min_entry;
-              if (existing_max)
-                *existing_max = max_entry;
-              spin_unlock(&addr_map_lock);
-              return 1;
-            }
-          existing = upper_bound(min_addr, old_map);
-          old_size = old_map->size;
-        }
-      spin_unlock(&addr_map_lock);
-      new_map = kmalloc(sizeof(*new_map)
-                       + sizeof(*new_entry) * (old_size + 1),
-                       GFP_KERNEL);
-      if (!new_map)
-        return -ENOMEM;
-      spin_lock(&addr_map_lock);
-      if (blackmap != old_map)
-        {
-          kfree(new_map);
           spin_unlock(&addr_map_lock);
+          if (new_map)
+            {
+              kfree(new_map);
+              new_map = 0;
+            }
+          new_map = kmalloc(sizeof(*new_map)
+                            + sizeof(*new_entry) * (old_size + 1),
+                            GFP_KERNEL);
+          if (!new_map)
+            return -ENOMEM;
+          new_map->size = old_size + 1;
           continue;
         }
-      new_entry = &new_map->entries[existing];
-      new_entry->min = min_addr;
-      new_entry->max = max_addr;
-      if (old_map)
-        {
-          memcpy(&new_map->entries, old_map->entries,
-                 existing * sizeof(*new_entry));
-          if (old_map->size > existing)
-            memcpy(new_entry + 1, &old_map->entries[existing + 1],
-                   (old_map->size - existing) * sizeof(*new_entry));
-        }
-      new_map->size = blackmap->size + 1;
-      blackmap = new_map;
-      spin_unlock(&addr_map_lock);
-      if (old_map)
-        kfree(old_map);
-      return 0;
     }
+  if (!blackmap)
+    {
+      existing = 0;
+    }
+  else
+    {
+      min_entry = lookup_addr_aux(min_addr, blackmap);
+      max_entry = lookup_addr_aux(max_addr, blackmap);
+      if (min_entry || max_entry)
+        {
+          if (existing_min)
+            *existing_min = min_entry;
+          if (existing_max)
+            *existing_max = max_entry;
+          spin_unlock(&addr_map_lock);
+          kfree(new_map);
+          return 1;
+        }
+      existing = upper_bound(min_addr, old_map);
+    }
+  new_entry = &new_map->entries[existing];
+  new_entry->min = min_addr;
+  new_entry->max = max_addr;
+  if (old_map)
+    {
+      memcpy(&new_map->entries, old_map->entries,
+             existing * sizeof(*new_entry));
+      if (old_map->size > existing)
+        memcpy(new_entry + 1, &old_map->entries[existing + 1],
+               (old_map->size - existing) * sizeof(*new_entry));
+    }
+  blackmap = new_map;
+  spin_unlock(&addr_map_lock);
+  if (old_map)
+    kfree(old_map);
+  return 0;
 }
 
 void
