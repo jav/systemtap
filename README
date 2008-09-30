@@ -10,10 +10,10 @@ See the INSTALL file for generic build instructions.
 Prerequisites:
 
 - linux kernel with kprobes (mainline 2.6.11+ or backport)
-- kernel module build environment (kernel-devel or kernel-smp-devel rpm)
+- kernel module build environment (kernel-devel rpm)
 - kernel debugging information (kernel-debuginfo rpm)
 - C compiler (same as what kernel was compiled with)
-- elfutils with libdwfl for debugging informatin parsing
+- elfutils with libdwfl for debugging information parsing
 - root privileges
 
 Installation steps:
@@ -61,21 +61,21 @@ Build steps:
 
 - Run systemtap:
 
-  To run the full test suite from the build tree.
-  % sudo make installcheck
-
   To run systemtap after installation, add $prefix/bin to your $PATH, or
   refer to $prefix/bin/stap directly.  If you keep your build tree
   around, you can also use the "stap" binary there.  
 
   Some samples should be available under $prefix/share/doc/systemtap/examples.
-  Normally, run "stap" as root.
 
-  If desired, create "stapdev" and "stapusr" entries in /etc/groups.
-  Any users in "stapdev" will be able to run systemtap as if with root
-  privileges.  Users in "stapusr" can only launch (with "staprun") 
-  pre-compiled probe modules (created by "stap -p4 ...") that a system
-  administrator copied under /lib/modules/`uname -r`/systemtap.
+  Normally, run "stap" as root.  If desired, create "stapdev" and
+  "stapusr" entries in /etc/groups.  Any users in "stapdev" will be
+  able to run systemtap as if with root privileges.  Users in "stapusr"
+  can only launch (with "staprun") pre-compiled probe modules (created
+  by "stap -p4 ...") that a system administrator copied under
+  /lib/modules/`uname -r`/systemtap.
+
+  To run the full test suite from the build tree.
+  % sudo make installcheck
 
 
 Tips:
