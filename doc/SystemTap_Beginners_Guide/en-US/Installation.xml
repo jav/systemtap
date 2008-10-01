@@ -1,0 +1,98 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+	
+<chapter id="using-setup">
+		<title>Setup and Installation</title>
+		<remark>
+			required packages, installation thru yum, repos (?); possibly, a script to install all required packages
+		</remark>
+		
+		<remark>
+			notes in ~/Desktop/SystemTap/aug21chatlog and ~/Desktop/SystemTap/noted_wcohenmeeting 
+		</remark>	
+		
+		<para>
+			To deploy SystemTap, you need to install the SystemTap packages along with the corresponding set of debug RPMs of your kernel. This means that if your system has multiple kernels installed, and you wish to use SystemTap on more than one kernel, you will need to install the debug RPMs for <emphasis>each</emphasis> of those kernels.
+		</para>
+<section id="installprep">
+	<title>Preparing For Installation</title>
+		<para>
+			To view what kernels and kernel versions are installed on your system, check the contents of <filename>/boot</filename>. Each installed kernel/kernel version has a corresponding <filename>vmlinuz-<replaceable>kernel version</replaceable></filename> there.
+		</para>
+<!-- </formalpara>		 -->
+		<para>
+			To determine what kernel your system is currently using, use:
+		</para>
+		
+<screen>
+uname -r
+</screen>
+		
+		<para>
+			You will also need to configure <command>yum</command> to point to a repository that houses the necessary debug RPMs. Most debugging RPMs for Red Hat Enterprise Linux 5 can be found at the following repository:
+		</para>
+		
+		<para><ulink url="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/5Client/en/os/i386/Debuginfo/">ftp://ftp.redhat.com/pub/redhat/linux/enterprise/5Client/en/os/i386/Debuginfo/</ulink></para>
+		
+		<remark>find any other such repository, if only for RHEL</remark>	
+	</section>			
+			
+<section id="installproper">
+	<title>Deploying SystemTap</title>
+	
+<!-- <step> -->
+	<para>Once you've decided which kernels with which you need to use SystemTap with, install the following packages:</para>
+	
+	<itemizedlist>
+		<listitem><para><filename>systemtap</filename></para></listitem>
+		<listitem><para><filename>systemtap-runtime</filename></para></listitem>
+	</itemizedlist>
+	
+	<para>This will install the SystemTap suite of tools.</para> 
+<!-- </step> -->
+<!--<procedure id="deployproper">
+	<title>Deploying SystemTap</title>
+	<step>-->
+	<para>Next, you'll need to download and install the necessary debug RPMs for your kernel. The necessary debugging RPMs for the ordinary "vanilla" kernel are as follows:</para>
+	<!-- Most debugging RPMs for Red Hat Enterprise Linux 5 can be found at the following link:</para>
+
+	<para>	 -->
+<itemizedlist>
+	<listitem><para><filename>kernel-debuginfo</filename></para></listitem>
+	<listitem><para><filename>kernel-debuginfo-common</filename></para></listitem>
+	<listitem><para><filename>kernel-devel</filename></para></listitem>
+</itemizedlist>
+
+<para>For example, if you wish to use SystemTap on kernel version <filename>2.6.18-53.el5</filename>, then you need to download the following debugging RPMs:</para>
+
+<example id="debuggingrpmlist">
+	<title>Sample List of Debugging RPMs</title>
+<itemizedlist>
+	<listitem><para><filename>kernel-debuginfo-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
+	<listitem><para><filename>kernel-debuginfo-common-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
+	<listitem><para><filename>kernel-devel-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
+</itemizedlist>
+</example>
+<!--</step>
+
+<step>-->
+	<para>Install the debugging RPMs using <command>rpm -ivh <replaceable>RPM</replaceable></command> or <command>yum localinstall <replaceable>RPM</replaceable></command>.</para>
+<!-- </step> -->
+<!--
+<step>
+	<para>
+		Restart the system, loading the appropriate kernel at the <command>grub</command> screen.
+	</para>	
+</step>	
+</procedure>-->
+</section>
+
+<!--		
+<itemizedlist>
+	<listitem><para><filename>systemtap</filename></para></listitem>
+	<listitem><para><filename>systemtap-runtime</filename></para></listitem>
+</itemizedlist>	
+		-->		
+</chapter>
