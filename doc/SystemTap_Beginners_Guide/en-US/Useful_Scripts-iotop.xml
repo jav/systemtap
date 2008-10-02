@@ -1,0 +1,76 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+	<section id="iotopsect">
+		<title>Periodically Print I/O Activity</title>
+
+	<para>This section describes how to monitor I/O activity on the system.</para>
+	
+<formalpara id="iotop">
+	<title>iotop.stp</title>
+<para>
+<programlisting>
+global reads, writes, total_io
+
+probe kernel.function("vfs_read") {
+    reads[execname()] += $count
+}
+
+probe kernel.function("vfs_write") {
+    writes[execname()] += $count
+}
+
+# print top 10 IO processes every 5 seconds
+probe timer.s(5) {
+    foreach (name in writes)
+        total_io[name] += writes[name]
+    foreach (name in reads)
+        total_io[name] += reads[name]
+    printf ("%16s\t%10s\t%10s\n", "Process", "KB Read", "KB Written")
+    foreach (name in total_io- limit 10)
+        printf("%16s\t%10d\t%10d\n", name,
+               reads[name]/1024, writes[name]/1024)
+    delete reads
+    delete writes
+    delete total_io
+    print("\n")
+}
+</programlisting>
+</para>
+</formalpara>
+
+<para><xref linkend="iotop"/> prints out the top ten executables generating I/O traffic every 5-second interval, in descending order. Its output contains the process name and the amount of data read or written by the process, in KB. For example:</para>
+
+<example id="iotopoutput">
+	<title><xref linkend="iotop"/> Sample Output</title>
+<screen>
+[...]	
+         Process           KB Read      KB Written
+            Xorg             50287               0
+         staprun              3328               0
+ multiload-apple              3039              23
+            sshd               208               1
+        floaters                14              62
+  NetworkManager                15               0
+ gnome-vfs-daemo                 8               0
+           cupsd                 3               3
+        sendmail                 4               0
+   mixer_applet2                 3               0
+
+         Process           KB Read      KB Written
+            Xorg             51886               0
+         staprun              3328               0
+ multiload-apple              3039              23
+            sshd              1344               4
+           snmpd                90               0
+        floaters                15              66
+  NetworkManager                23               0
+      irqbalance                16               0
+ pam_timestamp_c                 9               0
+        sendmail                 4               0
+</screen>
+</example>
+
+<para><xref linkend="iotopoutput"/> displays top I/O writes and reads within a random 10-second interval. Note that <xref linkend="iotop"/> is recursive, as it also detects I/O resulting from SystemTap activity &mdash; <xref linkend="iotopoutput"/> also displays reads done by <command>staprun</command>.</para>
+</section>

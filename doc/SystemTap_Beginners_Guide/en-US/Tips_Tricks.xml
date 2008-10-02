@@ -4,11 +4,12 @@
 
 <chapter id="tips-tricks">
 	<title>Tips and Tricks</title>
-	<remark>This chapter covers miscellaneous tips/tricks</remark>
+	<remark>- This chapter covers miscellaneous tips/tricks</remark>
 	
-	<remark>This is a tentative section, and will only be included if content can be provided</remark>
+	<remark>- This is a tentative section, and will only be included if content can be provided</remark>
 	
-	
+	<remark>- add use of exit() here</remark>
 
+	<remark>- add "basic constructs" here; i.e. using if/else, while loops, for loops, examples; if done, consider moving up to before Useful_SystemTap_Scripts.xm, after Understanding_How_SystemTap_Works.xml</remark>
 </chapter>
 

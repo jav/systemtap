@@ -30,7 +30,7 @@
 	<itemizedlist>
 		<listitem><para>To introduce users to SystemTap, familiarize them with its architecture, and provide setup instructions for all kernel types.</para></listitem>
 		
-		<listitem><para>To provide pre-written SystemTap scripts for monitoring and forensic tasks, along with instructions on how to analyze their output.</para></listitem>  
+		<listitem><para>To provide pre-written SystemTap scripts for monitoring detailed activity in different components of the system, along with instructions on how to analyze their output.</para></listitem>  
 	</itemizedlist>	
 <!-- </formalpara>	 -->
 <remark>above,  Short description on the underlying goals of SystemTap_Beginners_Guide, what we want to teach users.</remark>

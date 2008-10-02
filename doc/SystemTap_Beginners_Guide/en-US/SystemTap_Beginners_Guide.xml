@@ -6,8 +6,9 @@
 	<xi:include href="Book_Info.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Preface.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Introduction.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	<xi:include href="Understanding_How_SystemTap_Works.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Using_SystemTap.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<!--<xi:include href="Installation.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />-->
+	<xi:include href="Understanding_How_SystemTap_Works.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_SystemTap_Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Errors.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Tips_Tricks.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
