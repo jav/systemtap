@@ -1,3 +1,8 @@
+2008-10-02  Tim Moore  <timoore@redhat.com>
+
+	* addr-map.c (add_bad_addr_entry): Fix bugs in allocating a new
+	table and copying old entries into the new table.
+
 2008-09-30  Tim Moore  <timoore@redhat.com>
 
 	* addr-map.c (add_bad_addr_entry): Rewrite allocation of address

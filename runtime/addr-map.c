@@ -139,8 +139,9 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
           if (!new_map)
             return -ENOMEM;
           new_map->size = old_size + 1;
-          continue;
         }
+      else
+        break;
     }
   if (!blackmap)
     {
@@ -170,7 +171,7 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
       memcpy(&new_map->entries, old_map->entries,
              existing * sizeof(*new_entry));
       if (old_map->size > existing)
-        memcpy(new_entry + 1, &old_map->entries[existing + 1],
+        memcpy(new_entry + 1, &old_map->entries[existing],
                (old_map->size - existing) * sizeof(*new_entry));
     }
   blackmap = new_map;
