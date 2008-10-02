@@ -10,10 +10,10 @@ See the INSTALL file for generic build instructions.
 Prerequisites:
 
 - linux kernel with kprobes (mainline 2.6.11+ or backport)
-- kernel module build environment (kernel-devel or kernel-smp-devel rpm)
+- kernel module build environment (kernel-devel rpm)
 - kernel debugging information (kernel-debuginfo rpm)
 - C compiler (same as what kernel was compiled with)
-- elfutils with libdwfl for debugging informatin parsing
+- elfutils with libdwfl for debugging information parsing
 - root privileges
 
 Installation steps:
@@ -23,12 +23,12 @@ Installation steps:
 
 Build steps:
 
-- Install the kernel-debuginfo, kernel-[smp-]devel, gcc and libcap-devel
+- Install the kernel-debuginfo, kernel-devel, gcc and dependent
   packages (or see below if you are building your own kernels from source).
-  If available, install your distribution's copy of elfutils and its
-  development headers/libraries.
 
-- Or if desired, download an elfutils source release to build in
+- If available, install your distribution's copy of elfutils and its
+  development headers/libraries.
+  Or if desired, download an elfutils source release to build in
   "bundled mode" (below), and untar it into some new directory.
   Or if desired, build elfutils separately one time, and install
   it to /usr/local.
@@ -45,14 +45,38 @@ Build steps:
   % .../configure [other autoconf options]
   Or, with build it with a bundled internal copy of elfutils:
   % .../configure --with-elfutils=ELFUTILS-SOURCE-DIR [other autoconf options]
+
   Consider configuring with "--enable-dejazilla" to automatically
   contribute to our public test result database.
+
+  Consider configuring with "--prefix=DIRECTORY" to specify an
+  installation directory other than /usr/local.  It can be an ordinary
+  personal directory.
 
   % make all
   % sudo make install
 
-  To run the full test suite:
+  To uninstall systemtap:
+  % sudo make uninstall
+
+- Run systemtap:
+
+  To run systemtap after installation, add $prefix/bin to your $PATH, or
+  refer to $prefix/bin/stap directly.  If you keep your build tree
+  around, you can also use the "stap" binary there.  
+
+  Some samples should be available under $prefix/share/doc/systemtap/examples.
+
+  Normally, run "stap" as root.  If desired, create "stapdev" and
+  "stapusr" entries in /etc/groups.  Any users in "stapdev" will be
+  able to run systemtap as if with root privileges.  Users in "stapusr"
+  can only launch (with "staprun") pre-compiled probe modules (created
+  by "stap -p4 ...") that a system administrator copied under
+  /lib/modules/`uname -r`/systemtap.
+
+  To run the full test suite from the build tree.
   % sudo make installcheck
+
 
 Tips:
 

@@ -1,3 +1,13 @@
+2008-09-30  Mark Wielaard  <mjw@redhat.com>
+
+	* tapsets.cxx (literal_stmt_for_local): Check if alternatives can be
+	provided after calling dwarf_formref_die.
+	(literal_stmt_for_return): Likewise.
+
+2008-09-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (add_global_var_display): Implicitly sort arrays.
+
 2008-09-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6916
