@@ -38,8 +38,8 @@ void _stp_rmdir_proc_module(void)
 {
         if (_stp_proc_root && _stp_proc_root->subdir == NULL) {
 		if (atomic_read(&_stp_proc_root->count) != LAST_ENTRY_COUNT)
-			_stp_warn("(%d,%d)Removal of /proc/systemtap/%s\nis deferred until it is no longer in use.\n"
-				  "Systemtap module removal will block.\n", atomic_read(&_stp_proc_root->count), LAST_ENTRY_COUNT, THIS_MODULE->name);	
+			_stp_warn("Removal of /proc/systemtap/%s\nis deferred until it is no longer in use.\n"
+				  "Systemtap module removal will block.\n", THIS_MODULE->name);	
 		remove_proc_entry(THIS_MODULE->name, _stp_proc_stap);
 		_stp_proc_root = NULL;
 	}

@@ -1,5 +1,9 @@
 2008-10-03  Mark Wielaard  <mjw@redhat.com>
 
+	* procfs.c (_stp_rmdir_proc_module): Remove debug output from warning.
+
+2008-10-03  Mark Wielaard  <mjw@redhat.com>
+
 	* procfs.c (_stp_rmdir_proc_module): Usage count warning
 	depends on kernel version.
 
