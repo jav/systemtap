@@ -72,5 +72,5 @@ probe timer.s(5) {
 </screen>
 </example>
 
-<para><xref linkend="iotopoutput"/> displays top I/O writes and reads within a random 10-second interval. Note that <xref linkend="iotop"/> is recursive, as it also detects I/O resulting from SystemTap activity &mdash; <xref linkend="iotopoutput"/> also displays reads done by <command>staprun</command>.</para>
+<para><xref linkend="iotopoutput"/> displays top I/O writes and reads within a random 10-second interval. Note that <xref linkend="iotop"/> also detects I/O resulting from SystemTap activity &mdash; <xref linkend="iotopoutput"/> also displays reads done by <command>staprun</command>.</para>
 </section>

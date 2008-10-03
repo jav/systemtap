@@ -22,6 +22,7 @@
 	<xi:include href="Useful_Scripts-disktop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-IO.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-iotop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-traceio.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
 	<xi:include href="Useful_Scripts-Kernel.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Network.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Signals.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
