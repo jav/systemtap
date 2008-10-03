@@ -1,3 +1,8 @@
+2008-10-03  Mark Wielaard  <mjw@redhat.com>
+
+	* procfs.c (_stp_rmdir_proc_module): Usage count warning
+	depends on kernel version.
+
 2008-10-02  Tim Moore  <timoore@redhat.com>
 
 	* addr-map.c (add_bad_addr_entry): Fix bugs in allocating a new
