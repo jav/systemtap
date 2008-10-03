@@ -57,7 +57,8 @@ static void uretprobe_handle_entry(struct uprobe *u, struct pt_regs *regs,
 	struct uprobe_task *utask);
 static void uretprobe_handle_return(struct pt_regs *regs,
 	struct uprobe_task *utask);
-static void uretprobe_set_trampoline(struct uprobe_process *uproc);
+static void uretprobe_set_trampoline(struct uprobe_process *uproc,
+	struct task_struct *tsk);
 static void zap_uretprobe_instances(struct uprobe *u,
 	struct uprobe_process *uproc);
 
@@ -1167,7 +1168,7 @@ static unsigned long find_next_possible_ssol_vma(unsigned long ceiling)
 	struct mm_struct *mm = current->mm;
 	struct rb_node *rb_node;
 	struct vm_area_struct *vma;
-	unsigned long good_flags = VM_EXEC | VM_DONTCOPY | VM_DONTEXPAND;
+	unsigned long good_flags = VM_EXEC | VM_DONTEXPAND;
 	unsigned long bad_flags = VM_WRITE | VM_GROWSDOWN | VM_GROWSUP;
 	unsigned long addr = 0;
 
@@ -1238,20 +1239,29 @@ static noinline unsigned long uprobe_setup_ssol_vma(unsigned long nbytes)
 
 	vma = find_vma(mm, addr);
 	BUG_ON(!vma);
-	/* avoid vma copy on fork() and don't expand when mremap() */
-	vma->vm_flags |= VM_DONTCOPY | VM_DONTEXPAND;
+	/*
+	 * Don't expand vma on mremap().  Allow vma to be copied on
+	 * fork() -- see uprobe_fork_uproc().
+	 */
+	vma->vm_flags |= VM_DONTEXPAND;
 
 	up_write(&mm->mmap_sem);
 	return addr;
 }
 
-/*
- * Initialize per-process area for single stepping out-of-line.
- * Must be run by a thread in the probed process.  Returns with
- * area->insn_area pointing to the initialized area, or set to a
- * negative errno.
+/**
+ * uprobe_init_ssol -- initialize per-process area for single stepping
+ * out-of-line.
+ * @uproc:	probed process
+ * @tsk:	probed task: must be current if @insn_area is %NULL
+ * @insn_area:	virtual address of the already-established SSOL vma --
+ * see uprobe_fork_uproc().
+ *
+ * Returns with @uproc->ssol_area.insn_area pointing to the initialized
+ * area, or set to a negative errno.
  */
-static noinline void uprobe_init_ssol(struct uprobe_process *uproc)
+static void uprobe_init_ssol(struct uprobe_process *uproc,
+	struct task_struct *tsk, __user uprobe_opcode_t *insn_area)
 {
 	struct uprobe_ssol_area *area = &uproc->ssol_area;
 	struct uprobe_ssol_slot *slot;
@@ -1261,9 +1271,16 @@ static noinline void uprobe_init_ssol(struct uprobe_process *uproc)
 	/* Trampoline setup will either fail or succeed here. */
 	uproc->uretprobe_trampoline_addr = ERR_PTR(-ENOMEM);
 
-	area->insn_area = (uprobe_opcode_t *) uprobe_setup_ssol_vma(PAGE_SIZE);
-	if (IS_ERR(area->insn_area))
-		return;
+	if (insn_area) {
+		BUG_ON(IS_ERR(insn_area));
+		area->insn_area = insn_area;
+	} else {
+		BUG_ON(tsk != current);
+		area->insn_area =
+			(uprobe_opcode_t *) uprobe_setup_ssol_vma(PAGE_SIZE);
+		if (IS_ERR(area->insn_area))
+			return;
+	}
 
 	area->nfree = area->nslots = PAGE_SIZE / MAX_UINSN_BYTES;
 	if (area->nslots > MAX_SSOL_SLOTS)
@@ -1288,7 +1305,7 @@ static noinline void uprobe_init_ssol(struct uprobe_process *uproc)
 		slot->insn = (__user uprobe_opcode_t *) slot_addr;
 		slot_addr += MAX_UINSN_BYTES;
 	}
-	uretprobe_set_trampoline(uproc);
+	uretprobe_set_trampoline(uproc, tsk);
 }
 
 /*
@@ -1305,7 +1322,7 @@ static __user uprobe_opcode_t
 		mutex_lock(&uproc->ssol_area.setup_mutex);
 		if (likely(!area->initialized)) {
 			/* Nobody snuck in and set things up ahead of us. */
-			uprobe_init_ssol(uproc);
+			uprobe_init_ssol(uproc, current, NULL);
 			area->initialized = 1;
 		}
 		mutex_unlock(&uproc->ssol_area.setup_mutex);
@@ -2035,6 +2052,106 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 }
 
 /*
+ * Duplicate the FIFO of uretprobe_instances from parent_utask into
+ * child_utask.  Zap the uretprobe pointer, since all we care about is
+ * vectoring to the proper return address.  Where there are multiple
+ * uretprobe_instances for the same function instance, copy only the
+ * one that contains the real return address.
+ */
+static int uprobe_fork_uretprobe_instances(struct uprobe_task *parent_utask,
+					struct uprobe_task *child_utask)
+{
+	struct uprobe_process *parent_uproc = parent_utask->uproc;
+	struct uprobe_process *child_uproc = child_utask->uproc;
+	__user uprobe_opcode_t *trampoline_addr =
+				child_uproc->uretprobe_trampoline_addr;
+	struct hlist_node *tmp, *tail;
+	struct uretprobe_instance *pri, *cri;
+
+	BUG_ON(trampoline_addr != parent_uproc->uretprobe_trampoline_addr);
+
+	/* Since there's no hlist_add_tail()... */
+	tail = NULL;
+	hlist_for_each_entry(pri, tmp, &parent_utask->uretprobe_instances,
+								hlist) {
+		if (pri->ret_addr == (unsigned long) trampoline_addr)
+			continue;
+		cri = kmalloc(sizeof(*cri), GFP_USER);
+		if (!cri)
+			return -ENOMEM;
+		cri->rp = NULL;
+		cri->ret_addr = pri->ret_addr;
+		INIT_HLIST_NODE(&cri->hlist);
+		if (tail)
+			hlist_add_after(tail, &cri->hlist);
+		else
+			hlist_add_head(&cri->hlist,
+				&child_utask->uretprobe_instances);
+		tail = &cri->hlist;
+
+		/* Ref-count uretprobe_instances. */
+		uprobe_get_process(child_uproc);
+	}
+	BUG_ON(hlist_empty(&child_utask->uretprobe_instances));
+	return 0;
+}
+
+/*
+ * A probed process is forking, and at least one function in the
+ * call stack has a uretprobe on it.  Since the child inherits the
+ * call stack, it's possible that the child could attempt to return
+ * through the uretprobe trampoline.  Create a uprobe_process for
+ * the child, initialize its SSOL vma (which has been cloned from
+ * the parent), and clone the parent's list of uretprobe_instances.
+ *
+ * Called with uproc_table locked and parent_uproc->rwsem write-locked.
+ *
+ * (On architectures where it's easy to keep track of where in the
+ * stack the return addresses are stored, we could just poke the real
+ * return addresses back into the child's stack.  We use this more
+ * general solution.)
+ */
+static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
+				struct uprobe_task *parent_utask,
+				struct task_struct *child_tsk)
+{
+	int ret = 0;
+	struct uprobe_process *child_uproc;
+	struct uprobe_task *child_utask;
+
+	BUG_ON(!parent_uproc->uretprobe_trampoline_addr ||
+			IS_ERR(parent_uproc->uretprobe_trampoline_addr));
+
+	if (!try_module_get(THIS_MODULE))
+		return -ENOSYS;
+	child_uproc = uprobe_mk_process(child_tsk);
+	if (IS_ERR(child_uproc)) {
+		ret = (int) PTR_ERR(child_uproc);
+		module_put(THIS_MODULE);
+		return ret;
+	}
+	/* child_uproc is write-locked and ref-counted at this point. */
+
+	mutex_lock(&child_uproc->ssol_area.setup_mutex);
+	uprobe_init_ssol(child_uproc, child_tsk,
+				parent_uproc->ssol_area.insn_area);
+	child_uproc->ssol_area.initialized = 1;
+	mutex_unlock(&child_uproc->ssol_area.setup_mutex);
+
+	child_utask = uprobe_find_utask(child_tsk);
+	BUG_ON(!child_utask);
+	ret = uprobe_fork_uretprobe_instances(parent_utask, child_utask);
+	
+	hlist_add_head(&child_uproc->hlist,
+			&uproc_table[hash_long(child_uproc->tgid,
+			UPROBE_HASH_BITS)]);
+
+	up_write(&child_uproc->rwsem);
+	uprobe_decref_process(child_uproc);
+	return ret;
+}
+
+/*
  * Clone callback: The current task has spawned a thread/process.
  *
  * NOTE: For now, we don't pass on uprobes from the parent to the
@@ -2057,8 +2174,10 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 
 	/*
 	 * Lock uproc so no new uprobes can be installed 'til all
-	 * report_clone activities are completed
+	 * report_clone activities are completed.  Lock uproc_table
+	 * in case we have to run uprobe_fork_uproc().
 	 */
+	lock_uproc_table();
 	down_write(&uproc->rwsem);
 	get_task_struct(child);
 
@@ -2066,13 +2185,9 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 		/* New thread in the same process */
 		ctask = uprobe_add_task(child, uproc);
 		BUG_ON(!ctask);
-		if (IS_ERR(ctask)) {
-			put_task_struct(child);
-			up_write(&uproc->rwsem);
-			goto fail;
-		}
-		if (ctask)
-			uproc->nthreads++;
+		if (IS_ERR(ctask))
+			goto done;
+		uproc->nthreads++;
 		/*
 		 * FIXME: Handle the case where uproc is quiescing
 		 * (assuming it's possible to clone while quiescing).
@@ -2108,12 +2223,15 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 				}
 			}
 		}
+		
+		if (!hlist_empty(&ptask->uretprobe_instances))
+			(void) uprobe_fork_uproc(uproc, ptask, child);
 	}
 
+done:
 	put_task_struct(child);
 	up_write(&uproc->rwsem);
-
-fail:
+	unlock_uproc_table();
 	return UTRACE_ACTION_RESUME;
 }
 
@@ -2316,13 +2434,14 @@ EXPORT_SYMBOL_GPL(unregister_uretprobe);
  * uproc->ssol_area has been successfully set up.  Establish the
  * uretprobe trampoline in slot 0.
  */
-static void uretprobe_set_trampoline(struct uprobe_process *uproc)
+static void uretprobe_set_trampoline(struct uprobe_process *uproc,
+					struct task_struct *tsk)
 {
 	uprobe_opcode_t bp_insn = BREAKPOINT_INSTRUCTION;
 	struct uprobe_ssol_area *area = &uproc->ssol_area;
 	struct uprobe_ssol_slot *slot = &area->slots[0];
 
-	if (access_process_vm(current, (unsigned long) slot->insn,
+	if (access_process_vm(tsk, (unsigned long) slot->insn,
 			&bp_insn, BP_INSN_SIZE, 1) == BP_INSN_SIZE) {
 		uproc->uretprobe_trampoline_addr = slot->insn;
 		slot->state = SSOL_RESERVED;
@@ -2345,7 +2464,8 @@ static void uretprobe_handle_return(struct pt_regs *regs,
 	struct uprobe_task *utask)
 {
 }
-static void uretprobe_set_trampoline(struct uprobe_process *uproc)
+static void uretprobe_set_trampoline(struct uprobe_process *uproc,
+					struct task_struct *tsk)
 {
 }
 static void zap_uretprobe_instances(struct uprobe *u,

@@ -1,3 +1,12 @@
+2008-10-03  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 6850
+	* runtime/uprobes/uprobes.c: When a probed process forks with
+	uretprobe_instances outstanding, create a uprobe_process and
+	uprobe_task for the child, and clone the uretprobe_instances.
+	This requires us to allow the SSOL vma to be copied on fork.
+	* testsuite/systemtap.base/bz6850.{exp,c,stp}: new test case
+
 2008-09-30  Mark Wielaard  <mjw@redhat.com>
 
 	* tapsets.cxx (literal_stmt_for_local): Check if alternatives can be
