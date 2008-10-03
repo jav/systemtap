@@ -1234,7 +1234,8 @@ void add_global_var_display (systemtap_session& s)
 	  vardecl* idx_v[idx_count];
 	  // Create a foreach loop
 	  foreach_loop* fe = new foreach_loop;
-	  fe->sort_direction = 0;
+	  fe->sort_direction = -1; // imply decreasing sort on value
+	  fe->sort_column = 0;     // as in   foreach ([a,b,c] in array-) { }
 	  fe->limit = NULL;
 
 	  // Create indices for the foreach loop

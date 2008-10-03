@@ -1,3 +1,13 @@
+2008-10-02  Tim Moore  <timoore@redhat.com>
+
+	* addr-map.c (add_bad_addr_entry): Fix bugs in allocating a new
+	table and copying old entries into the new table.
+
+2008-09-30  Tim Moore  <timoore@redhat.com>
+
+	* addr-map.c (add_bad_addr_entry): Rewrite allocation of address
+	table to simplify locking and eliminate a race condition.
+
 2008-09-26  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__STP_ATTACHED_TASK_EVENTS): Removed UTRACE_STOP,

@@ -3,7 +3,7 @@
 ]>
 
 
-	<section id="useful-disk-disktop">
+	<section id="disktop">
 		<title>Summarizing Disk Read/Write Traffic</title>
 		
 		
@@ -73,7 +73,7 @@ probe timer.ms(5000) {
 	}
 	/* print top ten I/O */
 	foreach ([process,cmd,userid,parent,action] in io_stat- limit 10)
-	  printf("%8d %8d %8d %25s %8s %4s %12d\n",userid,process,parent,cmd,device[process,cmd,userid,parent,action],action,io_stat[process,cmd,userid,parent,action])
+	  printf("%8d %8d %8d %25s %8s %4s %12d\n",userid,process,parent,cmd,device[process,cmd,userid,parent,action], action,io_stat[process,cmd,userid,parent,action])
 
 	/* clear data */
 	delete io_stat
@@ -115,16 +115,16 @@ probe end{
 	<title><xref linkend="scriptdisktop"/> Sample Output</title>
 <screen>
 [...]
-Mon Sep 29 03:38:28 2008 , Average:  19Kb/sec, Read:       7Kb, Write:     89Kb
+Mon Sep 29 03:38:28 2008 , Average:  19Kb/sec, Read: 7Kb, Write: 89Kb
 
-UID      PID     PPID                       CMD   DEVICE    T        BYTES
+UID      PID     PPID                       CMD   DEVICE    T    BYTES
 0    26319    26294                   firefox     sda5    W        90229
 0     2758     2757           pam_timestamp_c     sda5    R         8064
 0     2885        1                     cupsd     sda5    W         1678
 
-Mon Sep 29 03:38:38 2008 , Average:   1Kb/sec, Read:       7Kb, Write:      1Kb
+Mon Sep 29 03:38:38 2008 , Average:   1Kb/sec, Read: 7Kb, Write: 1Kb
 
-UID      PID     PPID                       CMD   DEVICE    T        BYTES
+UID      PID     PPID                       CMD   DEVICE    T    BYTES
 0     2758     2757           pam_timestamp_c     sda5    R         8064
 0     2885        1                     cupsd     sda5    W         1678
 </screen>

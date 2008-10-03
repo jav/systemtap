@@ -35,16 +35,20 @@
 	
 	<step><para>First, SystemTap checks the script against the existing tapset library (normally in <filename>/usr/share/systemtap/tapset/</filename> for any tapsets used.</para></step>
 	
-	<step><para>SystemTap then translates the script to C, running the system C compiler to create a kernel module from it.</para></step>
+	<step><para>SystemTap then translates the script to C, running the system C compiler to create a kernel module from it. The tools that perform this step are contained in the <filename>systemtap</filename> package (refer to <xref linkend="installproper"/> for more information).</para></step>
 	
-	<step><para>SystemTap loads the module, then enables all the probed events by "hooking" those events into the kernel.</para></step>
+	<step><para>SystemTap loads the module, then enables all the probes (events and handlers) in the script. The tools that enable this function are deployed by the <filename>systemtap-runtime</filename> package (refer to <xref linkend="installproper"/> for more information).</para></step>
 		
+<!--	<step><para>SystemTap loads the module, then enables all the probed events by "hooking" those events into the kernel.</para></step>
+		-->
 	<step><para>As the events occur, their corresponding handlers are executed.</para></step>
 	
-	<step><para>Once the SystemTap session is terminated, the hooked events are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>    
+	<step><para>Once the SystemTap session is terminated, the probes are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>
+	<!--
+	<step><para>Once the SystemTap session is terminated, the hooked events are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>-->    
 </procedure>
 
-<para>This sequence is driven from a single command-line program: <command>stap</command>. This program is SystemTap's main front-end tool. For more information about <command>stap</command>, refer to <command>man stap</command> (once SystemTap is set up on your machine).</para>
+<para>This sequence is driven from a single command-line program: <command>stap</command>. This program is SystemTap's main front-end tool. For more information about <command>stap</command>, refer to <command>man stap</command> (once SystemTap is properly installed on your machine).</para>
 
 </section>
 <xi:include href="Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />

@@ -1,3 +1,12 @@
+2008-10-03  Mark Wielaard  <mjw@redhat.com>
+
+	* systemtap.base/global_end.exp: Adjust expected foreach ordering.
+
+2008-10-01  Mark Wielaard  <mjw@redhat.com>
+
+	* semok/thirtythree.stp: Use page->mapping instead of page->inuse
+	as annonymous struct value (also available in older kernels).
+
 2008-09-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6916.
