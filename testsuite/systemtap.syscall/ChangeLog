@@ -1,3 +1,11 @@
+2008-10-04  Mark Wielaard  <mjw@redhat.com>
+
+	* access.c: sys_access() calls through to sys_faccessat().
+	* chmod.c: sys_chmod() calls through to sys_fchmodat().
+	* link.c: sys_link() calls through to sys_linkat(),
+	sys_symlink() calls through to sys_symlinkat(),
+	sys_readlink() calls through to sys_readlinkat().
+
 2008-09-17  Mark Wielaard  <mjw@redhat.com>
 
 	* forkwait.c: Low byte of flags is always set to SIGCHLD.
