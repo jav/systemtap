@@ -11,7 +11,17 @@ wait
 
 set test "debugpath-good"
 set uname [exec /bin/uname -r]
-spawn env SYSTEMTAP_DEBUGINFO_PATH=/lib/modules/$uname/build stap -e "probe kernel.function(\"sys_open\") {}" -p2
+
+# Guess where debuginfo is installed
+if [file isdirectory /usr/lib/debug/lib/modules/$uname] {
+  set debuginfo_path "/usr/lib/debug/lib/modules/$uname"
+} elseif [file isdirectory /lib/modules/$uname/build] {
+  set debuginfo_path "/lib/modules/$uname/build"
+} else {
+  set debuginfo_path "/lib/modules/$uname"
+}
+
+spawn env SYSTEMTAP_DEBUGINFO_PATH=$debuginfo_path stap -e "probe kernel.function(\"sys_open\") {}" -p2
 expect {
 	-re {kernel.function.*pc=} { pass $test }
 	timeout { fail "$test (timeout2)" }

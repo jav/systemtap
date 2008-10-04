@@ -1,3 +1,8 @@
+2008-10-04  Mark Wielaard  <mjw@redhat.com>
+
+	* systemtap.base/debugpath.exp: Guess a bit more intelligently
+	where debuginfo is installed.
+
 2008-10-03  Mark Wielaard  <mjw@redhat.com>
 
 	* systemtap.base/global_end.exp: Adjust expected foreach ordering.
