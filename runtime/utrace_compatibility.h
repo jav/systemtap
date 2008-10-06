@@ -73,6 +73,27 @@ utrace_barrier(struct task_struct *target,
 {
 	return 0;
 }
-#endif
+#else
+#ifdef UTRACE_HIDE_EVENT
+/* This is only for some fedora 9 2.6.26 kernels that don't have
+ * UTRACE_ACTION_RESUME defined, but do define UTRACE_HIDE_EVENT.
+ * It isn't really a recommended version, but it does compile and
+ * run mostly. It has one renamed function.
+ */
+#define utrace_attach_task utrace_attach
+static inline void
+utrace_engine_put(struct utrace_attached_engine *engine)
+{
+	return;
+}
+
+static inline int __must_check
+utrace_barrier(struct task_struct *target,
+	       struct utrace_attached_engine *engine)
+{
+	return 0;
+}
+#endif /* UTRACE_HIDE_EVENT */
+#endif /* UTRACE_ACTION_RESUME */
 
 #endif	/* _UTRACE_COMPATIBILITY_H_ */

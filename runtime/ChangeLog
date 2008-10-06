@@ -1,3 +1,7 @@
+2008-10-06  Mark Wielaard  <mjw@redhat.com>
+
+	* utrace_compatibility.h: Add workaround for fedora 9 2.6.26 kernels.
+
 2008-10-06  Wenji Huang  <wenji.huang@oracle.com>
 
         PR 4886
