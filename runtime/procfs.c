@@ -24,13 +24,20 @@ static struct proc_dir_entry *_stp_proc_root = NULL;
 
 void _stp_close_procfs(void);
 
+// 2.6.24 fixed proc_dir_entry refcounting.
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)
+#define LAST_ENTRY_COUNT 0
+#else
+#define LAST_ENTRY_COUNT 1
+#endif
+
 /*
  * Removes /proc/systemtap/{module_name} and /proc/systemtap (if empty)
  */
 void _stp_rmdir_proc_module(void)
 {
         if (_stp_proc_root && _stp_proc_root->subdir == NULL) {
-		if (atomic_read(&_stp_proc_root->count))
+		if (atomic_read(&_stp_proc_root->count) != LAST_ENTRY_COUNT)
 			_stp_warn("Removal of /proc/systemtap/%s\nis deferred until it is no longer in use.\n"
 				  "Systemtap module removal will block.\n", THIS_MODULE->name);	
 		remove_proc_entry(THIS_MODULE->name, _stp_proc_stap);

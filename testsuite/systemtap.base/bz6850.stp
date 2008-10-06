@@ -1,0 +1,7 @@
+#! stap -p4
+probe process("./bz6850").function("*").call {
+	printf("%s called\n", probefunc())
+}
+probe process("./bz6850").function("*").return {
+	printf("%s returns\n", probefunc())
+}

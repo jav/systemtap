@@ -14,7 +14,8 @@ int main()
   // open ("foobar", O_WRONLY|O_CREAT, 0666) = NNNN
 
   chmod("foobar", 0644);
-  // chmod ("foobar", 0644) = 0
+  // chmod ("foobar", 0644)
+  //   fchmodat (AT_FDCWD, "foobar", 0644) = 0
 
   fchmod(fd, 0444);
   // fchmod (NNNN, 0444) = 0
