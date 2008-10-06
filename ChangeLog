@@ -1,3 +1,9 @@
+2008-10-06  Wenji Huang  <wenji.huang@oracle.com>
+
+	PR 4886
+	* translate.cxx (dump_unwindsyms): Extract build-id from debuginfo.
+	(emit_module_init): Check build-id if able.
+
 2008-10-03  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR 6850

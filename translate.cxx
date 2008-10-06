@@ -1113,6 +1113,7 @@ c_unparser::emit_module_init ()
   o->newline(-1) << "}";
 
   // XXX: perform buildid-based checking if able
+  o->newline() << "if (_stp_module_check()) rc = -EINVAL;";
 
   o->newline(-1) << "}";
   o->newline() << "if (rc) goto out;";
@@ -4413,6 +4414,23 @@ dump_unwindsyms (Dwfl_Module *m,
   int syments = dwfl_module_getsymtab(m);
   assert(syments);
 
+  //extract build-id from debuginfo file
+  int build_id_len = 0;
+  unsigned char *build_id_bits;
+  GElf_Addr build_id_vaddr;
+
+  if ((build_id_len=dwfl_module_build_id(m,
+                                        (const unsigned char **)&build_id_bits,
+                                         &build_id_vaddr)) > 0)
+  {
+        if (c->session.verbose > 1) {
+           clog << "Found build-id in " << name
+                << ", length " << build_id_len;
+           clog << ", end at 0x" << hex << build_id_vaddr
+                << dec << endl;
+        }
+  }
+
   // Look up the relocation basis for symbols
   int n = dwfl_module_relocations (m);
 
@@ -4580,6 +4598,28 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ", " << endl;
   c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"
             << "sizeof(struct _stp_section), " << endl;
+
+  if (build_id_len > 0) {
+        c->output << ".build_id_bits = \"" ;
+        for (int j=0; j<build_id_len;j++)
+                c->output << "\\x" << hex
+                          << (unsigned short) *(build_id_bits+j) << dec;
+
+       c->output << "\", " << endl;
+       c->output << ".build_id_len = " << build_id_len << ", " << endl;
+
+       if (modname == "kernel")
+                c->output << ".build_id_offset = 0x" << hex << build_id_vaddr
+			  << dec << ", " << endl;
+       else
+                c->output << ".build_id_offset = 0x" << hex
+			  << build_id_vaddr - base
+ 			  << dec << ", " << endl;
+  } else
+        c->output << ".build_id_len = 0, " << endl;
+
+  //initialize the note section representing unloaded
+  c->output << ".notes_sect = 0," << endl; 
 
   c->output << "};" << endl << endl;
 

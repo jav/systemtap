@@ -160,6 +160,72 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	return NULL;
 }
 
+/* Validate module/kernel based on build-id if there 
+*  The completed case is the following combination:
+*	   Debuginfo 		 Module			         Kernel	
+* 			   X				X
+* 	has build-id/not	unloaded		      has build-id/not	
+*				loaded && (has build-id/not)  
+*
+*  NB: build-id exists only if ld>=2.18 and kernel>= 2.6.23
+*/
+static int _stp_module_check(void)
+{
+	struct _stp_module *m = NULL;
+	unsigned long notes_addr, base_addr;
+	unsigned i,j;
+
+	for (i = 0; i < _stp_num_modules; i++)
+	{
+		m = _stp_modules[i];			
+
+		/* unloaded module */
+		if (m->notes_sect == 0) {
+              	     _stp_warn("skip checking %s\n", m->name);
+                    continue;
+                }
+		if (m->build_id_len > 0) { /* build-id in debuginfo file */
+		    dbug_sym(1, "validate %s based on build-id\n", m->name);
+
+		    /* loaded module/kernel, but without build-id */
+		    if (m->notes_sect == 1) {
+		   	_stp_error("missing build-id in %s\n", m->name);
+			return 1;
+		    } 
+		    /* notes end address */
+		    if (!strcmp(m->name, "kernel")) {
+		  	  notes_addr = m->build_id_offset;
+			  base_addr = _stp_module_relocate("kernel",
+							   "_stext", 0);
+                    } else {
+			  notes_addr = m->notes_sect + m->build_id_offset;
+			  base_addr = m->notes_sect;
+		    }
+		    /* notes start address */
+		    notes_addr -= m->build_id_len;
+		    if (notes_addr > base_addr) {
+		      for (j = 0; j < m->build_id_len; j++)	 
+		        if (*((unsigned char *) notes_addr+j) != 
+							*(m->build_id_bits+j)) 
+			{
+			  _stp_error("inconsistent bit (0x%x [%s] vs 0x%x [debuginfo]) of build-id\n", *((unsigned char *) notes_addr+j), m->name, *(m->build_id_bits+j));
+			  return 1;
+			} 
+		    } else { /* bug, shouldn't come here */
+			     _stp_error("unknown failure in checking %s\n", 
+								m->name);
+			     return 1;
+		    	   } /* end comparing */
+		} else { 
+			  /* build-id in module/kernel, absent in debuginfo */
+			  if (m->notes_sect > 1) {
+			    _stp_error("unexpected build-id in %s\n", m->name);
+			    return 1;
+			  }
+		 } /* end checking */
+	} /* end loop */
+	return 0;
+}
 
 /** Print an address symbolically.
  * @param address The address to lookup.
