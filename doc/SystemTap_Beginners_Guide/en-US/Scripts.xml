@@ -416,7 +416,7 @@ probe kernel.function("*@net/socket.c").return
 <varlistentry>
 	<term>target()</term>
 	<listitem>
-		<para>Used in conjunction with <command>stap <replaceable>script</replaceable> -x <replaceable>process ID</replaceable></command> or <command>stap <replaceable>script</replaceable> -c <replaceable>command</replaceable>. If you want to specify a script to take an argument of a process ID or command, use <command>target()</command> as the variable in the script to refer to it. For example:</para>
+		<para>Used in conjunction with <command>stap <replaceable>script</replaceable> -x <replaceable>process ID</replaceable></command> or <command>stap <replaceable>script</replaceable> -c <replaceable>command</replaceable></command>. If you want to specify a script to take an argument of a process ID or command, use <command>target()</command> as the variable in the script to refer to it. For example:</para>
 			
 <example id="targetexample">
 	<title>targetexample.stp</title>
