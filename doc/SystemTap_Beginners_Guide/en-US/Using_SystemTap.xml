@@ -70,6 +70,19 @@
 	</listitem>
 </varlistentry>
 
+<varlistentry>
+	<term>-x <replaceable>process ID</replaceable></term>
+	<listitem>
+		<para>Sets the SystemTap handler function <command>target()</command> to the specified process ID. For more information about <command>target()</command>, refer to <xref linkend="systemtapscript-handlers"/>.</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>-c <replaceable>command</replaceable></term>
+	<listitem>
+		<para>Sets the SystemTap handler function <command>target()</command> to the specified command. Note that you must use the full path to the specified command; for example, instead of specifying <command>cp</command>, use <command>/bin/cp</command> (as in <command>stap <replaceable>script</replaceable> -c /bin/cp</command>). For more information about <command>target()</command>, refer to <xref linkend="systemtapscript-handlers"/>.</para>
+	</listitem>	
+</varlistentry>	
 <!--	
 <varlistentry>
 	<term></term>
