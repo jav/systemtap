@@ -1,0 +1,675 @@
+Title	: User-Space Probes (Uprobes)
+Author	: Jim Keniston <jkenisto@us.ibm.com>
+
+CONTENTS
+
+1. Concepts: Uprobes, Return Probes
+2. Architectures Supported
+3. Configuring Uprobes
+4. API Reference
+5. Uprobes Features and Limitations
+6. Interoperation with Kprobes
+7. Interoperation with Utrace
+8. Probe Overhead
+9. TODO
+10. Uprobes Team
+11. Uprobes Example
+12. Uretprobes Example
+
+1. Concepts: Uprobes, Return Probes
+
+Uprobes enables you to dynamically break into any routine in a
+user application and collect debugging and performance information
+non-disruptively. You can trap at any code address, specifying a
+kernel handler routine to be invoked when the breakpoint is hit.
+
+There are currently two types of user-space probes: uprobes and
+uretprobes (also called return probes).  A uprobe can be inserted on
+any instruction in the application's virtual address space.  A return
+probe fires when a specified user function returns.  These two probe
+types are discussed in more detail later.
+
+A registration function such as register_uprobe() specifies which
+process is to be probed, where the probe is to be inserted, and what
+handler is to be called when the probe is hit.
+
+Typically, Uprobes-based instrumentation is packaged as a kernel
+module.  In the simplest case, the module's init function installs
+("registers") one or more probes, and the exit function unregisters
+them.  However, probes can be registered or unregistered in response
+to other events as well.  For example:
+- A probe handler itself can register and/or unregister probes.
+- You can establish Utrace callbacks to register and/or unregister
+probes when a particular process forks, clones a thread,
+execs, enters a system call, receives a signal, exits, etc.
+See Documentation/utrace.txt.
+
+1.1 How Does a Uprobe Work?
+
+When a uprobe is registered, Uprobes makes a copy of the probed
+instruction, stops the probed application, replaces the first byte(s)
+of the probed instruction with a breakpoint instruction (e.g., int3
+on i386 and x86_64), and allows the probed application to continue.
+(When inserting the breakpoint, Uprobes uses the same copy-on-write
+mechanism that ptrace uses, so that the breakpoint affects only that
+process, and not any other process running that program.  This is
+true even if the probed instruction is in a shared library.)
+
+When a CPU hits the breakpoint instruction, a trap occurs, the CPU's
+user-mode registers are saved, and a SIGTRAP signal is generated.
+Uprobes intercepts the SIGTRAP and finds the associated uprobe.
+It then executes the handler associated with the uprobe, passing the
+handler the addresses of the uprobe struct and the saved registers.
+The handler may block, but keep in mind that the probed thread remains
+stopped while your handler runs.
+
+Next, Uprobes single-steps its copy of the probed instruction and
+resumes execution of the probed process at the instruction following
+the probepoint.  (It would be simpler to single-step the actual
+instruction in place, but then Uprobes would have to temporarily
+remove the breakpoint instruction.  This would create problems in a
+multithreaded application.  For example, it would open a time window
+when another thread could sail right past the probepoint.)
+
+Instruction copies to be single-stepped are stored in a per-process
+"single-step out of line (SSOL) area," which is a little VM area
+created by Uprobes in each probed process's address space.
+
+1.2 The Role of Utrace
+
+When a probe is registered on a previously unprobed process,
+Uprobes establishes a tracing "engine" with Utrace (see
+Documentation/utrace.txt) for each thread (task) in the process.
+Uprobes uses the Utrace "quiesce" mechanism to stop all the threads
+prior to insertion or removal of a breakpoint.  Utrace also notifies
+Uprobes of breakpoint and single-step traps and of other interesting
+events in the lifetime of the probed process, such as fork, clone,
+exec, and exit.
+
+1.3 How Does a Return Probe Work?
+
+When you call register_uretprobe(), Uprobes establishes a uprobe
+at the entry to the function.  When the probed function is called
+and this probe is hit, Uprobes saves a copy of the return address,
+and replaces the return address with the address of a "trampoline"
+-- a piece of code that contains a breakpoint instruction.
+
+When the probed function executes its return instruction, control
+passes to the trampoline and that breakpoint is hit.  Uprobes's
+trampoline handler calls the user-specified handler associated with the
+uretprobe, then sets the saved instruction pointer to the saved return
+address, and that's where execution resumes upon return from the trap.
+
+The trampoline is stored in the SSOL area.
+
+1.4 Multithreaded Applications
+
+Uprobes supports the probing of multithreaded applications.  Uprobes
+imposes no limit on the number of threads in a probed application.
+All threads in a process use the same text pages, so every probe
+in a process affects all threads; of course, each thread hits the
+probepoint (and runs the handler) independently.  Multiple threads
+may run the same handler simultaneously.  If you want a particular
+thread or set of threads to run a particular handler, your handler
+should check current or current->pid to determine which thread has
+hit the probepoint.
+
+When a process clones a new thread, that thread automatically shares
+all current and future probes established for that process.
+
+Keep in mind that when you register or unregister a probe, the
+breakpoint is not inserted or removed until Utrace has stopped all
+threads in the process.  The register/unregister function returns
+after the breakpoint has been inserted/removed (but see the next
+section).
+
+1.5 Registering Probes within Probe Handlers
+
+A uprobe or uretprobe handler can call any of the functions
+in the Uprobes API ([un]register_uprobe(), [un]register_uretprobe()).
+A handler can even unregister its own probe.  However, when invoked
+from a handler, the actual [un]register operations do not take
+place immediately.  Rather, they are queued up and executed after
+all handlers for that probepoint have been run.  In the handler,
+the [un]register call returns -EINPROGRESS.  If you set the
+registration_callback field in the uprobe object, that callback will
+be called when the [un]register operation completes.
+
+2. Architectures Supported
+
+Uprobes and uretprobes are implemented on the following
+architectures:
+
+- i386
+- x86_64 (AMD-64, EM64T)
+- ppc64
+- ia64
+- s390x
+
+3. Configuring Uprobes
+
+// TODO: The patch actually puts Uprobes configuration under "Instrumentation
+// Support" with Kprobes.  Need to decide which is the better place.
+
+When configuring the kernel using make menuconfig/xconfig/oldconfig,
+ensure that CONFIG_UPROBES is set to "y".  Under "Process debugging
+support," select "Infrastructure for tracing and debugging user
+processes" to enable Utrace, then select "Uprobes".
+
+So that you can load and unload Uprobes-based instrumentation modules,
+make sure "Loadable module support" (CONFIG_MODULES) and "Module
+unloading" (CONFIG_MODULE_UNLOAD) are set to "y".
+
+4. API Reference
+
+The Uprobes API includes a "register" function and an "unregister"
+function for each type of probe.  Here are terse, mini-man-page
+specifications for these functions and the associated probe handlers
+that you'll write.  See the latter half of this document for examples.
+
+4.1 register_uprobe
+
+#include <linux/uprobes.h>
+int register_uprobe(struct uprobe *u);
+
+Sets a breakpoint at virtual address u->vaddr in the process whose
+pid is u->pid.  When the breakpoint is hit, Uprobes calls u->handler.
+
+register_uprobe() returns 0 on success, -EINPROGRESS if
+register_uprobe() was called from a uprobe or uretprobe handler
+(and therefore delayed), or a negative errno otherwise.
+
+Section 4.4, "User's Callback for Delayed Registrations",
+explains how to be notified upon completion of a delayed
+registration.
+
+User's handler (u->handler):
+#include <linux/uprobes.h>
+#include <linux/ptrace.h>
+void handler(struct uprobe *u, struct pt_regs *regs);
+
+Called with u pointing to the uprobe associated with the breakpoint,
+and regs pointing to the struct containing the registers saved when
+the breakpoint was hit.
+
+4.2 register_uretprobe
+
+#include <linux/uprobes.h>
+int register_uretprobe(struct uretprobe *rp);
+
+Establishes a return probe in the process whose pid is rp->u.pid for
+the function whose address is rp->u.vaddr.  When that function returns,
+Uprobes calls rp->handler.
+
+register_uretprobe() returns 0 on success, -EINPROGRESS if
+register_uretprobe() was called from a uprobe or uretprobe handler
+(and therefore delayed), or a negative errno otherwise.
+
+Section 4.4, "User's Callback for Delayed Registrations",
+explains how to be notified upon completion of a delayed
+registration.
+
+User's return-probe handler (rp->handler):
+#include <linux/uprobes.h>
+#include <linux/ptrace.h>
+void uretprobe_handler(struct uretprobe_instance *ri, struct pt_regs *regs);
+
+regs is as described for the user's uprobe handler.  ri points to
+the uretprobe_instance object associated with the particular function
+instance that is currently returning.  The following fields in that
+object may be of interest:
+- ret_addr: the return address
+- rp: points to the corresponding uretprobe object
+
+In ptrace.h, the regs_return_value(regs) macro provides a simple
+abstraction to extract the return value from the appropriate register
+as defined by the architecture's ABI.
+
+4.3 unregister_*probe
+
+#include <linux/uprobes.h>
+void unregister_uprobe(struct uprobe *u);
+void unregister_uretprobe(struct uretprobe *rp);
+
+Removes the specified probe.  The unregister function can be called
+at any time after the probe has been registered, and can be called
+from a uprobe or uretprobe handler.
+
+4.4 User's Callback for Delayed Registrations
+
+#include <linux/uprobes.h>
+void registration_callback(struct uprobe *u, int reg,
+	enum uprobe_type type, int result);
+
+As previously mentioned, the functions described in Section 4 can be
+called from within a uprobe or uretprobe handler.  When that happens,
+the [un]registration operation is delayed until all handlers associated
+with that handler's probepoint have been run.  Upon completion of the
+[un]registration operation, Uprobes checks the registration_callback
+member of the associated uprobe: u->registration_callback
+for [un]register_uprobe or rp->u.registration_callback for
+[un]register_uretprobe.  Uprobes calls that callback function, if any,
+passing it the following values:
+
+- u = the address of the uprobe object.  (For a uretprobe, you can use
+container_of(u, struct uretprobe, u) to obtain the address of the
+uretprobe object.)
+
+- reg = 1 for register_u[ret]probe() or 0 for unregister_u[ret]probe()
+
+- type = UPTY_UPROBE or UPTY_URETPROBE
+
+- result = the return value that register_u[ret]probe() would have
+returned if this weren't a delayed operation.  This is always 0
+for unregister_u[ret]probe().
+
+NOTE: Uprobes calls the registration_callback ONLY in the case of a
+delayed [un]registration.
+
+5. Uprobes Features and Limitations
+
+The user is expected to assign values to the following members
+of struct uprobe: pid, vaddr, handler, and (as needed)
+registration_callback.  Other members are reserved for Uprobes's use.
+Uprobes may produce unexpected results if you:
+- assign non-zero values to reserved members of struct uprobe;
+- change the contents of a uprobe or uretprobe object while it is
+registered; or
+- attempt to register a uprobe or uretprobe that is already registered.
+
+Uprobes allows any number of probes (uprobes and/or uretprobes)
+at a particular address.  For a particular probepoint, handlers are
+run in the order in which they were registered.
+
+Any number of kernel modules may probe a particular process
+simultaneously, and a particular module may probe any number of
+processes simultaneously.
+
+Probes are shared by all threads in a process (including newly created
+threads).
+
+If a probed process exits or execs, Uprobes automatically unregisters
+all uprobes and uretprobes associated with that process.  Subsequent
+attempts to unregister these probes will be treated as no-ops.
+
+On the other hand, if a probed memory area is removed from the
+process's virtual memory map (e.g., via dlclose(3) or munmap(2)),
+it's currently up to you to unregister the probes first.
+
+There is no way to specify that probes should be inherited across fork;
+Uprobes removes all probepoints in the newly created child process.
+See Section 7, "Interoperation with Utrace", for more information on
+this topic.
+
+On at least some architectures, Uprobes makes no attempt to verify
+that the probe address you specify actually marks the start of an
+instruction.  If you get this wrong, chaos may ensue.
+
+To avoid interfering with interactive debuggers, Uprobes will refuse
+to insert a probepoint where a breakpoint instruction already exists,
+unless it was Uprobes that put it there.  Some architectures may
+refuse to insert probes on other types of instructions.
+
+If you install a probe in an inline-able function, Uprobes makes
+no attempt to chase down all inline instances of the function and
+install probes there.  gcc may inline a function without being asked,
+so keep this in mind if you're not seeing the probe hits you expect.
+
+A probe handler can modify the environment of the probed function
+-- e.g., by modifying data structures, or by modifying the
+contents of the pt_regs struct (which are restored to the registers
+upon return from the breakpoint).  So Uprobes can be used, for example,
+to install a bug fix or to inject faults for testing.  Uprobes, of
+course, has no way to distinguish the deliberately injected faults
+from the accidental ones.  Don't drink and probe.
+
+Since a return probe is implemented by replacing the return
+address with the trampoline's address, stack backtraces and calls
+to __builtin_return_address() will typically yield the trampoline's
+address instead of the real return address for uretprobed functions.
+
+If the number of times a function is called does not match the
+number of times it returns (e.g., if a function exits via longjmp()),
+registering a return probe on that function may produce undesirable
+results.
+
+When you register the first probe at probepoint or unregister the
+last probe probe at a probepoint, Uprobes asks Utrace to "quiesce"
+the probed process so that Uprobes can insert or remove the breakpoint
+instruction.  If the process is not already stopped, Utrace stops it.
+If the process is running an interruptible system call, this may cause
+the system call to finish early or fail with EINTR.  (The PTRACE_ATTACH
+request of the ptrace system call has this same limitation.)
+
+When Uprobes establishes a probepoint on a previous unprobed page
+of text, Linux creates a new copy of the page via its copy-on-write
+mechanism.  When probepoints are removed, Uprobes makes no attempt
+to consolidate identical copies of the same page.  This could affect
+memory availability if you probe many, many pages in many, many
+long-running processes.
+
+6. Interoperation with Kprobes
+
+Uprobes is intended to interoperate usefully with Kprobes (see
+Documentation/kprobes.txt).  For example, an instrumentation module
+can make calls to both the Kprobes API and the Uprobes API.
+
+A uprobe or uretprobe handler can register or unregister kprobes,
+jprobes, and kretprobes, as well as uprobes and uretprobes.  On the
+other hand, a kprobe, jprobe, or kretprobe handler must not sleep, and
+therefore cannot register or unregister any of these types of probes.
+(Ideas for removing this restriction are welcome.)
+
+Note that the overhead of a u[ret]probe hit is several times that of
+a k[ret]probe hit.
+
+7. Interoperation with Utrace
+
+As mentioned in Section 1.2, Uprobes is a client of Utrace.  For each
+probed thread, Uprobes establishes a Utrace engine, and registers
+callbacks for the following types of events: clone/fork, exec, exit,
+and "core-dump" signals (which include breakpoint traps).  Uprobes
+establishes this engine when the process is first probed, or when
+Uprobes is notified of the thread's creation, whichever comes first.
+
+An instrumentation module can use both the Utrace and Uprobes APIs (as
+well as Kprobes).  When you do this, keep the following facts in mind:
+
+- For a particular event, Utrace callbacks are called in the order in
+which the engines are established.  Utrace does not currently provide
+a mechanism for altering this order.
+
+- When Uprobes learns that a probed process has forked, it removes
+the breakpoints in the child process.
+
+- When Uprobes learns that a probed process has exec-ed or exited,
+it disposes of its data structures for that process (first allowing
+any outstanding [un]registration operations to terminate).
+
+- When a probed thread hits a breakpoint or completes single-stepping
+of a probed instruction, engines with the UTRACE_EVENT(SIGNAL_CORE)
+flag set are notified.  The Uprobes signal callback prevents (via
+UTRACE_ACTION_HIDE) this event from being reported to engines later
+in the list.  But if your engine was established before Uprobes's,
+you will see this this event.
+
+If you want to establish probes in a newly forked child, you can use
+the following procedure:
+
+- Register a report_clone callback with Utrace.  In this callback,
+the CLONE_THREAD flag distinguishes between the creation of a new
+thread vs. a new process.
+
+- In your report_clone callback, call utrace_attach() to attach to
+the child process, and set the engine's UTRACE_ACTION_QUIESCE flag.
+The child process will quiesce at a point where it is ready to
+be probed.
+
+- In your report_quiesce callback, register the desired probes.
+(Note that you cannot use the same probe object for both parent
+and child.  If you want to duplicate the probepoints, you must
+create a new set of u[ret]probe objects.)
+
+8. Probe Overhead
+
+// TODO: This is out of date.
+// TODO: Adjust as other architectures are tested.
+On a typical CPU in use in 2007, a uprobe hit takes about 3
+microseconds to process.  Specifically, a benchmark that hits the
+same probepoint repeatedly, firing a simple handler each time, reports
+300,000 to 350,000 hits per second, depending on the architecture.
+A return-probe hit typically takes 50% longer than a uprobe hit.
+When you have a return probe set on a function, adding a uprobe at
+the entry to that function adds essentially no overhead.
+
+Here are sample overhead figures (in usec) for different architectures.
+u = uprobe; r = return probe; ur = uprobe + return probe
+
+i386: Intel Pentium M, 1495 MHz, 2957.31 bogomips
+u = 2.9 usec; r = 4.7 usec; ur = 4.7 usec
+
+x86_64: AMD Opteron 246, 1994 MHz, 3971.48 bogomips
+// TODO
+
+ppc64: POWER5 (gr), 1656 MHz (SMT disabled, 1 virtual CPU per physical CPU)
+// TODO
+
+9. TODO
+
+a. SystemTap (http://sourceware.org/systemtap): Provides a simplified
+programming interface for probe-based instrumentation.  SystemTap
+already supports kernel probes.  It could exploit Uprobes as well.
+b. Support for other architectures.
+
+10. Uprobes Team
+
+The following people have made major contributions to Uprobes:
+Jim Keniston - jkenisto@us.ibm.com
+Ananth Mavinakayanahalli - ananth@in.ibm.com
+Prasanna Panchamukhi - prasanna@in.ibm.com
+Dave Wilder - dwilder@us.ibm.com
+
+11. Uprobes Example
+
+Here's a sample kernel module showing the use of Uprobes to count the
+number of times an instruction at a particular address is executed,
+and optionally (unless verbose=0) report each time it's executed.
+----- cut here -----
+/* uprobe_example.c */
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/uprobes.h>
+
+/*
+ * Usage: insmod uprobe_example.ko pid=<pid> vaddr=<address> [verbose=0]
+ * where <pid> identifies the probed process and <address> is the virtual
+ * address of the probed instruction.
+ */
+
+static int pid = 0;
+module_param(pid, int, 0);
+MODULE_PARM_DESC(pid, "pid");
+
+static int verbose = 1;
+module_param(verbose, int, 0);
+MODULE_PARM_DESC(verbose, "verbose");
+
+static long vaddr = 0;
+module_param(vaddr, long, 0);
+MODULE_PARM_DESC(vaddr, "vaddr");
+
+static int nhits;
+static struct uprobe usp;
+
+static void uprobe_handler(struct uprobe *u, struct pt_regs *regs)
+{
+	nhits++;
+	if (verbose)
+		printk(KERN_INFO "Hit #%d on probepoint at %#lx\n",
+			nhits, u->vaddr);
+}
+
+int __init init_module(void)
+{
+	int ret;
+	usp.pid = pid;
+	usp.vaddr = vaddr;
+	usp.handler = uprobe_handler;
+	printk(KERN_INFO "Registering uprobe on pid %d, vaddr %#lx\n",
+		usp.pid, usp.vaddr);
+	ret = register_uprobe(&usp);
+	if (ret != 0) {
+		printk(KERN_ERR "register_uprobe() failed, returned %d\n", ret);
+		return -1;
+	}
+	return 0;
+}
+
+void __exit cleanup_module(void)
+{
+	printk(KERN_INFO "Unregistering uprobe on pid %d, vaddr %#lx\n",
+		usp.pid, usp.vaddr);
+	printk(KERN_INFO "Probepoint was hit %d times\n", nhits);
+	unregister_uprobe(&usp);
+}
+MODULE_LICENSE("GPL");
+----- cut here -----
+
+You can build the kernel module, uprobe_example.ko, using the following
+Makefile:
+----- cut here -----
+obj-m := uprobe_example.o
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+default:
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+clean:
+	rm -f *.mod.c *.ko *.o .*.cmd
+	rm -rf .tmp_versions
+----- cut here -----
+
+For example, if you want to run myprog and monitor its calls to myfunc(),
+you can do the following:
+
+$ make			// Build the uprobe_example module.
+...
+$ nm -p myprog | awk '$3=="myfunc"'
+080484a8 T myfunc
+$ ./myprog &
+$ ps
+  PID TTY          TIME CMD
+ 4367 pts/3    00:00:00 bash
+ 8156 pts/3    00:00:00 myprog
+ 8157 pts/3    00:00:00 ps
+$ su -
+...
+# insmod uprobe_example.ko pid=8156 vaddr=0x080484a8
+
+In /var/log/messages and on the console, you will see a message of the
+form "kernel: Hit #1 on probepoint at 0x80484a8" each time myfunc()
+is called.  To turn off probing, remove the module:
+
+# rmmod uprobe_example
+
+In /var/log/messages and on the console, you will see a message of the
+form "Probepoint was hit 5 times".
+
+12. Uretprobes Example
+
+Here's a sample kernel module showing the use of a return probe to
+report a function's return values.
+----- cut here -----
+/* uretprobe_example.c */
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/uprobes.h>
+#include <linux/ptrace.h>
+
+/*
+ * Usage:
+ * insmod uretprobe_example.ko pid=<pid> func=<addr> [verbose=0]
+ * where <pid> identifies the probed process, and <addr> is the virtual
+ * address of the probed function.
+ */
+
+static int pid = 0;
+module_param(pid, int, 0);
+MODULE_PARM_DESC(pid, "pid");
+
+static int verbose = 1;
+module_param(verbose, int, 0);
+MODULE_PARM_DESC(verbose, "verbose");
+
+static long func = 0;
+module_param(func, long, 0);
+MODULE_PARM_DESC(func, "func");
+
+static int ncall, nret;
+static struct uprobe usp;
+static struct uretprobe rp;
+
+static void uprobe_handler(struct uprobe *u, struct pt_regs *regs)
+{
+	ncall++;
+	if (verbose)
+		printk(KERN_INFO "Function at %#lx called\n", u->vaddr);
+}
+
+static void uretprobe_handler(struct uretprobe_instance *ri,
+	struct pt_regs *regs)
+{
+	nret++;
+	if (verbose)
+		printk(KERN_INFO "Function at %#lx returns %#lx\n",
+			ri->rp->u.vaddr, regs_return_value(regs));
+}
+
+int __init init_module(void)
+{
+	int ret;
+
+	/* Register the entry probe. */
+	usp.pid = pid;
+	usp.vaddr = func;
+	usp.handler = uprobe_handler;
+	printk(KERN_INFO "Registering uprobe on pid %d, vaddr %#lx\n",
+		usp.pid, usp.vaddr);
+	ret = register_uprobe(&usp);
+	if (ret != 0) {
+		printk(KERN_ERR "register_uprobe() failed, returned %d\n", ret);
+		return -1;
+	}
+
+	/* Register the return probe. */
+	rp.u.pid = pid;
+	rp.u.vaddr = func;
+	rp.handler = uretprobe_handler;
+	printk(KERN_INFO "Registering return probe on pid %d, vaddr %#lx\n",
+		rp.u.pid, rp.u.vaddr);
+	ret = register_uretprobe(&rp);
+	if (ret != 0) {
+		printk(KERN_ERR "register_uretprobe() failed, returned %d\n",
+			ret);
+		unregister_uprobe(&usp);
+		return -1;
+	}
+	return 0;
+}
+
+void __exit cleanup_module(void)
+{
+	printk(KERN_INFO "Unregistering probes on pid %d, vaddr %#lx\n",
+		usp.pid, usp.vaddr);
+	printk(KERN_INFO "%d calls, %d returns\n", ncall, nret);
+	unregister_uprobe(&usp);
+	unregister_uretprobe(&rp);
+}
+MODULE_LICENSE("GPL");
+----- cut here -----
+
+Build the kernel module as shown in the above uprobe example.
+
+$ nm -p myprog | awk '$3=="myfunc"'
+080484a8 T myfunc
+$ ./myprog &
+$ ps
+  PID TTY          TIME CMD
+ 4367 pts/3    00:00:00 bash
+ 9156 pts/3    00:00:00 myprog
+ 9157 pts/3    00:00:00 ps
+$ su -
+...
+# insmod uretprobe_example.ko pid=9156 func=0x080484a8
+
+In /var/log/messages and on the console, you will see messages such
+as the following:
+kernel: Function at 0x80484a8 called
+kernel: Function at 0x80484a8 returns 0x3
+To turn off probing, remove the module:
+
+# rmmod uretprobe_example
+
+In /var/log/messages and on the console, you will see a message of the
+form "73 calls, 73 returns".
