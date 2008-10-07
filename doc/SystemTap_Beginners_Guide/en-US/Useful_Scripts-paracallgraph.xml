@@ -1,0 +1,97 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="paracallgraph">
+		<title>Call Graph Tracing</title>
+		
+		
+		<remark>
+			WAR STORY: Call graph tracing http://sourceware.org/systemtap/wiki/WSCallGraph?highlight=((WarStories))
+		</remark>
+		
+		<remark>
+			script: http://sourceware.org/systemtap/examples/general/para-callgraph.stp
+		</remark>	
+				
+		
+	<para>This section describes how to trace incoming and outgoing function calls. </para>
+	
+<formalpara id="scriptcallgraph">
+		<title>para-callgraph.stp</title>
+<para>
+<programlisting>
+function trace(entry_p) {
+   if(tid() in trace)
+       printf("%s%s%s\n",thread_indent(entry_p),
+                         (entry_p>0?"->":"&lt;-"),
+                         probefunc())
+}
+
+global trace
+probe kernel.function(@1).call {
+   if (execname() == "stapio") next # skip our own helper process
+   trace[tid()] = 1
+   trace(1)
+}
+probe kernel.function(@1).return {
+   trace(-1)
+   delete trace[tid()]
+}
+
+probe kernel.function(@2).call { trace(1) }
+probe kernel.function(@2).return { trace(-1) }
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="scriptcallgraph"/> takes two command-line arguments:</para>
+
+<itemizedlist>
+	<listitem><para>A <firstterm>trigger function</firstterm> (<command>@1</command>), which enables or disables tracing on a per-thread basis.</para></listitem>
+	<listitem><para>The probe function whose entry/exit you'd like to trace (<command>@2</command>).</para></listitem>
+</itemizedlist>
+
+<para><xref linkend="scriptcallgraph"> uses <command>thread_indent()</command>; as such, its output contains the timestamp, process name, and thread ID of <command>@2</command> (i.e. the probe function you are tracing). For more information about <command>thread_indent()</command>, refer to its entry in <xref linkend="systemtapscript-handlers/">.</para>
+
+		<para>The following example contains a snippet of the output for <command>stap <xref linkend="scriptcallgraph"/> sys_read '*@fs/*.c'</command>:</para>
+		
+	
+<example id="paracallgraphoutput">
+	<title><xref linkend="scriptcallgraph"/> Sample Output</title>
+<screen>
+[...]
+     0 klogd(1391):->sys_read
+    14 klogd(1391): ->fget_light
+    22 klogd(1391): &lt;-fget_light
+    27 klogd(1391): ->vfs_read
+    35 klogd(1391):  ->rw_verify_area
+    43 klogd(1391):  &lt;-rw_verify_area
+    49 klogd(1391):  ->kmsg_read
+     0 sendmail(1696):->sys_read
+    17 sendmail(1696): ->fget_light
+    26 sendmail(1696): &lt;-fget_light
+    34 sendmail(1696): ->vfs_read
+    44 sendmail(1696):  ->rw_verify_area
+    52 sendmail(1696):  &lt;-rw_verify_area
+    58 sendmail(1696):  ->proc_file_read
+    70 sendmail(1696):   ->loadavg_read_proc
+    84 sendmail(1696):    ->proc_calc_metrics
+    92 sendmail(1696):    &lt;-proc_calc_metrics
+    95 sendmail(1696):   &lt;-loadavg_read_proc
+   101 sendmail(1696):  &lt;-proc_file_read
+   106 sendmail(1696):  ->dnotify_parent
+   115 sendmail(1696):  &lt;-dnotify_parent
+   119 sendmail(1696):  ->inotify_dentry_parent_queue_event
+   127 sendmail(1696):  &lt;-inotify_dentry_parent_queue_event
+   133 sendmail(1696):  ->inotify_inode_queue_event
+   141 sendmail(1696):  &lt;-inotify_inode_queue_event
+   146 sendmail(1696): &lt;-vfs_read
+   151 sendmail(1696):&lt;-sys_read
+</screen>
+</example>
+
+
+	</section>
+
