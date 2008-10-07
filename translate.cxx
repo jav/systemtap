@@ -4423,6 +4423,8 @@ dump_unwindsyms (Dwfl_Module *m,
                                         (const unsigned char **)&build_id_bits,
                                          &build_id_vaddr)) > 0)
   {
+    /* XXX: But see https://bugzilla.redhat.com/show_bug.cgi?id=465872;
+       dwfl_module_build_id was not intended to return the end address. */
         if (c->session.verbose > 1) {
            clog << "Found build-id in " << name
                 << ", length " << build_id_len;
@@ -4608,6 +4610,10 @@ dump_unwindsyms (Dwfl_Module *m,
        c->output << "\", " << endl;
        c->output << ".build_id_len = " << build_id_len << ", " << endl;
 
+       /* XXX: kernel data boot-time relocation works differently from text.
+          This hack disables relocation altogether, but that's not necessarily
+          correct either.  We may instead need a relocation basis different
+          from _stext, such as __start_notes.  */
        if (modname == "kernel")
                 c->output << ".build_id_offset = 0x" << hex << build_id_vaddr
 			  << dec << ", " << endl;

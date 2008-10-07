@@ -1,3 +1,10 @@
+2008-10-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4886.
+	* sym.c (_stp_module_check): Tweak & simplify build-id checking.
+	Weaken consequences of mismatch temporarily due to fedora bug.
+	* sym.h: Eliminate special cased values of module->notes_sect.
+
 2008-10-06  Mark Wielaard  <mjw@redhat.com>
 
 	* utrace_compatibility.h: Add workaround for fedora 9 2.6.26 kernels.

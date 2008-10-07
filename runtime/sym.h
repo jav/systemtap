@@ -48,12 +48,7 @@ struct _stp_module {
 	/* build-id information */
 	unsigned char *build_id_bits;
 	unsigned long  build_id_offset;
-	unsigned long  notes_sect; /* kernel: 1 - no build-id 
-				    *  	      2 - has build-id 
-				    * module: 0 - unloaded
-				    *	      1 - loaded and no build-id
-				    *	      Other - note section address  
-				   */
+	unsigned long  notes_sect;
 	int build_id_len;
 };
 

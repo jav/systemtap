@@ -177,21 +177,10 @@ static int _stp_module_check(void)
 
 	for (i = 0; i < _stp_num_modules; i++)
 	{
-		m = _stp_modules[i];			
+		m = _stp_modules[i];
+		if (m->build_id_len > 0 && m->notes_sect != 0) {
+		    dbug_sym(1, "build-id validation [%s]\n", m->name);
 
-		/* unloaded module */
-		if (m->notes_sect == 0) {
-              	     _stp_warn("skip checking %s\n", m->name);
-                    continue;
-                }
-		if (m->build_id_len > 0) { /* build-id in debuginfo file */
-		    dbug_sym(1, "validate %s based on build-id\n", m->name);
-
-		    /* loaded module/kernel, but without build-id */
-		    if (m->notes_sect == 1) {
-		   	_stp_error("missing build-id in %s\n", m->name);
-			return 1;
-		    } 
 		    /* notes end address */
 		    if (!strcmp(m->name, "kernel")) {
 		  	  notes_addr = m->build_id_offset;
@@ -201,28 +190,33 @@ static int _stp_module_check(void)
 			  notes_addr = m->notes_sect + m->build_id_offset;
 			  base_addr = m->notes_sect;
 		    }
-		    /* notes start address */
+
+		    /* build-id note payload start address */
+                    /* XXX: But see https://bugzilla.redhat.com/show_bug.cgi?id=465872;
+                       dwfl_module_build_id was not intended to return the end address. */
 		    notes_addr -= m->build_id_len;
+
 		    if (notes_addr > base_addr) {
 		      for (j = 0; j < m->build_id_len; j++)	 
-		        if (*((unsigned char *) notes_addr+j) != 
-							*(m->build_id_bits+j)) 
-			{
-			  _stp_error("inconsistent bit (0x%x [%s] vs 0x%x [debuginfo]) of build-id\n", *((unsigned char *) notes_addr+j), m->name, *(m->build_id_bits+j));
-			  return 1;
+                        {
+                          unsigned char theory, practice;
+                          theory = m->build_id_bits [j];
+                          practice = ((unsigned char*) notes_addr) [j];
+                          /* XXX: consider using kread() instead of above. */
+                          if (theory != practice)
+                            {
+                              printk(KERN_WARNING
+                                     "%s: inconsistent %s build-id byte #%d "
+                                     "(0x%x [actual] vs. 0x%x [debuginfo])\n",
+                                     THIS_MODULE->name, m->name, j,
+                                     practice, theory);
+                              break; /* Note just the first mismatch. */
+                              /* XXX: If it were not for Fedora bug #465873,
+                                 we could "return 1;" here to abort the script. */
+                            }
 			} 
-		    } else { /* bug, shouldn't come here */
-			     _stp_error("unknown failure in checking %s\n", 
-								m->name);
-			     return 1;
-		    	   } /* end comparing */
-		} else { 
-			  /* build-id in module/kernel, absent in debuginfo */
-			  if (m->notes_sect > 1) {
-			    _stp_error("unexpected build-id in %s\n", m->name);
-			    return 1;
-			  }
-		 } /* end checking */
+		    }
+		} /* end checking */
 	} /* end loop */
 	return 0;
 }
