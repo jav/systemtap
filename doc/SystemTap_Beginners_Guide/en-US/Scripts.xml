@@ -430,7 +430,7 @@ probe syscall.* {
 
 	<para>When <xref linkend="targetexample"/> is run with the argument <command>-x <replaceable>process ID</replaceable></command>, it watches all system calls (as specified by the event <command>syscall.*</command>) and prints out the name of all system calls made by the specified process.</para>
 	
-	<para>This has the same effect as specifying <command>if (pid() == <replaceable>process ID</replaceable></command> each time you wish to target a specific process. However, using <command>target()</command> makes it easier for you to re-use the script, giving you the ability to simply pass a process ID as an argument each time you wish to run the script (i.e. <command>stap allsyscalls.stp -x <replaceable>process ID</replaceable>).</para>
+	<para>This has the same effect as specifying <command>if (pid() == <replaceable>process ID</replaceable></command> each time you wish to target a specific process. However, using <command>target()</command> makes it easier for you to re-use the script, giving you the ability to simply pass a process ID as an argument each time you wish to run the script (e.g. <command>stap targetexample.stp -x <replaceable>process ID</replaceable></command>).</para>
 <!--		
 <note>
 	<title>Note</title>
@@ -475,7 +475,7 @@ probe syscall.* {
 	<section id="handlerconditionals">
 		<title>Basic Handler Constructs</title>
 			
-<para>SystemTap supports the use of several basic constructs in handlers. The syntax for most of these handler constructs are loosely based on C and <command>awk</command> syntax; this section describes several of the most commonly used ones.</para>
+<para>SystemTap supports the use of several basic constructs in handlers. The syntax for most of these handler constructs are mostly based on C and <command>awk</command> syntax. This section describes several of the most useful SystemTap handler constructs.</para>
 
 <formalpara id="variablesconstructs">
 	<title>Variables</title>
@@ -483,8 +483,33 @@ probe syscall.* {
 	<para>Variables can be used freely throughout a handler; simply choose a name, assign it to a function, and use it in an expression. SystemTap automatically identifies whether a variable should be identified as a string or integer, based on the function it is assigned to. For instance, if you use set the variable <command>foo</command> to <command>gettimeofday_s()</command> (as in <command>foo = gettimeofday_s()</command>), then <command>foo</command> can be used as an integer argument (<command>%d</command>) in <command>printf()</command>.</para>
 </formalpara>
 
-<para>Note, however, that by default variables are only local to the probe they are used in. This means that variables are initialized, used and disposed at each probe handler invocation. To share a variable between probes, declare the variable name first using <command>global</command> outside of any probe.</para>
+<para>Note, however, that by default variables are only local to the probe they are used in. This means that variables are initialized, used and disposed at each probe handler invocation. To share a variable between probes, declare the variable name first using <command>global</command> outside of any probe. Consider the following example:</para>
+
+<example id="timerjiffies">
+	<title>timer-jiffies.stp</title>
+<programlisting>
+global count_jiffies, count_ms
+probe timer.jiffies(100) { count_jiffies ++ }
+probe timer.ms(100) { count_ms ++ }
+probe timer.ms(12345)
+{
+  hz=(1000*count_jiffies) / count_ms
+  printf ("jiffies:ms ratio %d:%d => CONFIG_HZ=%d\n",
+    count_jiffies, count_ms, hz)
+  exit ()
+}
+</programlisting>
+</example>
 	
+<para><xref linkend="timerjiffies"/> attempts to compute the <command>CONFIG_HZ</command> setting of the kernel using timers that count jiffies and milliseconds, then computing accordingly. The <command>global</command> statement allows the script to use the variables <command>count_jiffies</command> and <command>count_ms</command> (set in their own respective probes) to be shared with <command>probe timer.ms(12345)</command>.</para>
+
+<note>
+	<title>Note</title>
+	<para>In some cases, such as in <xref linkend="timerjiffies"/>, a variable may be declared without any specific value as yet. You need to declare such values as integers using the notation <command>++</command>.</para>
+</note>	
+	
+	
+
 
 <formalpara>
 	<title>Conditional Statements</title>
@@ -546,7 +571,24 @@ for (<replaceable>argument1</replaceable>; <replaceable>argument2</replaceable>;
 	
 </variablelist>	
 	
+<para>These constructs are better illustrated in the different examples available in <xref linkend="useful-systemtap-scripts"/>.</para>
 
+<remark>will get back to these ones later</remark>
+
+<formalpara>
+	<title>Command-Line Arguments</title>
+	<para>You can also allow a SystemTap script to accept simple command-line arguments and declare them in the script without using <command>target()</command>. One way to do this is to use the variable notation <command>$</command> or <command>@</command>.</para>
+</formalpara>
+
+
+<example id="commandlineargs"><title>commandlineargs.stp</title>
+<programlisting>
+probe kernel.function(@1) { }
+probe kernel.function(@1).return { }
+</programlisting>	
+</example>	
+
+<para><xref linkend="commandlineargs"/> is similar to <xref linkend="wildcards"/> (earlier in the chapter), except that it allows you to pass the kernel function to be probed as a command-line argument (as in <command>stap commandlineargs.stp <replaceable>kernel function</replaceable></command>). You can also specify the script to accept multiple command-line arguments, noting them as <command>@1</command>, <command>@2</command>, and so on, in the order they are entered by the user.</para>
 
 	</section>
 	<!--	<section id="SystemTap_Beginners_Guide-Test-Section_2_Test">

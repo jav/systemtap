@@ -53,9 +53,9 @@ probe kernel.function(@2).return { trace(-1) }
 	<listitem><para>The probe function whose entry/exit you'd like to trace (<command>@2</command>).</para></listitem>
 </itemizedlist>
 
-<para><xref linkend="scriptcallgraph"> uses <command>thread_indent()</command>; as such, its output contains the timestamp, process name, and thread ID of <command>@2</command> (i.e. the probe function you are tracing). For more information about <command>thread_indent()</command>, refer to its entry in <xref linkend="systemtapscript-handlers/">.</para>
+<para><xref linkend="scriptcallgraph"/> uses <command>thread_indent()</command>; as such, its output contains the timestamp, process name, and thread ID of <command>@2</command> (i.e. the probe function you are tracing). For more information about <command>thread_indent()</command>, refer to its entry in <xref linkend="systemtapscript-handlers"/>.</para>
 
-		<para>The following example contains a snippet of the output for <command>stap <xref linkend="scriptcallgraph"/> sys_read '*@fs/*.c'</command>:</para>
+		<para>The following example contains a snippet of the output for <command>stap para-callgraph.stp sys_read '*@fs/*.c'</command>:</para>
 		
 	
 <example id="paracallgraphoutput">
