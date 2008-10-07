@@ -1729,48 +1729,106 @@ function _sighandler_str:string(uaddr:long)
 	_stp_lookup_str(_stp_sa_handler_list, (long)THIS->uaddr, THIS->__retvalue, MAXSTRINGLEN);
 %}
 
+%{
+void _stp_sigaction_str(struct sigaction *act, char *ptr, int len)
+{
+  static const _stp_val_array const _stp_sa_handler_list[] = {
+    {0, "SIG_DFL"},
+    {1, "SIG_IGN"},
+    {0, NULL}
+  };
+
+  static const _stp_val_array const _stp_sa_flags_list[] = {
+    V(SA_NOCLDSTOP),
+    V(SA_NOCLDWAIT),
+    V(SA_RESETHAND),
+    V(SA_ONSTACK),
+    V(SA_RESTART),
+    V(SA_NODEFER),
+    V(SA_SIGINFO),
+    V(SA_RESTORER),
+    {0, NULL}
+  };
+  
+  int slen;
+  _stp_lookup_str(_stp_sa_handler_list, (long)act->sa_handler,
+		  ptr, len);
+  if (act->sa_handler != SIG_IGN && act->sa_handler != SIG_DFL)
+    {
+      strlcat (ptr, ", ", len);
+      _stp_lookup_or_str(_stp_sa_flags_list, act->sa_flags, ptr, len);
+      strlcat (ptr, ", ", len);
+#if !defined (__ia64__)
+      slen = strlen(ptr);
+      _stp_snprintf(ptr + slen, len - slen,
+		    "0x%lx, [", (long)act->sa_restorer);
+#else
+      strlcat (ptr, "[", len);
+#endif
+      _stp_sigset_str(&act->sa_mask, ptr, len);
+      strlcat (ptr, "]", len);
+    }
+}
+%}
+
 function _struct_sigaction_u:string(uaddr:long)
 %{ /* pure */
-	static const _stp_val_array const _stp_sa_handler_list[] = {
-		{0, "SIG_DFL"},
-		{1, "SIG_IGN"},
-		{0, NULL}
-	};
-	static const _stp_val_array const _stp_sa_flags_list[] = {
-		V(SA_NOCLDSTOP),
-		V(SA_NOCLDWAIT),
-		V(SA_RESETHAND),
-		V(SA_ONSTACK),
-		V(SA_RESTART),
-		V(SA_NODEFER),
-		V(SA_SIGINFO),
-		V(SA_RESTORER),
-		{0, NULL}
-	};
+  struct sigaction act;
+  char *ptr = (char *)(unsigned long)THIS->uaddr;
+  
+  if (ptr == NULL)
+    strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+  else
+    {
+      if(_stp_copy_from_user((char*)&act, ptr,
+			     sizeof(struct sigaction)) == 0)
+	_stp_sigaction_str(&act, THIS->__retvalue, MAXSTRINGLEN);
+      else
+	strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+    }
+%}
 
-	struct sigaction act;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
-	
-	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		if(_stp_copy_from_user((char*)&act,ptr,sizeof(struct sigaction)) == 0) {
-			int len;
-			_stp_lookup_str(_stp_sa_handler_list, (long)act.sa_handler, THIS->__retvalue, MAXSTRINGLEN);
-			if (act.sa_handler != SIG_IGN && act.sa_handler != SIG_DFL) {
-				strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
-				_stp_lookup_or_str(_stp_sa_flags_list, act.sa_flags, THIS->__retvalue, MAXSTRINGLEN);
-				strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
-#if !defined (__ia64__)
-				len = strlen(THIS->__retvalue);
-				_stp_snprintf(THIS->__retvalue + len, MAXSTRINGLEN - len, "0x%lx, [", (long)act.sa_restorer);
-#else
-				strlcat (THIS->__retvalue, "[", MAXSTRINGLEN);
-#endif
-				_stp_sigset_str(&act.sa_mask, THIS->__retvalue, MAXSTRINGLEN);
-				strlcat (THIS->__retvalue, "]", MAXSTRINGLEN);
-			}
-		} else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+function _struct_sigaction32_u:string(uaddr:long)
+%{ /* pure */
+#include <linux/compat.h>
+  
+  // There seems to be no public cross arch header that defines this.
+  struct sigaction32 {
+    compat_uptr_t  sa_handler;
+    unsigned int sa_flags;
+    unsigned int sa_restorer;       /* Another 32 bit pointer */
+    compat_sigset_t sa_mask;        /* A 32 bit mask */
+  };
+  
+  struct sigaction32 act32;
+  char *ptr = (char *)(unsigned long)THIS->uaddr;
+  
+  if (ptr == NULL)
+    strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+  else
+    {
+      if(_stp_copy_from_user((char*)&act32, ptr,
+			     sizeof(struct sigaction32)) == 0)
+	{
+	  struct sigaction act;
+	  act.sa_handler = (void *)compat_ptr(act32.sa_handler);
+	  act.sa_flags = (unsigned long)act32.sa_flags;
+	  act.sa_restorer = (void *)compat_ptr(act32.sa_restorer);
+	  /* swap words around to get right endian order. */
+	  switch (_NSIG_WORDS)
+	    {
+	    case 4: act.sa_mask.sig[3] = act32.sa_mask.sig[6]
+		| (((long)act32.sa_mask.sig[7]) << 32);
+	    case 3: act.sa_mask.sig[2] = act32.sa_mask.sig[4]
+		| (((long)act32.sa_mask.sig[5]) << 32);
+	    case 2: act.sa_mask.sig[1] = act32.sa_mask.sig[2]
+		| (((long)act32.sa_mask.sig[3]) << 32);
+	    case 1: act.sa_mask.sig[0] = act32.sa_mask.sig[0]
+		| (((long)act32.sa_mask.sig[1]) << 32);
+	    }
+	  _stp_sigaction_str(&act, THIS->__retvalue, MAXSTRINGLEN);	  
 	}
+      else
+	strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+    }
 %}

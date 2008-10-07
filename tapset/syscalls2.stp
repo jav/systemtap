@@ -958,7 +958,8 @@ probe syscall.rt_sigaction32 = kernel.function("sys32_rt_sigaction") ?,
 	act_uaddr = $act
 	oact_uaddr = $oact
 	sigsetsize = $sigsetsize
-	argstr = sprintf("%s, %p, %p, %d", _signal_name($sig), $act, $oact, $sigsetsize)
+	argstr = sprintf("%s, {%s}, %p, %d", _signal_name($sig),
+			 _struct_sigaction32_u($act), $oact, $sigsetsize)
 }
 probe syscall.rt_sigaction32.return = kernel.function("sys32_rt_sigaction").return ?,
 		kernel.function("compat_sys_rt_sigaction").return ?
