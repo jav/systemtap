@@ -588,7 +588,7 @@ probe kernel.function(@1).return { }
 </programlisting>	
 </example>	
 
-<para><xref linkend="commandlineargs"/> is similar to <xref linkend="wildcards"/> (earlier in the chapter), except that it allows you to pass the kernel function to be probed as a command-line argument (as in <command>stap commandlineargs.stp <replaceable>kernel function</replaceable></command>). You can also specify the script to accept multiple command-line arguments, noting them as <command>@1</command>, <command>@2</command>, and so on, in the order they are entered by the user.</para>
+<para><xref linkend="commandlineargs"/> is similar to <xref linkend="wildcards"/>, except that it allows you to pass the kernel function to be probed as a command-line argument (as in <command>stap commandlineargs.stp <replaceable>kernel function</replaceable></command>). You can also specify the script to accept multiple command-line arguments, noting them as <command>@1</command>, <command>@2</command>, and so on, in the order they are entered by the user.</para>
 
 	</section>
 	<!--	<section id="SystemTap_Beginners_Guide-Test-Section_2_Test">

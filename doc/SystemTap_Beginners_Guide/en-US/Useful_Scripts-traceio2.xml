@@ -1,0 +1,67 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+	<section id="traceio2sect">
+		<title>I/O Monitoring (By Device)</title>
+		<para>
+			This section describes how to monitor I/O activity on a specific device.
+		</para>
+		
+<formalpara id="traceio2">
+	<title>traceio2.stp</title>
+<para>
+<programlisting>
+probe kernel.function ("vfs_write"),
+      kernel.function ("vfs_read")
+{
+        dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
+        inode_nr = $file->f_dentry->d_inode->i_ino
+        if (dev_nr == ($1 &lt;&lt; 20 | $2))
+                printf ("%s(%d) %s 0x%x\n", execname(), pid(), probefunc(), dev_nr)
+}
+</programlisting>
+</para>
+</formalpara>
+
+<para condition="fedora">For some kernel versions (e.g. <filename>2.6.21-1.3194.fc7</filename>, you may need to revise <xref linkend="traceio2"/> accordingly. SystemTap will output the following error if you need to do so:</para>
+
+<screen condition="fedora">
+semantic error: field 'f_dentry' not found
+</screen>
+
+<para condition="fedora">If this is the case, revise <xref linkend="traceio2"/> by deleting the following lines in the script:</para>
+
+<programlisting condition="fedora">
+	dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
+        inode_nr = $file->f_dentry->d_inode->i_ino
+</programlisting>
+
+<para condition="fedora">Replace those lines with:</para>
+
+<programlisting condition="fedora">
+	dev_nr = $file->f_path->dentry->d_inode->i_sb->s_dev
+	inode_nr = $file->f_path->dentry->d_inode->i_ino
+</programlisting>
+
+<para><xref linkend="traceio2"/> takes 2 arguments: the <emphasis>major</emphasis> and <emphasis>minor</emphasis> numbers of the device you wish to monitor. Its output includes the name of the process name, process ID, the function being probes (i.e. <command>vfs_read</command> or <command>vfs_write</command>), and the byte address being read from or written to.</para>
+
+<remark>please verify if "0x800005" is "the byte address being read from or written to"</remark>
+
+<para>The following example is a snippet from the output of <command>stap traceio2.stp 8 5</command>, where <command>8 5</command> is the MAJOR:MINOR device number of <filename>/dev/sda5</filename> (which we determined through <command>cat /sys/block/sda/sda5/dev</command>).</para>
+
+<example id="traceio2output">
+	<title><xref linkend="traceio2"/> Sample Output</title>
+<screen>
+[...]
+synergyc(3722) vfs_read 0x800005
+synergyc(3722) vfs_read 0x800005
+cupsd(2889) vfs_write 0x800005
+cupsd(2889) vfs_write 0x800005
+cupsd(2889) vfs_write 0x800005
+[...]
+</screen>
+</example>		
+	</section>
+
+
