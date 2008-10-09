@@ -38,7 +38,7 @@ probe end,timer.ms(30000) {
 
 <para><xref linkend="countcalls"/> takes the targeted kernel function as an argument. The argument supports wildcards, which enables you to target multiple kernel functions up to a certain extent.</para>
 
-<para>You can increase the sample time by editing the timer in the second probe (<command>timer.ms()</command>). <xref linkend="countcallsoutput"/> contains an excerpt from the output of <command>stap countcalls.stp "*@mm/*.c"</command>:
+<para>You can increase the sample time by editing the timer in the second probe (<command>timer.ms()</command>). The output of <xref linkend="countcalls"/> contains the name of the function called and how many times it was called during the sample time (in alphabetical order). <xref linkend="countcallsoutput"/> contains an excerpt from the output of <command>stap countcalls.stp "*@mm/*.c"</command>:
 	
 
 <example id="countcallsoutput">
