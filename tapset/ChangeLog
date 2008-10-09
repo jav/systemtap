@@ -1,3 +1,10 @@
+2008-10-07  Mark Wielaard  <mjw@redhat.com>
+
+	* aux_syscalls.stp (_stp_sigaction_str): New embedded C function.
+	(_struct_sigaction_u): Call _stp_sigaction_str.
+	(_struct_sigaction32_u): New function.
+	* syscalls2.stp (syscall.rt_sigaction32): Call _struct_sigaction32_u.
+
 2008-09-23  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* socket.stp (socket.aio_read/write): Fix version-checking method.

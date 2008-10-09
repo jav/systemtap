@@ -45,6 +45,11 @@ struct _stp_module {
 	uint32_t unwind_data_len;
 	uint32_t unwind_hdr_len;
 	uint32_t unwind_is_ehframe; /* unwind data comes from .eh_frame */
+	/* build-id information */
+	unsigned char *build_id_bits;
+	unsigned long  build_id_offset;
+	unsigned long  notes_sect;
+	int build_id_len;
 };
 
 

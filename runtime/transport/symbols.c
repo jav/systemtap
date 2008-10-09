@@ -51,12 +51,19 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
       if (strcmp (_stp_modules[mi]->name, msg.module))
         continue;
 
+      if (!strcmp (".note.gnu.build-id", msg.reloc)) {
+        _stp_modules[mi]->notes_sect = msg.address;   /* cache this particular address  */
+      }
+
       for (si=0; si<_stp_modules[mi]->num_sections; si++)
         {
           if (strcmp (_stp_modules[mi]->sections[si].name, msg.reloc))
             continue;
-
-          _stp_modules[mi]->sections[si].addr = msg.address;
+          else
+            {
+              _stp_modules[mi]->sections[si].addr = msg.address;
+              break;
+            }
         } /* loop over sections */
     } /* loop over modules */
 }
@@ -134,7 +141,8 @@ static int _stp_section_is_interesting(const char *name)
 {
 	int ret = 1;
 	if (!strncmp("__", name, 2)
-	    || !strncmp(".note", name, 5)
+	    || (!strncmp(".note", name, 5) 
+		&& strncmp(".note.gnu.build-id", name, 18))
 	    || !strncmp(".gnu", name, 4)
 	    || !strncmp(".mod", name, 4))
 		ret = 0;

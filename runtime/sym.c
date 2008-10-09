@@ -160,6 +160,66 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	return NULL;
 }
 
+/* Validate module/kernel based on build-id if there 
+*  The completed case is the following combination:
+*	   Debuginfo 		 Module			         Kernel	
+* 			   X				X
+* 	has build-id/not	unloaded		      has build-id/not	
+*				loaded && (has build-id/not)  
+*
+*  NB: build-id exists only if ld>=2.18 and kernel>= 2.6.23
+*/
+static int _stp_module_check(void)
+{
+	struct _stp_module *m = NULL;
+	unsigned long notes_addr, base_addr;
+	unsigned i,j;
+
+	for (i = 0; i < _stp_num_modules; i++)
+	{
+		m = _stp_modules[i];
+		if (m->build_id_len > 0 && m->notes_sect != 0) {
+		    dbug_sym(1, "build-id validation [%s]\n", m->name);
+
+		    /* notes end address */
+		    if (!strcmp(m->name, "kernel")) {
+		  	  notes_addr = m->build_id_offset;
+			  base_addr = _stp_module_relocate("kernel",
+							   "_stext", 0);
+                    } else {
+			  notes_addr = m->notes_sect + m->build_id_offset;
+			  base_addr = m->notes_sect;
+		    }
+
+		    /* build-id note payload start address */
+                    /* XXX: But see https://bugzilla.redhat.com/show_bug.cgi?id=465872;
+                       dwfl_module_build_id was not intended to return the end address. */
+		    notes_addr -= m->build_id_len;
+
+		    if (notes_addr > base_addr) {
+		      for (j = 0; j < m->build_id_len; j++)	 
+                        {
+                          unsigned char theory, practice;
+                          theory = m->build_id_bits [j];
+                          practice = ((unsigned char*) notes_addr) [j];
+                          /* XXX: consider using kread() instead of above. */
+                          if (theory != practice)
+                            {
+                              printk(KERN_WARNING
+                                     "%s: inconsistent %s build-id byte #%d "
+                                     "(0x%x [actual] vs. 0x%x [debuginfo])\n",
+                                     THIS_MODULE->name, m->name, j,
+                                     practice, theory);
+                              break; /* Note just the first mismatch. */
+                              /* XXX: If it were not for Fedora bug #465873,
+                                 we could "return 1;" here to abort the script. */
+                            }
+			} 
+		    }
+		} /* end checking */
+	} /* end loop */
+	return 0;
+}
 
 /** Print an address symbolically.
  * @param address The address to lookup.

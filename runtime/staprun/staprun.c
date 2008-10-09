@@ -370,6 +370,11 @@ int send_relocation_kernel ()
         }
       fclose (kallsyms);
       if (!done_with_kallsyms) srkrc = -1;
+      /* detect note section, send flag if there 
+       * NB: address=2 represents existed note, the real one in _stp_module
+       */ 
+      if (srkrc != -1 && !access("/sys/kernel/notes", R_OK))
+	 send_a_relocation ("kernel", ".note.gnu.build-id", 2);
     }
 
   return srkrc;

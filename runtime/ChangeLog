@@ -1,3 +1,24 @@
+2008-10-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4886.
+	* sym.c (_stp_module_check): Tweak & simplify build-id checking.
+	Weaken consequences of mismatch temporarily due to fedora bug.
+	* sym.h: Eliminate special cased values of module->notes_sect.
+
+2008-10-06  Mark Wielaard  <mjw@redhat.com>
+
+	* utrace_compatibility.h: Add workaround for fedora 9 2.6.26 kernels.
+
+2008-10-06  Wenji Huang  <wenji.huang@oracle.com>
+
+        PR 4886
+        * sym.h (_stp_module): Add several fields to store build-id.
+        * sym.c (_stp_module_check): New function to check build-id.
+        * staprun/staprun.c (send_relocation_kernel): Send build-id of runtime
+	kernel if there.
+        * transport/symbols.c (_stp_do_relocation): Update note section.
+	(_stp_section_is_interesting): No filter to .note.gnu.build-id.
+
 2008-10-03  Mark Wielaard  <mjw@redhat.com>
 
 	* procfs.c (_stp_rmdir_proc_module): Remove debug output from warning.
