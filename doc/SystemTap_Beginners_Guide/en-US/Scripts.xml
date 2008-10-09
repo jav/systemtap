@@ -430,7 +430,7 @@ probe syscall.* {
 
 	<para>When <xref linkend="targetexample"/> is run with the argument <command>-x <replaceable>process ID</replaceable></command>, it watches all system calls (as specified by the event <command>syscall.*</command>) and prints out the name of all system calls made by the specified process.</para>
 	
-	<para>This has the same effect as specifying <command>if (pid() == <replaceable>process ID</replaceable></command> each time you wish to target a specific process. However, using <command>target()</command> makes it easier for you to re-use the script, giving you the ability to simply pass a process ID as an argument each time you wish to run the script (e.g. <command>stap targetexample.stp -x <replaceable>process ID</replaceable></command>).</para>
+	<para>This has the same effect as specifying <command>if (pid() == <replaceable>process ID</replaceable>)</command> each time you wish to target a specific process. However, using <command>target()</command> makes it easier for you to re-use the script, giving you the ability to simply pass a process ID as an argument each time you wish to run the script (e.g. <command>stap targetexample.stp -x <replaceable>process ID</replaceable></command>).</para>
 <!--		
 <note>
 	<title>Note</title>

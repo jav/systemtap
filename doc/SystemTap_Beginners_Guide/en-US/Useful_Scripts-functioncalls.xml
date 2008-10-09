@@ -1,0 +1,80 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="countcallssect">
+		<title>Counting Function Calls Made</title>
+		
+		
+<remark>
+	WAR STORY: Function call count http://sourceware.org/systemtap/wiki/WSFunctionCallCount?highlight=((WarStories))
+</remark>
+		
+<remark>
+no script in examples
+</remark>	
+				
+		
+	<para>This section describes how to identify how many times the system called a specific kernel function in a 30-second sample. Depending on your use of wildcards, you can also use this script to target multiple kernel functions.</para>
+	
+<formalpara id="countcalls">
+		<title>countcalls.stp</title>
+<para>
+<programlisting>
+probe kernel.function(@1) {  # probe every function in any C file under mm/
+called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
+}
+global called          
+probe end,timer.ms(30000) {
+  foreach (fn+ in called)  # Sort by function name
+  #       (fn in called-)  # Sort by call count (in decreasing order)
+    printf("%s %d\n", fn, @count(called[fn]))
+  exit()
+}
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="countcalls"/> takes the targeted kernel function as an argument. The argument supports wildcards, which enables you to target multiple kernel functions up to a certain extent.</para>
+
+<para>You can increase the sample time by editing the timer in the second probe (<command>timer.ms()</command>). <xref linkend="countcallsoutput"/> contains an excerpt from the output of <command>stap countcalls.stp "*@mm/*.c"</command>:
+	
+
+<example id="countcallsoutput">
+	<title><xref linkend="countcalls"/> Sample Output</title>
+<screen>
+[...]
+__vma_link 97
+__vma_link_file 66
+__vma_link_list 97
+__vma_link_rb 97
+__xchg 103
+add_page_to_active_list 102
+add_page_to_inactive_list 19
+add_to_page_cache 19
+add_to_page_cache_lru 7
+all_vm_events 6
+alloc_pages_node 4630
+alloc_slabmgmt 67
+anon_vma_alloc 62
+anon_vma_free 62
+anon_vma_lock 66
+anon_vma_prepare 98
+anon_vma_unlink 97
+anon_vma_unlock 66
+arch_get_unmapped_area_topdown 94
+arch_get_unmapped_exec_area 3
+arch_unmap_area_topdown 97
+atomic_add 2
+atomic_add_negative 97
+atomic_dec_and_test 5153
+atomic_inc 470
+atomic_inc_and_test 1
+[...]
+</screen>
+</example>
+
+
+	</section>
+
