@@ -1,0 +1,57 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="inodewatch2sect">
+		<title>Monitoring Changes to File Attributes</title>
+		
+		
+<remark>
+	WAR STORY: monitoring more inode activity http://sourceware.org/systemtap/wiki/WSFileMonitor2?highlight=((WarStories))
+</remark>
+		
+<remark>
+no script in examples
+</remark>	
+				
+		
+	<para>This section describes how to monitor if any processes are changing the attributes of a targeted file, in real time. </para>
+	
+<formalpara id="inodewatch2">
+		<title>inodewatch2.stp</title>
+<para>
+<programlisting>
+global ATTR_MODE = 1 # ....
+
+probe kernel.function("inode_setattr") {
+  dev_nr = $inode->i_sb->s_dev
+  inode_nr = $inode->i_ino
+
+  if (dev_nr == ($1 &lt;&lt; 20 | $2) # major/minor device
+  &amp;&amp; inode_nr == $3
+  &amp;&amp; $attr->ia_valid &amp; ATTR_MODE)
+	printf ("%s(%d) %s 0x%x/%u %o %d\n",
+	execname(), pid(), probefunc(), dev_nr, inode_nr, $attr->ia_mode, uid())
+	}
+</programlisting>
+</para>
+</formalpara>		
+
+<para>Like <xref linkend="inodewatch"/> from <xref linkend="inodewatchsect"/>, <xref linkend="inodewatch2"/> takes the targeted file's device number (in integer format) and <command>inode</command> number as arguments. For more information on how to retrieve this information, refer to <xref linkend="inodewatchsect"/>.</para>   
+
+<para>The output for <xref linkend="inodewatch2"/> is similar to that of <xref linkend="inodewatch"/>, except that <xref linkend="inodewatch2"/> also contains the attribute changes to the monitored file, as well as the ID of the user responsible (<command>uid()</command>). <xref linkend="inodewatch2output"/> contains shows the output of <xref linkend="inodewatch2"/> while monitoring <filename>/home/joe/bigfile</filename> when user <computeroutput>joe</computeroutput> executes <command>chmod 777 /home/joe/bigfile</command> and <command>chmod 666 /home/joe/bigfile</command>.</para>    
+
+
+
+<example id="inodewatch2output">
+	<title><xref linkend="inodewatch2"/> Sample Output</title>
+<screen>
+chmod(17448) inode_setattr 0x800005/6011835 100777 500
+chmod(17449) inode_setattr 0x800005/6011835 100666 500
+</screen>
+</example>
+
+
+	</section>
+

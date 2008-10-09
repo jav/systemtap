@@ -26,6 +26,9 @@
 	<xi:include href="Useful_Scripts-traceio2.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <!-- 	<xi:include href="Useful_Scripts-Kernel.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 	<xi:include href="Useful_Scripts-paracallgraph.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-inodewatch.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-inodewatch2.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
+	
 <!--	<xi:include href="Useful_Scripts-Network.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Signals.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Syscalls.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />

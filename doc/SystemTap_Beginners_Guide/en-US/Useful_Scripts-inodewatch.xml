@@ -1,0 +1,71 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="inodewatchsect">
+		<title>Monitoring Reads and Writes to a File</title>
+		
+		
+<remark>
+WAR STORY: monitoring inode activity http://sourceware.org/systemtap/wiki/WSFileMonitor?highlight=((WarStories))
+</remark>
+		
+<remark>
+no script in examples
+</remark>	
+				
+		
+	<para>This section describes how to monitor reads from and writes to a file in real time. </para>
+	
+<formalpara id="inodewatch">
+		<title>inodewatch.stp</title>
+<para>
+<programlisting>
+probe kernel.function ("vfs_write"),
+      kernel.function ("vfs_read")
+{
+  dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
+  inode_nr = $file->f_dentry->d_inode->i_ino
+
+  if (dev_nr == ($1 &lt;&lt; 20 | $2) # major/minor device
+      &amp;&amp; inode_nr == $3)
+    printf ("%s(%d) %s 0x%x/%u\n",
+      execname(), pid(), probefunc(), dev_nr, inode_nr)
+}
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="inodewatch"/> takes the following information about the file as an argument:</para>
+
+<itemizedlist>
+	<listitem><para>The file's device number, in integer format. When this is passed to the script as the first argument, be sure to replace any <computeroutput>0</computeroutput> with a space.</para></listitem>
+			
+	<listitem><para>The file's <command>inode</command> number.</para></listitem>
+</itemizedlist>
+
+<para>To get this information, use <command>stat -c '%D %i' <replaceable>filename</replaceable></command>, where <command><replaceable>filename</replaceable></command> is an absolute path.</para>
+
+<para>For instance: if you wish to monitor <filename>/etc/crontab</filename>, run <command>stat -c '%D %i' /etc/crontab</command> first. This gives the following output:</para>
+
+<screen>
+805 1078319
+</screen>
+
+<para><computeroutput>805</computeroutput> is the device number, while <computeroutput>1078319</computeroutput> is the <command>inode</command> number. To start monitoring <filename>/etc/crontab</filename>, run <command>stap inodewatch.stp 8 5 1078319</command>.</para>
+
+<para>The output of this command contains the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), the device number (in hex format), and the <command>inode</command> number. <xref linkend="inodewatchoutput"/> contains the output of <command>stap inodewatch.stp 8 5 1078319</command> (when <command>cat /etc/crontab</command> is executed while the script is running) :</para>
+
+
+<example id="inodewatchoutput">
+	<title><xref linkend="inodewatch"/> Sample Output</title>
+<screen>
+cat(16437) vfs_read 0x800005/1078319
+cat(16437) vfs_read 0x800005/1078319
+</screen>
+</example>
+
+
+	</section>
+

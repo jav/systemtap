@@ -4,6 +4,19 @@
 
 	<section id="traceio2sect">
 		<title>I/O Monitoring (By Device)</title>
+		
+		<remark>
+			example from http://sourceware.org/systemtap/examples/io/traceio2.stp, but error
+		</remark>
+		
+		<remark>
+			WAR STORY: http://sourceware.org/systemtap/wiki/WSDeviceMonitor?highlight=((WarStories)), but script errored
+		</remark>	
+		
+		<remark>
+			was able to correct script through http://sourceware.org/systemtap/wiki/WSFileMonitor?highlight=((WarStories))
+		</remark>	
+		
 		<para>
 			This section describes how to monitor I/O activity on a specific device.
 		</para>
@@ -44,11 +57,11 @@ semantic error: field 'f_dentry' not found
 	inode_nr = $file->f_path->dentry->d_inode->i_ino
 </programlisting>
 
-<para><xref linkend="traceio2"/> takes 2 arguments: the <emphasis>major</emphasis> and <emphasis>minor</emphasis> numbers of the device you wish to monitor. Its output includes the name of the process name, process ID, the function being probes (i.e. <command>vfs_read</command> or <command>vfs_write</command>), and the byte address being read from or written to.</para>
+<para><xref linkend="traceio2"/> takes 2 arguments: the <emphasis>major</emphasis> and <emphasis>minor</emphasis> numbers of the device you wish to monitor. Its output includes the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), and the device number (in hex format).</para>
 
-<remark>please verify if "0x800005" is "the byte address being read from or written to"</remark>
+<remark>please verify if "0x800005" is "device number (in hex format)", and why it needs to be stated buy </remark>
 
-<para>The following example is a snippet from the output of <command>stap traceio2.stp 8 5</command>, where <command>8 5</command> is the MAJOR:MINOR device number of <filename>/dev/sda5</filename> (which we determined through <command>cat /sys/block/sda/sda5/dev</command>).</para>
+<para>The following example is an excerpt from the full output of <command>stap traceio2.stp 8 5</command>, where <computeroutput>8 5</computeroutput> is the MAJOR:MINOR device number of <filename>/dev/sda5</filename> (which we determined through <command>cat /sys/block/sda/sda5/dev</command>).</para>
 
 <example id="traceio2output">
 	<title><xref linkend="traceio2"/> Sample Output</title>
