@@ -1,3 +1,7 @@
+2008-10-09  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (query_cu): Fix typo.
+
 2008-10-06  Wenji Huang  <wenji.huang@oracle.com>
 
 	PR 4886
