@@ -37,7 +37,7 @@ probe kernel.function ("vfs_write"),
 </para>
 </formalpara>
 
-<para condition="fedora">For some kernel versions (e.g. <filename>2.6.21-1.3194.fc7</filename>, you may need to revise <xref linkend="traceio2"/> accordingly. SystemTap will output the following error if you need to do so:</para>
+<para condition="fedora">For some kernel versions (e.g. <filename>2.6.21-1.3194.fc7</filename>), you may need to revise <xref linkend="traceio2"/> accordingly. SystemTap will output the following error if you need to do so:</para>
 
 <screen condition="fedora">
 semantic error: field 'f_dentry' not found

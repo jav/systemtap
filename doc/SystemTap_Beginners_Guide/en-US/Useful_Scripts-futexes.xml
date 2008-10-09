@@ -20,7 +20,7 @@ no script in examples
 		
 	<para>Simply put, a <command>futex</command> contention occurs when multiple processes are trying to access the same region of memory. In some cases, this can result in a deadlock between the processes in contention, thereby appearing as an application hang.</para> 
 	
-	<para>To do this, <xref linkend="futexcontention"/> probes the <command>futex</command> system call.</section>
+	<para>To do this, <xref linkend="futexcontention"/> probes the <command>futex</command> system call.</para>
 	
 <formalpara id="futexcontention">
 		<title>futexcontention.stp</title>
