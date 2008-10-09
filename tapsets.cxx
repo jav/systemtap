@@ -3799,7 +3799,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
                 {
                   stringstream msg;
                   msg << "address 0x" << hex << queryaddr
-                      << "does not match the begining of a statement";
+                      << " does not match the beginning of a statement";
                   throw semantic_error(msg.str());
                 }
             }

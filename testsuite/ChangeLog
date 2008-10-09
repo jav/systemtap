@@ -1,3 +1,8 @@
+2008-10-09  Rajan Arora   <rarora@redhat.com>
+
+	* systemtap.base/warnings.exp: Allow for source: lines.
+	* parseko/source_context.stp: New file.
+
 2008-10-04  Mark Wielaard  <mjw@redhat.com>
 
 	* systemtap.base/debugpath.exp: Guess a bit more intelligently

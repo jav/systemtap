@@ -124,17 +124,22 @@ operator << (ostream& o, const token& t)
 void
 parser::print_error  (const parse_error &pe)
 {
+  string align_parse_error ("     ");
   cerr << "parse error: " << pe.what () << endl;
 
   if (pe.tok)
     {
       cerr << "\tat: " << *pe.tok << endl;
+      session.print_error_source (cerr, align_parse_error, pe.tok);
     }
   else
     {
       const token* t = last_t;
       if (t)
-        cerr << "\tsaw: " << *t << endl;
+	{
+	  cerr << "\tsaw: " << *t << endl;
+	  session.print_error_source (cerr, align_parse_error, t);
+	}
       else
         cerr << "\tsaw: " << input_name << " EOF" << endl;
     }
@@ -579,15 +584,27 @@ parser::peek_kw (std::string const & kw)
 
 
 lexer::lexer (istream& i, const string& in, systemtap_session& s):
-  input (i), input_name (in),
+  input (i), input_name (in), input_contents (""),
   input_pointer (0), cursor_suspend_count(0),
-  cursor_line (1), cursor_column (1), session(s)
+  cursor_line (1), cursor_column (1), session(s),
+  current_file (0)
 {
   char c;
   while(input.get(c))
     input_contents.push_back(c);
 }
 
+std::string
+lexer::get_input_contents ()
+{
+  return input_contents;
+}
+
+void
+lexer::set_current_file (stapfile* f)
+{
+  current_file = f;
+}
 
 int
 lexer::input_peek (unsigned n)
@@ -642,6 +659,8 @@ lexer::scan (bool wildcard)
 {
   token* n = new token;
   n->location.file = input_name;
+  if (current_file)
+    n->location.stap_file = current_file;
 
   unsigned semiskipped_p = 0;
 
@@ -945,6 +964,8 @@ stapfile*
 parser::parse ()
 {
   stapfile* f = new stapfile;
+  input.set_current_file (f);
+  f->file_contents = input.get_input_contents ();
   f->name = input_name;
 
   bool empty = true;
@@ -1013,15 +1034,18 @@ parser::parse ()
     {
       cerr << "Input file '" << input_name << "' is empty or missing." << endl;
       delete f;
+      input.set_current_file (0);
       return 0;
     }
   else if (num_errors > 0)
     {
       cerr << num_errors << " parse error(s)." << endl;
       delete f;
+      input.set_current_file (0);
       return 0;
     }
 
+  input.set_current_file (0);
   return f;
 }
 

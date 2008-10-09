@@ -574,8 +574,10 @@ struct stapfile
   std::vector<functiondecl*> functions;
   std::vector<vardecl*> globals;
   std::vector<embeddedcode*> embeds;
+  std::string file_contents;
   bool privileged;
-  stapfile (): privileged (false) {}
+  stapfile (): file_contents (""),
+    privileged (false) {}
   void print (std::ostream& o) const;
 };
 

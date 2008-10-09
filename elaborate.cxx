@@ -1426,6 +1426,7 @@ void
 systemtap_session::print_error (const semantic_error& e)
 {
   string message_str[2];
+  string align_semantic_error ("        ");
 
   // NB: we don't print error messages during listing mode.
   if (listing_mode) return;
@@ -1462,6 +1463,12 @@ systemtap_session::print_error (const semantic_error& e)
     {
       seen_errors.insert (message_str[1]);
       cerr << message_str[0];
+
+      if (e.tok1)
+        print_error_source (cerr, align_semantic_error, e.tok1);
+
+      if (e.tok2)
+        print_error_source (cerr, align_semantic_error, e.tok2);
     }
 
   if (e.chain)
@@ -1469,15 +1476,51 @@ systemtap_session::print_error (const semantic_error& e)
 }
 
 void
+systemtap_session::print_error_source (std::ostream& message,
+                                       std::string& align, const token* tok)
+{
+  unsigned i = 0;
+  unsigned line = tok->location.line;
+  unsigned col = tok->location.column;
+  string file_contents;
+  if (tok->location.stap_file)
+    file_contents = tok->location.stap_file->file_contents;
+  else
+    //No source to print, silently exit
+    return;
+  size_t start_pos = 0, end_pos = 0;
+  //Navigate to the appropriate line
+  while (i != line && end_pos != std::string::npos)
+    {
+      start_pos = end_pos;
+      end_pos = file_contents.find ('\n', start_pos) + 1;
+      i++;
+    }
+  message << align << "source: " << file_contents.substr (start_pos, end_pos-start_pos-1) << endl;
+  message << align << "        ";
+  //Navigate to the appropriate column
+  for (i=start_pos; i<start_pos+col-1; i++)
+    {
+      if(isspace(file_contents[i]))
+	message << file_contents[i];
+      else
+	message << ' ';
+    }
+  message << "^" << endl;
+}
+
+void
 systemtap_session::print_warning (const string& message_str, const token* tok)
 {
   // Duplicate elimination
+  string align_warning (" ");
   if (seen_warnings.find (message_str) == seen_warnings.end())
     {
       seen_warnings.insert (message_str);
       clog << "WARNING: " << message_str;
       if (tok) { clog << ": "; print_token (clog, tok); }
       clog << endl;
+      print_error_source (clog, align_warning, tok);
     }
 }
 
