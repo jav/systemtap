@@ -1,5 +1,9 @@
 * What's new
 
+- Cache limiting is now available.  If the compiled module cache size is
+  over a limit specified in the $SYSTEMTAP_DIR/cache/cache_mb_limit file,
+  some old cache entries will be unlinked.  See man stap(1) for more.
+
 - A bug reporting tool "stap-report" is now available which will quickly
   retrieve much of the information requested here: 
   http://sourceware.org/systemtap/wiki/HowToReportBugs
@@ -92,11 +96,6 @@
   but is for some reason unavailable.)  In return probes only, $$return
   expands to an empty string for a void function, or "return=0xf00".
 
-- Cache limiting is now available. If the cache is over a specified limit,
-  cached modules/sources are unlinked until the total cache size is below
-  the limit.
-
-  See stap(1) for use.
 
 * What's new in version 0.7
 
