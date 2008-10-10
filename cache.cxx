@@ -178,7 +178,7 @@ clean_cache(systemtap_session& s)
       //glob for all kernel modules in the cache dir
       glob_t cache_glob;
       string glob_str = s.cache_path + "/*/*.ko";
-      glob(glob_str.c_str(), NULL, NULL, &cache_glob);
+      glob(glob_str.c_str(), 0, NULL, &cache_glob);
 
 
       set<struct cache_ent_info, struct weight_sorter> cache_contents;
