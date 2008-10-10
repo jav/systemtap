@@ -1,3 +1,8 @@
+2008-10-10  Kent Sebastian  <ksebasti@redhat.com>
+
+	* cache.cxx (cache_clean): New group of functions implementing cache
+	size limiting.
+
 2008-10-09  Rajan Arora   <rarora@redhat.com>
 
 	* elaborate.cxx (systemtap_session::print_error_source): New.
