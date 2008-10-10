@@ -1,3 +1,8 @@
+2008-10-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR6749.
+	* systemtap.base/badkprobe.exp: New test.
+
 2008-10-09  Mark Wielaard  <mjw@redhat.com>
 
 	* systemtap.base/uprobes.exp: Cleanup generated files.
