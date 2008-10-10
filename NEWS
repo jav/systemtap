@@ -88,6 +88,12 @@
   but is for some reason unavailable.)  In return probes only, $$return
   expands to an empty string for a void function, or "return=0xf00".
 
+- Cache limiting is now available. If the cache is over a specified limit,
+  cached modules/sources are unlinked until the total cache size is below
+  the limit.
+
+  See stap(1) for use.
+
 * What's new in version 0.7
 
 - .statement("func@file:*") and .statement("func@file:M-N") probes are now
