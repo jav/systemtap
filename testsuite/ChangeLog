@@ -1,3 +1,7 @@
+2008-10-09  Mark Wielaard  <mjw@redhat.com>
+
+	* systemtap.base/uprobes.exp: Cleanup generated files.
+
 2008-10-09  Rajan Arora   <rarora@redhat.com>
 
 	* systemtap.base/warnings.exp: Allow for source: lines.
