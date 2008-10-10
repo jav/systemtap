@@ -1,5 +1,9 @@
 * What's new
 
+- Error and warning messages are now followed by source context displaying
+  the erroneous line/s and a handy '^' in the following line pointing to the
+  appropriate column.
+
 - A bug reporting tool "stap-report" is now available which will quickly
   retrieve much of the information requested here: 
   http://sourceware.org/systemtap/wiki/HowToReportBugs
