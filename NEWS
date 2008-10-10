@@ -1,5 +1,9 @@
 * What's new
 
+- A bug reporting tool "stap-report" is now available which will quickly
+  retrieve much of the information requested here: 
+  http://sourceware.org/systemtap/wiki/HowToReportBugs
+
 - The translator can resolve members of anonymous structs / unions:
     given            struct { int foo; struct { int bar; }; } *p;
     this now works:  $p->bar
