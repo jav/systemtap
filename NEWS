@@ -4,6 +4,10 @@
   over a limit specified in the $SYSTEMTAP_DIR/cache/cache_mb_limit file,
   some old cache entries will be unlinked.  See man stap(1) for more.
 
+- Error and warning messages are now followed by source context displaying
+  the erroneous line/s and a handy '^' in the following line pointing to the
+  appropriate column.
+
 - A bug reporting tool "stap-report" is now available which will quickly
   retrieve much of the information requested here: 
   http://sourceware.org/systemtap/wiki/HowToReportBugs
