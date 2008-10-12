@@ -22,7 +22,7 @@ no script in examples
 		<title>countcalls.stp</title>
 <para>
 <programlisting>
-probe kernel.function(@1) {  # probe every function in any C file under mm/
+probe kernel.function(@1) {  # probe function passed as argument from stdin
 called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
 }
 global called          

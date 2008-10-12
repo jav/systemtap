@@ -1,0 +1,111 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="kernelprofsect">
+		<title>Kernel Profiling</title>
+		
+		
+<remark>
+	WAR STORY: Kernel Profiling http://sourceware.org/systemtap/wiki/WSKernelProfile?highlight=((WarStories))
+</remark>
+		
+<remark>
+	http://sourceware.org/systemtap/examples/process/pf2.stp
+</remark>	
+				
+		
+<para>In <xref linkend="countcallssect"/>, you can revise the wildcards used in the probe to target <emphasis>all</emphasis> kernel functions. This can be useful if you are interested in indentifying what the kernel is performing over a specific time period.</para>
+		
+<para>However, doing so can cause considerable stress on the machine. In addition, this does not provide any indication of whether a specific function is being called too often during small time increments.</para>
+
+<para>This section describes how to profile the kernel properly. <xref linkend="kernelprof"/> does this by providing a list of the top ten kernel functions called within a specific time period, and how many times each function was called during that time.</para>
+
+
+<formalpara id="kernelprof">
+		<title>kernelprof.stp</title>
+<para>
+<programlisting>
+#! /usr/bin/env stap
+
+global profile, pcount
+probe timer.profile {
+pcount &lt;&lt;&lt; 1
+  fn = probefunc ()
+  if (fn != "") profile[fn] &lt;&lt;&lt; 1
+}
+probe timer.ms(5000) {
+  printf ("\n--- %d samples recorded:\n", @count(pcount))
+  foreach (f in profile- limit 10) {
+    printf ("%-30s\t%6d\n", f, @count(profile[f]))
+  }
+  delete profile
+  delete pcount
+}
+
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="kernelprof"/> records and outputs kernel functions called every 5 seconds. You can change this setting by editing <command>probe timer.ms(5000)</command> accordingly. <xref linkend="kernelprofoutput"/> contains an excerpt of the output over a 20-second period:</para> 
+
+<example id="kernelprofoutput">
+	<title><xref linkend="kernelprof"/> Sample Output</title>
+<screen>
+[...]
+--- 10002 samples recorded:
+sys_recvfrom                         1
+memmove                              1
+__copy_from_user_ll                 17
+__copy_to_user_ll                   15
+mwait_idle                        5868
+link_path_walk                       1
+kfree                                1
+fget_light                           1
+audit_syscall_exit                   1
+__d_lookup                           1
+
+--- 10002 samples recorded:
+sysfs_read_file                      1
+free_poll_entry                      1
+syscall_exit_work                    1
+profile_hit                          1
+do_page_fault                        2
+_read_lock                           3
+kmap_atomic                          4
+strncpy_from_user                    1
+find_vma_prepare                     1
+__copy_from_user_ll                 12
+
+--- 10000 samples recorded:
+system_call                          4
+unix_stream_sendmsg                  1
+__d_path                             1
+do_page_fault                        2
+kmap_atomic                          1
+find_vma                             1
+__copy_to_user_ll                   16
+__copy_from_user_ll                 10
+mwait_idle                        5759
+memcpy_fromiovec                     1
+
+--- 10004 samples recorded:
+syscall_exit                         1
+__d_path                             1
+fput                                 2
+do_page_fault                        4
+strncpy_from_user                    1
+may_open                             1
+ide_outb                             1
+ide_outsw                            1
+__copy_to_user_ll                   11
+__copy_from_user_ll                 14
+[...]
+</screen>
+</example>
+
+<para><xref linkend="kernelprof"/> allows you to identify interesting kernel-specific performance facts about the system, such as kernel-intensive workloads and idle times (in this case, <command>mwait_idle</command>. Note that <xref linkend="kernelprof"/> does not count user-space functions, although it counts all kernel functions as part of the sample (even if the script cannot identify from which specific kernel function a call originated.</para>
+
+	</section>
+
