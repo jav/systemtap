@@ -1,0 +1,131 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="nettopsect">
+		<title>Kernel Profiling</title>
+		
+		
+<remark>
+	WAR STORY: Top network users by PID http://sourceware.org/systemtap/wiki/WSNetTop?highlight=((WarStories))
+</remark>
+		
+<remark>
+	probably http://sourceware.org/systemtap/examples/network/nettop.stp
+</remark>	
+				
+
+<para>This section describes how to profile network activity. <xref linkend="nettop"/> provides a glimpse into how much network traffic each process is generating on a machine.</para> 
+
+<formalpara id="nettop">
+		<title>nettop.stp</title>
+<para>
+<programlisting>
+global ifxmit, ifrecv, ifdevs, ifpid, execname, user
+
+probe netdev.transmit
+{
+        p = pid()
+        execname[p] = execname()
+        user[p] = uid()
+        ifdevs[p, dev_name] = dev_name
+	ifxmit[p, dev_name] &lt;&lt;&lt; length
+        ifpid[p, dev_name] ++
+}
+
+probe netdev.receive
+{
+        p = pid()
+        execname[p] = execname()
+        user[p] = uid()
+        ifdevs[p, dev_name] = dev_name
+	ifrecv[p, dev_name] &lt;&lt;&lt; length
+        ifpid[p, dev_name] ++
+}
+
+
+function print_activity()
+{
+        printf("%5s %5s %-7s %7s %7s %7s %7s %-15s\n",
+                "PID", "UID", "DEV", "XMIT_PK", "RECV_PK",
+                "XMIT_KB", "RECV_KB", "COMMAND")
+
+        foreach ([pid, dev] in ifpid-) {
+                n_xmit = @count(ifxmit[pid, dev])
+                n_recv = @count(ifrecv[pid, dev])
+                printf("%5d %5d %-7s %7d %7d %7d %7d %-15s\n",
+                        pid, user[pid], dev, n_xmit, n_recv,
+                        n_xmit ? @sum(ifxmit[pid, dev])/1024 : 0,
+                        n_recv ? @sum(ifrecv[pid, dev])/1024 : 0,
+                        execname[pid])
+        }
+
+        print("\n")
+
+        delete execname
+        delete user
+        delete ifdevs
+        delete ifxmit
+        delete ifrecv
+        delete ifpid
+}
+
+probe timer.ms(5000)
+{
+        print_activity()
+}
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="nettop"/> tracks which processes are generating network traffic on the system, and provides the following information about each process:</para>
+
+<itemizedlist>
+	<listitem><para><computeroutput>PID</computeroutput> &mdash; the ID of the listed process.</para></listitem>
+	
+	<listitem><para><computeroutput>UID</computeroutput> &mdash; user ID. A user ID of <computeroutput>0</computeroutput> refers to the root user.</para></listitem>
+
+	<listitem><para><computeroutput>DEV</computeroutput> &mdash; which ethernet device the process used to send / receive data (e.g. eth0, eth1)</para></listitem>
+	<listitem><para><computeroutput>XMIT_PK</computeroutput> &mdash; number of packets transmitted by the process</para></listitem>
+	<listitem><para><computeroutput>RECV_PK</computeroutput> &mdash; number of packets received by the process</para></listitem>
+	<listitem><para><computeroutput>XMIT_KB</computeroutput> &mdash; amount of data sent by the process, in kilobytes</para></listitem>
+	<listitem><para><computeroutput>RECV_KB</computeroutput> &mdash; amount of data received by the service, in kilobytes</para></listitem>
+</itemizedlist>	
+
+<para><xref linkend="nettop"/> provides network profile sampling every 5 seconds. You can change this setting by editing <command>probe timer.ms(5000)</command> accordingly. <xref linkend="nettopoutput"/> contains an excerpt of the output from <xref linkend="nettop"/> over a 20-second period:</para>
+
+
+<example id="nettopoutput">
+	<title><xref linkend="nettop"/> Sample Output</title>
+<screen>
+[...]
+  PID   UID DEV     XMIT_PK RECV_PK XMIT_KB RECV_KB COMMAND        
+    0     0 eth0          0       5       0       0 swapper        
+11178     0 eth0          2       0       0       0 synergyc       
+
+  PID   UID DEV     XMIT_PK RECV_PK XMIT_KB RECV_KB COMMAND        
+ 2886     4 eth0         79       0       5       0 cups-polld     
+11362     0 eth0          0      61       0       5 firefox        
+    0     0 eth0          3      32       0       3 swapper        
+ 2886     4 lo            4       4       0       0 cups-polld     
+11178     0 eth0          3       0       0       0 synergyc       
+
+  PID   UID DEV     XMIT_PK RECV_PK XMIT_KB RECV_KB COMMAND        
+    0     0 eth0          0       6       0       0 swapper        
+ 2886     4 lo            2       2       0       0 cups-polld     
+11178     0 eth0          3       0       0       0 synergyc       
+ 3611     0 eth0          0       1       0       0 Xorg           
+
+  PID   UID DEV     XMIT_PK RECV_PK XMIT_KB RECV_KB COMMAND        
+    0     0 eth0          3      42       0       2 swapper        
+11178     0 eth0         43       1       3       0 synergyc       
+11362     0 eth0          0       7       0       0 firefox        
+ 3897     0 eth0          0       1       0       0 multiload-apple
+[...]
+</screen>
+</example>
+
+
+	</section>
+

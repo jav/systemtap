@@ -31,6 +31,7 @@
 	<xi:include href="Useful_Scripts-functioncalls.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-kernelprofiling.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-futexes.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-nettop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <!--	<xi:include href="Useful_Scripts-Network.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Signals.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Syscalls.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />

@@ -95,19 +95,19 @@ probe end{
 <para><xref linkend="scriptdisktop"/> outputs the top ten processes responsible for the heaviest reads/writes to disk. <xref linkend="disktopoutput"/> displays a sample output for this script, and includes the following data per listed process:</para>
 
 <itemizedlist>
-	<listitem><para><command>UID</command> &mdash; user ID. A user ID of <command>0</command> refers to the root user.</para></listitem>
+	<listitem><para><computeroutput>UID</computeroutput> &mdash; user ID. A user ID of <computeroutput>0</computeroutput> refers to the root user.</para></listitem>
 	
-	<listitem><para><command>PID</command> &mdash; the ID of the listed process.</para></listitem>
+	<listitem><para><computeroutput>PID</computeroutput> &mdash; the ID of the listed process.</para></listitem>
 	
-	<listitem><para><command>PPID</command> &mdash; the process ID of the listed process's <emphasis>parent process</emphasis>.</para></listitem>
+	<listitem><para><computeroutput>PPID</computeroutput> &mdash; the process ID of the listed process's <emphasis>parent process</emphasis>.</para></listitem>
 	
-	<listitem><para><command>CMD</command> &mdash; the name of the listed process.</para></listitem>
+	<listitem><para><computeroutput>CMD</computeroutput> &mdash; the name of the listed process.</para></listitem>
 	
-	<listitem><para><command>DEVICE</command> &mdash; which storage device the listed process is reading from or writing to.</para></listitem>
+	<listitem><para><computeroutput>DEVICE</computeroutput> &mdash; which storage device the listed process is reading from or writing to.</para></listitem>
 	
-	<listitem><para><command>T</command> &mdash; the type of action performed by the listed process; <command>W</command> refers to write, while <command>R</command> refers to read.</para></listitem>
+	<listitem><para><computeroutput>T</computeroutput> &mdash; the type of action performed by the listed process; <computeroutput>W</computeroutput> refers to write, while <computeroutput>R</computeroutput> refers to read.</para></listitem>
 	
-	<listitem><para><command>BYTES</command> &mdash; the amount of data read to or written from disk.</para></listitem>
+	<listitem><para><computeroutput>BYTES</computeroutput> &mdash; the amount of data read to or written from disk.</para></listitem>
 </itemizedlist>	
 	
 	
