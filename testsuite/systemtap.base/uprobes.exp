@@ -16,12 +16,12 @@ close $fp
 if [file exists $path] then { pass "$test prep" } else { fail "$test prep" }
 
 catch {exec gcc -g -o jennie jennie.c} err
-if {$err == "" && [file exists jennie]} then { pass "$test compile" } else { pass "$test compile" }
+if {$err == "" && [file exists jennie]} then { pass "$test compile" } else { fail "$test compile" }
 
 set rc [stap_run_batch $srcdir/$subdir/uprobes.stp]
 if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
 
-if {! [installtest_p]} { untested "$test -p5"; return }
+if {! [installtest_p]} { untested "$test -p5"; exec rm -f jennie.c jennie; return }
 
 spawn sudo stap -v $srcdir/$subdir/uprobes.stp -c "./jennie 1 2 3 4"
 set ok 0
@@ -39,3 +39,5 @@ expect {
 }
 if {$ok == 10} then { pass "$test -p5" } else { fail "$test -p5 ($ok)" }
 catch {wait; close}
+
+exec rm -f jennie.c jennie

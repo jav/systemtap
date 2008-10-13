@@ -1,0 +1,5 @@
+probe timer.ms(123)
+{
+printf("Probe successful\n")
+				   eeexit ()
+}

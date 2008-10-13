@@ -1,5 +1,17 @@
 * What's new
 
+- Cache limiting is now available.  If the compiled module cache size is
+  over a limit specified in the $SYSTEMTAP_DIR/cache/cache_mb_limit file,
+  some old cache entries will be unlinked.  See man stap(1) for more.
+
+- Error and warning messages are now followed by source context displaying
+  the erroneous line/s and a handy '^' in the following line pointing to the
+  appropriate column.
+
+- A bug reporting tool "stap-report" is now available which will quickly
+  retrieve much of the information requested here: 
+  http://sourceware.org/systemtap/wiki/HowToReportBugs
+
 - The translator can resolve members of anonymous structs / unions:
     given            struct { int foo; struct { int bar; }; } *p;
     this now works:  $p->bar
@@ -87,6 +99,7 @@
   containing a list "var1=0xdead var2=0xbeef var3=?".  (Here, var3 exists
   but is for some reason unavailable.)  In return probes only, $$return
   expands to an empty string for a void function, or "return=0xf00".
+
 
 * What's new in version 0.7
 

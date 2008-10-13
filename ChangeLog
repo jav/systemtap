@@ -1,3 +1,38 @@
+2008-10-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR6749
+	* tapsets.cxx (dwarf_derived_probe_group::emit_module_init): Tolerate
+	failed register_*kprobe during initialization; warn instead.
+
+2008-10-10  Kent Sebastian  <ksebasti@redhat.com>
+
+	* cache.cxx (cache_clean): New group of functions implementing cache
+	size limiting.
+
+2008-10-09  Rajan Arora   <rarora@redhat.com>
+
+	* elaborate.cxx (systemtap_session::print_error_source): New.
+	(systemtap_session::print_error): Call it.
+	(systemtap_session::print_warning): Likewise.
+	* parse.cxx (parser::print_error): Likewise.
+	* session.h (struct systemtap_session::print_error_source):
+	Declare it.
+	* parse.cxx (lexer::get_input_contents): New.
+	(parser::parse): Call it.
+	(lexer::set_current_file): New.
+	(parser::parse): Call it.
+	* parse.h (class lexer::get_input_contents): Declare it.
+	(class lexer::set_current_file): Declare it.
+	(class lexer): New member current_file.
+	(class lexer): Update input_contents from vector<char>
+	to std::string.
+	(struct source_loc): New member stap_file.
+	* staptree.h (struct stapfile): New member file_contents.
+
+2008-10-09  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (query_cu): Fix typo.
+
 2008-10-06  Wenji Huang  <wenji.huang@oracle.com>
 
 	PR 4886

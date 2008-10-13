@@ -865,7 +865,13 @@ script is translated again assuming the same conditions exist (same kernel
 version, same systemtap version, etc.).  Cached files are stored in
 the
 .I $SYSTEMTAP_DIR/cache
-directory, which may be periodically cleaned/erased by the user.
+directory. The cache can be limited by having the file
+.I cache_mb_limit
+placed in the cache directory (shown above) containing only an ASCII 
+integer representing how many MiB the cache should not exceed. Note that
+this is a 'soft' limit in that the cache will be cleaned after a new entry
+is added, so the cache size may temporarily exceed this limit. In the 
+absence of this file, cache cleaning is up to the user.
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data

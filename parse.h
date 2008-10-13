@@ -18,11 +18,14 @@
 #include <stdexcept>
 #include <stdint.h>
 
+struct stapfile;
+
 struct source_loc
 {
   std::string file;
   unsigned line;
   unsigned column;
+  stapfile* stap_file;
 };
 
 std::ostream& operator << (std::ostream& o, const source_loc& loc);
@@ -71,6 +74,8 @@ class lexer
 public:
   token* scan (bool wildcard=false);
   lexer (std::istream&, const std::string&, systemtap_session&);
+  std::string get_input_contents ();
+  void set_current_file (stapfile* f);
 
 private:
   int input_get ();
@@ -79,16 +84,15 @@ private:
   int input_peek (unsigned n=0);
   std::istream& input;
   std::string input_name;
-  std::vector<char> input_contents;
+  std::string input_contents;
   int input_pointer; // index into input_contents
   unsigned cursor_suspend_count;
   unsigned cursor_line;
   unsigned cursor_column;
   systemtap_session& session;
+  stapfile* current_file;
 };
 
-
-struct stapfile;
 struct probe;
 struct probe_alias;
 struct vardecl;

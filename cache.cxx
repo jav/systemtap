@@ -19,6 +19,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <glob.h>
 }
 
 using namespace std;
@@ -50,6 +51,8 @@ add_to_cache(systemtap_session& s)
       cerr << "Copy failed (\"" << s.translated_source << "\" to \""
 	   << c_dest_path << "\"): " << strerror(errno) << endl;
     }
+
+  clean_cache(s);
 }
 
 
@@ -134,4 +137,169 @@ get_from_cache(systemtap_session& s)
     }
 
   return true;
+}
+
+
+void
+clean_cache(systemtap_session& s)
+{
+  if (s.cache_path != "")
+    {
+      /* Get cache size limit from file in the stap cache dir */
+      string cache_max_filename = s.cache_path + "/";
+      cache_max_filename += SYSTEMTAP_CACHE_MAX_FILENAME;
+      ifstream cache_max_file(cache_max_filename.c_str(), ios::in);
+
+      if (cache_max_file.is_open())
+        {
+          cache_max_file >> s.cache_max;
+          cache_max_file.close();
+          s.cache_max *= 1024 * 1024;           //convert to bytes
+
+          //bad content in the file?
+          if (s.cache_max < 0)
+            s.cache_max = 0;
+        }
+      else
+        {
+          //file doesnt exist or error
+          s.cache_max = 0;
+        }
+
+      if (s.cache_max == 0)
+        {
+          if (s.verbose > 1)
+            clog << "Missing cache limit file " << s.cache_path << "/" << SYSTEMTAP_CACHE_MAX_FILENAME << ", I/O error or invalid content." << endl;
+
+          return;
+        }
+
+
+      //glob for all kernel modules in the cache dir
+      glob_t cache_glob;
+      string glob_str = s.cache_path + "/*/*.ko";
+      glob(glob_str.c_str(), 0, NULL, &cache_glob);
+
+
+      set<struct cache_ent_info, struct weight_sorter> cache_contents;
+      long cache_size = 0;
+
+      //grab info for each cache entry (.ko and .c)
+      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
+        {
+          struct cache_ent_info cur_info;
+          string cache_ent_path = cache_glob.gl_pathv[i];
+          long cur_size = 0;
+
+          cache_ent_path = cache_ent_path.substr(0, cache_ent_path.length() - 3);
+          cur_info.path = cache_ent_path;
+          cur_info.weight = get_cache_file_weight(cache_ent_path);
+
+          cur_size = get_cache_file_size(cache_ent_path);
+          cur_info.size = cur_size;
+          cache_size += cur_size;
+
+          if (cur_info.size != 0 && cur_info.weight != 0)
+            {
+              cache_contents.insert(cur_info);
+            }
+        }
+
+      globfree(&cache_glob);
+
+      set<struct cache_ent_info, struct weight_sorter>::iterator i;
+      long r_cache_size = cache_size;
+      string removed_dirs = "";
+
+      //unlink .ko and .c until the cache size is under the limit
+      for (i = cache_contents.begin(); i != cache_contents.end(); ++i)
+        {
+          if (r_cache_size < s.cache_max)
+            break;
+
+          //delete this (*i) cache_entry, add to removed list
+          r_cache_size -= (*i).size;
+          unlink_cache_entry((*i).path);
+          removed_dirs += (*i).path + ", ";
+        }
+
+      cache_contents.clear();
+
+      if (s.verbose > 1)
+        {
+          if (removed_dirs == "")
+            {
+              clog << "Cache size under limit, no entries removed." << endl;
+            }
+          else
+            {
+              //remove trailing ", "
+              removed_dirs = removed_dirs.substr(0, removed_dirs.length() - 2);
+              clog << "Cache cleaning successful, removed entries: " << removed_dirs << endl;
+            }
+        }
+    }
+  else
+    {
+      if (s.verbose > 1)
+        clog << "Cache cleaning skipped, no cache path." << endl;
+    }
+}
+
+//Get the size, in bytes, of the module (.ko) and the
+// corresponding source (.c)
+long
+get_cache_file_size(const string &cache_ent_path)
+{
+  size_t cache_ent_size = 0;
+  string mod_path    = cache_ent_path + ".ko",
+         source_path = cache_ent_path + ".c";
+
+  struct stat file_info;
+
+  if (stat(mod_path.c_str(), &file_info) == 0)
+    cache_ent_size += file_info.st_size;
+  else
+    return 0;
+
+  //Don't care if the .c isn't there, it's much smaller
+  // than the .ko anyway
+  if (stat(source_path.c_str(), &file_info) == 0)
+    cache_ent_size += file_info.st_size;
+
+
+  return cache_ent_size;
+}
+
+//Assign a weight to this cache entry. A lower weight
+// will be removed before a higher weight.
+//TODO: for now use system mtime... later base a
+// weighting on size, ctime, atime etc..
+long
+get_cache_file_weight(const string &cache_ent_path)
+{
+  time_t dir_mtime = 0;
+  struct stat dir_stat_info;
+  string module_path = cache_ent_path + ".ko";
+
+  if (stat(module_path.c_str(), &dir_stat_info) == 0)
+    //GNU struct stat defines st_atime as st_atim.tv_sec
+    // but it doesnt seem to work properly in practice
+    // so use st_atim.tv_sec -- bad for portability?
+    dir_mtime = dir_stat_info.st_mtim.tv_sec;
+
+  return dir_mtime;
+}
+
+
+//deletes the module and source file contain
+void
+unlink_cache_entry(const string &cache_ent_path)
+{
+  //remove both .ko and .c files
+  string mod_path    = cache_ent_path + ".ko";
+  string source_path = cache_ent_path + ".c";
+
+  unlink(mod_path.c_str());     //it must exist, globbed for it earlier
+  unlink(source_path.c_str());  //if its not there, no matter
 }

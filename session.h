@@ -110,6 +110,7 @@ struct systemtap_session
   bool use_cache;
   std::string cache_path;
   std::string hash_path;
+  long cache_max;
 
   // dwarfless operation
   bool consult_symtab;
@@ -179,6 +180,7 @@ struct systemtap_session
   const token* last_token;
   void print_token (std::ostream& o, const token* tok);
   void print_error (const semantic_error& e);
+  void print_error_source (std::ostream&, std::string&, const token* tok);
   void print_warning (const std::string& w, const token* tok = 0);
 
   // reNB: new POD members likely need to be explicitly cleared in the ctor.

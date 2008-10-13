@@ -6,6 +6,8 @@ expect {
     -timeout 30
     -re {^WARNING:[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^[^\r\n]*.ko\r\n} { incr ok; exp_continue }
+    -re {^[^\r]*source:[^\r\n]*\r\n} {exp_continue}
+    -re {^[^\r\n]*\^[^\r\n]*\r\n} {exp_continue}
     timeout { fail "$test (timeout)" }
     eof { }
 }

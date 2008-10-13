@@ -3799,7 +3799,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
                 {
                   stringstream msg;
                   msg << "address 0x" << hex << queryaddr
-                      << "does not match the begining of a statement";
+                      << " does not match the beginning of a statement";
                   throw semantic_error(msg.str());
                 }
             }
@@ -5062,7 +5062,14 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "rc = register_kprobe (& kp->u.kp);";
   s.op->newline() << "#endif";
   s.op->newline(-1) << "}";
-  s.op->newline() << "if (rc) {";
+  s.op->newline() << "if (rc) {"; // PR6749: tolerate a failed register_*probe.
+  s.op->newline(1) << "sdp->registered_p = 0;";
+  s.op->newline() << "_stp_warn (\"probe %s registration error (rc %d)\", probe_point, rc);";
+  s.op->newline() << "rc = 0;"; // continue with other probes
+  // XXX: shall we increment numskipped?
+  s.op->newline(-1) << "}";
+
+#if 0 /* pre PR 6749; XXX consider making an option */
   s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
   s.op->newline(1) << "struct stap_dwarf_probe *sdp2 = & stap_dwarf_probes[j];";
   s.op->newline() << "struct stap_dwarf_kprobe *kp2 = & stap_dwarf_kprobes[j];";
@@ -5076,6 +5083,8 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "break;"; // don't attempt to register any more probes
   s.op->newline(-1) << "}";
+#endif
+
   s.op->newline() << "else sdp->registered_p = 1;";
   s.op->newline(-1) << "}"; // for loop
 }
