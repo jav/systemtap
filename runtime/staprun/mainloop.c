@@ -126,9 +126,15 @@ void start_cmd(void)
        work well if target_cmd is a shell builtin.  We really want to
        probe a new child process, not a mishmash of shell-interpreted
        stuff. */
-    rc = wordexp (target_cmd, & words, WRDE_NOCMD);
-    if (rc != 0) { _perr ("wordexp parsing error"); _exit (1); }
-    if (words.we_wordc < 1) { _perr ("empty target_cmd"); _exit (1); }
+    rc = wordexp (target_cmd, & words, WRDE_NOCMD|WRDE_UNDEF);
+    switch (rc) 
+      {
+      case 0: break;
+      case WRDE_BADCHAR: _err ("wordexp: invalid shell meta-character in -c COMMAND\n"); _exit(1);
+      case WRDE_SYNTAX: _err ("wordexp: syntax error (unmatched quotes?) in -c COMMAND\n"); _exit(1);
+      default: _err ("wordexp: parsing error (%d)\n", rc); _exit (1);
+      }
+    if (words.we_wordc < 1) { _err ("empty -c COMMAND"); _exit (1); }
 
     rc = ptrace (PTRACE_TRACEME, 0, 0, 0);
     if (rc < 0) perror ("ptrace me");
