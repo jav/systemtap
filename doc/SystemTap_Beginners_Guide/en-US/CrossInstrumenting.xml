@@ -128,14 +128,14 @@ enabled=1
 <para><command>staprun <replaceable>instrumentation</replaceable></command></para>
 
 <para>
-	For example, to create the <emphasis>instrumentation module</emphasis> <filename>module.ko</filename> from the SystemTap script <filename>script.stp</filename> for the <emphasis>target kernel</emphasis> 2.6.25.9-76.fc9 (on i686 architecture), use the following command:
+	For example, to create the <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename> from the SystemTap script <xref linkend="simplesimplescript"/> (from <xref linkend="installproper"/>) for the <emphasis>target kernel</emphasis> 2.6.25.9-76.fc9 (on i686 architecture), use the following command:
 </para>
 
-<para><command>stap -r 2.6.25.9-76.fc9.x86_64 script.stp -m module</command></para>
+<para><command>stap -r 2.6.25.9-76.fc9.x86_64 simple.stp -m module</command></para>
 
-<para>This will create a module named <filename>module.ko</filename>. To use the <emphasis>instrumentation module</emphasis> <filename>module.ko</filename>, copy it to the <emphasis>target system</emphasis> and run the following command (on the <emphasis>target system</emphasis>):</para>
+<para>This will create a module named <filename>simple.ko</filename>. To use the <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename>, copy it to the <emphasis>target system</emphasis> and run the following command (on the <emphasis>target system</emphasis>):</para>
 
-<para><command>staprun module.ko</command></para>
+<para><command>staprun simple.ko</command></para>
 	
 <!--<procedure id="preppingxcompile">
 	<title>Preparing for a Cross-Compile</title>

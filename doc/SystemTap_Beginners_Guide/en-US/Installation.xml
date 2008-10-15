@@ -14,8 +14,18 @@
 		</remark>	
 		
 		<para>
-			To deploy SystemTap, you need to install the SystemTap packages along with the corresponding set of <filename>-devel</filename> and <filename>-debuginfo</filename> packages for your kernel. This means that if your system has multiple kernels installed, and you wish to use SystemTap on more than one kernel kernel, you will need to install the <filename>-devel</filename> and <filename>-debuginfo</filename> packages for <emphasis>each</emphasis> of those kernel versions.
+			To deploy SystemTap, you need to install the SystemTap packages along with the corresponding set of <filename>-devel</filename>, <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename> packages for your kernel. This means that if your system has multiple kernels installed, and you wish to use SystemTap on more than one kernel kernel, you will need to install the <filename>-devel</filename> and <filename>-debuginfo</filename> packages for <emphasis>each</emphasis> of those kernel versions.
 		</para>
+		
+		<para>
+			These procedures will be discussed in detail in the following sections.
+		</para>	
+		
+	<important>
+		<title>Important</title>
+		<para>Many users confuse <filename>-debuginfo</filename> with <filename>-debug</filename>. Remember that the deployment of SystemTap requires the installation of the <filename>-debuginfo</filename> version of the kernel, not the <filename>-debug</filename> version.</para>
+	</important>	
+		
 <section id="installprep">
 	<title>Preparing For Installation</title>
 		<para>
@@ -35,7 +45,7 @@ uname -r
 		</para>-->
 		
 		<para>
-			Most <filename>-debuginfo</filename> packages for Red Hat Enterprise Linux 5 can be found at the following link (under <filename><replaceable>arch</replaceable>/Debuginfo</filename>, where <filename>arch</filename> is the appropriate architecture for your system:
+			Most <filename>-debuginfo</filename> packages for Red Hat Enterprise Linux 5 can be found at the following link (under <filename><replaceable>arch</replaceable>/Debuginfo</filename>, where <filename><replaceable>arch</replaceable></filename> is the appropriate architecture for your system:
 		</para>
 		
 		<para><ulink url="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/5Client/en/os/">ftp://ftp.redhat.com/pub/redhat/linux/enterprise/5Client/en/os/</ulink></para>
@@ -57,7 +67,25 @@ uname -r
 		<listitem><para><filename>systemtap-runtime</filename></para></listitem>
 	</itemizedlist>
 	
-	<para>This will install the SystemTap suite of tools.</para> 
+	<para>To do so, run <command>yum install systemtap systemtap-runtime</command>; this will work if your <application>yum</application> repository is configured accordingly. To configure <application>yum</application>, simply add the following file to <filename>/etc/yum.repos.d</filename>:</para>
+	
+<formalpara id="sampleyum">
+	<title>packages.repo</title>
+<para>
+<screen>
+[packages]
+name=Packages for OS
+baseurl=<replaceable>repository</replaceable> 
+enabled=1
+gpgcheck=0
+</screen>
+</para>	
+</formalpara>		
+
+<para>
+	In <xref linkend="sampleyum"/>, <replaceable>repository</replaceable> is the full URL of the repository containing the packages you wish to install. The <computeroutput>name=</computeroutput> parameter, along with the title (<computeroutput>[packages]</computeroutput>) and filename, can be set arbitrarily, as long as you use the <filename>.repo</filename> filename extension.
+</para>
+	 
 <!-- </step> -->
 <!--<procedure id="deployproper">
 	<title>Deploying SystemTap</title>
@@ -81,7 +109,59 @@ uname -r
 	<listitem><para><filename>kernel-debuginfo-common-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
 	<listitem><para><filename>kernel-devel-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
 </itemizedlist>
+
+<para>
+As mentioned earlier in <xref linkend="using-setup"/>, <filename>kernel-debuginfo</filename> should not be confused with <filename>kernel-debug</filename>. Thus, in this example, you do not need to install the <filename>kernel-debug-2.6.18-53.1.13.el5.i686.rpm</filename> package. 
+</para>
 </example>
+
+<important>
+	<title>Important</title>
+	
+	<para>The version of the <filename>-devel</filename>, <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.</para>
+</important>
+<para>
+	You can download the necessary packages via your web browser. Once you have downloaded the packages, install them by running <command>rpm -ivh <replaceable>package names</replaceable></command>.
+</para>
+	
+	
+<para>	
+	Alternatively, if the packages are in a <command>yum</command> repository, you can configure <command>yum</command> again to download and install directly from that repository. Once you've configured <command>yum</command> correctly, run <command>yum install <replaceable>full package names</replaceable></command> (as root).
+</para>
+	
+
+<formalpara id="initialtest">
+	<title>Initial Testing</title>
+	
+<para>If you are currently using the kernel you wish to probe with SystemTap, you can immediately test whether the deployment was successful. If not, you will need to reboot and load the appropriate kernel.</para>
+</formalpara>
+
+<para>To start the test, create the following SystemTap script (ensure that you are using the filename extension <filename>.stp</filename>):</para>
+
+<formalpara id="simplesimplescript">
+	<title>simple.stp</title>
+<para>
+<programlisting>
+probe timer.s(2) {exit()}
+</programlisting>
+</para>
+</formalpara>
+
+<para><xref linkend="simplesimplescript"/> is a SystemTap script that simply closes after 2 seconds. To run the test, use <command>stap -v simple.stp</command>. If the SystemTap deployment was successful, you should get the following verbose output:</para>
+
+<screen>
+Pass 1: parsed user script and 55 library script(s) in 340usr/0sys/356real ms.
+Pass 2: analyzed script: 1 probe(s), 1 function(s), 0 embed(s), 0 global(s) in 10usr/10sys/7real ms.
+Pass 3: translated to C into "/tmp/stapwPJf4N/stap_166903963eb5e3849b44f0ba89d442a8_252.c" in 0usr/0sys/1real ms.
+Pass 4: compiled C into "stap_166903963eb5e3849b44f0ba89d442a8_252.ko" in 2050usr/230sys/2274real ms.
+Pass 5: starting run.
+Pass 5: run completed in 30usr/220sys/2260real ms.
+</screen>
+
+<para>
+	The last two lines of the output (i.e. beginning with <computeroutput>Pass 5</computeroutput> indicate that SystemTap was able to successfully create the instrumentation to probe the kernel, run the instrumentation, and close it with no errors.
+</para>	
+
 <!--</step>
 </section>
 

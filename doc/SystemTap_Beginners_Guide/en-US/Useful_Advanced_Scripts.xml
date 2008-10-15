@@ -1,0 +1,30 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<chapter id="useful-advanced-scripts">
+	<title>Useful SystemTap Scripts</title>
+	
+	<para>This chapter contains several advanced applications of SystemTap. The scripts enumerated herein combine SystemTap scripts with other tools in order to address some complex administrative tasks. All of these scripts are available at the following link:</para>
+	
+	<para><ulink url="http://sourceware.org/systemtap/wiki/WarStories?action=fullsearch&amp;context=180&amp;value=traceio2&amp;titlesearch=Titles">http://sourceware.org/systemtap/wiki/WarStories?action=fullsearch&amp;context=180&amp;value=traceio2&amp;titlesearch=Titles</ulink></para>
+		
+	<para>Due to the relative length of the scripts discussed in this chapter, the full version of each script is documented in <xref linkend="SystemTap_Beginners_Guide-appendix-advancedscripts"/>.</para>
+	
+	<remark>this chapter will feature the following scripts:</remark>
+	
+	<remark>http://sourceware.org/systemtap/wiki/WSPSTimeouts?highlight=((WarStories))</remark>
+	
+	<remark>http://sourceware.org/systemtap/wiki/WSPfiles?highlight=((WarStories))</remark>
+	
+	<remark>http://sourceware.org/systemtap/wiki/WSPSTimeouts?highlight=%28%28WarStories%29%29</remark>
+	
+	<remark>WAIT http://sourceware.org/systemtap/wiki/WSPanicOnOom?highlight=((WarStories))</remark>
+	
+	<remark>http://sourceware.org/systemtap/wiki/WSPfiles?highlight=((WarStories))</remark>
+	
+
+	
+	
+</chapter>
+
