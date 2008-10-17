@@ -60,7 +60,7 @@ __stp_tf_vma_get_free_entry(void)
 {
 	struct hlist_head *head = &__stp_tf_vma_free_list[0];
 	struct hlist_node *node;
-	struct __stp_tf_vma_entry *entry;
+	struct __stp_tf_vma_entry *entry = NULL;
 
 	if (hlist_empty(head))
 		return NULL;
