@@ -870,8 +870,8 @@ directory. The cache can be limited by having the file
 placed in the cache directory (shown above) containing only an ASCII 
 integer representing how many MiB the cache should not exceed. Note that
 this is a 'soft' limit in that the cache will be cleaned after a new entry
-is added, so the cache size may temporarily exceed this limit. In the 
-absence of this file, cache cleaning is up to the user.
+is added, so the total cache size may temporarily exceed this limit. In the 
+absence of this file, a default will be created with the limit set to 64MiB.
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
