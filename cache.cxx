@@ -149,31 +149,21 @@ clean_cache(systemtap_session& s)
       string cache_max_filename = s.cache_path + "/";
       cache_max_filename += SYSTEMTAP_CACHE_MAX_FILENAME;
       ifstream cache_max_file(cache_max_filename.c_str(), ios::in);
+      unsigned long cache_mb_max;
 
       if (cache_max_file.is_open())
         {
-          cache_max_file >> s.cache_max;
+          cache_max_file >> cache_mb_max;
           cache_max_file.close();
-          s.cache_max *= 1024 * 1024;           //convert to bytes
-
-          //bad content in the file?
-          if (s.cache_max < 0)
-            s.cache_max = 0;
         }
       else
         {
           //file doesnt exist or error
-          s.cache_max = 0;
-        }
-
-      if (s.cache_max == 0)
-        {
           if (s.verbose > 1)
             clog << "Missing cache limit file " << s.cache_path << "/" << SYSTEMTAP_CACHE_MAX_FILENAME << ", I/O error or invalid content." << endl;
 
           return;
         }
-
 
       //glob for all kernel modules in the cache dir
       glob_t cache_glob;
@@ -182,7 +172,7 @@ clean_cache(systemtap_session& s)
 
 
       set<struct cache_ent_info, struct weight_sorter> cache_contents;
-      long cache_size = 0;
+      unsigned long cache_size_b = 0;
 
       //grab info for each cache entry (.ko and .c)
       for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
@@ -197,7 +187,7 @@ clean_cache(systemtap_session& s)
 
           cur_size = get_cache_file_size(cache_ent_path);
           cur_info.size = cur_size;
-          cache_size += cur_size;
+          cache_size_b += cur_size;
 
           if (cur_info.size != 0 && cur_info.weight != 0)
             {
@@ -208,35 +198,28 @@ clean_cache(systemtap_session& s)
       globfree(&cache_glob);
 
       set<struct cache_ent_info, struct weight_sorter>::iterator i;
-      long r_cache_size = cache_size;
+      unsigned long r_cache_size = cache_size_b;
       string removed_dirs = "";
 
       //unlink .ko and .c until the cache size is under the limit
       for (i = cache_contents.begin(); i != cache_contents.end(); ++i)
         {
-          if (r_cache_size < s.cache_max)
+          if ( (r_cache_size / 1024 / 1024) < cache_mb_max)    //convert r_cache_size to MiB
             break;
 
-          //delete this (*i) cache_entry, add to removed list
-          r_cache_size -= (*i).size;
-          unlink_cache_entry((*i).path);
-          removed_dirs += (*i).path + ", ";
+          //remove this (*i) cache_entry, add to removed list
+          r_cache_size -= i->size;
+          unlink_cache_entry(i->path);
+          removed_dirs += i->path + ", ";
         }
 
       cache_contents.clear();
 
-      if (s.verbose > 1)
+      if (s.verbose > 1 && removed_dirs != "")
         {
-          if (removed_dirs == "")
-            {
-              clog << "Cache size under limit, no entries removed." << endl;
-            }
-          else
-            {
-              //remove trailing ", "
-              removed_dirs = removed_dirs.substr(0, removed_dirs.length() - 2);
-              clog << "Cache cleaning successful, removed entries: " << removed_dirs << endl;
-            }
+		  //remove trailing ", "
+		  removed_dirs = removed_dirs.substr(0, removed_dirs.length() - 2);
+		  clog << "Cache cleaning successful, removed entries: " << removed_dirs << endl;
         }
     }
   else
@@ -268,7 +251,7 @@ get_cache_file_size(const string &cache_ent_path)
     cache_ent_size += file_info.st_size;
 
 
-  return cache_ent_size;
+  return cache_ent_size; // / 1024 / 1024;	//convert to MiB
 }
 
 //Assign a weight to this cache entry. A lower weight

@@ -1,3 +1,8 @@
+2008-10-14  Kent Sebastian  <ksebasti@redhat.com>
+
+	* cache.cxx (cache_clean): Minor changes, mainly stylistic.
+	* session.h: remove cache_max member var (used only in cache.cxx now)
+
 2008-10-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6749
