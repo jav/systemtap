@@ -1,3 +1,10 @@
+2008-10-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stap-report: Add kernel config extracts.  Generate to stdout.
+	* Makefile.am (bin_SCRIPTS): Install it.
+	* systemtap.spec: Package it.
+	* Makefile.in: Regenerated.
+
 2008-10-17  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR6923
