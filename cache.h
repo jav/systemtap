@@ -1,4 +1,5 @@
 #define SYSTEMTAP_CACHE_MAX_FILENAME "cache_mb_limit"
+#define SYSTEMTAP_CACHE_DEFAULT_MB 64
 
 struct cache_ent_info {
   std::string path;

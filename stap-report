@@ -4,8 +4,7 @@ import sys
 import time 
 import subprocess
 
-ofname = "/tmp/stapreport-" + time.strftime("%Y%m%d%H%M%S") + ".txt"
-ofile = open(ofname, "w")
+ofile = sys.stdout
 
 def run(command):
   ofile.write("== " + command + " ==\n")
@@ -13,20 +12,15 @@ def run(command):
   p = subprocess.Popen(command, shell=True, stdout=ofile, stderr=ofile)
   p.wait()
   ofile.write("\n") 
-  sys.stdout.write(".")
-  sys.stdout.flush()
 
 if __name__ == "__main__":
-  sys.stdout.write("Collecting data")
-  sys.stdout.flush()
   run("stap -V")
   run("which stap")
   run("ls -ald `locate -r '/stap$'` `locate -r '/staprun$'`")
   run("printenv | egrep '^PATH=|^LD_LIBRARY_PATH=|^SYSTEMTAP_.*='")
   run("gcc -v")
   run("uname -a")
-  run("dmesg | grep 'gcc'")
   run("dmesg | egrep 'stap|systemtap' | tail -n 10")
   run("cat /proc/cpuinfo | egrep 'processor|vendor_id|model name'")
   run(r"rpm -qa --qf %{name}-%{version}-%{release}.%{arch}\\n | egrep 'systemtap|elfutils|kernel|gcc' | sort")
-  print "\nPlease include the following file in your bug report:", ofname
+  run(r"egrep 'PROBE|TRACE|MARKER' /lib/modules/`uname -r`/build/.config | grep -v not.set | sort | fmt -w 80")
