@@ -1,0 +1,106 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="threadtimessect">
+		<title>Determining Time Spent in Kernel and User Space</title>
+		
+	
+<remark>
+	http://sourceware.org/systemtap/examples/profiling/thread-times.stp
+</remark>	
+				
+
+<para>This section illustrates how to determine the amount of time any given thread is spending in either kernel or user-space.</para>
+
+<formalpara id="threadtimes">
+		<title>threadtimes.stp</title>
+<para>
+<programlisting>
+function pc:long () %{ /* pure */
+  if (CONTEXT->regs)
+    THIS->__retvalue = (uint64_t) REG_IP (CONTEXT->regs);
+%}
+
+function kta:long (pc:long) %{ /* pure */ /* is given PC a kernel text address? */
+#if defined (__ia64__)
+  THIS->__retvalue = ((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)KERNEL_START);
+#else
+  THIS->__retvalue = ((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)PAGE_OFFSET);
+#endif
+%}
+
+probe timer.profile {
+   tid=tid()
+   kernel_p = kta(pc())
+   if (kernel_p)
+   kticks[tid] &lt;&lt;&lt; 1
+   else
+   uticks[tid] &lt;&lt;&lt; 1
+   ticks &lt;&lt;&lt; 1
+}
+
+global uticks, kticks, ticks
+
+global tids
+
+probe timer.s(10), end {
+   # gather all seen tids into a single array
+   foreach (tid in kticks) tids[tid] += @count(kticks[tid])
+   foreach (tid in uticks) tids[tid] += @count(uticks[tid])
+
+   allticks = @count(ticks)
+   printf ("%5s %7s %7s (of %d ticks)\n", "tid", "%user", "%kernel", allticks)
+   foreach (tid in tids- limit 20) {
+     uscaled = @count(uticks[tid])*10000/allticks
+     kscaled = @count(kticks[tid])*10000/allticks
+     printf ("%5d %3d.%02d%% %3d.%02d%%\n",
+       tid, uscaled/100, uscaled%100, kscaled/100, kscaled%100)
+   }
+   printf("\n")
+
+   delete uticks
+   delete kticks
+   delete ticks
+   delete tids
+}
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="threadtimes"/> lists the top 20 processes currently taking up CPU time within a 5-second sample, along with the total number of CPU ticks made during the sample. The output of this script also notes the percentage of CPU time each process used, as well as whether that time was spent in kernel space or user space. </para>
+
+<para>To run <xref linkend="threadtimes"/>, you need to use the <command>-g</command> option (i.e. <command>stap -g threadtimes.stp</command>). This is because the script contains embedded C.</para>
+
+<para><xref linkend="threadtimesoutput"/> contains a 5-second sample of the output for <xref linkend="threadtimes"/>:</para>
+
+<example id="threadtimesoutput">
+	<title><xref linkend="threadtimes"/> Sample Output</title>
+<screen>
+  tid   %user %kernel (of 20002 ticks)
+    0   0.00%  87.88%
+32169   5.24%   0.03%
+ 9815   3.33%   0.36%
+ 9859   0.95%   0.00%
+ 3611   0.56%   0.12%
+ 9861   0.62%   0.01%
+11106   0.37%   0.02%
+32167   0.08%   0.08%
+ 3897   0.01%   0.08%
+ 3800   0.03%   0.00%
+ 2886   0.02%   0.00%
+ 3243   0.00%   0.01%
+ 3862   0.01%   0.00%
+ 3782   0.00%   0.00%
+21767   0.00%   0.00%
+ 2522   0.00%   0.00%
+ 3883   0.00%   0.00%
+ 3775   0.00%   0.00%
+ 3943   0.00%   0.00%
+ 3873   0.00%   0.00%
+</screen>
+</example>
+
+	</section>
+

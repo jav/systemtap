@@ -5,7 +5,7 @@
 <chapter id="introduction">
 	<title>Introduction</title>
 	<para>
-		SystemTap is a tracing and probing tool that provides users to study and monitor the activities of the operating system (particularly, the kernel) in fine detail. It provides information similar to the output of tools like <command>netstat</command>, <command>ps</command>, <command>top</command>, and <command>iostat</command>; however, SystemTap is designed to provide information that is more "granular" in nature.  
+		SystemTap is a tracing and probing tool that allows users to study and monitor the activities of the operating system (particularly, the kernel) in fine detail. It provides information similar to the output of tools like <command>netstat</command>, <command>ps</command>, <command>top</command>, and <command>iostat</command>; however, SystemTap is designed to provide more filtering and analysis options for collected information.
 	</para>
 	
 	<para>
@@ -52,7 +52,7 @@
 			** Short summary; when is SystemTap suitable vs other popular monitoring tools (e.g. top, Oprofile, /proc)
 		</remark>
 		
-	<para>SystemTap was originally developed as a working Linux version of <firstterm>Dtrace</firstterm>. Dtrace is a Sun Microsystems "dynamic tracing" framework that assists administrators in monitoring  and troubleshooting kernel and user-space applications in real time.</para>
+		<para>SystemTap was originally developed as a working &PROD; version of old Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. Further, SystemTap can also be considered the Linux answer to <firstterm>Dtrace</firstterm>. Dtrace is a Sun Microsystems "dynamic tracing" framework that assists administrators in monitoring  and troubleshooting kernel and user-space applications in real time.</para>
 	
 	<para>SystemTap aims to supplement the existing suite of Linux monitoring tools by providing users with the infrastructure to track kernel activity. In addition, SystemTap combines this capability with two things:</para>
 	

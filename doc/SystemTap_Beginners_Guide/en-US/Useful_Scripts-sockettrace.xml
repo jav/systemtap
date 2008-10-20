@@ -1,0 +1,71 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="sockettracesect">
+		<title>Tracing Functions Called in Network Socket Code</title>
+		
+	
+<remark>
+	http://sourceware.org/systemtap/examples/network/socket-trace.stp
+</remark>	
+				
+
+<para>This section describes how to trace functions called from the kernel's <filename>net/socket.c</filename> file. This task helps you identify, in finer detail, how each process interacts with the network at the kernel level.</para>
+
+<formalpara id="sockettrace">
+		<title>sockettrace.stp</title>
+<para>
+<programlisting>
+probe kernel.function("*@net/socket.c").call {
+  printf ("%s -> %s\n", thread_indent(1), probefunc())
+}
+probe kernel.function("*@net/socket.c").return {
+  printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
+}
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="sockettrace"/> is identical to <xref linkend="thread_indent"/>, which was earlier used in <xref linkend="systemtapscript-handlers"/> to illustrate how <command>thread_indent()</command> works.</para>
+
+<example id="sockettraceoutput">
+	<title><xref linkend="sockettrace"/> Sample Output</title>
+<screen>
+[...]
+0 Xorg(3611): -> sock_poll
+3 Xorg(3611): &lt;- sock_poll
+0 Xorg(3611): -> sock_poll
+3 Xorg(3611): &lt;- sock_poll
+0 gnome-terminal(11106): -> sock_poll
+5 gnome-terminal(11106): &lt;- sock_poll
+0 scim-bridge(3883): -> sock_poll
+3 scim-bridge(3883): &lt;- sock_poll
+0 scim-bridge(3883): -> sys_socketcall
+4 scim-bridge(3883):  -> sys_recv
+8 scim-bridge(3883):   -> sys_recvfrom
+12 scim-bridge(3883):-> sock_from_file
+16 scim-bridge(3883):&lt;- sock_from_file
+20 scim-bridge(3883):-> sock_recvmsg
+24 scim-bridge(3883):&lt;- sock_recvmsg
+28 scim-bridge(3883):   &lt;- sys_recvfrom
+31 scim-bridge(3883):  &lt;- sys_recv
+35 scim-bridge(3883): &lt;- sys_socketcall
+[...]
+</screen>
+</example>
+
+<para><xref linkend="sockettraceoutput"/> contains a 3-second excerpt of the output for <xref linkend="sockettrace"/>. Each line contains the following information, on the order that they appear:</para>
+
+<itemizedlist>
+	<listitem><para>The time delta (in microseconds) since the previous entry; i.e. the number of microseconds since the last traced function call.</para></listitem>
+	
+	<listitem><para>The process name (and its corresponding ID) that made the function call.</para></listitem>
+	
+	<listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
+	
+	<listitem><para>The name of the function called by the process.</para></listitem>
+</itemizedlist>	
+	</section>
+
