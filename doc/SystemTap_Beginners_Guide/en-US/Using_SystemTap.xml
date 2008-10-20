@@ -64,7 +64,7 @@
 </varlistentry>	
 
 <varlistentry>
-	<term>-e "<replaceable>script</replaceable></term>
+	<term>-e "<replaceable>script</replaceable>"</term>
 	<listitem>
 		<para>Run given <command><replaceable>script</replaceable></command>.</para>
 	</listitem>

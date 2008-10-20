@@ -39,11 +39,7 @@
 	</para>
 </formalpara>	
 <programlisting>
-probe	<replaceable>event</replaceable>,
-
-{
-	<replaceable>handler</replaceable>
-}
+probe	<replaceable>event</replaceable>, {<replaceable>handler</replaceable>}
 </programlisting>		
 <!--
 	<para>The <replaceable>exit()</replaceable> condition is optional; this condition safely terminates the session once the script successfully collects the required information the first time.</para>	
@@ -84,7 +80,8 @@ probe kernel.function("*@net/socket.c").return { }
 </example>	
 
 <para>In the previous example, the first probe's event specifies the entry of ALL functions in the kernel source file <filename>net/socket.c</filename>. The second probe specifies the exit of all those functions. Note that in this example, no handler was specified; as such, no information will be displayed.</para>
-	</listitem>	
+	</listitem>
+	
 </varlistentry>
 
 <varlistentry>
@@ -238,6 +235,15 @@ probe begin
 	In <xref linkend="helloworld"/>, the event <command>begin</command> (i.e. the start of the session) triggers the handler enclosed in <command>{ }</command>, which simply prints <command>hello world</command>, then exits.
 </para>	
 
+
+<note>
+	<title>Note</title>
+	<para>
+		Many SystemTap scripts, such as <xref linkend="helloworld"/>, do not contain an <command>exit()</command> handler. Such scripts need to be interrupted manually; to do so, use <keycombo><keycap>Ctrl</keycap><keycap>C</keycap></keycombo>.
+	</para>
+</note>
+
+
 <formalpara id="printf">
 	<title>printf ( ) Statements</title>
 <para>
@@ -271,7 +277,6 @@ printf ("<replaceable>format string</replaceable>\n", <replaceable>argument</rep
 <example id="syscall-open">
 	<title>variables-in-printf-statements.stp</title>
 <programlisting>
-# This probe will need to be manually terminated with Ctrl-C
 probe syscall.open
 {
   printf ("%s(%d) open\n", execname(), pid())
@@ -364,6 +369,8 @@ hald(2360) open
 		<para>The generic data included in the returned string includes a timestamp (number of microseconds since the most recent initial indentation), a process name, and the thread ID. This allows you to identify what functions were called, who called them, and the duration of each function call.
 		</para>	
 		
+		<para>If call entries and exits immediately precede each other, it is easy to match them. However, in most cases, after a first function call entry is made several other call entries and exits may be made before the first call exits. The indentation counter helps you match an entry with its corresponding exit by indenting the next function call if it is not the exit of the previous one.</para>
+		
 		<para>
 			Consider the following example on the use of <command>thread_indent()</command>:
 		</para>
@@ -384,7 +391,7 @@ probe kernel.function("*@net/socket.c").return
 	
 <screen>
      0 ftp(7223): -&gt; sys_socketcall
-  1159 ftp(7223): -&gt; sys_socket
+  1159 ftp(7223):  -&gt; sys_socket
   2173 ftp(7223):   -&gt; __sock_create
   2286 ftp(7223):    -&gt; sock_alloc_inode
   2737 ftp(7223):    &lt;- sock_alloc_inode
@@ -397,7 +404,7 @@ probe kernel.function("*@net/socket.c").return
   4644 ftp(7223):    -&gt; sock_map_file
   4699 ftp(7223):    &lt;- sock_map_file
   4715 ftp(7223):   &lt;- sock_map_fd
-  4732 ftp(7223): &lt;- sys_socket
+  4732 ftp(7223):  &lt;- sys_socket
   4775 ftp(7223): &lt;- sys_socketcall
 </screen>
 
@@ -409,7 +416,7 @@ probe kernel.function("*@net/socket.c").return
 <varlistentry>
 	<term>name</term>
 	<listitem>
-		<para>Identifies the name of a specific system call.</para>
+		<para>Identifies the name of a specific system call. This function can only be used in probes that use the event <command>syscall.<replaceable>system_call</replaceable></command>.</para>
 	</listitem>	
 </varlistentry>
 
@@ -527,10 +534,8 @@ You can do this by using <emphasis>conditionals</emphasis> in handlers. SystemTa
 	<listitem>
 		<para>Format:</para>
 <programlisting>
-{ 
 if (<replaceable>condition</replaceable>) 
 	{<replaceable>handler</replaceable>} [else {<replaceable>handler</replaceable>}]
-}
 </programlisting>
 	</listitem>	
 </varlistentry>	
@@ -540,9 +545,7 @@ if (<replaceable>condition</replaceable>)
 	<listitem>
 		<para>Format:</para>
 <programlisting>
-{
 while (<replaceable>condition</replaceable>) {<replaceable>handler</replaceable>}
-}
 </programlisting>	
 	</listitem>	
 </varlistentry>	
@@ -552,9 +555,7 @@ while (<replaceable>condition</replaceable>) {<replaceable>handler</replaceable>
 	<listitem>
 		<para>Format:</para>
 <programlisting>
-{
 for (<replaceable>argument1</replaceable>; <replaceable>argument2</replaceable>; <replaceable>argument3</replaceable>) {<replaceable>handler</replaceable>}
-}
 </programlisting>	
 	</listitem>	
 </varlistentry>
@@ -589,7 +590,8 @@ probe kernel.function(@1).return { }
 </example>	
 
 <para><xref linkend="commandlineargs"/> is similar to <xref linkend="wildcards"/>, except that it allows you to pass the kernel function to be probed as a command-line argument (as in <command>stap commandlineargs.stp <replaceable>kernel function</replaceable></command>). You can also specify the script to accept multiple command-line arguments, noting them as <command>@1</command>, <command>@2</command>, and so on, in the order they are entered by the user.</para>
-
+ 
+<para>Both variable notations <command>$</command> and <command>@</command> also represent a specific variable type. Use <command>$</command> if you are expecting the user to enter an integer as a command-line argument, and <command>@</command> if you are expecting a string.</para>  
 	</section>
 	<!--	<section id="SystemTap_Beginners_Guide-Test-Section_2_Test">
 		<title>Section 2 Test</title>

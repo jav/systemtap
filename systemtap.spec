@@ -169,9 +169,6 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/examples examples
 # Fix paths in the example & testsuite scripts
 find examples testsuite -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
-# To avoid perl dependency, make perl sample script non-executable
-#chmod -x examples/samples/kmalloc-top
-
 # Because "make install" may install staprun with mode 04111, the
 # post-processing programs rpmbuild runs won't be able to read it.
 # So, we change permissions so that they can read it.  We'll set the
@@ -207,6 +204,7 @@ exit 0
 %endif
 
 %{_bindir}/stap
+%{_bindir}/stap-report
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 
@@ -227,6 +225,7 @@ exit 0
 %files runtime
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
+%{_bindir}/stap-report
 %{_libexecdir}/%{name}
 %{_mandir}/man8/staprun.8*
 

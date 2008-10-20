@@ -158,11 +158,13 @@ clean_cache(systemtap_session& s)
         }
       else
         {
-          //file doesnt exist or error
-          if (s.verbose > 1)
-            clog << "Missing cache limit file " << s.cache_path << "/" << SYSTEMTAP_CACHE_MAX_FILENAME << ", I/O error or invalid content." << endl;
+          //file doesnt exist, create a default size
+    	  ofstream default_cache_max(cache_max_filename.c_str(), ios::out);
+    	  default_cache_max << SYSTEMTAP_CACHE_DEFAULT_MB << endl;
+    	  cache_mb_max = SYSTEMTAP_CACHE_DEFAULT_MB;
 
-          return;
+          if (s.verbose > 1)
+            clog << "Cache limit file " << s.cache_path << "/" << SYSTEMTAP_CACHE_MAX_FILENAME << " missing, creating default." << endl;
         }
 
       //glob for all kernel modules in the cache dir

@@ -19,19 +19,6 @@
 		<title>disktop.stp</title>
 <para>
 <programlisting>
-#!/usr/bin/env stap 
-#
-# Copyright (C) 2007 Oracle Corp.
-#
-# Get the status of reading/writing disk every 5 seconds, output top ten entries 
-#
-# This is free software,GNU General Public License (GPL); either version 2, or (at your option) any
-# later version.
-#
-# Usage:
-#  ./disktop.stp
-#
-
 global io_stat,device
 global read_bytes,write_bytes
 

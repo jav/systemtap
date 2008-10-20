@@ -7,5 +7,117 @@
 
 	<remark>By type - http://sourceware.org/systemtap/tutorial/node23.html</remark>
 	
+	<para>This chapter explains the most common errors you may encounter while using SystemTap.</para>
+	
+<section id="parsetype">
+	<title>Parse and Type Errors</title>
+	
+<para>These types of errors occur before the translation phase of a SystemTap session, i.e. before the script is translated into C.</para>
+
+<formalpara><title>parse error: expected <replaceable>foo</replaceable>, saw <replaceable>bar</replaceable></title>
+	
+<para>The script contains a grammatical/typographical error. SystemTap detected type of construct that is incorrect, given the context of the probe.
+</para>
+</formalpara>
+
+<remark>need more clarification (example) on this; could not replicate. how to replicate?</remark>
+
+<formalpara><title>parse error: embedded code in unprivileged script</title>
+
+	<para>The script contains unsafe constructs; in most cases, embedded C. SystemTap allows you to embed C code in a script, which is useful if there are no tapsets to suit your purposes. However, some embedded C constructs may not be safe; as such, SystemTap warns you with this error if such constructs appear in the script. <xref linkend="threadtimes"/> (from <xref linkend="threadtimessect"/>) is an example of a script that contains embedded C.</para>
+</formalpara>
+<para>If you are sure of the safety of any similar constructs in the script, run the script in "guru" mode by using the option <command>-g</command> (i.e. <command>stap -g <replaceable>script</replaceable></command>).</para>
+
+<formalpara>
+	<title>semantic error: type mismatch for identifier '<replaceable>foo</replaceable>' ... string vs. long</title>
+
+<para>
+	The function <command><replaceable>foo</replaceable></command> in the script used the wrong type of variable (i.e. <command>%s</command> or <command>%d</command>). This error will present itself in <xref linkend="errorvariable"/>, since the function <command>execname</command> should be referenced using <command>%s</command>, not <command>%d</command>. 
+</para>	
+</formalpara>
+
+<example id="errorvariable">
+	<title>error-variable.stp</title>
+<programlisting>
+probe syscall.open
+{
+  printf ("%d(%d) open\n", execname(), pid())
+}
+</programlisting>
+</example>
+
+<formalpara>
+	<title>semantic error: unresolved type for identifier '<replaceable>foo</replaceable>'</title>
+<para>TBD</para>
+</formalpara>
+
+<formalpara>
+	<title>semantic error: Expecting symbol or array index expression</title>
+<para>TBD</para>
+</formalpara>
+
+</section>	
+	
+<section id="symbolerrors">
+	<title>Symbol-Related Errors</title>
+	
+<para>TBD</para>	
+	
+<formalpara>
+	<title>while searching for arity <replaceable>N</replaceable> function, semantic error: unresolved function call</title>
+<para>TBD</para>
+</formalpara>
+
+<formalpara>
+	<title>semantic error: array locals not supported:</title>
+	<para>TBD</para>
+</formalpara>
+
+<formalpara>
+	<title>semantic error: variable ’<replaceable>foo</replaceable>’ modiﬁed during ’<replaceable>construct</replaceable>’</title>
+	<para>TBD</para>
+</formalpara>
+</section>
+
+<section id="probingerrors">
+	<title>Probe Errors</title>
+
+<para>TBD</para>
+	
+<formalpara>
+	<title>semantic error: probe point mismatch at position <replaceable>N</replaceable>, while resolving probe point <replaceable>foo</replaceable></title>
+	<para>SystemTap did not understand what the event / handler function  <computeroutput><replaceable>foo</replaceable></computeroutput> refers to. This usually means that SystemTap could not find a match for <computeroutput><replaceable>foo</replaceable></computeroutput> in the tapset library.</para>
+</formalpara>	
+	
+<remark>how to explain N in previous? "The divergence from the “tree” of probe point namespace is at position N (starting with zero at left)." </remark>
+
+<formalpara>
+	<title>semantic error: no match for probe point, while resolving probe point <replaceable>foo</replaceable></title>
+	<para>The events / handler function <computeroutput><replaceable>foo</replaceable></computeroutput> could not be resolved altogether, for a variety of reasons. This error occurs when the script contains the event <command>kernel.function("<replaceable>blah</replaceable>")</command>, and <command><replaceable>blah</replaceable></command> does not exist. In some cases, the error could also mean the script contains an invalid kernel file name or source line number.</para>
+</formalpara>
+
+<formalpara>
+	<title>semantic error: unresolved target-symbol expression</title>
+	<para>TBD</para>
+</formalpara>
+
+<formalpara>
+	<title>semantic error: libdwﬂ failure </title>
+	<para>TBD</para>
+</formalpara>
+
+<formalpara>
+	<title>semantic error: cannot ﬁnd foo debuginfo</title>
+	<para>TBD</para>
+</formalpara>
+<!--
+<formalpara>
+	<title></title>
+<para></para>
+</formalpara>
+-->
+
+</section>	
+
 </chapter>
 

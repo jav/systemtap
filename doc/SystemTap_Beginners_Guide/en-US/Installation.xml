@@ -83,7 +83,7 @@ gpgcheck=0
 </formalpara>		
 
 <para>
-	In <xref linkend="sampleyum"/>, <replaceable>repository</replaceable> is the full URL of the repository containing the packages you wish to install. The <computeroutput>name=</computeroutput> parameter, along with the title (<computeroutput>[packages]</computeroutput>) and filename, can be set arbitrarily, as long as you use the <filename>.repo</filename> filename extension.
+	In <xref linkend="sampleyum"/>, <replaceable>repository</replaceable> is the full URL of the repository containing the packages you wish to install. The <computeroutput>name=</computeroutput> parameter, along with the title (<computeroutput>[packages]</computeroutput>) and filename, can be set arbitrarily. Remember to always use the <filename>.repo</filename> filename extension.
 </para>
 	 
 <!-- </step> -->
@@ -118,7 +118,7 @@ As mentioned earlier in <xref linkend="using-setup"/>, <filename>kernel-debuginf
 <important>
 	<title>Important</title>
 	
-	<para>The version of the <filename>-devel</filename>, <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.</para>
+	<para>The version and architecture of the <filename>-devel</filename>, <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.</para>
 </important>
 <para>
 	You can download the necessary packages via your web browser. Once you have downloaded the packages, install them by running <command>rpm -ivh <replaceable>package names</replaceable></command>.
@@ -142,24 +142,24 @@ As mentioned earlier in <xref linkend="using-setup"/>, <filename>kernel-debuginf
 	<title>simple.stp</title>
 <para>
 <programlisting>
-probe timer.s(2) {exit()}
+probe kernel.function("vfs_read") {exit()}
 </programlisting>
 </para>
 </formalpara>
 
-<para><xref linkend="simplesimplescript"/> is a SystemTap script that simply closes after 2 seconds. To run the test, use <command>stap -v simple.stp</command>. If the SystemTap deployment was successful, you should get the following verbose output:</para>
+<para><xref linkend="simplesimplescript"/> is a SystemTap script that simply exits the first time it detects a virtual file system read. If the SystemTap deployment was successful, you should get the following verbose output:</para>
 
 <screen>
-Pass 1: parsed user script and 55 library script(s) in 340usr/0sys/356real ms.
-Pass 2: analyzed script: 1 probe(s), 1 function(s), 0 embed(s), 0 global(s) in 10usr/10sys/7real ms.
-Pass 3: translated to C into "/tmp/stapwPJf4N/stap_166903963eb5e3849b44f0ba89d442a8_252.c" in 0usr/0sys/1real ms.
-Pass 4: compiled C into "stap_166903963eb5e3849b44f0ba89d442a8_252.ko" in 2050usr/230sys/2274real ms.
+Pass 1: parsed user script and 55 library script(s) in 340usr/10sys/380real ms.
+Pass 2: analyzed script: 1 probe(s), 1 function(s), 0 embed(s), 0 global(s) in 280usr/290sys/745real ms.
+Pass 3: translated to C into "/tmp/stapS1CuuS/stap_dd516743892b10a24cd36ef327265169_323.c" in 0usr/0sys/0real ms.
+Pass 4: compiled C into "stap_dd516743892b10a24cd36ef327265169_323.ko" in 2050usr/220sys/2541real ms.
 Pass 5: starting run.
-Pass 5: run completed in 30usr/220sys/2260real ms.
+Pass 5: run completed in 40usr/210sys/260real ms.
 </screen>
 
 <para>
-	The last two lines of the output (i.e. beginning with <computeroutput>Pass 5</computeroutput> indicate that SystemTap was able to successfully create the instrumentation to probe the kernel, run the instrumentation, and close it with no errors.
+	The last two lines of the output (i.e. beginning with <computeroutput>Pass 5</computeroutput> indicate that SystemTap was able to successfully create the instrumentation to probe the kernel, run the instrumentation, detect the event being probed (in the case of <xref linkend="simplesimplescript"/>, a virtual file system read), and close it with no errors.
 </para>	
 
 <!--</step>
