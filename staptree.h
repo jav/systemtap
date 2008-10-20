@@ -287,6 +287,7 @@ struct print_format: public expression
       conv_unsigned_uppercase_hex,
       conv_unsigned_lowercase_hex,
       conv_string,
+      conv_char,
       conv_memory,
       conv_literal,
       conv_binary,

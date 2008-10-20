@@ -458,6 +458,10 @@ print_format::components_to_string(vector<format_component> const & components)
 	      oss << "b";
 	      break;
 
+	    case conv_char:
+	      oss << "llc";
+	      break;
+
 	    case conv_signed_decimal:
 	      oss << "lld";
 	      break;
@@ -635,12 +639,16 @@ print_format::string_to_components(string const & str)
       if (i == str.end())
 	break;
 
-      // Parse the actual conversion specifier (sdiouxX)
+      // Parse the actual conversion specifier (bcsmdioupxXn)
       switch (*i)
 	{
 	  // Valid conversion types
 	case 'b':
 	  curr.type = conv_binary;
+	  break;
+
+	case 'c':
+	  curr.type = conv_char;
 	  break;
 
 	case 's':

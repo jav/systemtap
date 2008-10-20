@@ -1,3 +1,13 @@
+2008-10-20	Elliott Baron  <ebaron@redhat.com>
+
+	PR6851
+	* elaborate.cxx (typeresolution_info::visit_print_format): add case
+	for conv_char.
+	* staptree.cxx (print_format::components_to_string): add case for
+	conv_char.
+	(print_format::string_to_components): add parsing for "c"	conversion.
+	* staptree.h (enum conversion_type): add conv_char member.
+
 2008-10-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stap-report: Add kernel config extracts.  Generate to stdout.
