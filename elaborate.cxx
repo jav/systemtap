@@ -1439,17 +1439,17 @@ systemtap_session::print_error (const semantic_error& e)
   for (int i=0; i<2; i++)
     {
       stringstream message;
-      
+
       message << "semantic error: " << e.what ();
       if (e.tok1 || e.tok2)
         message << ": ";
-      if (e.tok1) 
+      if (e.tok1)
         {
           if (i == 0) print_token (message, e.tok1);
           else message << *e.tok1;
         }
       message << e.msg2;
-      if (e.tok2) 
+      if (e.tok2)
         {
           if (i == 0) print_token (message, e.tok2);
           else message << *e.tok2;
@@ -3903,6 +3903,7 @@ typeresolution_info::visit_print_format (print_format* e)
 	    case print_format::conv_unsigned_uppercase_hex:
 	    case print_format::conv_unsigned_lowercase_hex:
 	    case print_format::conv_binary:
+	    case print_format::conv_char:
 	    case print_format::conv_memory:
 	      wanted = pe_long;
 	      break;

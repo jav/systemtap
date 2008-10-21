@@ -1,3 +1,8 @@
+2008-10-20	Elliott Baron  <ebaron@redhat.com>
+
+	PR6851
+	* systemtap.printf/char1.exp: New test.
+
 2008-10-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6749.
