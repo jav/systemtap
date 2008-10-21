@@ -2,3 +2,5 @@
 <!ENTITY BOOKID "SystemTap_Beginners_Guide">
 <!ENTITY YEAR "2009">
 <!ENTITY RHEL "Red Hat Enterprise Linux 5">
+<!ENTITY APH "'">
+<!ENTITY PROD "Red Hat Enterprise Linux 5">
