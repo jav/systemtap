@@ -512,18 +512,30 @@ probe timer.ms(12345)
 
 <note>
 	<title>Note</title>
-	<para>In some cases, such as in <xref linkend="timerjiffies"/>, a variable may be declared without any specific value as yet. You need to declare such values as integers using the notation <command>++</command>.</para>
+	<para>The <command>++</command> notation in <xref linkend="timerjiffies"/> (i.e. <command>count_jiffies ++</command> and <command>count_ms ++</command>) is used to increment the value of a variable by 1. In the following probe, <command>count_jiffies</command> is incremented by 1 every 100 jiffies:</para>
+<screen>
+probe timer.jiffies(100) { count_jiffies ++ }
+</screen>
+	<para>In this instance, SystemTap understands that <command>count_jiffies</command> is an integer. Because no initial value was assigned to <command>count_jiffies</command>, its initial value is zero by default.</para>   
 </note>	
 	
 	
 
+<!--
+<note>
+	<title>Note</title>
+	<para>In some cases, such as in <xref linkend="timerjiffies"/>, a variable may be declared without any specific value as yet. You need to declare such values as integers using the notation <command>++</command>.</para>
+</note>	
+	-->
+	
 
-<formalpara>
+
+<section>
 	<title>Conditional Statements</title>
 <para>
 In some cases, the output of a SystemTap script may be too big. To address this, you need to further refine the script's logic in order to delimit the output into something more relevant or useful to your probe.
 </para>
-</formalpara>
+<!-- </formalpara> -->
 <para>
 You can do this by using <emphasis>conditionals</emphasis> in handlers. SystemTap accepts the following types of conditional statements:
 </para>
@@ -535,8 +547,23 @@ You can do this by using <emphasis>conditionals</emphasis> in handlers. SystemTa
 		<para>Format:</para>
 <programlisting>
 if (<replaceable>condition</replaceable>) 
-	{<replaceable>handler</replaceable>} [else {<replaceable>handler</replaceable>}]
+	{<replaceable>handler</replaceable>} else {<replaceable>handler</replaceable>}
 </programlisting>
+
+<example id="simpleifelseexample">
+	<title>ifelse.stp</title>
+<programlisting>
+global foo
+probe begin { foo = 1 }
+probe timer.s(1) { 
+foo++
+if (foo&lt;6) {printf("hello world\n")}
+else {printf("goodbye world\n")}
+}
+</programlisting>
+</example>
+
+<para><xref linkend="simpleifelseexample"/> is a script that prints <computeroutput>hello world</computeroutput> if less than 6 seconds has passed. If more than 6 seconds have passed, it prints <computeroutput>goodbye world</computeroutput> instead.</para>
 	</listitem>	
 </varlistentry>	
 	
@@ -575,11 +602,11 @@ for (<replaceable>argument1</replaceable>; <replaceable>argument2</replaceable>;
 <para>These constructs are better illustrated in the different examples available in <xref linkend="useful-systemtap-scripts"/>.</para>
 
 <remark>will get back to these ones later</remark>
-
-<formalpara>
+</section>
+<section id="commandlineargssect">
 	<title>Command-Line Arguments</title>
 	<para>You can also allow a SystemTap script to accept simple command-line arguments and declare them in the script without using <command>target()</command>. One way to do this is to use the variable notation <command>$</command> or <command>@</command>.</para>
-</formalpara>
+<!-- </formalpara> -->
 
 
 <example id="commandlineargs"><title>commandlineargs.stp</title>
@@ -601,4 +628,4 @@ probe kernel.function(@1).return { }
 	</section>-->
 
 </section>
-
+</section>

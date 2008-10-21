@@ -22,7 +22,7 @@ no script in examples
 		<title>inodewatch2.stp</title>
 <para>
 <programlisting>
-global ATTR_MODE = 1 # ....
+global ATTR_MODE = 1
 
 probe kernel.function("inode_setattr") {
   dev_nr = $inode->i_sb->s_dev

@@ -50,7 +50,7 @@ probe kernel.function(@2).return { trace(-1) }
 
 <itemizedlist>
 	<listitem><para>A <firstterm>trigger function</firstterm> (<command>@1</command>), which enables or disables tracing on a per-thread basis.</para></listitem>
-	<listitem><para>The probe function whose entry/exit you'd like to trace (<command>@2</command>).</para></listitem>
+	<listitem><para>The kernel function whose entry/exit call you'd like to trace (<command>@2</command>).</para></listitem>
 </itemizedlist>
 
 <remark> please verify previous if correct; i'm particularly interested in finding out how to better describe "trigger function"</remark>
