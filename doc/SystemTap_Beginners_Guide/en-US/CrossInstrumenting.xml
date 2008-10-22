@@ -128,9 +128,9 @@ enabled=1
 <para><command>staprun <replaceable>instrumentation</replaceable></command></para>
 
 <para>
-	For example, to create the <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename> from the SystemTap script <xref linkend="simplesimplescript"/> (from <xref linkend="installproper"/>) for the <emphasis>target kernel</emphasis> 2.6.25.9-76.fc9 (on i686 architecture), use the following command:
+	For example, to create the <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename> from a SystemTap script named <filename>simple.stp</filename> for the <emphasis>target kernel</emphasis> 2.6.25.9-76.fc9 (on i686 architecture), use the following command:
 </para>
-
+	
 <para><command>stap -r 2.6.25.9-76.fc9.x86_64 simple.stp -m module</command></para>
 
 <para>This will create a module named <filename>simple.ko</filename>. To use the <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename>, copy it to the <emphasis>target system</emphasis> and run the following command (on the <emphasis>target system</emphasis>):</para>

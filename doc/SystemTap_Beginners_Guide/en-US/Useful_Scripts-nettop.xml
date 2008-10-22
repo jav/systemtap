@@ -30,7 +30,7 @@ probe netdev.transmit
         execname[p] = execname()
         user[p] = uid()
         ifdevs[p, dev_name] = dev_name
-	ifxmit[p, dev_name] &lt;&lt;&lt; length
+        ifxmit[p, dev_name] &lt;&lt;&lt; length
         ifpid[p, dev_name] ++
 }
 
@@ -40,7 +40,7 @@ probe netdev.receive
         execname[p] = execname()
         user[p] = uid()
         ifdevs[p, dev_name] = dev_name
-	ifrecv[p, dev_name] &lt;&lt;&lt; length
+        ifrecv[p, dev_name] &lt;&lt;&lt; length
         ifpid[p, dev_name] ++
 }
 

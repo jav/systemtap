@@ -530,7 +530,7 @@ probe timer.jiffies(100) { count_jiffies ++ }
 	
 
 
-<section>
+<section id="handlerconditionalstatements">
 	<title>Conditional Statements</title>
 <para>
 In some cases, the output of a SystemTap script may be too big. To address this, you need to further refine the script's logic in order to delimit the output into something more relevant or useful to your probe.
@@ -553,17 +553,22 @@ if (<replaceable>condition</replaceable>)
 <example id="simpleifelseexample">
 	<title>ifelse.stp</title>
 <programlisting>
-global foo
-probe begin { foo = 1 }
-probe timer.s(1) { 
-foo++
-if (foo&lt;6) {printf("hello world\n")}
-else {printf("goodbye world\n")}
+global countread, countnonread
+probe vfs.read,vfs.write
+{
+	if (probefunc()=="vfs_read") {
+	countread ++ }
+	else {countnonread ++}
 }
+probe timer.s(5) {
+	exit()}
+probe end {
+	printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)} 
 </programlisting>
 </example>
 
-<para><xref linkend="simpleifelseexample"/> is a script that prints <computeroutput>hello world</computeroutput> if less than 6 seconds has passed. If more than 6 seconds have passed, it prints <computeroutput>goodbye world</computeroutput> instead.</para>
+<para><xref linkend="simpleifelseexample"/> is a script that counts how many virtual file system reads (<command>vfs.read</command>) and writes (<command>vfs.write</command>) the system performs within a 5-second span. When run, the script increments the value of the variable <command>countread</command> by 1 if the name of the function it probed matches <command>vfs_read</command> (as noted by the condition <command>if (probefunc()=="vfs_read")</command>); otherwise, it increments <command>countnonread</command> (<command>else {countnonread ++}</command>).</para>
+
 	</listitem>	
 </varlistentry>	
 	
@@ -573,8 +578,22 @@ else {printf("goodbye world\n")}
 		<para>Format:</para>
 <programlisting>
 while (<replaceable>condition</replaceable>) {<replaceable>handler</replaceable>}
-</programlisting>	
-	</listitem>	
+</programlisting>
+<!--
+<example id="simplewhileexample">
+	<title>while.stp</title>
+<programlisting>
+global foo
+probe timer.s(1) {
+foo ++
+while (foo&lt;6) {printf("hello world\n")}
+printf("goodbye world\n")
+</programlisting>
+</example>
+
+<para><xref linkend="simplewhileexample"/> is a script that prints <computeroutput>hello world</computeroutput> while less than 6 seconds has passed (<command>while (foo&lt;6)</command>). Once the <command>while</command> condition no longer applies, the script prints out <computeroutput>goodbye world</computeroutput>.</para>
+
+	--></listitem>	
 </varlistentry>	
 
 <varlistentry>

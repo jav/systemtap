@@ -136,18 +136,7 @@ As mentioned earlier in <xref linkend="using-setup"/>, <filename>kernel-debuginf
 <para>If you are currently using the kernel you wish to probe with SystemTap, you can immediately test whether the deployment was successful. If not, you will need to reboot and load the appropriate kernel.</para>
 </formalpara>
 
-<para>To start the test, create the following SystemTap script (ensure that you are using the filename extension <filename>.stp</filename>):</para>
-
-<formalpara id="simplesimplescript">
-	<title>simple.stp</title>
-<para>
-<programlisting>
-probe kernel.function("vfs_read") {exit()}
-</programlisting>
-</para>
-</formalpara>
-
-<para><xref linkend="simplesimplescript"/> is a SystemTap script that simply exits the first time it detects a virtual file system read. If the SystemTap deployment was successful, you should get the following verbose output:</para>
+<para>To start the test, run the command <command>stap -v -e 'probe vfs.read {exit()}</command>. This command simply instructs SystemTap to exit properly once a virtual file system read is detected. If the SystemTap deployment was successful, you should get the following verbose output:</para>
 
 <screen>
 Pass 1: parsed user script and 55 library script(s) in 340usr/10sys/380real ms.
@@ -159,7 +148,7 @@ Pass 5: run completed in 40usr/210sys/260real ms.
 </screen>
 
 <para>
-	The last two lines of the output (i.e. beginning with <computeroutput>Pass 5</computeroutput> indicate that SystemTap was able to successfully create the instrumentation to probe the kernel, run the instrumentation, detect the event being probed (in the case of <xref linkend="simplesimplescript"/>, a virtual file system read), and close it with no errors.
+	The last two lines of the output (i.e. beginning with <computeroutput>Pass 5</computeroutput> indicate that SystemTap was able to successfully create the instrumentation to probe the kernel, run the instrumentation, detect the event being probed (in this case, a virtual file system read), and close it with no errors.
 </para>	
 
 <!--</step>

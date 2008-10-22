@@ -117,6 +117,33 @@ echo "probe timer.s(1) {exit()}" | stap -
 	<para>The <command>stap</command> options <command>-v</command> and <command>-o</command> also work for <command>staprun</command>. For more information about <command>staprun</command>, refer to <command>man staprun</command>.</para>
 </note>	
 
+<formalpara>
+	<title>stapdev and stapusr</title>
+	<para>Running <command>stap</command> and <command>staprun</command> requires elevated privileges to the system. However, not all users can be granted root access just to run SystemTap. In some cases, for instance, you may want to allow a non-privileged user to run SystemTap instrumentation on his machine.</para>
+</formalpara>
+
+<para>To allow ordinary users to run SystemTap without root access, add them to one of these user groups:</para>
+
+<variablelist>
+	
+<varlistentry>
+	<term>stapdev</term>
+	<listitem>
+<para>
+	Members of this group can use <command>stap</command> to run SystemTap scripts, or <command>staprun</command> to run SystemTap instrumentation modules.
+</para>
+	</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>stapusr</term>
+	<listitem>
+<para>
+	Members of this group can only run <command>staprun</command> to run SystemTap instrumentation modules. In addition, they can only run those modules from <filename>/lib/modules/<replaceable>kernel_version</replaceable>/systemtap/</filename>. Note that this directory must be owned only by the root user, and must only be writable by the root user.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
 	</section>
 
 </chapter>

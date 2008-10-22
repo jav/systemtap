@@ -13,7 +13,7 @@
 <!-- 	<xi:include href="Useful_Advanced_Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 	<xi:include href="Errors.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Tips_Tricks.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	<xi:include href="References.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="References.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 	<!-- 	
 		<xi:include href="" xmlns:xi="http://www.w3.org/2001/XInclude" /> 
 	-->
