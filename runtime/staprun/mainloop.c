@@ -118,6 +118,7 @@ void start_cmd(void)
     /* We're in the target process.	 Let's start the execve of target_cmd, */
     int rc;
     wordexp_t words;
+    char *sh_c_argv[4] = { NULL, NULL, NULL, NULL };
 
     a.sa_handler = SIG_DFL;
     sigaction(SIGINT, &a, NULL);
@@ -127,14 +128,32 @@ void start_cmd(void)
        probe a new child process, not a mishmash of shell-interpreted
        stuff. */
     rc = wordexp (target_cmd, & words, WRDE_NOCMD|WRDE_UNDEF);
-    switch (rc) 
+    if (rc == WRDE_BADCHAR)
       {
-      case 0: break;
-      case WRDE_BADCHAR: _err ("wordexp: invalid shell meta-character in -c COMMAND\n"); _exit(1);
-      case WRDE_SYNTAX: _err ("wordexp: syntax error (unmatched quotes?) in -c COMMAND\n"); _exit(1);
-      default: _err ("wordexp: parsing error (%d)\n", rc); _exit (1);
+        /* The user must have used a shell metacharacter, thinking that
+           we use system(3) to evaluate 'stap -c CMD'.  We could generate
+           an error message ... but let's just do what the user meant.  
+           rhbz 467652. */
+        sh_c_argv[0] = "sh";
+        sh_c_argv[1] = "-c";
+        sh_c_argv[2] = target_cmd;
+        sh_c_argv[3] = NULL;
       }
-    if (words.we_wordc < 1) { _err ("empty -c COMMAND"); _exit (1); }
+    else
+      {
+        switch (rc) 
+          {
+          case 0: 
+            break;
+          case WRDE_SYNTAX:
+            _err ("wordexp: syntax error (unmatched quotes?) in -c COMMAND\n");
+            _exit(1);
+          default:
+            _err ("wordexp: parsing error (%d)\n", rc); 
+            _exit (1);
+          }
+        if (words.we_wordc < 1) { _err ("empty -c COMMAND"); _exit (1); }
+      }
 
     rc = ptrace (PTRACE_TRACEME, 0, 0, 0);
     if (rc < 0) perror ("ptrace me");
@@ -149,7 +168,8 @@ void start_cmd(void)
     /* Note that execvp() is not a direct system call; it does a $PATH
        search in glibc.  We would like to filter out these dummy syscalls
        from the utrace events seen by scripts. */
-    if (execvp (words.we_wordv[0], words.we_wordv) < 0)
+    if (execvp ((sh_c_argv[0] == NULL ? words.we_wordv[0] : sh_c_argv[0]),
+                (sh_c_argv[0] == NULL ? words.we_wordv    : sh_c_argv)) < 0)
       perror(target_cmd);
 
       /* (There is no need to wordfree() words; they are or will be gone.) */

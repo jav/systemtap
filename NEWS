@@ -29,8 +29,11 @@
 
 - Target process mode (stap -c CMD or -x PID) now implicitly restricts all
   "process.*" probes to the given child process.  (It does not affect
-  kernel.* or other probe types.)  The CMD string is now executed directly,
-  rather than via a /bin/sh -c subshell.
+  kernel.* or other probe types.)  The CMD string is normally run directly,
+  rather than via a /bin/sh -c subshell, since then utrace/uprobe probes
+  receive a fairly "clean" event stream.  If metacharacters like
+  redirection operators were present in CMD, then "sh -c CMD" is still
+  used, and utrace/uprobe probes will receive events from the shell.
 
      % stap -e 'probe process.syscall, process.end {
                    printf("%s %d %s\n", execname(), pid(), pp())}'\
