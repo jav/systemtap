@@ -1,0 +1,79 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<section id="associativearrays">
+	<title>Associative Arrays</title>
+	
+<para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values arranged in tabular format. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it. Illustrating this visually would be similar to creating a two-column table: the first column would have the unique key, while the second column would have the associated value.</para>
+
+<para>Associative arrays are useful in processing data that would normally be represented best in tabular format. For example, let's say you wanted to see how many times <emphasis>any</emphasis> specific program performs a read to the virtual file system. In this case, your probe would use the event <command>kernel.function("vfs_read")</command>; <command>execname()</command> identifies which program or process performs the read.</para>
+	
+<formalpara id="simplesimplevfsread">
+	<title>vfsreads.stp</title>
+<para>
+<programlisting>
+probe kernel.function("vfs_read") 
+{
+	printf("%s\n", execname())
+}
+</programlisting>
+</para>
+</formalpara>
+
+<para><xref linkend="simplesimplevfsread"/> will display the name of each program that performs a read to the virtual file system <emphasis>as each read is performed</emphasis>. This means that the output of <xref linkend="simplesimplevfsread"/> will be a long list of process names, most of which will be repeating. For <xref linkend="simplesimplevfsread"/> to be useful, you'd need to feed its output to another program that counts how many times each process name appears and tally the results.</para>
+
+<para>However, with the help of arrays, you can simplify the task using the following script:</para>
+
+<formalpara id="arraysvfsread">
+	<title>vfsreads-using-arrays.stp</title>
+<para>
+<programlisting>
+global reads
+probe kernel.function("vfs_read")
+{
+	reads[execname()] += $count
+}
+probe timer.s(2)
+{
+	foreach (key in reads) 
+		printf("%s : %d\n", key, reads[key])
+	exit()
+}
+</programlisting>
+</para>
+</formalpara>
+
+<para>The handler in the first probe of <xref linkend="arraysvfsread"/> does three things:</para> 
+
+<orderedlist>
+	<listitem><para>First, the handler defines the variable <command>reads</command> as the associative array.</para></listitem>
+	<listitem><para>Next, the handler uses <command>execname()</command> (the names of the processes that execute the VFS reads) as the array's unique keys. For example, once the process <command>gnome-terminal</command> performs a VFS read, the array creates a unique key named <literal>gnome-terminal</literal>, which has an initial associated value of 1.</para></listitem>
+	<listitem><para>Finally, the statement <command>+= $count</command> increments the <emphasis>value associated with each unique key</emphasis> every time that unique key "occurs"; for example, each time that the process <command>gnome-terminal</command> performs a VFS read, the value associated with the unique key <literal>gnome-terminal</literal> gets incremented by 1.</para></listitem>
+</orderedlist>
+
+<note>
+	<title>Note</title>
+	<para>In <xref linkend="arraysvfsread"/>, <command>$count</command> is <emphasis>not</emphasis> a variable; rather, it is an operation that instructs the array to perform an increment to the array. This book will discuss other similar operations in detail later.</para>
+</note>
+
+<remark>TBD WILL ADD MORE INFO ON ARRAY SYNTAX IN A SUBSEQUENT SECTION, FIX PREVIOUS NOTE TO XREF TO SECTION ONCE ITS BUILT</remark>
+
+<para>The handler in the second probe of <xref linkend="arraysvfsread"/> prints the script's output o the format <computeroutput><replaceable>name</replaceable> : <replaceable>value</replaceable></computeroutput> over the span of two seconds, then exits. <computeroutput><replaceable>name</replaceable></computeroutput> is the process that executed a VFS read, and <computeroutput><replaceable>value</replaceable></computeroutput> is how many times <computeroutput><replaceable>name</replaceable></computeroutput> executed a VFS read). For example:</para> 
+
+<example id="arraysvfsreadoutput">
+	<title>Sample Output for <xref linkend="arraysvfsread"/></title>
+<screen>
+gnome-terminal : 64
+gnome-screensav : 128
+gnome-power-man : 512
+pcscd : 534
+cupsd : 1023
+mixer_applet2 : 1440
+gnome-vfs-daemo : 2048
+snmpd : 2048
+</screen>
+</example>
+
+
+</section>

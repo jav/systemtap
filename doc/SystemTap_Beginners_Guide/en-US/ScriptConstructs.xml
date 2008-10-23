@@ -1,0 +1,165 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<section id="scriptconstructions">
+<title>Basic SystemTap Handler Constructs</title>
+	
+	<para>SystemTap supports the use of several basic constructs in handlers. The syntax for most of these handler constructs are mostly based on C and <command>awk</command> syntax. This section describes several of the most useful SystemTap handler constructs, which should provide you with enough information to write simple yet useful SystemTap scripts.</para> 
+	
+<section id="variablesconstructs">
+	<title>Variables</title>
+		
+	<para>Variables can be used freely throughout a handler; simply choose a name, assign it to a function, and use it in an expression. SystemTap automatically identifies whether a variable should be identified as a string or integer, based on the function it is assigned to. For instance, if you use set the variable <command>foo</command> to <command>gettimeofday_s()</command> (as in <command>foo = gettimeofday_s()</command>), then <command>foo</command> can be used as an integer argument (<command>%d</command>) in <command>printf()</command>.</para>
+
+
+<para>Note, however, that by default variables are only local to the probe they are used in. This means that variables are initialized, used and disposed at each probe handler invocation. To share a variable between probes, declare the variable name first using <command>global</command> outside of any probe. Consider the following example:</para>
+
+<example id="timerjiffies">
+	<title>timer-jiffies.stp</title>
+<programlisting>
+global count_jiffies, count_ms
+probe timer.jiffies(100) { count_jiffies ++ }
+probe timer.ms(100) { count_ms ++ }
+probe timer.ms(12345)
+{
+  hz=(1000*count_jiffies) / count_ms
+  printf ("jiffies:ms ratio %d:%d => CONFIG_HZ=%d\n",
+    count_jiffies, count_ms, hz)
+  exit ()
+}
+</programlisting>
+</example>
+	
+<para><xref linkend="timerjiffies"/> attempts to compute the <command>CONFIG_HZ</command> setting of the kernel using timers that count jiffies and milliseconds, then computing accordingly. The <command>global</command> statement allows the script to use the variables <command>count_jiffies</command> and <command>count_ms</command> (set in their own respective probes) to be shared with <command>probe timer.ms(12345)</command>.</para>
+
+<note>
+	<title>Note</title>
+	<para>The <command>++</command> notation in <xref linkend="timerjiffies"/> (i.e. <command>count_jiffies ++</command> and <command>count_ms ++</command>) is used to increment the value of a variable by 1. In the following probe, <command>count_jiffies</command> is incremented by 1 every 100 jiffies:</para>
+<screen>
+probe timer.jiffies(100) { count_jiffies ++ }
+</screen>
+	<para>In this instance, SystemTap understands that <command>count_jiffies</command> is an integer. Because no initial value was assigned to <command>count_jiffies</command>, its initial value is zero by default.</para>   
+</note>	
+<!--
+<note>
+	<title>Note</title>
+	<para>In some cases, such as in <xref linkend="timerjiffies"/>, a variable may be declared without any specific value as yet. You need to declare such values as integers using the notation <command>++</command>.</para>
+</note>	
+	-->
+</section>
+<xi:include href="Arrays.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
+
+<section id="handlerconditionalstatements">
+	<title>Conditional Statements</title>
+<para>
+In some cases, the output of a SystemTap script may be too big. To address this, you need to further refine the script's logic in order to delimit the output into something more relevant or useful to your probe.
+</para>
+<!-- </formalpara> -->
+<para>
+You can do this by using <emphasis>conditionals</emphasis> in handlers. SystemTap accepts the following types of conditional statements:
+</para>
+
+<variablelist>
+<varlistentry>
+	<term>If/Else Statements</term>
+	<listitem>
+		<para>Format:</para>
+<programlisting>
+if (<replaceable>condition</replaceable>) 
+	{<replaceable>statement</replaceable>} else {<replaceable>statement</replaceable>}
+</programlisting>
+
+<example id="simpleifelseexample">
+	<title>ifelse.stp</title>
+<programlisting>
+global countread, countnonread
+probe vfs.read,vfs.write
+{
+	if (probefunc()=="vfs_read") {
+	countread ++ }
+	else {countnonread ++}
+}
+probe timer.s(5) {
+	exit()}
+probe end {
+	printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)} 
+</programlisting>
+</example>
+
+<para><xref linkend="simpleifelseexample"/> is a script that counts how many virtual file system reads (<command>vfs.read</command>) and writes (<command>vfs.write</command>) the system performs within a 5-second span. When run, the script increments the value of the variable <command>countread</command> by 1 if the name of the function it probed matches <command>vfs_read</command> (as noted by the condition <command>if (probefunc()=="vfs_read")</command>); otherwise, it increments <command>countnonread</command> (<command>else {countnonread ++}</command>).</para>
+
+	</listitem>	
+</varlistentry>	
+	
+<varlistentry>
+	<term>While Loops</term>
+	<listitem>
+		<para>Format:</para>
+<programlisting>
+while (<replaceable>condition</replaceable>) {<replaceable>statement</replaceable>}
+</programlisting>
+<!--
+<example id="simplewhileexample">
+	<title>while.stp</title>
+<programlisting>
+global foo
+probe timer.s(1) {
+foo ++
+while (foo&lt;6) {printf("hello world\n")}
+printf("goodbye world\n")
+</programlisting>
+</example>
+
+<para><xref linkend="simplewhileexample"/> is a script that prints <computeroutput>hello world</computeroutput> while less than 6 seconds has passed (<command>while (foo&lt;6)</command>). Once the <command>while</command> condition no longer applies, the script prints out <computeroutput>goodbye world</computeroutput>.</para>
+
+	--></listitem>	
+</varlistentry>	
+
+<varlistentry>
+	<term>For Loops</term>
+	<listitem>
+		<para>Format:</para>
+<programlisting>
+for (<replaceable>argument1</replaceable>; <replaceable>argument2</replaceable>; <replaceable>argument3</replaceable>) {<replaceable>statement</replaceable>}
+</programlisting>	
+	</listitem>	
+</varlistentry>
+
+<!--<para>Each conditional statement must be enclosed in <command>{ }</command>.</para>-->
+<!--	
+<varlistentry>
+	<term></term>
+	<listitem>
+		<para></para>
+	</listitem>	
+</varlistentry>
+-->	
+	
+</variablelist>	
+	
+<para>These constructs are better illustrated in the different examples available in <xref linkend="useful-systemtap-scripts"/>.</para>
+
+<remark>will get back to these ones later</remark>
+</section>
+<section id="commandlineargssect">
+	<title>Command-Line Arguments</title>
+	<para>You can also allow a SystemTap script to accept simple command-line arguments and declare them in the script without using <command>target()</command>. One way to do this is to use the variable notation <command>$</command> or <command>@</command>.</para>
+<!-- </formalpara> -->
+
+
+<example id="commandlineargs"><title>commandlineargs.stp</title>
+<programlisting>
+probe kernel.function(@1) { }
+probe kernel.function(@1).return { }
+</programlisting>	
+</example>	
+
+<para><xref linkend="commandlineargs"/> is similar to <xref linkend="wildcards"/>, except that it allows you to pass the kernel function to be probed as a command-line argument (as in <command>stap commandlineargs.stp <replaceable>kernel function</replaceable></command>). You can also specify the script to accept multiple command-line arguments, noting them as <command>@1</command>, <command>@2</command>, and so on, in the order they are entered by the user.</para>
+ 
+<para>Both variable notations <command>$</command> and <command>@</command> also represent a specific variable type. Use <command>$</command> if you are expecting the user to enter an integer as a command-line argument, and <command>@</command> if you are expecting a string.</para>  
+	</section>
+	
+<!-- endsection	 -->
+</section>
+
