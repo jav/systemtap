@@ -1,3 +1,9 @@
+2008-10-23  Mark Wielaard  <mjw@redhat.com>
+
+	* syscalls2.stp (syscall.utime): Don't use pointer_arg to fetch
+	arguments.
+	(syscall.compat_utime): Likewise.
+
 2008-10-07  Mark Wielaard  <mjw@redhat.com>
 
 	* aux_syscalls.stp (_stp_sigaction_str): New embedded C function.
