@@ -8711,6 +8711,12 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "};";
   s.op->newline();
 
+  // autoconf: add get/set expires if missing (pre 2.6.28-rc1)
+  s.op->newline() << "#ifndef STAPCONF_HRTIMER_GETSET_EXPIRES";
+  s.op->newline() << "#define hrtimer_get_expires(timer) ((timer)->expires)";
+  s.op->newline() << "#define hrtimer_set_expires(timer, time) (void)((timer)->expires = (time))";
+  s.op->newline() << "#endif";
+
   // autoconf: adapt to HRTIMER_REL -> HRTIMER_MODE_REL renaming near 2.6.21
   s.op->newline() << "#ifdef STAPCONF_HRTIMER_REL";
   s.op->newline() << "#define HRTIMER_MODE_REL HRTIMER_REL";
@@ -8729,15 +8735,10 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "if ((atomic_read (&session_state) == STAP_SESSION_STARTING) ||";
   s.op->newline() << "    (atomic_read (&session_state) == STAP_SESSION_RUNNING)) {";
   // Compute next trigger time
-  s.op->newline(1) << "#ifdef STAPCONF_HRTIMER_GETSET_EXPIRES";
-  s.op->newline() << "hrtimer_set_expires(timer, ktime_add (hrtimer_get_expires(timer),";
-  s.op->newline() << "#else";
-  s.op->newline() << "timer->expires = (ktime_add (timer->expires,";
-  s.op->newline() << "#endif";
-  s.op->newline(1);
+  s.op->newline(1) << "hrtimer_set_expires(timer, ktime_add (hrtimer_get_expires(timer),";
   emit_interval (s.op);
   s.op->line() << "));";
-  s.op->newline(-1) << "rc = HRTIMER_RESTART;";
+  s.op->newline() << "rc = HRTIMER_RESTART;";
   s.op->newline(-1) << "}";
   s.op->newline() << "{";
   s.op->indent(1);
