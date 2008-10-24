@@ -1,3 +1,9 @@
+2008-10-24  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR6946
+	* tapsets.cxx: Allow probing of 32-bit ppc apps with
+	a ppc64 kernel.
+
 2008-10-20	Elliott Baron  <ebaron@redhat.com>
 
 	PR6851

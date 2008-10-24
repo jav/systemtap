@@ -3920,7 +3920,9 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
     {
     case EM_386: expect_machine = "i?86"; break; // accept e.g. i586
     case EM_X86_64: expect_machine = "x86_64"; break;
-    case EM_PPC: expect_machine = "ppc"; break;
+    // We don't support 32-bit ppc kernels, but we support 32-bit apps
+    // running on ppc64 kernels.
+    case EM_PPC: expect_machine = "ppc64"; break;
     case EM_PPC64: expect_machine = "ppc64"; break;
     case EM_S390: expect_machine = "s390x"; break;
     case EM_IA_64: expect_machine = "ia64"; break;
