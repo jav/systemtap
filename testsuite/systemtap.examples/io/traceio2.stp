@@ -9,8 +9,8 @@ probe begin {
   device_of_interest = MKDEV(MAJOR(dev), MINOR(dev))
 }
 
-probe kernel.function ("vfs_write"),
-      kernel.function ("vfs_read")
+probe vfs.write,
+      vfs.read
 {
         dev_nr = $file->
              	%( kernel_v < "2.6.19" %? f_dentry %: f_path->dentry %)

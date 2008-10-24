@@ -2,11 +2,11 @@
 
 global reads, writes, total_io
 
-probe kernel.function("vfs_read") {
+probe vfs.read {
     reads[execname()] += $count
 }
 
-probe kernel.function("vfs_write") {
+probe vfs.write {
     writes[execname()] += $count
 }
 
