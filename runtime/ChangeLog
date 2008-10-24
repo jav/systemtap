@@ -1,3 +1,7 @@
+2008-10-24  Josh Stone  <joshua.i.stone@intel.com>
+
+	* autoconf-hrtimer-getset-expires.c: New file.
+
 2008-10-17  Wenji Huang  <wenji.huang@oracle.com>
 
 	* task_finder_vma.c (__stp_tf_vma_get_free_entry): Initialize entry.

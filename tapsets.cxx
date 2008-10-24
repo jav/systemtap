@@ -8729,10 +8729,15 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "if ((atomic_read (&session_state) == STAP_SESSION_STARTING) ||";
   s.op->newline() << "    (atomic_read (&session_state) == STAP_SESSION_RUNNING)) {";
   // Compute next trigger time
-  s.op->newline(1) << "timer->expires = ktime_add (timer->expires,";
+  s.op->newline(1) << "#ifdef STAPCONF_HRTIMER_GETSET_EXPIRES";
+  s.op->newline() << "hrtimer_set_expires(timer, ktime_add (hrtimer_get_expires(timer),";
+  s.op->newline() << "#else";
+  s.op->newline() << "timer->expires = (ktime_add (timer->expires,";
+  s.op->newline() << "#endif";
+  s.op->newline(1);
   emit_interval (s.op);
-  s.op->line() << ");";
-  s.op->newline() << "rc = HRTIMER_RESTART;";
+  s.op->line() << "));";
+  s.op->newline(-1) << "rc = HRTIMER_RESTART;";
   s.op->newline(-1) << "}";
   s.op->newline() << "{";
   s.op->indent(1);

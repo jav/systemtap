@@ -100,6 +100,7 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += -Iinclude2/asm/mach-default" << endl;
 
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-getset-expires.c, -DSTAPCONF_HRTIMER_GETSET_EXPIRES,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-constant-tsc.c, -DSTAPCONF_CONSTANT_TSC,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-tsc-khz.c, -DSTAPCONF_TSC_KHZ,)" << endl;

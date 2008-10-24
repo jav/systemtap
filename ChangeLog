@@ -1,3 +1,11 @@
+2008-10-24  Josh Stone  <joshua.i.stone@intel.com>
+
+	* tapsets.cxx (hrtimer_derived_probe_group::emit_module_decls): Support
+	the new abstractions around the hrtimer expires field.  The field is
+	renamed starting in 2.6.28-rc1, but accessor functions are provided for
+	general access.
+	* buildrun.cxx (compile_pass): Added autoconf-hrtimer-getset-expires.c
+
 2008-10-24  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR6946
