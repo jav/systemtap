@@ -5,75 +5,178 @@
 <section id="associativearrays">
 	<title>Associative Arrays</title>
 	
-<para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values arranged in tabular format. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it. Illustrating this visually would be similar to creating a two-column table: the first column would have the unique key, while the second column would have the associated value.</para>
+<para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values arranged in tabular format. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it. Illustrating this visually would be similar to creating a two-column table: the first column would have the unique key, while the second column would have each key's associated value. Each unique key and its associated value is referred to as a <emphasis>key pair</emphasis>.</para>
 
-<para>Associative arrays are useful in processing data that would normally be represented best in tabular format. For example, let's say you wanted to see how many times <emphasis>any</emphasis> specific program performs a read to the virtual file system. In this case, your probe would use the event <command>kernel.function("vfs_read")</command>; <command>execname()</command> identifies which program or process performs the read.</para>
+<para>Since associative arrays are normally processed in multiple probes (as we will demonstrate later), they are declared as <command>global</command> variables in the SystemTap script. The syntax for manipulating arrays is similar to that of <command>awk</command>, and is as follows:</para>
+
+<screen>
+<replaceable>array_name</replaceable>[<replaceable>index expression</replaceable>] <replaceable>operation</replaceable>
+</screen>
+
+<para>Here, the <command><replaceable>array_name</replaceable></command> is any arbitrary name the array uses. The <command><replaceable>index expression</replaceable></command> is used to refer to a specific unique key (or set of unique keys) in the array, and the <command><replaceable>operation</replaceable></command> defines what to do with the <command><replaceable>index expression</replaceable></command>. To illustrate, let us try to build an array named <command>foo</command> that specifies the ages of three people (i.e. the unique keys): <command>tom</command>, <command>dick</command>, and <command>harry</command>. To assign them the ages (i.e. associated values) of 23, 24, and 25 respectively, we'd use the following array statements:</para> 
+
+
+<example id="arraysimplestexample">
+	<title>Basic Array Statements</title>
+<screen>
+foo["tom"] = 23
+foo["dick"] = 24
+foo["harry"] = 25
+</screen>
+</example>
+
+<section id="tuples">
+	<title>Tuples</title>
+<para>Another important point to remember in arrays is that each exists in a <emphasis>slot</emphasis> in the array. A key pair's slot is defined by the order in which each pair's unique key is defined. In our sample array <command>foo</command> in <xref linkend="arraysimplestexample"/>, the key pair that uses the unique key <command>tom</command> is in the first slot, since <command>tom</command> was the first unique key to be defined. <command>dick</command> is in the second slot, and so on.</para>
+
+
+<para>The sequence in which each key pair appears in an array (as defined by each pair's slot) is referred to as a <emphasis>tuple</emphasis>. Tuples allow us to refer to key pairs in an array by the order in which they appear in the sequence.</para>
+
+<para>For example, the array statements in <xref linkend="arraysimplestexample"/> set 23 as the associated value of the unique key <command>tom</command>. Given the same array <command>foo</command>, we can increment the associated value of <command>tom</command> by 1 using the operator <command>++</command>, like so:</para>
+
+<screen>
+foo["tom"] ++
+</screen>
+
+<para>The above statement will increase the associated value of unique key <command>tom</command> to 24. Now, looking back at <xref linkend="arraysimplestexample"/>, we know that <command>dick</command> was the first uniqe key to be defined. As such, we can perform the same operation (i.e. incrementing associated value by 1) to <command>dick</command> using the following statement:</para>
+
+<screen>
+foo[2] ++
+</screen>
+
+<note>
+	<title>Note</title>
+	<para>You can specify up to 5 index index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to perform the same operation to a set of key pairs. For example, to increase the associated value of all the key pairs defined by <xref linkend="arraysimplestexample"/>, you can use the following statement:</para>
 	
+<screen>
+foo["tom",2,"harry"] ++
+</screen>
+</note>
+
+
+</section>	
+	
+<section id="arrayoperators">
+	<title>Commonly Used Array Operators in SystemTap</title>
+	
+<para>This section enumerates some of the most commonly used array operators in SystemTap.</para>
+
+<variablelist>
+	
+<varlistentry>
+	<term>Assigning Associated Value</term>
+	<listitem>
+		<para>Use <command>=</command> to set an associated value to indexed unique pairs, as in:</para>
+<screen>
+<replaceable>array_name</replaceable>[<replaceable>index expression</replaceable>] = <replaceable>value</replaceable>
+</screen>
+
+<para><xref linkend="arraysimplestexample"/> shows a very basic example of how to set an explicit associated value to a unique key. You can also use a handler function as both your <command><replaceable>index expression</replaceable></command> and <command><replaceable>value</replaceable></command>. For example, you can use arrays to set a timestamp as the associated value to a process name (which you wish to use as your unique key), as in:</para>
+
+<example id="arrays-timestampprocessname">
+	<title>Associating Timestamps to Process Names</title>
+<programlisting>
+foo[execname()] = gettimeofday_s()
+</programlisting>
+</example>
+
+<para>Whenever an event invokes the statement in <xref linkend="arrays-timestampprocessname"/>, SystemTap returns the appropriate <command>execname()</command> value (i.e. the name of a process, which is then used as the unique key). At the same time, SystemTap also uses the function <command>gettimeofday_s()</command> to set the corresponding timestamp as the associated value to the unique key defined by the function <command>execname()</command>. This creates an array composed of key pairs containing process names and timestamps.</para>
+	
+<para>In this same example, if <command>execname()</command> returns a value that is already defined in the array <command>foo</command>, the operator will discard the original associated value to it, and replace it with the current timestamp from <command>gettimeofday_s()</command>.</para>		
+	</listitem>	
+</varlistentry>	
+	
+<varlistentry>
+	<term>Incrementing Associated Values</term>
+	<listitem>
+		<para>Use <command>++</command> to increment the associated value of a unique key in an array, as in:</para>
+<screen>
+<replaceable>array_name</replaceable>[<replaceable>index expression</replaceable>] ++
+</screen>
+
+<para>Again, you can also use a handler function for your <command><replaceable>index expression</replaceable></command>. For example, if you wanted to tally how many times a specific process performed a read to the virtual file system (using the event <command>kernel.function("vfs_read")</command>), you can use the following probe:</para>
+
 <formalpara id="simplesimplevfsread">
 	<title>vfsreads.stp</title>
 <para>
 <programlisting>
 probe kernel.function("vfs_read") 
 {
-	printf("%s\n", execname())
+	reads[execname()] ++
 }
 </programlisting>
 </para>
 </formalpara>
 
-<para><xref linkend="simplesimplevfsread"/> will display the name of each program that performs a read to the virtual file system <emphasis>as each read is performed</emphasis>. This means that the output of <xref linkend="simplesimplevfsread"/> will be a long list of process names, most of which will be repeating. For <xref linkend="simplesimplevfsread"/> to be useful, you'd need to feed its output to another program that counts how many times each process name appears and tally the results.</para>
+<para>In <xref linkend="simplesimplevfsread"/>, the first time that the probe returns the process name <command>gnome-terminal</command> (i.e. the first time <command>gnome-terminal</command> performs a VFS read), that process name is set as the unique key <literal>gnome-terminal</literal> with an associated value of 1. The next time that the probe returns the process name <command>gnome-terminal</command>, SystemTap increments the associated value of <command>gnome-terminal</command> by 1. SystemTap performs this operation for <emphasis>all</emphasis> process names as the probe returns them.</para>
 
-<para>However, with the help of arrays, you can simplify the task using the following script:</para>
+	</listitem>	
+</varlistentry>	
+<!--	
+<varlistentry>
+	<term></term>
+	<listitem>
+		<para></para>
+	</listitem>	
+</varlistentry>
+-->	
+	
+</variablelist>
+<remark>need to add a link to a more complete list of commonly used array operators!</remark>
+</section>
+	
+	
+	
+	
+	
+	
+<!-- 
+	
+<para>SystemTap supports numerous ways to manipulate associative arrays (i.e. <command><replaceable>operation</replaceable></command> in the syntax format). For the purposes of this book, we will only cover the most common examples of manipulating associative arrays, all of which appear in <xref linkend="useful-systemtap-scripts"/>.</para>
 
-<formalpara id="arraysvfsread">
-	<title>vfsreads-using-arrays.stp</title>
+<formalpara id="aaexamplesimple">
+	<title>Incrementing Associated Values of Unique Keys</title>
+<para>The simplest form of data manipulation in associative arrays is incrementing the associated value of a unique key in the array. The syntax for this operation is as follows:</para>
+</formalpara>
+<screen>
+<replaceable>array_name</replaceable>[<replaceable>index expression</replaceable>"] ++
+</screen>
+
+<para>Here, the <command>++</command> operation instructs SystemTap to increment the associated value of <command><replaceable>unique_key</replaceable></command> by <command><replaceable>value</replaceable></command>. For example, to increase the associated value of unique key <command>hello</command> in array <command>foo</command> by 4, use:</para>
+
+<formalpara id="aaexamplesimple-example">
+	<title>explicit-incrementing-in-arrays.stp</title>
 <para>
 <programlisting>
-global reads
-probe kernel.function("vfs_read")
-{
-	reads[execname()] += $count
-}
-probe timer.s(2)
-{
-	foreach (key in reads) 
-		printf("%s : %d\n", key, reads[key])
-	exit()
-}
+probe begin {	foo[4,"hello"] ++ }
 </programlisting>
 </para>
 </formalpara>
 
-<para>The handler in the first probe of <xref linkend="arraysvfsread"/> does three things:</para> 
+<formalpara id="aaexampleupdatecounting">
+	<title>Incrementing Associated Values of Unique Keys (By Variable)</title>
+	
+<para>One of the most common uses of associative arrays is to tally events per unique key. To do this, use the operator <command>+= $count</command>, as in:</para>
+</formalpara>
 
-<orderedlist>
-	<listitem><para>First, the handler defines the variable <command>reads</command> as the associative array.</para></listitem>
-	<listitem><para>Next, the handler uses <command>execname()</command> (the names of the processes that execute the VFS reads) as the array's unique keys. For example, once the process <command>gnome-terminal</command> performs a VFS read, the array creates a unique key named <literal>gnome-terminal</literal>, which has an initial associated value of 1.</para></listitem>
-	<listitem><para>Finally, the statement <command>+= $count</command> increments the <emphasis>value associated with each unique key</emphasis> every time that unique key "occurs"; for example, each time that the process <command>gnome-terminal</command> performs a VFS read, the value associated with the unique key <literal>gnome-terminal</literal> gets incremented by 1.</para></listitem>
-</orderedlist>
-
-<note>
-	<title>Note</title>
-	<para>In <xref linkend="arraysvfsread"/>, <command>$count</command> is <emphasis>not</emphasis> a variable; rather, it is an operation that instructs the array to perform an increment to the array. This book will discuss other similar operations in detail later.</para>
-</note>
-
-<remark>TBD WILL ADD MORE INFO ON ARRAY SYNTAX IN A SUBSEQUENT SECTION, FIX PREVIOUS NOTE TO XREF TO SECTION ONCE ITS BUILT</remark>
-
-<para>The handler in the second probe of <xref linkend="arraysvfsread"/> prints the script's output o the format <computeroutput><replaceable>name</replaceable> : <replaceable>value</replaceable></computeroutput> over the span of two seconds, then exits. <computeroutput><replaceable>name</replaceable></computeroutput> is the process that executed a VFS read, and <computeroutput><replaceable>value</replaceable></computeroutput> is how many times <computeroutput><replaceable>name</replaceable></computeroutput> executed a VFS read). For example:</para> 
-
-<example id="arraysvfsreadoutput">
-	<title>Sample Output for <xref linkend="arraysvfsread"/></title>
 <screen>
-gnome-terminal : 64
-gnome-screensav : 128
-gnome-power-man : 512
-pcscd : 534
-cupsd : 1023
-mixer_applet2 : 1440
-gnome-vfs-daemo : 2048
-snmpd : 2048
+<replaceable>array_name</replaceable>[<replaceable>unique_key</replaceable>] += $count	
 </screen>
-</example>
 
+<para>You can also use a handler function in as the <command><replaceable>unique_key</replaceable></command>. Doing so creates an associate array that uses the values returned by the handler function as the unique keys. The first time that a probe using this array returns a string value, that value is set as a unique key with an initial value of 0. The next time that the probe returns the same string value, it increments the associated value of the unique key by 1.</para>
 
+<para>For example, let's say you need to tally how many times each process performs a read to the virtual file system (VFS). To do this, probe the kernel function <command>vfs_read</command>, use the handler <command>execname()</command> to identify which processes performed the VFS read, and tally the reads of each process using the associative array named <command>reads</command>, as in</para>
+
+<formalpara id="aaexamplesimplevfsreads">
+	<title>tallying-in-arrays.stp</title>
+<para>
+<programlisting>
+probe kernel.function("vfs_read")
+{ reads[execname()] += $count }
+</programlisting>
+</para>
+</formalpara>
+
+<para>In <xref linkend="aaexamplesimplevfsreads"/>, the first time that the probe returns the process name <command>gnome-terminal</command> (i.e. the first time <command>gnome-terminal</command> performs a VFS read), that process name is set as a unique key. The next time that the probe returns the process name <command>gnome-terminal</command>, SystemTap increments the associated value of <command>gnome-terminal</command> by 1. SystemTap performs this operation for <emphasis>all</emphasis> process names as the probe returns them.</para>
+-->
 </section>
