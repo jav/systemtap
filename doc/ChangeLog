@@ -1,3 +1,7 @@
+2008-10-23  Will Cohen <wcohen@redhat.com>
+
+	* SystemTap_Tapset_Reference: New.
+
 2008-08-28  Stan Cox  <scox@redhat.com>
 
 	* langref.tex: Document written but unread global variable display.

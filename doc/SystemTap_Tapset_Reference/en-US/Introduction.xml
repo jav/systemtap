@@ -1,0 +1,18 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<chapter id="introduction">
+	<title>Introduction</title>
+	<para>
+		SystemTap is a tracing and probing tool that allows users to
+		study and monitor the activities of the operating system
+		(particularly, the kernel) in fine detail. It provides
+		information similar to the output of tools like
+		<command>netstat</command>, <command>ps</command>,
+		<command>top</command>, and <command>iostat</command>; however,
+		SystemTap is designed to provide more filtering and analysis
+		options for collected information.
+	</para>
+</chapter>
+
