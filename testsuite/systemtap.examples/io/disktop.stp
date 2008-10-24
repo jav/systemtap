@@ -14,7 +14,7 @@
 global io_stat,device
 global read_bytes,write_bytes
 
-probe kernel.function("vfs_read").return {
+probe vfs.read.return {
 	if ($return>0) {
 		dev = __file_dev($file)
 		devname = __find_bdevname(dev,__file_bdev($file))
@@ -27,7 +27,7 @@ probe kernel.function("vfs_read").return {
 	}
 }
 
-probe kernel.function("vfs_write").return {
+probe vfs.write.return {
 	if ($return>0) {
 		dev = __file_dev($file)
 		devname = __find_bdevname(dev,__file_bdev($file))

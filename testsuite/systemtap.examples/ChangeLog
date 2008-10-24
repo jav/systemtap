@@ -1,3 +1,10 @@
+2008-10-24  William Cohen  <wcohen@redhat.com>
+
+	* io/traceio.stp:
+	* io/traceio2.stp:
+	* io/iotop.stp:
+	* io/disktop.stp: Use vfs tapset rather than kernel functions probes.
+	
 2008-09-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	* io/traceio2.stp: Make compatible with RHEL5.

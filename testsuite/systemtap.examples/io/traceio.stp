@@ -9,11 +9,11 @@
 
 global reads, writes, total_io
 
-probe kernel.function("vfs_read").return {
+probe vfs.read.return {
 	reads[execname()] += $return
 }
 
-probe kernel.function("vfs_write").return {
+probe vfs.write.return {
 	writes[execname()] += $return
 }
 

@@ -1,0 +1,33 @@
+<?xml version='1.0'?>
+<!DOCTYPE bookinfo PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<bookinfo id="SystemTap_Tapset_Reference-Documentation">
+	<title>Tapset Reference</title>
+	<productname>Systemtap</productname>
+  <!-- The product number should be filled in by the config -->
+	<productnumber>0.7.1</productnumber>
+	<edition>0</edition>
+	<pubsnumber>0</pubsnumber>
+	<abstract>
+		<para>Describes the various instrumentation points and functions
+		available in SystemTap tapsets.</para>
+	</abstract>
+	<corpauthor>
+		<inlinemediaobject>
+			<imageobject>
+				<imagedata format='SVG' fileref="Common_Content/images/title_logo.svg" />
+			</imageobject>
+			<textobject><phrase>Logo</phrase></textobject>
+		</inlinemediaobject>
+	</corpauthor>
+	<copyright>
+		<year>&YEAR;</year>
+		<holder>&HOLDER;</holder>
+	</copyright>
+	<xi:include href="Common_Content/Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Author_Group.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</bookinfo>
+
+
+
