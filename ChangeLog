@@ -1,3 +1,7 @@
+2008-10-25  Rajan Arora  <rarora@redhat.com>
+
+	* elaborate.cxx (add_global_var_display): Added check for guru mode.
+
 2008-10-24  Josh Stone  <joshua.i.stone@intel.com>
 
 	* tapsets.cxx (hrtimer_derived_probe_group::emit_module_decls): Support

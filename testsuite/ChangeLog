@@ -1,4 +1,9 @@
-2008-10-20	Elliott Baron  <ebaron@redhat.com>
+2008-10-25  Rajan Arora  <rarora@redhat.com>
+
+	* systemtap.base/global_end.exp: Spawn test again
+	in guru mode.
+
+2008-10-20  Elliott Baron  <ebaron@redhat.com>
 
 	PR6851
 	* systemtap.printf/char1.exp: New test.

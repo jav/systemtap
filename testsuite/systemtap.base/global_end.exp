@@ -23,4 +23,10 @@ expect {
     eof { }
 }
 wait
-if {$ok == 11} { pass "$test ($ok)" } { fail "$test ($ok)" }
+spawn stap -g $srcdir/$subdir/global_end.stp
+# above should not do any global variable display so `ok' should only change by one
+expect {
+    -timeout 180
+    -re {one,0x1.*one,0x2.*two,0x1.*two,0x2} { incr ok; exp_continue }
+}
+if {$ok == 12} { pass "$test ($ok)" } { fail "$test ($ok)" }
