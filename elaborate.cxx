@@ -1147,8 +1147,9 @@ semantic_pass_symbols (systemtap_session& s)
 // Keep unread global variables for probe end value display.
 void add_global_var_display (systemtap_session& s)
 {
-  if (s.listing_mode || s.guru_mode) return; // avoid end probe
-  //in listings_mode or guru_mode
+  // Don't generate synthetic end probes when in listings mode;
+  // it would clutter up the list of probe points with "end ...".
+  if (s.listing_mode) return;
 
   varuse_collecting_visitor vut;
   for (unsigned i=0; i<s.probes.size(); i++)
@@ -1165,6 +1166,13 @@ void add_global_var_display (systemtap_session& s)
       if (vut.read.find (l) != vut.read.end()
           || vut.written.find (l) == vut.written.end())
 	continue;
+
+      // Don't generate synthetic end probes for unread globals 
+      // declared only within tapsets. (RHBZ 468139), but rather
+      // only within the end-user script.
+
+      // XXX: for example, search s.library_files[]->globals->name
+      // for a matching with l->name, then "continue;" to skip it.
 
       print_format* pf = new print_format;
       probe* p = new probe;
