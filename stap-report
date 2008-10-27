@@ -23,4 +23,4 @@ if __name__ == "__main__":
   run("dmesg | egrep 'stap|systemtap' | tail -n 10")
   run("cat /proc/cpuinfo | egrep 'processor|vendor_id|model name'")
   run(r"rpm -qa --qf %{name}-%{version}-%{release}.%{arch}\\n | egrep 'systemtap|elfutils|kernel|gcc' | sort")
-  run(r"egrep 'PROBE|TRACE|MARKER' /lib/modules/`uname -r`/build/.config | grep -v not.set | sort | fmt -w 80")
+  run(r"egrep 'PROBE|TRACE|MARKER|_DEBUG_' /lib/modules/`uname -r`/build/.config | grep -v not.set | sort | fmt -w 80")
