@@ -52,7 +52,7 @@ probe timer.ms(5000) {
 	}
 	/* print top ten I/O */
 	foreach ([process,cmd,userid,parent,action] in io_stat- limit 10)
-	  printf("%8d %8d %8d %25s %8s %4s %12d\n",userid,process,parent,cmd,device[process,cmd,userid,parent,action],action,io_stat[process,cmd,userid,parent,action])
+	  printf("%8d %8d %8d %25s %8s %4s %12d\n",userid,process,parent,cmd,device[process,cmd,userid,parent,action], action,io_stat[process,cmd,userid,parent,action])
 
 	/* clear data */
 	delete io_stat
