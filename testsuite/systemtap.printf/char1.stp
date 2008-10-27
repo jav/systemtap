@@ -2,8 +2,7 @@ probe begin
 {
 	printf("%c", 115)
 	printf("%c", 116)
-	printf("%c", 97)
-	printf("%c", 112)
+	printf("%c%c", 97, 112)
 	print("\n")
 	exit()
 }
