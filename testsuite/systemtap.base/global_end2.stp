@@ -1,0 +1,8 @@
+probe begin {
+  qsq_start("test")
+  qs_wait("test")
+  qs_run("test")
+  qs_done("test")
+  log(sprintf("Avg time = %d", qsq_service_time("test", 1)))
+  exit()
+}

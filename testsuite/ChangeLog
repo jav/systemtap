@@ -1,7 +1,6 @@
-2008-10-25  Rajan Arora  <rarora@redhat.com>
+2008-10-27  Rajan Arora  <rarora@redhat.com>
 
-	* systemtap.base/global_end.exp: Spawn test again
-	in guru mode.
+	* systemtap.base/global_end.exp: Spawn global_end2.stp
 
 2008-10-20  Elliott Baron  <ebaron@redhat.com>
 

@@ -23,4 +23,13 @@ expect {
     eof { }
 }
 wait
-if {$ok == 11} { pass "$test ($ok)" } { fail "$test ($ok)" }
+
+spawn stap $srcdir/$subdir/global_end2.stp
+# above should not do any tapset global variable display so
+# ok should only change by 1
+expect {
+    -timeout 180
+    -re {Avg time = 6} { incr ok; exp_continue }
+}
+
+if {$ok == 12} { pass "$test ($ok)" } { fail "$test ($ok)" }

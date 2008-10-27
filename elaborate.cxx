@@ -1171,8 +1171,17 @@ void add_global_var_display (systemtap_session& s)
       // declared only within tapsets. (RHBZ 468139), but rather
       // only within the end-user script.
 
-      // XXX: for example, search s.library_files[]->globals->name
-      // for a matching with l->name, then "continue;" to skip it.
+      bool tapset_global = false;
+      for (size_t m=0; m < s.library_files.size(); m++)
+	{
+	  for (size_t n=0; n < s.library_files[m]->globals.size(); n++)
+	    {
+	      if (l->name == s.library_files[m]->globals[n]->name)
+		{tapset_global = true; break;}
+	    }
+	}
+      if (tapset_global)
+	continue;
 
       print_format* pf = new print_format;
       probe* p = new probe;
