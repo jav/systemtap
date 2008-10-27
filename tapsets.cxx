@@ -1383,8 +1383,14 @@ struct dwflpp
             }
         }
         if (!entrypc_srcline)
-          throw semantic_error ("missing entrypc dwarf line record for function '"
-                                + it->name + "'");
+          {
+            if (sess.verbose > 2)
+              clog << "missing entrypc dwarf line record for function '"
+                   << it->name << "'\n";
+            // This is probably an inlined function.  We'll end up using
+            // its lowpc as a probe address.
+            continue;
+          }
 
         if (sess.verbose>2)
           clog << "prologue searching function '" << it->name << "'"
