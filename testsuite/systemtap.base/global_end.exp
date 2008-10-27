@@ -29,7 +29,7 @@ spawn stap $srcdir/$subdir/global_end2.stp
 # ok should only change by 1
 expect {
     -timeout 180
-    -re {Avg time = 6} { incr ok; exp_continue }
+    -re {Avg time = ?} { incr ok; exp_continue }
 }
 
 if {$ok == 12} { pass "$test ($ok)" } { fail "$test ($ok)" }
