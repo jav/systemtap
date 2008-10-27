@@ -800,6 +800,8 @@ probe vfs.read = kernel.function ("vfs_read")
 	pos = $pos
 	buf = $buf
 	bytes_to_read = $count
+	dev = __file_dev($file)
+	devname = __find_bdevname(dev, __file_bdev($file))
 }
 
 probe vfs.read.return = kernel.function ("vfs_read").return
@@ -808,6 +810,8 @@ probe vfs.read.return = kernel.function ("vfs_read").return
 	pos = $pos
 	buf = $buf
 	bytes_to_read = $count
+	dev = __file_dev($file)
+	devname = __find_bdevname(dev, __file_bdev($file))
 
 	ret = $return
 	bytes_read = ret > 0 ? ret : 0
@@ -844,6 +848,8 @@ probe vfs.write = kernel.function ("vfs_write")
 	pos = $pos
 	buf = $buf
 	bytes_to_write = $count
+	dev = __file_dev($file)
+	devname = __find_bdevname(dev, __file_bdev($file))
 }
 
 probe vfs.write.return = kernel.function ("vfs_write").return
@@ -852,6 +858,8 @@ probe vfs.write.return = kernel.function ("vfs_write").return
 	pos = $pos
 	buf = $buf
 	bytes_to_write = $count
+	dev = __file_dev($file)
+	devname = __find_bdevname(dev, __file_bdev($file))
 
 	ret = $return
 	bytes_written = ret > 0 ? ret : 0

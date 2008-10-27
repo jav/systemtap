@@ -1,3 +1,7 @@
+2008-10-27  William Cohen  <wcohen@redhat.com>
+
+	* vfs.stp (vfs.(read|write){.return}): Add dev and devname variables.
+
 2008-10-23  Mark Wielaard  <mjw@redhat.com>
 
 	* syscalls2.stp (syscall.utime): Don't use pointer_arg to fetch

@@ -1,3 +1,7 @@
+2008-10-27  William Cohen  <wcohen@redhat.com>
+
+	* io/disktop.stp: Make use of devname added to vfs tapset.
+	
 2008-10-24  William Cohen  <wcohen@redhat.com>
 
 	* io/traceio.stp:
