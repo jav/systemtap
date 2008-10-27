@@ -4196,6 +4196,9 @@ c_unparser::visit_print_format (print_format* e)
 	/* The type of the %m argument is 'char*'.  */
 	if (components[i].type == print_format::conv_memory)
 	  o->line() << ", (char*)(uintptr_t)" << tmp[arg_ix++].value();
+	/* The type of the %c argument is 'int'.  */
+	else if (components[i].type == print_format::conv_char)
+	  o->line() << ", (int)" << tmp[arg_ix++].value();
 	else
 	  o->line() << ", " << tmp[arg_ix++].value();
       }

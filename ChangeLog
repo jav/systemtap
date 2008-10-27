@@ -1,3 +1,8 @@
+2008-10-27  Josh Stone  <joshua.i.stone@intel.com>
+
+	* translate.cxx (c_unparser::visit_print_format): Fix the argument passed
+	for printf %c formats.
+
 2008-10-27  Rajan Arora  <rarora@redhat.com>
 
 	* elaborate.cxx (add_global_var_display): Added check for globals
