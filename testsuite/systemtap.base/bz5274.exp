@@ -1,0 +1,50 @@
+set test "./bz5274"
+set tpath "$srcdir/$subdir/$test"
+set arch [exec uname -m]
+
+if {$arch == "ppc64"} {
+	catch {exec gcc -o $test -g -m64 $srcdir/$subdir/$test.c} err
+} else {
+	catch {exec gcc -o $test -g $srcdir/$subdir/$test.c} err
+}
+
+
+if {$err == "" && [file exists $test]} then { pass "$test compile"
+} else {fail "$test compile"}
+
+if {! [installtest_p]} { untested "$test -p5"; return }
+
+
+if {[catch {exec stap $tpath.stp -c "$srcdir/$subdir/$test.sh"} res]} {
+    untested "$test longjmp to a uretprobed function"
+    puts "$res"
+ #   catch {exec rm -f $test.out}
+} else {
+    if {[catch {exec cmp $test.out $srcdir/$subdir/$test.exp_out} res]} {
+        fail "$test longjmp to a uretprobed function"
+        puts "$res"
+#        catch {exec rm -f $test.out}
+    } else {
+        pass "$test longjmp to a uretprobed function"
+ #       catch {exec rm -f $test.out}
+    }
+}
+
+if {[catch {exec stap $tpath.a.stp -c $srcdir/$subdir/$test.sh} res]} {
+    untested "$test longjmp to a non-uretprobed function"
+    puts "$res"
+    catch {exec rm -f $test.out $test}
+    return
+} else {
+    if {[catch {exec cmp $test.out $srcdir/$subdir/$test.exp_out} res]} {
+        fail "$test longjmp to a non-uretprobed function"
+        puts "$res"
+        catch {exec rm -f $test.out $test}
+        return
+    } else {
+        pass "$test longjmp to a non-uretprobed function"
+        catch {exec rm -f $test.out $test}
+    }
+}
+
+

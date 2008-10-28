@@ -1,0 +1,16 @@
+#! /bin/env stap
+probe process("./bz5274").function("funcb").call,
+      process("./bz5274").function("funcc").call,
+      process("./bz5274").function("funcd").call
+{
+    printf("%s Entering %s\n", pp(), thread_indent(1))
+}
+
+
+probe 	process("./bz5274").function("funcb").return,
+	process("./bz5274").function("funcc").return,
+	process("./bz5274").function("funcd").return
+{
+    printf("%s %s returns %s\n", pp(), thread_indent(-1), returnstr(2))
+}
+

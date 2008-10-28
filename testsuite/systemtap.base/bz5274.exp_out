@@ -1,0 +1,12 @@
+In bz5274.c: funcb :20 : i=1.  Calling funcc
+In bz5274.c: funcc :13 : i=1.  Calling funcd
+In bz5274.c: funcd :7 : i=1.  Calling longjmp
+In bz5274.c: funcb :20 : i=2.  Calling funcc
+In bz5274.c: funcc :13 : i=2.  Calling funcd
+In bz5274.c: funcd :7 : i=2.  Calling longjmp
+In bz5274.c: funcb :20 : i=3.  Calling funcc
+In bz5274.c: funcc :13 : i=3.  Calling funcd
+In bz5274.c: funcd :7 : i=3.  Calling longjmp
+In bz5274.c: funcb :20 : i=4.  Calling funcc
+In bz5274.c: funcc :13 : i=4.  Calling funcd
+In bz5274.c: funcd :7 : i=4.  Calling longjmp

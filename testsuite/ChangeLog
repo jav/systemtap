@@ -1,3 +1,8 @@
+2008-10-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	From Srikar Dronamraju <srikar@linux.vnet.ibm.com>:
+	* systemtap.base/bz5274.*: New tests.
+
 2008-10-28  David Smith  <dsmith@redhat.com>
 
 	* buildok/vfs_testcase.stp: Fixes for updated vfs tapset.

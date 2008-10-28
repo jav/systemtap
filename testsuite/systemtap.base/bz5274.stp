@@ -1,0 +1,8 @@
+#! /bin/env stap
+probe process("./bz5274").function("*").call {
+    printf("%s Entering %s\n", pp(), thread_indent(1))
+}
+probe process("./bz5274").function("*").return {
+    printf("%s %s returns %s\n", pp(), thread_indent(-1), returnstr(2))
+}
+
