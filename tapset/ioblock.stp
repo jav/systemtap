@@ -122,7 +122,9 @@ probe ioblock.request = kernel.function ("generic_make_request")
         vcnt = $bio->bi_vcnt
         idx = $bio->bi_idx
         phys_segments = $bio->bi_phys_segments
+%(kernel_v < "2.6.28" %?
         hw_segments = $bio->bi_hw_segments
+%)
         size = $bio->bi_size
 
         bdev = $bio->bi_bdev
@@ -176,6 +178,8 @@ probe ioblock.end = kernel.function("bio_endio")
         vcnt = $bio->bi_vcnt
         idx = $bio->bi_idx
         phys_segments = $bio->bi_phys_segments
+%(kernel_v < "2.6.28" %?
         hw_segments = $bio->bi_hw_segments
+%)
         size = $bio->bi_size
 }

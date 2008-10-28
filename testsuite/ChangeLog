@@ -1,3 +1,8 @@
+2008-10-28  Wenji Huang  <wenji.huang@oracle.com>
+
+	* buildok/context_test.stp: Correct for 2.6.28.
+	* buildok/ioblock_test.stp: Ditto.
+
 2008-10-27  Josh Stone  <joshua.i.stone@intel.com>
 
 	* systemtap.printf/char1.stp: Expose i686 failure

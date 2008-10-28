@@ -87,7 +87,14 @@ probe scsi.iocompleted
 function scsi_timer_pending:long(var:long)
 %{ /* pure */
         struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
         THIS->__retvalue = timer_pending(&cmd->eh_timeout); /* FIXME: deref hazard! */
+#else 
+        struct request *req = (struct request *)kread(&cmd->request);
+        struct request_queue *rq = (struct request_queue *)kread(&req->q);
+        THIS->__retvalue = timer_pending(&rq->timeout); /* FIXME: deref hazard! */
+        CATCH_DEREF_FAULT();
+#endif
 %}
 
 function get_devstate_from_req:long(var:long)

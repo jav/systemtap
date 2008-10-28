@@ -20,12 +20,12 @@ function print_stuff () {
 	printf("pp is %s\n", pp())
 }
 
-probe kernel.function("uptime_read_proc") {
+probe kernel.function("uptime_read_proc") ? {
 	print("NOW IN UPTIME\n")
 	print_stuff ()
 }
 
-probe kernel.function("uptime_read_proc").return {
+probe kernel.function("uptime_read_proc").return ? {
 	print("DONE WITH UPTIME\n")
 	print_stuff ()
 	exit ()

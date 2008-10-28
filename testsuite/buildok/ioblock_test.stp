@@ -5,14 +5,23 @@ probe ioblock.request {
   add_part = 0
   if (bdev != bdev_contains) 
   	add_part = p_start_sect
+%(kernel_v < "2.6.28" %?
   printf("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
-        	devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments,
-  		hw_segments, size, add_part, ino)
+        	devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments, hw_segments, size, add_part, ino)
+%:
+  printf("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+        	devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments, size, add_part, ino)
+%)
+
 }
 
 probe ioblock.end {
   log(pp())
+%(kernel_v < "2.6.28" %?
   printf("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-                devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments,
-                hw_segments, size, bytes_done, error, ino)
+                devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments, hw_segments, size, bytes_done, error, ino)
+%:
+  printf("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+                devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments, size, bytes_done, error, ino)
+%)
 }

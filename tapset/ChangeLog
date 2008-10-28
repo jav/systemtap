@@ -1,3 +1,8 @@
+2008-10-28  Wenji Huang <wenji.huang@oracle.com>
+
+	* ioblock.stp (ioblock.request, ioblock.end): Correct for 2.6.28.
+	* scsi.stp (scsi_timer_pending): Ditto.
+
 2008-10-27  William Cohen  <wcohen@redhat.com>
 
 	* vfs.stp (vfs.(read|write){.return}): Add dev and devname variables.
