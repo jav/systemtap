@@ -126,11 +126,10 @@ probe generic.fop.sendfile
 {
 	print("Probe hit the function: %s\n", name);
 	print("Probe function argstr: %s\n", argstr);
-	print("file = %p\n", file);
 	print("dev = %l\n", dev);
 	print("devname = %s\n", devname);
 	print("ino = %l\n", ino);
-	print("pos = %ll\n", pos);
+	print("ppos = %ll\n", ppos);
 	print("size = %l\n", size);
 }
 
@@ -180,7 +179,6 @@ probe generic.fop.read
 {
 	print("Probe hit the function: %s\n", name);
 	print("Probe function argstr: %s\n", argstr);
-	print("file = %p\n", file);
 	print("dev = %l\n", dev);
 	print("devname = %s\n", devname);
 	print("ino = %l\n", ino);
@@ -432,6 +430,7 @@ probe _vfs.block_prepare_write.return
 	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
 }
 
+%( kernel_v >= "2.6.24" %?
 probe _vfs.block_write_begin
 {
 	print("Probe hit the function: %s\n", probefunc());
@@ -460,4 +459,4 @@ probe _vfs.block_write_end.return
 {
 	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
 }
-
+%)

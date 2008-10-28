@@ -1,3 +1,7 @@
+2008-10-28  David Smith  <dsmith@redhat.com>
+
+	* buildok/vfs_testcase.stp: Fixes for updated vfs tapset.
+
 2008-10-28  Wenji Huang  <wenji.huang@oracle.com>
 
 	* buildok/context_test.stp: Correct for 2.6.28.

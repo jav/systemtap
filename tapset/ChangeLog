@@ -1,3 +1,15 @@
+2008-10-28  David Smith  <dsmith@redhat.com>
+
+	PR6972
+	* vfs.stp (generic.fop.aio_read): Works under 2.6.18 kernels, such
+	as RHEL5.
+	(generic.fop.aio_read.return): Ditto.
+	(vfs.__set_page_dirty_buffers): Fixed small bug.
+	(_vfs.block_write_begin): Only use for kernels >= 2.6.24.
+	(_vfs.block_write_begin.return): Ditto.
+	(_vfs.block_write_end): Ditto.
+	(_vfs.block_write_end.return): Ditto.
+
 2008-10-28  Wenji Huang <wenji.huang@oracle.com>
 
 	* ioblock.stp (ioblock.request, ioblock.end): Correct for 2.6.28.

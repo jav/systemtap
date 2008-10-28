@@ -2,11 +2,17 @@
 // Copyright (C) 2006-2007 IBM Corp.
 // Copyright (C) 2007 Intel Corporation.
 // Copyright (C) 2007 Bull S.A.S
+// Copyright (c) 2008 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
+ 
+%{
+// Needed for struct iovec.
+#include <linux/uio.h>
+%}
 
 /* generic vfs probes */
 
@@ -225,29 +231,32 @@ probe generic.fop.llseek.return = kernel.function ("generic_file_llseek").return
 	error_str = error ? errno_str(error) : ""
 }
 
-probe generic.fop.aio_read = kernel.function ("generic_file_aio_read")
+probe generic.fop.aio_read =
+	kernel.function("__generic_file_aio_read") !,
+	kernel.function("generic_file_aio_read")
 {
 	file = $iocb->ki_filp
 	dev = __file_dev($iocb->ki_filp)
 	devname = __find_bdevname(dev, __file_bdev($iocb->ki_filp))
 	ino = __file_ino($iocb->ki_filp)
-
-	pos = $pos
         
 %( kernel_v >= "2.6.19" %?
-	count = __iov_length($iov,$nr_segs,1,1) /*FIX ME: should be VERIFY_WRITE instead of 1*/
-	buf = $iov->iov_base
+	pos = $pos
 %:
-        buf = $buf
-	count = $count
+	pos = ppos_pos($ppos)
 %)
+	buf = $iov->iov_base
+	count = __iov_length($iov,$nr_segs,1,1) /*FIX ME: should be VERIFY_WRITE instead of 1*/
 	name = "generic_file_aio_read"
 	argstr = sprintf("%d, %d, %p", count, pos,buf)
 
 	size = count
 	units = "bytes"
 }
-probe generic.fop.aio_read.return = kernel.function ("generic_file_aio_read").return
+
+probe generic.fop.aio_read.return =
+	kernel.function("__generic_file_aio_read").return !,
+	kernel.function("generic_file_aio_read").return
 {
 	file = $iocb->ki_filp
 	nr_segs = $nr_segs
@@ -455,6 +464,7 @@ probe generic.fop.splice_read.return = kernel.function ("generic_file_splice_rea
 	retstr = sprintf("%d", $return)
 	file = $in
 	ino = __file_ino($in)
+	_dev = __file_dev($in)
 	dev_major = _dev_major(_dev)
 	dev_minor = _dev_minor(_dev)
 
@@ -699,7 +709,7 @@ probe vfs.__set_page_dirty_buffers = kernel.function ("__set_page_dirty_buffers"
 	index = __page_index(__page)
 
 	name = "__set_page_dirty_buffers"
-	argstr = sprintf("%d", page_index)
+	argstr = sprintf("%d", index)
 
 	size = 1
 	units = "pages"
@@ -944,6 +954,7 @@ probe _vfs.block_prepare_write.return = kernel.function("__block_prepare_write")
 	error_str = error ? errno_str(error) : ""
 }
 
+%( kernel_v >= "2.6.24" %?
 probe _vfs.block_write_begin = kernel.function ("block_write_begin")
 {
 	file = $file
@@ -986,3 +997,4 @@ probe _vfs.block_write_end.return = kernel.function ("block_write_end").return
 	_inode = __address_inode($mapping)
 	ret = $return
 }
+%)
