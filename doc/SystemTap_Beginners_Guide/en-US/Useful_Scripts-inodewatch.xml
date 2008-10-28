@@ -19,20 +19,10 @@ no script in examples
 	<para>This section describes how to monitor reads from and writes to a file in real time. </para>
 	
 <formalpara id="inodewatch">
-		<title>inodewatch.stp</title>
+	<title>inodewatch-simple.stp</title>
 <para>
 <programlisting>
-probe kernel.function ("vfs_write"),
-      kernel.function ("vfs_read")
-{
-  dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
-  inode_nr = $file->f_dentry->d_inode->i_ino
-
-  if (dev_nr == ($1 &lt;&lt; 20 | $2) # major/minor device
-      &amp;&amp; inode_nr == $3)
-    printf ("%s(%d) %s 0x%x/%u\n",
-      execname(), pid(), probefunc(), dev_nr, inode_nr)
-}
+<xi:include parse="text" href="extras/general/inodewatch-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>		
@@ -66,6 +56,20 @@ cat(16437) vfs_read 0x800005/1078319
 </screen>
 </example>
 
+<!--  
+      probe kernel.function ("vfs_write"),
+      kernel.function ("vfs_read")
+      {
+      dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
+inode_nr = $file->f_dentry->d_inode->i_ino
+
+if (dev_nr == ($1 &lt;&lt; 20 | $2) # major/minor device
+&amp;&amp; inode_nr == $3)
+printf ("%s(%d) %s 0x%x/%u\n",
+execname(), pid(), probefunc(), dev_nr, inode_nr)
+}
+      
+      -->
 
 	</section>
 

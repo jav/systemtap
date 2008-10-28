@@ -47,9 +47,7 @@ probe timer.jiffies(100) { count_jiffies ++ }
 	<para>In some cases, such as in <xref linkend="timerjiffies"/>, a variable may be declared without any specific value as yet. You need to declare such values as integers using the notation <command>++</command>.</para>
 </note>	
 	-->
-</section>
-<xi:include href="Arrays.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
-
+</section>	
 <section id="handlerconditionalstatements">
 	<title>Conditional Statements</title>
 <para>
@@ -74,20 +72,21 @@ if (<replaceable>condition</replaceable>)
 	<title>ifelse.stp</title>
 <programlisting>
 global countread, countnonread
-probe vfs.read,vfs.write
+probe kernel.function("vfs_read"),kernel.function("vfs_write")
 {
 	if (probefunc()=="vfs_read") {
 	countread ++ }
 	else {countnonread ++}
 }
-probe timer.s(5) {
-	exit()}
-probe end {
-	printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)} 
+probe timer.s(5) { exit() }
+probe end 
+{
+	printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)
+} 
 </programlisting>
 </example>
 
-<para><xref linkend="simpleifelseexample"/> is a script that counts how many virtual file system reads (<command>vfs.read</command>) and writes (<command>vfs.write</command>) the system performs within a 5-second span. When run, the script increments the value of the variable <command>countread</command> by 1 if the name of the function it probed matches <command>vfs_read</command> (as noted by the condition <command>if (probefunc()=="vfs_read")</command>); otherwise, it increments <command>countnonread</command> (<command>else {countnonread ++}</command>).</para>
+<para><xref linkend="simpleifelseexample"/> is a script that counts how many virtual file system reads (<command>vfs_read</command>) and writes (<command>vfs_write</command>) the system performs within a 5-second span. When run, the script increments the value of the variable <command>countread</command> by 1 if the name of the function it probed matches <command>vfs_read</command> (as noted by the condition <command>if (probefunc()=="vfs_read")</command>); otherwise, it increments <command>countnonread</command> (<command>else {countnonread ++}</command>).</para>
 
 	</listitem>	
 </varlistentry>	
@@ -137,10 +136,40 @@ for (<replaceable>argument1</replaceable>; <replaceable>argument2</replaceable>;
 -->	
 	
 </variablelist>	
-	
-<para>These constructs are better illustrated in the different examples available in <xref linkend="useful-systemtap-scripts"/>.</para>
+<!--	
+<para>These constructs are better illustrated in the different examples available in <xref linkend="useful-systemtap-scripts"/>.</para>-->
 
-<remark>will get back to these ones later</remark>
+<remark>need simple, simple examples for FOR and WHILE</remark>
+
+<formalpara>
+	<title>Conditional Operators</title>
+<para>Aside from <command>==</command> ("is equal to"), you can also use the following operators in your conditional statements:</para>
+</formalpara>
+
+<variablelist>
+
+<varlistentry>
+	<term>>=</term>
+	<listitem>
+		<para>Greater than or equal to</para>
+	</listitem>	
+</varlistentry>	
+
+<varlistentry>
+	<term>&lt;=</term>
+	<listitem>
+		<para>Less than or equal to</para>
+	</listitem>	
+</varlistentry>
+
+<varlistentry>
+	<term>!=</term>
+	<listitem>
+		<para>Is not equal to</para>
+	</listitem>	
+</varlistentry>
+
+</variablelist>
 </section>
 <section id="commandlineargssect">
 	<title>Command-Line Arguments</title>

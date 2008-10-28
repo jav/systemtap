@@ -1,0 +1,232 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+	
+<section id="arrayoperators">
+	<title>Array Operations in SystemTap</title>
+	
+<para>This section enumerates some of the most commonly used array operations in SystemTap.</para>
+
+<section id="arrayops-assignvalue">
+	<title>Assigning an Associated Value</title>
+		<para>Use <command>=</command> to set an associated value to indexed unique pairs, as in:</para>
+
+<screen>
+<replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>] = <replaceable>value</replaceable>
+</screen>
+
+<para><xref linkend="arraysimplestexample"/> shows a very basic example of how to set an explicit associated value to a unique key. You can also use a handler function as both your <command><replaceable>index_expression</replaceable></command> and <command><replaceable>value</replaceable></command>. For example, you can use arrays to set a timestamp as the associated value to a process name (which you wish to use as your unique key), as in:</para>
+
+<example id="arrays-timestampprocessname">
+	<title>Associating Timestamps to Process Names</title>
+<programlisting>
+foo[execname()] = gettimeofday_s()
+</programlisting>
+</example>
+
+<para>Whenever an event invokes the statement in <xref linkend="arrays-timestampprocessname"/>, SystemTap returns the appropriate <command>execname()</command> value (i.e. the name of a process, which is then used as the unique key). At the same time, SystemTap also uses the function <command>gettimeofday_s()</command> to set the corresponding timestamp as the associated value to the unique key defined by the function <command>execname()</command>. This creates an array composed of key pairs containing process names and timestamps.</para>
+	
+<para>In this same example, if <command>execname()</command> returns a value that is already defined in the array <command>foo</command>, the operator will discard the original associated value to it, and replace it with the current timestamp from <command>gettimeofday_s()</command>.</para>
+</section>
+<section id="arrayops-readvalues">
+	<title>Reading Values From Arrays</title>
+	<para>You can also use the <command>=</command> operator to read values from an array. This is accomplished by simply including the <command><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]</command> as an element in a mathematical expression. For example:</para>
+
+<example id="arrayreadingvaluesfrom">
+	<title>Using Array Values in Simple Computations</title>
+<screen>
+foo[execname()] = gettimeofday_s()
+delta = gettimeofday_s() - foo[execname()]
+</screen>
+</example>
+
+<para>In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated with the returned value of the handler function <command>execname()</command> as a <emphasis>reference point</emphasis>. The second statement computes a value for the variable <command>delta</command> by subtracting the associated value the reference point from the current <command>gettimeofday_s()</command>.</para>
+
+<para>In this situation, if the <command><replaceable>index_expression</replaceable></command> cannot find the unique key, it returns a null value (zero) by default. </para>
+</section>
+<section id="arrayops-increment">
+	<title>Incrementing Associated Values</title>
+		<para>Use <command>++</command> to increment the associated value of a unique key in an array, as in:</para>
+
+<screen>
+<replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>] ++
+</screen>
+
+<para>Again, you can also use a handler function for your <command><replaceable>index_expression</replaceable></command>. For example, if you wanted to tally how many times a specific process performed a read to the virtual file system (using the event <command>kernel.function("vfs_read")</command>), you can use the following probe:</para>
+
+<example id="simplesimplevfsread">
+	<title>vfsreads.stp</title>
+<programlisting>
+probe kernel.function("vfs_read") 
+{
+	reads[execname()] ++
+}
+</programlisting>
+</example>
+
+<para>In <xref linkend="simplesimplevfsread"/>, the first time that the probe returns the process name <command>gnome-terminal</command> (i.e. the first time <command>gnome-terminal</command> performs a VFS read), that process name is set as the unique key <literal>gnome-terminal</literal> with an associated value of 1. The next time that the probe returns the process name <command>gnome-terminal</command>, SystemTap increments the associated value of <literal>gnome-terminal</literal> by 1. SystemTap performs this operation for <emphasis>all</emphasis> process names as the probe returns them.</para>
+</section>
+
+<section id="arrayops-foreach">
+	<title>Processing Elements in a Tuple as Iterations</title>
+	<para>Once you've collected enough information in an array, you will need to retrieve and process all elements in that array to make it useful. Consider <xref linkend="simplesimplevfsread"/>: the script collects information about how many VFS reads each process performs, but does not specify what to do with it. The obvious means for making <xref linkend="simplesimplevfsread"/> useful is to print the key pairs in the array <command>reads</command>, but how?</para>
+	
+	<para>The best way to process all elements in a tuple (treating each element as an iteration) is to use the <command>foreach</command> statement. Consider the following example:</para>
+
+<example id="simplevfsreadprint">
+	<title>cumulative-vfsreads.stp</title>
+<programlisting>
+global reads
+probe kernel.function("vfs_read")
+{ 
+	reads[execname()] ++
+}
+probe timer.s(3)
+{
+	foreach (count in reads)
+		printf("%s : %d \n", count, reads[count])
+}
+</programlisting>
+</example>
+
+<para>In the second probe of <xref linkend="simplevfsreadprint"/>, the <command>foreach</command> statement uses the variable <command>count</command> to reference each iteration of a unique key in the array <command>reads</command>. The <command>reads[count]</command> array statement in the same probe retrieves the associated value of each unique key.</para> 
+	
+<para>Given what we know about the first probe in <xref linkend="simplevfsreadprint"/>, the script prints VFS-read statistics every 3 seconds, displaying names of processes that performed a VFS-read along with a corresponding VFS-read count.</para>
+
+<para>Now, remember that the <command>foreach</command> statement in <xref linkend="simplevfsreadprint"/> prints <emphasis>all</emphasis> iterations of process names in the array, and in no particular order. You can instruct the script to process the iterations in a particular order by using <command>+</command> (ascending) or <command>-</command> (descending). In addition, you can also limit the number of iterations the script needs to process with the <command>limit <replaceable>value</replaceable></command> option.</para>
+
+<para>For example, consider the following replacement probe:</para>
+<screen>
+probe timer.s(3)
+{
+	foreach (count in reads+ limit 4)
+		printf("%s : %d \n", count, reads[count])
+}
+</screen>
+
+<para>This <command>foreach</command> statement instructs the script to process the elements in the array <command>reads</command> in ascending order (of associated value). The <command>limit 4</command> option instructs the script to only process the first four elements in the array (i.e. the first 4, starting with the lowest value).</para> 
+</section>
+
+<section id="arrayops-deleting">
+	<title>Clearing/Deleting Arrays and Array Elements</title>
+	
+	<para>Sometimes, you may need to clear the associated values in array elements, or reset an entire array for re-use in another probe. <xref linkend="simplevfsreadprint"/> in <xref linkend="arrayops-foreach"/> allows you to track how the number of VFS reads per process grows over time, but it does not show you the number of VFS reads each process makes per 3-second period.</para>
+	
+	<para>To do that, you will need to clear the values accumulated by the array. You can accomplish this using the <command>delete</command> operator to delete elements in an array, or an entire array. Consider the following example:</para>
+	
+<example id="simplevfsreadprintnotcumulative">
+	<title>vfsreads-per-2secs.stp</title>
+<programlisting>
+global reads
+probe kernel.function("vfs_read")
+{
+	reads[execname()] ++
+}
+probe timer.s(2)
+{
+	printf("=======\n")
+	foreach (count in reads+) 
+		printf("%s : %d \n", count, reads[count])
+	delete reads
+}
+</programlisting>
+</example>
+
+<para>In <xref linkend="simplevfsreadprintnotcumulative"/>, the second probe prints the number of VFS reads each process made <emphasis>within the probed 2-second period only</emphasis>. The <command>delete reads</command> statement clears the <command>reads</command> array within the probe.</para>
+
+<note>
+	<title>Note</title>
+	<para>You can have multiple array operations within the same probe. Using the examples from <xref linkend="arrayops-foreach"/> and <xref linkend="arrayops-deleting"/> , you can track the number of VFS reads each process makes per 2-second period <emphasis>and</emphasis> tally the cumulative VFS reads of those same processes. Consider the following example:</para>
+	
+<screen>
+global reads, totalreads
+
+probe kernel.function("vfs_read")
+{
+	reads[execname()] ++
+	totalreads[execname()] ++
+}
+
+probe timer.s(2)
+{
+	printf("=======\n")
+	foreach (count in reads+) 
+		printf("%s : %d \n", count, reads[count])
+	delete reads
+
+}
+probe end
+{
+	printf("TOTALS\n")
+	foreach (total in totalreads+)
+		printf("%s : %d \n", total, totalreads[total])
+}
+</screen>
+
+<para>In this example, the arrays <command>reads</command> and <command>totalreads</command> track the same information, and are printed out in a similar fashion. The only difference here is that <command>reads</command> is cleared every 2-second period, whereas <command>totalreads</command> keeps growing.</para> 
+</note>
+</section>	
+<section id="arrayops-conditionals">
+	<title>Using Arrays in Conditional Statements</title>
+	
+<para>You can also use associative arrays in <command>if</command> statements. This is useful if you want to execute a subroutine once a value in the array matches a certain condition. Consider the following example:</para>
+
+<example id="simplevfsreadprintif">
+	<title>vfsreads-stop-on-stapio.stp</title>
+<programlisting>
+global reads
+probe kernel.function("vfs_read")
+{
+	reads[execname()] ++
+}
+probe timer.s(2)
+{
+	printf("=======\n")
+	foreach (count in reads+) 
+		printf("%s : %d \n", count, reads[count])
+	if(reads["stapio"] >= 20)
+	{exit()}
+}
+</programlisting>
+</example>
+
+<para>The <command>if(reads["stapio"] >= 20)</command> instructs the script to execute the subroutine <command>exit()</command> once the value associated with the unique key <command>stapio</command> (in the array <command>reads</command>) is greater than or equal to 20.</para>
+
+<formalpara>
+	<title>Testing for Membership</title>
+<para>You can also test whether a specific unique key is a member of an array. Further, membership in an array can be used in <command>if</command> statements, as in:</para>
+</formalpara>
+
+<screen>
+if([<replaceable>index_expression</replaceable>] in <replaceable>array_name</replaceable>
+</screen>
+
+<para>To illustrate this, consider the following example:</para>
+
+<example id="simplesimplevfsreadprintifmember">
+	<title>vfsreads-stop-on-stapio2.stp</title>
+<programlisting>
+global reads
+
+probe kernel.function("vfs_read")
+{
+	reads[execname()] ++
+}
+
+probe timer.s(2)
+{
+	printf("=======\n")
+	foreach (count in reads+) 
+		printf("%s : %d \n", count, reads[count])
+	if(["stapio"] in reads)
+	{printf("stapio read detected, exiting\n")
+		exit()
+	}
+}
+</programlisting>		
+</example>
+
+<para>The <command>if(["stapio"] in reads)</command> statement instructs the script to print <computeroutput>stapio read detected, exiting</computeroutput> once the unique key <command>stapio</command> is added to the array <command>reads</command>.</para>
+</section>
+
+</section>

@@ -5,11 +5,11 @@
 <chapter id="useful-systemtap-scripts">
 	<title>Useful SystemTap Scripts</title>
 	
-	<para>This chapter enumerates several SystemTap scripts you can use to monitor and investigate different subsystems. All of these scripts are available at the following link:</para>
-	
+	<para>This chapter enumerates several SystemTap scripts you can use to monitor and investigate different subsystems. All of these scripts are available at <filename>/usr/share/systemtap/testsuite/systemtap.examples/</filename> once you install the <filename>systemtap-testsuite</filename> RPM.</para>
+<!--	
 	<para><ulink url="http://sourceware.org/systemtap/examples/subsystem-index.html">http://sourceware.org/systemtap/examples/subsystem-index.html</ulink></para>
 		
-		
+		-->
 	<remark>
 		short intro, reference to online source (http://sourceware.org/systemtap/examples/subsystem-index.html); "always updated"
 	</remark>
@@ -29,7 +29,8 @@
 	<xi:include href="Useful_Scripts-inodewatch.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-inodewatch2.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
 	<xi:include href="Useful_Scripts-functioncalls.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	<xi:include href="Useful_Scripts-kernelprofiling.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<!-- 	removed; handler function no longer working as expected
+	<xi:include href="Useful_Scripts-kernelprofiling.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 	<xi:include href="Useful_Scripts-futexes.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-nettop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-sockettrace.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
