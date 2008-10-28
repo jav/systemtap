@@ -67,4 +67,16 @@ static inline void arch_restore_uret_addr(unsigned long ret_addr,
 {
 	regs->nip = ret_addr;
 }
+
+static unsigned long arch_get_cur_sp(struct pt_regs *regs)
+{
+	return (unsigned long)(regs->gpr[1]);
+}
+
+static unsigned long arch_predict_sp_at_ret(struct pt_regs *regs,
+		struct task_struct *tsk)
+{
+	return (unsigned long)(regs->gpr[1]);
+}
+
 #endif				/* _ASM_UPROBES_H */

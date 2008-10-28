@@ -2081,6 +2081,7 @@ static int uprobe_fork_uretprobe_instances(struct uprobe_task *parent_utask,
 			return -ENOMEM;
 		cri->rp = NULL;
 		cri->ret_addr = pri->ret_addr;
+		cri->sp = pri->sp;
 		INIT_HLIST_NODE(&cri->hlist);
 		if (tail)
 			hlist_add_after(tail, &cri->hlist);
@@ -2309,6 +2310,44 @@ module_exit(exit_uprobes);
 
 #ifdef CONFIG_URETPROBES
 
+/* Returns true if ri_sp lies outside the stack (beyond cursp). */
+static inline bool compare_stack_ptrs(unsigned long cursp,
+		unsigned long ri_sp)
+{
+#ifdef CONFIG_STACK_GROWSUP
+	if (cursp < ri_sp)
+		return true;
+#else
+	if (cursp > ri_sp)
+		return true;
+#endif
+	return false;
+}
+
+/*
+ * A longjmp may cause one or more uretprobed functions to terminate without
+ * returning.  Those functions' uretprobe_instances need to be recycled.
+ * We detect this when any uretprobed function is subsequently called
+ * or returns.  A bypassed uretprobe_instance's stack_ptr is beyond the
+ * current stack.
+ */
+static inline void uretprobe_bypass_instances(unsigned long cursp,
+                struct uprobe_task *utask)
+{
+	struct hlist_node *r1, *r2;
+	struct uretprobe_instance *ri;
+	struct hlist_head *head = &utask->uretprobe_instances;
+
+	hlist_for_each_entry_safe(ri, r1, r2, head, hlist) {
+		if (compare_stack_ptrs(cursp, ri->sp)) {
+			hlist_del(&ri->hlist);
+			kfree(ri);
+			uprobe_decref_process(utask->uproc);
+		} else
+			return;
+	}
+}
+
 /* Called when the entry-point probe u is hit. */
 static void uretprobe_handle_entry(struct uprobe *u, struct pt_regs *regs,
 	struct uprobe_task *utask)
@@ -2326,6 +2365,8 @@ static void uretprobe_handle_entry(struct uprobe *u, struct pt_regs *regs,
 		return;
 	ri->ret_addr = arch_hijack_uret_addr(trampoline_addr, regs, utask);
 	if (likely(ri->ret_addr)) {
+		ri->sp = arch_predict_sp_at_ret(regs, utask->tsk);
+		uretprobe_bypass_instances(ri->sp, utask);
 		ri->rp = container_of(u, struct uretprobe, u);
 		INIT_HLIST_NODE(&ri->hlist);
 		hlist_add_head(&ri->hlist, &utask->uretprobe_instances);
@@ -2348,11 +2389,13 @@ static void uretprobe_handle_entry(struct uprobe *u, struct pt_regs *regs,
 static unsigned long uretprobe_run_handlers(struct uprobe_task *utask,
 		struct pt_regs *regs, unsigned long trampoline_addr)
 {
-	unsigned long ret_addr;
+	unsigned long ret_addr, cur_sp;
 	struct hlist_head *head = &utask->uretprobe_instances;
 	struct uretprobe_instance *ri;
 	struct hlist_node *r1, *r2;
 
+	cur_sp = arch_get_cur_sp(regs);
+	uretprobe_bypass_instances(cur_sp, utask);
 	hlist_for_each_entry_safe(ri, r1, r2, head, hlist) {
 		if (ri->rp && ri->rp->handler)
 			ri->rp->handler(ri, regs);

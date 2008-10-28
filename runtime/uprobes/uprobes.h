@@ -68,8 +68,8 @@ struct uretprobe_instance {
 	struct uretprobe *rp;
 	unsigned long ret_addr;
 	struct hlist_node hlist;
+	unsigned long sp;
 	unsigned long reserved1;
-	unsigned long reserved2;
 };
 
 extern int register_uprobe(struct uprobe *u);

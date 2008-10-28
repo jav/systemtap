@@ -106,6 +106,15 @@ static inline void arch_restore_uret_addr(unsigned long ret_addr,
 	REGS_IP = ret_addr;
 }
 
+static unsigned long arch_get_cur_sp(struct pt_regs *regs)
+{
+	return (unsigned long)REGS_SP;
+}
+
 static unsigned long arch_hijack_uret_addr(unsigned long trampoline_addr,
-				struct pt_regs*, struct uprobe_task*);
+		struct pt_regs *regs, struct uprobe_task *utask);
+
+static unsigned long arch_predict_sp_at_ret(struct pt_regs *regs,
+		struct task_struct *tsk);
+
 #endif				/* _ASM_UPROBES_H */

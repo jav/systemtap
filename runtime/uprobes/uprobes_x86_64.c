@@ -701,3 +701,13 @@ unsigned long arch_hijack_uret_addr(unsigned long trampoline_address,
 	}
 	return orig_ret_addr;
 }
+
+static
+unsigned long arch_predict_sp_at_ret(struct pt_regs *regs,
+		struct task_struct *tsk)
+{
+	if (test_tsk_thread_flag(tsk, TIF_IA32))
+		return (unsigned long) regs->rsp + 4;
+	else
+		return (unsigned long) regs->rsp + 8;
+}
