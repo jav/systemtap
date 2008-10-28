@@ -12,29 +12,7 @@
 	<title>traceio.stp</title>
 <para>
 <programlisting>
-global reads, writes, total_io
-
-probe kernel.function("vfs_read").return {
-	reads[execname()] += $return
-}
-
-probe kernel.function("vfs_write").return {
-	writes[execname()] += $return
-}
-
-probe timer.s(1) {
-	foreach (p in reads)
-		total_io[p] += reads[p]
-	foreach (p in writes)
-		total_io[p] += writes[p]
-	foreach(p in total_io- limit 10)
-		printf("%15s r: %8d KiB w: %8d KiB\n",
-			p, reads[p]/1024,
-			writes[p]/1024)
-		printf("\n")
-	# Note we don't zero out reads, writes and total_io,
-	# so the values are cumulative since the script started.
-}
+<xi:include parse="text" href="extras/io/traceio.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>
@@ -68,6 +46,31 @@ pam_timestamp_c r:      138 KiB w:        0 KiB
           cupsd r:        4 KiB w:       18 KiB
 </screen>
 </example>		
-	</section>
+<!--	
+global reads, writes, total_io
+
+probe kernel.function("vfs_read").return {
+reads[execname()] += $return
+}
+
+probe kernel.function("vfs_write").return {
+writes[execname()] += $return
+}
+
+probe timer.s(1) {
+foreach (p in reads)
+total_io[p] += reads[p]
+foreach (p in writes)
+total_io[p] += writes[p]
+foreach(p in total_io- limit 10)
+printf("%15s r: %8d KiB w: %8d KiB\n",
+p, reads[p]/1024,
+writes[p]/1024)
+printf("\n")
+# Note we don't zero out reads, writes and total_io,
+# so the values are cumulative since the script started.
+}-->
+
+</section>
 
 

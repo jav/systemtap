@@ -19,29 +19,10 @@
 	<para>This section describes how to trace incoming and outgoing function calls. </para>
 	
 <formalpara id="scriptcallgraph">
-		<title>para-callgraph.stp</title>
+	<title>para-callgraph-simple.stp</title>
 <para>
 <programlisting>
-function trace(entry_p) {
-   if(tid() in trace)
-       printf("%s%s%s\n",thread_indent(entry_p),
-                         (entry_p>0?"->":"&lt;-"),
-                         probefunc())
-}
-
-global trace
-probe kernel.function(@1).call {
-   if (execname() == "stapio") next # skip our own helper process
-   trace[tid()] = 1
-   trace(1)
-}
-probe kernel.function(@1).return {
-   trace(-1)
-   delete trace[tid()]
-}
-
-probe kernel.function(@2).call { trace(1) }
-probe kernel.function(@2).return { trace(-1) }
+<xi:include parse="text" href="extras/general/para-callgraph-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>		
@@ -94,6 +75,29 @@ probe kernel.function(@2).return { trace(-1) }
 </screen>
 </example>
 
+<!--
+    function trace(entry_p) {
+    if(tid() in trace)
+    printf("%s%s%s\n",thread_indent(entry_p),
+    (entry_p>0?"->":"&lt;-"),
+probefunc())
+}
 
+global trace
+probe kernel.function(@1).call {
+if (execname() == "stapio") next # skip our own helper process
+trace[tid()] = 1
+trace(1)
+}
+probe kernel.function(@1).return {
+trace(-1)
+delete trace[tid()]
+}
+
+probe kernel.function(@2).call { trace(1) }
+probe kernel.function(@2).return { trace(-1) }    
+    
+    
+    -->
 	</section>
 

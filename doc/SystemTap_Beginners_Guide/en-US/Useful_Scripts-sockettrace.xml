@@ -15,15 +15,10 @@
 <para>This section describes how to trace functions called from the kernel's <filename>net/socket.c</filename> file. This task helps you identify, in finer detail, how each process interacts with the network at the kernel level.</para>
 
 <formalpara id="sockettrace">
-		<title>sockettrace.stp</title>
+		<title>socket-trace.stp</title>
 <para>
 <programlisting>
-probe kernel.function("*@net/socket.c").call {
-  printf ("%s -> %s\n", thread_indent(1), probefunc())
-}
-probe kernel.function("*@net/socket.c").return {
-  printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
-}
+<xi:include parse="text" href="extras/network/socket-trace.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>		
@@ -67,5 +62,16 @@ probe kernel.function("*@net/socket.c").return {
 	
 	<listitem><para>The name of the function called by the process.</para></listitem>
 </itemizedlist>	
-	</section>
+<!--
+    probe kernel.function("*@net/socket.c").call {
+    printf ("%s -> %s\n", thread_indent(1), probefunc())
+}
+probe kernel.function("*@net/socket.c").return {
+printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
+}
+    
+    
+    -->
+
+</section>
 

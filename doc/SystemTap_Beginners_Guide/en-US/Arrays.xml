@@ -5,15 +5,15 @@
 <section id="associativearrays">
 	<title>Associative Arrays</title>
 	
-<para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values arranged in tabular format. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it. Illustrating this visually would be similar to creating a two-column table: the first column would have the unique key, while the second column would have each key's associated value. Each unique key and its associated value is referred to as a <emphasis>key pair</emphasis>.</para>
+<para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it. Illustrating this visually would be similar to creating a two-column table: the first column would have the unique key, while the second column would have each key's associated value. Each unique key and its associated value is referred to as a <emphasis>key pair</emphasis>.</para>
 
-<para>Since associative arrays are normally processed in multiple probes (as we will demonstrate later), they are declared as <command>global</command> variables in the SystemTap script. The syntax for manipulating arrays is similar to that of <command>awk</command>, and is as follows:</para>
+<para>Since associative arrays are normally processed in multiple probes (as we will demonstrate later), they are declared as <command>global</command> variables in the SystemTap script. The syntax for manipulating arrays (i.e. accessing elements in an associative array) is similar to that of <command>awk</command>, and is as follows:</para>
 
 <screen>
-<replaceable>array_name</replaceable>[<replaceable>index expression</replaceable>] <replaceable>operation</replaceable>
+<replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>] <replaceable>operation</replaceable>
 </screen>
 
-<para>Here, the <command><replaceable>array_name</replaceable></command> is any arbitrary name the array uses. The <command><replaceable>index expression</replaceable></command> is used to refer to a specific unique key (or set of unique keys) in the array, and the <command><replaceable>operation</replaceable></command> defines what to do with the <command><replaceable>index expression</replaceable></command>. To illustrate, let us try to build an array named <command>foo</command> that specifies the ages of three people (i.e. the unique keys): <command>tom</command>, <command>dick</command>, and <command>harry</command>. To assign them the ages (i.e. associated values) of 23, 24, and 25 respectively, we'd use the following array statements:</para> 
+<para>Here, the <command><replaceable>array_name</replaceable></command> is any arbitrary name the array uses. The <command><replaceable>index_expression</replaceable></command> is used to refer to a specific unique key (or set of unique keys) in the array, and the <command><replaceable>operation</replaceable></command> defines what to do with the <command><replaceable>index_expression</replaceable></command>. To illustrate, let us try to build an array named <command>foo</command> that specifies the ages of three people (i.e. the unique keys): <command>tom</command>, <command>dick</command>, and <command>harry</command>. To assign them the ages (i.e. associated values) of 23, 24, and 25 respectively, we'd use the following array statements:</para> 
 
 
 <example id="arraysimplestexample">
@@ -25,9 +25,15 @@ foo["harry"] = 25
 </screen>
 </example>
 
+<important>
+	<title>Important</title>
+	<para>Arrays are normally used in multiple probes throughout a script: in most cases, one probe builds the arrays while another probe processes the information collected by the array (e.g. print its elements). Since the treatment of arrays is similar to that of variables, arrays must also be declared globally with the statement <command>global</command> when they are used by multiple probes.</para>
+</important>
+
+
 <section id="tuples">
 	<title>Tuples</title>
-<para>Another important point to remember in arrays is that each exists in a <emphasis>slot</emphasis> in the array. A key pair's slot is defined by the order in which each pair's unique key is defined. In our sample array <command>foo</command> in <xref linkend="arraysimplestexample"/>, the key pair that uses the unique key <command>tom</command> is in the first slot, since <command>tom</command> was the first unique key to be defined. <command>dick</command> is in the second slot, and so on.</para>
+<para>Another important point to remember in arrays is that each element therein (i.e. the indexed expression) exists in a <emphasis>slot</emphasis>. A key pair's slot is defined by the order in which each pair's unique key is defined. In our sample array <command>foo</command> in <xref linkend="arraysimplestexample"/>, the key pair that uses the unique key <command>tom</command> is in the first slot, since <command>tom</command> was the first unique key to be defined. <command>dick</command> is in the second slot, and so on.</para>
 
 
 <para>The sequence in which each key pair appears in an array (as defined by each pair's slot) is referred to as a <emphasis>tuple</emphasis>. Tuples allow us to refer to key pairs in an array by the order in which they appear in the sequence.</para>
@@ -46,7 +52,7 @@ foo[2] ++
 
 <note>
 	<title>Note</title>
-	<para>You can specify up to 5 index index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to perform the same operation to a set of key pairs. For example, to increase the associated value of all the key pairs defined by <xref linkend="arraysimplestexample"/>, you can use the following statement:</para>
+	<para>You can specify up to 5 index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to perform the same operation to a set of key pairs. For example, to increase the associated value of all the key pairs defined by <xref linkend="arraysimplestexample"/>, you can use the following statement:</para>
 	
 <screen>
 foo["tom",2,"harry"] ++
@@ -55,63 +61,7 @@ foo["tom",2,"harry"] ++
 
 
 </section>	
-	
-<section id="arrayoperators">
-	<title>Commonly Used Array Operators in SystemTap</title>
-	
-<para>This section enumerates some of the most commonly used array operators in SystemTap.</para>
-
-<variablelist>
-	
-<varlistentry>
-	<term>Assigning Associated Value</term>
-	<listitem>
-		<para>Use <command>=</command> to set an associated value to indexed unique pairs, as in:</para>
-<screen>
-<replaceable>array_name</replaceable>[<replaceable>index expression</replaceable>] = <replaceable>value</replaceable>
-</screen>
-
-<para><xref linkend="arraysimplestexample"/> shows a very basic example of how to set an explicit associated value to a unique key. You can also use a handler function as both your <command><replaceable>index expression</replaceable></command> and <command><replaceable>value</replaceable></command>. For example, you can use arrays to set a timestamp as the associated value to a process name (which you wish to use as your unique key), as in:</para>
-
-<example id="arrays-timestampprocessname">
-	<title>Associating Timestamps to Process Names</title>
-<programlisting>
-foo[execname()] = gettimeofday_s()
-</programlisting>
-</example>
-
-<para>Whenever an event invokes the statement in <xref linkend="arrays-timestampprocessname"/>, SystemTap returns the appropriate <command>execname()</command> value (i.e. the name of a process, which is then used as the unique key). At the same time, SystemTap also uses the function <command>gettimeofday_s()</command> to set the corresponding timestamp as the associated value to the unique key defined by the function <command>execname()</command>. This creates an array composed of key pairs containing process names and timestamps.</para>
-	
-<para>In this same example, if <command>execname()</command> returns a value that is already defined in the array <command>foo</command>, the operator will discard the original associated value to it, and replace it with the current timestamp from <command>gettimeofday_s()</command>.</para>		
-	</listitem>	
-</varlistentry>	
-	
-<varlistentry>
-	<term>Incrementing Associated Values</term>
-	<listitem>
-		<para>Use <command>++</command> to increment the associated value of a unique key in an array, as in:</para>
-<screen>
-<replaceable>array_name</replaceable>[<replaceable>index expression</replaceable>] ++
-</screen>
-
-<para>Again, you can also use a handler function for your <command><replaceable>index expression</replaceable></command>. For example, if you wanted to tally how many times a specific process performed a read to the virtual file system (using the event <command>kernel.function("vfs_read")</command>), you can use the following probe:</para>
-
-<formalpara id="simplesimplevfsread">
-	<title>vfsreads.stp</title>
-<para>
-<programlisting>
-probe kernel.function("vfs_read") 
-{
-	reads[execname()] ++
-}
-</programlisting>
-</para>
-</formalpara>
-
-<para>In <xref linkend="simplesimplevfsread"/>, the first time that the probe returns the process name <command>gnome-terminal</command> (i.e. the first time <command>gnome-terminal</command> performs a VFS read), that process name is set as the unique key <literal>gnome-terminal</literal> with an associated value of 1. The next time that the probe returns the process name <command>gnome-terminal</command>, SystemTap increments the associated value of <command>gnome-terminal</command> by 1. SystemTap performs this operation for <emphasis>all</emphasis> process names as the probe returns them.</para>
-
-	</listitem>	
-</varlistentry>	
+<xi:include href="Array-Operations.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
 <!--	
 <varlistentry>
 	<term></term>
@@ -120,12 +70,7 @@ probe kernel.function("vfs_read")
 	</listitem>	
 </varlistentry>
 -->	
-	
-</variablelist>
-<remark>need to add a link to a more complete list of commonly used array operators!</remark>
-</section>
-	
-	
+
 	
 	
 	
@@ -139,7 +84,7 @@ probe kernel.function("vfs_read")
 <para>The simplest form of data manipulation in associative arrays is incrementing the associated value of a unique key in the array. The syntax for this operation is as follows:</para>
 </formalpara>
 <screen>
-<replaceable>array_name</replaceable>[<replaceable>index expression</replaceable>"] ++
+<replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>"] ++
 </screen>
 
 <para>Here, the <command>++</command> operation instructs SystemTap to increment the associated value of <command><replaceable>unique_key</replaceable></command> by <command><replaceable>value</replaceable></command>. For example, to increase the associated value of unique key <command>hello</command> in array <command>foo</command> by 4, use:</para>

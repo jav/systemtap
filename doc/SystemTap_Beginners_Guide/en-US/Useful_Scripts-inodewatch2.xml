@@ -19,21 +19,10 @@ no script in examples
 	<para>This section describes how to monitor if any processes are changing the attributes of a targeted file, in real time. </para>
 	
 <formalpara id="inodewatch2">
-		<title>inodewatch2.stp</title>
+	<title>inodewatch2-simple.stp</title>
 <para>
 <programlisting>
-global ATTR_MODE = 1
-
-probe kernel.function("inode_setattr") {
-  dev_nr = $inode->i_sb->s_dev
-  inode_nr = $inode->i_ino
-
-  if (dev_nr == ($1 &lt;&lt; 20 | $2) # major/minor device
-  &amp;&amp; inode_nr == $3
-  &amp;&amp; $attr->ia_valid &amp; ATTR_MODE)
-	printf ("%s(%d) %s 0x%x/%u %o %d\n",
-	execname(), pid(), probefunc(), dev_nr, inode_nr, $attr->ia_mode, uid())
-	}
+<xi:include parse="text" href="extras/general/inodewatch2-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>		
@@ -51,7 +40,22 @@ chmod(17448) inode_setattr 0x800005/6011835 100777 500
 chmod(17449) inode_setattr 0x800005/6011835 100666 500
 </screen>
 </example>
+<!--  
+global ATTR_MODE = 1
 
+probe kernel.function("inode_setattr") {
+  dev_nr = $inode->i_sb->s_dev
+  inode_nr = $inode->i_ino
+
+  if (dev_nr == ($1 &lt;&lt; 20 | $2) # major/minor device
+  &amp;&amp; inode_nr == $3
+  &amp;&amp; $attr->ia_valid &amp; ATTR_MODE)
+	printf ("%s(%d) %s 0x%x/%u %o %d\n",
+	execname(), pid(), probefunc(), dev_nr, inode_nr, $attr->ia_mode, uid())
+	}      
+      
+      
+      -->
 
 	</section>
 

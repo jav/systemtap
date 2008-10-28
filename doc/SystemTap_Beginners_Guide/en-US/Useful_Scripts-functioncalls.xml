@@ -19,19 +19,10 @@ no script in examples
 	<para>This section describes how to identify how many times the system called a specific kernel function in a 30-second sample. Depending on your use of wildcards, you can also use this script to target multiple kernel functions.</para>
 	
 <formalpara id="countcalls">
-		<title>countcalls.stp</title>
+	<title>functioncallcount.stp</title>
 <para>
 <programlisting>
-probe kernel.function(@1) {  # probe function passed as argument from stdin
-called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
-}
-global called          
-probe end,timer.ms(30000) {
-  foreach (fn+ in called)  # Sort by function name
-  #       (fn in called-)  # Sort by call count (in decreasing order)
-    printf("%s %d\n", fn, @count(called[fn]))
-  exit()
-}
+<xi:include parse="text" href="extras/profiling/functioncallcount.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>		
@@ -74,7 +65,16 @@ atomic_inc_and_test 1
 [...]
 </screen>
 </example>
-
+<!--probe kernel.function(@1) {  # probe function passed as argument from stdin
+called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
+}
+global called          
+probe end,timer.ms(30000) {
+foreach (fn+ in called)  # Sort by function name
+#       (fn in called-)  # Sort by call count (in decreasing order)
+printf("%s %d\n", fn, @count(called[fn]))
+exit()
+}-->
 
 	</section>
 

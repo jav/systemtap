@@ -22,20 +22,15 @@
 		</para>
 		
 <formalpara id="traceio2">
-	<title>traceio2.stp</title>
+	<title>traceio2-simple.stp</title>
 <para>
 <programlisting>
-probe kernel.function ("vfs_write"),
-      kernel.function ("vfs_read")
-{
-        dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
-        inode_nr = $file->f_dentry->d_inode->i_ino
-        if (dev_nr == ($1 &lt;&lt; 20 | $2))
-                printf ("%s(%d) %s 0x%x\n", execname(), pid(), probefunc(), dev_nr)
-}
+<xi:include parse="text" href="extras/io/traceio2-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>
+
+<remark>in new SystemTap, returned a warning, but ran ok.</remark>
 
 <para condition="fedora">For some kernel versions (e.g. <filename>2.6.21-1.3194.fc7</filename>), you may need to revise <xref linkend="traceio2"/> accordingly. SystemTap will output the following error if you need to do so:</para>
 
@@ -74,7 +69,18 @@ cupsd(2889) vfs_write 0x800005
 cupsd(2889) vfs_write 0x800005
 [...]
 </screen>
-</example>		
+</example>
+<!--
+probe kernel.function ("vfs_write"),
+kernel.function ("vfs_read")
+{
+dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
+inode_nr = $file->f_dentry->d_inode->i_ino
+if (dev_nr == ($1 &lt;&lt; 20 | $2))
+printf ("%s(%d) %s 0x%x\n", execname(), pid(), probefunc(), dev_nr)
+}-->
+
+
 	</section>
 
 

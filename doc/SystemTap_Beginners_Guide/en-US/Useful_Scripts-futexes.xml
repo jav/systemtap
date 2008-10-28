@@ -23,10 +23,39 @@ no script in examples
 	<para>To do this, <xref linkend="futexcontention"/> probes the <command>futex</command> system call.</para>
 	
 <formalpara id="futexcontention">
-		<title>futexcontention.stp</title>
+		<title>futexes.stp</title>
 <para>
 <programlisting>
-global thread_thislock # short
+<xi:include parse="text" href="extras/process/futexes.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>		
+
+<para><xref linkend="futexcontention"/> needs to be manually stopped; upon exit, it prints the following information:</para>
+
+<itemizedlist>
+	<listitem><para>Name and ID of the process responsible for a contention</para></listitem>
+	<listitem><para>The region of memory it contested</para></listitem>
+	<listitem><para>How many times the region of memory was contended</para></listitem>
+	<listitem><para>Average time of contention throughout the probe</para></listitem>
+</itemizedlist>
+
+<para><xref linkend="futexcontentionoutput"/> contains an excerpt from the output of <xref linkend="futexcontention"/> upon exiting the script (after approximately 20 seconds).</para>
+	
+
+<example id="futexcontentionoutput">
+	<title><xref linkend="futexcontention"/> Sample Output</title>
+<screen>
+[...]	
+automount[2825] lock 0x00bc7784 contended 18 times, 999931 avg us
+synergyc[3686] lock 0x0861e96c contended 192 times, 101991 avg us
+synergyc[3758] lock 0x08d98744 contended 192 times, 101990 avg us
+synergyc[3938] lock 0x0982a8b4 contended 192 times, 101997 avg us
+[...]
+</screen>
+</example>
+
+<!-- global thread_thislock # short
 global thread_blocktime #
 global FUTEX_WAIT = 0, FUTEX_WAKE = 1
 
@@ -56,33 +85,6 @@ probe end {
    foreach ([pid+, lock] in lock_waits)
      printf ("%s[%d] lock %p contended %d times, %d avg us\n",
        process_names[pid], pid, lock, @count(lock_waits[pid,lock]), @avg(lock_waits[pid,lock]))
-}
-</programlisting>
-</para>
-</formalpara>		
-
-<para><xref linkend="futexcontention"/> needs to be manually stopped; upon exit, it prints the following information:</para>
-
-<itemizedlist>
-	<listitem><para>Name and ID of the process responsible for a contention</para></listitem>
-	<listitem><para>The region of memory it contested</para></listitem>
-	<listitem><para>How many times the region of memory was contended</para></listitem>
-	<listitem><para>Average time of contention throughout the probe</para></listitem>
-</itemizedlist>
-
-<para><xref linkend="futexcontentionoutput"/> contains the output of <xref linkend="futexcontention"/> upon exiting the script after approximately 20 seconds.</para>
-	
-
-<example id="futexcontentionoutput">
-	<title><xref linkend="futexcontention"/> Sample Output</title>
-<screen>
-automount[2825] lock 0x00bc7784 contended 18 times, 999931 avg us
-synergyc[3686] lock 0x0861e96c contended 192 times, 101991 avg us
-synergyc[3758] lock 0x08d98744 contended 192 times, 101990 avg us
-synergyc[3938] lock 0x0982a8b4 contended 192 times, 101997 avg us
-</screen>
-</example>
-
-
+} -->
 	</section>
 

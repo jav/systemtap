@@ -38,9 +38,23 @@
 		SystemTap scripts use the file extension <filename>.stp</filename>, and are written in the following format:
 	</para>
 </formalpara>	
-<programlisting>
+<screen>
 probe	<replaceable>event</replaceable>, {<replaceable>handler</replaceable>}
-</programlisting>		
+</screen>
+
+<para>
+	Sometimes, you may need to recycle a handler accross multiple probes. Rather than rewrite handler statements accross probes, you can simply recycle them using <firstterm>functions</firstterm>, as in:
+</para>
+
+<screen>
+function <replaceable>function_name</replaceable> {<replaceable>handler1</replaceable>}
+probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>}
+</screen>
+
+<para>Here, the probe executes <command><replaceable>handler1</replaceable></command> as the handler for the probed <command><replaceable>event</replaceable></command>.</para>
+
+
+
 <!--
 	<para>The <replaceable>exit()</replaceable> condition is optional; this condition safely terminates the session once the script successfully collects the required information the first time.</para>	
 	-->
@@ -353,13 +367,14 @@ hald(2360) open
 		<para>A string describing the probe point currently being handled.</para>
 	</listitem>	
 </varlistentry>
-
+<!-- removed, doesnt work as expected anymore
 <varlistentry>
 	<term>probefunc()</term>
 	<listitem>
 		<para>If known, the name of the function in which the probe was placed.</para>
 	</listitem>	
 </varlistentry>
+-->
 
 <varlistentry>
 	<term>thread_indent()</term>
