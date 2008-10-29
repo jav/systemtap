@@ -155,8 +155,14 @@ void start_cmd(void)
         if (words.we_wordc < 1) { _err ("empty -c COMMAND"); _exit (1); }
       }
 
+/* PR 6964: when tracing all the user space process including the child
+   the signal will be messed due to uprobe module or utrace bug. The kernel
+   will get crashed. Temporarily disabled.
+*/
+#if 0
     rc = ptrace (PTRACE_TRACEME, 0, 0, 0);
     if (rc < 0) perror ("ptrace me");
+#endif
 
 #if 0
     dbug(1, "blocking briefly\n");
@@ -178,10 +184,17 @@ void start_cmd(void)
   } else {
     /* We're in the parent.  The child will parse target_cmd and execv()
        the result.  It will be stopped thereabouts and send us a SIGTRAP. */
+
     target_pid = pid;
+/* PR 6964: when tracing all the user space process including the child
+   the signal will be messed due to uprobe module or utrace bug. The kernel
+   will get crashed. Temporarily disabled.
+*/
+#if 0
     int status;
     waitpid (target_pid, &status, 0);
     dbug(1, "waited for target_cmd %s pid %d status %x\n", target_cmd, target_pid, (unsigned) status);
+#endif
   }
 }
 
@@ -389,6 +402,11 @@ int stp_main_loop(void)
             kill(target_pid, SIGKILL);
           cleanup_and_exit(0);
         } else if (target_cmd) {
+/* PR 6964: when tracing all the user space process including the child
+   the signal will be messed due to uprobe module or utrace bug. The kernel
+   will get crashed. Temporarily disabled.
+*/
+#if 0
           dbug(1, "detaching pid %d\n", target_pid);
           int rc = ptrace (PTRACE_DETACH, target_pid, 0, 0);
           if (rc < 0)
@@ -398,6 +416,7 @@ int stp_main_loop(void)
                 kill(target_pid, SIGKILL);
               cleanup_and_exit(0);
             }
+#endif
         }
         break;
       }
