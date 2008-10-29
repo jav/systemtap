@@ -1,3 +1,7 @@
+2008-10-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/vars.exp: Remove "2>&1" that left turds behind.
+
 2008-10-28  Frank Ch. Eigler  <fche@elastic.org>
 
 	From Srikar Dronamraju <srikar@linux.vnet.ibm.com>:
