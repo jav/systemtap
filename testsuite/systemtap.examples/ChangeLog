@@ -1,5 +1,9 @@
 2008-10-27  William Cohen  <wcohen@redhat.com>
 
+	* io/traceio2.stp: Use local variable available from vfs tapset.
+	
+2008-10-27  William Cohen  <wcohen@redhat.com>
+
 	* io/disktop.stp: Clean up disktop.stp and check in for real.
 
 2008-10-29  Frank Ch. Eigler  <fche@elastic.org>

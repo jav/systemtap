@@ -9,14 +9,9 @@ probe begin {
   device_of_interest = MKDEV(MAJOR(dev), MINOR(dev))
 }
 
-probe vfs.write,
-      vfs.read
+probe vfs.write, vfs.read
 {
-        dev_nr = $file->
-             	%( kernel_v < "2.6.19" %? f_dentry %: f_path->dentry %)
-		->d_inode->i_sb->s_dev
-
-        if (dev_nr == device_of_interest)
+        if (dev == device_of_interest)
                 printf ("%s(%d) %s 0x%x\n",
-		        execname(), pid(), probefunc(), dev_nr)
+		        execname(), pid(), probefunc(), dev)
 }
