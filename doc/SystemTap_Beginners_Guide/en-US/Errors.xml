@@ -12,8 +12,8 @@
 <section id="parsetype">
 	<title>Parse and Type Errors</title>
 	
-<para>These types of errors occur before the translation phase of a SystemTap session, i.e. before the script is translated into C.</para>
-
+<para>These types of errors occur while SystemTap attempts to parse and translate the script into C, prior to being converted into a kernel module.</para>
+	
 <formalpara><title>parse error: expected <replaceable>foo</replaceable>, saw <replaceable>bar</replaceable></title>
 	
 <para>The script contains a grammatical/typographical error. SystemTap detected type of construct that is incorrect, given the context of the probe.
@@ -48,12 +48,12 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: unresolved type for identifier '<replaceable>foo</replaceable>'</title>
-<para>TBD</para>
+<para>The identifier (e.g. a variable) was used, but no operation could assign it a type (e.g. integer, string). This occurs, for instance, if you use a variable in a <command>printf</command> statement while no other function in the script can assign a value to it.</para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: Expecting symbol or array index expression</title>
-<para>TBD</para>
+<para>SystemTap found an operation that could not assign a value to a variable or unique key referenced by an array index expression.</para>
 </formalpara>
 
 </section>	
@@ -65,17 +65,17 @@ probe syscall.open
 	
 <formalpara>
 	<title>while searching for arity <replaceable>N</replaceable> function, semantic error: unresolved function call</title>
-<para>TBD</para>
+<para>A function call or array index expression in the script used an invalid number of arguments/parameters. In SystemTap,  <firstterm>arity</firstterm> can either refer to the number of key pairs to an array, or the number of parameters to a function.</para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: array locals not supported:</title>
-	<para>TBD</para>
+	<para>The script used an array operation without declaring the array as global first. Similar messages appear if an array is used, but with inconsistent arities.</para>
 </formalpara>
 
 <formalpara>
-	<title>semantic error: variable ’<replaceable>foo</replaceable>’ modiﬁed during ’<replaceable>construct</replaceable>’</title>
-	<para>TBD</para>
+	<title>semantic error: variable ’<replaceable>foo</replaceable>’ modiﬁed during ’foreach’</title>
+	<para>The array <literal>foo</literal> is being modifed (being assigned to or deleted from) within an active <command>foreach</command> loop. This error also displays if an operation within the script performs a function call within the <command>foreach</command> loop.</para>
 </formalpara>
 </section>
 
