@@ -1,0 +1,8 @@
+probe kernel.function ("vfs_write"),
+kernel.function ("vfs_read")
+{
+dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
+inode_nr = $file->f_dentry->d_inode->i_ino
+if (dev_nr == ($1 << 20 | $2))
+printf ("%s(%d) %s 0x%x\n", execname(), pid(), probefunc(), dev_nr)
+}
