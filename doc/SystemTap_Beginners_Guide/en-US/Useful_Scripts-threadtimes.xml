@@ -18,7 +18,7 @@
 		<title>thread-times.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/profiling/thread-times.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="extras/extras/profiling/thread-times.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>		

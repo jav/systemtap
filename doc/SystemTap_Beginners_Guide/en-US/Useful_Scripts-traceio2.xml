@@ -25,7 +25,7 @@
 	<title>traceio2-simple.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/io/traceio2-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="extras/traceio2-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>

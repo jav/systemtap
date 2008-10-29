@@ -11,7 +11,7 @@
 	<title>iotop.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/io/iotop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="extras/extras/io/iotop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>

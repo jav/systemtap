@@ -22,7 +22,7 @@ no script in examples
 	<title>inodewatch2-simple.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/general/inodewatch2-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="extras/inodewatch2-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>		
