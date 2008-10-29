@@ -4481,9 +4481,10 @@ dump_unwindsyms (Dwfl_Module *m,
                   secname = dwfl_module_relocation_info (m, ki, NULL);
                 }
 
-              if (n == 1 && modname == "kernel" && secname && secname[0] == '\0')
+              if (n == 1 && modname == "kernel")
                 {
-                  // This is a symbol within a relocatable kernel image.
+                  // This is a symbol within a (possibly relocatable)
+                  // kernel image.
                   secname = "_stext";
                   // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
                   // Instead, sym_addr will get compensated later via extra_offset.
