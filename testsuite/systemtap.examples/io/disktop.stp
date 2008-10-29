@@ -2,10 +2,11 @@
 #
 # Copyright (C) 2007 Oracle Corp.
 #
-# Get the status of reading/writing disk every 5 seconds, output top ten entries 
+# Get the status of reading/writing disk every 5 seconds,
+# output top ten entries 
 #
-# This is free software,GNU General Public License (GPL); either version 2, or (at your option) any
-# later version.
+# This is free software,GNU General Public License (GPL);
+# either version 2, or (at your option) any later version.
 #
 # Usage:
 #  ./disktop.stp
@@ -14,11 +15,8 @@
 global io_stat,device
 global read_bytes,write_bytes
 
-probe kernel.function("vfs_read").return {
+probe vfs.read.return {
 	if ($return>0) {
-		dev = __file_dev($file)
-		devname = __find_bdevname(dev,__file_bdev($file))
-
 		if (devname!="N/A") {/*skip read from cache*/
 			io_stat[pid(),execname(),uid(),ppid(),"R"] += $return
 			device[pid(),execname(),uid(),ppid(),"R"] = devname
@@ -27,11 +25,8 @@ probe kernel.function("vfs_read").return {
 	}
 }
 
-probe kernel.function("vfs_write").return {
+probe vfs.write.return {
 	if ($return>0) {
-		dev = __file_dev($file)
-		devname = __find_bdevname(dev,__file_bdev($file))
-
 		if (devname!="N/A") { /*skip update cache*/
 			io_stat[pid(),execname(),uid(),ppid(),"W"] += $return
 			device[pid(),execname(),uid(),ppid(),"W"] = devname
@@ -44,15 +39,22 @@ probe timer.ms(5000) {
 	/* skip non-read/write disk */
 	if (read_bytes+write_bytes) {
 
-		printf("\n%-25s, %-8s%4dKb/sec, %-7s%6dKb, %-7s%6dKb\n\n",ctime(gettimeofday_s()),"Average:",
-      		((read_bytes+write_bytes)/1024)/5,"Read:",read_bytes/1024,"Write:",write_bytes/1024)
+		printf("\n%-25s, %-8s%4dKb/sec, %-7s%6dKb, %-7s%6dKb\n\n",
+			ctime(gettimeofday_s()),
+			"Average:", ((read_bytes+write_bytes)/1024)/5,
+			"Read:",read_bytes/1024,
+			"Write:",write_bytes/1024)
 
 		/* print header */
-		printf("%8s %8s %8s %25s %8s %4s %12s\n","UID","PID","PPID","CMD","DEVICE","T","BYTES")
+		printf("%8s %8s %8s %25s %8s %4s %12s\n",
+			"UID","PID","PPID","CMD","DEVICE","T","BYTES")
 	}
 	/* print top ten I/O */
 	foreach ([process,cmd,userid,parent,action] in io_stat- limit 10)
-	  printf("%8d %8d %8d %25s %8s %4s %12d\n",userid,process,parent,cmd,device[process,cmd,userid,parent,action], action,io_stat[process,cmd,userid,parent,action])
+	  printf("%8d %8d %8d %25s %8s %4s %12d\n",
+		userid,process,parent,cmd,
+		device[process,cmd,userid,parent,action],
+		action,io_stat[process,cmd,userid,parent,action])
 
 	/* clear data */
 	delete io_stat
