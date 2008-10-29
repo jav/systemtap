@@ -1,7 +1,0 @@
-title: Callgraph tracing with arguments
-name: para-callgraph.stp
-keywords: trace callgraph
-subsystem: general
-description: Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.
-test_check: stap -p4 para-callgraph.stp sys_read '*@fs/*.c'
-test_installcheck: TBD
