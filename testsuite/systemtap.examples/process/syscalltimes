@@ -82,7 +82,7 @@ echo "Creating and building SystemTap module..."
 # SystemTap script
 #
 stap $P_VERBOSE_STR -e '
-global start, timebycall, timebypid, timebyuid, timebyexec
+global starttime, timebycall, timebypid, timebyuid, timebyexec
 global f_exec_str, f_pid_str, f_uid_str
 global f_exec, f_pid, f_uid
 global prt_totals, filter_str
@@ -134,14 +134,14 @@ probe begin {
 }
 
 probe syscall.* {
-	start[name, tid()] = gettimeofday_ns()
+	starttime[name, tid()] = gettimeofday_ns()
 }
 
 probe syscall.*.return {
 	# Skip if we have not seen this before
-	if (!([name, tid()] in start)) next
+	if (!([name, tid()] in starttime)) next
 
-	delta = gettimeofday_ns() - start[name, tid()]
+	delta = gettimeofday_ns() - starttime[name, tid()]
 
 	# Check filters
 	if ('$FILTER') {
@@ -165,7 +165,7 @@ probe syscall.*.return {
 	if (target && prt_totals)
 		timebycall[name] <<< delta
 
-	delete start[name, tid()]
+	delete starttime[name, tid()]
 }
 
 function print_header() {
