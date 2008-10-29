@@ -5,17 +5,10 @@ read TARG
 echo -n "Thank you. Now specify any build parameters you'd like to use (skip this step for none).	"
 read PARM
 
-tar -cf examplesdir.tar ./../../testsuite/systemtap.examples/* 
-mv examplesdir.tar en-US/extras
-cd en-US/extras
-tar -xf examplesdir.tar 
-rm examplesdir.tar
-cd ../../
+cp -a ../../testsuite/systemtap.examples  en-US/extras/extras
 
 make $PARM $TARG
 
 echo "Cleaning sync'd files..."
-cd en-US/extras
-rm -rf testsuite
-cd ../../
+rm -rf en-US/extras/extras
 echo "...done."
