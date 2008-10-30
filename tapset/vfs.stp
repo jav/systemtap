@@ -812,6 +812,7 @@ probe vfs.read = kernel.function ("vfs_read")
 	bytes_to_read = $count
 	dev = __file_dev($file)
 	devname = __find_bdevname(dev, __file_bdev($file))
+	ino = __file_ino($file)
 }
 
 probe vfs.read.return = kernel.function ("vfs_read").return
@@ -822,6 +823,7 @@ probe vfs.read.return = kernel.function ("vfs_read").return
 	bytes_to_read = $count
 	dev = __file_dev($file)
 	devname = __find_bdevname(dev, __file_bdev($file))
+	ino = __file_ino($file)
 
 	ret = $return
 	bytes_read = ret > 0 ? ret : 0
@@ -860,6 +862,7 @@ probe vfs.write = kernel.function ("vfs_write")
 	bytes_to_write = $count
 	dev = __file_dev($file)
 	devname = __find_bdevname(dev, __file_bdev($file))
+	ino = __file_ino($file)
 }
 
 probe vfs.write.return = kernel.function ("vfs_write").return
@@ -870,6 +873,7 @@ probe vfs.write.return = kernel.function ("vfs_write").return
 	bytes_to_write = $count
 	dev = __file_dev($file)
 	devname = __find_bdevname(dev, __file_bdev($file))
+	ino = __file_ino($file)
 
 	ret = $return
 	bytes_written = ret > 0 ? ret : 0
