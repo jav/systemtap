@@ -5,7 +5,7 @@ if {![installtest_p]} {
     return
 }
 
-spawn stap -c {echo "hello world"} -we {probe begin {}}
+spawn stap -c {echo "hello world"} -we {probe begin {exit()}}
 expect {
     -timeout 60
     "hello world" {pass "cmd_parse1"}
@@ -14,7 +14,7 @@ expect {
 }
 wait;close
 
-spawn stap -c {echo "hello "\"world\"} -we {probe begin {}}
+spawn stap -c {echo "hello "\"world\"} -we {probe begin {exit()}}
 expect {
     -timeout 60
     "hello \"world\"" {pass "cmd_parse2"}
@@ -23,7 +23,7 @@ expect {
 }
 wait;close
 
-spawn stap -c {sh -c '(a="hello world"; echo $a)'} -we {probe begin {}}
+spawn stap -c {sh -c '(a="hello world"; echo $a)'} -we {probe begin {exit()}}
 expect {
     -timeout 60
     "hello world" {pass "cmd_parse3"}
@@ -32,7 +32,7 @@ expect {
 }
 wait;close
 
-spawn stap -c {sh -c '(a="hello "\"world\"; echo $a)'} -we {probe begin {}}
+spawn stap -c {sh -c '(a="hello "\"world\"; echo $a)'} -we {probe begin {exit()}}
 expect {
     -timeout 60
     "hello \"world\"" {pass "cmd_parse4"}
@@ -41,7 +41,7 @@ expect {
 }
 wait;close
 
-spawn stap -c {sh -c '(a="hello "world; echo $a)'} -we {probe begin {}}
+spawn stap -c {sh -c '(a="hello "world; echo $a)'} -we {probe begin {exit()}}
 expect {
     -timeout 60
     "hello world" {pass "cmd_parse5"}
@@ -50,7 +50,7 @@ expect {
 }
 wait;close
 
-spawn stap -c {bash -c '((a=42+7)); echo "The answer is $a"'} -we {probe begin {}}
+spawn stap -c {bash -c '((a=42+7)); echo "The answer is $a"'} -we {probe begin {exit()}}
 expect {
     -timeout 60
     "The answer is 49" {pass "cmd_parse6"}
@@ -59,7 +59,7 @@ expect {
 }
 wait;close
 
-spawn stap -c {sh -c '(echo "Hello World" 1>&2) > /dev/null'} -we {probe begin {}}
+spawn stap -c {sh -c '(echo "Hello World" 1>&2) > /dev/null'} -we {probe begin {exit()}}
 expect {
     -timeout 60
     "Hello World" {pass "cmd_parse7"}

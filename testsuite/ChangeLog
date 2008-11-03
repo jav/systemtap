@@ -1,3 +1,7 @@
+2008-11-03  Wenji Huang  <wenji.huang@oracle.com>
+
+	* systemtap.base/cmd_parse.exp: Add exit() to probe.
+
 2008-10-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/vars.exp: Remove "2>&1" that left turds behind.
