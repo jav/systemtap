@@ -1,16 +1,4 @@
 #ifndef _LINUX_UPROBES_H
-
-#include <linux/utrace.h>
-#ifndef UTRACE_ACTION_RESUME
-
-/*
- * Assume the kernel is running the 2008 version of utrace.
- * Skip the code in this file and instead use uprobes 2.
- */
-#include "../uprobes2/uprobes.h"
-
-#else	/* uprobes 1 (based on original utrace) */
-
 #define _LINUX_UPROBES_H
 /*
  * Userspace Probes (UProbes)
@@ -80,7 +68,7 @@ struct uretprobe_instance {
 	struct uretprobe *rp;
 	unsigned long ret_addr;
 	struct hlist_node hlist;
-	unsigned long sp;
+	unsigned long sp;	// stack pointer value expected on return
 	unsigned long reserved1;
 };
 
@@ -100,6 +88,7 @@ extern void unregister_uretprobe(struct uretprobe *rp);
 
 struct task_struct;
 struct utrace_attached_engine;
+struct pid;
 
 enum uprobe_probept_state {
 	UPROBE_INSERTING,	// process quiescing prior to insertion
@@ -179,6 +168,9 @@ struct uprobe_ssol_area {
 	/* Next slot to steal */
 	int next_slot;
 
+	/* First slot not reserved for trampoline or some such */
+	int first_ssol_slot;
+
 	/* Ensures 2 threads don't try to set up the vma simultaneously. */
 	struct mutex setup_mutex;
 
@@ -220,16 +212,18 @@ struct uprobe_process {
 	/*
 	 * All threads (tasks) in a process share the same uprobe_process.
 	 */
+	struct pid *tg_leader;
 	pid_t tgid;
 
-	/* Threads in SLEEPING state wait here to be roused. */
+	/* Threads in UTASK_SLEEPING state wait here to be roused. */
 	wait_queue_head_t waitq;
 
 	/*
 	 * We won't free the uprobe_process while...
 	 * - any register/unregister operations on it are in progress; or
+	 * - any uprobe_report_* callbacks are running; or
 	 * - uprobe_table[] is not empty; or
-	 * - any tasks are SLEEPING in the waitq; or
+	 * - any tasks are UTASK_SLEEPING in the waitq; or
 	 * - any uretprobe_instances are outstanding.
 	 * refcount reflects this.  We do NOT ref-count tasks (threads),
 	 * since once the last thread has exited, the rest is academic.
@@ -358,8 +352,8 @@ struct uprobe_task {
 	/* Lives on the thread_list for the uprobe_process */
 	struct list_head list;
 
-	/* This is a back pointer to the task_struct for this task */
 	struct task_struct *tsk;
+	struct pid *pid;
 
 	/* The utrace engine for this task */
 	struct utrace_attached_engine *engine;
@@ -374,9 +368,6 @@ struct uprobe_task {
 	 * It may not be able to comply immediately if it's hit a bkpt.
 	 */
 	int quiescing;
-
-	/* Task currently running quiesce_all_threads() */
-	struct task_struct *quiesce_master;
 
 	/* Set before running handlers; cleared after single-stepping. */
 	struct uprobe_probept *active_probe;
@@ -411,7 +402,5 @@ static void uprobe_post_ssout(struct uprobe_task*, struct uprobe_probept*,
 #endif
 
 #endif	/* UPROBES_IMPLEMENTATION */
-
-#endif	/* uprobes 1 (based on original utrace) */
 
 #endif	/* _LINUX_UPROBES_H */

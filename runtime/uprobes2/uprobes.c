@@ -1,14 +1,3 @@
-#include <linux/utrace.h>
-#ifndef UTRACE_ACTION_RESUME
-
-/*
- * Assume the kernel is running the 2008 version of utrace.
- * Skip the code in this file and instead use uprobes 2.
- */
-#include "../uprobes2/uprobes.c"
-
-#else	/* uprobes 1 (based on original utrace) */
-
 /*
  *  Userspace Probes (UProbes)
  *  kernel/uprobes_core.c
@@ -38,21 +27,24 @@
 #include <linux/err.h>
 #include <linux/kref.h>
 #include <linux/utrace.h>
+#include <linux/regset.h>
 #define UPROBES_IMPLEMENTATION 1
 #include "uprobes.h"
 #include <linux/tracehook.h>
 #include <linux/mm.h>
 #include <linux/string.h>
 #include <linux/uaccess.h>
-#include <asm/tracehook.h>
+// #include <asm/tracehook.h>
 #include <asm/errno.h>
 #include <asm/mman.h>
 
-#define SET_ENGINE_FLAGS	1
-#define CLEAR_ENGINE_FLAGS	0
+#define UPROBE_SET_FLAGS	1
+#define UPROBE_CLEAR_FLAGS	0
 
-#define MAX_SSOL_SLOTS		1024
+#define MAX_SSOL_SLOTS	1024
+#define SLOT_SIZE	MAX_UINSN_BYTES
 
+#define NO_ACCESS_PROCESS_VM_EXPORT
 #ifdef NO_ACCESS_PROCESS_VM_EXPORT
 static int __access_process_vm(struct task_struct *tsk, unsigned long addr,
 	void *buf, int len, int write);
@@ -62,7 +54,6 @@ extern int access_process_vm(struct task_struct *tsk, unsigned long addr,
 	void *buf, int len, int write);
 #endif
 static int utask_fake_quiesce(struct uprobe_task *utask);
-static void uprobe_release_ssol_vma(struct uprobe_process *uproc);
 
 static void uretprobe_handle_entry(struct uprobe *u, struct pt_regs *regs,
 	struct uprobe_task *utask);
@@ -178,15 +169,15 @@ static inline void uprobe_decref_process(struct uprobe_process *uproc)
  * Around exec time, briefly, it's possible to have one (finished) uproc
  * for the old image and one for the new image.  We find the latter.
  */
-static struct uprobe_process *uprobe_find_process(pid_t tgid)
+static struct uprobe_process *uprobe_find_process(struct pid *tg_leader)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
 	struct uprobe_process *uproc;
 
-	head = &uproc_table[hash_long(tgid, UPROBE_HASH_BITS)];
+	head = &uproc_table[hash_ptr(tg_leader, UPROBE_HASH_BITS)];
 	hlist_for_each_entry(uproc, node, head, hlist) {
-		if (uproc->tgid == tgid && !uproc->finished) {
+		if (uproc->tg_leader == tg_leader && !uproc->finished) {
 			uprobe_get_process(uproc);
 			down_write(&uproc->rwsem);
 			return uproc;
@@ -240,7 +231,7 @@ static int set_orig_insn(struct uprobe_probept *ppt, struct task_struct *tsk)
 static void bkpt_insertion_failed(struct uprobe_probept *ppt, const char *why)
 {
 	printk(KERN_ERR "Can't place uprobe at pid %d vaddr %#lx: %s\n",
-			ppt->uproc->tgid, ppt->vaddr, why);
+			pid_nr(ppt->uproc->tg_leader), ppt->vaddr, why);
 }
 
 /*
@@ -332,8 +323,6 @@ static void remove_bkpt(struct uprobe_probept *ppt, struct task_struct *tsk)
  * It's OK for uproc->pending_uprobes to be empty here.  It can happen
  * if a register and an unregister are requested (by different probers)
  * simultaneously for the same pid/vaddr.
- * Note that the current task may be a thread in uproc, or it may be
- * a task running [un]register_uprobe() (or both).
  */
 static void handle_pending_uprobes(struct uprobe_process *uproc,
 	struct task_struct *tsk)
@@ -361,20 +350,34 @@ static void utask_adjust_flags(struct uprobe_task *utask, int set,
 	unsigned long newflags, oldflags;
 
 	newflags = oldflags = utask->engine->flags;
-
 	if (set)
 		newflags |= flags;
 	else
 		newflags &= ~flags;
-
-	if (newflags != oldflags)
-		utrace_set_flags(utask->tsk, utask->engine, newflags);
+	/*
+	 * utrace_barrier[_pid] is not appropriate here.  If we're
+	 * adjusting current, it's not needed.  And if we're adjusting
+	 * some other task, we're holding utask->uproc->rwsem, which
+	 * could prevent that task from completing the callback we'd
+	 * be waiting on.
+	 */
+	if (newflags != oldflags) {
+		if (utrace_set_events_pid(utask->pid, utask->engine,
+							newflags) != 0)
+			/* We don't care. */
+			;
+	}
 }
 
-static inline void clear_utrace_quiesce(struct uprobe_task *utask)
+static inline void clear_utrace_quiesce(struct uprobe_task *utask, bool resume)
 {
-	utask_adjust_flags(utask, CLEAR_ENGINE_FLAGS,
-			UTRACE_ACTION_QUIESCE | UTRACE_EVENT(QUIESCE));
+	utask_adjust_flags(utask, UPROBE_CLEAR_FLAGS, UTRACE_EVENT(QUIESCE));
+	if (resume) {
+		if (utrace_control_pid(utask->pid, utask->engine,
+						UTRACE_RESUME) != 0)
+			/* We don't care. */
+			;
+	}
 }
 
 /* Opposite of quiesce_all_threads().  Same locking applies. */
@@ -388,7 +391,7 @@ static void rouse_all_threads(struct uprobe_process *uproc)
 			if (utask->state == UPTASK_QUIESCENT) {
 				utask->state = UPTASK_RUNNING;
 				uproc->n_quiescent_threads--;
-				clear_utrace_quiesce(utask);
+				clear_utrace_quiesce(utask, true);
 			}
 		}
 	}
@@ -398,35 +401,80 @@ static void rouse_all_threads(struct uprobe_process *uproc)
 
 /*
  * If all of uproc's surviving threads have quiesced, do the necessary
- * breakpoint insertions or removals and then un-quiesce everybody.
+ * breakpoint insertions or removals, un-quiesce everybody, and return 1.
  * tsk is a surviving thread, or NULL if there is none.  Runs with
  * uproc->rwsem write-locked.
  */
-static void check_uproc_quiesced(struct uprobe_process *uproc,
+static int check_uproc_quiesced(struct uprobe_process *uproc,
 		struct task_struct *tsk)
 {
 	if (uproc->n_quiescent_threads >= uproc->nthreads) {
 		handle_pending_uprobes(uproc, tsk);
 		rouse_all_threads(uproc);
+		return 1;
+	}
+	return 0;
+}
+
+/* Direct the indicated thread to quiesce. */
+static void uprobe_stop_thread(struct uprobe_task *utask)
+{
+	int result;
+	/*
+	 * As with utask_adjust_flags, calling utrace_barrier_pid below
+	 * could deadlock.
+	 */
+	BUG_ON(utask->tsk == current);
+	result = utrace_control_pid(utask->pid, utask->engine, UTRACE_STOP);
+	if (result == 0) {
+		/* Already stopped. */
+		utask->state = UPTASK_QUIESCENT;
+		utask->uproc->n_quiescent_threads++;
+	} else if (result == -EINPROGRESS) {
+		if (utask->tsk->state & TASK_INTERRUPTIBLE) {
+			/*
+			 * Task could be in interruptible wait for a long
+			 * time -- e.g., if stopped for I/O.  But we know
+			 * it's not going to run user code before all
+			 * threads quiesce, so pretend it's quiesced.
+			 * This avoids terminating a system call via
+			 * UTRACE_INTERRUPT.
+			 */
+			utask->state = UPTASK_QUIESCENT;
+			utask->uproc->n_quiescent_threads++;
+		} else {
+			/*
+			 * Task will eventually stop, but it may be a long time.
+			 * Don't wait.
+			 */
+			result = utrace_control_pid(utask->pid, utask->engine,
+							UTRACE_INTERRUPT);
+			if (result != 0)
+				/* We don't care. */
+				;
+		}
 	}
 }
 
 /*
  * Quiesce all threads in the specified process -- e.g., prior to
  * breakpoint insertion.  Runs with uproc->rwsem write-locked.
- * Returns the number of threads that haven't died yet.
+ * Returns false if all threads have died.
  */
-static int quiesce_all_threads(struct uprobe_process *uproc,
+static bool quiesce_all_threads(struct uprobe_process *uproc,
 		struct uprobe_task **cur_utask_quiescing)
 {
 	struct uprobe_task *utask;
-	struct task_struct *survivor = NULL;	// any survivor
-	int survivors = 0;
+	struct task_struct *survivor = NULL;    // any survivor
+	bool survivors = false;
 
 	*cur_utask_quiescing = NULL;
 	list_for_each_entry(utask, &uproc->thread_list, list) {
-		survivor = utask->tsk;
-		survivors++;
+		if (!survivors) {
+			survivor = pid_task(utask->pid, PIDTYPE_PID);
+			if (survivor)
+				survivors = true;
+		}
 		if (!utask->quiescing) {
 			/*
 			 * If utask is currently handling a probepoint, it'll
@@ -436,30 +484,39 @@ static int quiesce_all_threads(struct uprobe_process *uproc,
 			if (utask->tsk == current)
 				*cur_utask_quiescing = utask;
 			else if (utask->state == UPTASK_RUNNING) {
-				utask->quiesce_master = current;
-				utask_adjust_flags(utask, SET_ENGINE_FLAGS,
-					UTRACE_ACTION_QUIESCE
-					| UTRACE_EVENT(QUIESCE));
-				utask->quiesce_master = NULL;
+				utask_adjust_flags(utask, UPROBE_SET_FLAGS,
+						UTRACE_EVENT(QUIESCE));
+				uprobe_stop_thread(utask);
 			}
 		}
 	}
 	/*
-	 * If any task was already quiesced (in utrace's opinion) when we
-	 * called utask_adjust_flags() on it, uprobe_report_quiesce() was
-	 * called, but wasn't in a position to call check_uproc_quiesced().
+	 * If all the (other) threads are already quiesced, it's up to the
+	 * current thread to do the necessary work.
 	 */
 	check_uproc_quiesced(uproc, survivor);
 	return survivors;
 }
 
 /* Called with utask->uproc write-locked. */
-static void uprobe_free_task(struct uprobe_task *utask)
+static void uprobe_free_task(struct uprobe_task *utask, bool in_callback)
 {
 	struct deferred_registration *dr, *d;
 	struct delayed_signal *ds, *ds2;
 	struct uretprobe_instance *ri;
 	struct hlist_node *r1, *r2;
+
+	if (utask->engine && (utask->tsk != current || !in_callback)) {
+		/*
+		 * No other tasks in this process should be running
+		 * uprobe_report_* callbacks.  (If they are, utrace_barrier()
+		 * here could deadlock.)
+		 */
+		int result = utrace_control_pid(utask->pid, utask->engine,
+								UTRACE_DETACH);
+			BUG_ON(result == -EINPROGRESS);
+	}
+	put_pid(utask->pid);	/* null pid OK */
 
 	uprobe_unhash_utask(utask);
 	list_del(&utask->list);
@@ -482,27 +539,24 @@ static void uprobe_free_task(struct uprobe_task *utask)
 	kfree(utask);
 }
 
-/* Runs with uproc_mutex held and uproc->rwsem write-locked. */
-static void uprobe_free_process(struct uprobe_process *uproc)
+/*
+ * Dismantle uproc and all its remaining uprobe_tasks.
+ * in_callback = 1 if the caller is a uprobe_report_* callback who will
+ * handle the UTRACE_DETACH operation.
+ * Runs with uproc_mutex held; called with uproc->rwsem write-locked.
+ */
+static void uprobe_free_process(struct uprobe_process *uproc, int in_callback)
 {
 	struct uprobe_task *utask, *tmp;
 	struct uprobe_ssol_area *area = &uproc->ssol_area;
 
-	if (!uproc->finished)
-		uprobe_release_ssol_vma(uproc);
 	if (area->slots)
 		kfree(area->slots);
 	if (!hlist_unhashed(&uproc->hlist))
 		hlist_del(&uproc->hlist);
-	list_for_each_entry_safe(utask, tmp, &uproc->thread_list, list) {
-		/*
-		 * utrace_detach() is OK here (required, it seems) even if
-		 * utask->tsk == current and we're in a utrace callback.
-		 */
-		if (utask->engine)
-			utrace_detach(utask->tsk, utask->engine);
-		uprobe_free_task(utask);
-	}
+	list_for_each_entry_safe(utask, tmp, &uproc->thread_list, list)
+		uprobe_free_task(utask, in_callback);
+	put_pid(uproc->tg_leader);
 	up_write(&uproc->rwsem);	// So kfree doesn't complain
 	kfree(uproc);
 }
@@ -518,7 +572,7 @@ static void uprobe_free_process(struct uprobe_process *uproc)
  * this function and then sleep in uprobes code, unless you know you'll
  * return with the module ref-count > 0.
  */
-static int uprobe_put_process(struct uprobe_process *uproc)
+static int uprobe_put_process(struct uprobe_process *uproc, bool in_callback)
 {
 	int freed = 0;
 	if (atomic_dec_and_test(&uproc->refcount)) {
@@ -532,7 +586,7 @@ static int uprobe_put_process(struct uprobe_process *uproc)
 			 */
 			up_write(&uproc->rwsem);
 		} else {
-			uprobe_free_process(uproc);
+			uprobe_free_process(uproc, in_callback);
 			freed = 1;
 		}
 		unlock_uproc_table();
@@ -557,26 +611,30 @@ static struct uprobe_kimg *uprobe_mk_kimg(struct uprobe *u)
 }
 
 /*
- * Allocate a uprobe_task object for t and add it to uproc's list.
- * Called with t "got" and uproc->rwsem write-locked.  Called in one of
+ * Allocate a uprobe_task object for p and add it to uproc's list.
+ * Called with p "got" and uproc->rwsem write-locked.  Called in one of
  * the following cases:
- * - before setting the first uprobe in t's process
- * - we're in uprobe_report_clone() and t is the newly added thread
+ * - before setting the first uprobe in p's process
+ * - we're in uprobe_report_clone() and p is the newly added thread
  * Returns:
  * - pointer to new uprobe_task on success
  * - NULL if t dies before we can utrace_attach it
  * - negative errno otherwise
  */
-static struct uprobe_task *uprobe_add_task(struct task_struct *t,
+static struct uprobe_task *uprobe_add_task(struct pid *p,
 		struct uprobe_process *uproc)
 {
 	struct uprobe_task *utask;
 	struct utrace_attached_engine *engine;
+	struct task_struct *t = pid_task(p, PIDTYPE_PID);
 
+	if (!t)
+		return NULL;
 	utask = (struct uprobe_task *)kzalloc(sizeof *utask, GFP_USER);
 	if (unlikely(utask == NULL))
 		return ERR_PTR(-ENOMEM);
 
+	utask->pid = p;
 	utask->tsk = t;
 	utask->state = UPTASK_RUNNING;
 	utask->quiescing = 0;
@@ -590,12 +648,13 @@ static struct uprobe_task *uprobe_add_task(struct task_struct *t,
 	list_add_tail(&utask->list, &uproc->thread_list);
 	uprobe_hash_utask(utask);
 
-	engine = utrace_attach(t, UTRACE_ATTACH_CREATE, p_uprobe_utrace_ops,
-		utask);
+	engine = utrace_attach_pid(p, UTRACE_ATTACH_CREATE,
+						p_uprobe_utrace_ops, utask);
 	if (IS_ERR(engine)) {
 		long err = PTR_ERR(engine);
-		printk("uprobes: utrace_attach failed, returned %ld\n", err);
-		uprobe_free_task(utask);
+		printk("uprobes: utrace_attach_task failed, returned %ld\n",
+									err);
+		uprobe_free_task(utask, 0);
 		if (err == -ESRCH)
 			 return NULL;
 		return ERR_PTR(err);
@@ -605,7 +664,7 @@ static struct uprobe_task *uprobe_add_task(struct task_struct *t,
 	 * Always watch for traps, clones, execs and exits. Caller must
 	 * set any other engine flags.
 	 */
-	utask_adjust_flags(utask, SET_ENGINE_FLAGS,
+	utask_adjust_flags(utask, UPROBE_SET_FLAGS,
 			UTRACE_EVENT(SIGNAL) | UTRACE_EVENT(SIGNAL_IGN) |
 			UTRACE_EVENT(SIGNAL_CORE) | UTRACE_EVENT(EXEC) |
 			UTRACE_EVENT(CLONE) | UTRACE_EVENT(EXIT));
@@ -617,40 +676,46 @@ static struct uprobe_task *uprobe_add_task(struct task_struct *t,
 	return utask;
 }
 
-/* See comment in uprobe_mk_process(). */
-static struct task_struct *find_next_thread_to_add(struct uprobe_process *uproc,		struct task_struct *start)
+/*
+ * start_pid is the pid for a thread in the probed process.  Find the
+ * next thread that doesn't have a corresponding uprobe_task yet.  Return
+ * a ref-counted pid for that task, if any, else NULL.
+ */
+static struct pid *find_next_thread_to_add(struct uprobe_process *uproc,
+						struct pid *start_pid)
 {
-	struct task_struct *t;
+	struct task_struct *t, *start;
 	struct uprobe_task *utask;
+	struct pid *pid = NULL;
 
-	read_lock(&tasklist_lock);
-	t = start;
-	do {
-		if (unlikely(t->flags & PF_EXITING))
-			goto dont_add;
-		list_for_each_entry(utask, &uproc->thread_list, list) {
-			if (utask->tsk == t)
-				/* Already added */
+	rcu_read_lock();
+	t = start = pid_task(start_pid, PIDTYPE_PID);
+	if (t) {
+		do {
+			if (unlikely(t->flags & PF_EXITING))
 				goto dont_add;
-		}
-		/* Found thread/task to add. */
-		get_task_struct(t);
-		read_unlock(&tasklist_lock);
-		return t;
-dont_add:
-		t = next_thread(t);
-	} while (t != start);
-
-	read_unlock(&tasklist_lock);
-	return NULL;
+			list_for_each_entry(utask, &uproc->thread_list, list) {
+				if (utask->tsk == t)
+					/* Already added */
+					goto dont_add;
+			}
+			/* Found thread/task to add. */
+			pid = get_pid(task_pid(t));
+			break;
+		dont_add:
+			t = next_thread(t);
+		} while (t != start);
+	}
+	rcu_read_unlock();
+	return pid;
 }
 
 /* Runs with uproc_mutex held; returns with uproc->rwsem write-locked. */
-static struct uprobe_process *uprobe_mk_process(struct task_struct *p)
+static struct uprobe_process *uprobe_mk_process(struct pid *tg_leader)
 {
 	struct uprobe_process *uproc;
 	struct uprobe_task *utask;
-	struct task_struct *add_me;
+	struct pid *add_me;
 	int i;
 	long err;
 
@@ -671,7 +736,8 @@ static struct uprobe_process *uprobe_mk_process(struct task_struct *p)
 	uproc->nthreads = 0;
 	uproc->n_quiescent_threads = 0;
 	INIT_HLIST_NODE(&uproc->hlist);
-	uproc->tgid = p->tgid;
+	uproc->tg_leader = get_pid(tg_leader);
+	uproc->tgid = pid_task(tg_leader, PIDTYPE_PID)->tgid;
 	uproc->finished = 0;
 	uproc->uretprobe_trampoline_addr = NULL;
 
@@ -687,19 +753,17 @@ static struct uprobe_process *uprobe_mk_process(struct task_struct *p)
 
 	/*
 	 * Create and populate one utask per thread in this process.  We
-	 * can't call uprobe_add_task() while holding tasklist_lock, so we:
-	 *	1. Lock task list.
-	 *	2. Find the next task, add_me, in this process that's not
-	 *	already on uproc's thread_list.  (Start search at previous
-	 *	one found.)
-	 *	3. Unlock task list.
+	 * can't call uprobe_add_task() while holding RCU lock, so we:
+	 *	1. rcu_read_lock()
+	 *	2. Find the next thread, add_me, in this process that's not
+	 *	already on uproc's thread_list.
+	 *	3. rcu_read_unlock()
 	 *	4. uprobe_add_task(add_me, uproc)
-	 *	Repeat 1-4 'til we have utasks for all tasks.
+	 *	Repeat 1-4 'til we have utasks for all threads.
 	 */
-	add_me = p;
+	add_me = tg_leader;
 	while ((add_me = find_next_thread_to_add(uproc, add_me)) != NULL) {
 		utask = uprobe_add_task(add_me, uproc);
-		put_task_struct(add_me);
 		if (IS_ERR(utask)) {
 			err = PTR_ERR(utask);
 			goto fail;
@@ -716,7 +780,7 @@ static struct uprobe_process *uprobe_mk_process(struct task_struct *p)
 	return uproc;
 
 fail:
-	uprobe_free_process(uproc);
+	uprobe_free_process(uproc, 0);
 	return ERR_PTR(err);
 }
 
@@ -798,7 +862,7 @@ static void uprobe_free_kimg(struct uprobe_kimg *uk)
 
 /*
  * Runs with uprobe_process write-locked.
- * Note that we never free u, because the user owns that.
+ * Note that we never free uk->uprobe, because the user owns that.
  */
 static void purge_uprobe(struct uprobe_kimg *uk)
 {
@@ -810,33 +874,29 @@ static void purge_uprobe(struct uprobe_kimg *uk)
 }
 
 /* Probed address must be in an executable VM area, outside the SSOL area. */
-static int uprobe_validate_vaddr(struct task_struct *p, unsigned long vaddr,
+static int uprobe_validate_vaddr(struct pid *p, unsigned long vaddr,
 	struct uprobe_process *uproc)
 {
+	struct task_struct *t;
 	struct vm_area_struct *vma;
-	struct mm_struct *mm = p->mm;
+	struct mm_struct *mm = NULL;
+	int ret = -EINVAL;
+
+	rcu_read_lock();
+	t = pid_task(p, PIDTYPE_PID);
+	if (t)
+		mm = get_task_mm(t);
+	rcu_read_unlock();
 	if (!mm)
 		return -EINVAL;
 	down_read(&mm->mmap_sem);
 	vma = find_vma(mm, vaddr);
-	if (!vma || vaddr < vma->vm_start || !(vma->vm_flags & VM_EXEC)
-	    || vma->vm_start == (unsigned long) uproc->ssol_area.insn_area) {
-		up_read(&mm->mmap_sem);
-		return -EINVAL;
-	}
+	if (vma && vaddr >= vma->vm_start && (vma->vm_flags & VM_EXEC) &&
+		vma->vm_start != (unsigned long) uproc->ssol_area.insn_area)
+		ret = 0;
 	up_read(&mm->mmap_sem);
-	return 0;
-}
-
-static struct task_struct *uprobe_get_task(pid_t pid)
-{
-	struct task_struct *p;
-	rcu_read_lock();
-	p = find_task_by_pid(pid);
-	if (p)
-		get_task_struct(p);
-	rcu_read_unlock();
-	return p;
+	mmput(mm);
+	return ret;
 }
 
 /* Runs with utask->uproc read-locked.  Returns -EINPROGRESS on success. */
@@ -855,19 +915,41 @@ static int defer_registration(struct uprobe *u, int regflag,
 	return -EINPROGRESS;
 }
 
+/*
+ * Given a numeric thread ID, return a ref-counted struct pid for the
+ * task-group-leader thread.
+ */
+static struct pid *uprobe_get_tg_leader(pid_t p)
+{
+	struct pid *pid;
+
+	rcu_read_lock();
+	pid = find_vpid(p);
+	if (pid) {
+		struct task_struct *t = pid_task(pid, PIDTYPE_PID);
+		if (t)
+			pid = task_tgid(t);
+		else
+			pid = NULL;
+	}
+	rcu_read_unlock();
+	return get_pid(pid);	/* null pid OK here */
+}
+
 /* See Documentation/uprobes.txt. */
 int register_uprobe(struct uprobe *u)
 {
-	struct task_struct *p;
+	struct pid *p;
 	struct uprobe_process *uproc;
 	struct uprobe_kimg *uk;
 	struct uprobe_probept *ppt;
 	struct uprobe_task *cur_utask, *cur_utask_quiescing = NULL;
-	int survivors, ret = 0, uproc_is_new = 0;
+	int ret = 0, uproc_is_new = 0;
+	bool survivors;
 	if (!u || !u->handler)
 		return -EINVAL;
 
-	p = uprobe_get_task(u->pid);
+	p = uprobe_get_tg_leader(u->pid);
 	if (!p)
 		return -ESRCH;
 
@@ -877,13 +959,13 @@ int register_uprobe(struct uprobe *u)
 		 * Called from handler; cur_utask->uproc is read-locked.
 		 * Do this registration later.
 		 */
-		put_task_struct(p);
+		put_pid(p);
 		return defer_registration(u, 1, cur_utask);
 	}
 
 	/* Get the uprobe_process for this pid, or make a new one. */
 	lock_uproc_table();
-	uproc = uprobe_find_process(p->tgid);
+	uproc = uprobe_find_process(p);
 
 	if (uproc)
 		unlock_uproc_table();
@@ -939,7 +1021,7 @@ int register_uprobe(struct uprobe *u)
 		switch (ppt->state) {
 		case UPROBE_INSERTING:
 			uk->status = -EBUSY;	// in progress
-			if (uproc->tgid == current->tgid) {
+			if (uproc->tg_leader == task_tgid(current)) {
 				cur_utask_quiescing = cur_utask;
 				BUG_ON(!cur_utask_quiescing);
 			}
@@ -957,9 +1039,9 @@ int register_uprobe(struct uprobe *u)
 			BUG();
 		}
 		up_write(&uproc->rwsem);
-		put_task_struct(p);
+		put_pid(p);
 		if (uk->status == 0) {
-			uprobe_put_process(uproc);
+			uprobe_decref_process(uproc);
 			return 0;
 		}
 		goto await_bkpt_insertion;
@@ -973,16 +1055,17 @@ int register_uprobe(struct uprobe *u)
 
 	if (uproc_is_new) {
 		hlist_add_head(&uproc->hlist,
-			&uproc_table[hash_long(uproc->tgid, UPROBE_HASH_BITS)]);
+				&uproc_table[hash_ptr(uproc->tg_leader,
+				UPROBE_HASH_BITS)]);
 		unlock_uproc_table();
 	}
-	put_task_struct(p);
+	put_pid(p);
 	survivors = quiesce_all_threads(uproc, &cur_utask_quiescing);
 
-	if (survivors == 0) {
+	if (!survivors) {
 		purge_uprobe(uk);
 		up_write(&uproc->rwsem);
-		uprobe_put_process(uproc);
+		uprobe_put_process(uproc, false);
 		return -ESRCH;
 	}
 	up_write(&uproc->rwsem);
@@ -999,7 +1082,7 @@ await_bkpt_insertion:
 		purge_uprobe(uk);
 		up_write(&uproc->rwsem);
 	}
-	uprobe_put_process(uproc);
+	uprobe_put_process(uproc, false);
 	return ret;
 
 fail_uk:
@@ -1007,16 +1090,16 @@ fail_uk:
 
 fail_uproc:
 	if (uproc_is_new) {
-		uprobe_free_process(uproc);
+		uprobe_free_process(uproc, 0);
 		unlock_uproc_table();
 		module_put(THIS_MODULE);
 	} else {
 		up_write(&uproc->rwsem);
-		uprobe_put_process(uproc);
+		uprobe_put_process(uproc, false);
 	}
 
 fail_tsk:
-	put_task_struct(p);
+	put_pid(p);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(register_uprobe);
@@ -1024,7 +1107,7 @@ EXPORT_SYMBOL_GPL(register_uprobe);
 /* See Documentation/uprobes.txt. */
 void unregister_uprobe(struct uprobe *u)
 {
-	struct task_struct *p;
+	struct pid *p;
 	struct uprobe_process *uproc;
 	struct uprobe_kimg *uk;
 	struct uprobe_probept *ppt;
@@ -1032,14 +1115,14 @@ void unregister_uprobe(struct uprobe *u)
 
 	if (!u)
 		return;
-	p = uprobe_get_task(u->pid);
+	p = uprobe_get_tg_leader(u->pid);
 	if (!p)
 		return;
 
 	cur_utask = uprobe_find_utask(current);
 	if (cur_utask && cur_utask->active_probe) {
 		/* Called from handler; uproc is read-locked; do this later */
-		put_task_struct(p);
+		put_pid(p);
 		(void) defer_registration(u, 0, cur_utask);
 		return;
 	}
@@ -1049,9 +1132,9 @@ void unregister_uprobe(struct uprobe *u)
 	 * probing is exiting.
 	 */
 	lock_uproc_table();
-	uproc = uprobe_find_process(p->tgid);
+	uproc = uprobe_find_process(p);
 	unlock_uproc_table();
-	put_task_struct(p);
+	put_pid(p);
 	if (!uproc)
 		return;
 
@@ -1097,12 +1180,12 @@ void unregister_uprobe(struct uprobe *u)
 		/* else somebody else's register_uprobe() resurrected ppt. */
 		up_write(&uproc->rwsem);
 	}
-	uprobe_put_process(uproc);
+	uprobe_put_process(uproc, false);
 	return;
 
 done:
 	up_write(&uproc->rwsem);
-	uprobe_put_process(uproc);
+	uprobe_put_process(uproc, false);
 }
 EXPORT_SYMBOL_GPL(unregister_uprobe);
 
@@ -1111,16 +1194,18 @@ static struct task_struct *find_surviving_thread(struct uprobe_process *uproc)
 {
 	struct uprobe_task *utask;
 
-	list_for_each_entry(utask, &uproc->thread_list, list)
-		return utask->tsk;
+	list_for_each_entry(utask, &uproc->thread_list, list) {
+		if (!(utask->tsk->flags & PF_EXITING))
+			return utask->tsk;
+	}
 	return NULL;
 }
 
 /*
  * Run all the deferred_registrations previously queued by the current utask.
  * Runs with no locks or mutexes held.  The current utask's uprobe_process
- * is ref-counted, so they won't disappear as the result of
- * unregister_u*probe() called here.
+ * is ref-counted, so it won't disappear as the result of unregister_u*probe()
+ * called here.
  */
 static void uprobe_run_def_regs(struct list_head *drlist)
 {
@@ -1160,14 +1245,34 @@ static void uprobe_run_def_regs(struct list_head *drlist)
  * We leave the SSOL vma in place even after all the probes are gone.
  * We used to remember its address in current->mm->context.uprobes_ssol_area,
  * but adding that field to mm_context broke KAPI compatibility.
- * Instead, when we shut down the uproc for lack of probes, we "tag" the vma
- * for later identification.  This is not particularly robust, but it's
+ * Instead, when we create the SSOL area, we "tag" the vma for later
+ * use by a new uproc.  This is not particularly robust, but it's
  * no more vulnerable to ptrace or mprotect mischief than any other part
- * of the address space.
+ * of the address space.  We keep the tag small to avoid wasting slots.
  */
-#define UPROBES_SSOL_VMA_TAG \
-	"This is the SSOL area for uprobes.  Mess with it at your own risk."
+#define UPROBES_SSOL_VMA_TAG "uprobes vma"
 #define UPROBES_SSOL_TAGSZ ((int)sizeof(UPROBES_SSOL_VMA_TAG))
+
+static void uprobe_tag_vma(struct uprobe_ssol_area *area)
+{
+	static const char *buf = UPROBES_SSOL_VMA_TAG;
+        struct uprobe_ssol_slot *slot = &area->slots[area->next_slot];
+
+	if (access_process_vm(current, (unsigned long) slot->insn, (void*)buf,
+			UPROBES_SSOL_TAGSZ, 1) == UPROBES_SSOL_TAGSZ) {
+		int nb;
+		for (nb = 0; nb < UPROBES_SSOL_TAGSZ; nb += SLOT_SIZE) {
+			slot->state = SSOL_RESERVED;
+			slot++;
+			area->next_slot++;
+			area->nfree--;
+		}
+	} else {
+		printk(KERN_ERR "Failed to tag uprobes SSOL vma: "
+				"pid/tgid=%d/%d, vaddr=%p\n",
+				current->pid, current->tgid, slot->insn);
+	}
+}
 
 /*
  * Searching downward from ceiling address (0 signifies top of memory),
@@ -1176,13 +1281,16 @@ static void uprobe_run_def_regs(struct list_head *drlist)
  */
 static unsigned long find_next_possible_ssol_vma(unsigned long ceiling)
 {
-	struct mm_struct *mm = current->mm;
+	struct mm_struct *mm;
 	struct rb_node *rb_node;
 	struct vm_area_struct *vma;
 	unsigned long good_flags = VM_EXEC | VM_DONTEXPAND;
 	unsigned long bad_flags = VM_WRITE | VM_GROWSDOWN | VM_GROWSUP;
 	unsigned long addr = 0;
 
+	mm = get_task_mm(current);
+	if (!mm)
+		return 0;
 	down_read(&mm->mmap_sem);
 	for (rb_node=rb_last(&mm->mm_rb); rb_node; rb_node=rb_prev(rb_node)) {
 		vma = rb_entry(rb_node, struct vm_area_struct, vm_rb);
@@ -1196,6 +1304,7 @@ static unsigned long find_next_possible_ssol_vma(unsigned long ceiling)
 		break;
 	}
 	up_read(&mm->mmap_sem);
+	mmput(mm);
 	return addr;
 }
 
@@ -1223,13 +1332,16 @@ static noinline unsigned long find_old_ssol_vma(void)
 static noinline unsigned long uprobe_setup_ssol_vma(unsigned long nbytes)
 {
 	unsigned long addr;
-	struct mm_struct *mm = current->mm;
+	struct mm_struct *mm;
 	struct vm_area_struct *vma;
 
 	BUG_ON(nbytes & ~PAGE_MASK);
 	if ((addr = find_old_ssol_vma()) != 0)
 		return addr;
 
+	mm = get_task_mm(current);
+	if (!mm)
+		return (unsigned long) (-ESRCH);
 	down_write(&mm->mmap_sem);
 	/*
 	 * Find the end of the top mapping and skip a page.
@@ -1242,6 +1354,7 @@ static noinline unsigned long uprobe_setup_ssol_vma(unsigned long nbytes)
 					MAP_PRIVATE|MAP_ANONYMOUS, 0);
 	if (addr & ~PAGE_MASK) {
 		up_write(&mm->mmap_sem);
+		mmput(mm);
 		printk(KERN_ERR "Uprobes failed to allocate a vma for"
 			" pid/tgid %d/%d for single-stepping out of line.\n",
 			current->pid, current->tgid);
@@ -1257,6 +1370,7 @@ static noinline unsigned long uprobe_setup_ssol_vma(unsigned long nbytes)
 	vma->vm_flags |= VM_DONTEXPAND;
 
 	up_write(&mm->mmap_sem);
+	mmput(mm);
 	return addr;
 }
 
@@ -1293,7 +1407,7 @@ static void uprobe_init_ssol(struct uprobe_process *uproc,
 			return;
 	}
 
-	area->nfree = area->nslots = PAGE_SIZE / MAX_UINSN_BYTES;
+	area->nfree = area->nslots = PAGE_SIZE / SLOT_SIZE;
 	if (area->nslots > MAX_SSOL_SLOTS)
 		area->nfree = area->nslots = MAX_SSOL_SLOTS;
 	area->slots = (struct uprobe_ssol_slot *)
@@ -1314,9 +1428,11 @@ static void uprobe_init_ssol(struct uprobe_process *uproc,
 		slot->owner = NULL;
 		slot->last_used = 0;
 		slot->insn = (__user uprobe_opcode_t *) slot_addr;
-		slot_addr += MAX_UINSN_BYTES;
+		slot_addr += SLOT_SIZE;
 	}
+	uprobe_tag_vma(area);
 	uretprobe_set_trampoline(uproc, tsk);
+	area->first_ssol_slot = area->next_slot;
 }
 
 /*
@@ -1341,38 +1457,12 @@ static __user uprobe_opcode_t
 	return area->insn_area;
 }
 
-/*
- * uproc is going away, but the process lives on.  Tag the SSOL vma so a new
- * uproc can reuse it if more probes are requested.
- */
-static void uprobe_release_ssol_vma(struct uprobe_process *uproc)
-{
-	unsigned long addr;
-	struct task_struct *tsk;
-	static const char *buf = UPROBES_SSOL_VMA_TAG;
-	int nb;
-
-	/* No need to muck with dying image's mm_struct. */
-	BUG_ON(uproc->finished);
-	addr = (unsigned long) uproc->ssol_area.insn_area;
-	if (!addr || IS_ERR_VALUE(addr))
-		return;
-	tsk = find_surviving_thread(uproc);
-	if (!tsk)
-		return;
-	nb = access_process_vm(tsk, addr, (void*)buf, UPROBES_SSOL_TAGSZ, 1);
-	if (nb != UPROBES_SSOL_TAGSZ)
-		printk(KERN_ERR "Failed to tag uprobes SSOL vma: "
-			"pid/tgid=%d/%d, vaddr=%#lx\n", tsk->pid, tsk->tgid,
-			addr);
-}
-
 static inline int advance_slot(int slot, struct uprobe_ssol_area *area)
 {
-	/* Slot 0 is reserved for uretprobe trampoline. */
+	/* First few slots are reserved for vma tag, uretprobe trampoline. */
 	slot++;
 	if (unlikely(slot >= area->nslots))
-		slot = 1;
+		slot = area->first_ssol_slot;
 	return slot;
 }
 
@@ -1533,13 +1623,12 @@ retry:
  *
  * 2) We've been asked to quiesce, but we hit a probepoint first.  Now
  * we're in the report_signal callback, having handled the probepoint.
- * We'd like to just set the UTRACE_ACTION_QUIESCE and
- * UTRACE_EVENT(QUIESCE) flags and coast into quiescence.  Unfortunately,
- * it's possible to hit a probepoint again before we quiesce.  When
- * processing the SIGTRAP, utrace would call uprobe_report_quiesce(),
- * which must decline to take any action so as to avoid removing the
- * uprobe just hit.  As a result, we could keep hitting breakpoints
- * and never quiescing.
+ * We'd like to just turn on UTRACE_EVENT(QUIESCE) and coast into
+ * quiescence.  Unfortunately, it's possible to hit a probepoint again
+ * before we quiesce.  When processing the SIGTRAP, utrace would call
+ * uprobe_report_quiesce(), which must decline to take any action so
+ * as to avoid removing the uprobe just hit.  As a result, we could
+ * keep hitting breakpoints and never quiescing.
  *
  * So here we do essentially what we'd prefer to do in uprobe_report_quiesce().
  * If we're the last thread to quiesce, handle_pending_uprobes() and
@@ -1557,7 +1646,7 @@ static int utask_fake_quiesce(struct uprobe_task *utask)
 	down_write(&uproc->rwsem);
 
 	/* In case we're somehow set to quiesce for real... */
-	clear_utrace_quiesce(utask);
+	clear_utrace_quiesce(utask, false);
 
 	if (uproc->n_quiescent_threads == uproc->nthreads-1) {
 		/* We're the last thread to "quiesce." */
@@ -1584,7 +1673,7 @@ static int utask_fake_quiesce(struct uprobe_task *utask)
 		 * unregister_uprobe() woke up before we did, it's up
 		 * to us to free uproc.
 		 */
-		return uprobe_put_process(uproc);
+		return uprobe_put_process(uproc, false);
 	}
 }
 
@@ -1622,11 +1711,31 @@ static inline void uprobe_post_ssin(struct uprobe_task *utask,
 /* uprobe_pre_ssout() and uprobe_post_ssout() are architecture-specific. */
 
 /*
+ * If this thread is supposed to be quiescing, mark it quiescent; and
+ * if it was the last thread to quiesce, do the work we quiesced for.
+ * Runs with utask->uproc->rwsem write-locked.  Returns true if we can
+ * let this thread resume.
+ */
+static bool utask_quiesce(struct uprobe_task *utask)
+{
+	if (utask->quiescing) {
+		if (utask->state != UPTASK_QUIESCENT) {
+			utask->state = UPTASK_QUIESCENT;
+			utask->uproc->n_quiescent_threads++;
+		}
+		return check_uproc_quiesced(utask->uproc, current);
+	} else {
+		clear_utrace_quiesce(utask, false);
+		return true;
+	}
+}
+
+/*
  * Delay delivery of the indicated signal until after single-step.
  * Otherwise single-stepping will be cancelled as part of calling
  * the signal handler.
  */
-static u32 uprobe_delay_signal(struct uprobe_task *utask, siginfo_t *info)
+static void uprobe_delay_signal(struct uprobe_task *utask, siginfo_t *info)
 {
 	struct delayed_signal *ds = kmalloc(sizeof(*ds), GFP_USER);
 	if (ds) {
@@ -1634,8 +1743,6 @@ static u32 uprobe_delay_signal(struct uprobe_task *utask, siginfo_t *info)
 		INIT_LIST_HEAD(&ds->list);
 		list_add_tail(&ds->list, &utask->delayed_signals);
 	}
-	return UTRACE_ACTION_HIDE | UTRACE_SIGNAL_IGN |
-			UTRACE_ACTION_SINGLESTEP | UTRACE_ACTION_NEWSTATE;
 }
 
 static void uprobe_inject_delayed_signals(struct list_head *delayed_signals)
@@ -1658,7 +1765,10 @@ static void uprobe_inject_delayed_signals(struct list_head *delayed_signals)
  *		- Set state = UPTASK_BP_HIT
  *		- Reset regs->IP to beginning of the insn, if necessary
  *		- Invoke handler for each uprobe at this probepoint
- *		- Set singlestep in motion (UTRACE_ACTION_SINGLESTEP),
+ *		- Start watching for quiesce events, in case another
+ *			engine cancels our UTRACE_SINGLESTEP with a
+ *			UTRACE_STOP.
+ *		- Set singlestep in motion (UTRACE_SINGLESTEP),
  *			with state = UPTASK_SSTEP
  *
  *	state = UPTASK_SSTEP => here after single-stepping
@@ -1671,40 +1781,83 @@ static void uprobe_inject_delayed_signals(struct list_head *delayed_signals)
  *			complete those via uprobe_run_def_regs().
  *
  *	state = ANY OTHER STATE
- *		- Not our signal, pass it on (UTRACE_ACTION_RESUME)
+ *		- Not our signal, pass it on (UTRACE_RESUME)
  * Note: Intermediate states such as UPTASK_POST_SSTEP help
  * uprobe_report_exit() decide what to unlock if we die.
  */
-static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
-		struct task_struct *tsk, struct pt_regs *regs, u32 action,
-		siginfo_t *info, const struct k_sigaction *orig_ka,
-		struct k_sigaction *return_ka)
+static u32 uprobe_report_signal(u32 action,
+				struct utrace_attached_engine *engine,
+				struct task_struct *tsk,
+				struct pt_regs *regs,
+				siginfo_t *info,
+				const struct k_sigaction *orig_ka,
+				struct k_sigaction *return_ka)
 {
 	struct uprobe_task *utask;
 	struct uprobe_probept *ppt;
 	struct uprobe_process *uproc;
 	struct uprobe_kimg *uk;
-	u32 ret;
 	unsigned long probept;
+	enum utrace_signal_action signal_action = utrace_signal_action(action);
+	enum utrace_resume_action resume_action;
 	int hit_uretprobe_trampoline = 0;
-	int registrations_deferred = 0;
-	int uproc_freed = 0;
-	struct list_head delayed_signals;
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
+	uproc = utask->uproc;
+
+	/*
+	 * We may need to re-assert UTRACE_SINGLESTEP if this signal
+	 * is not associated with the breakpoint.
+	 */
+	if (utask->state == UPTASK_SSTEP)
+		resume_action = UTRACE_SINGLESTEP;
+	else
+		resume_action = UTRACE_RESUME;
+
+	/* Keep uproc intact until just before we return. */
+	uprobe_get_process(uproc);
+
+	if (unlikely(signal_action == UTRACE_SIGNAL_REPORT)) {
+		/* This thread was quiesced using UTRACE_INTERRUPT. */
+		bool done_quiescing;
+		if (utask->active_probe) {
+			/*
+			 * We already hold uproc->rwsem read-locked.
+			 * We'll fake quiescence after we're done
+			 * processing the probepoint.
+			 */
+			uprobe_decref_process(uproc);
+			return UTRACE_SIGNAL_IGN | resume_action;
+		}
+		down_write(&uproc->rwsem);
+		done_quiescing = utask_quiesce(utask);
+		up_write(&uproc->rwsem);
+		if (uprobe_put_process(uproc, true))
+			resume_action = UTRACE_DETACH;
+		else if (done_quiescing)
+			resume_action = UTRACE_RESUME;
+		else
+			resume_action = UTRACE_STOP;
+		return UTRACE_SIGNAL_IGN | resume_action;
+	}
 
 	/*
 	 * info will be null if we're called with action=UTRACE_SIGNAL_HANDLER,
 	 * which means that single-stepping has been disabled so a signal
 	 * handler can be called in the probed process.  That should never
 	 * happen because we intercept and delay handled signals (action =
-	 * UTRACE_ACTION_RESUME) until after we're done single-stepping.
+	 * UTRACE_RESUME) until after we're done single-stepping.
+	 * TODO: Verify that this is still the case in utrace 2008.
+	 * UTRACE_SIGNAL_HANDLER seems to be defined, but not used anywhere.
 	 */
 	BUG_ON(!info);
-	if (action == UTRACE_ACTION_RESUME && utask->active_probe &&
-					info->si_signo != SSTEP_SIGNAL)
-		return uprobe_delay_signal(utask, info);
+	if (signal_action == UTRACE_SIGNAL_DELIVER && utask->active_probe &&
+					info->si_signo != SSTEP_SIGNAL) {
+		uprobe_delay_signal(utask, info);
+		uprobe_decref_process(uproc);
+		return UTRACE_SIGNAL_IGN | UTRACE_SINGLESTEP;
+	}
 
 	if (info->si_signo != BREAKPOINT_SIGNAL &&
 					info->si_signo != SSTEP_SIGNAL)
@@ -1719,7 +1872,6 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 	 * We need the SSOL area for the uretprobe trampoline even if
 	 * this architectures doesn't single-step out of line.
 	 */
-	uproc = utask->uproc;
 #ifdef CONFIG_UPROBES_SSOL
 	if (uproc->sstep_out_of_line &&
 			unlikely(IS_ERR(uprobe_verify_ssol(uproc))))
@@ -1733,7 +1885,8 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 		if (info->si_signo != BREAKPOINT_SIGNAL)
 			goto no_interest;
 		down_read(&uproc->rwsem);
-		clear_utrace_quiesce(utask);
+		/* Don't quiesce while running handlers. */
+		clear_utrace_quiesce(utask, false);
 		probept = arch_get_probept(regs);
 
 		hit_uretprobe_trampoline = (probept == (unsigned long)
@@ -1768,19 +1921,24 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 		else
 #endif
 			uprobe_pre_ssin(utask, ppt, regs);
-		if (unlikely(utask->doomed))
+		if (unlikely(utask->doomed)) {
+			uprobe_decref_process(uproc);
 			do_exit(SIGSEGV);
+		}
 		utask->state = UPTASK_SSTEP;
-		/*
-		 * No other engines must see this signal, and the
-		 * signal shouldn't be passed on either.
-		 */
-		ret = UTRACE_ACTION_HIDE | UTRACE_SIGNAL_IGN |
-			UTRACE_ACTION_SINGLESTEP | UTRACE_ACTION_NEWSTATE;
+		/* In case another engine cancels our UTRACE_SINGLESTEP... */
+		utask_adjust_flags(utask, UPROBE_SET_FLAGS,
+							UTRACE_EVENT(QUIESCE));
+		/* Don't deliver this signal to the process. */
+		resume_action = UTRACE_SINGLESTEP;
+		signal_action = UTRACE_SIGNAL_IGN;
 		break;
 	case UPTASK_SSTEP:
 		if (info->si_signo != SSTEP_SIGNAL)
 			goto no_interest;
+		/* No further need to re-assert UTRACE_SINGLESTEP. */
+		clear_utrace_quiesce(utask, false);
+
 		ppt = utask->active_probe;
 		BUG_ON(!ppt);
 		utask->state = UPTASK_POST_SSTEP;
@@ -1792,37 +1950,19 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 			uprobe_post_ssin(utask, ppt);
 bkpt_done:
 		/* Note: Can come here after running uretprobe handlers */
-		if (unlikely(utask->doomed))
+		if (unlikely(utask->doomed)) {
+			uprobe_decref_process(uproc);
 			do_exit(SIGSEGV);
+		}
 
 		utask->active_probe = NULL;
 
-		if (!list_empty(&utask->deferred_registrations)) {
-			/*
-			 * Make sure utask doesn't go away before we run
-			 * the deferred registrations.  This also keeps
-			 * the module from getting unloaded before we're
-			 * ready.
-			 */
-			registrations_deferred = 1;
-			uprobe_get_process(uproc);
-		}
-
-		/*
-		 * Delayed signals are a little different.  We want
-		 * them delivered even if all the probes get unregistered
-		 * and uproc and utask go away.  So disconnect the list
-		 * from utask and make it a local list.
-		 */
-		INIT_LIST_HEAD(&delayed_signals);
-		list_splice_init(&utask->delayed_signals, &delayed_signals);
-
-		ret = UTRACE_ACTION_HIDE | UTRACE_SIGNAL_IGN
-			| UTRACE_ACTION_NEWSTATE;
 		utask->state = UPTASK_RUNNING;
 		if (utask->quiescing) {
+			int uproc_freed;
 			up_read(&uproc->rwsem);
-			uproc_freed |= utask_fake_quiesce(utask);
+			uproc_freed = utask_fake_quiesce(utask);
+			BUG_ON(uproc_freed);
 		} else
 			up_read(&uproc->rwsem);
 
@@ -1832,27 +1972,30 @@ bkpt_done:
 			 * we just recycled was the last reason for
 			 * keeping uproc around.
 			 */
-			uproc_freed |= uprobe_put_process(uproc);
+			uprobe_decref_process(uproc);
 
-		if (registrations_deferred) {
-			uprobe_run_def_regs(&utask->deferred_registrations);
-			uproc_freed |= uprobe_put_process(uproc);
-		}
+		/*
+		 * We hold a ref count on uproc, so this should never
+		 * make utask or uproc disappear.
+		 */
+		uprobe_run_def_regs(&utask->deferred_registrations);
 
-		uprobe_inject_delayed_signals(&delayed_signals);
-
-		if (uproc_freed)
-			ret |= UTRACE_ACTION_DETACH;
+		uprobe_inject_delayed_signals(&utask->delayed_signals);
+		
+		resume_action = UTRACE_RESUME;
+		signal_action = UTRACE_SIGNAL_IGN;
 		break;
 	default:
 		goto no_interest;
 	}
-	return ret;
 
 no_interest:
-	return UTRACE_ACTION_RESUME;
+	if (uprobe_put_process(uproc, true))
+		resume_action = UTRACE_DETACH;
+	return (signal_action | resume_action);
 }
 
+#if 0
 /*
  * utask_quiesce_pending_sigtrap: The utask entered the quiesce callback
  * through the signal delivery path, apparently. Check if the associated
@@ -1863,17 +2006,14 @@ no_interest:
  */
 static int utask_quiesce_pending_sigtrap(struct uprobe_task *utask)
 {
-	const struct utrace_regset_view *view;
-	const struct utrace_regset *regset;
+	const struct user_regset_view *view;
+	const struct user_regset *regset;
 	struct uprobe_probept *ppt;
 	unsigned long insn_ptr;
 
-	view = utrace_native_view(utask->tsk);
-	regset = utrace_regset(utask->tsk, utask->engine, view, 0);
-	if (unlikely(regset == NULL))
-		return -EIO;
-
-	if ((*regset->get)(utask->tsk, regset,
+	view = task_user_regset_view(utask->tsk);
+	regset = &view->regsets[0];
+	if (regset->get(utask->tsk, regset,
 			SLOT_IP(utask->tsk) * regset->size,
 			regset->size, &insn_ptr, NULL) != 0)
 		return -EIO;
@@ -1888,36 +2028,39 @@ static int utask_quiesce_pending_sigtrap(struct uprobe_task *utask)
 	ppt = uprobe_find_probept(utask->uproc, ARCH_BP_INST_PTR(insn_ptr));
 	return (ppt != NULL);
 }
+#endif
 
 /*
  * Quiesce callback: The associated process has one or more breakpoint
  * insertions or removals pending.  If we're the last thread in this
  * process to quiesce, do the insertion(s) and/or removal(s).
  */
-static u32 uprobe_report_quiesce(struct utrace_attached_engine *engine,
-		struct task_struct *tsk)
+static u32 uprobe_report_quiesce(enum utrace_resume_action action,
+				struct utrace_attached_engine *engine,
+				struct task_struct *tsk,
+				unsigned long event)
 {
 	struct uprobe_task *utask;
 	struct uprobe_process *uproc;
+	bool done_quiescing = false;
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
-	uproc = utask->uproc;
-	if (current == utask->quiesce_master) {
+	BUG_ON(tsk != current);	// guaranteed by utrace 2008
+
+	if (utask->state == UPTASK_SSTEP)
 		/*
-		 * tsk was already quiescent when quiesce_all_threads()
-		 * called utrace_set_flags(), which in turned called
-		 * here.  uproc is already locked.  Do as little as possible
-		 * and get out.
+		 * We got a breakpoint trap and tried to single-step,
+		 * but somebody else's report_signal callback overrode
+		 * our UTRACE_SINGLESTEP with a UTRACE_STOP.  Try again.
 		 */
-		utask->state = UPTASK_QUIESCENT;
-		uproc->n_quiescent_threads++;
-		return UTRACE_ACTION_RESUME;
-	}
+		return UTRACE_SINGLESTEP;
 
 	BUG_ON(utask->active_probe);
+	uproc = utask->uproc;
 	down_write(&uproc->rwsem);
-
+#if 0
+	// TODO: Is this a concern any more?
 	/*
 	 * When a thread hits a breakpoint or single-steps, utrace calls
 	 * this quiesce callback before our signal callback.  We must
@@ -1928,16 +2071,16 @@ static u32 uprobe_report_quiesce(struct utrace_attached_engine *engine,
 	 * now, it may be before all threads manage to quiesce.
 	 */
 	if (!utask->quiescing || utask_quiesce_pending_sigtrap(utask) == 1) {
-		clear_utrace_quiesce(utask);
+		clear_utrace_quiesce(utask, false);
+		done_quiescing = true;
 		goto done;
 	}
+#endif
 
-	utask->state = UPTASK_QUIESCENT;
-	uproc->n_quiescent_threads++;
-	check_uproc_quiesced(uproc, tsk);
-done:
+	done_quiescing = utask_quiesce(utask);
+// done:
 	up_write(&uproc->rwsem);
-	return UTRACE_ACTION_RESUME;
+	return (done_quiescing ? UTRACE_RESUME : UTRACE_STOP);
 }
 
 /*
@@ -1993,8 +2136,9 @@ static void uprobe_cleanup_process(struct uprobe_process *uproc)
 /*
  * Exit callback: The associated task/thread is exiting.
  */
-static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
-		struct task_struct *tsk, long orig_code, long *code)
+static u32 uprobe_report_exit(enum utrace_resume_action action,
+			struct utrace_attached_engine *engine,
+			struct task_struct *tsk, long orig_code, long *code)
 {
 	struct uprobe_task *utask;
 	struct uprobe_process *uproc;
@@ -2037,7 +2181,7 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 
 	down_write(&uproc->rwsem);
 	utask_quiescing = utask->quiescing;
-	uprobe_free_task(utask);
+	uprobe_free_task(utask, 1);
 
 	uproc->nthreads--;
 	if (uproc->nthreads) {
@@ -2046,7 +2190,7 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 			 * In case other threads are waiting for
 			 * us to quiesce...
 			 */
-			check_uproc_quiesced(uproc,
+			(void) check_uproc_quiesced(uproc,
 				       find_surviving_thread(uproc));
 	} else {
 		/*
@@ -2057,9 +2201,9 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 		uprobe_cleanup_process(uproc);
 	}
 	up_write(&uproc->rwsem);
-	uprobe_put_process(uproc);
+	uprobe_put_process(uproc, true);
 
-	return UTRACE_ACTION_DETACH;
+	return UTRACE_DETACH;
 }
 
 /*
@@ -2130,13 +2274,21 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 	int ret = 0;
 	struct uprobe_process *child_uproc;
 	struct uprobe_task *child_utask;
+	struct pid *child_pid;
 
+	BUG_ON(parent_uproc->tgid == child_tsk->tgid);
 	BUG_ON(!parent_uproc->uretprobe_trampoline_addr ||
 			IS_ERR(parent_uproc->uretprobe_trampoline_addr));
 
 	if (!try_module_get(THIS_MODULE))
 		return -ENOSYS;
-	child_uproc = uprobe_mk_process(child_tsk);
+	child_pid = get_pid(find_vpid(child_tsk->pid));
+	if (!child_pid) {
+		module_put(THIS_MODULE);
+		return -ESRCH;
+	}
+	child_uproc = uprobe_mk_process(child_pid);
+	put_pid(child_pid);
 	if (IS_ERR(child_uproc)) {
 		ret = (int) PTR_ERR(child_uproc);
 		module_put(THIS_MODULE);
@@ -2155,8 +2307,7 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 	ret = uprobe_fork_uretprobe_instances(parent_utask, child_utask);
 	
 	hlist_add_head(&child_uproc->hlist,
-			&uproc_table[hash_long(child_uproc->tgid,
-			UPROBE_HASH_BITS)]);
+			&uproc_table[hash_ptr(child_pid, UPROBE_HASH_BITS)]);
 
 	up_write(&child_uproc->rwsem);
 	uprobe_decref_process(child_uproc);
@@ -2165,6 +2316,8 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 
 /*
  * Clone callback: The current task has spawned a thread/process.
+ * Utrace guarantees that parent and child pointers will be valid
+ * for the duration of this callback.
  *
  * NOTE: For now, we don't pass on uprobes from the parent to the
  * child. We now do the necessary clearing of breakpoints in the
@@ -2173,9 +2326,11 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
  * TODO:
  *	- Provide option for child to inherit uprobes.
  */
-static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
-		struct task_struct *parent, unsigned long clone_flags,
-		struct task_struct *child)
+static u32 uprobe_report_clone(enum utrace_resume_action action,
+				struct utrace_attached_engine *engine,
+				struct task_struct *parent,
+				unsigned long clone_flags,
+				struct task_struct *child)
 {
 	int len;
 	struct uprobe_process *uproc;
@@ -2191,19 +2346,29 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 	 */
 	lock_uproc_table();
 	down_write(&uproc->rwsem);
-	get_task_struct(child);
 
 	if (clone_flags & CLONE_THREAD) {
-		/* New thread in the same process */
-		ctask = uprobe_add_task(child, uproc);
-		BUG_ON(!ctask);
-		if (IS_ERR(ctask))
-			goto done;
-		uproc->nthreads++;
-		/*
-		 * FIXME: Handle the case where uproc is quiescing
-		 * (assuming it's possible to clone while quiescing).
-		 */
+		/* New thread in the same process. */
+		ctask = uprobe_find_utask(child);
+		if (unlikely(ctask)) {
+			/*
+			 * uprobe_mk_process() ran just as this clone
+			 * happened, and has already accounted for the
+			 * new child.
+			 */
+		} else {
+			struct pid *child_pid = get_pid(task_pid(child));
+			BUG_ON(!child_pid);
+			ctask = uprobe_add_task(child_pid, uproc);
+			BUG_ON(!ctask);
+			if (IS_ERR(ctask))
+				goto done;
+			uproc->nthreads++;
+			/*
+			 * FIXME: Handle the case where uproc is quiescing
+			 * (assuming it's possible to clone while quiescing).
+			 */
+		}
 	} else {
 		/*
 		 * New process spawned by parent.  Remove the probepoints
@@ -2236,15 +2401,20 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 			}
 		}
 		
-		if (!hlist_empty(&ptask->uretprobe_instances))
-			(void) uprobe_fork_uproc(uproc, ptask, child);
+		if (!hlist_empty(&ptask->uretprobe_instances)) {
+			int result = uprobe_fork_uproc(uproc, ptask, child);
+			if (result != 0)
+				printk(KERN_ERR "Failed to create"
+					" uprobe_process on fork: child=%d,"
+					" parent=%d, error=%d\n",
+					child->pid, parent->pid, result);
+		}
 	}
 
 done:
-	put_task_struct(child);
 	up_write(&uproc->rwsem);
 	unlock_uproc_table();
-	return UTRACE_ACTION_RESUME;
+	return UTRACE_RESUME;
 }
 
 /*
@@ -2263,9 +2433,12 @@ done:
  *		- We have to free up uprobe resources associated with
  *		  this process.
  */
-static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
-		struct task_struct *tsk, const struct linux_binprm *bprm,
-		struct pt_regs *regs)
+static u32 uprobe_report_exec(enum utrace_resume_action action,
+				struct utrace_attached_engine *engine,
+				struct task_struct *tsk,
+				const struct linux_binfmt *fmt,
+				const struct linux_binprm *bprm,
+				struct pt_regs *regs)
 {
 	struct uprobe_process *uproc;
 	struct uprobe_task *utask;
@@ -2278,16 +2451,17 @@ static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
 	down_write(&uproc->rwsem);
 	uprobe_cleanup_process(uproc);
 	/*
+	 * TODO: Is this necessary?
 	 * If [un]register_uprobe() is in progress, cancel the quiesce.
 	 * Otherwise, utrace_report_exec() might call uprobe_report_exec()
 	 * while the [un]register_uprobe thread is freeing the uproc.
 	 */
-	clear_utrace_quiesce(utask);
+	clear_utrace_quiesce(utask, false);
 	up_write(&uproc->rwsem);
 
 	/* If any [un]register_uprobe is pending, it'll clean up. */
-	uproc_freed = uprobe_put_process(uproc);
-	return (uproc_freed ? UTRACE_ACTION_DETACH : UTRACE_ACTION_RESUME);
+	uproc_freed = uprobe_put_process(uproc, true);
+	return (uproc_freed ? UTRACE_DETACH : UTRACE_RESUME);
 }
 
 static const struct utrace_engine_ops uprobe_utrace_ops =
@@ -2394,8 +2568,6 @@ static void uretprobe_handle_entry(struct uprobe *u, struct pt_regs *regs,
  * should never hit zero in this function.
  *
  * Returns the original return address.
- *
- * TODO: Handle longjmp out of uretprobed function.
  */
 static unsigned long uretprobe_run_handlers(struct uprobe_task *utask,
 		struct pt_regs *regs, unsigned long trampoline_addr)
@@ -2422,7 +2594,7 @@ static unsigned long uretprobe_run_handlers(struct uprobe_task *utask,
 			return ret_addr;
 	}
 	printk(KERN_ERR "No uretprobe instance with original return address!"
-		" pid/tgid=%d/%d", utask->tsk->pid, utask->tsk->tgid);
+		" pid/tgid=%d/%d", current->pid, current->tgid);
 	utask->doomed = 1;
 	return 0;
 }
@@ -2486,25 +2658,26 @@ EXPORT_SYMBOL_GPL(unregister_uretprobe);
 
 /*
  * uproc->ssol_area has been successfully set up.  Establish the
- * uretprobe trampoline in slot 0.
+ * uretprobe trampoline in the next available slot following the
+ * vma tag.
  */
 static void uretprobe_set_trampoline(struct uprobe_process *uproc,
-					struct task_struct *tsk)
+				struct task_struct *tsk)
 {
 	uprobe_opcode_t bp_insn = BREAKPOINT_INSTRUCTION;
 	struct uprobe_ssol_area *area = &uproc->ssol_area;
-	struct uprobe_ssol_slot *slot = &area->slots[0];
+	struct uprobe_ssol_slot *slot = &area->slots[area->next_slot];
 
 	if (access_process_vm(tsk, (unsigned long) slot->insn,
 			&bp_insn, BP_INSN_SIZE, 1) == BP_INSN_SIZE) {
 		uproc->uretprobe_trampoline_addr = slot->insn;
 		slot->state = SSOL_RESERVED;
-		area->next_slot = 1;
+		area->next_slot++;
 		area->nfree--;
 	} else {
 		printk(KERN_ERR "uretprobes disabled for pid %d:"
 			" cannot set uretprobe trampoline at %p\n",
-			uproc->tgid, slot->insn);
+			pid_nr(uproc->tg_leader), slot->insn);
 	}
 }
 
@@ -2519,7 +2692,7 @@ static void uretprobe_handle_return(struct pt_regs *regs,
 {
 }
 static void uretprobe_set_trampoline(struct uprobe_process *uproc,
-					struct task_struct *tsk)
+				struct task_struct *tsk)
 {
 }
 static void zap_uretprobe_instances(struct uprobe *u,
@@ -2527,6 +2700,40 @@ static void zap_uretprobe_instances(struct uprobe *u,
 {
 }
 #endif /* CONFIG_URETPROBES */
+
+#define UPROBES_DEBUG
+#ifdef UPROBES_DEBUG
+struct uprobe_task *updebug_find_utask(struct task_struct *tsk)
+{
+	return uprobe_find_utask(tsk);
+}
+EXPORT_SYMBOL_GPL(updebug_find_utask);
+
+/* NB: No locking, no ref-counting */
+struct uprobe_process *updebug_find_process(pid_t tgid)
+{
+	struct hlist_head *head;
+	struct hlist_node *node;
+	struct uprobe_process *uproc;
+	struct pid *p;
+
+	p = uprobe_get_tg_leader(tgid);
+	head = &uproc_table[hash_ptr(p, UPROBE_HASH_BITS)];
+	hlist_for_each_entry(uproc, node, head, hlist) {
+		if (uproc->tg_leader == p && !uproc->finished)
+			return uproc;
+	}
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(updebug_find_process);
+
+struct uprobe_probept *updebug_find_probept(struct uprobe_process *uproc,
+		unsigned long vaddr)
+{
+	return uprobe_find_probept(uproc, vaddr);
+}
+EXPORT_SYMBOL_GPL(updebug_find_probept);
+#endif /* UPROBES_DEBUG */
 
 #ifdef NO_ACCESS_PROCESS_VM_EXPORT
 /*
@@ -2584,7 +2791,7 @@ static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void
 	return buf - old_buf;
 }
 #endif
-#include "uprobes_arch.c"
-MODULE_LICENSE("GPL");
 
-#endif	/* uprobes 1 (based on original utrace) */
+#include "uprobes_arch.c"
+
+MODULE_LICENSE("GPL");

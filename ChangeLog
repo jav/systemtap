@@ -1,3 +1,19 @@
+2008-11-03  Jim Keniston  <jkenisto@us.ibm.com>
+
+	Add a version of uprobes that works with the 2.6.27 version of utrace.
+	* runtime/uprobes2/uprobes.[ch]: uprobes2
+	* runtime/uprobes2/uprobes_x86.[ch]: Simplified to use post-2.6.24
+	unified pt_regs names ("ax" rather than "eax" or "rax").
+	* runtime/uprobes2/uprobes_arch.[ch]: Pull in the arch-specific
+	file from the appropriate directory.
+	* runtime/uprobes/uprobes.[ch]: #ifdef added to pull in file from
+	../uprobes2 if we're running the new utrace.
+	* runtime/uprobes/Makefile: Updated
+	* Makefile.am: Install runtime/uprobes2/*.
+	* Makefile.in: Regenerated
+	* buildrun.cxx: Always copy uprobes's Module.symvers into the
+	directory where stap builds the script .ko.
+
 2008-11-03  Mark Wielaard  <mjw@redhat.com>
 
 	* tapsets.cxx (literal_stmt_for_return): Add function name and file

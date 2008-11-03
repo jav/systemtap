@@ -253,12 +253,12 @@ uprobes_pass (systemtap_session& s)
    * stap must fail.
    */
   int rc;
-  if (geteuid() == 0) {
+  if (geteuid() == 0)
     rc = make_uprobes(s);
-    if (rc == 0)
-      rc = copy_uprobes_symbols(s);
-  } else
+  else
     rc = verify_uprobes_uptodate(s);
+  if (rc == 0)
+    rc = copy_uprobes_symbols(s);
   return rc;
 }
 
