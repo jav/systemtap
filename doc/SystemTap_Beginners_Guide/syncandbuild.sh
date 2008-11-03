@@ -5,10 +5,10 @@ read TARG
 echo -n "Thank you. Now specify any build parameters you'd like to use (skip this step for none).	"
 read PARM
 
-cp -a ../../testsuite/systemtap.examples  en-US/extras/extras
+cp -a ../../testsuite  en-US/extras/.
 
 make $PARM $TARG
 
 echo "Cleaning sync'd files..."
-rm -rf en-US/extras/extras
+rm -rf en-US/extras/testsuite
 echo "...done."
