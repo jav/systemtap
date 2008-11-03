@@ -40,9 +40,9 @@ delta = gettimeofday_s() - foo[execname()]
 </screen>
 </example>
 
-<para>In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated with the returned value of the handler function <command>execname()</command> as a <emphasis>reference point</emphasis>. The second statement computes a value for the variable <command>delta</command> by subtracting the associated value the reference point from the current <command>gettimeofday_s()</command>.</para>
+<para>In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated with the returned value of the handler function <command>execname()</command> as a <emphasis>reference point</emphasis>. The second statement computes a value for the variable <command>delta</command> by subtracting the associated value the reference point from the current <command>gettimeofday_s()</command>. Note that the first statement writes the value of <command>gettimeofday_s()</command> into the appropriate key of array <literal>foo</literal>, while in the second statement the value of <command>foo[execname()]</command> is <emphasis>read</emphasis> from the array in order to compute for <literal>delta</literal>.</para>
 
-<para>In this situation, if the <command><replaceable>index_expression</replaceable></command> cannot find the unique key, it returns a null value (zero) by default. </para>
+<para>In this situation, if the <command><replaceable>index_expression</replaceable></command> cannot find the unique key, it returns a value of 0 (for numerical operations, such as <xref linkend="arrayreadingvaluesfrom"/>) or a null/empty string value (for string operations) by default. </para>
 </section>
 <section id="arrayops-increment">
 	<title>Incrementing Associated Values</title>
@@ -120,7 +120,8 @@ probe timer.s(3)
 global reads
 probe kernel.function("vfs_read")
 {
-	reads[execname()] ++
+	reads[execname()] ++
+
 }
 probe timer.s(2)
 {
@@ -178,7 +179,8 @@ global reads
 probe kernel.function("vfs_read")
 {
 	reads[execname()] ++
-}
+}
+
 probe timer.s(2)
 {
 	printf("=======\n")
@@ -227,6 +229,97 @@ probe timer.s(2)
 </example>
 
 <para>The <command>if(["stapio"] in reads)</command> statement instructs the script to print <computeroutput>stapio read detected, exiting</computeroutput> once the unique key <command>stapio</command> is added to the array <command>reads</command>.</para>
+</section>
+
+<section id="arrayops-aggregates">
+	<title>Computing for Statistical Aggregates</title>
+	
+<para>Statistical aggregates are used to collect statistics on numerical values where it is important to accumulate new data quickly and in large volume (i.e. storing only aggregated stream statistics). Statistical aggregates can be used in global variables or as elements in an array.</para>
+
+<para>To add value to a statistical aggregate, use the operator <command>&lt;&lt;&lt; <replaceable>value</replaceable></command>.</para>
+
+<remark>need more examples of supported rvalues, e.g. length, count, and what each one does.</remark>
+
+<example id="simpleaggregates">
+	<title>stat-aggregates.stp</title>
+<programlisting>
+global writes	
+probe vfs_write
+{
+writes[execname()] &lt;&lt;&lt; count
+}
+</programlisting>
+</example>
+
+<para>In <xref linkend="simpleaggregates"/>, the operator <command>&lt;&lt;&lt; count</command> <emphasis>stores</emphasis> the amount returned by <literal>count</literal> to to the associated value of the corresponding <command>execname()</command> in the <literal>writes</literal> array. Remember, these values are <emphasis>stored</emphasis>; they are not added to the associated values of each unique key, nor are they used to replace the current associated values. In a manner of speaking, think of it as having each unique key (<command>execname()</command>) having multiple associated values, accumulating with each probe handler run.</para>
+
+<note>
+	<title>Note</title>	
+	<para>In the context of <xref linkend="simpleaggregates"/>, <literal>count</literal> returns the amount of data written by the returned <command>execname()</command> to the virtual file system.</para>
+</note>
+
+<para>To extract data collected by statistical aggregates, use the syntax format <command>@<replaceable>extractor</replaceable>(<replaceable>variable/array index expression</replaceable>)</command>. <command><replaceable>extractor</replaceable></command> can be any of the following integer extractors:</para>
+	
+<variablelist>
+	
+<varlistentry>
+	<term>count</term>
+<listitem>
+<para>
+	Returns the number of all values stored into the variable/array index expression. Given the sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@count(writes[execname()])</command> will return <emphasis>how many values are stored</emphasis> in each unique key in array <literal>writes</literal>. 
+</para>
+</listitem>
+</varlistentry>	
+	
+<varlistentry>
+	<term>sum</term>
+<listitem>
+<para>
+	Returns the sum of all values stored into the variable/array index expression. Again, given sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@sum(writes[execname()])</command> will return <emphasis>the total of all values stored</emphasis> in each unique key in array <literal>writes</literal>.  
+</para>
+	</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>min</term>
+<listitem>
+<para>
+	Returns the smallest among all the values stored in the variable/array index expression.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>max</term>
+<listitem>
+<para>
+	Returns the largest among all the values stored in the variable/array index expression.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>avg</term>
+<listitem>
+<para>
+	Returns the average of all values stored in the variable/array index expression.
+</para>
+</listitem>
+</varlistentry>
+
+
+
+<!--
+<varlistentry>
+	<term></term>
+<listitem>
+<para>
+</para>
+</listitem>
+</varlistentry>
+-->
+
+</variablelist>
 </section>
 
 </section>

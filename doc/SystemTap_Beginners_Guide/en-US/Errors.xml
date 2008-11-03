@@ -12,7 +12,7 @@
 <section id="parsetype">
 	<title>Parse and Type Errors</title>
 	
-<para>These types of errors occur while SystemTap attempts to parse and translate the script into C, prior to being converted into a kernel module.</para>
+<para>These types of errors occur while SystemTap attempts to parse and translate the script into C, prior to being converted into a kernel module. Specifically, type errors result from operations that assign invalid values to variables or arrays.</para>
 	
 <formalpara><title>parse error: expected <replaceable>foo</replaceable>, saw <replaceable>bar</replaceable></title>
 	
@@ -59,9 +59,9 @@ probe syscall.open
 </section>	
 	
 <section id="symbolerrors">
-	<title>Symbol-Related Errors</title>
+	<title>Symbol Errors</title>
 	
-<para>TBD</para>	
+<para>Symbol errors result from operations in the script that process variables, arrays, or function calls incorrectly. Unlike "type" errors &mdash; which assign invalid values to a variable or array &mdash; symbol errors prevent the script from assigning any value altogether.</para>	
 	
 <formalpara>
 	<title>while searching for arity <replaceable>N</replaceable> function, semantic error: unresolved function call</title>
@@ -82,14 +82,14 @@ probe syscall.open
 <section id="probingerrors">
 	<title>Probe Errors</title>
 
-<para>TBD</para>
+<para>Probe errors result from the use of invalid events (e.g. events that could not be found in the tapset library), or the use of handlers that are invalid in the context of the probe. </para>
 	
 <formalpara>
 	<title>semantic error: probe point mismatch at position <replaceable>N</replaceable>, while resolving probe point <replaceable>foo</replaceable></title>
 	<para>SystemTap did not understand what the event / handler function  <computeroutput><replaceable>foo</replaceable></computeroutput> refers to. This usually means that SystemTap could not find a match for <computeroutput><replaceable>foo</replaceable></computeroutput> in the tapset library.</para>
 </formalpara>	
 	
-<remark>how to explain N in previous? "The divergence from the “tree” of probe point namespace is at position N (starting with zero at left)." </remark>
+<remark>how to explain N in previous? "The divergence from the “tree” of probe point namespace is at position N (starting with zero at left)." (from tutorial) </remark>
 
 <formalpara>
 	<title>semantic error: no match for probe point, while resolving probe point <replaceable>foo</replaceable></title>
@@ -98,17 +98,17 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: unresolved target-symbol expression</title>
-	<para>TBD</para>
+	<para>A handler in the script references a target variable, but the value of the variable could not be resolved. This error could also mean that a handler is referencing a target variable that is not valid at all in the context when it was referenced. </para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: libdwﬂ failure </title>
-	<para>TBD</para>
+	<para>There was a problem processing the debugging information. In most cases, this error results from the installation of a <filename>kernel-debuginfo</filename> RPM whose version does not match the probed kernel perfectly. Sometimes, the installed <filename>kernel-debuginfo</filename> RPM itself may have some consistency / correctness problems.</para>
 </formalpara>
 
 <formalpara>
-	<title>semantic error: cannot ﬁnd foo debuginfo</title>
-	<para>TBD</para>
+	<title>semantic error: cannot ﬁnd <replaceable>foo</replaceable> debuginfo</title>
+	<para>SystemTap could not find a suitable <filename>kernel-debuginfo</filename> at all. </para>
 </formalpara>
 <!--
 <formalpara>

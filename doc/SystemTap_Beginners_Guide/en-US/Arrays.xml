@@ -27,7 +27,7 @@ foo["harry"] = 25
 
 <important>
 	<title>Important</title>
-	<para>Arrays are normally used in multiple probes throughout a script: in most cases, one probe builds the arrays while another probe processes the information collected by the array (e.g. print its elements). Since the treatment of arrays is similar to that of variables, arrays must also be declared globally with the statement <command>global</command> when they are used by multiple probes.</para>
+	<para>All associate arrays must be declared as <command>global</command>, regardless of whether the associate array is used in one or multiple probes. </para>
 </important>
 
 

@@ -22,10 +22,26 @@
 		<title>nettop.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/extras/network/nettop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="extras/testsuite/systemtap.examples/network/nettop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>		
+
+<para>Note that <command>function print_activity()</command> uses the following constructs:</para>
+
+<screen>
+n_xmit ? @sum(ifxmit[pid, dev, exec, uid])/1024 : 0,
+n_recv ? @sum(ifrecv[pid, dev, exec, uid])/1024 : 0
+</screen>
+
+<para>These constructs are if/else conditionals. The first statement is simply a more concise way of writing:</para>
+
+<screen>
+if n_recv != 0 then
+	@sum(ifrecv[pid, dev, exec, uid])/1024
+else
+    0 
+</screen>
 
 <para><xref linkend="nettop"/> tracks which processes are generating network traffic on the system, and provides the following information about each process:</para>
 
