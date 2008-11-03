@@ -2295,12 +2295,16 @@ struct dwflpp
 						     &locops);
     if (nlocops < 0)
       {
-	throw semantic_error("failed to retrieve return value location");
+	throw semantic_error("failed to retrieve return value location"
+			     " for " + string (dwarf_diename (scope_die))
+			     + "(" + string (dwarf_diename (cu)) + ")");
       }
     // the function has no return value (e.g. "void" in C)
     else if (nlocops == 0)
       {
-	throw semantic_error("function has no return value");
+	throw semantic_error("function " + string (dwarf_diename (scope_die))
+			     + "(" + string (dwarf_diename (cu))
+			     + ") has no return value");
       }
 
     struct location  *head = c_translate_location (&pool, &loc2c_error, this,
@@ -2328,6 +2332,8 @@ struct dwflpp
 	    print_members(die,alternatives); 
 	  throw semantic_error("unable to find return value"
                                " near pc " + lex_cast_hex<string>(pc)
+                               + " for " + dwarf_diename (scope_die)
+                               + "(" + dwarf_diename (cu) + ")"
                                + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
 	}
 

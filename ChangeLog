@@ -1,3 +1,8 @@
+2008-11-03  Mark Wielaard  <mjw@redhat.com>
+
+	* tapsets.cxx (literal_stmt_for_return): Add function name and file
+	to semantic error messages.
+	
 2008-10-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (dump_unwindsyms): Work on CONFIG_RELOCATABLE=n
