@@ -8,4 +8,3 @@ probe kernel.function ("vfs_write"),
     printf ("%s(%d) %s 0x%x/%u\n",
       execname(), pid(), probefunc(), dev_nr, inode_nr)
 }
- stap -p4 para-callgraph.stp sys_read '*@fs/*.c'
