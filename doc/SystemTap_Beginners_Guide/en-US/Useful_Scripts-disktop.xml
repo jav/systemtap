@@ -42,7 +42,9 @@
 	<listitem><para><computeroutput>BYTES</computeroutput> &mdash; the amount of data read to or written from disk.</para></listitem>
 </itemizedlist>	
 	
+<para>The time and date in the output of <xref linkend="scriptdisktop"/> is returned by the functions <command>ctime()</command> and <command>gettimeofday_s()</command>. <command>ctime()</command> derives calendar time in terms of seconds passed since the Unix epoch (January 1, 1970). <command>gettimeofday_s()</command> counts the <emphasis>actual</emphasis> number of seconds since Unix epoch, which gives a fairly accurate human-readable timestamp for the output.</para>
 	
+<remark>needinfo: what does $return do?</remark> 	
 <example id="disktopoutput">
 	<title><xref linkend="scriptdisktop"/> Sample Output</title>
 <screen>
