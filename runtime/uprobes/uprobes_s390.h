@@ -85,5 +85,17 @@ static inline void arch_restore_uret_addr(unsigned long ret_addr,
 static unsigned long arch_hijack_uret_addr(unsigned long trampoline_addr,
 			struct pt_regs *regs, struct uprobe_task *utask);
 
+static inline unsigned long arch_get_cur_sp(struct pt_regs *regs)
+{
+	return regs->gprs[15];
+}
+
+/* The stack pointer is the same upon return as it is upon function entry. */
+static inline unsigned long arch_predict_sp_at_ret(struct pt_regs *regs,
+					struct task_struct *tsk)
+{
+	return regs->gprs[15];
+}
+
 #endif /* CONFIG_URETPROBES */
 #endif				/* _ASM_UPROBES_H */

@@ -1,3 +1,9 @@
+2008-11-04  David Smith  <dsmith@redhat.com>
+
+	From Jim Keniston, PR 5274.
+	* uprobes/uprobes_s390.h (arch_get_cur_sp): New function.
+	(arch_predict_sp_at_ret): Ditto.
+
 2008-11-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	From Masami Hiramatsu <mhiramat@redhat.com>, PR 6028.
