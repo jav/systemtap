@@ -1,6 +1,5 @@
 #! /bin/bash
 check_error() { if test $1 != 0; then echo $2; exit $1; fi }
-DEBUGINFOREPO="rhel-debuginfo"
 
 if [ "$#" -lt 1 ]; then
     UNAME=`uname -r` # determine the kernel running on the machine
@@ -26,7 +25,7 @@ if [ "$NEEDED" != "" ]; then
     echo -e "Need to install the following packages:\n$NEEDED"
     if [ `id -u` = "0" ]; then #attempt download and install
 	DIR=`mktemp -d` || exit 1
-	yumdownloader --enablerepo=$DEBUGINFOREPO $NEEDED --destdir=$DIR
+	yumdownloader --enablerepo="*debuginfo*" $NEEDED --destdir=$DIR
 	check_error $? "problem downloading rpm(s) $NEEDED"
 	rpm --force -ivh $DIR/*.rpm
 	check_error $? "problem installing rpm(s) $NEEDED"
