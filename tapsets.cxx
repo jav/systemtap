@@ -2397,6 +2397,7 @@ struct dwarf_derived_probe: public derived_probe
   bool has_return;
   bool has_maxactive;
   long maxactive_val;
+  bool access_vars;
 
   void printsig (std::ostream &o) const;
   void join_group (systemtap_session& s);
@@ -4104,9 +4105,10 @@ struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
   block *add_block;
   probe *add_probe;
   std::map<std::string, symbol *> return_ts_map;
+  bool visited;
 
   dwarf_var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
-    q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL) {}
+    q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL), visited(false) {}
   void visit_target_symbol (target_symbol* e);
 };
 
@@ -4172,6 +4174,7 @@ void
 dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+  visited = true;
 
   bool lvalue = is_active_lvalue(e);
   if (lvalue && !q.sess.guru_mode)
@@ -4709,6 +4712,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
 
   this->tok = q.base_probe->tok;
+  this->access_vars = false;
 
   // XXX: hack for strange g++/gcc's
 #ifndef USHRT_MAX
@@ -4726,12 +4730,12 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     {
       dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
       require <statement*> (&v, &(this->body), this->body);
+      this->access_vars = v.visited;
 
       // If during target-variable-expanding the probe, we added a new block
       // of code, add it to the start of the probe.
       if (v.add_block)
         this->body = new block(v.add_block, this->body);
-
       // If when target-variable-expanding the probe, we added a new
       // probe, add it in a new file to the list of files to be processed.
       if (v.add_probe)
@@ -4857,8 +4861,11 @@ dwarf_derived_probe::register_patterns(match_node * root)
 void
 dwarf_derived_probe::emit_probe_local_init(translator_output * o)
 {
-  // emit bsp cache setup
-  o->newline() << "bspcache(c->unwaddr, c->regs);";
+  if (access_vars)
+    {
+      // if accessing $variables, emit bsp cache setup for speeding up
+      o->newline() << "bspcache(c->unwaddr, c->regs);";
+    }
 }
 
 // ------------------------------------------------------------------------

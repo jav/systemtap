@@ -1,3 +1,12 @@
+2008-11-04  Frank Ch. Eigler  <fche@elastic.org>
+
+	From Masami Hiramatsu <mhiramat@redhat.com>, PR 6028.
+	* tapsets.cxx (dwarf_derived_probe): New field access_vars, for
+	tracking result from ..
+	(dwarf_var_expanding_copy_visitor): Collect a flag about whether
+	any $expressions appear within.
+	(emit_probe_local_init): ... and run ia64 bspcache() on if true.
+
 2008-11-03  Jim Keniston  <jkenisto@us.ibm.com>
 
 	Add a version of uprobes that works with the 2.6.27 version of utrace.
