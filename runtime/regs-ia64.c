@@ -36,8 +36,17 @@ static void ia64_stap_get_arbsp(struct unw_frame_info *info, void *arg)
 }
 
 /*
- * bspcache: get cached unwound address and
- * 	     set a probe local cache of the offset of unwound address.
+ * bspcache: get cached unwound address from current BSP and
+ * 	     set a static local cache of the offset of unwound address
+ * 	     if the static local cache(variable) is not set.
+ * 	     The unwound address means the BSP value when the kprobe
+ * 	     was hit. This macro stores the difference of BSP between
+ * 	     when the kprobe was hit and when this macro was called.
+ * 	     Since the difference depends on how much stack is consumed
+ * 	     from when the kprobe was hit, this macro *MUST NOT* be put
+ * 	     on the path which several functions execute (in that case,
+ * 	     each time the difference is changed and this macro can't
+ * 	     return correct unwound address).
  */
 #define bspcache(cache, regs)\
 	if(regs) {\
