@@ -29,7 +29,7 @@
     deploy SystemTap on <emphasis>all</emphasis> those systems.  In some cases,
     this may be neither feasible nor desired to fully deploy SystemTap on those
     systems. For instance corporate policy may prohibit an administrator from
-    installing RPMs that proved debug information or compilers on specific
+    installing RPMs that provide compilers or debug information on specific
     machines, which will prevent the deployment of SystemTap.
   </para>
 	
@@ -37,7 +37,7 @@
     To work around this, you can resort to
     <firstterm>cross-instrumentation</firstterm>. Cross-instrumentation is the
     process of generating SystemTap instrumentation module from a SystemTap
-    script on one computer to be used on another machine. This process offers
+    script on one computer to be used on another computer. This process offers
     the following benefits:
   </para>
 	
@@ -146,7 +146,7 @@
       <para>
 	Determine the kernel running on each <emphasis>target system</emphasis>
 	by running the by running <command>uname -r</command> on each
-	<emphasis>target system</emphasis>:
+	<emphasis>target system</emphasis>.
       </para>
     </step>
 
@@ -187,8 +187,7 @@
   </para>
 
   <para>
-    <command>stap -r <replaceable>kernel_version</replaceable>
-    <replaceable>script</replaceable> -m
+    <command>stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceable> -m
     <replaceable>module_name</replaceable></command>
   </para>
 

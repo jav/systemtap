@@ -29,8 +29,8 @@
     <title>Important</title> <para>Many users confuse
     <filename>-debuginfo</filename> with <filename>-debug</filename>. Remember
     that the deployment of SystemTap requires the installation of the
-    <filename>-debuginfo</filename> version of the kernel, not the
-    <filename>-debug</filename> version. </para>
+    <filename>-debuginfo</filename> package of the kernel, not the
+    <filename>-debug</filename> version of the kernel. </para>
   </important>
 
 <section id="installproper">
@@ -46,7 +46,8 @@
     </itemizedlist>
 	
     <para>Assuming that the computer system has been configured to use Red Hat
-      Network (RHN), the two rpms can be installed with <command>yum install
+      Network (RHN) or <command>yum</command> is available,
+      the two rpms can be installed with <command>yum install
       systemtap systemtap-runtime</command>. Before you use SystemTap the
       additional kernel information will need to be installed as described in
       the following section.
@@ -79,7 +80,8 @@
     </screen>
 
     <para>For example, if you wish to use SystemTap on kernel version
-      <filename>2.6.18-53.el5</filename>, then you would need to download and
+      <filename>2.6.18-53.el5</filename> on an i686 machine,
+      then you would need to download and
       install the following RPMs:
     </para>
 
@@ -88,6 +90,17 @@
       <listitem><para><filename>kernel-debuginfo-common-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
       <listitem><para><filename>kernel-devel-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
     </itemizedlist>
+
+    <important>
+      <title>Important</title>
+	
+      <para>
+	The version and architecture of the <filename>-devel</filename>,
+	<filename>-debuginfo</filename> and
+	<filename>-debuginfo-common</filename> packages must match the kernel
+	you wish to probe with SystemTap <emphasis>exactly</emphasis>.
+      </para>
+    </important>
 
     <para> The script <xref linkend="stapprep"/> can be used by normal users to
 	  determine what supporting kernel RPMs need to be installed on the
@@ -108,8 +121,9 @@
     </formalpara>
 
     <para>
-      If the computer has access to Red Hat Network (RHN) and the yum-utils
-      package is installed, the <command>stapprep.sh</command> script can be run
+      If the yum-utils package is installed on the computer and has access to
+      the <command>yum</command> repositories,
+      the <command>stapprep.sh</command> script can be run
       by root to download and install the needed kernel packages via
       <command>yum</command> and <command>rpm</command> commands. Thus, the
       system administrator should be able to install the needed RPMs with the
@@ -123,21 +137,10 @@
 <filename>rhel-debuginfo</filename>, but this could be changed.  One could
 search the /etc/yum.repo.d/ directory for debuginfo repositories -->
 
-    <important>
-      <title>Important</title>
-	
-      <para>
-	The version and architecture of the <filename>-devel</filename>,
-	<filename>-debuginfo</filename> and
-	<filename>-debuginfo-common</filename> packages must match the kernel
-	you wish to probe with SystemTap <emphasis>exactly</emphasis>.
-      </para>
-    </important>
-
     <para>
-	If the <command>yum</command> repsitories are not accessible from the
-	machine, the following lines of bash script will generate the URL for
-	the Red Hat Enterprise Linux 5 debuginfo RPM directory:
+	If <command>yum</command> is not available on a Red Hat Enterprise Linux
+	5 machine, the following lines of bash script will generate the URL for
+	the debuginfo RPM directory:
     </para>
 
 <screen>
@@ -148,10 +151,27 @@ echo "ftp://ftp.redhat.com/pub/redhat/linux/enterprise/$releasever/en/os/$base"
 </screen>
 
     <para>
-      The package RPMs can be downloaded on another machine then copied to the
-      machine.  Once you have downloaded the packages and copied them to the
-      machine, install the RPMs by running <command>rpm -ivh
-      <replaceable>package names</replaceable></command>.
+      If <command>yum</command> in not available on a Fedora system, the
+      following lines of bash script will generate the URL for the location to
+      find the needed kernel RPMs:
+    </para>
+
+<screen>
+echo -n "Enter nvr of kernel-debuginfo (e.g. 2.6.25-14.fc9.x86_64) " ; \
+read NVR; \
+BASE=`uname -m` ; \
+NVR=`echo $NVR | sed s/.$BASE//` ; \
+VERSION=`echo $NVR | awk -F- '{print $1}'` ; \
+RELEASE=`echo $NVR | awk -F- '{print $2}'` ; \
+echo "http://kojipkgs.fedoraproject.org/\
+packages/kernel/$VERSION/$RELEASE/$BASE/"
+</screen>
+
+    <para>
+      The package RPMs can be manually downloaded and copied to the
+      machine.  Once you have manually copied the packages to the
+      machine, install the RPMs by running <command>rpm --force -ivh
+      <replaceable>package_names</replaceable></command>.
     </para>
 	
   </section>
