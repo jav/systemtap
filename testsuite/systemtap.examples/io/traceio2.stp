@@ -1,4 +1,4 @@
-global device_of_interest
+global device_of_interest, dev
 
 probe begin {
   /* The following is not the most efficient way to do this.
