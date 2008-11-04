@@ -2,35 +2,61 @@
 <!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 ]>
 
-	<section id="cross-compiling">
-		<title>Cross-Instrumentation</title>
+<section id="cross-compiling">
+  <title>Generating Instrumentation for Other Computers</title>
 
-<remark>cross-compiling script from here: http://sources.redhat.com/ml/systemtap/2008-q3/msg00310.html</remark>
+  <remark>
+    cross-compiling script from here:
+    http://sources.redhat.com/ml/systemtap/2008-q3/msg00310.html
+  </remark>
 		
-<remark>above; add short description, significance, howto, script (test first)</remark>		
-	<para>
-		When users run a SystemTap script, SystemTap builds a kernel module out of that script. SystemTap then loads the module onto the kernel, allowing it to extract the specified data directly from the kernel (refer to <xref linkend="systemtapsession"/> in <xref linkend="understanding-architecture-tools"/> for more information).
-	</para>
+  <remark>
+    above; add short description, significance, howto, script (test first)
+  </remark>
+
+  <para>
+    When users run a SystemTap script, SystemTap builds a kernel module out of
+    that script. SystemTap then loads the module onto the kernel, allowing it to
+    extract the specified data directly from the kernel (refer to
+    <xref linkend="systemtapsession"/> in
+    <xref linkend="understanding-architecture-tools"/> for more information).
+  </para>
 	
-	<para>
-		Normally, however, SystemTap scripts can only be run on systems where SystemTap is deployed (as in <xref linkend="installproper"/>). This could mean that if you want to run SystemTap on ten systems, you'd need to deploy SystemTap on <emphasis>all</emphasis> those systems.
-	</para>	
-		
-	<para>
-		In some cases, this may be neither feasible nor desired. For instance, running SystemTap on 25 systems &mdash; all of which are using a different kernel &mdash; may require fully deploying SystemTap on all 25 machines. This task may even increase in complexity if some (or all) systems are remote from the administrator. Sometimes, corporate policy may prohibit an administrator from installing a debug version of an RPM on specific machines, which will prevent the deployment of SystemTap altogether.
-	</para>	
+  <para>
+    Normally, however, SystemTap scripts can only be run on systems where
+    SystemTap is deployed (as in <xref linkend="installproper"/>). This could
+    mean that if you want to run SystemTap on ten systems, you would need to
+    deploy SystemTap on <emphasis>all</emphasis> those systems.  In some cases,
+    this may be neither feasible nor desired to fully deploy SystemTap on those
+    systems. For instance corporate policy may prohibit an administrator from
+    installing RPMs that proved debug information or compilers on specific
+    machines, which will prevent the deployment of SystemTap.
+  </para>
 	
-	<para>
-		To work around this, you can resort to <firstterm>cross-instrumentation</firstterm>. Cross-instrumentation is the process of compiling a kernel module (out of a SystemTap script) to be used on a different machine. This process offers the following benefits:
-	</para>
+  <para>
+    To work around this, you can resort to
+    <firstterm>cross-instrumentation</firstterm>. Cross-instrumentation is the
+    process of generating SystemTap instrumentation module from a SystemTap
+    script on one computer to be used on another machine. This process offers
+    the following benefits:
+  </para>
 	
-	<itemizedlist>
-		<listitem><para>The debug RPMs for all target machines can be installed into one system: the host machine.</para></listitem>
-		
-		<listitem><para>Each target machine only needs one RPM to load and use the compiled kernel module: <filename>systemtap-runtime</filename>.</para></listitem>
-		
-		<listitem><para>You do not need to restart any of the target machines.</para></listitem>
-	</itemizedlist>
+  <itemizedlist>
+    <listitem>
+      <para>
+	The debug RPMs for various machines can be installed on a single system:
+	the host machine.
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>
+	Each target machine only needs one RPM to installed to use
+	the generated SystemTap instrumentation module:
+	<filename>systemtap-runtime</filename>.
+      </para>
+    </listitem>
+  </itemizedlist>
 	
 <!-- 	
 
@@ -50,20 +76,53 @@
 	</para>	
 	
 	-->	
-<note>
-<title>Note</title>
-<para>For the sake of simplicity, we will be using the following terms throughout this section:</para>
-				
-<itemizedlist>
-	<listitem><para><emphasis>instrumentation module</emphasis> &mdash; the kernel module built from a SystemTap script; i.e. the <emphasis>SystemTap module</emphasis> is built on the <emphasis>host system</emphasis>, and will be loaded on the <emphasis>target kernel</emphasis> of <emphasis>target system</emphasis>.</para></listitem>
+  <note>
+    <title>Note</title>
+
+    <para>
+      For the sake of simplicity, we will be using the following terms
+      throughout this section:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  <emphasis>instrumentation module</emphasis> &mdash; the
+	  kernel module built from a SystemTap script; i.e. the
+	  <emphasis>SystemTap module</emphasis> is built on the <emphasis>host
+	  system</emphasis>, and will be loaded on the <emphasis>target
+	  kernel</emphasis> of <emphasis>target
+	  system</emphasis>.
+	</para>
+      </listitem>
 	
-	<listitem><para><emphasis>host system</emphasis> &mdash; the system on which you compile the kernel modules (from SystemTap scripts), to be loaded on <emphasis>target systems</emphasis>.</para></listitem>
+      <listitem>
+	<para>
+	  <emphasis>host system</emphasis> &mdash; the system on
+	  which you compile the instrumentation modules (from SystemTap
+	  scripts), to be loaded on <emphasis>target
+	  systems</emphasis>.
+	</para>
+      </listitem>
 	
-	<listitem><para><emphasis>target system</emphasis> &mdash; the system for which you are building the <emphasis>instrumentation module</emphasis> (from SystemTap scripts).</para></listitem> 
+      <listitem>
+	<para>
+	  <emphasis>target system</emphasis> &mdash; the system for which you
+	  are building the <emphasis>instrumentation module</emphasis> (from
+	  SystemTap scripts).
+	</para>
+      </listitem>
 	
-	<listitem><para><emphasis>target kernel</emphasis> &mdash; the kernel of the <emphasis>target system</emphasis>. This is the kernel on which you wish to load/run the <emphasis>instrumentation module</emphasis>.</para></listitem>
-</itemizedlist>	
-</note>		
+      <listitem>
+	<para>
+	  <emphasis>target kernel</emphasis> &mdash; the kernel of
+	  the <emphasis>target system</emphasis>. This is the kernel on which
+	  you wish to load/run the <emphasis>instrumentation
+	  module</emphasis>.
+	</para>
+      </listitem>
+    </itemizedlist>
+  </note>
 		
 <!--		
 		running a SystemTap script on a target system where SystemTap is not installed. Normally, to run a SystemTap script on a system, you need to deploy SystemTap on it first (as in <xref linkend="installproper"/>).
@@ -72,70 +131,113 @@
 <!--	<para>
 		This section teaches you how to deploy SystemTap on a host machine, from which you can create the necessary kernel module/s to be loaded on client machines. These kernel modules are built from SystemTap scripts you wish to run on the client machine.
 	</para>-->
-	
-<procedure id="preppingxcompile">
-	<title>Configuring a Host System and Target Systems</title>
-	
-<step>
-		<para>Configure <command>yum</command> on the <emphasis>host system</emphasis> to point to a repository containing the necessary debug RPMs for the <emphasis>target kernels</emphasis>. The following <command>yum</command> repository file (which you can add to <filename>/etc/yum.repos.d/</filename> points to a popular debug RPM repository for i386 systems running Red Hat Enterprise Linux 5:</para>
-<screen>
-[rhel-debuginfo]
-name=Red Hat Enterprise Linux $releasever - $basearch - Debug
 
-baseurl=ftp://ftp.redhat.com/pub/redhat/linux/enterprise/5Client/en/os/i386/Debuginfo/
-enabled=1
-</screen>
-	</step>	
-	
-	<step>
-		<para>Deploy SystemTap on the <emphasis>host system</emphasis>. It is from this machine that you will be building the <emphasis>instrumentation module</emphasis> (to be used on <emphasis>target systems</emphasis>). For instructions on how to deploy SystemTap, refer to <xref linkend="installproper"/>.</para>
-	</step>	
-		
-	<step>
-		<para>Install the <emphasis>target kernel</emphasis> on the <emphasis>host system</emphasis>. If multiple <emphasis>target systems</emphasis> use different <emphasis>target kernel</emphasis>, you will need to install each <emphasis>target kernel</emphasis>.</para>
-	</step>
-	
-	<step>
-		<para>
-			Install the corresponding debug RPMs for the <emphasis>target kernel</emphasis> of each <emphasis>target system</emphasis> on the <emphasis>host system</emphasis>.
-		</para>		
-	</step>
-	<step>
-		<para>Install <filename>yum-utils</filename> on the <emphasis>host system</emphasis>.</para>		
-	</step>
-	
-	<step>
-		<para>Install <filename>systemtap-runtime</filename> on each <emphasis>target system</emphasis>.</para>
-	</step>	
-</procedure>	
+  <procedure id="preppingxcompile">
+    <title>Configuring a Host System and Target Systems</title>
 
-<para>After performing <xref linkend="preppingxcompile"/>, you can now build the <emphasis>instrumentation module</emphasis> (for any <emphasis>target system</emphasis>) on the <emphasis>host system</emphasis>. </para>
+    <step>
+      <para>
+	Install the <filename>systemtap-runtime</filename> RPM on each
+	<emphasis>target system</emphasis>.
+      </para>
+    </step>	
 
-<para>To build the <emphasis>instrumentation module</emphasis>, run the following command on the <emphasis>host system</emphasis> (be sure to specify the appropriate values):</para>
+    <step>
+      <para>
+	Determine the kernel running on each <emphasis>target system</emphasis>
+	by running the by running <command>uname -r</command> on each
+	<emphasis>target system</emphasis>:
+      </para>
+    </step>
 
-<para><command>stap -r <replaceable>kernel version</replaceable> <replaceable>script</replaceable> -m <replaceable>module name</replaceable></command></para>
+    <step>
+      <para>
+	Install SystemTap on the <emphasis>host system</emphasis>. It is from
+	this machine that you will be building the <emphasis>instrumentation
+	module</emphasis> (to be used on <emphasis>target
+	systems</emphasis>). For instructions on how to install SystemTap, refer
+	to <xref linkend="installproper"/>.
+      </para>
+    </step>
 
-<para>Here, <command><replaceable>kernel version</replaceable></command> refers to the version of <emphasis>target kernel</emphasis> (including the architecture notation), <command><replaceable>script</replaceable></command> refers to the script to be converted into an <emphasis>instrumentation module</emphasis>, and <command><replaceable>instrumentation name</replaceable></command> is the desired name of the <emphasis>instrumentation module</emphasis>.</para>
+    <step>
+      <para>
+	Using the <emphasis>target kernel</emphasis> version determined earlier,
+	install the <emphasis>target kernel</emphasis> and related RPMs on the
+	<emphasis>host system</emphasis> by the method described in <xref
+	linkend="install-kinfo"/>. If multiple <emphasis>target
+	systems</emphasis> use different <emphasis>target kernels</emphasis>,
+	you will need to repeat this step for each different kernel used on the
+	<emphasis>target systems</emphasis>.
+      </para>
+    </step>
 
-<note>
-	<title>Note</title>
-	<para>To determine the architecture notation of a running kernel, run <command>uname -m</command>.</para>
-<!--	<para>To determine the version of a running kernel, run <command>uname -r</command>. To determine the architecture notation of a running kernel, run <command>uname -m</command>.</para>-->
-</note>	
+  </procedure>
 
-<para>Once the the <emphasis>instrumentation module</emphasis> is compiled, copy it to the <emphasis>target system</emphasis> and load it using:</para>
+  <para>
+    After performing <xref linkend="preppingxcompile"/>, you can now build the
+    <emphasis>instrumentation module</emphasis> (for any <emphasis>target
+    system</emphasis>) on the <emphasis>host system</emphasis>.
+  </para>
 
-<para><command>staprun <replaceable>instrumentation</replaceable></command></para>
+  <para>
+    To build the <emphasis>instrumentation module</emphasis>, run the following
+    command on the <emphasis>host system</emphasis> (be sure to specify the
+    appropriate values):
+  </para>
 
-<para>
-	For example, to create the <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename> from a SystemTap script named <filename>simple.stp</filename> for the <emphasis>target kernel</emphasis> 2.6.25.9-76.fc9 (on i686 architecture), use the following command:
-</para>
-	
-<para><command>stap -r 2.6.25.9-76.fc9.x86_64 simple.stp -m module</command></para>
+  <para>
+    <command>stap -r <replaceable>kernel_version</replaceable>
+    <replaceable>script</replaceable> -m
+    <replaceable>module_name</replaceable></command>
+  </para>
 
-<para>This will create a module named <filename>simple.ko</filename>. To use the <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename>, copy it to the <emphasis>target system</emphasis> and run the following command (on the <emphasis>target system</emphasis>):</para>
+  <para>
+    Here, <command><replaceable>kernel_version</replaceable></command> refers to
+    the version of the <emphasis>target kernel</emphasis> (the output of
+    <command>uname -r</command> on the target machine),
+    <command><replaceable>script</replaceable></command> refers to the script to
+    be converted into an <emphasis>instrumentation module</emphasis>, and
+    <command><replaceable>module_name</replaceable></command> is the desired
+    name of the <emphasis>instrumentation module</emphasis>.
+  </para>
 
-<para><command>staprun simple.ko</command></para>
+  <note>
+    <title>Note</title>
+    <para>
+      To determine the architecture notation of a running kernel, run
+      <command>uname -m</command>.
+    </para>
+  </note>	
+
+  <para>
+    Once the the <emphasis>instrumentation module</emphasis> is compiled, copy
+    it to the <emphasis>target system</emphasis> and load it using:
+  </para>
+
+  <para>
+    <command>staprun <replaceable>module_name</replaceable>.ko</command>
+  </para>
+
+  <para>
+    For example, to create the <emphasis>instrumentation module</emphasis>
+    <filename>simple.ko</filename> from a SystemTap script named
+    <filename>simple.stp</filename> for the <emphasis>target kernel</emphasis>
+    2.6.18-92.1.10.el5 (on x86_64 architecture), use the following command:
+  </para>
+
+  <para>
+    <command>stap -r 2.6.18-92.1.10.el5 -e 'probe vfs.read {exit()}' -m simple</command>
+  </para>
+
+  <para>
+    This will create a module named <filename>simple.ko</filename>. To use the
+    <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename>,
+    copy it to the <emphasis>target system</emphasis> and run the following
+    command (on the <emphasis>target system</emphasis>):
+  </para>
+
+  <para><command>staprun simple.ko</command></para>
 	
 <!--<procedure id="preppingxcompile">
 	<title>Preparing for a Cross-Compile</title>
@@ -143,9 +245,14 @@ enabled=1
 <step>
 	<para>Note the version of the target system's kernel on which you wish to use SystemTap. You can do this by logging onto the target system and running <command>uname -r</command> (assuming the system is running the kernel on which you wish to use SystemTap), or by inspecting <filename>/boot</filename>.</para>
 </step>	-->
-<important>
-	<title>Important</title>
-	<para>The <emphasis>host system</emphasis> must be the same architecture as the <emphasis>target system</emphasis> in order for the <emphasis>instrumentation module</emphasis> to work.</para>
-</important>	
+  <important>
+    <title>Important</title>
+    <para>
+      The <emphasis>host system</emphasis> must be the same architecture and
+      running the same distribution of Linux as the <emphasis>target
+      system</emphasis> in order for the <emphasis>instrumentation
+      module</emphasis> to work.
+    </para>
+  </important>
 
-	</section>	
+</section>	
