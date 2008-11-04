@@ -25,12 +25,12 @@
 	<title>traceio2-simple.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/traceio2-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="extras/testsuite/systemtap.examples/io/traceio2.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>
 
-<remark>in new SystemTap, returned a warning, but ran ok.</remark>
+<!-- <remark>in new SystemTap, returned a warning, but ran ok.</remark> 
 
 <para condition="fedora">For some kernel versions (e.g. <filename>2.6.21-1.3194.fc7</filename>), you may need to revise <xref linkend="traceio2"/> accordingly. SystemTap will output the following error if you need to do so:</para>
 
@@ -50,13 +50,17 @@ semantic error: field 'f_dentry' not found
 <programlisting condition="fedora">
 	dev_nr = $file->f_path->dentry->d_inode->i_sb->s_dev
 	inode_nr = $file->f_path->dentry->d_inode->i_ino
-</programlisting>
+			</programlisting>-->
 
-<para><xref linkend="traceio2"/> takes 2 arguments: the <emphasis>major</emphasis> and <emphasis>minor</emphasis> numbers of the device you wish to monitor. Its output includes the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), and the device number (in hex format).</para>
+<para><xref linkend="traceio2"/> takes 1 argument: the whole device number. To get this number, use <command>stat -c "0x%D" <replaceable>directory</replaceable></command>, where <command><replaceable>directory</replaceable></command> is located in the device you wish to monitor.</para>
+	
+<para>The <command>usrdev2kerndev()</command> function converts the whole device number into the format understood by the kernel. The output produced by <command>usrdev2kerndev()</command> is used in conjunction with the <command>MKDEV()</command>, <command>MINOR()</command>, and <command>MAJOR()</command> functions to determine the major and minor numbers of a specific device.</para>
+
+<para>The output of <xref linkend="traceio2"/> includes the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), and the device number (in hex format).</para>
 
 <remark>please verify if "0x800005" is "device number (in hex format)", and why it needs to be stated buy </remark>
 
-<para>The following example is an excerpt from the full output of <command>stap traceio2.stp 8 5</command>, where <computeroutput>8 5</computeroutput> is the MAJOR:MINOR device number of <filename>/dev/sda5</filename> (which we determined through <command>cat /sys/block/sda/sda5/dev</command>).</para>
+<para>The following example is an excerpt from the full output of <command>stap traceio2.stp 0x805</command>, where <literal>0x805</literal> is the whole device number of <filename>/home</filename>. <filename>/home</filename> resides in <filename>/dev/sda5</filename>, which is the device we wish to monitor.</para>
 
 <example id="traceio2output">
 	<title><xref linkend="traceio2"/> Sample Output</title>
