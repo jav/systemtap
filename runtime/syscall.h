@@ -75,6 +75,14 @@
 #define MREMAP_SYSCALL_NO(tsk)		1156
 #endif
 
+#if defined(__s390__) || defined(__s390x__)
+#define MMAP_SYSCALL_NO(tsk)		90
+#define MMAP2_SYSCALL_NO(tsk)		192
+#define MPROTECT_SYSCALL_NO(tsk)	125
+#define MUNMAP_SYSCALL_NO(tsk)		91
+#define MREMAP_SYSCALL_NO(tsk)		163
+#endif
+
 #if !defined(MMAP_SYSCALL_NO) || !defined(MMAP2_SYSCALL_NO)		\
 	|| !defined(MPROTECT_SYSCALL_NO) || !defined(MUNMAP_SYSCALL_NO)	\
 	|| !defined(MREMAP_SYSCALL_NO)
@@ -108,6 +116,15 @@ static inline unsigned long
 __stp_user_syscall_nr(struct pt_regs *regs)
 {
         return regs->r15;
+}
+#endif
+
+#if defined(__s390__) || defined(__s390x__)
+static inline unsigned long
+__stp_user_syscall_nr(struct pt_regs *regs)
+{
+	    // might need to be 'orig_gpr2'
+	return regs->gprs[2];
 }
 #endif
 
@@ -150,6 +167,14 @@ static inline long *
 __stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
 {
 	return &regs->r8;
+}
+#endif
+
+#if defined(__s390__) || defined(__s390x__)
+static inline long *
+__stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
+{
+	return &regs->gprs[2];
 }
 #endif
 
@@ -248,6 +273,29 @@ ____stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
 		return NULL;
 	}
 	return __ia64_fetch_register(n + 32, regs, cache);
+}
+#endif
+
+#if defined(__s390__) || defined(__s390x__)
+static inline long *
+__stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
+		       unsigned int n)
+{
+	/* If we were returning a value, we could check for TIF_31BIT
+	 * here and cast the value with '(u32)' to make sure it got
+	 * down to 32bits.  But, since we're returning an address,
+	 * there isn't much we can do. */
+	switch (n) {
+	case 0: return &regs->orig_gpr2;
+	case 1: return &regs->gprs[3];
+	case 2: return &regs->gprs[4];
+	case 3: return &regs->gprs[5];
+	case 4: return &regs->gprs[6];
+	case 5: return &regs->args[0];
+	default:
+		_stp_error("syscall arg > 5");
+		return NULL;
+	}
 }
 #endif
 
