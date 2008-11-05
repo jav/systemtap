@@ -33,16 +33,13 @@
   <itemizedlist>
     <listitem>
       <para>
-	The debug RPMs for various machines can be installed on a single system:
-	the host machine.
+	The kernel information packages for various machines can be installed on a single <emphasis>host machine</emphasis>.
       </para>
     </listitem>
 
     <listitem>
       <para>
-	Each target machine only needs one RPM to installed to use
-	the generated SystemTap instrumentation module:
-	<filename>systemtap-runtime</filename>.
+	Each <emphasis>target machine</emphasis> only needs one RPM to installed to use the generated SystemTap instrumentation module: <filename>systemtap-runtime</filename>.
       </para>
     </listitem>
   </itemizedlist>
