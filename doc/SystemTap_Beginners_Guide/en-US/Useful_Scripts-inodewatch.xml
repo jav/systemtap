@@ -27,6 +27,9 @@ no script in examples
 </para>
 </formalpara>		
 
+<remark>need to add references to sources/man pages that explain how "dev_nr = $file->f_dentry->d_inode->i_sb->s_dev" and "($1 &lt;&lt; 20 | $2)".</remark>
+
+
 <para><xref linkend="inodewatch"/> takes the following information about the file as an argument:</para>
 
 <itemizedlist>
