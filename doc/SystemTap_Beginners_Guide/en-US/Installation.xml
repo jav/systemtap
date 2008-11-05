@@ -34,10 +34,9 @@
   </important>
 
 <section id="installproper">
-    <title>Installating SystemTap</title>
+    <title>Installing SystemTap</title>
 
-    <para> For the Systemtap Beginner's Guide the following two SystemTap RPMs
-    need to be installed:
+    <para>To deploy Systemtap, you will need to to install the following RPMs:
     </para>
 
     <itemizedlist>
@@ -45,24 +44,15 @@
       <listitem><para><filename>systemtap-runtime</filename></para></listitem>
     </itemizedlist>
 	
-    <para>Assuming that the computer system has been configured to use Red Hat
-      Network (RHN) or <command>yum</command> is available,
-      the two rpms can be installed with <command>yum install
-      systemtap systemtap-runtime</command>. Before you use SystemTap the
-      additional kernel information will need to be installed as described in
-      the following section.
+    <para>Assuming that your system is configured to use Red Hat Network (RHN) or <command>yum</command> is available, these two rpms can be installed with <command>yum install systemtap systemtap-runtime</command>. Note that before you can use SystemTap, you will still need to install the required kernel information RPMs.
     </para>
 
 </section>
 
 <section id="install-kinfo">
-    <title>Installing Needed Kernel Information</title>
+    <title>Installing Required Kernel Information RPMs</title>
 
-    <para> SystemTap makes use of the information in additional kernel RPMs to
-      determine where to place instrumentation in the kernel and how to generate
-      code for the instrumentation. You will need to download and install the
-      necessary <filename>-devel</filename> and <filename>-debuginfo</filename>
-      packages for your kernel. The necessary <filename>-devel</filename> and
+    <para> SystemTap needs information about the kernel in order to place instrumentation in it (i.e. probe it). This information also allows SystemTap to generate the code for the instrumentation. This information is contained in the matching <filename>-devel</filename> and <filename>-debuginfo</filename> packages for your kernel. The necessary <filename>-devel</filename> and
       <filename>-debuginfo</filename> packages for the ordinary "vanilla" kernel
       are as follows:
     </para>
@@ -75,14 +65,11 @@
 
     <para> To determine what kernel your system is currently using, use:</para>
 		
-    <screen>
-      uname -r
-    </screen>
+<screen>
+uname -r
+</screen>
 
-    <para>For example, if you wish to use SystemTap on kernel version
-      <filename>2.6.18-53.el5</filename> on an i686 machine,
-      then you would need to download and
-      install the following RPMs:
+    <para>For example, if you wish to use SystemTap on kernel version <filename>2.6.18-53.el5</filename> on an i686 machine, then you would need to download and install the following RPMs:
     </para>
 
     <itemizedlist>
@@ -95,21 +82,30 @@
       <title>Important</title>
 	
       <para>
-	The version and architecture of the <filename>-devel</filename>,
-	<filename>-debuginfo</filename> and
-	<filename>-debuginfo-common</filename> packages must match the kernel
-	you wish to probe with SystemTap <emphasis>exactly</emphasis>.
+	The version and architecture of the <filename>-devel</filename>, <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.
       </para>
     </important>
 
-    <para> The script <xref linkend="stapprep"/> can be used by normal users to
-	  determine what supporting kernel RPMs need to be installed on the
-	  machine to use SystemTap with a particular kernel.  The script run
-	  without any arguments detemines the RPMs needed for the currently
-	  running kernel. The script can also accept one argument, the output
-	  <command>uname -r</command>, to determine the related RPMs required
-	  for a kernel that may not be currently running on the machine.
-    </para>
+<para>
+	To help ease your deployment of SystemTap, you can use <xref linkend="stapprep"/>. You can use <xref linkend="stapprep"/> to detemine the kernel information packages you need to install in order to run SystemTap. If you run <xref linkend="stapprep"/> (as an ordinary, non-root user) without any arguments, it will display the kernel information packages required for the <emphasis>loaded</emphasis> kernel. You can also pass a specific kernel version to <xref linkend="stapprep"/>  (e.g. <computeroutput>2.6.18-92.el5</computeroutput>) if you wish to probe a kernel that is not currently loaded.
+</para>
+
+<note>
+	<title>Note</title>
+	<para>Running <xref linkend="stapprep"/> as root will display the required kernel packages <emphasis>and</emphasis> install them as well, provided that <command>yum</command> and <command>yum-utils</command> are configured properly.</para>
+</note>	
+	
+<!--	Running <xref linkend="stapprep"/> without any arguments will display and install the required kernel information packages for the currently loaded kernel. If you wish to probe a kernel other than the one currently loaded, you can pass a specific kernel version as an argument to <xref linkend="stapprep"/>; the script will then install that kernel's corresponding kernel information packages.
+</para>	-->
+    
+<!--    
+<para>
+	To determine what kernel information RPMs you need to install in order to run SystemTap, run the <xref linkend="stapprep"/>. Running <xref linkend="stapprep"/> without any arguments will display what packages you 
+    
+    
+    
+    <para> The script <xref linkend="stapprep"/> can be used by normal users to determine what supporting kernel RPMs need to be installed on the machine to use SystemTap with a particular kernel.  The script run without any arguments detemines the RPMs needed for the currently running kernel. The script can also accept one argument, the output <command>uname -r</command>, to determine the related RPMs required for a kernel that may not be currently running on the machine.
+    </para>-->
 
     <formalpara id="stapprep">
       <title>stapprep.sh</title>
@@ -119,17 +115,17 @@
 	</programlisting>
       </para>
     </formalpara>
-
+<!--
     <para>
 	    If the <filename>yum-utils</filename> package is installed and the <command>yum</command> repositories are set up properly, you can run the <xref linkend="stapprep"/> script as root. <xref linkend="stapprep"/> will automatically download and install the required packages via <command>yum</command> and <command>rpm</command> commands (assuming that the kernel you wish to probe is currently loaded).
-    </para>
+    </para>-->
 
 <!-- The script assumes the Red Hat Enterprise Linux debuginfo repository,
 <filename>rhel-debuginfo</filename>, but this could be changed.  One could
 search the /etc/yum.repo.d/ directory for debuginfo repositories -->
 
 <para>
-	If you do not have <command>yum</command> installed and you are unable to install it, you will have to manually download and install the required packages. To generate the URL from which to download the required packages, use the following script:
+	If you do not have <command>yum</command> and <command>yum-utils</command> installed (and you are unable to install them), you will have to manually download and install the required kernel information packages. To generate the URL from which to download the required packages, use the following script:
 </para>	
 	
 <formalpara condition="RedHat">
