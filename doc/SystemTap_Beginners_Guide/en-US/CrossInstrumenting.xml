@@ -23,22 +23,11 @@
   </para>
 	
   <para>
-    Normally, however, SystemTap scripts can only be run on systems where
-    SystemTap is deployed (as in <xref linkend="installproper"/>). This could
-    mean that if you want to run SystemTap on ten systems, you would need to
-    deploy SystemTap on <emphasis>all</emphasis> those systems.  In some cases,
-    this may be neither feasible nor desired to fully deploy SystemTap on those
-    systems. For instance corporate policy may prohibit an administrator from
-    installing RPMs that provide compilers or debug information on specific
-    machines, which will prevent the deployment of SystemTap.
+    Normally, however, SystemTap scripts can only be run on systems where SystemTap is deployed (as in <xref linkend="installproper"/>). This could mean that if you want to run SystemTap on ten systems, you would need to deploy SystemTap on <emphasis>all</emphasis> those systems.  In some cases, this may be neither feasible nor desired. For instance, corporate policy may prohibit an administrator from installing RPMs that provide compilers or debug information on specific machines, which will prevent the deployment of SystemTap.
   </para>
 	
   <para>
-    To work around this, you can resort to
-    <firstterm>cross-instrumentation</firstterm>. Cross-instrumentation is the
-    process of generating SystemTap instrumentation module from a SystemTap
-    script on one computer to be used on another computer. This process offers
-    the following benefits:
+    To work around this, you can resort to <firstterm>cross-instrumentation</firstterm>. Cross-instrumentation is the process of generating SystemTap instrumentation module from a SystemTap script on one computer to be used on another computer. This process offers the following benefits:
   </para>
 	
   <itemizedlist>
@@ -186,10 +175,9 @@
     appropriate values):
   </para>
 
-  <para>
-    <command>stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceable> -m
-    <replaceable>module_name</replaceable></command>
-  </para>
+<screen>
+stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceable> -m <replaceable>module_name</replaceable>
+</screen>
 
   <para>
     Here, <command><replaceable>kernel_version</replaceable></command> refers to
@@ -214,9 +202,9 @@
     it to the <emphasis>target system</emphasis> and load it using:
   </para>
 
-  <para>
-    <command>staprun <replaceable>module_name</replaceable>.ko</command>
-  </para>
+<screen>
+staprun <replaceable>module_name</replaceable>.ko
+</screen>
 
   <para>
     For example, to create the <emphasis>instrumentation module</emphasis>
@@ -249,7 +237,7 @@
     <para>
       The <emphasis>host system</emphasis> must be the same architecture and
       running the same distribution of Linux as the <emphasis>target
-      system</emphasis> in order for the <emphasis>instrumentation
+      system</emphasis> in order for the built <emphasis>instrumentation
       module</emphasis> to work.
     </para>
   </important>

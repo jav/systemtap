@@ -8,9 +8,14 @@
 		SystemTap is a tracing and probing tool that allows users to study and monitor the activities of the operating system (particularly, the kernel) in fine detail. It provides information similar to the output of tools like <command>netstat</command>, <command>ps</command>, <command>top</command>, and <command>iostat</command>; however, SystemTap is designed to provide more filtering and analysis options for collected information.
 	</para>
 	
-	<para>
+	<para condition="RedHat">
 		For system administrators, SystemTap can be used as a performance monitoring tool for &PROD;. It is most useful when other similar tools cannot precisely pinpoint a bottleneck in the system, requiring a deep analysis of kernel activity. In the same manner, application developers can also use SystemTap to monitor, in finer detail, how their application behaves within the Linux system.
 	</para>
+	
+	
+	<para condition="fedora">
+		For system administrators, SystemTap can be used as a performance monitoring tool for &PROD2;. It is most useful when other similar tools cannot precisely pinpoint a bottleneck in the system, requiring a deep analysis of kernel activity. In the same manner, application developers can also use SystemTap to monitor, in finer detail, how their application behaves within the Linux system.
+	</para>	
 	
 	
 <!--	
@@ -20,7 +25,7 @@
 	-->
 <section id="goals">
 	<title>Documentation Goals</title>
-	<para>SystemTap provides the infrastructure to monitor the running Linux kernel for detailed analysis. This can assist administrators and developers in identifying the underlying cause of a performance or functional problem.</para>
+	<para>SystemTap provides the infrastructure to monitor the running Linux kernel for detailed analysis. This can assist administrators and developers in identifying the underlying cause of a bug or performance problem.</para>
 	
 	<para>Without SystemTap, monitoring the activity of a running kernel would require a tedious instrument, recompile, install, and reboot sequence. SystemTap is designed to eliminate this, allowing users to gather the same information by simply running user-written SystemTap scripts.</para> 
 		
