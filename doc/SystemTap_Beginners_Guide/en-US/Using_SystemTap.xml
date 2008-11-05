@@ -73,7 +73,9 @@
 <varlistentry>
 	<term>-v</term>
 	<listitem>
-		<para>Makes the output of the SystemTap session more verbose. You can repeat this option to (for example, <command>stap -vvv script.stp</command>); provide more details on the script's execution. This option is particularly useful if you encounter any errors in running the script.</para>
+		<para>Makes the output of the SystemTap session more
+		verbose. You can repeat this option (for example, <command>stap
+		-vvv script.stp</command>) to provide more details on the script's execution. This option is particularly useful if you encounter any errors in running the script.</para>
 		
 		<para>For more information about common SystemTap script errors, refer to <xref linkend="errors"/>.</para>
 	</listitem>	

@@ -4,7 +4,7 @@
 
 	
 <section id="using-setup">
-  <title>Setup and Installation</title>
+  <title>Installation and Setup</title>
   <remark>
     required packages, installation thru yum, repos (?); possibly, a script to install all required packages
   </remark>
@@ -107,14 +107,14 @@ uname -r
     <para> The script <xref linkend="stapprep"/> can be used by normal users to determine what supporting kernel RPMs need to be installed on the machine to use SystemTap with a particular kernel.  The script run without any arguments detemines the RPMs needed for the currently running kernel. The script can also accept one argument, the output <command>uname -r</command>, to determine the related RPMs required for a kernel that may not be currently running on the machine.
     </para>-->
 
-    <formalpara id="stapprep">
-      <title>stapprep.sh</title>
-      <para>
-	<programlisting>
-	  <xi:include parse="text" href="extras/stapprep.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	</programlisting>
-      </para>
-    </formalpara>
+<formalpara id="stapprep">
+<title>stapprep.sh</title>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/stapprep.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>
 <!--
     <para>
 	    If the <filename>yum-utils</filename> package is installed and the <command>yum</command> repositories are set up properly, you can run the <xref linkend="stapprep"/> script as root. <xref linkend="stapprep"/> will automatically download and install the required packages via <command>yum</command> and <command>rpm</command> commands (assuming that the kernel you wish to probe is currently loaded).
@@ -129,30 +129,20 @@ search the /etc/yum.repo.d/ directory for debuginfo repositories -->
 </para>	
 	
 <formalpara condition="RedHat">
-	<title>systemtapurl.sh</title>
+<title>rheldebugurl.sh</title>
 <para>
 <programlisting>
-pkg=`grep distroverpkg /etc/yum.conf |awk -F= '{print $2}'`
-releasever=`rpm -q --qf "%{version}" $pkg`
-base=`uname -m`
-echo "ftp://ftp.redhat.com/pub/redhat/linux/enterprise/$releasever/en/os/$base"
+<xi:include parse="text" href="extras/rheldebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>
 
 
 <formalpara condition="fedora">
-	<title>systemtapurl.sh</title>
+<title>fedoradebugurl.sh</title>
 <para>
-	<programlisting>
-echo -n "Enter nvr of kernel-debuginfo (e.g. 2.6.25-14.fc9.x86_64) " ; \
-read NVR; \
-BASE=`uname -m` ; \
-NVR=`echo $NVR | sed s/.$BASE//` ; \
-VERSION=`echo $NVR | awk -F- '{print $1}'` ; \
-RELEASE=`echo $NVR | awk -F- '{print $2}'` ; \
-echo "http://kojipkgs.fedoraproject.org/\
-packages/kernel/$VERSION/$RELEASE/$BASE/"
+<programlisting>
+<xi:include parse="text" href="extras/fedoradebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>

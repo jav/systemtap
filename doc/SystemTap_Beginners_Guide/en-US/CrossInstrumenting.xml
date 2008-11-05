@@ -23,7 +23,7 @@
   </para>
 	
   <para>
-    Normally, however, SystemTap scripts can only be run on systems where SystemTap is deployed (as in <xref linkend="installproper"/>). This could mean that if you want to run SystemTap on ten systems, you would need to deploy SystemTap on <emphasis>all</emphasis> those systems.  In some cases, this may be neither feasible nor desired. For instance, corporate policy may prohibit an administrator from installing RPMs that provide compilers or debug information on specific machines, which will prevent the deployment of SystemTap.
+    Normally, however, SystemTap scripts can only be run on systems where SystemTap is deployed (as in <xref linkend="using-setup"/>). This could mean that if you want to run SystemTap on ten systems, you would need to deploy SystemTap on <emphasis>all</emphasis> those systems.  In some cases, this may be neither feasible nor desired. For instance, corporate policy may prohibit an administrator from installing RPMs that provide compilers or debug information on specific machines, which will prevent the deployment of SystemTap.
   </para>
 	
   <para>
@@ -204,8 +204,9 @@ staprun <replaceable>module_name</replaceable>.ko
 </screen>
 
   <para>
-    For example, to create the <emphasis>instrumentation module</emphasis>
-    <filename>simple.ko</filename> from a SystemTap script named
+    For example, to create the
+    <emphasis>instrumentation module</emphasis> <filename>simple.ko</filename>
+    from a SystemTap script named
     <filename>simple.stp</filename> for the <emphasis>target kernel</emphasis>
     2.6.18-92.1.10.el5 (on x86_64 architecture), use the following command:
   </para>
