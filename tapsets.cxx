@@ -791,7 +791,7 @@ struct dwflpp
     assert(dwfl);
     assert(module);
     get_module_dwarf();
-    if (module_name == TOK_KERNEL)
+    if (module_name == TOK_KERNEL || dwfl_module_relocations (module) <= 0)
       return a;
     return a + module_start;
   }
