@@ -1,3 +1,8 @@
+2008-11-06  Wenji Huang  <wenji.huang@oracle.com>
+
+	PR 6998
+	* tapsets.cxx (profile_builder): Add default kernel symbols to profile.
+
 2008-11-06  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwflpp::module_address_to_global): 

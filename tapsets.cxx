@@ -7339,6 +7339,7 @@ struct profile_builder: public derived_probe_builder
 		     literal_map_t const &,
 		     vector<derived_probe *> & finished_results)
   {
+    sess.unwindsym_modules.insert ("kernel");
     finished_results.push_back(new profile_derived_probe(sess, base, location));
   }
 };
