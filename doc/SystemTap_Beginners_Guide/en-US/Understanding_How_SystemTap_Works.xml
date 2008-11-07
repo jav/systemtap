@@ -3,54 +3,109 @@
 ]>
 
 <chapter id="understanding-how-systemtap-works">
-	<title>Understanding How SystemTap Works</title>
-	<remark>
-		Short summary; probes, handlers, events
-	</remark>
-		
-	<para>SystemTap allows users to write and reuse simple scripts to deeply examine the activities of a running Linux system. These scripts can be designed to extract data, filter it, and summarize it quickly (and safely), enabling the diagnosis of complex performance (or even functional) problems.</para>
-	
-	<para>  The essential idea behind a SystemTap script is to name <emphasis>events</emphasis>, and to give them <emphasis>handlers</emphasis>. When SystemTap runs the script, SystemTap monitors for the event; once the event occurs, the Linux kernel then runs the handler as a quick sub-routine, then resumes.</para>
-		
-	<para>There are several kind of events; entering/exiting a function, timer expiration, session termination, etc. A handler is a series of script language statements that specify the work to be done whenever the event occurs. This work normally includes extracting data from the event context, storing them into internal variables, or printing results.</para>
-		
-	<section id="understanding-architecture-tools">
-		<title>Architecture</title>
-		<remark>
-			** add diagram, describe architecture, enumerate common tools
-		</remark>
-		
-		<remark>
-			** architecture diagram must be simpler, if at all included
-		</remark>
-		
-		<remark>
-			** add design advantages? e.g. "building kmods on-the-fly allows safer execution of script etc etc"
-		</remark>	
-		
-		<para>A SystemTap session begins when you run a SystemTap script. This session occurs in the following fashion:</para>
-			
-<procedure id="systemtapsession">
-	<title>SystemTap Session</title>
-	
-	<step><para>First, SystemTap checks the script against the existing tapset library (normally in <filename>/usr/share/systemtap/tapset/</filename> for any tapsets used.</para></step>
-	
-	<step><para>SystemTap then translates the script to C, running the system C compiler to create a kernel module from it. The tools that perform this step are contained in the <filename>systemtap</filename> package (refer to <xref linkend="installproper"/> for more information).</para></step>
-	
-	<step><para>SystemTap loads the module, then enables all the probes (events and handlers) in the script. The tools that enable this function are deployed by the <filename>systemtap-runtime</filename> package (refer to <xref linkend="installproper"/> for more information).</para></step>
-		
+  <title>Understanding How SystemTap Works</title>
+  <remark>
+    Short summary; probes, handlers, events
+  </remark>
+
+  <para>
+    SystemTap allows users to write and reuse simple scripts to deeply
+    examine the activities of a running Linux system. These scripts can be
+    designed to extract data, filter it, and summarize it quickly (and
+    safely), enabling the diagnosis of complex performance (or even
+    functional) problems.
+  </para>
+
+  <para>The essential idea behind a SystemTap script is to name
+    <emphasis>events</emphasis>, and to give them
+    <emphasis>handlers</emphasis>. When SystemTap runs the script, SystemTap
+    monitors for the event; once the event occurs, the Linux kernel then runs
+    the handler as a quick sub-routine, then resumes.
+  </para>
+
+  <para>
+    There are several kind of events; entering/exiting a function, timer
+    expiration, session termination, etc. A handler is a series of script
+    language statements that specify the work to be done whenever the event
+    occurs. This work normally includes extracting data from the event context,
+    storing them into internal variables, or printing results.
+</para>
+
+  <section id="understanding-architecture-tools">
+    <title>Architecture</title>
+    <remark>
+      ** add diagram, describe architecture, enumerate common tools
+    </remark>
+
+    <remark>
+      ** architecture diagram must be simpler, if at all included
+    </remark>
+
+    <remark>
+      ** add design advantages? e.g. "building kmods on-the-fly allows safer
+      execution of script etc etc"
+    </remark>
+
+    <para>
+      A SystemTap session begins when you run a SystemTap script. This
+      session occurs in the following fashion:
+    </para>
+
+    <procedure id="systemtapsession">
+      <title>SystemTap Session</title>
+
+      <step>
+	<para>
+	  First, SystemTap checks the script against the existing tapset library
+	  (normally in <filename>/usr/share/systemtap/tapset/</filename> for any
+	  tapsets used.
+	</para>
+      </step>
+
+      <step>
+	<para>SystemTap then translates the script to C, running the system C
+	  compiler to create a kernel module from it. The tools that perform
+	  this step are contained in the <filename>systemtap</filename> package
+	  (refer to <xref linkend="installproper"/> for more information).
+	</para>
+      </step>
+
+      <step>
+	<para>
+	  SystemTap loads the module, then enables all the probes (events and
+	  handlers) in the script. The <command>staprun</command> in the
+	  <filename>systemtap-runtime</filename> package (refer to <xref
+	  linkend="installproper"/> for more information) provides this
+	  functionality.
+	</para>
+      </step>
+
 <!--	<step><para>SystemTap loads the module, then enables all the probed events by "hooking" those events into the kernel.</para></step>
 		-->
-	<step><para>As the events occur, their corresponding handlers are executed.</para></step>
-	
-	<step><para>Once the SystemTap session is terminated, the probes are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>
+      <step>
+	<para>
+	  As the events occur, their corresponding handlers are executed.
+	</para>
+      </step>
+
+      <step>
+	<para>
+	  Once the SystemTap session is terminated, the probes are disabled, and
+	  the kernel module is unloaded.
+	</para>
+      </step>
 	<!--
 	<step><para>Once the SystemTap session is terminated, the hooked events are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>-->    
-</procedure>
+    </procedure>
 
-<para>This sequence is driven from a single command-line program: <command>stap</command>. This program is SystemTap's main front-end tool. For more information about <command>stap</command>, refer to <command>man stap</command> (once SystemTap is properly installed on your machine).</para>
+    <para>This sequence is driven from a single command-line program:
+    <command>stap</command>. This program is SystemTap's main front-end
+    tool. For more information about <command>stap</command>, refer to
+    <command>man stap</command> (once SystemTap is properly installed on your
+    machine).
+    </para>
 
-</section>
+  </section>
 <xi:include href="Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <xi:include href="ScriptConstructs.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <xi:include href="Arrays.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
@@ -63,42 +118,61 @@
 		</remark>
 	</section>
 	-->
-	<section id="understanding-tapsets">
-		 <title>Tapsets</title>
+  <section id="understanding-tapsets">
+    <title>Tapsets</title>
+
+    <remark>
+      definition, significance, difference with stap scripts (previous section),
+      library of tapsets in system: location
+    </remark>
 		
-		<remark>
-			definition, significance, difference with stap scripts (previous section), library of tapsets in system: location
-		</remark>
-		
-		<para>
-			<firstterm>Tapsets</firstterm> are scripts that form a library of pre-written probes and functions to be used in SystemTap scripts. When a user runs a SystemTap script, SystemTap checks the script's probe events and handlers against the tapset library; SystemTap then loads the corresponding probes and functions before translating the script to C (refer to <xref linkend="understanding-architecture-tools"/> for information on what transpires in a SystemTap session).
-		</para>
+    <para>
+      <firstterm>Tapsets</firstterm> are scripts that form a library of
+      pre-written probes and functions to be used in SystemTap scripts. When a
+      user runs a SystemTap script, SystemTap checks the script's probe events
+      and handlers against the tapset library; SystemTap then loads the
+      corresponding probes and functions before translating the script to C
+      (refer to <xref linkend="understanding-architecture-tools"/> for
+      information on what transpires in a SystemTap session).
+    </para>
 <!--		
 		<para>
 			Simply put, the tapset library is an abstraction layer designed to make it easier for users to define events and functions. In a way, tapsets provide useful "aliases" for functions that users may want to specify as an event; knowing the proper alias to use is, for the most part, easier than understanding how to specify a specific kernel function.
 		</para>	
 		-->
-		<para>
-			Like SystemTap scripts, tapsets use the filename extension <filename>.stp</filename>. The standard library of tapsets is located in <filename>/usr/share/systemtap/tapset/</filename> by default. However, unlike SystemTap scripts, tapsets are not meant for direct execution; rather, they constitute the library from which other scripts can pull definitions.
-		</para>	
-		
-		
-		<para>
-			Simply put, the tapset library is an abstraction layer designed to make it easier for users to define events and functions. In a manner of speaking, tapsets provide useful aliases for functions that users may want to specify as an event; knowing the proper alias to use is, for the most part, easier than remembering specific kernel functions that might vary between kernel versions.
-		</para>	
-			
+    <para>
+      Like SystemTap scripts, tapsets use the filename extension
+      <filename>.stp</filename>. The standard library of tapsets is located in
+      <filename>/usr/share/systemtap/tapset/</filename> by default. However,
+      unlike SystemTap scripts, tapsets are not meant for direct execution;
+      rather, they constitute the library from which other scripts can pull
+      definitions.
+    </para>	
+
+    <para>
+      Simply put, the tapset library is an abstraction layer designed to make it
+      easier for users to define events and functions. In a manner of speaking,
+      tapsets provide useful aliases for functions that users may want to
+      specify as an event; knowing the proper alias to use is, for the most
+      part, easier than remembering specific kernel functions that might vary
+      between kernel versions.
+    </para>	
+
 <!-- 			understanding how to specify a specific kernel function. -->
 				
-		<para>
-			Several handlers and functions in <xref linkend="systemtapscript-events"/> and <xref linkend="systemtapscript-handlers"/> are defined in tapsets. For example, <command>thread_indent()</command> is defined in <filename>indent.stp</filename>.
-		</para>
-		
-		
-<remark>
-	any other details to be included? i dont want to dwell too long here, though, since IMHO tapset development is beyond the scope of this "beginner's guide"
-</remark>	
-		
-	</section>
+    <para>
+      Several handlers and functions in <xref linkend="systemtapscript-events"/>
+      and <xref linkend="systemtapscript-functions"/> are defined in tapsets.
+      For example, <command>thread_indent()</command> is defined in
+      <filename>indent.stp</filename>.
+    </para>
+
+    <remark>
+      any other details to be included? i dont want to dwell too long here,
+      though, since IMHO tapset development is beyond the scope of this
+      "beginner's guide"
+    </remark>
+
+  </section>
 
 </chapter>
-

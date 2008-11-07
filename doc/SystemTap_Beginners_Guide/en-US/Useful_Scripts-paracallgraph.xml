@@ -36,7 +36,7 @@
 
 <remark> please verify previous if correct; i'm particularly interested in finding out how to better describe "trigger function"</remark>
 
-<para><xref linkend="scriptcallgraph"/> uses <command>thread_indent()</command>; as such, its output contains the timestamp, process name, and thread ID of <command>@2</command> (i.e. the probe function you are tracing). For more information about <command>thread_indent()</command>, refer to its entry in <xref linkend="systemtapscript-handlers"/>.</para>
+<para><xref linkend="scriptcallgraph"/> uses <command>thread_indent()</command>; as such, its output contains the timestamp, process name, and thread ID of <command>@2</command> (i.e. the probe function you are tracing). For more information about <command>thread_indent()</command>, refer to its entry in <xref linkend="systemtapscript-functions"/>.</para>
 
 		<para>The following example contains an excerpt from the output for <command>stap para-callgraph.stp sys_read '*@fs/*.c'</command>:</para>
 		

@@ -3,100 +3,130 @@
 ]>
 
 <section id="scripts">
-	<title>SystemTap Scripts</title>
+  <title>SystemTap Scripts</title>
 	
-	<para>
-		For the most part, SystemTap scripts are the foundation of each SystemTap session. SystemTap scripts instruct SystemTap on what type of information to collect, and what to do once that information is collected.
-	</para>
+  <para>
+    For the most part, SystemTap scripts are the foundation of each SystemTap
+    session. SystemTap scripts instruct SystemTap on what type of information to
+    collect, and what to do once that information is collected.
+  </para>
+
+  <para>
+    As stated in <xref linkend="understanding-how-systemtap-works"/>, SystemTap
+    scripts are made up of two components: <emphasis>events</emphasis> and
+    <emphasis>handlers</emphasis>. Once a SystemTap session is underway,
+    SystemTap monitors the operating system for the specified events and
+    executes the handlers as they occur.
+  </para>
+
+  <note>
+    <title>Note</title>
+    <para>
+      An event and its corresponding handler is collectively called a
+      <emphasis>probe</emphasis>. A SystemTap script can have multiple probes.
+    </para>
 	
-	<para>
-		As stated in <xref linkend="understanding-how-systemtap-works"/>, SystemTap scripts are made up of two components: <emphasis>events</emphasis> and <emphasis>handlers</emphasis>. Once a SystemTap session is underway, SystemTap monitors the operating system for the specified events and executes the handlers as they occur. 
-	</para>
-	
-	
-<note>
-	<title>Note</title>
-	<para>An event and its corresponding handler is collectively called a <emphasis>probe</emphasis>. A SystemTap script can have multiple probes.</para>
-	
-	<para>A probe's handler is also commonly referred to as a <emphasis>probe body</emphasis>.</para>
-</note>	
-	
-<para>
-	In terms of application development, using events and handlers is similar to inserting diagnostic print statements in a program's sequence of commands. These diagnostic print statements allow you to view a history of commands executed once the program is run. 
-	</para>	
+    <para>
+      A probe's handler is commonly referred to as a <emphasis>probe
+      body</emphasis>.
+    </para>
+  </note>
+
+  <para>
+    In terms of application development, using events and handlers is similar to
+    instrumenting the code by inserting diagnostic print statements in a
+    program's sequence of commands. These diagnostic print statements allow you
+    to view a history of commands executed once the program is run.
+  </para>
 <!--	<para>
 		In terms of application development, using events and handlers is similar to inserting <command>print</command> statements in a program's sequence of commands. These <command>print</command> statements allow you to view a history of commands executed once the program is run. 
 	</para>	-->
 	
-	<para>
-		SystemTap scripts go one step further by allowing you more flexibility with regard to handlers. Events serve as the triggers for handlers to run; handlers can be specified to trap specified data and print it in a certain manner. 
-	</para>
+  <para>
+    SystemTap scripts allow insertion of the instrumentation code without
+    recompilation of the code. and allows more flexibility with regard to
+    handlers. Events serve as the triggers for handlers to run; handlers can be
+    specified to record specified data and print it in a certain manner.
+  </para>
 	
-<formalpara id="scriptformats">
-	<title>Format</title>
-	<para>
-		SystemTap scripts use the file extension <filename>.stp</filename>, and are written in the following format:
-	</para>
-</formalpara>	
+  <formalpara id="scriptformats">
+    <title>Format</title>
+    <para>
+      SystemTap scripts use the file extension <filename>.stp</filename>, and
+      are conatains probes written in the following format:
+    </para>
+  </formalpara>	
 <screen>
-probe	<replaceable>event</replaceable>, {<replaceable>handler</replaceable>}
+probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
 </screen>
 
-<para>
-	Sometimes, you may need to recycle a handler accross multiple probes. Rather than rewrite handler statements accross probes, you can simply recycle them using <firstterm>functions</firstterm>, as in:
-</para>
+  <para>
+    SystemTap supports multiple events per probe; multiple events are delimited
+    by a comma (<command>,</command>). If multiple events are specified in a
+    single probe, SystemTap will execute the handler when any of the specified
+    events occur.
+  </para>
+
+  <para>
+    Systemtap allow you to write functions to factor out code to be used by a
+    number of probes. Thus, rather than repeatedly writing the same sequence of
+    series of statements in multiple probes, you can just place the instructions
+    in a <firstterm>function</firstterm>, as in:
+  </para>
 
 <screen>
-function <replaceable>function_name</replaceable> {<replaceable>handler1</replaceable>}
-probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>}
+function <replaceable>function_name</replaceable>(<replaceable>arguments</replaceable> {<replaceable>statements</replaceable>}
+probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>)}
 </screen>
 
-<para>Here, the probe executes <command><replaceable>handler1</replaceable></command> as the handler for the probed <command><replaceable>event</replaceable></command>.</para>
-
-
+  <para>
+    The <command><replaceable>statements</replaceable></command> in
+    <replaceable>function_name</replaceable> are executed when the probe for
+    <replaceable>event</replaceable> executes. The
+    <replaceable>arguments</replaceable> are optional values passed into the
+    function.
+  </para>
 
 <!--
 	<para>The <replaceable>exit()</replaceable> condition is optional; this condition safely terminates the session once the script successfully collects the required information the first time.</para>	
 	-->
-<important>
-	<title>Important</title>
-	<para>
-		<xref linkend="scripts"/> is designed to introduce readers to the basics of SystemTap scripts. To understand SystemTap scripts better, it is advisable that you refer to <xref linkend="useful-systemtap-scripts"/>; each section therein provides a detailed explanation of the script, its events, handlers, and expected output.
-	</para>
-</important>	
-	<section id="systemtapscript-events">
-		<title>Event</title>
-	
-<para>SystemTap events can be broadly classified into two types: <firstterm>synchronous</firstterm> and <firstterm>asynchronous</firstterm>.</para>
+  <important>
+    <title>Important</title>
+    <para>
+      <xref linkend="scripts"/> is designed to introduce readers to the basics
+      of SystemTap scripts. To understand SystemTap scripts better, it is
+      advisable that you refer to <xref linkend="useful-systemtap-scripts"/>;
+      each section therein provides a detailed explanation of the script, its
+      events, handlers, and expected output.
+    </para>
+  </important>
 
-<formalpara><title>Synchronous Events</title>
-<para>A <firstterm>synchronous</firstterm> event occurs when any process executes an instruction that references a particular location in kernel code. This gives other events a reference point from which more contextual data may be available. </para>
-</formalpara>
+  <section id="systemtapscript-events">
+    <title>Event</title>
+	
+    <para>
+      SystemTap events can be broadly classified into two types:
+      <firstterm>synchronous</firstterm> and
+      <firstterm>asynchronous</firstterm>.
+    </para>
+
+    <formalpara>
+      <title>Synchronous Events</title>
+      <para>
+	A <firstterm>synchronous</firstterm> event occurs when any process
+	executes an instruction that references a particular location in kernel
+	code. This gives other events a reference point from which more
+	contextual data may be available.
+      </para>
+    </formalpara>
 
 <!--<para>A <firstterm>synchronous</firstterm> event occurs when any processor executes an instruction matched by the specification. This gives other events a reference point (or instruction address) from which more contextual data may be available.</para>-->
 
 <!--<para>Synchronous events reference particular locations in kernel code. As a result, when synchronous events are used SystemTap can determine contextual  information regarding the location (such as function parameters).</para>-->
 
-<para>Examples of synchronous events include:</para>
+    <para>Examples of synchronous events include:</para>
 
 <variablelist>
-<varlistentry>
-	<term>kernel.function("<replaceable>function</replaceable>")</term>
-	<listitem>
-		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that occurs when the kernel function <command>sys_open</command> is called by any thread in the system. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
-		
-		<para>When defining functions, you can use asterisk (<literal>*</literal>) for wildcards. You can also trace the entry or exit of a function in a kernel source file. Consider the following example:</para>
-<example id="wildcards"><title>wildcards.stp</title>
-<programlisting>
-probe kernel.function("*@net/socket.c") { }
-probe kernel.function("*@net/socket.c").return { }
-</programlisting>	
-</example>	
-
-<para>In the previous example, the first probe's event specifies the entry of ALL functions in the kernel source file <filename>net/socket.c</filename>. The second probe specifies the exit of all those functions. Note that in this example, no handler was specified; as such, no information will be displayed.</para>
-	</listitem>
-	
-</varlistentry>
 
 <varlistentry>
 	<term>syscall.<replaceable>system_call</replaceable></term>
@@ -108,16 +138,36 @@ probe kernel.function("*@net/socket.c").return { }
 </varlistentry>
 	
 <varlistentry>
+	<term>kernel.function("<replaceable>function</replaceable>")</term>
+	<listitem>
+		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that occurs when the kernel function <command>sys_open</command> is called by any thread in the system. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
+		
+		<para>When defining functions, you can use asterisk (<literal>*</literal>) for wildcards. You can also trace the entry or exit of a function in a kernel source file. Consider the following example:</para>
+
+<example id="wildcards">
+<title>wildcards.stp</title>
+<programlisting>
+probe kernel.function("*@net/socket.c") { }
+probe kernel.function("*@net/socket.c").return { }
+</programlisting>	
+</example>
+
+<para>In the previous example, the first probe's event specifies the entry of ALL functions in the kernel source file <filename>net/socket.c</filename>. The second probe specifies the exit of all those functions. Note that in this example, no handler was specified; as such, no information will be displayed.</para>
+	</listitem>
+
+      </varlistentry>
+
+      <varlistentry>
 	<term>module("<replaceable>module</replaceable>").function("<replaceable>function</replaceable>")</term>
 	<listitem>
-		<para>Allows you to probe functions within modules. For example:</para>
+	  <para>Allows you to probe functions within modules. For example:</para>
 		
 <example id="eventsmodules"><title>moduleprobe.stp</title>
 <programlisting>
 probe module("ext3").function("*") { }
 probe module("ext3").function("*").return { }
 </programlisting>	
-		</example>
+</example>
 		
 		<para>
 			The first probe in <xref linkend="eventsmodules"/> points to the entry of <emphasis>all</emphasis> functions for the <filename>ext3</filename> module. The second probe points to the exits of all entries for that same module; the use of the <command>.return</command> suffix is similar to <command>kernel.function()</command>. Note that the probes in <xref linkend="eventsmodules"/> also do not contain probe bodies, and as such will not print any useful data (as in <xref linkend="wildcards"/>). 
@@ -127,57 +177,65 @@ probe module("ext3").function("*").return { }
 			A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>kernel version</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
 		</para>	
 		
-	</listitem>	
-</varlistentry>	
-</variablelist>	
+	</listitem>
+      </varlistentry>
+    </variablelist>
 
-	
-<formalpara>
-	<title>Asynchronous Events</title>
-	<para><firstterm>Asynchronous</firstterm> events, on the other hand, occur as instructed in the probe itself, rather than waiting for a particular instruction in kernel code to be executed by a process. This family of probe points consists mainly of counters, timers, and similar constructs.</para>
+    <formalpara>
+      <title>Asynchronous Events</title>
+      <para>
+	<firstterm>Asynchronous</firstterm> events are not tied to a particular
+	instruction or location in code. This family of probe points consists
+	mainly of counters, timers, and similar constructs.
+      </para>
 <!--	<para><firstterm>Asynchronous</firstterm> events, on the other hand, do not point to any reference point. This family of probe points consists mainly of counters, timers, and similar constructs.</para>-->
-</formalpara>
+    </formalpara>
 
-	<para>Examples of asynchronous events include:</para>
+    <para>Examples of asynchronous events include:</para>
 
-<variablelist>
-	
-<varlistentry>
+    <variablelist>
+
+      <varlistentry>
 	<term>begin</term>
 	<listitem>
-		<para>The startup of a SystemTap session; i.e. as soon as the SystemTap script is run.</para>
+	  <para>
+	    The startup of a SystemTap session; i.e. as soon as the SystemTap
+	    script is run.
+	  </para>
 	</listitem>	
-</varlistentry>	
+      </varlistentry>	
 
-<varlistentry>
+      <varlistentry>
 	<term>end</term>
 	<listitem>
-		<para>The end of a SystemTap session.</para>
+	  <para>The end of a SystemTap session.</para>
 	</listitem>	
-</varlistentry>
-
-
-
-<varlistentry>
+      </varlistentry>
+      <varlistentry>
 	<term>timer events</term>
 	<listitem>
-		<para>An event that specifies a handler to be executed every  specified period of time. For example:</para>
+	  <para>
+	    An event that specifies a handler to be executed every specified
+	    period of time. For example:
+	  </para>
 		
-<example id="timer"><title>timer-ms.stp</title>		
+<example id="timer"><title>timer-s.stp</title>
 <programlisting>
-probe timer.ms(4000)
+probe timer.s(4)
 {
-	printf("hello world\n")
+  printf("hello world\n")
 }
 </programlisting>
 </example>
 
-<para>
-	<xref linkend="timer"/> is an example of a probe that prints <command>hello world</command> every 4000 milliseconds. Note that you can also use the following timer events:
-</para>
+	  <para>
+	    <xref linkend="timer"/> is an example of a probe that prints
+	    <command>hello world</command> every 4 seconds. Note that you can
+	    also use the following timer events:
+	  </para>
 	
 <itemizedlist>
-<listitem><para><command>timer.s(<replaceable>seconds</replaceable>)</command></para></listitem>
+<listitem><para><command>timer.ms(<replaceable>milliseconds</replaceable>)</command></para></listitem>
 
 <listitem><para><command>timer.us(<replaceable>microseconds</replaceable>)</command></para></listitem>
 
@@ -186,54 +244,39 @@ probe timer.ms(4000)
 <listitem><para><command>timer.hz(<replaceable>hertz</replaceable>)</command></para></listitem>
 
 <listitem><para><command>timer.jiffies(<replaceable>jiffies</replaceable>)</command></para></listitem>
-
 </itemizedlist>
-<para>
-	When used in conjunction with another probe that collects information that updates periodically, timer events allows you to see how that information changes over time. 
-</para>	
-<!--
-<para>
-	When used in conjunction with another probe that collects a large quantity of data, timer events allow you to limit the information your script is collecting (and printing out). It is also useful for collecting periodically updating information.
-</para>	-->
-		
-	</listitem>	
-</varlistentry>
 
+	  <para>
+	    When used in conjunction with another probe that collects
+	    information that updates periodically, timer events allows you to
+	    see how that information changes over time.
+	  </para>
 
+	</listitem>
+      </varlistentry>
 
-<!--<remark>add timer.ms() to events list!</remark>-->
-<!--	
-<varlistentry>
-	<term></term>
-	<listitem>
-		<para></para>
-	</listitem>	
-</varlistentry>
--->
-	
-</variablelist>
+  </variablelist>
 
-<important>
-	<title>Important</title>
-	<para>
-	SystemTap supports the use of a large collection of probe events. For more information about supported events, refer to <command>man stapprobes</command>. The <citetitle>SEE ALSO</citetitle> section of <command>man stapprobes</command> also contains links to other <command>man</command> pages that discuss supported events for specific subsystems and components.
-	</para>	
-</important>
-
-<para>
-	SystemTap supports multiple events per probe; as shown in <xref linkend="scriptformats"/>, multiple events are delimited by a comma (<command>,</command>). If multiple events are specified in a single probe, SystemTap will execute the handler when any of the specified events occur. 
-</para>	
+    <important>
+      <title>Important</title>
+      <para>
+	SystemTap supports the use of a large collection of probe events. For
+	more information about supported events, refer to <command>man
+	stapprobes</command>. The <citetitle>SEE ALSO</citetitle> section of
+	<command>man stapprobes</command> also contains links to other
+	<command>man</command> pages that discuss supported events for specific
+	subsystems and components.
+      </para>
+    </important>
 
 <remark>is reference appropriate? too advanced for readers (it seems so to me)? please advise.</remark> 
 
-	</section>
-	
-	<section id="systemtapscript-handlers">
-		<title>Handler/Probe Body</title>
+  </section>
 
-<para>
-Consider the following sample script:
-</para>
+  <section id="systemtapscript-handler">
+    <title>Systemtap Handler/Boddy</title>
+
+    <para> Consider the following sample script: </para>
 
 <example id="helloworld"><title>helloworld.stp</title>
 <programlisting>
@@ -245,65 +288,85 @@ probe begin
 </programlisting>	
 </example>
 
-<para>
-	In <xref linkend="helloworld"/>, the event <command>begin</command> (i.e. the start of the session) triggers the handler enclosed in <command>{ }</command>, which simply prints <command>hello world</command>, then exits.
-</para>	
+    <para>
+      In <xref linkend="helloworld"/>, the event <command>begin</command>
+      (i.e. the start of the session) triggers the handler enclosed in
+      <command>{ }</command>, which simply prints <command>hello
+      world</command>, then exits.
+    </para>	
 
+    <note>
+      <title>Note</title>
+      <para>
+	SystemTap scripts continue to run until the
+	<command>exit()</command> function executes. If the users wants to stop
+	the execution of the script, it can interrupted manually with
+	<keycombo><keycap>Ctrl</keycap><keycap>C</keycap></keycombo>.
+      </para>
+    </note>
 
-<note>
-	<title>Note</title>
-	<para>
-		Many SystemTap scripts, such as <xref linkend="helloworld"/>, do not contain an <command>exit()</command> handler. Such scripts need to be interrupted manually; to do so, use <keycombo><keycap>Ctrl</keycap><keycap>C</keycap></keycombo>.
-	</para>
-</note>
-
-
-<formalpara id="printf">
-	<title>printf ( ) Statements</title>
-<para>
-	The <command>printf ()</command> statement is one of the simplest functions for printing data. <command>printf ()</command> can also be used to display data using a wide variety of SystemTap functions in the following format:
-</para>
-
-</formalpara>
+    <formalpara id="printf">
+      <title>printf ( ) Statements</title>
+      <para>
+	The <command>printf ()</command> statement is one of the simplest
+	functions for printing data. <command>printf ()</command> can also be
+	used to display data using a wide variety of SystemTap functions in the
+	following format:
+      </para>
+    </formalpara>
 
 
 <programlisting>
 printf ("<replaceable>format string</replaceable>\n", <replaceable>argument</replaceable>)
 </programlisting>
 
-<para>
-	The <replaceable>format string</replaceable> region specifies how <replaceable>argument</replaceable> should be displayed. The format string of <xref linkend="helloworld"/> simply instructs SystemTap to print <command>hello world</command>, and contains no arguments. 
-</para>
+    <para>
+	The <replaceable>format string</replaceable> specifies how
+	<replaceable>argument</replaceable> should be printed. The format string
+	of <xref linkend="helloworld"/> simply instructs SystemTap to print
+	<command>hello world</command>, and contains no format specifiers.
+    </para>
 
-<para>
-	You can use the variables <command>%s</command> (for strings) and <command>%d</command> (for numbers) in format strings, depending on your list of arguments. Format strings can have multiple variables, each matching a corresponding argument; multiple arguments are delimited by a comma (<command>,</command>) and space.
-</para>
+    <para>
+	You can use the format specifiers <command>%s</command> (for strings)
+	and <command>%d</command> (for numbers) in format strings, depending on
+	your list of arguments. Format strings can have multiple format
+	specifiers, each matching a corresponding argument; multiple arguments
+	are delimited by a comma (<command>,</command>).
+    </para>
 
-<note>
-	<title>Note</title>
-	<para>Semantically, the SystemTap <command>printf</command> function is very similar to its C language counterpart. The aforementioned syntax and format for SystemTap's <command>printf</command> function is identical to that of the C-style <command>printf</command>.</para>
-</note>	
+    <note>
+      <title>Note</title>
+	<para>Semantically, the SystemTap <command>printf</command> function is
+	very similar to its C language counterpart. The aforementioned syntax
+	and format for SystemTap's <command>printf</command> function is
+	identical to that of the C-style <command>printf</command>.
+      </para>
+    </note>
 
-<para>
-	To illustrate this, consider the following probe example:
-</para>
+    <para> To illustrate this, consider the following probe example: </para>
 
 <example id="syscall-open">
-	<title>variables-in-printf-statements.stp</title>
+<title>variables-in-printf-statements.stp</title>
 <programlisting>
 probe syscall.open
 {
   printf ("%s(%d) open\n", execname(), pid())
 }
-	
-</programlisting>	
+</programlisting>
 </example>
 
-<para>
-<xref linkend="syscall-open"/> instructs SystemTap to probe all entries to the system call <command>open</command>; for each event, it prints the current <command>execname()</command> (which is a string) and <command>pid()</command> (which is a number), followed by the word <command>open</command>. A snippet of this probe's output would look like:
-</para>
+    <para>
+      <xref linkend="syscall-open"/> instructs SystemTap to probe all entries to
+      the system call <command>open</command>; for each event, it prints the
+      current <command>execname()</command> (which is a string) and
+      <command>pid()</command> (which is a number), followed by the word
+      <command>open</command>. A snippet of this probe's output would look like:
+    </para>
 
-<remark>editorial review: does a clarification that "variable1" is to "argument1", "variable2" is to "argument2", or is this clear enough?</remark>
+    <remark>editorial review: does a clarification that "format specifier1" is
+      to "argument1", "format specifier2" is to "argument2", or is this clear
+      enough? </remark>
 
 <screen>
 vmware-guestd(2206) open
@@ -316,14 +379,20 @@ df(3433) open
 hald(2360) open
 </screen>
 
-<formalpara>
-	<title>SystemTap Functions</title>	
-	<para>SystemTap supports a wide variety of functions that can be used as <command>printf ()</command> arguments. <xref linkend="syscall-open"/> uses the SystemTap functions <command>execname()</command> (name of the process that called a kernel function/performed a system call) and <command>pid()</command> (current process ID).</para>
-</formalpara>		
+    <formalpara id="systemtapscript-functions">
+      <title>SystemTap Functions</title>	
+      <para>
+	SystemTap supports a wide variety of functions that can be used as
+	<command>printf ()</command> arguments. <xref linkend="syscall-open"/>
+	uses the SystemTap functions <command>execname()</command> (name of the
+	process that called a kernel function/performed a system call) and
+	<command>pid()</command> (current process ID).
+      </para>
+    </formalpara>		
 
-<remark>is "handler function" an appropriate term? wcohen: use "SystemTap functions" to match up language in man pages</remark>
+    <remark>is "handler function" an appropriate term? wcohen: use "SystemTap functions" to match up language in man pages</remark>
 
-	<para>The following is a list of commonly-used SystemTap functions:</para>	
+    <para>The following is a list of commonly-used SystemTap functions:</para>	
 <variablelist>
 
 <varlistentry>
@@ -379,30 +448,55 @@ hald(2360) open
 <varlistentry>
 	<term>thread_indent()</term>
 	<listitem>
-		<para>This particular function is quite useful, providing you with a way to better organize your print results. When used with an indentation parameter (for example, <command>-1</command>), it allows the probe to internally store an "indentation counter" for each thread (identified by ID, as in <command>tid</command>). It then returns a string with some generic trace data along with an appropriate number of indentation spaces.</para>
+	  <para>
+	    This particular function is quite useful, providing you with a way
+	    to better organize your print results. When used with an indentation
+	    parameter (for example, <command>-1</command>), it allows the probe
+	    to internally store an "indentation counter" for each thread
+	    (identified by ID, as in <command>tid</command>). It then returns a
+	    string with some generic trace data along with an appropriate number
+	    of indentation spaces.
+	  </para>
 		
-		<para>The generic data included in the returned string includes a timestamp (number of microseconds since the most recent initial indentation), a process name, and the thread ID. This allows you to identify what functions were called, who called them, and the duration of each function call.
-		</para>	
+	  <para>
+	    The generic data included in the returned string includes a
+	    timestamp (number of microseconds since the most recent initial
+	    indentation), a process name, and the thread ID. This allows you to
+	    identify what functions were called, who called them, and the
+	    duration of each function call.
+	  </para>	
+
+	  <para>
+	    If call entries and exits immediately precede each other, it is easy
+	    to match them. However, in most cases, after a first function call
+	    entry is made several other call entries and exits may be made
+	    before the first call exits. The indentation counter helps you match
+	    an entry with its corresponding exit by indenting the next function
+	    call if it is not the exit of the previous one.
+	  </para>
 		
-		<para>If call entries and exits immediately precede each other, it is easy to match them. However, in most cases, after a first function call entry is made several other call entries and exits may be made before the first call exits. The indentation counter helps you match an entry with its corresponding exit by indenting the next function call if it is not the exit of the previous one.</para>
-		
-		<para>
-			Consider the following example on the use of <command>thread_indent()</command>:
-		</para>
+	  <para>
+	    Consider the following example on the use of
+	    <command>thread_indent()</command>:
+	  </para>
 		
 <example id="thread_indent"><title>thread_indent.stp</title>
 <programlisting>
 probe kernel.function("*@net/socket.c") 
 {
-	printf ("%s -> %s\n", thread_indent(1), probefunc())
+  printf ("%s -> %s\n", thread_indent(1), probefunc())
 }
 probe kernel.function("*@net/socket.c").return 
 {
-	printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
+  printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
 }
 </programlisting>
 </example>
-	<para><xref linkend="thread_indent"/> prints out the <command>thread_indent()</command> and probe functions at each event in the following format:</para>
+
+	  <para>
+	    <xref linkend="thread_indent"/> prints out the
+	    <command>thread_indent()</command> and probe functions at each event
+	    in the following format:</para>
 	
 <screen>
      0 ftp(7223): -&gt; sys_socketcall
@@ -423,44 +517,71 @@ probe kernel.function("*@net/socket.c").return
   4775 ftp(7223): &lt;- sys_socketcall
 </screen>
 
-<remark>remember to add a reference later to "tapsets" from here, to clarify that thread_indent is defined in tapsets as a special function of sorts</remark>
+<remark>remember to add a reference later to "tapsets" from here, to clarify
+that thread_indent is defined in tapsets as a special function of sorts</remark>
 	
 	</listitem>	
-</varlistentry>
+      </varlistentry>
 
-<varlistentry>
+      <varlistentry>
 	<term>name</term>
 	<listitem>
-		<para>Identifies the name of a specific system call. This function can only be used in probes that use the event <command>syscall.<replaceable>system_call</replaceable></command>.</para>
+	  <para>Identifies the name of a specific system call. This function can
+	  only be used in probes that use the event
+	  <command>syscall.<replaceable>system_call</replaceable></command>.
+	  </para>
 	</listitem>	
-</varlistentry>
+      </varlistentry>
 
-<varlistentry>
+      <varlistentry>
 	<term>target()</term>
 	<listitem>
-		<para>Used in conjunction with <command>stap <replaceable>script</replaceable> -x <replaceable>process ID</replaceable></command> or <command>stap <replaceable>script</replaceable> -c <replaceable>command</replaceable></command>. If you want to specify a script to take an argument of a process ID or command, use <command>target()</command> as the variable in the script to refer to it. For example:</para>
+	  <para>
+	    Used in conjunction with <command>stap
+	    <replaceable>script</replaceable> -x <replaceable>process
+	    ID</replaceable></command> or <command>stap
+	    <replaceable>script</replaceable> -c
+	    <replaceable>command</replaceable></command>. If you want to specify
+	    a script to take an argument of a process ID or command, use
+	    <command>target()</command> as the variable in the script to refer
+	    to it. For example:
+	  </para>
 			
 <example id="targetexample">
-	<title>targetexample.stp</title>
+<title>targetexample.stp</title>
 <programlisting>
 probe syscall.* {
-	if (pid() == target()) {
-		printf("%s/n", name)
-	}}	
+  if (pid() == target())
+    printf("%s/n", name)
+}	
 </programlisting>
 </example>
 
-	<para>When <xref linkend="targetexample"/> is run with the argument <command>-x <replaceable>process ID</replaceable></command>, it watches all system calls (as specified by the event <command>syscall.*</command>) and prints out the name of all system calls made by the specified process.</para>
+	  <para>
+	    When <xref linkend="targetexample"/> is run with the argument
+	    <command>-x <replaceable>process ID</replaceable></command>, it
+	    watches all system calls (as specified by the event
+	    <command>syscall.*</command>) and prints out the name of all system
+	    calls made by the specified process.
+	  </para>
 	
-	<para>This has the same effect as specifying <command>if (pid() == <replaceable>process ID</replaceable>)</command> each time you wish to target a specific process. However, using <command>target()</command> makes it easier for you to re-use the script, giving you the ability to simply pass a process ID as an argument each time you wish to run the script (e.g. <command>stap targetexample.stp -x <replaceable>process ID</replaceable></command>).</para>
+	  <para>
+	    This has the same effect as specifying <command>if (pid() ==
+	    <replaceable>process ID</replaceable>)</command> each time you wish
+	    to target a specific process. However, using
+	    <command>target()</command> makes it easier for you to re-use the
+	    script, giving you the ability to simply pass a process ID as an
+	    argument each time you wish to run the script (e.g. <command>stap
+	    targetexample.stp -x <replaceable>process ID</replaceable></command>).
+	  </para>
 <!--		
 <note>
 	<title>Note</title>
 	<para>In <xref linkend="targetexample"/>, <command>name</command> instructs SystemTap to capture the name of the process</para>
 </note>	-->
-		
-	</listitem>	
-</varlistentry>
+
+	</listitem>
+      </varlistentry>
 
 <!--	
 <varlistentry>
@@ -470,9 +591,11 @@ probe syscall.* {
 	</listitem>	
 </varlistentry>
 -->	
-</variablelist>		
+    </variablelist>		
 
-<para>For more information about supported SystemTap functions, refer to <command>man stapfuncs</command>.</para>
+    <para>For more information about supported SystemTap functions, refer to
+      <command>man stapfuncs</command>.
+    </para>
 
 <remark>will need a complete listing of supported handler functions? also, SystemTap function descriptions seem ambiguous, please advise.</remark>
 
@@ -492,7 +615,6 @@ probe syscall.* {
 </para>
 -->
 
-
-	</section>
+  </section>
 
 </section>

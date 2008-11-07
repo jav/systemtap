@@ -23,7 +23,7 @@
 </para>
 </formalpara>		
 
-<para><xref linkend="sockettrace"/> is identical to <xref linkend="thread_indent"/>, which was earlier used in <xref linkend="systemtapscript-handlers"/> to illustrate how <command>thread_indent()</command> works.</para>
+<para><xref linkend="sockettrace"/> is identical to <xref linkend="thread_indent"/>, which was earlier used in <xref linkend="systemtapscript-functions"/> to illustrate how <command>thread_indent()</command> works.</para>
 
 <example id="sockettraceoutput">
 	<title><xref linkend="sockettrace"/> Sample Output</title>
