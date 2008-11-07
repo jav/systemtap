@@ -75,7 +75,7 @@ probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
   </para>
 
 <screen>
-function <replaceable>function_name</replaceable>(<replaceable>arguments</replaceable> {<replaceable>statements</replaceable>}
+function <replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>) {<replaceable>statements</replaceable>}
 probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>)}
 </screen>
 
@@ -131,18 +131,50 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
 <varlistentry>
 	<term>syscall.<replaceable>system_call</replaceable></term>
 	<listitem>
-		<para>The entry to the system call <replaceable>system_call</replaceable>. Similar to <command>kernel.function</command>, appending a <command>return</command> to the statement specifies the exit of the system call. For example, to specify the entry of the system call <command>close</command>, use <command>syscall.close.return</command>.</para>
-		
-		<para>To identify what system calls are made by a specific program/command, use <command>strace <replaceable>command</replaceable></command>.</para>
+	  <para>
+	    The entry to the system call
+	    <replaceable>system_call</replaceable>. If the exit from a syscall
+	    is desired, appending a <command>.return</command> to the event
+	    monitor the exit of the system call instead. For example, to specify
+	    the entry and exit of the system call <command>close</command>, use 
+	    <command>syscall.close</command> and
+	    <command>syscall.close.return</command> respectively.
+	  </para>
+	</listitem>	
+</varlistentry>
+	
+<varlistentry>
+	<term>vfs.<replaceable>file_op</replaceable></term>
+	<listitem>
+	  <para>
+	    The entry to the <replaceable>file_op</replaceable> event for
+	    Virtual File System (VFS). Similar to <command>syscall</command>
+	    event, appending a <command>.return</command> to the event monitors
+	    the exit of the <replaceable>file_op</replaceable> operation.
+	  </para>
 	</listitem>	
 </varlistentry>
 	
 <varlistentry>
 	<term>kernel.function("<replaceable>function</replaceable>")</term>
 	<listitem>
-		<para>The entry to the kernel function <replaceable>function</replaceable>. For example, <command>kernel.function("sys_open")</command> refers to the "event" that occurs when the kernel function <command>sys_open</command> is called by any thread in the system. To specify the <emphasis>return</emphasis> of the kernel function <command>sys_open</command>, append the <command>return</command> string to the event statement; i.e. <command>kernel.function("sys_open").return</command>.</para>
-		
-		<para>When defining functions, you can use asterisk (<literal>*</literal>) for wildcards. You can also trace the entry or exit of a function in a kernel source file. Consider the following example:</para>
+	  <para>
+	    The entry to the kernel function
+	    <replaceable>function</replaceable>. For example,
+	    <command>kernel.function("sys_open")</command> refers to the "event"
+	    that occurs when the kernel function <command>sys_open</command> is
+	    called by any thread in the system. To specify the
+	    <emphasis>return</emphasis> of the kernel function
+	    <command>sys_open</command>, append the <command>return</command>
+	    string to the event statement;
+	    i.e. <command>kernel.function("sys_open").return</command>.
+	  </para>
+
+	  <para>
+	    When defining functions, you can use asterisk (<literal>*</literal>)
+	    for wildcards. You can also trace the entry or exit of a function in
+	    a kernel source file. Consider the following example:
+	  </para>
 
 <example id="wildcards">
 <title>wildcards.stp</title>
@@ -152,7 +184,15 @@ probe kernel.function("*@net/socket.c").return { }
 </programlisting>	
 </example>
 
-<para>In the previous example, the first probe's event specifies the entry of ALL functions in the kernel source file <filename>net/socket.c</filename>. The second probe specifies the exit of all those functions. Note that in this example, no handler was specified; as such, no information will be displayed.</para>
+	  <remark>Wild cards also work for other things, e.g. syscall.*</remark>
+
+	  <para>
+	    In the previous example, the first probe's event specifies the entry
+	    of ALL functions in the kernel source file
+	    <filename>net/socket.c</filename>. The second probe specifies the
+	    exit of all those functions. Note that in this example, no handler
+	    was specified; as such, no information will be displayed.
+	  </para>
 	</listitem>
 
       </varlistentry>
@@ -247,9 +287,9 @@ probe timer.s(4)
 </itemizedlist>
 
 	  <para>
-	    When used in conjunction with another probe that collects
-	    information that updates periodically, timer events allows you to
-	    see how that information changes over time.
+	    When used in conjunction with other probes that collect information,
+	    timer events allows you to print out get periodic updates and see
+	    how that information changes over time.
 	  </para>
 
 	</listitem>
