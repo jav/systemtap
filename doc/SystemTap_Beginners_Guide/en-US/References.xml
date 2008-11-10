@@ -6,5 +6,112 @@
 	<title>References</title>
 	<remark>display links to other useful, more advanced systemtap docs - http://sourceware.org/systemtap/documentation.html, http://sourceware.org/systemtap/wiki/HomePage</remark>
 	
+<para>
+	This chapter enumerates other references for more information about SystemTap. It is advisable 
+	that you refer to these sources in the course of writing advanced probes and tapsets.
+</para>
+
+<variablelist>
+
+<varlistentry>
+	<term>SystemTap Wiki</term>
+<listitem>
+<para>
+	The <citetitle>SystemTap Wiki</citetitle> is a collection of links and articles related to the 
+	deployment, usage, and development of SystemTap. You can find it in 
+	<ulink url=" http://sourceware.org/systemtap/wiki/HomePage"/>.
+</para>
+</listitem>
+</varlistentry>	
+	
+<varlistentry>
+	<term>SystemTap Tutorial</term>
+<listitem>
+<para>
+	Much of the content in this book comes from the <citetitle>SystemTap Tutorial</citetitle> written 
+	by Will Cohen.  The <citetitle>SystemTap Tutorial</citetitle> is a more appropriate reference for 
+	users with intermediate to advanced knowledge of C++ and kernel development, and can be found at 
+	<ulink url="http://sourceware.org/systemtap/tutorial/"/>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>man stapprobes</term>
+<listitem>
+<para>
+This man page enumerates a variety of probe points supported by SystemTap, along with additional aliases 
+defined by the SystemTap tapset library. The bottom of the man page includes a list of other man pages 
+enumerating similar probe points for specific system components, such as <command>man
+	stapprobes.scsi</command>, <command>man stapprobes.process</command>, 
+<command>stapprobes.signal</command>, etc.
+</para>
+</listitem>
+</varlistentry>	
+
+<varlistentry>
+	<term>man stapfuncs</term>
+<listitem>
+<para>
+	<command>man stapfuncs</command> enumerates numerous functions supported by the SystemTap tapset 
+	library,  along with the prescribed syntax for each one. Note, however, that this is not a
+	complete list of <emphasis>all</emphasis> supported functions; there are more undocumented 
+	functions available. 	
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>SystemTap Language Reference</term>
+<listitem>
+<para>
+	This document is a comprehensive reference of SystemTap's language constructs and syntax. It is
+	recommended for users with a rudimentary to intermediate knowledge of C++ and other similar 
+	programming languages. The <citetitle>SystemTap Language Reference</citetitle> is available to all 
+	users at <ulink url="http://sourceware.org/systemtap/langref/"/> 
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>Tapset Developers Guide</term>
+<listitem>
+<para>
+	Once you have sufficient proficiency in writing SystemTap scripts, you can then try your hand out 
+	on writing your own tapsets. The <citetitle>Tapset Developers Guide</citetitle> describes how to 
+	add functions to your tapset library.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>Test Suite</term>
+<listitem>
+<para>
+	The <filename>systemtap-testsuite</filename> package allows you to test the entire SystemTap
+	toolchain without having to build from source. In addition, it also contains numerous examples of 
+	SystemTap scripts you can study and test; some of these scripts are also documented in 
+	<xref linkend="useful-systemtap-scripts"/>.
+</para>
+
+<para>
+	By default, the example scripts included in <filename>systemtap-testsuite</filename> are located 
+	in <filename>/usr/share/systemtap/testsuite/systemtap.examples</filename>.
+</para>	
+</listitem>
+</varlistentry>
+
+<!--	
+<varlistentry>
+	<term></term>
+<listitem>
+<para>
+</para>
+</listitem>
+</varlistentry>
+-->
+</variablelist>
+	
+	
 </chapter>
 
