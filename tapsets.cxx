@@ -1677,6 +1677,9 @@ struct dwflpp
       {
 	throw semantic_error ("unable to find any scopes containing "
 			      + lex_cast_hex<string>(pc)
+			      + ((scope_die == NULL) ? ""
+				 : (string (" in ") + dwarf_diename (scope_die)
+			      	    + "(" + dwarf_diename (cu) + ")"))
 			      + " while searching for local '" + local + "'");
       }
 
@@ -1690,6 +1693,9 @@ struct dwflpp
 	print_locals (scopes, alternatives);
 	throw semantic_error ("unable to find local '" + local + "'"
 			      + " near pc " + lex_cast_hex<string>(pc)
+			      + ((scope_die == NULL) ? ""
+				 : (string (" in ") + dwarf_diename (scope_die)
+			      	    + "(" + dwarf_diename (cu) + ")"))
 			      + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
       }
 

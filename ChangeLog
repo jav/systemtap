@@ -1,3 +1,9 @@
+2008-11-11  Przemysław Pawełczyk <przemyslaw@pawelczyk.it>
+	    Mark Wielaard <mjw@redhat.com>
+
+	* tapsets.cxx (find_variable_and_frame_base): Add scope name to
+	semantic error messages if available.
+
 2008-11-06  Wenji Huang  <wenji.huang@oracle.com>
 
 	PR 6998
