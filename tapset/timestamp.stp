@@ -21,7 +21,7 @@
 #include <linux/time.h>
 %}
 
-///<formalpara>
+///<formalpara id="get_cycles">
 ///  <title>get_cycles:long()</title>
 ///  <indexterm><primary>get_cycles</primary></indexterm>
 ///  <para>
@@ -34,7 +34,7 @@ function get_cycles:long () %{ /* pure */
 %}
 
 
-///<formalpara>
+///<formalpara id="gettimeofday_ns">
 ///  <title>gettimeofday_ns:long ()</title>
 ///  <indexterm><primary>gettimeofday_ns</primary></indexterm>
 ///  <para>
@@ -47,7 +47,7 @@ function gettimeofday_ns:long () %{ /* pure */
   THIS->__retvalue = _stp_gettimeofday_ns();
 %}
 
-///<formalpara>
+///<formalpara id="gettimeofday_us">
 ///  <title>gettimeofday_us:long ()</title>
 ///  <indexterm><primary>gettimeofday_us</primary></indexterm>
 ///  <para>
@@ -58,7 +58,7 @@ function gettimeofday_us:long () {
   return gettimeofday_ns() / 1000;
 }
 
-///<formalpara>
+///<formalpara id="gettimeofday_ms">
 ///  <title>gettimeofday_ms:long ()</title>
 ///  <indexterm><primary>gettimeofday_ms</primary></indexterm>
 ///  <para>
@@ -69,7 +69,7 @@ function gettimeofday_ms:long () {
   return gettimeofday_ns() / 1000000;
 }
 
-///<formalpara>
+///<formalpara id="gettimeofday_s">
 ///  <title>gettimeofday_s:long ()</title>
 ///  <indexterm><primary>gettimeofday_s</primary></indexterm>
 ///  <para>
