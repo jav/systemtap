@@ -1,0 +1,50 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+<!-- This file is extracted from the tapset files 
+   Do not modify this file -->
+<chapter id="timestamp_stp">
+  <title>Timestamp Functions</title>
+  <para>
+	Each timestamp function returns a value to indicate when
+     the function is executed.
+     Thus, these returned values can be used to indicate
+     when an event occurs, provide an ordering for events, or compute
+	the amount of time elapsed between to time stamps.
+  </para>
+<formalpara>
+  <title>get_cycles:long()</title>
+  <indexterm><primary>get_cycles</primary></indexterm>
+  <para>
+	Return the processor cycle counter value, or 0 if unavailable.
+  </para>
+</formalpara>
+<formalpara>
+  <title>gettimeofday_ns:long ()</title>
+  <indexterm><primary>gettimeofday_ns</primary></indexterm>
+  <para>
+	Return the number of nanoseconds since the UNIX epoch.
+  </para>
+</formalpara>
+<formalpara>
+  <title>gettimeofday_us:long ()</title>
+  <indexterm><primary>gettimeofday_us</primary></indexterm>
+  <para>
+	Return the number of microseconds since the UNIX epoch.
+  </para>
+</formalpara>
+<formalpara>
+  <title>gettimeofday_ms:long ()</title>
+  <indexterm><primary>gettimeofday_ms</primary></indexterm>
+  <para>
+	Return the number of milliseconds since the UNIX epoch.
+  </para>
+</formalpara>
+<formalpara>
+  <title>gettimeofday_s:long ()</title>
+  <indexterm><primary>gettimeofday_s</primary></indexterm>
+  <para>
+	Return the number of seconds since the UNIX epoch.
+  </para>
+</formalpara>
+</chapter>

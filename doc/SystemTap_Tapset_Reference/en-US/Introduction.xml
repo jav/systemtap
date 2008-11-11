@@ -3,16 +3,21 @@
 ]>
 
 <chapter id="introduction">
-	<title>Introduction</title>
-	<para>
-		SystemTap is a tracing and probing tool that allows users to
-		study and monitor the activities of the operating system
-		(particularly, the kernel) in fine detail. It provides
-		information similar to the output of tools like
-		<command>netstat</command>, <command>ps</command>,
-		<command>top</command>, and <command>iostat</command>; however,
-		SystemTap is designed to provide more filtering and analysis
-		options for collected information.
-	</para>
-</chapter>
+  <title>Introduction</title>
+  <para>
+    SystemTap provides free software (GPL) infrastructure to simplify the
+    gathering of information about the running Linux system. This assists
+    diagnosis of a performance or functional problem. SystemTap eliminates the
+    need for the developer to go through the tedious and disruptive instrument,
+    recompile, install, and reboot sequence that may be otherwise required to
+    collect data.
+  </para>
 
+  <para>
+    SystemTap provides a simple command line interface and scripting language
+    for writing instrumentation for a live running kernel. The instrumentation
+    makes extensive use of the probe points and functions provided in the
+    <firstterm>tapset</firstterm> library. This document describes the various
+    probe points and functions.
+  </para>
+</chapter>
