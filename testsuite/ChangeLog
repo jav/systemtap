@@ -1,3 +1,8 @@
+2008-11-12  David Smith  <dsmith@redhat.com>
+
+	* systemtap.context/num_args.tcl: Improved error handling of
+	testcase.
+
 2008-11-03  Wenji Huang  <wenji.huang@oracle.com>
 
 	* systemtap.base/cmd_parse.exp: Add exit() to probe.
