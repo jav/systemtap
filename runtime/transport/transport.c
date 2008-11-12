@@ -79,12 +79,11 @@ void _stp_handle_start(struct _stp_msg_start *st)
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
 static void _stp_cleanup_and_exit(int send_exit)
 {
-	dbug_trans(1, "cleanup_and_exit (%d)\n", send_exit);
 	if (!_stp_exit_called) {
 		int failures;
 
+                dbug_trans(1, "cleanup_and_exit (%d)\n", send_exit);
 		_stp_exit_flag = 1;
-
 		/* we only want to do this stuff once */
 		_stp_exit_called = 1;
 
