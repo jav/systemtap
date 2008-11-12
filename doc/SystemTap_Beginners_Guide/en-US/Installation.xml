@@ -161,27 +161,35 @@ Once you have manually downloaded the required packages to the machine, install 
       kernel.
     </para>
 
-    <para>To start the test, run the command <command>stap -v -e 'probe vfs.read
+    <para>
+	    To start the test, run the command <command>stap -v -e 'probe vfs.read {printf("read performed\n"); exit()}'</command>.  This command simply instructs SystemTap 
+	    to print <computeroutput>read performed</computeroutput> then exit
+	    properly once a virtual file system read is detected. If the SystemTap
+	    deployment was successful, you should get output similar to the
+	    following:
+    </para>
+<!--    <para>To start the test, run the command <command>stap -v -e 'probe vfs.read
       {exit()}'</command>. This command simply instructs SystemTap to exit
       properly once a virtual file system read is detected. If the SystemTap
       deployment was successful, you should get output very similar to the
       following:
-    </para>
+    </para>-->
 
 <screen>
-Pass 1: parsed user script and 55 library script(s) in 340usr/10sys/380real ms.
-Pass 2: analyzed script: 1 probe(s), 1 function(s), 0 embed(s), 0 global(s) in 280usr/290sys/745real ms.
-Pass 3: translated to C into "/tmp/stapS1CuuS/stap_dd516743892b10a24cd36ef327265169_323.c" in 0usr/0sys/0real ms.
-Pass 4: compiled C into "stap_dd516743892b10a24cd36ef327265169_323.ko" in 2050usr/220sys/2541real ms.
+Pass 1: parsed user script and 45 library script(s) in 340usr/0sys/358real ms.
+Pass 2: analyzed script: 1 probe(s), 1 function(s), 0 embed(s), 0 global(s) in 290usr/260sys/568real ms.
+Pass 3: translated to C into "/tmp/stapiArgLX/stap_e5886fa50499994e6a87aacdc43cd392_399.c" in 490usr/430sys/938real ms.
+Pass 4: compiled C into "stap_e5886fa50499994e6a87aacdc43cd392_399.ko" in 3310usr/430sys/3714real ms.
 Pass 5: starting run.
-Pass 5: run completed in 40usr/210sys/260real ms.
+read performed
+Pass 5: run completed in 10usr/40sys/73real ms.
 </screen>
 
-    <para> The last two lines of the output (i.e. beginning with
+    <para> The last three lines of the output (i.e. beginning with
     <computeroutput>Pass 5</computeroutput> indicate that SystemTap was able to
     successfully create the instrumentation to probe the kernel, run the
     instrumentation, detect the event being probed (in this case, a virtual file
-    system read), and close it with no errors.
+    system read), and execute a valid handler (print text then close it with no errors).
     </para>
 
   </section>
