@@ -16,6 +16,9 @@
 #include <wordexp.h>
 
 
+#define WORKAROUND_BZ467568 1  /* PR 6964; XXX: autoconf when able */
+
+
 /* globals */
 int ncpus;
 static int use_old_transport = 0;
@@ -56,6 +59,14 @@ static void chld_proc(int signum)
   rc = write(control_channel, &btype, sizeof(btype));
 }
 
+#if WORKAROUND_BZ467568
+/* Used for pause()-based synchronization. */
+static void signal_dontcare(int signum)
+{
+  (void) signum;
+}
+#endif
+
 static void setup_main_signals(void)
 {
   pthread_t tid;
@@ -67,6 +78,7 @@ static void setup_main_signals(void)
   }
   sigfillset(s);
   pthread_sigmask(SIG_SETMASK, s, NULL);
+
   memset(&sa, 0, sizeof(sa));
   sigfillset(&sa.sa_mask);
   sa.sa_handler = SIG_IGN;
@@ -155,17 +167,28 @@ void start_cmd(void)
         if (words.we_wordc < 1) { _err ("empty -c COMMAND"); _exit (1); }
       }
 
-/* PR 6964: when tracing all the user space process including the child
-   the signal will be messed due to uprobe module or utrace bug. The kernel
-   will get crashed. Temporarily disabled.
-*/
-#if 0
+/* PR 6964: when tracing all the user space process including the
+   child the signal will be messed due to uprobe module or utrace
+   bug. The kernel sometimes crashes.  So as an alternative
+   approximation, we just wait here for a signal from the parent. */
+
+    dbug(1, "blocking briefly\n");
+#if WORKAROUND_BZ467568
+    {
+      /* We use SIGUSR1 here, since pause() only returns if a
+         handled signal was received. */
+      struct sigaction sa;
+      memset(&sa, 0, sizeof(sa));
+      sigfillset(&sa.sa_mask);
+      sa.sa_handler = signal_dontcare;
+      sigaction(SIGUSR1, &sa, NULL);
+      pause ();
+      sa.sa_handler = SIG_DFL;
+      sigaction(SIGUSR1, &sa, NULL);
+    }
+#else
     rc = ptrace (PTRACE_TRACEME, 0, 0, 0);
     if (rc < 0) perror ("ptrace me");
-#endif
-
-#if 0
-    dbug(1, "blocking briefly\n");
     raise (SIGCONT); /* Harmless; just passes control to parent. */
 #endif
 
@@ -173,7 +196,13 @@ void start_cmd(void)
 
     /* Note that execvp() is not a direct system call; it does a $PATH
        search in glibc.  We would like to filter out these dummy syscalls
-       from the utrace events seen by scripts. */
+       from the utrace events seen by scripts.
+
+       This filtering would be done for us for free, if we used ptrace
+       ...  but see PR6964.  XXX: Instead, we could open-code the
+       $PATH search here; put the pause() afterward; and run a direct
+       execve instead of execvp().  */
+
     if (execvp ((sh_c_argv[0] == NULL ? words.we_wordv[0] : sh_c_argv[0]),
                 (sh_c_argv[0] == NULL ? words.we_wordv    : sh_c_argv)) < 0)
       perror(target_cmd);
@@ -182,15 +211,14 @@ void start_cmd(void)
 
     _exit(1);
   } else {
-    /* We're in the parent.  The child will parse target_cmd and execv()
-       the result.  It will be stopped thereabouts and send us a SIGTRAP. */
-
+    /* We're in the parent.  The child will parse target_cmd and
+       execv() the result.  It will be stopped thereabouts and send us
+       a SIGTRAP.  Or rather, due to PR 6964, it will stop itself and wait for
+       us to release it. */
     target_pid = pid;
-/* PR 6964: when tracing all the user space process including the child
-   the signal will be messed due to uprobe module or utrace bug. The kernel
-   will get crashed. Temporarily disabled.
-*/
-#if 0
+#if WORKAROUND_BZ467568
+    /* Do nothing else here; see stp_main_loop's handling of a received STP_START. */
+#else
     int status;
     waitpid (target_pid, &status, 0);
     dbug(1, "waited for target_cmd %s pid %d status %x\n", target_cmd, target_pid, (unsigned) status);
@@ -298,7 +326,6 @@ int init_stapio(void)
  * removes the module (if necessary) and exits. */
 void cleanup_and_exit(int detach)
 {
-  pid_t err;
   static int exiting = 0;
 
   if (exiting)
@@ -309,11 +336,15 @@ void cleanup_and_exit(int detach)
 
   dbug(1, "detach=%d\n", detach);
 
-  /* what about child processes? we will wait for them here. */
-  err = waitpid(-1, NULL, WNOHANG);
-  if (err >= 0)
-    err("\nWaiting for processes to exit\n");
-  while (wait(NULL) > 0) ;
+  /* NB: We don't really need to wait for child processes.  Any that
+     were started by the system() tapset function (system_cmd() above)
+     can run loose. Or, a target_cmd (stap -c CMD) may have already started and
+     stopped.  */
+
+  /* OTOH, it may be still be running - but there's no need for
+     us to wait for it, considering that the script must have exited
+     for another reason.  So, we no longer   while(...wait()...);  here.
+     XXX: we could consider killing it. */
 
   if (use_old_transport)
     close_oldrelayfs(detach);
@@ -402,12 +433,13 @@ int stp_main_loop(void)
             kill(target_pid, SIGKILL);
           cleanup_and_exit(0);
         } else if (target_cmd) {
-/* PR 6964: when tracing all the user space process including the child
-   the signal will be messed due to uprobe module or utrace bug. The kernel
-   will get crashed. Temporarily disabled.
-*/
-#if 0
           dbug(1, "detaching pid %d\n", target_pid);
+#if WORKAROUND_BZ467568
+          /* Let's just send our pet signal to the child
+             process that should be waiting for us, mid-pause(). */
+          kill (target_pid, SIGUSR1);
+#else
+          /* Were it not for PR6964, we'd like to do it this way: */
           int rc = ptrace (PTRACE_DETACH, target_pid, 0, 0);
           if (rc < 0)
             {
