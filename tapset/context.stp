@@ -168,14 +168,7 @@ function euid:long () %{ /* pure */
 	THIS->__retvalue = current->euid;		
 %}
 
-///<formalpara id="cpuid">
-///  <title>cpuid:long()</title>
-///  <indexterm><primary>cpuid</primary></indexterm>
-///  <para>
-///     Return the current cpu number.
-///  </para>
-///</formalpara>
-// FIXME is cpuid() or cpu() depricated?
+// cpuid() is not documented
 function cpuid:long () %{ /* pure */
 	THIS->__retvalue = smp_processor_id();
 %}
@@ -187,7 +180,6 @@ function cpuid:long () %{ /* pure */
 ///     Return the current cpu number.
 ///  </para>
 ///</formalpara>
-// FIXME is cpuid() or cpu() depricated?
 function cpu:long () %{ /* pure */
 	THIS->__retvalue = smp_processor_id();
 %}

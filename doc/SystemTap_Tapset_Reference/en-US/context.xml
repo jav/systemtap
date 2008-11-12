@@ -98,13 +98,6 @@
 	Return the effective uid of the current process.
   </para>
 </formalpara>
-<formalpara id="cpuid">
-  <title>cpuid:long()</title>
-  <indexterm><primary>cpuid</primary></indexterm>
-  <para>
-     Return the current cpu number.
-  </para>
-</formalpara>
 <formalpara id="cpu">
   <title>cpu:long()</title>
   <indexterm><primary>cpu</primary></indexterm>
