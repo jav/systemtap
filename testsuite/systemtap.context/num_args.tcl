@@ -54,9 +54,12 @@ expect {
 	    timeout {fail "string function arguments -- $tag"}
 	}
     }
+    -re "semantic error:" {
+	fail "function arguments -- $tag: compilation failed"
+    }
     eof {fail "function arguments -- $tag: unexpected timeout"}
 }
 exec kill -INT -[exp_pid]
-close
+catch close
 wait
 }
