@@ -1,0 +1,182 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+<!-- This file is extracted from the tapset files 
+   Do not modify this file -->
+<chapter id="memory_stp">
+  <title>Memory Tapset</title>
+  <para>
+	This family of probe  points is used to probe page fault events.
+     It contains the following probe points:
+  </para>
+<formalpara id="vm.pagefault">
+  <title>vm.pagefault</title>
+  <indexterm><primary>vm.pagefault</primary></indexterm>
+  <para>
+    Records that a page fault occurred.
+    The context is the process which triggered the fault.</para>
+</formalpara>
+<para>
+  <variablelist><title>Arguments:</title>
+    <varlistentry><term>address</term>
+       <listitem><para>
+         The address of the faulting memory access.
+       </para></listitem>
+    </varlistentry>
+    <varlistentry><term>write_access</term>
+       <listitem><para>
+          Indicates whether this was a write.
+       </para></listitem>
+    </varlistentry>
+  </variablelist>
+</para>
+<formalpara id="vm.pagefault.return">
+  <title>vm.pagefault.return</title>
+  <indexterm><primary>vm.pagefault.return</primary></indexterm>
+  <para>
+    Records type of fault that occurred.
+    The context is the process which triggered the fault.
+  </para>
+</formalpara>
+<para>
+  <variablelist><title>Arguments:</title>
+    <varlistentry><term>fault_type</term>
+      <listitem><para>The possible values of fault_type are:
+        <table frame='all'><title>Fault values</title>
+        <tgroup cols='3' align='left' colsep='1' rowsep='1'>
+        <colspec colname='Define'/>
+        <colspec colname='Value'/>
+        <colspec colname='Reason'/>
+	   <thead>
+   	   <row><entry>Define</entry><entry>Value</entry><entry>Reason</entry></row>
+	   </thead>
+	   <tbody>
+	   <row>
+	     <entry>VM_FAULT_OOM</entry>
+	     <entry>0</entry>
+	     <entry>out of memory</entry>
+	   </row>
+	   <row>
+		<entry>VM_FAULT_SIGBUS</entry>
+		<entry>1</entry>
+		<entry>if not oom, minor, or major fault, this val</entry>
+	   </row>
+	   <row>
+		<entry>VM_FAULT_MINOR</entry>
+		<entry>2</entry>
+		<entry>no blocking operation to handle fault</entry>
+	   </row>
+	   <row>
+		<entry>VM_FAULT_MAJOR</entry>
+		<entry>3</entry>
+		<entry>required blocking operation to handle fault</entry>
+	   </row>
+	 </tbody>
+	 </tgroup>
+	 </table>
+      </para></listitem>
+    </varlistentry>
+  </variablelist>
+</para>
+<formalpara id="vm.write_shared">
+  <title>vm.write_shared</title>
+  <indexterm><primary>vm.write_shared</primary></indexterm>
+  <para>
+    Fires when a process attempts to write to a shared page.
+    If a copy is necessary, this will be followed by a
+    <xref linkend="vm.write_shared_copy"/>.
+    The context is the process attempting the write.
+  </para>
+</formalpara>
+<para>
+  <variablelist><title>Arguments:</title>
+    <varlistentry><term>address</term>
+       <listitem><para>The address of the shared write.</para></listitem>
+    </varlistentry>
+  </variablelist>
+</para>
+<formalpara id="vm.write_shared_copy">
+  <title>vm.write_shared_copy</title>
+  <indexterm><primary>vm.write_shared_copy</primary></indexterm>
+  <para>
+    Fires when a write to a shared page requires a page copy.
+    This is always preceded by a <xref linkend="vm.write_shared"/>.
+    The context is the process attempting the write.
+</para>
+</formalpara>
+<para>
+  <variablelist><title>Arguments:</title>
+    <varlistentry><term>address</term>
+       <listitem><para>
+	    The address of the shared write.
+       </para></listitem>
+    </varlistentry>
+    <varlistentry><term>zero</term>
+       <listitem><para>
+	  Boolean indicating whether it is a zero page
+       (can do a clear instead of a copy).
+       </para></listitem>
+    </varlistentry>
+  </variablelist>
+</para>
+<formalpara id="vm.mmap">
+  <title>vm.mmap</title>
+  <indexterm><primary>vm.mmap</primary></indexterm>
+  <para>
+    Fires when an mmap is requested. 
+    The context is the process calling mmap.
+  </para>
+</formalpara>
+<para>
+  <variablelist><title>Arguments:</title>
+    <varlistentry><term>address</term>
+      <listitem><para>The requested address.</para></listitem>
+    </varlistentry>
+    <varlistentry><term>length</term>
+      <listitem><para>The length of the memory segment.</para></listitem>
+    </varlistentry>
+  </variablelist>
+</para>
+<formalpara id="vm.munmap">
+  <title>vm.munmap</title>
+  <indexterm><primary>vm.munmap</primary></indexterm>
+  <para>Fires when an munmap is requested.</para>
+</formalpara>
+<para>
+  <variablelist><title>Arguments:</title>
+    <varlistentry><term>address</term>
+       <listitem><para>The requested address.</para></listitem>
+    </varlistentry>
+    <varlistentry><term>length</term>
+       <listitem><para>The length of the memory segment.</para></listitem>
+    </varlistentry>
+  </variablelist>
+</para>
+<formalpara id="vm.brk">
+  <title>vm.brk</title>
+  <indexterm><primary>vm.brk</primary></indexterm>
+  <para>Fires when a brk is requested (resizing a heap).</para>
+</formalpara>
+<para>
+  <variablelist><title>Arguments:</title>
+    <varlistentry><term>address</term>
+       <listitem><para>The requested address.</para></listitem>
+    </varlistentry>
+    <varlistentry><term>length</term>
+       <listitem><para>The length of the memory segment.</para></listitem>
+    </varlistentry>
+  </variablelist>
+</para>
+<formalpara id="vm.oom_kill">
+  <title>vm.oom_kill</title>
+  <indexterm><primary>vm.oom_kill</primary></indexterm>
+  <para>Fires when a thread is targetted by the OOM killer.</para>
+</formalpara>
+<para>
+  <variablelist><title>Arguments:</title>
+    <varlistentry><term>task</term>
+       <listitem><para>The task being killed.</para></listitem>
+    </varlistentry>
+  </variablelist>
+</para>
+</chapter>

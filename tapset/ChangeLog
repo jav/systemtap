@@ -1,3 +1,7 @@
+2008-11-13  William Cohen  <wcohen@redhat.com>
+	
+	* memory.stp: Add xml documentation.
+
 2008-11-12  William Cohen  <wcohen@redhat.com>
 
 	* context.stp: Remove cpuid() documentation.
