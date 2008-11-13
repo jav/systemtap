@@ -12,7 +12,7 @@
 ///  <para>
 ///    The context functions provide additional information about the where
 ///    the event occurred.
-///    The contact functions can provide information such as a backtrace
+///    These functions can provide information such as a backtrace
 ///    where the event occured
 ///    and the current register values for the processor.
 ///  </para>
@@ -345,7 +345,7 @@ function target:long () %{ /* pure */
 ///  <title>module_name:string()</title>
 ///  <indexterm><primary>module_name</primary></indexterm>
 ///  <para>
-///	FIXME: need description.
+///	<remark>FIXME: need description.</remark>
 ///  </para>
 ///</formalpara>
 function module_name:string () %{ /* pure */
@@ -356,7 +356,7 @@ function module_name:string () %{ /* pure */
 ///  <title>stp_pid:long()</title>
 ///  <indexterm><primary>stp_pid</primary></indexterm>
 ///  <para>
-///	FIXME: need description.
+///	<remark>FIXME: need description.</remark>
 ///  </para>
 ///</formalpara>
 function stp_pid:long () %{ /* pure */
