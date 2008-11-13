@@ -23,7 +23,9 @@ if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
 
 if {! [installtest_p]} { untested "$test -p5"; exec rm -f jennie.c jennie; return }
 
-spawn sudo stap -v $srcdir/$subdir/uprobes.stp -c "./jennie 1 2 3 4"
+# Pick up the stap being tested.
+set stapexe [exec /usr/bin/which stap]
+spawn sudo $stapexe -v $srcdir/$subdir/uprobes.stp -c "./jennie 1 2 3 4"
 set ok 0
 expect {
     -re {^Pass[^\r\n]*\r\n} { exp_continue }

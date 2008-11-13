@@ -8,7 +8,9 @@ if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
 
 if {! [installtest_p]} { untested "$test -p5"; return }
 
-spawn sudo stap $srcdir/$subdir/bz6850.stp -c ./bz6850
+# Pick up the stap being tested.
+set stapexe [exec /usr/bin/which stap]
+spawn sudo $stapexe $srcdir/$subdir/bz6850.stp -c ./bz6850
 expect {
 	-timeout 60
 	-re {[^\r\n]*called\r\n} { exp_continue }
