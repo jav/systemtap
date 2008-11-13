@@ -1,4 +1,4 @@
-* What's new
+* What's new in version 0.8
 
 - Cache limiting is now available.  If the compiled module cache size is
   over a limit specified in the $SYSTEMTAP_DIR/cache/cache_mb_limit file,
