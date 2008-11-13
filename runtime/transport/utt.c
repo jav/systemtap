@@ -27,6 +27,7 @@
 #include <linux/init.h>
 #include <linux/debugfs.h>
 #include <linux/relay.h>
+#include <linux/mm.h>
 #include "utt.h"
 
 static int utt_overwrite_flag = 0;
@@ -292,6 +293,8 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 	struct utt_trace *utt = NULL;
 	struct dentry *dir = NULL;
 	int ret = -EINVAL;
+	u64 npages;
+	struct sysinfo si;
 
 	if (!utts->buf_size || !utts->buf_nr)
 		goto err;
@@ -312,6 +315,23 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 	utt->dropped_file = debugfs_create_file("dropped", 0444, dir, utt, &utt_dropped_fops);
 	if (!utt->dropped_file)
 		goto err;
+
+	npages = utts->buf_size * utts->buf_nr;
+	if (!utts->is_global)
+		npages *= num_possible_cpus();
+	npages >>= PAGE_SHIFT;
+	si_meminfo(&si);
+#define MB(i) (unsigned long)((i) >> (20 - PAGE_SHIFT))
+	if (npages > (si.freeram + si.bufferram)) {
+		errk("Not enough free+buffered memory(%luMB) for log buffer\n",
+		     MB(si.freeram + si.bufferram));
+		ret = -ENOMEM;
+		goto err;
+	} else if (npages > si.freeram) {
+		printk("Warning: log buffer size exceeds free memory(%luMB)\n",
+		       MB(si.freeram));
+		/* exceeds freeram, but below freeram+bufferram */
+	}
 
 #if (RELAYFS_CHANNEL_VERSION >= 7)
 	if (utts->is_global)
