@@ -1,5 +1,9 @@
 2008-11-13  Masami Hiramatsu  <mhiramat@redhat.com>
 
+	* utt.c (utt_trace_setup): Use KERN_WARNING and show buffer size.
+
+2008-11-13  Masami Hiramatsu  <mhiramat@redhat.com>
+
 	PR7016
 	* utt.c (utt_trace_setup): Check freeram and bufferram before
 	allocating relay buffers for avoiding OOM.

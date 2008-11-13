@@ -323,14 +323,16 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 	si_meminfo(&si);
 #define MB(i) (unsigned long)((i) >> (20 - PAGE_SHIFT))
 	if (npages > (si.freeram + si.bufferram)) {
-		errk("Not enough free+buffered memory(%luMB) for log buffer\n",
-		     MB(si.freeram + si.bufferram));
+		errk("Not enough free+buffered memory(%luMB) for log buffer(%luMB)\n",
+		     MB(si.freeram + si.bufferram),
+		     MB(npages));
 		ret = -ENOMEM;
 		goto err;
 	} else if (npages > si.freeram) {
-		printk("Warning: log buffer size exceeds free memory(%luMB)\n",
-		       MB(si.freeram));
 		/* exceeds freeram, but below freeram+bufferram */
+		printk(KERN_WARNING
+		       "log buffer size exceeds free memory(%luMB)\n",
+		       MB(si.freeram));
 	}
 
 #if (RELAYFS_CHANNEL_VERSION >= 7)
