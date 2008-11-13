@@ -43,20 +43,20 @@
 ///         <colspec colname='Value'/>
 ///         <colspec colname='Protocol'/>
 ///	    <thead>
-///   	    <row><entry>Value</entry><entry>Protocol</entry></row>
+///   	    <row><entry>Value(Hex)</entry><entry>Protocol</entry></row>
 ///	    </thead>
 ///	    <tbody>
-///   	    <row><entry>0800</entry><entry>IP</entry></row>
-///   	    <row><entry>8100</entry><entry>802.1Q VLAN</entry></row>
 ///   	    <row><entry>0001</entry><entry>802.3</entry></row>
 ///   	    <row><entry>0002</entry><entry>AX.25</entry></row>
 ///   	    <row><entry>0004</entry><entry>802.2</entry></row>
-///   	    <row><entry>8035</entry><entry>RARP</entry></row>
 ///   	    <row><entry>0005</entry><entry>SNAP</entry></row>
+///   	    <row><entry>0009</entry><entry>Localtalk</entry></row>
+///   	    <row><entry>0800</entry><entry>IP</entry></row>
 ///   	    <row><entry>0805</entry><entry>X.25</entry></row>
 ///   	    <row><entry>0806</entry><entry>ARP</entry></row>
+///   	    <row><entry>8035</entry><entry>RARP</entry></row>
+///   	    <row><entry>8100</entry><entry>802.1Q VLAN</entry></row>
 ///   	    <row><entry>8137</entry><entry>IPX</entry></row>
-///   	    <row><entry>0009</entry><entry>Localtalk</entry></row>
 ///   	    <row><entry>86DD</entry><entry>IPv6</entry></row>
 ///	    </tbody>
 ///	    </tgroup>

@@ -1,4 +1,8 @@
 2008-11-13  William Cohen  <wcohen@redhat.com>
+
+	* networking.stp: Order entries in table.
+
+2008-11-13  William Cohen  <wcohen@redhat.com>
 	
 	* memory.stp: Add xml documentation.
 
