@@ -7,7 +7,7 @@
 
 Name: systemtap
 # for version, see also configure.ac
-Version: 0.7.1
+Version: 0.8
 Release: %{release}%{?dist}
 Summary: Instrumentation System
 Group: Development/System
@@ -251,6 +251,9 @@ exit 0
 %{_mandir}/man8/stap-server.8*
 
 %changelog
+* Thu Nov 13 2008 Frank Ch. Eigler <fche@redhat.com> - 0.8-1
+- Upstream release.
+
 * Tue Jul 15 2008 Frank Ch. Eigler <fche@redhat.com> - 0.7-1
 - Upstream release.
 

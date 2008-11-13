@@ -1,3 +1,8 @@
+2008-11-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.spec, configure.ac: Bump version to 0.8.
+	* configure.in: Regenerated.
+
 2008-11-11  Przemysław Pawełczyk <przemyslaw@pawelczyk.it>
 	    Mark Wielaard <mjw@redhat.com>
 
