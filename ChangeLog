@@ -1,3 +1,9 @@
+2008-11-13  Wenji Huang  <wenji.huang@oracle.com>
+
+        PR 7000
+        * translate.cxx (c_unparser::visit_print_format): Add checking bound 
+	for actual parameters.
+
 2008-11-13  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.spec, configure.ac: Bump version to 0.8.

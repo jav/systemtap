@@ -4199,7 +4199,7 @@ c_unparser::visit_print_format (print_format* e)
 	/* The type of the %c argument is 'int'.  */
 	else if (components[i].type == print_format::conv_char)
 	  o->line() << ", (int)" << tmp[arg_ix++].value();
-	else
+	else if (arg_ix < (int) tmp.size())
 	  o->line() << ", " << tmp[arg_ix++].value();
       }
 
