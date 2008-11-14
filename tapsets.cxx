@@ -158,7 +158,7 @@ be_derived_probe::join_group (systemtap_session& s)
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
 			       bool overload_processing = true,
-                               bool interruptible = false)
+                               bool interruptible = true)
 {
   o->newline() << "struct context* __restrict__ c;";
   if (! interruptible)
@@ -247,7 +247,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
 void
 common_probe_entryfn_epilogue (translator_output* o,
 			       bool overload_processing = true,
-                               bool interruptible = false)
+                               bool interruptible = true)
 {
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
