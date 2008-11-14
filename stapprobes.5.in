@@ -204,7 +204,8 @@ component is given, then the random value will be added to the interval
 before any rounding occurs.
 .PP
 Profiling timers are also available to provide probes that execute on all
-CPUs at the rate of the system tick.  This probe takes no parameters.
+CPUs at the rate of the system tick (CONFIG_HZ).
+This probe takes no parameters.
 
 .SAMPLE
 timer.profile
