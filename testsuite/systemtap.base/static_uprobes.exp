@@ -1,0 +1,70 @@
+set test "sduprobes"
+if {![installtest_p]} {untested $test; return}
+
+# Compile a C program to use as the user-space probing target
+set sup_srcpath "[pwd]/static_uprobes.c"
+set sup_exepath "[pwd]/static_uprobes.x"
+set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-L$env(CRASH_LIBDIR) additional_flags=-lsduprobes"
+set fp [open $sup_srcpath "w"]
+puts $fp "
+#include <stdlib.h>
+#include \"sduprobes.h\"
+
+foo ()
+{
+  STAP_PROBE(tstlabel,label1);
+}
+
+bar (int i)
+{
+  if (i == 0)
+    i = 1000;
+  STAP_PROBE1(tstlabel,label2,i);
+}
+
+baz (int i, char* s)
+{
+  if (i == 0)
+    i = 1000;
+  STAP_PROBE2(tstlabel,label3,i,s);
+}
+
+buz ()
+{
+}
+
+main ()
+{
+  sleep(5);
+  STAP_PROBE_START();
+  _stap_probe_start (); // in lieu of setting SYSTEM_SDT
+  foo();
+  bar(2);
+  baz(3,\"abc\");
+}
+"
+close $fp
+
+set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $sup_srcpath"
+    return
+} else {
+    pass "compiling $sup_srcpath" 
+}
+
+set ok 0
+set env(SYSTEMTAP_SDT) 1
+spawn stap -c $sup_exepath $srcdir/$subdir/static_uprobes.stp
+expect {
+    -timeout 180
+    -re {In label1 probe} { incr ok; exp_continue }
+    -re {In label2 probe 0x2} { incr ok; exp_continue }
+    -re {In label3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+
+if {$ok == 3} { pass "$test" } { fail "$test (Got $ok Expected 3)" }

@@ -460,6 +460,7 @@ static string TOK_MAXACTIVE("maxactive");
 static string TOK_STATEMENT("statement");
 static string TOK_ABSOLUTE("absolute");
 static string TOK_PROCESS("process");
+static string TOK_MARK("mark");
 
 // Can we handle this query with just symbol-table info?
 enum dbinfo_reqt
@@ -975,6 +976,9 @@ struct dwflpp
                    sess.architecture +
                    string(" debuginfo"),
                    mod);
+
+    if (!module)
+      module = mod;
 
     // NB: the result of an _offline call is the assignment of
     // virtualized addresses to relocatable objects such as
@@ -4862,6 +4866,8 @@ dwarf_derived_probe::register_patterns(match_node * root)
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(dw);
 
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_num(TOK_MARK)->bind(dw);
 }
 
 void
@@ -5192,6 +5198,47 @@ dwarf_builder::build(systemtap_session & sess,
   if (! sess.module_cache)
     sess.module_cache = new module_cache ();
 
+  if (((probe_point::component*)(location->components[1]))->functor == TOK_MARK)
+  {
+    // Generate: _probe_string = user_string($probe);
+    block *b = ((block*)(base->body));
+    assignment *as = new assignment;
+    symbol* lsym = new symbol;
+    lsym->type = pe_string;
+    lsym->name = "_probe_string";
+    lsym->tok = base->body->tok;
+    as->left = lsym;
+    as->op = "=";
+    functioncall *fc = new functioncall;
+    fc->function = "user_string";
+    fc->tok = base->body->tok;
+    target_symbol* rsym = new target_symbol;
+    rsym->base_name = "$probe";
+    rsym->tok = base->body->tok;
+    fc->args.push_back(rsym);
+    as->right = fc;
+    expr_statement* es = new expr_statement;
+    es->value = as;
+
+    // Generate: if (_probe_string != mark("label")) next;
+    if_statement *is = new if_statement;
+    is->thenblock = new next_statement;
+    is->elseblock = NULL;
+    is->tok = base->body->tok;
+    comparison *be = new comparison;
+    be->op = "!=";
+    be->tok = base->body->tok;
+    be->left = lsym;
+    be->right = new literal_string(location->components[1]->arg->tok->content);;
+    is->condition = be;
+
+    b->statements.insert(b->statements.begin(),(statement*) is);
+    b->statements.insert(b->statements.begin(),(statement*) es);
+
+    location->components[0]->arg = new literal_string(sess.cmd);
+    ((literal_map_t&)parameters)[location->components[0]->functor] = location->components[0]->arg;
+  }
+
   string module_name;
   if (has_null_param (parameters, TOK_KERNEL)
       || get_param (parameters, TOK_MODULE, module_name))
@@ -5222,6 +5269,62 @@ dwarf_builder::build(systemtap_session & sess,
         dw = user_dw[module_name];
     }
 
+  if (((probe_point::component*)(location->components[1]))->functor == TOK_MARK)
+    {
+      Dwarf_Addr bias;
+      Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw->module, &bias))
+                  ?: dwfl_module_getelf (dw->module, &bias));
+      size_t shstrndx;
+
+      Elf_Scn *probe_scn = NULL;
+      dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+      int argc = 0;
+      // Find the .probes section where the static probe label and arg count are stored
+      while ((probe_scn = elf_nextscn (elf, probe_scn)))
+        {
+          GElf_Shdr shdr_mem;
+          GElf_Shdr *shdr = gelf_getshdr (probe_scn, &shdr_mem);
+          assert (shdr != NULL);
+
+          if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") != 0)
+            continue;
+          Elf_Data *pdata = elf_getdata (probe_scn, NULL);
+          assert (pdata != NULL);
+          size_t probe_scn_offset = 0;
+          while (probe_scn_offset < pdata->d_size)
+            {
+              char *probe_name = (char*)pdata->d_buf + probe_scn_offset;
+              probe_scn_offset += strlen(probe_name);
+              probe_scn_offset += 4 - (probe_scn_offset % 4);
+              argc = *(((char*)pdata->d_buf + probe_scn_offset));
+              probe_scn_offset += sizeof(int);
+              if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name) == 0)
+                break;
+            }
+        }
+
+      Dwarf *dwarf = dwfl_module_getdwarf(dw->module, &dw->module_bias);
+      Dwarf_Off off;
+      size_t cuhl;
+      Dwarf_Off noff = 0;
+      const char *probe_cudie = "";
+      // Find where the probe instrumentation landing points are defined
+      while (dwarf_nextcu (dwarf, off = noff, &noff, &cuhl, NULL, NULL, NULL) == 0)
+        {
+          Dwarf_Die cudie_mem;
+          Dwarf_Die *cudie = dwarf_offdie (dwarf, off + cuhl, &cudie_mem);
+          if (cudie == NULL)
+            continue;
+          if (strncmp (dwarf_diename(&cudie_mem), "sduprobes", 9) == 0)
+            probe_cudie = dwarf_diename(&cudie_mem);
+        }
+      location->components[1]->functor = TOK_STATEMENT;
+      string argc_str = string(1,'0' + argc);
+      location->components[1]->arg = new literal_string("_stap_probe_" + (argc_str)
+          + "@sduprobes.c+1");
+      ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
+      dw->module = 0;
+    }
 
   dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 
@@ -7932,7 +8035,6 @@ procfs_builder::build(systemtap_session & sess,
 // statically inserted macro-based derived probes
 // ------------------------------------------------------------------------
 
-static string TOK_MARK("mark");
 static string TOK_FORMAT("format");
 
 struct mark_arg

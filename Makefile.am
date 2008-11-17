@@ -87,6 +87,11 @@ stamp-elfutils: config.status
 stap_DEPENDENCIES = lib-elfutils/libdw.so
 lib-elfutils/libdw.so: stamp-elfutils ;
 
+pkglib_LIBRARIES = libsduprobes.a
+libsduprobes_a_SOURCES = runtime/sduprobes.c
+sduprobes.o: runtime/sduprobes.c
+	$(CC) -g -O0 -c -o $@ $<
+
 PHONIES += install-elfutils
 install-elfutils:
 	mkdir -p $(DESTDIR)$(pkglibdir)

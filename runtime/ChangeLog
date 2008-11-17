@@ -1,3 +1,8 @@
+2008-11-11  Stan Cox  <scox@redhat.com>
+
+	* sduprobes.c: New file.
+	* sduprobes.h: New file.
+
 2008-11-17  Wenji Huang  <wenji.huang@oracle.com>
 
 	* runtime.h: Rename for_each_cpu to stp_for_each_cpu for 2.6.28.

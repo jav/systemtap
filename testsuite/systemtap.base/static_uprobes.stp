@@ -1,0 +1,17 @@
+probe process("tstlabel.x").mark("label1") 
+{ 
+  probe_str=user_string($probe)
+  printf("In %s probe\n", probe_str)
+}
+
+probe process("tstlabel.x").mark("label2") 
+{ 
+  probe_str=user_string($probe)
+  printf("In %s probe %#x\n", probe_str, $arg1)
+}
+
+probe process("tstlabel.x").mark("label3") 
+{ 
+  probe_str=user_string($probe)
+  printf("In %s probe %#x %#x\n", probe_str, $arg1, $arg2)
+}

@@ -405,6 +405,7 @@ process("PATH").syscall.return
 process.syscall.return
 process(PID).itrace
 process("PATH").itrace
+process("PATH").mark("LABEL")
 .ESAMPLE
 .PP
 A
@@ -440,6 +441,18 @@ context variable.
 A
 .B .itrace
 probe gets called for every single step of the process described by PID or PATH.
+A
+.B .mark
+probe gets called via a static probe which is defined in the
+application by
+STAP_PROBE1(handle,LABEL,arg1).  The handle is an application handle,
+LABEL corresponds to the .mark argument, and arg1 is the argument.
+STAP_PROBE1 is used for probes with 1 argument, STAP_PROBE2 is used
+for probes with 2 arguments, and so on.
+The arguments of the probe are available in the context variables
+$arg1, $arg2, ...
+The application should be compiled with ../share/systemtap/runtime/sduprobes.h
+and should be linked with libsduprobes.a.
 .PP
 Note that
 .I PATH

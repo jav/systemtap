@@ -1,3 +1,11 @@
+2008-11-11  Stan Cox  <scox@redhat.com>
+
+	* Makefile.am (pkglib_LIBRARIES): New.
+	* Makefile.in: Regenerated
+	* stapprobes.5.in (process.mark): New.
+	* tapsets.cxx (register_patterns):  Add process.mark.
+	(dwarf_builder::build): Likewise.
+
 2008-11-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (common_probe_entryfn_{pro,epi}logue):
