@@ -39,8 +39,14 @@
 #define STP_OLD_TRANSPORT
 #endif
 
-#ifndef for_each_cpu
-#define for_each_cpu(cpu)  for_each_cpu_mask((cpu), cpu_possible_map)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28)
+#ifndef stp_for_each_cpu
+#define stp_for_each_cpu(cpu)  for_each_cpu((cpu), cpu_possible_map)
+#endif
+#else
+#ifndef stp_for_each_cpu
+#define stp_for_each_cpu(cpu)  for_each_cpu_mask((cpu), cpu_possible_map)
+#endif
 #endif
 
 static void _stp_dbug (const char *func, int line, const char *fmt, ...);

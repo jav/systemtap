@@ -58,7 +58,7 @@ Counter _stp_counter_init (void)
 #if NEED_COUNTER_LOCKS == 1
 	{
 		int i;
-		for_each_cpu(i) {
+		stp_for_each_cpu(i) {
 			Counter c = per_cpu_ptr (cnt, i);
 			spin_lock_init(c->lock);
 		}
@@ -119,7 +119,7 @@ int64_t _stp_counter_get (Counter cnt, int clear)
 	int i;
 	int64_t sum = 0;
 
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		Counter c = per_cpu_ptr (cnt, i);
 		COUNTER_LOCK(c);
 		sum += c->count;

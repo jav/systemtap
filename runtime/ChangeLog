@@ -1,3 +1,13 @@
+2008-11-17  Wenji Huang  <wenji.huang@oracle.com>
+
+	* runtime.h: Rename for_each_cpu to stp_for_each_cpu for 2.6.28.
+	* counter.c: Ditto.
+	* map-stat.c: Ditto.
+	* map.c: Ditto.
+	* pmap-gen.c: Ditto.
+	* stat.c: Ditto.
+	* transport/procfs.c: Ditto.
+
 2008-11-04  David Smith  <dsmith@redhat.com>
 
 	PR 5274.

@@ -250,7 +250,7 @@ static PMAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data
 
 	/* initialize the memory lists first so if allocations fail */
         /* at some point, it is easy to clean up. */
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		m = per_cpu_ptr (map, i);
 		INIT_LIST_HEAD(&m->pool);
 		INIT_LIST_HEAD(&m->head);
@@ -258,7 +258,7 @@ static PMAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data
 	INIT_LIST_HEAD(&pmap->agg.pool);
 	INIT_LIST_HEAD(&pmap->agg.head);
 
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		m = per_cpu_ptr (map, i);
 		if (_stp_map_init(m, max_entries, type, key_size, data_size, i)) {
 			goto err1;
@@ -271,7 +271,7 @@ static PMAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data
 	return pmap;
 
 err1:
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		m = per_cpu_ptr (map, i);
 		__stp_map_del(m);
 	}
@@ -358,7 +358,7 @@ void _stp_pmap_clear(PMAP pmap)
 	if (pmap == NULL)
 		return;
 
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		MAP m = per_cpu_ptr (pmap->map, i);
 #if NEED_MAP_LOCKS
 		spin_lock(&m->lock);
@@ -410,7 +410,7 @@ void _stp_pmap_del(PMAP pmap)
 	if (pmap == NULL)
 		return;
 
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		MAP m = per_cpu_ptr (pmap->map, i);
 		__stp_map_del(m);
 	}
@@ -740,7 +740,7 @@ MAP _stp_pmap_agg (PMAP pmap)
 	/* every time we aggregate. which would be best? */
 	_stp_map_clear (agg);
 
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		m = per_cpu_ptr (pmap->map, i);
 #if NEED_MAP_LOCKS
 		spin_lock(&m->lock);
@@ -916,7 +916,7 @@ int _stp_pmap_size (PMAP pmap)
 {
 	int i, num = 0;
 
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		MAP m = per_cpu_ptr (pmap->map, i);
 		num += m->num;
 	}

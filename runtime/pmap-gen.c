@@ -406,7 +406,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 	if (pmap) {
 		int i;
 		MAP m;
-		for_each_cpu(i) {
+		stp_for_each_cpu(i) {
 			m = (MAP)per_cpu_ptr (pmap->map, i);
 			m->get_key = KEYSYM(pmap_get_key);
 			m->copy = KEYSYM(pmap_copy_keys);
@@ -459,7 +459,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 	if (pmap) {
 		int i;
 		MAP m;
-		for_each_cpu(i) {
+		stp_for_each_cpu(i) {
 			m = per_cpu_ptr (pmap->map, i);
 			m->get_key = KEYSYM(pmap_get_key);
 			m->copy = KEYSYM(pmap_copy_keys);
@@ -649,7 +649,7 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 	}
 
 	/* now total each cpu */
-	for_each_cpu(cpu) {
+	stp_for_each_cpu(cpu) {
 		map = per_cpu_ptr (pmap->map, cpu);
 		head = &map->hashes[hv];
 

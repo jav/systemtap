@@ -109,7 +109,7 @@ Stat _stp_stat_init (int type, ...)
 #if NEED_STAT_LOCKS == 1
 	{
 		int i;
-		for_each_cpu(i) {
+		stp_for_each_cpu(i) {
 			stat *sdp = per_cpu_ptr (sd, i);
 			spin_lock_init(sdp->lock);
 		}
@@ -210,7 +210,7 @@ stat *_stp_stat_get (Stat st, int clear)
 	STAT_LOCK(agg);
 	_stp_stat_clear_data (st, agg);
 
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		stat *sd = per_cpu_ptr (st->sd, i);
 		STAT_LOCK(sd);
 		if (sd->count) {
@@ -245,7 +245,7 @@ stat *_stp_stat_get (Stat st, int clear)
 void _stp_stat_clear (Stat st)
 {
 	int i;
-	for_each_cpu(i) {
+	stp_for_each_cpu(i) {
 		stat *sd = per_cpu_ptr (st->sd, i);
 		STAT_LOCK(sd);
 		_stp_stat_clear_data (st, sd);
