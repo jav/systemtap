@@ -49,8 +49,18 @@
 	<term>stapdev</term>
 	<listitem>
 <para>
-	Members of this group can use <command>stap</command> to run SystemTap scripts, or <command>staprun</command> to run SystemTap instrumentation modules.
+	Members of this group can use <command>stap</command> to run SystemTap scripts, or <command>staprun</command> to run SystemTap instrumentation modules. 
+</para>	
+	
+
+<para>
+	Running <command>stap</command> involves compiling SystemTap scripts into kernel modules and 
+	loading them into the kernel. This requires elevated privileges to the system, which are granted 
+	to <command>stapdev</command> members. Unfortunately, such privileges also grant effective root 
+	access to <command>stapdev</command> members. As such, you should only grant  
+	<command>stapdev</command> group membership to users whom you can trust root access.
 </para>
+	
 	</listitem>
 </varlistentry>
 

@@ -63,6 +63,14 @@
       <listitem><para><filename>kernel-devel</filename></para></listitem>
     </itemizedlist>
 
+	<para>
+	    Likewise, the necessary packages for the PAE kernel would be 
+	    <filename>kernel-PAE-debuginfo</filename>, <filename>kernel-PAE-debuginfo-common</filename>,
+	    and <filename>kernel-PAE-devel</filename>.
+	</para>
+		    
+
+    
     <para> To determine what kernel your system is currently using, use:</para>
 		
 <screen>
@@ -82,12 +90,18 @@ uname -r
       <title>Important</title>
 	
       <para>
-	The version and architecture of the <filename>-devel</filename>, <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.
+	The version, variant, and architecture of the <filename>-devel</filename>, <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.
       </para>
     </important>
 
 <para>
-	To help ease your deployment of SystemTap, you can use <xref linkend="stapprep"/>. You can use <xref linkend="stapprep"/> to detemine the kernel information packages you need to install in order to run SystemTap. If you run <xref linkend="stapprep"/> (as an ordinary, non-root user) without any arguments, it will display the kernel information packages required for the <emphasis>loaded</emphasis> kernel. You can also pass a specific kernel version to <xref linkend="stapprep"/>  (e.g. <computeroutput>2.6.18-92.el5</computeroutput>) if you wish to probe a kernel that is not currently loaded.
+	To help ease your deployment of SystemTap, you can use <xref linkend="stapprep"/>. 
+	<xref linkend="stapprep"/> determines the kernel information packages you need to install in order
+	to run SystemTap. If you run <xref linkend="stapprep"/> (as an ordinary, non-root user) without 
+	any arguments, it will display the kernel information packages required for the 
+	<emphasis>loaded</emphasis> kernel. You can also pass a specific kernel version to 
+	<xref linkend="stapprep"/>  (e.g. <computeroutput>2.6.18-92.el5</computeroutput>) if you wish 
+	to probe a kernel that is not currently loaded.
 </para>
 
 <note>
