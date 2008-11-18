@@ -1,3 +1,9 @@
+2008-11-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR6925.
+	* main.cxx (usage,main): Process new --vp option.
+	* session.h (perpass_verbose): New field.
+
 2008-11-11  Stan Cox  <scox@redhat.com>
 
 	* Makefile.am (pkglib_LIBRARIES): New.

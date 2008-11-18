@@ -93,18 +93,27 @@ This manual corresponds to version @VERSION@.
 .SH OPTIONS
 The systemtap translator supports the following options.  Any other option
 prints a list of supported options.
-.\" undocumented for now:
-.\" \-t test mode
-.TP
-.B \-v
-Increase verbosity.  Produce a larger volume of informative (?) output
-each time option repeated.
 .TP
 .B \-h
 Show help message.
 .TP
 .B \-V
 Show version message.
+.TP
+.BI \-p " NUM"
+Stop after pass NUM.  The passes are numbered 1-5: parse, elaborate,
+translate, compile, run.  See the
+.B PROCESSING
+section for details.
+.TP
+.B \-v
+Increase verbosity for all passes.  Produce a larger volume of
+informative (?) output each time option repeated.
+.TP
+.B \-\-vp ABCDE
+Increase verbosity on a per-pass basis.  For example, "\-\-vp\ 002"
+adds 2 units of verbosity to pass 3 only.  The combination "\-v\ \-\-vp\ 00004"
+adds 1 unit of verbosity for all passes, and 4 more for pass 5.
 .TP
 .B \-k
 Keep the temporary directory after all processing.  This may be useful
@@ -135,12 +144,6 @@ and average amount of time spent in each probe.
 .BI \-s NUM
 Use NUM megabyte buffers for kernel-to-user data transfer.  On a
 multiprocessor in bulk mode, this is a per-processor amount.
-.TP
-.BI \-p " NUM"
-Stop after pass NUM.  The passes are numbered 1-5: parse, elaborate,
-translate, compile, run.  See the
-.B PROCESSING
-section for details.
 .TP
 .BI \-I " DIR"
 Add the given directory to the tapset search directory.  See the

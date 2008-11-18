@@ -89,6 +89,7 @@ struct systemtap_session
   std::string cmd;
   int target_pid;
   int last_pass;
+  unsigned perpass_verbose[5];
   unsigned verbose;
   bool timing;
   bool keep_tmpdir;
