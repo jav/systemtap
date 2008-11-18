@@ -1,5 +1,9 @@
 * What's new
 
+- Most probe handlers now run with interrupts enabled, for improved
+  system responsiveness and less probing overhead.  This may result
+  in more skipped probes, for example if a reentrant probe handler
+  is attempted from within an interrupt handler.
 
 * What's new in version 0.8
 
