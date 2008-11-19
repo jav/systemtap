@@ -18,7 +18,11 @@ Prerequisites:
 
 Installation steps:
 
-- Install the kernel-debuginfo, kernel-devel, gcc packages.
+- Install the kernel development and gcc packages.
+- Install any debuginfo packages you need, for kernel and/or userspace.
+  (Beware of confusion between kernel vs. kernel-debug vs kernel-PAE etc.
+  variants.  Each likely has a corresponding development and debuginfo
+  package.)
 - Install the systemtap package, if one already exists.
 
 Build steps:

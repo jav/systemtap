@@ -93,8 +93,8 @@ subsystems: signals, keywords: signals<br>
 subsystems: signals, keywords: signals<br>
 <p>The script watches for a particular signal sent to a specific process. When that signal is sent to the specified process, the script prints out the PID and executable of the process sending the signal, the PID and executable name of the process receiving the signal, and the signal number and name.</p></li>
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
-subsystems: scheduler, keywords: io scheduler<br>
-<p>The script monitor time threads spend waiting for IO operations (in "D" state) in the wait_for_completion function. If a thread spends over 10ms wall-clock time waiting, information is printed out describing the thread number and executable name. When slow the wait_for_completion function complete, backtraces for the long duration calls are printed out.</p></li>
+subsystems: scheduler, keywords: io scheduler backtrace<br>
+<p>The script monitors the time that threads spend waiting for IO operations (in "D" state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.</p></li>
 <li><a href="process/sleeptime.stp">process/sleeptime.stp</a> - Trace Time Spent in nanosleep Syscalls<br>
 subsystems: syscall, keywords: syscall sleep<br>
 <p>The script watches each nanosleep syscall on the system. At the end of each nanosleep syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in paretheses, the "nanosleep:" key, and the duration of the sleep in microseconds.</p></li>
