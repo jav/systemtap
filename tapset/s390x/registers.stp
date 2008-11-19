@@ -1,0 +1,213 @@
+/* Dwarfless register access for s390x */
+
+global _reg_offsets, _stp_regs_registered
+
+function _stp_register_regs() {
+	/* Same order as pt_regs */
+	_reg_offsets["args"] = 0
+	_reg_offsets["psw.mask"] = 8
+	_reg_offsets["psw.addr"] = 16
+	_reg_offsets["r0"] = 24
+	_reg_offsets["r1"] = 32
+	_reg_offsets["r2"] = 40
+	_reg_offsets["r3"] = 48
+	_reg_offsets["r4"] = 56
+	_reg_offsets["r5"] = 64
+	_reg_offsets["r6"] = 72
+	_reg_offsets["r7"] = 80
+	_reg_offsets["r8"] = 88
+	_reg_offsets["r9"] = 96
+	_reg_offsets["r10"] = 104
+	_reg_offsets["r11"] = 112
+	_reg_offsets["r12"] = 120
+	_reg_offsets["r13"] = 128
+	_reg_offsets["r14"] = 136
+	_reg_offsets["r15"] = 144
+
+	_reg_offsets["orig_gpr2"] = 152
+	_reg_offsets["ilc"] = 160
+	_reg_offsets["trap"] = 162
+
+	/*
+	 * If we ever need to support s390 (31-bit arch), we can
+	 * get to the register offsets by using just a
+	 * reg32_offset = _reg_offsets["reg"]/2
+	 * or somesuch
+	 */
+	_stp_regs_registered = 1
+}
+
+
+/*
+ * Though the flag says 31bit, asm-s390/thread_info.h comment
+ * says "32bit process"
+ */
+function probing_32bit_app() %{ /* pure */
+	if (CONTEXT->regs)
+		THIS->__retvalue = (user_mode(CONTEXT->regs) &&
+				test_tsk_thread_flag(current, TIF_31BIT));
+	else
+		THIS->__retvalue = 0;
+%}
+
+function _stp_probing_kernel: long () %{ /* pure */
+	THIS->__retvalue = !user_mode(CONTEXT->regs);
+%}
+
+function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
+	long value;
+
+	if (offset <= 152)
+		memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset,
+				sizeof(value));
+	else {
+		/* ilc or trap */
+		unsigned short us_value;
+		memcpy(&us_value, ((char *)CONTEXT->regs) + THIS->offset,
+				sizeof(us_value));
+		value = us_value;	// not sign-extended
+	}
+	THIS->__retvalue = value;
+%}
+
+function _stp_sign_extend32:long (value:long) {
+	if (value & 0x80000000)
+		value |= (0xffffffff << 32)
+	return value
+}
+
+function _stp_register:long (name:string, sign_extend:long) {
+	if (!registers_valid()) {
+		error("cannot access CPU registers in this context")
+		return 0
+	}
+	if (!_stp_regs_registered)
+		_stp_register_regs()
+	offset = _reg_offsets[name]
+	if (offset == 0 && !(name in _reg_offsets)) {
+		error("Unknown register: " . name)
+		return 0
+	}
+	value = _stp_get_register_by_offset(offset)
+	if (probing_32bit_app()) {
+		if (sign_extend)
+			value = _stp_sign_extend32(value)
+		else
+			value &= 0xffffffff
+	}
+	return value
+}
+
+/* Return the named register value as a signed value. */
+function register:long (name:string) {
+	return _stp_register(name, 1)
+}
+
+/*
+ * Return the named register value as an unsigned value.  Specifically,
+ * don't sign-extend the register value when promoting it to 64 bits.
+ */
+function u_register:long (name:string) {
+	return _stp_register(name, 0)
+}
+
+/*
+ * Return the value of function arg #argnum (1=first arg).
+ * If truncate=1, mask off the top 32 bits.
+ * If sign_extend=1 and (truncate=1 or the probepoint we've hit is in a
+ * 32-bit app), sign-extend the 32-bit value.
+ *
+ * We don't yet support extracting arg #6 and beyond, which are passed
+ * on stack
+ */
+function _stp_arg:long (argnum:long, sign_extend:long, truncate:long) {
+	val = 0
+	if (argnum < 1 || argnum > 5) {
+		error(sprintf("Cannot access arg(%d)", argnum))
+		return 0
+	}
+
+	if (argnum == 1)
+		val = u_register("r2")
+	else if (argnum == 2)
+		val = u_register("r3")
+	else if (argnum == 3)
+		val = u_register("r4")
+	else if (argnum == 4)
+		val = u_register("r5")
+	else (argnum == 5)
+		val = u_register("r6")
+
+	if (truncate) {
+		if (sign_extend)
+			val = _stp_sign_extend32(val)
+		else
+			/* High bits may be garbage. */
+			val = (val & 0xffffffff);
+	}
+	return val;
+}
+
+/* Return the value of function arg #argnum (1=first arg) as a signed int. */
+function int_arg:long (argnum:long) {
+	return _stp_arg(argnum, 1, 1)
+}
+
+/* Return the value of function arg #argnum (1=first arg) as an unsigned int. */
+function uint_arg:long (argnum:long) {
+	return _stp_arg(argnum, 0, 1)
+}
+
+function long_arg:long (argnum:long) {
+	return _stp_arg(argnum, 1, 0)
+}
+
+function ulong_arg:long (argnum:long) {
+	return _stp_arg(argnum, 0, 0)
+}
+
+function longlong_arg:long (argnum:long) {
+	if (probing_32bit_app()) {
+		/* TODO verify if this is correct for 31bit apps */
+		highbits = _stp_arg(argnum, 0, 1)
+		lowbits = _stp_arg(argnum+1, 0, 1)
+		return ((highbits << 32) | lowbits)
+	} else
+		return _stp_arg(argnum, 0, 0)
+}
+
+function ulonglong_arg:long (argnum:long) {
+	return longlong_arg(argnum)
+}
+
+function pointer_arg:long (argnum:long) {
+	return _stp_arg(argnum, 0, 0)
+}
+
+function s32_arg:long (argnum:long) {
+	return int_arg(argnum)
+}
+
+function u32_arg:long (argnum:long) {
+	return uint_arg(argnum)
+}
+
+function s64_arg:long (argnum:long) {
+	return longlong_arg(argnum)
+}
+
+function u64_arg:long (argnum:long) {
+	return ulonglong_arg(argnum)
+}
+
+function asmlinkage() {
+}
+
+function fastcall() {
+}
+
+function regparm() %{
+	snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+		"regparm is invalid on s390.");
+	CONTEXT->last_error = CONTEXT->error_buffer;
+%}

@@ -1,3 +1,7 @@
+2008-11-19  Ananth Mavinakayanahalli <ananth@us.ibm.com> and Jim Keniston <jkenisto@us.ibm.com>
+
+	* s390x/registers.stp: Added
+
 2008-11-13  William Cohen  <wcohen@redhat.com>
 
 	* networking.stp: Order entries in table.
