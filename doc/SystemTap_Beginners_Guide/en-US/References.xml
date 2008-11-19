@@ -28,8 +28,8 @@
 	<term>SystemTap Tutorial</term>
 <listitem>
 <para>
-	Much of the content in this book comes from the <citetitle>SystemTap Tutorial</citetitle> written 
-	by Will Cohen.  The <citetitle>SystemTap Tutorial</citetitle> is a more appropriate reference for 
+	Much of the content in this book comes from the <citetitle>SystemTap Tutorial</citetitle>.
+	The <citetitle>SystemTap Tutorial</citetitle> is a more appropriate reference for 
 	users with intermediate to advanced knowledge of C++ and kernel development, and can be found at 
 	<ulink url="http://sourceware.org/systemtap/tutorial/"/>.
 </para>
@@ -40,11 +40,11 @@
 	<term>man stapprobes</term>
 <listitem>
 <para>
-This man page enumerates a variety of probe points supported by SystemTap, along with additional aliases 
+The <filename>stapprobes</filename> man page enumerates a variety of probe points supported by SystemTap, along with additional aliases 
 defined by the SystemTap tapset library. The bottom of the man page includes a list of other man pages 
-enumerating similar probe points for specific system components, such as <command>man
-	stapprobes.scsi</command>, <command>man stapprobes.process</command>, 
-<command>stapprobes.signal</command>, etc.
+enumerating similar probe points for specific system components, such as
+	  <filename>stapprobes.scsi</filename>, <filename>stapprobes.process</filename>, 
+<filename>stapprobes.signal</filename>, etc.
 </para>
 </listitem>
 </varlistentry>	
@@ -53,7 +53,7 @@ enumerating similar probe points for specific system components, such as <comman
 	<term>man stapfuncs</term>
 <listitem>
 <para>
-	<command>man stapfuncs</command> enumerates numerous functions supported by the SystemTap tapset 
+	The <filename>stapfuncs</filename> man page enumerates numerous functions supported by the SystemTap tapset 
 	library,  along with the prescribed syntax for each one. Note, however, that this is not a
 	complete list of <emphasis>all</emphasis> supported functions; there are more undocumented 
 	functions available. 	
