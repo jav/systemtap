@@ -28,7 +28,7 @@
       replicate?</remark>
 
 <para>
-      The following invalid SystemTap script is missing the the probe
+      The following invalid SystemTap script is missing the its probe
       handlers:
 </para>
 

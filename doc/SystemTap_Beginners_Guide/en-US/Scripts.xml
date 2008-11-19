@@ -44,7 +44,7 @@
 	
   <para>
     SystemTap scripts allow insertion of the instrumentation code without
-    recompilation of the code. and allows more flexibility with regard to
+    recompilation of the code and allows more flexibility with regard to
     handlers. Events serve as the triggers for handlers to run; handlers can be
     specified to record specified data and print it in a certain manner.
   </para>
@@ -66,6 +66,23 @@ probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
     single probe, SystemTap will execute the handler when any of the specified
     events occur.
   </para>
+  
+  <para>
+	Each probe has a corresponding <firstterm>statement block</firstterm>. This statement block is 
+	enclosed in braces (<command>{ }</command>) and contains the handlers to be executed per event. 
+	SystemTap executes these handlers (i.e. "statements") in sequence; special separators or 
+	terminators are generally not necessary between multiple handlers.
+  </para>
+
+<note>
+	<title>Note</title>
+	<para>
+		Statement blocks in SystemTap scripts follow the same syntax and semantics as the C 
+		programming language. A statement block can also nest another statement block, although 
+		for the most part this is used only to organize code in the script for the benefit of the 
+		administrator.
+  	</para>
+</note>	
 
   <para>
     Systemtap allow you to write functions to factor out code to be used by a
@@ -314,7 +331,7 @@ probe timer.s(4)
   </section>
 
   <section id="systemtapscript-handler">
-    <title>Systemtap Handler/Boddy</title>
+    <title>Systemtap Handler/Body</title>
 
     <para> Consider the following sample script: </para>
 
@@ -462,13 +479,14 @@ hald(2360) open
 		<para>The number of seconds since UNIX epoch (January 1, 1970).</para>
 	</listitem>	
 </varlistentry>
-
+<!--
 <varlistentry>
 	<term>get_cycles()</term>
 	<listitem>
 		<para>A snapshot of the hardware cycle counter.</para>
 	</listitem>	
 </varlistentry>
+-->
 
 <varlistentry>
 	<term>pp()</term>

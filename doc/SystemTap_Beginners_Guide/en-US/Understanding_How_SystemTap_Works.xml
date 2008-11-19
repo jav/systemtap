@@ -58,7 +58,8 @@
 	<para>
 	  First, SystemTap checks the script against the existing tapset library
 	  (normally in <filename>/usr/share/systemtap/tapset/</filename> for any
-	  tapsets used.
+	  tapsets used. SystemTap will then substitute any located tapsets with their
+	  corresponding definitions in the tapset library.
 	</para>
       </step>
 
