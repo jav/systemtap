@@ -11,6 +11,15 @@ subsystems: io, keywords: io backtrace
   list from most common to least common backtrace.
 
 
+process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
+subsystems: scheduler, keywords: io scheduler backtrace
+
+  The script monitors the time that threads spend waiting for IO
+  operations (in "D" state) in the wait_for_completion function.  If a
+  thread spends over 10ms, its name and backtrace is printed, and later
+  so is the total delay.
+
+
 = CALLGRAPH =
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -132,14 +141,12 @@ subsystems: io, keywords: io
 
 
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
-subsystems: scheduler, keywords: io scheduler
+subsystems: scheduler, keywords: io scheduler backtrace
 
-  The script monitor time threads spend waiting for IO operations (in
-  "D" state) in the wait_for_completion function. If a thread spends
-  over 10ms wall-clock time waiting, information is printed out
-  describing the thread number and executable name. When slow the
-  wait_for_completion function complete, backtraces for the long
-  duration calls are printed out.
+  The script monitors the time that threads spend waiting for IO
+  operations (in "D" state) in the wait_for_completion function.  If a
+  thread spends over 10ms, its name and backtrace is printed, and later
+  so is the total delay.
 
 
 = LOCKING =
@@ -236,14 +243,12 @@ subsystems: syscall, keywords: syscall read write time io
 = SCHEDULER =
 
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
-subsystems: scheduler, keywords: io scheduler
+subsystems: scheduler, keywords: io scheduler backtrace
 
-  The script monitor time threads spend waiting for IO operations (in
-  "D" state) in the wait_for_completion function. If a thread spends
-  over 10ms wall-clock time waiting, information is printed out
-  describing the thread number and executable name. When slow the
-  wait_for_completion function complete, backtraces for the long
-  duration calls are printed out.
+  The script monitors the time that threads spend waiting for IO
+  operations (in "D" state) in the wait_for_completion function.  If a
+  thread spends over 10ms, its name and backtrace is printed, and later
+  so is the total delay.
 
 
 = SIGNALS =

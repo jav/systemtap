@@ -113,8 +113,8 @@ subsystems: none, keywords: simple<br>
 <h3><a name="SCHEDULER">SCHEDULER</a></h3>
 <ul>
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
-subsystems: scheduler, keywords: io scheduler<br>
-<p>The script monitor time threads spend waiting for IO operations (in "D" state) in the wait_for_completion function. If a thread spends over 10ms wall-clock time waiting, information is printed out describing the thread number and executable name. When slow the wait_for_completion function complete, backtraces for the long duration calls are printed out.</p></li>
+subsystems: scheduler, keywords: io scheduler backtrace<br>
+<p>The script monitors the time that threads spend waiting for IO operations (in "D" state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.</p></li>
 </ul>
 <h3><a name="SIGNALS">SIGNALS</a></h3>
 <ul>
