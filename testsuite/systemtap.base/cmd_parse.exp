@@ -121,3 +121,11 @@ expect {
     eof {fail "cmd_parse13: unexpected EOF"}
 }
 wait;close
+
+spawn sh -c "stap -v -v --vp 01020 -h 2>&1"
+expect {
+    -re {add per-pass verbosity .23242.} { pass "cmd_parse14" }
+    timeout { fail "cmd_parse14: timeout" }
+    eof { fail "cmd_parse14: eof" }
+}
+wait;catch {close}

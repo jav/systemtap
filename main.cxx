@@ -74,9 +74,16 @@ usage (systemtap_session& s, int exitcode)
     << endl
     << "Options:" << endl
     << "   --         end of translator options, script options follow" << endl
-    << "   -v         increase verbosity [" << s.verbose << "]" << endl
     << "   -h         show help" << endl
     << "   -V         show version" << endl
+    << "   -p NUM     stop after pass NUM 1-5, instead of " << s.last_pass << endl
+    << "              (parse, elaborate, translate, compile, run)" << endl
+    << "   -v         add verbosity to all passes" << endl
+    << "   --vp {N}+  add per-pass verbosity [";
+  for (unsigned i=0; i<5; i++)
+    clog << (s.perpass_verbose[i] <= 9 ? s.perpass_verbose[i] : 9);
+  clog 
+    << "]" << endl
     << "   -k         keep temporary directory" << endl
     << "   -u         unoptimized translation" << (s.unoptimized ? " [set]" : "") << endl
     << "   -w         suppress warnings" << (s.suppress_warnings ? " [set]" : "") << endl
@@ -84,11 +91,7 @@ usage (systemtap_session& s, int exitcode)
     << "   -P         prologue-searching for function probes"
     << (s.prologue_searching ? " [set]" : "") << endl
     << "   -b         bulk (percpu file) mode" << (s.bulk_mode ? " [set]" : "") << endl
-    << "   -s NUM     buffer size in megabytes, instead of "
-    << s.buffer_size << endl
-    << "   -p NUM     stop after pass NUM 1-5, instead of "
-    << s.last_pass << endl
-    << "              (parse, elaborate, translate, compile, run)" << endl
+    << "   -s NUM     buffer size in megabytes, instead of " << s.buffer_size << endl
     << "   -I DIR     look in DIR for additional .stp script files";
   if (s.include_path.size() == 0)
     clog << endl;
@@ -334,7 +337,7 @@ main (int argc, char * const argv [])
   (void) uname (& buf);
   s.kernel_release = string (buf.release);
   s.architecture = string (buf.machine);
-  s.verbose = 0;
+  for (unsigned i=0; i<5; i++) s.perpass_verbose[i]=0;
   s.timing = false;
   s.guru_mode = false;
   s.bulk_mode = false;
@@ -420,12 +423,14 @@ main (int argc, char * const argv [])
 #define LONG_OPT_KMAP 2
 #define LONG_OPT_IGNORE_VMLINUX 3
 #define LONG_OPT_IGNORE_DWARF 4
+#define LONG_OPT_VERBOSE_PASS 5
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
         { "kmap", 2, &long_opt, LONG_OPT_KMAP },
         { "ignore-vmlinux", 0, &long_opt, LONG_OPT_IGNORE_VMLINUX },
         { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
+        { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:F",
@@ -443,7 +448,8 @@ main (int argc, char * const argv [])
           break;
 
         case 'v':
-	  s.verbose ++;
+          for (unsigned i=0; i<5; i++)
+            s.perpass_verbose[i] ++;
 	  break;
 
         case 't':
@@ -642,6 +648,26 @@ main (int argc, char * const argv [])
 	    case LONG_OPT_IGNORE_DWARF:
 	      s.ignore_dwarf = true;
 	      break;
+	    case LONG_OPT_VERBOSE_PASS:
+              {
+                bool ok = true;
+                if (strlen(optarg) < 1 || strlen(optarg) > 5)
+                  ok = false;
+                if (ok)
+                  for (unsigned i=0; i<5; i++)
+                    if (isdigit (optarg[i]))
+                      s.perpass_verbose[i] += optarg[i]-'0';
+                    else
+                      ok = false;
+                
+                if (! ok)
+                  {
+                    cerr << "Invalid --vp argument: it takes 1 to 5 digits." << endl;
+                    usage (s, 1);
+                  }
+                // NB: we don't do this: s.last_pass = strlen(optarg);
+                break;
+              }
             default:
               cerr << "Internal error parsing command arguments." << endl;
               usage(s, 1);
@@ -778,6 +804,7 @@ main (int argc, char * const argv [])
 
   // PASS 1a: PARSING USER SCRIPT
 
+  s.verbose = s.perpass_verbose[0];
   struct stat user_file_stat;
   int user_file_stat_rc = -1;
 
@@ -921,6 +948,7 @@ main (int argc, char * const argv [])
   gettimeofday (&tv_before, NULL);
 
   // PASS 2: ELABORATION
+  s.verbose = s.perpass_verbose[1];
   rc = semantic_pass (s);
 
   if (s.listing_mode || (rc == 0 && s.last_pass == 2))
@@ -975,7 +1003,7 @@ main (int argc, char * const argv [])
   if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) goto cleanup;
 
   // PASS 3: TRANSLATION
-
+  s.verbose = s.perpass_verbose[2];
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
 
@@ -1004,7 +1032,7 @@ main (int argc, char * const argv [])
   if (rc || s.last_pass == 3 || pending_interrupts) goto cleanup;
 
   // PASS 4: COMPILATION
-
+  s.verbose = s.perpass_verbose[3];
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
   rc = compile_pass (s);
@@ -1054,6 +1082,7 @@ main (int argc, char * const argv [])
 
   // PASS 5: RUN
 pass_5:
+  s.verbose = s.perpass_verbose[4];
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
   // NB: this message is a judgement call.  The other passes don't emit
