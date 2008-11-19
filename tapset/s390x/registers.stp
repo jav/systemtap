@@ -57,7 +57,7 @@ function _stp_probing_kernel: long () %{ /* pure */
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
 
-	if (offset <= 152)
+	if (THIS->offset <= 152)
 		memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset,
 				sizeof(value));
 	else {

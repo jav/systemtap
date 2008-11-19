@@ -375,8 +375,11 @@ eax, ebp, ebx, ecx, edx, edi, edx, eip, esi, esp, flags/eflags, orig_eax;
 segment registers: xcs/cs, xss/ss.
 
 For powerpc, the following names are recognized:
-r1, r2... r31, nip, msr, orig_gpr3, ctr, link, xer, ccr, softe, trap,
+r0, r1, ... r31, nip, msr, orig_gpr3, ctr, link, xer, ccr, softe, trap,
 dar, dsisr, result.
+
+For s390x, the following names are recognized:
+r0, r1, ... r15, args, psw.mask, psw.addr, orig_gpr2, ilc, trap.
 
 .TP
 u_register:long (name:string)
@@ -460,7 +463,7 @@ The probed function was built with the gcc \-mregparm=n option.
 (The i386 kernel is built with \-mregparm=3, so systemtap considers
 regparm(3) the default for kernel functions on that architecture.)
 
-For some architectures, the *_arg functions may reject unusally high
+For some architectures, the *_arg functions may reject unusually high
 values of n.
 
 .SS QUEUE_STATS
