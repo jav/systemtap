@@ -10,9 +10,13 @@
 	<para>This chapter explains the most common errors you may encounter while using SystemTap.</para>
 	
 <section id="parsetype">
-	<title>Parse and Type Errors</title>
+	<title>Parse and Semantic Errors</title>
 	
-<para>These types of errors occur while SystemTap attempts to parse and translate the script into C, prior to being converted into a kernel module. Specifically, type errors result from operations that assign invalid values to variables or arrays.</para>
+<para>These types of errors occur while SystemTap attempts to parse and
+      translate the script into C, prior to being converted into a kernel
+      module. For example type errors result from operations that assign invalid
+      values to variables or arrays.
+</para>
 	
 <formalpara><title>parse error: expected <replaceable>foo</replaceable>, saw <replaceable>bar</replaceable></title>
 	
@@ -20,20 +24,63 @@
 </para>
 </formalpara>
 
-<remark>need more clarification (example) on this; could not replicate. how to replicate?</remark>
+<remark>need more clarification (example) on this; could not replicate. how to
+      replicate?</remark>
+
+<para>
+      The following invalid SystemTap script is missing the the probe
+      handlers:
+</para>
+
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/perror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+
+<para>
+      It results in the following error message showing that the parser was
+      expecting something other than the <command>probe</command> in column 1 of
+      line 2:
+</para>
+<para>
+<programlisting>
+parse error: expected one of '. , ( ? ! { = +='
+	saw: keyword at perror.stp:2:1
+1 parse error(s).
+</programlisting>
+</para>
 
 <formalpara><title>parse error: embedded code in unprivileged script</title>
 
-	<para>The script contains unsafe constructs; in most cases, embedded C. SystemTap allows you to embed C code in a script, which is useful if there are no tapsets to suit your purposes. However, some embedded C constructs may not be safe; as such, SystemTap warns you with this error if such constructs appear in the script. <xref linkend="threadtimes"/> (from <xref linkend="threadtimessect"/>) is an example of a script that contains embedded C.</para>
+<para>
+	The script contains unsafe embedded C code (blocks of code
+	surrounded by <command>%{</command> <command>%}</command>. SystemTap
+	allows you to embed C code in a script, which is useful if there are no
+	tapsets to suit your purposes. However, embedded C constructs are not be
+	safe; as such, SystemTap warns you with this error if such constructs
+	appear in the script.
+</para>
 </formalpara>
-<para>If you are sure of the safety of any similar constructs in the script, run the script in "guru" mode by using the option <command>-g</command> (i.e. <command>stap -g <replaceable>script</replaceable></command>).</para>
+<para>
+      If you are sure of the safety of any similar constructs in the script
+      <emphasis>and</emphasis>
+      are member of <command>stapdev</command> group (or have root privileges),
+      run the script in "guru" mode by using the option <command>-g</command>
+      (i.e. <command>stap -g <replaceable>script</replaceable></command>).
+</para>
 
 <formalpara>
 	<title>semantic error: type mismatch for identifier '<replaceable>foo</replaceable>' ... string vs. long</title>
 
 <para>
-	The function <command><replaceable>foo</replaceable></command> in the script used the wrong type of variable (i.e. <command>%s</command> or <command>%d</command>). This error will present itself in <xref linkend="errorvariable"/>, since the function <command>execname</command> should be referenced using <command>%s</command>, not <command>%d</command>. 
-</para>	
+	The function <command><replaceable>foo</replaceable></command> in the
+	script used the wrong type
+	(i.e. <command>%s</command> or <command>%d</command>). This error will
+	present itself in <xref linkend="errorvariable"/>, because the function
+	<command>execname()</command> returns a string the format specifier
+	should be a <command>%s</command>, not <command>%d</command>. 
+</para>
 </formalpara>
 
 <example id="errorvariable">
@@ -48,45 +95,54 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: unresolved type for identifier '<replaceable>foo</replaceable>'</title>
-<para>The identifier (e.g. a variable) was used, but no operation could assign it a type (e.g. integer, string). This occurs, for instance, if you use a variable in a <command>printf</command> statement while no other function in the script can assign a value to it.</para>
+<para>The identifier (e.g. a variable) was used, but no type (integer or
+	string)could be determine. This occurs, for instance, if you use a
+	variable in a <command>printf</command> statement while no other
+	function in the script can assign a value to it.</para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: Expecting symbol or array index expression</title>
-<para>SystemTap found an operation that could not assign a value to a variable or unique key referenced by an array index expression.</para>
+<para>
+	SystemTap could not assign a value to a variable or to a location in an
+	array. The destination for the assignment is not a valid destination.
+	The following example code would generate this error:
+</para>
 </formalpara>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/werror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
 
-</section>	
-	
-<section id="symbolerrors">
-	<title>Symbol Errors</title>
-	
-<para>Symbol errors result from operations in the script that process variables, arrays, or function calls incorrectly. Unlike "type" errors &mdash; which assign invalid values to a variable or array &mdash; symbol errors prevent the script from assigning any value altogether.</para>	
-	
 <formalpara>
 	<title>while searching for arity <replaceable>N</replaceable> function, semantic error: unresolved function call</title>
-<para>A function call or array index expression in the script used an invalid number of arguments/parameters. In SystemTap,  <firstterm>arity</firstterm> can either refer to the number of key pairs to an array, or the number of parameters to a function.</para>
+<para>A function call or array index expression in the script used an invalid
+	number of arguments/parameters. In SystemTap
+	<firstterm>arity</firstterm> can either refer to the number of indices
+	for an array, or the number of parameters to a function.</para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: array locals not supported:</title>
-	<para>The script used an array operation without declaring the array as global first. Similar messages appear if an array is used, but with inconsistent arities.</para>
+	<para>The script used an array operation without declaring the array as
+	a global variable (global variables can be declared after their use in
+	Systemtap scripts). Similar messages appear if an array is used, but with inconsistent arities.</para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: variable ’<replaceable>foo</replaceable>’ modiﬁed during ’foreach’</title>
 	<para>The array <literal>foo</literal> is being modifed (being assigned to or deleted from) within an active <command>foreach</command> loop. This error also displays if an operation within the script performs a function call within the <command>foreach</command> loop.</para>
 </formalpara>
-</section>
 
-<section id="probingerrors">
-	<title>Probe Errors</title>
-
-<para>Probe errors result from the use of invalid events (e.g. events that could not be found in the tapset library), or the use of handlers that are invalid in the context of the probe. </para>
-	
 <formalpara>
 	<title>semantic error: probe point mismatch at position <replaceable>N</replaceable>, while resolving probe point <replaceable>foo</replaceable></title>
-	<para>SystemTap did not understand what the event / handler function  <computeroutput><replaceable>foo</replaceable></computeroutput> refers to. This usually means that SystemTap could not find a match for <computeroutput><replaceable>foo</replaceable></computeroutput> in the tapset library.</para>
+	<para>SystemTap did not understand what the event or SystemTap function
+	<computeroutput><replaceable>foo</replaceable></computeroutput> refers
+	to. This usually means that SystemTap could not find a match for
+	<computeroutput><replaceable>foo</replaceable></computeroutput> in the
+	tapset library. The <replaceable>N</replaceable> refers to the column
+	the error occurred in.</para>
 </formalpara>	
 	
 <remark>how to explain N in previous? "The divergence from the “tree” of probe point namespace is at position N (starting with zero at left)." (from tutorial) </remark>
@@ -103,11 +159,14 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: libdwﬂ failure </title>
-	<para>There was a problem processing the debugging information. In most cases, this error results from the installation of a <filename>kernel-debuginfo</filename> RPM whose version does not match the probed kernel perfectly. Sometimes, the installed <filename>kernel-debuginfo</filename> RPM itself may have some consistency / correctness problems.</para>
+	<para>There was a problem processing the debugging information. In most
+	cases, this error results from the installation of a
+	<filename>kernel-debuginfo</filename> RPM whose version does not match
+	the probed kernel exactly. The installed <filename>kernel-debuginfo</filename> RPM itself may have some consistency / correctness problems.</para>
 </formalpara>
 
 <formalpara>
-	<title>semantic error: cannot ﬁnd <replaceable>foo</replaceable> debuginfo</title>
+	<title>semantic error: cannot find <replaceable>foo</replaceable> debuginfo</title>
 	<para>SystemTap could not find a suitable <filename>kernel-debuginfo</filename> at all. </para>
 </formalpara>
 <!--
@@ -118,6 +177,74 @@ probe syscall.open
 -->
 
 </section>	
+
+<section id="runtimeerror">
+	<title>Run Time Errors and Warnings</title>
+	<para>
+		Runtime errors and warnings occur when the SystemTap
+		instrumentation has been installed and is collecting data on
+		the system.
+	</para>
+
+<formalpara><title>WARNING: Number of errors: <replaceable>N</replaceable>, skipped probes: <replaceable>M</replaceable></title>
+<para>
+	Errors and/or skipped probes occurred during this run. Both 
+	<replaceable>N</replaceable> and <replaceable>M</replaceable> are
+	the counts of the number of probes that were not executed due to
+	conditions such as too much time required to execute event handlers over
+	an interval of time.
+</para>
+</formalpara>
+
+<formalpara><title>division by 0</title>
+<para>
+	The script code performed an invalid division.
+</para>
+</formalpara>
+
+<formalpara><title>aggregate element not found</title>
+<para>
+	An statistics extractor function other than <command>@count</command>
+	was invoked on an aggregate that has not had any values accumulated yet.
+	This is similar to a division by zero.
+</para>
+</formalpara>
+
+<formalpara><title>aggregation overflow</title>
+<para>
+    An array containing aggregate values contains too many distinct key tuples at this time.
+</para>
+</formalpara>
+
+
+<formalpara><title>MAXNESTING exceeded</title>
+<para>
+	Too many levels of function call nesting were attempted.
+</para>
+</formalpara>
+
+<formalpara><title>MAXACTION exceeded</title>
+<para>
+    The probe handler attempted to execute too many statements.
+</para>
+</formalpara>
+
+<formalpara><title>kernel/user string copy fault at
+      <replaceable>ADDR</replaceable></title>
+<para>
+	The probe handler attempted to copy a string from kernel or
+	user space at an invalid address (<replaceable>ADDR</replaceable>.
+</para>
+</formalpara>
+
+<formalpara><title>pointer dereference fault</title>
+<para>
+	There was a fault encountered during a pointer
+	dereference operation such as a target variable evaluation.
+</para>
+</formalpara>
+
+</section>
 
 </chapter>
 
