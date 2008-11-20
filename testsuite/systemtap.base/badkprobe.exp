@@ -1,6 +1,8 @@
 set script "probe kernel.statement(-1).absolute {} probe timer.s(1) { exit() }"
-
 set test "bad kprobe registration"
+
+if {! [installtest_p]} { untested $test; return }
+
 spawn stap -g -w -e "$script"
 expect {
     -re "^WARNING: probe .*registration error.*" { pass $test }
