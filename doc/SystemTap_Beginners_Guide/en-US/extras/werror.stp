@@ -1,0 +1,1 @@
+probe begin { printf("x") = 1 }
