@@ -32,11 +32,11 @@ foo["harry"] = 25
 
 
 <section id="tuples">
-	<title>Tuples</title>
+	<title>Array Slots</title>
 <para>Another important point to remember in arrays is that each element therein (i.e. the indexed expression) exists in a <emphasis>slot</emphasis>. A key pair's slot is defined by the order in which each pair's unique key is defined. In our sample array <command>foo</command> in <xref linkend="arraysimplestexample"/>, the key pair that uses the unique key <command>tom</command> is in the first slot, since <command>tom</command> was the first unique key to be defined. <command>dick</command> is in the second slot, and so on.</para>
 
-
-<para>The sequence in which each key pair appears in an array (as defined by each pair's slot) is referred to as a <emphasis>tuple</emphasis>. Tuples allow us to refer to key pairs in an array by the order in which they appear in the sequence.</para>
+<!--
+<para>The sequence in which each key pair appears in an array (as defined by each pair's slot) is referred to as a <emphasis>tuple</emphasis>. Tuples allow us to refer to key pairs in an array by the order in which they appear in the sequence.</para>-->
 
 <para>For example, the array statements in <xref linkend="arraysimplestexample"/> set 23 as the associated value of the unique key <command>tom</command>. Given the same array <command>foo</command>, we can increment the associated value of <command>tom</command> by 1 using the operator <command>++</command>, like so:</para>
 
@@ -44,7 +44,7 @@ foo["harry"] = 25
 foo["tom"] ++
 </screen>
 
-<para>The above statement will increase the associated value of unique key <command>tom</command> to 24. Now, looking back at <xref linkend="arraysimplestexample"/>, we know that <command>dick</command> was the first uniqe key to be defined. As such, we can perform the same operation (i.e. incrementing associated value by 1) to <command>dick</command> using the following statement:</para>
+<para>The above statement will increase the associated value of unique key <command>tom</command> to 24. Now, looking back at <xref linkend="arraysimplestexample"/>, we know that <command>dick</command> was the first unique key to be defined. As such, we can perform the same operation (i.e. incrementing associated value by 1) to <command>dick</command> using the following statement:</para>
 
 <screen>
 foo[2] ++
