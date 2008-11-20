@@ -1043,6 +1043,9 @@ c_unparser::emit_global (vardecl *v)
   else
     o->newline() << "MAP s_" << vn << ";";
   o->newline() << "rwlock_t s_" << vn << "_lock;";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "atomic_t s_" << vn << "_lock_skip_count;";
+  o->newline() << "#endif" << endl;
 }
 
 
@@ -1055,11 +1058,14 @@ c_unparser::emit_global_init (vardecl *v)
     {
       if (v->init)
 	{
-	  o->line() << ".s_" << vn << " = ";
+	  o->newline() << ".s_" << vn << " = ";
 	  v->init->visit(this);
           o->line() << ",";
 	}
     }
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << ".s_" << vn << "_lock_skip_count = ATOMIC_INIT(0),";
+  o->newline() << "#endif";
 }
 
 
@@ -1332,6 +1338,18 @@ c_unparser::emit_module_exit ()
                 << "skipped probes: %d\\n\", "
                 << "(int) atomic_read (& error_count), "
                 << "(int) atomic_read (& skipped_count));";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "{";
+  o->newline(1) << "int ctr;";
+  for (unsigned i=0; i<session->globals.size(); i++)
+    {
+      string vn = c_varname (session->globals[i]->name);
+      o->newline() << "ctr = atomic_read (& global.s_" << vn << "_lock_skip_count);";
+      o->newline() << "if (ctr) _stp_warn (\"Variable `%s' lock timeouts: %d\\n\", "
+                   << lex_cast_qstring(vn) << ", ctr);";
+    }
+  o->newline(-1) << "}";
+  o->newline () << "#endif";
   o->newline() << "_stp_print_flush();";
   o->newline(-1) << "}";
   o->newline(-1) << "}\n";
@@ -1625,6 +1643,9 @@ c_unparser::emit_locks(const varuse_collecting_visitor& vut)
       o->newline(1) << "ndelay (TRYLOCKDELAY);";
       o->newline(-1) << "if (unlikely (numtrylock >= MAXTRYLOCK)) {";
       o->newline(1) << "atomic_inc (& skipped_count);";
+      o->newline() << "#ifdef STP_TIMING";
+      o->newline() << "atomic_inc (& global.s_" << c_varname (v->name) << "_lock_skip_count);";
+      o->newline() << "#endif";
       // The following works even if i==0.  Note that using
       // globals[i-1]->name is wrong since that global may not have
       // been lockworthy by this probe.

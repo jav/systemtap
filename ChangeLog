@@ -1,5 +1,11 @@
 2008-11-20  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 5689
+	* translate.cxx (emit_global, emit_global_init, emit_module_exit,
+	emit_locks): Track & print global.s_VAR_lock_skip_count.
+
+2008-11-20  Frank Ch. Eigler  <fche@elastic.org>
+
 	* main.cxx (main): Correct thinko in --vp option with <5 arg chars.
 
 2008-11-18  Jim Keniston  <jkenisto@us.ibm.com>
