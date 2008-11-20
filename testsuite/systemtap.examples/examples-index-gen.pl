@@ -71,7 +71,12 @@ sub add_meta_html(*;$) {
     #print $file "exits: $scripts{$meta}{exit}, ";
     #print $file "status: $scripts{$meta}{status}<br>\n";
 
-    print $file "keywords: $scripts{$meta}{keywords}<br>\n";
+    print $file "keywords: ";
+    foreach $keyword (split(/ /, $scripts{$meta}{keywords})) {
+        print $file '<a href="keyword-index.html#' . (uc $keyword) . '">'
+            . (uc $keyword) . "</a> ";
+    }
+    print $file "<br>\n";
 
     print $file "<p>$scripts{$meta}{description}";
     print $file "</p></li>\n";
