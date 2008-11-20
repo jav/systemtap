@@ -196,7 +196,28 @@ probe end
 <para>You can also use associative arrays in <command>if</command> statements. This is useful if you want to execute a subroutine once a value in the array matches a certain condition. Consider the following example:</para>
 
 <example id="simplevfsreadprintif">
-	<title>vfsreads-stop-on-stapio.stp</title>
+	<title>vfsreads-print-if-1kb.stp</title>
+<programlisting>
+global reads
+probe vfs.read
+{
+    reads[execname()] ++
+}
+
+probe timer.s(2)
+{
+    printf("=======\n")
+    foreach (count in reads-)
+        if (reads[count] >= 1024)
+            printf("%s : %dkB \n", count, reads[count]/1024)
+        else
+            printf("%s : %dB \n", count, reads[count])
+}
+</programlisting>
+</example>	
+
+<para>Every two seconds, <xref linkend="simplevfsreadprintif"/> prints out a list of all processes, along with how many times each process performed a VFS read. If the associated value of a process name is equal or greater than 1024, the <command>if</command> statement in the script converts and prints it out in <command>kB</command>.</para>  
+<!--	<title>vfsreads-stop-on-stapio.stp</title>
 <programlisting>
 global reads
 probe kernel.function("vfs_read")
@@ -218,7 +239,7 @@ probe timer.s(2)
 </example>
 
 <para>The <command>if(reads["stapio"] >= 20)</command> instructs the script to execute the subroutine <command>exit()</command> once the value associated with the unique key <command>stapio</command> (in the array <command>reads</command>) is greater than or equal to 20.</para>
-
+-->
 <formalpara>
 	<title>Testing for Membership</title>
 <para>You can also test whether a specific unique key is a member of an array. Further, membership in an array can be used in <command>if</command> statements, as in:</para>
@@ -235,7 +256,7 @@ if([<replaceable>index_expression</replaceable>] in <replaceable>array_name</rep
 <programlisting>
 global reads
 
-probe kernel.function("vfs_read")
+probe vfs.read
 {
 	reads[execname()] ++
 }
@@ -269,15 +290,15 @@ probe timer.s(2)
 <example id="simpleaggregates">
 	<title>stat-aggregates.stp</title>
 <programlisting>
-global writes	
-probe vfs_write
+global reads	
+probe vfs.read
 {
-writes[execname()] &lt;&lt;&lt; count
+reads[execname()] &lt;&lt;&lt; count
 }
 </programlisting>
 </example>
 
-<para>In <xref linkend="simpleaggregates"/>, the operator <command>&lt;&lt;&lt; count</command> <emphasis>stores</emphasis> the amount returned by <literal>count</literal> to to the associated value of the corresponding <command>execname()</command> in the <literal>writes</literal> array. Remember, these values are <emphasis>stored</emphasis>; they are not added to the associated values of each unique key, nor are they used to replace the current associated values. In a manner of speaking, think of it as having each unique key (<command>execname()</command>) having multiple associated values, accumulating with each probe handler run.</para>
+<para>In <xref linkend="simpleaggregates"/>, the operator <command>&lt;&lt;&lt; count</command> <emphasis>stores</emphasis> the amount returned by <literal>count</literal> to to the associated value of the corresponding <command>execname()</command> in the <literal>reads</literal> array. Remember, these values are <emphasis>stored</emphasis>; they are not added to the associated values of each unique key, nor are they used to replace the current associated values. In a manner of speaking, think of it as having each unique key (<command>execname()</command>) having multiple associated values, accumulating with each probe handler run.</para>
 
 <note>
 	<title>Note</title>	
