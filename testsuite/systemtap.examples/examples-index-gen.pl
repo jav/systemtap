@@ -37,8 +37,6 @@ print "Parsing .meta files in $inputdir...\n";
 find(\&parse_meta_files, $inputdir);
 
 my $meta;
-my $subsystem;
-my %subsystems;
 my $keyword;
 my %keywords;
 
@@ -53,7 +51,6 @@ sub add_meta_txt(*;$) {
     #print $file "exits: $scripts{$meta}{exit}, ";
     #print $file "status: $scripts{$meta}{status}\n";
 
-    print $file "subsystems: $scripts{$meta}{subsystem}, ";
     print $file "keywords: $scripts{$meta}{keywords}\n\n";
 
     $Text::Wrap::columns = 72;
@@ -74,7 +71,6 @@ sub add_meta_html(*;$) {
     #print $file "exits: $scripts{$meta}{exit}, ";
     #print $file "status: $scripts{$meta}{status}<br>\n";
 
-    print $file "subsystems: $scripts{$meta}{subsystem}, ";
     print $file "keywords: $scripts{$meta}{keywords}<br>\n";
 
     print $file "<p>$scripts{$meta}{description}";
@@ -82,7 +78,7 @@ sub add_meta_html(*;$) {
 }
 
 my $HEADER = "SYSTEMTAP EXAMPLES INDEX\n"
-    . "(see also subsystem-index.txt, keyword-index.txt)\n\n";
+    . "(see also keyword-index.txt)\n\n";
 
 my $header_tmpl = "$inputdir/html/html_header.tmpl";
 open(TEMPLATE, "<$header_tmpl")
@@ -95,7 +91,7 @@ open(TEMPLATE, "<$footer_tmpl")
 my $HTMLFOOTER = do { local $/;  <TEMPLATE> };
 close(TEMPLATE);
 
-# Output full index and collect subsystems and keywords
+# Output full index and collect keywords
 my $fullindex = "$outputdir/index.txt";
 open (FULLINDEX, ">$fullindex")
     || die "couldn't open $fullindex: $!";
@@ -115,15 +111,6 @@ foreach $meta (sort keys %scripts) {
     add_meta_txt(\*FULLINDEX, $meta);
     add_meta_html(\*FULLHTML, $meta);
 
-    # Collect subsystems
-    foreach $subsystem (split(/ /, $scripts{$meta}{subsystem})) {
-	if (defined $subsystems{$subsystem}) {
-	    push(@{$subsystems{$subsystem}}, $meta);
-	} else {
-	    $subsystems{$subsystem} = [ $meta ];
-	}
-    }
-
     # Collect keywords
     foreach $keyword (split(/ /, $scripts{$meta}{keywords})) {
 	if (defined $keywords{$keyword}) {
@@ -138,51 +125,11 @@ print FULLHTML $HTMLFOOTER;
 close (FULLINDEX);
 close (FULLHTML);
 
-my $SUBHEADER = "SYSTEMTAP EXAMPLES INDEX BY SUBSYSTEM\n"
-    . "(see also index.txt, keyword-index.txt)\n\n";
-
-# Output subsystem index
-my $subindex = "$outputdir/subsystem-index.txt";
-open (SUBINDEX, ">$subindex")
-    || die "couldn't open $subindex: $!";
-print "Creating $subindex...\n";
-print SUBINDEX $SUBHEADER;
-
-my $subhtml = "$outputdir/subsystem-index.html";
-open (SUBHTML, ">$subhtml")
-    || die "couldn't open $subhtml: $!";
-print "Creating $subhtml...\n";
-print SUBHTML $HTMLHEADER;
-print SUBHTML "<h2>Examples by Subsystem</h2>\n";
-
-# On top link list
-print SUBHTML "<p><tt>";
-foreach $subsystem (sort keys %subsystems) {
-    print SUBHTML '<a href="#' . (uc $subsystem) . '">'
-		  . (uc $subsystem) . "</a> ";
-}
-print SUBHTML "</tt></p>\n";
-
-foreach $subsystem (sort keys %subsystems) {
-    print SUBINDEX "= " . (uc $subsystem) . " =\n\n";
-    print SUBHTML "<h3>" . '<a name="' . (uc $subsystem) . '">'
-		  . (uc $subsystem) . "</a></h3>\n";
-    print SUBHTML "<ul>\n";
-
-    foreach $meta (sort @{$subsystems{$subsystem}}) {
-	add_meta_txt(\*SUBINDEX,$meta);
-	add_meta_html(\*SUBHTML,$meta);
-    }
-    print SUBHTML "</ul>\n";
-}
-print SUBHTML $HTMLFOOTER;
-close (SUBINDEX);
-close (SUBHTML);
 
 my $KEYHEADER = "SYSTEMTAP EXAMPLES INDEX BY KEYWORD\n"
-    . "(see also index.txt, subsystem-index.txt)\n\n";
+    . "(see also index.txt)\n\n";
 
-# Output subsystem index
+# Output keyword index
 my $keyindex = "$outputdir/keyword-index.txt";
 open (KEYINDEX, ">$keyindex")
     || die "couldn't open $keyindex: $!";
@@ -251,7 +198,6 @@ sub parse_meta_files {
 	my $title;
 	my $name;
 	my $keywords;
-	my $subsystem;
 	my $status;
 	my $exit;
 	my $output;
@@ -260,7 +206,6 @@ sub parse_meta_files {
 	    if (/^title: (.*)/) { $title = $1; }
 	    if (/^name: (.*)/) { $name = $1; }
 	    if (/^keywords: (.*)/) { $keywords = $1; }
-	    if (/^subsystem: (.*)/) { $subsystem = $1; }
 	    if (/^status: (.*)/) { $status = $1; }
 	    if (/^exit: (.*)/) { $exit = $1; }
 	    if (/^output: (.*)/) { $output = $1; }
@@ -271,8 +216,6 @@ sub parse_meta_files {
 	# Remove extra whitespace
 	$keywords =~ s/^\s*//;
 	$keywords =~ s/\s*$//;
-	$subsystem =~ s/^\s*//;
-	$subsystem =~ s/\s*$//;
 
 	# The subdir without the inputdir prefix, nor any slashes.
 	my $subdir = substr $File::Find::dir, (length $inputdir);
@@ -285,7 +228,6 @@ sub parse_meta_files {
 	    name => $name,
 	    title => $title,
 	    keywords => $keywords,
-	    subsystem => $subsystem,
 	    status => $status,
 	    exit => $exit,
 	    output => $output,
