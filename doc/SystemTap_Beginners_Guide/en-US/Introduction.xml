@@ -27,12 +27,16 @@
 	<title>Documentation Goals</title>
 	<para>SystemTap provides the infrastructure to monitor the running Linux kernel for detailed analysis. This can assist administrators and developers in identifying the underlying cause of a bug or performance problem.</para>
 	
-	<para>Without SystemTap, monitoring the activity of a running kernel would require a tedious instrument, recompile, install, and reboot sequence. SystemTap is designed to eliminate this, allowing users to gather the same information by simply running user-written SystemTap scripts.</para> 
-		
+	<para>Without SystemTap, monitoring the activity of a running kernel would require a tedious instrument, recompile, install, and reboot sequence. SystemTap is designed to eliminate this, allowing users to gather the same information by simply running user-written SystemTap scripts.</para>
+	
+	<para>However, SystemTap was initially designed for users with intermediate to advanced knowledge of the kernel. This makes SystemTap less useful to administrators or developers with limited knowledge of and experience with the Linux kernel. Moreover, much of the existing SystemTap documentation is similarly aimed at knowledgeable and experienced users. This makes learning the tool similarly difficult.</para>
+	
+	<para>To lower these barriers the SystemTap Beginners Guide was written with the following goals:</para>
+<!--		
 	<para>However, SystemTap was initially designed for users with intermediate to advanced knowledge of the kernel. As such, much of the existing documentation for SystemTap is primarily for advanced users. This could present a steep learning curve for administrators or developers with limited knowledge of and experience with the Linux kernel.</para>
 	
 	<para>In line with that, the main goals of the <citetitle>SystemTap Beginner's Guide</citetitle> are as follows:</para>
-	
+	-->	
 	<itemizedlist>
 		<listitem><para>To introduce users to SystemTap, familiarize them with its architecture, and provide setup instructions for all kernel types.</para></listitem>
 		

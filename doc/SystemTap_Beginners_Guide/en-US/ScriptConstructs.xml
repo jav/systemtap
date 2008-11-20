@@ -74,19 +74,16 @@ if (<replaceable>condition</replaceable>)
 global countread, countnonread
 probe kernel.function("vfs_read"),kernel.function("vfs_write")
 {
-	if (probefunc()=="vfs_read") {
+	if (probefunc()=="vfs_read") 
 		countread ++ 
-	}
-	else {
+	else 
 		countnonread ++
-	}
 }
 probe timer.s(5) { exit() }
 probe end 
 {
 	printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)
 }
- 
 </programlisting>
 </example>
 

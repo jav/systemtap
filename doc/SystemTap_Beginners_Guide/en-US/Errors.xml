@@ -212,8 +212,11 @@ probe syscall.open
 
 <formalpara><title>aggregation overflow</title>
 <para>
+An array containing aggregate values contains too many distinct key pairs at this time.
+</para>	
+<!--<para>
     An array containing aggregate values contains too many distinct key tuples at this time.
-</para>
+</para>-->
 </formalpara>
 
 

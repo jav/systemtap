@@ -85,8 +85,8 @@ probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
 </note>	
 
   <para>
-    Systemtap allow you to write functions to factor out code to be used by a
-    number of probes. Thus, rather than repeatedly writing the same sequence of
+    Systemtap allows you to write functions to factor out code to be used by a
+    number of probes. Thus, rather than repeatedly writing the same 
     series of statements in multiple probes, you can just place the instructions
     in a <firstterm>function</firstterm>, as in:
   </para>
