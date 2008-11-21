@@ -1256,6 +1256,17 @@ c_unparser::emit_module_exit ()
   // while to abort right away.  Currently running probes are allowed to
   // terminate.  These may set STAP_SESSION_ERROR!
 
+  // We're processing the derived_probe_group list in reverse
+  // order.  This ensures that probes get unregistered in reverse
+  // order of the way they were registered.
+  vector<derived_probe_group*> g = all_session_groups (*session);
+  for (vector<derived_probe_group*>::reverse_iterator i = g.rbegin();
+       i != g.rend(); i++)
+    (*i)->emit_module_exit (*session); // NB: runs "end" probes
+
+  // But some other probes may have launched too during unregistration.
+  // Let's wait a while to make sure they're all done, done, done.
+
   // NB: systemtap_module_exit is assumed to be called from ordinary
   // user context, say during module unload.  Among other things, this
   // means we can sleep a while.
@@ -1266,19 +1277,12 @@ c_unparser::emit_module_exit ()
   o->newline(1) << "if (cpu_possible (i) && "
                 << "atomic_read (& ((struct context *)per_cpu_ptr(contexts, i))->busy)) "
                 << "holdon = 1;";
-  o->newline () << "schedule ();";
+  // NB: we run at least one of these during the shutdown sequence:
+  o->newline () << "yield ();"; // aka schedule() and then some 
   o->newline(-2) << "} while (holdon);";
 
   // XXX: might like to have an escape hatch, in case some probe is
   // genuinely stuck somehow
-
-  // Notice we're processing the derived_probe_group list in reverse
-  // order.  This ensures that probes get unregistered in reverse
-  // order of the way they were registered.
-  vector<derived_probe_group*> g = all_session_groups (*session);
-  for (vector<derived_probe_group*>::reverse_iterator i = g.rbegin();
-       i != g.rend(); i++)
-    (*i)->emit_module_exit (*session); // NB: runs "end" probes
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
