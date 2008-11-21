@@ -956,7 +956,7 @@ probe syscall.fork = kernel.function("do_fork") {
 	if (!__is_user_regs(regs)) {
 		name = "fork_kernel_thread"
 		argstr = __fork_flags(clone_flags) 
-	} else if (clone_flags == 17)
+	} else if (clone_flags & 17)
 		name = "fork"
 	else if (clone_flags & 0x4000)
 		name = "vfork"
