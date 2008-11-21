@@ -863,6 +863,10 @@ c_unparser::emit_common_header ()
   o->newline() << "atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
   o->newline() << "atomic_t error_count = ATOMIC_INIT (0);";
   o->newline() << "atomic_t skipped_count = ATOMIC_INIT (0);";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
+  o->newline() << "atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
+  o->newline() << "#endif";
   o->newline();
   o->newline() << "struct context {";
   o->newline(1) << "atomic_t busy;";
@@ -1349,9 +1353,13 @@ c_unparser::emit_module_exit ()
     {
       string vn = c_varname (session->globals[i]->name);
       o->newline() << "ctr = atomic_read (& global.s_" << vn << "_lock_skip_count);";
-      o->newline() << "if (ctr) _stp_warn (\"Variable `%s' lock timeouts: %d\\n\", "
+      o->newline() << "if (ctr) _stp_warn (\"Skipped due to global '%s' lock timeout: %d\\n\", "
                    << lex_cast_qstring(vn) << ", ctr);";
     }
+  o->newline() << "ctr = atomic_read (& skipped_count_lowstack);";
+  o->newline() << "if (ctr) _stp_warn (\"Skipped due to low stack: %d\\n\", ctr);";
+  o->newline() << "ctr = atomic_read (& skipped_count_reentrant);";
+  o->newline() << "if (ctr) _stp_warn (\"Skipped due to reentrancy: %d\\n\", ctr);";
   o->newline(-1) << "}";
   o->newline () << "#endif";
   o->newline() << "_stp_print_flush();";
@@ -1717,12 +1725,9 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
 
   if (numvars) // is there a chance that any lock attempt failed?
     {
-      o->newline() << "if (atomic_read (& skipped_count) > MAXSKIPPED) {";
-      // XXX: In this known non-reentrant context, we could print a more
-      // informative error.
-      o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-      o->newline() << "_stp_exit();";
-      o->newline(-1) << "}";
+      // Formerly, we checked skipped_count > MAXSKIPPED here, and set
+      // SYSTEMTAP_SESSION_ERROR if so.  But now, this check is shared
+      // via common_probe_entryfn_epilogue().
 
       if (session->verbose>1)
         clog << endl;
@@ -4770,7 +4775,7 @@ emit_symbol_data (systemtap_session& s)
        it != ctx.undone_unwindsym_modules.end();
        it ++)
     {
-      s.print_warning ("missing unwind/symbol data for module `" + (*it) + "'");
+      s.print_warning ("missing unwind/symbol data for module '" + (*it) + "'");
     }
 }
 

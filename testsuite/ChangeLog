@@ -1,3 +1,8 @@
+2008-11-21  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5689.
+	* systemtap.base/skipped.exp: New test.
+
 2008-11-19  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* systemtap.context/num_args.stp: Added s390x case.

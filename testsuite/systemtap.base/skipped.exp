@@ -1,0 +1,21 @@
+set test "skip tracking"
+
+if {! [installtest_p]} { untested $test; return }
+
+set cpus [exec sh -c "grep ^processor /proc/cpuinfo | wc -l"]
+if {$cpus < 2} { unsupported $test; return }
+
+set ok 0
+spawn stap -e "probe timer.s(5) {exit()} probe timer.profile,syscall.* {f++} global f" -DMAXTRYLOCK=0 -tu
+expect {
+    -timeout 30
+    -re {^WARNING: Number of errors: 0, skipped probes: [0-9]+\r\n} { incr ok; exp_continue }
+    -re {^WARNING: Skipped due to global .f. lock timeout: [0-9]+\r\n} { incr ok; exp_continue }
+    -re {^probe timer.profile[^\r\n]+, hits: [0-9]+[^\r\n]+\r\n} { incr ok; exp_continue }
+    eof { }
+    timeout { fail "$test (timeout)" }
+}
+catch {close}
+catch {wait}
+
+if {$ok >= 3} { pass "$test ($cpus $ok)" } else { fail "$test ($cpus $ok)" }

@@ -190,10 +190,10 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline(1) << "< (MINSTACKSPACE + sizeof (struct thread_info)))) {"; // needed space
   // XXX: may need porting to platforms where task_struct is not at bottom of kernel stack
   // NB: see also CONFIG_DEBUG_STACKOVERFLOW
-  o->newline() << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
-  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_exit ();";
-  o->newline(-1) << "}";
+  o->newline() << "atomic_inc (& skipped_count);";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "atomic_inc (& skipped_count_lowstack);";
+  o->newline() << "#endif";
   o->newline() << "goto probe_epilogue;";
   o->newline(-1) << "}";
 
@@ -202,13 +202,11 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->indent(-1);
 
   o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
-  o->newline() << "if (unlikely (atomic_inc_return (&c->busy) != 1)) {";
-  o->newline(1) << "if (atomic_inc_return (& skipped_count) > MAXSKIPPED) {";
-  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  // NB: We don't assume that we can safely call stp_error etc. in such
-  // a reentrant context.  But this is OK:
-  o->newline() << "_stp_exit ();";
-  o->newline(-1) << "}";
+  o->newline() << "if (atomic_inc_return (& c->busy) != 1) {";
+  o->newline(1) << "atomic_inc (& skipped_count);";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "atomic_inc (& skipped_count_reentrant);";
+  o->newline() << "#endif";
   o->newline() << "atomic_dec (& c->busy);";
   o->newline() << "goto probe_epilogue;";
   o->newline(-1) << "}";
@@ -315,6 +313,12 @@ common_probe_entryfn_epilogue (translator_output* o,
 
   o->newline(-1) << "probe_epilogue:"; // context is free
   o->indent(1);
+
+  // Check for excessive skip counts.
+  o->newline() << "if (unlikely (atomic_read (& skipped_count) > MAXSKIPPED)) {";
+  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "_stp_exit ();";
+  o->newline(-1) << "}";
 
   if (! interruptible)
     o->newline() << "local_irq_restore (flags);";
