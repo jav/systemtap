@@ -6994,17 +6994,19 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#endif";
   s.op->newline() << "#include \"task_finder.c\"";
 
-  s.op->newline() << "#ifndef MAXUPROBES";
-  s.op->newline() << "#define MAXUPROBES 16"; // maximum possible armed uprobes per process() probe point
+  s.op->newline() << "#ifndef MULTIPLE_UPROBES";
+  s.op->newline() << "#define MULTIPLE_UPROBES 100"; // maximum possible armed uprobes per process() probe point
   s.op->newline() << "#endif";
-  s.op->newline() << "#define NUMUPROBES (MAXUPROBES*" << probes.size() << ")";
+  s.op->newline() << "#ifndef MAXUPROBES";
+  s.op->newline() << "#define MAXUPROBES (MULTIPLE_UPROBES * " << probes.size() << ")";
+  s.op->newline() << "#endif";
 
   // In .bss, the shared pool of uprobe/uretprobe structs.  These are
   // too big to embed in the initialized .data stap_uprobe_spec array.
   s.op->newline() << "struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
   s.op->newline() << "int spec_index;"; // index into stap_uprobe_specs; <0 == free && unregistered
-  s.op->newline(-1) << "} stap_uprobes [NUMUPROBES];";
+  s.op->newline(-1) << "} stap_uprobes [MAXUPROBES];";
   s.op->newline() << "DEFINE_MUTEX(stap_uprobes_lock);"; // protects against concurrent registration/unregistration
 
   s.op->newline() << "struct stap_uprobe_spec {";
@@ -7088,7 +7090,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "printk (KERN_WARNING \"uprobe idx %d change pid %d register_p %d reloc %p pp %s\\n\", spec_index, tsk->tgid, register_p, (void*) relocation, sups->pp);";
   s.op->newline() << "#endif";
 
-  s.op->newline() << "for (i=0; i<NUMUPROBES; i++) {"; // XXX: slow linear search
+  s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {"; // XXX: slow linear search
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
 
   // register new uprobe
@@ -7210,7 +7212,7 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   if (probes.empty()) return;
   s.op->newline() << "/* ---- user probes ---- */";
 
-  s.op->newline() << "for (j=0; j<NUMUPROBES; j++) {";
+  s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
   s.op->newline() << "sup->spec_index = -1;"; // free slot
   // NB: we assume the rest of the struct (specificaly, sup->up) is
@@ -7247,7 +7249,7 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   // important stuff like utrace cleanups are done by
   // __stp_task_finder_cleanup()
 
-  s.op->newline() << "for (j=0; j<NUMUPROBES; j++) {";
+  s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
   s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // free slot
