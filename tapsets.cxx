@@ -5171,12 +5171,24 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(1) << "unregister_kretprobe (&kp->u.krp);";
   s.op->newline() << "#endif";
   s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.krp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->pp_name, kp->u.krp.nmissed);";
+  s.op->newline(-1) << "#endif";
   s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.krp.kp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %d\\n\", sdp->pp_name, kp->u.krp.kp.nmissed);";
+  s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "} else {";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
   s.op->newline(1) << "unregister_kprobe (&kp->u.kp);";
   s.op->newline() << "#endif";
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.kp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %d\\n\", sdp->pp_name, kp->u.kp.nmissed);";
+  s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "}";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES) && defined(__ia64__)";
   s.op->newline() << "unregister_kprobe (&kp->dummy);";
@@ -7091,7 +7103,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "sup->urp.u.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->urp.handler = &enter_uretprobe_probe;";
   s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uretprobe register pid %d addr %p\\n\", sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
+  s.op->newline() << "printk (KERN_WARNING \"uretprobe register pid %d '%s' addr %p\\n\", sup->urp.u.pid, sups->pp, (void*) sup->urp.u.vaddr);";
   s.op->newline() << "#endif";
   s.op->newline() << "rc = register_uretprobe (& sup->urp);";
   s.op->newline(-1) << "} else {";
@@ -7099,13 +7111,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "sup->up.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
   s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uprobe register pid %d addr %p\\n\", sup->up.pid, (void*) sup->up.vaddr);";
+  s.op->newline() << "printk (KERN_WARNING \"uprobe register pid %d '%s' addr %p\\n\", sup->up.pid, sups->pp, (void*) sup->up.vaddr);";
   s.op->newline() << "#endif";
   s.op->newline() << "rc = register_uprobe (& sup->up);";
   s.op->newline(-1) << "}";
 
   s.op->newline() << "if (rc) {"; // failed to register
-  s.op->newline(1) << "printk (KERN_WARNING \"uprobe failed pid %d addr %p rc %d\\n\", tsk->tgid, (void*)(relocation + sups->address), rc);";
+  s.op->newline(1) << "printk (KERN_WARNING \"uprobe failed pid %d '%s' addr %p rc %d\\n\", tsk->tgid, sups->pp, (void*)(relocation + sups->address), rc);";
   s.op->newline() << "sup->spec_index = -1;";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "handled_p = 1;"; // success
@@ -7143,7 +7155,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}"; // stap_uprobes[] loop
   s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
   s.op->newline() << "if (! handled_p) {";
-  s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
+  s.op->newline(1) << "#ifdef STP_TIMING";
+  s.op->newline() << "atomic_inc (register_p ? & skipped_count_uprobe_reg : & skipped_count_uprobe_unreg);";
+  s.op->newline() << "#endif";
+  // NB: duplicates common_entryfn_epilogue, but then this is not a probe entry fn epilogue.
+  s.op->newline() << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
   s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   s.op->newline() << "_stp_exit ();";
   s.op->newline(-1) << "}";

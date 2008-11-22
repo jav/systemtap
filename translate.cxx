@@ -866,6 +866,8 @@ c_unparser::emit_common_header ()
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
   o->newline() << "atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
+  o->newline() << "atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
+  o->newline() << "atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
   o->newline() << "#endif";
   o->newline();
   o->newline() << "struct context {";
@@ -1360,6 +1362,10 @@ c_unparser::emit_module_exit ()
   o->newline() << "if (ctr) _stp_warn (\"Skipped due to low stack: %d\\n\", ctr);";
   o->newline() << "ctr = atomic_read (& skipped_count_reentrant);";
   o->newline() << "if (ctr) _stp_warn (\"Skipped due to reentrancy: %d\\n\", ctr);";
+  o->newline() << "ctr = atomic_read (& skipped_count_uprobe_reg);";
+  o->newline() << "if (ctr) _stp_warn (\"Skipped due to uprobe register failure: %d\\n\", ctr);";
+  o->newline() << "ctr = atomic_read (& skipped_count_uprobe_unreg);";
+  o->newline() << "if (ctr) _stp_warn (\"Skipped due to uprobe unregister failure: %d\\n\", ctr);";
   o->newline(-1) << "}";
   o->newline () << "#endif";
   o->newline() << "_stp_print_flush();";

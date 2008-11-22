@@ -1,3 +1,12 @@
+2008-11-22  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5689.
+	* tapsets.cxx (dwarf_derived_probe_group::emit_module_exit,decls):
+	Print kprobe missed stats if STP_TIMING.
+	(uprobe_derived_probe_group::emit_module_exit,declx): Track
+	uprobe missed stats if STP_TIMING>
+	* translate.cxx (emit_module_exit): Print uprobe missed stats.
+
 2008-11-21  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5689.
