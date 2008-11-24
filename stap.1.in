@@ -635,24 +635,65 @@ and print them all.  The format must be a literal string constant.
 The
 .IR printf
 formatting directives similar to those of C, except that they are
-fully type-checked by the translator.
+fully type-checked by the translator:
+.RS 
+.TP
+%b  
+Writes a binary blob of the value given, instead of ASCII text.  The width specifier determines the number of bytes to write; valid specifiers are %b %1b %2b %4b %8b.  Default (%b) is 8 bytes.
+.TP
+%c
+Character.
+.TP
+%d,%i
+Signed decimal.
+.TP
+%m
+Safely reads kernel memory at the given address, outputs its content.  The width specifier determines the number of bytes to read.  Default is 1 byte.
+.TP
+%n
+Parameterless.  Used in conjunction with %b.  Writes a binary value which is the total remaning size of the binary blob being written.  The width specifier determines the number of bytes this 'length value' will written as; valid specifiers are %n %1n %2n %4n.  Default (%n) is 2 bytes.  See example below.
+.TP
+%o
+Unsigned octal.
+.TP
+%p
+Unsigned pointer address.
+.TP
+%s
+String.
+.TP
+%u
+Unsigned decimal.
+.TP
+%x
+Unsigned hex value, in all lower-case.
+.TP
+%X
+Unsigned hex value, in all upper-case.
+.TP
+%%
+Writes a %.
+.RE
+.PP
+Examples:
 .SAMPLE
-	x = sprintf("take %d steps forward, %d steps back\\n", 3, 2)
-	printf("take %d steps forward, %d steps back\\n", 3+1, 2*2)
-	bob = "bob"
-	alice = "alice"
-	print(bob)
+	a = "alice", b = "bob", p = 0x1234abcd, i = 123, j = -1, id[a] = 1234, id[b] = 4567
 	print("hello")
-	print(10)
-	printf("%s phoned %s %.4x times\\n", bob, alice . bob, 3456)
-	printf("%s except after %s\\n", 
-		sprintf("%s before %s", 
-			sprint(1), sprint(3)), 
-		sprint("C"))
-	id[bob] = 1234
-	id[alice] = 5678
-	foreach (name in id)
-		printdln("|", strlen(name), name, id[name])
+		Prints: hello
+	println(b)
+		Prints: bob\\n
+	println(a . " is " . sprint(16))
+		Prints: alice is 16
+	foreach (name in id)  printdln("|", strlen(name), name, id[name])
+		Prints: 5|alice|1234\\n3|bob|4567
+	printf("%c is %s; %x or %X or %p; %d or %u\\n",97,a,p,p,p,j,j)
+		Prints: a is alice; 1234abcd or 1234ABCD or 0x1234abcd; -1 or 18446744073709551615\\n
+	printf("2 bytes of kernel buffer at address %p: %2m", p, p)
+		Prints: 2 byte of kernel buffer at address 0x1234abcd: <binary data>
+	printf("%1n%4b", p)
+		Prints (these values as binary data): 0x4 0x1234abcd
+		* the first byte (due to the 1 on %n) is the remaning number of bytes written by printf
+		* the subsequent 4 bytes is the value due to %b
 .ESAMPLE
 
 .SS STATISTICS
@@ -956,20 +997,12 @@ Maximum number of soft errors before an exit is triggered, default 0, which
 means that the first error will exit the script.
 .TP
 MAXSKIPPED
-Maximum number of skipped probes before an exit is triggered, default 100.
-Running systemtap with \-t (timing) mode gives more details about skipped
-probes.
+Maximum number of skipped reentrant probes before an exit is triggered, default 100.
 .TP
 MINSTACKSPACE
 Minimum number of free kernel stack bytes required in order to
 run a probe handler, default 1024.  This number should be large enough
 for the probe handler's own needs, plus a safety margin.
-.TP
-MAXUPROBES
-Maximum number of concurrently armed user-space probes (uprobes), default
-100 times the number of user-space probe points named in the script.  This
-pool is large because individual uprobe objects are allocated for each
-process for each script-level probe.
 
 .PP
 Multipule scripts can write data into a relay buffer concurrently. A host
