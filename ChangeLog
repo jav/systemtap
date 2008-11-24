@@ -1,3 +1,8 @@
+2008-11-24  Kent Sebastian  <ksebasti@redhat.com>
+
+	PR 4978.
+	* stap.1.in (PRINTING): printf directives, more examples.
+
 2008-11-22  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (MAXUPROBES): Tweak its definition.  Use it
