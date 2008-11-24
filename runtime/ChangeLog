@@ -1,3 +1,8 @@
+2008-11-24  Wenji Huang  <wenji.huang@oracle.com>
+
+	From Srikar Dronamraju:
+	* runtime.h: Use for_each_cpu_mask always.
+
 2008-11-11  Stan Cox  <scox@redhat.com>
 
 	* sduprobes.c: New file.
