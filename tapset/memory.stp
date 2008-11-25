@@ -7,34 +7,14 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-///<chapter id="memory_stp">
-///  <title>Memory Tapset</title>
-///  <para>
-///	This family of probe  points is used to probe page fault events.
-///     It contains the following probe points:
-///  </para>
-
-///<formalpara id="vm.pagefault">
-///  <title>vm.pagefault</title>
-///  <indexterm><primary>vm.pagefault</primary></indexterm>
-///  <para>
-///    Records that a page fault occurred.
-///    The context is the process which triggered the fault.</para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>address</term>
-///       <listitem><para>
-///         The address of the faulting memory access.
-///       </para></listitem>
-///    </varlistentry>
-///    <varlistentry><term>write_access</term>
-///       <listitem><para>
-///          Indicates whether this was a write.
-///       </para></listitem>
-///    </varlistentry>
-///  </variablelist>
-///</para>
+/**
+ * probe vm.pagefault - Records that a page fault occurred.
+ * @address: The address of the faulting memory access.
+ * @write_access: Indicates whether this was a write.
+ *
+ * Context: The process which triggered the fault
+ *
+ */
 probe vm.pagefault = kernel.function("__handle_mm_fault@mm/memory.c") ?,
                      kernel.function("handle_mm_fault@mm/memory.c") ?
 {
@@ -42,61 +22,22 @@ probe vm.pagefault = kernel.function("__handle_mm_fault@mm/memory.c") ?,
 	address =  $address
 }
 
-///<formalpara id="vm.pagefault.return">
-///  <title>vm.pagefault.return</title>
-///  <indexterm><primary>vm.pagefault.return</primary></indexterm>
-///  <para>
-///    Records type of fault that occurred.
-///    The context is the process which triggered the fault.
-///  </para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>fault_type</term>
-///      <listitem><para>The possible values of fault_type are:
-///        <table frame='all'><title>Fault values</title>
-///        <tgroup cols='3' align='left' colsep='1' rowsep='1'>
-///        <colspec colname='Define'/>
-///        <colspec colname='Value'/>
-///        <colspec colname='Reason'/>
-///	   <thead>
-///   	   <row><entry>Define</entry><entry>Value</entry><entry>Reason</entry></row>
-///	   </thead>
-///	   <tbody>
-///	   <row>
-///	     <entry>VM_FAULT_OOM</entry>
-///	     <entry>0</entry>
-///	     <entry>out of memory</entry>
-///	   </row>
-///	   <row>
-///		<entry>VM_FAULT_SIGBUS</entry>
-///		<entry>1</entry>
-///		<entry>if not oom, minor, or major fault, this val</entry>
-///	   </row>
-///	   <row>
-///		<entry>VM_FAULT_MINOR</entry>
-///		<entry>2</entry>
-///		<entry>no blocking operation to handle fault</entry>
-///	   </row>
-///	   <row>
-///		<entry>VM_FAULT_MAJOR</entry>
-///		<entry>3</entry>
-///		<entry>required blocking operation to handle fault</entry>
-///	   </row>
-///	 </tbody>
-///	 </tgroup>
-///	 </table>
-///      </para></listitem>
-///    </varlistentry>
-///  </variablelist>
-///</para>
+/**
+ * probe vm.pagefault.return - Records type of fault that occurred.
+ * @fault_type: 0 (VM_FAULT_OOM), 1 (VM_FAULT_SIGBUS),
+ * 		2 (VM_FAULT_MINOR), and 3 (VM_FAULT_MAJOR)
+ */
 probe vm.pagefault.return = kernel.function("__handle_mm_fault@mm/memory.c").return ?,
                             kernel.function("handle_mm_fault@mm/memory.c").return ?
 {
 	fault_type = $return
 }
 
-/* Return which node the given address belongs to in a NUMA system */
+/**
+ * sfunction addr_to_node - Returns which NUMA node has the given address.
+ * @addr: The address of the faulting memory access.
+ *
+ */
 function addr_to_node:long(addr:long) %{ /* pure */ 
 	int nid;
 	int pfn = __pa(THIS->addr) >> PAGE_SHIFT;
@@ -116,64 +57,32 @@ function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
 %}
 
 
-///<formalpara id="vm.write_shared">
-///  <title>vm.write_shared</title>
-///  <indexterm><primary>vm.write_shared</primary></indexterm>
-///  <para>
-///    Fires when a process attempts to write to a shared page.
-///    If a copy is necessary, this will be followed by a
-///    <xref linkend="vm.write_shared_copy"/>.
-///    The context is the process attempting the write.
-///  </para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>address</term>
-///       <listitem><para>The address of the shared write.</para></listitem>
-///    </varlistentry>
-///  </variablelist>
-///</para>
+/**
+ * probe vm.write_shared - Write to shared page.
+ * @address: The address of the shared write.
+ *
+ * Context:
+ *  The context is the process attempting the write.
+ *
+ *  Fires when a process attempts to write to a shared page.
+ *  If a copy is necessary, this will be followed by a
+ *  vm.write_shared_copy.
+ */
 probe vm.write_shared = kernel.function("do_wp_page") {
     address = $address
 }
 
-
-///<formalpara id="vm.write_shared_copy">
-///  <title>vm.write_shared_copy</title>
-///  <indexterm><primary>vm.write_shared_copy</primary></indexterm>
-///  <para>
-///    Fires when a write to a shared page requires a page copy.
-///    This is always preceded by a <xref linkend="vm.write_shared"/>.
-///    The context is the process attempting the write.
-///</para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>address</term>
-///       <listitem><para>
-///	    The address of the shared write.
-///       </para></listitem>
-///    </varlistentry>
-///    <varlistentry><term>zero</term>
-///       <listitem><para>
-///	  Boolean indicating whether it is a zero page
-///       (can do a clear instead of a copy).
-///       </para></listitem>
-///    </varlistentry>
-///  </variablelist>
-///</para>
-/* probe vm.write_shared_copy
- *
- *  Fires when a write to a shared page requires a page copy.  This is
- *  always preceded by a vm.shared_write.
+/**
+ * probe vm.write_shared_copy- Page copy for shared page write.
+ * @address: the address of the shared write.
+ * @zero: boolean indicating whether it is a zero page
+ *         (can do a clear instead of a copy).
  *
  * Context:
  *  The process attempting the write.
  *
- * Arguments:
- *  address - the address of the shared write.
- *  zero - boolean indicating whether it is a zero page
- *         (can do a clear instead of a copy).
+ *  Fires when a write to a shared page requires a page copy.  This is
+ *  always preceded by a vm.shared_write.
  */
 probe vm.write_shared_copy = kernel.function("copy_cow_page")? {
     address = $address
@@ -181,34 +90,13 @@ probe vm.write_shared_copy = kernel.function("copy_cow_page")? {
 }
 
 
-///<formalpara id="vm.mmap">
-///  <title>vm.mmap</title>
-///  <indexterm><primary>vm.mmap</primary></indexterm>
-///  <para>
-///    Fires when an mmap is requested. 
-///    The context is the process calling mmap.
-///  </para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>address</term>
-///      <listitem><para>The requested address.</para></listitem>
-///    </varlistentry>
-///    <varlistentry><term>length</term>
-///      <listitem><para>The length of the memory segment.</para></listitem>
-///    </varlistentry>
-///  </variablelist>
-///</para>
-/* probe vm.mmap
- *
- *  Fires when an mmap is requested.
+/**
+ * probe vm.mmap - Fires when an mmap is requested.
+ * @address: the requested address
+ * @length: the length of the memory segment 
  *
  * Context:
  *  The process calling mmap.
- *
- * Arguments:
- *  address - the requested address
- *  length - the length of the memory segment 
  */
 probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2")? {
     address = $addr
@@ -216,93 +104,40 @@ probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2")? {
 }
 
 
-///<formalpara id="vm.munmap">
-///  <title>vm.munmap</title>
-///  <indexterm><primary>vm.munmap</primary></indexterm>
-///  <para>Fires when an munmap is requested.</para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>address</term>
-///       <listitem><para>The requested address.</para></listitem>
-///    </varlistentry>
-///    <varlistentry><term>length</term>
-///       <listitem><para>The length of the memory segment.</para></listitem>
-///    </varlistentry>
-///  </variablelist>
-///</para>
-/* probe vm.munmap
- *
- *  Fires when an munmap is requested.
+/**
+ * probe vm.munmap - Fires when an munmap is requested.
+ * @address: the requested address
+ * @length: the length of the memory segment 
  *
  * Context:
  *  The process calling munmap.
- *
- * Arguments:
- *  address - the requested address
- *  length - the length of the memory segment 
  */
 probe vm.munmap = kernel.function("do_munmap") {
     address = $start
     length = $len
 }
 
-///<formalpara id="vm.brk">
-///  <title>vm.brk</title>
-///  <indexterm><primary>vm.brk</primary></indexterm>
-///  <para>Fires when a brk is requested (resizing a heap).</para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>address</term>
-///       <listitem><para>The requested address.</para></listitem>
-///    </varlistentry>
-///    <varlistentry><term>length</term>
-///       <listitem><para>The length of the memory segment.</para></listitem>
-///    </varlistentry>
-///  </variablelist>
-///</para>
-/* probe vm.brk
- *
- *  Fires when a brk is requested (resizing a heap).
+/**
+ * probe vm.brk -Fires when a brk is requested (resizing a heap).
+ * @address - the requested address
+ * @length - the length of the memory segment 
  *
  * Context:
  *  The process calling brk.
- *
- * Arguments:
- *  address - the requested address
- *  length - the length of the memory segment 
  */
 probe vm.brk = kernel.function("do_brk") {
     address = $addr
     length = $len
 }
 
-///<formalpara id="vm.oom_kill">
-///  <title>vm.oom_kill</title>
-///  <indexterm><primary>vm.oom_kill</primary></indexterm>
-///  <para>Fires when a thread is targetted by the OOM killer.</para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>task</term>
-///       <listitem><para>The task being killed.</para></listitem>
-///    </varlistentry>
-///  </variablelist>
-///</para>
-/* probe vm.oom_kill
- *
- *  Fires when a thread is targetted by the OOM killer.
+/**
+ * probe vm.oom_kill - Fires when a thread is targetted by the OOM killer.
+ * @task: the task being killed
  *
  * Context:
  *  The process that tried to consume more memory, and thus
  *  triggered the OOM. (correct?)
- *
- * Arguments:
- *  task - the task being killed
  */
 probe vm.oom_kill = kernel.function("__oom_kill_task") {
     task = $p
 }
-
-///</chapter>

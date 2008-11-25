@@ -7,79 +7,57 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-///<chapter id="timestamp_stp">
-///  <title>Timestamp Functions</title>
-///  <para>
-///	Each timestamp function returns a value to indicate when
-///     the function is executed.
-///     Thus, these returned values can be used to indicate
-///     when an event occurs, provide an ordering for events, or compute
-///	the amount of time elapsed between to time stamps.
-///  </para>
-
 %{
 #include <linux/time.h>
 %}
 
-///<formalpara id="get_cycles">
-///  <title>get_cycles:long()</title>
-///  <indexterm><primary>get_cycles</primary></indexterm>
-///  <para>
-///	Return the processor cycle counter value, or 0 if unavailable.
-///  </para>
-///</formalpara>
+/**
+ * sfunction get_cycles - Processor cycle count.
+ *
+ *  Return the processor cycle counter value, or 0 if unavailable.
+ */
 function get_cycles:long () %{ /* pure */
   cycles_t c = get_cycles();
   THIS->__retvalue = (int64_t) c;
 %}
 
 
-///<formalpara id="gettimeofday_ns">
-///  <title>gettimeofday_ns:long ()</title>
-///  <indexterm><primary>gettimeofday_ns</primary></indexterm>
-///  <para>
-///	Return the number of nanoseconds since the UNIX epoch.
-///  </para>
-///</formalpara>
+/**
+ * sfunction gettimeofday_ns - Number of nanoseconds since UNIX epoch.
+ *
+ *  Return the number of nanoseconds since the UNIX epoch.
+ */
 function gettimeofday_ns:long () %{ /* pure */
   /* NOTE: we can't use do_gettimeofday because we could be called from a
    * context where xtime_lock is already held.  See bug #2525. */
   THIS->__retvalue = _stp_gettimeofday_ns();
 %}
 
-///<formalpara id="gettimeofday_us">
-///  <title>gettimeofday_us:long ()</title>
-///  <indexterm><primary>gettimeofday_us</primary></indexterm>
-///  <para>
-///	Return the number of microseconds since the UNIX epoch.
-///  </para>
-///</formalpara>
+/**
+ * sfunction gettimeofday_us - Number of microseconds since UNIX epoch.
+ *
+ *  Return the number of microseconds since the UNIX epoch.
+ */
 function gettimeofday_us:long () {
   return gettimeofday_ns() / 1000;
 }
 
-///<formalpara id="gettimeofday_ms">
-///  <title>gettimeofday_ms:long ()</title>
-///  <indexterm><primary>gettimeofday_ms</primary></indexterm>
-///  <para>
-///	Return the number of milliseconds since the UNIX epoch.
-///  </para>
-///</formalpara>
+/**
+ * sfunction gettimeofday_ms - Number of milliseconds since UNIX epoch.
+ *
+ *  Return the number of milliseconds since the UNIX epoch.
+ */
 function gettimeofday_ms:long () {
   return gettimeofday_ns() / 1000000;
 }
 
-///<formalpara id="gettimeofday_s">
-///  <title>gettimeofday_s:long ()</title>
-///  <indexterm><primary>gettimeofday_s</primary></indexterm>
-///  <para>
-///	Return the number of seconds since the UNIX epoch.
-///  </para>
-///</formalpara>
+/**
+ * sfunction gettimeofday_s - Number of seconds since UNIX epoch.
+ *
+ * Return the number of seconds since the UNIX epoch.
+ */
 function gettimeofday_s:long () {
   return gettimeofday_ns() / 1000000000;
 }
 
 // likewise jiffies, monotonic_clock ...
-
-///</chapter>

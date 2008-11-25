@@ -1,5 +1,10 @@
 2008-11-24  Will Cohen <wcohen@redhat.com>
 
+	* SystemTap_Tapset_Reference/tapsets.tmpl: Add context, timestamp,
+	memory, and networking tapsets.
+	
+2008-11-24  Will Cohen <wcohen@redhat.com>
+
 	* SystemTap_Tapset_Reference: Add kernel-doc based version.
 	
 2008-11-24  Will Cohen <wcohen@redhat.com>

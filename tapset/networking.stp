@@ -6,36 +6,17 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-///<chapter id="networking.stp">
-///  <title>Networking Tapset</title>
-///  <para>
-///	This family of probe points is used to probe the activities of
-///     network device. 
-///  </para>
-
 %{
 #include <linux/netdevice.h>
 %}
 
-///<formalpara id="netdev.receive">
-///  <title>netdev.receive</title>
-///  <indexterm><primary>netdev.receive</primary></indexterm>
-///  <para>Fires when data arrives on network device.</para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>dev_name</term>
-///       <listitem><para>
-///          The name of the device. e.g: eth0, ath1
-///       </para></listitem>
-///    </varlistentry>
-///
-///    <varlistentry><term>length</term>
-///       <listitem><para>
-///           The length of the receiving buffer
-///       </para></listitem>
-///    </varlistentry>
-///
+/**
+ * probe netdev.receive - Data recieved from network device.
+ * @dev_name: The name of the device. e.g: eth0, ath1.
+ * @length: The length of the receiving buffer.
+ * @protocol: Protocol of recieved packet.
+ *
+ */
 ///    <varlistentry><term>protocol</term>
 ///       <listitem><para>The possible values of protocol could be:
 ///         <table frame='all'><title>Protocol Values</title>
@@ -82,39 +63,14 @@ probe netdev.receive
 	truesize = $skb->truesize
 }
 
-///<formalpara id="netdev.transmit">
-///  <title>netdev.transmit</title>
-///  <indexterm><primary>netdev.transmit</primary></indexterm>
-///  <para> Fires when the network device wants to transmit a buffer.</para>
-///</formalpara>
-///<para>
-///  <variablelist><title>Arguments:</title>
-///    <varlistentry><term>dev_name</term>
-///       <listitem><para>
-///          The name of the device. e.g: eth0, ath1
-///       </para></listitem>
-///    </varlistentry>
-///
-///    <varlistentry><term>length</term>
-///       <listitem><para>
-///         The length of the transmit buffer
-///       </para></listitem>
-///    </varlistentry>
-///
-///    <varlistentry><term>protocol</term>
-///       <listitem><para>
-///         The protocol of this packet.
-///       </para></listitem>
-///    </varlistentry>
-///
-///    <varlistentry><term>truesize</term>
-///       <listitem><para>
-///         The size of the the data to be transmitted.
-///       </para></listitem>
-///    </varlistentry>
-///
-///  </variablelist>
-///</para>
+/**
+ * probe netdev.transmit - Network device transmitting buffer
+ * @dev_name: The name of the device. e.g: eth0, ath1.
+ * @length: The length of the transmit buffer.
+ * @protocol: The protocol of this packet.
+ * @truesize: The size of the the data to be transmitted.
+ *
+ */
 /* Queue a buffer for transmission to a network device */
 probe netdev.transmit
 	=  kernel.function("dev_queue_xmit")
@@ -124,5 +80,3 @@ probe netdev.transmit
 	protocol = $skb->protocol
 	truesize = $skb->truesize
 }
-
-///</chapter>

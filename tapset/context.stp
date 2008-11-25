@@ -7,37 +7,22 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-///<chapter id="context_stp">
-///  <title>Context Functions</title>
-///  <para>
-///    The context functions provide additional information about the where
-///    the event occurred.
-///    These functions can provide information such as a backtrace
-///    where the event occured
-///    and the current register values for the processor.
-///  </para>
 
-///<formalpara id="print_regs">
-///  <title>print_regs()</title>
-///  <indexterm><primary>print_regs</primary></indexterm>
-///  <para>
-///	Print a register dump.
-///  </para>
-///</formalpara>
+/**
+ * sfunction print_regs - Print a register dump.
+ */
 function print_regs () %{
 	if (CONTEXT->regs) {
 		_stp_print_regs (CONTEXT->regs);
 	}
 %}
 
-///<formalpara id="print_backtrace">
-///  <title>print_backtrace()</title>
-///  <indexterm><primary>print_backtrace</primary></indexterm>
-///  <para>
-///     Equivalent to <command>print_stack(backtrace())</command>,
-///     except that deeper stack nesting may be supported.  Return nothing.
-///  </para>
-///</formalpara>
+/**
+ * sfunction print_backtrace - Print stack back trace
+ *
+ *  Equivalent to <command>print_stack(backtrace())</command>,
+ *  except that deeper stack nesting may be supported.  Return nothing.
+ */
 function print_backtrace () %{
 	if (CONTEXT->regs) {
 		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE);
@@ -46,14 +31,12 @@ function print_backtrace () %{
 	}
 %}
 
-///<formalpara id="backtrace">
-///  <title>backtrace:string()</title>
-///  <indexterm><primary>backtrace</primary></indexterm>
-///  <para>
-///	Return a string of hex addresses that are a backtrace of the
-///     stack.  It may be truncated due to maximum string length.
-///  </para>
-///</formalpara>
+/**
+ * sfunction backtrace - Hex backtrace of current stack
+ *
+ *  Return a string of hex addresses that are a backtrace of the
+ *  stack.  It may be truncated due to maximum string length.
+ */
 function backtrace:string () %{ /* pure */
 	if (CONTEXT->regs)
 		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE);
@@ -61,46 +44,39 @@ function backtrace:string () %{ /* pure */
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
 
-///<formalpara id="execname">
-///  <title>execname:string()</title>
-///  <indexterm><primary>execname</primary></indexterm>
-///  <para>
-///     Return the name of the current process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction execname - Execname of current processes
+ *
+ *  Return the name of the current process.
+ */
 function execname:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
 %}
 
-///<formalpara id="pid">
-///  <title>pid:long ()</title>
-///  <indexterm><primary>pid</primary></indexterm>
-///  <para>
-///	Return the id of the current process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction pid - Process ID of current process
+ *
+ *
+ *  Return the id of the current process.
+ */
 function pid:long () %{ /* pure */
 	THIS->__retvalue = current->tgid;
 %}
 
-///<formalpara id="tid">
-///  <title>tid:long()</title>
-///  <indexterm><primary>tid</primary></indexterm>
-///  <para>
-///	Return the id of the current thread.
-///  </para>
-///</formalpara>
+/**
+ * sfunction tid - Thread ID of current process
+ *
+ *  Return the id of the current thread.
+ */
 function tid:long () %{ /* pure */
 	THIS->__retvalue = current->pid;
 %}
 
-///<formalpara id="ppid">
-///  <title>ppid:long()</title>
-///  <indexterm><primary>ppid</primary></indexterm>
-///  <para>
-///	Return the id of the parent process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction ppid - Parent Process ID of current process
+ *
+ *  Return the id of the parent process.
+ */
 function ppid:long () %{ /* pure */
 #if defined(STAPCONF_REAL_PARENT)
 	THIS->__retvalue = current->real_parent->tgid;
@@ -109,13 +85,11 @@ function ppid:long () %{ /* pure */
 #endif
 %}
 
-///<formalpara id="pexecname">
-///  <title>pexecname:string()</title>
-///  <indexterm><primary>pexecname</primary></indexterm>
-///  <para>
-///	Return the name of the parent process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction pexecname - Execname of the parent process.
+ *
+ *  Return the name of the parent process.
+ */
 function pexecname:string () %{ /* pure */
 #if defined(STAPCONF_REAL_PARENT)
 	strlcpy (THIS->__retvalue, current->real_parent->comm, MAXSTRINGLEN);
@@ -124,46 +98,38 @@ function pexecname:string () %{ /* pure */
 #endif
 %}
 
-///<formalpara id="gid">
-///  <title>gid:long()</title>
-///  <indexterm><primary>gid</primary></indexterm>
-///  <para>
-///	Return the gid of the current process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction gid - Group ID of current process
+ *
+ *  Return the gid of the current process.
+ */
 function gid:long () %{ /* pure */
 	THIS->__retvalue = current->gid;		
 %}
 
-///<formalpara id="egid">
-///  <title>egid:long()</title>
-///  <indexterm><primary>egid</primary></indexterm>
-///  <para>
-///    Return the effective gid of the current process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction egid - Effective gid of the current process.
+ *
+ *  Return the effective gid of the current process.
+ */
 function egid:long () %{ /* pure */
 	THIS->__retvalue = current->egid;		
 %}
 
-///<formalpara id="uid">
-///  <title>uid:long()</title>
-///  <indexterm><primary>uid</primary></indexterm>
-///  <para>
-///	Return the uid of the current process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction uid -User ID of the current process.
+ *
+ *  Return the uid of the current process.
+ */
 function uid:long () %{ /* pure */
 	THIS->__retvalue = current->uid;		
 %}
 
-///<formalpara id="euid">
-///  <title>euid:long()</title>
-///  <indexterm><primary>euid</primary></indexterm>
-///  <para>
-///	Return the effective uid of the current process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction euid - Effective User ID of the current process.
+ *
+ *  Return the effective uid of the current process.
+ */
 function euid:long () %{ /* pure */
 	THIS->__retvalue = current->euid;		
 %}
@@ -173,29 +139,26 @@ function cpuid:long () %{ /* pure */
 	THIS->__retvalue = smp_processor_id();
 %}
 
-///<formalpara id="cpu">
-///  <title>cpu:long()</title>
-///  <indexterm><primary>cpu</primary></indexterm>
-///  <para>
-///     Return the current cpu number.
-///  </para>
-///</formalpara>
+/**
+ * sfunction cpu - The current cpu number.
+ * 
+ *  Return the current cpu number.
+ */
 function cpu:long () %{ /* pure */
 	THIS->__retvalue = smp_processor_id();
 %}
 
-///<formalpara id="print_stack">
-///  <title>print_stack(stk:string)</title>
-///  <indexterm><primary>print_stack</primary></indexterm>
-///  <para>
-///     Perform a symbolic lookup of the addresses in the given  string,
-///     which  is  assumed  to  be  the  result of a prior call to 
-///	<xref linkend="backtrace"/>.
-///     Print one line per address, including the address, the
-///     name  of the function containing the address, and an estimate of
-///     its position within that function.  Return nothing.
-///  </para>
-///</formalpara>
+/**
+ * sfunction print_stack - Print out stack from string
+ * @stk: String with list of hexidecimal addresses. (FIXME)
+ *
+ *  Perform a symbolic lookup of the addresses in the given  string,
+ *  which  is  assumed  to  be  the  result of a prior call to 
+ *  backtrace().
+ *  Print one line per address, including the address, the
+ *  name  of the function containing the address, and an estimate of
+ *  its position within that function.  Return nothing.
+ */
 function print_stack(stk:string) %{
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
@@ -207,25 +170,21 @@ function print_stack(stk:string) %{
 	}
 %}
 
-///<formalpara id="pp">
-///  <title>pp:string()</title>
-///  <indexterm><primary>pp</primary></indexterm>
-///  <para>
-///     Return the probe point associated with the currently running
-///     probe handler, including alias and wildcard expansion effects.
-///  </para>
-///</formalpara>
+/**
+ * sfunction pp - Current probe point
+ *
+ *  Return the probe point associated with the currently running
+ *  probe handler, including alias and wildcard expansion effects.
+ */
 function pp:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
 %}
 
-///<formalpara id="probefunc">
-///  <title>probefunc:string()</title>
-///  <indexterm><primary>probefunc</primary></indexterm>
-///  <para>
-///	Return the probe point's function name, if known.
-///  </para>
-///</formalpara>
+/**
+ * sfunction probefunc - Function probed
+ *
+ * Return the probe point's function name, if known.
+ */
 function probefunc:string () %{ /* pure */
 	char *ptr, *start;
 
@@ -257,13 +216,11 @@ function probefunc:string () %{ /* pure */
 	}
 %}
 
-///<formalpara id="probemod">
-///  <title>probemod:string()</title>
-///  <indexterm><primary>probemod</primary></indexterm>
-///  <para>
-///	Return the probe point's module name, if known.
-///  </para>
-///</formalpara>
+/**
+ * sfunction probemod - Module probed
+ *
+ *  Return the probe point's module name, if known.
+ */
 function probemod:string () %{ /* pure */
 	char *ptr, *start;
 
@@ -282,27 +239,23 @@ function probemod:string () %{ /* pure */
 	}
 %}
 
-///<formalpara id="registers_valid">
-///  <title>registers_valid:long()</title>
-///  <indexterm><primary>registers_valid</primary></indexterm>
-///  <para>
-///	Return 1 if register() and u_register() can be used
-///     in the current context, or 0 otherwise.
-///     For example, <command>registers_valid()</command> returns 0
-///     when called from a begin or end probe.
-///  </para>
-///</formalpara>
+/**
+ * sfunction registers_valid - Register information valid
+ *
+ *  Return 1 if register() and u_register() can be used
+ *  in the current context, or 0 otherwise.
+ *  For example, <command>registers_valid()</command> returns 0
+ *  when called from a begin or end probe.
+ */
 function registers_valid:long () %{ /* pure */
 	THIS->__retvalue = (CONTEXT->regs != NULL);
 %}
 
-///<formalpara id="user_mode">
-///  <title>user_mode:long()</title>
-///  <indexterm><primary>user_mode</primary></indexterm>
-///  <para>
-///	Return 1 if the probe point occurred in user-mode.
-///  </para>
-///</formalpara>
+/**
+ * sfunction user_mode - User Mode
+ *
+ * Return 1 if the probe point occurred in user-mode.
+ */
 function user_mode:long () %{ /* pure */ /* currently a user-mode address? */
   if (CONTEXT->regs) {
 #if defined(__i386__) || defined(__x86_64__)
@@ -315,14 +268,12 @@ function user_mode:long () %{ /* pure */ /* currently a user-mode address? */
   }
 %}
 
-///<formalpara id="is_return">
-///  <title>is_return:long()</title>
-///  <indexterm><primary>is_return</primary></indexterm>
-///  <para>
-///	Return 1 if the probe point is a return probe.
-///     <emphasis>Deprecated.</emphasis>
-///  </para>
-///</formalpara>
+/**
+ * sfunction is_return - Is return probe
+ *
+ *  Return 1 if the probe point is a return probe.
+ *  <emphasis>Deprecated.</emphasis>
+ */
 function is_return:long () %{ /* pure */
 	if (CONTEXT->pi)
 		THIS->__retvalue = 1;
@@ -330,13 +281,11 @@ function is_return:long () %{ /* pure */
 		THIS->__retvalue = 0;	
 %}
 
-///<formalpara id="target">
-///  <title>target:long()</title>
-///  <indexterm><primary>target</primary></indexterm>
-///  <para>
-///	Return the pid of the target process.
-///  </para>
-///</formalpara>
+/**
+ * sfunction target - Target pid
+ *
+ *  Return the pid of the target process.
+ */
 function target:long () %{ /* pure */
         THIS->__retvalue = _stp_target;
 %}
@@ -363,50 +312,41 @@ function stp_pid:long () %{ /* pure */
         THIS->__retvalue = _stp_pid;
 %}
 
-///<formalpara id="stack_size">
-///  <title>stack_size:long()</title>
-///  <indexterm><primary>stack_size</primary></indexterm>
-///  <para>
-///	Return the size of the kernel stack.
-///  </para>
-///</formalpara>
+/**
+ * sfunction stack_size - Size of kernel stack
+ *
+ *  Return the size of the kernel stack.
+ */
 function stack_size:long () %{ /* pure */
         THIS->__retvalue = THREAD_SIZE;
 %}
 
-///<formalpara id="stack_used">
-///  <title>stack_used:long ()</title>
-///  <indexterm><primary>stack_used</primary></indexterm>
-///  <para>
-///	Return how many bytes are currently used in the kernel stack.
-///  </para>
-///</formalpara>
+/**
+ * sfunction stack_used - Current amount of kernel stack used
+ *
+ *  Return how many bytes are currently used in the kernel stack.
+ */
 function stack_used:long () %{ /* pure */
 	char a;
         THIS->__retvalue = THREAD_SIZE - ((long)&a & (THREAD_SIZE-1));
 %}
 
-///<formalpara id="stack_unused">
-///  <title>stack_unused:long()</title>
-///  <indexterm><primary>stack_unused</primary></indexterm>
-///  <para>
-///	Return how many bytes are currently available in the kernel stack.
-///  </para>
-///</formalpara>
+/**
+ * sfunction stack_unused - Amount of kernel stack currently available
+ *
+ *  Return how many bytes are currently available in the kernel stack.
+ */
 function stack_unused:long () %{ /* pure */
 	char a;
         THIS->__retvalue = (long)&a & (THREAD_SIZE-1);
 %}
 
-///<formalpara id="caller_addr">
-///  <title>caller_addr:long()</title>
-///  <indexterm><primary>caller_addr</primary></indexterm>
-///  <para>
-///    Return the address of the calling function.
-///    <emphasis> Works only for return probes at this time.</emphasis>
-///	
-///  </para>
-///</formalpara>
+/**
+ * sfunction caller_addr -  Return caller address
+ *
+ *  Return the address of the calling function.
+ *  <emphasis> Works only for return probes at this time.</emphasis>
+ */
 function caller_addr:long () %{ /* pure */
         if (CONTEXT->pi)
 		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->pi);
@@ -414,14 +354,12 @@ function caller_addr:long () %{ /* pure */
 		THIS->__retvalue = 0;
 %}
 
-///<formalpara id="caller">
-///  <title>caller:string()</title>
-///  <indexterm><primary>caller</primary></indexterm>
-///  <para>
-///     Return the address and name of the calling function.
-///	<emphasis>Works only for return probes at this time.</emphasis>
-///  </para>
-///</formalpara>
+/**
+ * sfunction caller - Return name and address of calling function
+ *
+ *  Return the address and name of the calling function.
+ *  <emphasis>Works only for return probes at this time.</emphasis>
+ */
 function caller:string() %{ /* pure */
         if (CONTEXT->pi) 
 		_stp_symbol_snprint( THIS->__retvalue, MAXSTRINGLEN, 
@@ -430,4 +368,3 @@ function caller:string() %{ /* pure */
 		strlcpy(THIS->__retvalue,"unknown",MAXSTRINGLEN);
 %}
 
-///</chapter>
