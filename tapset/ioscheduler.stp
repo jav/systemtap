@@ -11,7 +11,10 @@
 #include <linux/elevator.h>
 %}
 
-/* when a request is retrieved from request queue */
+/**
+ * probe ioscheduler.elv_next_request - Retrieve request from request queue
+ * @elevator_name: The elevator name
+ */
 probe ioscheduler.elv_next_request
 	=  kernel.function("elv_next_request")
 {
@@ -22,6 +25,13 @@ probe ioscheduler.elv_next_request
 %)
 }
 
+/**
+ * probe ioscheduler.elv_next_request.return - Return from retrieving a request
+ * @req: Address of the request
+ * @req_flags: Request flags
+ * @disk_major: Disk major number of the request
+ * @disk_minor: Disk minor number of the request
+ */
 probe ioscheduler.elv_next_request.return
 	= kernel.function("elv_next_request").return
 {
@@ -47,6 +57,14 @@ probe ioscheduler.elv_next_request.return
 	}
 }
 
+/**
+ * probe ioscheduler.elv_add_request - Add a request into request queue
+ * @elevator_name: The elevator name
+ * @req: Address of the request
+ * @req_flags: Request flags
+ * @disk_major: Disk major number of the request
+ * @disk_minor: Disk minor number of the request
+ */
 /* when a request is added to the request queue */
 probe ioscheduler.elv_add_request
 	= kernel.function("__elv_add_request")
@@ -77,7 +95,14 @@ probe ioscheduler.elv_add_request
 %)
 }
 
-/* when a request is completed */
+/**
+ * probe ioscheduler.elv_completed_request - Request is completed
+ * @elevator_name: The elevator name
+ * @req: Address of the request
+ * @req_flags: Request flags
+ * @disk_major: Disk major number of the request
+ * @disk_minor: Disk minor number of the request
+ */
 probe ioscheduler.elv_completed_request
 	= kernel.function("elv_completed_request")
 {

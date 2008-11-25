@@ -1,3 +1,8 @@
+2008-11-25  Will Cohen <wcohen@redhat.com>
+
+	* SystemTap_Tapset_Reference/tapsets.tmpl: Add ioscheduler, socket, tcp,
+	and upd.
+
 2008-11-24  Will Cohen <wcohen@redhat.com>
 
 	* SystemTap_Tapset_Reference/tapsets.tmpl: Add context, timestamp,
