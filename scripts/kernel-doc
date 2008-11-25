@@ -1053,21 +1053,20 @@ sub output_sfunction_xml(%) {
     print "<refsynopsisdiv>\n";
     print " <title>Synopsis</title>\n";
     print "  <programlisting>\n";
-    print "    ".$args{'sfunction'}.":";
-    print $args{'functiontype'}."(\n";
+    print "    ".$args{'sfunction'};
+    if ($args{'functiontype'}) { print ":".$args{'functiontype'} }
+    print "(";
 
     $count = $#{$args{'parameterlist'}};
     if ($count >= 0) {
 	foreach $parameter (@{$args{'parameterlist'}}) {
 	    $type = $args{'parametertypes'}{$parameter};
-	    print "        ".$parameter.":".$type;
+	    print $parameter.":".$type;
 	    $count -= 1;
-	    if ($count >= 0) { print ",\n"; }
+	    if ($count >= 0) { print ","; } 
 	}
-    } else {
-	print "  ";
     }
-    print "\n    );\n</programlisting>\n";
+    print ")\n</programlisting>\n";
     print "</refsynopsisdiv>\n";
 
     # print parameters

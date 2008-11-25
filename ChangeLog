@@ -1,5 +1,9 @@
 2008-11-25  Will Cohen <wcohen@redhat.com>
 
+	* scripts/kernel-doc: Clean up SystemTap function formatting.
+	
+2008-11-25  Will Cohen <wcohen@redhat.com>
+
 	* scripts/kernel-doc: Make executable.
 	
 2008-11-25  Will Cohen <wcohen@redhat.com>
