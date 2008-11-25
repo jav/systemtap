@@ -1,3 +1,8 @@
+2008-11-25  Mark Wielaard  <mjw@redhat.com>
+
+	* tapsets.cxx (dwarf_derived_probe_group::emit_module_exit):
+	struct stap_dwarf_probe field is called pp, not pp_name.
+
 2008-11-24  Kent Sebastian  <ksebasti@redhat.com>
 
 	PR 4978.
