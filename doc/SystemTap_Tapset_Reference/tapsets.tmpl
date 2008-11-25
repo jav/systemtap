@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+	"http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" []>
+
+<book id="TapsetRef">
+ <bookinfo>
+  <title>SystemTap Tapset Reference Manual</title>
+  
+  <authorgroup>
+   <author>
+    <firstname>Willliam</firstname>
+    <surname>Cohen</surname>
+    <affiliation>
+     <address>
+      <email>wcohen@redhat.com</email>
+     </address>
+    </affiliation>
+   </author>
+  </authorgroup>
+
+  <copyright>
+   <year>2008</year>
+   <holder>Red Hat, Inc.</holder>
+  </copyright>
+
+  <legalnotice>
+   <para>
+     This documentation is free software; you can redistribute
+     it and/or modify it under the terms of the GNU General Public
+     License version 2 as published by the Free Software Foundation.
+   </para>
+      
+   <para>
+     This program is distributed in the hope that it will be
+     useful, but WITHOUT ANY WARRANTY; without even the implied
+     warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+     See the GNU General Public License for more details.
+   </para>
+      
+   <para>
+     You should have received a copy of the GNU General Public
+     License along with this program; if not, write to the Free
+     Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+     MA 02111-1307 USA
+   </para>
+      
+   <para>
+     For more details see the file COPYING in the source
+     distribution of Linux.
+   </para>
+  </legalnotice>
+ </bookinfo>
+
+<toc></toc>
+
+<chapter id="introduction">
+  <title>Introduction</title>
+  <para>
+    SystemTap provides free software (GPL) infrastructure to simplify the
+    gathering of information about the running Linux system. This assists
+    diagnosis of a performance or functional problem. SystemTap eliminates the
+    need for the developer to go through the tedious and disruptive instrument,
+    recompile, install, and reboot sequence that may be otherwise required to
+    collect data.
+  </para>
+
+  <para>
+    SystemTap provides a simple command line interface and scripting language
+    for writing instrumentation for a live running kernel. The instrumentation
+    makes extensive use of the probe points and functions provided in the
+    <firstterm>tapset</firstterm> library. This document describes the various
+    probe points and functions.
+  </para>
+  
+    <section id="format">
+      <title>Tapset Name Format</title>
+	
+      <para>In this guide, tapset definitions appear in the following format:</para>
+
+      <screen>
+	name:return (parameters)
+	definition
+      </screen>
+	
+      <para>
+	The <replaceable>return</replaceable> field specifies what data type the
+	tapset extracts and returns from the kernel during a probe (and thus,
+	returns).  Tapsets use 2 data types for
+	<replaceable>return</replaceable>: <literal>long</literal> (tapset
+	extracts and returns an integer) and <literal>string</literal> (tapset
+	extracts and returns a string).
+      </para>
+
+      <para>
+	In some cases, tapsets do not have a <replaceable>return</replaceable> v
+alue. This
+	simply means that the tapset does not extract anything from the kernel. 
+This is common among 
+	asynchronous events such as timers, exit functions, and print functions.
+      </para>
+
+<!--
+<varlistentry>
+<term></term>
+<listitem>
+	<para></para>
+</listitem>
+</varlistentry>
+-->
+
+    </section>
+  
+  </chapter>
+
+</book>
