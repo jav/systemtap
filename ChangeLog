@@ -1,3 +1,11 @@
+2008-11-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 7046.
+	* tapsets.cxx (uprobe*emit_module_decls): Rewrite the generated
+	stap_uprobe_change function, to hold mutex for a shorter period
+	and to produce more meaningful KERN_INFO traces if -DDEBUG_UPROBES.
+	(uprobe*emit_module_exit): Switch to KERN_INFO also.
+
 2008-11-25  Will Cohen <wcohen@redhat.com>
 
 	* scripts/kernel-doc: Clean up SystemTap function formatting.

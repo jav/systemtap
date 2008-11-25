@@ -7072,24 +7072,19 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // unregistration pieces.
 
   // We protect the stap_uprobe->spec_index (which also serves as a
-  // free/busy flag) value with the outer protective probes_lock
-  // mutex, to protect it against concurrent registration /
-  // unregistration.  XXX: This should become less naive and let the
-  // mutex only protect stap_uprobe slot allocation and let the uprobe
-  // calls occur outside the critical section.
+  // free/busy flag) value with the outer protective stap_probes_lock
+  // spinlock, to protect it against concurrent registration /
+  // unregistration.
 
   s.op->newline();
   s.op->newline() << "static int stap_uprobe_change (struct task_struct *tsk, int register_p, unsigned long relocation, struct stap_uprobe_spec *sups) {";
   s.op->newline(1) << "int spec_index = (sups - stap_uprobe_specs);";
   s.op->newline() << "int handled_p = 0;";
+  s.op->newline() << "int slotted_p = 0;";
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "int i;";
+
   s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
-
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uprobe idx %d change pid %d register_p %d reloc %p pp %s\\n\", spec_index, tsk->tgid, register_p, (void*) relocation, sups->pp);";
-  s.op->newline() << "#endif";
-
   s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {"; // XXX: slow linear search
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
 
@@ -7100,62 +7095,68 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "if (sup->spec_index == -1 && sup->up.kdata != NULL) continue;";
   s.op->newline() << "else if (sup->spec_index == -2 && sup->urp.u.kdata != NULL) continue;";
   s.op->newline() << "sup->spec_index = spec_index;";
+  s.op->newline() << "slotted_p = 1;";
+  s.op->newline() << "break;";
+  s.op->newline(-1) << "} else if (!register_p && "
+                    << "sup->spec_index == spec_index && " // a u[ret]probe set up for this probe point
+                    << "((sups->return_p && sup->urp.u.pid == tsk->tgid && sup->urp.u.vaddr == relocation + sups->address) ||" // dying uretprobe
+                    << "(!sups->return_p && sup->up.pid == tsk->tgid && sup->up.vaddr == relocation + sups->address))) {"; // dying uprobe
+  s.op->newline(1) << "slotted_p = 1;";
+  s.op->newline() << "break;"; // exit to-free slot search
+  s.op->newline(-1) << "}";
+
+  s.op->newline(-1) << "}";
+  s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
+
+  s.op->newline() << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "printk (KERN_INFO \"%cuprobe spec %d idx %d process %s[%d] reloc %p pp '%s'\\n\", ";
+  s.op->line() << "(register_p ? '+' : '-'), spec_index, (slotted_p ? i : -1), tsk->comm, tsk->tgid, (void*) relocation, sups->pp);";
+  s.op->newline() << "#endif";
+
+  // Here, slotted_p implies that `i' points to the single
+  // stap_uprobes[] element that has been slotted in for registration
+  // or unregistration processing.  !slotted_p implies that the table
+  // was full (registration; MAXUPROBES) or that no matching entry was
+  // found (unregistration; should not happen).
+
+  s.op->newline() << "if (register_p && slotted_p) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "sup->urp.u.pid = tsk->tgid;";
   s.op->newline() << "sup->urp.u.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->urp.handler = &enter_uretprobe_probe;";
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uretprobe register pid %d '%s' addr %p\\n\", sup->urp.u.pid, sups->pp, (void*) sup->urp.u.vaddr);";
-  s.op->newline() << "#endif";
   s.op->newline() << "rc = register_uretprobe (& sup->urp);";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "sup->up.pid = tsk->tgid;";
   s.op->newline() << "sup->up.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uprobe register pid %d '%s' addr %p\\n\", sup->up.pid, sups->pp, (void*) sup->up.vaddr);";
-  s.op->newline() << "#endif";
   s.op->newline() << "rc = register_uprobe (& sup->up);";
   s.op->newline(-1) << "}";
-
   s.op->newline() << "if (rc) {"; // failed to register
-  s.op->newline(1) << "printk (KERN_WARNING \"uprobe failed pid %d '%s' addr %p rc %d\\n\", tsk->tgid, sups->pp, (void*)(relocation + sups->address), rc);";
+  s.op->newline(1) << "printk (KERN_WARNING \"uprobe failed %s[%d] '%s' addr %p rc %d\\n\", tsk->comm, tsk->tgid, sups->pp, (void*)(relocation + sups->address), rc);";
+  // NB: we need to release this slot, so we need to borrow the mutex temporarily.
+  s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
   s.op->newline() << "sup->spec_index = -1;";
+  s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "handled_p = 1;"; // success
   s.op->newline(-1) << "}";
-  s.op->newline() << "break;"; // exit free slot search whether or not handled_p
 
-  // unregister old uprobe
-  s.op->newline(-1) << "} else if (!register_p && "
-                    << "sup->spec_index == spec_index && " // a u[ret]probe set up for this probe point
-                    << "((sups->return_p && sup->urp.u.pid == tsk->tgid && sup->urp.u.vaddr == relocation + sups->address) ||" // dying uretprobe
-                    << "(!sups->return_p && sup->up.pid == tsk->tgid && sup->up.vaddr == relocation + sups->address))) {"; // dying uprobe
-  s.op->newline() << "if (sups->return_p) {";
-  s.op->newline(1) << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uretprobe unregister pid %d addr %p\\n\", sup->up.pid, (void*) sup->up.vaddr);";
-  s.op->newline() << "#endif";
-  // NB: We must not actually uregister uprobes when a target process execs or exits;
+  s.op->newline(-1) << "} else if (!register_p && slotted_p) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
+  // NB: we need to release this slot, so we need to borrow the mutex temporarily.
+  s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
+  // NB: We must not actually uregister u[ret]probes when a target process execs or exits;
   // uprobes does that by itself asynchronously.  We can reuse the up/urp struct after
-  // uprobes clears the sup->urp->kdata pointer. PR6829
-  // s.op->newline() << "unregister_uretprobe (& sup->urp);";
-  s.op->newline() << "sup->spec_index = -2;";
-  s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uprobe unregister pid %d addr %p\\n\", sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
-  s.op->newline() << "#endif";
-  // NB: We must not actually unregister uprobes ... same as above, except that
-  // here it's the sup->up->kdata field that will get cleared.  To tell the two
+  // uprobes clears the sup->{up,urp}->kdata pointer. PR6829.  To tell the two
   // cases apart, we use spec_index -2 vs -1.
-  // s.op->newline() << "unregister_uprobe (& sup->up);";
-  s.op->newline() << "sup->spec_index = -1;";
-  s.op->newline(-1) << "}";
-  s.op->newline(1) << "handled_p = 1;";
-  s.op->newline() << "break;"; // exit to-free slot search
-  s.op->newline(-1) << "}"; // if/else
-
-  s.op->newline(-1) << "}"; // stap_uprobes[] loop
+  s.op->newline() << "sup->spec_index = (sups->return_p ? -2 : -1);";
   s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
+  s.op->newline() << "handled_p = 1;";
+  s.op->newline(-1) << "}"; // if slotted_p
+
+  // NB: handled_p implies slotted_p
+
   s.op->newline() << "if (! handled_p) {";
   s.op->newline(1) << "#ifdef STP_TIMING";
   s.op->newline() << "atomic_inc (register_p ? & skipped_count_uprobe_reg : & skipped_count_uprobe_unreg);";
@@ -7247,7 +7248,12 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
 
   // NB: there is no stap_unregister_task_finder_target call;
   // important stuff like utrace cleanups are done by
-  // __stp_task_finder_cleanup()
+  // __stp_task_finder_cleanup() via stap_stop_task_finder().
+  //
+  // This function blocks until all callbacks are completed, so there
+  // is supposed to be no possibility of any registration-related code starting
+  // to run in parallel with our shutdown here.  So we don't need to protect the
+  // stap_uprobes[] array with the mutex.
 
   s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
@@ -7256,14 +7262,14 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
 
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uretprobe unregister2 index %d pid %d addr %p\\n\", sup->spec_index, sup->up.pid, (void*) sup->up.vaddr);";
+  s.op->newline() << "printk (KERN_INFO \"-uretprobe spec %d index %d pid %d addr %p\\n\", sup->spec_index, j, sup->up.pid, (void*) sup->up.vaddr);";
   s.op->newline() << "#endif";
   // NB: PR6829 does not change that we still need to unregister at
   // *this* time -- when the script as a whole exits.
   s.op->newline() << "unregister_uretprobe (& sup->urp);";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "printk (KERN_WARNING \"uprobe unregister2 index %d pid %d addr %p\\n\", sup->spec_index, sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
+  s.op->newline() << "printk (KERN_INFO \"-uprobe spec %d index %d pid %d addr %p\\n\", sup->spec_index, j, sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
   s.op->newline() << "#endif";
   s.op->newline() << "unregister_uprobe (& sup->up);";
   s.op->newline(-1) << "}";
