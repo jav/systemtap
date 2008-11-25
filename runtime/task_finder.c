@@ -825,7 +825,10 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 		}
 	}
 
-	if (tgt->vm_callback != NULL) {
+        /* If this is just a thread other than the thread group leader,
+           don't bother inform vm_callback clients about its memory map,
+           since they will simply duplicate each other. */
+        if (tgt->vm_callback != NULL && (tsk->tgid == tsk->pid)) {
 		struct mm_struct *mm;
 		char *mmpath_buf;
 		char *mmpath;

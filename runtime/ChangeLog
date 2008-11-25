@@ -1,3 +1,9 @@
+2008-11-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 7046.
+	* task_finder.c (__stp_utrace_task_finder_target_quiesce): Only
+	issue vm_callbacks for process main threads.
+
 2008-11-24  Wenji Huang  <wenji.huang@oracle.com>
 
 	From Srikar Dronamraju:
