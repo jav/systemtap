@@ -1,5 +1,10 @@
 2008-11-25  Mark Wielaard  <mjw@redhat.com>
 
+	* general/para-callgraph.meta: Add accidentially removed -c back
+	to test_installcheck.
+
+2008-11-25  Mark Wielaard  <mjw@redhat.com>
+
 	* general/para-callgraph.meta: Don't use single quotes.
 
 2008-11-20  Frank Ch. Eigler  <fche@elastic.org>

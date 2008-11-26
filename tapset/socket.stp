@@ -17,24 +17,19 @@
 
 ### GENERAL SEND/RECEIVE PROBES ###
 
-/*
- * probe socket.send
- *
- * Fires when a message is sent on a socket.
+/**
+ * probe socket.send - Message sent on a socket.
+ * @name:     Name of this probe
+ * @size:     Size of message sent (in bytes) or error code if success = 0
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
+ * @success:  Was send successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The message sender
- *
- * Variables:
- *  name      Name of this probe
- *  size      Size of message sent (in bytes) or
- *            error code if success = 0
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *  success   Was send successful? (1 = yes, 0 = no)
  */
 probe socket.send = socket.sendmsg.return,
 %( kernel_v < "2.6.19" %?
@@ -45,24 +40,19 @@ probe socket.send = socket.sendmsg.return,
 	name = "socket.send"
 }
 
-/*
- * probe socket.receive
- *
- * Fires when a message is received on a socket.
+/**
+ * probe socket.receive - Message received on a socket.
+ * @name:     Name of this probe
+ * @size:     Size of message received (in bytes) or error code if success = 0
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
+ * @success:  Was send successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The message receiver
- *
- * Variables:
- *  name      Name of this probe
- *  size      Size of message received (in bytes) or
- *            error code if success = 0
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *  success   Was send successful? (1 = yes, 0 = no)
  */
 probe socket.receive = socket.recvmsg.return,
 %( kernel_v < "2.6.19" %?
@@ -76,22 +66,20 @@ probe socket.receive = socket.recvmsg.return,
 ### FUNCTION SPECIFIC SEND/RECEIVE PROBES ###
 
 /*
- * probe socket.sendmsg
- *
- * Fires at the beginning of sending a message on a socket
- * via the the sock_sendmsg() function
+ * probe socket.sendmsg - Message being sent on socket
+ * @name:     Name of this probe
+ * @size:     Message size in bytes
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
  *
  * Context:
  *  The message sender
  *
- * Variables:
- *  name      Name of this probe
- *  size      Message size in bytes
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
+ * Fires at the beginning of sending a message on a socket
+ * via the the sock_sendmsg() function
  */
 probe socket.sendmsg = kernel.function ("sock_sendmsg")
 {
@@ -104,25 +92,22 @@ probe socket.sendmsg = kernel.function ("sock_sendmsg")
 	type = $sock->type
 }
 
-/*
- * probe socket.sendmsg.return
- *
- * Fires at the conclusion of sending a message on a socket
- * via the sock_sendmsg() function
+/**
+ * probe socket.sendmsg.return - Return from Message being sent on socket
+ * @name:     Name of this probe
+ * @size:     Size of message sent (in bytes) or error code if success = 0
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
+ * @success:  Was send successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The message sender.
  *
- * Variables:
- *  name      Name of this probe
- *  size      Size of message sent (in bytes) or
- *            error code if success = 0
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *  success   Was send successful? (1 = yes, 0 = no)
+ * Fires at the conclusion of sending a message on a socket
+ * via the sock_sendmsg() function
  */
 probe socket.sendmsg.return = kernel.function ("sock_sendmsg").return
 {
@@ -136,23 +121,22 @@ probe socket.sendmsg.return = kernel.function ("sock_sendmsg").return
 	success = _success_check($return)
 }
 
-/*
- * probe socket.recvmsg
- *
- * Fires at the beginning of receiving a message on a socket
- * via the sock_recvmsg() function
+/**
+ * probe socket.recvmsg - Message being received on socket
+ * @name:     Name of this probe
+ * @size:     Message size in bytes
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
  *
  * Context:
  *  The message receiver.
  *
- * Variables:
- *  name      Name of this probe
- *  size      Message size in bytes
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
+ * Fires at the beginning of receiving a message on a socket
+ * via the sock_recvmsg() function
+ *
  */
 probe socket.recvmsg = kernel.function ("sock_recvmsg")
 {
@@ -166,24 +150,23 @@ probe socket.recvmsg = kernel.function ("sock_recvmsg")
 }
 
 /*
- * probe socket.recvmsg.return
- *
- * Fires at the conclusion of receiving a message on a socket
- * via the sock_recvmsg() function.
+ * probe socket.recvmsg.return - Return from Message being received on socket
+ * @name:     Name of this probe
+ * @size:     Size of message received (in bytes) or error code if success = 0
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
+ * @success:  Was receive successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The message receiver.
  *
- * Variables:
- *  name      Name of this probe
- *  size      Size of message received (in bytes) or
- *            error code if success = 0
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *  success   Was receive successful? (1 = yes, 0 = no)
+ * Fires at the conclusion of receiving a message on a socket
+ * via the sock_recvmsg() function.
+ *
+ *
  */
 probe socket.recvmsg.return = kernel.function ("sock_recvmsg").return
 {
@@ -197,24 +180,23 @@ probe socket.recvmsg.return = kernel.function ("sock_recvmsg").return
 	success = _success_check($return)
 }
 
-/*
- * probe socket.aio_write
- *
- * Fires at the beginning of sending a message on a socket
- * via the sock_aio_write() function
+/**
+ * probe socket.aio_write - Message send via sock_aio_write()
+ * @name:     Name of this probe
+ * @size:     Message size in bytes
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
  *
  * Context:
  *  The message sender
  *
- * Variables:
- *  name      Name of this probe
- *  size      Message size in bytes
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *
+ * Fires at the beginning of sending a message on a socket
+ * via the sock_aio_write() function
+ */
+/*
  * 2.6.9~2.6.15:
  *     static ssize_t sock_aio_write(struct kiocb *iocb, const char __user *ubuf, size_t size, loff_t pos);
  * 2.6.16~2.6.18:
@@ -242,25 +224,22 @@ probe socket.aio_write = kernel.function ("sock_aio_write")
 	type = _sock_type_num (_sock)
 }
 
-/*
- * probe socket.aio_write.return
- * 
- * Fires at the conclusion of sending a message on a socket
- * via the sock_aio_write() function
+/**
+ * probe socket.aio_write.return - Conclusion of message send via sock_aio_write()
+ * @name: Name of this probe
+ * @size:     Size of message received (in bytes) or error code if success = 0
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
+ * @success:  Was receive successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The message receiver.
- *
- * Variables: 
- *  name      Name of this probe
- *  size      Size of message received (in bytes) or
- *            error code if success = 0
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *  success   Was receive successful? (1 = yes, 0 = no)
+ * 
+ * Fires at the conclusion of sending a message on a socket
+ * via the sock_aio_write() function
  */
 probe socket.aio_write.return = kernel.function ("sock_aio_write").return
 {
@@ -275,24 +254,23 @@ probe socket.aio_write.return = kernel.function ("sock_aio_write").return
 	success = _success_check($return)
 }
 
-/*
- * probe socket.aio_read
- *
- * Fires at the beginning of receiving a message on a socket
- * via the sock_aio_read() function
+/**
+ * probe socket.aio_read - Receiving message via sock_aio_read()
+ * @name:     Name of this probe
+ * @size:     Message size in bytes
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
  *
  * Context:
  *  The message sender
  *
- * Variables:
- *  name      Name of this probe
- *  size      Message size in bytes
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *
+ * Fires at the beginning of receiving a message on a socket
+ * via the sock_aio_read() function
+ */
+/*
  * 2.6.9~2.6.15:
  *     static ssize_t sock_aio_read(struct kiocb *iocb, char __user *ubuf, size_t size, loff_t pos);
  * 2.6.16~2.6.18:
@@ -320,25 +298,22 @@ probe socket.aio_read = kernel.function ("sock_aio_read")
 	type = _sock_type_num (_sock)
 }
 
-/*
- * probe socket.aio_read.return
- * 
- * Fires at the conclusion of receiving a message on a socket
- * via the sock_aio_read() function
+/**
+ * probe socket.aio_read.return - Conclusion of message received via sock_aio_read()
+ * @name:     Name of this probe
+ * @size:     Size of message received (in bytes) or error code if success = 0
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
+ * @success:  Was receive successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The message receiver.
- *
- * Variables:
- *  name      Name of this probe
- *  size      Size of message received (in bytes) or
- *            error code if success = 0
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *  success   Was receive successful? (1 = yes, 0 = no)
+ * 
+ * Fires at the conclusion of receiving a message on a socket
+ * via the sock_aio_read() function
  */
 probe socket.aio_read.return = kernel.function ("sock_aio_read").return
 {
@@ -355,23 +330,21 @@ probe socket.aio_read.return = kernel.function ("sock_aio_read").return
 
 // readv and writev were removed in 2.6.19
 %( kernel_v < "2.6.19" %?
-/*
- * probe socket.writev
- *
- * Fires at the beginning of sending a message on a socket
- * via the sock_writev() function
+/**
+ * probe socket.writev - Message sent via socket_writev()
+ * @name:     Name of this probe
+ * @size:     Message size in bytes
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
  *
  * Context:
  *  The message sender
  *
- * Variables:
- *  name      Name of this probe
- *  size      Message size in bytes
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
+ * Fires at the beginning of sending a message on a socket
+ * via the sock_writev() function
  */
 probe socket.writev = kernel.function ("sock_writev")
 {
@@ -385,25 +358,22 @@ probe socket.writev = kernel.function ("sock_writev")
 	type = _sock_type_num (_sock)
 }
 
-/*
- * probe socket.writev.return
- *
- * Fires at the conclusion of sending a message on a socket
- * via the sock_writev() function
+/**
+ * probe socket.writev.return - Conclusion of message sent via socket_writev()
+ * @name:     Name of this probe
+ * @size:     Size of message sent (in bytes) or error code if success = 0
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
+ * @success:  Was send successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The message receiver.
  *
- * Variables:
- *  name      Name of this probe
- *  size      Size of message sent (in bytes) or
- *            error code if success = 0
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *  success   Was send successful? (1 = yes, 0 = no)
+ * Fires at the conclusion of sending a message on a socket
+ * via the sock_writev() function
  */
 probe socket.writev.return = kernel.function ("sock_writev").return
 {
@@ -418,23 +388,21 @@ probe socket.writev.return = kernel.function ("sock_writev").return
 	success = _success_check($return)
 }
 
-/*
- * probe socket.readv
- *
- * Fires at the beginning of receiving a message on a socket
- * via the sock_readv() function
+/**
+ * probe socket.readv - Receiving a message via sock_readv()
+ * @name:     Name of this probe
+ * @size:     Message size in bytes
+ * @protocol: Protocol value
+ * @family:   Protocol family value
+ * @state:    Socket state value
+ * @flags:    Socket flags value
+ * @type:     Socket type value
  *
  * Context:
  *  The message sender
  *
- * Variables:
- *  name      Name of this probe
- *  size      Message size in bytes
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
+ * Fires at the beginning of receiving a message on a socket
+ * via the sock_readv() function
  */
 probe socket.readv = kernel.function ("sock_readv")
 {
@@ -448,25 +416,22 @@ probe socket.readv = kernel.function ("sock_readv")
 	type = _sock_type_num (_sock)
 }
 
-/*
- * probe socket.readv.return
- *
- * Fires at the conclusion of receiving a message on a socket
- * via the sock_readv() function
+/**
+ * probe socket.readv.return - Conclusion of receiving a message via sock_readv()
+ *  @name:     Name of this probe
+ *  @size:     Size of message received (in bytes) or error code if success = 0
+ *  @protocol: Protocol value
+ *  @family:   Protocol family value
+ *  @state:    Socket state value
+ *  @flags:    Socket flags value
+ *  @type:     Socket type value
+ *  @success:  Was receive successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The message receiver.
  *
- * Variables:
- *  name      Name of this probe
- *  size      Size of message received (in bytes) or
- *            error code if success = 0
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
- *  success   Was receive successful? (1 = yes, 0 = no)
+ * Fires at the conclusion of receiving a message on a socket
+ * via the sock_readv() function
  */
 probe socket.readv.return = kernel.function ("sock_readv").return
 {
@@ -482,20 +447,18 @@ probe socket.readv.return = kernel.function ("sock_readv").return
 }
 %)
 
-/*
- * probe socket.create
- *
- * Fires at the beginning of creating a socket.
+/**
+ * probe socket.create - Creation of a socket
+ * @name:      Name of this probe
+ * @protocol:  Protocol value
+ * @family:    Protocol family value
+ * @type:      Socket type value
+ * @requester: Requested by user process or the kernel (1 = kernel, 0 = user)
  *
  * Context:
  *  The requester (see requester variable)
  *
- * Variables:
- *  name      Name of this probe
- *  protocol  Protocol value
- *  family    Protocol family value
- *  type      Socket type value
- *  requester Requested by user process or the kernel (1 = kernel, 0 = user)
+ * Fires at the beginning of creating a socket.
  */
 probe socket.create = kernel.function("__sock_create")
 {
@@ -506,22 +469,20 @@ probe socket.create = kernel.function("__sock_create")
 	requester =$kern
 }
 
-/*
- * probe socket.create.return
- *
- * Fires at the conclusion of creating a socket.
+/**
+ * probe socket.create.return - Return from Creation of a socket
+ * @name:      Name of this probe
+ * @protocol:  Protocol value
+ * @family:    Protocol family value
+ * @type:      Socket type value
+ * @requester: Requested by user process or the kernel (1 = kernel, 0 = user)
+ * @err:       Error code if success == 0
+ * @success:   Was socket creation successful? (1 = yes, 0 = no)
  *
  * Context:
  *  The requester (user process or kernel)
  *
- * Variables:
- *  name      Name of this probe
- *  protocol  Protocol value
- *  family    Protocol family value
- *  type      Socket type value
- *  requester Requested by user process or the kernel (1 = kernel, 0 = user)
- *  err       Error code if success == 0
- *  success   Was socket creation successful? (1 = yes, 0 = no)
+ * Fires at the conclusion of creating a socket.
  */
 probe socket.create.return = kernel.function("__sock_create").return
 {
@@ -534,21 +495,19 @@ probe socket.create.return = kernel.function("__sock_create").return
 	success = _success_check($return)
 }
 
-/*
- * probe socket.close
- *
- * Fires at the beginning of closing a socket.
+/**
+ * probe socket.close - Close a socket
+ * @name:      Name of this probe
+ * @protocol:  Protocol value
+ * @family:    Protocol family value
+ * @state:     Socket state value
+ * @flags:     Socket flags value
+ * @type:      Socket type value
  *
  * Context:
  *  The requester (user process or kernel)
  *
- * Variables:
- *  name      Name of this probe
- *  protocol  Protocol value
- *  family    Protocol family value
- *  state     Socket state value
- *  flags     Socket flags value
- *  type      Socket type value
+ * Fires at the beginning of closing a socket.
  */
 probe socket.close = kernel.function ("sock_release")
 {
@@ -560,13 +519,14 @@ probe socket.close = kernel.function ("sock_release")
 	type = $sock->type
 }
 
-/*
- * probe socket.close.return
- *
- * Fires at the conclusion of closing a socket.
+/**
+ * probe socket.close.return - Return from closing a socket
+ * @name:      Name of this probe
  *
  * Context:
  *  The requester (user process or kernel)
+ *
+ * Fires at the conclusion of closing a socket.
  */
 probe socket.close.return = kernel.function ("sock_release").return
 {

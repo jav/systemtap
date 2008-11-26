@@ -143,18 +143,15 @@ function tcp_sockopt_str:string (optname:long) {
 	return (optname in sockopt ? sockopt[optname] : "UNDEF")
 }
 
-// probe tcp.sendmsg
-//
-//  Fires whenever sending a tcp message  
-//
-// Context:
-//  The process which sends a tcp message 
-//
-// Arguments:
-//  name         - name of this probe
-//  sock         - network socket 
-//  size         - number of bytes to send  
-//
+/**
+  * probe tcp.sendmsg - Sending a tcp message
+  * @name: Name of this probe
+  * @sock: Network socket 
+  * @size: Number of bytes to send  
+  *
+  * Context:
+  *  The process which sends a tcp message 
+  */
 probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 	name = "tcp.sendmsg"
 %( kernel_v < "2.6.23" %?
@@ -165,107 +162,86 @@ probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 	size    = $size
 }
 
-// probe tcp.sendmsg.return
-//
-//  Fires whenever sending message is done 
-//
-// Context:
-//  The process which sends a tcp message
-//
-// Arguments:
-//  name         - name of this probe
-//  size         - number of bytes sent or
-//                 error code if an error occurred. 
-//
+/**
+ * probe tcp.sendmsg.return -  Sending TCP message is done
+ * @name: Name of this probe
+ * @size: Number of bytes sent or error code if an error occurred. 
+ *
+ * Context:
+ *  The process which sends a tcp message
+ */
 probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
 	name = "tcp.sendmsg"
 	size = $return 
 }
 
-// probe tcp.recvmsg
-//
-//  Fires whenever a message is received 
-//
-// Context:
-//  The process which receives a tcp message
-//
-// Arguments:
-//  name         - name of this probe
-//  sock         - network socket
-//  size         - number of bytes to be received  
-//
+/**
+ * probe tcp.recvmsg - Receiving TCP message
+ * @name: Name of this probe
+ * @sock: Network socket
+ * @size: Number of bytes to be received  
+ * Context:
+ *  The process which receives a tcp message
+ */
 probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 	name = "tcp.recvmsg"
 	sock    = $sk
 	size    = $len
 }
 
-// probe tcp.recvmsg.return
-//
-//  Fires whenever message receiving is done 
-//
-// Context:
-//  The process which receives a tcp message
-//
-// Arguments:
-//  name         - name of this probe
-//  size         - number of bytes received or
-//                 error code if an error occurred.
-//
+/**
+ * probe tcp.recvmsg.return - Receiving TCP message complete
+ * @name: Name of this probe
+ * @size: Number of bytes received or error code if an error occurred.
+ *
+ * Context:
+ *  The process which receives a tcp message
+ */
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 	name = "tcp.recvmsg"
 	size = $return
 }
 
-// probe tcp.disconnect
-//
-//  Fires whenever tcp is disconnected 
-//
-// Context:
-//  The process which disconnects tcp 
-//
-// Arguments:
-//  name         - name of this probe
-//  sock         - network socket 
-//  flags        - TCP flags (e.g. FIN, etc)  
-//
+/**
+ * probe tcp.disconnect - TCP socket disconnection
+ * @name: Name of this probe
+ * @sock: Network socket 
+ * @flags: TCP flags (e.g. FIN, etc)  
+ *
+ * Context:
+ *  The process which disconnects tcp 
+ */
 probe tcp.disconnect = kernel.function("tcp_disconnect") {
 	name = "tcp.disconnect"
 	sock  = $sk
 	flags = $flags
 }
 
-// probe tcp.disconnect.return
-//
-// Fires when returning from tcp.disconnect 
-//
-// Context:
-//  The process which disconnects tcp
-// 
-// Arguments:
-//  name         - name of this probe
-//  ret          - error code (0: no error) 
-//
+/**
+ * probe tcp.disconnect.return - TCP socket disconnection complete
+ * @name: Name of this probe
+ * @ret: Error code (0: no error) 
+ *
+ * Context:
+ *  The process which disconnects tcp
+ */
 probe tcp.disconnect.return = kernel.function("tcp_disconnect").return {
 	name = "tcp.disconnect"
 	ret = $return 
 }
 
-// probe tcp.setsockopt
-//
-//  Fires whenever setsockopt(s, IPPROTO_TCP, TCP_*, ...) is called
-//
-// Context:
-//  The process which calls setsockopt
-//
-// Arguments:
-//  name         - name of this probe
-//  sock         - network socket
-//  level        - the level at which the socket options will be manipulated
-//  optname      - TCP socket options (e.g. TCP_NODELAY, TCP_MAXSEG, etc)
-//  optstr       - resolves optname to a human-readable format
-//  optlen       - used to access values for setsockopt()
-//
+/**
+ * probe tcp.setsockopt - Call to setsockopt()
+ * @name: Name of this probe
+ * @sock: Network socket
+ * @level: The level at which the socket options will be manipulated
+ * @optname: TCP socket options (e.g. TCP_NODELAY, TCP_MAXSEG, etc)
+ * @optstr: Resolves optname to a human-readable format
+ * @optlen: Used to access values for setsockopt()
+ *
+ * Context:
+ *  The process which calls setsockopt
+ */
 probe tcp.setsockopt = kernel.function("tcp_setsockopt") {
 	name = "tcp.setsockopt"
 	sock = $sk
@@ -275,17 +251,14 @@ probe tcp.setsockopt = kernel.function("tcp_setsockopt") {
 	optlen = $optlen
 }
 
-// probe tcp.setsockopt.return
-//
-//  Fires whenever setsockopt(s, IPPROTO_TCP, TCP_*, ...) is done
-//
-// Context:
-//  The process which calls setsockopt
-//
-// Arguments:
-//  name         - name of this probe
-//  ret          - error code (0: no error)
-//
+/**
+ * probe tcp.setsockopt.return -  Return from setsockopt()
+ * @name: Name of this probe
+ * @ret: Error code (0: no error)
+ *
+ * Context:
+ *  The process which calls setsockopt
+ */
 probe tcp.setsockopt.return = kernel.function("tcp_setsockopt").return {
 	name = "tcp.setsockopt"
 	ret = $return

@@ -1,3 +1,17 @@
+2008-11-26  Will Cohen <wcohen@redhat.com>
+
+	* SystemTap_Tapset_Reference/tapsets.am: Correct location for html/man.
+	* SystemTap_Tapset_Reference/tapsets.in: Regenerate.
+	
+2008-11-26  Will Cohen <wcohen@redhat.com>
+
+	* SystemTap_Tapset_Reference/tapsets.tmpl: Add process.
+	
+2008-11-25  Will Cohen <wcohen@redhat.com>
+
+	* SystemTap_Tapset_Reference/tapsets.tmpl: Add ioscheduler, socket, tcp,
+	and upd.
+
 2008-11-24  Will Cohen <wcohen@redhat.com>
 
 	* SystemTap_Tapset_Reference/tapsets.tmpl: Add context, timestamp,

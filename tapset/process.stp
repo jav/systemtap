@@ -12,17 +12,16 @@ function _IS_ERR:long(ptr:long) %{ /* pure */
 %}
 
 
-/* probe process.create
- *
- *  Fires whenever a new process is successfully created, either as a result of
- *  one of the fork syscall variants, or a new kernel thread.
+/**
+ * probe process.create - New process created
+ * @task: A handle to the newly created process
+ * @new_pid: PID of the newly created process
  *
  * Context:
  *  Parent of the created process.
  *
- * Arguments:
- *  task - a handle to the newly created process.
- *  new_pid - pid of the newly created process.
+ *  Fires whenever a new process is successfully created, either as a result of
+ *  one of the fork syscall variants, or a new kernel thread.
  */
 probe process.create = kernel.function("copy_process").return {
     task = $return
@@ -31,25 +30,26 @@ probe process.create = kernel.function("copy_process").return {
 }
 
 
-/* probe process.start
- *
- *  Fires immediately before a new process begins execution.
+/**
+ * probe process.start - Starting new process
  *
  * Context:
  *  Newly created process.
+ *
+ *  Fires immediately before a new process begins execution.
+ *
  */
 probe process.start = kernel.function("schedule_tail") { }
 
 
-/* probe process.exec
- *
- *  Fires whenever a process attempts to exec to a new program.
+/**
+ * probe process.exec - Attempt to exec to a new program
+ * @filename: The path to the new executable
  *
  * Context:
  *  The caller of exec.
  *
- * Arguments:
- *  filename - the path to the new executable
+ *  Fires whenever a process attempts to exec to a new program.
  */
 probe process.exec = 
     kernel.function("do_execve"),
@@ -59,17 +59,16 @@ probe process.exec =
 }
 
 
-/* probe process.exec_complete
- *
- *  Fires at the completion of an exec call.
+/**
+ * probe process.exec_complete - Return from exec to a new program
+ * @errno: The error number resulting from the exec
+ * @success: A boolean indicating whether the exec was successful
  *
  * Context:
  *  On success, the context of the new executable.
  *  On failure, remains in the context of the caller.
  *
- * Arguments:
- *  errno - the error number resulting from the exec
- *  success - a boolean indicating whether the exec was successful
+ *  Fires at the completion of an exec call.
  */
 probe process.exec_complete =
     kernel.function("do_execve").return,
@@ -80,36 +79,34 @@ probe process.exec_complete =
 }
 
 
-/* probe process.exit
- *
- *  Fires when a process terminates.  This will always be followed by a
- *  process.release, though the latter may be delayed if the process waits in a
- *  zombie state.
+/**
+ * probe process.exit - Exit from process
+ * @code: The exit code of the process
  *
  * Context:
  *  The process which is terminating.
  *
- * Arguments:
- *  code - the exit code of the process
+ *  Fires when a process terminates.  This will always be followed by a
+ *  process.release, though the latter may be delayed if the process waits in a
+ *  zombie state.
  */
 probe process.exit = kernel.function("do_exit") {
     code = $code
 }
 
 
-/* probe process.release
- *
- *  Fires when a process is released from the kernel.  This always follows a
- *  process.exit, though it may be delayed somewhat if the process waits in a
- *  zombie state.
+/**
+ * probe process.release - Process released
+ * @task: A task handle to the process being released
+ * @pid: PID of the process being released
  *
  * Context:
  *  The context of the parent, if it wanted notification of this process'
  *  termination, else the context of the process itself.
  *
- * Arguments:
- *  task - a task handle to the process being released
- *  pid  - pid of the process being released
+ *  Fires when a process is released from the kernel.  This always follows a
+ *  process.exit, though it may be delayed somewhat if the process waits in a
+ *  zombie state.
  */
 probe process.release = kernel.function("release_task") {
     task = $p

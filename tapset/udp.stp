@@ -13,102 +13,85 @@
 #include <net/ip.h>
 %}
 
-// probe udp.sendmsg
-//
-//   Fires whenever sending a udp message  
-//
-// Context:
-//   The process which sends a udp message 
-//
-// Arguments:
-//  name         - name of this probe
-//  sock         - network socket 
-//  size         - number of bytes to send  
+/**
+  * probe udp.sendmsg - Sending a UDP message  
+  * @name: Name of this probe
+  * @sock: Network socket 
+  * @size: Number of bytes to send  
+  *
+  * Context:
+  *   The process which sends a udp message 
+  */
 probe udp.sendmsg = kernel.function("udp_sendmsg") {
 	name = "udp.sendmsg"
 	sock    = $sk
 	size    = $len
 }
 
-// probe udp.sendmsg.return
-//
-// Fires whenever sending message is done 
-//
-// Context:
-// The process which sends a udp message
-//
-// Arguments:
-//  name         - name of this probe
-//  size         - number of bytes sent 
-//
+/**
+  * probe udp.sendmsg.return - Sending UDP message complete
+  * @name: Name of this probe
+  * @size: Number of bytes sent 
+  *
+  * Context:
+  *   The process which sends a udp message
+  */
 probe udp.sendmsg.return = kernel.function("udp_sendmsg").return {
 	name = "udp.sendmsg"
 	size = $return 
 }
 
-// probe udp.recvmsg
-//
-//  Fires whenever a message is received 
-//
-// Context:
-//  The process which receives a udp message
-//
-// Arguments:
-//  name         - name of this probe
-//  sock         - network socket
-//  size         - number of bytes to be received  
-//
+/**
+  * probe udp.recvmsg - UDP message received
+  * @name: Name of this probe
+  * @sock: Network socket
+  * @size: Number of bytes to be received  
+  *
+  * Context:
+  *  The process which receives a udp message
+  */
 probe udp.recvmsg = kernel.function("udp_recvmsg") {
 	name = "udp.recvmsg"
 	sock    = $sk
 	size    = $len
 }
 
-// probe udp.recvmsg.return
-//
-// Fires whenever message receiving is done 
-//
-// Context:
-//  The process which receives a udp message
-//
-// Arguments:
-//  name         - name of this probe
-//  size         - number of bytes received
-//
+/**
+  * probe udp.recvmsg.return - UDP message received is complete
+  * @name: Name of this probe
+  * @size: Number of bytes received
+  *
+  * Context:
+  *  The process which receives a udp message
+  */
 probe udp.recvmsg.return = kernel.function("udp_recvmsg").return {
 	name = "udp.recvmsg"
 	size = $return 
 }
 
-// probe udp.disconnect
-//
-//  Fires whenever udp is disconnected 
-//
-// Context:
-//  The process which disconnects udp 
-//
-// Arguments:
-//  name         - name of this probe
-//  sock         - network socket 
-//  flags        - flags (e.g. FIN, etc)  
-//
+/**
+  * probe udp.disconnect - UDP is disconnected 
+  * @name: Name of this probe
+  * @sock: Network socket 
+  * @flags: Flags (e.g. FIN, etc)  
+  *
+  * Context:
+  *  The process which disconnects udp 
+  */
 probe udp.disconnect = kernel.function("udp_disconnect") {
 	name = "udp.disconnect"
 	sock  = $sk
 	flags = $flags
 }
 
-// probe udp.disconnect.return
-//
-//  Fires when returning from udp.disconnect 
-//
-// Context:
-//  The process which disconnects udp 
-//
-// Arguments:
-//  name         - name of this probe
-//  ret          - error code (0: no error) 
-//
+/**
+  * probe udp.disconnect.return - returning from udp.disconnect probe
+  * @name: Name of this probe
+  * @ret: Error code (0: no error) 
+  *
+  * Context:
+  *  The process which disconnects udp 
+  */
 probe udp.disconnect.return = kernel.function("udp_disconnect").return {
 	name = "udp.disconnect"
 	ret = $return 

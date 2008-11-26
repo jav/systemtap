@@ -22,13 +22,13 @@ xmldocs: docproc
 	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml
 
 htmldocs: xmldocs
-	xmlto html -o tapset tapsets.xml
+	xmlto html -o tapsets tapsets.xml
 
 pdfdocs: xmldocs
 	xmlto pdf tapsets.xml
 
 mandocs: xmldocs
-	xmlto man tapsets.xml
+	xmlto man -o man5 tapsets.xml
 
 #FIXME need to figure out where to install things appropriately
 #installmandocs: mandocs

@@ -746,6 +746,9 @@ main (int argc, char * const argv [])
     }
 
   int rc = 0;
+  
+  // PASS 0: setting up
+  s.verbose = s.perpass_verbose[0];
 
   // For PR1477, we used to override $PATH and $LC_ALL and other stuff
   // here.  We seem to use complete pathnames in
@@ -804,7 +807,6 @@ main (int argc, char * const argv [])
 
   // PASS 1a: PARSING USER SCRIPT
 
-  s.verbose = s.perpass_verbose[0];
   struct stat user_file_stat;
   int user_file_stat_rc = -1;
 
@@ -939,7 +941,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 1: parse failed.  "
-         << "Try again with more '-v' (verbose) options."
+         << "Try again with another '--vp 1' option."
          << endl;
 
   if (rc || s.last_pass == 1 || pending_interrupts) goto cleanup;
@@ -967,7 +969,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 2: analysis failed.  "
-         << "Try again with more '-v' (verbose) options."
+         << "Try again with another '--vp 01' option."
          << endl;
   // Generate hash.  There isn't any point in generating the hash
   // if last_pass is 2, since we'll quit before using it.
@@ -1026,7 +1028,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 3: translation failed.  "
-         << "Try again with more '-v' (verbose) options."
+         << "Try again with another '--vp 001' option."
          << endl;
 
   if (rc || s.last_pass == 3 || pending_interrupts) goto cleanup;
@@ -1054,7 +1056,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 4: compilation failed.  "
-         << "Try again with more '-v' (verbose) options."
+         << "Try again with another '--vp 0001' option."
          << endl;
   else
     {
@@ -1098,11 +1100,12 @@ pass_5:
 
   if (rc)
     cerr << "Pass 5: run failed.  "
-         << "Try again with more '-v' (verbose) options."
+         << "Try again with another '--vp 00001' option."
          << endl;
 
   // if (rc) goto cleanup;
 
+  // PASS 6: cleaning up
  cleanup:
 
   // update the database information
