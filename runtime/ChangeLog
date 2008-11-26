@@ -1,5 +1,11 @@
 2008-11-26  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 4886.
+	* sym.c (_stp_module_check): Perform assertive
+	build-id checking for kernel versions >= 2.6.27.
+
+2008-11-26  Frank Ch. Eigler  <fche@elastic.org>
+
 	* autoconf-synchronize-sched.c: New file.
 
 2008-11-25  Frank Ch. Eigler  <fche@elastic.org>

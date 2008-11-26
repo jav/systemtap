@@ -1124,7 +1124,7 @@ c_unparser::emit_module_init ()
   o->newline() << "rc = -EINVAL;";
   o->newline(-1) << "}";
 
-  // XXX: perform buildid-based checking if able
+  // perform buildid-based checking if able
   o->newline() << "if (_stp_module_check()) rc = -EINVAL;";
 
   o->newline(-1) << "}";
