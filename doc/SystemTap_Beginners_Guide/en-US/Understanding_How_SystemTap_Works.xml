@@ -7,14 +7,30 @@
   <remark>
     Short summary; probes, handlers, events
   </remark>
+<indexterm>
+<primary>Understanding How SystemTap Works</primary>
+</indexterm>
+  
 
-  <para>
+<para>
     SystemTap allows users to write and reuse simple scripts to deeply
     examine the activities of a running Linux system. These scripts can be
     designed to extract data, filter it, and summarize it quickly (and
     safely), enabling the diagnosis of complex performance (or even
     functional) problems.
   </para>
+<indexterm>
+<primary>Understanding How SystemTap Works</primary>
+<secondary>events and handlers</secondary>
+</indexterm>
+
+<indexterm>
+<primary>events and handlers</primary>
+</indexterm>
+<indexterm>
+	<primary>handlers and events</primary>
+</indexterm>
+
 
   <para>The essential idea behind a SystemTap script is to name
     <emphasis>events</emphasis>, and to give them
@@ -22,6 +38,15 @@
     monitors for the event; once the event occurs, the Linux kernel then runs
     the handler as a quick sub-routine, then resumes.
   </para>
+<indexterm>
+<primary>Understanding How SystemTap Works</primary>
+<secondary>event types</secondary>
+</indexterm>
+
+<indexterm>
+<primary>event types</primary>
+<secondary>Understanding How SystemTap Works</secondary>
+</indexterm>
 
   <para>
     There are several kind of events; entering/exiting a function, timer
@@ -45,7 +70,18 @@
       ** add design advantages? e.g. "building kmods on-the-fly allows safer
       execution of script etc etc"
     </remark>
+<indexterm>
+<primary>Understanding How SystemTap Works</primary>
+<secondary>architecture</secondary>
+</indexterm>
 
+<indexterm>
+<primary>architecture of SystemTap</primary>
+</indexterm>
+
+<indexterm>
+	<primary>SystemTap architecture</primary>
+</indexterm>
     <para>
       A SystemTap session begins when you run a SystemTap script. This
       session occurs in the following fashion:
@@ -53,7 +89,17 @@
 
     <procedure id="systemtapsession">
       <title>SystemTap Session</title>
+<indexterm>
+<primary>Understanding How SystemTap Works</primary>
+<secondary>SystemTap sessions</secondary>
+</indexterm>
 
+<indexterm>
+<primary>SystemTap sessions</primary>
+</indexterm>
+<indexterm>
+	<primary>sessions, SystemTap</primary>
+</indexterm>
       <step>
 	<para>
 	  First, SystemTap checks the script against the existing tapset library
@@ -121,7 +167,10 @@
 	-->
   <section id="understanding-tapsets">
     <title>Tapsets</title>
-
+<indexterm>
+<primary>Tapsets</primary>
+<secondary>definition of</secondary>
+</indexterm>
     <remark>
       definition, significance, difference with stap scripts (previous section),
       library of tapsets in system: location

@@ -4,12 +4,38 @@
 
 <section id="cross-compiling">
   <title>Generating Instrumentation for Other Computers</title>
-
+<indexterm>
+<primary>cross-instrumentation</primary>
+<secondary>building kernel modules from SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+	<primary>cross-instrumentation</primary>
+	<secondary>generating instrumentation from SystemTap scripts</secondary>
+</indexterm>
   <remark>
     cross-compiling script from here:
     http://sources.redhat.com/ml/systemtap/2008-q3/msg00310.html
   </remark>
-		
+  
+<indexterm>
+<primary>kernel modules from SystemTap scripts, building</primary>
+</indexterm> 
+<indexterm>
+	<primary>building kernel modules from SystemTap scripts</primary>
+</indexterm>
+<indexterm>
+	<primary>instrumentation modules from SystemTap scripts, building</primary>
+</indexterm>
+<indexterm>
+	<primary>building instrumentation modules from SystemTap scripts</primary>
+</indexterm>
+<indexterm>
+	<primary>compiling instrumentation/kernel modules from SystemTap scripts</primary>
+</indexterm>
+  
+<indexterm>
+<primary>cross-compiling</primary>
+</indexterm>		
   <remark>
     above; add short description, significance, howto, script (test first)
   </remark>
@@ -29,6 +55,14 @@
   <para>
     To work around this, you can resort to <firstterm>cross-instrumentation</firstterm>. Cross-instrumentation is the process of generating SystemTap instrumentation module from a SystemTap script on one computer to be used on another computer. This process offers the following benefits:
   </para>
+<indexterm>
+<primary>cross-instrumentation</primary>
+<secondary>advantages of</secondary>
+</indexterm>
+
+<indexterm>
+<primary>advantages of cross-instrumentation</primary>
+</indexterm>
 	
   <itemizedlist>
     <listitem>
@@ -73,6 +107,15 @@
     <itemizedlist>
       <listitem>
 	<para>
+<indexterm>
+<primary>cross-instrumentation</primary>
+<secondary>instrumentation module</secondary>
+</indexterm>
+
+<indexterm>
+<primary>instrumentation module</primary>
+<secondary>cross-instrumentation</secondary>
+</indexterm>
 	  <emphasis>instrumentation module</emphasis> &mdash; the
 	  kernel module built from a SystemTap script; i.e. the
 	  <emphasis>SystemTap module</emphasis> is built on the <emphasis>host
@@ -84,6 +127,15 @@
 	
       <listitem>
 	<para>
+<indexterm>
+<primary>cross-instrumentation</primary>
+<secondary>host system</secondary>
+</indexterm>
+
+<indexterm>
+<primary>host system</primary>
+<secondary>cross-instrumentation</secondary>
+</indexterm>
 	  <emphasis>host system</emphasis> &mdash; the system on
 	  which you compile the instrumentation modules (from SystemTap
 	  scripts), to be loaded on <emphasis>target
@@ -93,6 +145,16 @@
 	
       <listitem>
 	<para>
+<indexterm>
+<primary>cross-instrumentation</primary>
+<secondary>target system</secondary>
+</indexterm>
+
+<indexterm>
+<primary>target system</primary>
+<secondary>cross-instrumentation</secondary>
+</indexterm>
+
 	  <emphasis>target system</emphasis> &mdash; the system for which you
 	  are building the <emphasis>instrumentation module</emphasis> (from
 	  SystemTap scripts).
@@ -101,6 +163,15 @@
 	
       <listitem>
 	<para>
+<indexterm>
+<primary>cross-instrumentation</primary>
+<secondary>target kernel</secondary>
+</indexterm>
+
+<indexterm>
+<primary>target kernel</primary>
+<secondary>cross-instrumentation</secondary>
+</indexterm>
 	  <emphasis>target kernel</emphasis> &mdash; the kernel of
 	  the <emphasis>target system</emphasis>. This is the kernel on which
 	  you wish to load/run the <emphasis>instrumentation
@@ -120,7 +191,22 @@
 
   <procedure id="preppingxcompile">
     <title>Configuring a Host System and Target Systems</title>
+<indexterm>
+<primary>cross-instrumentation</primary>
+<secondary>configuration</secondary>
+<tertiary>host system and target system</tertiary>
+</indexterm>
 
+<indexterm>
+<primary>host system and target system</primary>
+<secondary>cross-instrumentation</secondary>
+<tertiary>configuration</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>target system and host system</primary>
+	<secondary>configuration</secondary>
+</indexterm>
     <step>
       <para>
 	Install the <filename>systemtap-runtime</filename> RPM on each
@@ -188,6 +274,17 @@ stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceab
 
   <note>
     <title>Note</title>
+<indexterm>
+<primary>uname -m</primary>
+</indexterm>
+
+<indexterm>
+<primary>determining architecture notation</primary>
+</indexterm>
+
+<indexterm>
+	<primary>architecture notation, determining</primary>
+</indexterm>
     <para>
       To determine the architecture notation of a running kernel, run
       <command>uname -m</command>.

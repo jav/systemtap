@@ -7,14 +7,18 @@
 	<remark>
 		short intro, contents of chapter
 	</remark>
+	<indexterm>
+		<primary>Using SystemTap</primary>
+	</indexterm>
 	
+
 	<para>
 		This chapter instructs users how to install SystemTap, and provides an introduction on how to run SystemTap scripts.
 	</para>	
 	<xi:include href="Installation.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="CrossInstrumenting.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
 	<section id="using-usage">
-		<title>Usage</title>
+		<title>Running SystemTap Scripts</title>
 		<remark>
 			- basic commands (e.g. stap), useful options per command (e.g. stap -vv), tool references (man pages, related kernel-doc), references within book (i.e. errors chapter)
 		</remark>
@@ -25,6 +29,36 @@
 <!--		
 		<remark>- Tapsets: short intro on usage</remark>
 		-->
+<indexterm>
+<primary>Usage</primary>
+<secondary>running SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>running SystemTap scripts</primary>
+<secondary>Usage</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>Usage</primary>
+	<secondary>stap</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>stap</primary>
+	<secondary>Usage</secondary>
+</indexterm>
+<!-- next 2 indexterms for staprun -->
+
+<indexterm>
+	<primary>Usage</primary>
+	<secondary>staprun</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>staprun</primary>
+	<secondary>Usage</secondary>
+</indexterm>
 		<para>
 			SystemTap scripts are run through the command <command>stap</command>. <command>stap</command> can run SystemTap scripts from standard input or from file.
 		</para>
@@ -38,6 +72,10 @@
 
 <!--<formalpara>
 	<title>stapdev and stapusr</title>-->
+
+<indexterm>
+<primary>SystemTap scripts, how to run</primary>
+</indexterm>
 	<para>Running <command>stap</command> and <command>staprun</command> requires elevated privileges to the system. However, not all users can be granted root access just to run SystemTap. In some cases, for instance, you may want to allow a non-privileged user to run SystemTap instrumentation on his machine.</para>
 <!-- </formalpara> -->
 
@@ -48,6 +86,15 @@
 <varlistentry>
 	<term>stapdev</term>
 	<listitem>
+<indexterm>
+<primary>Usage</primary>
+<secondary>stapdev</secondary>
+</indexterm>
+
+<indexterm>
+<primary>stapdev</primary>
+<secondary>Usage</secondary>
+</indexterm>
 <para>
 	Members of this group can use <command>stap</command> to run SystemTap scripts, or <command>staprun</command> to run SystemTap instrumentation modules. 
 </para>	
@@ -67,6 +114,15 @@
 <varlistentry>
 	<term>stapusr</term>
 	<listitem>
+<indexterm>
+<primary>Usage</primary>
+<secondary>stapusr</secondary>
+</indexterm>
+
+<indexterm>
+<primary>stapusr</primary>
+<secondary>Usage</secondary>
+</indexterm>
 <para>
 	Members of this group can only run <command>staprun</command> to run SystemTap instrumentation modules. In addition, they can only run those modules from <filename>/lib/modules/<replaceable>kernel_version</replaceable>/systemtap/</filename>. Note that this directory must be owned only by the root user, and must only be writable by the root user.
 </para>
@@ -77,8 +133,20 @@
 
 
 		<para> Below is a list of commonly used <command>stap</command> options: </para>
-		
+<indexterm>
+<primary>Usage</primary>
+<secondary>options, stap</secondary>
+</indexterm>
+
+<indexterm>
+<primary>options, stap</primary>
+<secondary>Usage</secondary>
+</indexterm>		
 <variablelist>
+
+<indexterm>
+<primary>stap options</primary>
+</indexterm>
 
 <varlistentry>
 	<term>-v</term>
@@ -129,7 +197,18 @@
 </variablelist>
 
 <para>You can also instruct <command>stap</command> to run scripts from standard input using the switch <command>-</command>. To illustrate:</para>
+<indexterm>
+	<primary>Usage</primary>
+	<secondary>standard input, running scripts from</secondary>
+</indexterm>
 
+<indexterm>
+	<primary>standard input, running scripts from</primary>
+	<secondary>Usage</secondary>
+</indexterm>
+<indexterm>
+	<primary>running scripts from standard input</primary>
+</indexterm>
 <example id="stdinstap">
 	<title>Running Scripts From Standard Input</title>
 <programlisting>
