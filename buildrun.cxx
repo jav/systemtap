@@ -112,6 +112,8 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-uaccess.c, -DSTAPCONF_LINUX_UACCESS_H,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-oneachcpu-retry.c, -DSTAPCONF_ONEACHCPU_RETRY,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-dpath-path.c, -DSTAPCONF_DPATH_PATH,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-synchronize-sched.c, -DSTAPCONF_SYNCHRONIZE_SCHED,)" << endl;
+
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
    * homegrown safe-access functions) is deemed undesireable, so we'll skip
