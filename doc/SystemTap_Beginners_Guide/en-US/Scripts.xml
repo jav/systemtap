@@ -997,17 +997,17 @@ that thread_indent is defined in tapsets as a special function of sorts</remark>
 <indexterm>
 <primary>Handlers</primary>
 <secondary>handler functions</secondary>
-<tertiary><comamnd>target()</command></tertiary>
+<tertiary><command>target()</command></tertiary>
 </indexterm>
 
 <indexterm>
 <primary>handler functions</primary>
 <secondary>Handlers</secondary>
-<tertiary><comamnd>target()</command></tertiary>
+<tertiary><command>target()</command></tertiary>
 </indexterm>
 
 <indexterm>
-<primary><comamnd>target()</command></primary>
+<primary><command>target()</command></primary>
 <secondary>Handlers</secondary>
 <tertiary>handler functions</tertiary>
 </indexterm>
