@@ -746,6 +746,9 @@ main (int argc, char * const argv [])
     }
 
   int rc = 0;
+  
+  // PASS 0: setting up
+  s.verbose = s.perpass_verbose[0];
 
   // For PR1477, we used to override $PATH and $LC_ALL and other stuff
   // here.  We seem to use complete pathnames in
@@ -804,7 +807,6 @@ main (int argc, char * const argv [])
 
   // PASS 1a: PARSING USER SCRIPT
 
-  s.verbose = s.perpass_verbose[0];
   struct stat user_file_stat;
   int user_file_stat_rc = -1;
 
@@ -1103,6 +1105,7 @@ pass_5:
 
   // if (rc) goto cleanup;
 
+  // PASS 6: cleaning up
  cleanup:
 
   // update the database information
