@@ -1273,6 +1273,11 @@ c_unparser::emit_module_exit ()
   // But some other probes may have launched too during unregistration.
   // Let's wait a while to make sure they're all done, done, done.
 
+  // cargo cult prologue
+  o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
+  o->newline() << "synchronize_sched();";
+  o->newline() << "#endif";
+
   // NB: systemtap_module_exit is assumed to be called from ordinary
   // user context, say during module unload.  Among other things, this
   // means we can sleep a while.
@@ -1287,7 +1292,7 @@ c_unparser::emit_module_exit ()
   o->newline () << "yield ();"; // aka schedule() and then some 
   o->newline(-2) << "} while (holdon);";
 
-  // 
+  // cargo cult epilogue
   o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
   o->newline() << "synchronize_sched();";
   o->newline() << "#endif";
