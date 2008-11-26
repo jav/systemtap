@@ -1287,6 +1287,11 @@ c_unparser::emit_module_exit ()
   o->newline () << "yield ();"; // aka schedule() and then some 
   o->newline(-2) << "} while (holdon);";
 
+  // 
+  o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
+  o->newline() << "synchronize_sched();";
+  o->newline() << "#endif";
+
   // XXX: might like to have an escape hatch, in case some probe is
   // genuinely stuck somehow
 
@@ -4860,6 +4865,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"stat.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
+      s.op->newline() << "#include <linux/sched.h>";
       s.op->newline() << "#include <linux/delay.h>";
       s.op->newline() << "#include <linux/profile.h>";
       s.op->newline() << "#include <linux/random.h>";
