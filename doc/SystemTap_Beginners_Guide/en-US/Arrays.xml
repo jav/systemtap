@@ -4,10 +4,123 @@
 
 <section id="associativearrays">
 	<title>Associative Arrays</title>
-	
+<indexterm>
+<primary>arrays</primary>
+<secondary>introduction</secondary>
+</indexterm>
+
+<indexterm>
+<primary>associative arrays</primary>
+<secondary>introduction</secondary>
+</indexterm>	
 <para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it. Illustrating this visually would be similar to creating a two-column table: the first column would have the unique key, while the second column would have each key's associated value. Each unique key and its associated value is referred to as a <emphasis>key pair</emphasis>.</para>
 
+<!-- next 2 indexterms for key pairs -->
+
+<indexterm>
+<primary>arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>key pairs</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associative arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>key pairs</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>key pairs</primary>
+<secondary>introduction</secondary>
+<tertiary>arrays</tertiary>
+</indexterm>
+
+<!-- next 2 indexterms for unique keys -->
+
+<indexterm>
+<primary>arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>unique keys</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associative arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>unique keys</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>unique keys</primary>
+<secondary>introduction</secondary>
+<tertiary>arrays</tertiary>
+</indexterm>
+
+<!-- next 2 indexterms for associated values -->
+
+<indexterm>
+<primary>arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>associated values</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associative arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>associated values</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associated values</primary>
+<secondary>introduction</secondary>
+<tertiary>arrays</tertiary>
+</indexterm>
+
+<!-- next 2 indexterms for index expression -->
+
+<indexterm>
+<primary>arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>index expression</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associative arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>index expression</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>index expression</primary>
+<secondary>introduction</secondary>
+<tertiary>arrays</tertiary>
+</indexterm>
+
 <para>Since associative arrays are normally processed in multiple probes (as we will demonstrate later), they are declared as <command>global</command> variables in the SystemTap script. The syntax for manipulating arrays (i.e. accessing elements in an associative array) is similar to that of <command>awk</command>, and is as follows:</para>
+<!-- next 3 indexterms for syntax -->
+<indexterm>
+<primary>arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>syntax</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associative arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>syntax</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>syntax</primary>
+<secondary>introduction</secondary>
+<tertiary>arrays</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>format</primary>
+<secondary>introduction</secondary>
+<tertiary>arrays</tertiary>
+</indexterm>
+
 
 <screen>
 <replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>] <replaceable>operation</replaceable>
@@ -15,7 +128,25 @@
 
 <para>Here, the <command><replaceable>array_name</replaceable></command> is any arbitrary name the array uses. The <command><replaceable>index_expression</replaceable></command> is used to refer to a specific unique key (or set of unique keys) in the array, and the <command><replaceable>operation</replaceable></command> defines what to do with the <command><replaceable>index_expression</replaceable></command>. To illustrate, let us try to build an array named <command>foo</command> that specifies the ages of three people (i.e. the unique keys): <command>tom</command>, <command>dick</command>, and <command>harry</command>. To assign them the ages (i.e. associated values) of 23, 24, and 25 respectively, we'd use the following array statements:</para> 
 
+<!-- next 2 indexterms for example -->
 
+<indexterm>
+<primary>arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>example</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associative arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>example</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>example</primary>
+<secondary>introduction</secondary>
+<tertiary>arrays</tertiary>
+</indexterm>
 <example id="arraysimplestexample">
 	<title>Basic Array Statements</title>
 <screen>
@@ -33,6 +164,25 @@ foo["harry"] = 25
 
 <section id="tuples">
 	<title>Array Slots</title>
+<!-- next 2 indexterms for slots -->
+
+<indexterm>
+<primary>arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>slots</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associative arrays</primary>
+<secondary>introduction</secondary>
+<tertiary>slots</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>slots</primary>
+<secondary>introduction</secondary>
+<tertiary>arrays</tertiary>
+</indexterm>	
 <para>Another important point to remember in arrays is that each element therein (i.e. the indexed expression) exists in a <emphasis>slot</emphasis>. A key pair's slot is defined by the order in which each pair's unique key is defined. In our sample array <command>foo</command> in <xref linkend="arraysimplestexample"/>, the key pair that uses the unique key <command>tom</command> is in the first slot, since <command>tom</command> was the first unique key to be defined. <command>dick</command> is in the second slot, and so on.</para>
 
 <!--

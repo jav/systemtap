@@ -4,11 +4,35 @@
 	
 <section id="arrayoperators">
 	<title>Array Operations in SystemTap</title>
+<indexterm>
+<primary>array operations</primary>
+<secondary>associative arrays</secondary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>associative arrays</secondary>
+</indexterm>
 	
 <para>This section enumerates some of the most commonly used array operations in SystemTap.</para>
 
 <section id="arrayops-assignvalue">
 	<title>Assigning an Associated Value</title>
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>assigning associated values</secondary>
+</indexterm>
+
+<indexterm>
+<primary>assigning associated values</primary>
+<secondary>array operations</secondary>
+</indexterm>	
+
+<indexterm>
+<primary>values, assignment of</primary>
+<secondary>array operations</secondary>
+</indexterm>
 		<para>Use <command>=</command> to set an associated value to indexed unique pairs, as in:</para>
 
 <screen>
@@ -16,6 +40,42 @@
 </screen>
 
 <para><xref linkend="arraysimplestexample"/> shows a very basic example of how to set an explicit associated value to a unique key. You can also use a handler function as both your <command><replaceable>index_expression</replaceable></command> and <command><replaceable>value</replaceable></command>. For example, you can use arrays to set a timestamp as the associated value to a process name (which you wish to use as your unique key), as in:</para>
+<indexterm>
+<primary>assigning associated values</primary>
+<secondary>array operations</secondary>
+<tertiary>associating timestamps to process names</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>assigning associated values</secondary>
+<tertiary>associating timestamps to process names</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>assigning associated values</secondary>
+<tertiary>associating timestamps to process names</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>assigning associated values</primary>
+	<secondary>associating timestamps to process names</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>associating timestamps to process names</primary>
+<secondary>assigning associated values</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>timestamps, association thereof to process names</primary>
+	<secondary>assigning associated values</secondary>
+	<tertiary>array operations</tertiary>
+</indexterm>
+
 
 <example id="arrays-timestampprocessname">
 	<title>Associating Timestamps to Process Names</title>
@@ -30,13 +90,86 @@ foo[tid()] = gettimeofday_s()
 </section>
 <section id="arrayops-readvalues">
 	<title>Reading Values From Arrays</title>
+<indexterm>
+	<primary>reading values from arrays</primary>
+	<secondary>array operations</secondary>
+</indexterm>
+
+	
+<indexterm>
+<primary>array operations</primary>
+<secondary>reading values from arrays</secondary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>reading values from arrays</secondary>
+</indexterm>
+	
 	<para>You can also read values from an array the same way you would read the value of a variable. 
 	To do so, include the  
 	<command><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]</command> 
 	statement as an element in a mathematical expression. For example:</para>	
 <!--	
 	<para>You can also use the <command>=</command> operator to read values from an array. This is accomplished by simply including the <command><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]</command> as an element in a mathematical expression. For example:</para>-->
+<indexterm>
+	<primary>reading values from arrays</primary>
+	<secondary>array operations</secondary>
+<tertiary>using arrays in simple computations</tertiary>
+</indexterm>
+	
+<indexterm>
+<primary>array operations</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>using arrays in simple computations</tertiary>
+</indexterm>
 
+<indexterm>
+<primary>operations</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>using arrays in simple computations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>using arrays in simple computations</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>algebraic formulas using arrays</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>computing for timestamp deltas</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>computing for timestamp deltas</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for timestamp deltas</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>reading values from arrays</primary>
+	<secondary>computing for timestamp deltas</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+<indexterm>
+<primary>timestamp deltas, computing for</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
 <example id="arrayreadingvaluesfrom">
 	<title>Using Array Values in Simple Computations</title>
 <screen>
@@ -47,11 +180,49 @@ delta = gettimeofday_s() - foo[tid()]
 
 <para>In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated with the returned value of the handler function <command>tid()</command> as a <emphasis>reference point</emphasis>. The second statement computes a value for the variable <command>delta</command> by subtracting the associated value the reference point from the current <command>gettimeofday_s()</command>. Note that the first statement writes the value of <command>gettimeofday_s()</command> into the appropriate key of array <literal>foo</literal>, while in the second statement the value of <command>foo[tid()]</command> is <emphasis>read</emphasis> from the array in order to compute for <literal>delta</literal>.</para>
 
+<indexterm>
+	<primary>reading values from arrays</primary>
+	<secondary>array operations</secondary>
+	<tertiary>empty unique keys</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>empty unique keys</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>empty unique keys</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>empty unique keys</primary>
+<secondary>reading values from arrays</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
 <para>In this situation, if the <command><replaceable>index_expression</replaceable></command> cannot find the unique key, it returns a value of 0 (for numerical operations, such as <xref linkend="arrayreadingvaluesfrom"/>) or a null/empty string value (for string operations) by default. </para>
 </section>
 <section id="arrayops-increment">
 	<title>Incrementing Associated Values</title>
-		<para>Use <command>++</command> to increment the associated value of a unique key in an array, as in:</para>
+<indexterm>
+<primary>array operations</primary>
+<secondary>incrementing associated values</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>incrementing associated values</primary>
+	<secondary>array operations</secondary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>incrementing associated values</secondary>
+</indexterm>		
+	<para>Use <command>++</command> to increment the associated value of a unique key in an array, as in:</para>
 
 <screen>
 <replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>] ++
@@ -59,6 +230,37 @@ delta = gettimeofday_s() - foo[tid()]
 
 <para>Again, you can also use a handler function for your <command><replaceable>index_expression</replaceable></command>. For example, if you wanted to tally how many times a specific process performed a read to the virtual file system (using the event <command>kernel.function("vfs_read")</command>), you can use the following probe:</para>
 
+<!-- next 3 indexterms for tallying virtual file system reads (VFS reads) -->
+
+<indexterm>
+	<primary>incrementing associated values</primary>
+	<secondary>array operations</secondary>
+	<tertiary>tallying virtual file system reads (VFS reads)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>incrementing associated values</secondary>
+<tertiary>tallying virtual file system reads (VFS reads)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>incrementing associated values</secondary>
+<tertiary>tallying virtual file system reads (VFS reads)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>tallying virtual file system reads (VFS reads)</primary>
+<secondary>incrementing associated values</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>VFS reads, tallying of</primary>
+<secondary>incrementing associated values</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
 <example id="simplesimplevfsread">
 	<title>vfsreads.stp</title>
 <programlisting>
@@ -74,12 +276,119 @@ probe kernel.function("vfs_read")
 
 <section id="arrayops-foreach">
 	<title>Processing Multiple Elements in an Array</title>
+<indexterm>
+	<primary>multiple elements in an array</primary>
+	<secondary>array operations</secondary>
+</indexterm>
+	
+<indexterm>
+<primary>array operations</primary>
+<secondary>multiple elements in an array</secondary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>multiple elements in an array</secondary>
+</indexterm>	
+
+<indexterm>
+	<primary>array operations</primary>
+	<secondary>processing multiple elements in an array</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>processing multiple elements in an array</primary>
+	<secondary>array operations</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>operations</primary>
+	<secondary>processing multiple elements in an array</secondary>
+</indexterm>
 <!-- 	<title>Processing Elements in a Tuple as Iterations</title> -->
 	<para>Once you've collected enough information in an array, you will need to retrieve and process all elements in that array to make it useful. Consider <xref linkend="simplesimplevfsread"/>: the script collects information about how many VFS reads each process performs, but does not specify what to do with it. The obvious means for making <xref linkend="simplesimplevfsread"/> useful is to print the key pairs in the array <command>reads</command>, but how?</para>
-	
+
+<!-- next 3 indexterms for foreach -->
+<indexterm>
+<primary>array operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>foreach</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>foreach</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>processing multiple elements in an array</primary>
+	<secondary>foreach</secondary>
+	<tertiary>array operations</tertiary>
+</indexterm>	
+
+<indexterm>
+<primary>foreach</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>	
+
+
+
+<!-- next 2 indexterms for iterations, processing elements in an array as -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>iterations, processing elements in an array as</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>iterations, processing elements in an array as</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>iterations, processing elements in an array as</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
 	<para>The best way to process all key pairs in an array (as an iteration) is to use the <command>foreach</command> statement. Consider the following example:</para>
 <!--	<para>The best way to process all elements in a tuple (treating each element as an iteration) is to use the <command>foreach</command> statement. Consider the following example:</para>-->
 
+
+<!-- next 2 indexterms for cumulative virtual file system reads, tallying -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>cumulative virtual file system reads, tallying</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>cumulative virtual file system reads, tallying</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>cumulative virtual file system reads, tallying</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>processing multiple elements in an array</primary>
+	<secondary>cumulative virtual file system reads, tallying</secondary>
+	<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>virtual file system reads (cumulative), tallying</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
 <example id="simplevfsreadprint">
 	<title>cumulative-vfsreads.stp</title>
 <programlisting>
@@ -99,6 +408,56 @@ probe timer.s(3)
 <para>In the second probe of <xref linkend="simplevfsreadprint"/>, the <command>foreach</command> statement uses the variable <command>count</command> to reference each iteration of a unique key in the array <command>reads</command>. The <command>reads[count]</command> array statement in the same probe retrieves the associated value of each unique key.</para> 
 	
 <para>Given what we know about the first probe in <xref linkend="simplevfsreadprint"/>, the script prints VFS-read statistics every 3 seconds, displaying names of processes that performed a VFS-read along with a corresponding VFS-read count.</para>
+<indexterm>
+<primary>array operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>limiting the output of foreach</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>limiting the output of foreach</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>processing multiple elements in an array</primary>
+	<secondary>limiting the output of foreach</secondary>
+	<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>limiting the output of foreach</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<!-- next 2 indexterms for ordering the output of foreach -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>ordering the output of foreach</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>ordering the output of foreach</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>processing multiple elements in an array</primary>
+	<secondary>ordering the output of foreach</secondary>
+	<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>ordering the output of foreach</primary>
+<secondary>processing multiple elements in an array</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
 
 <para>Now, remember that the <command>foreach</command> statement in <xref linkend="simplevfsreadprint"/> prints <emphasis>all</emphasis> iterations of process names in the array, and in no particular order. You can instruct the script to process the iterations in a particular order by using <command>+</command> (ascending) or <command>-</command> (descending). In addition, you can also limit the number of iterations the script needs to process with the <command>limit <replaceable>value</replaceable></command> option.</para>
 
@@ -116,10 +475,81 @@ probe timer.s(3)
 
 <section id="arrayops-deleting">
 	<title>Clearing/Deleting Arrays and Array Elements</title>
+<indexterm>
+<primary>array operations</primary>
+<secondary>deleting arrays and array elements</secondary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>deleting arrays and array elements</secondary>
+</indexterm>
 	
+<indexterm>
+<primary>array operations</primary>
+<secondary>clearing arrays/array elements</secondary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>clearing arrays/array elements</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>clearing arrays/array elements</primary>
+	<secondary>array operations</secondary>
+</indexterm>
 	<para>Sometimes, you may need to clear the associated values in array elements, or reset an entire array for re-use in another probe. <xref linkend="simplevfsreadprint"/> in <xref linkend="arrayops-foreach"/> allows you to track how the number of VFS reads per process grows over time, but it does not show you the number of VFS reads each process makes per 3-second period.</para>
-	
+
+<!-- next 3 indexterms for delete operator -->
+<indexterm>
+<primary>array operations</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>delete operator</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>delete operator</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>clearing arrays/array elements</primary>
+<secondary>array operations</secondary>
+<tertiary>delete operator</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>delete operator</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>	
 	<para>To do that, you will need to clear the values accumulated by the array. You can accomplish this using the <command>delete</command> operator to delete elements in an array, or an entire array. Consider the following example:</para>
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>virtual file system reads (non-cumulative), tallying</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>virtual file system reads (non-cumulative), tallying</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>clearing arrays/array elements</primary>
+<secondary>array operations</secondary>
+<tertiary>virtual file system reads (non-cumulative), tallying</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>virtual file system reads (non-cumulative), tallying</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>	
 <example id="simplevfsreadprintnotcumulative">
 	<title>noncumulative-vfsreads.stp</title>
 <programlisting>
@@ -160,6 +590,32 @@ probe timer.s(2)
 
 <note>
 	<title>Note</title>
+	
+<!-- next 2 indexterms for multiple array operations within the same probe -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>multiple array operations within the same probe</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>multiple array operations within the same probe</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>clearing arrays/array elements</primary>
+<secondary>array operations</secondary>
+<tertiary>multiple array operations within the same probe</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>multiple array operations within the same probe</primary>
+<secondary>clearing arrays/array elements</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>	
 	<para>You can have multiple array operations within the same probe. Using the examples from <xref linkend="arrayops-foreach"/> and <xref linkend="arrayops-deleting"/> , you can track the number of VFS reads each process makes per 2-second period <emphasis>and</emphasis> tally the cumulative VFS reads of those same processes. Consider the following example:</para>
 	
 <screen>
@@ -192,7 +648,26 @@ probe end
 </section>	
 <section id="arrayops-conditionals">
 	<title>Using Arrays in Conditional Statements</title>
+<indexterm>
+<primary>array operations</primary>
+<secondary>conditional statements, using arrays in</secondary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>conditional statements, using arrays in</secondary>
+</indexterm>
+
+<indexterm>
+<primary>conditional statements, using arrays in</primary>
+<secondary>array operations</secondary>
+</indexterm>
 	
+<indexterm>
+<primary>if/else statements, using arrays in</primary>
+<secondary>array operations</secondary>
+</indexterm>
+
 <para>You can also use associative arrays in <command>if</command> statements. This is useful if you want to execute a subroutine once a value in the array matches a certain condition. Consider the following example:</para>
 
 <example id="simplevfsreadprintif">
@@ -242,6 +717,39 @@ probe timer.s(2)
 -->
 <formalpara>
 	<title>Testing for Membership</title>
+	
+<!-- next 3 indexterms for testing for array membership -->
+<indexterm>
+<primary>array operations</primary>
+<secondary>conditional statements, using arrays in</secondary>
+<tertiary>testing for array membership</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>conditional statements, using arrays in</secondary>
+<tertiary>testing for array membership</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>conditional statements, using arrays in</primary>
+<secondary>array operations</secondary>
+<tertiary>testing for array membership</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>testing for array membership</primary>
+<secondary>conditional statements, using arrays in</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>	
+
+<indexterm>
+<primary>membership (in array), testing for</primary>
+<secondary>conditional statements, using arrays in</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+
 <para>You can also test whether a specific unique key is a member of an array. Further, membership in an array can be used in <command>if</command> statements, as in:</para>
 </formalpara>
 
@@ -280,8 +788,54 @@ probe timer.s(2)
 
 <section id="arrayops-aggregates">
 	<title>Computing for Statistical Aggregates</title>
-	
+<indexterm>
+	<primary>statistical aggregates</primary>
+	<secondary>array operations</secondary>
+</indexterm>	
+<indexterm>
+	<primary>aggregates (statistical)</primary>
+	<secondary>array operations</secondary>
+</indexterm>
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+</indexterm>
 <para>Statistical aggregates are used to collect statistics on numerical values where it is important to accumulate new data quickly and in large volume (i.e. storing only aggregated stream statistics). Statistical aggregates can be used in global variables or as elements in an array.</para>
+<!-- next 3 indexterms for adding values to statistical aggregatest -->
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>adding values to statistical aggregatest</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>adding values to statistical aggregatest</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+<tertiary>adding values to statistical aggregatest</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>adding values to statistical aggregatest</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
 
 <para>To add value to a statistical aggregate, use the operator <command>&lt;&lt;&lt; <replaceable>value</replaceable></command>.</para>
 
@@ -298,12 +852,72 @@ reads[execname()] &lt;&lt;&lt; count
 </programlisting>
 </example>
 
+<!-- next 2 indexterms for count operator -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>count (operator)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>count (operator)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+<tertiary>count (operator)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>count operator</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array (operator)</tertiary>
+</indexterm>
+
 <para>In <xref linkend="simpleaggregates"/>, the operator <command>&lt;&lt;&lt; count</command> <emphasis>stores</emphasis> the amount returned by <literal>count</literal> to to the associated value of the corresponding <command>execname()</command> in the <literal>reads</literal> array. Remember, these values are <emphasis>stored</emphasis>; they are not added to the associated values of each unique key, nor are they used to replace the current associated values. In a manner of speaking, think of it as having each unique key (<command>execname()</command>) having multiple associated values, accumulating with each probe handler run.</para>
 
 <note>
 	<title>Note</title>	
 	<para>In the context of <xref linkend="simpleaggregates"/>, <literal>count</literal> returns the amount of data written by the returned <command>execname()</command> to the virtual file system.</para>
 </note>
+
+
+<!-- next 2 indexterms for extracting data collected by statistical aggregates -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>extracting data collected by statistical aggregates</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>extracting data collected by statistical aggregates</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+<tertiary>extracting data collected by statistical aggregates</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>extracting data collected by statistical aggregates</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>integer extractors</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
 
 <para>To extract data collected by statistical aggregates, use the syntax format <command>@<replaceable>extractor</replaceable>(<replaceable>variable/array index expression</replaceable>)</command>. <command><replaceable>extractor</replaceable></command> can be any of the following integer extractors:</para>
 	
@@ -312,6 +926,29 @@ reads[execname()] &lt;&lt;&lt; count
 <varlistentry>
 	<term>count</term>
 <listitem>
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>count (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>count (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+<tertiary>count (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>count (integer extractor)</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>	
 <para>
 	Returns the number of all values stored into the variable/array index expression. Given the sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@count(writes[execname()])</command> will return <emphasis>how many values are stored</emphasis> in each unique key in array <literal>writes</literal>. 
 </para>
@@ -321,6 +958,33 @@ reads[execname()] &lt;&lt;&lt; count
 <varlistentry>
 	<term>sum</term>
 <listitem>
+
+<!-- next 2 indexterms for sum (integer extractor) -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>sum (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>sum (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+<tertiary>sum (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>sum (integer extractor)</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
 <para>
 	Returns the sum of all values stored into the variable/array index expression. Again, given sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@sum(writes[execname()])</command> will return <emphasis>the total of all values stored</emphasis> in each unique key in array <literal>writes</literal>.  
 </para>
@@ -330,6 +994,33 @@ reads[execname()] &lt;&lt;&lt; count
 <varlistentry>
 	<term>min</term>
 <listitem>
+
+<!-- next 2 indexterms for min (integer extractor) -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>min (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>min (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+<tertiary>min (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>min (integer extractor)</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
 <para>
 	Returns the smallest among all the values stored in the variable/array index expression.
 </para>
@@ -339,6 +1030,33 @@ reads[execname()] &lt;&lt;&lt; count
 <varlistentry>
 	<term>max</term>
 <listitem>
+
+<!-- next 2 indexterms for max (integer extractor) -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>max (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>max (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+<tertiary>max (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>max (integer extractor)</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+	
 <para>
 	Returns the largest among all the values stored in the variable/array index expression.
 </para>
@@ -348,6 +1066,34 @@ reads[execname()] &lt;&lt;&lt; count
 <varlistentry>
 	<term>avg</term>
 <listitem>
+
+<!-- next 2 indexterms for avg (integer extractor) -->
+
+<indexterm>
+<primary>array operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>avg (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>operations</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>avg (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>computing for statistical aggregates</primary>
+<secondary>array operations</secondary>
+<tertiary>avg (integer extractor)</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>avg (integer extractor)</primary>
+<secondary>computing for statistical aggregates</secondary>
+<tertiary>array operations</tertiary>
+</indexterm>
+
+
 <para>
 	Returns the average of all values stored in the variable/array index expression.
 </para>

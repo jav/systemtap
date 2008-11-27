@@ -4,7 +4,24 @@
 
 <chapter id="useful-systemtap-scripts">
 	<title>Useful SystemTap Scripts</title>
-	
+<indexterm>
+	<primary>SystemTap scripts</primary>
+	<secondary>useful examples</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>examples of SystemTap scripts</primary>
+</indexterm>
+
+<indexterm>
+	<primary>useful examples of SystemTap scripts</primary>
+</indexterm>
+
+<indexterm>
+	<primary>systemtap-testsuite package</primary>
+	<secondary>sample scripts</secondary>
+</indexterm>
+
 	<para>This chapter enumerates several SystemTap scripts you can use to monitor and investigate different subsystems. All of these scripts are available at <filename>/usr/share/systemtap/testsuite/systemtap.examples/</filename> once you install the <filename>systemtap-testsuite</filename> RPM.</para>
 <!--	
 	<para><ulink url="http://sourceware.org/systemtap/examples/subsystem-index.html">http://sourceware.org/systemtap/examples/subsystem-index.html</ulink></para>

@@ -382,11 +382,11 @@ probe kernel.function("*@net/socket.c").return { }
 	<listitem>
 <indexterm>
 <primary>Events</primary>
-<secondary><command>module("<replaceable>module</replaceable></command></secondary>
+<secondary><command>module("<replaceable>module</replaceable>")</command></secondary>
 </indexterm>
 
 <indexterm>
-<primary><command>module("<replaceable>module</replaceable></command></primary>
+	<primary><command>module("<replaceable>module</replaceable>")</command></primary>
 <secondary>Events</secondary>
 </indexterm>
 	  <para>Allows you to probe functions within modules. For example:</para>
