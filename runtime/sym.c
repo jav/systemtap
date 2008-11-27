@@ -205,14 +205,23 @@ static int _stp_module_check(void)
                           /* XXX: consider using kread() instead of above. */
                           if (theory != practice)
                             {
+                              #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
+                              _stp_error ("%s: inconsistent %s build-id byte #%d "
+                                          "(0x%x [actual] vs. 0x%x [debuginfo])\n",
+                                          THIS_MODULE->name, m->name, j,
+                                          practice, theory);
+                              return 1;
+                              #else
+                              /* This branch is a surrogate for
+                                 kernels affected by Fedora bug
+                                 #465873. */
                               printk(KERN_WARNING
                                      "%s: inconsistent %s build-id byte #%d "
                                      "(0x%x [actual] vs. 0x%x [debuginfo])\n",
                                      THIS_MODULE->name, m->name, j,
                                      practice, theory);
                               break; /* Note just the first mismatch. */
-                              /* XXX: If it were not for Fedora bug #465873,
-                                 we could "return 1;" here to abort the script. */
+                              #endif
                             }
 			} 
 		    }
