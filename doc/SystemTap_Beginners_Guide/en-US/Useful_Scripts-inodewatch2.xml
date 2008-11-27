@@ -6,7 +6,32 @@
 	<section id="inodewatch2sect">
 		<title>Monitoring Changes to File Attributes</title>
 		
-		
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring changes to file attributes</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring changes to file attributes</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring changes to file attributes</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>changes to file attributes, monitoring</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>file attributes, monitoring changes to</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+
 <remark>
 	WAR STORY: monitoring more inode activity http://sourceware.org/systemtap/wiki/WSFileMonitor2?highlight=((WarStories))
 </remark>

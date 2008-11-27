@@ -957,6 +957,18 @@ probe kernel.function("*@net/socket.c").return
   4775 ftp(7223): &lt;- sys_socketcall
 </screen>
 
+<para>This sample output contains the following information:</para>
+
+<itemizedlist>
+	<listitem><para>The time delta (in microseconds) since the previous entry; i.e. the number of microseconds since the last traced function call.</para></listitem>
+	
+	<listitem><para>The process name (and its corresponding ID) that made the function call.</para></listitem>
+	
+	<listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
+	
+	<listitem><para>The name of the function called by the process.</para></listitem>
+</itemizedlist>	
+
 <remark>remember to add a reference later to "tapsets" from here, to clarify
 that thread_indent is defined in tapsets as a special function of sorts</remark>
 	

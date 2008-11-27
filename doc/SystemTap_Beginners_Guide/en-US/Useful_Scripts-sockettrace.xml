@@ -5,13 +5,46 @@
 
 	<section id="sockettracesect">
 		<title>Tracing Functions Called in Network Socket Code</title>
-		
-	
+<indexterm>
+<primary>script examples</primary>
+<secondary>tracing functions called in network socket code</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>tracing functions called in network socket code</secondary>
+</indexterm>
+
+<indexterm>
+<primary>tracing functions called in network socket code</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+<indexterm>
+	<primary>network socket code, tracing functions called in</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+	<primary>functions called in network socket code, tracing</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>	
 <remark>
 	http://sourceware.org/systemtap/examples/network/socket-trace.stp
 </remark>	
 				
+<indexterm>
+	<primary>script examples</primary>
+	<secondary>net/socket.c, tracing functions from</secondary>
+</indexterm>
 
+<indexterm>
+	<primary>examples of SystemTap scripts</primary>
+	<secondary>net/socket.c, tracing functions from</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>net/socket.c, tracing functions from</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 <para>This section describes how to trace functions called from the kernel's <filename>net/socket.c</filename> file. This task helps you identify, in finer detail, how each process interacts with the network at the kernel level.</para>
 
 <formalpara id="sockettrace">
@@ -51,6 +84,9 @@
 </screen>
 </example>
 
+<para><xref linkend="sockettraceoutput"/> contains a 3-second excerpt of the output for <xref linkend="sockettrace"/>. For more information about the output of this script as provided by <command>thread_indent()</command>, refer to <xref linkend="systemtapscript-functions"/> <xref linkend="thread_indent"/>. </para>
+
+<!--
 <para><xref linkend="sockettraceoutput"/> contains a 3-second excerpt of the output for <xref linkend="sockettrace"/>. Each line contains the following information, on the order that they appear:</para>
 
 <itemizedlist>
@@ -61,7 +97,7 @@
 	<listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
 	
 	<listitem><para>The name of the function called by the process.</para></listitem>
-</itemizedlist>	
+</itemizedlist>	-->
 <!--
     probe kernel.function("*@net/socket.c").call {
     printf ("%s -> %s\n", thread_indent(1), probefunc())

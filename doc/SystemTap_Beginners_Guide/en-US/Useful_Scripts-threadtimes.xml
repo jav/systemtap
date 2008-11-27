@@ -5,7 +5,32 @@
 
 	<section id="threadtimessect">
 		<title>Determining Time Spent in Kernel and User Space</title>
-		
+<indexterm>
+<primary>script examples</primary>
+<secondary>determining time spent in kernel and user space</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>determining time spent in kernel and user space</secondary>
+</indexterm>
+
+<indexterm>
+<primary>determining time spent in kernel and user space</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+<indexterm>
+	<primary>time spent in kernel/user space, determining</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+	<primary>kernel and user space, determining time spent in</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+	<primary>user and kernel space, determining time spent in</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 	
 <remark>
 	http://sourceware.org/systemtap/examples/profiling/thread-times.stp
@@ -22,6 +47,20 @@
 </programlisting>
 </para>
 </formalpara>		
+<indexterm>
+	<primary>script examples</primary>
+	<secondary>CPU ticks</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>examples of SystemTap scripts</primary>
+	<secondary>CPU ticks</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>CPU ticks</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 
 <para><xref linkend="threadtimes"/> lists the top 20 processes currently taking up CPU time within a 5-second sample, along with the total number of CPU ticks made during the sample. The output of this script also notes the percentage of CPU time each process used, as well as whether that time was spent in kernel space or user space. </para>
 <!--

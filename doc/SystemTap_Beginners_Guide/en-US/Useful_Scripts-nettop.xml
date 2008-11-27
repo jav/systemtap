@@ -5,7 +5,20 @@
 
 	<section id="nettopsect">
 		<title>Network Profiling</title>
-		
+<indexterm>
+<primary>script examples</primary>
+<secondary>network profiling</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>network profiling</secondary>
+</indexterm>
+
+<indexterm>
+<primary>network profiling</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
 		
 <remark>
 	WAR STORY: Top network users by PID http://sourceware.org/systemtap/wiki/WSNetTop?highlight=((WarStories))
@@ -15,6 +28,15 @@
 	probably http://sourceware.org/systemtap/examples/network/nettop.stp
 </remark>	
 				
+<indexterm>
+<primary>profiling the network</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>network traffic, monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 
 <para>This section describes how to profile network activity. <xref linkend="nettop"/> provides a glimpse into how much network traffic each process is generating on a machine.</para> 
 
@@ -25,8 +47,22 @@
 <xi:include parse="text" href="extras/testsuite/systemtap.examples/network/nettop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
-</formalpara>		
+</formalpara>	
 
+<indexterm>
+	<primary>script examples</primary>
+	<secondary>if/else conditionals, alternative syntax</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>examples of SystemTap scripts</primary>
+	<secondary>if/else conditionals, alternative syntax</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>if/else conditionals, alternative syntax</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 <para>Note that <command>function print_activity()</command> uses the following constructs:</para>
 
 <screen>

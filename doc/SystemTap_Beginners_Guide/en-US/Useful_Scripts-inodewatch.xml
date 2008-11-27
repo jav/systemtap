@@ -6,7 +6,36 @@
 	<section id="inodewatchsect">
 		<title>Monitoring Reads and Writes to a File</title>
 		
-		
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring reads and writes to a file</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring reads and writes to a file</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring reads and writes to a file</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>	
+
+<indexterm>
+<primary>file reads/writes, monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>reads/writes to a file, monitoring</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>writes/reads to a file, monitoring</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
 <remark>
 WAR STORY: monitoring inode activity http://sourceware.org/systemtap/wiki/WSFileMonitor?highlight=((WarStories))
 </remark>
@@ -31,13 +60,45 @@ no script in examples
 
 
 <para><xref linkend="inodewatch"/> takes the following information about the file as an argument:</para>
+<indexterm>
+	<primary>script examples</primary>
+	<secondary>file device number (integer format)</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>examples of SystemTap scripts</primary>
+	<secondary>file device number (integer format)</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>file device number (integer format)</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>device number of a file (integer format)</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 
 <itemizedlist>
 	<listitem><para>The file's device number, in integer format. When this is passed to the script as the first argument, be sure to replace any <computeroutput>0</computeroutput> with a space.</para></listitem>
 			
 	<listitem><para>The file's <command>inode</command> number.</para></listitem>
 </itemizedlist>
+<indexterm>
+	<primary>script examples</primary>
+	<secondary>stat -c, determining file device number (integer format)</secondary>
+</indexterm>
 
+<indexterm>
+	<primary>examples of SystemTap scripts</primary>
+	<secondary>stat -c, determining file device number (integer format)</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>stat -c, determining file device number (integer format)</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 <para>To get this information, use <command>stat -c '%D %i' <replaceable>filename</replaceable></command>, where <command><replaceable>filename</replaceable></command> is an absolute path.</para>
 
 <para>For instance: if you wish to monitor <filename>/etc/crontab</filename>, run <command>stat -c '%D %i' /etc/crontab</command> first. This gives the following output:</para>
@@ -45,6 +106,20 @@ no script in examples
 <screen>
 805 1078319
 </screen>
+<indexterm>
+	<primary>script examples</primary>
+	<secondary>inode number</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>examples of SystemTap scripts</primary>
+	<secondary>inode number</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>inode number</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 
 <para><computeroutput>805</computeroutput> is the device number, while <computeroutput>1078319</computeroutput> is the <command>inode</command> number. To start monitoring <filename>/etc/crontab</filename>, run <command>stap inodewatch.stp 8 5 1078319</command>.</para>
 

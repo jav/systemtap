@@ -81,16 +81,16 @@ semantic error: field 'f_dentry' not found
 			</programlisting>-->
 <indexterm>
 <primary>script examples</primary>
-<secondary>stat -c</secondary>
+<secondary>stat -c, determining whole device number</secondary>
 </indexterm>
 
 <indexterm>
 <primary>examples of SystemTap scripts</primary>
-<secondary>stat -c</secondary>
+<secondary>stat -c, determining whole device number</secondary>
 </indexterm>
 
 <indexterm>
-<primary>stat -c</primary>
+<primary>stat -c, determining whole device number</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
 

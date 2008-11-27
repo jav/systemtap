@@ -6,7 +6,28 @@
 	<section id="futexcontentionsect">
 		<title>Identifying Contended User-Space Locks</title>
 		
+<indexterm>
+<primary>script examples</primary>
+<secondary>identifying contended user-space locks (i.e. futex contentions)</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>identifying contended user-space locks (i.e. futex contentions)</secondary>
+</indexterm>
+
+<indexterm>
+<primary>identifying contended user-space locks (i.e. futex contentions)</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 		
+<indexterm>
+	<primary>contended user-space locks (futex contentions), identifying</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+
+
 <remark>
 	WAR STORY: Futex contention http://sourceware.org/systemtap/wiki/WSFutexContention?highlight=((WarStories))
 </remark>
@@ -16,9 +37,49 @@ no script in examples
 </remark>	
 				
 		
-	<para>This section describes how to identify contended user-space locks throughout the system within a specific time period. The ability to identify contended user-space locks can help you investigate hangs that you suspect may be caused by <command>futex</command> contentions.</para> 
+	<para>This section describes how to identify contended user-space locks throughout the system within a specific time period. The ability to identify contended user-space locks can help you investigate hangs that you suspect may be caused by <command>futex</command> contentions.</para>
+<indexterm>
+	<primary>futex contentions, identifying</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>futex contention, definition</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>	
+	
+<indexterm>
+<primary>script examples</primary>
+<secondary>process deadlocks (arising from futex contentions)</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>process deadlocks (arising from futex contentions)</secondary>
+</indexterm>
+
+<indexterm>
+<primary>process deadlocks (arising from futex contentions)</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 		
 	<para>Simply put, a <command>futex</command> contention occurs when multiple processes are trying to access the same region of memory. In some cases, this can result in a deadlock between the processes in contention, thereby appearing as an application hang.</para> 
+<!-- next 2 indexterms for futex system call -->
+
+<indexterm>
+<primary>script examples</primary>
+<secondary>futex system call</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>futex system call</secondary>
+</indexterm>
+
+<indexterm>
+<primary>futex system call</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 	
 	<para>To do this, <xref linkend="futexcontention"/> probes the <command>futex</command> system call.</para>
 	
