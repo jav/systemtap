@@ -1,3 +1,7 @@
+2008-11-26  Stan Cox  <scox@redhat.com>
+
+	* sduprobes.h (STAP_PROBE1): Add USE_STAP_DEBUGINFO_PROBE.
+
 2008-11-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4886.

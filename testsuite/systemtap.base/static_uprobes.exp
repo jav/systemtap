@@ -55,7 +55,6 @@ if { $res != "" } {
 }
 
 set ok 0
-set env(SYSTEMTAP_SDT) 1
 spawn stap -c $sup_exepath $srcdir/$subdir/static_uprobes.stp
 expect {
     -timeout 180
@@ -65,6 +64,42 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+
+# Now do a debuginfo style probe of the above test
+
+set fp [open "[pwd]/static_uprobes.sh" "w"]
+puts $fp "
+ed $sup_srcpath <<HERE
+1a
+#define USE_STAP_DEBUGINFO_PROBE 1
+.
+w
+q
+HERE
+"
+close $fp
+spawn sh [pwd]/static_uprobes.sh
+
+set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-g additional_flags=$env(SYSTEMTAP_RUNTIME)/sduprobes.c"
+set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $sup_srcpath"
+    return
+} else {
+    pass "compiling $sup_srcpath" 
+}
+
+spawn stap -c $sup_exepath $srcdir/$subdir/static_uprobes.stp
+expect {
+    -timeout 180
+    -re {In label1 probe} { incr ok; exp_continue }
+    -re {In label2 probe 0x2} { incr ok; exp_continue }
+    -re {In label3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
 wait
 
-if {$ok == 3} { pass "$test" } { fail "$test (Got $ok Expected 3)" }
+if {$ok == 6} { pass "$test" } { fail "$test (Got $ok Expected 3)" }
