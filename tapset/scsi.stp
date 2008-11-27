@@ -15,7 +15,13 @@
 #include <linux/blkdev.h>
 %}
 
-/* mid-layer prepare a IO request */
+/**
+  * probe scsi.ioentry - Prepares a SCSI mid-layer request
+  * @disk_major: The major number of the disk (-1 if no information)
+  * @disk_minor: The minor number of the disk (-1 if no information)
+  * @device_state: The current state of the device.
+  */
+/* FIXME describe the device_state */
 probe scsi.ioentry
 	= module("scsi_mod").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?,
 	  kernel.function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?
@@ -31,7 +37,19 @@ probe scsi.ioentry
 	req_addr = $req
 }
 
-/* Dispatch a command to the low-level driver. */
+/**
+ * probe scsi.iodispatching - SCSI mid-layer dispatched low-level SCSI command
+ * @host_no: The host number
+ * @channel: The channel number
+ * @lun: The lun number
+ * @dev_id: The scsi device id
+ * @device_state: The current state of the device.
+ * @data_direction: The data_direction specifies whether this command is from/to
+ *            the device. 0 (DMA_BIDIRECTIONAL), 1 (DMA_TO_DEVICE),
+ *	      2 (DMA_FROM_DEVICE), 3 (DMA_NONE)
+ * @request_buffer: The request buffer address
+ * @req_bufflen: The request buffer length
+ */
 probe scsi.iodispatching
 	= module("scsi_mod").function("scsi_dispatch_cmd@drivers/scsi/scsi.c")?,
 	  kernel.function("scsi_dispatch_cmd@drivers/scsi/scsi.c")?
@@ -53,7 +71,16 @@ probe scsi.iodispatching
 	req_addr = $cmd->request
 }
 
-/* I/O is done by low-level driver*/
+/**
+ * probe scsi.iodone - SCSI  command  completed by low level driver and enqueued into the done queue.
+ * @host_no: The host number
+ * @channel: The channel number
+ * @lun: The lun number
+ * @dev_id: The scsi device id
+ * @device_state: The current state of the device
+ * @data_direction: The data_direction specifies whether this command is
+ * 		    from/to the device.
+ */
 probe scsi.iodone
 	= module("scsi_mod").function("scsi_done@drivers/scsi/scsi.c")?,
 	  kernel.function("scsi_done@drivers/scsi/scsi.c")?
@@ -69,6 +96,17 @@ probe scsi.iodone
 	scsi_timer_pending = scsi_timer_pending($cmd);
 }
 
+/**
+ * probe scsi.iocompleted - SCSI mid-layer running the completion processing for block device I/O requests
+ * @host_no: The host number
+ * @channel: The channel number
+ * @lun: The lun number
+ * @dev_id: The scsi device id
+ * @device_state: The current state of the device
+ * @data_direction: The data_direction specifies whether this command is from/to
+ *                  the device
+ * @goodbytes: The bytes completed.
+ */
 /* mid-layer processes the completed IO */
 probe scsi.iocompleted
 	= module("scsi_mod").function("scsi_io_completion@drivers/scsi/scsi_lib.c")?,

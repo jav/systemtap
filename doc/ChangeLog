@@ -1,5 +1,9 @@
 2008-11-26  Will Cohen <wcohen@redhat.com>
 
+	* SystemTap_Tapset_Reference/tapsets.tmpl: Add scsi.
+
+2008-11-26  Will Cohen <wcohen@redhat.com>
+
 	* SystemTap_Tapset_Reference/tapsets.am: Correct location for html/man.
 	* SystemTap_Tapset_Reference/tapsets.in: Regenerate.
 	
