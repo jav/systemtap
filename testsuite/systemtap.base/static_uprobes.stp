@@ -1,17 +1,14 @@
-probe process("tstlabel.x").mark("label1") 
+probe process("static_uprobes.x").mark("label1") 
 { 
-  probe_str=user_string($probe)
-  printf("In %s probe\n", probe_str)
+  printf("In label1 probe\n")
 }
 
-probe process("tstlabel.x").mark("label2") 
+probe process("static_uprobes.x").mark("label2") 
 { 
-  probe_str=user_string($probe)
-  printf("In %s probe %#x\n", probe_str, $arg1)
+  printf("In label2 probe %#x\n", $arg1)
 }
 
-probe process("tstlabel.x").mark("label3") 
+probe process("static_uprobes.x").mark("label3") 
 { 
-  probe_str=user_string($probe)
-  printf("In %s probe %#x %#x\n", probe_str, $arg1, $arg2)
+  printf("In label3 probe %#x %#x\n", $arg1, $arg2)
 }

@@ -1,3 +1,14 @@
+2008-11-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 7036
+	From Wenji Huang <wenji.huang@oracle.com>:
+	* elaborate.cxx (print_error): Don't suppress if listings_mode.
+	* main.cxx (main): Suppress "pass N failed" if listings_mode.
+
+2008-11-26  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwarf_builder::build): Support debuginfo static uprobes.
+
 2008-11-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (emit_module_exit): Add another synchronize_sched.

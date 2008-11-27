@@ -1446,9 +1446,6 @@ systemtap_session::print_error (const semantic_error& e)
   string message_str[2];
   string align_semantic_error ("        ");
 
-  // NB: we don't print error messages during listing mode.
-  if (listing_mode) return;
-
   // We generate two messages.  The second one ([1]) is printed
   // without token compression, for purposes of duplicate elimination.
   // This way, the same message that may be generated once with a

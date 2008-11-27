@@ -1,4 +1,7 @@
 2008-11-26  Will Cohen <wcohen@redhat.com>
+	* scsi.stp: Add kernel-doc notation.
+	
+2008-11-26  Will Cohen <wcohen@redhat.com>
 
 	* process.stp: Add kernel-doc notation.
 	
