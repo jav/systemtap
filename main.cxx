@@ -939,7 +939,7 @@ main (int argc, char * const argv [])
            << endl;
     }
 
-  if (rc)
+  if (rc && !s.listing_mode)
     cerr << "Pass 1: parse failed.  "
          << "Try again with another '--vp 1' option."
          << endl;
@@ -967,7 +967,7 @@ main (int argc, char * const argv [])
                       << TIMESPRINT
                       << endl;
 
-  if (rc)
+  if (rc && !s.listing_mode)
     cerr << "Pass 2: analysis failed.  "
          << "Try again with another '--vp 01' option."
          << endl;
