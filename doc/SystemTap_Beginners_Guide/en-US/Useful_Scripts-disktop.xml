@@ -5,14 +5,60 @@
 
 	<section id="disktop">
 		<title>Summarizing Disk Read/Write Traffic</title>
-		
+<indexterm>
+<primary>script examples</primary>
+<secondary>summarizing disk I/O traffic</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>summarizing disk I/O traffic</secondary>
+</indexterm>
+
+<indexterm>
+<primary>summarizing disk I/O traffic</primary>
+<secondary>script examples</secondary>
+</indexterm>		
 		
 		<remark>
 			NO ENTRY IN WAR STORIES: Summarize Disk Read/Write Traffic
 			http://sourceware.org/systemtap/examples/io/disktop.stp
 		</remark>
-				
-		
+
+<indexterm>
+<primary>disk I/O traffic, summarizing</primary>
+<secondary>script examples</secondary>
+</indexterm>
+<!-- next 2 indexterms for I/O traffic, summarizing -->
+
+<indexterm>
+<primary>I/O traffic, summarizing</primary>
+<secondary>script examples</secondary>
+</indexterm>
+
+<!-- next 2 indexterms for heaviest disk reads/writes, identifying -->
+
+<indexterm>
+<primary>heaviest disk reads/writes, identifying</primary>
+<secondary>script examples</secondary>
+</indexterm>
+
+
+<!-- next 2 indexterms for summarizing disk I/O traffic -->
+
+<indexterm>
+<primary>summarizing disk I/O traffic</primary>
+<secondary>script examples</secondary>
+</indexterm>
+
+
+<!-- next 2 indexterms for identifying heaviest disk reads/writes -->
+
+<indexterm>
+<primary>identifying heaviest disk reads/writes</primary>
+<secondary>script examples</secondary>
+</indexterm>
+	
 	<para>This section describes how to identify which processes are performing the heaviest disk reads/writes to the system.</para>
 	
 <formalpara id="scriptdisktop">
@@ -41,6 +87,24 @@
 	
 	<listitem><para><computeroutput>BYTES</computeroutput> &mdash; the amount of data read to or written from disk.</para></listitem>
 </itemizedlist>	
+<!-- next 2 indexterms for ctime(), example of usage -->
+
+<indexterm>
+<primary>script examples</primary>
+<secondary>ctime(), example of usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>ctime(), example of usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>ctime(), example of usage</primary>
+<secondary>script examples</secondary>
+</indexterm>
+
+
 	
 <para>The time and date in the output of <xref linkend="scriptdisktop"/> is returned by the functions <command>ctime()</command> and <command>gettimeofday_s()</command>. <command>ctime()</command> derives calendar time in terms of seconds passed since the Unix epoch (January 1, 1970). <command>gettimeofday_s()</command> counts the <emphasis>actual</emphasis> number of seconds since Unix epoch, which gives a fairly accurate human-readable timestamp for the output.</para>
 	

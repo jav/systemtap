@@ -4,8 +4,36 @@
 
 	<section id="traceio2sect">
 		<title>I/O Monitoring (By Device)</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring device I/O</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring device I/O</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring device I/O</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+
+<indexterm>
+<primary>I/O monitoring (by device)</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 		
-		<remark>
+<indexterm>
+<primary>device I/O, monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+
+
+
+
+<remark>
 			example from http://sourceware.org/systemtap/examples/io/traceio2.stp, but error
 		</remark>
 		
@@ -51,9 +79,50 @@ semantic error: field 'f_dentry' not found
 	dev_nr = $file->f_path->dentry->d_inode->i_sb->s_dev
 	inode_nr = $file->f_path->dentry->d_inode->i_ino
 			</programlisting>-->
+<indexterm>
+<primary>script examples</primary>
+<secondary>stat -c</secondary>
+</indexterm>
 
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>stat -c</secondary>
+</indexterm>
+
+<indexterm>
+<primary>stat -c</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>script examples</primary>
+<secondary>whole device number (usage as a command-line argument)</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>whole device number (usage as a command-line argument)</secondary>
+</indexterm>
+
+<indexterm>
+<primary>whole device number (usage as a command-line argument)</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 <para><xref linkend="traceio2"/> takes 1 argument: the whole device number. To get this number, use <command>stat -c "0x%D" <replaceable>directory</replaceable></command>, where <command><replaceable>directory</replaceable></command> is located in the device you wish to monitor.</para>
-	
+<indexterm>
+<primary>script examples</primary>
+<secondary>usrdev2kerndev()</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>usrdev2kerndev()</secondary>
+</indexterm>
+
+<indexterm>
+<primary>usrdev2kerndev()</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>	
 <para>The <command>usrdev2kerndev()</command> function converts the whole device number into the format understood by the kernel. The output produced by <command>usrdev2kerndev()</command> is used in conjunction with the <command>MKDEV()</command>, <command>MINOR()</command>, and <command>MAJOR()</command> functions to determine the major and minor numbers of a specific device.</para>
 
 <para>The output of <xref linkend="traceio2"/> includes the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), and the device number (in hex format).</para>

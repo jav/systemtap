@@ -4,6 +4,30 @@
 
 	<section id="iotopsect">
 		<title>Periodically Print I/O Activity</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring I/O activity</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring I/O activity</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring I/O activity</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>I/O activity, monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>printing I/O activity (periodically)</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 
 	<para>This section describes how to monitor I/O activity on the system.</para>
 	
@@ -50,7 +74,7 @@
 </screen>
 </example>
 
-<para><xref linkend="iotopoutput"/> displays top I/O writes and reads within a random 10-second interval. Note that <xref linkend="iotop"/> also detects I/O resulting from SystemTap activity &mdash; <xref linkend="iotopoutput"/> also displays reads done by <command>staprun</command>.</para>
+<para><xref linkend="iotopoutput"/> displays top I/O writes and reads within a random 10-second interval. Note that <xref linkend="iotop"/> also detects I/O resulting from SystemTap activity &mdash; <xref linkend="iotopoutput"/> displays reads done by <command>staprun</command>.</para>
 <!--
 global reads, writes, total_io
 

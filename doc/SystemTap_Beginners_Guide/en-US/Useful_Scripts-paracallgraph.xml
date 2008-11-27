@@ -6,7 +6,38 @@
 	<section id="paracallgraph">
 		<title>Call Graph Tracing</title>
 		
-		
+<indexterm>
+<primary>script examples</primary>
+<secondary>call graph tracing</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>call graph tracing</secondary>
+</indexterm>
+
+<indexterm>
+<primary>call graph tracing</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>	
+
+<indexterm>
+<primary>incoming/outgoing function calls, tracing</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+<primary>function calls (incoming/outgoing), tracing</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+<primary>tracing incoming/outgoing function calls</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+<primary>tracing call graph</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
 		<remark>
 			WAR STORY: Call graph tracing http://sourceware.org/systemtap/wiki/WSCallGraph?highlight=((WarStories))
 		</remark>
@@ -26,15 +57,60 @@
 </programlisting>
 </para>
 </formalpara>		
+<indexterm>
+<primary>script examples</primary>
+<secondary>multiple command-line arguments, example of</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>multiple command-line arguments, example of</secondary>
+</indexterm>
+
+<indexterm>
+<primary>multiple command-line arguments, example of</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+<primary>example of multiple command-line arguments</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 
 <para><xref linkend="scriptcallgraph"/> takes two command-line arguments:</para>
+<indexterm>
+<primary>script examples</primary>
+<secondary>trigger function</secondary>
+</indexterm>
 
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>trigger function</secondary>
+</indexterm>
+
+<indexterm>
+<primary>trigger function</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 <itemizedlist>
 	<listitem><para>A <firstterm>trigger function</firstterm> (<command>@1</command>), which enables or disables tracing on a per-thread basis.</para></listitem>
 	<listitem><para>The kernel function whose entry/exit call you'd like to trace (<command>@2</command>).</para></listitem>
 </itemizedlist>
 
 <remark> please verify previous if correct; i'm particularly interested in finding out how to better describe "trigger function"</remark>
+<indexterm>
+<primary>script examples</primary>
+<secondary>thread_indent(), sample usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>thread_indent(), sample usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>thread_indent(), sample usage</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
 
 <para><xref linkend="scriptcallgraph"/> uses <command>thread_indent()</command>; as such, its output contains the timestamp, process name, and thread ID of <command>@2</command> (i.e. the probe function you are tracing). For more information about <command>thread_indent()</command>, refer to its entry in <xref linkend="systemtapscript-functions"/>.</para>
 

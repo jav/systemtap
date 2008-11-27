@@ -4,6 +4,36 @@
 
 	<section id="traceiosect">
 		<title>Track Cumulative IO</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>tracking cumulative I/O</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>tracking cumulative I/O</secondary>
+</indexterm>
+
+<indexterm>
+<primary>tracking cumulative I/O</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+		
+<indexterm>
+<primary>cumulative I/O, tracking</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+		
+<indexterm>
+<primary>monitoring cumulative I/O</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>printing I/O activity (cumulative)</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
 		<para>
 			This section describes how to track the cumulative amount of I/O to the system.
 		</para>
