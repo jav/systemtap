@@ -139,6 +139,9 @@ compile_pass (systemtap_session& s)
 
   // Assumes linux 2.6 kbuild
   o << "EXTRA_CFLAGS += -Wno-unused -Werror" << endl;
+  #if CHECK_POINTER_ARITH_PR5947
+  o << "EXTRA_CFLAGS += -Wpointer-arith" << endl;
+  #endif
   o << "EXTRA_CFLAGS += -I\"" << s.runtime_path << "\"" << endl;
   // XXX: this may help ppc toc overflow
   // o << "CFLAGS := $(subst -Os,-O2,$(CFLAGS)) -fminimal-toc" << endl;

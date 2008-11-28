@@ -78,10 +78,12 @@ static void u32_swap(void *a, void *b, int size)
 
 static void generic_swap(void *a, void *b, int size)
 {
+  char *aa = a;
+  char *bb = b;
 	do {
-		char t = *(char *)a;
-		*(char *)a++ = *(char *)b;
-		*(char *)b++ = t;
+          char t = *aa;
+          *aa++ = *bb;
+          *bb++ = t;
 	} while (--size > 0);
 }
 
@@ -101,9 +103,10 @@ static void generic_swap(void *a, void *b, int size)
  * O(n*n) worst-case behavior and extra memory requirements that make
  * it less suitable for kernel use.
 */
-void _stp_sort(void *base, size_t num, size_t size,
+void _stp_sort(void *_base, size_t num, size_t size,
 	       int (*cmp) (const void *, const void *), void (*swap) (void *, void *, int size))
 {
+        char *base = (char*) _base;
 	/* pre-scale counters for performance */
 	int i = (num / 2 - 1) * size, n = num * size, c, r;
 

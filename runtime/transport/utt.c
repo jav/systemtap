@@ -40,7 +40,7 @@ static int utt_overwrite_flag = 0;
 size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
 			 size_t length)
 {
-	void *old, *new;
+	char *old, *new;
 	size_t old_subbuf, new_subbuf;
 
 	if (unlikely(buf == NULL))
@@ -69,7 +69,7 @@ size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
 
 	old = buf->data;
 	new_subbuf = buf->subbufs_produced % buf->chan->n_subbufs;
-	new = buf->start + new_subbuf * buf->chan->subbuf_size;
+	new = (char*)buf->start + new_subbuf * buf->chan->subbuf_size;
 	buf->offset = 0;
 	if (!buf->chan->cb->subbuf_start(buf, new, old, buf->prev_padding)) {
 		buf->offset = buf->chan->subbuf_size + 1;

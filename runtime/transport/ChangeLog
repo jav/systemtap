@@ -1,3 +1,11 @@
+2008-11-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5947: make code -Wpointer-arith clean
+	* symbols.c (generic_swap): Cast void* to char* as needed.
+	(_stp_sort): Ditto.
+	* utt.c (utt_switch_subbuf): Ditto.
+	* utt.h (utt_reserve): Ditto.
+
 2008-11-13  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	* utt.c (utt_trace_setup): Use KERN_WARNING and show buffer size.

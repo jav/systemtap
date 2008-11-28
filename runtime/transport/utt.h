@@ -68,7 +68,7 @@ static inline void *utt_reserve(struct utt_trace *utt, size_t length)
 		if (!length)
 			return NULL;
 	}
-	reserved = buf->data + buf->offset;
+	reserved = (char*)buf->data + buf->offset;
 	buf->offset += length;
 
 	return reserved;
