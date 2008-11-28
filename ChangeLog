@@ -1,3 +1,9 @@
+2008-11-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6477.
+	* elaborate.cxx (print_error_source, print_warning): Tolerate
+	NULL token.
+
 2008-11-27  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 7036

@@ -1498,6 +1498,8 @@ systemtap_session::print_error_source (std::ostream& message,
   unsigned line = tok->location.line;
   unsigned col = tok->location.column;
   string file_contents;
+
+  assert (tok);
   if (tok->location.stap_file)
     file_contents = tok->location.stap_file->file_contents;
   else
@@ -1535,7 +1537,7 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
       clog << "WARNING: " << message_str;
       if (tok) { clog << ": "; print_token (clog, tok); }
       clog << endl;
-      print_error_source (clog, align_warning, tok);
+      if (tok) { print_error_source (clog, align_warning, tok); }
     }
 }
 
