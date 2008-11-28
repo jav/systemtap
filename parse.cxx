@@ -1073,6 +1073,8 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
       if (equals_ok && t
           && t->type == tok_operator && t->content == "=")
         {
+          if (pp->optional || pp->sufficient)
+            throw parse_error ("probe point alias name cannot be optional nor sufficient", pp->tok);
           aliases.push_back(pp);
           next ();
           continue;
@@ -1080,6 +1082,8 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
       else if (equals_ok && t
           && t->type == tok_operator && t->content == "+=")
         {
+          if (pp->optional || pp->sufficient)
+            throw parse_error ("probe point alias name cannot be optional nor sufficient", pp->tok);
           aliases.push_back(pp);
           epilogue_alias = 1;
           next ();
