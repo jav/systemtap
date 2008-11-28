@@ -239,7 +239,6 @@ void system_cmd(char *cmd)
   if ((pid = fork()) < 0) {
     _perr("fork");
   } else if (pid == 0) {
-    setpriority(PRIO_PROCESS, 0, 0);
     if (execl("/bin/sh", "sh", "-c", cmd, NULL) < 0)
       perr("%s", cmd);
     _exit(1);

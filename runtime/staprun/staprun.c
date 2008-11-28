@@ -187,11 +187,6 @@ static int remove_module(const char *name, int verb)
 	close_ctl_channel();
 
 	dbug(2, "removing module %s\n", name);
-
-	/* Don't remove module when priority is elevated. */
-	if (setpriority(PRIO_PROCESS, 0, 0) < 0)
-		_perr("setpriority");
-
 	ret = delete_module (name, 0);
 	if (ret != 0) {
 		err("Error removing module '%s': %s.\n", name, strerror(errno));

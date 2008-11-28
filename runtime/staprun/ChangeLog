@@ -1,3 +1,10 @@
+2008-11-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR4783
+	* staprun.c (remove_module): Don't reset with setpriority(0),
+	as we never set it to high-priority any more anyway.
+	* mainloop.c (system_cmd): Ditto.
+
 2008-11-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6964 redux.
