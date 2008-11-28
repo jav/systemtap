@@ -1,0 +1,95 @@
+// context-symbols tapset
+// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#ifndef NEED_SYMBOL_DATA
+#define NEED_SYMBOL_DATA 1
+#endif
+%}
+
+/**
+ * sfunction print_stack - Print out stack from string
+ * @stk: String with list of hexidecimal addresses. (FIXME)
+ *
+ *  Perform a symbolic lookup of the addresses in the given  string,
+ *  which  is  assumed  to  be  the  result of a prior call to 
+ *  backtrace().
+ *  Print one line per address, including the address, the
+ *  name  of the function containing the address, and an estimate of
+ *  its position within that function.  Return nothing.
+ */
+function print_stack(stk:string) %{
+	char *ptr = THIS->stk;
+	char *tok = strsep(&ptr, " ");
+	while (tok && *tok) {
+		_stp_print_char(' ');
+		_stp_symbol_print (simple_strtol(tok, NULL, 16));
+		_stp_print_char('\n');
+		tok = strsep(&ptr, " ");
+	}
+%}
+
+/**
+ * sfunction probefunc - Function probed
+ *
+ * Return the probe point's function name, if known.
+ */
+function probefunc:string () %{ /* pure */
+	char *ptr, *start;
+
+	start = strstr(CONTEXT->probe_point, "function(\"");
+	ptr = start + 10; 
+	if (!start) {
+		start = strstr(CONTEXT->probe_point, "inline(\"");
+		ptr = start + 8;
+	}
+
+	if (start) {
+		int len = MAXSTRINGLEN;
+		char *dst = THIS->__retvalue;
+		while (*ptr != '@' && --len > 0 && *ptr)
+			*dst++ = *ptr++;
+		*dst = 0;
+
+	} else if (CONTEXT->regs &&
+#if defined (__ia64__)
+		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)KERNEL_START)) {
+#else
+		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)PAGE_OFFSET)) {
+#endif
+		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs));
+       	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
+       	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
+	} else {
+		THIS->__retvalue[0] = '\0';
+	}
+%}
+
+/**
+ * sfunction probemod - Module probed
+ *
+ *  Return the probe point's module name, if known.
+ */
+function probemod:string () %{ /* pure */
+	char *ptr, *start;
+
+	start = strstr(CONTEXT->probe_point, "module(\"");
+	ptr = start + 8;
+
+	if (start) {
+		int len = MAXSTRINGLEN;
+		char *dst = THIS->__retvalue;
+		while (*ptr != '"' && --len && *ptr)
+			*dst++ = *ptr++;
+		*dst = 0;
+	} else {
+		/* XXX: need a PC- and symbol-table-based fallback. */
+		THIS->__retvalue[0] = '\0';
+	}
+%}

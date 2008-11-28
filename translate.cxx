@@ -1289,7 +1289,7 @@ c_unparser::emit_module_exit ()
                 << "atomic_read (& ((struct context *)per_cpu_ptr(contexts, i))->busy)) "
                 << "holdon = 1;";
   // NB: we run at least one of these during the shutdown sequence:
-  o->newline () << "yield ();"; // aka schedule() and then some 
+  o->newline () << "yield ();"; // aka schedule() and then some
   o->newline(-2) << "} while (holdon);";
 
   // cargo cult epilogue
@@ -4601,6 +4601,9 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "struct _stp_symbol "
                 << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {" << endl;
 
+      // Only include symbols if they will be used
+      c->output << "#ifdef NEED_SYMBOL_DATA" << endl;
+
       // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
       for (addrmap_t::iterator it = addrmap[secidx].begin(); it != addrmap[secidx].end(); it++)
         {
@@ -4610,6 +4613,9 @@ dump_unwindsyms (Dwfl_Module *m,
           c->output << "  { 0x" << hex << it->first-extra_offset << dec
                     << ", " << lex_cast_qstring (it->second) << " }," << endl;
         }
+
+      c->output << "#endif" << endl;
+
       c->output << "};" << endl;
     }
 
@@ -4675,7 +4681,7 @@ dump_unwindsyms (Dwfl_Module *m,
         c->output << ".build_id_len = 0, " << endl;
 
   //initialize the note section representing unloaded
-  c->output << ".notes_sect = 0," << endl; 
+  c->output << ".notes_sect = 0," << endl;
 
   c->output << "};" << endl << endl;
 

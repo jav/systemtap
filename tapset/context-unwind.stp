@@ -1,0 +1,71 @@
+// context-unwind tapset
+// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#ifndef STP_USE_DWARF_UNWINDER
+#define STP_USE_DWARF_UNWINDER 1
+#endif
+#ifndef NEED_SYMBOL_DATA
+#define NEED_SYMBOL_DATA 1
+#endif
+%}
+
+/**
+ * sfunction print_backtrace - Print stack back trace
+ *
+ *  Equivalent to <command>print_stack(backtrace())</command>,
+ *  except that deeper stack nesting may be supported.  Return nothing.
+ */
+function print_backtrace () %{
+	if (CONTEXT->regs) {
+		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE);
+	} else {
+		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
+	}
+%}
+
+/**
+ * sfunction backtrace - Hex backtrace of current stack
+ *
+ *  Return a string of hex addresses that are a backtrace of the
+ *  stack.  It may be truncated due to maximum string length.
+ */
+function backtrace:string () %{ /* pure */
+	if (CONTEXT->regs)
+		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE);
+	else 
+		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+%}
+
+/**
+ * sfunction caller - Return name and address of calling function
+ *
+ *  Return the address and name of the calling function.
+ *  <emphasis>Works only for return probes at this time.</emphasis>
+ */
+function caller:string() %{ /* pure */
+        if (CONTEXT->pi) 
+		_stp_symbol_snprint( THIS->__retvalue, MAXSTRINGLEN, 
+			(unsigned long)_stp_ret_addr_r(CONTEXT->pi));
+        else
+		strlcpy(THIS->__retvalue,"unknown",MAXSTRINGLEN);
+%}
+
+/**
+ * sfunction caller_addr -  Return caller address
+ *
+ *  Return the address of the calling function.
+ *  <emphasis> Works only for return probes at this time.</emphasis>
+ */
+function caller_addr:long () %{ /* pure */
+        if (CONTEXT->pi)
+		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->pi);
+        else
+		THIS->__retvalue = 0;
+%}

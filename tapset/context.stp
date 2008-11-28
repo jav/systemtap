@@ -7,7 +7,6 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-
 /**
  * sfunction print_regs - Print a register dump.
  */
@@ -15,33 +14,6 @@ function print_regs () %{
 	if (CONTEXT->regs) {
 		_stp_print_regs (CONTEXT->regs);
 	}
-%}
-
-/**
- * sfunction print_backtrace - Print stack back trace
- *
- *  Equivalent to <command>print_stack(backtrace())</command>,
- *  except that deeper stack nesting may be supported.  Return nothing.
- */
-function print_backtrace () %{
-	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE);
-	} else {
-		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
-	}
-%}
-
-/**
- * sfunction backtrace - Hex backtrace of current stack
- *
- *  Return a string of hex addresses that are a backtrace of the
- *  stack.  It may be truncated due to maximum string length.
- */
-function backtrace:string () %{ /* pure */
-	if (CONTEXT->regs)
-		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE);
-	else 
-		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
 
 /**
@@ -149,28 +121,6 @@ function cpu:long () %{ /* pure */
 %}
 
 /**
- * sfunction print_stack - Print out stack from string
- * @stk: String with list of hexidecimal addresses. (FIXME)
- *
- *  Perform a symbolic lookup of the addresses in the given  string,
- *  which  is  assumed  to  be  the  result of a prior call to 
- *  backtrace().
- *  Print one line per address, including the address, the
- *  name  of the function containing the address, and an estimate of
- *  its position within that function.  Return nothing.
- */
-function print_stack(stk:string) %{
-	char *ptr = THIS->stk;
-	char *tok = strsep(&ptr, " ");
-	while (tok && *tok) {
-		_stp_print_char(' ');
-		_stp_symbol_print (simple_strtol(tok, NULL, 16));
-		_stp_print_char('\n');
-		tok = strsep(&ptr, " ");
-	}
-%}
-
-/**
  * sfunction pp - Current probe point
  *
  *  Return the probe point associated with the currently running
@@ -178,65 +128,6 @@ function print_stack(stk:string) %{
  */
 function pp:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
-%}
-
-/**
- * sfunction probefunc - Function probed
- *
- * Return the probe point's function name, if known.
- */
-function probefunc:string () %{ /* pure */
-	char *ptr, *start;
-
-	start = strstr(CONTEXT->probe_point, "function(\"");
-	ptr = start + 10; 
-	if (!start) {
-		start = strstr(CONTEXT->probe_point, "inline(\"");
-		ptr = start + 8;
-	}
-
-	if (start) {
-		int len = MAXSTRINGLEN;
-		char *dst = THIS->__retvalue;
-		while (*ptr != '@' && --len > 0 && *ptr)
-			*dst++ = *ptr++;
-		*dst = 0;
-
-	} else if (CONTEXT->regs &&
-#if defined (__ia64__)
-		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)KERNEL_START)) {
-#else
-		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)PAGE_OFFSET)) {
-#endif
-		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs));
-       	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
-       	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
-	} else {
-		THIS->__retvalue[0] = '\0';
-	}
-%}
-
-/**
- * sfunction probemod - Module probed
- *
- *  Return the probe point's module name, if known.
- */
-function probemod:string () %{ /* pure */
-	char *ptr, *start;
-
-	start = strstr(CONTEXT->probe_point, "module(\"");
-	ptr = start + 8;
-
-	if (start) {
-		int len = MAXSTRINGLEN;
-		char *dst = THIS->__retvalue;
-		while (*ptr != '"' && --len && *ptr)
-			*dst++ = *ptr++;
-		*dst = 0;
-	} else {
-		/* XXX: need a PC- and symbol-table-based fallback. */
-		THIS->__retvalue[0] = '\0';
-	}
 %}
 
 /**
@@ -339,32 +230,5 @@ function stack_used:long () %{ /* pure */
 function stack_unused:long () %{ /* pure */
 	char a;
         THIS->__retvalue = (long)&a & (THREAD_SIZE-1);
-%}
-
-/**
- * sfunction caller_addr -  Return caller address
- *
- *  Return the address of the calling function.
- *  <emphasis> Works only for return probes at this time.</emphasis>
- */
-function caller_addr:long () %{ /* pure */
-        if (CONTEXT->pi)
-		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->pi);
-        else
-		THIS->__retvalue = 0;
-%}
-
-/**
- * sfunction caller - Return name and address of calling function
- *
- *  Return the address and name of the calling function.
- *  <emphasis>Works only for return probes at this time.</emphasis>
- */
-function caller:string() %{ /* pure */
-        if (CONTEXT->pi) 
-		_stp_symbol_snprint( THIS->__retvalue, MAXSTRINGLEN, 
-			(unsigned long)_stp_ret_addr_r(CONTEXT->pi));
-        else
-		strlcpy(THIS->__retvalue,"unknown",MAXSTRINGLEN);
 %}
 
