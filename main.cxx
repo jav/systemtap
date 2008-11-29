@@ -393,9 +393,10 @@ main (int argc, char * const argv [])
   if (create_dir(s.data_path.c_str()) == 1)
     {
       const char* e = strerror (errno);
-      cerr << "Warning: failed to create systemtap data directory (\""
-	   << s.data_path << "\"): " << e << endl;
-      cerr << "Disabling cache support." << endl;
+      if (! s.suppress_warnings)
+        cerr << "Warning: failed to create systemtap data directory (\""
+             << s.data_path << "\"): " << e
+             << ", disabling cache support." << endl;
       s.use_cache = false;
     }
 
@@ -405,9 +406,10 @@ main (int argc, char * const argv [])
       if (create_dir(s.cache_path.c_str()) == 1)
         {
 	  const char* e = strerror (errno);
-	  cerr << "Warning: failed to create cache directory (\""
-	       << s.cache_path << "\"): " << e << endl;
-	  cerr << "Disabling cache support." << endl;
+          if (! s.suppress_warnings)
+            cerr << "Warning: failed to create cache directory (\""
+                 << s.cache_path << "\"): " << e
+                 << ", disabling cache support." << endl;
 	  s.use_cache = false;
 	}
     }
@@ -1062,8 +1064,13 @@ main (int argc, char * const argv [])
     {
       // Update cache. Cache cleaning is kicked off at the end of this function.
       if (s.use_cache)
-	add_to_cache(s);
+        add_to_cache(s);
 
+      // We may need to save the module in $CWD if the cache was
+      // inaccessible for some reason.
+      if (! s.use_cache && s.last_pass == 4)
+        save_module = true;
+      
       // Copy module to the current directory.
       if (save_module && !pending_interrupts)
         {

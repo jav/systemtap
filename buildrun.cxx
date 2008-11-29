@@ -201,7 +201,7 @@ verify_uprobes_uptodate (systemtap_session& s)
   int rc = run_make_cmd(s, make_cmd);
   if (rc) {
     clog << "SystemTap's version of uprobes is out of date." << endl;
-    clog << "As root, run \"make\" in " << uprobes_home << "." << endl;
+    clog << "As root, run \"make -C " << uprobes_home << "\"." << endl;
   }
 
   return rc;
@@ -217,12 +217,8 @@ make_uprobes (systemtap_session& s)
 
   string make_cmd = string("make -C ") + uprobes_home;
   int rc = run_make_cmd(s, make_cmd);
-  if (s.verbose) {
-    if (rc)
-      clog << "Uprobes (re)build failed." << endl;
-    else
-      clog << "Uprobes (re)build complete." << endl;
-  }
+  if (s.verbose > 1)
+    clog << "uprobes rebuild rc=" << rc << endl;
 
   return rc;
 }

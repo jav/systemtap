@@ -161,9 +161,10 @@ find_hash (systemtap_session& s, const string& script)
       hashdir += string("/") + result[i*2] + result[i*2 + 1];
       if (create_dir(hashdir.c_str()) != 0)
         {
-	  cerr << "Warning: failed to create cache directory (\""
-	       << hashdir + "\"): " << strerror(errno) << endl;
-	  cerr << "Disabling cache support." << endl;
+          if (! s.suppress_warnings)
+            cerr << "Warning: failed to create cache directory (\""
+                 << hashdir + "\"): " << strerror(errno)
+                 << ", disabling cache support." << endl;
 	  s.use_cache = false;
 	  return;
 	}

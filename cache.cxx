@@ -35,6 +35,7 @@ add_to_cache(systemtap_session& s)
     {
       cerr << "Copy failed (\"" << module_src_path << "\" to \""
 	   << s.hash_path << "\"): " << strerror(errno) << endl;
+      s.use_cache = false;
       return;
     }
 
@@ -48,8 +49,13 @@ add_to_cache(systemtap_session& s)
 	 << endl;
   if (copy_file(s.translated_source.c_str(), c_dest_path.c_str()) != 0)
     {
-      cerr << "Copy failed (\"" << s.translated_source << "\" to \""
-	   << c_dest_path << "\"): " << strerror(errno) << endl;
+      if (s.verbose > 1)
+        cerr << "Copy failed (\"" << s.translated_source << "\" to \""
+             << c_dest_path << "\"): " << strerror(errno) << endl;
+      // NB: this is not so severe as to prevent reuse of the .ko
+      // already copied.
+      //
+      // s.use_cache = false;
     }
 
   clean_cache(s);
@@ -219,9 +225,10 @@ clean_cache(systemtap_session& s)
 
       if (s.verbose > 1 && removed_dirs != "")
         {
-		  //remove trailing ", "
-		  removed_dirs = removed_dirs.substr(0, removed_dirs.length() - 2);
-		  clog << "Cache cleaning successful, removed entries: " << removed_dirs << endl;
+          //remove trailing ", "
+          removed_dirs = removed_dirs.substr(0, removed_dirs.length() - 2);
+          clog << "Cache cleaning successful, removed entries: " 
+               << removed_dirs << endl;
         }
     }
   else

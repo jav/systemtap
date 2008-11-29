@@ -1,3 +1,14 @@
+2008-11-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	Warnings cleanup.
+	* buildrun.cxx (verify_uprobes_uptodate, make_uprobes): Simplify
+	messages.
+	* cache.cxx (add_to_cache, clean_cache): Reset s.use_cache upon
+	failure.
+	* hash.cxx (find_hash): Ditto.
+	* main.cxx (main): Simplify/conditionalize warning messages.  Save
+	module to $cwd if last_pass==4 but cache encountered errors.
+
 2008-11-28  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6965.
