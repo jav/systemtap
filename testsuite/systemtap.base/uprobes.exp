@@ -25,16 +25,11 @@ if {! [installtest_p]} { untested "$test -p5"; exec rm -f jennie.c jennie; retur
 
 # Pick up the stap being tested.
 set stapexe [exec /usr/bin/which stap]
-spawn sudo $stapexe -v $srcdir/$subdir/uprobes.stp -c "./jennie 1 2 3 4"
+spawn sudo $stapexe $srcdir/$subdir/uprobes.stp -w -c "./jennie 1 2 3 4"
 set ok 0
 expect {
-    -re {^Pass[^\r\n]*\r\n} { exp_continue }
-    -re {^Warning[^\r\n]*\r\n} { exp_continue }
-    -re {^Disabling[^\r\n]*\r\n} { exp_continue }
-    -re {^Uprobes[^\r\n]*\r\n} { exp_continue }
-    -re {^Cache[^\r\n]*\r\n} { exp_continue }
-    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*call argc=0x[1-5][^\r\n]*\r\n} { incr ok; exp_continue }
-    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*return return=0x0[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*argc=0x[1-5][^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*return=0x0[^\r\n]*\r\n} { incr ok; exp_continue }
     -timeout 30
     timeout { }
     eof { }
