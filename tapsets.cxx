@@ -7038,7 +7038,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#include \"task_finder.c\"";
 
   s.op->newline() << "#ifndef MULTIPLE_UPROBES";
-  s.op->newline() << "#define MULTIPLE_UPROBES 100"; // maximum possible armed uprobes per process() probe point
+  s.op->newline() << "#define MULTIPLE_UPROBES 256"; // maximum possible armed uprobes per process() probe point
+						     // or apprx. max number of processes mapping a shared library
   s.op->newline() << "#endif";
   s.op->newline() << "#ifndef MAXUPROBES";
   s.op->newline() << "#define MAXUPROBES (MULTIPLE_UPROBES * " << probes.size() << ")";
