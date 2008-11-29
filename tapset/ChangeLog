@@ -1,4 +1,20 @@
+2008-11-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6965.
+	* context-{symbols,unwind}.h: Tweak control symbols to
+	STP_NEED_{SYMBOL,UNWIND}_DATA.
+
+2008-11-28  Elliott Baron  <ebaron@redhat.com>
+
+	PR 6965.
+	* tapsets/context.stp: moved functions requiring symbols
+	to tapsets/context-symbols.stp and those requiring both
+	symbols and unwinder to tapsets/context-unwind.stp.
+	* tapsets/context-symbols.h: New file.
+	* tapsets/context-unwind.h: New file.
+
 2008-11-26  Will Cohen <wcohen@redhat.com>
+
 	* scsi.stp: Add kernel-doc notation.
 	
 2008-11-26  Will Cohen <wcohen@redhat.com>

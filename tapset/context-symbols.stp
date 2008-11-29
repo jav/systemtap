@@ -1,5 +1,5 @@
 // context-symbols tapset
-// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -8,8 +8,8 @@
 // later version.
 
 %{
-#ifndef NEED_SYMBOL_DATA
-#define NEED_SYMBOL_DATA 1
+#ifndef STP_NEED_SYMBOL_DATA
+#define STP_NEED_SYMBOL_DATA 1
 #endif
 %}
 

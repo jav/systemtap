@@ -4571,7 +4571,7 @@ dump_unwindsyms (Dwfl_Module *m,
   void *unwind = get_unwind_data (m, &len);
   if (unwind != NULL)
     {
-      c->output << "#ifdef STP_USE_DWARF_UNWINDER" << endl;
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)" << endl;
       c->output << "static uint8_t _stp_module_" << stpmod_idx
 		<< "_unwind_data[] = " << endl;
       c->output << "  {";
@@ -4583,7 +4583,7 @@ dump_unwindsyms (Dwfl_Module *m,
 	    c->output << endl << "   ";
 	}
       c->output << "};" << endl;
-      c->output << "#endif /* STP_USE_DWARF_UNWINDER */" << endl;
+      c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */" << endl;
     }
   else
     {
@@ -4602,7 +4602,7 @@ dump_unwindsyms (Dwfl_Module *m,
                 << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {" << endl;
 
       // Only include symbols if they will be used
-      c->output << "#ifdef NEED_SYMBOL_DATA" << endl;
+      c->output << "#ifdef STP_NEED_SYMBOL_DATA" << endl;
 
       // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
       for (addrmap_t::iterator it = addrmap[secidx].begin(); it != addrmap[secidx].end(); it++)
@@ -4614,7 +4614,7 @@ dump_unwindsyms (Dwfl_Module *m,
                     << ", " << lex_cast_qstring (it->second) << " }," << endl;
         }
 
-      c->output << "#endif" << endl;
+      c->output << "#endif /* STP_NEED_SYMBOL_DATA */" << endl;
 
       c->output << "};" << endl;
     }
@@ -4636,7 +4636,7 @@ dump_unwindsyms (Dwfl_Module *m,
 
   if (unwind != NULL)
     {
-      c->output << "#ifdef STP_USE_DWARF_UNWINDER" << endl;
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)" << endl;
       c->output << ".unwind_data = "
 		<< "_stp_module_" << stpmod_idx << "_unwind_data, " << endl;
       c->output << ".unwind_data_len = " << len << ", " << endl;
@@ -4647,7 +4647,7 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << ".unwind_data_len = 0, " << endl;
 
   if (unwind != NULL)
-    c->output << "#endif /* STP_USE_DWARF_UNWINDER */" << endl;
+    c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/" << endl;
 
   c->output << ".unwind_hdr = NULL, " << endl;
   c->output << ".unwind_hdr_len = 0, " << endl;
