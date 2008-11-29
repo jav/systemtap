@@ -1,12 +1,23 @@
 * What's new
 
+- Symbol tables and unwind (backtracing) data support were formerly
+  compiled in for all probed modules as identified by the script
+  (kernel; module("name"); process("file")) plus those listed by the
+  stap "-d BINARY" option.  Now, this data is included only if the systemtap
+  script uses tapset functions like probefunc() or backtrace() that require
+  such information.  This shrinks the probe modules considerably for the rest.
+
 - Per-pass verbosity control is available with the new "--vp {N}+" option.
-  "stap --vp 040" adds 4 units of -v verbosity only to pass 2.
+  "stap --vp 040" adds 4 units of -v verbosity only to pass 2.  This is useful
+  for diagnosing errors from one pass without excessive verbosity from others.
 
 - Most probe handlers now run with interrupts enabled, for improved
   system responsiveness and less probing overhead.  This may result
   in more skipped probes, for example if a reentrant probe handler
-  is attempted from within an interrupt handler.
+  is attempted from within an interrupt handler.  It may also make the
+  systemtap overload detection facility more likely to be triggered, as
+  interrupt handlers' run time would be included in the self-assessed
+  overhead of running probe handlers.
 
 * What's new in version 0.8
 
