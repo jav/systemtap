@@ -48,10 +48,10 @@ close $fp
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "unable to compile $sup_srcpath"
+    fail "compiling static_uprobes.c"
     return
 } else {
-    pass "compiling $sup_srcpath" 
+    pass "compiling static_uprobes.c"
 }
 
 set ok 0
@@ -84,10 +84,10 @@ set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "unable to compile $sup_srcpath"
+    fail "compiling sduprobes.c -g"
     return
 } else {
-    pass "compiling $sup_srcpath" 
+    pass "compiling sduprobes.c -g"
 }
 
 spawn stap -c $sup_exepath $srcdir/$subdir/static_uprobes.stp
@@ -102,4 +102,4 @@ expect {
 
 wait
 
-if {$ok == 6} { pass "$test" } { fail "$test (Got $ok Expected 3)" }
+if {$ok == 6} { pass "$test" } { fail "$test ($ok)" }
