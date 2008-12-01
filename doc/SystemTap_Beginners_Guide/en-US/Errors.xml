@@ -11,7 +11,20 @@
 	
 <section id="parsetype">
 	<title>Parse and Semantic Errors</title>
-	
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+</indexterm>	
 <para>These types of errors occur while SystemTap attempts to parse and
       translate the script into C, prior to being converted into a kernel
       module. For example type errors result from operations that assign invalid
@@ -19,7 +32,67 @@
 </para>
 	
 <formalpara><title>parse error: expected <replaceable>foo</replaceable>, saw <replaceable>bar</replaceable></title>
-	
+<!-- next 3 indexterms for invalid values to variables/arrays -->
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>invalid values to variables/arrays</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>invalid values to variables/arrays</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>invalid values to variables/arrays</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>invalid values to variables/arrays</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>	
+
+
+
+<!-- next 2 indexterms for grammatical script error -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>grammatical/typographical script error</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>grammatical/typographical script error</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>grammatical/typographical script error</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>grammatical/typographical script error</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+<!-- next 2 indexterms for typographical script error -->
+
+<indexterm>
+<primary>typographical script error</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+
+
 <para>The script contains a grammatical/typographical error. SystemTap detected type of construct that is incorrect, given the context of the probe.
 </para>
 </formalpara>
@@ -52,6 +125,43 @@ parse error: expected one of '. , ( ? ! { = +='
 </para>
 
 <formalpara><title>parse error: embedded code in unprivileged script</title>
+<!-- next 2 indexterms for embedded code in unprivileged script -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>embedded code in unprivileged script</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>embedded code in unprivileged script</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>embedded code in unprivileged script</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>embedded code in unprivileged script</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>unprivileged script, embedded code in</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>unsafe embedded code in unprivileged script</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
 
 <para>
 	The script contains unsafe embedded C code (blocks of code
@@ -62,6 +172,34 @@ parse error: expected one of '. , ( ? ! { = +='
 	appear in the script.
 </para>
 </formalpara>
+
+
+<!-- next 2 indexterms for guru mode -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>guru mode</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>guru mode</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>guru mode</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>guru mode</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+
 <para>
       If you are sure of the safety of any similar constructs in the script
       <emphasis>and</emphasis>
@@ -72,7 +210,37 @@ parse error: expected one of '. , ( ? ! { = +='
 
 <formalpara>
 	<title>semantic error: type mismatch for identifier '<replaceable>foo</replaceable>' ... string vs. long</title>
+<!-- next 2 indexterms for type mismatch for identifier -->
 
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>type mismatch for identifier</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>type mismatch for identifier</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>type mismatch for identifier</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>type mismatch for identifier</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>identifier type mismatch</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
 <para>
 	The function <command><replaceable>foo</replaceable></command> in the
 	script used the wrong type
@@ -95,14 +263,65 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: unresolved type for identifier '<replaceable>foo</replaceable>'</title>
+<!-- next 2 indexterms for unresolved type for identifier -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>unresolved type for identifier</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>unresolved type for identifier</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>unresolved type for identifier</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>unresolved type for identifier</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>	
 <para>The identifier (e.g. a variable) was used, but no type (integer or
-	string)could be determine. This occurs, for instance, if you use a
+	string) could be determined. This occurs, for instance, if you use a
 	variable in a <command>printf</command> statement while no other
 	function in the script can assign a value to it.</para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: Expecting symbol or array index expression</title>
+<!-- next 2 indexterms for expected symbol/array index expression -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>expected symbol/array index expression</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>expected symbol/array index expression</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>expected symbol/array index expression</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>expected symbol/array index expression</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>	
+	
 <para>
 	SystemTap could not assign a value to a variable or to a location in an
 	array. The destination for the assignment is not a valid destination.
@@ -117,6 +336,37 @@ probe syscall.open
 
 <formalpara>
 	<title>while searching for arity <replaceable>N</replaceable> function, semantic error: unresolved function call</title>
+<!-- next 2 indexterms for unresolved function call -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>unresolved function call</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>unresolved function call</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>unresolved function call</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>unresolved function call</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>	
+
+<indexterm>
+<primary>function call (unresolved)</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
 <para>A function call or array index expression in the script used an invalid
 	number of arguments/parameters. In SystemTap
 	<firstterm>arity</firstterm> can either refer to the number of indices
@@ -125,6 +375,36 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: array locals not supported:</title>
+	
+<!-- next 2 indexterms for non-global arrays -->
+<indexterm>
+<primary>array locals not supported</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>non-global arrays</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>non-global arrays</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>non-global arrays</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>non-global arrays</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
 	<para>The script used an array operation without declaring the array as
 	a global variable (global variables can be declared after their use in
 	Systemtap scripts). Similar messages appear if an array is used, but with inconsistent arities.</para>
@@ -132,11 +412,63 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: variable ’<replaceable>foo</replaceable>’ modiﬁed during ’foreach’</title>
+<!-- next 2 indexterms for variable modified during 'foreach' -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>variable modified during 'foreach'</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>variable modified during 'foreach'</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>variable modified during 'foreach'</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>variable modified during 'foreach'</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
 	<para>The array <literal>foo</literal> is being modifed (being assigned to or deleted from) within an active <command>foreach</command> loop. This error also displays if an operation within the script performs a function call within the <command>foreach</command> loop.</para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: probe point mismatch at position <replaceable>N</replaceable>, while resolving probe point <replaceable>foo</replaceable></title>
+
+
+<!-- next 2 indexterms for probe mismatch -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>probe mismatch</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>probe mismatch</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>probe mismatch</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>probe mismatch</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
 	<para>SystemTap did not understand what the event or SystemTap function
 	<computeroutput><replaceable>foo</replaceable></computeroutput> refers
 	to. This usually means that SystemTap could not find a match for
@@ -149,16 +481,106 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: no match for probe point, while resolving probe point <replaceable>foo</replaceable></title>
+
+
+<!-- next 2 indexterms for no match for probe point -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>no match for probe point</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>no match for probe point</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>no match for probe point</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>no match for probe point</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>probe point (no match for)</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
 	<para>The events / handler function <computeroutput><replaceable>foo</replaceable></computeroutput> could not be resolved altogether, for a variety of reasons. This error occurs when the script contains the event <command>kernel.function("<replaceable>blah</replaceable>")</command>, and <command><replaceable>blah</replaceable></command> does not exist. In some cases, the error could also mean the script contains an invalid kernel file name or source line number.</para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: unresolved target-symbol expression</title>
+<!-- next 2 indexterms for unresolved target-symbol expression -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>unresolved target-symbol expression</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>unresolved target-symbol expression</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>unresolved target-symbol expression</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>unresolved target-symbol expression</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>target-symbol expression, unresolved</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>
 	<para>A handler in the script references a target variable, but the value of the variable could not be resolved. This error could also mean that a handler is referencing a target variable that is not valid at all in the context when it was referenced. </para>
 </formalpara>
 
 <formalpara>
 	<title>semantic error: libdwﬂ failure </title>
+	
+<!-- next 2 indexterms for libdwfl failure -->
+
+<indexterm>
+<primary>understanding SystemTap errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>libdwfl failure</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>libdwfl failure</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>parse/semantics error</primary>
+<secondary>understanding SystemTap errors</secondary>
+<tertiary>libdwfl failure</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>libdwfl failure</primary>
+<secondary>parse/semantics error</secondary>
+<tertiary>understanding SystemTap errors</tertiary>
+</indexterm>	
 	<para>There was a problem processing the debugging information. In most
 	cases, this error results from the installation of a
 	<filename>kernel-debuginfo</filename> RPM whose version does not match
@@ -180,13 +602,54 @@ probe syscall.open
 
 <section id="runtimeerror">
 	<title>Run Time Errors and Warnings</title>
-	<para>
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+</indexterm>
+	
+
+<para>
 		Runtime errors and warnings occur when the SystemTap
 		instrumentation has been installed and is collecting data on
 		the system.
 	</para>
 
 <formalpara><title>WARNING: Number of errors: <replaceable>N</replaceable>, skipped probes: <replaceable>M</replaceable></title>
+<!-- next 2 indexterms for number of errors: N, skipped probes: M -->
+
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>number of errors: N, skipped probes: M</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>number of errors: N, skipped probes: M</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+<tertiary>number of errors: N, skipped probes: M</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>number of errors: N, skipped probes: M</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
 <para>
 	Errors and/or skipped probes occurred during this run. Both 
 	<replaceable>N</replaceable> and <replaceable>M</replaceable> are
@@ -197,12 +660,69 @@ probe syscall.open
 </formalpara>
 
 <formalpara><title>division by 0</title>
+<!-- next 2 indexterms for division by 0 -->
+
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>division by 0</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>division by 0</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+<tertiary>division by 0</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>division by 0</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>invalid division</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
+
 <para>
 	The script code performed an invalid division.
 </para>
 </formalpara>
 
 <formalpara><title>aggregate element not found</title>
+<!-- next 2 indexterms for aggregate element not found -->
+
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>aggregate element not found</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>aggregate element not found</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+<tertiary>aggregate element not found</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>aggregate element not found</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
 <para>
 	An statistics extractor function other than <command>@count</command>
 	was invoked on an aggregate that has not had any values accumulated yet.
