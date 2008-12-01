@@ -735,6 +735,36 @@ probe syscall.open
 </formalpara>
 
 <formalpara><title>aggregation overflow</title>
+<!-- next 3 indexterms for aggregation overflow -->
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>aggregation overflow</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>aggregation overflow</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+<tertiary>aggregation overflow</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>aggregation overflow</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
+<indexterm>
+<primary>overflow of aggregation</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>	
+	
 <para>
 An array containing aggregate values contains too many distinct key pairs at this time.
 </para>	
@@ -745,12 +775,73 @@ An array containing aggregate values contains too many distinct key pairs at thi
 
 
 <formalpara><title>MAXNESTING exceeded</title>
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>MAXNESTING exceeded</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>MAXNESTING exceeded</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+<tertiary>MAXNESTING exceeded</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>MAXNESTING exceeded</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>exceeded MAXNESTING</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
+
 <para>
 	Too many levels of function call nesting were attempted.
 </para>
 </formalpara>
 
 <formalpara><title>MAXACTION exceeded</title>
+<!-- next 2 indexterms for MAXACTION exceeded -->
+
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>MAXACTION exceeded</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>MAXACTION exceeded</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+<tertiary>MAXACTION exceeded</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>MAXACTION exceeded</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>	
+
+<indexterm>
+	<primary>exceeded MAXACTION</primary>
+	<secondary>runtime errors/warnings</secondary>
+	<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
 <para>
     The probe handler attempted to execute too many statements in the probe handler.
 </para>
@@ -758,13 +849,65 @@ An array containing aggregate values contains too many distinct key pairs at thi
 
 <formalpara><title>kernel/user string copy fault at
       <replaceable>ADDR</replaceable></title>
+<!-- next 2 indexterms for copy fault -->
+
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>copy fault</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>copy fault</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+<tertiary>copy fault</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>copy fault</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>
 <para>
 	The probe handler attempted to copy a string from kernel or
-	user space at an invalid address (<replaceable>ADDR</replaceable>.
+	user space at an invalid address (<replaceable>ADDR</replaceable>).
 </para>
 </formalpara>
 
 <formalpara><title>pointer dereference fault</title>
+
+
+<!-- next 2 indexterms for pointer dereference fault -->
+
+<indexterm>
+<primary>understainding SystemTap errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>pointer dereference fault</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>errors</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>pointer dereference fault</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>runtime errors/warnings</primary>
+<secondary>understainding SystemTap errors</secondary>
+<tertiary>pointer dereference fault</tertiary>
+</indexterm>
+
+<indexterm>
+<primary>pointer dereference fault</primary>
+<secondary>runtime errors/warnings</secondary>
+<tertiary>understainding SystemTap errors</tertiary>
+</indexterm>	
 <para>
 	There was a fault encountered during a pointer
 	dereference operation such as a target variable evaluation.
