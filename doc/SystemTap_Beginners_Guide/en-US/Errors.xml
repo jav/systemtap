@@ -113,8 +113,8 @@
 
 <para>
       It results in the following error message showing that the parser was
-      expecting something other than the <command>probe</command> in column 1 of
-      line 2:
+      expecting something other than the <command>probe</command> keyword in
+      column 1 of line 2:
 </para>
 <para>
 <programlisting>
@@ -290,8 +290,8 @@ probe syscall.open
 </indexterm>	
 <para>The identifier (e.g. a variable) was used, but no type (integer or
 	string) could be determined. This occurs, for instance, if you use a
-	variable in a <command>printf</command> statement while no other
-	function in the script can assign a value to it.</para>
+	variable in a <command>printf</command> statement while
+	the script never assigns a value to the variable.</para>
 </formalpara>
 
 <formalpara>
@@ -374,7 +374,7 @@ probe syscall.open
 </formalpara>
 
 <formalpara>
-	<title>semantic error: array locals not supported:</title>
+	<title>semantic error: array locals not supported, missing global declaration?</title>
 	
 <!-- next 2 indexterms for non-global arrays -->
 <indexterm>
@@ -411,7 +411,7 @@ probe syscall.open
 </formalpara>
 
 <formalpara>
-	<title>semantic error: variable ’<replaceable>foo</replaceable>’ modiﬁed during ’foreach’</title>
+	<title>semantic error: variable ’<replaceable>foo</replaceable>’ modiﬁed during ’foreach’ iteration</title>
 <!-- next 2 indexterms for variable modified during 'foreach' -->
 
 <indexterm>
@@ -550,7 +550,11 @@ probe syscall.open
 <secondary>parse/semantics error</secondary>
 <tertiary>understanding SystemTap errors</tertiary>
 </indexterm>
-	<para>A handler in the script references a target variable, but the value of the variable could not be resolved. This error could also mean that a handler is referencing a target variable that is not valid at all in the context when it was referenced. </para>
+	<para>A handler in the script references a target variable, but the
+	value of the variable could not be resolved. This error could also mean
+	that a handler is referencing a target variable that is not valid
+	in the context when it was referenced. This may be a result of compiler
+        optimization of the generated code.</para>
 </formalpara>
 
 <formalpara>
@@ -748,7 +752,7 @@ An array containing aggregate values contains too many distinct key pairs at thi
 
 <formalpara><title>MAXACTION exceeded</title>
 <para>
-    The probe handler attempted to execute too many statements.
+    The probe handler attempted to execute too many statements in the probe handler.
 </para>
 </formalpara>
 
