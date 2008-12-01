@@ -898,9 +898,11 @@ struct dwflpp
     static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
 
     static char *debuginfo_path = (debuginfo_env_arr ?
-                                   debuginfo_env_arr : debuginfo_path_arr);
+				   debuginfo_env_arr : sess.kernel_build_tree.size () ?
+				   (char *) sess.kernel_build_tree.c_str() : debuginfo_path_arr);
     static const char *debug_path = (debuginfo_env_arr ?
-                                   debuginfo_env_arr : sess.kernel_release.c_str());
+				     debuginfo_env_arr : sess.kernel_build_tree.size () ?
+				     sess.kernel_build_tree.c_str() : sess.kernel_release.c_str());
 
     static const Dwfl_Callbacks kernel_callbacks =
       {
@@ -951,7 +953,8 @@ struct dwflpp
     // XXX: this is where the session -R parameter could come in
     static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
     static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-    static char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
+    static char *debuginfo_path = (debuginfo_env_arr ?: sess.kernel_build_tree.size () ?
+				   (char *) sess.kernel_build_tree.c_str() : debuginfo_path_arr);
 
     static const Dwfl_Callbacks user_callbacks =
       {
@@ -8712,8 +8715,13 @@ mark_builder::build(systemtap_session & sess,
   if (! cache_initialized)
     {
       cache_initialized = true;
-      string module_markers_path = "/lib/modules/" + sess.kernel_release
+      string module_markers_path;
+      if (! sess.kernel_build_tree.size ())
+	module_markers_path = "/lib/modules/" + sess.kernel_release
 	  + "/build/Module.markers";
+      else
+	module_markers_path = sess.kernel_build_tree + "/Module.markers";
+	
 
       ifstream module_markers;
       module_markers.open(module_markers_path.c_str(), ifstream::in);

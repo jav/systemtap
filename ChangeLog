@@ -1,3 +1,18 @@
+2008-12-01  Rajan Arora  <rarora@redhat.com>
+
+	PR 5892: Add -B and parameterize all occurences of /lib/modules/...
+	* buildrun.cxx (compile_pass, kernel_built_uprobes): Audit
+	mentions of /lib/modules/... with path to kernel_build_tree
+	provided by -B.
+	* tapsets.cxx (setup_kernel, setup_user, mark_builder::build):
+	Likewise.
+	* translate.cxx (emit_symbol_data): Likewise.
+	* session.h (struct systemtap_session): New member kernel_build_tree.
+	* main.cxx (main): Add case for 'B' and attempt to fetch Version for
+	the kernel build tree using include/config/kernel.release in build
+	path, remove -r REV implies -p4 logic altogether.
+	
+
 2008-11-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	Warnings cleanup.

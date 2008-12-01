@@ -150,8 +150,12 @@ compile_pass (systemtap_session& s)
   o.close ();
 
   // Generate module directory pathname and make sure it exists.
-  string module_dir = string("/lib/modules/")
-    + s.kernel_release + "/build";
+  string module_dir;
+  if (! s.kernel_build_tree.size ())
+    module_dir = string("/lib/modules/")
+      + s.kernel_release + "/build";
+  else
+    module_dir = s.kernel_build_tree;
   struct stat st;
   rc = stat(module_dir.c_str(), &st);
   if (rc != 0)
@@ -176,14 +180,20 @@ static const string uprobes_home = string(PKGDATADIR "/runtime/uprobes");
 
 /*
  * If uprobes was built as part of the kernel build (either built-in
- * or as a module), the uprobes exports should show up in
- * /lib/modules/`uname -r`/build/Module.symvers.  Return true if so.
+ * or as a module), the uprobes exports should show up in either
+ * /lib/modules/`uname -r`/build/Module.symvers or in the oddball
+ * directory where the user's kernel is built.  Return true if so.
  */
 static bool
 kernel_built_uprobes (systemtap_session& s)
 {
-  string grep_cmd = string ("/bin/grep -q unregister_uprobe /lib/modules/")
-    + s.kernel_release + string ("/build/Module.symvers");
+  string grep_cmd;
+  if (! s.kernel_build_tree.size ())
+    grep_cmd = string ("/bin/grep -q unregister_uprobe /lib/modules/")
+      + s.kernel_release + string ("/build/Module.symvers");
+  else
+    grep_cmd = string ("/bin/grep -q unregister_uprobe ") + 
+      s.kernel_build_tree + string ("/Module.symvers");
   int rc = system (grep_cmd.c_str());
   return (rc == 0);
 }

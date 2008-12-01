@@ -328,7 +328,6 @@ main (int argc, char * const argv [])
   string cmdline_script; // -e PROGRAM
   string script_file; // FILE
   bool have_script = false;
-  bool release_changed = false;
   bool save_module = false;
 
   // Initialize defaults
@@ -435,7 +434,7 @@ main (int argc, char * const argv [])
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:F",
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:B:m:kgPc:x:D:bs:uqwl:d:L:F",
                                                           long_options, NULL);
       if (grc < 0)
         break;
@@ -551,8 +550,35 @@ main (int argc, char * const argv [])
 
         case 'r':
           s.kernel_release = string (optarg);
-	  release_changed = true;
           break;
+
+	case 'B':
+	  s.kernel_build_tree = string (optarg);
+	  {
+	    string version_file_name = s.kernel_build_tree
+	      + "/include/config/kernel.release";
+	    // The file include/config/kernel.release within the
+	    // build tree is used to pull out the version information
+	    // : Failing which -B is ignored
+	      
+	    ifstream version_file (version_file_name.c_str());
+	    if (version_file.fail ())
+	      {
+		cerr << "error: No file: " << version_file_name 
+		     << " found" << endl;
+		cerr << "Please check path to -B again" << endl;
+		s.kernel_build_tree = "";
+	      }
+	    else 
+	      {
+		char c;
+		string kernel_build_version;
+		while (version_file.get(c) && c != '\n')
+		  kernel_build_version.push_back(c);
+		s.kernel_release = kernel_build_version;
+	      }
+	  }
+	  break;
 
         case 'k':
           s.keep_tmpdir = true;
@@ -712,12 +738,16 @@ main (int argc, char * const argv [])
         s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
     }
 
-  if (s.last_pass > 4 && release_changed)
-    {
-      if (s.verbose)
-        cerr << "Warning: changing last pass to 4 since cross-compiling" << endl;
-      s.last_pass = 4;
-    }
+  //  Since the introduction of -B, the logic of -r REV implies -p4 is dropped.
+  //  If the version of kernel build tree specified by -B is not the same as 
+  //  `uname -r`, stap will give a failure message in pass5 anyways.
+  //
+  //  if (s.last_pass > 4 && release_changed)
+  //  {
+  //    if (s.verbose)
+  //      cerr << "Warning: changing last pass to 4 since cross-compiling" << endl;
+  //    s.last_pass = 4;
+  //  }
 
   for (int i = optind; i < argc; i++)
     {

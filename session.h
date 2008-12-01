@@ -81,6 +81,7 @@ struct systemtap_session
   std::vector<std::string> args;
   std::string kernel_release;
   std::string kernel_base_release;
+  std::string kernel_build_tree;
   std::string architecture;
   std::string runtime_path;
   std::string data_path;

@@ -4710,9 +4710,11 @@ emit_symbol_data (systemtap_session& s)
   static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
 
   static char *debuginfo_path = (debuginfo_env_arr ?
-                                 debuginfo_env_arr : debuginfo_path_arr);
-  static const  char *debug_path = (debuginfo_env_arr ?
-                                    debuginfo_env_arr : s.kernel_release.c_str());
+                                 debuginfo_env_arr : s.kernel_build_tree.size () ?
+				 (char *) s.kernel_build_tree.c_str() : debuginfo_path_arr);
+  static const char *debug_path = (debuginfo_env_arr ?
+				   debuginfo_env_arr : s.kernel_build_tree.size () ?
+				   s.kernel_build_tree.c_str() : s.kernel_release.c_str());
 
   // ---- step 1: process any kernel modules listed
   static const Dwfl_Callbacks kernel_callbacks =
