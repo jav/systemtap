@@ -1,0 +1,13 @@
+if {![installtest_p]} {
+    untested global_stat
+    return
+}
+
+spawn stap -e {global var; probe never {var<<<1} probe begin {exit()}}
+expect {
+    -timeout 60
+    "var @count=0x0" { pass "global_stat" }
+    timeout {fail "global_stat: unexpected timeout"}
+    eof {fail "global_stat: unexpected EOF"}
+}
+wait;close
