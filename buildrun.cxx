@@ -1,5 +1,5 @@
 // build/run probes
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -268,11 +268,9 @@ run_pass (systemtap_session& s)
 {
   int rc = 0;
 
-  struct passwd *pw = getpwuid(getuid());
-  string username = string(pw->pw_name);
-
   // for now, just spawn staprun
-  string staprun_cmd = string(BINDIR) + "/staprun "
+  string staprun_cmd = string(getenv("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun")
+    + " "
     + (s.verbose>1 ? "-v " : "")
     + (s.verbose>2 ? "-v " : "")
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");

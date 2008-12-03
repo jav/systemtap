@@ -1,3 +1,12 @@
+2008-12-03  Roland McGrath  <roland@redhat.com>
+
+	PR7063
+	* staprun.c (main): Use $SYSTEMTAP_STAPIO instead of hard-coded path.
+	Remove SYSTEMTAP_STAPRUN and SYSTEMTAP_STAPIO
+	environment variables when setuid is in effect.
+	* mainloop.c (cleanup_and_exit): Use $SYSTEMTAP_STAPRUN to re-exec,
+	not hard-coded path.
+
 2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6925
@@ -97,9 +106,9 @@
 
 	* cap.c (init_cap): Detect capabilities failure and
 	run with them disabled.
-	
+
 2008-04-22  Martin Hunt  <hunt@redhat.com>
-	
+
 	* mainloop.c (send_request): Move here from common.c
 	staprun no longer send any messages.
 
@@ -109,7 +118,7 @@
 
 2008-04-21  Martin Hunt <hunt@redhat.com>
 
-	* staprun.c, stapio.c, staprun.h, mainloop.c, staprun_funcs.c, 
+	* staprun.c, stapio.c, staprun.h, mainloop.c, staprun_funcs.c,
 	ctl.c, common.c: Add "-d" option to have staprun remove
 	modules. Have staprun exec stapio and then have stapio
 	exec "staprun -d" to remove the module when finished.
@@ -130,22 +139,22 @@
 
 2008-01-14  Martin Hunt  <hunt@redhat.com>
 
-	PR4037 and fixes to better synchronize staprun and stapio.	
+	PR4037 and fixes to better synchronize staprun and stapio.
 	* symbols.c (send_data): Send header and data seperately, saving
 	a memcpy and avoiding any alignment issues.
 	(get_sections): Return -1 on error instead of just exiting
-	and leaving stapio hanging. Send data in proper format even if kernel 
+	and leaving stapio hanging. Send data in proper format even if kernel
 	pointers are different size.
 	(send_module): Return -1 on error instead of just exiting
 	and leaving stapio hanging.
 	(do_module): Ditto.
 	(compar): Removed.
-	(do_kernel_symbols): Rewrite to be more robust. Return -1 on 
+	(do_kernel_symbols): Rewrite to be more robust. Return -1 on
 	error instead of just exiting and leaving stapio hanging.
-	
+
 	* staprun_funcs.c (handle_symbols): Signal stapio if we error out.
 	Set kernel_ptr_size;
-	
+
 	* staprun.h (kernel_ptr_size): Declare.
 
 	* mainloop.c (stp_main_loop): When ready, send STP_READY.
@@ -159,8 +168,8 @@
 	PR5368
 	* relay_old.c (init_oldrelayfs): Don't start threads
 	if load_only.
-	* relay.c (init_relayfs): Ditto.	
-	
+	* relay.c (init_relayfs): Ditto.
+
 2007-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* mainloop.c (stp_main_loop): Bump recvbuf to 8196 for
@@ -173,7 +182,7 @@
 
 2007-10-12  Martin Hunt  <hunt@redhat.com>
 	Changes to separate the symbols from the command channel.
-	
+
 	* cap.c (init_cap): Add CAP_DAC_OVERRIDE.
 	* staprun.h: Change init_ctl_channel prototype.
 	* ctl.c (init_ctl_channel): Modify to open either
@@ -185,7 +194,7 @@
 	* staprun_funcs.c (handle_symbols): Make a thread.
 	(start_symbol_thread): New.
 	(stop_symbol_thread): New.
-	
+
 2007-10-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* staprun.c (main): Move checks for init_cap and getuid
@@ -215,7 +224,7 @@
 
 2007-08-21  Martin Hunt  <hunt@redhat.com>
 
-	* mainloop.c (start_cmd): Send SIGINT to target_cmd, 
+	* mainloop.c (start_cmd): Send SIGINT to target_cmd,
 	not stapio.
 
 2007-08-20  David Smith  <dsmith@redhat.com>
@@ -234,8 +243,8 @@
 	before removing module.
 
 2007-08-15  Martin Hunt  <hunt@redhat.com>
-	
-	* stap_merge.tcl: New. 
+
+	* stap_merge.tcl: New.
 
 2007-08-14  David Smith  <dsmith@redhat.com>
 
@@ -284,7 +293,7 @@
 	* staprun_funcs.c: New file.
 	* Makefile: Removed.
 
-	* symbols.c (get_sections): Move the filter code up so that 
+	* symbols.c (get_sections): Move the filter code up so that
 	uninteresting section names are filtered out before
 	attempting to open them.
 	(do_kernel_symbols): Better detect overfow conditions and realloc
@@ -365,12 +374,12 @@
 
 	* mainloop.c (init_staprun): Change dbug() call.
 
-	* relay.c: Fix ppoll() call and some race conditions involving 
+	* relay.c: Fix ppoll() call and some race conditions involving
 	signals.
 
 2007-05-10  Martin Hunt  <hunt@redhat.com>
 
-	* relay.c (reader_thread): Set timeout for streaming to 
+	* relay.c (reader_thread): Set timeout for streaming to
 	200ms.
 
 2007-05-09  Martin Hunt  <hunt@redhat.com>
@@ -383,7 +392,7 @@
 	* relay.c (ppoll): Add a compatibility function for
 	glibc < 2.4.
 
-2007-05-08  Martin Hunt  <hunt@redhat.com>	
+2007-05-08  Martin Hunt  <hunt@redhat.com>
 	Signal handler cleanup.
 	* mainloop.c (fatal_handler): New. Cleanly handle
 	unexpected fatal signals.
@@ -391,7 +400,7 @@
 	is entered.
 	(setup_signals): New. Block certain signals during initialization.
 	Set handler for fatal signals.
-	* relay.c (reader_thread): Use ppoll(). Terminate on 
+	* relay.c (reader_thread): Use ppoll(). Terminate on
 	SIGUSR2 after reading any remaining data.
 	(close_relayfs): Remove sleep hack. Send SIGUSR2 to all threads.
 
@@ -402,12 +411,12 @@
 
 2007-05-07  Martin Hunt  <hunt@redhat.com>
 	Patch from David Smith
-	* mainloop.c (stp_main_loop): Properly handle write() 
+	* mainloop.c (stp_main_loop): Properly handle write()
 	return value. Fixes build problem with some compilers.
 
 2007-04-10  Martin Hunt  <hunt@redhat.com>
 
-	* relay.c (close_relayfs): Give threads some time to 
+	* relay.c (close_relayfs): Give threads some time to
 	run before closing.
 
 2007-04-06  Martin Hunt  <hunt@redhat.com>
@@ -436,15 +445,15 @@
 	(cleanup_and_exit): If closed==2, just exit without removing module.
 	(driver_poll): Remove. We no longer require stap running.
 	(_stp_main_loop): Remove call to driver_poll.
-	
+
 	* ctl.c (init_ctl_channel): Don't put files in systemtap_pid,
 	revert back to systemtap/modulename.
 
 	* relay.c: Revert back to systemtap/modulename paths.
 	* relay_old.c: Ditto.
-	
+
 	* staprun.c: Add -L and -A args.
-	
+
 2007-03-20  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (send_module): If send returns < 0 then
@@ -455,11 +464,11 @@
 	* staprun.h (err): Define.
 	* symbols.c (get_sections): More overflow checking.
 
-2007-03-18  Martin Hunt  <hunt@redhat.com>	
-	* symbols.c (get_sections): Filter out .gnu.linkonce.* sections 
+2007-03-18  Martin Hunt  <hunt@redhat.com>
+	* symbols.c (get_sections): Filter out .gnu.linkonce.* sections
 	except for .gnu.linkonce.this_module.
 
-2007-03-18  Martin Hunt  <hunt@redhat.com>	
+2007-03-18  Martin Hunt  <hunt@redhat.com>
 	* staprun.h (VERSION_CMD): Command to use for version check.
 	Changes to support runtime decision on new or old transport.
 	* mainloop.c (init_staprun): Check the kernel version at runtime
@@ -472,7 +481,7 @@
 
 2007-03-14  Martin Hunt  <hunt@redhat.com>
 
-	* staprun.c: Renamed from stpd.c. Removed quiet and print_only 
+	* staprun.c: Renamed from stpd.c. Removed quiet and print_only
 	options. Added "-x" option as an alias for "-t". Removed "-m"
 	option. Updated arg processing to leave 4 slots for modoptions[].
 	Bump the priority of staprun.
@@ -482,10 +491,10 @@
 	versions of relayfs.
 	* mainloop.c: New. Staprun main loop.
 	* staprun.h: Renamed from librelay.h. Cleaned up.
-	
+
 	* stap_merge.c: Renamed. Updated for modified save format.
 
-	
+
 2006-12-11  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (get_sections): Set buffer sizes to large enough
@@ -501,18 +510,18 @@
 
 	* librelay.c: Change all references to transport messages
 	to use the new names with "_stp" prefix.
-	(stp_main_loop): For STP_SYMBOLS, check pointer size and 
+	(stp_main_loop): For STP_SYMBOLS, check pointer size and
 	endianess to confirm staprun is compatible with the kernel.
 
 	* librelay.h: Move a bunch of common includes here.
 	* stpd.c: Cleanup includes.
 	* symbols.c: Ditto.
-	
+
 2006-11-02  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c: New file. Sends symbol and module information to
 	the systemtap module.
-	
+
 	* librelay.c (stp_main_loop): Add STP_MODULE and STP_SYMBOLS
 	message handling.
 
@@ -522,7 +531,7 @@
 	Added symbols.c to sources.
 
 2006-10-10  Tom Zanussi  <zanussi@us.ibm.com>
-	
+
 	* librelay.c (merge_output): Add check for min when writing
 	output, otherwise last write happens twice.
 
@@ -531,9 +540,9 @@
 	* Makefile: Changed 'stpd' references to 'staprun'.
 	* librelay.c: Ditto.
 	* stpd.c: Ditto.
-	
+
 2006-09-25  Tom Zanussi  <zanussi@us.ibm.com>
-	
+
 	* librelay.c (kill_percpu_threads): Remove printf.
 	(wait_for_percpu_threads): New.
 	(process_subbufs): Remove processing, processing_mutex, exit
@@ -541,14 +550,14 @@
 	(read_last_buffers): Removed.
 	(cleanup_and_exit): Remove call to read_last_buffers, wait for
 	threads to read flushed buffers instead.
-	(stp_main_loop): Remove mutex init.	
+	(stp_main_loop): Remove mutex init.
 
 2006-09-22  Tom Zanussi  <zanussi@us.ibm.com>
-	
+
 	* librelay.c (init_relayfs): Cleanup if stp_check fails.
 
 2006-09-19  Tom Zanussi  <zanussi@us.ibm.com>
-	
+
 	* librelay.c (init_relayfs): Add debugfs path to relay files and
 	add new systemtap directory to path.
 	(init_stp): rmmod module on failure.
@@ -576,7 +585,7 @@
 
 	* stpd.c (usage): Remove "-r" option.
 	(main): Don't find stpd_filebase and don't send it to init_stp().
-	
+
 
 2006-08-02  Tom Zanussi  <zanussi@us.ibm.com>
 
@@ -605,18 +614,18 @@
 
 2006-04-08  Martin Hunt  <hunt@redhat.com>
 
-	* librelay.c (stp_main_loop): Write with fwrite() instead 
+	* librelay.c (stp_main_loop): Write with fwrite() instead
 	of fputs() so we can write binary data.
 
 2006-04-05  Martin Hunt  <hunt@redhat.com>
 	* librelay.c (merge_output): Remove ANSI codes and write
 	warning to stderr.
 
-2006-04-05  Martin Hunt  <hunt@redhat.com>	
+2006-04-05  Martin Hunt  <hunt@redhat.com>
 	* librelay.c (merge_output): Set the output filename if necessary.
-	(merge_output): 
+	(merge_output):
 
-	* stpd.c (main): Don't reset output_filename just because 
+	* stpd.c (main): Don't reset output_filename just because
 	relayfs is possible. Move that code to librelay.c.
 
 2006-04-04  Roland McGrath  <roland@redhat.com>

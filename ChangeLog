@@ -1,3 +1,8 @@
+2008-12-03  Roland McGrath  <roland@redhat.com>
+
+	PR7063
+	* buildrun.cxx (run_pass): Obey SYSTEMTAP_STAPRUN environment variable.
+
 2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6925
@@ -30,7 +35,7 @@
 	* main.cxx (main): Add case for 'B' and attempt to fetch Version for
 	the kernel build tree using include/config/kernel.release in build
 	path, remove -r REV implies -p4 logic altogether.
-	
+
 
 2008-11-29  Frank Ch. Eigler  <fche@elastic.org>
 
@@ -103,17 +108,17 @@
 2008-11-25  Will Cohen <wcohen@redhat.com>
 
 	* scripts/kernel-doc: Clean up SystemTap function formatting.
-	
+
 2008-11-25  Will Cohen <wcohen@redhat.com>
 
 	* scripts/kernel-doc: Make executable.
-	
+
 2008-11-25  Will Cohen <wcohen@redhat.com>
 
 	* scripts/kernel-doc: New.
 	* configure.ac: Add doc/SystemTap_Tapset_Reference/Makefile.
 	* configure, doc/SystemTap_Tapset_Reference/Makefile.in: Regenerate.
-	
+
 2008-11-25  Mark Wielaard  <mjw@redhat.com>
 
 	* tapsets.cxx (dwarf_derived_probe_group::emit_module_exit):
@@ -153,7 +158,7 @@
 	* translate.cxx (emit_module_exit): Perform shutdown probe
 	synchronization after all unregistrations and end/error probe
 	runs.
-	
+
 2008-11-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5689
@@ -193,7 +198,7 @@
 2008-11-13  Wenji Huang  <wenji.huang@oracle.com>
 
         PR 7000
-        * translate.cxx (c_unparser::visit_print_format): Add checking bound 
+        * translate.cxx (c_unparser::visit_print_format): Add checking bound
 	for actual parameters.
 
 2008-11-13  Frank Ch. Eigler  <fche@elastic.org>
@@ -214,7 +219,7 @@
 
 2008-11-06  Stan Cox  <scox@redhat.com>
 
-	* tapsets.cxx (dwflpp::module_address_to_global): 
+	* tapsets.cxx (dwflpp::module_address_to_global):
 	ET_EXEC needs no further relocation.
 
 2008-11-04  Frank Ch. Eigler  <fche@elastic.org>
@@ -246,7 +251,7 @@
 
 	* tapsets.cxx (literal_stmt_for_return): Add function name and file
 	to semantic error messages.
-	
+
 2008-10-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (dump_unwindsyms): Work on CONFIG_RELOCATABLE=n
@@ -397,7 +402,7 @@
 
 	* stap-client (staprun_PATH): Ensure that $first_stap is not empty.
 	* stap-start-server: Use 'ps' to check that the server started.
-	
+
 2008-09-12  Masami Hiramatsu <mhiramat@redhat.com>
 
 	BZ 6028

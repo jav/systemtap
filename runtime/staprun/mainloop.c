@@ -144,7 +144,7 @@ void start_cmd(void)
       {
         /* The user must have used a shell metacharacter, thinking that
            we use system(3) to evaluate 'stap -c CMD'.  We could generate
-           an error message ... but let's just do what the user meant.  
+           an error message ... but let's just do what the user meant.
            rhbz 467652. */
         sh_c_argv[0] = "sh";
         sh_c_argv[1] = "-c";
@@ -153,15 +153,15 @@ void start_cmd(void)
       }
     else
       {
-        switch (rc) 
+        switch (rc)
           {
-          case 0: 
+          case 0:
             break;
           case WRDE_SYNTAX:
             _err ("wordexp: syntax error (unmatched quotes?) in -c COMMAND\n");
             _exit(1);
           default:
-            _err ("wordexp: parsing error (%d)\n", rc); 
+            _err ("wordexp: parsing error (%d)\n", rc);
             _exit (1);
           }
         if (words.we_wordc < 1) { _err ("empty -c COMMAND"); _exit (1); }
@@ -356,9 +356,16 @@ void cleanup_and_exit(int detach)
   if (detach) {
     err("\nDisconnecting from systemtap module.\n" "To reconnect, type \"staprun -A %s\"\n", modname);
   } else {
+    const char *staprun = getenv ("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun";
     dbug(2, "removing %s\n", modname);
-    if (execl(BINDIR "/staprun", "staprun", "-d", modname, NULL) < 0) {
-      perror(modname);
+    if (execlp(staprun, basename (staprun), "-d", modname, NULL) < 0) {
+      if (errno == ENOEXEC) {
+	char *cmd;
+	if (asprintf(&cmd, "%s -d '%s'", staprun, modname) > 0)
+	  execl("/bin/sh", "sh", "-c", cmd, NULL);
+	free(cmd);
+      }
+      perror(staprun);
       _exit(1);
     }
   }
