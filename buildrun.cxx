@@ -37,7 +37,7 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
 {
   // Before running make, fix up the environment a bit.  PATH should
   // already be overridden.  Clean out a few variables that
-  // /lib/modules/${KVER}/build/Makefile uses.
+  // s.kernel_build_tree/Makefile uses.
   int rc = unsetenv("ARCH") || unsetenv("KBUILD_EXTMOD")
       || unsetenv("CROSS_COMPILE") || unsetenv("KBUILD_IMAGE")
       || unsetenv("KCONFIG_CONFIG") || unsetenv("INSTALL_PATH");
@@ -151,11 +151,7 @@ compile_pass (systemtap_session& s)
 
   // Generate module directory pathname and make sure it exists.
   string module_dir;
-  if (! s.kernel_build_tree.size ())
-    module_dir = string("/lib/modules/")
-      + s.kernel_release + "/build";
-  else
-    module_dir = s.kernel_build_tree;
+  module_dir = s.kernel_build_tree;
   struct stat st;
   rc = stat(module_dir.c_str(), &st);
   if (rc != 0)
@@ -181,19 +177,13 @@ static const string uprobes_home = string(PKGDATADIR "/runtime/uprobes");
 /*
  * If uprobes was built as part of the kernel build (either built-in
  * or as a module), the uprobes exports should show up in either
- * /lib/modules/`uname -r`/build/Module.symvers or in the oddball
- * directory where the user's kernel is built.  Return true if so.
+ * s.kernel_build_tree / Module.symvers.  Return true if so.
  */
 static bool
 kernel_built_uprobes (systemtap_session& s)
 {
-  string grep_cmd;
-  if (! s.kernel_build_tree.size ())
-    grep_cmd = string ("/bin/grep -q unregister_uprobe /lib/modules/")
-      + s.kernel_release + string ("/build/Module.symvers");
-  else
-    grep_cmd = string ("/bin/grep -q unregister_uprobe ") + 
-      s.kernel_build_tree + string ("/Module.symvers");
+  string grep_cmd = string ("/bin/grep -q unregister_uprobe ") + 
+    s.kernel_build_tree + string ("/Module.symvers");
   int rc = system (grep_cmd.c_str());
   return (rc == 0);
 }

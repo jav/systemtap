@@ -1,3 +1,16 @@
+2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5982: rename -B to -r
+	* main.cxx (main): Treat -r REV and -r /PATH as complimentary.
+	Imply -p4 if target mismatches host versions.
+	(usage): Document -r more.
+	* hash.cxx (find_hash): Add in the kernel_build_tree.
+	* buildrun.cxx (compile_pass, kernel_built_uprobes): Simplify
+	logic.
+	* tapsets.cxx (setup_kernel, setup_user): Ditto.
+	* translate.cxx (emit_symbol_data): Ditto.
+	* stap.1.in: Document -r /PATH.
+
 2008-12-01  Rajan Arora  <rarora@redhat.com>
 
 	PR 5892: Add -B and parameterize all occurences of /lib/modules/...

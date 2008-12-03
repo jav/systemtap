@@ -1,7 +1,8 @@
 * What's new
 
-- A new stap -B option is now available which enables user to sic systemtap
-  at a kernel build tree in any oddball directory.
+- The stap "-r DIR" option may be used to identify a hand-made kernel
+  build directory.  The tool determines the appropriate release string
+  automatically from the directory.
 
 - A serious problem associated with user-space probing in shared libraries
   was corrected, making it now possible to experiment with probe shared

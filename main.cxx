@@ -102,14 +102,14 @@ usage (systemtap_session& s, int exitcode)
   clog
     << "   -D NM=VAL  emit macro definition into generated C code" << endl
     << "   -R DIR     look in DIR for runtime, instead of" << endl
-    <<      "              " << s.runtime_path << endl
-    << "   -r RELEASE cross-compile to kernel RELEASE, instead of "
-    << s.kernel_release << endl
-    << "   -m MODULE  set probe module name, instead of "
-    << s.module_name << endl
-    << "   -o FILE    send output to file, instead of stdout" << endl
-    << "   -c CMD     start the probes, run CMD, and exit when it finishes"
-    << endl
+    << "              " << s.runtime_path << endl
+    << "   -r DIR     cross-compile to kernel with given build tree; or else" << endl
+    << "   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of" << endl
+    << "              " << s.kernel_build_tree << endl
+    << "   -m MODULE  set probe module name, instead of " << endl
+    << "              " << s.module_name << endl
+    << "   -o FILE    send script output to file, instead of stdout" << endl
+    << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
     << "   -x PID     sets target() to PID" << endl
     << "   -F         load module and start probes, then detach" << endl
     << "   -d OBJECT  add unwind/symbol data for OBJECT file";
@@ -335,6 +335,8 @@ main (int argc, char * const argv [])
   struct utsname buf;
   (void) uname (& buf);
   s.kernel_release = string (buf.release);
+  s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
+
   s.architecture = string (buf.machine);
   for (unsigned i=0; i<5; i++) s.perpass_verbose[i]=0;
   s.timing = false;
@@ -434,7 +436,7 @@ main (int argc, char * const argv [])
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:B:m:kgPc:x:D:bs:uqwl:d:L:F",
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:F",
                                                           long_options, NULL);
       if (grc < 0)
         break;
@@ -549,36 +551,32 @@ main (int argc, char * const argv [])
           break;
 
         case 'r':
-          s.kernel_release = string (optarg);
+          if (optarg[0] == '/') // fully specified path
+            {
+              s.kernel_build_tree = optarg;
+              string version_file_name = s.kernel_build_tree + "/include/config/kernel.release";
+              // The file include/config/kernel.release within the
+              // build tree is used to pull out the version information
+              ifstream version_file (version_file_name.c_str());
+              if (version_file.fail ())
+                {
+                  cerr << "Missing " << version_file_name << endl;
+                  usage (s, 1);
+                }
+              else 
+                {
+                  char c;
+                  s.kernel_release = "";
+                  while (version_file.get(c) && c != '\n')
+                    s.kernel_release.push_back(c);
+                }
+            }
+          else
+            {
+              s.kernel_release = string (optarg);
+              s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
+            }
           break;
-
-	case 'B':
-	  s.kernel_build_tree = string (optarg);
-	  {
-	    string version_file_name = s.kernel_build_tree
-	      + "/include/config/kernel.release";
-	    // The file include/config/kernel.release within the
-	    // build tree is used to pull out the version information
-	    // : Failing which -B is ignored
-	      
-	    ifstream version_file (version_file_name.c_str());
-	    if (version_file.fail ())
-	      {
-		cerr << "error: No file: " << version_file_name 
-		     << " found" << endl;
-		cerr << "Please check path to -B again" << endl;
-		s.kernel_build_tree = "";
-	      }
-	    else 
-	      {
-		char c;
-		string kernel_build_version;
-		while (version_file.get(c) && c != '\n')
-		  kernel_build_version.push_back(c);
-		s.kernel_release = kernel_build_version;
-	      }
-	  }
-	  break;
 
         case 'k':
           s.keep_tmpdir = true;
@@ -738,16 +736,15 @@ main (int argc, char * const argv [])
         s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
     }
 
-  //  Since the introduction of -B, the logic of -r REV implies -p4 is dropped.
-  //  If the version of kernel build tree specified by -B is not the same as 
-  //  `uname -r`, stap will give a failure message in pass5 anyways.
-  //
-  //  if (s.last_pass > 4 && release_changed)
-  //  {
-  //    if (s.verbose)
-  //      cerr << "Warning: changing last pass to 4 since cross-compiling" << endl;
-  //    s.last_pass = 4;
-  //  }
+  // Warn in case the target kernel release doesn't match the running one.
+  if (s.last_pass > 4 &&
+      (string(buf.release) != s.kernel_release ||
+       string(buf.machine) != s.architecture))
+   {
+     if(! s.suppress_warnings)
+       cerr << "WARNING: kernel release/architecture mismatch with host forces last-pass 4." << endl;
+     s.last_pass = 4;
+   }
 
   for (int i = optind; i < argc; i++)
     {

@@ -888,28 +888,23 @@ struct dwflpp
   }
 
 
+  // XXX: See also translate.cxx:emit_symbol_data
+
   void setup_kernel(bool debuginfo_needed = true)
   {
     if (! sess.module_cache)
       sess.module_cache = new module_cache ();
 
-    // XXX: this is where the session -R parameter could come in
-    static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
-    static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-
-    static char *debuginfo_path = (debuginfo_env_arr ?
-				   debuginfo_env_arr : sess.kernel_build_tree.size () ?
-				   (char *) sess.kernel_build_tree.c_str() : debuginfo_path_arr);
-    static const char *debug_path = (debuginfo_env_arr ?
-				     debuginfo_env_arr : sess.kernel_build_tree.size () ?
-				     sess.kernel_build_tree.c_str() : sess.kernel_release.c_str());
+    static const char *debuginfo_path_arr = "-:.debug:/usr/lib/debug:build";
+    static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
+    static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr );
 
     static const Dwfl_Callbacks kernel_callbacks =
       {
 	dwfl_linux_kernel_find_elf,
 	dwfl_standard_find_debuginfo,
 	dwfl_offline_section_address,
-        & debuginfo_path
+        (char **) & debuginfo_path
       };
 
     dwfl = dwfl_begin (&kernel_callbacks);
@@ -917,16 +912,28 @@ struct dwflpp
       throw semantic_error ("cannot open dwfl");
     dwfl_report_begin (dwfl);
 
+    // We have a problem with -r REVISION vs -r BUILDDIR here.  If
+    // we're running against a fedora/rhel style kernel-debuginfo
+    // tree, s.kernel_build_tree is not the place where the unstripped
+    // vmlinux will be installed.  Rather, it's over yonder at
+    // /usr/lib/debug/lib/modules/$REVISION/.  It seems that there is
+    // no way to set the dwfl_callback.debuginfo_path and always
+    // passs the plain kernel_release here.  So instead we have to
+    // hard-code this magic here.
+    string elfutils_kernel_path;
+    if (sess.kernel_build_tree == string("/lib/modules/" + sess.kernel_release + "/build"))
+      elfutils_kernel_path = sess.kernel_release;
+    else
+      elfutils_kernel_path = sess.kernel_build_tree;      
+
     int rc = dwfl_linux_kernel_report_offline (dwfl,
-                                               debug_path,
+                                               elfutils_kernel_path.c_str(),
                                                NULL);
 
     if (debuginfo_needed)
-      dwfl_assert (string("missing kernel ") +
-                   sess.kernel_release +
-                   string(" ") +
-                   sess.architecture +
-                   string(" debuginfo"),
+      dwfl_assert (string("missing ") + sess.architecture +
+                   string(" kernel/module debuginfo under '") +
+                   sess.kernel_build_tree + string("'"),
                    rc);
 
     // XXX: it would be nice if we could do a single
@@ -950,18 +957,18 @@ struct dwflpp
 
   void setup_user(string module_name, bool debuginfo_needed = true)
   {
-    // XXX: this is where the session -R parameter could come in
-    static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
-    static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-    static char *debuginfo_path = (debuginfo_env_arr ?: sess.kernel_build_tree.size () ?
-				   (char *) sess.kernel_build_tree.c_str() : debuginfo_path_arr);
+    static const char *debuginfo_path_arr = "-:.debug:/usr/lib/debug:build";
+    static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
+    // NB: kernel_build_tree doesn't enter into this, as it's for
+    // kernel-side modules only.
+    static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
 
     static const Dwfl_Callbacks user_callbacks =
       {
         NULL, /* dwfl_linux_kernel_find_elf, */
         dwfl_standard_find_debuginfo,
         dwfl_offline_section_address,
-        & debuginfo_path
+        (char **) & debuginfo_path
       };
 
     dwfl = dwfl_begin (&user_callbacks);
@@ -8715,14 +8722,8 @@ mark_builder::build(systemtap_session & sess,
   if (! cache_initialized)
     {
       cache_initialized = true;
-      string module_markers_path;
-      if (! sess.kernel_build_tree.size ())
-	module_markers_path = "/lib/modules/" + sess.kernel_release
-	  + "/build/Module.markers";
-      else
-	module_markers_path = sess.kernel_build_tree + "/Module.markers";
-	
-
+      string module_markers_path = sess.kernel_build_tree + "/Module.markers";
+      
       ifstream module_markers;
       module_markers.open(module_markers_path.c_str(), ifstream::in);
       if (! module_markers)

@@ -4706,15 +4706,9 @@ emit_symbol_data (systemtap_session& s)
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, s.unwindsym_modules };
 
   // XXX: copied from tapsets.cxx dwflpp::, sadly
-  static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
-  static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-
-  static char *debuginfo_path = (debuginfo_env_arr ?
-                                 debuginfo_env_arr : s.kernel_build_tree.size () ?
-				 (char *) s.kernel_build_tree.c_str() : debuginfo_path_arr);
-  static const char *debug_path = (debuginfo_env_arr ?
-				   debuginfo_env_arr : s.kernel_build_tree.size () ?
-				   s.kernel_build_tree.c_str() : s.kernel_release.c_str());
+  static const char *debuginfo_path_arr = "-:.debug:/usr/lib/debug:build";
+  static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
+  static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
 
   // ---- step 1: process any kernel modules listed
   static const Dwfl_Callbacks kernel_callbacks =
@@ -4722,14 +4716,31 @@ emit_symbol_data (systemtap_session& s)
       dwfl_linux_kernel_find_elf,
       dwfl_standard_find_debuginfo,
       dwfl_offline_section_address,
-      & debuginfo_path
+      (char **) & debuginfo_path
     };
 
   Dwfl *dwfl = dwfl_begin (&kernel_callbacks);
   if (!dwfl)
     throw semantic_error ("cannot open dwfl");
   dwfl_report_begin (dwfl);
-  int rc = dwfl_linux_kernel_report_offline (dwfl, debug_path, NULL /* XXX: filtering callback */);
+
+  // We have a problem with -r REVISION vs -r BUILDDIR here.  If
+  // we're running against a fedora/rhel style kernel-debuginfo
+  // tree, s.kernel_build_tree is not the place where the unstripped
+  // vmlinux will be installed.  Rather, it's over yonder at
+  // /usr/lib/debug/lib/modules/$REVISION/.  It seems that there is
+  // no way to set the dwfl_callback.debuginfo_path and always
+  // passs the plain kernel_release here.  So instead we have to
+  // hard-code this magic here.
+  string elfutils_kernel_path;
+  if (s.kernel_build_tree == string("/lib/modules/" + s.kernel_release + "/build"))
+    elfutils_kernel_path = s.kernel_release;
+  else
+    elfutils_kernel_path = s.kernel_build_tree;      
+
+  int rc = dwfl_linux_kernel_report_offline (dwfl, 
+                                             elfutils_kernel_path.c_str(),
+                                             NULL /* XXX: filtering callback */);
   dwfl_report_end (dwfl, NULL, NULL);
   if (rc == 0) // tolerate missing data; will warn user about it anyway
     {
@@ -4752,7 +4763,7 @@ emit_symbol_data (systemtap_session& s)
       NULL, /* dwfl_linux_kernel_find_elf, */
       dwfl_standard_find_debuginfo,
       dwfl_offline_section_address,
-      & debuginfo_path
+      (char **) & debuginfo_path
     };
 
   for (std::set<std::string>::iterator it = s.unwindsym_modules.begin();

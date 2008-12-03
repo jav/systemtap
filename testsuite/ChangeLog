@@ -1,3 +1,7 @@
+2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/debugpath.exp: Correct test case for new -r behavior.
+
 2008-11-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/uprobes.exp: Simplify -p5 test.

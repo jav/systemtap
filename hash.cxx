@@ -90,6 +90,7 @@ find_hash (systemtap_session& s, const string& script)
 
   // Hash kernel release and arch.
   h.add(s.kernel_release);
+  h.add(s.kernel_build_tree);
   h.add(s.architecture);
 
   // Hash user-specified arguments (that change the generated module).

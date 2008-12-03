@@ -1,6 +1,6 @@
 
 set test "debugpath-bad"
-spawn env SYSTEMTAP_DEBUGINFO_PATH=/dev/null stap -e "probe kernel.function(\"sys_open\") {}" -p4
+spawn env SYSTEMTAP_DEBUGINFO_PATH=/dev/null stap -e "probe kernel.function(\"sys_open\") {}" -wp4
 expect {
 	-re {^semantic error:.*missing.*debuginfo} { pass $test }
 	timeout { fail "$test (timeout1)" }
@@ -13,15 +13,15 @@ set test "debugpath-good"
 set uname [exec /bin/uname -r]
 
 # Guess where debuginfo is installed
-if [file isdirectory /usr/lib/debug/lib/modules/$uname] {
-  set debuginfo_path "/usr/lib/debug/lib/modules/$uname"
+if [file isdirectory /usr/lib/debug] {
+  set debuginfo_path "/usr/lib/debug"
 } elseif [file isdirectory /lib/modules/$uname/build] {
   set debuginfo_path "/lib/modules/$uname/build"
 } else {
   set debuginfo_path "/lib/modules/$uname"
 }
 
-spawn env SYSTEMTAP_DEBUGINFO_PATH=$debuginfo_path stap -e "probe kernel.function(\"sys_open\") {}" -p2
+spawn env SYSTEMTAP_DEBUGINFO_PATH=$debuginfo_path stap -e "probe kernel.function(\"sys_open\") {}" -wp2
 expect {
 	-re {kernel.function.*pc=} { pass $test }
 	timeout { fail "$test (timeout2)" }

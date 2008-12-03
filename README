@@ -90,25 +90,18 @@ Tips:
   /lib/modules/`uname -r`/vmlinux
   /lib/modules/`uname -r`/build/vmlinux
 
+
 Building a kernel.org kernel:
 
 - Build the kernel using your normal procedures.  Enable
-  CONFIG_DEBUG_INFO, CONFIG_KPROBES, and optionally CONFIG_RELAY and
-  CONFIG_DEBUG_FS.
-- Run "make install modules_install headers_install" as needed.
+  CONFIG_DEBUG_INFO, CONFIG_KPROBES, CONFIG_RELAY and CONFIG_DEBUG_FS.
+- % make modules_install install headers_install
 - Boot into the kernel.
-- Make sure the large unstripped kernel image 'vmlinux' from your
-  build can be found by systemtap (see above)  You can just symlink
-  it to one of these locations.
-- Symlink your build directory to here:
-  /lib/modules/`uname -r`/build
-- For example, if your kernel source is in /home/me/linux/2.6.17-rc6
-  and you build your kernel in the source directory, you would do
-  this (be sure you are running the right kernel or `uname -r`
-  will be wrong:)
-     ln -s /home/me/linux/2.6.17-rc6/vmlinux /boot/vmlinux-`uname -r`
-     mkdir /usr/src/kernels  (if needed)
-     ln -s /home/me/linux/2.6.17-rc6 /usr/src/kernels/`uname -r`
-     mkdir /lib/modules/`uname -r`  (if needed)
-     ln -s /home/me/linux/2.6.17-rc6 /lib/modules/`uname -r`/build
-     ln -s /home/me/linux/2.6.17-rc6 /lib/modules/`uname -r`/source
+
+- If you wish to leave the kernel build tree in place, simply run
+  % stap -r /path/to/kernel/build/tree [...]
+  You're done.
+
+- Or else, if you wish to install the kernel build/debuginfo data into
+  a place where systemtap will find it without the "-r" option:
+  % ln -s /path/to/kernel/build/tree /lib/modules/RELEASE/build 
