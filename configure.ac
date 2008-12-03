@@ -249,3 +249,11 @@ if test $build_elfutils = yes; then
   )
 fi
 
+if test "${prefix}" = "/usr/local"; then
+   AC_MSG_NOTICE([])
+   AC_MSG_NOTICE([For a private or temporary build of systemtap, we recommend])
+   AC_MSG_NOTICE([configuring with a prefix.  For example, try])
+   AC_MSG_NOTICE([$0 $ac_configure_args --prefix=$HOME/systemtap-${PACKAGE_VERSION}-$$])
+   AC_MSG_NOTICE([Running systemtap uninstalled, entirely out of the build tree,])
+   AC_MSG_NOTICE([is not supported.])
+fi

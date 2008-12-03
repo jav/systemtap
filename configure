@@ -8664,3 +8664,17 @@ echo "$as_me: running ${elfutils_srcdir}/configure" >&6;}
   )
 fi
 
+if test "${prefix}" = "/usr/local"; then
+   { echo "$as_me:$LINENO: " >&5
+echo "$as_me: " >&6;}
+   { echo "$as_me:$LINENO: For a private or temporary build of systemtap, we recommend" >&5
+echo "$as_me: For a private or temporary build of systemtap, we recommend" >&6;}
+   { echo "$as_me:$LINENO: configuring with a prefix.  For example, try" >&5
+echo "$as_me: configuring with a prefix.  For example, try" >&6;}
+   { echo "$as_me:$LINENO: $0 $ac_configure_args --prefix=$HOME/systemtap-${PACKAGE_VERSION}-$$" >&5
+echo "$as_me: $0 $ac_configure_args --prefix=$HOME/systemtap-${PACKAGE_VERSION}-$$" >&6;}
+   { echo "$as_me:$LINENO: Running systemtap uninstalled, entirely out of the build tree," >&5
+echo "$as_me: Running systemtap uninstalled, entirely out of the build tree," >&6;}
+   { echo "$as_me:$LINENO: is not supported." >&5
+echo "$as_me: is not supported." >&6;}
+fi

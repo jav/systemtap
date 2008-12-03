@@ -1,5 +1,11 @@
 2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR6925
+	* configure.ac: Suggest --prefix if configured without.
+	* configure: Regenerated.
+
+2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 5982: rename -B to -r
 	* main.cxx (main): Treat -r REV and -r /PATH as complimentary.
 	Imply -p4 if target mismatches host versions.
