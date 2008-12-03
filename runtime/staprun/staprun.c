@@ -136,6 +136,7 @@ static int enable_uprobes(void)
 static int insert_stap_module(void)
 {
 	char bufsize_option[128];
+
 	if (snprintf_chk(bufsize_option, 128, "_stp_bufsize=%d", buffer_size))
 		return -1;
 	return insert_module(modpath, bufsize_option, modoptions);
@@ -209,8 +210,17 @@ int init_staprun(void)
 	else if (!attach_mod) {
 		if (need_uprobes && enable_uprobes() != 0)
 			return -1;
-		if (insert_stap_module() < 0)
-			return -1;
+		if (insert_stap_module() < 0) {
+                  /* staprun or stapio might have crashed or been SIGKILL'd,
+                     without first removing the kernel module.  This would block
+                     a subsequent rerun attempt.  So here we gingerly try to
+                     unload it first. */
+                  int ret = delete_module (modname, O_NONBLOCK);
+                  err("Retrying, after attempted removal of module %s (rc %d)\n", modname, ret); 
+                  /* Then we try an insert a second time.  */
+                  if (insert_stap_module() < 0)
+                    return -1;
+                }
                 if (send_relocations() < 0)
                   	return -1;
 	}

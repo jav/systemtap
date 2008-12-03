@@ -1,3 +1,9 @@
+2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR6925
+	* staprun (init_staprun): If a stap_* module load fails, try
+	to unload possible leftover, and try again.
+
 2008-11-28  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR4783
