@@ -134,6 +134,12 @@ Unoptimized mode.  Disable unused code elision during elaboration.
 .B \-w
 Suppressed warnings mode.  Disable warning messages for elided code in user script.
 .TP
+.BI \-B " DIR"
+Build for a kernel tree in the given directory instead of currently 
+running one. This will try to fetch release information for the build 
+tree from include/config/kernel.release under the specified directory, 
+failing which -B will be ignored.
+.TP
 .BI \-b
 Use bulk mode (percpu files) for kernel-to-user data transfer.
 .TP
