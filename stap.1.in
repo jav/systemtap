@@ -156,7 +156,7 @@ be used to override limit parameters described below.
 .BI \-R " DIR"
 Look for the systemtap runtime sources in the given directory.
 .TP
-.BI \-r " DIR"
+.BI \-r " /DIR"
 Build for kernel in given build tree.
 .TP
 .BI \-r " RELEASE"

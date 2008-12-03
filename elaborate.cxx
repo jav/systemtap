@@ -1243,7 +1243,43 @@ void add_global_var_display (systemtap_session& s)
 	    }
 	  else
 	    pf->args.push_back(g_sym);
-	  b->statements.push_back(feb);
+
+	  /* PR7053: Checking empty aggregate for global variable */
+	  if (l->type == pe_stats) {
+              stat_op *so= new stat_op;
+              so->ctype = sc_count;
+              so->type = pe_long;
+              so->stat = g_sym;
+              so->tok = l->tok;
+              comparison *be = new comparison;
+              be->op = ">";
+              be->tok = l->tok;
+              be->left = so;
+              be->right = new literal_number(0);
+
+              /* Create printf @count=0x0 in else block */
+              print_format* pf_0 = new print_format;
+              pf_0->print_to_stream = true;
+              pf_0->print_with_format = true;
+              pf_0->print_with_delim = false;
+              pf_0->print_with_newline = false;
+              pf_0->print_char = false;
+              pf_0->raw_components += l->name;
+              pf_0->raw_components += " @count=0x0\\n";
+              pf_0->tok = print_tok;
+              pf_0->components = print_format::string_to_components(pf_0->raw_components);
+              expr_statement* feb_else = new expr_statement;
+              feb_else->value = pf_0;
+              feb_else->tok = print_tok;
+              if_statement *ifs = new if_statement;
+              ifs->tok = l->tok;
+              ifs->condition = be;
+              ifs->thenblock = feb ;
+              ifs->elseblock = feb_else;
+              b->statements.push_back(ifs);
+	    }
+	  else /* other non-stat cases */
+	    b->statements.push_back(feb);
 	}
       else			// Array
 	{
