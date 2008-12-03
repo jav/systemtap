@@ -1,5 +1,10 @@
 2008-12-03  Roland McGrath  <roland@redhat.com>
 
+	PR6925
+	* run-stap.in: New file.
+	* configure.ac: Generate run-stap from it.
+	* configure: Regenerated.
+
 	PR7063
 	* buildrun.cxx (run_pass): Obey SYSTEMTAP_STAPRUN environment variable.
 
