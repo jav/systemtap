@@ -178,7 +178,18 @@ delta = gettimeofday_s() - foo[tid()]
 </screen>
 </example>
 
-<para>In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated with the returned value of the handler function <command>tid()</command> as a <emphasis>reference point</emphasis>. The second statement computes a value for the variable <command>delta</command> by subtracting the associated value the reference point from the current <command>gettimeofday_s()</command>. Note that the first statement writes the value of <command>gettimeofday_s()</command> into the appropriate key of array <literal>foo</literal>, while in the second statement the value of <command>foo[tid()]</command> is <emphasis>read</emphasis> from the array in order to compute for <literal>delta</literal>.</para>
+<para>
+	In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated 
+	with the returned value of the handler function <command>tid()</command> as a 
+	<emphasis>reference point</emphasis>.
+	The second statement computes a value for the variable 
+	<command>delta</command> by subtracting the associated value the reference point from the 
+	current <command>gettimeofday_s()</command>. Note that the first statement writes the value 
+	of <command>gettimeofday_s()</command> into the appropriate key of array 
+	<literal>foo</literal>, while in the second statement the value of 
+	<command>foo[tid()]</command> is <emphasis>read</emphasis> from the array in order to compute 
+	for <literal>delta</literal>.
+</para>
 
 <indexterm>
 	<primary>reading values from arrays</primary>

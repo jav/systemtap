@@ -156,6 +156,8 @@
 <xi:include href="Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <xi:include href="ScriptConstructs.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <xi:include href="Arrays.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include href="Array-Operations.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
+
 <!--	
 	<section id="understanding-scripts">
 		<title>SystemTap Scripts</title>

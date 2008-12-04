@@ -13,7 +13,10 @@
 <primary>associative arrays</primary>
 <secondary>introduction</secondary>
 </indexterm>	
-<para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it. Illustrating this visually would be similar to creating a two-column table: the first column would have the unique key, while the second column would have each key's associated value. Each unique key and its associated value is referred to as a <emphasis>key pair</emphasis>.</para>
+
+<para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it.</para>
+
+<!--<para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a list of values. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it. Illustrating this visually would be similar to creating a two-column table: the first column would have the unique key, while the second column would have each key's associated value. Each unique key and its associated value is referred to as a <emphasis>key pair</emphasis>.</para>-->
 
 <!-- next 2 indexterms for key pairs -->
 
@@ -156,62 +159,19 @@ foo["harry"] = 25
 </screen>
 </example>
 
+<para>You can specify up to 5 index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to perform the same operation to a set of key pairs. For example, to increase the associated value of all the key pairs defined by <xref linkend="arraysimplestexample"/>, you can use the following statement:</para>
+
+<screen>
+foo["tom","dick","harry"] ++
+</screen>
+
 <important>
 	<title>Important</title>
 	<para>All associate arrays must be declared as <command>global</command>, regardless of whether the associate array is used in one or multiple probes. </para>
 </important>
 
 
-<section id="tuples">
-	<title>Array Slots</title>
-<!-- next 2 indexterms for slots -->
 
-<indexterm>
-<primary>arrays</primary>
-<secondary>introduction</secondary>
-<tertiary>slots</tertiary>
-</indexterm>
-
-<indexterm>
-<primary>associative arrays</primary>
-<secondary>introduction</secondary>
-<tertiary>slots</tertiary>
-</indexterm>
-
-<indexterm>
-<primary>slots</primary>
-<secondary>introduction</secondary>
-<tertiary>arrays</tertiary>
-</indexterm>	
-<para>Another important point to remember in arrays is that each element therein (i.e. the indexed expression) exists in a <emphasis>slot</emphasis>. A key pair's slot is defined by the order in which each pair's unique key is defined. In our sample array <command>foo</command> in <xref linkend="arraysimplestexample"/>, the key pair that uses the unique key <command>tom</command> is in the first slot, since <command>tom</command> was the first unique key to be defined. <command>dick</command> is in the second slot, and so on.</para>
-
-<!--
-<para>The sequence in which each key pair appears in an array (as defined by each pair's slot) is referred to as a <emphasis>tuple</emphasis>. Tuples allow us to refer to key pairs in an array by the order in which they appear in the sequence.</para>-->
-
-<para>For example, the array statements in <xref linkend="arraysimplestexample"/> set 23 as the associated value of the unique key <command>tom</command>. Given the same array <command>foo</command>, we can increment the associated value of <command>tom</command> by 1 using the operator <command>++</command>, like so:</para>
-
-<screen>
-foo["tom"] ++
-</screen>
-
-<para>The above statement will increase the associated value of unique key <command>tom</command> to 24. Now, looking back at <xref linkend="arraysimplestexample"/>, we know that <command>dick</command> was the first unique key to be defined. As such, we can perform the same operation (i.e. incrementing associated value by 1) to <command>dick</command> using the following statement:</para>
-
-<screen>
-foo[2] ++
-</screen>
-
-<note>
-	<title>Note</title>
-	<para>You can specify up to 5 index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to perform the same operation to a set of key pairs. For example, to increase the associated value of all the key pairs defined by <xref linkend="arraysimplestexample"/>, you can use the following statement:</para>
-	
-<screen>
-foo["tom",2,"harry"] ++
-</screen>
-</note>
-
-
-</section>	
-<xi:include href="Array-Operations.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
 <!--	
 <varlistentry>
 	<term></term>
