@@ -36,8 +36,12 @@
 	<remark>case studies and more info on some scripts here - http://sourceware.org/systemtap/wiki/WarStories</remark>
 	
 <!-- 	<xi:include href="Useful_Scripts-Disk.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
-<xi:include href="Useful_Scripts-futexes.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	
+<section id="mainsect-network">
+	<title>Network</title>
+	<para>The following sections showcase scripts that trace network-related functions and build a profile of network activity.</para>
+	<xi:include href="Useful_Scripts-nettop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-sockettrace.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</section>		
 <section id="mainsect-disk">
 	<title>Disk</title>
 	<para>The following sections showcase scripts that monitor disk and I/O activity.</para>
@@ -61,12 +65,8 @@
 </section>
 <!-- 	removed; handler function no longer working as expected
 	<xi:include href="Useful_Scripts-kernelprofiling.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
-<section id="mainsect-network">
-	<title>Network</title>
-	<para>The following sections showcase scripts that trace network-related functions and build a profile of network activity.</para>
-	<xi:include href="Useful_Scripts-nettop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	<xi:include href="Useful_Scripts-sockettrace.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</section>	
+
+<xi:include href="Useful_Scripts-futexes.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 
 <!--	<xi:include href="Useful_Scripts-Network.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Signals.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
