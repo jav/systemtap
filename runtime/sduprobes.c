@@ -9,14 +9,6 @@
 #include <stddef.h>
 #define unused __attribute__ ((unused))
 
-int _stap_probe_sentinel = 0;
-
-void
-_stap_probe_start()
-{
-   _stap_probe_sentinel = 1;
-}
-
 int
 _stap_probe_0 (char* probe unused)
 {

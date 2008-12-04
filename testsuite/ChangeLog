@@ -1,3 +1,7 @@
+2008-12-04  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp (STAP_PROBE_START): Remove.
+
 2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/debugpath.exp: Correct test case for new -r behavior.

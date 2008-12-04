@@ -36,8 +36,6 @@ buz ()
 main ()
 {
   sleep(5);
-  STAP_PROBE_START();
-  _stap_probe_start (); // in lieu of setting SYSTEM_SDT
   foo();
   bar(2);
   baz(3,\"abc\");

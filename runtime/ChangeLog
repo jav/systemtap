@@ -1,3 +1,9 @@
+2008-12-04  Stan Cox  <scox@redhat.com>
+
+	* sduprobes.c (STAP_PROBE_START): Remove.
+	* sduprobes.h (STAP_PROBE_START): Remove.
+	(DTRACE_PROBE): New.
+	
 2008-11-26  Stan Cox  <scox@redhat.com>
 
 	* sduprobes.h (STAP_PROBE1): Add USE_STAP_DEBUGINFO_PROBE.
