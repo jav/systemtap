@@ -1,5 +1,4 @@
-probe kernel.function ("vfs_write"),
-      kernel.function ("vfs_read")
+probe vfs.write, vfs.read
 {
   dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
   inode_nr = $file->f_dentry->d_inode->i_ino
