@@ -46,10 +46,22 @@
 </programlisting>
 </para>
 </formalpara>
+<!--
+<remark>what do $return, $length, and $count return, specifically? when i substituted $return for $length here, script still ran but gave me bigger numbers. errored out with $length. where documented?</remark>-->
 
-<remark>what do $return, $length, and $count return, specifically? when i substituted $return for $length here, script still ran but gave me bigger numbers. errored out with $length. where documented?</remark>
+<para>
+	<xref linkend="traceio"/> prints the top ten executables generating I/O traffic over time. In
+	addition, it also tracks the cumulative amount of I/O reads and writes done by those ten 
+	executables. This information is tracked and printed out in 1-second intervals, and in 
+	descending order.
+</para>
 
-<para><xref linkend="traceio"/> is similar to <xref linkend="iotop"/> (from <xref linkend="iotopsect"/>); both SystemTap scripts print out the top ten executables generating I/O traffic over time. However, <xref linkend="traceio"/> tracks the <emphasis>cumulative</emphasis> amount of I/O reads and writes done by the system's top ten executables. This information is tracked and printed out in 1-second intervals and in descending order.</para>
+<para>
+	Note that <xref linkend="traceio"/> also uses the local variable <command>$return</command>,
+	which is also used by <xref linkend="scriptdisktop"/> from <xref linkend="disktop"/>.
+</para>
+
+<!--<para><xref linkend="traceio"/> is similar to <xref linkend="iotop"/> (from <xref linkend="iotopsect"/>); both SystemTap scripts print out the top ten executables generating I/O traffic over time. However, <xref linkend="traceio"/> tracks the <emphasis>cumulative</emphasis> amount of I/O reads and writes done by the system's top ten executables. This information is tracked and printed out in 1-second intervals and in descending order.</para>-->
 
 <example id="traceiooutput">
 	<title><xref linkend="traceio"/> Sample Output</title>

@@ -40,7 +40,7 @@
 </para>
 </formalpara>
 
-<remark>what does $count do, specifically?</remark>
+<!-- <remark>what does $count do, specifically?</remark> -->
 
 <para><xref linkend="iotop"/> prints out the top ten executables generating I/O traffic every 5-second interval, in descending order. Its output contains the process name and the amount of data read or written by the process, in KB. For example:</para>
 

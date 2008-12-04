@@ -1,0 +1,140 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+	<section id="iotimesect">
+		<title>Tracking I/O Time For Each File Read or Write</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring I/O time</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring I/O time</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring I/O time</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>I/O time, monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>time of I/O </primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<!-- 	<para>This section describes how to monitor I/O time on the system.</para> -->
+	
+<para>
+	This section describes how to monitor the amount of time it takes for each process to read 
+	from or write to any file. This is useful if you wish to determine what files are slow to 
+	load on a given system.
+</para>
+
+<formalpara id="iotime">
+	<title>iotime.stp</title>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/iotime-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>
+
+<para>
+	<xref linkend="iotime"/> tracks each time a system call opens, closes, reads from, and writes 
+	to a file. For each file any system call accesses, <xref linkend="iotime"/> counts the number 
+	of microseconds it takes for any reads or writes to finish and tracks the amount of data (in 
+	bytes) read from or written to the file.
+</para>
+
+<para>
+	<xref linkend="iotime"/> also uses the local variable <command>$count</command> to track the 
+	amount of data (in bytes) that any system call <emphasis>attempts</emphasis> to read or 
+	write. Note that <command>$return</command> (as used in <xref linkend="scriptdisktop"/> from 
+	<xref linkend= "disktop"/>) stores the <emphasis>actual</emphasis> amount of data 
+	read/written. <command>$count</command> can only be used on probes that track data reads or 
+	writes (e.g. <command>syscall.read</command> and <command>syscall.write</command>).
+</para>
+
+<!--<remark>what does $count do, specifically?</remark>-->
+
+<example id="iotimeoutput">
+	<title><xref linkend="iotime"/> Sample Output</title>
+<screen>
+[...]
+3123380 2460 (pcscd) access /dev/bus/usb/005/001 read: 0 write: 0
+825946 3364 (NetworkManager) access /sys/class/net/eth0/carrier read: 8190 write: 0
+825955 3364 (NetworkManager) iotime /sys/class/net/eth0/carrier time: 9
+117061 2460 (pcscd) access /dev/bus/usb/003/001 read: 43 write: 0
+117065 2460 (pcscd) iotime /dev/bus/usb/003/001 time: 7
+3973737 2886 (sendmail) access /proc/loadavg read: 4096 write: 0
+3973744 2886 (sendmail) iotime /proc/loadavg time: 11
+[...]
+</screen>
+</example>
+
+<para>
+	<xref linkend="iotimeoutput"/> prints out the following data: 
+</para>	
+
+<itemizedlist>
+	<listitem><para>A timestamp, in microseconds</para></listitem>
+	<listitem><para>Process ID and process name</para></listitem>
+	<listitem><para>An <computeroutput>access</computeroutput> or  
+		<computeroutput>iotime</computeroutput> flag</para></listitem>   
+	<listitem><para>The file accessed</para></listitem>
+</itemizedlist>
+
+<para>
+	If a process was able to read or write any data, a pair of 
+	<computeroutput>access</computeroutput> and <computeroutput>iotime</computeroutput> lines 
+	should appear together. The <computeroutput>access</computeroutput> line's timestamp refer to 
+	the time that a given process started accessing a file; at the end of the line, it will show 
+	the amount of data read/written (in bytes). The <computeroutput>iotime</computeroutput> line 
+	will show the amount of time (in microseconds) that the process took in order to perform the 
+	read or write.
+</para>
+
+<para>
+	If an <computeroutput>access</computeroutput> line is not followed by an
+	<computeroutput>iotime</computeroutput> line, it simply means that the process did not read 
+	or write any data.
+</para>
+
+<!--
+<para><xref linkend="iotopoutput"/> displays top I/O writes and reads within a random 10-second interval. Note that <xref linkend="iotop"/> also detects I/O resulting from SystemTap activity &mdash; <xref linkend="iotopoutput"/> displays reads done by <command>staprun</command>.</para>-->
+<!--
+global reads, writes, total_io
+
+probe kernel.function("vfs_read") {
+reads[execname()] += $count
+}
+
+probe kernel.function("vfs_write") {
+writes[execname()] += $count
+}
+
+# print top 10 IO processes every 5 seconds
+probe timer.s(5) {
+foreach (name in writes)
+total_io[name] += writes[name]
+foreach (name in reads)
+total_io[name] += reads[name]
+printf ("%16s\t%10s\t%10s\n", "Process", "KB Read", "KB Written")
+foreach (name in total_io- limit 10)
+printf("%16s\t%10d\t%10d\n", name,
+reads[name]/1024, writes[name]/1024)
+delete reads
+delete writes
+delete total_io
+print("\n")
+}
+-->
+
+</section>

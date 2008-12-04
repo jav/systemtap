@@ -92,8 +92,17 @@
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
 <itemizedlist>
-	<listitem><para>A <firstterm>trigger function</firstterm> (<command>@1</command>), which enables or disables tracing on a per-thread basis.</para></listitem>
-	<listitem><para>The kernel function whose entry/exit call you'd like to trace (<command>@2</command>).</para></listitem>
+
+	<listitem><para>
+			A <firstterm>trigger function</firstterm> (<command>@1</command>), which 
+			enables or disables tracing on a per-thread basis. Tracing in each thread 
+			will continue as long as the trigger function has not exited yet.  
+		</para></listitem>
+	
+	<listitem><para>
+			The kernel function/s whose entry/exit call you'd like to trace 
+			(<command>@2</command>). 
+		</para></listitem>
 </itemizedlist>
 
 <remark> please verify previous if correct; i'm particularly interested in finding out how to better describe "trigger function"</remark>

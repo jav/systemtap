@@ -4,11 +4,12 @@
 
 <bookinfo id="SystemTap_Beginners_Guide">
 	<title>SystemTap Beginners Guide</title>
-	<subtitle>For use with Red Hat Enterprise Linux 5</subtitle>
-	<edition>1.0</edition>
+	<subtitle condition="RedHat">Introduction to SystemTap (for Red Hat Enterprise Linux 5)</subtitle>
+	<subtitle condition="fedora">Introduction to SystemTap (for Fedora Core 10)</subtitle>
+	<edition>2.0</edition>
 	<productname>Red Hat Enterprise Linux</productname>
 	<productnumber>5.3</productnumber>
-	<pubsnumber>1</pubsnumber>
+	<pubsnumber>2</pubsnumber>
 	<abstract><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of &PRODUCT; in finer detail. The <citetitle>SystemTap Beginners Guide</citetitle> is recommended for users who have taken <ulink url="https://www.redhat.com/courses/rh133_red_hat_linux_system_administration_and_rhct_exam/">RHCT</ulink> or have a similar level of expertise in &PRODUCT;.</para></abstract>
 	<corpauthor>
 		<inlinemediaobject>
