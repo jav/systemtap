@@ -290,8 +290,7 @@ struct print_format: public expression
       conv_char,
       conv_memory,
       conv_literal,
-      conv_binary,
-      conv_size
+      conv_binary
     };
 
   enum width_type

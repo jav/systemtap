@@ -494,10 +494,6 @@ print_format::components_to_string(vector<format_component> const & components)
 	      oss << 'm';
 	      break;
 
-	    case conv_size:
-	      oss << 'n';
-	      break;
-
 	    default:
 	      break;
 	    }
@@ -682,10 +678,6 @@ print_format::string_to_components(string const & str)
 
 	case 'x':
 	  curr.type = conv_unsigned_lowercase_hex;
-	  break;
-
-	case 'n':
-	  curr.type = conv_size;
 	  break;
 
 	default:

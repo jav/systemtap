@@ -1167,7 +1167,7 @@ void add_global_var_display (systemtap_session& s)
           || vut.written.find (l) == vut.written.end())
 	continue;
 
-      // Don't generate synthetic end probes for unread globals 
+      // Don't generate synthetic end probes for unread globals
       // declared only within tapsets. (RHBZ 468139), but rather
       // only within the end-user script.
 
@@ -3902,8 +3902,7 @@ typeresolution_info::visit_print_format (print_format* e)
 	  if (e->components[i].type == print_format::conv_unspecified)
 	    throw semantic_error ("Unspecified conversion in print operator format string",
 				  e->tok);
-	  else if (e->components[i].type == print_format::conv_literal
-		   || e->components[i].type == print_format::conv_size)
+	  else if (e->components[i].type == print_format::conv_literal)
 	    continue;
 	  components.push_back(e->components[i]);
 	  ++expected_num_args;
@@ -3945,7 +3944,6 @@ typeresolution_info::visit_print_format (print_format* e)
 	    {
 	    case print_format::conv_unspecified:
 	    case print_format::conv_literal:
-	    case print_format::conv_size:
 	      assert (false);
 	      break;
 

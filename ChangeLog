@@ -4,6 +4,13 @@
 	to start with "+", to enable debuginfo<->stripped checksum checking.
 	* stap.1.in: Note this.
 
+2008-12-05  Kent Sebastian  <ksebasti@redhat.com>
+
+	PR7051
+	* doc/langref.tex, elaborate.cxx, runtime/vsprintf.c,
+	stap.1.in, staptree.cxx, staptree.h, translate.cxx:
+	Remove printf %n directive and references to it in documentation.
+
 2008-12-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6925
