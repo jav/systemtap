@@ -1118,7 +1118,7 @@ The location of kernel debugging information when packaged into the
 RPM, unless overridden by the
 .I SYSTEMTAP_DEBUGINFO_PATH
 environment variable.  The default value for this variable is
-.IR \-:.debug:/usr/lib/debug .
+.IR \+:.debug:/usr/lib/debug .
 Elfutils searches vmlinux in this path and it interprets the path as a base
 directory of which various subdirectories will be searched for finding modules.
 .TP

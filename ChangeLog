@@ -1,3 +1,9 @@
+2008-12-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx, translate.cxx: Set default elfutils debuginfo_path
+	to start with "+", to enable debuginfo<->stripped checksum checking.
+	* stap.1.in: Note this.
+
 2008-12-05  Kent Sebastian  <ksebasti@redhat.com>
 
 	PR7051
