@@ -4706,7 +4706,7 @@ emit_symbol_data (systemtap_session& s)
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, s.unwindsym_modules };
 
   // XXX: copied from tapsets.cxx dwflpp::, sadly
-  static const char *debuginfo_path_arr = "-:.debug:/usr/lib/debug:build";
+  static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
   static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
   static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
 

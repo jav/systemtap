@@ -895,7 +895,7 @@ struct dwflpp
     if (! sess.module_cache)
       sess.module_cache = new module_cache ();
 
-    static const char *debuginfo_path_arr = "-:.debug:/usr/lib/debug:build";
+    static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
     static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
     static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr );
 
@@ -957,7 +957,7 @@ struct dwflpp
 
   void setup_user(string module_name, bool debuginfo_needed = true)
   {
-    static const char *debuginfo_path_arr = "-:.debug:/usr/lib/debug:build";
+    static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
     static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
     // NB: kernel_build_tree doesn't enter into this, as it's for
     // kernel-side modules only.
