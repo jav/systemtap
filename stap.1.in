@@ -654,9 +654,6 @@ Signed decimal.
 %m
 Safely reads kernel memory at the given address, outputs its content.  The width specifier determines the number of bytes to read.  Default is 1 byte.
 .TP
-%n
-Parameterless.  Used in conjunction with %b.  Writes a binary value which is the total remaning size of the binary blob being written.  The width specifier determines the number of bytes this 'length value' will written as; valid specifiers are %n %1n %2n %4n.  Default (%n) is 2 bytes.  See example below.
-.TP
 %o
 Unsigned octal.
 .TP
@@ -694,10 +691,8 @@ Examples:
 		Prints: a is alice; 1234abcd or 1234ABCD or 0x1234abcd; -1 or 18446744073709551615\\n
 	printf("2 bytes of kernel buffer at address %p: %2m", p, p)
 		Prints: 2 byte of kernel buffer at address 0x1234abcd: <binary data>
-	printf("%1n%4b", p)
-		Prints (these values as binary data): 0x4 0x1234abcd
-		* the first byte (due to the 1 on %n) is the remaning number of bytes written by printf
-		* the subsequent 4 bytes is the value due to %b
+	printf("%4b", p)
+		Prints (these values as binary data): 0x1234abcd
 .ESAMPLE
 
 .SS STATISTICS

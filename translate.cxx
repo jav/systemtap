@@ -4736,9 +4736,9 @@ emit_symbol_data (systemtap_session& s)
   if (s.kernel_build_tree == string("/lib/modules/" + s.kernel_release + "/build"))
     elfutils_kernel_path = s.kernel_release;
   else
-    elfutils_kernel_path = s.kernel_build_tree;      
+    elfutils_kernel_path = s.kernel_build_tree;
 
-  int rc = dwfl_linux_kernel_report_offline (dwfl, 
+  int rc = dwfl_linux_kernel_report_offline (dwfl,
                                              elfutils_kernel_path.c_str(),
                                              NULL /* XXX: filtering callback */);
   dwfl_report_end (dwfl, NULL, NULL);

@@ -136,20 +136,19 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	int len;
 	uint64_t num;
 	int i, base;
-	char *str, *end, c;
+	char *start, *str, *end, c;
 	const char *s;
 	enum print_flag flags;		/* flags to number() */
 	int field_width;	/* width of output field */
 	int precision;		/* min. # of digits for integers; max
 				   number of chars for from string */
 	int qualifier;		/* 'h', 'l', or 'L' for integer fields */
-	char *write_len_ptr = NULL;
-	int write_len_width = 0;
 
 	/* Reject out-of-range values early */
 	if (unlikely((int) size < 0))
 		return 0;
 
+	start = buf;
 	str = buf;
 	end = buf + size - 1;
 
@@ -172,7 +171,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		case '#': flags |= STP_SPECIAL; goto repeat;
 		case '0': flags |= STP_ZEROPAD; goto repeat;
 		}
-		
+
 		/* get field width */
 		field_width = -1;
 		if (isdigit(*fmt))
@@ -190,7 +189,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		/* get the precision */
 		precision = -1;
 		if (*fmt == '.') {
-			++fmt;	
+			++fmt;
 			if (isdigit(*fmt))
 				precision = skip_atoi(&fmt);
 			else if (*fmt == '*') {
@@ -283,7 +282,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				++str;
 			}
 			continue;
-			
+
 		case 's':
 		case 'm':
 			s = va_arg(args, char *);
@@ -332,7 +331,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			flags |= STP_SIGN;
 		case 'u':
 			break;
-				
+
 		case 'p':
 			/* Note that %p takes an int64_t argument. */
 			len = 2*sizeof(void *) + 2;
@@ -363,16 +362,6 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				     16, field_width, field_width, flags);
 			continue;
 
-		case 'n':
-			write_len_ptr = str;
-			write_len_width = 2;
-			if (field_width == 1)
-				write_len_width = 1;
-			else if (field_width == 4)
-				write_len_width = 4;
-			str += write_len_width;
-			continue;
-			
 		case '%':
 			if (str <= end)
 				*str = '%';
@@ -436,29 +425,6 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			     field_width, precision, flags);
 	}
 
-	if (write_len_ptr) {
-		int written;
-		if (likely(str <= end))
-			written = str - write_len_ptr - write_len_width;
-		else
-			written = end - write_len_ptr - write_len_width;
-
-		if (likely(write_len_ptr + write_len_width < end)) {
-			switch (write_len_width) {
-			case 1: 
-				*(uint8_t *)write_len_ptr = (uint8_t)written;
-				break;
-			case 2: 
-				*(uint16_t *)write_len_ptr = (uint16_t)written;
-				break;
-
-			case 4: 
-				*(uint32_t *)write_len_ptr = (uint32_t)written;
-				break;
-			}
-		}
-	}
-	
 	if (likely(str <= end))
 		*str = '\0';
 	else if (size > 0)

@@ -1858,16 +1858,10 @@ p&
 Pointer address&
 0x0000000000bc614e\tabularnewline
 \hline 
-n&
-Writes a binary value that is the total length of the string written by printf.
-The field width specifies the number of bytes to write. Valid specifications
-are \%n, \%1n, \%2n and \%4n. The default is 2.&
-See below\tabularnewline
-\hline 
 b&
 Writes a binary value as text. The field width specifies the number of bytes
 to write. Valid specifications are \%b, \%1b, \%2b, \%4b and \%8b. The default
-width is 4 (32-bits).&
+width is 8 (64-bits).&
 See below\tabularnewline
 \hline 
 \%&
@@ -1987,7 +1981,7 @@ Another example:
 
 \begin{vindent}
 \begin{verbatim}
-stap -e 'probe begin{printf("%1n%b%b", 0xc0dedbad, \
+stap -e 'probe begin{printf("%b%b", 0xc0dedbad, \
 0x12345678);exit()}' | hexdump -C
 
 \end{verbatim}
@@ -1996,8 +1990,8 @@ This prints:
 
 \begin{vindent}
 \begin{verbatim}
-00000000  08 ad db de c0 78 56 34  12                       |.....xV4.|
-00000009
+00000000  ad db de c0 00 00 00 00  78 56 34 12 00 00 00 00  |........xV4.....|
+00000010
 \end{verbatim}
 \end{vindent}
 Another example:
