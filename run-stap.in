@@ -1,0 +1,36 @@
+#!/bin/sh
+
+srcdir='@abs_top_srcdir@'
+builddir='@abs_top_builddir@'
+
+rundir="${0%/*}"
+[ "$rundir" == "$0" ] || builddir="$rundir"
+
+# Absolutify the paths.
+case "$srcdir" in
+/*) ;;
+*) srcdir=`cd "$srcdir" && pwd` || exit ;;
+esac
+case "$builddir" in
+/*) ;;
+*) builddir=`cd "$builddir" && pwd` || exit ;;
+esac
+
+# Set all the variables to find the source and build trees.
+SYSTEMTAP_TAPSET="${srcdir}/tapset"
+SYSTEMTAP_RUNTIME="${srcdir}/runtime"
+SYSTEMTAP_STAPIO="${builddir}/stapio"
+SYSTEMTAP_STAPRUN="sudo 'SYSTEMTAP_STAPIO=$SYSTEMTAP_STAPIO' \
+    			'SYSTEMTAP_STAPRUN=${builddir}/staprun' \
+    			${builddir}/staprun"
+export SYSTEMTAP_TAPSET SYSTEMTAP_RUNTIME SYSTEMTAP_STAPRUN SYSTEMTAP_STAPIO
+
+# If there were private elfutils libs built, use them.
+if [ -d "$rundir/lib-elfutils" ]; then
+  lib_elfutils="$rundir/lib-elfutils"
+  elfutils_path="${lib_elfutils}:${lib_elfutils}/systemtap"
+  LD_LIBRARY_PATH="${elfutils_path}${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH"
+  export LD_LIBRARY_PATH
+fi
+
+exec "${builddir}/stap" ${1+"$@"}

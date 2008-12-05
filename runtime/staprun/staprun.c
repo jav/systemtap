@@ -242,6 +242,15 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
+	if (getuid() != 0) {
+		rc = unsetenv("SYSTEMTAP_STAPRUN") ||
+			unsetenv("SYSTEMTAP_STAPIO");
+		if (rc) {
+			_perr("unsetenv failed");
+			exit(-1);
+		}
+	}
+
 	setup_signals();
 
 	parse_args(argc, argv);
@@ -283,7 +292,7 @@ int main(int argc, char **argv)
 	if (init_staprun())
 		exit(1);
 
-	argv[0] = PKGLIBDIR "/stapio";
+	argv[0] = getenv ("SYSTEMTAP_STAPIO") ?: PKGLIBDIR "/stapio";
 	if (run_as (1, getuid(), getgid(), argv[0], argv) < 0) {
 		perror(argv[0]);
 		goto err;
@@ -473,4 +482,3 @@ int send_relocations ()
  out:
   return rc;
 }
-
