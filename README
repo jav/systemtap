@@ -94,7 +94,8 @@ Tips:
 Building a kernel.org kernel:
 
 - Build the kernel using your normal procedures.  Enable
-  CONFIG_DEBUG_INFO, CONFIG_KPROBES, CONFIG_RELAY and CONFIG_DEBUG_FS.
+  CONFIG_DEBUG_INFO, CONFIG_KPROBES, CONFIG_RELAY, CONFIG_DEBUG_FS,
+  CONFIG_MODULES, CONFIG_MODULES_UNLOAD
 - % make modules_install install headers_install
 - Boot into the kernel.
 
