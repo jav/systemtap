@@ -42,7 +42,7 @@
 
   <para>
     When users run a SystemTap script, SystemTap builds a kernel module out of
-    that script. SystemTap then loads the module onto the kernel, allowing it to
+    that script. SystemTap then loads the module into the kernel, allowing it to
     extract the specified data directly from the kernel (refer to
     <xref linkend="systemtapsession"/> in
     <xref linkend="understanding-architecture-tools"/> for more information).
@@ -217,17 +217,18 @@
     <step>
       <para>
 	Determine the kernel running on each <emphasis>target system</emphasis>
-	by running the by running <command>uname -r</command> on each
+	by running <command>uname -r</command> on each
 	<emphasis>target system</emphasis>.
       </para>
     </step>
 
     <step>
       <para>
-	Install SystemTap on the <emphasis>host system</emphasis>. It is from
-	this machine that you will be building the <emphasis>instrumentation
-	module</emphasis> (to be used on <emphasis>target
-	systems</emphasis>). For instructions on how to install SystemTap, refer
+	Install SystemTap on the <emphasis>host system</emphasis>.
+	You will be building the <emphasis>instrumentation
+	module</emphasis> for the <emphasis>target
+	systems</emphasis> on the <emphasis>host system</emphasis>.
+	For instructions on how to install SystemTap, refer
 	to <xref linkend="installproper"/>.
       </para>
     </step>
@@ -293,7 +294,7 @@ stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceab
 
   <para>
     Once the the <emphasis>instrumentation module</emphasis> is compiled, copy
-    it to the <emphasis>target system</emphasis> and load it using:
+    it to the <emphasis>target system</emphasis> and then load it using:
   </para>
 
 <screen>

@@ -167,13 +167,6 @@
 </varlistentry>	
 
 <varlistentry>
-	<term>-e '<replaceable>script</replaceable>'</term>
-	<listitem>
-		<para>Run given <command><replaceable>script</replaceable></command>.</para>
-	</listitem>
-</varlistentry>
-
-<varlistentry>
 	<term>-x <replaceable>process ID</replaceable></term>
 	<listitem>
 		<para>Sets the SystemTap handler function <command>target()</command> to the specified process ID. For more information about <command>target()</command>, refer to <xref linkend="systemtapscript-functions"/>.</para>
@@ -194,6 +187,13 @@
 	</listitem>	
 </varlistentry>	
 			-->
+<varlistentry>
+	<term>-e '<replaceable>script</replaceable>'</term>
+	<listitem>
+	  <para>Use <command><replaceable>script</replaceable></command>
+	    string rather than a file as input for systemtap translator.</para>
+	</listitem>
+</varlistentry>
 </variablelist>
 
 <para>You can also instruct <command>stap</command> to run scripts from standard input using the switch <command>-</command>. To illustrate:</para>
