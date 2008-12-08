@@ -20,7 +20,7 @@
 	</para>
 	
 	<para condition="RedHat">
-		For system administrators, SystemTap can be used as a performance monitoring tool for &PROD;. It is most useful when other similar tools cannot precisely pinpoint a bottleneck in the system, requiring a deep analysis of kernel activity. In the same manner, application developers can also use SystemTap to monitor, in finer detail, how their application behaves within the Linux system.
+		For system administrators, SystemTap can be used as a performance monitoring tool for &PROD;. It is most useful when other similar tools cannot precisely pinpoint a bottleneck in the system, requiring a deep analysis of system activity. In the same manner, application developers can also use SystemTap to monitor, in finer detail, how their application behaves within the Linux system.
 	</para>
 	
 	
@@ -101,7 +101,7 @@
 <primary>capabilities of SystemTap</primary>
 <secondary>Introduction</secondary>
 </indexterm>		
-	<para>SystemTap was originally developed as a working &PROD; version of old Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. SystemTap aims to supplement the existing suite of Linux monitoring tools by providing users with the infrastructure to track kernel activity. In addition, SystemTap combines this capability with two things:</para>		
+	<para>SystemTap was originally developed to provide functionality for &PROD; similar to previous Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. SystemTap aims to supplement the existing suite of Linux monitoring tools by providing users with the infrastructure to track kernel activity. In addition, SystemTap combines this capability with two things:</para>		
 		
 <!--		
 		<para>SystemTap was originally developed as a working &PROD; version of old Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. Further, SystemTap can also be considered the Linux answer to <firstterm>Dtrace</firstterm>. Dtrace is a Sun Microsystems "dynamic tracing" framework that assists administrators in monitoring  and troubleshooting kernel and user-space applications in real time.</para>
@@ -109,7 +109,7 @@
 	<para>SystemTap aims to supplement the existing suite of Linux monitoring tools by providing users with the infrastructure to track kernel activity. In addition, SystemTap combines this capability with two things:</para>-->
 	
 <itemizedlist>
-	<listitem><para>Flexibility: SystemTap's framework allows users to develop simple scripts for investigating and monitoring a wide variety of kernel functions, system calls, and other events that occur in kernel-space. With this, SystemTap is not soo much a <emphasis>tool</emphasis> as it is a system that allows you to develop your own kernel-specific forensic and monitoring tools.</para></listitem>
+	<listitem><para>Flexibility: SystemTap's framework allows users to develop simple scripts for investigating and monitoring a wide variety of kernel functions, system calls, and other events that occur in kernel-space. With this, SystemTap is not so much a <emphasis>tool</emphasis> as it is a system that allows you to develop your own kernel-specific forensic and monitoring tools.</para></listitem>
 	
 	<listitem><para>Ease-Of-Use: as mentioned earlier, SystemTap allows users to probe kernel-space events without having to resort to instrument, recompile, install, and reboot the kernel.</para></listitem>
 </itemizedlist>
