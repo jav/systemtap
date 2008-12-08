@@ -1,3 +1,7 @@
+2008-12-08  Wenji Huang  <wenji.huang@oracle.com>
+
+	* uprobes2/uprobes_x86.c (handle_riprel_insn): Fix the warning. 
+
 2008-12-04  Stan Cox  <scox@redhat.com>
 
 	* sduprobes.c (STAP_PROBE_START): Remove.

@@ -417,10 +417,10 @@ static int handle_riprel_insn(struct uprobe_probept *ppt)
 	opcode1 = *insn;
 	if (opcode1 == 0x0f) {	/* Two-byte opcode.  */
 		opcode2 = *++insn;
-		need_modrm = test_bit(opcode2, twobyte_has_modrm);
+		need_modrm = test_bit(opcode2, (unsigned long*)twobyte_has_modrm);
 	} else {		/* One-byte opcode.  */
 		opcode2 = 0x0;
-		need_modrm = test_bit(opcode1, onebyte_has_modrm);
+		need_modrm = test_bit(opcode1, (unsigned long*)onebyte_has_modrm);
 	}
 
 	if (!need_modrm)
