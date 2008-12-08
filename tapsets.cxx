@@ -1182,7 +1182,11 @@ struct dwflpp
   static int cu_function_caching_callback (Dwarf_Die* func, void *arg)
   {
     cu_function_cache_t* v = static_cast<cu_function_cache_t*>(arg);
-    string function_name = dwarf_diename(func);
+    const char *name = dwarf_diename(func);
+    if (!name)
+      return DWARF_CB_OK;
+
+    string function_name = name;
     (*v)[function_name] = * func;
     return DWARF_CB_OK;
   }
@@ -1658,13 +1662,16 @@ struct dwflpp
       {
 	do
 	  {
+	    const char *name;
 	    // Output each sibling's name (that is a variable or
 	    // parameter) to 'o'.
 	    switch (dwarf_tag (&child))
 	      {
 	      case DW_TAG_variable:
 	      case DW_TAG_formal_parameter:
-		o << " " << dwarf_diename (&child);
+		name = dwarf_diename (&child);
+		if (name)
+		  o << " " << name;
 		break;
 	      default:
 		break;
@@ -1697,8 +1704,10 @@ struct dwflpp
 	throw semantic_error ("unable to find any scopes containing "
 			      + lex_cast_hex<string>(pc)
 			      + ((scope_die == NULL) ? ""
-				 : (string (" in ") + dwarf_diename (scope_die)
-			      	    + "(" + dwarf_diename (cu) + ")"))
+				 : (string (" in ")
+				    + (dwarf_diename(scope_die) ?: "<unknown>")
+			      	    + "(" + (dwarf_diename(cu) ?: "<unknown>")
+				    + ")"))
 			      + " while searching for local '" + local + "'");
       }
 
@@ -1713,8 +1722,10 @@ struct dwflpp
 	throw semantic_error ("unable to find local '" + local + "'"
 			      + " near pc " + lex_cast_hex<string>(pc)
 			      + ((scope_die == NULL) ? ""
-				 : (string (" in ") + dwarf_diename (scope_die)
-			      	    + "(" + dwarf_diename (cu) + ")"))
+				 : (string (" in ")
+				    + (dwarf_diename(scope_die) ?: "<unknown>")
+			      	    + "(" + (dwarf_diename(cu) ?: "<unknown>")
+				    + ")"))
 			      + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
       }
 
@@ -2305,9 +2316,9 @@ struct dwflpp
   {
     if (sess.verbose>2)
 	clog << "literal_stmt_for_return: finding return value for "
-	     << dwarf_diename (scope_die)
+	     << (dwarf_diename(scope_die) ?: "<unknown>")
 	     << "("
-	     << dwarf_diename (cu)
+	     << (dwarf_diename(cu) ?: "<unknown>")
 	     << ")\n";
 
     struct obstack pool;
@@ -2321,14 +2332,17 @@ struct dwflpp
     if (nlocops < 0)
       {
 	throw semantic_error("failed to retrieve return value location"
-			     " for " + string (dwarf_diename (scope_die))
-			     + "(" + string (dwarf_diename (cu)) + ")");
+			     " for "
+			     + string(dwarf_diename(scope_die) ?: "<unknown>")
+			     + "(" + string(dwarf_diename(cu) ?: "<unknown>")
+			     + ")");
       }
     // the function has no return value (e.g. "void" in C)
     else if (nlocops == 0)
       {
-	throw semantic_error("function " + string (dwarf_diename (scope_die))
-			     + "(" + string (dwarf_diename (cu))
+	throw semantic_error("function "
+			     + string(dwarf_diename(scope_die) ?: "<unknown>")
+			     + "(" + string(dwarf_diename(cu) ?: "<unknown>")
 			     + ") has no return value");
       }
 
@@ -2357,8 +2371,10 @@ struct dwflpp
 	    print_members(die,alternatives); 
 	  throw semantic_error("unable to find return value"
                                " near pc " + lex_cast_hex<string>(pc)
-                               + " for " + dwarf_diename (scope_die)
-                               + "(" + dwarf_diename (cu) + ")"
+                               + " for "
+			       + string(dwarf_diename(scope_die) ?: "<unknown>")
+			       + "(" + string(dwarf_diename(cu) ?: "<unknown>")
+			       + ")"
                                + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
 	}
 
@@ -5347,7 +5363,6 @@ dwarf_builder::build(systemtap_session & sess,
     Dwarf_Off off;
     size_t cuhl;
     Dwarf_Off noff = 0;
-    const char *probe_cudie = "";
     const char *probe_file = "@sduprobes.c";
     int probe_line;
     // Find where the probe instrumentation landing points are defined
@@ -5361,7 +5376,6 @@ dwarf_builder::build(systemtap_session & sess,
 	  {
 	    if (strncmp (dwarf_diename(&cudie_mem), "sduprobes", 9) == 0)
 	      {
-		probe_cudie = dwarf_diename(&cudie_mem);
 		break;
 	      }
 	  }
@@ -5371,7 +5385,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (dwarf_line == NULL)
 	      continue;
 	    dwarf_lineno (dwarf_line, &probe_line);
-	    probe_file = dwarf_diename(&cudie_mem);
+	    probe_file = (dwarf_diename(&cudie_mem) ?: "<unknown>");
 	    break;
 	  }
       }
