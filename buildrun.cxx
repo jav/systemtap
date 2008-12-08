@@ -172,8 +172,6 @@ compile_pass (systemtap_session& s)
   return rc;
 }
 
-static const string uprobes_home = string(PKGDATADIR "/runtime/uprobes");
-
 /*
  * If uprobes was built as part of the kernel build (either built-in
  * or as a module), the uprobes exports should show up in either
@@ -196,6 +194,7 @@ verify_uprobes_uptodate (systemtap_session& s)
 	 << "verifying that SystemTap's version of uprobes is up to date."
 	 << endl;
 
+  string uprobes_home = s.runtime_path + "/uprobes";
   string make_cmd = string("make -q -C ") + uprobes_home
     + string(" uprobes.ko");
   int rc = run_make_cmd(s, make_cmd);
@@ -215,6 +214,7 @@ make_uprobes (systemtap_session& s)
 	 << "(re)building SystemTap's version of uprobes."
 	 << endl;
 
+  string uprobes_home = s.runtime_path + "/uprobes";
   string make_cmd = string("make -C ") + uprobes_home;
   int rc = run_make_cmd(s, make_cmd);
   if (s.verbose > 1)
@@ -230,6 +230,7 @@ make_uprobes (systemtap_session& s)
 static int
 copy_uprobes_symbols (systemtap_session& s)
 {
+  string uprobes_home = s.runtime_path + "/uprobes";
   string cp_cmd = string("/bin/cp ") + uprobes_home +
     string("/Module.symvers ") + s.tmpdir;
   int rc = system (cp_cmd.c_str());
