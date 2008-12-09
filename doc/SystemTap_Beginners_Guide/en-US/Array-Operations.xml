@@ -173,10 +173,26 @@ foo[tid()] = gettimeofday_s()
 <example id="arrayreadingvaluesfrom">
 	<title>Using Array Values in Simple Computations</title>
 <screen>
-foo[tid()] = gettimeofday_s()
 delta = gettimeofday_s() - foo[tid()]
 </screen>
 </example>
+
+<para>
+	This example assumes that the array <command>foo</command> was built using the construct in 
+	<xref linkend="arrays-timestampprocessname"/> (from <xref linkend="arrayops-assignvalue"/>). This 
+	sets a timestamp that will serve as a <emphasis>reference point</emphasis>, to be used in 
+	computing for <literal>delta</literal>.
+</para>
+
+<para>
+	The construct in <xref linkend="arrayreadingvaluesfrom"/> computes a value for the variable 
+	<literal>delta</literal> by subtracting the associated value of the key <literal>tid()</literal> 
+	from the current <command>gettimeofday_s()</command>. The construct does this by 
+	<emphasis>reading</emphasis> the value of <literal>tid()</literal> from the array. This particular 
+	construct is useful for determining the time between two events, such as the start and completion 
+	of a read operation.
+</para>	
+<!--
 
 <para>
 	In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated 
@@ -190,6 +206,7 @@ delta = gettimeofday_s() - foo[tid()]
 	<command>foo[tid()]</command> is <emphasis>read</emphasis> from the array in order to compute 
 	for <literal>delta</literal>.
 </para>
+-->
 
 <indexterm>
 	<primary>reading values from arrays</primary>
@@ -214,8 +231,15 @@ delta = gettimeofday_s() - foo[tid()]
 <secondary>reading values from arrays</secondary>
 <tertiary>array operations</tertiary>
 </indexterm>
-
-<para>In this situation, if the <command><replaceable>index_expression</replaceable></command> cannot find the unique key, it returns a value of 0 (for numerical operations, such as <xref linkend="arrayreadingvaluesfrom"/>) or a null/empty string value (for string operations) by default. </para>
+<note>
+	<title>Note</title>
+<para>
+	If the <command><replaceable>index_expression</replaceable></command> cannot 
+	find the unique key, it returns a value of 0 (for numerical operations, such as 
+	<xref linkend="arrayreadingvaluesfrom"/>) or a null/empty string value (for string operations) by 
+	default. 
+</para>
+</note>
 </section>
 <section id="arrayops-increment">
 	<title>Incrementing Associated Values</title>
