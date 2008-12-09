@@ -296,7 +296,6 @@ _stp_gettimeofday_ns(void)
     }
 
     delta = get_cycles() - last;
-
     preempt_enable_no_resched();
 
 #if defined (__s390__) || defined (__s390x__)
@@ -317,6 +316,8 @@ _stp_gettimeofday_ns(void)
     // Verify units:
     //   (D cycles) * (1E6 ns/ms) / (F cycles/ms [kHz]) = ns
     delta *= NSEC_PER_MSEC;
+    if (freq == 0)
+      return 0;
     do_div(delta, freq);
 #endif
 
