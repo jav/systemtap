@@ -1,13 +1,13 @@
 #! /usr/bin/stap
 
 probe timer.profile {
-   tid=tid()
-   if (!user_mode())
-      kticks[tid] <<< 1
-   else
-      uticks[tid] <<< 1
-   ticks <<< 1
-   tids[tid] <<< 1
+  tid=tid()
+  if (!user_mode())
+    kticks[tid] <<< 1
+  else
+    uticks[tid] <<< 1
+  ticks <<< 1
+  tids[tid] <<< 1
 }
 
 global uticks, kticks, ticks
@@ -15,18 +15,18 @@ global uticks, kticks, ticks
 global tids
 
 probe timer.s(5), end {
-   allticks = @count(ticks)
-   printf ("%5s %7s %7s (of %d ticks)\n", "tid", "%user", "%kernel", allticks)
-   foreach (tid in tids- limit 20) {
-     uscaled = @count(uticks[tid])*10000/allticks
-     kscaled = @count(kticks[tid])*10000/allticks
-     printf ("%5d %3d.%02d%% %3d.%02d%%\n",
-       tid, uscaled/100, uscaled%100, kscaled/100, kscaled%100)
-   }
-   printf("\n")
+  allticks = @count(ticks)
+  printf ("%5s %7s %7s (of %d ticks)\n", "tid", "%user", "%kernel", allticks)
+  foreach (tid in tids- limit 20) {
+    uscaled = @count(uticks[tid])*10000/allticks
+    kscaled = @count(kticks[tid])*10000/allticks
+    printf ("%5d %3d.%02d%% %3d.%02d%%\n",
+      tid, uscaled/100, uscaled%100, kscaled/100, kscaled%100)
+  }
+  printf("\n")
 
-   delete uticks
-   delete kticks
-   delete ticks
-   delete tids
+  delete uticks
+  delete kticks
+  delete ticks
+  delete tids
 }

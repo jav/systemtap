@@ -21,19 +21,19 @@ global traces
  * hash table that this proc is in io_submit
  */
 probe syscall.io_submit {
-	in_iosubmit[tid()] = 1
+  in_iosubmit[tid()] = 1
 }
 
 /*
  * when we return from sys_io_submit, record that we're no longer there
  */
 probe syscall.io_submit.return {
-	/* this assumes a given proc will do lots of io_submit calls, and
-	 * so doesn't do the more expensive "delete in_iosubmit[p]".  If
-	 * there are lots of procs doing small number of io_submit calls,
-	 * the hash may grow pretty big, so using delete may be better
-	 */
-	in_iosubmit[tid()] = 0
+  /* this assumes a given proc will do lots of io_submit calls, and
+   * so doesn't do the more expensive "delete in_iosubmit[p]".  If
+   * there are lots of procs doing small number of io_submit calls,
+   * the hash may grow pretty big, so using delete may be better
+   */
+  in_iosubmit[tid()] = 0
 }
 
 /*
@@ -41,21 +41,21 @@ probe syscall.io_submit.return {
  * io_submit.  If so, record our backtrace into the traces histogram
  */
 probe kernel.function("schedule") {
-	if (tid() in in_iosubmit) {
-		traces[backtrace()]++
+  if (tid() in in_iosubmit) {
+    traces[backtrace()]++
 
-		/*
-		 * change this to if (1) if you want a backtrace every time
-		 * you go into schedule from io_submit.  Unfortunately, the traces
-		 * saved into the traces histogram above are truncated to just a
-		 * few lines.  so the only way to see the full trace is via the
-		 * more verbose print_backtrace() right here.
-		 */
-		if (0) {
-			printf("schedule in io_submit!\n")
-			print_backtrace()
-		}
-	}
+    /*
+     * change this to if (1) if you want a backtrace every time
+     * you go into schedule from io_submit.  Unfortunately, the traces
+     * saved into the traces histogram above are truncated to just a
+     * few lines.  so the only way to see the full trace is via the
+     * more verbose print_backtrace() right here.
+     */
+    if (0) {
+      printf("schedule in io_submit!\n")
+      print_backtrace()
+    }
+  }
 }
 
 /*
@@ -63,9 +63,9 @@ probe kernel.function("schedule") {
  * trace paths and print the 30 most common.
  */
 probe end {
-	foreach (stack in traces- limit 30) {
-		printf("%d:", traces[stack])
-		print_stack(stack);
-	}
+  foreach (stack in traces- limit 30) {
+    printf("%d:", traces[stack])
+    print_stack(stack);
+  }
 }
 

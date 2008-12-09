@@ -14,15 +14,15 @@
 global syscalls
 
 probe begin {
-	print ("Collecting data... Type Ctrl-C to exit and display results\n")
+  print ("Collecting data... Type Ctrl-C to exit and display results\n")
 }
 
 probe syscall.* {
-	syscalls[pid()]++
+  syscalls[pid()]++
 }
 
 probe end {
-	printf ("%-10s %-s\n", "#SysCalls", "PID")
-	foreach (pid in syscalls-)
-		printf("%-10d %-d\n", syscalls[pid], pid)
+  printf ("%-10s %-s\n", "#SysCalls", "PID")
+  foreach (pid in syscalls-)
+    printf("%-10d %-d\n", syscalls[pid], pid)
 }

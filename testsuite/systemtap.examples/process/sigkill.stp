@@ -17,7 +17,7 @@
 # [...]
 
 probe signal.send {
-	if (sig_name == "SIGKILL")
-		printf("%s was sent to %s (pid:%d) by %s uid:%d\n",
-				sig_name, pid_name, sig_pid, execname(), uid())
+  if (sig_name == "SIGKILL")
+    printf("%s was sent to %s (pid:%d) by %s uid:%d\n",
+           sig_name, pid_name, sig_pid, execname(), uid())
 }

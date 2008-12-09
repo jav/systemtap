@@ -3,53 +3,53 @@
 global start_ts
 
 probe begin {
-    start_ts = gettimeofday_us()
-    printf("%12s  %5s  %5s  %-16s  ACTION\n",
-            "TIMESTAMP", "PID", "TID", "EXECNAME")
+  start_ts = gettimeofday_us()
+  printf("%12s  %5s  %5s  %-16s  ACTION\n",
+         "TIMESTAMP", "PID", "TID", "EXECNAME")
 }
 
 function report(action:string) {
-    printf("%12d  %5d  %5d  %-16s  %s\n", gettimeofday_us() - start_ts,
-            pid(), tid(), execname(), action)
+  printf("%12d  %5d  %5d  %-16s  %s\n", gettimeofday_us() - start_ts,
+         pid(), tid(), execname(), action)
 }
 
 function id:string(task:long) {
-    return sprintf("p:%d t:%d n:%s", task_pid(task), task_tid(task),
-            task_execname(task))
+  return sprintf("p:%d t:%d n:%s", task_pid(task), task_tid(task),
+                 task_execname(task))
 }
 
 probe process.create {
-    report(sprintf("create %s", id(task)))
+  report(sprintf("create %s", id(task)))
 }
 
 probe process.start {
-    report("start")
+  report("start")
 }
 
 probe process.exec {
-    report(sprintf("exec %s", filename))
+  report(sprintf("exec %s", filename))
 }
 
 probe process.exec_complete {
-    if (success)
-        report("exec success")
-    else
-        report(sprintf("exec failed %d (%s)", errno, errno_str(errno)))
+  if (success)
+    report("exec success")
+  else
+    report(sprintf("exec failed %d (%s)", errno, errno_str(errno)))
 }
 
 probe process.exit {
-    report(sprintf("exit %d", code))
+  report(sprintf("exit %d", code))
 }
 
 probe process.release {
-    report(sprintf("remove %s", id(task)))
+  report(sprintf("remove %s", id(task)))
 }
 
 probe signal.send {
-    report(sprintf("sigsend %d (%s) to %s%s", sig, sig_name, id(task),
-                shared? " [SHARED]" : ""))
+  report(sprintf("sigsend %d (%s) to %s%s", sig, sig_name, id(task),
+                 shared? " [SHARED]" : ""))
 }
 
 probe signal.handle {
-    report(sprintf("sighandle %d (%s)", sig, sig_name))
+  report(sprintf("sighandle %d (%s)", sig, sig_name))
 }

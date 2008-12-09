@@ -4,39 +4,37 @@ global ifxmit, ifrecv
 
 probe netdev.transmit
 {
-        ifxmit[pid(), dev_name, execname(), uid()] <<< length
+  ifxmit[pid(), dev_name, execname(), uid()] <<< length
 }
 
 probe netdev.receive
 {
-        ifrecv[pid(), dev_name, execname(), uid()] <<< length
+  ifrecv[pid(), dev_name, execname(), uid()] <<< length
 }
-
 
 function print_activity()
 {
-        printf("%5s %5s %-7s %7s %7s %7s %7s %-15s\n",
-                "PID", "UID", "DEV", "XMIT_PK", "RECV_PK",
-                "XMIT_KB", "RECV_KB", "COMMAND")
+  printf("%5s %5s %-7s %7s %7s %7s %7s %-15s\n",
+         "PID", "UID", "DEV", "XMIT_PK", "RECV_PK",
+         "XMIT_KB", "RECV_KB", "COMMAND")
 
-        foreach ([pid, dev, exec, uid] in ifrecv-) {
-                n_xmit = @count(ifxmit[pid, dev, exec, uid])
-                n_recv = @count(ifrecv[pid, dev, exec, uid])
-                printf("%5d %5d %-7s %7d %7d %7d %7d %-15s\n",
-                        pid, uid, dev, n_xmit, n_recv,
-                        n_xmit ? @sum(ifxmit[pid, dev, exec, uid])/1024 : 0,
-                        n_recv ? @sum(ifrecv[pid, dev, exec, uid])/1024 : 0,
-                        exec)
-        }
+  foreach ([pid, dev, exec, uid] in ifrecv-) {
+    n_xmit = @count(ifxmit[pid, dev, exec, uid])
+    n_recv = @count(ifrecv[pid, dev, exec, uid])
+    printf("%5d %5d %-7s %7d %7d %7d %7d %-15s\n",
+           pid, uid, dev, n_xmit, n_recv,
+           n_xmit ? @sum(ifxmit[pid, dev, exec, uid])/1024 : 0,
+           n_recv ? @sum(ifrecv[pid, dev, exec, uid])/1024 : 0,
+           exec)
+  }
 
-        print("\n")
+  print("\n")
 
-        delete ifxmit
-        delete ifrecv
+  delete ifxmit
+  delete ifrecv
 }
 
 probe timer.ms(5000), end, error
 {
-        print_activity()
+  print_activity()
 }
-

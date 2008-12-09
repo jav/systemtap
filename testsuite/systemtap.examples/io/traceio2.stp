@@ -11,7 +11,7 @@ probe begin {
 
 probe vfs.write, vfs.read
 {
-        if (dev == device_of_interest)
-                printf ("%s(%d) %s 0x%x\n",
-		        execname(), pid(), probefunc(), dev)
+  if (dev == device_of_interest)
+    printf ("%s(%d) %s 0x%x\n",
+            execname(), pid(), probefunc(), dev)
 }

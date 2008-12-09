@@ -58,7 +58,7 @@ global hdrcount
 probe timer.s($1) {
   if ((hdrcount++ % 10) == 0)
     printf("%9s %9s %9s %9s %9s %9s\n",
-	   "Device:","tps","blk_read/s","blk_wrtn/s","blk_read","blk_wrtn")
+           "Device:","tps","blk_read/s","blk_wrtn/s","blk_read","blk_wrtn")
 
   foreach (dev in devices) {
     rdcount=@count(reads[dev])
@@ -69,10 +69,10 @@ probe timer.s($1) {
     rdblkrate=rdblkcount*100/$1
     wrblkrate=wrblkcount*100/$1
     printf("%9s %6d.%02d %6d.%02d %6d.%02d %9d %9d\n",
-	dev, tps/100,tps%100,
-	rdblkrate/100,rdblkrate%100,
-	wrblkrate/100,wrblkrate%100,
-	rdblkcount, wrblkcount)
+           dev, tps/100,tps%100,
+           rdblkrate/100,rdblkrate%100,
+           wrblkrate/100,wrblkrate%100,
+           rdblkcount, wrblkcount)
   }
   printf ("\n")
   delete devices

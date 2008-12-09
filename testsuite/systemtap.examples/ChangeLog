@@ -1,3 +1,26 @@
+2008-12-09  William Cohen  <wcohen@redhat.com>
+	
+	* general/ansi_colors.stp:
+	* general/key.stp:
+	* general/keyhack.stp:
+	* general/para-callgraph.stp:
+	* io/disktop.stp:
+	* io/io_submit.stp:
+	* io/iostat-scsi.stp:
+	* io/iotime.stp:
+	* io/traceio.stp:
+	* io/traceio2.stp:
+	* network/nettop.stp:
+	* process/futexes.stp:
+	* process/proc_snoop.stp:
+	* process/sig_by_pid.stp:
+	* process/sigkill.stp:
+	* process/sigmon.stp:
+	* process/syscalls_by_pid.stp:
+	* process/syscalls_by_proc.stp:
+	* process/wait4time.stp:
+	* profiling/thread-times.stp: Tweak formatting, indent two space.
+
 2008-11-25  Mark Wielaard  <mjw@redhat.com>
 
 	* general/para-callgraph.meta: Add accidentially removed -c back
