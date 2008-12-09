@@ -1148,6 +1148,44 @@ reads[execname()] &lt;&lt;&lt; count
 -->
 
 </variablelist>
+
+<para>
+	When using statistical aggregates, you can also build array constructs that use multiple index 
+	expressions (to a maximum of 5). This is helpful in capturing additional contextual information 
+	during a probe. For example:
+</para>
+
+<example id="multiplearrayindices">
+	<title>Multiple Array Indexes</title>
+<programlisting>
+global reads
+probe vfs.read
+{
+reads[execname(),pid()] &lt;&lt;&lt; 1
+}
+probe timer.s(3)
+{
+foreach([var1,var2] in reads)
+	printf("%s (%d) : %d \n", var1, var2, @count(reads[var1,var2]))
+}	
+</programlisting>
+</example>
+
+<para>
+	In <xref linkend="multiplearrayindices"/>, the first probe tracks how many times each process 
+	performs a VFS read. What makes this different from earlier examples is that this array associates
+	a performed read to both a process name <emphasis>and</emphasis> its corresponding process ID.
+</para>
+
+<para>
+	The second probe in <xref linkend="multiplearrayindices"/> demonstrates how to process and print
+	the information collected by the array <literal>reads</literal>. Note how the 
+	<command>foreach</command> statement uses the same number of variables (i.e. 
+	<literal>var1</literal> and <literal>var2</literal>) contained in the first instance of the array 
+	<literal>reads</literal> from the first probe.
+</para>
+
+
 </section>
 
 </section>

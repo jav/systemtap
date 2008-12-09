@@ -158,13 +158,13 @@ foo["dick"] = 24
 foo["harry"] = 25
 </screen>
 </example>
-
+<!--
 <para>You can specify up to 5 index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to perform the same operation to a set of key pairs. For example, to increase the associated value of all the key pairs defined by <xref linkend="arraysimplestexample"/>, you can use the following statement:</para>
 
 <screen>
 foo["tom","dick","harry"] ++
 </screen>
-
+-->
 <important>
 	<title>Important</title>
 	<para>All associate arrays must be declared as <command>global</command>, regardless of whether the associate array is used in one or multiple probes. </para>
