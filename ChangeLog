@@ -1,3 +1,13 @@
+2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR6961
+	* tapsets.cxx (common_probe_entryfn_prologue): Add new "fakeregs"
+	param.  Set context regs_buffer with plausible dummy values if needed.
+	Update callers.
+	(mark_builder::build): Add kernel to unwindsyms_modules.
+	* translate.cxx (emit_common_header): Add pt_regs regs_buffer field
+	to context.
+
 2008-12-09  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client: Use netcat or nc, whichever is available.

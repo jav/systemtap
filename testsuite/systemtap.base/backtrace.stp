@@ -1,0 +1,2 @@
+probe begin, end, procfs("foo").read, procfs("foo").write { log(pp()) print_backtrace() }
+probe timer.s(1) { log(pp()) print_backtrace() exit() }

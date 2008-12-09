@@ -881,6 +881,7 @@ c_unparser::emit_common_header ()
   // While it's 0, execution continues
   // When it's "something", probe code unwinds, _stp_error's, sets error state
   o->newline() << "const char *last_stmt;";
+  o->newline() << "struct pt_regs regs_buffer;"; // reserved for synthetic
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "unsigned long *unwaddr;";
   // unwaddr is caching unwound address in each probe handler on ia64.

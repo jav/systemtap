@@ -12,7 +12,7 @@ set num_marker_found 0
 set num_marker_name ""
 
 set kernel_script {"probe kernel.mark(\"%s\") { }"}
-set kernel_script_arg {"probe kernel.mark(\"%s\") { print(%s) }"}
+set kernel_script_arg {"probe kernel.mark(\"%s\") { print(%s) print_backtrace() }"}
 set kernel_script_arg2 {"probe kernel.mark(\"%s\") { %s = 0 }"}
 set kernel_script_arg3 {"probe kernel.mark(\"%s\") { print(\$arg1%s) }"}
 set kernel_format_script {"probe kernel.mark(\"%s\").format(\"%s\") { }"}

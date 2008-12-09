@@ -1,0 +1,32 @@
+set test "backtrace"
+
+if {![installtest_p]} { untested $test; return }
+
+set ok 0
+set ok2 0
+spawn stap $srcdir/$subdir/backtrace.stp
+expect {
+    -timeout 30
+    -re {^[^\r\n ]*\r\n} { incr ok; exp_continue }
+    -re {^ [^\r\n]*\r\n} { incr ok2; exp_continue }
+    eof { }
+    timeout { fail "$test (timeout)" }
+}
+catch { close }; wait
+if {$ok == 3 && $ok2 >= $ok} then { pass "$test ($ok $ok2)" } else { fail "$test ($ok $ok2)" }
+
+
+set test "backtrace-unwindsyms"
+
+set ok 0
+set ok2 0
+spawn stap $srcdir/$subdir/backtrace.stp -d kernel
+expect {
+    -timeout 30
+    -re {^[^\r\n ]*\r\n} { incr ok; exp_continue }
+    -re {^ [^\r\n]*\r\n} { incr ok2; exp_continue }
+    eof { }
+    timeout { fail "$test (timeout)" }
+}
+catch { close }; wait
+if {$ok == 3 && $ok2 >= $ok} then { pass "$test ($ok $ok2)" } else { fail "$test ($ok $ok2)" }

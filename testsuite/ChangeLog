@@ -1,3 +1,9 @@
+2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR6961.
+	* systemtap.base/backtrace.{exp,stp}: New files.
+	* systemtap.base/marker.exp: Modified to trigger backtrace.
+
 2008-12-04  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/static_uprobes.exp (STAP_PROBE_START): Remove.

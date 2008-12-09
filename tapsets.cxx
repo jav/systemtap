@@ -159,7 +159,8 @@ be_derived_probe::join_group (systemtap_session& s)
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
 			       bool overload_processing = true,
-                               bool interruptible = true)
+                               bool interruptible = true,
+                               bool fakeregs = false)
 {
   o->newline() << "struct context* __restrict__ c;";
   if (! interruptible)
@@ -215,7 +216,6 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->last_stmt = 0;";
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
-  o->newline() << "c->regs = 0;";
   o->newline() << "c->unwaddr = 0;";
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
@@ -240,6 +240,20 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->cycles_base = 0;";
   o->newline() << "#endif";
   */
+
+  /* PR6961: Let's prep a bare-bones pt_regs struct, just in case our
+     kind of probe point does not supply one. */
+  if (fakeregs)
+    {
+      o->newline() << "#ifdef STP_NEED_UNWIND_DATA";
+      o->newline() << "memset (& c->regs_buffer, 0, sizeof (c->regs_buffer));";
+      o->newline() << "REG_IP((& c->regs_buffer)) = (unsigned long)__builtin_return_address (0);";
+      o->newline() << "REG_SP((& c->regs_buffer)) = (unsigned long)& c;";
+      o->newline() << "c->regs = & c->regs_buffer;";
+      o->newline() << "#endif";
+    }
+  else
+    o->newline() << "c->regs = 0;";
 }
 
 
@@ -338,7 +352,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- begin/end probes ---- */";
   s.op->newline() << "void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false, true, true);
   s.op->newline() << "c->probe_point = pp;";
   s.op->newline() << "(*fn) (c);";
   common_probe_entryfn_epilogue (s.op, false, true);
@@ -346,7 +360,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false, true, true);
   s.op->newline() << "c->probe_point = pp;";
   s.op->newline() << "(*fn) (c);";
   common_probe_entryfn_epilogue (s.op, false, true);
@@ -354,7 +368,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", false, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", false, true, true);
   s.op->newline() << "c->probe_point = pp;";
   s.op->newline() << "(*fn) (c);";
   common_probe_entryfn_epilogue (s.op, false, true);
@@ -6598,7 +6612,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static void stap_utrace_probe_handler(struct task_struct *tsk, struct stap_utrace_probe *p) {";
       s.op->indent(1);
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
       s.op->newline() << "c->probe_point = p->pp;";
 
       // call probe function
@@ -7452,7 +7466,7 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << ");";
   s.op->newline(-1) << "{";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
   s.op->newline() << "c->probe_point = stp->pp;";
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
@@ -7831,7 +7845,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "int bytes = 0;";
       s.op->newline() << "string_t strdata = {'\\0'};";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
       s.op->newline() << "c->probe_point = spp->read_pp;";
 
       s.op->newline() << "if (c->data == NULL)";
@@ -7874,7 +7888,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
       s.op->newline() << "string_t strdata = {'\\0'};";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
       s.op->newline() << "c->probe_point = spp->write_pp;";
 
       s.op->newline() << "if (count > (MAXSTRINGLEN - 1))";
@@ -8636,7 +8650,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "static void enter_marker_probe (void *probe_data, void *call_data, const char *fmt, va_list *args) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
   s.op->newline() << "c->probe_point = smp->pp;";
   s.op->newline() << "c->marker_name = smp->name;";
   s.op->newline() << "c->marker_format = smp->format;";
@@ -8819,6 +8833,7 @@ mark_builder::build(systemtap_session & sess,
 					  it->first, it->second,
 					  base, loc);
 	      finished_results.push_back (dp);
+              sess.unwindsym_modules.insert ("kernel");
 	    }
 	}
     }
@@ -8965,7 +8980,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "{";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
   s.op->newline() << "c->probe_point = stp->pp;";
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
