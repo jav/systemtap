@@ -102,6 +102,7 @@ static int enable_uprobes(void)
 {
 	int i;
 	char *argv[10];
+	char runtimeko[2048];
 	uid_t uid = getuid();
 	gid_t gid = getgid();
 
@@ -128,9 +129,12 @@ static int enable_uprobes(void)
 	if (run_as(0, 0, 0, argv[0], argv) == 0)
 		return 0;
 
-	dbug(2, "Inserting uprobes module from SystemTap runtime.\n");
+	snprintf (runtimeko, sizeof(runtimeko), "%s/uprobes/uprobes.ko",
+		  (getenv("SYSTEMTAP_RUNTIME") ?: PKGDATADIR "/runtime"));
+	dbug(2, "Inserting uprobes module from SystemTap runtime %s.\n", runtimeko);
 	argv[0] = NULL;
-	return insert_module(PKGDATADIR "/runtime/uprobes/uprobes.ko", NULL, argv);
+
+	return insert_module(runtimeko, NULL, argv);
 }
 
 static int insert_stap_module(void)
@@ -242,9 +246,11 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	if (getuid() != 0) {
+	if (getuid() != geteuid()) { /* setuid? */
 		rc = unsetenv("SYSTEMTAP_STAPRUN") ||
-			unsetenv("SYSTEMTAP_STAPIO");
+                  unsetenv("SYSTEMTAP_STAPIO") ||
+                  unsetenv("SYSTEMTAP_RUNTIME");
+
 		if (rc) {
 			_perr("unsetenv failed");
 			exit(-1);
