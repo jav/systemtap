@@ -29,6 +29,11 @@ function configuration {
     tmpdir_prefix_client=stap.client
     tmpdir_prefix_server=stap.server
     avahi_service_tag=_stap._tcp
+
+    # We need either netcat or nc.
+    netcat=`which netcat 2>/dev/null`
+    test "X$netcat" = "X" && netcat=`which nc 2>/dev/null`
+    test "X$netcat" = "X" && fatal "ERROR: cannot find required program 'netcat' or 'nc' on PATH"
 }
 
 # function: initialization
@@ -386,7 +391,7 @@ function send_request {
     # Send the request file.
     for ((attempt=0; $attempt < 10; ++attempt))
     do
-	if nc -w10 $server $(($port+1)) < $tar_client > /dev/null 2>&1; then
+	if $netcat -w10 $server $(($port+1)) < $tar_client > /dev/null 2>&1; then
 	    return;
 	fi
 	sleep 1
@@ -405,7 +410,7 @@ function receive_response {
     # Retrieve the file. Wait for up to 5 minutes for a response.
     for ((attempt=0; $attempt < 300; ++attempt))
     do
-	if nc -d $server $(($port+1)) > $tar_server 2>/dev/null; then
+	if $netcat -d $server $(($port+1)) > $tar_server 2>/dev/null; then
 	    return;
 	fi
 	sleep 1
@@ -535,7 +540,7 @@ function choose_server {
 function connect_to_server {
     for ((attempt=0; $attempt < 10; ++attempt))
     do
-	if echo "request:" | nc -w10 $1 $2 >/dev/null 2>&1; then
+	if echo "request:" | $netcat -w10 $1 $2 >/dev/null 2>&1; then
 	    return 0
 	fi
 	sleep 1

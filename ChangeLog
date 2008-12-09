@@ -1,3 +1,9 @@
+2008-12-09  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client: Use netcat or nc, whichever is available.
+	* stap-server: Likewise.
+	* stap-serverd: Likewise.
+
 2008-12-08  David Smith  <dsmith@redhat.com>
 
 	RHBZ 474390

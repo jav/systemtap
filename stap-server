@@ -26,6 +26,11 @@ function configuration {
     tmpdir_prefix_server=stap.server
     port=$1
     test "X$port" = "X" && port=65001
+
+    # We need either netcat or nc.
+    netcat=`which netcat 2>/dev/null`
+    test "X$netcat" = "X" && netcat=`which nc 2>/dev/null`
+    test "X$netcat" = "X" && fatal "ERROR: cannot find required program 'netcat' or 'nc' on PATH"
 }
 
 # function: initialization
@@ -53,12 +58,12 @@ function receive_request {
 	fatal "ERROR: cannot create temporary tar file " $tar_client
 
     # Receive the file.
-    nc -ld $port > $tar_client 2>/dev/null &
+    $netcat -ld $port > $tar_client 2>/dev/null &
 
     # Wait for 10 seconds before timing out
     for ((t=0; $t < 10; ++t))
     do
-	if jobs '%nc -l' >/dev/null 2>&1; then
+	if jobs '%$netcat -l' >/dev/null 2>&1; then
 	    sleep 1
 	else
 	    return
@@ -384,12 +389,12 @@ function package_response {
 # Wait for the client to take the response file.
 function send_response {
     # Now send it.
-    nc -l $port < $tar_server > /dev/null 2>&1 &
+    $netcat -l $port < $tar_server > /dev/null 2>&1 &
 
     # Wait for 10 seconds before timing out
     for ((t=0; $t < 10; ++t))
     do
-	if jobs '%nc -l' >/dev/null 2>&1; then
+	if jobs '%$netcat -l' >/dev/null 2>&1; then
 	    sleep 1
 	else
 	    return
@@ -430,8 +435,8 @@ function cleanup {
 	rm -fr $tmpdir_stap
     fi
     
-    # Kill any nc job that may be running
-    kill -s SIGTERM %nc 2> /dev/null
+    # Kill any $netcat job that may be running
+    kill -s SIGTERM '%$netcat' 2> /dev/null
 }
 
 # function: terminate
