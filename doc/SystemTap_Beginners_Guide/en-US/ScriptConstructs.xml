@@ -61,7 +61,8 @@
 	<secondary>SystemTap handler constructs</secondary>
 	<tertiary>handlers</tertiary>
 </indexterm>
-	<para>Variables can be used freely throughout a handler; simply choose a name, assign it to a function, and use it in an expression. SystemTap automatically identifies whether a variable should be identified as a string or integer, based on the function it is assigned to. For instance, if you use set the variable <command>foo</command> to <command>gettimeofday_s()</command> (as in <command>foo = gettimeofday_s()</command>), then <command>foo</command> can be used as an integer argument (<command>%d</command>) in <command>printf()</command>.</para>
+	<para>Variables can be used freely throughout a handler; simply choose a
+name, assign a value from a function or expression to it, and use it in an expression. SystemTap automatically identifies whether a variable should be typed as a string or integer, based on the type of the values assigned to it. For instance, if you use set the variable <command>foo</command> to <command>gettimeofday_s()</command> (as in <command>foo = gettimeofday_s()</command>), then <command>foo</command> is typed as an number and can be printed in a <command>printf()</command> with the integer format specifier (<command>%d</command>).</para>
 
 <!-- next 2 indexterms for <command>global</command> -->
 
@@ -82,7 +83,7 @@
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>handlers</tertiary>
 </indexterm>
-<para>Note, however, that by default variables are only local to the probe they are used in. This means that variables are initialized, used and disposed at each probe handler invocation. To share a variable between probes, declare the variable name first using <command>global</command> outside of any probe. Consider the following example:</para>
+<para>Note, however, that by default variables are only local to the probe they are used in. This means that variables are initialized, used and disposed at each probe handler invocation. To share a variable between probes, declare the variable name using <command>global</command> outside of the probes. Consider the following example:</para>
 
 <example id="timerjiffies">
 	<title>timer-jiffies.stp</title>
@@ -104,7 +105,7 @@ probe timer.ms(12345)
 <primary><command>CONFIG_HZ, computing for</command></primary>
 </indexterm>
 	
-<para><xref linkend="timerjiffies"/> attempts to compute the <command>CONFIG_HZ</command> setting of the kernel using timers that count jiffies and milliseconds, then computing accordingly. The <command>global</command> statement allows the script to use the variables <command>count_jiffies</command> and <command>count_ms</command> (set in their own respective probes) to be shared with <command>probe timer.ms(12345)</command>.</para>
+<para><xref linkend="timerjiffies"/> computes the <command>CONFIG_HZ</command> setting of the kernel using timers that count jiffies and milliseconds, then computing accordingly. The <command>global</command> statement allows the script to use the variables <command>count_jiffies</command> and <command>count_ms</command> (set in their own respective probes) to be shared with <command>probe timer.ms(12345)</command>.</para>
 
 <note>
 	<title>Note</title>
@@ -165,9 +166,22 @@ You can do this by using <emphasis>conditionals</emphasis> in handlers. SystemTa
 
 		<para>Format:</para>
 <programlisting>
-if (<replaceable>condition</replaceable>) 
-	{<replaceable>statement</replaceable>} else {<replaceable>statement</replaceable>}
+if (<replaceable>condition</replaceable>)
+  <replaceable>statement1</replaceable>
+else
+  <replaceable>statement2</replaceable>
 </programlisting>
+
+<para>
+The <command><replaceable>statement1</replaceable></command> is executed if the
+<command><replaceable>condition</replaceable></command> expression is
+non-zero. The <command><replaceable>statement2</replaceable></command> is
+executed if the <command><replaceable>condition</replaceable></command>
+expression is zero. The <command>else</command> is optional. Both
+<command><replaceable>statement1</replaceable></command> and
+<command><replaceable>statement2</replaceable></command> can be statement
+blocks.
+</para>
 
 <example id="simpleifelseexample">
 	<title>ifelse.stp</title>
@@ -175,15 +189,15 @@ if (<replaceable>condition</replaceable>)
 global countread, countnonread
 probe kernel.function("vfs_read"),kernel.function("vfs_write")
 {
-	if (probefunc()=="vfs_read") 
-		countread ++ 
-	else 
-		countnonread ++
+  if (probefunc()=="vfs_read") 
+    countread ++ 
+  else 
+    countnonread ++
 }
 probe timer.s(5) { exit() }
 probe end 
 {
-	printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)
+  printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)
 }
 </programlisting>
 </example>
@@ -217,8 +231,17 @@ probe end
 </indexterm>
 		<para>Format:</para>
 <programlisting>
-while (<replaceable>condition</replaceable>) {<replaceable>statement</replaceable>}
+while (<replaceable>condition</replaceable>)
+  <replaceable>statement</replaceable>
 </programlisting>
+<para>
+So long as <command><replaceable>condition</replaceable></command> is non-zero
+the block of statements in
+<command><replaceable>statement</replaceable></command> are executed. The
+<command><replaceable>statement</replaceable></command> is often a statement
+block and it must change a value so
+<command><replaceable>condition</replaceable></command> will eventually be zero.
+</para>
 <!--
 <example id="simplewhileexample">
 	<title>while.stp</title>
@@ -260,9 +283,20 @@ printf("goodbye world\n")
 </indexterm>		
 		<para>Format:</para>
 <programlisting>
-for (<replaceable>argument1</replaceable>; <replaceable>argument2</replaceable>; <replaceable>argument3</replaceable>) {<replaceable>statement</replaceable>}
-</programlisting>	
-	</listitem>	
+for (<replaceable>initialization</replaceable>; <replaceable>conditional</replaceable>; <replaceable>increment</replaceable>) <replaceable>statement</replaceable>
+</programlisting>
+<para>
+The <command>for</command> loop is simply shorthand for a while loop. The
+following is the equivalent <command>while</command> loop:
+</para>
+<programlisting>
+<replaceable>initialization</replaceable>
+while (<replaceable>conditional</replaceable>) {
+   <replaceable>statement</replaceable>
+   <replaceable>increment</replaceable>
+}
+</programlisting>
+	</listitem>
 </varlistentry>
 
 <!--<para>Each conditional statement must be enclosed in <command>{ }</command>.</para>-->
@@ -350,7 +384,9 @@ for (<replaceable>argument1</replaceable>; <replaceable>argument2</replaceable>;
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>handlers</tertiary>
 </indexterm>	
-	<para>You can also allow a SystemTap script to accept simple command-line arguments and declare them in the script without using <command>target()</command>. One way to do this is to use the variable notation <command>$</command> or <command>@</command>.</para>
+	<para>You can also allow a SystemTap script to accept simple command-line arguments using a  <command>$</command> or <command>@</command> immediately
+followed by the number of the argument on the command line. Use <command>$</command> if you are expecting the user to enter an integer as a command-line argument, and <command>@</command> if you are expecting a string.
+</para>
 <!-- </formalpara> -->
 
 
@@ -381,7 +417,6 @@ probe kernel.function(@1).return { }
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>handlers</tertiary>
 </indexterm>
-<para>Both variable notations <command>$</command> and <command>@</command> also represent a specific variable type. Use <command>$</command> if you are expecting the user to enter an integer as a command-line argument, and <command>@</command> if you are expecting a string.</para>  
 	</section>
 	
 <!-- endsection	 -->

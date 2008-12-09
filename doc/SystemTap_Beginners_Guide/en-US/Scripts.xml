@@ -159,18 +159,16 @@ probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
 </indexterm>
   <para>
 	Each probe has a corresponding <firstterm>statement block</firstterm>. This statement block is 
-	enclosed in braces (<command>{ }</command>) and contains the handlers to be executed per event. 
-	SystemTap executes these handlers (i.e. "statements") in sequence; special separators or 
-	terminators are generally not necessary between multiple handlers.
+	enclosed in braces (<command>{ }</command>) and contains the statements to be executed per event. 
+	SystemTap executes these statements in sequence; special separators or 
+	terminators are generally not necessary between multiple statements.
   </para>
 
 <note>
 	<title>Note</title>
 	<para>
 		Statement blocks in SystemTap scripts follow the same syntax and semantics as the C 
-		programming language. A statement block can also nest another statement block, although 
-		for the most part this is used only to organize code in the script for the benefit of the 
-		administrator.
+		programming language. A statement block can be nested within another statement block.
   	</para>
 </note>	
 <indexterm>
@@ -247,7 +245,7 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
 </indexterm>
       <para>
 	A <firstterm>synchronous</firstterm> event occurs when any process
-	executes an instruction that references a particular location in kernel
+	executes an instruction at a particular location in kernel
 	code. This gives other events a reference point from which more
 	contextual data may be available.
       </para>
@@ -351,7 +349,7 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
 	<primary>events wildcards</primary>
 </indexterm>
 	  <para>
-	    When defining functions, you can use asterisk (<literal>*</literal>)
+	    When defining probe events, you can use asterisk (<literal>*</literal>)
 	    for wildcards. You can also trace the entry or exit of a function in
 	    a kernel source file. Consider the following example:
 	  </para>
@@ -364,14 +362,15 @@ probe kernel.function("*@net/socket.c").return { }
 </programlisting>	
 </example>
 
-	  <remark>Wild cards also work for other things, e.g. syscall.*</remark>
+	  <remark>Wild cards also work for other types of events, e.g. syscall.*</remark>
 
 	  <para>
 	    In the previous example, the first probe's event specifies the entry
 	    of ALL functions in the kernel source file
 	    <filename>net/socket.c</filename>. The second probe specifies the
-	    exit of all those functions. Note that in this example, no handler
-	    was specified; as such, no information will be displayed.
+	    exit of all those functions. Note that in this example, 
+	    there are no statements in the handler;
+	    as such, no information will be collected or displayed.
 	  </para>
 	</listitem>
 
@@ -399,11 +398,19 @@ probe module("ext3").function("*").return { }
 </example>
 		
 		<para>
-			The first probe in <xref linkend="eventsmodules"/> points to the entry of <emphasis>all</emphasis> functions for the <filename>ext3</filename> module. The second probe points to the exits of all entries for that same module; the use of the <command>.return</command> suffix is similar to <command>kernel.function()</command>. Note that the probes in <xref linkend="eventsmodules"/> also do not contain probe bodies, and as such will not print any useful data (as in <xref linkend="wildcards"/>). 
-		</para>	
+			The first probe in <xref linkend="eventsmodules"/>
+		points to the entry of <emphasis>all</emphasis> functions for
+		the <filename>ext3</filename> module. The second probe points to
+		the exits of all functions for that same module; the use of the
+		<command>.return</command> suffix is similar to
+		<command>kernel.function()</command>. Note that the probes in
+		<xref linkend="eventsmodules"/> do not contain statements
+		in the probe handlers, and as such will not print any useful
+		data (as in <xref linkend="wildcards"/>).
+	        </para>
 		
 		<para>
-			A system's loaded modules are typically located in <filename>/lib/modules/<replaceable>kernel version</replaceable></filename>, where <replaceable>kernel version</replaceable> refers to the currently loaded kernel. Modules use the filename extension <filename>.ko</filename>. 
+			A system's kernel modules are typically located in <filename>/lib/modules/<replaceable>kernel_version</replaceable></filename>, where <replaceable>kernel_version</replaceable> refers to the currently loaded kernel version. Modules use the filename extension <filename>.ko</filename>. 
 		</para>	
 		
 	</listitem>
@@ -482,8 +489,8 @@ probe module("ext3").function("*").return { }
 </indexterm>
 
 	  <para>
-	    An event that specifies a handler to be executed every specified
-	    period of time. For example:
+	    An event that specifies a handler to be executed periodically.
+	    For example:
 	  </para>
 		
 <example id="timer"><title>timer-s.stp</title>
@@ -601,7 +608,7 @@ probe begin
 
 
 <programlisting>
-printf ("<replaceable>format string</replaceable>\n", <replaceable>argument</replaceable>)
+printf ("<replaceable>format string</replaceable>\n", <replaceable>arguments</replaceable>)
 </programlisting>
 <indexterm>
 <primary><command>printf()</command></primary>
@@ -614,7 +621,7 @@ printf ("<replaceable>format string</replaceable>\n", <replaceable>argument</rep
 </indexterm>
     <para>
 	The <replaceable>format string</replaceable> specifies how
-	<replaceable>argument</replaceable> should be printed. The format string
+	<replaceable>arguments</replaceable> should be printed. The format string
 	of <xref linkend="helloworld"/> simply instructs SystemTap to print
 	<command>hello world</command>, and contains no format specifiers.
     </para>
@@ -672,8 +679,8 @@ probe syscall.open
     <para>
       <xref linkend="syscall-open"/> instructs SystemTap to probe all entries to
       the system call <command>open</command>; for each event, it prints the
-      current <command>execname()</command> (which is a string) and
-      <command>pid()</command> (which is a number), followed by the word
+      current <command>execname()</command> (a string with the executable name) and
+      <command>pid()</command> (the current process ID number), followed by the word
       <command>open</command>. A snippet of this probe's output would look like:
     </para>
 
@@ -827,6 +834,15 @@ hald(2360) open
 		<para>The number of seconds since UNIX epoch (January 1, 1970).</para>
 	</listitem>	
 </varlistentry>
+
+<varlistentry>
+	<term>ctime()</term>
+	<listitem>
+		<para>
+	Convert number of seconds since UNIX epoch to date.</para>
+	</listitem>	
+</varlistentry>
+
 <!--
 <varlistentry>
 	<term>get_cycles()</term>
@@ -890,18 +906,19 @@ hald(2360) open
 </indexterm>
 	<para>
 	    This particular function is quite useful, providing you with a way
-	    to better organize your print results. When used with an indentation
-	    parameter (for example, <command>-1</command>), it allows the probe
-	    to internally store an "indentation counter" for each thread
-	    (identified by ID, as in <command>tid</command>). It then returns a
+	    to better organize your print results. The function takes one
+	    argument, an indentation delta, which indicates how many
+	    spaces to add or remove from a thread's "indentation counter".
+	    It then returns a
 	    string with some generic trace data along with an appropriate number
 	    of indentation spaces.
 	  </para>
 		
 	  <para>
 	    The generic data included in the returned string includes a
-	    timestamp (number of microseconds since the most recent initial
-	    indentation), a process name, and the thread ID. This allows you to
+	    timestamp (number of microseconds since the 
+	    first call to <command>thread_indent()</command> by the thread),
+	    a process name, and the thread ID. This allows you to
 	    identify what functions were called, who called them, and the
 	    duration of each function call.
 	  </para>	
@@ -960,9 +977,9 @@ probe kernel.function("*@net/socket.c").return
 <para>This sample output contains the following information:</para>
 
 <itemizedlist>
-	<listitem><para>The time delta (in microseconds) since the previous entry; i.e. the number of microseconds since the last traced function call.</para></listitem>
+	<listitem><para>The time (in microseconds) since the initial <command>thread_ident()</command> call for the thread (included in the string from <command>thread_ident()</command>).</para></listitem>
 	
-	<listitem><para>The process name (and its corresponding ID) that made the function call.</para></listitem>
+	<listitem><para>The process name (and its corresponding ID) that made the function call (included in the string from <command>thread_ident()</command>).</para></listitem>
 	
 	<listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
 	
@@ -995,7 +1012,7 @@ that thread_indent is defined in tapsets as a special function of sorts</remark>
 <secondary>Handlers</secondary>
 <tertiary>handler functions</tertiary>
 </indexterm>
-	  <para>Identifies the name of a specific system call. This function can
+	  <para>Identifies the name of a specific system call. This variable can
 	  only be used in probes that use the event
 	  <command>syscall.<replaceable>system_call</replaceable></command>.
 	  </para>
