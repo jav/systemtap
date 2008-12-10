@@ -68,7 +68,6 @@
 	<title><xref linkend="iotime"/> Sample Output</title>
 <screen>
 [...]
-3123380 2460 (pcscd) access /dev/bus/usb/005/001 read: 0 write: 0
 825946 3364 (NetworkManager) access /sys/class/net/eth0/carrier read: 8190 write: 0
 825955 3364 (NetworkManager) iotime /sys/class/net/eth0/carrier time: 9
 117061 2460 (pcscd) access /dev/bus/usb/003/001 read: 43 write: 0
