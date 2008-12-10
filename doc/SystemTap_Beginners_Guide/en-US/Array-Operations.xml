@@ -263,7 +263,7 @@ delta = gettimeofday_s() - foo[tid()]
 <replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>] ++
 </screen>
 
-<para>Again, you can also use a handler function for your <command><replaceable>index_expression</replaceable></command>. For example, if you wanted to tally how many times a specific process performed a read to the virtual file system (using the event <command>kernel.function("vfs_read")</command>), you can use the following probe:</para>
+<para>Again, you can also use a handler function for your <command><replaceable>index_expression</replaceable></command>. For example, if you wanted to tally how many times a specific process performed a read to the virtual file system (using the event <command>vfs.read</command>), you can use the following probe:</para>
 
 <!-- next 3 indexterms for tallying virtual file system reads (VFS reads) -->
 
@@ -299,9 +299,9 @@ delta = gettimeofday_s() - foo[tid()]
 <example id="simplesimplevfsread">
 	<title>vfsreads.stp</title>
 <programlisting>
-probe kernel.function("vfs_read") 
+probe vfs.read
 {
-	reads[execname()] ++
+  reads[execname()] ++
 }
 </programlisting>
 </example>
@@ -430,12 +430,12 @@ probe kernel.function("vfs_read")
 global reads
 probe vfs.read
 { 
-	reads[execname()] ++
+  reads[execname()] ++
 }
 probe timer.s(3)
 {
-	foreach (count in reads)
-		printf("%s : %d \n", count, reads[count])
+  foreach (count in reads)
+    printf("%s : %d \n", count, reads[count])
 }
 </programlisting>
 </example>
@@ -500,8 +500,8 @@ probe timer.s(3)
 <screen>
 probe timer.s(3)
 {
-	foreach (count in reads- limit 10)
-		printf("%s : %d \n", count, reads[count])
+  foreach (count in reads- limit 10)
+    printf("%s : %d \n", count, reads[count])
 }
 </screen>
 
@@ -591,13 +591,13 @@ probe timer.s(3)
 global reads
 probe vfs.read
 { 
-	reads[execname()] ++
+  reads[execname()] ++
 }
 probe timer.s(3)
 {
-	foreach (count in reads)
-		printf("%s : %d \n", count, reads[count])
-	delete reads	
+  foreach (count in reads)
+    printf("%s : %d \n", count, reads[count])
+  delete reads	
 }
 </programlisting>
 </example>
@@ -608,20 +608,20 @@ probe timer.s(3)
 global reads
 probe vfs.read
 {
-	reads[execname()] ++
-
+  reads[execname()] ++
 }
-probe timer.s(2)
+
+probe timer.s(3)
 {
-	printf("=======\n")
-	foreach (count in reads+) 
-		printf("%s : %d \n", count, reads[count])
-	delete reads
+  printf("=======\n")
+  foreach (count in reads+) 
+    printf("%s : %d \n", count, reads[count])
+  delete reads
 }
 </programlisting>
 </example>-->
 
-<para>In <xref linkend="simplevfsreadprintnotcumulative"/>, the second probe prints the number of VFS reads each process made <emphasis>within the probed 2-second period only</emphasis>. The <command>delete reads</command> statement clears the <command>reads</command> array within the probe.</para>
+<para>In <xref linkend="simplevfsreadprintnotcumulative"/>, the second probe prints the number of VFS reads each process made <emphasis>within the probed 3-second period only</emphasis>. The <command>delete reads</command> statement clears the <command>reads</command> array within the probe.</para>
 
 <note>
 	<title>Note</title>
@@ -651,34 +651,34 @@ probe timer.s(2)
 <secondary>clearing arrays/array elements</secondary>
 <tertiary>array operations</tertiary>
 </indexterm>	
-	<para>You can have multiple array operations within the same probe. Using the examples from <xref linkend="arrayops-foreach"/> and <xref linkend="arrayops-deleting"/> , you can track the number of VFS reads each process makes per 2-second period <emphasis>and</emphasis> tally the cumulative VFS reads of those same processes. Consider the following example:</para>
+	<para>You can have multiple array operations within the same probe. Using the examples from <xref linkend="arrayops-foreach"/> and <xref linkend="arrayops-deleting"/> , you can track the number of VFS reads each process makes per 3-second period <emphasis>and</emphasis> tally the cumulative VFS reads of those same processes. Consider the following example:</para>
 	
 <screen>
 global reads, totalreads
 
-probe kernel.function("vfs_read")
+probe vfs.read
 {
-	reads[execname()] ++
-	totalreads[execname()] ++
+  reads[execname()] ++
+  totalreads[execname()] ++
 }
 
-probe timer.s(2)
+probe timer.s(3)
 {
-	printf("=======\n")
-	foreach (count in reads+) 
-		printf("%s : %d \n", count, reads[count])
-	delete reads
-
+  printf("=======\n")
+  foreach (count in reads+) 
+    printf("%s : %d \n", count, reads[count])
+  delete reads
 }
+
 probe end
 {
-	printf("TOTALS\n")
-	foreach (total in totalreads+)
-		printf("%s : %d \n", total, totalreads[total])
+  printf("TOTALS\n")
+  foreach (total in totalreads+)
+    printf("%s : %d \n", total, totalreads[total])
 }
 </screen>
 
-<para>In this example, the arrays <command>reads</command> and <command>totalreads</command> track the same information, and are printed out in a similar fashion. The only difference here is that <command>reads</command> is cleared every 2-second period, whereas <command>totalreads</command> keeps growing.</para> 
+<para>In this example, the arrays <command>reads</command> and <command>totalreads</command> track the same information, and are printed out in a similar fashion. The only difference here is that <command>reads</command> is cleared every 3-second period, whereas <command>totalreads</command> keeps growing.</para> 
 </note>
 </section>	
 <section id="arrayops-conditionals">
@@ -711,39 +711,38 @@ probe end
 global reads
 probe vfs.read
 {
-    reads[execname()] ++
+  reads[execname()] ++
 }
 
-probe timer.s(2)
+probe timer.s(3)
 {
-    printf("=======\n")
-    foreach (count in reads-)
-        if (reads[count] >= 1024)
-            printf("%s : %dkB \n", count, reads[count]/1024)
-        else
-            printf("%s : %dB \n", count, reads[count])
+  printf("=======\n")
+  foreach (count in reads-)
+    if (reads[count] >= 1024)
+      printf("%s : %dkB \n", count, reads[count]/1024)
+    else
+      printf("%s : %dB \n", count, reads[count])
 }
 </programlisting>
 </example>	
 
-<para>Every two seconds, <xref linkend="simplevfsreadprintif"/> prints out a list of all processes, along with how many times each process performed a VFS read. If the associated value of a process name is equal or greater than 1024, the <command>if</command> statement in the script converts and prints it out in <command>kB</command>.</para>  
+<para>Every three seconds, <xref linkend="simplevfsreadprintif"/> prints out a list of all processes, along with how many times each process performed a VFS read. If the associated value of a process name is equal or greater than 1024, the <command>if</command> statement in the script converts and prints it out in <command>kB</command>.</para>  
 <!--	<title>vfsreads-stop-on-stapio.stp</title>
 <programlisting>
 global reads
 probe kernel.function("vfs_read")
 {
-	reads[execname()] ++
+  reads[execname()] ++
 }
 
-probe timer.s(2)
+probe timer.s(3)
 {
-	printf("=======\n")
-	foreach (count in reads+) 
-		printf("%s : %d \n", count, reads[count])
-	if(reads["stapio"] >= 20)
-	{
-		exit()
-	}
+  printf("=======\n")
+  foreach (count in reads+) 
+    printf("%s : %d \n", count, reads[count])
+  if(reads["stapio"] >= 20) {
+    exit()
+  }
 }
 </programlisting>
 </example>
@@ -789,7 +788,7 @@ probe timer.s(2)
 </formalpara>
 
 <screen>
-if([<replaceable>index_expression</replaceable>] in <replaceable>array_name</replaceable>
+if([<replaceable>index_expression</replaceable>] in <replaceable>array_name</replaceable>)
 </screen>
 
 <para>To illustrate this, consider the following example:</para>
@@ -801,19 +800,18 @@ global reads
 
 probe vfs.read
 {
-	reads[execname()] ++
+  reads[execname()] ++
 }
 
-probe timer.s(2)
+probe timer.s(3)
 {
-	printf("=======\n")
-	foreach (count in reads+) 
-		printf("%s : %d \n", count, reads[count])
-	if(["stapio"] in reads)
-	{
-		printf("stapio read detected, exiting\n")
-		exit()
-	}
+  printf("=======\n")
+  foreach (count in reads+) 
+    printf("%s : %d \n", count, reads[count])
+  if(["stapio"] in reads) {
+    printf("stapio read detected, exiting\n")
+    exit()
+  }
 }
 </programlisting>		
 </example>
@@ -882,7 +880,7 @@ probe timer.s(2)
 global reads	
 probe vfs.read
 {
-reads[execname()] &lt;&lt;&lt; count
+  reads[execname()] &lt;&lt;&lt; count
 }
 </programlisting>
 </example>
@@ -1161,13 +1159,13 @@ reads[execname()] &lt;&lt;&lt; count
 global reads
 probe vfs.read
 {
-reads[execname(),pid()] &lt;&lt;&lt; 1
+  reads[execname(),pid()] &lt;&lt;&lt; 1
 }
 probe timer.s(3)
 {
-foreach([var1,var2] in reads)
-	printf("%s (%d) : %d \n", var1, var2, @count(reads[var1,var2]))
-}	
+  foreach([var1,var2] in reads)
+    printf("%s (%d) : %d \n", var1, var2, @count(reads[var1,var2]))
+}
 </programlisting>
 </example>
 
