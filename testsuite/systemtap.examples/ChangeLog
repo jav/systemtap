@@ -1,3 +1,8 @@
+2008-12-10  William Cohen  <wcohen@redhat.com>
+
+	* process/futexes.stp:
+	* profiling/thread-times.stp: Tweak formatting.
+
 2008-12-10  Tim Moore  <timoore@redhat.com>
 
 	* profiling/latencytap.stp: Probe scheduler to identify processes
