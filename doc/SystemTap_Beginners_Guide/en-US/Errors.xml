@@ -807,6 +807,7 @@ An array containing aggregate values contains too many distinct key pairs at thi
 
 <para>
 	Too many levels of function call nesting were attempted.
+	The default nesting of function calls allowed is 10.
 </para>
 </formalpara>
 
@@ -843,7 +844,9 @@ An array containing aggregate values contains too many distinct key pairs at thi
 	<tertiary>understainding SystemTap errors</tertiary>
 </indexterm>
 <para>
-    The probe handler attempted to execute too many statements in the probe handler.
+	The probe handler attempted to execute too many statements in the
+	probe handler. The default number of actions allow in a probe handler
+	is 1000.
 </para>
 </formalpara>
 
