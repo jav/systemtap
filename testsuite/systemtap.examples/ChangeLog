@@ -1,3 +1,8 @@
+2008-12-10  Tim Moore  <timoore@redhat.com>
+
+	* profiling/latencytap.stp: Probe scheduler to identify processes
+	that have slept inordinately.
+
 2008-12-09  William Cohen  <wcohen@redhat.com>
 	
 	* general/ansi_colors.stp:

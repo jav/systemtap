@@ -1,0 +1,52 @@
+#! /usr/bin/stap -g
+
+# Record the time that a process has spent asleep, and in what function
+
+global enqueued
+global sleep_time
+global process_names
+global sleep_agg
+
+function _get_sleep_time:long(rq_param:long, p_param:long)
+%{
+        struct rq *rq = (struct rq *)(unsigned long)THIS->rq_param;
+        struct task_struct *p = (struct task_struct *)(unsigned long)THIS->p_param;
+        struct sched_entity *se = &p->se;
+        u64 delta = cpu_clock(smp_processor_id()) - se->sleep_start;
+
+        if ((s64)delta < 0)
+                delta = 0;
+        THIS->__retvalue = delta;
+%}
+
+# Get the backtrace from an arbitrary task                
+function task_backtrace:string (task:long)
+%{
+    _stp_stack_snprint(THIS->__retvalue, MAXSTRINGLEN,
+                                          task_pt_regs((struct task_struct *)THIS->task), 0, 0, MAXTRACE);
+%}
+
+probe kernel.function("enqueue_task_fair") {
+    if ($wakeup == 1) {
+        this_sleep = _get_sleep_time($rq, $p)
+        if (this_sleep > 0) {
+            sleep_time[$p->pid, task_backtrace($p)] += this_sleep
+            sleep_agg[$p->pid] <<< this_sleep
+            process_names[$p->pid] = kernel_string($p->comm)
+        }
+    }
+}
+
+global pid_sleep
+probe timer.ms(1000) {
+    foreach ([pid, backtrace] in sleep_time) {
+        pid_sleep[pid] += sleep_time[pid, backtrace]
+    }
+    foreach ([pid+] in pid_sleep) {
+        printf("%s %d %d\n", process_names[pid], @max(sleep_agg[pid]) / 1000000, @avg(sleep_agg[pid]) / 1000000) 
+    }
+    # decode backtraces; unfortunately they are empty at the moment.
+    delete pid_sleep
+    delete sleep_time
+    delete process_names
+}
