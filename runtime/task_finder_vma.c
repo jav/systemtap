@@ -16,17 +16,6 @@ static DEFINE_MUTEX(__stp_tf_vma_mutex);
 #define TASK_FINDER_VMA_ENTRY_ITEMS 100
 #endif
 
-struct __stp_tf_vma_entry {
-	struct hlist_node hlist;
-
-	pid_t pid;
-	unsigned long addr;
-	unsigned long vm_start;
-	unsigned long vm_end;
-	unsigned long vm_pgoff;
-	// Is that enough?  Should we store a dcookie for vm_file?
-};
-
 static struct __stp_tf_vma_entry
 __stp_tf_vma_free_list_items[TASK_FINDER_VMA_ENTRY_ITEMS];
 
@@ -211,7 +200,8 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 // Add the vma info to the vma map hash table.
 static int
 stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
-			  unsigned long vm_end, unsigned long vm_pgoff)
+		      unsigned long vm_end, unsigned long vm_pgoff,
+		      struct _stp_module *module)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -242,6 +232,7 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 	entry->vm_start = vm_start;
 	entry->vm_end = vm_end;
 	entry->vm_pgoff = vm_pgoff;
+	entry->module = module;
 
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
 	hlist_add_head(&entry->hlist, head);
@@ -304,4 +295,27 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 	}
 	mutex_unlock(&__stp_tf_vma_mutex);
 	return rc;
+}
+
+// Get vma_entry of the address (vm_start/vm_end) if the vma is
+// present in the vma hash table containing.
+// Returns NULL if not present.
+static struct __stp_tf_vma_entry *
+__stp_tf_get_vma_entry_addr(struct task_struct *tsk, unsigned long addr)
+{
+  struct hlist_head *head;
+  struct hlist_node *node;
+  struct __stp_tf_vma_entry *entry;
+  
+  mutex_lock(&__stp_tf_vma_mutex);
+  head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
+  hlist_for_each_entry(entry, node, head, hlist) {
+    if (tsk->pid == entry->pid
+	&& addr >= entry->vm_start && addr < entry->vm_end) {
+      mutex_unlock(&__stp_tf_vma_mutex);
+      return entry;
+    }
+  }
+  mutex_unlock(&__stp_tf_vma_mutex);
+  return NULL;
 }

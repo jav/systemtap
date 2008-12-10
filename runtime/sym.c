@@ -77,11 +77,28 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
    if found, return NULL otherwise.
    XXX: needs to be address-space-specific. */
 static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
+					       struct task_struct *task,
 					       struct _stp_section **sec)
 {
   struct _stp_module *m = NULL;
   unsigned midx = 0;
   unsigned long closest_section_offset = ~0;
+
+  // Try vma matching first if task given.
+  struct __stp_tf_vma_entry *entry;
+  if (task)
+    {
+      entry = __stp_tf_get_vma_entry_addr(task, addr);
+      if (entry != NULL && entry->module != NULL)
+	{
+	  m = entry->module;
+	  *sec = & m->sections[0]; // XXX check actual section and relocate
+	  if (strcmp(".dynamic", m->sections[0].name) == 0)
+	    m->sections[0].addr = entry->vm_start; // cheat...
+	  return m;
+	}
+    }
+
   for (midx = 0; midx < _stp_num_modules; midx++)
     {
       unsigned secidx;
@@ -109,7 +126,8 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
                                         unsigned long *offset, 
                                         const char **modname, 
                                         /* char ** secname? */
-                                        char *namebuf)
+                                        char *namebuf,
+					struct task_struct *task)
 {
 	struct _stp_module *m = NULL;
 	struct _stp_section *sec = NULL;
@@ -117,7 +135,7 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	unsigned long flags;
 	unsigned end, begin = 0;
 
-	m = _stp_mod_sec_lookup(addr, &sec);
+	m = _stp_mod_sec_lookup(addr, task, &sec);
         if (unlikely (m == NULL || sec == NULL))
           return NULL;
         
@@ -242,7 +260,7 @@ void _stp_symbol_print(unsigned long address)
 	const char *name;
 	unsigned long offset, size;
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, NULL);
 
 	_stp_printf("%p", (int64_t) address);
 
@@ -267,7 +285,7 @@ int _stp_func_print(unsigned long address, int verbose, int exact)
 	else
 		exstr = " (inexact)";
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, NULL);
 
 	if (name) {
 		if (verbose) {
@@ -283,13 +301,15 @@ int _stp_func_print(unsigned long address, int verbose, int exact)
 	return 0;
 }
 
-void _stp_symbol_snprint(char *str, size_t len, unsigned long address)
+void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
+			 struct task_struct *task)
 {
 	const char *modname;
 	const char *name;
 	unsigned long offset, size;
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL,
+				    task);
 	if (name)
 		strlcpy(str, name, len);
 	else

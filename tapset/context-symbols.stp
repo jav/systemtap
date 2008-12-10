@@ -11,6 +11,9 @@
 #ifndef STP_NEED_SYMBOL_DATA
 #define STP_NEED_SYMBOL_DATA 1
 #endif
+#ifndef STP_NEED_TASK_FINDER_VMA
+#define STP_NEED_TASK_FINDER_VMA 1
+#endif
 %}
 
 /**
@@ -92,4 +95,9 @@ function probemod:string () %{ /* pure */
 		/* XXX: need a PC- and symbol-table-based fallback. */
 		THIS->__retvalue[0] = '\0';
 	}
+%}
+
+function symbolname:string (addr:long) %{ /* pure */
+	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+	                     current);
 %}

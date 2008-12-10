@@ -1,0 +1,69 @@
+set test "./usymbols"
+set testpath "$srcdir/$subdir"
+set testsrc  "$testpath/usymbols.c"
+set testexe  "[pwd]/usymbols"
+set testflags "additional_flags=-g additional_flags=-O"
+
+# Only run on make installcheck
+if {! [installtest_p]} { untested "$test -p5"; return }
+
+# Compile out test program
+set res [target_compile $testsrc $testexe executable $testflags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $testsrc"
+    return
+}
+
+# We need the execname() trick to work around (the workaround of) PR6964
+# otherwise we get also the rt_sigactions of stapio. Get the handler
+# (comes from the executable) and the restorer (comes from glibc).
+set testscript {
+    probe syscall.rt_sigaction {
+      if (pid() == target() && execname() == "%s") {
+	  handler = $act->sa_handler;
+	  printf("handler: %%s\n", symbolname(handler));
+	  restorer = $act->sa_restorer;
+	  printf("restorer: %%s\n", symbolname(restorer));   
+      }
+    }
+    probe process("%s").syscall { printf(""); /* XXX trigger tracker */ }
+}
+
+set output {handler: handler
+restorer: __restore_rt}
+
+# Got to run stap with both the exe and the libraries used as -d args.
+# XXX Note how we need the fully resolved (absolute) path...
+set script [format $testscript usymbols $testexe]
+catch {eval exec [concat ldd $testexe | grep libc.so]} libc
+set libc [lindex [split $libc " "] 2]
+send_log "libc: $libc\n"
+if {[string equal "link" [file type $libc]]} {
+    set libc [file join [file dirname $libc] [file readlink $libc]]
+}
+send_log "libc: $libc\n"
+set cmd [concat stap -d $libc -d $testexe -c $testexe -e {$script}]
+send_log "cmd: $cmd\n"
+catch {eval exec $cmd} res
+send_log "cmd output: $res\n"
+
+set n 0
+set m [llength [split $output "\n"]]
+set expected [split $output "\n"]
+foreach line [split $res "\n"] {
+    if {![string equal $line [lindex $expected $n]]} {
+      fail usymbols
+      send_log "line [expr $n + 1]: expected \"[lindex $expected $n]\", "
+      send_log "Got \"$line\"\n"
+      return
+    }
+    incr n
+}
+if { $n != $m } {
+  fail usymbols
+  send_log "Got \"$n\" lines, expected \"$m\" lines\n"
+} else {
+  pass usymbols
+}
+exec rm -f $testexe

@@ -1,3 +1,10 @@
+2008-12-10  Mark Wielaard  <mjw@redhat.com>
+
+	* tapsets.cxx
+	(utrace_derived_probe_group::emit_vm_callback_probe_decl):
+	Test for STP_NEED_TASK_FINDER_VMA to enable
+	emit_vm_callback_probe_decl.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6961

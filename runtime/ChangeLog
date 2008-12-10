@@ -1,3 +1,14 @@
+2008-12-10  Mark Wielaard  <mjw@redhat.com>
+
+	* runtime.h: Define __stp_tf_vma_entry here.
+	* sym.c (_stp_mod_sec_lookup): Try vma matching first if task given.
+	(_stp_kallsyms_lookup): Take an optional task.
+	(_stp_symbol_snprint): Likewise.
+	task_finder.c (__stp_tf_vm_cb): Use vm_path to match and attach
+	module to vma entry.
+	task_finder_vma.c (stap_add_vma_map_info): Take an optional module.
+	(__stp_tf_get_vma_entry_addr): New lookup function.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* time.c (_stp_gettimeofday_ns): Protect some more against freq=0.

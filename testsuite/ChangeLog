@@ -1,3 +1,8 @@
+2008-12-10  Mark Wielaard  <mjw@redhat.com>
+
+	* systemtap.context/usymbols.c: New test program.
+	* systemtap.context/usymbols.exp: New dejagnu test.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6961.

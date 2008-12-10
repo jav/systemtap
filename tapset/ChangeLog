@@ -1,3 +1,10 @@
+2008-12-10  Mark Wielaard  <mjw@redhat.com>
+
+	* context-symbols.stp: Define STP_NEED_TASK_FINDER_VMA.
+	(symbolname): New function.
+	* context-unwind.stp (caller): Pass current task to
+	_stp_symbol_snprint.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6961.
