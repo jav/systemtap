@@ -962,23 +962,23 @@ probe vfs.read
 <indexterm>
 <primary>array operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>count (integer extractor)</tertiary>
+<tertiary>@count (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>count (integer extractor)</tertiary>
+<tertiary>@count (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>computing for statistical aggregates</primary>
 <secondary>array operations</secondary>
-<tertiary>count (integer extractor)</tertiary>
+<tertiary>@count (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
-<primary>count (integer extractor)</primary>
+	<primary>@count (integer extractor)</primary>
 <secondary>computing for statistical aggregates</secondary>
 <tertiary>array operations</tertiary>
 </indexterm>	
@@ -997,23 +997,23 @@ probe vfs.read
 <indexterm>
 <primary>array operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>sum (integer extractor)</tertiary>
+<tertiary>@sum (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>sum (integer extractor)</tertiary>
+<tertiary>@sum (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>computing for statistical aggregates</primary>
 <secondary>array operations</secondary>
-<tertiary>sum (integer extractor)</tertiary>
+<tertiary>@sum (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
-<primary>sum (integer extractor)</primary>
+	<primary>@sum (integer extractor)</primary>
 <secondary>computing for statistical aggregates</secondary>
 <tertiary>array operations</tertiary>
 </indexterm>
@@ -1033,23 +1033,23 @@ probe vfs.read
 <indexterm>
 <primary>array operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>min (integer extractor)</tertiary>
+<tertiary>@min (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>min (integer extractor)</tertiary>
+<tertiary>@min (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>computing for statistical aggregates</primary>
 <secondary>array operations</secondary>
-<tertiary>min (integer extractor)</tertiary>
+<tertiary>@min (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
-<primary>min (integer extractor)</primary>
+	<primary>@min (integer extractor)</primary>
 <secondary>computing for statistical aggregates</secondary>
 <tertiary>array operations</tertiary>
 </indexterm>
@@ -1069,23 +1069,23 @@ probe vfs.read
 <indexterm>
 <primary>array operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>max (integer extractor)</tertiary>
+<tertiary>@max (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>max (integer extractor)</tertiary>
+<tertiary>@max (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>computing for statistical aggregates</primary>
 <secondary>array operations</secondary>
-<tertiary>max (integer extractor)</tertiary>
+<tertiary>@max (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
-<primary>max (integer extractor)</primary>
+	<primary>@max (integer extractor)</primary>
 <secondary>computing for statistical aggregates</secondary>
 <tertiary>array operations</tertiary>
 </indexterm>
@@ -1105,23 +1105,23 @@ probe vfs.read
 <indexterm>
 <primary>array operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>avg (integer extractor)</tertiary>
+<tertiary>@avg (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>operations</primary>
 <secondary>computing for statistical aggregates</secondary>
-<tertiary>avg (integer extractor)</tertiary>
+<tertiary>@avg (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
 <primary>computing for statistical aggregates</primary>
 <secondary>array operations</secondary>
-<tertiary>avg (integer extractor)</tertiary>
+<tertiary>@avg (integer extractor)</tertiary>
 </indexterm>
 
 <indexterm>
-<primary>avg (integer extractor)</primary>
+	<primary>@avg (integer extractor)</primary>
 <secondary>computing for statistical aggregates</secondary>
 <tertiary>array operations</tertiary>
 </indexterm>
