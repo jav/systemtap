@@ -55,7 +55,24 @@
 	executables. This information is tracked and printed out in 1-second intervals, and in 
 	descending order.
 </para>
+<!-- next 3 indexterms for $return -->
+<indexterm>
+	<primary>local variables</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>$return</tertiary>
+</indexterm>
 
+<indexterm>
+	<primary>variables (local)</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>$return</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>$return</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>local variables</tertiary>
+</indexterm>
 <para>
 	Note that <xref linkend="traceio"/> also uses the local variable <command>$return</command>,
 	which is also used by <xref linkend="scriptdisktop"/> from <xref linkend="disktop"/>.
