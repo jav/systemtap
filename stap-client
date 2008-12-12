@@ -410,7 +410,7 @@ function receive_response {
     # Retrieve the file. Wait for up to 5 minutes for a response.
     for ((attempt=0; $attempt < 300; ++attempt))
     do
-	if $netcat -d $server $(($port+1)) > $tar_server 2>/dev/null; then
+	if $netcat $server $(($port+1)) </dev/null > $tar_server 2>/dev/null; then
 	    return;
 	fi
 	sleep 1

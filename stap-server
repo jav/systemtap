@@ -58,7 +58,7 @@ function receive_request {
 	fatal "ERROR: cannot create temporary tar file " $tar_client
 
     # Receive the file.
-    $netcat -ld $port > $tar_client 2>/dev/null &
+    $netcat -l $port < /dev/null > $tar_client 2>/dev/null &
 
     # Wait for 10 seconds before timing out
     for ((t=0; $t < 10; ++t))

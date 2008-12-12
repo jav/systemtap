@@ -190,7 +190,7 @@ points matching the given pattern.  The pattern may include wildcards
 and aliases.
 .TP
 .BI \-L " PROBE"
-Similar to "-l", but list probe points and local variables.
+Similar to "-l", but list probe points and script-level local variables.
 .TP
 .BI \-F
 Load module and start probes, then detach from the module leaving the

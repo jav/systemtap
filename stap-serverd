@@ -65,7 +65,7 @@ function listen {
     do
 	for ((attempt=0; $attempt < 5; ++attempt))
 	do
-            $netcat -ld $port 2>/dev/null | process_request &
+            $netcat -l $port < /dev/null 2>/dev/null | process_request &
 	    wait '%$netcat -l'
 	    rc=$?
 	    if test $rc = 0 -o $rc = 127; then
