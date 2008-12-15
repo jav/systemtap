@@ -505,7 +505,7 @@ probe timer.s(3)
 }
 </screen>
 
-<para>This <command>foreach</command> statement instructs the script to process the elements in the array <command>reads</command> in descending order (of associated value). The <command>limit 10</command> option instructs the script to only process the first ten elements in the array (i.e. the first 10, starting with the highest value).</para> 
+<para>This <command>foreach</command> statement instructs the script to process the elements in the array <command>reads</command> in descending order (of associated value). The <command>limit 10</command> option instructs the <command>foreach</command> to only process the first ten iterations (i.e. print the first 10, starting with the highest value).</para> 
 </section>
 
 <section id="arrayops-deleting">
@@ -665,7 +665,7 @@ probe vfs.read
 probe timer.s(3)
 {
   printf("=======\n")
-  foreach (count in reads+) 
+  foreach (count in reads-) 
     printf("%s : %d \n", count, reads[count])
   delete reads
 }
@@ -673,7 +673,7 @@ probe timer.s(3)
 probe end
 {
   printf("TOTALS\n")
-  foreach (total in totalreads+)
+  foreach (total in totalreads-)
     printf("%s : %d \n", total, totalreads[total])
 }
 </screen>
@@ -788,7 +788,7 @@ probe timer.s(3)
 </formalpara>
 
 <screen>
-if([<replaceable>index_expression</replaceable>] in <replaceable>array_name</replaceable>)
+if([<replaceable>index_expression</replaceable>] in <replaceable>array_name</replaceable>) <replaceable>statement</replaceable>
 </screen>
 
 <para>To illustrate this, consider the following example:</para>
