@@ -1,3 +1,8 @@
+2008-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* translate.cxx (dump_unwindsyms): Work around buggy
+	dwfl_module_relocate_address.
+
 2008-12-10  Mark Wielaard  <mjw@redhat.com>
 
 	* tapsets.cxx
