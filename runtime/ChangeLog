@@ -1,3 +1,10 @@
+2008-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* runtime.h: Just include task_finder.c instead of defining parts
+	of it here.
+	* sym.c (_stp_mod_sec_lookup): Add dbug_sym statements.
+	* task_finder_vma.c: Define __stp_tf_vma_entry here.
+	
 2008-12-10  Mark Wielaard  <mjw@redhat.com>
 
 	* runtime.h: Define __stp_tf_vma_entry here.

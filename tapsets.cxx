@@ -6578,7 +6578,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "/* ---- utrace probes ---- */";
-  s.op->newline() << "#include \"task_finder.c\"";
 
   s.op->newline() << "enum utrace_derived_probe_flags {";
   s.op->indent(1);
@@ -6800,10 +6799,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 	  // Emit a "fake" probe decl that is really a hook for to get
 	  // our vm_callback called.
 	  string path = it->first;
-	  s.op->newline() << "#ifdef STP_NEED_TASK_FINDER_VMA";
 	  emit_vm_callback_probe_decl (s, true, path, (int64_t)0,
 				       "__stp_tf_vm_cb");
-	  s.op->newline() << "#endif";
 
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
@@ -6821,10 +6818,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
         {
 	  // Emit a "fake" probe decl that is really a hook for to get
 	  // our vm_callback called.
-	  s.op->newline() << "#ifdef STP_NEED_TASK_FINDER_VMA";
 	  emit_vm_callback_probe_decl (s, false, "", it->first,
 				       "__stp_tf_vm_cb");
-	  s.op->newline() << "#endif";
 
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
@@ -7073,7 +7068,6 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#else";
   s.op->newline() << "#include \"uprobes/uprobes.h\"";
   s.op->newline() << "#endif";
-  s.op->newline() << "#include \"task_finder.c\"";
 
   s.op->newline() << "#ifndef MULTIPLE_UPROBES";
   s.op->newline() << "#define MULTIPLE_UPROBES 256"; // maximum possible armed uprobes per process() probe point

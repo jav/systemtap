@@ -16,6 +16,20 @@ static DEFINE_MUTEX(__stp_tf_vma_mutex);
 #define TASK_FINDER_VMA_ENTRY_ITEMS 100
 #endif
 
+struct __stp_tf_vma_entry {
+	struct hlist_node hlist;
+
+	pid_t pid;
+	unsigned long addr;
+	unsigned long vm_start;
+	unsigned long vm_end;
+	unsigned long vm_pgoff;
+	// Is that enough?  Should we store a dcookie for vm_file?
+
+	// Module that this vma entry is mapped from, if any.                   
+	struct _stp_module *module;
+};
+
 static struct __stp_tf_vma_entry
 __stp_tf_vma_free_list_items[TASK_FINDER_VMA_ENTRY_ITEMS];
 

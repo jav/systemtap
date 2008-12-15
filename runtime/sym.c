@@ -92,7 +92,9 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
       if (entry != NULL && entry->module != NULL)
 	{
 	  m = entry->module;
-	  *sec = & m->sections[0]; // XXX check actual section and relocate
+	  *sec = &m->sections[0]; // XXX check actual section and relocate
+          dbug_sym(1, "found section %s in module %s at 0x%lx\n",
+		   m->sections[0].name, m->name, entry->vm_start);
 	  if (strcmp(".dynamic", m->sections[0].name) == 0)
 	    m->sections[0].addr = entry->vm_start; // cheat...
 	  return m;

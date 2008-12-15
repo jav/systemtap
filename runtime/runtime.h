@@ -87,22 +87,7 @@ static struct
 #include "arith.c"
 #include "copy.c"
 
-/* Lifted task_finder, internal details used in sym.c - XXX */
-struct __stp_tf_vma_entry {
-  struct hlist_node hlist;
-
-  pid_t pid;
-  unsigned long addr;
-  unsigned long vm_start;
-  unsigned long vm_end;
-  unsigned long vm_pgoff;
-  // Is that enough?  Should we store a dcookie for vm_file?              
-
-  // Module that this vma entry is mapped from, if any.                   
-  struct _stp_module *module;
-};
-static struct __stp_tf_vma_entry *
-__stp_tf_get_vma_entry_addr(struct task_struct *, unsigned long);
+#include "task_finder.c"
 
 #include "sym.c"
 #ifdef STP_PERFMON

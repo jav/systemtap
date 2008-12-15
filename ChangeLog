@@ -1,5 +1,11 @@
 2008-12-15  Mark Wielaard  <mjw@redhat.com>
 
+	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):
+	Always enable emit_vm_callback_probe_decl, don't test for
+	STP_NEED_TASK_FINDER_VMA. Don't include task_finder.c.
+	
+2008-12-15  Mark Wielaard  <mjw@redhat.com>
+
 	* translate.cxx (dump_unwindsyms): Work around buggy
 	dwfl_module_relocate_address.
 
