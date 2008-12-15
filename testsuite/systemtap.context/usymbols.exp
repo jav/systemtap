@@ -1,14 +1,26 @@
 set test "./usymbols"
 set testpath "$srcdir/$subdir"
 set testsrc  "$testpath/usymbols.c"
+set testsrclib  "$testpath/usymbols_lib.c"
 set testexe  "[pwd]/usymbols"
+set testlibname  "usymbols"
+set testlibdir "[pwd]"
+set testso  "$testlibdir/lib${testlibname}.so"
 set testflags "additional_flags=-g additional_flags=-O"
+set testlibflags "testflags additional_flags=-fPIC additional_flags=-shared"
+set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$testlibname additional_flags=-Wl,-rpath,$testlibdir"
 
 # Only run on make installcheck
 if {! [installtest_p]} { untested "$test -p5"; return }
 
-# Compile out test program
-set res [target_compile $testsrc $testexe executable $testflags]
+# Compile our test program and library.
+set res [target_compile $testsrclib $testso executable $testlibflags]
+if { $res != "" } {
+    verbose "target_compile for $testso failed: $res" 2
+    fail "unable to compile $testsrclib"
+    return
+}
+set res [target_compile $testsrc $testexe executable $maintestflags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
     fail "unable to compile $testsrc"
@@ -17,33 +29,31 @@ if { $res != "" } {
 
 # We need the execname() trick to work around (the workaround of) PR6964
 # otherwise we get also the rt_sigactions of stapio. Get the handler
-# (comes from the executable) and the restorer (comes from glibc).
+# (comes from the executable or the library).
 set testscript {
     probe syscall.rt_sigaction {
       if (pid() == target() && execname() == "%s") {
 	  handler = $act->sa_handler;
 	  printf("handler: %%s\n", symbolname(handler));
-	  restorer = $act->sa_restorer;
-	  printf("restorer: %%s\n", symbolname(restorer));   
       }
     }
     probe process("%s").syscall { printf(""); /* XXX trigger tracker */ }
 }
 
-set output {handler: handler
-restorer: __restore_rt}
+set output {handler: main_handler
+handler: lib_handler}
 
 # Got to run stap with both the exe and the libraries used as -d args.
 # XXX Note how we need the fully resolved (absolute) path...
 set script [format $testscript usymbols $testexe]
-catch {eval exec [concat ldd $testexe | grep libc.so]} libc
-set libc [lindex [split $libc " "] 2]
-send_log "libc: $libc\n"
-if {[string equal "link" [file type $libc]]} {
-    set libc [file join [file dirname $libc] [file readlink $libc]]
+catch {eval exec [concat ldd $testexe | grep $testlibname]} libpath
+set libpath [lindex [split $libpath " "] 2]
+send_log "libpath: $libpath\n"
+if {[string equal "link" [file type $libpath]]} {
+    set libpath [file join [file dirname $libpath] [file readlink $libpath]]
 }
-send_log "libc: $libc\n"
-set cmd [concat stap -d $libc -d $testexe -c $testexe -e {$script}]
+send_log "libpath: $libpath\n"
+set cmd [concat stap -d $libpath -d $testexe -c $testexe -e {$script}]
 send_log "cmd: $cmd\n"
 catch {eval exec $cmd} res
 send_log "cmd output: $res\n"
@@ -66,4 +76,4 @@ if { $n != $m } {
 } else {
   pass usymbols
 }
-exec rm -f $testexe
+exec rm -f $testexe $testso

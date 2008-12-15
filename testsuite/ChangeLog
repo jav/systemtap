@@ -1,3 +1,9 @@
+2008-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* systemtap.context/usymbols.c: Call helper library.
+	* systemtap.context/usymbols_lib.c: New file.
+	* systemtap.context/usymbols.exp: Compile and use helper library.
+
 2008-12-10  Mark Wielaard  <mjw@redhat.com>
 
 	* systemtap.context/usymbols.c: New test program.
