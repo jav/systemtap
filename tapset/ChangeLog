@@ -1,3 +1,8 @@
+2008-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* context-symbols.stp (probefunc): Call _stp_symbol_snprint with
+	current task.
+
 2008-12-10  Mark Wielaard  <mjw@redhat.com>
 
 	* context-symbols.stp: Define STP_NEED_TASK_FINDER_VMA.
