@@ -177,7 +177,8 @@ The <command><replaceable>statement1</replaceable></command> is executed if the
 <command><replaceable>condition</replaceable></command> expression is
 non-zero. The <command><replaceable>statement2</replaceable></command> is
 executed if the <command><replaceable>condition</replaceable></command>
-expression is zero. The <command>else</command> is optional. Both
+expression is zero. The <command>else</command> clause 
+(<command>else</command> <replaceable>statement2</replaceable>)is optional. Both
 <command><replaceable>statement1</replaceable></command> and
 <command><replaceable>statement2</replaceable></command> can be statement
 blocks.
