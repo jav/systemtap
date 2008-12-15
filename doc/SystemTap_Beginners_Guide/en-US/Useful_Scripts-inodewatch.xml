@@ -59,7 +59,8 @@ no script in examples
 <remark>need to add references to sources/man pages that explain how "dev_nr = $file->f_dentry->d_inode->i_sb->s_dev" and "($1 &lt;&lt; 20 | $2)".</remark>
 
 
-<para><xref linkend="inodewatch"/> takes the following information about the file as an argument:</para>
+<para><xref linkend="inodewatch"/> takes the following information about the
+file as arguments on the command line:</para>
 <indexterm>
 	<primary>script examples</primary>
 	<secondary>file device number (integer format)</secondary>
@@ -81,7 +82,9 @@ no script in examples
 </indexterm>
 
 <itemizedlist>
-	<listitem><para>The file's device number, in integer format. When this is passed to the script as the first argument, be sure to replace any <computeroutput>0</computeroutput> with a space.</para></listitem>
+	<listitem><para>The file's major device number.</para></listitem>
+
+	<listitem><para>The file's minor device number.</para></listitem>
 			
 	<listitem><para>The file's <command>inode</command> number.</para></listitem>
 </itemizedlist>
@@ -121,9 +124,9 @@ no script in examples
 	<secondary>examples of SystemTap scripts</secondary>
 </indexterm>
 
-<para><computeroutput>805</computeroutput> is the device number, while <computeroutput>1078319</computeroutput> is the <command>inode</command> number. To start monitoring <filename>/etc/crontab</filename>, run <command>stap inodewatch.stp 8 5 1078319</command>.</para>
+<para><computeroutput>805</computeroutput> is the base-16 (hexadecimal) device number. The lower two digits are the minor device number and the upper digits are the major number. <computeroutput>1078319</computeroutput> is the <command>inode</command> number. To start monitoring <filename>/etc/crontab</filename>, run <command>stap inodewatch.stp 0x8 0x05 1078319</command> (The <command>0x</command> prefixes indicate base-16 values.</para>
 
-<para>The output of this command contains the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), the device number (in hex format), and the <command>inode</command> number. <xref linkend="inodewatchoutput"/> contains the output of <command>stap inodewatch.stp 8 5 1078319</command> (when <command>cat /etc/crontab</command> is executed while the script is running) :</para>
+<para>The output of this command contains the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), the device number (in hex format), and the <command>inode</command> number. <xref linkend="inodewatchoutput"/> contains the output of <command>stap inodewatch.stp 0x8 0x05 1078319</command> (when <command>cat /etc/crontab</command> is executed while the script is running) :</para>
 
 
 <example id="inodewatchoutput">
