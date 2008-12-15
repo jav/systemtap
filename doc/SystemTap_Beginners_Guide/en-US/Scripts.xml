@@ -129,7 +129,7 @@
 </indexterm>
     <para>
       SystemTap scripts use the file extension <filename>.stp</filename>, and
-      are conatains probes written in the following format:
+      contains probes written in the following format:
     </para>
   </formalpara>	
 <screen>
@@ -555,21 +555,21 @@ probe timer.s(4)
 	</indexterm>
 	<para> Consider the following sample script: </para>
 	
-	<example id="helloworld"><title>helloworld.stp</title>
-		<programlisting>
-			probe begin
-			{
-			printf ("hello world\n")
-			exit ()
-			}
-		</programlisting>	
-	</example>
+<example id="helloworld"><title>helloworld.stp</title>
+<programlisting>
+probe begin
+{
+  printf ("hello world\n")
+  exit ()
+}
+</programlisting>	
+</example>
 	
 	<para>
 		In <xref linkend="helloworld"/>, the event <command>begin</command>
 		(i.e. the start of the session) triggers the handler enclosed in
 		<command>{ }</command>, which simply prints <command>hello
-			world</command>, then exits.
+			world</command> followed by a new-line, then exits.
 	</para>	
 	
 	<note>
@@ -666,15 +666,15 @@ probe timer.s(4)
 	
 	<para> To illustrate this, consider the following probe example: </para>
 	
-	<example id="syscall-open">
-		<title>variables-in-printf-statements.stp</title>
-		<programlisting>
-			probe syscall.open
-			{
-			printf ("%s(%d) open\n", execname(), pid())
-			}
-		</programlisting>
-	</example>
+<example id="syscall-open">
+<title>variables-in-printf-statements.stp</title>
+<programlisting>
+probe syscall.open
+{
+  printf ("%s(%d) open\n", execname(), pid())
+}
+</programlisting>
+</example>
 	
 	<para>
 		<xref linkend="syscall-open"/> instructs SystemTap to probe all entries to
@@ -688,16 +688,16 @@ probe timer.s(4)
 		to "argument1", "format specifier2" is to "argument2", or is this clear
 		enough? </remark>
 	
-	<screen>
-		vmware-guestd(2206) open
-		hald(2360) open
-		hald(2360) open
-		hald(2360) open
-		df(3433) open
-		df(3433) open
-		df(3433) open
-		hald(2360) open
-	</screen>
+<screen>
+vmware-guestd(2206) open
+hald(2360) open
+hald(2360) open
+hald(2360) open
+df(3433) open
+df(3433) open
+df(3433) open
+hald(2360) open
+</screen>
 	
 	<formalpara id="systemtapscript-functions">
 		<title>SystemTap Functions</title>
@@ -945,42 +945,42 @@ probe timer.s(4)
 						 <command>thread_indent()</command>:
 					 </para>
 					 
-					 <example id="thread_indent"><title>thread_indent.stp</title>
-						 <programlisting>
-							 probe kernel.function("*@net/socket.c") 
-							 {
-							 printf ("%s -> %s\n", thread_indent(1), probefunc())
-							 }
-							 probe kernel.function("*@net/socket.c").return 
-							 {
-							 printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
-							 }
-						 </programlisting>
-					 </example>
+<example id="thread_indent"><title>thread_indent.stp</title>
+<programlisting>
+probe kernel.function("*@net/socket.c") 
+{
+  printf ("%s -> %s\n", thread_indent(1), probefunc())
+}
+probe kernel.function("*@net/socket.c").return 
+{
+  printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
+}
+</programlisting>
+</example>
 					 
 					 <para>
 						 <xref linkend="thread_indent"/> prints out the
 						 <command>thread_indent()</command> and probe functions at each event
 						 in the following format:</para>
 					 
-					 <screen>
-						 0 ftp(7223): -&gt; sys_socketcall
-						 1159 ftp(7223):  -&gt; sys_socket
-						 2173 ftp(7223):   -&gt; __sock_create
-						 2286 ftp(7223):    -&gt; sock_alloc_inode
-						 2737 ftp(7223):    &lt;- sock_alloc_inode
-						 3349 ftp(7223):    -&gt; sock_alloc
-						 3389 ftp(7223):    &lt;- sock_alloc
-						 3417 ftp(7223):   &lt;- __sock_create
-						 4117 ftp(7223):   -&gt; sock_create
-						 4160 ftp(7223):   &lt;- sock_create
-						 4301 ftp(7223):   -&gt; sock_map_fd
-						 4644 ftp(7223):    -&gt; sock_map_file
-						 4699 ftp(7223):    &lt;- sock_map_file
-						 4715 ftp(7223):   &lt;- sock_map_fd
-						 4732 ftp(7223):  &lt;- sys_socket
-						 4775 ftp(7223): &lt;- sys_socketcall
-					 </screen>
+<screen>
+0 ftp(7223): -&gt; sys_socketcall
+1159 ftp(7223):  -&gt; sys_socket
+2173 ftp(7223):   -&gt; __sock_create
+2286 ftp(7223):    -&gt; sock_alloc_inode
+2737 ftp(7223):    &lt;- sock_alloc_inode
+3349 ftp(7223):    -&gt; sock_alloc
+3389 ftp(7223):    &lt;- sock_alloc
+3417 ftp(7223):   &lt;- __sock_create
+4117 ftp(7223):   -&gt; sock_create
+4160 ftp(7223):   &lt;- sock_create
+4301 ftp(7223):   -&gt; sock_map_fd
+4644 ftp(7223):    -&gt; sock_map_file
+4699 ftp(7223):    &lt;- sock_map_file
+4715 ftp(7223):   &lt;- sock_map_fd
+4732 ftp(7223):  &lt;- sys_socket
+4775 ftp(7223): &lt;- sys_socketcall
+</screen>
 					 
 					 <para>This sample output contains the following information:</para>
 					 
@@ -1073,15 +1073,15 @@ probe timer.s(4)
 						 to it. For example:
 					 </para>
 					 
-					 <example id="targetexample">
-						 <title>targetexample.stp</title>
-						 <programlisting>
-							 probe syscall.* {
-							 if (pid() == target())
-							 printf("%s/n", name)
-							 }	
-						 </programlisting>
-					 </example>
+<example id="targetexample">
+<title>targetexample.stp</title>
+<programlisting>
+probe syscall.* {
+  if (pid() == target())
+    printf("%s/n", name)
+}	
+</programlisting>
+</example>
 					 
 					 <para>
 						 When <xref linkend="targetexample"/> is run with the argument
