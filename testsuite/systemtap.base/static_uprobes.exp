@@ -8,6 +8,7 @@ set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=
 set fp [open $sup_srcpath "w"]
 puts $fp "
 #include <stdlib.h>
+#define USE_STAP_PROBE 1
 #include \"sduprobes.h\"
 
 foo ()
@@ -24,12 +25,13 @@ bar (int i)
 
 baz (int i, char* s)
 {
+  STAP_PROBE1(tstlabel,label0,i);
   if (i == 0)
     i = 1000;
   STAP_PROBE2(tstlabel,label3,i,s);
 }
 
-buz ()
+buz (int parm)
 {
 }
 
@@ -39,6 +41,7 @@ main ()
   foo();
   bar(2);
   baz(3,\"abc\");
+  buz(4);
 }
 "
 close $fp
@@ -52,33 +55,85 @@ if { $res != "" } {
     pass "compiling static_uprobes.c"
 }
 
+set fp [open "[pwd]/static_uprobes.stp" "w"]
+puts $fp "
+probe process(\"static_uprobes.x\").mark(\"label0\") 
+{ 
+  printf(\"In label0 probe %#x\\n\", \$arg1)
+}
+probe process(\"static_uprobes.x\").mark(\"label1\") 
+{ 
+  printf(\"In label1 probe\\n\")
+}
+probe process(\"static_uprobes.x\").mark(\"label2\") 
+{ 
+  printf(\"In label2 probe %#x\\n\", \$arg1)
+}
+probe process(\"static_uprobes.x\").mark(\"label3\") 
+{ 
+  printf(\"In label3 probe %#x %#x\\n\", \$arg1, \$arg2)
+}
+"
+close $fp
+
 set ok 0
-spawn stap -c $sup_exepath $srcdir/$subdir/static_uprobes.stp
+verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
+spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
 expect {
     -timeout 180
     -re {In label1 probe} { incr ok; exp_continue }
     -re {In label2 probe 0x2} { incr ok; exp_continue }
+    -re {In label0 probe 0x3} { incr ok; exp_continue }
     -re {In label3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
+
+if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
+set ok 0
 
 # Now do a debuginfo style probe of the above test
 
 set fp [open "[pwd]/static_uprobes.sh" "w"]
 puts $fp "
 ed $sup_srcpath <<HERE
-1a
-#define USE_STAP_DEBUGINFO_PROBE 1
+/USE_STAP_PROBE/d
+/buz/+1
+a
+  DTRACE_PROBE1(tstlabel,label4,parm);
 .
 w
 q
-HERE
 "
 close $fp
 spawn sh [pwd]/static_uprobes.sh
 
-set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-g additional_flags=$env(SYSTEMTAP_RUNTIME)/sduprobes.c"
+set fp [open "[pwd]/static_uprobes.stp" "w"]
+puts $fp "
+probe process(\"static_uprobes.x\").mark(\"label0\") 
+{ 
+  printf(\"In label0 probe %#x\\n\", \$label0_arg1)
+}
+probe process(\"static_uprobes.x\").mark(\"label1\") 
+{ 
+  printf(\"In label1 probe\\n\")
+}
+probe process(\"static_uprobes.x\").mark(\"label2\") 
+{
+  printf(\"In label2 probe %#x\\n\", \$label2_arg1)
+}
+probe process(\"static_uprobes.x\").mark(\"label3\") 
+{ 
+  printf(\"In label3 probe %#x %#x\\n\", \$label3_arg1, \$label3_arg2)
+}
+probe process(\"static_uprobes.x\").mark(\"label4\")
+{ 
+  printf(\"In label4 dtrace probe %#x\\n\", \$label4_arg1)
+}
+"
+close $fp
+
+set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-g additional_flags=-O additional_flags=$env(SYSTEMTAP_RUNTIME)/sduprobes.c"
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -88,16 +143,19 @@ if { $res != "" } {
     pass "compiling sduprobes.c -g"
 }
 
-spawn stap -c $sup_exepath $srcdir/$subdir/static_uprobes.stp
+verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
+spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
 expect {
     -timeout 180
     -re {In label1 probe} { incr ok; exp_continue }
     -re {In label2 probe 0x2} { incr ok; exp_continue }
+    -re {In label0 probe 0x3} { incr ok; exp_continue }
     -re {In label3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+    -re {In label4 dtrace probe 0x4} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
 
 wait
 
-if {$ok == 6} { pass "$test" } { fail "$test ($ok)" }
+if {$ok == 5} { pass "$test" } { fail "$test ($ok)" }

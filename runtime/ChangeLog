@@ -1,3 +1,7 @@
+2008-12-16  Stan Cox  <scox@redhat.com>
+
+	* sduprobes.h (STAP_PROBE): Add synthetic reference to probe label.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* time.c (_stp_gettimeofday_ns): Protect some more against freq=0.

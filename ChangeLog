@@ -1,3 +1,9 @@
+2008-12-16  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwarf_builder::build): Consider alignment when
+	fetching .probes values.  Convert .mark to .statement(0x) instead
+	of .statement(foo.c:N)
+
 2008-12-11  Dave Brolley  <brolley@redhat.com>
 
 	PR7087
