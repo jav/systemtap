@@ -4523,26 +4523,24 @@ dump_unwindsyms (Dwfl_Module *m,
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
-		  // libdwfl up to 0.137 could miscalculate the relocated
-		  // address for shared ET_DYN files (n > 0). Luckily
-		  // dwfl_module_address_section does work correctly.
-		  // Then we just need to add the section offset to get
-		  // the (relative) address of the symbol when mapped in.
-		  Dwarf_Addr bias;
-		  Elf_Scn *sec;
-		  GElf_Shdr *shdr, shdr_mem;
-		  GElf_Ehdr *ehdr, ehdr_mem;
-		  Elf *elf;
-		  sec = dwfl_module_address_section (m, &sym_addr, &bias);
-		  dwfl_assert ("dwfl_module_address_section", sec != NULL);
-		  shdr = gelf_getshdr(sec, &shdr_mem);
-		  sym_addr += shdr->sh_offset;
-		  elf = dwfl_module_getelf (m, &bias);
-		  ehdr = gelf_getehdr(elf, &ehdr_mem);
-		  if (ehdr->e_type == ET_DYN)
-		    secname = "";
-		  else
-		    secname = elf_strptr (elf, ehdr->e_shstrndx, shdr->sh_name);
+		  Dwarf_Addr save_addr = sym_addr;
+		  int ki = dwfl_module_relocate_address (m, &sym_addr);
+		  dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
+		  secname = dwfl_module_relocation_info (m, ki, NULL);
+
+		  // For ET_DYN files (secname == "") we do ignore the
+		  // dwfl_module_relocate_address adjustment. libdwfl
+		  // up to 0.137 would substract the wrong bias. And
+		  // we are not actually interested in the bias adjustment.
+		  // We just want the address relative to the start of the
+		  // segment as loaded into memory.
+		  if (ki == 0 && secname != NULL && secname[0] == '\0')
+		    {
+		      Dwarf_Addr start;
+		      dwfl_module_info (m, NULL, &start,
+					NULL, NULL, NULL, NULL, NULL);
+		      sym_addr = save_addr - start;
+		    }
                 }
 
               if (n == 1 && modname == "kernel")
