@@ -581,7 +581,7 @@ probe begin
 		
 		<indexterm>
 			<primary><command>exit()</command></primary>
-			<secondary>Handlers</secondary>
+			<secondary>functions</secondary>
 		</indexterm>
 		<para>
 			SystemTap scripts continue to run until the
@@ -732,20 +732,20 @@ hald(2360) open
 			<listitem>
 				<indexterm>
 					<primary>functions</primary>
-					<secondary>handler functions</secondary>
-					<tertiary><command>tid()</command></tertiary>
+					<secondary><command>tid()</command></secondary>
+<!-- 					<tertiary><command>tid()</command></tertiary> -->
 				</indexterm>
 				
 				<indexterm>
-					<primary>handler functions</primary>
-					<secondary>Handlers</secondary>
-					<tertiary><command>tid()</command></tertiary>
+					<primary>functions</primary>
+					<secondary><command>tid()</command></secondary>
+<!-- 					<tertiary></tertiary> -->
 				</indexterm>
 				
 				<indexterm>
 					<primary><command>tid()</command></primary>
-					<secondary>Handlers</secondary>
-					<tertiary>handler functions</tertiary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler </tertiary> -->
 				</indexterm>
 				
 				<para>The ID of the current thread.</para>
@@ -757,20 +757,20 @@ hald(2360) open
 			<listitem>
 				<indexterm>
 					<primary>functions</primary>
-					<secondary>handler functions</secondary>
-					<tertiary><command>uid()</command></tertiary>
+					<!--<secondary>handler functions</secondary>-->
+					<secondary><command>uid()</command></secondary>
 				</indexterm>
-				
+<!--				
 				<indexterm>
 					<primary>handler functions</primary>
 					<secondary>Handlers</secondary>
 					<tertiary><command>uid()</command></tertiary>
 				</indexterm>
-				
+				-->
 				<indexterm>
 					<primary><command>uid()</command></primary>
-					<secondary>Handlers</secondary>
-					<tertiary>handler functions</tertiary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler functions</tertiary> -->
 				</indexterm>
 				<para>The ID of the current user.</para>
 			</listitem>	
@@ -781,20 +781,20 @@ hald(2360) open
 			<listitem>
 				<indexterm>
 					<primary>functions</primary>
-					<secondary>handler functions</secondary>
-					<tertiary><command>cpu()</command></tertiary>
+					<!--<secondary>handler functions</secondary>-->
+					<secondary><command>cpu()</command></secondary>
 				</indexterm>
-				
+<!--				
 				<indexterm>
 					<primary>handler functions</primary>
 					<secondary>Handlers</secondary>
 					<tertiary><command>cpu()</command></tertiary>
 				</indexterm>
-				
+				-->
 				<indexterm>
 					<primary><command>cpu()</command></primary>
-					<secondary>Handlers</secondary>
-					<tertiary>handler functions</tertiary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler functions</tertiary> -->
 				</indexterm>		
 				<para>The current CPU number.</para>
 			</listitem>	
@@ -805,20 +805,20 @@ hald(2360) open
 			<listitem>
 				<indexterm>
 					<primary>functions</primary>
-					<secondary>handler functions</secondary>
-					<tertiary><command>gettimeofday_s()</command></tertiary>
+					<!--<secondary>handler functions</secondary>-->
+					<secondary><command>gettimeofday_s()</command></secondary>
 				</indexterm>
-				
+<!--				
 				<indexterm>
 					<primary>handler functions</primary>
 					<secondary>Handlers</secondary>
 					<tertiary><command>gettimeofday_s()</command></tertiary>
 				</indexterm>
-				
+				-->
 				<indexterm>
 					<primary><command>gettimeofday_s()</command></primary>
-					<secondary>Handlers</secondary>
-					<tertiary>handler functions</tertiary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler functions</tertiary> -->
 				</indexterm>
 				
 				<para>The number of seconds since UNIX epoch (January 1, 1970).</para>
@@ -830,20 +830,20 @@ hald(2360) open
 			<listitem>
 				<indexterm>
 					<primary>functions</primary>
-					<secondary>handler functions</secondary>
-					<tertiary><command>ctime()</command></tertiary>
+					<!--<secondary>handler functions</secondary>-->
+					<secondary><command>ctime()</command></secondary>
 				</indexterm>
-				
+<!--				
 				<indexterm>
 					<primary>handler functions</primary>
 					<secondary>Handlers</secondary>
 					<tertiary><command>ctime()</command></tertiary>
 				</indexterm>
-				
+				-->
 				<indexterm>
 					<primary><command>ctime()</command></primary>
-					<secondary>Handlers</secondary>
-					<tertiary>handler functions</tertiary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler functions</tertiary> -->
 				</indexterm>				
 				<para>
 					Convert number of seconds since UNIX epoch to date.
@@ -865,20 +865,20 @@ hald(2360) open
 			    <listitem>
 				    <indexterm>
 					    <primary>functions</primary>
-					    <secondary>handler functions</secondary>
-					    <tertiary><command>pp()</command></tertiary>
+					    <!--<secondary>handler functions</secondary>-->
+					    <secondary><command>pp()</command></secondary>
 				    </indexterm>
-				    
+<!--				    
 				    <indexterm>
 					    <primary>handler functions</primary>
 					    <secondary>Handlers</secondary>
 					    <tertiary><command>pp()</command></tertiary>
 				    </indexterm>
-				    
+				    -->
 				    <indexterm>
 					    <primary><command>pp()</command></primary>
-					    <secondary>Handlers</secondary>
-					    <tertiary>handler functions</tertiary>
+					    <secondary>functions</secondary>
+<!-- 					    <tertiary>handler functions</tertiary> -->
 				    </indexterm>
 				    <para>A string describing the probe point currently being handled.</para>
 			    </listitem>	
@@ -897,20 +897,20 @@ hald(2360) open
 				 <listitem>
 					 <indexterm>
 						 <primary>functions</primary>
-						 <secondary>handler functions</secondary>
-						 <tertiary><command>thread_indent()</command></tertiary>
+						 <!--<secondary>handler functions</secondary>-->
+						 <secondary><command>thread_indent()</command></secondary>
 					 </indexterm>
-					 
+<!--					 
 					 <indexterm>
 						 <primary>handler functions</primary>
 						 <secondary>Handlers</secondary>
 						 <tertiary><command>thread_indent()</command></tertiary>
 					 </indexterm>
-					 
+					 -->
 					 <indexterm>
 						 <primary><command>thread_indent()</command></primary>
-						 <secondary>Handlers</secondary>
-						 <tertiary>handler functions</tertiary>
+						 <secondary>functions</secondary>
+<!-- 						 <tertiary>handler functions</tertiary> -->
 					 </indexterm>
 					 <para>
 						 This particular function is quite useful, providing you with a way
@@ -1047,20 +1047,20 @@ probe kernel.function("*@net/socket.c").return
 					 
 					 <indexterm>
 						 <primary>functions</primary>
-						 <secondary>handler functions</secondary>
-						 <tertiary><command>target()</command></tertiary>
+<!-- 						 <secondary>handler functions</secondary> -->
+						 <secondary><command>target()</command></secondary>
 					 </indexterm>
-					 
+<!--					 
 					 <indexterm>
 						 <primary>handler functions</primary>
 						 <secondary>Handlers</secondary>
 						 <tertiary><command>target()</command></tertiary>
 					 </indexterm>
-					 
+					 -->
 					 <indexterm>
 						 <primary><command>target()</command></primary>
-						 <secondary>Handlers</secondary>
-						 <tertiary>handler functions</tertiary>
+						 <secondary>functions</secondary>
+<!-- 						 <tertiary>handler functions</tertiary> -->
 					 </indexterm>
 					 <para>
 						 Used in conjunction with <command>stap
