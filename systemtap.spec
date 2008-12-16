@@ -1,5 +1,5 @@
 %{!?release: %define release 1}
-%{!?with_sqllite: %define with_sqlite 1}
+%{!?with_sqlite: %define with_sqlite 1}
 %{!?with_docs: %define with_docs 1}
 %{!?with_crash: %define with_crash 0}
 %{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
@@ -20,13 +20,13 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: kernel >= 2.6.9-11
 %if %{with_sqlite}
 BuildRequires: sqlite-devel
-Requires: sqlite
 %endif
 %if %{with_crash}
 BuildRequires: crash-devel zlib-devel
 %endif
-# Requires: kernel-devel
-# or is that kernel-smp-devel?  kernel-hugemem-devel?
+# Alternate kernel packages kernel-PAE-devel et al have a virtual
+# provide for kernel-devel, so this requirement does the right thing.
+Requires: kernel-devel
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}

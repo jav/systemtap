@@ -1,3 +1,11 @@
+2008-12-16  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec (Requires): Add kernel-devel, is correct virtual
+	provide in kernel-*-devel rpms.
+	(with_sqlite): Typo fix in default defn check.
+	[%{with_sqlite}] (Requires): Remove.  BuildRequires causes the correct
+	automatic dependency.
+
 2008-12-16  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwarf_builder::build): Consider alignment when
