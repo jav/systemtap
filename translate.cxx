@@ -4523,24 +4523,36 @@ dump_unwindsyms (Dwfl_Module *m,
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
-		  Dwarf_Addr save_addr = sym_addr;
+		  Dwarf_Addr bias, save_addr = sym_addr;
+		  GElf_Ehdr *ehdr, ehdr_mem;
+		  GElf_Phdr *phdr = NULL, phdr_mem;
+		  Elf *elf = dwfl_module_getelf (m, &bias);
+		  int idx;
 		  int ki = dwfl_module_relocate_address (m, &sym_addr);
 		  dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
 		  secname = dwfl_module_relocation_info (m, ki, NULL);
 
 		  // For ET_DYN files (secname == "") we do ignore the
 		  // dwfl_module_relocate_address adjustment. libdwfl
-		  // up to 0.137 would substract the wrong bias. And
-		  // we are not actually interested in the bias adjustment.
+		  // up to 0.137 would substract the wrong bias.
+		  if (ki == 0 && secname != NULL && secname[0] == '\0')
+		    sym_addr = save_addr - bias;
+
 		  // We just want the address relative to the start of the
 		  // segment as loaded into memory.
-		  if (ki == 0 && secname != NULL && secname[0] == '\0')
+		  ehdr = gelf_getehdr(elf, &ehdr_mem);
+		  for (idx = 0; idx < ehdr->e_phnum; idx++)
 		    {
-		      Dwarf_Addr start;
-		      dwfl_module_info (m, NULL, &start,
-					NULL, NULL, NULL, NULL, NULL);
-		      sym_addr = save_addr - start;
+		      phdr = gelf_getphdr (elf, idx, &phdr_mem);
+		      if (phdr != NULL
+			  && phdr->p_type == PT_LOAD
+			  && phdr->p_flags & PF_X
+			  && sym_addr >= phdr->p_vaddr
+			  && sym_addr < phdr->p_vaddr + phdr->p_memsz)
+			break;
 		    }
+		  if (phdr != NULL && idx < ehdr->e_phnum)
+		    sym_addr -= phdr->p_vaddr;
                 }
 
               if (n == 1 && modname == "kernel")
