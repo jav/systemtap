@@ -101,7 +101,7 @@
       replicate?</remark>
 
 <para>
-      The following invalid SystemTap script is missing the its probe
+      The following invalid SystemTap script is missing its probe
       handlers:
 </para>
 
@@ -473,8 +473,9 @@ probe syscall.open
 	<computeroutput><replaceable>foo</replaceable></computeroutput> refers
 	to. This usually means that SystemTap could not find a match for
 	<computeroutput><replaceable>foo</replaceable></computeroutput> in the
-	tapset library. The <replaceable>N</replaceable> refers to the column
-	the error occurred in.</para>
+	tapset library. The <replaceable>N</replaceable> refers to the 
+	line and column of 
+	the error.</para>
 </formalpara>	
 	
 <remark>how to explain N in previous? "The divergence from the “tree” of probe point namespace is at position N (starting with zero at left)." (from tutorial) </remark>
@@ -807,6 +808,7 @@ An array containing aggregate values contains too many distinct key pairs at thi
 
 <para>
 	Too many levels of function call nesting were attempted.
+	The default nesting of function calls allowed is 10.
 </para>
 </formalpara>
 
@@ -843,7 +845,9 @@ An array containing aggregate values contains too many distinct key pairs at thi
 	<tertiary>understainding SystemTap errors</tertiary>
 </indexterm>
 <para>
-    The probe handler attempted to execute too many statements in the probe handler.
+	The probe handler attempted to execute too many statements in the
+	probe handler. The default number of actions allow in a probe handler
+	is 1000.
 </para>
 </formalpara>
 

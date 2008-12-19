@@ -161,7 +161,7 @@ foo["harry"] = 25
 </screen>
 </example>
 
-<para>You can specify up to 5 index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to have a key that contains multiple pieces of information. The following line from <xref linkend="scriptdisktop"/> uses 5 elements for the key: process ID, executable name, user ID, parent ID, and string "W". It associates the value of <command>devname</command> with that key.</para>
+<para>You can specify up to 5 index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to have a key that contains multiple pieces of information. The following line from <xref linkend="scriptdisktop"/> uses 5 elements for the key: process ID, executable name, user ID, parent process ID, and string "W". It associates the value of <command>devname</command> with that key.</para>
 
 <screen>
 device[pid(),execname(),uid(),ppid(),"W"] = devname

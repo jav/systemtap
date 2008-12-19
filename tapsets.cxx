@@ -3856,7 +3856,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
           // Verify that a raw address matches the beginning of a
           // statement. This is a somewhat lame check that the address
           // is at the start of an assembly instruction.
-          if (q->has_statement_num)
+	  // Avoid for now since this thwarts a probe on a statement in a macro
+          if (0 && q->has_statement_num)
             {
               Dwarf_Addr queryaddr = q->statement_num_val;
               dwarf_line_t address_line(dwarf_getsrc_die(cudie, queryaddr));
@@ -5297,14 +5298,14 @@ dwarf_builder::build(systemtap_session & sess,
     location->components[0]->arg = new literal_string(sess.cmd);
     ((literal_map_t&)parameters)[location->components[0]->functor] = location->components[0]->arg;
     Dwarf_Addr bias;
-    Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw->module, &bias))
-		?: dwfl_module_getelf (dw->module, &bias));
+    Elf* elf = dwfl_module_getelf (dw->module, &bias);
     size_t shstrndx;
 
     Elf_Scn *probe_scn = NULL;
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
     __uint64_t probe_arg = 0;
     int probe_type = no_debuginfo;
+    char *probe_name;
     // Find the .probes section where the static probe label and arg are stored
     while ((probe_scn = elf_nextscn (elf, probe_scn)))
       {
@@ -5314,23 +5315,24 @@ dwarf_builder::build(systemtap_session & sess,
 
 	if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") != 0)
 	  continue;
-	Elf_Data *pdata = elf_getdata (probe_scn, NULL);
+	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
 	size_t probe_scn_offset = 0;
 	while (probe_scn_offset < pdata->d_size)
 	  {
-	    char *probe_name = (char*)pdata->d_buf + probe_scn_offset;
-	    probe_scn_offset += strlen(probe_name);
-	    probe_scn_offset += sizeof(int) - (probe_scn_offset % sizeof(int));
-	    probe_type = *(((char*)pdata->d_buf + probe_scn_offset));
+	    probe_name = (char*)pdata->d_buf + probe_scn_offset;
+	    probe_scn_offset += strlen(probe_name) + 1;
+	    if (probe_scn_offset % (sizeof(int)))
+	      probe_scn_offset += sizeof(int) - (probe_scn_offset % sizeof(int));
+	    probe_type = *((int*)((char*)pdata->d_buf + probe_scn_offset));
 	    probe_scn_offset += sizeof(int);
-	    probe_arg = *((__uint32_t*)((char*)pdata->d_buf + probe_scn_offset));
-	    probe_arg <<= 32;
-	    probe_arg |= *((__uint32_t*)((char*)pdata->d_buf + probe_scn_offset + 4));
+	    if (probe_scn_offset % (sizeof(__uint64_t)))
+	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
+	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
 	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name) == 0)
 	      break;
-	    probe_scn_offset += sizeof(__uint64_t);
-	    probe_scn_offset += sizeof(__uint64_t)*2 - (probe_scn_offset % (sizeof(__uint64_t)*2));
+	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
+	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
 	  }
       }
 
@@ -5378,7 +5380,6 @@ dwarf_builder::build(systemtap_session & sess,
     size_t cuhl;
     Dwarf_Off noff = 0;
     const char *probe_file = "@sduprobes.c";
-    int probe_line;
     // Find where the probe instrumentation landing points are defined
     while (dwarf_nextcu (dwarf, off = noff, &noff, &cuhl, NULL, NULL, NULL) == 0)
       {
@@ -5386,21 +5387,14 @@ dwarf_builder::build(systemtap_session & sess,
 	Dwarf_Die *cudie = dwarf_offdie (dwarf, off + cuhl, &cudie_mem);
 	if (cudie == NULL)
 	  continue;
+	if (0)
+	  printf("2 diename=%s module_name=%s probe_type=%d probe_arg=%#Lx\n",dwarf_diename(&cudie_mem),module_name.c_str(), (int)probe_type, (long long)probe_arg);
 	if (probe_type == no_debuginfo)
 	  {
 	    if (strncmp (dwarf_diename(&cudie_mem), "sduprobes", 9) == 0)
 	      {
 		break;
 	      }
-	  }
-	else
-	  {
-	    Dwarf_Line *dwarf_line = dwarf_getsrc_die (cudie, probe_arg);
-	    if (dwarf_line == NULL)
-	      continue;
-	    dwarf_lineno (dwarf_line, &probe_line);
-	    probe_file = (dwarf_diename(&cudie_mem) ?: "<unknown>");
-	    break;
 	  }
       }
     location->components[1]->functor = TOK_STATEMENT;
@@ -5414,11 +5408,9 @@ dwarf_builder::build(systemtap_session & sess,
       }
     else
       {
-	char *pline;
-	if (asprintf (&pline, "*@%s:%d", probe_file, probe_line + 1) < 0)
-	  return;
-	location->components[1]->arg = new literal_string(pline);
+	location->components[1]->arg = new literal_number((int)probe_arg);
       }
+
     ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
     dw->module = 0;
   }
