@@ -311,9 +311,6 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			else {
                                 for (i = 0; i < len; ++i) {
                                         if (str <= end) {
-                                            //if (*fmt == 'M')
-                                                //str = number(str, str + 2, (uint64_t)(unsigned char) *s, 16, 2, 2, STP_SPACE);
-                                            //else
                                                 *str = *s;
                                         }
                                         ++str; ++s;
