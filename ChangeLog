@@ -1,3 +1,12 @@
+2008-12-19  Elliott Baron  <ebaron@redhat.com>
+
+	PR3668
+	* elaborate.cxx: Handling for %M.
+	* runtime/vsprintf.c: Likewise.
+	* staptree.cxx: Likewise.
+	* translate.cxx: Likewise.
+	* staptree.h: Added %M converter, conv_memory_hex, to enum
+
 2008-12-16  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec (Requires): Add kernel-devel, is correct virtual
