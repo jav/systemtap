@@ -494,6 +494,10 @@ print_format::components_to_string(vector<format_component> const & components)
 	      oss << 'm';
 	      break;
 
+	    case conv_memory_hex:
+	      oss << 'M';
+	      break;
+
 	    default:
 	      break;
 	    }
@@ -653,6 +657,10 @@ print_format::string_to_components(string const & str)
 
 	case 'm':
 	  curr.type = conv_memory;
+	  break;
+
+	case 'M':
+	  curr.type = conv_memory_hex;
 	  break;
 
 	case 'd':

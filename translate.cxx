@@ -4180,7 +4180,8 @@ c_unparser::visit_print_format (print_format* e)
 	  prec_ix = arg_ix++;
 
 	/* Generate a noop call to deref_buffer for %m.  */
-	if (components[i].type == print_format::conv_memory) {
+	if (components[i].type == print_format::conv_memory
+	    || components[i].type == print_format::conv_memory_hex) {
 	  this->probe_or_function_needs_deref_fault_handler = true;
 	  o->newline() << "deref_buffer (0, " << tmp[arg_ix].value() << ", ";
 	  if (prec_ix == -1)
@@ -4241,7 +4242,8 @@ c_unparser::visit_print_format (print_format* e)
 	  o->line() << ", (int)" << tmp[arg_ix++].value();
 
 	/* The type of the %m argument is 'char*'.  */
-	if (components[i].type == print_format::conv_memory)
+	if (components[i].type == print_format::conv_memory
+	    || components[i].type == print_format::conv_memory_hex)
 	  o->line() << ", (char*)(uintptr_t)" << tmp[arg_ix++].value();
 	/* The type of the %c argument is 'int'.  */
 	else if (components[i].type == print_format::conv_char)
