@@ -1,3 +1,9 @@
+2008-12-22  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR7090
+	* buildrun.cxx (compile_pass): Use flags macro to expand KBUILD_CFLAGS
+	for support kernels built with O= option.
+
 2008-12-21  Will Cohen <wcohen@redhat.com>
 
 	* systemtap.spec: Add generations of tapset reference manual material.

@@ -82,8 +82,11 @@ compile_pass (systemtap_session& s)
   if (s.verbose > 6)
     redirecterrors = "";
 
+  // Support O= (or KBUILD_OUTPUT) option
+  o << "_KBUILD_CFLAGS := $(call flags,KBUILD_CFLAGS)" << endl;
+
   o << "stap_check_gcc = $(shell " << superverbose << " if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
-  o << "stap_check_build = $(shell " << superverbose << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) " << redirecterrors << " ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+  o << "stap_check_build = $(shell " << superverbose << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(_KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) " << redirecterrors << " ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
 
   o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;
 
