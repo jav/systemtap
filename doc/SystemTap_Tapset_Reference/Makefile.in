@@ -16,14 +16,6 @@
 
 # Makefile.am --- automake input file for systemtap tapset reference manual
 
-###
-# The build process is as follows (targets):
-#              (xmldocs) [by docproc]
-# file.tmpl --> file.xml +--> file.ps   (psdocs)   [by xmlto]
-#                        +--> file.pdf  (pdfdocs)  [by xmlto]
-#                        +--> DIR=file  (htmldocs) [by xmlto]
-#                        +--> man/      (mandocs)  [by xmlto]
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
@@ -40,7 +32,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = docproc$(EXEEXT)
+noinst_PROGRAMS = docproc$(EXEEXT)
 subdir = doc/SystemTap_Tapset_Reference
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -50,11 +42,9 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)"
-binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
-PROGRAMS = $(bin_PROGRAMS)
-am_docproc_OBJECTS = docproc.$(OBJEXT)
-docproc_OBJECTS = $(am_docproc_OBJECTS)
+PROGRAMS = $(noinst_PROGRAMS)
+docproc_SOURCES = docproc.c
+docproc_OBJECTS = docproc.$(OBJEXT)
 docproc_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -63,8 +53,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(docproc_SOURCES)
-DIST_SOURCES = $(docproc_SOURCES)
+SOURCES = docproc.c
+DIST_SOURCES = docproc.c
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -173,7 +163,9 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-docproc_SOURCES = docproc.c
+DOC_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap
+MAN_INSTALL_DIR = $(DESTDIR)$(mandir)/man5
+HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
 SRCTREE = $(abs_top_srcdir)/
 DOCPROC = $(abs_builddir)/docproc
 all: all-am
@@ -209,29 +201,9 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-install-binPROGRAMS: $(bin_PROGRAMS)
-	@$(NORMAL_INSTALL)
-	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
-	@list='$(bin_PROGRAMS)'; for p in $$list; do \
-	  p1=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
-	  if test -f $$p \
-	  ; then \
-	    f=`echo "$$p1" | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'`; \
-	   echo " $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) '$$p' '$(DESTDIR)$(bindir)/$$f'"; \
-	   $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) "$$p" "$(DESTDIR)$(bindir)/$$f" || exit 1; \
-	  else :; fi; \
-	done
 
-uninstall-binPROGRAMS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(bin_PROGRAMS)'; for p in $$list; do \
-	  f=`echo "$$p" | sed 's,^.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/'`; \
-	  echo " rm -f '$(DESTDIR)$(bindir)/$$f'"; \
-	  rm -f "$(DESTDIR)$(bindir)/$$f"; \
-	done
-
-clean-binPROGRAMS:
-	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+clean-noinstPROGRAMS:
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
 docproc$(EXEEXT): $(docproc_OBJECTS) $(docproc_DEPENDENCIES) 
 	@rm -f docproc$(EXEEXT)
 	$(LINK) $(docproc_OBJECTS) $(docproc_LDADD) $(LIBS)
@@ -335,9 +307,6 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)"; do \
-	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
-	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -362,9 +331,10 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+@BUILD_DOCS_FALSE@install-data-hook:
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-generic clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -383,10 +353,12 @@ info: info-am
 info-am:
 
 install-data-am:
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
 
 install-dvi: install-dvi-am
 
-install-exec-am: install-binPROGRAMS
+install-exec-am:
 
 install-html: install-html-am
 
@@ -417,42 +389,46 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS
+uninstall-am:
 
-.MAKE: install-am install-strip
+.MAKE: install-am install-data-am install-strip
 
-.PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
-	clean-generic ctags distclean distclean-compile \
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
+	clean-noinstPROGRAMS ctags distclean distclean-compile \
 	distclean-generic distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-binPROGRAMS \
-	install-data install-data-am install-dvi install-dvi-am \
+	html-am info info-am install install-am install-data \
+	install-data-am install-data-hook install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-man install-pdf \
 	install-pdf-am install-ps install-ps-am install-strip \
 	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
-	uninstall-am uninstall-binPROGRAMS
+	uninstall-am
 
 
-all: pdfdocs htmldocs mandocs
+@BUILD_DOCS_TRUE@all: pdfdocs htmldocs mandocs
+@BUILD_DOCS_TRUE@xmldocs: docproc
+@BUILD_DOCS_TRUE@	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml
 
-xmldocs: docproc
-	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml
+@BUILD_DOCS_TRUE@htmldocs: xmldocs
+@BUILD_DOCS_TRUE@	xmlto html -o tapsets tapsets.xml
 
-htmldocs: xmldocs
-	xmlto html -o tapsets tapsets.xml
+@BUILD_DOCS_TRUE@pdfdocs: xmldocs
+@BUILD_DOCS_TRUE@	xmlto pdf tapsets.xml
 
-pdfdocs: xmldocs
-	xmlto pdf tapsets.xml
-
-mandocs: xmldocs
-	xmlto man -o man5 tapsets.xml
+@BUILD_DOCS_TRUE@mandocs: xmldocs
+@BUILD_DOCS_TRUE@	xmlto man -o man5 tapsets.xml
 
 #FIXME need to figure out where to install things appropriately
 #installmandocs: mandocs
-#	$(MKDIR_P) /usr/local/man/man5/
-#	install Documentation/DocBook/man/*.5.gz /usr/local/man/man5/
+@BUILD_DOCS_TRUE@install-data-hook:
+@BUILD_DOCS_TRUE@	$(MKDIR_P)  $(DOC_INSTALL_DIR)
+@BUILD_DOCS_TRUE@	$(INSTALL_DATA) tapsets.pdf $(DOC_INSTALL_DIR)
+@BUILD_DOCS_TRUE@	$(MKDIR_P)  $(MAN_INSTALL_DIR)
+@BUILD_DOCS_TRUE@	$(INSTALL_DATA) man5/* $(MAN_INSTALL_DIR)
+@BUILD_DOCS_TRUE@	$(MKDIR_P)  $(HTML_INSTALL_DIR)
+@BUILD_DOCS_TRUE@	$(INSTALL_DATA) tapsets/* $(HTML_INSTALL_DIR)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

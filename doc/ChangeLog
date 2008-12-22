@@ -1,3 +1,9 @@
+2008-12-21  Will Cohen <wcohen@redhat.com>
+
+	* Makefile.am: Add generations of tapset reference manual material.
+	* SystemTap_Tapset_Reference/Makefile.am: Install tapset reference man.
+	* Makfile.am, SystemTap_Tapset_Reference/Makefile.in: Regenerated.
+
 2008-11-26  Will Cohen <wcohen@redhat.com>
 
 	* SystemTap_Tapset_Reference/tapsets.tmpl: Add scsi.

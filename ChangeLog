@@ -1,3 +1,7 @@
+2008-12-21  Will Cohen <wcohen@redhat.com>
+
+	* systemtap.spec: Add generations of tapset reference manual material.
+	
 2008-12-21  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwflpp::die_has_pc): Don't abort if dwarf_ranges fails.

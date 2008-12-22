@@ -44,6 +44,7 @@ Requires: crash
 
 %if %{with_docs}
 BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
+BuildRequires: xmlto
 %endif
 
 %description
@@ -185,6 +186,7 @@ cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
 # %doc directive.
 mkdir docs.installed
 mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/*.pdf docs.installed/
+mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/tapsets docs.installed/
 %endif
 
 %clean
@@ -201,6 +203,7 @@ exit 0
 %doc README AUTHORS NEWS COPYING examples
 %if %{with_docs}
 %doc docs.installed/*.pdf
+%doc docs.installed/tapsets
 %endif
 
 %{_bindir}/stap
