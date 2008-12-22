@@ -1,3 +1,7 @@
+2008-12-21  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Parms now called $argN
+
 2008-12-16  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/static_uprobes.exp: Generate our own probes file.

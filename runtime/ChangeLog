@@ -1,3 +1,7 @@
+2008-12-21  Stan Cox  <scox@redhat.com>
+
+	* sduprobes.h (STAP_PROBE): Put block around probe point.
+
 2008-12-16  Stan Cox  <scox@redhat.com>
 
 	* sduprobes.h (STAP_PROBE): Add synthetic reference to probe label.

@@ -1578,8 +1578,9 @@ struct dwflpp
   bool die_has_pc (Dwarf_Die & die, Dwarf_Addr pc)
   {
     int res = dwarf_haspc (&die, pc);
-    if (res == -1)
-      dwarf_assert ("dwarf_haspc", res);
+    // dwarf_ranges will return -1 if a function die has no DW_AT_ranges
+    // if (res == -1)
+    //    dwarf_assert ("dwarf_haspc", res);
     return res == 1;
   }
 
@@ -1708,7 +1709,7 @@ struct dwflpp
 
     assert (cu);
 
-    if (scope_die)
+    if (scope_die && pc == 0)
       nscopes = dwarf_getscopes_die (scope_die, &scopes);
     else
       nscopes = dwarf_getscopes (cu, pc, &scopes);
@@ -5387,8 +5388,6 @@ dwarf_builder::build(systemtap_session & sess,
 	Dwarf_Die *cudie = dwarf_offdie (dwarf, off + cuhl, &cudie_mem);
 	if (cudie == NULL)
 	  continue;
-	if (0)
-	  printf("2 diename=%s module_name=%s probe_type=%d probe_arg=%#Lx\n",dwarf_diename(&cudie_mem),module_name.c_str(), (int)probe_type, (long long)probe_arg);
 	if (probe_type == no_debuginfo)
 	  {
 	    if (strncmp (dwarf_diename(&cudie_mem), "sduprobes", 9) == 0)

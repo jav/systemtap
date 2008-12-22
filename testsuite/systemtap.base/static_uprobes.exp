@@ -112,7 +112,7 @@ set fp [open "[pwd]/static_uprobes.stp" "w"]
 puts $fp "
 probe process(\"static_uprobes.x\").mark(\"label0\") 
 { 
-  printf(\"In label0 probe %#x\\n\", \$label0_arg1)
+  printf(\"In label0 probe %#x\\n\", \$arg1)
 }
 probe process(\"static_uprobes.x\").mark(\"label1\") 
 { 
@@ -120,15 +120,15 @@ probe process(\"static_uprobes.x\").mark(\"label1\")
 }
 probe process(\"static_uprobes.x\").mark(\"label2\") 
 {
-  printf(\"In label2 probe %#x\\n\", \$label2_arg1)
+  printf(\"In label2 probe %#x\\n\", \$arg1)
 }
 probe process(\"static_uprobes.x\").mark(\"label3\") 
 { 
-  printf(\"In label3 probe %#x %#x\\n\", \$label3_arg1, \$label3_arg2)
+  printf(\"In label3 probe %#x %#x\\n\", \$arg1, \$arg2)
 }
 probe process(\"static_uprobes.x\").mark(\"label4\")
 { 
-  printf(\"In label4 dtrace probe %#x\\n\", \$label4_arg1)
+  printf(\"In label4 dtrace probe %#x\\n\", \$arg1)
 }
 "
 close $fp

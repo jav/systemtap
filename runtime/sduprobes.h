@@ -25,6 +25,7 @@ struct _probe_ ## probe				\
 };						\
  static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section (".probes"))) = {#probe,type,argc};
 
+// The goto _probe_ prevents the label from "drifting"
 #ifdef USE_STAP_PROBE
 #define STAP_PROBE(provider,probe)		\
   STAP_PROBE_STRUCT(probe,0,0)			\
@@ -45,12 +46,12 @@ _probe_ ## probe:				\
   _stap_probe_1 (_probe_ ## probe.probe_name,(size_t)arg1);
 #else
 #define STAP_PROBE1(provider,probe,parm1)	\
-  volatile typeof(parm1) probe ## _arg1 = parm1; \
+ {volatile typeof(parm1) arg1 = parm1; \
 _probe_ ## probe:				\
-   asm volatile ("nop" :: "r"(probe ## _arg1)); \
+  asm volatile ("nop" :: "r"(arg1)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& _probe_ ## probe) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
-     goto _probe_ ## probe;
+     goto _probe_ ## probe;}
 #endif
 
 
@@ -60,13 +61,13 @@ _probe_ ## probe:				\
   _stap_probe_2 (_probe_ ## probe.probe_name,(size_t)arg1,(size_t)arg2);
 #else
 #define STAP_PROBE2(provider,probe,parm1,parm2)	\
-  volatile typeof(parm1) probe ## _arg1 = parm1; \
-  volatile typeof(parm2) probe ## _arg2 = parm2; \
+ {volatile typeof(parm1) arg1 = parm1;	\
+  volatile typeof(parm2) arg2 = parm2; \
 _probe_ ## probe:				\
-  asm volatile ("nop" :: "r"(probe ## _arg1), "r"(probe ## _arg2)); \
+  asm volatile ("nop" :: "r"(arg1), "r"(arg2)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& _probe_ ## probe)\
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
-     goto _probe_ ## probe;
+     goto _probe_ ## probe;}
 #endif
 
 #ifdef USE_STAP_PROBE
@@ -75,14 +76,14 @@ _probe_ ## probe:				\
   _stap_probe_3 (_probe_ ## probe.probe_name,(size_t)arg1,(size_t)arg2,(size_t)arg3);
 #else
 #define STAP_PROBE3(provider,probe,parm1,parm2,parm3) \
-  volatile typeof(parm1) probe ## _arg1 = parm1; \
-  volatile typeof(parm2) probe ## _arg2 = parm2; \
-  volatile typeof(parm3) probe ## _arg3 = parm3; \
+ {volatile typeof(parm1) arg1 = parm1;     \
+  volatile typeof(parm2) arg2 = parm2; \
+  volatile typeof(parm3) arg3 = parm3; \
 _probe_ ## probe:				\
-  asm volatile ("nop" :: "r"(probe ## _arg1), "r"(probe ## _arg2), "r"(probe ## _arg3)); \
+  asm volatile ("nop" :: "r"(arg1), "r"(arg2), "r"(arg3)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& _probe_ ## probe) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
-     goto _probe_ ## probe;
+     goto _probe_ ## probe;}
 #endif
 
 #ifdef USE_STAP_PROBE
@@ -91,15 +92,15 @@ _probe_ ## probe:				\
   _stap_probe_4 (_probe_ ## probe.probe_name,(size_t)arg1,(size_t)arg2,(size_t)arg3,(size_t)arg4);
 #else
 #define STAP_PROBE4(provider,probe,parm1,parm2,parm3,parm4) \
-  volatile typeof(parm1) probe ## _arg1 = parm1; \
-  volatile typeof(parm2) probe ## _arg2 = parm2; \
-  volatile typeof(parm3) probe ## _arg3 = parm3; \
-  volatile typeof(parm4) probe ## _arg4 = parm4; \
+ {volatile typeof(parm1) arg1 = parm1;	    \
+  volatile typeof(parm2) arg2 = parm2; \
+  volatile typeof(parm3) arg3 = parm3; \
+  volatile typeof(parm4) arg4 = parm4; \
 _probe_ ## probe:				\
-  asm volatile ("nop" "r"(probe ## _arg1), "r"(probe ## _arg2), "r"(probe ## _arg3), "r"(probe ## _arg4));		\
+  asm volatile ("nop" "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4));		\
   STAP_PROBE_STRUCT(probe,1,(size_t)&& _probe_ ## probe) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
-     goto _probe_ ## probe;
+     goto _probe_ ## probe;}
 #endif
 
 #ifdef USE_STAP_PROBE
@@ -108,16 +109,16 @@ _probe_ ## probe:				\
   _stap_probe_5 (_probe_ ## probe.probe_name,(size_t)arg1,(size_t)arg2,(size_t)arg3,(size_t)arg4,(size_t)arg5);
 #else
 #define STAP_PROBE5(provider,probe,parm1,parm2,parm3,parm4,parm5) \
-  volatile typeof(parm1) probe ## _arg1 = parm1; \
-  volatile typeof(parm2) probe ## _arg2 = parm2; \
-  volatile typeof(parm3) probe ## _arg3 = parm3; \
-  volatile typeof(parm4) probe ## _arg4 = parm4; \
-  volatile typeof(parm5) probe ## _arg5 = parm5; \
+ {volatile typeof(parm1) arg1 = parm1;		  \
+  volatile typeof(parm2) arg2 = parm2; \
+  volatile typeof(parm3) arg3 = parm3; \
+  volatile typeof(parm4) arg4 = parm4; \
+  volatile typeof(parm5) arg5 = parm5; \
 _probe_ ## probe:				\
-  asm volatile ("nop" "r"(probe ## _arg1), "r"(probe ## _arg2), "r"(probe ## _arg3), "r"(probe ## _arg4), "r"(probe ## _arg5)); \
+  asm volatile ("nop" "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& _probe_ ## probe) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
-     goto _probe_ ## probe;
+    goto _probe_ ## probe;}
 #endif
 
 #define DTRACE_PROBE(provider,probe) \
