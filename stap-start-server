@@ -13,7 +13,7 @@
 # process id, if successful.
 
 # start the server
-stap-serverd </dev/null >/dev/null 2>&1 &
+stap-serverd "$@" </dev/null >/dev/null 2>&1 &
 server_pid=$!
 
 # Make sure the server is started

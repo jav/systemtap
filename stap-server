@@ -24,13 +24,6 @@ function configuration {
     # Configuration
     tmpdir_prefix_client=stap.client
     tmpdir_prefix_server=stap.server
-    port=$1
-    test "X$port" = "X" && port=65001
-
-    # We need either netcat or nc.
-    netcat=`which netcat 2>/dev/null`
-    test "X$netcat" = "X" && netcat=`which nc 2>/dev/null`
-    test "X$netcat" = "X" && fatal "ERROR: cannot find required program 'netcat' or 'nc' on PATH"
 }
 
 # function: initialization
@@ -43,63 +36,53 @@ function initialization {
     p_phase=5
     keep_temps=0
 
-    # Make a temp directory to work in.
-    tmpdir_server=`mktemp -dt $tmpdir_prefix_server.XXXXXX` || \
-	fatal "ERROR: cannot create temporary directory " $tmpdir_server
+    # Request file name.
+    zip_client=$1
+    test -f $zip_client || \
+	fatal "ERROR: Unable to find request file $zip_client"
+
+    # Temp directory we will be working in
+    tmpdir_server=$2
+    test -d $tmpdir_server || \
+	fatal "ERROR: Cannot find temporary directory $tmpdir_server"
     tmpdir_env=`dirname $tmpdir_server`
-}
 
-# function: receive_request
-#
-# Receive a tar file representing the request from the client:
-function receive_request {
-    # Create a place to receive the client's tar file
-    tar_client=`mktemp -t $tmpdir_prefix_server.client.tgz.XXXXXX` || \
-	fatal "ERROR: cannot create temporary tar file " $tar_client
+    # Signed reponse file name.
+    jar_server=$3
 
-    # Receive the file.
-    $netcat -l $port < /dev/null > $tar_client 2>/dev/null &
-
-    # Wait for 10 seconds before timing out
-    for ((t=0; $t < 10; ++t))
-    do
-	if jobs '%$netcat -l' >/dev/null 2>&1; then
-	    sleep 1
-	else
-	    return
-	fi
-    done
-
-    # We have timed out. fatal will kill the job.
-    fatal "Timed out waiting for client request file"
+    # Where is the ssl certificate/key database?
+    ssl_db=$4
+    test "X$ssl_db" = "X" && ssl_db=/etc/systemtap/ssl/server
+    nss_pw=$ssl_db/pw
+    nss_cert=stap-server
 }
 
 # function: unpack_request
 #
-# Unpack the tar file received from the client and make the contents
+# Unpack the zip file received from the client and make the contents
 # available for use when running 'stap'
 function unpack_request {
     cd $tmpdir_server
 
-    # Unpack the tar file.
-    tar -xzf $tar_client || \
-	fatal "ERROR: cannot unpack tar archive $tar_client"
+    # Unpack the zip file.
+    unzip $zip_client > /dev/null || \
+	fatal "ERROR: cannot unpack zip archive $zip_client"
 
-    # Identify the client's request tree. The tar file should have expanded
+    # Identify the client's request tree. The zip file should have expanded
     # into a single directory named to match $tmpdir_prefix_client.??????
     # which should now be the only item in the current directory.
     test "`ls | wc -l`" = 1 || \
-	fatal "ERROR: Wrong number of files after expansion of client's tar file"
+	fatal "ERROR: Wrong number of files after expansion of client's zip file"
 
     tmpdir_client=`ls`
     tmpdir_client=`expr "$tmpdir_client" : "\\\($tmpdir_prefix_client\\\\.......\\\)"`
 
     test "X$tmpdir_client" != "X" || \
-	fatal "ERROR: client tar file did not expand as expected"
+	fatal "ERROR: client zip file did not expand as expected"
 
     # Move the client's temp directory to a local temp location
     local local_tmpdir_client=`mktemp -dt $tmpdir_prefix_server.client.XXXXXX` || \
-	fatal "ERROR: cannot create temporary tar file " $local_tmpdir_client
+	fatal "ERROR: cannot create temporary zip file " $local_tmpdir_client
     mv $tmpdir_client/* $local_tmpdir_client
     rm -fr $tmpdir_client
     tmpdir_client=$local_tmpdir_client
@@ -373,36 +356,18 @@ function create_response {
 # client.
 function package_response {
     cd $tmpdir_env
-    # Create a place to generate our tar file of our temporary directory
-    local tmpdir_server_base=`basename $tmpdir_server`
-    tar_server=$tmpdir_env/`mktemp $tmpdir_server_base.tgz.XXXXXX` || \
-	fatal "ERROR: cannot create temporary tar file " $tar_server
-    chmod +r $tar_server
 
-    # Generate the tar file
-    tar -czhf $tar_server `basename $tmpdir_server` || \
-	fatal "ERROR: tar of $tmpdir_server failed"
-}
+    # We will be digitally signing the server's temporary directory. This
+    # will sign the entire directory and compress it into a .jar
+    # archive.
+    #
+    # Make sure the specified .jar file exists.
+    test -f $jar_server || \
+	fatal "ERROR: Could not find .jar archive file $jar_server"
+    #chmod +r $jar_server
 
-# function: send_response
-#
-# Wait for the client to take the response file.
-function send_response {
-    # Now send it.
-    $netcat -l $port < $tar_server > /dev/null 2>&1 &
-
-    # Wait for 10 seconds before timing out
-    for ((t=0; $t < 10; ++t))
-    do
-	if jobs '%$netcat -l' >/dev/null 2>&1; then
-	    sleep 1
-	else
-	    return
-	fi
-    done
-
-    # We have timed out. fatal will kill the job.
-    fatal "Timed out waiting to send response file"
+    # Generate the jar file
+    signtool -d $ssl_db -k $nss_cert -p `cat $nss_pw` -Z $jar_server $tmpdir_server
 }
 
 # function: fatal [ MESSAGE ]
@@ -428,15 +393,10 @@ function cleanup {
     # Clean up.
     cd $tmpdir_env
     if test $keep_temps != 1; then
-	rm -fr $tar_client
-	rm -fr $tmpdir_client
-	rm -fr $tar_server
 	rm -fr $tmpdir_server
+	rm -fr $tmpdir_client
 	rm -fr $tmpdir_stap
     fi
-    
-    # Kill any $netcat job that may be running
-    kill -s SIGTERM '%$netcat' 2> /dev/null
 }
 
 # function: terminate
@@ -451,16 +411,14 @@ function terminate {
 #-----------------------------------------------------------------------------
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
-configuration "$@"
-initialization
-receive_request
+configuration
+initialization "$@"
 unpack_request
 check_request
 eval parse_options "$cmdline"
 call_stap
 create_response
 package_response
-send_response 
 cleanup
 
 exit 0

@@ -1,3 +1,8 @@
+2008-12-24  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.in: Regenerated.
+	* SystemTap_Tapset_Reference/Makefile.in: Regenerated.
+
 2008-12-21  Will Cohen <wcohen@redhat.com>
 
 	* Makefile.am: Add generations of tapset reference manual material.

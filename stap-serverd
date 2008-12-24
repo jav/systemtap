@@ -24,20 +24,20 @@ function initialization {
     # Default settings.
     avahi_type=_stap._tcp
 
-    # We need either netcat or nc.
-    netcat=`which netcat 2>/dev/null`
-    test "X$netcat" = "X" && netcat=`which nc 2>/dev/null`
-    test "X$netcat" = "X" && fatal "ERROR: cannot find required program 'netcat' or 'nc' on PATH"
-
-    # See if the given port, or the default port is busy. If so, select another.
+    # What port will we listen on?
     port=$1
     test "X$port" = "X" && port=65000
-    port2=$(($port + 1))
-    while netstat -atn | awk '{print $4}' | cut -f2 -d: | egrep -q "^($port|$port2)\$"; do
+    while netstat -atn | awk '{print $4}' | cut -f2 -d: | egrep -q "^$port\$";
+    do
         # Whoops, the port is busy; try another one.
         port=$((1024+($port + $RANDOM)%64000))
-	port2=$(($port + 1))
     done
+
+    # Where is the ssl certificate/key database?
+    ssl_db=$2
+    test "X$ssl_db" = "X" && ssl_db=/etc/systemtap/ssl/server
+    nss_pw=$ssl_db/pw
+    nss_cert=stap-server
 }
 
 # function: advertise_presence
@@ -60,41 +60,10 @@ function advertise_presence {
 #
 # Listen for and handle requests to the server.
 function listen {
-    # Loop forever accepting requests
-    while true
-    do
-	for ((attempt=0; $attempt < 5; ++attempt))
-	do
-            $netcat -l $port < /dev/null 2>/dev/null | process_request &
-	    wait '%$netcat -l'
-	    rc=$?
-	    if test $rc = 0 -o $rc = 127; then
-		break; # port was read ok
-            fi
-	done
-	if test $attempt = 5; then
-	    fatal "ERROR: cannot listen on port $port. rc==$rc"
-	fi
-    done
-}
-
-# function: process_request
-#
-# Process an incoming request on stdin
-function process_request {
-    read
-    case $REPLY in
-	request:)
-	    stap-server $port2 >/dev/null 2>&1 &
-	    wait '%stap-server'
-	    rc=$?
-	    test $rc = 127 && rc=0
-	    ;;
-	*)
-	    rc=1
-    esac
-
-    exit $rc
+    # The stap-server-connect program will listen forever
+    # accepting requests.
+    stap-server-connect -p $port -n $nss_cert -d $ssl_db -w $nss_pw > /dev/null 2>&1 &
+    wait '%stap-server-connect' >/dev/null 2>&1
 }
 
 # function: fatal [ MESSAGE ]
@@ -117,13 +86,9 @@ function terminate {
     kill -s SIGTERM %avahi-publish-service 2> /dev/null
     wait '%avahi-publish-service' >/dev/null 2>&1
 
-    # Kill any running 'stap-server' job.
-    kill -s SIGTERM "%stap-server" 2> /dev/null
-    wait '%stap-server'  >/dev/null 2>&1
-
-    # Kill any running '$netcat -l' job.
-    kill -s SIGTERM '%$netcat -l' 2>/dev/null
-    wait '%$netcat -l'  >/dev/null 2>&1
+    # Kill any running 'stap-server-connect' job.
+    kill -s SIGTERM "%stap-server-connect" 2> /dev/null
+    wait "%stap-server-connect"  >/dev/null 2>&1
 
     exit
 }

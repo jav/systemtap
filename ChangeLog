@@ -1,3 +1,52 @@
+2008-12-24  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (netcat): Removed.
+	(initialization): Initialize ssl_db.
+	(parse_options): Handle the --ssl option.
+	(process_ssl): New function.
+	(send_request): Removed.
+	(receive_response): Removed.
+	(unpack_response): Use signtool to verify the contents of the
+	server's response against a local copy of the server's
+	certificate.
+	(find_and_connect_to_server): Make sure the server is referred to
+	as localhost if it is running on the local host. Call send_receive
+	in order to contact the server and perform the transaction.
+	(connect_to_server): Removed.
+	(disconnect_from_server): Removed.
+	(send_receive): New function.
+	(process_response): Work in $tmpdir_server.
+	(terminate, interrupt): Kill any running stap-client-connect.
+	* stap-find-or-start-server: Pass arguments to stap-start-server.
+	* stap-start-server: Pass arguments to stap-serverd.
+	* stap-server (port): Removed.
+	(netcat): Removed.
+	(receive_request): Removed.
+	(unpack_request): Use unzip.
+	(package_response): Use signtool to sign the response into a .jar
+	archive.
+	(send_response): Removed.
+	* stap-serverd (netcat): Removed.
+	(port1): Removed.
+	(initialize): Don't call recursively. Use a loop to select a port.
+	(listen): Call stap-server-connect.
+	(process_request): Removed.
+	(terminate): Kill any running stap-server-connect job.
+	* systemtap.spec: client and server sub packages require nss and nss-tools,
+	and no longer require nc or net-tools.
+	* Makefile.am (bin_PROGRAMS): Add stap-client-connect and
+	stap-server-connect.
+	(bin_SCRIPTS): Add stap-gen-server-cert.
+	(stap_client_connect_LDFLAGS, stap_server_connect_LDFLAGS): New.
+	(stamp-ssl): New target.
+	(ssl/server/stap-server.cert): New target.
+	(stap_client_connect_*): New.
+	(stap_server_connect_*): New.
+	(install-data-local): Install /etc/systemtap/ssl.
+	(uninstall-local): Remove /etc/systemtap.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Regenerated.
+
 2008-12-22  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR7090

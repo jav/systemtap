@@ -13,8 +13,9 @@ AM_CXXFLAGS = -Wall -Werror
 man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 # see also configure.ac
 
-bin_PROGRAMS = stap staprun
-bin_SCRIPTS = stap-client stap-server stap-serverd stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server stap-report
+bin_PROGRAMS = stap staprun stap-client-connect stap-server-connect
+bin_SCRIPTS = stap-client stap-serverd stap-server stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server \
+	stap-gen-server-cert stap-report
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -23,6 +24,7 @@ stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 
 BUILT_SOURCES =
 CLEANFILES =
+stap_DEPENDENCIES =
 
 # Arrange for git_version.h to be regenerated at every "make".
 # Code fragment is based upon RadeonHD.am.
@@ -67,6 +69,8 @@ stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_CPPFLAGS = $(AM_CPPFLAGS)
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
+stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
+stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 
 
 PHONIES =
@@ -84,7 +88,7 @@ stamp-elfutils: config.status
 	  $(MAKE) $(AM_MAKEFLAGS) -C build-elfutils/$$dir bin_PROGRAMS= install; \
 	done
 	touch $@
-stap_DEPENDENCIES = lib-elfutils/libdw.so
+stap_DEPENDENCIES += lib-elfutils/libdw.so
 lib-elfutils/libdw.so: stamp-elfutils ;
 
 pkglib_LIBRARIES = libsduprobes.a
@@ -101,6 +105,14 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
+BUILT_SOURCES += stamp-ssl
+CLEANFILES += stamp-ssl
+stamp-ssl: config.status
+	$(srcdir)/stap-gen-server-cert ssl
+	touch $@
+stap_DEPENDENCIES += ssl/server/stap-server.cert
+ssl/server/stap-server.cert: stamp-ssl ;
+
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
@@ -114,6 +126,14 @@ stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -fno-strict-aliasing
 stapio_LDADD = @PROCFLAGS@ -lpthread
+
+stap_client_connect_SOURCES = stap-client-connect.c
+stap_client_connect_CFLAGS = -Wall -Werror -I /usr/include/nss3 -I /usr/include/nspr4
+stap_client_connect_LDADD = -lssl3
+
+stap_server_connect_SOURCES = stap-server-connect.c
+stap_server_connect_CFLAGS = -Wall -Werror -I /usr/include/nss3 -I /usr/include/nspr4
+stap_server_connect_LDADD = -lssl3
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
@@ -178,6 +198,12 @@ install-data-local:
 			i_cmd="$(INSTALL_PROGRAM)"; else \
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
+	(cd $(builddir)/ssl/server; for f in pw; \
+		do $(INSTALL) -m 600 -D $$f /etc/systemtap/ssl/server/$$f; done)
+	(cd $(builddir)/ssl/server; for f in *.db; \
+		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/server/$$f; done)
+	(cd $(builddir)/ssl/client; for f in *.db; \
+		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/client/$$f; done)
 
 TEST_COV_DIR = coverage
 
@@ -217,6 +243,7 @@ uninstall-local:
 	  echo " rm -f '$(SAMPLE_INSTALL_DIR)/$$p'"; \
 	  rm -f "$(SAMPLE_INSTALL_DIR)/$$p"; \
 	done
+	rm -rf /etc/systemtap
 # XXX: leaves behind man pages
 
 SUBDIRS = testsuite doc

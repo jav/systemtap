@@ -1,3 +1,9 @@
+2008-12-24  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp: Rename client_path to net_path.
+	(setup_systemtap_environment): Set ssl_server_path and
+	ssl_client_path. Pass ssl_server_path to stap-find-or-start-server.
+
 2008-12-21  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/static_uprobes.exp: Parms now called $argN

@@ -82,7 +82,7 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap-runtime = %{version}-%{release}
-Requires: avahi avahi-tools nc mktemp
+Requires: avahi avahi-tools nss nss-tools mktemp
 
 %description client
 SystemTap client is the client component of an instrumentation
@@ -95,7 +95,7 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap
-Requires: avahi avahi-tools nc net-tools mktemp
+Requires: avahi avahi-tools nss nss-tools mktemp
 
 %description server
 SystemTap server is the server component of an instrumentation
@@ -251,6 +251,7 @@ exit 0
 %{_bindir}/stap-serverd
 %{_bindir}/stap-start-server
 %{_bindir}/stap-stop-server
+%{_bindir}/stap-gen-server-cert
 %{_mandir}/man8/stap-server.8*
 
 %changelog

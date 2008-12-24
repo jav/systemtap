@@ -37,7 +37,7 @@ proc print_systemtap_version {} {
 
 
 proc setup_systemtap_environment {} {
-    global srcdir prefix env server_pid client_path
+    global srcdir prefix env server_pid net_path
 
     # need an absolute SRCDIR for the top-level src/ tree
     # XXX: or, we could change nearby uses of ${SRCDIR}/testsuite to ${SRCDIR}
@@ -55,14 +55,24 @@ proc setup_systemtap_environment {} {
     if {[use_server_p]} then {
 	print "Testing using a systemtap server"
 
-	# Server management scripts are installed if this is an install test, otherwise
-	# in the source directory. Make sure they are on the $PATH.
+	# A place for some temporary files and scripts.
+	set net_path [exec pwd]/net
+	exec /bin/mkdir -p $net_path
+
+	# Server management scripts and data are installed if this is an
+	# install test, otherwise there is some setup to do.
 	if {! [installtest_p]} then {
+	    # Make sure the server management scripts are on the $PATH.
 	    set env(PATH) "$srcdir/..:$env(PATH)"
+	    set ssl_server_path [exec pwd]/../ssl/server
+	    set ssl_client_path [exec pwd]/../ssl/client
+	} else {
+	    set ssl_server_path ""
+	    set ssl_client_path ""
 	}
 
 	# Try to find or start the server.
-	set server_pid [exec stap-find-or-start-server]
+	set server_pid [exec stap-find-or-start-server 65000 $ssl_server_path]
 	if { $server_pid == -1 } then {
 	    print "Cannot find or start a systemtap server"
 	    set server_pid 0
@@ -76,14 +86,15 @@ proc setup_systemtap_environment {} {
 	# Make a copy of 'stap-client' as 'stap' and make sure it's at the
 	# beginning of the $PATH. Do this after starting the server so that
 	# The server does not call this instance of 'stap'
-	set client_path [exec pwd]/net
-	exec /bin/mkdir -p $client_path
 	if {[installtest_p]} then {
-	    exec /bin/cp -p [exec which stap-client] $client_path/stap
+	    exec /bin/cp -p [exec which stap-client] $net_path/stap
 	} else {
-	    exec /bin/cp -p $srcdir/../stap-client $client_path/stap
+	    exec /bin/cp -p $srcdir/../stap-client $net_path/stap
+	    # Make sure the client picks up the proper certificates for
+	    # server verification.
+	    exec sed -i s,/etc/systemtap/ssl/client,$ssl_client_path, $net_path/stap
 	}
-	set env(PATH) "$client_path:$env(PATH)"
+	set env(PATH) "$net_path:$env(PATH)"
     }
 
     # PATH, SYSTEMTAP_TAPSET, SYSTEMTAP_RUNTIME, LD_LIBRARY_PATH are already set.
@@ -121,7 +132,7 @@ proc systemtap_init {args} {}
 proc systemtap_version {} {}
 
 proc systemtap_exit {} {
-    global server_pid client_path
+    global server_pid net_path
 
     # Stop the stap server, if we started it.
     if {[use_server_p]} then {
@@ -131,7 +142,7 @@ proc systemtap_exit {} {
 	}
 
 	# Remove the temporary stap script
-	exec /bin/rm -fr $client_path
+	exec /bin/rm -fr $net_path
     }
 }
 
