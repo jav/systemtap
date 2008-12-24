@@ -294,7 +294,7 @@ AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 bin_SCRIPTS = stap-client stap-serverd stap-server stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server \
-	stap-gen-server-cert stap-report
+	stap-gen-server-cert stap-add-server-cert stap-report
 
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
@@ -1533,6 +1533,8 @@ install-data-local:
 	(cd $(builddir)/ssl/server; for f in pw; \
 		do $(INSTALL) -m 600 -D $$f /etc/systemtap/ssl/server/$$f; done)
 	(cd $(builddir)/ssl/server; for f in *.db; \
+		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/server/$$f; done)
+	(cd $(builddir)/ssl/server; for f in *.cert; \
 		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/server/$$f; done)
 	(cd $(builddir)/ssl/client; for f in *.db; \
 		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/client/$$f; done)

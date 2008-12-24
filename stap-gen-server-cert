@@ -68,7 +68,4 @@ if ! mkdir -p $clientdb; then
 fi
 
 # Now add the server's certificate to the client's database, making it a trusted peer.
-if ! certutil -A -n stap-server -d $clientdb -i $serverdb/stap-server.cert -t "P,P,P" > /dev/null; then
-    echo "Unable to add $serverdb/x509.cacert to the client certificate database: $clientdb" >&2
-    exit 1
-fi
+`dirname $0`/stap-add-server-cert $serverdb/stap-server.cert $clientdb

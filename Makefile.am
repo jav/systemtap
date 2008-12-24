@@ -15,7 +15,7 @@ man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-s
 
 bin_PROGRAMS = stap staprun stap-client-connect stap-server-connect
 bin_SCRIPTS = stap-client stap-serverd stap-server stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server \
-	stap-gen-server-cert stap-report
+	stap-gen-server-cert stap-add-server-cert stap-report
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -201,6 +201,8 @@ install-data-local:
 	(cd $(builddir)/ssl/server; for f in pw; \
 		do $(INSTALL) -m 600 -D $$f /etc/systemtap/ssl/server/$$f; done)
 	(cd $(builddir)/ssl/server; for f in *.db; \
+		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/server/$$f; done)
+	(cd $(builddir)/ssl/server; for f in *.cert; \
 		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/server/$$f; done)
 	(cd $(builddir)/ssl/client; for f in *.db; \
 		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/client/$$f; done)
