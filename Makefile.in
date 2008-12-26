@@ -311,10 +311,12 @@ stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 # of foo-bar.c if it is newer than the foo-bar.o file. Using noinst_foo_SOURCES
 # instead of foo_SOURCES prevents shipping git_version.h in dist tarballs,
 # which may cause false GIT_FOO readings.
-BUILT_SOURCES = git_version.stamp $(am__append_3) stamp-ssl
+BUILT_SOURCES = git_version.stamp $(am__append_3)
+
+#BUILT_SOURCES += stamp-ssl
 CLEANFILES = git_version.h $(am__append_4) stamp-ssl \
 	$(pkglibexec_PROGRAMS)
-stap_DEPENDENCIES = $(am__append_5) ssl/server/stap-server.cert
+stap_DEPENDENCIES = $(am__append_5)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
 stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_1)
@@ -1490,6 +1492,7 @@ cscope:
 stamp-ssl: config.status
 	$(srcdir)/stap-gen-server-cert ssl
 	touch $@
+#stap_DEPENDENCIES += ssl/server/stap-server.cert
 ssl/server/stap-server.cert: stamp-ssl ;
 
 install-exec-hook:

@@ -105,12 +105,12 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
-BUILT_SOURCES += stamp-ssl
+#BUILT_SOURCES += stamp-ssl
 CLEANFILES += stamp-ssl
 stamp-ssl: config.status
 	$(srcdir)/stap-gen-server-cert ssl
 	touch $@
-stap_DEPENDENCIES += ssl/server/stap-server.cert
+#stap_DEPENDENCIES += ssl/server/stap-server.cert
 ssl/server/stap-server.cert: stamp-ssl ;
 
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\

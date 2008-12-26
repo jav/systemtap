@@ -1,3 +1,8 @@
+2008-12-26  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (stamp-ssl): Disable automake building of this target.
+	* Makefile.in: Regenerated.
+
 2008-12-24  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client (netcat): Removed.
