@@ -453,13 +453,24 @@ static int quiesce_all_threads(struct uprobe_process *uproc,
 	return survivors;
 }
 
+static void utask_free_uretprobe_instances(struct uprobe_task *utask)
+{
+	struct uretprobe_instance *ri;
+	struct hlist_node *r1, *r2;
+
+	hlist_for_each_entry_safe(ri, r1, r2, &utask->uretprobe_instances,
+			hlist) {
+		hlist_del(&ri->hlist);
+		kfree(ri);
+		uprobe_decref_process(utask->uproc);
+	}
+}
+
 /* Called with utask->uproc write-locked. */
 static void uprobe_free_task(struct uprobe_task *utask)
 {
 	struct deferred_registration *dr, *d;
 	struct delayed_signal *ds, *ds2;
-	struct uretprobe_instance *ri;
-	struct hlist_node *r1, *r2;
 
 	uprobe_unhash_utask(utask);
 	list_del(&utask->list);
@@ -473,12 +484,8 @@ static void uprobe_free_task(struct uprobe_task *utask)
 		kfree(ds);
 	}
 
-	hlist_for_each_entry_safe(ri, r1, r2, &utask->uretprobe_instances,
-			hlist) {
-		hlist_del(&ri->hlist);
-		kfree(ri);
-		uprobe_decref_process(utask->uproc);
-	}
+	utask_free_uretprobe_instances(utask);
+
 	kfree(utask);
 }
 
@@ -809,6 +816,27 @@ static void purge_uprobe(struct uprobe_kimg *uk)
 		uprobe_free_probept(ppt);
 }
 
+/* TODO: Avoid code duplication with uprobe_validate_vaddr(). */
+static int uprobe_validate_vma(struct task_struct *t, unsigned long vaddr)
+{
+	struct vm_area_struct *vma;
+	struct mm_struct *mm;
+	int ret = 0;
+
+	mm = get_task_mm(t);
+	if (!mm)
+		return -EINVAL;
+	down_read(&mm->mmap_sem);
+	vma = find_vma(mm, vaddr);
+	if (!vma || vaddr < vma->vm_start)
+		ret = -ENOENT;
+	else if (!(vma->vm_flags & VM_EXEC))
+		ret = -EFAULT;
+	up_read(&mm->mmap_sem);
+	mmput(mm);
+	return ret;
+}
+	
 /* Probed address must be in an executable VM area, outside the SSOL area. */
 static int uprobe_validate_vaddr(struct task_struct *p, unsigned long vaddr,
 	struct uprobe_process *uproc)
@@ -1942,9 +1970,9 @@ done:
 
 /*
  * uproc's process is exiting or exec-ing, so zap all the (now irrelevant)
- * probepoints.  Runs with uproc->rwsem write-locked.  Caller must ref-count
- * uproc before calling this function, to ensure that uproc doesn't get
- * freed in the middle of this.
+ * probepoints and uretprobe_instances.  Runs with uproc->rwsem write-locked.
+ * Caller must ref-count uproc before calling this function, to ensure that
+ * uproc doesn't get freed in the middle of this.
  */
 static void uprobe_cleanup_process(struct uprobe_process *uproc)
 {
@@ -1953,6 +1981,7 @@ static void uprobe_cleanup_process(struct uprobe_process *uproc)
 	struct hlist_node *pnode1, *pnode2;
 	struct hlist_head *head;
 	struct uprobe_kimg *uk, *unode;
+	struct uprobe_task *utask;
 
 	uproc->finished = 1;
 
@@ -1988,6 +2017,16 @@ static void uprobe_cleanup_process(struct uprobe_process *uproc)
 			}
 		}
 	}
+
+	/*
+	 * Free uretprobe_instances.  This is a nop on exit, since all
+	 * the uprobe_tasks are already gone.  We do this here on exec
+	 * (as opposed to letting uprobe_free_process() take care of it)
+	 * because uprobe_free_process() never gets called if we don't
+	 * tick down the ref count here (PR #7082).
+	 */
+	list_for_each_entry(utask, &uproc->thread_list, list)
+		utask_free_uretprobe_instances(utask);
 }
 
 /*
@@ -2133,6 +2172,23 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 
 	BUG_ON(!parent_uproc->uretprobe_trampoline_addr ||
 			IS_ERR(parent_uproc->uretprobe_trampoline_addr));
+
+	ret = uprobe_validate_vma(child_tsk,
+			(unsigned long) parent_uproc->ssol_area.insn_area);
+	if (ret) {
+		int ret2;
+		printk(KERN_ERR "uprobes: Child %d failed to inherit"
+			" parent %d's SSOL vma at %p.  Error = %d\n",
+			child_tsk->pid, parent_utask->tsk->pid,
+			parent_uproc->ssol_area.insn_area, ret);
+		ret2 = uprobe_validate_vma(parent_utask->tsk,
+			(unsigned long) parent_uproc->ssol_area.insn_area);
+		if (ret2 != 0)
+			printk(KERN_ERR "uprobes: Parent %d's SSOL vma"
+				" is no longer valid.  Error = %d\n",
+				parent_utask->tsk->pid, ret2);
+		return ret;
+	}
 
 	if (!try_module_get(THIS_MODULE))
 		return -ENOSYS;
