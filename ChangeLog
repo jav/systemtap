@@ -1,3 +1,8 @@
+2008-12-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (install-data, uninstall-data): Use
+	$(DESTDIR)$(sysconfdir) instead of hard-coded /etc paths.
+
 2008-12-26  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (stamp-ssl): Disable automake building of this target.

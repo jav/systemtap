@@ -199,13 +199,13 @@ install-data-local:
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
 	(cd $(builddir)/ssl/server; for f in pw; \
-		do $(INSTALL) -m 600 -D $$f /etc/systemtap/ssl/server/$$f; done)
+		do $(INSTALL) -m 600 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done)
 	(cd $(builddir)/ssl/server; for f in *.db; \
-		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/server/$$f; done)
+		do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done)
 	(cd $(builddir)/ssl/server; for f in *.cert; \
-		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/server/$$f; done)
+		do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done)
 	(cd $(builddir)/ssl/client; for f in *.db; \
-		do $(INSTALL) -m 664 -D $$f /etc/systemtap/ssl/client/$$f; done)
+		do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/client/$$f; done)
 
 TEST_COV_DIR = coverage
 
@@ -245,7 +245,7 @@ uninstall-local:
 	  echo " rm -f '$(SAMPLE_INSTALL_DIR)/$$p'"; \
 	  rm -f "$(SAMPLE_INSTALL_DIR)/$$p"; \
 	done
-	rm -rf /etc/systemtap
+	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 # XXX: leaves behind man pages
 
 SUBDIRS = testsuite doc
