@@ -198,14 +198,16 @@ install-data-local:
 			i_cmd="$(INSTALL_PROGRAM)"; else \
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
-	(cd $(builddir)/ssl/server; for f in pw; \
-		do $(INSTALL) -m 600 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done)
-	(cd $(builddir)/ssl/server; for f in *.db; \
-		do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done)
-	(cd $(builddir)/ssl/server; for f in *.cert; \
-		do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done)
-	(cd $(builddir)/ssl/client; for f in *.db; \
-		do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/client/$$f; done)
+	if test -d "$(builddir)/ssl"; then \
+		(cd $(builddir)/ssl/server; for f in pw; \
+			do $(INSTALL) -m 600 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
+		(cd $(builddir)/ssl/server; for f in *.db; \
+			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
+		(cd $(builddir)/ssl/server; for f in *.cert; \
+			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
+		(cd $(builddir)/ssl/client; for f in *.db; \
+			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/client/$$f; done); \
+	fi
 
 TEST_COV_DIR = coverage
 
