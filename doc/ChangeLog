@@ -1,3 +1,9 @@
+2008-12-30  Dave Brolley  <brolley@redhat.com>
+
+	PR9692
+	* Makefile.in: Regenerated.
+	* SystemTap_Tapset_Reference/Makefile.in: Regenerated.
+
 2008-12-24  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.in: Regenerated.

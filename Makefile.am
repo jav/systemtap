@@ -128,11 +128,11 @@ stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -fno-strict-aliasing
 stapio_LDADD = @PROCFLAGS@ -lpthread
 
 stap_client_connect_SOURCES = stap-client-connect.c
-stap_client_connect_CFLAGS = -Wall -Werror -I /usr/include/nss3 -I /usr/include/nspr4
+stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_client_connect_LDADD = -lssl3
 
 stap_server_connect_SOURCES = stap-server-connect.c
-stap_server_connect_CFLAGS = -Wall -Werror -I /usr/include/nss3 -I /usr/include/nspr4
+stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_server_connect_LDADD = -lssl3
 
 install-exec-hook:

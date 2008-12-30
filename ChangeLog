@@ -1,5 +1,16 @@
 2008-12-30  Dave Brolley  <brolley@redhat.com>
 
+	PR9692
+	* Makefile.am (stap_client_connect_CFLAGS): Use $(nss_CFLAGS) and
+	$(nspr_CFLAGS).
+	(stap_server_connect_CFLAGS): Likewise.
+	* configure.ac: Use PKG_CHECK_MODULES to configure nss and nspr.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Regenerated.
+	* configure: Regenerated.
+
+2008-12-30  Dave Brolley  <brolley@redhat.com>
+
 	* Makefile.am (install-data-local): Test for existence of $(builddir)/ssl
 	before installing it.
 	* Makefile.in: Regenerated.

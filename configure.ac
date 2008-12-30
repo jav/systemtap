@@ -161,6 +161,9 @@ if test "$enable_docs" == "yes"; then
 fi
 AM_CONDITIONAL([BUILD_DOCS], [test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"])
 
+PKG_CHECK_MODULES([nss],[nss >= 3])
+PKG_CHECK_MODULES([nspr],[nspr >= 4])
+
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
 build_elfutils=no
