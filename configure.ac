@@ -223,13 +223,6 @@ AC_LANG_PUSH(C++)
 AC_CHECK_HEADERS([tr1/unordered_map])
 AC_LANG_POP(C++)
 
-AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
-AC_CONFIG_SUBDIRS(testsuite)
-
-AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
-
-AC_OUTPUT
 
 if test $build_elfutils = yes; then
   case "$with_elfutils" in
@@ -250,9 +243,21 @@ if test $build_elfutils = yes; then
 				--exec-prefix="$exec_prefix" \
 				--prefix="$prefix" \
 				CFLAGS="${CFLAGS/-Wall/}" \
-				LDFLAGS="$LDFLAGS $elfutils_rpath"
+				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
+   make install-data # so that elfutils/version.h - if any - may be found.
   )
 fi
+
+save_CPPFLAGS=${CPPFLAGS}
+CPPFLAGS="${CPPFLAGS} -Iinclude-elfutils" # in case bundled elfutils
+AC_CHECK_HEADERS([elfutils/version.h])
+CPPFLAGS="$save_CPPFLAGS"
+
+AC_CONFIG_HEADERS([config.h:config.in])
+AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
+AC_CONFIG_SUBDIRS(testsuite)
+AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
+AC_OUTPUT
 
 if test "${prefix}" = "/usr/local"; then
    AC_MSG_NOTICE([])

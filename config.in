@@ -9,6 +9,9 @@
 /* Define to 1 if you have the <crash/defs.h> header file. */
 #undef HAVE_CRASH_DEFS_H
 
+/* Define to 1 if you have the <elfutils/version.h> header file. */
+#undef HAVE_ELFUTILS_VERSION_H
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
