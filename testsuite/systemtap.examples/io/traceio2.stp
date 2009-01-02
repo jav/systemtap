@@ -1,3 +1,5 @@
+#! /usr/bin/env stap
+
 global device_of_interest, dev
 
 probe begin {

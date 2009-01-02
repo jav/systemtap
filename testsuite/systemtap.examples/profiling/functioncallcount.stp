@@ -1,3 +1,4 @@
+#! /usr/bin/env stap
 # The following line command will probe all the functions
 # in kernel's memory management code:
 #
