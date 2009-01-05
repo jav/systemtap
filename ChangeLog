@@ -1,3 +1,11 @@
+2009-01-05  Dave Brolley  <brolley@redhat.com>
+
+	PR9702
+	* stap-gen-server-cert: Try mkpasswd, apg and then user_enter_password
+	when generating the password for the server certificate/key
+	database.
+	(user_enter_password): New function.
+
 2008-12-31  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (dump_unwindsyms): Adapt to elfutils build-id
@@ -8,6 +16,7 @@
 2008-12-30  Dave Brolley  <brolley@redhat.com>
 
 	PR9692
+	From Eugeniy Meshcheryakov <eugen@debian.org>
 	* Makefile.am (stap_client_connect_CFLAGS): Use $(nss_CFLAGS) and
 	$(nspr_CFLAGS).
 	(stap_server_connect_CFLAGS): Likewise.
