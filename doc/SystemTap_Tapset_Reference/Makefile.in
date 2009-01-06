@@ -413,18 +413,25 @@ uninstall-am:
 	uninstall-am
 
 
-@BUILD_DOCS_TRUE@all: pdfdocs htmldocs mandocs
-@BUILD_DOCS_TRUE@xmldocs: docproc
-@BUILD_DOCS_TRUE@	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml
+@BUILD_DOCS_TRUE@all: tapsets.pdf stamp-htmldocs stamp-mandocs
+@BUILD_DOCS_TRUE@tapsets.xml: docproc $(shell find $(SRCTREE) -name '*.stp')
+@BUILD_DOCS_TRUE@	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
+@BUILD_DOCS_TRUE@	if cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
+@BUILD_DOCS_TRUE@		echo tapsets.xml unchanged; \
+@BUILD_DOCS_TRUE@	else \
+@BUILD_DOCS_TRUE@		mv tapsets.xml.new tapsets.xml; \
+@BUILD_DOCS_TRUE@	fi
 
-@BUILD_DOCS_TRUE@htmldocs: xmldocs
+@BUILD_DOCS_TRUE@stamp-htmldocs: tapsets.xml
 @BUILD_DOCS_TRUE@	xmlto html -o tapsets tapsets.xml
+@BUILD_DOCS_TRUE@	touch stamp-htmldocs
 
-@BUILD_DOCS_TRUE@pdfdocs: xmldocs
+@BUILD_DOCS_TRUE@tapsets.pdf: tapsets.xml
 @BUILD_DOCS_TRUE@	xmlto pdf tapsets.xml
 
-@BUILD_DOCS_TRUE@mandocs: xmldocs
+@BUILD_DOCS_TRUE@stamp-mandocs: tapsets.xml
 @BUILD_DOCS_TRUE@	xmlto man -o man5 tapsets.xml
+@BUILD_DOCS_TRUE@	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately
 #installmandocs: mandocs

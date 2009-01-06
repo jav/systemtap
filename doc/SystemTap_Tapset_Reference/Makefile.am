@@ -19,18 +19,25 @@ SRCTREE=$(abs_top_srcdir)/
 DOCPROC=$(abs_builddir)/docproc
 
 if BUILD_DOCS
-all: pdfdocs htmldocs mandocs
-xmldocs: docproc
-	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml
+all: tapsets.pdf stamp-htmldocs stamp-mandocs
+tapsets.xml: docproc $(shell find $(SRCTREE) -name '*.stp')
+	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
+	if cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
+		echo tapsets.xml unchanged; \
+	else \
+		mv tapsets.xml.new tapsets.xml; \
+	fi
 
-htmldocs: xmldocs
+stamp-htmldocs: tapsets.xml
 	xmlto html -o tapsets tapsets.xml
+	touch stamp-htmldocs
 
-pdfdocs: xmldocs
+tapsets.pdf: tapsets.xml
 	xmlto pdf tapsets.xml
 
-mandocs: xmldocs
+stamp-mandocs: tapsets.xml
 	xmlto man -o man5 tapsets.xml
+	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately
 #installmandocs: mandocs
