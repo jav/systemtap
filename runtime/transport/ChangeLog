@@ -1,3 +1,8 @@
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9699.
+	* transport.c (_stp_transport_init): Adapt to task_struct cred switch.
+
 2008-11-28  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR5947: make code -Wpointer-arith clean

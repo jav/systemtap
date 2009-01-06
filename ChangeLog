@@ -1,3 +1,9 @@
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9699.
+	* buildrun.cxx (compile_pass): Add $(LINUXINCLUDES) to autoconf
+	trial builds.  Add new autoconf test for task_struct uid->cred switch.
+
 2009-01-05  Dave Brolley  <brolley@redhat.com>
 
 	PR9702
