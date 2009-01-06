@@ -243,6 +243,8 @@ exit 0
 %{_bindir}/stap-client
 %{_bindir}/stap-find-servers
 %{_bindir}/stap-find-or-start-server
+%{_bindir}/stap-add-server-cert
+%{_bindir}/stap-client-connect
 %{_mandir}/man8/stap-server.8*
 
 %files server
@@ -252,6 +254,7 @@ exit 0
 %{_bindir}/stap-start-server
 %{_bindir}/stap-stop-server
 %{_bindir}/stap-gen-server-cert
+%{_bindir}/stap-server-connect
 %{_mandir}/man8/stap-server.8*
 
 %changelog
