@@ -102,6 +102,10 @@ compile_pass (systemtap_session& s)
   // but that path does not exist in an O= build tree.
   o << module_cflags << " += -Iinclude2/asm/mach-default" << endl;
 
+  // NB: don't try
+  // o << module_cflags << " += -Iusr/include" << endl;
+  // since such headers are cleansed of _KERNEL_ pieces that we need
+
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-getset-expires.c, -DSTAPCONF_HRTIMER_GETSET_EXPIRES,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
