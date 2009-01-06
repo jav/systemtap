@@ -1,3 +1,9 @@
+2009-01-06  Dave Brolley  <brolley@redhat.com>
+
+	* systemtap.spec (stap-client): Add stap-add-server-cert,
+	stap-client-connect.
+	(stap-server): Add stap-server-connect.
+
 2009-01-05  Dave Brolley  <brolley@redhat.com>
 
 	PR9702
