@@ -126,7 +126,7 @@ embedded C.
 .TP
 .B \-P
 Prologue-searching mode.  Activate heuristics to work around incorrect
-debbugging information for $target variables.
+debugging information for $target variables.
 .TP
 .B \-u
 Unoptimized mode.  Disable unused code elision during elaboration.
