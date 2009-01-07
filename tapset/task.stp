@@ -12,6 +12,9 @@
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,25)
 #include <linux/fdtable.h>
 #endif
+#ifndef STAPCONF_TASK_UID
+#include <linux/cred.h>
+#endif
 %}
 
 // Return the task_struct representing the current process
@@ -74,7 +77,18 @@ function task_tid:long (task:long) %{ /* pure */
 // Return the group id of the given task
 function task_gid:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
+#ifdef STAPCONF_TASK_UID
     THIS->__retvalue = kread(&(t->gid));
+#else
+    /* XXX: We can't easily kread this rcu-protected field. */
+    /* XXX: no task_gid() in 2.6.28 */
+    struct cred *cred;
+    rcu_read_lock();
+    cred = get_task_cred (t);
+    rcu_read_unlock();
+    THIS->__retvalue = cred->gid;
+#endif
+
     CATCH_DEREF_FAULT();
 %}
 
@@ -82,7 +96,17 @@ function task_gid:long (task:long) %{ /* pure */
 // Return the effective group id of the given task
 function task_egid:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
+#ifdef STAPCONF_TASK_UID
     THIS->__retvalue = kread(&(t->egid));
+#else
+    /* XXX: We can't easily kread this rcu-protected field. */
+    /* XXX: no task_egid() in 2.6.28 */
+    struct cred *cred;
+    rcu_read_lock();
+    cred = get_task_cred (t);
+    rcu_read_unlock();
+    THIS->__retvalue = cred->egid;
+#endif
     CATCH_DEREF_FAULT();
 %}
 
@@ -90,7 +114,13 @@ function task_egid:long (task:long) %{ /* pure */
 // Return the user id of the given task
 function task_uid:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
+#ifdef STAPCONF_TASK_UID
     THIS->__retvalue = kread(&(t->uid));
+#else
+    /* XXX: We can't easily kread this rcu-protected field. */
+    THIS->__retvalue = task_uid (t);
+#endif
+
     CATCH_DEREF_FAULT();
 %}
 
@@ -98,7 +128,12 @@ function task_uid:long (task:long) %{ /* pure */
 // Return the effective user id of the given task
 function task_euid:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
+#ifdef STAPCONF_TASK_UID
     THIS->__retvalue = kread(&(t->euid));
+#else
+    /* XXX: We can't easily kread this rcu-protected field. */
+    THIS->__retvalue = task_euid (t);
+#endif
     CATCH_DEREF_FAULT();
 %}
 
