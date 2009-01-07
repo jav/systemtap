@@ -1,5 +1,6 @@
 #include <linux/sched.h>
 
-struct task_struct *foo;
-void bar () { foo->uid = 0; }
+int bar (struct task_struct *foo) { 
+  return (foo->uid = 0); 
+}
 /* as opposed to linux/cred.h wrappers current_uid() etc. */
