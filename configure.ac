@@ -145,6 +145,7 @@ AC_ARG_ENABLE([crash],
 AM_CONDITIONAL([BUILD_CRASHMOD], [test "$enable_crash" != "no"])
 
 dnl Handle the option to build the documentation
+building_docs="no"
 AC_ARG_ENABLE([docs],
   AS_HELP_STRING([--enable-docs],
     [enable building documentation (default on if latex etc. found).]),
@@ -162,7 +163,31 @@ if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesye
     AC_MSG_WARN([will not build documentation, cannot find all tools])
   fi
 fi
-AM_CONDITIONAL([BUILD_DOCS], [test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"])
+if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"; then
+   building_docs="yes"
+fi
+AM_CONDITIONAL([BUILD_DOCS], [test "$building_docs" == "yes"])
+
+dnl Handle the option to build the reference documentation
+building_refdocs="no"
+AC_ARG_ENABLE([refdocs],
+  AS_HELP_STRING([--enable-refdocs],
+    [enable building reference documentation (default on if xmlto etc. found and other documentation built).]),
+  [enable_refdocs=$enableval],
+  [enable_refdocs="check"])
+if test "$building_docs" == "no" -a "$enable_refdocs" == "yes" ; then
+   AC_MSG_ERROR([must use --enable-docs with --enable-refdocs])
+fi
+AC_CHECK_PROG(have_xmlto, xmlto, yes, no)
+if test "$enable_refdocs" == "yes"; then
+   if test "x${have_xmlto}" != "xyes"; then
+      AC_MSG_ERROR([cannot find xmlto for building reference documentation])
+   fi
+fi
+if test "x${have_xmlto}" == "xyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
+   building_refdocs="yes"
+fi
+AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
 
 dnl Handle the option to build the server setup.
 AC_ARG_ENABLE([server],

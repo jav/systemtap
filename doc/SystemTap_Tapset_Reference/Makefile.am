@@ -18,7 +18,7 @@ noinst_PROGRAMS = docproc
 SRCTREE=$(abs_top_srcdir)/
 DOCPROC=$(abs_builddir)/docproc
 
-if BUILD_DOCS
+if BUILD_REFDOCS
 all: tapsets.pdf stamp-htmldocs stamp-mandocs
 tapsets.xml: docproc $(shell find $(SRCTREE) -name '*.stp')
 	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new

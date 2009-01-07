@@ -1,3 +1,11 @@
+2009-01-07  William Cohen  <wcohen@redhat.com>
+
+	* configure.ac: Add --enable-refdocs configure option and
+	set check for xmlto
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+	
 2009-01-07  Mark Wielaard  <mjw@redhat.com>
 
 	* configure.ac: Warn when not building docs because tools not found.

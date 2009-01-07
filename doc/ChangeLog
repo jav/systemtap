@@ -1,3 +1,8 @@
+2009-01-07  William Cohen <wcohen@elastic.org>
+
+	* S_T_R/Makefile.am: Use BUILD_REFDOCS.
+	* S_T_R/Makefile.in: Regenerated.
+
 2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* S_T_R/Makefile.am: Regenerate docs only as necessary, via
