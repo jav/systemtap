@@ -1,5 +1,10 @@
 2009-01-07  Mark Wielaard  <mjw@redhat.com>
 
+	* configure.ac: Warn when not building docs because tools not found.
+	* configure: Regenerated.
+
+2009-01-07  Mark Wielaard  <mjw@redhat.com>
+
 	* configure.ac: Add --enable-server configure option and
 	set BUILD_SERVER appropriately.
 	* Makefile.am (man_MANS, bin_PROGRAMS, bin_SCRIPTS): Only add
