@@ -161,8 +161,23 @@ if test "$enable_docs" == "yes"; then
 fi
 AM_CONDITIONAL([BUILD_DOCS], [test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"])
 
-PKG_CHECK_MODULES([nss],[nss >= 3])
-PKG_CHECK_MODULES([nspr],[nspr >= 4])
+dnl Handle the option to build the server setup.
+AC_ARG_ENABLE([server],
+  AS_HELP_STRING([--enble-server],
+    [enable building of stap-server/client (default on if nss etc. found).]),
+  [enable_server=$enableval],
+  [enable_server="check"])
+PKG_CHECK_MODULES([nss],[nss >= 3], have_nss=yes, have_nss=no)
+PKG_CHECK_MODULES([nspr],[nspr >= 4], have_nspr=yes, have_nspr=no)
+if test "x${have_nss}${have_nspr}" != "xyesyes"; then
+  if test "$enable_server" == "yes"; then
+    AC_MSG_ERROR([cannot find all libraries for stap-server])
+  fi
+  if test "$enable_server" == "check"; then
+    AC_MSG_WARN([will not build stap-server, cannot find all libraries])
+  fi
+fi
+AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss}${have_nspr}" == "xyesyes" -a "$enable_server" != "no"])
 
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
