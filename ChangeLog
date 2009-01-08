@@ -1,3 +1,8 @@
+2009-01-08  William Cohen  <wcohen@redhat.com>
+
+	* configure.ac: Check for xmlto that generates pdf.
+	* configure: Regenerated.
+	
 2009-01-07  William Cohen  <wcohen@redhat.com>
 
 	* configure.ac: Add --enable-refdocs configure option and
