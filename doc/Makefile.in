@@ -134,6 +134,7 @@ have_dvips = @have_dvips@
 have_latex = @have_latex@
 have_latex2html = @have_latex2html@
 have_ps2pdf = @have_ps2pdf@
+have_xmlto = @have_xmlto@
 host_alias = @host_alias@
 htmldir = @htmldir@
 includedir = @includedir@

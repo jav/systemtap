@@ -86,7 +86,7 @@ compile_pass (systemtap_session& s)
   o << "_KBUILD_CFLAGS := $(call flags,KBUILD_CFLAGS)" << endl;
 
   o << "stap_check_gcc = $(shell " << superverbose << " if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
-  o << "stap_check_build = $(shell " << superverbose << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(_KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) " << redirecterrors << " ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+  o << "stap_check_build = $(shell " << superverbose << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(LINUXINCLUDE) $(_KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) " << redirecterrors << " ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
 
   o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;
 
@@ -102,6 +102,10 @@ compile_pass (systemtap_session& s)
   // but that path does not exist in an O= build tree.
   o << module_cflags << " += -Iinclude2/asm/mach-default" << endl;
 
+  // NB: don't try
+  // o << module_cflags << " += -Iusr/include" << endl;
+  // since such headers are cleansed of _KERNEL_ pieces that we need
+
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-getset-expires.c, -DSTAPCONF_HRTIMER_GETSET_EXPIRES,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
@@ -116,6 +120,7 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-oneachcpu-retry.c, -DSTAPCONF_ONEACHCPU_RETRY,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-dpath-path.c, -DSTAPCONF_DPATH_PATH,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-synchronize-sched.c, -DSTAPCONF_SYNCHRONIZE_SCHED,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-task-uid.c, -DSTAPCONF_TASK_UID,)" << endl;
 
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our

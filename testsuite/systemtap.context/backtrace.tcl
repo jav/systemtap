@@ -128,7 +128,7 @@ expect {
 	}
 	exp_continue
     }
-    eof {fail "backtrace of yyy_func[2-4]: unexpected EOF" }
+    eof {fail "backtrace of yyy_func*: unexpected EOF" }
 }
 exec kill -INT -[exp_pid]
 if {$m1 == 3} {

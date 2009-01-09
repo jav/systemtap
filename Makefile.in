@@ -34,16 +34,21 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT) \
-	stap-client-connect$(EXEEXT) stap-server-connect$(EXEEXT)
-@BUILD_ELFUTILS_TRUE@am__append_1 = -Iinclude-elfutils
-@BUILD_ELFUTILS_TRUE@am__append_2 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
+bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT) $(am__EXEEXT_1)
+@BUILD_SERVER_TRUE@am__append_1 = stap-server.8 
+@BUILD_SERVER_TRUE@am__append_2 = stap-client-connect stap-server-connect
+@BUILD_SERVER_TRUE@am__append_3 = stap-client stap-serverd stap-server stap-find-servers \
+@BUILD_SERVER_TRUE@	       stap-start-server stap-find-or-start-server stap-stop-server \
+@BUILD_SERVER_TRUE@	       stap-gen-server-cert stap-add-server-cert
+
+@BUILD_ELFUTILS_TRUE@am__append_4 = -Iinclude-elfutils
+@BUILD_ELFUTILS_TRUE@am__append_5 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 @BUILD_ELFUTILS_TRUE@		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
 
-@BUILD_ELFUTILS_TRUE@am__append_3 = stamp-elfutils
-@BUILD_ELFUTILS_TRUE@am__append_4 = stamp-elfutils
-@BUILD_ELFUTILS_TRUE@am__append_5 = lib-elfutils/libdw.so
-@BUILD_ELFUTILS_TRUE@am__append_6 = install-elfutils
+@BUILD_ELFUTILS_TRUE@am__append_6 = stamp-elfutils
+@BUILD_ELFUTILS_TRUE@am__append_7 = stamp-elfutils
+@BUILD_ELFUTILS_TRUE@am__append_8 = lib-elfutils/libdw.so
+@BUILD_ELFUTILS_TRUE@am__append_9 = install-elfutils
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
 noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
@@ -101,6 +106,8 @@ libsduprobes_a_AR = $(AR) $(ARFLAGS)
 libsduprobes_a_LIBADD =
 @BUILD_ELFUTILS_TRUE@am_libsduprobes_a_OBJECTS = sduprobes.$(OBJEXT)
 libsduprobes_a_OBJECTS = $(am_libsduprobes_a_OBJECTS)
+@BUILD_SERVER_TRUE@am__EXEEXT_1 = stap-client-connect$(EXEEXT) \
+@BUILD_SERVER_TRUE@	stap-server-connect$(EXEEXT)
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 pkglibexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
@@ -121,14 +128,12 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
-am_stap_client_connect_OBJECTS =  \
-	stap_client_connect-stap-client-connect.$(OBJEXT)
+@BUILD_SERVER_TRUE@am_stap_client_connect_OBJECTS = stap_client_connect-stap-client-connect.$(OBJEXT)
 stap_client_connect_OBJECTS = $(am_stap_client_connect_OBJECTS)
 stap_client_connect_DEPENDENCIES =
 stap_client_connect_LINK = $(CCLD) $(stap_client_connect_CFLAGS) \
 	$(CFLAGS) $(stap_client_connect_LDFLAGS) $(LDFLAGS) -o $@
-am_stap_server_connect_OBJECTS =  \
-	stap_server_connect-stap-server-connect.$(OBJEXT)
+@BUILD_SERVER_TRUE@am_stap_server_connect_OBJECTS = stap_server_connect-stap-server-connect.$(OBJEXT)
 stap_server_connect_OBJECTS = $(am_stap_server_connect_OBJECTS)
 stap_server_connect_DEPENDENCIES =
 stap_server_connect_LINK = $(CCLD) $(stap_server_connect_CFLAGS) \
@@ -261,6 +266,7 @@ have_dvips = @have_dvips@
 have_latex = @have_latex@
 have_latex2html = @have_latex2html@
 have_ps2pdf = @have_ps2pdf@
+have_xmlto = @have_xmlto@
 host_alias = @host_alias@
 htmldir = @htmldir@
 includedir = @includedir@
@@ -297,10 +303,14 @@ pkglibexecdir = ${libexecdir}/${PACKAGE}
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
-man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
-bin_SCRIPTS = stap-client stap-serverd stap-server stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server \
-	stap-gen-server-cert stap-add-server-cert stap-report
-
+man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 \
+	staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 \
+	man/stapprobes.nfs.5 man/stapprobes.nfsd.5 \
+	man/stapprobes.pagefault.5 man/stapprobes.process.5 \
+	man/stapprobes.rpc.5 man/stapprobes.scsi.5 \
+	man/stapprobes.signal.5 man/stapprobes.socket.5 \
+	man/stapprobes.tcp.5 man/stapprobes.udp.5 $(am__append_1)
+bin_SCRIPTS = stap-report $(am__append_3)
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -316,19 +326,19 @@ stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 # of foo-bar.c if it is newer than the foo-bar.o file. Using noinst_foo_SOURCES
 # instead of foo_SOURCES prevents shipping git_version.h in dist tarballs,
 # which may cause false GIT_FOO readings.
-BUILT_SOURCES = git_version.stamp $(am__append_3)
-CLEANFILES = git_version.h $(am__append_4) $(pkglibexec_PROGRAMS)
-stap_DEPENDENCIES = $(am__append_5)
+BUILT_SOURCES = git_version.stamp $(am__append_6)
+CLEANFILES = git_version.h $(am__append_7) $(pkglibexec_PROGRAMS)
+stap_DEPENDENCIES = $(am__append_8)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
 stap_CXXFLAGS = $(AM_CXXFLAGS)
-stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_1)
-stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ $(am__append_2)
+stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_4)
+stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ $(am__append_5)
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_CPPFLAGS = $(AM_CPPFLAGS)
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
-stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
-PHONIES = $(am__append_6) dist-gzip
+@BUILD_SERVER_TRUE@stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
+@BUILD_SERVER_TRUE@stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
+PHONIES = $(am__append_9) dist-gzip
 @BUILD_ELFUTILS_TRUE@pkglib_LIBRARIES = libsduprobes.a
 @BUILD_ELFUTILS_TRUE@libsduprobes_a_SOURCES = runtime/sduprobes.c
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
@@ -344,12 +354,12 @@ stapio_SOURCES = runtime/staprun/stapio.c \
 
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -fno-strict-aliasing
 stapio_LDADD = @PROCFLAGS@ -lpthread
-stap_client_connect_SOURCES = stap-client-connect.c
-stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_client_connect_LDADD = -lssl3
-stap_server_connect_SOURCES = stap-server-connect.c
-stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_server_connect_LDADD = -lssl3
+@BUILD_SERVER_TRUE@stap_client_connect_SOURCES = stap-client-connect.c
+@BUILD_SERVER_TRUE@stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_SERVER_TRUE@stap_client_connect_LDADD = -lssl3
+@BUILD_SERVER_TRUE@stap_server_connect_SOURCES = stap-server-connect.c
+@BUILD_SERVER_TRUE@stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_SERVER_TRUE@stap_server_connect_LDADD = -lssl3
 loc2c_test_SOURCES = loc2c-test.c loc2c.c
 loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
 loc2c_test_LDFLAGS = $(stap_LDFLAGS)

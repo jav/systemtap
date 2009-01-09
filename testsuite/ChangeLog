@@ -2,6 +2,11 @@
 
 	* lib/systemtap.exp: Remove ssl_server_path and ssl_client_path.
 
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 9699:
+	* systemtap.context/backtrace.tcl: Correct tcl syntax in fail message.
+
 2008-12-24  Dave Brolley  <brolley@redhat.com>
 
 	* lib/systemtap.exp: Rename client_path to net_path.

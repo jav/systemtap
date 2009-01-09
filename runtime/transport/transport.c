@@ -2,7 +2,7 @@
  * transport.c - stp transport functions
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005-2008
+ * Copyright (C) Red Hat Inc, 2005-2009
  * Copyright (C) Intel Corporation, 2006
  *
  * This file is part of systemtap, and is free software.  You can
@@ -211,8 +211,13 @@ int _stp_transport_init(void)
 
 	dbug_trans(1, "transport_init\n");
 	_stp_init_pid = current->pid;
+#ifdef STAPCONF_TASK_UID
 	_stp_uid = current->uid;
 	_stp_gid = current->gid;
+#else
+	_stp_uid = current_uid();
+	_stp_gid = current_gid();
+#endif
 
 #ifdef RELAY_GUEST
 	/* Guest scripts use relay only for reporting warnings and errors */

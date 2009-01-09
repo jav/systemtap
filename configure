@@ -716,11 +716,16 @@ have_ps2pdf
 have_latex2html
 BUILD_DOCS_TRUE
 BUILD_DOCS_FALSE
+have_xmlto
+BUILD_REFDOCS_TRUE
+BUILD_REFDOCS_FALSE
 PKG_CONFIG
 nss_CFLAGS
 nss_LIBS
 nspr_CFLAGS
 nspr_LIBS
+BUILD_SERVER_TRUE
+BUILD_SERVER_FALSE
 BUILD_ELFUTILS_TRUE
 BUILD_ELFUTILS_FALSE
 elfutils_abs_srcdir
@@ -1345,6 +1350,10 @@ Optional Features:
                           location).
   --enable-docs           enable building documentation (default on if latex
                           etc. found).
+  --enable-refdocs        enable building reference documentation (default on
+                          if xmlto etc. found and other documentation built).
+  --enble-server          enable building of stap-server/client (default on if
+                          nss etc. found).
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6229,6 +6238,7 @@ else
 fi
 
 
+building_docs="no"
 # Check whether --enable-docs was given.
 if test "${enable_docs+set}" = set; then
   enableval=$enable_docs; enable_docs=$enableval
@@ -6388,14 +6398,21 @@ echo "${ECHO_T}no" >&6; }
 fi
 
 
-if test "$enable_docs" == "yes"; then
-   if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesyesyesyes"; then
+if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesyesyesyes"; then
+   if test "$enable_docs" == "yes"; then
       { { echo "$as_me:$LINENO: error: cannot find all tools for building documentation" >&5
 echo "$as_me: error: cannot find all tools for building documentation" >&2;}
    { (exit 1); exit 1; }; }
    fi
+  if test "$enable_docs" == "check"; then
+    { echo "$as_me:$LINENO: WARNING: will not build documentation, cannot find all tools" >&5
+echo "$as_me: WARNING: will not build documentation, cannot find all tools" >&2;}
+  fi
 fi
- if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"; then
+if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"; then
+   building_docs="yes"
+fi
+ if test "$building_docs" == "yes"; then
   BUILD_DOCS_TRUE=
   BUILD_DOCS_FALSE='#'
 else
@@ -6403,6 +6420,103 @@ else
   BUILD_DOCS_FALSE=
 fi
 
+
+building_refdocs="no"
+# Check whether --enable-refdocs was given.
+if test "${enable_refdocs+set}" = set; then
+  enableval=$enable_refdocs; enable_refdocs=$enableval
+else
+  enable_refdocs="check"
+fi
+
+if test "$building_docs" == "no" -a "$enable_refdocs" == "yes" ; then
+   { { echo "$as_me:$LINENO: error: must use --enable-docs with --enable-refdocs" >&5
+echo "$as_me: error: must use --enable-docs with --enable-refdocs" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+# Extract the first word of "xmlto", so it can be a program name with args.
+set dummy xmlto; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_prog_have_xmlto+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$have_xmlto"; then
+  ac_cv_prog_have_xmlto="$have_xmlto" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_have_xmlto="yes"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_have_xmlto" && ac_cv_prog_have_xmlto="no"
+fi
+fi
+have_xmlto=$ac_cv_prog_have_xmlto
+if test -n "$have_xmlto"; then
+  { echo "$as_me:$LINENO: result: $have_xmlto" >&5
+echo "${ECHO_T}$have_xmlto" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+if test "x${have_xmlto}" == "xyes"; then
+{ echo "$as_me:$LINENO: checking for xmlto pdf support" >&5
+echo $ECHO_N "checking for xmlto pdf support... $ECHO_C" >&6; }
+cat > conftest.$ac_ext << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+"http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" >
+   <book id="pdffromxml">
+   </book>
+EOF
+   xmlto pdf conftest.$ac_ext >& /dev/null
+   if test $? == 0; then
+      have_xmlto_pdf="yes"
+      { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+   else
+      { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+   fi
+fi
+if test "$enable_refdocs" == "yes"; then
+   if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
+      { { echo "$as_me:$LINENO: error: cannot find proper yxmlto for building reference documentation" >&5
+echo "$as_me: error: cannot find proper yxmlto for building reference documentation" >&2;}
+   { (exit 1); exit 1; }; }
+   fi
+fi
+if test "x${have_xmlto}${have_xmlto_pdf}" == "xyesyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
+   building_refdocs="yes"
+fi
+ if test "$building_refdocs" == "yes"; then
+  BUILD_REFDOCS_TRUE=
+  BUILD_REFDOCS_FALSE='#'
+else
+  BUILD_REFDOCS_TRUE='#'
+  BUILD_REFDOCS_FALSE=
+fi
+
+
+# Check whether --enable-server was given.
+if test "${enable_server+set}" = set; then
+  enableval=$enable_server; enable_server=$enableval
+else
+  enable_server="check"
+fi
 
 
 
@@ -6529,11 +6643,10 @@ pkg_failed=no
 { echo "$as_me:$LINENO: checking for nss" >&5
 echo $ECHO_N "checking for nss... $ECHO_C" >&6; }
 
-if test -n "$PKG_CONFIG"; then
-    if test -n "$nss_CFLAGS"; then
-        pkg_cv_nss_CFLAGS="$nss_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$nss_CFLAGS"; then
+    pkg_cv_nss_CFLAGS="$nss_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"nss >= 3\"") >&5
   ($PKG_CONFIG --exists --print-errors "nss >= 3") 2>&5
   ac_status=$?
@@ -6543,15 +6656,13 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$nss_LIBS"; then
-        pkg_cv_nss_LIBS="$nss_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$nss_LIBS"; then
+    pkg_cv_nss_LIBS="$nss_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"nss >= 3\"") >&5
   ($PKG_CONFIG --exists --print-errors "nss >= 3") 2>&5
   ac_status=$?
@@ -6561,9 +6672,8 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
 
 
@@ -6576,75 +6686,34 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        nss_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "nss >= 3"`
+	        nss_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "nss >= 3" 2>&1`
         else
-	        nss_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "nss >= 3"`
+	        nss_PKG_ERRORS=`$PKG_CONFIG --print-errors "nss >= 3" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$nss_PKG_ERRORS" >&5
 
-	{ { echo "$as_me:$LINENO: error: Package requirements (nss >= 3) were not met:
-
-$nss_PKG_ERRORS
-
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
-installed software in a non-standard prefix.
-
-Alternatively, you may set the environment variables nss_CFLAGS
-and nss_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-" >&5
-echo "$as_me: error: Package requirements (nss >= 3) were not met:
-
-$nss_PKG_ERRORS
-
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
-installed software in a non-standard prefix.
-
-Alternatively, you may set the environment variables nss_CFLAGS
-and nss_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-" >&2;}
-   { (exit 1); exit 1; }; }
+	{ echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+                have_nss=no
 elif test $pkg_failed = untried; then
-	{ { echo "$as_me:$LINENO: error: The pkg-config script could not be found or is too old.  Make sure it
-is in your PATH or set the PKG_CONFIG environment variable to the full
-path to pkg-config.
-
-Alternatively, you may set the environment variables nss_CFLAGS
-and nss_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-
-To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-See \`config.log' for more details." >&5
-echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
-is in your PATH or set the PKG_CONFIG environment variable to the full
-path to pkg-config.
-
-Alternatively, you may set the environment variables nss_CFLAGS
-and nss_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-
-To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-See \`config.log' for more details." >&2;}
-   { (exit 1); exit 1; }; }
+	have_nss=no
 else
 	nss_CFLAGS=$pkg_cv_nss_CFLAGS
 	nss_LIBS=$pkg_cv_nss_LIBS
         { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
-	:
+	have_nss=yes
 fi
 
 pkg_failed=no
 { echo "$as_me:$LINENO: checking for nspr" >&5
 echo $ECHO_N "checking for nspr... $ECHO_C" >&6; }
 
-if test -n "$PKG_CONFIG"; then
-    if test -n "$nspr_CFLAGS"; then
-        pkg_cv_nspr_CFLAGS="$nspr_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$nspr_CFLAGS"; then
+    pkg_cv_nspr_CFLAGS="$nspr_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"nspr >= 4\"") >&5
   ($PKG_CONFIG --exists --print-errors "nspr >= 4") 2>&5
   ac_status=$?
@@ -6654,15 +6723,13 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$nspr_LIBS"; then
-        pkg_cv_nspr_LIBS="$nspr_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$nspr_LIBS"; then
+    pkg_cv_nspr_LIBS="$nspr_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"nspr >= 4\"") >&5
   ($PKG_CONFIG --exists --print-errors "nspr >= 4") 2>&5
   ac_status=$?
@@ -6672,9 +6739,8 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
 
 
@@ -6687,65 +6753,44 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        nspr_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "nspr >= 4"`
+	        nspr_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "nspr >= 4" 2>&1`
         else
-	        nspr_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "nspr >= 4"`
+	        nspr_PKG_ERRORS=`$PKG_CONFIG --print-errors "nspr >= 4" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$nspr_PKG_ERRORS" >&5
 
-	{ { echo "$as_me:$LINENO: error: Package requirements (nspr >= 4) were not met:
-
-$nspr_PKG_ERRORS
-
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
-installed software in a non-standard prefix.
-
-Alternatively, you may set the environment variables nspr_CFLAGS
-and nspr_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-" >&5
-echo "$as_me: error: Package requirements (nspr >= 4) were not met:
-
-$nspr_PKG_ERRORS
-
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
-installed software in a non-standard prefix.
-
-Alternatively, you may set the environment variables nspr_CFLAGS
-and nspr_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-" >&2;}
-   { (exit 1); exit 1; }; }
+	{ echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+                have_nspr=no
 elif test $pkg_failed = untried; then
-	{ { echo "$as_me:$LINENO: error: The pkg-config script could not be found or is too old.  Make sure it
-is in your PATH or set the PKG_CONFIG environment variable to the full
-path to pkg-config.
-
-Alternatively, you may set the environment variables nspr_CFLAGS
-and nspr_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-
-To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-See \`config.log' for more details." >&5
-echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
-is in your PATH or set the PKG_CONFIG environment variable to the full
-path to pkg-config.
-
-Alternatively, you may set the environment variables nspr_CFLAGS
-and nspr_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-
-To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-See \`config.log' for more details." >&2;}
-   { (exit 1); exit 1; }; }
+	have_nspr=no
 else
 	nspr_CFLAGS=$pkg_cv_nspr_CFLAGS
 	nspr_LIBS=$pkg_cv_nspr_LIBS
         { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
-	:
+	have_nspr=yes
 fi
+if test "x${have_nss}${have_nspr}" != "xyesyes"; then
+  if test "$enable_server" == "yes"; then
+    { { echo "$as_me:$LINENO: error: cannot find all libraries for stap-server" >&5
+echo "$as_me: error: cannot find all libraries for stap-server" >&2;}
+   { (exit 1); exit 1; }; }
+  fi
+  if test "$enable_server" == "check"; then
+    { echo "$as_me:$LINENO: WARNING: will not build stap-server, cannot find all libraries" >&5
+echo "$as_me: WARNING: will not build stap-server, cannot find all libraries" >&2;}
+  fi
+fi
+ if test "x${have_nss}${have_nspr}" == "xyesyes" -a "$enable_server" != "no"; then
+  BUILD_SERVER_TRUE=
+  BUILD_SERVER_FALSE='#'
+else
+  BUILD_SERVER_TRUE='#'
+  BUILD_SERVER_FALSE=
+fi
+
 
 build_elfutils=no
 
@@ -7679,6 +7724,20 @@ echo "$as_me: error: conditional \"BUILD_DOCS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test -z "${BUILD_REFDOCS_TRUE}" && test -z "${BUILD_REFDOCS_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_REFDOCS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_REFDOCS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_SERVER_TRUE}" && test -z "${BUILD_SERVER_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_SERVER\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_SERVER\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${BUILD_ELFUTILS_TRUE}" && test -z "${BUILD_ELFUTILS_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_ELFUTILS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -8383,11 +8442,16 @@ have_ps2pdf!$have_ps2pdf$ac_delim
 have_latex2html!$have_latex2html$ac_delim
 BUILD_DOCS_TRUE!$BUILD_DOCS_TRUE$ac_delim
 BUILD_DOCS_FALSE!$BUILD_DOCS_FALSE$ac_delim
+have_xmlto!$have_xmlto$ac_delim
+BUILD_REFDOCS_TRUE!$BUILD_REFDOCS_TRUE$ac_delim
+BUILD_REFDOCS_FALSE!$BUILD_REFDOCS_FALSE$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
 nss_CFLAGS!$nss_CFLAGS$ac_delim
 nss_LIBS!$nss_LIBS$ac_delim
 nspr_CFLAGS!$nspr_CFLAGS$ac_delim
 nspr_LIBS!$nspr_LIBS$ac_delim
+BUILD_SERVER_TRUE!$BUILD_SERVER_TRUE$ac_delim
+BUILD_SERVER_FALSE!$BUILD_SERVER_FALSE$ac_delim
 BUILD_ELFUTILS_TRUE!$BUILD_ELFUTILS_TRUE$ac_delim
 BUILD_ELFUTILS_FALSE!$BUILD_ELFUTILS_FALSE$ac_delim
 elfutils_abs_srcdir!$elfutils_abs_srcdir$ac_delim
@@ -8400,7 +8464,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 20; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 25; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -8801,21 +8865,22 @@ echo "$as_me: $ac_file is unchanged" >&6;}
   fi
   rm -f "$tmp/out12"
 # Compute $ac_file's index in $config_headers.
+_am_arg=$ac_file
 _am_stamp_count=1
 for _am_header in $config_headers :; do
   case $_am_header in
-    $ac_file | $ac_file:* )
+    $_am_arg | $_am_arg:* )
       break ;;
     * )
       _am_stamp_count=`expr $_am_stamp_count + 1` ;;
   esac
 done
-echo "timestamp for $ac_file" >`$as_dirname -- $ac_file ||
-$as_expr X$ac_file : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
-	 X$ac_file : 'X\(//\)[^/]' \| \
-	 X$ac_file : 'X\(//\)$' \| \
-	 X$ac_file : 'X\(/\)' \| . 2>/dev/null ||
-echo X$ac_file |
+echo "timestamp for $_am_arg" >`$as_dirname -- "$_am_arg" ||
+$as_expr X"$_am_arg" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
+	 X"$_am_arg" : 'X\(//\)[^/]' \| \
+	 X"$_am_arg" : 'X\(//\)$' \| \
+	 X"$_am_arg" : 'X\(/\)' \| . 2>/dev/null ||
+echo X"$_am_arg" |
     sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{
 	    s//\1/
 	    q
@@ -8852,7 +8917,7 @@ echo "$as_me: executing $ac_file commands" >&6;}
   # each Makefile.in and add a new line on top of each file to say so.
   # Grep'ing the whole file is not good either: AIX grep has a line
   # limit of 2048, but all sed's we know have understand at least 4000.
-  if sed 10q "$mf" | grep '^#.*generated by automake' > /dev/null 2>&1; then
+  if sed -n 's,^#.*generated by automake.*,X,p' "$mf" | grep X >/dev/null 2>&1; then
     dirpart=`$as_dirname -- "$mf" ||
 $as_expr X"$mf" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
 	 X"$mf" : 'X\(//\)[^/]' \| \

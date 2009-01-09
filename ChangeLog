@@ -36,6 +36,46 @@
 	evidence that the server is listening.
 	* Makefile.in: Regenerated.
 
+2009-01-08  William Cohen  <wcohen@redhat.com>
+
+	* configure.ac: Check for xmlto that generates pdf.
+	* configure: Regenerated.
+	
+2009-01-07  William Cohen  <wcohen@redhat.com>
+
+	* configure.ac: Add --enable-refdocs configure option and
+	set check for xmlto
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+	
+2009-01-07  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Warn when not building docs because tools not found.
+	* configure: Regenerated.
+
+2009-01-07  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Add --enable-server configure option and
+	set BUILD_SERVER appropriately.
+	* Makefile.am (man_MANS, bin_PROGRAMS, bin_SCRIPTS): Only add
+	stap-server and friends when BUILD_SERVER set.A
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9699.
+	* buildrun.cxx (compile_pass): Add $(LINUXINCLUDES) to autoconf
+	trial builds.  Add new autoconf test for task_struct uid->cred switch.
+
+2009-01-06  Dave Brolley  <brolley@redhat.com>
+
+	* systemtap.spec (stap-client): Add stap-add-server-cert,
+	stap-client-connect.
+	(stap-server): Add stap-server-connect.
+
 2009-01-05  Dave Brolley  <brolley@redhat.com>
 
 	PR9702

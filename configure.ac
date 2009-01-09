@@ -145,6 +145,7 @@ AC_ARG_ENABLE([crash],
 AM_CONDITIONAL([BUILD_CRASHMOD], [test "$enable_crash" != "no"])
 
 dnl Handle the option to build the documentation
+building_docs="no"
 AC_ARG_ENABLE([docs],
   AS_HELP_STRING([--enable-docs],
     [enable building documentation (default on if latex etc. found).]),
@@ -154,15 +155,74 @@ AC_CHECK_PROG(have_latex, latex, yes, no)
 AC_CHECK_PROG(have_dvips, dvips, yes, no)
 AC_CHECK_PROG(have_ps2pdf, ps2pdf, yes, no)
 AC_CHECK_PROG(have_latex2html, latex2html, yes, no)
-if test "$enable_docs" == "yes"; then
-   if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesyesyesyes"; then
+if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesyesyesyes"; then
+   if test "$enable_docs" == "yes"; then
       AC_MSG_ERROR([cannot find all tools for building documentation])
    fi
+  if test "$enable_docs" == "check"; then
+    AC_MSG_WARN([will not build documentation, cannot find all tools])
+  fi
 fi
-AM_CONDITIONAL([BUILD_DOCS], [test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"])
+if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"; then
+   building_docs="yes"
+fi
+AM_CONDITIONAL([BUILD_DOCS], [test "$building_docs" == "yes"])
 
-PKG_CHECK_MODULES([nss],[nss >= 3])
-PKG_CHECK_MODULES([nspr],[nspr >= 4])
+dnl Handle the option to build the reference documentation
+building_refdocs="no"
+AC_ARG_ENABLE([refdocs],
+  AS_HELP_STRING([--enable-refdocs],
+    [enable building reference documentation (default on if xmlto etc. found and other documentation built).]),
+  [enable_refdocs=$enableval],
+  [enable_refdocs="check"])
+if test "$building_docs" == "no" -a "$enable_refdocs" == "yes" ; then
+   AC_MSG_ERROR([must use --enable-docs with --enable-refdocs])
+fi
+AC_CHECK_PROG(have_xmlto, xmlto, yes, no)
+if test "x${have_xmlto}" == "xyes"; then
+AC_MSG_CHECKING([for xmlto pdf support])
+cat > conftest.$ac_ext << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+"http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" []>
+   <book id="pdffromxml">
+   </book>
+EOF
+   xmlto pdf conftest.$ac_ext >& /dev/null
+   if test $? == 0; then
+      have_xmlto_pdf="yes"
+      AC_MSG_RESULT([yes])
+   else
+      AC_MSG_RESULT([no])
+   fi
+fi
+if test "$enable_refdocs" == "yes"; then
+   if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
+      AC_MSG_ERROR([cannot find proper yxmlto for building reference documentation])
+   fi
+fi
+if test "x${have_xmlto}${have_xmlto_pdf}" == "xyesyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
+   building_refdocs="yes"
+fi
+AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
+
+dnl Handle the option to build the server setup.
+AC_ARG_ENABLE([server],
+  AS_HELP_STRING([--enble-server],
+    [enable building of stap-server/client (default on if nss etc. found).]),
+  [enable_server=$enableval],
+  [enable_server="check"])
+PKG_CHECK_MODULES([nss],[nss >= 3], have_nss=yes, have_nss=no)
+PKG_CHECK_MODULES([nspr],[nspr >= 4], have_nspr=yes, have_nspr=no)
+if test "x${have_nss}${have_nspr}" != "xyesyes"; then
+  if test "$enable_server" == "yes"; then
+    AC_MSG_ERROR([cannot find all libraries for stap-server])
+  fi
+  if test "$enable_server" == "check"; then
+    AC_MSG_WARN([will not build stap-server, cannot find all libraries])
+  fi
+fi
+AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss}${have_nspr}" == "xyesyes" -a "$enable_server" != "no"])
 
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
