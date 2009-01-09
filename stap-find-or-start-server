@@ -28,5 +28,5 @@ if test $? = 0; then
 fi
 
 # Could not find or start a server
-echo -1
+echo "-1"
 exit 1

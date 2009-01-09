@@ -2,7 +2,7 @@
 
 # Compile server for systemtap
 #
-# Copyright (C) 2008 Red Hat Inc.
+# Copyright (C) 2008, 2009 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -367,7 +367,7 @@ function package_response {
     #chmod +r $jar_server
 
     # Generate the jar file
-    signtool -d $ssl_db -k $nss_cert -p `cat $nss_pw` -Z $jar_server $tmpdir_server
+    signtool -d $ssl_db -k $nss_cert -p `cat $nss_pw` -Z $jar_server $tmpdir_server >/dev/null
 }
 
 # function: fatal [ MESSAGE ]

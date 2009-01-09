@@ -2,7 +2,7 @@
 
 # Compile server manager for systemtap
 #
-# Copyright (C) 2008 Red Hat Inc.
+# Copyright (C) 2008, 2009 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -30,12 +30,24 @@ function initialization {
     while netstat -atn | awk '{print $4}' | cut -f2 -d: | egrep -q "^$port\$";
     do
         # Whoops, the port is busy; try another one.
+	echo "$0: Port $port is busy"
         port=$((1024+($port + $RANDOM)%64000))
     done
 
     # Where is the ssl certificate/key database?
     ssl_db=$2
-    test "X$ssl_db" = "X" && ssl_db=/etc/systemtap/ssl/server
+    if test "X$ssl_db" = "X"; then
+	# If no certificate/key database has been specified, then find/create
+	# a local one.
+	if test $EUID = 0; then
+	    ssl_db=`dirname $0`/../etc/systemtap/ssl/server
+	else
+	    ssl_db=$HOME/.systemtap/ssl/server
+	fi
+	if ! test -f $ssl_db/stap-server.cert; then
+	    stap-gen-server-cert `dirname $ssl_db` || exit 1
+	fi
+    fi
     nss_pw=$ssl_db/pw
     nss_cert=stap-server
 }
@@ -62,7 +74,7 @@ function advertise_presence {
 function listen {
     # The stap-server-connect program will listen forever
     # accepting requests.
-    stap-server-connect -p $port -n $nss_cert -d $ssl_db -w $nss_pw > /dev/null 2>&1 &
+    stap-server-connect -p $port -n $nss_cert -d $ssl_db -w $nss_pw 2>&1 &
     wait '%stap-server-connect' >/dev/null 2>&1
 }
 

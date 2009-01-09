@@ -317,10 +317,7 @@ stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 # instead of foo_SOURCES prevents shipping git_version.h in dist tarballs,
 # which may cause false GIT_FOO readings.
 BUILT_SOURCES = git_version.stamp $(am__append_3)
-
-#BUILT_SOURCES += stamp-ssl
-CLEANFILES = git_version.h $(am__append_4) stamp-ssl \
-	$(pkglibexec_PROGRAMS)
+CLEANFILES = git_version.h $(am__append_4) $(pkglibexec_PROGRAMS)
 stap_DEPENDENCIES = $(am__append_5)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
 stap_CXXFLAGS = $(AM_CXXFLAGS)
@@ -1494,11 +1491,6 @@ cscope:
 @BUILD_ELFUTILS_TRUE@	   $(INSTALL_PROGRAM) $$file $(DESTDIR)$(pkglibdir); \
 @BUILD_ELFUTILS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@install-exec-local: install-elfutils
-stamp-ssl: config.status
-	$(srcdir)/stap-gen-server-cert ssl
-	touch $@
-#stap_DEPENDENCIES += ssl/server/stap-server.cert
-ssl/server/stap-server.cert: stamp-ssl ;
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
@@ -1538,16 +1530,6 @@ install-data-local:
 			i_cmd="$(INSTALL_PROGRAM)"; else \
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
-	if test -d "$(builddir)/ssl"; then \
-		(cd $(builddir)/ssl/server; for f in pw; \
-			do $(INSTALL) -m 600 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
-		(cd $(builddir)/ssl/server; for f in *.db; \
-			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
-		(cd $(builddir)/ssl/server; for f in *.cert; \
-			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
-		(cd $(builddir)/ssl/client; for f in *.db; \
-			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/client/$$f; done); \
-	fi
 
 gcov:
 	@-$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check

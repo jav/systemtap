@@ -64,15 +64,10 @@ proc setup_systemtap_environment {} {
 	if {! [installtest_p]} then {
 	    # Make sure the server management scripts are on the $PATH.
 	    set env(PATH) "$srcdir/..:$env(PATH)"
-	    set ssl_server_path [exec pwd]/../ssl/server
-	    set ssl_client_path [exec pwd]/../ssl/client
-	} else {
-	    set ssl_server_path ""
-	    set ssl_client_path ""
 	}
 
 	# Try to find or start the server.
-	set server_pid [exec stap-find-or-start-server 65000 $ssl_server_path]
+	set server_pid [exec stap-find-or-start-server]
 	if { $server_pid == -1 } then {
 	    print "Cannot find or start a systemtap server"
 	    set server_pid 0
@@ -90,9 +85,6 @@ proc setup_systemtap_environment {} {
 	    exec /bin/cp -p [exec which stap-client] $net_path/stap
 	} else {
 	    exec /bin/cp -p $srcdir/../stap-client $net_path/stap
-	    # Make sure the client picks up the proper certificates for
-	    # server verification.
-	    exec sed -i s,/etc/systemtap/ssl/client,$ssl_client_path, $net_path/stap
 	}
 	set env(PATH) "$net_path:$env(PATH)"
     }

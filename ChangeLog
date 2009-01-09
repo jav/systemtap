@@ -1,3 +1,41 @@
+2009-01-09  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (stamp-ssl): Removed.
+	(ssl/server/stap-server.cert): Removed.
+	(install-data-local): Don't install $(builddir)/ssl.
+	(stap-add-server-cert): Create database directory if it does not
+	exist. Ensure the database is readable by others.
+	* stap-client (initialization): Initialize local_ssl_dbs and
+	public_ssl_dbs. Don't initialize ssl_db.
+	(parse_options): Concatenate additional_local_ssl_dbs with
+	local_ssl_dbs.
+	(process_ssl): Build up additional_local_ssl_dbs in the order
+	specified on the command line.
+	(choose_server): Set server for non-local domains. Print
+	$tmpdir_client/connect to stderr if we can't connect.
+	(send_receive): Try connecting to the given server using all of the
+	databases in $local_ssl_dbs and $public_ssl_dbs. Keep log in
+	$tmpdir_client/connect.
+	(interrupt): Use SIGTERM to kill stap-client-connect.
+	* stap-client-connect.c (prerror.h,secerror.h): #include them.
+	(errWarn): Try to the the error text from NSPR. Handle specific errors
+	manually otherwise.
+	(handle_connection): Stop processing on write error of the local file.
+	(do_connect): Cleanup on error. Call SSL_ForceHandshake to catch
+	authentication errors here.
+	* stap-gen-server-cert: Don't create the client's database directory.
+	* stap-server: Redirect the output of signtool to /dev/null.
+	* stap-server-connect.c (handle_connect): Call SSL_ForceHandshake to catch
+	authentication errors here. Clean up temp files on error.
+	(accept_connection): Don't close the socket on error.
+	stap-serverd (initialization): Print a message if the given socket is busy.
+	Search for a local certificate database. Create and initialize one if not
+	found.
+	(listen): Don't discard stderr fomr stap-server-connect.
+	* stap-start-server: Check for existence of local certificate database as
+	evidence that the server is listening.
+	* Makefile.in: Regenerated.
+
 2009-01-05  Dave Brolley  <brolley@redhat.com>
 
 	PR9702

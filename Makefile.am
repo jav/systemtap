@@ -105,14 +105,6 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
-#BUILT_SOURCES += stamp-ssl
-CLEANFILES += stamp-ssl
-stamp-ssl: config.status
-	$(srcdir)/stap-gen-server-cert ssl
-	touch $@
-#stap_DEPENDENCIES += ssl/server/stap-server.cert
-ssl/server/stap-server.cert: stamp-ssl ;
-
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
@@ -198,16 +190,6 @@ install-data-local:
 			i_cmd="$(INSTALL_PROGRAM)"; else \
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
-	if test -d "$(builddir)/ssl"; then \
-		(cd $(builddir)/ssl/server; for f in pw; \
-			do $(INSTALL) -m 600 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
-		(cd $(builddir)/ssl/server; for f in *.db; \
-			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
-		(cd $(builddir)/ssl/server; for f in *.cert; \
-			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/server/$$f; done); \
-		(cd $(builddir)/ssl/client; for f in *.db; \
-			do $(INSTALL) -m 664 -D $$f $(DESTDIR)$(sysconfdir)/systemtap/ssl/client/$$f; done); \
-	fi
 
 TEST_COV_DIR = coverage
 

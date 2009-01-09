@@ -86,12 +86,6 @@ rm -fr $1/stap-server.req
 # Add the certificate to the server's certificate/key database as a trusted peer, ssl server and object signer
 certutil -A -n stap-server -t "PCu,,PCu" -i $serverdb/stap-server.cert -d $serverdb -f $serverdb/pw
 
-# Now create a directory for the client's certificate database
-clientdb=$1/client
-if ! mkdir -p $clientdb; then
-    echo "Unable to create the client certificate database directory: $clientdb" >&2
-    exit 1
-fi
-
 # Now add the server's certificate to the client's database, making it a trusted peer.
+clientdb=$1/client
 `dirname $0`/stap-add-server-cert $serverdb/stap-server.cert $clientdb

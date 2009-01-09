@@ -3,7 +3,7 @@
   the data into a temporary file, calls the systemtap server script and
   then transmits the resulting fileback to the client.
 
-  Copyright (C) 2008 Red Hat Inc.
+  Copyright (C) 2008, 2009 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -399,6 +399,14 @@ handle_connection(PRFileDesc *tcpSocket)
       goto cleanup;
     }
 
+  /* Force the handshake to complete before moving on. */
+  secStatus = SSL_ForceHandshake(sslSocket);
+  if (secStatus != SECSuccess)
+    {
+      errWarn("SSL_ForceHandshake");
+      goto cleanup;
+    }
+
   /* Create a temporary files and directories.  */
   memcpy (requestFileName + sizeof (requestFileName) - 1 - 6, "XXXXXX", 6);
   rc = mkstemp(requestFileName);
@@ -428,6 +436,11 @@ handle_connection(PRFileDesc *tcpSocket)
       fprintf (stderr, "Could not create temporary file %s\n", responseJarName);
       perror ("");
       secStatus = SECFailure;
+
+      /* Remove this so that the other temp files will get removed in cleanup.  */
+      prStatus = PR_RmDir (responseDirName);
+      if (prStatus != PR_SUCCESS)
+	errWarn ("PR_RmDir");
       goto cleanup;
     }
 
@@ -475,7 +488,6 @@ handle_connection(PRFileDesc *tcpSocket)
   secStatus = writeDataToSocket(sslSocket);
 
 cleanup:
-
   /* Close down the socket. */
   prStatus = PR_Close(tcpSocket);
   if (prStatus != PR_SUCCESS)
@@ -508,7 +520,9 @@ accept_connection(PRFileDesc *listenSocket)
   PRNetAddr   addr;
   PRStatus    prStatus;
   PRFileDesc *tcpSocket;
+#if 0
   SECStatus   result;
+#endif
 
   while (PR_TRUE)
     {
@@ -525,8 +539,8 @@ accept_connection(PRFileDesc *listenSocket)
 	}
 
       /* Accepted the connection, now handle it. */
-      result = handle_connection (tcpSocket);
-
+      /*result =*/ handle_connection (tcpSocket);
+#if 0 /* Not necessary */
       if (result != SECSuccess)
 	{
 	  prStatus = PR_Close(tcpSocket);
@@ -534,6 +548,7 @@ accept_connection(PRFileDesc *listenSocket)
 	    exitErr("PR_Close");
 	  break;
 	}
+#endif
     }
 
 #if DEBUG

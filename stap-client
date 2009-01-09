@@ -2,7 +2,7 @@
 
 # Compile server client for systemtap
 #
-# Copyright (C) 2008 Red Hat Inc.
+# Copyright (C) 2008, 2009 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -38,8 +38,14 @@ function initialization {
     umask 0
     staprun_running=0
 
+    # Default location for server certificates if we're not root
+    if test $EUID != 0; then
+	local_ssl_dbs="$HOME/.systemtap/ssl/client"
+    fi
+    # Additional location for all users.
+    public_ssl_dbs="`dirname $0`/../etc/systemtap/ssl/client"
+
     # Default options settings
-    ssl_db=/etc/systemtap/ssl/client
     p_phase=5
     v_level=0
     keep_temps=0
@@ -222,6 +228,8 @@ function parse_options {
     else
 	cmdline="$cmdline1 $cmdline2"
     fi
+
+    local_ssl_dbs="$additional_local_ssl_dbs $local_ssl_dbs"
 }
 
 # function: get_arg FIRSTWORD SECONDWORD
@@ -255,7 +263,7 @@ function process_ssl {
     test "X$db" != "X" || \
 	fatal "Missing argument to --ssl"
 	
-    ssl_db=$db
+    additional_local_ssl_dbs="$additional_local_ssl_dbs $db"
 }
 
 # function: process_c ARGUMENT
@@ -461,7 +469,6 @@ function unpack_response {
 	else
             # Make sure we own the systemtap temp directory if we are root.
 	    test $EUID = 0 && chown $EUID:$EUID $tmpdir_server/$tmpdir_stap
-	    # The temp directory will be moved to here below.
 	fi
     fi
 }
@@ -502,7 +509,7 @@ function choose_server {
 	if test "X$server_host_name$server_domain_name" = "X$our_host_name$our_domain_name"; then
 	    server=localhost
 	else
-	    server=$name
+	    server=$server_host_name$server_domain_name
 	fi
 
 	if test "X$server" = "X"; then
@@ -522,6 +529,7 @@ function choose_server {
 	fatal "ERROR: unable to find a server"
     fi
 
+    cat $tmpdir_client/connect >&2
     fatal "ERROR: unable to connect to a server"
 }
 
@@ -533,11 +541,32 @@ function send_receive {
     jar_server=`mktemp -t $tmpdir_prefix_client.server.jar.XXXXXX` || \
 	fatal "ERROR: cannot create temporary file " $jar_server
 
-    # Send the request and receive the response using stap-client-connect
-    stap-client-connect -i $zip_client -o $jar_server -d $ssl_db -p $port -h $server &
-    wait '%stap-client-connect'
+    # If the server is local, try to connect using each of the given local
+    # certificate databases in turn for verification.
+    if test "X$server" = "Xlocalhost"; then
+	for db in $local_ssl_dbs
+	do
+            # Send the request and receive the response using stap-client-connect
+	    echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
+	    stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	    wait '%stap-client-connect'
+	    test $? = 0 && ssl_db=$db && return 0
+	    sleep 1
+	done
+    fi
 
-    test $? = 0 && return 0
+    # We can try the public certificate databases for all servers.
+    for db in $public_ssl_dbs
+    do
+        # Send the request and receive the response using stap-client-connect
+	echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
+	stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%stap-client-connect'
+	test $? = 0 && ssl_db=$db && return 0
+	sleep 1
+    done
+
+    # Could not connect using any of the certificate databases
     return 1
 }
 
@@ -718,7 +747,8 @@ function interrupt {
     fi
 
     # Kill any stap-client-connect job
-    kill -s SIGINT '%stap-client-connect'
+    # SIGINT won't do it.
+    kill -s SIGTERM '%stap-client-connect'
 
     # If staprun was not running, then exit.
     cleanup

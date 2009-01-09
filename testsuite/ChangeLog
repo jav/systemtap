@@ -1,3 +1,7 @@
+2009-01-09  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp: Remove ssl_server_path and ssl_client_path.
+
 2008-12-24  Dave Brolley  <brolley@redhat.com>
 
 	* lib/systemtap.exp: Rename client_path to net_path.
