@@ -1,3 +1,7 @@
+2009-01-11  Wenji Huang  <wenji.huang@oracle.com>
+	
+	* systemtap.base/badkprobe.exp: Add explicit timeout.
+
 2009-01-09  Dave Brolley  <brolley@redhat.com>
 
 	* lib/systemtap.exp: Remove ssl_server_path and ssl_client_path.

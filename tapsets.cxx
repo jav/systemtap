@@ -5039,7 +5039,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
           assert (p->maxactive_val >= 0 && p->maxactive_val <= USHRT_MAX);
           s.op->line() << " .maxactive_val=" << p->maxactive_val << ",";
         }
-      s.op->line() << " .address=0x" << hex << p->addr << dec << "UL,";
+      s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .module=\"" << p->module << "\",";
       s.op->line() << " .section=\"" << p->section << "\",";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
@@ -7104,7 +7104,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << "},";
       if (p->section != ".absolute")
         s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
-      s.op->line() << " .address=0x" << hex << p->address << dec << "UL,";
+      s.op->line() << " .address=(unsigned long)0x" << hex << p->address << dec << "ULL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
       if (p->return_p) s.op->line() << " .return_p=1,";
