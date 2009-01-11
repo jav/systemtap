@@ -75,6 +75,9 @@
 /* Define to 1 if the C compiler supports function prototypes. */
 #undef PROTOTYPES
 
+/* configure prefix location */
+#undef STAP_PREFIX
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 

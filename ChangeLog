@@ -1,3 +1,9 @@
+2009-01-11  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Add prefix as STAP_PREFIX for config.h.
+	* config.in: Regenerated.
+	* configure: Regenerated.
+
 2009-01-09  Elliott Baron  <ebaron@redhat.com>
 
 	* stap.1.in: Added %M info.
