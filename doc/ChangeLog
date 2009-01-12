@@ -1,3 +1,7 @@
+2009-01-12  William Cohen <wcohen@elastic.org>
+	
+	* S_T_R/tapsets.tmpl: Correct author's name.
+	
 2009-01-07  William Cohen <wcohen@elastic.org>
 
 	* S_T_R/Makefile.am: Use BUILD_REFDOCS.
