@@ -1,0 +1,35 @@
+# This is a stub to handle a Makefile which does:
+# $(DTRACE) $(DTRACEFLAGS) -G -s $^ -o $@
+# which is a step that builds DTrace provider and probe definitions
+
+usage() {
+echo "Usage $0 -s file.d {-o file} file1.o file2.o ..."
+}
+
+if [ -z "$1" ] ; then
+   usage
+   exit
+fi
+while test ! -z "$1" ; do
+   if [ $(expr "$1" : "-o") -gt 0 ] ; then 
+      shift
+      filename=$1
+   elif [ $(expr "$1" : "-s") -gt 0 ] ; then
+      shift
+      s_filename=$1      
+   fi
+   shift
+done
+
+if [ -z "$filename" ] ; then
+   if [ ! -z "$s_filename" ] ; then
+      filename=$(basename $s_filename .d).o
+   else
+      usage
+      exit
+   fi
+fi
+
+echo "_dtrace_ () {}" >| /tmp/$$.c 
+gcc -c /tmp/$$.c -o $filename
+rm /tmp/$$.c
