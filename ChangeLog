@@ -1,3 +1,12 @@
+2009-01-13  Stan Cox  <scox@redhat.com>
+
+	* systemtap.spec (sdt-devel): New subpackage.
+	* Makefile.am (oldincludedir): New.
+	(oldinclude_HEADERS): New.
+	(bin_SCRIPTS): Add dtrace
+	* Makefile.in: Regenerated.
+	* runtime/sduprobes.h: Renamed to sdt.h
+
 2009-01-13  Dave Brolley  <brolley@redhat.com>
 
 	* stap-find-or-start-server,stap-start-server,stap-serverd,stap-server:

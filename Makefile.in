@@ -18,6 +18,7 @@
 
 
 
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
@@ -71,7 +72,7 @@ DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(top_srcdir)/man/stapprobes.socket.5.in \
 	$(top_srcdir)/man/stapprobes.tcp.5.in \
 	$(top_srcdir)/man/stapprobes.udp.5.in $(srcdir)/run-stap.in \
-	depcomp
+	depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -97,7 +98,7 @@ am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 am__installdirs = "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" \
-	"$(DESTDIR)$(man8dir)"
+	"$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"
 pkglibLIBRARIES_INSTALL = $(INSTALL_DATA)
 LIBRARIES = $(pkglib_LIBRARIES)
 AR = ar
@@ -182,6 +183,8 @@ man5dir = $(mandir)/man5
 man8dir = $(mandir)/man8
 NROFF = nroff
 MANS = $(man_MANS)
+oldincludeHEADERS_INSTALL = $(INSTALL_HEADER)
+HEADERS = $(oldinclude_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
@@ -282,7 +285,7 @@ nspr_CFLAGS = @nspr_CFLAGS@
 nspr_LIBS = @nspr_LIBS@
 nss_CFLAGS = @nss_CFLAGS@
 nss_LIBS = @nss_LIBS@
-oldincludedir = @oldincludedir@
+oldincludedir = ${includedir}/sys
 pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
@@ -310,7 +313,8 @@ man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 \
 	man/stapprobes.rpc.5 man/stapprobes.scsi.5 \
 	man/stapprobes.signal.5 man/stapprobes.socket.5 \
 	man/stapprobes.tcp.5 man/stapprobes.udp.5 $(am__append_1)
-bin_SCRIPTS = stap-report $(am__append_3)
+bin_SCRIPTS = stap-report $(am__append_3) dtrace
+oldinclude_HEADERS = runtime/sdt.h
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -1199,6 +1203,23 @@ uninstall-man8:
 	  echo " rm -f '$(DESTDIR)$(man8dir)/$$inst'"; \
 	  rm -f "$(DESTDIR)$(man8dir)/$$inst"; \
 	done
+install-oldincludeHEADERS: $(oldinclude_HEADERS)
+	@$(NORMAL_INSTALL)
+	test -z "$(oldincludedir)" || $(MKDIR_P) "$(DESTDIR)$(oldincludedir)"
+	@list='$(oldinclude_HEADERS)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(oldincludeHEADERS_INSTALL) '$$d$$p' '$(DESTDIR)$(oldincludedir)/$$f'"; \
+	  $(oldincludeHEADERS_INSTALL) "$$d$$p" "$(DESTDIR)$(oldincludedir)/$$f"; \
+	done
+
+uninstall-oldincludeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(oldinclude_HEADERS)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(oldincludedir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(oldincludedir)/$$f"; \
+	done
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
@@ -1333,11 +1354,11 @@ distclean-tags:
 check-am: all-am
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-recursive
-all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(SCRIPTS) $(MANS) config.h \
-		all-local
+all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(SCRIPTS) $(MANS) \
+		$(HEADERS) config.h all-local
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)"; do \
+	for dir in "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1389,7 +1410,8 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-data-local install-man
+install-data-am: install-data-local install-man \
+	install-oldincludeHEADERS
 
 install-dvi: install-dvi-recursive
 
@@ -1431,8 +1453,8 @@ ps: ps-recursive
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
-	uninstall-local uninstall-man uninstall-pkglibLIBRARIES \
-	uninstall-pkglibexecPROGRAMS
+	uninstall-local uninstall-man uninstall-oldincludeHEADERS \
+	uninstall-pkglibLIBRARIES uninstall-pkglibexecPROGRAMS
 
 uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 
@@ -1451,16 +1473,17 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 	install-exec install-exec-am install-exec-hook \
 	install-exec-local install-html install-html-am install-info \
 	install-info-am install-man install-man1 install-man5 \
-	install-man8 install-pdf install-pdf-am \
-	install-pkglibLIBRARIES install-pkglibexecPROGRAMS install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic pdf pdf-am ps ps-am tags tags-recursive \
-	uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-binSCRIPTS uninstall-local uninstall-man \
-	uninstall-man1 uninstall-man5 uninstall-man8 \
-	uninstall-pkglibLIBRARIES uninstall-pkglibexecPROGRAMS
+	install-man8 install-oldincludeHEADERS install-pdf \
+	install-pdf-am install-pkglibLIBRARIES \
+	install-pkglibexecPROGRAMS install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
+	ps ps-am tags tags-recursive uninstall uninstall-am \
+	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-local \
+	uninstall-man uninstall-man1 uninstall-man5 uninstall-man8 \
+	uninstall-oldincludeHEADERS uninstall-pkglibLIBRARIES \
+	uninstall-pkglibexecPROGRAMS
 
 git_version.stamp:
 	@if test -f "$(srcdir)/git_version.h"; then \

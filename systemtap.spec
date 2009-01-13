@@ -102,6 +102,16 @@ SystemTap server is the server component of an instrumentation
 system for systems running Linux 2.6.  Developers can write
 instrumentation to collect data on the operation of the system.
 
+%package sdt-devel
+Summary: Static probe support tools
+Group: Development/System
+License: GPLv2+
+URL: http://sourceware.org/systemtap/
+Requires: systemtap
+
+%description sdt-devel
+Support tools to allow applications to use static probes.
+
 %prep
 %setup -q %{?setup_elfutils}
 
@@ -256,6 +266,11 @@ exit 0
 %{_bindir}/stap-gen-server-cert
 %{_bindir}/stap-server-connect
 %{_mandir}/man8/stap-server.8*
+
+%files sdt-devel
+%defattr(-,root,root)
+%{_bindir}/dtrace
+%{_includedir}/sys/sdt.h
 
 %changelog
 * Thu Nov 13 2008 Frank Ch. Eigler <fche@redhat.com> - 0.8-1

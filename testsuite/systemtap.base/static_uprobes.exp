@@ -9,7 +9,7 @@ set fp [open $sup_srcpath "w"]
 puts $fp "
 #include <stdlib.h>
 #define USE_STAP_PROBE 1
-#include \"sduprobes.h\"
+#include \"sdt.h\"
 
 foo ()
 {

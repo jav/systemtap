@@ -4,6 +4,7 @@
 AUTOMAKE_OPTIONS = no-dist
 
 pkglibexecdir = ${libexecdir}/${PACKAGE}
+oldincludedir = ${includedir}/sys
 
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
@@ -15,6 +16,7 @@ man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/st
 
 bin_PROGRAMS = stap staprun
 bin_SCRIPTS = stap-report
+oldinclude_HEADERS = runtime/sdt.h
 if BUILD_SERVER
 man_MANS += stap-server.8 
 bin_PROGRAMS += stap-client-connect stap-server-connect
@@ -22,6 +24,7 @@ bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server \
 	       stap-gen-server-cert stap-add-server-cert
 endif
+bin_SCRIPTS += dtrace
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
