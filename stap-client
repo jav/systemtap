@@ -38,12 +38,28 @@ function initialization {
     umask 0
     staprun_running=0
 
+    # Where are we installed?
+    if test "`basename $0`" = "stap" -a "$0" = `which stap`; then
+        # The dejagnu test harness may invoke us as 'stap' relying on $PATH to
+        # find us. If so, then use the $PATH to find the rest of the systemtap
+        # tools.
+	exec_prefix=""
+	# Also, set the prefix to point to where we were found.
+	prefix=`which stap`
+	prefix=`dirname $prefix`
+    else
+        # Assume we were installed normally
+	exec_prefix=`dirname $0`
+	exec_prefix=`cd $exec_prefix && pwd`/
+	prefix=`dirname $exec_prefix`
+    fi
+
     # Default location for server certificates if we're not root
     if test $EUID != 0; then
 	local_ssl_dbs="$HOME/.systemtap/ssl/client"
     fi
     # Additional location for all users.
-    public_ssl_dbs="`dirname $0`/../etc/systemtap/ssl/client"
+    public_ssl_dbs=$prefix/etc/systemtap/ssl/client
 
     # Default options settings
     p_phase=5
@@ -480,7 +496,7 @@ function find_and_connect_to_server {
     # Use a temp file here instead of a pipeline so that the side effects
     # of choose_server are seen by the rest of this script.
     cd $tmpdir_client
-    stap-find-servers > servers
+    ${exec_prefix}stap-find-servers > servers
     choose_server < servers
     rm -fr servers
 }
@@ -548,8 +564,8 @@ function send_receive {
 	do
             # Send the request and receive the response using stap-client-connect
 	    echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
-	    stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	    wait '%stap-client-connect'
+	    ${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	    wait '%${exec_prefix}stap-client-connect'
 	    test $? = 0 && ssl_db=$db && return 0
 	    sleep 1
 	done
@@ -560,8 +576,8 @@ function send_receive {
     do
         # Send the request and receive the response using stap-client-connect
 	echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
-	stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	wait '%stap-client-connect'
+	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%${exec_prefix}stap-client-connect'
 	test $? = 0 && ssl_db=$db && return 0
 	sleep 1
     done
@@ -652,7 +668,7 @@ function maybe_call_staprun {
 	    if test $v_level -ge 2; then
 		echo "running `which staprun` $staprun_opts $tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`" >&2
 	    fi
-	    PATH=`staprun_PATH` eval staprun "$staprun_opts" \
+	    eval `staprun_PATH` "$staprun_opts" \
 		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
 	    staprun_running=1
 	    wait '%?staprun' > /dev/null 2>&1
@@ -676,23 +692,25 @@ function maybe_call_staprun {
 #
 # Compute a PATH suitable for running staprun.
 function staprun_PATH {
-    # staprun may invoke 'stap'. So we can use the current PATH if we were
-    # not invoked as 'stap' or we are not the first 'stap' on the PATH.
-    local first_stap=`which stap 2>/dev/null`
-
-    if test "X$first_stap" = "X"; then
-	echo "$PATH"
+    # If $SYSTEMTAP_STAPRUN is set, then use that
+    if test "X$SYSTEMTAP_STAPRUN" != "X"; then
+	echo $SYSTEMTAP_STAPRUN
 	return
     fi
 
-    if test `which $0 2>/dev/null` != $first_stap; then
-	echo "$PATH"
+    # Otherwise, if there is an exec_prefix, then use it.
+    if test "X$exec_prefix" != "X"; then
+	echo ${exec_prefix}staprun
 	return
     fi
 
-    # Otherwise, remove the PATH component where we live from the PATH
+    # Otherwise, we have been called by the dejagnu test harness as 'stap'
+    # and we are the first 'stap' on the path. Since staprun may call
+    # 'stap', remove the PATH component where we live from the PATH in order to
+    # avoid recursion.
+    local first_stap=`which stap`
     local PATH_component=`dirname $first_stap`
-    echo "$PATH" | sed "s,$PATH_component,,g"
+    echo "PATH=$PATH staprun" | sed "s,$PATH_component,,g"
 }
 
 # function: fatal [ MESSAGE ]
@@ -731,7 +749,7 @@ function terminate {
     kill -s SIGTERM '%?staprun' 2>/dev/null
 
     # Kill any stap-client-connect job
-    kill -s SIGTERM '%stap-client-connect'
+    kill -s SIGTERM '%${exec_prefix}stap-client-connect'
 
     exit 1
 }
@@ -748,7 +766,7 @@ function interrupt {
 
     # Kill any stap-client-connect job
     # SIGINT won't do it.
-    kill -s SIGTERM '%stap-client-connect'
+    kill -s SIGTERM '%${exec_prefix}stap-client-connect'
 
     # If staprun was not running, then exit.
     cleanup

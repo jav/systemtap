@@ -36,6 +36,10 @@ function initialization {
     p_phase=5
     keep_temps=0
 
+    # Where are we installed?
+    exec_prefix=`dirname $0`
+    exec_prefix=`cd $exec_prefix && pwd`
+
     # Request file name.
     zip_client=$1
     test -f $zip_client || \
@@ -312,7 +316,7 @@ function call_stap {
 	server_p_phase=$p_phase
     fi
 
-    eval stap "$cmdline" -k -p $server_p_phase \
+    eval $exec_prefix/stap "$cmdline" -k -p $server_p_phase \
 	>>  $tmpdir_server/stdout \
 	2>> $tmpdir_server/stderr
 

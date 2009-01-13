@@ -1,5 +1,11 @@
 2009-01-13  Dave Brolley  <brolley@redhat.com>
 
+	* stap-find-or-start-server,stap-start-server,stap-serverd,stap-server:
+	Ensure we call other systemtap tools from the installed location.
+	* stap-client: Likewise. Also, use SYSTEMTAP_STAPRUN if it is set.
+
+2009-01-13  Dave Brolley  <brolley@redhat.com>
+
 	* stap-add-server-cert: Failure to make the client database readable
 	is now only a warning. Directory argument now refers to the location
 	of the 'client' directory.
