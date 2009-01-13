@@ -1,3 +1,7 @@
+2009-01-12  Wenji Huang  <wenji.huang@oracle.com>
+
+	* transport/symbols.c (_stp_sort): Adapt it to 2.6.29. 
+
 2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR9699.
