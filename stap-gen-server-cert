@@ -83,6 +83,11 @@ y
 EOF
 rm -fr $1/stap-server.req
 
+# Ensure that the certificate is readable by others.
+if ! chmod +r $serverdb/stap-server.cert; then
+    echo "Warning: unable to make the server's certificate $serverdb/stap-server.cert readable by others" >&2
+fi
+
 # Add the certificate to the server's certificate/key database as a trusted peer, ssl server and object signer
 certutil -A -n stap-server -t "PCu,,PCu" -i $serverdb/stap-server.cert -d $serverdb -f $serverdb/pw
 

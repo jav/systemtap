@@ -40,9 +40,7 @@ fi
 
 # Ensure that the database is readable by others
 if ! chmod +r $2/*.db; then
-    echo "Unable to make the client certificate database $2 readable by others" >&2
-    exit 1
+    echo "Warning: unable to make the client certificate database $2 readable by others" >&2
 fi
-    
 
 exit 0

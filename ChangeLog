@@ -1,3 +1,10 @@
+2009-01-13  Dave Brolley  <brolley@redhat.com>
+
+	* stap-add-server-cert: Failure to make the client database readable
+	is now only a warning.
+	* stap-gen-server-cert: Ensure that the certificate is readable by
+	all. Warn if unsuccessful.
+
 2009-01-11  Wenji Huang  <wenji.huang@oracle.com>
 
         * tapsets.cxx (dwarf_derived_probe_group::emit_module_decls): Fix too
