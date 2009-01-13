@@ -1,3 +1,11 @@
+2009-01-13  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 7082.
+	* uprobes2/uprobes.c: On exec, free up outstanding
+	uretprobe_instances and tick down the uproc's ref-count
+	accordingly, so the (old image's) uproc goes away as
+	desired.
+
 2009-01-12  Wenji Huang  <wenji.huang@oracle.com>
 
 	* transport/symbols.c (_stp_sort): Adapt it to 2.6.29. 
