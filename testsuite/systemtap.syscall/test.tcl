@@ -106,7 +106,7 @@ proc run_one_test {filename flags} {
 	    }
 	}
 	if {$i < $ind} {
-	    send_log "--------- EXPECTED and NOT MATCHED ----------\n"
+	    send_log -- "--------- EXPECTED and NOT MATCHED ----------\n"
 	}
 	for {} {$i < $ind} {incr i} {
 	    send_log "$results($i)\n"
