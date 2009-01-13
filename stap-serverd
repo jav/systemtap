@@ -46,6 +46,9 @@ function initialization {
 	fi
 	if ! test -f $ssl_db/stap-server.cert; then
 	    stap-gen-server-cert `dirname $ssl_db` || exit 1
+            # Now add the server's certificate to the client's database,
+	    # making it a trusted peer.
+	    stap-add-server-cert $ssl_db/stap-server.cert `dirname $ssl_db` || exit 1
 	fi
     fi
     nss_pw=$ssl_db/pw

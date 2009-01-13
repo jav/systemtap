@@ -1,9 +1,12 @@
 2009-01-13  Dave Brolley  <brolley@redhat.com>
 
 	* stap-add-server-cert: Failure to make the client database readable
-	is now only a warning.
+	is now only a warning. Directory argument now refers to the location
+	of the 'client' directory.
 	* stap-gen-server-cert: Ensure that the certificate is readable by
-	all. Warn if unsuccessful.
+	all. Warn if unsuccessful. Don't add the certificate to the local
+	client-side database.
+	* stap-serverd: Call stap-add-server-cert after stap-gen-server-cert.
 
 2009-01-11  Wenji Huang  <wenji.huang@oracle.com>
 
