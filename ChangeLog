@@ -1,6 +1,7 @@
 2009-01-19  Dave Brolley  <brolley@redhat.com>
 
-	* stap-serverd (stap-server): Add stap-add-server-cert.
+	* stap-serverd (initialization): Call stap-add-server-cert only if
+	it has been installed.
 
 2009-01-13  Stan Cox  <scox@redhat.com>
 
