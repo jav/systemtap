@@ -264,6 +264,7 @@ exit 0
 %{_bindir}/stap-start-server
 %{_bindir}/stap-stop-server
 %{_bindir}/stap-gen-server-cert
+%{_bindir}/stap-add-server-cert
 %{_bindir}/stap-server-connect
 %{_mandir}/man8/stap-server.8*
 
