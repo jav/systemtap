@@ -85,7 +85,8 @@ struct stap_task_finder_target {
 	struct list_head callback_list_head;
 	struct list_head callback_list;
 	struct utrace_engine_ops ops;
-	int engine_attached;
+	unsigned engine_attached:1;
+	unsigned vm_events:1;
 	size_t pathlen;
 
 /* public: */
@@ -164,6 +165,7 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 
 	// Make sure everything is initialized properly.
 	new_tgt->engine_attached = 0;
+	new_tgt->vm_events = 0;
 	memset(&new_tgt->ops, 0, sizeof(new_tgt->ops));
 	new_tgt->ops.report_death = &__stp_utrace_task_finder_target_death;
 	new_tgt->ops.report_quiesce = &__stp_utrace_task_finder_target_quiesce;
@@ -199,6 +201,10 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 
 	// Add this target to the callback list for this task.
 	list_add_tail(&new_tgt->callback_list, &tgt->callback_list_head);
+
+	// If the new target has a vm_callback, remember this.
+	if (new_tgt->vm_callback != NULL)
+		tgt->vm_events = 1;
 	return 0;
 }
 
@@ -299,7 +305,6 @@ static void
 __stp_task_finder_cleanup(void)
 {
 	struct list_head *tgt_node, *tgt_next;
-	struct list_head *cb_node, *cb_next;
 	struct stap_task_finder_target *tgt;
 
 	// Walk the main list, cleaning up as we go.
@@ -309,22 +314,15 @@ __stp_task_finder_cleanup(void)
 		if (tgt == NULL)
 			continue;
 
-		list_for_each_safe(cb_node, cb_next,
-				   &tgt->callback_list_head) {
-			struct stap_task_finder_target *cb_tgt;
-			cb_tgt = list_entry(cb_node,
-					    struct stap_task_finder_target,
-					    callback_list);
-			if (cb_tgt == NULL)
-				continue;
-
-			if (cb_tgt->engine_attached) {
-				stap_utrace_detach_ops(&cb_tgt->ops);
-				cb_tgt->engine_attached = 0;
-			}
-
-			list_del(&cb_tgt->callback_list);
+		if (tgt->engine_attached) {
+			stap_utrace_detach_ops(&tgt->ops);
+			tgt->engine_attached = 0;
 		}
+
+		// Notice we're not walking the callback_list here.
+		// There isn't anything to clean up and doing it would
+		// mess up callbacks in progress.
+
 		list_del(&tgt->list);
 	}
 }
@@ -369,10 +367,10 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 
 /*
  * __STP_TASK_BASE_EVENTS: base events for stap_task_finder_target's
- * without a vm_callback
+ * without vm_callback's
  *
  * __STP_TASK_VM_BASE_EVENTS: base events for
- * stap_task_finder_target's with a vm_callback
+ * stap_task_finder_target's with vm_callback's
  */
 #define __STP_TASK_BASE_EVENTS	(UTRACE_EVENT(DEATH))
 
@@ -390,8 +388,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 				    | UTRACE_EVENT(QUIESCE))
 
 #define __STP_ATTACHED_TASK_BASE_EVENTS(tgt) \
-	((((tgt)->vm_callback) == NULL) ? __STP_TASK_BASE_EVENTS \
-	 : __STP_TASK_VM_BASE_EVENTS)
+	((tgt)->vm_events ? __STP_TASK_VM_BASE_EVENTS : __STP_TASK_BASE_EVENTS)
 
 static int
 __stp_utrace_attach(struct task_struct *tsk,
@@ -475,6 +472,61 @@ stap_utrace_attach(struct task_struct *tsk,
 }
 
 static inline void
+__stp_call_callbacks(struct stap_task_finder_target *tgt,
+		     struct task_struct *tsk, int register_p, int process_p)
+{
+	struct list_head *cb_node;
+	int rc;
+
+	if (tgt == NULL || tsk == NULL)
+		return;
+
+	list_for_each(cb_node, &tgt->callback_list_head) {
+		struct stap_task_finder_target *cb_tgt;
+
+		cb_tgt = list_entry(cb_node, struct stap_task_finder_target,
+				    callback_list);
+		if (cb_tgt == NULL || cb_tgt->callback == NULL)
+			continue;
+
+		rc = cb_tgt->callback(cb_tgt, tsk, register_p, process_p);
+		if (rc != 0) {
+			_stp_error("callback for %d failed: %d",
+				   (int)tsk->pid, rc);
+		}
+	}
+}
+
+static inline void
+__stp_call_vm_callbacks(struct stap_task_finder_target *tgt,
+			struct task_struct *tsk, int map_p, char *vm_path,
+			unsigned long vm_start, unsigned long vm_end,
+			unsigned long vm_pgoff)
+{
+	struct list_head *cb_node;
+	int rc;
+
+	if (tgt == NULL || tsk == NULL)
+		return;
+
+	list_for_each(cb_node, &tgt->callback_list_head) {
+		struct stap_task_finder_target *cb_tgt;
+
+		cb_tgt = list_entry(cb_node, struct stap_task_finder_target,
+				    callback_list);
+		if (cb_tgt == NULL || cb_tgt->vm_callback == NULL)
+			continue;
+
+		rc = cb_tgt->vm_callback(cb_tgt, tsk, map_p, vm_path,
+					 vm_start, vm_end, vm_pgoff);
+		if (rc != 0) {
+			_stp_error("vm callback for %d failed: %d",
+				   (int)tsk->pid, rc);
+		}
+	}
+}
+
+static inline void
 __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				   const char * const filename,
 				   int register_p, int process_p)
@@ -485,7 +537,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 
 	filelen = strlen(filename);
 	list_for_each(tgt_node, &__stp_task_finder_list) {
-		struct list_head *cb_node;
+		int rc;
 
 		tgt = list_entry(tgt_node, struct stap_task_finder_target,
 				 list);
@@ -505,52 +557,31 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		/* Notice that "pid == 0" (which means to probe all
 		 * threads) falls through. */
 
-		list_for_each(cb_node, &tgt->callback_list_head) {
-			struct stap_task_finder_target *cb_tgt;
-			int rc;
+		// Set up events we need for attached tasks. When
+		// register_p is set, we won't actually call the
+		// callbacks here - we'll call it when the thread gets
+		// quiesced.  When register_p isn't set, we can go
+		// ahead and call the callbacks.
+		if (register_p) {
+			rc = __stp_utrace_attach(tsk, &tgt->ops,
+						 tgt,
+						 __STP_ATTACHED_TASK_EVENTS,
+						 UTRACE_STOP);
+			if (rc != 0 && rc != EPERM)
+				break;
+			tgt->engine_attached = 1;
+		}
+		else {
+			// Call the callbacks, then detach.
+			__stp_call_callbacks(tgt, tsk, register_p, process_p);
+			rc = stap_utrace_detach(tsk, &tgt->ops);
+			if (rc != 0)
+				break;
 
-			cb_tgt = list_entry(cb_node,
-					    struct stap_task_finder_target,
-					    callback_list);
-			if (cb_tgt == NULL)
-				continue;
-
-			// Set up events we need for attached tasks.
-			// When register_p is set, we won't actually
-			// call the callback here - we'll call it when
-			// the thread gets quiesced.  When register_p
-			// isn't set, we can go ahead and call the
-			// callback.
-			if (register_p) {
-				rc = __stp_utrace_attach(tsk, &cb_tgt->ops,
-							 cb_tgt,
-							 __STP_ATTACHED_TASK_EVENTS,
-							 UTRACE_STOP);
-				if (rc != 0 && rc != EPERM)
-					break;
-				cb_tgt->engine_attached = 1;
-			}
-			else {
-				if (cb_tgt->callback != NULL) {
-					rc = cb_tgt->callback(cb_tgt, tsk,
-							      register_p,
-							      process_p);
-					if (rc != 0) {
-						_stp_error("callback for %d failed: %d",
-							   (int)tsk->pid, rc);
-						break;
-					}
-				}
-
-				rc = stap_utrace_detach(tsk, &cb_tgt->ops);
-				if (rc != 0)
-					break;
-
-				// Note that we don't want to set
-				// engine_attached to 0 here - only
-				// when *all* threads using this
-				// engine have been detached.
-			}
+			// Note that we don't want to set
+			// engine_attached to 0 here - only
+			// when *all* threads using this
+			// engine have been detached.
 		}
 	}
 }
@@ -746,20 +777,14 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 	// don't know which callback(s) to call.
 	//
 	// So, now when an "interesting" thread is found, we add a
-	// separate UTRACE_EVENT(DEATH) handler for every probe.
-
-	if (tgt != NULL && tgt->callback != NULL) {
-		int rc;
-
-		// Call the callback
-		rc = tgt->callback(tgt, tsk, 0,
-				   ((tsk->signal == NULL)
-				    || (atomic_read(&tsk->signal->live) == 0)));
-		if (rc != 0) {
-			_stp_error("death callback for %d failed: %d",
-				   (int)tsk->pid, rc);
-		}
+	// separate UTRACE_EVENT(DEATH) handler for each attached
+	// handler.
+	if (tgt != NULL && tsk != NULL) {
+		__stp_call_callbacks(tgt, tsk, 0,
+				     ((tsk->signal == NULL)
+				      || (atomic_read(&tsk->signal->live) == 0)));
 	}
+
 	__stp_tf_handler_end();
 	debug_task_finder_detach();
 	return UTRACE_DETACH;
@@ -785,7 +810,7 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 		return UTRACE_DETACH;
 	}
 
-	if (tgt == NULL) {
+	if (tgt == NULL || tsk == NULL) {
 		debug_task_finder_detach();
 		return UTRACE_DETACH;
 	}
@@ -815,20 +840,15 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 		_stp_error("utrace_set_events returned error %d on pid %d",
 			   rc, (int)tsk->pid);
 
-	if (tgt->callback != NULL) {
-		/* Call the callback.  Assume that if the thread is a
-		 * thread group leader, it is a process. */
-		rc = tgt->callback(tgt, tsk, 1, (tsk->pid == tsk->tgid));
-		if (rc != 0) {
-			_stp_error("callback for %d failed: %d",
-				   (int)tsk->pid, rc);
-		}
-	}
 
-        /* If this is just a thread other than the thread group leader,
+	/* Call the callbacks.  Assume that if the thread is a
+	 * thread group leader, it is a process. */
+	__stp_call_callbacks(tgt, tsk, 1, (tsk->pid == tsk->tgid));
+ 
+	/* If this is just a thread other than the thread group leader,
            don't bother inform vm_callback clients about its memory map,
            since they will simply duplicate each other. */
-        if (tgt->vm_callback != NULL && (tsk->tgid == tsk->pid)) {
+	if (tgt->vm_events == 1 && tsk->tgid == tsk->pid) {
 		struct mm_struct *mm;
 		char *mmpath_buf;
 		char *mmpath;
@@ -862,18 +882,12 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 						mmpath_buf, PATH_MAX);
 #endif
 				if (mmpath) {
-					// Call the callback
-					rc = tgt->vm_callback(tgt, tsk, 1,
-							      mmpath,
-							      vma->vm_start,
-							      vma->vm_end,
-							      (vma->vm_pgoff
-							       << PAGE_SHIFT));
-					if (rc != 0) {
-					    _stp_error("vm callback for %d failed: %d",
-						       (int)tsk->pid, rc);
-					}
-
+					__stp_call_vm_callbacks(tgt, tsk, 1, 
+								mmpath,
+								vma->vm_start,
+								vma->vm_end,
+								(vma->vm_pgoff
+								 << PAGE_SHIFT));
 				}
 				else {
 					_stp_dbug(__FUNCTION__, __LINE__,
@@ -934,7 +948,7 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 		return UTRACE_DETACH;
 	}
 
-	if (tgt == NULL || tgt->vm_callback == NULL)
+	if (tgt == NULL || tgt->vm_events == 0)
 		return UTRACE_RESUME;
 
 	// See if syscall is one we're interested in.
@@ -977,9 +991,9 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 }
 
 static void
-__stp_target_call_vm_callback(struct stap_task_finder_target *tgt,
-			      struct task_struct *tsk,
-			      struct vm_area_struct *vma)
+__stp_call_vm_callbacks_with_vma(struct stap_task_finder_target *tgt,
+				 struct task_struct *tsk,
+				 struct vm_area_struct *vma)
 {
 	char *mmpath_buf;
 	char *mmpath;
@@ -1005,13 +1019,9 @@ __stp_target_call_vm_callback(struct stap_task_finder_target *tgt,
 			   rc, (int)tsk->pid);
 	}
 	else {
-		rc = tgt->vm_callback(tgt, tsk, 1, mmpath, vma->vm_start,
-				      vma->vm_end,
-				      (vma->vm_pgoff << PAGE_SHIFT));
-		if (rc != 0) {
-			_stp_error("vm callback for %d failed: %d",
-				   (int)tsk->pid, rc);
-		}
+		__stp_call_vm_callbacks(tgt, tsk, 1, mmpath,
+					vma->vm_start, vma->vm_end,
+					(vma->vm_pgoff << PAGE_SHIFT));
 	}
 	_stp_kfree(mmpath_buf);
 }
@@ -1046,7 +1056,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 		return UTRACE_DETACH;
 	}
 
-	if (tgt == NULL || tgt->vm_callback == NULL)
+	if (tgt == NULL || tgt->vm_events == 0)
 		return UTRACE_RESUME;
 
 	// See if syscall is one we're interested in.
@@ -1102,8 +1112,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 			down_read(&mm->mmap_sem);
 			vma = __stp_find_file_based_vma(mm, rv);
 			if (vma != NULL) {
-				__stp_target_call_vm_callback(tgt, tsk,
-							      vma);
+				__stp_call_vm_callbacks_with_vma(tgt, tsk, vma);
 			}
 			up_read(&mm->mmap_sem);
 			mmput(mm);
@@ -1128,15 +1137,12 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 				// FIXME: We'll need to figure out to
 				// retrieve the path of a deleted
 				// vma.
-				rc = tgt->vm_callback(tgt, tsk, 0, NULL,
-						      entry->vm_start,
-						      entry->vm_end,
-						      (entry->vm_pgoff
-						       << PAGE_SHIFT));
-				if (rc != 0) {
-					_stp_error("vm callback for %d failed: %d",
-						   (int)tsk->pid, rc);
-				}
+
+				__stp_call_vm_callbacks(tgt, tsk, 0, NULL,
+							entry->vm_start,
+							entry->vm_end,
+							(entry->vm_pgoff
+							 << PAGE_SHIFT));
 			}
 
 			// If nothing has changed, there is no
@@ -1162,15 +1168,11 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 				// FIXME: We'll need to figure out to
 				// retrieve the path of a deleted
 				// vma.
-				rc = tgt->vm_callback(tgt, tsk, 0, NULL,
-						      entry->vm_start,
-						      entry->vm_end,
-						      (entry->vm_pgoff
-						       << PAGE_SHIFT));
-				if (rc != 0) {
-					_stp_error("vm callback for %d failed: %d",
-						   (int)tsk->pid, rc);
-				}
+				__stp_call_vm_callbacks(tgt, tsk, 0, NULL,
+							entry->vm_start,
+							entry->vm_end,
+							(entry->vm_pgoff
+							 << PAGE_SHIFT));
 
 				// Now find all the new vma's that
 				// made up the original vma's address
@@ -1181,8 +1183,9 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 									 tmp))
 					!= NULL)
 				       && vma->vm_end <= entry->vm_end) {
-					__stp_target_call_vm_callback(tgt, tsk,
-								      vma);
+					__stp_call_vm_callbacks_with_vma(tgt,
+									 tsk,
+									 vma);
 					if (vma->vm_end >= entry->vm_end)
 						break;
 					tmp = vma->vm_end;
@@ -1274,7 +1277,6 @@ stap_start_task_finder(void)
 		mmpathlen = strlen(mmpath);
 		list_for_each(tgt_node, &__stp_task_finder_list) {
 			struct stap_task_finder_target *tgt;
-			struct list_head *cb_node;
 
 			tgt = list_entry(tgt_node,
 					 struct stap_task_finder_target, list);
@@ -1291,23 +1293,13 @@ stap_start_task_finder(void)
 			/* Notice that "pid == 0" (which means to
 			 * probe all threads) falls through. */
 
-			list_for_each(cb_node, &tgt->callback_list_head) {
-				struct stap_task_finder_target *cb_tgt;
-				cb_tgt = list_entry(cb_node,
-						    struct stap_task_finder_target,
-						    callback_list);
-				if (cb_tgt == NULL)
-					continue;
-
-				// Set up events we need for attached tasks.
-				rc = __stp_utrace_attach(tsk, &cb_tgt->ops,
-							 cb_tgt,
-							 __STP_ATTACHED_TASK_EVENTS,
-							 UTRACE_STOP);
-				if (rc != 0 && rc != EPERM)
-					goto stf_err;
-				cb_tgt->engine_attached = 1;
-			}
+			// Set up events we need for attached tasks.
+			rc = __stp_utrace_attach(tsk, &tgt->ops, tgt,
+						 __STP_ATTACHED_TASK_EVENTS,
+						 UTRACE_STOP);
+			if (rc != 0 && rc != EPERM)
+				goto stf_err;
+			tgt->engine_attached = 1;
 		}
 	} while_each_thread(grp, tsk);
 stf_err:
@@ -1344,6 +1336,7 @@ stap_stop_task_finder(void)
 	if (i > 0)
 		printk(KERN_ERR "it took %d polling loops to quit.\n", i);
 #endif
+	debug_task_finder_report();
 }
 
 
