@@ -1,3 +1,8 @@
+2009-01-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	* dwarf_wrappers.cxx (dwfl_assert): Tolerate rc==-1, for which
+	dwfl_errmsg(-1)=>NULL.
+
 2009-01-19  Dave Brolley  <brolley@redhat.com>
 
 	* stap-serverd (initialization): Call stap-add-server-cert only if

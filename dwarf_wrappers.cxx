@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2008 Red Hat Inc.
+// Copyright (C) 2008-2009 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -21,7 +21,7 @@ void dwfl_assert(const string& desc, int rc)
     return;
   string msg = "libdwfl failure (" + desc + "): ";
   if (rc < 0)
-    msg += dwfl_errmsg (rc);
+    msg += (dwfl_errmsg (rc) ?: "?");
   else
     msg += std::strerror (rc);
   throw semantic_error (msg);
