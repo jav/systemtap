@@ -1,0 +1,175 @@
+# Defines the supporting procedures used by whitelist.exp
+#
+# Copyright (C) 2006 IBM Corp.
+# Copyright (C) 2008 Red Hat Inc.
+# 
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+# 
+# Based on software written by Gui Jian <guijian@cn.ibm.com>
+#
+set NO_CRASH 0
+set ALREADY_CRASHED 1
+
+set startup_line_in_RCLOCAL "cd $env(PWD) && runtest whitelist.exp&"
+set RCLOCAL "/etc/rc.d/rc.local"
+
+set GROUP_NUM 1
+
+proc do_current_test {} {
+    global GROUP_NUM
+    set testname "L[get_running_level]_G$GROUP_NUM"
+    set GROUP_NUM [expr $GROUP_NUM + 1]
+
+    # Generate the C code
+    if {[catch {exec ./gen_code.py} results]} {
+	puts results
+	if {[lindex $::errorCode 0] eq "CHILDSTATUS"} {
+	    set status [lindex $::errorCode 2]
+	} else {
+	    # Some kind of unexpected failure
+	    set status -1
+	}
+	
+	if {$status != 0} {
+	    return;
+	}
+    }
+    wait
+    set module_path "[pwd]/kprobe_module.ko"
+    whitelist_run $testname $module_path
+}
+
+proc get_linesize {filename} {
+    if [file readable $filename] {
+      scan [exec wc -l $filename] "%d" lines
+      if {[info exists lines] && $lines > 0} {
+          return $lines
+      }
+    }
+    return 0
+}
+
+proc get_running_level {} {
+    global GENKPROBES_RUNNING
+    if [file readable $GENKPROBES_RUNNING] {
+        scan [exec cat $GENKPROBES_RUNNING] "%d" current_running_level
+        if {[info exists current_running_level] && $current_running_level > 0} {
+            return $current_running_level
+        }
+    }
+    return 0
+}
+
+proc sync_discs {} {
+    exec sync
+    exec sync
+    exec sync
+    exec sleep 5
+    return
+}
+
+# Notice throughout garbage_collect we make sure the discs are synced
+# before we return.  Otherwise, if the changes don't get flushed to
+# disk and the system crashes, we'll end up in an infinite loop of
+# crashes.
+proc garbage_collect {{already_crashed $NO_CRASH}} {
+    global PROBES_RESULT
+    global PROBES_CURRENT
+    global PROBES_PASSED
+    global PROBES_FAILED
+    global PROBES_UNTRIGGERED
+
+    if {[get_linesize $PROBES_CURRENT] == 0} {
+	puts "Empty $PROBES_CURRENT, returning"
+        exec rm -f $PROBES_CURRENT $PROBES_RESULT
+	sync_discs
+        return
+    }
+    if {[get_linesize $PROBES_RESULT] == 0} {
+	puts "Empty $PROBES_RESULT"
+        if {$already_crashed} {
+            exec cat $PROBES_CURRENT >> $PROBES_FAILED
+        } else {
+            exec cat $PROBES_CURRENT >> $PROBES_UNTRIGGERED
+        }
+        exec rm -f $PROBES_CURRENT $PROBES_RESULT
+	sync_discs
+        return
+    }
+    
+    # both probes.current and probe.out are non-empty
+    if [catch {open $PROBES_CURRENT r} Infile] {
+        puts "Failed to open $PROBES_CURRENT"
+        exec rm -f $PROBES_CURRENT $PROBES_RESULT
+	sync_discs
+        return
+    }
+
+    puts "Running ./is_probed.py"
+    exec ./is_probed.py
+
+    catch {close $Infile}
+    exec rm -f $PROBES_CURRENT $PROBES_RESULT
+    sync_discs
+    return
+}
+
+proc incr_running_level {} {
+    global GENKPROBES_RUNNING
+    set newlevel [expr [get_running_level]+1]
+    if { $newlevel > 0 } {
+        exec echo $newlevel > $GENKPROBES_RUNNING
+    } else {
+        exec echo 0 > $GENKPROBES_RUNNING
+    }
+    return
+}
+
+proc init_probes_all {} {
+    exec ./readelf.py
+}
+
+proc init_running_level {} {
+    global GENKPROBES_RUNNING
+    exec echo 1 > $GENKPROBES_RUNNING
+}
+
+proc register_service {} {
+    global startup_line_in_RCLOCAL
+    global RCLOCAL
+    exec sed -i -n -e "/runtest whitelist.exp/!p" $RCLOCAL
+    exec echo $startup_line_in_RCLOCAL >> $RCLOCAL
+}
+
+proc unregister_service {} {
+    global RCLOCAL
+    exec sed -i -n -e "/runtest whitelist.exp/!p" $RCLOCAL
+}
+
+proc whitelist_run { TEST_NAME MODULE } {
+    if {[info procs installtest_p] != "" && ![installtest_p]} { 
+        untested $TEST_NAME; 
+        return;
+    }
+
+    set status 0
+    if {[catch {exec ./run_module.py} results]} {
+	puts $results
+	if {[lindex $::errorCode 0] eq "CHILDSTATUS"} {
+	    set status [lindex $::errorCode 2]
+	} else {
+	    # Some kind of unexpected failure
+	    set status -1
+	}
+    }
+    if {$status != 0} {
+	fail $TEST_NAME;
+	return;
+    }
+    pass "$TEST_NAME end successfully";
+
+    wait
+}
