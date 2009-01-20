@@ -1,5 +1,10 @@
 2009-01-20  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx (dwarf..:visit_target_symbol): Print more data
+	for failed $$vars fields to help explain printed "var=?".
+
+2009-01-20  Frank Ch. Eigler  <fche@elastic.org>
+
 	* dwarf_wrappers.cxx (dwfl_assert): Tolerate rc==-1, for which
 	dwfl_errmsg(-1)=>NULL.
 

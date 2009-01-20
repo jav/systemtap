@@ -1,5 +1,5 @@
 // tapset resolution
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -2259,8 +2259,8 @@ struct dwflpp
 
     if (sess.verbose>2)
       clog << "finding location for local '" << local
-	   << "' near address " << hex << pc
-	   << ", module bias " << module_bias << dec
+	   << "' near address 0x" << hex << pc
+	   << ", module bias 0x" << module_bias << dec
 	   << "\n";
 
     Dwarf_Attribute attr_mem;
@@ -4607,6 +4607,15 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
                 this->visit_target_symbol(tsym); // NB: throws nothing ...
                 if (tsym->saved_conversion_error) // ... but this is how we know it happened.
                   {
+                    if (q.sess.verbose>2)
+                      {
+                        for (semantic_error *c = tsym->saved_conversion_error;
+                             c != 0;
+                             c = c->chain) {
+                          clog << "variable location problem: " << c->what() << endl;
+                        }
+                      }
+
                     pf->raw_components += diename;
                     pf->raw_components += "=? ";
                   }
