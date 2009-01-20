@@ -46,14 +46,14 @@ main ()
 "
 close $fp
 
-set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "compiling static_uprobes.c"
-    return
-} else {
-    pass "compiling static_uprobes.c"
-}
+# set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
+# if { $res != "" } {
+#     verbose "target_compile failed: $res" 2
+#     fail "compiling static_uprobes.c"
+#     return
+# } else {
+#     pass "compiling static_uprobes.c"
+# }
 
 set fp [open "[pwd]/static_uprobes.stp" "w"]
 puts $fp "
@@ -86,19 +86,19 @@ if {! [catch {exec grep -q utrace_attach $path} dummy]} {
 if {$utrace_support_found == 0} { untested "$test"; return }
 
 set ok 0
-verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
-spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
-expect {
-    -timeout 180
-    -re {In label1 probe} { incr ok; exp_continue }
-    -re {In label2 probe 0x2} { incr ok; exp_continue }
-    -re {In label0 probe 0x3} { incr ok; exp_continue }
-    -re {In label3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
-    timeout { fail "$test (timeout)" }
-    eof { }
-}
+# verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
+# spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
+# expect {
+#     -timeout 180
+#     -re {In label1 probe} { incr ok; exp_continue }
+#     -re {In label2 probe 0x2} { incr ok; exp_continue }
+#     -re {In label0 probe 0x3} { incr ok; exp_continue }
+#     -re {In label3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+#     timeout { fail "$test (timeout)" }
+#     eof { }
+# }
 
-if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
+# if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
 set ok 0
 
 # Now do a debuginfo style probe of the above test

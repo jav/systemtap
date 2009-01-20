@@ -1,3 +1,7 @@
+2009-01-20  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Don't test -lsduprobes.
+
 2009-01-20  Wenji Huang  <wenji.huang@oracle.com>
 	
 	* systemtap.base/bz5274.exp: Add checking utrace.
