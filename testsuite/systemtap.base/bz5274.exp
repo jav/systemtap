@@ -14,6 +14,14 @@ if {$err == "" && [file exists $test]} then { pass "$test compile"
 
 if {! [installtest_p]} { untested "$test -p5"; return }
 
+# Try to find utrace_attach symbol in /proc/kallsyms
+# copy from utrace_p5.exp
+set utrace_support_found 0
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    set utrace_support_found 1
+}
+if {$utrace_support_found == 0} { untested "$test -p5"; return }
 
 if {[catch {exec stap $tpath.stp -c "$srcdir/$subdir/$test.sh"} res]} {
     untested "$test longjmp to a uretprobed function"

@@ -76,6 +76,15 @@ probe process(\"static_uprobes.x\").mark(\"label3\")
 "
 close $fp
 
+# Try to find utrace_attach symbol in /proc/kallsyms
+# copy from utrace_p5.exp
+set utrace_support_found 0
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    set utrace_support_found 1
+}
+if {$utrace_support_found == 0} { untested "$test"; return }
+
 set ok 0
 verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
 spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
