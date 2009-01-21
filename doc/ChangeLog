@@ -2,11 +2,11 @@
 
 	* S_T_R/tapsets.tmpl: Update copyright date and correct paragraph.
 	
-2009-01-12  William Cohen <wcohen@elastic.org>
+2009-01-12  William Cohen <wcohen@redhat.com>
 	
 	* S_T_R/tapsets.tmpl: Correct author's name.
 	
-2009-01-07  William Cohen <wcohen@elastic.org>
+2009-01-07  William Cohen <wcohen@redhat.com>
 
 	* S_T_R/Makefile.am: Use BUILD_REFDOCS.
 	* S_T_R/Makefile.in: Regenerated.
