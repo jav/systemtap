@@ -224,6 +224,7 @@ clean-local:
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
 	rm -rf staplog.so
+	rm -rf build-elfutils include-elfutils lib-elfutils
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
