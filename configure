@@ -667,6 +667,8 @@ BUILD_CRASHMOD_FALSE
 BUILD_CRASHMOD_TRUE
 staplog_CPPFLAGS
 sqlite3_LIBS
+PIECXXFLAGS
+PIECFLAGS
 PIELDFLAGS
 RANLIB
 ANSI2KNR
@@ -6196,8 +6198,12 @@ $as_echo "$ac_try_echo") >&5
 $as_echo "$as_me: Compiling with gcc pie et al." >&6;}
           # LDFLAGS is special since it may be passed down to bundled-elfutils,
           # and interfere with the .so's built therein
-          PIELDFLAGS="$LDFLAGS -pie -Wl,-z,relro -Wl,-z,now"
+          PIELDFLAGS="$LDFLAGS"
           LDFLAGS="$save_LDFLAGS"
+          PIECFLAGS="$CFLAGS"
+          CFLAGS="$save_CFLAGS"
+          PIECXXFLAGS="$CXXFLAGS"
+          CXXFLAGS="$save_CXXFLAGS"
 
 else
   $as_echo "$as_me: failed program was:" >&5
@@ -6206,7 +6212,9 @@ sed 's/^/| /' conftest.$ac_ext >&5
 
        { $as_echo "$as_me:$LINENO: Compiler does not support -pie et al." >&5
 $as_echo "$as_me: Compiler does not support -pie et al." >&6;}
+       PIECFLAGS=""
        CFLAGS="$save_CFLAGS"
+       PIECXXFLAGS=""
        CXXFLAGS="$save_CXXFLAGS"
        PIELDFLAGS=""
        LDFLAGS="$save_LDFLAGS"
@@ -6216,6 +6224,8 @@ rm -rf conftest.dSYM
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
 fi
+
+
 
 
 

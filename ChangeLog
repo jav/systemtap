@@ -1,5 +1,14 @@
 2009-01-21  Mark Wielaard  <mjw@redhat.com>
 
+	* configure.ac: Create PIECFLAGS and PIECXXFLAGS, like PIELDFLAGS.
+	Don't duplicate -pie in PIELDFLAGS.
+	* configure: Regenerated.
+	* Makefile.am: Add @PIECFLAGS@ and @PIECXXFLAGS@ to executable
+	flags.
+	* Makefile.in: Regenerated.
+
+2009-01-21  Mark Wielaard  <mjw@redhat.com>
+
 	* Makefile.am (distclean-local): Remove build-elfutils,
 	include-elfutils and lib-elfutils here, not in clean-local.
 	* Makefile.in: Regenerated.

@@ -94,15 +94,23 @@ AS_IF([test "x$enable_pie" != xno],[
        AC_MSG_NOTICE([Compiling with gcc pie et al.])
           # LDFLAGS is special since it may be passed down to bundled-elfutils,
           # and interfere with the .so's built therein
-          PIELDFLAGS="$LDFLAGS -pie -Wl,-z,relro -Wl,-z,now"
+          PIELDFLAGS="$LDFLAGS"
           LDFLAGS="$save_LDFLAGS"
+          PIECFLAGS="$CFLAGS"
+          CFLAGS="$save_CFLAGS"
+          PIECXXFLAGS="$CXXFLAGS"
+          CXXFLAGS="$save_CXXFLAGS"
        ],[
        AC_MSG_NOTICE([Compiler does not support -pie et al.])
+       PIECFLAGS=""
        CFLAGS="$save_CFLAGS"
+       PIECXXFLAGS=""
        CXXFLAGS="$save_CXXFLAGS"
        PIELDFLAGS=""
        LDFLAGS="$save_LDFLAGS"])])
 AC_SUBST(PIELDFLAGS)
+AC_SUBST(PIECFLAGS)
+AC_SUBST(PIECXXFLAGS)
 
 dnl Handle optional sqlite support.  If enabled/disabled by the user,
 dnl do the right thing.  If not specified by the user, use it if
