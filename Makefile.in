@@ -1398,7 +1398,7 @@ distclean: distclean-recursive
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
-	distclean-hdr distclean-tags
+	distclean-hdr distclean-local distclean-tags
 
 dvi: dvi-recursive
 
@@ -1467,21 +1467,22 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 	clean-noinstPROGRAMS clean-pkglibLIBRARIES \
 	clean-pkglibexecPROGRAMS ctags ctags-recursive distclean \
 	distclean-compile distclean-generic distclean-hdr \
-	distclean-tags dvi dvi-am html html-am info info-am install \
-	install-am install-binPROGRAMS install-binSCRIPTS install-data \
-	install-data-am install-data-local install-dvi install-dvi-am \
-	install-exec install-exec-am install-exec-hook \
-	install-exec-local install-html install-html-am install-info \
-	install-info-am install-man install-man1 install-man5 \
-	install-man8 install-oldincludeHEADERS install-pdf \
-	install-pdf-am install-pkglibLIBRARIES \
-	install-pkglibexecPROGRAMS install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags tags-recursive uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-local \
-	uninstall-man uninstall-man1 uninstall-man5 uninstall-man8 \
+	distclean-local distclean-tags dvi dvi-am html html-am info \
+	info-am install install-am install-binPROGRAMS \
+	install-binSCRIPTS install-data install-data-am \
+	install-data-local install-dvi install-dvi-am install-exec \
+	install-exec-am install-exec-hook install-exec-local \
+	install-html install-html-am install-info install-info-am \
+	install-man install-man1 install-man5 install-man8 \
+	install-oldincludeHEADERS install-pdf install-pdf-am \
+	install-pkglibLIBRARIES install-pkglibexecPROGRAMS install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags tags-recursive \
+	uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-binSCRIPTS uninstall-local uninstall-man \
+	uninstall-man1 uninstall-man5 uninstall-man8 \
 	uninstall-oldincludeHEADERS uninstall-pkglibLIBRARIES \
 	uninstall-pkglibexecPROGRAMS
 
@@ -1582,6 +1583,8 @@ clean-local:
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
 	rm -rf staplog.so
+
+distclean-local:
 	rm -rf build-elfutils include-elfutils lib-elfutils
 
 uninstall-local:

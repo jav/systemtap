@@ -1,5 +1,14 @@
 2009-01-21  Mark Wielaard  <mjw@redhat.com>
 
+	* Makefile.am (distclean-local): Remove build-elfutils,
+	include-elfutils and lib-elfutils here, not in clean-local.
+	* Makefile.in: Regenerated.
+	* configure.ac: Only muck with CPPFLAGS and include-elfutils when
+	actually building with bundled elfutils.
+	* configure: Regenerated.
+
+2009-01-21  Mark Wielaard  <mjw@redhat.com>
+
 	* Makefile.am (clean-local): Remove build-elfutils, include-elfutils
 	and lib-elfutils.
 	* Makefile.in: Regenerated.

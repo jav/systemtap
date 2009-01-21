@@ -306,12 +306,13 @@ if test $build_elfutils = yes; then
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
    make install-data # so that elfutils/version.h - if any - may be found.
   )
+  save_CPPFLAGS=${CPPFLAGS}
+  CPPFLAGS="${CPPFLAGS} -Iinclude-elfutils" # in case bundled elfutils
+  AC_CHECK_HEADERS([elfutils/version.h])
+  CPPFLAGS="$save_CPPFLAGS"
+else
+  AC_CHECK_HEADERS([elfutils/version.h])
 fi
-
-save_CPPFLAGS=${CPPFLAGS}
-CPPFLAGS="${CPPFLAGS} -Iinclude-elfutils" # in case bundled elfutils
-AC_CHECK_HEADERS([elfutils/version.h])
-CPPFLAGS="$save_CPPFLAGS"
 
 dnl This is here mainly to make sure that configure --prefix=... changes
 dnl the config.h files so files depending on it are recompiled
