@@ -5305,8 +5305,8 @@ dwarf_builder::build(systemtap_session & sess,
       use_debuginfo = 1
     };
 
-    location->components[0]->arg = new literal_string(sess.cmd);
-    ((literal_map_t&)parameters)[location->components[0]->functor] = location->components[0]->arg;
+//    location->components[0]->arg = new literal_string(sess.cmd);
+//    ((literal_map_t&)parameters)[location->components[0]->functor] = location->components[0]->arg;
     Dwarf_Addr bias;
     Elf* elf = dwfl_module_getelf (dw->module, &bias);
     size_t shstrndx;
@@ -5328,14 +5328,23 @@ dwarf_builder::build(systemtap_session & sess,
 	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
 	size_t probe_scn_offset = 0;
+	size_t probe_scn_addr = shdr->sh_addr;
 	while (probe_scn_offset < pdata->d_size)
 	  {
-	    probe_name = (char*)pdata->d_buf + probe_scn_offset;
-	    probe_scn_offset += strlen(probe_name) + 1;
-	    if (probe_scn_offset % (sizeof(int)))
-	      probe_scn_offset += sizeof(int) - (probe_scn_offset % sizeof(int));
+	    const int stap_sentinel = 0x31425250;
 	    probe_type = *((int*)((char*)pdata->d_buf + probe_scn_offset));
+	    if (probe_type != stap_sentinel)
+	      {
+		probe_scn_offset += sizeof(int);
+		continue;
+	      }
 	    probe_scn_offset += sizeof(int);
+	    if (probe_scn_offset % (sizeof(__uint64_t)))
+	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
+
+	    // pdata->d_buf + *(long*)(pdata->d_buf + probe_scn_offset) - probe_scn_addr
+	    probe_name = ((char*)((long)(pdata->d_buf) + (long)(*((int*)((long)pdata->d_buf + probe_scn_offset)) - probe_scn_addr)));
+	    probe_scn_offset += sizeof(void*);
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
@@ -5344,6 +5353,8 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
 	  }
+	if (probe_scn_offset < pdata->d_size)
+	  break;
       }
 
     if (probe_type == no_debuginfo)

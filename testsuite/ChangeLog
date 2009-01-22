@@ -1,3 +1,7 @@
+2009-01-22  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Test dtrace.
+
 2009-01-20  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/static_uprobes.exp: Don't test -lsduprobes.

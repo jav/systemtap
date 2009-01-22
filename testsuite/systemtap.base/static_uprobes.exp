@@ -9,26 +9,26 @@ set fp [open $sup_srcpath "w"]
 puts $fp "
 #include <stdlib.h>
 #define USE_STAP_PROBE 1
-#include \"sdt.h\"
+#include \"static_uprobes.h\"
 
 foo ()
 {
-  STAP_PROBE(tstlabel,label1);
+  STAP_PROBE(static_uprobes,test_probe_1);
 }
 
 bar (int i)
 {
   if (i == 0)
     i = 1000;
-  STAP_PROBE1(tstlabel,label2,i);
+  STAP_PROBE1(static_uprobes,test_probe_2,i);
 }
 
 baz (int i, char* s)
 {
-  STAP_PROBE1(tstlabel,label0,i);
+  STAP_PROBE1(static_uprobes,test_probe_0,i);
   if (i == 0)
     i = 1000;
-  STAP_PROBE2(tstlabel,label3,i,s);
+  STATIC_UPROBES_TEST_PROBE_3(i,s);
 }
 
 buz (int parm)
@@ -57,21 +57,21 @@ close $fp
 
 set fp [open "[pwd]/static_uprobes.stp" "w"]
 puts $fp "
-probe process(\"static_uprobes.x\").mark(\"label0\") 
+probe process(\"static_uprobes.x\").mark(\"test_probe_0\") 
 { 
-  printf(\"In label0 probe %#x\\n\", \$arg1)
+  printf(\"In test_probe_0 probe %#x\\n\", \$arg1)
 }
-probe process(\"static_uprobes.x\").mark(\"label1\") 
+probe process(\"static_uprobes.x\").mark(\"test_probe_1\") 
 { 
-  printf(\"In label1 probe\\n\")
+  printf(\"In test_probe_1 probe\\n\")
 }
-probe process(\"static_uprobes.x\").mark(\"label2\") 
+probe process(\"static_uprobes.x\").mark(\"test_probe_2\") 
 { 
-  printf(\"In label2 probe %#x\\n\", \$arg1)
+  printf(\"In test_probe_2 probe %#x\\n\", \$arg1)
 }
-probe process(\"static_uprobes.x\").mark(\"label3\") 
+probe process(\"static_uprobes.x\").mark(\"test_probe_3\") 
 { 
-  printf(\"In label3 probe %#x %#x\\n\", \$arg1, \$arg2)
+  printf(\"In test_probe_3 probe %#x %#x\\n\", \$arg1, \$arg2)
 }
 "
 close $fp
@@ -90,10 +90,10 @@ set ok 0
 # spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
 # expect {
 #     -timeout 180
-#     -re {In label1 probe} { incr ok; exp_continue }
-#     -re {In label2 probe 0x2} { incr ok; exp_continue }
-#     -re {In label0 probe 0x3} { incr ok; exp_continue }
-#     -re {In label3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+#     -re {In test_probe_1 probe} { incr ok; exp_continue }
+#     -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
+#     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
+#     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
 #     timeout { fail "$test (timeout)" }
 #     eof { }
 # }
@@ -109,7 +109,7 @@ ed $sup_srcpath <<HERE
 /USE_STAP_PROBE/d
 /buz/+1
 a
-  DTRACE_PROBE1(tstlabel,label4,parm);
+  DTRACE_PROBE1(static_uprobes,test_probe_4,parm);
 .
 w
 q
@@ -119,30 +119,42 @@ spawn sh [pwd]/static_uprobes.sh
 
 set fp [open "[pwd]/static_uprobes.stp" "w"]
 puts $fp "
-probe process(\"static_uprobes.x\").mark(\"label0\") 
+probe process(\"static_uprobes.x\").mark(\"test_probe_0\") 
 { 
-  printf(\"In label0 probe %#x\\n\", \$arg1)
+  printf(\"In test_probe_0 probe %#x\\n\", \$arg1)
 }
-probe process(\"static_uprobes.x\").mark(\"label1\") 
+probe process(\"static_uprobes.x\").mark(\"test_probe_1\") 
 { 
-  printf(\"In label1 probe\\n\")
+  printf(\"In test_probe_1 probe\\n\")
 }
-probe process(\"static_uprobes.x\").mark(\"label2\") 
+probe process(\"static_uprobes.x\").mark(\"test_probe_2\") 
 {
-  printf(\"In label2 probe %#x\\n\", \$arg1)
+  printf(\"In test_probe_2 probe %#x\\n\", \$arg1)
 }
-probe process(\"static_uprobes.x\").mark(\"label3\") 
+probe process(\"static_uprobes.x\").mark(\"test_probe_3\") 
 { 
-  printf(\"In label3 probe %#x %#x\\n\", \$arg1, \$arg2)
+  printf(\"In test_probe_3 probe %#x %#x\\n\", \$arg1, \$arg2)
 }
-probe process(\"static_uprobes.x\").mark(\"label4\")
+probe process(\"static_uprobes.x\").mark(\"test_probe_4\")
 { 
-  printf(\"In label4 dtrace probe %#x\\n\", \$arg1)
+  printf(\"In test_probe_4 dtrace probe %#x\\n\", \$arg1)
 }
 "
 close $fp
 
-set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-g additional_flags=-O additional_flags=$env(SYSTEMTAP_RUNTIME)/sduprobes.c"
+set fp [open "[pwd]/static_uprobes.d" "w"]
+puts $fp "
+provider static_uprobes {
+        probe test_probe_1 ();
+	probe test_probe_2 (int i);
+	probe test_probe_3 (int i, char* x);
+	probe test_probe_4 (int i);
+};
+"
+close $fp
+spawn dtrace -h -s [pwd]/static_uprobes.d
+
+set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-g additional_flags=-O additional_flags=-I."
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -156,11 +168,11 @@ verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
 spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
 expect {
     -timeout 180
-    -re {In label1 probe} { incr ok; exp_continue }
-    -re {In label2 probe 0x2} { incr ok; exp_continue }
-    -re {In label0 probe 0x3} { incr ok; exp_continue }
-    -re {In label3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
-    -re {In label4 dtrace probe 0x4} { incr ok; exp_continue }
+    -re {In test_probe_1 probe} { incr ok; exp_continue }
+    -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
+    -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
+    -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+    -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
