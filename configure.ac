@@ -216,7 +216,7 @@ AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
 
 dnl Handle the option to build the server setup.
 AC_ARG_ENABLE([server],
-  AS_HELP_STRING([--enble-server],
+  AS_HELP_STRING([--enable-server],
     [enable building of stap-server/client (default on if nss etc. found).]),
   [enable_server=$enableval],
   [enable_server="check"])

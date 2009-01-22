@@ -30,6 +30,7 @@ Requires: kernel-devel
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
+BuildRequires: nss-devel
 
 %if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
@@ -44,7 +45,10 @@ Requires: crash
 
 %if %{with_docs}
 BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
-BuildRequires: xmlto
+# On F10, xmlto's pdf support was broken off into a sub-package,
+# called 'xmlto-tex'.  To avoid a specific F10 BuildReq, we'll do a
+# file-based buildreq on '/usr/share/xmlto/format/fo/pdf'.
+BuildRequires: xmlto /usr/share/xmlto/format/fo/pdf
 %endif
 
 %description

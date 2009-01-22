@@ -1,3 +1,12 @@
+2009-01-22  David Smith  <dsmith@redhat.com>
+
+	* systemtap.spec: Added 'nss-devel' buildreq so that the 'client'
+	subpackage could be built correctly.  Added file-based buildreq
+	for xmlto's pdf support, which works on f8, f9, f9, and rhel5.
+
+	* configure.ac: Fixed typo.
+	* configure: Regenerated.
+
 2009-01-22  Stan Cox  <scox@redhat.com>
 
 	* dtrace: Rewritten to handle dtrace -h -G

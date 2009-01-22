@@ -1444,7 +1444,7 @@ Optional Features:
                           etc. found).
   --enable-refdocs        enable building reference documentation (default on
                           if xmlto etc. found and other documentation built).
-  --enble-server          enable building of stap-server/client (default on if
+  --enable-server         enable building of stap-server/client (default on if
                           nss etc. found).
 
 Optional Packages:
