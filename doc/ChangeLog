@@ -1,5 +1,9 @@
 2009-01-21  William Cohen <wcohen@redhat.com>
 
+	* S_T_R/tapsets.tmpl: Use context-symbols.stp and context-unwind.stp.
+
+2009-01-21  William Cohen <wcohen@redhat.com>
+
 	* S_T_R/tapsets.tmpl: Update copyright date and correct paragraph.
 	
 2009-01-12  William Cohen <wcohen@redhat.com>
