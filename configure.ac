@@ -312,7 +312,10 @@ if test $build_elfutils = yes; then
 				--prefix="$prefix" \
 				CFLAGS="${CFLAGS/-Wall/}" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
-   make install-data # so that elfutils/version.h - if any - may be found.
+   make -k install-data # so that elfutils/version.h - if any - may be found.
+   # Note, we need -k because parts (like to po files) might fail,
+   # since those fo to $prefix to which we might not be able to write.
+   # We are only really interested in the include-elfutils files anyway here.
   )
   save_CPPFLAGS=${CPPFLAGS}
   CPPFLAGS="${CPPFLAGS} -Iinclude-elfutils" # in case bundled elfutils
