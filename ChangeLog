@@ -1,3 +1,11 @@
+2009-01-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9768.
+	* tapsets.cxx (translate_location, translate_components,
+	translate_final_fetch_or_store, literal_stmt_for_*): Don't pass
+	superfluous module_bias down to loc2c code, since it's been
+	subtracted out already.
+
 2009-01-23  Mark Wielaard  <mjw@redhat.com>
 
 	* configure.ac: Use install-pkgincludeHEADERS for elfutils to only
