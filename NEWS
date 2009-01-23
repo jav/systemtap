@@ -4,7 +4,7 @@
   build directory.  The tool determines the appropriate release string
   automatically from the directory.
 
-- A serious problem associated with user-space probing in shared libraries
+- Serious problems associated with user-space probing in shared libraries
   was corrected, making it now possible to experiment with probe shared
   libraries.  Assuming dwarf debugging information is installed, use this
   twist on the normal syntax:
@@ -13,7 +13,7 @@
 
   This would probe all threads that call into that library.  Running
   "stap -c CMD" or "stap -x PID" naturally restricts this to the target
-  command+descendants only.
+  command+descendants only.  $$vars etc. may be used.
 
 - For scripts that sometimes terminate with excessive "skipped" probes,
   rerunning the script with "-t" (timing) will print more details about
