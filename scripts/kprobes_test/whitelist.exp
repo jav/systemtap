@@ -1,0 +1,162 @@
+# Test kernel functions for kprobe safety.
+#
+# Copyright (C) 2006 IBM Corp.
+# Copyright (C) 2008 Red Hat Inc.
+# 
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+# 
+# Based on software written by Gui Jian <guijian@cn.ibm.com>
+#
+
+load_lib "whitelist_lib.exp"
+
+set MAX_RUNNING_LEVEL 3
+
+set GENKPROBES_RUNNING "/genkprobes_running"
+set PROBES_RESULT "probe.out"
+set PROBES_ALL "probes.all"
+set PROBES_PENDING "probes.pending"
+set PROBES_CURRENT "probes.current"
+set PROBES_PASSED "probes.passed"
+set PROBES_FAILED "probes.failed"
+set PROBES_UNTRIGGERED "probes.untriggered"
+set PROBES_UNREGISTERED "probes.unregistered"
+
+proc proper_current_size {level inputfile} {
+     set totalsize [get_linesize $inputfile]
+     switch $level {
+         {1} {set currentsize [expr $totalsize/9]
+	     # Use a max size of 1000
+	     if {$currentsize > 1000} {
+		 set currentsize 1000
+	     }
+	     # Use a min size of 50
+	     if {$currentsize < 50} {
+		 set currentsize 50
+	     }
+	 }
+         {2} {set currentsize [expr $totalsize/49]
+	     # Use a max size of 400
+	     if {$currentsize > 400} {
+		 set currentsize 400
+	     }
+	     # Use a min size of 10
+	     if {$currentsize < 10} {
+		 set currentsize 10
+	     }
+	 }
+         {3} {set currentsize 100}
+         {4} {set currentsize 10}
+         default {
+              puts "Reached unexpected iteration level: $level"
+              set currentsize $totalsize
+         }
+     }
+     if {$currentsize <= 0} {
+         set currentsize 5
+     }
+     return $currentsize
+}
+
+#
+# Main routine of the whole test
+#
+if {[get_running_level] == 0} {
+    # Not started yet, start the whole test from the scratch
+    # Append the startup code to /etc/init.d/rc.local if not yet
+    register_service
+    # Check whether probes.all is empty or not given
+    if {[get_linesize $PROBES_ALL] == 0} {
+        init_probes_all
+    }
+    # Set current_running_level as 1 to indicate a new test started
+    init_running_level
+    # Initialize intermediate files based on probe.all
+    exec rm -f $PROBES_PENDING $PROBES_CURRENT
+    exec rm -f $PROBES_PASSED $PROBES_UNTRIGGERED $PROBES_FAILED $PROBES_UNREGISTERED
+    file copy $PROBES_ALL $PROBES_PENDING
+    exec touch $PROBES_PASSED $PROBES_UNTRIGGERED $PROBES_FAILED $PROBES_UNREGISTERED
+    sync_discs
+    puts "Start a fresh stp_genwhitelist test."
+} else {
+    # Maybe started already, so do some cleaning if necessary
+    garbage_collect $ALREADY_CRASHED
+    puts "Recovered from last maybe crashed probe test."
+}
+
+set current_size_const [proper_current_size [get_running_level] $PROBES_ALL]
+puts "current_size_const is initialized as $current_size_const"
+
+while {1} {
+    puts "Current size of probes.pending is [get_linesize $PROBES_PENDING]"
+    if {[get_linesize $PROBES_PENDING] == 0} {
+        # Check whether we need the next iteration or not
+        global MAX_RUNNING_LEVEL
+        # incr running_level for the start of a new iteration
+	set old_running_level [get_running_level]
+        incr_running_level
+        puts "Running level increased to [get_running_level]"
+        if {[get_running_level] > $MAX_RUNNING_LEVEL} {
+            puts "Reached max iteration limit: [get_running_level]"
+            break
+        } else {
+	    exec cp $PROBES_PASSED $PROBES_PASSED-pass$old_running_level
+	    exec cp $PROBES_FAILED $PROBES_FAILED-pass$old_running_level
+	    exec cp $PROBES_UNTRIGGERED $PROBES_UNTRIGGERED-pass$old_running_level
+
+            puts "Current running level is [get_running_level]"
+            exec rm -f $PROBES_PENDING
+            if {[get_linesize $PROBES_FAILED] > 0} {
+                # Append probes.failed to probes.pending
+                exec cat $PROBES_FAILED >> $PROBES_PENDING
+                file delete $PROBES_FAILED
+                exec touch $PROBES_FAILED
+                puts "Append $PROBES_FAILED to $PROBES_PENDING, now size=[get_linesize $PROBES_PENDING]"
+            } 
+            if {[get_linesize $PROBES_UNTRIGGERED] > 0} {
+                # Append probes.untriggered to probes.pending
+                exec cat $PROBES_UNTRIGGERED >> $PROBES_PENDING
+                file delete $PROBES_UNTRIGGERED
+                exec touch $PROBES_UNTRIGGERED
+                puts "Append $PROBES_UNTRIGGERED to $PROBES_PENDING, now size=[get_linesize $PROBES_PENDING]"
+            } 
+            if {[get_linesize $PROBES_PENDING] == 0} {
+                # No more pending probe points
+                puts "No more iterations needed. Stopped."
+                break
+            }
+            # set new value of current_size_const for new iteration level
+            set current_size_const [proper_current_size [get_running_level] $PROBES_ALL]
+            puts "current_size_const is set as $current_size_const now"
+            continue
+        }
+    } 
+    # Now, non-empty probes.pending should be ready
+    # Generate probes.current
+    exec rm -f $PROBES_CURRENT
+    exec head -n $current_size_const $PROBES_PENDING > $PROBES_CURRENT
+    exec tail -n+[expr $current_size_const+1] $PROBES_PENDING > /tmp/whitelist_tmpfile
+    exec mv /tmp/whitelist_tmpfile $PROBES_PENDING
+    sync_discs
+
+    set d [exec date]
+    puts "Ready to do current probe test at $d"
+    # Do actual probe test
+    do_current_test
+    set d [exec date]
+    puts "Completed one probe test successfully at $d"
+
+    # No crash fortunately, so do some cleaning to prepare for next test
+    garbage_collect $NO_CRASH
+}
+
+# Congratulations for arriving here
+# Remove all temporary files and unregister myself
+puts "Now removing all temporary files, unregistering the service and exit."
+exec rm -f $PROBES_PENDING $PROBES_CURRENT $GENKPROBES_RUNNING 
+exec rm -f $PROBES_RESULT /tmp/whitelist_tmpfile
+unregister_service
+exit 0

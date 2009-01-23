@@ -25,6 +25,324 @@
 	Test for STP_NEED_TASK_FINDER_VMA to enable
 	emit_vm_callback_probe_decl.
 
+2009-01-23  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Use make -k install-data for elfutils.
+	* configure: Regenerated.
+
+2009-01-22  David Smith  <dsmith@redhat.com>
+
+	* systemtap.spec: Added 'nss-devel' buildreq so that the 'client'
+	subpackage could be built correctly.  Added file-based buildreq
+	for xmlto's pdf support, which works on f8, f9, f9, and rhel5.
+
+	* configure.ac: Fixed typo.
+	* configure: Regenerated.
+
+2009-01-22  Stan Cox  <scox@redhat.com>
+
+	* dtrace: Rewritten to handle dtrace -h -G
+	* runtime/sdt.h: New .probes layout.  Make labels unique, args unused.
+	* tapsets.cxx (dwarf_builder::build): New .probes layout.
+	Don't reset location->components[0].
+
+2009-01-21  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Create PIECFLAGS and PIECXXFLAGS, like PIELDFLAGS.
+	Don't duplicate -pie in PIELDFLAGS.
+	* configure: Regenerated.
+	* Makefile.am: Add @PIECFLAGS@ and @PIECXXFLAGS@ to executable
+	flags.
+	* Makefile.in: Regenerated.
+
+2009-01-21  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (distclean-local): Remove build-elfutils,
+	include-elfutils and lib-elfutils here, not in clean-local.
+	* Makefile.in: Regenerated.
+	* configure.ac: Only muck with CPPFLAGS and include-elfutils when
+	actually building with bundled elfutils.
+	* configure: Regenerated.
+
+2009-01-21  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (clean-local): Remove build-elfutils, include-elfutils
+	and lib-elfutils.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Regenerated.
+	* configure: Regenerated.
+
+2009-01-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (dwarf..:visit_target_symbol): Print more data
+	for failed $$vars fields to help explain printed "var=?".
+
+2009-01-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	* dwarf_wrappers.cxx (dwfl_assert): Tolerate rc==-1, for which
+	dwfl_errmsg(-1)=>NULL.
+
+2009-01-19  Dave Brolley  <brolley@redhat.com>
+
+	* stap-serverd (initialization): Call stap-add-server-cert only if
+	it has been installed.
+
+2009-01-13  Stan Cox  <scox@redhat.com>
+
+	* systemtap.spec (sdt-devel): New subpackage.
+	* Makefile.am (oldincludedir): New.
+	(oldinclude_HEADERS): New.
+	(bin_SCRIPTS): Add dtrace
+	* Makefile.in: Regenerated.
+	* runtime/sduprobes.h: Renamed to sdt.h
+
+2009-01-13  Dave Brolley  <brolley@redhat.com>
+
+	* stap-find-or-start-server,stap-start-server,stap-serverd,stap-server:
+	Ensure we call other systemtap tools from the installed location.
+	* stap-client: Likewise. Also, use SYSTEMTAP_STAPRUN if it is set.
+
+2009-01-13  Dave Brolley  <brolley@redhat.com>
+
+	* stap-add-server-cert: Failure to make the client database readable
+	is now only a warning. Directory argument now refers to the location
+	of the 'client' directory.
+	* stap-gen-server-cert: Ensure that the certificate is readable by
+	all. Warn if unsuccessful. Don't add the certificate to the local
+	client-side database.
+	* stap-serverd: Call stap-add-server-cert after stap-gen-server-cert.
+
+2009-01-11  Wenji Huang  <wenji.huang@oracle.com>
+
+        * tapsets.cxx (dwarf_derived_probe_group::emit_module_decls): Fix too
+	large number on 32-bits machines.
+	(uprobe_derived_probe_group::emit_module_decls): Ditto.
+
+2009-01-11  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Add prefix as STAP_PREFIX for config.h.
+	* config.in: Regenerated.
+	* configure: Regenerated.
+
+2009-01-09  Elliott Baron  <ebaron@redhat.com>
+
+	* stap.1.in: Added %M info.
+	
+2009-01-09  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (stamp-ssl): Removed.
+	(ssl/server/stap-server.cert): Removed.
+	(install-data-local): Don't install $(builddir)/ssl.
+	(stap-add-server-cert): Create database directory if it does not
+	exist. Ensure the database is readable by others.
+	* stap-client (initialization): Initialize local_ssl_dbs and
+	public_ssl_dbs. Don't initialize ssl_db.
+	(parse_options): Concatenate additional_local_ssl_dbs with
+	local_ssl_dbs.
+	(process_ssl): Build up additional_local_ssl_dbs in the order
+	specified on the command line.
+	(choose_server): Set server for non-local domains. Print
+	$tmpdir_client/connect to stderr if we can't connect.
+	(send_receive): Try connecting to the given server using all of the
+	databases in $local_ssl_dbs and $public_ssl_dbs. Keep log in
+	$tmpdir_client/connect.
+	(interrupt): Use SIGTERM to kill stap-client-connect.
+	* stap-client-connect.c (prerror.h,secerror.h): #include them.
+	(errWarn): Try to the the error text from NSPR. Handle specific errors
+	manually otherwise.
+	(handle_connection): Stop processing on write error of the local file.
+	(do_connect): Cleanup on error. Call SSL_ForceHandshake to catch
+	authentication errors here.
+	* stap-gen-server-cert: Don't create the client's database directory.
+	* stap-server: Redirect the output of signtool to /dev/null.
+	* stap-server-connect.c (handle_connect): Call SSL_ForceHandshake to catch
+	authentication errors here. Clean up temp files on error.
+	(accept_connection): Don't close the socket on error.
+	stap-serverd (initialization): Print a message if the given socket is busy.
+	Search for a local certificate database. Create and initialize one if not
+	found.
+	(listen): Don't discard stderr fomr stap-server-connect.
+	* stap-start-server: Check for existence of local certificate database as
+	evidence that the server is listening.
+	* Makefile.in: Regenerated.
+
+2009-01-08  William Cohen  <wcohen@redhat.com>
+
+	* configure.ac: Check for xmlto that generates pdf.
+	* configure: Regenerated.
+	
+2009-01-07  William Cohen  <wcohen@redhat.com>
+
+	* configure.ac: Add --enable-refdocs configure option and
+	set check for xmlto
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+	
+2009-01-07  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Warn when not building docs because tools not found.
+	* configure: Regenerated.
+
+2009-01-07  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Add --enable-server configure option and
+	set BUILD_SERVER appropriately.
+	* Makefile.am (man_MANS, bin_PROGRAMS, bin_SCRIPTS): Only add
+	stap-server and friends when BUILD_SERVER set.A
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9699.
+	* buildrun.cxx (compile_pass): Add $(LINUXINCLUDES) to autoconf
+	trial builds.  Add new autoconf test for task_struct uid->cred switch.
+
+2009-01-06  Dave Brolley  <brolley@redhat.com>
+
+	* systemtap.spec (stap-client): Add stap-add-server-cert,
+	stap-client-connect.
+	(stap-server): Add stap-server-connect.
+
+2009-01-05  Dave Brolley  <brolley@redhat.com>
+
+	PR9702
+	* stap-gen-server-cert: Try mkpasswd, apg and then user_enter_password
+	when generating the password for the server certificate/key
+	database.
+	(user_enter_password): New function.
+
+2008-12-31  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (dump_unwindsyms): Adapt to elfutils build-id
+	bug that was fixed in 0.138.
+	* configure.ac: Look for elfutils/version.h.
+	* config.in, configure: Regenerated.
+
+2008-12-30  Dave Brolley  <brolley@redhat.com>
+
+	PR9692
+	From Eugeniy Meshcheryakov <eugen@debian.org>
+	* Makefile.am (stap_client_connect_CFLAGS): Use $(nss_CFLAGS) and
+	$(nspr_CFLAGS).
+	(stap_server_connect_CFLAGS): Likewise.
+	* configure.ac: Use PKG_CHECK_MODULES to configure nss and nspr.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Regenerated.
+	* configure: Regenerated.
+
+2008-12-30  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (install-data-local): Test for existence of $(builddir)/ssl
+	before installing it.
+	* Makefile.in: Regenerated.
+
+2008-12-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (install-data, uninstall-data): Use
+	$(DESTDIR)$(sysconfdir) instead of hard-coded /etc paths.
+
+2008-12-26  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (stamp-ssl): Disable automatic building of this target.
+	* Makefile.in: Regenerated.
+
+2008-12-24  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (netcat): Removed.
+	(initialization): Initialize ssl_db.
+	(parse_options): Handle the --ssl option.
+	(process_ssl): New function.
+	(send_request): Removed.
+	(receive_response): Removed.
+	(unpack_response): Use signtool to verify the contents of the
+	server's response against a local copy of the server's
+	certificate.
+	(find_and_connect_to_server): Make sure the server is referred to
+	as localhost if it is running on the local host. Call send_receive
+	in order to contact the server and perform the transaction.
+	(connect_to_server): Removed.
+	(disconnect_from_server): Removed.
+	(send_receive): New function.
+	(process_response): Work in $tmpdir_server.
+	(terminate, interrupt): Kill any running stap-client-connect.
+	* stap-find-or-start-server: Pass arguments to stap-start-server.
+	* stap-start-server: Pass arguments to stap-serverd.
+	* stap-server (port): Removed.
+	(netcat): Removed.
+	(receive_request): Removed.
+	(unpack_request): Use unzip.
+	(package_response): Use signtool to sign the response into a .jar
+	archive.
+	(send_response): Removed.
+	* stap-serverd (netcat): Removed.
+	(port1): Removed.
+	(initialize): Don't call recursively. Use a loop to select a port.
+	(listen): Call stap-server-connect.
+	(process_request): Removed.
+	(terminate): Kill any running stap-server-connect job.
+	* systemtap.spec: client and server sub packages require nss and nss-tools,
+	and no longer require nc or net-tools.
+	* Makefile.am (bin_PROGRAMS): Add stap-client-connect and
+	stap-server-connect.
+	(bin_SCRIPTS): Add stap-gen-server-cert.
+	(stap_client_connect_LDFLAGS, stap_server_connect_LDFLAGS): New.
+	(stamp-ssl): New target.
+	(ssl/server/stap-server.cert): New target.
+	(stap_client_connect_*): New.
+	(stap_server_connect_*): New.
+	(install-data-local): Install /etc/systemtap/ssl.
+	(uninstall-local): Remove /etc/systemtap.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Regenerated.
+
+2008-12-22  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR7090
+	* buildrun.cxx (compile_pass): Use flags macro to expand KBUILD_CFLAGS
+	for support kernels built with O= option.
+
+2008-12-21  Will Cohen <wcohen@redhat.com>
+
+	* systemtap.spec: Add generations of tapset reference manual material.
+	
+2008-12-21  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwflpp::die_has_pc): Don't abort if dwarf_ranges fails.
+	(dwflpp::find_variable_and_frame_base): A pc requires dwarf_nscopes
+
+2008-12-19  Elliott Baron  <ebaron@redhat.com>
+
+	PR3668
+	* elaborate.cxx: Handling for %M.
+	* runtime/vsprintf.c: Likewise.
+	* staptree.cxx: Likewise.
+	* translate.cxx: Likewise.
+	* staptree.h: Added %M converter, conv_memory_hex, to enum
+
+2008-12-16  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec (Requires): Add kernel-devel, is correct virtual
+	provide in kernel-*-devel rpms.
+	(with_sqlite): Typo fix in default defn check.
+	[%{with_sqlite}] (Requires): Remove.  BuildRequires causes the correct
+	automatic dependency.
+
+2008-12-16  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwarf_builder::build): Consider alignment when
+	fetching .probes values.  Convert .mark to .statement(0x) instead
+	of .statement(foo.c:N)
+
+2008-12-11  Dave Brolley  <brolley@redhat.com>
+
+	PR7087
+	* stap-client: Don't use -d on netcat. Redirect from /dev/null instead.
+	* stap-server: Likewise.
+	* stap-serverd: Likewise.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6961
@@ -37,6 +355,7 @@
 
 2008-12-09  Dave Brolley  <brolley@redhat.com>
 
+	PR7087
 	* stap-client: Use netcat or nc, whichever is available.
 	* stap-server: Likewise.
 	* stap-serverd: Likewise.

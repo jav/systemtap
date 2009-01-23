@@ -1,0 +1,57 @@
+Here are the original instructions for 'gen_whitelist', which tested
+systemtap probe safety.  This modified code tests the underlying
+kprobes themselves.
+
+To start a kprobes test run:
+   runtest whitelist.exp
+
+----
+Here is an implementation of generating whitelist for safe-mode probes
+based on the discussion in former thread
+(http://sourceware.org/ml/systemtap/2006-q3/msg00574.html).
+
+Its main idea is:
+ 1) Fetch a group of probe points from probes.pending, probe them and
+    run some workloads(e.g. runltp) parallely meanwhile.
+
+ 2) If the probe test ends without crash, those actually triggered
+    probe points are moved into probes.passed and those untriggered 
+    are into probes.untriggered; 
+    If the probe test crashes the system, it will be resumed
+    automatically after system reboot. Those probe points which have 
+    been triggered are also moved into probes.passed, but those 
+    untriggered ones are moved into probes.failed.
+
+ 3) Repeat the above until probes.pending becomes empty, then:
+    Normally, probes.pending is reinitialized from probes.failed and
+    probes.untriggered, then start the next iteration; 
+    But if max running level (now 3) is reached, or probes.pending,
+    probes.failed and probes.untriggered are all empty, stop the 
+    whole test.
+
+To be able to resume after a crash, this test will append its startup
+codes to the end of /etc/rc.d/rc.local at the beginning and remove 
+them at the end of the test.
+
+The gen_tapset_all.sh is used to generate a "probes.all" file based
+on current tapset of systemtap.
+
+It is suggested to use a script in a remote server to restart the 
+test machine automatically in case it is crashed by the probe test.
+
+Instructions:
+ 0) Please jump to 6) directly if you use all default settings
+ 1) Define your list of probe points in a file named "probes.all";
+    otherwise, it will be automatically extracted from 
+      stap -p2 -e 'probe kernel.function("*"){}
+ 2) Define your own workloads by changing the "benchs" list variable; 
+    otherwise, several LTP testcases will be used
+ 3) Define how may times you want the test to be iterated by changing
+    MAX_RUNNING_LEVEL variable; otherwise, 3 is the default
+ 4) Define the group size for different iteration level by changing 
+    proper_current_size() function; otherwise, they will be set in 
+    a decreasing order based on the length of probes.all
+ 5) Remove /stp_genwhitelist_running if you want to start a test from
+    the beginning after a system crash
+ 6) Start a test:
+      runtest whitelist.exp

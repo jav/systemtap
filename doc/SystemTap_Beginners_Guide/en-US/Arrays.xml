@@ -6,7 +6,7 @@
 	<title>Associative Arrays</title>
 <indexterm>
 <primary>arrays</primary>
-<secondary>introduction</secondary>
+<seealso>associative arrays</seealso>
 </indexterm>
 
 <indexterm>
@@ -20,11 +20,13 @@
 
 <!-- next 2 indexterms for key pairs -->
 
+<!--
 <indexterm>
 <primary>arrays</primary>
 <secondary>introduction</secondary>
 <tertiary>key pairs</tertiary>
 </indexterm>
+-->
 
 <indexterm>
 <primary>associative arrays</primary>
@@ -38,14 +40,14 @@
 <tertiary>arrays</tertiary>
 </indexterm>
 
-<!-- next 2 indexterms for unique keys -->
+<!-- next 2 indexterms for unique keys 
 
 <indexterm>
 <primary>arrays</primary>
 <secondary>introduction</secondary>
 <tertiary>unique keys</tertiary>
 </indexterm>
-
+-->
 <indexterm>
 <primary>associative arrays</primary>
 <secondary>introduction</secondary>
@@ -58,14 +60,14 @@
 <tertiary>arrays</tertiary>
 </indexterm>
 
-<!-- next 2 indexterms for associated values -->
+<!-- next 2 indexterms for associated values 
 
 <indexterm>
 <primary>arrays</primary>
 <secondary>introduction</secondary>
 <tertiary>associated values</tertiary>
 </indexterm>
-
+-->
 <indexterm>
 <primary>associative arrays</primary>
 <secondary>introduction</secondary>
@@ -78,14 +80,14 @@
 <tertiary>arrays</tertiary>
 </indexterm>
 
-<!-- next 2 indexterms for index expression -->
+<!-- next 2 indexterms for index expression 
 
 <indexterm>
 <primary>arrays</primary>
 <secondary>introduction</secondary>
 <tertiary>index expression</tertiary>
 </indexterm>
-
+-->
 <indexterm>
 <primary>associative arrays</primary>
 <secondary>introduction</secondary>
@@ -99,13 +101,13 @@
 </indexterm>
 
 <para>Since associative arrays are normally processed in multiple probes (as we will demonstrate later), they are declared as <command>global</command> variables in the SystemTap script. The syntax for accessing an element in an associative array is similar to that of <command>awk</command>, and is as follows:</para>
-<!-- next 3 indexterms for syntax -->
+<!-- next 3 indexterms for syntax 
 <indexterm>
 <primary>arrays</primary>
 <secondary>introduction</secondary>
 <tertiary>syntax</tertiary>
 </indexterm>
-
+-->
 <indexterm>
 <primary>associative arrays</primary>
 <secondary>introduction</secondary>
@@ -131,14 +133,14 @@
 
 <para>Here, the <command><replaceable>array_name</replaceable></command> is any arbitrary name the array uses. The <command><replaceable>index_expression</replaceable></command> is used to refer to a specific unique key in the array. To illustrate, let us try to build an array named <command>foo</command> that specifies the ages of three people (i.e. the unique keys): <command>tom</command>, <command>dick</command>, and <command>harry</command>. To assign them the ages (i.e. associated values) of 23, 24, and 25 respectively, we'd use the following array statements:</para> 
 
-<!-- next 2 indexterms for example -->
+<!-- next 2 indexterms for example 
 
 <indexterm>
 <primary>arrays</primary>
 <secondary>introduction</secondary>
 <tertiary>example</tertiary>
 </indexterm>
-
+-->
 <indexterm>
 <primary>associative arrays</primary>
 <secondary>introduction</secondary>
@@ -159,7 +161,7 @@ foo["harry"] = 25
 </screen>
 </example>
 
-<para>You can specify up to 5 index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to have a key that contains multiple pieces of information. The following line from <xref linkend="scriptdisktop"/> uses 5 elements for the key: process ID, executable name, user ID, parent ID, and string "W". It associates the value of <command>devname</command> with that key.</para>
+<para>You can specify up to 5 index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to have a key that contains multiple pieces of information. The following line from <xref linkend="scriptdisktop"/> uses 5 elements for the key: process ID, executable name, user ID, parent process ID, and string "W". It associates the value of <command>devname</command> with that key.</para>
 
 <screen>
 device[pid(),execname(),uid(),ppid(),"W"] = devname

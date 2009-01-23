@@ -1,3 +1,43 @@
+2009-01-21  William Cohen <wcohen@redhat.com>
+
+	* S_T_R/tapsets.tmpl: Use context-symbols.stp and context-unwind.stp.
+
+2009-01-21  William Cohen <wcohen@redhat.com>
+
+	* S_T_R/tapsets.tmpl: Update copyright date and correct paragraph.
+	
+2009-01-12  William Cohen <wcohen@redhat.com>
+	
+	* S_T_R/tapsets.tmpl: Correct author's name.
+	
+2009-01-07  William Cohen <wcohen@redhat.com>
+
+	* S_T_R/Makefile.am: Use BUILD_REFDOCS.
+	* S_T_R/Makefile.in: Regenerated.
+
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* S_T_R/Makefile.am: Regenerate docs only as necessary, via
+	stamp-* files for html/man, and cmp for tapsets.xml.
+	* S_T_R/Makefile.in: Regenerated.
+
+2008-12-30  Dave Brolley  <brolley@redhat.com>
+
+	PR9692
+	* Makefile.in: Regenerated.
+	* SystemTap_Tapset_Reference/Makefile.in: Regenerated.
+
+2008-12-24  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.in: Regenerated.
+	* SystemTap_Tapset_Reference/Makefile.in: Regenerated.
+
+2008-12-21  Will Cohen <wcohen@redhat.com>
+
+	* Makefile.am: Add generations of tapset reference manual material.
+	* SystemTap_Tapset_Reference/Makefile.am: Install tapset reference man.
+	* Makfile.am, SystemTap_Tapset_Reference/Makefile.in: Regenerated.
+
 2008-11-26  Will Cohen <wcohen@redhat.com>
 
 	* SystemTap_Tapset_Reference/tapsets.tmpl: Add scsi.

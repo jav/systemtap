@@ -3956,6 +3956,7 @@ typeresolution_info::visit_print_format (print_format* e)
 	    case print_format::conv_binary:
 	    case print_format::conv_char:
 	    case print_format::conv_memory:
+	    case print_format::conv_memory_hex:
 	      wanted = pe_long;
 	      break;
 

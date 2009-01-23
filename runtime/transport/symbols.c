@@ -92,8 +92,8 @@ static void generic_swap(void *a, void *b, int size)
  * @base: pointer to data to sort
  * @num: number of elements
  * @size: size of each element
- * @cmp: pointer to comparison function
- * @swap: pointer to swap function or NULL
+ * @cmp_func: pointer to comparison function
+ * @swap_func: pointer to swap function or NULL
  *
  * This function does a heapsort on the given array. You may provide a
  * swap function optimized to your element type.
@@ -104,37 +104,37 @@ static void generic_swap(void *a, void *b, int size)
  * it less suitable for kernel use.
 */
 void _stp_sort(void *_base, size_t num, size_t size,
-	       int (*cmp) (const void *, const void *), void (*swap) (void *, void *, int size))
+	       int (*cmp_func) (const void *, const void *), void (*swap_func) (void *, void *, int size))
 {
         char *base = (char*) _base;
 	/* pre-scale counters for performance */
 	int i = (num / 2 - 1) * size, n = num * size, c, r;
 
-	if (!swap)
-		swap = (size == 4 ? u32_swap : generic_swap);
+	if (!swap_func)
+		swap_func = (size == 4 ? u32_swap : generic_swap);
 
 	/* heapify */
 	for (; i >= 0; i -= size) {
 		for (r = i; r * 2 + size < n; r = c) {
 			c = r * 2 + size;
-			if (c < n - size && cmp(base + c, base + c + size) < 0)
+			if (c < n - size && cmp_func(base + c, base + c + size) < 0)
 				c += size;
-			if (cmp(base + r, base + c) >= 0)
+			if (cmp_func(base + r, base + c) >= 0)
 				break;
-			swap(base + r, base + c, size);
+			swap_func(base + r, base + c, size);
 		}
 	}
 
 	/* sort */
 	for (i = n - size; i >= 0; i -= size) {
-		swap(base, base + i, size);
+		swap_func(base, base + i, size);
 		for (r = 0; r * 2 + size < i; r = c) {
 			c = r * 2 + size;
-			if (c < i - size && cmp(base + c, base + c + size) < 0)
+			if (c < i - size && cmp_func(base + c, base + c + size) < 0)
 				c += size;
-			if (cmp(base + r, base + c) >= 0)
+			if (cmp_func(base + r, base + c) >= 0)
 				break;
-			swap(base + r, base + c, size);
+			swap_func(base + r, base + c, size);
 		}
 	}
 }

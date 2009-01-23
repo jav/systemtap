@@ -63,20 +63,23 @@
 	<primary>if/else conditionals, alternative syntax</primary>
 	<secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-<para>Note that <command>function print_activity()</command> uses the following constructs:</para>
+<para>Note that <command>function print_activity()</command> uses the following
+expressions:</para>
 
 <screen>
-n_xmit ? @sum(ifxmit[pid, dev, exec, uid])/1024 : 0,
+n_xmit ? @sum(ifxmit[pid, dev, exec, uid])/1024 : 0
 n_recv ? @sum(ifrecv[pid, dev, exec, uid])/1024 : 0
 </screen>
 
-<para>These constructs are if/else conditionals. The first statement is simply a more concise way of writing:</para>
+<para>These expressions are if/else conditionals.
+The first statement is simply a more concise way of writing the following
+psuedo code:</para>
 
 <screen>
 if n_recv != 0 then
-	@sum(ifrecv[pid, dev, exec, uid])/1024
+  @sum(ifrecv[pid, dev, exec, uid])/1024
 else
-    0 
+  0 
 </screen>
 
 <para><xref linkend="nettop"/> tracks which processes are generating network traffic on the system, and provides the following information about each process:</para>

@@ -1,3 +1,14 @@
+2009-01-02  Mark Wielaard  <mjw@redhat.com>
+
+	PR9693. Reported by Eugeniy Meshcheryakov <eugen@debian.org>
+	* io/traceio2.stp: Add proper #! /usr/bin/env stap line.
+	* profiling/functioncallcount.stp: Likewise.
+
+2008-12-10  William Cohen  <wcohen@redhat.com>
+
+	* process/futexes.stp:
+	* profiling/thread-times.stp: Tweak formatting.
+
 2008-12-10  Tim Moore  <timoore@redhat.com>
 
 	* profiling/latencytap.stp: Probe scheduler to identify processes

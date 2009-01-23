@@ -94,15 +94,23 @@ AS_IF([test "x$enable_pie" != xno],[
        AC_MSG_NOTICE([Compiling with gcc pie et al.])
           # LDFLAGS is special since it may be passed down to bundled-elfutils,
           # and interfere with the .so's built therein
-          PIELDFLAGS="$LDFLAGS -pie -Wl,-z,relro -Wl,-z,now"
+          PIELDFLAGS="$LDFLAGS"
           LDFLAGS="$save_LDFLAGS"
+          PIECFLAGS="$CFLAGS"
+          CFLAGS="$save_CFLAGS"
+          PIECXXFLAGS="$CXXFLAGS"
+          CXXFLAGS="$save_CXXFLAGS"
        ],[
        AC_MSG_NOTICE([Compiler does not support -pie et al.])
+       PIECFLAGS=""
        CFLAGS="$save_CFLAGS"
+       PIECXXFLAGS=""
        CXXFLAGS="$save_CXXFLAGS"
        PIELDFLAGS=""
        LDFLAGS="$save_LDFLAGS"])])
 AC_SUBST(PIELDFLAGS)
+AC_SUBST(PIECFLAGS)
+AC_SUBST(PIECXXFLAGS)
 
 dnl Handle optional sqlite support.  If enabled/disabled by the user,
 dnl do the right thing.  If not specified by the user, use it if
@@ -145,6 +153,7 @@ AC_ARG_ENABLE([crash],
 AM_CONDITIONAL([BUILD_CRASHMOD], [test "$enable_crash" != "no"])
 
 dnl Handle the option to build the documentation
+building_docs="no"
 AC_ARG_ENABLE([docs],
   AS_HELP_STRING([--enable-docs],
     [enable building documentation (default on if latex etc. found).]),
@@ -154,12 +163,74 @@ AC_CHECK_PROG(have_latex, latex, yes, no)
 AC_CHECK_PROG(have_dvips, dvips, yes, no)
 AC_CHECK_PROG(have_ps2pdf, ps2pdf, yes, no)
 AC_CHECK_PROG(have_latex2html, latex2html, yes, no)
-if test "$enable_docs" == "yes"; then
-   if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesyesyesyes"; then
+if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesyesyesyes"; then
+   if test "$enable_docs" == "yes"; then
       AC_MSG_ERROR([cannot find all tools for building documentation])
    fi
+  if test "$enable_docs" == "check"; then
+    AC_MSG_WARN([will not build documentation, cannot find all tools])
+  fi
 fi
-AM_CONDITIONAL([BUILD_DOCS], [test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"])
+if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"; then
+   building_docs="yes"
+fi
+AM_CONDITIONAL([BUILD_DOCS], [test "$building_docs" == "yes"])
+
+dnl Handle the option to build the reference documentation
+building_refdocs="no"
+AC_ARG_ENABLE([refdocs],
+  AS_HELP_STRING([--enable-refdocs],
+    [enable building reference documentation (default on if xmlto etc. found and other documentation built).]),
+  [enable_refdocs=$enableval],
+  [enable_refdocs="check"])
+if test "$building_docs" == "no" -a "$enable_refdocs" == "yes" ; then
+   AC_MSG_ERROR([must use --enable-docs with --enable-refdocs])
+fi
+AC_CHECK_PROG(have_xmlto, xmlto, yes, no)
+if test "x${have_xmlto}" == "xyes"; then
+AC_MSG_CHECKING([for xmlto pdf support])
+cat > conftest.$ac_ext << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+"http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" []>
+   <book id="pdffromxml">
+   </book>
+EOF
+   xmlto pdf conftest.$ac_ext >& /dev/null
+   if test $? == 0; then
+      have_xmlto_pdf="yes"
+      AC_MSG_RESULT([yes])
+   else
+      AC_MSG_RESULT([no])
+   fi
+fi
+if test "$enable_refdocs" == "yes"; then
+   if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
+      AC_MSG_ERROR([cannot find proper yxmlto for building reference documentation])
+   fi
+fi
+if test "x${have_xmlto}${have_xmlto_pdf}" == "xyesyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
+   building_refdocs="yes"
+fi
+AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
+
+dnl Handle the option to build the server setup.
+AC_ARG_ENABLE([server],
+  AS_HELP_STRING([--enable-server],
+    [enable building of stap-server/client (default on if nss etc. found).]),
+  [enable_server=$enableval],
+  [enable_server="check"])
+PKG_CHECK_MODULES([nss],[nss >= 3], have_nss=yes, have_nss=no)
+PKG_CHECK_MODULES([nspr],[nspr >= 4], have_nspr=yes, have_nspr=no)
+if test "x${have_nss}${have_nspr}" != "xyesyes"; then
+  if test "$enable_server" == "yes"; then
+    AC_MSG_ERROR([cannot find all libraries for stap-server])
+  fi
+  if test "$enable_server" == "check"; then
+    AC_MSG_WARN([will not build stap-server, cannot find all libraries])
+  fi
+fi
+AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss}${have_nspr}" == "xyesyes" -a "$enable_server" != "no"])
 
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
@@ -220,13 +291,6 @@ AC_LANG_PUSH(C++)
 AC_CHECK_HEADERS([tr1/unordered_map])
 AC_LANG_POP(C++)
 
-AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
-AC_CONFIG_SUBDIRS(testsuite)
-
-AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
-
-AC_OUTPUT
 
 if test $build_elfutils = yes; then
   case "$with_elfutils" in
@@ -247,9 +311,31 @@ if test $build_elfutils = yes; then
 				--exec-prefix="$exec_prefix" \
 				--prefix="$prefix" \
 				CFLAGS="${CFLAGS/-Wall/}" \
-				LDFLAGS="$LDFLAGS $elfutils_rpath"
+				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
+   make -k install-data # so that elfutils/version.h - if any - may be found.
+   # Note, we need -k because parts (like to po files) might fail,
+   # since those fo to $prefix to which we might not be able to write.
+   # We are only really interested in the include-elfutils files anyway here.
   )
+  save_CPPFLAGS=${CPPFLAGS}
+  CPPFLAGS="${CPPFLAGS} -Iinclude-elfutils" # in case bundled elfutils
+  AC_CHECK_HEADERS([elfutils/version.h])
+  CPPFLAGS="$save_CPPFLAGS"
+else
+  AC_CHECK_HEADERS([elfutils/version.h])
 fi
+
+dnl This is here mainly to make sure that configure --prefix=... changes
+dnl the config.h files so files depending on it are recompiled
+dnl prefix is passed through indirectly in the Makefile.am AM_CPPFLAGS.
+dnl Don't use this directly (when not given it is set to NONE).
+AC_DEFINE_UNQUOTED(STAP_PREFIX, "$prefix", [configure prefix location])
+
+AC_CONFIG_HEADERS([config.h:config.in])
+AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
+AC_CONFIG_SUBDIRS(testsuite)
+AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
+AC_OUTPUT
 
 if test "${prefix}" = "/usr/local"; then
    AC_MSG_NOTICE([])

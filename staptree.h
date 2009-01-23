@@ -289,6 +289,7 @@ struct print_format: public expression
       conv_string,
       conv_char,
       conv_memory,
+      conv_memory_hex,
       conv_literal,
       conv_binary
     };

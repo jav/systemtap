@@ -2,7 +2,7 @@
 
 # Compile server client for systemtap
 #
-# Copyright (C) 2008 Red Hat Inc.
+# Copyright (C) 2008, 2009 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -29,11 +29,6 @@ function configuration {
     tmpdir_prefix_client=stap.client
     tmpdir_prefix_server=stap.server
     avahi_service_tag=_stap._tcp
-
-    # We need either netcat or nc.
-    netcat=`which netcat 2>/dev/null`
-    test "X$netcat" = "X" && netcat=`which nc 2>/dev/null`
-    test "X$netcat" = "X" && fatal "ERROR: cannot find required program 'netcat' or 'nc' on PATH"
 }
 
 # function: initialization
@@ -42,6 +37,29 @@ function initialization {
     wd=`pwd`
     umask 0
     staprun_running=0
+
+    # Where are we installed?
+    if test "`basename $0`" = "stap" -a "$0" = `which stap`; then
+        # The dejagnu test harness may invoke us as 'stap' relying on $PATH to
+        # find us. If so, then use the $PATH to find the rest of the systemtap
+        # tools.
+	exec_prefix=""
+	# Also, set the prefix to point to where we were found.
+	prefix=`which stap`
+	prefix=`dirname $prefix`
+    else
+        # Assume we were installed normally
+	exec_prefix=`dirname $0`
+	exec_prefix=`cd $exec_prefix && pwd`/
+	prefix=`dirname $exec_prefix`
+    fi
+
+    # Default location for server certificates if we're not root
+    if test $EUID != 0; then
+	local_ssl_dbs="$HOME/.systemtap/ssl/client"
+    fi
+    # Additional location for all users.
+    public_ssl_dbs=$prefix/etc/systemtap/ssl/client
 
     # Default options settings
     p_phase=5
@@ -86,14 +104,28 @@ function parse_options {
 	                # It's not a lone dash, so it's an option.
 			# Is it a long option (i.e. --option)?
 			second_char=`expr "$first_token" : '.\(.\).*'`
-			if test "$second_char" != "-"; then
-	                    # It's not a lone dash, or a long option, so it's a short option string.
-			    # Remove the dash.
-			    first_token=`expr "$first_token" : '-\(.*\)'`
-			    dash_seen=1
-			    first_char=`expr "$first_token" : '\(.\).*'`
-			    cmdline2="$cmdline2 -"
+			if test "X$second_char" = "X-"; then
+			    long_option=`expr "$first_token" : '--\(.*\)=.*'`
+			    test "X$long_option" != "X" || long_option=`expr "$first_token" : '--\(.*\)'`
+			    case $long_option in
+				ssl)
+				    process_ssl $first_token
+				    ;;
+				*)
+		                    # An unknown or unimportant option.
+				    # Ignore it, but pass it on to the server.
+				    cmdline2="$cmdline2 $first_token"
+				    ;;
+			    esac
+			    advance_p=$(($advance_p + 1))
+			    break
 			fi
+	                # It's not a lone dash, or a long option, so it's a short option string.
+			# Remove the dash.
+			first_token=`expr "$first_token" : '-\(.*\)'`
+			dash_seen=1
+			first_char=`expr "$first_token" : '\(.\).*'`
+			cmdline2="$cmdline2 -"
 		    fi
 		fi
 		if test $dash_seen = 0; then
@@ -212,6 +244,8 @@ function parse_options {
     else
 	cmdline="$cmdline1 $cmdline2"
     fi
+
+    local_ssl_dbs="$additional_local_ssl_dbs $local_ssl_dbs"
 }
 
 # function: get_arg FIRSTWORD SECONDWORD
@@ -234,6 +268,18 @@ function get_arg {
 
     stap_arg="$first"
     advance_p=$(($advance_p + 1))
+}
+
+# function: process_ssl ARGUMENT
+#
+# Process the --ssl option.
+function process_ssl {
+    local db=`expr "$1" : '--ssl=\(.*\)'`
+
+    test "X$db" != "X" || \
+	fatal "Missing argument to --ssl"
+	
+    additional_local_ssl_dbs="$additional_local_ssl_dbs $db"
 }
 
 # function: process_c ARGUMENT
@@ -370,86 +416,44 @@ function client_sysinfo {
 # Package the client's temp directory into a form suitable for sending to the
 # server.
 function package_request {
-    # Package up the temporary directory into a tar file
+    # Package up the temporary directory into a zip file
     cd $tmpdir_env
 
     local tmpdir_client_base=`basename $tmpdir_client`
-    tar_client=$tmpdir_env/`mktemp $tmpdir_client_base.tgz.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $tar_client
+    zip_client=$tmpdir_env/`mktemp $tmpdir_client_base.zip.XXXXXX` || \
+	fatal "ERROR: cannot create temporary file " $zip_client
 
-    tar -czhf $tar_client $tmpdir_client_base || \
-	fatal "ERROR: tar of request tree, $tmpdir_client, failed"
-}
-
-# function: send_request
-#
-# Notify the server and then send $tar_client to the server
-# The protocol is:
-#   client -> "request:"
-#   client -> $tar_client
-function send_request {
-    # Send the request file.
-    for ((attempt=0; $attempt < 10; ++attempt))
-    do
-	if $netcat -w10 $server $(($port+1)) < $tar_client > /dev/null 2>&1; then
-	    return;
-	fi
-	sleep 1
-    done
-    fatal "ERROR: Unable to connect to server while sending request file"
-}
-
-# function: receive_response
-#
-# Wait for a response from the server indicating the results of our request.
-function receive_response {
-    # Make a place to receive the response file.
-    tar_server=`mktemp -t $tmpdir_prefix_client.server.tgz.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $tar_server
-
-    # Retrieve the file. Wait for up to 5 minutes for a response.
-    for ((attempt=0; $attempt < 300; ++attempt))
-    do
-	if $netcat -d $server $(($port+1)) > $tar_server 2>/dev/null; then
-	    return;
-	fi
-	sleep 1
-    done
-    fatal "ERROR: Unable to connect to server while receiving response file"
+    (rm $zip_client && zip -r $zip_client $tmpdir_client_base > /dev/null) || \
+	fatal "ERROR: zip of request tree, $tmpdir_client, failed"
 }
 
 # function: unpack_response
 #
-# Unpack the tar file received from the server and make the contents available
+# Unpack the jar file received from the server and make the contents available
 # for printing the results and/or running 'staprun'.
 function unpack_response {
     tmpdir_server=`mktemp -dt $tmpdir_prefix_client.server.XXXXXX` || \
 	fatal "ERROR: cannot create temporary file " $tmpdir_server
 
+    # Unpack and verify the digitally signed server output directory
+    if ! signtool -d $ssl_db -v $jar_server > /dev/null 2>&1; then
+	# Run the verification again to get the reason
+	fatal "ERROR: Verification of server response, $jar_server, failed.
+"`signtool -d $ssl_db -v $jar_server | grep "reported reason"`
+    fi
+
     # Unpack the server output directory
-    cd $tmpdir_server
-    tar -xzf $tar_server || \
-	fatal "ERROR: Unpacking of server response, $tar_server, failed"
-
-    # Identify the server's response tree. The tar file should have expanded
-    # into a single directory named to match $tmpdir_prefix_server.??????
-    # which should now be the only item in the current directory.
-    test "`ls | wc -l`" = 1 || \
-	fatal "ERROR: Wrong number of files after expansion of server's tar file"
-
-    tmpdir_server=`ls`
-    tmpdir_server=`expr "$tmpdir_server" : "\\\($tmpdir_prefix_server\\\\.......\\\)"`
-
-    test "X$tmpdir_server" != "X" || \
-	fatal "ERROR: server tar file did not expand as expected"
+    unzip -d $tmpdir_server $jar_server > /dev/null || \
+	fatal "ERROR: Cannot unpack server response, $jar_server"
 
     # Check the contents of the expanded directory. It should contain:
     # 1) a file called stdout
     # 2) a file called stderr
     # 3) a file called rc
-    # 4) optionally a directory named to match stap??????
+    # 4) a directory called META-INF
+    # 5) optionally a directory named to match stap??????
     local num_files=`ls $tmpdir_server | wc -l`
-    test $num_files = 4 -o $num_files = 3 || \
+    test $num_files = 5 -o $num_files = 4 || \
 	fatal "ERROR: Wrong number of files in server's temp directory"
     test -f $tmpdir_server/stdout || \
 	fatal "ERROR: `pwd`/$tmpdir_server/stdout does not exist or is not a regular file"
@@ -457,6 +461,8 @@ function unpack_response {
 	fatal "ERROR: `pwd`/$tmpdir_server/stderr does not exist or is not a regular file"
     test -f $tmpdir_server/rc || \
 	fatal "ERROR: `pwd`/$tmpdir_server/rc does not exist or is not a regular file"
+    test -d $tmpdir_server/META-INF || \
+	fatal "ERROR: `pwd`/$tmpdir_server/META-INF does not exist or is not a directory"
 
     # See if there is a systemtap temp directory
     tmpdir_stap=`ls $tmpdir_server | grep stap`
@@ -479,16 +485,8 @@ function unpack_response {
 	else
             # Make sure we own the systemtap temp directory if we are root.
 	    test $EUID = 0 && chown $EUID:$EUID $tmpdir_server/$tmpdir_stap
-	    # The temp directory will be moved to here below.
-	    tmpdir_stap=`pwd`/$tmpdir_stap
 	fi
     fi
-
-    # Move the contents of the server's tmpdir down one level to the
-    # current directory (our local server tmpdir)
-    mv $tmpdir_server/* . 2>/dev/null
-    rm -fr $tmpdir_server
-    tmpdir_server=`pwd`
 }
 
 # function: find_and_connect_to_server
@@ -498,7 +496,7 @@ function find_and_connect_to_server {
     # Use a temp file here instead of a pipeline so that the side effects
     # of choose_server are seen by the rest of this script.
     cd $tmpdir_client
-    stap-find-servers > servers
+    ${exec_prefix}stap-find-servers > servers
     choose_server < servers
     rm -fr servers
 }
@@ -514,6 +512,22 @@ function choose_server {
     do
 	num_servers=$(($num_servers + 1))
 
+	# The server must match the dns name on the certificate
+	# and must be 'localhost' if the server is on the local host.
+	local server_host_name=`expr "$name" : "\\\([a-zA-Z0-9-]*\\\).*"`
+        local server_domain_name=`expr "$name" : "$server_host_name\\\(.*\\\)"`
+	local our_host_name=`expr "$HOSTNAME" : "\\\([a-zA-Z0-9-]*\\\).*"`
+        local our_domain_name=`expr "$HOSTNAME" : "$our_host_name\\\(.*\\\)"`
+
+        if test "X$server_domain_name" = "X.local"; then
+	    server_domain_name=$our_domain_name
+	fi
+	if test "X$server_host_name$server_domain_name" = "X$our_host_name$our_domain_name"; then
+	    server=localhost
+	else
+	    server=$server_host_name$server_domain_name
+	fi
+
 	if test "X$server" = "X"; then
 	    fatal "ERROR: server ip address not provided"
 	fi
@@ -522,7 +536,7 @@ function choose_server {
 	    fatal "ERROR: server port not provided"
 	fi
 
-	if connect_to_server $server $port; then
+	if send_receive; then
 	    return 0
 	fi
     done
@@ -531,29 +545,45 @@ function choose_server {
 	fatal "ERROR: unable to find a server"
     fi
 
+    cat $tmpdir_client/connect >&2
     fatal "ERROR: unable to connect to a server"
 }
 
-# function: connect_to_server IP PORT
+# function: send_receive
 #
-# Establish connection with the given server
-function connect_to_server {
-    for ((attempt=0; $attempt < 10; ++attempt))
+# Connect to the server, send the request and receive the response
+function send_receive {
+    # Make a place to receive the response file.
+    jar_server=`mktemp -t $tmpdir_prefix_client.server.jar.XXXXXX` || \
+	fatal "ERROR: cannot create temporary file " $jar_server
+
+    # If the server is local, try to connect using each of the given local
+    # certificate databases in turn for verification.
+    if test "X$server" = "Xlocalhost"; then
+	for db in $local_ssl_dbs
+	do
+            # Send the request and receive the response using stap-client-connect
+	    echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
+	    ${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	    wait '%${exec_prefix}stap-client-connect'
+	    test $? = 0 && ssl_db=$db && return 0
+	    sleep 1
+	done
+    fi
+
+    # We can try the public certificate databases for all servers.
+    for db in $public_ssl_dbs
     do
-	if echo "request:" | $netcat -w10 $1 $2 >/dev/null 2>&1; then
-	    return 0
-	fi
+        # Send the request and receive the response using stap-client-connect
+	echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
+	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%${exec_prefix}stap-client-connect'
+	test $? = 0 && ssl_db=$db && return 0
 	sleep 1
     done
 
+    # Could not connect using any of the certificate databases
     return 1
-}
-
-# function: disconnect_from_server
-#
-# Disconnect from the server.
-function disconnect_from_server {
-    :
 }
 
 # function: process_response
@@ -561,6 +591,7 @@ function disconnect_from_server {
 # Write the stdout and stderr from the server to stdout and stderr respectively.
 function process_response {
     # Pick up the results of running stap on the server.
+    cd $tmpdir_server
     rc=`cat rc`
 
     # Copy the module to the current directory, if -m was specified
@@ -637,7 +668,7 @@ function maybe_call_staprun {
 	    if test $v_level -ge 2; then
 		echo "running `which staprun` $staprun_opts $tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`" >&2
 	    fi
-	    PATH=`staprun_PATH` eval staprun "$staprun_opts" \
+	    eval `staprun_PATH` "$staprun_opts" \
 		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
 	    staprun_running=1
 	    wait '%?staprun' > /dev/null 2>&1
@@ -661,23 +692,25 @@ function maybe_call_staprun {
 #
 # Compute a PATH suitable for running staprun.
 function staprun_PATH {
-    # staprun may invoke 'stap'. So we can use the current PATH if we were
-    # not invoked as 'stap' or we are not the first 'stap' on the PATH.
-    local first_stap=`which stap 2>/dev/null`
-
-    if test "X$first_stap" = "X"; then
-	echo "$PATH"
+    # If $SYSTEMTAP_STAPRUN is set, then use that
+    if test "X$SYSTEMTAP_STAPRUN" != "X"; then
+	echo $SYSTEMTAP_STAPRUN
 	return
     fi
 
-    if test `which $0 2>/dev/null` != $first_stap; then
-	echo "$PATH"
+    # Otherwise, if there is an exec_prefix, then use it.
+    if test "X$exec_prefix" != "X"; then
+	echo ${exec_prefix}staprun
 	return
     fi
 
-    # Otherwise, remove the PATH component where we live from the PATH
+    # Otherwise, we have been called by the dejagnu test harness as 'stap'
+    # and we are the first 'stap' on the path. Since staprun may call
+    # 'stap', remove the PATH component where we live from the PATH in order to
+    # avoid recursion.
+    local first_stap=`which stap`
     local PATH_component=`dirname $first_stap`
-    echo "$PATH" | sed "s,$PATH_component,,g"
+    echo "PATH=$PATH staprun" | sed "s,$PATH_component,,g"
 }
 
 # function: fatal [ MESSAGE ]
@@ -686,7 +719,6 @@ function staprun_PATH {
 # Prints its arguments to stderr and exits
 function fatal {
     echo "$0:" "$@" >&2
-    disconnect_from_server
     cleanup
     exit 1
 }
@@ -699,8 +731,8 @@ function cleanup {
     cd $tmpdir_env
     if test $keep_temps != 1; then
 	rm -fr $tmpdir_client
-	rm -f  $tar_client
-	rm -f  $tar_server
+	rm -f  $zip_client
+	rm -f  $jar_server
 	rm -fr $tmpdir_server
     fi
 }
@@ -716,6 +748,9 @@ function terminate {
     # Kill any running staprun job
     kill -s SIGTERM '%?staprun' 2>/dev/null
 
+    # Kill any stap-client-connect job
+    kill -s SIGTERM '%${exec_prefix}stap-client-connect'
+
     exit 1
 }
 
@@ -728,6 +763,10 @@ function interrupt {
 	kill -s SIGINT '%?staprun' 2>/dev/null
 	return
     fi
+
+    # Kill any stap-client-connect job
+    # SIGINT won't do it.
+    kill -s SIGTERM '%${exec_prefix}stap-client-connect'
 
     # If staprun was not running, then exit.
     cleanup
@@ -750,9 +789,6 @@ parse_options "$@"
 create_request
 package_request
 find_and_connect_to_server
-send_request
-receive_response
-disconnect_from_server
 unpack_response
 process_response
 maybe_call_staprun

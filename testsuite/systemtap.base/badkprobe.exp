@@ -5,6 +5,7 @@ if {! [installtest_p]} { untested $test; return }
 
 spawn stap -g -w -e "$script"
 expect {
+    -timeout 60
     -re "^WARNING: probe .*registration error.*" { pass $test }
     eof { fail "$test (eof)" }
     timeout { fail "$test (timeout)" }

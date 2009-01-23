@@ -1,5 +1,5 @@
 // tapset resolution
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -1578,8 +1578,9 @@ struct dwflpp
   bool die_has_pc (Dwarf_Die & die, Dwarf_Addr pc)
   {
     int res = dwarf_haspc (&die, pc);
-    if (res == -1)
-      dwarf_assert ("dwarf_haspc", res);
+    // dwarf_ranges will return -1 if a function die has no DW_AT_ranges
+    // if (res == -1)
+    //    dwarf_assert ("dwarf_haspc", res);
     return res == 1;
   }
 
@@ -1708,7 +1709,7 @@ struct dwflpp
 
     assert (cu);
 
-    if (scope_die)
+    if (scope_die && pc == 0)
       nscopes = dwarf_getscopes_die (scope_die, &scopes);
     else
       nscopes = dwarf_getscopes (cu, pc, &scopes);
@@ -2258,8 +2259,8 @@ struct dwflpp
 
     if (sess.verbose>2)
       clog << "finding location for local '" << local
-	   << "' near address " << hex << pc
-	   << ", module bias " << module_bias << dec
+	   << "' near address 0x" << hex << pc
+	   << ", module bias 0x" << module_bias << dec
 	   << "\n";
 
     Dwarf_Attribute attr_mem;
@@ -3856,7 +3857,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
           // Verify that a raw address matches the beginning of a
           // statement. This is a somewhat lame check that the address
           // is at the start of an assembly instruction.
-          if (q->has_statement_num)
+	  // Avoid for now since this thwarts a probe on a statement in a macro
+          if (0 && q->has_statement_num)
             {
               Dwarf_Addr queryaddr = q->statement_num_val;
               dwarf_line_t address_line(dwarf_getsrc_die(cudie, queryaddr));
@@ -4605,6 +4607,15 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
                 this->visit_target_symbol(tsym); // NB: throws nothing ...
                 if (tsym->saved_conversion_error) // ... but this is how we know it happened.
                   {
+                    if (q.sess.verbose>2)
+                      {
+                        for (semantic_error *c = tsym->saved_conversion_error;
+                             c != 0;
+                             c = c->chain) {
+                          clog << "variable location problem: " << c->what() << endl;
+                        }
+                      }
+
                     pf->raw_components += diename;
                     pf->raw_components += "=? ";
                   }
@@ -5037,7 +5048,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
           assert (p->maxactive_val >= 0 && p->maxactive_val <= USHRT_MAX);
           s.op->line() << " .maxactive_val=" << p->maxactive_val << ",";
         }
-      s.op->line() << " .address=0x" << hex << p->addr << dec << "UL,";
+      s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .module=\"" << p->module << "\",";
       s.op->line() << " .section=\"" << p->section << "\",";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
@@ -5294,17 +5305,17 @@ dwarf_builder::build(systemtap_session & sess,
       use_debuginfo = 1
     };
 
-    location->components[0]->arg = new literal_string(sess.cmd);
-    ((literal_map_t&)parameters)[location->components[0]->functor] = location->components[0]->arg;
+//    location->components[0]->arg = new literal_string(sess.cmd);
+//    ((literal_map_t&)parameters)[location->components[0]->functor] = location->components[0]->arg;
     Dwarf_Addr bias;
-    Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw->module, &bias))
-		?: dwfl_module_getelf (dw->module, &bias));
+    Elf* elf = dwfl_module_getelf (dw->module, &bias);
     size_t shstrndx;
 
     Elf_Scn *probe_scn = NULL;
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
     __uint64_t probe_arg = 0;
     int probe_type = no_debuginfo;
+    char *probe_name;
     // Find the .probes section where the static probe label and arg are stored
     while ((probe_scn = elf_nextscn (elf, probe_scn)))
       {
@@ -5314,24 +5325,36 @@ dwarf_builder::build(systemtap_session & sess,
 
 	if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") != 0)
 	  continue;
-	Elf_Data *pdata = elf_getdata (probe_scn, NULL);
+	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
 	size_t probe_scn_offset = 0;
+	size_t probe_scn_addr = shdr->sh_addr;
 	while (probe_scn_offset < pdata->d_size)
 	  {
-	    char *probe_name = (char*)pdata->d_buf + probe_scn_offset;
-	    probe_scn_offset += strlen(probe_name);
-	    probe_scn_offset += sizeof(int) - (probe_scn_offset % sizeof(int));
-	    probe_type = *(((char*)pdata->d_buf + probe_scn_offset));
+	    const int stap_sentinel = 0x31425250;
+	    probe_type = *((int*)((char*)pdata->d_buf + probe_scn_offset));
+	    if (probe_type != stap_sentinel)
+	      {
+		probe_scn_offset += sizeof(int);
+		continue;
+	      }
 	    probe_scn_offset += sizeof(int);
-	    probe_arg = *((__uint32_t*)((char*)pdata->d_buf + probe_scn_offset));
-	    probe_arg <<= 32;
-	    probe_arg |= *((__uint32_t*)((char*)pdata->d_buf + probe_scn_offset + 4));
+	    if (probe_scn_offset % (sizeof(__uint64_t)))
+	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
+
+	    // pdata->d_buf + *(long*)(pdata->d_buf + probe_scn_offset) - probe_scn_addr
+	    probe_name = ((char*)((long)(pdata->d_buf) + (long)(*((int*)((long)pdata->d_buf + probe_scn_offset)) - probe_scn_addr)));
+	    probe_scn_offset += sizeof(void*);
+	    if (probe_scn_offset % (sizeof(__uint64_t)))
+	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
+	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
 	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name) == 0)
 	      break;
-	    probe_scn_offset += sizeof(__uint64_t);
-	    probe_scn_offset += sizeof(__uint64_t)*2 - (probe_scn_offset % (sizeof(__uint64_t)*2));
+	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
+	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
 	  }
+	if (probe_scn_offset < pdata->d_size)
+	  break;
       }
 
     if (probe_type == no_debuginfo)
@@ -5378,7 +5401,6 @@ dwarf_builder::build(systemtap_session & sess,
     size_t cuhl;
     Dwarf_Off noff = 0;
     const char *probe_file = "@sduprobes.c";
-    int probe_line;
     // Find where the probe instrumentation landing points are defined
     while (dwarf_nextcu (dwarf, off = noff, &noff, &cuhl, NULL, NULL, NULL) == 0)
       {
@@ -5393,15 +5415,6 @@ dwarf_builder::build(systemtap_session & sess,
 		break;
 	      }
 	  }
-	else
-	  {
-	    Dwarf_Line *dwarf_line = dwarf_getsrc_die (cudie, probe_arg);
-	    if (dwarf_line == NULL)
-	      continue;
-	    dwarf_lineno (dwarf_line, &probe_line);
-	    probe_file = (dwarf_diename(&cudie_mem) ?: "<unknown>");
-	    break;
-	  }
       }
     location->components[1]->functor = TOK_STATEMENT;
     if (probe_type == no_debuginfo)
@@ -5414,11 +5427,9 @@ dwarf_builder::build(systemtap_session & sess,
       }
     else
       {
-	char *pline;
-	if (asprintf (&pline, "*@%s:%d", probe_file, probe_line + 1) < 0)
-	  return;
-	location->components[1]->arg = new literal_string(pline);
+	location->components[1]->arg = new literal_number((int)probe_arg);
       }
+
     ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
     dw->module = 0;
   }
@@ -7107,7 +7118,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << "},";
       if (p->section != ".absolute")
         s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
-      s.op->line() << " .address=0x" << hex << p->address << dec << "UL,";
+      s.op->line() << " .address=(unsigned long)0x" << hex << p->address << dec << "ULL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
       if (p->return_p) s.op->line() << " .return_p=1,";

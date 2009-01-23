@@ -129,7 +129,7 @@
 </indexterm>
     <para>
       SystemTap scripts use the file extension <filename>.stp</filename>, and
-      are conatains probes written in the following format:
+      contains probes written in the following format:
     </para>
   </formalpara>	
 <screen>
@@ -547,14 +547,14 @@ probe timer.s(4)
 
   </section>
 <!-- stophere -->
-  <section id="systemtapscript-handler">
-    <title>Systemtap Handler/Body</title>
-<indexterm>
-<primary>Handlers</primary>
-<secondary>introduction</secondary>
-</indexterm>
-    <para> Consider the following sample script: </para>
-
+<section id="systemtapscript-handler">
+	<title>Systemtap Handler/Body</title>
+	<indexterm>
+		<primary>handlers</primary>
+		<secondary>introduction</secondary>
+	</indexterm>
+	<para> Consider the following sample script: </para>
+	
 <example id="helloworld"><title>helloworld.stp</title>
 <programlisting>
 probe begin
@@ -564,108 +564,108 @@ probe begin
 }
 </programlisting>	
 </example>
-
-    <para>
-      In <xref linkend="helloworld"/>, the event <command>begin</command>
-      (i.e. the start of the session) triggers the handler enclosed in
-      <command>{ }</command>, which simply prints <command>hello
-      world</command>, then exits.
-    </para>	
-
-    <note>
-      <title>Note</title>
-<indexterm>
-<primary>Handlers</primary>
-<secondary><command>exit()</command></secondary>
-</indexterm>
-
-<indexterm>
-<primary><command>exit()</command></primary>
-<secondary>Handlers</secondary>
-</indexterm>
-      <para>
-	SystemTap scripts continue to run until the
-	<command>exit()</command> function executes. If the users wants to stop
-	the execution of the script, it can interrupted manually with
-	<keycombo><keycap>Ctrl</keycap><keycap>C</keycap></keycombo>.
-      </para>
-    </note>
-
-    <formalpara id="printf">
-      <title>printf ( ) Statements</title>
-<indexterm>
-	      <primary><command>printf()</command></primary>
-	      <secondary>format strings</secondary>
-      </indexterm>
-
-      <para>
-	The <command>printf ()</command> statement is one of the simplest
-	functions for printing data. <command>printf ()</command> can also be
-	used to display data using a wide variety of SystemTap functions in the
-	following format:
-      </para>
-    </formalpara>
-
-
-<programlisting>
-printf ("<replaceable>format string</replaceable>\n", <replaceable>arguments</replaceable>)
-</programlisting>
-<indexterm>
-<primary><command>printf()</command></primary>
-<secondary>format strings</secondary>
-</indexterm>
-
-<indexterm>
-<primary>format strings</primary>
-<secondary><command>printf()</command></secondary>
-</indexterm>
-    <para>
-	The <replaceable>format string</replaceable> specifies how
-	<replaceable>arguments</replaceable> should be printed. The format string
-	of <xref linkend="helloworld"/> simply instructs SystemTap to print
-	<command>hello world</command>, and contains no format specifiers.
-    </para>
-<indexterm>
-<primary><command>printf()</command></primary>
-<secondary>format specifiers</secondary>
-</indexterm>
-
-<indexterm>
-<primary>format specifiers</primary>
-<secondary><command>printf()</command></secondary>
-</indexterm>
-    <para>
-	You can use the format specifiers <command>%s</command> (for strings)
-	and <command>%d</command> (for numbers) in format strings, depending on
-	your list of arguments. Format strings can have multiple format
-	specifiers, each matching a corresponding argument; multiple arguments
-	are delimited by a comma (<command>,</command>).
-    </para>
-
-    <note>
-      <title>Note</title>
-<indexterm>
-<primary><command>printf()</command></primary>
-<secondary>syntax and format</secondary>
-</indexterm>
-
-<indexterm>
-<primary>syntax and format</primary>
-<secondary><command>printf()</command></secondary>
-</indexterm>
-<indexterm>
-<primary>format and syntax</primary>
-<secondary><command>printf()</command></secondary>
-</indexterm>
-	<para>Semantically, the SystemTap <command>printf</command> function is
-	very similar to its C language counterpart. The aforementioned syntax
-	and format for SystemTap's <command>printf</command> function is
-	identical to that of the C-style <command>printf</command>.
-      </para>
-    </note>
-
-    <para> To illustrate this, consider the following probe example: </para>
-
+	
+	<para>
+		In <xref linkend="helloworld"/>, the event <command>begin</command>
+		(i.e. the start of the session) triggers the handler enclosed in
+		<command>{ }</command>, which simply prints <command>hello
+			world</command> followed by a new-line, then exits.
+	</para>	
+	
+	<note>
+		<title>Note</title>
+		<indexterm>
+			<primary>functions (used in handlers)</primary>
+			<secondary><command>exit()</command></secondary>
+		</indexterm>
+		
+		<indexterm>
+			<primary><command>exit()</command></primary>
+			<secondary>functions</secondary>
+		</indexterm>
+		<para>
+			SystemTap scripts continue to run until the
+			<command>exit()</command> function executes. If the users wants to stop
+			the execution of the script, it can interrupted manually with
+			<keycombo><keycap>Ctrl</keycap><keycap>C</keycap></keycombo>.
+		</para>
+	</note>
+	
+	<formalpara id="printf">
+		<title>printf ( ) Statements</title>
+		<indexterm>
+			<primary><command>printf()</command></primary>
+			<secondary>format strings</secondary>
+		</indexterm>
+		
+		<para>
+			The <command>printf ()</command> statement is one of the simplest
+			functions for printing data. <command>printf ()</command> can also be
+			used to display data using a wide variety of SystemTap functions in the
+			following format:
+		</para>
+	</formalpara>
+	
+	
+	<programlisting>
+		printf ("<replaceable>format string</replaceable>\n", <replaceable>arguments</replaceable>)
+	</programlisting>
+	<indexterm>
+		<primary><command>printf()</command></primary>
+		<secondary>format strings</secondary>
+	</indexterm>
+	
+	<indexterm>
+		<primary>format strings</primary>
+		<secondary><command>printf()</command></secondary>
+	</indexterm>
+	<para>
+		The <replaceable>format string</replaceable> specifies how
+		<replaceable>arguments</replaceable> should be printed. The format string
+		of <xref linkend="helloworld"/> simply instructs SystemTap to print
+		<command>hello world</command>, and contains no format specifiers.
+	</para>
+	<indexterm>
+		<primary><command>printf()</command></primary>
+		<secondary>format specifiers</secondary>
+	</indexterm>
+	
+	<indexterm>
+		<primary>format specifiers</primary>
+		<secondary><command>printf()</command></secondary>
+	</indexterm>
+	<para>
+		You can use the format specifiers <command>%s</command> (for strings)
+		and <command>%d</command> (for numbers) in format strings, depending on
+		your list of arguments. Format strings can have multiple format
+		specifiers, each matching a corresponding argument; multiple arguments
+		are delimited by a comma (<command>,</command>).
+	</para>
+	
+	<note>
+		<title>Note</title>
+		<indexterm>
+			<primary><command>printf()</command></primary>
+			<secondary>syntax and format</secondary>
+		</indexterm>
+		
+		<indexterm>
+			<primary>syntax and format</primary>
+			<secondary><command>printf()</command></secondary>
+		</indexterm>
+		<indexterm>
+			<primary>format and syntax</primary>
+			<secondary><command>printf()</command></secondary>
+		</indexterm>
+		<para>Semantically, the SystemTap <command>printf</command> function is
+			very similar to its C language counterpart. The aforementioned syntax
+			and format for SystemTap's <command>printf</command> function is
+			identical to that of the C-style <command>printf</command>.
+		</para>
+	</note>
+	
+	<para> To illustrate this, consider the following probe example: </para>
+	
 <example id="syscall-open">
 <title>variables-in-printf-statements.stp</title>
 <programlisting>
@@ -675,19 +675,19 @@ probe syscall.open
 }
 </programlisting>
 </example>
-
-    <para>
-      <xref linkend="syscall-open"/> instructs SystemTap to probe all entries to
-      the system call <command>open</command>; for each event, it prints the
-      current <command>execname()</command> (a string with the executable name) and
-      <command>pid()</command> (the current process ID number), followed by the word
-      <command>open</command>. A snippet of this probe's output would look like:
-    </para>
-
-    <remark>editorial review: does a clarification that "format specifier1" is
-      to "argument1", "format specifier2" is to "argument2", or is this clear
-      enough? </remark>
-
+	
+	<para>
+		<xref linkend="syscall-open"/> instructs SystemTap to probe all entries to
+		the system call <command>open</command>; for each event, it prints the
+		current <command>execname()</command> (a string with the executable name) and
+		<command>pid()</command> (the current process ID number), followed by the word
+		<command>open</command>. A snippet of this probe's output would look like:
+	</para>
+	
+	<remark>editorial review: does a clarification that "format specifier1" is
+		to "argument1", "format specifier2" is to "argument2", or is this clear
+		enough? </remark>
+	
 <screen>
 vmware-guestd(2206) open
 hald(2360) open
@@ -698,245 +698,253 @@ df(3433) open
 df(3433) open
 hald(2360) open
 </screen>
-
-    <formalpara id="systemtapscript-functions">
-      <title>SystemTap Functions</title>
-<indexterm>
-<primary>functions</primary>
-</indexterm>
-
-<indexterm>
-<primary>SystemTap script functions</primary>
-</indexterm>
-
-<indexterm>
-	<primary>Handlers</primary>
-	<secondary>handler functions</secondary>
-</indexterm>
-
-<indexterm>
-	<primary>handler functions</primary>
-	<secondary>Handlers</secondary>
-</indexterm>
-
-      <para>
-	SystemTap supports a wide variety of functions that can be used as
-	<command>printf ()</command> arguments. <xref linkend="syscall-open"/>
-	uses the SystemTap functions <command>execname()</command> (name of the
-	process that called a kernel function/performed a system call) and
-	<command>pid()</command> (current process ID).
-      </para>
-    </formalpara>		
-
-    <remark>is "handler function" an appropriate term? wcohen: use "SystemTap functions" to match up language in man pages</remark>
-<indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-</indexterm>
-
-    <para>The following is a list of commonly-used SystemTap functions:</para>	
-<variablelist>
-
-<varlistentry>
-	<term>tid()</term>
-	<listitem>
-<indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-<tertiary><command>tid()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary>handler functions</primary>
-<secondary>Handlers</secondary>
-<tertiary><command>tid()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary><command>tid()</command></primary>
-<secondary>Handlers</secondary>
-<tertiary>handler functions</tertiary>
-</indexterm>
-
-		<para>The ID of the current thread.</para>
-	</listitem>	
-</varlistentry>	
-
-<varlistentry>
-	<term>uid()</term>
-	<listitem>
-<indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-<tertiary><command>uid()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary>handler functions</primary>
-<secondary>Handlers</secondary>
-<tertiary><command>uid()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary><command>uid()</command></primary>
-<secondary>Handlers</secondary>
-<tertiary>handler functions</tertiary>
-</indexterm>
-		<para>The ID of the current user.</para>
-	</listitem>	
-</varlistentry>
-
-<varlistentry>
-	<term>cpu()</term>
-	<listitem>
-<indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-<tertiary><command>cpu()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary>handler functions</primary>
-<secondary>Handlers</secondary>
-<tertiary><command>cpu()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary><command>cpu()</command></primary>
-<secondary>Handlers</secondary>
-<tertiary>handler functions</tertiary>
-</indexterm>		
-		<para>The current CPU number.</para>
-	</listitem>	
-</varlistentry>
-
-<varlistentry>
-	<term>gettimeofday_s()</term>
-	<listitem>
-<indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-<tertiary><command>gettimeofday_s()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary>handler functions</primary>
-<secondary>Handlers</secondary>
-<tertiary><command>gettimeofday_s()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary><command>gettimeofday_s()</command></primary>
-<secondary>Handlers</secondary>
-<tertiary>handler functions</tertiary>
-</indexterm>
-
-		<para>The number of seconds since UNIX epoch (January 1, 1970).</para>
-	</listitem>	
-</varlistentry>
-
-<varlistentry>
-	<term>ctime()</term>
-	<listitem>
+	
+	<formalpara id="systemtapscript-functions">
+		<title>SystemTap Functions</title>
+		<indexterm>
+			<primary>functions</primary>
+		</indexterm>
+		
+		<indexterm>
+			<primary>SystemTap script functions</primary>
+		</indexterm>
+		
+		<indexterm>
+			<primary>handler functions</primary>
+		</indexterm>
+		
 		<para>
-	Convert number of seconds since UNIX epoch to date.</para>
-	</listitem>	
-</varlistentry>
-
-<!--
-<varlistentry>
-	<term>get_cycles()</term>
-	<listitem>
-		<para>A snapshot of the hardware cycle counter.</para>
-	</listitem>	
-</varlistentry>
--->
-
-<varlistentry>
-	<term>pp()</term>
-	<listitem>
-<indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-<tertiary><command>pp()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary>handler functions</primary>
-<secondary>Handlers</secondary>
-<tertiary><command>pp()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary><command>pp()</command></primary>
-<secondary>Handlers</secondary>
-<tertiary>handler functions</tertiary>
-</indexterm>
-		<para>A string describing the probe point currently being handled.</para>
-	</listitem>	
-</varlistentry>
-<!-- removed, doesnt work as expected anymore
-<varlistentry>
-	<term>probefunc()</term>
-	<listitem>
-		<para>If known, the name of the function in which the probe was placed.</para>
-	</listitem>	
-</varlistentry>
--->
-
-<varlistentry>
-	<term>thread_indent()</term>
-	<listitem>
-<indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-<tertiary><command>thread_indent()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary>handler functions</primary>
-<secondary>Handlers</secondary>
-<tertiary><command>thread_indent()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary><command>thread_indent()</command></primary>
-<secondary>Handlers</secondary>
-<tertiary>handler functions</tertiary>
-</indexterm>
-	<para>
-	    This particular function is quite useful, providing you with a way
-	    to better organize your print results. The function takes one
-	    argument, an indentation delta, which indicates how many
-	    spaces to add or remove from a thread's "indentation counter".
-	    It then returns a
-	    string with some generic trace data along with an appropriate number
-	    of indentation spaces.
-	  </para>
+			SystemTap supports a wide variety of functions that can be used as
+			<command>printf ()</command> arguments. <xref linkend="syscall-open"/>
+			uses the SystemTap functions <command>execname()</command> (name of the
+			process that called a kernel function/performed a system call) and
+			<command>pid()</command> (current process ID).
+		</para>
+	</formalpara>		
+	
+	<remark>is "handler function" an appropriate term? wcohen: use "SystemTap functions" to match up language in man pages</remark>
+	
+	<para>The following is a list of commonly-used SystemTap functions:</para>	
+	<variablelist>
 		
-	  <para>
-	    The generic data included in the returned string includes a
-	    timestamp (number of microseconds since the 
-	    first call to <command>thread_indent()</command> by the thread),
-	    a process name, and the thread ID. This allows you to
-	    identify what functions were called, who called them, and the
-	    duration of each function call.
-	  </para>	
-
-	  <para>
-	    If call entries and exits immediately precede each other, it is easy
-	    to match them. However, in most cases, after a first function call
-	    entry is made several other call entries and exits may be made
-	    before the first call exits. The indentation counter helps you match
-	    an entry with its corresponding exit by indenting the next function
-	    call if it is not the exit of the previous one.
-	  </para>
+		<varlistentry>
+			<term>tid()</term>
+			<listitem>
+				<indexterm>
+					<primary>functions</primary>
+					<secondary><command>tid()</command></secondary>
+<!-- 					<tertiary><command>tid()</command></tertiary> -->
+				</indexterm>
+				
+				<indexterm>
+					<primary>functions</primary>
+					<secondary><command>tid()</command></secondary>
+<!-- 					<tertiary></tertiary> -->
+				</indexterm>
+				
+				<indexterm>
+					<primary><command>tid()</command></primary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler </tertiary> -->
+				</indexterm>
+				
+				<para>The ID of the current thread.</para>
+			</listitem>	
+		</varlistentry>	
 		
-	  <para>
-	    Consider the following example on the use of
-	    <command>thread_indent()</command>:
-	  </para>
+		<varlistentry>
+			<term>uid()</term>
+			<listitem>
+				<indexterm>
+					<primary>functions</primary>
+					<!--<secondary>handler functions</secondary>-->
+					<secondary><command>uid()</command></secondary>
+				</indexterm>
+<!--				
+				<indexterm>
+					<primary>handler functions</primary>
+					<secondary>Handlers</secondary>
+					<tertiary><command>uid()</command></tertiary>
+				</indexterm>
+				-->
+				<indexterm>
+					<primary><command>uid()</command></primary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler functions</tertiary> -->
+				</indexterm>
+				<para>The ID of the current user.</para>
+			</listitem>	
+		</varlistentry>
 		
+		<varlistentry>
+			<term>cpu()</term>
+			<listitem>
+				<indexterm>
+					<primary>functions</primary>
+					<!--<secondary>handler functions</secondary>-->
+					<secondary><command>cpu()</command></secondary>
+				</indexterm>
+<!--				
+				<indexterm>
+					<primary>handler functions</primary>
+					<secondary>Handlers</secondary>
+					<tertiary><command>cpu()</command></tertiary>
+				</indexterm>
+				-->
+				<indexterm>
+					<primary><command>cpu()</command></primary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler functions</tertiary> -->
+				</indexterm>		
+				<para>The current CPU number.</para>
+			</listitem>	
+		</varlistentry>
+		
+		<varlistentry>
+			<term>gettimeofday_s()</term>
+			<listitem>
+				<indexterm>
+					<primary>functions</primary>
+					<!--<secondary>handler functions</secondary>-->
+					<secondary><command>gettimeofday_s()</command></secondary>
+				</indexterm>
+<!--				
+				<indexterm>
+					<primary>handler functions</primary>
+					<secondary>Handlers</secondary>
+					<tertiary><command>gettimeofday_s()</command></tertiary>
+				</indexterm>
+				-->
+				<indexterm>
+					<primary><command>gettimeofday_s()</command></primary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler functions</tertiary> -->
+				</indexterm>
+				
+				<para>The number of seconds since UNIX epoch (January 1, 1970).</para>
+			</listitem>	
+		</varlistentry>
+		
+		<varlistentry>
+			<term>ctime()</term>
+			<listitem>
+				<indexterm>
+					<primary>functions</primary>
+					<!--<secondary>handler functions</secondary>-->
+					<secondary><command>ctime()</command></secondary>
+				</indexterm>
+<!--				
+				<indexterm>
+					<primary>handler functions</primary>
+					<secondary>Handlers</secondary>
+					<tertiary><command>ctime()</command></tertiary>
+				</indexterm>
+				-->
+				<indexterm>
+					<primary><command>ctime()</command></primary>
+					<secondary>functions</secondary>
+<!-- 					<tertiary>handler functions</tertiary> -->
+				</indexterm>				
+				<para>
+					Convert number of seconds since UNIX epoch to date.
+				</para>
+			</listitem>	
+		</varlistentry>
+		
+		<!--
+		    <varlistentry>
+			    <term>get_cycles()</term>
+			    <listitem>
+				    <para>A snapshot of the hardware cycle counter.</para>
+			    </listitem>	
+		    </varlistentry>
+		    -->
+		    
+		    <varlistentry>
+			    <term>pp()</term>
+			    <listitem>
+				    <indexterm>
+					    <primary>functions</primary>
+					    <!--<secondary>handler functions</secondary>-->
+					    <secondary><command>pp()</command></secondary>
+				    </indexterm>
+<!--				    
+				    <indexterm>
+					    <primary>handler functions</primary>
+					    <secondary>Handlers</secondary>
+					    <tertiary><command>pp()</command></tertiary>
+				    </indexterm>
+				    -->
+				    <indexterm>
+					    <primary><command>pp()</command></primary>
+					    <secondary>functions</secondary>
+<!-- 					    <tertiary>handler functions</tertiary> -->
+				    </indexterm>
+				    <para>A string describing the probe point currently being handled.</para>
+			    </listitem>	
+		    </varlistentry>
+		    <!-- removed, doesnt work as expected anymore
+			 <varlistentry>
+				 <term>probefunc()</term>
+				 <listitem>
+					 <para>If known, the name of the function in which the probe was placed.</para>
+				 </listitem>	
+			 </varlistentry>
+			 -->
+			 
+			 <varlistentry>
+				 <term>thread_indent()</term>
+				 <listitem>
+					 <indexterm>
+						 <primary>functions</primary>
+						 <!--<secondary>handler functions</secondary>-->
+						 <secondary><command>thread_indent()</command></secondary>
+					 </indexterm>
+<!--					 
+					 <indexterm>
+						 <primary>handler functions</primary>
+						 <secondary>Handlers</secondary>
+						 <tertiary><command>thread_indent()</command></tertiary>
+					 </indexterm>
+					 -->
+					 <indexterm>
+						 <primary><command>thread_indent()</command></primary>
+						 <secondary>functions</secondary>
+<!-- 						 <tertiary>handler functions</tertiary> -->
+					 </indexterm>
+					 <para>
+						 This particular function is quite useful, providing you with a way
+						 to better organize your print results. The function takes one
+						 argument, an indentation delta, which indicates how many
+						 spaces to add or remove from a thread's "indentation counter".
+						 It then returns a
+						 string with some generic trace data along with an appropriate number
+						 of indentation spaces.
+					 </para>
+					 
+					 <para>
+						 The generic data included in the returned string includes a
+						 timestamp (number of microseconds since the 
+						 first call to <command>thread_indent()</command> by the thread),
+						 a process name, and the thread ID. This allows you to
+						 identify what functions were called, who called them, and the
+						 duration of each function call.
+					 </para>	
+					 
+					 <para>
+						 If call entries and exits immediately precede each other, it is easy
+						 to match them. However, in most cases, after a first function call
+						 entry is made several other call entries and exits may be made
+						 before the first call exits. The indentation counter helps you match
+						 an entry with its corresponding exit by indenting the next function
+						 call if it is not the exit of the previous one.
+					 </para>
+					 
+					 <para>
+						 Consider the following example on the use of
+						 <command>thread_indent()</command>:
+					 </para>
+					 
 <example id="thread_indent"><title>thread_indent.stp</title>
 <programlisting>
 probe kernel.function("*@net/socket.c") 
@@ -949,108 +957,122 @@ probe kernel.function("*@net/socket.c").return
 }
 </programlisting>
 </example>
-
-	  <para>
-	    <xref linkend="thread_indent"/> prints out the
-	    <command>thread_indent()</command> and probe functions at each event
-	    in the following format:</para>
-	
+					 
+					 <para>
+						 <xref linkend="thread_indent"/> prints out the
+						 <command>thread_indent()</command> and probe functions at each event
+						 in the following format:</para>
+					 
 <screen>
-     0 ftp(7223): -&gt; sys_socketcall
-  1159 ftp(7223):  -&gt; sys_socket
-  2173 ftp(7223):   -&gt; __sock_create
-  2286 ftp(7223):    -&gt; sock_alloc_inode
-  2737 ftp(7223):    &lt;- sock_alloc_inode
-  3349 ftp(7223):    -&gt; sock_alloc
-  3389 ftp(7223):    &lt;- sock_alloc
-  3417 ftp(7223):   &lt;- __sock_create
-  4117 ftp(7223):   -&gt; sock_create
-  4160 ftp(7223):   &lt;- sock_create
-  4301 ftp(7223):   -&gt; sock_map_fd
-  4644 ftp(7223):    -&gt; sock_map_file
-  4699 ftp(7223):    &lt;- sock_map_file
-  4715 ftp(7223):   &lt;- sock_map_fd
-  4732 ftp(7223):  &lt;- sys_socket
-  4775 ftp(7223): &lt;- sys_socketcall
+0 ftp(7223): -&gt; sys_socketcall
+1159 ftp(7223):  -&gt; sys_socket
+2173 ftp(7223):   -&gt; __sock_create
+2286 ftp(7223):    -&gt; sock_alloc_inode
+2737 ftp(7223):    &lt;- sock_alloc_inode
+3349 ftp(7223):    -&gt; sock_alloc
+3389 ftp(7223):    &lt;- sock_alloc
+3417 ftp(7223):   &lt;- __sock_create
+4117 ftp(7223):   -&gt; sock_create
+4160 ftp(7223):   &lt;- sock_create
+4301 ftp(7223):   -&gt; sock_map_fd
+4644 ftp(7223):    -&gt; sock_map_file
+4699 ftp(7223):    &lt;- sock_map_file
+4715 ftp(7223):   &lt;- sock_map_fd
+4732 ftp(7223):  &lt;- sys_socket
+4775 ftp(7223): &lt;- sys_socketcall
 </screen>
-
-<para>This sample output contains the following information:</para>
-
-<itemizedlist>
-	<listitem><para>The time (in microseconds) since the initial <command>thread_ident()</command> call for the thread (included in the string from <command>thread_ident()</command>).</para></listitem>
-	
-	<listitem><para>The process name (and its corresponding ID) that made the function call (included in the string from <command>thread_ident()</command>).</para></listitem>
-	
-	<listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
-	
-	<listitem><para>The name of the function called by the process.</para></listitem>
-</itemizedlist>	
-
-<remark>remember to add a reference later to "tapsets" from here, to clarify
-that thread_indent is defined in tapsets as a special function of sorts</remark>
-	
-	</listitem>	
-      </varlistentry>
-
-      <varlistentry>
-	<term>name</term>
-	<listitem>
+					 
+					 <para>This sample output contains the following information:</para>
+					 
+					 <itemizedlist>
+						 <listitem><para>The time (in microseconds) since the initial <command>thread_ident()</command> call for the thread (included in the string from <command>thread_ident()</command>).</para></listitem>
+						 
+						 <listitem><para>The process name (and its corresponding ID) that made the function call (included in the string from <command>thread_ident()</command>).</para></listitem>
+						 
+						 <listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
+						 
+						 <listitem><para>The name of the function called by the process.</para></listitem>
+					 </itemizedlist>	
+					 
+					 <remark>remember to add a reference later to "tapsets" from here, to clarify
+						 that thread_indent is defined in tapsets as a special function of sorts</remark>
+					 
+				 </listitem>	
+			 </varlistentry>
+			 
+			 <varlistentry>
+				 <term>name</term>
+				 <listitem>
 <indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-<tertiary><command>name</command></tertiary>
+<primary>local variables</primary>
+<secondary>name</secondary>
 </indexterm>
 
 <indexterm>
-<primary>handler functions</primary>
-<secondary>Handlers</secondary>
-<tertiary><command>name</command></tertiary>
+<primary>variables (local)</primary>
+<secondary>name</secondary>
 </indexterm>
 
 <indexterm>
-<primary><command>name</command></primary>
-<secondary>Handlers</secondary>
-<tertiary>handler functions</tertiary>
-</indexterm>
-	  <para>Identifies the name of a specific system call. This variable can
-	  only be used in probes that use the event
-	  <command>syscall.<replaceable>system_call</replaceable></command>.
-	  </para>
-	</listitem>	
-      </varlistentry>
-
-      <varlistentry>
-	<term>target()</term>
-	<listitem>
-
-<indexterm>
-<primary>Handlers</primary>
-<secondary>handler functions</secondary>
-<tertiary><command>target()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary>handler functions</primary>
-<secondary>Handlers</secondary>
-<tertiary><command>target()</command></tertiary>
-</indexterm>
-
-<indexterm>
-<primary><command>target()</command></primary>
-<secondary>Handlers</secondary>
-<tertiary>handler functions</tertiary>
-</indexterm>
-	<para>
-	    Used in conjunction with <command>stap
-	    <replaceable>script</replaceable> -x <replaceable>process
-	    ID</replaceable></command> or <command>stap
-	    <replaceable>script</replaceable> -c
-	    <replaceable>command</replaceable></command>. If you want to specify
-	    a script to take an argument of a process ID or command, use
-	    <command>target()</command> as the variable in the script to refer
-	    to it. For example:
-	  </para>
-			
+<primary>name</primary>
+<secondary>local variables</secondary>
+</indexterm>					 
+<!--					 <indexterm>
+						 <primary>functions</primary>
+						 <secondary>handler functions</secondary>
+						 <tertiary><command>name</command></tertiary>
+					 </indexterm>
+					 
+					 <indexterm>
+						 <primary>handler functions</primary>
+						 <secondary>Handlers</secondary>
+						 <tertiary><command>name</command></tertiary>
+					 </indexterm>
+					 
+					 <indexterm>
+						 <primary><command>name</command></primary>
+						 <secondary>Handlers</secondary>
+						 <tertiary>handler functions</tertiary>
+					 </indexterm>-->
+					 <para>Identifies the name of a specific system call. This variable can
+						 only be used in probes that use the event
+						 <command>syscall.<replaceable>system_call</replaceable></command>.
+					 </para>
+				 </listitem>	
+			 </varlistentry>
+			 
+			 <varlistentry>
+				 <term>target()</term>
+				 <listitem>
+					 
+					 <indexterm>
+						 <primary>functions</primary>
+<!-- 						 <secondary>handler functions</secondary> -->
+						 <secondary><command>target()</command></secondary>
+					 </indexterm>
+<!--					 
+					 <indexterm>
+						 <primary>handler functions</primary>
+						 <secondary>Handlers</secondary>
+						 <tertiary><command>target()</command></tertiary>
+					 </indexterm>
+					 -->
+					 <indexterm>
+						 <primary><command>target()</command></primary>
+						 <secondary>functions</secondary>
+<!-- 						 <tertiary>handler functions</tertiary> -->
+					 </indexterm>
+					 <para>
+						 Used in conjunction with <command>stap
+							 <replaceable>script</replaceable> -x <replaceable>process
+								 ID</replaceable></command> or <command>stap
+							 <replaceable>script</replaceable> -c
+							 <replaceable>command</replaceable></command>. If you want to specify
+						 a script to take an argument of a process ID or command, use
+						 <command>target()</command> as the variable in the script to refer
+						 to it. For example:
+					 </para>
+					 
 <example id="targetexample">
 <title>targetexample.stp</title>
 <programlisting>
@@ -1060,65 +1082,64 @@ probe syscall.* {
 }	
 </programlisting>
 </example>
-
-	  <para>
-	    When <xref linkend="targetexample"/> is run with the argument
-	    <command>-x <replaceable>process ID</replaceable></command>, it
-	    watches all system calls (as specified by the event
-	    <command>syscall.*</command>) and prints out the name of all system
-	    calls made by the specified process.
-	  </para>
-	
-	  <para>
-	    This has the same effect as specifying <command>if (pid() ==
-	    <replaceable>process ID</replaceable>)</command> each time you wish
-	    to target a specific process. However, using
-	    <command>target()</command> makes it easier for you to re-use the
-	    script, giving you the ability to simply pass a process ID as an
-	    argument each time you wish to run the script (e.g. <command>stap
-	    targetexample.stp -x <replaceable>process ID</replaceable></command>).
-	  </para>
-<!--		
-<note>
-	<title>Note</title>
-	<para>In <xref linkend="targetexample"/>, <command>name</command> instructs SystemTap to capture the name of the process</para>
-</note>	-->
-
-	</listitem>
-      </varlistentry>
-
-<!--	
-<varlistentry>
-	<term></term>
-	<listitem>
-		<para></para>
-	</listitem>	
-</varlistentry>
--->	
-    </variablelist>		
-
-    <para>For more information about supported SystemTap functions, refer to
-      <command>man stapfuncs</command>.
-    </para>
-
-<remark>will need a complete listing of supported handler functions? also, SystemTap function descriptions seem ambiguous, please advise.</remark>
-
-<!--	
-<para>
-	<replaceable>variable</replaceable> can be either <command>%s</command> for strings, or <command>%d</command> for numbers, depending on the <replaceable>handler function</replaceable> used. Each <command>printf ()</command> statement can contain multiple <replaceable>variable</replaceable>s, with each one corresponding to a matching <replaceable>handler function</replaceable>. Multiple <replaceable>handler function</replaceable>s are delimited by comma (<command>,</command>). 
-</para>	
-
-	<command>printf ()</command> is a SystemTap-supported C statement, and can also trap data using a wide variety
-	
-	SystemTap supports a wide variety of handler functions that can trap data when triggered by events. One way to display these functions is to use the <command>print()</command>   
-</para>	
-		
-		
-<para>
-	<xref linkend="wildcards"/> illustrates an example of a SystemTap script that contains no handlers. SystemTap will still be able to run the script, but no information will be displayed. 	
-</para>
--->
-
+					 
+					 <para>
+						 When <xref linkend="targetexample"/> is run with the argument
+						 <command>-x <replaceable>process ID</replaceable></command>, it
+						 watches all system calls (as specified by the event
+						 <command>syscall.*</command>) and prints out the name of all system
+						 calls made by the specified process.
+					 </para>
+					 
+					 <para>
+						 This has the same effect as specifying <command>if (pid() ==
+							 <replaceable>process ID</replaceable>)</command> each time you wish
+						 to target a specific process. However, using
+						 <command>target()</command> makes it easier for you to re-use the
+						 script, giving you the ability to simply pass a process ID as an
+						 argument each time you wish to run the script (e.g. <command>stap
+							 targetexample.stp -x <replaceable>process ID</replaceable></command>).
+					 </para>
+					 <!--		
+							<note>
+								<title>Note</title>
+								<para>In <xref linkend="targetexample"/>, <command>name</command> instructs SystemTap to capture the name of the process</para>
+							</note>	-->
+							
+						</listitem>
+					</varlistentry>
+					
+					<!--	
+						<varlistentry>
+							<term></term>
+							<listitem>
+								<para></para>
+							</listitem>	
+						</varlistentry>
+						-->	
+					</variablelist>		
+					
+					<para>For more information about supported SystemTap functions, refer to
+						<command>man stapfuncs</command>.
+					</para>
+					
+					<remark>will need a complete listing of supported handler functions? also, SystemTap function descriptions seem ambiguous, please advise.</remark>
+					
+					<!--	
+						<para>
+							<replaceable>variable</replaceable> can be either <command>%s</command> for strings, or <command>%d</command> for numbers, depending on the <replaceable>handler function</replaceable> used. Each <command>printf ()</command> statement can contain multiple <replaceable>variable</replaceable>s, with each one corresponding to a matching <replaceable>handler function</replaceable>. Multiple <replaceable>handler function</replaceable>s are delimited by comma (<command>,</command>). 
+						</para>	
+						
+						<command>printf ()</command> is a SystemTap-supported C statement, and can also trap data using a wide variety
+						
+						SystemTap supports a wide variety of handler functions that can trap data when triggered by events. One way to display these functions is to use the <command>print()</command>   
+					</para>	
+					
+					
+					<para>
+						<xref linkend="wildcards"/> illustrates an example of a SystemTap script that contains no handlers. SystemTap will still be able to run the script, but no information will be displayed. 	
+					</para>
+					-->
+					
   </section>
-
 </section>

@@ -283,6 +283,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			continue;
 
 		case 's':
+	        case 'M':
 		case 'm':
 			s = va_arg(args, char *);
 			if ((unsigned long)s < PAGE_SIZE)
@@ -302,11 +303,20 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 					++str;
 				}
 			}
-			for (i = 0; i < len; ++i) {
-				if (str <= end)
-					*str = *s;
-				++str; ++s;
+			if (*fmt == 'M') {
+			  str = number(str, str + len - 1 < end ? str + len - 1 : end,
+			      (unsigned long) *(uint64_t *) s,
+			      16, field_width, len, flags);
 			}
+			else {
+                                for (i = 0; i < len; ++i) {
+                                        if (str <= end) {
+                                                *str = *s;
+                                        }
+                                        ++str; ++s;
+                                }
+			}
+
 			while (len < field_width--) {
 				if (str <= end)
 					*str = ' ';
@@ -318,7 +328,6 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			       ++str;
 			}
 			continue;
-
 		case 'X':
 			flags |= STP_LARGE;
 		case 'x':

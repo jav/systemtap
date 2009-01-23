@@ -53,7 +53,7 @@
     expiration, session termination, etc. A handler is a series of script
     language statements that specify the work to be done whenever the event
     occurs. This work normally includes extracting data from the event context,
-    storing them into internal variables, or printing results.
+    storing them into internal variables, and printing results.
 </para>
 
   <section id="understanding-architecture-tools">

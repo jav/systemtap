@@ -34,6 +34,9 @@
 #include <sys/statfs.h>
 #include <linux/version.h>
 
+/* Include config.h to pick up dependency for --prefix usage. */
+#include "config.h"
+
 #define dbug(level, args...) {if (verbose>=level) {fprintf(stderr,"%s:%s:%d ",__name__,__FUNCTION__, __LINE__); fprintf(stderr,args);}}
 
 extern char *__name__;

@@ -107,7 +107,24 @@
 
 	
 <para>The time and date in the output of <xref linkend="scriptdisktop"/> is returned by the functions <command>ctime()</command> and <command>gettimeofday_s()</command>. <command>ctime()</command> derives calendar time in terms of seconds passed since the Unix epoch (January 1, 1970). <command>gettimeofday_s()</command> counts the <emphasis>actual</emphasis> number of seconds since Unix epoch, which gives a fairly accurate human-readable timestamp for the output.</para>
-	
+<!-- next 3 indexterms for $return -->
+<indexterm>
+	<primary>local variables</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>$return</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>variables (local)</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>$return</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>$return</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>local variables</tertiary>
+</indexterm>	
 <para>
 	In this script, the <command>$return</command> is a local variable that stores the
 	actual number of bytes each process reads or writes from the virtual file system. 

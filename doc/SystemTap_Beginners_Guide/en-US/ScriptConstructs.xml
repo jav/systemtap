@@ -45,7 +45,7 @@
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>variables</tertiary>
 </indexterm>
@@ -73,7 +73,7 @@ name, assign a value from a function or expression to it, and use it in an expre
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>SystemTap handler constructs</secondary>
 <tertiary><command>global</command></tertiary>
 </indexterm>
@@ -130,7 +130,7 @@ probe timer.jiffies(100) { count_jiffies ++ }
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>conditional statements</secondary>
 </indexterm>
 <para>
@@ -153,7 +153,7 @@ You can do this by using <emphasis>conditionals</emphasis> in handlers. SystemTa
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>conditional statements</secondary>
 <tertiary>if/else</tertiary>
 </indexterm>
@@ -177,7 +177,8 @@ The <command><replaceable>statement1</replaceable></command> is executed if the
 <command><replaceable>condition</replaceable></command> expression is
 non-zero. The <command><replaceable>statement2</replaceable></command> is
 executed if the <command><replaceable>condition</replaceable></command>
-expression is zero. The <command>else</command> is optional. Both
+expression is zero. The <command>else</command> clause 
+(<command>else</command> <replaceable>statement2</replaceable>)is optional. Both
 <command><replaceable>statement1</replaceable></command> and
 <command><replaceable>statement2</replaceable></command> can be statement
 blocks.
@@ -219,7 +220,7 @@ probe end
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>conditional statements</secondary>
 <tertiary>while loops</tertiary>
 </indexterm>
@@ -271,7 +272,7 @@ printf("goodbye world\n")
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>conditional statements</secondary>
 <tertiary>for loops</tertiary>
 </indexterm>
@@ -326,7 +327,7 @@ while (<replaceable>conditional</replaceable>) {
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>conditional statements</secondary>
 <tertiary>conditional operators</tertiary>
 </indexterm>
@@ -374,7 +375,7 @@ while (<replaceable>conditional</replaceable>) {
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>command-line arguments</tertiary>
 </indexterm>
@@ -407,7 +408,7 @@ probe kernel.function(@1).return { }
 </indexterm>
 
 <indexterm>
-<primary>SystemTap handlers</primary>
+	<primary>SystemTap statements</primary>
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>variable notations</tertiary>
 </indexterm>

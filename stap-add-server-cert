@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Add an existing server certificate to the
+# database of trusted servers for the client.
+#
+# Copyright (C) 2008, 2009 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# Obtain the filename of the certificate
+if  test "X$1" = "X"; then
+    echo "Certificate file must be specified" >&2
+    exit 1
+fi
+if ! test -f $1; then
+    echo "Cannot find certificate file $1" >&2
+    exit 1
+fi
+
+# Obtain the certificate database directory name.
+if  test "X$2" = "X"; then
+    echo "Certificate database directory must be specified" >&2
+    exit 1
+fi
+if ! test -d $2/client; then
+    if ! mkdir -p $2/client; then
+	echo "Unable to find or create the client certificate database directory: $2/client" >&2
+	exit 1
+    fi
+fi
+
+# Add the certificate
+if ! certutil -A -n stap-server -d $2/client -i $1 -t "P,P,P" > /dev/null; then
+    echo "Unable to add $1 to the client certificate database $2" >&2
+    exit 1
+fi
+
+# Ensure that the database is readable by others
+if ! chmod +r $2/client/*.db; then
+    echo "Warning: unable to make the client certificate database $2 readable by others" >&2
+fi
+
+exit 0

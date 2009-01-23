@@ -18,6 +18,15 @@ if [file exists $path] then { pass "$test prep" } else { fail "$test prep" }
 catch {exec gcc -g -o jennie jennie.c} err
 if {$err == "" && [file exists jennie]} then { pass "$test compile" } else { fail "$test compile" }
 
+# Try to find utrace_attach symbol in /proc/kallsyms
+# copy from utrace_p5.exp
+set utrace_support_found 0
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    set utrace_support_found 1
+}
+if {$utrace_support_found == 0} { untested "$test -p4"; untested "$test -p5"; return }
+
 set rc [stap_run_batch $srcdir/$subdir/uprobes.stp]
 if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
 

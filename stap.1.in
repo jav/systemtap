@@ -126,7 +126,7 @@ embedded C.
 .TP
 .B \-P
 Prologue-searching mode.  Activate heuristics to work around incorrect
-debbugging information for $target variables.
+debugging information for $target variables.
 .TP
 .B \-u
 Unoptimized mode.  Disable unused code elision during elaboration.
@@ -190,7 +190,7 @@ points matching the given pattern.  The pattern may include wildcards
 and aliases.
 .TP
 .BI \-L " PROBE"
-Similar to "-l", but list probe points and local variables.
+Similar to "-l", but list probe points and script-level local variables.
 .TP
 .BI \-F
 Load module and start probes, then detach from the module leaving the
@@ -652,7 +652,10 @@ Character.
 Signed decimal.
 .TP
 %m
-Safely reads kernel memory at the given address, outputs its content.  The width specifier determines the number of bytes to read.  Default is 1 byte.
+Safely reads kernel memory at the given address, outputs its content.  The precision specifier determines the number of bytes to read.  Default is 1 byte.
+.TP
+%M
+Same as %m, but outputs in hexadecimal.  The precision specifier determines the number of hexadecimal digits to output.  Default is 1 digit.
 .TP
 %o
 Unsigned octal.

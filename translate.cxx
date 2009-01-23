@@ -26,6 +26,9 @@
 
 extern "C" {
 #include <elfutils/libdwfl.h>
+#ifdef HAVE_ELFUTILS_VERSION_H
+#include <elfutils/version.h>
+#endif
 }
 
 using namespace std;
@@ -4180,7 +4183,8 @@ c_unparser::visit_print_format (print_format* e)
 	  prec_ix = arg_ix++;
 
 	/* Generate a noop call to deref_buffer for %m.  */
-	if (components[i].type == print_format::conv_memory) {
+	if (components[i].type == print_format::conv_memory
+	    || components[i].type == print_format::conv_memory_hex) {
 	  this->probe_or_function_needs_deref_fault_handler = true;
 	  o->newline() << "deref_buffer (0, " << tmp[arg_ix].value() << ", ";
 	  if (prec_ix == -1)
@@ -4241,7 +4245,8 @@ c_unparser::visit_print_format (print_format* e)
 	  o->line() << ", (int)" << tmp[arg_ix++].value();
 
 	/* The type of the %m argument is 'char*'.  */
-	if (components[i].type == print_format::conv_memory)
+	if (components[i].type == print_format::conv_memory
+	    || components[i].type == print_format::conv_memory_hex)
 	  o->line() << ", (char*)(uintptr_t)" << tmp[arg_ix++].value();
 	/* The type of the %c argument is 'int'.  */
 	else if (components[i].type == print_format::conv_char)
@@ -4473,8 +4478,15 @@ dump_unwindsyms (Dwfl_Module *m,
                                         (const unsigned char **)&build_id_bits,
                                          &build_id_vaddr)) > 0)
   {
-    /* XXX: But see https://bugzilla.redhat.com/show_bug.cgi?id=465872;
-       dwfl_module_build_id was not intended to return the end address. */
+    // Enable workaround for elfutils dwfl bug.
+    // see https://bugzilla.redhat.com/show_bug.cgi?id=465872
+    // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
+#ifdef _ELFUTILS_PREREQ
+#if _ELFUTILS_PREREQ(0,138)
+    // Let's standardize to the buggy "end of build-id bits" behavior. 
+    build_id_vaddr += build_id_len;
+#endif
+#endif
         if (c->session.verbose > 1) {
            clog << "Found build-id in " << name
                 << ", length " << build_id_len;

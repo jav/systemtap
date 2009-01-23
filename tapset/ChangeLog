@@ -10,6 +10,11 @@
 	* context-unwind.stp (caller): Pass current task to
 	_stp_symbol_snprint.
 
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 9699.
+	* context.stp, task.stp: Adapt to STAPCONF_TASK_UID.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6961.

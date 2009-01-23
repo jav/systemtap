@@ -68,10 +68,10 @@ probe syscall.write.return {
 probe syscall.close {
   if (filehandles[pid(), $fd] != "") {
     printf("%d %s access %s read: %d write: %d\n",  timestamp(), proc(),
-	filehandles[pid(), $fd], fileread[pid(), $fd], filewrite[pid(), $fd])
+           filehandles[pid(), $fd], fileread[pid(), $fd], filewrite[pid(), $fd])
     if (@count(time_io[pid(), $fd]))
       printf("%d %s iotime %s time: %d\n",  timestamp(), proc(),
-	filehandles[pid(), $fd], @sum(time_io[pid(), $fd]))
+             filehandles[pid(), $fd], @sum(time_io[pid(), $fd]))
    }
   delete fileread[pid(), $fd]
   delete filewrite[pid(), $fd]

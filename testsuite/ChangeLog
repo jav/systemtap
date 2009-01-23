@@ -9,6 +9,52 @@
 	* systemtap.context/usymbols.c: New test program.
 	* systemtap.context/usymbols.exp: New dejagnu test.
 
+2009-01-22  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Test dtrace.
+
+2009-01-20  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Don't test -lsduprobes.
+
+2009-01-20  Wenji Huang  <wenji.huang@oracle.com>
+	
+	* systemtap.base/bz5274.exp: Add checking utrace.
+	* systemtap.base/bz6850.exp: Ditto.
+	* systemtap.base/static_uprobes.exp: Ditto.
+	* systemtap.base/uprobes.exp: Ditto.
+
+2009-01-13  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Use sdt.h
+
+2009-01-11  Wenji Huang  <wenji.huang@oracle.com>
+	
+	* systemtap.base/badkprobe.exp: Add explicit timeout.
+
+2009-01-09  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp: Remove ssl_server_path and ssl_client_path.
+
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 9699:
+	* systemtap.context/backtrace.tcl: Correct tcl syntax in fail message.
+
+2008-12-24  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp: Rename client_path to net_path.
+	(setup_systemtap_environment): Set ssl_server_path and
+	ssl_client_path. Pass ssl_server_path to stap-find-or-start-server.
+
+2008-12-21  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Parms now called $argN
+
+2008-12-16  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Generate our own probes file.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6961.

@@ -4,17 +4,27 @@
 AUTOMAKE_OPTIONS = no-dist
 
 pkglibexecdir = ${libexecdir}/${PACKAGE}
+oldincludedir = ${includedir}/sys
 
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
-man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
+man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 # see also configure.ac
 
 bin_PROGRAMS = stap staprun
-bin_SCRIPTS = stap-client stap-server stap-serverd stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server stap-report
+bin_SCRIPTS = stap-report
+oldinclude_HEADERS = runtime/sdt.h
+if BUILD_SERVER
+man_MANS += stap-server.8 
+bin_PROGRAMS += stap-client-connect stap-server-connect
+bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
+	       stap-start-server stap-find-or-start-server stap-stop-server \
+	       stap-gen-server-cert stap-add-server-cert
+endif
+bin_SCRIPTS += dtrace
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -23,6 +33,7 @@ stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 
 BUILT_SOURCES =
 CLEANFILES =
+stap_DEPENDENCIES =
 
 # Arrange for git_version.h to be regenerated at every "make".
 # Code fragment is based upon RadeonHD.am.
@@ -61,13 +72,15 @@ cscope:
 	cscope -b -q
 
 
-stap_CXXFLAGS = $(AM_CXXFLAGS)
+stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
+stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stapio_CPPFLAGS = $(AM_CPPFLAGS)
-stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
+if BUILD_SERVER
+stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
+stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
+endif
 
 PHONIES =
 if BUILD_ELFUTILS
@@ -84,7 +97,7 @@ stamp-elfutils: config.status
 	  $(MAKE) $(AM_MAKEFLAGS) -C build-elfutils/$$dir bin_PROGRAMS= install; \
 	done
 	touch $@
-stap_DEPENDENCIES = lib-elfutils/libdw.so
+stap_DEPENDENCIES += lib-elfutils/libdw.so
 lib-elfutils/libdw.so: stamp-elfutils ;
 
 pkglib_LIBRARIES = libsduprobes.a
@@ -105,15 +118,27 @@ staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -DSINGLE_THREADED -fno-strict-aliasing
+staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing
+staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 staprun_LDADD = @PROCFLAGS@
 
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c
-stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -fno-strict-aliasing
+stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing
+stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_LDADD = @PROCFLAGS@ -lpthread
+
+if BUILD_SERVER
+stap_client_connect_SOURCES = stap-client-connect.c
+stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_client_connect_LDADD = -lssl3
+
+stap_server_connect_SOURCES = stap-server-connect.c
+stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_server_connect_LDADD = -lssl3
+endif
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
@@ -127,6 +152,7 @@ CLEANFILES +=  $(pkglibexec_PROGRAMS)
 
 noinst_PROGRAMS = loc2c-test
 loc2c_test_SOURCES = loc2c-test.c loc2c.c
+loc2c_test_CFLAGS = $(stap_CFLAGS)
 loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
 loc2c_test_LDFLAGS = $(stap_LDFLAGS)
 loc2c_test_LDADD = $(stap_LDADD)
@@ -200,6 +226,9 @@ clean-local:
 	rm -rf stap.info
 	rm -rf staplog.so
 
+distclean-local:
+	rm -rf build-elfutils include-elfutils lib-elfutils
+
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
 	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
@@ -217,6 +246,7 @@ uninstall-local:
 	  echo " rm -f '$(SAMPLE_INSTALL_DIR)/$$p'"; \
 	  rm -f "$(SAMPLE_INSTALL_DIR)/$$p"; \
 	done
+	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 # XXX: leaves behind man pages
 
 SUBDIRS = testsuite doc

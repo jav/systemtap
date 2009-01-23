@@ -16,6 +16,56 @@
 	task_finder_vma.c (stap_add_vma_map_info): Take an optional module.
 	(__stp_tf_get_vma_entry_addr): New lookup function.
 
+2009-01-20  David Smith  <dsmith@redhat.com>
+
+	PR 9673.
+	* task_finder.c (struct stap_task_finder_target): Added
+	'vm_events' field.
+	(stap_register_task_finder_target): Sets vm_events if a
+	vm_callback is present.
+	(__stp_task_finder_cleanup): Only detaches engines on the main
+	__stp_task_finder_list linked list.
+	(__stp_call_callbacks): New function.
+	(__stp_call_vm_callbacks): New function.
+	(__stp_utrace_attach_match_filename): Calls __stp_call_callbacks()
+	to call callbacks.
+	(__stp_utrace_task_finder_target_death): Ditto.
+	(__stp_utrace_task_finder_target_quiesce): Calls
+	__stp_call_callbacks() and __stp_call_vm_callbacks() to call
+	callbacks.
+	(__stp_call_vm_callbacks_with_vma): Renamed from
+	__stp_target_call_vm_callback.
+	(__stp_utrace_task_finder_target_syscall_exit): Calls
+	__stp_call_vm_callbacks() to call vm callbacks.
+	(stap_start_task_finder): Instead of a utrace engine for every
+	task_finder_target, there is now one utrace engine for all targets
+	with the same path or pid.
+
+2009-01-13  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 7082.
+	* uprobes2/uprobes.c: On exec, free up outstanding
+	uretprobe_instances and tick down the uproc's ref-count
+	accordingly, so the (old image's) uproc goes away as
+	desired.
+
+2009-01-12  Wenji Huang  <wenji.huang@oracle.com>
+
+	* transport/symbols.c (_stp_sort): Adapt it to 2.6.29. 
+
+2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9699.
+	* autoconf-task-uid.c: New test.
+
+2008-12-21  Stan Cox  <scox@redhat.com>
+
+	* sduprobes.h (STAP_PROBE): Put block around probe point.
+
+2008-12-16  Stan Cox  <scox@redhat.com>
+
+	* sduprobes.h (STAP_PROBE): Add synthetic reference to probe label.
+
 2008-12-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* time.c (_stp_gettimeofday_ns): Protect some more against freq=0.

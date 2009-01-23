@@ -52,6 +52,26 @@
 	of microseconds it takes for any reads or writes to finish and tracks the amount of data (in 
 	bytes) read from or written to the file.
 </para>
+<!-- next 2 indexterms for $count -->
+
+<indexterm>
+	<primary>local variables</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>$count</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>variables (local)</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>$count</tertiary>
+</indexterm>
+
+<indexterm>
+	<primary>$count</primary>
+	<secondary>sample usage</secondary>
+	<tertiary>local variables</tertiary>
+</indexterm>
+
 
 <para>
 	<xref linkend="iotime"/> also uses the local variable <command>$count</command> to track the 
@@ -68,11 +88,12 @@
 	<title><xref linkend="iotime"/> Sample Output</title>
 <screen>
 [...]
-3123380 2460 (pcscd) access /dev/bus/usb/005/001 read: 0 write: 0
 825946 3364 (NetworkManager) access /sys/class/net/eth0/carrier read: 8190 write: 0
 825955 3364 (NetworkManager) iotime /sys/class/net/eth0/carrier time: 9
+[...]
 117061 2460 (pcscd) access /dev/bus/usb/003/001 read: 43 write: 0
 117065 2460 (pcscd) iotime /dev/bus/usb/003/001 time: 7
+[...]
 3973737 2886 (sendmail) access /proc/loadavg read: 4096 write: 0
 3973744 2886 (sendmail) iotime /proc/loadavg time: 11
 [...]

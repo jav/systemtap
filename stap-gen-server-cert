@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Generate a certificate for the systemtap server and add it to the
+# database of trusted servers for the client.
+#
+# Copyright (C) 2008, 2009 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# Obtain a password from stdin and echo it.
+function user_enter_password
+{
+    while true
+    do
+	while true
+	do
+	    read -sp "Enter new password for systemtap server certificate/key database:" pw1 junk
+	    echo "" >&2
+	    test "X$pw1" != "X" && break
+	done
+	while true
+	do
+	    read -sp "Reenter new password:" pw2 junk
+	    echo "" >&2
+	    test "X$pw2" != "X" && break
+	done
+	test "$pw1" = "$pw2" && break
+	echo "Passwords do not match" >&2
+    done
+
+    echo $pw1
+}
+
+# Obtain the certificate database directory name.
+if  test "X$1" = "X"; then
+    echo "Certificate database directory must be specified" >&2
+    exit 1
+fi
+rm -fr $1
+
+# Create the server's certificate database directory.
+serverdb=$1/server
+if ! mkdir -p $serverdb; then
+    echo "Unable to create the server certificate database directory: $serverdb" >&2
+    exit 1
+fi
+
+# Create the certificate database password file. Care must be taken
+# that this file is only readable by the owner.
+if ! (touch $serverdb/pw && chmod 600 $serverdb/pw); then
+    echo "Unable to create the server certificate database password file: $serverdb/pw" >&2
+    exit 1
+fi
+
+# Generate a random password.
+mkpasswd -l 20 > $serverdb/pw 2>/dev/null || \
+apg -a 1 -n 1 -m 20 -x 20 > $serverdb/pw 2>/dev/null || \
+user_enter_password > $serverdb/pw
+
+# Generate the server certificate database
+if ! certutil -N -d $serverdb -f $serverdb/pw > /dev/null; then
+    echo "Unable to initialize the server certificate database directory: $serverdb" >&2
+    exit 1
+fi
+
+# We need some random noise for generating keys
+dd bs=123 count=1 < /dev/urandom > $1/noise 2> /dev/null
+
+# Generate a request for the server's certificate.
+certutil -R -d $serverdb -f $serverdb/pw -s "CN=Systemtap Compile Server, OU=Systemtap, O=Red Hat, C=US" -o $1/stap-server.req -z $1/noise 2> /dev/null
+rm -fr $1/noise
+
+# Now generate the actual certificate.
+certutil -C -i $1/stap-server.req -o $serverdb/stap-server.cert -x -d $serverdb -f $serverdb/pw -5 -8 "$HOSTNAME,localhost" >/dev/null <<-EOF
+1
+3
+7
+8
+y
+EOF
+rm -fr $1/stap-server.req
+
+# Ensure that the certificate is readable by others.
+if ! chmod +r $serverdb/stap-server.cert; then
+    echo "Warning: unable to make the server's certificate $serverdb/stap-server.cert readable by others" >&2
+fi
+
+# Add the certificate to the server's certificate/key database as a trusted peer, ssl server and object signer
+certutil -A -n stap-server -t "PCu,,PCu" -i $serverdb/stap-server.cert -d $serverdb -f $serverdb/pw

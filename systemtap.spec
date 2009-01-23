@@ -1,5 +1,5 @@
 %{!?release: %define release 1}
-%{!?with_sqllite: %define with_sqlite 1}
+%{!?with_sqlite: %define with_sqlite 1}
 %{!?with_docs: %define with_docs 1}
 %{!?with_crash: %define with_crash 0}
 %{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
@@ -20,16 +20,17 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: kernel >= 2.6.9-11
 %if %{with_sqlite}
 BuildRequires: sqlite-devel
-Requires: sqlite
 %endif
 %if %{with_crash}
 BuildRequires: crash-devel zlib-devel
 %endif
-# Requires: kernel-devel
-# or is that kernel-smp-devel?  kernel-hugemem-devel?
+# Alternate kernel packages kernel-PAE-devel et al have a virtual
+# provide for kernel-devel, so this requirement does the right thing.
+Requires: kernel-devel
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
+BuildRequires: nss-devel
 
 %if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
@@ -44,6 +45,10 @@ Requires: crash
 
 %if %{with_docs}
 BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
+# On F10, xmlto's pdf support was broken off into a sub-package,
+# called 'xmlto-tex'.  To avoid a specific F10 BuildReq, we'll do a
+# file-based buildreq on '/usr/share/xmlto/format/fo/pdf'.
+BuildRequires: xmlto /usr/share/xmlto/format/fo/pdf
 %endif
 
 %description
@@ -81,7 +86,7 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap-runtime = %{version}-%{release}
-Requires: avahi avahi-tools nc mktemp
+Requires: avahi avahi-tools nss nss-tools mktemp
 
 %description client
 SystemTap client is the client component of an instrumentation
@@ -94,12 +99,22 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap
-Requires: avahi avahi-tools nc net-tools mktemp
+Requires: avahi avahi-tools nss nss-tools mktemp
 
 %description server
 SystemTap server is the server component of an instrumentation
 system for systems running Linux 2.6.  Developers can write
 instrumentation to collect data on the operation of the system.
+
+%package sdt-devel
+Summary: Static probe support tools
+Group: Development/System
+License: GPLv2+
+URL: http://sourceware.org/systemtap/
+Requires: systemtap
+
+%description sdt-devel
+Support tools to allow applications to use static probes.
 
 %prep
 %setup -q %{?setup_elfutils}
@@ -185,6 +200,7 @@ cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
 # %doc directive.
 mkdir docs.installed
 mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/*.pdf docs.installed/
+mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/tapsets docs.installed/
 %endif
 
 %clean
@@ -201,6 +217,7 @@ exit 0
 %doc README AUTHORS NEWS COPYING examples
 %if %{with_docs}
 %doc docs.installed/*.pdf
+%doc docs.installed/tapsets
 %endif
 
 %{_bindir}/stap
@@ -240,6 +257,8 @@ exit 0
 %{_bindir}/stap-client
 %{_bindir}/stap-find-servers
 %{_bindir}/stap-find-or-start-server
+%{_bindir}/stap-add-server-cert
+%{_bindir}/stap-client-connect
 %{_mandir}/man8/stap-server.8*
 
 %files server
@@ -248,7 +267,14 @@ exit 0
 %{_bindir}/stap-serverd
 %{_bindir}/stap-start-server
 %{_bindir}/stap-stop-server
+%{_bindir}/stap-gen-server-cert
+%{_bindir}/stap-server-connect
 %{_mandir}/man8/stap-server.8*
+
+%files sdt-devel
+%defattr(-,root,root)
+%{_bindir}/dtrace
+%{_includedir}/sys/sdt.h
 
 %changelog
 * Thu Nov 13 2008 Frank Ch. Eigler <fche@redhat.com> - 0.8-1

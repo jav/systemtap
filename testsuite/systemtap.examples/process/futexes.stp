@@ -11,7 +11,7 @@ global lock_waits # long-lived stats on (tid,lock) blockage elapsed time
 global process_names # long-lived pid-to-execname mapping
 
 probe syscall.futex {  
-  if (op != FUTEX_WAIT) next  # we don't care about originators of WAKE events
+  if (op != FUTEX_WAIT) next # don't care about WAKE event originator
   t = tid ()
   process_names[pid()] = execname()
   thread_thislock[t] = $uaddr

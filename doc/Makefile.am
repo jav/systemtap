@@ -3,6 +3,7 @@
 
 PDF_FILES = tutorial.pdf langref.pdf
 DOC_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap
+SUBDIRS = SystemTap_Tapset_Reference
 
 if BUILD_DOCS
 all-local: $(PDF_FILES)

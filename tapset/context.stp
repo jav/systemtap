@@ -1,5 +1,5 @@
 // context tapset
-// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -76,7 +76,11 @@ function pexecname:string () %{ /* pure */
  *  Return the gid of the current process.
  */
 function gid:long () %{ /* pure */
+#ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->gid;		
+#else
+	THIS->__retvalue = current_gid();	
+#endif
 %}
 
 /**
@@ -85,7 +89,11 @@ function gid:long () %{ /* pure */
  *  Return the effective gid of the current process.
  */
 function egid:long () %{ /* pure */
+#ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->egid;		
+#else
+	THIS->__retvalue = current_egid();	
+#endif
 %}
 
 /**
@@ -94,7 +102,11 @@ function egid:long () %{ /* pure */
  *  Return the uid of the current process.
  */
 function uid:long () %{ /* pure */
+#ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->uid;		
+#else
+	THIS->__retvalue = current_uid();	
+#endif
 %}
 
 /**
@@ -103,7 +115,11 @@ function uid:long () %{ /* pure */
  *  Return the effective uid of the current process.
  */
 function euid:long () %{ /* pure */
+#ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->euid;		
+#else
+	THIS->__retvalue = current_euid();	
+#endif
 %}
 
 // cpuid() is not documented
