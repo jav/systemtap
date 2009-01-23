@@ -1773,7 +1773,13 @@ struct dwflpp
     Dwarf_Op *expr;
     size_t len;
 
-    switch (dwarf_getlocation_addr (attr, pc - module_bias, &expr, &len, 1))
+    /* PR9768: formerly, we added pc+module_bias here.  However, that bias value
+       is not present in the pc value by the time we get it, so adding it would
+       result in false negatives of variable reachibility.  In other instances
+       further below, the c_translate_FOO functions, the module_bias value used
+       to be passed in, but instead should now be zero for the same reason. */
+
+    switch (dwarf_getlocation_addr (attr, pc /*+ module_bias*/, &expr, &len, 1))
       {
       case 1:			/* Should always happen.  */
 	if (len > 0)
@@ -1791,7 +1797,7 @@ struct dwflpp
 
     return c_translate_location (pool, &loc2c_error, this,
 				 &loc2c_emit_address,
-				 1, module_bias,
+				 1, 0 /* PR9768 */,
 				 pc, expr, len, tail, fb_attr);
   }
 
@@ -1914,13 +1920,13 @@ struct dwflpp
             // XXX: of course, we should support this the same way C does,
             // by explicit pointer arithmetic etc.  PR4166.
 
-	    c_translate_pointer (pool, 1, module_bias, die, tail);
+	    c_translate_pointer (pool, 1, 0 /* PR9768*/, die, tail);
 	    break;
 
 	  case DW_TAG_array_type:
 	    if (components[i].first == target_symbol::comp_literal_array_index)
 	      {
-		c_translate_array (pool, 1, module_bias, die, tail,
+		c_translate_array (pool, 1, 0 /* PR9768 */, die, tail,
 				   NULL, lex_cast<Dwarf_Word>(components[i].second));
 		++i;
 	      }
@@ -2153,10 +2159,10 @@ struct dwflpp
 
 	ty = pe_long;
 	if (lvalue)
-	  c_translate_store (pool, 1, module_bias, die, typedie, tail,
+	  c_translate_store (pool, 1, 0 /* PR9768 */, die, typedie, tail,
 			     "THIS->value");
 	else
-	  c_translate_fetch (pool, 1, module_bias, die, typedie, tail,
+	  c_translate_fetch (pool, 1, 0 /* PR9768 */, die, typedie, tail,
 			     "THIS->__retvalue");
 	break;
 
@@ -2183,7 +2189,7 @@ struct dwflpp
               if (typetag == DW_TAG_array_type)
                 throw semantic_error ("cannot write to array address");
               assert (typetag == DW_TAG_pointer_type);
-              c_translate_pointer_store (pool, 1, module_bias, typedie, tail,
+              c_translate_pointer_store (pool, 1, 0 /* PR9768 */, typedie, tail,
                                          "THIS->value");
             }
           else
@@ -2197,10 +2203,10 @@ struct dwflpp
 
               ty = pe_long;
               if (typetag == DW_TAG_array_type)
-                c_translate_array (pool, 1, module_bias, typedie, tail, NULL, 0);
+                c_translate_array (pool, 1, 0 /* PR9768 */, typedie, tail, NULL, 0);
               else
-                c_translate_pointer (pool, 1, module_bias, typedie, tail);
-              c_translate_addressof (pool, 1, module_bias, NULL, pointee_typedie, tail,
+                c_translate_pointer (pool, 1, 0 /* PR9768 */, typedie, tail);
+              c_translate_addressof (pool, 1, 0 /* PR9768 */, NULL, pointee_typedie, tail,
                                      "THIS->__retvalue");
             }
           }
@@ -2363,7 +2369,7 @@ struct dwflpp
 
     struct location  *head = c_translate_location (&pool, &loc2c_error, this,
 						   &loc2c_emit_address,
-						   1, module_bias,
+						   1, 0 /* PR9768 */,
 						   pc, locops, nlocops,
 						   &tail, NULL);
 
