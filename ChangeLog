@@ -1,5 +1,14 @@
 2009-01-23  Mark Wielaard  <mjw@redhat.com>
 
+	* configure.ac: Use install-pkgincludeHEADERS for elfutils to only
+	get include-elfutils/elfutils/version.h. And explicitly exit if
+	configuring elfutils fails.
+	* configure: Regenerated.
+	* .gitignore: Add build-elfutils, include-elfutils, lib-elfutils
+	and stamp-elfutils.
+
+2009-01-23  Mark Wielaard  <mjw@redhat.com>
+
 	* configure.ac: Use make -k install-data for elfutils.
 	* configure: Regenerated.
 

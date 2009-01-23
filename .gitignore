@@ -28,3 +28,7 @@ SNAPSHOT
 *.o
 git_version.h
 Makefile
+build-elfutils
+include-elfutils
+lib-elfutils
+stamp-elfutils
