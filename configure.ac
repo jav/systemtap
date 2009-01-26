@@ -312,8 +312,11 @@ if test $build_elfutils = yes; then
 				--prefix="$prefix" \
 				CFLAGS="${CFLAGS/-Wall/}" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
-   make install-pkgincludeHEADERS
-   # so that elfutils/version.h - if any - may be found.
+   if test -f ${elfutils_srcdir}/config/version.h.in; then
+        echo Trying to install elfutils version header...
+	make install-pkgincludeHEADERS
+   fi
+   # so that elfutils/version.h - available from 0.138 - may be found.
    # Don't use install-data because that will fail (installing in $prefix).
   )
   if test $? != 0; then exit; fi
