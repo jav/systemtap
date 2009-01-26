@@ -1,3 +1,7 @@
+2009-01-26  Mark Wielaard  <mjw@redhat.com>
+
+	* sdt.h: DTRACE_PROBE5 is STAP_PROBE5, not 4, likewise for 6.
+
 2009-01-20  David Smith  <dsmith@redhat.com>
 
 	PR 9673.

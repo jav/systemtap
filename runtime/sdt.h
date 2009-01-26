@@ -158,6 +158,6 @@ STAP_PROBE3(provider,probe,parm1,parm2,parm3)
 #define DTRACE_PROBE4(provider,probe,parm1,parm2,parm3,parm4) \
 STAP_PROBE4(provider,probe,parm1,parm2,parm3,parm4) 
 #define DTRACE_PROBE5(provider,probe,parm1,parm2,parm3,parm4,parm5)	\
-STAP_PROBE4(provider,probe,parm1,parm2,parm3,parm4,parm5) 
+STAP_PROBE5(provider,probe,parm1,parm2,parm3,parm4,parm5) 
 #define DTRACE_PROBE6(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6)	\
-STAP_PROBE4(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6) 
+STAP_PROBE6(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6) 
