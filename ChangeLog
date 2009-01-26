@@ -1,3 +1,9 @@
+2009-01-26  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (find_variable_and_frame_base): Allow for disjoint
+	pc and scope_die.
+	* runtime/sdt.h: Change label prefix.
+	
 2009-01-26  Mark Wielaard  <mjw@redhat.com>
 
 	* configure.ac: Check for version.h.in before installing.

@@ -32,7 +32,7 @@ static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section
 
 #define STAP_CONCAT(a,b) a ## b
 #define STAP_LABEL(p,n) \
-  STAP_CONCAT(_probe_ ## p ## _, n)
+  STAP_CONCAT(_stapprobe1_ ## p ## _, n)
 
 // The goto _probe_ prevents the label from "drifting"
 #ifdef USE_STAP_PROBE

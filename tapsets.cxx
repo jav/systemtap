@@ -1709,10 +1709,14 @@ struct dwflpp
 
     assert (cu);
 
-    if (scope_die && pc == 0)
-      nscopes = dwarf_getscopes_die (scope_die, &scopes);
-    else
-      nscopes = dwarf_getscopes (cu, pc, &scopes);
+    nscopes = dwarf_getscopes (cu, pc, &scopes);
+    int sidx;
+    // if pc and scope_die are disjoint then we need dwarf_getscopes_die
+    for (sidx = 0; sidx < nscopes; sidx++)
+      if (scopes[sidx].addr == scope_die->addr)
+	break;
+    if (sidx == nscopes)
+      nscopes = dwarf_getscopes_die (scope_die, &scopes);      
 
     if (nscopes == 0)
       {
@@ -5348,7 +5352,6 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 
-	    // pdata->d_buf + *(long*)(pdata->d_buf + probe_scn_offset) - probe_scn_addr
 	    probe_name = ((char*)((long)(pdata->d_buf) + (long)(*((int*)((long)pdata->d_buf + probe_scn_offset)) - probe_scn_addr)));
 	    probe_scn_offset += sizeof(void*);
 	    if (probe_scn_offset % (sizeof(__uint64_t)))

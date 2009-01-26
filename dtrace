@@ -117,7 +117,6 @@ while (i < len (sys.argv)):
     elif (sys.argv[i] == "-G"):
         build_source = True
     i += 1
-# print build_header == False and build_source == False
 if (build_header == False and build_source == False):
     usage()
     sys.exit(1)
