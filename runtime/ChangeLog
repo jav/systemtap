@@ -1,3 +1,7 @@
+2009-01-27  Mark Wielaard  <mjw@redhat.com>
+
+	* sdt.h (STAP_PROBE): Use "g", not "r", for asm args.
+
 2008-01-27  Stan Cox  <scox@redhat.com>
 
 	* sdt.h (struct _probe_): Make probe_name a STAP_PROBE_STRUCT_ARG.
