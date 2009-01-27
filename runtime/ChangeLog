@@ -1,3 +1,7 @@
+2008-01-27  Stan Cox  <scox@redhat.com>
+
+	* sdt.h (struct _probe_): Make probe_name a STAP_PROBE_STRUCT_ARG.
+
 2009-01-26  Mark Wielaard  <mjw@redhat.com>
 
 	* sdt.h: DTRACE_PROBE5 is STAP_PROBE5, not 4, likewise for 6.
