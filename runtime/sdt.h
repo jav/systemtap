@@ -22,13 +22,13 @@
 struct _probe_ ## probe				\
 {						\
   int probe_type;				\
-  char *probe_name;				\
+  STAP_PROBE_STRUCT_ARG	(probe_name);		\
   STAP_PROBE_STRUCT_ARG	(probe_arg);		\
 };						\
-static char probe_name [strlen(#probe)+1] 	\
+static char probe ## _ ## probe_name [strlen(#probe)+1] 	\
        __attribute__ ((section (".probes"))) 	\
        = #probe; 				\
-static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section (".probes"))) = {STAP_SENTINEL,&probe_name[0],argc};
+ static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section (".probes"))) = {STAP_SENTINEL,(long)& probe ## _ ## probe_name[0],argc};
 
 #define STAP_CONCAT(a,b) a ## b
 #define STAP_LABEL(p,n) \
@@ -56,7 +56,7 @@ STAP_LABEL(probe,__LINE__):				\
 #define STAP_PROBE1(provider,probe,parm1)	\
  {volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1;		\
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "r"(arg1)); \
+  asm volatile ("nop" :: "g"(arg1)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
      goto STAP_LABEL(probe,__LINE__);}
@@ -71,7 +71,7 @@ STAP_LABEL(probe,__LINE__):				\
  {volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1;	\
   volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2;		\
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "r"(arg1), "r"(arg2)); \
+  asm volatile ("nop" :: "g"(arg1), "g"(arg2)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
      goto STAP_LABEL(probe,__LINE__);}
@@ -87,7 +87,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
   volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
 STAP_LABEL(probe,__LINE__):					   \
-  asm volatile ("nop" :: "r"(arg1), "r"(arg2), "r"(arg3)); \
+  asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
      goto STAP_LABEL(probe,__LINE__);}
@@ -104,7 +104,7 @@ STAP_LABEL(probe,__LINE__):					   \
   volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
   volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4));	\
+  asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4));	\
   STAP_PROBE_STRUCT(probe,1,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
      goto STAP_LABEL(probe,__LINE__);}
@@ -122,7 +122,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
   volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5)); \
+  asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
     goto STAP_LABEL(probe,__LINE__);}
@@ -141,7 +141,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
   volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5), "r"(arg6)); \
+  asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6)); \
   STAP_PROBE_STRUCT(probe,1,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
     goto STAP_LABEL(probe,__LINE__);}
