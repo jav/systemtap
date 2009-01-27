@@ -1,3 +1,7 @@
+2009-01-26  Mark Wielaard  <mjw@redhat.com>
+
+	* dtrace: Handle (absense of) -o argument correctly.
+
 2009-01-26  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (find_variable_and_frame_base): Allow for disjoint
