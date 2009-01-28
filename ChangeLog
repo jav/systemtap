@@ -1,3 +1,20 @@
+2009-01-28  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (parse_options): Handle the --server option.
+	(process_server): New function.
+	(find_and_connect_to_server): Create the server's .jar file
+	here. Process $specified_servers if present. Issue server
+	connection error here ...
+	(choose_server): ... not here.
+	(send_receive): Don't create the server's .jar file here.
+	Always check the local certificate databases. Echo the
+	name of the database used to successfully authenticate the
+	server.
+	* stap-client-connect.c (sslerr.h): #include it.
+	(errWarn): Handle SEC_ERROR_BAD_DATABASE and SSL_ERROR_BAD_CERT_DOMAIN.
+	(do_connect): Don't call PR_GetHostByName or PR_EnumerateHostEnt.
+	(client_main): No longer takes 'hostName' argument. Update all callers.
+
 2009-01-26  Mark Wielaard  <mjw@redhat.com>
 
 	* dtrace: Handle (absense of) -o argument correctly.

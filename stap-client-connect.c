@@ -27,6 +27,7 @@
 #include <nss.h>
 #include <prerror.h>
 #include <secerr.h>
+#include <sslerr.h>
 
 #define READ_BUFFER_SIZE (60 * 1024)
 static char *hostName = NULL;
@@ -73,6 +74,12 @@ errWarn(char *function)
     {
     case SEC_ERROR_CA_CERT_INVALID:
       fputs ("The issuer's certificate is invalid\n", stderr);
+      break;
+    case SEC_ERROR_BAD_DATABASE:
+      fputs ("The specified certificate database does not exist or is not valid\n", stderr);
+      break;
+    case SSL_ERROR_BAD_CERT_DOMAIN:
+      fputs ("The requested domain name does not match the server's certificate\n", stderr);
       break;
     case PR_CONNECT_RESET_ERROR:
       fputs ("Connection reset by peer\n", stderr);
@@ -307,10 +314,12 @@ static SECStatus
 do_connect(PRNetAddr *addr)
 {
   PRFileDesc *sslSocket;
+  PRStatus    prStatus;
+#if 0
   PRHostEnt   hostEntry;
   char        buffer[PR_NETDB_BUF_SIZE];
-  PRStatus    prStatus;
   PRIntn      hostenum;
+#endif
   SECStatus   secStatus;
 
   secStatus = SECSuccess;
@@ -338,7 +347,7 @@ do_connect(PRNetAddr *addr)
       errWarn("SSL_SetURL");
       goto done;
     }
-
+#if 0 /* Already done? */
   /* Prepare and setup network connection. */
   prStatus = PR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
   if (prStatus != PR_SUCCESS)
@@ -355,7 +364,7 @@ do_connect(PRNetAddr *addr)
       secStatus = SECFailure;
       goto done;
     }
-
+#endif
   prStatus = PR_Connect(sslSocket, addr, PR_INTERVAL_NO_TIMEOUT);
   if (prStatus != PR_SUCCESS)
     {
@@ -397,7 +406,7 @@ do_connect(PRNetAddr *addr)
 }
 
 static void
-client_main(unsigned short port, const char *hostName)
+client_main(unsigned short port)
 {
   SECStatus   secStatus;
   PRStatus    prStatus;
@@ -479,7 +488,7 @@ main(int argc, char **argv)
   /* All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy. */
   NSS_SetDomesticPolicy();
 
-  client_main(port, hostName);
+  client_main(port);
 
   NSS_Shutdown();
   PR_Cleanup();

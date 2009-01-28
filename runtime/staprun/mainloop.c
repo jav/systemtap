@@ -357,6 +357,8 @@ void cleanup_and_exit(int detach)
     err("\nDisconnecting from systemtap module.\n" "To reconnect, type \"staprun -A %s\"\n", modname);
   } else {
     const char *staprun = getenv ("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun";
+#define BUG9788_WORKAROUND
+#ifndef BUG9788_WORKAROUND
     dbug(2, "removing %s\n", modname);
     if (execlp(staprun, basename (staprun), "-d", modname, NULL) < 0) {
       if (errno == ENOEXEC) {
@@ -368,6 +370,51 @@ void cleanup_and_exit(int detach)
       perror(staprun);
       _exit(1);
     }
+#else
+    pid_t pid;
+    int rstatus;
+    struct sigaction sa;
+
+    dbug(2, "removing %s\n", modname);
+
+    // So that waitpid() below will work correctly, we need to clear
+    // out our SIGCHLD handler.
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = SIG_DFL;
+    sigaction(SIGCHLD, &sa, NULL);
+
+    pid = fork();
+    if (pid < 0) {
+      _perr("fork");
+      _exit(-1);
+    }
+
+    if (pid == 0) {			/* child process */
+      /* Run the command. */
+      if (execlp(staprun, basename (staprun), "-d", modname, NULL) < 0) {
+	if (errno == ENOEXEC) {
+	  char *cmd;
+	  if (asprintf(&cmd, "%s -d '%s'", staprun, modname) > 0)
+	    execl("/bin/sh", "sh", "-c", cmd, NULL);
+	  free(cmd);
+	}
+	perror(staprun);
+	_exit(1);
+      }
+    }
+
+    /* parent process */
+    if (waitpid(pid, &rstatus, 0) < 0) {
+      _perr("waitpid");
+      _exit(-1);
+    }
+
+    if (WIFEXITED(rstatus)) {
+      _exit(WEXITSTATUS(rstatus));
+    }
+    _exit(-1);
+#endif
   }
   _exit(0);
 }
