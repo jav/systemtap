@@ -10,16 +10,20 @@ read PARM
 cp -a ../../testsuite  en-US/extras/.
 
 if [ $PROD = 1 ]; 
-	then 	sed -i -e 's/<productname>Red Hat Enterprise Linux/<productname>Fedora Core/g' en-US/Book_Info.xml;
-		sed -i -e 's/<productnumber>5/<productnumber>10/g' en-US/Book_Info.xml;
-		sed -i -e 's/BRAND	= RedHat/BRAND	= fedora/g' Makefile;
-		make $PARM $TARG
-	sed -i -e 's/<productname>Fedora Core/<productname>Red Hat Enterprise Linux/g' en-US/Book_Info.xml;
-	sed -i -e 's/<productnumber>10/<productnumber>5/g' en-US/Book_Info.xml;
-	sed -i -e 's/BRAND	= fedora/BRAND	= RedHat/g' Makefile;	
+	then 	
+	sed -i -e 's/<productname>Red Hat Enterprise Linux/<productname>Fedora/g' en-US/Book_Info.xml;
+	sed -i -e 's/<productnumber>5/<productnumber>10/g' en-US/Book_Info.xml;
+	sed -i -e 's/BRAND = RedHat/BRAND = fedora/g' Makefile;
+	make $PARM $TARG
+
 else make $PARM $TARG
 fi
 
+echo "Setting default brand back to RHEL (if needed)..." 
+	sed -i -e 's/<productname>Fedora/<productname>Red Hat Enterprise Linux/g' en-US/Book_Info.xml;
+	sed -i -e 's/<productnumber>10/<productnumber>5/g' en-US/Book_Info.xml;
+	sed -i -e 's/BRAND = fedora/BRAND = RedHat/g' Makefile;	
+echo "done."
 echo "Cleaning sync'd files..."
-rm -rf en-US/extras/testsuite
+make post
 echo "...done."
