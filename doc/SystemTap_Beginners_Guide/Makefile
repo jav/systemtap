@@ -18,3 +18,5 @@ pre::
 
 post::
 	rm -rf en-US/extras/testsuite
+	sed -i -e 's/<productname>Fedora/<productname>Red Hat Enterprise Linux/g' en-US/Book_Info.xml;
+	sed -i -e 's/<productnumber>10/<productnumber>5/g' en-US/Book_Info.xml;
