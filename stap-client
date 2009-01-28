@@ -56,16 +56,23 @@ function initialization {
 
     # Default location for server certificates if we're not root
     if test $EUID != 0; then
-	local_ssl_dbs="$HOME/.systemtap/ssl/client"
+	if check_db $HOME/.systemtap/ssl/client 2>/dev/null; then
+	    local_ssl_dbs=$HOME/.systemtap/ssl/client
+	fi
     fi
     # Additional location for all users.
-    public_ssl_dbs=$prefix/etc/systemtap/ssl/client
+    if check_db $prefix/etc/systemtap/ssl/client 2>/dev/null; then
+	public_ssl_dbs=$prefix/etc/systemtap/ssl/client
+    fi
 
     # Default options settings
     p_phase=5
     v_level=0
     keep_temps=0
     b_specified=0
+
+    # Default variable settings
+    find_all=
 
     # Create a temporary directory to package things in
     # Do this before parsing the command line so that there is a place
@@ -248,7 +255,14 @@ function parse_options {
 	cmdline="$cmdline1 $cmdline2"
     fi
 
+    # Processing based on final options settings
+    # Complete the list of local certificate databases
     local_ssl_dbs="$additional_local_ssl_dbs $local_ssl_dbs"
+
+    # We can use any server if the phase is less than 5
+    if test $p_phase -lt 5; then
+	find_all="--all"
+    fi
 }
 
 # function: get_arg FIRSTWORD SECONDWORD
@@ -281,7 +295,9 @@ function process_ssl {
 
     test "X$db" != "X" || \
 	fatal "Missing argument to --ssl"
-	
+
+    check_db $db || return
+
     additional_local_ssl_dbs="$additional_local_ssl_dbs $db"
 }
 
@@ -514,6 +530,9 @@ function find_and_connect_to_server {
     jar_server=`mktemp -t $tmpdir_prefix_client.server.jar.XXXXXX` || \
 	fatal "ERROR: cannot create temporary file " $jar_server
 
+    # Make a place to record connection errors
+    touch $tmpdir_client/connect
+
     # If servers were specified on the command line, then try them
     # in sequence. Don't try any other servers.
     if test "X$specified_servers" != "X"; then
@@ -565,22 +584,22 @@ function find_and_connect_to_server {
 		fi
 	    fi
 
-	    if test `${exec_prefix}stap-find-servers | grep $address | wc -l` = "0"; then
+	    if test `${exec_prefix}stap-find-servers $find_all | grep $address | wc -l` = "0"; then
 		echo "No server is available on $server" >> $tmpdir_client/connect
 		continue
 	    fi
 
-            ssl_db=`${exec_prefix}stap-find-servers | grep $address | choose_server`
+            ssl_db=`${exec_prefix}stap-find-servers $find_all | grep $address | choose_server`
 	    test "X$ssl_db" != "X" && return
 	done
     else
         # No servers specified. Find available servers and choose one of them.
 	# Remember which ssl certificate database was used to authenticate the chosen
         # server.
-	ssl_db=`${exec_prefix}stap-find-servers | choose_server`
+	ssl_db=`${exec_prefix}stap-find-servers $find_all | choose_server`
 	test "X$ssl_db" != "X" && return
 
-	num_servers=`${exec_prefix}stap-find-servers | wc -l`
+	num_servers=`${exec_prefix}stap-find-servers $find_all | wc -l`
     fi
 
     if test $num_servers = 0; then
@@ -791,6 +810,126 @@ function staprun_PATH {
     local first_stap=`which stap`
     local PATH_component=`dirname $first_stap`
     echo "PATH=$PATH staprun" | sed "s,$PATH_component,,g"
+}
+
+# function: check_db DBNAME
+#
+# Check the security of the given database directory.
+function check_db {
+    local dir=$1
+    local rc=0
+
+    # Check that we have been given a directory
+    if ! test -e $dir; then
+	warning "Certificate database '$dir' does not exist"
+	return 1
+    fi
+    if ! test -d $dir; then
+	warning "Certificate database '$dir' is not a directory"
+	return 1
+    fi
+
+    # Check that we can read the directory
+    if ! test -r $file; then
+	warning "Certificate database '$dir' is not readble"
+	rc=1
+    fi
+
+    # Check the access permissions of the directory
+    local perm=0`stat -c "%a" $dir`
+#    if test $((($perm & 0400) == 0400)) = 0; then
+#	warning "Certificate database '$dir' must be readable by the owner"
+#	rc=1
+#    fi
+#    if test $((($perm & 0200) == 0200)) = 0; then
+#	warning "Certificate database '$dir' must be writeable by the owner"
+#	rc=1
+#    fi
+#    if test $((($perm & 0100) == 0100)) = 0; then
+#	warning "Certificate database '$dir' must be searchable by the owner"
+#	rc=1
+#    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate database '$dir' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate database '$dir' must not be writable by others"
+	rc=1
+    fi
+
+    # Now check the permissions of the critical files.
+    check_db_file $dir/cert8.db || rc=1
+    check_db_file $dir/key3.db || rc=1
+    check_db_file $dir/secmod.db || rc=1
+
+    test $rc = 1 && warning "Unable to use certificate database '$dir' due to errors"
+
+    return $rc
+}
+
+# function: check_db_file FILENAME
+#
+# Check the security of the given database directory.
+function check_db_file {
+    local file=$1
+    local rc=0
+
+    # Check that we have been given a file
+    if ! test -e $file; then
+	warning "Certificate database file '$file' does not exist"
+	return 1
+    fi
+    if ! test -f $file; then
+	warning "Certificate database file '$file' is not a regular file"
+	return 1
+    fi
+
+    # Check that we can read the file
+    if ! test -r $file; then
+	warning "Certificate database file '$file' is not readble"
+	rc=1
+    fi
+
+    # Check the access permissions of the file
+    local perm=0`stat -c "%a" $file`
+#    if test $((($perm & 0400) == 0400)) = 0; then
+#	warning "Certificate database file '$file' must be readable by the owner"
+#	rc=1
+#    fi
+#    if test $((($perm & 0200) == 0200)) = 0; then
+#	warning "Certificate database file '$file' must be writeable by the owner"
+#	rc=1
+#    fi
+    if test $((($perm & 0100) == 0100)) = 1; then
+	warning "Certificate database file '$file' must not be executable by the owner"
+	rc=1
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate database file '$file' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 1; then
+	warning "Certificate database file '$file' must not be executable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate database file '$file' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 1; then
+	warning "Certificate database file '$file' must not be executable by others"
+	rc=1
+    fi
+
+    return $rc
+}
+# function: warning [ MESSAGE ]
+#
+# Warning error
+# Prints its arguments to stderr
+function warning {
+    echo "$0: WARNING:" "$@" >&2
 }
 
 # function: fatal [ MESSAGE ]

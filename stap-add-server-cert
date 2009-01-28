@@ -26,7 +26,7 @@ if  test "X$2" = "X"; then
     exit 1
 fi
 if ! test -d $2/client; then
-    if ! mkdir -p $2/client; then
+    if ! mkdir -p -m 755 $2/client; then
 	echo "Unable to find or create the client certificate database directory: $2/client" >&2
 	exit 1
     fi
