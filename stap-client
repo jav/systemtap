@@ -111,6 +111,9 @@ function parse_options {
 				ssl)
 				    process_ssl $first_token
 				    ;;
+				server)
+				    process_server $first_token
+				    ;;
 				*)
 		                    # An unknown or unimportant option.
 				    # Ignore it, but pass it on to the server.
@@ -280,6 +283,18 @@ function process_ssl {
 	fatal "Missing argument to --ssl"
 	
     additional_local_ssl_dbs="$additional_local_ssl_dbs $db"
+}
+
+# function: process_server ARGUMENT
+#
+# Process the --server option.
+function process_server {
+    local spec=`expr "$1" : '--server=\(.*\)'`
+
+    test "X$spec" != "X" || \
+	fatal "Missing argument to --server"
+
+    specified_servers="$specified_servers $spec"
 }
 
 # function: process_c ARGUMENT
@@ -493,31 +508,106 @@ function unpack_response {
 #
 # Find and establish connection with a compatible stap server.
 function find_and_connect_to_server {
-    # Use a temp file here instead of a pipeline so that the side effects
-    # of choose_server are seen by the rest of this script.
-    cd $tmpdir_client
-    ${exec_prefix}stap-find-servers > servers
-    choose_server < servers
-    rm -fr servers
+    local num_servers=0
+
+    # Make a place to receive the response file.
+    jar_server=`mktemp -t $tmpdir_prefix_client.server.jar.XXXXXX` || \
+	fatal "ERROR: cannot create temporary file " $jar_server
+
+    # If servers were specified on the command line, then try them
+    # in sequence. Don't try any other servers.
+    if test "X$specified_servers" != "X"; then
+	for server in $specified_servers; do
+	    num_servers=$(($num_servers + 1))
+
+	    # If the server is completely specified, (i.e. server:port),
+            # then try it directly.
+	    port=`expr "$server" : '.\+:\([0-9]\+\)'`
+            if test "X$port" != "X"; then
+		name=`expr "$server" : '\(.\+\):[0-9]\+'`
+
+                # If we have been given an ip address, then try to resolve it to a name.
+                # If we have been given a name, try to resolve the full name.
+                # The full name is needed in order to validate the server's certificate.
+                address=`expr "$name" : '\([0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\)'`
+		if test "X$address" = "X"; then
+		    # We've been given a host name
+		    full_name=`nslookup $name | awk '/^Name\:/ {print $2}'`
+		    if test "X$full_name" != "X"; then
+			name=$full_name
+		    fi
+		else
+		    # We've been given an ip address.
+		    name=`nslookup $address | awk '/^$address.+name = .+\.$/ {print $4}'`
+                    if test "X$name" = "X"; then
+			echo "Cannot resolve ip address $address" >> $tmpdir_client/connect
+			continue
+		    fi
+		fi
+
+		# Now try to contact the given server.
+		ssl_db=`send_receive $name $port`
+		test "X$ssl_db" != "X" && return
+		continue
+	    fi
+
+	    # Otherwise select the matching server from the available servers
+	    # and use the port it is advertizing.
+	    #
+	    # Have we been given an ip address? If so, just use it.
+	    address=`expr "$server" : '\([0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\)'`
+	    if test "X$address" = "X"; then
+		# We have not been given an ip address. Try to resolve it as a host name.
+		address=`nslookup $server | awk '/^Address\:[ \t][0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ {print $2}'`
+                if test "X$address" = "X"; then
+		 echo "Cannot resolve server $server" >> $tmpdir_client/connect
+		 continue
+		fi
+	    fi
+
+	    if test `${exec_prefix}stap-find-servers | grep $address | wc -l` = "0"; then
+		echo "No server is available on $server" >> $tmpdir_client/connect
+		continue
+	    fi
+
+            ssl_db=`${exec_prefix}stap-find-servers | grep $address | choose_server`
+	    test "X$ssl_db" != "X" && return
+	done
+    else
+        # No servers specified. Find available servers and choose one of them.
+	# Remember which ssl certificate database was used to authenticate the chosen
+        # server.
+	ssl_db=`${exec_prefix}stap-find-servers | choose_server`
+	test "X$ssl_db" != "X" && return
+
+	num_servers=`${exec_prefix}stap-find-servers | wc -l`
+    fi
+
+    if test $num_servers = 0; then
+	fatal "ERROR: unable to find a server"
+    fi
+
+    cat $tmpdir_client/connect >&2
+    fatal "ERROR: unable to connect to a server"
 }
 
 # function: choose_server
 #
 # Examine each line from stdin and attempt to connect to each server
 # specified until successful.
+# echo the name of the ssl certificate database used to successfully authenticate
+# the server.
 function choose_server {
-    local num_servers=0
     local name
+    local our_host_name=`expr "$HOSTNAME" : "\\\([a-zA-Z0-9-]*\\\).*"`
+    local our_domain_name=`expr "$HOSTNAME" : "$our_host_name\\\(.*\\\)"`
+
     while read name server port remain
     do
-	num_servers=$(($num_servers + 1))
-
 	# The server must match the dns name on the certificate
 	# and must be 'localhost' if the server is on the local host.
 	local server_host_name=`expr "$name" : "\\\([a-zA-Z0-9-]*\\\).*"`
         local server_domain_name=`expr "$name" : "$server_host_name\\\(.*\\\)"`
-	local our_host_name=`expr "$HOSTNAME" : "\\\([a-zA-Z0-9-]*\\\).*"`
-        local our_domain_name=`expr "$HOSTNAME" : "$our_host_name\\\(.*\\\)"`
 
         if test "X$server_domain_name" = "X.local"; then
 	    server_domain_name=$our_domain_name
@@ -529,61 +619,51 @@ function choose_server {
 	fi
 
 	if test "X$server" = "X"; then
-	    fatal "ERROR: server ip address not provided"
+	    fatal "ERROR: server ip address not provided by avahi"
 	fi
 
 	if test "X$port" = "X"; then
-	    fatal "ERROR: server port not provided"
+	    fatal "ERROR: server port not provided by avahi"
 	fi
 
-	if send_receive; then
-	    return 0
-	fi
+	ssl_db=`send_receive $server $port`
+	test "X$ssl_db" != "X" && echo $ssl_db && return
     done
-
-    if test $num_servers = 0; then
-	fatal "ERROR: unable to find a server"
-    fi
-
-    cat $tmpdir_client/connect >&2
-    fatal "ERROR: unable to connect to a server"
 }
 
-# function: send_receive
+# function: send_receive SERVER PORT
 #
 # Connect to the server, send the request and receive the response
+# echo the name of the ssl certificate database used to successfully authenticate
+# the server.
 function send_receive {
-    # Make a place to receive the response file.
-    jar_server=`mktemp -t $tmpdir_prefix_client.server.jar.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $jar_server
+    local server=$1
+    local port=$2
 
-    # If the server is local, try to connect using each of the given local
-    # certificate databases in turn for verification.
-    if test "X$server" = "Xlocalhost"; then
-	for db in $local_ssl_dbs
-	do
-            # Send the request and receive the response using stap-client-connect
-	    echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
-	    ${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	    wait '%${exec_prefix}stap-client-connect'
-	    test $? = 0 && ssl_db=$db && return 0
-	    sleep 1
-	done
-    fi
+    # Try to connect using each of the given local certificate databases in turn
+    # for verification.
+    for db in $local_ssl_dbs
+    do
+        # Send the request and receive the response using stap-client-connect
+	echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
+	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%${exec_prefix}stap-client-connect'
+	test $? = 0 && echo $db && return
+	sleep 1
+    done
 
-    # We can try the public certificate databases for all servers.
+    # Next, try the public certificate databases.
     for db in $public_ssl_dbs
     do
         # Send the request and receive the response using stap-client-connect
 	echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
 	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
 	wait '%${exec_prefix}stap-client-connect'
-	test $? = 0 && ssl_db=$db && return 0
+	test $? = 0 && echo $db && return
 	sleep 1
     done
 
     # Could not connect using any of the certificate databases
-    return 1
 }
 
 # function: process_response
