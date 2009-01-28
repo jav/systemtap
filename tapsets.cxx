@@ -350,7 +350,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (probes.empty()) return;
 
   s.op->newline() << "/* ---- begin/end probes ---- */";
-  s.op->newline() << "void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
+  s.op->newline() << "static void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false, true, true);
   s.op->newline() << "c->probe_point = pp;";
@@ -358,7 +358,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
+  s.op->newline() << "static void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false, true, true);
   s.op->newline() << "c->probe_point = pp;";
@@ -366,7 +366,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
+  s.op->newline() << "static void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", false, true, true);
   s.op->newline() << "c->probe_point = pp;";
@@ -374,7 +374,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "struct stap_be_probe {";
+  s.op->newline() << "static struct stap_be_probe {";
   s.op->newline(1) << "void (*ph)(struct context*);";
   s.op->newline() << "const char* pp;";
   s.op->newline() << "int type;";
@@ -4988,7 +4988,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // NB: we used to plop a union { struct kprobe; struct kretprobe } into
   // struct stap_dwarf_probe, but it being initialized data makes it add
   // hundreds of bytes of padding per stap_dwarf_probe.  (PR5673)
-  s.op->newline() << "struct stap_dwarf_kprobe {";
+  s.op->newline() << "static struct stap_dwarf_kprobe {";
   s.op->newline(1) << "union { struct kprobe kp; struct kretprobe krp; } u;";
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "struct kprobe dummy;";
@@ -4996,7 +4996,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "} stap_dwarf_kprobes[" << probes_by_module.size() << "];";
   // NB: bss!
 
-  s.op->newline() << "struct stap_dwarf_probe {";
+  s.op->newline() << "static struct stap_dwarf_probe {";
   s.op->newline(1) << "const unsigned return_p:1;";
   s.op->newline() << "const unsigned maxactive_p:1;";
   s.op->newline() << "unsigned registered_p:1;";
@@ -6067,7 +6067,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "return rc;";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "struct stap_itrace_probe stap_itrace_probes[] = {";
+  s.op->newline() << "static struct stap_itrace_probe stap_itrace_probes[] = {";
   s.op->indent(1);
 
   // Set up 'process(PATH)' probes
@@ -6808,7 +6808,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "return rc;";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "struct stap_utrace_probe stap_utrace_probes[] = {";
+  s.op->newline() << "static struct stap_utrace_probe stap_utrace_probes[] = {";
   s.op->indent(1);
 
   // Set up 'process(PATH)' probes
@@ -7105,13 +7105,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // In .bss, the shared pool of uprobe/uretprobe structs.  These are
   // too big to embed in the initialized .data stap_uprobe_spec array.
-  s.op->newline() << "struct stap_uprobe {";
+  s.op->newline() << "static struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
   s.op->newline() << "int spec_index;"; // index into stap_uprobe_specs; <0 == free && unregistered
   s.op->newline(-1) << "} stap_uprobes [MAXUPROBES];";
   s.op->newline() << "DEFINE_MUTEX(stap_uprobes_lock);"; // protects against concurrent registration/unregistration
 
-  s.op->newline() << "struct stap_uprobe_spec {";
+  s.op->newline() << "static struct stap_uprobe_spec {";
   s.op->newline(1) << "struct stap_task_finder_target finder;";
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pathname;";
@@ -7456,7 +7456,7 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- timer probes ---- */";
 
-  s.op->newline() << "struct stap_timer_probe {";
+  s.op->newline() << "static struct stap_timer_probe {";
   s.op->newline(1) << "struct timer_list timer_list;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
@@ -7628,7 +7628,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
 
-  s.op->newline() << "int enter_profile_probes (struct notifier_block *self,"
+  s.op->newline() << "static int enter_profile_probes (struct notifier_block *self,"
                   << " unsigned long val, void *data) {";
   s.op->newline(1) << "(void) self; (void) val;";
   s.op->newline() << "enter_all_profile_probes ((struct pt_regs *) data);";
@@ -7639,7 +7639,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "#else";
 
-  s.op->newline() << "int enter_profile_probes (struct pt_regs *regs) {";
+  s.op->newline() << "static int enter_profile_probes (struct pt_regs *regs) {";
   s.op->newline(1) << "enter_all_profile_probes (regs);";
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
@@ -7808,7 +7808,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- procfs probes ---- */";
 
   // Emit the procfs probe data list
-  s.op->newline() << "struct stap_procfs_probe {";
+  s.op->newline() << "static struct stap_procfs_probe {";
   s.op->newline(1)<< "const char *path;";
   s.op->newline() << "const char *read_pp;";
   s.op->newline() << "void (*read_ph) (struct context*);";
@@ -8642,7 +8642,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- marker probes ---- */";
 
-  s.op->newline() << "struct stap_marker_probe {";
+  s.op->newline() << "static struct stap_marker_probe {";
   s.op->newline(1) << "const char * const name;";
   s.op->newline() << "const char * const format;";
   s.op->newline() << "const char * const pp;";
@@ -8949,8 +8949,8 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- hrtimer probes ---- */";
 
-  s.op->newline() << "unsigned long stap_hrtimer_resolution;"; // init later
-  s.op->newline() << "struct stap_hrtimer_probe {";
+  s.op->newline() << "static unsigned long stap_hrtimer_resolution;"; // init later
+  s.op->newline() << "static struct stap_hrtimer_probe {";
   s.op->newline(1) << "struct hrtimer hrtimer;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";

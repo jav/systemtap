@@ -400,7 +400,7 @@ static unsigned int KEYSYM(phash) (ALLKEYSD(key))
 
 
 #if VALUE_TYPE == INT64 || VALUE_TYPE == STRING
-PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
+static PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 {
 	PMAP pmap = _stp_pmap_new (max_entries, VALUE_TYPE, sizeof(struct KEYSYM(pmap_node)), 0);
 	if (pmap) {
@@ -426,7 +426,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 /* _stp_pmap_new_key1_key2...val (num, HIST_LINEAR, start, end, interval) */
 /* _stp_pmap_new_key1_key2...val (num, HIST_LOG) */ 
 
-PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
+static PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 {
 	int start=0, stop=0, interval=0;
 	PMAP pmap;
@@ -477,7 +477,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 }
 
 #endif /* VALUE_TYPE */
-int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
+static int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 {
 	unsigned int hv;
 	struct hlist_head *head;
@@ -522,7 +522,7 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	return MAP_SET_VAL(map,(struct map_node *)n, val, 0);
 }
 
-int KEYSYM(_stp_pmap_set) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
+static int KEYSYM(_stp_pmap_set) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 {
 	int res;
 	MAP m = per_cpu_ptr (pmap->map, MAP_GET_CPU ());
@@ -538,7 +538,7 @@ int KEYSYM(_stp_pmap_set) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 	return res;
 }
 
-int KEYSYM(_stp_pmap_add) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
+static int KEYSYM(_stp_pmap_add) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 {
 	int res;
 	MAP m = per_cpu_ptr (pmap->map, MAP_GET_CPU());
@@ -555,7 +555,7 @@ int KEYSYM(_stp_pmap_add) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 }
 
 
-VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
+static VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 {
 	unsigned int hv;
 	struct hlist_head *head;
@@ -608,7 +608,7 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 	return NULLRET;
 }
 
-VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
+static VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 {
 	unsigned int hv;
 	int cpu, clear_agg = 0;
@@ -696,7 +696,7 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 	return NULLRET;
 }
 
-int KEYSYM(__stp_pmap_del) (MAP map, ALLKEYSD(key))
+static int KEYSYM(__stp_pmap_del) (MAP map, ALLKEYSD(key))
 {
 	unsigned int hv;
 	struct hlist_head *head;
@@ -737,7 +737,7 @@ int KEYSYM(__stp_pmap_del) (MAP map, ALLKEYSD(key))
 	return 0;
 }
 
-int KEYSYM(_stp_pmap_del) (PMAP pmap, ALLKEYSD(key))
+static int KEYSYM(_stp_pmap_del) (PMAP pmap, ALLKEYSD(key))
 {
 	int res;
 	MAP m = per_cpu_ptr (pmap->map, MAP_GET_CPU ());

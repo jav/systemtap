@@ -47,8 +47,7 @@
 	})
 
 
-long _stp_strncpy_from_user(char *dst, const char __user *src, long count);
-//static long __stp_strncpy_from_user(char *dst, const char __user *src, long count);
+static long __stp_strncpy_from_user(char *dst, const char __user *src, long count);
 
 #if defined (__i386__)
 #define __stp_strncpy_from_user(dst,src,count,res)			   \
@@ -131,7 +130,7 @@ do {									   \
  * <i>count</i> bytes and returns <i>count</i>.
  */
 
-long _stp_strncpy_from_user(char *dst, const char __user *src, long count)
+static long _stp_strncpy_from_user(char *dst, const char __user *src, long count)
 {
 	long res = -EFAULT;
 	if (access_ok(VERIFY_READ, src, count))
@@ -152,7 +151,7 @@ long _stp_strncpy_from_user(char *dst, const char __user *src, long count)
  *
  */
 
-unsigned long _stp_copy_from_user(char *dst, const char __user *src, unsigned long count)
+static unsigned long _stp_copy_from_user(char *dst, const char __user *src, unsigned long count)
 {
 	if (count) {
 		if (access_ok(VERIFY_READ, src, count))

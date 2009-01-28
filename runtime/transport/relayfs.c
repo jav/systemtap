@@ -77,7 +77,7 @@ static void _stp_remove_relay_root(struct dentry *root)
 	}
 }
 
-struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
+static struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 {
 	struct utt_trace *utt;
 	int i;
@@ -122,13 +122,13 @@ err:
 	return NULL;
 }
 
-void utt_set_overwrite(int overwrite)
+static void utt_set_overwrite(int overwrite)
 {
 	if (_stp_utt)
 		_stp_utt->rchan->overwrite = overwrite;
 }
 
-int utt_trace_startstop(struct utt_trace *utt, int start,
+static int utt_trace_startstop(struct utt_trace *utt, int start,
 			unsigned int *trace_seq)
 {
 	int ret;
@@ -163,7 +163,7 @@ int utt_trace_startstop(struct utt_trace *utt, int start,
 }
 
 
-int utt_trace_remove(struct utt_trace *utt)
+static int utt_trace_remove(struct utt_trace *utt)
 {
   	dbug_trans(1, "removing relayfs files. %d\n", utt->trace_state);
 	if (utt && (utt->trace_state == Utt_trace_setup || utt->trace_state == Utt_trace_stopped)) {

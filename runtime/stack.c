@@ -47,7 +47,7 @@
  * @param regs A pointer to the struct pt_regs.
  */
 
-void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
+static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
 {
 	if (verbose) {
 		/* print the current address */
@@ -75,7 +75,7 @@ void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instan
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
+static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
 {
 	/* To get a string, we use a simple trick. First flush the print buffer, */
 	/* then call _stp_stack_print, then copy the result into the output string  */
@@ -93,7 +93,7 @@ void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, 
  * @note Currently limited to a depth of two. Works from jprobes and kprobes.
  */
 #if 0
-void _stp_ustack_print(char *str)
+static void _stp_ustack_print(char *str)
 {
 	struct pt_regs *nregs = ((struct pt_regs *)(THREAD_SIZE + (unsigned long)current->thread_info)) - 1;
 	_stp_printf("%p : [user]\n", (int64_t) REG_IP(nregs));

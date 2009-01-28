@@ -22,14 +22,14 @@ struct stap_task_finder_target;
 #define __STP_TF_RUNNING	1
 #define __STP_TF_STOPPING	2
 #define __STP_TF_STOPPED	3
-atomic_t __stp_task_finder_state = ATOMIC_INIT(__STP_TF_STARTING);
-atomic_t __stp_inuse_count = ATOMIC_INIT (0);
+static atomic_t __stp_task_finder_state = ATOMIC_INIT(__STP_TF_STARTING);
+static atomic_t __stp_inuse_count = ATOMIC_INIT (0);
 
 #define __stp_tf_handler_start() (atomic_inc(&__stp_inuse_count))
 #define __stp_tf_handler_end() (atomic_dec(&__stp_inuse_count))
 
 #ifdef DEBUG_TASK_FINDER
-atomic_t __stp_attach_count = ATOMIC_INIT (0);
+static atomic_t __stp_attach_count = ATOMIC_INIT (0);
 
 #define debug_task_finder_attach() (atomic_inc(&__stp_attach_count))
 #define debug_task_finder_detach() (atomic_dec(&__stp_attach_count))
@@ -56,7 +56,7 @@ typedef int (*stap_task_finder_vm_callback)(struct stap_task_finder_target *tgt,
 					    unsigned long vm_pgoff);
 
 #ifdef DEBUG_TASK_FINDER_VMA
-int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
+static int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
 		   struct task_struct *tsk,
 		   int map_p, char *vm_path,
 		   unsigned long vm_start,
@@ -907,7 +907,7 @@ utftq_out:
 }
 
 
-struct vm_area_struct *
+static struct vm_area_struct *
 __stp_find_file_based_vma(struct mm_struct *mm, unsigned long addr)
 {
 	struct vm_area_struct *vma = find_vma(mm, addr);
@@ -1208,7 +1208,7 @@ struct utrace_engine_ops __stp_utrace_task_finder_ops = {
 	.report_death = stap_utrace_task_finder_report_death,
 };
 
-int
+static int
 stap_start_task_finder(void)
 {
 	int rc = 0;

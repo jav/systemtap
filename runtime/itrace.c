@@ -187,7 +187,7 @@ done:
 }
 
 
-int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe *p)
+static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe *p)
 {
 	struct itrace_info *ui;
 	struct task_struct *tsk;

@@ -21,7 +21,7 @@
  */
 
 /* XXX: this needs to be address-space-specific. */
-unsigned long _stp_module_relocate(const char *module, const char *section, unsigned long offset)
+static unsigned long _stp_module_relocate(const char *module, const char *section, unsigned long offset)
 {
 	static struct _stp_module *last = NULL;
 	static struct _stp_section *last_sec;
@@ -236,7 +236,7 @@ static int _stp_module_check(void)
  * a probe because it is too time-consuming. Use at module exit time.
  */
 
-void _stp_symbol_print(unsigned long address)
+static void _stp_symbol_print(unsigned long address)
 {
 	const char *modname;
 	const char *name;
@@ -255,7 +255,7 @@ void _stp_symbol_print(unsigned long address)
 }
 
 /* Like _stp_symbol_print, except only print if the address is a valid function address */
-int _stp_func_print(unsigned long address, int verbose, int exact)
+static int _stp_func_print(unsigned long address, int verbose, int exact)
 {
 	const char *modname;
 	const char *name;
@@ -283,7 +283,7 @@ int _stp_func_print(unsigned long address, int verbose, int exact)
 	return 0;
 }
 
-void _stp_symbol_snprint(char *str, size_t len, unsigned long address)
+static void _stp_symbol_snprint(char *str, size_t len, unsigned long address)
 {
 	const char *modname;
 	const char *name;

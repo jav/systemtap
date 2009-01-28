@@ -16,11 +16,11 @@
 
 #  include <linux/namei.h>
 
-struct rchan *_stp_relayfs_open(unsigned n_subbufs,
+static struct rchan *_stp_relayfs_open(unsigned n_subbufs,
 				unsigned subbuf_size,
 				int pid,
 				struct dentry **outdir);
 
-void _stp_relayfs_close(struct rchan *chan, struct dentry *dir);
+static void _stp_relayfs_close(struct rchan *chan, struct dentry *dir);
 
 #endif /* _TRANSPORT_RELAYFS_H_ */

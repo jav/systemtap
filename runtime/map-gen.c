@@ -336,7 +336,7 @@ static unsigned int KEYSYM(hash) (ALLKEYSD(key))
 
 
 #if VALUE_TYPE == INT64 || VALUE_TYPE == STRING
-MAP KEYSYM(_stp_map_new) (unsigned max_entries)
+static MAP KEYSYM(_stp_map_new) (unsigned max_entries)
 {
 	MAP m = _stp_map_new (max_entries, VALUE_TYPE, sizeof(struct KEYSYM(map_node)), 0);
 	if (m)
@@ -347,7 +347,7 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries)
 /* _stp_map_new_key1_key2...val (num, HIST_LINEAR, start, end, interval) */
 /* _stp_map_new_key1_key2...val (num, HIST_LOG) */ 
 
-MAP KEYSYM(_stp_map_new) (unsigned max_entries, int htype, ...)
+static MAP KEYSYM(_stp_map_new) (unsigned max_entries, int htype, ...)
 {
 	int start=0, stop=0, interval=0;
 	MAP m;
@@ -384,7 +384,7 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int htype, ...)
 }
 
 #endif /* VALUE_TYPE */
-int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
+static int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 {
 	unsigned int hv;
 	struct hlist_head *head;
@@ -427,18 +427,18 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	return MAP_SET_VAL(map,(struct map_node *)n, val, 0);
 }
 
-int KEYSYM(_stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val)
+static int KEYSYM(_stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val)
 {
 	return KEYSYM(__stp_map_set) (map, ALLKEYS(key), val, 0);
 }
 
-int KEYSYM(_stp_map_add) (MAP map, ALLKEYSD(key), VSTYPE val)
+static int KEYSYM(_stp_map_add) (MAP map, ALLKEYSD(key), VSTYPE val)
 {
 	return KEYSYM(__stp_map_set) (map, ALLKEYS(key), val, 1);
 }
 
 
-VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
+static VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 {
 	unsigned int hv;
 	struct hlist_head *head;
@@ -474,7 +474,7 @@ VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 	return NULLRET;
 }
 
-int KEYSYM(_stp_map_del) (MAP map, ALLKEYSD(key))
+static int KEYSYM(_stp_map_del) (MAP map, ALLKEYSD(key))
 {
 	unsigned int hv;
 	struct hlist_head *head;
@@ -511,7 +511,7 @@ int KEYSYM(_stp_map_del) (MAP map, ALLKEYSD(key))
 	return 0;
 }
 
-int KEYSYM(_stp_map_exists) (MAP map, ALLKEYSD(key))
+static int KEYSYM(_stp_map_exists) (MAP map, ALLKEYSD(key))
 {
 	unsigned int hv;
 	struct hlist_head *head;

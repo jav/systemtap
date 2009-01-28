@@ -59,7 +59,7 @@ static struct pfarg_start start_args;
  * @param pmd_count, number of entries in pmd
  * @returns an int, 0 if no errors encountered during setup
  */
-int _stp_perfmon_setup(void **desc,
+static int _stp_perfmon_setup(void **desc,
 		       struct pfarg_ctx *context,
 		       struct pfarg_pmc pmc[], int pmc_count,
 		       struct pfarg_pmd pmd[], int pmd_count)
@@ -98,7 +98,7 @@ cleanup: *desc=NULL;
  * @param desc unique pointer to describe configuration
  * @returns an int, 0 if no errors encountered during shutdown
  */
-int _stp_perfmon_shutdown(void *desc)
+static int _stp_perfmon_shutdown(void *desc)
 {
 	int err=0;
 
@@ -116,7 +116,7 @@ int _stp_perfmon_shutdown(void *desc)
  * @param desc unique pointer to describe configuration
  * @returns an int64, raw value of counter
  */
-int64_t _stp_perfmon_read(void *desc, int counter)
+static int64_t _stp_perfmon_read(void *desc, int counter)
 {
 	struct pfarg_pmd storage;
 	

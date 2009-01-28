@@ -66,7 +66,7 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
  * @param fmt A variable number of args.
  * @todo Evaluate if this function is necessary.
  */
-void _stp_log (const char *fmt, ...)
+static void _stp_log (const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -81,7 +81,7 @@ void _stp_log (const char *fmt, ...)
  * is added. 
  * @param fmt A variable number of args.
  */
-void _stp_warn (const char *fmt, ...)
+static void _stp_warn (const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -97,7 +97,7 @@ void _stp_warn (const char *fmt, ...)
  * call. You should probably call return immediately after 
  * calling _stp_exit().
  */
-void _stp_exit (void)
+static void _stp_exit (void)
 {
 	_stp_exit_flag = 1;
 }
@@ -112,7 +112,7 @@ void _stp_exit (void)
  * @param fmt A variable number of args.
  * @sa _stp_exit().
  */
-void _stp_error (const char *fmt, ...)
+static void _stp_error (const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -131,7 +131,7 @@ void _stp_error (const char *fmt, ...)
  * @param fmt A variable number of args.
  * @sa _stp_error
  */
-void _stp_softerror (const char *fmt, ...)
+static void _stp_softerror (const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);

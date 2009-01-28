@@ -863,14 +863,14 @@ c_unparser::emit_common_header ()
   o->newline() << "#define STAP_SESSION_ERROR 2";
   o->newline() << "#define STAP_SESSION_STOPPING 3";
   o->newline() << "#define STAP_SESSION_STOPPED 4";
-  o->newline() << "atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
-  o->newline() << "atomic_t error_count = ATOMIC_INIT (0);";
-  o->newline() << "atomic_t skipped_count = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
+  o->newline() << "static atomic_t error_count = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count = ATOMIC_INIT (0);";
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
-  o->newline() << "atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
-  o->newline() << "atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
-  o->newline() << "atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
   o->newline() << "#endif";
   o->newline();
   o->newline() << "struct context {";
@@ -1002,7 +1002,7 @@ c_unparser::emit_common_header ()
     }
   o->newline(-1) << "} locals [MAXNESTING];";
   o->newline(-1) << "};\n";
-  o->newline() << "void *contexts = NULL; /* alloc_percpu */\n";
+  o->newline() << "static void *contexts = NULL; /* alloc_percpu */\n";
 
   emit_map_type_instantiations ();
 
@@ -1097,7 +1097,7 @@ c_unparser::emit_module_init ()
     g[i]->emit_module_decls (*session);
 
   o->newline();
-  o->newline() << "int systemtap_module_init (void) {";
+  o->newline() << "static int systemtap_module_init (void) {";
   o->newline(1) << "int rc = 0;";
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
   o->newline() << "const char *probe_point = \"\";";
@@ -1244,7 +1244,7 @@ c_unparser::emit_module_init ()
 void
 c_unparser::emit_module_exit ()
 {
-  o->newline() << "void systemtap_module_exit (void) {";
+  o->newline() << "static void systemtap_module_exit (void) {";
   // rc?
   o->newline(1) << "int holdon;";
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
@@ -1391,7 +1391,7 @@ c_unparser::emit_module_exit ()
 void
 c_unparser::emit_function (functiondecl* v)
 {
-  o->newline() << "void function_" << c_varname (v->name)
+  o->newline() << "static void function_" << c_varname (v->name)
             << " (struct context* __restrict__ c) {";
   o->indent(1);
   this->current_probe = 0;
@@ -4611,7 +4611,7 @@ dump_unwindsyms (Dwfl_Module *m,
 
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
-      c->output << "struct _stp_symbol "
+      c->output << "static struct _stp_symbol "
                 << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {" << endl;
 
       // Only include symbols if they will be used
@@ -4632,7 +4632,7 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "};" << endl;
     }
 
-  c->output << "struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {" << endl;
+  c->output << "static struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {" << endl;
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
       c->output << "{" << endl
@@ -4643,7 +4643,7 @@ dump_unwindsyms (Dwfl_Module *m,
     }
   c->output << "};" << endl;
 
-  c->output << "struct _stp_module _stp_module_" << stpmod_idx << " = {" << endl;
+  c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {" << endl;
   c->output << ".name = " << lex_cast_qstring (modname) << ", " << endl;
   c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", " << endl;
 
@@ -4810,13 +4810,13 @@ emit_symbol_data (systemtap_session& s)
 
   // Print out a definition of the runtime's _stp_modules[] globals.
   kallsyms_out << endl;
-  kallsyms_out << "struct _stp_module *_stp_modules [] = {" << endl;
+  kallsyms_out << "static struct _stp_module *_stp_modules [] = {" << endl;
   for (unsigned i=0; i<ctx.stp_module_index; i++)
     {
       kallsyms_out << "& _stp_module_" << i << "," << endl;
     }
   kallsyms_out << "};" << endl;
-  kallsyms_out << "unsigned _stp_num_modules = " << ctx.stp_module_index << ";" << endl;
+  kallsyms_out << "static unsigned _stp_num_modules = " << ctx.stp_module_index << ";" << endl;
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
   for (set<string>::iterator it = ctx.undone_unwindsym_modules.begin();
@@ -4984,11 +4984,11 @@ translate_pass (systemtap_session& s)
       s.op->newline();
 
       // XXX impedance mismatch
-      s.op->newline() << "int probe_start () {";
+      s.op->newline() << "static int probe_start () {";
       s.op->newline(1) << "return systemtap_module_init () ? -1 : 0;";
       s.op->newline(-1) << "}";
       s.op->newline();
-      s.op->newline() << "void probe_exit () {";
+      s.op->newline() << "static void probe_exit () {";
       s.op->newline(1) << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
       s.op->assert_0_indent();

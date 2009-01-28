@@ -31,7 +31,7 @@
  * @note i386 and x86_64 only so far.
  */
  
-unsigned long _stp_ret_addr (struct pt_regs *regs)
+static unsigned long _stp_ret_addr (struct pt_regs *regs)
 {
 #if defined  (STAPCONF_X86_UNIREGS)  && (defined (__x86_64__) || defined (__i386__))
          unsigned long *ra = (unsigned long *)regs->sp;
@@ -85,7 +85,7 @@ unsigned long _stp_ret_addr (struct pt_regs *regs)
 
 #if defined  (STAPCONF_X86_UNIREGS)  && defined (__x86_64__)
 
-void _stp_print_regs(struct pt_regs * regs)
+static void _stp_print_regs(struct pt_regs * regs)
 {
         unsigned long cr0 = 0L, cr2 = 0L, cr3 = 0L, cr4 = 0L, fs, gs, shadowgs;
         unsigned int fsindex,gsindex;
@@ -126,7 +126,7 @@ void _stp_print_regs(struct pt_regs * regs)
 
  #elif defined (STAPCONF_X86_UNIREGS) && defined (__i386__)
 
-void _stp_print_regs(struct pt_regs * regs)
+static void _stp_print_regs(struct pt_regs * regs)
 {
        unsigned long cr0 = 0L, cr2 = 0L, cr3 = 0L, cr4 = 0L;
 
@@ -153,7 +153,7 @@ void _stp_print_regs(struct pt_regs * regs)
 }
 
 #elif defined  (__x86_64__)
-void _stp_print_regs(struct pt_regs * regs)
+static void _stp_print_regs(struct pt_regs * regs)
 {
         unsigned long cr0 = 0L, cr2 = 0L, cr3 = 0L, cr4 = 0L, fs, gs, shadowgs;
         unsigned int fsindex,gsindex;
@@ -193,7 +193,7 @@ void _stp_print_regs(struct pt_regs * regs)
 }
 
 #elif defined (__ia64__)
-void _stp_print_regs(struct pt_regs * regs)
+static void _stp_print_regs(struct pt_regs * regs)
 {
      unsigned long ip = regs->cr_iip + ia64_psr(regs)->ri;
 
@@ -228,7 +228,7 @@ void _stp_print_regs(struct pt_regs * regs)
  * @param regs The pt_regs saved by the kprobe.
  * @note i386 and x86_64 only so far. 
  */
-void _stp_print_regs(struct pt_regs * regs)
+static void _stp_print_regs(struct pt_regs * regs)
 {
 	unsigned long cr0 = 0L, cr2 = 0L, cr3 = 0L, cr4 = 0L;
 	
@@ -263,7 +263,7 @@ static int _stp_probing_32bit_app(struct pt_regs *regs)
 	return (user_mode(regs) && test_tsk_thread_flag(current, TIF_32BIT));
 }
 
-void _stp_print_regs(struct pt_regs * regs)
+static void _stp_print_regs(struct pt_regs * regs)
 {
 	int i;
 
@@ -302,7 +302,7 @@ static const char *processor_modes[]=
 };
 
 
-void _stp_print_regs(struct pt_regs * regs)
+static void _stp_print_regs(struct pt_regs * regs)
 {
 	unsigned long flags = condition_codes(regs);
 
@@ -365,7 +365,7 @@ void _stp_print_regs(struct pt_regs * regs)
 #define GPRSIZE "%08lX "
 #endif
 
-void _stp_print_regs(struct pt_regs * regs)
+static void _stp_print_regs(struct pt_regs * regs)
 {
 	char *mode;
 	int i;

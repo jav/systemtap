@@ -14,7 +14,7 @@ static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
 
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
-DEFINE_SPINLOCK(_stp_ctl_ready_lock);
+static DEFINE_SPINLOCK(_stp_ctl_ready_lock);
 
 static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {

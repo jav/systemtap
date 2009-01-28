@@ -103,7 +103,7 @@ static void generic_swap(void *a, void *b, int size)
  * O(n*n) worst-case behavior and extra memory requirements that make
  * it less suitable for kernel use.
 */
-void _stp_sort(void *_base, size_t num, size_t size,
+static void _stp_sort(void *_base, size_t num, size_t size,
 	       int (*cmp_func) (const void *, const void *), void (*swap_func) (void *, void *, int size))
 {
         char *base = (char*) _base;

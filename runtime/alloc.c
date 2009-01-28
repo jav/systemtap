@@ -63,7 +63,7 @@ struct _stp_mem_entry {
 
 static LIST_HEAD(_stp_mem_list);
 
-void _stp_check_mem_fence (char *addr, int size)
+static void _stp_check_mem_fence (char *addr, int size)
 {
 	char *ptr;
 	int i;
@@ -88,7 +88,7 @@ void _stp_check_mem_fence (char *addr, int size)
 	}
 }
 
-void *_stp_mem_debug_setup(void *addr, size_t size, enum _stp_memtype type)
+static void *_stp_mem_debug_setup(void *addr, size_t size, enum _stp_memtype type)
 {
 	struct list_head *p;
 	struct _stp_mem_entry *m;
@@ -108,7 +108,7 @@ void *_stp_mem_debug_setup(void *addr, size_t size, enum _stp_memtype type)
 }
 
 /* Percpu allocations don't have the fence. Implementing it is problematic. */
-void _stp_mem_debug_percpu(struct _stp_mem_entry *m, void *addr, size_t size)
+static void _stp_mem_debug_percpu(struct _stp_mem_entry *m, void *addr, size_t size)
 {
 	struct list_head *p = (struct list_head *)m;
 	m->magic = MEM_MAGIC;
@@ -120,7 +120,7 @@ void _stp_mem_debug_percpu(struct _stp_mem_entry *m, void *addr, size_t size)
 	spin_unlock(&_stp_mem_lock);	
 }
 
-void _stp_mem_debug_free(void *addr, enum _stp_memtype type)
+static void _stp_mem_debug_free(void *addr, enum _stp_memtype type)
 {
 	int found = 0;
 	struct list_head *p, *tmp;
@@ -291,7 +291,7 @@ static void *_stp_kmalloc_node(size_t size, int node)
 }
 #endif /* LINUX_VERSION_CODE */
 
-void _stp_kfree(void *addr)
+static void _stp_kfree(void *addr)
 {
 #ifdef DEBUG_MEM
 	_stp_mem_debug_free(addr, MEM_KMALLOC);
@@ -300,7 +300,7 @@ void _stp_kfree(void *addr)
 #endif
 }
 
-void _stp_vfree(void *addr)
+static void _stp_vfree(void *addr)
 {
 #ifdef DEBUG_MEM
 	_stp_mem_debug_free(addr, MEM_VMALLOC);
@@ -309,7 +309,7 @@ void _stp_vfree(void *addr)
 #endif
 }
 
-void _stp_free_percpu(void *addr)
+static void _stp_free_percpu(void *addr)
 {
 #ifdef DEBUG_MEM
 	_stp_mem_debug_free(addr, MEM_PERCPU);
@@ -318,7 +318,7 @@ void _stp_free_percpu(void *addr)
 #endif
 }
 
-void _stp_mem_debug_done(void)
+static void _stp_mem_debug_done(void)
 {
 #ifdef DEBUG_MEM
 	struct list_head *p, *tmp;

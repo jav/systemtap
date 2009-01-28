@@ -655,7 +655,7 @@ static const char *_stp_enc_lo_name[] = {
 	"DW_EH_PE_sdata4",
 	"DW_EH_PE_sdata8"
 };
-char *_stp_eh_enc_name(signed type)
+static char *_stp_eh_enc_name(signed type)
 {
 	static char buf[64];
 	int hi, low;
@@ -685,7 +685,7 @@ char *_stp_eh_enc_name(signed type)
 /* Unwind to previous to frame.  Returns 0 if successful, negative
  * number in case of an error.  A positive return means unwinding is finished; 
  * don't try to fallback to dumping addresses on the stack. */
-int unwind(struct unwind_frame_info *frame)
+static int unwind(struct unwind_frame_info *frame)
 {
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
 	const u32 *fde, *cie = NULL;

@@ -26,17 +26,17 @@ static int map_sizes[] = {
         0
 };
 
-unsigned int int64_hash (const int64_t v)
+static unsigned int int64_hash (const int64_t v)
 {
 	return (unsigned int)hash_long ((unsigned long)v, HASH_TABLE_BITS);
 }
 
-int int64_eq_p (int64_t key1, int64_t key2)
+static int int64_eq_p (int64_t key1, int64_t key2)
 {
 	return key1 == key2;
 }
 
-void str_copy(char *dest, char *src)
+static void str_copy(char *dest, char *src)
 {
 	int len = 0;
 	if (src) {
@@ -48,7 +48,7 @@ void str_copy(char *dest, char *src)
 	dest[len] = 0;
 }
 
-void str_add(void *dest, char *val)
+static void str_add(void *dest, char *val)
 {
 	char *dst = (char *)dest;
 	int len = strlen(val);
@@ -61,12 +61,12 @@ void str_add(void *dest, char *val)
 	dst[len + len1] = 0;
 }
 
-int str_eq_p (char *key1, char *key2)
+static int str_eq_p (char *key1, char *key2)
 {
 	return strncmp(key1, key2, MAP_STRING_LENGTH - 1) == 0;
 }
 
-unsigned int str_hash(const char *key1)
+static unsigned int str_hash(const char *key1)
 {
 	int hash = 0, count = 0;
 	char *v1 = (char *)key1;
@@ -88,7 +88,7 @@ unsigned int str_hash(const char *key1)
  * @param m pointer to the map_node. 
  * @returns an int64 value.
  */
-int64_t _stp_get_int64(struct map_node *m)
+static int64_t _stp_get_int64(struct map_node *m)
 {
 	if (!m || m->map->type != INT64)
 		return 0;
@@ -102,7 +102,7 @@ int64_t _stp_get_int64(struct map_node *m)
  * @param m pointer to the map_node.
  * @returns a pointer to a string. 
  */
-char *_stp_get_str(struct map_node *m)
+static char *_stp_get_str(struct map_node *m)
 {
 	if (!m || m->map->type != STRING)
 		return "bad type";
@@ -116,7 +116,7 @@ char *_stp_get_str(struct map_node *m)
  * @param m pointer to the map_node.
  * @returns A pointer to the stats.  
  */
-stat *_stp_get_stat(struct map_node *m)
+static stat *_stp_get_stat(struct map_node *m)
 {
 	if (!m || m->map->type != STAT)
 		return 0;
@@ -130,7 +130,7 @@ stat *_stp_get_stat(struct map_node *m)
  * @returns an int64
  * @sa key1int(), key2int()
  */
-int64_t _stp_key_get_int64 (struct map_node *mn, int n)
+static int64_t _stp_key_get_int64 (struct map_node *mn, int n)
 {
 	int type;
 	int64_t res = 0;
@@ -150,7 +150,7 @@ int64_t _stp_key_get_int64 (struct map_node *mn, int n)
  * @returns a pointer to a string
  * @sa key1str(), key2str()
  */
-char *_stp_key_get_str (struct map_node *mn, int n)
+static char *_stp_key_get_str (struct map_node *mn, int n)
 {
 	int type;
 	char *str = "";
@@ -290,7 +290,7 @@ err:
  * @sa foreach
  */
 
-struct map_node *_stp_map_start(MAP map)
+static struct map_node *_stp_map_start(MAP map)
 {
 	if (map == NULL)
 		return NULL;
@@ -313,7 +313,7 @@ struct map_node *_stp_map_start(MAP map)
  * @sa foreach
  */
 
-struct map_node *_stp_map_iter(MAP map, struct map_node *m)
+static struct map_node *_stp_map_iter(MAP map, struct map_node *m)
 {
 	if (map == NULL)
 		return NULL;
@@ -328,7 +328,7 @@ struct map_node *_stp_map_iter(MAP map, struct map_node *m)
  * @param map 
  */
 
-void _stp_map_clear(MAP map)
+static void _stp_map_clear(MAP map)
 {
 	struct map_node *m;
 
@@ -351,7 +351,7 @@ void _stp_map_clear(MAP map)
 	}
 }
 
-void _stp_pmap_clear(PMAP pmap)
+static void _stp_pmap_clear(PMAP pmap)
 {
 	int i;
 
@@ -393,7 +393,7 @@ static void __stp_map_del(MAP map)
  * @param map
  */
 
-void _stp_map_del(MAP map)
+static void _stp_map_del(MAP map)
 {
 	if (map == NULL)
 		return;
@@ -403,7 +403,7 @@ void _stp_map_del(MAP map)
 	_stp_kfree(map);
 }
 
-void _stp_pmap_del(PMAP pmap)
+static void _stp_pmap_del(PMAP pmap)
 {
 	int i;
 
@@ -510,7 +510,7 @@ static inline void _stp_swap (struct list_head *a, struct list_head *b)
  * @sa _stp_map_sortn()
  */
 
-void _stp_map_sort (MAP map, int keynum, int dir)
+static void _stp_map_sort (MAP map, int keynum, int dir)
 {
         struct list_head *p, *q, *e, *tail;
         int nmerges, psize, qsize, i, type, insize = 1;
@@ -577,7 +577,7 @@ void _stp_map_sort (MAP map, int keynum, int dir)
  * @param dir Sort Direction. -1 for low-to-high. 1 for high-to-low.
  * @sa _stp_map_sort()
  */
-void _stp_map_sortn(MAP map, int n, int keynum, int dir)
+static void _stp_map_sortn(MAP map, int n, int keynum, int dir)
 {
 	if (n == 0 || n > 30) {
 		_stp_map_sort(map, keynum, dir);
@@ -726,7 +726,7 @@ static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr)
  * @param map A pointer to a pmap.
  * @returns a pointer to the aggregated map. Null on failure.
  */
-MAP _stp_pmap_agg (PMAP pmap)
+static MAP _stp_pmap_agg (PMAP pmap)
 {
 	int i, hash;
 	MAP m, agg;
@@ -912,7 +912,7 @@ static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add)
  * @param pmap 
  * @returns an int
  */
-int _stp_pmap_size (PMAP pmap)
+static int _stp_pmap_size (PMAP pmap)
 {
 	int i, num = 0;
 

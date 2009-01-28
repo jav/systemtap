@@ -22,7 +22,7 @@ static struct proc_dir_entry *_stp_procfs_files[STP_MAX_PROCFS_FILES];
 static struct proc_dir_entry *_stp_proc_stap = NULL;
 static struct proc_dir_entry *_stp_proc_root = NULL;
 
-void _stp_close_procfs(void);
+static void _stp_close_procfs(void);
 
 // 2.6.24 fixed proc_dir_entry refcounting.
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)
@@ -34,7 +34,7 @@ void _stp_close_procfs(void);
 /*
  * Removes /proc/systemtap/{module_name} and /proc/systemtap (if empty)
  */
-void _stp_rmdir_proc_module(void)
+static void _stp_rmdir_proc_module(void)
 {
         if (_stp_proc_root && _stp_proc_root->subdir == NULL) {
 		if (atomic_read(&_stp_proc_root->count) != LAST_ENTRY_COUNT)
@@ -71,7 +71,7 @@ void _stp_rmdir_proc_module(void)
  * Safely creates /proc/systemtap (if necessary) and
  * /proc/systemtap/{module_name}.
  */
-int _stp_mkdir_proc_module(void)
+static int _stp_mkdir_proc_module(void)
 {	
         if (_stp_proc_root == NULL) {
 		struct nameidata nd;
@@ -128,7 +128,7 @@ static struct proc_dir_entry *_stp_procfs_lookup(const char *dir, struct proc_di
 	return NULL;
 }
 
-int _stp_create_procfs(const char *path, int num)
+static int _stp_create_procfs(const char *path, int num)
 {  
 	const char *p;
 	char *next;
@@ -195,7 +195,7 @@ err:
 	return -1;
 }
 
-void _stp_close_procfs(void)
+static void _stp_close_procfs(void)
 {
 	int i;
 	for (i = _stp_num_pde-1; i >= 0; i--) {

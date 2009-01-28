@@ -30,7 +30,7 @@ struct addr_map
 
 static DEFINE_SPINLOCK(addr_map_lock);
 
-struct addr_map* blackmap;
+static struct addr_map* blackmap;
 
 /* Find address of entry where we can insert a new one. */
 static size_t
@@ -88,7 +88,7 @@ lookup_addr_aux(unsigned long addr, struct addr_map* map)
   return 0;
 }
 
-int
+static int
 lookup_bad_addr(unsigned long addr)
 {
   struct addr_map_entry* result = 0;
@@ -102,7 +102,7 @@ lookup_bad_addr(unsigned long addr)
 }
 
 
-int
+static int
 add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
                    struct addr_map_entry** existing_min,
                    struct addr_map_entry** existing_max)
@@ -181,7 +181,7 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
   return 0;
 }
 
-void
+static void
 delete_bad_addr_entry(struct addr_map_entry* entry)
 {
 }

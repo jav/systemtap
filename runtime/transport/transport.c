@@ -25,9 +25,9 @@
 static struct utt_trace *_stp_utt = NULL;
 static unsigned int utt_seq = 1;
 static int _stp_probes_started = 0;
-pid_t _stp_target = 0;
+static pid_t _stp_target = 0;
 static int _stp_exit_called = 0;
-int _stp_exit_flag = 0;
+static int _stp_exit_flag = 0;
 #ifdef STP_OLD_TRANSPORT
 #include "relayfs.c"
 #include "procfs.c"
@@ -42,9 +42,9 @@ module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
 /* forward declarations */
-void probe_exit(void);
-int probe_start(void);
-void _stp_exit(void);
+static void probe_exit(void);
+static int probe_start(void);
+static void _stp_exit(void);
 
 /* check for new workqueue API */
 #ifdef DECLARE_DELAYED_WORK
@@ -61,7 +61,7 @@ static struct workqueue_struct *_stp_wq;
  *	_stp_handle_start - handle STP_START
  */
 
-void _stp_handle_start(struct _stp_msg_start *st)
+static void _stp_handle_start(struct _stp_msg_start *st)
 {
 	dbug_trans(1, "stp_handle_start\n");
 	_stp_target = st->target;
@@ -170,7 +170,7 @@ static void _stp_work_queue(void *data)
  *	This is called automatically when the module is unloaded.
  *     
  */
-void _stp_transport_close()
+static void _stp_transport_close()
 {
 	dbug_trans(1, "%d: ************** transport_close *************\n", current->pid);
 	_stp_cleanup_and_exit(0);
@@ -205,7 +205,7 @@ static struct utt_trace *_stp_utt_open(void)
  * _stp_transport_init() is called from the module initialization.
  *   It does the bare minimum to exchange commands with staprun 
  */
-int _stp_transport_init(void)
+static int _stp_transport_init(void)
 {
 	int ret;
 

@@ -37,7 +37,7 @@ static int utt_overwrite_flag = 0;
  *
  *	Most of this function is deadcopy of relay_switch_subbuf.
  */
-size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
+static size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
 			 size_t length)
 {
 	char *old, *new;
@@ -122,7 +122,7 @@ static void __utt_timer_init(struct utt_trace * utt)
 	add_timer(&utt->timer);
 }
 
-void utt_set_overwrite(int overwrite)
+static void utt_set_overwrite(int overwrite)
 {
 	utt_overwrite_flag = overwrite;
 }
@@ -170,7 +170,7 @@ err:
 }
 
 
-void utt_trace_cleanup(struct utt_trace *utt)
+static void utt_trace_cleanup(struct utt_trace *utt)
 {
 	if (utt == NULL)
 		return;
@@ -182,7 +182,7 @@ void utt_trace_cleanup(struct utt_trace *utt)
 	_stp_kfree(utt);
 }
 
-int utt_trace_remove(struct utt_trace *utt)
+static int utt_trace_remove(struct utt_trace *utt)
 {
 	if (utt->trace_state == Utt_trace_setup ||
 	    utt->trace_state == Utt_trace_stopped)
@@ -288,7 +288,7 @@ static struct rchan_callbacks utt_relay_callbacks_global = {
 /*
  * Setup everything required to start tracing
  */
-struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
+static struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 {
 	struct utt_trace *utt = NULL;
 	struct dentry *dir = NULL;
@@ -373,7 +373,7 @@ err:
 	return NULL;
 }
 
-int utt_trace_startstop(struct utt_trace *utt, int start,
+static int utt_trace_startstop(struct utt_trace *utt, int start,
 			unsigned int *trace_seq)
 {
 	int ret;

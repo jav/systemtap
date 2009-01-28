@@ -44,7 +44,7 @@
 #endif
 
 static void _stp_dbug (const char *func, int line, const char *fmt, ...);
-void _stp_error (const char *fmt, ...);
+static void _stp_error (const char *fmt, ...);
 
 #include "debug.h"
 
@@ -93,7 +93,7 @@ static struct
 #include "addr-map.c"
 
 /* Support functions for int64_t module parameters. */
-int param_set_int64_t(const char *val, struct kernel_param *kp)
+static int param_set_int64_t(const char *val, struct kernel_param *kp)
 {
   char *endp;
   long long ll;
@@ -114,7 +114,7 @@ int param_set_int64_t(const char *val, struct kernel_param *kp)
   return 0;
 }
 
-int param_get_int64_t(char *buffer, struct kernel_param *kp)
+static int param_get_int64_t(char *buffer, struct kernel_param *kp)
 {
   return sprintf(buffer, "%lli", (long long)*((int64_t *)kp->arg));
 }
@@ -129,7 +129,7 @@ int init_module (void)
   return _stp_transport_init();
 }
 
-int probe_start(void);
+static int probe_start(void);
 
 void cleanup_module(void)
 {

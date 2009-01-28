@@ -26,20 +26,20 @@
 static unsigned _stp_nsubbufs = 8;
 static unsigned _stp_subbuf_size = 65536*4;
 
-void _stp_warn (const char *fmt, ...);
-extern void _stp_transport_close(void);
-extern int _stp_print_init(void);
-extern void _stp_print_cleanup(void);
+static void _stp_warn (const char *fmt, ...);
+static void _stp_transport_close(void);
+static int _stp_print_init(void);
+static void _stp_print_cleanup(void);
 static struct dentry *_stp_get_root_dir(const char *name);
 static int _stp_lock_debugfs(void);
 static void _stp_unlock_debugfs(void);
 static void _stp_attach(void);
 static void _stp_detach(void);
-void _stp_handle_start(struct _stp_msg_start *st);
+static void _stp_handle_start(struct _stp_msg_start *st);
 
-int _stp_pid = 0;
-uid_t _stp_uid = 0;
-gid_t _stp_gid = 0;
-pid_t _stp_init_pid = 0;
-int _stp_attached = 0;
+static int _stp_pid = 0;
+static uid_t _stp_uid = 0;
+static gid_t _stp_gid = 0;
+static pid_t _stp_init_pid = 0;
+static int _stp_attached = 0;
 #endif /* _TRANSPORT_TRANSPORT_H_ */
