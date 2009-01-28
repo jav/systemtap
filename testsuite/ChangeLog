@@ -1,3 +1,12 @@
+2009-01-28  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.examples/profiling/timeout.meta:
+	* systemtap.examples/profiling/timeout.stp: New.
+	* systemtap.examples/index.html:
+	* systemtap.examples/index.txt:
+	* systemtap.examples/keyword-index.html:
+	* systemtap.examples/keyword-index.txt: Regenerate.
+	
 2009-01-22  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/static_uprobes.exp: Test dtrace.

@@ -141,6 +141,9 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-
 <li><a href="profiling/thread-times.stp">profiling/thread-times.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The thread-times.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top twenty processes with samples broken down into percentage total time spent in user-space and kernel-space.</p></li>
+<li><a href="profiling/timeout.stp">profiling/timeout.stp</a> - Show Processes Doing Polling Operations<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The timeout.stp script is based on a blog entry (http://udrepper.livejournal.com/19041.html) mentioning a need for a tool to help developers find applications that are polling. The timeout.stp script monitors systemcall used for polling and records the systemcalls that timed out rather than returned because some action occurred. The script updates the screen once a second with the top twenty processes.</p></li>
 </ul>
 <h3><a name="READ">READ</a></h3>
 <ul>
