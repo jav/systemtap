@@ -1,3 +1,11 @@
+2009-01-29  Will Cohen  <wcohen@redhat.com>
+
+	* testsuite/systemtap.samples/args.exp:
+	* testsuite/systemtap.samples/args.stp:
+	* testsuite/systemtap.samples/primes.exp:
+	* testsuite/systemtap.samples/primes.stp:
+	* testsuite/systemtap.samples/testlog.stp: Remove.
+
 2009-01-28  Will Cohen  <wcohen@redhat.com>
 
 	* systemtap.examples/profiling/timeout.meta:
