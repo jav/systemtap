@@ -1,6 +1,18 @@
+2009-01-29  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (initialization): Set our_host_name and our_domain_name
+	here.
+	(find_and_connect_to_server): Correct the extraction of a host name
+	looked up by ip address. Replace 'localhost' with the actual host name.
+	(choose_server): Don't set our_host_name and our_domain_name here.
+	Don't change the name of our host to 'localhost' here. Check that
+	ahavi has provided the host name. Don't check that avahi has provided
+	the ip address. Pass the host name to send_receive.
+	(send_receive): Change the name of our host to 'localhost' here.
+
 2009-01-28  Dave Brolley  <brolley@redhat.com>
 
-	* stap-client (initialize): Call check_db to check the security of the
+	* stap-client (initialization): Call check_db to check the security of the
 	default certificate databases. Initialize find_all.
 	(parse_options): Handle the --server option.
 	(process_server): New function.

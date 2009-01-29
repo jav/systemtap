@@ -33,6 +33,9 @@ function configuration {
 
 # function: initialization
 function initialization {
+    our_host_name=`expr "$HOSTNAME" : "\\\([a-zA-Z0-9-]*\\\).*"`
+    our_domain_name=`expr "$HOSTNAME" : "$our_host_name\\\(.*\\\)"`
+
     rc=0
     wd=`pwd`
     umask 0
@@ -557,7 +560,8 @@ function find_and_connect_to_server {
 		    fi
 		else
 		    # We've been given an ip address.
-		    name=`nslookup $address | awk '/^$address.+name = .+\.$/ {print $4}'`
+		    name=`nslookup $address | awk '/in-addr\.arpa/ {print $4}'`
+		    name=`expr "$name" : '\(.*\)\.'`
                     if test "X$name" = "X"; then
 			echo "Cannot resolve ip address $address" >> $tmpdir_client/connect
 			continue
@@ -577,10 +581,15 @@ function find_and_connect_to_server {
 	    address=`expr "$server" : '\([0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\)'`
 	    if test "X$address" = "X"; then
 		# We have not been given an ip address. Try to resolve it as a host name.
+		if test "X$server" = "Xlocalhost"; then
+		    # We don't want the address of the loopback interface here. Avahi will present
+		    # the actual ip address.
+		    server=$our_host_name$our_domain_name
+		fi
 		address=`nslookup $server | awk '/^Address\:[ \t][0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ {print $2}'`
                 if test "X$address" = "X"; then
-		 echo "Cannot resolve server $server" >> $tmpdir_client/connect
-		 continue
+		    echo "Cannot resolve server $server" >> $tmpdir_client/connect
+		    continue
 		fi
 	    fi
 
@@ -617,35 +626,23 @@ function find_and_connect_to_server {
 # echo the name of the ssl certificate database used to successfully authenticate
 # the server.
 function choose_server {
-    local name
-    local our_host_name=`expr "$HOSTNAME" : "\\\([a-zA-Z0-9-]*\\\).*"`
-    local our_domain_name=`expr "$HOSTNAME" : "$our_host_name\\\(.*\\\)"`
+    local name ip port remain
 
-    while read name server port remain
+    while read name ip port remain
     do
-	# The server must match the dns name on the certificate
-	# and must be 'localhost' if the server is on the local host.
-	local server_host_name=`expr "$name" : "\\\([a-zA-Z0-9-]*\\\).*"`
-        local server_domain_name=`expr "$name" : "$server_host_name\\\(.*\\\)"`
-
-        if test "X$server_domain_name" = "X.local"; then
-	    server_domain_name=$our_domain_name
-	fi
-	if test "X$server_host_name$server_domain_name" = "X$our_host_name$our_domain_name"; then
-	    server=localhost
-	else
-	    server=$server_host_name$server_domain_name
+	if test "X$name" = "X"; then
+	    fatal "ERROR: server name not provided by avahi"
 	fi
 
-	if test "X$server" = "X"; then
-	    fatal "ERROR: server ip address not provided by avahi"
-	fi
+#	if test "X$ip" = "X"; then
+#	    fatal "ERROR: server ip address not provided by avahi"
+#	fi
 
 	if test "X$port" = "X"; then
 	    fatal "ERROR: server port not provided by avahi"
 	fi
 
-	ssl_db=`send_receive $server $port`
+	ssl_db=`send_receive $name $port`
 	test "X$ssl_db" != "X" && echo $ssl_db && return
     done
 }
@@ -659,12 +656,28 @@ function send_receive {
     local server=$1
     local port=$2
 
+    # The server must match the dns name on the certificate
+    # and must be 'localhost' if the server is on the local host.
+    local server_host_name=`expr "$server" : "\\\([a-zA-Z0-9-]*\\\).*"`
+    local server_domain_name=`expr "$server" : "$server_host_name\\\(.*\\\)"`
+
+    if test "X$server_domain_name" = "X.local"; then
+	server_domain_name=$our_domain_name
+    fi
+    if test "X$server_host_name$server_domain_name" = "Xlocalhost$our_domain_name"; then
+	server=localhost
+    elif test "X$server_host_name$server_domain_name" = "X$our_host_name$our_domain_name"; then
+	server=localhost
+    else
+	server=$server_host_name$server_domain_name
+    fi
+
     # Try to connect using each of the given local certificate databases in turn
     # for verification.
     for db in $local_ssl_dbs
     do
         # Send the request and receive the response using stap-client-connect
-	echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
+	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
 	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
 	wait '%${exec_prefix}stap-client-connect'
 	test $? = 0 && echo $db && return
@@ -675,7 +688,7 @@ function send_receive {
     for db in $public_ssl_dbs
     do
         # Send the request and receive the response using stap-client-connect
-	echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
+	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
 	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
 	wait '%${exec_prefix}stap-client-connect'
 	test $? = 0 && echo $db && return
