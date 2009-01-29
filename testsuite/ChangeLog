@@ -1,5 +1,12 @@
 2009-01-29  Will Cohen  <wcohen@redhat.com>
 
+	* systemtap.samples/arith*:
+	* systemtap.samples/control_limits.*:
+	* systemtap.samples/gtod.*:
+	* systemtap.samples/system_func.*: Moved to systemtap.base.
+	
+2009-01-29  Will Cohen  <wcohen@redhat.com>
+
 	* systemtap.samples/args.exp:
 	* systemtap.samples/args.stp:
 	* systemtap.samples/primes.exp:
