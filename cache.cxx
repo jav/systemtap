@@ -295,3 +295,5 @@ unlink_cache_entry(const string &cache_ent_path)
   unlink(mod_path.c_str());     //it must exist, globbed for it earlier
   unlink(source_path.c_str());  //if its not there, no matter
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

@@ -306,3 +306,5 @@ run_pass (systemtap_session& s)
   rc = system (staprun_cmd.c_str ());
   return rc;
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

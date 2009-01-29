@@ -191,3 +191,5 @@ find_hash (systemtap_session& s, const string& script)
   // Update C source name with new module_name.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

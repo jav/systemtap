@@ -882,3 +882,5 @@ provide (deep_copy_visitor* v, T src)
 }
 
 #endif // STAPTREE_H
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
