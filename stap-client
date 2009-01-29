@@ -843,32 +843,41 @@ function check_db {
     fi
 
     # Check that we can read the directory
-    if ! test -r $file; then
+    if ! test -r $dir; then
 	warning "Certificate database '$dir' is not readble"
 	rc=1
     fi
 
     # Check the access permissions of the directory
     local perm=0`stat -c "%a" $dir`
-#    if test $((($perm & 0400) == 0400)) = 0; then
-#	warning "Certificate database '$dir' must be readable by the owner"
-#	rc=1
-#    fi
-#    if test $((($perm & 0200) == 0200)) = 0; then
-#	warning "Certificate database '$dir' must be writeable by the owner"
-#	rc=1
-#    fi
-#    if test $((($perm & 0100) == 0100)) = 0; then
-#	warning "Certificate database '$dir' must be searchable by the owner"
-#	rc=1
-#    fi
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate database '$dir' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate database '$dir' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 0; then
+	warning "Certificate database '$dir' should be searchable by the owner"
+    fi
+    if test $((($perm & 0040) == 0040)) = 0; then
+	warning "Certificate database '$dir' should be readable by the group"
+    fi
     if test $((($perm & 0020) == 0020)) = 1; then
 	warning "Certificate database '$dir' must not be writable by the group"
 	rc=1
     fi
+    if test $((($perm & 0010) == 0010)) = 0; then
+	warning "Certificate database '$dir' should be searchable by the group"
+    fi
+    if test $((($perm & 0004) == 0004)) = 0; then
+	warning "Certificate database '$dir' should be readable by others"
+    fi
     if test $((($perm & 0002) == 0002)) = 1; then
 	warning "Certificate database '$dir' must not be writable by others"
 	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 0; then
+	warning "Certificate database '$dir' should be searchable by others"
     fi
 
     # Now check the permissions of the critical files.
@@ -883,7 +892,7 @@ function check_db {
 
 # function: check_db_file FILENAME
 #
-# Check the security of the given database directory.
+# Check the security of the given database file.
 function check_db_file {
     local file=$1
     local rc=0
@@ -906,17 +915,18 @@ function check_db_file {
 
     # Check the access permissions of the file
     local perm=0`stat -c "%a" $file`
-#    if test $((($perm & 0400) == 0400)) = 0; then
-#	warning "Certificate database file '$file' must be readable by the owner"
-#	rc=1
-#    fi
-#    if test $((($perm & 0200) == 0200)) = 0; then
-#	warning "Certificate database file '$file' must be writeable by the owner"
-#	rc=1
-#    fi
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate database file '$file' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate database file '$file' should be writeable by the owner"
+    fi
     if test $((($perm & 0100) == 0100)) = 1; then
 	warning "Certificate database file '$file' must not be executable by the owner"
 	rc=1
+    fi
+    if test $((($perm & 0040) == 0040)) = 0; then
+	warning "Certificate database file '$file' should be readable by the group"
     fi
     if test $((($perm & 0020) == 0020)) = 1; then
 	warning "Certificate database file '$file' must not be writable by the group"
@@ -925,6 +935,9 @@ function check_db_file {
     if test $((($perm & 0010) == 0010)) = 1; then
 	warning "Certificate database file '$file' must not be executable by the group"
 	rc=1
+    fi
+    if test $((($perm & 0004) == 0004)) = 0; then
+	warning "Certificate database file '$file' should be readable by others"
     fi
     if test $((($perm & 0002) == 0002)) = 1; then
 	warning "Certificate database file '$file' must not be writable by others"
@@ -937,6 +950,7 @@ function check_db_file {
 
     return $rc
 }
+
 # function: warning [ MESSAGE ]
 #
 # Warning error

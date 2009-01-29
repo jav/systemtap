@@ -9,11 +9,18 @@
 	ahavi has provided the host name. Don't check that avahi has provided
 	the ip address. Pass the host name to send_receive.
 	(send_receive): Change the name of our host to 'localhost' here.
+	(check_db): Add recommended (but not fatal) access permission checks.
+	(check_db_file): Likewise.
+	* stap-gen-server-cert: Create the certificate database and the
+	certificate file with the recommended access permissions.
+	* stap-server (initialization): Call check_db to check the security of
+	the chosen certificate database.
+	(check_db,check_db_file,check_cert_file,warning): New functions.
 
 2009-01-28  Dave Brolley  <brolley@redhat.com>
 
-	* stap-client (initialization): Call check_db to check the security of the
-	default certificate databases. Initialize find_all.
+	* stap-client (initialization): Call check_db to check the security of
+	the default certificate databases. Initialize find_all.
 	(parse_options): Handle the --server option.
 	(process_server): New function.
 	(process_ssl): Call check_db to check the security of the specified

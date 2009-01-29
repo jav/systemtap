@@ -58,6 +58,10 @@ function initialization {
 	    fi
 	fi
     fi
+
+    # Check the security of the database.
+    check_db $ssl_db
+
     nss_pw=$ssl_db/pw
     nss_cert=stap-server
 }
@@ -88,12 +92,205 @@ function listen {
     wait '%$exec_prefix/stap-server-connect' >/dev/null 2>&1
 }
 
+# function: check_db DBNAME
+#
+# Check the security of the given database directory.
+function check_db {
+    local dir=$1
+    local rc=0
+
+    # Check that we have been given a directory
+    if ! test -e $dir; then
+	warning "Certificate database '$dir' does not exist"
+	return 1
+    fi
+    if ! test -d $dir; then
+	warning "Certificate database '$dir' is not a directory"
+	return 1
+    fi
+
+    # Check that we can read the directory
+    if ! test -r $dir; then
+	warning "Certificate database '$dir' is not readble"
+	rc=1
+    fi
+
+    # Check the access permissions of the directory
+    local perm=0`stat -c "%a" $dir`
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate database '$dir' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate database '$dir' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 0; then
+	warning "Certificate database '$dir' should be searchable by the owner"
+    fi
+    if test $((($perm & 0040) == 0040)) = 0; then
+	warning "Certificate database '$dir' should be readable by the group"
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate database '$dir' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 0; then
+	warning "Certificate database '$dir' should be searchable by the group"
+    fi
+    if test $((($perm & 0004) == 0004)) = 0; then
+	warning "Certificate database '$dir' should be readable by others"
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate database '$dir' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 0; then
+	warning "Certificate database '$dir' should be searchable by others"
+    fi
+
+    # Now check the permissions of the critical files.
+    check_db_file $dir/cert8.db || rc=1
+    check_db_file $dir/key3.db || rc=1
+    check_db_file $dir/secmod.db || rc=1
+    check_db_file $dir/pw || rc=1
+    check_cert_file $dir/stap-server.cert || rc=1
+
+    test $rc = 1 && fatal "Unable to use certificate database '$dir' due to errors"
+
+    return $rc
+}
+
+# function: check_db_file FILENAME
+#
+# Check the security of the given database file.
+function check_db_file {
+    local file=$1
+    local rc=0
+
+    # Check that we have been given a file
+    if ! test -e $file; then
+	warning "Certificate database file '$file' does not exist"
+	return 1
+    fi
+    if ! test -f $file; then
+	warning "Certificate database file '$file' is not a regular file"
+	return 1
+    fi
+
+    # Check that we can read the file
+    if ! test -r $file; then
+	warning "Certificate database file '$file' is not readble"
+	rc=1
+    fi
+
+    # Check the access permissions of the file
+    local perm=0`stat -c "%a" $file`
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate database file '$file' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate database file '$file' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 1; then
+	warning "Certificate database file '$file' must not be executable by the owner"
+	rc=1
+    fi
+    if test $((($perm & 0040) == 0040)) = 1; then
+	warning "Certificate database file '$file' must not be readable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate database file '$file' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 1; then
+	warning "Certificate database file '$file' must not be executable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0004) == 0004)) = 1; then
+	warning "Certificate database file '$file' must not be readable by others"
+	rc=1
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate database file '$file' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 1; then
+	warning "Certificate database file '$file' must not be executable by others"
+	rc=1
+    fi
+
+    return $rc
+}
+
+# function: check_db_file FILENAME
+#
+# Check the security of the given database file.
+function check_cert_file {
+    local file=$1
+    local rc=0
+
+    # Check that we have been given a file
+    if ! test -e $file; then
+	warning "Certificate database file '$file' does not exist"
+	return 1
+    fi
+    if ! test -f $file; then
+	warning "Certificate database file '$file' is not a regular file"
+	return 1
+    fi
+
+    # Check the access permissions of the file
+    local perm=0`stat -c "%a" $file`
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate file '$file' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate file '$file' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 1; then
+	warning "Certificate file '$file' must not be executable by the owner"
+	rc=1
+    fi
+    if test $((($perm & 0040) == 0040)) = 0; then
+	warning "Certificate file '$file' should be readable by the group"
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate file '$file' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 1; then
+	warning "Certificate file '$file' must not be executable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0004) == 0004)) = 0; then
+	warning "Certificate file '$file' should be readable by others"
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate file '$file' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 1; then
+	warning "Certificate file '$file' must not be executable by others"
+	rc=1
+    fi
+
+    return $rc
+}
+
+# function: warning [ MESSAGE ]
+#
+# Warning error
+# Prints its arguments to stderr
+function warning {
+    echo "$0: WARNING:" "$@" >&2
+}
+
 # function: fatal [ MESSAGE ]
 #
 # Fatal error
 # Prints its arguments to stderr and exits
 function fatal {
-    echo "$@" >&2
+    echo "$0: FATAL:" "$@" >&2
     terminate
     exit 1
 }
