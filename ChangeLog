@@ -1,3 +1,9 @@
+2009-01-30  Frank Ch. Eigler  <fche@elastic.org>
+
+	* git_version.sh: Don't print GIT_BRANCH into GIT_MESSAGE, as it
+	is local, and "(no branch)" confuses other stuff.  The SHA1 commit
+	ID is enough.
+
 2009-01-29  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client (initialization): Set our_host_name and our_domain_name
