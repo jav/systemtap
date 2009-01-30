@@ -3,6 +3,16 @@ SYSTEMTAP EXAMPLES INDEX BY KEYWORD
 
 = BACKTRACE =
 
+interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt (IPI)
+keywords: interrupt backtrace
+
+  The Linux kernel function smp_call_function causes expensive
+  inter-processor interrupts (IPIs). The scf.stp script tallies the
+  processes and backtraces causing the interprocessor interrupts to
+  identify the cause of the expensive IPI. On exit the script prints
+  the tallies in descending frequency.
+
+
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
 keywords: io backtrace
 
@@ -91,6 +101,18 @@ keywords: disk cpu use graph
   The script tracks the disk and CPU utilization. The resulting output
   of the script can be piped into gnuplot to generate a graph of disk
   and CPU USE.
+
+
+= INTERRUPT =
+
+interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt (IPI)
+keywords: interrupt backtrace
+
+  The Linux kernel function smp_call_function causes expensive
+  inter-processor interrupts (IPIs). The scf.stp script tallies the
+  processes and backtraces causing the interprocessor interrupts to
+  identify the cause of the expensive IPI. On exit the script prints
+  the tallies in descending frequency.
 
 
 = IO =

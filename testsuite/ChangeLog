@@ -1,3 +1,13 @@
+2009-01-23  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/scf.stp:
+	* systemtap.samples/scf2.stp: Remove
+	* systemtap.examples/interrupt/scf.*: Revised scf.stp.
+	* systemtap.examples/index.html:
+	* systemtap.examples/index.txt:
+	* systemtap.examples/keyword-index.html:
+	* systemtap.examples/keyword-index.txt: Regenerate.
+
 2009-01-29  Will Cohen  <wcohen@redhat.com>
 
 	* systemtap.samples/arith*:

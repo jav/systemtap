@@ -39,9 +39,12 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#NETWORK">NETWORK</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#NETWORK">NETWORK</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="BACKTRACE">BACKTRACE</a></h3>
 <ul>
+<li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
+keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>The Linux kernel function smp_call_function causes expensive inter-processor interrupts (IPIs). The scf.stp script tallies the processes and backtraces causing the interprocessor interrupts to identify the cause of the expensive IPI. On exit the script prints the tallies in descending frequency.</p></li>
 <li><a href="io/io_submit.stp">io/io_submit.stp</a> - Tally Reschedule Reason During AIO io_submit Call<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.</p></li>
@@ -87,6 +90,12 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.</p></li>
+</ul>
+<h3><a name="INTERRUPT">INTERRUPT</a></h3>
+<ul>
+<li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
+keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>The Linux kernel function smp_call_function causes expensive inter-processor interrupts (IPIs). The scf.stp script tallies the processes and backtraces causing the interprocessor interrupts to identify the cause of the expensive IPI. On exit the script prints the tallies in descending frequency.</p></li>
 </ul>
 <h3><a name="IO">IO</a></h3>
 <ul>

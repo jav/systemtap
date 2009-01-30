@@ -27,6 +27,16 @@ keywords: trace callgraph
   the trigger.
 
 
+interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt (IPI)
+keywords: interrupt backtrace
+
+  The Linux kernel function smp_call_function causes expensive
+  inter-processor interrupts (IPIs). The scf.stp script tallies the
+  processes and backtraces causing the interprocessor interrupts to
+  identify the cause of the expensive IPI. On exit the script prints
+  the tallies in descending frequency.
+
+
 io/disktop.stp - Summarize Disk Read/Write Traffic
 keywords: disk
 
