@@ -8,7 +8,7 @@
 	the build directory is on the path if using a server for 'make check'.
 	Use a string to check $server_pid.
 
-2009-01-23  Will Cohen  <wcohen@redhat.com>
+2009-01-30  Will Cohen  <wcohen@redhat.com>
 
 	* systemtap.samples/scf.stp:
 	* systemtap.samples/scf2.stp: Remove
