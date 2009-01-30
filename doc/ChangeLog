@@ -1,3 +1,8 @@
+2009-01-30  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.in: Regenerated.
+	* SystemTap_Tapset_Reference/Makefile.in: Regenerated.
+
 2009-01-21  William Cohen <wcohen@redhat.com>
 
 	* S_T_R/tapsets.tmpl: Use context-symbols.stp and context-unwind.stp.

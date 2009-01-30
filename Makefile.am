@@ -114,6 +114,16 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
+if BUILD_SERVER
+install-exec-local: install-scripts
+
+PHONIES += install-scripts
+install-scripts:
+	for f in $(bin_SCRIPTS); do \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
+	done
+endif
+
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
@@ -204,6 +214,7 @@ install-data-local:
 			i_cmd="$(INSTALL_PROGRAM)"; else \
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
+	test -e $(DESTDIR)$(sysconfdir)/systemtap || mkdir -p $(DESTDIR)$(sysconfdir)/systemtap
 
 TEST_COV_DIR = coverage
 

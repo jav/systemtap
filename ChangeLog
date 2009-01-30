@@ -1,3 +1,32 @@
+2009-01-30  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (install-scripts): New target. Set exec_prefix and
+	sysconfdir properly in installed scripts.
+	* stap-find-or-start-server: Set exec_prefix and sysconfdir for use
+	from the source tree by dejagnu. Leave a hook to modify them when
+	installed.
+	* stap-start-server: Likewise.
+	* stap-client (configuration): Likewise. Check for the existence of the
+	default certificate databases before checking their security.
+	(parse_options): Issue fatal error if no usable certificate databases
+	found or specified.
+	(check_db,check_db_file): Check that the database and files are owned
+	by the user running the client.
+	(fatal): Print "ERROR:" tag here. Adjust all callers.
+	* stap-server (initialization): Set exec_prefix and sysconfdir for use
+	from the source tree by dejagnu. Leave a hook to modify them when
+	installed. Check that all specified files and directories exist.
+	(fatal): Print "ERROR:" tag here. Adjust all callers.
+	(error): Likewise.
+	* stap-serverd (initialization): Set exec_prefix and sysconfdir for use
+	from the source tree by dejagnu. Leave a hook to modify them when
+	installed.
+	(check_db,check_db_file,check_db_cert): Check that the database and
+	files are owned by the user running the server.
+	(fatal): Print "ERROR:" tag here. Adjust all callers.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Regenerated.
+
 2009-01-30  Frank Ch. Eigler  <fche@elastic.org>
 
 	* git_version.sh: Don't print GIT_BRANCH into GIT_MESSAGE, as it

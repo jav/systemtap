@@ -62,17 +62,17 @@ proc setup_systemtap_environment {} {
 	# Server management scripts and data are installed if this is an
 	# install test, otherwise there is some setup to do.
 	if {! [installtest_p]} then {
-	    # Make sure the server management scripts are on the $PATH.
-	    set env(PATH) "$srcdir/..:$env(PATH)"
+	    # Make sure the server management scripts and tools are on the $PATH.
+	    set env(PATH) "$srcdir/..:[exec pwd]/..:$env(PATH)"
 	}
 
 	# Try to find or start the server.
 	set server_pid [exec stap-find-or-start-server]
-	if { $server_pid == -1 } then {
+	if { "$server_pid" == "-1" } then {
 	    print "Cannot find or start a systemtap server"
 	    set server_pid 0
 	    # TODO: How do we abort here?
-	} elseif { $server_pid == 0 } then {
+	} elseif { "$server_pid" == "0" } then {
 	    print "A compatible systemtap server is already available"
 	} else {
 	    print "Started a systemtap server as PID==$server_pid"

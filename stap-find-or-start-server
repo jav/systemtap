@@ -17,15 +17,16 @@
 #
 # Otherwise, it echoes -1 and exits with 1
 
-# Where are we installed?
-exec_prefix=`dirname $0`
-exec_prefix=`cd $exec_prefix && pwd`
+# INSTALL-HOOK These settings work for running the client from the source tree
+# INSTALL-HOOK using the dejagnu test harness and will be overridden at install
+# INSTALL-HOOK time.
+exec_prefix=
 
 # Is there a server available?
-$exec_prefix/stap-find-servers >/dev/null 2>&1 && echo 0 && exit 0
+${exec_prefix}stap-find-servers >/dev/null 2>&1 && echo 0 && exit 0
 
 # No server available, try to start one.
-pid=`$exec_prefix/stap-start-server "$@"`
+pid=`${exec_prefix}stap-start-server "$@"`
 if test $? = 0; then
     echo $pid
     exit 0
