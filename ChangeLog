@@ -1,3 +1,10 @@
+2009-01-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR6936
+	* configure.ac (AC_CONFIG_FILES): Add initscript/systemtap.in.
+	* configure: Regenerated.
+	* systemtap.spec: Add systemtap-initscript subpackage.
+
 2009-01-30  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (install-scripts): New target. Set exec_prefix and

@@ -1,0 +1,6 @@
+2009-01-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR6936
+	* systemtap.in: First commit of systemtap initscript.
+	* README.initscript: Ditto.
+	* config: Ditto.

@@ -1,5 +1,10 @@
 * What's new
 
+- Systemtap initscript is available. This initscript allows you to run
+  systemtap scripts as system services (in flight recorder mode) and
+  control those scripts individually.
+  See README.initscript for details.
+
 - The stap "-r DIR" option may be used to identify a hand-made kernel
   build directory.  The tool determines the appropriate release string
   automatically from the directory.

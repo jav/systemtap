@@ -1,0 +1,355 @@
+Systemtap initscript
+Version 0.2
+Author: Masami Hiramatsu <mhiramat@redhat.com>
+
+INDEX
+=====
+1. Introduction
+2. Usage
+3. Files
+4. Configuration Format
+5. How to use
+
+1. Introduction
+===============
+Systemtap initscript aims to provide
+- running systemtap script as a service with dependency.
+- easy way to control(start/stop) those scripts individually.
+The dependency means that which user-defined systemtap script is required by
+other script (Here the scripts don't include tapsets). This dependency
+will be useful for users who use -DRELAY_HOST and -DRELAY_GUEST.
+
+2. Usage
+========
+2.1 Synopsis
+
+/sbin/service systemtap {start|stop|restart|status|compile|cleanup} \
+	[-r kernelrelease] [-c config] [-R] [-y] [script(s)]
+
+2.2 Commands
+ You have to specify one of the below commands.
+
+2.2.1 start
+ Run script(s). If the script(s) is already started, the command will be
+ ignored. If it fails to start, return FAIL. If AUTOCOMPILE option is 'yes'
+ (see 4.1.9), this will try to compile or update the specified script when
+ one of the below condition is true.
+ - compiled cache file does not exist.
+ - mtime (modified time stamp) of original script file is newer than compiled
+   script cache.
+ - script options which is used when compiling(see 4.2.1) has been changed.
+ - result of `uname -a` has been changed.
+ If no scripts specified from command line, it starts all scripts in the script
+ directory or the scripts specified by DEFAULT_START in config (see 4.1.10).
+
+2.2.2 stop
+ Stop script(s). If the script(s) is already stopped, this will be ignored.
+ If it fails to stop, return FAIL.
+ If no scripts specified from command line, it stops all running scripts.
+
+2.2.3 restart
+ Stop and start script(s) again.
+
+2.2.4 status
+ Show running script(s) status and dependency.
+
+2.2.5 compile
+ Compile script(s) on the specified kernel. This command takes '-r' option
+ which specifies the release of the kernel(see 2.3.4) on which you would
+ like to compile script(s). This command asks user whether it can overwrite
+existing caches.
+
+2.2.6 cleanup
+ Cleanup compiled script(s) from cache directory(see 3.4). This command also
+ takes '-r' option. If '-r' option is omitted, cleanup all caches for running
+ kernel. This command asks user whether it can remove caches.
+
+2.3 Options
+ Systemtap initscript can have some options. However, since user can't pass
+ these options on boot, these options are only for testing or managing scripts
+ after booting.
+
+2.3.1 -c config_path
+ You can specify configuration path of this initscript.
+
+2.3.2 script(s)
+ You can specify individual scripts to the commands. If you omit to specify
+ any script, systemtap initscript will execute the command with all scripts
+ in the script directory(except 'start' and 'stop' command, see 2.2.1 and
+ 2.2.2).
+
+2.3.3 -R
+ If this option is specified, systemtap initscript will try to solve
+ dependency of specified script(s). This option is always set if you don't
+ specify any script(s) from command line.
+
+2.3.4 -r kernelrelease
+ You can specify release version of the kernel(e.g. 2.6.26.1). This option
+ is valid only with compile and cleanup commands.
+
+2.3.5 -y
+ Answer yes for all questions.
+
+2.4 Misc
+2.4.1 Service Priority
+ Each initscript has execution priority. Since user would like to trace
+ other services by using systemtap, systemtap initscript should have the
+ highest priority.
+
+3. Files
+========
+3.1 initscript
+ /etc/init.d/systemtap
+
+ This file is an executable bash script.
+
+3.2 Configurations
+ Configuration files are written in bash script.
+
+3.2.1 Global config file
+ /etc/systemtap/config
+
+ This config file is for global parameters(see 4.1).
+
+3.2.2 Script config files
+ /etc/systemtap/conf.d/*.conf
+
+ The config files under this directory are for each scripts or script groups
+ (see 4.2).
+
+3.3 Script directory
+ /etc/systemtap/script.d/
+
+ Systemtap initscript finds systemtap scripts from this directory.
+
+3.3.1 Scripts in the directory
+ /etc/systemtap/script.d/<script-name>.stp
+
+ Systemtap scripts stored in the script directory must have ".stp" suffix.
+
+3.4 Cache directory
+ /var/cache/systemtap/<kernel-version>/
+
+ Systemtap initscript stores compiled scripts in this directory.
+
+3.4.1 Compiled scripts (or script caches)
+ /var/cache/systemtap/<kernel-version>/<script-name>.ko
+ /var/cache/systemtap/<kernel-version>/<script-name>.opts
+
+ *.ko file is the compiled script, and *.opts is the file which stores
+ stap options and uname -a.
+
+3.5 Message Log
+ /var/log/systemtap.log
+
+ All messages including compilation errors and detailed messages are sent
+ to this file.
+ Some error and warning messages are also sent to console and syslogd (syslog
+ output is optional, because this service will start before syslog).
+
+3.7 Status files
+ /var/run/systemtap/<script-name>
+
+
+4. Configuration Format
+=======================
+Configuration file allows us
+- specifying options for each script
+- supporting flight recorder mode (on file or memory)
+
+4.1 Global Parameters
+
+4.1.1 SCRIPT_PATH
+ Specify the absolute path of the script directory.
+ (default: /etc/systemtap/script.d)
+
+4.1.2 CONFIG_PATH
+ Specify the absolute path of the script config directory.
+ (default: /etc/systemtap/conf.d)
+
+4.1.3 CACHE_PATH
+ Specify the absolute path of the parent directory of the cache directory.
+ (default: /var/cache/systemtap)
+
+4.1.4 TEMP_PATH
+ Specify the absolute path of the temporary directory on which systemtap
+ initscript make temporary directories to compile scripts.
+ (default: /tmp)
+
+4.1.5 STAT_PATH
+ Specify the absolute path of the running status directory.
+ (default: /var/run/systemtap)
+
+4.1.6 LOG_FILE
+ Specify the absolute path of the log file
+ (default: /var/log/systemtap.log)
+
+4.1.7 PASSALL
+ If this is set 'yes', systemtap initscript will fail when it fails
+ to run one of the scripts. If not, systemtap initscript will not
+ fail(just warn).
+ (default: yes)
+
+4.1.8 RECURSIVE
+ If this is set 'yes', systemtap initscript will always follow script
+ dependencies. This means, you don't need to specify '-R' option. This flag is
+ effective only if you specify script(s) from command line.
+ (default: no)
+
+4.1.9 AUTOCOMPILE
+ If this is set 'yes', systemtap initscript automatically tries to compile
+ specified script if there is no valid cache. Otherwides, it just fails to
+ run script(s).
+ (default: yes)
+
+4.1.10 DEFAULT_START
+ Specify scripts which will be started by default. If omitted (or empty),
+ all scripts in the script directory will be started.
+ (default: "")
+
+4.1.11 ALLOW_CACHEONLY
+ If this is set 'yes', systemtap initscript list up cache-only scripts too.
+ *NOTE*: systemtap initscript will load unexpected obsolate caches with this
+ option. You should check cache directory before enabling this option.
+ (default: no)
+
+4.2 Script Parameters
+
+4.2.1 <script-name>_OPT
+ Specify options passed to stap command for each script. "script-name" is the
+ name of the script file without the suffix extension(.stp).
+ Some options are just ignored. And even if you don't specify -F option,
+ systemtap initscript always add it for flight recorder mode.
+ - Below options are ignored when compiling script.
+   -p,-m,-r,-c,-x,-e,-s,-o,-h,-V,-k
+ - Below options are ignored when starting script.
+   -h,-V,-M,-v,-t,-p,-I,-e,-R,-r,-m,-k,-g,-P,-D,-b,-u,-q,-w,-l,-d,-L,-F, and
+   other long options.
+
+4.2.2 <script-name>_REQ
+ Specify script dependency(which script this script requires).
+ For example, "foo.stp" script requires(or run after) "bar.stp" script, set
+
+ foo_REQ="bar"
+
+ If the script requires many scripts, set all scripts separated by spaces.
+
+ foo_REQ="bar baz"
+
+4.3 Configuration Example
+
+4.3.1 Global Config Example
+---
+SCRIPT_PATH=/var/systemtap/script.d/
+PASSALL=yes
+RECURSIVE=no
+---
+
+4.3.2 Script Config Example
+---
+script1_OPT="-o /var/log/script1.out -DRELAYHOST=group1"
+script2_OPT="-DRELAYGUEST=group1"
+script2_REQ=script1
+---
+
+5. How to use
+=============
+
+5.1 Package Installation
+ After installing systemtap package, install systemtap-initscript package.
+ # yum install systemtap-initscript
+ This package will include initscript and default configuration file and
+ other files.
+
+5.2 Script installation
+5.2.1 Installing script files
+ Copy a systemtap script ("script1.stp") into script directory.
+ # cp script1.stp /etc/systemtap/script.d/
+
+5.2.2 Configuration script options
+ Add configuration file to specify options.
+ # vi /etc/systemtap/conf.d/group1
+ script1_OPT="-o /var/log/group1.log -DRELAYHOST=group1"
+
+5.2.3 Installing script file with dependency
+ For example, a script("script2.stp") which shares buffer with another
+ script("script1.stp"), there is a dependency. In this case, you just do
+ as following.
+
+ # cp script2.stp /etc/systemtap/script.d/
+ # vi /etc/systemtap/conf.d/group1
+ script2_OPT="-DRELAYGUEST=group1"
+ script2_REQ=script1
+
+ In this case, if stap fails to run script1.stp, systemtap initscript will
+ not run script2.stp.
+
+5.3 Testing
+ After installing all scripts, please make sure to run service successfully.
+ # service systemtap start
+ # service systemtap stop
+ If there is no error, we are ready to use it.
+
+5.4 Service Enabling
+ After all test passed, enable systemtap initscript.
+ # chkconfig systemtap on
+
+5.5 Adding script
+5.5.1 Installing and configuring new scripts
+ Copy new systemtap script("script3.stp") into script directory.
+ # cp script3.stp /etc/systemtap/script.d/
+ and configure it.
+ # vi /etc/systemtap/conf.d/group1
+ script3_OPT="-DRELAYGUEST=group1"
+ script3_REQ="script1"
+
+5.5.2 Start new script
+ If you've already started systemtap initscript, just start new script.
+ # service systemtap start script3
+
+5.6 Deleting script
+5.6.1 Deleting old script
+ Remove old script ("script2.stp") and remove configure lines
+ # rm /etc/systemtap/script.d/script2.stp
+ # vi /etc/systemtap/conf.d/group1
+ (delete script2_OPT and script2_REQ)
+
+5.6.2 Stopping old script and cleanup
+ Stop old script.
+ # service systemtap stop script2
+ And cleanup the script caches.
+ # service systemtap cleanup script2
+
+5.7 Updating kernel
+ Usually, you don't need to do anything. Systemtap initscript checks the
+ kernel version when starting the service, and compile scripts.
+ (If you would like to use compiled scripts due to lack of compiler or
+  debuginfo on the system, see 5.8)
+ However, if you want to avoid compiling when booting system, you can prepare
+ script caches for new kernel.
+ # service systemtap compile -r <new kernel version>
+
+5.8 Using with compiled scripts
+ Sometimes, production systems don't have any compilation environment. Even
+ though, you can use systemtap initscript with compiled scripts as script
+ caches, which are compiled on other machine (but same software environment).
+
+5.8.1 Preparing compiled scripts
+ As described in 5.2, installing scripts and configure it on the compiling
+ machine (which has compilation environment).
+ After that, compile those scripts.
+ # service systemtap compile -r <kernel-version>
+ And package the compiled scripts and configuration file.
+ # tar czf stap-scripts-<kernel-version>.tar.gz \
+   /var/cache/systemtap/<kernel-version> /etc/systemtap/conf.d/<config>
+ And copy this package to the target machine.
+
+5.8.2 Installing pre-compiled scripts
+ On the target machine, unpackage the compiled scripts into cache
+ directory.
+ # tar xzf stap-scripts-<kernel-version>.tar.gz -C /var/cache/systemtap/
+ # mv /var/cache/systemtap/<config> /etc/systemtap/conf.d/
+ At last, set AUTOCOMPILE=no and ALLOW_CACHEONLY=yes in config file.
+ # vi /etc/systemtap/config
+ AUTOCOMPILE=no
+ ALLOW_CACHEONLY=yes
