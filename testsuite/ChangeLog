@@ -1,3 +1,7 @@
+2009-01-30  Frank Ch. Eigler  <fche@elastic.org>
+
+	* semok/twenty.stp: Don't spew so much into systemtap.log.
+
 2009-01-30  Dave Brolley  <brolley@redhat.com>
 
 	* lib/systemtap.exp (setup_systemtap_environment): Make sure that
