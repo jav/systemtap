@@ -4522,7 +4522,11 @@ dump_unwindsyms (Dwfl_Module *m,
           // we're already iterating over the same data here...
           if (modname == "kernel" && !strcmp(name, "_stext"))
             {
+              int ki;
               extra_offset = sym.st_value;
+              ki = dwfl_module_relocate_address (m, &extra_offset);
+              dwfl_assert ("dwfl_module_relocate_address extra_offset",
+                           ki >= 0);
               if (c->session.verbose > 2)
                 clog << "Found kernel _stext 0x" << hex << extra_offset << dec << endl;
             }
