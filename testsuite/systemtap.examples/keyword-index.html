@@ -156,6 +156,9 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <li><a href="profiling/timeout.stp">profiling/timeout.stp</a> - Show Processes Doing Polling Operations<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The timeout.stp script is based on a blog entry (http://udrepper.livejournal.com/19041.html) mentioning a need for a tool to help developers find applications that are polling. The timeout.stp script monitors systemcall used for polling and records the systemcalls that timed out rather than returned because some action occurred. The script updates the screen once a second with the top twenty processes.</p></li>
+<li><a href="profiling/topsys.stp">profiling/topsys.stp</a> - Show Processes Doing Polling Operations<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p> The topsys.stp script lists out the top twenty systemcalls for the previous 5 seconds. The output is sorted from most frequent to least frequent.</p></li>
 </ul>
 <h3><a name="READ">READ</a></h3>
 <ul>

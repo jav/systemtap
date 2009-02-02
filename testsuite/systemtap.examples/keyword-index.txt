@@ -266,6 +266,14 @@ keywords: profiling
   top twenty processes.
 
 
+profiling/topsys.stp - Show Processes Doing Polling Operations
+keywords: profiling
+
+   The topsys.stp script lists out the top twenty systemcalls for the
+  previous 5 seconds. The output is sorted from most frequent to least
+  frequent.
+
+
 = READ =
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
