@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#NETWORK">NETWORK</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#NETWORK">NETWORK</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="BACKTRACE">BACKTRACE</a></h3>
 <ul>
 <li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
@@ -132,6 +132,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/socket-trace.stp">network/socket-trace.stp</a> - Trace Functions called in Network Socket Code<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The script instrument each of the functions inn the Linux kernel's net/socket.c file. The script prints out trace. The first element of a line is  time delta in microseconds from the previous entry. This is followed by the command name and the PID. The "->" and "<-" indicates function entry and  function exit, respectively. The last element of the line is the function name.</p></li>
+<li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
+<p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.</p></li>
 </ul>
 <h3><a name="PER-PROCESS">PER-PROCESS</a></h3>
 <ul>
@@ -198,6 +201,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 <li><a href="network/socket-trace.stp">network/socket-trace.stp</a> - Trace Functions called in Network Socket Code<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The script instrument each of the functions inn the Linux kernel's net/socket.c file. The script prints out trace. The first element of a line is  time delta in microseconds from the previous entry. This is followed by the command name and the PID. The "->" and "<-" indicates function entry and  function exit, respectively. The last element of the line is the function name.</p></li>
+<li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
+<p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.</p></li>
 </ul>
 <h3><a name="SYSCALL">SYSCALL</a></h3>
 <ul>
@@ -219,6 +225,12 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <li><a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#WAIT4">WAIT4</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in paretheses, the "wait4:" key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is "-1".</p></li>
+</ul>
+<h3><a name="TCP">TCP</a></h3>
+<ul>
+<li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
+<p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.</p></li>
 </ul>
 <h3><a name="TIME">TIME</a></h3>
 <ul>

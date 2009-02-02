@@ -1,5 +1,15 @@
 2009-02-02  Will Cohen  <wcohen@redhat.com>
 
+	* systemtap.samples/tcp_connections.stp: Revised and moved to examples.
+	* systemtap.examples/network/tcp_connections.stp: 
+	* systemtap.examples/network/tcp_connections.meta: New.
+	* systemtap.examples/index.html:
+	* systemtap.examples/index.txt:
+	* systemtap.examples/keyword-index.html:
+	* systemtap.examples/keyword-index.txt: Regenerate.
+	
+2009-02-02  Will Cohen  <wcohen@redhat.com>
+
 	* systemtap.samples/tcp_connections_wa.stp: Remove.
 	
 2009-02-01  Stan Cox  <scox@redhat.com>

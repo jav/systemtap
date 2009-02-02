@@ -204,6 +204,16 @@ keywords: network socket
   element of the line is the function name.
 
 
+network/tcp_connections.stp - Track Creation of Incoming TCP Connections
+keywords: network tcp socket
+
+  The tcp_connections.stp script prints information for each new
+  incoming TCP connection accepted by the computer. The information
+  includes the UID, the command accepting the connection, the PID of
+  the command, the port the connection is on, and the IP address of the
+  originator of the request.
+
+
 = PER-PROCESS =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
@@ -352,6 +362,16 @@ keywords: network socket
   element of the line is the function name.
 
 
+network/tcp_connections.stp - Track Creation of Incoming TCP Connections
+keywords: network tcp socket
+
+  The tcp_connections.stp script prints information for each new
+  incoming TCP connection accepted by the computer. The information
+  includes the UID, the command accepting the connection, the PID of
+  the command, the port the connection is on, and the IP address of the
+  originator of the request.
+
+
 = SYSCALL =
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
@@ -413,6 +433,18 @@ keywords: syscall wait4
   microseconds, the pid, the executable name in paretheses, the
   "wait4:" key, the duration of the wait and the PID that the wait4 was
   waiting for. If the waited for PID is not specified , it is "-1".
+
+
+= TCP =
+
+network/tcp_connections.stp - Track Creation of Incoming TCP Connections
+keywords: network tcp socket
+
+  The tcp_connections.stp script prints information for each new
+  incoming TCP connection accepted by the computer. The information
+  includes the UID, the command accepting the connection, the PID of
+  the command, the port the connection is on, and the IP address of the
+  originator of the request.
 
 
 = TIME =
