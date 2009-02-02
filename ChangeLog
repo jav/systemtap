@@ -1,3 +1,9 @@
+2009-02-01  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwflpp::iterate_over_cu_labels): New.
+	(query_cu): Use it. 
+	(dwarf_derived_probe::register_patterns): Register .label.
+
 2009-02-01  Mark Wielaard  <mjw@redhat.com>
 
 	* translate.cxx (dump_unwindsyms): Process extra_offset with
