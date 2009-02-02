@@ -17,3 +17,11 @@ cp clean.xml en-US/Tapset_Reference_Guide.xml
 sed -i -e 's/refsynopsisdiv>/refsect1>/g' en-US/Tapset_Reference_Guide.xml;
 sed -i -e 's/refsect1>/refsection>/g' en-US/Tapset_Reference_Guide.xml;
 sed -i -e 's/synopsis>/programlisting>\n/g' en-US/Tapset_Reference_Guide.xml; 
+
+# re-convert tags 
+
+sed -i  -e 's/&lt;emphasis&gt;/<emphasis>/g' en-US/Tapset_Reference_Guide.xml;
+sed -i  -e 's/&lt;\/emphasis&gt;/<\/emphasis>/g' en-US/Tapset_Reference_Guide.xml;
+
+sed -i  -e 's/&lt;command&gt;/<command>/g' en-US/Tapset_Reference_Guide.xml;
+sed -i  -e 's/&lt;\/command&gt;/<\/command>/g' en-US/Tapset_Reference_Guide.xml;
