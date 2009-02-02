@@ -20,6 +20,13 @@ stap-server \- systemtap server and related utilities
 .br
 .B stap\-client
 [
+.B \-\-server=\fIHOSTNAME\fR|\fIIP_ADDRESS\fR[\fB:\fIPORT\fR]
+]
+[
+.B \-\-ssl=
+.I DIRNAME
+]
+[
 .I ARGUMENTS
 ]
 
@@ -27,7 +34,7 @@ stap-server \- systemtap server and related utilities
 
 The systemtap server listens for connections from
 .I stap\-client
-on the local network and accepts requests to run the
+on a secure SLL network port and accepts requests to run the
 .I stap
 front end.
 
@@ -40,7 +47,7 @@ successful startup, the server listens for connections on a random port and
 advertises its presence on the local network using the
 .I avahi
 daemon. If the server is successfully started, its process id is
-echoed to stdout and the exit code is 0. Otherwise, nothing is echoed and the exit code is 1.
+echoed to stdout and the exit code is 0. Otherwise, \-1 is echoed and the exit code is 1.
 
 .PP
 The
@@ -57,7 +64,7 @@ using
 .IR stap\-find\-servers .
 If a compatible server is found,
 .I stap\-find\-or\-start\-server
-echos '0' to stdout and the exit code is 0. Otherwise
+echoes '0' to stdout and the exit code is 0. Otherwise
 .I stap\-find\-or\-start\-server
 attempts to start a server on the local network using
 .IR stap\-start\-server .
@@ -82,8 +89,8 @@ program is analagous to the
 .I stap
 front end except that it attempts to find a compatible systemtap server on the
 local network and then attempts to use that server for actions related to
-passes 1 through 4. Pass 5 actions, if requested, are performed on the localhost
-using
+passes 1 through 4. Pass 5 actions, if requested, are performed on the local
+host using
 .IR staprun .
 Upon successful completion, the exit code is 0. Otherwise the exit code
 is 1.
@@ -107,11 +114,12 @@ The
 program requires a process id argument which identifies the server to be stopped.
 
 .PP
-The
-.I stap\-client
-program accepts the same arguments and options as the
+In addition to the options accepted by the
 .I stap
-front end.
+front end,
+.I stap\-client
+accepts the following options:
+
 
 .SH EXAMPLES
 See the 
@@ -149,7 +157,6 @@ then you can stop the server using
 .PP
 where PID is the process id that was echoed.
 
-
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
 structures and potentially private user information.  See the 
@@ -157,9 +164,18 @@ structures and potentially private user information.  See the
 manual page for additional information on safety and security.
 
 .PP
-The systemtap server and its related utilities are prototypes only. NO NETWORK
-SECURITY OF ANY KIND IS CURRENTLY PROVIDED. These programs should only be used
-among trusted hosts on a trusted network.
+The systemtap server and its related utilities use the Secure Socket Layer
+(SSL) as implemented by Network Security Services (NSS)
+for network security and the NSS tools
+.B certutil
+and
+.B signtool
+for the generation of certificates and for signing respectively. The related
+certificate databases must be protected in order to maintain the security of
+the system.
+Use of the utilities provided will help to ensure that the proper protection
+is maintained. The systemtap client and server will both check for proper
+access permissions before making use of any certificate database.
 
 .SH SEE ALSO
 .IR stap (1),
@@ -167,6 +183,9 @@ among trusted hosts on a trusted network.
 .IR stapprobes (5),
 .IR stapfuncs (5),
 .IR stapex (5),
+.IR NSS,
+.IR certutil,
+.IR signtool
 
 .SH BUGS
 Use the Bugzilla link off of the project web page or our mailing list.

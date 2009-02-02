@@ -502,11 +502,10 @@ function unpack_response {
 	fatal "`pwd`/$tmpdir_server/META-INF does not exist or is not a directory"
 
     # See if there is a systemtap temp directory
-    tmpdir_stap=`ls $tmpdir_server | grep stap`
-    tmpdir_stap=`expr "$tmpdir_stap" : "\\\(stap......\\\)"`
+    tmpdir_stap=`cd $tmpdir_server && ls | grep stap......\$ 2>/dev/null`
     if test "X$tmpdir_stap" != "X"; then
 	test -d $tmpdir_server/$tmpdir_stap || \
-	    fatal "`pwd`/$tmpdir_server/$tmpdir_stap is not a directory"
+	    fatal "$tmpdir_server/$tmpdir_stap is not a directory"
 
         # Move the systemtap temp directory to a local temp location, if -k
         # was specified.

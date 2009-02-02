@@ -75,6 +75,9 @@ function initialization {
     test -f $nss_pw || \
 	fatal "Unable to find SSL certificate database password file $nss_pw"
     nss_cert=stap-server
+
+    touch $tmpdir_server/stdout
+    touch $tmpdir_server/stderr
 }
 
 # function: unpack_request
@@ -91,18 +94,17 @@ function unpack_request {
     # Identify the client's request tree. The zip file should have expanded
     # into a single directory named to match $tmpdir_prefix_client.??????
     # which should now be the only item in the current directory.
-    test "`ls | wc -l`" = 1 || \
+    test "`ls | wc -l`" = 3 || \
 	fatal "Wrong number of files after expansion of client's zip file"
 
-    tmpdir_client=`ls`
-    tmpdir_client=`expr "$tmpdir_client" : "\\\($tmpdir_prefix_client\\\\.......\\\)"`
+    tmpdir_client=`ls | grep $tmpdir_prefix_client.......\$`
 
     test "X$tmpdir_client" != "X" || \
 	fatal "Client zip file did not expand as expected"
 
     # Move the client's temp directory to a local temp location
     local local_tmpdir_client=`mktemp -dt $tmpdir_prefix_server.client.XXXXXX` || \
-	fatal "Cannot create temporary zip file " $local_tmpdir_client
+	fatal "Cannot create temporary client request directory " $local_tmpdir_client
     mv $tmpdir_client/* $local_tmpdir_client
     rm -fr $tmpdir_client
     tmpdir_client=$local_tmpdir_client
@@ -118,6 +120,9 @@ function check_request {
     # Add the necessary info from files in our temporary directory.
     cmdline=`read_data_file cmdline`
     test "X$cmdline" != "X" || exit 1
+
+    eval parse_options "$cmdline"
+
     client_sysinfo=`read_data_file sysinfo`
     test "X$client_sysinfo" != "X" || exit 1
 
@@ -139,6 +144,9 @@ function server_sysinfo {
 #
 # Make sure that systemtap as described by SYSINFO1 and SYSINFO2 are compaible
 function check_compatibility {
+    # Compatibility is irrelevant if the request is not for phase 5 activity.
+    test $p_phase -lt 5 && return
+
     # TODO: This needs work
     # - Make sure the linux kernel matches exactly
     local sysinfo1=$1
@@ -390,7 +398,9 @@ function package_response {
 # Fatal error
 # Prints its arguments to stderr and exits
 function fatal {
-    echo "$0`: ERROR:" "$@" >> $tmpdir_server/stderr
+    echo "$0: ERROR:" "$@" >> $tmpdir_server/stderr
+    echo -n 1 > $tmpdir_server/rc
+    package_response
     cleanup
     exit 1
 }
@@ -398,7 +408,7 @@ function fatal {
 # Non fatal error
 # Prints its arguments to stderr but does not exit
 function error {
-    echo "$0`: ERROR:" "$@" >> $tmpdir_server/stderr
+    echo "$0: ERROR:" "$@" >> $tmpdir_server/stderr
 }
 
 # function cleanup
@@ -430,7 +440,6 @@ configuration
 initialization "$@"
 unpack_request
 check_request
-eval parse_options "$cmdline"
 call_stap
 create_response
 package_response
