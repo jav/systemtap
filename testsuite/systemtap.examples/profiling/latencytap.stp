@@ -22,8 +22,8 @@ function _get_sleep_time:long(rq_param:long, p_param:long)
 # Get the backtrace from an arbitrary task                
 function task_backtrace:string (task:long)
 %{
-    _stp_stack_snprint(THIS->__retvalue, MAXSTRINGLEN,
-                                          task_pt_regs((struct task_struct *)THIS->task), 0, 0, MAXTRACE);
+    _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
+                                          (struct task_struct *)THIS->task, 0, MAXTRACE);
 %}
 
 probe kernel.function("enqueue_task_fair") {
@@ -41,6 +41,9 @@ global pid_sleep
 probe timer.ms(1000) {
     foreach ([pid, backtrace] in sleep_time) {
         pid_sleep[pid] += sleep_time[pid, backtrace]
+        printf("%s %d:\n", process_names[pid], pid)
+        print_stack(backtrace)
+        printf("\n")
     }
     foreach ([pid+] in pid_sleep) {
         printf("%s %d %d\n", process_names[pid], @max(sleep_agg[pid]) / 1000000, @avg(sleep_agg[pid]) / 1000000) 

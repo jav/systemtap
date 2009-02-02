@@ -1,3 +1,12 @@
+2009-02-11  Tim Moore  <timoore@redhat.com>
+
+	* stack.c (_stp_stack_print_fallback): Implementation that uses kernel
+	stacktrace support if available.
+	(_stp_stack_print_tsk, _stp_stack_snprint_tsk): New functions.
+	* stack-x86_64.c (_stp_stack_print_fallback): Use our own fallback if
+	no kernel stacktrace support.
+	* stack-x86_64.c (_stp_stack_print_fallback): ditto.
+
 2009-02-11  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_utrace_attach): Still checks for mm after

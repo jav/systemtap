@@ -27,6 +27,11 @@
 
 #define MAXBACKTRACE 20
 
+#include <linux/stacktrace.h>
+#include <asm/stacktrace.h>
+
+static void _stp_stack_print_fallback(unsigned long, int, int);
+
 #if defined (__x86_64__)
 #include "stack-x86_64.c"
 #elif defined (__ia64__)
@@ -43,6 +48,53 @@
 #error "Unsupported architecture"
 #endif
 
+#ifdef CONFIG_STACKTRACE
+
+struct print_stack_data
+{
+        int verbose;
+        int max_level;
+        int level;
+};
+
+static void print_stack_warning(void *data, char *msg)
+{
+}
+
+static void
+print_stack_warning_symbol(void *data, char *msg, unsigned long symbol)
+{
+}
+
+static int print_stack_stack(void *data, char *name)
+{
+	return -1;
+}
+
+static void print_stack_address(void *data, unsigned long addr, int reliable)
+{
+	struct print_stack_data *sdata = data;
+        if (sdata->level++ < sdata->max_level)
+                _stp_func_print(addr,sdata->verbose, 0);
+}
+
+static const struct stacktrace_ops print_stack_ops = {
+	.warning = print_stack_warning,
+	.warning_symbol = print_stack_warning_symbol,
+	.stack = print_stack_stack,
+	.address = print_stack_address,
+};
+
+static void _stp_stack_print_fallback(unsigned long stack, int verbose, int levels)
+{
+        struct print_stack_data print_data;
+        print_data.verbose = verbose;
+        print_data.max_level = levels;
+        print_data.level = 0;
+        dump_trace(current, NULL, (long *)stack, 0, &print_stack_ops,
+                   &print_data);
+}
+#endif
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
  */
@@ -103,4 +155,39 @@ static void _stp_ustack_print(char *str)
 #endif /* 0 */
 
 /** @} */
+
+void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
+{
+#ifdef CONFIG_STACKTRACE
+        int i;
+        unsigned long backtrace[MAXBACKTRACE];
+        struct stack_trace trace;
+        int maxLevels = min(levels, MAXBACKTRACE);
+        memset(&trace, 0, sizeof(trace));
+        trace.entries = &backtrace[0];
+        trace.max_entries = maxLevels;
+        trace.skip = 0;
+        save_stack_trace_tsk(tsk, &trace);
+        for (i = 0; i < maxLevels; ++i) {
+                if (backtrace[i] == 0 || backtrace[i] == ULONG_MAX)
+                        break;
+                _stp_printf("%lx ", backtrace[i]);
+        }
+#endif
+}
+
+/** Writes a task stack backtrace to a string
+ *
+ * @param str string
+ * @param tsk A pointer to the task_struct
+ * @returns void
+ */
+void _stp_stack_snprint_tsk(char *str, int size, struct task_struct *tsk, int verbose, int levels)
+{
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+	_stp_print_flush();
+	_stp_stack_print_tsk(tsk, verbose, levels);
+	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
+	pb->len = 0;
+}
 #endif /* _STACK_C_ */

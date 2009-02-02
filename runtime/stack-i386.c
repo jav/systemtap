@@ -14,6 +14,7 @@ static int _stp_valid_stack_ptr(unsigned long context, unsigned long p)
 }
 
 /* DWARF unwinder failed.  Just dump intereting addresses on kernel stack. */
+#ifndef CONFIG_STACKTRACE
 static void _stp_stack_print_fallback(unsigned long context, unsigned long stack, int verbose, int levels)
 {
 	unsigned long addr;
@@ -27,6 +28,7 @@ static void _stp_stack_print_fallback(unsigned long context, unsigned long stack
 		stack++;
 	}
 }
+#endif
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 {
