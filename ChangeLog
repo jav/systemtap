@@ -1,3 +1,14 @@
+2009-02-02  Dave Brolley  <brolley@redhat.com>
+
+	* NEWS: Update status of client/server.
+	* stap-server (initialization): Ensure that all server response
+	files are created.
+	(check_request): Parse the client's command line here.
+	(check_comnpatibility): Don't require client/server platform match
+	for phases 1-4.
+	(fatal,error): Correct quoting typos.
+	stap-server.8.in: Add SSL information.
+
 2009-01-30  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (install-scripts): New target. Set exec_prefix and
