@@ -76,6 +76,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/socket-trace.stp">network/socket-trace.stp</a> - Trace Functions called in Network Socket Code<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The script instrument each of the functions inn the Linux kernel's net/socket.c file. The script prints out trace. The first element of a line is  time delta in microseconds from the previous entry. This is followed by the command name and the PID. The "->" and "<-" indicates function entry and  function exit, respectively. The last element of the line is the function name.</p></li>
+<li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
+<p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.</p></li>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#LOCKING">LOCKING</a> <a href="keyword-index.html#FUTEX">FUTEX</a> <br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.</p></li>
@@ -118,6 +121,9 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <li><a href="profiling/timeout.stp">profiling/timeout.stp</a> - Show Processes Doing Polling Operations<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The timeout.stp script is based on a blog entry (http://udrepper.livejournal.com/19041.html) mentioning a need for a tool to help developers find applications that are polling. The timeout.stp script monitors systemcall used for polling and records the systemcalls that timed out rather than returned because some action occurred. The script updates the screen once a second with the top twenty processes.</p></li>
+<li><a href="profiling/topsys.stp">profiling/topsys.stp</a> - Show Processes Doing Polling Operations<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p> The topsys.stp script lists out the top twenty systemcalls for the previous 5 seconds. The output is sorted from most frequent to least frequent.</p></li>
 </ul>
        	</td>
        </tr>

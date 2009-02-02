@@ -12,12 +12,15 @@ config.status
 *.[158]
 .deps
 loc2c-test
+run-stap
 stamp-h1
 stap
 staprun
 testresults
 stapio
 stap_merge
+stap-client-connect
+stap-server-connect
 CVS
 .checkstyle
 .cproject

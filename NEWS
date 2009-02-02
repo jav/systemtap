@@ -14,12 +14,20 @@
 
   See stap-server(8) for more details.
 
+- function("func").label("label") probes are now supported to allow matching
+  the label of a function.
+
+- Systemtap initscript is available. This initscript allows you to run
+  systemtap scripts as system services (in flight recorder mode) and
+  control those scripts individually.
+  See README.initscript for details.
+
 - The stap "-r DIR" option may be used to identify a hand-made kernel
   build directory.  The tool determines the appropriate release string
   automatically from the directory.
 
 - Serious problems associated with user-space probing in shared libraries
-  was corrected, making it now possible to experiment with probe shared
+  were corrected, making it now possible to experiment with probe shared
   libraries.  Assuming dwarf debugging information is installed, use this
   twist on the normal syntax:
 

@@ -1,10 +1,47 @@
+2009-02-02  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/topsys.stp: Revised and moved to examples.
+	* systemtap.examples/profiling/topsys.stp: 
+	* systemtap.examples/profiling/topsys.meta: New.
+	* systemtap.examples/index.html:
+	* systemtap.examples/index.txt:
+	* systemtap.examples/keyword-index.html:
+	* systemtap.examples/keyword-index.txt: Regenerate.
+	
+2009-02-02  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/tcp_connections.stp: Revised and moved to examples.
+	* systemtap.examples/network/tcp_connections.stp: 
+	* systemtap.examples/network/tcp_connections.meta: New.
+	* systemtap.examples/index.html:
+	* systemtap.examples/index.txt:
+	* systemtap.examples/keyword-index.html:
+	* systemtap.examples/keyword-index.txt: Regenerate.
+	
+2009-02-02  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/tcp_connections_wa.stp: Remove.
+	
+2009-02-01  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/labels.exp: New.
+
+2009-01-30  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/queue_demo.exp:
+	* systemtap.samples/queue_demo.stp: Remove.
+	
+2009-01-30  Frank Ch. Eigler  <fche@elastic.org>
+
+	* semok/twenty.stp: Don't spew so much into systemtap.log.
+
 2009-01-30  Dave Brolley  <brolley@redhat.com>
 
 	* lib/systemtap.exp (setup_systemtap_environment): Make sure that
 	the build directory is on the path if using a server for 'make check'.
 	Use a string to check $server_pid.
 
-2009-01-23  Will Cohen  <wcohen@redhat.com>
+2009-01-30  Will Cohen  <wcohen@redhat.com>
 
 	* systemtap.samples/scf.stp:
 	* systemtap.samples/scf2.stp: Remove

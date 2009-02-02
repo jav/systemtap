@@ -118,9 +118,9 @@ probe vm.munmap = kernel.function("do_munmap") {
 }
 
 /**
- * probe vm.brk -Fires when a brk is requested (resizing a heap).
- * @address - the requested address
- * @length - the length of the memory segment 
+ * probe vm.brk - Fires when a brk is requested (resizing a heap).
+ * @address: the requested address
+ * @length: the length of the memory segment 
  *
  * Context:
  *  The process calling brk.

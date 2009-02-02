@@ -1,3 +1,7 @@
+2009-02-02  Stan Cox  <scox@redhat.com>
+
+	* langref.tex: Add process.label.
+
 2009-01-30  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.in: Regenerated.

@@ -109,6 +109,16 @@ keywords: network socket
   element of the line is the function name.
 
 
+network/tcp_connections.stp - Track Creation of Incoming TCP Connections
+keywords: network tcp socket
+
+  The tcp_connections.stp script prints information for each new
+  incoming TCP connection accepted by the computer. The information
+  includes the UID, the command accepting the connection, the PID of
+  the command, the port the connection is on, and the IP address of the
+  originator of the request.
+
+
 process/futexes.stp - System-Wide Futex Contention
 keywords: syscall locking futex
 
@@ -231,5 +241,13 @@ keywords: profiling
   the systemcalls that timed out rather than returned because some
   action occurred. The script updates the screen once a second with the
   top twenty processes.
+
+
+profiling/topsys.stp - Show Processes Doing Polling Operations
+keywords: profiling
+
+   The topsys.stp script lists out the top twenty systemcalls for the
+  previous 5 seconds. The output is sorted from most frequent to least
+  frequent.
 
 
