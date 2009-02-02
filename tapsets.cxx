@@ -480,6 +480,7 @@ static string TOK_STATEMENT("statement");
 static string TOK_ABSOLUTE("absolute");
 static string TOK_PROCESS("process");
 static string TOK_MARK("mark");
+static string TOK_LABEL("label");
 
 // Can we handle this query with just symbol-table info?
 enum dbinfo_reqt
@@ -1327,6 +1328,62 @@ struct dwflpp
 	else if (line_type == RANGE && l == lines[1])
 	  break;
       }
+  }
+
+  void
+  iterate_over_cu_labels (string label_val, Dwarf_Die *cu, void *data,
+			  void (* callback)(const string &,
+					    const char *,
+					    int,
+					    Dwarf_Die *,
+					    Dwarf_Addr,
+					    dwarf_query *))
+  {
+    dwarf_query * q __attribute__ ((unused)) = static_cast<dwarf_query *>(data) ;
+
+    get_module_dwarf();
+
+    const char * sym = label_val.c_str();
+    Dwarf_Die die;
+    dwarf_child (cu, &die);
+    static string function_name;
+    do 
+      {
+	Dwarf_Attribute attr_mem;
+	Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
+	int tag = dwarf_tag(&die);
+	const char *name = dwarf_formstring (attr);
+	if (name == NULL)
+	  continue;
+	if (tag == DW_TAG_subprogram)
+	  {
+	    function_name = name;
+	  }
+	else if (tag == DW_TAG_label
+		 && ((strncmp(name, sym, sizeof(sym)) == 0)
+		     || (name_has_wildcard (sym)
+			 && function_name_matches_pattern (name, sym))))
+	  {
+	    const char *file = dwarf_decl_file (&die);
+	    int line;
+	    line = dwarf_decl_line (&die, &line);
+	    Dwarf_Addr stmt_addr;
+	    if (dwarf_lowpc (&die, &stmt_addr) != 0)
+	      continue;
+	    Dwarf_Die *scopes;
+	    int nscopes = 0;
+	    nscopes = dwarf_getscopes_die (&die, &scopes);
+	    if (nscopes > 1)
+	      callback(function_name.c_str(), file,
+		       line, &scopes[1], stmt_addr, q);
+	  }
+	if (dwarf_haschildren (&die) && tag != DW_TAG_structure_type
+	    && tag != DW_TAG_union_type)
+	  {
+	    iterate_over_cu_labels (label_val, &die, q, callback);
+	  }
+      }
+    while (dwarf_siblingof (&die, &die) == 0);
   }
 
 
@@ -2930,6 +2987,8 @@ dwarf_query::dwarf_query(systemtap_session & sess,
   has_statement_str = get_string_param(params, TOK_STATEMENT, statement_str_val);
   has_statement_num = get_number_param(params, TOK_STATEMENT, statement_num_val);
 
+  has_label = get_string_param(params, TOK_LABEL, label_val);
+
   has_call = has_null_param(params, TOK_CALL);
   has_inline = has_null_param(params, TOK_INLINE);
   has_return = has_null_param(params, TOK_RETURN);
@@ -3904,6 +3963,12 @@ query_cu (Dwarf_Die * cudie, void * arg)
 		   i != q->filtered_srcfiles.end(); ++i)
 		q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
 						  q->line_type, query_srcfile_line, q);
+	    }
+	  else if (q->has_label)
+	    {
+	      // If we have a pattern string with target *label*, we
+	      // have to look at labels in all the matched srcfiles.
+	      q->dw.iterate_over_cu_labels (q->label_val, q->dw.cu, q, query_statement);
 	    }
 	  else
 	    {
@@ -4930,6 +4995,8 @@ dwarf_derived_probe::register_patterns(match_node * root)
   register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(dw);
+  root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->bind(dw);
 
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)->bind(dw);

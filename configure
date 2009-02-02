@@ -7937,7 +7937,7 @@ _ACEOF
 
 ac_config_headers="$ac_config_headers config.h:config.in"
 
-ac_config_files="$ac_config_files Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"
+ac_config_files="$ac_config_files Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5 initscript/systemtap"
 
 
 
@@ -8644,6 +8644,7 @@ do
     "man/stapprobes.socket.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.socket.5" ;;
     "man/stapprobes.tcp.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.tcp.5" ;;
     "man/stapprobes.udp.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.udp.5" ;;
+    "initscript/systemtap") CONFIG_FILES="$CONFIG_FILES initscript/systemtap" ;;
     "run-stap") CONFIG_FILES="$CONFIG_FILES run-stap" ;;
 
   *) { { $as_echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
