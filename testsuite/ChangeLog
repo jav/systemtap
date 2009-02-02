@@ -1,3 +1,7 @@
+2009-02-02  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/tcp_connections_wa.stp: Remove.
+	
 2009-02-01  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/labels.exp: New.
