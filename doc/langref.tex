@@ -706,6 +706,7 @@ kernel.function(PATTERN).call
 kernel.function(PATTERN).return
 kernel.function(PATTERN).return.maxactive(VALUE)
 kernel.function(PATTERN).inline
+kernel.function(PATTERN).label(LPATTERN)
 module(MPATTERN).function(PATTERN)
 module(MPATTERN).function(PATTERN).call
 module(MPATTERN).function(PATTERN).return.maxactive(VALUE)
@@ -737,8 +738,11 @@ The \textbf{.statement} variant places a probe at the exact spot, exposing those
 variables that are visible there.
 
 In the above probe descriptions, MPATTERN stands for a string literal
-that identifies the loaded kernel module of interest. It may include asterisk
-({*}), square brackets \char`\"{}{[}]\char`\"{}, and question mark (?) wildcards.
+that identifies the loaded kernel module of interest and LPATTERN
+stands for a source program label. Both MPATTERN and LPATTERN may
+include asterisk ({*}), square brackets \char`\"{}{[}]\char`\"{}, and
+question mark (?) wildcards.
+
 PATTERN stands for a string literal that identifies a point in the program.
 It is composed of three parts:
 

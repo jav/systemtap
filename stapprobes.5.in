@@ -263,6 +263,8 @@ kernel.function(PATTERN).return
 .br
 kernel.function(PATTERN).inline
 .br
+kernel.function(PATTERN).label(LPATTERN)
+.br
 module(MPATTERN).function(PATTERN)
 .br
 module(MPATTERN).function(PATTERN).call
@@ -280,8 +282,10 @@ module(MPATTERN).statement(PATTERN)
 .ESAMPLE
 
 In the above list, MPATTERN stands for a string literal that aims to
-identify the loaded kernel module of interest.  It may include "*", "[]",
-and "?" wildcards.  PATTERN stands for a string literal that
+identify the loaded kernel module of interest and LPATTERN stands for
+a source program label.  Both MPATTERN and LPATTERN may include the "*"
+"[]", and "?" wildcards.  
+PATTERN stands for a string literal that
 aims to identify a point in the program.  It is made up of three
 parts:
 .IP \(bu 4
@@ -445,14 +449,13 @@ A
 .B .mark
 probe gets called via a static probe which is defined in the
 application by
-STAP_PROBE1(handle,LABEL,arg1).  The handle is an application handle,
+STAP_PROBE1(handle,LABEL,arg1), which is defined in sdt.h.  The handle is an application handle,
 LABEL corresponds to the .mark argument, and arg1 is the argument.
 STAP_PROBE1 is used for probes with 1 argument, STAP_PROBE2 is used
 for probes with 2 arguments, and so on.
 The arguments of the probe are available in the context variables
-$arg1, $arg2, ...
-The application should be compiled with ../share/systemtap/runtime/sduprobes.h
-and should be linked with libsduprobes.a.
+$arg1, $arg2, ...  An alternative to using the STAP_PROBE macros is to
+use the dtrace script to create custom macros.
 .PP
 Note that
 .I PATH

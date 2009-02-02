@@ -1,3 +1,7 @@
+2009-02-02  Stan Cox  <scox@redhat.com>
+
+	* NEWS, stapprobes.5.in: Add process.label.
+
 2009-02-01  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwflpp::iterate_over_cu_labels): New.
