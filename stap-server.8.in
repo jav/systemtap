@@ -23,8 +23,7 @@ stap-server \- systemtap server and related utilities
 .B \-\-server=\fIHOSTNAME\fR|\fIIP_ADDRESS\fR[\fB:\fIPORT\fR]
 ]
 [
-.B \-\-ssl=
-.I DIRNAME
+.B \-\-ssl=\fIDIRNAME
 ]
 [
 .I ARGUMENTS

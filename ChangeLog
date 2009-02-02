@@ -8,6 +8,7 @@
 	for phases 1-4.
 	(fatal,error): Correct quoting typos.
 	stap-server.8.in: Add SSL information.
+	* stap-stop-server: Use 'ps -e' to list processes.
 
 2009-02-02  Stan Cox  <scox@redhat.com>
 
