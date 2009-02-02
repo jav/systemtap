@@ -28,7 +28,7 @@ struct _probe_ ## probe				\
 static char probe ## _ ## probe_name [strlen(#probe)+1] 	\
        __attribute__ ((section (".probes"))) 	\
        = #probe; 				\
- static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section (".probes"))) = {STAP_SENTINEL,(long)& probe ## _ ## probe_name[0],argc};
+static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section (".probes"))) = {STAP_SENTINEL,(size_t)& probe ## _ ## probe_name[0],argc};
 
 #define STAP_CONCAT(a,b) a ## b
 #define STAP_LABEL(p,n) \
