@@ -23,5 +23,8 @@ sed -i -e 's/synopsis>/programlisting>\n/g' en-US/Tapset_Reference_Guide.xml;
 sed -i  -e 's/&lt;emphasis&gt;/<emphasis>/g' en-US/Tapset_Reference_Guide.xml;
 sed -i  -e 's/&lt;\/emphasis&gt;/<\/emphasis>/g' en-US/Tapset_Reference_Guide.xml;
 
+sed -i  -e 's/&lt;remark&gt;/<remark>/g' en-US/Tapset_Reference_Guide.xml;
+sed -i  -e 's/&lt;\/remark&gt;/<\/remark>/g' en-US/Tapset_Reference_Guide.xml;
+
 sed -i  -e 's/&lt;command&gt;/<command>/g' en-US/Tapset_Reference_Guide.xml;
 sed -i  -e 's/&lt;\/command&gt;/<\/command>/g' en-US/Tapset_Reference_Guide.xml;
