@@ -596,7 +596,7 @@ function find_and_connect_to_server {
 	    fi
 
 	    if test `${exec_prefix}stap-find-servers $find_all | grep $address | wc -l` = "0"; then
-		echo "No server is available on $server" >> $tmpdir_client/connect
+		warning "No server is available on $server" 2>> $tmpdir_client/connect
 		continue
 	    fi
 
