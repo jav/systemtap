@@ -16,6 +16,11 @@
 	* stap-serverd: Specify the full database directory name when calling
 	stap-add-server-cert.
 
+2009-02-03  Mark Wielaard  <mjw@redhat.com>
+
+	* elaborate.cxx (match_node::find_and_build): Disambiguate error
+	messages.
+
 2009-02-02  Stan Cox  <scox@redhat.com>
 
 	* NEWS, stapprobes.5.in: Add process.label.
