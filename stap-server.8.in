@@ -18,6 +18,8 @@ stap-server \- systemtap server and related utilities
 .B stap\-stop\-server
 .I PID
 .br
+.B stap\-add\-server\-cert \fICERTFILE\fR  \fIDIRNAME\fR
+.br
 .B stap\-client
 [
 .B \-\-server=\fIHOSTNAME\fR|\fIIP_ADDRESS\fR[\fB:\fIPORT\fR]
@@ -46,7 +48,8 @@ successful startup, the server listens for connections on a random port and
 advertises its presence on the local network using the
 .I avahi
 daemon. If the server is successfully started, its process id is
-echoed to stdout and the exit code is 0. Otherwise, \-1 is echoed and the exit code is 1.
+echoed to stdout and the exit code is 0. Otherwise, nothing is echoed and the
+exit code is 1.
 
 .PP
 The
@@ -63,12 +66,12 @@ using
 .IR stap\-find\-servers .
 If a compatible server is found,
 .I stap\-find\-or\-start\-server
-echoes '0' to stdout and the exit code is 0. Otherwise
+echoes \[aq]0\[aq] to stdout and the exit code is 0. Otherwise
 .I stap\-find\-or\-start\-server
 attempts to start a server on the local network using
 .IR stap\-start\-server .
 If successful, the process id of the new server is echoed to stdout and the
-exit code is 0. If no server can be found or started, nothing is echoed
+exit code is 0. If no server can be found or started, \[aq]-1\[aq] is echoed
 to stdout and the exit code is 1.
 
 .PP
@@ -80,6 +83,12 @@ SIGTERM signal. If a process id is provided and it is that of a running systemta
 server, the exit code is 0. Otherwise the exit code is 1.
 .I stap\-stop\-server
 does not verify that the server actually shuts down.
+
+.PP
+The
+.I stap\-add\-server\-cert
+program adds the given server certificate to the given client\-side
+certificate database, making that server a trusted server for clients using that database.
 
 .PP
 The
@@ -107,18 +116,152 @@ to report all systemtap servers on the local network regardless of compatibility
 The default behavior is to report only servers which are compatible with
 systemtap on the local host.
 
+.PP
+In addition to the options accepted by the
+.I stap
+front end,
+.I stap\-client
+accepts the following:
+
+.TP
+.B \-\-server=\fIHOSTNAME\fR|\fIIP_ADDRESS\fR[\fB:\fIPORT\fR]
+This option intructs
+.I stap\-client
+to use the named server instead of looking for one automatically. The server may
+be specified using a valid host name or ip address. If no port is specified, then
+.I stap\-client
+searches for the server among the servers advertizing their presence on the
+local network and uses the port which is being advertized. This is useful for
+connecting to a specific server on the local network. If a port is specified,
+then
+.I stap\-client
+will attempt to connect to the named host on the specified port. This is useful
+for connecting to non\-local servers. If
+.B \-\-server
+is specified,
+.I stap\-client
+will make no attempt to contact other servers. If more than one
+.B \-\-server
+option is specified,
+.I stap\-client
+will attempt to use the servers in the order specified.
+
+.TP
+.B \-\-ssl=\fIDIRNAME
+.I stap\-client
+uses certificate databases in default locations (see
+.I SERVER MANAGEMENT
+below) in order to authenticate each server which is contacted. The
+.B \-\-ssl
+option is used to specify additional databases to search. Databases specified
+using
+.B \-\-ssl
+are searched before the default databases. If more than one
+.B \-\-ssl
+option is specified, then the databases are searched in the order specified on
+the command line followed by the default locations.
+
 .SH ARGUMENTS
 The
 .I stap\-stop\-server
 program requires a process id argument which identifies the server to be stopped.
 
 .PP
-In addition to the options accepted by the
-.I stap
-front end,
-.I stap\-client
-accepts the following options:
+The
+.I stap\-add\-server\-cert
+program accepts two arguments:
 
+.TP
+.B CERTFILE
+This is the name of the file containing the certificate of the new trusted
+server. This is the file named \fIstap-server.cert\fR which can be found in the
+server\[aq]s certificate database.
+
+.TP
+.B DIRNAME
+This is the name of the directory containing the client\-side certificate database to which
+the certificate is to be added.
+
+.PP
+The
+.I stap\-client
+program accepts the same arguments as
+.I stap\fP.
+See \fIstap\fP(1) for details.
+
+.SH SERVER MANAGEMENT
+The security of the SSL network connection between the client and server and
+of the signing and verification of the server\[aq]s response depend on the proper
+management of server certificates and the public and private key pairs with which
+they are signed and verified.
+
+.PP
+The trustworthiness of a given systemtap server can not be determined
+automatically without a trusted certificate authority issuing systemtap server
+certificates. This is
+not practical in everyday use and so, clients must authenticate servers
+against their own databases of trusted server certificates. In this context,
+establishing a given server as trusted by a given client means adding
+that server\[aq]s certificate to the
+client\[aq]s database of trusted servers.
+
+.PP
+The implementation of the client and server have automated many of the tasks
+required. In particular:
+
+.IP \(bu 4
+When a user starts a server for the first time, the server will generate its
+own certificate and add it to a database local to that user. For non\-root users,
+this database will be created in
+.I $HOME/.systemtap/ssl/server\fP.
+For root users (EUID=0), it will be created in
+.I $sysconfdir/systemtap/ssl/server\fP.
+
+.IP \(bu 4
+At this time the
+server will also create a local client\-side certificate database and add the
+server\[aq]s certificate to it. For non\-root users,
+this database will be created in
+.I $HOME/.systemtap/ssl/client\fP.
+For root users (EUID=0), it will be created in
+.I $sysconfdir/systemtap/ssl/client\fP.
+
+In this way, a server started by a given user is automatically trusted by
+clients run by that user.
+
+.IP \(bu 4
+The client\-side certificate database created for root users is also
+the global client\-side database for all clients on the host. In this way,
+a server started by root is automatically trusted by clients run by any
+user on that host.
+
+.PP
+The trustworthiness of other servers may be asserted in one of two ways:
+
+.IP \(bu 4
+Other existing client\-side certificate databases may be searched by using the
+.B \-\-ssl
+option one or more times when running the client (see
+.I OPTIONS
+above). Servers whose certificates are contained in the additional databases
+will be considered to be trusted for that invocation of the client.
+
+.IP \(bu 4
+A user may add the certificate of a new trusted server to his own local
+client\-side certificate database using
+\[aq]\fBstap-add-server-cert \fICERTFILE\fR \fIDIRNAME\fR\[aq]
+(see above), where \fICERTFILE\fP is the server\[aq]s certificate file
+(\fIstap\-server.cert\fP) from the servers certificate database directory and
+\fIDIRNAME\fP is the
+directory containing the user\[aq]s client\-side certificate database.
+
+The server will trusted by clients run by that user from then on.
+
+.PP
+When a root (EUID=0) user adds a server\[aq]s certificate to their client\-side
+certificate database, which is also the global database for all users on that
+host, they assert the trustworthiness of that server for all users on that
+host.
 
 .SH EXAMPLES
 See the 
@@ -130,21 +273,50 @@ Here is a very basic example of how to use
 .PP
 To find out if a compatible systemtap server is running on your local network
 .PP
-\& $ stap\-find\-servers
+.B \& $ stap\-find\-servers
 .PP
 If no servers are reported, you can start one using
 .PP
-\& $ stap\-start\-server
+.B \& $ stap\-start\-server
 .PP
 You could also have accomplished both of the previous two steps using
 .PP
-\& $ stap\-find\-or\-start\-server
+.B \& $ stap\-find\-or\-start\-server
 .PP
-To compile and execute a simple example using the server
+To compile and execute a simple example using an automatically discovered
+server on the local network
 .PP
-\& $ stap\-client \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
+.B \& $ stap\-client \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
 .br
 \& Hello World!
+.PP
+To compile and execute a simple example using a server on a specific host
+on the local network
+.PP
+.B \& $ stap\-client \-\-server=\fIHOSTNAME\fP \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
+.br
+\& Hello World!
+.PP
+To compile and execute a simple example using a specific server
+.PP
+.B \& $ stap\-client \-\-server=\fIHOSTNAME\fP:\fIPORT\fP \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
+.br
+\& Hello World!
+.PP
+To search additional certificate databases in order to compile and execute a
+simple example
+.PP
+.B \& $ stap\-client \-\-ssl=\fIDIRNAME\fP \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
+.br
+\& Hello World!
+.PP
+To permanently trust a given server for your own use
+.PP
+.B \& $ stap\-add\-server\-cert \fICERTFILE\fP $HOME/.systemtap/ssl/client
+.PP
+As root, to permanently trust a given server for all users on your host
+.PP
+.B \& $ stap\-add\-server\-cert \fICERTFILE\fP $sysconfdir/systemtap/ssl/client
 .PP
 If a process id was echoed by
 .I stap\-start\-server
@@ -152,9 +324,9 @@ or
 .I stap\-find\-or\-start\-server
 then you can stop the server using
 .PP
-\& $ stap\-stop\-server PID
+.B \& $ stap\-stop\-server \fIPID\fP
 .PP
-where PID is the process id that was echoed.
+where \fIPID\fR is the process id that was echoed.
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
@@ -166,9 +338,9 @@ manual page for additional information on safety and security.
 The systemtap server and its related utilities use the Secure Socket Layer
 (SSL) as implemented by Network Security Services (NSS)
 for network security and the NSS tools
-.B certutil
+.I certutil
 and
-.B signtool
+.I signtool
 for the generation of certificates and for signing respectively. The related
 certificate databases must be protected in order to maintain the security of
 the system.
@@ -182,8 +354,8 @@ access permissions before making use of any certificate database.
 .IR stapprobes (5),
 .IR stapfuncs (5),
 .IR stapex (5),
-.IR NSS,
-.IR certutil,
+.IR NSS ,
+.IR certutil ,
 .IR signtool
 
 .SH BUGS

@@ -1,6 +1,8 @@
-2009-02-02  Dave Brolley  <brolley@redhat.com>
+2009-02-03  Dave Brolley  <brolley@redhat.com>
 
 	* NEWS: Update status of client/server.
+	* stap-server.8.in: Add description of client/server certificate
+	management and tools.
 	* stap-server (initialization): Ensure that all server response
 	files are created.
 	(check_request): Parse the client's command line here.
@@ -9,6 +11,10 @@
 	(fatal,error): Correct quoting typos.
 	stap-server.8.in: Add SSL information.
 	* stap-stop-server: Use 'ps -e' to list processes.
+	* stap-add-server-cert: The directory name now refers to the database
+	directly, not the directory below it.
+	* stap-serverd: Specify the full database directory name when calling
+	stap-add-server-cert.
 
 2009-02-02  Stan Cox  <scox@redhat.com>
 

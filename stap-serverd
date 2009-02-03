@@ -55,7 +55,7 @@ function initialization {
             # Now add the server's certificate to the client's database,
 	    # making it a trusted peer. Do this only if the client has been installed.
 	    if test -f `which ${exec_prefix}stap-add-server-cert` -a -x `which ${exec_prefix}stap-add-server-cert`; then
-		${exec_prefix}stap-add-server-cert $ssl_db/stap-server.cert `dirname $ssl_db`
+		${exec_prefix}stap-add-server-cert $ssl_db/stap-server.cert `dirname $ssl_db`/client
 	    fi
 	fi
     fi

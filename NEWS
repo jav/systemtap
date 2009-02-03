@@ -10,7 +10,10 @@
   was specified.
 
   The client/server now use SSL for network connection security and
-   for signing.
+  for signing.
+
+  The systemtap client and server are prototypes only. Interfaces, options
+  and usage may change at any time.
 
   See stap-server(8) for more details.
 
