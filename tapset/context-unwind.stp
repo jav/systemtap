@@ -23,10 +23,11 @@
  *  except that deeper stack nesting may be supported.  Return nothing.
  */
 function print_backtrace () %{
-	if (! CONTEXT->regs)
-                WARN_ON (! CONTEXT->regs);
-        else
-                _stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE);
+	if (CONTEXT->regs) {
+		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE);
+	} else {
+		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
+	}
 %}
 
 /**
@@ -36,10 +37,10 @@ function print_backtrace () %{
  *  stack.  It may be truncated due to maximum string length.
  */
 function backtrace:string () %{ /* pure */
-	if (! CONTEXT->regs)
-                WARN_ON (! CONTEXT->regs);
-        else
-                _stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE);
+	if (CONTEXT->regs)
+		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE);
+	else 
+		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
 
 /**

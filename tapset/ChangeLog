@@ -1,3 +1,8 @@
+2009-02-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6961/9810.
+	* context-unwind.stp (print_backtrace, backtrace): Revert.
+
 2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 9699.
