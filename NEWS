@@ -1,7 +1,13 @@
 * What's new
 
-- Systemtap now	comes with a new Beginners Guide that walks the	user
-  through their	first steps setting up stap, understanding how it all
+- For those that really want to run stap from the build tree there is
+  now the 'run-stap' script in the top-level build directory that sets
+  up the SYSTEMTAP_TAPSET, SYSTEMTAP_RUNTIME, SYSTEMTAP_STAPRUN, and
+  SYSTEMTAP_STAPIO environment variables (installing systemtap, in a
+  local prefix, is still recommended for common use).
+
+- Systemtap now comes with a new Beginners Guide that walks the user
+  through their first steps setting up stap, understanding how it all
   works, introduces some useful scripts and describes some common
   pitfalls.  It isn't created by default since it needs a Publican
   setup, but full build instructions can be found in the wiki:
