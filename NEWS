@@ -1,5 +1,12 @@
 * What's new
 
+- process().mark() probes are now possible to trace static user space
+  markers put in programs with the STAP_PROBE macro using the new
+  sys/sdt.h include file. This also provides dtrace compatible markers
+  through DTRACE_PROBE and an associated python 'dtrace' script that
+  can be used in builds based on dtrace that need dtrace -h or -G
+  functionality.
+
 - For those that really want to run stap from the build tree there is
   now the 'run-stap' script in the top-level build directory that sets
   up the SYSTEMTAP_TAPSET, SYSTEMTAP_RUNTIME, SYSTEMTAP_STAPRUN, and

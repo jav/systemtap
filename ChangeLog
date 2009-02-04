@@ -1,5 +1,9 @@
 2009-02-04  Mark Wielaard  <mjw@redhat.com>
 
+	* NEWS: process().mark(), sys/sdt.h and dtrace compatibility script.
+
+2009-02-04  Mark Wielaard  <mjw@redhat.com>
+
 	* NEWS: Mention run-stap.
 
 2009-02-04  Mark Wielaard  <mjw@redhat.com>
