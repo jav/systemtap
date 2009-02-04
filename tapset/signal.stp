@@ -84,17 +84,21 @@ probe _signal.send.part4 = kernel.function("specific_send_sig_info")
 %( kernel_v > "2.6.25" %?
 probe _signal.send.part1 = kernel.function("send_signal")
 {
-    if ($group == 1) {
-	name = "__group_send_sig_info"
-	shared = 1
-    }
-    else if ($group == 0) {
-	    name = "specific_send_sig_info"
-	    shared = 0
-    }
+    name = "__group_send_sig_info"
     sig = $sig
     task = $t
     sinfo = $info
+    shared = 1
+    send2queue = 0
+}
+
+probe _signal.send.part4 = kernel.function("send_signal")
+{
+    name = "specific_send_sig_info"
+    sig = $sig
+    task = $t
+    sinfo = $info
+    shared = 0
     send2queue = 0
 }
 %)
@@ -135,22 +139,6 @@ probe signal.send.return = _signal.send.*.return
  *   and sent by user using something other than kill()
  *
  */
-%( kernel_v > "2.6.25" %?
-probe _signal.send.part1.return = kernel.function("send_signal").return
-{
-    if ($group == 1) {
-	name = "__group_send_sig_info"
-	shared = 1
-    }
-    else if ($group == 0) {
-	    name = "specific_send_sig_info"
-	    shared = 0
-    }
-    send2queue = 0
-}
-%)
-
-%( kernel_v <= "2.6.25" %?
 probe _signal.send.part1.return = kernel.function("__group_send_sig_info").return
 {
     name = "__group_send_sig_info"
@@ -165,6 +153,7 @@ probe _signal.send.part4.return = kernel.function("specific_send_sig_info").retu
     send2queue = 0
 }
 
+%( kernel_v <= "2.6.25" %?
 /*
  * - return 0 if the signal is either sucessfully added into the
  *   sigqueue of receiving process or a SI_TIMER entry is already
