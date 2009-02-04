@@ -1,3 +1,8 @@
+2009-02-04  K Prasad  <prasad@linux.vnet.ibm.com>
+
+	PR 7030.
+	* signal.stp: handle functions inlined in 2.6.27+
+
 2009-02-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6961/9810.
