@@ -34,6 +34,4 @@ void mdfour_update(struct mdfour *md, const unsigned char *in, int n);
 void mdfour_result(struct mdfour *md, unsigned char *out);
 void mdfour(unsigned char *out, const unsigned char *in, int n);
 
-
-
-
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
