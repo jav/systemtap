@@ -1,3 +1,7 @@
+2009-02-04  Mark Wielaard  <mjw@redhat.com>
+
+	* NEWS: Mention SystemTap Tapset Reference Manual.
+
 2009-02-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR6961/9810.

@@ -1,5 +1,11 @@
 * What's new
 
+- Standard tapsets included with Systemtap were modified to include
+  extractable documentation information based on the kernel-doc
+  infrastructure. When configured --enabled-docs a HTML and PDF
+  version of the Tapset Reference Manual is produced explaining probes
+  defined in each tapset.
+
 - The systemtap client and compile server are now available.
   These allow you to compile a systemtap module on a host other than
   the one which it will be run, providing the client and server
