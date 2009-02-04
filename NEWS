@@ -1,5 +1,14 @@
 * What's new
 
+- Systemtap now	comes with a new Beginners Guide that walks the	user
+  through their	first steps setting up stap, understanding how it all
+  works, introduces some useful scripts and describes some common
+  pitfalls.  It isn't created by default since it needs a Publican
+  setup, but full build instructions can be found in the wiki:
+  http://sourceware.org/systemtap/wiki/PublicanQuikHowto
+  An online version can be found at:
+  http://sourceware.org/systemtap/SystemTap_Beginners_Guide.pdf
+
 - Standard tapsets included with Systemtap were modified to include
   extractable documentation information based on the kernel-doc
   infrastructure. When configured --enabled-docs a HTML and PDF
