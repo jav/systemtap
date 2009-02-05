@@ -1,3 +1,7 @@
+2009-02-05  Will Cohen <wcohen@redhat.com>
+
+	* scripts/kernel-doc: Correct productname tag.
+
 2009-02-04  Mark Wielaard  <mjw@redhat.com>
 
 	* NEWS: process().mark(), sys/sdt.h and dtrace compatibility script.
