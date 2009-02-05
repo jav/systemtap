@@ -1,3 +1,10 @@
+2009-02-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9740/9816?
+	* transport.c (_stp_handle_start): Run alloc/free_vm_area() dummy
+	calls as workaround for kernel valloc/vfree bug.  Suggested by
+	Masami Hiramat <mhiramat@redhat.com>.
+
 2009-01-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR9699.

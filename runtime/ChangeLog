@@ -1,3 +1,8 @@
+2009-02-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 9740/9816?
+	* autoconf-vm-area.c: New test.
+
 2009-02-02  Mark Wielaard  <mjw@redhat.com>
 
 	* sdt.h: Add STAP_PROBE7, 8 and 9 variants.

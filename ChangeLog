@@ -1,3 +1,8 @@
+2009-02-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9740/9816?
+	* buildrun.cxx: Add STAPCONF_VM_AREA autoconf test.
+
 2009-02-04  Mark Wielaard  <mjw@redhat.com>
 
 	* NEWS: process().mark(), sys/sdt.h and dtrace compatibility script.
