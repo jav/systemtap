@@ -818,11 +818,30 @@ struct throwing_visitor: public visitor
 
 struct deep_copy_visitor: public visitor
 {
-  std::stack<void *> targets;
+  template <typename T> T require (T src)
+  {
+    T dst = NULL;
+    if (src != NULL)
+      {
+        src->visit(this);
+        assert(!targets.empty());
+        dst = static_cast<T>(targets.top());
+        targets.pop();
+        assert(dst);
+      }
+    return dst;
+  }
 
-  static expression *deep_copy (expression *s);
-  static statement *deep_copy (statement *s);
-  static block *deep_copy (block *s);
+  template <typename T> void provide (T src)
+  {
+    targets.push(static_cast<void*>(src));
+  }
+
+  template <typename T> static T deep_copy (T e)
+  {
+    deep_copy_visitor v;
+    return v.require (e);
+  }
 
   virtual void visit_block (block *s);
   virtual void visit_embeddedcode (embeddedcode *s);
@@ -856,30 +875,13 @@ struct deep_copy_visitor: public visitor
   virtual void visit_print_format (print_format* e);
   virtual void visit_stat_op (stat_op* e);
   virtual void visit_hist_op (hist_op* e);
+
+private:
+  std::stack<void *> targets;
 };
 
-template <typename T> void
-require (deep_copy_visitor* v, T* dst, T src)
-{
-  *dst = NULL;
-  if (src != NULL)
-    {
-      v->targets.push(static_cast<void* >(dst));
-      src->visit(v);
-      v->targets.pop();
-      assert(*dst);
-    }
-}
-
-template <> void
-require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src);
-
-template <typename T> void
-provide (deep_copy_visitor* v, T src)
-{
-  assert(!v->targets.empty());
-  *(static_cast<T*>(v->targets.top())) = src;
-}
+template <> indexable*
+deep_copy_visitor::require <indexable*> (indexable* src);
 
 #endif // STAPTREE_H
 

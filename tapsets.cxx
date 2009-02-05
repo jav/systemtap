@@ -4253,9 +4253,9 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
   expression *new_left, *new_right;
 
   target_symbol_setter_functioncalls.push (&fcall);
-  require<expression*> (this, &new_left, e->left);
+  new_left = require (e->left);
   target_symbol_setter_functioncalls.pop ();
-  require<expression*> (this, &new_right, e->right);
+  new_right = require (e->right);
 
   if (fcall != NULL)
     {
@@ -4274,7 +4274,7 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
 
       assert (new_left == fcall);
       fcall->args.push_back (new_right);
-      provide <expression*> (this, fcall);
+      provide (fcall);
     }
   else
     {
@@ -4283,7 +4283,7 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
       n->tok = e->tok;
       n->left = new_left;
       n->right = new_right;
-      provide <assignment*> (this, n);
+      provide (n);
     }
 }
 
@@ -4318,7 +4318,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       map<string, symbol *>::iterator i = return_ts_map.find(ts_name);
       if (i != return_ts_map.end())
 	{
-	  provide <symbol*> (this, i->second);
+	  provide (i->second);
 	  return;
 	}
 
@@ -4576,7 +4576,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
       // our parent so it can be used as a substitute for the target
       // symbol.
-      provide <symbol*> (this, tmpsym);
+      provide (tmpsym);
 
       // (5) Remember this replacement since we might be able to reuse
       // it later if the same return probe references this target
@@ -4622,7 +4622,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
           // Ignore any variable that isn't accessible.
           tsym->saved_conversion_error = 0;
-          this->visit_target_symbol(tsym); // NB: throws nothing ...
+          expression *texp = tsym;
+          texp = require (texp); // NB: throws nothing ...
           if (tsym->saved_conversion_error) // ... but this is how we know it happened.
             {
 
@@ -4631,7 +4632,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
             {
               pf->raw_components += "return";
               pf->raw_components += "=%#x ";
-              pf->args.push_back(*(expression**)this->targets.top());
+              pf->args.push_back(texp);
             }
         }
       else
@@ -4665,7 +4666,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
                 // Ignore any variable that isn't accessible.
                 tsym->saved_conversion_error = 0;
-                this->visit_target_symbol(tsym); // NB: throws nothing ...
+                expression *texp = tsym;
+                texp = require (texp); // NB: throws nothing ...
                 if (tsym->saved_conversion_error) // ... but this is how we know it happened.
                   {
                     if (q.sess.verbose>2)
@@ -4684,14 +4686,14 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
                   {
                     pf->raw_components += diename;
                     pf->raw_components += "=%#x ";
-                    pf->args.push_back(*(expression**)this->targets.top());
+                    pf->args.push_back(texp);
                   }
               }
             while (dwarf_siblingof (&result, &result) == 0);
         }
 
       pf->components = print_format::string_to_components(pf->raw_components);
-      provide <print_format*> (this, pf);
+      provide (pf);
 
       return;
     }
@@ -4735,7 +4737,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // target_symbol to the next pass.  We hope that this value ends
       // up not being referenced after all, so it can be optimized out
       // quietly.
-      provide <target_symbol*> (this, e);
+      provide (e);
       semantic_error* saveme = new semantic_error (er); // copy it
       saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
       // NB: we can have multiple errors, since a $target variable
@@ -4783,7 +4785,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       *(target_symbol_setter_functioncalls.top()) = n;
     }
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 
@@ -4856,7 +4858,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   if (!null_die(scope_die))
     {
       dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
-      require <statement*> (&v, &(this->body), this->body);
+      this->body = v.require (this->body);
       this->access_vars = v.visited;
 
       // If during target-variable-expanding the probe, we added a new block
@@ -6268,7 +6270,7 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
 {
   // Make a local-variable-expanded copy of the probe body
   utrace_var_expanding_copy_visitor v (s, name, flags);
-  require <statement*> (&v, &(this->body), base->body);
+  this->body = v.require (base->body);
   target_symbol_seen = v.target_symbol_seen;
 
   // Reset the sole element of the "locations" vector as a
@@ -6379,7 +6381,7 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
   num->tok = e->tok;
   n->args.push_back(num);
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 void
@@ -6430,7 +6432,7 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e
   n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 void
@@ -6998,7 +7000,7 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
   if (!null_die(scope_die))
     {
       dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr); // XXX: user-space deref's!
-      require <statement*> (&v, &(this->body), this->body);
+      this->body = v.require (this->body);
 
       // If during target-variable-expanding the probe, we added a new block
       // of code, add it to the start of the probe.
@@ -7802,7 +7804,7 @@ procfs_derived_probe::procfs_derived_probe (systemtap_session &s, probe* p,
 {
   // Make a local-variable-expanded copy of the probe body
   procfs_var_expanding_copy_visitor v (s, name, path, write);
-  require <statement*> (&v, &(this->body), base->body);
+  this->body = v.require (base->body);
   target_symbol_seen = v.target_symbol_seen;
 }
 
@@ -8136,7 +8138,7 @@ procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
       *(target_symbol_setter_functioncalls.top()) = n;
     }
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 
@@ -8371,7 +8373,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
   n->tok = e->tok;
   n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 
@@ -8413,7 +8415,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
   n->tok = e->tok;
   n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 void
@@ -8452,7 +8454,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 
   // Now make a local-variable-expanded copy of the probe body
   mark_var_expanding_copy_visitor v (sess, name, mark_args);
-  require <statement*> (&v, &(this->body), base->body);
+  this->body = v.require (base->body);
   target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 2)
@@ -9285,7 +9287,7 @@ perfmon_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   n->function = fname;
   n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 
@@ -9355,7 +9357,7 @@ perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
 
   // Now make a local-variable-expanded copy of the probe body
   perfmon_var_expanding_copy_visitor v (sess, probes_allocated-1);
-  require <statement*> (&v, &(this->body), base->body);
+  this->body = v.require (base->body);
 
   if (sess.verbose > 1)
     clog << "perfmon-based probe" << endl;

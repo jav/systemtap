@@ -1,3 +1,10 @@
+2009-02-05  Josh Stone  <jistone@redhat.com>
+
+	* staptree.h (require, provide): Simplify stack operations with less
+	pointer magic, and move to be deep_copy_visitor members.
+	* staptree.h (deep_copy_visitor::deep_copy): Templatize
+	* staptree.cxx, tapsets.cxx: Refactor require/provide callers
+
 2009-02-04  Mark Wielaard  <mjw@redhat.com>
 
 	* NEWS: process().mark(), sys/sdt.h and dtrace compatibility script.
