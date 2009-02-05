@@ -16,24 +16,23 @@
 //
 
 
-/* probe signal.send
- *
- * Fires when a signal is sent to a process.
- *
+/** 
+ * probe signal.send- Fires when a signal is sent to a process.
+ * Arguments:
+ * @sig: The number of the signal
+ * @sig_name: A string representation of the signal
+ * @sig_pid: The process ID of the signal recipient
+ * @pid_name: The name of the signal recipient
+ * @si_code: Indicates the signal type
+ * @task: A task handle to the signal recipient
+ * @sinfo: The address of <command>siginfo</command> struct
+ * @shared: Indicates whether the signal is shared by the thread group
+ * @send2queue- Indicates whether the signal is sent to an existing <command>sigqueue</command>
+ * @name: The name of the function used to send out the signal
+ * 
  * Context:
  *  The signal's sender.
  *
- * Arguments:
- *  sig - the number of the signal
- *  sig_name - a string representation of the signal
- *  sig_pid - pid of the signal recipient process
- *  pid_name - name of the signal recipient process
- *  si_code - indicates the signal type.
- *  task - a task handle to the signal recipient
- *  sinfo - the address of siginfo struct.
- *  shared - indicates whether this signal is shared by the thread group
- *  send2queue- indicates whether this signal is sent to an existing sigqueue
- *  name - name of the function used to send out this signal
  */
 probe signal.send = _signal.send.*
 {
@@ -114,27 +113,62 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
     send2queue = 1
 }
 
-/* probe signal.send.return
+/**
+ * probe signal.send.return - Fires when a signal sent to a process returns.
+ * @retstr: The return value to either <command>__group_send_sig_info</command>,
+ * <command>specific_send_sig_info</command>, or <command>send_sigqueue</command>. 
+ * Refer to the Description of this probe for more information about the return 
+ * values of each function call. 
+ * @shared: Indicates whether the sent signal is shared by the thread group.
+ * @send2queue: Indicates whether the sent signal was sent to an existing <command>sigqueue</command>
+ * @name: The name of the function used to send out the signal.
+ * 
+ * Context:
+ * The signal's sender. <remark>(correct?)</remark>
+ * 
+ * __group_send_sig_info and specific_send_sig_info return values:
+ *
+ * <command>0</command> - The signal is sucessfully sent to a process,
+ * which means that
+ * <1> the signal was ignored by the receiving process,
+ * <2> this is a non-RT signal and the system already has one queued, and
+ * <3> the signal was successfully added to the <command>sigqueue</command> of the receiving process.
+ *
+ * <command>-EAGAIN</command> - The <command>sigqueue</command> of the receiving process is 
+ * overflowing, the signal was RT, and the signal was sent by a user using something other 
+ * than <command>kill()</command> 
+ * 
+ * send_group_sigqueue and send_sigqueue return values:
+ * 
+ * <command>0</command> - The signal was either sucessfully added into the
+ * <command>sigqueue</command> of the receiving process, or a <command>SI_TIMER</command> entry is already
+ * queued (in which case, the overrun count will be simply incremented).
+ *
+ * <command>1</command> - The signal was ignored by the receiving process.
+ *
+ *
+ * <command>-1</command> - (<command>send_sigqueue</command> only) The task was marked
+ * <command>exiting</command>, allowing * <command>posix_timer_event</command> to redirect it to the group
+ * leader. 
+ *
  */
 probe signal.send.return = _signal.send.*.return
 {
     retstr = returnstr(1)
 }
 
-/*
- * Return values for "__group_send_sig_info" and "specific_send_sig_info"
- *
- * - return 0 if  the signal is sucessfully sent to a process,
- *   which means the following:
- *     <1> the signal is ignored by receiving process
- *     <2> this is a non-RT signal and we already have one queued
- *     <3> the signal is successfully added into the sigqueue of
- *        receiving process
- *
- * - return -EAGAIN if the sigqueue is overflow the signal was RT
- *   and sent by user using something other than kill()
- *
- */
+// Return values for "__group_send_sig_info" and "specific_send_sig_info"
+//
+// - return 0 if  the signal is sucessfully sent to a process,
+//   which means the following:
+//     <1> the signal is ignored by receiving process
+//     <2> this is a non-RT signal and we already have one queued
+//     <3> the signal is successfully added into the sigqueue of
+//        receiving process
+//
+// - return -EAGAIN if the sigqueue is overflow the signal was RT
+//   and sent by user using something other than kill()
+
 %( kernel_v > "2.6.25" %?
 probe _signal.send.part1.return = kernel.function("send_signal").return
 {
@@ -165,14 +199,12 @@ probe _signal.send.part4.return = kernel.function("specific_send_sig_info").retu
     send2queue = 0
 }
 
-/*
- * - return 0 if the signal is either sucessfully added into the
- *   sigqueue of receiving process or a SI_TIMER entry is already
- *   queued so just increment the overrun count
- *
- * - return 1 if this signal is ignored by receiving process
- *
- */
+// - return 0 if the signal is either sucessfully added into the
+//   sigqueue of receiving process or a SI_TIMER entry is already
+//   queued so just increment the overrun count
+//
+// - return 1 if this signal is ignored by receiving process
+
 probe _signal.send.part2.return = kernel.function("send_group_sigqueue").return
 {
     name = "send_group_sigqueue"
@@ -181,17 +213,14 @@ probe _signal.send.part2.return = kernel.function("send_group_sigqueue").return
 }
 %)
 
-/*
- * - return 0 if the signal is either sucessfully added into the
- *   sigqueue of receiving process or a SI_TIMER entry is already
- *   queued so just increment the overrun count
- *
- * - return 1 if this signal is ignored by receiving process
- *
- * - return -1 if the task is marked exiting, so posix_timer_event
- *   can redirect it to the group leader
- *
- */
+// - return 0 if the signal is either sucessfully added into the
+//   sigqueue of receiving process or a SI_TIMER entry is already
+//   queued so just increment the overrun count
+//
+// - return 1 if this signal is ignored by receiving process
+//
+// - return -1 if the task is marked exiting, so posix_timer_event
+//   can redirect it to the group leader
 
 probe _signal.send.part3.return = kernel.function("send_sigqueue").return
 {
@@ -231,17 +260,16 @@ probe signal.checkperm.return = kernel.function("check_kill_permission").return
 }
 
 
-/* probe signal.wakeup
- *
- * Wake up the process for new active signals.
- *
- * Argument:
- *  sig_pid: pid of the process to be woke up
- *  pid_name: name of the process to be woke up
- *  resume: indicate whether to wake up a task in STOPPED or
-            TRACED state
- *  state_mask: a string representation indicates the mask
- *              of task states that can be woken
+/**
+ * probe signal.wakeup - Wakes up a sleeping process, making it ready for new active signals
+ * @sig_pid: PID of the process you wish to wake
+ * @pid_name: Name of the process you wish to wake
+ * @resume: Indicates whether to wake up a task in a <command>STOPPED</command> or
+ * <command>TRACED</command> state
+ * @state_mask: A string representation indicating the mask
+ * of task states you wish to wake. Possible values are <command>TASK_INTERRUPTIBLE</command>, 
+ * <command>TASK_STOPPED</command>, <command>TASK_TRACED</command>, 
+ * and <command>TASK_INTERRUPTIBLE</command>.
  */
 probe signal.wakeup = kernel.function("signal_wake_up")
 {
@@ -256,9 +284,7 @@ probe signal.wakeup = kernel.function("signal_wake_up")
 }
 
 
-/* probe signal.ignored
- *
- *  Checks whether the signal is ignored or not.
+/* probe signal.ignored - Checks whether a signal is ignored or not.
  *
  */
 probe signal.check_ignored = kernel.function("sig_ignored")
