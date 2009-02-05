@@ -1,5 +1,9 @@
 2009-02-05  William Cohen <wcohen@redhat.com>
 
+	* S_T_R/tapsets.tmpl: Add contrib tag to quiet warnings.
+	
+2009-02-05  William Cohen <wcohen@redhat.com>
+
 	* S_T_R/tapsets.tmpl: Minor correction for signal.stp chapter.
 	
 2009-02-02  Stan Cox  <scox@redhat.com>
