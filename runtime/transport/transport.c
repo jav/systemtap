@@ -64,6 +64,15 @@ static struct workqueue_struct *_stp_wq;
 static void _stp_handle_start(struct _stp_msg_start *st)
 {
 	dbug_trans(1, "stp_handle_start\n");
+
+#ifdef STAPCONF_VM_AREA
+        { /* PR9740: workaround for kernel valloc bug. */
+                void *dummy;
+                dummy = alloc_vm_area (PAGE_SIZE);
+                free_vm_area (dummy);
+        }
+#endif
+
 	_stp_target = st->target;
 	st->res = probe_start();
 	if (st->res >= 0)
