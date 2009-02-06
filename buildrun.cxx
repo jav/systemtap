@@ -1,5 +1,5 @@
 // build/run probes
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -122,6 +122,7 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-synchronize-sched.c, -DSTAPCONF_SYNCHRONIZE_SCHED,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-task-uid.c, -DSTAPCONF_TASK_UID,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-vm-area.c, -DSTAPCONF_VM_AREA,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-procfs-owner.c, -DSTAPCONF_PROCFS_OWNER,)" << endl;
 
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our

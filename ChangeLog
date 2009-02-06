@@ -1,3 +1,7 @@
+2009-02-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildrun.cxx: Add STAPCONF_PROCFS_OWNER test.
+
 2009-02-05  Will Cohen <wcohen@redhat.com>
 
 	PR9756.

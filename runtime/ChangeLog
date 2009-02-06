@@ -1,3 +1,8 @@
+2009-02-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* autoconf-procfs-owner.c: New test.
+	* procfs.c (_stp_mkdir_proc_module, _stp_create_procfs): Use it.
+
 2009-02-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 9740/9816?
