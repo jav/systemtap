@@ -65,21 +65,82 @@ hash::result(string& r)
 }
 
 
-void
-find_hash (systemtap_session& s, const string& script)
+static void
+get_base_hash (systemtap_session& s, hash& h)
 {
-  hash h;
-  int nlevels = 1;
   struct stat st;
 
-  // We use a N level subdir for the cache path.  Let N be adjustable.
-  const char *s_n;
-  if ((s_n = getenv("SYSTEMTAP_NLEVELS")))
+  // Hash kernel release and arch.
+  h.add(s.kernel_release);
+  h.add(s.kernel_build_tree);
+  h.add(s.architecture);
+
+  // Hash runtime path (that gets added in as "-R path").
+  h.add(s.runtime_path);
+
+  // Hash compiler path, size, and mtime.  We're just going to assume
+  // we'll be using gcc. XXX: getting kbuild to spit out out would be
+  // better.
+  string gcc_path = find_executable ("gcc");
+  if (stat(gcc_path.c_str(), &st) == 0)
+    {
+      h.add(gcc_path);
+      h.add(st.st_size);
+      h.add(st.st_mtime);
+    }
+
+  // Hash the systemtap size and mtime.  We could use VERSION/DATE,
+  // but when developing systemtap that doesn't work well (since you
+  // can compile systemtap multiple times in 1 day).  Since we don't
+  // know exactly where we're getting run from, we'll use
+  // /proc/self/exe.
+  if (stat("/proc/self/exe", &st) == 0)
+  {
+      h.add(st.st_size);
+      h.add(st.st_mtime);
+  }
+}
+
+
+static bool
+create_hashdir (systemtap_session& s, const string& result, string& hashdir)
+{
+  int nlevels = 1;
+
+  // Use a N level subdir for the cache path to reduce the impact on
+  // filesystems which are slow for large directories.  Let N be adjustable.
+  const char *s_n = getenv("SYSTEMTAP_NLEVELS");
+  if (s_n)
     {
       nlevels = atoi(s_n);
       if (nlevels < 1) nlevels = 1;
       if (nlevels > 8) nlevels = 8;
     }
+
+  hashdir = s.cache_path;
+
+  for (int i = 0; i < nlevels; i++)
+    {
+      hashdir += string("/") + result[i*2] + result[i*2 + 1];
+      if (create_dir(hashdir.c_str()) != 0)
+        {
+          if (! s.suppress_warnings)
+            cerr << "Warning: failed to create cache directory (\""
+                 << hashdir + "\"): " << strerror(errno)
+                 << ", disabling cache support." << endl;
+	  s.use_cache = false;
+	  return false;
+	}
+    }
+  return true;
+}
+
+
+static void
+find_script_hash (systemtap_session& s, const string& script, const hash &base)
+{
+  hash h(base);
+  struct stat st;
 
   // Hash getuid.  This really shouldn't be necessary (since who you
   // are doesn't change the generated output), but the hash gets used
@@ -87,11 +148,6 @@ find_hash (systemtap_session& s, const string& script)
   // script at the same time, we need something to differentiate the
   // module name.
   h.add(getuid());
-
-  // Hash kernel release and arch.
-  h.add(s.kernel_release);
-  h.add(s.kernel_build_tree);
-  h.add(s.architecture);
 
   // Hash user-specified arguments (that change the generated module).
   h.add(s.bulk_mode);			// '-b'
@@ -123,53 +179,14 @@ find_hash (systemtap_session& s, const string& script)
     h.add(*it);
     // XXX: a build-id of each module might be even better
 
-  // Hash runtime path (that gets added in as "-R path").
-  h.add(s.runtime_path);
-
-  // Hash compiler path, size, and mtime.  We're just going to assume
-  // we'll be using gcc. XXX: getting kbuild to spit out out would be
-  // better.
-  string gcc_path = find_executable ("gcc");
-  if (stat(gcc_path.c_str(), &st) == 0)
-    {
-      h.add(gcc_path);
-      h.add(st.st_size);
-      h.add(st.st_mtime);
-    }
-
-  // Hash the systemtap size and mtime.  We could use VERSION/DATE,
-  // but when developing systemtap that doesn't work well (since you
-  // can compile systemtap multiple times in 1 day).  Since we don't
-  // know exactly where we're getting run from, we'll use
-  // /proc/self/exe.
-  if (stat("/proc/self/exe", &st) == 0)
-  {
-      h.add(st.st_size);
-      h.add(st.st_mtime);
-  }
-
   // Add in pass 2 script output.
   h.add(script);
 
-  // Use a N level subdir for the cache path to reduce the impact on
-  // filesystems which are slow for large directories.
-  string hashdir = s.cache_path;
-  string result;
+  // Get the directory path to store our cached script
+  string result, hashdir;
   h.result(result);
-
-  for (int i = 0; i < nlevels; i++)
-    {
-      hashdir += string("/") + result[i*2] + result[i*2 + 1];
-      if (create_dir(hashdir.c_str()) != 0)
-        {
-          if (! s.suppress_warnings)
-            cerr << "Warning: failed to create cache directory (\""
-                 << hashdir + "\"): " << strerror(errno)
-                 << ", disabling cache support." << endl;
-	  s.use_cache = false;
-	  return;
-	}
-    }
+  if (!create_hashdir(s, result, hashdir))
+    return;
 
   // Update module name to be 'stap_{hash start}'.  '{hash start}'
   // must not be too long.  This shouldn't happen, since the maximum
@@ -190,6 +207,33 @@ find_hash (systemtap_session& s, const string& script)
 
   // Update C source name with new module_name.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
+}
+
+
+static void
+find_stapconf_hash (systemtap_session& s, const hash& base)
+{
+  hash h(base);
+
+  // The basic hash should be good enough for STAPCONF variables
+
+  // Get the directory path to store our cached stapconf parameters
+  string result, hashdir;
+  h.result(result);
+  if (!create_hashdir(s, result, hashdir))
+    return;
+
+  s.stapconf_path = hashdir + "/stapconf_" + result;
+}
+
+
+void
+find_hash (systemtap_session& s, const string& script)
+{
+  hash base;
+  get_base_hash(s, base);
+  find_stapconf_hash(s, base);
+  find_script_hash(s, script, base);
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

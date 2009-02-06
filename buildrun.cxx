@@ -106,30 +106,48 @@ compile_pass (systemtap_session& s)
   // o << module_cflags << " += -Iusr/include" << endl;
   // since such headers are cleansed of _KERNEL_ pieces that we need
 
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-getset-expires.c, -DSTAPCONF_HRTIMER_GETSET_EXPIRES,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-constant-tsc.c, -DSTAPCONF_CONSTANT_TSC,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-tsc-khz.c, -DSTAPCONF_TSC_KHZ,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-ktime-get-real.c, -DSTAPCONF_KTIME_GET_REAL,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-x86-uniregs.c, -DSTAPCONF_X86_UNIREGS,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-nameidata.c, -DSTAPCONF_NAMEIDATA_CLEANUP,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-unregister-kprobes.c, -DSTAPCONF_UNREGISTER_KPROBES,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-real-parent.c, -DSTAPCONF_REAL_PARENT,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-uaccess.c, -DSTAPCONF_LINUX_UACCESS_H,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-oneachcpu-retry.c, -DSTAPCONF_ONEACHCPU_RETRY,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-dpath-path.c, -DSTAPCONF_DPATH_PATH,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-synchronize-sched.c, -DSTAPCONF_SYNCHRONIZE_SCHED,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-task-uid.c, -DSTAPCONF_TASK_UID,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-vm-area.c, -DSTAPCONF_VM_AREA,)" << endl;
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-procfs-owner.c, -DSTAPCONF_PROCFS_OWNER,)" << endl;
+  string stapconf_cflags = "STAPCONF_CFLAGS";
+  o << stapconf_cflags << " :=" << endl;
+
+  if (s.use_cache)
+    {
+      o << "STAPCONF_CACHE_FILE = " << s.stapconf_path << endl;
+      o << stapconf_cflags << " += $(shell cat $(STAPCONF_CACHE_FILE) 2>/dev/null)" << endl;
+      o << "ifeq (,$(strip $(" << stapconf_cflags << ")))" << endl;
+    }
+
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-getset-expires.c, -DSTAPCONF_HRTIMER_GETSET_EXPIRES,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-constant-tsc.c, -DSTAPCONF_CONSTANT_TSC,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-tsc-khz.c, -DSTAPCONF_TSC_KHZ,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-ktime-get-real.c, -DSTAPCONF_KTIME_GET_REAL,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-x86-uniregs.c, -DSTAPCONF_X86_UNIREGS,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-nameidata.c, -DSTAPCONF_NAMEIDATA_CLEANUP,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-unregister-kprobes.c, -DSTAPCONF_UNREGISTER_KPROBES,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-real-parent.c, -DSTAPCONF_REAL_PARENT,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-uaccess.c, -DSTAPCONF_LINUX_UACCESS_H,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-oneachcpu-retry.c, -DSTAPCONF_ONEACHCPU_RETRY,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-dpath-path.c, -DSTAPCONF_DPATH_PATH,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-synchronize-sched.c, -DSTAPCONF_SYNCHRONIZE_SCHED,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-task-uid.c, -DSTAPCONF_TASK_UID,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-vm-area.c, -DSTAPCONF_VM_AREA,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-procfs-owner.c, -DSTAPCONF_PROCFS_OWNER,)" << endl;
 
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
    * homegrown safe-access functions) is deemed undesireable, so we'll skip
    * this autoconf. */
-  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-probe-kernel.c, -DSTAPCONF_PROBE_KERNEL,)" << endl;
+  o << stapconf_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-probe-kernel.c, -DSTAPCONF_PROBE_KERNEL,)" << endl;
 #endif
+
+  if (s.use_cache)
+    {
+      o << "$(shell echo $(" << stapconf_cflags << ") > $(STAPCONF_CACHE_FILE))" << endl;
+      o << "endif" << endl;
+    }
+
+  o << module_cflags << " += $(" << stapconf_cflags << ")" << endl;
 
   for (unsigned i=0; i<s.macros.size(); i++)
     o << "EXTRA_CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;

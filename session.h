@@ -112,6 +112,7 @@ struct systemtap_session
   bool use_cache;
   std::string cache_path;
   std::string hash_path;
+  std::string stapconf_path;
 
   // dwarfless operation
   bool consult_symtab;
