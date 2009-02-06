@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * /proc command channels
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -105,8 +105,10 @@ static int _stp_mkdir_proc_module(void)
 		}
 		
 		_stp_proc_root = proc_mkdir(THIS_MODULE->name, _stp_proc_stap);
+#ifdef AUTOCONF_PROCFS_OWNER
 		if (_stp_proc_root != NULL)
 			_stp_proc_root->owner = THIS_MODULE;
+#endif
 
 		_stp_unlock_debugfs();
 	}
@@ -161,7 +163,9 @@ static int _stp_create_procfs(const char *path, int num)
 				    goto err;
 			    }
 			    _stp_pde[_stp_num_pde++] = last_dir;
+#ifdef AUTOCONF_PROCFS_OWNER
 			    last_dir->owner = THIS_MODULE;
+#endif
 			    last_dir->uid = _stp_uid;
 			    last_dir->gid = _stp_gid;
 		} else {
