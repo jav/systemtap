@@ -17,11 +17,11 @@
 
 
 /** 
- * probe signal.send- Fires when a signal is sent to a process.
+ * probe signal.send- Fires when a system call or kernel function sends a signal to a process.
  * Arguments:
  * @sig: The number of the signal
  * @sig_name: A string representation of the signal
- * @sig_pid: The process ID of the signal recipient
+ * @sig_pid: The PID of the process receiving the signal
  * @pid_name: The name of the signal recipient
  * @si_code: Indicates the signal type
  * @task: A task handle to the signal recipient
@@ -126,7 +126,8 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  * Context:
  * The signal's sender. <remark>(correct?)</remark>
  * 
- * __group_send_sig_info and specific_send_sig_info return values:
+ * Possible <command>__group_send_sig_info</command> and 
+ * <command>specific_send_sig_info</command> return values are as follows;
  *
  * <command>0</command> - The signal is sucessfully sent to a process,
  * which means that
@@ -138,7 +139,8 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  * overflowing, the signal was RT, and the signal was sent by a user using something other 
  * than <command>kill()</command> 
  * 
- * send_group_sigqueue and send_sigqueue return values:
+ * Possible <command>send_group_sigqueue</command> and 
+ * <command>send_sigqueue</command> return values are as follows;
  * 
  * <command>0</command> - The signal was either sucessfully added into the
  * <command>sigqueue</command> of the receiving process, or a <command>SI_TIMER</command> entry is already
@@ -229,10 +231,16 @@ probe _signal.send.part3.return = kernel.function("send_sigqueue").return
     send2queue = 1
 }
 
-/* probe signal.checkperm
- *
- *  check permissions for sending the signal
- *
+/**
+ * probe signal.checkperm - Fires when a permission check is performed on a sent signal
+ * @sig: The number of the signal
+ * @sig_name: A string representation of the signal
+ * @sig_pid: The PID of the process receiving the signal
+ * @pid_name: Name of the process receiving the signal
+ * @si_code: Indicates the signal type
+ * @task: A task handle to the signal recipient
+ * @sinfo: The address of the <command>siginfo</command> structure
+ * @name: Name of the probe point; default value is <command>signal.checkperm</command>
  */
 probe signal.checkperm = kernel.function("check_kill_permission")
 {
@@ -262,7 +270,7 @@ probe signal.checkperm.return = kernel.function("check_kill_permission").return
 
 /**
  * probe signal.wakeup - Wakes up a sleeping process, making it ready for new active signals
- * @sig_pid: PID of the process you wish to wake
+ * @sig_pid: The PID of the process you wish to wake
  * @pid_name: Name of the process you wish to wake
  * @resume: Indicates whether to wake up a task in a <command>STOPPED</command> or
  * <command>TRACED</command> state
@@ -284,8 +292,13 @@ probe signal.wakeup = kernel.function("signal_wake_up")
 }
 
 
-/* probe signal.ignored - Checks whether a signal is ignored or not.
- *
+/**
+ * probe signal.check_ignored - Fires when a system call or kernel function checks whether a 
+ * signal was ignored or not
+ * @sig_pid: The PID of the process receiving the signal 
+ * @pid_name: Name of the process receiving the signal
+ * @sig: The number of the signal
+ * @sig_name: A string representation of the signal
  */
 probe signal.check_ignored = kernel.function("sig_ignored")
 {
@@ -302,14 +315,12 @@ probe signal.check_ignored.return = kernel.function("sig_ignored").return ?
 }
 
 
-/* probe signal.handle_stop
- *
- *  For now, just comment it out since at the time handle_stop_signal()
- *  is called, it doesn't know whether current signal is STOP/COUNT.
- *  So the calling of handle_stop_signal() doesn't mean that the Kernel
- *  is now processing the STOP/COUNT signal
- *
- */
+// probe signal.handle_stop
+//  For now, just comment it out since at the time handle_stop_signal()
+//  is called, it doesn't know whether current signal is STOP/COUNT.
+//  So the calling of handle_stop_signal() doesn't mean that the Kernel
+//  is now processing the STOP/COUNT signal
+//
 /*
 probe signal.handle_stop = kernel.function("handle_stop_signal")
 {
@@ -321,10 +332,13 @@ probe signal.handle_stop = kernel.function("handle_stop_signal")
 */
 
 
-/* probe signal.force_segv
- *
- *  Forces SIGSEGV when there are some issues while handling signals for the process.
- *
+/**
+ * probe signal.force_segv - Fires when a system call, kernel function, or process sent a 
+ * <command>SIGSEGV</command> as a result of problems it encountered while handling a received signal
+ * @sig_pid: The PID of the process receiving the signal
+ * @pid_name: Name of the process receiving the signal
+ * @sig: The number of the signal
+ * @sig_name: A string representation of the signal 
  */
 probe signal.force_segv = _signal.force_segv.*
 {
@@ -355,10 +369,11 @@ probe signal.force_segv.return =
 }
 
 
-/* probe signal.syskill
- *
- *  To kill a process, Pass the pid and signal to kill the process.
- *
+/**
+ * probe signal.syskill - Fires when the kernel function <command>sys_kill</command> 
+ * sends a kill signal to a process
+ * @pid: The PID of the process receiving the kill signal
+ * @sig: The specific signal sent to the process
  */
 probe signal.syskill = syscall.kill
 {
@@ -368,27 +383,14 @@ probe signal.syskill = syscall.kill
 probe signal.syskill.return = syscall.kill.return
 {
 }
-
-
-/* probe signal.sys_tgkill
- *
- *  Sends a signal to one specific thread.
- *
- */
-probe signal.systgkill = syscall.tgkill
-{
-    sig_name = _signal_name($sig)
-}
-
-probe signal.systgkill.return = syscall.tgkill.return
-{
-}
-
-
-/* probe signal.sys_tkill
- *
- *  Sends a signal to one specific task.
- *
+/** 
+ * probe signal.sys_tkill - Fires when <command>tkill</command> sends a kill signal 
+ * to a process that is part of a thread group 
+ * @pid: The PID of the process receiving the kill signal
+ * @sig: The specific signal sent to the process
+ * The <command>tkill</command> call is analogous to <command>kill(2)</command>,
+ * except that it also allows a process within a specific thread group to
+ * be targetted. Such processes are targetted through their unique thread IDs (TID). 
  */
 probe signal.systkill = syscall.tkill
 {
@@ -399,11 +401,32 @@ probe signal.systkill.return = syscall.tkill.return
 {
 }
 
+/**
+ * probe signal.sys_tgkill - Fires when the kernel function <command>tgkill</command> 
+ * sends a kill signal to a specific thread group
+ * @pid: The PID of the thread receiving the kill signal
+ * @tgid: The thread group ID of the thread receiving the kill signal
+ * @sig: The specific kill signal sent to the process
+ * The <command>tgkill</command> call is similar to <command>tkill</command>, 
+ * except that it also allows the caller to specify the thread group ID of 
+ * the thread to be signalled. This protects against TID reuse. 
+ */
+probe signal.systgkill = syscall.tgkill
+{
+    sig_name = _signal_name($sig)
+}
 
-/* probe signal.send_sig_queue
- *
- * Queue signal to a process.
- *
+probe signal.systgkill.return = syscall.tgkill.return
+{
+}
+
+/**
+ * probe signal.send_sig_queue - Fires when a signal is queued to a process
+ * @sig: The queued signal
+ * @sig_name: A string representation of the signal
+ * @sig_pid: The PID of the process to which the signal is queued
+ * @pid_name: Name of the process to which the signal is queued
+ * @sigqueue_addr: The address of the signal queue
  */
 probe signal.send_sig_queue =
         kernel.function("send_sigqueue"),
@@ -424,13 +447,20 @@ probe signal.send_sig_queue.return =
 }
 
 
-/* probe signal.pending
- *
- * Used to examine the set of signals that are pending for
- * delivery to the calling thread
- *
- * long do_sigpending(void __user *set, unsigned long sigsetsize)
+/** 
+ * probe signal.pending - Fires when the <command>SIGPENDING</command> system call is used;
+ * this normally occurs when the <command>do_sigpending</command> kernel function is executed
+ * @sigset_add: The address of the user-space signal set (<command>sigset_t</command>)
+ * @sigset_size: The size of the user-space signal set.
+ * 
+ * Synopsis:
+ * <programlisting>long do_sigpending(void __user *set, unsigned long sigsetsize)</programlisting>
+ * 
+ * This probe is used to examine a set of signals pending for delivery 
+ * to a specific thread.
  */
+// long do_sigpending(void __user *set, unsigned long sigsetsize)
+
 probe signal.pending = kernel.function("do_sigpending")
 {
     sigset_add=$set
@@ -443,20 +473,23 @@ probe signal.pending.return = kernel.function("do_sigpending").return
 }
 
 
-/* probe signal.handle
- *
- * Used to invoke signals
- *
- * static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
- *					sigset_t *oldset, struct pt_regs * regs)
- * Argument :-
- *  sig    : Signal number
- *  sinfo  : address of siginfo table.
- *  ka_addr : Address of the k_sigaction table associated with the signal
- *  oldset_addr : Address of a bit mask array of blocked signals
- *  regs   : Address in the Kernel Mode stack area
- *
+/**
+ * probe signal.handle - Fires when the signal handler is invoked
+ * @sig: The signal number that invoked the signal handler
+ * @sinfo: The address of the <command>siginfo</command> table
+ * @sig_code: The <command>si_code</command> value of the <command>siginfo</command> signal
+ * @ka_addr: The address of the <command>k_sigaction</command> table associated with the signal
+ * @oldset_addr: The address of the bitmask array of blocked signals 
+ * @regs: The address of the kernel-mode stack area
+ * @sig_mode: Indicates whether the signal was a user-mode or kernel-mode signal
+ * 
+ * Synopsis:
+ * <programlisting>static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+ * sigset_t *oldset, struct pt_regs * regs)</programlisting>
  */
+//static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+//					sigset_t *oldset, struct pt_regs * regs)
+
 probe signal.handle = kernel.function("handle_signal")
 {
     sig = $sig
@@ -481,16 +514,14 @@ probe signal.handle.return = kernel.function("handle_signal").return ?
 }
 
 
-/* probe signal.do_action
- *
- * Fires by calling thread to examine and change a signal action
- *
- * int do_sigaction(int sig, struct k_sigaction *act, struct k_sigaction *oact)
- *
- * Argument :-
- *  sig    : Signal number
- *  sigact_addr  : address of the new sigaction struct associated with the signal
- *  oldsigact_addr : address of a previous sigaction struct associated with the signal
+/**
+ * probe signal.do_action - Initiates a trace when a thread is about to examine 
+ * and change a signal action
+ * @sig: The signal to be examined/changed
+ * @sigact_addr: The address of the new <command>sigaction</command> struct associated with the signal
+ * @oldsigact_addr: The address of the old <command>sigaction</command> struct associated with the signal
+ * @sa_handler: The new handler of the signal
+ * @sa_mask: The new mask of the signal
  */
 probe signal.do_action = kernel.function("do_sigaction")
 {
@@ -522,21 +553,17 @@ function __get_action_mask:long(act:long) %{ /* pure */
 %}
 
 
-/* probe signal.procmask
- *
- * Fires by calling thread to examine and change blocked signals
- *
- * int sigprocmask(int how, sigset_t *set, sigset_t *oldset)
- *
- * Argument :-
- *  how : indicates how to change the blocked signals. Possible
- *        values are SIG_BLOCK=0 for blocking signals, SIG_UNBLOCK=1
- *        for unblocking signals, and SIG_SETMASK=2 for setting
- *        the signal mask
- *  sigset_addr : address of sigset_t to be set
- *  oldsigset_addr : address of the old sigset_t
- *  sigset : the actual sigset to be set
- *
+/**
+ * probe signal.procmask - Initiates a trace when a thread is about to examine and change blocked signals
+ * @how: Indicates how to change the blocked signals; possible values are 
+ * <command>SIG_BLOCK=0</command> (for blocking signals), 
+ * <command>SIG_UNBLOCK=1</command> (for unblocking signals), and 
+ * <command>SIG_SETMASK=2</command> for setting the signal mask.
+ * @sigset_addr: The address of the signal set (<command>sigset_t</command>) to be implemented
+ * @oldsigset_addr: The old address of the signal set (<command>sigset_t</command>)
+ * @sigset: The actual value to be set for <command>sigset_t</command> <remark>(correct?)</remark>
+ * Synopsis:
+ * <programlisting>int sigprocmask(int how, sigset_t *set, sigset_t *oldset)</programlisting>
  */
 probe signal.procmask = kernel.function("sigprocmask")
 {
@@ -563,14 +590,17 @@ probe signal.procmask.return = kernel.function("sigprocmask").return
 }
 
 
-/*
- * probe signal.flush
- *
- * Flush all pending signals for a task.
- *
- * void flush_signals(struct task_struct *t)
- *
+/**
+ * probe signal.flush - Fires when all pending signals for a task are flushed
+ * @task: The task handler of the process performing the flush
+ * @sig_pid: The PID of the process associated with the task performing the flush
+ * @pid_name: The name of the process associated with the task performing the flush 
+ * 
+ * Synopsis:
+ * <programlisting>void flush_signals(struct task_struct *t)</programlisting>
  */
+//void flush_signals(struct task_struct *t)
+
 probe signal.flush = kernel.function("flush_signals")
 {
     task = $t
@@ -590,28 +620,27 @@ function get_sa_handler:long (act:long) %{ /* pure */
 	CATCH_DEREF_FAULT();
 %}
 
-/*
- * sa_mask contains the set of signals to be blocked when executing the
- * signal handler. This function returns a string, delimited by ",".
- *
- * struct task_struct {
- * [...]
- *         struct signal_struct *signal;
- *         struct sighand_struct *sighand;
- * [...]
- * struct sighand_struct {
- *         atomic_t                count;
- *         struct k_sigaction      action[_NSIG];
- * [...]
- * struct k_sigaction {
- *         struct sigaction sa;
- * };
- *
- * struct sigaction {
- * [...]
- *         sigset_t sa_mask;
- * };
- */
+// sa_mask contains the set of signals to be blocked when executing the
+// signal handler. This function returns a string, delimited by ",".
+//
+// struct task_struct {
+// [...]
+//         struct signal_struct//signal;
+//         struct sighand_struct//sighand;
+// [...]
+// struct sighand_struct {
+//         atomic_t                count;
+//         struct k_sigaction      action[_NSIG];
+// [...]
+// struct k_sigaction {
+//         struct sigaction sa;
+// };
+//
+// struct sigaction {
+// [...]
+//         sigset_t sa_mask;
+// };
+
 function sigset_mask_str:string (mask:long) %{ /* pure */
 	int i, len;
 	char *str = THIS->__retvalue, tmp[5];
@@ -624,14 +653,13 @@ function sigset_mask_str:string (mask:long) %{ /* pure */
 	if (len) str[len - 1] = '\0';
 %}
 
-/*
- * task_struct->blocked signal mask contains the set of signals that are
- * currently blocked.
- *
- * struct task_struct {
- * [...]
- *         sigset_t blocked, real_blocked;
- */
+// task_struct->blocked signal mask contains the set of signals that are
+// currently blocked.
+//
+// struct task_struct {
+// [...]
+//         sigset_t blocked, real_blocked;
+
 function is_sig_blocked:long (task:long, sig:long) %{ /* pure */
 	int i;
 	sigset_t blocked;
@@ -664,9 +692,8 @@ function sa_handler_str(handler) {
 	return sprintf("%p", handler); /* userspace address */
 }
 
-/*
- * Signals start from 1 not 0.
- */
+// Signals start from 1 not 0.
+
 global __sig[64]
 
 function signal_str(num) {
