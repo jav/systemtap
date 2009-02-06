@@ -4205,17 +4205,17 @@ dwflpp::query_modules(dwarf_query *q)
   iterate_over_modules(&query_module, q);
 }
 
-struct var_expanding_copy_visitor: public deep_copy_visitor
+struct var_expanding_visitor: public update_visitor
 {
   static unsigned tick;
   stack<functioncall**> target_symbol_setter_functioncalls;
 
-  var_expanding_copy_visitor() {}
+  var_expanding_visitor() {}
   void visit_assignment (assignment* e);
 };
 
 
-struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct dwarf_var_expanding_visitor: public var_expanding_visitor
 {
   dwarf_query & q;
   Dwarf_Die *scope_die;
@@ -4225,17 +4225,17 @@ struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
   std::map<std::string, symbol *> return_ts_map;
   bool visited;
 
-  dwarf_var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
+  dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
     q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL), visited(false) {}
   void visit_target_symbol (target_symbol* e);
 };
 
 
 
-unsigned var_expanding_copy_visitor::tick = 0;
+unsigned var_expanding_visitor::tick = 0;
 
 void
-var_expanding_copy_visitor::visit_assignment (assignment* e)
+var_expanding_visitor::visit_assignment (assignment* e)
 {
   // Our job would normally be to require() the left and right sides
   // into a new assignment. What we're doing is slightly trickier:
@@ -4263,7 +4263,7 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
       // and it has been replaced with a set_target_foo() function
       // call; we are going to provide that function call -- with the
       // right child spliced in as sole argument -- in place of
-      // ourselves, in the deep copy we're in the middle of making.
+      // ourselves, in the var expansion we're in the middle of making.
 
       // FIXME: for the time being, we only support plan $foo = bar,
       // not += or any other op= variant. This is fixable, but a bit
@@ -4278,18 +4278,15 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
     }
   else
     {
-      assignment* n = new assignment;
-      n->op = e->op;
-      n->tok = e->tok;
-      n->left = new_left;
-      n->right = new_right;
-      provide (n);
+      e->left = new_left;
+      e->right = new_right;
+      provide (e);
     }
 }
 
 
 void
-dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
+dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
   visited = true;
@@ -4854,10 +4851,10 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                           + lex_cast<string>(USHRT_MAX) + "]",
                           q.base_loc->tok);
 
-  // Make a target-variable-expanded copy of the probe body
+  // Expand target variables in the probe body
   if (!null_die(scope_die))
     {
-      dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
+      dwarf_var_expanding_visitor v (q, scope_die, dwfl_addr);
       this->body = v.require (this->body);
       this->access_vars = v.visited;
 
@@ -6242,10 +6239,10 @@ public:
 };
 
 
-struct utrace_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct utrace_var_expanding_visitor: public var_expanding_visitor
 {
-  utrace_var_expanding_copy_visitor(systemtap_session& s, const string& pn,
-				    enum utrace_derived_probe_flags f):
+  utrace_var_expanding_visitor(systemtap_session& s, const string& pn,
+                               enum utrace_derived_probe_flags f):
     sess (s), probe_name (pn), flags (f), target_symbol_seen (false) {}
 
   systemtap_session& sess;
@@ -6268,9 +6265,9 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   has_path(hp), path(pn), pid(pd), flags(f),
   target_symbol_seen(false)
 {
-  // Make a local-variable-expanded copy of the probe body
-  utrace_var_expanding_copy_visitor v (s, name, flags);
-  this->body = v.require (base->body);
+  // Expand local variables in the probe body
+  utrace_var_expanding_visitor v (s, name, flags);
+  this->body = v.require (this->body);
   target_symbol_seen = v.target_symbol_seen;
 
   // Reset the sole element of the "locations" vector as a
@@ -6332,7 +6329,7 @@ utrace_derived_probe::join_group (systemtap_session& s)
 
 
 void
-utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
+utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
   string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
   int argnum = lex_cast<int>(argnum_s);
@@ -6385,7 +6382,7 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 }
 
 void
-utrace_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
+utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
   string sname = e->base_name;
 
@@ -6436,7 +6433,7 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e
 }
 
 void
-utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -6996,10 +6993,10 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
 
   this->tok = q.base_probe->tok;
 
-  // Make a target-variable-expanded copy of the probe body
+  // Expand target variables in the probe body
   if (!null_die(scope_die))
     {
-      dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr); // XXX: user-space deref's!
+      dwarf_var_expanding_visitor v (q, scope_die, dwfl_addr); // XXX: user-space deref's!
       this->body = v.require (this->body);
 
       // If during target-variable-expanding the probe, we added a new block
@@ -7781,10 +7778,10 @@ public:
 };
 
 
-struct procfs_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct procfs_var_expanding_visitor: public var_expanding_visitor
 {
-  procfs_var_expanding_copy_visitor(systemtap_session& s, const string& pn,
-				    string path, bool write_probe):
+  procfs_var_expanding_visitor(systemtap_session& s, const string& pn,
+                               string path, bool write_probe):
     sess (s), probe_name (pn), path (path), write_probe (write_probe),
     target_symbol_seen (false) {}
 
@@ -7802,9 +7799,9 @@ procfs_derived_probe::procfs_derived_probe (systemtap_session &s, probe* p,
 					    probe_point* l, string ps, bool w):
   derived_probe(p, l), path(ps), write(w), target_symbol_seen(false)
 {
-  // Make a local-variable-expanded copy of the probe body
-  procfs_var_expanding_copy_visitor v (s, name, path, write);
-  this->body = v.require (base->body);
+  // Expand local variables in the probe body
+  procfs_var_expanding_visitor v (s, name, path, write);
+  this->body = v.require (this->body);
   target_symbol_seen = v.target_symbol_seen;
 }
 
@@ -8053,7 +8050,7 @@ procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
 
 
 void
-procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -8257,11 +8254,10 @@ public:
 };
 
 
-struct mark_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct mark_var_expanding_visitor: public var_expanding_visitor
 {
-  mark_var_expanding_copy_visitor(systemtap_session& s,
-                                  const string& pn,
-				  vector <struct mark_arg *> &mark_args):
+  mark_var_expanding_visitor(systemtap_session& s, const string& pn,
+                             vector <struct mark_arg *> &mark_args):
     sess (s), probe_name (pn), mark_args (mark_args),
     target_symbol_seen (false) {}
   systemtap_session& sess;
@@ -8312,7 +8308,7 @@ hex_dump(unsigned char *data, size_t len)
 
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
+mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
   string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
   int argnum = atoi (argnum_s.c_str());
@@ -8378,7 +8374,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
+mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
   string sname = e->base_name;
 
@@ -8419,7 +8415,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
 }
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+mark_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -8452,9 +8448,9 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
   // expand the marker format
   parse_probe_format();
 
-  // Now make a local-variable-expanded copy of the probe body
-  mark_var_expanding_copy_visitor v (sess, name, mark_args);
-  this->body = v.require (base->body);
+  // Now expand the local variables in the probe body
+  mark_var_expanding_visitor v (sess, name, mark_args);
+  this->body = v.require (this->body);
   target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 2)
@@ -9222,18 +9218,18 @@ timer_builder::register_patterns(match_node *root)
 //
 
 
-struct perfmon_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct perfmon_var_expanding_visitor: public var_expanding_visitor
 {
   systemtap_session & sess;
   unsigned counter_number;
-  perfmon_var_expanding_copy_visitor(systemtap_session & s, unsigned c):
+  perfmon_var_expanding_visitor(systemtap_session & s, unsigned c):
 	  sess(s), counter_number(c) {}
   void visit_target_symbol (target_symbol* e);
 };
 
 
 void
-perfmon_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
+perfmon_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -9355,9 +9351,9 @@ perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
 {
   ++probes_allocated;
 
-  // Now make a local-variable-expanded copy of the probe body
-  perfmon_var_expanding_copy_visitor v (sess, probes_allocated-1);
-  this->body = v.require (base->body);
+  // Now expand the local variables in the probe body
+  perfmon_var_expanding_visitor v (sess, probes_allocated-1);
+  this->body = v.require (this->body);
 
   if (sess.verbose > 1)
     clog << "perfmon-based probe" << endl;
