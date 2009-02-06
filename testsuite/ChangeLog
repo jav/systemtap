@@ -1,3 +1,8 @@
+2009-02-06  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/symbols.exp:
+	* systemtap.samples/symbols.sstp: Move to systemtap.context directory.
+	
 2009-02-02  Will Cohen  <wcohen@redhat.com>
 
 	* systemtap.samples/topsys.stp: Revised and moved to examples.
