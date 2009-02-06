@@ -1,5 +1,16 @@
 2009-02-06  Will Cohen  <wcohen@redhat.com>
 
+	* systemtap.samples/iotask.stp:
+	* systemtap.samples/iotask2.stp: Remove.
+	* systemtap.examples/io/iostats.stp:
+	* systemtap.examples/io/iostats.meta: New
+	* systemtap.examples/index.html:
+	* systemtap.examples/index.txt:
+	* systemtap.examples/keyword-index.html:
+	* systemtap.examples/keyword-index.txt: Regenerate.
+
+2009-02-06  Will Cohen  <wcohen@redhat.com>
+
 	* systemtap.samples/syscalls.stp:
 	* systemtap.samples/syscalls1.exp:
 	* systemtap.samples/syscalls2.exp: Removed.

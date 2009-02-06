@@ -52,6 +52,17 @@ keywords: io backtrace
   list from most common to least common backtrace.
 
 
+io/iostats.stp - List Executables Reading and Writing the Most Data
+keywords: io profiling
+
+   The iostat.stp script measures the amount of data successfully read
+  and written by all the executables on the system.  The output is
+  sorted from most greatest sum of bytes read and written by an
+  executable to the least. The output contains	the count of operations
+  (opens, reads, and writes), the totals and averages for the number of
+  bytes read and written.
+
+
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
 keywords: syscall read write time io
 
