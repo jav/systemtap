@@ -1,5 +1,9 @@
 2009-02-05  William Cohen <wcohen@redhat.com>
 
+	* T_R_G/publicanize.sh: Make executable.
+	
+2009-02-05  William Cohen <wcohen@redhat.com>
+
 	* S_T_R/tapsets.tmpl: Add contrib tag to quiet warnings.
 	
 2009-02-05  William Cohen <wcohen@redhat.com>
