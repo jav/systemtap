@@ -2098,345 +2098,246 @@ throwing_visitor::visit_hist_op (hist_op* e)
 
 
 void
-deep_copy_visitor::visit_block (block* s)
+update_visitor::visit_block (block* s)
 {
-  block* n = new block;
-  n->tok = s->tok;
   for (unsigned i = 0; i < s->statements.size(); ++i)
-    n->statements.push_back(require (s->statements[i]));
-  provide (n);
+    s->statements[i] = require (s->statements[i]);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_embeddedcode (embeddedcode* s)
+update_visitor::visit_embeddedcode (embeddedcode* s)
 {
-  embeddedcode* n = new embeddedcode;
-  n->tok = s->tok;
-  n->code = s->code;
-  provide (n);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_null_statement (null_statement* s)
+update_visitor::visit_null_statement (null_statement* s)
 {
-  null_statement* n = new null_statement;
-  n->tok = s->tok;
-  provide (n);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_expr_statement (expr_statement* s)
+update_visitor::visit_expr_statement (expr_statement* s)
 {
-  expr_statement* n = new expr_statement;
-  n->tok = s->tok;
-  n->value = require (s->value);
-  provide (n);
+  s->value = require (s->value);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_if_statement (if_statement* s)
+update_visitor::visit_if_statement (if_statement* s)
 {
-  if_statement* n = new if_statement;
-  n->tok = s->tok;
-  n->condition = require (s->condition);
-  n->thenblock = require (s->thenblock);
-  n->elseblock = require (s->elseblock);
-  provide (n);
+  s->condition = require (s->condition);
+  s->thenblock = require (s->thenblock);
+  s->elseblock = require (s->elseblock);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_for_loop (for_loop* s)
+update_visitor::visit_for_loop (for_loop* s)
 {
-  for_loop* n = new for_loop;
-  n->tok = s->tok;
-  n->init = require (s->init);
-  n->cond = require (s->cond);
-  n->incr = require (s->incr);
-  n->block = require (s->block);
-  provide (n);
+  s->init = require (s->init);
+  s->cond = require (s->cond);
+  s->incr = require (s->incr);
+  s->block = require (s->block);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_foreach_loop (foreach_loop* s)
+update_visitor::visit_foreach_loop (foreach_loop* s)
 {
-  foreach_loop* n = new foreach_loop;
-  n->tok = s->tok;
   for (unsigned i = 0; i < s->indexes.size(); ++i)
-    n->indexes.push_back(require (s->indexes[i]));
-
-  n->base = require (s->base);
-
-  n->sort_direction = s->sort_direction;
-  n->sort_column = s->sort_column;
-  n->limit = require (s->limit);
-
-  n->block = require (s->block);
-  provide (n);
+    s->indexes[i] = require (s->indexes[i]);
+  s->base = require (s->base);
+  s->limit = require (s->limit);
+  s->block = require (s->block);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_return_statement (return_statement* s)
+update_visitor::visit_return_statement (return_statement* s)
 {
-  return_statement* n = new return_statement;
-  n->tok = s->tok;
-  n->value = require (s->value);
-  provide (n);
+  s->value = require (s->value);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_delete_statement (delete_statement* s)
+update_visitor::visit_delete_statement (delete_statement* s)
 {
-  delete_statement* n = new delete_statement;
-  n->tok = s->tok;
-  n->value = require (s->value);
-  provide (n);
+  s->value = require (s->value);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_next_statement (next_statement* s)
+update_visitor::visit_next_statement (next_statement* s)
 {
-  next_statement* n = new next_statement;
-  n->tok = s->tok;
-  provide (n);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_break_statement (break_statement* s)
+update_visitor::visit_break_statement (break_statement* s)
 {
-  break_statement* n = new break_statement;
-  n->tok = s->tok;
-  provide (n);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_continue_statement (continue_statement* s)
+update_visitor::visit_continue_statement (continue_statement* s)
 {
-  continue_statement* n = new continue_statement;
-  n->tok = s->tok;
-  provide (n);
+  provide (s);
 }
 
 void
-deep_copy_visitor::visit_literal_string (literal_string* e)
+update_visitor::visit_literal_string (literal_string* e)
 {
-  literal_string* n = new literal_string(e->value);
-  n->tok = e->tok;
-  provide (n);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_literal_number (literal_number* e)
+update_visitor::visit_literal_number (literal_number* e)
 {
-  literal_number* n = new literal_number(e->value);
-  n->tok = e->tok;
-  provide (n);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_binary_expression (binary_expression* e)
+update_visitor::visit_binary_expression (binary_expression* e)
 {
-  binary_expression* n = new binary_expression;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->left = require (e->left);
-  n->right = require (e->right);
-  provide (n);
+  e->left = require (e->left);
+  e->right = require (e->right);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_unary_expression (unary_expression* e)
+update_visitor::visit_unary_expression (unary_expression* e)
 {
-  unary_expression* n = new unary_expression;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->operand = require (e->operand);
-  provide (n);
+  e->operand = require (e->operand);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_pre_crement (pre_crement* e)
+update_visitor::visit_pre_crement (pre_crement* e)
 {
-  pre_crement* n = new pre_crement;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->operand = require (e->operand);
-  provide (n);
+  e->operand = require (e->operand);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_post_crement (post_crement* e)
+update_visitor::visit_post_crement (post_crement* e)
 {
-  post_crement* n = new post_crement;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->operand = require (e->operand);
-  provide (n);
+  e->operand = require (e->operand);
+  provide (e);
 }
 
 
 void
-deep_copy_visitor::visit_logical_or_expr (logical_or_expr* e)
+update_visitor::visit_logical_or_expr (logical_or_expr* e)
 {
-  logical_or_expr* n = new logical_or_expr;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->left = require (e->left);
-  n->right = require (e->right);
-  provide (n);
+  e->left = require (e->left);
+  e->right = require (e->right);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_logical_and_expr (logical_and_expr* e)
+update_visitor::visit_logical_and_expr (logical_and_expr* e)
 {
-  logical_and_expr* n = new logical_and_expr;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->left = require (e->left);
-  n->right = require (e->right);
-  provide (n);
+  e->left = require (e->left);
+  e->right = require (e->right);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_array_in (array_in* e)
+update_visitor::visit_array_in (array_in* e)
 {
-  array_in* n = new array_in;
-  n->tok = e->tok;
-  n->operand = require (e->operand);
-  provide (n);
+  e->operand = require (e->operand);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_comparison (comparison* e)
+update_visitor::visit_comparison (comparison* e)
 {
-  comparison* n = new comparison;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->left = require (e->left);
-  n->right = require (e->right);
-  provide (n);
+  e->left = require (e->left);
+  e->right = require (e->right);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_concatenation (concatenation* e)
+update_visitor::visit_concatenation (concatenation* e)
 {
-  concatenation* n = new concatenation;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->left = require (e->left);
-  n->right = require (e->right);
-  provide (n);
+  e->left = require (e->left);
+  e->right = require (e->right);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_ternary_expression (ternary_expression* e)
+update_visitor::visit_ternary_expression (ternary_expression* e)
 {
-  ternary_expression* n = new ternary_expression;
-  n->tok = e->tok;
-  n->cond = require (e->cond);
-  n->truevalue = require (e->truevalue);
-  n->falsevalue = require (e->falsevalue);
-  provide (n);
+  e->cond = require (e->cond);
+  e->truevalue = require (e->truevalue);
+  e->falsevalue = require (e->falsevalue);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_assignment (assignment* e)
+update_visitor::visit_assignment (assignment* e)
 {
-  assignment* n = new assignment;
-  n->op = e->op;
-  n->tok = e->tok;
-  n->left = require (e->left);
-  n->right = require (e->right);
-  provide (n);
+  e->left = require (e->left);
+  e->right = require (e->right);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_symbol (symbol* e)
+update_visitor::visit_symbol (symbol* e)
 {
-  symbol* n = new symbol;
-  n->tok = e->tok;
-  n->name = e->name;
-  n->referent = NULL;
-  provide (n);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_target_symbol (target_symbol* e)
+update_visitor::visit_target_symbol (target_symbol* e)
 {
-  target_symbol* n = new target_symbol;
-  n->tok = e->tok;
-  n->base_name = e->base_name;
-  n->components = e->components;
-  provide (n);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_arrayindex (arrayindex* e)
+update_visitor::visit_arrayindex (arrayindex* e)
 {
-  arrayindex* n = new arrayindex;
-  n->tok = e->tok;
-
-  n->base = require (e->base);
-
+  e->base = require (e->base);
   for (unsigned i = 0; i < e->indexes.size(); ++i)
-    n->indexes.push_back(require (e->indexes[i]));
-  provide (n);
+    e->indexes[i] = require (e->indexes[i]);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_functioncall (functioncall* e)
+update_visitor::visit_functioncall (functioncall* e)
 {
-  functioncall* n = new functioncall;
-  n->tok = e->tok;
-  n->function = e->function;
-  n->referent = NULL;
   for (unsigned i = 0; i < e->args.size(); ++i)
-    n->args.push_back(require (e->args[i]));
-  provide (n);
+    e->args[i] = require (e->args[i]);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_print_format (print_format* e)
+update_visitor::visit_print_format (print_format* e)
 {
-  print_format* n = new print_format;
-  n->tok = e->tok;
-  n->print_to_stream = e->print_to_stream;
-  n->print_with_format = e->print_with_format;
-  n->print_with_delim = e->print_with_delim;
-  n->print_with_newline = e->print_with_newline;
-  n->print_char = e->print_char;
-  n->raw_components = e->raw_components;
-  n->components = e->components;
-  n->delimiter = e->delimiter;
   for (unsigned i = 0; i < e->args.size(); ++i)
-      n->args.push_back(require (e->args[i]));
-  if (e->hist)
-    n->hist = require (e->hist);
-  provide (n);
+    e->args[i] = require (e->args[i]);
+  e->hist = require (e->hist);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_stat_op (stat_op* e)
+update_visitor::visit_stat_op (stat_op* e)
 {
-  stat_op* n = new stat_op;
-  n->tok = e->tok;
-  n->ctype = e->ctype;
-  n->stat = require (e->stat);
-  provide (n);
+  e->stat = require (e->stat);
+  provide (e);
 }
 
 void
-deep_copy_visitor::visit_hist_op (hist_op* e)
+update_visitor::visit_hist_op (hist_op* e)
 {
-  hist_op* n = new hist_op;
-  n->tok = e->tok;
-  n->htype = e->htype;
-  n->params = e->params;
-  n->stat = require (e->stat);
-  provide (n);
+  e->stat = require (e->stat);
+  provide (e);
 }
 
 template <> indexable*
-deep_copy_visitor::require <indexable*> (indexable* src)
+update_visitor::require <indexable*> (indexable* src)
 {
   indexable *dst = NULL;
   if (src != NULL)
@@ -2453,6 +2354,209 @@ deep_copy_visitor::require <indexable*> (indexable* src)
       assert (dst);
     }
   return dst;
+}
+
+
+// ------------------------------------------------------------------------
+
+
+void
+deep_copy_visitor::visit_block (block* s)
+{
+  update_visitor::visit_block(new block(*s));
+}
+
+void
+deep_copy_visitor::visit_embeddedcode (embeddedcode* s)
+{
+  update_visitor::visit_embeddedcode(new embeddedcode(*s));
+}
+
+void
+deep_copy_visitor::visit_null_statement (null_statement* s)
+{
+  update_visitor::visit_null_statement(new null_statement(*s));
+}
+
+void
+deep_copy_visitor::visit_expr_statement (expr_statement* s)
+{
+  update_visitor::visit_expr_statement(new expr_statement(*s));
+}
+
+void
+deep_copy_visitor::visit_if_statement (if_statement* s)
+{
+  update_visitor::visit_if_statement(new if_statement(*s));
+}
+
+void
+deep_copy_visitor::visit_for_loop (for_loop* s)
+{
+  update_visitor::visit_for_loop(new for_loop(*s));
+}
+
+void
+deep_copy_visitor::visit_foreach_loop (foreach_loop* s)
+{
+  update_visitor::visit_foreach_loop(new foreach_loop(*s));
+}
+
+void
+deep_copy_visitor::visit_return_statement (return_statement* s)
+{
+  update_visitor::visit_return_statement(new return_statement(*s));
+}
+
+void
+deep_copy_visitor::visit_delete_statement (delete_statement* s)
+{
+  update_visitor::visit_delete_statement(new delete_statement(*s));
+}
+
+void
+deep_copy_visitor::visit_next_statement (next_statement* s)
+{
+  update_visitor::visit_next_statement(new next_statement(*s));
+}
+
+void
+deep_copy_visitor::visit_break_statement (break_statement* s)
+{
+  update_visitor::visit_break_statement(new break_statement(*s));
+}
+
+void
+deep_copy_visitor::visit_continue_statement (continue_statement* s)
+{
+  update_visitor::visit_continue_statement(new continue_statement(*s));
+}
+
+void
+deep_copy_visitor::visit_literal_string (literal_string* e)
+{
+  update_visitor::visit_literal_string(new literal_string(*e));
+}
+
+void
+deep_copy_visitor::visit_literal_number (literal_number* e)
+{
+  update_visitor::visit_literal_number(new literal_number(*e));
+}
+
+void
+deep_copy_visitor::visit_binary_expression (binary_expression* e)
+{
+  update_visitor::visit_binary_expression(new binary_expression(*e));
+}
+
+void
+deep_copy_visitor::visit_unary_expression (unary_expression* e)
+{
+  update_visitor::visit_unary_expression(new unary_expression(*e));
+}
+
+void
+deep_copy_visitor::visit_pre_crement (pre_crement* e)
+{
+  update_visitor::visit_pre_crement(new pre_crement(*e));
+}
+
+void
+deep_copy_visitor::visit_post_crement (post_crement* e)
+{
+  update_visitor::visit_post_crement(new post_crement(*e));
+}
+
+
+void
+deep_copy_visitor::visit_logical_or_expr (logical_or_expr* e)
+{
+  update_visitor::visit_logical_or_expr(new logical_or_expr(*e));
+}
+
+void
+deep_copy_visitor::visit_logical_and_expr (logical_and_expr* e)
+{
+  update_visitor::visit_logical_and_expr(new logical_and_expr(*e));
+}
+
+void
+deep_copy_visitor::visit_array_in (array_in* e)
+{
+  update_visitor::visit_array_in(new array_in(*e));
+}
+
+void
+deep_copy_visitor::visit_comparison (comparison* e)
+{
+  update_visitor::visit_comparison(new comparison(*e));
+}
+
+void
+deep_copy_visitor::visit_concatenation (concatenation* e)
+{
+  update_visitor::visit_concatenation(new concatenation(*e));
+}
+
+void
+deep_copy_visitor::visit_ternary_expression (ternary_expression* e)
+{
+  update_visitor::visit_ternary_expression(new ternary_expression(*e));
+}
+
+void
+deep_copy_visitor::visit_assignment (assignment* e)
+{
+  update_visitor::visit_assignment(new assignment(*e));
+}
+
+void
+deep_copy_visitor::visit_symbol (symbol* e)
+{
+  symbol* n = new symbol(*e);
+  n->referent = NULL; // don't copy!
+  update_visitor::visit_symbol(n);
+}
+
+void
+deep_copy_visitor::visit_target_symbol (target_symbol* e)
+{
+  target_symbol* n = new target_symbol(*e);
+  n->referent = NULL; // don't copy!
+  update_visitor::visit_target_symbol(n);
+}
+
+void
+deep_copy_visitor::visit_arrayindex (arrayindex* e)
+{
+  update_visitor::visit_arrayindex(new arrayindex(*e));
+}
+
+void
+deep_copy_visitor::visit_functioncall (functioncall* e)
+{
+  functioncall* n = new functioncall(*e);
+  n->referent = NULL; // don't copy!
+  update_visitor::visit_functioncall(n);
+}
+
+void
+deep_copy_visitor::visit_print_format (print_format* e)
+{
+  update_visitor::visit_print_format(new print_format(*e));
+}
+
+void
+deep_copy_visitor::visit_stat_op (stat_op* e)
+{
+  update_visitor::visit_stat_op(new stat_op(*e));
+}
+
+void
+deep_copy_visitor::visit_hist_op (hist_op* e)
+{
+  update_visitor::visit_hist_op(new hist_op(*e));
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

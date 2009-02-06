@@ -1,5 +1,18 @@
 2009-02-05  Josh Stone  <jistone@redhat.com>
 
+	* staptree.h (update_visitor): A new visitor to make it easier to
+	rewrite parts of a probe or function without making a full copy.
+	* staptree.cxx (update_visitor::*): Each child is recursed with a
+	require() call, and then the parent returns itself with provide().
+	* staptree.h (deep_copy_visitor): Inherit from update_visitor to get
+	the recursive descent while updating nodes.
+	* staptree.cxx (deep_copy_visitor::*): Use the implicit copy
+	constructors to copy all fields, then defer to update_visitor for the
+	recursion.  Referents are still cleared from the copies of symbols and
+	function calls.
+
+2009-02-05  Josh Stone  <jistone@redhat.com>
+
 	* staptree.h (require, provide): Simplify stack operations with less
 	pointer magic, and move to be deep_copy_visitor members.
 	* staptree.h (deep_copy_visitor::deep_copy): Templatize
