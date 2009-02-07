@@ -355,6 +355,7 @@ main (int argc, char * const argv [])
   s.buffer_size = 0;
   s.last_pass = 5;
   s.module_name = "stap_" + stringify(getpid());
+  s.stapconf_name = "stapconf_" + stringify(getpid()) + ".h";
   s.output_file = ""; // -o FILE
   s.keep_tmpdir = false;
   s.cmd = "";

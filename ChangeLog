@@ -1,3 +1,15 @@
+2009-02-07  Josh Stone  <jistone@redhat.com>
+
+	* buildrun.cxx (compile_pass): Pull in autoconf options in a header
+	of #defines rather than -DXXX, and make that header a build dependency.
+	* buildrun.cxx (output_autoconf): New function to consolidate the
+	computation of each autoconf test.
+	* cache.cxx (add_to_cache, get_from_cache, clean_cache): Start treating
+	the stapconf header as a first-class cached item.
+	* cache.h: Move definitions of things only needed in cache.cxx
+	* hash.cxx (find_stapconf_hash): Generate stapconf_name as a .h now.
+	* main.cxx (main): Default the stapconf_name based on getpid().
+
 2009-02-06  Josh Stone  <jistone@redhat.com>
 
 	* hash.cxx (find_hash): Compute a separate script-independent hash

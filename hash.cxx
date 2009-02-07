@@ -223,7 +223,8 @@ find_stapconf_hash (systemtap_session& s, const hash& base)
   if (!create_hashdir(s, result, hashdir))
     return;
 
-  s.stapconf_path = hashdir + "/stapconf_" + result;
+  s.stapconf_name = "stapconf_" + result + ".h";
+  s.stapconf_path = hashdir + "/" + s.stapconf_name;
 }
 
 

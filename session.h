@@ -86,6 +86,7 @@ struct systemtap_session
   std::string runtime_path;
   std::string data_path;
   std::string module_name;
+  std::string stapconf_name;
   std::string output_file;
   std::string cmd;
   int target_pid;
