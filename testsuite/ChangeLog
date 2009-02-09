@@ -1,3 +1,13 @@
+2009-02-09  Will Cohen  <wcohen@redhat.com>
+	
+	* systemtap.samples/kmalloc-top: Removed.
+	* systemtap.examples/memory/kmalloc-top: Revised version from samples.
+	* systemtap.examples/memory/kmalloc-top.meta: New
+	* systemtap.examples/index.html:
+	* systemtap.examples/index.txt:
+	* systemtap.examples/keyword-index.html:
+	* systemtap.examples/keyword-index.txt: Regenerate.
+
 2009-02-06  Will Cohen  <wcohen@redhat.com>
 
 	* systemtap.samples/iotask.stp:

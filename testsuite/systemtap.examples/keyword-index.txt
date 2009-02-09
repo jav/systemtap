@@ -193,6 +193,19 @@ keywords: syscall locking futex
   highest.
 
 
+= MEMORY =
+
+memory/kmalloc-top - Show Paths to Kernel Malloc (kmalloc) Invocations
+keywords: memory
+
+  The kmalloc-top perl program runs a small systemtap script to collect
+  stack traces for each call to the kmalloc function and counts the
+  time that each stack trace is observed. When kmalloc-top exits it
+  prints out sorted list. The output can be be filtered to print only
+  only the first stack traces (-t) stack traces with more a minimum
+  counts (-m), or exclude certain stack traces (-e).
+
+
 = NETWORK =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
