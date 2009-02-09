@@ -1,4 +1,9 @@
 2009-02-09  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/poll_map.exp:
+	* systemtap.samples/poll_map.stp: Move to systemtap.base directory.
+	
+2009-02-09  Will Cohen  <wcohen@redhat.com>
 	
 	* systemtap.samples/kmalloc-top: Removed.
 	* systemtap.examples/memory/kmalloc-top: Revised version from samples.
