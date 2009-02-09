@@ -13,15 +13,14 @@ function _IS_ERR:long(ptr:long) %{ /* pure */
 
 
 /**
- * probe process.create - New process created
- * @task: A handle to the newly created process
- * @new_pid: PID of the newly created process
+ * probe process.create - Fires whenever a new process is successfully created
+ * @new_pid: The PID of the newly created process
  *
  * Context:
  *  Parent of the created process.
  *
  *  Fires whenever a new process is successfully created, either as a result of
- *  one of the fork syscall variants, or a new kernel thread.
+ *  <command>fork</command> (or one of its syscall variants), or a new kernel thread.
  */
 probe process.create = kernel.function("copy_process").return {
     task = $return
@@ -34,9 +33,9 @@ probe process.create = kernel.function("copy_process").return {
  * probe process.start - Starting new process
  *
  * Context:
- *  Newly created process.
+ * Newly created process.
  *
- *  Fires immediately before a new process begins execution.
+ * Fires immediately before a new process begins execution.
  *
  */
 probe process.start = kernel.function("schedule_tail") { }
