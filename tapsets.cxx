@@ -1761,7 +1761,7 @@ struct dwflpp
     if (sidx == nscopes)
       nscopes = dwarf_getscopes_die (scope_die, &scopes);      
 
-    if (nscopes == 0)
+    if (nscopes <= 0)
       {
 	throw semantic_error ("unable to find any scopes containing "
 			      + lex_cast_hex<string>(pc)

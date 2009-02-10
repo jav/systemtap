@@ -1,3 +1,8 @@
+2009-02-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (find_variable_and_frame_base): Tolerate -1 return
+	value from dwarf_getscope_die.
+
 2009-02-07  Josh Stone  <jistone@redhat.com>
 
 	* buildrun.cxx (compile_pass): Pull in autoconf options in a header
