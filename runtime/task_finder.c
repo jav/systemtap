@@ -304,7 +304,7 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 		// Ignore kernel threads.  On systems without
 		// PF_KTHREAD, we're ok, since kernel threads won't be
 		// matched by the stap_utrace_detach() call.
-		if (task->flags & PF_KTHREAD)
+		if (tsk->flags & PF_KTHREAD)
 			continue;
 #endif
 
@@ -424,7 +424,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 
 #ifdef PF_KTHREAD
 	// Ignore kernel threads
-	if (task->flags & PF_KTHREAD)
+	if (tsk->flags & PF_KTHREAD)
 		return EPERM;
 #else
 	// Ignore threads with no mm (which are kernel threads).

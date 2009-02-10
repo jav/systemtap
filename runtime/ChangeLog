@@ -1,5 +1,8 @@
 2009-02-10  David Smith  <dsmith@redhat.com>
 
+	* task_finder.c (stap_utrace_detach_ops): Fixed typo.
+	(__stp_utrace_attach): Ditto.
+
 	* task_finder.c (stap_utrace_detach): Ignores kernel threads by
 	checking task's flags for PF_KTHREAD.
 	(stap_utrace_detach_ops): Ditto.
