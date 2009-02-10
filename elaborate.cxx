@@ -2091,59 +2091,30 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
 
 // ------------------------------------------------------------------------
 
-struct dead_assignment_remover: public traversing_visitor
+struct dead_assignment_remover: public update_visitor
 {
   systemtap_session& session;
   bool& relaxed_p;
   const varuse_collecting_visitor& vut;
-  expression** current_expr;
 
   dead_assignment_remover(systemtap_session& s, bool& r,
                           const varuse_collecting_visitor& v):
-    session(s), relaxed_p(r), vut(v), current_expr(0) {}
-
-  void visit_expr_statement (expr_statement* s);
-  // XXX: other places where an assignment may be nested should be
-  // handled too (e.g., loop/if conditionals, array indexes, function
-  // parameters).  Until then, they result in visit_assignment() being
-  // called with null current_expr.
+    session(s), relaxed_p(r), vut(v) {}
 
   void visit_assignment (assignment* e);
-  void visit_binary_expression (binary_expression* e);
-  void visit_arrayindex (arrayindex* e);
-  void visit_functioncall (functioncall* e);
-  void visit_if_statement (if_statement* e);
-  void visit_for_loop (for_loop* e);
 };
-
-
-void
-dead_assignment_remover::visit_expr_statement (expr_statement* s)
-{
-  expression** last_expr = current_expr;
-  current_expr = & s->value;
-  s->value->visit (this);
-  s->tok = s->value->tok; // in case it was replaced
-  current_expr = last_expr;
-}
 
 
 void
 dead_assignment_remover::visit_assignment (assignment* e)
 {
+  e->left = require (e->left);
+  e->right = require (e->right);
+
   symbol* left = get_symbol_within_expression (e->left);
   vardecl* leftvar = left->referent; // NB: may be 0 for unresolved $target
-  if (current_expr && // see XXX above: this case represents a missed
-                      // optimization opportunity
-      *current_expr == e && // we're not nested any deeper than expected
-      leftvar) // not unresolved $target; intended sideeffect cannot be elided
+  if (leftvar) // not unresolved $target, so intended sideeffect may be elided
     {
-      expression** last_expr = current_expr;
-      e->left->visit (this);
-      current_expr = &e->right;
-      e->right->visit (this);
-      current_expr = last_expr;
-
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
         {
           // NB: Not so fast!  The left side could be an array whose
@@ -2163,9 +2134,9 @@ dead_assignment_remover::visit_assignment (assignment* e)
 		break;
 	      }
 
-          varuse_collecting_visitor vut;
-          e->left->visit (& vut);
-          if (vut.side_effect_free () && !is_global) // XXX: use _wrt() once we track focal_vars
+          varuse_collecting_visitor lvut;
+          e->left->visit (& lvut);
+          if (lvut.side_effect_free () && !is_global) // XXX: use _wrt() once we track focal_vars
             {
               /* PR 1119: NB: This is not necessary here.  A write-only
                  variable will also be elided soon at the next _opt2 iteration.
@@ -2178,77 +2149,13 @@ dead_assignment_remover::visit_assignment (assignment* e)
                 clog << "Eliding assignment to " << leftvar->name
                      << " at " << *e->tok << endl;
 
-              *current_expr = e->right; // goodbye assignment*
+              provide (e->right); // goodbye assignment*
               relaxed_p = false;
+              return;
             }
         }
     }
-}
-
-void
-dead_assignment_remover::visit_binary_expression (binary_expression* e)
-{
-  expression** last_expr = current_expr;
-  current_expr = &e->left;
-  e->left->visit (this);
-  current_expr = &e->right;
-  e->right->visit (this);
-  current_expr = last_expr;
-}
-
-void
-dead_assignment_remover::visit_arrayindex (arrayindex *e)
-{
-  symbol *array = NULL;
-  hist_op *hist = NULL;
-  classify_indexable(e->base, array, hist);
-
-  if (array)
-    {
-      expression** last_expr = current_expr;
-      for (unsigned i=0; i < e->indexes.size(); i++)
-	{
-	  current_expr = & e->indexes[i];
-	  e->indexes[i]->visit (this);
-	}
-      current_expr = last_expr;
-    }
-}
-
-void
-dead_assignment_remover::visit_functioncall (functioncall* e)
-{
-  expression** last_expr = current_expr;
-  for (unsigned i=0; i<e->args.size(); i++)
-    {
-      current_expr = & e->args[i];
-      e->args[i]->visit (this);
-    }
-  current_expr = last_expr;
-}
-
-void
-dead_assignment_remover::visit_if_statement (if_statement* s)
-{
-  expression** last_expr = current_expr;
-  current_expr = & s->condition;
-  s->condition->visit (this);
-  s->thenblock->visit (this);
-  if (s->elseblock)
-    s->elseblock->visit (this);
-  current_expr = last_expr;
-}
-
-void
-dead_assignment_remover::visit_for_loop (for_loop* s)
-{
-  expression** last_expr = current_expr;
-  if (s->init) s->init->visit (this);
-  current_expr = & s->cond;
-  s->cond->visit (this);
-  if (s->incr) s->incr->visit (this);
-  s->block->visit (this);
-  current_expr = last_expr;
+  provide (e);
 }
 
 // Let's remove assignments to variables that are never read.  We
@@ -2268,9 +2175,10 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
   // This instance may be reused for multiple probe/function body trims.
 
   for (unsigned i=0; i<s.probes.size(); i++)
-    s.probes[i]->body->visit (& dar);
-  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
-    it->second->body->visit (& dar);
+    s.probes[i]->body = dar.require (s.probes[i]->body);
+  for (map<string,functiondecl*>::iterator it = s.functions.begin();
+       it != s.functions.end(); it++)
+    it->second->body = dar.require (it->second->body);
   // The rewrite operation is performed within the visitor.
 
   // XXX: we could also zap write-only globals here
