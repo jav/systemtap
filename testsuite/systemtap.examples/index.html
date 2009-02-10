@@ -73,6 +73,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <li><a href="io/traceio2.stp">io/traceio2.stp</a> - Watch I/O Activity on a Particular Device<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Print out the executable name and process number as reads and writes to the specified device occur.</p></li>
+<li><a href="memory/kmalloc-top">memory/kmalloc-top</a> - Show Paths to Kernel Malloc (kmalloc) Invocations<br>
+keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
+<p>The kmalloc-top perl program runs a small systemtap script to collect stack traces for each call to the kmalloc function and counts the time that each stack trace is observed. When kmalloc-top exits it prints out sorted list. The output can be be filtered to print only only the first stack traces (-t) stack traces with more a minimum counts (-m), or exclude certain stack traces (-e).</p></li>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>

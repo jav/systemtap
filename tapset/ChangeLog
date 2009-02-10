@@ -1,3 +1,8 @@
+2009-02-09  Josh Stone  <jistone@redhat.com>
+
+	* process.stp (process.create): Read the task pid *after*
+	the task pointer is checked for errors.
+
 2009-02-04  K Prasad  <prasad@linux.vnet.ibm.com>
 
 	PR 7030.

@@ -24,8 +24,8 @@ function _IS_ERR:long(ptr:long) %{ /* pure */
  */
 probe process.create = kernel.function("copy_process").return {
     task = $return
-    new_pid = task_pid(task)
     if (_IS_ERR(task)) next
+    new_pid = task_pid(task)
 }
 
 
