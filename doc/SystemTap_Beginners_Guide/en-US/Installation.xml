@@ -186,8 +186,22 @@ uname -r
 <note>
 	<title>Note</title>
 	<para>Running <xref linkend="stapprep"/> as root will display the required kernel packages <emphasis>and</emphasis> install them as well, provided that <command>yum</command> and <command>yum-utils</command> are configured properly.</para>
-</note>	
 	
+<para condition="RedHat">
+	In order for <command>yum</command> to find and download the required kernel packages, you need to 
+	point it to a repository containing those packages. Most required kernel packages can be found at 
+	<ulink url="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/"/>; navigate there until you find the 
+	appropriate <filename>Debuginfo</filename> directory for your system. Configure 
+	<command>yum</command> accordingly by adding a new "debug" <command>yum</command> repository file under <filename>/etc/yum.repos.d</filename> containing the following lines:
+</para>
+
+<programlisting condition="RedHat">
+[rhel-debuginfo]
+name=Red Hat Enterprise Linux $releasever - $basearch - Debug
+baseurl=ftp://ftp.redhat.com/pub/redhat/linux/enterprise/$releasever/en/os/$basearch/Debuginfo/
+enabled=1
+</programlisting>
+</note>	
 <!--	Running <xref linkend="stapprep"/> without any arguments will display and install the required kernel information packages for the currently loaded kernel. If you wish to probe a kernel other than the one currently loaded, you can pass a specific kernel version as an argument to <xref linkend="stapprep"/>; the script will then install that kernel's corresponding kernel information packages.
 </para>	-->
     
