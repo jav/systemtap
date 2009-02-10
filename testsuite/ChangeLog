@@ -1,5 +1,10 @@
 2009-02-10  Will Cohen  <wcohen@redhat.com>
 
+	* systemtap.samples/profile.exp:
+	* systemtap.samples/profile.stp: Remove.
+	
+2009-02-10  Will Cohen  <wcohen@redhat.com>
+
 	* systemtap.samples/crash.exp:
 	* systemtap.samples/crash.sh: Move to systemtap.base directory.
 	
