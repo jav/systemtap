@@ -220,6 +220,14 @@ stap_utrace_detach(struct task_struct *tsk,
 	if (tsk == NULL || tsk->pid <= 1)
 		return 0;
 
+#ifdef PF_KTHREAD
+	// Ignore kernel threads.  On systems without PF_KTHREAD,
+	// we're ok, since kernel threads won't be matched by the
+	// utrace_attach_task() call below.
+	if (tsk->flags & PF_KTHREAD)
+		return 0;
+#endif
+
 	// Notice we're not calling get_task_mm() here.  Normally we
 	// avoid tasks with no mm, because those are kernel threads.
 	// So, why is this function different?  When a thread is in
@@ -292,6 +300,14 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 
 	rcu_read_lock();
 	do_each_thread(grp, tsk) {
+#ifdef PF_KTHREAD
+		// Ignore kernel threads.  On systems without
+		// PF_KTHREAD, we're ok, since kernel threads won't be
+		// matched by the stap_utrace_detach() call.
+		if (task->flags & PF_KTHREAD)
+			continue;
+#endif
+
 		rc = stap_utrace_detach(tsk, ops);
 		if (rc != 0)
 			goto udo_err;
@@ -397,18 +413,26 @@ __stp_utrace_attach(struct task_struct *tsk,
 		    enum utrace_resume_action action)
 {
 	struct utrace_attached_engine *engine;
+#ifndef PF_KTHREAD
 	struct mm_struct *mm;
+#endif
 	int rc = 0;
 
 	// Ignore init
 	if (tsk == NULL || tsk->pid <= 1)
 		return EPERM;
 
+#ifdef PF_KTHREAD
+	// Ignore kernel threads
+	if (task->flags & PF_KTHREAD)
+		return EPERM;
+#else
 	// Ignore threads with no mm (which are kernel threads).
 	mm = get_task_mm(tsk);
 	if (! mm)
 		return EPERM;
 	mmput(mm);
+#endif
 
 	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
 	if (IS_ERR(engine)) {
