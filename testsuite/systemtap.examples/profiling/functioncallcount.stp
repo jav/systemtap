@@ -4,7 +4,7 @@
 #
 # stap  functioncallcount.stp "*@mm/*.c"
 
-probe kernel.function(@1) {  # probe functions listed on commandline
+probe kernel.function(@1).call {  # probe functions listed on commandline
   called[probefunc()] <<< 1  # add a count efficiently
 }
 
