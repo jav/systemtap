@@ -810,19 +810,85 @@ struct throwing_visitor: public visitor
   void visit_hist_op (hist_op* e);
 };
 
+// A visitor similar to a traversing_visitor, but with the ability to rewrite
+// parts of the tree through require/provide.
+
+struct update_visitor: public visitor
+{
+  template <typename T> T require (T src, bool clearok=false)
+  {
+    T dst = NULL;
+    if (src != NULL)
+      {
+        src->visit(this);
+        assert(!targets.empty());
+        dst = static_cast<T>(targets.top());
+        targets.pop();
+        assert(clearok || dst);
+      }
+    return dst;
+  }
+
+  template <typename T> void provide (T src)
+  {
+    targets.push(static_cast<void*>(src));
+  }
+
+  virtual ~update_visitor() { assert(targets.empty()); }
+
+  virtual void visit_block (block *s);
+  virtual void visit_embeddedcode (embeddedcode *s);
+  virtual void visit_null_statement (null_statement *s);
+  virtual void visit_expr_statement (expr_statement *s);
+  virtual void visit_if_statement (if_statement* s);
+  virtual void visit_for_loop (for_loop* s);
+  virtual void visit_foreach_loop (foreach_loop* s);
+  virtual void visit_return_statement (return_statement* s);
+  virtual void visit_delete_statement (delete_statement* s);
+  virtual void visit_next_statement (next_statement* s);
+  virtual void visit_break_statement (break_statement* s);
+  virtual void visit_continue_statement (continue_statement* s);
+  virtual void visit_literal_string (literal_string* e);
+  virtual void visit_literal_number (literal_number* e);
+  virtual void visit_binary_expression (binary_expression* e);
+  virtual void visit_unary_expression (unary_expression* e);
+  virtual void visit_pre_crement (pre_crement* e);
+  virtual void visit_post_crement (post_crement* e);
+  virtual void visit_logical_or_expr (logical_or_expr* e);
+  virtual void visit_logical_and_expr (logical_and_expr* e);
+  virtual void visit_array_in (array_in* e);
+  virtual void visit_comparison (comparison* e);
+  virtual void visit_concatenation (concatenation* e);
+  virtual void visit_ternary_expression (ternary_expression* e);
+  virtual void visit_assignment (assignment* e);
+  virtual void visit_symbol (symbol* e);
+  virtual void visit_target_symbol (target_symbol* e);
+  virtual void visit_arrayindex (arrayindex* e);
+  virtual void visit_functioncall (functioncall* e);
+  virtual void visit_print_format (print_format* e);
+  virtual void visit_stat_op (stat_op* e);
+  virtual void visit_hist_op (hist_op* e);
+
+private:
+  std::stack<void *> targets;
+};
+
+template <> indexable*
+update_visitor::require <indexable*> (indexable* src, bool clearok);
+
 // A visitor which performs a deep copy of the root node it's applied
 // to. NB: It does not copy any of the variable or function
 // declarations; those fields are set to NULL, assuming you want to
 // re-infer the declarations in a new context (the one you're copying
 // to).
 
-struct deep_copy_visitor: public visitor
+struct deep_copy_visitor: public update_visitor
 {
-  std::stack<void *> targets;
-
-  static expression *deep_copy (expression *s);
-  static statement *deep_copy (statement *s);
-  static block *deep_copy (block *s);
+  template <typename T> static T deep_copy (T e)
+  {
+    deep_copy_visitor v;
+    return v.require (e);
+  }
 
   virtual void visit_block (block *s);
   virtual void visit_embeddedcode (embeddedcode *s);
@@ -857,29 +923,6 @@ struct deep_copy_visitor: public visitor
   virtual void visit_stat_op (stat_op* e);
   virtual void visit_hist_op (hist_op* e);
 };
-
-template <typename T> void
-require (deep_copy_visitor* v, T* dst, T src)
-{
-  *dst = NULL;
-  if (src != NULL)
-    {
-      v->targets.push(static_cast<void* >(dst));
-      src->visit(v);
-      v->targets.pop();
-      assert(*dst);
-    }
-}
-
-template <> void
-require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src);
-
-template <typename T> void
-provide (deep_copy_visitor* v, T src)
-{
-  assert(!v->targets.empty());
-  *(static_cast<T*>(v->targets.top())) = src;
-}
 
 #endif // STAPTREE_H
 

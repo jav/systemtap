@@ -1,3 +1,39 @@
+2009-02-10  Josh Stone  <jistone@redhat.com>
+
+	* staptree.h (update_visitor::require): Add a clearok parameter for
+	optimizing traversers to signal that they're ready for NULL back.
+	* elaborate.cxx (dead_assignment_remover): Convert into an
+	update_visitor and remove its now-redundant traversal methods.
+	* elaborate.cxx (dead_stmtexpr_remover): Convert to an update_visitor.
+	* elaborate.cxx (void_statement_reducer): Convert to an update_visitor.
+
+2009-02-10  Josh Stone  <jistone@redhat.com>
+
+	* tapsets.cxx (var_expanding_copy_visitor): This struct becomes
+	var_expanding_visitor and inherits from update_visitor instead of
+	deep_copy_visitor.  Each of the probe-type variants of this are also no
+	longer copiers.
+
+2009-02-10  Josh Stone  <jistone@redhat.com>
+
+	* staptree.h (update_visitor): A new visitor to make it easier to
+	rewrite parts of a probe or function without making a full copy.
+	* staptree.cxx (update_visitor::*): Each child is recursed with a
+	require() call, and then the parent returns itself with provide().
+	* staptree.h (deep_copy_visitor): Inherit from update_visitor to get
+	the recursive descent while updating nodes.
+	* staptree.cxx (deep_copy_visitor::*): Use the implicit copy
+	constructors to copy all fields, then defer to update_visitor for the
+	recursion.  Referents are still cleared from the copies of symbols and
+	function calls.
+
+2009-02-10  Josh Stone  <jistone@redhat.com>
+
+	* staptree.h (require, provide): Simplify stack operations with less
+	pointer magic, and move to be deep_copy_visitor members.
+	* staptree.h (deep_copy_visitor::deep_copy): Templatize
+	* staptree.cxx, tapsets.cxx: Refactor require/provide callers
+
 2009-02-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (find_variable_and_frame_base): Tolerate -1 return
