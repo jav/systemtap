@@ -815,7 +815,7 @@ struct throwing_visitor: public visitor
 
 struct update_visitor: public visitor
 {
-  template <typename T> T require (T src)
+  template <typename T> T require (T src, bool clearok=false)
   {
     T dst = NULL;
     if (src != NULL)
@@ -824,7 +824,7 @@ struct update_visitor: public visitor
         assert(!targets.empty());
         dst = static_cast<T>(targets.top());
         targets.pop();
-        assert(dst);
+        assert(clearok || dst);
       }
     return dst;
   }
@@ -874,7 +874,7 @@ private:
 };
 
 template <> indexable*
-update_visitor::require <indexable*> (indexable* src);
+update_visitor::require <indexable*> (indexable* src, bool clearok);
 
 // A visitor which performs a deep copy of the root node it's applied
 // to. NB: It does not copy any of the variable or function

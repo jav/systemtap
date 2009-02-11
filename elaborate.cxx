@@ -2187,15 +2187,14 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
 
 // ------------------------------------------------------------------------
 
-struct dead_stmtexpr_remover: public traversing_visitor
+struct dead_stmtexpr_remover: public update_visitor
 {
   systemtap_session& session;
   bool& relaxed_p;
-  statement** current_stmt; // pointer to current stmt* being iterated
   set<vardecl*> focal_vars; // vars considered subject to side-effects
 
   dead_stmtexpr_remover(systemtap_session& s, bool& r):
-    session(s), relaxed_p(r), current_stmt(0) {}
+    session(s), relaxed_p(r) {}
 
   void visit_block (block *s);
   void visit_null_statement (null_statement *s);
@@ -2214,7 +2213,8 @@ dead_stmtexpr_remover::visit_null_statement (null_statement *s)
   // easy!
   if (session.verbose>2)
     clog << "Eliding side-effect-free null statement " << *s->tok << endl;
-  *current_stmt = 0;
+  s = 0;
+  provide (s);
 }
 
 
@@ -2224,13 +2224,11 @@ dead_stmtexpr_remover::visit_block (block *s)
   vector<statement*> new_stmts;
   for (unsigned i=0; i<s->statements.size(); i++ )
     {
-      statement** last_stmt = current_stmt;
-      current_stmt = & s->statements[i];
-      s->statements[i]->visit (this);
-      if (*current_stmt != 0)
+      statement* new_stmt = require (s->statements[i], true);
+      if (new_stmt != 0)
         {
           // flatten nested blocks into this one
-          block *b = dynamic_cast<block *>(*current_stmt);
+          block *b = dynamic_cast<block *>(new_stmt);
           if (b)
             {
               if (session.verbose>2)
@@ -2240,42 +2238,32 @@ dead_stmtexpr_remover::visit_block (block *s)
               relaxed_p = false;
             }
           else
-            new_stmts.push_back (*current_stmt);
+            new_stmts.push_back (new_stmt);
         }
-      current_stmt = last_stmt;
     }
   if (new_stmts.size() == 0)
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free empty block " << *s->tok << endl;
-      *current_stmt = 0;
+      s = 0;
     }
   else if (new_stmts.size() == 1)
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free singleton block " << *s->tok << endl;
-      *current_stmt = new_stmts[0];
+      provide (new_stmts[0]);
+      return;
     }
   else
-    {
-      s->statements = new_stmts;
-    }
+    s->statements = new_stmts;
+  provide (s);
 }
 
 void
 dead_stmtexpr_remover::visit_if_statement (if_statement *s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->thenblock;
-  s->thenblock->visit (this);
-
-  if (s->elseblock)
-    {
-      current_stmt = & s->elseblock;
-      s->elseblock->visit (this);
-      // null *current_stmt is OK here.
-    }
-  current_stmt = last_stmt;
+  s->thenblock = require (s->thenblock, true);
+  s->elseblock = require (s->elseblock, true);
 
   if (s->thenblock == 0)
     {
@@ -2290,7 +2278,7 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
               if (session.verbose>2)
                 clog << "Eliding side-effect-free if statement "
                      << *s->tok << endl;
-              *current_stmt = 0; // yeah, baby
+              s = 0; // yeah, baby
             }
           else
             {
@@ -2301,7 +2289,8 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
               expr_statement *es = new expr_statement;
               es->value = s->condition;
               es->tok = es->value->tok;
-              *current_stmt = es;
+              provide (es);
+              return;
             }
         }
       else
@@ -2320,31 +2309,27 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
           s->elseblock = 0;
         }
     }
+  provide (s);
 }
 
 void
 dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->block;
-  s->block->visit (this);
-  current_stmt = last_stmt;
+  s->block = require(s->block, true);
 
   if (s->block == 0)
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free foreach statement " << *s->tok << endl;
-      *current_stmt = 0; // yeah, baby
+      s = 0; // yeah, baby
     }
+  provide (s);
 }
 
 void
 dead_stmtexpr_remover::visit_for_loop (for_loop *s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->block;
-  s->block->visit (this);
-  current_stmt = last_stmt;
+  s->block = require(s->block, true);
 
   if (s->block == 0)
     {
@@ -2358,14 +2343,16 @@ dead_stmtexpr_remover::visit_for_loop (for_loop *s)
         {
           if (session.verbose>2)
             clog << "Eliding side-effect-free for statement " << *s->tok << endl;
-          *current_stmt = 0; // yeah, baby
-          return;
+          s = 0; // yeah, baby
         }
-
-      // Can't elide this whole statement; put a null in there.
-      s->block = new null_statement();
-      s->block->tok = s->tok;
+      else
+        {
+          // Can't elide this whole statement; put a null in there.
+          s->block = new null_statement();
+          s->block->tok = s->tok;
+        }
     }
+  provide (s);
 }
 
 
@@ -2375,8 +2362,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
 {
   // Run a varuse query against the operand expression.  If it has no
   // side-effects, replace the entire statement expression by a null
-  // statement.  This replacement is done by overwriting the
-  // current_stmt pointer.
+  // statement with the provide() call.
   //
   // Unlike many other visitors, we do *not* traverse this outermost
   // one into the expression subtrees.  There is no need - no
@@ -2389,8 +2375,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
   varuse_collecting_visitor vut;
   s->value->visit (& vut);
 
- if (vut.side_effect_free_wrt (focal_vars) &&
-      *current_stmt == s) // we're not nested any deeper than expected
+  if (vut.side_effect_free_wrt (focal_vars))
     {
       /* PR 1119: NB: this message is not a good idea here.  It can
          name some arbitrary RHS expression of an assignment.
@@ -2405,10 +2390,10 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
 
       // NB: this 0 pointer is invalid to leave around for any length of
       // time, but the parent parse tree objects above handle it.
-      * current_stmt = 0;
-
+      s = 0;
       relaxed_p = false;
     }
+  provide (s);
 }
 
 
@@ -2433,8 +2418,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       duv.focal_vars.insert (p->locals.begin(),
                              p->locals.end());
 
-      duv.current_stmt = & p->body;
-      p->body->visit (& duv);
+      p->body = duv.require(p->body, true);
       if (p->body == 0)
         {
           if (! s.suppress_warnings)
@@ -2459,8 +2443,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       duv.focal_vars.insert (s.globals.begin(),
                              s.globals.end());
 
-      duv.current_stmt = & fn->body;
-      fn->body->visit (& duv);
+      fn->body = duv.require(fn->body, true);
       if (fn->body == 0)
         {
           if (! s.suppress_warnings)

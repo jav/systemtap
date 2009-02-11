@@ -2337,7 +2337,7 @@ update_visitor::visit_hist_op (hist_op* e)
 }
 
 template <> indexable*
-update_visitor::require <indexable*> (indexable* src)
+update_visitor::require <indexable*> (indexable* src, bool clearok)
 {
   indexable *dst = NULL;
   if (src != NULL)
@@ -2351,7 +2351,7 @@ update_visitor::require <indexable*> (indexable* src)
         dst = require (array_src);
       else
         dst = require (hist_src);
-      assert (dst);
+      assert(clearok || dst);
     }
   return dst;
 }

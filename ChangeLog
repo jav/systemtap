@@ -1,7 +1,10 @@
 2009-02-10  Josh Stone  <jistone@redhat.com>
 
+	* staptree.h (update_visitor::require): Add a clearok parameter for
+	optimizing traversers to signal that they're ready for NULL back.
 	* elaborate.cxx (dead_assignment_remover): Convert into an
 	update_visitor and remove its now-redundant traversal methods.
+	* elaborate.cxx (dead_stmtexpr_remover): Convert to an update_visitor.
 
 2009-02-05  Josh Stone  <jistone@redhat.com>
 
