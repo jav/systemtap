@@ -1,5 +1,12 @@
 2009-02-11  Josh Stone  <jistone@redhat.com>
 
+	* session.h (systemtap_session): Add a vector of update_visitors
+	that will act as filters for all probes and functions.
+	* elaborate.cxx (semantic_pass_symbols): Run probes and functions
+	through each registered code filter.
+
+2009-02-11  Josh Stone  <jistone@redhat.com>
+
 	* tapsets.cxx (dwarf_var_expanding_visitor::visit_cast_op):  While
 	expanding dwarf probes, provide the current module as a default to
 	@casts without a module name.

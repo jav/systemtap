@@ -1092,6 +1092,9 @@ semantic_pass_symbols (systemtap_session& s)
 
           try
             {
+              for (unsigned j=0; j<s.code_filters.size(); j++)
+                fd->body = s.code_filters[j]->require (fd->body);
+
               sym.current_function = fd;
               sym.current_probe = 0;
               fd->body->visit (& sym);
@@ -1124,6 +1127,9 @@ semantic_pass_symbols (systemtap_session& s)
 
               try
                 {
+                  for (unsigned k=0; k<s.code_filters.size(); k++)
+                    dp->body = s.code_filters[k]->require (dp->body);
+
                   sym.current_function = 0;
                   sym.current_probe = dp;
                   dp->body->visit (& sym);
