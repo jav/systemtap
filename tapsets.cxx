@@ -4228,6 +4228,7 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
     q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL), visited(false) {}
   void visit_target_symbol (target_symbol* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
@@ -4783,6 +4784,17 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
 
   provide (n);
+}
+
+
+void
+dwarf_var_expanding_visitor::visit_cast_op (cast_op *e)
+{
+  // Fill in our current module context if needed
+  if (e->module.empty())
+    e->module = q.dw.module_name;
+
+  var_expanding_visitor::visit_cast_op(e);
 }
 
 

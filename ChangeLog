@@ -1,5 +1,11 @@
 2009-02-11  Josh Stone  <jistone@redhat.com>
 
+	* tapsets.cxx (dwarf_var_expanding_visitor::visit_cast_op):  While
+	expanding dwarf probes, provide the current module as a default to
+	@casts without a module name.
+
+2009-02-11  Josh Stone  <jistone@redhat.com>
+
 	* staptree.h (struct cast_op, visitor::visit_cast_op): New.
 	* staptree.cxx (cast_op::print/visit, various visitor::visit_cast_op's):
 	Incorporate cast_op into the basic tree operations.
