@@ -1,3 +1,8 @@
+2009-02-11  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_attach): Still checks for mm after
+	checking task's flags for PF_KTHREAD.
+
 2009-02-10  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (stap_utrace_detach_ops): Fixed typo.

@@ -413,9 +413,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 		    enum utrace_resume_action action)
 {
 	struct utrace_attached_engine *engine;
-#ifndef PF_KTHREAD
 	struct mm_struct *mm;
-#endif
 	int rc = 0;
 
 	// Ignore init
@@ -426,13 +424,14 @@ __stp_utrace_attach(struct task_struct *tsk,
 	// Ignore kernel threads
 	if (tsk->flags & PF_KTHREAD)
 		return EPERM;
-#else
-	// Ignore threads with no mm (which are kernel threads).
+#endif
+
+	// Ignore threads with no mm (which are either kernel threads
+	// or "mortally wounded" threads).
 	mm = get_task_mm(tsk);
 	if (! mm)
 		return EPERM;
 	mmput(mm);
-#endif
 
 	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
 	if (IS_ERR(engine)) {
