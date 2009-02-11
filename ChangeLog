@@ -1,3 +1,14 @@
+2009-02-11  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client: s/jar/zip/.
+	(unpack_response): Server response is now a .zip file. No longer
+	signed, so no longer needs verification. Move Contents of server
+	response down one directory level. META-INF no longer required to be
+	present in the server response.
+	* stap-server: s/jar/zip/.
+	(create_response): Don't sign the server response. Use zip instead.
+	* stap-server-connect.c: s/jar/zip/.
+
 2009-02-10  Josh Stone  <jistone@redhat.com>
 
 	* staptree.h (update_visitor::require): Add a clearok parameter for

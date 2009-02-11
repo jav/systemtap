@@ -466,31 +466,34 @@ function package_request {
 
 # function: unpack_response
 #
-# Unpack the jar file received from the server and make the contents available
+# Unpack the zip file received from the server and make the contents available
 # for printing the results and/or running 'staprun'.
 function unpack_response {
     tmpdir_server=`mktemp -dt $tmpdir_prefix_client.server.XXXXXX` || \
 	fatal "Cannot create temporary file " $tmpdir_server
 
-    # Unpack and verify the digitally signed server output directory
-    if ! signtool -d $ssl_db -v $jar_server > /dev/null 2>&1; then
-	# Run the verification again to get the reason
-	fatal "Verification of server response, $jar_server, failed.
-"`signtool -d $ssl_db -v $jar_server | grep "reported reason"`
-    fi
-
     # Unpack the server output directory
-    unzip -d $tmpdir_server $jar_server > /dev/null || \
-	fatal "Cannot unpack server response, $jar_server"
+    unzip -d $tmpdir_server $zip_server > /dev/null || \
+	fatal "Cannot unpack server response, $zip_server"
 
-    # Check the contents of the expanded directory. It should contain:
+    # Check the contents of the expanded directory. It should contain a
+    # single directory whose name matches stap.server.??????
+    local num_files=`ls $tmpdir_server | wc -l`
+    test $num_files = 1 || \
+	fatal "Wrong number of files in server's temp directory"
+    test -d $tmpdir_server/stap.server.?????? || \
+	fatal "`ls $tmpdir_server` does not match the expected name or is not a directory"
+    # Move the contents of the directory down one level.
+    mv $tmpdir_server/stap.server.??????/* $tmpdir_server
+    rm -fr $tmpdir_server/stap.server.??????
+
+    # Check the contents of the directory. It should contain:
     # 1) a file called stdout
     # 2) a file called stderr
     # 3) a file called rc
-    # 4) a directory called META-INF
-    # 5) optionally a directory named to match stap??????
-    local num_files=`ls $tmpdir_server | wc -l`
-    test $num_files = 5 -o $num_files = 4 || \
+    # 4) optionally a directory named to match stap??????
+    num_files=`ls $tmpdir_server | wc -l`
+    test $num_files = 4 -o $num_files = 3 || \
 	fatal "Wrong number of files in server's temp directory"
     test -f $tmpdir_server/stdout || \
 	fatal "`pwd`/$tmpdir_server/stdout does not exist or is not a regular file"
@@ -498,8 +501,6 @@ function unpack_response {
 	fatal "`pwd`/$tmpdir_server/stderr does not exist or is not a regular file"
     test -f $tmpdir_server/rc || \
 	fatal "`pwd`/$tmpdir_server/rc does not exist or is not a regular file"
-    test -d $tmpdir_server/META-INF || \
-	fatal "`pwd`/$tmpdir_server/META-INF does not exist or is not a directory"
 
     # See if there is a systemtap temp directory
     tmpdir_stap=`cd $tmpdir_server && ls | grep stap......\$ 2>/dev/null`
@@ -532,8 +533,8 @@ function find_and_connect_to_server {
     local num_servers=0
 
     # Make a place to receive the response file.
-    jar_server=`mktemp -t $tmpdir_prefix_client.server.jar.XXXXXX` || \
-	fatal "Cannot create temporary file " $jar_server
+    zip_server=`mktemp -t $tmpdir_prefix_client.server.zip.XXXXXX` || \
+	fatal "Cannot create temporary file " $zip_server
 
     # Make a place to record connection errors
     touch $tmpdir_client/connect
@@ -680,7 +681,7 @@ function send_receive {
     do
         # Send the request and receive the response using stap-client-connect
 	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
-	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	${exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
 	wait '%${exec_prefix}stap-client-connect'
 	test $? = 0 && echo $db && return
 	sleep 1
@@ -691,7 +692,7 @@ function send_receive {
     do
         # Send the request and receive the response using stap-client-connect
 	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
-	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	${exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
 	wait '%${exec_prefix}stap-client-connect'
 	test $? = 0 && echo $db && return
 	sleep 1
@@ -1002,7 +1003,7 @@ function cleanup {
     if test $keep_temps != 1; then
 	rm -fr $tmpdir_client
 	rm -f  $zip_client
-	rm -f  $jar_server
+	rm -f  $zip_server
 	rm -fr $tmpdir_server
     fi
 }

@@ -58,12 +58,12 @@ function initialization {
     tmpdir_env=`dirname $tmpdir_server`
 
     # Signed reponse file name.
-    jar_server=$3
-    test "X$jar_server" != "X" || \
-	fatal ".jar archive file not specified"
-    # Make sure the specified .jar file exists.
-    test -f $jar_server || \
-	fatal "Unable to find .jar archive file $jar_server"
+    zip_server=$3
+    test "X$zip_server" != "X" || \
+	fatal ".zip archive file not specified"
+    # Make sure the specified .zip file exists.
+    test -f $zip_server || \
+	fatal "Unable to find .zip archive file $zip_server"
 
     # Where is the ssl certificate/key database?
     ssl_db=$4
@@ -385,12 +385,9 @@ function create_response {
 function package_response {
     cd $tmpdir_env
 
-    # We will be digitally signing the server's temporary directory. This
-    # will sign the entire directory and compress it into a .jar
-    # archive.
-    #
-    # Generate the jar file
-    signtool -d $ssl_db -k $nss_cert -p `cat $nss_pw` -Z $jar_server $tmpdir_server >/dev/null
+    # Compress the server's temporary directory into a .zip archive.
+    (rm $zip_server && zip -r $zip_server `basename $tmpdir_server` > /dev/null) || \
+	fatal "zip of request tree, $tmpdir_server, failed"
 }
 
 # function: fatal [ MESSAGE ]

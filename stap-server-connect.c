@@ -40,7 +40,7 @@ static SECKEYPrivateKey *privKey = NULL;
 static char             *dbdir   = NULL;
 static char requestFileName[] = "/tmp/stap.server.client.zip.XXXXXX";
 static char responseDirName[] = "/tmp/stap.server.XXXXXX";
-static char responseJarName[] = "/tmp/stap.server.XXXXXX.jar.XXXXXX";
+static char responseZipName[] = "/tmp/stap.server.XXXXXX.zip.XXXXXX";
 
 static void
 Usage(const char *progName)
@@ -325,17 +325,17 @@ writeDataToSocket(PRFileDesc *sslSocket)
   /* Try to open the local file named.	
    * If successful, then write it to the client.
    */
-  prStatus = PR_GetFileInfo(responseJarName, &info);
+  prStatus = PR_GetFileInfo(responseZipName, &info);
   if (prStatus != PR_SUCCESS || info.type != PR_FILE_FILE || info.size < 0)
     {
-      fprintf (stderr, "Input file %s not found\n", responseJarName);
+      fprintf (stderr, "Input file %s not found\n", responseZipName);
       return SECFailure;
     }
 
-  local_file_fd = PR_Open(responseJarName, PR_RDONLY, 0);
+  local_file_fd = PR_Open(responseZipName, PR_RDONLY, 0);
   if (local_file_fd == NULL)
     {
-      fprintf (stderr, "Could not open input file %s\n", responseJarName);
+      fprintf (stderr, "Could not open input file %s\n", responseZipName);
       return SECFailure;
     }
 
@@ -355,7 +355,7 @@ writeDataToSocket(PRFileDesc *sslSocket)
 #if DEBUG
   /* Transmitted bytes successfully. */
   fprintf(stderr, "PR_TransmitFile wrote %d bytes from %s\n",
-	  numBytes, responseJarName);
+	  numBytes, responseZipName);
 #endif
 
   PR_Close(local_file_fd);
@@ -428,12 +428,12 @@ handle_connection(PRFileDesc *tcpSocket)
       goto cleanup;
     }
 
-  memcpy (responseJarName, responseDirName, sizeof (responseDirName) - 1);
-  memcpy (responseJarName + sizeof (responseJarName) - 1 - 6, "XXXXXX", 6);
-  rc = mkstemp(responseJarName);
+  memcpy (responseZipName, responseDirName, sizeof (responseDirName) - 1);
+  memcpy (responseZipName + sizeof (responseZipName) - 1 - 6, "XXXXXX", 6);
+  rc = mkstemp(responseZipName);
   if (rc == -1)
     {
-      fprintf (stderr, "Could not create temporary file %s\n", responseJarName);
+      fprintf (stderr, "Could not create temporary file %s\n", responseZipName);
       perror ("");
       secStatus = SECFailure;
 
@@ -468,7 +468,7 @@ handle_connection(PRFileDesc *tcpSocket)
   cmdline = PORT_Alloc(sizeof ("stap-server") +
 		       sizeof (requestFileName) +
 		       sizeof (responseDirName) +
-		       sizeof (responseJarName) +
+		       sizeof (responseZipName) +
 		       strlen (dbdir) + 1);
   if (! cmdline) {
     errWarn ("PORT_Alloc");
@@ -477,7 +477,7 @@ handle_connection(PRFileDesc *tcpSocket)
   }
 
   sprintf (cmdline, "stap-server %s %s %s %s",
-	   requestFileName, responseDirName, responseJarName, dbdir);
+	   requestFileName, responseDirName, responseZipName, dbdir);
   rc = system (cmdline);
 
   PR_Free (cmdline);
@@ -501,7 +501,7 @@ cleanup:
       prStatus = PR_Delete (requestFileName);
       if (prStatus != PR_SUCCESS)
 	errWarn ("PR_Delete");
-      prStatus = PR_Delete (responseJarName);
+      prStatus = PR_Delete (responseZipName);
       if (prStatus != PR_SUCCESS)
 	errWarn ("PR_Delete");
     }
