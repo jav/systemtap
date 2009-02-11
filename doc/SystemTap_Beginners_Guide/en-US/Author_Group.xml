@@ -13,4 +13,14 @@
 		</affiliation>
 		<email>ddomingo@redhat.com</email>
 	</author>
+	
+	<author>
+		<firstname>William</firstname>
+		<surname>Cohen</surname>
+		<affiliation>
+			<orgname>Engineering Services and Operations</orgname>
+			<orgdiv>Performance Tools</orgdiv>
+		</affiliation>
+		<email>wcohen@redhat.com</email>
+	</author>	
 </authorgroup>
