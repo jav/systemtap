@@ -1,3 +1,18 @@
+2009-02-11  Josh Stone  <jistone@redhat.com>
+
+	* staptree.h (struct cast_op, visitor::visit_cast_op): New.
+	* staptree.cxx (cast_op::print/visit, various visitor::visit_cast_op's):
+	Incorporate cast_op into the basic tree operations.
+	* parse.cxx (parser::parse_symbol): Parse @cast operator with an
+	expression operand, type string, and optional module string.
+	* translate.cxx (c_unparser::visit_cast_op): Error out if a @cast
+	survives to translation.
+	* elaborate.cxx (typeresolution_info::visit_cast_op): Error out if a
+	@cast survives to type resolution.
+	(symbol_fetcher::visit_cast_op): treat @casts as a symbol target
+	(void_statement_reducer::visit_cast_op): unused @casts can be discarded,
+	but the operand should still be evaluated.
+
 2009-02-11  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client: s/jar/zip/.

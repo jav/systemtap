@@ -277,6 +277,28 @@ void target_symbol::print (std::ostream& o) const
 }
 
 
+void cast_op::print (std::ostream& o) const
+{
+  o << base_name << '(' << *operand;
+  o << ", " << lex_cast_qstring (type);
+  if (module.length() > 0)
+    o << ", " << lex_cast_qstring (module);
+  o << ')';
+  for (unsigned i = 0; i < components.size(); ++i)
+    {
+      switch (components[i].first)
+	{
+	case comp_literal_array_index:
+	  o << '[' << components[i].second << ']';
+	  break;
+	case comp_struct_member:
+	  o << "->" << components[i].second;
+	  break;
+	}
+    }
+}
+
+
 void vardecl::print (ostream& o) const
 {
   o << name;
@@ -1220,6 +1242,12 @@ target_symbol::visit (visitor* u)
 }
 
 void
+cast_op::visit (visitor* u)
+{
+  u->visit_cast_op(this);
+}
+
+void
 arrayindex::visit (visitor* u)
 {
   u->visit_arrayindex (this);
@@ -1586,6 +1614,12 @@ traversing_visitor::visit_target_symbol (target_symbol*)
 }
 
 void
+traversing_visitor::visit_cast_op (cast_op* e)
+{
+  e->operand->visit (this);
+}
+
+void
 traversing_visitor::visit_arrayindex (arrayindex* e)
 {
   for (unsigned i=0; i<e->indexes.size(); i++)
@@ -1677,6 +1711,17 @@ varuse_collecting_visitor::visit_target_symbol (target_symbol *e)
 
   if (is_active_lvalue (e))
     embedded_seen = true;
+}
+
+void
+varuse_collecting_visitor::visit_cast_op (cast_op *e)
+{
+  // As with target_symbols, unresolved cast assignments need to preserved
+  // for later error handling.
+  if (is_active_lvalue (e))
+    embedded_seen = true;
+
+  functioncall_traversing_visitor::visit_cast_op (e);
 }
 
 void
@@ -2064,6 +2109,12 @@ throwing_visitor::visit_target_symbol (target_symbol* e)
 }
 
 void
+throwing_visitor::visit_cast_op (cast_op* e)
+{
+  throwone (e->tok);
+}
+
+void
 throwing_visitor::visit_arrayindex (arrayindex* e)
 {
   throwone (e->tok);
@@ -2297,6 +2348,13 @@ update_visitor::visit_target_symbol (target_symbol* e)
 }
 
 void
+update_visitor::visit_cast_op (cast_op* e)
+{
+  e->operand = require (e->operand);
+  provide (e);
+}
+
+void
 update_visitor::visit_arrayindex (arrayindex* e)
 {
   e->base = require (e->base);
@@ -2525,6 +2583,12 @@ deep_copy_visitor::visit_target_symbol (target_symbol* e)
   target_symbol* n = new target_symbol(*e);
   n->referent = NULL; // don't copy!
   update_visitor::visit_target_symbol(n);
+}
+
+void
+deep_copy_visitor::visit_cast_op (cast_op* e)
+{
+  update_visitor::visit_cast_op(new cast_op(*e));
 }
 
 void
