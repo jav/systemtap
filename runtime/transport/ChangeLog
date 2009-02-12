@@ -1,5 +1,8 @@
 2009-02-12  David Smith  <dsmith@redhat.com>
 
+	* transport.c: Moved inclusion of procfs.c to
+	procfs_derived_probe_group::emit_module_decls() in tapsets.cxx.
+	
 	* transport.c (_stp_lock_transport_dir): Renamed from
 	_stp_lock_debugfs(), since on older kernels this actually uses
 	procfs.

@@ -20,7 +20,6 @@
 #include "time.c"
 #include "../mempool.c"
 #include "symbols.c"
-#include "../procfs.c"
 
 static struct utt_trace *_stp_utt = NULL;
 static unsigned int utt_seq = 1;

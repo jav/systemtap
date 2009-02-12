@@ -7863,6 +7863,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
     return;
 
   s.op->newline() << "/* ---- procfs probes ---- */";
+  s.op->newline() << "#include \"procfs.c\"";
 
   // Emit the procfs probe data list
   s.op->newline() << "static struct stap_procfs_probe {";
