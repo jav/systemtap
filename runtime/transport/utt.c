@@ -130,13 +130,13 @@ static void utt_set_overwrite(int overwrite)
 static void utt_remove_root(struct utt_trace *utt)
 {
 	if (utt->utt_tree_root) {
-		if (!_stp_lock_debugfs()) {
+		if (!_stp_lock_transport_dir()) {
 			errk("Unable to lock transport directory.\n");
 			return;
 		}
 		if (simple_empty(utt->utt_tree_root))
 			debugfs_remove(utt->utt_tree_root);
-		_stp_unlock_debugfs();
+		_stp_unlock_transport_dir();
 		utt->utt_tree_root = NULL;
 	}
 }

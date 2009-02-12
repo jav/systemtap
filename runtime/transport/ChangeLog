@@ -1,3 +1,20 @@
+2009-02-12  David Smith  <dsmith@redhat.com>
+
+	* transport.c (_stp_lock_transport_dir): Renamed from
+	_stp_lock_debugfs(), since on older kernels this actually uses
+	procfs.
+	(_stp_unlock_transport_dir): Renamed from _stp_unlock_debugfs(),
+	since on older kernels this actually uses procfs.
+	(_stp_lock_transport_dir): Changed
+	_stp_lock_debugfs()/_stp_unlock_debugfs() to
+	_stp_lock_transport_dir()/_stp_unlock_transport_dir().
+	* transport.h: Ditto.  Also added _stp_transport_init()
+	prototype.
+	* utt.c (utt_remove_root): Changed
+	_stp_lock_debugfs()/_stp_unlock_debugfs() to
+	_stp_lock_transport_dir()/_stp_unlock_transport_dir().
+	* relayfs.c (_stp_remove_relay_root): Ditto.
+
 2009-02-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR9740/9816?

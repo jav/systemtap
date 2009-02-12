@@ -45,7 +45,7 @@ static void _stp_rmdir_proc_module(void)
 	}
 
 	if (_stp_proc_stap) {
-		if (!_stp_lock_debugfs()) {
+		if (!_stp_lock_transport_dir()) {
 			errk("Unable to lock transport directory.\n");
 			return;
 		}
@@ -62,7 +62,7 @@ static void _stp_rmdir_proc_module(void)
 			_stp_proc_stap = NULL;
 		}
 
-		_stp_unlock_debugfs();
+		_stp_unlock_transport_dir();
 	}
 }
 
@@ -76,7 +76,7 @@ static int _stp_mkdir_proc_module(void)
         if (_stp_proc_root == NULL) {
 		struct nameidata nd;
 
-		if (!_stp_lock_debugfs()) {
+		if (!_stp_lock_transport_dir()) {
 			errk("Unable to lock transport directory.\n");
 			goto done;
 		}
@@ -90,7 +90,7 @@ static int _stp_mkdir_proc_module(void)
 			/* doesn't exist, so create it */
 			_stp_proc_stap = proc_mkdir ("systemtap", NULL);
 			if (_stp_proc_stap == NULL) {
-				_stp_unlock_debugfs();
+				_stp_unlock_transport_dir();
 				goto done;
 			}
 		} else {
@@ -110,7 +110,7 @@ static int _stp_mkdir_proc_module(void)
 			_stp_proc_root->owner = THIS_MODULE;
 #endif
 
-		_stp_unlock_debugfs();
+		_stp_unlock_transport_dir();
 	}
 done:
 	return (_stp_proc_root) ? 1 : 0;

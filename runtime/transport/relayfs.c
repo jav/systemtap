@@ -68,12 +68,12 @@ static void _stp_remove_relay_dir(struct dentry *dir)
 static void _stp_remove_relay_root(struct dentry *root)
 {
 	if (root) {
-		if (!_stp_lock_debugfs()) {
+		if (!_stp_lock_transport_dir()) {
 			errk("Unable to lock transport directory.\n");
 			return;
 		}
 		_stp_remove_relay_dir(root);
-		_stp_unlock_debugfs();
+		_stp_unlock_transport_dir();
 	}
 }
 

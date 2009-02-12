@@ -1,3 +1,10 @@
+2009-02-12  David Smith  <dsmith@redhat.com>
+
+	* procfs.c (_stp_rmdir_proc_module):  Changed
+	_stp_lock_debugfs()/_stp_unlock_debugfs() to
+	_stp_lock_transport_dir()/_stp_unlock_transport_dir().
+	(_stp_mkdir_proc_module): Ditto.
+
 2009-02-11  Tim Moore  <timoore@redhat.com>
 
 	* stack.c (_stp_stack_print_fallback): Implementation that uses kernel

@@ -311,7 +311,7 @@ static inline void _stp_unlock_inode(struct inode *inode)
 
 static struct dentry *_stp_lockfile = NULL;
 
-static int _stp_lock_debugfs(void)
+static int _stp_lock_transport_dir(void)
 {
 	int numtries = 0;
 #ifdef STP_OLD_TRANSPORT
@@ -326,7 +326,7 @@ static int _stp_lock_debugfs(void)
 	return 1;
 }
 
-static void _stp_unlock_debugfs(void)
+static void _stp_unlock_transport_dir(void)
 {
 	if (_stp_lockfile) {
 #ifdef STP_OLD_TRANSPORT
@@ -359,7 +359,7 @@ static struct dentry *_stp_get_root_dir(const char *name)
 		return NULL;
 	}
 
-	if (!_stp_lock_debugfs()) {
+	if (!_stp_lock_transport_dir()) {
 		errk("Couldn't lock transport directory.\n");
 		return NULL;
 	}
@@ -381,7 +381,7 @@ static struct dentry *_stp_get_root_dir(const char *name)
 			errk("Could not create or find transport directory.\n");
 		}
 	}
-	_stp_unlock_debugfs();
+	_stp_unlock_transport_dir();
 	return root;
 }
 
