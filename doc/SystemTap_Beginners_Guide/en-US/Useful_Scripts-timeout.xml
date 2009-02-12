@@ -67,10 +67,11 @@ uses systemtap/testsuite/systemtap.examples/profiling/timeout.stp
 	</itemizedlist>	
 
 	<para>
-		In some applications, these system calls are used excessively. For example, an application that 
-		needs to perform a task once every hour could be configured (or even designed) to check the 
-		clock every second if the hour has already passed. Such design idioms are throwbacks to earlier 
-		kernel versions, which used a periodic tick.
+		In some applications, these system calls are used excessively. As such, they are normally identified as "likely
+		culprits" for polling applications. Note, however, that an application may be using a different system
+		call to poll excessively; sometimes, it is useful to find out the top system calls used by the system (refer to 
+		<xref linkend="topsyssect"/> for instructions). Doing so can help you identify any additional suspects, which you 
+		can add to <xref linkend="timeouts"/> for tracking.
 	</para>
 		
 	
@@ -88,13 +89,6 @@ uses systemtap/testsuite/systemtap.examples/profiling/timeout.stp
 <primary>timer.s(), sample usage</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-
-<para>
-	You can increase the sample time by editing the timer in the second probe (<command>timer.s()</command>). 
-	The output of <xref linkend="countcalls"/> contains the name and UID of the top 20 polling applications, 
-	along with how many times each application performed each polling system call (over time). 
-	<xref linkend="timeoutsoutput"/> contains an excerpt of the script:
-</para>
 	
 <example id="timeoutsoutput">
 	<title><xref linkend="timeouts"/> Sample Output</title>
@@ -132,6 +126,11 @@ foreach (fn+ in called)  # Sort by function name
 printf("%s %d\n", fn, @count(called[fn]))
 exit()
 }-->
-
+<para>
+	You can increase the sample time by editing the timer in the second probe (<command>timer.s()</command>). 
+	The output of <xref linkend="countcalls"/> contains the name and UID of the top 20 polling applications, 
+	along with how many times each application performed each polling system call (over time). 
+	<xref linkend="timeoutsoutput"/> contains an excerpt of the script:
+</para>
 	</section>
 
