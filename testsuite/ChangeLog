@@ -1,3 +1,14 @@
+2009-02-10  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.samples/pfaults.exp:
+	* systemtap.samples/pfaults.stp: Removed.
+	* systemtap.examples/memory/pfaults.stp: Revised version from samples.
+	* systemtap.examples/memory/pfaults.meta: New
+	* systemtap.examples/index.html:
+	* systemtap.examples/index.txt:
+	* systemtap.examples/keyword-index.html:
+	* systemtap.examples/keyword-index.txt: Regenerate.
+
 2009-02-11  Tim Moore  <timoore@redhat.com>
 
 	* systemtap.examples/profiling/latencytap.stp: Use _stp_stack_snprint_tsk.

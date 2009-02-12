@@ -1,3 +1,7 @@
+2009-02-12  Will Cohen  <wcohen@redhat.com>
+
+	* memory.stp (VM_FAULT_*, function vm_fault_contains): New.
+	
 2009-02-09  Josh Stone  <jistone@redhat.com>
 
 	* process.stp (process.create): Read the task pid *after*

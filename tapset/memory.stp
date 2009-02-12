@@ -6,6 +6,49 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
+%{
+#include <linux/mm.h>
+%}
+
+global VM_FAULT_OOM=0, VM_FAULT_SIGBUS=1, VM_FAULT_MINOR=2, VM_FAULT_MAJOR=3
+global VM_FAULT_NOPAGE=4, VM_FAULT_LOCKED=5, VM_FAULT_ERROR=6
+
+/**
+ * sfunction vm_fault_contains - Test return value for page fault reason
+ * @value: The fault_type returned by vm.page_fault.return
+ * @test: The type of fault to test for (VM_FAULT_OOM or similar)
+ */
+function vm_fault_contains:long (value:long, test:long)
+%{
+	int res;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,23)
+	switch (THIS->test){
+	case 0: res = THIS->value == VM_FAULT_OOM; break;
+	case 1: res = THIS->value == VM_FAULT_SIGBUS; break;
+	case 2: res = THIS->value == VM_FAULT_MINOR; break;
+	case 3: res = THIS->value == VM_FAULT_MAJOR; break;
+	default:
+		res = 0; break;
+	}
+#else
+	switch (THIS->test){
+	case 0: res = THIS->value & VM_FAULT_OOM; break;
+	case 1: res = THIS->value & VM_FAULT_SIGBUS; break;
+	case 2: /* VM_FAULT_MINOR infered by that flags off */
+		res = !((VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_MAJOR) & 
+				 THIS->value);
+		 break;
+	case 3: res = THIS->value & VM_FAULT_MAJOR; break;
+	case 4: res = THIS->value & VM_FAULT_NOPAGE; break;
+	case 5: res = THIS->value & VM_FAULT_LOCKED; break;
+	case 6: res = THIS->value & VM_FAULT_ERROR; break;
+	default:
+		res = 0;
+	}
+#endif
+	THIS->__retvalue = (res != 0);
+	return;
+%}
 
 /**
  * probe vm.pagefault - Records that a page fault occurred.
