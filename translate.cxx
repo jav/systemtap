@@ -4596,7 +4596,7 @@ dump_unwindsyms (Dwfl_Module *m,
 	  int h = ((uint8_t *)unwind)[i];
 	  c->output << "0x" << hex << h << dec << ",";
 	  if ((i + 1) % 16 == 0)
-	    c->output << endl << "   ";
+	    c->output << "\n" << "   ";
 	}
       c->output << "};" << endl;
       c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */" << endl;
@@ -4627,7 +4627,7 @@ dump_unwindsyms (Dwfl_Module *m,
             continue; // skip symbols that occur before our chosen base address
 
           c->output << "  { 0x" << hex << it->first-extra_offset << dec
-                    << ", " << lex_cast_qstring (it->second) << " }," << endl;
+                    << ", " << lex_cast_qstring (it->second) << " }," << "\n";
         }
 
       c->output << "#endif /* STP_NEED_SYMBOL_DATA */" << endl;
