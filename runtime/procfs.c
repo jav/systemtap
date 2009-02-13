@@ -14,6 +14,9 @@
  * number of needed files.
  */
 
+#ifndef _STP_PROCFS_C_
+#define _STP_PROCFS_C_
+
 #define STP_MAX_PROCFS_FILES 16
 static int _stp_num_pde = 0;
 static int _stp_num_procfs_files = 0;
@@ -209,3 +212,5 @@ static void _stp_close_procfs(void)
 	_stp_num_pde = 0;
 	_stp_rmdir_proc_module();
 }
+
+#endif	/* _STP_PROCFS_C_ */

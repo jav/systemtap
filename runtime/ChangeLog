@@ -1,3 +1,7 @@
+2009-02-13  David Smith  <dsmith@redhat.com>
+
+	* procfs.c: Added macros to guard against multiple inclusion.
+
 2009-02-12  David Smith  <dsmith@redhat.com>
 
 	* procfs.c (_stp_rmdir_proc_module):  Changed

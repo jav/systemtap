@@ -9,6 +9,8 @@
  * later version.
  */
 
+#include "../procfs.c"		   // for _stp_mkdir_proc_module()
+
 #define STP_DEFAULT_BUFFERS 256
 static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
 
@@ -72,7 +74,7 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 	if (get_user(type, (int __user *)buf))
 		return -EFAULT;
 
-#if DEBUG_TRANSPORT > 0
+#if DEBUG_TRANS
 	if (type < STP_MAX_CMD)
 		_dbug("Got %s. len=%d\n", _stp_command_name[type], (int)count);
 #endif
@@ -121,7 +123,7 @@ struct _stp_buffer {
 
 static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
 
-#if DEBUG_TRANSPORT > 0
+#if DEBUG_TRANS
 static void _stp_ctl_write_dbug(int type, void *data, int len)
 {
 	char buf[64];
@@ -155,7 +157,7 @@ static int _stp_ctl_write(int type, void *data, int len)
 	struct _stp_buffer *bptr;
 	unsigned long flags;
 
-#if DEBUG_TRANSPORT > 0
+#if DEBUG_TRANS
 	_stp_ctl_write_dbug(type, data, len);
 #endif
 
