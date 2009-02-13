@@ -1054,7 +1054,7 @@ c_unparser::emit_global (vardecl *v)
   o->newline() << "rwlock_t s_" << vn << "_lock;";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "atomic_t s_" << vn << "_lock_skip_count;";
-  o->newline() << "#endif" << endl;
+  o->newline() << "#endif\n";
 }
 
 
@@ -4587,9 +4587,9 @@ dump_unwindsyms (Dwfl_Module *m,
   void *unwind = get_unwind_data (m, &len);
   if (unwind != NULL)
     {
-      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)" << endl;
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << "static uint8_t _stp_module_" << stpmod_idx
-		<< "_unwind_data[] = " << endl;
+		<< "_unwind_data[] = \n";
       c->output << "  {";
       for (size_t i = 0; i < len; i++)
 	{
@@ -4598,8 +4598,8 @@ dump_unwindsyms (Dwfl_Module *m,
 	  if ((i + 1) % 16 == 0)
 	    c->output << "\n" << "   ";
 	}
-      c->output << "};" << endl;
-      c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */" << endl;
+      c->output << "};\n";
+      c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
   else
     {
@@ -4615,10 +4615,10 @@ dump_unwindsyms (Dwfl_Module *m,
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
       c->output << "static struct _stp_symbol "
-                << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {" << endl;
+                << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {\n";
 
       // Only include symbols if they will be used
-      c->output << "#ifdef STP_NEED_SYMBOL_DATA" << endl;
+      c->output << "#ifdef STP_NEED_SYMBOL_DATA\n";
 
       // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
       for (addrmap_t::iterator it = addrmap[secidx].begin(); it != addrmap[secidx].end(); it++)
@@ -4627,79 +4627,79 @@ dump_unwindsyms (Dwfl_Module *m,
             continue; // skip symbols that occur before our chosen base address
 
           c->output << "  { 0x" << hex << it->first-extra_offset << dec
-                    << ", " << lex_cast_qstring (it->second) << " }," << "\n";
+                    << ", " << lex_cast_qstring (it->second) << " },\n";
         }
 
-      c->output << "#endif /* STP_NEED_SYMBOL_DATA */" << endl;
+      c->output << "#endif /* STP_NEED_SYMBOL_DATA */\n";
 
-      c->output << "};" << endl;
+      c->output << "};\n";
     }
 
-  c->output << "static struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {" << endl;
+  c->output << "static struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {\n";
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
-      c->output << "{" << endl
-                << ".name = " << lex_cast_qstring(seclist[secidx]) << "," << endl
-                << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << "," << endl
-                << ".num_symbols = sizeof(_stp_module_" << stpmod_idx << "_symbols_" << secidx << ")/sizeof(struct _stp_symbol)" << endl
-                << "}," << endl;
+      c->output << "{\n"
+                << ".name = " << lex_cast_qstring(seclist[secidx]) << ",\n"
+                << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << ",\n"
+                << ".num_symbols = sizeof(_stp_module_" << stpmod_idx << "_symbols_" << secidx << ")/sizeof(struct _stp_symbol)\n"
+                << "},\n";
     }
-  c->output << "};" << endl;
+  c->output << "};\n";
 
-  c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {" << endl;
-  c->output << ".name = " << lex_cast_qstring (modname) << ", " << endl;
-  c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", " << endl;
+  c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
+  c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
+  c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
 
   if (unwind != NULL)
     {
-      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)" << endl;
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << ".unwind_data = "
-		<< "_stp_module_" << stpmod_idx << "_unwind_data, " << endl;
-      c->output << ".unwind_data_len = " << len << ", " << endl;
-      c->output << "#else" << endl;
+		<< "_stp_module_" << stpmod_idx << "_unwind_data, \n";
+      c->output << ".unwind_data_len = " << len << ", \n";
+      c->output << "#else\n";
     }
 
-  c->output << ".unwind_data = NULL, " << endl;
-  c->output << ".unwind_data_len = 0, " << endl;
+  c->output << ".unwind_data = NULL,\n";
+  c->output << ".unwind_data_len = 0,\n";
 
   if (unwind != NULL)
-    c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/" << endl;
+    c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/\n";
 
-  c->output << ".unwind_hdr = NULL, " << endl;
-  c->output << ".unwind_hdr_len = 0, " << endl;
-  c->output << ".unwind_is_ehframe = 0, " << endl;
+  c->output << ".unwind_hdr = NULL,\n";
+  c->output << ".unwind_hdr_len = 0,\n";
+  c->output << ".unwind_is_ehframe = 0,\n";
 
-  c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ", " << endl;
+  c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ",\n";
   c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"
-            << "sizeof(struct _stp_section), " << endl;
+            << "sizeof(struct _stp_section),\n";
 
   if (build_id_len > 0) {
-        c->output << ".build_id_bits = \"" ;
-        for (int j=0; j<build_id_len;j++)
-                c->output << "\\x" << hex
-                          << (unsigned short) *(build_id_bits+j) << dec;
-
-       c->output << "\", " << endl;
-       c->output << ".build_id_len = " << build_id_len << ", " << endl;
-
-       /* XXX: kernel data boot-time relocation works differently from text.
-          This hack disables relocation altogether, but that's not necessarily
-          correct either.  We may instead need a relocation basis different
-          from _stext, such as __start_notes.  */
-       if (modname == "kernel")
-                c->output << ".build_id_offset = 0x" << hex << build_id_vaddr
-			  << dec << ", " << endl;
-       else
-                c->output << ".build_id_offset = 0x" << hex
-			  << build_id_vaddr - base
- 			  << dec << ", " << endl;
+    c->output << ".build_id_bits = \"" ;
+    for (int j=0; j<build_id_len;j++)
+      c->output << "\\x" << hex
+                << (unsigned short) *(build_id_bits+j) << dec;
+    
+    c->output << "\",\n";
+    c->output << ".build_id_len = " << build_id_len << ",\n";
+    
+    /* XXX: kernel data boot-time relocation works differently from text.
+       This hack disables relocation altogether, but that's not necessarily
+       correct either.  We may instead need a relocation basis different
+       from _stext, such as __start_notes.  */
+    if (modname == "kernel")
+      c->output << ".build_id_offset = 0x" << hex << build_id_vaddr
+                << dec << ",\n";
+    else
+      c->output << ".build_id_offset = 0x" << hex
+                << build_id_vaddr - base
+                << dec << ",\n";
   } else
-        c->output << ".build_id_len = 0, " << endl;
-
+    c->output << ".build_id_len = 0,\n";
+  
   //initialize the note section representing unloaded
-  c->output << ".notes_sect = 0," << endl;
+  c->output << ".notes_sect = 0,\n";
 
-  c->output << "};" << endl << endl;
+  c->output << "};\n\n";
 
   c->undone_unwindsym_modules.erase (modname);
 
@@ -4812,14 +4812,14 @@ emit_symbol_data (systemtap_session& s)
 
 
   // Print out a definition of the runtime's _stp_modules[] globals.
-  kallsyms_out << endl;
-  kallsyms_out << "static struct _stp_module *_stp_modules [] = {" << endl;
+  kallsyms_out << "\n";
+  kallsyms_out << "static struct _stp_module *_stp_modules [] = {\n";
   for (unsigned i=0; i<ctx.stp_module_index; i++)
     {
-      kallsyms_out << "& _stp_module_" << i << "," << endl;
+      kallsyms_out << "& _stp_module_" << i << ",\n";
     }
-  kallsyms_out << "};" << endl;
-  kallsyms_out << "static unsigned _stp_num_modules = " << ctx.stp_module_index << ";" << endl;
+  kallsyms_out << "};\n";
+  kallsyms_out << "static unsigned _stp_num_modules = " << ctx.stp_module_index << ";\n";
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
   for (set<string>::iterator it = ctx.undone_unwindsym_modules.begin();

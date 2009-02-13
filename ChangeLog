@@ -1,3 +1,8 @@
+2009-02-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (dump_unwindsyms): Use \n instead of endl throughout
+	for writing to the generated .c/.h files.
+
 2009-02-12  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (procfs_derived_probe_group::emit_module_decls):
