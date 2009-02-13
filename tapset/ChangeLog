@@ -1,3 +1,7 @@
+2009-02-13  Will Cohen  <wcohen@redhat.com>
+
+	* DEVGUIDE: Update Documentation section and include URLs.
+	
 2009-02-12  Will Cohen  <wcohen@redhat.com>
 
 	* memory.stp (VM_FAULT_*, function vm_fault_contains): New.
