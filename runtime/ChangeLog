@@ -1,5 +1,8 @@
 2009-02-13  David Smith  <dsmith@redhat.com>
 
+	* stack.c: Fixed compile problems on systems with older kernels
+	(like RHEL4).
+
 	* procfs.c: Added macros to guard against multiple inclusion.
 
 2009-02-12  David Smith  <dsmith@redhat.com>

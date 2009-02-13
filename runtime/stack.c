@@ -27,8 +27,10 @@
 
 #define MAXBACKTRACE 20
 
+#ifdef CONFIG_STACKTRACE
 #include <linux/stacktrace.h>
 #include <asm/stacktrace.h>
+#endif
 
 static void _stp_stack_print_fallback(unsigned long, int, int);
 
