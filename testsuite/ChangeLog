@@ -1,4 +1,8 @@
 2009-02-10  Will Cohen  <wcohen@redhat.com>
+	
+	* systemtap.examples/memory/kmalloc-top.meta: Correct testing commands.
+
+2009-02-10  Will Cohen  <wcohen@redhat.com>
 
 	* systemtap.samples/pfaults.exp:
 	* systemtap.samples/pfaults.stp: Removed.
