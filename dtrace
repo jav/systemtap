@@ -13,7 +13,7 @@
 # later version.
 
 import os,posix,sys
-from subprocess import *
+from subprocess import call
 from tempfile import mkstemp
 
 class provider:
@@ -143,5 +143,5 @@ elif (build_source):
     f = open(fn,mode='w')
     f.write("static __dtrace () {}\n")
     f.close()
-    call("gcc -fPIC -c " + fn + " -o " + filename, shell=True)
+    call(["gcc", "-fPIC", "-c", fn, "-o", filename], shell=False)
     os.remove(fn)
