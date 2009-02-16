@@ -152,7 +152,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
   volatile typeof((parm7)) arg7  __attribute__ ((unused)) = parm7; \
   volatile typeof((parm8)) arg8  __attribute__ ((unused)) = parm8; \
-  volatile typeof((parm9)) arg9  __attribute__ ((unused() = parm9;	\
+  volatile typeof((parm9)) arg9  __attribute__ ((unused)) = parm9; \
 STAP_LABEL(probe,__LINE__):				\
   asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& STAP_LABEL(probe,__LINE__)) \

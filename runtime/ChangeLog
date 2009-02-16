@@ -1,3 +1,7 @@
+2009-02-16  Mark Wielaard  <scox@redhat.com>
+
+	* sdt.h (STAP_PROBE9): Fix )( typo in parm9.
+
 2009-02-15  Stan Cox  <scox@redhat.com>
 
 	* sdt.h (STAP_PROBE): Handle c++ via .probe, c via .label.
