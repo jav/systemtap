@@ -124,7 +124,7 @@ if (build_header == False and build_source == False):
 
 if (filename == ""):
     if (s_filename != ""):
-        filename = s_filename.replace(".d","")
+	(filename,ext) = os.path.splitext(s_filename)
 	if (build_header):
 	    filename = filename + ".h"
 	elif (build_source):
@@ -137,7 +137,8 @@ if (build_header):
     providers = provider()
     providers.open(s_filename, filename)
 elif (build_source):
-    basename = os.path.basename(s_filename).replace(".d", ".c")
+    (basename,ext) = os.path.splitext(s_filename)
+    basename = os.path.basename(basename)
     (d,fn) = mkstemp(suffix=".c",prefix=basename)
     f = open(fn,mode='w')
     f.write("static __dtrace () {}\n")

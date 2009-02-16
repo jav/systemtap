@@ -1,5 +1,10 @@
 2009-02-16  Mark Wielaard  <mjw@redhat.com>
 
+	PR 9851
+	* dtrace: Use os.path.splitext instead of string.replace.
+
+2009-02-16  Mark Wielaard  <mjw@redhat.com>
+
 	PR 9849
 	* dtrace: Use mkstemp.
 
