@@ -1,3 +1,7 @@
+2009-02-15  Stan Cox  <scox@redhat.com>
+
+	* sdt.h (STAP_PROBE): Handle c++ via .probe, c via .label.
+
 2009-02-13  David Smith  <dsmith@redhat.com>
 
 	* stack.c: Fixed compile problems on systems with older kernels

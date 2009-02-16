@@ -1,21 +1,17 @@
+
 set test "sduprobes"
 if {![installtest_p]} {untested $test; return}
 
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_uprobes.c"
 set sup_exepath "[pwd]/static_uprobes.x"
-set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-L$env(CRASH_LIBDIR) additional_flags=-lsduprobes"
 set fp [open $sup_srcpath "w"]
 puts $fp "
 #include <stdlib.h>
 #define USE_STAP_PROBE 1
 #include \"static_uprobes.h\"
 
-foo ()
-{
-  STAP_PROBE(static_uprobes,test_probe_1);
-}
-
+void
 bar (int i)
 {
   if (i == 0)
@@ -23,6 +19,7 @@ bar (int i)
   STAP_PROBE1(static_uprobes,test_probe_2,i);
 }
 
+void
 baz (int i, char* s)
 {
   STAP_PROBE1(static_uprobes,test_probe_0,i);
@@ -31,47 +28,20 @@ baz (int i, char* s)
   STATIC_UPROBES_TEST_PROBE_3(i,s);
 }
 
+void
 buz (int parm)
 {
+  if (parm == 0)
+    parm = 1000;
+  DTRACE_PROBE1(static_uprobes,test_probe_4,parm);
 }
 
+int
 main ()
 {
-  sleep(5);
-  foo();
   bar(2);
-  baz(3,\"abc\");
+  baz(3,(char*)\"abc\");
   buz(4);
-}
-"
-close $fp
-
-# set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
-# if { $res != "" } {
-#     verbose "target_compile failed: $res" 2
-#     fail "compiling static_uprobes.c"
-#     return
-# } else {
-#     pass "compiling static_uprobes.c"
-# }
-
-set fp [open "[pwd]/static_uprobes.stp" "w"]
-puts $fp "
-probe process(\"static_uprobes.x\").mark(\"test_probe_0\") 
-{ 
-  printf(\"In test_probe_0 probe %#x\\n\", \$arg1)
-}
-probe process(\"static_uprobes.x\").mark(\"test_probe_1\") 
-{ 
-  printf(\"In test_probe_1 probe\\n\")
-}
-probe process(\"static_uprobes.x\").mark(\"test_probe_2\") 
-{ 
-  printf(\"In test_probe_2 probe %#x\\n\", \$arg1)
-}
-probe process(\"static_uprobes.x\").mark(\"test_probe_3\") 
-{ 
-  printf(\"In test_probe_3 probe %#x %#x\\n\", \$arg1, \$arg2)
 }
 "
 close $fp
@@ -86,46 +56,12 @@ if {! [catch {exec grep -q utrace_attach $path} dummy]} {
 if {$utrace_support_found == 0} { untested "$test"; return }
 
 set ok 0
-# verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
-# spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
-# expect {
-#     -timeout 180
-#     -re {In test_probe_1 probe} { incr ok; exp_continue }
-#     -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
-#     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
-#     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
-#     timeout { fail "$test (timeout)" }
-#     eof { }
-# }
-
-# if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
-set ok 0
-
-# Now do a debuginfo style probe of the above test
-
-set fp [open "[pwd]/static_uprobes.sh" "w"]
-puts $fp "
-ed $sup_srcpath <<HERE
-/USE_STAP_PROBE/d
-/buz/+1
-a
-  DTRACE_PROBE1(static_uprobes,test_probe_4,parm);
-.
-w
-q
-"
-close $fp
-spawn sh [pwd]/static_uprobes.sh
 
 set fp [open "[pwd]/static_uprobes.stp" "w"]
 puts $fp "
 probe process(\"static_uprobes.x\").mark(\"test_probe_0\") 
 { 
   printf(\"In test_probe_0 probe %#x\\n\", \$arg1)
-}
-probe process(\"static_uprobes.x\").mark(\"test_probe_1\") 
-{ 
-  printf(\"In test_probe_1 probe\\n\")
 }
 probe process(\"static_uprobes.x\").mark(\"test_probe_2\") 
 {
@@ -168,6 +104,35 @@ verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
 spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
 expect {
     -timeout 180
+    -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
+    -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
+    -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+    -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+wait
+
+if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
+
+spawn mv $sup_srcpath "[pwd]/static_uprobes.cc"
+set sup_flags "$sup_flags c++"
+set res [target_compile "[pwd]/static_uprobes.cc" $sup_exepath executable $sup_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling sduprobes.c -g"
+    return
+} else {
+    pass "compiling sduprobes.c -g"
+}
+
+set ok 0
+
+verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
+spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
+expect {
+    -timeout 180
     -re {In test_probe_1 probe} { incr ok; exp_continue }
     -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
@@ -179,4 +144,5 @@ expect {
 
 wait
 
-if {$ok == 5} { pass "$test" } { fail "$test ($ok)" }
+if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
+

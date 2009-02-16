@@ -1,3 +1,7 @@
+2009-02-15  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Test with both c++ and c.
+
 2009-02-10  Will Cohen  <wcohen@redhat.com>
 	
 	* systemtap.examples/memory/kmalloc-top.meta: Correct testing commands.

@@ -1346,22 +1346,42 @@ struct dwflpp
 	    function_name = name;
 	  }
 	else if (tag == DW_TAG_label
-		 && ((strncmp(name, sym, sizeof(sym)) == 0)
+		 && ((strncmp(name, sym, strlen(sym)) == 0)
 		     || (name_has_wildcard (sym)
 			 && function_name_matches_pattern (name, sym))))
 	  {
 	    const char *file = dwarf_decl_file (&die);
-	    int line;
-	    line = dwarf_decl_line (&die, &line);
+	    // Get the line number for this label
+	    Dwarf_Attribute attr;
+	    dwarf_attr (&die,DW_AT_decl_line, &attr);
+	    Dwarf_Sword dline;
+	    dwarf_formsdata (&attr, &dline);
 	    Dwarf_Addr stmt_addr;
 	    if (dwarf_lowpc (&die, &stmt_addr) != 0)
-	      continue;
+	      {
+		// There is no lowpc so figure out the address
+		// Get the real die for this cu
+		Dwarf_Die cudie;
+		dwarf_diecu (cu, &cudie, NULL, NULL);
+		size_t nlines = 0;
+		// Get the line for this label
+		Dwarf_Line **aline;
+		dwarf_getsrc_file (module_dwarf, file, (int)dline, 0, &aline, &nlines);
+		// Get the address
+		for (size_t i = 0; i < nlines; i++)
+		  {
+		    dwarf_lineaddr (*aline, &stmt_addr);
+		    if ((dwarf_haspc (&die, stmt_addr)))
+		      break;
+		  }
+	      }
+
 	    Dwarf_Die *scopes;
 	    int nscopes = 0;
 	    nscopes = dwarf_getscopes_die (&die, &scopes);
 	    if (nscopes > 1)
 	      callback(function_name.c_str(), file,
-		       line, &scopes[1], stmt_addr, q);
+		       (int)dline, &scopes[1], stmt_addr, q);
 	  }
 	if (dwarf_haschildren (&die) && tag != DW_TAG_structure_type
 	    && tag != DW_TAG_union_type)
@@ -5368,30 +5388,38 @@ dwarf_builder::build(systemtap_session & sess,
   {
     enum probe_types       
     {
-      no_debuginfo = 0,
-      use_debuginfo = 1
+      probes_and_dwarf = 0,	// Use statement address
+      dwarf_no_probes = 1,	// Use label name
+      probes_no_dwarf = 2
     };
 
-//    location->components[0]->arg = new literal_string(sess.cmd);
-//    ((literal_map_t&)parameters)[location->components[0]->functor] = location->components[0]->arg;
+    int probe_type = dwarf_no_probes;
+    string probe_name = (char*) location->components[1]->arg->tok->content.c_str();
+    __uint64_t probe_arg = 0;
     Dwarf_Addr bias;
     Elf* elf = dwfl_module_getelf (dw->module, &bias);
     size_t shstrndx;
-
     Elf_Scn *probe_scn = NULL;
+
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
-    __uint64_t probe_arg = 0;
-    int probe_type = no_debuginfo;
-    char *probe_name;
-    // Find the .probes section where the static probe label and arg are stored
+    GElf_Shdr *shdr = NULL;
+
+    // Is there a .probes section?
     while ((probe_scn = elf_nextscn (elf, probe_scn)))
       {
 	GElf_Shdr shdr_mem;
-	GElf_Shdr *shdr = gelf_getshdr (probe_scn, &shdr_mem);
+	shdr = gelf_getshdr (probe_scn, &shdr_mem);
 	assert (shdr != NULL);
 
-	if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") != 0)
-	  continue;
+	if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") == 0)
+	  {
+	    probe_type = probes_and_dwarf;
+	    break;
+	  }
+      }
+    
+    if (probe_type == probes_and_dwarf)
+      {
 	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
 	size_t probe_scn_offset = 0;
@@ -5414,89 +5442,26 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
-	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name) == 0)
+	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) == 0)
 	      break;
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
 	  }
-	if (probe_scn_offset < pdata->d_size)
-	  break;
-      }
-
-    if (probe_type == no_debuginfo)
-      {
-	// Many probe labels correspond to _stap_probe_N
-	// Generate: _probe_string = user_string($probe);
-	block *b = ((block*)(base->body));
-	assignment *as = new assignment;
-	symbol* lsym = new symbol;
-	lsym->type = pe_string;
-	lsym->name = "_probe_string";
-	lsym->tok = base->body->tok;
-	as->left = lsym;
-	as->op = "=";
-	functioncall *fc = new functioncall;
-	fc->function = "user_string";
-	fc->tok = base->body->tok;
-	target_symbol* rsym = new target_symbol;
-	rsym->base_name = "$probe";
-	rsym->tok = base->body->tok;
-	fc->args.push_back(rsym);
-	as->right = fc;
-	expr_statement* es = new expr_statement;
-	es->value = as;
-
-	// Generate: if (_probe_string != mark("label")) next;
-	if_statement *is = new if_statement;
-	is->thenblock = new next_statement;
-	is->elseblock = NULL;
-	is->tok = base->body->tok;
-	comparison *be = new comparison;
-	be->op = "!=";
-	be->tok = base->body->tok;
-	be->left = lsym;
-	be->right = new literal_string(location->components[1]->arg->tok->content);;
-	is->condition = be;
-
-	b->statements.insert(b->statements.begin(),(statement*) is);
-	b->statements.insert(b->statements.begin(),(statement*) es);
-      }
-    
-    Dwarf *dwarf = dwfl_module_getdwarf(dw->module, &dw->module_bias);
-    Dwarf_Off off;
-    size_t cuhl;
-    Dwarf_Off noff = 0;
-    const char *probe_file = "@sduprobes.c";
-    // Find where the probe instrumentation landing points are defined
-    while (dwarf_nextcu (dwarf, off = noff, &noff, &cuhl, NULL, NULL, NULL) == 0)
-      {
-	Dwarf_Die cudie_mem;
-	Dwarf_Die *cudie = dwarf_offdie (dwarf, off + cuhl, &cudie_mem);
-	if (cudie == NULL)
-	  continue;
-	if (probe_type == no_debuginfo)
-	  {
-	    if (strncmp (dwarf_diename(&cudie_mem), "sduprobes", 9) == 0)
-	      {
-		break;
-	      }
-	  }
-      }
-    location->components[1]->functor = TOK_STATEMENT;
-    if (probe_type == no_debuginfo)
-      {
-	string probe_arg_str = string(1,'0' + probe_arg);
-	location->components[1]->arg
-	  = new literal_string("_stap_probe_"
-			       + (probe_arg_str)
-			       + probe_file + "+1");
-      }
-    else
-      {
+	location->components[1]->functor = TOK_STATEMENT;
 	location->components[1]->arg = new literal_number((int)probe_arg);
+	((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
+      }
+    else if (probe_type == dwarf_no_probes)
+      {
+	location->components[1]->functor = TOK_FUNCTION;
+	location->components[1]->arg = new literal_string("*");
+	((literal_map_t&)parameters)[TOK_FUNCTION] = location->components[1]->arg;
+	location->components.push_back(new probe_point::component(TOK_LABEL));
+	location->components[2]->arg = new literal_string("_stapprobe1_" + probe_name);
+	((literal_map_t&)parameters).erase(TOK_MARK);
+	((literal_map_t&)parameters).insert(pair<string,literal*>(TOK_LABEL, location->components[2]->arg));
       }
 
-    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
     dw->module = 0;
   }
   
