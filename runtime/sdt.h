@@ -158,7 +158,7 @@ STAP_LABEL(probe,__LINE__):				\
   STAP_PROBE_STRUCT(probe,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   STAP_LABEL_REF(probe);}
 
-#define DTRACE_PROBE(__LINE__) \
+#define DTRACE_PROBE(provider,probe) \
 STAP_PROBE(provider,probe)
 #define DTRACE_PROBE1(provider,probe,parm1) \
 STAP_PROBE1(provider,probe,parm1)
