@@ -14,6 +14,7 @@
 
 import os,posix,sys
 from subprocess import *
+from tempfile import mkstemp
 
 class provider:
     arglist = dict()
@@ -136,7 +137,8 @@ if (build_header):
     providers = provider()
     providers.open(s_filename, filename)
 elif (build_source):
-    fn = "/tmp/" + os.path.basename(s_filename).replace(".d", ".c")
+    basename = os.path.basename(s_filename).replace(".d", ".c")
+    (d,fn) = mkstemp(suffix=".c",prefix=basename)
     f = open(fn,mode='w')
     f.write("static __dtrace () {}\n")
     f.close()

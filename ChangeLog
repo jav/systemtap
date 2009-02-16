@@ -1,3 +1,8 @@
+2009-02-16  Mark Wielaard  <mjw@redhat.com>
+
+	PR 9849
+	* dtrace: Use mkstemp.
+
 2009-02-15  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwflpp::iterate_over_cu_labels): Handle missing DW_AT_low_pc
