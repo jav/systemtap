@@ -8,11 +8,14 @@ if {$arch == "ppc64"} {
 	catch {exec gcc -o $test -g $srcdir/$subdir/$test.c} err
 }
 
-
 if {$err == "" && [file exists $test]} then { pass "$test compile"
 } else {fail "$test compile"}
 
-if {! [installtest_p]} { untested "$test -p5"; return }
+if {! [installtest_p]} {
+    catch {exec rm -f $test}
+    untested "$test -p5"
+    return
+}
 
 # Try to find utrace_attach symbol in /proc/kallsyms
 # copy from utrace_p5.exp
@@ -21,7 +24,11 @@ set path "/proc/kallsyms"
 if {! [catch {exec grep -q utrace_attach $path} dummy]} {
     set utrace_support_found 1
 }
-if {$utrace_support_found == 0} { untested "$test -p5"; return }
+if {$utrace_support_found == 0} {
+    catch {exec rm -f $test}
+    untested "$test -p5"
+    return
+}
 
 if {[catch {exec stap $tpath.stp -c "$srcdir/$subdir/$test.sh"} res]} {
     untested "$test longjmp to a uretprobed function"

@@ -10,12 +10,21 @@ set path "/proc/kallsyms"
 if {! [catch {exec grep -q utrace_attach $path} dummy]} {
     set utrace_support_found 1
 }
-if {$utrace_support_found == 0} { untested "$test -p4"; untested "$test -p5"; return }
+if {$utrace_support_found == 0} {
+    catch {exec rm -f $test}
+    untested "$test -p4"
+    untested "$test -p5"
+    return
+}
 
 set rc [stap_run_batch $srcdir/$subdir/bz6850.stp]
 if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
 
-if {! [installtest_p]} { untested "$test -p5"; return }
+if {! [installtest_p]} {
+    catch {exec rm -f $test}
+    untested "$test -p5"
+    return
+}
 
 # Pick up the stap being tested.
 set stapexe [exec /usr/bin/which stap]

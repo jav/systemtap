@@ -1,3 +1,11 @@
+2009-02-16  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/bz5274.exp: Better cleanup.
+	* systemtap.base/bz6850.exp: Ditto.
+	* systemtap.base/uprobes.exp: Ditto.
+	* systemtap.base/static_uprobes.exp: Ditto.  Also changed a
+	'spawn' to an 'exec' to avoid needing to wait.
+
 2009-02-15  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/static_uprobes.exp: Test with both c++ and c.
