@@ -1,4 +1,4 @@
-* What's new
+* What's new in version 0.9
 
 - process().mark() probes are now possible to trace static user space
   markers put in programs with the STAP_PROBE macro using the new
@@ -35,15 +35,12 @@
   4, the client behaves like the 'stap' front end itself. This
   means, among other things, that the client will automatically
   load the resulting module on the local host unless -p[1234]
-  was specified.
-
+  was specified.  See stap-server(8) for more details.
   The client/server now use SSL for network connection security and
   for signing.
 
   The systemtap client and server are prototypes only. Interfaces, options
   and usage may change at any time.
-
-  See stap-server(8) for more details.
 
 - function("func").label("label") probes are now supported to allow matching
   the label of a function.
