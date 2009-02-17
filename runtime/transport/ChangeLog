@@ -1,3 +1,13 @@
+2009-02-17  David Smith  <dsmith@redhat.com>
+
+	* control.c: Contains generic control channel functions.
+	* procfs.c: Specific procfs control channel functions.  All generic
+	control channel functions moved to control.c.
+	* debugfs.c: New file containing debugfs specific control channel
+	functions.
+	* control.h: New file.
+	* transport.c: Updated file inclusion.
+
 2009-02-13  David Smith  <dsmith@redhat.com>
 
 	* procfs.c: Added inclusion of ../procfs.c for

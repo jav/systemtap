@@ -27,13 +27,15 @@ static int _stp_probes_started = 0;
 static pid_t _stp_target = 0;
 static int _stp_exit_called = 0;
 static int _stp_exit_flag = 0;
+#include "control.h"
 #ifdef STP_OLD_TRANSPORT
 #include "relayfs.c"
 #include "procfs.c"
 #else
 #include "utt.c"
-#include "control.c"
+#include "debugfs.c"
 #endif
+#include "control.c"
 
 /* module parameters */
 static int _stp_bufsize;
@@ -255,7 +257,7 @@ static int _stp_transport_init(void)
 		goto err0;
 #endif
 
-	/* create debugfs/procfs control channel */
+	/* create control channel */
 	if (_stp_register_ctl_channel() < 0)
 		goto err1;
 
