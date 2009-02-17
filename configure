@@ -649,11 +649,8 @@ BUILD_ELFUTILS_FALSE
 BUILD_ELFUTILS_TRUE
 BUILD_SERVER_FALSE
 BUILD_SERVER_TRUE
-nspr_LIBS
 nspr_CFLAGS
-nss_LIBS
 nss_CFLAGS
-PKG_CONFIG
 BUILD_REFDOCS_FALSE
 BUILD_REFDOCS_TRUE
 have_xmlto
@@ -790,11 +787,6 @@ CXX
 CXXFLAGS
 CCC
 CPP
-PKG_CONFIG
-nss_CFLAGS
-nss_LIBS
-nspr_CFLAGS
-nspr_LIBS
 CXXCPP'
 ac_subdirs_all='testsuite'
 
@@ -1464,11 +1456,6 @@ Some influential environment variables:
   CXX         C++ compiler command
   CXXFLAGS    C++ compiler flags
   CPP         C preprocessor
-  PKG_CONFIG  path to pkg-config utility
-  nss_CFLAGS  C compiler flags for nss, overriding pkg-config
-  nss_LIBS    linker flags for nss, overriding pkg-config
-  nspr_CFLAGS C compiler flags for nspr, overriding pkg-config
-  nspr_LIBS   linker flags for nspr, overriding pkg-config
   CXXCPP      C++ preprocessor
 
 Use these variables to override the choices made by `configure' or to help
@@ -6697,257 +6684,405 @@ else
   enable_server="check"
 fi
 
-
-
-if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
-	if test -n "$ac_tool_prefix"; then
-  # Extract the first word of "${ac_tool_prefix}pkg-config", so it can be a program name with args.
-set dummy ${ac_tool_prefix}pkg-config; ac_word=$2
-{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_path_PKG_CONFIG+set}" = set; then
+{ $as_echo "$as_me:$LINENO: checking for /usr/include/nss3" >&5
+$as_echo_n "checking for /usr/include/nss3... " >&6; }
+if test "${ac_cv_file__usr_include_nss3+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
-  case $PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-PKG_CONFIG=$ac_cv_path_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-  { $as_echo "$as_me:$LINENO: result: $PKG_CONFIG" >&5
-$as_echo "$PKG_CONFIG" >&6; }
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/usr/include/nss3"; then
+  ac_cv_file__usr_include_nss3=yes
 else
-  { $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
+  ac_cv_file__usr_include_nss3=no
 fi
-
-
 fi
-if test -z "$ac_cv_path_PKG_CONFIG"; then
-  ac_pt_PKG_CONFIG=$PKG_CONFIG
-  # Extract the first word of "pkg-config", so it can be a program name with args.
-set dummy pkg-config; ac_word=$2
-{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_path_ac_pt_PKG_CONFIG+set}" = set; then
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__usr_include_nss3" >&5
+$as_echo "$ac_cv_file__usr_include_nss3" >&6; }
+if test "x$ac_cv_file__usr_include_nss3" = x""yes; then
+  nssdir=nss3
+else
+
+	{ $as_echo "$as_me:$LINENO: checking for /usr/include/nss" >&5
+$as_echo_n "checking for /usr/include/nss... " >&6; }
+if test "${ac_cv_file__usr_include_nss+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
-  case $ac_pt_PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_ac_pt_PKG_CONFIG="$ac_pt_PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/usr/include/nss"; then
+  ac_cv_file__usr_include_nss=yes
+else
+  ac_cv_file__usr_include_nss=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__usr_include_nss" >&5
+$as_echo "$ac_cv_file__usr_include_nss" >&6; }
+if test "x$ac_cv_file__usr_include_nss" = x""yes; then
+  nssdir=nss
+fi
+
+
+fi
+
+{ $as_echo "$as_me:$LINENO: checking for /usr/include/nspr4" >&5
+$as_echo_n "checking for /usr/include/nspr4... " >&6; }
+if test "${ac_cv_file__usr_include_nspr4+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/usr/include/nspr4"; then
+  ac_cv_file__usr_include_nspr4=yes
+else
+  ac_cv_file__usr_include_nspr4=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__usr_include_nspr4" >&5
+$as_echo "$ac_cv_file__usr_include_nspr4" >&6; }
+if test "x$ac_cv_file__usr_include_nspr4" = x""yes; then
+  nsprdir=nspr4
+else
+
+	{ $as_echo "$as_me:$LINENO: checking for /usr/include/nspr" >&5
+$as_echo_n "checking for /usr/include/nspr... " >&6; }
+if test "${ac_cv_file__usr_include_nspr+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/usr/include/nspr"; then
+  ac_cv_file__usr_include_nspr=yes
+else
+  ac_cv_file__usr_include_nspr=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__usr_include_nspr" >&5
+$as_echo "$ac_cv_file__usr_include_nspr" >&6; }
+if test "x$ac_cv_file__usr_include_nspr" = x""yes; then
+  nsprdir=nspr
+fi
+
+
+fi
+
+if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
+nss_CFLAGS="-I/usr/include/$nssdir"
+nspr_CFLAGS="-I/usr/include/$nsprdir"
+
+
+save_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
+
+
+
+
+
+
+
+for ac_header in "$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"
 do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  ;;
+as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  { $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
+$as_echo_n "checking for $ac_header... " >&6; }
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  $as_echo_n "(cached) " >&6
+fi
+ac_res=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:$LINENO: checking $ac_header usability" >&5
+$as_echo_n "checking $ac_header usability... " >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <$ac_header>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
 esac
-fi
-ac_pt_PKG_CONFIG=$ac_cv_path_ac_pt_PKG_CONFIG
-if test -n "$ac_pt_PKG_CONFIG"; then
-  { $as_echo "$as_me:$LINENO: result: $ac_pt_PKG_CONFIG" >&5
-$as_echo "$ac_pt_PKG_CONFIG" >&6; }
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_header_compiler=yes
 else
-  { $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_header_compiler=no
 fi
 
-  if test "x$ac_pt_PKG_CONFIG" = x; then
-    PKG_CONFIG=""
-  else
-    case $cross_compiling:$ac_tool_warned in
-yes:)
-{ $as_echo "$as_me:$LINENO: WARNING: using cross tools not prefixed with host triplet" >&5
-$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
-ac_tool_warned=yes ;;
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:$LINENO: checking $ac_header presence" >&5
+$as_echo_n "checking $ac_header presence... " >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <$ac_header>
+_ACEOF
+if { (ac_try="$ac_cpp conftest.$ac_ext"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
 esac
-    PKG_CONFIG=$ac_pt_PKG_CONFIG
-  fi
-else
-  PKG_CONFIG="$ac_cv_path_PKG_CONFIG"
-fi
-
-fi
-if test -n "$PKG_CONFIG"; then
-	_pkg_min_version=0.9.0
-	{ $as_echo "$as_me:$LINENO: checking pkg-config is at least version $_pkg_min_version" >&5
-$as_echo_n "checking pkg-config is at least version $_pkg_min_version... " >&6; }
-	if $PKG_CONFIG --atleast-pkgconfig-version $_pkg_min_version; then
-		{ $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-	else
-		{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-		PKG_CONFIG=""
-	fi
-
-fi
-
-pkg_failed=no
-{ $as_echo "$as_me:$LINENO: checking for nss" >&5
-$as_echo_n "checking for nss... " >&6; }
-
-if test -n "$nss_CFLAGS"; then
-    pkg_cv_nss_CFLAGS="$nss_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"nss >= 3\"") >&5
-  ($PKG_CONFIG --exists --print-errors "nss >= 3") 2>&5
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
   ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
   $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; then
-  pkg_cv_nss_CFLAGS=`$PKG_CONFIG --cflags "nss >= 3" 2>/dev/null`
+  (exit $ac_status); } >/dev/null && {
+	 test -z "$ac_c_preproc_warn_flag$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       }; then
+  ac_header_preproc=yes
 else
-  pkg_failed=yes
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
 fi
- else
-    pkg_failed=untried
+
+rm -f conftest.err conftest.$ac_ext
+{ $as_echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+  yes:no: )
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $ac_header: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: $ac_header:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: $ac_header: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
+$as_echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: in the future, the compiler will take precedence" >&5
+$as_echo "$as_me: WARNING: $ac_header: in the future, the compiler will take precedence" >&2;}
+    ( cat <<\_ASBOX
+## ------------------------------------------- ##
+## Report this to systemtap@sources.redhat.com ##
+## ------------------------------------------- ##
+_ASBOX
+     ) | sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+{ $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
+$as_echo_n "checking for $ac_header... " >&6; }
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  $as_echo_n "(cached) " >&6
+else
+  eval "$as_ac_Header=\$ac_header_preproc"
 fi
-if test -n "$nss_LIBS"; then
-    pkg_cv_nss_LIBS="$nss_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"nss >= 3\"") >&5
-  ($PKG_CONFIG --exists --print-errors "nss >= 3") 2>&5
+ac_res=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+
+fi
+as_val=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+   if test "x$as_val" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+ have_nss_includes=yes
+else
+  have_nss_includes=no
+fi
+
+done
+
+CPPFLAGS="$save_CPPFLAGS"
+have_nss_libs=no
+{ $as_echo "$as_me:$LINENO: checking for PR_Connect in -lnspr4" >&5
+$as_echo_n "checking for PR_Connect in -lnspr4... " >&6; }
+if test "${ac_cv_lib_nspr4_PR_Connect+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnspr4  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char PR_Connect ();
+int
+main ()
+{
+return PR_Connect ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
   ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
   $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; then
-  pkg_cv_nss_LIBS=`$PKG_CONFIG --libs "nss >= 3" 2>/dev/null`
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_lib_nspr4_PR_Connect=yes
 else
-  pkg_failed=yes
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_nspr4_PR_Connect=no
 fi
- else
-    pkg_failed=untried
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
 fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_nspr4_PR_Connect" >&5
+$as_echo "$ac_cv_lib_nspr4_PR_Connect" >&6; }
+if test "x$ac_cv_lib_nspr4_PR_Connect" = x""yes; then
 
-
-
-if test $pkg_failed = yes; then
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
+	{ $as_echo "$as_me:$LINENO: checking for SSL_ReHandshake in -lssl3" >&5
+$as_echo_n "checking for SSL_ReHandshake in -lssl3... " >&6; }
+if test "${ac_cv_lib_ssl3_SSL_ReHandshake+set}" = set; then
+  $as_echo_n "(cached) " >&6
 else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        nss_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "nss >= 3" 2>&1`
-        else
-	        nss_PKG_ERRORS=`$PKG_CONFIG --print-errors "nss >= 3" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$nss_PKG_ERRORS" >&5
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lssl3  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
 
-	{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-                have_nss=no
-elif test $pkg_failed = untried; then
-	have_nss=no
-else
-	nss_CFLAGS=$pkg_cv_nss_CFLAGS
-	nss_LIBS=$pkg_cv_nss_LIBS
-        { $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-	have_nss=yes
-fi
-
-pkg_failed=no
-{ $as_echo "$as_me:$LINENO: checking for nspr" >&5
-$as_echo_n "checking for nspr... " >&6; }
-
-if test -n "$nspr_CFLAGS"; then
-    pkg_cv_nspr_CFLAGS="$nspr_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"nspr >= 4\"") >&5
-  ($PKG_CONFIG --exists --print-errors "nspr >= 4") 2>&5
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char SSL_ReHandshake ();
+int
+main ()
+{
+return SSL_ReHandshake ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
   ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
   $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; then
-  pkg_cv_nspr_CFLAGS=`$PKG_CONFIG --cflags "nspr >= 4" 2>/dev/null`
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_lib_ssl3_SSL_ReHandshake=yes
 else
-  pkg_failed=yes
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_ssl3_SSL_ReHandshake=no
 fi
- else
-    pkg_failed=untried
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
 fi
-if test -n "$nspr_LIBS"; then
-    pkg_cv_nspr_LIBS="$nspr_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"nspr >= 4\"") >&5
-  ($PKG_CONFIG --exists --print-errors "nspr >= 4") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; then
-  pkg_cv_nspr_LIBS=`$PKG_CONFIG --libs "nspr >= 4" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_ssl3_SSL_ReHandshake" >&5
+$as_echo "$ac_cv_lib_ssl3_SSL_ReHandshake" >&6; }
+if test "x$ac_cv_lib_ssl3_SSL_ReHandshake" = x""yes; then
+  have_nss_libs=yes
 fi
 
 
-
-if test $pkg_failed = yes; then
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
 fi
-        if test $_pkg_short_errors_supported = yes; then
-	        nspr_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "nspr >= 4" 2>&1`
-        else
-	        nspr_PKG_ERRORS=`$PKG_CONFIG --print-errors "nspr >= 4" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$nspr_PKG_ERRORS" >&5
 
-	{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-                have_nspr=no
-elif test $pkg_failed = untried; then
-	have_nspr=no
-else
-	nspr_CFLAGS=$pkg_cv_nspr_CFLAGS
-	nspr_LIBS=$pkg_cv_nspr_LIBS
-        { $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-	have_nspr=yes
 fi
-if test "x${have_nss}${have_nspr}" != "xyesyes"; then
+if test "x${have_nss_includes}${have_nss_libs}" != "xyesyes"; then
   if test "$enable_server" == "yes"; then
     { { $as_echo "$as_me:$LINENO: error: cannot find all libraries for stap-server" >&5
 $as_echo "$as_me: error: cannot find all libraries for stap-server" >&2;}
@@ -6958,7 +7093,7 @@ $as_echo "$as_me: error: cannot find all libraries for stap-server" >&2;}
 $as_echo "$as_me: WARNING: will not build stap-server, cannot find all libraries" >&2;}
   fi
 fi
- if test "x${have_nss}${have_nspr}" == "xyesyes" -a "$enable_server" != "no"; then
+ if test "x${have_nss_includes}${have_nss_libs}" == "xyesyes" -a "$enable_server" != "no"; then
   BUILD_SERVER_TRUE=
   BUILD_SERVER_FALSE='#'
 else

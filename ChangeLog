@@ -1,3 +1,17 @@
+2009-02-17  Elliott Baron  <ebaron@redhat.com>
+
+	PR 9716
+	* configure.ac: Replace pkgconfig tests for NSS/NSPR includes/libs
+	with AC macros.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+	* doc/Makefile.in: Likewise.
+	* doc/SystemTap_Tapset_Reference/Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+	* testsuite/aclocal.m4: Likewise.
+	* testsuite/configure: Likewise.
+
 2009-02-16  Mark Wielaard  <mjw@redhat.com>
 
 	PR 9850
