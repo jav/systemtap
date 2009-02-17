@@ -1,3 +1,13 @@
+2009-02-17  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am: Set SYSTEMTAP_INCLUDES.
+	* systemtap.base/static_uprobes.exp: Always run the compile tests,
+	use SYSTEMTAP_INCLUDES to find sys/sdt.h, use SYSTEMTAP_PATH to
+	find dtrace script.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+
 2009-02-16  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/bz5274.exp: Better cleanup.

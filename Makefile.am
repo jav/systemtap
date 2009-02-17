@@ -16,7 +16,7 @@ man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/st
 
 bin_PROGRAMS = stap staprun
 bin_SCRIPTS = stap-report
-oldinclude_HEADERS = runtime/sdt.h
+oldinclude_HEADERS = includes/sys/sdt.h
 if BUILD_SERVER
 man_MANS += stap-server.8 
 bin_PROGRAMS += stap-client-connect stap-server-connect
@@ -264,7 +264,8 @@ SUBDIRS = testsuite doc
 
 check:
 	SRCDIR=`cd $(srcdir); pwd`; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH="$(PWD)" RUNTESTFLAGS="$(RUNTESTFLAGS)";
+        PWD=`pwd`; \
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)";
 
 installcheck:
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \

@@ -1,6 +1,5 @@
 
 set test "sduprobes"
-if {![installtest_p]} {untested $test; return}
 
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_uprobes.c"
@@ -46,21 +45,6 @@ main ()
 "
 close $fp
 
-# Try to find utrace_attach symbol in /proc/kallsyms
-# copy from utrace_p5.exp
-set utrace_support_found 0
-set path "/proc/kallsyms"
-if {! [catch {exec grep -q utrace_attach $path} dummy]} {
-    set utrace_support_found 1
-}
-if {$utrace_support_found == 0} {
-    untested "$test"
-    catch {exec rm -f $sup_srcpath}
-    return
-}
-
-set ok 0
-
 set sup_stppath "[pwd]/static_uprobes.stp"
 set fp [open $sup_stppath "w"]
 puts $fp "
@@ -95,7 +79,7 @@ provider static_uprobes {
 };
 "
 close $fp
-exec dtrace -h -s $sup_dpath
+exec $env(SYSTEMTAP_PATH)/dtrace -h -s $sup_dpath
 if {[file exists $sup_hpath]} then {
     pass "generating $sup_hpath"
 } else {
@@ -106,7 +90,7 @@ if {[file exists $sup_hpath]} then {
 
 catch {exec rm -f $sup_dpath}
 
-set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-g additional_flags=-O additional_flags=-I."
+set sup_flags "additional_flags=-I$env(SYSTEMTAP_INCLUDES) additional_flags=-g additional_flags=-O additional_flags=-I."
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -116,6 +100,36 @@ if { $res != "" } {
 } else {
     pass "compiling $sup_srcpath -g"
 }
+
+spawn mv $sup_srcpath "[pwd]/static_uprobes.cc"
+set sup_srcpath "[pwd]/static_uprobes.cc"
+set sup_flags "$sup_flags c++"
+set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $sup_srcpath -g"
+    catch {exec rm -f $sup_srcpath $sup_exepath $sup_hpath $sup_stppath}
+    return
+} else {
+    pass "compiling $sup_srcpath -g"
+}
+
+if {![installtest_p]} {untested $test; return}
+
+# Try to find utrace_attach symbol in /proc/kallsyms
+# copy from utrace_p5.exp
+set utrace_support_found 0
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    set utrace_support_found 1
+}
+if {$utrace_support_found == 0} {
+    untested "$test"
+    catch {exec rm -f $sup_srcpath}
+    return
+}
+
+set ok 0
 
 verbose -log "spawn stap -c $sup_exepath $sup_stppath"
 spawn stap -c $sup_exepath $sup_stppath
@@ -132,19 +146,6 @@ expect {
 wait
 
 if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
-
-spawn mv $sup_srcpath "[pwd]/static_uprobes.cc"
-set sup_srcpath "[pwd]/static_uprobes.cc"
-set sup_flags "$sup_flags c++"
-set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "compiling $sup_srcpath -g"
-    catch {exec rm -f $sup_srcpath $sup_exepath $sup_hpath $sup_stppath}
-    return
-} else {
-    pass "compiling $sup_srcpath -g"
-}
 
 set ok 0
 

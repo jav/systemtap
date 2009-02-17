@@ -1,3 +1,12 @@
+2009-02-17  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (oldinclude_HEADERS): Set to includes/sys/sdt.h.
+	(check): Explicitly set PWD and SYSTEMTAP_INCLUDES.
+	* includes/sys/sdt.h: Moved from runtime dir.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+
 2009-02-17  Elliott Baron  <ebaron@redhat.com>
 
 	PR 9716

@@ -1,3 +1,7 @@
+2009-02-17  Mark Wielaard  <scox@redhat.com>
+
+	* sdt.h: Move to ../includes/sys.
+
 2009-02-16  Mark Wielaard  <scox@redhat.com>
 
 	* sdt.h (STAP_PROBE): Take provider and probe as arguments.
