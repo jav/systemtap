@@ -1,3 +1,7 @@
+2009-02-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/static_uprobes.exp: Handle $srcdir != $builddir.
+
 2009-02-17  Mark Wielaard  <mjw@redhat.com>
 
 	* Makefile.am: Set SYSTEMTAP_INCLUDES.

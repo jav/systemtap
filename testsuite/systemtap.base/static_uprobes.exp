@@ -79,7 +79,12 @@ provider static_uprobes {
 };
 "
 close $fp
-exec $env(SYSTEMTAP_PATH)/dtrace -h -s $sup_dpath
+if {[installtest_p]} { 
+    set dtrace $env(SYSTEMTAP_PATH)/dtrace 
+} else {
+    set dtrace $srcdir/../dtrace
+}
+exec $dtrace -h -s $sup_dpath
 if {[file exists $sup_hpath]} then {
     pass "generating $sup_hpath"
 } else {
@@ -90,7 +95,13 @@ if {[file exists $sup_hpath]} then {
 
 catch {exec rm -f $sup_dpath}
 
-set sup_flags "additional_flags=-I$env(SYSTEMTAP_INCLUDES) additional_flags=-g additional_flags=-O additional_flags=-I."
+if {[installtest_p]} { 
+    set sdtdir $env(SYSTEMTAP_INCLUDES)
+} else {
+    set sdtdir $srcdir/../includes
+}
+
+set sup_flags "additional_flags=-I$sdtdir additional_flags=-g additional_flags=-O additional_flags=-I."
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
