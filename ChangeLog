@@ -1,5 +1,10 @@
 2009-02-17  Frank Ch. Eigler  <fche@elastic.org>
 
+	* AUTHORS: Regenerated with ...
+	* AUTHORS.sh: New script.
+
+2009-02-17  Frank Ch. Eigler  <fche@elastic.org>
+
 	* configury throughout: autoreconf -f -i'd.
 
 2009-02-17  Frank Ch. Eigler  <fche@elastic.org>
