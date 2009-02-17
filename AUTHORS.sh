@@ -55,6 +55,7 @@ sedcmd="$sedcmd -e s/^maynardj$/Maynard_Johnson/"
 sedcmd="$sedcmd -e s/^root$//"
 sedcmd="$sedcmd -e s/^dcn$/Dave_Nomura/"
 sedcmd="$sedcmd -e s/^Srinivasa$/Srinivasa_DS/"
+sedcmd="$sedcmd -e s/^Will.Cohen$/William_Cohen/"
 
 
 # echo $sedcmd
