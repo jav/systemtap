@@ -1,3 +1,8 @@
+2009-02-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	* includes/sys/sdt.h: Change all parameter register constraints to
+	"X" from "g".
+
 2009-02-17  Mark Wielaard  <mjw@redhat.com>
 
 	* Makefile.am (oldinclude_HEADERS): Set to includes/sys/sdt.h.

@@ -100,7 +100,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
   volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop /* %0 %1 %2 %3 %4 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5)); \
+  asm volatile ("nop /* %0 %1 %2 %3 %4 */" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   STAP_LABEL_REF(probe);}
 
@@ -112,7 +112,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
   volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6)); \
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   STAP_LABEL_REF(probe);}
 
@@ -125,7 +125,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
   volatile typeof((parm7)) arg7  __attribute__ ((unused)) = parm7; \
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7)); \
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   STAP_LABEL_REF(probe);}
 
@@ -139,7 +139,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm7)) arg7  __attribute__ ((unused)) = parm7; \
   volatile typeof((parm8)) arg8  __attribute__ ((unused)) = parm8; \
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8)); \
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7), "X"(arg8)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   STAP_LABEL_REF(probe);}
 
@@ -154,7 +154,7 @@ STAP_LABEL(probe,__LINE__):				\
   volatile typeof((parm8)) arg8  __attribute__ ((unused)) = parm8; \
   volatile typeof((parm9)) arg9  __attribute__ ((unused)) = parm9; \
 STAP_LABEL(probe,__LINE__):				\
-  asm volatile ("nop" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9)); \
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7), "X"(arg8), "X"(arg9)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& STAP_LABEL(probe,__LINE__)) \
   STAP_LABEL_REF(probe);}
 
