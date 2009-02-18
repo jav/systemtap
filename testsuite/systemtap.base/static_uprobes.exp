@@ -4,6 +4,7 @@ set test "sduprobes"
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_uprobes.c"
 set sup_exepath "[pwd]/static_uprobes.x"
+set supcplus_exepath "[pwd]/static_uprobes_cplus.x"
 set fp [open $sup_srcpath "w"]
 puts $fp "
 #include <stdlib.h>
@@ -117,7 +118,7 @@ if { $res != "" } {
 spawn mv $sup_srcpath "[pwd]/static_uprobes.cc"
 set sup_srcpath "[pwd]/static_uprobes.cc"
 set sup_flags "$sup_flags c++"
-set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
+set res [target_compile $sup_srcpath $supcplus_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
     fail "compiling $sup_srcpath -g"
@@ -162,6 +163,7 @@ if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
 
 set ok 0
 
+spawn objcopy -R .probes $supcplus_exepath $sup_exepath 
 verbose -log "spawn stap -c $sup_exepath $sup_stppath"
 spawn stap -c $sup_exepath $sup_stppath
 expect {
@@ -178,4 +180,4 @@ expect {
 wait
 
 if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
-catch {exec rm -f $sup_srcpath $sup_exepath $sup_hpath $sup_stppath}
+catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_hpath $sup_stppath}

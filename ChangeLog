@@ -1,3 +1,9 @@
+2009-02-18  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwarf_builder::build): If not found in .probes, use .label
+	* includes/sys/sdt.h (STAP_PROBE): Always create .probes section.
+	* dtrace: Use basename of -s if no -o given.
+
 2009-02-18  Josh Stone  <jistone@redhat.com>
 
 	* loc2c.c (c_translate_argument): Create a dummy location to start

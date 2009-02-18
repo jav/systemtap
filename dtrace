@@ -60,7 +60,7 @@ class provider:
                 if (len(new_args) > 0):
                     self.arglist[this_probe] = ('%s arg%d' % (new_args, c))
                 if (len(new_args) == 0):
-                    self.h.write ('#define %s STAP_PROBE(provider,%s)\n' % (this_probe_canon, this_probe))
+                    self.h.write ('#define %s() STAP_PROBE(provider,%s)\n' % (this_probe_canon, this_probe))
                 elif (c == 0):
                     self.h.write ('#define %s(arg1) STAP_PROBE%d(provider,%s,arg1)\n' % (this_probe_canon, c+1, this_probe))
                 elif (c == 1):
@@ -125,6 +125,7 @@ if (build_header == False and build_source == False):
 if (filename == ""):
     if (s_filename != ""):
 	(filename,ext) = os.path.splitext(s_filename)
+        filename = os.path.basename(filename)
 	if (build_header):
 	    filename = filename + ".h"
 	elif (build_source):

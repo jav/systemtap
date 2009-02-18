@@ -6,6 +6,9 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+#ifndef _SYS_SDT_H
+#define _SYS_SDT_H    1
+
 #include <string.h>
 
 #if _LP64
@@ -18,8 +21,6 @@
 
 #define STAP_SENTINEL 0x31425250
 
-// g++ 4.3.2 doesn't emit DW_TAG_label
-#ifdef __cplusplus
 #define STAP_PROBE_STRUCT(probe,argc)	\
 struct _probe_ ## probe				\
 {						\
@@ -31,20 +32,10 @@ static char probe ## _ ## probe_name [strlen(#probe)+1] 	\
        __attribute__ ((section (".probes"))) 	\
        = #probe; 				\
 static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section (".probes"))) = {STAP_SENTINEL,(size_t)& probe ## _ ## probe_name[0],argc};
-#else
-#define STAP_PROBE_STRUCT(probe,argc)	
-#endif
 
-#ifdef __cplusplus
 #define STAP_LABEL_REF(probe) \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
     goto STAP_LABEL(probe,__LINE__);
-#else
-#define STAP_LABEL_REF(probe)		\
-  volatile static int sentinel_ ## probe = 0;	\
-  if (__builtin_expect(sentinel_ ## probe < 0, 0)) \
-    goto STAP_LABEL(probe,__LINE__);
-#endif
 
 #define STAP_CONCAT(a,b) a ## b
 #define STAP_LABEL(p,n) \
@@ -178,3 +169,5 @@ STAP_PROBE7(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7)
 STAP_PROBE8(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) 
 #define DTRACE_PROBE9(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
 STAP_PROBE9(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) 
+
+#endif /* sys/sdt.h */

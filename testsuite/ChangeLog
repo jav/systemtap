@@ -1,8 +1,11 @@
+2009-02-18  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/static_uprobes.exp: Also test without .probes section.
+
 2009-02-18  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/static_uprobes.exp: Handles errors from running
 	'dtrace' python script better.
-
 	* systemtap.base/labels.exp: Better cleanup.
 
 2009-02-17  Frank Ch. Eigler  <fche@elastic.org>
