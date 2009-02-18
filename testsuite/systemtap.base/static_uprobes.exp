@@ -84,7 +84,9 @@ if {[installtest_p]} {
 } else {
     set dtrace $srcdir/../dtrace
 }
-exec $dtrace -h -s $sup_dpath
+if {[catch {exec $dtrace -h -s $sup_dpath} res]} {
+    verbose -log "unable to run $dtrace: $res"
+}
 if {[file exists $sup_hpath]} then {
     pass "generating $sup_hpath"
 } else {
