@@ -34,7 +34,8 @@ ptr_inited:
 "
 close $fp
 
-set fp [open "[pwd]/labels.stp" "w"]
+set label_stppath "[pwd]/labels.stp"
+set fp [open $label_stppath "w"]
 puts $fp "
 probe process(\"labels.x\").function(\"main*@labels.c\").label(\"init_*\") {printf (\"VARS %s\\n\",\$\$vars)}
 probe process(\"labels.x\").function(\"main*@labels.c\").label(\"ptr_inited\") {printf (\"VARS %s\\n\",\$\$vars)}
@@ -47,13 +48,14 @@ set res [target_compile $label_srcpath $label_exepath executable $label_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
     fail "compiling labels.c -g"
+    catch {exec rm -f $label_srcpath $label_stppath}
     return
 } else {
     pass "compiling labels.c -g"
 }
 
-verbose -log "spawn stap -c $label_exepath [pwd]/labels.stp"
-spawn stap -c $label_exepath [pwd]/labels.stp
+verbose -log "spawn stap -c $label_exepath $label_stppath"
+spawn stap -c $label_exepath $label_stppath
 
 expect {
     -timeout 180
@@ -65,3 +67,4 @@ expect {
 wait
 
 if {$ok == 1} { pass "$test" } { fail "$test ($ok)" }
+catch {exec rm -f $label_srcpath $label_stppath $label_exepath}
