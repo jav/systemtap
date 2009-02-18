@@ -217,8 +217,6 @@ static struct utt_trace *_stp_utt_open(void)
  */
 static int _stp_transport_init(void)
 {
-	int ret;
-
 	dbug_trans(1, "transport_init\n");
 	_stp_init_pid = current->pid;
 #ifdef STAPCONF_TASK_UID

@@ -1,3 +1,17 @@
+2009-02-18  David Smith  <dsmith@redhat.com>
+
+	* io.c (_stp_log): Removed unused function.
+	* map.c (_stp_cmp): Replace _stp_log() with dbug().
+	* mempool.c (_stp_mempool_resize): Removed unused function.
+	* print.c (next_fmt): Removed unused function.
+	* procfs.c: Removed unused variable '_stp_num_procfs_files'.
+	* regs.c (_stp_ret_addr): Removed unused function.
+	* string.c (_stp_text_str): Removed unused variable 'len'.
+	* string.h: Removed unused variable '_stdout_' and function
+	declaration for deleted function '_stp_vsprintf'.
+	* sym.c: Removed unused variables.
+	* unwind.c (_stp_create_unwind_hdr): Removed unused function.
+
 2009-02-17  Mark Wielaard  <scox@redhat.com>
 
 	* sdt.h: Move to ../includes/sys.

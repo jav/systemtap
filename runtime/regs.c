@@ -23,43 +23,6 @@
  * @{
  */
 
-
-/** Get the current return address.
- * Call from kprobes (not jprobes).
- * @param regs The pt_regs saved by the kprobe.
- * @return The return address saved in the stack pointer.
- * @note i386 and x86_64 only so far.
- */
- 
-static unsigned long _stp_ret_addr (struct pt_regs *regs)
-{
-#if defined  (STAPCONF_X86_UNIREGS)  && (defined (__x86_64__) || defined (__i386__))
-         unsigned long *ra = (unsigned long *)regs->sp;
-          if (ra)
-                  return *ra;
-          else
-                  return 0;
-#elif defined  (__x86_64__)
-	unsigned long *ra = (unsigned long *)regs->rsp;
-	if (ra)
-		return *ra;
-	else
-		return 0;
-#elif defined (__i386__)
-	return regs->esp;
-#elif defined (__powerpc64__) || defined (__arm__)
-	return REG_LINK(regs);
-#elif defined (__ia64__)
-	return regs->b0;
-#elif defined (__s390__) || defined (__s390x__)
-	return regs->gprs[14];
-#elif defined (__arm__)
-	return regs->ARM_r0;
-#else
-	#error Unimplemented architecture
-#endif
-}
-
 /** Get the current return address for a return probe.
  * Call from kprobe return probe.
  * @param ri Pointer to the struct kretprobe_instance.

@@ -81,13 +81,6 @@ inline static int _stp_ctl_write_fs(int type, void *data, unsigned len)
 	return 0;
 }
 
-/* set the number of buffers to use to 'num' */
-static int _stp_set_buffers(int num)
-{
-	dbug_trans(1, "stp_set_buffers %d\n", num);
-	return _stp_mempool_resize(_stp_pool_q, num);
-}
-
 static int _stp_ctl_read_bufsize(char *page, char **start, off_t off, int count, int *eof, void *data)
 {
 	int len = sprintf(page, "%d,%d\n", _stp_nsubbufs, _stp_subbuf_size);
@@ -104,13 +97,13 @@ static int _stp_ctl_read_bufsize(char *page, char **start, off_t off, int count,
 
 static int _stp_register_ctl_channel_fs(void)
 {
-	int i;
-	const char *dirname = "systemtap";
-	char buf[32];
 #ifdef STP_BULKMODE
+	int i;
 	int j;
+	char buf[32];
+	struct proc_dir_entry *bs = NULL;
 #endif
-	struct proc_dir_entry *de, *bs = NULL;
+	struct proc_dir_entry *de;
 
 	if (!_stp_mkdir_proc_module())
 		goto err0;
@@ -144,8 +137,7 @@ static int _stp_register_ctl_channel_fs(void)
 	de->proc_fops = &_stp_ctl_fops_cmd;
 
 	return 0;
-err2:
-	remove_proc_entry(".cmd", _stp_proc_root);
+
 err1:
 #ifdef STP_BULKMODE
 	for (de = _stp_proc_root->subdir; de; de = de->next)

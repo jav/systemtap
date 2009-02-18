@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Map Functions
- * Copyright (C) 2005, 2006, 2007, 2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -444,7 +444,7 @@ static int _stp_cmp (struct list_head *a, struct list_head *b, int keynum, int d
 			ret = 1;
 		else
 			ret = 0;
-		//_stp_log ("comparing %s and %s and returning %d\n", _stp_get_str(m1), _stp_get_str(m2), ret);
+		//dbug ("comparing %s and %s and returning %d\n", _stp_get_str(m1), _stp_get_str(m2), ret);
 		return ret;
 	} else {
 		int64_t a,b;

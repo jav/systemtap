@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Symbolic Lookup Functions
- * Copyright (C) 2005-2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  * Copyright (C) 2006 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -25,7 +25,6 @@ static unsigned long _stp_module_relocate(const char *module, const char *sectio
 {
 	static struct _stp_module *last = NULL;
 	static struct _stp_section *last_sec;
-	unsigned long flags;
 	unsigned i, j;
 
 	/* if module is -1, we invalidate last. _stp_del_module calls this when modules are deleted. */
@@ -114,7 +113,6 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	struct _stp_module *m = NULL;
 	struct _stp_section *sec = NULL;
 	struct _stp_symbol *s = NULL;
-	unsigned long flags;
 	unsigned end, begin = 0;
 
 	m = _stp_mod_sec_lookup(addr, &sec);

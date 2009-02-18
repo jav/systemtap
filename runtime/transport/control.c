@@ -9,8 +9,6 @@
  * later version.
  */
 
-static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
-
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
 static DEFINE_SPINLOCK(_stp_ctl_ready_lock);

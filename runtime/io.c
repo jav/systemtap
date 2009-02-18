@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * I/O for printing warnings, errors and debug messages
- * Copyright (C) 2005-2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -54,24 +54,6 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 		}
 	}
 	put_cpu();
-}
-
-/** Logs Data.
- * This function sends the message immediately to staprun. It
- * will also be sent over the bulk transport (relayfs) if it is
- * being used. If the last character is not a newline, then one 
- * is added. This function is not as efficient as _stp_printf()
- * and should only be used for urgent messages. You probably want
- * dbug(), or _stp_warn().
- * @param fmt A variable number of args.
- * @todo Evaluate if this function is necessary.
- */
-static void _stp_log (const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	_stp_vlog (INFO, NULL, 0, fmt, args);
-	va_end(args);
 }
 
 /** Prints warning.

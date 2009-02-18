@@ -19,7 +19,6 @@
 
 #define STP_MAX_PROCFS_FILES 16
 static int _stp_num_pde = 0;
-static int _stp_num_procfs_files = 0;
 static struct proc_dir_entry *_stp_pde[STP_MAX_PROCFS_FILES];
 static struct proc_dir_entry *_stp_procfs_files[STP_MAX_PROCFS_FILES];
 static struct proc_dir_entry *_stp_proc_stap = NULL;

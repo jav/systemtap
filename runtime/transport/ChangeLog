@@ -1,3 +1,16 @@
+2009-02-18  David Smith  <dsmith@redhat.com>
+
+	* control.c: Removed unused variable '_stp_current_buffers'.
+	* procfs.c (_stp_set_buffers): Removed unused function.
+	(_stp_register_ctl_channel_fs): Removed unused variables and
+	label. 
+	* symbols.c (u32_swap): Removed unused function.
+	(generic_swap): Ditto.
+	(_stp_sort): Ditto.
+	(_stp_section_is_interesting): Ditto.
+	* transport.c (_stp_transport_init): Removed unused variable
+	'ret'.
+
 2009-02-17  David Smith  <dsmith@redhat.com>
 
 	* control.c: Contains generic control channel functions.

@@ -1,6 +1,6 @@
 /*  -*- linux-c -*-
  * Preallocated memory pools
- * Copyright (C) 2008 Red Hat Inc.
+ * Copyright (C) 2008-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -70,41 +70,6 @@ static _stp_mempool_t *_stp_mempool_init(size_t size, size_t num)
 err:
 	_stp_mempool_destroy(pool);
 	return NULL;
-}
-
-/* Resize a memory pool */
-static int _stp_mempool_resize(_stp_mempool_t *pool, size_t num)
-{
-	int i;
-	unsigned long flags;
-	struct _stp_mem_buffer *m;
-
-	if (unlikely(num == 0 || num == pool->num))
-		return pool->num;
-
-	if (num > pool->num) {
-		for (i = 0; i < num - pool->num; i++) {
-			m = (struct _stp_mem_buffer *)_stp_kmalloc(pool->size);
-			if (unlikely(m == NULL))
-				goto done;
-			m->pool = pool;
-			pool->num++;
-			spin_lock_irqsave(&pool->lock, flags);
-			list_add((struct list_head *)m, &pool->free_list);
-			spin_unlock_irqrestore(&pool->lock, flags);
-		}
-	} else {
-		for (i = 0; i < pool->num - num; i++) {
-			spin_lock_irqsave(&pool->lock, flags);
-			m = (struct _stp_mem_buffer *)pool->free_list.next;
-			list_del(&m->list);
-			spin_unlock_irqrestore(&pool->lock, flags);
-			_stp_kfree(m);
-		}
-		pool->num = num;
-	}
-done:
-	return num;
 }
 
 /* allocate a buffer from a memory pool */

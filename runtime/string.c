@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * String Functions
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007, 2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -62,7 +62,6 @@ static int _stp_vscnprintf(char *buf, size_t size, const char *fmt, va_list args
  */
 static void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 {
-	const int length = len;
 	char c, *out = outstr;
 
 	if (len == 0 || len > MAXSTRINGLEN-1)
