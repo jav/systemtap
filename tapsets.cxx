@@ -539,7 +539,8 @@ inline_instance_info
 };
 
 
-struct dwarf_query; // forward decls
+struct base_query; // forward decls
+struct dwarf_query;
 struct dwflpp;
 struct symbol_table;
 
@@ -1011,7 +1012,7 @@ struct dwflpp
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
 					     const char *, Dwarf_Addr,
 					     void *),
-			    dwarf_query *data)
+			    base_query *data)
   {
     ptrdiff_t off = 0;
     do
@@ -1029,7 +1030,7 @@ struct dwflpp
 
 
   // Defined after dwarf_query
-  void query_modules(dwarf_query *q);
+  void query_modules(base_query *q);
 
 
   // -----------------------------------------------------------------
@@ -1146,10 +1147,8 @@ struct dwflpp
     return DWARF_CB_OK;
   }
 
-  Dwarf_Die *declaration_resolve(Dwarf_Die *die)
+  Dwarf_Die *declaration_resolve(const char *name)
   {
-    const char *name = dwarf_diename(die);
-
     if (!name)
       return NULL;
 
@@ -1929,11 +1928,14 @@ struct dwflpp
 		       Dwarf_Die *die_mem,
 		       Dwarf_Attribute *attr_mem)
   {
-    Dwarf_Die *die = vardie;
+    Dwarf_Die *die = die_mem;
     Dwarf_Die struct_die;
     Dwarf_Attribute temp_attr;
 
     unsigned i = 0;
+
+    if (vardie)
+      *die_mem = *vardie;
 
     static unsigned int func_call_level ;
     static unsigned int dwarf_error_flag ; // indicates current error is dwarf error
@@ -1951,7 +1953,6 @@ struct dwflpp
         obstack_printf (pool, "c->last_stmt = %s;", lex_cast_qstring(piece).c_str());
 #endif
 
-	die = dwarf_formref_die (attr_mem, die_mem);
 	const int typetag = dwarf_tag (die);
 	switch (typetag)
 	  {
@@ -1988,7 +1989,7 @@ struct dwflpp
 	    struct_die = *die;
 	    if (dwarf_hasattr(die, DW_AT_declaration))
 	      {
-		Dwarf_Die *tmpdie = dwflpp::declaration_resolve(die);
+		Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(die));
 		if (tmpdie == NULL)
 		  throw semantic_error ("unresolved struct "
 					+ string (dwarf_diename_integrate (die) ?: "<anonymous>"));
@@ -2102,6 +2103,7 @@ struct dwflpp
 	/* Now iterate on the type in DIE's attribute.  */
 	if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
 	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
+	die = dwarf_formref_die (attr_mem, die_mem);
       }
     return die;
   }
@@ -2345,8 +2347,9 @@ struct dwflpp
     /* Translate the ->bar->baz[NN] parts. */
 
     Dwarf_Die die_mem, *die = NULL;
+    die = dwarf_formref_die (&attr_mem, &die_mem);
     die = translate_components (&pool, &tail, pc, components,
-				&vardie, &die_mem, &attr_mem);
+				die, &die_mem, &attr_mem);
     if(!die)
 	{ 
 	  die = dwarf_formref_die (&attr_mem, &vardie);
@@ -2463,6 +2466,60 @@ struct dwflpp
   }
 
 
+  string
+  literal_stmt_for_pointer (Dwarf_Die *type_die,
+                            vector<pair<target_symbol::component_type,
+                                   std::string> > const & components,
+                            bool lvalue,
+                            exp_type & ty)
+  {
+    if (sess.verbose>2)
+	clog << "literal_stmt_for_pointer: finding value for "
+	     << (dwarf_diename(type_die) ?: "<unknown>")
+	     << "("
+	     << (dwarf_diename(cu) ?: "<unknown>")
+	     << ")\n";
+
+    struct obstack pool;
+    obstack_init (&pool);
+    struct location *head = c_translate_argument (&pool, &loc2c_error, this,
+                                                  &loc2c_emit_address,
+                                                  1, "THIS->pointer");
+    struct location *tail = head;
+
+    /* Translate the ->bar->baz[NN] parts. */
+
+    Dwarf_Attribute attr_mem;
+    Dwarf_Die die_mem, *die = NULL;
+    die = translate_components (&pool, &tail, 0, components,
+				type_die, &die_mem, &attr_mem);
+    if(!die)
+	{
+	  die = dwarf_formref_die (&attr_mem, &die_mem);
+          stringstream alternatives;
+          print_members(die ?: type_die, alternatives);
+	  throw semantic_error("unable to find member for struct "
+			       + string(dwarf_diename(die ?: type_die) ?: "<unknown>")
+                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
+	}
+
+
+    /* Translate the assignment part, either
+       x = (THIS->pointer)->bar->baz[NN]
+       or
+       (THIS->pointer)->bar->baz[NN] = x
+    */
+
+    string prelude, postlude;
+    translate_final_fetch_or_store (&pool, &tail, module_bias,
+				    die, &attr_mem, lvalue,
+				    prelude, postlude, ty);
+
+    /* Write the translation to a string. */
+    return express_as_string(prelude, postlude, head);
+  }
+
+
   ~dwflpp()
   {
     if (dwfl)
@@ -2519,7 +2576,7 @@ struct dwarf_derived_probe: public derived_probe
 					  dwarf_builder * dw);
   static void register_function_and_statement_variants(match_node * root,
 						       dwarf_builder * dw);
-  static void register_patterns(match_node * root);
+  static void register_patterns(systemtap_session& s);
 };
 
 
@@ -2574,19 +2631,12 @@ public:
 // Helper struct to thread through the dwfl callbacks.
 struct base_query
 {
-  base_query(systemtap_session & sess,
-	     probe * base_probe,
-	     probe_point * base_loc,
-	     dwflpp & dw,
-	     literal_map_t const & params,
-	     vector<derived_probe *> & results);
+  base_query(dwflpp & dw, literal_map_t const & params);
+  base_query(dwflpp & dw, const string & module_val);
   virtual ~base_query() {}
 
   systemtap_session & sess;
-  probe * base_probe;
-  probe_point * base_loc;
   dwflpp & dw;
-  vector<derived_probe *> & results;
 
   // Parameter extractors.
   static bool has_null_param(literal_map_t const & params,
@@ -2608,14 +2658,8 @@ struct base_query
 };
 
 
-base_query::base_query(systemtap_session & sess,
-		       probe * base_probe,
-		       probe_point * base_loc,
-		       dwflpp & dw,
-		       literal_map_t const & params,
-		       vector<derived_probe *> & results)
-  : sess(sess), base_probe(base_probe), base_loc(base_loc), dw(dw),
-    results(results)
+base_query::base_query(dwflpp & dw, literal_map_t const & params):
+  sess(dw.sess), dw(dw)
 {
   has_kernel = has_null_param (params, TOK_KERNEL);
   if (has_kernel)
@@ -2632,6 +2676,24 @@ base_query::base_query(systemtap_session & sess,
     }
 
   assert (has_kernel || has_process || has_module);
+}
+
+base_query::base_query(dwflpp & dw, const string & module_val)
+  : sess(dw.sess), dw(dw), module_val(module_val)
+{
+  // NB: This uses '/' to distinguish between kernel modules and userspace,
+  // which means that userspace modules won't get any PATH searching.
+  if (module_val.find('/') == string::npos)
+    {
+      has_kernel = (module_val == TOK_KERNEL);
+      has_module = !has_kernel;
+      has_process = false;
+    }
+  else
+    {
+      has_kernel = has_module = false;
+      has_process = true;
+    }
 }
 
 bool
@@ -2679,6 +2741,10 @@ struct dwarf_query : public base_query
 	      dwflpp & dw,
 	      literal_map_t const & params,
 	      vector<derived_probe *> & results);
+
+  vector<derived_probe *> & results;
+  probe * base_probe;
+  probe_point * base_loc;
 
   virtual void handle_query_module();
   void query_module_dwarf();
@@ -2963,7 +3029,8 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 			 dwflpp & dw,
 			 literal_map_t const & params,
 			 vector<derived_probe *> & results)
-  : base_query(sess, base_probe, base_loc, dw, params, results)
+  : base_query(dw, params), results(results),
+    base_probe(base_probe), base_loc(base_loc)
 {
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
@@ -4200,7 +4267,7 @@ query_module (Dwfl_Module *mod,
 }
 
 void
-dwflpp::query_modules(dwarf_query *q)
+dwflpp::query_modules(base_query *q)
 {
   iterate_over_modules(&query_module, q);
 }
@@ -4798,6 +4865,228 @@ dwarf_var_expanding_visitor::visit_cast_op (cast_op *e)
 }
 
 
+struct dwarf_cast_query : public base_query
+{
+  const cast_op& e;
+  const bool lvalue;
+  exp_type& pe_type;
+
+  bool resolved;
+  string code;
+
+  dwarf_cast_query(dwflpp& dw, const cast_op& e, bool lvalue, exp_type& pe_type):
+    base_query(dw, e.module), e(e), lvalue(lvalue), pe_type(pe_type), resolved(false) {}
+  const string& get_code();
+
+  void handle_query_module();
+  int handle_query_cu(Dwarf_Die * cudie);
+
+  static int cast_query_cu (Dwarf_Die * cudie, void * arg);
+};
+
+
+const string&
+dwarf_cast_query::get_code()
+{
+  if (!resolved)
+    dw.query_modules(this);
+
+  if (!resolved)
+    throw semantic_error("type definition not found");
+
+  return code;
+}
+
+
+void
+dwarf_cast_query::handle_query_module()
+{
+  if (resolved)
+    return;
+
+  // look for the type in each CU
+  dw.iterate_over_cus(cast_query_cu, this);
+}
+
+
+int
+dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
+{
+  if (resolved)
+    return DWARF_CB_ABORT;
+
+  dw.focus_on_cu (cudie);
+  Dwarf_Die* type_die = dw.declaration_resolve(e.type.c_str());
+  if (type_die)
+    {
+      try
+        {
+          code = dw.literal_stmt_for_pointer (type_die, e.components,
+                                              lvalue, pe_type);
+        }
+      catch (const semantic_error& e)
+        {
+          // XXX might be better to save the error
+          // and try again in another CU
+          sess.print_error (e);
+          return DWARF_CB_ABORT;
+        }
+
+      resolved = true;
+      return DWARF_CB_ABORT;
+    }
+  return DWARF_CB_OK;
+}
+
+
+int
+dwarf_cast_query::cast_query_cu (Dwarf_Die * cudie, void * arg)
+{
+  dwarf_cast_query * q = static_cast<dwarf_cast_query *>(arg);
+  if (pending_interrupts) return DWARF_CB_ABORT;
+  return q->handle_query_cu(cudie);
+}
+
+
+struct dwarf_cast_expanding_visitor: public var_expanding_visitor
+{
+  systemtap_session& s;
+  dwarf_builder& db;
+
+  dwarf_cast_expanding_visitor(systemtap_session& s, dwarf_builder& db):
+    s(s), db(db) {}
+  void visit_cast_op (cast_op* e);
+};
+
+
+void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
+{
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue && !s.guru_mode)
+    throw semantic_error("write to typecast value not permitted", e->tok);
+
+  if (e->module.empty())
+    e->module = "kernel"; // "*" may also be reasonable to search all kernel modules
+
+  if (! s.module_cache)
+    s.module_cache = new module_cache ();
+
+  string code;
+  exp_type type = pe_long;
+  try
+    {
+      // NB: This uses '/' to distinguish between kernel modules and userspace,
+      // which means that userspace modules won't get any PATH searching.
+      dwflpp* dw;
+      if (e->module.find('/') == string::npos)
+        {
+          // kernel or kernel module target
+          if (! db.kern_dw)
+            {
+              db.kern_dw = new dwflpp(s);
+              db.kern_dw->setup_kernel(true);
+            }
+          dw = db.kern_dw;
+        }
+      else
+        {
+          e->module = find_executable (e->module); // canonicalize it
+
+          // user-space target; we use one dwflpp instance per module name
+          // (= program or shared library)
+          if (db.user_dw.find(e->module) == db.user_dw.end())
+            {
+              dw = new dwflpp(s);
+              dw->setup_user(e->module);
+              db.user_dw[e->module] = dw;
+            }
+          else
+            dw = db.user_dw[e->module];
+        }
+
+      dwarf_cast_query q (*dw, *e, lvalue, type);
+      code = q.get_code();
+    }
+  catch (const semantic_error& er)
+    {
+      // We suppress this error message, and pass the unresolved
+      // cast_op to the next pass.  We hope that this value ends
+      // up not being referenced after all, so it can be optimized out
+      // quietly.
+      semantic_error* saveme = new semantic_error (er); // copy it
+      saveme->tok1 = e->tok; // XXX: token not passed to dw code generation routines
+      // NB: we can have multiple errors, since a @cast
+      // may be expanded in several different contexts:
+      //     function ("*") { @cast(...) }
+      saveme->chain = e->saved_conversion_error;
+      e->saved_conversion_error = saveme;
+      provide (e);
+      return;
+    }
+
+  string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
+		  + "_" + e->base_name.substr(1)
+		  + "_" + lex_cast<string>(tick++));
+
+  // Synthesize a function.
+  functiondecl *fdecl = new functiondecl;
+  fdecl->tok = e->tok;
+  fdecl->type = type;
+  fdecl->name = fname;
+
+  embeddedcode *ec = new embeddedcode;
+  ec->tok = e->tok;
+  ec->code = code;
+  fdecl->body = ec;
+
+  // Give the fdecl an argument for the pointer we're trying to cast
+  vardecl *v1 = new vardecl;
+  v1->type = pe_long;
+  v1->name = "pointer";
+  v1->tok = e->tok;
+  fdecl->formal_args.push_back(v1);
+
+  if (lvalue)
+    {
+      // Modify the fdecl so it carries a second pe_long formal
+      // argument called "value".
+
+      // FIXME: For the time being we only support setting target
+      // variables which have base types; these are 'pe_long' in
+      // stap's type vocabulary.  Strings and pointers might be
+      // reasonable, some day, but not today.
+
+      vardecl *v2 = new vardecl;
+      v2->type = pe_long;
+      v2->name = "value";
+      v2->tok = e->tok;
+      fdecl->formal_args.push_back(v2);
+    }
+  else
+    ec->code += "/* pure */";
+
+  s.functions[fdecl->name] = fdecl;
+
+  // Synthesize a functioncall.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
+  n->args.push_back(e->operand);
+
+  if (lvalue)
+    {
+      // Provide the functioncall to our parent, so that it can be
+      // used to substitute for the assignment node immediately above
+      // us.
+      assert(!target_symbol_setter_functioncalls.empty());
+      *(target_symbol_setter_functioncalls.top()) = n;
+    }
+
+  provide (n);
+}
+
+
 void
 dwarf_derived_probe::printsig (ostream& o) const
 {
@@ -4985,9 +5274,13 @@ dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
 }
 
 void
-dwarf_derived_probe::register_patterns(match_node * root)
+dwarf_derived_probe::register_patterns(systemtap_session& s)
 {
+  match_node* root = s.pattern_root;
   dwarf_builder *dw = new dwarf_builder();
+
+  update_visitor *filter = new dwarf_cast_expanding_visitor(s, *dw);
+  s.code_filters.push_back(filter);
 
   register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
@@ -9118,7 +9411,7 @@ struct timer_builder: public derived_probe_builder
 	literal_map_t const & parameters,
 	vector<derived_probe *> & finished_results);
 
-    static void register_patterns(match_node *root);
+    static void register_patterns(systemtap_session& s);
 };
 
 void
@@ -9189,8 +9482,9 @@ timer_builder::build(systemtap_session & sess,
 }
 
 void
-timer_builder::register_patterns(match_node *root)
+timer_builder::register_patterns(systemtap_session& s)
 {
+  match_node* root = s.pattern_root;
   derived_probe_builder *builder = new timer_builder();
 
   root = root->bind(TOK_TIMER);
@@ -9658,13 +9952,13 @@ register_standard_tapsets(systemtap_session & s)
 
   s.pattern_root->bind(TOK_NEVER)->bind(new never_builder());
 
-  timer_builder::register_patterns(s.pattern_root);
+  timer_builder::register_patterns(s);
   s.pattern_root->bind(TOK_TIMER)->bind("profile")->bind(new profile_builder());
   s.pattern_root->bind("perfmon")->bind_str("counter")
     ->bind(new perfmon_builder());
 
   // dwarf-based kprobe/uprobe parts
-  dwarf_derived_probe::register_patterns(s.pattern_root);
+  dwarf_derived_probe::register_patterns(s);
 
   // XXX: user-space starter set
   s.pattern_root->bind_num(TOK_PROCESS)
