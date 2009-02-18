@@ -15,10 +15,10 @@ static int _stp_valid_stack_ptr(unsigned long context, unsigned long p)
 
 /* DWARF unwinder failed.  Just dump intereting addresses on kernel stack. */
 #ifndef CONFIG_STACKTRACE
-static void _stp_stack_print_fallback(unsigned long context, unsigned long stack, int verbose, int levels)
+static void _stp_stack_print_fallback(unsigned long stack, int verbose, int levels)
 {
 	unsigned long addr;
-	while (levels && _stp_valid_stack_ptr(context, stack)) {
+	while (levels && stack & (THREAD_SIZE-1)) {
 		if (unlikely(_stp_read_address(addr, (unsigned long *)stack, KERNEL_DS))) {
 			/* cannot access stack.  give up. */
 			return;
@@ -71,11 +71,11 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 		/* If an error happened or we hit a kretprobe trampoline, use fallback backtrace */
 		/* FIXME: is there a way to unwind across kretprobe trampolines? */
 		if (ret < 0 || (ret > 0 && UNW_PC(&info) == _stp_kretprobe_trampoline))
-			_stp_stack_print_fallback(context, UNW_SP(&info), verbose, levels);
+			_stp_stack_print_fallback(UNW_SP(&info), verbose, levels);
 		break;
 	}
 #else /* ! STP_USE_DWARF_UNWINDER */
-	_stp_stack_print_fallback(context, (unsigned long)&REG_SP(regs), verbose, levels);
+	_stp_stack_print_fallback((unsigned long)&REG_SP(regs), verbose, levels);
 #endif /* STP_USE_FRAME_POINTER */
 #endif
 }

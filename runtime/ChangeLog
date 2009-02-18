@@ -1,3 +1,8 @@
+2009-02-18  Will Cohen  <wcohen@redhat.com>
+
+	PR 9860
+	* stack-i386.c (_stp_stack_print_fallback): Remove context argument.
+
 2009-02-18  David Smith  <dsmith@redhat.com>
 
 	* io.c (_stp_log): Removed unused function.
