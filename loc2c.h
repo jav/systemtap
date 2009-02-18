@@ -85,6 +85,21 @@ c_translate_pointer_store (struct obstack *pool, int indent,
                            Dwarf_Die *typedie, struct location **input,
                            const char *rvalue);
 
+/* Translate a C fragment for a direct argument VALUE.  On errors, call FAIL,
+   which should not return.  Any later errors will use FAIL and FAIL_ARG from
+   this translate call.  On success, return the fragment created. */
+struct location *c_translate_argument (struct obstack *,
+				       void (*fail) (void *arg,
+						     const char *fmt, ...)
+				       __attribute__ ((noreturn,
+						       format (printf, 2, 3))),
+				       void *fail_arg,
+				       void (*emit_address) (void *fail_arg,
+							     struct obstack *,
+							     Dwarf_Addr),
+				       int indent, const char *value);
+
+
 
 /* Emit the C fragment built up at LOC (i.e., the return value from the
    first c_translate_location call made).  INDENT should match that

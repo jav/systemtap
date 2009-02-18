@@ -1,5 +1,5 @@
 // elaboration functions
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2008 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
@@ -701,6 +701,11 @@ struct symbol_fetcher
     e->base->visit_indexable (this);
   }
 
+  void visit_cast_op (cast_op* e)
+  {
+    sym = e;
+  }
+
   void throwone (const token* t)
   {
     throw semantic_error ("Expecting symbol or array index expression", t);
@@ -1087,6 +1092,9 @@ semantic_pass_symbols (systemtap_session& s)
 
           try
             {
+              for (unsigned j=0; j<s.code_filters.size(); j++)
+                fd->body = s.code_filters[j]->require (fd->body);
+
               sym.current_function = fd;
               sym.current_probe = 0;
               fd->body->visit (& sym);
@@ -1119,6 +1127,9 @@ semantic_pass_symbols (systemtap_session& s)
 
               try
                 {
+                  for (unsigned k=0; k<s.code_filters.size(); k++)
+                    dp->body = s.code_filters[k]->require (dp->body);
+
                   sym.current_function = 0;
                   sym.current_probe = dp;
                   dp->body->visit (& sym);
@@ -2505,6 +2516,7 @@ struct void_statement_reducer: public update_visitor
   void visit_concatenation (concatenation* e);
   void visit_functioncall (functioncall* e);
   void visit_print_format (print_format* e);
+  void visit_cast_op (cast_op* e);
 
   // these are a bit hairy to grok due to the intricacies of indexables and
   // stats, so I'm chickening out and skipping them...
@@ -2770,6 +2782,19 @@ void_statement_reducer::visit_print_format (print_format* e)
   relaxed_p = false;
   e = 0;
   provide (e);
+}
+
+void
+void_statement_reducer::visit_cast_op (cast_op* e)
+{
+  // When the result of a cast operation isn't needed, it's just as good to
+  // evaluate the operand directly
+
+  if (session.verbose>2)
+    clog << "Eliding unused typecast " << *e->tok << endl;
+
+  relaxed_p = false;
+  e->operand->visit(this);
 }
 
 
@@ -3395,6 +3420,18 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
     throw (* (e->saved_conversion_error));
   else
     throw semantic_error("unresolved target-symbol expression", e->tok);
+}
+
+
+void
+typeresolution_info::visit_cast_op (cast_op* e)
+{
+  // Like target_symbol, a cast_op shouldn't survive this far
+  // unless it was not resolved and its value is really needed.
+  if (e->saved_conversion_error)
+    throw (* (e->saved_conversion_error));
+  else
+    throw semantic_error("unresolved cast expression", e->tok);
 }
 
 

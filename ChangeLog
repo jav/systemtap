@@ -1,3 +1,56 @@
+2009-02-18  Josh Stone  <jistone@redhat.com>
+
+	* loc2c.c (c_translate_argument): Create a dummy location to start
+	the address computation from a function parameter.
+	* translate.cxx (base_query, dwarf_query): Move some members from
+	base_query to dwarf_query, so the former can be more generic.  Also
+	add a constructor using a module string instead of probe parameters.
+	(dwflpp::query_modules, dwflpp::iterate_over_modules): Use a generic
+	base_query instead of a dwarf_query.
+	(dwarf_cast_query): New query to scan the modules and CUs for a
+	matching type definition, and then produce a code fragment to deref
+	each component.
+	(dwarf_cast_expanding_visitor): Tries to replace @casts with a function
+	call to the result of a dwarf_cast_query.
+	(dwflpp::declaration_resolve): Search by name instead of by die.
+	(dwflpp::translate_components): Use the incoming vardie as the first
+	type die, so we don't assume that attr_mem has a DW_AT_type already.
+	(dwflpp::literal_stmt_for_pointer): Construct a C fragment that starts
+	with a pointer argument (THIS->pointer) and dereferences each member
+	component from there.
+	(*_derived_probe::register_patterns): Take a session parameter instead
+	of a match_node, so we can manipulate session-wide data.
+	(dwarf_derived_probe::register_patterns): Add a session code filter to
+	expand @casts with a dwarf_cast_expanding_visitor.
+
+2009-02-18  Josh Stone  <jistone@redhat.com>
+
+	* session.h (systemtap_session): Add a vector of update_visitors
+	that will act as filters for all probes and functions.
+	* elaborate.cxx (semantic_pass_symbols): Run probes and functions
+	through each registered code filter.
+
+2009-02-18  Josh Stone  <jistone@redhat.com>
+
+	* tapsets.cxx (dwarf_var_expanding_visitor::visit_cast_op):  While
+	expanding dwarf probes, provide the current module as a default to
+	@casts without a module name.
+
+2009-02-18  Josh Stone  <jistone@redhat.com>
+
+	* staptree.h (struct cast_op, visitor::visit_cast_op): New.
+	* staptree.cxx (cast_op::print/visit, various visitor::visit_cast_op's):
+	Incorporate cast_op into the basic tree operations.
+	* parse.cxx (parser::parse_symbol): Parse @cast operator with an
+	expression operand, type string, and optional module string.
+	* translate.cxx (c_unparser::visit_cast_op): Error out if a @cast
+	survives to translation.
+	* elaborate.cxx (typeresolution_info::visit_cast_op): Error out if a
+	@cast survives to type resolution.
+	(symbol_fetcher::visit_cast_op): treat @casts as a symbol target
+	(void_statement_reducer::visit_cast_op): unused @casts can be discarded,
+	but the operand should still be evaluated.
+
 2009-02-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* AUTHORS: Regenerated with ...
