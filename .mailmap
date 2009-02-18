@@ -1,0 +1,57 @@
+# Early history did not include userid->full-name mappings, so we do
+# that explicitly here.
+
+Ananth N Mavinakayanahalli <ananth>
+Anil Keshavamurthy <askeshav>
+bibo mao <maobibo>
+Brad Chen <bradchen>
+Charles Spirakis <cspiraki>
+Dave Brolley <brolley>
+Dave Nomura <dcnomura>
+David Smith <dsmith>
+David Wilder <dwilder>
+Denys Vlasenko <dvlasenk>
+Don Domingo <ddomingo>
+Elliott Baron <ebaron>
+Eugene Teo <eteo>
+Frank Ch. Eigler <fche>
+Graydon Hoare <graydon>
+Hien Nguyen <hien>
+Jim Keniston <kenistoj>
+Josh Stone <jistone>
+Kent Sebastian <ksebasti>
+Kevin Stafford <kevinrs>
+K.Prasad <prasadkr>
+Li Guanglei <guanglei>
+Mark McLoughlin <markmc>
+Martin Hunt <hunt>
+Masami Hiramatsu <hiramatu>
+Maynard Johnson <maynardj>
+Michael Behm <mbehm>
+Mike Mason <mmason>
+Prasanna S Panchamukhi <prasannasp>
+Prerna Saxena <prerna>
+Rajan Arora <rarora>
+Roland McGrath <roland>
+Rusty Lynch <rustyl>
+Shaohua Li <shli>
+Srikar Dronamraju <srikar>
+Srinivasa DS <srinivasa>
+Thang Nguyen <tpnguyen>
+Tom Zanussi <trz>
+Wenji Huang <wenji>
+William Cohen <wcohen>
+Zhaolei <ostrichfly>
+Zhaolei <zhaolei>
+
+# Normalize a few git commit names too
+
+Anithra Janakiraman <anithra@linux.vnet.ibm.com>
+Dave Nomura <dcn@vervainp2.rchland.ibm.com>
+Don Domingo <ddomingo@redhat.com>
+K.Prasad <prasad@linux.vnet.ibm.com>
+K.Prasad <root@srdronam.in.ibm.com>
+Kent Sebastian <root@toddy.(none)>
+Srinivasa DS <srinivasa@in.ibm.com>
+Wenji Huang <wjhuang@dhcp-beijing-cdc-10-182-120-233.cn.oracle.com>
+William Cohen <wcohen@peloton.usersys.redhat.com>
