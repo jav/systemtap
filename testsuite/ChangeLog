@@ -1,3 +1,7 @@
+2009-02-18  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/labels.exp: Better cleanup.
+
 2009-02-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/static_uprobes.exp: Handle $srcdir != $builddir.
