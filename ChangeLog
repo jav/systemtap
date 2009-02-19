@@ -1,5 +1,9 @@
 2009-02-18  Rajan Arora  <rarora@redhat.com>
 
+	* testuite/semko/typemismatch.stp: New test.
+	
+2009-02-18  Rajan Arora  <rarora@redhat.com>
+
 	* elaborate.cxx (typeresolution_info::mismatch): Generate semantic
 	error for the token where type was resolved and add to chain
 	* elaborate.h (struct typeresolution_info: public visitor): New
