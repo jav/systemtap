@@ -1,5 +1,11 @@
 * What's new in version 0.9
 
+- Typecasting is now supported using the @cast operator.  A script can
+  define a pointer type for a "long" value, and then access type members
+  using the same syntax as with $target variables.  For example, this will
+  retrieve the parent pid from a kernel task_struct:
+    @cast(pointer, "task_struct", "kernel")->parent->pid
+
 - process().mark() probes are now possible to trace static user space
   markers put in programs with the STAP_PROBE macro using the new
   sys/sdt.h include file. This also provides dtrace compatible markers
