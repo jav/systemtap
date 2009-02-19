@@ -27,7 +27,8 @@
 
 #define MAXBACKTRACE 20
 
-#ifdef CONFIG_STACKTRACE
+#if defined(CONFIG_STACKTRACE) && LINUX_VERSION_CODE > KERNEL_VERSION(2,6,26)
+// XXX: PR9866: hacky temporarily restriction to recent kernels
 #include <linux/stacktrace.h>
 #include <asm/stacktrace.h>
 #endif
@@ -50,7 +51,7 @@ static void _stp_stack_print_fallback(unsigned long, int, int);
 #error "Unsupported architecture"
 #endif
 
-#ifdef CONFIG_STACKTRACE
+#if defined(CONFIG_STACKTRACE) && LINUX_VERSION_CODE > KERNEL_VERSION(2,6,26)
 
 struct print_stack_data
 {
@@ -160,7 +161,7 @@ static void _stp_ustack_print(char *str)
 
 void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
 {
-#ifdef CONFIG_STACKTRACE
+#if defined(CONFIG_STACKTRACE) && LINUX_VERSION_CODE > KERNEL_VERSION(2,6,26)
         int i;
         unsigned long backtrace[MAXBACKTRACE];
         struct stack_trace trace;
