@@ -3987,7 +3987,7 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
 void
 typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 {
-  bool tok_resolved;
+  bool tok_resolved = false;
   size_t i;
   semantic_error* err1 = 0;
   num_still_unresolved ++;
@@ -4018,7 +4018,7 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 	}
       else
 	{
-	  bool tok_printed;
+	  bool tok_printed = false;
 	  for (size_t j=0; j<printed_toks.size(); j++)
 	    {
 	      if (printed_toks[j] == resolved_toks[i])

@@ -1,3 +1,9 @@
+2009-02-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR9719.
+	* elaborate.cxx (typeresolution_info::mismatch): Initialize
+	some locals so optimized code works too.
+
 2009-02-18  Rajan Arora  <rarora@redhat.com>
 
 	* testuite/semko/typemismatch.stp: New test.
