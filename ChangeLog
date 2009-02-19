@@ -1,3 +1,10 @@
+2009-02-18  Rajan Arora  <rarora@redhat.com>
+
+	* elaborate.cxx (typeresolution_info::mismatch): Generate semantic
+	error for the token where type was resolved and add to chain
+	* elaborate.h (struct typeresolution_info: public visitor): New
+	members 'resolved_toks' and 'printed_toks'
+
 2009-02-18  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwarf_builder::build): If not found in .probes, use .label
