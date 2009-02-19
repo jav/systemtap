@@ -1,3 +1,9 @@
+2009-02-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 9866 band-aid.
+	* stack.c, stack-i386.c, stack-x86_64.c (CONFIG_STACKTRACE):
+	Also make conditional on KERNEL_VERSION > 2.6.26.
+
 2009-02-18  Will Cohen  <wcohen@redhat.com>
 
 	PR 9860

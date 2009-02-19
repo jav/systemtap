@@ -3987,23 +3987,70 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
 void
 typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 {
+  bool tok_resolved;
+  size_t i;
+  semantic_error* err1 = 0;
   num_still_unresolved ++;
+
+  //BZ 9719: for improving type mismatch messages, a semantic error is
+  //generated with the token where type was first resolved. All such 
+  //resolved tokens, stored in a vector, are matched against their 
+  //content. If an error for the matching token hasn't been printed out
+  //already, it is and the token pushed in another printed_toks vector
 
   if (assert_resolvability)
     {
       stringstream msg;
-      string nm = (current_function ? current_function->name :
-                   current_probe ? current_probe->name :
-                   "probe condition");
-      msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
-      session.print_error (semantic_error (msg.str(), tok));
+      for (i=0; i<resolved_toks.size(); i++)
+	{
+	  if (resolved_toks[i]->content == tok->content)
+	    {
+	      tok_resolved = true;
+	      break;
+	    }
+	}
+      if (!tok_resolved)
+	{
+	  string nm = (current_function ? current_function->name :
+		       current_probe ? current_probe->name :
+		       "probe condition");
+	  msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
+	}
+      else
+	{
+	  bool tok_printed;
+	  for (size_t j=0; j<printed_toks.size(); j++)
+	    {
+	      if (printed_toks[j] == resolved_toks[i])
+		{
+		  tok_printed = true;
+		  break;
+		}
+	    }
+	  string nm = (current_function ? current_function->name :
+		       current_probe ? current_probe->name :
+		       "probe condition");
+	  msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
+	  if (!tok_printed)
+	    {
+	      //error for possible mismatch in the earlier resolved token
+	      printed_toks.push_back (resolved_toks[i]);
+	      stringstream type_msg;
+	      type_msg << nm + " type first inferred here (" << t2 << ")";
+	      err1 = new semantic_error (type_msg.str(), resolved_toks[i]);
+	    }
+	}
+      semantic_error err (msg.str(), tok);
+      err.chain = err1;
+      session.print_error (err);
     }
 }
 
 
 void
-typeresolution_info::resolved (const token*, exp_type)
+typeresolution_info::resolved (const token* tok, exp_type)
 {
+  resolved_toks.push_back (tok);
   num_newly_resolved ++;
 }
 

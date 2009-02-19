@@ -1,0 +1,8 @@
+#! stap -p2
+
+
+global noo 
+
+probe begin { foo = 1 ; foo = "bar" ; noo = 4 } 
+
+probe end { foo = "zoo" ; foo <<< 2 ; noo = "zoo" }

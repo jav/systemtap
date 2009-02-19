@@ -755,6 +755,46 @@ probe end {
 }
 .ESAMPLE
 
+.SS TYPECASTING
+Once a pointer has been saved into a script integer variable, the
+translator loses the type information necessary to access members from
+that pointer.  Using the
+.I @cast()
+operator tells the translator how to read a pointer.
+.SAMPLE
+@cast(p, "type_name"[, "module"])->member
+.ESAMPLE
+.PP
+This will interpret
+.I p
+as a pointer to a struct/union named
+.I type_name
+and dereference the
+.I member
+value.  The optional
+.I module
+tells the translator where to look for information about that type.  If
+the module is not specified, it will default either to the probe module
+for dwarf probes, or to "kernel" for functions and all other probes
+types.
+.PP
+When in guru mode, the translator will also allow scripts to assign new
+values to members of typecasted pointers.
+.PP
+Typecasting is also useful in the case of
+.I void*
+members whose type may be determinable at runtime.
+.SAMPLE
+probe foo {
+  if ($var->type == 1) {
+    value = @cast($var->data, "type1")->bar
+  } else {
+    value = @cast($var->data, "type2")->baz
+  }
+  print(value)
+}
+.ESAMPLE
+
 .SS EMBEDDED C
 When in guru mode, the translator accepts embedded code in the
 script.  Such code is enclosed between
@@ -1075,6 +1115,8 @@ probe specifications that refer to source files or line numbers
 probe specifications that refer to inline functions
 .IP \(bu 4
 statements that refer to $target variables
+.IP \(bu 4
+statements that refer to @cast() variables
 .IP \(bu 4
 tapset-defined variables defined using any of the above constructs.
 In particular, at this writing,
