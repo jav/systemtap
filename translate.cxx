@@ -4544,6 +4544,12 @@ dump_unwindsyms (Dwfl_Module *m,
               Dwarf_Addr sym_addr = sym.st_value;
               const char *secname = NULL;
 
+              // Symbol addresses before the base address of the module
+              // are suspect. Older kernels had those for some vsdo
+              // symbols. They mess up our logic, ignore them.
+              if (sym_addr < base)
+                continue;
+
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
                   int ki = dwfl_module_relocate_address (m, &sym_addr);
