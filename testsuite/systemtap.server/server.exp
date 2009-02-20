@@ -1,12 +1,10 @@
 # Don't attempt these tests if the client/server are not available
-if {! [file exists [exec pwd]/../stap-client-connect]} then {
-    untested "Server Tests"
-    return
- }
-
 # Start a systemtap server, if one is not already started.
 if {! [use_server_p]} then {
-    setup_server
+    if {! [setup_server]} then {
+	untested "Server Tests"
+	return
+    }
 }
 
 # Run the buildok tests using the server
@@ -30,8 +28,9 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
 
 # If this is an installcheck, then run a basic execution test.
 if {[installtest_p]} then {
-    set test "add"
-    stap_run $srcdir/systemtap.base/$test.stp no_load $all_pass_string
+    set test "Hello from server"
+    set rc [stap_run_batch $srcdir/systemtap.server/hello.stp]
+    if {$rc == 0} { pass $test } else { fail $test }
 }
 
 # Shudown the server, if we started it.

@@ -53,7 +53,9 @@ proc setup_systemtap_environment {} {
 
     # Find or start a systemtap server, if requested.
     if {[use_server_p]} then {
-	setup_server
+	if {! [setup_server]} then {
+	    return 0
+	}
     }
 
     # PATH, SYSTEMTAP_TAPSET, SYSTEMTAP_RUNTIME, LD_LIBRARY_PATH are already set.
@@ -62,12 +64,29 @@ proc setup_systemtap_environment {} {
             verbose -log "env $var = $env($var)"
         }
     }
+
+    return 1
 }
 
 # Set up the environment so that tests will be performed using the systemtap
 # client and server.
 proc setup_server {} {
     global srcdir env server_pid net_path
+
+    # Make sure that the necessary resources are available to run the client/server.
+    if {[installtest_p]} then {
+	if {[exec /usr/bin/which stap-client-connect] == ""} then {
+	    print "Unable to start a server: stap-client-connect is not found in PATH"
+	    return 0
+	}
+    } elseif {! [file exists [exec pwd]/../stap-client-connect]} then {
+	print "Unable to start a server: [exec pwd]/../stap-client-connect is not found"
+	return 0
+    }
+    if {[exec /usr/bin/which avahi-publish-service] == ""} then {
+	print "Unable to start a server: avahi-publish-service is not found in PATH"
+	return 0
+    }
 
     print "Testing using a systemtap server"
 
@@ -87,7 +106,7 @@ proc setup_server {} {
     if { "$server_pid" == "-1" } then {
 	print "Cannot find or start a systemtap server"
 	set server_pid 0
-	# TODO: How do we abort here?
+	return 0
     } elseif { "$server_pid" == "0" } then {
 	print "A compatible systemtap server is already available"
     } else {
@@ -103,6 +122,8 @@ proc setup_server {} {
 	exec /bin/cp -p $srcdir/../stap-client $net_path/stap
     }
     set env(PATH) "$net_path:$env(PATH)"
+
+    return 1
 }
 
 proc shutdown_server {} {
@@ -136,7 +157,10 @@ proc get_system_info {} {
     if [file exists /etc/debian_version] {set Distro [exec /bin/cat /etc/debian_version]}
 }
 
-setup_systemtap_environment
+if {! [setup_systemtap_environment]} then {
+    return 0
+}
+
 print_systemtap_version
 get_system_info
 
