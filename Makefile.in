@@ -54,10 +54,9 @@ bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT) $(am__EXEEXT_1)
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
 noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
-DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
-	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/configure $(am__configure_deps) \
-	$(srcdir)/config.in $(srcdir)/stap.1.in \
+DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
+	$(srcdir)/Makefile.am $(top_srcdir)/configure \
+	$(am__configure_deps) $(srcdir)/config.in $(srcdir)/stap.1.in \
 	$(srcdir)/stapprobes.5.in $(srcdir)/stapfuncs.5.in \
 	$(srcdir)/stapvars.5.in $(srcdir)/stapex.5.in \
 	$(srcdir)/staprun.8.in $(srcdir)/stap-server.8.in \
@@ -302,7 +301,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AUTOMAKE_OPTIONS = no-dist
+
+# we don't maintain a ChangeLog, which makes us non-GNU -> foreign
+AUTOMAKE_OPTIONS = no-dist foreign
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
@@ -398,15 +399,15 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
-	      echo ' cd $(srcdir) && $(AUTOMAKE) --gnu '; \
-	      cd $(srcdir) && $(AUTOMAKE) --gnu  \
+	      echo ' cd $(srcdir) && $(AUTOMAKE) --foreign '; \
+	      cd $(srcdir) && $(AUTOMAKE) --foreign  \
 		&& exit 0; \
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  Makefile
+	  $(AUTOMAKE) --foreign  Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

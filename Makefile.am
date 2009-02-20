@@ -1,7 +1,8 @@
 # Makefile.am --- automake input file for systemtap
 ## process this file with automake to produce Makefile.in
 
-AUTOMAKE_OPTIONS = no-dist
+# we don't maintain a ChangeLog, which makes us non-GNU -> foreign
+AUTOMAKE_OPTIONS = no-dist foreign
 
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 oldincludedir = ${includedir}/sys
