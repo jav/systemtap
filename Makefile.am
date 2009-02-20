@@ -1,7 +1,8 @@
 # Makefile.am --- automake input file for systemtap
 ## process this file with automake to produce Makefile.in
 
-AUTOMAKE_OPTIONS = no-dist
+# we don't maintain a ChangeLog, which makes us non-GNU -> foreign
+AUTOMAKE_OPTIONS = no-dist foreign
 
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 oldincludedir = ${includedir}/sys
@@ -260,9 +261,10 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 # XXX: leaves behind man pages
 
-SUBDIRS = testsuite doc
+SUBDIRS = doc
+DIST_SUBDIRS = testsuite $(SUBDIRS)
 
-check:
+check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
         PWD=`pwd`; \
 	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)";
