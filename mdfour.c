@@ -216,3 +216,5 @@ mdfour(unsigned char *out, const unsigned char *in, int n)
   mdfour_update(&md, NULL, 0);
   mdfour_result(&md, out);
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

@@ -5,18 +5,18 @@
 
 %{
 /*Get rpc_clnt from inode, same as kernel function NFS_CLIENT*/
-	struct rpc_clnt *_stap_NFS_CLIENT(struct inode *inode, struct context * __restrict__ c);
+	static struct rpc_clnt *_stap_NFS_CLIENT(struct inode *inode, struct context * __restrict__ c);
 /*Get ip address from a rpc_clnt*/
-	__u32 _get_ip_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c);
+	static __u32 _get_ip_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c);
 /*Get protocol types from a rpc_clnt*/
-	int _get_prot_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c);
+	static int _get_prot_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c);
 /*Get ip address from a rpc_task*/
-	__u32 get_ip(struct rpc_task *, struct context * __restrict__);
+	static __u32 get_ip(struct rpc_task *, struct context * __restrict__);
 /*Get protocol types from a rpc_task*/
-	int get_prot(struct rpc_task *, struct context * __restrict__);
+	static int get_prot(struct rpc_task *, struct context * __restrict__);
 %}
 %{
-    struct rpc_clnt *_stap_NFS_CLIENT(struct inode *inode, struct context * __restrict__ c) {
+    static struct rpc_clnt *_stap_NFS_CLIENT(struct inode *inode, struct context * __restrict__ c) {
 	struct super_block *i_sb;
 	struct nfs_server *server;
 	i_sb = kread(&(inode->i_sb));
@@ -26,7 +26,7 @@
 	return NULL;
     }
 
-    __u32 _get_ip_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c) {
+    static __u32 _get_ip_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c) {
 	struct rpc_xprt * cl_xprt;
 	struct sockaddr_in *addr;
 	cl_xprt= kread(&(clnt->cl_xprt));
@@ -39,7 +39,7 @@
 	return -1;
     }
 
-    int _get_prot_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c) {
+    static int _get_prot_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c) {
 	struct rpc_xprt * cl_xprt;
 	cl_xprt= kread(&(clnt->cl_xprt));
 	return kread(&(cl_xprt->prot));
@@ -47,7 +47,7 @@
 	return -1;
     }
 
-    __u32 get_ip(struct rpc_task * task, struct context * __restrict__ c) {
+    static __u32 get_ip(struct rpc_task * task, struct context * __restrict__ c) {
 	struct rpc_clnt * clnt;
 	clnt = kread(&(task->tk_client));
 	return _get_ip_from_client(clnt, c);
@@ -55,7 +55,7 @@
 	return -1;
     }
 
-    int get_prot(struct rpc_task * task, struct context * __restrict__ c) {
+    static int get_prot(struct rpc_task * task, struct context * __restrict__ c) {
 	struct rpc_clnt * clnt;
 	clnt = kread(&(task->tk_client));
 	return _get_prot_from_client(clnt, c);

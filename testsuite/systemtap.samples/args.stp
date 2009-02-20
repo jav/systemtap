@@ -1,9 +1,0 @@
-#! stap
-
-global foo, bar
-
-probe begin { 
-  printf("foo=%s bar=%d\n", foo, bar)
-  exit ()
-}
-

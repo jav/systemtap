@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * /proc command channels
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -14,15 +14,17 @@
  * number of needed files.
  */
 
+#ifndef _STP_PROCFS_C_
+#define _STP_PROCFS_C_
+
 #define STP_MAX_PROCFS_FILES 16
 static int _stp_num_pde = 0;
-static int _stp_num_procfs_files = 0;
 static struct proc_dir_entry *_stp_pde[STP_MAX_PROCFS_FILES];
 static struct proc_dir_entry *_stp_procfs_files[STP_MAX_PROCFS_FILES];
 static struct proc_dir_entry *_stp_proc_stap = NULL;
 static struct proc_dir_entry *_stp_proc_root = NULL;
 
-void _stp_close_procfs(void);
+static void _stp_close_procfs(void);
 
 // 2.6.24 fixed proc_dir_entry refcounting.
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)
@@ -34,7 +36,7 @@ void _stp_close_procfs(void);
 /*
  * Removes /proc/systemtap/{module_name} and /proc/systemtap (if empty)
  */
-void _stp_rmdir_proc_module(void)
+static void _stp_rmdir_proc_module(void)
 {
         if (_stp_proc_root && _stp_proc_root->subdir == NULL) {
 		if (atomic_read(&_stp_proc_root->count) != LAST_ENTRY_COUNT)
@@ -45,7 +47,7 @@ void _stp_rmdir_proc_module(void)
 	}
 
 	if (_stp_proc_stap) {
-		if (!_stp_lock_debugfs()) {
+		if (!_stp_lock_transport_dir()) {
 			errk("Unable to lock transport directory.\n");
 			return;
 		}
@@ -62,7 +64,7 @@ void _stp_rmdir_proc_module(void)
 			_stp_proc_stap = NULL;
 		}
 
-		_stp_unlock_debugfs();
+		_stp_unlock_transport_dir();
 	}
 }
 
@@ -71,12 +73,12 @@ void _stp_rmdir_proc_module(void)
  * Safely creates /proc/systemtap (if necessary) and
  * /proc/systemtap/{module_name}.
  */
-int _stp_mkdir_proc_module(void)
+static int _stp_mkdir_proc_module(void)
 {	
         if (_stp_proc_root == NULL) {
 		struct nameidata nd;
 
-		if (!_stp_lock_debugfs()) {
+		if (!_stp_lock_transport_dir()) {
 			errk("Unable to lock transport directory.\n");
 			goto done;
 		}
@@ -90,7 +92,7 @@ int _stp_mkdir_proc_module(void)
 			/* doesn't exist, so create it */
 			_stp_proc_stap = proc_mkdir ("systemtap", NULL);
 			if (_stp_proc_stap == NULL) {
-				_stp_unlock_debugfs();
+				_stp_unlock_transport_dir();
 				goto done;
 			}
 		} else {
@@ -105,10 +107,12 @@ int _stp_mkdir_proc_module(void)
 		}
 		
 		_stp_proc_root = proc_mkdir(THIS_MODULE->name, _stp_proc_stap);
+#ifdef AUTOCONF_PROCFS_OWNER
 		if (_stp_proc_root != NULL)
 			_stp_proc_root->owner = THIS_MODULE;
+#endif
 
-		_stp_unlock_debugfs();
+		_stp_unlock_transport_dir();
 	}
 done:
 	return (_stp_proc_root) ? 1 : 0;
@@ -128,7 +132,7 @@ static struct proc_dir_entry *_stp_procfs_lookup(const char *dir, struct proc_di
 	return NULL;
 }
 
-int _stp_create_procfs(const char *path, int num)
+static int _stp_create_procfs(const char *path, int num)
 {  
 	const char *p;
 	char *next;
@@ -161,7 +165,9 @@ int _stp_create_procfs(const char *path, int num)
 				    goto err;
 			    }
 			    _stp_pde[_stp_num_pde++] = last_dir;
+#ifdef AUTOCONF_PROCFS_OWNER
 			    last_dir->owner = THIS_MODULE;
+#endif
 			    last_dir->uid = _stp_uid;
 			    last_dir->gid = _stp_gid;
 		} else {
@@ -195,7 +201,7 @@ err:
 	return -1;
 }
 
-void _stp_close_procfs(void)
+static void _stp_close_procfs(void)
 {
 	int i;
 	for (i = _stp_num_pde-1; i >= 0; i--) {
@@ -205,3 +211,5 @@ void _stp_close_procfs(void)
 	_stp_num_pde = 0;
 	_stp_rmdir_proc_module();
 }
+
+#endif	/* _STP_PROCFS_C_ */

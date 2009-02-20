@@ -131,7 +131,7 @@ static int check_binary_precision (int precision) {
   return precision;
 }
 
-int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
+static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
 	int len;
 	uint64_t num;

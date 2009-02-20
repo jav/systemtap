@@ -40,14 +40,14 @@ struct utt_trace_setup {
 };
 
 
-extern struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts);
-extern int utt_trace_startstop(struct utt_trace *utt, int start,
+static struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts);
+static int utt_trace_startstop(struct utt_trace *utt, int start,
 			       unsigned int *trace_seq);
-extern void utt_trace_cleanup(struct utt_trace *utt);
-extern int utt_trace_remove(struct utt_trace *utt);
+static void utt_trace_cleanup(struct utt_trace *utt);
+static int utt_trace_remove(struct utt_trace *utt);
 
 #ifndef STP_OLD_TRANSPORT
-extern size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
+static size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
 				size_t length);
 /**
  *      utt_reserve - reserve slot in channel buffer

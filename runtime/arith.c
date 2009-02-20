@@ -21,21 +21,21 @@
 /* Other 32-bit cpus will need to modify this file. */
 
 #if defined (__i386__) || defined(__arm__)
-long long _div64 (long long u, long long v);
-long long _mod64 (long long u, long long v);
+static long long _div64 (long long u, long long v);
+static long long _mod64 (long long u, long long v);
 #endif
 
 /* 31 bit s390 suupport is not yet included, it may never be.
 #ifdef __s390__
-long long _div64 (long long u, long long v);
-long long _mod64 (long long u, long long v);
+static long long _div64 (long long u, long long v);
+static long long _mod64 (long long u, long long v);
 #endif
 */
 
 /** Divide x by y.  In case of division-by-zero,
  * set context error string, and return 0
  */
-int64_t _stp_div64 (const char **error, int64_t x, int64_t y)
+static int64_t _stp_div64 (const char **error, int64_t x, int64_t y)
 {
 	// check for division-by-zero
 	if (unlikely (y == 0)) {
@@ -61,7 +61,7 @@ int64_t _stp_div64 (const char **error, int64_t x, int64_t y)
 /** Modulo x by y.  In case of division-by-zero,
  * set context error string, and return any 0
  */
-int64_t _stp_mod64 (const char **error, int64_t x, int64_t y)
+static int64_t _stp_mod64 (const char **error, int64_t x, int64_t y)
 {
 	// check for division-by-zero
 	if (unlikely (y == 0)) {
@@ -88,7 +88,7 @@ int64_t _stp_mod64 (const char **error, int64_t x, int64_t y)
 /** Return a random integer between -n and n.
  * @param n how far from zero to go.  Make it positive but less than a million or so.
  */
-int _stp_random_pm (int n)
+static int _stp_random_pm (int n)
 {
 	static unsigned long seed;
 	static int initialized_p = 0;
@@ -251,7 +251,7 @@ typedef union
 #endif
 
 #if !defined (count_leading_zeros)
-const UQItype _stp_clz_tab[256] =
+static const UQItype _stp_clz_tab[256] =
 {
   0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
   6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
@@ -286,7 +286,7 @@ const UQItype _stp_clz_tab[256] =
 #define COUNT_LEADING_ZEROS_0 W_TYPE_SIZE
 #endif
 
-UDWtype
+static UDWtype
 _stp_udivmoddi4 (UDWtype n, UDWtype d, UDWtype *rp)
 {
   const DWunion nn = {.ll = n};
@@ -499,7 +499,7 @@ _stp_udivmoddi4 (UDWtype n, UDWtype d, UDWtype *rp)
   return ww.ll;
 }
 
-long long _div64 (long long u, long long v)
+static long long _div64 (long long u, long long v)
 {
 	long c = 0;
 	DWunion uu = {.ll = u};
@@ -520,7 +520,7 @@ long long _div64 (long long u, long long v)
 	return w;
 }
 
-long long _mod64 (long long u, long long v)
+static long long _mod64 (long long u, long long v)
 {
 	long c = 0;
 	DWunion uu = {.ll = u};

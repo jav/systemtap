@@ -1,5 +1,5 @@
 // translation pass
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2005-2008 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -150,6 +150,7 @@ struct c_unparser: public unparser, public visitor
   void visit_print_format (print_format* e);
   void visit_stat_op (stat_op* e);
   void visit_hist_op (hist_op* e);
+  void visit_cast_op (cast_op* e);
 };
 
 // A shadow visitor, meant to generate temporary variable declarations
@@ -863,14 +864,14 @@ c_unparser::emit_common_header ()
   o->newline() << "#define STAP_SESSION_ERROR 2";
   o->newline() << "#define STAP_SESSION_STOPPING 3";
   o->newline() << "#define STAP_SESSION_STOPPED 4";
-  o->newline() << "atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
-  o->newline() << "atomic_t error_count = ATOMIC_INIT (0);";
-  o->newline() << "atomic_t skipped_count = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
+  o->newline() << "static atomic_t error_count = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count = ATOMIC_INIT (0);";
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
-  o->newline() << "atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
-  o->newline() << "atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
-  o->newline() << "atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
+  o->newline() << "static atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
   o->newline() << "#endif";
   o->newline();
   o->newline() << "struct context {";
@@ -884,7 +885,6 @@ c_unparser::emit_common_header ()
   // While it's 0, execution continues
   // When it's "something", probe code unwinds, _stp_error's, sets error state
   o->newline() << "const char *last_stmt;";
-  o->newline() << "struct pt_regs regs_buffer;"; // reserved for synthetic
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "unsigned long *unwaddr;";
   // unwaddr is caching unwound address in each probe handler on ia64.
@@ -1002,7 +1002,7 @@ c_unparser::emit_common_header ()
     }
   o->newline(-1) << "} locals [MAXNESTING];";
   o->newline(-1) << "};\n";
-  o->newline() << "void *contexts = NULL; /* alloc_percpu */\n";
+  o->newline() << "static void *contexts = NULL; /* alloc_percpu */\n";
 
   emit_map_type_instantiations ();
 
@@ -1055,7 +1055,7 @@ c_unparser::emit_global (vardecl *v)
   o->newline() << "rwlock_t s_" << vn << "_lock;";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "atomic_t s_" << vn << "_lock_skip_count;";
-  o->newline() << "#endif" << endl;
+  o->newline() << "#endif\n";
 }
 
 
@@ -1097,7 +1097,7 @@ c_unparser::emit_module_init ()
     g[i]->emit_module_decls (*session);
 
   o->newline();
-  o->newline() << "int systemtap_module_init (void) {";
+  o->newline() << "static int systemtap_module_init (void) {";
   o->newline(1) << "int rc = 0;";
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
   o->newline() << "const char *probe_point = \"\";";
@@ -1244,7 +1244,7 @@ c_unparser::emit_module_init ()
 void
 c_unparser::emit_module_exit ()
 {
-  o->newline() << "void systemtap_module_exit (void) {";
+  o->newline() << "static void systemtap_module_exit (void) {";
   // rc?
   o->newline(1) << "int holdon;";
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
@@ -1391,7 +1391,7 @@ c_unparser::emit_module_exit ()
 void
 c_unparser::emit_function (functiondecl* v)
 {
-  o->newline() << "void function_" << c_varname (v->name)
+  o->newline() << "static void function_" << c_varname (v->name)
             << " (struct context* __restrict__ c) {";
   o->indent(1);
   this->current_probe = 0;
@@ -3489,6 +3489,13 @@ c_unparser::visit_target_symbol (target_symbol* e)
 
 
 void
+c_unparser::visit_cast_op (cast_op* e)
+{
+  throw semantic_error("cannot translate general cast expression", e->tok);
+}
+
+
+void
 c_tmpcounter::load_map_indices(arrayindex *e)
 {
   symbol *array;
@@ -4522,13 +4529,22 @@ dump_unwindsyms (Dwfl_Module *m,
           // we're already iterating over the same data here...
           if (modname == "kernel" && !strcmp(name, "_stext"))
             {
+              int ki;
               extra_offset = sym.st_value;
+              ki = dwfl_module_relocate_address (m, &extra_offset);
+              dwfl_assert ("dwfl_module_relocate_address extra_offset",
+                           ki >= 0);
               if (c->session.verbose > 2)
                 clog << "Found kernel _stext 0x" << hex << extra_offset << dec << endl;
             }
 
+          // We only need the function symbols to identify kernel-mode
+          // PC's, so we omit undefined or "fake" absolute addresses.
+          // These fake absolute addresses occur in some older i386
+          // kernels to indicate they are vDSO symbols, not real
+          // functions in the kernel.
           if (GELF_ST_TYPE (sym.st_info) == STT_FUNC &&
-              sym.st_shndx != SHN_UNDEF)
+              ! (sym.st_shndx == SHN_UNDEF || sym.st_shndx == SHN_ABS))
             {
               Dwarf_Addr sym_addr = sym.st_value;
               const char *secname = NULL;
@@ -4611,19 +4627,19 @@ dump_unwindsyms (Dwfl_Module *m,
   void *unwind = get_unwind_data (m, &len);
   if (unwind != NULL)
     {
-      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)" << endl;
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << "static uint8_t _stp_module_" << stpmod_idx
-		<< "_unwind_data[] = " << endl;
+		<< "_unwind_data[] = \n";
       c->output << "  {";
       for (size_t i = 0; i < len; i++)
 	{
 	  int h = ((uint8_t *)unwind)[i];
 	  c->output << "0x" << hex << h << dec << ",";
 	  if ((i + 1) % 16 == 0)
-	    c->output << endl << "   ";
+	    c->output << "\n" << "   ";
 	}
-      c->output << "};" << endl;
-      c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */" << endl;
+      c->output << "};\n";
+      c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
   else
     {
@@ -4638,11 +4654,11 @@ dump_unwindsyms (Dwfl_Module *m,
 
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
-      c->output << "struct _stp_symbol "
-                << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {" << endl;
+      c->output << "static struct _stp_symbol "
+                << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {\n";
 
       // Only include symbols if they will be used
-      c->output << "#ifdef STP_NEED_SYMBOL_DATA" << endl;
+      c->output << "#ifdef STP_NEED_SYMBOL_DATA\n";
 
       // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
       for (addrmap_t::iterator it = addrmap[secidx].begin(); it != addrmap[secidx].end(); it++)
@@ -4651,79 +4667,79 @@ dump_unwindsyms (Dwfl_Module *m,
             continue; // skip symbols that occur before our chosen base address
 
           c->output << "  { 0x" << hex << it->first-extra_offset << dec
-                    << ", " << lex_cast_qstring (it->second) << " }," << endl;
+                    << ", " << lex_cast_qstring (it->second) << " },\n";
         }
 
-      c->output << "#endif /* STP_NEED_SYMBOL_DATA */" << endl;
+      c->output << "#endif /* STP_NEED_SYMBOL_DATA */\n";
 
-      c->output << "};" << endl;
+      c->output << "};\n";
     }
 
-  c->output << "struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {" << endl;
+  c->output << "static struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {\n";
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
-      c->output << "{" << endl
-                << ".name = " << lex_cast_qstring(seclist[secidx]) << "," << endl
-                << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << "," << endl
-                << ".num_symbols = sizeof(_stp_module_" << stpmod_idx << "_symbols_" << secidx << ")/sizeof(struct _stp_symbol)" << endl
-                << "}," << endl;
+      c->output << "{\n"
+                << ".name = " << lex_cast_qstring(seclist[secidx]) << ",\n"
+                << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << ",\n"
+                << ".num_symbols = sizeof(_stp_module_" << stpmod_idx << "_symbols_" << secidx << ")/sizeof(struct _stp_symbol)\n"
+                << "},\n";
     }
-  c->output << "};" << endl;
+  c->output << "};\n";
 
-  c->output << "struct _stp_module _stp_module_" << stpmod_idx << " = {" << endl;
-  c->output << ".name = " << lex_cast_qstring (modname) << ", " << endl;
-  c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", " << endl;
+  c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
+  c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
+  c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
 
   if (unwind != NULL)
     {
-      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)" << endl;
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << ".unwind_data = "
-		<< "_stp_module_" << stpmod_idx << "_unwind_data, " << endl;
-      c->output << ".unwind_data_len = " << len << ", " << endl;
-      c->output << "#else" << endl;
+		<< "_stp_module_" << stpmod_idx << "_unwind_data, \n";
+      c->output << ".unwind_data_len = " << len << ", \n";
+      c->output << "#else\n";
     }
 
-  c->output << ".unwind_data = NULL, " << endl;
-  c->output << ".unwind_data_len = 0, " << endl;
+  c->output << ".unwind_data = NULL,\n";
+  c->output << ".unwind_data_len = 0,\n";
 
   if (unwind != NULL)
-    c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/" << endl;
+    c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/\n";
 
-  c->output << ".unwind_hdr = NULL, " << endl;
-  c->output << ".unwind_hdr_len = 0, " << endl;
-  c->output << ".unwind_is_ehframe = 0, " << endl;
+  c->output << ".unwind_hdr = NULL,\n";
+  c->output << ".unwind_hdr_len = 0,\n";
+  c->output << ".unwind_is_ehframe = 0,\n";
 
-  c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ", " << endl;
+  c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ",\n";
   c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"
-            << "sizeof(struct _stp_section), " << endl;
+            << "sizeof(struct _stp_section),\n";
 
   if (build_id_len > 0) {
-        c->output << ".build_id_bits = \"" ;
-        for (int j=0; j<build_id_len;j++)
-                c->output << "\\x" << hex
-                          << (unsigned short) *(build_id_bits+j) << dec;
-
-       c->output << "\", " << endl;
-       c->output << ".build_id_len = " << build_id_len << ", " << endl;
-
-       /* XXX: kernel data boot-time relocation works differently from text.
-          This hack disables relocation altogether, but that's not necessarily
-          correct either.  We may instead need a relocation basis different
-          from _stext, such as __start_notes.  */
-       if (modname == "kernel")
-                c->output << ".build_id_offset = 0x" << hex << build_id_vaddr
-			  << dec << ", " << endl;
-       else
-                c->output << ".build_id_offset = 0x" << hex
-			  << build_id_vaddr - base
- 			  << dec << ", " << endl;
+    c->output << ".build_id_bits = \"" ;
+    for (int j=0; j<build_id_len;j++)
+      c->output << "\\x" << hex
+                << (unsigned short) *(build_id_bits+j) << dec;
+    
+    c->output << "\",\n";
+    c->output << ".build_id_len = " << build_id_len << ",\n";
+    
+    /* XXX: kernel data boot-time relocation works differently from text.
+       This hack disables relocation altogether, but that's not necessarily
+       correct either.  We may instead need a relocation basis different
+       from _stext, such as __start_notes.  */
+    if (modname == "kernel")
+      c->output << ".build_id_offset = 0x" << hex << build_id_vaddr
+                << dec << ",\n";
+    else
+      c->output << ".build_id_offset = 0x" << hex
+                << build_id_vaddr - base
+                << dec << ",\n";
   } else
-        c->output << ".build_id_len = 0, " << endl;
-
+    c->output << ".build_id_len = 0,\n";
+  
   //initialize the note section representing unloaded
-  c->output << ".notes_sect = 0," << endl;
+  c->output << ".notes_sect = 0,\n";
 
-  c->output << "};" << endl << endl;
+  c->output << "};\n\n";
 
   c->undone_unwindsym_modules.erase (modname);
 
@@ -4836,14 +4852,14 @@ emit_symbol_data (systemtap_session& s)
 
 
   // Print out a definition of the runtime's _stp_modules[] globals.
-  kallsyms_out << endl;
-  kallsyms_out << "struct _stp_module *_stp_modules [] = {" << endl;
+  kallsyms_out << "\n";
+  kallsyms_out << "static struct _stp_module *_stp_modules [] = {\n";
   for (unsigned i=0; i<ctx.stp_module_index; i++)
     {
-      kallsyms_out << "& _stp_module_" << i << "," << endl;
+      kallsyms_out << "& _stp_module_" << i << ",\n";
     }
-  kallsyms_out << "};" << endl;
-  kallsyms_out << "unsigned _stp_num_modules = " << ctx.stp_module_index << ";" << endl;
+  kallsyms_out << "};\n";
+  kallsyms_out << "static unsigned _stp_num_modules = " << ctx.stp_module_index << ";\n";
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
   for (set<string>::iterator it = ctx.undone_unwindsym_modules.begin();
@@ -5011,11 +5027,11 @@ translate_pass (systemtap_session& s)
       s.op->newline();
 
       // XXX impedance mismatch
-      s.op->newline() << "int probe_start () {";
+      s.op->newline() << "static int probe_start () {";
       s.op->newline(1) << "return systemtap_module_init () ? -1 : 0;";
       s.op->newline(-1) << "}";
       s.op->newline();
-      s.op->newline() << "void probe_exit () {";
+      s.op->newline() << "static void probe_exit () {";
       s.op->newline(1) << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
       s.op->assert_0_indent();
@@ -5046,3 +5062,5 @@ translate_pass (systemtap_session& s)
 
   return rc + s.num_errors();
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

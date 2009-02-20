@@ -3,6 +3,16 @@ SYSTEMTAP EXAMPLES INDEX BY KEYWORD
 
 = BACKTRACE =
 
+interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt (IPI)
+keywords: interrupt backtrace
+
+  The Linux kernel function smp_call_function causes expensive
+  inter-processor interrupts (IPIs). The scf.stp script tallies the
+  processes and backtraces causing the interprocessor interrupts to
+  identify the cause of the expensive IPI. On exit the script prints
+  the tallies in descending frequency.
+
+
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
 keywords: io backtrace
 
@@ -93,6 +103,18 @@ keywords: disk cpu use graph
   and CPU USE.
 
 
+= INTERRUPT =
+
+interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt (IPI)
+keywords: interrupt backtrace
+
+  The Linux kernel function smp_call_function causes expensive
+  inter-processor interrupts (IPIs). The scf.stp script tallies the
+  processes and backtraces causing the interprocessor interrupts to
+  identify the cause of the expensive IPI. On exit the script prints
+  the tallies in descending frequency.
+
+
 = IO =
 
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
@@ -101,6 +123,17 @@ keywords: io backtrace
   When a reschedule occurs during an AIO io_submit call, accumulate the
   traceback in a histogram. When the script exits prints out a sorted
   list from most common to least common backtrace.
+
+
+io/iostats.stp - List Executables Reading and Writing the Most Data
+keywords: io profiling
+
+   The iostat.stp script measures the amount of data successfully read
+  and written by all the executables on the system.  The output is
+  sorted from most greatest sum of bytes read and written by an
+  executable to the least. The output contains	the count of operations
+  (opens, reads, and writes), the totals and averages for the number of
+  bytes read and written.
 
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
@@ -160,6 +193,31 @@ keywords: syscall locking futex
   highest.
 
 
+= MEMORY =
+
+memory/kmalloc-top - Show Paths to Kernel Malloc (kmalloc) Invocations
+keywords: memory
+
+  The kmalloc-top perl program runs a small systemtap script to collect
+  stack traces for each call to the kmalloc function and counts the
+  time that each stack trace is observed. When kmalloc-top exits it
+  prints out sorted list. The output can be be filtered to print only
+  only the first stack traces (-t) stack traces with more a minimum
+  counts (-m), or exclude certain stack traces (-e).
+
+
+memory/pfaults.stp - Generate Log of Major and Minor Page Faults
+keywords: memory
+
+  The pfaults.stp script generates a simple log for each major and
+  minor page fault that occurs on the system. Each line contains a
+  timestamp (in microseconds) when the page fault servicing was
+  completed, the pid of the process, the address of the page fault, the
+  type of access (read or write), the type of fault (major or minor),
+  and the elapsed time for page fault. This log can be examined to
+  determine where the page faults are occuring.
+
+
 = NETWORK =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
@@ -182,6 +240,16 @@ keywords: network socket
   element of the line is the function name.
 
 
+network/tcp_connections.stp - Track Creation of Incoming TCP Connections
+keywords: network tcp socket
+
+  The tcp_connections.stp script prints information for each new
+  incoming TCP connection accepted by the computer. The information
+  includes the UID, the command accepting the connection, the PID of
+  the command, the port the connection is on, and the IP address of the
+  originator of the request.
+
+
 = PER-PROCESS =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
@@ -194,6 +262,17 @@ keywords: network traffic per-process
 
 
 = PROFILING =
+
+io/iostats.stp - List Executables Reading and Writing the Most Data
+keywords: io profiling
+
+   The iostat.stp script measures the amount of data successfully read
+  and written by all the executables on the system.  The output is
+  sorted from most greatest sum of bytes read and written by an
+  executable to the least. The output contains	the count of operations
+  (opens, reads, and writes), the totals and averages for the number of
+  bytes read and written.
+
 
 process/pf2.stp - Profile kernel functions
 keywords: profiling
@@ -220,6 +299,26 @@ keywords: profiling
   seconds it prints out a sorted list with the top twenty processes
   with samples broken down into percentage total time spent in
   user-space and kernel-space.
+
+
+profiling/timeout.stp - Show Processes Doing Polling Operations
+keywords: profiling
+
+  The timeout.stp script is based on a blog entry
+  (http://udrepper.livejournal.com/19041.html) mentioning a need for a
+  tool to help developers find applications that are polling. The
+  timeout.stp script monitors systemcall used for polling and records
+  the systemcalls that timed out rather than returned because some
+  action occurred. The script updates the screen once a second with the
+  top twenty processes.
+
+
+profiling/topsys.stp - Show Processes Doing Polling Operations
+keywords: profiling
+
+   The topsys.stp script lists out the top twenty systemcalls for the
+  previous 5 seconds. The output is sorted from most frequent to least
+  frequent.
 
 
 = READ =
@@ -318,6 +417,16 @@ keywords: network socket
   element of the line is the function name.
 
 
+network/tcp_connections.stp - Track Creation of Incoming TCP Connections
+keywords: network tcp socket
+
+  The tcp_connections.stp script prints information for each new
+  incoming TCP connection accepted by the computer. The information
+  includes the UID, the command accepting the connection, the PID of
+  the command, the port the connection is on, and the IP address of the
+  originator of the request.
+
+
 = SYSCALL =
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
@@ -379,6 +488,18 @@ keywords: syscall wait4
   microseconds, the pid, the executable name in paretheses, the
   "wait4:" key, the duration of the wait and the PID that the wait4 was
   waiting for. If the waited for PID is not specified , it is "-1".
+
+
+= TCP =
+
+network/tcp_connections.stp - Track Creation of Incoming TCP Connections
+keywords: network tcp socket
+
+  The tcp_connections.stp script prints information for each new
+  incoming TCP connection accepted by the computer. The information
+  includes the UID, the command accepting the connection, the PID of
+  the command, the port the connection is on, and the IP address of the
+  originator of the request.
 
 
 = TIME =

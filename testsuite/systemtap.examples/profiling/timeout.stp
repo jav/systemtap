@@ -1,0 +1,102 @@
+#! /usr/bin/env stap
+# Copyright (C) 2009 Red Hat, Inc.
+# Written by Ulrich Drepper <drepper@redhat.com>
+# Modified by William Cohen <wcohen@redhat.com>
+
+global process, timeout_count, to
+global poll_timeout, epoll_timeout, select_timeout, itimer_timeout
+global nanosleep_timeout, futex_timeout, signal_timeout
+
+probe syscall.poll, syscall.epoll_wait {
+  if (timeout) to[pid()]=timeout
+}
+
+probe syscall.poll.return {
+  p = pid()
+  if ($return == 0 && to[p] > 0 ) {
+    poll_timeout[p]++
+    timeout_count[p]++
+    process[p] = execname()
+    delete to[p]
+  }
+}
+
+probe syscall.epoll_wait.return {
+  p = pid()
+  if ($return == 0 && to[p] > 0 ) {
+    epoll_timeout[p]++
+    timeout_count[p]++
+    process[p] = execname()
+    delete to[p]
+  }
+}
+
+probe syscall.select.return {
+  if ($return == 0) {
+    p = pid()
+    select_timeout[p]++
+    timeout_count[p]++
+    process[p] = execname()
+  }
+}
+
+probe syscall.futex.return {
+  if (errno_str($return) == "ETIMEDOUT") {
+    p = pid()
+    futex_timeout[p]++
+    timeout_count[p]++
+    process[p] = execname()
+  }
+}
+
+probe syscall.nanosleep.return {
+  if ($return == 0) {
+    p = pid()
+    nanosleep_timeout[p]++
+    timeout_count[p]++
+    process[p] = execname()
+  }
+}
+
+probe kernel.function("it_real_fn") {
+  p = pid()
+  itimer_timeout[p]++
+  timeout_count[p]++
+  process[p] = execname()
+}
+
+probe syscall.rt_sigtimedwait.return {
+  if (errno_str($return) == "EAGAIN") {
+    p = pid()
+    signal_timeout[p]++
+    timeout_count[p]++
+    process[p] = execname()
+  }
+}
+
+probe syscall.exit {
+  p = pid()
+  if (p in process) {
+    delete process[p]
+    delete timeout_count[p]
+    delete poll_timeout[p]
+    delete epoll_timeout[p]
+    delete select_timeout[p]
+    delete itimer_timeout[p]
+    delete futex_timeout[p]
+    delete nanosleep_timeout[p]
+    delete signal_timeout[p]
+  }
+}
+
+probe timer.s(1) {
+  printf("\033[2J\033[1;1H") /* clear screen */
+  printf ("  uid |   poll  select   epoll  itimer   futex nanosle  signal| process\n")
+  foreach (p in timeout_count- limit 20) {
+     printf ("%5d |%7d %7d %7d %7d %7d %7d %7d| %-.38s\n", p,
+              poll_timeout[p], select_timeout[p],
+              epoll_timeout[p], itimer_timeout[p],
+              futex_timeout[p], nanosleep_timeout[p],
+              signal_timeout[p], process[p])
+  }
+}

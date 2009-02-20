@@ -307,7 +307,6 @@ cat<<EOF
 # else /* !GIT_NOT_FOUND */
 #  define GIT_MESSAGE \\
        GIT_DIST_MSG \\
-       "git branch " GIT_BRANCH ", " \\
        "commit " GIT_SHAID GIT_DIRTY_MSG \\
        GIT_ERROR_MSG
 # endif /* GIT_NOT_FOUND */

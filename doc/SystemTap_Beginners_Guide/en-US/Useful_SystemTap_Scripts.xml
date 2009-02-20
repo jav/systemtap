@@ -62,6 +62,9 @@
 	<xi:include href="Useful_Scripts-functioncalls.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-paracallgraph.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-threadtimes.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-timeout.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-topsys.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-syscallsbyprocpid.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </section>
 <!-- 	removed; handler function no longer working as expected
 	<xi:include href="Useful_Scripts-kernelprofiling.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->

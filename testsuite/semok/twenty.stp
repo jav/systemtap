@@ -1,5 +1,7 @@
-#! stap -wp2
+#! /bin/sh
 
+set -e
+stap -wp2 -e '
 probe kernel.function("*") {}
 probe module("*").function("*") {}
 probe kernel.function("*").call {}
@@ -8,3 +10,6 @@ probe kernel.function("*").return {}
 probe module("*").function("*").return {}
 probe kernel.function("*").inline {}
 probe module("*").function("*").inline {}
+' | wc
+
+# without the |wc,  we'd log the humongous list of stuff stap -p2 prints

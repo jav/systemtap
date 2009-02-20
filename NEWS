@@ -1,11 +1,67 @@
-* What's new
+* What's new in version 0.9
+
+- Typecasting is now supported using the @cast operator.  A script can
+  define a pointer type for a "long" value, and then access type members
+  using the same syntax as with $target variables.  For example, this will
+  retrieve the parent pid from a kernel task_struct:
+    @cast(pointer, "task_struct", "kernel")->parent->pid
+
+- process().mark() probes are now possible to trace static user space
+  markers put in programs with the STAP_PROBE macro using the new
+  sys/sdt.h include file. This also provides dtrace compatible markers
+  through DTRACE_PROBE and an associated python 'dtrace' script that
+  can be used in builds based on dtrace that need dtrace -h or -G
+  functionality.
+
+- For those that really want to run stap from the build tree there is
+  now the 'run-stap' script in the top-level build directory that sets
+  up the SYSTEMTAP_TAPSET, SYSTEMTAP_RUNTIME, SYSTEMTAP_STAPRUN, and
+  SYSTEMTAP_STAPIO environment variables (installing systemtap, in a
+  local prefix, is still recommended for common use).
+
+- Systemtap now comes with a new Beginners Guide that walks the user
+  through their first steps setting up stap, understanding how it all
+  works, introduces some useful scripts and describes some common
+  pitfalls.  It isn't created by default since it needs a Publican
+  setup, but full build instructions can be found in the wiki:
+  http://sourceware.org/systemtap/wiki/PublicanQuikHowto
+  An online version can be found at:
+  http://sourceware.org/systemtap/SystemTap_Beginners_Guide.pdf
+
+- Standard tapsets included with Systemtap were modified to include
+  extractable documentation information based on the kernel-doc
+  infrastructure. When configured --enabled-docs a HTML and PDF
+  version of the Tapset Reference Manual is produced explaining probes
+  defined in each tapset.
+
+- The systemtap client and compile server are now available.
+  These allow you to compile a systemtap module on a host other than
+  the one which it will be run, providing the client and server
+  are compatible. Other than using a server for passes 1 through
+  4, the client behaves like the 'stap' front end itself. This
+  means, among other things, that the client will automatically
+  load the resulting module on the local host unless -p[1234]
+  was specified.  See stap-server(8) for more details.
+  The client/server now use SSL for network connection security and
+  for signing.
+
+  The systemtap client and server are prototypes only. Interfaces, options
+  and usage may change at any time.
+
+- function("func").label("label") probes are now supported to allow matching
+  the label of a function.
+
+- Systemtap initscript is available. This initscript allows you to run
+  systemtap scripts as system services (in flight recorder mode) and
+  control those scripts individually.
+  See README.initscript for details.
 
 - The stap "-r DIR" option may be used to identify a hand-made kernel
   build directory.  The tool determines the appropriate release string
   automatically from the directory.
 
-- A serious problem associated with user-space probing in shared libraries
-  was corrected, making it now possible to experiment with probe shared
+- Serious problems associated with user-space probing in shared libraries
+  were corrected, making it now possible to experiment with probe shared
   libraries.  Assuming dwarf debugging information is installed, use this
   twist on the normal syntax:
 
@@ -13,7 +69,7 @@
 
   This would probe all threads that call into that library.  Running
   "stap -c CMD" or "stap -x PID" naturally restricts this to the target
-  command+descendants only.
+  command+descendants only.  $$vars etc. may be used.
 
 - For scripts that sometimes terminate with excessive "skipped" probes,
   rerunning the script with "-t" (timing) will print more details about
@@ -113,21 +169,6 @@
     kernel module prototype.  This includes RHEL5 and older Fedora, but not
     yet current lkml-track utrace; a "pass 4a"-time build failure means
     your system cannot use this yet.
-
-- Prototype systemtap client and compile server are now available.
-  These allow you to compile a systemtap module on a host other than
-  the one which it will be run, providing the client and server
-  are compatible. Other than using a server for passes 1 through
-  4, the client behaves like the 'stap' front end itself. This
-  means, among other things, that the client will automatically
-  load the resulting module on the local host unless -p[1234]
-  was specified.
-
-  This client/server implementation is a prototype. It provides
-  NO NETWORK SECURITY OF ANY KIND and should be used only
-  among trusted hosts on a trusted network.
-
-  See stap-server(8) for more details.
 
 - Global variables which are written to but never read are now
   automatically displayed when the session does a shutdown.  For example:

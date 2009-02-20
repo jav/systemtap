@@ -1419,7 +1419,7 @@ typedef struct {
 	char *name;
 } _stp_val_array;
 
-void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, int len)
+static void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, int len)
 {
 	int i = 0, slen;
 	while (array[i].name) {
@@ -1432,7 +1432,7 @@ void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, in
 	slen = strlen(ptr);
 	_stp_snprintf(ptr + slen, len - slen, "0x%lx", val);
 }
-void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr, int len)
+static void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr, int len)
 {
 	int i = 0, flag = 0, slen;
 
@@ -1461,7 +1461,7 @@ void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr,
 %}
 
 %{
-const _stp_val_array const _stp_signal_list[] = {
+static const _stp_val_array const _stp_signal_list[] = {
 	{0, "SIG_0"},
 	V(SIGHUP),
 	V(SIGINT),
@@ -1493,7 +1493,7 @@ const _stp_val_array const _stp_signal_list[] = {
 	{0, NULL}
 };
 
-void _stp_sigset_str(sigset_t *mask, char *ptr, int len)
+static void _stp_sigset_str(sigset_t *mask, char *ptr, int len)
 {
 	const _stp_val_array * const array = _stp_signal_list;
 	int i = 0, flag = 0;
@@ -1517,7 +1517,7 @@ function _signal_name:string(sig:long)
 %}
 
 %{
-const _stp_val_array const _stp_semctl_list[] = {
+static const _stp_val_array const _stp_semctl_list[] = {
 	V(IPC_INFO),
 	V(SEM_INFO),
 	V(SEM_STAT),
@@ -1556,7 +1556,7 @@ function _stp_sigset_u:string(setptr:long)
 %}
 
 %{
-const _stp_val_array const _stp_fork_list[] = {
+static const _stp_val_array const _stp_fork_list[] = {
 	V(CLONE_VM),
 	V(CLONE_FS),
 	V(CLONE_FILES),
@@ -1604,7 +1604,7 @@ function __fork_flags:string(flags:long)
 %}
 
 %{
-const _stp_val_array const _stp_atflag_list[] = {
+static const _stp_val_array const _stp_atflag_list[] = {
 #ifdef AT_SYMLINK_NOFOLLOW
 	V(AT_SYMLINK_NOFOLLOW),
 #endif
@@ -1626,7 +1626,7 @@ function _at_flag_str:string(f:long)
 
 %{
 #include <linux/shm.h>
-const _stp_val_array const _stp_shmat_list[] = {
+static const _stp_val_array const _stp_shmat_list[] = {
 	V(SHM_RDONLY),
 	V(SHM_RND),
 	V(SHM_REMAP),
@@ -1643,7 +1643,7 @@ function _shmat_flags_str:string(f:long)
 
 %{
 #include <linux/mman.h>
-const _stp_val_array const _stp_mprotect_list[] = {
+static const _stp_val_array const _stp_mprotect_list[] = {
 	{0, "PROT_NONE"},
 	V(PROT_READ),
 	V(PROT_WRITE),
@@ -1660,7 +1660,7 @@ function _mprotect_prot_str:string(prot:long)
 
 %{
 #include <linux/mman.h>
-const _stp_val_array const _stp_mmap_list[] = {
+static const _stp_val_array const _stp_mmap_list[] = {
 	V(MAP_SHARED),
 	V(MAP_PRIVATE),
 	V(MAP_FIXED),
@@ -1730,7 +1730,7 @@ function _sighandler_str:string(uaddr:long)
 %}
 
 %{
-void _stp_sigaction_str(struct sigaction *act, char *ptr, int len)
+static void _stp_sigaction_str(struct sigaction *act, char *ptr, int len)
 {
   static const _stp_val_array const _stp_sa_handler_list[] = {
     {0, "SIG_DFL"},

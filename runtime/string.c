@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * String Functions
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007, 2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -28,7 +28,7 @@
  * variable number of args.
  */
 
-int _stp_snprintf(char *buf, size_t size, const char *fmt, ...)
+static int _stp_snprintf(char *buf, size_t size, const char *fmt, ...)
 {
         va_list args;
         int i;
@@ -39,7 +39,7 @@ int _stp_snprintf(char *buf, size_t size, const char *fmt, ...)
         return i;
 }
 
-int _stp_vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
+static int _stp_vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
 	unsigned i = _stp_vsnprintf(buf,size,fmt,args);
 	return (i >= size) ? (size - 1) : i;
@@ -60,9 +60,8 @@ int _stp_vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
  * in will have "..." after the second quote.
  * @param user Set this to indicate the input string pointer is a userspace pointer.
  */
-void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
+static void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 {
-	const int length = len;
 	char c, *out = outstr;
 
 	if (len == 0 || len > MAXSTRINGLEN-1)

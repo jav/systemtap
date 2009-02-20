@@ -70,7 +70,7 @@
       <listitem><para><filename>systemtap-runtime</filename></para></listitem>
     </itemizedlist>
 	
-    <para>Assuming that your system is configured to use Red Hat Network (RHN) or <command>yum</command> is available, these two rpms can be installed with <command>yum install systemtap systemtap-runtime</command>. Note that before you can use SystemTap, you will still need to install the required kernel information RPMs.
+    <para>Assuming that <command>yum</command> is installed in the system, these two rpms can be installed with <command>yum install systemtap systemtap-runtime</command>. Note that before you can use SystemTap, you will still need to install the required kernel information RPMs.
     </para>
 
 </section>
@@ -99,9 +99,12 @@
 <indexterm>
 	<primary>kernel information packages</primary>
 </indexterm>
-    <para> SystemTap needs information about the kernel in order to place instrumentation in it (i.e. probe it). This information also allows SystemTap to generate the code for the instrumentation. This information is contained in the matching <filename>-devel</filename> and <filename>-debuginfo</filename> packages for your kernel. The necessary <filename>-devel</filename> and
-      <filename>-debuginfo</filename> packages for the ordinary "vanilla" kernel
-      are as follows:
+    <para> 
+	    SystemTap needs information about the kernel in order to place instrumentation in it (i.e. probe it). This 
+	    information also allows SystemTap to generate the code for the instrumentation. This information is contained 
+	    in the matching <filename>-devel</filename>, <filename>-debuginfo</filename>, and <filename>-debuginfo-common</filename> 
+	    packages for your kernel. The necessary <filename>-devel</filename> and <filename>-debuginfo</filename> packages for the ordinary 
+	    "vanilla" kernel are as follows:
     </para>
 
     <itemizedlist>
@@ -137,7 +140,9 @@
 uname -r
 </screen>
 
-    <para>For example, if you wish to use SystemTap on kernel version <filename>2.6.18-53.el5</filename> on an i686 machine, then you would need to download and install the following RPMs:
+    <para>
+	    For example, if you wish to use SystemTap on kernel version <filename>2.6.18-53.el5</filename> on an i686 machine, then you would 
+	    need to download and install the following RPMs:
     </para>
 
     <itemizedlist>
@@ -146,78 +151,75 @@ uname -r
       <listitem><para><filename>kernel-devel-2.6.18-53.1.13.el5.i686.rpm</filename></para></listitem>
     </itemizedlist>
 
-    <important>
+   <important>
       <title>Important</title>
 	
       <para>
-	The version, variant, and architecture of the <filename>-devel</filename>, <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.
+	The version, variant, and architecture of the <filename>-devel</filename>, <filename>-debuginfo</filename> and 
+	<filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.
       </para>
     </important>
-
-<para>
-	To help ease your deployment of SystemTap, you can use <xref linkend="stapprep"/>. 
-	<xref linkend="stapprep"/> determines the kernel information packages you need to install in order
-	to run SystemTap. If you run <xref linkend="stapprep"/> (as an ordinary, non-root user) without 
-	any arguments, it will display the kernel information packages required for the 
-	<emphasis>loaded</emphasis> kernel. You can also pass a specific kernel version to 
-	<xref linkend="stapprep"/>  (e.g. <computeroutput>2.6.18-92.el5</computeroutput>) if you wish 
-	to probe a kernel that is not currently loaded.
-</para>
-<indexterm>
-	<primary>Installation</primary>
-	<secondary>stapprep.sh</secondary>
-</indexterm>
-
-<indexterm>
-	<primary>stapprep.sh</primary>
-</indexterm>
-
-
-<!-- next 2 indexterms for installation script -->
-
-<indexterm>
-	<primary>Installation</primary>
-	<secondary>installation script</secondary>
-</indexterm>
-
-<indexterm>
-	<primary>installation script</primary>
-</indexterm>
-<note>
-	<title>Note</title>
-	<para>Running <xref linkend="stapprep"/> as root will display the required kernel packages <emphasis>and</emphasis> install them as well, provided that <command>yum</command> and <command>yum-utils</command> are configured properly.</para>
-</note>	
-	
-<!--	Running <xref linkend="stapprep"/> without any arguments will display and install the required kernel information packages for the currently loaded kernel. If you wish to probe a kernel other than the one currently loaded, you can pass a specific kernel version as an argument to <xref linkend="stapprep"/>; the script will then install that kernel's corresponding kernel information packages.
-</para>	-->
-    
-<!--    
-<para>
-	To determine what kernel information RPMs you need to install in order to run SystemTap, run the <xref linkend="stapprep"/>. Running <xref linkend="stapprep"/> without any arguments will display what packages you 
     
     
-    
-    <para> The script <xref linkend="stapprep"/> can be used by normal users to determine what supporting kernel RPMs need to be installed on the machine to use SystemTap with a particular kernel.  The script run without any arguments detemines the RPMs needed for the currently running kernel. The script can also accept one argument, the output <command>uname -r</command>, to determine the related RPMs required for a kernel that may not be currently running on the machine.
-    </para>-->
-<indexterm>
-<primary>script for installing kernel information packages</primary>
-</indexterm>
-<formalpara id="stapprep">
-<title>stapprep.sh</title>
-<para>
-<programlisting>
-<xi:include parse="text" href="extras/stapprep.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
-</para>
-</formalpara>
-<!--
     <para>
-	    If the <filename>yum-utils</filename> package is installed and the <command>yum</command> repositories are set up properly, you can run the <xref linkend="stapprep"/> script as root. <xref linkend="stapprep"/> will automatically download and install the required packages via <command>yum</command> and <command>rpm</command> commands (assuming that the kernel you wish to probe is currently loaded).
-    </para>-->
+	    The easiest way to install the required kernel information packages is through <command>yum install</command> 
+	    and <command>debuginfo-install</command>. <command>debuginfo-install</command> is included with later versions of the
+	    <filename>yum-utils</filename> package (for example, version 1.1.10), and also requires an appropriate <command>yum</command>
+	    repository from which to download and install <command>-debuginfo</command>/<filename>-debuginfo-common</filename> packages.
+    </para>
+    
+	<para condition="fedora">
+	    Most of the required kernel packages can be found at 
+	    <ulink url="http://download.fedoraproject.org/pub/fedora/linux/releases/"/>. Configure 
+	    <command>yum</command> accordingly by adding a new "debug" <command>yum</command> repository file 
+	    under <filename>/etc/yum.repos.d</filename> containing the following lines:
+	</para>
 
-<!-- The script assumes the Red Hat Enterprise Linux debuginfo repository,
-<filename>rhel-debuginfo</filename>, but this could be changed.  One could
-search the /etc/yum.repo.d/ directory for debuginfo repositories -->
+<programlisting condition="fedora">
+[fedora-debuginfo]
+name=Fedora $releasever - $basearch - Debug
+failovermethod=priority
+baseurl=http://download.fedoraproject.org/pub/fedora/linux/releases/$releasever/Everything/$basearch/debug/
+enabled=1
+</programlisting>	
+	
+	
+	<para condition="RedHat">
+		Most required kernel packages can be found at 
+		<ulink url="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/"/>; navigate there until you find the 
+		appropriate <filename>Debuginfo</filename> directory for your system. Configure 
+		<command>yum</command> accordingly by adding a new "debug" <command>yum</command> repository file under 
+		<filename>/etc/yum.repos.d</filename> containing the following lines:
+	</para>
+<programlisting condition="RedHat">
+[rhel-debuginfo]
+name=Red Hat Enterprise Linux $releasever - $basearch - Debug
+baseurl=ftp://ftp.redhat.com/pub/redhat/linux/enterprise/$releasever/en/os/$basearch/Debuginfo/
+enabled=1
+</programlisting>
+
+<para>
+	After configuring <command>yum</command> with the appropriate repository, you can now install 
+	the required <filename>-devel</filename>, <filename>-debuginfo</filename>, and <filename>-debuginfo-common</filename> 
+	packages for your kernel. To install the corresponding packages for a specific kernel, run the following commands:
+</para>
+
+<itemizedlist>
+<listitem><para><command>yum install <replaceable>kernelname</replaceable>-devel-<replaceable>version</replaceable></command></para></listitem>
+<listitem><para><command>debuginfo-install <replaceable>kernelname</replaceable>-<replaceable>version</replaceable></command></para></listitem>
+</itemizedlist>
+
+<para>
+	Replace <command><replaceable>kernelname</replaceable></command> with the appropriate kernel variant name 
+	(for example, <filename>kernel-PAE</filename>), and <command><replaceable>version</replaceable></command> 
+	with the target kernel's version. For example, to install the required kernel information packages for
+	the <command>kernel-PAE--2.6.18-53.1.13.el5</command> kernel, run:
+</para>
+
+<itemizedlist>
+	<listitem><para><command>yum install kernel-PAE-devel-2.6.18-53.1.13.el5</command></para></listitem>
+	<listitem><para><command>debuginfo-install kernel-PAE-2.6.18-53.1.13.el5</command></para></listitem>
+</itemizedlist>
 
 <para>
 	If you do not have <command>yum</command> and <command>yum-utils</command> installed (and you are unable to install them), you will have to manually download and install the required kernel information packages. To generate the URL from which to download the required packages, use the following script:
@@ -266,6 +268,7 @@ Once you have manually downloaded the required packages to the machine, install 
 	
   </section>
 
+	
   <section id="testing">
     <title>Initial Testing</title>
 <indexterm>

@@ -43,7 +43,7 @@ rm -fr $1
 
 # Create the server's certificate database directory.
 serverdb=$1/server
-if ! mkdir -p $serverdb; then
+if ! mkdir -p -m 755 $serverdb; then
     echo "Unable to create the server certificate database directory: $serverdb" >&2
     exit 1
 fi
@@ -73,6 +73,12 @@ dd bs=123 count=1 < /dev/urandom > $1/noise 2> /dev/null
 certutil -R -d $serverdb -f $serverdb/pw -s "CN=Systemtap Compile Server, OU=Systemtap, O=Red Hat, C=US" -o $1/stap-server.req -z $1/noise 2> /dev/null
 rm -fr $1/noise
 
+# Create the certificate file first so that it always has the proper access permissions.
+if ! (touch $serverdb/stap-server.cert && chmod 644 $serverdb/stap-server.cert); then
+    echo "Unable to create the server certificate file: $serverdb/stap-server.cert" >&2
+    exit 1
+fi
+
 # Now generate the actual certificate.
 certutil -C -i $1/stap-server.req -o $serverdb/stap-server.cert -x -d $serverdb -f $serverdb/pw -5 -8 "$HOSTNAME,localhost" >/dev/null <<-EOF
 1
@@ -82,11 +88,6 @@ certutil -C -i $1/stap-server.req -o $serverdb/stap-server.cert -x -d $serverdb 
 y
 EOF
 rm -fr $1/stap-server.req
-
-# Ensure that the certificate is readable by others.
-if ! chmod +r $serverdb/stap-server.cert; then
-    echo "Warning: unable to make the server's certificate $serverdb/stap-server.cert readable by others" >&2
-fi
 
 # Add the certificate to the server's certificate/key database as a trusted peer, ssl server and object signer
 certutil -A -n stap-server -t "PCu,,PCu" -i $serverdb/stap-server.cert -d $serverdb -f $serverdb/pw

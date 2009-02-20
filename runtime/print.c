@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Print Functions
- * Copyright (C) 2007-2008 Red Hat Inc.
+ * Copyright (C) 2007-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -39,16 +39,16 @@ typedef struct __stp_pbuf {
 	char buf[STP_BUFFER_SIZE];
 } _stp_pbuf;
 
-void *Stp_pbuf = NULL;
+static void *Stp_pbuf = NULL;
 
-/** private buffer for _stp_log() */
+/** private buffer for _stp_vlog() */
 #define STP_LOG_BUF_LEN 256
 
 typedef char _stp_lbuf[STP_LOG_BUF_LEN];
-void *Stp_lbuf = NULL;
+static void *Stp_lbuf = NULL;
 
 /* create percpu print and io buffers */
-int _stp_print_init (void)
+static int _stp_print_init (void)
 {
 	Stp_pbuf = _stp_alloc_percpu(sizeof(_stp_pbuf));
 	if (unlikely(Stp_pbuf == 0))
@@ -63,7 +63,7 @@ int _stp_print_init (void)
 	return 0;
 }
 
-void _stp_print_cleanup (void)
+static void _stp_print_cleanup (void)
 {
 	if (Stp_pbuf)
 		_stp_free_percpu(Stp_pbuf);
@@ -171,7 +171,7 @@ static void _stp_print_binary (int num, ...)
  *
  * @sa _stp_print_flush()
  */
-void _stp_printf (const char *fmt, ...)
+static void _stp_printf (const char *fmt, ...)
 {
 	int num;
 	va_list args;
@@ -207,7 +207,7 @@ void _stp_printf (const char *fmt, ...)
  * @param str A C string (char *)
  */
 
-void _stp_print (const char *str)
+static void _stp_print (const char *str)
 {
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	char *end = pb->buf + STP_BUFFER_SIZE;
@@ -231,9 +231,8 @@ void _stp_print (const char *str)
 	pb->len = ptr - pb->buf;
 }
 
-void _stp_print_char (const char c)
+static void _stp_print_char (const char c)
 {
-	char *buf;
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	int size = STP_BUFFER_SIZE - pb->len;
 	if (unlikely(1 >= size))
@@ -243,38 +242,7 @@ void _stp_print_char (const char c)
 	pb->len ++;
 }
 
-/* This function is used when printing maps or stats. */
-/* Probably belongs elsewhere, but is here for now. */
-/* It takes a format specification like those used for */
-/* printing maps and stats. It prints chars until it sees */
-/* a special format char (beginning with '%'. Then it */
-/* returns a pointer to that. */
-static char *next_fmt(char *fmt, int *num)
-{
-	char *f = fmt;
-	int in_fmt = 0;
-	*num = 0;
-	while (*f) {
-		if (in_fmt) {
-			if (*f == '%') {
-				_stp_print_char('%');
-				in_fmt = 0;
-			} else if (*f > '0' && *f <= '9') {
-				*num = *f - '0';
-				f++;
-				return f;
-			} else
-				return f;
-		} else if (*f == '%')
-			in_fmt = 1;
-		else
-			_stp_print_char(*f);
-		f++;
-	}
-	return f;
-}
-
-void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
+static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 {
 #ifdef DEBUG_MEM
 	printk(KERN_DEBUG "%s: systemtap: %s, base: %p, memory: %lu+%lu+%u+%u+%u data+text+ctx+net+alloc, probes: %d\n",

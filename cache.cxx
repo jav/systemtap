@@ -25,9 +25,38 @@ extern "C" {
 using namespace std;
 
 
+#define SYSTEMTAP_CACHE_MAX_FILENAME "cache_mb_limit"
+#define SYSTEMTAP_CACHE_DEFAULT_MB 64
+
+struct cache_ent_info {
+  string path;
+  bool is_module;
+  size_t size;
+  long weight;  //lower == removed earlier
+
+  cache_ent_info(const string& path, bool is_module);
+  bool operator<(const struct cache_ent_info& other) const
+  { return weight < other.weight; }
+  void unlink() const;
+};
+
+static void clean_cache(systemtap_session& s);
+
+
 void
 add_to_cache(systemtap_session& s)
 {
+  string stapconf_src_path = s.tmpdir + "/" + s.stapconf_name;
+  if (s.verbose > 1)
+    clog << "Copying " << stapconf_src_path << " to " << s.stapconf_path << endl;
+  if (copy_file(stapconf_src_path.c_str(), s.stapconf_path.c_str()) != 0)
+    {
+      cerr << "Copy failed (\"" << stapconf_src_path << "\" to \""
+	   << s.stapconf_path << "\"): " << strerror(errno) << endl;
+      s.use_cache = false;
+      return;
+    }
+
   string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
   if (s.verbose > 1)
     clog << "Copying " << module_src_path << " to " << s.hash_path << endl;
@@ -65,13 +94,37 @@ add_to_cache(systemtap_session& s)
 bool
 get_from_cache(systemtap_session& s)
 {
+  string stapconf_dest_path = s.tmpdir + "/" + s.stapconf_name;
   string module_dest_path = s.tmpdir + "/" + s.module_name + ".ko";
   string c_src_path = s.hash_path;
-  int fd_module, fd_c;
+  int fd_stapconf, fd_module, fd_c;
 
   if (c_src_path.rfind(".ko") == (c_src_path.size() - 3))
     c_src_path.resize(c_src_path.size() - 3);
   c_src_path += ".c";
+
+  // See if stapconf exists
+  fd_stapconf = open(s.stapconf_path.c_str(), O_RDONLY);
+  if (fd_stapconf == -1)
+    {
+      // It isn't in cache.
+      return false;
+    }
+
+  // Copy the stapconf header file to the destination
+  if (copy_file(s.stapconf_path.c_str(), stapconf_dest_path.c_str()) != 0)
+    {
+      cerr << "Copy failed (\"" << s.stapconf_path << "\" to \""
+	   << stapconf_dest_path << "\"): " << strerror(errno) << endl;
+      close(fd_stapconf);
+      return false;
+    }
+
+  // We're done with this file handle.
+  close(fd_stapconf);
+
+  if (s.verbose > 1)
+    clog << "Pass 3: using cached " << s.stapconf_path << endl;
 
   // See if module exists
   fd_module = open(s.hash_path.c_str(), O_RDONLY);
@@ -146,7 +199,7 @@ get_from_cache(systemtap_session& s)
 }
 
 
-void
+static void
 clean_cache(systemtap_session& s)
 {
   if (s.cache_path != "")
@@ -170,7 +223,9 @@ clean_cache(systemtap_session& s)
     	  cache_mb_max = SYSTEMTAP_CACHE_DEFAULT_MB;
 
           if (s.verbose > 1)
-            clog << "Cache limit file " << s.cache_path << "/" << SYSTEMTAP_CACHE_MAX_FILENAME << " missing, creating default." << endl;
+            clog << "Cache limit file " << s.cache_path << "/"
+              << SYSTEMTAP_CACHE_MAX_FILENAME
+              << " missing, creating default." << endl;
         }
 
       //glob for all kernel modules in the cache dir
@@ -179,33 +234,44 @@ clean_cache(systemtap_session& s)
       glob(glob_str.c_str(), 0, NULL, &cache_glob);
 
 
-      set<struct cache_ent_info, struct weight_sorter> cache_contents;
+      set<struct cache_ent_info> cache_contents;
       unsigned long cache_size_b = 0;
 
       //grab info for each cache entry (.ko and .c)
       for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
         {
-          struct cache_ent_info cur_info;
           string cache_ent_path = cache_glob.gl_pathv[i];
-          long cur_size = 0;
+          cache_ent_path.resize(cache_ent_path.length() - 3);
 
-          cache_ent_path = cache_ent_path.substr(0, cache_ent_path.length() - 3);
-          cur_info.path = cache_ent_path;
-          cur_info.weight = get_cache_file_weight(cache_ent_path);
-
-          cur_size = get_cache_file_size(cache_ent_path);
-          cur_info.size = cur_size;
-          cache_size_b += cur_size;
-
+          struct cache_ent_info cur_info(cache_ent_path, true);
           if (cur_info.size != 0 && cur_info.weight != 0)
             {
+              cache_size_b += cur_info.size;
               cache_contents.insert(cur_info);
             }
         }
 
       globfree(&cache_glob);
 
-      set<struct cache_ent_info, struct weight_sorter>::iterator i;
+      //grab info for each stapconf cache entry (.h)
+      glob_str = s.cache_path + "/*/*.h";
+      glob(glob_str.c_str(), 0, NULL, &cache_glob);
+      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
+        {
+          string cache_ent_path = cache_glob.gl_pathv[i];
+          cache_ent_path.resize(cache_ent_path.length() - 3);
+
+          struct cache_ent_info cur_info(cache_ent_path, false);
+          if (cur_info.size != 0 && cur_info.weight != 0)
+            {
+              cache_size_b += cur_info.size;
+              cache_contents.insert(cur_info);
+            }
+        }
+
+      globfree(&cache_glob);
+
+      set<struct cache_ent_info>::iterator i;
       unsigned long r_cache_size = cache_size_b;
       string removed_dirs = "";
 
@@ -216,8 +282,8 @@ clean_cache(systemtap_session& s)
             break;
 
           //remove this (*i) cache_entry, add to removed list
+          i->unlink();
           r_cache_size -= i->size;
-          unlink_cache_entry(i->path);
           removed_dirs += i->path + ", ";
         }
 
@@ -238,43 +304,29 @@ clean_cache(systemtap_session& s)
     }
 }
 
-//Get the size, in bytes, of the module (.ko) and the
-// corresponding source (.c)
-long
-get_cache_file_size(const string &cache_ent_path)
+// Get the size of a file in bytes
+static size_t
+get_file_size(const string &path)
 {
-  size_t cache_ent_size = 0;
-  string mod_path    = cache_ent_path + ".ko",
-         source_path = cache_ent_path + ".c";
-
   struct stat file_info;
 
-  if (stat(mod_path.c_str(), &file_info) == 0)
-    cache_ent_size += file_info.st_size;
+  if (stat(path.c_str(), &file_info) == 0)
+    return file_info.st_size;
   else
     return 0;
-
-  //Don't care if the .c isn't there, it's much smaller
-  // than the .ko anyway
-  if (stat(source_path.c_str(), &file_info) == 0)
-    cache_ent_size += file_info.st_size;
-
-
-  return cache_ent_size; // / 1024 / 1024;	//convert to MiB
 }
 
-//Assign a weight to this cache entry. A lower weight
+//Assign a weight for a particular file. A lower weight
 // will be removed before a higher weight.
 //TODO: for now use system mtime... later base a
 // weighting on size, ctime, atime etc..
-long
-get_cache_file_weight(const string &cache_ent_path)
+static long
+get_file_weight(const string &path)
 {
   time_t dir_mtime = 0;
   struct stat dir_stat_info;
-  string module_path = cache_ent_path + ".ko";
 
-  if (stat(module_path.c_str(), &dir_stat_info) == 0)
+  if (stat(path.c_str(), &dir_stat_info) == 0)
     //GNU struct stat defines st_atime as st_atim.tv_sec
     // but it doesnt seem to work properly in practice
     // so use st_atim.tv_sec -- bad for portability?
@@ -284,14 +336,36 @@ get_cache_file_weight(const string &cache_ent_path)
 }
 
 
-//deletes the module and source file contain
-void
-unlink_cache_entry(const string &cache_ent_path)
+cache_ent_info::cache_ent_info(const string& path, bool is_module):
+  path(path), is_module(is_module)
 {
-  //remove both .ko and .c files
-  string mod_path    = cache_ent_path + ".ko";
-  string source_path = cache_ent_path + ".c";
-
-  unlink(mod_path.c_str());     //it must exist, globbed for it earlier
-  unlink(source_path.c_str());  //if its not there, no matter
+  if (is_module)
+    {
+      string mod_path    = path + ".ko";
+      string source_path = path + ".c";
+      size = get_file_size(mod_path) + get_file_size(source_path);
+      weight = get_file_weight(mod_path);
+    }
+  else
+    {
+      size = get_file_size(path);
+      weight = get_file_weight(path);
+    }
 }
+
+
+void
+cache_ent_info::unlink() const
+{
+  if (is_module)
+    {
+      string mod_path    = path + ".ko";
+      string source_path = path + ".c";
+      ::unlink(mod_path.c_str());
+      ::unlink(source_path.c_str());
+    }
+  else
+    ::unlink(path.c_str());
+}
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

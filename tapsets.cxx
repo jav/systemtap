@@ -159,8 +159,7 @@ be_derived_probe::join_group (systemtap_session& s)
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
 			       bool overload_processing = true,
-                               bool interruptible = true,
-                               bool fakeregs = false)
+                               bool interruptible = true)
 {
   o->newline() << "struct context* __restrict__ c;";
   if (! interruptible)
@@ -216,6 +215,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->last_stmt = 0;";
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
+  o->newline() << "c->regs = 0;";
   o->newline() << "c->unwaddr = 0;";
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
@@ -240,20 +240,6 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->cycles_base = 0;";
   o->newline() << "#endif";
   */
-
-  /* PR6961: Let's prep a bare-bones pt_regs struct, just in case our
-     kind of probe point does not supply one. */
-  if (fakeregs)
-    {
-      o->newline() << "#ifdef STP_NEED_UNWIND_DATA";
-      o->newline() << "memset (& c->regs_buffer, 0, sizeof (c->regs_buffer));";
-      o->newline() << "REG_IP((& c->regs_buffer)) = (unsigned long)__builtin_return_address (0);";
-      o->newline() << "REG_SP((& c->regs_buffer)) = (unsigned long)& c;";
-      o->newline() << "c->regs = & c->regs_buffer;";
-      o->newline() << "#endif";
-    }
-  else
-    o->newline() << "c->regs = 0;";
 }
 
 
@@ -350,31 +336,31 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (probes.empty()) return;
 
   s.op->newline() << "/* ---- begin/end probes ---- */";
-  s.op->newline() << "void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
+  s.op->newline() << "static void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false, true, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false, true);
   s.op->newline() << "c->probe_point = pp;";
   s.op->newline() << "(*fn) (c);";
   common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
+  s.op->newline() << "static void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false, true, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false, true);
   s.op->newline() << "c->probe_point = pp;";
   s.op->newline() << "(*fn) (c);";
   common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
+  s.op->newline() << "static void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", false, true, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", false, true);
   s.op->newline() << "c->probe_point = pp;";
   s.op->newline() << "(*fn) (c);";
   common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "struct stap_be_probe {";
+  s.op->newline() << "static struct stap_be_probe {";
   s.op->newline(1) << "void (*ph)(struct context*);";
   s.op->newline() << "const char* pp;";
   s.op->newline() << "int type;";
@@ -480,6 +466,7 @@ static string TOK_STATEMENT("statement");
 static string TOK_ABSOLUTE("absolute");
 static string TOK_PROCESS("process");
 static string TOK_MARK("mark");
+static string TOK_LABEL("label");
 
 // Can we handle this query with just symbol-table info?
 enum dbinfo_reqt
@@ -552,7 +539,8 @@ inline_instance_info
 };
 
 
-struct dwarf_query; // forward decls
+struct base_query; // forward decls
+struct dwarf_query;
 struct dwflpp;
 struct symbol_table;
 
@@ -1024,7 +1012,7 @@ struct dwflpp
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
 					     const char *, Dwarf_Addr,
 					     void *),
-			    dwarf_query *data)
+			    base_query *data)
   {
     ptrdiff_t off = 0;
     do
@@ -1042,7 +1030,7 @@ struct dwflpp
 
 
   // Defined after dwarf_query
-  void query_modules(dwarf_query *q);
+  void query_modules(base_query *q);
 
 
   // -----------------------------------------------------------------
@@ -1159,10 +1147,8 @@ struct dwflpp
     return DWARF_CB_OK;
   }
 
-  Dwarf_Die *declaration_resolve(Dwarf_Die *die)
+  Dwarf_Die *declaration_resolve(const char *name)
   {
-    const char *name = dwarf_diename(die);
-
     if (!name)
       return NULL;
 
@@ -1327,6 +1313,82 @@ struct dwflpp
 	else if (line_type == RANGE && l == lines[1])
 	  break;
       }
+  }
+
+  void
+  iterate_over_cu_labels (string label_val, Dwarf_Die *cu, void *data,
+			  void (* callback)(const string &,
+					    const char *,
+					    int,
+					    Dwarf_Die *,
+					    Dwarf_Addr,
+					    dwarf_query *))
+  {
+    dwarf_query * q __attribute__ ((unused)) = static_cast<dwarf_query *>(data) ;
+
+    get_module_dwarf();
+
+    const char * sym = label_val.c_str();
+    Dwarf_Die die;
+    dwarf_child (cu, &die);
+    static string function_name;
+    do 
+      {
+	Dwarf_Attribute attr_mem;
+	Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
+	int tag = dwarf_tag(&die);
+	const char *name = dwarf_formstring (attr);
+	if (name == NULL)
+	  continue;
+	if (tag == DW_TAG_subprogram)
+	  {
+	    function_name = name;
+	  }
+	else if (tag == DW_TAG_label
+		 && ((strncmp(name, sym, strlen(sym)) == 0)
+		     || (name_has_wildcard (sym)
+			 && function_name_matches_pattern (name, sym))))
+	  {
+	    const char *file = dwarf_decl_file (&die);
+	    // Get the line number for this label
+	    Dwarf_Attribute attr;
+	    dwarf_attr (&die,DW_AT_decl_line, &attr);
+	    Dwarf_Sword dline;
+	    dwarf_formsdata (&attr, &dline);
+	    Dwarf_Addr stmt_addr;
+	    if (dwarf_lowpc (&die, &stmt_addr) != 0)
+	      {
+		// There is no lowpc so figure out the address
+		// Get the real die for this cu
+		Dwarf_Die cudie;
+		dwarf_diecu (cu, &cudie, NULL, NULL);
+		size_t nlines = 0;
+		// Get the line for this label
+		Dwarf_Line **aline;
+		dwarf_getsrc_file (module_dwarf, file, (int)dline, 0, &aline, &nlines);
+		// Get the address
+		for (size_t i = 0; i < nlines; i++)
+		  {
+		    dwarf_lineaddr (*aline, &stmt_addr);
+		    if ((dwarf_haspc (&die, stmt_addr)))
+		      break;
+		  }
+	      }
+
+	    Dwarf_Die *scopes;
+	    int nscopes = 0;
+	    nscopes = dwarf_getscopes_die (&die, &scopes);
+	    if (nscopes > 1)
+	      callback(function_name.c_str(), file,
+		       (int)dline, &scopes[1], stmt_addr, q);
+	  }
+	if (dwarf_haschildren (&die) && tag != DW_TAG_structure_type
+	    && tag != DW_TAG_union_type)
+	  {
+	    iterate_over_cu_labels (label_val, &die, q, callback);
+	  }
+      }
+    while (dwarf_siblingof (&die, &die) == 0);
   }
 
 
@@ -1709,12 +1771,16 @@ struct dwflpp
 
     assert (cu);
 
-    if (scope_die && pc == 0)
-      nscopes = dwarf_getscopes_die (scope_die, &scopes);
-    else
-      nscopes = dwarf_getscopes (cu, pc, &scopes);
+    nscopes = dwarf_getscopes (cu, pc, &scopes);
+    int sidx;
+    // if pc and scope_die are disjoint then we need dwarf_getscopes_die
+    for (sidx = 0; sidx < nscopes; sidx++)
+      if (scopes[sidx].addr == scope_die->addr)
+	break;
+    if (sidx == nscopes)
+      nscopes = dwarf_getscopes_die (scope_die, &scopes);      
 
-    if (nscopes == 0)
+    if (nscopes <= 0)
       {
 	throw semantic_error ("unable to find any scopes containing "
 			      + lex_cast_hex<string>(pc)
@@ -1773,7 +1839,13 @@ struct dwflpp
     Dwarf_Op *expr;
     size_t len;
 
-    switch (dwarf_getlocation_addr (attr, pc - module_bias, &expr, &len, 1))
+    /* PR9768: formerly, we added pc+module_bias here.  However, that bias value
+       is not present in the pc value by the time we get it, so adding it would
+       result in false negatives of variable reachibility.  In other instances
+       further below, the c_translate_FOO functions, the module_bias value used
+       to be passed in, but instead should now be zero for the same reason. */
+
+    switch (dwarf_getlocation_addr (attr, pc /*+ module_bias*/, &expr, &len, 1))
       {
       case 1:			/* Should always happen.  */
 	if (len > 0)
@@ -1791,7 +1863,7 @@ struct dwflpp
 
     return c_translate_location (pool, &loc2c_error, this,
 				 &loc2c_emit_address,
-				 1, module_bias,
+				 1, 0 /* PR9768 */,
 				 pc, expr, len, tail, fb_attr);
   }
 
@@ -1876,11 +1948,14 @@ struct dwflpp
 		       Dwarf_Die *die_mem,
 		       Dwarf_Attribute *attr_mem)
   {
-    Dwarf_Die *die = vardie;
+    Dwarf_Die *die = die_mem;
     Dwarf_Die struct_die;
     Dwarf_Attribute temp_attr;
 
     unsigned i = 0;
+
+    if (vardie)
+      *die_mem = *vardie;
 
     static unsigned int func_call_level ;
     static unsigned int dwarf_error_flag ; // indicates current error is dwarf error
@@ -1898,7 +1973,6 @@ struct dwflpp
         obstack_printf (pool, "c->last_stmt = %s;", lex_cast_qstring(piece).c_str());
 #endif
 
-	die = dwarf_formref_die (attr_mem, die_mem);
 	const int typetag = dwarf_tag (die);
 	switch (typetag)
 	  {
@@ -1914,13 +1988,13 @@ struct dwflpp
             // XXX: of course, we should support this the same way C does,
             // by explicit pointer arithmetic etc.  PR4166.
 
-	    c_translate_pointer (pool, 1, module_bias, die, tail);
+	    c_translate_pointer (pool, 1, 0 /* PR9768*/, die, tail);
 	    break;
 
 	  case DW_TAG_array_type:
 	    if (components[i].first == target_symbol::comp_literal_array_index)
 	      {
-		c_translate_array (pool, 1, module_bias, die, tail,
+		c_translate_array (pool, 1, 0 /* PR9768 */, die, tail,
 				   NULL, lex_cast<Dwarf_Word>(components[i].second));
 		++i;
 	      }
@@ -1935,7 +2009,7 @@ struct dwflpp
 	    struct_die = *die;
 	    if (dwarf_hasattr(die, DW_AT_declaration))
 	      {
-		Dwarf_Die *tmpdie = dwflpp::declaration_resolve(die);
+		Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(die));
 		if (tmpdie == NULL)
 		  throw semantic_error ("unresolved struct "
 					+ string (dwarf_diename_integrate (die) ?: "<anonymous>"));
@@ -2049,6 +2123,7 @@ struct dwflpp
 	/* Now iterate on the type in DIE's attribute.  */
 	if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
 	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
+	die = dwarf_formref_die (attr_mem, die_mem);
       }
     return die;
   }
@@ -2153,10 +2228,10 @@ struct dwflpp
 
 	ty = pe_long;
 	if (lvalue)
-	  c_translate_store (pool, 1, module_bias, die, typedie, tail,
+	  c_translate_store (pool, 1, 0 /* PR9768 */, die, typedie, tail,
 			     "THIS->value");
 	else
-	  c_translate_fetch (pool, 1, module_bias, die, typedie, tail,
+	  c_translate_fetch (pool, 1, 0 /* PR9768 */, die, typedie, tail,
 			     "THIS->__retvalue");
 	break;
 
@@ -2183,7 +2258,7 @@ struct dwflpp
               if (typetag == DW_TAG_array_type)
                 throw semantic_error ("cannot write to array address");
               assert (typetag == DW_TAG_pointer_type);
-              c_translate_pointer_store (pool, 1, module_bias, typedie, tail,
+              c_translate_pointer_store (pool, 1, 0 /* PR9768 */, typedie, tail,
                                          "THIS->value");
             }
           else
@@ -2197,10 +2272,10 @@ struct dwflpp
 
               ty = pe_long;
               if (typetag == DW_TAG_array_type)
-                c_translate_array (pool, 1, module_bias, typedie, tail, NULL, 0);
+                c_translate_array (pool, 1, 0 /* PR9768 */, typedie, tail, NULL, 0);
               else
-                c_translate_pointer (pool, 1, module_bias, typedie, tail);
-              c_translate_addressof (pool, 1, module_bias, NULL, pointee_typedie, tail,
+                c_translate_pointer (pool, 1, 0 /* PR9768 */, typedie, tail);
+              c_translate_addressof (pool, 1, 0 /* PR9768 */, NULL, pointee_typedie, tail,
                                      "THIS->__retvalue");
             }
           }
@@ -2292,8 +2367,9 @@ struct dwflpp
     /* Translate the ->bar->baz[NN] parts. */
 
     Dwarf_Die die_mem, *die = NULL;
+    die = dwarf_formref_die (&attr_mem, &die_mem);
     die = translate_components (&pool, &tail, pc, components,
-				&vardie, &die_mem, &attr_mem);
+				die, &die_mem, &attr_mem);
     if(!die)
 	{ 
 	  die = dwarf_formref_die (&attr_mem, &vardie);
@@ -2363,7 +2439,7 @@ struct dwflpp
 
     struct location  *head = c_translate_location (&pool, &loc2c_error, this,
 						   &loc2c_emit_address,
-						   1, module_bias,
+						   1, 0 /* PR9768 */,
 						   pc, locops, nlocops,
 						   &tail, NULL);
 
@@ -2398,6 +2474,60 @@ struct dwflpp
        x = $return->bar->baz[NN]
        or
        $return->bar->baz[NN] = x
+    */
+
+    string prelude, postlude;
+    translate_final_fetch_or_store (&pool, &tail, module_bias,
+				    die, &attr_mem, lvalue,
+				    prelude, postlude, ty);
+
+    /* Write the translation to a string. */
+    return express_as_string(prelude, postlude, head);
+  }
+
+
+  string
+  literal_stmt_for_pointer (Dwarf_Die *type_die,
+                            vector<pair<target_symbol::component_type,
+                                   std::string> > const & components,
+                            bool lvalue,
+                            exp_type & ty)
+  {
+    if (sess.verbose>2)
+	clog << "literal_stmt_for_pointer: finding value for "
+	     << (dwarf_diename(type_die) ?: "<unknown>")
+	     << "("
+	     << (dwarf_diename(cu) ?: "<unknown>")
+	     << ")\n";
+
+    struct obstack pool;
+    obstack_init (&pool);
+    struct location *head = c_translate_argument (&pool, &loc2c_error, this,
+                                                  &loc2c_emit_address,
+                                                  1, "THIS->pointer");
+    struct location *tail = head;
+
+    /* Translate the ->bar->baz[NN] parts. */
+
+    Dwarf_Attribute attr_mem;
+    Dwarf_Die die_mem, *die = NULL;
+    die = translate_components (&pool, &tail, 0, components,
+				type_die, &die_mem, &attr_mem);
+    if(!die)
+	{
+	  die = dwarf_formref_die (&attr_mem, &die_mem);
+          stringstream alternatives;
+          print_members(die ?: type_die, alternatives);
+	  throw semantic_error("unable to find member for struct "
+			       + string(dwarf_diename(die ?: type_die) ?: "<unknown>")
+                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
+	}
+
+
+    /* Translate the assignment part, either
+       x = (THIS->pointer)->bar->baz[NN]
+       or
+       (THIS->pointer)->bar->baz[NN] = x
     */
 
     string prelude, postlude;
@@ -2466,7 +2596,7 @@ struct dwarf_derived_probe: public derived_probe
 					  dwarf_builder * dw);
   static void register_function_and_statement_variants(match_node * root,
 						       dwarf_builder * dw);
-  static void register_patterns(match_node * root);
+  static void register_patterns(systemtap_session& s);
 };
 
 
@@ -2521,19 +2651,12 @@ public:
 // Helper struct to thread through the dwfl callbacks.
 struct base_query
 {
-  base_query(systemtap_session & sess,
-	     probe * base_probe,
-	     probe_point * base_loc,
-	     dwflpp & dw,
-	     literal_map_t const & params,
-	     vector<derived_probe *> & results);
+  base_query(dwflpp & dw, literal_map_t const & params);
+  base_query(dwflpp & dw, const string & module_val);
   virtual ~base_query() {}
 
   systemtap_session & sess;
-  probe * base_probe;
-  probe_point * base_loc;
   dwflpp & dw;
-  vector<derived_probe *> & results;
 
   // Parameter extractors.
   static bool has_null_param(literal_map_t const & params,
@@ -2555,14 +2678,8 @@ struct base_query
 };
 
 
-base_query::base_query(systemtap_session & sess,
-		       probe * base_probe,
-		       probe_point * base_loc,
-		       dwflpp & dw,
-		       literal_map_t const & params,
-		       vector<derived_probe *> & results)
-  : sess(sess), base_probe(base_probe), base_loc(base_loc), dw(dw),
-    results(results)
+base_query::base_query(dwflpp & dw, literal_map_t const & params):
+  sess(dw.sess), dw(dw)
 {
   has_kernel = has_null_param (params, TOK_KERNEL);
   if (has_kernel)
@@ -2579,6 +2696,24 @@ base_query::base_query(systemtap_session & sess,
     }
 
   assert (has_kernel || has_process || has_module);
+}
+
+base_query::base_query(dwflpp & dw, const string & module_val)
+  : sess(dw.sess), dw(dw), module_val(module_val)
+{
+  // NB: This uses '/' to distinguish between kernel modules and userspace,
+  // which means that userspace modules won't get any PATH searching.
+  if (module_val.find('/') == string::npos)
+    {
+      has_kernel = (module_val == TOK_KERNEL);
+      has_module = !has_kernel;
+      has_process = false;
+    }
+  else
+    {
+      has_kernel = has_module = false;
+      has_process = true;
+    }
 }
 
 bool
@@ -2626,6 +2761,10 @@ struct dwarf_query : public base_query
 	      dwflpp & dw,
 	      literal_map_t const & params,
 	      vector<derived_probe *> & results);
+
+  vector<derived_probe *> & results;
+  probe * base_probe;
+  probe_point * base_loc;
 
   virtual void handle_query_module();
   void query_module_dwarf();
@@ -2910,7 +3049,8 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 			 dwflpp & dw,
 			 literal_map_t const & params,
 			 vector<derived_probe *> & results)
-  : base_query(sess, base_probe, base_loc, dw, params, results)
+  : base_query(dw, params), results(results),
+    base_probe(base_probe), base_loc(base_loc)
 {
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
@@ -2919,6 +3059,8 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 
   has_statement_str = get_string_param(params, TOK_STATEMENT, statement_str_val);
   has_statement_num = get_number_param(params, TOK_STATEMENT, statement_num_val);
+
+  has_label = get_string_param(params, TOK_LABEL, label_val);
 
   has_call = has_null_param(params, TOK_CALL);
   has_inline = has_null_param(params, TOK_INLINE);
@@ -3089,7 +3231,12 @@ dwarf_query::build_blacklist()
 
   blfile += "kernel/kprobes.c"; // first alternative, no "|"
   blfile += "|arch/.*/kernel/kprobes.c";
+  // Older kernels need ...
   blfile += "|include/asm/io.h";
+  blfile += "|include/asm/bitops.h";
+  // While newer ones need ...
+  blfile += "|arch/.*/include/asm/io.h";
+  blfile += "|arch/.*/include/asm/bitops.h";
   blfile += "|drivers/ide/ide-iops.c";
 
   // XXX: it would be nice if these blacklisted functions were pulled
@@ -3895,6 +4042,12 @@ query_cu (Dwarf_Die * cudie, void * arg)
 		q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
 						  q->line_type, query_srcfile_line, q);
 	    }
+	  else if (q->has_label)
+	    {
+	      // If we have a pattern string with target *label*, we
+	      // have to look at labels in all the matched srcfiles.
+	      q->dw.iterate_over_cu_labels (q->label_val, q->dw.cu, q, query_statement);
+	    }
 	  else
 	    {
 	      // Otherwise, simply probe all resolved functions.
@@ -4139,22 +4292,22 @@ query_module (Dwfl_Module *mod,
 }
 
 void
-dwflpp::query_modules(dwarf_query *q)
+dwflpp::query_modules(base_query *q)
 {
   iterate_over_modules(&query_module, q);
 }
 
-struct var_expanding_copy_visitor: public deep_copy_visitor
+struct var_expanding_visitor: public update_visitor
 {
   static unsigned tick;
   stack<functioncall**> target_symbol_setter_functioncalls;
 
-  var_expanding_copy_visitor() {}
+  var_expanding_visitor() {}
   void visit_assignment (assignment* e);
 };
 
 
-struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct dwarf_var_expanding_visitor: public var_expanding_visitor
 {
   dwarf_query & q;
   Dwarf_Die *scope_die;
@@ -4164,17 +4317,18 @@ struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
   std::map<std::string, symbol *> return_ts_map;
   bool visited;
 
-  dwarf_var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
+  dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
     q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL), visited(false) {}
   void visit_target_symbol (target_symbol* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
 
-unsigned var_expanding_copy_visitor::tick = 0;
+unsigned var_expanding_visitor::tick = 0;
 
 void
-var_expanding_copy_visitor::visit_assignment (assignment* e)
+var_expanding_visitor::visit_assignment (assignment* e)
 {
   // Our job would normally be to require() the left and right sides
   // into a new assignment. What we're doing is slightly trickier:
@@ -4192,9 +4346,9 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
   expression *new_left, *new_right;
 
   target_symbol_setter_functioncalls.push (&fcall);
-  require<expression*> (this, &new_left, e->left);
+  new_left = require (e->left);
   target_symbol_setter_functioncalls.pop ();
-  require<expression*> (this, &new_right, e->right);
+  new_right = require (e->right);
 
   if (fcall != NULL)
     {
@@ -4202,7 +4356,7 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
       // and it has been replaced with a set_target_foo() function
       // call; we are going to provide that function call -- with the
       // right child spliced in as sole argument -- in place of
-      // ourselves, in the deep copy we're in the middle of making.
+      // ourselves, in the var expansion we're in the middle of making.
 
       // FIXME: for the time being, we only support plan $foo = bar,
       // not += or any other op= variant. This is fixable, but a bit
@@ -4213,22 +4367,19 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
 
       assert (new_left == fcall);
       fcall->args.push_back (new_right);
-      provide <expression*> (this, fcall);
+      provide (fcall);
     }
   else
     {
-      assignment* n = new assignment;
-      n->op = e->op;
-      n->tok = e->tok;
-      n->left = new_left;
-      n->right = new_right;
-      provide <assignment*> (this, n);
+      e->left = new_left;
+      e->right = new_right;
+      provide (e);
     }
 }
 
 
 void
-dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
+dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
   visited = true;
@@ -4257,7 +4408,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       map<string, symbol *>::iterator i = return_ts_map.find(ts_name);
       if (i != return_ts_map.end())
 	{
-	  provide <symbol*> (this, i->second);
+	  provide (i->second);
 	  return;
 	}
 
@@ -4515,7 +4666,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
       // our parent so it can be used as a substitute for the target
       // symbol.
-      provide <symbol*> (this, tmpsym);
+      provide (tmpsym);
 
       // (5) Remember this replacement since we might be able to reuse
       // it later if the same return probe references this target
@@ -4561,7 +4712,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
           // Ignore any variable that isn't accessible.
           tsym->saved_conversion_error = 0;
-          this->visit_target_symbol(tsym); // NB: throws nothing ...
+          expression *texp = tsym;
+          texp = require (texp); // NB: throws nothing ...
           if (tsym->saved_conversion_error) // ... but this is how we know it happened.
             {
 
@@ -4570,7 +4722,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
             {
               pf->raw_components += "return";
               pf->raw_components += "=%#x ";
-              pf->args.push_back(*(expression**)this->targets.top());
+              pf->args.push_back(texp);
             }
         }
       else
@@ -4604,7 +4756,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
                 // Ignore any variable that isn't accessible.
                 tsym->saved_conversion_error = 0;
-                this->visit_target_symbol(tsym); // NB: throws nothing ...
+                expression *texp = tsym;
+                texp = require (texp); // NB: throws nothing ...
                 if (tsym->saved_conversion_error) // ... but this is how we know it happened.
                   {
                     if (q.sess.verbose>2)
@@ -4623,14 +4776,14 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
                   {
                     pf->raw_components += diename;
                     pf->raw_components += "=%#x ";
-                    pf->args.push_back(*(expression**)this->targets.top());
+                    pf->args.push_back(texp);
                   }
               }
             while (dwarf_siblingof (&result, &result) == 0);
         }
 
       pf->components = print_format::string_to_components(pf->raw_components);
-      provide <print_format*> (this, pf);
+      provide (pf);
 
       return;
     }
@@ -4674,7 +4827,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // target_symbol to the next pass.  We hope that this value ends
       // up not being referenced after all, so it can be optimized out
       // quietly.
-      provide <target_symbol*> (this, e);
+      provide (e);
       semantic_error* saveme = new semantic_error (er); // copy it
       saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
       // NB: we can have multiple errors, since a $target variable
@@ -4722,7 +4875,240 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       *(target_symbol_setter_functioncalls.top()) = n;
     }
 
-  provide <functioncall*> (this, n);
+  provide (n);
+}
+
+
+void
+dwarf_var_expanding_visitor::visit_cast_op (cast_op *e)
+{
+  // Fill in our current module context if needed
+  if (e->module.empty())
+    e->module = q.dw.module_name;
+
+  var_expanding_visitor::visit_cast_op(e);
+}
+
+
+struct dwarf_cast_query : public base_query
+{
+  const cast_op& e;
+  const bool lvalue;
+  exp_type& pe_type;
+
+  bool resolved;
+  string code;
+
+  dwarf_cast_query(dwflpp& dw, const cast_op& e, bool lvalue, exp_type& pe_type):
+    base_query(dw, e.module), e(e), lvalue(lvalue), pe_type(pe_type), resolved(false) {}
+  const string& get_code();
+
+  void handle_query_module();
+  int handle_query_cu(Dwarf_Die * cudie);
+
+  static int cast_query_cu (Dwarf_Die * cudie, void * arg);
+};
+
+
+const string&
+dwarf_cast_query::get_code()
+{
+  if (!resolved)
+    dw.query_modules(this);
+
+  if (!resolved)
+    throw semantic_error("type definition not found");
+
+  return code;
+}
+
+
+void
+dwarf_cast_query::handle_query_module()
+{
+  if (resolved)
+    return;
+
+  // look for the type in each CU
+  dw.iterate_over_cus(cast_query_cu, this);
+}
+
+
+int
+dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
+{
+  if (resolved)
+    return DWARF_CB_ABORT;
+
+  dw.focus_on_cu (cudie);
+  Dwarf_Die* type_die = dw.declaration_resolve(e.type.c_str());
+  if (type_die)
+    {
+      try
+        {
+          code = dw.literal_stmt_for_pointer (type_die, e.components,
+                                              lvalue, pe_type);
+        }
+      catch (const semantic_error& e)
+        {
+          // XXX might be better to save the error
+          // and try again in another CU
+          sess.print_error (e);
+          return DWARF_CB_ABORT;
+        }
+
+      resolved = true;
+      return DWARF_CB_ABORT;
+    }
+  return DWARF_CB_OK;
+}
+
+
+int
+dwarf_cast_query::cast_query_cu (Dwarf_Die * cudie, void * arg)
+{
+  dwarf_cast_query * q = static_cast<dwarf_cast_query *>(arg);
+  if (pending_interrupts) return DWARF_CB_ABORT;
+  return q->handle_query_cu(cudie);
+}
+
+
+struct dwarf_cast_expanding_visitor: public var_expanding_visitor
+{
+  systemtap_session& s;
+  dwarf_builder& db;
+
+  dwarf_cast_expanding_visitor(systemtap_session& s, dwarf_builder& db):
+    s(s), db(db) {}
+  void visit_cast_op (cast_op* e);
+};
+
+
+void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
+{
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue && !s.guru_mode)
+    throw semantic_error("write to typecast value not permitted", e->tok);
+
+  if (e->module.empty())
+    e->module = "kernel"; // "*" may also be reasonable to search all kernel modules
+
+  if (! s.module_cache)
+    s.module_cache = new module_cache ();
+
+  string code;
+  exp_type type = pe_long;
+  try
+    {
+      // NB: This uses '/' to distinguish between kernel modules and userspace,
+      // which means that userspace modules won't get any PATH searching.
+      dwflpp* dw;
+      if (e->module.find('/') == string::npos)
+        {
+          // kernel or kernel module target
+          if (! db.kern_dw)
+            {
+              db.kern_dw = new dwflpp(s);
+              db.kern_dw->setup_kernel(true);
+            }
+          dw = db.kern_dw;
+        }
+      else
+        {
+          e->module = find_executable (e->module); // canonicalize it
+
+          // user-space target; we use one dwflpp instance per module name
+          // (= program or shared library)
+          if (db.user_dw.find(e->module) == db.user_dw.end())
+            {
+              dw = new dwflpp(s);
+              dw->setup_user(e->module);
+              db.user_dw[e->module] = dw;
+            }
+          else
+            dw = db.user_dw[e->module];
+        }
+
+      dwarf_cast_query q (*dw, *e, lvalue, type);
+      code = q.get_code();
+    }
+  catch (const semantic_error& er)
+    {
+      // We suppress this error message, and pass the unresolved
+      // cast_op to the next pass.  We hope that this value ends
+      // up not being referenced after all, so it can be optimized out
+      // quietly.
+      semantic_error* saveme = new semantic_error (er); // copy it
+      saveme->tok1 = e->tok; // XXX: token not passed to dw code generation routines
+      // NB: we can have multiple errors, since a @cast
+      // may be expanded in several different contexts:
+      //     function ("*") { @cast(...) }
+      saveme->chain = e->saved_conversion_error;
+      e->saved_conversion_error = saveme;
+      provide (e);
+      return;
+    }
+
+  string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
+		  + "_" + e->base_name.substr(1)
+		  + "_" + lex_cast<string>(tick++));
+
+  // Synthesize a function.
+  functiondecl *fdecl = new functiondecl;
+  fdecl->tok = e->tok;
+  fdecl->type = type;
+  fdecl->name = fname;
+
+  embeddedcode *ec = new embeddedcode;
+  ec->tok = e->tok;
+  ec->code = code;
+  fdecl->body = ec;
+
+  // Give the fdecl an argument for the pointer we're trying to cast
+  vardecl *v1 = new vardecl;
+  v1->type = pe_long;
+  v1->name = "pointer";
+  v1->tok = e->tok;
+  fdecl->formal_args.push_back(v1);
+
+  if (lvalue)
+    {
+      // Modify the fdecl so it carries a second pe_long formal
+      // argument called "value".
+
+      // FIXME: For the time being we only support setting target
+      // variables which have base types; these are 'pe_long' in
+      // stap's type vocabulary.  Strings and pointers might be
+      // reasonable, some day, but not today.
+
+      vardecl *v2 = new vardecl;
+      v2->type = pe_long;
+      v2->name = "value";
+      v2->tok = e->tok;
+      fdecl->formal_args.push_back(v2);
+    }
+  else
+    ec->code += "/* pure */";
+
+  s.functions[fdecl->name] = fdecl;
+
+  // Synthesize a functioncall.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
+  n->args.push_back(e->operand);
+
+  if (lvalue)
+    {
+      // Provide the functioncall to our parent, so that it can be
+      // used to substitute for the assignment node immediately above
+      // us.
+      assert(!target_symbol_setter_functioncalls.empty());
+      *(target_symbol_setter_functioncalls.top()) = n;
+    }
+
+  provide (n);
 }
 
 
@@ -4791,11 +5177,11 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                           + lex_cast<string>(USHRT_MAX) + "]",
                           q.base_loc->tok);
 
-  // Make a target-variable-expanded copy of the probe body
+  // Expand target variables in the probe body
   if (!null_die(scope_die))
     {
-      dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
-      require <statement*> (&v, &(this->body), this->body);
+      dwarf_var_expanding_visitor v (q, scope_die, dwfl_addr);
+      this->body = v.require (this->body);
       this->access_vars = v.visited;
 
       // If during target-variable-expanding the probe, we added a new block
@@ -4913,13 +5299,19 @@ dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
 }
 
 void
-dwarf_derived_probe::register_patterns(match_node * root)
+dwarf_derived_probe::register_patterns(systemtap_session& s)
 {
+  match_node* root = s.pattern_root;
   dwarf_builder *dw = new dwarf_builder();
+
+  update_visitor *filter = new dwarf_cast_expanding_visitor(s, *dw);
+  s.code_filters.push_back(filter);
 
   register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(dw);
+  root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->bind(dw);
 
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)->bind(dw);
@@ -4978,7 +5370,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // NB: we used to plop a union { struct kprobe; struct kretprobe } into
   // struct stap_dwarf_probe, but it being initialized data makes it add
   // hundreds of bytes of padding per stap_dwarf_probe.  (PR5673)
-  s.op->newline() << "struct stap_dwarf_kprobe {";
+  s.op->newline() << "static struct stap_dwarf_kprobe {";
   s.op->newline(1) << "union { struct kprobe kp; struct kretprobe krp; } u;";
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "struct kprobe dummy;";
@@ -4986,7 +5378,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "} stap_dwarf_kprobes[" << probes_by_module.size() << "];";
   // NB: bss!
 
-  s.op->newline() << "struct stap_dwarf_probe {";
+  s.op->newline() << "static struct stap_dwarf_probe {";
   s.op->newline(1) << "const unsigned return_p:1;";
   s.op->newline() << "const unsigned maxactive_p:1;";
   s.op->newline() << "unsigned registered_p:1;";
@@ -5301,30 +5693,39 @@ dwarf_builder::build(systemtap_session & sess,
   {
     enum probe_types       
     {
-      no_debuginfo = 0,
-      use_debuginfo = 1
+      probes_and_dwarf = 0,	// Use statement address
+      dwarf_no_probes = 1,	// Use label name
+      probes_no_dwarf = 2
     };
 
-//    location->components[0]->arg = new literal_string(sess.cmd);
-//    ((literal_map_t&)parameters)[location->components[0]->functor] = location->components[0]->arg;
+    int probe_type = dwarf_no_probes;
+    string probe_name = (char*) location->components[1]->arg->tok->content.c_str();
+    __uint64_t probe_arg = 0;
     Dwarf_Addr bias;
     Elf* elf = dwfl_module_getelf (dw->module, &bias);
     size_t shstrndx;
-
     Elf_Scn *probe_scn = NULL;
+    bool probe_found = false;
+
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
-    __uint64_t probe_arg = 0;
-    int probe_type = no_debuginfo;
-    char *probe_name;
-    // Find the .probes section where the static probe label and arg are stored
+    GElf_Shdr *shdr = NULL;
+
+    // Is there a .probes section?
     while ((probe_scn = elf_nextscn (elf, probe_scn)))
       {
 	GElf_Shdr shdr_mem;
-	GElf_Shdr *shdr = gelf_getshdr (probe_scn, &shdr_mem);
+	shdr = gelf_getshdr (probe_scn, &shdr_mem);
 	assert (shdr != NULL);
 
-	if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") != 0)
-	  continue;
+	if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") == 0)
+	  {
+	    probe_type = probes_and_dwarf;
+	    break;
+	  }
+      }
+    
+    if (probe_type == probes_and_dwarf)
+      {
 	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
 	size_t probe_scn_offset = 0;
@@ -5342,95 +5743,35 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 
-	    // pdata->d_buf + *(long*)(pdata->d_buf + probe_scn_offset) - probe_scn_addr
 	    probe_name = ((char*)((long)(pdata->d_buf) + (long)(*((int*)((long)pdata->d_buf + probe_scn_offset)) - probe_scn_addr)));
 	    probe_scn_offset += sizeof(void*);
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
-	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name) == 0)
-	      break;
+	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) == 0)
+	      {
+		probe_found = true;
+		break;
+	      }
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
 	  }
-	if (probe_scn_offset < pdata->d_size)
-	  break;
-      }
-
-    if (probe_type == no_debuginfo)
-      {
-	// Many probe labels correspond to _stap_probe_N
-	// Generate: _probe_string = user_string($probe);
-	block *b = ((block*)(base->body));
-	assignment *as = new assignment;
-	symbol* lsym = new symbol;
-	lsym->type = pe_string;
-	lsym->name = "_probe_string";
-	lsym->tok = base->body->tok;
-	as->left = lsym;
-	as->op = "=";
-	functioncall *fc = new functioncall;
-	fc->function = "user_string";
-	fc->tok = base->body->tok;
-	target_symbol* rsym = new target_symbol;
-	rsym->base_name = "$probe";
-	rsym->tok = base->body->tok;
-	fc->args.push_back(rsym);
-	as->right = fc;
-	expr_statement* es = new expr_statement;
-	es->value = as;
-
-	// Generate: if (_probe_string != mark("label")) next;
-	if_statement *is = new if_statement;
-	is->thenblock = new next_statement;
-	is->elseblock = NULL;
-	is->tok = base->body->tok;
-	comparison *be = new comparison;
-	be->op = "!=";
-	be->tok = base->body->tok;
-	be->left = lsym;
-	be->right = new literal_string(location->components[1]->arg->tok->content);;
-	is->condition = be;
-
-	b->statements.insert(b->statements.begin(),(statement*) is);
-	b->statements.insert(b->statements.begin(),(statement*) es);
-      }
-    
-    Dwarf *dwarf = dwfl_module_getdwarf(dw->module, &dw->module_bias);
-    Dwarf_Off off;
-    size_t cuhl;
-    Dwarf_Off noff = 0;
-    const char *probe_file = "@sduprobes.c";
-    // Find where the probe instrumentation landing points are defined
-    while (dwarf_nextcu (dwarf, off = noff, &noff, &cuhl, NULL, NULL, NULL) == 0)
-      {
-	Dwarf_Die cudie_mem;
-	Dwarf_Die *cudie = dwarf_offdie (dwarf, off + cuhl, &cudie_mem);
-	if (cudie == NULL)
-	  continue;
-	if (probe_type == no_debuginfo)
-	  {
-	    if (strncmp (dwarf_diename(&cudie_mem), "sduprobes", 9) == 0)
-	      {
-		break;
-	      }
-	  }
-      }
-    location->components[1]->functor = TOK_STATEMENT;
-    if (probe_type == no_debuginfo)
-      {
-	string probe_arg_str = string(1,'0' + probe_arg);
-	location->components[1]->arg
-	  = new literal_string("_stap_probe_"
-			       + (probe_arg_str)
-			       + probe_file + "+1");
-      }
-    else
-      {
+	location->components[1]->functor = TOK_STATEMENT;
 	location->components[1]->arg = new literal_number((int)probe_arg);
+	((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
       }
 
-    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
+    if (probe_type == dwarf_no_probes || ! probe_found)
+      {
+	location->components[1]->functor = TOK_FUNCTION;
+	location->components[1]->arg = new literal_string("*");
+	((literal_map_t&)parameters)[TOK_FUNCTION] = location->components[1]->arg;
+	location->components.push_back(new probe_point::component(TOK_LABEL));
+	location->components[2]->arg = new literal_string("_stapprobe1_" + probe_name);
+	((literal_map_t&)parameters).erase(TOK_MARK);
+	((literal_map_t&)parameters).insert(pair<string,literal*>(TOK_LABEL, location->components[2]->arg));
+      }
+
     dw->module = 0;
   }
   
@@ -6058,7 +6399,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "return rc;";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "struct stap_itrace_probe stap_itrace_probes[] = {";
+  s.op->newline() << "static struct stap_itrace_probe stap_itrace_probes[] = {";
   s.op->indent(1);
 
   // Set up 'process(PATH)' probes
@@ -6178,10 +6519,10 @@ public:
 };
 
 
-struct utrace_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct utrace_var_expanding_visitor: public var_expanding_visitor
 {
-  utrace_var_expanding_copy_visitor(systemtap_session& s, const string& pn,
-				    enum utrace_derived_probe_flags f):
+  utrace_var_expanding_visitor(systemtap_session& s, const string& pn,
+                               enum utrace_derived_probe_flags f):
     sess (s), probe_name (pn), flags (f), target_symbol_seen (false) {}
 
   systemtap_session& sess;
@@ -6204,9 +6545,9 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   has_path(hp), path(pn), pid(pd), flags(f),
   target_symbol_seen(false)
 {
-  // Make a local-variable-expanded copy of the probe body
-  utrace_var_expanding_copy_visitor v (s, name, flags);
-  require <statement*> (&v, &(this->body), base->body);
+  // Expand local variables in the probe body
+  utrace_var_expanding_visitor v (s, name, flags);
+  this->body = v.require (this->body);
   target_symbol_seen = v.target_symbol_seen;
 
   // Reset the sole element of the "locations" vector as a
@@ -6268,7 +6609,7 @@ utrace_derived_probe::join_group (systemtap_session& s)
 
 
 void
-utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
+utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
   string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
   int argnum = lex_cast<int>(argnum_s);
@@ -6317,11 +6658,11 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
   num->tok = e->tok;
   n->args.push_back(num);
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 void
-utrace_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
+utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
   string sname = e->base_name;
 
@@ -6368,11 +6709,11 @@ utrace_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e
   n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 void
-utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -6622,7 +6963,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static void stap_utrace_probe_handler(struct task_struct *tsk, struct stap_utrace_probe *p) {";
       s.op->indent(1);
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
       s.op->newline() << "c->probe_point = p->pp;";
 
       // call probe function
@@ -6798,7 +7139,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "return rc;";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "struct stap_utrace_probe stap_utrace_probes[] = {";
+  s.op->newline() << "static struct stap_utrace_probe stap_utrace_probes[] = {";
   s.op->indent(1);
 
   // Set up 'process(PATH)' probes
@@ -6927,11 +7268,11 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
 
   this->tok = q.base_probe->tok;
 
-  // Make a target-variable-expanded copy of the probe body
+  // Expand target variables in the probe body
   if (!null_die(scope_die))
     {
-      dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr); // XXX: user-space deref's!
-      require <statement*> (&v, &(this->body), this->body);
+      dwarf_var_expanding_visitor v (q, scope_die, dwfl_addr); // XXX: user-space deref's!
+      this->body = v.require (this->body);
 
       // If during target-variable-expanding the probe, we added a new block
       // of code, add it to the start of the probe.
@@ -7090,13 +7431,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // In .bss, the shared pool of uprobe/uretprobe structs.  These are
   // too big to embed in the initialized .data stap_uprobe_spec array.
-  s.op->newline() << "struct stap_uprobe {";
+  s.op->newline() << "static struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
   s.op->newline() << "int spec_index;"; // index into stap_uprobe_specs; <0 == free && unregistered
   s.op->newline(-1) << "} stap_uprobes [MAXUPROBES];";
   s.op->newline() << "DEFINE_MUTEX(stap_uprobes_lock);"; // protects against concurrent registration/unregistration
 
-  s.op->newline() << "struct stap_uprobe_spec {";
+  s.op->newline() << "static struct stap_uprobe_spec {";
   s.op->newline(1) << "struct stap_task_finder_target finder;";
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pathname;";
@@ -7441,7 +7782,7 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- timer probes ---- */";
 
-  s.op->newline() << "struct stap_timer_probe {";
+  s.op->newline() << "static struct stap_timer_probe {";
   s.op->newline(1) << "struct timer_list timer_list;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
@@ -7471,7 +7812,7 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << ");";
   s.op->newline(-1) << "{";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = stp->pp;";
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
@@ -7613,7 +7954,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
 
-  s.op->newline() << "int enter_profile_probes (struct notifier_block *self,"
+  s.op->newline() << "static int enter_profile_probes (struct notifier_block *self,"
                   << " unsigned long val, void *data) {";
   s.op->newline(1) << "(void) self; (void) val;";
   s.op->newline() << "enter_all_profile_probes ((struct pt_regs *) data);";
@@ -7624,7 +7965,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "#else";
 
-  s.op->newline() << "int enter_profile_probes (struct pt_regs *regs) {";
+  s.op->newline() << "static int enter_profile_probes (struct pt_regs *regs) {";
   s.op->newline(1) << "enter_all_profile_probes (regs);";
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
@@ -7711,10 +8052,10 @@ public:
 };
 
 
-struct procfs_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct procfs_var_expanding_visitor: public var_expanding_visitor
 {
-  procfs_var_expanding_copy_visitor(systemtap_session& s, const string& pn,
-				    string path, bool write_probe):
+  procfs_var_expanding_visitor(systemtap_session& s, const string& pn,
+                               string path, bool write_probe):
     sess (s), probe_name (pn), path (path), write_probe (write_probe),
     target_symbol_seen (false) {}
 
@@ -7732,9 +8073,9 @@ procfs_derived_probe::procfs_derived_probe (systemtap_session &s, probe* p,
 					    probe_point* l, string ps, bool w):
   derived_probe(p, l), path(ps), write(w), target_symbol_seen(false)
 {
-  // Make a local-variable-expanded copy of the probe body
-  procfs_var_expanding_copy_visitor v (s, name, path, write);
-  require <statement*> (&v, &(this->body), base->body);
+  // Expand local variables in the probe body
+  procfs_var_expanding_visitor v (s, name, path, write);
+  this->body = v.require (this->body);
   target_symbol_seen = v.target_symbol_seen;
 }
 
@@ -7791,9 +8132,10 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
     return;
 
   s.op->newline() << "/* ---- procfs probes ---- */";
+  s.op->newline() << "#include \"procfs.c\"";
 
   // Emit the procfs probe data list
-  s.op->newline() << "struct stap_procfs_probe {";
+  s.op->newline() << "static struct stap_procfs_probe {";
   s.op->newline(1)<< "const char *path;";
   s.op->newline() << "const char *read_pp;";
   s.op->newline() << "void (*read_ph) (struct context*);";
@@ -7850,7 +8192,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "int bytes = 0;";
       s.op->newline() << "string_t strdata = {'\\0'};";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
       s.op->newline() << "c->probe_point = spp->read_pp;";
 
       s.op->newline() << "if (c->data == NULL)";
@@ -7893,7 +8235,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
       s.op->newline() << "string_t strdata = {'\\0'};";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
       s.op->newline() << "c->probe_point = spp->write_pp;";
 
       s.op->newline() << "if (count > (MAXSTRINGLEN - 1))";
@@ -7983,7 +8325,7 @@ procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
 
 
 void
-procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -8068,7 +8410,7 @@ procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
       *(target_symbol_setter_functioncalls.top()) = n;
     }
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 
@@ -8187,11 +8529,10 @@ public:
 };
 
 
-struct mark_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct mark_var_expanding_visitor: public var_expanding_visitor
 {
-  mark_var_expanding_copy_visitor(systemtap_session& s,
-                                  const string& pn,
-				  vector <struct mark_arg *> &mark_args):
+  mark_var_expanding_visitor(systemtap_session& s, const string& pn,
+                             vector <struct mark_arg *> &mark_args):
     sess (s), probe_name (pn), mark_args (mark_args),
     target_symbol_seen (false) {}
   systemtap_session& sess;
@@ -8242,7 +8583,7 @@ hex_dump(unsigned char *data, size_t len)
 
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
+mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
   string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
   int argnum = atoi (argnum_s.c_str());
@@ -8303,12 +8644,12 @@ mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
   n->tok = e->tok;
   n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
+mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
   string sname = e->base_name;
 
@@ -8345,11 +8686,11 @@ mark_var_expanding_copy_visitor::visit_target_symbol_context (target_symbol* e)
   n->tok = e->tok;
   n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+mark_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -8382,9 +8723,9 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
   // expand the marker format
   parse_probe_format();
 
-  // Now make a local-variable-expanded copy of the probe body
-  mark_var_expanding_copy_visitor v (sess, name, mark_args);
-  require <statement*> (&v, &(this->body), base->body);
+  // Now expand the local variables in the probe body
+  mark_var_expanding_visitor v (sess, name, mark_args);
+  this->body = v.require (this->body);
   target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 2)
@@ -8627,7 +8968,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- marker probes ---- */";
 
-  s.op->newline() << "struct stap_marker_probe {";
+  s.op->newline() << "static struct stap_marker_probe {";
   s.op->newline(1) << "const char * const name;";
   s.op->newline() << "const char * const format;";
   s.op->newline() << "const char * const pp;";
@@ -8655,7 +8996,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "static void enter_marker_probe (void *probe_data, void *call_data, const char *fmt, va_list *args) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = smp->pp;";
   s.op->newline() << "c->marker_name = smp->name;";
   s.op->newline() << "c->marker_format = smp->format;";
@@ -8838,7 +9179,6 @@ mark_builder::build(systemtap_session & sess,
 					  it->first, it->second,
 					  base, loc);
 	      finished_results.push_back (dp);
-              sess.unwindsym_modules.insert ("kernel");
 	    }
 	}
     }
@@ -8934,8 +9274,8 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- hrtimer probes ---- */";
 
-  s.op->newline() << "unsigned long stap_hrtimer_resolution;"; // init later
-  s.op->newline() << "struct stap_hrtimer_probe {";
+  s.op->newline() << "static unsigned long stap_hrtimer_resolution;"; // init later
+  s.op->newline() << "static struct stap_hrtimer_probe {";
   s.op->newline(1) << "struct hrtimer hrtimer;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
@@ -8985,7 +9325,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "{";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", true, true, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = stp->pp;";
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
@@ -9041,7 +9381,7 @@ struct timer_builder: public derived_probe_builder
 	literal_map_t const & parameters,
 	vector<derived_probe *> & finished_results);
 
-    static void register_patterns(match_node *root);
+    static void register_patterns(systemtap_session& s);
 };
 
 void
@@ -9112,8 +9452,9 @@ timer_builder::build(systemtap_session & sess,
 }
 
 void
-timer_builder::register_patterns(match_node *root)
+timer_builder::register_patterns(systemtap_session& s)
 {
+  match_node* root = s.pattern_root;
   derived_probe_builder *builder = new timer_builder();
 
   root = root->bind(TOK_TIMER);
@@ -9153,18 +9494,18 @@ timer_builder::register_patterns(match_node *root)
 //
 
 
-struct perfmon_var_expanding_copy_visitor: public var_expanding_copy_visitor
+struct perfmon_var_expanding_visitor: public var_expanding_visitor
 {
   systemtap_session & sess;
   unsigned counter_number;
-  perfmon_var_expanding_copy_visitor(systemtap_session & s, unsigned c):
+  perfmon_var_expanding_visitor(systemtap_session & s, unsigned c):
 	  sess(s), counter_number(c) {}
   void visit_target_symbol (target_symbol* e);
 };
 
 
 void
-perfmon_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
+perfmon_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -9218,7 +9559,7 @@ perfmon_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   n->function = fname;
   n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
 
-  provide <functioncall*> (this, n);
+  provide (n);
 }
 
 
@@ -9286,9 +9627,9 @@ perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
 {
   ++probes_allocated;
 
-  // Now make a local-variable-expanded copy of the probe body
-  perfmon_var_expanding_copy_visitor v (sess, probes_allocated-1);
-  require <statement*> (&v, &(this->body), base->body);
+  // Now expand the local variables in the probe body
+  perfmon_var_expanding_visitor v (sess, probes_allocated-1);
+  this->body = v.require (this->body);
 
   if (sess.verbose > 1)
     clog << "perfmon-based probe" << endl;
@@ -9581,13 +9922,13 @@ register_standard_tapsets(systemtap_session & s)
 
   s.pattern_root->bind(TOK_NEVER)->bind(new never_builder());
 
-  timer_builder::register_patterns(s.pattern_root);
+  timer_builder::register_patterns(s);
   s.pattern_root->bind(TOK_TIMER)->bind("profile")->bind(new profile_builder());
   s.pattern_root->bind("perfmon")->bind_str("counter")
     ->bind(new perfmon_builder());
 
   // dwarf-based kprobe/uprobe parts
-  dwarf_derived_probe::register_patterns(s.pattern_root);
+  dwarf_derived_probe::register_patterns(s);
 
   // XXX: user-space starter set
   s.pattern_root->bind_num(TOK_PROCESS)
@@ -9688,3 +10029,5 @@ all_session_groups(systemtap_session& s)
 #undef DOONE
   return g;
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

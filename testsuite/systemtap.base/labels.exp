@@ -1,0 +1,70 @@
+set test "labels"
+if {![installtest_p]} {untested $test; return}
+
+# Try to find utrace_attach symbol in /proc/kallsyms
+# copy from utrace_p5.exp
+set utrace_support_found 0
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    set utrace_support_found 1
+}
+if {$utrace_support_found == 0} { untested "$test"; return }
+
+# Compile a C program to use as the user-space probing target
+set label_srcpath "[pwd]/labels.c"
+set label_exepath "[pwd]/labels.x"
+set label_flags "additional_flags=-g"
+set fp [open $label_srcpath "w"]
+puts $fp "
+int
+main ()
+{
+  sleep(5);
+  int a = 0;
+  int b = 0;
+  char *c;
+init_an_int:
+  a = 2;
+init_another_int:
+  b = 3;
+  c = \"abc\";
+ptr_inited:
+  return 1;
+}
+"
+close $fp
+
+set label_stppath "[pwd]/labels.stp"
+set fp [open $label_stppath "w"]
+puts $fp "
+probe process(\"labels.x\").function(\"main*@labels.c\").label(\"init_*\") {printf (\"VARS %s\\n\",\$\$vars)}
+probe process(\"labels.x\").function(\"main*@labels.c\").label(\"ptr_inited\") {printf (\"VARS %s\\n\",\$\$vars)}
+"
+close $fp
+
+set ok 0
+
+set res [target_compile $label_srcpath $label_exepath executable $label_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling labels.c -g"
+    catch {exec rm -f $label_srcpath $label_stppath}
+    return
+} else {
+    pass "compiling labels.c -g"
+}
+
+verbose -log "spawn stap -c $label_exepath $label_stppath"
+spawn stap -c $label_exepath $label_stppath
+
+expect {
+    -timeout 180
+    -re {VARS a=0x0 b=0x0.*VARS a=0x2 b=0x0.*VARS a=0x2 b=0x3 c=0x[a-f01-9]} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+wait
+
+if {$ok == 1} { pass "$test" } { fail "$test ($ok)" }
+catch {exec rm -f $label_srcpath $label_stppath $label_exepath}

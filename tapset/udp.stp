@@ -14,7 +14,7 @@
 %}
 
 /**
-  * probe udp.sendmsg - Sending a UDP message  
+  * probe udp.sendmsg - Fires whenever a process sends a UDP message  
   * @name: Name of this probe
   * @sock: Network socket 
   * @size: Number of bytes to send  
@@ -29,7 +29,7 @@ probe udp.sendmsg = kernel.function("udp_sendmsg") {
 }
 
 /**
-  * probe udp.sendmsg.return - Sending UDP message complete
+  * probe udp.sendmsg.return - Fires whenever an attempt to send a UDP message is completed
   * @name: Name of this probe
   * @size: Number of bytes sent 
   *
@@ -42,10 +42,10 @@ probe udp.sendmsg.return = kernel.function("udp_sendmsg").return {
 }
 
 /**
-  * probe udp.recvmsg - UDP message received
+  * probe udp.recvmsg - Fires whenever a UDP message is received
   * @name: Name of this probe
   * @sock: Network socket
-  * @size: Number of bytes to be received  
+  * @size: Number of bytes received  
   *
   * Context:
   *  The process which receives a udp message
@@ -57,7 +57,7 @@ probe udp.recvmsg = kernel.function("udp_recvmsg") {
 }
 
 /**
-  * probe udp.recvmsg.return - UDP message received is complete
+  * probe udp.recvmsg.return - An attempt to receive a UDP message received has been completed
   * @name: Name of this probe
   * @size: Number of bytes received
   *
@@ -70,13 +70,13 @@ probe udp.recvmsg.return = kernel.function("udp_recvmsg").return {
 }
 
 /**
-  * probe udp.disconnect - UDP is disconnected 
+  * probe udp.disconnect - A process requests for UPD to be UDP disconnected 
   * @name: Name of this probe
   * @sock: Network socket 
   * @flags: Flags (e.g. FIN, etc)  
   *
   * Context:
-  *  The process which disconnects udp 
+  *  The process which disconnects UDP 
   */
 probe udp.disconnect = kernel.function("udp_disconnect") {
 	name = "udp.disconnect"
@@ -85,7 +85,7 @@ probe udp.disconnect = kernel.function("udp_disconnect") {
 }
 
 /**
-  * probe udp.disconnect.return - returning from udp.disconnect probe
+  * probe udp.disconnect.return - UDP has been disconnected successfully
   * @name: Name of this probe
   * @ret: Error code (0: no error) 
   *

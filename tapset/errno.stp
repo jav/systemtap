@@ -9,7 +9,7 @@
 %{
 #define N(a) [a]=#a
 
-const char * const errlist[] = {
+static const char * const errlist[] = {
 /* from asm-generic/errno-base.h */
 [1] = "EPERM",
 [2] = "ENOENT",
@@ -340,7 +340,7 @@ const char * const errlist[] = {
 #endif
 };
 #undef N
-const int Maxerrno = sizeof(errlist)/sizeof(char *);
+static const int Maxerrno = sizeof(errlist)/sizeof(char *);
 %}
 
 function errno_str:string (err:long) %{ /* pure */

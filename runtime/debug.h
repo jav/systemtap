@@ -14,7 +14,7 @@
  * _dbug() writes to systemtap stderr.
  * errk() writes to the system log.
  */
-int _stp_transport_state = 0;
+static int _stp_transport_state = 0;
 
 #define _dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
 

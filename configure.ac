@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap],   0.8, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap],   0.9, systemtap@sources.redhat.com, systemtap)
 dnl                  ^^^^^ see also NEWS, systemtap.spec, testsuite/configure.ac
 
 AC_PREREQ(2.59)
@@ -9,6 +9,7 @@ AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
 AM_PROG_MKDIR_P
+AC_SUBST(MKDIR_P)
 AC_PROG_LN_S
 AC_PROG_CC
 AC_PROG_CXX
@@ -220,9 +221,28 @@ AC_ARG_ENABLE([server],
     [enable building of stap-server/client (default on if nss etc. found).]),
   [enable_server=$enableval],
   [enable_server="check"])
-PKG_CHECK_MODULES([nss],[nss >= 3], have_nss=yes, have_nss=no)
-PKG_CHECK_MODULES([nspr],[nspr >= 4], have_nspr=yes, have_nspr=no)
-if test "x${have_nss}${have_nspr}" != "xyesyes"; then
+dnl Find the location of nss and nspr headers
+AC_CHECK_FILE([/usr/include/nss3], nssdir=nss3, [
+	AC_CHECK_FILE([/usr/include/nss], nssdir=nss)
+])
+AC_CHECK_FILE([/usr/include/nspr4], nsprdir=nspr4, [
+	AC_CHECK_FILE([/usr/include/nspr], nsprdir=nspr)
+])
+if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
+nss_CFLAGS="-I/usr/include/$nssdir"
+nspr_CFLAGS="-I/usr/include/$nsprdir"
+AC_SUBST(nss_CFLAGS)
+AC_SUBST(nspr_CFLAGS)
+save_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
+AC_CHECK_HEADERS(["$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"], have_nss_includes=yes, have_nss_includes=no)
+CPPFLAGS="$save_CPPFLAGS"
+have_nss_libs=no
+AC_CHECK_LIB(nspr4, PR_Connect, [
+	AC_CHECK_LIB(ssl3, SSL_ReHandshake, have_nss_libs=yes)
+])
+fi
+if test "x${have_nss_includes}${have_nss_libs}" != "xyesyes"; then
   if test "$enable_server" == "yes"; then
     AC_MSG_ERROR([cannot find all libraries for stap-server])
   fi
@@ -230,7 +250,7 @@ if test "x${have_nss}${have_nspr}" != "xyesyes"; then
     AC_MSG_WARN([will not build stap-server, cannot find all libraries])
   fi
 fi
-AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss}${have_nspr}" == "xyesyes" -a "$enable_server" != "no"])
+AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes" -a "$enable_server" != "no"])
 
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
@@ -312,11 +332,14 @@ if test $build_elfutils = yes; then
 				--prefix="$prefix" \
 				CFLAGS="${CFLAGS/-Wall/}" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
-   make -k install-data # so that elfutils/version.h - if any - may be found.
-   # Note, we need -k because parts (like to po files) might fail,
-   # since those fo to $prefix to which we might not be able to write.
-   # We are only really interested in the include-elfutils files anyway here.
+   if test -f ${elfutils_srcdir}/config/version.h.in; then
+        echo Trying to install elfutils version header...
+	make install-pkgincludeHEADERS
+   fi
+   # so that elfutils/version.h - available from 0.138 - may be found.
+   # Don't use install-data because that will fail (installing in $prefix).
   )
+  if test $? != 0; then exit; fi
   save_CPPFLAGS=${CPPFLAGS}
   CPPFLAGS="${CPPFLAGS} -Iinclude-elfutils" # in case bundled elfutils
   AC_CHECK_HEADERS([elfutils/version.h])
@@ -332,7 +355,7 @@ dnl Don't use this directly (when not given it is set to NONE).
 AC_DEFINE_UNQUOTED(STAP_PREFIX, "$prefix", [configure prefix location])
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
+AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5 initscript/systemtap)
 AC_CONFIG_SUBDIRS(testsuite)
 AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
 AC_OUTPUT

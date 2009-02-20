@@ -1,7 +1,0 @@
-#! stap 
-
-global count
-probe kernel.function("sys_*").call {
-	printf("%d %s\n", pid(), pp())
-	if (++count > 100) exit()
-}

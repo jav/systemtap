@@ -1,5 +1,5 @@
 // elaboration functions
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2008 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
@@ -395,7 +395,8 @@ match_node::find_and_build (systemtap_session& s,
 
 	  throw semantic_error(string("probe point mismatch at position ") +
 			       lex_cast<string> (pos) +
-			       " (alternatives:" + alternatives + ")",
+			       " (alternatives:" + alternatives + ")" +
+			       " didn't find any wildcard matches",
                                loc->tok);
 	}
     }
@@ -698,6 +699,11 @@ struct symbol_fetcher
   void visit_arrayindex (arrayindex* e)
   {
     e->base->visit_indexable (this);
+  }
+
+  void visit_cast_op (cast_op* e)
+  {
+    sym = e;
   }
 
   void throwone (const token* t)
@@ -1086,6 +1092,9 @@ semantic_pass_symbols (systemtap_session& s)
 
           try
             {
+              for (unsigned j=0; j<s.code_filters.size(); j++)
+                fd->body = s.code_filters[j]->require (fd->body);
+
               sym.current_function = fd;
               sym.current_probe = 0;
               fd->body->visit (& sym);
@@ -1118,6 +1127,9 @@ semantic_pass_symbols (systemtap_session& s)
 
               try
                 {
+                  for (unsigned k=0; k<s.code_filters.size(); k++)
+                    dp->body = s.code_filters[k]->require (dp->body);
+
                   sym.current_function = 0;
                   sym.current_probe = dp;
                   dp->body->visit (& sym);
@@ -2090,59 +2102,30 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
 
 // ------------------------------------------------------------------------
 
-struct dead_assignment_remover: public traversing_visitor
+struct dead_assignment_remover: public update_visitor
 {
   systemtap_session& session;
   bool& relaxed_p;
   const varuse_collecting_visitor& vut;
-  expression** current_expr;
 
   dead_assignment_remover(systemtap_session& s, bool& r,
                           const varuse_collecting_visitor& v):
-    session(s), relaxed_p(r), vut(v), current_expr(0) {}
-
-  void visit_expr_statement (expr_statement* s);
-  // XXX: other places where an assignment may be nested should be
-  // handled too (e.g., loop/if conditionals, array indexes, function
-  // parameters).  Until then, they result in visit_assignment() being
-  // called with null current_expr.
+    session(s), relaxed_p(r), vut(v) {}
 
   void visit_assignment (assignment* e);
-  void visit_binary_expression (binary_expression* e);
-  void visit_arrayindex (arrayindex* e);
-  void visit_functioncall (functioncall* e);
-  void visit_if_statement (if_statement* e);
-  void visit_for_loop (for_loop* e);
 };
-
-
-void
-dead_assignment_remover::visit_expr_statement (expr_statement* s)
-{
-  expression** last_expr = current_expr;
-  current_expr = & s->value;
-  s->value->visit (this);
-  s->tok = s->value->tok; // in case it was replaced
-  current_expr = last_expr;
-}
 
 
 void
 dead_assignment_remover::visit_assignment (assignment* e)
 {
+  e->left = require (e->left);
+  e->right = require (e->right);
+
   symbol* left = get_symbol_within_expression (e->left);
   vardecl* leftvar = left->referent; // NB: may be 0 for unresolved $target
-  if (current_expr && // see XXX above: this case represents a missed
-                      // optimization opportunity
-      *current_expr == e && // we're not nested any deeper than expected
-      leftvar) // not unresolved $target; intended sideeffect cannot be elided
+  if (leftvar) // not unresolved $target, so intended sideeffect may be elided
     {
-      expression** last_expr = current_expr;
-      e->left->visit (this);
-      current_expr = &e->right;
-      e->right->visit (this);
-      current_expr = last_expr;
-
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
         {
           // NB: Not so fast!  The left side could be an array whose
@@ -2162,9 +2145,9 @@ dead_assignment_remover::visit_assignment (assignment* e)
 		break;
 	      }
 
-          varuse_collecting_visitor vut;
-          e->left->visit (& vut);
-          if (vut.side_effect_free () && !is_global) // XXX: use _wrt() once we track focal_vars
+          varuse_collecting_visitor lvut;
+          e->left->visit (& lvut);
+          if (lvut.side_effect_free () && !is_global) // XXX: use _wrt() once we track focal_vars
             {
               /* PR 1119: NB: This is not necessary here.  A write-only
                  variable will also be elided soon at the next _opt2 iteration.
@@ -2177,77 +2160,13 @@ dead_assignment_remover::visit_assignment (assignment* e)
                 clog << "Eliding assignment to " << leftvar->name
                      << " at " << *e->tok << endl;
 
-              *current_expr = e->right; // goodbye assignment*
+              provide (e->right); // goodbye assignment*
               relaxed_p = false;
+              return;
             }
         }
     }
-}
-
-void
-dead_assignment_remover::visit_binary_expression (binary_expression* e)
-{
-  expression** last_expr = current_expr;
-  current_expr = &e->left;
-  e->left->visit (this);
-  current_expr = &e->right;
-  e->right->visit (this);
-  current_expr = last_expr;
-}
-
-void
-dead_assignment_remover::visit_arrayindex (arrayindex *e)
-{
-  symbol *array = NULL;
-  hist_op *hist = NULL;
-  classify_indexable(e->base, array, hist);
-
-  if (array)
-    {
-      expression** last_expr = current_expr;
-      for (unsigned i=0; i < e->indexes.size(); i++)
-	{
-	  current_expr = & e->indexes[i];
-	  e->indexes[i]->visit (this);
-	}
-      current_expr = last_expr;
-    }
-}
-
-void
-dead_assignment_remover::visit_functioncall (functioncall* e)
-{
-  expression** last_expr = current_expr;
-  for (unsigned i=0; i<e->args.size(); i++)
-    {
-      current_expr = & e->args[i];
-      e->args[i]->visit (this);
-    }
-  current_expr = last_expr;
-}
-
-void
-dead_assignment_remover::visit_if_statement (if_statement* s)
-{
-  expression** last_expr = current_expr;
-  current_expr = & s->condition;
-  s->condition->visit (this);
-  s->thenblock->visit (this);
-  if (s->elseblock)
-    s->elseblock->visit (this);
-  current_expr = last_expr;
-}
-
-void
-dead_assignment_remover::visit_for_loop (for_loop* s)
-{
-  expression** last_expr = current_expr;
-  if (s->init) s->init->visit (this);
-  current_expr = & s->cond;
-  s->cond->visit (this);
-  if (s->incr) s->incr->visit (this);
-  s->block->visit (this);
-  current_expr = last_expr;
+  provide (e);
 }
 
 // Let's remove assignments to variables that are never read.  We
@@ -2267,9 +2186,10 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
   // This instance may be reused for multiple probe/function body trims.
 
   for (unsigned i=0; i<s.probes.size(); i++)
-    s.probes[i]->body->visit (& dar);
-  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
-    it->second->body->visit (& dar);
+    s.probes[i]->body = dar.require (s.probes[i]->body);
+  for (map<string,functiondecl*>::iterator it = s.functions.begin();
+       it != s.functions.end(); it++)
+    it->second->body = dar.require (it->second->body);
   // The rewrite operation is performed within the visitor.
 
   // XXX: we could also zap write-only globals here
@@ -2278,15 +2198,14 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
 
 // ------------------------------------------------------------------------
 
-struct dead_stmtexpr_remover: public traversing_visitor
+struct dead_stmtexpr_remover: public update_visitor
 {
   systemtap_session& session;
   bool& relaxed_p;
-  statement** current_stmt; // pointer to current stmt* being iterated
   set<vardecl*> focal_vars; // vars considered subject to side-effects
 
   dead_stmtexpr_remover(systemtap_session& s, bool& r):
-    session(s), relaxed_p(r), current_stmt(0) {}
+    session(s), relaxed_p(r) {}
 
   void visit_block (block *s);
   void visit_null_statement (null_statement *s);
@@ -2305,7 +2224,8 @@ dead_stmtexpr_remover::visit_null_statement (null_statement *s)
   // easy!
   if (session.verbose>2)
     clog << "Eliding side-effect-free null statement " << *s->tok << endl;
-  *current_stmt = 0;
+  s = 0;
+  provide (s);
 }
 
 
@@ -2315,13 +2235,11 @@ dead_stmtexpr_remover::visit_block (block *s)
   vector<statement*> new_stmts;
   for (unsigned i=0; i<s->statements.size(); i++ )
     {
-      statement** last_stmt = current_stmt;
-      current_stmt = & s->statements[i];
-      s->statements[i]->visit (this);
-      if (*current_stmt != 0)
+      statement* new_stmt = require (s->statements[i], true);
+      if (new_stmt != 0)
         {
           // flatten nested blocks into this one
-          block *b = dynamic_cast<block *>(*current_stmt);
+          block *b = dynamic_cast<block *>(new_stmt);
           if (b)
             {
               if (session.verbose>2)
@@ -2331,42 +2249,32 @@ dead_stmtexpr_remover::visit_block (block *s)
               relaxed_p = false;
             }
           else
-            new_stmts.push_back (*current_stmt);
+            new_stmts.push_back (new_stmt);
         }
-      current_stmt = last_stmt;
     }
   if (new_stmts.size() == 0)
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free empty block " << *s->tok << endl;
-      *current_stmt = 0;
+      s = 0;
     }
   else if (new_stmts.size() == 1)
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free singleton block " << *s->tok << endl;
-      *current_stmt = new_stmts[0];
+      provide (new_stmts[0]);
+      return;
     }
   else
-    {
-      s->statements = new_stmts;
-    }
+    s->statements = new_stmts;
+  provide (s);
 }
 
 void
 dead_stmtexpr_remover::visit_if_statement (if_statement *s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->thenblock;
-  s->thenblock->visit (this);
-
-  if (s->elseblock)
-    {
-      current_stmt = & s->elseblock;
-      s->elseblock->visit (this);
-      // null *current_stmt is OK here.
-    }
-  current_stmt = last_stmt;
+  s->thenblock = require (s->thenblock, true);
+  s->elseblock = require (s->elseblock, true);
 
   if (s->thenblock == 0)
     {
@@ -2381,7 +2289,7 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
               if (session.verbose>2)
                 clog << "Eliding side-effect-free if statement "
                      << *s->tok << endl;
-              *current_stmt = 0; // yeah, baby
+              s = 0; // yeah, baby
             }
           else
             {
@@ -2392,7 +2300,8 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
               expr_statement *es = new expr_statement;
               es->value = s->condition;
               es->tok = es->value->tok;
-              *current_stmt = es;
+              provide (es);
+              return;
             }
         }
       else
@@ -2411,31 +2320,27 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
           s->elseblock = 0;
         }
     }
+  provide (s);
 }
 
 void
 dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->block;
-  s->block->visit (this);
-  current_stmt = last_stmt;
+  s->block = require(s->block, true);
 
   if (s->block == 0)
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free foreach statement " << *s->tok << endl;
-      *current_stmt = 0; // yeah, baby
+      s = 0; // yeah, baby
     }
+  provide (s);
 }
 
 void
 dead_stmtexpr_remover::visit_for_loop (for_loop *s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->block;
-  s->block->visit (this);
-  current_stmt = last_stmt;
+  s->block = require(s->block, true);
 
   if (s->block == 0)
     {
@@ -2449,14 +2354,16 @@ dead_stmtexpr_remover::visit_for_loop (for_loop *s)
         {
           if (session.verbose>2)
             clog << "Eliding side-effect-free for statement " << *s->tok << endl;
-          *current_stmt = 0; // yeah, baby
-          return;
+          s = 0; // yeah, baby
         }
-
-      // Can't elide this whole statement; put a null in there.
-      s->block = new null_statement();
-      s->block->tok = s->tok;
+      else
+        {
+          // Can't elide this whole statement; put a null in there.
+          s->block = new null_statement();
+          s->block->tok = s->tok;
+        }
     }
+  provide (s);
 }
 
 
@@ -2466,8 +2373,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
 {
   // Run a varuse query against the operand expression.  If it has no
   // side-effects, replace the entire statement expression by a null
-  // statement.  This replacement is done by overwriting the
-  // current_stmt pointer.
+  // statement with the provide() call.
   //
   // Unlike many other visitors, we do *not* traverse this outermost
   // one into the expression subtrees.  There is no need - no
@@ -2480,8 +2386,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
   varuse_collecting_visitor vut;
   s->value->visit (& vut);
 
- if (vut.side_effect_free_wrt (focal_vars) &&
-      *current_stmt == s) // we're not nested any deeper than expected
+  if (vut.side_effect_free_wrt (focal_vars))
     {
       /* PR 1119: NB: this message is not a good idea here.  It can
          name some arbitrary RHS expression of an assignment.
@@ -2496,10 +2401,10 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
 
       // NB: this 0 pointer is invalid to leave around for any length of
       // time, but the parent parse tree objects above handle it.
-      * current_stmt = 0;
-
+      s = 0;
       relaxed_p = false;
     }
+  provide (s);
 }
 
 
@@ -2524,8 +2429,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       duv.focal_vars.insert (p->locals.begin(),
                              p->locals.end());
 
-      duv.current_stmt = & p->body;
-      p->body->visit (& duv);
+      p->body = duv.require(p->body, true);
       if (p->body == 0)
         {
           if (! s.suppress_warnings)
@@ -2550,8 +2454,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       duv.focal_vars.insert (s.globals.begin(),
                              s.globals.end());
 
-      duv.current_stmt = & fn->body;
-      fn->body->visit (& duv);
+      fn->body = duv.require(fn->body, true);
       if (fn->body == 0)
         {
           if (! s.suppress_warnings)
@@ -2576,21 +2479,27 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 // into separate statements that evaluate each subcomponent of the expression.
 // The dead-statement-remover can later remove some parts if they have no side
 // effects.
-struct void_statement_reducer: public traversing_visitor
+//
+// All expressions must be overridden here so we never visit their subexpressions
+// accidentally.  Thus, the only visited expressions should be value of an
+// expr_statement.
+//
+// For an expression to replace its expr_statement with something else, it will
+// let the new statement provide(), and then provide(0) for itself.  The
+// expr_statement will take this as a sign that it's been replaced.
+struct void_statement_reducer: public update_visitor
 {
   systemtap_session& session;
   bool& relaxed_p;
-  statement** current_stmt; // pointer to current stmt* being iterated
-  expr_statement* current_expr; // pointer to current expr being iterated
   set<vardecl*> focal_vars; // vars considered subject to side-effects
 
   void_statement_reducer(systemtap_session& s, bool& r):
-    session(s), relaxed_p(r), current_stmt(0), current_expr(0) {}
+    session(s), relaxed_p(r) {}
 
-  // these just maintain current_stmt while recursing, but don't visit
-  // expressions in the conditional / loop controls.
   void visit_expr_statement (expr_statement* s);
-  void visit_block (block *s);
+
+  // expressions in conditional / loop controls are definitely a side effect,
+  // but still recurse into the child statements
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
@@ -2607,75 +2516,58 @@ struct void_statement_reducer: public traversing_visitor
   void visit_concatenation (concatenation* e);
   void visit_functioncall (functioncall* e);
   void visit_print_format (print_format* e);
+  void visit_cast_op (cast_op* e);
 
   // these are a bit hairy to grok due to the intricacies of indexables and
   // stats, so I'm chickening out and skipping them...
-  void visit_array_in (array_in* e) {}
-  void visit_arrayindex (arrayindex* e) {}
-  void visit_stat_op (stat_op* e) {}
-  void visit_hist_op (hist_op* e) {}
+  void visit_array_in (array_in* e) { provide (e); }
+  void visit_arrayindex (arrayindex* e) { provide (e); }
+  void visit_stat_op (stat_op* e) { provide (e); }
+  void visit_hist_op (hist_op* e) { provide (e); }
 
   // these can't be reduced because they always have an effect
-  void visit_return_statement (return_statement* s) {}
-  void visit_delete_statement (delete_statement* s) {}
-  void visit_pre_crement (pre_crement* e) {}
-  void visit_post_crement (post_crement* e) {}
-  void visit_assignment (assignment* e) {}
+  void visit_return_statement (return_statement* s) { provide (s); }
+  void visit_delete_statement (delete_statement* s) { provide (s); }
+  void visit_pre_crement (pre_crement* e) { provide (e); }
+  void visit_post_crement (post_crement* e) { provide (e); }
+  void visit_assignment (assignment* e) { provide (e); }
 };
 
 
 void
 void_statement_reducer::visit_expr_statement (expr_statement* s)
 {
-  assert(!current_expr); // it shouldn't be possible to have nested expr's
-  current_expr = s;
-  s->value->visit (this);
-  current_expr = NULL;
-}
+  s->value = require (s->value, true);
 
-void
-void_statement_reducer::visit_block (block *s)
-{
-  statement** last_stmt = current_stmt;
-  for (unsigned i=0; i<s->statements.size(); i++ )
-    {
-      current_stmt = & s->statements[i];
-      s->statements[i]->visit (this);
-    }
-  current_stmt = last_stmt;
+  // if the expression provides 0, that's our signal that a new
+  // statement has been provided, so we shouldn't provide this one.
+  if (s->value != 0)
+    provide(s);
 }
 
 void
 void_statement_reducer::visit_if_statement (if_statement* s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->thenblock;
-  s->thenblock->visit (this);
-
-  if (s->elseblock)
-    {
-      current_stmt = & s->elseblock;
-      s->elseblock->visit (this);
-    }
-  current_stmt = last_stmt;
+  // s->condition is never void
+  s->thenblock = require (s->thenblock);
+  s->elseblock = require (s->elseblock);
+  provide (s);
 }
 
 void
 void_statement_reducer::visit_for_loop (for_loop* s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->block;
-  s->block->visit (this);
-  current_stmt = last_stmt;
+  // s->init/cond/incr are never void
+  s->block = require (s->block);
+  provide (s);
 }
 
 void
 void_statement_reducer::visit_foreach_loop (foreach_loop* s)
 {
-  statement** last_stmt = current_stmt;
-  current_stmt = & s->block;
-  s->block->visit (this);
-  current_stmt = last_stmt;
+  // s->indexes/base/limit are never void
+  s->block = require (s->block);
+  provide (s);
 }
 
 void
@@ -2684,8 +2576,6 @@ void_statement_reducer::visit_logical_or_expr (logical_or_expr* e)
   // In void context, the evaluation of "a || b" is exactly like
   // "if (!a) b", so let's do that instead.
 
-  assert(current_expr && current_expr->value == e);
-
   if (session.verbose>2)
     clog << "Creating if statement from unused logical-or "
          << *e->tok << endl;
@@ -2693,8 +2583,6 @@ void_statement_reducer::visit_logical_or_expr (logical_or_expr* e)
   if_statement *is = new if_statement;
   is->tok = e->tok;
   is->elseblock = 0;
-  *current_stmt = is;
-  current_expr = NULL;
 
   unary_expression *ue = new unary_expression;
   ue->operand = e->left;
@@ -2709,6 +2597,8 @@ void_statement_reducer::visit_logical_or_expr (logical_or_expr* e)
 
   is->visit(this);
   relaxed_p = false;
+  e = 0;
+  provide (e);
 }
 
 void
@@ -2716,8 +2606,6 @@ void_statement_reducer::visit_logical_and_expr (logical_and_expr* e)
 {
   // In void context, the evaluation of "a && b" is exactly like
   // "if (a) b", so let's do that instead.
-
-  assert(current_expr && current_expr->value == e);
 
   if (session.verbose>2)
     clog << "Creating if statement from unused logical-and "
@@ -2727,8 +2615,6 @@ void_statement_reducer::visit_logical_and_expr (logical_and_expr* e)
   is->tok = e->tok;
   is->elseblock = 0;
   is->condition = e->left;
-  *current_stmt = is;
-  current_expr = NULL;
 
   expr_statement *es = new expr_statement;
   es->value = e->right;
@@ -2737,6 +2623,8 @@ void_statement_reducer::visit_logical_and_expr (logical_and_expr* e)
 
   is->visit(this);
   relaxed_p = false;
+  e = 0;
+  provide (e);
 }
 
 void
@@ -2745,8 +2633,6 @@ void_statement_reducer::visit_ternary_expression (ternary_expression* e)
   // In void context, the evaluation of "a ? b : c" is exactly like
   // "if (a) b else c", so let's do that instead.
 
-  assert(current_expr && current_expr->value == e);
-
   if (session.verbose>2)
     clog << "Creating if statement from unused ternary expression "
          << *e->tok << endl;
@@ -2754,8 +2640,6 @@ void_statement_reducer::visit_ternary_expression (ternary_expression* e)
   if_statement *is = new if_statement;
   is->tok = e->tok;
   is->condition = e->cond;
-  *current_stmt = is;
-  current_expr = NULL;
 
   expr_statement *es = new expr_statement;
   es->value = e->truevalue;
@@ -2769,6 +2653,8 @@ void_statement_reducer::visit_ternary_expression (ternary_expression* e)
 
   is->visit(this);
   relaxed_p = false;
+  e = 0;
+  provide (e);
 }
 
 void
@@ -2777,15 +2663,11 @@ void_statement_reducer::visit_binary_expression (binary_expression* e)
   // When the result of a binary operation isn't needed, it's just as good to
   // evaluate the operands as sequential statements in a block.
 
-  assert(current_expr && current_expr->value == e);
-
   if (session.verbose>2)
     clog << "Eliding unused binary " << *e->tok << endl;
 
   block *b = new block;
-  b->tok = current_expr->tok;
-  *current_stmt = b;
-  current_expr = NULL;
+  b->tok = e->tok;
 
   expr_statement *es = new expr_statement;
   es->value = e->left;
@@ -2799,6 +2681,8 @@ void_statement_reducer::visit_binary_expression (binary_expression* e)
 
   b->visit(this);
   relaxed_p = false;
+  e = 0;
+  provide (e);
 }
 
 void
@@ -2807,16 +2691,11 @@ void_statement_reducer::visit_unary_expression (unary_expression* e)
   // When the result of a unary operation isn't needed, it's just as good to
   // evaluate the operand directly
 
-  assert(current_expr && current_expr->value == e);
-
   if (session.verbose>2)
     clog << "Eliding unused unary " << *e->tok << endl;
 
-  current_expr->value = e->operand;
-  current_expr->tok = current_expr->value->tok;
-  current_expr->value->visit(this);
-
   relaxed_p = false;
+  e->operand->visit(this);
 }
 
 void
@@ -2838,24 +2717,26 @@ void_statement_reducer::visit_functioncall (functioncall* e)
   // and just evaluate the arguments in sequence
 
   if (!e->args.size())
-    return;
+    {
+      provide (e);
+      return;
+    }
 
   varuse_collecting_visitor vut;
   vut.traversed.insert (e->referent);
   vut.current_function = e->referent;
   e->referent->body->visit (& vut);
   if (!vut.side_effect_free_wrt (focal_vars))
-    return;
-
-  assert(current_expr && current_expr->value == e);
+    {
+      provide (e);
+      return;
+    }
 
   if (session.verbose>2)
     clog << "Eliding side-effect-free function call " << *e->tok << endl;
 
   block *b = new block;
   b->tok = e->tok;
-  *current_stmt = b;
-  current_expr = NULL;
 
   for (unsigned i=0; i<e->args.size(); i++ )
     {
@@ -2867,6 +2748,8 @@ void_statement_reducer::visit_functioncall (functioncall* e)
 
   b->visit(this);
   relaxed_p = false;
+  e = 0;
+  provide (e);
 }
 
 void
@@ -2876,17 +2759,16 @@ void_statement_reducer::visit_print_format (print_format* e)
   // arguments in sequence
 
   if (e->print_to_stream || !e->args.size())
-    return;
-
-  assert(current_expr && current_expr->value == e);
+    {
+      provide (e);
+      return;
+    }
 
   if (session.verbose>2)
     clog << "Eliding unused print " << *e->tok << endl;
 
   block *b = new block;
   b->tok = e->tok;
-  *current_stmt = b;
-  current_expr = NULL;
 
   for (unsigned i=0; i<e->args.size(); i++ )
     {
@@ -2898,6 +2780,21 @@ void_statement_reducer::visit_print_format (print_format* e)
 
   b->visit(this);
   relaxed_p = false;
+  e = 0;
+  provide (e);
+}
+
+void
+void_statement_reducer::visit_cast_op (cast_op* e)
+{
+  // When the result of a cast operation isn't needed, it's just as good to
+  // evaluate the operand directly
+
+  if (session.verbose>2)
+    clog << "Eliding unused typecast " << *e->tok << endl;
+
+  relaxed_p = false;
+  e->operand->visit(this);
 }
 
 
@@ -2911,17 +2808,10 @@ void semantic_pass_opt5 (systemtap_session& s, bool& relaxed_p)
   vuv.focal_vars.insert (s.globals.begin(), s.globals.end());
 
   for (unsigned i=0; i<s.probes.size(); i++)
-    {
-      derived_probe* p = s.probes[i];
-      vuv.current_stmt = & p->body;
-      p->body->visit (& vuv);
-    }
-  for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
-    {
-      functiondecl* fn = it->second;
-      vuv.current_stmt = & fn->body;
-      fn->body->visit (& vuv);
-    }
+    s.probes[i]->body = vuv.require (s.probes[i]->body);
+  for (map<string,functiondecl*>::iterator it = s.functions.begin();
+       it != s.functions.end(); it++)
+    it->second->body = vuv.require (it->second->body);
 }
 
 
@@ -3534,6 +3424,18 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
 
 
 void
+typeresolution_info::visit_cast_op (cast_op* e)
+{
+  // Like target_symbol, a cast_op shouldn't survive this far
+  // unless it was not resolved and its value is really needed.
+  if (e->saved_conversion_error)
+    throw (* (e->saved_conversion_error));
+  else
+    throw semantic_error("unresolved cast expression", e->tok);
+}
+
+
+void
 typeresolution_info::visit_arrayindex (arrayindex* e)
 {
 
@@ -4085,23 +3987,71 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
 void
 typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 {
+  bool tok_resolved = false;
+  size_t i;
+  semantic_error* err1 = 0;
   num_still_unresolved ++;
+
+  //BZ 9719: for improving type mismatch messages, a semantic error is
+  //generated with the token where type was first resolved. All such 
+  //resolved tokens, stored in a vector, are matched against their 
+  //content. If an error for the matching token hasn't been printed out
+  //already, it is and the token pushed in another printed_toks vector
 
   if (assert_resolvability)
     {
       stringstream msg;
-      string nm = (current_function ? current_function->name :
-                   current_probe ? current_probe->name :
-                   "probe condition");
-      msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
-      session.print_error (semantic_error (msg.str(), tok));
+      for (i=0; i<resolved_toks.size(); i++)
+	{
+	  if (resolved_toks[i]->content == tok->content)
+	    {
+	      tok_resolved = true;
+	      break;
+	    }
+	}
+      if (!tok_resolved)
+	{
+	  string nm = (current_function ? current_function->name :
+		       current_probe ? current_probe->name :
+		       "probe condition");
+	  msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
+	}
+      else
+	{
+	  bool tok_printed = false;
+	  for (size_t j=0; j<printed_toks.size(); j++)
+	    {
+	      if (printed_toks[j] == resolved_toks[i])
+		{
+		  tok_printed = true;
+		  break;
+		}
+	    }
+	  string nm = (current_function ? current_function->name :
+		       current_probe ? current_probe->name :
+		       "probe condition");
+	  msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
+	  if (!tok_printed)
+	    {
+	      //error for possible mismatch in the earlier resolved token
+	      printed_toks.push_back (resolved_toks[i]);
+	      stringstream type_msg;
+	      type_msg << nm + " type first inferred here (" << t2 << ")";
+	      err1 = new semantic_error (type_msg.str(), resolved_toks[i]);
+	    }
+	}
+      semantic_error err (msg.str(), tok);
+      err.chain = err1;
+      session.print_error (err);
     }
 }
 
 
 void
-typeresolution_info::resolved (const token*, exp_type)
+typeresolution_info::resolved (const token* tok, exp_type)
 {
+  resolved_toks.push_back (tok);
   num_newly_resolved ++;
 }
 
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

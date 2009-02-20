@@ -1,7 +1,8 @@
 # Makefile.am --- automake input file for systemtap
 ## process this file with automake to produce Makefile.in
 
-AUTOMAKE_OPTIONS = no-dist
+# we don't maintain a ChangeLog, which makes us non-GNU -> foreign
+AUTOMAKE_OPTIONS = no-dist foreign
 
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 oldincludedir = ${includedir}/sys
@@ -16,7 +17,7 @@ man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/st
 
 bin_PROGRAMS = stap staprun
 bin_SCRIPTS = stap-report
-oldinclude_HEADERS = runtime/sdt.h
+oldinclude_HEADERS = includes/sys/sdt.h
 if BUILD_SERVER
 man_MANS += stap-server.8 
 bin_PROGRAMS += stap-client-connect stap-server-connect
@@ -114,6 +115,16 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
+if BUILD_SERVER
+install-exec-local: install-scripts
+
+PHONIES += install-scripts
+install-scripts:
+	for f in $(bin_SCRIPTS); do \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
+	done
+endif
+
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
@@ -204,6 +215,7 @@ install-data-local:
 			i_cmd="$(INSTALL_PROGRAM)"; else \
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
+	test -e $(DESTDIR)$(sysconfdir)/systemtap || mkdir -p $(DESTDIR)$(sysconfdir)/systemtap
 
 TEST_COV_DIR = coverage
 
@@ -249,11 +261,13 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 # XXX: leaves behind man pages
 
-SUBDIRS = testsuite doc
+SUBDIRS = doc
+DIST_SUBDIRS = testsuite $(SUBDIRS)
 
-check:
+check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH="$(PWD)" RUNTESTFLAGS="$(RUNTESTFLAGS)";
+        PWD=`pwd`; \
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)";
 
 installcheck:
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \

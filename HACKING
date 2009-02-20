@@ -6,10 +6,9 @@ the <systemtap@sources.redhat.com> mailing list.
 
   Submissions should be in an easy-to-read diff/patch form, unless
   this is inappropriate due to size, relevance, or fraction of novel
-  content.  They should be accompanied by an explanation, and
-  ChangeLog entries.  The relevant test suites should be run before
-  and after your changes, and regressions avoided, explained, or
-  corrected.
+  content.  They should be accompanied by an explanation.  The
+  relevant test suites should be run before and after your changes,
+  and regressions avoided, explained, or corrected.
 
   Established contributors may be considered for direct GIT write
   access.  Other contributors should simply pack up the goods into a
@@ -31,13 +30,22 @@ the <systemtap@sources.redhat.com> mailing list.
 - coding style
 
   Abide by the general formatting of the code you are modifying.  The
-  code base generally follows the GNU standards.  ChangeLog entries
-  are used for nontrivial changes to source or documentation files.
-  Some subdirectories have ChangeLog files of their own, so make sure
-  you find the correct ones to prepend.
+  code base generally follows the GNU standards in usermode code and
+  the Linux kernel standards in runtime code.
 
-  In the git commit message, make the first line an brief summary of
-  the patch.  There is no need to transcribe the ChangeLog entries there.
+- commit messages
+
+  In the git commit message, make the first line a brief (<=50 char)
+  summary of the patch, and leave the second line blank.  If you have
+  trouble coming up with a concise summary, consider whether your
+  patch might be better broken into smaller commits.
+
+  For trivial changes, the summary alone may be sufficient, but most
+  commits should include a paragraph or two giving more details about
+  what the change is and why it is needed.  Extra information like
+  bugzilla numbers and mailing-list discussion links are appreciated
+  as a supplement, but they are not a replacement for a real
+  description.
 
 - test suites
 

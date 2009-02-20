@@ -1,5 +1,5 @@
 // systemtap translator/driver
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2005 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
 //
@@ -51,7 +51,7 @@ version ()
     << "SystemTap translator/driver "
     << "(version " << VERSION << "/" << dwfl_version (NULL)
     << " " << GIT_MESSAGE << ")" << endl
-    << "Copyright (C) 2005-2008 Red Hat, Inc. and others" << endl
+    << "Copyright (C) 2005-2009 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;
 }
 
@@ -355,6 +355,7 @@ main (int argc, char * const argv [])
   s.buffer_size = 0;
   s.last_pass = 5;
   s.module_name = "stap_" + stringify(getpid());
+  s.stapconf_name = "stapconf_" + stringify(getpid()) + ".h";
   s.output_file = ""; // -o FILE
   s.keep_tmpdir = false;
   s.cmd = "";
@@ -1175,3 +1176,5 @@ pass_5:
 
   return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

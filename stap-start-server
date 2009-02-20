@@ -12,20 +12,21 @@
 # This script attempts to start a systemtap server and echoes the
 # process id, if successful.
 
-# Where are we installed?
-exec_prefix=`dirname $0`
-exec_prefix=`cd $exec_prefix && pwd`
-prefix=`dirname $exec_prefix`
+# INSTALL-HOOK These settings work for running the client from the source tree
+# INSTALL-HOOK using the dejagnu test harness and will be overridden at install
+# INSTALL-HOOK time.
+exec_prefix=
+sysconfdir=`pwd`/net
 
 # start the server
-$exec_prefix/stap-serverd "$@" </dev/null >/dev/null 2>&1 &
+${exec_prefix}stap-serverd "$@" </dev/null >/dev/null 2>&1 &
 server_pid=$!
 
 # Make sure the server is started
-for ((attempt=0; $attempt < 5; ++attempt))
+for ((attempt=0; $attempt < 10; ++attempt))
 do
     if test $EUID = 0; then
-	if ! test -f $prefix/etc/systemtap/ssl/server/stap-server.cert; then
+	if ! test -f $sysconfdir/systemtap/ssl/server/stap-server.cert; then
 	    sleep 1
 	    continue;
 	fi

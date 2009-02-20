@@ -1,0 +1,136 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+<section id="timeoutssect">
+<title>Monitoring Polling Applications</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring polling applications</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring polling applications</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring polling applications</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+		
+<!--
+<indexterm>
+<primary>counting function calls</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+-->
+
+<indexterm>
+<primary>polling applications, monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+		
+<remark>
+uses systemtap/testsuite/systemtap.examples/profiling/timeout.stp
+</remark>	
+				
+		
+	<para>
+		This section how to identify and monitor which applications are polling. Doing so allows you to track
+		unnecessary or excessive polling, which can help you pinpoint areas for improvement in terms of CPU usage 
+		and power savings.
+	</para>	 
+		
+<formalpara id="timeouts">
+	<title>timeout.stp</title>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/testsuite/systemtap.examples/profiling/timeout.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>
+
+	<para>
+		<xref linkend="timeouts"/> tracks how many times each application used the following system calls over time:
+	</para>
+	
+	<itemizedlist>
+		<listitem><para><command>poll</command></para></listitem>
+		<listitem><para><command>select</command></para></listitem>
+		<listitem><para><command>epoll</command></para></listitem>
+		<listitem><para><command>itimer</command></para></listitem>
+		<listitem><para><command>futex</command></para></listitem>
+		<listitem><para><command>nanosleep</command></para></listitem>
+		<listitem><para><command>signal</command></para></listitem>
+	</itemizedlist>	
+
+	<para>
+		In some applications, these system calls are used excessively. As such, they are normally identified as "likely
+		culprits" for polling applications. Note, however, that an application may be using a different system
+		call to poll excessively; sometimes, it is useful to find out the top system calls used by the system (refer to 
+		<xref linkend="topsyssect"/> for instructions). Doing so can help you identify any additional suspects, which you 
+		can add to <xref linkend="timeouts"/> for tracking.
+	</para>
+		
+	
+<indexterm>
+<primary>script examples</primary>
+<secondary>timer.s(), sample usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>timer.s(), sample usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>timer.s(), sample usage</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+	
+<example id="timeoutsoutput">
+	<title><xref linkend="timeouts"/> Sample Output</title>
+<screen>
+  uid |   poll  select   epoll  itimer   futex nanosle  signal| process
+28937 | 148793       0       0    4727   37288       0       0| firefox
+22945 |      0   56949       0       1       0       0       0| scim-bridge
+    0 |      0       0       0   36414       0       0       0| swapper
+ 4275 |  23140       0       0       1       0       0       0| mixer_applet2
+ 4191 |      0   14405       0       0       0       0       0| scim-launcher
+22941 |   7908       1       0      62       0       0       0| gnome-terminal
+ 4261 |      0       0       0       2       0    7622       0| escd
+ 3695 |      0       0       0       0       0    7622       0| gdm-binary
+ 3483 |      0    7206       0       0       0       0       0| dhcdbd
+ 4189 |   6916       0       0       2       0       0       0| scim-panel-gtk
+ 1863 |   5767       0       0       0       0       0       0| iscsid
+ 2562 |      0    2881       0       1       0    1438       0| pcscd
+ 4257 |   4255       0       0       1       0       0       0| gnome-power-man
+ 4278 |   3876       0       0      60       0       0       0| multiload-apple
+ 4083 |      0    1331       0    1728       0       0       0| Xorg
+ 3921 |   1603       0       0       0       0       0       0| gam_server
+ 4248 |   1591       0       0       0       0       0       0| nm-applet
+ 3165 |      0    1441       0       0       0       0       0| xterm
+29548 |      0    1440       0       0       0       0       0| httpd
+ 1862 |      0       0       0       0       0    1438       0| iscsid
+</screen>
+</example>
+<!--probe kernel.function(@1) {  # probe function passed as argument from stdin
+called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
+}
+global called          
+probe end,timer.ms(30000) {
+foreach (fn+ in called)  # Sort by function name
+#       (fn in called-)  # Sort by call count (in decreasing order)
+printf("%s %d\n", fn, @count(called[fn]))
+exit()
+}-->
+<para>
+	You can increase the sample time by editing the timer in the second probe (<command>timer.s()</command>). 
+	The output of <xref linkend="countcalls"/> contains the name and UID of the top 20 polling applications, 
+	along with how many times each application performed each polling system call (over time). 
+	<xref linkend="timeoutsoutput"/> contains an excerpt of the script:
+</para>
+	</section>
+

@@ -7,7 +7,7 @@
 
 Name: systemtap
 # for version, see also configure.ac
-Version: 0.8
+Version: 0.9
 Release: %{release}%{?dist}
 Summary: Instrumentation System
 Group: Development/System
@@ -116,6 +116,16 @@ Requires: systemtap
 %description sdt-devel
 Support tools to allow applications to use static probes.
 
+%package initscript
+Summary: Systemtap Initscript
+Group: Development/System
+License: GPLv2+
+URL: http://sourceware.org/systemtap/
+Requires: systemtap-runtime, initscripts
+
+%description initscript
+Initscript for Systemtap scripts.
+
 %prep
 %setup -q %{?setup_elfutils}
 
@@ -203,6 +213,15 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/*.pdf docs.installed/
 mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/tapsets docs.installed/
 %endif
 
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
+install -m 755 initscript/systemtap $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/systemtap
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/systemtap/conf.d
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/systemtap/script.d
+install -m 644 initscript/config $RPM_BUILD_ROOT%{_sysconfdir}/systemtap
+mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/cache/systemtap
+mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/run/systemtap
+
 %clean
 rm -rf ${RPM_BUILD_ROOT}
 
@@ -210,6 +229,15 @@ rm -rf ${RPM_BUILD_ROOT}
 getent group stapdev >/dev/null || groupadd -r stapdev
 getent group stapusr >/dev/null || groupadd -r stapusr
 exit 0
+
+%post initscript
+chkconfig --add systemtap
+exit 0
+
+%preun initscript
+chkconfig --del systemtap
+exit 0
+
 
 %files
 %defattr(-,root,root)
@@ -276,7 +304,22 @@ exit 0
 %{_bindir}/dtrace
 %{_includedir}/sys/sdt.h
 
+%files initscript
+%defattr(-,root,root)
+%{_sysconfdir}/init.d/systemtap
+%dir %{_sysconfdir}/systemtap
+%dir %{_sysconfdir}/systemtap/conf.d
+%dir %{_sysconfdir}/systemtap/script.d
+%config(noreplace) %{_sysconfdir}/systemtap/config
+%dir %{_localstatedir}/cache/systemtap
+%dir %{_localstatedir}/run/systemtap
+%doc initscript/README.initscript
+
+
 %changelog
+* Tue Feb 17 2009 Frank Ch. Eigler <fche@redhat.com> - 0.9-1
+- Upstream release.
+
 * Thu Nov 13 2008 Frank Ch. Eigler <fche@redhat.com> - 0.8-1
 - Upstream release.
 

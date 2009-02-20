@@ -52,7 +52,7 @@ typedef struct _counter *Counter;
  * 
  * @return a Counter. Will be NULL on error.
  */
-Counter _stp_counter_init (void)
+static Counter _stp_counter_init (void)
 {
 	Counter cnt = _stp_alloc_percpu (struct _counter);
 #if NEED_COUNTER_LOCKS == 1
@@ -73,7 +73,7 @@ Counter _stp_counter_init (void)
  * @param cnt Counter
  * @param val int64 value
  */
-void _stp_counter_add (Counter cnt,  int64_t val)
+static void _stp_counter_add (Counter cnt,  int64_t val)
 {
 	Counter c = per_cpu_ptr (cnt, get_cpu());
 	COUNTER_LOCK(c);
@@ -90,7 +90,7 @@ void _stp_counter_add (Counter cnt,  int64_t val)
  * @param clear Set this to have the value cleared after reading.
  * @return An int64 value.
  */
-int64_t _stp_counter_get_cpu (Counter cnt, int cpu, int clear)
+static int64_t _stp_counter_get_cpu (Counter cnt, int cpu, int clear)
 {
 	int64_t val;
 	Counter c = per_cpu_ptr (cnt, cpu);
@@ -114,7 +114,7 @@ int64_t _stp_counter_get_cpu (Counter cnt, int cpu, int clear)
  * @param clear Set this to have the value cleared after reading.
  * @return An int64 value.
  */
-int64_t _stp_counter_get (Counter cnt, int clear)
+static int64_t _stp_counter_get (Counter cnt, int clear)
 {
 	int i;
 	int64_t sum = 0;
@@ -133,7 +133,7 @@ int64_t _stp_counter_get (Counter cnt, int clear)
 /** Free a Counter.
  * @param cnt Counter
  */
-void _stp_counter_free (Counter cnt)
+static void _stp_counter_free (Counter cnt)
 {
 	_stp_free_percpu (cnt);
 }

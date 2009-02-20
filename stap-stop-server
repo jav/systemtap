@@ -20,7 +20,7 @@ if test "X$pid" = "X"; then
 fi
 
 # Verify that it is a systemtap server
-(ps -a | grep stap-serverd | grep -q $pid)
+(ps -e | grep stap-serverd | grep -q $pid)
 if test $? != 0; then
    echo "$pid is not a systemtap server"
    exit 1

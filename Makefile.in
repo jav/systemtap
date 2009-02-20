@@ -50,13 +50,13 @@ bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT) $(am__EXEEXT_1)
 @BUILD_ELFUTILS_TRUE@am__append_7 = stamp-elfutils
 @BUILD_ELFUTILS_TRUE@am__append_8 = lib-elfutils/libdw.so
 @BUILD_ELFUTILS_TRUE@am__append_9 = install-elfutils
+@BUILD_SERVER_TRUE@am__append_10 = install-scripts
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
 noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
-DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
-	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/configure $(am__configure_deps) \
-	$(srcdir)/config.in $(srcdir)/stap.1.in \
+DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
+	$(srcdir)/Makefile.am $(top_srcdir)/configure \
+	$(am__configure_deps) $(srcdir)/config.in $(srcdir)/stap.1.in \
 	$(srcdir)/stapprobes.5.in $(srcdir)/stapfuncs.5.in \
 	$(srcdir)/stapvars.5.in $(srcdir)/stapex.5.in \
 	$(srcdir)/staprun.8.in $(srcdir)/stap-server.8.in \
@@ -71,7 +71,8 @@ DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(top_srcdir)/man/stapprobes.signal.5.in \
 	$(top_srcdir)/man/stapprobes.socket.5.in \
 	$(top_srcdir)/man/stapprobes.tcp.5.in \
-	$(top_srcdir)/man/stapprobes.udp.5.in $(srcdir)/run-stap.in \
+	$(top_srcdir)/man/stapprobes.udp.5.in \
+	$(top_srcdir)/initscript/systemtap.in $(srcdir)/run-stap.in \
 	depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -88,7 +89,7 @@ CONFIG_CLEAN_FILES = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 \
 	man/stapprobes.process.5 man/stapprobes.rpc.5 \
 	man/stapprobes.scsi.5 man/stapprobes.signal.5 \
 	man/stapprobes.socket.5 man/stapprobes.tcp.5 \
-	man/stapprobes.udp.5 run-stap
+	man/stapprobes.udp.5 initscript/systemtap run-stap
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -189,7 +190,6 @@ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
@@ -239,7 +239,6 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
-PKG_CONFIG = @PKG_CONFIG@
 PROCFLAGS = @PROCFLAGS@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
@@ -284,9 +283,7 @@ localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 nspr_CFLAGS = @nspr_CFLAGS@
-nspr_LIBS = @nspr_LIBS@
 nss_CFLAGS = @nss_CFLAGS@
-nss_LIBS = @nss_LIBS@
 oldincludedir = ${includedir}/sys
 pdfdir = @pdfdir@
 prefix = @prefix@
@@ -304,7 +301,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AUTOMAKE_OPTIONS = no-dist
+
+# we don't maintain a ChangeLog, which makes us non-GNU -> foreign
+AUTOMAKE_OPTIONS = no-dist foreign
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
@@ -317,7 +316,7 @@ man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 \
 	man/stapprobes.signal.5 man/stapprobes.socket.5 \
 	man/stapprobes.tcp.5 man/stapprobes.udp.5 $(am__append_1)
 bin_SCRIPTS = stap-report $(am__append_3) dtrace
-oldinclude_HEADERS = runtime/sdt.h
+oldinclude_HEADERS = includes/sys/sdt.h
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -343,7 +342,7 @@ stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_4)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ $(am__append_5)
 @BUILD_SERVER_TRUE@stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_SERVER_TRUE@stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
-PHONIES = $(am__append_9) dist-gzip
+PHONIES = $(am__append_9) $(am__append_10) dist-gzip
 @BUILD_ELFUTILS_TRUE@pkglib_LIBRARIES = libsduprobes.a
 @BUILD_ELFUTILS_TRUE@libsduprobes_a_SOURCES = runtime/sduprobes.c
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
@@ -382,7 +381,8 @@ EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 TEST_COV_DIR = coverage
 # XXX: leaves behind man pages
-SUBDIRS = testsuite doc
+SUBDIRS = doc
+DIST_SUBDIRS = testsuite $(SUBDIRS)
 
 # Any extra flags, such as:
 #     --define "with_docs 0"
@@ -399,15 +399,15 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
-	      echo ' cd $(srcdir) && $(AUTOMAKE) --gnu '; \
-	      cd $(srcdir) && $(AUTOMAKE) --gnu  \
+	      echo ' cd $(srcdir) && $(AUTOMAKE) --foreign '; \
+	      cd $(srcdir) && $(AUTOMAKE) --foreign  \
 		&& exit 0; \
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  Makefile
+	  $(AUTOMAKE) --foreign  Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -480,6 +480,8 @@ man/stapprobes.socket.5: $(top_builddir)/config.status $(top_srcdir)/man/stappro
 man/stapprobes.tcp.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.tcp.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 man/stapprobes.udp.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.udp.5.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+initscript/systemtap: $(top_builddir)/config.status $(top_srcdir)/initscript/systemtap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 run-stap: $(top_builddir)/config.status $(srcdir)/run-stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
@@ -1355,6 +1357,7 @@ GTAGS:
 distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-recursive
 all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(SCRIPTS) $(MANS) \
@@ -1389,7 +1392,7 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
-@BUILD_CRASHMOD_FALSE@@BUILD_ELFUTILS_FALSE@install-exec-local:
+@BUILD_CRASHMOD_FALSE@@BUILD_ELFUTILS_FALSE@@BUILD_SERVER_FALSE@install-exec-local:
 clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-local \
@@ -1465,8 +1468,8 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 	install-exec-am install-strip
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am all-local am--refresh check check-am clean \
-	clean-binPROGRAMS clean-generic clean-local \
+	all all-am all-local am--refresh check check-am check-local \
+	clean clean-binPROGRAMS clean-generic clean-local \
 	clean-noinstPROGRAMS clean-pkglibLIBRARIES \
 	clean-pkglibexecPROGRAMS ctags ctags-recursive distclean \
 	distclean-compile distclean-generic distclean-hdr \
@@ -1529,6 +1532,12 @@ cscope:
 @BUILD_ELFUTILS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@install-exec-local: install-elfutils
 
+@BUILD_SERVER_TRUE@install-exec-local: install-scripts
+@BUILD_SERVER_TRUE@install-scripts:
+@BUILD_SERVER_TRUE@	for f in $(bin_SCRIPTS); do \
+@BUILD_SERVER_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
+@BUILD_SERVER_TRUE@	done
+
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
 
@@ -1567,6 +1576,7 @@ install-data-local:
 			i_cmd="$(INSTALL_PROGRAM)"; else \
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
+	test -e $(DESTDIR)$(sysconfdir)/systemtap || mkdir -p $(DESTDIR)$(sysconfdir)/systemtap
 
 gcov:
 	@-$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check
@@ -1609,9 +1619,10 @@ uninstall-local:
 	done
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 
-check:
+check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH="$(PWD)" RUNTESTFLAGS="$(RUNTESTFLAGS)";
+        PWD=`pwd`; \
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)";
 
 installcheck:
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \

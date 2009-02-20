@@ -1021,6 +1021,43 @@ c_translate_location (struct obstack *pool,
   return NULL;
 }
 
+/* Translate a C fragment for a direct argument VALUE.  On errors, call FAIL,
+   which should not return.  Any later errors will use FAIL and FAIL_ARG from
+   this translate call.  On success, return the fragment created. */
+struct location *
+c_translate_argument (struct obstack *pool,
+                      void (*fail) (void *arg, const char *fmt, ...)
+                      __attribute__ ((noreturn, format (printf, 2, 3))),
+                      void *fail_arg,
+                      void (*emit_address) (void *fail_arg,
+                                            struct obstack *, Dwarf_Addr),
+                      int indent, const char *value)
+{
+  indent += 2;
+
+  obstack_printf(pool, "%*saddr = %s;\n", indent * 2, "", value);
+  obstack_1grow (pool, '\0');
+  char *program = obstack_finish (pool);
+
+  struct location *loc = obstack_alloc (pool, sizeof *loc);
+  loc->next = NULL;
+  loc->fail = fail;
+  loc->fail_arg = fail_arg;
+  loc->emit_address = emit_address;
+  loc->ops = NULL;
+  loc->nops = 0;
+  loc->byte_size = 0;
+  loc->type = loc_address;
+  loc->frame_base = NULL;
+  loc->address.declare = NULL;
+  loc->address.program = program;
+  loc->address.stack_depth = 0;
+  loc->address.used_deref = false;
+
+  return loc;
+}
+
+
 /* Emit "uintNN_t TARGET = ...;".  */
 static bool
 emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
@@ -1914,3 +1951,5 @@ c_emit_location (FILE *out, struct location *loc, int indent)
 }
 
 #undef emit
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

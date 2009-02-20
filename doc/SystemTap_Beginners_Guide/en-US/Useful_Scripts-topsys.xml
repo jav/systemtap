@@ -1,0 +1,131 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+<section id="topsyssect">
+<title>Tracking Most Frequently Used System Calls</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring system calls</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring system calls</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring system calls</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+		
+<!--
+<indexterm>
+<primary>counting function calls</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+-->
+
+<indexterm>
+<primary>system calls, monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+		
+<remark>
+uses systemtap/testsuite/systemtap.examples/profiling/topsys.stp
+</remark>	
+				
+		
+	<para>
+		<xref linkend="timeouts"/> from <xref linkend="timeoutssect"/> helps you identify which applications
+		are polling by pointing out which ones used the following system calls most frequently:
+	</para>
+	
+	<itemizedlist>
+		<listitem><para><command>poll</command></para></listitem>
+		<listitem><para><command>select</command></para></listitem>
+		<listitem><para><command>epoll</command></para></listitem>
+		<listitem><para><command>itimer</command></para></listitem>
+		<listitem><para><command>futex</command></para></listitem>
+		<listitem><para><command>nanosleep</command></para></listitem>
+		<listitem><para><command>signal</command></para></listitem>
+	</itemizedlist>		
+		
+	<para>
+		However, in some systems, a different system call might be responsible for excessive polling. If you suspect 
+		that a polling application might is using a different system call to poll, you need to identify first the top
+		system calls used by the system. To do this, use <xref linkend="topsys"/>.
+	</para>	
+
+<formalpara id="topsys">
+	<title>topsys.stp</title>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/testsuite/systemtap.examples/profiling/topsys.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>		
+	
+<para>
+	<xref linkend="topsys"/> lists the top 20 system calls used by the system per 5-second interval. It also lists 
+	how many times each system call was used during that period. Refer to <xref linkend="topsysoutput"/> for a sample output. 
+</para>	
+	
+<indexterm>
+<primary>script examples</primary>
+<secondary>timer.s(), sample usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>timer.s(), sample usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>timer.s(), sample usage</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+
+<example id="topsysoutput">
+	<title><xref linkend="topsys"/> Sample Output</title>
+<screen>
+--------------------------------------------------------------
+                  SYSCALL      COUNT
+             gettimeofday       1857
+                     read       1821
+                    ioctl       1568
+                     poll       1033
+                    close        638
+                     open        503
+                   select        455
+                    write        391
+                   writev        335
+                    futex        303
+                  recvmsg        251
+                   socket        137
+            clock_gettime        124
+           rt_sigprocmask        121
+                   sendto        120
+                setitimer        106
+                     stat         90
+                     time         81
+                sigreturn         72
+                    fstat         66
+--------------------------------------------------------------
+</screen>
+</example>
+<!--probe kernel.function(@1) {  # probe function passed as argument from stdin
+called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
+}
+global called          
+probe end,timer.ms(30000) {
+foreach (fn+ in called)  # Sort by function name
+#       (fn in called-)  # Sort by call count (in decreasing order)
+printf("%s %d\n", fn, @count(called[fn]))
+exit()
+}-->
+
+	</section>
+

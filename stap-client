@@ -26,6 +26,13 @@ trap 'ignore_signal' SIGHUP SIGPIPE
 #-----------------------------------------------------------------------------
 # function: configuration
 function configuration {
+    # INSTALL-HOOK These settings work for running the client from the source tree
+    # INSTALL-HOOK using the dejagnu test harness and will be overridden at install
+    # INSTALL-HOOK time.
+    exec_prefix=
+    sysconfdir=`pwd`/net
+
+    # General configuration
     tmpdir_prefix_client=stap.client
     tmpdir_prefix_server=stap.server
     avahi_service_tag=_stap._tcp
@@ -33,33 +40,32 @@ function configuration {
 
 # function: initialization
 function initialization {
+    our_host_name=`expr "$HOSTNAME" : "\\\([a-zA-Z0-9-]*\\\).*"`
+    our_domain_name=`expr "$HOSTNAME" : "$our_host_name\\\(.*\\\)"`
+
     rc=0
     wd=`pwd`
     umask 0
     staprun_running=0
 
-    # Where are we installed?
-    if test "`basename $0`" = "stap" -a "$0" = `which stap`; then
-        # The dejagnu test harness may invoke us as 'stap' relying on $PATH to
-        # find us. If so, then use the $PATH to find the rest of the systemtap
-        # tools.
-	exec_prefix=""
-	# Also, set the prefix to point to where we were found.
-	prefix=`which stap`
-	prefix=`dirname $prefix`
-    else
-        # Assume we were installed normally
-	exec_prefix=`dirname $0`
-	exec_prefix=`cd $exec_prefix && pwd`/
-	prefix=`dirname $exec_prefix`
-    fi
-
     # Default location for server certificates if we're not root
+    # Must be owned by us.
+    local uid uname
     if test $EUID != 0; then
-	local_ssl_dbs="$HOME/.systemtap/ssl/client"
+	if test -e $HOME/.systemtap/ssl/client; then
+	    if check_db $HOME/.systemtap/ssl/client $EUID $USER; then
+		local_ssl_dbs=$HOME/.systemtap/ssl/client
+	    fi
+	fi
     fi
-    # Additional location for all users.
-    public_ssl_dbs=$prefix/etc/systemtap/ssl/client
+    # Additional location for all users. Must be owned by root.
+    if test "X$sysconfdir" != "X"; then
+	if test -e $sysconfdir/systemtap/ssl/client; then
+	    if check_db $sysconfdir/systemtap/ssl/client 0 root; then
+		public_ssl_dbs=$sysconfdir/systemtap/ssl/client
+	    fi
+	fi
+    fi
 
     # Default options settings
     p_phase=5
@@ -67,11 +73,14 @@ function initialization {
     keep_temps=0
     b_specified=0
 
+    # Default variable settings
+    find_all=
+
     # Create a temporary directory to package things in
     # Do this before parsing the command line so that there is a place
     # to put -I and -R directories.
     tmpdir_client=`mktemp -dt $tmpdir_prefix_client.XXXXXX` || \
-	fatal "ERROR: cannot create temporary directory " $tmpdir_client
+	fatal "Cannot create temporary directory " $tmpdir_client
     tmpdir_env=`dirname $tmpdir_client`
 }
 
@@ -110,6 +119,9 @@ function parse_options {
 			    case $long_option in
 				ssl)
 				    process_ssl $first_token
+				    ;;
+				server)
+				    process_server $first_token
 				    ;;
 				*)
 		                    # An unknown or unimportant option.
@@ -245,7 +257,18 @@ function parse_options {
 	cmdline="$cmdline1 $cmdline2"
     fi
 
+    # Processing based on final options settings
+    # Complete the list of local certificate databases
     local_ssl_dbs="$additional_local_ssl_dbs $local_ssl_dbs"
+
+    # We must have at least one usable certificate database.
+    test "X$local_ssl_dbs" != "X " -o "X$public_ssl_dbs" != "X" || \
+	fatal "No usable certificate databases found"
+
+    # We can use any server if the phase is less than 5
+    if test $p_phase -lt 5; then
+	find_all="--all"
+    fi
 }
 
 # function: get_arg FIRSTWORD SECONDWORD
@@ -278,8 +301,22 @@ function process_ssl {
 
     test "X$db" != "X" || \
 	fatal "Missing argument to --ssl"
-	
+
+    check_db $db || return
+
     additional_local_ssl_dbs="$additional_local_ssl_dbs $db"
+}
+
+# function: process_server ARGUMENT
+#
+# Process the --server option.
+function process_server {
+    local spec=`expr "$1" : '--server=\(.*\)'`
+
+    test "X$spec" != "X" || \
+	fatal "Missing argument to --server"
+
+    specified_servers="$specified_servers $spec"
 }
 
 # function: process_c ARGUMENT
@@ -357,9 +394,9 @@ function include_file_or_directory {
     # Add a symbolic link of the named file or directory to our temporary directory
     local local_name=`generate_client_temp_name $2`
     mkdir -p $tmpdir_client/$1/`dirname $local_name` || \
-	fatal "ERROR: could not create $tmpdir_client/$1/`dirname $local_name`"
+	fatal "Could not create $tmpdir_client/$1/`dirname $local_name`"
     ln -s /$local_name $tmpdir_client/$1/$local_name || \
-	fatal "ERROR: could not link $tmpdir_client/$1/$local_name to /$local_name"
+	fatal "Could not link $tmpdir_client/$1/$local_name to /$local_name"
     echo "$local_name"
 }
 
@@ -388,7 +425,7 @@ function create_request {
     if test "X$script_file" != "X"; then
 	if test "$script_file" = "-"; then
 	    mkdir -p $tmpdir_client/script || \
-		fatal "ERROR: cannot create temporary directory " $tmpdir_client/script
+		fatal "Cannot create temporary directory " $tmpdir_client/script
 	    cat > $tmpdir_client/script/$script_file
 	else
 	    include_file_or_directory script $script_file > /dev/null
@@ -421,61 +458,61 @@ function package_request {
 
     local tmpdir_client_base=`basename $tmpdir_client`
     zip_client=$tmpdir_env/`mktemp $tmpdir_client_base.zip.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $zip_client
+	fatal "Cannot create temporary file " $zip_client
 
     (rm $zip_client && zip -r $zip_client $tmpdir_client_base > /dev/null) || \
-	fatal "ERROR: zip of request tree, $tmpdir_client, failed"
+	fatal "zip of request tree, $tmpdir_client, failed"
 }
 
 # function: unpack_response
 #
-# Unpack the jar file received from the server and make the contents available
+# Unpack the zip file received from the server and make the contents available
 # for printing the results and/or running 'staprun'.
 function unpack_response {
     tmpdir_server=`mktemp -dt $tmpdir_prefix_client.server.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $tmpdir_server
-
-    # Unpack and verify the digitally signed server output directory
-    if ! signtool -d $ssl_db -v $jar_server > /dev/null 2>&1; then
-	# Run the verification again to get the reason
-	fatal "ERROR: Verification of server response, $jar_server, failed.
-"`signtool -d $ssl_db -v $jar_server | grep "reported reason"`
-    fi
+	fatal "Cannot create temporary file " $tmpdir_server
 
     # Unpack the server output directory
-    unzip -d $tmpdir_server $jar_server > /dev/null || \
-	fatal "ERROR: Cannot unpack server response, $jar_server"
+    unzip -d $tmpdir_server $zip_server > /dev/null || \
+	fatal "Cannot unpack server response, $zip_server"
 
-    # Check the contents of the expanded directory. It should contain:
+    # Check the contents of the expanded directory. It should contain a
+    # single directory whose name matches stap.server.??????
+    local num_files=`ls $tmpdir_server | wc -l`
+    test $num_files = 1 || \
+	fatal "Wrong number of files in server's temp directory"
+    test -d $tmpdir_server/stap.server.?????? || \
+	fatal "`ls $tmpdir_server` does not match the expected name or is not a directory"
+    # Move the contents of the directory down one level.
+    mv $tmpdir_server/stap.server.??????/* $tmpdir_server
+    rm -fr $tmpdir_server/stap.server.??????
+
+    # Check the contents of the directory. It should contain:
     # 1) a file called stdout
     # 2) a file called stderr
     # 3) a file called rc
-    # 4) a directory called META-INF
-    # 5) optionally a directory named to match stap??????
-    local num_files=`ls $tmpdir_server | wc -l`
-    test $num_files = 5 -o $num_files = 4 || \
-	fatal "ERROR: Wrong number of files in server's temp directory"
+    # 4) optionally a directory named to match stap??????
+    num_files=`ls $tmpdir_server | wc -l`
+    test $num_files = 4 -o $num_files = 3 || \
+	fatal "Wrong number of files in server's temp directory"
     test -f $tmpdir_server/stdout || \
-	fatal "ERROR: `pwd`/$tmpdir_server/stdout does not exist or is not a regular file"
+	fatal "`pwd`/$tmpdir_server/stdout does not exist or is not a regular file"
     test -f $tmpdir_server/stderr || \
-	fatal "ERROR: `pwd`/$tmpdir_server/stderr does not exist or is not a regular file"
+	fatal "`pwd`/$tmpdir_server/stderr does not exist or is not a regular file"
     test -f $tmpdir_server/rc || \
-	fatal "ERROR: `pwd`/$tmpdir_server/rc does not exist or is not a regular file"
-    test -d $tmpdir_server/META-INF || \
-	fatal "ERROR: `pwd`/$tmpdir_server/META-INF does not exist or is not a directory"
+	fatal "`pwd`/$tmpdir_server/rc does not exist or is not a regular file"
 
     # See if there is a systemtap temp directory
-    tmpdir_stap=`ls $tmpdir_server | grep stap`
-    tmpdir_stap=`expr "$tmpdir_stap" : "\\\(stap......\\\)"`
+    tmpdir_stap=`cd $tmpdir_server && ls | grep stap......\$ 2>/dev/null`
     if test "X$tmpdir_stap" != "X"; then
 	test -d $tmpdir_server/$tmpdir_stap || \
-	    fatal "ERROR: `pwd`/$tmpdir_server/$tmpdir_stap is not a directory"
+	    fatal "$tmpdir_server/$tmpdir_stap is not a directory"
 
         # Move the systemtap temp directory to a local temp location, if -k
         # was specified.
 	if test $keep_temps = 1; then
 	    local local_tmpdir_stap=`mktemp -dt stapXXXXXX` || \
-		fatal "ERROR: cannot create temporary directory " $local_tmpdir_stap
+		fatal "Cannot create temporary directory " $local_tmpdir_stap
 	    mv $tmpdir_server/$tmpdir_stap/* $local_tmpdir_stap 2>/dev/null
 	    rm -fr $tmpdir_server/$tmpdir_stap
 
@@ -493,97 +530,175 @@ function unpack_response {
 #
 # Find and establish connection with a compatible stap server.
 function find_and_connect_to_server {
-    # Use a temp file here instead of a pipeline so that the side effects
-    # of choose_server are seen by the rest of this script.
-    cd $tmpdir_client
-    ${exec_prefix}stap-find-servers > servers
-    choose_server < servers
-    rm -fr servers
+    local num_servers=0
+
+    # Make a place to receive the response file.
+    zip_server=`mktemp -t $tmpdir_prefix_client.server.zip.XXXXXX` || \
+	fatal "Cannot create temporary file " $zip_server
+
+    # Make a place to record connection errors
+    touch $tmpdir_client/connect
+
+    # If servers were specified on the command line, then try them
+    # in sequence. Don't try any other servers.
+    if test "X$specified_servers" != "X"; then
+	for server in $specified_servers; do
+	    num_servers=$(($num_servers + 1))
+
+	    # If the server is completely specified, (i.e. server:port),
+            # then try it directly.
+	    port=`expr "$server" : '.\+:\([0-9]\+\)'`
+            if test "X$port" != "X"; then
+		name=`expr "$server" : '\(.\+\):[0-9]\+'`
+
+                # If we have been given an ip address, then try to resolve it to a name.
+                # If we have been given a name, try to resolve the full name.
+                # The full name is needed in order to validate the server's certificate.
+                address=`expr "$name" : '\([0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\)'`
+		if test "X$address" = "X"; then
+		    # We've been given a host name
+		    full_name=`nslookup $name | awk '/^Name\:/ {print $2}'`
+		    if test "X$full_name" != "X"; then
+			name=$full_name
+		    fi
+		else
+		    # We've been given an ip address.
+		    name=`nslookup $address | awk '/in-addr\.arpa/ {print $4}'`
+		    name=`expr "$name" : '\(.*\)\.'`
+                    if test "X$name" = "X"; then
+			echo "Cannot resolve ip address $address" >> $tmpdir_client/connect
+			continue
+		    fi
+		fi
+
+		# Now try to contact the given server.
+		ssl_db=`send_receive $name $port`
+		test "X$ssl_db" != "X" && return
+		continue
+	    fi
+
+	    # Otherwise select the matching server from the available servers
+	    # and use the port it is advertizing.
+	    #
+	    # Have we been given an ip address? If so, just use it.
+	    address=`expr "$server" : '\([0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\)'`
+	    if test "X$address" = "X"; then
+		# We have not been given an ip address. Try to resolve it as a host name.
+		if test "X$server" = "Xlocalhost"; then
+		    # We don't want the address of the loopback interface here. Avahi will present
+		    # the actual ip address.
+		    server=$our_host_name$our_domain_name
+		fi
+		address=`nslookup $server | awk '/^Address\:[ \t][0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ {print $2}'`
+                if test "X$address" = "X"; then
+		    echo "Cannot resolve server $server" >> $tmpdir_client/connect
+		    continue
+		fi
+	    fi
+
+	    if test `${exec_prefix}stap-find-servers $find_all | grep $address | wc -l` = "0"; then
+		warning "No server is available on $server" 2>> $tmpdir_client/connect
+		continue
+	    fi
+
+            ssl_db=`${exec_prefix}stap-find-servers $find_all | grep $address | choose_server`
+	    test "X$ssl_db" != "X" && return
+	done
+    else
+        # No servers specified. Find available servers and choose one of them.
+	# Remember which ssl certificate database was used to authenticate the chosen
+        # server.
+	ssl_db=`${exec_prefix}stap-find-servers $find_all | choose_server`
+	test "X$ssl_db" != "X" && return
+
+	num_servers=`${exec_prefix}stap-find-servers $find_all | wc -l`
+    fi
+
+    if test $num_servers = 0; then
+	fatal "Unable to find a server"
+    fi
+
+    cat $tmpdir_client/connect >&2
+    fatal "Unable to connect to a server"
 }
 
 # function: choose_server
 #
 # Examine each line from stdin and attempt to connect to each server
 # specified until successful.
+# echo the name of the ssl certificate database used to successfully authenticate
+# the server.
 function choose_server {
-    local num_servers=0
-    local name
-    while read name server port remain
+    local name ip port remain
+
+    while read name ip port remain
     do
-	num_servers=$(($num_servers + 1))
-
-	# The server must match the dns name on the certificate
-	# and must be 'localhost' if the server is on the local host.
-	local server_host_name=`expr "$name" : "\\\([a-zA-Z0-9-]*\\\).*"`
-        local server_domain_name=`expr "$name" : "$server_host_name\\\(.*\\\)"`
-	local our_host_name=`expr "$HOSTNAME" : "\\\([a-zA-Z0-9-]*\\\).*"`
-        local our_domain_name=`expr "$HOSTNAME" : "$our_host_name\\\(.*\\\)"`
-
-        if test "X$server_domain_name" = "X.local"; then
-	    server_domain_name=$our_domain_name
-	fi
-	if test "X$server_host_name$server_domain_name" = "X$our_host_name$our_domain_name"; then
-	    server=localhost
-	else
-	    server=$server_host_name$server_domain_name
+	if test "X$name" = "X"; then
+	    fatal "Server name not provided by avahi"
 	fi
 
-	if test "X$server" = "X"; then
-	    fatal "ERROR: server ip address not provided"
-	fi
+#	if test "X$ip" = "X"; then
+#	    fatal "Server ip address not provided by avahi"
+#	fi
 
 	if test "X$port" = "X"; then
-	    fatal "ERROR: server port not provided"
+	    fatal "Server port not provided by avahi"
 	fi
 
-	if send_receive; then
-	    return 0
-	fi
+	ssl_db=`send_receive $name $port`
+	test "X$ssl_db" != "X" && echo $ssl_db && return
     done
-
-    if test $num_servers = 0; then
-	fatal "ERROR: unable to find a server"
-    fi
-
-    cat $tmpdir_client/connect >&2
-    fatal "ERROR: unable to connect to a server"
 }
 
-# function: send_receive
+# function: send_receive SERVER PORT
 #
 # Connect to the server, send the request and receive the response
+# echo the name of the ssl certificate database used to successfully authenticate
+# the server.
 function send_receive {
-    # Make a place to receive the response file.
-    jar_server=`mktemp -t $tmpdir_prefix_client.server.jar.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $jar_server
+    local server=$1
+    local port=$2
 
-    # If the server is local, try to connect using each of the given local
-    # certificate databases in turn for verification.
-    if test "X$server" = "Xlocalhost"; then
-	for db in $local_ssl_dbs
-	do
-            # Send the request and receive the response using stap-client-connect
-	    echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
-	    ${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	    wait '%${exec_prefix}stap-client-connect'
-	    test $? = 0 && ssl_db=$db && return 0
-	    sleep 1
-	done
+    # The server must match the dns name on the certificate
+    # and must be 'localhost' if the server is on the local host.
+    local server_host_name=`expr "$server" : "\\\([a-zA-Z0-9-]*\\\).*"`
+    local server_domain_name=`expr "$server" : "$server_host_name\\\(.*\\\)"`
+
+    if test "X$server_domain_name" = "X.local"; then
+	server_domain_name=$our_domain_name
+    fi
+    if test "X$server_host_name$server_domain_name" = "Xlocalhost$our_domain_name"; then
+	server=localhost
+    elif test "X$server_host_name$server_domain_name" = "X$our_host_name$our_domain_name"; then
+	server=localhost
+    else
+	server=$server_host_name$server_domain_name
     fi
 
-    # We can try the public certificate databases for all servers.
+    # Try to connect using each of the given local certificate databases in turn
+    # for verification.
+    for db in $local_ssl_dbs
+    do
+        # Send the request and receive the response using stap-client-connect
+	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
+	${exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%${exec_prefix}stap-client-connect'
+	test $? = 0 && echo $db && return
+	sleep 1
+    done
+
+    # Next, try the public certificate databases.
     for db in $public_ssl_dbs
     do
         # Send the request and receive the response using stap-client-connect
-	echo "Attempting connection with $server using certificate database in '$db'" >> $tmpdir_client/connect
-	${exec_prefix}stap-client-connect -i $zip_client -o $jar_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
+	${exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
 	wait '%${exec_prefix}stap-client-connect'
-	test $? = 0 && ssl_db=$db && return 0
+	test $? = 0 && echo $db && return
 	sleep 1
     done
 
     # Could not connect using any of the certificate databases
-    return 1
 }
 
 # function: process_response
@@ -631,7 +746,7 @@ function maybe_call_staprun {
 	if test "X$tmpdir_stap" = "X"; then
 	    # OK if no script specified
 	    if test "X$e_script" != "X" -o "X$script_file" != "X"; then
-		fatal "ERROR: systemtap temporary directory is missing in server response"
+		fatal "systemtap temporary directory is missing in server response"
 	    fi
 	    return
 	fi
@@ -639,7 +754,7 @@ function maybe_call_staprun {
         # There should be a module.
 	local mod_name=`ls $tmpdir_stap | grep '.ko$'`
 	if test "X$mod_name" = "X"; then
-	    fatal "ERROR: no module was found in $tmpdir_stap"
+	    fatal "No module was found in $tmpdir_stap"
 	fi
 
 	if test $p_phase = 5; then
@@ -713,12 +828,168 @@ function staprun_PATH {
     echo "PATH=$PATH staprun" | sed "s,$PATH_component,,g"
 }
 
+# function: check_db DBNAME [ EUID USER ]
+#
+# Check the security of the given database directory.
+function check_db {
+    local dir=$1
+    local euid=$2
+    local user=$3
+    local rc=0
+
+    # Check that we have been given a directory
+    if ! test -e $dir; then
+	warning "Certificate database '$dir' does not exist"
+	return 1
+    fi
+    if ! test -d $dir; then
+	warning "Certificate database '$dir' is not a directory"
+	return 1
+    fi
+
+    # If euid has been specified, then this directory must be owned by that
+    #  user.
+    if test "X$euid" != "X"; then
+	local ownerid=`stat -c "%u" $dir`
+	if test "X$ownerid" != "X$euid"; then
+	    warning "Certificate database '$dir' must be owned by $user"
+	    rc=1
+	fi
+    fi
+
+    # Check that we can read the directory
+    if ! test -r $dir; then
+	warning "Certificate database '$dir' is not readble"
+	rc=1
+    fi
+
+    # Check the access permissions of the directory
+    local perm=0`stat -c "%a" $dir`
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate database '$dir' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate database '$dir' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 0; then
+	warning "Certificate database '$dir' should be searchable by the owner"
+    fi
+    if test $((($perm & 0040) == 0040)) = 0; then
+	warning "Certificate database '$dir' should be readable by the group"
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate database '$dir' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 0; then
+	warning "Certificate database '$dir' should be searchable by the group"
+    fi
+    if test $((($perm & 0004) == 0004)) = 0; then
+	warning "Certificate database '$dir' should be readable by others"
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate database '$dir' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 0; then
+	warning "Certificate database '$dir' should be searchable by others"
+    fi
+
+    # Now check the permissions of the critical files.
+    check_db_file $dir/cert8.db  $euid $user || rc=1
+    check_db_file $dir/key3.db   $euid $user || rc=1
+    check_db_file $dir/secmod.db $euid $user || rc=1
+
+    test $rc = 1 && warning "Unable to use certificate database '$dir' due to errors"
+
+    return $rc
+}
+
+# function: check_db_file FILENAME [ EUID USER ]
+#
+# Check the security of the given database file.
+function check_db_file {
+    local file=$1
+    local rc=0
+
+    # Check that we have been given a file
+    if ! test -e $file; then
+	warning "Certificate database file '$file' does not exist"
+	return 1
+    fi
+    if ! test -f $file; then
+	warning "Certificate database file '$file' is not a regular file"
+	return 1
+    fi
+
+    # If euid has been specified, then this directory must be owned by that
+    #  user.
+    if test "X$euid" != "X"; then
+	local ownerid=`stat -c "%u" $file`
+	if test "X$ownerid" != "X$euid"; then
+	    warning "Certificate database file '$file' must be owned by $user"
+	    rc=1
+	fi
+    fi
+
+    # Check that we can read the file
+    if ! test -r $file; then
+	warning "Certificate database file '$file' is not readble"
+	rc=1
+    fi
+
+    # Check the access permissions of the file
+    local perm=0`stat -c "%a" $file`
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate database file '$file' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate database file '$file' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 1; then
+	warning "Certificate database file '$file' must not be executable by the owner"
+	rc=1
+    fi
+    if test $((($perm & 0040) == 0040)) = 0; then
+	warning "Certificate database file '$file' should be readable by the group"
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate database file '$file' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 1; then
+	warning "Certificate database file '$file' must not be executable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0004) == 0004)) = 0; then
+	warning "Certificate database file '$file' should be readable by others"
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate database file '$file' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 1; then
+	warning "Certificate database file '$file' must not be executable by others"
+	rc=1
+    fi
+
+    return $rc
+}
+
+# function: warning [ MESSAGE ]
+#
+# Warning error
+# Prints its arguments to stderr
+function warning {
+    echo "$0: WARNING:" "$@" >&2
+}
+
 # function: fatal [ MESSAGE ]
 #
 # Fatal error
 # Prints its arguments to stderr and exits
 function fatal {
-    echo "$0:" "$@" >&2
+    echo "$0: ERROR:" "$@" >&2
     cleanup
     exit 1
 }
@@ -732,7 +1003,7 @@ function cleanup {
     if test $keep_temps != 1; then
 	rm -fr $tmpdir_client
 	rm -f  $zip_client
-	rm -f  $jar_server
+	rm -f  $zip_server
 	rm -fr $tmpdir_server
     fi
 }

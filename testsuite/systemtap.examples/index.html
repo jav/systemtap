@@ -49,12 +49,18 @@ keywords: <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
 <li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Callgraph tracing with arguments<br>
 keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
 <p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.</p></li>
+<li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
+keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>The Linux kernel function smp_call_function causes expensive inter-processor interrupts (IPIs). The scf.stp script tallies the processes and backtraces causing the interprocessor interrupts to identify the cause of the expensive IPI. On exit the script prints the tallies in descending frequency.</p></li>
 <li><a href="io/disktop.stp">io/disktop.stp</a> - Summarize Disk Read/Write Traffic<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.</p></li>
 <li><a href="io/io_submit.stp">io/io_submit.stp</a> - Tally Reschedule Reason During AIO io_submit Call<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.</p></li>
+<li><a href="io/iostats.stp">io/iostats.stp</a> - List Executables Reading and Writing the Most Data<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p> The iostat.stp script measures the amount of data successfully read and written by all the executables on the system.  The output is sorted from most greatest sum of bytes read and written by an executable to the least. The output contains  the count of operations (opens, reads, and writes), the totals and averages for the number of bytes read and written.</p></li>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#READ">READ</a> <a href="keyword-index.html#WRITE">WRITE</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#IO">IO</a> <br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
@@ -67,12 +73,21 @@ keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <li><a href="io/traceio2.stp">io/traceio2.stp</a> - Watch I/O Activity on a Particular Device<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Print out the executable name and process number as reads and writes to the specified device occur.</p></li>
+<li><a href="memory/kmalloc-top">memory/kmalloc-top</a> - Show Paths to Kernel Malloc (kmalloc) Invocations<br>
+keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
+<p>The kmalloc-top perl program runs a small systemtap script to collect stack traces for each call to the kmalloc function and counts the time that each stack trace is observed. When kmalloc-top exits it prints out sorted list. The output can be be filtered to print only only the first stack traces (-t) stack traces with more a minimum counts (-m), or exclude certain stack traces (-e).</p></li>
+<li><a href="memory/pfaults.stp">memory/pfaults.stp</a> - Generate Log of Major and Minor Page Faults<br>
+keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
+<p>The pfaults.stp script generates a simple log for each major and minor page fault that occurs on the system. Each line contains a timestamp (in microseconds) when the page fault servicing was completed, the pid of the process, the address of the page fault, the type of access (read or write), the type of fault (major or minor), and the elapsed time for page fault. This log can be examined to determine where the page faults are occuring.</p></li>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>
 <li><a href="network/socket-trace.stp">network/socket-trace.stp</a> - Trace Functions called in Network Socket Code<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The script instrument each of the functions inn the Linux kernel's net/socket.c file. The script prints out trace. The first element of a line is  time delta in microseconds from the previous entry. This is followed by the command name and the PID. The "->" and "<-" indicates function entry and  function exit, respectively. The last element of the line is the function name.</p></li>
+<li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
+<p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.</p></li>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#LOCKING">LOCKING</a> <a href="keyword-index.html#FUTEX">FUTEX</a> <br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.</p></li>
@@ -112,6 +127,12 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-
 <li><a href="profiling/thread-times.stp">profiling/thread-times.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The thread-times.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top twenty processes with samples broken down into percentage total time spent in user-space and kernel-space.</p></li>
+<li><a href="profiling/timeout.stp">profiling/timeout.stp</a> - Show Processes Doing Polling Operations<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The timeout.stp script is based on a blog entry (http://udrepper.livejournal.com/19041.html) mentioning a need for a tool to help developers find applications that are polling. The timeout.stp script monitors systemcall used for polling and records the systemcalls that timed out rather than returned because some action occurred. The script updates the screen once a second with the top twenty processes.</p></li>
+<li><a href="profiling/topsys.stp">profiling/topsys.stp</a> - Show Processes Doing Polling Operations<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p> The topsys.stp script lists out the top twenty systemcalls for the previous 5 seconds. The output is sorted from most frequent to least frequent.</p></li>
 </ul>
        	</td>
        </tr>

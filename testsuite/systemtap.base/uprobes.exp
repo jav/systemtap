@@ -25,12 +25,20 @@ set path "/proc/kallsyms"
 if {! [catch {exec grep -q utrace_attach $path} dummy]} {
     set utrace_support_found 1
 }
-if {$utrace_support_found == 0} { untested "$test -p4"; untested "$test -p5"; return }
+if {$utrace_support_found == 0} {
+    untested "$test -p4"; untested "$test -p5"
+    catch {exec rm -f jennie.c jennie}
+    return
+}
 
 set rc [stap_run_batch $srcdir/$subdir/uprobes.stp]
 if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
 
-if {! [installtest_p]} { untested "$test -p5"; exec rm -f jennie.c jennie; return }
+if {! [installtest_p]} {
+    untested "$test -p5";
+    catch {exec rm -f jennie.c jennie}
+    return
+}
 
 # Pick up the stap being tested.
 set stapexe [exec /usr/bin/which stap]
@@ -46,4 +54,4 @@ expect {
 if {$ok == 10} then { pass "$test -p5" } else { fail "$test -p5 ($ok)" }
 catch {wait; close}
 
-exec rm -f jennie.c jennie
+catch {exec rm -f jennie.c jennie}

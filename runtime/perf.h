@@ -15,13 +15,13 @@
  * @brief Header file for performance monitoring hardware support
  */
 
-int _stp_perfmon_setup(void **desc,
+static int _stp_perfmon_setup(void **desc,
 		       struct pfarg_ctx *context,
 		       struct pfarg_pmc pmc[], int pmc_count,
 		       struct pfarg_pmd pmd[], int pmd_count);
 
-int _stp_perfmon_shutdown(void *desc);
+static int _stp_perfmon_shutdown(void *desc);
 
-int64_t _stp_perfmon_read(void *desc, int counter);
+static int64_t _stp_perfmon_read(void *desc, int counter);
 
 #endif /* _PERF_H_ */

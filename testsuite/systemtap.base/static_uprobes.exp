@@ -1,21 +1,17 @@
+
 set test "sduprobes"
-if {![installtest_p]} {untested $test; return}
 
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_uprobes.c"
 set sup_exepath "[pwd]/static_uprobes.x"
-set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-L$env(CRASH_LIBDIR) additional_flags=-lsduprobes"
+set supcplus_exepath "[pwd]/static_uprobes_cplus.x"
 set fp [open $sup_srcpath "w"]
 puts $fp "
 #include <stdlib.h>
 #define USE_STAP_PROBE 1
 #include \"static_uprobes.h\"
 
-foo ()
-{
-  STAP_PROBE(static_uprobes,test_probe_1);
-}
-
+void
 bar (int i)
 {
   if (i == 0)
@@ -23,6 +19,7 @@ bar (int i)
   STAP_PROBE1(static_uprobes,test_probe_2,i);
 }
 
+void
 baz (int i, char* s)
 {
   STAP_PROBE1(static_uprobes,test_probe_0,i);
@@ -31,101 +28,30 @@ baz (int i, char* s)
   STATIC_UPROBES_TEST_PROBE_3(i,s);
 }
 
+void
 buz (int parm)
 {
+  if (parm == 0)
+    parm = 1000;
+  DTRACE_PROBE1(static_uprobes,test_probe_4,parm);
 }
 
+int
 main ()
 {
-  sleep(5);
-  foo();
   bar(2);
-  baz(3,\"abc\");
+  baz(3,(char*)\"abc\");
   buz(4);
 }
 "
 close $fp
 
-# set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
-# if { $res != "" } {
-#     verbose "target_compile failed: $res" 2
-#     fail "compiling static_uprobes.c"
-#     return
-# } else {
-#     pass "compiling static_uprobes.c"
-# }
-
-set fp [open "[pwd]/static_uprobes.stp" "w"]
+set sup_stppath "[pwd]/static_uprobes.stp"
+set fp [open $sup_stppath "w"]
 puts $fp "
 probe process(\"static_uprobes.x\").mark(\"test_probe_0\") 
 { 
   printf(\"In test_probe_0 probe %#x\\n\", \$arg1)
-}
-probe process(\"static_uprobes.x\").mark(\"test_probe_1\") 
-{ 
-  printf(\"In test_probe_1 probe\\n\")
-}
-probe process(\"static_uprobes.x\").mark(\"test_probe_2\") 
-{ 
-  printf(\"In test_probe_2 probe %#x\\n\", \$arg1)
-}
-probe process(\"static_uprobes.x\").mark(\"test_probe_3\") 
-{ 
-  printf(\"In test_probe_3 probe %#x %#x\\n\", \$arg1, \$arg2)
-}
-"
-close $fp
-
-# Try to find utrace_attach symbol in /proc/kallsyms
-# copy from utrace_p5.exp
-set utrace_support_found 0
-set path "/proc/kallsyms"
-if {! [catch {exec grep -q utrace_attach $path} dummy]} {
-    set utrace_support_found 1
-}
-if {$utrace_support_found == 0} { untested "$test"; return }
-
-set ok 0
-# verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
-# spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
-# expect {
-#     -timeout 180
-#     -re {In test_probe_1 probe} { incr ok; exp_continue }
-#     -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
-#     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
-#     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
-#     timeout { fail "$test (timeout)" }
-#     eof { }
-# }
-
-# if {$ok == 4} { pass "$test" } { fail "$test ($ok)" }
-set ok 0
-
-# Now do a debuginfo style probe of the above test
-
-set fp [open "[pwd]/static_uprobes.sh" "w"]
-puts $fp "
-ed $sup_srcpath <<HERE
-/USE_STAP_PROBE/d
-/buz/+1
-a
-  DTRACE_PROBE1(static_uprobes,test_probe_4,parm);
-.
-w
-q
-"
-close $fp
-spawn sh [pwd]/static_uprobes.sh
-
-set fp [open "[pwd]/static_uprobes.stp" "w"]
-puts $fp "
-probe process(\"static_uprobes.x\").mark(\"test_probe_0\") 
-{ 
-  printf(\"In test_probe_0 probe %#x\\n\", \$arg1)
-}
-probe process(\"static_uprobes.x\").mark(\"test_probe_1\") 
-{ 
-  printf(\"In test_probe_1 probe\\n\")
 }
 probe process(\"static_uprobes.x\").mark(\"test_probe_2\") 
 {
@@ -142,7 +68,9 @@ probe process(\"static_uprobes.x\").mark(\"test_probe_4\")
 "
 close $fp
 
-set fp [open "[pwd]/static_uprobes.d" "w"]
+set sup_dpath "[pwd]/static_uprobes.d" 
+set sup_hpath "[pwd]/static_uprobes.h" 
+set fp [open $sup_dpath "w"]
 puts $fp "
 provider static_uprobes {
         probe test_probe_1 ();
@@ -152,20 +80,94 @@ provider static_uprobes {
 };
 "
 close $fp
-spawn dtrace -h -s [pwd]/static_uprobes.d
+if {[installtest_p]} { 
+    set dtrace $env(SYSTEMTAP_PATH)/dtrace 
+} else {
+    set dtrace $srcdir/../dtrace
+}
+if {[catch {exec $dtrace -h -s $sup_dpath} res]} {
+    verbose -log "unable to run $dtrace: $res"
+}
+if {[file exists $sup_hpath]} then {
+    pass "$test generating header"
+} else {
+    fail "$test generating header"
+    catch {exec rm -f $sup_srcpath $sup_hpath $sup_stppath}
+    return
+}
 
-set sup_flags "additional_flags=-iquote$env(SYSTEMTAP_RUNTIME) additional_flags=-g additional_flags=-O additional_flags=-I."
+catch {exec rm -f $sup_dpath}
+
+if {[installtest_p]} { 
+    set sdtdir $env(SYSTEMTAP_INCLUDES)
+} else {
+    set sdtdir $srcdir/../includes
+}
+
+set sup_flags "additional_flags=-I$sdtdir additional_flags=-g additional_flags=-O additional_flags=-I."
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "compiling sduprobes.c -g"
+    fail "$test compiling C -g"
+    catch {exec rm -f $sup_srcpath $sup_hpath $sup_stppath}
     return
 } else {
-    pass "compiling sduprobes.c -g"
+    pass "$test compiling C -g"
 }
 
-verbose -log "spawn stap -c $sup_exepath [pwd]/static_uprobes.stp"
-spawn stap -c $sup_exepath [pwd]/static_uprobes.stp
+spawn mv $sup_srcpath "[pwd]/static_uprobes.cc"
+set sup_srcpath "[pwd]/static_uprobes.cc"
+set sup_flags "$sup_flags c++"
+set res [target_compile $sup_srcpath $supcplus_exepath executable $sup_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test compiling C++ -g"
+    catch {exec rm -f $sup_srcpath $sup_exepath $sup_hpath $sup_stppath}
+    return
+} else {
+    pass "$test compiling C++ -g"
+}
+
+if {![installtest_p]} {untested $test; return}
+
+# Try to find utrace_attach symbol in /proc/kallsyms
+# copy from utrace_p5.exp
+set utrace_support_found 0
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    set utrace_support_found 1
+}
+if {$utrace_support_found == 0} {
+    untested "$test"
+    catch {exec rm -f $sup_srcpath}
+    return
+}
+
+set ok 0
+
+verbose -log "spawn stap -c $sup_exepath $sup_stppath"
+spawn stap -c $sup_exepath $sup_stppath
+expect {
+    -timeout 180
+    -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
+    -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
+    -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+    -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
+    timeout { fail "$test C (timeout)" }
+    eof { }
+}
+
+wait
+
+if {$ok == 4} { pass "$test C" } { fail "$test C ($ok)" }
+
+set ok 0
+
+# spawn objcopy -R .probes $supcplus_exepath $sup_exepath 
+verbose -log "cp $supcplus_exepath $sup_exepath"
+spawn cp $supcplus_exepath $sup_exepath
+verbose -log "spawn stap -c $sup_exepath $sup_stppath"
+spawn stap -c $sup_exepath $sup_stppath
 expect {
     -timeout 180
     -re {In test_probe_1 probe} { incr ok; exp_continue }
@@ -173,10 +175,15 @@ expect {
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
     -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
-    timeout { fail "$test (timeout)" }
+    timeout { fail "$test C++ (timeout)" }
     eof { }
 }
 
 wait
 
-if {$ok == 5} { pass "$test" } { fail "$test ($ok)" }
+if {$ok == 4} { pass "$test C++" } { fail "$test C++ ($ok)" }
+
+# catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_hpath $sup_stppath}
+
+# It's not so important to clean up, and it's unhelpful if
+# one needs to diagnose a test failure.

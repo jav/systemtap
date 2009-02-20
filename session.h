@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -45,6 +45,7 @@ struct translator_output;
 struct unparser;
 struct semantic_error;
 struct module_cache;
+struct update_visitor;
 
 
 // XXX: a generalized form of this descriptor could be associated with
@@ -86,6 +87,7 @@ struct systemtap_session
   std::string runtime_path;
   std::string data_path;
   std::string module_name;
+  std::string stapconf_name;
   std::string output_file;
   std::string cmd;
   int target_pid;
@@ -112,6 +114,7 @@ struct systemtap_session
   bool use_cache;
   std::string cache_path;
   std::string hash_path;
+  std::string stapconf_path;
 
   // dwarfless operation
   bool consult_symtab;
@@ -130,6 +133,10 @@ struct systemtap_session
   // parse trees for the various script files
   stapfile* user_file;
   std::vector<stapfile*> library_files;
+
+  // filters to run over all code before symbol resolution
+  //   e.g. @cast expansion
+  std::vector<update_visitor*> code_filters;
 
   // resolved globals/functions/probes for the run as a whole
   std::vector<stapfile*> files;
@@ -192,3 +199,5 @@ struct systemtap_session
 extern int pending_interrupts;
 
 #endif // SESSION_H
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

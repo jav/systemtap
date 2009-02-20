@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Symbolic Lookup Functions
- * Copyright (C) 2005-2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  * Copyright (C) 2006 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -21,11 +21,10 @@
  */
 
 /* XXX: this needs to be address-space-specific. */
-unsigned long _stp_module_relocate(const char *module, const char *section, unsigned long offset)
+static unsigned long _stp_module_relocate(const char *module, const char *section, unsigned long offset)
 {
 	static struct _stp_module *last = NULL;
 	static struct _stp_section *last_sec;
-	unsigned long flags;
 	unsigned i, j;
 
 	/* if module is -1, we invalidate last. _stp_del_module calls this when modules are deleted. */
@@ -134,7 +133,6 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	struct _stp_module *m = NULL;
 	struct _stp_section *sec = NULL;
 	struct _stp_symbol *s = NULL;
-	unsigned long flags;
 	unsigned end, begin = 0;
 
 	m = _stp_mod_sec_lookup(addr, task, &sec);
@@ -256,7 +254,7 @@ static int _stp_module_check(void)
  * a probe because it is too time-consuming. Use at module exit time.
  */
 
-void _stp_symbol_print(unsigned long address)
+static void _stp_symbol_print(unsigned long address)
 {
 	const char *modname;
 	const char *name;
@@ -275,7 +273,7 @@ void _stp_symbol_print(unsigned long address)
 }
 
 /* Like _stp_symbol_print, except only print if the address is a valid function address */
-int _stp_func_print(unsigned long address, int verbose, int exact)
+static int _stp_func_print(unsigned long address, int verbose, int exact)
 {
 	const char *modname;
 	const char *name;
@@ -303,7 +301,7 @@ int _stp_func_print(unsigned long address, int verbose, int exact)
 	return 0;
 }
 
-void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
+static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 			 struct task_struct *task)
 {
 	const char *modname;

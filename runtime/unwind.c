@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * kernel stack unwinding
- * Copyright (C) 2008 Red Hat Inc.
+ * Copyright (C) 2008-2009 Red Hat Inc.
  *
  * Based on old kernel code that is
  * Copyright (C) 2002-2006 Novell, Inc.
@@ -40,129 +40,6 @@ static void swap_eh_frame_hdr_table_entries(void *p1, void *p2, int size)
 	v = e1->fde;
 	e1->fde = e2->fde;
 	e2->fde = v;
-}
-
-/* Build a binary-searchable unwind header.  Also do some
- * validity checks. In the future we might use */
-/* .eh_frame_hdr if it is already present. */
-static void _stp_create_unwind_hdr(struct _stp_module *m)
-{
-	const u8 *ptr;
-	unsigned long tableSize, hdrSize, last;
-	unsigned n = 0;
-	const u32 *fde;
-	int bad_order = 0;
-	struct {
-		u8 version;
-		u8 eh_frame_ptr_enc;
-		u8 fde_count_enc;
-		u8 table_enc;
-		unsigned long eh_frame_ptr;
-		unsigned int fde_count;
-		struct eh_frame_hdr_table_entry table[];
-	} __attribute__ ((__packed__)) * header = NULL;
-
-	/* already did this or no data? */
-	if (m->unwind_hdr || m->unwind_data_len == 0)
-		return;
-
-	tableSize = m->unwind_data_len;
-	if (tableSize & (sizeof(*fde) - 1)) {
-		dbug_unwind(1, "tableSize=0x%x not a multiple of 0x%x\n", (int)tableSize, (int)sizeof(*fde));
-		goto bad;
-	}
-
-	/* count the FDEs */
-	for (fde = m->unwind_data;
-	     tableSize > sizeof(*fde) && tableSize - sizeof(*fde) >= *fde;
-	     tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
-		signed ptrType;
-		const u32 *cie;
-
-		/* check for extended length */
-		if ((*fde & 0xfffffff0) == 0xfffffff0) {
-			dbug_unwind(1, "Module %s has extended-length CIE or FDE.");
-			dbug_unwind(1, "This is not supported at this time.");
-			goto bad;
-		}
-		cie = cie_for_fde(fde, m);
-		if (cie == &not_fde)
-			continue;	/* fde was a CIE. That's OK, just skip it. */
-		if (cie == NULL || cie == &bad_cie || (ptrType = fde_pointer_type(cie)) < 0)
-			goto bad;
-		/* we have a real FDE */
-		ptr = (const u8 *)(fde + 2);
-		if (!read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType))
-			goto bad;
-		++n;
-	}
-
-	if (tableSize || !n) {
-		dbug_unwind(1, "%s: tableSize=%ld, n=%d\n", m->name, tableSize, n);
-		goto bad;
-	}
-
-	hdrSize = 4 + sizeof(unsigned long) + sizeof(unsigned int) + 2 * n * sizeof(unsigned long);
-	header = _stp_kmalloc(hdrSize);
-	if (header == NULL) {
-		header = _stp_vmalloc(hdrSize);
-		if (header == NULL)
-			return;
-	}
-
-	header->version = 1;
-	header->eh_frame_ptr_enc = DW_EH_PE_absptr;
-	header->fde_count_enc = DW_EH_PE_data4;
-	header->table_enc = DW_EH_PE_absptr;
-	_stp_put_unaligned((unsigned long)m->unwind_data, &header->eh_frame_ptr);
-
-	BUILD_BUG_ON(offsetof(typeof(*header), fde_count)
-		     % __alignof(typeof(header->fde_count)));
-	header->fde_count = n;
-
-	BUILD_BUG_ON(offsetof(typeof(*header), table) % __alignof(typeof(*header->table)));
-
-	n = 0;
-	last = 0;
-	tableSize = m->unwind_data_len;
-	for (fde = m->unwind_data; tableSize; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
-		const u32 *cie = cie_for_fde(fde, m);
-		if (cie == &not_fde)
-			continue;
-		if (cie == NULL || cie == &bad_cie)
-			goto bad;
-		/* we have a real FDE */
-		ptr = (const u8 *)(fde + 2);
-		header->table[n].start = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, fde_pointer_type(cie));
-		header->table[n].fde = (unsigned long)fde;
-		if (header->table[n].start < last)
-			bad_order++;
-		last = header->table[n].start;
-		++n;
-	}
-	WARN_ON(n != header->fde_count);
-
-	/* Is sort ever necessary? */
-	if (bad_order)
-		_stp_sort(header->table, n, sizeof(*header->table), cmp_eh_frame_hdr_table_entries,
-			  swap_eh_frame_hdr_table_entries);
-
-	m->unwind_hdr_len = hdrSize;
-	m->unwind_hdr = header;
-	return;
-
-	/* unwind data is not acceptable. free it and return */
-bad:
-	dbug_unwind(1, "unwind data for %s is unacceptable. Freeing.", m->name);
-	if (header) {
-          _stp_vfree(header);
-	}
-	if (m->unwind_data) {
-          _stp_vfree(m->unwind_data);
-		m->unwind_data = NULL;
-		m->unwind_data_len = 0;
-	}
-	return;
 }
 
 static uleb128_t get_uleb128(const u8 **pcur, const u8 *end)
@@ -655,7 +532,7 @@ static const char *_stp_enc_lo_name[] = {
 	"DW_EH_PE_sdata4",
 	"DW_EH_PE_sdata8"
 };
-char *_stp_eh_enc_name(signed type)
+static char *_stp_eh_enc_name(signed type)
 {
 	static char buf[64];
 	int hi, low;
@@ -685,7 +562,7 @@ char *_stp_eh_enc_name(signed type)
 /* Unwind to previous to frame.  Returns 0 if successful, negative
  * number in case of an error.  A positive return means unwinding is finished; 
  * don't try to fallback to dumping addresses on the stack. */
-int unwind(struct unwind_frame_info *frame)
+static int unwind(struct unwind_frame_info *frame)
 {
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
 	const u32 *fde, *cie = NULL;

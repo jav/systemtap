@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
- * debugfs control channel
- * Copyright (C) 2007-2008 Red Hat Inc.
+ * control channel
+ * Copyright (C) 2007-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -9,12 +9,9 @@
  * later version.
  */
 
-#define STP_DEFAULT_BUFFERS 50
-static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
-
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
-DEFINE_SPINLOCK(_stp_ctl_ready_lock);
+static DEFINE_SPINLOCK(_stp_ctl_ready_lock);
 
 static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -72,13 +69,6 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 	return count; /* Pretend that we absorbed the entire message. */
 }
 
-struct _stp_buffer {
-	struct list_head list;
-	int len;
-	int type;
-	char buf[STP_CTL_BUFFER_SIZE];
-};
-
 static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
 
 #ifdef DEBUG_TRANS
@@ -114,10 +104,15 @@ static int _stp_ctl_write(int type, void *data, unsigned len)
 {
 	struct _stp_buffer *bptr;
 	unsigned long flags;
+	unsigned hlen;
 
 #ifdef DEBUG_TRANS
 	_stp_ctl_write_dbug(type, data, len);
 #endif
+
+	hlen = _stp_ctl_write_fs(type, data, len);
+	if (hlen > 0)
+		return hlen;
 
 	/* make sure we won't overflow the buffer */
 	if (unlikely(len > STP_CTL_BUFFER_SIZE))
@@ -153,7 +148,8 @@ static int _stp_ctl_send(int type, void *data, int len)
 	return err;
 }
 
-static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf,
+				 size_t count, loff_t *ppos)
 {
 	struct _stp_buffer *bptr;
 	int len;
@@ -178,10 +174,12 @@ static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf, size_t cou
 	/* write it out */
 	len = bptr->len + 4;
 	if (len > count || copy_to_user(buf, &bptr->type, len)) {
-		/* now what?  We took it off the queue then failed to send it */
-		/* we can't put it back on the queue because it will likely be out-of-order */
-		/* fortunately this should never happen */
-		/* FIXME need to mark this as a transport failure */
+		/* Now what?  We took it off the queue then failed to
+		 * send it.  We can't put it back on the queue because
+		 * it will likely be out-of-order.  Fortunately, this
+		 * should never happen.
+		 *
+		 * FIXME: need to mark this as a transport failure. */
 		errk("Supplied buffer too small. count:%d len:%d\n", (int)count, len);
 		return -EFAULT;
 	}
@@ -215,47 +213,33 @@ static struct file_operations _stp_ctl_fops_cmd = {
 	.release = _stp_ctl_close_cmd,
 };
 
-static struct dentry *_stp_cmd_file = NULL;
-
 static int _stp_register_ctl_channel(void)
 {
-	int i;
-	struct list_head *p, *tmp;
-	char buf[32];
-
-	if (_stp_utt == NULL) {
-		errk("_expected _stp_utt to be set.\n");
-		return -1;
-	}
-
 	INIT_LIST_HEAD(&_stp_ctl_ready_q);
 
 	/* allocate buffers */
-	_stp_pool_q = _stp_mempool_init(sizeof(struct _stp_buffer), STP_DEFAULT_BUFFERS);
+	_stp_pool_q = _stp_mempool_init(sizeof(struct _stp_buffer),
+					STP_DEFAULT_BUFFERS);
 	if (unlikely(_stp_pool_q == NULL))
 		goto err0;
 	_stp_allocated_net_memory += sizeof(struct _stp_buffer) * STP_DEFAULT_BUFFERS;
 
-	/* create [debugfs]/systemtap/module_name/.cmd  */
-	_stp_cmd_file = debugfs_create_file(".cmd", 0600, _stp_utt->dir, NULL, &_stp_ctl_fops_cmd);
-	if (_stp_cmd_file == NULL)
+	if (_stp_register_ctl_channel_fs() != 0)
 		goto err0;
-	_stp_cmd_file->d_inode->i_uid = _stp_uid;
-	_stp_cmd_file->d_inode->i_gid = _stp_gid;
 
 	return 0;
 
 err0:
 	_stp_mempool_destroy(_stp_pool_q);
-	errk("Error creating systemtap debugfs entries.\n");
+	errk("Error creating systemtap control channel.\n");
 	return -1;
 }
 
 static void _stp_unregister_ctl_channel(void)
 {
 	struct list_head *p, *tmp;
-	if (_stp_cmd_file)
-		debugfs_remove(_stp_cmd_file);
+
+	_stp_unregister_ctl_channel_fs();
 
 	/* Return memory to pool and free it. */
 	list_for_each_safe(p, tmp, &_stp_ctl_ready_q) {

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -54,6 +54,8 @@ struct typeresolution_info: public visitor
   bool assert_resolvability;
   functiondecl* current_function;
   derived_probe* current_probe;
+  std::vector <const token*> resolved_toks; // account for type mis-
+  std::vector <const token*> printed_toks;  // matches (BZ 9719)
 
   void check_arg_type (exp_type wanted, expression* arg);
   void mismatch (const token* tok, exp_type t1, exp_type t2);
@@ -95,6 +97,7 @@ struct typeresolution_info: public visitor
   void visit_print_format (print_format* e);
   void visit_stat_op (stat_op* e);
   void visit_hist_op (hist_op* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
@@ -260,3 +263,5 @@ struct unparser;
 
 
 #endif // ELABORATE_H
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

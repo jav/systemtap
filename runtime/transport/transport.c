@@ -20,21 +20,22 @@
 #include "time.c"
 #include "../mempool.c"
 #include "symbols.c"
-#include "../procfs.c"
 
 static struct utt_trace *_stp_utt = NULL;
 static unsigned int utt_seq = 1;
 static int _stp_probes_started = 0;
-pid_t _stp_target = 0;
+static pid_t _stp_target = 0;
 static int _stp_exit_called = 0;
-int _stp_exit_flag = 0;
+static int _stp_exit_flag = 0;
+#include "control.h"
 #ifdef STP_OLD_TRANSPORT
 #include "relayfs.c"
 #include "procfs.c"
 #else
 #include "utt.c"
-#include "control.c"
+#include "debugfs.c"
 #endif
+#include "control.c"
 
 /* module parameters */
 static int _stp_bufsize;
@@ -42,9 +43,9 @@ module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
 /* forward declarations */
-void probe_exit(void);
-int probe_start(void);
-void _stp_exit(void);
+static void probe_exit(void);
+static int probe_start(void);
+static void _stp_exit(void);
 
 /* check for new workqueue API */
 #ifdef DECLARE_DELAYED_WORK
@@ -61,9 +62,18 @@ static struct workqueue_struct *_stp_wq;
  *	_stp_handle_start - handle STP_START
  */
 
-void _stp_handle_start(struct _stp_msg_start *st)
+static void _stp_handle_start(struct _stp_msg_start *st)
 {
 	dbug_trans(1, "stp_handle_start\n");
+
+#ifdef STAPCONF_VM_AREA
+        { /* PR9740: workaround for kernel valloc bug. */
+                void *dummy;
+                dummy = alloc_vm_area (PAGE_SIZE);
+                free_vm_area (dummy);
+        }
+#endif
+
 	_stp_target = st->target;
 	st->res = probe_start();
 	if (st->res >= 0)
@@ -170,7 +180,7 @@ static void _stp_work_queue(void *data)
  *	This is called automatically when the module is unloaded.
  *     
  */
-void _stp_transport_close()
+static void _stp_transport_close()
 {
 	dbug_trans(1, "%d: ************** transport_close *************\n", current->pid);
 	_stp_cleanup_and_exit(0);
@@ -205,10 +215,8 @@ static struct utt_trace *_stp_utt_open(void)
  * _stp_transport_init() is called from the module initialization.
  *   It does the bare minimum to exchange commands with staprun 
  */
-int _stp_transport_init(void)
+static int _stp_transport_init(void)
 {
-	int ret;
-
 	dbug_trans(1, "transport_init\n");
 	_stp_init_pid = current->pid;
 #ifdef STAPCONF_TASK_UID
@@ -247,7 +255,7 @@ int _stp_transport_init(void)
 		goto err0;
 #endif
 
-	/* create debugfs/procfs control channel */
+	/* create control channel */
 	if (_stp_register_ctl_channel() < 0)
 		goto err1;
 
@@ -302,7 +310,7 @@ static inline void _stp_unlock_inode(struct inode *inode)
 
 static struct dentry *_stp_lockfile = NULL;
 
-static int _stp_lock_debugfs(void)
+static int _stp_lock_transport_dir(void)
 {
 	int numtries = 0;
 #ifdef STP_OLD_TRANSPORT
@@ -317,7 +325,7 @@ static int _stp_lock_debugfs(void)
 	return 1;
 }
 
-static void _stp_unlock_debugfs(void)
+static void _stp_unlock_transport_dir(void)
 {
 	if (_stp_lockfile) {
 #ifdef STP_OLD_TRANSPORT
@@ -350,7 +358,7 @@ static struct dentry *_stp_get_root_dir(const char *name)
 		return NULL;
 	}
 
-	if (!_stp_lock_debugfs()) {
+	if (!_stp_lock_transport_dir()) {
 		errk("Couldn't lock transport directory.\n");
 		return NULL;
 	}
@@ -372,7 +380,7 @@ static struct dentry *_stp_get_root_dir(const char *name)
 			errk("Could not create or find transport directory.\n");
 		}
 	}
-	_stp_unlock_debugfs();
+	_stp_unlock_transport_dir();
 	return root;
 }
 

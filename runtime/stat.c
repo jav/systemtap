@@ -74,7 +74,7 @@ typedef struct _Stat *Stat;
  * @param stop - An integer. The stopping value. Should be > start.
  * @param interval - An integer. The interval. 
  */
-Stat _stp_stat_init (int type, ...)
+static Stat _stp_stat_init (int type, ...)
 {
 	int size, buckets=0, start=0, stop=0, interval=0;
 	stat *sd, *agg;
@@ -141,7 +141,7 @@ exit1:
  *
  * @param st Stat
  */
-void _stp_stat_del (Stat st)
+static void _stp_stat_del (Stat st)
 {
 	if (st) {
 		_stp_free_percpu (st->sd);
@@ -156,7 +156,7 @@ void _stp_stat_del (Stat st)
  * @param st Stat
  * @param val Value to add
  */
-void _stp_stat_add (Stat st, int64_t val)
+static void _stp_stat_add (Stat st, int64_t val)
 {
 	stat *sd = per_cpu_ptr (st->sd, get_cpu());
 	STAT_LOCK(sd);
@@ -175,7 +175,7 @@ void _stp_stat_add (Stat st, int64_t val)
  * @param cpu CPU number
  * @returns A pointer to a stat.
  */
-stat *_stp_stat_get_cpu (Stat st, int cpu)
+static stat *_stp_stat_get_cpu (Stat st, int cpu)
 {
 	stat *sd = per_cpu_ptr (st->sd, cpu);
 	STAT_LOCK(sd);
@@ -203,7 +203,7 @@ static void _stp_stat_clear_data (Stat st, stat *sd)
  * for polling.
  * @returns A pointer to a stat.
  */
-stat *_stp_stat_get (Stat st, int clear)
+static stat *_stp_stat_get (Stat st, int clear)
 {
 	int i, j;
 	stat *agg = st->agg;
@@ -242,7 +242,7 @@ stat *_stp_stat_get (Stat st, int clear)
  *
  * @param st Stat
  */
-void _stp_stat_clear (Stat st)
+static void _stp_stat_clear (Stat st)
 {
 	int i;
 	stp_for_each_cpu(i) {

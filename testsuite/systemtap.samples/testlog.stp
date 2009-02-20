@@ -1,6 +1,0 @@
-probe begin
-{
-	printf("Hello");
-	printf("World");
-	printf("\n");
-}

@@ -16,7 +16,7 @@
  * @note Preemption must be disabled to use this.
  */
 
-DEFINE_SPINLOCK(_stp_print_lock);
+static DEFINE_SPINLOCK(_stp_print_lock);
 
 void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 {

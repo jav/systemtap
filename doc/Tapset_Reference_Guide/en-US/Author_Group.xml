@@ -1,0 +1,25 @@
+<?xml version='1.0'?>
+<!DOCTYPE authorgroup PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<authorgroup>
+	<corpauthor>Red Hat Enterprise Linux Documentation</corpauthor>
+	<author>
+		<firstname>Don</firstname>
+		<surname>Domingo</surname>
+		<affiliation>
+			<orgname>Engineering Services and Operations</orgname>
+			<orgdiv>Content Services</orgdiv>
+		</affiliation>
+		<email>ddomingo@redhat.com</email>
+	</author>
+	<author>
+		<firstname>William</firstname>
+		<surname>Cohen</surname>
+		<affiliation>
+			<orgname>Engineering Services and Operations</orgname>
+			<orgdiv>Performance Tools</orgdiv>
+		</affiliation>
+		<email>wcohen@redhat.com</email>
+	</author>	
+</authorgroup>

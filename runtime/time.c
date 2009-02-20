@@ -54,10 +54,10 @@ typedef struct __stp_time_t {
     struct timer_list timer;
 } stp_time_t;
 
-void *stp_time = NULL;
+static void *stp_time = NULL;
 
 /* Flag to tell the timer callback whether to reregister */
-int stp_timer_reregister = 0;
+static int stp_timer_reregister = 0;
 
 /* Try to estimate the number of CPU cycles in a millisecond - i.e. kHz.  This
  * relies heavily on the accuracy of udelay.  By calling udelay twice, we
@@ -185,7 +185,7 @@ __stp_time_cpufreq_callback(struct notifier_block *self,
     return NOTIFY_OK;
 }
 
-struct notifier_block __stp_time_notifier = {
+static struct notifier_block __stp_time_notifier = {
     .notifier_call = __stp_time_cpufreq_callback,
 };
 
@@ -205,7 +205,7 @@ __stp_constant_freq(void)
 #endif /* CONFIG_CPU_FREQ */
 
 /* This function is called during module unloading. */
-void
+static void
 _stp_kill_time(void)
 {
     if (stp_time) {
@@ -227,7 +227,7 @@ _stp_kill_time(void)
 }
 
 /* This function is called during module loading. */
-int
+static int
 _stp_init_time(void)
 {
     int ret = 0;
@@ -268,7 +268,7 @@ _stp_init_time(void)
     return ret;
 }
 
-int64_t
+static int64_t
 _stp_gettimeofday_ns(void)
 {
     int64_t base;

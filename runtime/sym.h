@@ -54,15 +54,15 @@ struct _stp_module {
 
 
 /* Defined by translator-generated stap-symbols.h. */
-struct _stp_module *_stp_modules [];
-unsigned _stp_num_modules;
+static struct _stp_module *_stp_modules [];
+static unsigned _stp_num_modules;
 
 
 /* the number of modules in the arrays */
 
 static unsigned long _stp_kretprobe_trampoline = 0;
 
-unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset);
+static unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset);
 static struct _stp_module *_stp_get_unwind_info (unsigned long addr);
 
 #endif /* _STP_SYM_H_ */

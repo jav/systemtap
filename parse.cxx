@@ -1,5 +1,5 @@
 // recursive descent parser for systemtap scripts
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 // Copyright (C) 2007 Bull S.A.S
 //
@@ -2331,7 +2331,54 @@ parser::parse_symbol ()
 
       bool pf_stream, pf_format, pf_delim, pf_newline, pf_char;
 
-      if (name.size() > 0 && name[0] == '@')
+      if (name == "@cast")
+	{
+	  // type-punning time
+	  cast_op *cop = new cast_op;
+	  cop->tok = t;
+	  cop->base_name = name;
+	  expect_op("(");
+	  cop->operand = parse_expression ();
+          expect_op(",");
+          expect_unknown(tok_string, cop->type);
+          if (peek_op (","))
+            {
+              next();
+              expect_unknown(tok_string, cop->module);
+            }
+	  expect_op(")");
+	  while (true)
+	    {
+	      string c;
+	      if (peek_op ("->"))
+		{
+		  next();
+		  expect_ident_or_keyword (c);
+		  cop->components.push_back
+		    (make_pair (target_symbol::comp_struct_member, c));
+		}
+	      else if (peek_op ("["))
+		{
+		  next();
+		  expect_unknown (tok_number, c);
+		  expect_op ("]");
+		  cop->components.push_back
+		    (make_pair (target_symbol::comp_literal_array_index, c));
+		}
+	      else
+		break;
+	    }
+          // if there aren't any dereferences, then the cast is pointless
+          if (cop->components.empty())
+            {
+              expression *op = cop->operand;
+              delete cop;
+              return op;
+            }
+	  return cop;
+        }
+
+      else if (name.size() > 0 && name[0] == '@')
 	{
 	  stat_op *sop = new stat_op;
 	  if (name == "@avg")
@@ -2558,3 +2605,4 @@ parser::parse_symbol ()
   return sym;
 }
 
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

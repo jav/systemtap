@@ -21,13 +21,14 @@ trap 'terminate' SIGTERM SIGINT
 #-----------------------------------------------------------------------------
 # function: initialization PORT
 function initialization {
+    # INSTALL-HOOK These settings work for running the server from the source tree
+    # INSTALL-HOOK using the dejagnu test harness and will be overridden at install
+    # INSTALL-HOOK time.
+    exec_prefix=
+    sysconfdir=`pwd`/net
+
     # Default settings.
     avahi_type=_stap._tcp
-
-    # Where are we installed?
-    exec_prefix=`dirname $0`
-    exec_prefix=`cd $exec_prefix && pwd`
-    prefix=`dirname $exec_prefix`
 
     # What port will we listen on?
     port=$1
@@ -45,19 +46,23 @@ function initialization {
 	# If no certificate/key database has been specified, then find/create
 	# a local one.
 	if test $EUID = 0; then
-	    ssl_db=$prefix/etc/systemtap/ssl/server
+	    ssl_db=$sysconfdir/systemtap/ssl/server
 	else
 	    ssl_db=$HOME/.systemtap/ssl/server
 	fi
 	if ! test -f $ssl_db/stap-server.cert; then
-	    $exec_prefix/stap-gen-server-cert `dirname $ssl_db` || exit 1
+	    ${exec_prefix}stap-gen-server-cert `dirname $ssl_db` || exit 1
             # Now add the server's certificate to the client's database,
 	    # making it a trusted peer. Do this only if the client has been installed.
-	    if test -f $exec_prefix/stap-add-server-cert -a -f $exec_prefix/stap-add-server-cert; then
-		$exec_prefix/stap-add-server-cert $ssl_db/stap-server.cert `dirname $ssl_db`
+	    if test -f `which ${exec_prefix}stap-add-server-cert` -a -x `which ${exec_prefix}stap-add-server-cert`; then
+		${exec_prefix}stap-add-server-cert $ssl_db/stap-server.cert `dirname $ssl_db`/client
 	    fi
 	fi
     fi
+
+    # Check the security of the database.
+    check_db $ssl_db
+
     nss_pw=$ssl_db/pw
     nss_cert=stap-server
 }
@@ -84,8 +89,222 @@ function advertise_presence {
 function listen {
     # The stap-server-connect program will listen forever
     # accepting requests.
-    $exec_prefix/stap-server-connect -p $port -n $nss_cert -d $ssl_db -w $nss_pw 2>&1 &
-    wait '%$exec_prefix/stap-server-connect' >/dev/null 2>&1
+    ${exec_prefix}stap-server-connect -p $port -n $nss_cert -d $ssl_db -w $nss_pw 2>&1 &
+    wait '%${exec_prefix}stap-server-connect' >/dev/null 2>&1
+}
+
+# function: check_db DBNAME
+#
+# Check the security of the given database directory.
+function check_db {
+    local dir=$1
+    local rc=0
+
+    # Check that we have been given a directory
+    if ! test -e $dir; then
+	warning "Certificate database '$dir' does not exist"
+	return 1
+    fi
+    if ! test -d $dir; then
+	warning "Certificate database '$dir' is not a directory"
+	return 1
+    fi
+
+    # Check that we can read the directory
+    if ! test -r $dir; then
+	warning "Certificate database '$dir' is not readble"
+	rc=1
+    fi
+
+    # We must be the owner of the database.
+    local ownerid=`stat -c "%u" $dir`
+    if test "X$ownerid" != "X$EUID"; then
+	warning "Certificate database '$dir' must be owned by $USER"
+	rc=1
+    fi
+
+    # Check the access permissions of the directory
+    local perm=0`stat -c "%a" $dir`
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate database '$dir' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate database '$dir' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 0; then
+	warning "Certificate database '$dir' should be searchable by the owner"
+    fi
+    if test $((($perm & 0040) == 0040)) = 0; then
+	warning "Certificate database '$dir' should be readable by the group"
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate database '$dir' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 0; then
+	warning "Certificate database '$dir' should be searchable by the group"
+    fi
+    if test $((($perm & 0004) == 0004)) = 0; then
+	warning "Certificate database '$dir' should be readable by others"
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate database '$dir' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 0; then
+	warning "Certificate database '$dir' should be searchable by others"
+    fi
+
+    # Now check the permissions of the critical files.
+    check_db_file $dir/cert8.db || rc=1
+    check_db_file $dir/key3.db || rc=1
+    check_db_file $dir/secmod.db || rc=1
+    check_db_file $dir/pw || rc=1
+    check_cert_file $dir/stap-server.cert || rc=1
+
+    test $rc = 1 && fatal "Unable to use certificate database '$dir' due to errors"
+
+    return $rc
+}
+
+# function: check_db_file FILENAME
+#
+# Check the security of the given database file.
+function check_db_file {
+    local file=$1
+    local rc=0
+
+    # Check that we have been given a file
+    if ! test -e $file; then
+	warning "Certificate database file '$file' does not exist"
+	return 1
+    fi
+    if ! test -f $file; then
+	warning "Certificate database file '$file' is not a regular file"
+	return 1
+    fi
+
+    # We must be the owner of the file.
+    local ownerid=`stat -c "%u" $file`
+    if test "X$ownerid" != "X$EUID"; then
+	warning "Certificate database file '$file' must be owned by $USER"
+	rc=1
+    fi
+
+    # Check that we can read the file
+    if ! test -r $file; then
+	warning "Certificate database file '$file' is not readble"
+	rc=1
+    fi
+
+    # Check the access permissions of the file
+    local perm=0`stat -c "%a" $file`
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate database file '$file' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate database file '$file' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 1; then
+	warning "Certificate database file '$file' must not be executable by the owner"
+	rc=1
+    fi
+    if test $((($perm & 0040) == 0040)) = 1; then
+	warning "Certificate database file '$file' must not be readable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate database file '$file' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 1; then
+	warning "Certificate database file '$file' must not be executable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0004) == 0004)) = 1; then
+	warning "Certificate database file '$file' must not be readable by others"
+	rc=1
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate database file '$file' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 1; then
+	warning "Certificate database file '$file' must not be executable by others"
+	rc=1
+    fi
+
+    return $rc
+}
+
+# function: check_db_file FILENAME
+#
+# Check the security of the given database file.
+function check_cert_file {
+    local file=$1
+    local rc=0
+
+    # Check that we have been given a file
+    if ! test -e $file; then
+	warning "Certificate database file '$file' does not exist"
+	return 1
+    fi
+    if ! test -f $file; then
+	warning "Certificate database file '$file' is not a regular file"
+	return 1
+    fi
+
+    # We must be the owner of the file.
+    local ownerid=`stat -c "%u" $file`
+    if test "X$ownerid" != "X$EUID"; then
+	warning "Certificate file '$file' must be owned by $USER"
+	rc=1
+    fi
+
+    # Check the access permissions of the file
+    local perm=0`stat -c "%a" $file`
+    if test $((($perm & 0400) == 0400)) = 0; then
+	warning "Certificate file '$file' should be readable by the owner"
+    fi
+    if test $((($perm & 0200) == 0200)) = 0; then
+	warning "Certificate file '$file' should be writeable by the owner"
+    fi
+    if test $((($perm & 0100) == 0100)) = 1; then
+	warning "Certificate file '$file' must not be executable by the owner"
+	rc=1
+    fi
+    if test $((($perm & 0040) == 0040)) = 0; then
+	warning "Certificate file '$file' should be readable by the group"
+    fi
+    if test $((($perm & 0020) == 0020)) = 1; then
+	warning "Certificate file '$file' must not be writable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0010) == 0010)) = 1; then
+	warning "Certificate file '$file' must not be executable by the group"
+	rc=1
+    fi
+    if test $((($perm & 0004) == 0004)) = 0; then
+	warning "Certificate file '$file' should be readable by others"
+    fi
+    if test $((($perm & 0002) == 0002)) = 1; then
+	warning "Certificate file '$file' must not be writable by others"
+	rc=1
+    fi
+    if test $((($perm & 0001) == 0001)) = 1; then
+	warning "Certificate file '$file' must not be executable by others"
+	rc=1
+    fi
+
+    return $rc
+}
+
+# function: warning [ MESSAGE ]
+#
+# Warning error
+# Prints its arguments to stderr
+function warning {
+    echo "$0: WARNING:" "$@" >&2
 }
 
 # function: fatal [ MESSAGE ]
@@ -93,7 +312,7 @@ function listen {
 # Fatal error
 # Prints its arguments to stderr and exits
 function fatal {
-    echo "$@" >&2
+    echo "$0: ERROR:" "$@" >&2
     terminate
     exit 1
 }
@@ -109,8 +328,8 @@ function terminate {
     wait '%avahi-publish-service' >/dev/null 2>&1
 
     # Kill any running 'stap-server-connect' job.
-    kill -s SIGTERM '%$exec_prefix/stap-server-connect' 2> /dev/null
-    wait '%$exec_prefix/stap-server-connect'  >/dev/null 2>&1
+    kill -s SIGTERM '%${exec_prefix}stap-server-connect' 2> /dev/null
+    wait '%${exec_prefix}stap-server-connect'  >/dev/null 2>&1
 
     exit
 }

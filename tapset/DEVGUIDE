@@ -135,17 +135,66 @@ Comments
 All probes and functions should include comment blocks that describe
 their purpose, the data they provide and the context in which they run
 (e.g., interrupt, process, etc.).  Also use comments in areas where your
-intent may not be clear from reading the code.
+intent may not be clear from reading the code.  The comments preceding
+the functions and probes should be written in the format described in
+the Documentation section to allow automatic generation of the tapset
+documentation.
 
 Documentation
 -------------
-Every tapset should have its own man page called stapprobes.<tapset>(5).
-See src/man for examples.  In addition, the SEE ALSO section in the
-stapprobes(5) man page should be updated to refer to your tapset's man
-page.
+SystemTap now documents the tapset functions and probe points in a
+manner similar to the Linux kernel.  The tapset files have comments
+before each function and probe point that are processed by a modified
+kernel-doc script and pulled into an XML document.  HTML, PDF, and man
+pages are generated from that document during the build process.
 
-External functions defined in your tapset should be added to the
-stapfuncs(5) man page.
+For systemtap functions the structure of the documentation comment is:
+
+/**
+ * sfunction function_name(:)? (- short description)?
+(* @parameter(space)*: (description of function parameter x)?)*
+(* a blank line)?
+ * (Description:)? (Description of function)?
+ * (section header: (section description)? )*
+(*)?*/
+
+For sytemtap probes the structure of the documentation comment is the
+following:
+
+/**
+ * probe probe_name(:)? (- short description)?
+(* @variable(space)*: (description of probe variable x)?)*
+(* a blank line)?
+ * (Description:)? (Description of probe)?
+ * (section header: (section description)? )*
+(*)?*/
+
+The document extraction keys off the "/**" at the start of the
+comment; normal comments starting with "/*" are ignored.  The next
+line of the comment describes whether the following code is for a
+SystemTap function or a probe and title descript. Following lines that
+have an '@' preceding the first word describe the parameters or
+variables available in the function or probe. There can be zero or
+more "section headers" after the variables or parameters. After each
+section there can be multiple lines of text. The comment is closed
+with "*/".
+
+The xml tapsets.tmpl in src/doc/SystemTap_Tapset_Reference makes use
+of those special comments. This xml file has place holders to extract
+the documentation from the tapsets like the following for
+ioscheduler.stp:
+
+!Itapset/ioscheduler.stp
+
+When a new tapset file is created you will need make a similar addition
+to tapsets.tmpl to pull the documentation in from the new tapset file.
+If configured to build reference documentation (--enable-refdocs) and
+the needed software is available, the build process will automatic
+generated PDF, HTML, and man pages.
+
+The creation of new man pages for the tapsets and functions is
+depricated and all the documentation should be migrated over to the
+tapsets.tmpl.
 
 Config & Makefiles
 ------------------
@@ -182,14 +231,7 @@ most important, it validates that the tapset can actually be used for
 something useful.  If you can't write a script that uses the tapset in a
 meaningful way, perhaps you should rethink what the tapset provides.
 
-Example scripts are stored in src/examples in GIT.
-
-Change Logs
------------
-Update the appropriate ChangeLog files with a brief description of your
-additions and changes.  Note that the change description you enter during
-a "cvs commit" does not get added to the ChangeLog files.  You must edit
-the ChangeLog files directly and commit them as well.
+Example scripts are stored in testsuite/systemtap.examples/ in GIT.
 
 Embedded C & Safety
 -------------------
@@ -221,7 +263,7 @@ The following documents, web sites and mailing lists will familiarize
 you with SystemTap:
 
 - SystemTap Tutorial.  A good introduction to SystemTap.
-  (html format:http://sourceware.org/systemtap/tutorial/,
+  (html format: http://sourceware.org/systemtap/tutorial/,
   PDF format: http://sourceware.org/systemtap/tutorial.pdf)
 
 - SystemTap project home page
@@ -231,7 +273,7 @@ you with SystemTap:
   (http://sourceware.org/systemtap/getinvolved.html)
 
 - GIT repository
-  (http://sources.redhat.com/git/?p=systemtap.git;a=summary
+  (http://sources.redhat.com/git/?p=systemtap.git;a=summary)
 
 - HACKING file in the source directory.  This file outlines what's 
   expected of project contributors.
@@ -242,7 +284,8 @@ you with SystemTap:
 
 - Existing tapsets
 
-- SystemTap Language Reference (in development, will be added to wiki
-  when released)
+- SystemTap Language Reference.
+  (html format: http://sourceware.org/systemtap/langref/,
+  PDF format: http://sourceware.org/systemtap/langref.pdf)
 
 - SystemTap Man Pages (use "man -k stap" to print a list)
