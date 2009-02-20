@@ -1,0 +1,40 @@
+# Don't attempt these tests if the client/server are not available
+if {! [file exists [exec pwd]/../stap-client-connect]} then {
+    untested "Server Tests"
+    return
+ }
+
+# Start a systemtap server, if one is not already started.
+if {! [use_server_p]} then {
+    setup_server
+}
+
+# Run the buildok tests using the server
+set self buildok
+foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
+    set test "$self/[file tail $file] with server"
+    verbose -log "Running $file"
+    set rc [stap_run_batch $file]
+    # some tests are known to fail.
+    switch $test {
+        "buildok/perfmon01.stp with server" {setup_kfail 909 *-*-*}
+        "buildok/twentysix.stp with server" {setup_kfail 4105 *-*-*}
+        "buildok/twentyseven.stp with server" {setup_kfail 4166 *-*-*}
+        "buildok/sched_test.stp with server" {setup_kfail 1155 *-*-*}
+        "buildok/process_test.stp with server" {setup_kfail 1155 *-*-*}
+        "buildok/rpc-all-probes.stp with server" {setup_kfail 4413 *-*-*}
+        "buildok/nfs-all-probes.stp with server" {setup_kfail 4413 *-*-*}
+    }
+    if {$rc == 0} { pass $test } else { fail $test }
+}
+
+# If this is an installcheck, then run a basic execution test.
+if {[installtest_p]} then {
+    set test "add"
+    stap_run $srcdir/systemtap.base/$test.stp no_load $all_pass_string
+}
+
+# Shudown the server, if we started it.
+if {! [use_server_p]} then {
+    shutdown_server
+}

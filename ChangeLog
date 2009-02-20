@@ -1,3 +1,7 @@
+2009-02-20  ChangeLog  <brolley@redhat.com>
+
+	* stap-client: Redirect stderr to /dev/null when using kill.
+
 2009-02-19  Mark Wielaard  <mjw@redhat.com>
 
 	* translate.cxx (dump_unwindsyms): Ignore symbols before module

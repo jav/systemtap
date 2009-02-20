@@ -1,3 +1,10 @@
+2009-02-20  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp (setup_server,shutdown_server): New procs.
+	(setup_systemtap_environment): Call setup_server.
+	(systemtap_exit): Call shutdown_server.
+	* systemtap.server: New testsuite for client/server.
+
 2009-02-18  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/static_uprobes.exp: Also test without .probes section.
