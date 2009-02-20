@@ -9,6 +9,8 @@
  * later version.
  */
 
+#include <linux/debugfs.h>
+
 #define STP_DEFAULT_BUFFERS 50
 
 inline static int _stp_ctl_write_fs(int type, void *data, unsigned len)
