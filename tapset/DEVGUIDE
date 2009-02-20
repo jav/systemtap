@@ -231,14 +231,7 @@ most important, it validates that the tapset can actually be used for
 something useful.  If you can't write a script that uses the tapset in a
 meaningful way, perhaps you should rethink what the tapset provides.
 
-Example scripts are stored in src/examples in GIT.
-
-Change Logs
------------
-Update the appropriate ChangeLog files with a brief description of your
-additions and changes.  Note that the change description you enter during
-a "cvs commit" does not get added to the ChangeLog files.  You must edit
-the ChangeLog files directly and commit them as well.
+Example scripts are stored in testsuite/systemtap.examples/ in GIT.
 
 Embedded C & Safety
 -------------------

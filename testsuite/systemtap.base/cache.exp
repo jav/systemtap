@@ -116,6 +116,7 @@ set env(SYSTEMTAP_DIR) /dev/null
 stap_compile DISABLED1 [F_UNCACHED_COMPILE] $basic_script1
 stap_compile DISABLED2 [F_UNCACHED_COMPILE] $basic_script1
 set env(SYSTEMTAP_DIR) $local_systemtap_dir
+eval [list exec /bin/rm -f] [glob "stap_*.ko"]
 
 # Disable the cache with '-m'
 stap_compile MODNAM1 [F_UNCACHED_COMPILE] $basic_script1 -m modnam

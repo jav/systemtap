@@ -1,0 +1,132 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+<section id="syscallsbyprocpidsect">
+<title>Tracking System Call Volume Per Process</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring system calls (volume per process)</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring system calls (volume per process)</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring system calls (volume per process)</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+		
+<!--
+<indexterm>
+<primary>counting function calls</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+-->
+
+<indexterm>
+<primary>system calls volume (per process), monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+		
+<remark>
+uses systemtap/testsuite/systemtap.examples/process/syscalls_by_p*.stp
+</remark>	
+				
+	<para>
+		This section illustrates how to determine which processes 
+		are performing the highest volume of system calls. In 
+		previous sections, we've described how to monitor the top system
+		calls used by the system over time (<xref linkend="topsyssect"/>). 
+		We've also described how to identify which applications use a 
+		specific set of "polling suspect" system calls the most 
+		(<xref linkend="timeoutssect"/>). Monitoring the volume of 
+		system calls made by each process provides more data in 
+		investigating your system for polling processes and other resource
+		hogs.
+	</para>	
+		
+<formalpara id="syscallsbyprocpid">
+	<title>syscalls_by_proc.stp</title>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/testsuite/systemtap.examples/process/syscalls_by_proc.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>		
+	
+<para>
+	<xref linkend="syscallsbyprocpid"/> lists the top 20 processes performing the
+	highest number of system calls. It also lists how many system calls each process
+	performed during the time period. Refer to 
+	<xref linkend="syscallsbyprocpidoutput"/> for a sample output. 
+	
+</para>
+	
+<example id="syscallsbyprocpidoutput">
+	<title><xref linkend="topsys"/> Sample Output</title>
+<screen>
+Collecting data... Type Ctrl-C to exit and display results
+#SysCalls  Process Name
+1577       multiload-apple
+692        synergyc
+408        pcscd
+376        mixer_applet2
+299        gnome-terminal
+293        Xorg
+206        scim-panel-gtk
+95         gnome-power-man
+90         artsd
+85         dhcdbd
+84         scim-bridge
+78         gnome-screensav
+66         scim-launcher
+[...]
+</screen>
+</example>
+
+<para>
+	If you prefer the output to display the process IDs instead of the process names, 
+	use the following script instead. 
+</para>
+
+<formalpara id="syscallsbypid">
+	<title>syscalls_by_pid.stp</title>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/testsuite/systemtap.examples/process/syscalls_by_pid.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>	
+
+
+<para>
+	As indicated in the output, you need to manually exit the script in order to display the 
+	results. You can add a timed expiration to either script by simply adding 
+	a <command>timer.s()</command> probe; for example, to instruct the script to expire after
+	5 seconds, add the following probe to the script:
+</para>
+
+<screen>
+probe timer.s(5)
+{
+	exit()
+}
+</screen>
+
+<!--probe kernel.function(@1) {  # probe function passed as argument from stdin
+called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
+}
+global called          
+probe end,timer.ms(30000) {
+foreach (fn+ in called)  # Sort by function name
+#       (fn in called-)  # Sort by call count (in decreasing order)
+printf("%s %d\n", fn, @count(called[fn]))
+exit()
+}-->
+
+	</section>
+
