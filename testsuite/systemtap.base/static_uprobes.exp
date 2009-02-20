@@ -88,6 +88,7 @@ if {[installtest_p]} {
 if {[catch {exec $dtrace -h -s $sup_dpath} res]} {
     verbose -log "unable to run $dtrace: $res"
 }
+catch {exec rm -f $sup_dpath}
 if {[file exists $sup_hpath]} then {
     pass "$test generating header"
 } else {
@@ -95,8 +96,6 @@ if {[file exists $sup_hpath]} then {
     catch {exec rm -f $sup_srcpath $sup_hpath $sup_stppath}
     return
 }
-
-catch {exec rm -f $sup_dpath}
 
 if {[installtest_p]} { 
     set sdtdir $env(SYSTEMTAP_INCLUDES)
