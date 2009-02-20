@@ -4551,10 +4551,19 @@ dump_unwindsyms (Dwfl_Module *m,
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
+                  Dwarf_Addr save_addr = sym_addr;
                   int ki = dwfl_module_relocate_address (m, &sym_addr);
                   dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
                   secname = dwfl_module_relocation_info (m, ki, NULL);
-                }
+
+                  // For ET_DYN files (secname == "") we do ignore the
+                  // dwfl_module_relocate_address adjustment. libdwfl
+                  // up to 0.137 would substract the wrong bias. So we do
+                  // it ourself, it is always just the module base address
+                  // in this case.
+                  if (ki == 0 && secname != NULL && secname[0] == '\0')
+                    sym_addr = save_addr - base;
+		}
 
               if (n == 1 && modname == "kernel")
                 {
