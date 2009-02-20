@@ -54,10 +54,10 @@ bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT) $(am__EXEEXT_1)
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
 noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
-DIST_COMMON = INSTALL INSTALL NEWS NEWS README README AUTHORS AUTHORS \
-	ChangeLog ChangeLog $(srcdir)/Makefile.in \
-	$(srcdir)/Makefile.am $(top_srcdir)/configure \
-	$(am__configure_deps) $(srcdir)/config.in $(srcdir)/stap.1.in \
+DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
+	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
+	$(top_srcdir)/configure $(am__configure_deps) \
+	$(srcdir)/config.in $(srcdir)/stap.1.in \
 	$(srcdir)/stapprobes.5.in $(srcdir)/stapfuncs.5.in \
 	$(srcdir)/stapvars.5.in $(srcdir)/stapex.5.in \
 	$(srcdir)/staprun.8.in $(srcdir)/stap-server.8.in \
@@ -74,7 +74,7 @@ DIST_COMMON = INSTALL INSTALL NEWS NEWS README README AUTHORS AUTHORS \
 	$(top_srcdir)/man/stapprobes.tcp.5.in \
 	$(top_srcdir)/man/stapprobes.udp.5.in \
 	$(top_srcdir)/initscript/systemtap.in $(srcdir)/run-stap.in \
-	depcomp depcomp $(oldinclude_HEADERS)
+	depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -191,7 +191,6 @@ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
@@ -300,6 +299,7 @@ staplog_CPPFLAGS = @staplog_CPPFLAGS@
 subdirs = @subdirs@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = no-dist
@@ -380,7 +380,8 @@ EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 TEST_COV_DIR = coverage
 # XXX: leaves behind man pages
-SUBDIRS = testsuite doc
+SUBDIRS = doc
+DIST_SUBDIRS = testsuite $(SUBDIRS)
 
 # Any extra flags, such as:
 #     --define "with_docs 0"
@@ -1355,6 +1356,7 @@ GTAGS:
 distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-recursive
 all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(SCRIPTS) $(MANS) \
@@ -1465,8 +1467,8 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 	install-exec-am install-strip
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am all-local am--refresh check check-am clean \
-	clean-binPROGRAMS clean-generic clean-local \
+	all all-am all-local am--refresh check check-am check-local \
+	clean clean-binPROGRAMS clean-generic clean-local \
 	clean-noinstPROGRAMS clean-pkglibLIBRARIES \
 	clean-pkglibexecPROGRAMS ctags ctags-recursive distclean \
 	distclean-compile distclean-generic distclean-hdr \
@@ -1616,7 +1618,7 @@ uninstall-local:
 	done
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 
-check:
+check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
         PWD=`pwd`; \
 	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)";
