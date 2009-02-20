@@ -4538,17 +4538,16 @@ dump_unwindsyms (Dwfl_Module *m,
                 clog << "Found kernel _stext 0x" << hex << extra_offset << dec << endl;
             }
 
+          // We only need the function symbols to identify kernel-mode
+          // PC's, so we omit undefined or "fake" absolute addresses.
+          // These fake absolute addresses occur in some older i386
+          // kernels to indicate they are vDSO symbols, not real
+          // functions in the kernel.
           if (GELF_ST_TYPE (sym.st_info) == STT_FUNC &&
-              sym.st_shndx != SHN_UNDEF)
+              ! (sym.st_shndx == SHN_UNDEF || sym.st_shndx == SHN_ABS))
             {
               Dwarf_Addr sym_addr = sym.st_value;
               const char *secname = NULL;
-
-              // Symbol addresses before the base address of the module
-              // are suspect. Older kernels had those for some vsdo
-              // symbols. They mess up our logic, ignore them.
-              if (sym_addr < base)
-                continue;
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
