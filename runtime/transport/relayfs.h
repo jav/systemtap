@@ -9,7 +9,6 @@
 #  include <linux/relayfs_fs.h>
 #elif defined (CONFIG_RELAY)
 #  include <linux/relay.h>
-#  include <linux/debugfs.h>
 #else
 #  undef STP_RELAYFS
 #endif
