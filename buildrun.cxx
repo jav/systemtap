@@ -125,9 +125,6 @@ compile_pass (systemtap_session& s)
   // o << module_cflags << " += -Iusr/include" << endl;
   // since such headers are cleansed of _KERNEL_ pieces that we need
 
-  string stapconf_cflags = "STAPCONF_CFLAGS";
-  o << stapconf_cflags << " :=" << endl;
-
   o << "STAPCONF_HEADER := " << s.tmpdir << "/" << s.stapconf_name << endl;
   o << s.translated_source << ": $(STAPCONF_HEADER)" << endl;
   o << "$(STAPCONF_HEADER):" << endl;
