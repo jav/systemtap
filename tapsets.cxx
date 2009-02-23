@@ -1330,7 +1330,10 @@ struct dwflpp
 
     const char * sym = label_val.c_str();
     Dwarf_Die die;
-    dwarf_child (cu, &die);
+    int res = dwarf_child (cu, &die);
+    if (res != 0)
+      return;  // die without children, bail out.
+
     static string function_name;
     do 
       {
