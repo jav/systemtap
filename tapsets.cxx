@@ -41,7 +41,6 @@ extern "C" {
 #include <fcntl.h>
 #include <elfutils/libdwfl.h>
 #include <elfutils/libdw.h>
-#include <elfutils/libebl.h>
 #include <dwarf.h>
 #include <elf.h>
 #include <obstack.h>
