@@ -103,7 +103,7 @@
 </indexterm>		
 <para condition="RedHat">SystemTap was originally developed to provide functionality for &PROD; similar to previous Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. SystemTap aims to supplement the existing suite of Linux monitoring tools by providing users with the infrastructure to track kernel activity. In addition, SystemTap combines this capability with two things:</para>	
 	
-<para condition="fedora">SystemTap was originally developed to provide functionality for Fedora Core 10 similar to previous Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. SystemTap aims to supplement the existing suite of Linux monitoring tools by providing users with the infrastructure to track kernel activity. In addition, SystemTap combines this capability with two things:</para>
+<para condition="fedora">SystemTap was originally developed to provide functionality for Fedora 10 similar to previous Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. SystemTap aims to supplement the existing suite of Linux monitoring tools by providing users with the infrastructure to track kernel activity. In addition, SystemTap combines this capability with two things:</para>
 		
 <!--		
 		<para>SystemTap was originally developed as a working &PROD; version of old Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. Further, SystemTap can also be considered the Linux answer to <firstterm>Dtrace</firstterm>. Dtrace is a Sun Microsystems "dynamic tracing" framework that assists administrators in monitoring  and troubleshooting kernel and user-space applications in real time.</para>
