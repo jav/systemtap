@@ -1341,13 +1341,11 @@ struct dwflpp
 	Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
 	int tag = dwarf_tag(&die);
 	const char *name = dwarf_formstring (attr);
-	if (name == NULL)
-	  continue;
-	if (tag == DW_TAG_subprogram)
+	if (tag == DW_TAG_subprogram && name != 0)
 	  {
 	    function_name = name;
 	  }
-	else if (tag == DW_TAG_label
+	else if (tag == DW_TAG_label && name != 0
 		 && ((strncmp(name, sym, strlen(sym)) == 0)
 		     || (name_has_wildcard (sym)
 			 && function_name_matches_pattern (name, sym))))
@@ -5727,7 +5725,7 @@ dwarf_builder::build(systemtap_session & sess,
 	  }
       }
     
-    if (probe_type == probes_and_dwarf)
+    if (probe_type == probes_and_dwarf && ! sess.listing_mode)
       {
 	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
@@ -5751,17 +5749,22 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
-	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) == 0)
-	      {
-		probe_found = true;
-		break;
-	      }
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
+	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) == 0)
+	      probe_found = true;
+	    else
+	      continue;
+	    const token* sv_tok = location->components[1]->arg->tok;
+	    location->components[1]->functor = TOK_STATEMENT;
+	    location->components[1]->arg = new literal_number((int)probe_arg);
+	    location->components[1]->arg->tok = sv_tok;
+	    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
+	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
+	    dw->query_modules(&q);
 	  }
-	location->components[1]->functor = TOK_STATEMENT;
-	location->components[1]->arg = new literal_number((int)probe_arg);
-	((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
+	if (probe_found)
+	  return;
       }
 
     if (probe_type == dwarf_no_probes || ! probe_found)
