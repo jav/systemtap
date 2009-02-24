@@ -26,7 +26,6 @@
 #include <linux/percpu.h>
 #include <linux/init.h>
 #include <linux/debugfs.h>
-#include <linux/relay.h>
 #include <linux/mm.h>
 #include "utt.h"
 
@@ -157,7 +156,7 @@ static struct dentry *utt_create_tree(struct utt_trace *utt, const char *root, c
                 return NULL;
 
         if (!utt->utt_tree_root) {
-                utt->utt_tree_root = _stp_get_root_dir(root);
+                utt->utt_tree_root = _stp_get_root_dir();
                 if (!utt->utt_tree_root)
                         goto err;
         }
@@ -168,7 +167,6 @@ static struct dentry *utt_create_tree(struct utt_trace *utt, const char *root, c
 err:
         return dir;
 }
-
 
 static void utt_trace_cleanup(struct utt_trace *utt)
 {

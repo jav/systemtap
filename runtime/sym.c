@@ -12,6 +12,7 @@
 #ifndef _STP_SYM_C_
 #define _STP_SYM_C_
 
+#include "sym.h"
 #include "string.c"
 
 /** @file sym.c

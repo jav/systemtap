@@ -9,11 +9,11 @@ enum {
 
 struct utt_trace {
 	int trace_state;
-	struct rchan *rchan;
+//	struct rchan *rchan;
 	struct dentry *dir;		/* systemtap/module_name */
 	struct dentry *dropped_file;
 	atomic_t dropped;
-	struct dentry *utt_tree_root; /* systemtap */
+	struct dentry *utt_tree_root;	/* systemtap */
 	void *private_data;
 	atomic_t wakeup;
 	struct timer_list timer;
@@ -41,6 +41,7 @@ struct utt_trace_setup {
 
 
 static struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts);
+
 static int utt_trace_startstop(struct utt_trace *utt, int start,
 			       unsigned int *trace_seq);
 static void utt_trace_cleanup(struct utt_trace *utt);
@@ -60,6 +61,7 @@ static size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
  */
 static inline void *utt_reserve(struct utt_trace *utt, size_t length)
 {
+#if 0
 	void *reserved;
 	struct rchan_buf *buf = utt->rchan->buf[smp_processor_id()];
 
@@ -72,6 +74,9 @@ static inline void *utt_reserve(struct utt_trace *utt, size_t length)
 	buf->offset += length;
 
 	return reserved;
+#else
+	return NULL;
+#endif
 }
 #endif
 

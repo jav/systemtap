@@ -14,6 +14,7 @@
 
 #include "string.h"
 #include "vsprintf.c"
+#include "print.h"
 #include "transport/transport.c"
 
 /** @file print.c

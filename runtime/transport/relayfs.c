@@ -86,7 +86,7 @@ static struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 	if (!utt)
 		return NULL;
 
-	utt->utt_tree_root = _stp_get_root_dir(utts->root);
+	utt->utt_tree_root = _stp_get_root_dir();
 	if (!utt->utt_tree_root)
 		goto err;
 

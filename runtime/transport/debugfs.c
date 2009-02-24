@@ -10,6 +10,7 @@
  */
 
 #include <linux/debugfs.h>
+#include "transport.h"
 
 #define STP_DEFAULT_BUFFERS 50
 

@@ -28,8 +28,9 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 
 	pb->len = 0;
 
-	if (unlikely(!_stp_utt || _stp_utt->trace_state != Utt_trace_running))
-		return;
+//DRS FIXME: this digs down too deep in internals
+//	if (unlikely(!_stp_utt || _stp_utt->trace_state != Utt_trace_running))
+//		return;
 
 #ifdef STP_BULKMODE
 	{
