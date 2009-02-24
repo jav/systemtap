@@ -14,6 +14,7 @@ puts $fp "
 void
 bar (int i)
 {
+  STATIC_UPROBES_TEST_PROBE_2(i);
   if (i == 0)
     i = 1000;
   STAP_PROBE1(static_uprobes,test_probe_2,i);
@@ -158,7 +159,7 @@ expect {
 
 wait
 
-if {$ok == 4} { pass "$test C" } { fail "$test C ($ok)" }
+if {$ok == 5} { pass "$test C" } { fail "$test C ($ok)" }
 
 set ok 0
 
@@ -169,7 +170,6 @@ verbose -log "spawn stap -c $sup_exepath $sup_stppath"
 spawn stap -c $sup_exepath $sup_stppath
 expect {
     -timeout 180
-    -re {In test_probe_1 probe} { incr ok; exp_continue }
     -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
@@ -180,7 +180,7 @@ expect {
 
 wait
 
-if {$ok == 4} { pass "$test C++" } { fail "$test C++ ($ok)" }
+if {$ok == 5} { pass "$test C++" } { fail "$test C++ ($ok)" }
 
 # catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_hpath $sup_stppath}
 

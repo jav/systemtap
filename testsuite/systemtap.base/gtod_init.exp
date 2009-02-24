@@ -1,0 +1,29 @@
+# test for checking initialization of the time subsystem
+set test "gtod_init"
+
+# check that init and kill are both present with a gettimeofday
+set time_init 0
+set time_kill 0
+spawn stap -p2 -e {probe begin { println(gettimeofday_s()) }}
+expect {
+	-timeout 120
+	-re {\n_gettimeofday_init:} { incr time_init; exp_continue }
+	-re {\n_gettimeofday_kill:} { incr time_kill; exp_continue }
+	timeout { fail "$test (timeout)" }
+	eof {
+        if {$time_init == 1} { pass "$test (init)" } { fail "$test (init $time_init)" }
+        if {$time_kill == 1} { pass "$test (kill)" } { fail "$test (kill $time_kill)" }
+    }
+}
+wait
+
+# check that init and kill are both NOT present without a gettimeofday
+spawn stap -p2 -e {probe begin { println(get_cycles()) }}
+expect {
+	-timeout 120
+	-re {\n_gettimeofday_init:} { fail "$test (bad init)" }
+	-re {\n_gettimeofday_kill:} { fail "$test (bad kill)" }
+	timeout { fail "$test (timeout)" }
+	eof { pass "$test (no init/kill)" }
+}
+wait

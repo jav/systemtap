@@ -223,6 +223,7 @@ _stp_kill_time(void)
 #endif
 
         _stp_free_percpu(stp_time);
+        stp_time = NULL;
     }
 }
 
@@ -231,6 +232,8 @@ static int
 _stp_init_time(void)
 {
     int ret = 0;
+
+    _stp_kill_time();
 
     stp_time = _stp_alloc_percpu(sizeof(stp_time_t));
     if (unlikely(stp_time == 0))
@@ -263,7 +266,7 @@ _stp_init_time(void)
         }
     }
 #endif
-   if (ret)
+    if (ret)
         _stp_kill_time();
     return ret;
 }
@@ -277,6 +280,9 @@ _stp_gettimeofday_ns(void)
     unsigned int seq;
     stp_time_t *time;
     int i = 0;
+
+    if (!stp_time)
+        return -1;
 
     preempt_disable();
     time = per_cpu_ptr(stp_time, smp_processor_id());

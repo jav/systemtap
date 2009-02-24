@@ -4534,6 +4534,10 @@ dump_unwindsyms (Dwfl_Module *m,
               ki = dwfl_module_relocate_address (m, &extra_offset);
               dwfl_assert ("dwfl_module_relocate_address extra_offset",
                            ki >= 0);
+              // Sadly dwfl_module_relocate_address is broken on
+              // elfutils < 0.138, so we need to adjust for the module
+              // base address outself. (see also below).
+              extra_offset = sym.st_value - base;
               if (c->session.verbose > 2)
                 clog << "Found kernel _stext 0x" << hex << extra_offset << dec << endl;
             }
@@ -5009,11 +5013,11 @@ translate_pass (systemtap_session& s)
       s.op->newline();
 
       // XXX impedance mismatch
-      s.op->newline() << "static int probe_start () {";
+      s.op->newline() << "static int probe_start (void) {";
       s.op->newline(1) << "return systemtap_module_init () ? -1 : 0;";
       s.op->newline(-1) << "}";
       s.op->newline();
-      s.op->newline() << "static void probe_exit () {";
+      s.op->newline() << "static void probe_exit (void) {";
       s.op->newline(1) << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
       s.op->assert_0_indent();

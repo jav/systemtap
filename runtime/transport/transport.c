@@ -188,7 +188,6 @@ static void _stp_transport_close()
 	_stp_unregister_ctl_channel();
 	if (_stp_utt)
 		utt_trace_remove(_stp_utt);
-	_stp_kill_time();  /* Go to a beach.  Drink a beer.  */
 	_stp_print_cleanup();	/* free print buffers */
 	_stp_mem_debug_done();
 	dbug_trans(1, "---- CLOSED ----\n");
@@ -244,10 +243,6 @@ static int _stp_transport_init(void)
 		dbug_trans(1, "Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
 	}
 
-	/* initialize timer code */
-	if (_stp_init_time())
-		return -1;
-
 #if !defined (STP_OLD_TRANSPORT) || defined (STP_BULKMODE)
 	/* open utt (relayfs) channel to send data to userspace */
 	_stp_utt = _stp_utt_open();
@@ -286,7 +281,6 @@ err1:
 	if (_stp_utt)
 		utt_trace_remove(_stp_utt);
 err0:
-	_stp_kill_time();
 	return -1;
 }
 
