@@ -9,6 +9,10 @@
  * later version.
  */
 
+#include "control.h"
+#include "../mempool.c"
+#include "symbols.c"
+
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
 static DEFINE_SPINLOCK(_stp_ctl_ready_lock);
@@ -192,7 +196,7 @@ static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf,
 
 static int _stp_ctl_open_cmd(struct inode *inode, struct file *file)
 {
-	if (_stp_attached)
+	if (_stp_ctl_attached)
 		return -1;
 	_stp_attach();
 	return 0;
@@ -200,7 +204,7 @@ static int _stp_ctl_open_cmd(struct inode *inode, struct file *file)
 
 static int _stp_ctl_close_cmd(struct inode *inode, struct file *file)
 {
-	if (_stp_attached)
+	if (_stp_ctl_attached)
 		_stp_detach();
 	return 0;
 }

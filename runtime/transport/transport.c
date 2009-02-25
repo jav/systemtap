@@ -15,29 +15,36 @@
 #define _TRANSPORT_TRANSPORT_C_
 
 #include "transport.h"
+#include <linux/debugfs.h>
+#include <linux/namei.h>
+#include <linux/workqueue.h>
+
 struct utt_trace {
     int dummy;
 };
-static struct utt_trace *_stp_utt = NULL;
-static int _stp_ctl_write(int type, void *data, unsigned len) {
-    return 0;
+//static struct utt_trace *_stp_utt = NULL;
+
+static void utt_set_overwrite(int overwrite)
+{
+	return;
 }
 
 static int _stp_exit_flag = 0;
 
-#include <linux/debugfs.h>
-#include <linux/namei.h>
+static uid_t _stp_uid = 0;
+static gid_t _stp_gid = 0;
+static int _stp_pid = 0;
+
+static int _stp_ctl_attached = 0;
+
+static pid_t _stp_target = 0;
+static int _stp_probes_started = 0;
+
 #if 0
 #include <linux/delay.h>
-#include "../mempool.c"
-#include "symbols.c"
 
 static struct utt_trace *_stp_utt = NULL;
 static unsigned int utt_seq = 1;
-static int _stp_probes_started = 0;
-static pid_t _stp_target = 0;
-static int _stp_exit_called = 0;
-static int _stp_exit_flag = 0;
 #include "control.h"
 #ifdef STP_OLD_TRANSPORT
 #include "relayfs.c"
@@ -48,6 +55,10 @@ static int _stp_exit_flag = 0;
 #endif
 #include "control.c"
 
+#else  /* #if 0 */
+#include "control.h"
+#include "debugfs.c"
+#include "control.c"
 #endif	/* if 0 */
 static unsigned _stp_nsubbufs = 8;
 static unsigned _stp_subbuf_size = 65536*4;
@@ -56,12 +67,13 @@ static unsigned _stp_subbuf_size = 65536*4;
 static int _stp_bufsize;
 module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
-#if 0
 
 /* forward declarations */
 static void probe_exit(void);
 static int probe_start(void);
+#if 0
 static void _stp_exit(void);
+#endif /* #if 0 */
 
 /* check for new workqueue API */
 #ifdef DECLARE_DELAYED_WORK
@@ -105,6 +117,8 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
 static void _stp_cleanup_and_exit(int send_exit)
 {
+	static int _stp_exit_called = 0;
+
 	if (!_stp_exit_called) {
 		int failures;
 
@@ -125,8 +139,10 @@ static void _stp_cleanup_and_exit(int send_exit)
 			_stp_warn("There were %d transport failures.\n", failures);
 
 		dbug_trans(1, "************** calling startstop 0 *************\n");
+#if 0
 		if (_stp_utt)
 			utt_trace_startstop(_stp_utt, 0, &utt_seq);
+#endif
 
 		dbug_trans(1, "ctl_send STP_EXIT\n");
 		if (send_exit)
@@ -141,7 +157,7 @@ static void _stp_cleanup_and_exit(int send_exit)
 static void _stp_detach(void)
 {
 	dbug_trans(1, "detach\n");
-	_stp_attached = 0;
+	_stp_ctl_attached = 0;
 	_stp_pid = 0;
 
 	if (!_stp_exit_flag)
@@ -157,7 +173,7 @@ static void _stp_detach(void)
 static void _stp_attach(void)
 {
 	dbug_trans(1, "attach\n");
-	_stp_attached = 1;
+	_stp_ctl_attached = 1;
 	_stp_pid = current->pid;
 	utt_set_overwrite(0);
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
@@ -186,10 +202,9 @@ static void _stp_work_queue(void *data)
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && _stp_probes_started))
 		_stp_cleanup_and_exit(1);
-	if (likely(_stp_attached))
+	if (likely(_stp_ctl_attached))
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
-#endif /* #if 0 */
 
 /**
  *	_stp_transport_close - close ctl and relayfs channels
@@ -203,13 +218,17 @@ static void _stp_transport_close(void)
 		   current->pid);
 #if 0
 	_stp_cleanup_and_exit(0);
+#endif /* #if 0 */
 	destroy_workqueue(_stp_wq);
 	_stp_unregister_ctl_channel();
+#if 0
 	if (_stp_utt)
 		utt_trace_remove(_stp_utt);
+#endif /* #if 0 */
 	_stp_print_cleanup();	/* free print buffers */
+#if 0
 	_stp_mem_debug_done();
-#endif
+#endif /* #if 0 */
 	_stp_transport_fs_close();
 
 	dbug_trans(1, "---- CLOSED ----\n");
@@ -278,11 +297,11 @@ static int _stp_transport_init(void)
 	if (!_stp_utt)
 		goto err0;
 #endif
+#endif /* #if 0 */
 
 	/* create control channel */
 	if (_stp_register_ctl_channel() < 0)
 		goto err1;
-#endif /* #if 0 */
 
 	/* create print buffers */
 	if (_stp_print_init() < 0)
@@ -291,14 +310,14 @@ static int _stp_transport_init(void)
 #if 0
 	/* start transport */
 	utt_trace_startstop(_stp_utt, 1, &utt_seq);
+#endif /* #if 0 */
 
 	/* create workqueue of kernel threads */
 	_stp_wq = create_workqueue("systemtap");
 	if (!_stp_wq)
 		goto err3;
 	
-	_stp_transport_state = 1;
-
+#if 0
         /* Signal stapio to send us STP_START back (XXX: ?!?!?!).  */
 	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 #endif /* #if 0 */
@@ -308,11 +327,13 @@ static int _stp_transport_init(void)
 err3:
 	_stp_print_cleanup();
 err2:
-#if 0
 	_stp_unregister_ctl_channel();
 err1:
+#if 0
 	if (_stp_utt)
 		utt_trace_remove(_stp_utt);
+#else
+	_stp_transport_fs_close();
 #endif /* #if 0 */
 err0:
 	return -1;
@@ -438,6 +459,11 @@ static void _stp_remove_root_dir(void)
 }
 
 static struct dentry *__stp_module_dir = NULL;
+
+static inline struct dentry *_stp_get_module_dir(void)
+{
+	return __stp_module_dir;
+}
 
 static int _stp_transport_fs_init(const char *module_name)
 {

@@ -57,7 +57,11 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 		void *buf;
 		unsigned long flags;
 		spin_lock_irqsave(&_stp_print_lock, flags);
+#if 0
 		buf = utt_reserve(_stp_utt, len);
+#else
+		buf = NULL;
+#endif
 		if (likely(buf))
 			memcpy(buf, pb->buf, len);
 		else

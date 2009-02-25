@@ -45,6 +45,7 @@
 
 static void _stp_dbug (const char *func, int line, const char *fmt, ...);
 static void _stp_error (const char *fmt, ...);
+static void _stp_warn (const char *fmt, ...);
 
 #include "debug.h"
 

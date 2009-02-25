@@ -24,7 +24,6 @@ static inline void *utt_reserve(struct utt_trace *utt, size_t length)
 }
 
 
-#if 0
 /* STP_CTL_BUFFER_SIZE is the maximum size of a message */
 /* exchanged on the control channel. */
 #ifdef STP_OLD_TRANSPORT
@@ -37,7 +36,6 @@ static inline void *utt_reserve(struct utt_trace *utt, size_t length)
 /* how often the work queue wakes up and checks buffers */
 #define STP_WORK_TIMER (HZ/100)
 
-#endif /* #if 0 */
 static unsigned _stp_nsubbufs;
 static unsigned _stp_subbuf_size;
 
@@ -48,22 +46,18 @@ static int _stp_lock_transport_dir(void);
 static void _stp_unlock_transport_dir(void);
 
 static struct dentry *_stp_get_root_dir(void);
+static struct dentry *_stp_get_module_dir(void);
 
 static int _stp_transport_fs_init(const char *module_name);
 static void _stp_transport_fs_close(void);
-
-#if 0
-static void _stp_warn (const char *fmt, ...);
 
 static void _stp_attach(void);
 static void _stp_detach(void);
 static void _stp_handle_start(struct _stp_msg_start *st);
 
-static int _stp_pid = 0;
-#endif
-static uid_t _stp_uid = 0;
-static gid_t _stp_gid = 0;
-#if 0
-static int _stp_attached = 0;
-#endif
+static uid_t _stp_uid;
+static gid_t _stp_gid;
+
+static int _stp_ctl_attached;
+
 #endif /* _TRANSPORT_TRANSPORT_H_ */
