@@ -2297,9 +2297,9 @@ struct dwflpp
     assert(memstream);
 
     fprintf(memstream, "{\n");
-    fprintf(memstream, prelude.c_str());
+    fprintf(memstream, "%s", prelude.c_str());
     bool deref = c_emit_location (memstream, head, 1);
-    fprintf(memstream, postlude.c_str());
+    fprintf(memstream, "%s", postlude.c_str());
     fprintf(memstream, "  goto out;\n");
 
     // dummy use of deref_fault label, to disable warning if deref() not used
