@@ -6,10 +6,6 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-%{
-#include <linux/netdevice.h>
-%}
-
 /**
  * probe netdev.receive - Data recieved from network device.
  * @dev_name: The name of the device. e.g: eth0, ath1.

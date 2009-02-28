@@ -4954,21 +4954,23 @@ translate_pass (systemtap_session& s)
           s.op->newline() << s.embeds[i]->code << "\n";
         }
 
-      s.op->newline() << "static struct {";
-      s.op->indent(1);
-      for (unsigned i=0; i<s.globals.size(); i++)
-        {
-          s.up->emit_global (s.globals[i]);
-        }
-      s.op->newline(-1) << "} global = {";
-      s.op->newline(1);
-      for (unsigned i=0; i<s.globals.size(); i++)
-        {
-          if (pending_interrupts) return 1;
-          s.up->emit_global_init (s.globals[i]);
-        }
-      s.op->newline(-1) << "};";
-      s.op->assert_0_indent();
+      if (s.globals.size()>0) {
+        s.op->newline() << "static struct {";
+        s.op->indent(1);
+        for (unsigned i=0; i<s.globals.size(); i++)
+          {
+            s.up->emit_global (s.globals[i]);
+          }
+        s.op->newline(-1) << "} global = {";
+        s.op->newline(1);
+        for (unsigned i=0; i<s.globals.size(); i++)
+          {
+            if (pending_interrupts) return 1;
+            s.up->emit_global_init (s.globals[i]);
+          }
+        s.op->newline(-1) << "};";
+        s.op->assert_0_indent();
+      }
 
       for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
 	{

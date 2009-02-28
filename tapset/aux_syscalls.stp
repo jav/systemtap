@@ -1790,6 +1790,7 @@ function _struct_sigaction_u:string(uaddr:long)
 
 function _struct_sigaction32_u:string(uaddr:long)
 %{ /* pure */
+#ifdef CONFIG_COMPAT
 #include <linux/compat.h>
   
   // There seems to be no public cross arch header that defines this.
@@ -1831,4 +1832,5 @@ function _struct_sigaction32_u:string(uaddr:long)
       else
 	strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
     }
+#endif
 %}
