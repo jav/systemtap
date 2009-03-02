@@ -12,14 +12,14 @@
 #define STP_NEED_SYMBOL_DATA 1
 #endif
 %}
-
+// weirdness with print_stack, argument appears in build as undescribed
 /**
  * sfunction print_stack - Print out stack from string
  * @stk: String with list of hexidecimal addresses. (FIXME)
  *
  *  Perform a symbolic lookup of the addresses in the given  string,
  *  which  is  assumed  to  be  the  result of a prior call to 
- *  backtrace().
+ *  <command>backtrace()</command>.
  *  Print one line per address, including the address, the
  *  name  of the function containing the address, and an estimate of
  *  its position within that function.  Return nothing.
