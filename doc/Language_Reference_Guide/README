@@ -1,0 +1,16 @@
+This is an automated source build of the Language Reference Guide, 
+used to build it in Publican.
+
+To build the source, run:
+
+	bash publicanize-langref.sh
+
+This will copy the LaTeX source of the Language Reference Guide and
+convert it to DocBook XML. You can now build it in pdf, html, etc 
+using Publican. 
+
+The main source of the Language Reference Guide is in:
+	../langref.tex 
+
+As such, any revisions to this document should be applied to ../langref.tex, 
+not to the source in this directory.
