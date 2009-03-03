@@ -5706,6 +5706,7 @@ dwarf_builder::build(systemtap_session & sess,
     size_t shstrndx;
     Elf_Scn *probe_scn = NULL;
     bool probe_found = false;
+    bool dynamic = (dwfl_module_relocations (dw->module) == 1);
 
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
     GElf_Shdr *shdr = NULL;
@@ -5723,8 +5724,10 @@ dwarf_builder::build(systemtap_session & sess,
 	    break;
 	  }
       }
+    if (dynamic || sess.listing_mode)
+      probe_type = dwarf_no_probes;
     
-    if (probe_type == probes_and_dwarf && ! sess.listing_mode)
+    if (probe_type == probes_and_dwarf)
       {
 	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
