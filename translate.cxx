@@ -3882,7 +3882,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 	  assert (rvalue->type == pe_long);
 
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
-	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  o->newline() << mvar.add (idx, rvar) << ";";
           res = rvar;
 	  // no need for these dummy assignments
@@ -3892,7 +3892,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       else
 	{
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
-	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  if (op != "=") // don't bother fetch slot if we will just overwrite it
 	    parent->c_assign (lvar, mvar.get(idx), e->tok);
 	  c_assignop (res, lvar, rvar, e->tok);

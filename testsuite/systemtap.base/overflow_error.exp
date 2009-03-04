@@ -1,0 +1,32 @@
+# Test overflow errors point to the correct thing.
+
+set test "overflow_error"
+if {![installtest_p]} { untested $test; return }
+
+set error_msg1 "ERROR: Array overflow, check size limit (3) near identifier 'overflow1' at $srcdir/$subdir/$test.stp"
+set error_msg2 "ERROR: Array overflow, check size limit (5) near identifier 'overflow2' at $srcdir/$subdir/$test.stp"
+set exit_warning "WARNING: Number of errors: 2, skipped probes: 0"
+
+set pass 0
+
+spawn stap -DMAXERRORS=1 $srcdir/$subdir/$test.stp
+expect {
+    $error_msg1 {incr pass; exp_continue}
+    $error_msg2 {incr pass; exp_continue}
+    $exit_warning {incr pass; exp_continue}
+    timeout {
+        exec kill -INT -[exp_pid]
+	fail "$test timed out"
+    }
+    eof {}
+}
+catch { close }
+wait
+
+if {$pass == 3} {
+    pass $test
+} else {
+    fail "$test ($pass)"
+}
+
+
