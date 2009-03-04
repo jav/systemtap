@@ -153,6 +153,8 @@ compile_pass (systemtap_session& s)
    * this autoconf. */
   output_autoconf(s, o, "autoconf-probe-kernel.c", "STAPCONF_PROBE_KERNEL", NULL);
 #endif
+  output_autoconf(s, o, "autoconf-save-stack-trace.c",
+                  "STAPCONF_KERNEL_STACKTRACE", NULL);
 
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 

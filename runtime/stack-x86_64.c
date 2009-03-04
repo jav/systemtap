@@ -10,7 +10,7 @@
 
 /* DWARF unwinder failed.  Just dump intereting addresses on kernel stack. */
 
-#if ! (defined(CONFIG_STACKTRACE) && LINUX_VERSION_CODE > KERNEL_VERSION(2,6,26))
+#if !defined(STAPCONF_KERNEL_STACKTRACE)
 static void _stp_stack_print_fallback(unsigned long stack, int verbose, int levels)
 {
 	unsigned long addr;
