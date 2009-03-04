@@ -60,4 +60,8 @@ static gid_t _stp_gid;
 
 static int _stp_ctl_attached;
 
+static int _stp_bufsize;
+static int _stp_transport_data_fs_init(void);
+static void _stp_transport_data_fs_close(void);
+
 #endif /* _TRANSPORT_TRANSPORT_H_ */

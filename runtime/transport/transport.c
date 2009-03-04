@@ -19,11 +19,6 @@
 #include <linux/namei.h>
 #include <linux/workqueue.h>
 
-struct utt_trace {
-    int dummy;
-};
-//static struct utt_trace *_stp_utt = NULL;
-
 static void utt_set_overwrite(int overwrite)
 {
 	return;
@@ -59,6 +54,7 @@ static unsigned int utt_seq = 1;
 #include "control.h"
 #include "debugfs.c"
 #include "control.c"
+#include "ring_buffer.c"
 #endif	/* if 0 */
 static unsigned _stp_nsubbufs = 8;
 static unsigned _stp_subbuf_size = 65536*4;
@@ -71,9 +67,6 @@ MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 /* forward declarations */
 static void probe_exit(void);
 static int probe_start(void);
-#if 0
-static void _stp_exit(void);
-#endif /* #if 0 */
 
 /* check for new workqueue API */
 #ifdef DECLARE_DELAYED_WORK
@@ -287,8 +280,8 @@ static int _stp_transport_init(void)
 		dbug_trans(1, "Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
 	}
 
-	if (_stp_transport_fs_init(THIS_MODULE->name))
-		return -1;
+	if (_stp_transport_fs_init(THIS_MODULE->name) != 0)
+		goto err0;
 
 #if 0
 #if !defined (STP_OLD_TRANSPORT) || defined (STP_BULKMODE)
@@ -297,6 +290,7 @@ static int _stp_transport_init(void)
 	if (!_stp_utt)
 		goto err0;
 #endif
+#else  /* #if 0 */
 #endif /* #if 0 */
 
 	/* create control channel */
@@ -322,20 +316,25 @@ static int _stp_transport_init(void)
 	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 #endif /* #if 0 */
 
+	dbug_trans(1, "returning 0...\n");
 	return 0;
 
 err3:
+	dbug_trans(1, "err3\n");
 	_stp_print_cleanup();
 err2:
+	dbug_trans(1, "err2\n");
 	_stp_unregister_ctl_channel();
 err1:
 #if 0
 	if (_stp_utt)
 		utt_trace_remove(_stp_utt);
 #else
+	dbug_trans(1, "err1\n");
 	_stp_transport_fs_close();
 #endif /* #if 0 */
 err0:
+	dbug_trans(1, "err0\n");
 	return -1;
 }
 
@@ -469,6 +468,7 @@ static int _stp_transport_fs_init(const char *module_name)
 {
 	struct dentry *root_dir;
     
+	dbug_trans(1, "entry\n");
 	if (module_name == NULL)
 		return -1;
 
@@ -481,12 +481,21 @@ static int _stp_transport_fs_init(const char *module_name)
 		_stp_remove_root_dir();
 		return -1;
 	}
+
+	if (_stp_transport_data_fs_init() != 0) {
+		_stp_remove_root_dir();
+		return -1;
+	}
+	dbug_trans(1, "returning 0\n");
 	return 0;
 }
 
 static void _stp_transport_fs_close(void)
 {
 	dbug_trans(1, "stp_transport_fs_close\n");
+
+	_stp_transport_data_fs_close();
+
 	if (__stp_module_dir) {
 		debugfs_remove(__stp_module_dir);
 		__stp_module_dir = NULL;
