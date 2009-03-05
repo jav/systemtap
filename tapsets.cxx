@@ -9209,6 +9209,9 @@ mark_builder::build(systemtap_session & sess,
 struct tracepoint_arg
 {
   string name, c_type;
+  bool used, isptr;
+  Dwarf_Die type_die;
+  tracepoint_arg(): used(false), isptr(false) {}
 };
 
 struct tracepoint_derived_probe: public derived_probe
@@ -9224,6 +9227,7 @@ struct tracepoint_derived_probe: public derived_probe
 
   void build_args(dwflpp& dw, Dwarf_Die& func_die);
   void join_group (systemtap_session& s);
+  void emit_probe_context_vars (translator_output* o);
 };
 
 
@@ -9233,6 +9237,283 @@ struct tracepoint_derived_probe_group: public generic_dpg<tracepoint_derived_pro
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
 };
+
+
+struct tracepoint_var_expanding_visitor: public var_expanding_visitor
+{
+  tracepoint_var_expanding_visitor(dwflpp& dw, const string& probe_name,
+                                   vector <struct tracepoint_arg>& args):
+    dw (dw), probe_name (probe_name), args (args) {}
+  dwflpp& dw;
+  const string& probe_name;
+  vector <struct tracepoint_arg>& args;
+
+  void visit_target_symbol (target_symbol* e);
+  void visit_target_symbol_arg (target_symbol* e);
+  void visit_target_symbol_context (target_symbol* e);
+};
+
+
+void
+tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
+{
+  string argname = e->base_name.substr(1);
+
+  // search for a tracepoint parameter matching this name
+  tracepoint_arg *arg = NULL;
+  for (unsigned i = 0; i < args.size(); ++i)
+    if (args[i].name == argname)
+      {
+        arg = &args[i];
+        arg->used = true;
+        break;
+      }
+
+  if (arg == NULL)
+    {
+      stringstream alternatives;
+      for (unsigned i = 0; i < args.size(); ++i)
+        alternatives << " $" << args[i].name;
+      alternatives << " $$name $$vars";
+
+      // We hope that this value ends up not being referenced after all, so it
+      // can be optimized out quietly.
+      semantic_error* saveme =
+        new semantic_error("unable to find tracepoint variable '" + e->base_name
+                           + "' (alternatives:" + alternatives.str () + ")", e->tok);
+      // NB: we can have multiple errors, since a target variable
+      // may be expanded in several different contexts:
+      //     trace ("*") { $foo->bar }
+      saveme->chain = e->saved_conversion_error;
+      e->saved_conversion_error = saveme;
+      provide (e);
+      return;
+    }
+
+  // make sure we're not dereferencing base types
+  if (!e->components.empty() && !arg->isptr)
+    switch (e->components[0].first)
+      {
+      case target_symbol::comp_literal_array_index:
+        throw semantic_error("tracepoint variable '" + e->base_name
+                             + "' may not be used as array", e->tok);
+      case target_symbol::comp_struct_member:
+        throw semantic_error("tracepoint variable '" + e->base_name
+                             + "' may not be used as a structure", e->tok);
+      default:
+        throw semantic_error("invalid use of tracepoint variable '"
+                             + e->base_name + "'", e->tok);
+      }
+
+  // we can only write to dereferenced fields, and only if guru mode is on
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue && (!dw.sess.guru_mode || e->components.empty()))
+    throw semantic_error("write to tracepoint variable '" + e->base_name
+                         + "' not permitted", e->tok);
+
+  if (e->components.empty())
+    {
+      // Synthesize a simple function to grab the parameter
+      functiondecl *fdecl = new functiondecl;
+      fdecl->tok = e->tok;
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = e->tok;
+
+      string fname = (string("_tracepoint_tvar_get")
+                      + "_" + e->base_name.substr(1)
+                      + "_" + lex_cast<string>(tick++));
+
+      fdecl->name = fname;
+      fdecl->body = ec;
+      fdecl->type = pe_long;
+
+      ec->code = (string("THIS->__retvalue = CONTEXT->locals[0].")
+                  + probe_name + string(".__tracepoint_arg_")
+                  + arg->name + string (";/* pure */"));
+
+      dw.sess.functions[fdecl->name] = fdecl;
+
+      // Synthesize a functioncall.
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = fname;
+      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+      provide (n);
+    }
+  else
+    {
+      // Synthesize a function to dereference the dwarf fields,
+      // with a pointer parameter that is the base tracepoint variable
+      functiondecl *fdecl = new functiondecl;
+      fdecl->tok = e->tok;
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = e->tok;
+
+      string fname = (string(lvalue ? "_tracepoint_tvar_set" : "_tracepoint_tvar_get")
+                      + "_" + e->base_name.substr(1)
+                      + "_" + lex_cast<string>(tick++));
+
+      fdecl->name = fname;
+      fdecl->body = ec;
+
+      try
+        {
+          ec->code = dw.literal_stmt_for_pointer (&arg->type_die, e->components,
+                                                  lvalue, fdecl->type);
+        }
+      catch (const semantic_error& er)
+        {
+          // We suppress this error message, and pass the unresolved
+          // variable to the next pass.  We hope that this value ends
+          // up not being referenced after all, so it can be optimized out
+          // quietly.
+          semantic_error* saveme = new semantic_error (er); // copy it
+          saveme->tok1 = e->tok; // XXX: token not passed to dw code generation routines
+          // NB: we can have multiple errors, since a target variable
+          // may be expanded in several different contexts:
+          //     trace ("*") { $foo->bar }
+          saveme->chain = e->saved_conversion_error;
+          e->saved_conversion_error = saveme;
+          provide (e);
+          return;
+        }
+
+      // Give the fdecl an argument for the raw tracepoint value
+      vardecl *v1 = new vardecl;
+      v1->type = pe_long;
+      v1->name = "pointer";
+      v1->tok = e->tok;
+      fdecl->formal_args.push_back(v1);
+
+      if (lvalue)
+        {
+          // Modify the fdecl so it carries a pe_long formal
+          // argument called "value".
+
+          // FIXME: For the time being we only support setting target
+          // variables which have base types; these are 'pe_long' in
+          // stap's type vocabulary.  Strings and pointers might be
+          // reasonable, some day, but not today.
+
+          vardecl *v2 = new vardecl;
+          v2->type = pe_long;
+          v2->name = "value";
+          v2->tok = e->tok;
+          fdecl->formal_args.push_back(v2);
+        }
+      else
+        ec->code += "/* pure */";
+
+      dw.sess.functions[fdecl->name] = fdecl;
+
+      // Synthesize a functioncall.
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = fname;
+      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+      // make the original a bare target symbol for the tracepoint value,
+      // which will be passed into the dwarf dereferencing code
+      e->components.clear();
+      n->args.push_back(require(e));
+
+      if (lvalue)
+        {
+          // Provide the functioncall to our parent, so that it can be
+          // used to substitute for the assignment node immediately above
+          // us.
+          assert(!target_symbol_setter_functioncalls.empty());
+          *(target_symbol_setter_functioncalls.top()) = n;
+        }
+
+      provide (n);
+    }
+}
+
+
+void
+tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
+{
+  if (is_active_lvalue (e))
+    throw semantic_error("write to tracepoint '" + e->base_name + "' not permitted", e->tok);
+
+  if (!e->components.empty())
+    switch (e->components[0].first)
+      {
+      case target_symbol::comp_literal_array_index:
+        throw semantic_error("tracepoint '" + e->base_name + "' may not be used as array",
+                             e->tok);
+      case target_symbol::comp_struct_member:
+        throw semantic_error("tracepoint '" + e->base_name + "' may not be used as a structure",
+                             e->tok);
+      default:
+        throw semantic_error("invalid tracepoint '" + e->base_name + "' use", e->tok);
+      }
+
+  if (e->base_name == "$$name")
+    {
+      // Synthesize a functioncall.
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = "_mark_name_get";
+      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+      provide (n);
+    }
+  else if (e->base_name == "$$vars")
+    {
+      target_symbol *tsym = new target_symbol;
+      print_format* pf = new print_format;
+
+      // Convert $$vars to sprintf of a list of vars which we recursively evaluate
+      // NB: we synthesize a new token here rather than reusing
+      // e->tok, because print_format::print likes to use
+      // its tok->content.
+      token* pf_tok = new token(*e->tok);
+      pf_tok->content = "sprintf";
+
+      pf->tok = pf_tok;
+      pf->print_to_stream = false;
+      pf->print_with_format = true;
+      pf->print_with_delim = false;
+      pf->print_with_newline = false;
+      pf->print_char = false;
+
+      for (unsigned i = 0; i < args.size(); ++i)
+        {
+          if (i > 0)
+            pf->raw_components += " ";
+          pf->raw_components += args[i].name;
+          tsym->tok = e->tok;
+          tsym->base_name = "$" + args[i].name;
+
+          // every variable should always be accessible!
+          tsym->saved_conversion_error = 0;
+          expression *texp = require (tsym); // NB: throws nothing ...
+          assert (!tsym->saved_conversion_error); // ... but this is how we know it happened.
+
+          pf->raw_components += "=%#x";
+          pf->args.push_back(texp);
+        }
+
+      pf->components = print_format::string_to_components(pf->raw_components);
+      provide (pf);
+    }
+  else
+    assert(0); // shouldn't get here
+}
+
+void
+tracepoint_var_expanding_visitor::visit_target_symbol (target_symbol* e)
+{
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (e->base_name == "$$name" || e->base_name == "$$vars")
+    visit_target_symbol_context (e);
+  else
+    visit_target_symbol_arg (e);
+}
+
 
 
 tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
@@ -9266,6 +9547,10 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
   header_pos = header.find("_event_types");
   if (header_pos != string::npos)
     header.erase(header_pos, 12);
+
+  // Now expand the local variables in the probe body
+  tracepoint_var_expanding_visitor v (dw, name, args);
+  this->body = v.require (this->body);
 
   if (sess.verbose > 2)
     clog << "tracepoint-based " << name << " tracepoint='" << tracepoint_name
@@ -9326,6 +9611,36 @@ dwarf_type_name(Dwarf_Die& type_die, string& c_type)
 }
 
 
+static bool
+resolve_tracepoint_arg_type(Dwarf_Die& type_die, bool& isptr)
+{
+  Dwarf_Attribute type_attr;
+  switch (dwarf_tag(&type_die))
+    {
+    case DW_TAG_typedef:
+    case DW_TAG_const_type:
+    case DW_TAG_volatile_type:
+      // iterate on the referent type
+      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
+              && dwarf_formref_die(&type_attr, &type_die)
+              && resolve_tracepoint_arg_type(type_die, isptr));
+    case DW_TAG_base_type:
+      // base types will simply be treated as script longs
+      isptr = false;
+      return true;
+    case DW_TAG_pointer_type:
+      // pointers can be either script longs,
+      // or dereferenced with their referent type
+      isptr = true;
+      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
+              && dwarf_formref_die(&type_attr, &type_die));
+    default:
+      // should we consider other types too?
+      return false;
+    }
+}
+
+
 void
 tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
 {
@@ -9340,10 +9655,10 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
 
           // read the type of this parameter
           Dwarf_Attribute type_attr;
-          Dwarf_Die type_die;
           if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr)
-              || !dwarf_formref_die (&type_attr, &type_die)
-              || !dwarf_type_name(type_die, tparg.c_type))
+              || !dwarf_formref_die (&type_attr, &tparg.type_die)
+              || !dwarf_type_name(tparg.type_die, tparg.c_type)
+              || !resolve_tracepoint_arg_type(tparg.type_die, tparg.isptr))
             throw semantic_error ("cannot get type of tracepoint '"
                                   + tracepoint_name + "' parameter '"
                                   + tparg.name + "'");
@@ -9364,6 +9679,15 @@ tracepoint_derived_probe::join_group (systemtap_session& s)
   if (! s.tracepoint_derived_probes)
     s.tracepoint_derived_probes = new tracepoint_derived_probe_group ();
   s.tracepoint_derived_probes->enroll (this);
+}
+
+
+void
+tracepoint_derived_probe::emit_probe_context_vars (translator_output* o)
+{
+  for (unsigned i = 0; i < args.size(); i++)
+    if (args[i].used)
+      o->newline() << "int64_t __tracepoint_arg_" << args[i].name << ";";
 }
 
 
@@ -9392,6 +9716,17 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
       s.op->newline() << "c->probe_point = "
                       << lex_cast_qstring (*p->sole_location()) << ";";
+      s.op->newline() << "c->marker_name = "
+                      << lex_cast_qstring (p->tracepoint_name) << ";";
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        if (p->args[j].used)
+          {
+            s.op->newline() << "c->locals[0]." << p->name << ".__tracepoint_arg_"
+                            << p->args[j].name << " = (int64_t)";
+            if (p->args[j].isptr)
+              s.op->line() << "(intptr_t)";
+            s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
+          }
       s.op->newline() << p->name << " (c);";
       common_probe_entryfn_epilogue (s.op);
       s.op->newline(-1) << "}";
