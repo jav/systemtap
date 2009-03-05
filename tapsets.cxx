@@ -958,6 +958,9 @@ struct dwflpp
 
   void setup_user(string module_name, bool debuginfo_needed = true)
   {
+    if (! sess.module_cache)
+      sess.module_cache = new module_cache ();
+
     static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
     static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
     // NB: kernel_build_tree doesn't enter into this, as it's for
@@ -4993,9 +4996,6 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   if (e->module.empty())
     e->module = "kernel"; // "*" may also be reasonable to search all kernel modules
 
-  if (! s.module_cache)
-    s.module_cache = new module_cache ();
-
   string code;
   exp_type type = pe_long;
   try
@@ -5654,10 +5654,6 @@ dwarf_builder::build(systemtap_session & sess,
   // may be reused if we try to cross-instrument multiple targets.
 
   dwflpp* dw = 0;
-
-  if (! sess.module_cache)
-    sess.module_cache = new module_cache ();
-
 
   string module_name;
   if (has_null_param (parameters, TOK_KERNEL)
