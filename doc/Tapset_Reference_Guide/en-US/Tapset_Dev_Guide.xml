@@ -1,0 +1,33 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<chapter id="Tapset_Dev_Guide">
+	<title>Tapset Development Guidelines</title>
+
+<para>
+	This chapter describes the upstream guidelines on proper tapset documentation. It also contains
+	information on how to properly document your tapsets, to ensure that they are properly 
+	defined in this guide.
+</para>
+	
+	<section id="Tapsetcontents">
+		<title>Writing Good Tapsets</title>
+		
+<para>
+	The first step to writing good tapsets is  to create a simple model of your subject area.  For
+	example, a model of the process subsystem might include the following:
+</para>
+<remark>info from here:http://sources.redhat.com/git/?p=systemtap.git;a=blob_plain;f=tapset/DEVGUIDE</remark>
+
+	</section>
+	
+	<section id="Tapset_Reference_Guide-Test-Section_2_Test">
+		<title>Section 2 Test</title>
+		<para>
+			Test of a section
+		</para>
+	</section>
+
+</chapter>
+
