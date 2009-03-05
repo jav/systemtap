@@ -15,6 +15,7 @@
 #include "translate.h"
 #include "session.h"
 #include "util.h"
+#include "buildrun.h"
 #include "dwarf_wrappers.h"
 #include "auto_free.h"
 
@@ -465,6 +466,7 @@ static string TOK_STATEMENT("statement");
 static string TOK_ABSOLUTE("absolute");
 static string TOK_PROCESS("process");
 static string TOK_MARK("mark");
+static string TOK_TRACE("trace");
 static string TOK_LABEL("label");
 
 // Can we handle this query with just symbol-table info?
@@ -9201,6 +9203,81 @@ mark_builder::build(systemtap_session & sess,
 
 
 // ------------------------------------------------------------------------
+// statically inserted kernel-tracepoint derived probes
+// ------------------------------------------------------------------------
+
+
+struct tracepoint_derived_probe: public derived_probe
+{
+  // TODO
+};
+
+
+struct tracepoint_derived_probe_group: public generic_dpg<tracepoint_derived_probe>
+{
+  // TODO
+};
+
+
+struct tracepoint_builder: public derived_probe_builder
+{
+private:
+  dwflpp *dw;
+  bool init_dw(systemtap_session& s);
+
+public:
+  tracepoint_builder(): dw(0) {}
+  ~tracepoint_builder() { delete dw; }
+
+  void build_no_more (systemtap_session& s)
+  {
+    if (dw && s.verbose > 3)
+      clog << "tracepoint_builder releasing dwflpp" << endl;
+    delete dw;
+    dw = NULL;
+  }
+
+  void build(systemtap_session& s,
+             probe *base, probe_point *location,
+             literal_map_t const& parameters,
+             vector<derived_probe*>& finished_results);
+};
+
+
+bool
+tracepoint_builder::init_dw(systemtap_session& s)
+{
+  if (dw != NULL)
+    return true;
+
+  string tracequery_ko;
+  int rc = make_tracequery(s, tracequery_ko);
+  if (rc != 0)
+    return false;
+
+  // TODO cache tracequery.ko
+
+  dw = new dwflpp(s);
+  dw->setup_user(tracequery_ko);
+  return true;
+}
+
+
+void
+tracepoint_builder::build(systemtap_session& s,
+                          probe *base, probe_point *location,
+                          literal_map_t const& parameters,
+                          vector<derived_probe*>& finished_results)
+{
+  if (!init_dw(s))
+    return;
+
+  // TODO run a query to match tracepoint locations
+}
+
+
+
+// ------------------------------------------------------------------------
 // hrtimer derived probes
 // ------------------------------------------------------------------------
 // This is a new timer interface that provides more flexibility in specifying
@@ -10002,6 +10079,10 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_MARK)->bind_str(TOK_FORMAT)
     ->bind(new mark_builder());
 
+  // kernel tracepoint probes
+  s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_TRACE)
+    ->bind(new tracepoint_builder());
+
   // procfs parts
   s.pattern_root->bind(TOK_PROCFS)->bind(TOK_READ)->bind(new procfs_builder());
   s.pattern_root->bind_str(TOK_PROCFS)->bind(TOK_READ)
@@ -10030,6 +10111,7 @@ all_session_groups(systemtap_session& s)
   DOONE(timer);
   DOONE(profile);
   DOONE(mark);
+  DOONE(tracepoint);
   DOONE(hrtimer);
   DOONE(perfmon);
   DOONE(procfs);

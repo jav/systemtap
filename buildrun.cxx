@@ -24,6 +24,7 @@ extern "C" {
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <glob.h>
 }
 
 
@@ -334,6 +335,75 @@ run_pass (systemtap_session& s)
 
   rc = system (staprun_cmd.c_str ());
   return rc;
+}
+
+
+// Build a tiny kernel module to query tracepoints
+int
+make_tracequery(systemtap_session& s, string& name)
+{
+  // create a subdirectory for the module
+  string dir(s.tmpdir + "/tracequery");
+  if (create_dir(dir.c_str()) != 0)
+    {
+      if (! s.suppress_warnings)
+        cerr << "Warning: failed to create directory for querying tracepoints." << endl;
+      return 1;
+    }
+
+  name = dir + "/tracequery.ko";
+
+  // create a simple Makefile
+  string makefile(dir + "/Makefile");
+  ofstream omf(makefile.c_str());
+  omf << "EXTRA_CFLAGS := -g" << endl; // force debuginfo generation
+  omf << "obj-m := tracequery.o" << endl;
+  omf.close();
+
+  // create our source file
+  string source(dir + "/tracequery.c");
+  ofstream osrc(source.c_str());
+  osrc << "#include <linux/module.h>" << endl;
+  osrc << "#ifdef CONFIG_TRACEPOINTS" << endl;
+  osrc << "#include <linux/tracepoint.h>" << endl;
+
+  // override DECLARE_TRACE to synthesize probe functions for us
+  osrc << "#undef DECLARE_TRACE" << endl;
+  osrc << "#define DECLARE_TRACE(name, proto, args) \\" << endl;
+  osrc << "  void stapprobe_##name(proto) {}" << endl;
+
+  // dynamically pull in all tracepoint headers from include/trace/
+  glob_t trace_glob;
+  string glob_str(s.kernel_build_tree + "/include/trace/*.h");
+  glob(glob_str.c_str(), 0, NULL, &trace_glob);
+  for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
+    {
+      string header(basename(trace_glob.gl_pathv[i]));
+
+      // filter out a few known "internal-only" headers
+      if (header == "trace_events.h")
+        continue;
+      if (header.find("_event_types.h") != string::npos)
+        continue;
+
+      osrc << "#include <trace/" << header << ">" << endl;
+    }
+  globfree(&trace_glob);
+
+  // finish up the module source
+  osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;
+  osrc << "int init_module(void) { return 0; }" << endl;
+  osrc << "void cleanup_module(void) {}" << endl;
+  osrc << "MODULE_DESCRIPTION(\"tracepoint query\");" << endl;
+  osrc << "MODULE_LICENSE(\"GPL\");" << endl;
+  osrc.close();
+
+  // make the module
+  string make_cmd = "make -C '" + s.kernel_build_tree + "'"
+    + " M='" + dir + "' modules";
+  if (s.verbose < 4)
+    make_cmd += " >/dev/null 2>&1";
+  return run_make_cmd(s, make_cmd);
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
