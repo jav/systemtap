@@ -9219,6 +9219,80 @@ struct tracepoint_derived_probe_group: public generic_dpg<tracepoint_derived_pro
 };
 
 
+struct tracepoint_query : public base_query
+{
+  tracepoint_query(dwflpp & dw, const string & tracepoint,
+                   probe * base_probe, probe_point * base_loc,
+                   vector<derived_probe *> & results):
+    base_query(dw, "*"), tracepoint(tracepoint),
+    base_probe(base_probe), base_loc(base_loc),
+    results(results) {}
+
+  const string& tracepoint;
+
+  probe * base_probe;
+  probe_point * base_loc;
+  vector<derived_probe *> & results;
+
+  void handle_query_module();
+  int handle_query_cu(Dwarf_Die * cudie);
+  int handle_query_func(Dwarf_Die * func);
+
+  static int tracepoint_query_cu (Dwarf_Die * cudie, void * arg);
+  static int tracepoint_query_func (Dwarf_Die * func, base_query * query);
+};
+
+
+void
+tracepoint_query::handle_query_module()
+{
+  // look for the tracepoints in each CU
+  dw.iterate_over_cus(tracepoint_query_cu, this);
+}
+
+
+int
+tracepoint_query::handle_query_cu(Dwarf_Die * cudie)
+{
+  dw.focus_on_cu (cudie);
+
+  // look at each function to see if it's a tracepoint
+  string function = "stapprobe_" + tracepoint;
+  return dw.iterate_over_functions (tracepoint_query_func, this, function);
+}
+
+
+int
+tracepoint_query::handle_query_func(Dwarf_Die * func)
+{
+  dw.focus_on_function (func);
+
+  assert(dw.function_name.compare(0, 10, "stapprobe_") == 0);
+  string tracepoint_instance = dw.function_name.substr(10);
+  // TODO build a tracepoint_derived_probe
+  clog << "DEBUG: found a tracepoint: " << tracepoint_instance << endl;
+  return DWARF_CB_OK;
+}
+
+
+int
+tracepoint_query::tracepoint_query_cu (Dwarf_Die * cudie, void * arg)
+{
+  tracepoint_query * q = static_cast<tracepoint_query *>(arg);
+  if (pending_interrupts) return DWARF_CB_ABORT;
+  return q->handle_query_cu(cudie);
+}
+
+
+int
+tracepoint_query::tracepoint_query_func (Dwarf_Die * func, base_query * query)
+{
+  tracepoint_query * q = static_cast<tracepoint_query *>(query);
+  if (pending_interrupts) return DWARF_CB_ABORT;
+  return q->handle_query_func(func);
+}
+
+
 struct tracepoint_builder: public derived_probe_builder
 {
 private:
@@ -9272,7 +9346,11 @@ tracepoint_builder::build(systemtap_session& s,
   if (!init_dw(s))
     return;
 
-  // TODO run a query to match tracepoint locations
+  string tracepoint;
+  assert(get_param (parameters, TOK_TRACE, tracepoint));
+
+  tracepoint_query q(*dw, tracepoint, base, location, finished_results);
+  dw->query_modules(&q);
 }
 
 
