@@ -22,7 +22,7 @@ perl -p -e 'undef $/;s|<para>\nYou should have received a copy of the GNU Genera
 perl -p -e 'undef $/;s|<para>\nFor more details see the file COPYING in the source\ndistribution of Linux.\n</para>\n</legalnotice>\n</bookinfo>||msg' | 
 perl -p -e 'undef $/;s|<toc></toc>||msg' | 
 perl -p -e 'undef $/;s|\n\n\n\n\n\n\n\n\n\n\n\n\n\n||msg' | 
-perl -p -e 'undef $/;s|<programlisting>\n|<programlisting>\n<emphasis>(sfunction) <\/emphasis>|msg' | 
+perl -p -e 'undef $/;s|<programlisting>\n|<programlisting>\n<emphasis>function <\/emphasis>|msg' | 
 perl -p -e 'undef $/;s|<para>\n</para>||msg' | 
 perl -p -e 'undef $/;s|<para>\n\n</para>||msg' | 
 perl -p -e 'undef $/;s|<para>\n<programlisting>|<programlisting>|msg' |
