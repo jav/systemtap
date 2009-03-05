@@ -4,13 +4,17 @@
 
 <bookinfo id="Tapset_Reference_Guide-Red_Hat_Enterprise_Linux">
 	<title>Tapset Reference Guide</title>
-	<subtitle>For SystemTap in &RHEL;.3</subtitle>
-	<productname>Red Hat Enterprise Linux</productname>
-	<productnumber>5.2</productnumber>
+	<subtitle>For SystemTap in Fedora 10</subtitle>
+	<productname>Fedora</productname>
+	<productnumber>10</productnumber>
 	<edition>1.0</edition>
 	<pubsnumber>0</pubsnumber>
 	<abstract>
-		<para>The <citetitle>Tapset Reference Guide</citetitle> describes the most common tapset definitions users can apply to SystemTap scripts. All included tapsets documented in this guide are current as of &RHEL;.3.</para>
+		<para>
+			The <citetitle>Tapset Reference Guide</citetitle> describes the most common tapset definitions 
+			users can apply to SystemTap scripts. All included tapsets documented in this guide are current 
+			as of Fedora 10 and the latest upstream version of SystemTap.
+		</para>
 	</abstract>
 	<corpauthor>
 		<inlinemediaobject>
