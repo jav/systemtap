@@ -9209,14 +9209,87 @@ mark_builder::build(systemtap_session & sess,
 
 struct tracepoint_derived_probe: public derived_probe
 {
-  // TODO
+  tracepoint_derived_probe (systemtap_session& s,
+                            dwflpp& dw, Dwarf_Die& func_die,
+                            const string& tracepoint_name,
+                            probe* base_probe, probe_point* location);
+
+  systemtap_session& sess;
+  string tracepoint_name;
+
+  void join_group (systemtap_session& s);
 };
 
 
 struct tracepoint_derived_probe_group: public generic_dpg<tracepoint_derived_probe>
 {
-  // TODO
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
 };
+
+
+tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
+                                                    dwflpp& dw, Dwarf_Die& func_die,
+                                                    const string& tracepoint_name,
+                                                    probe* base, probe_point* loc):
+  derived_probe (base, new probe_point(*loc) /* .components soon rewritten */),
+  sess (s), tracepoint_name (tracepoint_name)
+{
+  // create synthetic probe point name; preserve condition
+  vector<probe_point::component*> comps;
+  comps.push_back (new probe_point::component (TOK_KERNEL));
+  comps.push_back (new probe_point::component (TOK_TRACE, new literal_string (tracepoint_name)));
+  this->sole_location()->components = comps;
+
+  if (sess.verbose > 2)
+    clog << "tracepoint-based " << name << " tracepoint='" << tracepoint_name
+	 << "'" << endl;
+}
+
+
+void
+tracepoint_derived_probe::join_group (systemtap_session& s)
+{
+  if (! s.tracepoint_derived_probes)
+    s.tracepoint_derived_probes = new tracepoint_derived_probe_group ();
+  s.tracepoint_derived_probes->enroll (this);
+}
+
+
+void
+tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
+{
+  if (probes.empty())
+    return;
+
+  s.op->newline() << "/* ---- tracepointer probes ---- */";
+
+  // TODO
+}
+
+
+void
+tracepoint_derived_probe_group::emit_module_init (systemtap_session &s)
+{
+  if (probes.size () == 0)
+    return;
+
+  s.op->newline() << "/* init tracepoint probes */";
+
+  // TODO
+}
+
+
+void
+tracepoint_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (probes.empty())
+    return;
+
+  s.op->newline() << "/* deregister tracepointer probes */";
+  // TODO
+}
 
 
 struct tracepoint_query : public base_query
@@ -9269,8 +9342,10 @@ tracepoint_query::handle_query_func(Dwarf_Die * func)
 
   assert(dw.function_name.compare(0, 10, "stapprobe_") == 0);
   string tracepoint_instance = dw.function_name.substr(10);
-  // TODO build a tracepoint_derived_probe
-  clog << "DEBUG: found a tracepoint: " << tracepoint_instance << endl;
+  derived_probe *dp = new tracepoint_derived_probe (dw.sess, dw, *func,
+                                                    tracepoint_instance,
+                                                    base_probe, base_loc);
+  results.push_back (dp);
   return DWARF_CB_OK;
 }
 
