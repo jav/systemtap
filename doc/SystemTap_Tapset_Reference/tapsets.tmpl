@@ -98,7 +98,7 @@
 	the kernel.  This is common among asynchronous events such as timers,
 	exit functions, and print functions.
       </para>
-
+<!-- markerforxi pls dont remove -->
 <!--
 <varlistentry>
 <term></term>
@@ -115,7 +115,7 @@
   <chapter id="context_stp">
     <title>Context Functions</title>
     <para>
-      The context functions provide additional information about the where
+      The context functions provide additional information about where
       the event occurred.
       These functions can provide information such as a backtrace
       where the event occured
@@ -130,7 +130,7 @@
     <title>Timestamp Functions</title>
     <para>
       Each timestamp function returns a value to indicate when
-      the function is executed.
+      a function is executed.
       Thus, these returned values can be used to indicate
       when an event occurs, provide an ordering for events, or compute
       the amount of time elapsed between to time stamps.
@@ -165,9 +165,11 @@
     <title>Networking Tapset</title>
     <para>
       This family of probe points is used to probe the activities of
-      network device. 
+      the network device, TCP layer, and UDP layer. 
     </para>
 !Itapset/networking.stp
+!Itapset/tcp.stp
+!Itapset/udp.stp
   </chapter>
 
   <chapter id="socket.stp">
@@ -178,14 +180,14 @@
    </para>
 !Itapset/socket.stp
   </chapter>
-
+<!--
   <chapter id="tcp.stp">
     <title>TCP Tapset</title>
     <para>
       This family of probe points is used to probe TCP layer activities.
       It contains the following probe points:
     </para>
-!Itapset/tcp.stp
+
   </chapter>
 
   <chapter id="upd.stp">
@@ -194,9 +196,9 @@
       This family of probe points is used to probe UDP layer activities.
       It contains the following probe points:
     </para>
-!Itapset/udp.stp
-  </chapter>
 
+  </chapter>
+-->
   <chapter id="process.stp">
     <title>Process Tapset</title>
     <para>
