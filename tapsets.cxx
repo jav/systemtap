@@ -1193,8 +1193,9 @@ struct dwflpp
     return DWARF_CB_OK;
   }
 
-  int iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
-                              void * data);
+  int iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
+                              base_query * q, const string& function,
+                              bool has_statement_num=false);
   int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
 				 void * data);
 
@@ -2937,13 +2938,13 @@ dwflpp::iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
 }
 
 int
-dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
-                                void * data)
+dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
+                                base_query * q, const string& function,
+                                bool has_statement_num)
 {
   int rc = DWARF_CB_OK;
   assert (module);
   assert (cu);
-  dwarf_query * q = static_cast<dwarf_query *>(data);
 
   string key = module_name + ":" + cu_name;
   cu_function_cache_t *v = cu_function_cache[key];
@@ -2956,13 +2957,13 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
         clog << "function cache " << key << " size " << v->size() << endl;
     }
 
-  string subkey = q->function;
+  string subkey = function;
   if (v->find(subkey) != v->end())
     {
       Dwarf_Die die = v->find(subkey)->second;
       if (q->sess.verbose > 4)
         clog << "function cache " << key << " hit " << subkey << endl;
-      return (*callback)(& die, data);
+      return (*callback)(& die, q);
     }
   else if (name_has_wildcard (subkey))
     {
@@ -2976,17 +2977,17 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
               if (q->sess.verbose > 4)
                 clog << "function cache " << key << " match " << func_name << " vs " << subkey << endl;
 
-              rc = (*callback)(& die, data);
+              rc = (*callback)(& die, q);
               if (rc != DWARF_CB_OK) break;
             }
         }
     }
-  else if (q->has_statement_num) // searching all for kernel.statement
+  else if (has_statement_num) // searching all for kernel.statement
     {
       for (cu_function_cache_t::iterator it = v->begin(); it != v->end(); it++)
         {
           Dwarf_Die die = it->second;
-          rc = (*callback)(& die, data);
+          rc = (*callback)(& die, q);
           if (rc != DWARF_CB_OK) break;
         }
     }
@@ -3876,9 +3877,9 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 }
 
 static int
-query_dwarf_func (Dwarf_Die * func, void * arg)
+query_dwarf_func (Dwarf_Die * func, base_query * bq)
 {
-  dwarf_query * q = static_cast<dwarf_query *>(arg);
+  dwarf_query * q = static_cast<dwarf_query *>(bq);
 
   try
     {
@@ -3892,7 +3893,7 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	  if (q->sess.verbose>3)
 	    clog << "checking instances of inline " << q->dw.function_name
                  << "\n";
-	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, arg);
+	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, q);
 
           if (q->dw.function_name_final_match (q->function))
             return DWARF_CB_ABORT;
@@ -4026,7 +4027,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // Pick up [entrypc, name, DIE] tuples for all the functions
 	  // matching the query, and fill in the prologue endings of them
 	  // all in a single pass.
-	  int rc = q->dw.iterate_over_functions (query_dwarf_func, q);
+	  int rc = q->dw.iterate_over_functions (query_dwarf_func, q,
+                                                 q->function,
+                                                 q->has_statement_num);
 	  if (rc != DWARF_CB_OK)
 	    q->query_done = true;
 
