@@ -3,7 +3,7 @@
 XML_LANG	= en-US
 DOCNAME		= Tapset_Reference_Guide
 #PRODUCT	= FIX_ME!
-BRAND		= RedHat
+BRAND		= fedora
 
 #OTHER_LANGS	= as-IN bn-IN de-DE es-ES fr-FR gu-IN hi-IN it-IT ja-JP kn-IN ko-KR ml-IN mr-IN or-IN pa-IN pt-BR ru-RU si-LK ta-IN te-IN zh-CN zh-TW
 
