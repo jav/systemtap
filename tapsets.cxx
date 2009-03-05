@@ -9206,6 +9206,10 @@ mark_builder::build(systemtap_session & sess,
 // statically inserted kernel-tracepoint derived probes
 // ------------------------------------------------------------------------
 
+struct tracepoint_arg
+{
+  string name, c_type;
+};
 
 struct tracepoint_derived_probe: public derived_probe
 {
@@ -9215,8 +9219,10 @@ struct tracepoint_derived_probe: public derived_probe
                             probe* base_probe, probe_point* location);
 
   systemtap_session& sess;
-  string tracepoint_name;
+  string tracepoint_name, header;
+  vector <struct tracepoint_arg> args;
 
+  void build_args(dwflpp& dw, Dwarf_Die& func_die);
   void join_group (systemtap_session& s);
 };
 
@@ -9242,9 +9248,113 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
   comps.push_back (new probe_point::component (TOK_TRACE, new literal_string (tracepoint_name)));
   this->sole_location()->components = comps;
 
+  // fill out the available arguments in this tracepoint
+  build_args(dw, func_die);
+
+  // determine which header defined this tracepoint
+  string decl_file = dwarf_decl_file(&func_die);
+  size_t header_pos = decl_file.rfind("trace/");
+  if (header_pos == string::npos)
+    throw semantic_error ("cannot parse header location for tracepoint '"
+                                  + tracepoint_name + "' in '"
+                                  + decl_file + "'");
+  header = decl_file.substr(header_pos);
+
+  // tracepoints from FOO_event_types.h should really be included from FOO.h
+  // XXX can dwarf tell us the include hierarchy?  it would be better to
+  // ... walk up to see which one was directly included by tracequery.c
+  header_pos = header.find("_event_types");
+  if (header_pos != string::npos)
+    header.erase(header_pos, 12);
+
   if (sess.verbose > 2)
     clog << "tracepoint-based " << name << " tracepoint='" << tracepoint_name
 	 << "'" << endl;
+}
+
+
+static bool
+dwarf_type_name(Dwarf_Die& type_die, string& c_type)
+{
+  // if this die has a direct name, then we're done
+  const char *diename = dwarf_diename_integrate(&type_die);
+  if (diename != NULL)
+    {
+      switch (dwarf_tag(&type_die))
+        {
+        case DW_TAG_structure_type:
+          c_type.append("struct ");
+          break;
+        case DW_TAG_union_type:
+          c_type.append("union ");
+          break;
+        }
+      c_type.append(diename);
+      return true;
+    }
+
+  // otherwise, this die is a type modifier.
+
+  // recurse into the referent type
+  Dwarf_Attribute subtype_attr;
+  Dwarf_Die subtype_die;
+  if (!dwarf_attr_integrate(&type_die, DW_AT_type, &subtype_attr)
+      || !dwarf_formref_die(&subtype_attr, &subtype_die)
+      || !dwarf_type_name(subtype_die, c_type))
+    return false;
+
+  const char *suffix = NULL;
+  switch (dwarf_tag(&type_die))
+    {
+    case DW_TAG_pointer_type:
+      suffix = "*";
+      break;
+    case DW_TAG_array_type:
+      suffix = "[]";
+      break;
+    case DW_TAG_const_type:
+      suffix = " const";
+      break;
+    case DW_TAG_volatile_type:
+      suffix = " volatile";
+      break;
+    default:
+      return false;
+    }
+  c_type.append(suffix);
+  return true;
+}
+
+
+void
+tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
+{
+  Dwarf_Die arg;
+  if (dwarf_child(&func_die, &arg) == 0)
+    do
+      if (dwarf_tag(&arg) == DW_TAG_formal_parameter)
+        {
+          // build a tracepoint_arg for this parameter
+          tracepoint_arg tparg;
+          tparg.name = dwarf_diename_integrate(&arg);
+
+          // read the type of this parameter
+          Dwarf_Attribute type_attr;
+          Dwarf_Die type_die;
+          if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr)
+              || !dwarf_formref_die (&type_attr, &type_die)
+              || !dwarf_type_name(type_die, tparg.c_type))
+            throw semantic_error ("cannot get type of tracepoint '"
+                                  + tracepoint_name + "' parameter '"
+                                  + tparg.name + "'");
+
+          args.push_back(tparg);
+          if (sess.verbose > 4)
+            clog << "found parameter for tracepoint '" << tracepoint_name
+                 << "': type:'" << tparg.c_type
+                 << "' name:'" << tparg.name << "'" << endl;
+        }
+    while (dwarf_siblingof(&arg, &arg) == 0);
 }
 
 
@@ -9265,7 +9375,28 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- tracepointer probes ---- */";
 
-  // TODO
+  for (unsigned i = 0; i < probes.size(); ++i)
+    {
+      tracepoint_derived_probe *p = probes[i];
+      s.op->newline();
+      s.op->newline() << "#include <" << p->header << ">";
+      s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        {
+          if (j > 0)
+            s.op->line() << ", ";
+          s.op->line() << p->args[j].c_type << " __tracepoint_arg_" << p->args[j].name;
+        }
+      s.op->line() << ") {";
+      s.op->indent(1);
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      s.op->newline() << "c->probe_point = "
+                      << lex_cast_qstring (*p->sole_location()) << ";";
+      s.op->newline() << p->name << " (c);";
+      common_probe_entryfn_epilogue (s.op);
+      s.op->newline(-1) << "}";
+      s.op->newline();
+    }
 }
 
 
@@ -9277,7 +9408,27 @@ tracepoint_derived_probe_group::emit_module_init (systemtap_session &s)
 
   s.op->newline() << "/* init tracepoint probes */";
 
-  // TODO
+  // We can't use a simple runtime loop because the probe registration
+  // functions are distinct inlines.  Instead, this will generate nesting as
+  // deep as the number of probe points.  Gotos are also possible, but the end
+  // result is the same.
+
+  for (unsigned i = 0; i < probes.size(); ++i)
+    {
+      s.op->newline() << "if (!rc) {";
+      s.op->newline(1) << "probe_point = "
+                       << lex_cast_qstring (*probes[i]->sole_location()) << ";";
+      s.op->newline() << "rc = register_trace_" << probes[i]->tracepoint_name
+                      << "(enter_tracepoint_probe_" << i << ");";
+    }
+
+  for (unsigned i = probes.size() - 1; i < probes.size(); --i)
+    {
+      s.op->newline() << "if (rc)";
+      s.op->newline(1) << "unregister_trace_" << probes[i]->tracepoint_name
+                       << "(enter_tracepoint_probe_" << i << ");";
+      s.op->newline(-2) << "}";
+    }
 }
 
 
@@ -9288,7 +9439,9 @@ tracepoint_derived_probe_group::emit_module_exit (systemtap_session& s)
     return;
 
   s.op->newline() << "/* deregister tracepointer probes */";
-  // TODO
+  for (unsigned i = 0; i < probes.size(); ++i)
+    s.op->newline() << "unregister_trace_" << probes[i]->tracepoint_name
+                    << "(enter_tracepoint_probe_" << i << ");";
 }
 
 
