@@ -1,10 +1,15 @@
 #!/bin/bash
 
 #copy the automated tapsets.xml 
-cp ../SystemTap_Tapset_Reference/tapsets.xml en-US/Tapset_Reference_Guide.xml ;
+cp ../SystemTap_Tapset_Reference/tapsets.xml temp.xml ;
 
 #remove all excess whitespace
-sed -i -e 's/^\s*//g' en-US/Tapset_Reference_Guide.xml ;
+sed -i -e 's/^\s*//g' temp.xml ;
+
+#remove marked Intro (starthere to endhere), then copy it to en-US
+sed '/starthere/,/endhere/d' temp.xml > Tapset_Reference_Guide.xml
+cp Tapset_Reference_Guide.xml en-US/Tapset_Reference_Guide.xml;
+rm Tapset_Reference_Guide.xml
 
 #re-convert programlisting tags
 sed -i  -e 's/&lt;programlisting&gt;/<programlisting>/g' en-US/Tapset_Reference_Guide.xml;
@@ -22,15 +27,24 @@ perl -p -e 'undef $/;s|<para>\nYou should have received a copy of the GNU Genera
 perl -p -e 'undef $/;s|<para>\nFor more details see the file COPYING in the source\ndistribution of Linux.\n</para>\n</legalnotice>\n</bookinfo>||msg' | 
 perl -p -e 'undef $/;s|<toc></toc>||msg' | 
 perl -p -e 'undef $/;s|\n\n\n\n\n\n\n\n\n\n\n\n\n\n||msg' | 
+perl -p -e 'undef $/;s|\n\n\n\n\n\n\n\n\n\n\n||msg' |
 perl -p -e 'undef $/;s|<programlisting>\n|<programlisting>\n<emphasis>function <\/emphasis>|msg' | 
 perl -p -e 'undef $/;s|<para>\n</para>||msg' | 
 perl -p -e 'undef $/;s|<para>\n\n</para>||msg' | 
 perl -p -e 'undef $/;s|<para>\n<programlisting>|<programlisting>|msg' |
 perl -p -e 'undef $/;s|</programlisting>\n</para>|</programlisting>|msg' > clean.xml
 
+#replace Intro with my own
+perl -p -i -e 's|<!--markerforxi-->|<xi:include href="Introduction.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />\n<xi:include href="Tapset_Dev_Guide.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />|g' clean.xml
+
+#for tapset name format section
+#perl -p -i -e 'undef $/;s|<screen>\nname:return \(parameters\)\ndefinition\n</screen>|<screen>\n<replaceable>function/probe</replaceable> tapset_name:return \(parameters\)\n</screen>|msg' clean.xml
+#perl -p -i -e 's|<para>In this guide, tapset definitions appear in the following format:</para>|<para>In this guide, the synopsis of each tapset appears in the following format:</para>|g' clean.xml
+#perl -p -i -e 's|<!-- markerforxi pls dont remove -->|<xi:include href="tapsetnameformat-lastpara.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />\n<xi:include href="refentry-example.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />|g' clean.xml
+
 cp clean.xml en-US/Tapset_Reference_Guide.xml
 rm clean.xml
-
+ 
 # statements change synopsis tags, as they are still currently unfixed in publican-redhat 
 sed -i -e 's/refsynopsisdiv>/refsect1>/g' en-US/Tapset_Reference_Guide.xml;
 sed -i -e 's/refsect1>/refsection>/g' en-US/Tapset_Reference_Guide.xml;
@@ -46,3 +60,6 @@ sed -i  -e 's/&lt;\/remark&gt;/<\/remark>/g' en-US/Tapset_Reference_Guide.xml;
 
 sed -i  -e 's/&lt;command&gt;/<command>/g' en-US/Tapset_Reference_Guide.xml;
 sed -i  -e 's/&lt;\/command&gt;/<\/command>/g' en-US/Tapset_Reference_Guide.xml;
+
+#useful marker script; moves content between starthere and endhere to file target
+#sed -n '/starthere/,/endhere/ s/.*/&/w target' Tapset_Reference_Guide.xml
