@@ -18,16 +18,100 @@
 	The first step to writing good tapsets is  to create a simple model of your subject area.  For
 	example, a model of the process subsystem might include the following:
 </para>
+
+<formalpara>
+	<title>Key Data</title>
+	<para>
+		<itemizedlist>
+			<listitem><para>process ID</para></listitem>
+			<listitem><para>parent process ID</para></listitem>
+			<listitem><para>process group ID</para></listitem>
+		</itemizedlist>
+	</para>
+</formalpara>
+
+<formalpara>
+	<title>State Transitions</title>
+	<para>
+		<itemizedlist>
+			<listitem><para>forked</para></listitem>
+			<listitem><para>exec'd</para></listitem>
+			<listitem><para>running</para></listitem>
+			<listitem><para>stopped</para></listitem>
+			<listitem><para>terminated</para></listitem>
+		</itemizedlist>
+	</para>
+</formalpara>
+			
+<note>
+	<title>Note</title>
+	<para>Both lists are examples, and are not meant to represent a complete list.</para>
+</note>
+
+<para>
+	Use your subsystem expertise to find probe points (function entries and
+	exits) that expose the elements of the model, then define probe aliases
+	for those points.  Be aware that some state transitions can occur in more
+	than one place. In those cases, an alias can place a probe in multiple
+	locations.
+</para>
+
+<para>
+	For example, process execs can occur in either the <command>do_execve()</command> or the
+	<command>compat_do_execve()</command> functions. The following alias inserts probes at the
+	beginning of those functions:
+</para>
+
+<programlisting>
+probe process.exec = kernel.function("do_execve"),
+kernel.function("compat_do_execve") 
+{<replaceable>probe body</replaceable>}
+</programlisting>		
+
+<para>
+	Try to place probes on stable interfaces (i.e., functions
+	that are unlikely to change at the interface level) whenever possible.  This will
+	make the tapset less likely to break due to kernel changes. Where
+	kernel version or architecture dependencies are unavoidable, use
+	preprocessor conditionals (see the <command>stap(1)</command> man page for details).
+</para>
+
+
+<para>
+	Fill in the probe bodies with the key data available at the probe points.
+	Function entry probes can access the entry parameters specified to
+	the function, while exit probes can access the entry parameters and the
+	return value.  Convert the data into meaningful forms where appropriate
+	(e.g., bytes to kilobytes, state values to strings, etc).
+</para>
+
+<para>
+	You may need to use auxiliary functions to access or convert some of the data. Auxiliary
+	functions often use embedded C to do things that cannot be done in the
+	SystemTap language, like access structure fields in some contexts, follow
+	linked lists, etc. You can use auxiliary functions defined in other tapsets
+	or write your own.
+</para>
+
+<para>
+	In the following example, <command>copy_process()</command> returns a 
+	pointer to the <command>task_struct</command> for the new process.  Note 
+	that the process ID of the new process is retrieved by calling 
+	<command>task_pid()</command> and passing it the <command>task_struct</command>
+	pointer. In this case, the auxiliary function is an embedded C function
+	that's defined in the task tapset (<filename>task.stp</filename>).
+</para>
+
 <remark>info from here:http://sources.redhat.com/git/?p=systemtap.git;a=blob_plain;f=tapset/DEVGUIDE</remark>
 
 	</section>
-	
+<!--	
 	<section id="Tapset_Reference_Guide-Test-Section_2_Test">
 		<title>Section 2 Test</title>
 		<para>
 			Test of a section
 		</para>
 	</section>
-
+-->
 </chapter>
 
