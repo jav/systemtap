@@ -181,8 +181,8 @@ label:				\
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
   STAP_LABEL_REF(probe,label);} while (0)
 
-#define STAP_PROBE(provider,probe,...)	\
-  STAP_PROBE_(probe,STAP_LABEL(STAP_LABEL_PREFIX(probe),STAP_COUNTER),__VA_ARGS__)
+#define STAP_PROBE(provider,probe)	\
+  STAP_PROBE_(probe,STAP_LABEL(STAP_LABEL_PREFIX(probe),STAP_COUNTER))
 #define STAP_PROBE1(provider,probe,...)	\
   STAP_PROBE1_(probe,STAP_LABEL(STAP_LABEL_PREFIX(probe),STAP_COUNTER),__VA_ARGS__)
 #define STAP_PROBE2(provider,probe,...)	\
