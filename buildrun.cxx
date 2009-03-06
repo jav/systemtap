@@ -372,6 +372,11 @@ make_tracequery(systemtap_session& s, string& name)
   osrc << "#define DECLARE_TRACE(name, proto, args) \\" << endl;
   osrc << "  void stapprobe_##name(proto) {}" << endl;
 
+  // older tracepoints used DEFINE_TRACE, so redirect that too
+  osrc << "#undef DEFINE_TRACE" << endl;
+  osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
+  osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
+
   // dynamically pull in all tracepoint headers from include/trace/
   glob_t trace_glob;
   string glob_str(s.kernel_build_tree + "/include/trace/*.h");
