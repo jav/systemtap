@@ -877,60 +877,52 @@ probe sunrpc.sched.delay.return = kernel.function("rpc_delay").return !,
  *****************************************************************/
 
 function xid_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if (clnt == NULL)
-		THIS->__retvalue = 0;
+{
+	if (clnt == 0)
+		return 0
 	else {
-		struct rpc_xprt *cl_xprt = kread(&(clnt->cl_xprt));
-		THIS->__retvalue = kread(&(cl_xprt->xid));
+		cl_xprt = @cast(clnt, "rpc_clnt", "kernel")->cl_xprt
+		return @cast(cl_xprt, "rpc_xprt", "kernel")->xid
 	}
-	CATCH_DEREF_FAULT();
-%}
+}
 
 function prog_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if (clnt == NULL)
-		THIS->__retvalue = 0;
+{
+	if (clnt == 0)
+		return 0
 	else {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-		THIS->__retvalue = kread(&(clnt->cl_prog));
-#else
-		struct rpc_portmap *cl_pmap = kread(&(clnt->cl_pmap));
-		THIS->__retvalue = kread(&(cl_pmap->pm_prog));
-#endif
+%(kernel_v  >= "2.6.19" %?
+		return @cast(clnt, "rpc_clnt", "kernel")->cl_prog
+%:
+		cl_pmap = @cast(clnt, "rpc_clnt", "kernel")->cl_pmap
+		return @cast(cl_pmap, "rpc_portmap", "kernel")->pm_prog
+%)
 	}
-	CATCH_DEREF_FAULT();
-%}
+}
 
 function vers_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if (clnt == NULL)
-		THIS->__retvalue = 0;
-	else {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-		THIS->__retvalue = kread(&(clnt->cl_vers));
-#else
-		struct rpc_portmap *cl_pmap = kread(&(clnt->cl_pmap));
-		THIS->__retvalue = kread(&(cl_pmap->pm_vers));
-#endif
-	}
-	CATCH_DEREF_FAULT();
-%}
+{
+        if (clnt == 0)
+                return 0
+        else {
+%(kernel_v  >= "2.6.19" %?
+                return @cast(clnt, "rpc_clnt", "kernel")->cl_vers
+%:
+                cl_pmap = @cast(clnt, "rpc_clnt", "kernel")->cl_pmap
+                return @cast(cl_pmap, "rpc_portmap", "kernel")->pm_vers
+%)
+        }
+}
 
 function prot_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if (clnt == NULL)
-		THIS->__retvalue = 0;
-	else {
-		struct rpc_xprt *cl_xprt = kread(&(clnt->cl_xprt));
-		THIS->__retvalue = kread(&(cl_xprt->prot));
-	}
-	CATCH_DEREF_FAULT();
-%}
+{
+        if (clnt == 0)
+                return 0
+        else {
+                cl_xprt = @cast(clnt, "rpc_clnt", "kernel")->cl_xprt
+                return @cast(cl_xprt, "rpc_xprt", "kernel")->prot
+        }
+}
 
 function port_from_clnt:long(clnt:long)
 %{ /* pure */
@@ -975,16 +967,14 @@ function tasks_from_clnt:long(clnt:long)
 %}
 
 function proc_from_msg:long(msg:long)
-%{ /* pure */
-	struct rpc_message *msg = (struct rpc_message *)(long)THIS->msg;
-	if (msg == NULL)
-		THIS->__retvalue = 0;
+{
+	if (msg == 0)
+		return 0
 	else {
-		struct rpc_procinfo *rpc_proc = kread(&(msg->rpc_proc));
-		THIS->__retvalue = kread(&(rpc_proc->p_proc));
+		rpc_proc = @cast(msg, "rpc_message", "kernel")->rpc_proc
+		return @cast(rpc_proc, "rpc_procinfo", "kernel")->p_proc
 	}
-	CATCH_DEREF_FAULT();
-%}
+}
 
 function vers_from_prog:long(program:long, vers:long)
 %{ /* pure */

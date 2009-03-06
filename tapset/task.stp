@@ -43,35 +43,31 @@ function task_parent:long (task:long) %{ /* pure */
 //   TASK_TRACED            8
 //   EXIT_ZOMBIE           16
 //   EXIT_DEAD             32
-function task_state:long (task:long) %{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    THIS->__retvalue = kread(&(t->state));
-    CATCH_DEREF_FAULT();
-%}
+function task_state:long (task:long)
+{
+    return @cast(task, "task_struct", "kernel")->state
+}
 
 
 // Return the name of the given task
-function task_execname:string (task:long) %{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    deref_string(THIS->__retvalue, t->comm, MAXSTRINGLEN);
-    CATCH_DEREF_FAULT();
-%}
+function task_execname:string (task:long)
+{
+    return kernel_string(@cast(task, "task_struct", "kernel")->comm)
+}
 
 
 // Return the process id of the given task
-function task_pid:long (task:long) %{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    THIS->__retvalue = kread(&(t->tgid));
-    CATCH_DEREF_FAULT();
-%}
+function task_pid:long (task:long)
+{
+    return @cast(task, "task_struct", "kernel")->tgid
+}
 
 
 // Return the thread id of the given task
-function task_tid:long (task:long) %{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    THIS->__retvalue = kread(&(t->pid));
-    CATCH_DEREF_FAULT();
-%}
+function task_tid:long (task:long)
+{
+    return @cast(task, "task_struct", "kernel")->pid
+}
 
 
 // Return the group id of the given task
@@ -156,22 +152,14 @@ function task_nice:long (task:long) %{ /* pure */
 
 // Return the scheduled cpu for the given task
 function task_cpu:long (task:long)
+{
 %( kernel_v >= "2.6.22" %? 
-%{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    struct thread_info *ti = kread(&(t->stack));
-    THIS->__retvalue = kread(&(ti->cpu));
-    CATCH_DEREF_FAULT();
-%}
+    ti = @cast(task, "task_struct", "kernel")->stack
 %:
-%{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    struct thread_info *ti = kread(&(t->thread_info));
-    THIS->__retvalue = kread(&(ti->cpu));
-    CATCH_DEREF_FAULT();
-%}
+    ti = @cast(task, "task_struct", "kernel")->thread_info
 %)
-
+    return @cast(ti, "thread_info", "kernel")->cpu
+}
 
 // Return the number of open file handlers for the given task
 function task_open_file_handles:long (task:long)

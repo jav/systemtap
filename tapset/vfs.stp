@@ -51,136 +51,106 @@ function ppos_pos:long (ppos:long) %{ /* pure */
 	CATCH_DEREF_FAULT();
 %}
 
-function __page_ino:long (page:long) %{ /* pure */
-	struct page *page = (struct page *)(long)THIS->page;
-	struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
-	if (mapping == NULL) {
-		THIS->__retvalue = -1;
-	} else {
-		struct inode *host = kread(&(mapping->host));
-		THIS->__retvalue = kread(&(host->i_ino));
+function __address_inode:long (page:long)
+{
+	mapping = page? @cast(page, "page", "kernel")->mapping : 0
+	if (mapping == 0)
+		return -1
+	else
+		return @cast(mapping, "address_space", "kernel")->host
+}
+
+function __page_ino:long (page:long)
+{
+	host = __address_inode(page)
+	if (host == -1)
+		return -1
+	else
+		return @cast(host, "inode", "kernel")->i_ino
+}
+
+function __page_dev:long (page:long)
+{
+	host = __address_inode(page)
+	if (host == -1)
+		return -1
+	else {
+		i_sb = @cast(host, "inode", "kernel")->i_sb
+		return @cast(i_sb, "super_block", "kernel")->s_dev
 	}
-	CATCH_DEREF_FAULT();
-%}
+}
 
-function __address_inode:long (page:long) %{ /* pure */
-	struct page *page = (struct page *)(long)THIS->page;
-	struct address_space *mapping = kread(&(page->mapping));
-	if (mapping == NULL) {
-		THIS->__retvalue = -1;
-	} else {
-		THIS->__retvalue = (long)kread(&(mapping->host));
+function __page_bdev:long (page:long)
+{
+        host = __address_inode(page)
+        if (host == -1)
+                return 0
+        else {
+                i_sb = @cast(host, "inode", "kernel")->i_sb
+                return @cast(i_sb, "super_block", "kernel")->s_bdev
+        }
+}
+
+function __page_index:long (page:long)
+{
+	return @cast(page, "page", "kernel")->index
+}
+
+function __file_dev:long (file:long)
+{
+	d_inode = __file_inode(file)
+	if (d_inode == 0)
+		return 0
+	else {
+		i_sb =  @cast(d_inode, "inode", "kernel")->i_sb
+		return @cast(i_sb, "super_block", "kernel")->s_dev
 	}
-	CATCH_DEREF_FAULT();
-%}
+}
 
-function __page_dev:long (page:long) %{ /* pure */
-	struct page *page = (struct page *)(long)THIS->page;
-	struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
-	if (mapping == NULL) {
-		THIS->__retvalue = -1;
-	} else {
-		struct inode *host = kread(&(mapping->host));
-		struct super_block *i_sb = kread(&(host->i_sb));
-		THIS->__retvalue = kread(&(i_sb->s_dev));
-	}
-	CATCH_DEREF_FAULT();
-%}
+function __file_bdev:long (file:long)
+{
+        d_inode = __file_inode(file)
+        if (d_inode == 0)
+                return 0
+        else {
+                i_sb =  @cast(d_inode, "inode", "kernel")->i_sb
+                return @cast(i_sb, "super_block", "kernel")->s_bdev
+        }
+}
 
-function __page_bdev:long (page:long) %{ /* pure */
-	struct page *page = (struct page *)(long)THIS->page;
-	struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
-	if (mapping == NULL) {
-		THIS->__retvalue = 0;
-	} else {
-		struct inode *host = kread(&(mapping->host));
-		struct super_block *i_sb = kread(&(host->i_sb));
-		THIS->__retvalue = (long)kread(&(i_sb->s_bdev));
-	}
-	CATCH_DEREF_FAULT();
-%}
+function __file_ino:long (file:long)
+{
+        d_inode = __file_inode(file)
+        if (d_inode == 0)
+                return 0
+        else
+                return  @cast(d_inode, "inode", "kernel")->i_ino
+}
 
-function __page_index:long (page:long) %{ /* pure */
-	struct page *page = (struct page *)(long)THIS->page;
-	THIS->__retvalue = (long)kread(&(page->index));
-	CATCH_DEREF_FAULT();
-%}
+function __file_maxbytes:long (file:long)
+{
+        d_inode = __file_inode(file)
+        if (d_inode == 0)
+                return 0
+        else {
+                i_sb =  @cast(d_inode, "inode", "kernel")->i_sb
+                return @cast(i_sb, "super_block", "kernel")->s_maxbytes
+        }
+}
 
-function __file_dev:long (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
-	if (dentry == NULL) {
-		THIS->__retvalue = 0;
-	} else {
-		struct inode *d_inode = kread(&(dentry->d_inode));
-		struct super_block *i_sb = kread(&(d_inode->i_sb));
-		THIS->__retvalue = kread(&(i_sb->s_dev));
-	}
-	CATCH_DEREF_FAULT();
-%}
-
-function __file_bdev:long (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
-	if (dentry == NULL) {
-		THIS->__retvalue = 0;
-	} else {
-		struct inode *d_inode = kread(&(dentry->d_inode));
-		struct super_block *i_sb = kread(&(d_inode->i_sb));
-		THIS->__retvalue = (long)kread(&(i_sb->s_bdev));
-	}
-	CATCH_DEREF_FAULT();
-%}
-
-function __file_ino:long (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
-	if (dentry == NULL) {
-		THIS->__retvalue = 0;
-	} else {
-		struct inode *d_inode = kread(&(dentry->d_inode));
-		THIS->__retvalue = kread(&(d_inode->i_ino));
-	}
-	CATCH_DEREF_FAULT();
-%}
-
-function __file_maxbytes:long (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
-	if (dentry == NULL) {
-		THIS->__retvalue = 0;
-	} else {
-		struct inode *d_inode = kread(&(dentry->d_inode));
-		struct super_block *i_sb = kread(&(d_inode->i_sb));
-		THIS->__retvalue = kread(&(i_sb->s_maxbytes));
-	}
-	CATCH_DEREF_FAULT();
-%}
-
-function __file_filename:string (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
-	const unsigned char *name = dentry? kread(&(dentry->d_name.name)) : NULL;
-	if (name == NULL) {
-		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	} else {
-		deref_string(THIS->__retvalue, name, MAXSTRINGLEN);
-	}
-	CATCH_DEREF_FAULT();
-%}
-
-function __inode_num:long(file:long)
-%{
-	struct file *file = NULL;
-	struct dentry *dentry = NULL;
-	struct inode *inode = NULL;
-
-	file = (struct file *)(long)THIS->file;
-	dentry = file? kread(&(file->f_dentry)) : NULL;
-	inode = dentry? kread(&(dentry->d_inode)) : NULL;
-	THIS->__retvalue = inode? (long)(kread(&(inode->i_ino))) : 0;
-	CATCH_DEREF_FAULT();
-%}
+function __file_filename:string (file:long)
+{
+%( kernel_v >= "2.6.20" %?
+	dentry = file? @cast(file, "file", "kernel")->f_path->dentry : 0
+%:
+	dentry = file? @cast(file, "file", "kernel")->f_dentry : 0
+%)
+	name = dentry? @cast(dentry, "dentry", "kernel")->d_name->name : 0
+	if (name == 0)
+		return "NULL"
+	else
+		return kernel_string(name)
+}
 
 function _get_fopv_size:long (iov:long, nr_segs:long)
 %{

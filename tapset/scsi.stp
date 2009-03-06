@@ -136,9 +136,7 @@ function scsi_timer_pending:long(var:long)
 %}
 
 function get_devstate_from_req:long(var:long)
-%{ /* pure */
-	struct request_queue *q = (struct request_queue *)((long)THIS->var);
-	struct scsi_device *sdev = (struct scsi_device *)kread(&(q->queuedata));
-	THIS->__retvalue = kread(&(sdev->sdev_state));
-	CATCH_DEREF_FAULT();
-%}
+{
+	sdev = @cast(var, "request_queue", "kernel")->queuedata
+	return @cast(sdev, "scsi_device", "kernel")->sdev_state
+}
