@@ -37,6 +37,7 @@ struct task_finder_derived_probe_group;
 struct timer_derived_probe_group;
 struct profile_derived_probe_group;
 struct mark_derived_probe_group;
+struct tracepoint_derived_probe_group;
 struct hrtimer_derived_probe_group;
 struct perfmon_derived_probe_group;
 struct procfs_derived_probe_group;
@@ -162,6 +163,7 @@ struct systemtap_session
   timer_derived_probe_group* timer_derived_probes;
   profile_derived_probe_group* profile_derived_probes;
   mark_derived_probe_group* mark_derived_probes;
+  tracepoint_derived_probe_group* tracepoint_derived_probes;
   hrtimer_derived_probe_group* hrtimer_derived_probes;
   perfmon_derived_probe_group* perfmon_derived_probes;
   procfs_derived_probe_group* procfs_derived_probes;
