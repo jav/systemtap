@@ -1236,6 +1236,11 @@ c_unparser::emit_module_init ()
 	o->newline() << getvar (v).fini();
     }
 
+  // For any partially registered/unregistered kernel facilities.
+  o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
+  o->newline() << "synchronize_sched();";
+  o->newline() << "#endif";
+
   o->newline() << "return rc;";
   o->newline(-1) << "}\n";
 }
