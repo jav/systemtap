@@ -9764,6 +9764,9 @@ tracepoint_derived_probe_group::emit_module_init (systemtap_session &s)
                        << "(enter_tracepoint_probe_" << i << ");";
       s.op->newline(-2) << "}";
     }
+  s.op->newline() << "if (rc)";
+  s.op->newline(1) << "tracepoint_synchronize_unregister();";
+  s.op->indent(-1);
 }
 
 
@@ -9777,6 +9780,7 @@ tracepoint_derived_probe_group::emit_module_exit (systemtap_session& s)
   for (unsigned i = 0; i < probes.size(); ++i)
     s.op->newline() << "unregister_trace_" << probes[i]->tracepoint_name
                     << "(enter_tracepoint_probe_" << i << ");";
+  s.op->newline() << "tracepoint_synchronize_unregister();";
 }
 
 
