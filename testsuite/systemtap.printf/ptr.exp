@@ -29,8 +29,7 @@ if {$::tcl_platform(wordSize) == 8} {
 0x000001X
 0x12345678X
 0x12345678abcdef00X
-0x12345678X
-"
+0x12345678X"
 } else {
   set ::result_string "0x00000000
 0x00000001
@@ -60,7 +59,6 @@ if {$::tcl_platform(wordSize) == 8} {
 0x000001X
 0x12345678X
 0xabcdef00X
-0x12345678X
-"
+0x12345678X"
 }
 stap_run2 $srcdir/$subdir/$test.stp

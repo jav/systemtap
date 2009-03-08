@@ -1,5 +1,4 @@
 set test "print_char"
 set ::result_string {ABC
-ABCDEFGHIJKLMNOPQRSTUVWXYZ
-}
+ABCDEFGHIJKLMNOPQRSTUVWXYZ}
 stap_run2 $srcdir/$subdir/$test.stp

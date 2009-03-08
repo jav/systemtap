@@ -1,4 +1,3 @@
 set test "char1"
-set ::result_string {stap
-}
+set ::result_string {stap}
 stap_run2 $srcdir/$subdir/$test.stp

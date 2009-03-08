@@ -29,5 +29,10 @@ proc stap_run2 { TEST_NAME args } {
 	}
 	incr n
     }
-    pass "$TEST_NAME"
+    if {[expr $n == [llength $expected]]} {
+      pass "$TEST_NAME"
+    } else {
+      fail "$TEST_NAME"
+      send_log "too few lines of output, got $n, expected [llength $expected]\n"
+    }
 }

@@ -114,8 +114,7 @@ bar[21] = 9261
 bar[22] = 10648
 bar[23] = 12167
 bar[24] = 13824
-foo[10] = 100
-}
+foo[10] = 100}
 
 stap_run2 $srcdir/$subdir/$test.stp
 

@@ -1,6 +1,5 @@
 set test "string1"
 set ::result_string {The string is <Foobar!>
 Foobar!XYZZY
-XYZZYFoobar!XYZZYFoobar!
-}
+XYZZYFoobar!XYZZYFoobar!}
 stap_run2 $srcdir/$subdir/$test.stp

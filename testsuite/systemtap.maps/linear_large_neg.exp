@@ -19,7 +19,6 @@ avg=-1284615384
   -200000000 |                                                   0
   -100000000 |@@                                                 2
            0 |@                                                  1
-
 }
 
 stap_run2 $srcdir/$subdir/$test.stp
