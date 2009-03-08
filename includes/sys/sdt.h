@@ -59,128 +59,183 @@ label: \
 
 #define STAP_PROBE1_(probe,label,parm1)		\
 do { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1;	\
-label: \
-  asm volatile ("nop /* %0 */" :: "X"( arg1)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1;	\
+label: \
+  asm volatile ("nop /* %0 */" :: "X"( arg1)); } while (0)
 
 #define STAP_PROBE2_(probe,label,parm1,parm2)	\
 do { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1;	\
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2;	\
-label: \
-  asm volatile ("nop /* %0 %1 */" :: "X"(arg1), "X"(arg2)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+label: \
+  asm volatile ("nop /* %0 %1 */" :: "X"(arg1), "X"(arg2)); } while (0)
 
 #define STAP_PROBE3_(probe,label,parm1,parm2,parm3)	\
 do { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1;     \
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
-  volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
-label:					   \
-  asm volatile ("nop /* %0 %1 %2 */" :: "X"(arg1), "X"(arg2), "X"(arg3)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
+  volatile typeof((parm3)) arg3  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+  arg3 = parm3; \
+label:					   \
+  asm volatile ("nop /* %0 %1 %2 */" :: "X"(arg1), "X"(arg2), "X"(arg3)); } while (0)
 
 #define STAP_PROBE4_(probe,label,parm1,parm2,parm3,parm4)	\
 do { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1; \
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
-  volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
-  volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
-label:				\
-  asm volatile ("nop /* %0 %1 %2 %3 */" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
+  volatile typeof((parm3)) arg3  __attribute__ ((unused)); \
+  volatile typeof((parm4)) arg4  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label)	\
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+  arg3 = parm3; \
+  arg4 = parm4; \
+label:				\
+  asm volatile ("nop /* %0 %1 %2 %3 */" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4)); } while (0)
 
 #define STAP_PROBE5_(probe,label,parm1,parm2,parm3,parm4,parm5)	\
 do  { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1; \
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
-  volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
-  volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
-  volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
-label:				\
-  asm volatile ("nop /* %0 %1 %2 %3 %4 */" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
+  volatile typeof((parm3)) arg3  __attribute__ ((unused)); \
+  volatile typeof((parm4)) arg4  __attribute__ ((unused)); \
+  volatile typeof((parm5)) arg5  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+  arg3 = parm3; \
+  arg4 = parm4; \
+  arg5 = parm5; \
+label:				\
+  asm volatile ("nop /* %0 %1 %2 %3 %4 */" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5)); } while (0)
 
 #define STAP_PROBE6_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6)	\
 do { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1; \
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
-  volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
-  volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
-  volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
-  volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
-label:				\
-  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
+  volatile typeof((parm3)) arg3  __attribute__ ((unused)); \
+  volatile typeof((parm4)) arg4  __attribute__ ((unused)); \
+  volatile typeof((parm5)) arg5  __attribute__ ((unused)); \
+  volatile typeof((parm6)) arg6  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+  arg3 = parm3; \
+  arg4 = parm4; \
+  arg5 = parm5; \
+  arg6 = parm6; \
+label:				\
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6)); } while (0)
 
 #define STAP_PROBE7_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7)	\
 do  { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1; \
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
-  volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
-  volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
-  volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
-  volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
-  volatile typeof((parm7)) arg7  __attribute__ ((unused)) = parm7; \
-label:				\
-  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
+  volatile typeof((parm3)) arg3  __attribute__ ((unused)); \
+  volatile typeof((parm4)) arg4  __attribute__ ((unused)); \
+  volatile typeof((parm5)) arg5  __attribute__ ((unused)); \
+  volatile typeof((parm6)) arg6  __attribute__ ((unused)); \
+  volatile typeof((parm7)) arg7  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+  arg3 = parm3; \
+  arg4 = parm4; \
+  arg5 = parm5; \
+  arg6 = parm6; \
+  arg7 = parm7; \
+label:				\
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7)); } while (0)
 
 #define STAP_PROBE8_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
 do { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1; \
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
-  volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
-  volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
-  volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
-  volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
-  volatile typeof((parm7)) arg7  __attribute__ ((unused)) = parm7; \
-  volatile typeof((parm8)) arg8  __attribute__ ((unused)) = parm8; \
-label:				\
-  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7), "X"(arg8)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
+  volatile typeof((parm3)) arg3  __attribute__ ((unused)); \
+  volatile typeof((parm4)) arg4  __attribute__ ((unused)); \
+  volatile typeof((parm5)) arg5  __attribute__ ((unused)); \
+  volatile typeof((parm6)) arg6  __attribute__ ((unused)); \
+  volatile typeof((parm7)) arg7  __attribute__ ((unused)); \
+  volatile typeof((parm8)) arg8  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+  arg3 = parm3; \
+  arg4 = parm4; \
+  arg5 = parm5; \
+  arg6 = parm6; \
+  arg7 = parm7; \
+  arg8 = parm8; \
+label:				\
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7), "X"(arg8)); } while (0)
 
 #define STAP_PROBE9_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
 do { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1; \
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
-  volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
-  volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
-  volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
-  volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
-  volatile typeof((parm7)) arg7  __attribute__ ((unused)) = parm7; \
-  volatile typeof((parm8)) arg8  __attribute__ ((unused)) = parm8; \
-  volatile typeof((parm9)) arg9  __attribute__ ((unused)) = parm9; \
-label:				\
-  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7), "X"(arg8), "X"(arg9)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
+  volatile typeof((parm3)) arg3  __attribute__ ((unused)); \
+  volatile typeof((parm4)) arg4  __attribute__ ((unused)); \
+  volatile typeof((parm5)) arg5  __attribute__ ((unused)); \
+  volatile typeof((parm6)) arg6  __attribute__ ((unused)); \
+  volatile typeof((parm7)) arg7  __attribute__ ((unused)); \
+  volatile typeof((parm8)) arg8  __attribute__ ((unused)); \
+  volatile typeof((parm9)) arg9  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+  arg3 = parm3; \
+  arg4 = parm4; \
+  arg5 = parm5; \
+  arg6 = parm6; \
+  arg7 = parm7; \
+  arg8 = parm8; \
+  arg9 = parm9; \
+label:				\
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7), "X"(arg8), "X"(arg9)); } while (0)
 
 #define STAP_PROBE10_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
 do { \
-  volatile typeof((parm1)) arg1  __attribute__ ((unused)) = parm1; \
-  volatile typeof((parm2)) arg2  __attribute__ ((unused)) = parm2; \
-  volatile typeof((parm3)) arg3  __attribute__ ((unused)) = parm3; \
-  volatile typeof((parm4)) arg4  __attribute__ ((unused)) = parm4; \
-  volatile typeof((parm5)) arg5  __attribute__ ((unused)) = parm5; \
-  volatile typeof((parm6)) arg6  __attribute__ ((unused)) = parm6; \
-  volatile typeof((parm7)) arg7  __attribute__ ((unused)) = parm7; \
-  volatile typeof((parm8)) arg8  __attribute__ ((unused)) = parm8; \
-  volatile typeof((parm9)) arg9  __attribute__ ((unused)) = parm9; \
-  volatile typeof((parm10)) arg10  __attribute__ ((unused)) = parm9; \
-label:				\
-  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7), "X"(arg8), "X"(arg9), "X"(arg10)); \
+  volatile typeof((parm1)) arg1  __attribute__ ((unused)); \
+  volatile typeof((parm2)) arg2  __attribute__ ((unused)); \
+  volatile typeof((parm3)) arg3  __attribute__ ((unused)); \
+  volatile typeof((parm4)) arg4  __attribute__ ((unused)); \
+  volatile typeof((parm5)) arg5  __attribute__ ((unused)); \
+  volatile typeof((parm6)) arg6  __attribute__ ((unused)); \
+  volatile typeof((parm7)) arg7  __attribute__ ((unused)); \
+  volatile typeof((parm8)) arg8  __attribute__ ((unused)); \
+  volatile typeof((parm9)) arg9  __attribute__ ((unused)); \
+  volatile typeof((parm10)) arg10  __attribute__ ((unused)); \
   STAP_PROBE_STRUCT(probe,(size_t)&& label) \
-  STAP_LABEL_REF(probe,label);} while (0)
+  STAP_LABEL_REF(probe,label); \
+  arg1 = parm1; \
+  arg2 = parm2; \
+  arg3 = parm3; \
+  arg4 = parm4; \
+  arg5 = parm5; \
+  arg6 = parm6; \
+  arg7 = parm7; \
+  arg8 = parm8; \
+  arg9 = parm9; \
+  arg10 = parm10; \
+label:				\
+  asm volatile ("nop" :: "X"(arg1), "X"(arg2), "X"(arg3), "X"(arg4), "X"(arg5), "X"(arg6), "X"(arg7), "X"(arg8), "X"(arg9), "X"(arg10)); } while (0)
 
 #define STAP_PROBE(provider,probe)	\
   STAP_PROBE_(probe,STAP_LABEL(STAP_LABEL_PREFIX(probe),STAP_COUNTER))
