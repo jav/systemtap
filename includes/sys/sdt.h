@@ -1,10 +1,11 @@
-// Copyright (C) 2005-2009 Red Hat Inc.
-// Copyright (C) 2006 Intel Corporation.
-//
-// This file is part of systemtap, and is free software.  You can
-// redistribute it and/or modify it under the terms of the GNU General
-// Public License (GPL); either version 2, or (at your option) any
-// later version.
+/* Copyright (C) 2005-2009 Red Hat Inc.
+   Copyright (C) 2006 Intel Corporation.
+
+   This file is part of systemtap, and is free software.  You can
+   redistribute it and/or modify it under the terms of the GNU General
+   Public License (GPL); either version 2, or (at your option) any
+   later version.
+*/
 
 #ifndef _SYS_SDT_H
 #define _SYS_SDT_H    1
@@ -33,15 +34,15 @@ static char probe ## _ ## probe_name [strlen(#probe)+1] 	\
        = #probe; 				\
 static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section (".probes"))) = {STAP_SENTINEL,(size_t)& probe ## _ ## probe_name[0],argc};
 
-// The goto _probe_ prevents the label from "drifting"
+/* The goto _probe_ prevents the label from "drifting" */
 #define STAP_LABEL_REF(probe, label)				    \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
     goto label
 
-// These baroque macros are used to create a unique label
+/* These baroque macros are used to create a unique label */
 #define STAP_CONCAT(a,b) a ## b
 #define STAP_LABEL_PREFIX(p) _stapprobe1_ ## p
-// __COUNTER__ is not present in gcc 4.1
+/* __COUNTER__ is not present in gcc 4.1 */
 #if __GNUC__ == 4 && __GNUC_MINOR__ >= 3
 #define STAP_COUNTER  STAP_CONCAT(__,COUNTER__)
 #else
