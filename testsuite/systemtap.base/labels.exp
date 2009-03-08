@@ -13,6 +13,7 @@ if {$utrace_support_found == 0} { untested "$test"; return }
 # Compile a C program to use as the user-space probing target
 set label_srcpath "[pwd]/labels.c"
 set label_exepath "[pwd]/labels.x"
+set label_sopath "[pwd]/labels.so"
 set label_flags "additional_flags=-g"
 set fp [open $label_srcpath "w"]
 puts $fp "
@@ -54,9 +55,12 @@ if { $res != "" } {
     pass "compiling labels.c -g"
 }
 
+# label in an executable
+
 verbose -log "spawn stap -c $label_exepath $label_stppath"
 spawn stap -c $label_exepath $label_stppath
 
+wait
 expect {
     -timeout 180
     -re {VARS a=0x0 b=0x0.*VARS a=0x2 b=0x0.*VARS a=0x2 b=0x3 c=0x[a-f01-9]} { incr ok; exp_continue }
@@ -64,7 +68,83 @@ expect {
     eof { }
 }
 
-wait
+if {$ok == 1} { pass "$test exe .label" } { fail "$test exe .label" }
 
-if {$ok == 1} { pass "$test" } { fail "$test ($ok)" }
-catch {exec rm -f $label_srcpath $label_stppath $label_exepath}
+# address of label in an executable
+
+set label_shpath "[pwd]/label.sh"
+set fp [open $label_shpath "w"]
+puts $fp "
+readelf --debug-dump $label_exepath | awk \"
+/init_another_int/ {have_label=1} 
+/DW_AT_low_pc/ {if (have_label) {print \$3;exit;}}
+\"
+"
+close $fp
+spawn sh $label_shpath
+expect {
+    -re {0x[0-9a-f]*} 
+}
+set ok  0
+spawn stap -p2 -l "process\(\"$label_exepath\"\).statement($expect_out(0,string))"
+expect {
+    -timeout 180
+    -re {no match} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if {$ok == 0} { pass "$test exe .statement" } { xfail "$test exe .statement" }
+
+set ok 0
+
+set label_flags "additional_flags=-g additional_flags=-shared additional_flags=-fPIC"
+set res [target_compile $label_srcpath $label_sopath executable $label_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling labels.c -g"
+    catch {exec rm -f $label_srcpath $label_stppath}
+    return
+} else {
+    pass "compiling labels.c -g"
+}
+
+# label in a shared object
+
+spawn stap -p2 -l "process\(\"$label_sopath\"\).function\(\"\*\"\).label\(\"init_another_int\"\)"
+expect {
+    -timeout 180
+    -re {process.*function} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if {$ok == 1} { pass "$test so .label" } { fail "$test so .label" }
+
+# address of label in a shared object
+
+set label_shpath "[pwd]/label.sh"
+set fp [open $label_shpath "w"]
+puts $fp "
+readelf --debug-dump $label_sopath | awk \"
+/init_another_int/ {have_label=1} 
+/DW_AT_low_pc/ {if (have_label) {print \$3;exit;}}
+\"
+"
+close $fp
+spawn sh $label_shpath
+expect {
+    -re {0x[0-9a-f]*} 
+}
+set ok  0
+spawn stap -p2 -l "process\(\"$label_sopath\"\).statement($expect_out(0,string))"
+expect {
+    -timeout 180
+    -re {no match} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if {$ok == 0} { pass "$test so .statement" } { xfail "$test so .statement" }
+
+# catch {exec rm -f $label_srcpath $label_stppath $label_exepath}

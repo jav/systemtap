@@ -3920,9 +3920,9 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 	  else if (q->has_function_num || q->has_statement_num)
 	    {
               Dwarf_Addr query_addr =
-                q->dw.module_address_to_global(q->has_function_num ? q->function_num_val :
-                                               q->has_statement_num ? q->statement_num_val :
-                                               (assert(0) , 0));
+                (q->has_function_num ? q->function_num_val :
+		 q->has_statement_num ? q->statement_num_val :
+		 (assert(0) , 0));
 	      Dwarf_Die d;
 	      q->dw.function_die (&d);
 
