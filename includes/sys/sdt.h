@@ -13,10 +13,10 @@
 
 #if _LP64
 #define STAP_PROBE_STRUCT_ARG(arg)		\
-  __uint64_t arg;
+  __uint64_t arg
 #else
 #define STAP_PROBE_STRUCT_ARG(arg)		\
-  long arg __attribute__ ((aligned(8)));		 
+  long arg __attribute__ ((aligned(8)))
 #endif
 
 #define STAP_SENTINEL 0x31425250
@@ -36,7 +36,7 @@ static volatile struct _probe_ ## probe _probe_ ## probe __attribute__ ((section
 // The goto _probe_ prevents the label from "drifting"
 #define STAP_LABEL_REF(probe, label)				    \
   if (__builtin_expect(_probe_ ## probe.probe_type < 0, 0)) \
-    goto label;
+    goto label
 
 // These baroque macros are used to create a unique label
 #define STAP_CONCAT(a,b) a ## b
