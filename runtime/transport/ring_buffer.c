@@ -32,30 +32,10 @@ struct _stp_ring_buffer_iterator {
 #endif
 };
 static struct _stp_ring_buffer_iterator _stp_iter;
-#else
-static struct ring_buffer_iter *__stp_ring_buffer_iter[NR_CPUS];
 #endif
 
 static void __stp_free_ring_buffer(void)
 {
-	int i;
-
-#if 0
-	if (__stp_ring_buffer) {
-		ring_buffer_record_disable(__stp_ring_buffer);
-		for_each_possible_cpu(i) {
-			ring_buffer_record_disable_cpu(__stp_ring_buffer, i);
-		}
-	}
-#endif
-
-#if 0
-	for_each_possible_cpu(i) {
-		if (__stp_ring_buffer_iter[i])
-			ring_buffer_read_finish(__stp_ring_buffer_iter[i]);
-	}
-#endif
-
 	if (__stp_ring_buffer)
 		ring_buffer_free(__stp_ring_buffer);
 	__stp_ring_buffer = NULL;
@@ -73,56 +53,12 @@ static int __stp_alloc_ring_buffer(void)
 	if (!__stp_ring_buffer)
 		goto fail;
 
-#if 0
-	dbug_trans(1, "enabling recording...\n");
-	ring_buffer_record_enable(__stp_ring_buffer);
-	for_each_possible_cpu(i) {
-		ring_buffer_record_enable_cpu(__stp_ring_buffer, i);
-	}
-#endif
-
-
-// DRS: do we need this?
-#if 0
-	for_each_possible_cpu(i) {
-		struct oprofile_cpu_buffer *b = &per_cpu(cpu_buffer, i);
-
-		b->last_task = NULL;
-		b->last_is_kernel = -1;
-		b->tracing = 0;
-		b->buffer_size = buffer_size;
-		b->sample_received = 0;
-		b->sample_lost_overflow = 0;
-		b->backtrace_aborted = 0;
-		b->sample_invalid_eip = 0;
-		b->cpu = i;
-		INIT_DELAYED_WORK(&b->work, wq_sync_buffer);
-	}
-
-	/* Allocate the first page for all buffers */
-	for_each_possible_cpu(i) {
-		data = global_trace.data[i] = &per_cpu(global_trace_cpu, i);
-		max_tr.data[i] = &per_cpu(max_data, i);
-	}
-#endif
-
-#if 0
-	for_each_possible_cpu(i) {
-		__stp_ring_buffer_iter[i] =
-			ring_buffer_read_start(__stp_ring_buffer, i);
-
-		if (!__stp_ring_buffer_iter[i])
-			goto fail;
-	}
-#endif
-
 	return 0;
 
 fail:
 	__stp_free_ring_buffer();
 	return -ENOMEM;
 }
-
 
 static atomic_t _stp_trace_attached = ATOMIC_INIT(0);
 
@@ -136,7 +72,6 @@ static int _stp_data_open_trace(struct inode *inode, struct file *file)
 		return -EBUSY;
 	}
 
-//	file->private_data = &_stp_trace_iter;
 	return 0;
 }
 
@@ -208,62 +143,8 @@ trace_seq_reset(struct trace_seq *s)
 	s->readpos = 0;
 }
 
-#if 0
-/*
- * Trace iterator - used by printout routines who present trace
- * results to users and which routines might sleep, etc:
- */
-struct trace_iterator {
-#if 0
-	struct trace_array	*tr;
-	struct tracer		*trace;
-	void			*private;
-#endif
-	struct ring_buffer_iter	*buffer_iter[NR_CPUS];
-
-	/* The below is zeroed out in pipe_read */
-	struct trace_seq	seq;
-#if 0
-	struct trace_entry	*ent;
-	int			cpu;
-	u64			ts;
-
-	unsigned long		iter_flags;
-#endif
-	loff_t			pos;
-#if 0
-	long			idx;
-
-	cpumask_var_t		started;
-#endif
-};
-#endif
-
-#if 0
-static int _stp_data_empty(void)
-{
-	int cpu;
-
-	for_each_possible_cpu(cpu) {
-#if 0
-		if (__stp_ring_buffer_iter[cpu]) {
-			if (!ring_buffer_iter_empty(__stp_ring_buffer_iter[cpu]))
-				return 0;
-		}
-#else
-		if (!ring_buffer_empty_cpu(iter->tr->buffer, cpu))
-			return 0;
-#endif
-	}
-
-	return 1;
-}
-#endif
-
-/* Must be called with trace_types_lock mutex held. */
 static ssize_t tracing_wait_pipe(struct file *filp)
 {
-//	while (_stp_data_empty()) {
 	while (ring_buffer_empty(__stp_ring_buffer)) {
 
 		if ((filp->f_flags & O_NONBLOCK)) {
@@ -292,25 +173,6 @@ static ssize_t tracing_wait_pipe(struct file *filp)
 			dbug_trans(1, "returning -EINTR\n");
 			return -EINTR;
 		}
-
-#if 0
-		if (iter->trace != current_trace)
-			return 0;
-
-		/*
-		 * We block until we read something and tracing is disabled.
-		 * We still block if tracing is disabled, but we have never
-		 * read anything. This allows a user to cat this file, and
-		 * then enable tracing. But after we have read something,
-		 * we give an EOF when tracing is again disabled.
-		 *
-		 * iter->pos will be 0 if we haven't read anything.
-		 */
-		if (!tracer_enabled && iter->pos)
-			break;
-#endif
-
-		continue;
 	}
 
 	dbug_trans(1, "returning 1\n");
@@ -362,14 +224,9 @@ __find_next_entry(int *ent_cpu, u64 *ent_ts)
 }
 
 /* Find the next real entry, and increment the iterator to the next entry */
-static struct _stp_entry *find_next_entry_inc(void)
+static struct _stp_entry *find_next_entry(void)
 {
 	return __find_next_entry(&_stp_iter.cpu, &_stp_iter.ts);
-
-//	if (iter->ent)
-//		trace_iterator_increment(iter);
-
-//	return iter->ent ? iter : NULL;
 }
 
 
@@ -401,7 +258,7 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 
 	dbug_trans(1, "sret = %lu\n", (unsigned long)sret);
 	sret = 0;
-	while ((entry = find_next_entry_inc()) != NULL) {
+	while ((entry = find_next_entry) != NULL) {
 		ssize_t len;
 
 		len = _stp_entry_to_user(entry, ubuf, cnt);
@@ -421,9 +278,9 @@ out:
 }
 
 static struct file_operations __stp_data_fops = {
-	.owner = THIS_MODULE,
-	.open = _stp_data_open_trace,
-	.release = _stp_data_release_trace,
+	.owner		= THIS_MODULE,
+	.open		= _stp_data_open_trace,
+	.release	= _stp_data_release_trace,
 #if 0
 	.poll		= tracing_poll_pipe,
 #endif
@@ -467,22 +324,18 @@ _stp_data_write_reserve(size_t size)
 
 static int _stp_data_write_commit(struct _stp_entry *entry)
 {
-    if (unlikely(! entry)) {
-	    dbug_trans(1, "entry = NULL, returning -EINVAL\n");
-		return -EINVAL;
-    }
+	int ret;
 
-#if 0
-	return ring_buffer_unlock_commit(__stp_ring_buffer, entry->event, 0);
-#else
-	{
-	    int ret;
-	    ret = ring_buffer_unlock_commit(__stp_ring_buffer, entry->event, 0);
-	    dbug_trans(1, "after commit, empty returns %d\n",
-		       ring_buffer_empty(__stp_ring_buffer));
-	    return ret;
+	if (unlikely(! entry)) {
+		dbug_trans(1, "entry = NULL, returning -EINVAL\n");
+		return -EINVAL;
 	}
-#endif
+
+	ret = ring_buffer_unlock_commit(__stp_ring_buffer, entry->event, 0);
+	dbug_trans(1, "after commit, empty returns %d\n",
+		   ring_buffer_empty(__stp_ring_buffer));
+
+	return ret;
 }
 
 
