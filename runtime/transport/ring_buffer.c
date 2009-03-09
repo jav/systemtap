@@ -4,8 +4,58 @@
 static struct ring_buffer *__stp_ring_buffer = NULL;
 //DEFINE_PER_CPU(struct oprofile_cpu_buffer, cpu_buffer);
 
+#if 1
+/*
+ * Trace iterator - used by printout routines who present trace
+ * results to users and which routines might sleep, etc:
+ */
+struct _stp_ring_buffer_iterator {
+#if 0
+	struct trace_array	*tr;
+	struct tracer		*trace;
+	void			*private;
+	struct ring_buffer_iter	*buffer_iter[NR_CPUS];
+
+	/* The below is zeroed out in pipe_read */
+	struct trace_seq	seq;
+	struct trace_entry	*ent;
+#endif
+	int			cpu;
+	u64			ts;
+
+#if 0
+	unsigned long		iter_flags;
+	loff_t			pos;
+	long			idx;
+
+	cpumask_var_t		started;
+#endif
+};
+static struct _stp_ring_buffer_iterator _stp_iter;
+#else
+static struct ring_buffer_iter *__stp_ring_buffer_iter[NR_CPUS];
+#endif
+
 static void __stp_free_ring_buffer(void)
 {
+	int i;
+
+#if 0
+	if (__stp_ring_buffer) {
+		ring_buffer_record_disable(__stp_ring_buffer);
+		for_each_possible_cpu(i) {
+			ring_buffer_record_disable_cpu(__stp_ring_buffer, i);
+		}
+	}
+#endif
+
+#if 0
+	for_each_possible_cpu(i) {
+		if (__stp_ring_buffer_iter[i])
+			ring_buffer_read_finish(__stp_ring_buffer_iter[i]);
+	}
+#endif
+
 	if (__stp_ring_buffer)
 		ring_buffer_free(__stp_ring_buffer);
 	__stp_ring_buffer = NULL;
@@ -16,10 +66,21 @@ static int __stp_alloc_ring_buffer(void)
 	int i;
 	unsigned long buffer_size = _stp_bufsize;
 
+	if (buffer_size == 0)
+		buffer_size = STP_BUFFER_SIZE;
 	dbug_trans(1, "%lu\n", buffer_size);
 	__stp_ring_buffer = ring_buffer_alloc(buffer_size, 0);
 	if (!__stp_ring_buffer)
 		goto fail;
+
+#if 0
+	dbug_trans(1, "enabling recording...\n");
+	ring_buffer_record_enable(__stp_ring_buffer);
+	for_each_possible_cpu(i) {
+		ring_buffer_record_enable_cpu(__stp_ring_buffer, i);
+	}
+#endif
+
 
 // DRS: do we need this?
 #if 0
@@ -37,7 +98,24 @@ static int __stp_alloc_ring_buffer(void)
 		b->cpu = i;
 		INIT_DELAYED_WORK(&b->work, wq_sync_buffer);
 	}
+
+	/* Allocate the first page for all buffers */
+	for_each_possible_cpu(i) {
+		data = global_trace.data[i] = &per_cpu(global_trace_cpu, i);
+		max_tr.data[i] = &per_cpu(max_data, i);
+	}
 #endif
+
+#if 0
+	for_each_possible_cpu(i) {
+		__stp_ring_buffer_iter[i] =
+			ring_buffer_read_start(__stp_ring_buffer, i);
+
+		if (!__stp_ring_buffer_iter[i])
+			goto fail;
+	}
+#endif
+
 	return 0;
 
 fail:
@@ -47,7 +125,6 @@ fail:
 
 
 static atomic_t _stp_trace_attached = ATOMIC_INIT(0);
-static struct trace_iterator _stp_trace_iter;
 
 static int _stp_data_open_trace(struct inode *inode, struct file *file)
 {
@@ -59,7 +136,7 @@ static int _stp_data_open_trace(struct inode *inode, struct file *file)
 		return -EBUSY;
 	}
 
-	file->private_data = &_stp_trace_iter;
+//	file->private_data = &_stp_trace_iter;
 	return 0;
 }
 
@@ -102,6 +179,28 @@ _stp_trace_seq_to_user(struct trace_seq *s, char __user *ubuf, size_t cnt)
 	return cnt;
 }
 
+size_t
+_stp_entry_to_user(struct _stp_entry *entry, char __user *ubuf, size_t cnt)
+{
+	int ret;
+
+	dbug_trans(1, "entry(%p), ubuf(%p), cnt(%lu)\n", entry, ubuf, cnt);
+	if (entry == NULL || ubuf == NULL)
+		return -EFAULT;
+
+	/* We don't do partial entries - just fail. */
+	if (entry->len > cnt)
+		return -EBUSY;
+
+	if (cnt > entry->len)
+		cnt = entry->len;
+	ret = copy_to_user(ubuf, entry->buf, cnt);
+	if (ret)
+		return -EFAULT;
+
+	return cnt;
+}
+
 static void
 trace_seq_reset(struct trace_seq *s)
 {
@@ -109,6 +208,7 @@ trace_seq_reset(struct trace_seq *s)
 	s->readpos = 0;
 }
 
+#if 0
 /*
  * Trace iterator - used by printout routines who present trace
  * results to users and which routines might sleep, etc:
@@ -137,34 +237,37 @@ struct trace_iterator {
 	cpumask_var_t		started;
 #endif
 };
+#endif
 
-static int trace_empty(struct trace_iterator *iter)
+#if 0
+static int _stp_data_empty(void)
 {
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-		if (iter->buffer_iter[cpu]) {
-			if (!ring_buffer_iter_empty(iter->buffer_iter[cpu]))
-				return 0;
 #if 0
-		} else {
-			if (!ring_buffer_empty_cpu(iter->tr->buffer, cpu))
+		if (__stp_ring_buffer_iter[cpu]) {
+			if (!ring_buffer_iter_empty(__stp_ring_buffer_iter[cpu]))
 				return 0;
-#endif
 		}
+#else
+		if (!ring_buffer_empty_cpu(iter->tr->buffer, cpu))
+			return 0;
+#endif
 	}
 
 	return 1;
 }
+#endif
 
 /* Must be called with trace_types_lock mutex held. */
-static int tracing_wait_pipe(struct file *filp)
+static ssize_t tracing_wait_pipe(struct file *filp)
 {
-	struct trace_iterator *iter = filp->private_data;
-
-	while (trace_empty(iter)) {
+//	while (_stp_data_empty()) {
+	while (ring_buffer_empty(__stp_ring_buffer)) {
 
 		if ((filp->f_flags & O_NONBLOCK)) {
+			dbug_trans(1, "returning -EAGAIN\n");
 			return -EAGAIN;
 		}
 
@@ -186,6 +289,7 @@ static int tracing_wait_pipe(struct file *filp)
 		//iter->tr->waiter = NULL;
 
 		if (signal_pending(current)) {
+			dbug_trans(1, "returning -EINTR\n");
 			return -EINTR;
 		}
 
@@ -204,16 +308,70 @@ static int tracing_wait_pipe(struct file *filp)
 		 */
 		if (!tracer_enabled && iter->pos)
 			break;
-#else
-		if (iter->pos)
-			break;
 #endif
 
 		continue;
 	}
 
+	dbug_trans(1, "returning 1\n");
 	return 1;
 }
+
+static struct _stp_entry *
+peek_next_entry(int cpu, u64 *ts)
+{
+	struct ring_buffer_event *event;
+
+	event = ring_buffer_peek(__stp_ring_buffer, cpu, ts);
+
+	return event ? ring_buffer_event_data(event) : NULL;
+}
+
+static struct _stp_entry *
+__find_next_entry(int *ent_cpu, u64 *ent_ts)
+{
+	struct _stp_entry *ent, *next = NULL;
+	u64 next_ts = 0, ts;
+	int next_cpu = -1;
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+
+		if (ring_buffer_empty_cpu(__stp_ring_buffer, cpu))
+			continue;
+
+		ent = peek_next_entry(cpu, &ts);
+
+		/*
+		 * Pick the entry with the smallest timestamp:
+		 */
+		if (ent && (!next || ts < next_ts)) {
+			next = ent;
+			next_cpu = cpu;
+			next_ts = ts;
+		}
+	}
+
+	if (ent_cpu)
+		*ent_cpu = next_cpu;
+
+	if (ent_ts)
+		*ent_ts = next_ts;
+
+	return next;
+}
+
+/* Find the next real entry, and increment the iterator to the next entry */
+static struct _stp_entry *find_next_entry_inc(void)
+{
+	return __find_next_entry(&_stp_iter.cpu, &_stp_iter.ts);
+
+//	if (iter->ent)
+//		trace_iterator_increment(iter);
+
+//	return iter->ent ? iter : NULL;
+}
+
 
 /*
  * Consumer reader.
@@ -222,24 +380,18 @@ static ssize_t
 _stp_data_read_trace(struct file *filp, char __user *ubuf,
 		     size_t cnt, loff_t *ppos)
 {
-	struct trace_iterator *iter = filp->private_data;
 	ssize_t sret;
+	struct _stp_entry *entry;
 
-	/* return any leftover data */
 	dbug_trans(1, "%lu\n", (unsigned long)cnt);
-	sret = _stp_trace_seq_to_user(&iter->seq, ubuf, cnt);
-	if (sret != -EBUSY)
-		return sret;
 
-	trace_seq_reset(&iter->seq);
-
-waitagain:
 	sret = tracing_wait_pipe(filp);
+	dbug_trans(1, "tracing_wait_pipe returned %ld\n", sret);
 	if (sret <= 0)
 		goto out;
 
 	/* stop when tracing is finished */
-	if (trace_empty(iter)) {
+	if (ring_buffer_empty(__stp_ring_buffer)) {
 		sret = 0;
 		goto out;
 	}
@@ -247,43 +399,23 @@ waitagain:
 	if (cnt >= PAGE_SIZE)
 		cnt = PAGE_SIZE - 1;
 
-	/* reset all but tr, trace, and overruns */
-	memset(&iter->seq, 0,
-	       sizeof(struct trace_iterator) -
-	       offsetof(struct trace_iterator, seq));
-	iter->pos = -1;
+	dbug_trans(1, "sret = %lu\n", (unsigned long)sret);
+	sret = 0;
+	while ((entry = find_next_entry_inc()) != NULL) {
+		ssize_t len;
 
-#if 0
-	while (find_next_entry_inc(iter) != NULL) {
-		enum print_line_t ret;
-		int len = iter->seq.len;
-
-		ret = print_trace_line(iter);
-		if (ret == TRACE_TYPE_PARTIAL_LINE) {
-			/* don't print partial lines */
-			iter->seq.len = len;
+		len = _stp_entry_to_user(entry, ubuf, cnt);
+		if (len <= 0)
 			break;
-		}
-		if (ret != TRACE_TYPE_NO_CONSUME)
-			trace_consume(iter);
 
-		if (iter->seq.len >= cnt)
+		ring_buffer_consume(__stp_ring_buffer, _stp_iter.cpu,
+				    &_stp_iter.ts);
+		ubuf += len;
+		cnt -= len;
+		sret += len;
+		if (cnt <= 0)
 			break;
 	}
-#endif
-
-	/* Now copy what we have to the user */
-	sret = _stp_trace_seq_to_user(&iter->seq, ubuf, cnt);
-	if (iter->seq.readpos >= iter->seq.len)
-		trace_seq_reset(&iter->seq);
-
-	/*
-	 * If there was nothing to send to user, inspite of consuming trace
-	 * entries, go back to wait for more entries.
-	 */
-	if (sret == -EBUSY)
-		goto waitagain;
-
 out:
 	return sret;
 }
@@ -301,6 +433,59 @@ static struct file_operations __stp_data_fops = {
 #endif
 };
 
+/*
+ * This function prepares the cpu buffer to write a sample.
+ *
+ * Struct op_entry is used during operations on the ring buffer while
+ * struct op_sample contains the data that is stored in the ring
+ * buffer. Struct entry can be uninitialized. The function reserves a
+ * data array that is specified by size. Use
+ * op_cpu_buffer_write_commit() after preparing the sample. In case of
+ * errors a null pointer is returned, otherwise the pointer to the
+ * sample.
+ *
+ */
+static struct _stp_entry *
+_stp_data_write_reserve(size_t size)
+{
+	struct ring_buffer_event *event;
+	struct _stp_entry *entry;
+
+	event = ring_buffer_lock_reserve(__stp_ring_buffer,
+					 (sizeof(struct _stp_entry) + size),
+					 0);
+	if (unlikely(! event)) {
+		dbug_trans(1, "event = NULL (%p)?\n", event);
+		return NULL;
+	}
+
+	entry = ring_buffer_event_data(event);
+	entry->event = event;
+	entry->len = size;
+	return entry;
+}
+
+static int _stp_data_write_commit(struct _stp_entry *entry)
+{
+    if (unlikely(! entry)) {
+	    dbug_trans(1, "entry = NULL, returning -EINVAL\n");
+		return -EINVAL;
+    }
+
+#if 0
+	return ring_buffer_unlock_commit(__stp_ring_buffer, entry->event, 0);
+#else
+	{
+	    int ret;
+	    ret = ring_buffer_unlock_commit(__stp_ring_buffer, entry->event, 0);
+	    dbug_trans(1, "after commit, empty returns %d\n",
+		       ring_buffer_empty(__stp_ring_buffer));
+	    return ret;
+	}
+#endif
+}
+
+
 static struct dentry *__stp_entry;
 
 static int _stp_transport_data_fs_init(void)
@@ -314,7 +499,8 @@ static int _stp_transport_data_fs_init(void)
 		return rc;
 
 	// create file(s)
-	__stp_entry = debugfs_create_file("trace", 0600, _stp_get_module_dir(),
+	__stp_entry = debugfs_create_file("trace0", 0600,
+					  _stp_get_module_dir(),
 					  NULL, &__stp_data_fops);
 	if (!__stp_entry)
 		pr_warning("Could not create debugfs 'trace' entry\n");

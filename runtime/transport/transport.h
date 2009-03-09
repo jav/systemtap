@@ -64,4 +64,13 @@ static int _stp_bufsize;
 static int _stp_transport_data_fs_init(void);
 static void _stp_transport_data_fs_close(void);
 
+struct _stp_entry {
+	void			*event;
+	size_t			len;
+	char			buf[];
+};
+
+static struct _stp_entry *_stp_data_write_reserve(size_t size);
+static int _stp_data_write_commit(struct _stp_entry *entry);
+
 #endif /* _TRANSPORT_TRANSPORT_H_ */

@@ -23,6 +23,7 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 	uint32_t len = pb->len;
 
 	/* check to see if there is anything in the buffer */
+	dbug_trans(1, "len = %ud\n", len);
 	if (likely (len == 0))
 		return;
 
@@ -54,16 +55,16 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 	} 
 #else
 	{
-		void *buf;
+		struct _stp_entry *entry;
 		unsigned long flags;
+
+		dbug_trans(1, "calling _stp_data_write...\n");
 		spin_lock_irqsave(&_stp_print_lock, flags);
-#if 0
-		buf = utt_reserve(_stp_utt, len);
-#else
-		buf = NULL;
-#endif
-		if (likely(buf))
-			memcpy(buf, pb->buf, len);
+		entry = _stp_data_write_reserve(len);
+		if (likely(entry)) {
+			memcpy(entry->buf, pb->buf, len);
+			_stp_data_write_commit(entry);
+		}
 		else
 			atomic_inc (&_stp_transport_failures);
 		spin_unlock_irqrestore(&_stp_print_lock, flags);

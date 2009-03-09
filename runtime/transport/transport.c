@@ -209,9 +209,7 @@ static void _stp_transport_close(void)
 {
 	dbug_trans(1, "%d: ************** transport_close *************\n",
 		   current->pid);
-#if 0
 	_stp_cleanup_and_exit(0);
-#endif /* #if 0 */
 	destroy_workqueue(_stp_wq);
 	_stp_unregister_ctl_channel();
 #if 0
@@ -219,9 +217,7 @@ static void _stp_transport_close(void)
 		utt_trace_remove(_stp_utt);
 #endif /* #if 0 */
 	_stp_print_cleanup();	/* free print buffers */
-#if 0
 	_stp_mem_debug_done();
-#endif /* #if 0 */
 	_stp_transport_fs_close();
 
 	dbug_trans(1, "---- CLOSED ----\n");
@@ -311,10 +307,8 @@ static int _stp_transport_init(void)
 	if (!_stp_wq)
 		goto err3;
 	
-#if 0
         /* Signal stapio to send us STP_START back (XXX: ?!?!?!).  */
 	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
-#endif /* #if 0 */
 
 	dbug_trans(1, "returning 0...\n");
 	return 0;
