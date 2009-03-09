@@ -8523,6 +8523,7 @@ struct mark_derived_probe: public derived_probe
   void join_group (systemtap_session& s);
   void emit_probe_context_vars (translator_output* o);
   void initialize_probe_context_vars (translator_output* o);
+  void printargs (std::ostream &o) const;
 
   void parse_probe_format ();
 };
@@ -8965,6 +8966,27 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
   if (deref_fault_needed)
     // Need to report errors?
     o->newline() << "deref_fault: ;";
+}
+
+void
+mark_derived_probe::printargs(std::ostream &o) const
+{
+  for (unsigned i = 0; i < mark_args.size(); i++)
+    {
+      string localname = "$arg" + lex_cast<string>(i+1);
+      switch (mark_args[i]->stp_type)
+        {
+        case pe_long:
+          o << " " << localname << ":long";
+          break;
+        case pe_string:
+          o << " " << localname << ":string";
+          break;
+        default:
+          o << " " << localname << ":unknown";
+          break;
+        }
+    }
 }
 
 
