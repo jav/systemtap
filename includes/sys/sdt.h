@@ -11,6 +11,7 @@
 #define _SYS_SDT_H    1
 
 #include <string.h>
+#include <sys/types.h>
 
 #if _LP64
 #define STAP_PROBE_STRUCT_ARG(arg)		\
