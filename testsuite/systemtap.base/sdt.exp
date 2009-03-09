@@ -26,7 +26,7 @@ if { $res != "" } {
 }
 
 # Currently fails for any mark probe with more than 4 arguments.
-# FIXME - PR  s/false/{![installtest_p]/
+# FIXME - PR9935  s/(0)/{![installtest_p]}/
 if (0) {
   stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
 } else {
