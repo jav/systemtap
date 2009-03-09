@@ -9217,6 +9217,7 @@ struct tracepoint_derived_probe: public derived_probe
   vector <struct tracepoint_arg> args;
 
   void build_args(dwflpp& dw, Dwarf_Die& func_die);
+  void printargs (std::ostream &o) const;
   void join_group (systemtap_session& s);
   void emit_probe_context_vars (translator_output* o);
 };
@@ -9665,6 +9666,12 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
     while (dwarf_siblingof(&arg, &arg) == 0);
 }
 
+void
+tracepoint_derived_probe::printargs(std::ostream &o) const
+{
+      for (unsigned i = 0; i < args.size(); ++i)
+       o << " $" << args[i].name << ":" << args[i].c_type;
+}
 
 void
 tracepoint_derived_probe::join_group (systemtap_session& s)

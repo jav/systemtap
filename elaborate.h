@@ -124,6 +124,8 @@ struct derived_probe: public probe
   virtual void join_group (systemtap_session& s) = 0;
   virtual probe_point* sole_location () const;
   virtual void printsig (std::ostream &o) const;
+  //for print arguments of probe if there
+  virtual void printargs (std::ostream &o) const {}
   void printsig_nested (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
 

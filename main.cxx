@@ -187,13 +187,16 @@ printscript(systemtap_session& s, ostream& o)
             {
               o << pp;
               // Print the locals for -L mode only
-              if (s.unoptimized)
+              if (s.unoptimized) {
                 for (unsigned j=0; j<p->locals.size(); j++)
                   {
                     o << " ";
                     vardecl* v = p->locals[j];
                     v->printsig (o);
                   }
+                // Print arguments of probe if there
+                p->printargs(o);
+		}
               o << endl;
               seen.insert (pp);
             }
