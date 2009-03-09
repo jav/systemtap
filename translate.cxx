@@ -4458,6 +4458,9 @@ dump_unwindsyms (Dwfl_Module *m,
 
   string modname = name;
 
+  if (pending_interrupts)
+    return DWARF_CB_ABORT;
+
   // skip modules/files we're not actually interested in
   if (c->session.unwindsym_modules.find(modname) == c->session.unwindsym_modules.end())
     return DWARF_CB_OK;

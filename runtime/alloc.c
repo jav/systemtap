@@ -233,30 +233,14 @@ static void *_stp_vmalloc(unsigned long size)
 
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 static void *_stp_alloc_percpu(size_t size)
 {
-#ifdef DEBUG_MEM
+#ifdef STAPCONF_ALLOC_PERCPU_ALIGN
 	void *ret = __alloc_percpu(size, 8);
-	if (likely(ret)) {
-		struct _stp_mem_entry *m = kmalloc(sizeof(struct _stp_mem_entry), STP_ALLOC_FLAGS);
-		if (unlikely(m == NULL)) {
-			free_percpu(ret);
-			return NULL;
-		}
-		_stp_mem_debug_percpu(m, ret, size);
-		_stp_allocated_memory += size * num_online_cpus();
-	}
-	return ret;
 #else
-	return __alloc_percpu(size, 8);
-#endif
-}
-#else
-static void *_stp_alloc_percpu(size_t size)
-{
-#ifdef DEBUG_MEM
 	void *ret = __alloc_percpu(size);
+#endif
+#ifdef DEBUG_MEM
 	if (likely(ret)) {
 		struct _stp_mem_entry *m = kmalloc(sizeof(struct _stp_mem_entry), STP_ALLOC_FLAGS);
 		if (unlikely(m == NULL)) {
@@ -266,12 +250,9 @@ static void *_stp_alloc_percpu(size_t size)
 		_stp_mem_debug_percpu(m, ret, size);
 		_stp_allocated_memory += size * num_online_cpus();
 	}
-	return ret;
-#else
-	return __alloc_percpu(size);
 #endif
+	return ret;
 }
-#endif /* LINUX_VERSION_CODE */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,12)
 #define _stp_kmalloc_node(size,node) _stp_kmalloc(size)
