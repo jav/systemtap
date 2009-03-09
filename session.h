@@ -167,6 +167,8 @@ struct systemtap_session
   hrtimer_derived_probe_group* hrtimer_derived_probes;
   perfmon_derived_probe_group* perfmon_derived_probes;
   procfs_derived_probe_group* procfs_derived_probes;
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx).
 
   // unparser data
   translator_output* op;
