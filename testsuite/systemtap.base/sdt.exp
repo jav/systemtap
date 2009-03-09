@@ -1,0 +1,36 @@
+set test "sdt"
+set ::result_string {1
+1 2
+1 2 3
+1 2 3 4
+1 2 3 4 5
+1 2 3 4 5 6
+1 2 3 4 5 6 7
+1 2 3 4 5 6 7 8
+1 2 3 4 5 6 7 8 9
+1 2 3 4 5 6 7 8 9 10}
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-std=gnu89"
+set test_flags "$test_flags additional_flags=-Wall"
+set test_flags "$test_flags additional_flags=-Wdeclaration-after-statement"
+set test_flags "$test_flags additional_flags=-Werror"
+set res [target_compile $srcdir/$subdir/$test.c $test.prog executable $test_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.c"
+    return
+} else {
+    pass "compiling $test.c"
+}
+
+# Currently fails for any mark probe with more than 4 arguments.
+# FIXME - PR  s/false/{![installtest_p]/
+if (0) {
+  stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
+} else {
+  untested "$test"
+}
+
+catch {exec rm -f $test.prog}
