@@ -880,48 +880,36 @@ function xid_from_clnt:long(clnt:long)
 {
 	if (clnt == 0)
 		return 0
-	else {
-		cl_xprt = @cast(clnt, "rpc_clnt", "kernel")->cl_xprt
-		return @cast(cl_xprt, "rpc_xprt", "kernel")->xid
-	}
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt->xid
 }
 
 function prog_from_clnt:long(clnt:long)
 {
 	if (clnt == 0)
 		return 0
-	else {
 %(kernel_v  >= "2.6.19" %?
-		return @cast(clnt, "rpc_clnt", "kernel")->cl_prog
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_prog
 %:
-		cl_pmap = @cast(clnt, "rpc_clnt", "kernel")->cl_pmap
-		return @cast(cl_pmap, "rpc_portmap", "kernel")->pm_prog
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_pmap->pm_prog
 %)
-	}
 }
 
 function vers_from_clnt:long(clnt:long)
 {
-        if (clnt == 0)
-                return 0
-        else {
+	if (clnt == 0)
+		return 0
 %(kernel_v  >= "2.6.19" %?
-                return @cast(clnt, "rpc_clnt", "kernel")->cl_vers
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_vers
 %:
-                cl_pmap = @cast(clnt, "rpc_clnt", "kernel")->cl_pmap
-                return @cast(cl_pmap, "rpc_portmap", "kernel")->pm_vers
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_pmap->pm_vers
 %)
-        }
 }
 
 function prot_from_clnt:long(clnt:long)
 {
-        if (clnt == 0)
-                return 0
-        else {
-                cl_xprt = @cast(clnt, "rpc_clnt", "kernel")->cl_xprt
-                return @cast(cl_xprt, "rpc_xprt", "kernel")->prot
-        }
+	if (clnt == 0)
+		return 0
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt->prot
 }
 
 function port_from_clnt:long(clnt:long)
@@ -934,12 +922,14 @@ function port_from_clnt:long(clnt:long)
 		struct sockaddr_in *sap = (struct sockaddr_in *) &cl_xprt->addr;
 
 		THIS->__retvalue = ntohs(kread(&(sap->sin_port)));
+	}
 #else
 	if (cl_xprt && kread(&(cl_xprt->addr.sin_family)) == AF_INET) {
 		/* Now consider ipv4 only */
 		THIS->__retvalue = ntohs(kread(&(cl_xprt->addr.sin_port)));
+	}
 #endif
-	} else
+	else
 		THIS->__retvalue = 0;
 	CATCH_DEREF_FAULT();
 %}
@@ -970,10 +960,7 @@ function proc_from_msg:long(msg:long)
 {
 	if (msg == 0)
 		return 0
-	else {
-		rpc_proc = @cast(msg, "rpc_message", "kernel")->rpc_proc
-		return @cast(rpc_proc, "rpc_procinfo", "kernel")->p_proc
-	}
+	return @cast(msg, "rpc_message", "kernel:sunrpc")->rpc_proc->p_proc
 }
 
 function vers_from_prog:long(program:long, vers:long)
