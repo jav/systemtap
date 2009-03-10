@@ -582,7 +582,7 @@ The name of the tracepoint is available in
 .BR $$name ,
 and a string of name=value pairs for all parameters of the tracepoint
 is available in
-.BR $$vars .
+.BR $$vars " or " $$parms .
 
 .SS PERFORMANCE MONITORING HARDWARE
 

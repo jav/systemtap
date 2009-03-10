@@ -9271,7 +9271,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       stringstream alternatives;
       for (unsigned i = 0; i < args.size(); ++i)
         alternatives << " $" << args[i].name;
-      alternatives << " $$name $$vars";
+      alternatives << " $$name $$parms $$vars";
 
       // We hope that this value ends up not being referenced after all, so it
       // can be optimized out quietly.
@@ -9457,7 +9457,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
       provide (n);
     }
-  else if (e->base_name == "$$vars")
+  else if (e->base_name == "$$vars" || e->base_name == "$$parms")
     {
       target_symbol *tsym = new target_symbol;
       print_format* pf = new print_format;
@@ -9505,7 +9505,9 @@ tracepoint_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
-  if (e->base_name == "$$name" || e->base_name == "$$vars")
+  if (e->base_name == "$$name" ||
+      e->base_name == "$$parms" ||
+      e->base_name == "$$vars")
     visit_target_symbol_context (e);
   else
     visit_target_symbol_arg (e);
