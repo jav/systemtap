@@ -137,6 +137,6 @@ function scsi_timer_pending:long(var:long)
 
 function get_devstate_from_req:long(var:long)
 {
-	sdev = @cast(var, "request_queue", "kernel")->queuedata
-	return @cast(sdev, "scsi_device", "kernel")->sdev_state
+	sdev = @cast(var, "request_queue", "kernel:scsi_mod")->queuedata
+	return @cast(sdev, "scsi_device", "kernel:scsi_mod")->sdev_state
 }

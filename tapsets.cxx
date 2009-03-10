@@ -4913,14 +4913,14 @@ struct dwarf_cast_query : public base_query
 {
   const cast_op& e;
   const bool lvalue;
+
   exp_type& pe_type;
+  string& code;
 
-  bool resolved;
-  string code;
-
-  dwarf_cast_query(dwflpp& dw, const cast_op& e, bool lvalue, exp_type& pe_type):
-    base_query(dw, e.module), e(e), lvalue(lvalue), pe_type(pe_type), resolved(false) {}
-  const string& get_code();
+  dwarf_cast_query(dwflpp& dw, const string& module, const cast_op& e,
+                   bool lvalue, exp_type& pe_type, string& code):
+    base_query(dw, module), e(e), lvalue(lvalue),
+    pe_type(pe_type), code(code) {}
 
   void handle_query_module();
   int handle_query_cu(Dwarf_Die * cudie);
@@ -4929,23 +4929,10 @@ struct dwarf_cast_query : public base_query
 };
 
 
-const string&
-dwarf_cast_query::get_code()
-{
-  if (!resolved)
-    dw.query_modules(this);
-
-  if (!resolved)
-    throw semantic_error("type definition not found");
-
-  return code;
-}
-
-
 void
 dwarf_cast_query::handle_query_module()
 {
-  if (resolved)
+  if (!code.empty())
     return;
 
   // look for the type in each CU
@@ -4956,7 +4943,7 @@ dwarf_cast_query::handle_query_module()
 int
 dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
 {
-  if (resolved)
+  if (!code.empty())
     return DWARF_CB_ABORT;
 
   dw.focus_on_cu (cudie);
@@ -4973,10 +4960,7 @@ dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
           // XXX might be better to save the error
           // and try again in another CU
           sess.print_error (e);
-          return DWARF_CB_ABORT;
         }
-
-      resolved = true;
       return DWARF_CB_ABORT;
     }
   return DWARF_CB_OK;
@@ -5014,12 +4998,18 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   string code;
   exp_type type = pe_long;
-  try
+  size_t mod_end = -1;
+  do
     {
+      // split the module string by ':' for alternatives
+      size_t mod_begin = mod_end + 1;
+      mod_end = e->module.find(':', mod_begin);
+      string module = e->module.substr(mod_begin, mod_end);
+
       // NB: This uses '/' to distinguish between kernel modules and userspace,
       // which means that userspace modules won't get any PATH searching.
       dwflpp* dw;
-      if (e->module.find('/') == string::npos)
+      if (module.find('/') == string::npos)
         {
           // kernel or kernel module target
           if (! db.kern_dw)
@@ -5031,36 +5021,37 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
         }
       else
         {
-          e->module = find_executable (e->module); // canonicalize it
+          module = find_executable (module); // canonicalize it
 
           // user-space target; we use one dwflpp instance per module name
           // (= program or shared library)
-          if (db.user_dw.find(e->module) == db.user_dw.end())
+          if (db.user_dw.find(module) == db.user_dw.end())
             {
               dw = new dwflpp(s);
-              dw->setup_user(e->module);
-              db.user_dw[e->module] = dw;
+              dw->setup_user(module);
+              db.user_dw[module] = dw;
             }
           else
-            dw = db.user_dw[e->module];
+            dw = db.user_dw[module];
         }
 
-      dwarf_cast_query q (*dw, *e, lvalue, type);
-      code = q.get_code();
+      dwarf_cast_query q (*dw, module, *e, lvalue, type, code);
+      dw->query_modules(&q);
     }
-  catch (const semantic_error& er)
+  while (code.empty() && mod_end != string::npos);
+
+  if (code.empty())
     {
-      // We suppress this error message, and pass the unresolved
+      // We generate an error message, and pass the unresolved
       // cast_op to the next pass.  We hope that this value ends
       // up not being referenced after all, so it can be optimized out
       // quietly.
-      semantic_error* saveme = new semantic_error (er); // copy it
-      saveme->tok1 = e->tok; // XXX: token not passed to dw code generation routines
+      semantic_error* er = new semantic_error ("type definition not found", e->tok);
       // NB: we can have multiple errors, since a @cast
       // may be expanded in several different contexts:
       //     function ("*") { @cast(...) }
-      saveme->chain = e->saved_conversion_error;
-      e->saved_conversion_error = saveme;
+      er->chain = e->saved_conversion_error;
+      e->saved_conversion_error = er;
       provide (e);
       return;
     }
