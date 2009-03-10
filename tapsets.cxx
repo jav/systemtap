@@ -300,7 +300,6 @@ common_probe_entryfn_epilogue (translator_output* o,
 
       o->newline() << "c->cycles_base = cycles_atend;";
       o->newline() << "c->cycles_sum = 0;";
-      o->newline() << "c->probe_point = 0;"; // vacated
       o->newline(-1) << "}";
       o->newline(-1) << "}";
       o->newline() << "#endif";
@@ -309,6 +308,7 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline(-1) << "}";
   o->newline() << "#endif";
 
+  o->newline() << "c->probe_point = 0;"; // vacated
   o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
   o->newline(1) << "if (c->last_stmt != NULL)";
   o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
