@@ -159,12 +159,12 @@ be_derived_probe::join_group (systemtap_session& s)
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
                                string new_pp,
-			       bool overload_processing = true,
-                               bool interruptible = true)
+                               bool overload_processing = true)
 {
   o->newline() << "struct context* __restrict__ c;";
-  if (! interruptible)
-    o->newline() << "unsigned long flags;";
+  o->newline() << "#if !INTERRUPTIBLE";
+  o->newline() << "unsigned long flags;";
+  o->newline() << "#endif";
 
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
@@ -182,10 +182,11 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "static int _pfm_num_pmd_x;";
 #endif
 
-  if (! interruptible)
-    o->newline() << "local_irq_save (flags);";
-  else
-    o->newline() << "preempt_disable ();";
+  o->newline() << "#if INTERRUPTIBLE";
+  o->newline() << "preempt_disable ();";
+  o->newline() << "#else";
+  o->newline() << "local_irq_save (flags);";
+  o->newline() << "#endif";
 
   // Check for enough free enough stack space
   o->newline() << "if (unlikely ((((unsigned long) (& c)) & (THREAD_SIZE-1))"; // free space
@@ -233,10 +234,12 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->regparm = 0;";
   o->newline() << "c->marker_name = NULL;";
   o->newline() << "c->marker_format = NULL;";
-  if (! interruptible)
-    o->newline() << "c->actionremaining = MAXACTION;";
-  else
-    o->newline() << "c->actionremaining = MAXACTION_INTERRUPTIBLE;";
+
+  o->newline() << "#if INTERRUPTIBLE";
+  o->newline() << "c->actionremaining = MAXACTION_INTERRUPTIBLE;";
+  o->newline() << "#else";
+  o->newline() << "c->actionremaining = MAXACTION;";
+  o->newline() << "#endif";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "c->statp = 0;";
   o->newline() << "#endif";
@@ -255,8 +258,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
 
 void
 common_probe_entryfn_epilogue (translator_output* o,
-			       bool overload_processing = true,
-                               bool interruptible = true)
+                               bool overload_processing = true)
 {
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
@@ -332,10 +334,11 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline() << "_stp_exit ();";
   o->newline(-1) << "}";
 
-  if (! interruptible)
-    o->newline() << "local_irq_restore (flags);";
-  else
-    o->newline() << "preempt_enable_no_resched ();";
+  o->newline() << "#if INTERRUPTIBLE";
+  o->newline() << "preempt_enable_no_resched ();";
+  o->newline() << "#else";
+  o->newline() << "local_irq_restore (flags);";
+  o->newline() << "#endif";
 }
 
 
@@ -349,23 +352,23 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- begin/end probes ---- */";
   s.op->newline() << "static void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", "pp", false, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", "pp", false);
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false, true);
+  common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "static void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", "pp", false, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", "pp", false);
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false, true);
+  common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "static void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", "pp", false, true);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", "pp", false);
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false, true);
+  common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "static struct stap_be_probe {";

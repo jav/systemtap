@@ -4908,6 +4908,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#ifndef MINSTACKSPACE";
       s.op->newline() << "#define MINSTACKSPACE 1024";
       s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef INTERRUPTIBLE";
+      s.op->newline() << "#define INTERRUPTIBLE 1";
+      s.op->newline() << "#endif";
 
       // Overload processing
       s.op->newline() << "#ifndef STP_OVERLOAD_INTERVAL";

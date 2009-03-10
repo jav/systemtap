@@ -1055,6 +1055,17 @@ pool is large because individual uprobe objects are allocated for each
 process for each script-level probe.
 
 .PP
+With scripts that contain probes on any interrupt path, it is possible that
+those interrupts may occur in the middle of another probe handler.  The probe
+in the interrupt handler would be skipped in this case to avoid reentrance.
+To work around this issue, execute stap with the option
+.BR \-DINTERRUPTIBLE=0
+to mask interrupts throughout the probe handler.  This does add some extra
+overhead to the probes, but it may prevent reentrance for common problem
+cases.  However, probes in NMI handlers and in the callpath of the stap
+runtime may still be skipped due to reentrance.
+
+.PP
 Multiple scripts can write data into a relay buffer concurrently. A host
 script provides an interface for accessing its relay buffer to guest scripts.
 Then, the output of the guests are merged into the output of the host.
