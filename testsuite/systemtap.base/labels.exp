@@ -147,4 +147,4 @@ expect {
 
 if {$nomatch == 0} { pass "$test so .statement" } { fail "$test so .statement" }
 
-# catch {exec rm -f $label_srcpath $label_stppath $label_exepath}
+catch {exec rm -f $label_srcpath $label_stppath $label_exepath $label_shpath $label_sopath}
