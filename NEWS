@@ -1,5 +1,10 @@
 * What's new
 
+- Variables unavailable in current context may be skipped by setting a 
+  session level flag with command line option --skip-badvars now available. 
+  This will simply substitute the otherwise error causing variable with a 
+  literal 0 and print a warning message when the substitution has been made.
+
 * What's new in version 0.9
 
 - Typecasting is now supported using the @cast operator.  A script can

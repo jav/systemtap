@@ -4842,18 +4842,31 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error& er)
     {
-      // We suppress this error message, and pass the unresolved
-      // target_symbol to the next pass.  We hope that this value ends
-      // up not being referenced after all, so it can be optimized out
-      // quietly.
-      provide (e);
-      semantic_error* saveme = new semantic_error (er); // copy it
-      saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
-      // NB: we can have multiple errors, since a $target variable
-      // may be expanded in several different contexts:
-      //     function ("*") { $var }
-      saveme->chain = e->saved_conversion_error;
-      e->saved_conversion_error = saveme;
+      if (!q.sess.skip_badvars)
+	{
+	  // We suppress this error message, and pass the unresolved
+	  // target_symbol to the next pass.  We hope that this value ends
+	  // up not being referenced after all, so it can be optimized out
+	  // quietly.
+	  provide (e);
+	  semantic_error* saveme = new semantic_error (er); // copy it
+	  saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
+	  // NB: we can have multiple errors, since a $target variable
+	  // may be expanded in several different contexts:
+	  //     function ("*") { $var }
+	  saveme->chain = e->saved_conversion_error;
+	  e->saved_conversion_error = saveme;
+	}
+      else 
+	{
+	  // Upon user request for ignoring context, the symbol is replaced 
+	  // with a literal 0 and a warning message displayed
+	  literal_number* ln_zero = new literal_number (0);
+	  ln_zero->tok = e->tok;
+	  provide (ln_zero);
+	  q.sess.print_warning ("Bad variable being substituted with literal 0",
+				e->tok);
+	}
       delete fdecl;
       delete ec;
       return;

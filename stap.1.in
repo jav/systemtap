@@ -230,6 +230,9 @@ nor the kernel debugging information can be found.
 .TP
 .B \-\-ignore\-dwarf
 For testing, act as though vmlinux and modules lack debugging information.
+.TP
+.B \-\-skip\-badvars
+Ignore out of context variables and substitute with literal 0.
 
 .SH ARGUMENTS
 

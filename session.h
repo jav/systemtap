@@ -123,6 +123,9 @@ struct systemtap_session
   bool ignore_vmlinux;
   bool ignore_dwarf;
 
+  // Skip bad $ vars
+  bool skip_badvars;
+
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
   std::string tmpdir;
