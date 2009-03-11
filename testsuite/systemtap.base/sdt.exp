@@ -10,13 +10,19 @@ set ::result_string {1
 1 2 3 4 5 6 7 8 9
 1 2 3 4 5 6 7 8 9 10}
 
+set extra_flags {{""} {additional_flags=-ansi}}
+
+# Iterate extra_flags, trying each with C and C++
+for {set i 0} {$i < [llength $extra_flags]} {incr i} {
+# C
 set test_flags "additional_flags=-g"
 set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
 set test_flags "$test_flags additional_flags=-std=gnu89"
 set test_flags "$test_flags additional_flags=-Wall"
 set test_flags "$test_flags additional_flags=-Wdeclaration-after-statement"
 set test_flags "$test_flags additional_flags=-Werror"
-set res [target_compile $srcdir/$subdir/$test.c $test.prog executable $test_flags]
+
+set res [target_compile $srcdir/$subdir/$test.c $test.prog executable [concat $test_flags " " [lindex $extra_flags $i]]]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
     fail "compiling $test.c"
@@ -29,6 +35,29 @@ if {[installtest_p]} {
   stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
 } else {
   untested "$test"
+}
+
+# C++
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-Wall"
+set test_flags "$test_flags additional_flags=-Werror"
+set test_flags "$test_flags additional_flags=-x additional_flags=c++"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.prog executable [concat $test_flags [lindex $extra_flags $i]]]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.c"
+    return
+} else {
+    pass "compiling $test.c"
+}
+
+if {[installtest_p]} {
+  stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
+} else {
+  untested "$test"
+}
 }
 
 catch {exec rm -f $test.prog}
