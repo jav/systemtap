@@ -2,7 +2,7 @@
 
 # Find compile servers for systemtap
 #
-# Copyright (C) 2008 Red Hat Inc.
+# Copyright (C) 2008, 2009 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -18,6 +18,7 @@
 # function: configuration
 function configuration {
     avahi_service_tag=_stap._tcp
+    timeout=10 # seconds
 }
 
 # function: initialization
@@ -30,13 +31,32 @@ function initialization {
     fi
 }
 
-# function: find_and_connect_to_server
+# function: find_servers
 #
-# Find and establish connection with a compatibale stap server.
+# Find and establish connection with a compatible stap server.
 function find_servers {
-    # Find a server
-    avahi-browse $avahi_service_tag --terminate -r 2>/dev/null | match_server
-    rc=$?
+    # Create a temp file for the list of servers. We do this instead
+    # of using a pipe so that we can kill avahi-browse if it
+    # takes more than a minute.
+    tmpfile=`mktemp -t stap-serversXXXXXX` || \
+	fatal "Cannot create temporary file " $tmpfile
+
+    # Find servers
+    avahi-browse $avahi_service_tag --terminate -r 2>/dev/null > $tmpfile &
+    
+    for ((attempt=0; $attempt < $timeout; ++attempt))
+    do
+	if ! jobs '%avahi-browse' >/dev/null 2>&1; then
+	    break
+	fi
+	sleep 1
+    done
+
+    # Kill avahi-browse, if it's still running
+    test $attempt = $timeout && kill -s SIGTERM '%avahi-browse' 2>/dev/null
+
+    match_server < $tmpfile
+    rm -fr $tmpfile
 }
 
 # function: match_server
@@ -47,10 +67,11 @@ function match_server {
     local server_name
     local server_sysinfo
     local server_port
-    local rc=1 # not found yet
+
+    rc=1 # not found yet
 
     # Loop over the avahi service descriptors.
-    read || exit $rc
+    read -t $timeout || return
     while test "X$REPLY" != "X"
     do
 	server_name=
@@ -61,14 +82,14 @@ function match_server {
 	# Examine the next service descriptor
 	# Is it a stap server?
 	if ! echo $REPLY | grep -q "=.* .* IPv4 .*_stap"; then
-	    read || exit $rc
+	    read -t $timeout || return
 	    continue
 	fi
 	REPLY=
 	
 	# Get the details of the service
 	local service_tag equal service_data
-	while read service_tag equal service_data
+	while read -t $timeout service_tag equal service_data
 	do
 	    case $service_tag in
 		hostname )
@@ -113,8 +134,6 @@ function match_server {
 	echo "$server_name $server_ip $server_port '$server_sysinfo'"
 	rc=0
     done
-
-    exit $rc
 }
 
 # function client_sysinfo
@@ -126,6 +145,15 @@ function client_sysinfo {
 	sysinfo_client="`uname -rvm`"
     fi
     echo sysinfo=$sysinfo_client
+}
+
+# function: fatal [ MESSAGE ]
+#
+# Fatal error
+# Prints its arguments to stderr and exits
+function fatal {
+    echo "$0: ERROR:" "$@" >&2
+    exit 1
 }
 
 #-----------------------------------------------------------------------------
