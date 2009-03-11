@@ -16,8 +16,8 @@ if {[catch {exec mktemp -t staptestXXXXX} tmpfile]} {
 }
 
 if {[catch {exec stap -b -o $tmpfile $test} res]} {
-    untested $TEST_NAME
     puts "stap failed: $res"
+    fail $TEST_NAME
     as_root "/bin/rm -f [glob ${tmpfile}*]"
     return
 }

@@ -11,8 +11,8 @@ if {[catch {exec mktemp -t staptestXXXXX} tmpfile]} {
 }
 
 if {[catch {exec stap -DMAXACTION=100000 -o $tmpfile $tpath} res]} {
-    untested $TEST_NAME
-    puts "$res"
+    fail $TEST_NAME
+    puts "stap failed: $res"
     catch {exec rm -f $tmpfile}
     return
 }
