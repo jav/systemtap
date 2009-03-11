@@ -54,8 +54,7 @@ static int __stp_alloc_ring_buffer(void)
 
 	if (buffer_size == 0) {
 		dbug_trans(1, "using default buffer size...\n");
-		buffer_size = STP_BUFFER_SIZE
-		    + (4000 * sizeof(struct _stp_entry));
+		buffer_size = STP_BUFFER_SIZE * 30;
 	}
 	dbug_trans(1, "%lu\n", buffer_size);
 	__stp_ring_buffer = ring_buffer_alloc(buffer_size, 0);

@@ -72,7 +72,7 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 			uint32_t cnt;
 			char *bufp = pb->buf;
 
-#define MAX_RESERVE_SIZE (4080 /*BUF_PAGE_SIZE*/ - sizeof(struct _stp_entry) - 8)
+#define MAX_RESERVE_SIZE (4080 /*BUF_PAGE_SIZE*/ - sizeof(struct _stp_entry) - 10)
 			while (len > 0) {
 				if (len > MAX_RESERVE_SIZE) {
 					len -= MAX_RESERVE_SIZE;
