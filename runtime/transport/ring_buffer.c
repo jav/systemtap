@@ -1,8 +1,14 @@
 #include <linux/types.h>
 #include <linux/ring_buffer.h>
+#include <linux/wait.h>
+#include <linux/poll.h>
 
 static struct ring_buffer *__stp_ring_buffer = NULL;
 //DEFINE_PER_CPU(struct oprofile_cpu_buffer, cpu_buffer);
+
+/* _stp_poll_wait is a waitqueue for tasks blocked on
+ * _stp_data_poll_trace() */
+static DECLARE_WAIT_QUEUE_HEAD(_stp_poll_wait);
 
 #if 1
 /*
@@ -46,13 +52,17 @@ static int __stp_alloc_ring_buffer(void)
 	int i;
 	unsigned long buffer_size = _stp_bufsize;
 
-	if (buffer_size == 0)
-		buffer_size = STP_BUFFER_SIZE;
+	if (buffer_size == 0) {
+		dbug_trans(1, "using default buffer size...\n");
+		buffer_size = STP_BUFFER_SIZE
+		    + (4000 * sizeof(struct _stp_entry));
+	}
 	dbug_trans(1, "%lu\n", buffer_size);
 	__stp_ring_buffer = ring_buffer_alloc(buffer_size, 0);
 	if (!__stp_ring_buffer)
 		goto fail;
 
+	dbug_trans(1, "size = %lu\n", ring_buffer_size(__stp_ring_buffer));
 	return 0;
 
 fail:
@@ -224,7 +234,7 @@ __find_next_entry(int *ent_cpu, u64 *ent_ts)
 }
 
 /* Find the next real entry, and increment the iterator to the next entry */
-static struct _stp_entry *find_next_entry(void)
+static struct _stp_entry *_stp_find_next_entry(void)
 {
 	return __find_next_entry(&_stp_iter.cpu, &_stp_iter.ts);
 }
@@ -258,7 +268,7 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 
 	dbug_trans(1, "sret = %lu\n", (unsigned long)sret);
 	sret = 0;
-	while ((entry = find_next_entry) != NULL) {
+	while ((entry = _stp_find_next_entry()) != NULL) {
 		ssize_t len;
 
 		len = _stp_entry_to_user(entry, ubuf, cnt);
@@ -277,13 +287,26 @@ out:
 	return sret;
 }
 
+
+static unsigned int
+_stp_data_poll_trace(struct file *filp, poll_table *poll_table)
+{
+	dbug_trans(1, "entry\n");
+	if (! ring_buffer_empty(__stp_ring_buffer))
+		return POLLIN | POLLRDNORM;
+	poll_wait(filp, &_stp_poll_wait, poll_table);
+	if (! ring_buffer_empty(__stp_ring_buffer))
+		return POLLIN | POLLRDNORM;
+
+	dbug_trans(1, "exit\n");
+	return 0;
+}
+
 static struct file_operations __stp_data_fops = {
 	.owner		= THIS_MODULE,
 	.open		= _stp_data_open_trace,
 	.release	= _stp_data_release_trace,
-#if 0
-	.poll		= tracing_poll_pipe,
-#endif
+	.poll		= _stp_data_poll_trace,
 	.read		= _stp_data_read_trace,
 #if 0
 	.splice_read	= tracing_splice_read_pipe,
@@ -335,6 +358,7 @@ static int _stp_data_write_commit(struct _stp_entry *entry)
 	dbug_trans(1, "after commit, empty returns %d\n",
 		   ring_buffer_empty(__stp_ring_buffer));
 
+	wake_up_interruptible(&_stp_poll_wait);
 	return ret;
 }
 

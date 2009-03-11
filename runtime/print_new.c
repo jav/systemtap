@@ -60,13 +60,41 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 
 		dbug_trans(1, "calling _stp_data_write...\n");
 		spin_lock_irqsave(&_stp_print_lock, flags);
+#if 0
 		entry = _stp_data_write_reserve(len);
 		if (likely(entry)) {
 			memcpy(entry->buf, pb->buf, len);
 			_stp_data_write_commit(entry);
 		}
 		else
-			atomic_inc (&_stp_transport_failures);
+#endif
+		{
+			uint32_t cnt;
+			char *bufp = pb->buf;
+
+#define MAX_RESERVE_SIZE (4080 /*BUF_PAGE_SIZE*/ - sizeof(struct _stp_entry) - 8)
+			while (len > 0) {
+				if (len > MAX_RESERVE_SIZE) {
+					len -= MAX_RESERVE_SIZE;
+					cnt = MAX_RESERVE_SIZE;
+				}
+				else {
+					cnt = len;
+					len = 0;
+				}
+
+				entry = _stp_data_write_reserve(cnt);
+				if (likely(entry)) {
+					memcpy(entry->buf, bufp, cnt);
+					_stp_data_write_commit(entry);
+					bufp += cnt;
+				}
+				else {
+					atomic_inc (&_stp_transport_failures);
+					break;
+				}
+			}
+		}
 		spin_unlock_irqrestore(&_stp_print_lock, flags);
 	}
 #endif /* STP_BULKMODE */
