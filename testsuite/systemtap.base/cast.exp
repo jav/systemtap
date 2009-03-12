@@ -1,0 +1,4 @@
+set test "cast"
+set ::result_string {PID OK
+execname OK}
+stap_run2 $srcdir/$subdir/$test.stp

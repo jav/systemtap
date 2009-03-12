@@ -82,8 +82,7 @@ agg_array[6]: count:2  sum:18  avg:9  min:6  max:12
 loop had 4 iterations
 x ended up as 5
 
-Done.
-}
+Done.}
 
 stap_run2 $srcdir/$subdir/$test.stp
 

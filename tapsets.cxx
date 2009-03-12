@@ -15,6 +15,7 @@
 #include "translate.h"
 #include "session.h"
 #include "util.h"
+#include "buildrun.h"
 #include "dwarf_wrappers.h"
 #include "auto_free.h"
 
@@ -41,7 +42,6 @@ extern "C" {
 #include <fcntl.h>
 #include <elfutils/libdwfl.h>
 #include <elfutils/libdw.h>
-#include <elfutils/libebl.h>
 #include <dwarf.h>
 #include <elf.h>
 #include <obstack.h>
@@ -158,12 +158,13 @@ be_derived_probe::join_group (systemtap_session& s)
 // ------------------------------------------------------------------------
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
-			       bool overload_processing = true,
-                               bool interruptible = true)
+                               string new_pp,
+                               bool overload_processing = true)
 {
   o->newline() << "struct context* __restrict__ c;";
-  if (! interruptible)
-    o->newline() << "unsigned long flags;";
+  o->newline() << "#if !INTERRUPTIBLE";
+  o->newline() << "unsigned long flags;";
+  o->newline() << "#endif";
 
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
@@ -181,10 +182,11 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "static int _pfm_num_pmd_x;";
 #endif
 
-  if (! interruptible)
-    o->newline() << "local_irq_save (flags);";
-  else
-    o->newline() << "preempt_disable ();";
+  o->newline() << "#if INTERRUPTIBLE";
+  o->newline() << "preempt_disable ();";
+  o->newline() << "#else";
+  o->newline() << "local_irq_save (flags);";
+  o->newline() << "#endif";
 
   // Check for enough free enough stack space
   o->newline() << "if (unlikely ((((unsigned long) (& c)) & (THREAD_SIZE-1))"; // free space
@@ -207,6 +209,15 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline(1) << "atomic_inc (& skipped_count);";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "atomic_inc (& skipped_count_reentrant);";
+  o->newline() << "#ifdef DEBUG_REENTRANCY";
+  o->newline() << "_stp_warn (\"Skipped %s due to %s residency on cpu %u\\n\", "
+               << new_pp << ", c->probe_point ?: \"?\", smp_processor_id());";
+  // NB: There is a conceivable race condition here with reading
+  // c->probe_point, knowing that this other probe is sort of running.
+  // However, in reality, it's interrupted.  Plus even if it were able
+  // to somehow start again, and stop before we read c->probe_point,
+  // at least we have that   ?: "?"  bit in there to avoid a NULL deref.
+  o->newline() << "#endif";
   o->newline() << "#endif";
   o->newline() << "atomic_dec (& c->busy);";
   o->newline() << "goto probe_epilogue;";
@@ -217,16 +228,18 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->nesting = 0;";
   o->newline() << "c->regs = 0;";
   o->newline() << "c->unwaddr = 0;";
+  o->newline() << "c->probe_point = " << new_pp << ";";
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
   o->newline() << "c->regparm = 0;";
   o->newline() << "c->marker_name = NULL;";
   o->newline() << "c->marker_format = NULL;";
-  o->newline() << "c->probe_point = 0;";
-  if (! interruptible)
-    o->newline() << "c->actionremaining = MAXACTION;";
-  else
-    o->newline() << "c->actionremaining = MAXACTION_INTERRUPTIBLE;";
+
+  o->newline() << "#if INTERRUPTIBLE";
+  o->newline() << "c->actionremaining = MAXACTION_INTERRUPTIBLE;";
+  o->newline() << "#else";
+  o->newline() << "c->actionremaining = MAXACTION;";
+  o->newline() << "#endif";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "c->statp = 0;";
   o->newline() << "#endif";
@@ -245,8 +258,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
 
 void
 common_probe_entryfn_epilogue (translator_output* o,
-			       bool overload_processing = true,
-                               bool interruptible = true)
+                               bool overload_processing = true)
 {
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
@@ -298,6 +310,7 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline(-1) << "}";
   o->newline() << "#endif";
 
+  o->newline() << "c->probe_point = 0;"; // vacated
   o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
   o->newline(1) << "if (c->last_stmt != NULL)";
   o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
@@ -321,10 +334,11 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline() << "_stp_exit ();";
   o->newline(-1) << "}";
 
-  if (! interruptible)
-    o->newline() << "local_irq_restore (flags);";
-  else
-    o->newline() << "preempt_enable_no_resched ();";
+  o->newline() << "#if INTERRUPTIBLE";
+  o->newline() << "preempt_enable_no_resched ();";
+  o->newline() << "#else";
+  o->newline() << "local_irq_restore (flags);";
+  o->newline() << "#endif";
 }
 
 
@@ -338,26 +352,23 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- begin/end probes ---- */";
   s.op->newline() << "static void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false, true);
-  s.op->newline() << "c->probe_point = pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", "pp", false);
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false, true);
+  common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "static void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false, true);
-  s.op->newline() << "c->probe_point = pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", "pp", false);
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false, true);
+  common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "static void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", false, true);
-  s.op->newline() << "c->probe_point = pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", "pp", false);
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false, true);
+  common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "static struct stap_be_probe {";
@@ -466,6 +477,7 @@ static string TOK_STATEMENT("statement");
 static string TOK_ABSOLUTE("absolute");
 static string TOK_PROCESS("process");
 static string TOK_MARK("mark");
+static string TOK_TRACE("trace");
 static string TOK_LABEL("label");
 
 // Can we handle this query with just symbol-table info?
@@ -959,6 +971,9 @@ struct dwflpp
 
   void setup_user(string module_name, bool debuginfo_needed = true)
   {
+    if (! sess.module_cache)
+      sess.module_cache = new module_cache ();
+
     static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
     static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
     // NB: kernel_build_tree doesn't enter into this, as it's for
@@ -1191,8 +1206,9 @@ struct dwflpp
     return DWARF_CB_OK;
   }
 
-  int iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
-                              void * data);
+  int iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
+                              base_query * q, const string& function,
+                              bool has_statement_num=false);
   int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
 				 void * data);
 
@@ -2297,9 +2313,9 @@ struct dwflpp
     assert(memstream);
 
     fprintf(memstream, "{\n");
-    fprintf(memstream, prelude.c_str());
+    fprintf(memstream, "%s", prelude.c_str());
     bool deref = c_emit_location (memstream, head, 1);
-    fprintf(memstream, postlude.c_str());
+    fprintf(memstream, "%s", postlude.c_str());
     fprintf(memstream, "  goto out;\n");
 
     // dummy use of deref_fault label, to disable warning if deref() not used
@@ -2935,13 +2951,13 @@ dwflpp::iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
 }
 
 int
-dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
-                                void * data)
+dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
+                                base_query * q, const string& function,
+                                bool has_statement_num)
 {
   int rc = DWARF_CB_OK;
   assert (module);
   assert (cu);
-  dwarf_query * q = static_cast<dwarf_query *>(data);
 
   string key = module_name + ":" + cu_name;
   cu_function_cache_t *v = cu_function_cache[key];
@@ -2954,13 +2970,13 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
         clog << "function cache " << key << " size " << v->size() << endl;
     }
 
-  string subkey = q->function;
+  string subkey = function;
   if (v->find(subkey) != v->end())
     {
       Dwarf_Die die = v->find(subkey)->second;
       if (q->sess.verbose > 4)
         clog << "function cache " << key << " hit " << subkey << endl;
-      return (*callback)(& die, data);
+      return (*callback)(& die, q);
     }
   else if (name_has_wildcard (subkey))
     {
@@ -2974,17 +2990,17 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
               if (q->sess.verbose > 4)
                 clog << "function cache " << key << " match " << func_name << " vs " << subkey << endl;
 
-              rc = (*callback)(& die, data);
+              rc = (*callback)(& die, q);
               if (rc != DWARF_CB_OK) break;
             }
         }
     }
-  else if (q->has_statement_num) // searching all for kernel.statement
+  else if (has_statement_num) // searching all for kernel.statement
     {
       for (cu_function_cache_t::iterator it = v->begin(); it != v->end(); it++)
         {
           Dwarf_Die die = it->second;
-          rc = (*callback)(& die, data);
+          rc = (*callback)(& die, q);
           if (rc != DWARF_CB_OK) break;
         }
     }
@@ -3874,9 +3890,9 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 }
 
 static int
-query_dwarf_func (Dwarf_Die * func, void * arg)
+query_dwarf_func (Dwarf_Die * func, base_query * bq)
 {
-  dwarf_query * q = static_cast<dwarf_query *>(arg);
+  dwarf_query * q = static_cast<dwarf_query *>(bq);
 
   try
     {
@@ -3890,7 +3906,7 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	  if (q->sess.verbose>3)
 	    clog << "checking instances of inline " << q->dw.function_name
                  << "\n";
-	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, arg);
+	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, q);
 
           if (q->dw.function_name_final_match (q->function))
             return DWARF_CB_ABORT;
@@ -3907,9 +3923,9 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	  else if (q->has_function_num || q->has_statement_num)
 	    {
               Dwarf_Addr query_addr =
-                q->dw.module_address_to_global(q->has_function_num ? q->function_num_val :
-                                               q->has_statement_num ? q->statement_num_val :
-                                               (assert(0) , 0));
+                (q->has_function_num ? q->function_num_val :
+		 q->has_statement_num ? q->statement_num_val :
+		 (assert(0) , 0));
 	      Dwarf_Die d;
 	      q->dw.function_die (&d);
 
@@ -4024,7 +4040,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // Pick up [entrypc, name, DIE] tuples for all the functions
 	  // matching the query, and fill in the prologue endings of them
 	  // all in a single pass.
-	  int rc = q->dw.iterate_over_functions (query_dwarf_func, q);
+	  int rc = q->dw.iterate_over_functions (query_dwarf_func, q,
+                                                 q->function,
+                                                 q->has_statement_num);
 	  if (rc != DWARF_CB_OK)
 	    q->query_done = true;
 
@@ -4824,18 +4842,31 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error& er)
     {
-      // We suppress this error message, and pass the unresolved
-      // target_symbol to the next pass.  We hope that this value ends
-      // up not being referenced after all, so it can be optimized out
-      // quietly.
-      provide (e);
-      semantic_error* saveme = new semantic_error (er); // copy it
-      saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
-      // NB: we can have multiple errors, since a $target variable
-      // may be expanded in several different contexts:
-      //     function ("*") { $var }
-      saveme->chain = e->saved_conversion_error;
-      e->saved_conversion_error = saveme;
+      if (!q.sess.skip_badvars)
+	{
+	  // We suppress this error message, and pass the unresolved
+	  // target_symbol to the next pass.  We hope that this value ends
+	  // up not being referenced after all, so it can be optimized out
+	  // quietly.
+	  provide (e);
+	  semantic_error* saveme = new semantic_error (er); // copy it
+	  saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
+	  // NB: we can have multiple errors, since a $target variable
+	  // may be expanded in several different contexts:
+	  //     function ("*") { $var }
+	  saveme->chain = e->saved_conversion_error;
+	  e->saved_conversion_error = saveme;
+	}
+      else 
+	{
+	  // Upon user request for ignoring context, the symbol is replaced 
+	  // with a literal 0 and a warning message displayed
+	  literal_number* ln_zero = new literal_number (0);
+	  ln_zero->tok = e->tok;
+	  provide (ln_zero);
+	  q.sess.print_warning ("Bad variable being substituted with literal 0",
+				e->tok);
+	}
       delete fdecl;
       delete ec;
       return;
@@ -4895,14 +4926,14 @@ struct dwarf_cast_query : public base_query
 {
   const cast_op& e;
   const bool lvalue;
+
   exp_type& pe_type;
+  string& code;
 
-  bool resolved;
-  string code;
-
-  dwarf_cast_query(dwflpp& dw, const cast_op& e, bool lvalue, exp_type& pe_type):
-    base_query(dw, e.module), e(e), lvalue(lvalue), pe_type(pe_type), resolved(false) {}
-  const string& get_code();
+  dwarf_cast_query(dwflpp& dw, const string& module, const cast_op& e,
+                   bool lvalue, exp_type& pe_type, string& code):
+    base_query(dw, module), e(e), lvalue(lvalue),
+    pe_type(pe_type), code(code) {}
 
   void handle_query_module();
   int handle_query_cu(Dwarf_Die * cudie);
@@ -4911,23 +4942,10 @@ struct dwarf_cast_query : public base_query
 };
 
 
-const string&
-dwarf_cast_query::get_code()
-{
-  if (!resolved)
-    dw.query_modules(this);
-
-  if (!resolved)
-    throw semantic_error("type definition not found");
-
-  return code;
-}
-
-
 void
 dwarf_cast_query::handle_query_module()
 {
-  if (resolved)
+  if (!code.empty())
     return;
 
   // look for the type in each CU
@@ -4938,7 +4956,7 @@ dwarf_cast_query::handle_query_module()
 int
 dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
 {
-  if (resolved)
+  if (!code.empty())
     return DWARF_CB_ABORT;
 
   dw.focus_on_cu (cudie);
@@ -4955,10 +4973,7 @@ dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
           // XXX might be better to save the error
           // and try again in another CU
           sess.print_error (e);
-          return DWARF_CB_ABORT;
         }
-
-      resolved = true;
       return DWARF_CB_ABORT;
     }
   return DWARF_CB_OK;
@@ -4994,17 +5009,20 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   if (e->module.empty())
     e->module = "kernel"; // "*" may also be reasonable to search all kernel modules
 
-  if (! s.module_cache)
-    s.module_cache = new module_cache ();
-
   string code;
   exp_type type = pe_long;
-  try
+  size_t mod_end = -1;
+  do
     {
+      // split the module string by ':' for alternatives
+      size_t mod_begin = mod_end + 1;
+      mod_end = e->module.find(':', mod_begin);
+      string module = e->module.substr(mod_begin, mod_end - mod_begin);
+
       // NB: This uses '/' to distinguish between kernel modules and userspace,
       // which means that userspace modules won't get any PATH searching.
       dwflpp* dw;
-      if (e->module.find('/') == string::npos)
+      if (module.find('/') == string::npos)
         {
           // kernel or kernel module target
           if (! db.kern_dw)
@@ -5016,36 +5034,37 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
         }
       else
         {
-          e->module = find_executable (e->module); // canonicalize it
+          module = find_executable (module); // canonicalize it
 
           // user-space target; we use one dwflpp instance per module name
           // (= program or shared library)
-          if (db.user_dw.find(e->module) == db.user_dw.end())
+          if (db.user_dw.find(module) == db.user_dw.end())
             {
               dw = new dwflpp(s);
-              dw->setup_user(e->module);
-              db.user_dw[e->module] = dw;
+              dw->setup_user(module);
+              db.user_dw[module] = dw;
             }
           else
-            dw = db.user_dw[e->module];
+            dw = db.user_dw[module];
         }
 
-      dwarf_cast_query q (*dw, *e, lvalue, type);
-      code = q.get_code();
+      dwarf_cast_query q (*dw, module, *e, lvalue, type, code);
+      dw->query_modules(&q);
     }
-  catch (const semantic_error& er)
+  while (code.empty() && mod_end != string::npos);
+
+  if (code.empty())
     {
-      // We suppress this error message, and pass the unresolved
+      // We generate an error message, and pass the unresolved
       // cast_op to the next pass.  We hope that this value ends
       // up not being referenced after all, so it can be optimized out
       // quietly.
-      semantic_error* saveme = new semantic_error (er); // copy it
-      saveme->tok1 = e->tok; // XXX: token not passed to dw code generation routines
+      semantic_error* er = new semantic_error ("type definition not found", e->tok);
       // NB: we can have multiple errors, since a @cast
       // may be expanded in several different contexts:
       //     function ("*") { @cast(...) }
-      saveme->chain = e->saved_conversion_error;
-      e->saved_conversion_error = saveme;
+      er->chain = e->saved_conversion_error;
+      e->saved_conversion_error = er;
       provide (e);
       return;
     }
@@ -5463,8 +5482,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "kprobe_idx:0)"; // NB: at least we avoid memory corruption
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = sdp->pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "(*sdp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
@@ -5486,8 +5504,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = sdp->pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->pi = inst;"; // for assisting runtime's backtrace logic
   s.op->newline() << "(*sdp->ph) (c);";
@@ -5656,10 +5673,6 @@ dwarf_builder::build(systemtap_session & sess,
 
   dwflpp* dw = 0;
 
-  if (! sess.module_cache)
-    sess.module_cache = new module_cache ();
-
-
   string module_name;
   if (has_null_param (parameters, TOK_KERNEL)
       || get_param (parameters, TOK_MODULE, module_name))
@@ -5707,6 +5720,7 @@ dwarf_builder::build(systemtap_session & sess,
     size_t shstrndx;
     Elf_Scn *probe_scn = NULL;
     bool probe_found = false;
+    bool dynamic = (dwfl_module_relocations (dw->module) == 1);
 
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
     GElf_Shdr *shdr = NULL;
@@ -5724,8 +5738,10 @@ dwarf_builder::build(systemtap_session & sess,
 	    break;
 	  }
       }
+    if (dynamic || sess.listing_mode)
+      probe_type = dwarf_no_probes;
     
-    if (probe_type == probes_and_dwarf && ! sess.listing_mode)
+    if (probe_type == probes_and_dwarf)
       {
 	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
@@ -6363,6 +6379,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "/* ---- itrace probes ---- */";
+  s.op->newline() << "#include \"task_finder.c\"";
   s.op->newline() << "struct stap_itrace_probe {";
   s.op->indent(1);
   s.op->newline() << "struct stap_task_finder_target tgt;";
@@ -6377,8 +6394,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_itrace_probe(struct stap_itrace_probe *p, struct pt_regs *regs, void *data) {";
   s.op->indent(1);
 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = p->pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->pp");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->data = data;";
 
@@ -6970,8 +6986,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static void stap_utrace_probe_handler(struct task_struct *tsk, struct stap_utrace_probe *p) {";
       s.op->indent(1);
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-      s.op->newline() << "c->probe_point = p->pp;";
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->pp");
 
       // call probe function
       s.op->newline() << "(*p->ph) (c);";
@@ -6993,8 +7008,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->indent(1);
       s.op->newline() << "struct stap_utrace_probe *p = (struct stap_utrace_probe *)engine->data;";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-      s.op->newline() << "c->probe_point = p->pp;";
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->pp");
       s.op->newline() << "c->regs = regs;";
 
       // call probe function
@@ -7482,10 +7496,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_uprobe_probe (struct uprobe *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst, struct stap_uprobe, up);";
   s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->pp");
   s.op->newline() << "if (sup->spec_index < 0 ||"
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
-  s.op->newline() << "c->probe_point = sups->pp;";
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "(*sups->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
@@ -7494,10 +7507,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_uretprobe_probe (struct uretprobe_instance *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst->rp, struct stap_uprobe, urp);";
   s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->pp");
   s.op->newline() << "if (sup->spec_index < 0 ||"
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
-  s.op->newline() << "c->probe_point = sups->pp;";
   // XXX: kretprobes saves "c->pi = inst;" too
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "(*sups->ph) (c);";
@@ -7824,8 +7836,7 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << ");";
   s.op->newline(-1) << "{";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = stp->pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->pp");
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -7947,8 +7958,8 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "static void enter_all_profile_probes (struct pt_regs *regs) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = \"timer.profile\";"; // NB: hard-coded for convenience
+  string pp = lex_cast_qstring("timer.profile"); // hard-coded for convenience
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", pp);
   s.op->newline() << "c->regs = regs;";
 
   for (unsigned i=0; i<probes.size(); i++)
@@ -8204,8 +8215,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "int bytes = 0;";
       s.op->newline() << "string_t strdata = {'\\0'};";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-      s.op->newline() << "c->probe_point = spp->read_pp;";
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->read_pp");
 
       s.op->newline() << "if (c->data == NULL)";
       s.op->newline(1) << "c->data = &strdata;";
@@ -8247,8 +8257,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
       s.op->newline() << "string_t strdata = {'\\0'};";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-      s.op->newline() << "c->probe_point = spp->write_pp;";
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->write_pp");
 
       s.op->newline() << "if (count > (MAXSTRINGLEN - 1))";
       s.op->newline(1) << "count = MAXSTRINGLEN - 1;";
@@ -8527,6 +8536,7 @@ struct mark_derived_probe: public derived_probe
   void join_group (systemtap_session& s);
   void emit_probe_context_vars (translator_output* o);
   void initialize_probe_context_vars (translator_output* o);
+  void printargs (std::ostream &o) const;
 
   void parse_probe_format ();
 };
@@ -8971,6 +8981,27 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
     o->newline() << "deref_fault: ;";
 }
 
+void
+mark_derived_probe::printargs(std::ostream &o) const
+{
+  for (unsigned i = 0; i < mark_args.size(); i++)
+    {
+      string localname = "$arg" + lex_cast<string>(i+1);
+      switch (mark_args[i]->stp_type)
+        {
+        case pe_long:
+          o << " " << localname << ":long";
+          break;
+        case pe_string:
+          o << " " << localname << ":string";
+          break;
+        default:
+          o << " " << localname << ":unknown";
+          break;
+        }
+    }
+}
+
 
 void
 mark_derived_probe_group::emit_module_decls (systemtap_session& s)
@@ -9008,8 +9039,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "static void enter_marker_probe (void *probe_data, void *call_data, const char *fmt, va_list *args) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = smp->pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "smp->pp");
   s.op->newline() << "c->marker_name = smp->name;";
   s.op->newline() << "c->marker_format = smp->format;";
   s.op->newline() << "c->mark_va_list = args;";
@@ -9199,6 +9229,759 @@ mark_builder::build(systemtap_session & sess,
 
 
 // ------------------------------------------------------------------------
+// statically inserted kernel-tracepoint derived probes
+// ------------------------------------------------------------------------
+
+struct tracepoint_arg
+{
+  string name, c_type;
+  bool used, isptr;
+  Dwarf_Die type_die;
+  tracepoint_arg(): used(false), isptr(false) {}
+};
+
+struct tracepoint_derived_probe: public derived_probe
+{
+  tracepoint_derived_probe (systemtap_session& s,
+                            dwflpp& dw, Dwarf_Die& func_die,
+                            const string& tracepoint_name,
+                            probe* base_probe, probe_point* location);
+
+  systemtap_session& sess;
+  string tracepoint_name, header;
+  vector <struct tracepoint_arg> args;
+
+  void build_args(dwflpp& dw, Dwarf_Die& func_die);
+  void printargs (std::ostream &o) const;
+  void join_group (systemtap_session& s);
+  void emit_probe_context_vars (translator_output* o);
+};
+
+
+struct tracepoint_derived_probe_group: public generic_dpg<tracepoint_derived_probe>
+{
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
+};
+
+
+struct tracepoint_var_expanding_visitor: public var_expanding_visitor
+{
+  tracepoint_var_expanding_visitor(dwflpp& dw, const string& probe_name,
+                                   vector <struct tracepoint_arg>& args):
+    dw (dw), probe_name (probe_name), args (args) {}
+  dwflpp& dw;
+  const string& probe_name;
+  vector <struct tracepoint_arg>& args;
+
+  void visit_target_symbol (target_symbol* e);
+  void visit_target_symbol_arg (target_symbol* e);
+  void visit_target_symbol_context (target_symbol* e);
+};
+
+
+void
+tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
+{
+  string argname = e->base_name.substr(1);
+
+  // search for a tracepoint parameter matching this name
+  tracepoint_arg *arg = NULL;
+  for (unsigned i = 0; i < args.size(); ++i)
+    if (args[i].name == argname)
+      {
+        arg = &args[i];
+        arg->used = true;
+        break;
+      }
+
+  if (arg == NULL)
+    {
+      stringstream alternatives;
+      for (unsigned i = 0; i < args.size(); ++i)
+        alternatives << " $" << args[i].name;
+      alternatives << " $$name $$parms $$vars";
+
+      // We hope that this value ends up not being referenced after all, so it
+      // can be optimized out quietly.
+      semantic_error* saveme =
+        new semantic_error("unable to find tracepoint variable '" + e->base_name
+                           + "' (alternatives:" + alternatives.str () + ")", e->tok);
+      // NB: we can have multiple errors, since a target variable
+      // may be expanded in several different contexts:
+      //     trace ("*") { $foo->bar }
+      saveme->chain = e->saved_conversion_error;
+      e->saved_conversion_error = saveme;
+      provide (e);
+      return;
+    }
+
+  // make sure we're not dereferencing base types
+  if (!e->components.empty() && !arg->isptr)
+    switch (e->components[0].first)
+      {
+      case target_symbol::comp_literal_array_index:
+        throw semantic_error("tracepoint variable '" + e->base_name
+                             + "' may not be used as array", e->tok);
+      case target_symbol::comp_struct_member:
+        throw semantic_error("tracepoint variable '" + e->base_name
+                             + "' may not be used as a structure", e->tok);
+      default:
+        throw semantic_error("invalid use of tracepoint variable '"
+                             + e->base_name + "'", e->tok);
+      }
+
+  // we can only write to dereferenced fields, and only if guru mode is on
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue && (!dw.sess.guru_mode || e->components.empty()))
+    throw semantic_error("write to tracepoint variable '" + e->base_name
+                         + "' not permitted", e->tok);
+
+  if (e->components.empty())
+    {
+      // Synthesize a simple function to grab the parameter
+      functiondecl *fdecl = new functiondecl;
+      fdecl->tok = e->tok;
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = e->tok;
+
+      string fname = (string("_tracepoint_tvar_get")
+                      + "_" + e->base_name.substr(1)
+                      + "_" + lex_cast<string>(tick++));
+
+      fdecl->name = fname;
+      fdecl->body = ec;
+      fdecl->type = pe_long;
+
+      ec->code = (string("THIS->__retvalue = CONTEXT->locals[0].")
+                  + probe_name + string(".__tracepoint_arg_")
+                  + arg->name + string (";/* pure */"));
+
+      dw.sess.functions[fdecl->name] = fdecl;
+
+      // Synthesize a functioncall.
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = fname;
+      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+      provide (n);
+    }
+  else
+    {
+      // Synthesize a function to dereference the dwarf fields,
+      // with a pointer parameter that is the base tracepoint variable
+      functiondecl *fdecl = new functiondecl;
+      fdecl->tok = e->tok;
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = e->tok;
+
+      string fname = (string(lvalue ? "_tracepoint_tvar_set" : "_tracepoint_tvar_get")
+                      + "_" + e->base_name.substr(1)
+                      + "_" + lex_cast<string>(tick++));
+
+      fdecl->name = fname;
+      fdecl->body = ec;
+
+      try
+        {
+          ec->code = dw.literal_stmt_for_pointer (&arg->type_die, e->components,
+                                                  lvalue, fdecl->type);
+        }
+      catch (const semantic_error& er)
+        {
+          // We suppress this error message, and pass the unresolved
+          // variable to the next pass.  We hope that this value ends
+          // up not being referenced after all, so it can be optimized out
+          // quietly.
+          semantic_error* saveme = new semantic_error (er); // copy it
+          saveme->tok1 = e->tok; // XXX: token not passed to dw code generation routines
+          // NB: we can have multiple errors, since a target variable
+          // may be expanded in several different contexts:
+          //     trace ("*") { $foo->bar }
+          saveme->chain = e->saved_conversion_error;
+          e->saved_conversion_error = saveme;
+          provide (e);
+          return;
+        }
+
+      // Give the fdecl an argument for the raw tracepoint value
+      vardecl *v1 = new vardecl;
+      v1->type = pe_long;
+      v1->name = "pointer";
+      v1->tok = e->tok;
+      fdecl->formal_args.push_back(v1);
+
+      if (lvalue)
+        {
+          // Modify the fdecl so it carries a pe_long formal
+          // argument called "value".
+
+          // FIXME: For the time being we only support setting target
+          // variables which have base types; these are 'pe_long' in
+          // stap's type vocabulary.  Strings and pointers might be
+          // reasonable, some day, but not today.
+
+          vardecl *v2 = new vardecl;
+          v2->type = pe_long;
+          v2->name = "value";
+          v2->tok = e->tok;
+          fdecl->formal_args.push_back(v2);
+        }
+      else
+        ec->code += "/* pure */";
+
+      dw.sess.functions[fdecl->name] = fdecl;
+
+      // Synthesize a functioncall.
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = fname;
+      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+      // make the original a bare target symbol for the tracepoint value,
+      // which will be passed into the dwarf dereferencing code
+      e->components.clear();
+      n->args.push_back(require(e));
+
+      if (lvalue)
+        {
+          // Provide the functioncall to our parent, so that it can be
+          // used to substitute for the assignment node immediately above
+          // us.
+          assert(!target_symbol_setter_functioncalls.empty());
+          *(target_symbol_setter_functioncalls.top()) = n;
+        }
+
+      provide (n);
+    }
+}
+
+
+void
+tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
+{
+  if (is_active_lvalue (e))
+    throw semantic_error("write to tracepoint '" + e->base_name + "' not permitted", e->tok);
+
+  if (!e->components.empty())
+    switch (e->components[0].first)
+      {
+      case target_symbol::comp_literal_array_index:
+        throw semantic_error("tracepoint '" + e->base_name + "' may not be used as array",
+                             e->tok);
+      case target_symbol::comp_struct_member:
+        throw semantic_error("tracepoint '" + e->base_name + "' may not be used as a structure",
+                             e->tok);
+      default:
+        throw semantic_error("invalid tracepoint '" + e->base_name + "' use", e->tok);
+      }
+
+  if (e->base_name == "$$name")
+    {
+      // Synthesize a functioncall.
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = "_mark_name_get";
+      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+      provide (n);
+    }
+  else if (e->base_name == "$$vars" || e->base_name == "$$parms")
+    {
+      target_symbol *tsym = new target_symbol;
+      print_format* pf = new print_format;
+
+      // Convert $$vars to sprintf of a list of vars which we recursively evaluate
+      // NB: we synthesize a new token here rather than reusing
+      // e->tok, because print_format::print likes to use
+      // its tok->content.
+      token* pf_tok = new token(*e->tok);
+      pf_tok->content = "sprintf";
+
+      pf->tok = pf_tok;
+      pf->print_to_stream = false;
+      pf->print_with_format = true;
+      pf->print_with_delim = false;
+      pf->print_with_newline = false;
+      pf->print_char = false;
+
+      for (unsigned i = 0; i < args.size(); ++i)
+        {
+          if (i > 0)
+            pf->raw_components += " ";
+          pf->raw_components += args[i].name;
+          tsym->tok = e->tok;
+          tsym->base_name = "$" + args[i].name;
+
+          // every variable should always be accessible!
+          tsym->saved_conversion_error = 0;
+          expression *texp = require (tsym); // NB: throws nothing ...
+          assert (!tsym->saved_conversion_error); // ... but this is how we know it happened.
+
+          pf->raw_components += "=%#x";
+          pf->args.push_back(texp);
+        }
+
+      pf->components = print_format::string_to_components(pf->raw_components);
+      provide (pf);
+    }
+  else
+    assert(0); // shouldn't get here
+}
+
+void
+tracepoint_var_expanding_visitor::visit_target_symbol (target_symbol* e)
+{
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (e->base_name == "$$name" ||
+      e->base_name == "$$parms" ||
+      e->base_name == "$$vars")
+    visit_target_symbol_context (e);
+  else
+    visit_target_symbol_arg (e);
+}
+
+
+
+tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
+                                                    dwflpp& dw, Dwarf_Die& func_die,
+                                                    const string& tracepoint_name,
+                                                    probe* base, probe_point* loc):
+  derived_probe (base, new probe_point(*loc) /* .components soon rewritten */),
+  sess (s), tracepoint_name (tracepoint_name)
+{
+  // create synthetic probe point name; preserve condition
+  vector<probe_point::component*> comps;
+  comps.push_back (new probe_point::component (TOK_KERNEL));
+  comps.push_back (new probe_point::component (TOK_TRACE, new literal_string (tracepoint_name)));
+  this->sole_location()->components = comps;
+
+  // fill out the available arguments in this tracepoint
+  build_args(dw, func_die);
+
+  // determine which header defined this tracepoint
+  string decl_file = dwarf_decl_file(&func_die);
+  size_t header_pos = decl_file.rfind("trace/");
+  if (header_pos == string::npos)
+    throw semantic_error ("cannot parse header location for tracepoint '"
+                                  + tracepoint_name + "' in '"
+                                  + decl_file + "'");
+  header = decl_file.substr(header_pos);
+
+  // tracepoints from FOO_event_types.h should really be included from FOO.h
+  // XXX can dwarf tell us the include hierarchy?  it would be better to
+  // ... walk up to see which one was directly included by tracequery.c
+  header_pos = header.find("_event_types");
+  if (header_pos != string::npos)
+    header.erase(header_pos, 12);
+
+  // Now expand the local variables in the probe body
+  tracepoint_var_expanding_visitor v (dw, name, args);
+  this->body = v.require (this->body);
+
+  if (sess.verbose > 2)
+    clog << "tracepoint-based " << name << " tracepoint='" << tracepoint_name
+	 << "'" << endl;
+}
+
+
+static bool
+dwarf_type_name(Dwarf_Die& type_die, string& c_type)
+{
+  // if this die has a direct name, then we're done
+  const char *diename = dwarf_diename_integrate(&type_die);
+  if (diename != NULL)
+    {
+      switch (dwarf_tag(&type_die))
+        {
+        case DW_TAG_structure_type:
+          c_type.append("struct ");
+          break;
+        case DW_TAG_union_type:
+          c_type.append("union ");
+          break;
+        }
+      c_type.append(diename);
+      return true;
+    }
+
+  // otherwise, this die is a type modifier.
+
+  // recurse into the referent type
+  Dwarf_Attribute subtype_attr;
+  Dwarf_Die subtype_die;
+  if (!dwarf_attr_integrate(&type_die, DW_AT_type, &subtype_attr)
+      || !dwarf_formref_die(&subtype_attr, &subtype_die)
+      || !dwarf_type_name(subtype_die, c_type))
+    return false;
+
+  const char *suffix = NULL;
+  switch (dwarf_tag(&type_die))
+    {
+    case DW_TAG_pointer_type:
+      suffix = "*";
+      break;
+    case DW_TAG_array_type:
+      suffix = "[]";
+      break;
+    case DW_TAG_const_type:
+      suffix = " const";
+      break;
+    case DW_TAG_volatile_type:
+      suffix = " volatile";
+      break;
+    default:
+      return false;
+    }
+  c_type.append(suffix);
+  return true;
+}
+
+
+static bool
+resolve_tracepoint_arg_type(Dwarf_Die& type_die, bool& isptr)
+{
+  Dwarf_Attribute type_attr;
+  switch (dwarf_tag(&type_die))
+    {
+    case DW_TAG_typedef:
+    case DW_TAG_const_type:
+    case DW_TAG_volatile_type:
+      // iterate on the referent type
+      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
+              && dwarf_formref_die(&type_attr, &type_die)
+              && resolve_tracepoint_arg_type(type_die, isptr));
+    case DW_TAG_base_type:
+      // base types will simply be treated as script longs
+      isptr = false;
+      return true;
+    case DW_TAG_pointer_type:
+      // pointers can be either script longs,
+      // or dereferenced with their referent type
+      isptr = true;
+      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
+              && dwarf_formref_die(&type_attr, &type_die));
+    default:
+      // should we consider other types too?
+      return false;
+    }
+}
+
+
+void
+tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
+{
+  Dwarf_Die arg;
+  if (dwarf_child(&func_die, &arg) == 0)
+    do
+      if (dwarf_tag(&arg) == DW_TAG_formal_parameter)
+        {
+          // build a tracepoint_arg for this parameter
+          tracepoint_arg tparg;
+          tparg.name = dwarf_diename_integrate(&arg);
+
+          // read the type of this parameter
+          Dwarf_Attribute type_attr;
+          if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr)
+              || !dwarf_formref_die (&type_attr, &tparg.type_die)
+              || !dwarf_type_name(tparg.type_die, tparg.c_type)
+              || !resolve_tracepoint_arg_type(tparg.type_die, tparg.isptr))
+            throw semantic_error ("cannot get type of tracepoint '"
+                                  + tracepoint_name + "' parameter '"
+                                  + tparg.name + "'");
+
+          args.push_back(tparg);
+          if (sess.verbose > 4)
+            clog << "found parameter for tracepoint '" << tracepoint_name
+                 << "': type:'" << tparg.c_type
+                 << "' name:'" << tparg.name << "'" << endl;
+        }
+    while (dwarf_siblingof(&arg, &arg) == 0);
+}
+
+void
+tracepoint_derived_probe::printargs(std::ostream &o) const
+{
+      for (unsigned i = 0; i < args.size(); ++i)
+       o << " $" << args[i].name << ":" << args[i].c_type;
+}
+
+void
+tracepoint_derived_probe::join_group (systemtap_session& s)
+{
+  if (! s.tracepoint_derived_probes)
+    s.tracepoint_derived_probes = new tracepoint_derived_probe_group ();
+  s.tracepoint_derived_probes->enroll (this);
+}
+
+
+void
+tracepoint_derived_probe::emit_probe_context_vars (translator_output* o)
+{
+  for (unsigned i = 0; i < args.size(); i++)
+    if (args[i].used)
+      o->newline() << "int64_t __tracepoint_arg_" << args[i].name << ";";
+}
+
+
+void
+tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
+{
+  if (probes.empty())
+    return;
+
+  s.op->newline() << "/* ---- tracepoint probes ---- */";
+  s.op->newline();
+
+  for (unsigned i = 0; i < probes.size(); ++i)
+    {
+      tracepoint_derived_probe *p = probes[i];
+
+      // emit a separate entry function for each probe, since tracepoints
+      // don't provide any sort of context pointer.
+      s.op->newline() << "#include <" << p->header << ">";
+      s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        {
+          if (j > 0)
+            s.op->line() << ", ";
+          s.op->line() << p->args[j].c_type << " __tracepoint_arg_" << p->args[j].name;
+        }
+      s.op->line() << ") {";
+      s.op->indent(1);
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", 
+                                     lex_cast_qstring (*p->sole_location()));
+      s.op->newline() << "c->marker_name = "
+                      << lex_cast_qstring (p->tracepoint_name)
+                      << ";";
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        if (p->args[j].used)
+          {
+            s.op->newline() << "c->locals[0]." << p->name << ".__tracepoint_arg_"
+                            << p->args[j].name << " = (int64_t)";
+            if (p->args[j].isptr)
+              s.op->line() << "(intptr_t)";
+            s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
+          }
+      s.op->newline() << p->name << " (c);";
+      common_probe_entryfn_epilogue (s.op);
+      s.op->newline(-1) << "}";
+
+      // emit normalized registration functions
+      s.op->newline() << "static int register_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "return register_trace_" << p->tracepoint_name
+                       << "(enter_tracepoint_probe_" << i << ");";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "static int unregister_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "return unregister_trace_" << p->tracepoint_name
+                       << "(enter_tracepoint_probe_" << i << ");";
+      s.op->newline(-1) << "}";
+      s.op->newline();
+    }
+
+  // emit an array of registration functions for easy init/shutdown
+  s.op->newline() << "static struct stap_tracepoint_probe {";
+  s.op->newline(1) << "int (*reg)(void);";
+  s.op->newline(0) << "int (*unreg)(void);";
+  s.op->newline(-1) << "} stap_tracepoint_probes[] = {";
+  s.op->indent(1);
+  for (unsigned i = 0; i < probes.size(); ++i)
+    {
+      s.op->newline () << "{";
+      s.op->line() << " .reg=&register_tracepoint_probe_" << i << ",";
+      s.op->line() << " .unreg=&unregister_tracepoint_probe_" << i;
+      s.op->line() << " },";
+    }
+  s.op->newline(-1) << "};";
+  s.op->newline();
+}
+
+
+void
+tracepoint_derived_probe_group::emit_module_init (systemtap_session &s)
+{
+  if (probes.size () == 0)
+    return;
+
+  s.op->newline() << "/* init tracepoint probes */";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "rc = stap_tracepoint_probes[i].reg();";
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "for (j=i-1; j>=0; j--)"; // partial rollback
+  s.op->newline(1) << "stap_tracepoint_probes[j].unreg();";
+  s.op->newline(-1) << "break;"; // don't attempt to register any more probes
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+
+  // This would be technically proper (on those autoconf-detectable
+  // kernels that include this function in tracepoint.h), however we
+  // already make several calls to synchronze_sched() during our
+  // shutdown processes.
+
+  // s.op->newline() << "if (rc)";
+  // s.op->newline(1) << "tracepoint_synchronize_unregister();";
+  // s.op->indent(-1);
+}
+
+
+void
+tracepoint_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (probes.empty())
+    return;
+
+  s.op->newline() << "/* deregister tracepoint probes */";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++)";
+  s.op->newline(1) << "stap_tracepoint_probes[i].unreg();";
+  s.op->indent(-1);
+
+  // Not necessary: see above.
+
+  // s.op->newline() << "tracepoint_synchronize_unregister();";
+}
+
+
+struct tracepoint_query : public base_query
+{
+  tracepoint_query(dwflpp & dw, const string & tracepoint,
+                   probe * base_probe, probe_point * base_loc,
+                   vector<derived_probe *> & results):
+    base_query(dw, "*"), tracepoint(tracepoint),
+    base_probe(base_probe), base_loc(base_loc),
+    results(results) {}
+
+  const string& tracepoint;
+
+  probe * base_probe;
+  probe_point * base_loc;
+  vector<derived_probe *> & results;
+
+  void handle_query_module();
+  int handle_query_cu(Dwarf_Die * cudie);
+  int handle_query_func(Dwarf_Die * func);
+
+  static int tracepoint_query_cu (Dwarf_Die * cudie, void * arg);
+  static int tracepoint_query_func (Dwarf_Die * func, base_query * query);
+};
+
+
+void
+tracepoint_query::handle_query_module()
+{
+  // look for the tracepoints in each CU
+  dw.iterate_over_cus(tracepoint_query_cu, this);
+}
+
+
+int
+tracepoint_query::handle_query_cu(Dwarf_Die * cudie)
+{
+  dw.focus_on_cu (cudie);
+
+  // look at each function to see if it's a tracepoint
+  string function = "stapprobe_" + tracepoint;
+  return dw.iterate_over_functions (tracepoint_query_func, this, function);
+}
+
+
+int
+tracepoint_query::handle_query_func(Dwarf_Die * func)
+{
+  dw.focus_on_function (func);
+
+  assert(dw.function_name.compare(0, 10, "stapprobe_") == 0);
+  string tracepoint_instance = dw.function_name.substr(10);
+  derived_probe *dp = new tracepoint_derived_probe (dw.sess, dw, *func,
+                                                    tracepoint_instance,
+                                                    base_probe, base_loc);
+  results.push_back (dp);
+  return DWARF_CB_OK;
+}
+
+
+int
+tracepoint_query::tracepoint_query_cu (Dwarf_Die * cudie, void * arg)
+{
+  tracepoint_query * q = static_cast<tracepoint_query *>(arg);
+  if (pending_interrupts) return DWARF_CB_ABORT;
+  return q->handle_query_cu(cudie);
+}
+
+
+int
+tracepoint_query::tracepoint_query_func (Dwarf_Die * func, base_query * query)
+{
+  tracepoint_query * q = static_cast<tracepoint_query *>(query);
+  if (pending_interrupts) return DWARF_CB_ABORT;
+  return q->handle_query_func(func);
+}
+
+
+struct tracepoint_builder: public derived_probe_builder
+{
+private:
+  dwflpp *dw;
+  bool init_dw(systemtap_session& s);
+
+public:
+  tracepoint_builder(): dw(0) {}
+  ~tracepoint_builder() { delete dw; }
+
+  void build_no_more (systemtap_session& s)
+  {
+    if (dw && s.verbose > 3)
+      clog << "tracepoint_builder releasing dwflpp" << endl;
+    delete dw;
+    dw = NULL;
+  }
+
+  void build(systemtap_session& s,
+             probe *base, probe_point *location,
+             literal_map_t const& parameters,
+             vector<derived_probe*>& finished_results);
+};
+
+
+bool
+tracepoint_builder::init_dw(systemtap_session& s)
+{
+  if (dw != NULL)
+    return true;
+
+  string tracequery_ko;
+  int rc = make_tracequery(s, tracequery_ko);
+  if (rc != 0)
+    return false;
+
+  // TODO cache tracequery.ko
+
+  dw = new dwflpp(s);
+  dw->setup_user(tracequery_ko);
+  return true;
+}
+
+
+void
+tracepoint_builder::build(systemtap_session& s,
+                          probe *base, probe_point *location,
+                          literal_map_t const& parameters,
+                          vector<derived_probe*>& finished_results)
+{
+  if (!init_dw(s))
+    return;
+
+  string tracepoint;
+  assert(get_param (parameters, TOK_TRACE, tracepoint));
+
+  tracepoint_query q(*dw, tracepoint, base, location, finished_results);
+  dw->query_modules(&q);
+}
+
+
+
+// ------------------------------------------------------------------------
 // hrtimer derived probes
 // ------------------------------------------------------------------------
 // This is a new timer interface that provides more flexibility in specifying
@@ -9337,8 +10120,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "{";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = stp->pp;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->pp");
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -9702,7 +10484,8 @@ perfmon_derived_probe::emit_probe_entries (translator_output * o)
       emit_probe_prologue (o,
                            (mode == perfmon_count ?
                             "STAP_SESSION_STARTING" :
-                            "STAP_SESSION_RUNNING"));
+                            "STAP_SESSION_RUNNING"),
+                           "probe_point");
 
       // NB: locals are initialized by probe function itself
       o->newline() << name << " (c);";
@@ -10000,6 +10783,10 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_MARK)->bind_str(TOK_FORMAT)
     ->bind(new mark_builder());
 
+  // kernel tracepoint probes
+  s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_TRACE)
+    ->bind(new tracepoint_builder());
+
   // procfs parts
   s.pattern_root->bind(TOK_PROCFS)->bind(TOK_READ)->bind(new procfs_builder());
   s.pattern_root->bind_str(TOK_PROCFS)->bind(TOK_READ)
@@ -10028,6 +10815,7 @@ all_session_groups(systemtap_session& s)
   DOONE(timer);
   DOONE(profile);
   DOONE(mark);
+  DOONE(tracepoint);
   DOONE(hrtimer);
   DOONE(perfmon);
   DOONE(procfs);

@@ -1,0 +1,49 @@
+probe process("sdt.prog").mark("mark_a")
+{
+  printf("%d\n", $arg1);
+}
+
+probe process("sdt.prog").mark("mark_b")
+{
+  printf("%d %d\n", $arg1, $arg2);
+}
+
+probe process("sdt.prog").mark("mark_c")
+{
+  printf("%d %d %d\n", $arg1, $arg2, $arg3);
+}
+
+probe process("sdt.prog").mark("mark_d")
+{
+  printf("%d %d %d %d\n", $arg1, $arg2, $arg3, $arg4);
+}
+
+probe process("sdt.prog").mark("mark_e")
+{
+  printf("%d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5);
+}
+
+probe process("sdt.prog").mark("mark_f")
+{
+  printf("%d %d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6);
+}
+
+probe process("sdt.prog").mark("mark_g")
+{
+  printf("%d %d %d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7);
+}
+
+probe process("sdt.prog").mark("mark_h")
+{
+  printf("%d %d %d %d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8);
+}
+
+probe process("sdt.prog").mark("mark_i")
+{
+  printf("%d %d %d %d %d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9);
+}
+
+probe process("sdt.prog").mark("mark_j")
+{
+  printf("%d %d %d %d %d %d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9, $arg10);
+}

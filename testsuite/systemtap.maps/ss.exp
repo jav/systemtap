@@ -61,7 +61,6 @@ foo[6] = # 36
 foo[7] = # 49
 foo[8] = # 64
 foo[9] = # 81
-foo[10] = # 100
-}
+foo[10] = # 100}
 
 stap_run2 $srcdir/$subdir/$test.stp

@@ -1,0 +1,22 @@
+probe begin
+{
+    curr = task_current()
+
+    // Compare PIDs
+    pid = pid()
+    cast_pid = @cast(curr, "task_struct")->tgid
+    if (pid == cast_pid)
+        println("PID OK")
+    else
+        printf("PID %d != %d\n", pid, cast_pid)
+
+    // Compare execnames
+    name = execname()
+    cast_name = kernel_string(@cast(curr, "task_struct")->comm)
+    if (name == cast_name)
+        println("execname OK")
+    else
+        printf("execname \"%s\" != \"%s\"\n", name, cast_name)
+
+    exit()
+}

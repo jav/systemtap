@@ -1,0 +1,66 @@
+set test "sdt"
+set ::result_string {1
+1 2
+1 2 3
+1 2 3 4
+1 2 3 4 5
+1 2 3 4 5 6
+1 2 3 4 5 6 7
+1 2 3 4 5 6 7 8
+1 2 3 4 5 6 7 8 9
+1 2 3 4 5 6 7 8 9 10}
+
+set extra_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic}}
+
+# Iterate extra_flags, trying each with C and C++
+for {set i 0} {$i < [llength $extra_flags]} {incr i} {
+set extra_flag [lindex $extra_flags $i]
+
+# C
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-Wall"
+set test_flags "$test_flags additional_flags=-Wextra"
+set test_flags "$test_flags additional_flags=-Werror"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.prog executable "$test_flags $extra_flag"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.c $extra_flag"
+    return
+} else {
+    pass "compiling $test.c $extra_flag"
+}
+
+if {[installtest_p]} {
+# XXX: we need distinct test names for these 
+  stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
+} else {
+  untested "$test $extra_flag"
+}
+
+# C++
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-Wall"
+set test_flags "$test_flags additional_flags=-Werror"
+set test_flags "$test_flags additional_flags=-x additional_flags=c++"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.prog executable "$test_flags $extra_flag"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.c c++ $extra_flag"
+    return
+} else {
+    pass "compiling $test.c c++ $extra_flag"
+}
+
+if {[installtest_p]} {
+# XXX: we need distinct test names for these 
+  stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
+} else {
+  untested "$test c++ $extra_flag"
+}
+}
+
+catch {exec rm -f $test.prog}

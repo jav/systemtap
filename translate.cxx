@@ -1236,6 +1236,11 @@ c_unparser::emit_module_init ()
 	o->newline() << getvar (v).fini();
     }
 
+  // For any partially registered/unregistered kernel facilities.
+  o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
+  o->newline() << "synchronize_sched();";
+  o->newline() << "#endif";
+
   o->newline() << "return rc;";
   o->newline(-1) << "}\n";
 }
@@ -3882,7 +3887,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 	  assert (rvalue->type == pe_long);
 
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
-	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  o->newline() << mvar.add (idx, rvar) << ";";
           res = rvar;
 	  // no need for these dummy assignments
@@ -3892,7 +3897,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       else
 	{
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
-	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  if (op != "=") // don't bother fetch slot if we will just overwrite it
 	    parent->c_assign (lvar, mvar.get(idx), e->tok);
 	  c_assignop (res, lvar, rvar, e->tok);
@@ -4453,6 +4458,9 @@ dump_unwindsyms (Dwfl_Module *m,
 
   string modname = name;
 
+  if (pending_interrupts)
+    return DWARF_CB_ABORT;
+
   // skip modules/files we're not actually interested in
   if (c->session.unwindsym_modules.find(modname) == c->session.unwindsym_modules.end())
     return DWARF_CB_OK;
@@ -4900,6 +4908,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#ifndef MINSTACKSPACE";
       s.op->newline() << "#define MINSTACKSPACE 1024";
       s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef INTERRUPTIBLE";
+      s.op->newline() << "#define INTERRUPTIBLE 1";
+      s.op->newline() << "#endif";
 
       // Overload processing
       s.op->newline() << "#ifndef STP_OVERLOAD_INTERVAL";
@@ -4954,21 +4965,23 @@ translate_pass (systemtap_session& s)
           s.op->newline() << s.embeds[i]->code << "\n";
         }
 
-      s.op->newline() << "static struct {";
-      s.op->indent(1);
-      for (unsigned i=0; i<s.globals.size(); i++)
-        {
-          s.up->emit_global (s.globals[i]);
-        }
-      s.op->newline(-1) << "} global = {";
-      s.op->newline(1);
-      for (unsigned i=0; i<s.globals.size(); i++)
-        {
-          if (pending_interrupts) return 1;
-          s.up->emit_global_init (s.globals[i]);
-        }
-      s.op->newline(-1) << "};";
-      s.op->assert_0_indent();
+      if (s.globals.size()>0) {
+        s.op->newline() << "static struct {";
+        s.op->indent(1);
+        for (unsigned i=0; i<s.globals.size(); i++)
+          {
+            s.up->emit_global (s.globals[i]);
+          }
+        s.op->newline(-1) << "} global = {";
+        s.op->newline(1);
+        for (unsigned i=0; i<s.globals.size(); i++)
+          {
+            if (pending_interrupts) return 1;
+            s.up->emit_global_init (s.globals[i]);
+          }
+        s.op->newline(-1) << "};";
+        s.op->assert_0_indent();
+      }
 
       for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
 	{

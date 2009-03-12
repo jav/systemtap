@@ -1,6 +1,6 @@
 /*
  * user space instruction tracing
- * Copyright (C) 2005, 2006, 2007, 2008 IBM Corp.
+ * Copyright (C) 2005, 2006, 2007, 2008, 2009 IBM Corp.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -18,8 +18,6 @@
 #include <linux/rcupdate.h>
 #include <linux/utrace.h>
 #include <asm/string.h>
-#include <asm/tracehook.h>
-#include <asm/ptrace.h>
 #include "uprobes/uprobes.h"
 
 #ifndef put_task_struct
@@ -65,10 +63,81 @@ static struct itrace_info *create_itrace_info(
 	struct task_struct *tsk, u32 step_flag,
 	struct stap_itrace_probe *itrace_probe);
 
-static u32 usr_itrace_report_signal(struct utrace_attached_engine *engine,
+/*
+ * The kernel's access_process_vm is not exported in kernel.org kernels, although
+ * some distros export it on some architectures.  To workaround this inconsistency,
+ * we copied and pasted it here.  Fortunately, everything it calls is exported.
+ */
+#include <linux/pagemap.h>
+#include <asm/cacheflush.h>
+static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write)
+{
+	struct mm_struct *mm;
+	struct vm_area_struct *vma;
+	struct page *page;
+	void *old_buf = buf;
+
+	mm = get_task_mm(tsk);
+	if (!mm)
+		return 0;
+
+	down_read(&mm->mmap_sem);
+	/* ignore errors, just check how much was sucessfully transfered */
+	while (len) {
+		int bytes, ret, offset;
+		void *maddr;
+
+		ret = get_user_pages(tsk, mm, addr, 1,
+				     write, 1, &page, &vma);
+		if (ret <= 0)
+			break;
+
+		bytes = len;
+		offset = addr & (PAGE_SIZE-1);
+		if (bytes > PAGE_SIZE-offset)
+			bytes = PAGE_SIZE-offset;
+
+		maddr = kmap(page);
+		if (write) {
+			copy_to_user_page(vma, page, addr,
+					  maddr + offset, buf, bytes);
+			set_page_dirty_lock(page);
+		} else {
+			copy_from_user_page(vma, page, addr,
+					    buf, maddr + offset, bytes);
+		}
+		kunmap(page);
+		page_cache_release(page);
+		len -= bytes;
+		buf += bytes;
+		addr += bytes;
+	}
+	up_read(&mm->mmap_sem);
+	mmput(mm);
+
+	return buf - old_buf;
+}
+
+static u32 usr_itrace_report_quiesce(enum utrace_resume_action action,
+				struct utrace_attached_engine *engine,
+				struct task_struct *tsk,
+				unsigned long event)
+{
+	int status;
+	struct itrace_info *ui;
+
+	ui = rcu_dereference(engine->data);
+	WARN_ON(!ui);
+
+	return (event == 0 ? ui->step_flag : UTRACE_RESUME);
+}
+
+
+static u32 usr_itrace_report_signal(u32 action,
+			     struct utrace_attached_engine *engine,
 			     struct task_struct *tsk,
 			     struct pt_regs *regs,
-			     u32 action, siginfo_t *info,
+			     siginfo_t *info,
 			     const struct k_sigaction *orig_ka,
 			     struct k_sigaction *return_ka)
 {
@@ -83,12 +152,10 @@ static u32 usr_itrace_report_signal(struct utrace_attached_engine *engine,
 	WARN_ON(!ui);
 	
 	if (info->si_signo != SIGTRAP || !ui)
-		return UTRACE_ACTION_RESUME;
+		return UTRACE_RESUME;
 
-	/* normal case: continue stepping, hide this trap from other engines */
-	return_flags =  ui->step_flag | UTRACE_ACTION_HIDE | UTRACE_SIGNAL_IGN |
-			   UTRACE_ACTION_NEWSTATE;
-
+	/* normal case: continue stepping */
+	return_flags =  ui->step_flag | UTRACE_SIGNAL_IGN;
 #ifdef CONFIG_PPC
 	if (ui->ppc_atomic_ss.step_over_atomic) {
 		remove_atomic_ss_breakpoint(tsk, &ui->ppc_atomic_ss.end_bpt);
@@ -99,8 +166,7 @@ static u32 usr_itrace_report_signal(struct utrace_attached_engine *engine,
 	}
 	
 	if (handle_ppc_atomic_seq(tsk, regs, &ui->ppc_atomic_ss))
-		return_flags = UTRACE_ACTION_RESUME | UTRACE_ACTION_NEWSTATE |
-			UTRACE_SIGNAL_IGN;
+		return_flags = UTRACE_RESUME | UTRACE_SIGNAL_IGN;
 #endif
 
 	enter_itrace_probe(ui->itrace_probe, regs, (void *)&data);
@@ -108,24 +174,26 @@ static u32 usr_itrace_report_signal(struct utrace_attached_engine *engine,
 	return return_flags;
 }
 
-static u32 usr_itrace_report_clone(struct utrace_attached_engine *engine,
+static u32 usr_itrace_report_clone(enum utrace_resume_action action,
+		struct utrace_attached_engine *engine,
 		struct task_struct *parent, unsigned long clone_flags,
 		struct task_struct *child)
 {
-	return UTRACE_ACTION_RESUME;
+	return UTRACE_RESUME;
 }
 
 static u32 usr_itrace_report_death(struct utrace_attached_engine *e,
-	struct task_struct *tsk)
+	struct task_struct *tsk, bool group_dead, int signal)
 {
 	struct itrace_info *ui = rcu_dereference(e->data);
 	WARN_ON(!ui);
 
-	return (UTRACE_ACTION_NEWSTATE | UTRACE_ACTION_DETACH);
+	return (UTRACE_DETACH);
 }
 
 static const struct utrace_engine_ops utrace_ops =
 {
+	.report_quiesce = usr_itrace_report_quiesce,
 	.report_signal = usr_itrace_report_signal,
 	.report_clone = usr_itrace_report_clone,
 	.report_death = usr_itrace_report_death
@@ -137,6 +205,7 @@ static struct itrace_info *create_itrace_info(
 	struct stap_itrace_probe *itrace_probe)
 {
 	struct itrace_info *ui;
+	int status;
 
 	if (debug)
 		printk(KERN_INFO "create_itrace_info: tid=%d\n", tsk->pid);
@@ -154,20 +223,34 @@ static struct itrace_info *create_itrace_info(
 	/* push ui onto usr_itrace_info */
 	spin_lock(&itrace_lock);
 	list_add(&ui->link, &usr_itrace_info);
+	spin_unlock(&itrace_lock);
 
 	/* attach a single stepping engine */
-	ui->engine = utrace_attach(ui->tsk, UTRACE_ATTACH_CREATE, &utrace_ops, ui);
+	ui->engine = utrace_attach_task(ui->tsk, UTRACE_ATTACH_CREATE, &utrace_ops, ui);
 	if (IS_ERR(ui->engine)) {
 		printk(KERN_ERR "utrace_attach returns %ld\n",
 			PTR_ERR(ui->engine));
-		ui = NULL;
-	} else {
-		utrace_set_flags(tsk, ui->engine, ui->engine->flags |
-			ui->step_flag |
-			UTRACE_EVENT(CLONE) | UTRACE_EVENT_SIGNAL_ALL |
-			UTRACE_EVENT(DEATH));
+		return NULL;
 	}
-	spin_unlock(&itrace_lock);
+	status = utrace_set_events(tsk, ui->engine, ui->engine->flags |
+		UTRACE_EVENT(QUIESCE) |
+		UTRACE_EVENT(CLONE) | UTRACE_EVENT_SIGNAL_ALL |
+		UTRACE_EVENT(DEATH));
+	if (status < 0) {
+		printk(KERN_ERR "utrace_attach returns %d\n", status);
+		return NULL;
+	}
+
+	status = utrace_control(tsk, ui->engine, UTRACE_STOP);
+	if (status == 0) {
+		status = utrace_control(tsk, ui->engine, step_flag);
+		if (status < 0) {
+			printk(KERN_ERR "utrace_control(%d) returns %d\n",
+				step_flag, status);
+			return NULL;
+		}
+	}
+
 	return ui;
 }
 
@@ -193,7 +276,7 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	struct task_struct *tsk;
 
 	rcu_read_lock();
-	tsk = find_task_by_pid(tid);
+	tsk = find_task_by_vpid(tid);
 	if (!tsk) {
 		printk(KERN_ERR "usr_itrace_init: Cannot find process %d\n", tid);
 		rcu_read_unlock();
@@ -203,7 +286,7 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	get_task_struct(tsk);
 	ui = create_itrace_info(tsk, 
 		(single_step ?
-			UTRACE_ACTION_SINGLESTEP : UTRACE_ACTION_BLOCKSTEP), p);
+			UTRACE_SINGLESTEP : UTRACE_BLOCKSTEP), p);
 	if (!ui)
 		return 1;
 
@@ -223,6 +306,7 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 void static remove_usr_itrace_info(struct itrace_info *ui)
 {
 	struct itrace_info *tmp;
+	int status;
 
 	if (!ui)
 		return;
@@ -232,7 +316,11 @@ void static remove_usr_itrace_info(struct itrace_info *ui)
 
 	spin_lock(&itrace_lock);
 	if (ui->tsk && ui->engine) {
-		(void) utrace_detach(ui->tsk, ui->engine);
+		status = utrace_control(ui->tsk, ui->engine, UTRACE_DETACH);
+		if (status < 0 && status != -ESRCH && status != -EALREADY)
+			printk(KERN_ERR
+			       "utrace_control(UTRACE_DETACH) returns %d\n",
+			       status);
 	}
 	list_del(&ui->link);
 	spin_unlock(&itrace_lock);
@@ -292,7 +380,7 @@ static void insert_atomic_ss_breakpoint (struct task_struct *tsk,
 	cur_instr = get_instr(bpt->addr, "insert_atomic_ss_breakpoint");
 	if (cur_instr != BPT_TRAP) {
 		bpt->instr = cur_instr;
-		WARN_ON(access_process_vm(tsk, bpt->addr, &bp_instr, INSTR_SZ, 1) !=
+		WARN_ON(__access_process_vm(tsk, bpt->addr, &bp_instr, INSTR_SZ, 1) !=
 			INSTR_SZ);
 	}
 }
@@ -300,7 +388,7 @@ static void insert_atomic_ss_breakpoint (struct task_struct *tsk,
 static void remove_atomic_ss_breakpoint (struct task_struct *tsk,
 	struct bpt_info *bpt)
 {
-	WARN_ON(access_process_vm(tsk, bpt->addr, &bpt->instr, INSTR_SZ, 1) !=
+	WARN_ON(__access_process_vm(tsk, bpt->addr, &bpt->instr, INSTR_SZ, 1) !=
 		INSTR_SZ);
 }
 

@@ -608,17 +608,15 @@ probe signal.flush = kernel.function("flush_signals")
     pid_name = kernel_string($t->comm)
 }
 
-function get_sa_flags:long (act:long) %{ /* pure */
-	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);
-	THIS->__retvalue = kread(&act->sa.sa_flags);
-	CATCH_DEREF_FAULT();
-%}
+function get_sa_flags:long (act:long)
+{
+	return @cast(act, "k_sigaction", "kernel")->sa->sa_flags
+}
 
-function get_sa_handler:long (act:long) %{ /* pure */
-	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);
-	THIS->__retvalue = (long)kread(&act->sa.sa_handler);
-	CATCH_DEREF_FAULT();
-%}
+function get_sa_handler:long (act:long)
+{
+	return @cast(act, "k_sigaction", "kernel")->sa->sa_handler
+}
 
 // sa_mask contains the set of signals to be blocked when executing the
 // signal handler. This function returns a string, delimited by ",".

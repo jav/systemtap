@@ -13,6 +13,5 @@ foo99
 99foo
 123456789
 hello999
-999hello
-}
+999hello}
 stap_run2 $srcdir/$subdir/$test.stp

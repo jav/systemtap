@@ -548,6 +548,42 @@ The marker format string associated with a marker is available in
 And also the marker name string is avalable in
 .BR $name .
 
+.SS TRACEPOINTS
+
+This family of probe points hooks up to static probing tracepoints
+inserted into the kernel or modules.  As with markers, these
+tracepoints are special macro calls inserted by kernel developers to
+make probing faster and more reliable than with DWARF-based probes,
+and DWARF debugging information is not required to probe tracepoints.
+Tracepoints have an extra advantage of more strongly-typed parameters
+than markers.
+
+Tracepoint probes begin with 
+.BR kernel .
+The next part names the tracepoint itself:
+.BR trace("name") .
+The tracepoint name string, which may contain the usual wildcard
+characters, is matched against the names defined by the kernel
+developers in the tracepoint header files.
+
+The handler associated with a tracepoint-based probe may read the
+optional parameters specified at the macro call site.  These are
+named according to the declaration by the tracepoint author.  For
+example, the tracepoint probe
+.BR kernel.trace("sched_switch")
+provides the parameters
+.BR $rq ", " $prev ", and " $next .
+If the parameter is a complex type, as in a struct pointer, then a
+script can access fields with the same syntax as DWARF $target
+variables.  Also, tracepoint parameters cannot be modified, but in
+guru-mode a script may modify fields of parameters.
+
+The name of the tracepoint is available in
+.BR $$name ,
+and a string of name=value pairs for all parameters of the tracepoint
+is available in
+.BR $$vars " or " $$parms .
+
 .SS PERFORMANCE MONITORING HARDWARE
 
 The perfmon family of probe points is used to access the performance

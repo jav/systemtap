@@ -41,8 +41,7 @@ foo[9]: count:4  sum:117  avg:29  min:-2  max:100
 foo[10]: count:4  sum:118  avg:29  min:-2  max:100
 
 Run a quick foreach without sorting...
-complete sum of foo:1243
-}
+complete sum of foo:1243}
 
 stap_run2 $srcdir/$subdir/$test.stp
 
