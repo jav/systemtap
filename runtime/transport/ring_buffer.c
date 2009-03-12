@@ -3,6 +3,10 @@
 #include <linux/wait.h>
 #include <linux/poll.h>
 
+#ifdef STP_BULKMODE
+#error "bulkmode support unfinished..."
+#endif
+
 static struct ring_buffer *__stp_ring_buffer = NULL;
 //DEFINE_PER_CPU(struct oprofile_cpu_buffer, cpu_buffer);
 
@@ -366,11 +370,12 @@ static int _stp_data_write_commit(struct _stp_entry *entry)
 }
 
 
-static struct dentry *__stp_entry;
+static struct dentry *__stp_entry[NR_CPUS] = { NULL };
 
 static int _stp_transport_data_fs_init(void)
 {
 	int rc;
+	long cpu;
 
 	// allocate buffer
 	dbug_trans(1, "entry...\n");
@@ -379,14 +384,31 @@ static int _stp_transport_data_fs_init(void)
 		return rc;
 
 	// create file(s)
-	__stp_entry = debugfs_create_file("trace0", 0600,
-					  _stp_get_module_dir(),
-					  NULL, &__stp_data_fops);
-	if (!__stp_entry)
-		pr_warning("Could not create debugfs 'trace' entry\n");
-	else {
-		__stp_entry->d_inode->i_uid = _stp_uid;
-		__stp_entry->d_inode->i_gid = _stp_gid;
+	for_each_possible_cpu(cpu) {
+		char cpu_file[9];	/* 5(trace) + 3(XXX) + 1(\0) = 9 */
+
+		if (cpu > 999 || cpu < 0) {
+			_stp_transport_data_fs_close();
+			return -EINVAL;
+		}
+		sprintf(cpu_file, "trace%ld", cpu);
+		__stp_entry[cpu] = debugfs_create_file(cpu_file, 0600,
+						       _stp_get_module_dir(),
+						       (void *)cpu,
+						       &__stp_data_fops);
+
+		if (!__stp_entry[cpu]) {
+			pr_warning("Could not create debugfs 'trace' entry\n");
+			__stp_free_ring_buffer();
+			return -ENOENT;
+		}
+		__stp_entry[cpu]->d_inode->i_uid = _stp_uid;
+		__stp_entry[cpu]->d_inode->i_gid = _stp_gid;
+
+#ifndef STP_BULKMODE
+		if (cpu != 0)
+			break;
+#endif
 	}
 
 	dbug_trans(1, "returning 0...\n");
@@ -395,9 +417,13 @@ static int _stp_transport_data_fs_init(void)
 
 static void _stp_transport_data_fs_close(void)
 {
-	if (__stp_entry)
-		debugfs_remove(__stp_entry);
-	__stp_entry = NULL;
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+		if (__stp_entry[cpu])
+			debugfs_remove(__stp_entry[cpu]);
+		__stp_entry[cpu] = NULL;
+	}
 
 	__stp_free_ring_buffer();
 }
