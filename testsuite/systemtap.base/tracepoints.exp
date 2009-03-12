@@ -1,0 +1,3 @@
+set test "tracepoints"
+set ::result_string {tracepoints OK}
+stap_run2 $srcdir/$subdir/$test.stp
