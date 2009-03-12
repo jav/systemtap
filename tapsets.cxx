@@ -5017,7 +5017,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       // split the module string by ':' for alternatives
       size_t mod_begin = mod_end + 1;
       mod_end = e->module.find(':', mod_begin);
-      string module = e->module.substr(mod_begin, mod_end);
+      string module = e->module.substr(mod_begin, mod_end - mod_begin);
 
       // NB: This uses '/' to distinguish between kernel modules and userspace,
       // which means that userspace modules won't get any PATH searching.
