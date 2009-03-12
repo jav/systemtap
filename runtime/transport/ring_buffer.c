@@ -54,8 +54,12 @@ static int __stp_alloc_ring_buffer(void)
 
 	if (buffer_size == 0) {
 		dbug_trans(1, "using default buffer size...\n");
-		buffer_size = STP_BUFFER_SIZE * 30;
+		buffer_size = _stp_nsubbufs * _stp_subbuf_size;
 	}
+	/* The number passed to ring_buffer_alloc() is per cpu.  Our
+	 * 'buffer_size' is a total number of bytes to allocate.  So,
+	 * we need to divide buffer_size by the number of cpus. */
+	buffer_size /= num_online_cpus();
 	dbug_trans(1, "%lu\n", buffer_size);
 	__stp_ring_buffer = ring_buffer_alloc(buffer_size, 0);
 	if (!__stp_ring_buffer)
