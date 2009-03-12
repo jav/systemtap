@@ -9732,12 +9732,15 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (probes.empty())
     return;
 
-  s.op->newline() << "/* ---- tracepointer probes ---- */";
+  s.op->newline() << "/* ---- tracepoint probes ---- */";
+  s.op->newline();
 
   for (unsigned i = 0; i < probes.size(); ++i)
     {
       tracepoint_derived_probe *p = probes[i];
-      s.op->newline();
+
+      // emit a separate entry function for each probe, since tracepoints
+      // don't provide any sort of context pointer.
       s.op->newline() << "#include <" << p->header << ">";
       s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
       for (unsigned j = 0; j < p->args.size(); ++j)
@@ -9765,8 +9768,34 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << p->name << " (c);";
       common_probe_entryfn_epilogue (s.op);
       s.op->newline(-1) << "}";
+
+      // emit normalized registration functions
+      s.op->newline() << "static int register_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "return register_trace_" << p->tracepoint_name
+                       << "(enter_tracepoint_probe_" << i << ");";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "static int unregister_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "return unregister_trace_" << p->tracepoint_name
+                       << "(enter_tracepoint_probe_" << i << ");";
+      s.op->newline(-1) << "}";
       s.op->newline();
     }
+
+  // emit an array of registration functions for easy init/shutdown
+  s.op->newline() << "static struct stap_tracepoint_probe {";
+  s.op->newline(1) << "int (*reg)(void);";
+  s.op->newline(0) << "int (*unreg)(void);";
+  s.op->newline(-1) << "} stap_tracepoint_probes[] = {";
+  s.op->indent(1);
+  for (unsigned i = 0; i < probes.size(); ++i)
+    {
+      s.op->newline () << "{";
+      s.op->line() << " .reg=&register_tracepoint_probe_" << i << ",";
+      s.op->line() << " .unreg=&unregister_tracepoint_probe_" << i;
+      s.op->line() << " },";
+    }
+  s.op->newline(-1) << "};";
+  s.op->newline();
 }
 
 
@@ -9777,28 +9806,14 @@ tracepoint_derived_probe_group::emit_module_init (systemtap_session &s)
     return;
 
   s.op->newline() << "/* init tracepoint probes */";
-
-  // We can't use a simple runtime loop because the probe registration
-  // functions are distinct inlines.  Instead, this will generate nesting as
-  // deep as the number of probe points.  Gotos are also possible, but the end
-  // result is the same.
-
-  for (unsigned i = 0; i < probes.size(); ++i)
-    {
-      s.op->newline() << "if (!rc) {";
-      s.op->newline(1) << "probe_point = "
-                       << lex_cast_qstring (*probes[i]->sole_location()) << ";";
-      s.op->newline() << "rc = register_trace_" << probes[i]->tracepoint_name
-                      << "(enter_tracepoint_probe_" << i << ");";
-    }
-
-  for (unsigned i = probes.size() - 1; i < probes.size(); --i)
-    {
-      s.op->newline() << "if (rc)";
-      s.op->newline(1) << "unregister_trace_" << probes[i]->tracepoint_name
-                       << "(enter_tracepoint_probe_" << i << ");";
-      s.op->newline(-2) << "}";
-    }
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "rc = stap_tracepoint_probes[i].reg();";
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "for (j=i-1; j>=0; j--)"; // partial rollback
+  s.op->newline(1) << "stap_tracepoint_probes[j].unreg();";
+  s.op->newline(-1) << "break;"; // don't attempt to register any more probes
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
 
   // This would be technically proper (on those autoconf-detectable
   // kernels that include this function in tracepoint.h), however we
@@ -9817,10 +9832,10 @@ tracepoint_derived_probe_group::emit_module_exit (systemtap_session& s)
   if (probes.empty())
     return;
 
-  s.op->newline() << "/* deregister tracepointer probes */";
-  for (unsigned i = 0; i < probes.size(); ++i)
-    s.op->newline() << "unregister_trace_" << probes[i]->tracepoint_name
-                    << "(enter_tracepoint_probe_" << i << ");";
+  s.op->newline() << "/* deregister tracepoint probes */";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++)";
+  s.op->newline(1) << "stap_tracepoint_probes[i].unreg();";
+  s.op->indent(-1);
 
   // Not necessary: see above.
 
