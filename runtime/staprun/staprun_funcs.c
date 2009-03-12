@@ -7,10 +7,15 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007-2008 Red Hat Inc.
+ * Copyright (C) 2007-2009 Red Hat Inc.
  */
 
+#include "config.h"
 #include "staprun.h"
+#if HAVE_NSS
+#include "modverify.h"
+#endif
+
 #include <sys/mount.h>
 #include <sys/utsname.h>
 #include <grp.h>
@@ -199,6 +204,44 @@ int mountfs(void)
 	return 0;
 }
 
+#if HAVE_NSS
+/*
+ * Modules which have been signed using a certificate and private key
+ * corresponding to a certificate and public key in the database in
+ * the '$sysconfdir/systemtap/staprun' directory may be loaded by
+ * anyone.
+ *
+ * Returns: -1 on errors, 0 on failure, 1 on success.
+ */
+static int
+check_signature(void)
+{
+  char module_realpath[PATH_MAX];
+  char signature_realpath[PATH_MAX];
+  int rc;
+
+  dbug(2, "checking signature for %s\n", modpath);
+
+  /* Use realpath() to canonicalize the module path. */
+  if (realpath(modpath, module_realpath) == NULL) {
+    perr("Unable to canonicalize signature path \"%s\"", modpath);
+    return -1;
+  }
+
+  /* Now add the .sgn suffix to get the signature file name.  */
+  if (strlen (module_realpath) > PATH_MAX - 4) {
+    err("Path \"%s\" is too long.", modpath);
+    return -1;
+  }
+  sprintf (signature_realpath, "%s.sgn", module_realpath);
+
+  dbug(2, "verify_module (%s, %s)\n", module_realpath, signature_realpath);
+  rc = verify_module (module_realpath, signature_realpath);
+  dbug(2, "verify_module returns %d\n", rc);
+
+  return rc;
+}
+#endif /* HAVE_NSS */
 
 /*
  * Members of the 'stapusr' group can only use "blessed" modules -
@@ -293,22 +336,23 @@ check_path(void)
 }
 
 /*
- * Check the user's permissions.  Is he allowed to run staprun (or is
- * he limited to "blessed" modules)?
+ * Check the user's group membership.  Is he allowed to run staprun (or is
  *
- * Returns: -1 on errors, 0 on failure, 1 on success.
+ * o members of stapdev can do anything
+ * o members of stapusr can load modules from /lib/modules/KVER/systemtap
+ *
+ * Returns: -2 if neither group exists
+ *          -1 for other errors
+ *           0 on failure
+ *           1 on success
  */
-int check_permissions(void)
+static int
+check_groups (void)
 {
 	gid_t gid, gidlist[NGROUPS_MAX];
 	gid_t stapdev_gid, stapusr_gid;
 	int i, ngids;
 	struct group *stgr;
-	int path_check = 0;
-
-	/* If we're root, we can do anything. */
-	if (getuid() == 0)
-		return 1;
 
 	/* Lookup the gid for group "stapdev" */
 	errno = 0;
@@ -332,55 +376,42 @@ int check_permissions(void)
 	else
 		stapusr_gid = stgr->gr_gid;
 
-	/* If neither group was found, just return an error. */
-	if (stapdev_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1) {
-		err("ERROR: You are trying to run stap as a normal user.\n"
-			"You should either be root, or be part of either "
-			"group \"stapdev\" or group \"stapusr\".\n"
-			"Your system doesn't seem to have either group.\n"
-			"For more information, please consult the \"SAFETY AND SECURITY\" section of the \"stap(1)\" manpage\n");
-		return -1;
-	}
+	/* If neither group was found, then return -2.  */
+	if (stapdev_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1)
+	  return -2;
 
 	/* According to the getgroups() man page, getgroups() may not
 	 * return the effective gid, so try to match it first. */
 	gid = getegid();
 	if (gid == stapdev_gid)
 		return 1;
-	else if (gid == stapusr_gid)
-		path_check = 1;
 
-	/* Get the list of the user's groups. */
-	ngids = getgroups(NGROUPS_MAX, gidlist);
-	if (ngids < 0) {
-		perr("Unable to retrieve group list");
-		return -1;
-	}
+	if (gid != stapusr_gid) {
+		/* Get the list of the user's groups. */
+		ngids = getgroups(NGROUPS_MAX, gidlist);
+		if (ngids < 0) {
+			perr("Unable to retrieve group list");
+			return -1;
+		}
 
-	for (i = 0; i < ngids; i++) {
-		/* If the user is a member of 'stapdev', then we're
-		 *  done, since he can use staprun without any
-		 *  restrictions. */
-		if (gidlist[i] == stapdev_gid)
-			return 1;
+		for (i = 0; i < ngids; i++) {
+			/* If the user is a member of 'stapdev', then we're
+			 *  done, since he can use staprun without any
+			 *  restrictions. */
+			 if (gidlist[i] == stapdev_gid)
+				return 1;
 
-		/* If the user is a member of 'stapusr', then we'll
-		 * need to check the module path.  However, we'll keep
-		 * checking groups since it is possible the user is a
-		 * member of both groups and we haven't seen the
-		 * 'stapdev' group yet. */
-		if (gidlist[i] == stapusr_gid)
-			path_check = 1;
-	}
+			/* If the user is a member of 'stapusr', then we'll
+			 * need to check the module path.  However, we'll keep
+			 * checking groups since it is possible the user is a
+			 * member of both groups and we haven't seen the
+			 * 'stapdev' group yet. */
+			if (gidlist[i] == stapusr_gid)
+				gid = stapusr_gid;
+		}
 
-	/* If path_check is 0, then the user isn't a member of either
-	 * group.  Error out. */
-	if (path_check == 0) {
-		err("ERROR: You are trying to run stap as a normal user.\n"
-			"You must be a member of either group \"stapdev\" or group \"stapusr\".\n"
-			"Please contact your system administrator to get yourself membership to either of those groups.\n"
-			"For more information, please consult the \"SAFETY AND SECURITY\" section of the \"stap(1)\" manpage.\n");
-		return 0;
+		if (gid != stapusr_gid)
+			return 0;
 	}
 
 	/* At this point the user is only a member of the 'stapusr'
@@ -388,4 +419,58 @@ int check_permissions(void)
 	 * in /lib/modules/KVER/systemtap.  Make sure the module path
 	 * is in that directory. */
 	return check_path();
+}
+
+/*
+ * Check the user's permissions.  Is he allowed to run staprun (or is
+ * he limited to "blessed" modules)?
+ *
+ * There are several levels of possible permission:
+ *
+ * 1) root can do anything
+ * 2) members of stapdev can do anything
+ * 3) members of stapusr can load modules from /lib/modules/KVER/systemtap
+ * 4) anyone can load a module which has been signed by a trusted signer
+ *
+ * It is only an error if all 4 levels of checking fail
+ *
+ * Returns: -1 on errors, 0 on failure, 1 on success.
+ */
+int check_permissions(void)
+{
+	int check_groups_rc;
+	int check_signature_rc = 0;
+
+	/* If we're root, we can do anything. */
+	if (getuid() == 0)
+		return 1;
+
+	/* Check permissions for group membership.  */
+	check_groups_rc = check_groups ();
+	if (check_groups_rc == 1)
+		return 1;
+
+#if HAVE_NSS
+	/* The user is an ordinary user. If the module has been signed with
+	 * a "blessed" certificate and private key, then we will load it for
+	 * anyone.  */
+	check_signature_rc = check_signature ();
+	if (check_signature_rc == 1)
+		return 1;
+#endif
+
+	err("ERROR: You are trying to run stap as a normal user.\n"
+	    "You should either be root, or be part of either "
+	    "group \"stapdev\" or group \"stapusr\".\n");
+	if (check_groups_rc == -2) {
+		err("Your system doesn't seem to have either group.\n");
+		check_groups_rc = -1;
+	}
+#if HAVE_NSS
+	err("Alternatively, your module must be signed by a trusted signer.\n"
+	    "For more information, please consult the \"SAFETY AND SECURITY\" section of the \"stap(1)\" manpage\n");
+#endif
+
+	/* Combine the return codes.  They are either 0 or -1. */
+	return check_groups_rc | check_signature_rc;
 }

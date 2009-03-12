@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Generate a certificate for the systemtap server and add it to the
+# database of trusted servers for the client.
+#
+# Copyright (C) 2009 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# Common environment setup for stap scripts
+
+# INSTALL-HOOK These settings work for running the server from the source tree
+# INSTALL-HOOK using the dejagnu test harness and will be overridden at install
+# INSTALL-HOOK time.
+stap_exec_prefix=
+stap_sysconfdir=`pwd`/net
+
+# General configuration
+stap_tmpdir_prefix_client=stap.client
+stap_tmpdir_prefix_server=stap.server
+stap_avahi_service_tag=_stap._tcp
+
+# NSS certificate databases
+stap_root_ssl_db=$stap_sysconfdir/systemtap/ssl
+stap_user_ssl_db=$HOME/.systemtap/ssl
+
+if test $EUID = 0; then
+    stap_ssl_db=$stap_root_ssl_db
+else
+    stap_ssl_db=$stap_user_ssl_db
+fi
+
+stap_signing_db=$stap_sysconfdir/systemtap/staprun

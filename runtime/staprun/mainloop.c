@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2005-2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  */
 
 #include "staprun.h"
@@ -360,10 +360,10 @@ void cleanup_and_exit(int detach)
 #define BUG9788_WORKAROUND
 #ifndef BUG9788_WORKAROUND
     dbug(2, "removing %s\n", modname);
-    if (execlp(staprun, basename (staprun), "-d", modname, NULL) < 0) {
+    if (execlp(staprun, basename (staprun), "-d", modpath, NULL) < 0) {
       if (errno == ENOEXEC) {
 	char *cmd;
-	if (asprintf(&cmd, "%s -d '%s'", staprun, modname) > 0)
+	if (asprintf(&cmd, "%s -d '%s'", staprun, modpath) > 0)
 	  execl("/bin/sh", "sh", "-c", cmd, NULL);
 	free(cmd);
       }
@@ -392,10 +392,10 @@ void cleanup_and_exit(int detach)
 
     if (pid == 0) {			/* child process */
       /* Run the command. */
-      if (execlp(staprun, basename (staprun), "-d", modname, NULL) < 0) {
+      if (execlp(staprun, basename (staprun), "-d", modpath, NULL) < 0) {
 	if (errno == ENOEXEC) {
 	  char *cmd;
-	  if (asprintf(&cmd, "%s -d '%s'", staprun, modname) > 0)
+	  if (asprintf(&cmd, "%s -d '%s'", staprun, modpath) > 0)
 	    execl("/bin/sh", "sh", "-c", cmd, NULL);
 	  free(cmd);
 	}

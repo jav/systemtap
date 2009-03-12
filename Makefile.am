@@ -7,7 +7,7 @@ AUTOMAKE_OPTIONS = no-dist foreign
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 oldincludedir = ${includedir}/sys
 
-AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
+AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
@@ -16,14 +16,14 @@ man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/st
 # see also configure.ac
 
 bin_PROGRAMS = stap staprun
-bin_SCRIPTS = stap-report
+bin_SCRIPTS = stap-report stap-env stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
 oldinclude_HEADERS = includes/sys/sdt.h
 if BUILD_SERVER
 man_MANS += stap-server.8 
 bin_PROGRAMS += stap-client-connect stap-server-connect
 bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server \
-	       stap-gen-server-cert stap-add-server-cert
+	       stap-authorize-server-cert
 endif
 bin_SCRIPTS += dtrace
 stap_SOURCES = main.cxx \
@@ -78,7 +78,12 @@ stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
-if BUILD_SERVER
+if HAVE_NSS
+stap_SOURCES += modsign.cxx nsscommon.c
+
+stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_LDADD += -lnss3
+
 stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 endif
@@ -132,6 +137,12 @@ staprun_CPPFLAGS = $(AM_CPPFLAGS)
 staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 staprun_LDADD = @PROCFLAGS@
+
+if HAVE_NSS
+staprun_SOURCES += runtime/staprun/modverify.c nsscommon.c
+staprun_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
+staprun_LDADD += -lnss3
+endif
 
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \

@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006, 2009 Red Hat Inc. (systemtap changes)
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as
@@ -133,6 +133,25 @@ create_dir(const char *dir)
   return 0;
 }
 
+// Remove a file or directory
+int
+remove_file_or_dir (const char *name)
+{
+  int rc;
+  struct stat st;
+
+  if ((rc = stat(name, &st)) != 0)
+    {
+      if (errno == ENOENT)
+	return 0;
+      return 1;
+    }
+
+  if (remove (name) != 0)
+    return 1;
+  cerr << "remove returned 0" << endl;
+  return 0;
+}
 
 void
 tokenize(const string& str, vector<string>& tokens,

@@ -18,7 +18,7 @@ stap-server \- systemtap server and related utilities
 .B stap\-stop\-server
 .I PID
 .br
-.B stap\-add\-server\-cert \fICERTFILE\fR  \fIDIRNAME\fR
+.B stap\-authorize\-server\-cert \fICERTFILE\fR [ \fIDIRNAME\fR ]
 .br
 .B stap\-client
 [
@@ -66,13 +66,13 @@ using
 .IR stap\-find\-servers .
 If a compatible server is found,
 .I stap\-find\-or\-start\-server
-echoes \[aq]0\[aq] to stdout and the exit code is 0. Otherwise
+echoes \[aq]0\[aq] to stdout. Otherwise
 .I stap\-find\-or\-start\-server
 attempts to start a server on the local network using
 .IR stap\-start\-server .
-If successful, the process id of the new server is echoed to stdout and the
-exit code is 0. If no server can be found or started, \[aq]-1\[aq] is echoed
-to stdout and the exit code is 1.
+If successful, the process id of the new server is echoed to stdout.
+If no server can be found or started, \[aq]-1\[aq] is echoed
+to stdout. The exit code is 0 in all cases.
 
 .PP
 The
@@ -86,7 +86,7 @@ does not verify that the server actually shuts down.
 
 .PP
 The
-.I stap\-add\-server\-cert
+.I stap\-authorize\-server\-cert
 program adds the given server certificate to the given client\-side
 certificate database, making that server a trusted server for clients using that database.
 
@@ -168,7 +168,7 @@ program requires a process id argument which identifies the server to be stopped
 
 .PP
 The
-.I stap\-add\-server\-cert
+.I stap\-authorize\-cert
 program accepts two arguments:
 
 .TP
@@ -179,8 +179,12 @@ server\[aq]s certificate database.
 
 .TP
 .B DIRNAME
-This is the name of the directory containing the client\-side certificate database to which
-the certificate is to be added.
+This optional argument is the name of the directory containing the client\-side
+certificate database to which the certificate is to be added. If not specified, the
+default, for non\-root users,is
+.I $HOME/.systemtap/ssl/server\fP.
+For root users (EUID=0), the default is
+.I $sysconfdir/systemtap/ssl/server\fP.
 
 .PP
 The
@@ -249,7 +253,7 @@ will be considered to be trusted for that invocation of the client.
 .IP \(bu 4
 A user may add the certificate of a new trusted server to his own local
 client\-side certificate database using
-\[aq]\fBstap-add-server-cert \fICERTFILE\fR \fIDIRNAME\fR\[aq]
+\[aq]\fBstap\-authorize\-server\-cert \fICERTFILE\fR\[aq]
 (see above), where \fICERTFILE\fP is the server\[aq]s certificate file
 (\fIstap\-server.cert\fP) from the servers certificate database directory and
 \fIDIRNAME\fP is the
@@ -312,11 +316,11 @@ simple example
 .PP
 To permanently trust a given server for your own use
 .PP
-.B \& $ stap\-add\-server\-cert \fICERTFILE\fP $HOME/.systemtap/ssl/client
+.B \& $ stap\-authorize\-cert \fICERTFILE\fP
 .PP
 As root, to permanently trust a given server for all users on your host
 .PP
-.B \& $ stap\-add\-server\-cert \fICERTFILE\fP $sysconfdir/systemtap/ssl/client
+.B \& $ stap\-authorize\-cert \fICERTFILE\fP
 .PP
 If a process id was echoed by
 .I stap\-start\-server

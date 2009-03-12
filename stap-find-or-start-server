@@ -10,20 +10,18 @@
 # later version.
 
 # This script attempts to find a systemtap server. If one is found, it
-# echoes 0 and exits with 0.
+# echoes 0.
 #
 # Otherwise, it attempts to start a server. If succesful, it echoes the
-# process id and exits with 0.
+# process id.
 #
-# Otherwise, it echoes -1 and exits with 1
+# Otherwise, it echoes -1
 
-# INSTALL-HOOK These settings work for running the client from the source tree
-# INSTALL-HOOK using the dejagnu test harness and will be overridden at install
-# INSTALL-HOOK time.
-exec_prefix=
+# Initialize the environment
+. stap-env
 
 # Is there a server available?
-${exec_prefix}stap-find-servers >/dev/null 2>&1 && echo 0 && exit 0
+${stap_exec_prefix}stap-find-servers >/dev/null 2>&1 && echo 0 && exit 0
 
 # No server available, try to start one.
 pid=`${exec_prefix}stap-start-server "$@"`
@@ -34,4 +32,4 @@ fi
 
 # Could not find or start a server
 echo "-1"
-exit 1
+exit 0

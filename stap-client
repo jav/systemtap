@@ -21,23 +21,12 @@ trap 'terminate' SIGTERM
 trap 'interrupt' SIGINT
 trap 'ignore_signal' SIGHUP SIGPIPE
 
+# Initialize the environment
+. stap-env
+
 #-----------------------------------------------------------------------------
 # Helper functions.
 #-----------------------------------------------------------------------------
-# function: configuration
-function configuration {
-    # INSTALL-HOOK These settings work for running the client from the source tree
-    # INSTALL-HOOK using the dejagnu test harness and will be overridden at install
-    # INSTALL-HOOK time.
-    exec_prefix=
-    sysconfdir=`pwd`/net
-
-    # General configuration
-    tmpdir_prefix_client=stap.client
-    tmpdir_prefix_server=stap.server
-    avahi_service_tag=_stap._tcp
-}
-
 # function: initialization
 function initialization {
     our_host_name=`expr "$HOSTNAME" : "\\\([a-zA-Z0-9-]*\\\).*"`
@@ -46,24 +35,21 @@ function initialization {
     rc=0
     wd=`pwd`
     umask 0
-    staprun_running=0
 
     # Default location for server certificates if we're not root
     # Must be owned by us.
     local uid uname
     if test $EUID != 0; then
-	if test -e $HOME/.systemtap/ssl/client; then
-	    if check_db $HOME/.systemtap/ssl/client $EUID $USER; then
-		local_ssl_dbs=$HOME/.systemtap/ssl/client
+	if test -e $stap_user_ssl_db/client; then
+	    if check_db $stap_user_ssl_db/client $EUID $USER; then
+		local_ssl_dbs=$stap_user_ssl_db/client
 	    fi
 	fi
     fi
     # Additional location for all users. Must be owned by root.
-    if test "X$sysconfdir" != "X"; then
-	if test -e $sysconfdir/systemtap/ssl/client; then
-	    if check_db $sysconfdir/systemtap/ssl/client 0 root; then
-		public_ssl_dbs=$sysconfdir/systemtap/ssl/client
-	    fi
+    if test -e $stap_root_ssl_db/client; then
+	if check_db $stap_root_ssl_db/client 0 root; then
+	    public_ssl_dbs=$stap_root_ssl_db/client
 	fi
     fi
 
@@ -79,7 +65,7 @@ function initialization {
     # Create a temporary directory to package things in
     # Do this before parsing the command line so that there is a place
     # to put -I and -R directories.
-    tmpdir_client=`mktemp -dt $tmpdir_prefix_client.XXXXXX` || \
+    tmpdir_client=`mktemp -dt $stap_tmpdir_prefix_client.XXXXXX` || \
 	fatal "Cannot create temporary directory " $tmpdir_client
     tmpdir_env=`dirname $tmpdir_client`
 }
@@ -469,7 +455,7 @@ function package_request {
 # Unpack the zip file received from the server and make the contents available
 # for printing the results and/or running 'staprun'.
 function unpack_response {
-    tmpdir_server=`mktemp -dt $tmpdir_prefix_client.server.XXXXXX` || \
+    tmpdir_server=`mktemp -dt $stap_tmpdir_prefix_client.server.XXXXXX` || \
 	fatal "Cannot create temporary file " $tmpdir_server
 
     # Unpack the server output directory
@@ -477,15 +463,15 @@ function unpack_response {
 	fatal "Cannot unpack server response, $zip_server"
 
     # Check the contents of the expanded directory. It should contain a
-    # single directory whose name matches stap.server.??????
+    # single directory whose name matches $stap_tmpdir_prefix_server.??????
     local num_files=`ls $tmpdir_server | wc -l`
     test $num_files = 1 || \
 	fatal "Wrong number of files in server's temp directory"
-    test -d $tmpdir_server/stap.server.?????? || \
+    test -d $tmpdir_server/$stap_tmpdir_prefix_server.?????? || \
 	fatal "`ls $tmpdir_server` does not match the expected name or is not a directory"
     # Move the contents of the directory down one level.
-    mv $tmpdir_server/stap.server.??????/* $tmpdir_server
-    rm -fr $tmpdir_server/stap.server.??????
+    mv $tmpdir_server/$stap_tmpdir_prefix_server.??????/* $tmpdir_server
+    rm -fr $tmpdir_server/$stap_tmpdir_prefix_server.??????
 
     # Check the contents of the directory. It should contain:
     # 1) a file called stdout
@@ -533,7 +519,7 @@ function find_and_connect_to_server {
     local num_servers=0
 
     # Make a place to receive the response file.
-    zip_server=`mktemp -t $tmpdir_prefix_client.server.zip.XXXXXX` || \
+    zip_server=`mktemp -t $stap_tmpdir_prefix_client.server.zip.XXXXXX` || \
 	fatal "Cannot create temporary file " $zip_server
 
     # Make a place to record connection errors
@@ -596,22 +582,22 @@ function find_and_connect_to_server {
 		fi
 	    fi
 
-	    if test `${exec_prefix}stap-find-servers $find_all | grep $address | wc -l` = "0"; then
+	    if test `${stap_exec_prefix}stap-find-servers $find_all | grep $address | wc -l` = "0"; then
 		warning "No server is available on $server" 2>> $tmpdir_client/connect
 		continue
 	    fi
 
-            ssl_db=`${exec_prefix}stap-find-servers $find_all | grep $address | choose_server`
+            ssl_db=`${stap_exec_prefix}stap-find-servers $find_all | grep $address | choose_server`
 	    test "X$ssl_db" != "X" && return
 	done
     else
         # No servers specified. Find available servers and choose one of them.
 	# Remember which ssl certificate database was used to authenticate the chosen
         # server.
-	ssl_db=`${exec_prefix}stap-find-servers $find_all | choose_server`
+	ssl_db=`${stap_exec_prefix}stap-find-servers $find_all | choose_server`
 	test "X$ssl_db" != "X" && return
 
-	num_servers=`${exec_prefix}stap-find-servers $find_all | wc -l`
+	num_servers=`${stap_exec_prefix}stap-find-servers $find_all | wc -l`
     fi
 
     if test $num_servers = 0; then
@@ -681,8 +667,8 @@ function send_receive {
     do
         # Send the request and receive the response using stap-client-connect
 	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
-	${exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	wait '%${exec_prefix}stap-client-connect'
+	${stap_exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%${stap_exec_prefix}stap-client-connect'
 	test $? = 0 && echo $db && return
 	sleep 1
     done
@@ -692,8 +678,8 @@ function send_receive {
     do
         # Send the request and receive the response using stap-client-connect
 	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
-	${exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	wait '%${exec_prefix}stap-client-connect'
+	${stap_exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%${stap_exec_prefix}stap-client-connect'
 	test $? = 0 && echo $db && return
 	sleep 1
     done
@@ -779,18 +765,13 @@ function maybe_call_staprun {
 	    fi
 
 	    # Run it in the background and wait for it. This
-	    # way any signals send to us can be caught.
+	    # way any signals sent to us can be caught.
 	    if test $v_level -ge 2; then
 		echo "running `which staprun` $staprun_opts $tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`" >&2
 	    fi
 	    eval `staprun_PATH` "$staprun_opts" \
 		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
-	    staprun_running=1
-	    wait '%?staprun' > /dev/null 2>&1
 	    rc=$?
-	    staprun_running=0
-	    # 127 from wait means that the job was already finished.
-	    test $rc=127 && rc=0
 
 	    # Wait until the job actually disappears so that its output is complete.
 	    while jobs '%?staprun' >/dev/null 2>&1
@@ -814,8 +795,8 @@ function staprun_PATH {
     fi
 
     # Otherwise, if there is an exec_prefix, then use it.
-    if test "X$exec_prefix" != "X"; then
-	echo ${exec_prefix}staprun
+    if test "X$stap_exec_prefix" != "X"; then
+	echo ${stap_exec_prefix}staprun
 	return
     fi
 
@@ -1020,7 +1001,7 @@ function terminate {
     kill -s SIGTERM '%?staprun' 2>/dev/null
 
     # Kill any stap-client-connect job
-    kill -s SIGTERM '%${exec_prefix}stap-client-connect' 2>/dev/null
+    kill -s SIGTERM '%${stap_exec_prefix}stap-client-connect' 2>/dev/null
 
     exit 1
 }
@@ -1029,15 +1010,9 @@ function terminate {
 #
 # Pass an interrupt (ctrl-C) to staprun
 function interrupt {
-    # Pass the signal on to any running staprun job
-    if test $staprun_running = 1; then
-	kill -s SIGINT '%?staprun' 2>/dev/null
-	return
-    fi
-
     # Kill any stap-client-connect job
     # SIGINT won't do it.
-    kill -s SIGTERM '%${exec_prefix}stap-client-connect' 2>/dev/null
+    kill -s SIGTERM '%${stap_exec_prefix}stap-client-connect' 2>/dev/null
 
     # If staprun was not running, then exit.
     cleanup
@@ -1054,7 +1029,6 @@ function ignore_signal {
 #-----------------------------------------------------------------------------
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
-configuration
 initialization
 parse_options "$@"
 create_request

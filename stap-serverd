@@ -16,20 +16,14 @@
 # Catch ctrl-c and other termination signals
 trap 'terminate' SIGTERM SIGINT
 
+# Initialize the environment
+. stap-env
+
 #-----------------------------------------------------------------------------
 # Helper functions.
 #-----------------------------------------------------------------------------
 # function: initialization PORT
 function initialization {
-    # INSTALL-HOOK These settings work for running the server from the source tree
-    # INSTALL-HOOK using the dejagnu test harness and will be overridden at install
-    # INSTALL-HOOK time.
-    exec_prefix=
-    sysconfdir=`pwd`/net
-
-    # Default settings.
-    avahi_type=_stap._tcp
-
     # What port will we listen on?
     port=$1
     test "X$port" = "X" && port=65000
@@ -45,17 +39,13 @@ function initialization {
     if test "X$ssl_db" = "X"; then
 	# If no certificate/key database has been specified, then find/create
 	# a local one.
-	if test $EUID = 0; then
-	    ssl_db=$sysconfdir/systemtap/ssl/server
-	else
-	    ssl_db=$HOME/.systemtap/ssl/server
-	fi
+	ssl_db=$stap_ssl_db/server
 	if ! test -f $ssl_db/stap-server.cert; then
-	    ${exec_prefix}stap-gen-server-cert `dirname $ssl_db` || exit 1
+	    ${stap_exec_prefix}stap-gen-cert $ssl_db || exit 1
             # Now add the server's certificate to the client's database,
 	    # making it a trusted peer. Do this only if the client has been installed.
-	    if test -f `which ${exec_prefix}stap-add-server-cert` -a -x `which ${exec_prefix}stap-add-server-cert`; then
-		${exec_prefix}stap-add-server-cert $ssl_db/stap-server.cert `dirname $ssl_db`/client
+	    if test -f `which ${stap_exec_prefix}stap-add-server-cert` -a -x `which ${stap_exec_prefix}stap-add-server-cert`; then
+		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/stap-server.cert
 	    fi
 	fi
     fi
@@ -78,7 +68,7 @@ function advertise_presence {
 
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "Systemtap Compile Server on `uname -n`" \
-	$avahi_type $port "$txt" > /dev/null 2>&1 &
+	$stap_avahi_service_tag $port "$txt" > /dev/null 2>&1 &
 
     echo "Systemtap Compile Server on `uname -n` listening on port $port"
 }
@@ -89,8 +79,8 @@ function advertise_presence {
 function listen {
     # The stap-server-connect program will listen forever
     # accepting requests.
-    ${exec_prefix}stap-server-connect -p $port -n $nss_cert -d $ssl_db -w $nss_pw 2>&1 &
-    wait '%${exec_prefix}stap-server-connect' >/dev/null 2>&1
+    ${stap_exec_prefix}stap-server-connect -p $port -n $nss_cert -d $ssl_db -w $nss_pw 2>&1 &
+    wait '%${stap_exec_prefix}stap-server-connect' >/dev/null 2>&1
 }
 
 # function: check_db DBNAME
@@ -328,8 +318,8 @@ function terminate {
     wait '%avahi-publish-service' >/dev/null 2>&1
 
     # Kill any running 'stap-server-connect' job.
-    kill -s SIGTERM '%${exec_prefix}stap-server-connect' 2> /dev/null
-    wait '%${exec_prefix}stap-server-connect'  >/dev/null 2>&1
+    kill -s SIGTERM '%${stap_exec_prefix}stap-server-connect' 2> /dev/null
+    wait '%${stap_exec_prefix}stap-server-connect'  >/dev/null 2>&1
 
     exit
 }

@@ -10,6 +10,9 @@
 #include "buildrun.h"
 #include "session.h"
 #include "util.h"
+#if HAVE_NSS
+#include "modsign.h"
+#endif
 
 #include <cstdlib>
 #include <fstream>
@@ -203,6 +206,14 @@ compile_pass (systemtap_session& s)
   make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
 
   rc = run_make_cmd(s, make_cmd);
+
+#if HAVE_NSS
+  // If a certificate database was specified, then try to sign the module.
+  // Failure to do so is not a fatal error. If the signature is actually needed,
+  // staprun will complain at that time.
+  if (!s.cert_db_path.empty())
+    sign_module (s);
+#endif
 
   return rc;
 }

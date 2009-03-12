@@ -12,30 +12,31 @@
 # This script attempts to start a systemtap server and echoes the
 # process id, if successful.
 
-# INSTALL-HOOK These settings work for running the client from the source tree
-# INSTALL-HOOK using the dejagnu test harness and will be overridden at install
-# INSTALL-HOOK time.
-exec_prefix=
-sysconfdir=`pwd`/net
+# Initialize the environment
+. stap-env
 
 # start the server
-${exec_prefix}stap-serverd "$@" </dev/null >/dev/null 2>&1 &
+${stap_exec_prefix}stap-serverd "$@" </dev/null >/dev/null 2>&1 &
 server_pid=$!
 
 # Make sure the server is started
 for ((attempt=0; $attempt < 10; ++attempt))
 do
-    if test $EUID = 0; then
-	if ! test -f $sysconfdir/systemtap/ssl/server/stap-server.cert; then
-	    sleep 1
-	    continue;
-	fi
-    elif ! test -f $HOME/.systemtap/ssl/server/stap-server.cert; then
+    # Has the server started?
+    if ! (ps -a | grep $server_pid) >/dev/null 2>&1; then
 	sleep 1
 	continue
     fi
-    (ps -a | grep $server_pid) >/dev/null 2>&1 && echo $server_pid && exit 0
-    sleep 1
+
+    # Is avahi advertizing the server?
+    if ! (ps -fa | grep avahi-publish-service | grep $server_pid) > /dev/null 2>&1; then
+	sleep 1
+	continue
+    fi
+
+    # The server is ready
+    echo $server_pid
+    exit 0
 done
 
 exit 1 # server did not start

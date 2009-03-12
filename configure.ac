@@ -249,8 +249,11 @@ if test "x${have_nss_includes}${have_nss_libs}" != "xyesyes"; then
   if test "$enable_server" == "check"; then
     AC_MSG_WARN([will not build stap-server, cannot find all libraries])
   fi
+else
+    AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
 fi
 AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes" -a "$enable_server" != "no"])
+AM_CONDITIONAL([HAVE_NSS],     [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes"])
 
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
