@@ -25,7 +25,6 @@ static struct utt_trace *_stp_utt = NULL;
 static unsigned int utt_seq = 1;
 static int _stp_probes_started = 0;
 static pid_t _stp_target = 0;
-static int _stp_exit_called = 0;
 static int _stp_exit_flag = 0;
 #include "control.h"
 #ifdef STP_OLD_TRANSPORT
@@ -89,13 +88,14 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
 static void _stp_cleanup_and_exit(int send_exit)
 {
-	if (!_stp_exit_called) {
+	static int called = 0;
+	if (!called) {
 		int failures;
 
                 dbug_trans(1, "cleanup_and_exit (%d)\n", send_exit);
 		_stp_exit_flag = 1;
 		/* we only want to do this stuff once */
-		_stp_exit_called = 1;
+		called = 1;
 
 		if (_stp_probes_started) {
 			dbug_trans(1, "calling probe_exit\n");
@@ -116,6 +116,18 @@ static void _stp_cleanup_and_exit(int send_exit)
 		if (send_exit)
 			_stp_ctl_send(STP_EXIT, NULL, 0);
 		dbug_trans(1, "done with ctl_send STP_EXIT\n");
+	}
+}
+
+static void _stp_request_exit(void)
+{
+	static int called = 0;
+	if (!called) {
+		/* we only want to do this once */
+		called = 1;
+		dbug_trans(1, "ctl_send STP_REQUEST_EXIT\n");
+		_stp_ctl_send(STP_REQUEST_EXIT, NULL, 0);
+		dbug_trans(1, "done with ctl_send STP_REQUEST_EXIT\n");
 	}
 }
 
@@ -169,7 +181,7 @@ static void _stp_work_queue(void *data)
 
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && _stp_probes_started))
-		_stp_cleanup_and_exit(1);
+		_stp_request_exit();
 	if (likely(_stp_attached))
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
