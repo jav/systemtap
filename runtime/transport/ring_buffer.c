@@ -105,6 +105,7 @@ static int _stp_data_open_trace(struct inode *inode, struct file *file)
 	}
 	cpumask_setall(_stp_trace_reader_cpumask);
 #endif
+	file->private_data = inode->i_private;
 	return 0;
 }
 
@@ -119,38 +120,6 @@ static int _stp_data_release_trace(struct inode *inode, struct file *file)
 #endif
 
 	return 0;
-}
-
-struct trace_seq {
-	unsigned char		buffer[PAGE_SIZE];
-	unsigned int		len;
-	unsigned int		readpos;
-};
-
-ssize_t
-_stp_trace_seq_to_user(struct trace_seq *s, char __user *ubuf, size_t cnt)
-{
-	int len;
-	int ret;
-
-	dbug_trans(1, "s: %p\n", s);
-	if (s == NULL)
-		return -EFAULT;
-
-	dbug_trans(1, "len: %d, readpos: %d, buffer: %p\n", s->len,
-		   s->readpos, s->buffer);
-	if (s->len <= s->readpos)
-		return -EBUSY;
-
-	len = s->len - s->readpos;
-	if (cnt > len)
-		cnt = len;
-	ret = copy_to_user(ubuf, s->buffer + s->readpos, cnt);
-	if (ret)
-		return -EFAULT;
-
-	s->readpos += len;
-	return cnt;
 }
 
 size_t
@@ -173,13 +142,6 @@ _stp_entry_to_user(struct _stp_entry *entry, char __user *ubuf, size_t cnt)
 		return -EFAULT;
 
 	return cnt;
-}
-
-static void
-trace_seq_reset(struct trace_seq *s)
-{
-	s->len = 0;
-	s->readpos = 0;
 }
 
 static ssize_t tracing_wait_pipe(struct file *filp)
@@ -229,9 +191,24 @@ peek_next_entry(int cpu, u64 *ts)
 }
 
 static struct _stp_entry *
-__find_next_entry(int *ent_cpu, u64 *ent_ts)
+__stp_find_next_entry(long cpu_file, int *ent_cpu, u64 *ent_ts)
 {
-	struct _stp_entry *ent, *next = NULL;
+	struct _stp_entry *ent;
+
+#ifdef STP_BULKMODE
+	/*
+	 * If we are in a per_cpu trace file, don't bother by iterating over
+	 * all cpus and peek directly.
+	 */
+	if (ring_buffer_empty_cpu(buffer, (int)cpu_file))
+		return NULL;
+	ent = peek_next_entry(cpu_file, ent_ts);
+	if (ent_cpu)
+		*ent_cpu = cpu_file;
+
+	return ent;
+#else
+	struct _stp_entry *next = NULL;
 	u64 next_ts = 0, ts;
 	int next_cpu = -1;
 	int cpu;
@@ -260,12 +237,13 @@ __find_next_entry(int *ent_cpu, u64 *ent_ts)
 		*ent_ts = next_ts;
 
 	return next;
+#endif
 }
 
 /* Find the next real entry, and increment the iterator to the next entry */
-static struct _stp_entry *_stp_find_next_entry(void)
+static struct _stp_entry *_stp_find_next_entry(long cpu_file)
 {
-	return __find_next_entry(&_stp_iter.cpu, &_stp_iter.ts);
+    return __stp_find_next_entry(cpu_file, &_stp_iter.cpu, &_stp_iter.ts);
 }
 
 
@@ -278,6 +256,7 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 {
 	ssize_t sret;
 	struct _stp_entry *entry;
+	long cpu_file = (long) filp->private_data;
 
 	dbug_trans(1, "%lu\n", (unsigned long)cnt);
 
@@ -297,7 +276,7 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 
 	dbug_trans(1, "sret = %lu\n", (unsigned long)sret);
 	sret = 0;
-	while ((entry = _stp_find_next_entry()) != NULL) {
+	while ((entry = _stp_find_next_entry(cpu_file)) != NULL) {
 		ssize_t len;
 
 		len = _stp_entry_to_user(entry, ubuf, cnt);
