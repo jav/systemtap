@@ -2,6 +2,7 @@
 #include <linux/ring_buffer.h>
 #include <linux/wait.h>
 #include <linux/poll.h>
+#include <linux/cpumask.h>
 
 #ifdef STP_BULKMODE
 #error "bulkmode support unfinished..."
@@ -44,8 +45,11 @@ struct _stp_ring_buffer_iterator {
 static struct _stp_ring_buffer_iterator _stp_iter;
 #endif
 
+static cpumask_var_t _stp_trace_reader_cpumask;
+
 static void __stp_free_ring_buffer(void)
 {
+	free_cpumask_var(_stp_trace_reader_cpumask);
 	if (__stp_ring_buffer)
 		ring_buffer_free(__stp_ring_buffer);
 	__stp_ring_buffer = NULL;
@@ -55,6 +59,10 @@ static int __stp_alloc_ring_buffer(void)
 {
 	int i;
 	unsigned long buffer_size = _stp_bufsize;
+
+	if (!alloc_cpumask_var(&_stp_trace_reader_cpumask, GFP_KERNEL))
+		goto fail;
+	cpumask_clear(_stp_trace_reader_cpumask);
 
 	if (buffer_size == 0) {
 		dbug_trans(1, "using default buffer size...\n");
@@ -77,25 +85,39 @@ fail:
 	return -ENOMEM;
 }
 
-static atomic_t _stp_trace_attached = ATOMIC_INIT(0);
-
 static int _stp_data_open_trace(struct inode *inode, struct file *file)
 {
-	/* We only allow for one reader */
+	long cpu_file = (long) inode->i_private;
+
+	/* We only allow for one reader per cpu */
 	dbug_trans(1, "trace attach\n");
-	if (atomic_inc_return(&_stp_trace_attached) != 1) {
-		atomic_dec(&_stp_trace_attached);
+#ifdef STP_BULKMODE
+	if (!cpumask_test_cpu(cpu_file, _stp_trace_reader_cpumask))
+		cpumask_set_cpu(cpu_file, _stp_trace_reader_cpumask);
+	else {
 		dbug_trans(1, "returning EBUSY\n");
 		return -EBUSY;
 	}
-
+#else
+	if (!cpumask_empty(_stp_trace_reader_cpumask)) {
+		dbug_trans(1, "returning EBUSY\n");
+		return -EBUSY;
+	}
+	cpumask_setall(_stp_trace_reader_cpumask);
+#endif
 	return 0;
 }
 
 static int _stp_data_release_trace(struct inode *inode, struct file *file)
 {
+	long cpu_file = (long) inode->i_private;
 	dbug_trans(1, "trace detach\n");
-	atomic_dec(&_stp_trace_attached);
+#ifdef STP_BULKMODE
+	cpumask_clear_cpu(cpu_file, _stp_trace_reader_cpumask);
+#else
+	cpumask_clear(_stp_trace_reader_cpumask);
+#endif
+
 	return 0;
 }
 
