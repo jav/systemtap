@@ -10,7 +10,7 @@ set ::result_string {1
 1 2 3 4 5 6 7 8 9
 1 2 3 4 5 6 7 8 9 10}
 
-set extra_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic} {additional_flags=-O2} {additional_flags="-O3"}}
+set extra_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic} {additional_flags=-ansi additional_flags=-pedantic} {additional_flags=-O2} {additional_flags="-O3"}}
 
 # Iterate extra_flags, trying each with C and C++
 for {set i 0} {$i < [llength $extra_flags]} {incr i} {
