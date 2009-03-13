@@ -80,7 +80,6 @@ stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
 if HAVE_NSS
 stap_SOURCES += modsign.cxx nsscommon.c
-
 stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_LDADD += -lnss3
 
