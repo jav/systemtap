@@ -33,8 +33,7 @@ if { $res != "" } {
 }
 
 if {[installtest_p]} {
-# XXX: we need distinct test names for these 
-  stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
+  stap_run3 "$test $extra_flag" $srcdir/$subdir/$test.stp -c ./$test.prog
 } else {
   untested "$test $extra_flag"
 }
@@ -56,8 +55,7 @@ if { $res != "" } {
 }
 
 if {[installtest_p]} {
-# XXX: we need distinct test names for these 
-  stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
+  stap_run3 "$test c++ $extra_flag" $srcdir/$subdir/$test.stp -c ./$test.prog
 } else {
   untested "$test c++ $extra_flag"
 }

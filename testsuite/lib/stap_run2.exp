@@ -10,12 +10,27 @@
 
 proc stap_run2 { TEST_NAME args } {
     # zap the srcdir prefix
-    set test_file_name $TEST_NAME
+    set TEST_FILE $TEST_NAME
     set TEST_NAME [regsub {.*/testsuite/} $TEST_NAME ""]
-    
+    if {[llength $args] == 0} {
+      stap_run3 $TEST_NAME $TEST_FILE
+    } else {
+      stap_run3 $TEST_NAME $TEST_FILE $args
+    }
+}
+
+# stap_run3 TEST_NAME TEST_FILE
+# TEST_NAME is the name of the test as shown in PASS/FAIL/SKIPPED messages.
+# TEST_FILE is the path to the current test
+# Additional arguments are passed to stap as-is.
+#
+# global result_string must be set to the expected output
+
+proc stap_run3 { TEST_NAME TEST_FILE args } {
     if {[info procs installtest_p] != "" && ![installtest_p]} { untested $TEST_NAME; return }
-    
-    set cmd [concat stap $args $test_file_name]
+
+    set cmd [concat stap $args $TEST_FILE]
+    send_log "executing: $cmd\n"
     catch {eval exec $cmd} res
 
     set n 0
