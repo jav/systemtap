@@ -4,10 +4,6 @@
 #include <linux/poll.h>
 #include <linux/cpumask.h>
 
-#ifdef STP_BULKMODE
-#error "bulkmode support unfinished..."
-#endif
-
 static struct ring_buffer *__stp_ring_buffer = NULL;
 //DEFINE_PER_CPU(struct oprofile_cpu_buffer, cpu_buffer);
 
@@ -200,7 +196,7 @@ __stp_find_next_entry(long cpu_file, int *ent_cpu, u64 *ent_ts)
 	 * If we are in a per_cpu trace file, don't bother by iterating over
 	 * all cpus and peek directly.
 	 */
-	if (ring_buffer_empty_cpu(buffer, (int)cpu_file))
+	if (ring_buffer_empty_cpu(__stp_ring_buffer, (int)cpu_file))
 		return NULL;
 	ent = peek_next_entry(cpu_file, ent_ts);
 	if (ent_cpu)
@@ -385,7 +381,7 @@ static int _stp_transport_data_fs_init(void)
 		return rc;
 
 	// create file(s)
-	for_each_possible_cpu(cpu) {
+	for_each_online_cpu(cpu) {
 		char cpu_file[9];	/* 5(trace) + 3(XXX) + 1(\0) = 9 */
 
 		if (cpu > 999 || cpu < 0) {
