@@ -227,7 +227,7 @@ probe process.create = kernel.function("copy_process").return
  **/
 </programlisting>
 
-<para>To override the automatically-generated <command>Synopsis</command> content, use:
+<para>To override the automatically-generated <command>Synopsis</command> content, use:</para>
 	
 <programlisting>
  * Synopsis:
