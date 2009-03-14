@@ -187,22 +187,22 @@
 
 #define kread(ptr) ({ \
         typeof(*(ptr)) _v; \
-        if (probe_kernel_read((void *)&_v, (void *)(ptr), sizeof(*(ptr)))) \
-            DEREF_FAULT(ptr); \
+        if (lookup_bad_addr((unsigned long)(ptr)) || \
+            probe_kernel_read((void *)&_v, (void *)(ptr), sizeof(*(ptr)))) \
+          DEREF_FAULT(ptr); \
         _v; \
     })
 
 #define kwrite(ptr, value) ({ \
         typeof(*(ptr)) _v; \
         _v = (typeof(*(ptr)))(value); \
-        if (probe_kernel_write((void *)(ptr), (void *)&_v, sizeof(*(ptr)))) \
-            STORE_DEREF_FAULT(ptr); \
+        if (lookup_bad_addr((unsigned long)addr) || \
+            probe_kernel_write((void *)(ptr), (void *)&_v, sizeof(*(ptr)))) \
+          STORE_DEREF_FAULT(ptr); \
     })
 
 #define deref(size, addr) ({ \
     intptr_t _i; \
-    if (lookup_bad_addr((unsigned long)addr)) \
-      __deref_bad(); \
     switch (size) { \
       case 1: _i = kread((u8 *)(addr)); break; \
       case 2: _i = kread((u16 *)(addr)); break; \
@@ -215,8 +215,6 @@
   })
 
 #define store_deref(size, addr, value) ({ \
-    if (lookup_bad_addr((unsigned long)addr)) \
-      __store_deref_bad(); \
     switch (size) { \
       case 1: kwrite((u8 *)(addr), (value)); break; \
       case 2: kwrite((u16 *)(addr), (value)); break; \
