@@ -7172,10 +7172,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 	  // Emit a "fake" probe decl that is really a hook for to get
 	  // our vm_callback called.
 	  string path = it->first;
-	  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
 	  emit_vm_callback_probe_decl (s, true, path, (int64_t)0,
 				       "__stp_tf_vm_cb");
-	  s.op->newline() << "#endif";
 
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
@@ -7193,10 +7191,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
         {
 	  // Emit a "fake" probe decl that is really a hook for to get
 	  // our vm_callback called.
-	  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
 	  emit_vm_callback_probe_decl (s, false, "", it->first,
 				       "__stp_tf_vm_cb");
-	  s.op->newline() << "#endif";
 
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
