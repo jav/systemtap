@@ -6,7 +6,11 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// Each timestamp function returns a value to indicate when a function is executed. These 
+//returned values can then be used to indicate when an event occurred, provide an ordering for events, 
+//or compute the amount of time elapsed between two time stamps.
+// </tapsetdescription>
 /**
  * sfunction get_cycles - Processor cycle count.
  *
