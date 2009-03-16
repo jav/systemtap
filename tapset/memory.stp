@@ -6,6 +6,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
+// <tapsetdescription>
+// This family of probe points is used to probe memory-related events. 
+// </tapsetdescription>
 %{
 #include <linux/mm.h>
 %}
@@ -97,7 +100,7 @@ function addr_to_node:long(addr:long) %{ /* pure */
 		}
 %}
 
-/* Return whether a page to be copied is a zero page. */
+// Return whether a page to be copied is a zero page.
 function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
     THIS->__retvalue = (THIS->from == (long) ZERO_PAGE(THIS->vaddr));
 %}
