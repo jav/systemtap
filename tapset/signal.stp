@@ -8,13 +8,15 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 //
-//   Note : Since there are so many signals sent to processes at any give
-//          point, it's better to filter the information according to the
-//          requirements.  For example, filter only for a particular signal
-//          (if sig==2) or filter only for a particular process
-//          (if pid_name==stap).
 //
-
+// <tapsetdescription>
+//  This family of probe points is used to probe signal activities.
+//  Since there are so many signals sent to processes at any give
+//  point, it's advisable to filter the information according to the
+//  requirements.  For example, filter only for a particular signal
+//  (if sig==2) or filter only for a particular process
+//  (if pid_name==stap).
+// </tapsetdescription>
 
 /** 
  * probe signal.send- Fires when a system call or kernel function sends a signal to a process.
