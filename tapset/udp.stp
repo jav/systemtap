@@ -5,7 +5,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// This family of probe points is used to probe events that occur in the UDP layer. 
+// </tapsetdescription>
 %{
 #include <linux/version.h>
 #include <net/sock.h>

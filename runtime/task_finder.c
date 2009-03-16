@@ -55,7 +55,6 @@ typedef int (*stap_task_finder_vm_callback)(struct stap_task_finder_target *tgt,
 					    unsigned long vm_end,
 					    unsigned long vm_pgoff);
 
-#ifdef DEBUG_TASK_FINDER_VMA
 static int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
 		   struct task_struct *tsk,
 		   int map_p, char *vm_path,
@@ -63,21 +62,32 @@ static int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
 		   unsigned long vm_end,
 		   unsigned long vm_pgoff)
 {
+  int i;
+#ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "vm_cb: tsk %d:%d path %s, start 0x%08lx, end 0x%08lx, offset 0x%lx\n",
 		  tsk->pid, map_p, vm_path, vm_start, vm_end, vm_pgoff);
+#endif
 	if (map_p) {
-		// FIXME: What should we do with vm_path?  We can't save
-		// the vm_path pointer itself, but we don't have any
-		// storage space allocated to save it in...
-		stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
+	  struct _stp_module *module = NULL;
+	  if (vm_path != NULL)
+	    for (i = 0; i < _stp_num_modules; i++)
+	      if (strcmp(vm_path, _stp_modules[i]->name) == 0)
+		{
+#ifdef DEBUG_TASK_FINDER_VMA
+		  _stp_dbug(__FUNCTION__, __LINE__,
+			    "vm_cb: matched path %s to module\n", vm_path);
+#endif
+		  module = _stp_modules[i];
+		  break;
+		}
+	  stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff, module);
 	}
 	else {
 		stap_remove_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
 	}
 	return 0;
 }
-#endif
 
 struct stap_task_finder_target {
 /* private: */

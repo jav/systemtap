@@ -5,7 +5,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// This family of probe points is used to probe SCSI activities.  
+// </tapsetdescription>
 %{
 #include <linux/types.h>
 #include <scsi/scsi_cmnd.h>
@@ -21,7 +23,7 @@
   * @disk_minor: The minor number of the disk (-1 if no information)
   * @device_state: The current state of the device.
   */
-/* FIXME describe the device_state */
+// FIXME describe the device_state
 probe scsi.ioentry
 	= module("scsi_mod").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?,
 	  kernel.function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?
@@ -107,7 +109,7 @@ probe scsi.iodone
  *                  the device
  * @goodbytes: The bytes completed.
  */
-/* mid-layer processes the completed IO */
+// mid-layer processes the completed IO
 probe scsi.iocompleted
 	= module("scsi_mod").function("scsi_io_completion@drivers/scsi/scsi_lib.c")?,
 	  kernel.function("scsi_io_completion@drivers/scsi/scsi_lib.c")?

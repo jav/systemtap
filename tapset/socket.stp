@@ -5,7 +5,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// This family of probe points is used to probe socket activities.
+// </tapsetdescription>
 %{
 #include <net/sock.h>
 #include <asm/bitops.h>
