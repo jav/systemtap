@@ -11,11 +11,10 @@
 //
 // <tapsetdescription>
 //  This family of probe points is used to probe signal activities.
-//  Since there are so many signals sent to processes at any give
-//  point, it's advisable to filter the information according to the
+//  Since there are so many signals sent to processes at any given
+//  point, it is advisable to filter the information according to the
 //  requirements.  For example, filter only for a particular signal
-//  (if sig==2) or filter only for a particular process
-//  (if pid_name==stap).
+//  (if sig==2) or for a particular process (if pid_name==stap).
 // </tapsetdescription>
 
 /** 
