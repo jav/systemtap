@@ -117,8 +117,8 @@
     <title>Context Functions</title>
     <para>
       The context functions provide additional information about where
-      the event occurred.
-      These functions can provide information such as a backtrace
+      an event occurred.
+      These functions can provide information such as a backtrace to 
       where the event occured
       and the current register values for the processor.
     </para>
@@ -132,9 +132,9 @@
     <para>
       Each timestamp function returns a value to indicate when
       a function is executed.
-      Thus, these returned values can be used to indicate
-      when an event occurs, provide an ordering for events, or compute
-      the amount of time elapsed between to time stamps.
+      These returned values can then be used to indicate
+      when an event occurred, provide an ordering for events, or compute
+      the amount of time elapsed between two time stamps.
     </para>
 !Itapset/timestamp.stp
   </chapter>
@@ -207,7 +207,7 @@
   <chapter id="process.stp">
     <title>Process Tapset</title>
     <para>
-      This family of probe points is used to probe process activities.
+      This family of probe points is used to probe process-related activities.
       It contains the following probe points:
     </para>
 !Itapset/process.stp
