@@ -130,24 +130,24 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  * Possible <command>__group_send_sig_info</command> and 
  * <command>specific_send_sig_info</command> return values are as follows;
  *
- * <command>0</command> - The signal is sucessfully sent to a process,
+ * <command>0</command> -- The signal is sucessfully sent to a process,
  * which means that
  * <1> the signal was ignored by the receiving process,
  * <2> this is a non-RT signal and the system already has one queued, and
  * <3> the signal was successfully added to the <command>sigqueue</command> of the receiving process.
  *
- * <command>-EAGAIN</command> - The <command>sigqueue</command> of the receiving process is 
+ * <command>-EAGAIN</command> -- The <command>sigqueue</command> of the receiving process is 
  * overflowing, the signal was RT, and the signal was sent by a user using something other 
  * than <command>kill()</command> 
  * 
  * Possible <command>send_group_sigqueue</command> and 
  * <command>send_sigqueue</command> return values are as follows;
  * 
- * <command>0</command> - The signal was either sucessfully added into the
+ * <command>0</command> -- The signal was either sucessfully added into the
  * <command>sigqueue</command> of the receiving process, or a <command>SI_TIMER</command> entry is already
  * queued (in which case, the overrun count will be simply incremented).
  *
- * <command>1</command> - The signal was ignored by the receiving process.
+ * <command>1</command> -- The signal was ignored by the receiving process.
  *
  *
  * <command>-1</command> - (<command>send_sigqueue</command> only) The task was marked
