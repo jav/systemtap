@@ -6,7 +6,11 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// Context functions provide additional information about where an event occurred. These functions can 
+//provide information such as a backtrace to where the event occured and the current register values for the 
+//processor.
+// </tapsetdescription>
 %{
 #ifndef STP_NEED_SYMBOL_DATA
 #define STP_NEED_SYMBOL_DATA 1
