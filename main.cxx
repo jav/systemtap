@@ -134,6 +134,8 @@ usage (systemtap_session& s, int exitcode)
 #endif
   // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
   // only, and don't belong in the eyesight of a plain user.
+    << "   --skip-badvars" << endl
+    << "              overlook context of bad $ variables" << endl
     << endl
     ;
 
@@ -187,13 +189,16 @@ printscript(systemtap_session& s, ostream& o)
             {
               o << pp;
               // Print the locals for -L mode only
-              if (s.unoptimized)
+              if (s.unoptimized) {
                 for (unsigned j=0; j<p->locals.size(); j++)
                   {
                     o << " ";
                     vardecl* v = p->locals[j];
                     v->printsig (o);
                   }
+                // Print arguments of probe if there
+                p->printargs(o);
+		}
               o << endl;
               seen.insert (pp);
             }
@@ -429,13 +434,15 @@ main (int argc, char * const argv [])
 #define LONG_OPT_IGNORE_VMLINUX 3
 #define LONG_OPT_IGNORE_DWARF 4
 #define LONG_OPT_VERBOSE_PASS 5
-#define LONG_OPT_SIGN_MODULE 6
+#define LONG_OPT_SKIP_BADVARS 6
+#define LONG_OPT_SIGN_MODULE 7
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
         { "kmap", 2, &long_opt, LONG_OPT_KMAP },
         { "ignore-vmlinux", 0, &long_opt, LONG_OPT_IGNORE_VMLINUX },
         { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
+	{ "skip-badvars", 0, &long_opt, LONG_OPT_SKIP_BADVARS },
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
         { "sign-module", 2, &long_opt, LONG_OPT_SIGN_MODULE },
         { NULL, 0, NULL, 0 }
@@ -698,6 +705,9 @@ main (int argc, char * const argv [])
                 // NB: we don't do this: s.last_pass = strlen(optarg);
                 break;
               }
+	    case LONG_OPT_SKIP_BADVARS:
+	      s.skip_badvars = true;
+	      break;
             case LONG_OPT_SIGN_MODULE:
               if (!s.cert_db_path.empty())
 		{

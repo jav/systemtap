@@ -94,8 +94,7 @@ bucket 69: 13
 bucket 70: 28
 loop had 71 iterations
 
-Done.
-}
+Done.}
 
 stap_run2 $srcdir/$subdir/$test.stp
 

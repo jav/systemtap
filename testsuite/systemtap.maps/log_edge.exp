@@ -43,8 +43,7 @@ value |-------------------------------------------------- count
 
 bucket 65: 1
 bucket 66: 2
-bucket 67: 1
-}
+bucket 67: 1}
 
 stap_run2 $srcdir/$subdir/$test.stp
 

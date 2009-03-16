@@ -13,7 +13,7 @@
 // return.
 function inet_get_local_port:long(sock:long)
 {
-%(kernel_v < "2.6.21" %?
+%(kernel_v < "2.6.11" %?
   port = @cast(sock, "inet_sock", "kernel")->inet->num;
 %:
   port = @cast(sock, "inet_sock", "kernel")->num;
@@ -24,7 +24,7 @@ function inet_get_local_port:long(sock:long)
 // Get IP source address string given a pointer to a kernel socket.
 function inet_get_ip_source:string(sock:long)
 {
-%(kernel_v < "2.6.21" %?
+%(kernel_v < "2.6.11" %?
   daddr = @cast(sock, "inet_sock", "kernel")->inet->daddr;
 %:
   daddr = @cast(sock, "inet_sock", "kernel")->daddr;

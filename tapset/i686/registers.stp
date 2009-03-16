@@ -26,6 +26,16 @@ function _stp_register_regs() {
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
+	if (!CONTEXT->regs) {
+		CONTEXT->last_error = "No registers available in this context";
+		return;
+	}
+	if (THIS->offset < 0 || THIS->offset > sizeof(struct pt_regs) - sizeof(long)) {
+		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"Bad register offset: %lld", THIS->offset);
+		CONTEXT->last_error = CONTEXT->error_buffer;
+		return;
+	}
 	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
 	THIS->__retvalue = value;
 %}

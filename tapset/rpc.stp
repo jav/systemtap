@@ -877,60 +877,40 @@ probe sunrpc.sched.delay.return = kernel.function("rpc_delay").return !,
  *****************************************************************/
 
 function xid_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if (clnt == NULL)
-		THIS->__retvalue = 0;
-	else {
-		struct rpc_xprt *cl_xprt = kread(&(clnt->cl_xprt));
-		THIS->__retvalue = kread(&(cl_xprt->xid));
-	}
-	CATCH_DEREF_FAULT();
-%}
+{
+	if (clnt == 0)
+		return 0
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt->xid
+}
 
 function prog_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if (clnt == NULL)
-		THIS->__retvalue = 0;
-	else {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-		THIS->__retvalue = kread(&(clnt->cl_prog));
-#else
-		struct rpc_portmap *cl_pmap = kread(&(clnt->cl_pmap));
-		THIS->__retvalue = kread(&(cl_pmap->pm_prog));
-#endif
-	}
-	CATCH_DEREF_FAULT();
-%}
+{
+	if (clnt == 0)
+		return 0
+%(kernel_v  >= "2.6.19" %?
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_prog
+%:
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_pmap->pm_prog
+%)
+}
 
 function vers_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if (clnt == NULL)
-		THIS->__retvalue = 0;
-	else {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-		THIS->__retvalue = kread(&(clnt->cl_vers));
-#else
-		struct rpc_portmap *cl_pmap = kread(&(clnt->cl_pmap));
-		THIS->__retvalue = kread(&(cl_pmap->pm_vers));
-#endif
-	}
-	CATCH_DEREF_FAULT();
-%}
+{
+	if (clnt == 0)
+		return 0
+%(kernel_v  >= "2.6.19" %?
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_vers
+%:
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_pmap->pm_vers
+%)
+}
 
 function prot_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if (clnt == NULL)
-		THIS->__retvalue = 0;
-	else {
-		struct rpc_xprt *cl_xprt = kread(&(clnt->cl_xprt));
-		THIS->__retvalue = kread(&(cl_xprt->prot));
-	}
-	CATCH_DEREF_FAULT();
-%}
+{
+	if (clnt == 0)
+		return 0
+	return @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt->prot
+}
 
 function port_from_clnt:long(clnt:long)
 %{ /* pure */
@@ -942,12 +922,14 @@ function port_from_clnt:long(clnt:long)
 		struct sockaddr_in *sap = (struct sockaddr_in *) &cl_xprt->addr;
 
 		THIS->__retvalue = ntohs(kread(&(sap->sin_port)));
+	}
 #else
 	if (cl_xprt && kread(&(cl_xprt->addr.sin_family)) == AF_INET) {
 		/* Now consider ipv4 only */
 		THIS->__retvalue = ntohs(kread(&(cl_xprt->addr.sin_port)));
+	}
 #endif
-	} else
+	else
 		THIS->__retvalue = 0;
 	CATCH_DEREF_FAULT();
 %}
@@ -975,16 +957,11 @@ function tasks_from_clnt:long(clnt:long)
 %}
 
 function proc_from_msg:long(msg:long)
-%{ /* pure */
-	struct rpc_message *msg = (struct rpc_message *)(long)THIS->msg;
-	if (msg == NULL)
-		THIS->__retvalue = 0;
-	else {
-		struct rpc_procinfo *rpc_proc = kread(&(msg->rpc_proc));
-		THIS->__retvalue = kread(&(rpc_proc->p_proc));
-	}
-	CATCH_DEREF_FAULT();
-%}
+{
+	if (msg == 0)
+		return 0
+	return @cast(msg, "rpc_message", "kernel:sunrpc")->rpc_proc->p_proc
+}
 
 function vers_from_prog:long(program:long, vers:long)
 %{ /* pure */

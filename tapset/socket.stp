@@ -922,53 +922,43 @@ function _get_sock_size:long (iov:long, nr_segs:long)
 %}
 
 function _sock_prot_num:long (sock:long)
-%{ /* pure */
-	struct socket *sktp = (struct socket *)(long)(THIS->sock);
-	struct sock *skp = sktp? kread(&(sktp->sk)) : NULL;
-	if (skp == NULL)
-		THIS->__retvalue = -1;
+{
+	skp = sock? @cast(sock, "socket", "kernel")->sk : 0
+	if (skp == 0)
+		return -1
 	else
-		THIS->__retvalue = kread(&(skp->sk_protocol));
-	CATCH_DEREF_FAULT();
-%}
+		return @cast(skp, "sock", "kernel")->sk_protocol
+}
 
 function _sock_fam_num:long (sock:long)
-%{ /* pure */
-	struct socket *sockp = (struct socket *)(long)(THIS->sock);
-	const struct proto_ops *ops = sockp? kread(&(sockp->ops)) : NULL;
-	if (ops == NULL)
-		THIS->__retvalue = -1;
+{
+	ops = sock? @cast(sock, "socket", "kernel")->ops : 0
+	if (ops == 0)
+		return -1
 	else
-		THIS->__retvalue = kread(&(ops->family));
-	CATCH_DEREF_FAULT();
-%}
+		return @cast(ops, "proto_ops", "kernel")->family
+}
 
 function _sock_state_num:long (sock:long)
-%{ /* pure */
-	struct socket *sockp = (struct socket *)(long)(THIS->sock);
-	if (sockp == NULL)
-		THIS->__retvalue = -1;
+{
+	if (sock == 0)
+		return -1
 	else
-		THIS->__retvalue = kread(&(sockp->state));
-	CATCH_DEREF_FAULT();
-%}
+		return @cast(sock, "socket", "kernel")->state
+}
 
 function _sock_type_num:long (sock:long)
-%{ /* pure */
-	struct socket *sockp = (struct socket *)(long)(THIS->sock);
-	if (sockp == NULL)
-		THIS->__retvalue = -1;
-	else
-		THIS->__retvalue = kread(&(sockp->type));
-	CATCH_DEREF_FAULT();
-%}
+{
+        if (sock == 0)
+                return -1
+        else
+                return @cast(sock, "socket", "kernel")->type
+}
 
 function _sock_flags_num:long (sock:long)
-%{ /* pure */
-	struct socket *sockp = (struct socket *)(long)(THIS->sock);
-	if (sockp == NULL)
-		THIS->__retvalue = -1;
-	else
-		THIS->__retvalue = kread(&(sockp->flags));
-	CATCH_DEREF_FAULT();
-%}
+{
+        if (sock == 0)
+                return -1
+        else
+                return @cast(sock, "socket", "kernel")->flags
+}

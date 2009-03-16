@@ -3,6 +3,5 @@ set ::result_string {helloworld
 helloworld
 EQUAL
 EQUAL
-hello-world helloworld FOO helloworld
-}
+hello-world helloworld FOO helloworld}
 stap_run2 $srcdir/$subdir/$test.stp

@@ -13,6 +13,5 @@ set ::result_string {Hello World!
 12,1: 
 0,10: Hello Worl
 0,100: Hello World!
-0,100000: Hello World!
-}
+0,100000: Hello World!}
 stap_run2 $srcdir/$subdir/$test.stp

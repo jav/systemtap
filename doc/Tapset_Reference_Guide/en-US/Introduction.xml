@@ -1,0 +1,59 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<chapter id="introduction">
+	<title>Introduction</title>
+	
+	<para>
+		SystemTap provides free software (GPL) infrastructure to simplify the
+		gathering of information about the running Linux system. This assists
+		diagnosis of a performance or functional problem. SystemTap eliminates the
+		need for the developer to go through the tedious and disruptive instrument,
+		recompile, install, and reboot sequence that may be otherwise required to
+		collect data.
+	</para>
+	
+	<para>
+		SystemTap provides a simple command line interface and scripting language
+		for writing instrumentation for a live, running kernel. This instrumentation
+		uses probe points and functions provided in the <firstterm>tapset</firstterm> library.
+  	</para>
+	
+	<para>
+		Simply put, tapsets are scripts that encapsulate knowledge about a kernel subsystem
+		into pre-written probes and functions that can be used by other scripts. 
+		Tapsets are analogous to libraries for C programs.  They hide the
+		underlying details of a kernel area while exposing the key information
+		needed to manage and monitor that aspect of the kernel.  They are typically
+		developed by kernel subject-matter experts.
+	</para>
+		
+	<para>
+		A tapset exposes the high-level data and state transitions of a
+		subsystem. For the most part, good tapset developers assume that
+		SystemTap users know little to nothing about the kernel subsystem's 
+		low-level details. As such, tapset developers write tapsets that help
+		ordinary SystemTap users write meaningful and useful SystemTap scripts.
+	</para>
+		
+<!-- add xref to upcoming section on how to write Tapsets/Tapset Comments -->
+	
+	<section id="docsgoals">
+		<title>Documentation Goals</title>
+		
+		<para>
+			This guide aims to document SystemTap's most useful and common tapset entries; it 
+			also contains guidelines on proper tapset development and documentation.
+			The tapset definitions contained in this guide are extracted automatically from 
+			properly-formatted comments in the code of each tapset file. As such, any revisions
+			to the definitions in this guide should be applied directly to their respective
+			tapset file.
+		</para>
+		
+<remark>add: "while users can read from code, it's easier to read from here!"</remark>
+<remark>add: target audience, expected proficiency of readers</remark>
+		
+	</section>
+	
+</chapter>

@@ -37,6 +37,7 @@ struct task_finder_derived_probe_group;
 struct timer_derived_probe_group;
 struct profile_derived_probe_group;
 struct mark_derived_probe_group;
+struct tracepoint_derived_probe_group;
 struct hrtimer_derived_probe_group;
 struct perfmon_derived_probe_group;
 struct procfs_derived_probe_group;
@@ -123,6 +124,9 @@ struct systemtap_session
   bool ignore_vmlinux;
   bool ignore_dwarf;
 
+  // Skip bad $ vars
+  bool skip_badvars;
+
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
   std::string tmpdir;
@@ -163,9 +167,12 @@ struct systemtap_session
   timer_derived_probe_group* timer_derived_probes;
   profile_derived_probe_group* profile_derived_probes;
   mark_derived_probe_group* mark_derived_probes;
+  tracepoint_derived_probe_group* tracepoint_derived_probes;
   hrtimer_derived_probe_group* hrtimer_derived_probes;
   perfmon_derived_probe_group* perfmon_derived_probes;
   procfs_derived_probe_group* procfs_derived_probes;
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx).
 
   // unparser data
   translator_output* op;

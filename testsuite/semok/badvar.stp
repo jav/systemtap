@@ -1,0 +1,7 @@
+#! stap --skip-badvars
+
+probe syscall.read {
+  if ($foo == 0)
+    printf ("Voila! It works..\n")
+  exit ()
+}

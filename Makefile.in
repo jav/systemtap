@@ -18,7 +18,6 @@
 
 
 
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
@@ -96,26 +95,12 @@ CONFIG_CLEAN_FILES = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 \
 	man/stapprobes.scsi.5 man/stapprobes.signal.5 \
 	man/stapprobes.socket.5 man/stapprobes.tcp.5 \
 	man/stapprobes.udp.5 initscript/systemtap run-stap
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
-am__installdirs = "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(bindir)" \
-	"$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" \
-	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" \
-	"$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"
-pkglibLIBRARIES_INSTALL = $(INSTALL_DATA)
-LIBRARIES = $(pkglib_LIBRARIES)
-AR = ar
-ARFLAGS = cru
-libsduprobes_a_AR = $(AR) $(ARFLAGS)
-libsduprobes_a_LIBADD =
-@BUILD_ELFUTILS_TRUE@am_libsduprobes_a_OBJECTS = sduprobes.$(OBJEXT)
-libsduprobes_a_OBJECTS = $(am_libsduprobes_a_OBJECTS)
 @BUILD_SERVER_TRUE@am__EXEEXT_1 = stap-client-connect$(EXEEXT) \
 @BUILD_SERVER_TRUE@	stap-server-connect$(EXEEXT)
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
+	"$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" \
+	"$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)" \
+	"$(DESTDIR)$(oldincludedir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 pkglibexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
@@ -179,10 +164,9 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(libsduprobes_a_SOURCES) $(loc2c_test_SOURCES) \
-	$(stap_SOURCES) $(stap_client_connect_SOURCES) \
-	$(stap_server_connect_SOURCES) $(stapio_SOURCES) \
-	$(staprun_SOURCES)
+SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) \
+	$(stap_client_connect_SOURCES) $(stap_server_connect_SOURCES) \
+	$(stapio_SOURCES) $(staprun_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -195,6 +179,12 @@ man5dir = $(mandir)/man5
 man8dir = $(mandir)/man8
 NROFF = nroff
 MANS = $(man_MANS)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 oldincludeHEADERS_INSTALL = $(INSTALL_HEADER)
 HEADERS = $(oldinclude_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
@@ -353,8 +343,6 @@ stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ $(am__append_8)
 @HAVE_NSS_TRUE@stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 @HAVE_NSS_TRUE@stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 PHONIES = $(am__append_12) $(am__append_13) dist-gzip
-@BUILD_ELFUTILS_TRUE@pkglib_LIBRARIES = libsduprobes.a
-@BUILD_ELFUTILS_TRUE@libsduprobes_a_SOURCES = runtime/sduprobes.c
 staprun_SOURCES = runtime/staprun/staprun.c \
 	runtime/staprun/staprun_funcs.c runtime/staprun/ctl.c \
 	runtime/staprun/common.c $(am__append_14)
@@ -496,39 +484,6 @@ initscript/systemtap: $(top_builddir)/config.status $(top_srcdir)/initscript/sys
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 run-stap: $(top_builddir)/config.status $(srcdir)/run-stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-install-pkglibLIBRARIES: $(pkglib_LIBRARIES)
-	@$(NORMAL_INSTALL)
-	test -z "$(pkglibdir)" || $(MKDIR_P) "$(DESTDIR)$(pkglibdir)"
-	@list='$(pkglib_LIBRARIES)'; for p in $$list; do \
-	  if test -f $$p; then \
-	    f=$(am__strip_dir) \
-	    echo " $(pkglibLIBRARIES_INSTALL) '$$p' '$(DESTDIR)$(pkglibdir)/$$f'"; \
-	    $(pkglibLIBRARIES_INSTALL) "$$p" "$(DESTDIR)$(pkglibdir)/$$f"; \
-	  else :; fi; \
-	done
-	@$(POST_INSTALL)
-	@list='$(pkglib_LIBRARIES)'; for p in $$list; do \
-	  if test -f $$p; then \
-	    p=$(am__strip_dir) \
-	    echo " $(RANLIB) '$(DESTDIR)$(pkglibdir)/$$p'"; \
-	    $(RANLIB) "$(DESTDIR)$(pkglibdir)/$$p"; \
-	  else :; fi; \
-	done
-
-uninstall-pkglibLIBRARIES:
-	@$(NORMAL_UNINSTALL)
-	@list='$(pkglib_LIBRARIES)'; for p in $$list; do \
-	  p=$(am__strip_dir) \
-	  echo " rm -f '$(DESTDIR)$(pkglibdir)/$$p'"; \
-	  rm -f "$(DESTDIR)$(pkglibdir)/$$p"; \
-	done
-
-clean-pkglibLIBRARIES:
-	-test -z "$(pkglib_LIBRARIES)" || rm -f $(pkglib_LIBRARIES)
-libsduprobes.a: $(libsduprobes_a_OBJECTS) $(libsduprobes_a_DEPENDENCIES) 
-	-rm -f libsduprobes.a
-	$(libsduprobes_a_AR) libsduprobes.a $(libsduprobes_a_OBJECTS) $(libsduprobes_a_LIBADD)
-	$(RANLIB) libsduprobes.a
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
@@ -624,7 +579,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loc2c_test-loc2c-test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loc2c_test-loc2c.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sduprobes.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-buildrun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-coveragedb.Po@am__quote@
@@ -669,20 +623,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
-
-@BUILD_ELFUTILS_FALSE@sduprobes.o: runtime/sduprobes.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sduprobes.o -MD -MP -MF $(DEPDIR)/sduprobes.Tpo -c -o sduprobes.o `test -f 'runtime/sduprobes.c' || echo '$(srcdir)/'`runtime/sduprobes.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sduprobes.Tpo $(DEPDIR)/sduprobes.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/sduprobes.c' object='sduprobes.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sduprobes.o `test -f 'runtime/sduprobes.c' || echo '$(srcdir)/'`runtime/sduprobes.c
-
-sduprobes.obj: runtime/sduprobes.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sduprobes.obj -MD -MP -MF $(DEPDIR)/sduprobes.Tpo -c -o sduprobes.obj `if test -f 'runtime/sduprobes.c'; then $(CYGPATH_W) 'runtime/sduprobes.c'; else $(CYGPATH_W) '$(srcdir)/runtime/sduprobes.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sduprobes.Tpo $(DEPDIR)/sduprobes.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/sduprobes.c' object='sduprobes.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sduprobes.obj `if test -f 'runtime/sduprobes.c'; then $(CYGPATH_W) 'runtime/sduprobes.c'; else $(CYGPATH_W) '$(srcdir)/runtime/sduprobes.c'; fi`
 
 loc2c_test-loc2c-test.o: loc2c-test.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(loc2c_test_CPPFLAGS) $(CPPFLAGS) $(loc2c_test_CFLAGS) $(CFLAGS) -MT loc2c_test-loc2c-test.o -MD -MP -MF $(DEPDIR)/loc2c_test-loc2c-test.Tpo -c -o loc2c_test-loc2c-test.o `test -f 'loc2c-test.c' || echo '$(srcdir)/'`loc2c-test.c
@@ -1432,11 +1372,11 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-recursive
-all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(SCRIPTS) $(MANS) \
-		$(HEADERS) config.h all-local
+all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) $(HEADERS) config.h \
+		all-local
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1468,8 +1408,7 @@ maintainer-clean-generic:
 clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-local \
-	clean-noinstPROGRAMS clean-pkglibLIBRARIES \
-	clean-pkglibexecPROGRAMS mostlyclean-am
+	clean-noinstPROGRAMS clean-pkglibexecPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -1494,8 +1433,7 @@ install-data-am: install-data-local install-man \
 install-dvi: install-dvi-recursive
 
 install-exec-am: install-binPROGRAMS install-binSCRIPTS \
-	install-exec-local install-pkglibLIBRARIES \
-	install-pkglibexecPROGRAMS
+	install-exec-local install-pkglibexecPROGRAMS
 	@$(NORMAL_INSTALL)
 	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
 
@@ -1532,7 +1470,7 @@ ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
 	uninstall-local uninstall-man uninstall-oldincludeHEADERS \
-	uninstall-pkglibLIBRARIES uninstall-pkglibexecPROGRAMS
+	uninstall-pkglibexecPROGRAMS
 
 uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 
@@ -1542,27 +1480,24 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
 	all all-am all-local am--refresh check check-am check-local \
 	clean clean-binPROGRAMS clean-generic clean-local \
-	clean-noinstPROGRAMS clean-pkglibLIBRARIES \
-	clean-pkglibexecPROGRAMS ctags ctags-recursive distclean \
-	distclean-compile distclean-generic distclean-hdr \
-	distclean-local distclean-tags dvi dvi-am html html-am info \
-	info-am install install-am install-binPROGRAMS \
+	clean-noinstPROGRAMS clean-pkglibexecPROGRAMS ctags \
+	ctags-recursive distclean distclean-compile distclean-generic \
+	distclean-hdr distclean-local distclean-tags dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
 	install-binSCRIPTS install-data install-data-am \
 	install-data-local install-dvi install-dvi-am install-exec \
 	install-exec-am install-exec-hook install-exec-local \
 	install-html install-html-am install-info install-info-am \
 	install-man install-man1 install-man5 install-man8 \
 	install-oldincludeHEADERS install-pdf install-pdf-am \
-	install-pkglibLIBRARIES install-pkglibexecPROGRAMS install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic pdf pdf-am ps ps-am tags tags-recursive \
-	uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-binSCRIPTS uninstall-local uninstall-man \
-	uninstall-man1 uninstall-man5 uninstall-man8 \
-	uninstall-oldincludeHEADERS uninstall-pkglibLIBRARIES \
-	uninstall-pkglibexecPROGRAMS
+	install-pkglibexecPROGRAMS install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
+	ps ps-am tags tags-recursive uninstall uninstall-am \
+	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-local \
+	uninstall-man uninstall-man1 uninstall-man5 uninstall-man8 \
+	uninstall-oldincludeHEADERS uninstall-pkglibexecPROGRAMS
 
 git_version.stamp:
 	@if test -f "$(srcdir)/git_version.h"; then \
@@ -1595,8 +1530,6 @@ cscope:
 @BUILD_ELFUTILS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@	touch $@
 @BUILD_ELFUTILS_TRUE@lib-elfutils/libdw.so: stamp-elfutils ;
-@BUILD_ELFUTILS_TRUE@sduprobes.o: runtime/sduprobes.c
-@BUILD_ELFUTILS_TRUE@	$(CC) -g -O0 -c -o $@ $<
 @BUILD_ELFUTILS_TRUE@install-elfutils:
 @BUILD_ELFUTILS_TRUE@	mkdir -p $(DESTDIR)$(pkglibdir)
 @BUILD_ELFUTILS_TRUE@	for file in lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so*; do \
