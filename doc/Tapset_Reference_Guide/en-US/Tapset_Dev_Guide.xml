@@ -276,7 +276,7 @@ probe process.create = kernel.function("copy_process").return
 	<listitem><para><command>emphasis</command></para></listitem>
 	<listitem><para><command>programlisting</command></para></listitem>
 	<listitem><para><command>remark</command> (tagged strings will appear in Publican beta
-			builds of the document.</para></listitem>
+			builds of the document)</para></listitem>
 </itemizedlist>
 
 
