@@ -99,11 +99,19 @@ for i in `cat manpageus`; do
 perl -p -i -e 's|.B Description:/|\n.P\n.TP|g' $i.5 ; 
 perl -p -i -e 's|.B Description:|.B Description:\n\n |g' $i.5 ;
 cat $i.5 | perl -p -e 'undef $/;s|\.B Arguments:\n\n\.B |.B|msg' | 
-perl -p -e 'undef $/;s|\n \* ||msg' > stapprobes.$i.5.in ; 
+perl -p -e 'undef $/;s|\n \* | |msg' > stapprobes.$i.5.in ; 
 # cleanup all remaining stars, excess initial whitespace, and trailing "/" per line
 perl -p -i -e 's|^ \*||g' stapprobes.$i.5.in;
 perl -p -i -e 's|^ ||g' stapprobes.$i.5.in;
 perl -p -i -e 's|^/||g' stapprobes.$i.5.in;
+# convert tags
+perl -p -i -e 's|</[^>]*>|\n|g' stapprobes.$i.5.in ;
+perl -p -i -e 's|<[^>]*>|\n.B |g' stapprobes.$i.5.in ;
+# cleanup remaining excess whitespace
+perl -p -i -e 's|\t\t| |g' stapprobes.$i.5.in;
+perl -p -i -e 's|^ ||g' stapprobes.$i.5.in;
+#sed -i -e 's/$/ /g' stapprobes.$i.5.in;
+#sed -i -e 's|$  | |g' stapprobes.$i.5.in;
 done
 
 # file cleanup
