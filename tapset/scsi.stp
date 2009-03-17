@@ -46,8 +46,8 @@ probe scsi.ioentry
  * @lun: The lun number
  * @dev_id: The scsi device id
  * @device_state: The current state of the device.
- * @data_direction: The data_direction specifies whether this command is from/to
- *		the device. 0 (DMA_BIDIRECTIONAL), 1 (DMA_TO_DEVICE),
+ * @data_direction: The data_direction specifies whether this command is from/to the device.
+ *		0 (DMA_BIDIRECTIONAL), 1 (DMA_TO_DEVICE),
  *		2 (DMA_FROM_DEVICE), 3 (DMA_NONE)
  * @request_buffer: The request buffer address
  * @req_bufflen: The request buffer length
@@ -142,3 +142,4 @@ function get_devstate_from_req:long(var:long)
 	sdev = @cast(var, "request_queue", "kernel:scsi_mod")->queuedata
 	return @cast(sdev, "scsi_device", "kernel:scsi_mod")->sdev_state
 }
+g

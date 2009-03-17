@@ -120,7 +120,8 @@ function cpu:long () %{ /* pure */
 %}
 
 /**
- * sfunction pp - Return the probe point associated with the currently running probe handler, including alias and wildcard expansion effects
+ * sfunction pp - Return the probe point associated with the currently running probe handler,
+ * including alias and wildcard expansion effects
  * Context:
  * The current probe point. 
  */
@@ -217,7 +218,7 @@ function stack_used:long () %{ /* pure */
 %}
 
 /**
- * sfunction stack_unused - Returns the amount of kernel stack currently available
+ * sfunction stack_unused - Returns the amount of kernel stack currently available.
  *
  * Determines how many bytes are currently available in the kernel stack.
  */
