@@ -17,12 +17,12 @@
 
 /**
   * probe udp.sendmsg - Fires whenever a process sends a UDP message  
-  * @name: Name of this probe
-  * @sock: Network socket 
-  * @size: Number of bytes to send  
+  * @name: The name of this probe
+  * @sock: Network socket used by the process 
+  * @size: Number of bytes sent by the process
   *
   * Context:
-  *   The process which sends a udp message 
+  *   The process which sent a UDP message 
   */
 probe udp.sendmsg = kernel.function("udp_sendmsg") {
 	name = "udp.sendmsg"
@@ -32,11 +32,11 @@ probe udp.sendmsg = kernel.function("udp_sendmsg") {
 
 /**
   * probe udp.sendmsg.return - Fires whenever an attempt to send a UDP message is completed
-  * @name: Name of this probe
-  * @size: Number of bytes sent 
+  * @name: The name of this probe
+  * @size: Number of bytes sent by the process
   *
   * Context:
-  *   The process which sends a udp message
+  *   The process which sent a UDP message
   */
 probe udp.sendmsg.return = kernel.function("udp_sendmsg").return {
 	name = "udp.sendmsg"
@@ -45,12 +45,12 @@ probe udp.sendmsg.return = kernel.function("udp_sendmsg").return {
 
 /**
   * probe udp.recvmsg - Fires whenever a UDP message is received
-  * @name: Name of this probe
-  * @sock: Network socket
-  * @size: Number of bytes received  
+  * @name: The name of this probe
+  * @sock: Network socket used by the process
+  * @size: Number of bytes received by the process
   *
   * Context:
-  *  The process which receives a udp message
+  *  The process which received a UDP message
   */
 probe udp.recvmsg = kernel.function("udp_recvmsg") {
 	name = "udp.recvmsg"
@@ -59,12 +59,12 @@ probe udp.recvmsg = kernel.function("udp_recvmsg") {
 }
 
 /**
-  * probe udp.recvmsg.return - An attempt to receive a UDP message received has been completed
-  * @name: Name of this probe
-  * @size: Number of bytes received
+  * probe udp.recvmsg.return - Fires whenever an attempt to receive a UDP message received is completed
+  * @name: The name of this probe
+  * @size: Number of bytes received by the process
   *
   * Context:
-  *  The process which receives a udp message
+  *  The process which received a UDP message
   */
 probe udp.recvmsg.return = kernel.function("udp_recvmsg").return {
 	name = "udp.recvmsg"
@@ -72,13 +72,13 @@ probe udp.recvmsg.return = kernel.function("udp_recvmsg").return {
 }
 
 /**
-  * probe udp.disconnect - A process requests for UPD to be UDP disconnected 
-  * @name: Name of this probe
-  * @sock: Network socket 
+  * probe udp.disconnect - Fires when a process requests for a UDP disconnection
+  * @name: The name of this probe
+  * @sock: Network socket used by the process
   * @flags: Flags (e.g. FIN, etc)  
   *
   * Context:
-  *  The process which disconnects UDP 
+  *  The process which requests a UDP disconnection 
   */
 probe udp.disconnect = kernel.function("udp_disconnect") {
 	name = "udp.disconnect"
@@ -88,11 +88,11 @@ probe udp.disconnect = kernel.function("udp_disconnect") {
 
 /**
   * probe udp.disconnect.return - UDP has been disconnected successfully
-  * @name: Name of this probe
+  * @name: The name of this probe
   * @ret: Error code (0: no error) 
   *
   * Context:
-  *  The process which disconnects udp 
+  *  The process which requested a UDP disconnection
   */
 probe udp.disconnect.return = kernel.function("udp_disconnect").return {
 	name = "udp.disconnect"
