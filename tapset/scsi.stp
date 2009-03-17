@@ -47,8 +47,8 @@ probe scsi.ioentry
  * @dev_id: The scsi device id
  * @device_state: The current state of the device.
  * @data_direction: The data_direction specifies whether this command is from/to
- *            the device. 0 (DMA_BIDIRECTIONAL), 1 (DMA_TO_DEVICE),
- *	      2 (DMA_FROM_DEVICE), 3 (DMA_NONE)
+ *		the device. 0 (DMA_BIDIRECTIONAL), 1 (DMA_TO_DEVICE),
+ *		2 (DMA_FROM_DEVICE), 3 (DMA_NONE)
  * @request_buffer: The request buffer address
  * @req_bufflen: The request buffer length
  */
@@ -81,7 +81,7 @@ probe scsi.iodispatching
  * @dev_id: The scsi device id
  * @device_state: The current state of the device
  * @data_direction: The data_direction specifies whether this command is
- * 		    from/to the device.
+ * 		from/to the device.
  */
 probe scsi.iodone
 	= module("scsi_mod").function("scsi_done@drivers/scsi/scsi.c")?,
@@ -106,7 +106,7 @@ probe scsi.iodone
  * @dev_id: The scsi device id
  * @device_state: The current state of the device
  * @data_direction: The data_direction specifies whether this command is from/to
- *                  the device
+ * 		the device
  * @goodbytes: The bytes completed.
  */
 // mid-layer processes the completed IO
