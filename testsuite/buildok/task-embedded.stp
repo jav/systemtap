@@ -14,6 +14,8 @@ probe begin {
 		task_nice (0) +
 		task_cpu (0) +
 		task_open_file_handles (0) +
-		task_max_file_handles (0))
+		task_max_file_handles (0) +
+		pid2task(0))
 	print (task_execname (0))
+	print (pid2execname (0))
 }

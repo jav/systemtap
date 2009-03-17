@@ -4700,6 +4700,15 @@ dump_unwindsyms (Dwfl_Module *m,
 
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
+
+  // Get the canonical path of the main file for comparison at runtime.
+  // When given directly by the user through -d or in case of the kernel
+  // name and path might differ. path should be used for matching.
+  const char *mainfile;
+  dwfl_module_info (m, NULL, NULL, NULL, NULL, NULL, &mainfile, NULL);
+  mainfile = canonicalize_file_name(mainfile);
+  c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
+
   c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
 
   if (unwind != NULL)

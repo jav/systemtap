@@ -18,12 +18,13 @@
 %}
 // weirdness with print_stack, argument appears in build as undescribed
 /**
- * sfunction print_stack - Print out stack from string
+ * sfunction print_stack - Print out stack from string.
  * @stk: String with list of hexidecimal addresses. (FIXME)
  *
  *  Perform a symbolic lookup of the addresses in the given  string,
- *  which  is  assumed  to  be  the  result of a prior call to 
+ *  which is assumed to be the result of a prior call to 
  *  <command>backtrace()</command>.
+ * 
  *  Print one line per address, including the address, the
  *  name  of the function containing the address, and an estimate of
  *  its position within that function.  Return nothing.
@@ -40,9 +41,7 @@ function print_stack(stk:string) %{
 %}
 
 /**
- * sfunction probefunc - Function probed
- *
- * Return the probe point's function name, if known.
+ * sfunction probefunc - Return the probe point's function name, if known.
  */
 function probefunc:string () %{ /* pure */
 	char *ptr, *start;
@@ -76,9 +75,7 @@ function probefunc:string () %{ /* pure */
 %}
 
 /**
- * sfunction probemod - Module probed
- *
- *  Return the probe point's module name, if known.
+ * sfunction probemod - Return the probe point's module name, if known.
  */
 function probemod:string () %{ /* pure */
 	char *ptr, *start;

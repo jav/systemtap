@@ -23,7 +23,7 @@
 /**
  * sfunction print_backtrace - Print stack back trace
  *
- *  Equivalent to <command>print_stack(backtrace())</command>,
+ *  Equivalent to <command>print_stack(backtrace())</command>, 
  *  except that deeper stack nesting may be supported.  Return nothing.
  */
 function print_backtrace () %{
@@ -37,8 +37,8 @@ function print_backtrace () %{
 /**
  * sfunction backtrace - Hex backtrace of current stack
  *
- *  Return a string of hex addresses that are a backtrace of the
- *  stack.  It may be truncated due to maximum string length.
+ *  Return a string of hex addresses that are a backtrace of the 
+ *  stack.  Output may be truncated as per maximum string length.
  */
 function backtrace:string () %{ /* pure */
 	if (CONTEXT->regs)
@@ -50,7 +50,7 @@ function backtrace:string () %{ /* pure */
 /**
  * sfunction caller - Return name and address of calling function
  *
- *  Return the address and name of the calling function.
+ *  Return the address and name of the calling function. 
  *  <emphasis>Works only for return probes at this time.</emphasis>
  */
 function caller:string() %{ /* pure */
@@ -64,7 +64,7 @@ function caller:string() %{ /* pure */
 /**
  * sfunction caller_addr -  Return caller address
  *
- *  Return the address of the calling function.
+ *  Return the address of the calling function. 
  *  <emphasis> Works only for return probes at this time.</emphasis>
  */
 function caller_addr:long () %{ /* pure */

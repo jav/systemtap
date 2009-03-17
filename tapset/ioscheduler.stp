@@ -60,7 +60,7 @@ probe ioscheduler.elv_next_request.return
 }
 
 /**
- * probe ioscheduler.elv_add_request -A request was added to the request queue
+ * probe ioscheduler.elv_add_request - A request was added to the request queue
  * @elevator_name: The type of I/O elevator currently enabled
  * @req: Address of the request
  * @req_flags: Request flags
