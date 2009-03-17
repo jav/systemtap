@@ -44,7 +44,7 @@ done ;
 # create man page headers
 for i in `ls | grep -v .stp | grep -v tapsetdescription` ; do 
 #echo ".\" -*- nroff -*-" >> $i.template ;
-echo ".TH STAPPROBES.manpagename 5 @DATE@ "IBM"" >> $i.template ;
+echo ".TH STAPPROBES."$i" 5 @DATE@ "IBM"" >> $i.template ;
 echo ".SH NAME" >> $i.template ;
 echo "stapprobes."`cat $i.stp`" \- systemtap "`cat $i.stp`" probe points" >> $i.template ;
 echo " " >> $i.template ;
@@ -98,25 +98,27 @@ for i in `cat manpageus`; do
 # context.stp 
 perl -p -i -e 's|.B Description:/|\n.P\n.TP|g' $i.5 ; 
 perl -p -i -e 's|.B Description:|.B Description:\n\n |g' $i.5 ;
-cat $i.5 | perl -p -e 'undef $/;s|\.B Arguments:\n\n\.B |.B|msg' | 
+# convert tags
+perl -p -i -e 's|</[^>]*>([^.])|$1\n|g' $i.5 ;
+perl -p -i -e 's|<[^>]*>|\n.B |g' $i.5 ;
+cat $i.5 | 
+perl -p -e 'undef $/;s|\.B Arguments:\n\n\.B |.B|msg' |
+# for tagged commands followed by periods
+perl -p -e 'undef $/;s|\n\.B \.|.\n|msg' | 
 perl -p -e 'undef $/;s|\n \* | |msg' > stapprobes.$i.5.in ; 
 # cleanup all remaining stars, excess initial whitespace, and trailing "/" per line
 perl -p -i -e 's|^ \*||g' stapprobes.$i.5.in;
-perl -p -i -e 's|^ ||g' stapprobes.$i.5.in;
+perl -p -i -e 's|^[ ]*||g' stapprobes.$i.5.in;
 perl -p -i -e 's|^/||g' stapprobes.$i.5.in;
-# convert tags
-perl -p -i -e 's|</[^>]*>|\n|g' stapprobes.$i.5.in ;
-perl -p -i -e 's|<[^>]*>|\n.B |g' stapprobes.$i.5.in ;
 # cleanup remaining excess whitespace
 perl -p -i -e 's|\t\t| |g' stapprobes.$i.5.in;
 perl -p -i -e 's|^ ||g' stapprobes.$i.5.in;
-#sed -i -e 's/$/ /g' stapprobes.$i.5.in;
-#sed -i -e 's|$  | |g' stapprobes.$i.5.in;
+sed -i -e 's/  / /g' stapprobes.$i.5.in;
 done
 
 # file cleanup
 rm `ls | grep -v stapprobes`
-
+#mv workingdir final_manpages
 # perl -p -i -e 's|||g' stapprobes.$i.5.in ;
 
 # perl -p -i -e 's|||g' $i.manpagebody
