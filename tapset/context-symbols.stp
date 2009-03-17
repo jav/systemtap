@@ -18,7 +18,7 @@
 %}
 // weirdness with print_stack, argument appears in build as undescribed
 /**
- * sfunction print_stack - Print out stack from string
+ * sfunction print_stack - Print out stack from string.
  * @stk: String with list of hexidecimal addresses. (FIXME)
  *
  *  Perform a symbolic lookup of the addresses in the given  string,
