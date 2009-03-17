@@ -9770,8 +9770,13 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(1) << "return register_trace_" << p->tracepoint_name
                        << "(enter_tracepoint_probe_" << i << ");";
       s.op->newline(-1) << "}";
-      s.op->newline() << "static int unregister_tracepoint_probe_" << i << "(void) {";
-      s.op->newline(1) << "return unregister_trace_" << p->tracepoint_name
+
+      // NB: we're not prepared to deal with unreg failures.  However, failures
+      // can only occur if the tracepoint doesn't exist (yet?), or if we
+      // weren't even registered.  The former should be OKed by the initial
+      // registration call, and the latter is safe to ignore.
+      s.op->newline() << "static void unregister_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "(void) unregister_trace_" << p->tracepoint_name
                        << "(enter_tracepoint_probe_" << i << ");";
       s.op->newline(-1) << "}";
       s.op->newline();
@@ -9780,7 +9785,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
   // emit an array of registration functions for easy init/shutdown
   s.op->newline() << "static struct stap_tracepoint_probe {";
   s.op->newline(1) << "int (*reg)(void);";
-  s.op->newline(0) << "int (*unreg)(void);";
+  s.op->newline(0) << "void (*unreg)(void);";
   s.op->newline(-1) << "} stap_tracepoint_probes[] = {";
   s.op->indent(1);
   for (unsigned i = 0; i < probes.size(); ++i)

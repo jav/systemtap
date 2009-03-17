@@ -63,6 +63,30 @@ function task_pid:long (task:long)
 }
 
 
+// Return the task of the given process id
+function pid2task:long (pid:long) %{ /* pure */
+    struct task_struct *t = NULL;
+    pid_t t_pid  = (pid_t)(long)THIS->pid;
+    rcu_read_lock();
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
+      t = find_task_by_vpid (t_pid);
+#else
+      t = find_task_by_pid (t_pid);
+#endif
+    rcu_read_unlock();
+    THIS->__retvalue = (long)t;
+    CATCH_DEREF_FAULT();
+%}
+
+// Return the name of the given process id
+function pid2execname:string (pid:long) { 
+    tsk = pid2task(pid)
+    if (tsk)
+	return task_execname(tsk)
+    return ""
+}
+
+
 // Return the thread id of the given task
 function task_tid:long (task:long)
 {
