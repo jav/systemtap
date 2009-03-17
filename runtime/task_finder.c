@@ -72,7 +72,7 @@ static int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
 	  struct _stp_module *module = NULL;
 	  if (vm_path != NULL)
 	    for (i = 0; i < _stp_num_modules; i++)
-	      if (strcmp(vm_path, _stp_modules[i]->name) == 0)
+	      if (strcmp(vm_path, _stp_modules[i]->path) == 0)
 		{
 #ifdef DEBUG_TASK_FINDER_VMA
 		  _stp_dbug(__FUNCTION__, __LINE__,
