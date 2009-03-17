@@ -1,42 +1,42 @@
 // inet_sock information tapset 
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
+// Copyright (C) 2009 Red Hat, Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-%{
-#include <linux/version.h>
-#include <net/sock.h>
-#include <net/tcp.h>
-#include <net/ip.h>
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,11)
-#define LPORT   (inet->inet.num)
-#define DADDR   (&inet->inet.daddr)
-#else
-#define LPORT   (inet->num)
-#define DADDR   (&inet->daddr)
-#endif
-%}
-
-// Get local port number
+// Get local port number given a pointer to a kernel socket,
+// as for example kernel.function("tcp_accept").return will
+// return.
 function inet_get_local_port:long(sock:long)
-%{ /* pure */
-	struct inet_sock *inet = (struct inet_sock *) (long) THIS->sock;
-	THIS->__retvalue = kread(&(LPORT));
-	CATCH_DEREF_FAULT();
-%}
+{
+%(kernel_v < "2.6.11" %?
+  port = @cast(sock, "inet_sock", "kernel")->inet->num;
+%:
+  port = @cast(sock, "inet_sock", "kernel")->num;
+%)
+  return port;
+}
 
-// Get IP source address string
+// Get IP source address string given a pointer to a kernel socket.
 function inet_get_ip_source:string(sock:long)
+{
+%(kernel_v < "2.6.11" %?
+  daddr = @cast(sock, "inet_sock", "kernel")->inet->daddr;
+%:
+  daddr = @cast(sock, "inet_sock", "kernel")->daddr;
+%)
+  return daddr_to_string(daddr);
+}
+
+// Turns a daddr as found in an inet_sock into a dotted ip string.
+function daddr_to_string:string(daddr:long)
 %{ /* pure */
-	struct inet_sock *inet = (struct inet_sock *) (long) THIS->sock;
 	union { __u32 d; unsigned char addr[4]; } u;
-	u.d = kread(DADDR);
+	u.d = THIS->daddr;
 	sprintf(THIS->__retvalue, "%d.%d.%d.%d",
 			u.addr[0], u.addr[1], u.addr[2], u.addr[3]);
-	CATCH_DEREF_FAULT();
 %}

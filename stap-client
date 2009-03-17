@@ -1020,7 +1020,7 @@ function terminate {
     kill -s SIGTERM '%?staprun' 2>/dev/null
 
     # Kill any stap-client-connect job
-    kill -s SIGTERM '%${exec_prefix}stap-client-connect'
+    kill -s SIGTERM '%${exec_prefix}stap-client-connect' 2>/dev/null
 
     exit 1
 }
@@ -1037,7 +1037,7 @@ function interrupt {
 
     # Kill any stap-client-connect job
     # SIGINT won't do it.
-    kill -s SIGTERM '%${exec_prefix}stap-client-connect'
+    kill -s SIGTERM '%${exec_prefix}stap-client-connect' 2>/dev/null
 
     # If staprun was not running, then exit.
     cleanup

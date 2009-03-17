@@ -1,26 +1,21 @@
-#!/usr/bin/python
+#! /bin/sh
 
-import sys
-import time 
-import subprocess
+run(){
+  echo "== $1 =="
+  sh -c "$@"
+}
 
-ofile = sys.stdout
-
-def run(command):
-  ofile.write("== " + command + " ==\n")
-  ofile.flush()
-  p = subprocess.Popen(command, shell=True, stdout=ofile, stderr=ofile)
-  p.wait()
-  ofile.write("\n") 
-
-if __name__ == "__main__":
-  run("stap -V")
-  run("which stap")
-  run("ls -ald `locate -r '/stap$'` `locate -r '/staprun$'`")
-  run("printenv | egrep '^PATH=|^LD_LIBRARY_PATH=|^SYSTEMTAP_.*='")
-  run("gcc -v")
-  run("uname -a")
-  run("dmesg | egrep 'stap|systemtap' | tail -n 10")
-  run("cat /proc/cpuinfo | egrep 'processor|vendor_id|model name'")
-  run(r"rpm -qa --qf %{name}-%{version}-%{release}.%{arch}\\n | egrep 'systemtap|elfutils|kernel|gcc' | sort")
-  run(r"egrep 'PROBE|TRACE|MARKER|_DEBUG_' /lib/modules/`uname -r`/build/.config | grep -v not.set | sort | fmt -w 80")
+run "stap -V"
+run "which stap"
+run "locate --regex '/stap(run)?$' | xargs ls -ald"
+run "printenv | egrep '^PATH=|^LD_LIBRARY_PATH=|^SYSTEMTAP_.*='"
+run "gcc -v"
+run "uname -a"
+run "dmesg | egrep 'stap|systemtap' | tail -n 10"
+run "cat /proc/cpuinfo | egrep 'processor|vendor_id|model name'"
+if [ -x /usr/bin/dpkg ]; then
+  run "dpkg --list | egrep 'systemtap|elfutils|kernel|gcc' | awk '{print \$2,\$3}' | sort"
+else
+  run "rpm -qa --qf '%{name}-%{version} %{release}.%{arch}\\n' | egrep 'systemtap|elfutils|kernel|gcc' | sort"
+fi
+run "egrep 'PROBE|TRACE|MARKER|_DEBUG_' /lib/modules/`uname -r`/build/.config | grep -v not.set | sort | fmt -w 80"

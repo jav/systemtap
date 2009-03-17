@@ -25,6 +25,7 @@ struct _stp_section {
 
 struct _stp_module {
         const char* name;
+        const char* path; /* canonical path used for runtime matching. */
 	struct _stp_section *sections;
   	unsigned num_sections;
 

@@ -186,37 +186,34 @@
  */
 
 #define kread(ptr) ({ \
-        typeof(*(ptr)) _v; \
-        if (probe_kernel_read((void *)&_v, (void *)(ptr), sizeof(*(ptr)))) \
-            DEREF_FAULT(ptr); \
+        typeof(*(ptr)) _v = 0; \
+        if (lookup_bad_addr((unsigned long)(ptr)) || \
+            probe_kernel_read((void *)&_v, (void *)(ptr), sizeof(*(ptr)))) \
+          DEREF_FAULT(ptr); \
         _v; \
     })
 
 #define kwrite(ptr, value) ({ \
         typeof(*(ptr)) _v; \
         _v = (typeof(*(ptr)))(value); \
-        if (probe_kernel_write((void *)(ptr), (void *)&_v, sizeof(*(ptr)))) \
-            STORE_DEREF_FAULT(ptr); \
+        if (lookup_bad_addr((unsigned long)addr) || \
+            probe_kernel_write((void *)(ptr), (void *)&_v, sizeof(*(ptr)))) \
+          STORE_DEREF_FAULT(ptr); \
     })
 
 #define deref(size, addr) ({ \
-    intptr_t _i; \
-    if (lookup_bad_addr((unsigned long)addr)) \
-      __deref_bad(); \
+    intptr_t _i = 0; \
     switch (size) { \
       case 1: _i = kread((u8 *)(addr)); break; \
       case 2: _i = kread((u16 *)(addr)); break; \
       case 4: _i = kread((u32 *)(addr)); break; \
       case 8: _i = kread((u64 *)(addr)); break; \
       default: __deref_bad(); \
-      /* uninitialized _i should also be caught by -Werror */ \
     } \
     _i; \
   })
 
 #define store_deref(size, addr, value) ({ \
-    if (lookup_bad_addr((unsigned long)addr)) \
-      __store_deref_bad(); \
     switch (size) { \
       case 1: kwrite((u8 *)(addr), (value)); break; \
       case 2: kwrite((u16 *)(addr), (value)); break; \
@@ -237,7 +234,7 @@ extern void __store_deref_bad(void);
   ({									      \
     int _bad = 0;							      \
     u8 _b; u16 _w; u32 _l;	                                              \
-    intptr_t _v;							      \
+    intptr_t _v = 0;							      \
     if (lookup_bad_addr((unsigned long)addr))                                 \
       _bad = 1;                                                               \
     else                                                                      \
@@ -277,7 +274,7 @@ extern void __store_deref_bad(void);
   ({									      \
     int _bad = 0;							      \
     u8 _b; u16 _w; u32 _l; u64 _q;					      \
-    intptr_t _v;							      \
+    intptr_t _v = 0;							      \
     if (lookup_bad_addr((unsigned long)addr))                                 \
       _bad = 1;                                                               \
     else                                                                      \
@@ -394,7 +391,7 @@ extern void __store_deref_bad(void);
 #define deref(size, addr)						      \
   ({									      \
     int _bad = 0;							      \
-    intptr_t _v;							      \
+    intptr_t _v = 0;							      \
     if (lookup_bad_addr((unsigned long)addr))                                 \
       _bad = 1;                                                               \
     else                                                                      \

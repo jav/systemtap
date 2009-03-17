@@ -1,0 +1,22 @@
+# overflow some stuff to see if error message point to the correct thing.
+global count;
+global overflow1[3];
+global overflow2[5];
+
+probe timer.ms(10)
+{
+  if (count <= 3)
+    {
+      overflow1[count++] = gettimeofday_ns();
+    }
+  else
+    {
+      overflow2[count++] <<< gettimeofday_ns();
+    }
+}
+
+probe timer.s(3)
+{
+  exit();
+}
+

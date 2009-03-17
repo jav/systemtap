@@ -1,0 +1,296 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<chapter id="Tapset_Dev_Guide">
+	<title>Tapset Development Guidelines</title>
+
+<para>
+	This chapter describes the upstream guidelines on proper tapset documentation. It also contains
+	information on how to properly document your tapsets, to ensure that they are properly 
+	defined in this guide.
+</para>
+	
+	<section id="Tapsetcontents">
+		<title>Writing Good Tapsets</title>
+		
+<para>
+	The first step to writing good tapsets is  to create a simple model of your subject area.  For
+	example, a model of the process subsystem might include the following:
+</para>
+
+<formalpara>
+	<title>Key Data</title>
+	<para>
+		<itemizedlist>
+			<listitem><para>process ID</para></listitem>
+			<listitem><para>parent process ID</para></listitem>
+			<listitem><para>process group ID</para></listitem>
+		</itemizedlist>
+	</para>
+</formalpara>
+
+<formalpara>
+	<title>State Transitions</title>
+	<para>
+		<itemizedlist>
+			<listitem><para>forked</para></listitem>
+			<listitem><para>exec'd</para></listitem>
+			<listitem><para>running</para></listitem>
+			<listitem><para>stopped</para></listitem>
+			<listitem><para>terminated</para></listitem>
+		</itemizedlist>
+	</para>
+</formalpara>
+			
+<note>
+	<title>Note</title>
+	<para>Both lists are examples, and are not meant to represent a complete list.</para>
+</note>
+
+<para>
+	Use your subsystem expertise to find probe points (function entries and
+	exits) that expose the elements of the model, then define probe aliases
+	for those points.  Be aware that some state transitions can occur in more
+	than one place. In those cases, an alias can place a probe in multiple
+	locations.
+</para>
+
+<para>
+	For example, process execs can occur in either the <command>do_execve()</command> or the
+	<command>compat_do_execve()</command> functions. The following alias inserts probes at the
+	beginning of those functions:
+</para>
+
+<para>
+<programlisting>
+probe process.exec = kernel.function("do_execve"),
+kernel.function("compat_do_execve") 
+{<replaceable>probe body</replaceable>}
+</programlisting>		
+</para>
+
+<para>
+	Try to place probes on stable interfaces (i.e., functions
+	that are unlikely to change at the interface level) whenever possible.  This will
+	make the tapset less likely to break due to kernel changes. Where
+	kernel version or architecture dependencies are unavoidable, use
+	preprocessor conditionals (see the <command>stap(1)</command> man page for details).
+</para>
+
+
+<para>
+	Fill in the probe bodies with the key data available at the probe points.
+	Function entry probes can access the entry parameters specified to
+	the function, while exit probes can access the entry parameters and the
+	return value.  Convert the data into meaningful forms where appropriate
+	(e.g., bytes to kilobytes, state values to strings, etc).
+</para>
+
+<para>
+	You may need to use auxiliary functions to access or convert some of the data. Auxiliary
+	functions often use embedded C to do things that cannot be done in the
+	SystemTap language, like access structure fields in some contexts, follow
+	linked lists, etc. You can use auxiliary functions defined in other tapsets
+	or write your own.
+</para>
+
+<para>
+	In the following example, <command>copy_process()</command> returns a 
+	pointer to the <command>task_struct</command> for the new process.  Note 
+	that the process ID of the new process is retrieved by calling 
+	<command>task_pid()</command> and passing it the <command>task_struct</command>
+	pointer. In this case, the auxiliary function is an embedded C function
+	defined in <filename>task.stp</filename>.
+</para>
+
+<para>
+<programlisting>
+probe process.create = kernel.function("copy_process").return 
+{
+   task = $return
+   new_pid = task_pid(task)
+}
+</programlisting>
+</para>
+
+<para>
+	It is not advisable to write probes for every function. Most SystemTap users
+	will not need or understand them. Keep your tapsets simple and high-level.
+</para>
+
+<remark>info from here:http://sources.redhat.com/git/?p=systemtap.git;a=blob_plain;f=tapset/DEVGUIDE</remark>
+
+	</section>
+	
+<section id="Tapsetelements">
+	<title>Elements of a Tapset</title>
+		
+	<para>
+		The following sections describe the most important aspects of writing a tapset. Most of
+		the content herein is suitable for developers who wish to contribute to 
+		SystemTap's upstream library of tapsets.
+	</para>
+	
+<section id="Tapsetelements-tapsetfiles">
+	<title>Tapset Files</title>
+	
+	<para>
+		Tapset files are stored in <filename><replaceable>src</replaceable>/tapset/</filename> 
+		of the SystemTap GIT directory. Most tapset files are kept at that level. If you have
+		code that only works with a specific architecture or kernel version, you may 
+		choose to put your tapset in the appropriate subdirectory.
+	</para>
+	
+	<para>
+		Installed tapsets are located in <filename>/usr/share/systemtap/tapset/</filename>
+		or <filename>/usr/local/share/systemtap/tapset</filename>.
+	</para>
+	
+	<para>
+		Personal tapsets can be stored anywhere. However, to ensure that SystemTap
+		can use them, use <command>-I <replaceable>tapset_directory</replaceable></command> 
+		to specify their location when invoking <command>stap</command>.
+	</para>
+</section>	
+	
+<section id="Tapsetelements-namespace">
+	<title>Namespace</title>
+	
+	
+	<para>
+		Probe alias names should take the form
+		<command><replaceable>tapset_name.probe_name</replaceable></command>.
+		For example, the probe for sending a signal could be named 
+		<command>signal.send</command>.
+	</para>
+	
+	<para>
+		Global symbol names (probes, functions, and variables) should be unique
+		accross all tapsets. This helps avoid namespace collisions in scripts
+		that use multiple tapsets. To ensure this, use tapset-specific 
+		prefixes in your global symbols.
+	</para>
+	
+	<para>
+		Internal symbol names should be prefixed with an underscore 
+		(<command>_</command>).
+	</para>
+</section>	
+
+<section id="Tapsetelements-docscomments">
+	<title>Comments and Documentation</title>
+	
+	<para>
+		All probes and functions should include comment blocks that describe
+		their purpose, the data they provide, and the context in which they run 
+		(e.g. interrupt, process, etc). Use comments in areas where your intent may not
+		be clear from reading the code. 
+	</para>
+	
+	<para>
+		Note that specially-formatted comments are automatically extracted from most 
+		tapsets and included in this guide. This helps ensure that tapset contributors
+		can write their tapset <emphasis>and</emphasis> document it in the same place.
+		The specified format for documenting tapsets is as follows:
+	</para>
+	
+<para>
+<programlisting>
+/**
+ * probe tapset.name - Short summary of what the tapset does.
+ * @argument: Explanation of argument.
+ * @argument2: Explanation of argument2. Probes can have multiple arguments.
+ *
+ * Context:
+ * A brief explanation of the tapset context. 
+ * Note that the context should only be 1 paragraph short.
+ *
+ * Text that will appear under "Description."
+ *
+ * A new paragraph that will also appear under the heading "Description".
+ *
+ * Header:
+ * A paragraph that will appear under the heading "Header".
+ **/
+</programlisting>
+</para>
+
+<para>For example:</para>
+
+<para>
+<programlisting>
+/**
+ * probe vm.write_shared_copy- Page copy for shared page write.
+ * @address: The address of the shared write.
+ * @zero: Boolean indicating whether it is a zero page
+ *         (can do a clear instead of a copy).
+ *
+ * Context:
+ *  The process attempting the write.
+ *
+ *  Fires when a write to a shared page requires a page copy.  This is
+ *  always preceded by a <command>vm.shared_write</command>.
+ **/
+</programlisting>
+</para>
+
+<para>To override the automatically-generated <command>Synopsis</command> content, use:</para>
+	
+<para>
+<programlisting>
+ * Synopsis:
+ * <replaceable>New Synopsis string</replaceable>
+ *
+</programlisting>
+</para>
+
+<para>For example:</para>
+
+<para>
+<programlisting>
+/**
+ * probe signal.handle - Fires when the signal handler is invoked
+ * @sig: The signal number that invoked the signal handler
+ *
+ * Synopsis:
+ * &lt;programlisting>static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+ * sigset_t *oldset, struct pt_regs * regs)&lt;/programlisting>
+ */
+</programlisting>
+</para>
+
+<para>
+	It is recommended that you use the <command>&lt;programlisting&gt;</command> tag in 
+	this instance, since overriding the <command>Synopsis</command> content of an entry
+	does not automatically form the necessary tags.
+</para>
+
+<para>
+	For the purposes of improving the DocBook XML output of your comments, you can also
+	use the following XML tags in your comments:
+</para>
+
+<itemizedlist>
+	<listitem><para><command>command</command></para></listitem>
+	<listitem><para><command>emphasis</command></para></listitem>
+	<listitem><para><command>programlisting</command></para></listitem>
+	<listitem><para><command>remark</command> (tagged strings will appear in Publican beta
+			builds of the document)</para></listitem>
+</itemizedlist>
+
+
+</section>
+	
+</section>	
+	
+<!--	
+<section id="Tapset_Reference_Guide-Test-Section_2_Test">
+	<title>Section 2 Test</title>
+	<para>
+		Test of a section
+	</para>
+</section>
+-->
+</chapter>
+

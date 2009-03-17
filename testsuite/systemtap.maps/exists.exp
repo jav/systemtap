@@ -9,8 +9,7 @@ comlete list for b: [0,0] [1,10] [2,20] [3,30] [4,40] [5,50] [6,60] [7,70] [8,80
 [0,0] is still there
 emtpy string there
 hello there
-emtpy string still there
-}
+emtpy string still there}
 
 stap_run2 $srcdir/$subdir/$test.stp
 

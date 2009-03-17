@@ -1,4 +1,3 @@
 set test "memory1"
-set ::result_string {Test passed
-}
+set ::result_string {Test passed}
 stap_run2 $srcdir/$subdir/$test.stp

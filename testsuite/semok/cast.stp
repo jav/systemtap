@@ -1,0 +1,13 @@
+#! stap -p2
+
+probe begin {
+    // basic @cast test, with and without specifying kernel
+    println(@cast(0, "task_struct")->tgid)
+    println(@cast(0, "task_struct", "kernel")->tgid)
+
+    // check module-search paths
+    println(@cast(0, "task_struct", "foo:kernel:bar")->tgid)
+
+    // would be nice to test usermode @cast too,
+    // but who knows what debuginfo is installed...
+}

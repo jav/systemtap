@@ -37,7 +37,7 @@ proc print_systemtap_version {} {
 
 
 proc setup_systemtap_environment {} {
-    global srcdir prefix env server_pid net_path
+    global srcdir env
 
     # need an absolute SRCDIR for the top-level src/ tree
     # XXX: or, we could change nearby uses of ${SRCDIR}/testsuite to ${SRCDIR}
@@ -53,40 +53,9 @@ proc setup_systemtap_environment {} {
 
     # Find or start a systemtap server, if requested.
     if {[use_server_p]} then {
-	print "Testing using a systemtap server"
-
-	# A place for some temporary files and scripts.
-	set net_path [exec pwd]/net
-	exec /bin/mkdir -p $net_path
-
-	# Server management scripts and data are installed if this is an
-	# install test, otherwise there is some setup to do.
-	if {! [installtest_p]} then {
-	    # Make sure the server management scripts and tools are on the $PATH.
-	    set env(PATH) "$srcdir/..:[exec pwd]/..:$env(PATH)"
+	if {! [setup_server]} then {
+	    return 0
 	}
-
-	# Try to find or start the server.
-	set server_pid [exec stap-find-or-start-server]
-	if { "$server_pid" == "-1" } then {
-	    print "Cannot find or start a systemtap server"
-	    set server_pid 0
-	    # TODO: How do we abort here?
-	} elseif { "$server_pid" == "0" } then {
-	    print "A compatible systemtap server is already available"
-	} else {
-	    print "Started a systemtap server as PID==$server_pid"
-	}
-
-	# Make a copy of 'stap-client' as 'stap' and make sure it's at the
-	# beginning of the $PATH. Do this after starting the server so that
-	# The server does not call this instance of 'stap'
-	if {[installtest_p]} then {
-	    exec /bin/cp -p [exec which stap-client] $net_path/stap
-	} else {
-	    exec /bin/cp -p $srcdir/../stap-client $net_path/stap
-	}
-	set env(PATH) "$net_path:$env(PATH)"
     }
 
     # PATH, SYSTEMTAP_TAPSET, SYSTEMTAP_RUNTIME, LD_LIBRARY_PATH are already set.
@@ -95,6 +64,78 @@ proc setup_systemtap_environment {} {
             verbose -log "env $var = $env($var)"
         }
     }
+
+    return 1
+}
+
+# Set up the environment so that tests will be performed using the systemtap
+# client and server.
+proc setup_server {} {
+    global srcdir env server_pid net_path
+
+    # Make sure that the necessary resources are available to run the client/server.
+    if {[installtest_p]} then {
+	if {[exec /usr/bin/which stap-client-connect] == ""} then {
+	    print "Unable to start a server: stap-client-connect is not found in PATH"
+	    return 0
+	}
+    } elseif {! [file exists [exec pwd]/../stap-client-connect]} then {
+	print "Unable to start a server: [exec pwd]/../stap-client-connect is not found"
+	return 0
+    }
+    if {[exec /usr/bin/which avahi-publish-service] == ""} then {
+	print "Unable to start a server: avahi-publish-service is not found in PATH"
+	return 0
+    }
+
+    print "Testing using a systemtap server"
+
+    # A place for some temporary files and scripts.
+    set net_path [exec pwd]/net
+    exec /bin/mkdir -p $net_path
+
+    # Server management scripts and data are installed if this is an
+    # install test, otherwise there is some setup to do.
+    if {! [installtest_p]} then {
+	# Make sure the server management scripts and tools are on the $PATH.
+	set env(PATH) "$srcdir/..:[exec pwd]/..:$env(PATH)"
+    }
+
+    # Try to find or start the server.
+    set server_pid [exec stap-find-or-start-server]
+    if { "$server_pid" == "-1" } then {
+	print "Cannot find or start a systemtap server"
+	set server_pid 0
+	return 0
+    } elseif { "$server_pid" == "0" } then {
+	print "A compatible systemtap server is already available"
+    } else {
+	print "Started a systemtap server as PID==$server_pid"
+    }
+
+    # Make a copy of 'stap-client' as 'stap' and make sure it's at the
+    # beginning of the $PATH. Do this after starting the server so that
+    # The server does not call this instance of 'stap'
+    if {[installtest_p]} then {
+	exec /bin/cp -p [exec which stap-client] $net_path/stap
+    } else {
+	exec /bin/cp -p $srcdir/../stap-client $net_path/stap
+    }
+    set env(PATH) "$net_path:$env(PATH)"
+
+    return 1
+}
+
+proc shutdown_server {} {
+    global server_pid net_path
+
+    if { $server_pid != 0 } then {
+	print "Stopping the systemtap server with PID==$server_pid"
+	exec stap-stop-server $server_pid
+    }
+
+    # Remove the temporary stap script
+    exec /bin/rm -fr $net_path
 }
 
 proc get_system_info {} {
@@ -116,7 +157,10 @@ proc get_system_info {} {
     if [file exists /etc/debian_version] {set Distro [exec /bin/cat /etc/debian_version]}
 }
 
-setup_systemtap_environment
+if {! [setup_systemtap_environment]} then {
+    return 0
+}
+
 print_systemtap_version
 get_system_info
 
@@ -124,17 +168,9 @@ proc systemtap_init {args} {}
 proc systemtap_version {} {}
 
 proc systemtap_exit {} {
-    global server_pid net_path
-
     # Stop the stap server, if we started it.
     if {[use_server_p]} then {
-	if { $server_pid != 0 } then {
-	    print "Stopping the systemtap server with PID==$server_pid"
-	    exec stap-stop-server $server_pid
-	}
-
-	# Remove the temporary stap script
-	exec /bin/rm -fr $net_path
+	shutdown_server
     }
 }
 

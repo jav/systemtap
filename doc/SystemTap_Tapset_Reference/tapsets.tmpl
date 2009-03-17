@@ -51,9 +51,9 @@
    </para>
   </legalnotice>
  </bookinfo>
-
+<!-- pls dont remove marker comments, as they are used in publican conversion-->
 <toc></toc>
-
+<!--starthere-->
 <chapter id="introduction">
   <title>Introduction</title>
   <para>
@@ -98,7 +98,6 @@
 	the kernel.  This is common among asynchronous events such as timers,
 	exit functions, and print functions.
       </para>
-
 <!--
 <varlistentry>
 <term></term>
@@ -111,13 +110,15 @@
     </section>
   
   </chapter>
-
+<!--endhere-->
+<!--markerforxi-->
+<!-- pls dont remove marker comments, as they are used in publican conversion-->
   <chapter id="context_stp">
     <title>Context Functions</title>
     <para>
-      The context functions provide additional information about the where
-      the event occurred.
-      These functions can provide information such as a backtrace
+      The context functions provide additional information about where
+      an event occurred.
+      These functions can provide information such as a backtrace to 
       where the event occured
       and the current register values for the processor.
     </para>
@@ -130,23 +131,27 @@
     <title>Timestamp Functions</title>
     <para>
       Each timestamp function returns a value to indicate when
-      the function is executed.
-      Thus, these returned values can be used to indicate
-      when an event occurs, provide an ordering for events, or compute
-      the amount of time elapsed between to time stamps.
+      a function is executed.
+      These returned values can then be used to indicate
+      when an event occurred, provide an ordering for events, or compute
+      the amount of time elapsed between two time stamps.
     </para>
 !Itapset/timestamp.stp
   </chapter>
 
   <chapter id="memory_stp">
     <title>Memory Tapset</title>
+ <para>
+      This family of probe points is used to probe memory-related events.
+      It contains the following probe points:
+    </para>
 !Itapset/memory.stp
   </chapter>
 
   <chapter id="iosched.stp">
     <title>IO Scheduler Tapset</title>
     <para>
-      This family of probe points is used to probe the IO scheduler activities.
+      This family of probe points is used to probe IO scheduler activities.
       It contains the following probe points:
     </para>
 !Itapset/ioscheduler.stp
@@ -155,7 +160,7 @@
   <chapter id="scsi.stp">
     <title>SCSI Tapset</title>
     <para>
-      This family of probe points is used to probe the SCSI activities.  
+      This family of probe points is used to probe SCSI activities.  
       It contains the following probe points:
     </para>
 !Itapset/scsi.stp
@@ -165,9 +170,11 @@
     <title>Networking Tapset</title>
     <para>
       This family of probe points is used to probe the activities of
-      network device. 
+      the network device, TCP layer, and UDP layer. 
     </para>
 !Itapset/networking.stp
+!Itapset/tcp.stp
+!Itapset/udp.stp
   </chapter>
 
   <chapter id="socket.stp">
@@ -178,14 +185,14 @@
    </para>
 !Itapset/socket.stp
   </chapter>
-
+<!--
   <chapter id="tcp.stp">
     <title>TCP Tapset</title>
     <para>
       This family of probe points is used to probe TCP layer activities.
       It contains the following probe points:
     </para>
-!Itapset/tcp.stp
+
   </chapter>
 
   <chapter id="upd.stp">
@@ -194,13 +201,13 @@
       This family of probe points is used to probe UDP layer activities.
       It contains the following probe points:
     </para>
-!Itapset/udp.stp
-  </chapter>
 
+  </chapter>
+-->
   <chapter id="process.stp">
     <title>Process Tapset</title>
     <para>
-      This family of probe points is used to probe the process activities.
+      This family of probe points is used to probe process-related activities.
       It contains the following probe points:
     </para>
 !Itapset/process.stp

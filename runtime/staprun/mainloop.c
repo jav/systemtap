@@ -477,6 +477,14 @@ int stp_main_loop(void)
         cleanup_and_exit(0);
         break;
       }
+    case STP_REQUEST_EXIT:
+      {
+        /* module asks us to start exiting, so send STP_EXIT */
+        dbug(2, "got STP_REQUEST_EXIT\n");
+        int32_t rc, btype = STP_EXIT;
+        rc = write(control_channel, &btype, sizeof(btype));
+        break;
+      }
     case STP_START:
       {
         struct _stp_msg_start *t = (struct _stp_msg_start *)data;

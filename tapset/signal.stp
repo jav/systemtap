@@ -8,16 +8,17 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 //
-//   Note : Since there are so many signals sent to processes at any give
-//          point, it's better to filter the information according to the
-//          requirements.  For example, filter only for a particular signal
-//          (if sig==2) or filter only for a particular process
-//          (if pid_name==stap).
 //
-
+// <tapsetdescription>
+//  This family of probe points is used to probe signal activities.
+//  Since there are so many signals sent to processes at any given
+//  point, it is advisable to filter the information according to the
+//  requirements.  For example, filter only for a particular signal
+//  (if sig==2) or for a particular process (if pid_name==stap).
+// </tapsetdescription>
 
 /** 
- * probe signal.send- Fires when a system call or kernel function sends a signal to a process.
+ * probe signal.send - Signal being sent to a process
  * Arguments:
  * @sig: The number of the signal
  * @sig_name: A string representation of the signal
@@ -27,7 +28,8 @@
  * @task: A task handle to the signal recipient
  * @sinfo: The address of <command>siginfo</command> struct
  * @shared: Indicates whether the signal is shared by the thread group
- * @send2queue- Indicates whether the signal is sent to an existing <command>sigqueue</command>
+ * @send2queue: Indicates whether the signal is sent to an existing
+ * <command>sigqueue</command>
  * @name: The name of the function used to send out the signal
  * 
  * Context:
@@ -114,14 +116,14 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
 }
 
 /**
- * probe signal.send.return - Fires when a signal sent to a process returns.
+ * probe signal.send.return - Signal being sent to a process completed
  * @retstr: The return value to either <command>__group_send_sig_info</command>,
- * <command>specific_send_sig_info</command>, or <command>send_sigqueue</command>. 
- * Refer to the Description of this probe for more information about the return 
- * values of each function call. 
+ * <command>specific_send_sig_info</command>,
+ * or <command>send_sigqueue</command>
  * @shared: Indicates whether the sent signal is shared by the thread group.
- * @send2queue: Indicates whether the sent signal was sent to an existing <command>sigqueue</command>
- * @name: The name of the function used to send out the signal.
+ * @send2queue: Indicates whether the sent signal was sent to an
+ * existing <command>sigqueue</command>
+ * @name: The name of the function used to send out the signal
  * 
  * Context:
  * The signal's sender. <remark>(correct?)</remark>
@@ -129,24 +131,24 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  * Possible <command>__group_send_sig_info</command> and 
  * <command>specific_send_sig_info</command> return values are as follows;
  *
- * <command>0</command> - The signal is sucessfully sent to a process,
+ * <command>0</command> -- The signal is sucessfully sent to a process,
  * which means that
  * <1> the signal was ignored by the receiving process,
  * <2> this is a non-RT signal and the system already has one queued, and
  * <3> the signal was successfully added to the <command>sigqueue</command> of the receiving process.
  *
- * <command>-EAGAIN</command> - The <command>sigqueue</command> of the receiving process is 
+ * <command>-EAGAIN</command> -- The <command>sigqueue</command> of the receiving process is 
  * overflowing, the signal was RT, and the signal was sent by a user using something other 
  * than <command>kill()</command> 
  * 
  * Possible <command>send_group_sigqueue</command> and 
  * <command>send_sigqueue</command> return values are as follows;
  * 
- * <command>0</command> - The signal was either sucessfully added into the
+ * <command>0</command> -- The signal was either sucessfully added into the
  * <command>sigqueue</command> of the receiving process, or a <command>SI_TIMER</command> entry is already
  * queued (in which case, the overrun count will be simply incremented).
  *
- * <command>1</command> - The signal was ignored by the receiving process.
+ * <command>1</command> -- The signal was ignored by the receiving process.
  *
  *
  * <command>-1</command> - (<command>send_sigqueue</command> only) The task was marked
@@ -232,7 +234,7 @@ probe _signal.send.part3.return = kernel.function("send_sigqueue").return
 }
 
 /**
- * probe signal.checkperm - Fires when a permission check is performed on a sent signal
+ * probe signal.checkperm - Check being performed on a sent signal
  * @sig: The number of the signal
  * @sig_name: A string representation of the signal
  * @sig_pid: The PID of the process receiving the signal
@@ -240,7 +242,8 @@ probe _signal.send.part3.return = kernel.function("send_sigqueue").return
  * @si_code: Indicates the signal type
  * @task: A task handle to the signal recipient
  * @sinfo: The address of the <command>siginfo</command> structure
- * @name: Name of the probe point; default value is <command>signal.checkperm</command>
+ * @name: Name of the probe point; default value is
+ * <command>signal.checkperm</command>
  */
 probe signal.checkperm = kernel.function("check_kill_permission")
 {
@@ -261,6 +264,12 @@ probe signal.checkperm = kernel.function("check_kill_permission")
         si_code="SI_USER or SI_TIMER or SI_ASYNCIO"
 }
 
+/**
+ * probe signal.checkperm.return - Check performed on a sent signal completed
+ * @name: Name of the probe point; default value is
+ * <command>signal.checkperm</command>
+ * @retstr: Return value as a string
+ */
 probe signal.checkperm.return = kernel.function("check_kill_permission").return
 {
     name = "signal.checkperm"
@@ -269,15 +278,15 @@ probe signal.checkperm.return = kernel.function("check_kill_permission").return
 
 
 /**
- * probe signal.wakeup - Wakes up a sleeping process, making it ready for new active signals
- * @sig_pid: The PID of the process you wish to wake
- * @pid_name: Name of the process you wish to wake
- * @resume: Indicates whether to wake up a task in a <command>STOPPED</command> or
- * <command>TRACED</command> state
+ * probe signal.wakeup - Sleeping process being wakened for signal
+ * @sig_pid: The PID of the process to wake
+ * @pid_name: Name of the process to wake
+ * @resume: Indicates whether to wake up a task in a
+ * <command>STOPPED</command> or <command>TRACED</command> state
  * @state_mask: A string representation indicating the mask
- * of task states you wish to wake. Possible values are <command>TASK_INTERRUPTIBLE</command>, 
- * <command>TASK_STOPPED</command>, <command>TASK_TRACED</command>, 
- * and <command>TASK_INTERRUPTIBLE</command>.
+ * of task states to wake. Possible values are
+ * <command>TASK_INTERRUPTIBLE</command>, <command>TASK_STOPPED</command>,
+ * <command>TASK_TRACED</command>, and <command>TASK_INTERRUPTIBLE</command>.
  */
 probe signal.wakeup = kernel.function("signal_wake_up")
 {
@@ -293,8 +302,7 @@ probe signal.wakeup = kernel.function("signal_wake_up")
 
 
 /**
- * probe signal.check_ignored - Fires when a system call or kernel function checks whether a 
- * signal was ignored or not
+ * probe signal.check_ignored - Checking to see signal is ignored
  * @sig_pid: The PID of the process receiving the signal 
  * @pid_name: Name of the process receiving the signal
  * @sig: The number of the signal
@@ -308,6 +316,12 @@ probe signal.check_ignored = kernel.function("sig_ignored")
     sig_name = _signal_name($sig)
 }
 
+/**
+ * probe signal.check_ignored.return - Check to see signal is ignored completed
+ * @name: Name of the probe point; default value is
+ * <command>signal.checkperm</command>
+ * @retstr: Return value as a string
+ */
 probe signal.check_ignored.return = kernel.function("sig_ignored").return ?
 {
     name = "sig_ignored"
@@ -333,8 +347,7 @@ probe signal.handle_stop = kernel.function("handle_stop_signal")
 
 
 /**
- * probe signal.force_segv - Fires when a system call, kernel function, or process sent a 
- * <command>SIGSEGV</command> as a result of problems it encountered while handling a received signal
+ * probe signal.force_segv - Forcing send of <command>SIGSEGV</command>
  * @sig_pid: The PID of the process receiving the signal
  * @pid_name: Name of the process receiving the signal
  * @sig: The number of the signal
@@ -360,6 +373,12 @@ probe _signal.force_segv.part2 = kernel.function("force_sigsegv_info") ?
     sig_name = _signal_name($sig)
 }
 
+/**
+ * probe signal.force_segv.return - Forcing send of <command>SIGSEGV</command> complete
+ * @name: Name of the probe point; default value is
+ * <command>force_sigsegv</command>
+ * @retstr: Return value as a string
+ */
 probe signal.force_segv.return =
 		kernel.function("force_sigsegv").return,
 		kernel.function("force_sigsegv_info").return ?
@@ -370,9 +389,8 @@ probe signal.force_segv.return =
 
 
 /**
- * probe signal.syskill - Fires when the kernel function <command>sys_kill</command> 
- * sends a kill signal to a process
- * @pid: The PID of the process receiving the kill signal
+ * probe signal.syskill - Sending kill signal to a process
+ * @pid: The PID of the process receiving the signal
  * @sig: The specific signal sent to the process
  */
 probe signal.syskill = syscall.kill
@@ -380,33 +398,43 @@ probe signal.syskill = syscall.kill
     sig_name = _signal_name($sig)
 }
 
+/**
+ * probe signal.syskill.return - Sending kill signal completed
+ */
 probe signal.syskill.return = syscall.kill.return
 {
 }
+
 /** 
- * probe signal.sys_tkill - Fires when <command>tkill</command> sends a kill signal 
- * to a process that is part of a thread group 
+ * probe signal.sys_tkill - Sending a kill signal to a thread
  * @pid: The PID of the process receiving the kill signal
  * @sig: The specific signal sent to the process
+ * @sig_name: The specific signal sent to the process
+ *
  * The <command>tkill</command> call is analogous to <command>kill(2)</command>,
  * except that it also allows a process within a specific thread group to
- * be targetted. Such processes are targetted through their unique thread IDs (TID). 
+ * be targetted. Such processes are targetted through their unique
+ * thread IDs (TID). 
  */
 probe signal.systkill = syscall.tkill
 {
     sig_name = _signal_name($sig)
 }
 
+/**
+ * probe signal.systkill.return - Sending kill signal to a thread completed
+ */
 probe signal.systkill.return = syscall.tkill.return
 {
 }
 
 /**
- * probe signal.sys_tgkill - Fires when the kernel function <command>tgkill</command> 
- * sends a kill signal to a specific thread group
+ * probe signal.sys_tgkill - Sending kill signal to a thread group
  * @pid: The PID of the thread receiving the kill signal
  * @tgid: The thread group ID of the thread receiving the kill signal
  * @sig: The specific kill signal sent to the process
+ * @sig_name: A string representation of the signal
+ *
  * The <command>tgkill</command> call is similar to <command>tkill</command>, 
  * except that it also allows the caller to specify the thread group ID of 
  * the thread to be signalled. This protects against TID reuse. 
@@ -416,12 +444,15 @@ probe signal.systgkill = syscall.tgkill
     sig_name = _signal_name($sig)
 }
 
+/**
+ * probe signal.sys_tgkill.return - Sending kill signal to a thread group completed
+ */
 probe signal.systgkill.return = syscall.tgkill.return
 {
 }
 
 /**
- * probe signal.send_sig_queue - Fires when a signal is queued to a process
+ * probe signal.send_sig_queue - Queuing a signal to a process
  * @sig: The queued signal
  * @sig_name: A string representation of the signal
  * @sig_pid: The PID of the process to which the signal is queued
@@ -439,6 +470,10 @@ probe signal.send_sig_queue =
     sigqueue_addr = $q
 }
 
+/**
+ * probe signal.send_sig_queue.return  - Queuing a signal to a process completed
+ * @retstr: Return value as a string
+ */
 probe signal.send_sig_queue.return =
         kernel.function("send_sigqueue").return,
         kernel.function("send_group_sigqueue").return ?
@@ -448,25 +483,25 @@ probe signal.send_sig_queue.return =
 
 
 /** 
- * probe signal.pending - Fires when the <command>SIGPENDING</command> system call is used;
- * this normally occurs when the <command>do_sigpending</command> kernel function is executed
- * @sigset_add: The address of the user-space signal set (<command>sigset_t</command>)
- * @sigset_size: The size of the user-space signal set.
- * 
- * Synopsis:
- * <programlisting>long do_sigpending(void __user *set, unsigned long sigsetsize)</programlisting>
+ * probe signal.pending - Examining pending signal
+ * @sigset_add: The address of the user-space signal set
+ * (<command>sigset_t</command>)
+ * @sigset_size: The size of the user-space signal set
  * 
  * This probe is used to examine a set of signals pending for delivery 
- * to a specific thread.
+ * to a specific thread. This normally occurs when the 
+ * <command>do_sigpending</command> kernel function is executed.
  */
-// long do_sigpending(void __user *set, unsigned long sigsetsize)
-
 probe signal.pending = kernel.function("do_sigpending")
 {
     sigset_add=$set
     sigset_size=$sigsetsize
 }
 
+/** 
+ * probe signal.pending.return - Examination of pending signal completed
+ * @retstr: Return value as a string
+ */
 probe signal.pending.return = kernel.function("do_sigpending").return
 {
     retstr = returnstr(1)
@@ -474,22 +509,17 @@ probe signal.pending.return = kernel.function("do_sigpending").return
 
 
 /**
- * probe signal.handle - Fires when the signal handler is invoked
+ * probe signal.handle - Signal handler being invoked
  * @sig: The signal number that invoked the signal handler
  * @sinfo: The address of the <command>siginfo</command> table
- * @sig_code: The <command>si_code</command> value of the <command>siginfo</command> signal
- * @ka_addr: The address of the <command>k_sigaction</command> table associated with the signal
+ * @sig_code: The <command>si_code</command> value of the
+ * <command>siginfo</command> signal
+ * @ka_addr: The address of the <command>k_sigaction</command> table
+ * associated with the signal
  * @oldset_addr: The address of the bitmask array of blocked signals 
  * @regs: The address of the kernel-mode stack area
  * @sig_mode: Indicates whether the signal was a user-mode or kernel-mode signal
- * 
- * Synopsis:
- * <programlisting>static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
- * sigset_t *oldset, struct pt_regs * regs)</programlisting>
  */
-//static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
-//					sigset_t *oldset, struct pt_regs * regs)
-
 probe signal.handle = kernel.function("handle_signal")
 {
     sig = $sig
@@ -508,6 +538,10 @@ probe signal.handle = kernel.function("handle_signal")
         sig_mode = "Kernel Mode Signal"
 }
 
+/**
+ * probe signal.handle.return - Signal handler invocation completed
+ * @retstr: Return value as a string
+ */
 probe signal.handle.return = kernel.function("handle_signal").return ?
 {
     retstr = returnstr(1)
@@ -515,11 +549,12 @@ probe signal.handle.return = kernel.function("handle_signal").return ?
 
 
 /**
- * probe signal.do_action - Initiates a trace when a thread is about to examine 
- * and change a signal action
+ * probe signal.do_action - Examining or changing a signal action
  * @sig: The signal to be examined/changed
- * @sigact_addr: The address of the new <command>sigaction</command> struct associated with the signal
- * @oldsigact_addr: The address of the old <command>sigaction</command> struct associated with the signal
+ * @sigact_addr: The address of the new <command>sigaction</command>
+ * struct associated with the signal
+ * @oldsigact_addr: The address of the old <command>sigaction</command>
+ * struct associated with the signal
  * @sa_handler: The new handler of the signal
  * @sa_mask: The new mask of the signal
  */
@@ -535,6 +570,10 @@ probe signal.do_action = kernel.function("do_sigaction")
     }
 }
 
+/**
+ * probe signal.do_action.return - Examining or changing a signal action completed
+ * @retstr: Return value as a string
+ */
 probe signal.do_action.return = kernel.function("do_sigaction").return
 {
     retstr = returnstr(1)
@@ -554,16 +593,17 @@ function __get_action_mask:long(act:long) %{ /* pure */
 
 
 /**
- * probe signal.procmask - Initiates a trace when a thread is about to examine and change blocked signals
+ * probe signal.procmask - Examining or changing blocked signals
  * @how: Indicates how to change the blocked signals; possible values are 
  * <command>SIG_BLOCK=0</command> (for blocking signals), 
  * <command>SIG_UNBLOCK=1</command> (for unblocking signals), and 
  * <command>SIG_SETMASK=2</command> for setting the signal mask.
- * @sigset_addr: The address of the signal set (<command>sigset_t</command>) to be implemented
- * @oldsigset_addr: The old address of the signal set (<command>sigset_t</command>)
- * @sigset: The actual value to be set for <command>sigset_t</command> <remark>(correct?)</remark>
- * Synopsis:
- * <programlisting>int sigprocmask(int how, sigset_t *set, sigset_t *oldset)</programlisting>
+ * @sigset_addr: The address of the signal set (<command>sigset_t</command>)
+ * to be implemented
+ * @oldsigset_addr: The old address of the signal set
+ * (<command>sigset_t</command>)
+ * @sigset: The actual value to be set for <command>sigset_t</command>
+ * <remark>(correct?)</remark>
  */
 probe signal.procmask = kernel.function("sigprocmask")
 {
@@ -591,16 +631,13 @@ probe signal.procmask.return = kernel.function("sigprocmask").return
 
 
 /**
- * probe signal.flush - Fires when all pending signals for a task are flushed
+ * probe signal.flush - Flusing all pending signals for a task
  * @task: The task handler of the process performing the flush
- * @sig_pid: The PID of the process associated with the task performing the flush
- * @pid_name: The name of the process associated with the task performing the flush 
- * 
- * Synopsis:
- * <programlisting>void flush_signals(struct task_struct *t)</programlisting>
+ * @sig_pid: The PID of the process associated with the task
+ * performing the flush
+ * @pid_name: The name of the process associated with the task
+ * performing the flush 
  */
-//void flush_signals(struct task_struct *t)
-
 probe signal.flush = kernel.function("flush_signals")
 {
     task = $t
@@ -608,17 +645,15 @@ probe signal.flush = kernel.function("flush_signals")
     pid_name = kernel_string($t->comm)
 }
 
-function get_sa_flags:long (act:long) %{ /* pure */
-	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);
-	THIS->__retvalue = kread(&act->sa.sa_flags);
-	CATCH_DEREF_FAULT();
-%}
+function get_sa_flags:long (act:long)
+{
+	return @cast(act, "k_sigaction", "kernel")->sa->sa_flags
+}
 
-function get_sa_handler:long (act:long) %{ /* pure */
-	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);
-	THIS->__retvalue = (long)kread(&act->sa.sa_handler);
-	CATCH_DEREF_FAULT();
-%}
+function get_sa_handler:long (act:long)
+{
+	return @cast(act, "k_sigaction", "kernel")->sa->sa_handler
+}
 
 // sa_mask contains the set of signals to be blocked when executing the
 // signal handler. This function returns a string, delimited by ",".

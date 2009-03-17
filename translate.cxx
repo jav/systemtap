@@ -1236,6 +1236,11 @@ c_unparser::emit_module_init ()
 	o->newline() << getvar (v).fini();
     }
 
+  // For any partially registered/unregistered kernel facilities.
+  o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
+  o->newline() << "synchronize_sched();";
+  o->newline() << "#endif";
+
   o->newline() << "return rc;";
   o->newline(-1) << "}\n";
 }
@@ -3882,7 +3887,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 	  assert (rvalue->type == pe_long);
 
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
-	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  o->newline() << mvar.add (idx, rvar) << ";";
           res = rvar;
 	  // no need for these dummy assignments
@@ -3892,7 +3897,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       else
 	{
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
-	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  if (op != "=") // don't bother fetch slot if we will just overwrite it
 	    parent->c_assign (lvar, mvar.get(idx), e->tok);
 	  c_assignop (res, lvar, rvar, e->tok);
@@ -4453,6 +4458,9 @@ dump_unwindsyms (Dwfl_Module *m,
 
   string modname = name;
 
+  if (pending_interrupts)
+    return DWARF_CB_ABORT;
+
   // skip modules/files we're not actually interested in
   if (c->session.unwindsym_modules.find(modname) == c->session.unwindsym_modules.end())
     return DWARF_CB_OK;
@@ -4489,17 +4497,35 @@ dump_unwindsyms (Dwfl_Module *m,
     // see https://bugzilla.redhat.com/show_bug.cgi?id=465872
     // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
 #ifdef _ELFUTILS_PREREQ
-#if _ELFUTILS_PREREQ(0,138)
+  #if _ELFUTILS_PREREQ(0,138)
     // Let's standardize to the buggy "end of build-id bits" behavior. 
     build_id_vaddr += build_id_len;
+  #endif
+  #if !_ELFUTILS_PREREQ(0,141)
+    #define NEED_ELFUTILS_BUILDID_WORKAROUND
+  #endif
+#else
+  #define NEED_ELFUTILS_BUILDID_WORKAROUND
 #endif
+
+    // And check for another workaround needed.
+    // see https://bugzilla.redhat.com/show_bug.cgi?id=489439
+    // and http://sourceware.org/ml/systemtap/2009-q1/msg00513.html
+#ifdef NEED_ELFUTILS_BUILDID_WORKAROUND
+    if (build_id_vaddr < base && dwfl_module_relocations (m) == 1)
+      {
+        GElf_Addr main_bias;
+        dwfl_module_getelf (m, &main_bias);
+        build_id_vaddr += main_bias;
+      }
 #endif
-        if (c->session.verbose > 1) {
-           clog << "Found build-id in " << name
-                << ", length " << build_id_len;
-           clog << ", end at 0x" << hex << build_id_vaddr
-                << dec << endl;
-        }
+    if (c->session.verbose > 1)
+      {
+        clog << "Found build-id in " << name
+             << ", length " << build_id_len;
+        clog << ", end at 0x" << hex << build_id_vaddr
+             << dec << endl;
+      }
   }
 
   // Look up the relocation basis for symbols
@@ -4534,6 +4560,10 @@ dump_unwindsyms (Dwfl_Module *m,
               ki = dwfl_module_relocate_address (m, &extra_offset);
               dwfl_assert ("dwfl_module_relocate_address extra_offset",
                            ki >= 0);
+              // Sadly dwfl_module_relocate_address is broken on
+              // elfutils < 0.138, so we need to adjust for the module
+              // base address outself. (see also below).
+              extra_offset = sym.st_value - base;
               if (c->session.verbose > 2)
                 clog << "Found kernel _stext 0x" << hex << extra_offset << dec << endl;
             }
@@ -4670,6 +4700,15 @@ dump_unwindsyms (Dwfl_Module *m,
 
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
+
+  // Get the canonical path of the main file for comparison at runtime.
+  // When given directly by the user through -d or in case of the kernel
+  // name and path might differ. path should be used for matching.
+  const char *mainfile;
+  dwfl_module_info (m, NULL, NULL, NULL, NULL, NULL, &mainfile, NULL);
+  mainfile = canonicalize_file_name(mainfile);
+  c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
+
   c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
 
   if (unwind != NULL)
@@ -4896,6 +4935,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#ifndef MINSTACKSPACE";
       s.op->newline() << "#define MINSTACKSPACE 1024";
       s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef INTERRUPTIBLE";
+      s.op->newline() << "#define INTERRUPTIBLE 1";
+      s.op->newline() << "#endif";
 
       // Overload processing
       s.op->newline() << "#ifndef STP_OVERLOAD_INTERVAL";
@@ -4950,21 +4992,23 @@ translate_pass (systemtap_session& s)
           s.op->newline() << s.embeds[i]->code << "\n";
         }
 
-      s.op->newline() << "static struct {";
-      s.op->indent(1);
-      for (unsigned i=0; i<s.globals.size(); i++)
-        {
-          s.up->emit_global (s.globals[i]);
-        }
-      s.op->newline(-1) << "} global = {";
-      s.op->newline(1);
-      for (unsigned i=0; i<s.globals.size(); i++)
-        {
-          if (pending_interrupts) return 1;
-          s.up->emit_global_init (s.globals[i]);
-        }
-      s.op->newline(-1) << "};";
-      s.op->assert_0_indent();
+      if (s.globals.size()>0) {
+        s.op->newline() << "static struct {";
+        s.op->indent(1);
+        for (unsigned i=0; i<s.globals.size(); i++)
+          {
+            s.up->emit_global (s.globals[i]);
+          }
+        s.op->newline(-1) << "} global = {";
+        s.op->newline(1);
+        for (unsigned i=0; i<s.globals.size(); i++)
+          {
+            if (pending_interrupts) return 1;
+            s.up->emit_global_init (s.globals[i]);
+          }
+        s.op->newline(-1) << "};";
+        s.op->assert_0_indent();
+      }
 
       for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
 	{
@@ -5009,11 +5053,11 @@ translate_pass (systemtap_session& s)
       s.op->newline();
 
       // XXX impedance mismatch
-      s.op->newline() << "static int probe_start () {";
+      s.op->newline() << "static int probe_start (void) {";
       s.op->newline(1) << "return systemtap_module_init () ? -1 : 0;";
       s.op->newline(-1) << "}";
       s.op->newline();
-      s.op->newline() << "static void probe_exit () {";
+      s.op->newline() << "static void probe_exit (void) {";
       s.op->newline(1) << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
       s.op->assert_0_indent();

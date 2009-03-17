@@ -56,8 +56,18 @@ function _stp_probing_kernel: long () %{ /* pure */
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
+	if (!CONTEXT->regs) {
+		CONTEXT->last_error = "No registers available in this context";
+		return;
+	}
+	if (THIS->offset < 0 || THIS->offset > sizeof(struct pt_regs) - sizeof(unsigned short)) {
+		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"Bad register offset: %lld", THIS->offset);
+		CONTEXT->last_error = CONTEXT->error_buffer;
+		return;
+	}
 
-	if (THIS->offset <= 152)
+	if (THIS->offset < sizeof(struct pt_regs) - 2 * sizeof(unsigned short))
 		memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset,
 				sizeof(value));
 	else {

@@ -1,0 +1,8 @@
+#! stap 
+
+probe begin
+{
+	printf("Hello ");
+	printf("From Server\n");
+	exit()
+}

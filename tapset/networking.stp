@@ -5,11 +5,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
-%{
-#include <linux/netdevice.h>
-%}
-
+// <tapsetdescription>
+// This family of probe points is used to probe the activities of the network device. 
+// </tapsetdescription>
 /**
  * probe netdev.receive - Data recieved from network device.
  * @dev_name: The name of the device. e.g: eth0, ath1.
@@ -53,7 +51,7 @@
 ///
 ///  </variablelist>
 ///</para>
-/* Main device receive routine, be called when packet arrives on network device */
+// Main device receive routine, be called when packet arrives on network device
 probe netdev.receive
 	=  kernel.function("netif_receive_skb")
 {
@@ -71,7 +69,7 @@ probe netdev.receive
  * @truesize: The size of the the data to be transmitted.
  *
  */
-/* Queue a buffer for transmission to a network device */
+// Queue a buffer for transmission to a network device
 probe netdev.transmit
 	=  kernel.function("dev_queue_xmit")
 {

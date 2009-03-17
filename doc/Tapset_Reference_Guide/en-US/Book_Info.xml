@@ -1,0 +1,36 @@
+<?xml version='1.0'?>
+<!DOCTYPE bookinfo PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<bookinfo id="Tapset_Reference_Guide-Red_Hat_Enterprise_Linux">
+	<title>Tapset Reference Guide</title>
+	<subtitle>For SystemTap in Fedora 10</subtitle>
+	<productname>Fedora</productname>
+	<productnumber>10</productnumber>
+	<edition>1.0</edition>
+	<pubsnumber>0</pubsnumber>
+	<abstract>
+		<para>
+			The <citetitle>Tapset Reference Guide</citetitle> describes the most common tapset definitions 
+			users can apply to SystemTap scripts. All included tapsets documented in this guide are current 
+			as of Fedora 10 and the latest upstream version of SystemTap.
+		</para>
+	</abstract>
+	<corpauthor>
+		<inlinemediaobject>
+			<imageobject>
+				<imagedata format='SVG' fileref="Common_Content/images/title_logo.svg" />
+			</imageobject>
+			<textobject><phrase>Logo</phrase></textobject>
+		</inlinemediaobject>
+	</corpauthor>
+	<copyright>
+		<year>&YEAR;</year>
+		<holder>&HOLDER;</holder>
+	</copyright>
+	<xi:include href="Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Author_Group.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</bookinfo>
+
+
+

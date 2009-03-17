@@ -1,6 +1,5 @@
 set test "isinstr"
 set ::result_string {"foo" is in "abcfoobad"
 "foo" is NOT in "abcdefg"
-"" is in ""
-}
+"" is in ""}
 stap_run2 $srcdir/$subdir/$test.stp
