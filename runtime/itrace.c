@@ -275,6 +275,7 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	struct itrace_info *ui;
 	struct task_struct *tsk;
 
+	spin_lock_init(&itrace_lock);
 	rcu_read_lock();
 	tsk = find_task_by_vpid(tid);
 	if (!tsk) {
@@ -293,11 +294,6 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	put_task_struct(tsk);
 	rcu_read_unlock();
 
-	spin_lock_init(&itrace_lock);
-
-	/* set initial state */
-	spin_lock(&itrace_lock);
-	spin_unlock(&itrace_lock);
 	printk(KERN_INFO "usr_itrace_init: completed for tid = %d\n", tid);
 
 	return 0;
@@ -314,7 +310,6 @@ void static remove_usr_itrace_info(struct itrace_info *ui)
 	if (debug)
 		printk(KERN_INFO "remove_usr_itrace_info: tid=%d\n", ui->tid);
 
-	spin_lock(&itrace_lock);
 	if (ui->tsk && ui->engine) {
 		status = utrace_control(ui->tsk, ui->engine, UTRACE_DETACH);
 		if (status < 0 && status != -ESRCH && status != -EALREADY)
@@ -322,6 +317,7 @@ void static remove_usr_itrace_info(struct itrace_info *ui)
 			       "utrace_control(UTRACE_DETACH) returns %d\n",
 			       status);
 	}
+	spin_lock(&itrace_lock);
 	list_del(&ui->link);
 	spin_unlock(&itrace_lock);
 	kfree(ui);
