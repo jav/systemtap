@@ -3,7 +3,7 @@
 # generated herein should be in sync with Tapset Reference Guide
 
 # cleanup
-rm -rf workingdir
+rm -rf man_pages
 
 # create working directory
 mkdir workingdir ;
@@ -38,8 +38,6 @@ echo $i > tempname ;
 sed -i -e 's/.stp//g' tempname ; 
 mv $i `cat tempname` ; mv tempname $i ; 
 done ;
-# clean all tapsetdescriptions (remove excess spaces)
-# for i in `ls | grep tapsetdescription` ; do  perl -p -i -e 's|^\n||g' $i ; done ;
 
 # create man page headers
 for i in `ls | grep -v .stp | grep -v tapsetdescription` ; do 
@@ -59,73 +57,65 @@ echo ".TP" >> $i.template ;
 done
 
 # MOST IMPORTANT: clean man page body!
-for i in `ls | grep -v .stp | grep -v tapsetdescription | grep -v template` ; 
-do cp $i $i.tmp ;
+sed -i -e 's/\.stp$//g' ../manpageus ;
+for i in `cat ../manpageus` ; 
+do mv $i $i.tmp ;
 perl -p -i -e 's| \* sfunction|.BR|g' $i.tmp ;
 perl -p -i -e 's| \* probe|.BR|g' $i.tmp ;
 perl -p -i -e 's| -|\ninitlinehere|g' $i.tmp ;
-perl -p -i -e 's|^initlinehere([^\n]*)\n|\n.br\n$1\n\n.B Arguments:|g' $i.tmp ;
-perl -p -i -e 's| \* @([^:]*):|\n.I $1\n.br\n|g' $i.tmp ; 
-perl -p -i -e 's| \* ([^:]*):|\n.BR $1:\n.br\n|g' $i.tmp ;
+perl -p -i -e 's|^initlinehere([^\n]*)\n|$1\n |g' $i.tmp ;
+perl -p -i -e 's| \* @([^:]*):|\n.I $1:\n|g' $i.tmp ; 
+perl -p -i -e 's| \* ([^:]*):|\n.BR $1:\n|g' $i.tmp ;
+perl -p -i -e 's| \* ||g' $i.tmp
 perl -p -i -e 's|\*probestart|\n.P\n.TP|g' $i.tmp ;
-perl -p -i -e 's|\.I|\n\n.I|g' $i.tmp ;
-# special formatting for Arguments header
-perl -p -i -e 's|.B Arguments: \*\/||g' $i.tmp ;
-perl -p -i -e 's|.B Arguments: \*|.B Description:|g' $i.tmp ;
-
-cat $i.tmp | 
-perl -p -e 'undef $/;s|.B Arguments:\n.B|.B|msg' |
-perl -p -e 'undef $/;s|\n\n\n|\n\n|msg' > $i.manpagebody ; 
+perl -p -i -e 's|\.I|\n.I|g' $i.tmp ;
+# remove empty lines
+sed -i -e '/^$/d' $i.tmp ;
+sed -i -e '/^$/d' $i.tmp ;
+sed -i -e 's/^[ \t]*//g' $i.tmp ;
+# process Description headers
+perl -p -i -e 's|^\*[^/]|\n.BR Description:\n|g' $i.tmp ;
+perl -p -i -e 'undef $/;s|\.BR Description:\n\.BR|.BR|g' $i.tmp ; 
+perl -p -i -e 'undef $/;s|\.BR Description:\n\*\/||g' $i.tmp ;
+# process Argument headers
+perl -p -i -e 'undef $/;s|\n\n.I|\n.br\n.BR Arguments:\n.I|g' $i.tmp ;
+# clean up formatting of arguments
+perl -p -i -e 's|^.I([^:]*:)|\n.br\n.br\n.IR$1\n.br\n\t|g' $i.tmp ;
 done
 
+# make tags work
+for i in `cat ../manpageus` ; do 
+perl -p -i -e 's|</[^>]*>([^.])|$1\n|g' $i.tmp ;
+perl -p -i -e 's|<[^>]*>|\n.B |g' $i.tmp ;
+# the previous two statements create excess empty lines, remove some of them
+sed -i -e '/^$/d' $i.tmp ;
+# increase whitespace between some headers
+perl -p -i -e 's|^\.BR ([^:]*:)|\n.br\n.BR $1\n.br\n|g' $i.tmp
+done 
+
 # generate footer template
-mv ../manpageus .
-sed -i -e 's/.stp//g' manpageus
 echo ".SH SEE ALSO" >> footer
 echo ".IR stap (1)," >> footer
 echo ".IR stapprobes (5)," >> footer
-for i in `cat manpageus`; do echo ".IR stapprobes."$i" (5)," >> footer ; done
+for i in `cat ../manpageus`; do echo ".IR stapprobes."$i" (5)," >> footer ; done
 
 # assemble parts
-for i in `cat manpageus`; do 
-cat $i.template >> $i.5 ;
-cat $i.manpagebody >> $i.5 ;
-cat footer >> $i.5 ;
+for i in `cat ../manpageus`; do 
+cat $i.template >> stapprobes.$i.5 ;
+cat $i.tmp >> stapprobes.$i.5 ;
+cat footer >> stapprobes.$i.5 ;
+# final polish
+sed -i -e 's/\*\/$//g' stapprobes.$i.5 ;
 done
 
 # cleanup
-for i in `cat manpageus`; do
-# context.stp 
-perl -p -i -e 's|.B Description:/|\n.P\n.TP|g' $i.5 ; 
-perl -p -i -e 's|.B Description:|.B Description:\n\n |g' $i.5 ;
-# convert tags
-perl -p -i -e 's|</[^>]*>([^.])|$1\n|g' $i.5 ;
-perl -p -i -e 's|<[^>]*>|\n.B |g' $i.5 ;
-cat $i.5 | 
-perl -p -e 'undef $/;s|\.B Arguments:\n\n\.B |.B|msg' |
-# for tagged commands followed by periods
-perl -p -e 'undef $/;s|\n\.B \.|.\n|msg' | 
-perl -p -e 'undef $/;s|\n \* | |msg' > stapprobes.$i.5.in ; 
-# cleanup all remaining stars, excess initial whitespace, and trailing "/" per line
-perl -p -i -e 's|^ \*||g' stapprobes.$i.5.in;
-perl -p -i -e 's|^[ ]*||g' stapprobes.$i.5.in;
-perl -p -i -e 's|^/||g' stapprobes.$i.5.in;
-# cleanup remaining excess whitespace
-perl -p -i -e 's|\t\t| |g' stapprobes.$i.5.in;
-perl -p -i -e 's|^ ||g' stapprobes.$i.5.in;
-sed -i -e 's/  / /g' stapprobes.$i.5.in;
+for i in `ls | grep -v 'stapprobes.*.5'` ; do
+rm $i ;
 done
 
-# file cleanup
-rm `ls | grep -v stapprobes`
-#mv workingdir final_manpages
-# perl -p -i -e 's|||g' stapprobes.$i.5.in ;
-
-# perl -p -i -e 's|||g' $i.manpagebody
-# use to move marked strings.
-# sed -n '/\/\/ <tapsetdescription>/,/\/\/ <\/tapsetdescription>/ s/.*/&/w bleh' < ioscheduler
-# remove excess initial whitespace for each line
-# perl -p -i -e 's|^ ||g' stapprobes.$i.5.in; 
-# convert tags
-# perl -p -i -e 's|</[^>]*>|\n|g' stapprobes.$i.5.in ;
-# perl -p -i -e 's|<[^>]*>|\n.B |g' stapprobes.$i.5.in ;
+rm ../manpageus ;
+cd ..
+mv workingdir man_pages
+echo " "
+echo "Finished! man pages generated in ./man_pages."
+echo " "
