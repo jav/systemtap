@@ -203,7 +203,6 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 	hlist_for_each_entry(entry, node, head, hlist) {
 		if (tsk->pid == entry->pid
 		    && vm_start == entry->addr) {
-			mutex_unlock(&__stp_tf_vma_mutex);
 			return entry;
 		}
 	}
