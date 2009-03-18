@@ -1,4 +1,4 @@
-%{!?release: %define release 1}
+%{!?release: %define release 2}
 %{!?with_sqlite: %define with_sqlite 1}
 %{!?with_docs: %define with_docs 1}
 %{!?with_crash: %define with_crash 0}
@@ -252,6 +252,7 @@ exit 0
 %{_bindir}/stap-report
 %{_mandir}/man1/*
 %{_mandir}/man5/*
+%{_mandir}/man3stap/*
 
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/runtime
@@ -317,6 +318,9 @@ exit 0
 
 
 %changelog
+* Wed Mar 18 2009 Will Cohen <wcohen@redhat.com> - 0.9-2
+- Add location of man pages.
+
 * Tue Feb 17 2009 Frank Ch. Eigler <fche@redhat.com> - 0.9-1
 - Upstream release.
 
