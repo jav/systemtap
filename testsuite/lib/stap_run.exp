@@ -30,6 +30,7 @@ proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args }
     if [file readable $test_file_name] {
         lappend cmd $test_file_name
     }
+    send_log "executing: $cmd\n"
     eval spawn $cmd
     expect {
 	-timeout 180
