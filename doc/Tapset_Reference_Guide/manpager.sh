@@ -8,7 +8,7 @@ rm -rf man_pages
 # create working directory
 mkdir workingdir ;
 
-# create list of man pages to generate; should be in sync with Tapset Reference Guide 
+# create list of man pages to generate
 cat ../SystemTap_Tapset_Reference/tapsets.tmpl | grep  ^\!Itapset > manpageus ;
 sed -i -e 's/\!Itapset\///g' manpageus ;
 
@@ -49,7 +49,6 @@ echo " " >> $i.template ;
 echo ".SH DESCRIPTION" >> $i.template ;
 cat $i.stp.tapsetdescription >> $i.template ;
 echo " " >> $i.template ;
-#echo " " >> $i.template ;
 echo ".SH PROBES" >> $i.template ;
 echo ".br" >> $i.template ;
 echo ".P" >> $i.template ;
