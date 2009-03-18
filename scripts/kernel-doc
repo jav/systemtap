@@ -981,7 +981,7 @@ sub output_probe_xml(%) {
     print "</refentryinfo>\n";
     print "<refmeta>\n";
     print " <refentrytitle><phrase>".$args{'probe'}."</phrase></refentrytitle>\n";
-    print " <manvolnum>5</manvolnum>\n";
+    print " <manvolnum>3stap</manvolnum>\n";
 #    print " <refmiscinfo class=\"version\">" . $kernelversion . "</refmiscinfo>\n";
     print "</refmeta>\n";
     print "<refnamediv>\n";
@@ -1039,7 +1039,7 @@ sub output_sfunction_xml(%) {
     print "</refentryinfo>\n";
     print "<refmeta>\n";
     print " <refentrytitle><phrase>".$args{'sfunction'}."</phrase></refentrytitle>\n";
-    print " <manvolnum>5</manvolnum>\n";
+    print " <manvolnum>3stap</manvolnum>\n";
 #    print " <refmiscinfo class=\"version\">" . $kernelversion . "</refmiscinfo>\n";
     print "</refmeta>\n";
     print "<refnamediv>\n";
