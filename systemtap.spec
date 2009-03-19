@@ -246,13 +246,13 @@ exit 0
 %if %{with_docs}
 %doc docs.installed/*.pdf
 %doc docs.installed/tapsets
+%{_mandir}/man3stap/*
 %endif
 
 %{_bindir}/stap
 %{_bindir}/stap-report
 %{_mandir}/man1/*
 %{_mandir}/man5/*
-%{_mandir}/man3stap/*
 
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/runtime
