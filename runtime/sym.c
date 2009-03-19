@@ -79,16 +79,15 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 					       struct task_struct *task,
 					       struct _stp_section **sec)
 {
-  void *user;
+  void *user = NULL;
   struct _stp_module *m = NULL;
   unsigned midx = 0;
   unsigned long closest_section_offset = ~0;
 
   // Try vma matching first if task given.
-  unsigned long vm_start;
   if (task)
     {
-      
+      unsigned long vm_start = 0;
       if (stap_find_vma_map_info(task, addr,
 				 &vm_start, NULL,
 				 NULL, &user) == 0)
