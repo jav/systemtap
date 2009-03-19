@@ -31,7 +31,7 @@
  * @send2queue: Indicates whether the signal is sent to an existing
  * <command>sigqueue</command>
  * @name: The name of the function used to send out the signal
- * 
+ *
  * Context:
  *  The signal's sender.
  *
@@ -124,10 +124,10 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  * @send2queue: Indicates whether the sent signal was sent to an
  * existing <command>sigqueue</command>
  * @name: The name of the function used to send out the signal
- * 
+ *
  * Context:
  * The signal's sender. <remark>(correct?)</remark>
- * 
+ *
  * Possible <command>__group_send_sig_info</command> and 
  * <command>specific_send_sig_info</command> return values are as follows;
  *
@@ -139,19 +139,18 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  *
  * <command>-EAGAIN</command> -- The <command>sigqueue</command> of the receiving process is 
  * overflowing, the signal was RT, and the signal was sent by a user using something other 
- * than <command>kill()</command> 
- * 
+ * than <command>kill()</command>. 
+ *
  * Possible <command>send_group_sigqueue</command> and 
  * <command>send_sigqueue</command> return values are as follows;
- * 
+ *
  * <command>0</command> -- The signal was either sucessfully added into the
  * <command>sigqueue</command> of the receiving process, or a <command>SI_TIMER</command> entry is already
  * queued (in which case, the overrun count will be simply incremented).
  *
  * <command>1</command> -- The signal was ignored by the receiving process.
  *
- *
- * <command>-1</command> - (<command>send_sigqueue</command> only) The task was marked
+ * <command>-1</command> -- (<command>send_sigqueue</command> only) The task was marked
  * <command>exiting</command>, allowing * <command>posix_timer_event</command> to redirect it to the group
  * leader. 
  *

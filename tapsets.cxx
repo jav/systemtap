@@ -6240,6 +6240,9 @@ task_finder_derived_probe_group::emit_module_exit (systemtap_session& s)
 // ------------------------------------------------------------------------
 
 
+static string TOK_INSN("insn");
+static string TOK_BLOCK("block");
+
 struct itrace_derived_probe: public derived_probe
 {
   bool has_path;
@@ -6314,7 +6317,7 @@ struct itrace_builder: public derived_probe_builder
     // XXX: PR 6445 needs !has_path && !has_pid support
     assert (has_path || has_pid);
 
-    single_step = 1;
+    single_step = ! has_null_param (parameters, TOK_BLOCK);
 
     // If we have a path, we need to validate it.
     if (has_path)
@@ -9231,9 +9234,9 @@ mark_builder::build(systemtap_session & sess,
 struct tracepoint_arg
 {
   string name, c_type;
-  bool used, isptr;
+  bool usable, used, isptr;
   Dwarf_Die type_die;
-  tracepoint_arg(): used(false), isptr(false) {}
+  tracepoint_arg(): usable(false), used(false), isptr(false) {}
 };
 
 struct tracepoint_derived_probe: public derived_probe
@@ -9285,7 +9288,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // search for a tracepoint parameter matching this name
   tracepoint_arg *arg = NULL;
   for (unsigned i = 0; i < args.size(); ++i)
-    if (args[i].name == argname)
+    if (args[i].usable && args[i].name == argname)
       {
         arg = &args[i];
         arg->used = true;
@@ -9504,6 +9507,8 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
       for (unsigned i = 0; i < args.size(); ++i)
         {
+          if (!args[i].usable)
+            continue;
           if (i > 0)
             pf->raw_components += " ";
           pf->raw_components += args[i].name;
@@ -9586,32 +9591,39 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 static bool
 dwarf_type_name(Dwarf_Die& type_die, string& c_type)
 {
-  // if this die has a direct name, then we're done
-  const char *diename = dwarf_diename_integrate(&type_die);
-  if (diename != NULL)
+  // if we've gotten down to a basic type, then we're done
+  bool done = true;
+  switch (dwarf_tag(&type_die))
     {
-      switch (dwarf_tag(&type_die))
-        {
-        case DW_TAG_structure_type:
-          c_type.append("struct ");
-          break;
-        case DW_TAG_union_type:
-          c_type.append("union ");
-          break;
-        }
-      c_type.append(diename);
+    case DW_TAG_structure_type:
+      c_type.append("struct ");
+      break;
+    case DW_TAG_union_type:
+      c_type.append("union ");
+      break;
+    case DW_TAG_typedef:
+    case DW_TAG_base_type:
+      break;
+    default:
+      done = false;
+      break;
+    }
+  if (done)
+    {
+      c_type.append(dwarf_diename_integrate(&type_die));
       return true;
     }
 
   // otherwise, this die is a type modifier.
 
   // recurse into the referent type
+  // if it can't be named, just call it "void"
   Dwarf_Attribute subtype_attr;
   Dwarf_Die subtype_die;
   if (!dwarf_attr_integrate(&type_die, DW_AT_type, &subtype_attr)
       || !dwarf_formref_die(&subtype_attr, &subtype_die)
       || !dwarf_type_name(subtype_die, c_type))
-    return false;
+    c_type = "void";
 
   const char *suffix = NULL;
   switch (dwarf_tag(&type_die))
@@ -9632,33 +9644,39 @@ dwarf_type_name(Dwarf_Die& type_die, string& c_type)
       return false;
     }
   c_type.append(suffix);
+
+  // XXX HACK!  The va_list isn't usable as found in the debuginfo...
+  if (c_type == "struct __va_list_tag*")
+    c_type = "va_list";
+
   return true;
 }
 
 
 static bool
-resolve_tracepoint_arg_type(Dwarf_Die& type_die, bool& isptr)
+resolve_tracepoint_arg_type(tracepoint_arg& arg)
 {
   Dwarf_Attribute type_attr;
-  switch (dwarf_tag(&type_die))
+  switch (dwarf_tag(&arg.type_die))
     {
     case DW_TAG_typedef:
     case DW_TAG_const_type:
     case DW_TAG_volatile_type:
       // iterate on the referent type
-      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
-              && dwarf_formref_die(&type_attr, &type_die)
-              && resolve_tracepoint_arg_type(type_die, isptr));
+      return (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
+              && dwarf_formref_die(&type_attr, &arg.type_die)
+              && resolve_tracepoint_arg_type(arg));
     case DW_TAG_base_type:
       // base types will simply be treated as script longs
-      isptr = false;
+      arg.isptr = false;
       return true;
     case DW_TAG_pointer_type:
-      // pointers can be either script longs,
-      // or dereferenced with their referent type
-      isptr = true;
-      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
-              && dwarf_formref_die(&type_attr, &type_die));
+      // pointers can be treated as script longs,
+      // and if we know their type, they can also be dereferenced
+      if (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
+          && dwarf_formref_die(&type_attr, &arg.type_die))
+        arg.isptr = true;
+      return true;
     default:
       // should we consider other types too?
       return false;
@@ -9682,12 +9700,12 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
           Dwarf_Attribute type_attr;
           if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr)
               || !dwarf_formref_die (&type_attr, &tparg.type_die)
-              || !dwarf_type_name(tparg.type_die, tparg.c_type)
-              || !resolve_tracepoint_arg_type(tparg.type_die, tparg.isptr))
+              || !dwarf_type_name(tparg.type_die, tparg.c_type))
             throw semantic_error ("cannot get type of tracepoint '"
                                   + tracepoint_name + "' parameter '"
                                   + tparg.name + "'");
 
+          tparg.usable = resolve_tracepoint_arg_type(tparg);
           args.push_back(tparg);
           if (sess.verbose > 4)
             clog << "found parameter for tracepoint '" << tracepoint_name
@@ -9700,8 +9718,9 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
 void
 tracepoint_derived_probe::printargs(std::ostream &o) const
 {
-      for (unsigned i = 0; i < args.size(); ++i)
-       o << " $" << args[i].name << ":" << args[i].c_type;
+  for (unsigned i = 0; i < args.size(); ++i)
+    if (args[i].usable)
+      o << " $" << args[i].name << ":" << args[i].c_type;
 }
 
 void
@@ -9739,6 +9758,8 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // don't provide any sort of context pointer.
       s.op->newline() << "#include <" << p->header << ">";
       s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
+      if (p->args.size() == 0)
+        s.op->line() << "void";
       for (unsigned j = 0; j < p->args.size(); ++j)
         {
           if (j > 0)
@@ -10773,9 +10794,13 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
 
   // itrace user-space probes
-  s.pattern_root->bind_str(TOK_PROCESS)->bind("itrace")
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_INSN)
     ->bind(new itrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind("itrace")
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_INSN)
+    ->bind(new itrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
+    ->bind(new itrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
     ->bind(new itrace_builder ());
 
   // marker-based parts

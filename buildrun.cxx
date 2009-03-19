@@ -151,6 +151,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-vm-area.c", "STAPCONF_VM_AREA", NULL);
   output_autoconf(s, o, "autoconf-procfs-owner.c", "STAPCONF_PROCFS_OWNER", NULL);
   output_autoconf(s, o, "autoconf-alloc-percpu-align.c", "STAPCONF_ALLOC_PERCPU_ALIGN", NULL);
+  output_autoconf(s, o, "autoconf-find-task-pid.c", "STAPCONF_FIND_TASK_PID", NULL);
 
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our

@@ -1,6 +1,6 @@
 /*
  * utrace compatibility defines and inlines
- * Copyright (C) 2008 Red Hat Inc.
+ * Copyright (C) 2008-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -28,6 +28,8 @@ enum utrace_resume_action {
 	UTRACE_STOP = UTRACE_ACTION_QUIESCE,
 	UTRACE_RESUME = UTRACE_ACTION_RESUME,
 	UTRACE_DETACH = UTRACE_ACTION_DETACH,
+	UTRACE_SINGLESTEP = UTRACE_ACTION_SINGLESTEP,
+	UTRACE_BLOCKSTEP = UTRACE_ACTION_BLOCKSTEP,
 };
 
 static inline struct utrace_attached_engine *
@@ -48,6 +50,11 @@ utrace_control(struct task_struct *target,
 	case UTRACE_STOP:
 		return utrace_set_flags(target, engine,
 					(engine->flags | UTRACE_ACTION_QUIESCE));
+        case UTRACE_SINGLESTEP:
+        case UTRACE_BLOCKSTEP:
+          return utrace_set_flags(target, engine,
+                                  engine->flags | action);
+
 	default:
 		return -EINVAL;
 	}

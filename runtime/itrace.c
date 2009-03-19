@@ -1,6 +1,7 @@
 /*
  * user space instruction tracing
  * Copyright (C) 2005, 2006, 2007, 2008, 2009 IBM Corp.
+ * Copyright (C) 2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -19,6 +20,7 @@
 #include <linux/utrace.h>
 #include <asm/string.h>
 #include "uprobes/uprobes.h"
+#include "utrace_compatibility.h"
 
 #ifndef put_task_struct
 #define put_task_struct(t)	\
@@ -55,7 +57,7 @@ struct itrace_info {
 	struct list_head link;
 };
 
-static u32 debug = 1;
+static u32 debug = 0 /* 1 */;
 
 static LIST_HEAD(usr_itrace_info);
 static spinlock_t itrace_lock;
@@ -118,10 +120,15 @@ static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void
 	return buf - old_buf;
 }
 
+#ifdef UTRACE_ORIG_VERSION
+static u32 usr_itrace_report_quiesce(struct utrace_attached_engine *engine,
+					struct task_struct *tsk)
+#else
 static u32 usr_itrace_report_quiesce(enum utrace_resume_action action,
 				struct utrace_attached_engine *engine,
 				struct task_struct *tsk,
 				unsigned long event)
+#endif
 {
 	int status;
 	struct itrace_info *ui;
@@ -129,10 +136,23 @@ static u32 usr_itrace_report_quiesce(enum utrace_resume_action action,
 	ui = rcu_dereference(engine->data);
 	WARN_ON(!ui);
 
+#ifdef UTRACE_ORIG_VERSION
+	return (ui->step_flag); // XXX XXX XXX 
+#else
 	return (event == 0 ? ui->step_flag : UTRACE_RESUME);
+#endif
 }
 
 
+#ifdef UTRACE_ORIG_VERSION
+static u32 usr_itrace_report_signal(
+			     struct utrace_attached_engine *engine,
+			     struct task_struct *tsk,
+			     struct pt_regs *regs,
+                             u32 action, siginfo_t *info,
+			     const struct k_sigaction *orig_ka,
+			     struct k_sigaction *return_ka)
+#else
 static u32 usr_itrace_report_signal(u32 action,
 			     struct utrace_attached_engine *engine,
 			     struct task_struct *tsk,
@@ -140,6 +160,7 @@ static u32 usr_itrace_report_signal(u32 action,
 			     siginfo_t *info,
 			     const struct k_sigaction *orig_ka,
 			     struct k_sigaction *return_ka)
+#endif
 {
 	struct itrace_info *ui;
 	u32 return_flags;
@@ -174,16 +195,31 @@ static u32 usr_itrace_report_signal(u32 action,
 	return return_flags;
 }
 
+
+
+#ifdef UTRACE_ORIG_VERSION
+static u32 usr_itrace_report_clone(
+		struct utrace_attached_engine *engine,
+		struct task_struct *parent,
+                unsigned long clone_flags,
+		struct task_struct *child)
+#else
 static u32 usr_itrace_report_clone(enum utrace_resume_action action,
 		struct utrace_attached_engine *engine,
 		struct task_struct *parent, unsigned long clone_flags,
 		struct task_struct *child)
+#endif
 {
 	return UTRACE_RESUME;
 }
 
+#ifdef UTRACE_ORIG_VERSION
+static u32 usr_itrace_report_death(struct utrace_attached_engine *e,
+                                   struct task_struct *tsk)
+#else
 static u32 usr_itrace_report_death(struct utrace_attached_engine *e,
 	struct task_struct *tsk, bool group_dead, int signal)
+#endif
 {
 	struct itrace_info *ui = rcu_dereference(e->data);
 	WARN_ON(!ui);
@@ -275,8 +311,13 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	struct itrace_info *ui;
 	struct task_struct *tsk;
 
+	spin_lock_init(&itrace_lock);
 	rcu_read_lock();
+#ifdef STAPCONF_FIND_TASK_PID
+	tsk = find_task_by_pid(tid);
+#else
 	tsk = find_task_by_vpid(tid);
+#endif
 	if (!tsk) {
 		printk(KERN_ERR "usr_itrace_init: Cannot find process %d\n", tid);
 		rcu_read_unlock();
@@ -293,11 +334,6 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	put_task_struct(tsk);
 	rcu_read_unlock();
 
-	spin_lock_init(&itrace_lock);
-
-	/* set initial state */
-	spin_lock(&itrace_lock);
-	spin_unlock(&itrace_lock);
 	printk(KERN_INFO "usr_itrace_init: completed for tid = %d\n", tid);
 
 	return 0;
@@ -314,7 +350,6 @@ void static remove_usr_itrace_info(struct itrace_info *ui)
 	if (debug)
 		printk(KERN_INFO "remove_usr_itrace_info: tid=%d\n", ui->tid);
 
-	spin_lock(&itrace_lock);
 	if (ui->tsk && ui->engine) {
 		status = utrace_control(ui->tsk, ui->engine, UTRACE_DETACH);
 		if (status < 0 && status != -ESRCH && status != -EALREADY)
@@ -322,6 +357,7 @@ void static remove_usr_itrace_info(struct itrace_info *ui)
 			       "utrace_control(UTRACE_DETACH) returns %d\n",
 			       status);
 	}
+	spin_lock(&itrace_lock);
 	list_del(&ui->link);
 	spin_unlock(&itrace_lock);
 	kfree(ui);
