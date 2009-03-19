@@ -9242,7 +9242,7 @@ mark_builder::build(systemtap_session & sess,
 
 struct tracepoint_arg
 {
-  string name, c_type;
+  string name, c_type, typecast;
   bool usable, used, isptr;
   Dwarf_Die type_die;
   tracepoint_arg(): usable(false), used(false), isptr(false) {}
@@ -9345,6 +9345,9 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   if (lvalue && (!dw.sess.guru_mode || e->components.empty()))
     throw semantic_error("write to tracepoint variable '" + e->base_name
                          + "' not permitted", e->tok);
+  // XXX: if a struct/union arg is passed by value, then writing to its fields
+  // is also meaningless until you dereference past a pointer member.  It's
+  // harder to detect and prevent that though...
 
   if (e->components.empty())
     {
@@ -9685,6 +9688,14 @@ resolve_tracepoint_arg_type(tracepoint_arg& arg)
       if (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
           && dwarf_formref_die(&type_attr, &arg.type_die))
         arg.isptr = true;
+      arg.typecast = "(intptr_t)";
+      return true;
+    case DW_TAG_structure_type:
+    case DW_TAG_union_type:
+      // for structs/unions which are passed by value, we turn it into
+      // a pointer that can be dereferenced.
+      arg.isptr = true;
+      arg.typecast = "(intptr_t)&";
       return true;
     default:
       // should we consider other types too?
@@ -9787,8 +9798,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
           {
             s.op->newline() << "c->locals[0]." << p->name << ".__tracepoint_arg_"
                             << p->args[j].name << " = (int64_t)";
-            if (p->args[j].isptr)
-              s.op->line() << "(intptr_t)";
+            s.op->line() << p->args[j].typecast;
             s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
           }
       s.op->newline() << p->name << " (c);";
