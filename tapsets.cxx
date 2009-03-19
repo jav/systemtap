@@ -6240,6 +6240,9 @@ task_finder_derived_probe_group::emit_module_exit (systemtap_session& s)
 // ------------------------------------------------------------------------
 
 
+static string TOK_INSN("insn");
+static string TOK_BLOCK("block");
+
 struct itrace_derived_probe: public derived_probe
 {
   bool has_path;
@@ -6314,7 +6317,7 @@ struct itrace_builder: public derived_probe_builder
     // XXX: PR 6445 needs !has_path && !has_pid support
     assert (has_path || has_pid);
 
-    single_step = 1;
+    single_step = ! has_null_param (parameters, TOK_BLOCK);
 
     // If we have a path, we need to validate it.
     if (has_path)
@@ -10791,9 +10794,13 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
 
   // itrace user-space probes
-  s.pattern_root->bind_str(TOK_PROCESS)->bind("itrace")
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_INSN)
     ->bind(new itrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind("itrace")
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_INSN)
+    ->bind(new itrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
+    ->bind(new itrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
     ->bind(new itrace_builder ());
 
   // marker-based parts

@@ -407,8 +407,10 @@ process.syscall
 process(PID).syscall.return
 process("PATH").syscall.return
 process.syscall.return
-process(PID).itrace
-process("PATH").itrace
+process(PID).insn
+process("PATH").insn
+process(PID).insn.block
+process("PATH").insn.block
 process("PATH").mark("LABEL")
 .ESAMPLE
 .PP
@@ -443,8 +445,11 @@ in the
 .BR $return
 context variable.
 A
-.B .itrace
-probe gets called for every single step of the process described by PID or PATH.
+.B .insn
+probe gets called for every single-stepped instruction of the process described by PID or PATH.
+A
+.B .insn.block
+probe gets called for every block-stepped instruction of the process described by PID or PATH.
 A
 .B .mark
 probe gets called via a static probe which is defined in the
