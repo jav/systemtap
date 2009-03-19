@@ -3521,9 +3521,17 @@ dwarf_query::blacklisted_p(const string& funcname,
 
   if (! (goodfn && goodfile))
     {
-      if (sess.verbose>1)
-	clog << " skipping - blacklisted";
-      return true;
+      if (sess.guru_mode)
+        {
+	  if (sess.verbose>1)
+	    clog << " guru mode enabled - ignoring blacklist";
+        }
+      else
+        {
+	  if (sess.verbose>1)
+	    clog << " skipping - blacklisted";
+	  return true;
+        }
     }
 
   // This probe point is not blacklisted.
