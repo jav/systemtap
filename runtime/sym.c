@@ -79,25 +79,29 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 					       struct task_struct *task,
 					       struct _stp_section **sec)
 {
+  void *user;
   struct _stp_module *m = NULL;
   unsigned midx = 0;
   unsigned long closest_section_offset = ~0;
 
   // Try vma matching first if task given.
-  struct __stp_tf_vma_entry *entry;
+  unsigned long vm_start;
   if (task)
     {
-      entry = __stp_tf_get_vma_entry_addr(task, addr);
-      if (entry != NULL && entry->module != NULL)
-	{
-	  m = entry->module;
-	  *sec = &m->sections[0]; // XXX check actual section and relocate
-          dbug_sym(1, "found section %s in module %s at 0x%lx\n",
-		   m->sections[0].name, m->name, entry->vm_start);
-	  if (strcmp(".dynamic", m->sections[0].name) == 0)
-	    m->sections[0].addr = entry->vm_start; // cheat...
-	  return m;
-	}
+      
+      if (stap_find_vma_map_info(task, addr,
+				 &vm_start, NULL,
+				 NULL, &user) == 0)
+	if (user != NULL)
+	  {
+	    m = (struct _stp_module *)user;
+	    *sec = &m->sections[0]; // XXX check actual section and relocate
+	    dbug_sym(1, "found section %s in module %s at 0x%lx\n",
+		     m->sections[0].name, m->name, vm_start);
+	    if (strcmp(".dynamic", m->sections[0].name) == 0)
+	      m->sections[0].addr = vm_start; // cheat...
+	    return m;
+	  }
     }
 
   for (midx = 0; midx < _stp_num_modules; midx++)

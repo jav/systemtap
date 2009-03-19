@@ -11,8 +11,8 @@
 // if we guarantee that in interrupt context we only read, not write
 // the datastructures. We should never change the hash table or the
 // contents in interrupt context (which should only ever call 
-// __stp_tf_get_vma_entry_addr for symbol lookup). So we might want
-// to look into that if this seems a bottleneck.
+// stap_find_vma_map_info for getting stored vma info). So we might
+// want to look into that if this seems a bottleneck.
 static DEFINE_RWLOCK(__stp_tf_vma_lock);
 
 #define __STP_TF_HASH_BITS 4
@@ -32,8 +32,8 @@ struct __stp_tf_vma_entry {
 	unsigned long vm_pgoff;
 	// Is that enough?  Should we store a dcookie for vm_file?
 
-	// Module that this vma entry is mapped from, if any.                   
-	struct _stp_module *module;
+	// User data (possibly stp_module)
+	void *user;
 };
 
 static struct __stp_tf_vma_entry
@@ -226,7 +226,7 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 static int
 stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 		      unsigned long vm_end, unsigned long vm_pgoff,
-		      struct _stp_module *module)
+		      void *user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -260,7 +260,7 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 	entry->vm_start = vm_start;
 	entry->vm_end = vm_end;
 	entry->vm_pgoff = vm_pgoff;
-	entry->module = module;
+	entry->user = user;
 
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
 	hlist_add_head(&entry->hlist, head);
@@ -297,7 +297,7 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 static int
 stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 		       unsigned long *vm_start, unsigned long *vm_end,
-		       unsigned long *vm_pgoff)
+		       unsigned long *vm_pgoff, void **user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -323,32 +323,10 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 			*vm_end = found_entry->vm_end;
 		if (vm_pgoff != NULL)
 			*vm_pgoff = found_entry->vm_pgoff;
+		if (user != NULL)
+			*user = found_entry->user;
 		rc = 0;
 	}
 	read_unlock_irqrestore(&__stp_tf_vma_lock, flags);
 	return rc;
-}
-
-// Get vma_entry of the address (vm_start/vm_end) if the vma is
-// present in the vma hash table containing.
-// Returns NULL if not present.
-static struct __stp_tf_vma_entry *
-__stp_tf_get_vma_entry_addr(struct task_struct *tsk, unsigned long addr)
-{
-  struct hlist_head *head;
-  struct hlist_node *node;
-  struct __stp_tf_vma_entry *entry;
-  
-  unsigned long flags;
-  read_lock_irqsave(&__stp_tf_vma_lock, flags);
-  head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
-  hlist_for_each_entry(entry, node, head, hlist) {
-    if (tsk->pid == entry->pid
-	&& addr >= entry->vm_start && addr < entry->vm_end) {
-      read_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-      return entry;
-    }
-  }
-  read_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-  return NULL;
 }
