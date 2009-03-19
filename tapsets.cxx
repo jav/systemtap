@@ -7159,6 +7159,47 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "return rc;";
   s.op->newline(-1) << "}";
 
+  // Output task finder vma callback
+  s.op->newline() << "static int _stp_tf_vm_cb(struct stap_task_finder_target *tgt, struct task_struct *tsk, int map_p, char *vm_path, unsigned long vm_start, unsigned long vm_end, unsigned long vm_pgoff) {";
+  s.op->indent(1);
+  s.op->newline() << "int i;";
+  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
+  s.op->indent(1);
+  s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"vm_cb: tsk %d:%d path %s, start 0x%08lx, end 0x%08lx, offset 0x%lx\\n\", tsk->pid, map_p, vm_path, vm_start, vm_end, vm_pgoff);";
+  s.op->indent(-1);
+  s.op->newline() << "#endif";
+  s.op->newline() << "if (map_p) {";
+  s.op->indent(1);
+  s.op->newline() << "struct _stp_module *module = NULL;";
+  s.op->newline() << "if (vm_path != NULL)";
+  s.op->indent(1);
+  s.op->newline() << "for (i = 0; i < _stp_num_modules; i++)";
+  s.op->indent(1);
+  s.op->newline() << "if (strcmp(vm_path, _stp_modules[i]->path) == 0) {";
+  s.op->indent(1);
+  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
+  s.op->indent(1);
+  s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"vm_cb: matched path %s to module\\n\", vm_path);";
+  s.op->indent(-1);
+  s.op->newline() << "#endif";
+  s.op->newline() << "module = _stp_modules[i];";
+  s.op->newline() << "break;";
+  s.op->indent(-1);
+  s.op->newline() << "}";
+  s.op->indent(-2);
+  // XXX Check return value
+  s.op->newline() << "stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff, module);";
+  s.op->indent(-1);
+  s.op->newline() << "} else {";
+  s.op->indent(1);
+  // XXX Check return value
+  s.op->newline() << "stap_remove_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);";
+  s.op->indent(-1);
+  s.op->newline() << "}";
+  s.op->newline() << "return 0;";
+  s.op->indent(-1);
+  s.op->newline() << "}";
+
   s.op->newline() << "static struct stap_utrace_probe stap_utrace_probes[] = {";
   s.op->indent(1);
 
@@ -7172,7 +7213,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 	  // our vm_callback called.
 	  string path = it->first;
 	  emit_vm_callback_probe_decl (s, true, path, (int64_t)0,
-				       "__stp_tf_vm_cb");
+				       "_stp_tf_vm_cb");
 
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
@@ -7191,7 +7232,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 	  // Emit a "fake" probe decl that is really a hook for to get
 	  // our vm_callback called.
 	  emit_vm_callback_probe_decl (s, false, "", it->first,
-				       "__stp_tf_vm_cb");
+				       "_stp_tf_vm_cb");
 
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
