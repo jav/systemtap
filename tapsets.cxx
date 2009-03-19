@@ -9231,9 +9231,9 @@ mark_builder::build(systemtap_session & sess,
 struct tracepoint_arg
 {
   string name, c_type;
-  bool used, isptr;
+  bool usable, used, isptr;
   Dwarf_Die type_die;
-  tracepoint_arg(): used(false), isptr(false) {}
+  tracepoint_arg(): usable(false), used(false), isptr(false) {}
 };
 
 struct tracepoint_derived_probe: public derived_probe
@@ -9285,7 +9285,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // search for a tracepoint parameter matching this name
   tracepoint_arg *arg = NULL;
   for (unsigned i = 0; i < args.size(); ++i)
-    if (args[i].name == argname)
+    if (args[i].usable && args[i].name == argname)
       {
         arg = &args[i];
         arg->used = true;
@@ -9504,6 +9504,8 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
       for (unsigned i = 0; i < args.size(); ++i)
         {
+          if (!args[i].usable)
+            continue;
           if (i > 0)
             pf->raw_components += " ";
           pf->raw_components += args[i].name;
@@ -9649,28 +9651,29 @@ dwarf_type_name(Dwarf_Die& type_die, string& c_type)
 
 
 static bool
-resolve_tracepoint_arg_type(Dwarf_Die& type_die, bool& isptr)
+resolve_tracepoint_arg_type(tracepoint_arg& arg)
 {
   Dwarf_Attribute type_attr;
-  switch (dwarf_tag(&type_die))
+  switch (dwarf_tag(&arg.type_die))
     {
     case DW_TAG_typedef:
     case DW_TAG_const_type:
     case DW_TAG_volatile_type:
       // iterate on the referent type
-      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
-              && dwarf_formref_die(&type_attr, &type_die)
-              && resolve_tracepoint_arg_type(type_die, isptr));
+      return (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
+              && dwarf_formref_die(&type_attr, &arg.type_die)
+              && resolve_tracepoint_arg_type(arg));
     case DW_TAG_base_type:
       // base types will simply be treated as script longs
-      isptr = false;
+      arg.isptr = false;
       return true;
     case DW_TAG_pointer_type:
-      // pointers can be either script longs,
-      // or dereferenced with their referent type
-      isptr = true;
-      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
-              && dwarf_formref_die(&type_attr, &type_die));
+      // pointers can be treated as script longs,
+      // and if we know their type, they can also be dereferenced
+      if (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
+          && dwarf_formref_die(&type_attr, &arg.type_die))
+        arg.isptr = true;
+      return true;
     default:
       // should we consider other types too?
       return false;
@@ -9694,12 +9697,12 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
           Dwarf_Attribute type_attr;
           if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr)
               || !dwarf_formref_die (&type_attr, &tparg.type_die)
-              || !dwarf_type_name(tparg.type_die, tparg.c_type)
-              || !resolve_tracepoint_arg_type(tparg.type_die, tparg.isptr))
+              || !dwarf_type_name(tparg.type_die, tparg.c_type))
             throw semantic_error ("cannot get type of tracepoint '"
                                   + tracepoint_name + "' parameter '"
                                   + tparg.name + "'");
 
+          tparg.usable = resolve_tracepoint_arg_type(tparg);
           args.push_back(tparg);
           if (sess.verbose > 4)
             clog << "found parameter for tracepoint '" << tracepoint_name
@@ -9712,8 +9715,9 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
 void
 tracepoint_derived_probe::printargs(std::ostream &o) const
 {
-      for (unsigned i = 0; i < args.size(); ++i)
-       o << " $" << args[i].name << ":" << args[i].c_type;
+  for (unsigned i = 0; i < args.size(); ++i)
+    if (args[i].usable)
+      o << " $" << args[i].name << ":" << args[i].c_type;
 }
 
 void
