@@ -9739,6 +9739,8 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // don't provide any sort of context pointer.
       s.op->newline() << "#include <" << p->header << ">";
       s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
+      if (p->args.size() == 0)
+        s.op->line() << "void";
       for (unsigned j = 0; j < p->args.size(); ++j)
         {
           if (j > 0)
