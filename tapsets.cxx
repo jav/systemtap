@@ -5067,7 +5067,8 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       // cast_op to the next pass.  We hope that this value ends
       // up not being referenced after all, so it can be optimized out
       // quietly.
-      semantic_error* er = new semantic_error ("type definition not found", e->tok);
+      string msg = "type definition '" + e->type + "' not found";
+      semantic_error* er = new semantic_error (msg, e->tok);
       // NB: we can have multiple errors, since a @cast
       // may be expanded in several different contexts:
       //     function ("*") { @cast(...) }
