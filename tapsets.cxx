@@ -9586,32 +9586,39 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 static bool
 dwarf_type_name(Dwarf_Die& type_die, string& c_type)
 {
-  // if this die has a direct name, then we're done
-  const char *diename = dwarf_diename_integrate(&type_die);
-  if (diename != NULL)
+  // if we've gotten down to a basic type, then we're done
+  bool done = true;
+  switch (dwarf_tag(&type_die))
     {
-      switch (dwarf_tag(&type_die))
-        {
-        case DW_TAG_structure_type:
-          c_type.append("struct ");
-          break;
-        case DW_TAG_union_type:
-          c_type.append("union ");
-          break;
-        }
-      c_type.append(diename);
+    case DW_TAG_structure_type:
+      c_type.append("struct ");
+      break;
+    case DW_TAG_union_type:
+      c_type.append("union ");
+      break;
+    case DW_TAG_typedef:
+    case DW_TAG_base_type:
+      break;
+    default:
+      done = false;
+      break;
+    }
+  if (done)
+    {
+      c_type.append(dwarf_diename_integrate(&type_die));
       return true;
     }
 
   // otherwise, this die is a type modifier.
 
   // recurse into the referent type
+  // if it can't be named, just call it "void"
   Dwarf_Attribute subtype_attr;
   Dwarf_Die subtype_die;
   if (!dwarf_attr_integrate(&type_die, DW_AT_type, &subtype_attr)
       || !dwarf_formref_die(&subtype_attr, &subtype_die)
       || !dwarf_type_name(subtype_die, c_type))
-    return false;
+    c_type = "void";
 
   const char *suffix = NULL;
   switch (dwarf_tag(&type_die))
@@ -9632,6 +9639,11 @@ dwarf_type_name(Dwarf_Die& type_die, string& c_type)
       return false;
     }
   c_type.append(suffix);
+
+  // XXX HACK!  The va_list isn't usable as found in the debuginfo...
+  if (c_type == "struct __va_list_tag*")
+    c_type = "va_list";
+
   return true;
 }
 
