@@ -1,4 +1,3 @@
-%{!?release: %define release 2}
 %{!?with_sqlite: %define with_sqlite 1}
 %{!?with_docs: %define with_docs 1}
 %{!?with_crash: %define with_crash 0}
@@ -6,9 +5,9 @@
 %{!?elfutils_version: %define elfutils_version 0.127}
 
 Name: systemtap
-# for version, see also configure.ac
 Version: 0.9
-Release: %{release}%{?dist}
+Release: 3%{?dist}
+# for version, see also configure.ac
 Summary: Instrumentation System
 Group: Development/System
 License: GPLv2+
