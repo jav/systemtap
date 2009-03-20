@@ -5,23 +5,10 @@
 <book id="TapsetRef">
  <bookinfo>
   <title>SystemTap Tapset Reference Manual</title>
-  
-  <authorgroup>
-   <author>
-    <firstname>William</firstname>
-    <surname>Cohen</surname>
-    <contrib></contrib>
-    <affiliation>
-     <address>
-      <email>wcohen@redhat.com</email>
-     </address>
-    </affiliation>
-   </author>
-  </authorgroup>
 
   <copyright>
-   <year>2008, 2009</year>
-   <holder>Red Hat, Inc.</holder>
+   <year>2008-2009</year>
+   <holder>Red Hat, Inc. and others</holder>
   </copyright>
 
   <legalnotice>
@@ -170,11 +157,12 @@
     <title>Networking Tapset</title>
     <para>
       This family of probe points is used to probe the activities of
-      the network device, TCP layer, and UDP layer. 
+      the network device and protocol layers.
     </para>
 !Itapset/networking.stp
 !Itapset/tcp.stp
 !Itapset/udp.stp
+!Itapset/ip.stp
   </chapter>
 
   <chapter id="socket.stp">
@@ -185,25 +173,6 @@
    </para>
 !Itapset/socket.stp
   </chapter>
-<!--
-  <chapter id="tcp.stp">
-    <title>TCP Tapset</title>
-    <para>
-      This family of probe points is used to probe TCP layer activities.
-      It contains the following probe points:
-    </para>
-
-  </chapter>
-
-  <chapter id="upd.stp">
-    <title>UDP Tapset</title>
-    <para>
-      This family of probe points is used to probe UDP layer activities.
-      It contains the following probe points:
-    </para>
-
-  </chapter>
--->
   <chapter id="process.stp">
     <title>Process Tapset</title>
     <para>
