@@ -7490,6 +7490,19 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "} stap_uprobes [MAXUPROBES];";
   s.op->newline() << "DEFINE_MUTEX(stap_uprobes_lock);"; // protects against concurrent registration/unregistration
 
+  // Emit vma callbacks.
+  s.op->newline() << "static struct stap_task_finder_target stap_uprobe_vmcbs[] = {";
+  s.op->indent(1);
+  for (unsigned i = 0; i < probes.size(); i++)
+    {
+      uprobe_derived_probe* p = probes[i];
+      if (p->pid != 0)
+	emit_vma_callback_probe_decl (s, "", p->pid);
+      else
+	emit_vma_callback_probe_decl (s, p->module, (int64_t)0);
+    }
+  s.op->newline(-1) << "};";
+
   s.op->newline() << "static struct stap_uprobe_spec {";
   s.op->newline(1) << "struct stap_task_finder_target finder;";
   s.op->newline() << "unsigned long address;";
@@ -7690,6 +7703,13 @@ void
 uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   if (probes.empty()) return;
+  s.op->newline() << "/* ---- uprobe vma callbacks ---- */";
+  s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_uprobe_vmcbs); i++) {";
+  s.op->indent(1);
+  s.op->newline() << "struct stap_task_finder_target *r = &stap_uprobe_vmcbs[i];";
+  s.op->newline() << "rc = stap_register_task_finder_target(r);";
+  s.op->newline(-1) << "}";
+
   s.op->newline() << "/* ---- user probes ---- */";
 
   s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";

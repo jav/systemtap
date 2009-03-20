@@ -37,7 +37,8 @@ set testscript {
 	  printf("handler: %%s\n", symbolname(handler));
       }
     }
-    probe process("%s").syscall { printf(""); /* XXX trigger tracker */ }
+    /* track through uprobes, so as to make sure we have the symbols */
+    probe process("%s").function("*") { printf(""); }
 }
 
 set output {handler: main_handler
