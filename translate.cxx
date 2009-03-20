@@ -867,12 +867,10 @@ c_unparser::emit_common_header ()
   o->newline() << "static atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
   o->newline() << "static atomic_t error_count = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count = ATOMIC_INIT (0);";
-  o->newline() << "#ifdef STP_TIMING";
   o->newline() << "static atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
-  o->newline() << "#endif";
   o->newline();
   o->newline() << "struct context {";
   o->newline(1) << "atomic_t busy;";
