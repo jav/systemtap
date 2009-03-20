@@ -6188,6 +6188,27 @@ module_info::~module_info()
     delete sym_table;
 }
 
+// Helper function to emit vma tracker callback _stp_tf_vm_cb.
+static void
+emit_vma_callback_probe_decl (systemtap_session& s,
+			      string path,
+			      int64_t pid)
+{
+  s.op->newline() << "{";
+  if (pid == 0)
+    {
+      s.op->line() << " .pathname=\"" << path << "\",";
+      s.op->line() << " .pid=0,";
+    }
+  else
+    {
+      s.op->line() << " .pathname=NULL,";
+      s.op->line() << " .pid=" << pid << ",";
+    }
+  s.op->line() << " .callback=NULL,";
+  s.op->line() << " .vm_callback=&_stp_tf_vm_cb,";
+  s.op->line() << " },";
+}
 
 
 // ------------------------------------------------------------------------
@@ -6538,9 +6559,6 @@ private:
   bool flags_seen[UDPF_NFLAGS];
 
   void emit_probe_decl (systemtap_session& s, utrace_derived_probe *p);
-  void emit_vm_callback_probe_decl (systemtap_session& s, bool has_path,
-				    string path, int64_t pid,
-				    string vm_callback);
 
 public:
   utrace_derived_probe_group(): num_probes(0), flags_seen() { }
@@ -6922,40 +6940,6 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
 
 
 void
-utrace_derived_probe_group::emit_vm_callback_probe_decl (systemtap_session& s,
-							 bool has_path,
-							 string path,
-							 int64_t pid,
-							 string vm_callback)
-{
-  s.op->newline() << "{";
-  s.op->line() << " .tgt={";
-
-  if (has_path)
-    {
-      s.op->line() << " .pathname=\"" << path << "\",";
-      s.op->line() << " .pid=0,";
-    }
-  else
-    {
-      s.op->line() << " .pathname=NULL,";
-      s.op->line() << " .pid=" << pid << ",";
-    }
-
-  s.op->line() << " .callback=NULL,";
-  s.op->line() << " .vm_callback=&" << vm_callback << ",";
-  s.op->line() << " },";
-  s.op->line() << " .pp=\"internal\",";
-  s.op->line() << " .ph=NULL,";
-  s.op->line() << " .flags=(UDPF_NONE),";
-  s.op->line() << " .ops={ NULL },";
-  s.op->line() << " .events=0,";
-  s.op->line() << " .engine_attached=0,";
-  s.op->line() << " },";
-}
-
-
-void
 utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
   if (probes_by_path.empty() && probes_by_pid.empty())
@@ -7170,6 +7154,23 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "return rc;";
   s.op->newline(-1) << "}";
 
+  // Emit vma callbacks.
+  s.op->newline() << "static struct stap_task_finder_target stap_utrace_vmcbs[] = {";
+  s.op->indent(1);
+  if (! probes_by_path.empty())
+    {
+      for (p_b_path_iterator it = probes_by_path.begin();
+           it != probes_by_path.end(); it++)
+	emit_vma_callback_probe_decl (s, it->first, (int64_t)0);
+    }
+  if (! probes_by_pid.empty())
+    {
+      for (p_b_pid_iterator it = probes_by_pid.begin();
+	   it != probes_by_pid.end(); it++)
+	emit_vma_callback_probe_decl (s, "", it->first);
+    }
+  s.op->newline(-1) << "};";
+
   s.op->newline() << "static struct stap_utrace_probe stap_utrace_probes[] = {";
   s.op->indent(1);
 
@@ -7179,12 +7180,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       for (p_b_path_iterator it = probes_by_path.begin();
 	   it != probes_by_path.end(); it++)
         {
-	  // Emit a "fake" probe decl that is really a hook for to get
-	  // our vm_callback called.
-	  string path = it->first;
-	  emit_vm_callback_probe_decl (s, true, path, (int64_t)0,
-				       "_stp_tf_vm_cb");
-
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
 	      utrace_derived_probe *p = it->second[i];
@@ -7199,11 +7194,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       for (p_b_pid_iterator it = probes_by_pid.begin();
 	   it != probes_by_pid.end(); it++)
         {
-	  // Emit a "fake" probe decl that is really a hook for to get
-	  // our vm_callback called.
-	  emit_vm_callback_probe_decl (s, false, "", it->first,
-				       "_stp_tf_vm_cb");
-
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
 	      utrace_derived_probe *p = it->second[i];
@@ -7222,6 +7212,13 @@ utrace_derived_probe_group::emit_module_init (systemtap_session& s)
     return;
 
   s.op->newline();
+  s.op->newline() << "/* ---- utrace vma callbacks ---- */";
+  s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_vmcbs); i++) {";
+  s.op->indent(1);
+  s.op->newline() << "struct stap_task_finder_target *r = &stap_utrace_vmcbs[i];";
+  s.op->newline() << "rc = stap_register_task_finder_target(r);";
+  s.op->newline(-1) << "}";
+
   s.op->newline() << "/* ---- utrace probes ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_probes); i++) {";
   s.op->indent(1);
