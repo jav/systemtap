@@ -90,6 +90,7 @@ struct systemtap_session
   std::string module_name;
   std::string stapconf_name;
   std::string output_file;
+  std::string size_option;
   std::string cmd;
   int target_pid;
   int last_pass;

@@ -175,7 +175,7 @@ even if they do not have an explicit probe placed into them.
 .TP
 .BI \-o " FILE"
 Send standard output to named file. In bulk mode, percpu files will
-start with FILE_ followed by the cpu number.
+start with FILE_ (FILE_cpu with -F) followed by the cpu number.
 .TP
 .BI \-c " CMD"
 Start the probes, run CMD, and exit when CMD finishes.
@@ -193,8 +193,18 @@ and aliases.
 Similar to "-l", but list probe points and script-level local variables.
 .TP
 .BI \-F
-Load module and start probes, then detach from the module leaving the
-probes running.
+Without -o option, load module and start probes, then detach from the module
+leaving the probes running.
+With -o option, run staprun in background as a daemon and show it's pid.
+.TP
+.BI \-S " size[,N]"
+Sets the maximum size of output file and the maximum number of output files.
+If the size of output file will exceed
+.B size
+, systemtap switches output file to the next file. And if the number of
+output files exceed
+.B N
+, systemtap removes the oldest output file. You can omit the second argument.
 .TP
 .B \-\-kelf
 For names and addresses of functions to probe,

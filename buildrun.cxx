@@ -329,7 +329,10 @@ run_pass (systemtap_session& s)
     staprun_cmd += "-u ";
 
   if (s.load_only)
-    staprun_cmd += "-L ";
+    staprun_cmd += (s.output_file.empty() ? "-L " : "-D ");
+
+  if (!s.size_option.empty())
+    staprun_cmd += "-S " + s.size_option + " ";
 
   staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
 
