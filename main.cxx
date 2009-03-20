@@ -108,7 +108,9 @@ usage (systemtap_session& s, int exitcode)
     << "              " << s.kernel_build_tree << endl
     << "   -m MODULE  set probe module name, instead of " << endl
     << "              " << s.module_name << endl
-    << "   -o FILE    send script output to file, instead of stdout" << endl
+    << "   -o FILE    send script output to file, instead of stdout. This supports" << endl
+    << "              a subset of strftime(3) (%%,%C,%Y,%y,%m,%d,%e,%F,%H,%I,%j,%k," << endl
+    << "              %l,%M,%S,%R,%T,%u,%w) for FILE." << endl
     << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
     << "   -x PID     sets target() to PID" << endl
     << "   -F         run as on-file flight recorder with -o." << endl

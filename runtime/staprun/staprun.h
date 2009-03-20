@@ -119,7 +119,10 @@ int init_oldrelayfs(void);
 void close_oldrelayfs(int);
 int write_realtime_data(void *data, ssize_t nb);
 void setup_signals(void);
-int make_outfile_name(char *buf, int max, int fnum, int cpu);
+int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t);
+int init_backlog(int cpu);
+void write_backlog(int cpu, int fnum, time_t t);
+time_t read_backlog(int cpu, int fnum);
 /* staprun_funcs.c */
 void setup_staprun_signals(void);
 const char *moderror(int err);
@@ -131,6 +134,7 @@ void start_symbol_thread(void);
 void stop_symbol_thread(void);
 
 /* common.c functions */
+int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t);
 void parse_args(int argc, char **argv);
 void usage(char *prog);
 void parse_modpath(const char *);

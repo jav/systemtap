@@ -17,6 +17,9 @@ static pthread_t reader[NR_CPUS];
 static int relay_fd[NR_CPUS];
 static int bulkmode = 0;
 static volatile int stop_threads = 0;
+static time_t *time_backlog[NR_CPUS];
+static int backlog_order=0;
+#define BACKLOG_MASK ((1 << backlog_order) - 1)
 
 /*
  * ppoll exists in glibc >= 2.4
@@ -44,20 +47,52 @@ static int ppoll(struct pollfd *fds, nfds_t nfds,
 }
 #endif
 
-int make_outfile_name(char *buf, int max, int fnum, int cpu)
+int init_backlog(int cpu)
 {
+	int order = 0;
+	if (!fnum_max)
+		return 0;
+	while (fnum_max >> order) order++;
+	if (fnum_max == 1<<(order-1)) order--;
+	time_backlog[cpu] = (time_t *)calloc(1<<order, sizeof(time_t));
+	if (time_backlog[cpu] == NULL) {
+		_err("Memory allocation failed\n");
+		return -1;
+	}
+	backlog_order = order;
+	return 0;
+}
+
+void write_backlog(int cpu, int fnum, time_t t)
+{
+	time_backlog[cpu][fnum & BACKLOG_MASK] = t;
+}
+
+time_t read_backlog(int cpu, int fnum)
+{
+	return time_backlog[cpu][fnum & BACKLOG_MASK];
+}
+
+int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t)
+{
+	int len;
+	len = stap_strfloctime(buf, max, outfile_name, t);
+	if (len < 0) {
+		err("Invalid FILE name format\n");
+  		return -1;
+  	}
 	if (bulkmode) {
 		/* special case: for testing we sometimes want to write to /dev/null */
 		if (strcmp(outfile_name, "/dev/null") == 0) {
 			strcpy(buf, "/dev/null");
 		} else {
-			if (snprintf_chk(buf, max, "%s_cpu%d.%d",
-					 outfile_name, cpu, fnum))
+			if (snprintf_chk(&buf[len], PATH_MAX - len,
+					 "_cpu%d.%d", cpu, fnum))
 				return -1;
 		}
 	} else {
 		/* stream mode */
-		if (snprintf_chk(buf, max, "%s.%d", outfile_name, fnum))
+		if (snprintf_chk(&buf[len], PATH_MAX - len, ".%d", fnum))
 			return -1;
 	}
 	return 0;
@@ -66,19 +101,25 @@ int make_outfile_name(char *buf, int max, int fnum, int cpu)
 static int open_outfile(int fnum, int cpu, int remove_file)
 {
 	char buf[PATH_MAX];
+	time_t t;
 	if (!outfile_name) {
 		_err("-S is set without -o. Please file a bug report.\n");
 		return -1;
 	}
 
-	if (remove_file) {
-		 /* remove oldest file */
-		if (make_outfile_name(buf, PATH_MAX, fnum - fnum_max, cpu) < 0)
-			return -1;
-		remove(buf); /* don't care */
+	time(&t);
+	if (fnum_max) {
+		if (remove_file) {
+			 /* remove oldest file */
+			if (make_outfile_name(buf, PATH_MAX, fnum - fnum_max,
+				 cpu, read_backlog(cpu, fnum - fnum_max)) < 0)
+				return -1;
+			remove(buf); /* don't care */
+		}
+		write_backlog(cpu, fnum, t);
 	}
 
-	if (make_outfile_name(buf, PATH_MAX, fnum, cpu) < 0)
+	if (make_outfile_name(buf, PATH_MAX, fnum, cpu, t) < 0)
 		return -1;
 	out_fd[cpu] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 	if (out_fd[cpu] < 0) {
@@ -178,7 +219,7 @@ static void *reader_thread(void *data)
  */
 int init_relayfs(void)
 {
-	int i;
+	int i, len;
 	struct statfs st;
 	char rqbuf[128];
 	char buf[PATH_MAX], relay_filebase[PATH_MAX];
@@ -227,9 +268,12 @@ int init_relayfs(void)
 
 	if (fsize_max) {
 		/* switch file mode */
-		for (i = 0; i < ncpus; i++)
-			if (open_outfile(0, i, 0) < 0)
+		for (i = 0; i < ncpus; i++) {
+			if (init_backlog(i) < 0)
 				return -1;
+  			if (open_outfile(0, i, 0) < 0)
+  				return -1;
+		}
 	} else if (bulkmode) {
 		for (i = 0; i < ncpus; i++) {
 			if (outfile_name) {
@@ -237,7 +281,14 @@ int init_relayfs(void)
 				if (strcmp(outfile_name, "/dev/null") == 0) {
 					strcpy(buf, "/dev/null");
 				} else {
-					if (sprintf_chk(buf, "%s_%d", outfile_name, i))
+					len = stap_strfloctime(buf, PATH_MAX,
+						 outfile_name, time(NULL));
+					if (len < 0) {
+						err("Invalid FILE name format\n");
+						return -1;
+					}
+					if (snprintf_chk(&buf[len],
+						PATH_MAX - len, "_%d", i))
 						return -1;
 				}
 			} else {
@@ -256,9 +307,15 @@ int init_relayfs(void)
 	} else {
 		/* stream mode */
 		if (outfile_name) {
-			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+			len = stap_strfloctime(buf, PATH_MAX,
+						 outfile_name, time(NULL));
+			if (len < 0) {
+				err("Invalid FILE name format\n");
+				return -1;
+			}
+			out_fd[0] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 			if (out_fd[0] < 0) {
-				perr("Couldn't open output file %s", outfile_name);
+				perr("Couldn't open output file %s", buf);
 				return -1;
 			}
 			if (set_clexec(out_fd[i]) < 0)

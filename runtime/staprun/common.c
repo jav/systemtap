@@ -53,6 +53,113 @@ static char *get_abspath(char *path)
 	return path_buf;
 }
 
+int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t)
+{
+	char *c = buf;
+	const char *c2 = fmt, *end = buf + max;
+	int ret, num;
+	struct tm tm;
+	if (buf == NULL || fmt == NULL || max <= 1)
+		return -EINVAL;
+	localtime_r(&t, &tm);
+
+	while (*c2 != '\0'){
+		if (c + 1 >= end)
+			return -EINVAL;
+		if (*c2 != '%') {
+			*c++ = *c2++;
+			continue;
+		}
+		c2++;
+		switch (*c2++) {
+		case '%':
+			*c++ = '%';
+			break;
+		case 'Y':
+			num = tm.tm_year + 1900;
+			goto numbering;
+		case 'y':
+			num = tm.tm_year % 100;
+			goto numbering02;
+		case 'C':
+			num = ((tm.tm_year + 1900 - 1) / 100) + 1;
+			goto numbering;
+		case 'm':
+			num = tm.tm_mon + 1;
+			goto numbering02;
+		case 'd':
+			num = tm.tm_mday;
+			goto numbering02;
+		case 'e':
+			num = tm.tm_mday;
+			goto numbering;
+		case 'F':
+			ret = snprintf(c, end - c, "%d-%02d-%02d",
+				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+			if (ret < 0) return ret;
+			c += ret;
+			break;
+		case 'H':
+			num = tm.tm_hour;
+			goto numbering02;
+		case 'I':
+			num = tm.tm_hour % 12;
+			if (num == 0) num = 12;
+			goto numbering02;
+		case 'j':
+			ret = snprintf(c, end - c, "%03d", tm.tm_yday);
+			if (ret < 0) return ret;
+			c += ret;
+			break;
+		case 'k':
+			num = tm.tm_hour;
+			goto numbering;
+		case 'l':
+			num = tm.tm_hour % 12;
+			if (num == 0) num = 12;
+			goto numbering;
+		case 'M':
+			num = tm.tm_min;
+			goto numbering02;
+		case 'S':
+			num = tm.tm_sec;
+			goto numbering02;
+		case 'R':
+			ret = snprintf(c, end - c, "%02d:%02d",
+					tm.tm_hour, tm.tm_min);
+			if (ret < 0) return ret;
+			c += ret;
+			break;
+		case 'T':
+			ret = snprintf(c, end - c, "%02d:%02d:%02d",
+					tm.tm_hour, tm.tm_min, tm.tm_sec);
+			if (ret < 0) return ret;
+			c += ret;
+			break;
+		case 'u':
+			num = tm.tm_wday == 0 ? 7 : tm.tm_wday;
+			goto numbering;
+		case 'w':
+			num = tm.tm_wday;
+			goto numbering;
+		default:
+			return -EINVAL;
+		}
+		continue;
+numbering:
+		ret = snprintf(c, end - c, "%d", num);
+		if (ret < 0) return ret;
+		c += ret;
+		continue;
+numbering02:
+		ret = snprintf(c, end - c, "%02d", num);
+		if (ret < 0) return ret;
+		c += ret;
+	}
+	*c = '\0';
+	return c - buf;
+}
+
 void parse_args(int argc, char **argv)
 {
 	int c;
@@ -125,9 +232,17 @@ void parse_args(int argc, char **argv)
 		}
 	}
 	if (outfile_name) {
+		char tmp[PATH_MAX];
+		int ret;
 		outfile_name = get_abspath(outfile_name);
 		if (outfile_name == NULL) {
 			err("File name is too long.\n");
+			usage(argv[0]);
+		}
+		ret = stap_strfloctime(tmp, PATH_MAX - 18, /* = _cpuNNN.SSSSSSSSSS */
+				       outfile_name, time(NULL));
+		if (ret < 0) {
+			err("Filename format is invalid or too long.\n");
 			usage(argv[0]);
 		}
 	}
@@ -191,7 +306,9 @@ void usage(char *prog)
 	err("                exit when it does.  The '_stp_target' variable\n");
 	err("                will contain the pid for the command.\n");
 	err("-x pid          Sets the '_stp_target' variable to pid.\n");
-	err("-o FILE         Send output to FILE.\n");
+	err("-o FILE         Send output to FILE. This supports a subset of\n");
+	err("                strftime(3) (%%%%,%%C,%%Y,%%y,%%m,%%d,%%e,%%F,%%H,%%I\n");
+	err("                %%j,%%k,%%l,%%M,%%S,%%R,%%T,%%u,%%w) for FILE.\n");
 	err("-b buffer size  The systemtap module specifies a buffer size.\n");
 	err("                Setting one here will override that value.  The\n");
 	err("                value should be an integer between 1 and 4095 \n");

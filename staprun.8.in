@@ -53,7 +53,9 @@ The '_stp_target' variable will be set to PID.
 .B \-o FILE
 Send output to FILE. If the module uses bulk mode, the output will
 be in percpu files FILE_x(FILE_cpux in backgroud and bulk mode)
-where 'x' is the cpu number.
+where 'x' is the cpu number. This supports a subset of strftime(3)
+(%%, %C, %Y, %y, %m, %d, %e, %F, %H, %I, %j, %l, %M, %S, %R, %T, %u, %w)
+for FILE.
 .TP
 .B \-b BUFFER_SIZE
 The systemtap module will specify a buffer size.

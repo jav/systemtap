@@ -81,15 +81,20 @@ void close_oldrelayfs(int detach)
 static int open_oldoutfile(int fnum, int cpu, int remove_file)
 {
 	char buf[PATH_MAX];
+	time_t t;
 	if (outfile_name) {
-		if (remove_file) {
-			 /* remove oldest file */
-			if (make_outfile_name(buf, PATH_MAX, fnum - fnum_max,
-					      cpu) < 0)
-				return -1;
-			remove(buf); /* don't care */
+		time(&t);
+		if (fnum_max) {
+			if (remove_file) {
+				 /* remove oldest file */
+				if (make_outfile_name(buf, PATH_MAX, fnum - fnum_max,
+					 cpu, read_backlog(cpu, fnum - fnum_max)) < 0)
+					return -1;
+				remove(buf); /* don't care */
+			}
+			write_backlog(cpu, fnum, t);
 		}
-		if (make_outfile_name(buf, PATH_MAX, fnum, cpu) < 0)
+		if (make_outfile_name(buf, PATH_MAX, fnum, cpu, t) < 0)
 			return -1;
 	} else if (bulkmode) {
 		if (sprintf_chk(buf, "stpd_cpu%d.%d", cpu, fnum))
@@ -143,6 +148,8 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 	}
 
 	if (fsize_max) {
+		if (init_backlog(cpu) < 0)
+			goto err2;
 		if (open_oldoutfile(0, cpu, 0) < 0)
 			goto err2;
 		goto opened;
@@ -153,12 +160,18 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		if (strcmp(outfile_name, "/dev/null") == 0) {
 			strcpy(tmp, "/dev/null");
 		} else {
-			if (sprintf_chk(tmp, "%s_%d", outfile_name, cpu))
-				goto err1;
+			int len;
+			len = stap_strfloctime(tmp, PATH_MAX, outfile_name, time(NULL));
+			if (len < 0) {
+				err("Invalid FILE name format\n");
+				goto err2;
+			}
+			if (snprintf_chk(&tmp[len], PATH_MAX - len, "_%d", cpu))
+				goto err2;
 		}
 	} else {
 		if (sprintf_chk(tmp, "stpd_cpu%d", cpu))
-			goto err1;
+			goto err2;
 	}
 
 	if((percpu_tmpfile[cpu] = fopen(tmp, "w+")) == NULL) {
@@ -334,13 +347,22 @@ int init_oldrelayfs(void)
 		bulkmode = 1;
  
 	if (!bulkmode) {
-		if (fsize_max)
+		int len;
+		char tmp[PATH_MAX];
+		if (fsize_max) {
+			if (init_backlog(0))
+				return -1;
 			return open_oldoutfile(0, 0, 0);
-
+		}
 		if (outfile_name) {
-			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+			len = stap_strfloctime(tmp, PATH_MAX, outfile_name, time(NULL));
+			if (len < 0) {
+				err("Invalid FILE name format\n");
+				return -1;
+			}
+			out_fd[0] = open (tmp, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 			if (out_fd[0] < 0 || set_clexec(out_fd[0]) < 0) {
-				perr("Couldn't open output file '%s'", outfile_name);
+				perr("Couldn't open output file '%s'", tmp);
 				return -1;
 			}
 		} else
