@@ -384,21 +384,25 @@ make_tracequery(systemtap_session& s, string& name)
 
   // dynamically pull in all tracepoint headers from include/trace/
   glob_t trace_glob;
-  string glob_str(s.kernel_build_tree + "/include/trace/*.h");
-  glob(glob_str.c_str(), 0, NULL, &trace_glob);
-  for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
+  string globs[2] = { "/include/trace/*.h", "/source/include/trace/*.h" };
+  for (unsigned z=0; z<2; z++)
     {
-      string header(basename(trace_glob.gl_pathv[i]));
+      string glob_str(s.kernel_build_tree + globs[z]);
+      glob(glob_str.c_str(), 0, NULL, &trace_glob);
+      for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
+        {
+          string header(basename(trace_glob.gl_pathv[i]));
 
-      // filter out a few known "internal-only" headers
-      if (header == "trace_events.h")
-        continue;
-      if (header.find("_event_types.h") != string::npos)
-        continue;
+          // filter out a few known "internal-only" headers
+          if (header == "trace_events.h")
+            continue;
+          if (header.find("_event_types.h") != string::npos)
+            continue;
 
-      osrc << "#include <trace/" << header << ">" << endl;
+          osrc << "#include <trace/" << header << ">" << endl;
+        }
+      globfree(&trace_glob);
     }
-  globfree(&trace_glob);
 
   // finish up the module source
   osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;
