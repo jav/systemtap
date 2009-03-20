@@ -1360,9 +1360,10 @@ c_unparser::emit_module_exit ()
     o->newline() << "#endif";
   }
 
-  // print final error/reentrancy counts if non-zero
+  // print final error/skipped counts if non-zero
   o->newline() << "if (atomic_read (& skipped_count) || "
-               << "atomic_read (& error_count)) {";
+               << "atomic_read (& error_count) || "
+               << "atomic_read (& skipped_count_reentrant)) {"; // PR9967
   o->newline(1) << "_stp_warn (\"Number of errors: %d, "
                 << "skipped probes: %d\\n\", "
                 << "(int) atomic_read (& error_count), "

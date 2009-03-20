@@ -206,7 +206,9 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
 
   o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
   o->newline() << "if (atomic_inc_return (& c->busy) != 1) {";
-  o->newline(1) << "atomic_inc (& skipped_count);";
+  o->newline(1) << "#if !INTERRUPTIBLE";
+  o->newline() << "atomic_inc (& skipped_count);";
+  o->newline() << "#endif";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "atomic_inc (& skipped_count_reentrant);";
   o->newline() << "#ifdef DEBUG_REENTRANCY";

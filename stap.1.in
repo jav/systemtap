@@ -1056,7 +1056,8 @@ means that the first error will exit the script.
 MAXSKIPPED
 Maximum number of skipped probes before an exit is triggered, default 100.
 Running systemtap with \-t (timing) mode gives more details about skipped
-probes.
+probes.  With the default \-DINTERRUPTIBLE=1 setting, probes skipped due to
+reentrancy are not accumulated against this limit.
 .TP
 MINSTACKSPACE
 Minimum number of free kernel stack bytes required in order to
