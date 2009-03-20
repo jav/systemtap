@@ -6391,7 +6391,6 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "/* ---- itrace probes ---- */";
-  s.op->newline() << "#include \"task_finder.c\"";
   s.op->newline() << "struct stap_itrace_probe {";
   s.op->indent(1);
   s.op->newline() << "struct stap_task_finder_target tgt;";
