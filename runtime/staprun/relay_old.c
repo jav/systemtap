@@ -23,6 +23,14 @@ static int bulkmode = 0;
 unsigned subbuf_size = 0;
 unsigned n_subbufs = 0;
 
+struct switchfile_ctrl_block {
+	off_t wsize;
+	int fnum;
+	int rmfile;
+};
+
+static struct switchfile_ctrl_block global_scb = {0, 0, 0};
+
 /* per-cpu buffer info */
 static struct buf_status
 {
@@ -70,6 +78,36 @@ void close_oldrelayfs(int detach)
 		close_relayfs_files(i);
 }
 
+static int open_oldoutfile(int fnum, int cpu, int remove_file)
+{
+	char buf[PATH_MAX];
+	if (outfile_name) {
+		if (remove_file) {
+			 /* remove oldest file */
+			if (make_outfile_name(buf, PATH_MAX, fnum - fnum_max,
+					      cpu) < 0)
+				return -1;
+			remove(buf); /* don't care */
+		}
+		if (make_outfile_name(buf, PATH_MAX, fnum, cpu) < 0)
+			return -1;
+	} else if (bulkmode) {
+		if (sprintf_chk(buf, "stpd_cpu%d.%d", cpu, fnum))
+			return -1;
+	} else { /* stream mode */
+		out_fd[cpu] = STDOUT_FILENO;
+		return 0;
+	}
+
+	out_fd[cpu] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+	if (out_fd[cpu] < 0) {
+		perr("Couldn't open output file %s", buf);
+		return -1;
+	}
+	if (set_clexec(out_fd[cpu]) < 0)
+		return -1;
+	return 0;
+}
 /**
  *	open_relayfs_files - open and mmap buffer and open output file.
  *	Returns -1 on unexpected failure, 0 if file not found, 1 on success.
@@ -104,6 +142,11 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		return -1;
 	}
 
+	if (fsize_max) {
+		if (open_oldoutfile(0, cpu, 0) < 0)
+			goto err2;
+		goto opened;
+	}
 	if (outfile_name) {
 		/* special case: for testing we sometimes want to
 		 * write to /dev/null */
@@ -126,6 +169,7 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		perr("Couldn't open output file %s", tmp);
 		goto err2;
 	}
+opened:
 
 	total_bufsize = subbuf_size * n_subbufs;
 	relay_buffer[cpu] = mmap(NULL, total_bufsize, PROT_READ,
@@ -155,7 +199,8 @@ err1:
 /**
  *	process_subbufs - write ready subbufs to disk
  */
-static int process_subbufs(struct _stp_buf_info *info)
+static int process_subbufs(struct _stp_buf_info *info,
+			   struct switchfile_ctrl_block *scb)
 {
 	unsigned subbufs_ready, start_subbuf, end_subbuf, subbuf_idx, i;
 	int len, cpu = info->cpu;
@@ -173,6 +218,18 @@ static int process_subbufs(struct _stp_buf_info *info)
 		padding = *((unsigned *)subbuf_ptr);
 		subbuf_ptr += sizeof(padding);
 		len = (subbuf_size - sizeof(padding)) - padding;
+		scb->wsize += len;
+		if (fsize_max && scb->wsize > fsize_max) {
+			fclose(percpu_tmpfile[cpu]);
+			scb->fnum ++;
+			if (fnum_max && scb->fnum == fnum_max)
+				scb->rmfile = 1;
+			if (open_oldoutfile(scb->fnum, cpu, scb->rmfile) < 0) {
+				perr("Couldn't open file for cpu %d, exiting.", cpu);
+				exit(1);
+			}
+			scb->wsize = 0;
+		}
 		if (len) {
 			if (fwrite_unlocked (subbuf_ptr, len, 1, percpu_tmpfile[cpu]) != 1) {
 				_perr("Couldn't write to output file for cpu %d, exiting:", cpu);
@@ -196,6 +253,7 @@ static void *reader_thread(void *data)
 	struct _stp_consumed_info consumed_info;
 	unsigned subbufs_consumed;
 	cpu_set_t cpu_mask;
+	struct switchfile_ctrl_block scb = {0, 0, 0};
 
 	CPU_ZERO(&cpu_mask);
 	CPU_SET(cpu, &cpu_mask);
@@ -217,7 +275,7 @@ static void *reader_thread(void *data)
 		}
 
 		rc = read(proc_fd[cpu], &status[cpu].info, sizeof(struct _stp_buf_info));
-		subbufs_consumed = process_subbufs(&status[cpu].info);
+		subbufs_consumed = process_subbufs(&status[cpu].info, &scb);
 		if (subbufs_consumed) {
 			if (subbufs_consumed > status[cpu].max_backlog)
 				status[cpu].max_backlog = subbufs_consumed;
@@ -230,6 +288,33 @@ static void *reader_thread(void *data)
 		if (status[cpu].info.flushing)
 			pthread_exit(NULL);
 	} while (1);
+}
+
+/**
+ *	write_realtime_data - write realtime data packet to disk
+ */
+int write_realtime_data(void *data, ssize_t nb)
+{
+	ssize_t bw;
+	global_scb.wsize += nb;
+	if (fsize_max && global_scb.wsize > fsize_max) {
+		close(out_fd[0]);
+		global_scb.fnum++;
+		if (fnum_max && global_scb.fnum == fnum_max)
+			global_scb.rmfile = 1;
+		if (open_oldoutfile(global_scb.fnum, 0,
+				    global_scb.rmfile) < 0) {
+			perr("Couldn't open file, exiting.");
+			return -1;
+		}
+		global_scb.wsize = 0;
+	}
+	bw = write(out_fd[0], data, nb);
+	if (bw >= 0 && bw != nb) {
+		nb = nb - bw;
+		bw = write(out_fd[0], data, nb);
+	}
+	return bw != nb;
 }
 
 /**
@@ -249,6 +334,9 @@ int init_oldrelayfs(void)
 		bulkmode = 1;
  
 	if (!bulkmode) {
+		if (fsize_max)
+			return open_oldoutfile(0, 0, 0);
+
 		if (outfile_name) {
 			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 			if (out_fd[0] < 0 || set_clexec(out_fd[0]) < 0) {

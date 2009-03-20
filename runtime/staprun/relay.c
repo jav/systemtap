@@ -44,6 +44,52 @@ static int ppoll(struct pollfd *fds, nfds_t nfds,
 }
 #endif
 
+int make_outfile_name(char *buf, int max, int fnum, int cpu)
+{
+	if (bulkmode) {
+		/* special case: for testing we sometimes want to write to /dev/null */
+		if (strcmp(outfile_name, "/dev/null") == 0) {
+			strcpy(buf, "/dev/null");
+		} else {
+			if (snprintf_chk(buf, max, "%s_cpu%d.%d",
+					 outfile_name, cpu, fnum))
+				return -1;
+		}
+	} else {
+		/* stream mode */
+		if (snprintf_chk(buf, max, "%s.%d", outfile_name, fnum))
+			return -1;
+	}
+	return 0;
+}
+
+static int open_outfile(int fnum, int cpu, int remove_file)
+{
+	char buf[PATH_MAX];
+	if (!outfile_name) {
+		_err("-S is set without -o. Please file a bug report.\n");
+		return -1;
+	}
+
+	if (remove_file) {
+		 /* remove oldest file */
+		if (make_outfile_name(buf, PATH_MAX, fnum - fnum_max, cpu) < 0)
+			return -1;
+		remove(buf); /* don't care */
+	}
+
+	if (make_outfile_name(buf, PATH_MAX, fnum, cpu) < 0)
+		return -1;
+	out_fd[cpu] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+	if (out_fd[cpu] < 0) {
+		perr("Couldn't open output file %s", buf);
+		return -1;
+	}
+	if (set_clexec(out_fd[cpu]) < 0)
+		return -1;
+	return 0;
+}
+
 /**
  *	reader_thread - per-cpu channel buffer reader
  */
@@ -57,6 +103,9 @@ static void *reader_thread(void *data)
 	struct timespec tim = {.tv_sec=0, .tv_nsec=200000000}, *timeout = &tim;
 	sigset_t sigs;
 	struct sigaction sa;
+	off_t wsize = 0;
+	int fnum = 0;
+	int remove_file = 0;
 
 	sigemptyset(&sigs);
 	sigaddset(&sigs,SIGUSR2);
@@ -99,6 +148,19 @@ static void *reader_thread(void *data)
                         }
                 }
 		while ((rc = read(relay_fd[cpu], buf, sizeof(buf))) > 0) {
+			wsize += rc;
+			/* Switching file */
+			if (fsize_max && wsize > fsize_max) {
+				close(out_fd[cpu]);
+				fnum++;
+				if (fnum_max && fnum == fnum_max)
+					remove_file = 1;
+				if (open_outfile(fnum, cpu, remove_file) < 0) {
+					perr("Couldn't open file for cpu %d, exiting.", cpu);
+					return(NULL);
+				}
+				wsize = 0;
+			}
 			if (write(out_fd[cpu], buf, rc) != rc) {
 				perr("Couldn't write to output %d for cpu %d, exiting.", out_fd[cpu], cpu);
 				return(NULL);
@@ -163,7 +225,12 @@ int init_relayfs(void)
 		return -1;
 	}
 
-	if (bulkmode) {
+	if (fsize_max) {
+		/* switch file mode */
+		for (i = 0; i < ncpus; i++)
+			if (open_outfile(0, i, 0) < 0)
+				return -1;
+	} else if (bulkmode) {
 		for (i = 0; i < ncpus; i++) {
 			if (outfile_name) {
 				/* special case: for testing we sometimes want to write to /dev/null */

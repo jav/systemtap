@@ -489,18 +489,11 @@ int stp_main_loop(void)
     switch (type) {
 #ifdef STP_OLD_TRANSPORT
     case STP_REALTIME_DATA:
-      {
-        ssize_t bw = write(out_fd[0], data, nb);
-        if (bw >= 0 && bw != nb) {
-          nb = nb - bw;
-          bw = write(out_fd[0], data, nb);
-        }
-        if (bw != nb) {
-          _perr("write error (nb=%ld)", (long)nb);
-          cleanup_and_exit(0);
-        }
-        break;
+      if (write_realtime_data(data, nb)) {
+        _perr("write error (nb=%ld)", (long)nb);
+        cleanup_and_exit(0);
       }
+      break;
 #endif
     case STP_OOB_DATA:
       eprintf("%s", (char *)data);

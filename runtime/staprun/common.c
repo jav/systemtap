@@ -28,6 +28,8 @@ int delete_mod;
 int load_only;
 int need_uprobes;
 int daemon_mode;
+off_t fsize_max;
+int fnum_max;
 
 /* module variables */
 char *modname = NULL;
@@ -54,6 +56,7 @@ static char *get_abspath(char *path)
 void parse_args(int argc, char **argv)
 {
 	int c;
+	char *s;
 
 	/* Initialize option variables. */
 	verbose = 0;
@@ -66,8 +69,10 @@ void parse_args(int argc, char **argv)
 	load_only = 0;
 	need_uprobes = 0;
 	daemon_mode = 0;
+	fsize_max = 0;
+	fnum_max = 0;
 
-	while ((c = getopt(argc, argv, "ALuvb:t:dc:o:x:D")) != EOF) {
+	while ((c = getopt(argc, argv, "ALuvb:t:dc:o:x:S:D")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
@@ -104,6 +109,16 @@ void parse_args(int argc, char **argv)
 			break;
 		case 'D':
 			daemon_mode = 1;
+			break;
+		case 'S':
+			fsize_max = strtoul(optarg, &s, 10);
+			fsize_max <<= 20;
+			if (s[0] == ',')
+				fnum_max = (int)strtoul(&s[1], &s, 10);
+			if (s[0] != '\0') {
+				err("Invalid file size option '%s'.\n", optarg);
+				usage(argv[0]);
+			}
 			break;
 		default:
 			usage(argv[0]);
@@ -161,12 +176,16 @@ void parse_args(int argc, char **argv)
 		err("You have to specify output FILE with '-D' option.\n");
 		usage(argv[0]);
 	}
+	if (outfile_name == NULL && fsize_max != 0) {
+		err("You have to specify output FILE with '-S' option.\n");
+		usage(argv[0]);
+	}
 }
 
 void usage(char *prog)
 {
 	err("\n%s [-v]  [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
-                "\t[-b bufsize] [-o FILE [-D]] MODULE [module-options]\n", prog);
+                "\t[-b bufsize] [-o FILE [-D] [-S size[,N]]] MODULE [module-options]\n", prog);
 	err("-v              Increase verbosity.\n");
 	err("-c cmd          Command \'cmd\' will be run and staprun will\n");
 	err("                exit when it does.  The '_stp_target' variable\n");
@@ -184,6 +203,13 @@ void usage(char *prog)
 	err("                the user has permission to access will be deleted. Use \"*\"\n");
 	err("                (quoted) to delete all unused modules.\n");
 	err("-D              Run in background. This requires '-o' option.\n");
+	err("-S size[,N]     Switches output file to next file when the size\n");
+	err("                of file reaches the specified size. The value\n");
+	err("                should be an integer greater than 1 which is\n");
+	err("                assumed to be the maximum file size in MB.\n");
+	err("                When the number of output files reaches N, it\n");
+	err("                switches to the first output file. You can omit\n");
+	err("                the second argument.\n");
 	err("MODULE can be either a module name or a module path.  If a\n");
 	err("module name is used, it is looked for in the following\n");
 	err("directory: /lib/modules/`uname -r`/systemtap\n");

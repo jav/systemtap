@@ -9,7 +9,7 @@
  *
  * Copyright (C) 2005-2008 Red Hat Inc.
  */
-
+#define _FILE_OFFSET_BITS 64
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -117,7 +117,9 @@ int init_relayfs(void);
 void close_relayfs(void);
 int init_oldrelayfs(void);
 void close_oldrelayfs(int);
+int write_realtime_data(void *data, ssize_t nb);
 void setup_signals(void);
+int make_outfile_name(char *buf, int max, int fnum, int cpu);
 /* staprun_funcs.c */
 void setup_staprun_signals(void);
 const char *moderror(int err);
@@ -158,6 +160,8 @@ extern int delete_mod;
 extern int load_only;
 extern int need_uprobes;
 extern int daemon_mode;
+extern off_t fsize_max;
+extern int fnum_max;
 
 /* getopt variables */
 extern char *optarg;
