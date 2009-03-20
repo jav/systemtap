@@ -27,7 +27,8 @@ set res [target_compile $srcdir/$subdir/$test.c $test.prog executable "$test_fla
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
     fail "compiling $test.c $extra_flag"
-    return
+    untested "$test $extra_flag"
+    continue
 } else {
     pass "compiling $test.c $extra_flag"
 }
@@ -49,7 +50,8 @@ set res [target_compile $srcdir/$subdir/$test.c $test.prog executable "$test_fla
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
     fail "compiling $test.c c++ $extra_flag"
-    return
+    untested "$test $extra_flag"
+    continue
 } else {
     pass "compiling $test.c c++ $extra_flag"
 }
