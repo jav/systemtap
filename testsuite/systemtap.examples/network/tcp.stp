@@ -1,0 +1,11 @@
+//A simple TCP tapset example
+
+probe begin {
+	printf("Expected IP 7.91.205.21 .... %s\n", ip_ntop(123456789))
+	printf("Expected IP 58.222.104.177 .... %s\n", ip_ntop(987654321))
+	printf("Expected IP 9.3.191.111 ... %s\n", ip_ntop(151240559))
+}
+
+probe tcp.recvmsg {
+	printf("received a message from %s on port %d from port %d\n", saddr, dport, sport)
+}
