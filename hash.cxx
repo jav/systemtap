@@ -237,4 +237,22 @@ find_hash (systemtap_session& s, const string& script)
   find_script_hash(s, script, base);
 }
 
+
+void
+find_tracequery_hash (systemtap_session& s)
+{
+  hash h;
+  get_base_hash(s, h);
+
+  // The basic hash should be good enough for the tracepoint query module
+
+  // Get the directory path to store our cached module
+  string result, hashdir;
+  h.result(result);
+  if (!create_hashdir(s, result, hashdir))
+    return;
+
+  s.tracequery_path = hashdir + "/tracequery_" + result + ".ko";
+}
+
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

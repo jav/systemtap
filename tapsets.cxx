@@ -18,6 +18,7 @@
 #include "buildrun.h"
 #include "dwarf_wrappers.h"
 #include "auto_free.h"
+#include "hash.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -9993,12 +9994,43 @@ tracepoint_builder::init_dw(systemtap_session& s)
   if (dw != NULL)
     return true;
 
+  if (s.use_cache)
+    {
+      // see if the cached module exists
+      find_tracequery_hash(s);
+      if (!s.tracequery_path.empty())
+        {
+          int fd = open(s.tracequery_path.c_str(), O_RDONLY);
+          if (fd != -1)
+            {
+              if (s.verbose > 2)
+                clog << "Pass 2: using cached " << s.tracequery_path << endl;
+
+              dw = new dwflpp(s);
+              dw->setup_user(s.tracequery_path);
+              close(fd);
+              return true;
+            }
+        }
+    }
+
+  // no cached module, time to make it
   string tracequery_ko;
   int rc = make_tracequery(s, tracequery_ko);
   if (rc != 0)
     return false;
 
-  // TODO cache tracequery.ko
+  if (s.use_cache)
+    {
+      // try to save tracequery in the cache
+      if (s.verbose > 2)
+        clog << "Copying " << tracequery_ko
+             << " to " << s.tracequery_path << endl;
+      if (copy_file(tracequery_ko.c_str(),
+                    s.tracequery_path.c_str()) != 0)
+        cerr << "Copy failed (\"" << tracequery_ko << "\" to \""
+             << s.tracequery_path << "\"): " << strerror(errno) << endl;
+    }
 
   dw = new dwflpp(s);
   dw->setup_user(tracequery_ko);
