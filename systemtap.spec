@@ -1,4 +1,3 @@
-%{!?release: %define release 1}
 %{!?with_sqlite: %define with_sqlite 1}
 %{!?with_docs: %define with_docs 1}
 %{!?with_crash: %define with_crash 0}
@@ -6,9 +5,9 @@
 %{!?elfutils_version: %define elfutils_version 0.127}
 
 Name: systemtap
-# for version, see also configure.ac
 Version: 0.9
-Release: %{release}%{?dist}
+Release: 3%{?dist}
+# for version, see also configure.ac
 Summary: Instrumentation System
 Group: Development/System
 License: GPLv2+
@@ -246,6 +245,7 @@ exit 0
 %if %{with_docs}
 %doc docs.installed/*.pdf
 %doc docs.installed/tapsets
+%{_mandir}/man3stap/*
 %endif
 
 %{_bindir}/stap
@@ -317,6 +317,9 @@ exit 0
 
 
 %changelog
+* Wed Mar 18 2009 Will Cohen <wcohen@redhat.com> - 0.9-2
+- Add location of man pages.
+
 * Tue Feb 17 2009 Frank Ch. Eigler <fche@redhat.com> - 0.9-1
 - Upstream release.
 
