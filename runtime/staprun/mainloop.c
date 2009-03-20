@@ -468,7 +468,7 @@ int stp_main_loop(void)
       }
 #endif
     case STP_OOB_DATA:
-      fputs((char *)data, stderr);
+      eprintf("%s", (char *)data);
       break;
     case STP_EXIT:
       {

@@ -33,31 +33,35 @@
 #include <sys/wait.h>
 #include <sys/statfs.h>
 #include <linux/version.h>
+#include <syslog.h>
 
 /* Include config.h to pick up dependency for --prefix usage. */
 #include "config.h"
 
-#define dbug(level, args...) {if (verbose>=level) {fprintf(stderr,"%s:%s:%d ",__name__,__FUNCTION__, __LINE__); fprintf(stderr,args);}}
+extern void eprintf(const char *fmt, ...);
+extern void switch_syslog(const char *name);
+
+#define dbug(level, args...) do {if (verbose>=level) {eprintf("%s:%s:%d ",__name__,__FUNCTION__, __LINE__); eprintf(args);}} while (0)
 
 extern char *__name__;
 
 /* print to stderr */
-#define err(args...) fprintf(stderr,args)
+#define err(args...) eprintf(args)
 
 /* better perror() */
 #define perr(args...) do {					\
 		int _errno = errno;				\
-		fputs("ERROR: ", stderr);			\
-		fprintf(stderr, args);				\
-		fprintf(stderr, ": %s\n", strerror(_errno));	\
+		eprintf("ERROR: ");				\
+		eprintf(args);					\
+		eprintf(": %s\n", strerror(_errno));		\
 	} while (0)
 
 /* Error messages. Use these for serious errors, not informational messages to stderr. */
-#define _err(args...) do {fprintf(stderr,"%s:%s:%d: ERROR: ",__name__, __FUNCTION__, __LINE__); fprintf(stderr,args);} while(0)
+#define _err(args...) do {eprintf("%s:%s:%d: ERROR: ",__name__, __FUNCTION__, __LINE__); eprintf(args);} while(0)
 #define _perr(args...) do {					\
 		int _errno = errno;				\
 		_err(args);					\
-		fprintf(stderr, ": %s\n", strerror(_errno));	\
+		eprintf(": %s\n", strerror(_errno));	\
 	} while (0)
 #define overflow_error() _err("Internal buffer overflow. Please file a bug report.\n")
 

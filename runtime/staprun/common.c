@@ -344,3 +344,24 @@ int send_request(int type, void *data, int len)
         if (rc < 0) return rc;
         return (rc != len+4);
 }
+
+#include <stdarg.h>
+
+static int use_syslog = 0;
+
+void eprintf(const char *fmt, ...)
+{
+	va_list va;
+	va_start(va, fmt);
+	if (use_syslog)
+		vsyslog(LOG_ERR, fmt, va);
+	else
+		vfprintf(stderr, fmt, va);
+	va_end(va);
+}
+
+void switch_syslog(const char *name)
+{
+	openlog(name, LOG_PID, LOG_DAEMON);
+	use_syslog = 1;
+}
