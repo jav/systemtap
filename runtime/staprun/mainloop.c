@@ -318,6 +318,41 @@ int init_stapio(void)
   if (target_cmd)
     start_cmd();
 
+  /* Run in background */
+  if (daemon_mode) {
+    pid_t pid;
+    int ret;
+    dbug(2, "daemonizing stapio\n");
+
+    /* daemonize */
+    ret = daemon(0, 1); /* don't close stdout at this time. */
+    if (ret) {
+      err("Failed to daemonize stapio\n");
+      return -1;
+    }
+
+    /* change error messages to syslog. */
+    switch_syslog("stapio");
+
+    /* show new pid */
+    pid = getpid();
+    fprintf(stdout, "%d\n", pid);
+    fflush(stdout);
+
+    /* redirect all outputs to /dev/null */
+    ret = open("/dev/null", O_RDWR);
+    if (ret < 0) {
+      err("Failed to open /dev/null\n");
+      return -1;
+    }
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+    dup2(ret, STDOUT_FILENO);
+    dup2(ret, STDERR_FILENO);
+    close(ret);
+  }
+
   return 0;
 }
 

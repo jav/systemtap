@@ -157,6 +157,7 @@ extern int attach_mod;
 extern int delete_mod;
 extern int load_only;
 extern int need_uprobes;
+extern int daemon_mode;
 
 /* getopt variables */
 extern char *optarg;
