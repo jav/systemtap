@@ -1,5 +1,12 @@
 * What's new
 
+- Kernel tracepoints are now supported for probing predefined kernel
+  events without any debuginfo.  Tracepoints incur less overhead than
+  kprobes, and context parameters are available with full type
+  information.  Any kernel 2.6.28 and later should have defined
+  tracepoints.  Try the following to see what's available:
+    $ stap -L 'kernel.trace("*")'
+
 - Typecasting with @cast now supports modules search paths, which is
   useful in case there are multiple places where the type definition
   may be found.  For example:
