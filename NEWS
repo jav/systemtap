@@ -1,5 +1,10 @@
 * What's new
 
+- Typecasting with @cast now supports modules search paths, which is
+  useful in case there are multiple places where the type definition
+  may be found.  For example:
+    @cast(sdev, "scsi_device", "kernel:scsi_mod")->sdev_state
+
 - On-file flight recorder is supported. It allows stap to record huge
   trace log on the disk and to run in background.
   Passing -F option with -o option runs stap in background mode. In this

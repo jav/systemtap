@@ -788,10 +788,12 @@ and dereference the
 .I member
 value.  The optional
 .I module
-tells the translator where to look for information about that type.  If
-the module is not specified, it will default either to the probe module
-for dwarf probes, or to "kernel" for functions and all other probes
-types.
+tells the translator where to look for information about that type.
+Multiple modules may be specified as a list with
+.IR :
+separators.  If the module is not specified, it will default either to
+the probe module for dwarf probes, or to "kernel" for functions and all
+other probes types.
 .PP
 When in guru mode, the translator will also allow scripts to assign new
 values to members of typecasted pointers.
