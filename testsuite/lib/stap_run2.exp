@@ -29,7 +29,7 @@ proc stap_run2 { TEST_NAME args } {
 proc stap_run3 { TEST_NAME TEST_FILE args } {
     if {[info procs installtest_p] != "" && ![installtest_p]} { untested $TEST_NAME; return }
 
-    set cmd [concat stap $args $TEST_FILE]
+    set cmd [concat stap $TEST_FILE $args]
     send_log "executing: $cmd\n"
     catch {eval exec $cmd} res
 

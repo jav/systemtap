@@ -1,0 +1,32 @@
+// IP tapset
+// Copyright (C) 2009, IBM Inc.
+// Author : Breno Leitao <leitao@linux.vnet.ibm.com>
+//
+// This file is free software.  You can redistribute it and/or modify it under
+// the terms of the GNU General Public License (GPL), version 2.
+//
+// Based on previous work done by Arnaldo Carvalho de Melo <acme@redhat.com>
+
+/**
+ * sfunction ip_ntop - returns a string representation from an integer IP number
+ * @addr: the ip represented as an integer
+ */
+function ip_ntop:string (addr:long)
+%{
+        __be32 ip;
+
+        ip = THIS->addr;
+        snprintf(THIS->__retvalue, MAXSTRINGLEN, NIPQUAD_FMT, NIPQUAD(ip));
+%}
+
+/* return the source IP address for a given sock */
+function __ip_sock_saddr:long (sock:long)
+{
+	return @cast(sock, "inet_sock")->saddr
+}
+
+/* return the destination IP address for a given sock */
+function __ip_sock_daddr:long (sock:long)
+{
+	return @cast(sock, "inet_sock")->daddr
+}

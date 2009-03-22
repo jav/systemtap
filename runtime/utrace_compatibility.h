@@ -13,6 +13,11 @@
 
 #include <linux/utrace.h>
 
+/* PR9974: Adapt to struct renaming. */
+#ifdef UTRACE_API_VERSION
+#define utrace_attached_engine utrace_engine
+#endif
+
 #ifdef UTRACE_ACTION_RESUME
 
 /* 

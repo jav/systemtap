@@ -18,6 +18,12 @@
 #include <linux/sched.h>
 #include <linux/rcupdate.h>
 #include <linux/utrace.h>
+
+/* PR9974: Adapt to struct renaming. */
+#ifdef UTRACE_API_VERSION
+#define utrace_attached_engine utrace_engine
+#endif
+
 #include <asm/string.h>
 #include "uprobes/uprobes.h"
 #include "utrace_compatibility.h"
