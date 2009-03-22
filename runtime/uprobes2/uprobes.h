@@ -23,6 +23,11 @@
 #include <linux/types.h>
 #include <linux/list.h>
 
+/* Adapt to struct renaming. */
+#ifdef UTRACE_API_VERSION
+#define utrace_attached_engine utrace_engine
+#endif
+
 struct pt_regs;
 
 enum uprobe_type {

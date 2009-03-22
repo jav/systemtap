@@ -29,6 +29,12 @@
 #include <linux/utrace.h>
 #include <linux/regset.h>
 #define UPROBES_IMPLEMENTATION 1
+
+/* PR9974: Adapt to struct renaming. */
+#ifdef UTRACE_API_VERSION
+#define utrace_attached_engine utrace_engine
+#endif
+
 #include "uprobes.h"
 #include <linux/tracehook.h>
 #include <linux/mm.h>
