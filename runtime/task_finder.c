@@ -6,6 +6,12 @@
 #endif
 
 #include <linux/utrace.h>
+
+/* PR9974: Adapt to struct renaming. */
+#ifdef UTRACE_API_VERSION
+#define utrace_attached_engine utrace_engine
+#endif
+
 #include <linux/list.h>
 #include <linux/binfmts.h>
 #include <linux/mount.h>
@@ -55,7 +61,6 @@ typedef int (*stap_task_finder_vm_callback)(struct stap_task_finder_target *tgt,
 					    unsigned long vm_end,
 					    unsigned long vm_pgoff);
 
-#ifdef DEBUG_TASK_FINDER_VMA
 static int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
 		   struct task_struct *tsk,
 		   int map_p, char *vm_path,
@@ -63,21 +68,32 @@ static int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
 		   unsigned long vm_end,
 		   unsigned long vm_pgoff)
 {
+  int i;
+#ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "vm_cb: tsk %d:%d path %s, start 0x%08lx, end 0x%08lx, offset 0x%lx\n",
 		  tsk->pid, map_p, vm_path, vm_start, vm_end, vm_pgoff);
+#endif
 	if (map_p) {
-		// FIXME: What should we do with vm_path?  We can't save
-		// the vm_path pointer itself, but we don't have any
-		// storage space allocated to save it in...
-		stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
+	  struct _stp_module *module = NULL;
+	  if (vm_path != NULL)
+	    for (i = 0; i < _stp_num_modules; i++)
+	      if (strcmp(vm_path, _stp_modules[i]->path) == 0)
+		{
+#ifdef DEBUG_TASK_FINDER_VMA
+		  _stp_dbug(__FUNCTION__, __LINE__,
+			    "vm_cb: matched path %s to module\n", vm_path);
+#endif
+		  module = _stp_modules[i];
+		  break;
+		}
+	  stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff, module);
 	}
 	else {
 		stap_remove_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
 	}
 	return 0;
 }
-#endif
 
 struct stap_task_finder_target {
 /* private: */
@@ -1016,6 +1032,7 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 static void
 __stp_call_vm_callbacks_with_vma(struct stap_task_finder_target *tgt,
 				 struct task_struct *tsk,
+				 int map_p,
 				 struct vm_area_struct *vma)
 {
 	char *mmpath_buf;
@@ -1042,7 +1059,7 @@ __stp_call_vm_callbacks_with_vma(struct stap_task_finder_target *tgt,
 			   rc, (int)tsk->pid);
 	}
 	else {
-		__stp_call_vm_callbacks(tgt, tsk, 1, mmpath,
+		__stp_call_vm_callbacks(tgt, tsk, map_p, mmpath,
 					vma->vm_start, vma->vm_end,
 					(vma->vm_pgoff << PAGE_SHIFT));
 	}
@@ -1135,7 +1152,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 			down_read(&mm->mmap_sem);
 			vma = __stp_find_file_based_vma(mm, rv);
 			if (vma != NULL) {
-				__stp_call_vm_callbacks_with_vma(tgt, tsk, vma);
+				__stp_call_vm_callbacks_with_vma(tgt, tsk, 0, vma);
 			}
 			up_read(&mm->mmap_sem);
 			mmput(mm);
@@ -1208,6 +1225,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 				       && vma->vm_end <= entry->vm_end) {
 					__stp_call_vm_callbacks_with_vma(tgt,
 									 tsk,
+									 1,
 									 vma);
 					if (vma->vm_end >= entry->vm_end)
 						break;

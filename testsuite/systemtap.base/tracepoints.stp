@@ -1,0 +1,23 @@
+// This checks that we can compile and register every tracepoint
+// we can find, along with all of their context variables.
+global hits
+probe all_tracepoints = kernel.trace("*")
+{
+    if ($$name . $$vars . $$parms == "")
+        next
+
+    // Allow it to quit once we hit our hundredth tracepoint
+    if (++hits < 100)
+        next
+}
+
+// If there aren't any tracepoints in the kernel,
+// we use "begin" instead to quit right away.
+probe all_tracepoints!, begin {
+    println("tracepoints OK")
+    exit()
+}
+
+// give hits a use so there's no warning
+// when we don't have tracepoints
+probe never { hits++ }

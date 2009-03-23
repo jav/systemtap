@@ -867,12 +867,10 @@ c_unparser::emit_common_header ()
   o->newline() << "static atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
   o->newline() << "static atomic_t error_count = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count = ATOMIC_INIT (0);";
-  o->newline() << "#ifdef STP_TIMING";
   o->newline() << "static atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
-  o->newline() << "#endif";
   o->newline();
   o->newline() << "struct context {";
   o->newline(1) << "atomic_t busy;";
@@ -1360,9 +1358,10 @@ c_unparser::emit_module_exit ()
     o->newline() << "#endif";
   }
 
-  // print final error/reentrancy counts if non-zero
+  // print final error/skipped counts if non-zero
   o->newline() << "if (atomic_read (& skipped_count) || "
-               << "atomic_read (& error_count)) {";
+               << "atomic_read (& error_count) || "
+               << "atomic_read (& skipped_count_reentrant)) {"; // PR9967
   o->newline(1) << "_stp_warn (\"Number of errors: %d, "
                 << "skipped probes: %d\\n\", "
                 << "(int) atomic_read (& error_count), "
@@ -4497,17 +4496,35 @@ dump_unwindsyms (Dwfl_Module *m,
     // see https://bugzilla.redhat.com/show_bug.cgi?id=465872
     // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
 #ifdef _ELFUTILS_PREREQ
-#if _ELFUTILS_PREREQ(0,138)
+  #if _ELFUTILS_PREREQ(0,138)
     // Let's standardize to the buggy "end of build-id bits" behavior. 
     build_id_vaddr += build_id_len;
+  #endif
+  #if !_ELFUTILS_PREREQ(0,141)
+    #define NEED_ELFUTILS_BUILDID_WORKAROUND
+  #endif
+#else
+  #define NEED_ELFUTILS_BUILDID_WORKAROUND
 #endif
+
+    // And check for another workaround needed.
+    // see https://bugzilla.redhat.com/show_bug.cgi?id=489439
+    // and http://sourceware.org/ml/systemtap/2009-q1/msg00513.html
+#ifdef NEED_ELFUTILS_BUILDID_WORKAROUND
+    if (build_id_vaddr < base && dwfl_module_relocations (m) == 1)
+      {
+        GElf_Addr main_bias;
+        dwfl_module_getelf (m, &main_bias);
+        build_id_vaddr += main_bias;
+      }
 #endif
-        if (c->session.verbose > 1) {
-           clog << "Found build-id in " << name
-                << ", length " << build_id_len;
-           clog << ", end at 0x" << hex << build_id_vaddr
-                << dec << endl;
-        }
+    if (c->session.verbose > 1)
+      {
+        clog << "Found build-id in " << name
+             << ", length " << build_id_len;
+        clog << ", end at 0x" << hex << build_id_vaddr
+             << dec << endl;
+      }
   }
 
   // Look up the relocation basis for symbols
@@ -4682,6 +4699,15 @@ dump_unwindsyms (Dwfl_Module *m,
 
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
+
+  // Get the canonical path of the main file for comparison at runtime.
+  // When given directly by the user through -d or in case of the kernel
+  // name and path might differ. path should be used for matching.
+  const char *mainfile;
+  dwfl_module_info (m, NULL, NULL, NULL, NULL, NULL, &mainfile, NULL);
+  mainfile = canonicalize_file_name(mainfile);
+  c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
+
   c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
 
   if (unwind != NULL)

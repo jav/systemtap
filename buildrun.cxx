@@ -148,6 +148,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-vm-area.c", "STAPCONF_VM_AREA", NULL);
   output_autoconf(s, o, "autoconf-procfs-owner.c", "STAPCONF_PROCFS_OWNER", NULL);
   output_autoconf(s, o, "autoconf-alloc-percpu-align.c", "STAPCONF_ALLOC_PERCPU_ALIGN", NULL);
+  output_autoconf(s, o, "autoconf-find-task-pid.c", "STAPCONF_FIND_TASK_PID", NULL);
 
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
@@ -328,7 +329,10 @@ run_pass (systemtap_session& s)
     staprun_cmd += "-u ";
 
   if (s.load_only)
-    staprun_cmd += "-L ";
+    staprun_cmd += (s.output_file.empty() ? "-L " : "-D ");
+
+  if (!s.size_option.empty())
+    staprun_cmd += "-S " + s.size_option + " ";
 
   staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
 
@@ -380,21 +384,25 @@ make_tracequery(systemtap_session& s, string& name)
 
   // dynamically pull in all tracepoint headers from include/trace/
   glob_t trace_glob;
-  string glob_str(s.kernel_build_tree + "/include/trace/*.h");
-  glob(glob_str.c_str(), 0, NULL, &trace_glob);
-  for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
+  string globs[2] = { "/include/trace/*.h", "/source/include/trace/*.h" };
+  for (unsigned z=0; z<2; z++)
     {
-      string header(basename(trace_glob.gl_pathv[i]));
+      string glob_str(s.kernel_build_tree + globs[z]);
+      glob(glob_str.c_str(), 0, NULL, &trace_glob);
+      for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
+        {
+          string header(basename(trace_glob.gl_pathv[i]));
 
-      // filter out a few known "internal-only" headers
-      if (header == "trace_events.h")
-        continue;
-      if (header.find("_event_types.h") != string::npos)
-        continue;
+          // filter out a few known "internal-only" headers
+          if (header == "trace_events.h")
+            continue;
+          if (header.find("_event_types.h") != string::npos)
+            continue;
 
-      osrc << "#include <trace/" << header << ">" << endl;
+          osrc << "#include <trace/" << header << ">" << endl;
+        }
+      globfree(&trace_glob);
     }
-  globfree(&trace_glob);
 
   // finish up the module source
   osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;

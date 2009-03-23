@@ -5,7 +5,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+//  This family of probe points is used to probe process-related activities.
+// </tapsetdescription>
 
 function _IS_ERR:long(ptr:long) %{ /* pure */
     THIS->__retvalue = IS_ERR((const void *)(long)THIS->ptr);

@@ -5,7 +5,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// This family of probe points is used to probe socket activities.
+// </tapsetdescription>
 %{
 #include <net/sock.h>
 #include <asm/bitops.h>
@@ -65,8 +67,8 @@ probe socket.receive = socket.recvmsg.return,
 
 ### FUNCTION SPECIFIC SEND/RECEIVE PROBES ###
 
-/*
- * probe socket.sendmsg - Message being sent on socket
+/**
+ * probe socket.sendmsg - Message is currently being sent on a socket.
  * @name:     Name of this probe
  * @size:     Message size in bytes
  * @protocol: Protocol value
@@ -93,7 +95,7 @@ probe socket.sendmsg = kernel.function ("sock_sendmsg")
 }
 
 /**
- * probe socket.sendmsg.return - Return from Message being sent on socket
+ * probe socket.sendmsg.return - Return from <command>socket.sendmsg</command>.
  * @name:     Name of this probe
  * @size:     Size of message sent (in bytes) or error code if success = 0
  * @protocol: Protocol value
@@ -149,7 +151,7 @@ probe socket.recvmsg = kernel.function ("sock_recvmsg")
 	type = $sock->type
 }
 
-/*
+/**
  * probe socket.recvmsg.return - Return from Message being received on socket
  * @name:     Name of this probe
  * @size:     Size of message received (in bytes) or error code if success = 0
@@ -196,14 +198,14 @@ probe socket.recvmsg.return = kernel.function ("sock_recvmsg").return
  * Fires at the beginning of sending a message on a socket
  * via the sock_aio_write() function
  */
-/*
- * 2.6.9~2.6.15:
- *     static ssize_t sock_aio_write(struct kiocb *iocb, const char __user *ubuf, size_t size, loff_t pos);
- * 2.6.16~2.6.18:
- *     static ssize_t sock_aio_write(struct kiocb *iocb, const char __user *ubuf, size_t count, loff_t pos);
- * 2.6.19~2.6.26:
- *     static ssize_t sock_aio_write(struct kiocb *iocb, const struct iovec *iov, unsigned long nr_segs, loff_t pos);
- */
+//
+// 2.6.9~2.6.15:
+//     static ssize_t sock_aio_write(struct kiocb *iocb, const char __user *ubuf, size_t size, loff_t pos);
+// 2.6.16~2.6.18:
+//     static ssize_t sock_aio_write(struct kiocb *iocb, const char __user *ubuf, size_t count, loff_t pos);
+// 2.6.19~2.6.26:
+//     static ssize_t sock_aio_write(struct kiocb *iocb, const struct iovec *iov, unsigned long nr_segs, loff_t pos);
+
 probe socket.aio_write = kernel.function ("sock_aio_write")
 {
 	name = "socket.aio_write"
@@ -270,14 +272,14 @@ probe socket.aio_write.return = kernel.function ("sock_aio_write").return
  * Fires at the beginning of receiving a message on a socket
  * via the sock_aio_read() function
  */
-/*
- * 2.6.9~2.6.15:
- *     static ssize_t sock_aio_read(struct kiocb *iocb, char __user *ubuf, size_t size, loff_t pos);
- * 2.6.16~2.6.18:
- *     static ssize_t sock_aio_read(struct kiocb *iocb, char __user *ubuf, size_t count, loff_t pos);
- * 2.6.19~2.6.26:
- *     static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov, unsigned long nr_segs, loff_t pos);
- */
+//
+// 2.6.9~2.6.15:
+//     static ssize_t sock_aio_read(struct kiocb *iocb, char __user *ubuf, size_t size, loff_t pos);
+// 2.6.16~2.6.18:
+//     static ssize_t sock_aio_read(struct kiocb *iocb, char __user *ubuf, size_t count, loff_t pos);
+// 2.6.19~2.6.26:
+//     static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov, unsigned long nr_segs, loff_t pos);
+
 probe socket.aio_read = kernel.function ("sock_aio_read")
 {
 	name = "socket.aio_read"
@@ -541,18 +543,16 @@ probe socket.close.return = kernel.function ("sock_release").return
 
 ####### PROTOCOL HELPER FUNCTIONS ########
 
-/*
- * sock_prot_num2str
- * Given a protocol number, return a string representation.
+/**
+ * sfunction sock_prot_num2str - Given a protocol number, return a string representation.
  */
 function sock_prot_num2str:string (proto:long)
 {
 	return (proto in _prot_num2str ? _prot_num2str[proto] : "UNDEF")
 }
 
-/*
- * sock_prot_str2num
- * Given a protocol name (string), return the corresponding protocol number.
+/**
+ * sfunction sock_prot_str2num - Given a protocol name (string), return the corresponding protocol number.
  */
 function sock_prot_str2num:long (proto:string)
 {
@@ -561,18 +561,16 @@ function sock_prot_str2num:long (proto:string)
 
 ######### PROTOCOL FAMILY HELPER FUNCTIONS ###########
 
-/*
- * sock_fam_num2str
- * Given a protocol family number, return a string representation.
+/**
+ * sfunction sock_fam_num2str - Given a protocol family number, return a string representation.
  */
 function sock_fam_num2str:string (family:long)
 {
 	return (family in _fam_num2str ? _fam_num2str[family] : "UNDEF")
 }
 
-/*
- * sock_fam_str2num
- * Given a protocol family name (string), return the corresponding
+/**
+ * sfunction sock_fam_str2num - Given a protocol family name (string), return the corresponding
  * protocol family number.
  */
 function sock_fam_str2num:long (family:string)
@@ -582,18 +580,16 @@ function sock_fam_str2num:long (family:string)
 
 ######### SOCKET STATE HELPER FUNCTIONS ##########
 
-/*
- * sock_state_num2str
- * Given a socket state number, return a string representation.
+/**
+ * sfunction sock_state_num2str - Given a socket state number, return a string representation.
  */
 function sock_state_num2str:string (state:long)
 {
 	return (state in _state_num2str ? _state_num2str[state] : "UNDEF")
 }
 
-/*
- * sock_state_str2num
- * Given a socket state string, return the corresponding state number.
+/**
+ * sfunction sock_state_str2num - Given a socket state string, return the corresponding state number.
  */
 function sock_state_str2num:long (state:string)
 {

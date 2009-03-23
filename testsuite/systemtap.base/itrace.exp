@@ -1,8 +1,5 @@
 # itrace test
 
-# temporarily disabled
-return
-
 
 # Initialize variables
 set utrace_support_found 0
@@ -11,7 +8,7 @@ set exepath "[pwd]/ls_[pid]"
 set itrace1_script {
     global instrs = 0
     probe begin { printf("systemtap starting probe\n") }
-    probe process("%s").itrace
+    probe process("%s").insn
     {
         instrs += 1
 	if (instrs == 5)
@@ -28,7 +25,7 @@ set itrace1_script_output "itraced = 5\r\n"
 set itrace2_script {
     global instrs = 0, itrace_on = 0, start_timer = 0
     probe begin { start_timer = 1; printf("systemtap starting probe\n") }
-    probe process("%s").itrace if (itrace_on)
+    probe process("%s").insn if (itrace_on)
     {
         instrs += 1
 	if (instrs == 5)

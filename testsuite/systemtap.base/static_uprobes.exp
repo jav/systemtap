@@ -1,5 +1,4 @@
-
-set test "sduprobes"
+set test "static_uprobes"
 
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_uprobes.c"
@@ -104,7 +103,11 @@ if {[installtest_p]} {
     set sdtdir $srcdir/../includes
 }
 
-set sup_flags "additional_flags=-I$sdtdir additional_flags=-g additional_flags=-O additional_flags=-I."
+set sup_flags "additional_flags=-I$srcdir/../includes/sys"
+set sup_flags "$sup_flags additional_flags=-I$sdtdir"
+set sup_flags "$sup_flags additional_flags=-g"
+set sup_flags "$sup_flags  additional_flags=-O"
+set sup_flags "$sup_flags  additional_flags=-I."
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -115,9 +118,7 @@ if { $res != "" } {
     pass "$test compiling C -g"
 }
 
-spawn mv $sup_srcpath "[pwd]/static_uprobes.cc"
-set sup_srcpath "[pwd]/static_uprobes.cc"
-set sup_flags "$sup_flags c++"
+set sup_flags "$sup_flags additional_flags=-x additional_flags=c++"
 set res [target_compile $sup_srcpath $supcplus_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -163,9 +164,9 @@ if {$ok == 5} { pass "$test C" } { fail "$test C ($ok)" }
 
 set ok 0
 
-# spawn objcopy -R .probes $supcplus_exepath $sup_exepath 
-verbose -log "cp $supcplus_exepath $sup_exepath"
-spawn cp $supcplus_exepath $sup_exepath
+# Test setting a probe without .probes using only dwarf label info
+verbose -log "objcopy -R .probes $supcplus_exepath $sup_exepath"
+spawn objcopy -R .probes $supcplus_exepath $sup_exepath 
 verbose -log "spawn stap -c $sup_exepath $sup_stppath"
 spawn stap -c $sup_exepath $sup_stppath
 expect {
@@ -180,9 +181,10 @@ expect {
 
 wait
 
-if {$ok == 5} { pass "$test C++" } { fail "$test C++ ($ok)" }
+# we now generate the probes via asm so there is no label debug info
+if {$ok == 5} { pass "$test C++" } { xfail "$test C++ ($ok)" }
 
-# catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_hpath $sup_stppath}
+if { $verbose == 0 } {
+catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_dpath $sup_hpath $sup_stppath}
+}
 
-# It's not so important to clean up, and it's unhelpful if
-# one needs to diagnose a test failure.

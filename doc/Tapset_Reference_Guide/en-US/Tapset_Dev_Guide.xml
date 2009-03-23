@@ -62,11 +62,13 @@
 	beginning of those functions:
 </para>
 
+<para>
 <programlisting>
 probe process.exec = kernel.function("do_execve"),
 kernel.function("compat_do_execve") 
 {<replaceable>probe body</replaceable>}
 </programlisting>		
+</para>
 
 <para>
 	Try to place probes on stable interfaces (i.e., functions
@@ -102,6 +104,7 @@ kernel.function("compat_do_execve")
 	defined in <filename>task.stp</filename>.
 </para>
 
+<para>
 <programlisting>
 probe process.create = kernel.function("copy_process").return 
 {
@@ -109,6 +112,7 @@ probe process.create = kernel.function("copy_process").return
    new_pid = task_pid(task)
 }
 </programlisting>
+</para>
 
 <para>
 	It is not advisable to write probes for every function. Most SystemTap users
@@ -191,6 +195,7 @@ probe process.create = kernel.function("copy_process").return
 		The specified format for documenting tapsets is as follows:
 	</para>
 	
+<para>
 <programlisting>
 /**
  * probe tapset.name - Short summary of what the tapset does.
@@ -209,9 +214,11 @@ probe process.create = kernel.function("copy_process").return
  * A paragraph that will appear under the heading "Header".
  **/
 </programlisting>
-	
+</para>
+
 <para>For example:</para>
 
+<para>
 <programlisting>
 /**
  * probe vm.write_shared_copy- Page copy for shared page write.
@@ -226,17 +233,21 @@ probe process.create = kernel.function("copy_process").return
  *  always preceded by a <command>vm.shared_write</command>.
  **/
 </programlisting>
+</para>
 
-<para>To override the automatically-generated <command>Synopsis</command> content, use:
+<para>To override the automatically-generated <command>Synopsis</command> content, use:</para>
 	
+<para>
 <programlisting>
  * Synopsis:
- * <programlisting>Synopsis string</programlisting>
+ * <replaceable>New Synopsis string</replaceable>
  *
 </programlisting>
+</para>
 
 <para>For example:</para>
 
+<para>
 <programlisting>
 /**
  * probe signal.handle - Fires when the signal handler is invoked
@@ -247,6 +258,7 @@ probe process.create = kernel.function("copy_process").return
  * sigset_t *oldset, struct pt_regs * regs)&lt;/programlisting>
  */
 </programlisting>
+</para>
 
 <para>
 	It is recommended that you use the <command>&lt;programlisting&gt;</command> tag in 
@@ -264,7 +276,7 @@ probe process.create = kernel.function("copy_process").return
 	<listitem><para><command>emphasis</command></para></listitem>
 	<listitem><para><command>programlisting</command></para></listitem>
 	<listitem><para><command>remark</command> (tagged strings will appear in Publican beta
-			builds of the document.</para></listitem>
+			builds of the document)</para></listitem>
 </itemizedlist>
 
 

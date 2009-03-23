@@ -65,5 +65,7 @@ main (int argc, char **argv)
   call8(a, b, c, d, e, f, g, h);
   call9(a, b, c, d, e, f, g, h, i);
   call10(a, b, c, d, e, f, g, h, i, j);
+  (void) argv;
+  (void) argc;
   return 0;
 }

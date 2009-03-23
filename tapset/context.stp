@@ -6,7 +6,11 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// Context functions provide additional information about where an event occurred. These functions can 
+//provide information such as a backtrace to where the event occured and the current register values for the 
+//processor.
+// </tapsetdescription>
 /**
  * sfunction print_regs - Print a register dump.
  */
@@ -17,37 +21,28 @@ function print_regs () %{
 %}
 
 /**
- * sfunction execname - Execname of current processes
- *
- *  Return the name of the current process.
+ * sfunction execname - Returns the execname of a target process (or group of processes).
  */
 function execname:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
 %}
 
 /**
- * sfunction pid - Process ID of current process
- *
- *
- *  Return the id of the current process.
+ * sfunction pid - Returns the ID of a target process.
  */
 function pid:long () %{ /* pure */
 	THIS->__retvalue = current->tgid;
 %}
 
 /**
- * sfunction tid - Thread ID of current process
- *
- *  Return the id of the current thread.
+ * sfunction tid - Returns the thread ID of a target process.
  */
 function tid:long () %{ /* pure */
 	THIS->__retvalue = current->pid;
 %}
 
 /**
- * sfunction ppid - Parent Process ID of current process
- *
- *  Return the id of the parent process.
+ * sfunction ppid - Returns the process ID of a target process's parent process.
  */
 function ppid:long () %{ /* pure */
 #if defined(STAPCONF_REAL_PARENT)
@@ -58,9 +53,7 @@ function ppid:long () %{ /* pure */
 %}
 
 /**
- * sfunction pexecname - Execname of the parent process.
- *
- *  Return the name of the parent process.
+ * sfunction pexecname - Returns the execname of a target process's parent process.
  */
 function pexecname:string () %{ /* pure */
 #if defined(STAPCONF_REAL_PARENT)
@@ -71,9 +64,7 @@ function pexecname:string () %{ /* pure */
 %}
 
 /**
- * sfunction gid - Group ID of current process
- *
- *  Return the gid of the current process.
+ * sfunction gid - Returns the group ID of a target process.
  */
 function gid:long () %{ /* pure */
 #ifdef STAPCONF_TASK_UID
@@ -84,9 +75,7 @@ function gid:long () %{ /* pure */
 %}
 
 /**
- * sfunction egid - Effective gid of the current process.
- *
- *  Return the effective gid of the current process.
+ * sfunction egid - Returns the effective gid of a target process.
  */
 function egid:long () %{ /* pure */
 #ifdef STAPCONF_TASK_UID
@@ -97,9 +86,7 @@ function egid:long () %{ /* pure */
 %}
 
 /**
- * sfunction uid -User ID of the current process.
- *
- *  Return the uid of the current process.
+ * sfunction uid - Returns the user ID of a target process.
  */
 function uid:long () %{ /* pure */
 #ifdef STAPCONF_TASK_UID
@@ -110,9 +97,7 @@ function uid:long () %{ /* pure */
 %}
 
 /**
- * sfunction euid - Effective User ID of the current process.
- *
- *  Return the effective uid of the current process.
+ * sfunction euid - Return the effective uid of a target process.
  */
 function euid:long () %{ /* pure */
 #ifdef STAPCONF_TASK_UID
@@ -128,26 +113,24 @@ function cpuid:long () %{ /* pure */
 %}
 
 /**
- * sfunction cpu - The current cpu number.
- * 
- *  Return the current cpu number.
+ * sfunction cpu - Returns the current cpu number.
  */
 function cpu:long () %{ /* pure */
 	THIS->__retvalue = smp_processor_id();
 %}
 
 /**
- * sfunction pp - Current probe point
- *
- *  Return the probe point associated with the currently running
- *  probe handler, including alias and wildcard expansion effects.
+ * sfunction pp - Return the probe point associated with the currently running probe handler,
+ * including alias and wildcard expansion effects
+ * Context:
+ * The current probe point. 
  */
 function pp:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
 %}
 
 /**
- * sfunction registers_valid - Register information valid
+ * sfunction registers_valid - Determines validity of <command>register()</command> and <command>u_register()</command> in current context.
  *
  *  Return 1 if register() and u_register() can be used
  *  in the current context, or 0 otherwise.
@@ -159,7 +142,7 @@ function registers_valid:long () %{ /* pure */
 %}
 
 /**
- * sfunction user_mode - User Mode
+ * sfunction user_mode - Determines if probe point occurs in user-mode.
  *
  * Return 1 if the probe point occurred in user-mode.
  */
@@ -176,7 +159,7 @@ function user_mode:long () %{ /* pure */ /* currently a user-mode address? */
 %}
 
 /**
- * sfunction is_return - Is return probe
+ * sfunction is_return - Determines if probe point is a return probe.
  *
  *  Return 1 if the probe point is a return probe.
  *  <emphasis>Deprecated.</emphasis>
@@ -189,9 +172,7 @@ function is_return:long () %{ /* pure */
 %}
 
 /**
- * sfunction target - Target pid
- *
- *  Return the pid of the target process.
+ * sfunction target - Return the process ID of the target process.
  */
 function target:long () %{ /* pure */
         THIS->__retvalue = _stp_target;
@@ -220,18 +201,16 @@ function stp_pid:long () %{ /* pure */
 %}
 
 /**
- * sfunction stack_size - Size of kernel stack
- *
- *  Return the size of the kernel stack.
+ * sfunction stack_size - Return the size of the kernel stack.
  */
 function stack_size:long () %{ /* pure */
         THIS->__retvalue = THREAD_SIZE;
 %}
 
 /**
- * sfunction stack_used - Current amount of kernel stack used
+ * sfunction stack_used - Returns the amount of kernel stack used.
  *
- *  Return how many bytes are currently used in the kernel stack.
+ * Determines how many bytes are currently used in the kernel stack.
  */
 function stack_used:long () %{ /* pure */
 	char a;
@@ -239,9 +218,9 @@ function stack_used:long () %{ /* pure */
 %}
 
 /**
- * sfunction stack_unused - Amount of kernel stack currently available
+ * sfunction stack_unused - Returns the amount of kernel stack currently available.
  *
- *  Return how many bytes are currently available in the kernel stack.
+ * Determines how many bytes are currently available in the kernel stack.
  */
 function stack_unused:long () %{ /* pure */
 	char a;

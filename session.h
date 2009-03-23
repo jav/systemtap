@@ -90,6 +90,7 @@ struct systemtap_session
   std::string module_name;
   std::string stapconf_name;
   std::string output_file;
+  std::string size_option;
   std::string cmd;
   int target_pid;
   int last_pass;
@@ -116,12 +117,16 @@ struct systemtap_session
   std::string cache_path;
   std::string hash_path;
   std::string stapconf_path;
+  std::string tracequery_path;
 
   // dwarfless operation
   bool consult_symtab;
   std::string kernel_symtab_path;
   bool ignore_vmlinux;
   bool ignore_dwarf;
+
+  // Skip bad $ vars
+  bool skip_badvars;
 
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit

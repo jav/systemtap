@@ -7,7 +7,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// This family of probe points is used to probe events that occur in the TCP layer, 
+// </tapsetdescription>
 %{
 #include <linux/version.h>
 #include <net/sock.h>
@@ -70,6 +72,16 @@ function tcp_ts_get_info_state:long(sock:long)
 	THIS->__retvalue = (int64_t) kread(&(sk->sk_state));
 	CATCH_DEREF_FAULT();
 %}
+
+/* return the TCP destination port for a given sock */
+function __tcp_sock_dport:long (sock:long){
+	return @cast(sock, "inet_sock")->dport
+}
+
+/* return the TCP source port for a given sock */
+function __tcp_sock_sport:long (sock:long){
+	return @cast(sock, "inet_sock")->sport
+}
 
 global sockstate[13], sockstate_init_p
 function tcp_sockstate_str:string (state:long) {
@@ -180,6 +192,10 @@ probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
  * @name: Name of this probe
  * @sock: Network socket
  * @size: Number of bytes to be received  
+ * @saddr: A string representing the source IP address
+ * @daddr: A string representing the destination IP address
+ * @sport: TCP source port 
+ * @dport: TCP destination port
  * Context:
  *  The process which receives a tcp message
  */
@@ -187,12 +203,20 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 	name = "tcp.recvmsg"
 	sock    = $sk
 	size    = $len
+	saddr   = ip_ntop(__ip_sock_saddr($sk))
+	daddr   = ip_ntop(__ip_sock_daddr($sk))
+	sport   = __tcp_sock_sport($sk)
+	dport   = __tcp_sock_dport($sk)
 }
 
 /**
  * probe tcp.recvmsg.return - Receiving TCP message complete
  * @name: Name of this probe
  * @size: Number of bytes received or error code if an error occurred.
+ * @saddr: A string representing the source IP address
+ * @daddr: A string representing the destination IP address
+ * @sport: TCP source port 
+ * @dport: TCP destination port
  *
  * Context:
  *  The process which receives a tcp message
@@ -200,6 +224,10 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 	name = "tcp.recvmsg"
 	size = $return
+	saddr = ip_ntop(__ip_sock_saddr($sk))
+	daddr = ip_ntop(__ip_sock_daddr($sk))
+	sport = __tcp_sock_sport($sk)
+	dport = __tcp_sock_dport($sk)
 }
 
 /**
@@ -207,6 +235,10 @@ probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
  * @name: Name of this probe
  * @sock: Network socket 
  * @flags: TCP flags (e.g. FIN, etc)  
+ * @saddr: A string representing the source IP address
+ * @daddr: A string representing the destination IP address
+ * @sport: TCP source port 
+ * @dport: TCP destination port
  *
  * Context:
  *  The process which disconnects tcp 
@@ -215,6 +247,10 @@ probe tcp.disconnect = kernel.function("tcp_disconnect") {
 	name = "tcp.disconnect"
 	sock  = $sk
 	flags = $flags
+	saddr = ip_ntop(__ip_sock_saddr($sk))
+	daddr = ip_ntop(__ip_sock_daddr($sk))
+	sport = __tcp_sock_sport($sk)
+	dport = __tcp_sock_dport($sk)
 }
 
 /**

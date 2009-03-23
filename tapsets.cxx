@@ -18,6 +18,7 @@
 #include "buildrun.h"
 #include "dwarf_wrappers.h"
 #include "auto_free.h"
+#include "hash.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -206,7 +207,9 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
 
   o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
   o->newline() << "if (atomic_inc_return (& c->busy) != 1) {";
-  o->newline(1) << "atomic_inc (& skipped_count);";
+  o->newline(1) << "#if !INTERRUPTIBLE";
+  o->newline() << "atomic_inc (& skipped_count);";
+  o->newline() << "#endif";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "atomic_inc (& skipped_count_reentrant);";
   o->newline() << "#ifdef DEBUG_REENTRANCY";
@@ -3521,9 +3524,17 @@ dwarf_query::blacklisted_p(const string& funcname,
 
   if (! (goodfn && goodfile))
     {
-      if (sess.verbose>1)
-	clog << " skipping - blacklisted";
-      return true;
+      if (sess.guru_mode)
+        {
+	  if (sess.verbose>1)
+	    clog << " guru mode enabled - ignoring blacklist";
+        }
+      else
+        {
+	  if (sess.verbose>1)
+	    clog << " skipping - blacklisted";
+	  return true;
+        }
     }
 
   // This probe point is not blacklisted.
@@ -4842,18 +4853,31 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error& er)
     {
-      // We suppress this error message, and pass the unresolved
-      // target_symbol to the next pass.  We hope that this value ends
-      // up not being referenced after all, so it can be optimized out
-      // quietly.
-      provide (e);
-      semantic_error* saveme = new semantic_error (er); // copy it
-      saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
-      // NB: we can have multiple errors, since a $target variable
-      // may be expanded in several different contexts:
-      //     function ("*") { $var }
-      saveme->chain = e->saved_conversion_error;
-      e->saved_conversion_error = saveme;
+      if (!q.sess.skip_badvars)
+	{
+	  // We suppress this error message, and pass the unresolved
+	  // target_symbol to the next pass.  We hope that this value ends
+	  // up not being referenced after all, so it can be optimized out
+	  // quietly.
+	  provide (e);
+	  semantic_error* saveme = new semantic_error (er); // copy it
+	  saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
+	  // NB: we can have multiple errors, since a $target variable
+	  // may be expanded in several different contexts:
+	  //     function ("*") { $var }
+	  saveme->chain = e->saved_conversion_error;
+	  e->saved_conversion_error = saveme;
+	}
+      else 
+	{
+	  // Upon user request for ignoring context, the symbol is replaced 
+	  // with a literal 0 and a warning message displayed
+	  literal_number* ln_zero = new literal_number (0);
+	  ln_zero->tok = e->tok;
+	  provide (ln_zero);
+	  q.sess.print_warning ("Bad variable being substituted with literal 0",
+				e->tok);
+	}
       delete fdecl;
       delete ec;
       return;
@@ -5004,7 +5028,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       // split the module string by ':' for alternatives
       size_t mod_begin = mod_end + 1;
       mod_end = e->module.find(':', mod_begin);
-      string module = e->module.substr(mod_begin, mod_end);
+      string module = e->module.substr(mod_begin, mod_end - mod_begin);
 
       // NB: This uses '/' to distinguish between kernel modules and userspace,
       // which means that userspace modules won't get any PATH searching.
@@ -5046,7 +5070,8 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       // cast_op to the next pass.  We hope that this value ends
       // up not being referenced after all, so it can be optimized out
       // quietly.
-      semantic_error* er = new semantic_error ("type definition not found", e->tok);
+      string msg = "type definition '" + e->type + "' not found";
+      semantic_error* er = new semantic_error (msg, e->tok);
       // NB: we can have multiple errors, since a @cast
       // may be expanded in several different contexts:
       //     function ("*") { @cast(...) }
@@ -6227,6 +6252,9 @@ task_finder_derived_probe_group::emit_module_exit (systemtap_session& s)
 // ------------------------------------------------------------------------
 
 
+static string TOK_INSN("insn");
+static string TOK_BLOCK("block");
+
 struct itrace_derived_probe: public derived_probe
 {
   bool has_path;
@@ -6301,7 +6329,7 @@ struct itrace_builder: public derived_probe_builder
     // XXX: PR 6445 needs !has_path && !has_pid support
     assert (has_path || has_pid);
 
-    single_step = 1;
+    single_step = ! has_null_param (parameters, TOK_BLOCK);
 
     // If we have a path, we need to validate it.
     if (has_path)
@@ -7159,10 +7187,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 	  // Emit a "fake" probe decl that is really a hook for to get
 	  // our vm_callback called.
 	  string path = it->first;
-	  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
 	  emit_vm_callback_probe_decl (s, true, path, (int64_t)0,
 				       "__stp_tf_vm_cb");
-	  s.op->newline() << "#endif";
 
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
@@ -7180,10 +7206,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
         {
 	  // Emit a "fake" probe decl that is really a hook for to get
 	  // our vm_callback called.
-	  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
 	  emit_vm_callback_probe_decl (s, false, "", it->first,
 				       "__stp_tf_vm_cb");
-	  s.op->newline() << "#endif";
 
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
@@ -9221,10 +9245,10 @@ mark_builder::build(systemtap_session & sess,
 
 struct tracepoint_arg
 {
-  string name, c_type;
-  bool used, isptr;
+  string name, c_type, typecast;
+  bool usable, used, isptr;
   Dwarf_Die type_die;
-  tracepoint_arg(): used(false), isptr(false) {}
+  tracepoint_arg(): usable(false), used(false), isptr(false) {}
 };
 
 struct tracepoint_derived_probe: public derived_probe
@@ -9276,7 +9300,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // search for a tracepoint parameter matching this name
   tracepoint_arg *arg = NULL;
   for (unsigned i = 0; i < args.size(); ++i)
-    if (args[i].name == argname)
+    if (args[i].usable && args[i].name == argname)
       {
         arg = &args[i];
         arg->used = true;
@@ -9324,6 +9348,9 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   if (lvalue && (!dw.sess.guru_mode || e->components.empty()))
     throw semantic_error("write to tracepoint variable '" + e->base_name
                          + "' not permitted", e->tok);
+  // XXX: if a struct/union arg is passed by value, then writing to its fields
+  // is also meaningless until you dereference past a pointer member.  It's
+  // harder to detect and prevent that though...
 
   if (e->components.empty())
     {
@@ -9495,6 +9522,8 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
       for (unsigned i = 0; i < args.size(); ++i)
         {
+          if (!args[i].usable)
+            continue;
           if (i > 0)
             pf->raw_components += " ";
           pf->raw_components += args[i].name;
@@ -9577,32 +9606,39 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 static bool
 dwarf_type_name(Dwarf_Die& type_die, string& c_type)
 {
-  // if this die has a direct name, then we're done
-  const char *diename = dwarf_diename_integrate(&type_die);
-  if (diename != NULL)
+  // if we've gotten down to a basic type, then we're done
+  bool done = true;
+  switch (dwarf_tag(&type_die))
     {
-      switch (dwarf_tag(&type_die))
-        {
-        case DW_TAG_structure_type:
-          c_type.append("struct ");
-          break;
-        case DW_TAG_union_type:
-          c_type.append("union ");
-          break;
-        }
-      c_type.append(diename);
+    case DW_TAG_structure_type:
+      c_type.append("struct ");
+      break;
+    case DW_TAG_union_type:
+      c_type.append("union ");
+      break;
+    case DW_TAG_typedef:
+    case DW_TAG_base_type:
+      break;
+    default:
+      done = false;
+      break;
+    }
+  if (done)
+    {
+      c_type.append(dwarf_diename_integrate(&type_die));
       return true;
     }
 
   // otherwise, this die is a type modifier.
 
   // recurse into the referent type
+  // if it can't be named, just call it "void"
   Dwarf_Attribute subtype_attr;
   Dwarf_Die subtype_die;
   if (!dwarf_attr_integrate(&type_die, DW_AT_type, &subtype_attr)
       || !dwarf_formref_die(&subtype_attr, &subtype_die)
       || !dwarf_type_name(subtype_die, c_type))
-    return false;
+    c_type = "void";
 
   const char *suffix = NULL;
   switch (dwarf_tag(&type_die))
@@ -9623,33 +9659,47 @@ dwarf_type_name(Dwarf_Die& type_die, string& c_type)
       return false;
     }
   c_type.append(suffix);
+
+  // XXX HACK!  The va_list isn't usable as found in the debuginfo...
+  if (c_type == "struct __va_list_tag*")
+    c_type = "va_list";
+
   return true;
 }
 
 
 static bool
-resolve_tracepoint_arg_type(Dwarf_Die& type_die, bool& isptr)
+resolve_tracepoint_arg_type(tracepoint_arg& arg)
 {
   Dwarf_Attribute type_attr;
-  switch (dwarf_tag(&type_die))
+  switch (dwarf_tag(&arg.type_die))
     {
     case DW_TAG_typedef:
     case DW_TAG_const_type:
     case DW_TAG_volatile_type:
       // iterate on the referent type
-      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
-              && dwarf_formref_die(&type_attr, &type_die)
-              && resolve_tracepoint_arg_type(type_die, isptr));
+      return (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
+              && dwarf_formref_die(&type_attr, &arg.type_die)
+              && resolve_tracepoint_arg_type(arg));
     case DW_TAG_base_type:
       // base types will simply be treated as script longs
-      isptr = false;
+      arg.isptr = false;
       return true;
     case DW_TAG_pointer_type:
-      // pointers can be either script longs,
-      // or dereferenced with their referent type
-      isptr = true;
-      return (dwarf_attr_integrate(&type_die, DW_AT_type, &type_attr)
-              && dwarf_formref_die(&type_attr, &type_die));
+      // pointers can be treated as script longs,
+      // and if we know their type, they can also be dereferenced
+      if (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
+          && dwarf_formref_die(&type_attr, &arg.type_die))
+        arg.isptr = true;
+      arg.typecast = "(intptr_t)";
+      return true;
+    case DW_TAG_structure_type:
+    case DW_TAG_union_type:
+      // for structs/unions which are passed by value, we turn it into
+      // a pointer that can be dereferenced.
+      arg.isptr = true;
+      arg.typecast = "(intptr_t)&";
+      return true;
     default:
       // should we consider other types too?
       return false;
@@ -9673,12 +9723,12 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
           Dwarf_Attribute type_attr;
           if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr)
               || !dwarf_formref_die (&type_attr, &tparg.type_die)
-              || !dwarf_type_name(tparg.type_die, tparg.c_type)
-              || !resolve_tracepoint_arg_type(tparg.type_die, tparg.isptr))
+              || !dwarf_type_name(tparg.type_die, tparg.c_type))
             throw semantic_error ("cannot get type of tracepoint '"
                                   + tracepoint_name + "' parameter '"
                                   + tparg.name + "'");
 
+          tparg.usable = resolve_tracepoint_arg_type(tparg);
           args.push_back(tparg);
           if (sess.verbose > 4)
             clog << "found parameter for tracepoint '" << tracepoint_name
@@ -9691,8 +9741,9 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
 void
 tracepoint_derived_probe::printargs(std::ostream &o) const
 {
-      for (unsigned i = 0; i < args.size(); ++i)
-       o << " $" << args[i].name << ":" << args[i].c_type;
+  for (unsigned i = 0; i < args.size(); ++i)
+    if (args[i].usable)
+      o << " $" << args[i].name << ":" << args[i].c_type;
 }
 
 void
@@ -9719,14 +9770,19 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (probes.empty())
     return;
 
-  s.op->newline() << "/* ---- tracepointer probes ---- */";
+  s.op->newline() << "/* ---- tracepoint probes ---- */";
+  s.op->newline();
 
   for (unsigned i = 0; i < probes.size(); ++i)
     {
       tracepoint_derived_probe *p = probes[i];
-      s.op->newline();
+
+      // emit a separate entry function for each probe, since tracepoints
+      // don't provide any sort of context pointer.
       s.op->newline() << "#include <" << p->header << ">";
       s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
+      if (p->args.size() == 0)
+        s.op->line() << "void";
       for (unsigned j = 0; j < p->args.size(); ++j)
         {
           if (j > 0)
@@ -9745,15 +9801,45 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
           {
             s.op->newline() << "c->locals[0]." << p->name << ".__tracepoint_arg_"
                             << p->args[j].name << " = (int64_t)";
-            if (p->args[j].isptr)
-              s.op->line() << "(intptr_t)";
+            s.op->line() << p->args[j].typecast;
             s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
           }
       s.op->newline() << p->name << " (c);";
       common_probe_entryfn_epilogue (s.op);
       s.op->newline(-1) << "}";
+
+      // emit normalized registration functions
+      s.op->newline() << "static int register_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "return register_trace_" << p->tracepoint_name
+                       << "(enter_tracepoint_probe_" << i << ");";
+      s.op->newline(-1) << "}";
+
+      // NB: we're not prepared to deal with unreg failures.  However, failures
+      // can only occur if the tracepoint doesn't exist (yet?), or if we
+      // weren't even registered.  The former should be OKed by the initial
+      // registration call, and the latter is safe to ignore.
+      s.op->newline() << "static void unregister_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "(void) unregister_trace_" << p->tracepoint_name
+                       << "(enter_tracepoint_probe_" << i << ");";
+      s.op->newline(-1) << "}";
       s.op->newline();
     }
+
+  // emit an array of registration functions for easy init/shutdown
+  s.op->newline() << "static struct stap_tracepoint_probe {";
+  s.op->newline(1) << "int (*reg)(void);";
+  s.op->newline(0) << "void (*unreg)(void);";
+  s.op->newline(-1) << "} stap_tracepoint_probes[] = {";
+  s.op->indent(1);
+  for (unsigned i = 0; i < probes.size(); ++i)
+    {
+      s.op->newline () << "{";
+      s.op->line() << " .reg=&register_tracepoint_probe_" << i << ",";
+      s.op->line() << " .unreg=&unregister_tracepoint_probe_" << i;
+      s.op->line() << " },";
+    }
+  s.op->newline(-1) << "};";
+  s.op->newline();
 }
 
 
@@ -9764,28 +9850,14 @@ tracepoint_derived_probe_group::emit_module_init (systemtap_session &s)
     return;
 
   s.op->newline() << "/* init tracepoint probes */";
-
-  // We can't use a simple runtime loop because the probe registration
-  // functions are distinct inlines.  Instead, this will generate nesting as
-  // deep as the number of probe points.  Gotos are also possible, but the end
-  // result is the same.
-
-  for (unsigned i = 0; i < probes.size(); ++i)
-    {
-      s.op->newline() << "if (!rc) {";
-      s.op->newline(1) << "probe_point = "
-                       << lex_cast_qstring (*probes[i]->sole_location()) << ";";
-      s.op->newline() << "rc = register_trace_" << probes[i]->tracepoint_name
-                      << "(enter_tracepoint_probe_" << i << ");";
-    }
-
-  for (unsigned i = probes.size() - 1; i < probes.size(); --i)
-    {
-      s.op->newline() << "if (rc)";
-      s.op->newline(1) << "unregister_trace_" << probes[i]->tracepoint_name
-                       << "(enter_tracepoint_probe_" << i << ");";
-      s.op->newline(-2) << "}";
-    }
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "rc = stap_tracepoint_probes[i].reg();";
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "for (j=i-1; j>=0; j--)"; // partial rollback
+  s.op->newline(1) << "stap_tracepoint_probes[j].unreg();";
+  s.op->newline(-1) << "break;"; // don't attempt to register any more probes
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
 
   // This would be technically proper (on those autoconf-detectable
   // kernels that include this function in tracepoint.h), however we
@@ -9804,10 +9876,10 @@ tracepoint_derived_probe_group::emit_module_exit (systemtap_session& s)
   if (probes.empty())
     return;
 
-  s.op->newline() << "/* deregister tracepointer probes */";
-  for (unsigned i = 0; i < probes.size(); ++i)
-    s.op->newline() << "unregister_trace_" << probes[i]->tracepoint_name
-                    << "(enter_tracepoint_probe_" << i << ");";
+  s.op->newline() << "/* deregister tracepoint probes */";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++)";
+  s.op->newline(1) << "stap_tracepoint_probes[i].unreg();";
+  s.op->indent(-1);
 
   // Not necessary: see above.
 
@@ -9922,12 +9994,43 @@ tracepoint_builder::init_dw(systemtap_session& s)
   if (dw != NULL)
     return true;
 
+  if (s.use_cache)
+    {
+      // see if the cached module exists
+      find_tracequery_hash(s);
+      if (!s.tracequery_path.empty())
+        {
+          int fd = open(s.tracequery_path.c_str(), O_RDONLY);
+          if (fd != -1)
+            {
+              if (s.verbose > 2)
+                clog << "Pass 2: using cached " << s.tracequery_path << endl;
+
+              dw = new dwflpp(s);
+              dw->setup_user(s.tracequery_path);
+              close(fd);
+              return true;
+            }
+        }
+    }
+
+  // no cached module, time to make it
   string tracequery_ko;
   int rc = make_tracequery(s, tracequery_ko);
   if (rc != 0)
     return false;
 
-  // TODO cache tracequery.ko
+  if (s.use_cache)
+    {
+      // try to save tracequery in the cache
+      if (s.verbose > 2)
+        clog << "Copying " << tracequery_ko
+             << " to " << s.tracequery_path << endl;
+      if (copy_file(tracequery_ko.c_str(),
+                    s.tracequery_path.c_str()) != 0)
+        cerr << "Copy failed (\"" << tracequery_ko << "\" to \""
+             << s.tracequery_path << "\"): " << strerror(errno) << endl;
+    }
 
   dw = new dwflpp(s);
   dw->setup_user(tracequery_ko);
@@ -10744,9 +10847,13 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
 
   // itrace user-space probes
-  s.pattern_root->bind_str(TOK_PROCESS)->bind("itrace")
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_INSN)
     ->bind(new itrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind("itrace")
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_INSN)
+    ->bind(new itrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
+    ->bind(new itrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
     ->bind(new itrace_builder ());
 
   // marker-based parts

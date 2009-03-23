@@ -108,10 +108,14 @@ usage (systemtap_session& s, int exitcode)
     << "              " << s.kernel_build_tree << endl
     << "   -m MODULE  set probe module name, instead of " << endl
     << "              " << s.module_name << endl
-    << "   -o FILE    send script output to file, instead of stdout" << endl
+    << "   -o FILE    send script output to file, instead of stdout. This supports" << endl
+    << "              a subset of strftime(3) (%%,%C,%Y,%y,%m,%d,%e,%F,%H,%I,%j,%k," << endl
+    << "              %l,%M,%S,%R,%T,%u,%w) for FILE." << endl
     << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
     << "   -x PID     sets target() to PID" << endl
-    << "   -F         load module and start probes, then detach" << endl
+    << "   -F         run as on-file flight recorder with -o." << endl
+    << "              run as on-memory flight recorder without -o." << endl
+    << "   -S size[,n] set maximum of the size and the number of files." << endl
     << "   -d OBJECT  add unwind/symbol data for OBJECT file";
   if (s.unwindsym_modules.size() == 0)
     clog << endl;
@@ -134,6 +138,8 @@ usage (systemtap_session& s, int exitcode)
 #endif
   // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
   // only, and don't belong in the eyesight of a plain user.
+    << "   --skip-badvars" << endl
+    << "              overlook context of bad $ variables" << endl
     << endl
     ;
 
@@ -431,16 +437,18 @@ main (int argc, char * const argv [])
 #define LONG_OPT_IGNORE_VMLINUX 3
 #define LONG_OPT_IGNORE_DWARF 4
 #define LONG_OPT_VERBOSE_PASS 5
+#define LONG_OPT_SKIP_BADVARS 6
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
         { "kmap", 2, &long_opt, LONG_OPT_KMAP },
         { "ignore-vmlinux", 0, &long_opt, LONG_OPT_IGNORE_VMLINUX },
         { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
+	{ "skip-badvars", 0, &long_opt, LONG_OPT_SKIP_BADVARS },
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:F",
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:FS:",
                                                           long_options, NULL);
       if (grc < 0)
         break;
@@ -624,6 +632,10 @@ main (int argc, char * const argv [])
 	  s.macros.push_back (string (optarg));
 	  break;
 
+	case 'S':
+	  s.size_option = string (optarg);
+	  break;
+
 	case 'q':
 	  s.tapset_compile_coverage = true;
 	  break;
@@ -698,6 +710,9 @@ main (int argc, char * const argv [])
                 // NB: we don't do this: s.last_pass = strlen(optarg);
                 break;
               }
+	    case LONG_OPT_SKIP_BADVARS:
+	      s.skip_badvars = true;
+	      break;
             default:
               cerr << "Internal error parsing command arguments." << endl;
               usage(s, 1);
