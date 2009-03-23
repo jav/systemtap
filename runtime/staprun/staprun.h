@@ -9,7 +9,7 @@
  *
  * Copyright (C) 2005-2008 Red Hat Inc.
  */
-
+#define _FILE_OFFSET_BITS 64
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -33,31 +33,35 @@
 #include <sys/wait.h>
 #include <sys/statfs.h>
 #include <linux/version.h>
+#include <syslog.h>
 
 /* Include config.h to pick up dependency for --prefix usage. */
 #include "config.h"
 
-#define dbug(level, args...) {if (verbose>=level) {fprintf(stderr,"%s:%s:%d ",__name__,__FUNCTION__, __LINE__); fprintf(stderr,args);}}
+extern void eprintf(const char *fmt, ...);
+extern void switch_syslog(const char *name);
+
+#define dbug(level, args...) do {if (verbose>=level) {eprintf("%s:%s:%d ",__name__,__FUNCTION__, __LINE__); eprintf(args);}} while (0)
 
 extern char *__name__;
 
 /* print to stderr */
-#define err(args...) fprintf(stderr,args)
+#define err(args...) eprintf(args)
 
 /* better perror() */
 #define perr(args...) do {					\
 		int _errno = errno;				\
-		fputs("ERROR: ", stderr);			\
-		fprintf(stderr, args);				\
-		fprintf(stderr, ": %s\n", strerror(_errno));	\
+		eprintf("ERROR: ");				\
+		eprintf(args);					\
+		eprintf(": %s\n", strerror(_errno));		\
 	} while (0)
 
 /* Error messages. Use these for serious errors, not informational messages to stderr. */
-#define _err(args...) do {fprintf(stderr,"%s:%s:%d: ERROR: ",__name__, __FUNCTION__, __LINE__); fprintf(stderr,args);} while(0)
+#define _err(args...) do {eprintf("%s:%s:%d: ERROR: ",__name__, __FUNCTION__, __LINE__); eprintf(args);} while(0)
 #define _perr(args...) do {					\
 		int _errno = errno;				\
 		_err(args);					\
-		fprintf(stderr, ": %s\n", strerror(_errno));	\
+		eprintf(": %s\n", strerror(_errno));	\
 	} while (0)
 #define overflow_error() _err("Internal buffer overflow. Please file a bug report.\n")
 
@@ -113,7 +117,12 @@ int init_relayfs(void);
 void close_relayfs(void);
 int init_oldrelayfs(void);
 void close_oldrelayfs(int);
+int write_realtime_data(void *data, ssize_t nb);
 void setup_signals(void);
+int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t);
+int init_backlog(int cpu);
+void write_backlog(int cpu, int fnum, time_t t);
+time_t read_backlog(int cpu, int fnum);
 /* staprun_funcs.c */
 void setup_staprun_signals(void);
 const char *moderror(int err);
@@ -125,6 +134,7 @@ void start_symbol_thread(void);
 void stop_symbol_thread(void);
 
 /* common.c functions */
+int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t);
 void parse_args(int argc, char **argv);
 void usage(char *prog);
 void parse_modpath(const char *);
@@ -153,6 +163,9 @@ extern int attach_mod;
 extern int delete_mod;
 extern int load_only;
 extern int need_uprobes;
+extern int daemon_mode;
+extern off_t fsize_max;
+extern int fnum_max;
 
 /* getopt variables */
 extern char *optarg;

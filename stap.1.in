@@ -175,7 +175,9 @@ even if they do not have an explicit probe placed into them.
 .TP
 .BI \-o " FILE"
 Send standard output to named file. In bulk mode, percpu files will
-start with FILE_ followed by the cpu number.
+start with FILE_ (FILE_cpu with -F) followed by the cpu number.
+This supports a subset of strftime(3) (%%, %C, %Y, %y, %m, %d, %e, %F,
+%H, %I, %j, %l, %M, %S, %R, %T, %u, %w) for FILE.
 .TP
 .BI \-c " CMD"
 Start the probes, run CMD, and exit when CMD finishes.
@@ -193,8 +195,18 @@ and aliases.
 Similar to "-l", but list probe points and script-level local variables.
 .TP
 .BI \-F
-Load module and start probes, then detach from the module leaving the
-probes running.
+Without -o option, load module and start probes, then detach from the module
+leaving the probes running.
+With -o option, run staprun in background as a daemon and show it's pid.
+.TP
+.BI \-S " size[,N]"
+Sets the maximum size of output file and the maximum number of output files.
+If the size of output file will exceed
+.B size
+, systemtap switches output file to the next file. And if the number of
+output files exceed
+.B N
+, systemtap removes the oldest output file. You can omit the second argument.
 .TP
 .B \-\-kelf
 For names and addresses of functions to probe,
@@ -776,10 +788,12 @@ and dereference the
 .I member
 value.  The optional
 .I module
-tells the translator where to look for information about that type.  If
-the module is not specified, it will default either to the probe module
-for dwarf probes, or to "kernel" for functions and all other probes
-types.
+tells the translator where to look for information about that type.
+Multiple modules may be specified as a list with
+.IR :
+separators.  If the module is not specified, it will default either to
+the probe module for dwarf probes, or to "kernel" for functions and all
+other probes types.
 .PP
 When in guru mode, the translator will also allow scripts to assign new
 values to members of typecasted pointers.
@@ -1044,7 +1058,8 @@ means that the first error will exit the script.
 MAXSKIPPED
 Maximum number of skipped probes before an exit is triggered, default 100.
 Running systemtap with \-t (timing) mode gives more details about skipped
-probes.
+probes.  With the default \-DINTERRUPTIBLE=1 setting, probes skipped due to
+reentrancy are not accumulated against this limit.
 .TP
 MINSTACKSPACE
 Minimum number of free kernel stack bytes required in order to

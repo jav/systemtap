@@ -287,7 +287,7 @@ stap_getopt () { # opts
   # TODO: support quoted options
   getopt -s bash -u \
          -l 'kelf,kmap::,ignore-vmlinux,ignore-dwarf,vp:' \
-         -o 'hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:F' -- $@
+         -o 'hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:FS:' -- $@
   ret=$?
   [ $ret -ne 0 ] && slog "Failed to parse parameters. ($@)"
   return $ret
@@ -301,9 +301,9 @@ get_compile_opts () { # opts
   for o in $opts; do
     if [ $skip -ne 0 ]; then skip=0; continue; fi
     case $o in
-    -p|-m|-r|-c|-x|-e|-s|-o)
+    -p|-m|-r|-c|-x|-e|-s|-o|-S)
        skip=1 ;;
-    -h|-V|-k)
+    -h|-V|-k|-F)
       ;;
     *)
       echo -n $o" " ;;
@@ -312,14 +312,16 @@ get_compile_opts () { # opts
 }
 
 get_run_opts () { # normalized_opts
-  local opts o show
+  local opts o show mode
   opts=`stap_getopt $*`
   [ $? -ne 0 ] && return 1
+  mode='-L'
   show=0
   for o in $opts; do
     case $o in
-    -c|-x|-s|-o)
+    -c|-x|-s|-o|-S)
       [ $o == '-s' ] && o='-b'
+      [ $o == '-o' ] && mode='-D'
       echo -n $o" "
       show=1
       ;;
@@ -331,6 +333,7 @@ get_run_opts () { # normalized_opts
       ;;
     esac
   done
+  echo -n $mode
 }
 
 prepare_cache_dir () {
@@ -461,11 +464,12 @@ start_script () { # script
     return 1
   fi
   pushd "$tmpdir" &> /dev/null
-  logex $STAPRUN -L $opts "$CACHE_PATH/$s.ko"
+  eval log \"Exec: $STAPRUN $opts $CACHE_PATH/$s.ko\"
+  $STAPRUN $opts "$CACHE_PATH/$s.ko" 2>> "$LOG_FILE" > ./pid
   ret=$?
+  [ x`cat ./pid` = x ] && echo 0 > ./pid
   if [ $ret -eq 0 ]; then
-    # TODO: store daemon pid after supporting on-file flight recorder
-    echo 0 > "$STAT_PATH/$s"
+      logex cp -f ./pid "$STAT_PATH/$s"
   fi
   popd &> /dev/null
   rm -rf "$tmpdir"
@@ -524,7 +528,7 @@ stop_script () { # script
 
   p=`get_daemon_pid $1`
   if [ $p -ne 0 ]; then
-    logex killall -TERM $p
+    logex kill -TERM $p
   else
     logex $STAPRUN -d "$1"
   fi

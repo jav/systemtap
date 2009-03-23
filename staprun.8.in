@@ -52,7 +52,10 @@ The '_stp_target' variable will be set to PID.
 .TP
 .B \-o FILE
 Send output to FILE. If the module uses bulk mode, the output will
-be in percpu files FILE_x where 'x' is the cpu number.
+be in percpu files FILE_x(FILE_cpux in backgroud and bulk mode)
+where 'x' is the cpu number. This supports a subset of strftime(3)
+(%%, %C, %Y, %y, %m, %d, %e, %F, %H, %I, %j, %l, %M, %S, %R, %T, %u, %w)
+for FILE.
 .TP
 .B \-b BUFFER_SIZE
 The systemtap module will specify a buffer size.
@@ -73,6 +76,18 @@ Attach to loaded systemtap module.
 Delete a module.  Only detached or unused modules
 the user has permission to access will be deleted. Use "*"
 (quoted) to delete all unused modules.
+.TP
+.BI \-D
+Run staprun in background as a daemon and show it's pid.
+.TP
+.BI \-S " size[,N]"
+Sets the maximum size of output file and the maximum number of output files.
+If the size of output file will exceed
+.B size
+, systemtap switches output file to the next file. And if the number of
+output files exceed
+.B N
+, systemtap removes the oldest output file. You can omit the second argument.
 
 .SH ARGUMENTS
 .B MODULE

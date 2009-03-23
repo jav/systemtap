@@ -1774,7 +1774,7 @@ sub create_sparameterlist($$$) {
     my $param;
 
     foreach my $arg (split($splitter, $args)) {
-	if ($arg =~ m/s*([\w]+)\s*:?\s*([\w]*)/) {
+	if ($arg =~ m/\s*([\w]+)\s*:?\s*([\w]*)/) {
 	    $param = $1;
 	    $type = $2;
 	    push_parameter($param, $type, $file);

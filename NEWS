@@ -1,14 +1,43 @@
 * What's new
 
+- Kernel tracepoints are now supported for probing predefined kernel
+  events without any debuginfo.  Tracepoints incur less overhead than
+  kprobes, and context parameters are available with full type
+  information.  Any kernel 2.6.28 and later should have defined
+  tracepoints.  Try the following to see what's available:
+    $ stap -L 'kernel.trace("*")'
+
+- Typecasting with @cast now supports modules search paths, which is
+  useful in case there are multiple places where the type definition
+  may be found.  For example:
+    @cast(sdev, "scsi_device", "kernel:scsi_mod")->sdev_state
+
+- On-file flight recorder is supported. It allows stap to record huge
+  trace log on the disk and to run in background.
+  Passing -F option with -o option runs stap in background mode. In this
+  mode, staprun is detached from console, and stap itself shows staprun's
+  pid and exits.
+  Specifying the max size and the max number of log files are also available
+  by passing -S option. This option has one or two arguments seperated by
+  a comma. The first argument is the max size of a log file in MB. If the
+  size of a log file exceeds it, stap switches to the next log file
+  automatically. The second is how many files are kept on the disk. If the
+  number of log files exceeds it, the oldest log file is removed
+  automatically. The second argument can be omitted.
+
+  For example, this will record output on log files each of them is smaller
+  than 1024MB and keep last 3 logs, in background.
+    % stap -F -o /tmp/staplog -S 1024,3 script.stp
+
 - In guru mode (-g), the kernel probing blacklist is disabled, leaving 
   only a subset - the kernel's own internal kprobe blacklist - to attempt
   to filter out areas unsafe to probe.  The differences may be enough to
   probe more interrupt handlers.
 
 - Variables unavailable in current context may be skipped by setting a 
-  session level flag with command line option --skip-badvars now available. 
-  This will simply substitute the otherwise error causing variable with a 
-  literal 0 and print a warning message when the substitution has been made.
+  session level flag with command line option --skip-badvars now available.
+  This replaces any dwarf $variable expressions that could not be resolved
+  with literal numeric zeros, along with a warning message.
 
 * What's new in version 0.9
 
