@@ -5731,8 +5731,6 @@ dwarf_builder::build(systemtap_session & sess,
     Elf* elf = dwfl_module_getelf (dw->module, &bias);
     size_t shstrndx;
     Elf_Scn *probe_scn = NULL;
-    bool probe_found = false;
-    bool dynamic = (dwfl_module_relocations (dw->module) == 1);
 
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
     GElf_Shdr *shdr = NULL;
@@ -5750,8 +5748,6 @@ dwarf_builder::build(systemtap_session & sess,
 	    break;
 	  }
       }
-    if (dynamic || sess.listing_mode)
-      probe_type = dwarf_no_probes;
     
     if (probe_type == probes_and_dwarf)
       {
@@ -5779,9 +5775,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
-	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) == 0)
-	      probe_found = true;
-	    else
+	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) != 0)
 	      continue;
 	    const token* sv_tok = location->components[1]->arg->tok;
 	    location->components[1]->functor = TOK_STATEMENT;
@@ -5791,11 +5785,10 @@ dwarf_builder::build(systemtap_session & sess,
 	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 	    dw->query_modules(&q);
 	  }
-	if (probe_found)
-	  return;
+	return;
       }
 
-    if (probe_type == dwarf_no_probes || ! probe_found)
+    if (probe_type == dwarf_no_probes)
       {
 	location->components[1]->functor = TOK_FUNCTION;
 	location->components[1]->arg = new literal_string("*");
