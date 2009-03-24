@@ -1045,7 +1045,6 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 static void
 __stp_call_vm_callbacks_with_vma(struct stap_task_finder_target *tgt,
 				 struct task_struct *tsk,
-				 int map_p,
 				 struct vm_area_struct *vma)
 {
 	char *mmpath_buf;
@@ -1072,7 +1071,7 @@ __stp_call_vm_callbacks_with_vma(struct stap_task_finder_target *tgt,
 			   rc, (int)tsk->pid);
 	}
 	else {
-		__stp_call_vm_callbacks(tgt, tsk, map_p, mmpath,
+		__stp_call_vm_callbacks(tgt, tsk, 1, mmpath,
 					vma->vm_start, vma->vm_end,
 					(vma->vm_pgoff << PAGE_SHIFT));
 	}
@@ -1165,7 +1164,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 			down_read(&mm->mmap_sem);
 			vma = __stp_find_file_based_vma(mm, rv);
 			if (vma != NULL) {
-				__stp_call_vm_callbacks_with_vma(tgt, tsk, 0, vma);
+				__stp_call_vm_callbacks_with_vma(tgt, tsk, vma);
 			}
 			up_read(&mm->mmap_sem);
 			mmput(mm);
@@ -1238,7 +1237,6 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 				       && vma->vm_end <= entry->vm_end) {
 					__stp_call_vm_callbacks_with_vma(tgt,
 									 tsk,
-									 1,
 									 vma);
 					if (vma->vm_end >= entry->vm_end)
 						break;
