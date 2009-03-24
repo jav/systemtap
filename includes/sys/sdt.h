@@ -56,7 +56,7 @@ do { \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n" \
-		    "\tnop /* %0 */" : "+rm"(arg1));	\
+		    "\tnop /* %0 */" :: "g"(arg1));	\
  } while (0)
 
 #define STAP_PROBE2_(probe,label,parm1,parm2)	\
@@ -67,7 +67,7 @@ do { \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 */" : "+rm"(arg1), "+rm"(arg2));	\
+		    "\tnop /* %0 %1 */" :: "g"(arg1), "g"(arg2));	\
 } while (0)
 
 #define STAP_PROBE3_(probe,label,parm1,parm2,parm3)	\
@@ -79,7 +79,7 @@ do { \
   STAP_PROBE_DATA(probe);						\
    label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 %2 */" : "+rm"(arg1), "+rm"(arg2), "+rm"(arg3)); \
+		    "\tnop /* %0 %1 %2 */" :: "g"(arg1), "g"(arg2), "g"(arg3)); \
 } while (0)
 
 #define STAP_PROBE4_(probe,label,parm1,parm2,parm3,parm4)	\
@@ -92,7 +92,7 @@ do { \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 %2 %3 */" : "+rm"(arg1), "+rm"(arg2), "+rm"(arg3), "+rm"(arg4)); \
+		    "\tnop /* %0 %1 %2 %3 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4)); \
 } while (0)
 
 #define STAP_PROBE5_(probe,label,parm1,parm2,parm3,parm4,parm5)	\
@@ -106,7 +106,7 @@ do  { \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 %2 %3 %4 */" : "+rm"(arg1), "+rm"(arg2), "+rm"(arg3), "+rm"(arg4), "+rm"(arg5)); \
+		    "\tnop /* %0 %1 %2 %3 %4 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5)); \
 } while (0)
 
 #define STAP_PROBE6_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6)	\
@@ -121,7 +121,7 @@ do { \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 %2 %3 %4 %5 */" : "+rm"(arg1), "+rm"(arg2), "+rm"(arg3), "+rm"(arg4), "+rm"(arg5), "+rm"(arg6)); \
+		    "\tnop /* %0 %1 %2 %3 %4 %5 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6)); \
 } while (0)
 
 #define STAP_PROBE7_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7)	\
@@ -137,7 +137,7 @@ do  { \
   STAP_PROBE_DATA(probe);						\
    label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 %2 %3 %4 %5 %6 */" : "+rm"(arg1), "+rm"(arg2), "+rm"(arg3), "+rm"(arg4), "+rm"(arg5), "+rm"(arg6), "+rm"(arg7)); \
+		    "\tnop /* %0 %1 %2 %3 %4 %5 %6 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7)); \
 } while (0)
 
 #define STAP_PROBE8_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
@@ -154,7 +154,7 @@ do { \
   STAP_PROBE_DATA(probe);						\
    label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 %2 %3 %4 %5 %6 %7 */" : "+rm"(arg1), "+rm"(arg2), "+rm"(arg3), "+rm"(arg4), "+rm"(arg5), "+rm"(arg6), "+rm"(arg7), "+rm"(arg8)); \
+		    "\tnop /* %0 %1 %2 %3 %4 %5 %6 %7 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8)); \
 } while (0)
 
 #define STAP_PROBE9_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
@@ -172,7 +172,7 @@ do { \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 %2 %3 %4 %5 %6 %7 %8 */" : "+rm"(arg1), "+rm"(arg2), "+rm"(arg3), "+rm"(arg4), "+rm"(arg5), "+rm"(arg6), "+rm"(arg7), "+rm"(arg8), "+rm"(arg9)); \
+		    "\tnop /* %0 %1 %2 %3 %4 %5 %6 %7 %8 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9)); \
 } while (0)
 
 #define STAP_PROBE10_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
@@ -191,7 +191,7 @@ do { \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
-		    "\tnop /* %0 %1 %2 %3 %4 %5 %6 %7 %8 %9 */" : "+rm"(arg1), "+rm"(arg2), "+rm"(arg3), "+rm"(arg4), "+rm"(arg5), "+rm"(arg6), "+rm"(arg7), "+rm"(arg8), "+rm"(arg9), "+rm"(arg10)); \
+		    "\tnop /* %0 %1 %2 %3 %4 %5 %6 %7 %8 %9 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9), "g"(arg10)); \
 } while (0)
 
 #define STAP_PROBE(provider,probe)	\
