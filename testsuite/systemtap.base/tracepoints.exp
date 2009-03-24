@@ -1,3 +1,26 @@
+
+set tracepoints {}
+spawn stap -l {kernel.trace("*")}
+expect {
+    -re {^kernel.trace[^\r\n]*\r\n} {
+        append tracepoints $expect_out(0,string)
+        exp_continue
+    }
+    timeout {}
+    eof {}
+}
+catch {close}; catch { wait }
+
+foreach tp $tracepoints {
+    set test "tracepoint $tp -p4"
+    if {[catch {exec stap -w -p4 -e "probe $tp {}"} res]} {
+        fail "$test $res"
+    } else {
+        pass "$test"
+    }
+}
+
 set test "tracepoints"
+if {![installtest_p]} { untested $test; return }
 set ::result_string {tracepoints OK}
 stap_run2 $srcdir/$subdir/$test.stp

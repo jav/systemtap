@@ -9582,6 +9582,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
   // tracepoints from FOO_event_types.h should really be included from FOO.h
   // XXX can dwarf tell us the include hierarchy?  it would be better to
   // ... walk up to see which one was directly included by tracequery.c
+  // XXX: see also PR9993.
   header_pos = header.find("_event_types");
   if (header_pos != string::npos)
     header.erase(header_pos, 12);
@@ -9757,6 +9758,16 @@ tracepoint_derived_probe::emit_probe_context_vars (translator_output* o)
 }
 
 
+static vector<string> tracepoint_extra_headers ()
+{
+  vector<string> they_live;
+  // PR 9993
+  // XXX: may need this to be configurable
+  they_live.push_back ("linux/skbuff.h");
+  return they_live;
+}
+
+
 void
 tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
@@ -9765,6 +9776,12 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- tracepoint probes ---- */";
   s.op->newline();
+
+  // PR9993: Add extra headers to work around undeclared types in individual
+  // include/trace/foo.h files
+  const vector<string>& extra_headers = tracepoint_extra_headers ();
+  for (unsigned z=0; z<extra_headers.size(); z++)
+    s.op->newline() << "#include <" << extra_headers[z] << ">\n";
 
   for (unsigned i = 0; i < probes.size(); ++i)
     {
@@ -9963,6 +9980,7 @@ private:
   bool init_dw(systemtap_session& s);
 
 public:
+
   tracepoint_builder(): dw(0) {}
   ~tracepoint_builder() { delete dw; }
 
@@ -10009,7 +10027,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
 
   // no cached module, time to make it
   string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko);
+  int rc = make_tracequery(s, tracequery_ko, tracepoint_extra_headers());
   if (rc != 0)
     return false;
 
