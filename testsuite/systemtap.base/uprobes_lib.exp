@@ -1,0 +1,38 @@
+set test "uprobes_lib"
+set testpath "$srcdir/$subdir"
+set testsrc  "$testpath/uprobes_exe.c"
+set testsrclib  "$testpath/uprobes_lib.c"
+set testexe  "./uprobes_exe"
+set testlibname  "uprobes_lib"
+set testlibdir "."
+set testso  "$testlibdir/lib${testlibname}.so"
+set testflags "additional_flags=-g additional_flags=-O"
+set testlibflags "$testflags additional_flags=-fPIC additional_flags=-shared"
+set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$testlibname additional_flags=-Wl,-rpath,$testlibdir"
+
+# Only run on make installcheck
+if {! [installtest_p]} { untested "$test"; return }
+
+# Compile our test program and library.
+set res [target_compile $testsrclib $testso executable $testlibflags]
+if { $res != "" } {
+    verbose "target_compile for $testso failed: $res" 2
+    fail "unable to compile $testsrclib"
+    return
+}
+set res [target_compile $testsrc $testexe executable $maintestflags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $testsrc"
+    return
+}
+
+# XXX main_func needs another/extra test. Disabled for now.
+# Enable (and in uprobes_lib.stp) after PR9940 is fixed.
+# set ::result_string {main_func
+# lib_func}
+set ::result_string {lib_func}
+
+stap_run2 $srcdir/$subdir/$test.stp -c $testexe
+
+#exec rm -f $testexe $testso
