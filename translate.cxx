@@ -4824,9 +4824,10 @@ emit_symbol_data (systemtap_session& s)
       do
         {
           if (pending_interrupts) return;
+          if (ctx.undone_unwindsym_modules.empty()) return;
           off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
         }
-      while (off > 0 && !ctx.undone_unwindsym_modules.empty());
+      while (off > 0);
       dwfl_assert("dwfl_getmodules", off == 0);
     }
   dwfl_end(dwfl);
@@ -4862,9 +4863,10 @@ emit_symbol_data (systemtap_session& s)
           do
             {
               if (pending_interrupts) return;
+              if (ctx.undone_unwindsym_modules.empty()) return;
               off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
             }
-          while (off > 0 && !ctx.undone_unwindsym_modules.empty());
+          while (off > 0);
           dwfl_assert("dwfl_getmodules", off == 0);
         }
       dwfl_end(dwfl);
