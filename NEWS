@@ -1,5 +1,9 @@
 * What's new
 
+- Systemtap probes and function man pages extracted from the tapsets
+  are now available. To look at man page for systemtap vm.pagefault:
+    $ man 3stap vm.pagefault
+
 - Kernel tracepoints are now supported for probing predefined kernel
   events without any debuginfo.  Tracepoints incur less overhead than
   kprobes, and context parameters are available with full type
