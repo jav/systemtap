@@ -603,7 +603,8 @@ typedef tr1::unordered_map<string,Dwarf_Die> cu_function_cache_t;
 typedef tr1::unordered_map<string,cu_function_cache_t*> mod_cu_function_cache_t; // module:cu -> function -> die
 #else
 struct stringhash {
-  size_t operator() (const string& s) const { hash<const char*> h; return h(s.c_str()); }
+  // __gnu_cxx:: is needed because our own hash.h has an ambiguous hash<> decl too.
+  size_t operator() (const string& s) const { __gnu_cxx::hash<const char*> h; return h(s.c_str()); }
 };
 
 typedef hash_map<string,Dwarf_Die,stringhash> cu_function_cache_t;
@@ -5022,7 +5023,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   string code;
   exp_type type = pe_long;
-  size_t mod_end = -1;
+  size_t mod_end = ~0;
   do
     {
       // split the module string by ':' for alternatives
