@@ -535,7 +535,7 @@ Events are specified in a special syntax called "probe points".  There
 are several varieties of probe points defined by the translator, and
 tapset scripts may define further ones using aliases.  These are
 listed in the
-.IR stapprobes (5)
+.IR stapprobes (3stap)
 manual pages.
 .PP
 The probe handler is interpreted relative to the context of each
@@ -860,7 +860,7 @@ by the scripts installed under the
 .IR @prefix@/share/systemtap/tapset
 .hy
 directory.  These are described in the
-.IR stapfuncs "(5) and " stapprobes (5)
+.IR stapfuncs "(3stap) and " stapprobes (3stap)
 manual pages.
 
 .SH PROCESSING
@@ -957,7 +957,7 @@ unloads the module, and cleans up.
 
 .SH EXAMPLES
 See the 
-.IR stapex (5)
+.IR stapex (3stap)
 manual page for a collection of samples.
 
 .SH CACHING
@@ -1202,10 +1202,10 @@ The auxiliary program supervising module loading, interaction, and
 unloading.
 
 .SH SEE ALSO
-.IR stapprobes (5),
-.IR stapfuncs (5),
-.IR stapvars (5),
-.IR stapex (5),
+.IR stapprobes (3stap),
+.IR stapfuncs (3stap),
+.IR stapvars (3stap),
+.IR stapex (3stap),
 .IR awk (1),
 .IR gdb (1)
 

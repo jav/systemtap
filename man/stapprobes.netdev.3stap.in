@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.NETDEV 5 @DATE@ "IBM"
+.TH STAPPROBES.NETDEV 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.netdev \- systemtap network device probe points
 
@@ -74,4 +74,4 @@ Fires when the network device wants to transmit a buffer
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),

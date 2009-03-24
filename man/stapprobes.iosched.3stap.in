@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.IOSCHED 5 @DATE@ "IBM"
+.TH STAPPROBES.IOSCHED 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.iosched \- systemtap IO scheduler probe points
 
@@ -96,5 +96,5 @@ Fires when a request is completed
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 

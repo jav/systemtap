@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPEX 5 @DATE@ "Red Hat"
+.TH STAPEX 3stap @DATE@ "Red Hat"
 .SH NAME
 stapex \- systemtap examples
 
@@ -121,6 +121,6 @@ it is ordinarily run.
 .SH SEE ALSO
 .BR @prefix@/doc/systemtap*/examples
 .IR stap (1)
-.IR stapprobes (5)
-.IR stapfuncs (5)
+.IR stapprobes (3stap)
+.IR stapfuncs (3stap)
 

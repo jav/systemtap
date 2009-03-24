@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.SIGNAL 5 @DATE@ "IBM"
+.TH STAPPROBES.SIGNAL 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.signal \- systemtap signal probe points
 
@@ -505,5 +505,5 @@ Fires when flush all pending signals for a task
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 

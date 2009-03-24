@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.PROCESS 5 @DATE@ "Intel, IBM"
+.TH STAPPROBES.PROCESS 3stap @DATE@ "Intel, IBM"
 .SH NAME
 stapprobes.process \- systemtap process probe points
 
@@ -102,5 +102,5 @@ process waits in a zombie state.
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 

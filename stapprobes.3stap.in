@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES 5 @DATE@ "Red Hat"
+.TH STAPPROBES 3stap @DATE@ "Red Hat"
 .SH NAME
 stapprobes \- systemtap probe points
 
@@ -661,16 +661,16 @@ refers to the group of probe aliases with any name in the third position
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes.iosched (5),
-.IR stapprobes.netdev (5),
-.IR stapprobes.nfs (5),
-.IR stapprobes.nfsd (5),
-.IR stapprobes.pagefault (5),
-.IR stapprobes.process (5),
-.IR stapprobes.rpc (5),
-.IR stapprobes.scsi (5),
-.IR stapprobes.signal (5),
-.IR stapprobes.socket (5),
-.IR stapprobes.tcp (5),
-.IR stapprobes.udp (5),
-.IR proc (5)
+.IR stapprobes.iosched (3stap),
+.IR stapprobes.netdev (3stap),
+.IR stapprobes.nfs (3stap),
+.IR stapprobes.nfsd (3stap),
+.IR stapprobes.pagefault (3stap),
+.IR stapprobes.process (3stap),
+.IR stapprobes.rpc (3stap),
+.IR stapprobes.scsi (3stap),
+.IR stapprobes.signal (3stap),
+.IR stapprobes.socket (3stap),
+.IR stapprobes.tcp (3stap),
+.IR stapprobes.udp (3stap),
+.IR proc (3stap)

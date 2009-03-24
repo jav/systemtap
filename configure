@@ -7859,7 +7859,7 @@ _ACEOF
 
 ac_config_headers="$ac_config_headers config.h:config.in"
 
-ac_config_files="$ac_config_files Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5 initscript/systemtap"
+ac_config_files="$ac_config_files Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-server.8 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.process.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap initscript/systemtap"
 
 subdirs="$subdirs testsuite"
 
@@ -8504,24 +8504,24 @@ do
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "doc/SystemTap_Tapset_Reference/Makefile") CONFIG_FILES="$CONFIG_FILES doc/SystemTap_Tapset_Reference/Makefile" ;;
     "stap.1") CONFIG_FILES="$CONFIG_FILES stap.1" ;;
-    "stapprobes.5") CONFIG_FILES="$CONFIG_FILES stapprobes.5" ;;
-    "stapfuncs.5") CONFIG_FILES="$CONFIG_FILES stapfuncs.5" ;;
-    "stapvars.5") CONFIG_FILES="$CONFIG_FILES stapvars.5" ;;
-    "stapex.5") CONFIG_FILES="$CONFIG_FILES stapex.5" ;;
+    "stapprobes.3stap") CONFIG_FILES="$CONFIG_FILES stapprobes.3stap" ;;
+    "stapfuncs.3stap") CONFIG_FILES="$CONFIG_FILES stapfuncs.3stap" ;;
+    "stapvars.3stap") CONFIG_FILES="$CONFIG_FILES stapvars.3stap" ;;
+    "stapex.3stap") CONFIG_FILES="$CONFIG_FILES stapex.3stap" ;;
     "staprun.8") CONFIG_FILES="$CONFIG_FILES staprun.8" ;;
     "stap-server.8") CONFIG_FILES="$CONFIG_FILES stap-server.8" ;;
-    "man/stapprobes.iosched.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.iosched.5" ;;
-    "man/stapprobes.netdev.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.netdev.5" ;;
-    "man/stapprobes.nfs.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.nfs.5" ;;
-    "man/stapprobes.nfsd.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.nfsd.5" ;;
-    "man/stapprobes.pagefault.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.pagefault.5" ;;
-    "man/stapprobes.process.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.process.5" ;;
-    "man/stapprobes.rpc.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.rpc.5" ;;
-    "man/stapprobes.scsi.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.scsi.5" ;;
-    "man/stapprobes.signal.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.signal.5" ;;
-    "man/stapprobes.socket.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.socket.5" ;;
-    "man/stapprobes.tcp.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.tcp.5" ;;
-    "man/stapprobes.udp.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.udp.5" ;;
+    "man/stapprobes.iosched.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.iosched.3stap" ;;
+    "man/stapprobes.netdev.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.netdev.3stap" ;;
+    "man/stapprobes.nfs.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.nfs.3stap" ;;
+    "man/stapprobes.nfsd.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.nfsd.3stap" ;;
+    "man/stapprobes.pagefault.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.pagefault.3stap" ;;
+    "man/stapprobes.process.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.process.3stap" ;;
+    "man/stapprobes.rpc.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.rpc.3stap" ;;
+    "man/stapprobes.scsi.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.scsi.3stap" ;;
+    "man/stapprobes.signal.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.signal.3stap" ;;
+    "man/stapprobes.socket.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.socket.3stap" ;;
+    "man/stapprobes.tcp.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.tcp.3stap" ;;
+    "man/stapprobes.udp.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.udp.3stap" ;;
     "initscript/systemtap") CONFIG_FILES="$CONFIG_FILES initscript/systemtap" ;;
     "run-stap") CONFIG_FILES="$CONFIG_FILES run-stap" ;;
 

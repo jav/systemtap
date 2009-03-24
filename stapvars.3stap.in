@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPVARS 5 @DATE@ "Red Hat"
+.TH STAPVARS 3stap @DATE@ "Red Hat"
 .SH NAME
 stapvars \- systemtap variables
 
