@@ -2,7 +2,7 @@
 ## process this file with automake to produce Makefile.in
 
 DOC_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap
-MAN_INSTALL_DIR = $(DESTDIR)$(mandir)/man3stap
+MAN_INSTALL_DIR = $(DESTDIR)$(mandir)/man3
 HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
 
 
@@ -36,7 +36,7 @@ tapsets.pdf: tapsets.xml
 	xmlto pdf tapsets.xml
 
 stamp-mandocs: tapsets.xml
-	xmlto man -o man3stap tapsets.xml
+	xmlto man -o man3 tapsets.xml
 	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately
@@ -45,7 +45,7 @@ install-data-hook:
 	$(MKDIR_P)  $(DOC_INSTALL_DIR)
 	$(INSTALL_DATA) tapsets.pdf $(DOC_INSTALL_DIR)
 	$(MKDIR_P)  $(MAN_INSTALL_DIR)
-	$(INSTALL_DATA) man3stap/* $(MAN_INSTALL_DIR)
+	$(INSTALL_DATA) man3/* $(MAN_INSTALL_DIR)
 	$(MKDIR_P)  $(HTML_INSTALL_DIR)
 	$(INSTALL_DATA) tapsets/* $(HTML_INSTALL_DIR)
 endif

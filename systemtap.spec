@@ -245,7 +245,7 @@ exit 0
 %if %{with_docs}
 %doc docs.installed/*.pdf
 %doc docs.installed/tapsets
-%{_mandir}/man3stap/*
+%{_mandir}/man3/*
 %endif
 
 %{_bindir}/stap
