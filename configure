@@ -5990,12 +5990,13 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 
 
+# Compiling without fPIE by default (see PR 9922)
 # Check whether --enable-pie was given.
 if test "${enable_pie+set}" = set; then
   enableval=$enable_pie;
 fi
 
-if test "x$enable_pie" != xno; then
+if test "x$enable_pie" == xyes; then
 
    save_CFLAGS="$CFLAGS"
    save_CXXFLAGS="$CXXFLAGS"

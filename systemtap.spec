@@ -3,6 +3,7 @@
 %{!?with_crash: %define with_crash 0}
 %{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
 %{!?elfutils_version: %define elfutils_version 0.127}
+%{!?pie_supported: %define pie_supported 1}
 
 Name: systemtap
 Version: 0.9
@@ -175,9 +176,15 @@ cd ..
 %define docs_config --disable-docs
 %endif
 
+# Enable pie as configure defaults to disabling it
+%if %{pie_supported}
+%define pie_config --enable-pie
+%else
+%define pie_config --disable-pie
+%endif
 
 
-%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config}
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config}
 make %{?_smp_mflags}
 
 %install
