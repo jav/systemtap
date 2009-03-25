@@ -48,6 +48,20 @@ hash::add(const unsigned char *buffer, size_t size)
 
 
 void
+hash::add_file(const std::string& filename)
+{
+  struct stat st;
+
+  if (stat(filename.c_str(), &st) == 0)
+    {
+      add(filename);
+      add(st.st_size);
+      add(st.st_mtime);
+    }
+}
+
+
+void
 hash::result(string& r)
 {
   ostringstream rstream;
@@ -68,12 +82,18 @@ hash::result(string& r)
 static void
 get_base_hash (systemtap_session& s, hash& h)
 {
-  struct stat st;
-
   // Hash kernel release and arch.
   h.add(s.kernel_release);
   h.add(s.kernel_build_tree);
   h.add(s.architecture);
+
+  // Hash a few kernel version/build-id files too
+  // (useful for kernel developers reusing a single source tree)
+  h.add_file(s.kernel_build_tree + "/.config");
+  h.add_file(s.kernel_build_tree + "/.version");
+  h.add_file(s.kernel_build_tree + "/include/linux/compile.h");
+  h.add_file(s.kernel_build_tree + "/include/linux/version.h");
+  h.add_file(s.kernel_build_tree + "/include/linux/utsrelease.h");
 
   // Hash runtime path (that gets added in as "-R path").
   h.add(s.runtime_path);
@@ -81,24 +101,14 @@ get_base_hash (systemtap_session& s, hash& h)
   // Hash compiler path, size, and mtime.  We're just going to assume
   // we'll be using gcc. XXX: getting kbuild to spit out out would be
   // better.
-  string gcc_path = find_executable ("gcc");
-  if (stat(gcc_path.c_str(), &st) == 0)
-    {
-      h.add(gcc_path);
-      h.add(st.st_size);
-      h.add(st.st_mtime);
-    }
+  h.add_file(find_executable("gcc"));
 
   // Hash the systemtap size and mtime.  We could use VERSION/DATE,
   // but when developing systemtap that doesn't work well (since you
   // can compile systemtap multiple times in 1 day).  Since we don't
   // know exactly where we're getting run from, we'll use
   // /proc/self/exe.
-  if (stat("/proc/self/exe", &st) == 0)
-  {
-      h.add(st.st_size);
-      h.add(st.st_mtime);
-  }
+  h.add_file("/proc/self/exe");
 }
 
 
