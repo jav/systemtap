@@ -603,7 +603,8 @@ typedef tr1::unordered_map<string,Dwarf_Die> cu_function_cache_t;
 typedef tr1::unordered_map<string,cu_function_cache_t*> mod_cu_function_cache_t; // module:cu -> function -> die
 #else
 struct stringhash {
-  size_t operator() (const string& s) const { hash<const char*> h; return h(s.c_str()); }
+  // __gnu_cxx:: is needed because our own hash.h has an ambiguous hash<> decl too.
+  size_t operator() (const string& s) const { __gnu_cxx::hash<const char*> h; return h(s.c_str()); }
 };
 
 typedef hash_map<string,Dwarf_Die,stringhash> cu_function_cache_t;
@@ -5022,7 +5023,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   string code;
   exp_type type = pe_long;
-  size_t mod_end = -1;
+  size_t mod_end = ~0;
   do
     {
       // split the module string by ':' for alternatives
@@ -5731,8 +5732,6 @@ dwarf_builder::build(systemtap_session & sess,
     Elf* elf = dwfl_module_getelf (dw->module, &bias);
     size_t shstrndx;
     Elf_Scn *probe_scn = NULL;
-    bool probe_found = false;
-    bool dynamic = (dwfl_module_relocations (dw->module) == 1);
 
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
     GElf_Shdr *shdr = NULL;
@@ -5750,8 +5749,6 @@ dwarf_builder::build(systemtap_session & sess,
 	    break;
 	  }
       }
-    if (dynamic || sess.listing_mode)
-      probe_type = dwarf_no_probes;
     
     if (probe_type == probes_and_dwarf)
       {
@@ -5779,9 +5776,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
-	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) == 0)
-	      probe_found = true;
-	    else
+	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) != 0)
 	      continue;
 	    const token* sv_tok = location->components[1]->arg->tok;
 	    location->components[1]->functor = TOK_STATEMENT;
@@ -5791,11 +5786,10 @@ dwarf_builder::build(systemtap_session & sess,
 	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 	    dw->query_modules(&q);
 	  }
-	if (probe_found)
-	  return;
+	return;
       }
 
-    if (probe_type == dwarf_no_probes || ! probe_found)
+    if (probe_type == dwarf_no_probes)
       {
 	location->components[1]->functor = TOK_FUNCTION;
 	location->components[1]->arg = new literal_string("*");
@@ -9589,6 +9583,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
   // tracepoints from FOO_event_types.h should really be included from FOO.h
   // XXX can dwarf tell us the include hierarchy?  it would be better to
   // ... walk up to see which one was directly included by tracequery.c
+  // XXX: see also PR9993.
   header_pos = header.find("_event_types");
   if (header_pos != string::npos)
     header.erase(header_pos, 12);
@@ -9764,6 +9759,16 @@ tracepoint_derived_probe::emit_probe_context_vars (translator_output* o)
 }
 
 
+static vector<string> tracepoint_extra_headers ()
+{
+  vector<string> they_live;
+  // PR 9993
+  // XXX: may need this to be configurable
+  they_live.push_back ("linux/skbuff.h");
+  return they_live;
+}
+
+
 void
 tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
@@ -9772,6 +9777,12 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- tracepoint probes ---- */";
   s.op->newline();
+
+  // PR9993: Add extra headers to work around undeclared types in individual
+  // include/trace/foo.h files
+  const vector<string>& extra_headers = tracepoint_extra_headers ();
+  for (unsigned z=0; z<extra_headers.size(); z++)
+    s.op->newline() << "#include <" << extra_headers[z] << ">\n";
 
   for (unsigned i = 0; i < probes.size(); ++i)
     {
@@ -9970,6 +9981,7 @@ private:
   bool init_dw(systemtap_session& s);
 
 public:
+
   tracepoint_builder(): dw(0) {}
   ~tracepoint_builder() { delete dw; }
 
@@ -10016,7 +10028,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
 
   // no cached module, time to make it
   string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko);
+  int rc = make_tracequery(s, tracequery_ko, tracepoint_extra_headers());
   if (rc != 0)
     return false;
 

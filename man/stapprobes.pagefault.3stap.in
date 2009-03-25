@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.PAGEFAULT 5 @DATE@ "IBM"
+.TH STAPPROBES.PAGEFAULT 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.pagefault \- systemtap pagefault probe points
 
@@ -36,5 +36,5 @@ Fires when there is a pagefault
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 

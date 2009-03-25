@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPFUNCS 5 @DATE@ "Red Hat"
+.TH STAPFUNCS 3stap @DATE@ "Red Hat"
 .SH NAME
 stapfuncs \- systemtap functions
 
@@ -565,7 +565,7 @@ the handle being used for that event.
 These functions convert arguments in the socket tapset back and
 forth between their numeric and string representations.
 See 
-.IR stapprobes.socket (5)
+.IR stapprobes.socket (3stap)
 for details.
 
 .TP

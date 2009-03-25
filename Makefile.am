@@ -12,7 +12,15 @@ AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
-man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
+man_MANS =  stap.1 \
+stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
+staprun.8 \
+man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap \
+man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap \
+man/stapprobes.pagefault.3stap man/stapprobes.process.3stap \
+man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap \
+man/stapprobes.signal.3stap man/stapprobes.socket.3stap \
+man/stapprobes.tcp.3stap man/stapprobes.udp.3stap
 # see also configure.ac
 
 bin_PROGRAMS = stap staprun

@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.SCSI 5 @DATE@ "IBM"
+.TH STAPPROBES.SCSI 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.scsi \- systemtap scsi probe points
 
@@ -147,5 +147,5 @@ block device I/O requests
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 

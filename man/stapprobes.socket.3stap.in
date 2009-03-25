@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.SOCKET 5 @DATE@ "IBM"
+.TH STAPPROBES.SOCKET 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.socket \- systemtap socket probe points
 
@@ -481,5 +481,5 @@ The socket closer.
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
-.IR stapfuncs (5)
+.IR stapprobes (3stap),
+.IR stapfuncs (3stap)

@@ -82,9 +82,10 @@ AS_IF([test "x$enable_ssp" != xno],[
        CFLAGS="$save_CFLAGS"
        CXXFLAGS="$save_CXXFLAGS"])])
 
+# Compiling without fPIE by default (see PR 9922)
 AC_ARG_ENABLE([pie],
-  [AS_HELP_STRING([--disable-pie], [disable position-independent-executable])])
-AS_IF([test "x$enable_pie" != xno],[
+  [AS_HELP_STRING([--enable-pie], [enable position-independent-executable])])
+AS_IF([test "x$enable_pie" == xyes],[
    save_CFLAGS="$CFLAGS"
    save_CXXFLAGS="$CXXFLAGS"
    save_LDFLAGS="$LDFLAGS"
@@ -358,7 +359,7 @@ dnl Don't use this directly (when not given it is set to NONE).
 AC_DEFINE_UNQUOTED(STAP_PREFIX, "$prefix", [configure prefix location])
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5 initscript/systemtap)
+AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-server.8 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.process.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap initscript/systemtap)
 AC_CONFIG_SUBDIRS(testsuite)
 AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
 AC_OUTPUT

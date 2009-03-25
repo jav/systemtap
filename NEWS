@@ -1,5 +1,20 @@
 * What's new
 
+ - New probes process().insn and process().insn.block that allows
+   inspection of the process after each instruction or block of
+   instructions executed. So to count the total number of instructions
+   a process executes during a run do something like:
+     $ stap -e 'global steps; probe process("/bin/ls").insn {steps++} 
+                probe end {printf("Total instructions: %d\n", steps);}' \
+            -c /bin/ls
+   This feature can slow down execution of a process somewhat.
+
+ - Systemtap probes and function man pages extracted from the tapsets
+   are now available under 3stap. To show the page for probe vm.pagefault
+   or the stap function pexecname do:
+     $ man 3stap vm.pagefault
+     $ man 3stap pexecname
+
 - Kernel tracepoints are now supported for probing predefined kernel
   events without any debuginfo.  Tracepoints incur less overhead than
   kprobes, and context parameters are available with full type
@@ -38,6 +53,18 @@
   session level flag with command line option --skip-badvars now available.
   This replaces any dwarf $variable expressions that could not be resolved
   with literal numeric zeros, along with a warning message.
+
+- Both kernel markers and kernel tracepoint support argument listing
+  through stap -L 'kernel.mark("*")' or stap -L 'kernel.trace("*")'
+
+- Users can use -DINTERRUPTIBLE=0 to prevent interrupt reentrancy in
+  their script, at the cost of a bit more overhead to toggle the
+  interrupt mask.
+
+- Added reentrancy debugging. If stap is run with the arguments
+  "-t -DDEBUG_REENTRANCY", additional warnings will be printed for
+  every reentrancy event, including the probe points of the
+  resident and interloper probes.
 
 * What's new in version 0.9
 

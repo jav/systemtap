@@ -312,6 +312,15 @@ check_path(void)
 		return -1;
 	}
 
+        /* Overwrite the modpath with the canonicalized one, to defeat
+           a possible race between path checking below and somewhat later
+           module loading. */
+        modpath = strdup (module_realpath);
+        if (modpath == NULL) {
+		_perr("allocating memory failed");
+                exit (1);
+        }
+
 	/* To make sure the user can't specify something like
 	 * /lib/modules/`uname -r`/systemtapmod.ko, put a '/' on the
 	 * end of staplib_dir_realpath. */

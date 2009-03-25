@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.NFS 5 @DATE@ "IBM"
+.TH STAPPROBES.NFS 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.nfs \- systemtap NFS client side probe points
 
@@ -1232,5 +1232,5 @@ Fires whenever nfs client renames a file on server
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 
