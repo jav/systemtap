@@ -54,6 +54,18 @@
   This replaces any dwarf $variable expressions that could not be resolved
   with literal numeric zeros, along with a warning message.
 
+- Both kernel markers and kernel tracepoint support argument listing
+  through stap -L 'kernel.mark("*")' or stap -L 'kernel.trace("*")'
+
+- Users can use -DINTERRUPTIBLE=0 to prevent interrupt reentrancy in
+  their script, at the cost of a bit more overhead to toggle the
+  interrupt mask.
+
+- Added reentrancy debugging. If stap is run with the arguments
+  "-t -DDEBUG_REENTRANCY", additional warnings will be printed for
+  every reentrancy event, including the probe points of the
+  resident and interloper probes.
+
 * What's new in version 0.9
 
 - Typecasting is now supported using the @cast operator.  A script can
