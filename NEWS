@@ -9,12 +9,11 @@
             -c /bin/ls
    This feature can slow down execution of a process somewhat.
 
-- Systemtap probes and function man pages extracted from the tapsets
-  are now available in a separate man section 3stap.
-  To look at the page for probe vm.pagefault:
-    $ man -S 3stap probe_vm.pagefault
-  To look at the page for the function pexecname:
-    $ man -S 3stap pexecname
+ - Systemtap probes and function man pages extracted from the tapsets
+   are now available under 3stap. To show the page for probe vm.pagefault
+   or the stap function pexecname do:
+     $ man 3stap vm.pagefault
+     $ man 3stap pexecname
 
 - Kernel tracepoints are now supported for probing predefined kernel
   events without any debuginfo.  Tracepoints incur less overhead than
