@@ -1336,7 +1336,7 @@ Optional Features:
                           location).
   --enable-prologues      make -P prologue-searching default
   --disable-ssp           disable gcc stack-protector
-  --disable-pie           disable position-independent-executable
+  --enable-pie            enable position-independent-executable
   --enable-sqlite         build with sqlite support
   --enable-crash[=DIRECTORY]
                           enable crash extension (default is disabled).

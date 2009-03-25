@@ -84,7 +84,7 @@ AS_IF([test "x$enable_ssp" != xno],[
 
 # Compiling without fPIE by default (see PR 9922)
 AC_ARG_ENABLE([pie],
-  [AS_HELP_STRING([--disable-pie], [disable position-independent-executable])])
+  [AS_HELP_STRING([--enable-pie], [enable position-independent-executable])])
 AS_IF([test "x$enable_pie" == xyes],[
    save_CFLAGS="$CFLAGS"
    save_CXXFLAGS="$CXXFLAGS"
