@@ -95,6 +95,10 @@ get_base_hash (systemtap_session& s, hash& h)
   h.add_file(s.kernel_build_tree + "/include/linux/version.h");
   h.add_file(s.kernel_build_tree + "/include/linux/utsrelease.h");
 
+  // If the kernel is a git working directory, then add the git HEAD
+  // revision to our hash as well.
+  h.add(git_revision(s.kernel_build_tree));
+
   // Hash runtime path (that gets added in as "-R path").
   h.add(s.runtime_path);
 
