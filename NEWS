@@ -66,6 +66,18 @@
   every reentrancy event, including the probe points of the
   resident and interloper probes.
 
+- Default to --disable-pie for configure.
+  Use --enable-pie to turn it back on.
+
+- Improved sdt.h compatibility and test suite for static dtrace
+  compatible user space markers.
+
+- Some architectures now use syscall wrappers (HAVE_SYSCALL_WRAPPERS).
+  The syscall tapset has been enhanced to take care of the syscall
+  wrappers in this release.
+
+- Security fix for CVE-2009-0784: stapusr module-path checking race.
+
 * What's new in version 0.9
 
 - Typecasting is now supported using the @cast operator.  A script can

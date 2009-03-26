@@ -13,6 +13,7 @@ void tokenize(const std::string& str, std::vector<std::string>& tokens,
 	      const std::string& delimiters);
 std::string find_executable(const std::string& name);
 const std::string cmdstr_quoted(const std::string& cmd);
+std::string git_revision(const std::string& path);
 
 
 // stringification generics

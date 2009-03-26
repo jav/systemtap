@@ -267,4 +267,31 @@ const string cmdstr_quoted(const string& cmd)
 	return quoted_cmd;
 }
 
+
+string
+git_revision(const string& path)
+{
+  string revision = "(not-a-git-repository)";
+  string git_dir = path + "/.git/";
+
+  struct stat st;
+  if (stat(git_dir.c_str(), &st) == 0)
+    {
+      string command = "git --git-dir=\"" + git_dir
+        + "\" rev-parse HEAD 2>/dev/null";
+
+      char buf[50];
+      FILE *fp = popen(command.c_str(), "r");
+      if (fp != NULL)
+        {
+          char *bufp = fgets(buf, sizeof(buf), fp);
+          int rc = pclose(fp);
+          if (bufp != NULL && rc == 0)
+            revision = buf;
+        }
+    }
+
+  return revision;
+}
+
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

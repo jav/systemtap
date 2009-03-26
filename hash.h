@@ -30,6 +30,7 @@ public:
   void add(const char *s) { add((const unsigned char *)s, strlen(s)); }
   void add(const std::string& s) { add((const unsigned char *)s.c_str(),
 				       s.length()); }
+  void add_file(const std::string& filename);
 
   void result(std::string& r);
 };
