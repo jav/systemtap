@@ -49,18 +49,23 @@ including alias's body is skipped. The condition is stacked up through
 all levels of alias/wildcard expansion. So the final condition becomes
 the logical-and of conditions of all expanded alias/wildcard.
 
-These are all syntactically valid probe points:
+These are all
+.B syntactically
+valid probe points.  (They are generally
+.B semantically
+invalid, depending on the contents of the tapsets, and the versions of
+kernel/user software installed.)
 
 .SAMPLE
 kernel.function("foo").return
-syscall(22)
-user.inode("/bin/vi").statement(0x2222)
+process("/bin/vi").statement(0x2222)
 end
 syscall.*
 kernel.function("no_such_function") ?
 module("awol").function("no_such_function") !
 signal.*? if (switch)
 .ESAMPLE
+
 
 Probes may be broadly classified into "synchronous" and
 "asynchronous".  A "synchronous" event is deemed to occur when any
