@@ -1040,7 +1040,10 @@ struct dwflpp
         off = dwfl_getmodules (dwfl, callback, data, off);
       }
     while (off > 0);
-    dwfl_assert("dwfl_getmodules", off == 0);
+    // Don't complain if we exited dwfl_getmodules early.
+    // This could be a $target variable error that will be
+    // reported soon anyway.
+    // dwfl_assert("dwfl_getmodules", off == 0);
 
     // PR6864 XXX: For dwarfless case (if .../vmlinux is missing), then the
     // "kernel" module is not reported in the loop above.  However, we
@@ -1699,14 +1702,24 @@ struct dwflpp
     // relocatable module probing code will need to have.
     Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
     dwfl_assert ("dwfl_addrmodule", mod);
-    int n = dwfl_module_relocations (mod);
-    dwfl_assert ("dwfl_module_relocations", n >= 0);
-    int i = dwfl_module_relocate_address (mod, &address);
-    dwfl_assert ("dwfl_module_relocate_address", i >= 0);
     const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
                                                 NULL, NULL, NULL, NULL);
+    int n = dwfl_module_relocations (mod);
+    dwfl_assert ("dwfl_module_relocations", n >= 0);
+    Dwarf_Addr reloc_address = address;
+    int i = dwfl_module_relocate_address (mod, &reloc_address);
+    dwfl_assert ("dwfl_module_relocate_address", i >= 0);
     dwfl_assert ("dwfl_module_info", modname);
     const char *secname = dwfl_module_relocation_info (mod, i, NULL);
+
+    if (sess.verbose > 2)
+      {
+        clog << "emit dwarf addr 0x" << hex << address << dec
+             << " => module " << modname  
+             << " section " << (secname ?: "null")
+             << " relocaddr 0x" << hex << reloc_address << dec
+             << endl;
+      }
 
     if (n > 0 && !(n == 1 && secname == NULL))
      {
@@ -1717,7 +1730,7 @@ struct dwflpp
             // module, for a kernel module (or other ET_REL module object).
             obstack_printf (pool, "({ static unsigned long addr = 0; ");
             obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
-                            modname, secname, address);
+                            modname, secname, reloc_address);
             obstack_printf (pool, "addr; })");
           }
         else if (n == 1 && module_name == TOK_KERNEL && secname[0] == '\0')
@@ -1728,7 +1741,7 @@ struct dwflpp
             secname = "_stext";
             obstack_printf (pool, "({ static unsigned long addr = 0; ");
             obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
-                            modname, secname, address);
+                            modname, secname, address); // PR10000 NB: not reloc_address
             obstack_printf (pool, "addr; })");
           }
 	else
