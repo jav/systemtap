@@ -2850,6 +2850,8 @@ struct dwarf_query : public base_query
 
   bool has_absolute;
 
+  bool has_mark;
+
   enum dbinfo_reqt dbinfo_reqt;
   enum dbinfo_reqt assess_dbinfo_reqt();
 
@@ -3101,6 +3103,7 @@ dwarf_query::dwarf_query(systemtap_session & sess,
   has_return = has_null_param(params, TOK_RETURN);
   has_maxactive = get_number_param(params, TOK_MAXACTIVE, maxactive_val);
   has_absolute = has_null_param(params, TOK_ABSOLUTE);
+  has_mark = false;
 
   if (has_function_str)
     spec_type = parse_function_spec(function_str_val);
@@ -4045,9 +4048,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    }
           // Verify that a raw address matches the beginning of a
           // statement. This is a somewhat lame check that the address
-          // is at the start of an assembly instruction.
-	  // Avoid for now since this thwarts a probe on a statement in a macro
-          if (0 && q->has_statement_num)
+          // is at the start of an assembly instruction.  Mark probes are in the
+	  // middle of a macro and thus not strictly at a statement beginning.
+          if (q->has_statement_num && ! q->has_mark)
             {
               Dwarf_Addr queryaddr = q->statement_num_val;
               dwarf_line_t address_line(dwarf_getsrc_die(cudie, queryaddr));
@@ -5797,6 +5800,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    location->components[1]->arg->tok = sv_tok;
 	    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
 	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
+	    q.has_mark = true;
 	    dw->query_modules(&q);
 	  }
 	return;
