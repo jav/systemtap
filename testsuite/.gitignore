@@ -2,3 +2,6 @@
 site.exp
 systemtap.log
 systemtap.sum
+*.so
+*_exe
+*.exe.[0-9]
