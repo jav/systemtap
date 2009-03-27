@@ -4184,16 +4184,28 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
                                & main_filename,
                                & debug_filename);
   const string& sess_machine = q->sess.architecture;
-  string expect_machine;
+
+  string expect_machine; // to match sess.machine (i.e., kernel machine)
+  string expect_machine2;
 
   switch (elf_machine)
     {
-    case EM_386: expect_machine = "i?86"; break; // accept e.g. i586
-    case EM_X86_64: expect_machine = "x86_64"; break;
-    // We don't support 32-bit ppc kernels, but we support 32-bit apps
-    // running on ppc64 kernels.
-    case EM_PPC: expect_machine = "ppc64"; break;
-    case EM_PPC64: expect_machine = "ppc64"; break;
+      // x86 and ppc are bi-architecture; a 64-bit kernel
+      // can normally run either 32-bit or 64-bit *userspace*.
+    case EM_386:
+      expect_machine = "i?86";
+      if (! q->has_process) break; // 32-bit kernel/module
+      /* FALLSTHROUGH */
+    case EM_X86_64:
+      expect_machine2 = "x86_64";
+      break;
+    case EM_PPC:
+      expect_machine = "ppc";
+      if (! q->has_process) break; // 32-bit kernel/module
+      /* FALLSTHROUGH */
+    case EM_PPC64:
+      expect_machine2 = "ppc64";
+      break;
     case EM_S390: expect_machine = "s390x"; break;
     case EM_IA_64: expect_machine = "ia64"; break;
     case EM_ARM: expect_machine = "armv*"; break;
@@ -4204,10 +4216,12 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
   if (! debug_filename) debug_filename = main_filename;
   if (! debug_filename) debug_filename = name;
 
-  if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0)
+  if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0 &&
+      fnmatch (expect_machine2.c_str(), sess_machine.c_str(), 0) != 0)
     {
       stringstream msg;
-      msg << "ELF machine " << expect_machine << " (code " << elf_machine
+      msg << "ELF machine " << expect_machine << "|" << expect_machine2
+          << " (code " << elf_machine
           << ") mismatch with target " << sess_machine
           << " in '" << debug_filename << "'";
       throw semantic_error(msg.str ());
@@ -4219,7 +4233,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
          << "-0x" << q->dw.module_end
          << ", bias 0x" << q->dw.module_bias << "]" << dec
          << " file " << debug_filename
-         << " ELF machine " << expect_machine
+         << " ELF machine " << expect_machine << "|" << expect_machine2
          << " (code " << elf_machine << ")"
          << "\n";
 }
