@@ -208,7 +208,7 @@ EOF
 fi
 if test "$enable_refdocs" == "yes"; then
    if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
-      AC_MSG_ERROR([cannot find proper yxmlto for building reference documentation])
+      AC_MSG_ERROR([cannot find proper xmlto for building reference documentation])
    fi
 fi
 if test "x${have_xmlto}${have_xmlto_pdf}" == "xyesyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
