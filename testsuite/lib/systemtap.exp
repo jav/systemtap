@@ -151,10 +151,9 @@ proc get_system_info {} {
 	set Snapshot $version
     }
     set Distro "Linux"
-    if [file exists /etc/fedora-release] {set Distro [exec /bin/cat /etc/fedora-release]}
-    if [file exists /etc/redhat-release] {set Distro [exec /bin/cat /etc/redhat-release]}
-    if [file exists /etc/suse-release] {set Distro [exec /bin/cat /etc/suse-release]}
-    if [file exists /etc/debian_version] {set Distro [exec /bin/cat /etc/debian_version]}
+    foreach f {/etc/fedora-release /etc/enterprise-release /etc/redhat-release /etc/suse-release /etc/debian_version} {
+        if [file exists $f] then {set Distro [exec /bin/cat $f]; break }
+    }
 }
 
 if {! [setup_systemtap_environment]} then {
