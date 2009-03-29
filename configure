@@ -6662,8 +6662,8 @@ $as_echo "no" >&6; }
 fi
 if test "$enable_refdocs" == "yes"; then
    if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
-      { { $as_echo "$as_me:$LINENO: error: cannot find proper yxmlto for building reference documentation" >&5
-$as_echo "$as_me: error: cannot find proper yxmlto for building reference documentation" >&2;}
+      { { $as_echo "$as_me:$LINENO: error: cannot find proper xmlto for building reference documentation" >&5
+$as_echo "$as_me: error: cannot find proper xmlto for building reference documentation" >&2;}
    { (exit 1); exit 1; }; }
    fi
 fi
