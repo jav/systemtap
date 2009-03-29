@@ -148,11 +148,17 @@ proc get_system_info {} {
 	set Snapshot [exec /bin/cat $env(SRCDIR)/../SNAPSHOT]
     } else {
         regexp {version [^)]*} [exec stap -V 2>@ stdout] version
-	set Snapshot $version
+        set Snapshot $version
     }
     set Distro "Linux"
-    foreach f {/etc/fedora-release /etc/enterprise-release /etc/redhat-release /etc/suse-release /etc/debian_version} {
-        if [file exists $f] then {set Distro [exec /bin/cat $f]; break }
+    if [file exists /usr/bin/lsb_release] {
+        # this produces one line of this format:
+        # Distribution:\tSTRING
+        set Distro [lrange [exec /usr/bin/lsb_release -d] 1 end]
+    } else {
+        foreach f {/etc/fedora-release /etc/enterprise-release /etc/redhat-release /etc/suse-release /etc/debian_version} {
+            if [file exists $f] then {set Distro [exec /bin/cat $f]; break }
+        }
     }
 }
 
