@@ -845,6 +845,16 @@ main (int argc, char * const argv [])
   // directory.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
 
+  // We want a new process group so we can use kill (0, sig) to send a
+  // signal to all children (but not the parent).  As done in
+  // handle_interrupt (). Unless we are already the process group leader.
+  if (getpgrp() != getpid() && setpgrp() != 0)
+    {
+      const char* e = strerror (errno);
+      if (! s.suppress_warnings)
+        cerr << "Warning: failed to set new process group: " << e << endl;
+    }
+
   // Set up our handler to catch routine signals, to allow clean
   // and reasonably timely exit.
   setup_signals(&handle_interrupt);
