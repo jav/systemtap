@@ -53,20 +53,23 @@ nssError (void)
   /* Otherwise handle common errors ourselves.  */
   switch (errorNumber)
     {
-    case SEC_ERROR_CA_CERT_INVALID:
-      fputs ("The issuer's certificate is invalid.\n", stderr);
+    case PR_CONNECT_RESET_ERROR:
+      fputs ("Connection reset by peer.\n", stderr);
       break;
     case SEC_ERROR_BAD_DATABASE:
       fputs ("The specified certificate database does not exist or is not valid.\n", stderr);
       break;
+    case SEC_ERROR_BAD_SIGNATURE:
+      fputs ("Certificate does not match the signature.\n", stderr);
+      break;
+    case SEC_ERROR_CA_CERT_INVALID:
+      fputs ("The issuer's certificate is invalid.\n", stderr);
+      break;
     case SSL_ERROR_BAD_CERT_DOMAIN:
       fputs ("The requested domain name does not match the server's certificate.\n", stderr);
       break;
-    case PR_CONNECT_RESET_ERROR:
-      fputs ("Connection reset by peer.\n", stderr);
-      break;
     default:
-      fputs ("Unknown NSS error.\n", stderr);
+      fprintf (stderr, "Unknown NSS error: %d.\n", errorNumber);
       break;
     }
 }

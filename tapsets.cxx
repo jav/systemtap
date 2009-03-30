@@ -1040,7 +1040,10 @@ struct dwflpp
         off = dwfl_getmodules (dwfl, callback, data, off);
       }
     while (off > 0);
-    dwfl_assert("dwfl_getmodules", off == 0);
+    // Don't complain if we exited dwfl_getmodules early.
+    // This could be a $target variable error that will be
+    // reported soon anyway.
+    // dwfl_assert("dwfl_getmodules", off == 0);
 
     // PR6864 XXX: For dwarfless case (if .../vmlinux is missing), then the
     // "kernel" module is not reported in the loop above.  However, we
@@ -1699,14 +1702,24 @@ struct dwflpp
     // relocatable module probing code will need to have.
     Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
     dwfl_assert ("dwfl_addrmodule", mod);
-    int n = dwfl_module_relocations (mod);
-    dwfl_assert ("dwfl_module_relocations", n >= 0);
-    int i = dwfl_module_relocate_address (mod, &address);
-    dwfl_assert ("dwfl_module_relocate_address", i >= 0);
     const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
                                                 NULL, NULL, NULL, NULL);
+    int n = dwfl_module_relocations (mod);
+    dwfl_assert ("dwfl_module_relocations", n >= 0);
+    Dwarf_Addr reloc_address = address;
+    int i = dwfl_module_relocate_address (mod, &reloc_address);
+    dwfl_assert ("dwfl_module_relocate_address", i >= 0);
     dwfl_assert ("dwfl_module_info", modname);
     const char *secname = dwfl_module_relocation_info (mod, i, NULL);
+
+    if (sess.verbose > 2)
+      {
+        clog << "emit dwarf addr 0x" << hex << address << dec
+             << " => module " << modname  
+             << " section " << (secname ?: "null")
+             << " relocaddr 0x" << hex << reloc_address << dec
+             << endl;
+      }
 
     if (n > 0 && !(n == 1 && secname == NULL))
      {
@@ -1717,7 +1730,7 @@ struct dwflpp
             // module, for a kernel module (or other ET_REL module object).
             obstack_printf (pool, "({ static unsigned long addr = 0; ");
             obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
-                            modname, secname, address);
+                            modname, secname, reloc_address);
             obstack_printf (pool, "addr; })");
           }
         else if (n == 1 && module_name == TOK_KERNEL && secname[0] == '\0')
@@ -1728,7 +1741,7 @@ struct dwflpp
             secname = "_stext";
             obstack_printf (pool, "({ static unsigned long addr = 0; ");
             obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
-                            modname, secname, address);
+                            modname, secname, address); // PR10000 NB: not reloc_address
             obstack_printf (pool, "addr; })");
           }
 	else
@@ -2837,6 +2850,8 @@ struct dwarf_query : public base_query
 
   bool has_absolute;
 
+  bool has_mark;
+
   enum dbinfo_reqt dbinfo_reqt;
   enum dbinfo_reqt assess_dbinfo_reqt();
 
@@ -3088,6 +3103,7 @@ dwarf_query::dwarf_query(systemtap_session & sess,
   has_return = has_null_param(params, TOK_RETURN);
   has_maxactive = get_number_param(params, TOK_MAXACTIVE, maxactive_val);
   has_absolute = has_null_param(params, TOK_ABSOLUTE);
+  has_mark = false;
 
   if (has_function_str)
     spec_type = parse_function_spec(function_str_val);
@@ -4032,9 +4048,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    }
           // Verify that a raw address matches the beginning of a
           // statement. This is a somewhat lame check that the address
-          // is at the start of an assembly instruction.
-	  // Avoid for now since this thwarts a probe on a statement in a macro
-          if (0 && q->has_statement_num)
+          // is at the start of an assembly instruction.  Mark probes are in the
+	  // middle of a macro and thus not strictly at a statement beginning.
+          if (q->has_statement_num && ! q->has_mark)
             {
               Dwarf_Addr queryaddr = q->statement_num_val;
               dwarf_line_t address_line(dwarf_getsrc_die(cudie, queryaddr));
@@ -4168,16 +4184,28 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
                                & main_filename,
                                & debug_filename);
   const string& sess_machine = q->sess.architecture;
-  string expect_machine;
+
+  string expect_machine; // to match sess.machine (i.e., kernel machine)
+  string expect_machine2;
 
   switch (elf_machine)
     {
-    case EM_386: expect_machine = "i?86"; break; // accept e.g. i586
-    case EM_X86_64: expect_machine = "x86_64"; break;
-    // We don't support 32-bit ppc kernels, but we support 32-bit apps
-    // running on ppc64 kernels.
-    case EM_PPC: expect_machine = "ppc64"; break;
-    case EM_PPC64: expect_machine = "ppc64"; break;
+      // x86 and ppc are bi-architecture; a 64-bit kernel
+      // can normally run either 32-bit or 64-bit *userspace*.
+    case EM_386:
+      expect_machine = "i?86";
+      if (! q->has_process) break; // 32-bit kernel/module
+      /* FALLSTHROUGH */
+    case EM_X86_64:
+      expect_machine2 = "x86_64";
+      break;
+    case EM_PPC:
+      expect_machine = "ppc";
+      if (! q->has_process) break; // 32-bit kernel/module
+      /* FALLSTHROUGH */
+    case EM_PPC64:
+      expect_machine2 = "ppc64";
+      break;
     case EM_S390: expect_machine = "s390x"; break;
     case EM_IA_64: expect_machine = "ia64"; break;
     case EM_ARM: expect_machine = "armv*"; break;
@@ -4188,10 +4216,12 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
   if (! debug_filename) debug_filename = main_filename;
   if (! debug_filename) debug_filename = name;
 
-  if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0)
+  if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0 &&
+      fnmatch (expect_machine2.c_str(), sess_machine.c_str(), 0) != 0)
     {
       stringstream msg;
-      msg << "ELF machine " << expect_machine << " (code " << elf_machine
+      msg << "ELF machine " << expect_machine << "|" << expect_machine2
+          << " (code " << elf_machine
           << ") mismatch with target " << sess_machine
           << " in '" << debug_filename << "'";
       throw semantic_error(msg.str ());
@@ -4203,7 +4233,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
          << "-0x" << q->dw.module_end
          << ", bias 0x" << q->dw.module_bias << "]" << dec
          << " file " << debug_filename
-         << " ELF machine " << expect_machine
+         << " ELF machine " << expect_machine << "|" << expect_machine2
          << " (code " << elf_machine << ")"
          << "\n";
 }
@@ -5784,6 +5814,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    location->components[1]->arg->tok = sv_tok;
 	    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
 	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
+	    q.has_mark = true;
 	    dw->query_modules(&q);
 	  }
 	return;

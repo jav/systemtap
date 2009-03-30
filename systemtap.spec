@@ -6,8 +6,8 @@
 %{!?pie_supported: %define pie_supported 1}
 
 Name: systemtap
-Version: 0.9
-Release: 3%{?dist}
+Version: 0.9.5
+Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
 Group: Development/System
@@ -328,6 +328,9 @@ exit 0
 
 
 %changelog
+* Fri Mar 27 2009 Josh Stone <jistone@redhat.com> - 0.9.5-1
+- Upstream release.
+
 * Wed Mar 18 2009 Will Cohen <wcohen@redhat.com> - 0.9-2
 - Add location of man pages.
 

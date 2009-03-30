@@ -346,6 +346,14 @@ Return the number of open file handles for the given task.
 task_max_file_handles:long(task:long)
 Return the maximum number of file handles for the given task.
 
+.TP
+pid2task:long(pid:long)
+Return the task of the given process id.
+
+.TP
+pid2execname:string(pid:long)
+Return the name of the given process id.
+
 .SS CPU REGISTERS
 .TP
 registers_valid:long ()

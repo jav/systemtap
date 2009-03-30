@@ -1,3 +1,5 @@
+#! /usr/bin/env stap
+
 //A simple TCP tapset example
 
 probe begin {

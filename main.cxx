@@ -380,6 +380,7 @@ main (int argc, char * const argv [])
   s.ignore_vmlinux = false;
   s.ignore_dwarf = false;
   s.load_only = false;
+  s.skip_badvars = false;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)

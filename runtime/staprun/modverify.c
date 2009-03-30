@@ -149,8 +149,11 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
 
   /* Complete the verification.  */
   secStatus = VFY_End (vfy);
-  if (secStatus != SECSuccess)
+  if (secStatus != SECSuccess) {
+    fprintf (stderr, "Unable to verify signed module %s. It may have been altered since it was created.\n", inputName);
+    nssError ();
     return 0;
+  }
 
   return 1;
 }

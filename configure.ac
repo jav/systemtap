@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap],   0.9, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 0.9.5, systemtap@sources.redhat.com, systemtap)
 dnl                  ^^^^^ see also NEWS, systemtap.spec, testsuite/configure.ac
 
 AC_PREREQ(2.59)
@@ -208,7 +208,7 @@ EOF
 fi
 if test "$enable_refdocs" == "yes"; then
    if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
-      AC_MSG_ERROR([cannot find proper yxmlto for building reference documentation])
+      AC_MSG_ERROR([cannot find proper xmlto for building reference documentation])
    fi
 fi
 if test "x${have_xmlto}${have_xmlto_pdf}" == "xyesyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then

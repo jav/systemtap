@@ -74,8 +74,9 @@ struct statistic_decl
 struct systemtap_session
 {
   systemtap_session ();
-  // NB: new POD members likely need to be explicitly cleared in the ctor.
-  // See elaborate.cxx.
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
 
   // command line args
   std::vector<std::string> include_path;
@@ -113,6 +114,10 @@ struct systemtap_session
   bool need_uprobes;
   bool load_only; // flight recorder mode
 
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
+
   // Cache data
   bool use_cache;
   std::string cache_path;
@@ -128,6 +133,10 @@ struct systemtap_session
 
   // Skip bad $ vars
   bool skip_badvars;
+
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
 
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
@@ -173,8 +182,10 @@ struct systemtap_session
   hrtimer_derived_probe_group* hrtimer_derived_probes;
   perfmon_derived_probe_group* perfmon_derived_probes;
   procfs_derived_probe_group* procfs_derived_probes;
+
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (elaborate.cxx).
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
 
   // unparser data
   translator_output* op;
@@ -190,6 +201,10 @@ struct systemtap_session
   std::set<std::string> unwindsym_modules;
   struct module_cache* module_cache;
 
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
+
   std::set<std::string> seen_errors;
   std::set<std::string> seen_warnings;
   unsigned num_errors () { return seen_errors.size(); }
@@ -201,7 +216,9 @@ struct systemtap_session
   void print_error_source (std::ostream&, std::string&, const token* tok);
   void print_warning (const std::string& w, const token* tok = 0);
 
-  // reNB: new POD members likely need to be explicitly cleared in the ctor.
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
 };
 
 
