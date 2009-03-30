@@ -118,17 +118,6 @@ if { $res != "" } {
     pass "$test compiling C -g"
 }
 
-set sup_flags "$sup_flags additional_flags=-x additional_flags=c++"
-set res [target_compile $sup_srcpath $supcplus_exepath executable $sup_flags]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "$test compiling C++ -g"
-    catch {exec rm -f $sup_srcpath $sup_exepath $sup_hpath $sup_stppath}
-    return
-} else {
-    pass "$test compiling C++ -g"
-}
-
 if {![installtest_p]} {untested $test; return}
 
 # Try to find utrace_attach symbol in /proc/kallsyms
@@ -162,29 +151,37 @@ wait
 
 if {$ok == 5} { pass "$test C" } { fail "$test C ($ok)" }
 
-set ok 0
+set sup_flags "$sup_flags  additional_flags=-O0"
+set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $sup_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test compiling -g"
+    return
+} else {
+    pass "$test compiling -g"
+}
 
-# Test setting a probe without .probes using only dwarf label info
-verbose -log "objcopy -R .probes $supcplus_exepath $sup_exepath"
-spawn objcopy -R .probes $supcplus_exepath $sup_exepath 
-verbose -log "spawn stap -c $sup_exepath $sup_stppath"
-spawn stap -c $sup_exepath $sup_stppath
+set ok 0
+set fail "types"
+verbose -log "spawn stap -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x"
+spawn stap -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x
 expect {
     -timeout 180
-    -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
-    -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
-    -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
-    -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
-    timeout { fail "$test C++ (timeout)" }
+    -re {FAIL: [a-z_]+var} { regexp " .*$" $expect_out(0,string) s; 
+	incr ok; set fail "$fail $s"; exp_continue }
+    timeout { fail "$test C (timeout)" }
     eof { }
 }
 
 wait
 
-# we now generate the probes via asm so there is no label debug info
-if {$ok == 5} { pass "$test C++" } { xfail "$test C++ ($ok)" }
+if { $ok != 0 } {
+    fail $fail
+} else {
+    pass types
+}
 
 if { $verbose == 0 } {
-catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_dpath $sup_hpath $sup_stppath}
+catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_dpath $sup_hpath $sup_stppath sdt_types.x}
 }
 
