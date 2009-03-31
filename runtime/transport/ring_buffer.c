@@ -317,6 +317,15 @@ static struct file_operations __stp_data_fops = {
 #endif
 };
 
+/* Here's how __STP_MAX_RESERVE_SIZE is figured.  The value of
+ * BUF_PAGE_SIZE was gotten from the kernel's ring_buffer code.  It
+ * is divided by 4, so we waste a maximum of 1/4 of the buffer (in
+ * the case of a small reservation).  We then subtract the sizes of
+ * structures needed for every reservation. */
+#define __STP_MAX_RESERVE_SIZE ((/*BUF_PAGE_SIZE*/ 4080 / 4) \
+				- sizeof(struct _stp_entry) \
+				- sizeof(struct ring_buffer_event))
+
 /*
  * This function prepares the cpu buffer to write a sample.
  *
@@ -329,24 +338,31 @@ static struct file_operations __stp_data_fops = {
  * sample.
  *
  */
-static struct _stp_entry *
-_stp_data_write_reserve(size_t size)
+static size_t
+_stp_data_write_reserve(size_t size_request, struct _stp_entry **entry)
 {
 	struct ring_buffer_event *event;
-	struct _stp_entry *entry;
+
+	if (entry == NULL)
+		return -EINVAL;
+
+	if (size_request > __STP_MAX_RESERVE_SIZE) {
+		size_request = __STP_MAX_RESERVE_SIZE;
+	}
 
 	event = ring_buffer_lock_reserve(__stp_ring_buffer,
-					 (sizeof(struct _stp_entry) + size),
+					 (sizeof(struct _stp_entry) + size_request),
 					 0);
 	if (unlikely(! event)) {
 		dbug_trans(1, "event = NULL (%p)?\n", event);
-		return NULL;
+		entry = NULL;
+		return 0;
 	}
 
-	entry = ring_buffer_event_data(event);
-	entry->event = event;
-	entry->len = size;
-	return entry;
+	*entry = ring_buffer_event_data(event);
+	(*entry)->event = event;
+	(*entry)->len = size_request;
+	return size_request;
 }
 
 static int _stp_data_write_commit(struct _stp_entry *entry)

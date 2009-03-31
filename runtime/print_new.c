@@ -18,14 +18,14 @@
 
 static DEFINE_SPINLOCK(_stp_print_lock);
 
-void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
+void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 {
-	uint32_t len = pb->len;
-	struct _stp_entry *entry;
+	size_t len = pb->len;
+	struct _stp_entry *entry = NULL;
 
 	/* check to see if there is anything in the buffer */
-	dbug_trans(1, "len = %ud\n", len);
-	if (likely (len == 0))
+	dbug_trans(1, "len = %zu\n", len);
+	if (likely(len == 0))
 		return;
 
 	pb->len = 0;
@@ -34,35 +34,23 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 //	if (unlikely(!_stp_utt || _stp_utt->trace_state != Utt_trace_running))
 //		return;
 
-#define MAX_RESERVE_SIZE (4080 /*BUF_PAGE_SIZE*/ - sizeof(struct _stp_entry) - 10)
 #ifdef STP_BULKMODE
 #ifdef NO_PERCPU_HEADERS
 	{
-		uint32_t cnt;
 		char *bufp = pb->buf;
 
-		printk(KERN_ERR "%s:%d - flushing %d(%d) bytes\n",
-		       __FUNCTION__, __LINE__, pb->len, len);
 		while (len > 0) {
-			if (len > MAX_RESERVE_SIZE) {
-				len -= MAX_RESERVE_SIZE;
-				cnt = MAX_RESERVE_SIZE;
-			}
-			else {
-				cnt = len;
-				len = 0;
-			}
+			size_t bytes_reserved;
 
-			printk(KERN_ERR "%s:%d - reserving %d bytes\n",
-			       __FUNCTION__, __LINE__, cnt);
-			entry = _stp_data_write_reserve(cnt);
-			if (likely(entry)) {
-				memcpy(entry->buf, bufp, cnt);
+			bytes_reserved = _stp_data_write_reserve(len, &entry);
+			if (likely(entry && bytes_reserved > 0)) {
+				memcpy(entry->buf, bufp, bytes_reserved);
 				_stp_data_write_commit(entry);
-				bufp += cnt;
+				bufp += bytes_reserved;
+				len -= bytes_reserved;
 			}
 			else {
-				atomic_inc (&_stp_transport_failures);
+				atomic_inc(&_stp_transport_failures);
 				break;
 			}
 		}
@@ -70,104 +58,58 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 
 #else  /* !NO_PERCPU_HEADERS */
 
-#undef MAX_RESERVE_SIZE
-#define MAX_RESERVE_SIZE (4080 /*BUF_PAGE_SIZE*/ - sizeof(struct _stp_entry) - 10 - sizeof(struct _stp_trace))
 	{
-		uint32_t cnt;
 		char *bufp = pb->buf;
 		struct _stp_trace t = {	.sequence = _stp_seq_inc(),
 					.pdu_len = len};
+		size_t bytes_reserved;
 
-		printk(KERN_ERR "%s:%d - flushing %d(%d) bytes\n",
-		       __FUNCTION__, __LINE__, pb->len, len);
-
-		entry = _stp_data_write_reserve(sizeof(struct _stp_trace));
-		if (likely(entry)) {
+		bytes_reserved = _stp_data_write_reserve(sizeof(struct _stp_trace), &entry);
+		if (likely(entry && bytes_reserved > 0)) {
 			/* prevent unaligned access by using memcpy() */
 			memcpy(entry->buf, &t, sizeof(t));
 			_stp_data_write_commit(entry);
 		}
 		else {
-			atomic_inc (&_stp_transport_failures);
+			atomic_inc(&_stp_transport_failures);
 			return;
 		}
 
 		while (len > 0) {
-			if (len > MAX_RESERVE_SIZE) {
-				len -= MAX_RESERVE_SIZE;
-				cnt = MAX_RESERVE_SIZE;
-			}
-			else {
-				cnt = len;
-				len = 0;
-			}
-
-			printk(KERN_ERR "%s:%d - reserving %d bytes\n",
-			       __FUNCTION__, __LINE__, cnt);
-			entry = _stp_data_write_reserve(cnt);
-			if (likely(entry)) {
-				memcpy(entry->buf, bufp, cnt);
+			bytes_reserved = _stp_data_write_reserve(len, &entry);
+			if (likely(entry && bytes_reserved > 0)) {
+				memcpy(entry->buf, bufp, bytes_reserved);
 				_stp_data_write_commit(entry);
-				bufp += cnt;
+				bufp += bytes_reserved;
+				len -= bytes_reserved;
 			}
 			else {
-				atomic_inc (&_stp_transport_failures);
+				atomic_inc(&_stp_transport_failures);
 				break;
 			}
 		}
 	}
-
-
-
-
-#if 0
-	/* original code */
-	void *buf = utt_reserve(_stp_utt,
-				sizeof(struct _stp_trace) + len);
-	if (likely(buf)) {
-		struct _stp_trace t = {	.sequence = _stp_seq_inc(),
-					.pdu_len = len};
-		memcpy(buf, &t, sizeof(t)); // prevent unaligned access
-		memcpy(buf + sizeof(t), pb->buf, len);
-	} else 
-		atomic_inc (&_stp_transport_failures);
-#endif
-
-#endif	/* !NO_PERCPU_HEADERS */
-#else	/* !STP_BULKMODE */
+#endif /* !NO_PERCPU_HEADERS */
+#else  /* !STP_BULKMODE */
 	{
 		unsigned long flags;
+		char *bufp = pb->buf;
 
 		dbug_trans(1, "calling _stp_data_write...\n");
 		spin_lock_irqsave(&_stp_print_lock, flags);
-		{
-			uint32_t cnt;
-			char *bufp = pb->buf;
+		while (len > 0) {
+			size_t bytes_reserved;
 
-			printk(KERN_ERR "%s:%d - flushing %d(%d) bytes\n",
-			       __FUNCTION__, __LINE__, pb->len, len);
-			while (len > 0) {
-				if (len > MAX_RESERVE_SIZE) {
-					len -= MAX_RESERVE_SIZE;
-					cnt = MAX_RESERVE_SIZE;
-				}
-				else {
-					cnt = len;
-					len = 0;
-				}
-
-				printk(KERN_ERR "%s:%d - reserving %d bytes\n",
-				       __FUNCTION__, __LINE__, cnt);
-				entry = _stp_data_write_reserve(cnt);
-				if (likely(entry)) {
-					memcpy(entry->buf, bufp, cnt);
-					_stp_data_write_commit(entry);
-					bufp += cnt;
-				}
-				else {
-					atomic_inc (&_stp_transport_failures);
-					break;
-				}
+			bytes_reserved = _stp_data_write_reserve(len, &entry);
+			if (likely(entry && bytes_reserved > 0)) {
+				memcpy(entry->buf, bufp, bytes_reserved);
+				_stp_data_write_commit(entry);
+				bufp += bytes_reserved;
+				len -= bytes_reserved;
+			}
+			else {
+			    atomic_inc(&_stp_transport_failures);
+			    break;
 			}
 		}
 		spin_unlock_irqrestore(&_stp_print_lock, flags);

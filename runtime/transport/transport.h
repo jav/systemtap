@@ -70,7 +70,8 @@ struct _stp_entry {
 	char			buf[];
 };
 
-static struct _stp_entry *_stp_data_write_reserve(size_t size);
+static size_t _stp_data_write_reserve(size_t size_request,
+				      struct _stp_entry **entry);
 static int _stp_data_write_commit(struct _stp_entry *entry);
 
 #endif /* _TRANSPORT_TRANSPORT_H_ */
