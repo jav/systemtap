@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPFUNCS 5 @DATE@ "Red Hat"
+.TH STAPFUNCS 3stap @DATE@ "Red Hat"
 .SH NAME
 stapfuncs \- systemtap functions
 
@@ -346,6 +346,14 @@ Return the number of open file handles for the given task.
 task_max_file_handles:long(task:long)
 Return the maximum number of file handles for the given task.
 
+.TP
+pid2task:long(pid:long)
+Return the task of the given process id.
+
+.TP
+pid2execname:string(pid:long)
+Return the name of the given process id.
+
 .SS CPU REGISTERS
 .TP
 registers_valid:long ()
@@ -565,7 +573,7 @@ the handle being used for that event.
 These functions convert arguments in the socket tapset back and
 forth between their numeric and string representations.
 See 
-.IR stapprobes.socket (5)
+.IR stapprobes.socket (3stap)
 for details.
 
 .TP

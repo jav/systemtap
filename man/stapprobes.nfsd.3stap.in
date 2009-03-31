@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.NFSD 5 @DATE@ "IBM"
+.TH STAPPROBES.NFSD 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.nfsd \- systemtap NFS server side probe points
 
@@ -509,5 +509,5 @@ Fires whenever server receives NFS operation from client
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 

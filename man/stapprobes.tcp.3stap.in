@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.UDP 5 @DATE@ "Intel"
+.TH STAPPROBES.TCP 3stap @DATE@ "IBM, Intel"
 .SH NAME
-stapprobes.udp \- systemtap udp probe points
+stapprobes.tcp \- systemtap tcp probe points
 
 .\" macros
 .de SAMPLE
@@ -18,14 +18,14 @@ stapprobes.udp \- systemtap udp probe points
 
 .SH DESCRIPTION
 
-This family of probe points is used to probe UDP layer activities.
+This family of probe points is used to probe TCP layer activities.
 It contains the following probe points:
 
 .P
 .TP
-.B udp.sendmsg
+.B tcp.sendmsg
 
-Fires whenever sending a udp message
+Fires whenever sending a tcp message
 
 .B Arguments:
 
@@ -37,7 +37,7 @@ Fires whenever sending a udp message
 
 .P
 .TP
-.B udp.sendmsg.return
+.B tcp.sendmsg.return
 
 Fires whenever sending message is done
 
@@ -48,7 +48,7 @@ Fires whenever sending message is done
 
 .P
 .TP
-.B udp.recvmsg
+.B tcp.recvmsg
 
 Fires whenever a message is received
 
@@ -62,7 +62,7 @@ Fires whenever a message is received
 
 .P
 .TP
-.B udp.recvmsg.return
+.B tcp.recvmsg.return
 
 Fires whenever message receiving is done
 
@@ -73,9 +73,9 @@ Fires whenever message receiving is done
 
 .P
 .TP
-.B udp.disconnect
+.B tcp.disconnect
 
-Fires whenever udp is disconnected
+Fires whenever tcp is disconnected
 
 .B Arguments:
 
@@ -83,13 +83,13 @@ Fires whenever udp is disconnected
   network socket
 
 .I flags
-  flags (e.g. FIN, etc)
+  TCP flags (e.g. FIN, etc)
 
 .P
 .TP
-.B udp.disconnect.return
+.B tcp.disconnect.return
 
-Fires when returning from udp.disconnect
+Fires when returning from tcp.disconnect
 
 .B Arguments:
 
@@ -98,5 +98,5 @@ Fires when returning from udp.disconnect
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 

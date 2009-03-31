@@ -4564,7 +4564,7 @@ dump_unwindsyms (Dwfl_Module *m,
               // base address outself. (see also below).
               extra_offset = sym.st_value - base;
               if (c->session.verbose > 2)
-                clog << "Found kernel _stext 0x" << hex << extra_offset << dec << endl;
+                clog << "Found kernel _stext extra offset 0x" << hex << extra_offset << dec << endl;
             }
 
           // We only need the function symbols to identify kernel-mode
@@ -4572,8 +4572,9 @@ dump_unwindsyms (Dwfl_Module *m,
           // These fake absolute addresses occur in some older i386
           // kernels to indicate they are vDSO symbols, not real
           // functions in the kernel.
-          if (GELF_ST_TYPE (sym.st_info) == STT_FUNC &&
-              ! (sym.st_shndx == SHN_UNDEF || sym.st_shndx == SHN_ABS))
+          if ((GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
+               GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
+               && !(sym.st_shndx == SHN_UNDEF || sym.st_shndx == SHN_ABS))
             {
               Dwarf_Addr sym_addr = sym.st_value;
               const char *secname = NULL;
@@ -4824,6 +4825,7 @@ emit_symbol_data (systemtap_session& s)
       do
         {
           if (pending_interrupts) return;
+          if (ctx.undone_unwindsym_modules.empty()) break;
           off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
         }
       while (off > 0);
@@ -4862,6 +4864,7 @@ emit_symbol_data (systemtap_session& s)
           do
             {
               if (pending_interrupts) return;
+              if (ctx.undone_unwindsym_modules.empty()) break;
               off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
             }
           while (off > 0);

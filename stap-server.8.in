@@ -265,7 +265,7 @@ host.
 
 .SH EXAMPLES
 See the 
-.IR stapex (5)
+.IR stapex (3stap)
 manual page for a collection of sample scripts.
 .PP
 Here is a very basic example of how to use
@@ -351,9 +351,9 @@ access permissions before making use of any certificate database.
 .SH SEE ALSO
 .IR stap (1),
 .IR staprun (8),
-.IR stapprobes (5),
-.IR stapfuncs (5),
-.IR stapex (5),
+.IR stapprobes (3stap),
+.IR stapfuncs (3stap),
+.IR stapex (3stap),
 .IR NSS ,
 .IR certutil ,
 .IR signtool
