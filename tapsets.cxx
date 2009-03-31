@@ -5806,16 +5806,29 @@ dwarf_builder::build(systemtap_session & sess,
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
-	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) != 0)
+	    if ((strcmp (location->components[1]->arg->tok->content.c_str(),
+			 probe_name.c_str()) == 0)
+		|| (dw->name_has_wildcard (location->components[1]->arg->tok->content.c_str())
+		    && dw->function_name_matches_pattern
+		    (probe_name.c_str(),
+		     location->components[1]->arg->tok->content.c_str())))
+	      ;
+	    else
 	      continue;
 	    const token* sv_tok = location->components[1]->arg->tok;
 	    location->components[1]->functor = TOK_STATEMENT;
 	    location->components[1]->arg = new literal_number((int)probe_arg);
 	    location->components[1]->arg->tok = sv_tok;
 	    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
+	    
 	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 	    q.has_mark = true;
 	    dw->query_modules(&q);
+	    if (sess.listing_mode)
+	      {
+		finished_results.back()->locations[0]->components[1]->functor = TOK_MARK;
+		finished_results.back()->locations[0]->components[1]->arg = new literal_string (probe_name.c_str());
+	      }
 	  }
 	return;
       }

@@ -36,6 +36,8 @@ extern "C" {
 #include <sys/times.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <elfutils/libdwfl.h>
 #include <getopt.h>
@@ -330,9 +332,61 @@ setup_signals (sighandler_t handler)
   sigaction (SIGTERM, &sa, NULL);
 }
 
+pid_t runner_pid;
+int runner (int, char * const []);
+
+// Passes on signals to runner process.
+// In practise passes signal to runner process process group,
+// since run_pass() uses system() to spawn child processes,
+// which makes the process ignore SIGINT during the command run.
+extern "C"
+void waiter_handler (int sig)
+{
+  // Process group is negative process id.
+  kill (-1 * runner_pid, sig);
+}
+
+// Just sits there till the runner exits and then exits the same way.
+void waiter()
+{
+  int status;
+  setup_signals (&waiter_handler);
+  while (waitpid (runner_pid, &status, 0) != runner_pid);
+
+  // Exit as our runner child exitted.
+  if (WIFEXITED(status))
+    exit (WEXITSTATUS(status));
+
+  // Or simulate as if we were killed by the same signal.
+  if (WIFSIGNALED(status))
+    {
+      int sig = WTERMSIG(status);
+      signal (sig, SIG_DFL);
+      raise (sig);
+    }
+
+  // Should not happen, exit as if error.
+  exit(-1);
+}
 
 int
 main (int argc, char * const argv [])
+{
+  // Fork to make sure runner gets its own process group, while
+  // the waiter sits in the original process group of the shell
+  // and forwards any signals.
+  runner_pid = fork ();
+  if (runner_pid == 0)
+    return runner (argc, argv);
+  if (runner_pid > 0)
+    waiter ();
+
+  perror ("couldn't fork");
+  exit (-1);
+}
+
+int
+runner (int argc, char * const argv [])
 {
   string cmdline_script; // -e PROGRAM
   string script_file; // FILE
@@ -883,6 +937,16 @@ main (int argc, char * const argv [])
   // Create the name of the C source file within the temporary
   // directory.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
+
+  // We want a new process group so we can use kill (0, sig) to send a
+  // signal to all children (but not the parent).  As done in
+  // handle_interrupt ().
+  if (setpgrp() != 0)
+    {
+      const char* e = strerror (errno);
+      if (! s.suppress_warnings)
+        cerr << "Warning: failed to set new process group: " << e << endl;
+    }
 
   // Set up our handler to catch routine signals, to allow clean
   // and reasonably timely exit.

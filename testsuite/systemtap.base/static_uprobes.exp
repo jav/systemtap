@@ -1,5 +1,7 @@
 set test "static_uprobes"
 
+# Test miscellaneous features of .mark probes
+
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_uprobes.c"
 set sup_exepath "[pwd]/static_uprobes.x"
@@ -80,6 +82,9 @@ provider static_uprobes {
 };
 "
 close $fp
+
+# Test dtrace
+
 if {[installtest_p]} { 
     set dtrace $env(SYSTEMTAP_PATH)/dtrace 
 } else {
@@ -90,9 +95,9 @@ if {[catch {exec $dtrace -h -s $sup_dpath} res]} {
 }
 catch {exec rm -f $sup_dpath}
 if {[file exists $sup_hpath]} then {
-    pass "$test generating header"
+    pass "$test dtrace"
 } else {
-    fail "$test generating header"
+    fail "$test dtrace"
     catch {exec rm -f $sup_srcpath $sup_hpath $sup_stppath}
     return
 }
@@ -133,6 +138,8 @@ if {$utrace_support_found == 0} {
     return
 }
 
+# Run stap on executable built with dtrace generated header file
+
 set ok 0
 
 verbose -log "spawn stap -c $sup_exepath $sup_stppath"
@@ -151,14 +158,16 @@ wait
 
 if {$ok == 5} { pass "$test C" } { fail "$test C ($ok)" }
 
+# Test passing various C types to .mark probes
+
 set sup_flags "$sup_flags  additional_flags=-O0"
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "$test compiling -g"
+    fail "$test compiling types -g"
     return
 } else {
-    pass "$test compiling -g"
+    pass "$test compiling types -g"
 }
 
 set ok 0
@@ -176,9 +185,26 @@ expect {
 wait
 
 if { $ok != 0 } {
-    fail $fail
+    fail "$test $fail"
 } else {
-    pass types
+    pass "$test types"
+}
+
+# Test .mark probe wildcard matching
+
+set ok 0
+spawn stap -l "process(\"./sdt_types.x\").mark(\"*\")"
+expect {
+    -timeout 180
+    -re {mark\(\".*\"\)} { incr ok; exp_continue }
+    timeout { fail "$test C (timeout)" }
+    eof { }
+}
+
+if { $ok == 45 } {
+    pass "$test wildcard"
+} else {
+    fail "$test wildcard ($ok)"
 }
 
 if { $verbose == 0 } {
