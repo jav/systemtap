@@ -196,7 +196,7 @@ set ok 0
 spawn stap -l "process(\"./sdt_types.x\").mark(\"*\")"
 expect {
     -timeout 180
-    -re {mark\(\".*\"\)} { incr ok; exp_continue }
+    -re {mark\(\"[a-z_]+\"\)} { incr ok; exp_continue }
     timeout { fail "$test C (timeout)" }
     eof { }
 }

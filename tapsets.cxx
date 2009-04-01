@@ -5812,7 +5812,8 @@ dwarf_builder::build(systemtap_session & sess,
 		    && dw->function_name_matches_pattern
 		    (probe_name.c_str(),
 		     location->components[1]->arg->tok->content.c_str())))
-	      ;
+	      {
+	      }
 	    else
 	      continue;
 	    const token* sv_tok = location->components[1]->arg->tok;
@@ -5833,7 +5834,7 @@ dwarf_builder::build(systemtap_session & sess,
 	return;
       }
 
-    if (probe_type == dwarf_no_probes)
+    else if (probe_type == dwarf_no_probes)
       {
 	location->components[1]->functor = TOK_FUNCTION;
 	location->components[1]->arg = new literal_string("*");
