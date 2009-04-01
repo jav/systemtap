@@ -54,7 +54,9 @@ if {[string equal "link" [file type $libpath]]} {
     set libpath [file join [file dirname $libpath] [file readlink $libpath]]
 }
 send_log "libpath: $libpath\n"
-set cmd [concat stap -d $libpath -d $testexe -c $testexe -e {$script}]
+
+# XXX Cheat, explicitly add STP_NEED_VMA_TRACKER
+set cmd [concat stap -DSTP_NEED_VMA_TRACKER -d $libpath -d $testexe -c $testexe -e {$script}]
 send_log "cmd: $cmd\n"
 catch {eval exec $cmd} res
 send_log "cmd output: $res\n"
