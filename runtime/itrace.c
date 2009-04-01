@@ -318,6 +318,19 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	struct task_struct *tsk;
 
 	spin_lock_init(&itrace_lock);
+
+	/* 'arch_has_single_step' needs to be defined for either single step mode
+	 * or branch mode.
+	 */
+	if (!arch_has_single_step()) {
+		printk(KERN_ERR "usr_itrace_init: arch does not support step mode\n");
+		return 1;
+	}
+	if (!single_step && !arch_has_block_step()) {
+		printk(KERN_ERR "usr_itrace_init: arch does not support block step mode\n");
+		return 1;
+	}
+
 	rcu_read_lock();
 #ifdef STAPCONF_FIND_TASK_PID
 	tsk = find_task_by_pid(tid);
