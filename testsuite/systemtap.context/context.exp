@@ -80,6 +80,7 @@ if {[build_modules] == 0} {
 }
 
 foreach test $testlist {
+    send_log "sourcing: $srcdir/$subdir/$test.tcl\n"
     source $srcdir/$subdir/$test.tcl
 }
 
