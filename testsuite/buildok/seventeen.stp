@@ -11,3 +11,12 @@ probe kernel.function("pipe_write")
 	printf("0x%x\n", $write_fifo_fops->llseek)
 %)
 }
+
+# PR10000: We're looking for *some* module function that has a nearby global variable in scope
+# XXX: See PR4096
+probe module("nfs").function("nfs_create_client") !, module("nfs").function("nfs_init_client") !,
+	kernel.function("nfs_fsync_dir") {
+	println(kernel_string($nfs_program->name))
+}
+
+probe timer.s(5) { exit() }

@@ -1774,7 +1774,7 @@ sub create_sparameterlist($$$) {
     my $param;
 
     foreach my $arg (split($splitter, $args)) {
-	if ($arg =~ m/s*([\w]+)\s*:?\s*([\w]*)/) {
+	if ($arg =~ m/\s*([\w]+)\s*:?\s*([\w]*)/) {
 	    $param = $1;
 	    $type = $2;
 	    push_parameter($param, $type, $file);
@@ -2083,7 +2083,7 @@ sub process_state3_probe($$) {
     my $prototype = shift;
     my $file = shift;
 
-    $prototype =~ s@/probe/@@o;	# strip off leading 'probe'
+    $prototype =~ s@probe@@o;	# strip off leading 'probe'
     $prototype =~ s@^\s+@@gos; # strip leading spaces
     dump_probe($prototype,$file);
     reset_state();

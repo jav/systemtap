@@ -56,21 +56,21 @@ subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.am $(top_srcdir)/configure \
 	$(am__configure_deps) $(srcdir)/config.in $(srcdir)/stap.1.in \
-	$(srcdir)/stapprobes.5.in $(srcdir)/stapfuncs.5.in \
-	$(srcdir)/stapvars.5.in $(srcdir)/stapex.5.in \
+	$(srcdir)/stapprobes.3stap.in $(srcdir)/stapfuncs.3stap.in \
+	$(srcdir)/stapvars.3stap.in $(srcdir)/stapex.3stap.in \
 	$(srcdir)/staprun.8.in $(srcdir)/stap-server.8.in \
-	$(top_srcdir)/man/stapprobes.iosched.5.in \
-	$(top_srcdir)/man/stapprobes.netdev.5.in \
-	$(top_srcdir)/man/stapprobes.nfs.5.in \
-	$(top_srcdir)/man/stapprobes.nfsd.5.in \
-	$(top_srcdir)/man/stapprobes.pagefault.5.in \
-	$(top_srcdir)/man/stapprobes.process.5.in \
-	$(top_srcdir)/man/stapprobes.rpc.5.in \
-	$(top_srcdir)/man/stapprobes.scsi.5.in \
-	$(top_srcdir)/man/stapprobes.signal.5.in \
-	$(top_srcdir)/man/stapprobes.socket.5.in \
-	$(top_srcdir)/man/stapprobes.tcp.5.in \
-	$(top_srcdir)/man/stapprobes.udp.5.in \
+	$(top_srcdir)/man/stapprobes.iosched.3stap.in \
+	$(top_srcdir)/man/stapprobes.netdev.3stap.in \
+	$(top_srcdir)/man/stapprobes.nfs.3stap.in \
+	$(top_srcdir)/man/stapprobes.nfsd.3stap.in \
+	$(top_srcdir)/man/stapprobes.pagefault.3stap.in \
+	$(top_srcdir)/man/stapprobes.process.3stap.in \
+	$(top_srcdir)/man/stapprobes.rpc.3stap.in \
+	$(top_srcdir)/man/stapprobes.scsi.3stap.in \
+	$(top_srcdir)/man/stapprobes.signal.3stap.in \
+	$(top_srcdir)/man/stapprobes.socket.3stap.in \
+	$(top_srcdir)/man/stapprobes.tcp.3stap.in \
+	$(top_srcdir)/man/stapprobes.udp.3stap.in \
 	$(top_srcdir)/initscript/systemtap.in $(srcdir)/run-stap.in \
 	depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -81,19 +81,20 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 \
-	stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 \
-	man/stapprobes.netdev.5 man/stapprobes.nfs.5 \
-	man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 \
-	man/stapprobes.process.5 man/stapprobes.rpc.5 \
-	man/stapprobes.scsi.5 man/stapprobes.signal.5 \
-	man/stapprobes.socket.5 man/stapprobes.tcp.5 \
-	man/stapprobes.udp.5 initscript/systemtap run-stap
+CONFIG_CLEAN_FILES = stap.1 stapprobes.3stap stapfuncs.3stap \
+	stapvars.3stap stapex.3stap staprun.8 stap-server.8 \
+	man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap \
+	man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap \
+	man/stapprobes.pagefault.3stap man/stapprobes.process.3stap \
+	man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap \
+	man/stapprobes.signal.3stap man/stapprobes.socket.3stap \
+	man/stapprobes.tcp.3stap man/stapprobes.udp.3stap \
+	initscript/systemtap run-stap
 @BUILD_SERVER_TRUE@am__EXEEXT_1 = stap-client-connect$(EXEEXT) \
 @BUILD_SERVER_TRUE@	stap-server-connect$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
 	"$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" \
-	"$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)" \
+	"$(DESTDIR)$(man3dir)" "$(DESTDIR)$(man8dir)" \
 	"$(DESTDIR)$(oldincludedir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 pkglibexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
@@ -164,7 +165,7 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	installcheck-recursive installdirs-recursive pdf-recursive \
 	ps-recursive uninstall-recursive
 man1dir = $(mandir)/man1
-man5dir = $(mandir)/man5
+man3dir = $(mandir)/man3
 man8dir = $(mandir)/man8
 NROFF = nroff
 MANS = $(man_MANS)
@@ -298,13 +299,14 @@ pkglibexecdir = ${libexecdir}/${PACKAGE}
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
-man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 \
-	staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 \
-	man/stapprobes.nfs.5 man/stapprobes.nfsd.5 \
-	man/stapprobes.pagefault.5 man/stapprobes.process.5 \
-	man/stapprobes.rpc.5 man/stapprobes.scsi.5 \
-	man/stapprobes.signal.5 man/stapprobes.socket.5 \
-	man/stapprobes.tcp.5 man/stapprobes.udp.5 $(am__append_1)
+man_MANS = stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap \
+	stapex.3stap staprun.8 man/stapprobes.iosched.3stap \
+	man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap \
+	man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap \
+	man/stapprobes.process.3stap man/stapprobes.rpc.3stap \
+	man/stapprobes.scsi.3stap man/stapprobes.signal.3stap \
+	man/stapprobes.socket.3stap man/stapprobes.tcp.3stap \
+	man/stapprobes.udp.3stap $(am__append_1)
 bin_SCRIPTS = stap-report $(am__append_3) dtrace
 oldinclude_HEADERS = includes/sys/sdt.h
 stap_SOURCES = main.cxx \
@@ -433,41 +435,41 @@ distclean-hdr:
 	-rm -f config.h stamp-h1
 stap.1: $(top_builddir)/config.status $(srcdir)/stap.1.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-stapprobes.5: $(top_builddir)/config.status $(srcdir)/stapprobes.5.in
+stapprobes.3stap: $(top_builddir)/config.status $(srcdir)/stapprobes.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-stapfuncs.5: $(top_builddir)/config.status $(srcdir)/stapfuncs.5.in
+stapfuncs.3stap: $(top_builddir)/config.status $(srcdir)/stapfuncs.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-stapvars.5: $(top_builddir)/config.status $(srcdir)/stapvars.5.in
+stapvars.3stap: $(top_builddir)/config.status $(srcdir)/stapvars.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-stapex.5: $(top_builddir)/config.status $(srcdir)/stapex.5.in
+stapex.3stap: $(top_builddir)/config.status $(srcdir)/stapex.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 staprun.8: $(top_builddir)/config.status $(srcdir)/staprun.8.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 stap-server.8: $(top_builddir)/config.status $(srcdir)/stap-server.8.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.iosched.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.iosched.5.in
+man/stapprobes.iosched.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.iosched.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.netdev.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.netdev.5.in
+man/stapprobes.netdev.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.netdev.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.nfs.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.nfs.5.in
+man/stapprobes.nfs.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.nfs.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.nfsd.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.nfsd.5.in
+man/stapprobes.nfsd.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.nfsd.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.pagefault.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.pagefault.5.in
+man/stapprobes.pagefault.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.pagefault.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.process.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.process.5.in
+man/stapprobes.process.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.process.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.rpc.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.rpc.5.in
+man/stapprobes.rpc.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.rpc.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.scsi.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.scsi.5.in
+man/stapprobes.scsi.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.scsi.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.signal.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.signal.5.in
+man/stapprobes.signal.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.signal.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.socket.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.socket.5.in
+man/stapprobes.socket.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.socket.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.tcp.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.tcp.5.in
+man/stapprobes.tcp.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.tcp.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-man/stapprobes.udp.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.udp.5.in
+man/stapprobes.udp.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.udp.3stap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 initscript/systemtap: $(top_builddir)/config.status $(top_srcdir)/initscript/systemtap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
@@ -1059,14 +1061,14 @@ uninstall-man1:
 	  echo " rm -f '$(DESTDIR)$(man1dir)/$$inst'"; \
 	  rm -f "$(DESTDIR)$(man1dir)/$$inst"; \
 	done
-install-man5: $(man5_MANS) $(man_MANS)
+install-man3: $(man3_MANS) $(man_MANS)
 	@$(NORMAL_INSTALL)
-	test -z "$(man5dir)" || $(MKDIR_P) "$(DESTDIR)$(man5dir)"
-	@list='$(man5_MANS) $(dist_man5_MANS) $(nodist_man5_MANS)'; \
+	test -z "$(man3dir)" || $(MKDIR_P) "$(DESTDIR)$(man3dir)"
+	@list='$(man3_MANS) $(dist_man3_MANS) $(nodist_man3_MANS)'; \
 	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
 	for i in $$l2; do \
 	  case "$$i" in \
-	    *.5*) list="$$list $$i" ;; \
+	    *.3*) list="$$list $$i" ;; \
 	  esac; \
 	done; \
 	for i in $$list; do \
@@ -1074,35 +1076,35 @@ install-man5: $(man5_MANS) $(man_MANS)
 	  else file=$$i; fi; \
 	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
 	  case "$$ext" in \
-	    5*) ;; \
-	    *) ext='5' ;; \
+	    3*) ;; \
+	    *) ext='3' ;; \
 	  esac; \
 	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
 	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
 	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
-	  echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man5dir)/$$inst'"; \
-	  $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man5dir)/$$inst"; \
+	  echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man3dir)/$$inst'"; \
+	  $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man3dir)/$$inst"; \
 	done
-uninstall-man5:
+uninstall-man3:
 	@$(NORMAL_UNINSTALL)
-	@list='$(man5_MANS) $(dist_man5_MANS) $(nodist_man5_MANS)'; \
+	@list='$(man3_MANS) $(dist_man3_MANS) $(nodist_man3_MANS)'; \
 	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
 	for i in $$l2; do \
 	  case "$$i" in \
-	    *.5*) list="$$list $$i" ;; \
+	    *.3*) list="$$list $$i" ;; \
 	  esac; \
 	done; \
 	for i in $$list; do \
 	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
 	  case "$$ext" in \
-	    5*) ;; \
-	    *) ext='5' ;; \
+	    3*) ;; \
+	    *) ext='3' ;; \
 	  esac; \
 	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
 	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
 	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
-	  echo " rm -f '$(DESTDIR)$(man5dir)/$$inst'"; \
-	  rm -f "$(DESTDIR)$(man5dir)/$$inst"; \
+	  echo " rm -f '$(DESTDIR)$(man3dir)/$$inst'"; \
+	  rm -f "$(DESTDIR)$(man3dir)/$$inst"; \
 	done
 install-man8: $(man8_MANS) $(man_MANS)
 	@$(NORMAL_INSTALL)
@@ -1304,7 +1306,7 @@ all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) $(HEADERS) config.h \
 		all-local
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man3dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1369,7 +1371,7 @@ install-html: install-html-recursive
 
 install-info: install-info-recursive
 
-install-man: install-man1 install-man5 install-man8
+install-man: install-man1 install-man3 install-man8
 
 install-pdf: install-pdf-recursive
 
@@ -1400,7 +1402,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
 	uninstall-local uninstall-man uninstall-oldincludeHEADERS \
 	uninstall-pkglibexecPROGRAMS
 
-uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
+uninstall-man: uninstall-man1 uninstall-man3 uninstall-man8
 
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) install-am \
 	install-exec-am install-strip
@@ -1416,7 +1418,7 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 	install-data-local install-dvi install-dvi-am install-exec \
 	install-exec-am install-exec-hook install-exec-local \
 	install-html install-html-am install-info install-info-am \
-	install-man install-man1 install-man5 install-man8 \
+	install-man install-man1 install-man3 install-man8 \
 	install-oldincludeHEADERS install-pdf install-pdf-am \
 	install-pkglibexecPROGRAMS install-ps install-ps-am \
 	install-strip installcheck installcheck-am installdirs \
@@ -1424,7 +1426,7 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
 	ps ps-am tags tags-recursive uninstall uninstall-am \
 	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-local \
-	uninstall-man uninstall-man1 uninstall-man5 uninstall-man8 \
+	uninstall-man uninstall-man1 uninstall-man3 uninstall-man8 \
 	uninstall-oldincludeHEADERS uninstall-pkglibexecPROGRAMS
 
 git_version.stamp:

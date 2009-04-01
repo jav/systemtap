@@ -1,0 +1,9 @@
+/* - Not activated probe... Seems always skipped?
+probe process("uprobes_exe").function("main_func") {
+  printf("main_func\n");
+}
+*/
+
+probe process("libuprobes_lib.so").function("lib_func") {
+  printf("lib_func\n");
+}

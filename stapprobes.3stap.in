@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES 5 @DATE@ "Red Hat"
+.TH STAPPROBES 3stap @DATE@ "Red Hat"
 .SH NAME
 stapprobes \- systemtap probe points
 
@@ -49,18 +49,23 @@ including alias's body is skipped. The condition is stacked up through
 all levels of alias/wildcard expansion. So the final condition becomes
 the logical-and of conditions of all expanded alias/wildcard.
 
-These are all syntactically valid probe points:
+These are all
+.B syntactically
+valid probe points.  (They are generally
+.B semantically
+invalid, depending on the contents of the tapsets, and the versions of
+kernel/user software installed.)
 
 .SAMPLE
 kernel.function("foo").return
-syscall(22)
-user.inode("/bin/vi").statement(0x2222)
+process("/bin/vi").statement(0x2222)
 end
 syscall.*
 kernel.function("no_such_function") ?
 module("awol").function("no_such_function") !
 signal.*? if (switch)
 .ESAMPLE
+
 
 Probes may be broadly classified into "synchronous" and
 "asynchronous".  A "synchronous" event is deemed to occur when any
@@ -661,16 +666,16 @@ refers to the group of probe aliases with any name in the third position
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes.iosched (5),
-.IR stapprobes.netdev (5),
-.IR stapprobes.nfs (5),
-.IR stapprobes.nfsd (5),
-.IR stapprobes.pagefault (5),
-.IR stapprobes.process (5),
-.IR stapprobes.rpc (5),
-.IR stapprobes.scsi (5),
-.IR stapprobes.signal (5),
-.IR stapprobes.socket (5),
-.IR stapprobes.tcp (5),
-.IR stapprobes.udp (5),
-.IR proc (5)
+.IR stapprobes.iosched (3stap),
+.IR stapprobes.netdev (3stap),
+.IR stapprobes.nfs (3stap),
+.IR stapprobes.nfsd (3stap),
+.IR stapprobes.pagefault (3stap),
+.IR stapprobes.process (3stap),
+.IR stapprobes.rpc (3stap),
+.IR stapprobes.scsi (3stap),
+.IR stapprobes.signal (3stap),
+.IR stapprobes.socket (3stap),
+.IR stapprobes.tcp (3stap),
+.IR stapprobes.udp (3stap),
+.IR proc (3stap)

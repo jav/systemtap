@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.RPC 5 @DATE@ "IBM"
+.TH STAPPROBES.RPC 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.rpc \- systemtap SunRPC probe points
 
@@ -579,5 +579,5 @@ Fires when a task is to be delayed
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
+.IR stapprobes (3stap),
 

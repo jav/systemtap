@@ -149,6 +149,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-procfs-owner.c", "STAPCONF_PROCFS_OWNER", NULL);
   output_autoconf(s, o, "autoconf-alloc-percpu-align.c", "STAPCONF_ALLOC_PERCPU_ALIGN", NULL);
   output_autoconf(s, o, "autoconf-find-task-pid.c", "STAPCONF_FIND_TASK_PID", NULL);
+  output_autoconf(s, o, "autoconf-x86-gs.c", "STAPCONF_X86_GS", NULL);
 
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
@@ -345,7 +346,7 @@ run_pass (systemtap_session& s)
 
 // Build a tiny kernel module to query tracepoints
 int
-make_tracequery(systemtap_session& s, string& name)
+make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_headers)
 {
   // create a subdirectory for the module
   string dir(s.tmpdir + "/tracequery");
@@ -381,6 +382,11 @@ make_tracequery(systemtap_session& s, string& name)
   osrc << "#undef DEFINE_TRACE" << endl;
   osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
   osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
+
+  // PR9993: Add extra headers to work around undeclared types in individual
+  // include/trace/foo.h files
+  for (unsigned z=0; z<extra_headers.size(); z++)
+    osrc << "#include <" << extra_headers[z] << ">\n";
 
   // dynamically pull in all tracepoint headers from include/trace/
   glob_t trace_glob;

@@ -1,0 +1,10 @@
+#! stap
+
+# test x86 gs register
+
+probe begin {
+  if (!_stp_regs_registered)
+     _stp_register_regs()
+  printf("%d\n",test_x86_gs() * 100 + _reg_offsets["gs"]) /* 0 or 140 */
+  exit()
+}

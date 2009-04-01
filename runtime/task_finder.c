@@ -39,15 +39,23 @@ static atomic_t __stp_attach_count = ATOMIC_INIT (0);
 
 #define debug_task_finder_attach() (atomic_inc(&__stp_attach_count))
 #define debug_task_finder_detach() (atomic_dec(&__stp_attach_count))
+#ifdef DEBUG_TASK_FINDER_PRINTK
+#define debug_task_finder_report() (printk(KERN_ERR \
+					   "%s:%d attach count: %d, inuse count: %d\n", \
+					   __FUNCTION__, __LINE__,	\
+					   atomic_read(&__stp_attach_count), \
+					   atomic_read(&__stp_inuse_count)))
+#else
 #define debug_task_finder_report() (_stp_dbug(__FUNCTION__, __LINE__, \
 					      "attach count: %d, inuse count: %d\n", \
 					      atomic_read(&__stp_attach_count), \
 					      atomic_read(&__stp_inuse_count)))
+#endif	/* !DEBUG_TASK_FINDER_PRINTK */
 #else
 #define debug_task_finder_attach()	/* empty */
 #define debug_task_finder_detach()	/* empty */
 #define debug_task_finder_report()	/* empty */
-#endif
+#endif	/* !DEBUG_TASK_FINDER */
 
 typedef int (*stap_task_finder_callback)(struct stap_task_finder_target *tgt,
 					 struct task_struct *tsk,
@@ -246,11 +254,15 @@ stap_utrace_detach(struct task_struct *tsk,
 			break;
 		case -ESRCH:	    /* REAP callback already begun */
 		case -EALREADY:	    /* DEATH callback already begun */
-			rc = 0;	    /* ignore these errors*/
+			rc = 0;	    /* ignore these errors */
+			break;
+		case -EINPROGRESS:
+			debug_task_finder_detach();
+			rc = 0;
 			break;
 		default:
 			rc = -rc;
-			_stp_error("utrace_detach returned error %d on pid %d",
+			_stp_error("utrace_control returned error %d on pid %d",
 				   rc, tsk->pid);
 			break;
 		}
@@ -264,7 +276,6 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 {
 	struct task_struct *grp, *tsk;
 	struct utrace_attached_engine *engine;
-	int rc = 0;
 	pid_t pid = 0;
 
 	// Notice we're not calling get_task_mm() in this loop. In
@@ -290,11 +301,12 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 			continue;
 #endif
 
-		rc = stap_utrace_detach(tsk, ops);
-		if (rc != 0)
-			goto udo_err;
+		/* Notice we're purposefully ignoring errors from
+		 * stap_utrace_detach().  Even if we got an error on
+		 * this task, we need to keep detaching from other
+		 * tasks. */
+		(void) stap_utrace_detach(tsk, ops);
 	} while_each_thread(grp, tsk);
-udo_err:
 	rcu_read_unlock();
 	debug_task_finder_report();
 }
@@ -441,7 +453,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 			 * ref.
 			 */
 			rc = utrace_barrier(tsk, engine);
-			if (rc != 0)
+			if (rc != -ESRCH && rc != -EALREADY)
 				_stp_error("utrace_barrier returned error %d on pid %d",
 					   rc, (int)tsk->pid);
 		}
@@ -460,7 +472,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 			}
 
 		}
-		else
+		else if (rc != -ESRCH && rc != -EALREADY)
 			_stp_error("utrace_set_events2 returned error %d on pid %d",
 				   rc, (int)tsk->pid);
 		utrace_engine_put(engine);
@@ -835,11 +847,12 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 		 * a stale task pointer, if we have an engine ref.
 		 */
 		rc = utrace_barrier(tsk, engine);
-		if (rc != 0)
+		if (rc == 0)
+			rc = utrace_set_events(tsk, engine,
+					       __STP_ATTACHED_TASK_BASE_EVENTS(tgt));
+		else if (rc != -ESRCH && rc != -EALREADY)
 			_stp_error("utrace_barrier returned error %d on pid %d",
 				   rc, (int)tsk->pid);
-		rc = utrace_set_events(tsk, engine,
-				       __STP_ATTACHED_TASK_BASE_EVENTS(tgt));
 	}
 	if (rc != 0)
 		_stp_error("utrace_set_events returned error %d on pid %d",
@@ -998,7 +1011,6 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 static void
 __stp_call_vm_callbacks_with_vma(struct stap_task_finder_target *tgt,
 				 struct task_struct *tsk,
-				 int map_p,
 				 struct vm_area_struct *vma)
 {
 	char *mmpath_buf;
@@ -1025,7 +1037,7 @@ __stp_call_vm_callbacks_with_vma(struct stap_task_finder_target *tgt,
 			   rc, (int)tsk->pid);
 	}
 	else {
-		__stp_call_vm_callbacks(tgt, tsk, map_p, mmpath,
+		__stp_call_vm_callbacks(tgt, tsk, 1, mmpath,
 					vma->vm_start, vma->vm_end,
 					(vma->vm_pgoff << PAGE_SHIFT));
 	}
@@ -1118,7 +1130,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 			down_read(&mm->mmap_sem);
 			vma = __stp_find_file_based_vma(mm, rv);
 			if (vma != NULL) {
-				__stp_call_vm_callbacks_with_vma(tgt, tsk, 0, vma);
+				__stp_call_vm_callbacks_with_vma(tgt, tsk, vma);
 			}
 			up_read(&mm->mmap_sem);
 			mmput(mm);
@@ -1191,7 +1203,6 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 				       && vma->vm_end <= entry->vm_end) {
 					__stp_call_vm_callbacks_with_vma(tgt,
 									 tsk,
-									 1,
 									 vma);
 					if (vma->vm_end >= entry->vm_end)
 						break;

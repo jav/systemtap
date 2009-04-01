@@ -80,7 +80,6 @@ class provider:
                 elif (c == 8):
                     self.h.write ('#define %s(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9)\n' % (this_probe_canon, c+1, this_probe))
                 elif (c == 9):
-                    self.h.write('// X %d %s\n' % (c+1,this_probe_canon))
                     self.h.write ('#define %s(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10)\n' % (this_probe_canon, c+1, this_probe))
                 self.h.write ('#define %s_ENABLED() 1\n' % this_probe_canon)
 

@@ -603,7 +603,8 @@ typedef tr1::unordered_map<string,Dwarf_Die> cu_function_cache_t;
 typedef tr1::unordered_map<string,cu_function_cache_t*> mod_cu_function_cache_t; // module:cu -> function -> die
 #else
 struct stringhash {
-  size_t operator() (const string& s) const { hash<const char*> h; return h(s.c_str()); }
+  // __gnu_cxx:: is needed because our own hash.h has an ambiguous hash<> decl too.
+  size_t operator() (const string& s) const { __gnu_cxx::hash<const char*> h; return h(s.c_str()); }
 };
 
 typedef hash_map<string,Dwarf_Die,stringhash> cu_function_cache_t;
@@ -1039,7 +1040,10 @@ struct dwflpp
         off = dwfl_getmodules (dwfl, callback, data, off);
       }
     while (off > 0);
-    dwfl_assert("dwfl_getmodules", off == 0);
+    // Don't complain if we exited dwfl_getmodules early.
+    // This could be a $target variable error that will be
+    // reported soon anyway.
+    // dwfl_assert("dwfl_getmodules", off == 0);
 
     // PR6864 XXX: For dwarfless case (if .../vmlinux is missing), then the
     // "kernel" module is not reported in the loop above.  However, we
@@ -1698,14 +1702,24 @@ struct dwflpp
     // relocatable module probing code will need to have.
     Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
     dwfl_assert ("dwfl_addrmodule", mod);
-    int n = dwfl_module_relocations (mod);
-    dwfl_assert ("dwfl_module_relocations", n >= 0);
-    int i = dwfl_module_relocate_address (mod, &address);
-    dwfl_assert ("dwfl_module_relocate_address", i >= 0);
     const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
                                                 NULL, NULL, NULL, NULL);
+    int n = dwfl_module_relocations (mod);
+    dwfl_assert ("dwfl_module_relocations", n >= 0);
+    Dwarf_Addr reloc_address = address;
+    int i = dwfl_module_relocate_address (mod, &reloc_address);
+    dwfl_assert ("dwfl_module_relocate_address", i >= 0);
     dwfl_assert ("dwfl_module_info", modname);
     const char *secname = dwfl_module_relocation_info (mod, i, NULL);
+
+    if (sess.verbose > 2)
+      {
+        clog << "emit dwarf addr 0x" << hex << address << dec
+             << " => module " << modname  
+             << " section " << (secname ?: "null")
+             << " relocaddr 0x" << hex << reloc_address << dec
+             << endl;
+      }
 
     if (n > 0 && !(n == 1 && secname == NULL))
      {
@@ -1716,7 +1730,7 @@ struct dwflpp
             // module, for a kernel module (or other ET_REL module object).
             obstack_printf (pool, "({ static unsigned long addr = 0; ");
             obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
-                            modname, secname, address);
+                            modname, secname, reloc_address);
             obstack_printf (pool, "addr; })");
           }
         else if (n == 1 && module_name == TOK_KERNEL && secname[0] == '\0')
@@ -1727,7 +1741,7 @@ struct dwflpp
             secname = "_stext";
             obstack_printf (pool, "({ static unsigned long addr = 0; ");
             obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
-                            modname, secname, address);
+                            modname, secname, address); // PR10000 NB: not reloc_address
             obstack_printf (pool, "addr; })");
           }
 	else
@@ -2836,6 +2850,8 @@ struct dwarf_query : public base_query
 
   bool has_absolute;
 
+  bool has_mark;
+
   enum dbinfo_reqt dbinfo_reqt;
   enum dbinfo_reqt assess_dbinfo_reqt();
 
@@ -3087,6 +3103,7 @@ dwarf_query::dwarf_query(systemtap_session & sess,
   has_return = has_null_param(params, TOK_RETURN);
   has_maxactive = get_number_param(params, TOK_MAXACTIVE, maxactive_val);
   has_absolute = has_null_param(params, TOK_ABSOLUTE);
+  has_mark = false;
 
   if (has_function_str)
     spec_type = parse_function_spec(function_str_val);
@@ -4031,9 +4048,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    }
           // Verify that a raw address matches the beginning of a
           // statement. This is a somewhat lame check that the address
-          // is at the start of an assembly instruction.
-	  // Avoid for now since this thwarts a probe on a statement in a macro
-          if (0 && q->has_statement_num)
+          // is at the start of an assembly instruction.  Mark probes are in the
+	  // middle of a macro and thus not strictly at a statement beginning.
+          if (q->has_statement_num && ! q->has_mark)
             {
               Dwarf_Addr queryaddr = q->statement_num_val;
               dwarf_line_t address_line(dwarf_getsrc_die(cudie, queryaddr));
@@ -4167,16 +4184,28 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
                                & main_filename,
                                & debug_filename);
   const string& sess_machine = q->sess.architecture;
-  string expect_machine;
+
+  string expect_machine; // to match sess.machine (i.e., kernel machine)
+  string expect_machine2;
 
   switch (elf_machine)
     {
-    case EM_386: expect_machine = "i?86"; break; // accept e.g. i586
-    case EM_X86_64: expect_machine = "x86_64"; break;
-    // We don't support 32-bit ppc kernels, but we support 32-bit apps
-    // running on ppc64 kernels.
-    case EM_PPC: expect_machine = "ppc64"; break;
-    case EM_PPC64: expect_machine = "ppc64"; break;
+      // x86 and ppc are bi-architecture; a 64-bit kernel
+      // can normally run either 32-bit or 64-bit *userspace*.
+    case EM_386:
+      expect_machine = "i?86";
+      if (! q->has_process) break; // 32-bit kernel/module
+      /* FALLSTHROUGH */
+    case EM_X86_64:
+      expect_machine2 = "x86_64";
+      break;
+    case EM_PPC:
+      expect_machine = "ppc";
+      if (! q->has_process) break; // 32-bit kernel/module
+      /* FALLSTHROUGH */
+    case EM_PPC64:
+      expect_machine2 = "ppc64";
+      break;
     case EM_S390: expect_machine = "s390x"; break;
     case EM_IA_64: expect_machine = "ia64"; break;
     case EM_ARM: expect_machine = "armv*"; break;
@@ -4187,10 +4216,12 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
   if (! debug_filename) debug_filename = main_filename;
   if (! debug_filename) debug_filename = name;
 
-  if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0)
+  if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0 &&
+      fnmatch (expect_machine2.c_str(), sess_machine.c_str(), 0) != 0)
     {
       stringstream msg;
-      msg << "ELF machine " << expect_machine << " (code " << elf_machine
+      msg << "ELF machine " << expect_machine << "|" << expect_machine2
+          << " (code " << elf_machine
           << ") mismatch with target " << sess_machine
           << " in '" << debug_filename << "'";
       throw semantic_error(msg.str ());
@@ -4202,7 +4233,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
          << "-0x" << q->dw.module_end
          << ", bias 0x" << q->dw.module_bias << "]" << dec
          << " file " << debug_filename
-         << " ELF machine " << expect_machine
+         << " ELF machine " << expect_machine << "|" << expect_machine2
          << " (code " << elf_machine << ")"
          << "\n";
 }
@@ -5022,7 +5053,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   string code;
   exp_type type = pe_long;
-  size_t mod_end = -1;
+  size_t mod_end = ~0;
   do
     {
       // split the module string by ':' for alternatives
@@ -5731,8 +5762,6 @@ dwarf_builder::build(systemtap_session & sess,
     Elf* elf = dwfl_module_getelf (dw->module, &bias);
     size_t shstrndx;
     Elf_Scn *probe_scn = NULL;
-    bool probe_found = false;
-    bool dynamic = (dwfl_module_relocations (dw->module) == 1);
 
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
     GElf_Shdr *shdr = NULL;
@@ -5750,8 +5779,6 @@ dwarf_builder::build(systemtap_session & sess,
 	    break;
 	  }
       }
-    if (dynamic || sess.listing_mode)
-      probe_type = dwarf_no_probes;
     
     if (probe_type == probes_and_dwarf)
       {
@@ -5779,8 +5806,14 @@ dwarf_builder::build(systemtap_session & sess,
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
-	    if (strcmp (location->components[1]->arg->tok->content.c_str(), probe_name.c_str()) == 0)
-	      probe_found = true;
+	    if ((strcmp (location->components[1]->arg->tok->content.c_str(),
+			 probe_name.c_str()) == 0)
+		|| (dw->name_has_wildcard (location->components[1]->arg->tok->content.c_str())
+		    && dw->function_name_matches_pattern
+		    (probe_name.c_str(),
+		     location->components[1]->arg->tok->content.c_str())))
+	      {
+	      }
 	    else
 	      continue;
 	    const token* sv_tok = location->components[1]->arg->tok;
@@ -5788,14 +5821,20 @@ dwarf_builder::build(systemtap_session & sess,
 	    location->components[1]->arg = new literal_number((int)probe_arg);
 	    location->components[1]->arg->tok = sv_tok;
 	    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
+	    
 	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
+	    q.has_mark = true;
 	    dw->query_modules(&q);
+	    if (sess.listing_mode)
+	      {
+		finished_results.back()->locations[0]->components[1]->functor = TOK_MARK;
+		finished_results.back()->locations[0]->components[1]->arg = new literal_string (probe_name.c_str());
+	      }
 	  }
-	if (probe_found)
-	  return;
+	return;
       }
 
-    if (probe_type == dwarf_no_probes || ! probe_found)
+    else if (probe_type == dwarf_no_probes)
       {
 	location->components[1]->functor = TOK_FUNCTION;
 	location->components[1]->arg = new literal_string("*");
@@ -9640,6 +9679,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
   // tracepoints from FOO_event_types.h should really be included from FOO.h
   // XXX can dwarf tell us the include hierarchy?  it would be better to
   // ... walk up to see which one was directly included by tracequery.c
+  // XXX: see also PR9993.
   header_pos = header.find("_event_types");
   if (header_pos != string::npos)
     header.erase(header_pos, 12);
@@ -9815,6 +9855,16 @@ tracepoint_derived_probe::emit_probe_context_vars (translator_output* o)
 }
 
 
+static vector<string> tracepoint_extra_headers ()
+{
+  vector<string> they_live;
+  // PR 9993
+  // XXX: may need this to be configurable
+  they_live.push_back ("linux/skbuff.h");
+  return they_live;
+}
+
+
 void
 tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
@@ -9823,6 +9873,12 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- tracepoint probes ---- */";
   s.op->newline();
+
+  // PR9993: Add extra headers to work around undeclared types in individual
+  // include/trace/foo.h files
+  const vector<string>& extra_headers = tracepoint_extra_headers ();
+  for (unsigned z=0; z<extra_headers.size(); z++)
+    s.op->newline() << "#include <" << extra_headers[z] << ">\n";
 
   for (unsigned i = 0; i < probes.size(); ++i)
     {
@@ -10021,6 +10077,7 @@ private:
   bool init_dw(systemtap_session& s);
 
 public:
+
   tracepoint_builder(): dw(0) {}
   ~tracepoint_builder() { delete dw; }
 
@@ -10067,7 +10124,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
 
   // no cached module, time to make it
   string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko);
+  int rc = make_tracequery(s, tracequery_ko, tracepoint_extra_headers());
   if (rc != 0)
     return false;
 

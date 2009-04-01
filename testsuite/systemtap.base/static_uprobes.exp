@@ -1,5 +1,7 @@
 set test "static_uprobes"
 
+# Test miscellaneous features of .mark probes
+
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_uprobes.c"
 set sup_exepath "[pwd]/static_uprobes.x"
@@ -80,6 +82,9 @@ provider static_uprobes {
 };
 "
 close $fp
+
+# Test dtrace
+
 if {[installtest_p]} { 
     set dtrace $env(SYSTEMTAP_PATH)/dtrace 
 } else {
@@ -90,9 +95,9 @@ if {[catch {exec $dtrace -h -s $sup_dpath} res]} {
 }
 catch {exec rm -f $sup_dpath}
 if {[file exists $sup_hpath]} then {
-    pass "$test generating header"
+    pass "$test dtrace"
 } else {
-    fail "$test generating header"
+    fail "$test dtrace"
     catch {exec rm -f $sup_srcpath $sup_hpath $sup_stppath}
     return
 }
@@ -118,17 +123,6 @@ if { $res != "" } {
     pass "$test compiling C -g"
 }
 
-set sup_flags "$sup_flags additional_flags=-x additional_flags=c++"
-set res [target_compile $sup_srcpath $supcplus_exepath executable $sup_flags]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "$test compiling C++ -g"
-    catch {exec rm -f $sup_srcpath $sup_exepath $sup_hpath $sup_stppath}
-    return
-} else {
-    pass "$test compiling C++ -g"
-}
-
 if {![installtest_p]} {untested $test; return}
 
 # Try to find utrace_attach symbol in /proc/kallsyms
@@ -143,6 +137,8 @@ if {$utrace_support_found == 0} {
     catch {exec rm -f $sup_srcpath}
     return
 }
+
+# Run stap on executable built with dtrace generated header file
 
 set ok 0
 
@@ -162,29 +158,56 @@ wait
 
 if {$ok == 5} { pass "$test C" } { fail "$test C ($ok)" }
 
-set ok 0
+# Test passing various C types to .mark probes
 
-# Test setting a probe without .probes using only dwarf label info
-verbose -log "objcopy -R .probes $supcplus_exepath $sup_exepath"
-spawn objcopy -R .probes $supcplus_exepath $sup_exepath 
-verbose -log "spawn stap -c $sup_exepath $sup_stppath"
-spawn stap -c $sup_exepath $sup_stppath
+set sup_flags "$sup_flags  additional_flags=-O0"
+set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $sup_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test compiling types -g"
+    return
+} else {
+    pass "$test compiling types -g"
+}
+
+set ok 0
+set fail "types"
+verbose -log "spawn stap -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x"
+spawn stap -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x
 expect {
     -timeout 180
-    -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
-    -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
-    -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
-    -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
-    timeout { fail "$test C++ (timeout)" }
+    -re {FAIL: [a-z_]+var} { regexp " .*$" $expect_out(0,string) s; 
+	incr ok; set fail "$fail $s"; exp_continue }
+    timeout { fail "$test C (timeout)" }
     eof { }
 }
 
 wait
 
-# we now generate the probes via asm so there is no label debug info
-if {$ok == 5} { pass "$test C++" } { xfail "$test C++ ($ok)" }
+if { $ok != 0 } {
+    fail "$test $fail"
+} else {
+    pass "$test types"
+}
+
+# Test .mark probe wildcard matching
+
+set ok 0
+spawn stap -l "process(\"./sdt_types.x\").mark(\"*\")"
+expect {
+    -timeout 180
+    -re {mark\(\"[a-z_]+\"\)} { incr ok; exp_continue }
+    timeout { fail "$test C (timeout)" }
+    eof { }
+}
+
+if { $ok == 45 } {
+    pass "$test wildcard"
+} else {
+    fail "$test wildcard ($ok)"
+}
 
 if { $verbose == 0 } {
-catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_dpath $sup_hpath $sup_stppath}
+catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_dpath $sup_hpath $sup_stppath sdt_types.x}
 }
 

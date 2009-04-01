@@ -340,7 +340,8 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	put_task_struct(tsk);
 	rcu_read_unlock();
 
-	printk(KERN_INFO "usr_itrace_init: completed for tid = %d\n", tid);
+        if (debug)
+          printk(KERN_INFO "usr_itrace_init: completed for tid = %d\n", tid);
 
 	return 0;
 }
