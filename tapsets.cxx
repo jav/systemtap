@@ -6570,6 +6570,22 @@ itrace_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i=0; i<" << num_probes << "; i++) {";
   s.op->indent(1);
   s.op->newline() << "struct stap_itrace_probe *p = &stap_itrace_probes[i];";
+
+  // 'arch_has_single_step' needs to be defined for either single step mode
+  // or branch mode.
+  s.op->newline() << "if (!arch_has_single_step()) {";
+  s.op->indent(1);
+  s.op->newline() << "_stp_error (\"insn probe init: arch does not support step mode\");";
+  s.op->newline() << "rc = -EPERM;";
+  s.op->newline() << "break;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "if (!p->single_step && !arch_has_block_step()) {";
+  s.op->indent(1);
+  s.op->newline() << "_stp_error (\"insn probe init: arch does not support block step mode\");";
+  s.op->newline() << "rc = -EPERM;";
+  s.op->newline() << "break;";
+  s.op->newline(-1) << "}";
+
   s.op->newline() << "rc = stap_register_task_finder_target(&p->tgt);";
   s.op->newline(-1) << "}";
 }
