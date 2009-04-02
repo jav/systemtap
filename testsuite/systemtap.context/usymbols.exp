@@ -10,8 +10,9 @@ set testflags "additional_flags=-g additional_flags=-O"
 set testlibflags "testflags additional_flags=-fPIC additional_flags=-shared"
 set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$testlibname additional_flags=-Wl,-rpath,$testlibdir"
 
-# Only run on make installcheck
-if {! [installtest_p]} { untested "$test -p5"; return }
+# Only run on make installcheck and utrace present.
+if {! [installtest_p]} { untested "$test"; return }
+if {! [utrace_p]} { untested "$test"; return }
 
 # Compile our test program and library.
 set res [target_compile $testsrclib $testso executable $testlibflags]
