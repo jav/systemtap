@@ -113,7 +113,7 @@ if {![utrace_p]} {
 }
 
 set TEST_NAME "itrace3"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested $TEST_NAME
