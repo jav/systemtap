@@ -1,6 +1,6 @@
 spawn stap $srcdir/$subdir/args.stp
 expect {
-    -timeout 240
+    -timeout 60
     "READY" {
 	exec echo 1 > /proc/stap_test_cmd
 	expect {

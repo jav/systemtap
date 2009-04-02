@@ -39,6 +39,19 @@
 #endif
 #define STAP_LABEL(a,b) STAP_CONCAT(a,b) 
 
+/* Taking the address of a local label and/or referencing alloca prevents the
+   containing function from being inlined, which keeps the parameters visible. */
+
+#if __GNUC__ == 4 && __GNUC_MINOR__ <= 1
+#include <alloca.h>
+#define STAP_UNINLINE alloca((size_t)0)
+#else
+#define STAP_UNINLINE
+#endif
+
+#define STAP_UNINLINE_LABEL(label) \
+  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label
+
 #define STAP_PROBE_(probe)			\
 do { \
   STAP_PROBE_DATA(probe);	\
@@ -46,13 +59,11 @@ do { \
 		    "\tnop");	\
  } while (0)
 
-/* Taking the address of a local label prevents the containing function
-   from being inlined, which keeps the parameters visible. */
-
 #define STAP_PROBE1_(probe,label,parm1)		\
 do { \
-  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label; \
+  STAP_UNINLINE_LABEL(label);			\
   volatile __typeof__((parm1)) arg1 = parm1;	\
+  STAP_UNINLINE;				\
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n" \
@@ -61,9 +72,10 @@ do { \
 
 #define STAP_PROBE2_(probe,label,parm1,parm2)	\
 do { \
-  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label;	\
+  STAP_UNINLINE_LABEL(label);			\
   volatile __typeof__((parm1)) arg1 = parm1;	\
   volatile __typeof__((parm2)) arg2 = parm2;	\
+  STAP_UNINLINE;				\
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
@@ -72,10 +84,11 @@ do { \
 
 #define STAP_PROBE3_(probe,label,parm1,parm2,parm3)	\
 do { \
-  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label; \
-  volatile __typeof__((parm1)) arg1 = parm1;     \
+  STAP_UNINLINE_LABEL(label);		     \
+  volatile __typeof__((parm1)) arg1 = parm1; \
   volatile __typeof__((parm2)) arg2 = parm2; \
   volatile __typeof__((parm3)) arg3 = parm3; \
+  STAP_UNINLINE;			     \
   STAP_PROBE_DATA(probe);						\
    label:						\
   __asm__ volatile ("2:\n"						\
@@ -84,11 +97,12 @@ do { \
 
 #define STAP_PROBE4_(probe,label,parm1,parm2,parm3,parm4)	\
 do { \
-  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label;	\
+  STAP_UNINLINE_LABEL(label);		     \
   volatile __typeof__((parm1)) arg1 = parm1; \
   volatile __typeof__((parm2)) arg2 = parm2; \
   volatile __typeof__((parm3)) arg3 = parm3; \
   volatile __typeof__((parm4)) arg4 = parm4; \
+  STAP_UNINLINE;			     \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
@@ -97,12 +111,13 @@ do { \
 
 #define STAP_PROBE5_(probe,label,parm1,parm2,parm3,parm4,parm5)	\
 do  { \
-  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label; \
+  STAP_UNINLINE_LABEL(label);		     \
   volatile __typeof__((parm1)) arg1 = parm1; \
   volatile __typeof__((parm2)) arg2 = parm2; \
   volatile __typeof__((parm3)) arg3 = parm3; \
   volatile __typeof__((parm4)) arg4 = parm4; \
   volatile __typeof__((parm5)) arg5 = parm5; \
+  STAP_UNINLINE;			     \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
@@ -111,13 +126,14 @@ do  { \
 
 #define STAP_PROBE6_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6)	\
 do { \
-  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label;	\
+  STAP_UNINLINE_LABEL(label);		     \
   volatile __typeof__((parm1)) arg1 = parm1; \
   volatile __typeof__((parm2)) arg2 = parm2; \
   volatile __typeof__((parm3)) arg3 = parm3; \
   volatile __typeof__((parm4)) arg4 = parm4; \
   volatile __typeof__((parm5)) arg5 = parm5; \
   volatile __typeof__((parm6)) arg6 = parm6; \
+  STAP_UNINLINE;				     \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
@@ -126,7 +142,7 @@ do { \
 
 #define STAP_PROBE7_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7)	\
 do  { \
-  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label; \
+  STAP_UNINLINE_LABEL(label);		     \
   volatile __typeof__((parm1)) arg1 = parm1; \
   volatile __typeof__((parm2)) arg2 = parm2; \
   volatile __typeof__((parm3)) arg3 = parm3; \
@@ -134,6 +150,7 @@ do  { \
   volatile __typeof__((parm5)) arg5 = parm5; \
   volatile __typeof__((parm6)) arg6 = parm6; \
   volatile __typeof__((parm7)) arg7 = parm7; \
+  STAP_UNINLINE;				     \
   STAP_PROBE_DATA(probe);						\
    label:						\
   __asm__ volatile ("2:\n"						\
@@ -142,7 +159,7 @@ do  { \
 
 #define STAP_PROBE8_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
 do { \
-  __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label;	\
+  STAP_UNINLINE_LABEL(label);		     \
   volatile __typeof__((parm1)) arg1 = parm1; \
   volatile __typeof__((parm2)) arg2 = parm2; \
   volatile __typeof__((parm3)) arg3 = parm3; \
@@ -151,6 +168,7 @@ do { \
   volatile __typeof__((parm6)) arg6 = parm6; \
   volatile __typeof__((parm7)) arg7 = parm7; \
   volatile __typeof__((parm8)) arg8 = parm8; \
+  STAP_UNINLINE;				     \
   STAP_PROBE_DATA(probe);						\
    label:						\
   __asm__ volatile ("2:\n"						\
@@ -159,7 +177,7 @@ do { \
 
 #define STAP_PROBE9_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
 do { \
-  __extension__ static volatile long labelval  __attribute__ ((unused))  = (long) &&label;	\
+  STAP_UNINLINE_LABEL(label);		     \
   volatile __typeof__((parm1)) arg1 = parm1; \
   volatile __typeof__((parm2)) arg2 = parm2; \
   volatile __typeof__((parm3)) arg3 = parm3; \
@@ -169,6 +187,7 @@ do { \
   volatile __typeof__((parm7)) arg7 = parm7; \
   volatile __typeof__((parm8)) arg8 = parm8; \
   volatile __typeof__((parm9)) arg9 = parm9; \
+  STAP_UNINLINE;				     \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\
@@ -177,7 +196,7 @@ do { \
 
 #define STAP_PROBE10_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
 do { \
-  __extension__ static volatile long labelval  __attribute__ ((unused))  = (long) &&label;	\
+  STAP_UNINLINE_LABEL(label);		     \
   volatile __typeof__((parm1)) arg1 = parm1; \
   volatile __typeof__((parm2)) arg2 = parm2; \
   volatile __typeof__((parm3)) arg3 = parm3; \
@@ -188,6 +207,7 @@ do { \
   volatile __typeof__((parm8)) arg8 = parm8; \
   volatile __typeof__((parm9)) arg9 = parm9; \
   volatile __typeof__((parm10)) arg10 = parm10; \
+  STAP_UNINLINE;				     \
   STAP_PROBE_DATA(probe);						\
   label:						\
   __asm__ volatile ("2:\n"						\

@@ -20,13 +20,15 @@
 #include <cerrno>
 
 extern "C" {
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <fcntl.h>
 #include <pwd.h>
-#include <unistd.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 }
 
 using namespace std;
@@ -292,6 +294,37 @@ git_revision(const string& path)
     }
 
   return revision;
+}
+
+
+static pid_t spawned_pid = 0;
+
+// Runs a command with a saved PID, so we can kill it from the signal handler
+int
+stap_system(const char *command)
+{
+  const char * argv[] = { "sh", "-c", command, NULL };
+  int ret, status;
+
+  spawned_pid = 0;
+  ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL,
+                    const_cast<char **>(argv), environ);
+  if (ret == 0)
+    {
+      if (waitpid(spawned_pid, &status, 0) == spawned_pid)
+        ret = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
+      else
+        ret = errno;
+    }
+  spawned_pid = 0;
+  return ret;
+}
+
+// Send a signal to our spawned command
+int
+kill_stap_spawn(int sig)
+{
+  return spawned_pid ? kill(spawned_pid, sig) : 0;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

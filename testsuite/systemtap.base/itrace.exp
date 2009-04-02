@@ -2,7 +2,6 @@
 
 
 # Initialize variables
-set utrace_support_found 0
 set exepath "[pwd]/ls_[pid]"
 
 set itrace1_script {
@@ -48,6 +47,26 @@ set itrace2_script {
 }
 set itrace2_script_output "itraced = 5\r\n"
 
+set itrace3_script {
+    global branches = 0
+    probe begin
+    {
+        printf("systemtap starting probe\n")
+    }
+    probe process("%s").insn.block
+    {
+        branches += 1
+        if (branches == 5)
+                exit()
+    }
+
+
+    probe end { printf("systemtap ending probe\n")
+          printf("itraced block mode = %%d\n", branches)
+    }
+}
+set itrace3_script_output "itraced block mode = 5\r\n"
+
 
 # Set up our own copy of /bin/ls, to make testing for a particular
 # executable easy.  We can't use 'ln' here, since we might be creating
@@ -72,14 +91,8 @@ proc run_ls_5_sec {} {
 }
 
 
-# Try to find utrace_attach symbol in /proc/kallsyms
-set path "/proc/kallsyms"
-if {! [catch {exec grep -q utrace_attach $path} dummy]} {
-    set utrace_support_found 1
-}
-
 set TEST_NAME "itrace1"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested $TEST_NAME
@@ -90,13 +103,24 @@ if {$utrace_support_found == 0} {
 
 
 set TEST_NAME "itrace2"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested $TEST_NAME
 } else {
     set script [format $itrace2_script $exepath]
     stap_run $TEST_NAME run_ls_5_sec $itrace2_script_output -e $script
+}
+
+set TEST_NAME "itrace3"
+if {![utrace_p]} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested $TEST_NAME
+} else {
+    send_log "ATTENTION: if arch_has_block_step is not defined for this arch, this testcase will fail\n"
+    set script [format $itrace3_script $exepath]
+    stap_run $TEST_NAME run_ls_5_sec $itrace3_script_output -e $script
 }
 
 # Cleanup

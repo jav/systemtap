@@ -86,6 +86,9 @@ static struct
 #include "io.c"
 #include "arith.c"
 #include "copy.c"
+
+#include "task_finder.c"
+
 #include "sym.c"
 #ifdef STP_PERFMON
 #include "perf.c"

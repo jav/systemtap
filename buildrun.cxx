@@ -59,7 +59,7 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
     make_cmd += " -s >/dev/null 2>&1";
 
   if (s.verbose > 1) clog << "Running " << make_cmd << endl;
-  rc = system (make_cmd.c_str());
+  rc = stap_system (make_cmd.c_str());
 
   return rc;
 }
@@ -234,7 +234,7 @@ kernel_built_uprobes (systemtap_session& s)
 {
   string grep_cmd = string ("/bin/grep -q unregister_uprobe ") + 
     s.kernel_build_tree + string ("/Module.symvers");
-  int rc = system (grep_cmd.c_str());
+  int rc = stap_system (grep_cmd.c_str());
   return (rc == 0);
 }
 
@@ -285,7 +285,7 @@ copy_uprobes_symbols (systemtap_session& s)
   string uprobes_home = s.runtime_path + "/uprobes";
   string cp_cmd = string("/bin/cp ") + uprobes_home +
     string("/Module.symvers ") + s.tmpdir;
-  int rc = system (cp_cmd.c_str());
+  int rc = stap_system (cp_cmd.c_str());
   return rc;
 }
 
@@ -350,7 +350,7 @@ run_pass (systemtap_session& s)
 
   if (s.verbose>1) clog << "Running " << staprun_cmd << endl;
 
-  rc = system (staprun_cmd.c_str ());
+  rc = stap_system (staprun_cmd.c_str ());
   return rc;
 }
 

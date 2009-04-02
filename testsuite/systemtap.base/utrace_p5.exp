@@ -1,7 +1,6 @@
 # Utrace run (pass 5) tests.
 
 # Initialize variables
-set utrace_support_found 0
 set exepath "[pwd]/cat_[pid]"
 set multi_srcpath "$srcdir/systemtap.base/utrace_p5_multi.c"
 set multi_exepath "[pwd]/utrace_p5_multi_[pid]"
@@ -90,12 +89,6 @@ set bz6841_script {
 }
 set bz6841_script_output ".+ issues syscall \\d+ times\r\n"
 
-# Try to find utrace_attach symbol in /proc/kallsyms
-set path "/proc/kallsyms"
-if {! [catch {exec grep -q utrace_attach $path} dummy]} {
-    set utrace_support_found 1
-}
-
 # Set up our own copy of /bin/cat, to make testing for a particular
 # executable easy.  We can't use 'ln' here, since we might be creating
 # a cross-device link.  We can't use 'ln -s' here, since the kernel
@@ -138,7 +131,7 @@ proc run_utrace_p5_multi {} {
 }
 
 set TEST_NAME "UTRACE_P5_01"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested "$TEST_NAME"
@@ -148,7 +141,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P5_02"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested "$TEST_NAME"
@@ -158,7 +151,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P5_03"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested "$TEST_NAME"
@@ -168,7 +161,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P5_04"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested "$TEST_NAME"
@@ -178,7 +171,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P5_05"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested "$TEST_NAME"
@@ -189,7 +182,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P5_06"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested "$TEST_NAME"
@@ -200,7 +193,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P5_07"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested "$TEST_NAME"

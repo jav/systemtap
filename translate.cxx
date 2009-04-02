@@ -4955,6 +4955,8 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define STP_OVERLOAD";
       s.op->newline() << "#endif";
 
+      s.op->newline() << "#define STP_SKIP_BADVARS " << (s.skip_badvars ? 1 : 0);
+
       if (s.bulk_mode)
 	  s.op->newline() << "#define STP_BULKMODE";
 

@@ -20,6 +20,40 @@
  * @{
  */
 
+/* Callback that needs to be registered (in tapsets.cxx for
+   emit_module_init) for every user task path or pid for which we
+   might need symbols or unwind info. */
+static int _stp_tf_vm_cb(struct stap_task_finder_target *tgt,
+			 struct task_struct *tsk,
+			 int map_p, char *vm_path,
+			 unsigned long vm_start, unsigned long vm_end,
+			 unsigned long vm_pgoff)
+{
+  int i;
+#ifdef DEBUG_TASK_FINDER_VMA
+  _stp_dbug(__FUNCTION__, __LINE__, "vm_cb: tsk %d:%d path %s, start 0x%08lx, end 0x%08lx, offset 0x%lx\n", tsk->pid, map_p, vm_path, vm_start, vm_end, vm_pgoff);
+#endif
+  if (map_p)
+    {
+      struct _stp_module *module = NULL;
+      if (vm_path != NULL)
+	for (i = 0; i < _stp_num_modules; i++)
+	  if (strcmp(vm_path, _stp_modules[i]->path) == 0)
+	    {
+#ifdef DEBUG_TASK_FINDER_VMA
+	      _stp_dbug(__FUNCTION__, __LINE__, "vm_cb: matched path %s to module\n", vm_path);
+#endif
+	      module = _stp_modules[i];
+	      break;
+	    }
+      stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff, module);
+    }
+  else
+    stap_remove_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
+
+  return 0;
+}
+
 /* XXX: this needs to be address-space-specific. */
 static unsigned long _stp_module_relocate(const char *module, const char *section, unsigned long offset)
 {
@@ -76,11 +110,33 @@ static unsigned long _stp_module_relocate(const char *module, const char *sectio
    if found, return NULL otherwise.
    XXX: needs to be address-space-specific. */
 static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
+					       struct task_struct *task,
 					       struct _stp_section **sec)
 {
+  void *user = NULL;
   struct _stp_module *m = NULL;
   unsigned midx = 0;
   unsigned long closest_section_offset = ~0;
+
+  // Try vma matching first if task given.
+  if (task)
+    {
+      unsigned long vm_start = 0;
+      if (stap_find_vma_map_info(task, addr,
+				 &vm_start, NULL,
+				 NULL, &user) == 0)
+	if (user != NULL)
+	  {
+	    m = (struct _stp_module *)user;
+	    *sec = &m->sections[0]; // XXX check actual section and relocate
+	    dbug_sym(1, "found section %s in module %s at 0x%lx\n",
+		     m->sections[0].name, m->name, vm_start);
+	    if (strcmp(".dynamic", m->sections[0].name) == 0)
+	      m->sections[0].addr = vm_start; // cheat...
+	    return m;
+	  }
+    }
+
   for (midx = 0; midx < _stp_num_modules; midx++)
     {
       unsigned secidx;
@@ -108,14 +164,15 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
                                         unsigned long *offset, 
                                         const char **modname, 
                                         /* char ** secname? */
-                                        char *namebuf)
+                                        char *namebuf,
+					struct task_struct *task)
 {
 	struct _stp_module *m = NULL;
 	struct _stp_section *sec = NULL;
 	struct _stp_symbol *s = NULL;
 	unsigned end, begin = 0;
 
-	m = _stp_mod_sec_lookup(addr, &sec);
+	m = _stp_mod_sec_lookup(addr, task, &sec);
         if (unlikely (m == NULL || sec == NULL))
           return NULL;
         
@@ -240,7 +297,7 @@ static void _stp_symbol_print(unsigned long address)
 	const char *name;
 	unsigned long offset, size;
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, NULL);
 
 	_stp_printf("%p", (int64_t) address);
 
@@ -265,7 +322,7 @@ static int _stp_func_print(unsigned long address, int verbose, int exact)
 	else
 		exstr = " (inexact)";
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, NULL);
 
 	if (name) {
 		if (verbose) {
@@ -281,13 +338,15 @@ static int _stp_func_print(unsigned long address, int verbose, int exact)
 	return 0;
 }
 
-static void _stp_symbol_snprint(char *str, size_t len, unsigned long address)
+static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
+			 struct task_struct *task)
 {
 	const char *modname;
 	const char *name;
 	unsigned long offset, size;
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL,
+				    task);
 	if (name)
 		strlcpy(str, name, len);
 	else

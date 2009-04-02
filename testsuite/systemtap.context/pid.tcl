@@ -2,7 +2,7 @@ set tests [list execname pexecname pid ppid tid uid euid gid egid]
 spawn stap $srcdir/$subdir/pid.stp
 #exp_internal 1
 expect {
-    -timeout 240
+    -timeout 60
     "READY" {
 	set pid [exec echo 1 > /proc/stap_test_cmd &]
 	set ppid {[0-9]*}
