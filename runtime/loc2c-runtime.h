@@ -62,6 +62,10 @@
    must work right for kernel addresses, and can use whatever existing
    machine-specific kernel macros are convenient.  */
 
+#if STP_SKIP_BADVARS
+#define DEREF_FAULT(addr) ({0; })
+#define STORE_DEREF_FAULT(addr) ({0; })
+#else
 #define DEREF_FAULT(addr) ({						    \
     snprintf(c->error_buffer, sizeof(c->error_buffer),			    \
       "kernel read fault at 0x%p (%s)", (void *)(intptr_t)(addr), #addr);   \
@@ -75,7 +79,7 @@
     c->last_error = c->error_buffer;					    \
     goto deref_fault;							    \
     })
-
+#endif
 
 #if defined (STAPCONF_X86_UNIREGS) && defined (__i386__)
 

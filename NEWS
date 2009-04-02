@@ -1,3 +1,10 @@
+* What's new
+
+- The --skip-badvars option now also suppresses run-time error
+  messages that would otherwise result from erroneous memory accesses.
+  Such accesses can originate from $context expressions fueled by
+  erroneous debug data, or by kernel_{long,string,...}() tapset calls.
+
 * What's new in version 0.9.5
 
  - New probes process().insn and process().insn.block that allows
