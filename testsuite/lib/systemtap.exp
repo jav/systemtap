@@ -16,6 +16,16 @@ proc use_server_p {} {
 }
 
 
+proc utrace_p {} {
+    set path "/proc/kallsyms"
+    if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+        return 1
+    } else {
+        return 0
+    }
+}
+
+
 proc print_systemtap_version {} {
     set version [exec /bin/uname -r]
     set location "/boot/vmlinux-$version"

@@ -66,7 +66,7 @@ function probefunc:string () %{ /* pure */
 #else
 		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)PAGE_OFFSET)) {
 #endif
-		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs));
+		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs), current);
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
        	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
@@ -93,4 +93,9 @@ function probemod:string () %{ /* pure */
 		/* XXX: need a PC- and symbol-table-based fallback. */
 		THIS->__retvalue[0] = '\0';
 	}
+%}
+
+function symbolname:string (addr:long) %{ /* pure */
+	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+	                     current);
 %}
