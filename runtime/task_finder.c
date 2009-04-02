@@ -2,8 +2,32 @@
 #define TASK_FINDER_C
 
 #if ! defined(CONFIG_UTRACE)
-#error "Need CONFIG_UTRACE!"
-#endif
+/* Dummy definitions for use in sym.c */
+struct stap_task_finder_target { };
+
+static int
+stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
+                      unsigned long vm_end, unsigned long vm_pgoff,
+                      void *user)
+{
+  return 0;
+}
+
+static int
+stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
+			 unsigned long vm_end, unsigned long vm_pgoff)
+{
+  return 0;
+}
+
+static int
+stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
+		       unsigned long *vm_start, unsigned long *vm_end,
+		       unsigned long *vm_pgoff, void **user)
+{
+  return ESRCH;
+}
+#else
 
 #include <linux/utrace.h>
 
@@ -1357,5 +1381,7 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 }
 
+
+#endif /* defined(CONFIG_UTRACE) */
 
 #endif /* TASK_FINDER_C */
