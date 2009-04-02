@@ -133,6 +133,8 @@ usage (systemtap_session& s, int exitcode)
 #ifdef HAVE_LIBSQLITE3
     << "   -q         generate information on tapset coverage" << endl
 #endif /* HAVE_LIBSQLITE3 */
+    << "   --unprivileged" << endl
+    << "              restrict usage to features available to unprivileged users" << endl
 #if 0 /* PR6864: disable temporarily; should merge with -d somehow */
     << "   --kelf     make do with symbol table from vmlinux" << endl
     << "   --kmap[=FILE]" << endl
@@ -140,6 +142,8 @@ usage (systemtap_session& s, int exitcode)
 #endif
   // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
   // only, and don't belong in the eyesight of a plain user.
+    << "   --signing-cert=DIRECTORY" << endl
+    << "              specify an alternate certificate database for module signing" << endl
     << "   --skip-badvars" << endl
     << "              overlook context of bad $ variables" << endl
     << endl
@@ -422,7 +426,6 @@ runner (int argc, char * const argv [])
   s.output_file = ""; // -o FILE
   s.keep_tmpdir = false;
   s.cmd = "";
-  s.cert_db_path = "";
   s.target_pid = 0;
   s.merge=true;
   s.perfmon=0;
@@ -435,6 +438,15 @@ runner (int argc, char * const argv [])
   s.ignore_dwarf = false;
   s.load_only = false;
   s.skip_badvars = false;
+  s.unprivileged = false;
+
+  // Default location for our signing certificate.
+  // If we're root, use the database in SYSCONFDIR, otherwise
+  // use the one in our $HOME directory.  */
+  if (getuid() == 0)
+    s.cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
+  else
+    s.cert_db_path = getenv("HOME") + string ("/.systemtap/ssl/server");
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)
@@ -494,7 +506,8 @@ runner (int argc, char * const argv [])
 #define LONG_OPT_IGNORE_DWARF 4
 #define LONG_OPT_VERBOSE_PASS 5
 #define LONG_OPT_SKIP_BADVARS 6
-#define LONG_OPT_SIGN_MODULE 7
+#define LONG_OPT_SIGNING_CERT 7
+#define LONG_OPT_UNPRIVILEGED 8
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -503,7 +516,8 @@ runner (int argc, char * const argv [])
         { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
 	{ "skip-badvars", 0, &long_opt, LONG_OPT_SKIP_BADVARS },
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
-        { "sign-module", 2, &long_opt, LONG_OPT_SIGN_MODULE },
+        { "signing-cert", 2, &long_opt, LONG_OPT_SIGNING_CERT },
+        { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:FS:",
@@ -771,41 +785,32 @@ runner (int argc, char * const argv [])
 	    case LONG_OPT_SKIP_BADVARS:
 	      s.skip_badvars = true;
 	      break;
-            case LONG_OPT_SIGN_MODULE:
-              if (!s.cert_db_path.empty())
-		{
-		  cerr << "You can't specify multiple --sign-module options." << endl;
-		  usage(s, 1);
-		}
+            case LONG_OPT_SIGNING_CERT:
 #if HAVE_NSS
               if (optarg)
 		{
-		  s.cert_db_path = optarg;
-		  string::size_type len = s.cert_db_path.length();
+		  string arg = optarg;
+		  string::size_type len = arg.length();
 
-		  // Make sure the name is not empty (i.e. --sign-module= )
+		  // Make sure the name is not empty (i.e. --signing-cert= )
 		  if (len == 0)
 		    {
-		      cerr << "Certificate database directory name can not be empty." << endl;
+		      cerr << "Certificate database directory name for --signing-cert can not be empty." << endl;
 		      usage (s, 1);
 		    }
+
+		  s.cert_db_path = arg;
 
 		  // Chop off any trailing '/'.
 		  if (len > 1 && s.cert_db_path.substr(len - 1, 1) == "/")
 		    s.cert_db_path.erase(len - 1);
 		}
-              else
-		{
-		  /* If we're root, use the database in SYSCONFDIR, otherwise
-		     use the one in our $HOME directory.  */
-		  if (getuid() == 0)
-		    s.cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
-		  else
-		    s.cert_db_path = getenv("HOME") + string ("/.systemtap/ssl/server");
-		}
 #else
 	      cerr << "WARNING: Module signing is disabled. The required nss libraries are not available." << endl;
 #endif
+	      break;
+	    case LONG_OPT_UNPRIVILEGED:
+	      s.unprivileged = true;
 	      break;
             default:
               cerr << "Internal error parsing command arguments." << endl;

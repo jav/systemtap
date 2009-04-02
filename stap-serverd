@@ -47,6 +47,11 @@ function initialization {
 	    if test -f `which ${stap_exec_prefix}stap-add-server-cert` -a -x `which ${stap_exec_prefix}stap-add-server-cert`; then
 		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/stap-server.cert
 	    fi
+	elif ! test -f $stap_ssl_db/client/cert8.db; then
+	    # If the client's database does not exist, then initialize it with our certificate.
+	    if test -f `which ${stap_exec_prefix}stap-add-server-cert` -a -x `which ${stap_exec_prefix}stap-add-server-cert`; then
+		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/stap-server.cert
+	    fi
 	fi
     fi
 

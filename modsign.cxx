@@ -33,9 +33,48 @@ extern "C" {
 #include <cryptohi.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 }
 
 using namespace std;
+
+/* Function: int init_cert_db_path (const string &cert_db_path);
+ * 
+ * Initialize a certificate database at the given path.
+ */
+static int
+init_cert_db_path (const string &cert_db_path) {
+  string cmd = "stap-gen-cert " + cert_db_path;
+  return system (cmd.c_str()) == 0;
+}
+
+/* Function: int check_cert_db_path (const string &cert_db_path);
+ * 
+ * Check that the given certificate directory exists and is initialized.
+ * Create and/or initialize it otherwise.
+ */
+static int
+check_cert_db_path (const string &cert_db_path) {
+  static const char* keyFiles[] = {
+    "cert8.db", "key3.db", "pw", "secmod.db", "stap-server.cert", NULL
+  };
+
+  // Does the path exist?
+  PRFileInfo fileInfo;
+  PRStatus prStatus = PR_GetFileInfo (cert_db_path.c_str(), &fileInfo);
+  if (prStatus != PR_SUCCESS || fileInfo.type != PR_FILE_DIRECTORY)
+    return init_cert_db_path (cert_db_path);
+
+  // Does it contain the key files?
+  for (int i = 0; keyFiles[i]; ++i) {
+    string fname = cert_db_path + "/" + keyFiles[i];
+    prStatus = PR_GetFileInfo (fname.c_str (), &fileInfo);
+    if (prStatus != PR_SUCCESS || fileInfo.type != PR_FILE_FILE || fileInfo.size < 0)
+      return init_cert_db_path (cert_db_path);
+  }
+
+  return 1; // ok
+}
 
 /* Function: char * password_callback()
  * 
@@ -211,6 +250,9 @@ sign_module (systemtap_session& s)
   CERTCertificate *cert;
   SECKEYPrivateKey *privKey;
   SECStatus secStatus;
+
+  if (! check_cert_db_path (s.cert_db_path))
+    return;
 
   password = get_password (s.cert_db_path + "/pw");
   if (! password)

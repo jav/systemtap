@@ -330,7 +330,7 @@ function call_stap {
 	server_p_phase=$p_phase
     fi
 
-    eval ${stap_exec_prefix}stap "$cmdline" --sign-module -k -p $server_p_phase \
+    eval ${stap_exec_prefix}stap "$cmdline" -k -p $server_p_phase \
 	>>  $tmpdir_server/stdout \
 	2>> $tmpdir_server/stderr
 
