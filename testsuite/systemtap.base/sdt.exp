@@ -36,7 +36,7 @@ if { $res != "" } {
     pass "compiling $test.c $extra_flag"
 }
 
-if {[installtest_p]} {
+if {[installtest_p] && [utrace_p]} {
   stap_run3 "$test $extra_flag" $srcdir/$subdir/$test.stp $testprog -c ./$testprog
 } else {
   untested "$test $extra_flag"
@@ -61,7 +61,7 @@ if { $res != "" } {
     pass "compiling $test.c c++ $extra_flag"
 }
 
-if {[installtest_p]} {
+if {[installtest_p] && [utrace_p]} {
   stap_run3 "$test c++ $extra_flag" $srcdir/$subdir/$test.stp $testprog -c ./$testprog
 } else {
   untested "$test c++ $extra_flag"
