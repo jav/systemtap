@@ -53,7 +53,6 @@ set itrace3_script {
     probe begin
     {
         printf("systemtap starting probe\n")
-        printf("ATTENTION: if arch_has_block_step is not defined for this arch, this testcase will fail\n")
     }
     probe process("%s").insn.block
     {
@@ -126,6 +125,7 @@ if {$utrace_support_found == 0} {
 } elseif {![installtest_p]} {
     untested $TEST_NAME
 } else {
+    send_log "ATTENTION: if arch_has_block_step is not defined for this arch, this testcase will fail\n"
     set script [format $itrace3_script $exepath]
     stap_run $TEST_NAME run_ls_5_sec $itrace3_script_output -e $script
 }
