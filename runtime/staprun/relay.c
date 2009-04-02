@@ -200,7 +200,7 @@ static void *reader_thread(void *data)
 					perr("Couldn't open file for cpu %d, exiting.", cpu);
 					return(NULL);
 				}
-				wsize = 0;
+				wsize = rc;
 			}
 			if (write(out_fd[cpu], buf, rc) != rc) {
 				perr("Couldn't write to output %d for cpu %d, exiting.", out_fd[cpu], cpu);

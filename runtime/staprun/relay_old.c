@@ -241,7 +241,7 @@ static int process_subbufs(struct _stp_buf_info *info,
 				perr("Couldn't open file for cpu %d, exiting.", cpu);
 				exit(1);
 			}
-			scb->wsize = 0;
+			scb->wsize = len;
 		}
 		if (len) {
 			if (fwrite_unlocked (subbuf_ptr, len, 1, percpu_tmpfile[cpu]) != 1) {
@@ -320,7 +320,7 @@ int write_realtime_data(void *data, ssize_t nb)
 			perr("Couldn't open file, exiting.");
 			return -1;
 		}
-		global_scb.wsize = 0;
+		global_scb.wsize = nb;
 	}
 	bw = write(out_fd[0], data, nb);
 	if (bw >= 0 && bw != nb) {
