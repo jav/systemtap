@@ -452,7 +452,7 @@ int stp_main_loop(void)
     nb -= sizeof(uint32_t);
 
     switch (type) {
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
     case STP_REALTIME_DATA:
       {
         ssize_t bw = write(out_fd[0], data, nb);

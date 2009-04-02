@@ -34,9 +34,14 @@
 #if !defined (CONFIG_DEBUG_FS)  && !defined (CONFIG_DEBUG_FS_MODULE)
 #error "DebugFS is required and was not found in the kernel."
 #endif
+#ifdef CONFIG_RING_BUFFER
+#define STP_TRANSPORT_VERSION 3
+#else
+#define STP_TRANSPORT_VERSION 2
+#endif
 #else
 /* older kernels have no debugfs and older version of relayfs. */
-#define STP_OLD_TRANSPORT
+#define STP_TRANSPORT_VERSION 1
 #endif
 
 #ifndef stp_for_each_cpu

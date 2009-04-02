@@ -26,7 +26,7 @@ static inline void *utt_reserve(struct utt_trace *utt, size_t length)
 
 /* STP_CTL_BUFFER_SIZE is the maximum size of a message */
 /* exchanged on the control channel. */
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 /* Old transport sends print output on control channel */
 #define STP_CTL_BUFFER_SIZE STP_BUFFER_SIZE
 #else

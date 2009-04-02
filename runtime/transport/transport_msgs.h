@@ -30,7 +30,7 @@ enum
 	STP_BULK,
 	STP_READY,
         STP_RELOCATION,
-	/** deprecated STP_OLD_TRANSPORT **/
+	/** deprecated STP_TRANSPORT_VERSION == 1 **/
 	STP_BUF_INFO,
 	STP_SUBBUFS_CONSUMED,
 	STP_REALTIME_DATA,
@@ -81,7 +81,7 @@ struct _stp_msg_start
         int32_t res;    // for reply: result of probe_start()
 };
 
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 /**** for compatibility with old relayfs ****/
 struct _stp_buf_info
 {

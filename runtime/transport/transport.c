@@ -41,12 +41,17 @@ static int _stp_probes_started = 0;
 static struct utt_trace *_stp_utt = NULL;
 static unsigned int utt_seq = 1;
 #include "control.h"
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 #include "relayfs.c"
 #include "procfs.c"
-#else
+#elif STP_TRANSPORT_VERSION == 2
 #include "utt.c"
 #include "debugfs.c"
+#elif STP_TRANSPORT_VERSION == 3
+#include "debugfs.c"
+#include "ring_buffer.c"
+#else
+#error "Unknown STP_TRANSPORT_VERSION"
 #endif
 #include "control.c"
 
@@ -355,7 +360,7 @@ static struct dentry *_stp_lockfile = NULL;
 static int _stp_lock_transport_dir(void)
 {
 	int numtries = 0;
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 	while ((_stp_lockfile = relayfs_create_dir("systemtap_lock", NULL)) == NULL) {
 #else
 	while ((_stp_lockfile = debugfs_create_dir("systemtap_lock", NULL)) == NULL) {
@@ -370,7 +375,7 @@ static int _stp_lock_transport_dir(void)
 static void _stp_unlock_transport_dir(void)
 {
 	if (_stp_lockfile) {
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 		relayfs_remove_dir(_stp_lockfile);
 #else
 		debugfs_remove(_stp_lockfile);
@@ -394,7 +399,7 @@ static struct dentry *_stp_get_root_dir(void)
 		return __stp_root_dir;
 	}
 
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 	fs = get_fs_type("relayfs");
 	if (!fs) {
 		errk("Couldn't find relayfs filesystem.\n");
@@ -412,7 +417,7 @@ static struct dentry *_stp_get_root_dir(void)
 		errk("Couldn't lock transport directory.\n");
 		return NULL;
 	}
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 	__stp_root_dir = relayfs_create_dir(name, NULL);
 #else
 	__stp_root_dir = debugfs_create_dir(name, NULL);

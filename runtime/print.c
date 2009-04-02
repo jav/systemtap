@@ -90,7 +90,7 @@ static void _stp_print_cleanup (void)
 /* The relayfs API changed between 2.6.15 and 2.6.16. */
 /* Use the appropriate print flush function. */
 
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 #include "print_old.c"
 #else
 #include "print_new.c"

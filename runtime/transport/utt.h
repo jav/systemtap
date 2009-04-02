@@ -47,7 +47,7 @@ static int utt_trace_startstop(struct utt_trace *utt, int start,
 static void utt_trace_cleanup(struct utt_trace *utt);
 static int utt_trace_remove(struct utt_trace *utt);
 
-#ifndef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 2
 static size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
 				size_t length);
 /**
