@@ -25,6 +25,8 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
+AC_PATH_PROG(PERL, perl)
+
 dnl Handle the perfmon option.
 AC_ARG_ENABLE([perfmon],
   AS_HELP_STRING([--enable-perfmon@<:@=DIRECTORY@:>@],
@@ -359,6 +361,7 @@ AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-server.8 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.process.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap initscript/systemtap)
 AC_CONFIG_SUBDIRS(testsuite)
 AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
+AC_CONFIG_FILES([run-stapio], [chmod +x run-stapio])
 AC_OUTPUT
 
 if test "${prefix}" = "/usr/local"; then
