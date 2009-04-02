@@ -261,9 +261,6 @@ __stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
 #endif
 
 #if defined(__ia64__)
-/* Defined in regs-ia64.c. Forward declaration for ____stp_user_syscall_arg. */
-static long * __ia64_fetch_register(int, struct pt_regs *, unsigned long **);
-
 #define __stp_user_syscall_arg(task, regs, n) \
 	____stp_user_syscall_arg(task, regs, n, &c->unwaddr)
 
