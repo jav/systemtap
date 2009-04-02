@@ -1,0 +1,13 @@
+#!@PERL@ -w
+
+# Reset real IDs to those we had before we were sudo-invoked.
+# This gives staprun the IDs it expects from a setuid exec.
+$< = $ENV{'SUDO_UID'};
+$( = $ENV{'SUDO_GID'};
+
+$ENV{'SYSTEMTAP_STAPRUN'} = "sudo '$ENV{'builddir'}/staprun'";
+$ENV{'SYSTEMTAP_STAPIO'} = "$ENV{'builddir'}/stapio";
+
+exec { "$ENV{'builddir'}/staprun" } ('staprun', @ARGV);
+
+exit;

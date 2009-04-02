@@ -8124,7 +8124,7 @@ subdirs="$subdirs testsuite"
 
 ac_config_files="$ac_config_files run-stap"
 
-ac_config_files="$ac_config_files run-stapio"
+ac_config_files="$ac_config_files run-staprun"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -8827,7 +8827,7 @@ do
     "man/stapprobes.udp.3stap") CONFIG_FILES="$CONFIG_FILES man/stapprobes.udp.3stap" ;;
     "initscript/systemtap") CONFIG_FILES="$CONFIG_FILES initscript/systemtap" ;;
     "run-stap") CONFIG_FILES="$CONFIG_FILES run-stap" ;;
-    "run-stapio") CONFIG_FILES="$CONFIG_FILES run-stapio" ;;
+    "run-staprun") CONFIG_FILES="$CONFIG_FILES run-staprun" ;;
 
   *) { { $as_echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 $as_echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -9607,7 +9607,7 @@ $as_echo "$as_me: error: cannot create directory $as_dir" >&2;}
 done
  ;;
     "run-stap":F) chmod +x run-stap ;;
-    "run-stapio":F) chmod +x run-stapio ;;
+    "run-staprun":F) chmod +x run-staprun ;;
 
   esac
 done # for ac_tag
