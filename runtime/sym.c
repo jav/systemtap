@@ -106,8 +106,8 @@ static unsigned long _stp_module_relocate(const char *module, const char *sectio
 }
 
 
-/* Return module owner and fills in closest section of the address
-   if found, return NULL otherwise.
+/* Return module owner and, if sec != NULL, fills in closest section
+   of the address if found, return NULL otherwise.
    XXX: needs to be address-space-specific. */
 static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 					       struct task_struct *task,
@@ -151,7 +151,8 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 	    {
 	      closest_section_offset = this_section_offset;
 	      m = _stp_modules[midx];
-	      *sec = & m->sections[secidx];
+	      if (sec)
+		*sec = & m->sections[secidx];
 	    }
 	}
       }
@@ -338,8 +339,15 @@ static int _stp_func_print(unsigned long address, int verbose, int exact)
 	return 0;
 }
 
+/** Puts symbolic information of an address in a string.
+ * @param src The string to fill in.
+ * @param len The length of the given src string.
+ * @param address The address to lookup.
+ * @param add_mod Whether to include module name information if found.
+ */
+
 static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
-			 struct task_struct *task)
+			 struct task_struct *task, int add_mod)
 {
 	const char *modname;
 	const char *name;
@@ -347,9 +355,13 @@ static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 
 	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL,
 				    task);
-	if (name)
-		strlcpy(str, name, len);
-	else
+	if (name) {
+		if (add_mod && modname && *modname)
+			_stp_printf("%s %s+%#lx/%#lx\n",
+				    name, modname, offset, size);
+		else
+			strlcpy(str, name, len);
+	} else
 		_stp_snprintf(str, len, "%p", (int64_t) address);
 }
 

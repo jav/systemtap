@@ -1,0 +1,8 @@
+#! stap -p4
+#
+# Test the translatability for modname()
+#
+probe begin
+{
+   log(modname(0))
+}
