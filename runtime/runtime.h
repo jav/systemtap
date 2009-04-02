@@ -86,6 +86,8 @@ static struct
 #include "io.c"
 #include "arith.c"
 #include "copy.c"
+#include "regs.c"
+#include "regs-ia64.c"
 
 #include "task_finder.c"
 

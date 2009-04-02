@@ -4967,9 +4967,7 @@ translate_pass (systemtap_session& s)
 	s.op->newline() << "#define STP_PERFMON";
 
       s.op->newline() << "#include \"runtime.h\"";
-      s.op->newline() << "#include \"regs.c\"";
       s.op->newline() << "#include \"stack.c\"";
-      s.op->newline() << "#include \"regs-ia64.c\"";
       s.op->newline() << "#include \"stat.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
