@@ -1,6 +1,22 @@
 SYSTEMTAP EXAMPLES INDEX
 (see also keyword-index.txt)
 
+general/ansi_colors.stp - Color Table for ansi_set_color2() and ansi_set_color3()
+keywords: format
+
+  The script prints a table showing the available color combinations
+  for the ansi_set_color2() and ans_set_color3() functions in the
+  ansi.stp tapset.
+
+
+general/ansi_colors2.stp - Show Attribues in Table for ansi_set_color3()
+keywords: format
+
+  The script prints a table showing the available attributes (bold,
+  underline, and inverse) with color combinations for the
+  ans_set_color3() function in the ansi.stp tapset.
+
+
 general/graphs.stp - Graphing Disk and CPU Utilization
 keywords: disk cpu use graph
 
