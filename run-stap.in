@@ -19,7 +19,7 @@ esac
 # Set all the variables to find the source and build trees.
 SYSTEMTAP_TAPSET="${srcdir}/tapset"
 SYSTEMTAP_RUNTIME="${srcdir}/runtime"
-SYSTEMTAP_STAPRUN="sudo -P builddir='${builddir}' ${builddir}/run-staprun"
+SYSTEMTAP_STAPRUN="${builddir}/run-staprun"
 export SYSTEMTAP_TAPSET SYSTEMTAP_RUNTIME SYSTEMTAP_STAPRUN
 
 # If there were private elfutils libs built, use them.

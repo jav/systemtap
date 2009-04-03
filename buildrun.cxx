@@ -51,6 +51,12 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
       cerr << "unsetenv failed: " << e << endl;
     }
 
+  // Disable ccache to avoid saving files that will never be reused.
+  // (ccache is useless to us, because our compiler commands always
+  // include the randomized tmpdir path.)
+  // It's not critical if this fails, so the return is ignored.
+  (void) setenv("CCACHE_DISABLE", "1", 0);
+
   if (s.verbose > 2)
     make_cmd += " V=1";
   else if (s.verbose > 1)

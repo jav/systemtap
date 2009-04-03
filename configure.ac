@@ -25,8 +25,6 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
-AC_PATH_PROG(PERL, perl)
-
 dnl Handle the perfmon option.
 AC_ARG_ENABLE([perfmon],
   AS_HELP_STRING([--enable-perfmon@<:@=DIRECTORY@:>@],

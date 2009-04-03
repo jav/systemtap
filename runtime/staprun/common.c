@@ -82,7 +82,7 @@ int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t)
 			num = tm.tm_year % 100;
 			goto numbering02;
 		case 'C':
-			num = ((tm.tm_year + 1900 - 1) / 100) + 1;
+			num = ((tm.tm_year + 1900) / 100);
 			goto numbering;
 		case 'm':
 			num = tm.tm_mon + 1;
@@ -107,7 +107,7 @@ int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t)
 			if (num == 0) num = 12;
 			goto numbering02;
 		case 'j':
-			ret = snprintf(c, end - c, "%03d", tm.tm_yday);
+			ret = snprintf(c, end - c, "%03d", tm.tm_yday + 1);
 			if (ret < 0) return ret;
 			c += ret;
 			break;
@@ -117,7 +117,10 @@ int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t)
 		case 'l':
 			num = tm.tm_hour % 12;
 			if (num == 0) num = 12;
-			goto numbering;
+			ret = snprintf(c, end - c, "%2d", num);
+			if (ret < 0) return ret;
+			c += ret;
+			break;
 		case 'M':
 			num = tm.tm_min;
 			goto numbering02;

@@ -35,7 +35,7 @@ set testscript {
     probe syscall.rt_sigaction {
       if (pid() == target() && execname() == "%s") {
 	  handler = $act->sa_handler;
-	  printf("handler: %%s\n", symbolname(handler));
+	  printf("handler: %%s\n", symname(handler));
       }
     }
     /* track through uprobes, so as to make sure we have the symbols */
