@@ -345,10 +345,18 @@ static const int Maxerrno = sizeof(errlist)/sizeof(char *);
 
 function errno_str:string (err:long) %{ /* pure */
 	long e = THIS->err;
-	if (e < 0 && e > -Maxerrno && errlist[-e])
-		strlcpy (THIS->__retvalue, errlist[-e], MAXSTRINGLEN);
-	else if (e > 0 && e < Maxerrno && errlist[e])
+	e = (e > 0 ? e : -e);
+	if (e > 0 && e < Maxerrno && errlist[e])
 		strlcpy (THIS->__retvalue, errlist[e], MAXSTRINGLEN);
+%}
+
+function errno_p:long (err:long) %{ /* pure */
+	long e = THIS->err;
+	e = (e > 0 ? e : -e);
+	if (e > 0 && e < Maxerrno && errlist[e])
+		THIS->__retvalue = e;	
+	else
+		THIS->__retvalue = 0;
 %}
 
 %{
