@@ -4906,8 +4906,9 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  literal_number* ln_zero = new literal_number (0);
 	  ln_zero->tok = e->tok;
 	  provide (ln_zero);
-	  q.sess.print_warning ("Bad variable being substituted with literal 0",
-				e->tok);
+          if (!q.sess.suppress_warnings)
+            q.sess.print_warning ("Bad $context variable being substituted with literal 0",
+                                  e->tok);
 	}
       delete fdecl;
       delete ec;
