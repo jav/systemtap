@@ -129,10 +129,10 @@ io/ioblktime.stp - Average Time Block IO Requests Spend in Queue
 keywords: io
 
   The ioblktime.stp script tracks the amount of time that each block IO
-  requests spend waiting for completion. The script compute the average
-  time waiting time for block IO per device and prints list every 10
-  seconds. In some cases there can be too many oustanding block IO
-  operations and the script may exceed the default number of
+  requests spend waiting for completion. The script computes the
+  average time waiting time for block IO per device and prints list
+  every 10 seconds. In some cases there can be too many oustanding
+  block IO operations and the script may exceed the default number of
   MAXMAPENTRIES allowed. In this case the allowed number can be
   increased with "-DMAXMAPENTRIES=10000" option on the stap command
   line.
@@ -272,6 +272,18 @@ keywords: network traffic per-process
   processed (PID and command) with the number of packets sent/received
   and the amount of data sent/received by the process during that
   interval.
+
+
+= PROCESS =
+
+process/errsnoop.stp - tabulate system call errors
+keywords: process syscall
+
+  The script prints a periodic tabular report about failing system
+  calls, by process and by syscall failure.  The first optional
+  argument specifies the reporting interval (in seconds, default 5);
+  the second optional argument gives a screen height (number of lines
+  in the report, default 20).
 
 
 = PROFILING =
@@ -456,6 +468,16 @@ keywords: syscall read write time io
   operations. The second line with the "iotime" keyword list the file
   name and the number of microseconds accumulated in the read and write
   syscalls.
+
+
+process/errsnoop.stp - tabulate system call errors
+keywords: process syscall
+
+  The script prints a periodic tabular report about failing system
+  calls, by process and by syscall failure.  The first optional
+  argument specifies the reporting interval (in seconds, default 5);
+  the second optional argument gives a screen height (number of lines
+  in the report, default 20).
 
 
 process/futexes.stp - System-Wide Futex Contention
