@@ -316,8 +316,21 @@ int check_permissions(void)
 	int path_check = 0;
 
 	/* If we're root, we can do anything. */
-	if (getuid() == 0)
+	if (getuid() == 0) {
+		/* ... like overriding the real UID */
+		const char *env_id = getenv("SYSTEMTAP_REAL_UID");
+		if (env_id && setreuid(atoi(env_id), -1))
+			err("WARNING: couldn't set staprun UID to '%s': %s",
+				env_id, strerror(errno));
+
+		/* ... or overriding the real GID */
+		env_id = getenv("SYSTEMTAP_REAL_GID");
+		if (env_id && setregid(atoi(env_id), -1))
+			err("WARNING: couldn't set staprun GID to '%s': %s",
+				env_id, strerror(errno));
+
 		return 1;
+	}
 
 	/* Lookup the gid for group "stapdev" */
 	errno = 0;
