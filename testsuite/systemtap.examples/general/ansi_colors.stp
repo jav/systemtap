@@ -1,21 +1,30 @@
-#! /usr/bin/env stap
+#!/usr/bin/env stap
+# ansi_colors.stp
+# Copyright (C) 2006-2009 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
 
 probe begin {
-        printf("a \\ b |");
-  for (c = 40; c < 48; c++)
-    printf("   %d   ", c);
-  printf("\12");
-  for (l = 0; l < 71; l++)
-    printf("-");
-  printf("\12");
+	printf("a \\ b |");
+	for (c = 40; c < 48; c++)
+		printf("   %d   ", c);
+	ansi_new_line()
+	for (l = 0; l < 71; l++)
+		printf("-");
+	ansi_new_line()
 
-  for (r = 30; r < 38; r++)
-    for (t = 0; t < 2; t++) {
-      printf("%d    |", r);
-      for (c = 40; c < 48; c++)
-        printf("\033[%d;%d%s %s \033[0;0m",
-               r, c, !t ? "m" : ";1m", !t ? "Normal" : "Bold  ");
-      printf("\12");
-    }
-  exit();
+	for (r = 30; r < 38; r++)
+		for (t = 0; t < 2; t++) {
+			printf("%d    |", r);
+			for (c = 40; c < 48; c++) {
+				ansi_set_color3(r, c, t)
+				printf(" %s ", !t ? "Normal" : "Bold  ")
+				ansi_reset_color()
+			}
+			ansi_new_line()
+		}
+	exit();
 }
