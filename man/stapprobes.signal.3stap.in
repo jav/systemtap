@@ -505,5 +505,5 @@ Fires when flush all pending signals for a task
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (3stap),
+.IR stapprobes (3stap)
 

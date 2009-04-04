@@ -102,5 +102,5 @@ process waits in a zombie state.
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (3stap),
+.IR stapprobes (3stap)
 
