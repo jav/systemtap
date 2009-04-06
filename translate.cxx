@@ -66,6 +66,7 @@ struct c_unparser: public unparser, public visitor
   void emit_global_init (vardecl* v);
   void emit_global_param (vardecl* v);
   void emit_functionsig (functiondecl* v);
+  void emit_unprivileged_user_check ();
   void emit_module_init ();
   void emit_module_exit ();
   void emit_function (functiondecl* v);
@@ -1086,6 +1087,36 @@ c_unparser::emit_functionsig (functiondecl* v)
 }
 
 
+void
+c_unparser::emit_unprivileged_user_check ()
+{
+  // If the --unprivileged option was specified then the module
+  // will be safe for unprivileged users, if it is successfully generated,
+  // so no check need be emitted.
+  if (session->unprivileged)
+    return;
+
+  // Otherwise, generate code to check the user or group. If the user is not
+  // root or a member of stapdev or stapusr, then generate an error and
+  // unload the module.
+  o->newline();
+  o->newline() << "static int systemtap_unprivileged_user_check (void) {";
+  o->newline(1) << "struct group *stgr;";
+  o->newline() << "if (_stp_uid == 0)";
+  o->newline(1) << "return 0;";
+#error can we call getgrpnam????
+  o->newline(-1) << "stgr = getgrnam(\"stapdev\");"; 
+  o->newline() << "if (stgr != NULL && _stp_gid == stgr->gr_gid)";
+  o->newline(1) << "return 0;";
+  o->newline(-1) << "stgr = getgrnam(\"stapusr\");"; 
+  o->newline() << "if (stgr != NULL && _stp_gid == stgr->gr_gid)";
+  o->newline(1) << "return 0;";
+  o->newline(-1) << "_stp_error (\"You are attempting to run stap as an ordinary user.\");";
+  o->newline() << "_stp_error (\"Your module must be compiled using the --unprivileged option.\");";
+  o->newline() << "return 1;";
+  o->newline(-1) << "}\n";
+}
+
 
 void
 c_unparser::emit_module_init ()
@@ -1130,6 +1161,12 @@ c_unparser::emit_module_init ()
   o->newline() << "if (_stp_module_check()) rc = -EINVAL;";
 
   o->newline(-1) << "}";
+
+  if (! session->unprivileged) {
+    // Check whether the user is unprivileged.
+    o->newline() << "if (systemtap_unprivileged_user_check ()) rc = -EINVAL;";
+  }
+
   o->newline() << "if (rc) goto out;";
 
   o->newline() << "(void) probe_point;";
@@ -5046,6 +5083,9 @@ translate_pass (systemtap_session& s)
         }
       s.op->assert_0_indent();
 
+      s.op->newline();
+      s.up->emit_unprivileged_user_check ();
+      s.op->assert_0_indent();
       s.op->newline();
       s.up->emit_module_init ();
       s.op->assert_0_indent();

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2009 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -78,6 +78,9 @@ struct unparser
 
   virtual void emit_functionsig (functiondecl* v) = 0;
   // static void function_NAME (context* c);
+
+  virtual void emit_unprivileged_user_check () = 0;
+  // static void systemtap_check_unprivileged_user
 
   virtual void emit_module_init () = 0;
   virtual void emit_module_exit () = 0;
