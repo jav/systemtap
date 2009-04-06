@@ -72,7 +72,7 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(top_srcdir)/man/stapprobes.tcp.3stap.in \
 	$(top_srcdir)/man/stapprobes.udp.3stap.in \
 	$(top_srcdir)/initscript/systemtap.in $(srcdir)/run-stap.in \
-	depcomp $(oldinclude_HEADERS)
+	$(srcdir)/run-staprun.in depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -89,7 +89,7 @@ CONFIG_CLEAN_FILES = stap.1 stapprobes.3stap stapfuncs.3stap \
 	man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap \
 	man/stapprobes.signal.3stap man/stapprobes.socket.3stap \
 	man/stapprobes.tcp.3stap man/stapprobes.udp.3stap \
-	initscript/systemtap run-stap
+	initscript/systemtap run-stap run-staprun
 @BUILD_SERVER_TRUE@am__EXEEXT_1 = stap-client-connect$(EXEEXT) \
 @BUILD_SERVER_TRUE@	stap-server-connect$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
@@ -474,6 +474,8 @@ man/stapprobes.udp.3stap: $(top_builddir)/config.status $(top_srcdir)/man/stappr
 initscript/systemtap: $(top_builddir)/config.status $(top_srcdir)/initscript/systemtap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 run-stap: $(top_builddir)/config.status $(srcdir)/run-stap.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+run-staprun: $(top_builddir)/config.status $(srcdir)/run-staprun.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
@@ -1468,7 +1470,8 @@ cscope:
 @BUILD_ELFUTILS_TRUE@install-exec-local: install-elfutils
 
 @BUILD_SERVER_TRUE@install-exec-local: install-scripts
-@BUILD_SERVER_TRUE@install-scripts:
+# scripts should be installed before this rule is run
+@BUILD_SERVER_TRUE@install-scripts: install-binSCRIPTS
 @BUILD_SERVER_TRUE@	for f in $(bin_SCRIPTS); do \
 @BUILD_SERVER_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
 @BUILD_SERVER_TRUE@	done
