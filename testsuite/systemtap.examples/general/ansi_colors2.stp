@@ -1,6 +1,6 @@
 #!/usr/bin/env stap
-# ansi_colors.stp
-# Copyright (C) 2006-2009 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
+# ansi_colors2.stp
+# Copyright (C) 2009 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -17,11 +17,12 @@ probe begin {
 	ansi_new_line()
 
 	for (r = 30; r < 38; r++)
-		for (t = 0; t < 2; t++) {
+		# this displays more attributes
+		for (t = 0; t < 8; !t ? ++t : t+=3) {
 			printf("   %2d,%1d   |", r, t);
 			for (c = 40; c < 48; c++) {
 				ansi_set_color3(r, c, t)
-				printf(" %s ", !t ? "Normal" : "Bold  ")
+				printf(" Colors ")
 				ansi_reset_color()
 			}
 			ansi_new_line()

@@ -4906,8 +4906,9 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  literal_number* ln_zero = new literal_number (0);
 	  ln_zero->tok = e->tok;
 	  provide (ln_zero);
-	  q.sess.print_warning ("Bad variable being substituted with literal 0",
-				e->tok);
+          if (!q.sess.suppress_warnings)
+            q.sess.print_warning ("Bad $context variable being substituted with literal 0",
+                                  e->tok);
 	}
       delete fdecl;
       delete ec;
@@ -7499,6 +7500,10 @@ uprobe_derived_probe::join_group (systemtap_session& s)
     s.uprobe_derived_probes = new uprobe_derived_probe_group ();
   s.uprobe_derived_probes->enroll (this);
   task_finder_derived_probe_group::create_session_group (s);
+
+  // Ask buildrun.cxx to build extra module if needed, and
+  // signal staprun to load that module
+  s.need_uprobes = true;
 }
 
 
@@ -7530,8 +7535,6 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
   if (probes.empty()) return;
   s.op->newline() << "/* ---- user probes ---- */";
-
-  s.need_uprobes = true; // Ask buildrun.cxx to build extra module if needed
 
   // If uprobes isn't in the kernel, pull it in from the runtime.
   s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";

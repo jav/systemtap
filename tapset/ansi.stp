@@ -1,0 +1,70 @@
+# ANSI escape sequences tapset
+# Copyright (C) 2009 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# Based on some previous work done by Masami Hiramatsu for stapgames.
+# Reference: http://en.wikipedia.org/wiki/ANSI_escape_code
+#
+
+function ansi_clear_screen() {
+	print("\033[1;1H\033[J")
+}
+
+# Foreground colors | Background colors
+# Black       30    | Black       40
+# Blue        34    | Red         41
+# Green       32    | Green       42
+# Cyan        36    | Yellow      43
+# Red         31    | Blue        44
+# Purple      35    | Magenta     45
+# Brown       33    | Cyan        46
+# Light Gray  37    | White       47
+function ansi_set_color(fg:long) {
+	printf("\033[%dm", fg)
+}
+
+function ansi_set_color2(fg:long, bg:long) {
+	printf("\033[%d;%dm", bg, fg)
+}
+
+# All attributes off  0
+# Intensity: Bold     1
+# Underline: Single   4
+# Blink: Slow         5
+# Blink: Rapid        6
+# Image: Negative     7
+function ansi_set_color3(fg:long, bg:long, attr:long) {
+	attr_str = attr ? sprintf(";%dm", attr) : "m"
+	printf("\033[%d;%d%s", bg, fg, attr_str)
+}
+
+function ansi_reset_color() {
+	ansi_set_color3(0, 0, 0)
+}
+
+function ansi_new_line() {
+	printf("\12")
+}
+
+function ansi_cursor_move(x:long, y:long) {
+	printf("\033[%d;%dH", y, x)
+}
+
+function ansi_cursor_hide() {
+	print("\033[>5I")
+}
+
+function ansi_cursor_save() {
+	print("\033[s")
+}
+
+function ansi_cursor_restore() {
+	print("\033[u")
+}
+
+function ansi_cursor_show() {
+	print("\033[>5h")
+}

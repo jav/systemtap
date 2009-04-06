@@ -98,5 +98,5 @@ Fires when returning from udp.disconnect
 
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (3stap),
+.IR stapprobes (3stap)
 
