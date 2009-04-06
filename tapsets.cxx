@@ -8671,6 +8671,7 @@ struct mark_derived_probe: public derived_probe
   bool target_symbol_seen;
 
   void join_group (systemtap_session& s);
+  void print_dupe_stamp (ostream& o);
   void emit_probe_context_vars (translator_output* o);
   void initialize_probe_context_vars (translator_output* o);
   void printargs (std::ostream &o) const;
@@ -8774,36 +8775,9 @@ mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
-  // Synthesize a function.
-  functiondecl *fdecl = new functiondecl;
-  fdecl->tok = e->tok;
-  embeddedcode *ec = new embeddedcode;
-  ec->tok = e->tok;
-
-  string fname = string("_mark_tvar_get")
-    + "_" + e->base_name.substr(1)
-    + "_" + lex_cast<string>(tick++);
-
-  if (mark_args[argnum-1]->stp_type == pe_long)
-    ec->code = string("THIS->__retvalue = CONTEXT->locals[0].")
-      + probe_name + string(".__mark_arg")
-      + lex_cast<string>(argnum) + string (";");
-  else
-    ec->code = string("strlcpy (THIS->__retvalue, CONTEXT->locals[0].")
-      + probe_name + string(".__mark_arg")
-      + lex_cast<string>(argnum) + string (", MAXSTRINGLEN);");
-  ec->code += "/* pure */";
-  fdecl->name = fname;
-  fdecl->body = ec;
-  fdecl->type = mark_args[argnum-1]->stp_type;
-  sess.functions[fdecl->name]=fdecl;
-
-  // Synthesize a functioncall.
-  functioncall* n = new functioncall;
-  n->tok = e->tok;
-  n->function = fname;
-  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  provide (n);
+  e->probe_context_var = "__mark_arg" + lex_cast<string>(argnum);
+  e->type = mark_args[argnum-1]->stp_type;
+  provide (e);
 }
 
 
@@ -9050,6 +9024,15 @@ mark_derived_probe::join_group (systemtap_session& s)
       s.embeds.push_back(ec);
     }
   s.mark_derived_probes->enroll (this);
+}
+
+
+void
+mark_derived_probe::print_dupe_stamp (ostream& o)
+{
+  if (target_symbol_seen)
+    for (unsigned i = 0; i < mark_args.size(); i++)
+      o << mark_args[i]->c_type << " __mark_arg" << (i+1) << endl;
 }
 
 
@@ -9391,6 +9374,7 @@ struct tracepoint_derived_probe: public derived_probe
   void build_args(dwflpp& dw, Dwarf_Die& func_die);
   void printargs (std::ostream &o) const;
   void join_group (systemtap_session& s);
+  void print_dupe_stamp(ostream& o);
   void emit_probe_context_vars (translator_output* o);
 };
 
@@ -9480,33 +9464,10 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
   if (e->components.empty())
     {
-      // Synthesize a simple function to grab the parameter
-      functiondecl *fdecl = new functiondecl;
-      fdecl->tok = e->tok;
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = e->tok;
-
-      string fname = (string("_tracepoint_tvar_get")
-                      + "_" + e->base_name.substr(1)
-                      + "_" + lex_cast<string>(tick++));
-
-      fdecl->name = fname;
-      fdecl->body = ec;
-      fdecl->type = pe_long;
-
-      ec->code = (string("THIS->__retvalue = CONTEXT->locals[0].")
-                  + probe_name + string(".__tracepoint_arg_")
-                  + arg->name + string (";/* pure */"));
-
-      dw.sess.functions[fdecl->name] = fdecl;
-
-      // Synthesize a functioncall.
-      functioncall* n = new functioncall;
-      n->tok = e->tok;
-      n->function = fname;
-      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-
-      provide (n);
+      // Just grab the value from the probe locals
+      e->probe_context_var = "__tracepoint_arg_" + arg->name;
+      e->type = pe_long;
+      provide (e);
     }
   else
     {
@@ -9629,7 +9590,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     }
   else if (e->base_name == "$$vars" || e->base_name == "$$parms")
     {
-      target_symbol *tsym = new target_symbol;
       print_format* pf = new print_format;
 
       // Convert $$vars to sprintf of a list of vars which we recursively evaluate
@@ -9653,6 +9613,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
           if (i > 0)
             pf->raw_components += " ";
           pf->raw_components += args[i].name;
+          target_symbol *tsym = new target_symbol;
           tsym->tok = e->tok;
           tsym->base_name = "$" + args[i].name;
 
@@ -9879,6 +9840,15 @@ tracepoint_derived_probe::join_group (systemtap_session& s)
   if (! s.tracepoint_derived_probes)
     s.tracepoint_derived_probes = new tracepoint_derived_probe_group ();
   s.tracepoint_derived_probes->enroll (this);
+}
+
+
+void
+tracepoint_derived_probe::print_dupe_stamp(ostream& o)
+{
+  for (unsigned i = 0; i < args.size(); i++)
+    if (args[i].used)
+      o << "__tracepoint_arg_" << args[i].name << endl;
 }
 
 

@@ -3392,6 +3392,9 @@ typeresolution_info::visit_symbol (symbol* e)
 void
 typeresolution_info::visit_target_symbol (target_symbol* e)
 {
+  if (!e->probe_context_var.empty())
+    return;
+
   // This occurs only if a target symbol was not resolved over in
   // tapset.cxx land, that error was properly suppressed, and the
   // later unused-expression-elimination pass didn't get rid of it
