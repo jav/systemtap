@@ -46,8 +46,8 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
-		  "mmap_cb: tsk %d path %s, addr 0x%08lx, length 0x%08lx, offset 0x%lx, flags 0x%lx\n",
-		  tsk->pid, path, addr, length, offset, flags);
+		  "mmap_cb: tsk %d:%d path %s, addr 0x%08lx, length 0x%08lx, offset 0x%lx, flags 0x%lx\n",
+		  tsk->pid, tsk->tgid, path, addr, length, offset, flags);
 #endif
 	if (path != NULL) {
 		for (i = 0; i < _stp_num_modules; i++) {
@@ -63,7 +63,8 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			}
 		}
 	}
-	stap_add_vma_map_info(tsk, addr, addr + length, offset, module);
+	stap_add_vma_map_info(tsk->group_leader, addr, addr + length, offset,
+			      module);
 	return 0;
 }
 
@@ -72,7 +73,7 @@ static int _stp_tf_munmap_cb(struct stap_task_finder_target *tgt,
 			     unsigned long addr,
 			     unsigned long length)
 {
-	stap_remove_vma_map_info(tsk, addr, addr + length, 0);
+	stap_remove_vma_map_info(tsk->group_leader, addr, addr + length, 0);
 	return 0;
 }
 
@@ -144,7 +145,7 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
   if (task)
     {
       unsigned long vm_start = 0;
-      if (stap_find_vma_map_info(task, addr,
+      if (stap_find_vma_map_info(task->group_leader, addr,
 				 &vm_start, NULL,
 				 NULL, &user) == 0)
 	if (user != NULL)
