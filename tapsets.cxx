@@ -6248,7 +6248,7 @@ module_info::~module_info()
     delete sym_table;
 }
 
-// Helper function to emit vma tracker callback _stp_tf_vm_cb.
+// Helper function to emit vma tracker callbacks.
 static void
 emit_vma_callback_probe_decl (systemtap_session& s,
 			      string path,
@@ -6266,7 +6266,9 @@ emit_vma_callback_probe_decl (systemtap_session& s,
       s.op->line() << " .pid=" << pid << ",";
     }
   s.op->line() << " .callback=NULL,";
-  s.op->line() << " .vm_callback=&_stp_tf_vm_cb,";
+  s.op->line() << " .mmap_callback=&_stp_tf_mmap_cb,";
+  s.op->line() << " .munmap_callback=&_stp_tf_munmap_cb,";
+  s.op->line() << " .mprotect_callback=NULL,";
   s.op->line() << " },";
 }
 
@@ -6574,6 +6576,7 @@ itrace_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "#ifdef STP_NEED_VMA_TRACKER";
+  s.op->newline() << "_stp_sym_init();";
   s.op->newline() << "/* ---- itrace vma callbacks ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_itrace_vmcbs); i++) {";
   s.op->indent(1);
@@ -6988,7 +6991,9 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
     }
 
   s.op->line() << " .callback=&_stp_utrace_probe_cb,";
-  s.op->line() << " .vm_callback=NULL,";
+  s.op->line() << " .mmap_callback=NULL,";
+  s.op->line() << " .munmap_callback=NULL,";
+  s.op->line() << " .mprotect_callback=NULL,";
   s.op->line() << " },";
   s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
   s.op->line() << " .ph=&" << p->name << ",";
@@ -7320,6 +7325,7 @@ utrace_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "#ifdef STP_NEED_VMA_TRACKER";
+  s.op->newline() << "_stp_sym_init();";
   s.op->newline() << "/* ---- utrace vma callbacks ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_vmcbs); i++) {";
   s.op->indent(1);
@@ -7762,23 +7768,25 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(0) << "return stap_uprobe_change (tsk, register_p, 0, sups);";
   s.op->newline(-1) << "}";
 
-  // The task_finder_vm_callback we use for ET_DYN targets.
+  // The task_finder_mmap_callback we use for ET_DYN targets.
   s.op->newline();
-  s.op->newline() << "static int stap_uprobe_vmchange_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int map_p, char *vm_path, unsigned long vm_start, unsigned long vm_end, unsigned long vm_pgoff) {";
+  s.op->newline() << "static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {";
   s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
   // 1 - shared libraries' executable segments load from offset 0 - ld.so convention
-  s.op->newline() << "if (vm_pgoff != 0) return 0;";
+  s.op->newline() << "if (offset != 0) return 0;";
   // 2 - the shared library we're interested in
-  s.op->newline() << "if (vm_path == NULL || strcmp (vm_path, sups->pathname)) return 0;";
+  s.op->newline() << "if (path == NULL || strcmp (path, sups->pathname)) return 0;";
   // 3 - probe address within the mapping limits; test should not fail
-  s.op->newline() << "if (vm_end <= vm_start + sups->address) return 0;";
+  s.op->newline() << "if (sups->address >= addr && sups->address < (addr + length)) return 0;";
+  // 4 - mapping should be executable
+  s.op->newline() << "if (!(vm_flags & VM_EXEC)) return 0;";
 
   s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
-  s.op->newline() << "printk (KERN_INFO \"vmchange pid %d map_p %d path %s vms %p vme %p vmp %p\\n\", tsk->tgid, map_p, vm_path, (void*) vm_start, (void*) vm_end, (void*) vm_pgoff);";
+  s.op->newline() << "printk (KERN_INFO \"vmchange pid %d path %s addr %p length %lu offset %p\\n\", tsk->tgid, path, (void *) addr, length, (void*) offset);";
   s.op->newline() << "printk (KERN_INFO \"sups %p pp %s path %s address %p\\n\", sups, sups->pp, sups->pathname ?: \"\", (void*) sups->address);";
   s.op->newline() << "#endif";
 
-  s.op->newline(0) << "return stap_uprobe_change (tsk, map_p, vm_start, sups);";
+  s.op->newline(0) << "return stap_uprobe_change (tsk, 1, addr, sups);";
   s.op->newline(-1) << "}";
   s.op->assert_0_indent();
 
@@ -7792,6 +7800,7 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   if (probes.empty()) return;
   s.op->newline() << "#ifdef STP_NEED_VMA_TRACKER";
+  s.op->newline() << "_stp_sym_init();";
   s.op->newline() << "/* ---- uprobe vma callbacks ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_uprobe_vmcbs); i++) {";
   s.op->indent(1);
@@ -7815,7 +7824,7 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "struct stap_uprobe_spec *sups = & stap_uprobe_specs[i];";
   s.op->newline() << "probe_point = sups->pp;"; // for error messages
   s.op->newline() << "if (sups->finder.pathname) sups->finder.callback = & stap_uprobe_process_found;";
-  s.op->newline() << "else if (sups->pathname) sups->finder.vm_callback = & stap_uprobe_vmchange_found;";
+  s.op->newline() << "else if (sups->pathname) sups->finder.mmap_callback = & stap_uprobe_mmap_found;";
   s.op->newline() << "rc = stap_register_task_finder_target (& sups->finder);";
 
   // NB: if (rc), there is no need (XXX: nor any way) to clean up any
