@@ -35,7 +35,7 @@ set testscript {
     probe syscall.rt_sigaction {
       if (pid() == target() && execname() == "%s") {
 	  handler = $act->sa_handler;
-	  printf("handler: %%s\n", symname(handler));
+	  printf("handler: %%s\n", usymname(handler));
       }
     }
     /* track through uprobes, so as to make sure we have the symbols */
@@ -56,8 +56,7 @@ if {[string equal "link" [file type $libpath]]} {
 }
 send_log "libpath: $libpath\n"
 
-# XXX Cheat, explicitly add STP_NEED_VMA_TRACKER
-set cmd [concat stap -DSTP_NEED_VMA_TRACKER -d $libpath -d $testexe -c $testexe -e {$script}]
+set cmd [concat stap -d $libpath -d $testexe -c $testexe -e {$script}]
 send_log "cmd: $cmd\n"
 catch {eval exec $cmd} res
 send_log "cmd output: $res\n"

@@ -128,7 +128,7 @@ function modname:string (addr: long) %{ /* pure */
  */
 function symname:string (addr: long) %{ /* pure */
 	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
-			     current, 0);
+			     NULL, 0);
 %}
 
 /**
@@ -143,5 +143,5 @@ function symname:string (addr: long) %{ /* pure */
  */
 function symdata:string (addr: long) %{ /* pure */
 	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
-			     current, 1);
+			     NULL, 1);
 %}
