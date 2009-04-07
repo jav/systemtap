@@ -10201,11 +10201,16 @@ struct hrtimer_derived_probe: public derived_probe
 
   int64_t interval, randomize;
 
-  hrtimer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r):
+  hrtimer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r,
+			 int64_t scale):
     derived_probe (p, l), interval (i), randomize (r)
   {
     if ((i < min_ns_interval) || (i > max_ns_interval))
-      throw semantic_error("interval value out of range");
+      throw semantic_error(string("interval value out of range (")
+			   + lex_cast<string>(scale < min_ns_interval
+					      ? min_ns_interval/scale : 1)
+			   + ","
+			   + lex_cast<string>(max_ns_interval/scale) + ")");
 
     // randomize = 0 means no randomization
     if ((r < 0) || (r > i))
@@ -10383,7 +10388,7 @@ timer_builder::build(systemtap_session & sess,
     literal_map_t const & parameters,
     vector<derived_probe *> & finished_results)
 {
-  int64_t period, rand=0;
+  int64_t scale=1, period, rand=0;
 
   if (!get_param(parameters, "randomize", rand))
     rand = 0;
@@ -10404,20 +10409,23 @@ timer_builder::build(systemtap_session & sess,
   else if (get_param(parameters, "s", period)
       || get_param(parameters, "sec", period))
     {
-      period *= 1000000000;
-      rand *= 1000000000;
+      scale = 1000000000;
+      period *= scale;
+      rand *= scale;
     }
   else if (get_param(parameters, "ms", period)
       || get_param(parameters, "msec", period))
     {
-      period *= 1000000;
-      rand *= 1000000;
+      scale = 1000000;
+      period *= scale;
+      rand *= scale;
     }
   else if (get_param(parameters, "us", period)
       || get_param(parameters, "usec", period))
     {
-      period *= 1000;
-      rand *= 1000;
+      scale = 1000;
+      period *= scale;
+      rand *= scale;
     }
   else if (get_param(parameters, "ns", period)
       || get_param(parameters, "nsec", period))
@@ -10440,7 +10448,7 @@ timer_builder::build(systemtap_session & sess,
     }
   else
     finished_results.push_back(
-	new hrtimer_derived_probe(base, location, period, rand));
+	new hrtimer_derived_probe(base, location, period, rand, scale));
 }
 
 void
