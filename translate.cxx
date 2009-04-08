@@ -1101,10 +1101,9 @@ c_unparser::emit_unprivileged_user_check ()
   // unload the module.
   o->newline();
   o->newline() << "static int systemtap_unprivileged_user_check (void) {";
-  o->newline(1) << "struct group *stgr;";
-  o->newline() << "if (_stp_uid == 0)";
+#if 0
+  o->newline(1) << "if (_stp_uid == 0)";
   o->newline(1) << "return 0;";
-#error can we call getgrpnam????
   o->newline(-1) << "stgr = getgrnam(\"stapdev\");"; 
   o->newline() << "if (stgr != NULL && _stp_gid == stgr->gr_gid)";
   o->newline(1) << "return 0;";
@@ -1114,6 +1113,9 @@ c_unparser::emit_unprivileged_user_check ()
   o->newline(-1) << "_stp_error (\"You are attempting to run stap as an ordinary user.\");";
   o->newline() << "_stp_error (\"Your module must be compiled using the --unprivileged option.\");";
   o->newline() << "return 1;";
+#else
+  o->newline(1) << "return 0;";
+#endif
   o->newline(-1) << "}\n";
 }
 
