@@ -11,6 +11,11 @@
 //provide information such as a backtrace to where the event occured and the current register values for the 
 //processor.
 // </tapsetdescription>
+
+%{
+#include <asm/processor.h>
+%}
+
 /**
  * sfunction print_regs - Print a register dump.
  */
@@ -225,5 +230,25 @@ function stack_used:long () %{ /* pure */
 function stack_unused:long () %{ /* pure */
 	char a;
         THIS->__retvalue = (long)&a & (THREAD_SIZE-1);
+%}
+
+/**
+ * sfunction uaddr - User space address of current running task.
+ *
+ * Description: Returns the address in userspace that the current
+ * task was at when the probe occured. When the current running task
+ * isn't a user space thread, or the address cannot be found, zero
+ * is returned.
+ */
+function uaddr:long () %{ /* pure */
+  int64_t addr = 0;
+  if (current->mm)
+    {
+      struct pt_regs *uregs;
+      uregs = task_pt_regs(current);
+      if (uregs)
+        addr = (int64_t) REG_IP(uregs);
+    }
+  THIS->__retvalue = addr;
 %}
 
