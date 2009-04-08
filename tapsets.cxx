@@ -1339,7 +1339,8 @@ struct dwflpp
   }
 
   void
-  iterate_over_cu_labels (string label_val, Dwarf_Die *cu, void *data,
+  iterate_over_cu_labels (string label_val, string function, Dwarf_Die *cu,
+			  void *data,
 			  void (* callback)(const string &,
 					    const char *,
 					    int,
@@ -1364,14 +1365,30 @@ struct dwflpp
 	Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
 	int tag = dwarf_tag(&die);
 	const char *name = dwarf_formstring (attr);
-	if (tag == DW_TAG_subprogram && name != 0)
+	if (name == 0)
+	  continue;
+	switch (tag)
 	  {
+	  case DW_TAG_label:
+	    break;
+	  case DW_TAG_subprogram:
 	    function_name = name;
+	  default:
+	    if (dwarf_haschildren (&die))
+	      iterate_over_cu_labels (label_val, function, &die, q, callback);
+	    continue;
 	  }
-	else if (tag == DW_TAG_label && name != 0
-		 && ((strcmp(name, sym) == 0)
-		     || (name_has_wildcard (sym)
-			 && function_name_matches_pattern (name, sym))))
+	
+	if (strcmp(function_name.c_str(), function.c_str()) == 0
+	    || (name_has_wildcard(function)
+		&& function_name_matches_pattern (function_name, function)))
+	  {
+	  }
+	else
+	  continue;
+	if (strcmp(name, sym) == 0
+	    || (name_has_wildcard(sym) 
+		&& function_name_matches_pattern (name, sym)))
 	  {
 	    const char *file = dwarf_decl_file (&die);
 	    // Get the line number for this label
@@ -1406,15 +1423,9 @@ struct dwflpp
 	      callback(function_name.c_str(), file,
 		       (int)dline, &scopes[1], stmt_addr, q);
 	  }
-	if (dwarf_haschildren (&die) && tag != DW_TAG_structure_type
-	    && tag != DW_TAG_union_type)
-	  {
-	    iterate_over_cu_labels (label_val, &die, q, callback);
-	  }
       }
     while (dwarf_siblingof (&die, &die) == 0);
   }
-
 
   void collect_srcfiles_matching (string const & pattern,
 				  set<char const *> & filtered_srcfiles)
@@ -4110,7 +4121,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    {
 	      // If we have a pattern string with target *label*, we
 	      // have to look at labels in all the matched srcfiles.
-	      q->dw.iterate_over_cu_labels (q->label_val, q->dw.cu, q, query_statement);
+	      q->dw.iterate_over_cu_labels (q->label_val, q->function, q->dw.cu, q, query_statement);
 	    }
 	  else
 	    {
