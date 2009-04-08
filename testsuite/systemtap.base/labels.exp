@@ -18,7 +18,7 @@ main ()
   char *c;
 init_an_int:
   a = 2;
-init_another_int:
+init_an_int_again:
   b = 3;
   c = \"abc\";
 ptr_inited:
@@ -32,6 +32,7 @@ set fp [open $label_stppath "w"]
 puts $fp "
 probe process(\"labels.x\").function(\"main*@labels.c\").label(\"init_*\") {printf (\"VARS %s\\n\",\$\$vars)}
 probe process(\"labels.x\").function(\"main*@labels.c\").label(\"ptr_inited\") {printf (\"VARS %s\\n\",\$\$vars)}
+probe process(\"labels.x\").function(\"main*@labels.c\").label(\"init_an_int\") {printf (\"init_an_int\\n\")}
 "
 close $fp
 
@@ -55,12 +56,12 @@ spawn stap -c $label_exepath $label_stppath
 wait
 expect {
     -timeout 180
-    -re {VARS a=0x0 b=0x0.*VARS a=0x2 b=0x0.*VARS a=0x2 b=0x3 c=0x[a-f01-9]} { incr ok; exp_continue }
+    -re {VARS a=0x0 b=0x0.*init_an_int.*VARS a=0x2 b=0x0.*VARS a=0x2 b=0x3 c=0x[a-f01-9]} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
 
-if {$ok == 1} { pass "$test exe .label" } { fail "$test exe .label" }
+if {$ok == 1} { pass "$test exe .label" } { fail "$test exe .label $ok" }
 
 # address of label in an executable
 
@@ -68,7 +69,7 @@ set label_shpath "[pwd]/label.sh"
 set fp [open $label_shpath "w"]
 puts $fp "
 readelf --debug-dump $label_exepath | awk \"
-/init_another_int/ {have_label=1} 
+/init_an_int_again/ {have_label=1} 
 /DW_AT_low_pc/ {if (have_label) {print \$3;exit;}}
 \"
 "
@@ -103,7 +104,7 @@ if { $res != "" } {
 
 # label in a shared object
 
-spawn stap -p2 -l "process\(\"$label_sopath\"\).function\(\"\*\"\).label\(\"init_another_int\"\)"
+spawn stap -p2 -l "process\(\"$label_sopath\"\).function\(\"\*\"\).label\(\"init_an_int_again\"\)"
 expect {
     -timeout 180
     -re {process.*function} { incr ok; exp_continue }
@@ -111,7 +112,7 @@ expect {
     eof { }
 }
 
-if {$ok == 1} { pass "$test so .label" } { fail "$test so .label" }
+if {$ok == 1} { pass "$test so .label" } { fail "$test so .label $ok" }
 
 # address of label in a shared object
 
@@ -119,7 +120,7 @@ set label_shpath "[pwd]/label.sh"
 set fp [open $label_shpath "w"]
 puts $fp "
 readelf --debug-dump $label_sopath | awk \"
-/init_another_int/ {have_label=1} 
+/init_an_int_again/ {have_label=1} 
 /DW_AT_low_pc/ {if (have_label) {print \$3;exit;}}
 \"
 "

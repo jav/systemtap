@@ -1,0 +1,8 @@
+#! stap -p4
+#
+# Test the translatability for uaddr()
+#
+probe begin
+{
+   printf("uaddr: 0x%x\n", uaddr())
+}

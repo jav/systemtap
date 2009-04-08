@@ -380,8 +380,8 @@ static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 				    task);
 	if (name) {
 		if (add_mod && modname && *modname)
-			_stp_printf("%s %s+%#lx/%#lx\n",
-				    name, modname, offset, size);
+			_stp_snprintf(str, len, "%s %s+%#lx/%#lx",
+				      name, modname, offset, size);
 		else
 			strlcpy(str, name, len);
 	} else
