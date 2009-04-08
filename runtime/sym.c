@@ -30,7 +30,6 @@ static void _stp_sym_init(void)
 	}
 }
 
-#ifdef STP_NEED_VMA_TRACKER
 /* Callback that needs to be registered (in tapsets.cxx for
    emit_module_init) for every user task path or pid for which we
    might need symbols or unwind info. */
@@ -77,7 +76,6 @@ static int _stp_tf_munmap_cb(struct stap_task_finder_target *tgt,
 	stap_remove_vma_map_info(tsk->group_leader, addr, addr + length, 0);
 	return 0;
 }
-#endif
 
 /* XXX: this needs to be address-space-specific. */
 static unsigned long _stp_module_relocate(const char *module, const char *section, unsigned long offset)

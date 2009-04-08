@@ -2,8 +2,9 @@
 #define TASK_FINDER_C
 
 #if ! defined(CONFIG_UTRACE)
-#error "Need CONFIG_UTRACE!"
-#endif
+/* Dummy definitions for use in sym.c */
+struct stap_task_finder_target { };
+#else
 
 #include <linux/utrace.h>
 
@@ -1324,5 +1325,5 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 }
 
-
+#endif /* defined(CONFIG_UTRACE) */
 #endif /* TASK_FINDER_C */

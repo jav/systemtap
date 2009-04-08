@@ -6486,13 +6486,6 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "/* ---- itrace probes ---- */";
 
-  // Note that we can potentially include task_finder.c multiple times
-  // in the generated code.  That is OK, since task_finder.c has guard
-  // macros to prevent defining things multiple times.  If we include
-  // task_finder.c unconditionally, stap can't be used on systems
-  // without utrace.
-  s.op->newline() << "#include \"task_finder.c\"";
-
   s.op->newline() << "struct stap_itrace_probe {";
   s.op->indent(1);
   s.op->newline() << "struct stap_task_finder_target tgt;";
@@ -7077,13 +7070,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "/* ---- utrace probes ---- */";
 
-  // Note that we can potentially include task_finder.c multiple times
-  // in the generated code.  That is OK, since task_finder.c has guard
-  // macros to prevent defining things multiple times.  If we include
-  // task_finder.c unconditionally, stap can't be used on systems
-  // without utrace.
-  s.op->newline() << "#include \"task_finder.c\"";
-
   s.op->newline() << "enum utrace_derived_probe_flags {";
   s.op->indent(1);
   s.op->newline() << "UDPF_NONE,";
@@ -7591,13 +7577,6 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#else";
   s.op->newline() << "#include \"uprobes/uprobes.h\"";
   s.op->newline() << "#endif";
-
-  // Note that we can potentially include task_finder.c multiple times
-  // in the generated code.  That is OK, since task_finder.c has guard
-  // macros to prevent defining things multiple times.  If we include
-  // task_finder.c unconditionally, stap can't be used on systems
-  // without utrace.
-  s.op->newline() << "#include \"task_finder.c\"";
 
   s.op->newline() << "#ifndef MULTIPLE_UPROBES";
   s.op->newline() << "#define MULTIPLE_UPROBES 256"; // maximum possible armed uprobes per process() probe point
