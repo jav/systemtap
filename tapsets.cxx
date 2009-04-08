@@ -1369,7 +1369,7 @@ struct dwflpp
 	    function_name = name;
 	  }
 	else if (tag == DW_TAG_label && name != 0
-		 && ((strncmp(name, sym, strlen(sym)) == 0)
+		 && ((strcmp(name, sym) == 0)
 		     || (name_has_wildcard (sym)
 			 && function_name_matches_pattern (name, sym))))
 	  {
