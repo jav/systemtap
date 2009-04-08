@@ -89,8 +89,6 @@ static struct
 #include "regs.c"
 #include "regs-ia64.c"
 
-#include "task_finder.c"
-
 #include "sym.c"
 #ifdef STP_PERFMON
 #include "perf.c"
