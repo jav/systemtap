@@ -1542,7 +1542,8 @@ cscope:
 @BUILD_ELFUTILS_TRUE@install-exec-local: install-elfutils
 
 @BUILD_SERVER_TRUE@install-exec-local: install-scripts
-@BUILD_SERVER_TRUE@install-scripts:
+# scripts should be installed before this rule is run
+@BUILD_SERVER_TRUE@install-scripts: install-binSCRIPTS
 @BUILD_SERVER_TRUE@	for f in $(bin_SCRIPTS); do \
 @BUILD_SERVER_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
 @BUILD_SERVER_TRUE@	done

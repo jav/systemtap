@@ -1,6 +1,7 @@
 #! /usr/bin/env stap
 
 global ifxmit, ifrecv
+global ifmerged
 
 probe netdev.transmit
 {
@@ -19,6 +20,12 @@ function print_activity()
          "XMIT_KB", "RECV_KB", "COMMAND")
 
   foreach ([pid, dev, exec, uid] in ifrecv-) {
+	  ifmerged[pid, dev, exec, uid] = 1;
+  }
+  foreach ([pid, dev, exec, uid] in ifxmit-) {
+	  ifmerged[pid, dev, exec, uid] = 1;
+  }
+  foreach ([pid, dev, exec, uid] in ifmerged-) {
     n_xmit = @count(ifxmit[pid, dev, exec, uid])
     n_recv = @count(ifrecv[pid, dev, exec, uid])
     printf("%5d %5d %-7s %7d %7d %7d %7d %-15s\n",
@@ -32,6 +39,7 @@ function print_activity()
 
   delete ifxmit
   delete ifrecv
+  delete ifmerged
 }
 
 probe timer.ms(5000), end, error

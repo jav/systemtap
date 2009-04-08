@@ -919,6 +919,7 @@ c_unparser::emit_common_header ()
       ostringstream oss;
       oss << "c->statp = & time_" << dp->basest()->name << ";" << endl;  // -t anti-dupe
       oss << "# needs_global_locks: " << dp->needs_global_locks () << endl;
+      dp->print_dupe_stamp (oss);
       dp->body->print(oss);
       // NB: dependent probe conditions *could* be listed here, but don't need to be.
       // That's because they're only dependent on the probe body, which is already
@@ -1546,6 +1547,7 @@ c_unparser::emit_probe (derived_probe* v)
   // be very different with or without -t.
   oss << "c->statp = & time_" << v->basest()->name << ";" << endl;
 
+  v->print_dupe_stamp (oss);
   v->body->print(oss);
 
   // Since the generated C changes based on whether or not the probe
@@ -3527,7 +3529,10 @@ c_unparser_assignment::visit_symbol (symbol *e)
 void
 c_unparser::visit_target_symbol (target_symbol* e)
 {
-  throw semantic_error("cannot translate general target-symbol expression", e->tok);
+  if (!e->probe_context_var.empty())
+    o->line() << "l->" << e->probe_context_var;
+  else
+    throw semantic_error("cannot translate general cast expression", e->tok);
 }
 
 
@@ -4610,10 +4615,13 @@ dump_unwindsyms (Dwfl_Module *m,
           // PC's, so we omit undefined or "fake" absolute addresses.
           // These fake absolute addresses occur in some older i386
           // kernels to indicate they are vDSO symbols, not real
-          // functions in the kernel.
+          // functions in the kernel. We also omit symbols that have
+          // suspicious addresses (before base).
           if ((GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
                GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
-               && !(sym.st_shndx == SHN_UNDEF || sym.st_shndx == SHN_ABS))
+               && !(sym.st_shndx == SHN_UNDEF
+		    || sym.st_shndx == SHN_ABS
+		    || sym.st_value < base))
             {
               Dwarf_Addr sym_addr = sym.st_value;
               const char *secname = NULL;

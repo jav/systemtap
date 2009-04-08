@@ -1796,6 +1796,7 @@ struct dwflpp
   find_variable_and_frame_base (Dwarf_Die *scope_die,
 				Dwarf_Addr pc,
 				string const & local,
+                                const target_symbol *e,
 				Dwarf_Die *vardie,
 				Dwarf_Attribute *fb_attr_mem)
   {
@@ -1823,7 +1824,8 @@ struct dwflpp
 				    + (dwarf_diename(scope_die) ?: "<unknown>")
 			      	    + "(" + (dwarf_diename(cu) ?: "<unknown>")
 				    + ")"))
-			      + " while searching for local '" + local + "'");
+			      + " while searching for local '" + local + "'",
+                              e->tok);
       }
 
     int declaring_scope = dwarf_getscopevar (scopes, nscopes,
@@ -1841,7 +1843,8 @@ struct dwflpp
 				    + (dwarf_diename(scope_die) ?: "<unknown>")
 			      	    + "(" + (dwarf_diename(cu) ?: "<unknown>")
 				    + ")"))
-			      + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
+			      + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")),
+                              e->tok);
       }
 
     for (int inner = 0; inner < nscopes; ++inner)
@@ -1868,7 +1871,8 @@ struct dwflpp
   translate_location(struct obstack *pool,
 		     Dwarf_Attribute *attr, Dwarf_Addr pc,
 		     Dwarf_Attribute *fb_attr,
-		     struct location **tail)
+		     struct location **tail,
+                     const target_symbol *e)
   {
     Dwarf_Op *expr;
     size_t len;
@@ -1887,12 +1891,13 @@ struct dwflpp
 	/* Fall through.  */
 
       case 0:			/* Shouldn't happen.  */
-	throw semantic_error ("not accessible at this address");
+	throw semantic_error ("not accessible at this address", e->tok);
 
       default:			/* Shouldn't happen.  */
       case -1:
 	throw semantic_error (string ("dwarf_getlocation_addr failed") +
-			      string (dwarf_errmsg (-1)));
+			      string (dwarf_errmsg (-1)),
+                              e->tok);
       }
 
     return c_translate_location (pool, &loc2c_error, this,
@@ -1976,8 +1981,7 @@ struct dwflpp
   translate_components(struct obstack *pool,
 		       struct location **tail,
 		       Dwarf_Addr pc,
-		       vector<pair<target_symbol::component_type,
-		       std::string> > const & components,
+                       const target_symbol *e,
 		       Dwarf_Die *vardie,
 		       Dwarf_Die *die_mem,
 		       Dwarf_Attribute *attr_mem)
@@ -1996,7 +2000,7 @@ struct dwflpp
     static unsigned int dwarf_error_count ; // keeps track of no of dwarf errors
     static semantic_error saved_dwarf_error("");
 
-    while (i < components.size())
+    while (i < e->components.size())
       {
         /* XXX: This would be desirable, but we don't get the target_symbol token,
            and printing that gives us the file:line number too early anyway. */
@@ -2017,8 +2021,8 @@ struct dwflpp
 	    break;
 
 	  case DW_TAG_pointer_type:
-	    if (components[i].first == target_symbol::comp_literal_array_index)
-              throw semantic_error ("cannot index pointer");
+	    if (e->components[i].first == target_symbol::comp_literal_array_index)
+              throw semantic_error ("cannot index pointer", e->tok);
             // XXX: of course, we should support this the same way C does,
             // by explicit pointer arithmetic etc.  PR4166.
 
@@ -2026,16 +2030,17 @@ struct dwflpp
 	    break;
 
 	  case DW_TAG_array_type:
-	    if (components[i].first == target_symbol::comp_literal_array_index)
+	    if (e->components[i].first == target_symbol::comp_literal_array_index)
 	      {
 		c_translate_array (pool, 1, 0 /* PR9768 */, die, tail,
-				   NULL, lex_cast<Dwarf_Word>(components[i].second));
+				   NULL, lex_cast<Dwarf_Word>(e->components[i].second));
 		++i;
 	      }
 	    else
 	      throw semantic_error("bad field '"
-				   + components[i].second
-				   + "' for array type");
+				   + e->components[i].second
+				   + "' for array type",
+                                   e->tok);
 	    break;
 
 	  case DW_TAG_structure_type:
@@ -2046,7 +2051,8 @@ struct dwflpp
 		Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(die));
 		if (tmpdie == NULL)
 		  throw semantic_error ("unresolved struct "
-					+ string (dwarf_diename_integrate (die) ?: "<anonymous>"));
+					+ string (dwarf_diename_integrate (die) ?: "<anonymous>"),
+                                        e->tok);
 		*die_mem = *tmpdie;
 	      }
 	    switch (dwarf_child (die, die_mem))
@@ -2057,7 +2063,8 @@ struct dwflpp
 	      default:		/* Shouldn't happen */
 		throw semantic_error (string (typetag == DW_TAG_union_type ? "union" : "struct")
 				      + string (dwarf_diename_integrate (die) ?: "<anonymous>")
-				      + string (dwarf_errmsg (-1)));
+				      + string (dwarf_errmsg (-1)),
+                                      e->tok);
 		break;
 
 	      case 0:
@@ -2066,7 +2073,7 @@ struct dwflpp
 
 	    while (dwarf_tag (die) != DW_TAG_member
 		   || ({ const char *member = dwarf_diename_integrate (die);
-		       member == NULL || string(member) != components[i].second; }))
+		       member == NULL || string(member) != e->components[i].second; }))
 	    {
 	      if ( dwarf_diename (die) == NULL )  // handling Anonymous structs/unions
 		{ 
@@ -2079,19 +2086,19 @@ struct dwflpp
                        { 
 			  dwarf_error_flag ++ ;
 			  dwarf_error_count ++;
-			  throw semantic_error(" Error in obtaining type attribute for "+ string(dwarf_diename(&temp_die)?:"<anonymous>"));
+			  throw semantic_error(" Error in obtaining type attribute for "+ string(dwarf_diename(&temp_die)?:"<anonymous>"), e->tok);
                 	}
 
 	              if ( !dwarf_formref_die (&temp_attr, &temp_die))
         	        { 
 			  dwarf_error_flag ++ ;
 			  dwarf_error_count ++;
-			  throw semantic_error(" Error in decoding DW_AT_type attribute for " + string(dwarf_diename(&temp_die)?:"<anonymous>")); 
+			  throw semantic_error(" Error in decoding DW_AT_type attribute for " + string(dwarf_diename(&temp_die)?:"<anonymous>"), e->tok); 
                 	}
 
 		      func_call_level ++ ;
 
-                      Dwarf_Die *result_die = translate_components(pool, tail, pc, components, &temp_die, &temp_die_2, &temp_attr );
+                      Dwarf_Die *result_die = translate_components(pool, tail, pc, e, &temp_die, &temp_die_2, &temp_attr);
 
 		      func_call_level -- ;
 
@@ -2129,34 +2136,38 @@ struct dwflpp
 		   but just use the containing union's location.  */
 		if (typetag != DW_TAG_union_type)
 		  throw semantic_error ("no location for field '"
-					+ components[i].second
-					+ "' :" + string(dwarf_errmsg (-1)));
+					+ e->components[i].second
+					+ "' :" + string(dwarf_errmsg (-1)),
+                                        e->tok);
 	      }
 	    else
-	      translate_location (pool, attr_mem, pc, NULL, tail);
+	      translate_location (pool, attr_mem, pc, NULL, tail, e);
 	    ++i;
 	    break;
 
 	  case DW_TAG_base_type:
 	    throw semantic_error ("field '"
-				  + components[i].second
+				  + e->components[i].second
 				  + "' vs. base type "
-				  + string(dwarf_diename_integrate (die) ?: "<anonymous type>"));
+				  + string(dwarf_diename_integrate (die) ?: "<anonymous type>"),
+                                  e->tok);
 	    break;
 	  case -1:
-	    throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)));
+	    throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)),
+                                  e->tok);
 	    break;
 
 	  default:
 	    throw semantic_error (string(dwarf_diename_integrate (die) ?: "<anonymous type>")
 				  + ": unexpected type tag "
-				  + lex_cast<string>(dwarf_tag (die)));
+				  + lex_cast<string>(dwarf_tag (die)),
+                                  e->tok);
 	    break;
 	  }
 
 	/* Now iterate on the type in DIE's attribute.  */
 	if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
-	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
+	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)), e->tok);
 	die = dwarf_formref_die (attr_mem, die_mem);
       }
     return die;
@@ -2165,23 +2176,23 @@ struct dwflpp
 
   Dwarf_Die *
   resolve_unqualified_inner_typedie (Dwarf_Die *typedie_mem,
-				     Dwarf_Attribute *attr_mem)
+				     Dwarf_Attribute *attr_mem,
+                                     const target_symbol *e)
   {
-    ;
     Dwarf_Die *typedie;
     int typetag = 0;
     while (1)
       {
 	typedie = dwarf_formref_die (attr_mem, typedie_mem);
 	if (typedie == NULL)
-	  throw semantic_error ("cannot get type: " + string(dwarf_errmsg (-1)));
+	  throw semantic_error ("cannot get type: " + string(dwarf_errmsg (-1)), e->tok);
 	typetag = dwarf_tag (typedie);
 	if (typetag != DW_TAG_typedef &&
 	    typetag != DW_TAG_const_type &&
 	    typetag != DW_TAG_volatile_type)
 	  break;
 	if (dwarf_attr_integrate (typedie, DW_AT_type, attr_mem) == NULL)
-	  throw semantic_error ("cannot get type of pointee: " + string(dwarf_errmsg (-1)));
+	  throw semantic_error ("cannot get type of pointee: " + string(dwarf_errmsg (-1)), e->tok);
       }
     return typedie;
   }
@@ -2194,6 +2205,7 @@ struct dwflpp
 				  Dwarf_Die *die,
 				  Dwarf_Attribute *attr_mem,
 				  bool lvalue,
+                                  const target_symbol *e,
 				  string &,
 				  string &,
 				  exp_type & ty)
@@ -2207,7 +2219,7 @@ struct dwflpp
     char const *dname;
     string diestr;
 
-    typedie = resolve_unqualified_inner_typedie (&typedie_mem, attr_mem);
+    typedie = resolve_unqualified_inner_typedie (&typedie_mem, attr_mem, e);
     typetag = dwarf_tag (typedie);
 
     /* Then switch behavior depending on the type of fetch/store we
@@ -2220,7 +2232,7 @@ struct dwflpp
 	diestr = (dname != NULL) ? dname : "<unknown>";
 	throw semantic_error ("unsupported type tag "
 			      + lex_cast<string>(typetag)
-			      + " for " + diestr);
+			      + " for " + diestr, e->tok);
 	break;
 
       case DW_TAG_structure_type:
@@ -2228,7 +2240,7 @@ struct dwflpp
 	dname = dwarf_diename(die);
 	diestr = (dname != NULL) ? dname : "<unknown>";
 	throw semantic_error ("struct/union '" + diestr
-			      + "' is being accessed instead of a member of the struct/union");
+			      + "' is being accessed instead of a member of the struct/union", e->tok);
 	break;
 
       case DW_TAG_enumeration_type:
@@ -2247,7 +2259,7 @@ struct dwflpp
             {
               // clog << "bad type1 " << encoding << " diestr" << endl;
               throw semantic_error ("unsupported type (mystery encoding " + lex_cast<string>(encoding) + ")" +
-                                    " for " + diestr);
+                                    " for " + diestr, e->tok);
             }
 
           if (encoding == DW_ATE_float
@@ -2256,7 +2268,7 @@ struct dwflpp
             {
               // clog << "bad type " << encoding << " diestr" << endl;
               throw semantic_error ("unsupported type (encoding " + lex_cast<string>(encoding) + ")" +
-                                    " for " + diestr);
+                                    " for " + diestr, e->tok);
             }
         }
 
@@ -2278,7 +2290,7 @@ struct dwflpp
 	  Dwarf_Word pointee_encoding;
 	  Dwarf_Word pointee_byte_size = 0;
 
-	  pointee_typedie = resolve_unqualified_inner_typedie (&pointee_typedie_mem, attr_mem);
+	  pointee_typedie = resolve_unqualified_inner_typedie (&pointee_typedie_mem, attr_mem, e);
 
 	  if (dwarf_attr_integrate (pointee_typedie, DW_AT_byte_size, attr_mem))
 	    dwarf_formudata (attr_mem, &pointee_byte_size);
@@ -2290,7 +2302,7 @@ struct dwflpp
             {
               ty = pe_long;
               if (typetag == DW_TAG_array_type)
-                throw semantic_error ("cannot write to array address");
+                throw semantic_error ("cannot write to array address", e->tok);
               assert (typetag == DW_TAG_pointer_type);
               c_translate_pointer_store (pool, 1, 0 /* PR9768 */, typedie, tail,
                                          "THIS->value");
@@ -2355,15 +2367,14 @@ struct dwflpp
   literal_stmt_for_local (Dwarf_Die *scope_die,
 			  Dwarf_Addr pc,
 			  string const & local,
-			  vector<pair<target_symbol::component_type,
-			  std::string> > const & components,
+                          const target_symbol *e,
 			  bool lvalue,
 			  exp_type & ty)
   {
     Dwarf_Die vardie;
     Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
 
-    fb_attr = find_variable_and_frame_base (scope_die, pc, local,
+    fb_attr = find_variable_and_frame_base (scope_die, pc, local, e,
 					    &vardie, &fb_attr_mem);
 
     if (sess.verbose>2)
@@ -2379,7 +2390,8 @@ struct dwflpp
 			     "attribute for local '" + local
 			     + "' (dieoffset: "
 			     + lex_cast_hex<string>(dwarf_dieoffset (&vardie))
-			     + ")");
+			     + ")",
+                             e->tok);
       }
 
 #define obstack_chunk_alloc malloc
@@ -2392,17 +2404,19 @@ struct dwflpp
     /* Given $foo->bar->baz[NN], translate the location of foo. */
 
     struct location *head = translate_location (&pool,
-						&attr_mem, pc, fb_attr, &tail);
+						&attr_mem, pc, fb_attr, &tail,
+                                                e);
 
     if (dwarf_attr_integrate (&vardie, DW_AT_type, &attr_mem) == NULL)
       throw semantic_error("failed to retrieve type "
-			   "attribute for local '" + local + "'");
+			   "attribute for local '" + local + "'",
+                           e->tok);
 
     /* Translate the ->bar->baz[NN] parts. */
 
     Dwarf_Die die_mem, *die = NULL;
     die = dwarf_formref_die (&attr_mem, &die_mem);
-    die = translate_components (&pool, &tail, pc, components,
+    die = translate_components (&pool, &tail, pc, e,
 				die, &die_mem, &attr_mem);
     if(!die)
 	{ 
@@ -2412,7 +2426,8 @@ struct dwflpp
 	    print_members(die,alternatives); 
 	  throw semantic_error("unable to find local '" + local + "'"
                                + " near pc " + lex_cast_hex<string>(pc)
-                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
+                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")),
+                               e->tok);
 	}
 
     /* Translate the assignment part, either
@@ -2423,7 +2438,7 @@ struct dwflpp
 
     string prelude, postlude;
     translate_final_fetch_or_store (&pool, &tail, module_bias,
-				    die, &attr_mem, lvalue,
+				    die, &attr_mem, lvalue, e,
 				    prelude, postlude, ty);
 
     /* Write the translation to a string. */
@@ -2434,8 +2449,7 @@ struct dwflpp
   string
   literal_stmt_for_return (Dwarf_Die *scope_die,
 			   Dwarf_Addr pc,
-			   vector<pair<target_symbol::component_type,
-			   std::string> > const & components,
+                           const target_symbol *e,
 			   bool lvalue,
 			   exp_type & ty)
   {
@@ -2460,7 +2474,8 @@ struct dwflpp
 			     " for "
 			     + string(dwarf_diename(scope_die) ?: "<unknown>")
 			     + "(" + string(dwarf_diename(cu) ?: "<unknown>")
-			     + ")");
+			     + ")",
+                             e->tok);
       }
     // the function has no return value (e.g. "void" in C)
     else if (nlocops == 0)
@@ -2468,7 +2483,8 @@ struct dwflpp
 	throw semantic_error("function "
 			     + string(dwarf_diename(scope_die) ?: "<unknown>")
 			     + "(" + string(dwarf_diename(cu) ?: "<unknown>")
-			     + ") has no return value");
+			     + ") has no return value",
+                             e->tok);
       }
 
     struct location  *head = c_translate_location (&pool, &loc2c_error, this,
@@ -2486,7 +2502,7 @@ struct dwflpp
     Dwarf_Die *vardie = dwarf_formref_die (attr, &vardie_mem);
 
     Dwarf_Die die_mem, *die = NULL;
-    die = translate_components (&pool, &tail, pc, components,
+    die = translate_components (&pool, &tail, pc, e,
 				vardie, &die_mem, &attr_mem);
     if(!die)
 	{ 
@@ -2500,7 +2516,8 @@ struct dwflpp
 			       + string(dwarf_diename(scope_die) ?: "<unknown>")
 			       + "(" + string(dwarf_diename(cu) ?: "<unknown>")
 			       + ")"
-                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
+                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")),
+                               e->tok);
 	}
 
 
@@ -2512,7 +2529,7 @@ struct dwflpp
 
     string prelude, postlude;
     translate_final_fetch_or_store (&pool, &tail, module_bias,
-				    die, &attr_mem, lvalue,
+				    die, &attr_mem, lvalue, e,
 				    prelude, postlude, ty);
 
     /* Write the translation to a string. */
@@ -2522,8 +2539,7 @@ struct dwflpp
 
   string
   literal_stmt_for_pointer (Dwarf_Die *type_die,
-                            vector<pair<target_symbol::component_type,
-                                   std::string> > const & components,
+                            const target_symbol *e,
                             bool lvalue,
                             exp_type & ty)
   {
@@ -2545,7 +2561,7 @@ struct dwflpp
 
     Dwarf_Attribute attr_mem;
     Dwarf_Die die_mem, *die = NULL;
-    die = translate_components (&pool, &tail, 0, components,
+    die = translate_components (&pool, &tail, 0, e,
 				type_die, &die_mem, &attr_mem);
     if(!die)
 	{
@@ -2554,7 +2570,8 @@ struct dwflpp
           print_members(die ?: type_die, alternatives);
 	  throw semantic_error("unable to find member for struct "
 			       + string(dwarf_diename(die ?: type_die) ?: "<unknown>")
-                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
+                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")),
+                               e->tok);
 	}
 
 
@@ -2566,7 +2583,7 @@ struct dwflpp
 
     string prelude, postlude;
     translate_final_fetch_or_store (&pool, &tail, module_bias,
-				    die, &attr_mem, lvalue,
+				    die, &attr_mem, lvalue, e,
 				    prelude, postlude, ty);
 
     /* Write the translation to a string. */
@@ -4865,7 +4882,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         {
 	  ec->code = q.dw.literal_stmt_for_return (scope_die,
 						   addr,
-						   e->components,
+						   e,
 						   lvalue,
 						   fdecl->type);
 	}
@@ -4874,7 +4891,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  ec->code = q.dw.literal_stmt_for_local (scope_die,
 						  addr,
 						  e->base_name.substr(1),
-						  e->components,
+						  e,
 						  lvalue,
 						  fdecl->type);
 	}
@@ -5008,7 +5025,7 @@ dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
     {
       try
         {
-          code = dw.literal_stmt_for_pointer (type_die, e.components,
+          code = dw.literal_stmt_for_pointer (type_die, &e,
                                               lvalue, pe_type);
         }
       catch (const semantic_error& e)
@@ -6231,7 +6248,7 @@ module_info::~module_info()
     delete sym_table;
 }
 
-// Helper function to emit vma tracker callback _stp_tf_vm_cb.
+// Helper function to emit vma tracker callbacks.
 static void
 emit_vma_callback_probe_decl (systemtap_session& s,
 			      string path,
@@ -6249,7 +6266,9 @@ emit_vma_callback_probe_decl (systemtap_session& s,
       s.op->line() << " .pid=" << pid << ",";
     }
   s.op->line() << " .callback=NULL,";
-  s.op->line() << " .vm_callback=&_stp_tf_vm_cb,";
+  s.op->line() << " .mmap_callback=&_stp_tf_mmap_cb,";
+  s.op->line() << " .munmap_callback=&_stp_tf_munmap_cb,";
+  s.op->line() << " .mprotect_callback=NULL,";
   s.op->line() << " },";
 }
 
@@ -6557,6 +6576,7 @@ itrace_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "#ifdef STP_NEED_VMA_TRACKER";
+  s.op->newline() << "_stp_sym_init();";
   s.op->newline() << "/* ---- itrace vma callbacks ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_itrace_vmcbs); i++) {";
   s.op->indent(1);
@@ -6971,7 +6991,9 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
     }
 
   s.op->line() << " .callback=&_stp_utrace_probe_cb,";
-  s.op->line() << " .vm_callback=NULL,";
+  s.op->line() << " .mmap_callback=NULL,";
+  s.op->line() << " .munmap_callback=NULL,";
+  s.op->line() << " .mprotect_callback=NULL,";
   s.op->line() << " },";
   s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
   s.op->line() << " .ph=&" << p->name << ",";
@@ -7303,6 +7325,7 @@ utrace_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "#ifdef STP_NEED_VMA_TRACKER";
+  s.op->newline() << "_stp_sym_init();";
   s.op->newline() << "/* ---- utrace vma callbacks ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_vmcbs); i++) {";
   s.op->indent(1);
@@ -7745,23 +7768,25 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(0) << "return stap_uprobe_change (tsk, register_p, 0, sups);";
   s.op->newline(-1) << "}";
 
-  // The task_finder_vm_callback we use for ET_DYN targets.
+  // The task_finder_mmap_callback we use for ET_DYN targets.
   s.op->newline();
-  s.op->newline() << "static int stap_uprobe_vmchange_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int map_p, char *vm_path, unsigned long vm_start, unsigned long vm_end, unsigned long vm_pgoff) {";
+  s.op->newline() << "static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {";
   s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
   // 1 - shared libraries' executable segments load from offset 0 - ld.so convention
-  s.op->newline() << "if (vm_pgoff != 0) return 0;";
+  s.op->newline() << "if (offset != 0) return 0;";
   // 2 - the shared library we're interested in
-  s.op->newline() << "if (vm_path == NULL || strcmp (vm_path, sups->pathname)) return 0;";
+  s.op->newline() << "if (path == NULL || strcmp (path, sups->pathname)) return 0;";
   // 3 - probe address within the mapping limits; test should not fail
-  s.op->newline() << "if (vm_end <= vm_start + sups->address) return 0;";
+  s.op->newline() << "if (sups->address >= addr && sups->address < (addr + length)) return 0;";
+  // 4 - mapping should be executable
+  s.op->newline() << "if (!(vm_flags & VM_EXEC)) return 0;";
 
   s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
-  s.op->newline() << "printk (KERN_INFO \"vmchange pid %d map_p %d path %s vms %p vme %p vmp %p\\n\", tsk->tgid, map_p, vm_path, (void*) vm_start, (void*) vm_end, (void*) vm_pgoff);";
+  s.op->newline() << "printk (KERN_INFO \"vmchange pid %d path %s addr %p length %lu offset %p\\n\", tsk->tgid, path, (void *) addr, length, (void*) offset);";
   s.op->newline() << "printk (KERN_INFO \"sups %p pp %s path %s address %p\\n\", sups, sups->pp, sups->pathname ?: \"\", (void*) sups->address);";
   s.op->newline() << "#endif";
 
-  s.op->newline(0) << "return stap_uprobe_change (tsk, map_p, vm_start, sups);";
+  s.op->newline(0) << "return stap_uprobe_change (tsk, 1, addr, sups);";
   s.op->newline(-1) << "}";
   s.op->assert_0_indent();
 
@@ -7775,6 +7800,7 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   if (probes.empty()) return;
   s.op->newline() << "#ifdef STP_NEED_VMA_TRACKER";
+  s.op->newline() << "_stp_sym_init();";
   s.op->newline() << "/* ---- uprobe vma callbacks ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_uprobe_vmcbs); i++) {";
   s.op->indent(1);
@@ -7798,7 +7824,7 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "struct stap_uprobe_spec *sups = & stap_uprobe_specs[i];";
   s.op->newline() << "probe_point = sups->pp;"; // for error messages
   s.op->newline() << "if (sups->finder.pathname) sups->finder.callback = & stap_uprobe_process_found;";
-  s.op->newline() << "else if (sups->pathname) sups->finder.vm_callback = & stap_uprobe_vmchange_found;";
+  s.op->newline() << "else if (sups->pathname) sups->finder.mmap_callback = & stap_uprobe_mmap_found;";
   s.op->newline() << "rc = stap_register_task_finder_target (& sups->finder);";
 
   // NB: if (rc), there is no need (XXX: nor any way) to clean up any
@@ -8654,6 +8680,7 @@ struct mark_derived_probe: public derived_probe
   bool target_symbol_seen;
 
   void join_group (systemtap_session& s);
+  void print_dupe_stamp (ostream& o);
   void emit_probe_context_vars (translator_output* o);
   void initialize_probe_context_vars (translator_output* o);
   void printargs (std::ostream &o) const;
@@ -8757,36 +8784,9 @@ mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
-  // Synthesize a function.
-  functiondecl *fdecl = new functiondecl;
-  fdecl->tok = e->tok;
-  embeddedcode *ec = new embeddedcode;
-  ec->tok = e->tok;
-
-  string fname = string("_mark_tvar_get")
-    + "_" + e->base_name.substr(1)
-    + "_" + lex_cast<string>(tick++);
-
-  if (mark_args[argnum-1]->stp_type == pe_long)
-    ec->code = string("THIS->__retvalue = CONTEXT->locals[0].")
-      + probe_name + string(".__mark_arg")
-      + lex_cast<string>(argnum) + string (";");
-  else
-    ec->code = string("strlcpy (THIS->__retvalue, CONTEXT->locals[0].")
-      + probe_name + string(".__mark_arg")
-      + lex_cast<string>(argnum) + string (", MAXSTRINGLEN);");
-  ec->code += "/* pure */";
-  fdecl->name = fname;
-  fdecl->body = ec;
-  fdecl->type = mark_args[argnum-1]->stp_type;
-  sess.functions[fdecl->name]=fdecl;
-
-  // Synthesize a functioncall.
-  functioncall* n = new functioncall;
-  n->tok = e->tok;
-  n->function = fname;
-  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  provide (n);
+  e->probe_context_var = "__mark_arg" + lex_cast<string>(argnum);
+  e->type = mark_args[argnum-1]->stp_type;
+  provide (e);
 }
 
 
@@ -9033,6 +9033,15 @@ mark_derived_probe::join_group (systemtap_session& s)
       s.embeds.push_back(ec);
     }
   s.mark_derived_probes->enroll (this);
+}
+
+
+void
+mark_derived_probe::print_dupe_stamp (ostream& o)
+{
+  if (target_symbol_seen)
+    for (unsigned i = 0; i < mark_args.size(); i++)
+      o << mark_args[i]->c_type << " __mark_arg" << (i+1) << endl;
 }
 
 
@@ -9374,6 +9383,7 @@ struct tracepoint_derived_probe: public derived_probe
   void build_args(dwflpp& dw, Dwarf_Die& func_die);
   void printargs (std::ostream &o) const;
   void join_group (systemtap_session& s);
+  void print_dupe_stamp(ostream& o);
   void emit_probe_context_vars (translator_output* o);
 };
 
@@ -9463,33 +9473,10 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
   if (e->components.empty())
     {
-      // Synthesize a simple function to grab the parameter
-      functiondecl *fdecl = new functiondecl;
-      fdecl->tok = e->tok;
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = e->tok;
-
-      string fname = (string("_tracepoint_tvar_get")
-                      + "_" + e->base_name.substr(1)
-                      + "_" + lex_cast<string>(tick++));
-
-      fdecl->name = fname;
-      fdecl->body = ec;
-      fdecl->type = pe_long;
-
-      ec->code = (string("THIS->__retvalue = CONTEXT->locals[0].")
-                  + probe_name + string(".__tracepoint_arg_")
-                  + arg->name + string (";/* pure */"));
-
-      dw.sess.functions[fdecl->name] = fdecl;
-
-      // Synthesize a functioncall.
-      functioncall* n = new functioncall;
-      n->tok = e->tok;
-      n->function = fname;
-      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-
-      provide (n);
+      // Just grab the value from the probe locals
+      e->probe_context_var = "__tracepoint_arg_" + arg->name;
+      e->type = pe_long;
+      provide (e);
     }
   else
     {
@@ -9509,7 +9496,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
       try
         {
-          ec->code = dw.literal_stmt_for_pointer (&arg->type_die, e->components,
+          ec->code = dw.literal_stmt_for_pointer (&arg->type_die, e,
                                                   lvalue, fdecl->type);
         }
       catch (const semantic_error& er)
@@ -9612,7 +9599,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     }
   else if (e->base_name == "$$vars" || e->base_name == "$$parms")
     {
-      target_symbol *tsym = new target_symbol;
       print_format* pf = new print_format;
 
       // Convert $$vars to sprintf of a list of vars which we recursively evaluate
@@ -9636,6 +9622,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
           if (i > 0)
             pf->raw_components += " ";
           pf->raw_components += args[i].name;
+          target_symbol *tsym = new target_symbol;
           tsym->tok = e->tok;
           tsym->base_name = "$" + args[i].name;
 
@@ -9862,6 +9849,15 @@ tracepoint_derived_probe::join_group (systemtap_session& s)
   if (! s.tracepoint_derived_probes)
     s.tracepoint_derived_probes = new tracepoint_derived_probe_group ();
   s.tracepoint_derived_probes->enroll (this);
+}
+
+
+void
+tracepoint_derived_probe::print_dupe_stamp(ostream& o)
+{
+  for (unsigned i = 0; i < args.size(); i++)
+    if (args[i].used)
+      o << "__tracepoint_arg_" << args[i].name << endl;
 }
 
 
@@ -10205,11 +10201,16 @@ struct hrtimer_derived_probe: public derived_probe
 
   int64_t interval, randomize;
 
-  hrtimer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r):
+  hrtimer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r,
+			 int64_t scale):
     derived_probe (p, l), interval (i), randomize (r)
   {
     if ((i < min_ns_interval) || (i > max_ns_interval))
-      throw semantic_error("interval value out of range");
+      throw semantic_error(string("interval value out of range (")
+			   + lex_cast<string>(scale < min_ns_interval
+					      ? min_ns_interval/scale : 1)
+			   + ","
+			   + lex_cast<string>(max_ns_interval/scale) + ")");
 
     // randomize = 0 means no randomization
     if ((r < 0) || (r > i))
@@ -10387,7 +10388,7 @@ timer_builder::build(systemtap_session & sess,
     literal_map_t const & parameters,
     vector<derived_probe *> & finished_results)
 {
-  int64_t period, rand=0;
+  int64_t scale=1, period, rand=0;
 
   if (!get_param(parameters, "randomize", rand))
     rand = 0;
@@ -10408,20 +10409,23 @@ timer_builder::build(systemtap_session & sess,
   else if (get_param(parameters, "s", period)
       || get_param(parameters, "sec", period))
     {
-      period *= 1000000000;
-      rand *= 1000000000;
+      scale = 1000000000;
+      period *= scale;
+      rand *= scale;
     }
   else if (get_param(parameters, "ms", period)
       || get_param(parameters, "msec", period))
     {
-      period *= 1000000;
-      rand *= 1000000;
+      scale = 1000000;
+      period *= scale;
+      rand *= scale;
     }
   else if (get_param(parameters, "us", period)
       || get_param(parameters, "usec", period))
     {
-      period *= 1000;
-      rand *= 1000;
+      scale = 1000;
+      period *= scale;
+      rand *= scale;
     }
   else if (get_param(parameters, "ns", period)
       || get_param(parameters, "nsec", period))
@@ -10444,7 +10448,7 @@ timer_builder::build(systemtap_session & sess,
     }
   else
     finished_results.push_back(
-	new hrtimer_derived_probe(base, location, period, rand));
+	new hrtimer_derived_probe(base, location, period, rand, scale));
 }
 
 void

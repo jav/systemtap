@@ -129,6 +129,11 @@ struct derived_probe: public probe
   void printsig_nested (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
 
+  virtual void print_dupe_stamp(std::ostream&) {}
+  // To aid duplication elimination, print a stamp which uniquely identifies
+  // the code that will be added to the probe body.  (Doesn't need to be the
+  // actual code...)
+
   virtual void emit_probe_context_vars (translator_output*) {}
   // From within unparser::emit_common_header, add any extra variables
   // to this probe's context locals.

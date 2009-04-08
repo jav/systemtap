@@ -13,6 +13,7 @@
 #define _STP_SYM_C_
 
 #include "string.c"
+#include "task_finder_vma.c"
 
 /** @file sym.c
  * @addtogroup sym Symbolic Functions
@@ -20,38 +21,60 @@
  * @{
  */
 
+static void _stp_sym_init(void)
+{
+	static int initialized = 0;
+	if (! initialized) {
+		__stp_tf_vma_initialize();
+		initialized = 1;
+	}
+}
+
 /* Callback that needs to be registered (in tapsets.cxx for
    emit_module_init) for every user task path or pid for which we
    might need symbols or unwind info. */
-static int _stp_tf_vm_cb(struct stap_task_finder_target *tgt,
-			 struct task_struct *tsk,
-			 int map_p, char *vm_path,
-			 unsigned long vm_start, unsigned long vm_end,
-			 unsigned long vm_pgoff)
+static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
+			   struct task_struct *tsk,
+			   char *path,
+			   unsigned long addr,
+			   unsigned long length,
+			   unsigned long offset,
+			   unsigned long vm_flags)
 {
-  int i;
-#ifdef DEBUG_TASK_FINDER_VMA
-  _stp_dbug(__FUNCTION__, __LINE__, "vm_cb: tsk %d:%d path %s, start 0x%08lx, end 0x%08lx, offset 0x%lx\n", tsk->pid, map_p, vm_path, vm_start, vm_end, vm_pgoff);
-#endif
-  if (map_p)
-    {
-      struct _stp_module *module = NULL;
-      if (vm_path != NULL)
-	for (i = 0; i < _stp_num_modules; i++)
-	  if (strcmp(vm_path, _stp_modules[i]->path) == 0)
-	    {
-#ifdef DEBUG_TASK_FINDER_VMA
-	      _stp_dbug(__FUNCTION__, __LINE__, "vm_cb: matched path %s to module\n", vm_path);
-#endif
-	      module = _stp_modules[i];
-	      break;
-	    }
-      stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff, module);
-    }
-  else
-    stap_remove_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
+	int i;
+	struct _stp_module *module = NULL;
 
-  return 0;
+#ifdef DEBUG_TASK_FINDER_VMA
+	_stp_dbug(__FUNCTION__, __LINE__,
+		  "mmap_cb: tsk %d:%d path %s, addr 0x%08lx, length 0x%08lx, offset 0x%lx, flags 0x%lx\n",
+		  tsk->pid, tsk->tgid, path, addr, length, offset, flags);
+#endif
+	if (path != NULL) {
+		for (i = 0; i < _stp_num_modules; i++) {
+			if (strcmp(path, _stp_modules[i]->path) == 0)
+			{
+#ifdef DEBUG_TASK_FINDER_VMA
+				_stp_dbug(__FUNCTION__, __LINE__,
+					  "vm_cb: matched path %s to module\n",
+					  path);
+#endif
+				module = _stp_modules[i];
+				break;
+			}
+		}
+	}
+	stap_add_vma_map_info(tsk->group_leader, addr, addr + length, offset,
+			      module);
+	return 0;
+}
+
+static int _stp_tf_munmap_cb(struct stap_task_finder_target *tgt,
+			     struct task_struct *tsk,
+			     unsigned long addr,
+			     unsigned long length)
+{
+	stap_remove_vma_map_info(tsk->group_leader, addr, addr + length, 0);
+	return 0;
 }
 
 /* XXX: this needs to be address-space-specific. */
@@ -122,7 +145,7 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
   if (task)
     {
       unsigned long vm_start = 0;
-      if (stap_find_vma_map_info(task, addr,
+      if (stap_find_vma_map_info(task->group_leader, addr,
 				 &vm_start, NULL,
 				 NULL, &user) == 0)
 	if (user != NULL)
@@ -357,8 +380,8 @@ static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 				    task);
 	if (name) {
 		if (add_mod && modname && *modname)
-			_stp_printf("%s %s+%#lx/%#lx\n",
-				    name, modname, offset, size);
+			_stp_snprintf(str, len, "%s %s+%#lx/%#lx",
+				      name, modname, offset, size);
 		else
 			strlcpy(str, name, len);
 	} else
