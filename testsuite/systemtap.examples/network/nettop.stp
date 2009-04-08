@@ -19,11 +19,11 @@ function print_activity()
          "PID", "UID", "DEV", "XMIT_PK", "RECV_PK",
          "XMIT_KB", "RECV_KB", "COMMAND")
 
-  foreach ([pid, dev, exec, uid] in ifrecv-) {
-	  ifmerged[pid, dev, exec, uid] = 1;
+  foreach ([pid, dev, exec, uid] in ifrecv) {
+	  ifmerged[pid, dev, exec, uid] += @count(ifrecv[pid,dev,exec,uid]);
   }
-  foreach ([pid, dev, exec, uid] in ifxmit-) {
-	  ifmerged[pid, dev, exec, uid] = 1;
+  foreach ([pid, dev, exec, uid] in ifxmit) {
+	  ifmerged[pid, dev, exec, uid] += @count(ifxmit[pid,dev,exec,uid]);
   }
   foreach ([pid, dev, exec, uid] in ifmerged-) {
     n_xmit = @count(ifxmit[pid, dev, exec, uid])
