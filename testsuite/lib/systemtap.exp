@@ -85,7 +85,7 @@ proc setup_server {} {
 
     # Make sure that the necessary resources are available to run the client/server.
     if {[installtest_p]} then {
-	if {[exec /usr/bin/which stap-client-connect] == ""} then {
+	if {[catch {exec /usr/bin/which stap-client-connect} dummy]} then {
 	    print "Unable to start a server: stap-client-connect is not found in PATH"
 	    return 0
 	}
@@ -93,7 +93,7 @@ proc setup_server {} {
 	print "Unable to start a server: [exec pwd]/../stap-client-connect is not found"
 	return 0
     }
-    if {[exec /usr/bin/which avahi-publish-service] == ""} then {
+    if {[catch {exec /usr/bin/which avahi-publish-service} dummy]} then {
 	print "Unable to start a server: avahi-publish-service is not found in PATH"
 	return 0
     }
