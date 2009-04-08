@@ -4576,10 +4576,13 @@ dump_unwindsyms (Dwfl_Module *m,
           // PC's, so we omit undefined or "fake" absolute addresses.
           // These fake absolute addresses occur in some older i386
           // kernels to indicate they are vDSO symbols, not real
-          // functions in the kernel.
+          // functions in the kernel. We also omit symbols that have
+          // suspicious addresses (before base).
           if ((GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
                GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
-               && !(sym.st_shndx == SHN_UNDEF || sym.st_shndx == SHN_ABS))
+               && !(sym.st_shndx == SHN_UNDEF
+		    || sym.st_shndx == SHN_ABS
+		    || sym.st_value < base))
             {
               Dwarf_Addr sym_addr = sym.st_value;
               const char *secname = NULL;
