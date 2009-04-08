@@ -15,13 +15,15 @@ int lib_main (void);
 void
 main_func (int foo)
 {
-  ; // nothing here...
+  if (foo > 1)
+    main_func (foo - 1);
+  else
+    lib_main();
 }
 
 int
 main (int argc, char *argv[], char *envp[])
 {
-  main_func(1);
-  lib_main();
+  main_func (3);
   return 0;
 }

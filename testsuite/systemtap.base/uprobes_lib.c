@@ -10,7 +10,8 @@
 void
 lib_func (int bar)
 {
-  ; // nothing here...
+  if (bar > 1)
+    lib_func (bar - 1);
 }
 
 void

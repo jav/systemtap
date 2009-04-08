@@ -29,11 +29,14 @@ if { $res != "" } {
     pass "$test compile $testsrc"
 }
 
-# XXX main_func needs another/extra test. Disabled for now.
-# Enable (and in uprobes_lib.stp) after PR9940 is fixed.
-# set ::result_string {main_func
-# lib_func}
-set ::result_string {lib_func}
+set ::result_string {main
+main_func
+main_func
+main_func
+lib_main
+lib_func
+lib_func
+lib_func}
 
 # Only run on make installcheck
 if {! [installtest_p]} { untested "$test"; return }
