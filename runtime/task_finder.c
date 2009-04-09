@@ -179,7 +179,7 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 			 && strcmp(tgt->pathname, new_tgt->pathname) == 0)
 			/* pid-based target (a specific pid or all
 			 * pids) */
-			|| (new_tgt->pathlen == 0
+			|| (new_tgt->pathlen == 0 && tgt->pathlen == 0
 			    && tgt->pid == new_tgt->pid))) {
 			found_node = 1;
 			break;
