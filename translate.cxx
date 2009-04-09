@@ -4486,7 +4486,7 @@ dump_unwindsyms (Dwfl_Module *m,
   // In the future, we'll also care about data symbols.
 
   int syments = dwfl_module_getsymtab(m);
-  assert(syments);
+  dwfl_assert ("Getting symbol table for " + modname, syments >= 0);
 
   //extract build-id from debuginfo file
   int build_id_len = 0;
@@ -4532,6 +4532,10 @@ dump_unwindsyms (Dwfl_Module *m,
       }
   }
 
+  // Use end as sanity check when resolving symbol addresses.
+  Dwarf_Addr end;
+  dwfl_module_info (m, NULL, NULL, &end, NULL, NULL, NULL, NULL);
+
   // Look up the relocation basis for symbols
   int n = dwfl_module_relocations (m);
 
@@ -4546,10 +4550,11 @@ dump_unwindsyms (Dwfl_Module *m,
 
   Dwarf_Addr extra_offset = 0;
 
-  for (int i = 1 /* XXX: why not 0? */ ; i < syments; ++i)
+  for (int i = 0; i < syments; ++i)
     {
       GElf_Sym sym;
-      const char *name = dwfl_module_getsym(m, i, &sym, NULL);
+      GElf_Word shndxp;
+      const char *name = dwfl_module_getsym(m, i, &sym, &shndxp);
       if (name)
         {
           // NB: Yey, we found the kernel's _stext value.
@@ -4572,17 +4577,15 @@ dump_unwindsyms (Dwfl_Module *m,
                 clog << "Found kernel _stext extra offset 0x" << hex << extra_offset << dec << endl;
             }
 
-          // We only need the function symbols to identify kernel-mode
-          // PC's, so we omit undefined or "fake" absolute addresses.
-          // These fake absolute addresses occur in some older i386
-          // kernels to indicate they are vDSO symbols, not real
-          // functions in the kernel. We also omit symbols that have
-          // suspicious addresses (before base).
+	  // We are only interested in "real" symbols.
+	  // We omit symbols that have suspicious addresses (before base,
+	  // or after end).
           if ((GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
                GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
-               && !(sym.st_shndx == SHN_UNDEF
-		    || sym.st_shndx == SHN_ABS
-		    || sym.st_value < base))
+               && !(sym.st_shndx == SHN_UNDEF	// Value undefined,
+		    || shndxp == (GElf_Word) -1	// in a non-allocated section,
+		    || sym.st_value >= end	// beyond current module,
+		    || sym.st_value < base))	// before first section.
             {
               Dwarf_Addr sym_addr = sym.st_value;
               const char *secname = NULL;
@@ -4607,6 +4610,16 @@ dump_unwindsyms (Dwfl_Module *m,
                 {
                   // This is a symbol within a (possibly relocatable)
                   // kernel image.
+                  
+		  // We only need the function symbols to identify kernel-mode
+		  // PC's, so we omit undefined or "fake" absolute addresses.
+		  // These fake absolute addresses occur in some older i386
+		  // kernels to indicate they are vDSO symbols, not real
+		  // functions in the kernel. We also omit symbols that have
+                  if (GELF_ST_TYPE (sym.st_info) == STT_FUNC
+		      && sym.st_shndx == SHN_ABS)
+		    continue;
+
                   secname = "_stext";
                   // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
                   // Instead, sym_addr will get compensated later via extra_offset.
@@ -4666,10 +4679,10 @@ dump_unwindsyms (Dwfl_Module *m,
       // There would be only a small benefit to warning.  A user
       // likely can't do anything about this; backtraces for the
       // affected module would just get all icky heuristicy.
-#if 0
-      c->session.print_warning ("No unwind data for " + modname
-				+ ", " + dwfl_errmsg (-1));
-#endif
+      // So only report in verbose mode.
+      if (c->session.verbose > 2)
+	c->session.print_warning ("No unwind data for " + modname
+				  + ", " + dwfl_errmsg (-1));
     }
 
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
