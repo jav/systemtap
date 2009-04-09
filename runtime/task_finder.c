@@ -1065,11 +1065,9 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 #endif
 {
 	struct stap_task_finder_target *tgt = engine->data;
-	unsigned long syscall_no;
-	unsigned long *rv_addr, rv;
-	unsigned long *arg_addr, arg0;
-	unsigned long arg1 = 0;
-	unsigned long arg2 = 0;
+	long syscall_no;
+	unsigned long rv;
+	unsigned long args[3];
 	int rc;
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
@@ -1088,7 +1086,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 	// See if syscall is one we're interested in.
 	//
 	// FIXME: do we need to handle mremap()?
-	syscall_no = __stp_user_syscall_nr(regs);
+	syscall_no = syscall_get_nr(tsk, regs);
 	if (syscall_no != MMAP_SYSCALL_NO(tsk)
 	    && syscall_no != MMAP2_SYSCALL_NO(tsk)
 	    && syscall_no != MPROTECT_SYSCALL_NO(tsk)
@@ -1106,21 +1104,11 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 		return UTRACE_RESUME;
 
 	// Get return value
-	rv_addr = __stp_user_syscall_return_value(tsk, regs);
-	if ((rc = __stp_get_user(rv, rv_addr)) != 0) {
-		_stp_error("couldn't read syscall return value for pid %d: %d",
-			   tsk->pid, rc);
-		return UTRACE_RESUME;
-	}
+	rv = syscall_get_return_value(tsk, regs);
 
 	// We need the first syscall argument to see what address we
 	// were operating on.
-	arg_addr = __stp_user_syscall_arg(tsk, regs, 0);
-	if ((rc = __stp_get_user(arg0, arg_addr)) != 0) {
-		_stp_error("couldn't read syscall arg 0 for pid %d: %d",
-			   tsk->pid, rc);
-		return UTRACE_RESUME;
-	}
+	syscall_get_arguments(tsk, regs, 0, 1, args);
 
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
@@ -1131,20 +1119,15 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 		      : ((syscall_no == MPROTECT_SYSCALL_NO(tsk)) ? "mprotect"
 			 : ((syscall_no == MUNMAP_SYSCALL_NO(tsk)) ? "munmap"
 			    : "UNKNOWN")))),
-		  arg0, rv);
+		  args[0], rv);
 #endif
 	__stp_tf_handler_start();
 
 	if (syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
 		// We need the 2nd syscall argument for the length.
-		arg_addr = __stp_user_syscall_arg(tsk, regs, 1);
-		if ((rc = __stp_get_user(arg1, arg_addr)) != 0) {
-			_stp_error("couldn't read syscall arg 1 for pid %d: %d",
-				   tsk->pid, rc);
-			goto syscall_exit_done;
-		}
+		syscall_get_arguments(tsk, regs, 1, 1, &args[1]);
 		// Call the callbacks
-		__stp_call_munmap_callbacks(tgt, tsk, arg0, arg1);
+		__stp_call_munmap_callbacks(tgt, tsk, args[0], args[1]);
 	}
 	else if (syscall_no == MMAP_SYSCALL_NO(tsk)
 		 || syscall_no == MMAP2_SYSCALL_NO(tsk)) {
@@ -1165,24 +1148,13 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 		}
 	}
 	else {
-		// We need the 2nd syscall argument for the length.
-		arg_addr = __stp_user_syscall_arg(tsk, regs, 1);
-		if ((rc = __stp_get_user(arg1, arg_addr)) != 0) {
-			_stp_error("couldn't read syscall arg 1 for pid %d: %d",
-				   tsk->pid, rc);
-			goto syscall_exit_done;
-		}
-
-		// We need the 3nd syscall argument for the protection.
-		arg_addr = __stp_user_syscall_arg(tsk, regs, 2);
-		if ((rc = __stp_get_user(arg2, arg_addr)) != 0) {
-			_stp_error("couldn't read syscall arg 2 for pid %d: %d",
-				   tsk->pid, rc);
-			goto syscall_exit_done;
-		}
+		// We need the 2nd syscall argument for the length and
+		// the 3rd argument for the protection.
+		syscall_get_arguments(tsk, regs, 1, 2, &args[1]);
 
 		// Call the callbacks
-		__stp_call_mprotect_callbacks(tgt, tsk, arg0, arg1, arg2);
+		__stp_call_mprotect_callbacks(tgt, tsk, args[0], args[1],
+					      args[2]);
 	}
 
 syscall_exit_done:

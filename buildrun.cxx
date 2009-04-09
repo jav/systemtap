@@ -165,6 +165,8 @@ compile_pass (systemtap_session& s)
 #endif
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
                   "STAPCONF_KERNEL_STACKTRACE", NULL);
+  output_autoconf(s, o, "autoconf-asm-syscall.c",
+		  "STAPCONF_ASM_SYSCALL_H", NULL);
 
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 

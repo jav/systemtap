@@ -6,13 +6,15 @@
 %}
 
 function _utrace_syscall_nr:long () %{
-   THIS->__retvalue = __stp_user_syscall_nr(CONTEXT->regs); /* pure */
+   THIS->__retvalue = syscall_get_nr(current, CONTEXT->regs); /* pure */
 %}
 
 function _utrace_syscall_arg:long (n:long) %{
-   THIS->__retvalue = *__stp_user_syscall_arg(current, CONTEXT->regs, (int)THIS->n); /* pure */
+   unsigned long arg = 0; /* pure */
+   syscall_get_arguments(current, CONTEXT->regs, (int)THIS->n, 1, &arg);
+   THIS->__retvalue = arg;
 %}
 
 function _utrace_syscall_return:long () %{
-   THIS->__retvalue = *__stp_user_syscall_return_value(current, CONTEXT->regs); /* pure */
+   THIS->__retvalue = syscall_get_return_value(current, CONTEXT->regs); /* pure */
 %}
