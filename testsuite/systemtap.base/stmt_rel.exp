@@ -33,7 +33,9 @@ expect {
     eof { }
 }
 
-if { $ok == 3 } {
+# bio_init drifts a bit in different kernels. 
+# maybe 3, 4 or 15 lines in it.
+if { $ok >= 3 } {
     pass "$test wildcard"
 } else {
     fail "$test wildcard ($ok)"
