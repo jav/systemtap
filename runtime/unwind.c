@@ -581,7 +581,7 @@ static int unwind(struct unwind_frame_info *frame)
 	if (UNW_PC(frame) == 0)
 		return -EINVAL;
 
-	m = _stp_mod_sec_lookup (pc, &s);
+	m = _stp_mod_sec_lookup (pc, current, &s);
 	if (unlikely(m == NULL)) {
 		dbug_unwind(1, "No module found for pc=%lx", pc);
 		return -EINVAL;
