@@ -68,7 +68,9 @@ static struct
 
 /* dwarf unwinder only tested so far on i386 and x86_64. */
 #if (defined(__i386__) || defined(__x86_64__))
+#ifndef STP_USE_DWARF_UNWINDER
 #define STP_USE_DWARF_UNWINDER
+#endif
 #endif
 
 #ifdef CONFIG_FRAME_POINTER
