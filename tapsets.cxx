@@ -2434,13 +2434,12 @@ struct dwflpp
 
     /* Translate the ->bar->baz[NN] parts. */
 
-    Dwarf_Die die_mem, *die = NULL;
-    die = dwarf_formref_die (&attr_mem, &die_mem);
+    Dwarf_Die die_mem, *die = dwarf_formref_die (&attr_mem, &die_mem);
     die = translate_components (&pool, &tail, pc, e,
 				die, &die_mem, &attr_mem);
     if(!die)
 	{ 
-	  die = dwarf_formref_die (&attr_mem, &vardie);
+	  die = dwarf_formref_die (&attr_mem, &die_mem);
           stringstream alternatives;
           if (die != NULL)
 	    print_members(die,alternatives); 
@@ -2516,17 +2515,19 @@ struct dwflpp
     /* Translate the ->bar->baz[NN] parts. */
 
     Dwarf_Attribute attr_mem;
-    Dwarf_Attribute *attr = dwarf_attr (scope_die, DW_AT_type, &attr_mem);
+    if (dwarf_attr_integrate (scope_die, DW_AT_type, &attr_mem) == NULL)
+      throw semantic_error("failed to retrieve return value type attribute for "
+                           + string(dwarf_diename(scope_die) ?: "<unknown>")
+                           + "(" + string(dwarf_diename(cu) ?: "<unknown>")
+                           + ")",
+                           e->tok);
 
-    Dwarf_Die vardie_mem;
-    Dwarf_Die *vardie = dwarf_formref_die (attr, &vardie_mem);
-
-    Dwarf_Die die_mem, *die = NULL;
+    Dwarf_Die die_mem, *die = dwarf_formref_die (&attr_mem, &die_mem);
     die = translate_components (&pool, &tail, pc, e,
-				vardie, &die_mem, &attr_mem);
+				die, &die_mem, &attr_mem);
     if(!die)
 	{ 
-	  die = dwarf_formref_die (&attr_mem, vardie);
+	  die = dwarf_formref_die (&attr_mem, &die_mem);
           stringstream alternatives;
           if (die != NULL)
 	    print_members(die,alternatives); 
