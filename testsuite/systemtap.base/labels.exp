@@ -55,8 +55,23 @@ if { $res != "" } {
     pass "compiling labels.c -g"
 }
 
+# list of labels
+
+spawn stap -l "process(\"$label_exepath\").function(\"*\").label(\"*\")"
+
+wait
+expect {
+    -timeout 180
+    -re {process.*function.*labels.c:5...label..init_an_int.*process.*function.*labels.c:16...label..init_an_int.*process.*function.*labels.c:18...label..init_an_int_again} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if {$ok == 1} { pass "$test -l .label" } { fail "$test -l .label $ok" }
+
 # label in an executable
 
+set ok 0
 verbose -log "spawn stap -c $label_exepath $label_stppath"
 spawn stap -c $label_exepath $label_stppath
 

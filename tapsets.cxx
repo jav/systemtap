@@ -1339,8 +1339,12 @@ struct dwflpp
   }
 
   void
-  iterate_over_cu_labels (string label_val, string function, Dwarf_Die *cu,
-			  void *data,
+  iterate_over_cu_labels (string label_val,
+			  string function,
+			  Dwarf_Die *cu,
+			  vector<derived_probe *>  & results, 
+			  probe_point *base_loc,
+			  void *data, 
 			  void (* callback)(const string &,
 					    const char *,
 					    int,
@@ -1375,7 +1379,7 @@ struct dwflpp
 	    function_name = name;
 	  default:
 	    if (dwarf_haschildren (&die))
-	      iterate_over_cu_labels (label_val, function, &die, q, callback);
+	      iterate_over_cu_labels (label_val, function, &die, results, base_loc, q, callback);
 	    continue;
 	  }
 	
@@ -1420,8 +1424,13 @@ struct dwflpp
 	    int nscopes = 0;
 	    nscopes = dwarf_getscopes_die (&die, &scopes);
 	    if (nscopes > 1)
-	      callback(function_name.c_str(), file,
-		       (int)dline, &scopes[1], stmt_addr, q);
+	      {
+		callback(function_name.c_str(), file,
+			 (int)dline, &scopes[1], stmt_addr, q);
+		if (sess.listing_mode)
+		  results.back()->locations[0]->components.push_back
+		    (new probe_point::component(TOK_LABEL, new literal_string (name)));
+	      }
 	  }
       }
     while (dwarf_siblingof (&die, &die) == 0);
@@ -4121,7 +4130,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    {
 	      // If we have a pattern string with target *label*, we
 	      // have to look at labels in all the matched srcfiles.
-	      q->dw.iterate_over_cu_labels (q->label_val, q->function, q->dw.cu, q, query_statement);
+	      q->dw.iterate_over_cu_labels (q->label_val, q->function, q->dw.cu, q->results, q->base_loc, q, query_statement);
 	    }
 	  else
 	    {
