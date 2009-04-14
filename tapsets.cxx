@@ -1339,7 +1339,12 @@ struct dwflpp
   }
 
   void
-  iterate_over_cu_labels (string label_val, Dwarf_Die *cu, void *data,
+  iterate_over_cu_labels (string label_val,
+			  string function,
+			  Dwarf_Die *cu,
+			  vector<derived_probe *>  & results, 
+			  probe_point *base_loc,
+			  void *data, 
 			  void (* callback)(const string &,
 					    const char *,
 					    int,
@@ -1364,14 +1369,30 @@ struct dwflpp
 	Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
 	int tag = dwarf_tag(&die);
 	const char *name = dwarf_formstring (attr);
-	if (tag == DW_TAG_subprogram && name != 0)
+	if (name == 0)
+	  continue;
+	switch (tag)
 	  {
+	  case DW_TAG_label:
+	    break;
+	  case DW_TAG_subprogram:
 	    function_name = name;
+	  default:
+	    if (dwarf_haschildren (&die))
+	      iterate_over_cu_labels (label_val, function, &die, results, base_loc, q, callback);
+	    continue;
 	  }
-	else if (tag == DW_TAG_label && name != 0
-		 && ((strncmp(name, sym, strlen(sym)) == 0)
-		     || (name_has_wildcard (sym)
-			 && function_name_matches_pattern (name, sym))))
+	
+	if (strcmp(function_name.c_str(), function.c_str()) == 0
+	    || (name_has_wildcard(function)
+		&& function_name_matches_pattern (function_name, function)))
+	  {
+	  }
+	else
+	  continue;
+	if (strcmp(name, sym) == 0
+	    || (name_has_wildcard(sym) 
+		&& function_name_matches_pattern (name, sym)))
 	  {
 	    const char *file = dwarf_decl_file (&die);
 	    // Get the line number for this label
@@ -1403,18 +1424,17 @@ struct dwflpp
 	    int nscopes = 0;
 	    nscopes = dwarf_getscopes_die (&die, &scopes);
 	    if (nscopes > 1)
-	      callback(function_name.c_str(), file,
-		       (int)dline, &scopes[1], stmt_addr, q);
-	  }
-	if (dwarf_haschildren (&die) && tag != DW_TAG_structure_type
-	    && tag != DW_TAG_union_type)
-	  {
-	    iterate_over_cu_labels (label_val, &die, q, callback);
+	      {
+		callback(function_name.c_str(), file,
+			 (int)dline, &scopes[1], stmt_addr, q);
+		if (sess.listing_mode)
+		  results.back()->locations[0]->components.push_back
+		    (new probe_point::component(TOK_LABEL, new literal_string (name)));
+	      }
 	  }
       }
     while (dwarf_siblingof (&die, &die) == 0);
   }
-
 
   void collect_srcfiles_matching (string const & pattern,
 				  set<char const *> & filtered_srcfiles)
@@ -1986,7 +2006,7 @@ struct dwflpp
 		       Dwarf_Die *die_mem,
 		       Dwarf_Attribute *attr_mem)
   {
-    Dwarf_Die *die = die_mem;
+    Dwarf_Die *die = NULL;
     Dwarf_Die struct_die;
     Dwarf_Attribute temp_attr;
 
@@ -1994,6 +2014,9 @@ struct dwflpp
 
     if (vardie)
       *die_mem = *vardie;
+
+    if (e->components.empty())
+      return die_mem;
 
     static unsigned int func_call_level ;
     static unsigned int dwarf_error_flag ; // indicates current error is dwarf error
@@ -2011,6 +2034,7 @@ struct dwflpp
         obstack_printf (pool, "c->last_stmt = %s;", lex_cast_qstring(piece).c_str());
 #endif
 
+	die = die ? dwarf_formref_die (attr_mem, die_mem) : die_mem;
 	const int typetag = dwarf_tag (die);
 	switch (typetag)
 	  {
@@ -2168,7 +2192,6 @@ struct dwflpp
 	/* Now iterate on the type in DIE's attribute.  */
 	if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
 	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)), e->tok);
-	die = dwarf_formref_die (attr_mem, die_mem);
       }
     return die;
   }
@@ -2414,13 +2437,12 @@ struct dwflpp
 
     /* Translate the ->bar->baz[NN] parts. */
 
-    Dwarf_Die die_mem, *die = NULL;
-    die = dwarf_formref_die (&attr_mem, &die_mem);
+    Dwarf_Die die_mem, *die = dwarf_formref_die (&attr_mem, &die_mem);
     die = translate_components (&pool, &tail, pc, e,
 				die, &die_mem, &attr_mem);
     if(!die)
 	{ 
-	  die = dwarf_formref_die (&attr_mem, &vardie);
+	  die = dwarf_formref_die (&attr_mem, &die_mem);
           stringstream alternatives;
           if (die != NULL)
 	    print_members(die,alternatives); 
@@ -2496,17 +2518,19 @@ struct dwflpp
     /* Translate the ->bar->baz[NN] parts. */
 
     Dwarf_Attribute attr_mem;
-    Dwarf_Attribute *attr = dwarf_attr (scope_die, DW_AT_type, &attr_mem);
+    if (dwarf_attr_integrate (scope_die, DW_AT_type, &attr_mem) == NULL)
+      throw semantic_error("failed to retrieve return value type attribute for "
+                           + string(dwarf_diename(scope_die) ?: "<unknown>")
+                           + "(" + string(dwarf_diename(cu) ?: "<unknown>")
+                           + ")",
+                           e->tok);
 
-    Dwarf_Die vardie_mem;
-    Dwarf_Die *vardie = dwarf_formref_die (attr, &vardie_mem);
-
-    Dwarf_Die die_mem, *die = NULL;
+    Dwarf_Die die_mem, *die = dwarf_formref_die (&attr_mem, &die_mem);
     die = translate_components (&pool, &tail, pc, e,
-				vardie, &die_mem, &attr_mem);
+				die, &die_mem, &attr_mem);
     if(!die)
 	{ 
-	  die = dwarf_formref_die (&attr_mem, vardie);
+	  die = dwarf_formref_die (&attr_mem, &die_mem);
           stringstream alternatives;
           if (die != NULL)
 	    print_members(die,alternatives); 
@@ -4110,7 +4134,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    {
 	      // If we have a pattern string with target *label*, we
 	      // have to look at labels in all the matched srcfiles.
-	      q->dw.iterate_over_cu_labels (q->label_val, q->dw.cu, q, query_statement);
+	      q->dw.iterate_over_cu_labels (q->label_val, q->function, q->dw.cu, q->results, q->base_loc, q, query_statement);
 	    }
 	  else
 	    {
@@ -6474,6 +6498,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "/* ---- itrace probes ---- */";
+
   s.op->newline() << "struct stap_itrace_probe {";
   s.op->indent(1);
   s.op->newline() << "struct stap_task_finder_target tgt;";

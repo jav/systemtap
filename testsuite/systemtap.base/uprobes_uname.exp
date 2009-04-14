@@ -1,4 +1,4 @@
-set test "uprobes_lib"
+set test "uprobes_uname"
 set testpath "$srcdir/$subdir"
 set testsrc  "$testpath/uprobes_exe.c"
 set testsrclib  "$testpath/uprobes_lib.c"
@@ -29,14 +29,14 @@ if { $res != "" } {
     pass "$test compile $testsrc"
 }
 
-set ::result_string {main
-main_func
-main_func
-main_func
-lib_main
-lib_func
-lib_func
-lib_func}
+set ::result_string {exe: main=main
+exe: main_func=main_func
+exe: main_func=main_func
+exe: main_func=main_func
+lib: lib_main=lib_main
+lib: lib_func=lib_func
+lib: lib_func=lib_func
+lib: lib_func=lib_func}
 
 # Only run on make installcheck
 if {! [installtest_p]} { untested "$test"; return }

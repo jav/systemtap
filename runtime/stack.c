@@ -97,6 +97,12 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
                    &print_data);
 }
 #endif
+
+// Without KPROBES very little works atm.
+// But this file is unconditionally imported, while these two functions are only
+// used through context-unwind.stp.
+#if defined (CONFIG_KPROBES)
+
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
  */
@@ -140,6 +146,8 @@ static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int ve
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
 }
+
+#endif /* CONFIG_KPROBES */
 
 /** Prints the user stack backtrace
  * @param str string

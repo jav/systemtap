@@ -1,0 +1,3 @@
+# test that bitfield r/w works correctly
+set test "bitfield"
+stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string -g

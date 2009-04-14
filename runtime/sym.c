@@ -47,7 +47,7 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "mmap_cb: tsk %d:%d path %s, addr 0x%08lx, length 0x%08lx, offset 0x%lx, flags 0x%lx\n",
-		  tsk->pid, tsk->tgid, path, addr, length, offset, flags);
+		  tsk->pid, tsk->tgid, path, addr, length, offset, vm_flags);
 #endif
 	if (path != NULL) {
 		for (i = 0; i < _stp_num_modules; i++) {
@@ -127,7 +127,6 @@ static unsigned long _stp_module_relocate(const char *module, const char *sectio
 	last = NULL;
 	return 0;
 }
-
 
 /* Return module owner and, if sec != NULL, fills in closest section
    of the address if found, return NULL otherwise.

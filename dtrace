@@ -94,7 +94,7 @@ class provider:
 ########################################################################
 
 def usage ():
-    print "Usage " + sys.argv[0] + "[-h | -G] -s File.d -o File {Files}"
+    print "Usage " + sys.argv[0] + " [-h | -G] -s File.d -o File {Files}"
     sys.exit(1)
 
 def open_file (arg):

@@ -1,5 +1,6 @@
-/* syscall defines and inlines
- * Copyright (C) 2008 Red Hat Inc.
+/*
+ * syscall defines and inlines
+ * Copyright (C) 2008-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -89,9 +90,17 @@
 #error "Unimplemented architecture"
 #endif
 
+#ifdef STAPCONF_ASM_SYSCALL_H
+
+/* If the system has asm/syscall.h, use defines from it. */
+#include <asm/syscall.h>
+
+#else  /* !STAPCONF_ASM_SYSCALL_H */
+
+/* If the system doesn't have asm/syscall.h, use our defines. */
 #if defined(__i386__) || defined(__x86_64__)
-static inline unsigned long
-__stp_user_syscall_nr(struct pt_regs *regs)
+static inline long
+syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 {
 #if defined(STAPCONF_X86_UNIREGS)
 	return regs->orig_ax;
@@ -104,37 +113,37 @@ __stp_user_syscall_nr(struct pt_regs *regs)
 #endif
 
 #if defined(__powerpc__)
-static inline unsigned long
-__stp_user_syscall_nr(struct pt_regs *regs)
+static inline long
+syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 {
 	return regs->gpr[0];
 }
 #endif
 
 #if defined(__ia64__)
-static inline unsigned long
-__stp_user_syscall_nr(struct pt_regs *regs)
+static inline long
+syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 {
         return regs->r15;
 }
 #endif
 
 #if defined(__s390__) || defined(__s390x__)
-static inline unsigned long
-__stp_user_syscall_nr(struct pt_regs *regs)
+static inline long
+syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 {
-	    // might need to be 'orig_gpr2'
+	// might need to be 'orig_gpr2'
 	return regs->gprs[2];
 }
 #endif
 
 #if defined(__i386__) || defined(__x86_64__)
-static inline long *
-__stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
+static inline long
+syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
 {
 #ifdef CONFIG_IA32_EMULATION
 // This code works, but isn't what we need.  Since
-// __stp_user_syscall_arg() doesn't sign-extend, a value passed in as
+// syscall_get_syscall_arg() doesn't sign-extend, a value passed in as
 // an argument and then returned won't compare correctly anymore.  So,
 // for now, disable this code.
 # if 0
@@ -145,158 +154,233 @@ __stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
 # endif
 #endif
 #if defined(STAPCONF_X86_UNIREGS)
-	return &regs->ax;
+	return regs->ax;
 #elif defined(__x86_64__)
-	return &regs->rax;
+	return regs->rax;
 #elif defined (__i386__)
-	return &regs->eax;
+	return regs->eax;
 #endif
 }
 #endif
 
 #if defined(__powerpc__)
-static inline long *
-__stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
+static inline long
+syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
 {
-	return &regs->gpr[3];
+	return regs->gpr[3];
 } 
 #endif
 
 #if defined(__ia64__)
-static inline long *
-__stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
+static inline long
+syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
 {
-	return &regs->r8;
+	return regs->r8;
 }
 #endif
 
 #if defined(__s390__) || defined(__s390x__)
-static inline long *
-__stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
+static inline long
+syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
 {
-	return &regs->gprs[2];
+	return regs->gprs[2];
 }
 #endif
 
 #if defined(__i386__) || defined(__x86_64__)
-static inline long *
-__stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
-		       unsigned int n)
+static inline void
+syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
+		      unsigned int i, unsigned int n, unsigned long *args)
 {
-#if defined(__i386__)
-	if (n > 5) {
-		_stp_error("syscall arg > 5");
-		return NULL;
+	if (i + n > 6) {
+		_stp_error("invalid syscall arg request");
+		return;
 	}
+#if defined(__i386__)
 #if defined(STAPCONF_X86_UNIREGS)
-	return &regs->bx + n;
+	memcpy(args, &regs->bx + i, n * sizeof(args[0]));
 #else
-	return &regs->ebx + n;
+	memcpy(args, &regs->ebx + i, n * sizeof(args[0]));
 #endif
 #elif defined(__x86_64__)
 #ifdef CONFIG_IA32_EMULATION
-	if (test_tsk_thread_flag(task, TIF_IA32))
-		switch (n) {
+	if (test_tsk_thread_flag(task, TIF_IA32)) {
+		switch (i) {
 #if defined(STAPCONF_X86_UNIREGS)
-		case 0: return &regs->bx;
-		case 1: return &regs->cx;
-		case 2: return &regs->dx;
-		case 3: return &regs->si;
-		case 4: return &regs->di;
-		case 5: return &regs->bp;
+		case 0:
+			if (!n--) break;
+			*args++ = regs->bx;
+		case 1:
+			if (!n--) break;
+			*args++ = regs->cx;
+		case 2:
+			if (!n--) break;
+			*args++ = regs->dx;
+		case 3:
+			if (!n--) break;
+			*args++ = regs->si;
+		case 4:
+			if (!n--) break;
+			*args++ = regs->di;
+		case 5:
+			if (!n--) break;
+			*args++ = regs->bp;
 #else
-		case 0: return &regs->rbx;
-		case 1: return &regs->rcx;
-		case 2: return &regs->rdx;
-		case 3: return &regs->rsi;
-		case 4: return &regs->rdi;
-		case 5: return &regs->rbp;
+		case 0:
+			if (!n--) break;
+			*args++ = regs->rbx;
+		case 1:
+			if (!n--) break;
+			*args++ = regs->rcx;
+		case 2:
+			if (!n--) break;
+			*args++ = regs->rdx;
+		case 3:
+			if (!n--) break;
+			*args++ = regs->rsi;
+		case 4:
+			if (!n--) break;
+			*args++ = regs->rdi;
+		case 5:
+			if (!n--) break;
+			*args++ = regs->rbp;
 #endif
-		default: 
-			_stp_error("syscall arg > 5");
-			return NULL;
 		}
+		return;
+	}
 #endif /* CONFIG_IA32_EMULATION */
-	switch (n) {
+	switch (i) {
 #if defined(STAPCONF_X86_UNIREGS)
-	case 0: return &regs->di;
-	case 1: return &regs->si;
-	case 2: return &regs->dx;
-	case 3: return &regs->r10;
-	case 4: return &regs->r8;
-	case 5: return &regs->r9;
+	case 0:
+		if (!n--) break;
+		*args++ = regs->di;
+	case 1:
+		if (!n--) break;
+		*args++ = regs->si;
+	case 2:
+		if (!n--) break;
+		*args++ = regs->dx;
+	case 3:
+		if (!n--) break;
+		*args++ = regs->r10;
+	case 4:
+		if (!n--) break;
+		*args++ = regs->r8;
+	case 5:
+		if (!n--) break;
+		*args++ = regs->r9;
 #else
-	case 0: return &regs->rdi;
-	case 1: return &regs->rsi;
-	case 2: return &regs->rdx;
-	case 3: return &regs->r10;
-	case 4: return &regs->r8;
-	case 5: return &regs->r9;
+	case 0:
+		if (!n--) break;
+		*args++ = regs->rdi;
+	case 1:
+		if (!n--) break;
+		*args++ = regs->rsi;
+	case 2:
+		if (!n--) break;
+		*args++ = regs->rdx;
+	case 3:
+		if (!n--) break;
+		*args++ = regs->r10;
+	case 4:
+		if (!n--) break;
+		*args++ = regs->r8;
+	case 5:
+		if (!n--) break;
+		*args++ = regs->r9;
 #endif
-	default: 
-		_stp_error("syscall arg > 5");
-		return NULL;
 	}
 #endif /* CONFIG_X86_32 */
+	return;
 }
 #endif
 
 #if defined(__powerpc__)
-static inline long *
-__stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
-		       unsigned int n)
+static inline void
+syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
+		      unsigned int i, unsigned int n, unsigned long *args)
 {
-	switch (n) {
-	case 0: return &regs->gpr[3];
-	case 1: return &regs->gpr[4];
-	case 2: return &regs->gpr[5];
-	case 3: return &regs->gpr[6];
-	case 4: return &regs->gpr[7];
-	case 5: return &regs->gpr[8];
-	default:
-		_stp_error("syscall arg > 5");
-		return NULL;
+	if (i + n > 6) {
+		_stp_error("invalid syscall arg request");
+		return;
 	}
+	memcpy(args, &regs->gpr[3 + i], n * sizeof(args[0]));
 }
 #endif
 
 #if defined(__ia64__)
-#define __stp_user_syscall_arg(task, regs, n) \
-	____stp_user_syscall_arg(task, regs, n, &c->unwaddr)
+#define syscall_get_arguments(task, regs, i, n, args)		\
+	__ia64_syscall_get_arguments(task, regs, i, n, args, &c->unwaddr)
 
-static inline long *
-____stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
-			 unsigned int n, unsigned long **cache)
+static inline void
+__ia64_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
+			     unsigned int i, unsigned int n,
+			     unsigned long *args, unsigned long **cache)
 {
-	if (n > 5) {
-		_stp_error("syscall arg > 5");
-		return NULL;
+	if (i + n > 6) {
+		_stp_error("invalid syscall arg request");
+		return;
 	}
-	return __ia64_fetch_register(n + 32, regs, cache);
+	switch (i) {
+	case 0:
+		if (!n--) break;
+		*args++ = *__ia64_fetch_register(i + 32, regs, cache);
+	case 1:
+		if (!n--) break;
+		*args++ = *__ia64_fetch_register(i + 33, regs, cache);
+	case 2:
+		if (!n--) break;
+		*args++ = *__ia64_fetch_register(i + 34, regs, cache);
+	case 3:
+		if (!n--) break;
+		*args++ = *__ia64_fetch_register(i + 35, regs, cache);
+	case 4:
+		if (!n--) break;
+		*args++ = *__ia64_fetch_register(i + 36, regs, cache);
+	case 5:
+		if (!n--) break;
+		*args++ = *__ia64_fetch_register(i + 37, regs, cache);
+	}
 }
 #endif
 
 #if defined(__s390__) || defined(__s390x__)
-static inline long *
-__stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
-		       unsigned int n)
+static inline void
+syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
+		      unsigned int i, unsigned int n, unsigned long *args)
 {
-	/* If we were returning a value, we could check for TIF_31BIT
-	 * here and cast the value with '(u32)' to make sure it got
-	 * down to 32bits.  But, since we're returning an address,
-	 * there isn't much we can do. */
-	switch (n) {
-	case 0: return &regs->orig_gpr2;
-	case 1: return &regs->gprs[3];
-	case 2: return &regs->gprs[4];
-	case 3: return &regs->gprs[5];
-	case 4: return &regs->gprs[6];
-	case 5: return &regs->args[0];
-	default:
-		_stp_error("syscall arg > 5");
-		return NULL;
+	unsigned long mask = -1UL;
+
+	if (i + n > 6) {
+		_stp_error("invalid syscall arg request");
+		return;
+	}
+#ifdef CONFIG_COMPAT
+	if (test_tsk_thread_flag(task, TIF_31BIT))
+		mask = 0xffffffff;
+#endif
+	switch (i) {
+	case 0:
+		if (!n--) break;
+		*args++ = regs->orig_gpr2 & mask;
+	case 1:
+		if (!n--) break;
+		*args++ = regs->gprs[3] & mask;
+	case 2:
+		if (!n--) break;
+		*args++ = regs->gprs[4] & mask;
+	case 3:
+		if (!n--) break;
+		*args++ = regs->gprs[5] & mask;
+	case 4:
+		if (!n--) break;
+		*args++ = regs->gprs[6] & mask;
+	case 5:
+		if (!n--) break;
+		*args++ = regs->args[0] & mask;
 	}
 }
 #endif
 
+#endif /* !STAPCONF_ASM_SYSCALL_H */
 #endif /* _SYSCALL_H_ */
