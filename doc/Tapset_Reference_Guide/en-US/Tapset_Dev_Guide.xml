@@ -64,7 +64,7 @@
 
 <para>
 <programlisting>
-probe process.exec = kernel.function("do_execve"),
+probe kprocess.exec = kernel.function("do_execve"),
 kernel.function("compat_do_execve") 
 {<replaceable>probe body</replaceable>}
 </programlisting>		
@@ -106,7 +106,7 @@ kernel.function("compat_do_execve")
 
 <para>
 <programlisting>
-probe process.create = kernel.function("copy_process").return 
+probe kprocess.create = kernel.function("copy_process").return 
 {
    task = $return
    new_pid = task_pid(task)

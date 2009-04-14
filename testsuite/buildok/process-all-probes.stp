@@ -2,11 +2,11 @@
 
 // Tests if all probes in the process tapset are resolvable.
 
-probe   process.create,
-        process.start,
-        process.exec,
-        process.exec_complete,
-        process.exit,
-        process.release
+probe   kprocess.create,
+        kprocess.start,
+        kprocess.exec,
+        kprocess.exec_complete,
+        kprocess.exit,
+        kprocess.release
 {
 }

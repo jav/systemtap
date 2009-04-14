@@ -1,5 +1,10 @@
 * What's new
 
+- The overlapping process.* tapsets are now separated.  Those probe points
+  documented in stapprobes(3stap) remain the same.  Those that were formerly
+  in stapprobes.process(3stap) have been renamed to kprocess, to reflect
+  their kernel perspective on processes.
+
 - The --skip-badvars option now also suppresses run-time error
   messages that would otherwise result from erroneous memory accesses.
   Such accesses can originate from $context expressions fueled by

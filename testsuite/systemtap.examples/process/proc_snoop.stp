@@ -18,30 +18,30 @@ function id:string(task:long) {
                  task_execname(task))
 }
 
-probe process.create {
+probe kprocess.create {
   report(sprintf("create %s", id(task)))
 }
 
-probe process.start {
+probe kprocess.start {
   report("start")
 }
 
-probe process.exec {
+probe kprocess.exec {
   report(sprintf("exec %s", filename))
 }
 
-probe process.exec_complete {
+probe kprocess.exec_complete {
   if (success)
     report("exec success")
   else
     report(sprintf("exec failed %d (%s)", errno, errno_str(errno)))
 }
 
-probe process.exit {
+probe kprocess.exit {
   report(sprintf("exit %d", code))
 }
 
-probe process.release {
+probe kprocess.release {
   report(sprintf("remove %s", id(task)))
 }
 

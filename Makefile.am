@@ -17,7 +17,7 @@ stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
 staprun.8 \
 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap \
 man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap \
-man/stapprobes.pagefault.3stap man/stapprobes.process.3stap \
+man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap \
 man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap \
 man/stapprobes.signal.3stap man/stapprobes.socket.3stap \
 man/stapprobes.tcp.3stap man/stapprobes.udp.3stap
