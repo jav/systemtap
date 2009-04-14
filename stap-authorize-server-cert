@@ -11,7 +11,7 @@
 # later version.
 
 # Initialize the environment
-. stap-env
+. `dirname $0`/stap-env
 
 certfile=$1
 certdb=$2

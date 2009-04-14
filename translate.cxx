@@ -1097,26 +1097,17 @@ c_unparser::emit_unprivileged_user_check ()
   if (session->unprivileged)
     return;
 
-  // Otherwise, generate code to check the user or group. If the user is not
-  // root or a member of stapdev or stapusr, then generate an error and
-  // unload the module.
+  // Otherwise, generate code to check whether the user is unprivileged.
+  // If so, then generate an error and indicate that the check has failed.
   o->newline();
   o->newline() << "static int systemtap_unprivileged_user_check (void) {";
-#if 0
-  o->newline(1) << "if (_stp_uid == 0)";
+  o->newline(1) << "if (! _stp_unprivileged_user)";
   o->newline(1) << "return 0;";
-  o->newline(-1) << "stgr = getgrnam(\"stapdev\");"; 
-  o->newline() << "if (stgr != NULL && _stp_gid == stgr->gr_gid)";
-  o->newline(1) << "return 0;";
-  o->newline(-1) << "stgr = getgrnam(\"stapusr\");"; 
-  o->newline() << "if (stgr != NULL && _stp_gid == stgr->gr_gid)";
-  o->newline(1) << "return 0;";
+
   o->newline(-1) << "_stp_error (\"You are attempting to run stap as an ordinary user.\");";
   o->newline() << "_stp_error (\"Your module must be compiled using the --unprivileged option.\");";
   o->newline() << "return 1;";
-#else
-  o->newline(1) << "return 0;";
-#endif
+
   o->newline(-1) << "}\n";
 }
 

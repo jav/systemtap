@@ -20,6 +20,7 @@
 #include <sys/utsname.h>
 #include <grp.h>
 #include <pwd.h>
+#include <assert.h>
 
 extern long init_module(void *, unsigned long, const char *);
 
@@ -225,18 +226,18 @@ check_signature(void)
   /* Use realpath() to canonicalize the module path. */
   if (realpath(modpath, module_realpath) == NULL) {
     perr("Unable to canonicalize signature path \"%s\"", modpath);
-    return -1;
+    return MODULE_CHECK_ERROR;
   }
 
   /* Now add the .sgn suffix to get the signature file name.  */
   if (strlen (module_realpath) > PATH_MAX - 4) {
     err("Path \"%s\" is too long.", modpath);
-    return -1;
+    return MODULE_CHECK_ERROR;
   }
   sprintf (signature_realpath, "%s.sgn", module_realpath);
 
-  dbug(2, "verify_module (%s, %s)\n", module_realpath, signature_realpath);
   rc = verify_module (module_realpath, signature_realpath);
+
   dbug(2, "verify_module returns %d\n", rc);
 
   return rc;
@@ -419,8 +420,10 @@ check_groups (void)
 				gid = stapusr_gid;
 		}
 
-		if (gid != stapusr_gid)
+		if (gid != stapusr_gid) {
+			unprivileged_user = 1;
 			return 0;
+		}
 	}
 
 	/* At this point the user is only a member of the 'stapusr'
@@ -450,6 +453,14 @@ int check_permissions(void)
 	int check_groups_rc;
 	int check_signature_rc = 0;
 
+#if HAVE_NSS
+	/* Attempt to verify the module against its signature. Return failure
+	   if the module has been tampered with (altered).  */
+	check_signature_rc = check_signature ();
+	if (check_signature_rc == MODULE_ALTERED)
+		return 0;
+#endif
+
 	/* If we're root, we can do anything. */
 	if (getuid() == 0)
 		return 1;
@@ -459,15 +470,17 @@ int check_permissions(void)
 	if (check_groups_rc == 1)
 		return 1;
 
-#if HAVE_NSS
 	/* The user is an ordinary user. If the module has been signed with
 	 * a "blessed" certificate and private key, then we will load it for
 	 * anyone.  */
-	check_signature_rc = check_signature ();
-	if (check_signature_rc == 1)
+#if HAVE_NSS
+	if (check_signature_rc == MODULE_OK)
 		return 1;
+	assert (check_signature_rc == MODULE_UNTRUSTED || check_signature_rc == MODULE_CHECK_ERROR);
 #endif
 
+	/* We are an ordinary user and the module was not signed by a trusted
+	   signer.  */
 	err("ERROR: You are trying to run stap as a normal user.\n"
 	    "You should either be root, or be part of either "
 	    "group \"stapdev\" or group \"stapusr\".\n");

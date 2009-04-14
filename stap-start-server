@@ -13,7 +13,7 @@
 # process id, if successful.
 
 # Initialize the environment
-. stap-env
+. `dirname $0`/stap-env
 
 # start the server
 ${stap_exec_prefix}stap-serverd "$@" </dev/null >/dev/null 2>&1 &

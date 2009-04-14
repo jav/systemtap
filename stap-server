@@ -17,7 +17,7 @@
 trap 'terminate' SIGTERM SIGINT
 
 # Initialize the environment
-. stap-env
+. `dirname $0`/stap-env
 
 #-----------------------------------------------------------------------------
 # Helper functions.

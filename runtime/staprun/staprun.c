@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
- * Copyright (C) 2005-2008 Red Hat, Inc.
+ * Copyright (C) 2005-2009 Red Hat, Inc.
  *
  */
 
@@ -139,11 +139,21 @@ static int enable_uprobes(void)
 
 static int insert_stap_module(void)
 {
-	char bufsize_option[128];
+	char special_options[128];
+	char *bufptr = special_options;
 
-	if (snprintf_chk(bufsize_option, 128, "_stp_bufsize=%d", buffer_size))
+	/* Add the _stp_bufsize option.  */
+	if (snprintf_chk(bufptr, sizeof (special_options), "_stp_bufsize=%d", buffer_size))
 		return -1;
-	return insert_module(modpath, bufsize_option, modoptions);
+
+	/* Add the _stp_unprivileged_user option.  */
+	bufptr += strlen (bufptr);
+	if (snprintf_chk(bufptr,
+			 sizeof (special_options) - (bufptr - special_options),
+			 " _stp_unprivileged_user=%d", unprivileged_user))
+	  return -1;
+
+	return insert_module(modpath, special_options, modoptions);
 }
 
 static int remove_module(const char *name, int verb);

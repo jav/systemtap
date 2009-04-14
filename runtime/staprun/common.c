@@ -30,6 +30,7 @@ int need_uprobes;
 int daemon_mode;
 off_t fsize_max;
 int fnum_max;
+int unprivileged_user = 0;
 
 /* module variables */
 char *modname = NULL;

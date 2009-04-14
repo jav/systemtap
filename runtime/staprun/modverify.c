@@ -29,6 +29,7 @@
 #include <certt.h>
 
 #include "nsscommon.h"
+#include "modverify.h"
 
 static int
 verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pubKey)
@@ -48,7 +49,7 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
     {
       fprintf (stderr, "Unable to obtain information on the signature file %s.\n", signatureName);
       nssError ();
-      return -1;
+      return MODULE_UNTRUSTED; /* Not signed */
     }
 
   /* Open the signature file.  */
@@ -57,7 +58,7 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
     {
       fprintf (stderr, "Could not open the signature file %s\n.", signatureName);
       nssError ();
-      return -1;
+      return MODULE_CHECK_ERROR;
     }
 
   /* Allocate space to read the signature file.  */
@@ -66,7 +67,7 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
     {
       fprintf (stderr, "Unable to allocate memory for the signature in %s.\n", signatureName);
       nssError ();
-      return -1;
+      return MODULE_CHECK_ERROR;
     }
 
   /* Read the signature.  */
@@ -74,18 +75,18 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
   if (numBytes == 0) /* EOF */
     {
       fprintf (stderr, "EOF reading signature file %s.\n", signatureName);
-      return -1;
+      return MODULE_CHECK_ERROR;
     }
   if (numBytes < 0)
     {
       fprintf (stderr, "Error reading signature file %s.\n", signatureName);
       nssError ();
-      return -1;
+      return MODULE_CHECK_ERROR;
     }
   if (numBytes != info.size)
     {
       fprintf (stderr, "Incomplete data while reading signature file %s.\n", signatureName);
-      return -1;
+      return MODULE_CHECK_ERROR;
     }
   signature.len = info.size;
 
@@ -97,10 +98,10 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
 				 SEC_OID_UNKNOWN, NULL, NULL);
   if (! vfy)
     {
-      fprintf (stderr, "Unable to create verification context while verifying %s using the signature in %s.\n",
-	       inputName, signatureName);
-      nssError ();
-      return -1;
+      /* The key does not match the signature. This is not an error. It just means
+	 we are currently trying the wrong certificate/key. i.e. the module
+	 remains untrusted for now.  */
+      return MODULE_UNTRUSTED;
     }
 
   /* Begin the verification process.  */
@@ -110,7 +111,7 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
       fprintf (stderr, "Unable to initialize verification context while verifying %s using the signature in %s.\n",
 	       inputName, signatureName);
       nssError ();
-      return -1;
+      return MODULE_CHECK_ERROR;
     }
 
   /* Now read the data and add it to the signature.  */
@@ -119,7 +120,7 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
     {
       fprintf (stderr, "Could not open module file %s.\n", inputName);
       nssError ();
-      return -1;
+      return MODULE_CHECK_ERROR;
     }
 
   for (;;)
@@ -132,7 +133,7 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
 	{
 	  fprintf (stderr, "Error reading module file %s.\n", inputName);
 	  nssError ();
-	  return -1;
+	  return MODULE_CHECK_ERROR;
 	}
 
       /* Add the data to the signature.  */
@@ -141,7 +142,7 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
 	{
 	  fprintf (stderr, "Error while verifying module file %s.\n", inputName);
 	  nssError ();
-	  return -1;
+	  return MODULE_CHECK_ERROR;
 	}
     }
 
@@ -152,10 +153,10 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
   if (secStatus != SECSuccess) {
     fprintf (stderr, "Unable to verify signed module %s. It may have been altered since it was created.\n", inputName);
     nssError ();
-    return 0;
+    return MODULE_ALTERED;
   }
 
-  return 1;
+  return MODULE_OK;
 }
 
 int verify_module (const char *module_name, const char *signature_name)
@@ -178,7 +179,7 @@ int verify_module (const char *module_name, const char *signature_name)
       fprintf (stderr, "Unable to initialize nss library using the database in %s.\n",
 	       dbdir);
       nssError ();
-      return -1;
+      return MODULE_CHECK_ERROR;
     }
 
   certList = PK11_ListCerts (PK11CertListAll, NULL);
@@ -187,7 +188,7 @@ int verify_module (const char *module_name, const char *signature_name)
       fprintf (stderr, "Unable to find certificates in the certificate database in %s.\n",
 	       dbdir);
       nssError ();
-      return -1;
+      return MODULE_UNTRUSTED;
     }
 
   /* We need to look at each certificate in the database. */
@@ -203,13 +204,13 @@ int verify_module (const char *module_name, const char *signature_name)
 	  fprintf (stderr, "Unable to extract public key from the certificate with nickname %s from the certificate database in %s.\n",
 		   cert->nickname, dbdir);
 	  nssError ();
-	  return -1;
+	  return MODULE_CHECK_ERROR;
 	}
 
       /* Verify the file. */
       rc = verify_it (module_name, signature_name, pubKey);
-      if (rc == 1)
-	break; /* Verified! */
+      if (rc == MODULE_OK || rc == MODULE_ALTERED || rc == MODULE_CHECK_ERROR)
+	break; /* resolved or error */
     }
 
   /* Shutdown NSS and exit NSPR gracefully. */

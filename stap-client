@@ -22,7 +22,7 @@ trap 'interrupt' SIGINT
 trap 'ignore_signal' SIGHUP SIGPIPE
 
 # Initialize the environment
-. stap-env
+. `dirname $0`/stap-env
 
 #-----------------------------------------------------------------------------
 # Helper functions.

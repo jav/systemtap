@@ -166,6 +166,7 @@ extern int need_uprobes;
 extern int daemon_mode;
 extern off_t fsize_max;
 extern int fnum_max;
+extern int unprivileged_user;
 
 /* getopt variables */
 extern char *optarg;

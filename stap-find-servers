@@ -13,7 +13,7 @@
 # network. Information about each server found is printed to stdout.
 
 # Initialize the environment
-. stap-env
+. `dirname $0`/stap-env
 
 #-----------------------------------------------------------------------------
 # Helper functions.

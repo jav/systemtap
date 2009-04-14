@@ -18,7 +18,7 @@
 # Otherwise, it echoes -1
 
 # Initialize the environment
-. stap-env
+. `dirname $0`/stap-env
 
 # Is there a server available?
 ${stap_exec_prefix}stap-find-servers >/dev/null 2>&1 && echo 0 && exit 0
