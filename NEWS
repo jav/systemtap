@@ -7,20 +7,20 @@
 
 * What's new in version 0.9.5
 
- - New probes process().insn and process().insn.block that allows
-   inspection of the process after each instruction or block of
-   instructions executed. So to count the total number of instructions
-   a process executes during a run do something like:
-     $ stap -e 'global steps; probe process("/bin/ls").insn {steps++} 
-                probe end {printf("Total instructions: %d\n", steps);}' \
-            -c /bin/ls
-   This feature can slow down execution of a process somewhat.
+- New probes process().insn and process().insn.block that allows
+  inspection of the process after each instruction or block of
+  instructions executed. So to count the total number of instructions
+  a process executes during a run do something like:
+    $ stap -e 'global steps; probe process("/bin/ls").insn {steps++}
+               probe end {printf("Total instructions: %d\n", steps);}' \
+           -c /bin/ls
+  This feature can slow down execution of a process somewhat.
 
- - Systemtap probes and function man pages extracted from the tapsets
-   are now available under 3stap. To show the page for probe vm.pagefault
-   or the stap function pexecname do:
-     $ man 3stap vm.pagefault
-     $ man 3stap pexecname
+- Systemtap probes and function man pages extracted from the tapsets
+  are now available under 3stap. To show the page for probe vm.pagefault
+  or the stap function pexecname do:
+    $ man 3stap vm.pagefault
+    $ man 3stap pexecname
 
 - Kernel tracepoints are now supported for probing predefined kernel
   events without any debuginfo.  Tracepoints incur less overhead than
