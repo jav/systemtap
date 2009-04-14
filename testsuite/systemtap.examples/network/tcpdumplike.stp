@@ -1,3 +1,5 @@
+#! /usr/bin/env stap
+
 // A TCP dump like example
 
 probe begin, timer.s(1) {
