@@ -182,6 +182,14 @@ keywords: network tcp socket
   originator of the request.
 
 
+network/tcpdumplike.stp - Dump of Received TCP Packets
+keywords: network traffic
+
+  The tcpdumplike.stp prints out a line for each TCP packet received.
+  Each line includes the source and destination IP addresses, the
+  source and destination ports, and flags.
+
+
 process/errsnoop.stp - tabulate system call errors
 keywords: process syscall
 
