@@ -2006,7 +2006,7 @@ struct dwflpp
 		       Dwarf_Die *die_mem,
 		       Dwarf_Attribute *attr_mem)
   {
-    Dwarf_Die *die = die_mem;
+    Dwarf_Die *die = NULL;
     Dwarf_Die struct_die;
     Dwarf_Attribute temp_attr;
 
@@ -2014,6 +2014,9 @@ struct dwflpp
 
     if (vardie)
       *die_mem = *vardie;
+
+    if (e->components.empty())
+      return die_mem;
 
     static unsigned int func_call_level ;
     static unsigned int dwarf_error_flag ; // indicates current error is dwarf error
@@ -2031,6 +2034,7 @@ struct dwflpp
         obstack_printf (pool, "c->last_stmt = %s;", lex_cast_qstring(piece).c_str());
 #endif
 
+	die = die ? dwarf_formref_die (attr_mem, die_mem) : die_mem;
 	const int typetag = dwarf_tag (die);
 	switch (typetag)
 	  {
@@ -2188,7 +2192,6 @@ struct dwflpp
 	/* Now iterate on the type in DIE's attribute.  */
 	if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
 	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)), e->tok);
-	die = dwarf_formref_die (attr_mem, die_mem);
       }
     return die;
   }

@@ -29,11 +29,12 @@
 	    & (((__typeof (base)) 1 << (nbits)) - 1))
 
 #define store_bitfield(target, base, higherbits, nbits)			      \
-  target = (target							      \
-	    &~ ((((__typeof (base)) 1 << (nbits)) - 1)			      \
-		<< (sizeof (base) * 8 - (higherbits) - (nbits)))	      \
-	    | ((__typeof (base)) (base)					      \
-	       << (sizeof (base) * 8 - (higherbits) - (nbits))))
+  target = ((target							      \
+	     &~ ((((__typeof (target)) 1 << (nbits)) - 1)		      \
+		 << (sizeof (target) * 8 - (higherbits) - (nbits))))	      \
+	    | ((((__typeof (target)) (base))				      \
+		& (((__typeof (target)) 1 << (nbits)) - 1))		      \
+	       << (sizeof (target) * 8 - (higherbits) - (nbits))))
 
 
 /* Given a DWARF register number, fetch its intptr_t (long) value from the
