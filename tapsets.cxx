@@ -7590,6 +7590,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#else";
   s.op->newline() << "#include \"uprobes/uprobes.h\"";
   s.op->newline() << "#endif";
+  s.op->newline() << "#ifndef UPROBES_API_VERSION";
+  s.op->newline() << "#define UPROBES_API_VERSION 1";
+  s.op->newline() << "#endif";
 
   s.op->newline() << "#ifndef MULTIPLE_UPROBES";
   s.op->newline() << "#define MULTIPLE_UPROBES 256"; // maximum possible armed uprobes per process() probe point
@@ -7701,10 +7704,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // register new uprobe
   s.op->newline() << "if (register_p && sup->spec_index < 0) {";
-  // PR6829: we need to check that the sup we're about to reuse is really completely free.
-  // See PR6829 notes below.
-  s.op->newline(1) << "if (sup->spec_index == -1 && sup->up.kdata != NULL) continue;";
+  s.op->newline(1) << "#if (UPROBES_API_VERSION < 2)";
+  // See PR6829 comment.
+  s.op->newline() << "if (sup->spec_index == -1 && sup->up.kdata != NULL) continue;";
   s.op->newline() << "else if (sup->spec_index == -2 && sup->urp.u.kdata != NULL) continue;";
+  s.op->newline() << "#endif";
   s.op->newline() << "sup->spec_index = spec_index;";
   s.op->newline() << "slotted_p = 1;";
   s.op->newline() << "break;";
@@ -7755,13 +7759,32 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline(-1) << "} else if (!register_p && slotted_p) {";
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
-  // NB: we need to release this slot, so we need to borrow the mutex temporarily.
+  s.op->newline() << "int unregistered_flag;";
+  // PR6829, PR9940:
+  // Here we're unregistering for one of two reasons:
+  // 1. the process image is going away (or gone) due to exit or exec; or
+  // 2. the vma containing the probepoint has been unmapped.
+  // In case 1, it's sort of a nop, because uprobes will notice the event
+  // and dispose of the probes eventually, if it hasn't already.  But by
+  // calling unmap_u[ret]probe() ourselves, we free up sup right away.
+  //
+  // In both cases, we must use unmap_u[ret]probe instead of
+  // unregister_u[ret]probe, so uprobes knows not to try to restore the
+  // original opcode.
+  s.op->newline() << "#if (UPROBES_API_VERSION >= 2)";
+  s.op->newline() << "if (sups->return_p)";
+  s.op->newline(1) << "unmap_uretprobe (& sup->urp);";
+  s.op->newline(-1) << "else";
+  s.op->newline(1) << "unmap_uprobe (& sup->up);";
+  s.op->newline(-1) << "unregistered_flag = -1;";
+  s.op->newline() << "#else";
+  // Uprobes lacks unmap_u[ret]probe.  Before reusing sup, we must wait
+  // until uprobes turns loose of the u[ret]probe on its own, as indicated
+  // by uprobe.kdata = NULL.
+  s.op->newline() << "unregistered_flag = (sups->return_p ? -2 : -1);";
+  s.op->newline() << "#endif";
   s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
-  // NB: We must not actually uregister u[ret]probes when a target process execs or exits;
-  // uprobes does that by itself asynchronously.  We can reuse the up/urp struct after
-  // uprobes clears the sup->{up,urp}->kdata pointer. PR6829.  To tell the two
-  // cases apart, we use spec_index -2 vs -1.
-  s.op->newline() << "sup->spec_index = (sups->return_p ? -2 : -1);";
+  s.op->newline() << "sup->spec_index = unregistered_flag;";
   s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
   s.op->newline() << "handled_p = 1;";
   s.op->newline(-1) << "}"; // if slotted_p
