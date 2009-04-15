@@ -136,9 +136,7 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 					       struct _stp_section **sec)
 {
   void *user = NULL;
-  struct _stp_module *m = NULL;
   unsigned midx = 0;
-  unsigned long closest_section_offset = ~0;
 
   // Try vma matching first if task given.
   if (task)
@@ -149,8 +147,9 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 				 NULL, &user) == 0)
 	if (user != NULL)
 	  {
-	    m = (struct _stp_module *)user;
-	    *sec = &m->sections[0]; // XXX check actual section and relocate
+	    struct _stp_module *m = (struct _stp_module *)user;
+	    if (sec)
+	      *sec = &m->sections[0]; // XXX check actual section and relocate
 	    dbug_sym(1, "found section %s in module %s at 0x%lx\n",
 		     m->sections[0].name, m->name, vm_start);
 	    if (strcmp(".dynamic", m->sections[0].name) == 0)
@@ -164,21 +163,19 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
       unsigned secidx;
       for (secidx = 0; secidx < _stp_modules[midx]->num_sections; secidx++)
 	{
-	  unsigned long this_section_addr;
-	  unsigned long this_section_offset;
-	  this_section_addr = _stp_modules[midx]->sections[secidx].addr;
-	  if (addr < this_section_addr) continue;
-	  this_section_offset = addr - this_section_addr;
-	  if (this_section_offset < closest_section_offset)
-	    {
-	      closest_section_offset = this_section_offset;
-	      m = _stp_modules[midx];
+	  unsigned long sec_addr;
+	  unsigned long sec_size;
+	  sec_addr = _stp_modules[midx]->sections[secidx].addr;
+	  sec_size = _stp_modules[midx]->sections[secidx].size;
+	  if (addr >= sec_addr && addr < sec_addr + sec_size)
+            {
 	      if (sec)
-		*sec = & m->sections[secidx];
+		*sec = & _stp_modules[midx]->sections[secidx];
+	      return _stp_modules[midx];
 	    }
 	}
       }
-  return m;
+  return NULL;
 }
 
 
