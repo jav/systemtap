@@ -59,8 +59,8 @@ For example, process execs can occur in either the do_execve() or the
 compat_do_execve() functions. The following alias inserts probes at the
 beginning of those functions:
 
-probe process.exec = kernel.function("do_execve"),
-                     kernel.function("compat_do_execve") {
+probe kprocess.exec = kernel.function("do_execve"),
+                      kernel.function("compat_do_execve") {
    < probe body >
 }
 
@@ -87,7 +87,7 @@ process is retrieved by calling task_pid() and passing it the task_struct
 pointer. In this case, the auxiliary function is an embedded C function
 that's defined in the task tapset (task.stp).
 
-probe process.create = kernel.function("copy_process").return {
+probe kprocess.create = kernel.function("copy_process").return {
    task = $return
    new_pid = task_pid(task)
 }

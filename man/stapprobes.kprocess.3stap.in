@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.PROCESS 3stap @DATE@ "Intel, IBM"
+.TH STAPPROBES.KPROCESS 3stap @DATE@ "Intel, IBM"
 .SH NAME
-stapprobes.process \- systemtap process probe points
+stapprobes.kprocess \- systemtap kernel process probe points
 
 .\" macros
 .de SAMPLE
@@ -18,12 +18,12 @@ stapprobes.process \- systemtap process probe points
 
 .SH DESCRIPTION
 
-This family of probe points is used to probe the process activities.
+This family of probe points is used to probe the kernel's process activities.
 It contains the following probe points:
 
 .P
 .TP 
-.B process.create
+.B kprocess.create
 
 Fires whenever a new process is successfully created, either as a 
 result of one of the fork syscall variants, or a new kernel thread.
@@ -38,7 +38,7 @@ result of one of the fork syscall variants, or a new kernel thread.
 
 .P
 .TP 
-.B process.start
+.B kprocess.start
 
 Fires immediately before a new process begins execution.
 
@@ -48,7 +48,7 @@ Fires immediately before a new process begins execution.
 
 .P
 .TP
-.B process.exec
+.B kprocess.exec
 
 Fires whenever a process attempts to exec to a new program
 
@@ -59,7 +59,7 @@ Fires whenever a process attempts to exec to a new program
 
 .P
 .TP
-.B process.exec_complete
+.B kprocess.exec_complete
 
 Fires at the completion of an exec call
 
@@ -73,10 +73,10 @@ Fires at the completion of an exec call
 
 .P
 .TP
-.B process.exit
+.B kprocess.exit
 
 Fires when a process terminates. This will always be followed by a
-process.release, though the latter may be delayed if the process 
+kprocess.release, though the latter may be delayed if the process 
 waits in a zombie state.
 
 .B Arguments:
@@ -86,10 +86,10 @@ waits in a zombie state.
 
 .P
 .TP
-.B process.release
+.B kprocess.release
 
 Fires when a process is released from the kernel. This always 
-follows a process.exit, though it may be delayed somewhat if the 
+follows a kprocess.exit, though it may be delayed somewhat if the 
 process waits in a zombie state.
 
 .B Arguments:

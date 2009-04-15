@@ -43,7 +43,7 @@
 The <filename>stapprobes</filename> man page enumerates a variety of probe points supported by SystemTap, along with additional aliases 
 defined by the SystemTap tapset library. The bottom of the man page includes a list of other man pages 
 enumerating similar probe points for specific system components, such as
-	  <filename>stapprobes.scsi</filename>, <filename>stapprobes.process</filename>, 
+	  <filename>stapprobes.scsi</filename>, <filename>stapprobes.kprocess</filename>, 
 <filename>stapprobes.signal</filename>, etc.
 </para>
 </listitem>

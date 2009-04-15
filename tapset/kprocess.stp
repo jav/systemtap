@@ -1,4 +1,4 @@
-// process tapset
+// kernel process tapset
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -15,7 +15,7 @@ function _IS_ERR:long(ptr:long) %{ /* pure */
 
 
 /**
- * probe process.create - Fires whenever a new process is successfully created
+ * probe kprocess.create - Fires whenever a new process is successfully created
  * @new_pid: The PID of the newly created process
  *
  * Context:
@@ -24,7 +24,7 @@ function _IS_ERR:long(ptr:long) %{ /* pure */
  *  Fires whenever a new process is successfully created, either as a result of
  *  <command>fork</command> (or one of its syscall variants), or a new kernel thread.
  */
-probe process.create = kernel.function("copy_process").return {
+probe kprocess.create = kernel.function("copy_process").return {
     task = $return
     if (_IS_ERR(task)) next
     new_pid = task_pid(task)
@@ -32,7 +32,7 @@ probe process.create = kernel.function("copy_process").return {
 
 
 /**
- * probe process.start - Starting new process
+ * probe kprocess.start - Starting new process
  *
  * Context:
  * Newly created process.
@@ -40,11 +40,11 @@ probe process.create = kernel.function("copy_process").return {
  * Fires immediately before a new process begins execution.
  *
  */
-probe process.start = kernel.function("schedule_tail") { }
+probe kprocess.start = kernel.function("schedule_tail") { }
 
 
 /**
- * probe process.exec - Attempt to exec to a new program
+ * probe kprocess.exec - Attempt to exec to a new program
  * @filename: The path to the new executable
  *
  * Context:
@@ -52,7 +52,7 @@ probe process.start = kernel.function("schedule_tail") { }
  *
  *  Fires whenever a process attempts to exec to a new program.
  */
-probe process.exec = 
+probe kprocess.exec = 
     kernel.function("do_execve"),
     kernel.function("compat_do_execve") ?
 {
@@ -61,7 +61,7 @@ probe process.exec =
 
 
 /**
- * probe process.exec_complete - Return from exec to a new program
+ * probe kprocess.exec_complete - Return from exec to a new program
  * @errno: The error number resulting from the exec
  * @success: A boolean indicating whether the exec was successful
  *
@@ -71,7 +71,7 @@ probe process.exec =
  *
  *  Fires at the completion of an exec call.
  */
-probe process.exec_complete =
+probe kprocess.exec_complete =
     kernel.function("do_execve").return,
     kernel.function("compat_do_execve").return ?
 {
@@ -81,23 +81,23 @@ probe process.exec_complete =
 
 
 /**
- * probe process.exit - Exit from process
+ * probe kprocess.exit - Exit from process
  * @code: The exit code of the process
  *
  * Context:
  *  The process which is terminating.
  *
  *  Fires when a process terminates.  This will always be followed by a
- *  process.release, though the latter may be delayed if the process waits in a
+ *  kprocess.release, though the latter may be delayed if the process waits in a
  *  zombie state.
  */
-probe process.exit = kernel.function("do_exit") {
+probe kprocess.exit = kernel.function("do_exit") {
     code = $code
 }
 
 
 /**
- * probe process.release - Process released
+ * probe kprocess.release - Process released
  * @task: A task handle to the process being released
  * @pid: PID of the process being released
  *
@@ -106,10 +106,10 @@ probe process.exit = kernel.function("do_exit") {
  *  termination, else the context of the process itself.
  *
  *  Fires when a process is released from the kernel.  This always follows a
- *  process.exit, though it may be delayed somewhat if the process waits in a
+ *  kprocess.exit, though it may be delayed somewhat if the process waits in a
  *  zombie state.
  */
-probe process.release = kernel.function("release_task") {
+probe kprocess.release = kernel.function("release_task") {
     task = $p
     pid = $p->pid;
 }
