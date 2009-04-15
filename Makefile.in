@@ -34,7 +34,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT) $(am__EXEEXT_1)
+bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT) grapher$(EXEEXT) \
+	$(am__EXEEXT_1)
 @BUILD_SERVER_TRUE@am__append_1 = stap-server.8 
 @BUILD_SERVER_TRUE@am__append_2 = stap-client-connect stap-server-connect
 @BUILD_SERVER_TRUE@am__append_3 = stap-client stap-serverd stap-server stap-find-servers \
@@ -99,10 +100,16 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 pkglibexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
+am_grapher_OBJECTS = grapher-grapher.$(OBJEXT) \
+	grapher-GraphWidget.$(OBJEXT) grapher-CairoWidget.$(OBJEXT)
+grapher_OBJECTS = $(am_grapher_OBJECTS)
+am__DEPENDENCIES_1 =
+grapher_DEPENDENCIES = $(am__DEPENDENCIES_1)
+grapher_LINK = $(CXXLD) $(grapher_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 am_loc2c_test_OBJECTS = loc2c_test-loc2c-test.$(OBJEXT) \
 	loc2c_test-loc2c.$(OBJEXT)
 loc2c_test_OBJECTS = $(am_loc2c_test_OBJECTS)
-am__DEPENDENCIES_1 =
 loc2c_test_DEPENDENCIES = $(am__DEPENDENCIES_1)
 loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 	$(loc2c_test_LDFLAGS) $(LDFLAGS) -o $@
@@ -154,7 +161,7 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) \
+SOURCES = $(grapher_SOURCES) $(loc2c_test_SOURCES) $(stap_SOURCES) \
 	$(stap_client_connect_SOURCES) $(stap_server_connect_SOURCES) \
 	$(stapio_SOURCES) $(staprun_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
@@ -205,6 +212,8 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+GRAPHER_CFLAGS = @GRAPHER_CFLAGS@
+GRAPHER_LIBS = @GRAPHER_LIBS@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -230,6 +239,7 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
+PKG_CONFIG = @PKG_CONFIG@
 PROCFLAGS = @PROCFLAGS@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
@@ -332,6 +342,9 @@ stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
 stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
 stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_4)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ $(am__append_5)
+grapher_CXXFLAGS = $(GRAPHER_CFLAGS)
+grapher_SOURCES = grapher.cxx GraphWidget.cxx CairoWidget.cxx
+grapher_LDADD = $(GRAPHER_LIBS)
 @BUILD_SERVER_TRUE@stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_SERVER_TRUE@stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 PHONIES = $(am__append_9) $(am__append_10) dist-gzip
@@ -526,6 +539,9 @@ uninstall-pkglibexecPROGRAMS:
 
 clean-pkglibexecPROGRAMS:
 	-test -z "$(pkglibexec_PROGRAMS)" || rm -f $(pkglibexec_PROGRAMS)
+grapher$(EXEEXT): $(grapher_OBJECTS) $(grapher_DEPENDENCIES) 
+	@rm -f grapher$(EXEEXT)
+	$(grapher_LINK) $(grapher_OBJECTS) $(grapher_LDADD) $(LIBS)
 loc2c-test$(EXEEXT): $(loc2c_test_OBJECTS) $(loc2c_test_DEPENDENCIES) 
 	@rm -f loc2c-test$(EXEEXT)
 	$(loc2c_test_LINK) $(loc2c_test_OBJECTS) $(loc2c_test_LDADD) $(LIBS)
@@ -570,6 +586,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-CairoWidget.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-GraphWidget.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-grapher.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loc2c_test-loc2c-test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loc2c_test-loc2c.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-buildrun.Po@am__quote@
@@ -850,6 +869,48 @@ staprun-common.obj: runtime/staprun/common.c
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+grapher-grapher.o: grapher.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-grapher.o -MD -MP -MF $(DEPDIR)/grapher-grapher.Tpo -c -o grapher-grapher.o `test -f 'grapher.cxx' || echo '$(srcdir)/'`grapher.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-grapher.Tpo $(DEPDIR)/grapher-grapher.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='grapher.cxx' object='grapher-grapher.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-grapher.o `test -f 'grapher.cxx' || echo '$(srcdir)/'`grapher.cxx
+
+grapher-grapher.obj: grapher.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-grapher.obj -MD -MP -MF $(DEPDIR)/grapher-grapher.Tpo -c -o grapher-grapher.obj `if test -f 'grapher.cxx'; then $(CYGPATH_W) 'grapher.cxx'; else $(CYGPATH_W) '$(srcdir)/grapher.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-grapher.Tpo $(DEPDIR)/grapher-grapher.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='grapher.cxx' object='grapher-grapher.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-grapher.obj `if test -f 'grapher.cxx'; then $(CYGPATH_W) 'grapher.cxx'; else $(CYGPATH_W) '$(srcdir)/grapher.cxx'; fi`
+
+grapher-GraphWidget.o: GraphWidget.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-GraphWidget.o -MD -MP -MF $(DEPDIR)/grapher-GraphWidget.Tpo -c -o grapher-GraphWidget.o `test -f 'GraphWidget.cxx' || echo '$(srcdir)/'`GraphWidget.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-GraphWidget.Tpo $(DEPDIR)/grapher-GraphWidget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GraphWidget.cxx' object='grapher-GraphWidget.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-GraphWidget.o `test -f 'GraphWidget.cxx' || echo '$(srcdir)/'`GraphWidget.cxx
+
+grapher-GraphWidget.obj: GraphWidget.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-GraphWidget.obj -MD -MP -MF $(DEPDIR)/grapher-GraphWidget.Tpo -c -o grapher-GraphWidget.obj `if test -f 'GraphWidget.cxx'; then $(CYGPATH_W) 'GraphWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/GraphWidget.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-GraphWidget.Tpo $(DEPDIR)/grapher-GraphWidget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GraphWidget.cxx' object='grapher-GraphWidget.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-GraphWidget.obj `if test -f 'GraphWidget.cxx'; then $(CYGPATH_W) 'GraphWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/GraphWidget.cxx'; fi`
+
+grapher-CairoWidget.o: CairoWidget.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-CairoWidget.o -MD -MP -MF $(DEPDIR)/grapher-CairoWidget.Tpo -c -o grapher-CairoWidget.o `test -f 'CairoWidget.cxx' || echo '$(srcdir)/'`CairoWidget.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-CairoWidget.Tpo $(DEPDIR)/grapher-CairoWidget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CairoWidget.cxx' object='grapher-CairoWidget.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-CairoWidget.o `test -f 'CairoWidget.cxx' || echo '$(srcdir)/'`CairoWidget.cxx
+
+grapher-CairoWidget.obj: CairoWidget.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-CairoWidget.obj -MD -MP -MF $(DEPDIR)/grapher-CairoWidget.Tpo -c -o grapher-CairoWidget.obj `if test -f 'CairoWidget.cxx'; then $(CYGPATH_W) 'CairoWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/CairoWidget.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-CairoWidget.Tpo $(DEPDIR)/grapher-CairoWidget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CairoWidget.cxx' object='grapher-CairoWidget.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-CairoWidget.obj `if test -f 'CairoWidget.cxx'; then $(CYGPATH_W) 'CairoWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/CairoWidget.cxx'; fi`
 
 stap-main.o: main.cxx
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-main.o -MD -MP -MF $(DEPDIR)/stap-main.Tpo -c -o stap-main.o `test -f 'main.cxx' || echo '$(srcdir)/'`main.cxx

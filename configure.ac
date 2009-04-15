@@ -24,6 +24,7 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
+PKG_CHECK_MODULES([GRAPHER], [gtkmm-2.4 >= 2.8.0])
 
 dnl Handle the perfmon option.
 AC_ARG_ENABLE([perfmon],
