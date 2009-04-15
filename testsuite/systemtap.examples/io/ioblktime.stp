@@ -18,7 +18,7 @@ probe ioblock.end
 }
 
 probe timer.s(10), end {
-  printf("\033[2J\033[1;1H") /* clear screen */
+  ansi_clear_screen()
   printf("%10s %3s %10s %10s %10s\n",
          "device", "rw", "total (us)", "count", "avg (us)")
   foreach ([dev,rw] in etimes - limit 20) {

@@ -1,0 +1,46 @@
+%{
+#include <linux/tcp.h>
+static struct tcphdr foo = {0};
+%}
+
+function get_ptr:long() %{ THIS->__retvalue = (long)&foo; /* pure */ %}
+function get_ack:long() %{ THIS->__retvalue = foo.ack; /* pure */ %}
+function get_urg:long() %{ THIS->__retvalue = foo.urg; /* pure */ %}
+
+function check:long(ack:long, urg:long) {
+  ptr = get_ptr()
+
+  /* set the bits with cast */
+  @cast(ptr, "tcphdr")->ack = ack
+  @cast(ptr, "tcphdr")->urg = urg
+
+  /* check that reading with embedded-C is ok */
+  real_ack = get_ack()
+  real_urg = get_urg()
+  errors = (ack != real_ack) + (urg != real_urg)
+
+  /* check that reading with a cast is ok */
+  cast_ack = @cast(ptr, "tcphdr")->ack
+  cast_urg = @cast(ptr, "tcphdr")->urg
+  errors += (ack != cast_ack) + (urg != cast_urg)
+
+  if (errors)
+    printf("bitfield had %d errors; expect(%d%d), real(%d%d), cast(%d%d)\n",
+           errors, ack, urg, real_ack, real_urg, cast_ack, cast_urg)
+
+  return errors
+}
+
+probe begin {
+  println("systemtap starting probe")
+
+  errors = check(0, 0)
+  errors += check(0, 1)
+  errors += check(1, 0)
+  errors += check(1, 1)
+
+  println("systemtap ending probe")
+  if (errors == 0)
+    println("systemtap test success")
+  exit()
+}

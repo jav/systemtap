@@ -7,8 +7,6 @@
 # utrace doesn't exist in the kernel, marks the tests as 'untested'.
 
 # Initialize variables
-set utrace_support_found 0
-
 set begin_script {"probe process(\"/bin/ls\").begin { print(\"ls begin\") }"}
 set end_script {"probe process(\"/bin/ls\").end { print(\"ls end\") }"}
 set syscall_script {"probe process(\"/bin/ls\").syscall { printf(\"|%d\", \$syscall) }"}
@@ -24,18 +22,12 @@ set pid_syscall_return_script {"probe process(123).syscall.return { printf(\"|%d
 set pid_thread_begin_script {"probe process(123).thread.begin { print(\"123 thread.begin\") }"}
 set pid_thread_end_script {"probe process(123).thread.end { print(\"123 thread.end\") }"}
 
-# Try to find utrace_attach symbol in /proc/kallsyms
-set path "/proc/kallsyms"
-if {! [catch {exec grep -q utrace_attach $path} dummy]} {
-    set utrace_support_found 1
-}
-
 #
 # Do some utrace compile tests.
 #
 
 set TEST_NAME "UTRACE_P4_01"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling a begin script using a path
@@ -43,7 +35,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_01_pid"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling a begin script using a pid
@@ -51,7 +43,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_02"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling a end script using a path
@@ -59,7 +51,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_02_pid"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling a end script using a pid
@@ -67,7 +59,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_03"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling a syscall script using a path
@@ -75,7 +67,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_03_pid"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling a syscall script using a pid
@@ -83,7 +75,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_04"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling a syscall return script using a path
@@ -91,7 +83,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_04_pid"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling a syscall return script using a pid
@@ -99,7 +91,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_05"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling an thread.begin script using a path
@@ -107,7 +99,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_05_pid"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling an thread.begin script using a pid
@@ -115,7 +107,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_06"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling an thread.end script using a path
@@ -123,7 +115,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_06_pid"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling an thread.end script using a pid
@@ -131,7 +123,7 @@ if {$utrace_support_found == 0} {
 }
 
 set TEST_NAME "UTRACE_P4_07"
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
     # Try compiling an system-wide begin script

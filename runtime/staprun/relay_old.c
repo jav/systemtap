@@ -239,14 +239,15 @@ static int process_subbufs(struct _stp_buf_info *info,
 				scb->rmfile = 1;
 			if (open_oldoutfile(scb->fnum, cpu, scb->rmfile) < 0) {
 				perr("Couldn't open file for cpu %d, exiting.", cpu);
-				exit(1);
+				return -1;
 			}
-			scb->wsize = 0;
+			scb->wsize = len;
 		}
 		if (len) {
 			if (fwrite_unlocked (subbuf_ptr, len, 1, percpu_tmpfile[cpu]) != 1) {
-				_perr("Couldn't write to output file for cpu %d, exiting:", cpu);
-				exit(1);
+				if (errno != EPIPE)
+					_perr("Couldn't write to output file for cpu %d, exiting:", cpu);
+				return -1;
 			}
 		}
 		subbufs_consumed++;
@@ -281,14 +282,17 @@ static void *reader_thread(void *data)
 		if (rc < 0) {
 			if (errno != EINTR) {
 				_perr("poll error");
-				exit(1);
+				break;
 			}
 			err("WARNING: poll warning: %s\n", strerror(errno));
 			rc = 0;
 		}
 
 		rc = read(proc_fd[cpu], &status[cpu].info, sizeof(struct _stp_buf_info));
-		subbufs_consumed = process_subbufs(&status[cpu].info, &scb);
+		rc = process_subbufs(&status[cpu].info, &scb);
+		if (rc < 0)
+			break;
+		subbufs_consumed = rc;
 		if (subbufs_consumed) {
 			if (subbufs_consumed > status[cpu].max_backlog)
 				status[cpu].max_backlog = subbufs_consumed;
@@ -301,6 +305,10 @@ static void *reader_thread(void *data)
 		if (status[cpu].info.flushing)
 			pthread_exit(NULL);
 	} while (1);
+
+	/* Signal the main thread that we need to quit */
+	kill(getpid(), SIGTERM);
+	pthread_exit(NULL);
 }
 
 /**
@@ -320,7 +328,7 @@ int write_realtime_data(void *data, ssize_t nb)
 			perr("Couldn't open file, exiting.");
 			return -1;
 		}
-		global_scb.wsize = 0;
+		global_scb.wsize = nb;
 	}
 	bw = write(out_fd[0], data, nb);
 	if (bw >= 0 && bw != nb) {

@@ -90,8 +90,8 @@ probe syscall.exit {
 }
 
 probe timer.s(1) {
-  printf("\033[2J\033[1;1H") /* clear screen */
-  printf ("  uid |   poll  select   epoll  itimer   futex nanosle  signal| process\n")
+  ansi_clear_screen()
+  printf ("  pid |   poll  select   epoll  itimer   futex nanosle  signal| process\n")
   foreach (p in timeout_count- limit 20) {
      printf ("%5d |%7d %7d %7d %7d %7d %7d %7d| %-.38s\n", p,
               poll_timeout[p], select_timeout[p],

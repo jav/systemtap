@@ -1,0 +1,8 @@
+#! stap -p4
+#
+# Test the translatability for symdata()
+#
+probe begin
+{
+   log(symdata(0))
+}

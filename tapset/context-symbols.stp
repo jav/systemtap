@@ -66,7 +66,7 @@ function probefunc:string () %{ /* pure */
 #else
 		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)PAGE_OFFSET)) {
 #endif
-		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs));
+		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs), current, 0);
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
        	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
@@ -89,8 +89,59 @@ function probemod:string () %{ /* pure */
 		while (*ptr != '"' && --len && *ptr)
 			*dst++ = *ptr++;
 		*dst = 0;
-	} else {
-		/* XXX: need a PC- and symbol-table-based fallback. */
-		THIS->__retvalue[0] = '\0';
-	}
+	} else if (CONTEXT->regs) {
+		struct _stp_module *m;
+		m = _stp_mod_sec_lookup (REG_IP(CONTEXT->regs), current, NULL);
+		if (m && m->name)
+			strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
+		else
+			strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+	} else
+		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+%}
+
+/**
+ * sfunction modname - Return the kernel module name loaded at the address.
+ * @addr: The address.
+ *
+ * Description: Returns the module name associated with the given
+ * address if known. If not known it will return the string "<unknown>".
+ * If the address was not in a kernel module, but in the kernel itself,
+ * then the string "kernel" will be returned.
+ */
+function modname:string (addr: long) %{ /* pure */
+	struct _stp_module *m;
+	m = _stp_mod_sec_lookup (THIS->addr, current, NULL);
+	if (m && m->name)
+          strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
+	else
+	  strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+%}
+
+/**
+ * sfunction symname - Return the symbol associated with the given address.
+ * @addr: The address to translate.
+ *
+ * Description: Returns the (function) symbol name associated with the
+ * given address if known. If not known it will return the hex string
+ * representation of addr.
+ */
+function symname:string (addr: long) %{ /* pure */
+	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+			     NULL, 0);
+%}
+
+/**
+ * sfunction symdata - Return the symbol and module offset for the address.
+ * @addr: The address to translate.
+ *
+ * Description: Returns the (function) symbol name associated with the
+ * given address if known, plus the module name (between brackets) and
+ * the offset inside the module, plus the size of the symbol function.
+ * If any element is not known it will be ommitted and if the symbol name
+ * is unknown it will return the hex string for the given address.
+ */
+function symdata:string (addr: long) %{ /* pure */
+	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+			     NULL, 1);
 %}

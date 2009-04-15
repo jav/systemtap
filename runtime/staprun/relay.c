@@ -185,7 +185,7 @@ static void *reader_thread(void *data)
 			dbug(3, "cpu=%d poll=%d errno=%d\n", cpu, rc, errno);
                         if (errno != EINTR) {
 				_perr("poll error");
-				return(NULL);
+				goto error_out;
                         }
                 }
 		while ((rc = read(relay_fd[cpu], buf, sizeof(buf))) > 0) {
@@ -198,17 +198,24 @@ static void *reader_thread(void *data)
 					remove_file = 1;
 				if (open_outfile(fnum, cpu, remove_file) < 0) {
 					perr("Couldn't open file for cpu %d, exiting.", cpu);
-					return(NULL);
+					goto error_out;
 				}
-				wsize = 0;
+				wsize = rc;
 			}
 			if (write(out_fd[cpu], buf, rc) != rc) {
-				perr("Couldn't write to output %d for cpu %d, exiting.", out_fd[cpu], cpu);
-				return(NULL);
+				if (errno != EPIPE)
+					perr("Couldn't write to output %d for cpu %d, exiting.", out_fd[cpu], cpu);
+				goto error_out;
 			}
 		}
         } while (!stop_threads);
-	dbug(3, "exiting thread %d\n", cpu);
+	dbug(3, "exiting thread for cpu %d\n", cpu);
+	return(NULL);
+
+error_out:
+	/* Signal the main thread that we need to quit */
+	kill(getpid(), SIGTERM);
+	dbug(2, "exiting thread for cpu %d after error\n", cpu);
 	return(NULL);
 }
 

@@ -2433,7 +2433,8 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       p->body = duv.require(p->body, true);
       if (p->body == 0)
         {
-          if (! s.suppress_warnings)
+          if (! s.suppress_warnings
+              && ! s.timing) // PR10070
             s.print_warning ("side-effect-free probe '" + p->name + "'", p->tok);
 
           p->body = new null_statement();
@@ -3392,6 +3393,9 @@ typeresolution_info::visit_symbol (symbol* e)
 void
 typeresolution_info::visit_target_symbol (target_symbol* e)
 {
+  if (!e->probe_context_var.empty())
+    return;
+
   // This occurs only if a target symbol was not resolved over in
   // tapset.cxx land, that error was properly suppressed, and the
   // later unused-expression-elimination pass didn't get rid of it

@@ -918,6 +918,7 @@ c_unparser::emit_common_header ()
       ostringstream oss;
       oss << "c->statp = & time_" << dp->basest()->name << ";" << endl;  // -t anti-dupe
       oss << "# needs_global_locks: " << dp->needs_global_locks () << endl;
+      dp->print_dupe_stamp (oss);
       dp->body->print(oss);
       // NB: dependent probe conditions *could* be listed here, but don't need to be.
       // That's because they're only dependent on the probe body, which is already
@@ -1507,6 +1508,7 @@ c_unparser::emit_probe (derived_probe* v)
   // be very different with or without -t.
   oss << "c->statp = & time_" << v->basest()->name << ";" << endl;
 
+  v->print_dupe_stamp (oss);
   v->body->print(oss);
 
   // Since the generated C changes based on whether or not the probe
@@ -3488,7 +3490,10 @@ c_unparser_assignment::visit_symbol (symbol *e)
 void
 c_unparser::visit_target_symbol (target_symbol* e)
 {
-  throw semantic_error("cannot translate general target-symbol expression", e->tok);
+  if (!e->probe_context_var.empty())
+    o->line() << "l->" << e->probe_context_var;
+  else
+    throw semantic_error("cannot translate general cast expression", e->tok);
 }
 
 
@@ -4481,7 +4486,7 @@ dump_unwindsyms (Dwfl_Module *m,
   // In the future, we'll also care about data symbols.
 
   int syments = dwfl_module_getsymtab(m);
-  assert(syments);
+  dwfl_assert ("Getting symbol table for " + modname, syments >= 0);
 
   //extract build-id from debuginfo file
   int build_id_len = 0;
@@ -4527,6 +4532,15 @@ dump_unwindsyms (Dwfl_Module *m,
       }
   }
 
+  // Get the canonical path of the main file for comparison at runtime.
+  // When given directly by the user through -d or in case of the kernel
+  // name and path might differ. path should be used for matching.
+  // Use end as sanity check when resolving symbol addresses and to
+  // calculate size for .dynamic and .absolute sections.
+  const char *mainfile;
+  Dwarf_Addr start, end;
+  dwfl_module_info (m, NULL, &start, &end, NULL, NULL, &mainfile, NULL);
+
   // Look up the relocation basis for symbols
   int n = dwfl_module_relocations (m);
 
@@ -4536,15 +4550,17 @@ dump_unwindsyms (Dwfl_Module *m,
   // XXX: unfortunate duplication with tapsets.cxx:emit_address()
 
   typedef map<Dwarf_Addr,const char*> addrmap_t; // NB: plain map, sorted by address
-  vector<string> seclist; // encountered relocation bases (section names)
+  vector<pair<string,unsigned> > seclist; // encountered relocation bases
+					// (section names and sizes)
   map<unsigned, addrmap_t> addrmap; // per-relocation-base sorted addrmap
 
   Dwarf_Addr extra_offset = 0;
 
-  for (int i = 1 /* XXX: why not 0? */ ; i < syments; ++i)
+  for (int i = 0; i < syments; ++i)
     {
       GElf_Sym sym;
-      const char *name = dwfl_module_getsym(m, i, &sym, NULL);
+      GElf_Word shndxp;
+      const char *name = dwfl_module_getsym(m, i, &sym, &shndxp);
       if (name)
         {
           // NB: Yey, we found the kernel's _stext value.
@@ -4567,21 +4583,22 @@ dump_unwindsyms (Dwfl_Module *m,
                 clog << "Found kernel _stext extra offset 0x" << hex << extra_offset << dec << endl;
             }
 
-          // We only need the function symbols to identify kernel-mode
-          // PC's, so we omit undefined or "fake" absolute addresses.
-          // These fake absolute addresses occur in some older i386
-          // kernels to indicate they are vDSO symbols, not real
-          // functions in the kernel.
+	  // We are only interested in "real" symbols.
+	  // We omit symbols that have suspicious addresses (before base,
+	  // or after end).
           if ((GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
                GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
-               && !(sym.st_shndx == SHN_UNDEF || sym.st_shndx == SHN_ABS))
+               && !(sym.st_shndx == SHN_UNDEF	// Value undefined,
+		    || shndxp == (GElf_Word) -1	// in a non-allocated section,
+		    || sym.st_value >= end	// beyond current module,
+		    || sym.st_value < base))	// before first section.
             {
               Dwarf_Addr sym_addr = sym.st_value;
+              Dwarf_Addr save_addr = sym_addr;
               const char *secname = NULL;
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
-                  Dwarf_Addr save_addr = sym_addr;
                   int ki = dwfl_module_relocate_address (m, &sym_addr);
                   dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
                   secname = dwfl_module_relocation_info (m, ki, NULL);
@@ -4599,6 +4616,16 @@ dump_unwindsyms (Dwfl_Module *m,
                 {
                   // This is a symbol within a (possibly relocatable)
                   // kernel image.
+                  
+		  // We only need the function symbols to identify kernel-mode
+		  // PC's, so we omit undefined or "fake" absolute addresses.
+		  // These fake absolute addresses occur in some older i386
+		  // kernels to indicate they are vDSO symbols, not real
+		  // functions in the kernel. We also omit symbols that have
+                  if (GELF_ST_TYPE (sym.st_info) == STT_FUNC
+		      && sym.st_shndx == SHN_ABS)
+		    continue;
+
                   secname = "_stext";
                   // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
                   // Instead, sym_addr will get compensated later via extra_offset.
@@ -4624,10 +4651,31 @@ dump_unwindsyms (Dwfl_Module *m,
               // Compute our section number
               unsigned secidx;
               for (secidx=0; secidx<seclist.size(); secidx++)
-                if (seclist[secidx]==secname) break;
+                if (seclist[secidx].first==secname) break;
 
               if (secidx == seclist.size()) // new section name
-                seclist.push_back (secname);
+		{
+                  // absolute, dynamic or kernel have just one relocation
+                  // section, which covers the whole module address range.
+                  unsigned size;
+                  if (secidx == 0
+                      && (n == 0
+                          || (n == 1
+                              && (strcmp(secname, ".dynamic") == 0
+                                  || strcmp(secname, "_stext") == 0))))
+                    size = end - start;
+                  else
+                   {
+                     Dwarf_Addr b;
+                     Elf_Scn *scn;
+                     GElf_Shdr *shdr, shdr_mem;
+                     scn = dwfl_module_address_section (m, &save_addr, &b);
+                     assert (scn != NULL);
+                     shdr = gelf_getshdr(scn, &shdr_mem);
+                     size = shdr->sh_size;
+                   }
+                  seclist.push_back (make_pair(secname,size));
+		}
 
               (addrmap[secidx])[sym_addr] = name;
             }
@@ -4658,10 +4706,10 @@ dump_unwindsyms (Dwfl_Module *m,
       // There would be only a small benefit to warning.  A user
       // likely can't do anything about this; backtraces for the
       // affected module would just get all icky heuristicy.
-#if 0
-      c->session.print_warning ("No unwind data for " + modname
-				+ ", " + dwfl_errmsg (-1));
-#endif
+      // So only report in verbose mode.
+      if (c->session.verbose > 2)
+	c->session.print_warning ("No unwind data for " + modname
+				  + ", " + dwfl_errmsg (-1));
     }
 
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
@@ -4688,12 +4736,17 @@ dump_unwindsyms (Dwfl_Module *m,
     }
 
   c->output << "static struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {\n";
+  // For the kernel, executables (ET_EXEC) or shared libraries (ET_DYN)
+  // there is just one section that covers the whole address space of
+  // the module. For kernel modules (ET_REL) there can be multiple
+  // sections that get relocated separately.
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
       c->output << "{\n"
-                << ".name = " << lex_cast_qstring(seclist[secidx]) << ",\n"
+                << ".name = " << lex_cast_qstring(seclist[secidx].first) << ",\n"
+                << ".size = 0x" << hex << seclist[secidx].second << dec << ",\n"
                 << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << ",\n"
-                << ".num_symbols = sizeof(_stp_module_" << stpmod_idx << "_symbols_" << secidx << ")/sizeof(struct _stp_symbol)\n"
+                << ".num_symbols = " << addrmap[secidx].size() << "\n"
                 << "},\n";
     }
   c->output << "};\n";
@@ -4701,11 +4754,6 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
 
-  // Get the canonical path of the main file for comparison at runtime.
-  // When given directly by the user through -d or in case of the kernel
-  // name and path might differ. path should be used for matching.
-  const char *mainfile;
-  dwfl_module_info (m, NULL, NULL, NULL, NULL, NULL, &mainfile, NULL);
   mainfile = canonicalize_file_name(mainfile);
   c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
 
@@ -4840,7 +4888,8 @@ emit_symbol_data (systemtap_session& s)
     {
       NULL, /* dwfl_linux_kernel_find_elf, */
       dwfl_standard_find_debuginfo,
-      dwfl_offline_section_address,
+      NULL, /* ET_REL not supported for user space, only ET_EXEC and ET_DYN.
+              dwfl_offline_section_address, */
       (char **) & debuginfo_path
     };
 
@@ -4955,6 +5004,8 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define STP_OVERLOAD";
       s.op->newline() << "#endif";
 
+      s.op->newline() << "#define STP_SKIP_BADVARS " << (s.skip_badvars ? 1 : 0);
+
       if (s.bulk_mode)
 	  s.op->newline() << "#define STP_BULKMODE";
 
@@ -4965,9 +5016,7 @@ translate_pass (systemtap_session& s)
 	s.op->newline() << "#define STP_PERFMON";
 
       s.op->newline() << "#include \"runtime.h\"";
-      s.op->newline() << "#include \"regs.c\"";
       s.op->newline() << "#include \"stack.c\"";
-      s.op->newline() << "#include \"regs-ia64.c\"";
       s.op->newline() << "#include \"stat.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";

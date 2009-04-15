@@ -96,6 +96,7 @@ set init_probes_all_script {
         udp.*.return, 
         tcp.*, 
         tcp.*.return, 
+        kprocess.*, 
         process.*, 
         nfs.fop.*, 
         nfs.aop.*,

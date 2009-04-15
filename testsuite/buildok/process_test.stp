@@ -1,31 +1,31 @@
 #! stap -p4
 
-probe process.create {
+probe kprocess.create {
   log(pp())
   log(sprint(task))
 }
 
-probe process.start {
+probe kprocess.start {
   log(pp())
 }
 
-probe process.exec {
+probe kprocess.exec {
   log(pp())
   log(filename)
 }
 
-probe process.exec_complete {
+probe kprocess.exec_complete {
   log(pp())
   log(sprint(errno))
   log(sprint(success))
 }
 
-probe process.exit {
+probe kprocess.exit {
   log(pp())
   log(sprint(code))
 }
 
-probe process.release {
+probe kprocess.release {
   log(pp())
   log(sprint(task))
 }

@@ -56,7 +56,8 @@ function backtrace:string () %{ /* pure */
 function caller:string() %{ /* pure */
         if (CONTEXT->pi) 
 		_stp_symbol_snprint( THIS->__retvalue, MAXSTRINGLEN, 
-			(unsigned long)_stp_ret_addr_r(CONTEXT->pi));
+			(unsigned long)_stp_ret_addr_r(CONTEXT->pi),
+                        current, 0);
         else
 		strlcpy(THIS->__retvalue,"unknown",MAXSTRINGLEN);
 %}

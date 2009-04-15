@@ -174,6 +174,7 @@ find_script_hash (systemtap_session& s, const string& script, const hash &base)
   h.add(s.ignore_vmlinux);		// --ignore-vmlinux
   h.add(s.ignore_dwarf);		// --ignore-dwarf
   h.add(s.consult_symtab);		// --kelf, --kmap
+  h.add(s.skip_badvars);		// --skip-badvars
   if (!s.kernel_symtab_path.empty())	// --kmap
     {
       h.add(s.kernel_symtab_path);

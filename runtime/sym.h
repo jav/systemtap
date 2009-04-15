@@ -18,6 +18,7 @@ struct _stp_symbol {
 struct _stp_section {
         const char *name;
         unsigned long addr; /* XXX: belongs in per-address-space tables */
+	unsigned long size; /* length of the address space module covers. */
 	struct _stp_symbol *symbols;  /* ordered by address */
   	unsigned num_symbols;
 };

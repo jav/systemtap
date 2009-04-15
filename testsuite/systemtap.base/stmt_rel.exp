@@ -1,8 +1,42 @@
-# test integer limits. Set and print variables and print constants.
-
 set test "stmt_rel"
-set ::result_string {PASS bio_init
-PASS line number
-PASS wildcard}
 
-stap_run2 $srcdir/$subdir/$test.stp
+set line1 ""
+spawn stap -l "kernel.statement(\"bio_init@fs/bio.c+2\")"
+expect {
+    -timeout 180
+    -re {[0-9][0-9][0-9]} { regexp "\[0-9\]\[0-9\]\[0-9\]" $expect_out(0,string) line1; }
+    timeout { fail "$test C (timeout)" }
+    eof { }
+}
+
+set line2 ""
+spawn stap -l "kernel.statement(\"bio_init@fs/bio.c+3\")"
+expect {
+    -timeout 180
+    -re {[0-9][0-9][0-9]} { regexp "\[0-9\]\[0-9\]\[0-9\]" $expect_out(0,string) line2; }
+    timeout { fail "$test C (timeout)" }
+    eof { }
+}
+
+if { $line1 < $line2 } {
+    pass "$test line numbers"
+} else {
+    fail "$test line numbers"
+}
+
+set ok 0
+spawn stap -l "kernel.statement(\"bio_init@fs/bio.c:*\")"
+expect {
+    -timeout 180
+    -re {[0-9][0-9][0-9]} { incr ok; exp_continue }
+    timeout { fail "$test C (timeout)" }
+    eof { }
+}
+
+# bio_init drifts a bit in different kernels. 
+# maybe 3, 4 or 15 lines in it.
+if { $ok >= 3 } {
+    pass "$test wildcard"
+} else {
+    fail "$test wildcard ($ok)"
+}

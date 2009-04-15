@@ -6,12 +6,12 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     # some tests are known to fail.
     switch $test {
         buildok/perfmon01.stp {setup_kfail 909 *-*-*}
-        buildok/twentysix.stp {setup_kfail 4105 *-*-*}
         buildok/twentyseven.stp {setup_kfail 4166 *-*-*}
         buildok/sched_test.stp {setup_kfail 1155 *-*-*}
         buildok/process_test.stp {setup_kfail 1155 *-*-*}
         buildok/rpc-all-probes.stp {setup_kfail 4413 *-*-*}
         buildok/nfs-all-probes.stp {setup_kfail 4413 *-*-*}
+        buildok/per-process-syscall.stp {if {![utrace_p]} { setup_kfail 9999 *-*-*} }
     }
     if {$rc == 0} { pass $test } else { fail $test }
 }

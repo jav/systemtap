@@ -1,7 +1,9 @@
-#! stap --skip-badvars
+#! /bin/sh
 
+stap -p2 --skip-badvars -e '
 probe syscall.read {
   if ($foo == 0)
     printf ("Voila! It works..\n")
   exit ()
 }
+'

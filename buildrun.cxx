@@ -48,6 +48,12 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
       cerr << "unsetenv failed: " << e << endl;
     }
 
+  // Disable ccache to avoid saving files that will never be reused.
+  // (ccache is useless to us, because our compiler commands always
+  // include the randomized tmpdir path.)
+  // It's not critical if this fails, so the return is ignored.
+  (void) setenv("CCACHE_DISABLE", "1", 0);
+
   if (s.verbose > 2)
     make_cmd += " V=1";
   else if (s.verbose > 1)
@@ -56,7 +62,7 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
     make_cmd += " -s >/dev/null 2>&1";
 
   if (s.verbose > 1) clog << "Running " << make_cmd << endl;
-  rc = system (make_cmd.c_str());
+  rc = stap_system (make_cmd.c_str());
 
   return rc;
 }
@@ -159,6 +165,8 @@ compile_pass (systemtap_session& s)
 #endif
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
                   "STAPCONF_KERNEL_STACKTRACE", NULL);
+  output_autoconf(s, o, "autoconf-asm-syscall.c",
+		  "STAPCONF_ASM_SYSCALL_H", NULL);
 
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 
@@ -223,7 +231,7 @@ kernel_built_uprobes (systemtap_session& s)
 {
   string grep_cmd = string ("/bin/grep -q unregister_uprobe ") + 
     s.kernel_build_tree + string ("/Module.symvers");
-  int rc = system (grep_cmd.c_str());
+  int rc = stap_system (grep_cmd.c_str());
   return (rc == 0);
 }
 
@@ -274,7 +282,7 @@ copy_uprobes_symbols (systemtap_session& s)
   string uprobes_home = s.runtime_path + "/uprobes";
   string cp_cmd = string("/bin/cp ") + uprobes_home +
     string("/Module.symvers ") + s.tmpdir;
-  int rc = system (cp_cmd.c_str());
+  int rc = stap_system (cp_cmd.c_str());
   return rc;
 }
 
@@ -339,7 +347,7 @@ run_pass (systemtap_session& s)
 
   if (s.verbose>1) clog << "Running " << staprun_cmd << endl;
 
-  rc = system (staprun_cmd.c_str ());
+  rc = stap_system (staprun_cmd.c_str ());
   return rc;
 }
 

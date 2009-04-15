@@ -1,0 +1,14 @@
+#! stap -p4
+
+# tests overwide arrays
+global a10
+global b10
+global c10
+global d10
+
+probe begin {
+      a10[0,"a",0,"a",0,"a",0,"a",0,"a"]="a";
+      b10["b",0,"b",0,"b",0,"b",0,"b",0]=0;
+      c10[0,"a",0,"a",0,"a",0,"a",0,"a"]<<<0;
+      d10["b",0,"b",0,"b",0,"b",0,"b",0]<<<0;
+}
