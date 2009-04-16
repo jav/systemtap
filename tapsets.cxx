@@ -2984,100 +2984,99 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
 }
 
 
-  void
-  dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
-			       void *data, 
-			       void (* callback)(const string &,
-						 const char *,
-						 int,
-						 Dwarf_Die *,
-						 Dwarf_Addr,
-						 dwarf_query *))
-  {
-    dwarf_query * q __attribute__ ((unused)) = static_cast<dwarf_query *>(data) ;
+void
+dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
+			     void *data, 
+			     void (* callback)(const string &,
+					       const char *,
+					       int,
+					       Dwarf_Die *,
+					       Dwarf_Addr,
+					       dwarf_query *))
+{
+  dwarf_query * q __attribute__ ((unused)) = static_cast<dwarf_query *>(data) ;
 
-    get_module_dwarf();
+  get_module_dwarf();
 
-    const char * sym = q->label_val.c_str();
-    Dwarf_Die die;
-    int res = dwarf_child (begin_die, &die);
-    if (res != 0)
-      return;  // die without children, bail out.
+  const char * sym = q->label_val.c_str();
+  Dwarf_Die die;
+  int res = dwarf_child (begin_die, &die);
+  if (res != 0)
+    return;  // die without children, bail out.
 
-    static string function_name = dwarf_diename (begin_die);
-    do 
-      {
-	Dwarf_Attribute attr_mem;
-	Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
-	int tag = dwarf_tag(&die);
-	const char *name = dwarf_formstring (attr);
-	if (name == 0)
+  static string function_name = dwarf_diename (begin_die);
+  do 
+    {
+      Dwarf_Attribute attr_mem;
+      Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
+      int tag = dwarf_tag(&die);
+      const char *name = dwarf_formstring (attr);
+      if (name == 0)
+	continue;
+      switch (tag)
+	{
+	case DW_TAG_label:
+	  break;
+	case DW_TAG_subprogram:
+	  function_name = name;
+	default:
+	  if (dwarf_haschildren (&die))
+	    iterate_over_labels (&die, q, callback);
 	  continue;
-	switch (tag)
-	  {
-	  case DW_TAG_label:
-	    break;
-	  case DW_TAG_subprogram:
-	    function_name = name;
-	  default:
-	    if (dwarf_haschildren (&die))
-	      iterate_over_labels (&die, q, callback);
-	    continue;
-	  }
+	}
 	
-	if (strcmp(function_name.c_str(), q->function.c_str()) == 0
-	    || (name_has_wildcard(q->function)
-		&& function_name_matches_pattern (function_name, q->function)))
-	  {
-	  }
-	else
-	  continue;
-	if (strcmp(name, sym) == 0
-	    || (name_has_wildcard(sym) 
-		&& function_name_matches_pattern (name, sym)))
-	  {
-	    const char *file = dwarf_decl_file (&die);
-	    // Get the line number for this label
-	    Dwarf_Attribute attr;
-	    dwarf_attr (&die,DW_AT_decl_line, &attr);
-	    Dwarf_Sword dline;
-	    dwarf_formsdata (&attr, &dline);
-	    Dwarf_Addr stmt_addr;
-	    if (dwarf_lowpc (&die, &stmt_addr) != 0)
-	      {
-		// There is no lowpc so figure out the address
-		// Get the real die for this cu
-		Dwarf_Die cudie;
-		dwarf_diecu (q->dw.cu, &cudie, NULL, NULL);
-		size_t nlines = 0;
-		// Get the line for this label
-		Dwarf_Line **aline;
-		dwarf_getsrc_file (module_dwarf, file, (int)dline, 0, &aline, &nlines);
-		// Get the address
-		for (size_t i = 0; i < nlines; i++)
-		  {
-		    dwarf_lineaddr (*aline, &stmt_addr);
-		    if ((dwarf_haspc (&die, stmt_addr)))
-		      break;
-		  }
-	      }
+      if (strcmp(function_name.c_str(), q->function.c_str()) == 0
+	  || (name_has_wildcard(q->function)
+	      && function_name_matches_pattern (function_name, q->function)))
+	{
+	}
+      else
+	continue;
+      if (strcmp(name, sym) == 0
+	  || (name_has_wildcard(sym) 
+	      && function_name_matches_pattern (name, sym)))
+	{
+	  const char *file = dwarf_decl_file (&die);
+	  // Get the line number for this label
+	  Dwarf_Attribute attr;
+	  dwarf_attr (&die,DW_AT_decl_line, &attr);
+	  Dwarf_Sword dline;
+	  dwarf_formsdata (&attr, &dline);
+	  Dwarf_Addr stmt_addr;
+	  if (dwarf_lowpc (&die, &stmt_addr) != 0)
+	    {
+	      // There is no lowpc so figure out the address
+	      // Get the real die for this cu
+	      Dwarf_Die cudie;
+	      dwarf_diecu (q->dw.cu, &cudie, NULL, NULL);
+	      size_t nlines = 0;
+	      // Get the line for this label
+	      Dwarf_Line **aline;
+	      dwarf_getsrc_file (module_dwarf, file, (int)dline, 0, &aline, &nlines);
+	      // Get the address
+	      for (size_t i = 0; i < nlines; i++)
+		{
+		  dwarf_lineaddr (*aline, &stmt_addr);
+		  if ((dwarf_haspc (&die, stmt_addr)))
+		    break;
+		}
+	    }
 
-	    Dwarf_Die *scopes;
-	    int nscopes = 0;
-	    nscopes = dwarf_getscopes_die (&die, &scopes);
-	    if (nscopes > 1)
-	      {
-		callback(function_name.c_str(), file,
-			 (int)dline, &scopes[1], stmt_addr, q);
-		if (sess.listing_mode)
-		  q->results.back()->locations[0]->components.push_back
-		    (new probe_point::component(TOK_LABEL, new literal_string (name)));
-	      }
-	  }
-      }
-    while (dwarf_siblingof (&die, &die) == 0);
-  }
-
+	  Dwarf_Die *scopes;
+	  int nscopes = 0;
+	  nscopes = dwarf_getscopes_die (&die, &scopes);
+	  if (nscopes > 1)
+	    {
+	      callback(function_name.c_str(), file,
+		       (int)dline, &scopes[1], stmt_addr, q);
+	      if (sess.listing_mode)
+		q->results.back()->locations[0]->components.push_back
+		  (new probe_point::component(TOK_LABEL, new literal_string (name)));
+	    }
+	}
+    }
+  while (dwarf_siblingof (&die, &die) == 0);
+}
 
 
 struct dwarf_builder: public derived_probe_builder
