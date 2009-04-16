@@ -59,17 +59,22 @@ class provider:
                     i += 1
                 if (len(new_args) > 0):
                     self.arglist[this_probe] = ('%s arg%d' % (new_args, c))
+                if (len(new_args) == 0):
+                    c = 0
+                    stap_str = "STAP_PROBE(provider,%s" % (this_probe)
+                else:
+                    c += 1
+                    stap_str = "STAP_PROBE%d(provider,%s" % (c,this_probe)
                 define_str = "#define %s(" % (this_probe_canon)
-                stap_str = "STAP_PROBE%s(provider,%s" % (c+1,this_probe)
-                i = 0
+                i = 1
                 while (i <= c):
                     if (i != 0):
                         define_str += ","
-                    define_str = define_str + "arg%s" % (i+1);
-                    stap_str = stap_str + ",arg%s" % (i+1);
+                    define_str = define_str + "arg%s" % (i);
+                    stap_str = stap_str + ",arg%s" % (i);
                     i += 1
                 self.h.write ('#define %s_ENABLED() 1\n' % this_probe_canon)
-                self.h.write (define_str + ")\\\n")
+                self.h.write (define_str + ") \\\n")
                 self.h.write (stap_str + ")\n\n")
 
     def get(self, arg):
