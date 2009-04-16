@@ -124,7 +124,7 @@ syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 static inline long
 syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 {
-        return regs->r15;
+	return regs->r15;
 }
 #endif
 
@@ -304,6 +304,17 @@ syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
 		_stp_error("invalid syscall arg request");
 		return;
 	}
+#ifdef CONFIG_PPC64
+	if (test_tsk_thread_flag(task, TIF_32BIT)) {
+		/*
+		 * Zero-extend 32-bit argument values.  The high bits are
+		 * garbage ignored by the actual syscall dispatch.
+		 */
+		while (n-- > 0)
+			args[n] = (u32) regs->gpr[3 + i + n];
+		return;
+	}
+#endif
 	memcpy(args, &regs->gpr[3 + i], n * sizeof(args[0]));
 }
 #endif
@@ -324,22 +335,22 @@ __ia64_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
 	switch (i) {
 	case 0:
 		if (!n--) break;
-		*args++ = *__ia64_fetch_register(i + 32, regs, cache);
+		*args++ = ia64_fetch_register(32, regs, cache);
 	case 1:
 		if (!n--) break;
-		*args++ = *__ia64_fetch_register(i + 33, regs, cache);
+		*args++ = ia64_fetch_register(33, regs, cache);
 	case 2:
 		if (!n--) break;
-		*args++ = *__ia64_fetch_register(i + 34, regs, cache);
+		*args++ = ia64_fetch_register(34, regs, cache);
 	case 3:
 		if (!n--) break;
-		*args++ = *__ia64_fetch_register(i + 35, regs, cache);
+		*args++ = ia64_fetch_register(35, regs, cache);
 	case 4:
 		if (!n--) break;
-		*args++ = *__ia64_fetch_register(i + 36, regs, cache);
+		*args++ = ia64_fetch_register(36, regs, cache);
 	case 5:
 		if (!n--) break;
-		*args++ = *__ia64_fetch_register(i + 37, regs, cache);
+		*args++ = ia64_fetch_register(37, regs, cache);
 	}
 }
 #endif
