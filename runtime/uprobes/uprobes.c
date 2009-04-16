@@ -1049,8 +1049,7 @@ fail_tsk:
 }
 EXPORT_SYMBOL_GPL(register_uprobe);
 
-/* See Documentation/uprobes.txt. */
-void unregister_uprobe(struct uprobe *u)
+void __unregister_uprobe(struct uprobe *u, bool remove_bkpt)
 {
 	struct task_struct *p;
 	struct uprobe_process *uproc;
@@ -1104,10 +1103,13 @@ void unregister_uprobe(struct uprobe *u)
 	if (!list_empty(&ppt->uprobe_list))
 		goto done;
 
-	/*
-	 * The last uprobe at ppt's probepoint is being unregistered.
-	 * Queue the breakpoint for removal.
-	 */
+	/* The last uprobe at ppt's probepoint is being unregistered. */
+	if (!remove_bkpt) {
+		uprobe_free_probept(ppt);
+		goto done;
+	}
+
+	/* Queue the breakpoint for removal. */
 	ppt->state = UPROBE_REMOVING;
 	list_add_tail(&ppt->pd_node, &uproc->pending_uprobes);
 
@@ -1132,7 +1134,19 @@ done:
 	up_write(&uproc->rwsem);
 	uprobe_put_process(uproc);
 }
+
+/* See Documentation/uprobes.txt. */
+void unregister_uprobe(struct uprobe *u)
+{
+	__unregister_uprobe(u, true);
+}
 EXPORT_SYMBOL_GPL(unregister_uprobe);
+
+void unmap_uprobe(struct uprobe *u)
+{
+	__unregister_uprobe(u, false);
+}
+EXPORT_SYMBOL_GPL(unmap_uprobe);
 
 /* Find a surviving thread in uproc.  Runs with uproc->rwsem locked. */
 static struct task_struct *find_surviving_thread(struct uprobe_process *uproc)
@@ -2539,6 +2553,14 @@ void unregister_uretprobe(struct uretprobe *rp)
 	unregister_uprobe(&rp->u);
 }
 EXPORT_SYMBOL_GPL(unregister_uretprobe);
+
+void unmap_uretprobe(struct uretprobe *rp)
+{
+	if (!rp)
+		return;
+	unmap_uprobe(&rp->u);
+}
+EXPORT_SYMBOL_GPL(unmap_uretprobe);
 
 /*
  * uproc->ssol_area has been successfully set up.  Establish the

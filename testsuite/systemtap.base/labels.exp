@@ -55,11 +55,42 @@ if { $res != "" } {
     pass "compiling labels.c -g"
 }
 
+# line number error
+
+set ok 0
+spawn stap -l "process(\"$label_exepath\").function(\"foo@${label_srcpath}:10\").label(\"*\")"
+
+wait
+expect {
+    -timeout 180
+    -re {no match while resolving probe point} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if {$ok == 1} { pass "$test :N .label" } { fail "$test :N .label $ok" }
+
+# line number 
+
+set ok 0
+spawn stap -l "process(\"$label_exepath\").function(\"foo@${label_srcpath}:4\").label(\"*\")"
+
+wait
+expect {
+    -timeout 180
+    -re {process.*function.*labels.c:5...label..init_an_int} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if {$ok == 1} { pass "$test :N .label" } { fail "$test :N .label $ok" }
+
 # list of labels
 
 spawn stap -l "process(\"$label_exepath\").function(\"*\").label(\"*\")"
 
 wait
+set ok 0
 expect {
     -timeout 180
     -re {process.*function.*labels.c:5...label..init_an_int.*process.*function.*labels.c:16...label..init_an_int.*process.*function.*labels.c:18...label..init_an_int_again} { incr ok; exp_continue }

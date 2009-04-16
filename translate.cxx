@@ -4562,9 +4562,14 @@ dump_unwindsyms (Dwfl_Module *m,
       }
   }
 
-  // Use end as sanity check when resolving symbol addresses.
-  Dwarf_Addr end;
-  dwfl_module_info (m, NULL, NULL, &end, NULL, NULL, NULL, NULL);
+  // Get the canonical path of the main file for comparison at runtime.
+  // When given directly by the user through -d or in case of the kernel
+  // name and path might differ. path should be used for matching.
+  // Use end as sanity check when resolving symbol addresses and to
+  // calculate size for .dynamic and .absolute sections.
+  const char *mainfile;
+  Dwarf_Addr start, end;
+  dwfl_module_info (m, NULL, &start, &end, NULL, NULL, &mainfile, NULL);
 
   // Look up the relocation basis for symbols
   int n = dwfl_module_relocations (m);
@@ -4575,7 +4580,8 @@ dump_unwindsyms (Dwfl_Module *m,
   // XXX: unfortunate duplication with tapsets.cxx:emit_address()
 
   typedef map<Dwarf_Addr,const char*> addrmap_t; // NB: plain map, sorted by address
-  vector<string> seclist; // encountered relocation bases (section names)
+  vector<pair<string,unsigned> > seclist; // encountered relocation bases
+					// (section names and sizes)
   map<unsigned, addrmap_t> addrmap; // per-relocation-base sorted addrmap
 
   Dwarf_Addr extra_offset = 0;
@@ -4618,11 +4624,11 @@ dump_unwindsyms (Dwfl_Module *m,
 		    || sym.st_value < base))	// before first section.
             {
               Dwarf_Addr sym_addr = sym.st_value;
+              Dwarf_Addr save_addr = sym_addr;
               const char *secname = NULL;
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
-                  Dwarf_Addr save_addr = sym_addr;
                   int ki = dwfl_module_relocate_address (m, &sym_addr);
                   dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
                   secname = dwfl_module_relocation_info (m, ki, NULL);
@@ -4675,10 +4681,31 @@ dump_unwindsyms (Dwfl_Module *m,
               // Compute our section number
               unsigned secidx;
               for (secidx=0; secidx<seclist.size(); secidx++)
-                if (seclist[secidx]==secname) break;
+                if (seclist[secidx].first==secname) break;
 
               if (secidx == seclist.size()) // new section name
-                seclist.push_back (secname);
+		{
+                  // absolute, dynamic or kernel have just one relocation
+                  // section, which covers the whole module address range.
+                  unsigned size;
+                  if (secidx == 0
+                      && (n == 0
+                          || (n == 1
+                              && (strcmp(secname, ".dynamic") == 0
+                                  || strcmp(secname, "_stext") == 0))))
+                    size = end - start;
+                  else
+                   {
+                     Dwarf_Addr b;
+                     Elf_Scn *scn;
+                     GElf_Shdr *shdr, shdr_mem;
+                     scn = dwfl_module_address_section (m, &save_addr, &b);
+                     assert (scn != NULL);
+                     shdr = gelf_getshdr(scn, &shdr_mem);
+                     size = shdr->sh_size;
+                   }
+                  seclist.push_back (make_pair(secname,size));
+		}
 
               (addrmap[secidx])[sym_addr] = name;
             }
@@ -4739,12 +4766,17 @@ dump_unwindsyms (Dwfl_Module *m,
     }
 
   c->output << "static struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {\n";
+  // For the kernel, executables (ET_EXEC) or shared libraries (ET_DYN)
+  // there is just one section that covers the whole address space of
+  // the module. For kernel modules (ET_REL) there can be multiple
+  // sections that get relocated separately.
   for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
       c->output << "{\n"
-                << ".name = " << lex_cast_qstring(seclist[secidx]) << ",\n"
+                << ".name = " << lex_cast_qstring(seclist[secidx].first) << ",\n"
+                << ".size = 0x" << hex << seclist[secidx].second << dec << ",\n"
                 << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << ",\n"
-                << ".num_symbols = sizeof(_stp_module_" << stpmod_idx << "_symbols_" << secidx << ")/sizeof(struct _stp_symbol)\n"
+                << ".num_symbols = " << addrmap[secidx].size() << "\n"
                 << "},\n";
     }
   c->output << "};\n";
@@ -4752,11 +4784,6 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
 
-  // Get the canonical path of the main file for comparison at runtime.
-  // When given directly by the user through -d or in case of the kernel
-  // name and path might differ. path should be used for matching.
-  const char *mainfile;
-  dwfl_module_info (m, NULL, NULL, NULL, NULL, NULL, &mainfile, NULL);
   mainfile = canonicalize_file_name(mainfile);
   c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
 
@@ -4891,7 +4918,8 @@ emit_symbol_data (systemtap_session& s)
     {
       NULL, /* dwfl_linux_kernel_find_elf, */
       dwfl_standard_find_debuginfo,
-      dwfl_offline_section_address,
+      NULL, /* ET_REL not supported for user space, only ET_EXEC and ET_DYN.
+              dwfl_offline_section_address, */
       (char **) & debuginfo_path
     };
 

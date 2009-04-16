@@ -1339,102 +1339,14 @@ struct dwflpp
   }
 
   void
-  iterate_over_cu_labels (string label_val,
-			  string function,
-			  Dwarf_Die *cu,
-			  vector<derived_probe *>  & results, 
-			  probe_point *base_loc,
-			  void *data, 
-			  void (* callback)(const string &,
-					    const char *,
-					    int,
-					    Dwarf_Die *,
-					    Dwarf_Addr,
-					    dwarf_query *))
-  {
-    dwarf_query * q __attribute__ ((unused)) = static_cast<dwarf_query *>(data) ;
-
-    get_module_dwarf();
-
-    const char * sym = label_val.c_str();
-    Dwarf_Die die;
-    int res = dwarf_child (cu, &die);
-    if (res != 0)
-      return;  // die without children, bail out.
-
-    static string function_name;
-    do 
-      {
-	Dwarf_Attribute attr_mem;
-	Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
-	int tag = dwarf_tag(&die);
-	const char *name = dwarf_formstring (attr);
-	if (name == 0)
-	  continue;
-	switch (tag)
-	  {
-	  case DW_TAG_label:
-	    break;
-	  case DW_TAG_subprogram:
-	    function_name = name;
-	  default:
-	    if (dwarf_haschildren (&die))
-	      iterate_over_cu_labels (label_val, function, &die, results, base_loc, q, callback);
-	    continue;
-	  }
-	
-	if (strcmp(function_name.c_str(), function.c_str()) == 0
-	    || (name_has_wildcard(function)
-		&& function_name_matches_pattern (function_name, function)))
-	  {
-	  }
-	else
-	  continue;
-	if (strcmp(name, sym) == 0
-	    || (name_has_wildcard(sym) 
-		&& function_name_matches_pattern (name, sym)))
-	  {
-	    const char *file = dwarf_decl_file (&die);
-	    // Get the line number for this label
-	    Dwarf_Attribute attr;
-	    dwarf_attr (&die,DW_AT_decl_line, &attr);
-	    Dwarf_Sword dline;
-	    dwarf_formsdata (&attr, &dline);
-	    Dwarf_Addr stmt_addr;
-	    if (dwarf_lowpc (&die, &stmt_addr) != 0)
-	      {
-		// There is no lowpc so figure out the address
-		// Get the real die for this cu
-		Dwarf_Die cudie;
-		dwarf_diecu (cu, &cudie, NULL, NULL);
-		size_t nlines = 0;
-		// Get the line for this label
-		Dwarf_Line **aline;
-		dwarf_getsrc_file (module_dwarf, file, (int)dline, 0, &aline, &nlines);
-		// Get the address
-		for (size_t i = 0; i < nlines; i++)
-		  {
-		    dwarf_lineaddr (*aline, &stmt_addr);
-		    if ((dwarf_haspc (&die, stmt_addr)))
-		      break;
-		  }
-	      }
-
-	    Dwarf_Die *scopes;
-	    int nscopes = 0;
-	    nscopes = dwarf_getscopes_die (&die, &scopes);
-	    if (nscopes > 1)
-	      {
-		callback(function_name.c_str(), file,
-			 (int)dline, &scopes[1], stmt_addr, q);
-		if (sess.listing_mode)
-		  results.back()->locations[0]->components.push_back
-		    (new probe_point::component(TOK_LABEL, new literal_string (name)));
-	      }
-	  }
-      }
-    while (dwarf_siblingof (&die, &die) == 0);
-  }
+  iterate_over_labels (Dwarf_Die *begin_die,
+		       void *data, 
+		       void (* callback)(const string &,
+					 const char *,
+					 int,
+					 Dwarf_Die *,
+					 Dwarf_Addr,
+					 dwarf_query *));
 
   void collect_srcfiles_matching (string const & pattern,
 				  set<char const *> & filtered_srcfiles)
@@ -3072,6 +2984,100 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
 }
 
 
+void
+dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
+			     void *data, 
+			     void (* callback)(const string &,
+					       const char *,
+					       int,
+					       Dwarf_Die *,
+					       Dwarf_Addr,
+					       dwarf_query *))
+{
+  dwarf_query * q __attribute__ ((unused)) = static_cast<dwarf_query *>(data) ;
+
+  get_module_dwarf();
+
+  const char * sym = q->label_val.c_str();
+  Dwarf_Die die;
+  int res = dwarf_child (begin_die, &die);
+  if (res != 0)
+    return;  // die without children, bail out.
+
+  static string function_name = dwarf_diename (begin_die);
+  do 
+    {
+      Dwarf_Attribute attr_mem;
+      Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
+      int tag = dwarf_tag(&die);
+      const char *name = dwarf_formstring (attr);
+      if (name == 0)
+	continue;
+      switch (tag)
+	{
+	case DW_TAG_label:
+	  break;
+	case DW_TAG_subprogram:
+	  function_name = name;
+	default:
+	  if (dwarf_haschildren (&die))
+	    iterate_over_labels (&die, q, callback);
+	  continue;
+	}
+	
+      if (strcmp(function_name.c_str(), q->function.c_str()) == 0
+	  || (name_has_wildcard(q->function)
+	      && function_name_matches_pattern (function_name, q->function)))
+	{
+	}
+      else
+	continue;
+      if (strcmp(name, sym) == 0
+	  || (name_has_wildcard(sym) 
+	      && function_name_matches_pattern (name, sym)))
+	{
+	  const char *file = dwarf_decl_file (&die);
+	  // Get the line number for this label
+	  Dwarf_Attribute attr;
+	  dwarf_attr (&die,DW_AT_decl_line, &attr);
+	  Dwarf_Sword dline;
+	  dwarf_formsdata (&attr, &dline);
+	  Dwarf_Addr stmt_addr;
+	  if (dwarf_lowpc (&die, &stmt_addr) != 0)
+	    {
+	      // There is no lowpc so figure out the address
+	      // Get the real die for this cu
+	      Dwarf_Die cudie;
+	      dwarf_diecu (q->dw.cu, &cudie, NULL, NULL);
+	      size_t nlines = 0;
+	      // Get the line for this label
+	      Dwarf_Line **aline;
+	      dwarf_getsrc_file (module_dwarf, file, (int)dline, 0, &aline, &nlines);
+	      // Get the address
+	      for (size_t i = 0; i < nlines; i++)
+		{
+		  dwarf_lineaddr (*aline, &stmt_addr);
+		  if ((dwarf_haspc (&die, stmt_addr)))
+		    break;
+		}
+	    }
+
+	  Dwarf_Die *scopes;
+	  int nscopes = 0;
+	  nscopes = dwarf_getscopes_die (&die, &scopes);
+	  if (nscopes > 1)
+	    {
+	      callback(function_name.c_str(), file,
+		       (int)dline, &scopes[1], stmt_addr, q);
+	      if (sess.listing_mode)
+		q->results.back()->locations[0]->components.push_back
+		  (new probe_point::component(TOK_LABEL, new literal_string (name)));
+	    }
+	}
+    }
+  while (dwarf_siblingof (&die, &die) == 0);
+}
+
 
 struct dwarf_builder: public derived_probe_builder
 {
@@ -3877,6 +3883,19 @@ query_func_info (Dwarf_Addr entrypc,
 
 
 static void
+query_srcfile_label (const dwarf_line_t& line, void * arg)
+{
+  dwarf_query * q = static_cast<dwarf_query *>(arg);
+
+  Dwarf_Addr addr = line.addr();
+
+  for (func_info_map_t::iterator i = q->filtered_functions.begin();
+       i != q->filtered_functions.end(); ++i)
+    if (q->dw.die_has_pc (i->die, addr))
+      q->dw.iterate_over_labels (&i->die, q, query_statement);
+}
+
+static void
 query_srcfile_line (const dwarf_line_t& line, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
@@ -4120,7 +4139,17 @@ query_cu (Dwarf_Die * cudie, void * arg)
             if (! q->filtered_functions.empty())
               q->dw.resolve_prologue_endings (q->filtered_functions);
 
-	  if ((q->has_statement_str || q->has_function_str)
+	  if (q->has_label)
+	    {
+	      if (q->line[0] == 0)		// No line number specified
+		q->dw.iterate_over_labels (q->dw.cu, q, query_statement);
+	      else
+		for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
+		     i != q->filtered_srcfiles.end(); ++i)
+		  q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
+						    q->line_type, query_srcfile_label, q);
+	    }
+	  else if ((q->has_statement_str || q->has_function_str)
 	      && (q->spec_type == function_file_and_line))
 	    {
 	      // If we have a pattern string with target *line*, we
@@ -4129,12 +4158,6 @@ query_cu (Dwarf_Die * cudie, void * arg)
 		   i != q->filtered_srcfiles.end(); ++i)
 		q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
 						  q->line_type, query_srcfile_line, q);
-	    }
-	  else if (q->has_label)
-	    {
-	      // If we have a pattern string with target *label*, we
-	      // have to look at labels in all the matched srcfiles.
-	      q->dw.iterate_over_cu_labels (q->label_val, q->function, q->dw.cu, q->results, q->base_loc, q, query_statement);
 	    }
 	  else
 	    {
@@ -7590,6 +7613,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#else";
   s.op->newline() << "#include \"uprobes/uprobes.h\"";
   s.op->newline() << "#endif";
+  s.op->newline() << "#ifndef UPROBES_API_VERSION";
+  s.op->newline() << "#define UPROBES_API_VERSION 1";
+  s.op->newline() << "#endif";
 
   s.op->newline() << "#ifndef MULTIPLE_UPROBES";
   s.op->newline() << "#define MULTIPLE_UPROBES 256"; // maximum possible armed uprobes per process() probe point
@@ -7701,10 +7727,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // register new uprobe
   s.op->newline() << "if (register_p && sup->spec_index < 0) {";
-  // PR6829: we need to check that the sup we're about to reuse is really completely free.
-  // See PR6829 notes below.
-  s.op->newline(1) << "if (sup->spec_index == -1 && sup->up.kdata != NULL) continue;";
+  s.op->newline(1) << "#if (UPROBES_API_VERSION < 2)";
+  // See PR6829 comment.
+  s.op->newline() << "if (sup->spec_index == -1 && sup->up.kdata != NULL) continue;";
   s.op->newline() << "else if (sup->spec_index == -2 && sup->urp.u.kdata != NULL) continue;";
+  s.op->newline() << "#endif";
   s.op->newline() << "sup->spec_index = spec_index;";
   s.op->newline() << "slotted_p = 1;";
   s.op->newline() << "break;";
@@ -7755,13 +7782,32 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline(-1) << "} else if (!register_p && slotted_p) {";
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
-  // NB: we need to release this slot, so we need to borrow the mutex temporarily.
+  s.op->newline() << "int unregistered_flag;";
+  // PR6829, PR9940:
+  // Here we're unregistering for one of two reasons:
+  // 1. the process image is going away (or gone) due to exit or exec; or
+  // 2. the vma containing the probepoint has been unmapped.
+  // In case 1, it's sort of a nop, because uprobes will notice the event
+  // and dispose of the probes eventually, if it hasn't already.  But by
+  // calling unmap_u[ret]probe() ourselves, we free up sup right away.
+  //
+  // In both cases, we must use unmap_u[ret]probe instead of
+  // unregister_u[ret]probe, so uprobes knows not to try to restore the
+  // original opcode.
+  s.op->newline() << "#if (UPROBES_API_VERSION >= 2)";
+  s.op->newline() << "if (sups->return_p)";
+  s.op->newline(1) << "unmap_uretprobe (& sup->urp);";
+  s.op->newline(-1) << "else";
+  s.op->newline(1) << "unmap_uprobe (& sup->up);";
+  s.op->newline(-1) << "unregistered_flag = -1;";
+  s.op->newline() << "#else";
+  // Uprobes lacks unmap_u[ret]probe.  Before reusing sup, we must wait
+  // until uprobes turns loose of the u[ret]probe on its own, as indicated
+  // by uprobe.kdata = NULL.
+  s.op->newline() << "unregistered_flag = (sups->return_p ? -2 : -1);";
+  s.op->newline() << "#endif";
   s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
-  // NB: We must not actually uregister u[ret]probes when a target process execs or exits;
-  // uprobes does that by itself asynchronously.  We can reuse the up/urp struct after
-  // uprobes clears the sup->{up,urp}->kdata pointer. PR6829.  To tell the two
-  // cases apart, we use spec_index -2 vs -1.
-  s.op->newline() << "sup->spec_index = (sups->return_p ? -2 : -1);";
+  s.op->newline() << "sup->spec_index = unregistered_flag;";
   s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
   s.op->newline() << "handled_p = 1;";
   s.op->newline(-1) << "}"; // if slotted_p
