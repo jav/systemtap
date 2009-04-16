@@ -391,6 +391,10 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
   osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
   osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
 
+  // some headers may have been pulled in already indirectly, so we need this
+  // to ensure that they still use our definition
+  osrc << "#define TRACE_HEADER_MULTI_READ 1" << endl;
+
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
   for (unsigned z=0; z<extra_headers.size(); z++)
@@ -398,22 +402,32 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
 
   // dynamically pull in all tracepoint headers from include/trace/
   glob_t trace_glob;
-  string globs[2] = { "/include/trace/*.h", "/source/include/trace/*.h" };
-  for (unsigned z=0; z<2; z++)
+  string globs[] = {
+      "/include/trace/*.h",
+      "/include/trace/events/*.h",
+      "/source/include/trace/*.h",
+      "/source/include/trace/events/*.h",
+  };
+  for (unsigned z = 0; z < sizeof(globs) / sizeof(globs[0]); z++)
     {
       string glob_str(s.kernel_build_tree + globs[z]);
       glob(glob_str.c_str(), 0, NULL, &trace_glob);
       for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
         {
-          string header(basename(trace_glob.gl_pathv[i]));
+          string header(trace_glob.gl_pathv[i]);
+          size_t root_pos = header.rfind("/include/");
+          assert(root_pos != string::npos);
+          header.erase(0, root_pos + 9);
 
           // filter out a few known "internal-only" headers
-          if (header == "trace_events.h")
+          if (header.find("/ftrace.h") != string::npos)
+            continue;
+          if (header.find("/trace_events.h") != string::npos)
             continue;
           if (header.find("_event_types.h") != string::npos)
             continue;
 
-          osrc << "#include <trace/" << header << ">" << endl;
+          osrc << "#include <" << header << ">" << endl;
         }
       globfree(&trace_glob);
     }
