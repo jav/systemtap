@@ -23,7 +23,7 @@
 #error "Unsupported dwarf unwind architecture"
 #endif
 
-#define MAX_STACK_DEPTH 8
+#define STP_MAX_STACK_DEPTH 8
 
 #ifndef BUILD_BUG_ON_ZERO
 #define BUILD_BUG_ON_ZERO(e) (sizeof(char[1 - 2 * !!(e)]) - 1)
@@ -135,7 +135,7 @@ struct unwind_state {
 	unsigned stackDepth:8;
 	unsigned version:8;
 	const u8 *label;
-	const u8 *stack[MAX_STACK_DEPTH];
+	const u8 *stack[STP_MAX_STACK_DEPTH];
 };
 
 static const struct cfa badCFA = { ARRAY_SIZE(reg_info), 1 };
