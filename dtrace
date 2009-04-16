@@ -59,29 +59,18 @@ class provider:
                     i += 1
                 if (len(new_args) > 0):
                     self.arglist[this_probe] = ('%s arg%d' % (new_args, c))
-                if (len(new_args) == 0):
-                    self.h.write ('#define %s() STAP_PROBE(provider,%s)\n' % (this_probe_canon, this_probe))
-                elif (c == 0):
-                    self.h.write ('#define %s(arg1) STAP_PROBE%d(provider,%s,arg1)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 1):
-                    self.h.write ('#define %s(arg1,arg2) STAP_PROBE%d(provider,%s,arg1,arg2)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 2):
-                    self.h.write ('#define %s(arg1,arg2,arg3) STAP_PROBE%d(provider,%s,arg1,arg2,arg3)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 3):
-                    self.h.write ('#define %s(arg1,arg2,arg3,arg4) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 4):
-                    self.h.write ('#define %s(arg1,arg2,arg3,arg4,arg5) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4,arg5)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 5):
-                    self.h.write ('#define %s(arg1,arg2,arg3,arg4,arg5,arg6) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4,arg5,arg6)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 6):
-                    self.h.write ('#define %s(arg1,arg2,arg3,arg4,arg5,arg6,arg7) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4,arg5,arg6,arg7)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 7):
-                    self.h.write ('#define %s(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 8):
-                    self.h.write ('#define %s(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9)\n' % (this_probe_canon, c+1, this_probe))
-                elif (c == 9):
-                    self.h.write ('#define %s(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10) STAP_PROBE%d(provider,%s,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10)\n' % (this_probe_canon, c+1, this_probe))
+                define_str = "#define %s(" % (this_probe_canon)
+                stap_str = "STAP_PROBE%s(provider,%s" % (c+1,this_probe)
+                i = 0
+                while (i <= c):
+                    if (i != 0):
+                        define_str += ","
+                    define_str = define_str + "arg%s" % (i+1);
+                    stap_str = stap_str + ",arg%s" % (i+1);
+                    i += 1
                 self.h.write ('#define %s_ENABLED() 1\n' % this_probe_canon)
+                self.h.write (define_str + ")\\\n")
+                self.h.write (stap_str + ")\n\n")
 
     def get(self, arg):
         print arg
@@ -89,9 +78,6 @@ class provider:
             return self.arglist[arg]
         else:
             return ""
-########################################################################
-# main
-########################################################################
 
 def usage ():
     print "Usage " + sys.argv[0] + " [-h | -G] -s File.d -o File {Files}"
@@ -106,6 +92,11 @@ def open_file (arg):
         print (sys.argv[arg] + " not found")
         sys.exit(1)
     return file
+
+
+########################################################################
+# main
+########################################################################
 
 if (len (sys.argv) < 2):
     usage()
