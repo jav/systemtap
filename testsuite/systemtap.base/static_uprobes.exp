@@ -93,7 +93,6 @@ if {[installtest_p]} {
 if {[catch {exec $dtrace -h -s $sup_dpath} res]} {
     verbose -log "unable to run $dtrace: $res"
 }
-catch {exec rm -f $sup_dpath}
 if {[file exists $sup_hpath]} then {
     pass "$test dtrace"
 } else {

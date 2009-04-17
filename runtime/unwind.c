@@ -345,7 +345,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 					state->label = NULL;
 					return 1;
 				}
-				if (state->stackDepth >= MAX_STACK_DEPTH)
+				if (state->stackDepth >= STP_MAX_STACK_DEPTH)
 					return 0;
 				state->stack[state->stackDepth++] = ptr.p8;
 				break;
