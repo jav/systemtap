@@ -377,7 +377,6 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
   // create our source file
   string source(dir + "/tracequery.c");
   ofstream osrc(source.c_str());
-  osrc << "#include <linux/module.h>" << endl;
   osrc << "#ifdef CONFIG_TRACEPOINTS" << endl;
   osrc << "#include <linux/tracepoint.h>" << endl;
 
@@ -434,10 +433,6 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
 
   // finish up the module source
   osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;
-  osrc << "int init_module(void) { return 0; }" << endl;
-  osrc << "void cleanup_module(void) {}" << endl;
-  osrc << "MODULE_DESCRIPTION(\"tracepoint query\");" << endl;
-  osrc << "MODULE_LICENSE(\"GPL\");" << endl;
   osrc.close();
 
   // make the module
