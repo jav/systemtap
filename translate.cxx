@@ -4818,6 +4818,7 @@ dump_unwindsyms (Dwfl_Module *m,
 
 // Emit symbol table & unwind data, plus any calls needed to register
 // them with the runtime.
+void emit_symbol_data_done (unwindsym_dump_context*, systemtap_session&);
 
 void
 emit_symbol_data (systemtap_session& s)
@@ -4829,6 +4830,14 @@ emit_symbol_data (systemtap_session& s)
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
 
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, s.unwindsym_modules };
+
+  // Micro optimization, mainly to speed up tiny regression tests
+  // using just begin probe.
+  if (s.unwindsym_modules.size () == 0)
+    {
+      emit_symbol_data_done(&ctx, s);
+      return;
+    }
 
   // XXX: copied from tapsets.cxx dwflpp::, sadly
   static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
@@ -4922,20 +4931,25 @@ emit_symbol_data (systemtap_session& s)
       dwfl_end(dwfl);
     }
 
+  emit_symbol_data_done (&ctx, s);
+}
 
+void
+emit_symbol_data_done (unwindsym_dump_context *ctx, systemtap_session& s)
+{
   // Print out a definition of the runtime's _stp_modules[] globals.
-  kallsyms_out << "\n";
-  kallsyms_out << "static struct _stp_module *_stp_modules [] = {\n";
-  for (unsigned i=0; i<ctx.stp_module_index; i++)
+  ctx->output << "\n";
+  ctx->output << "static struct _stp_module *_stp_modules [] = {\n";
+  for (unsigned i=0; i<ctx->stp_module_index; i++)
     {
-      kallsyms_out << "& _stp_module_" << i << ",\n";
+      ctx->output << "& _stp_module_" << i << ",\n";
     }
-  kallsyms_out << "};\n";
-  kallsyms_out << "static unsigned _stp_num_modules = " << ctx.stp_module_index << ";\n";
+  ctx->output << "};\n";
+  ctx->output << "static unsigned _stp_num_modules = " << ctx->stp_module_index << ";\n";
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
-  for (set<string>::iterator it = ctx.undone_unwindsym_modules.begin();
-       it != ctx.undone_unwindsym_modules.end();
+  for (set<string>::iterator it = ctx->undone_unwindsym_modules.begin();
+       it != ctx->undone_unwindsym_modules.end();
        it ++)
     {
       s.print_warning ("missing unwind/symbol data for module '" + (*it) + "'");
