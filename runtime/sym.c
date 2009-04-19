@@ -330,7 +330,8 @@ static void _stp_symbol_print(unsigned long address)
 }
 
 /* Like _stp_symbol_print, except only print if the address is a valid function address */
-static int _stp_func_print(unsigned long address, int verbose, int exact)
+static int _stp_func_print(unsigned long address, int verbose, int exact,
+                           struct task_struct *task)
 {
 	const char *modname;
 	const char *name;
@@ -342,7 +343,7 @@ static int _stp_func_print(unsigned long address, int verbose, int exact)
 	else
 		exstr = " (inexact)";
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, NULL);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, task);
 
 	if (name) {
 		if (verbose) {

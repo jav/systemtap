@@ -77,7 +77,7 @@ static void print_stack_address(void *data, unsigned long addr, int reliable)
 {
 	struct print_stack_data *sdata = data;
         if (sdata->level++ < sdata->max_level)
-                _stp_func_print(addr,sdata->verbose, 0);
+                _stp_func_print(addr, sdata->verbose, 0, NULL);
 }
 
 static const struct stacktrace_ops print_stack_ops = {
