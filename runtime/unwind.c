@@ -435,12 +435,18 @@ adjustStartLoc (unsigned long startLoc,
 		struct _stp_module *m,
 		struct _stp_section *s)
 {
-  if (startLoc && (strcmp (m->name, "kernel") != 0))
-    {
-      startLoc = _stp_module_relocate (m->name, s->name,
-				       startLoc);
-      startLoc -= m->dwarf_module_base;
-    }
+  /* XXX - some, or all, of this should really be done by
+     _stp_module_relocate. */
+  if (startLoc == 0
+      || strcmp (m->name, "kernel")  == 0
+      || strcmp (s->name, ".absolute") == 0)
+    return startLoc;
+
+  if (strcmp (s->name, ".dynamic") == 0)
+    return startLoc + s->addr;
+
+  startLoc = _stp_module_relocate (m->name, s->name, startLoc);
+  startLoc -= m->dwarf_module_base;
   return startLoc;
 }
 
