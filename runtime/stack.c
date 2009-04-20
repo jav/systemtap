@@ -149,23 +149,6 @@ static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int ve
 
 #endif /* CONFIG_KPROBES */
 
-/** Prints the user stack backtrace
- * @param str string
- * @returns Same string as was input with trace info appended,
- * @note Currently limited to a depth of two. Works from jprobes and kprobes.
- */
-#if 0
-static void _stp_ustack_print(char *str)
-{
-	struct pt_regs *nregs = ((struct pt_regs *)(THREAD_SIZE + (unsigned long)current->thread_info)) - 1;
-	_stp_printf("%p : [user]\n", (int64_t) REG_IP(nregs));
-	if (REG_SP(nregs))
-		_stp_printf("%p : [user]\n", (int64_t) (*(unsigned long *)REG_SP(nregs)));
-}
-#endif /* 0 */
-
-/** @} */
-
 void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
 {
 #if defined(STAPCONF_KERNEL_STACKTRACE)
