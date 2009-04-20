@@ -265,7 +265,7 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 # XXX: leaves behind man pages
 
-SUBDIRS = doc
+SUBDIRS = doc grapher
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 
 check-local:

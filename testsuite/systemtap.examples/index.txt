@@ -152,6 +152,13 @@ keywords: memory
   determine where the page faults are occuring.
 
 
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
+
+
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
 keywords: network traffic per-process
 
