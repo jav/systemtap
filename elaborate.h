@@ -237,6 +237,8 @@ match_node
   sub_map_t sub;
   derived_probe_builder* end;
 
+  std::vector<std::string> unprivileged_whitelist;
+
  public:
   match_node();
 

@@ -610,6 +610,7 @@ main (int argc, char * const argv [])
 
         case 'g':
           s.guru_mode = true;
+	  s.unprivileged = false;
           break;
 
         case 'P':
@@ -752,6 +753,7 @@ main (int argc, char * const argv [])
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      s.unprivileged = true;
+	      s.guru_mode = false;
 	      break;
             default:
               cerr << "Internal error parsing command arguments." << endl;
