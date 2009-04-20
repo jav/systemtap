@@ -23,7 +23,7 @@ man/stapprobes.signal.3stap man/stapprobes.socket.3stap \
 man/stapprobes.tcp.3stap man/stapprobes.udp.3stap
 # see also configure.ac
 
-bin_PROGRAMS = stap staprun grapher
+bin_PROGRAMS = stap staprun
 bin_SCRIPTS = stap-report
 oldinclude_HEADERS = includes/sys/sdt.h
 if BUILD_SERVER
@@ -85,10 +85,6 @@ stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
 stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-
-grapher_CXXFLAGS = $(GRAPHER_CFLAGS)
-grapher_SOURCES = grapher.cxx GraphWidget.cxx CairoWidget.cxx
-grapher_LDADD = $(GRAPHER_LIBS)
 
 if BUILD_SERVER
 stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
@@ -270,7 +266,7 @@ uninstall-local:
 # XXX: leaves behind man pages
 
 SUBDIRS = doc
-DIST_SUBDIRS = testsuite $(SUBDIRS)
+DIST_SUBDIRS = testsuite grapher $(SUBDIRS)
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
