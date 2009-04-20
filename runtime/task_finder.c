@@ -1071,9 +1071,6 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 	int rc;
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
-#if defined(__ia64__)
-	struct { unsigned long *unwaddr; } _c = {.unwaddr = NULL}, *c = &_c;
-#endif
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
