@@ -30,7 +30,8 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 }
 #endif
 
-static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
+static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
+                               struct task_struct *tsk)
 {
 	unsigned long context = (unsigned long)&REG_SP(regs) & ~(THREAD_SIZE - 1);
 
@@ -60,11 +61,11 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 	struct unwind_frame_info info;
 	arch_unw_init_frame_info(&info, regs);
 
-	while (levels && !arch_unw_user_mode(&info)) {
-		int ret = unwind(&info);
+	while (levels && (tsk || !arch_unw_user_mode(&info))) {
+		int ret = unwind(&info, tsk);
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
 		if (ret == 0) {
-			_stp_func_print(UNW_PC(&info), verbose, 1, current);
+			_stp_func_print(UNW_PC(&info), verbose, 1, tsk);
 			levels--;
 			continue;
 		}

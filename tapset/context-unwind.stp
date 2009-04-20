@@ -28,7 +28,7 @@
  */
 function print_backtrace () %{
 	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE);
+		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE, NULL);
 	} else {
 		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
 	}
@@ -42,7 +42,7 @@ function print_backtrace () %{
  */
 function backtrace:string () %{ /* pure */
 	if (CONTEXT->regs)
-		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE);
+		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE, NULL);
 	else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}

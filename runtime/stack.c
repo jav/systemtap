@@ -1,6 +1,6 @@
 /*  -*- linux-c -*-
  * Stack tracing functions
- * Copyright (C) 2005-2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -107,7 +107,7 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
  * @param regs A pointer to the struct pt_regs.
  */
 
-static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
+static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk)
 {
 	if (verbose) {
 		/* print the current address */
@@ -126,7 +126,7 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 	else 
 		_stp_printf("%p ", (int64_t) REG_IP(regs));
 
-	__stp_stack_print(regs, verbose, levels);
+	__stp_stack_print(regs, verbose, levels, tsk);
 }
 
 /** Writes stack backtrace to a string
@@ -135,14 +135,14 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
+static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk)
 {
 	/* To get a string, we use a simple trick. First flush the print buffer, */
 	/* then call _stp_stack_print, then copy the result into the output string  */
 	/* and clear the print buffer. */
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
-	_stp_stack_print(regs, verbose, pi, levels);
+	_stp_stack_print(regs, verbose, pi, levels, tsk);
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
 }
