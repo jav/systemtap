@@ -5104,7 +5104,62 @@ struct dwarf_cast_expanding_visitor: public var_expanding_visitor
   dwarf_cast_expanding_visitor(systemtap_session& s, dwarf_builder& db):
     s(s), db(db) {}
   void visit_cast_op (cast_op* e);
+  void filter_special_modules(string& module);
 };
+
+
+void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
+{
+  // look for "kmod<path/to/header>" or "umod<path/to/header>"
+  // for those cases, build a module including that header
+  if (module.rfind('>') == module.size() - 1 &&
+      (module.compare(0, 5, "kmod<") == 0 ||
+       module.compare(0, 5, "umod<") == 0))
+    {
+      string cached_module;
+      if (s.use_cache)
+        {
+          // see if the cached module exists
+          find_typequery_hash(s, module, cached_module);
+          if (!cached_module.empty())
+            {
+              int fd = open(cached_module.c_str(), O_RDONLY);
+              if (fd != -1)
+                {
+                  if (s.verbose > 2)
+                    clog << "Pass 2: using cached " << cached_module << endl;
+                  module = cached_module;
+                  close(fd);
+                  return;
+                }
+            }
+        }
+
+      // no cached module, time to make it
+      int rc;
+      string new_module, header = module.substr(5, module.size() - 6);
+      if (module[0] == 'k')
+        rc = make_typequery_kmod(s, header, new_module);
+      else
+        rc = make_typequery_umod(s, header, new_module);
+      if (rc == 0)
+        {
+          module = new_module;
+
+          if (s.use_cache)
+            {
+              // try to save typequery in the cache
+              if (s.verbose > 2)
+                clog << "Copying " << new_module
+                  << " to " << cached_module << endl;
+              if (copy_file(new_module.c_str(),
+                            cached_module.c_str()) != 0)
+                cerr << "Copy failed (\"" << new_module << "\" to \""
+                  << cached_module << "\"): " << strerror(errno) << endl;
+            }
+        }
+    }
+}
 
 
 void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
@@ -5125,6 +5180,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       size_t mod_begin = mod_end + 1;
       mod_end = e->module.find(':', mod_begin);
       string module = e->module.substr(mod_begin, mod_end - mod_begin);
+      filter_special_modules(module);
 
       // NB: This uses '/' to distinguish between kernel modules and userspace,
       // which means that userspace modules won't get any PATH searching.
