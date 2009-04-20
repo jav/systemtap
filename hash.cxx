@@ -273,4 +273,24 @@ find_tracequery_hash (systemtap_session& s)
   s.tracequery_path = hashdir + "/tracequery_" + result + ".ko";
 }
 
+
+void
+find_typequery_hash (systemtap_session& s, const string& name, string& module)
+{
+  hash h;
+  get_base_hash(s, h);
+
+  // Add the typequery name to distinguish the hash
+  h.add(name);
+
+  // Get the directory path to store our cached module
+  string result, hashdir;
+  h.result(result);
+  if (!create_hashdir(s, result, hashdir))
+    return;
+
+  module = hashdir + "/typequery_" + result
+    + (name[0] == 'k' ? ".ko" : ".so");
+}
+
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
