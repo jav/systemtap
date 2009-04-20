@@ -85,8 +85,8 @@ namespace systemtap
       }
     if (_autoScaling)
       {
-         // line separation
-        int linesPossible = width / (_lineWidth + 2);
+        // line separation
+	int linesPossible = width / ((int)_lineWidth + 2);
         // Find latest time.
         double latestTime = 0;
         for (DatasetList::iterator ditr = _datasets.begin(),
@@ -223,9 +223,9 @@ namespace systemtap
     cr->move_to(20.0, height);
     cr->line_to(graphWidth, height);
     cr->stroke();
-    std::vector<double> dash(1);
+    std::valarray<double> dash(1);
     dash[0] = height / 10;
-    cr->set_dash(dash, 0);
+    cr->set_dash(dash, 0.0);
     for (double tickVal = startTime; tickVal < _right; tickVal += majorUnit)
       {
         cr->move_to((tickVal - _left) * horizScale + 20.0, graphHeight - 5);
