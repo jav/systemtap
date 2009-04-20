@@ -265,8 +265,8 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 # XXX: leaves behind man pages
 
-SUBDIRS = doc
-DIST_SUBDIRS = testsuite grapher $(SUBDIRS)
+SUBDIRS = doc grapher
+DIST_SUBDIRS = testsuite $(SUBDIRS)
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
