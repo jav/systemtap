@@ -374,8 +374,8 @@ EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 TEST_COV_DIR = coverage
 # XXX: leaves behind man pages
-SUBDIRS = doc
-DIST_SUBDIRS = testsuite grapher $(SUBDIRS)
+SUBDIRS = doc grapher
+DIST_SUBDIRS = testsuite $(SUBDIRS)
 
 # Any extra flags, such as:
 #     --define "with_docs 0"
