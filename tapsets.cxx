@@ -5148,7 +5148,16 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
           if (db.user_dw.find(module) == db.user_dw.end())
             {
               dw = new dwflpp(s);
-              dw->setup_user(module);
+              try
+                {
+                  dw->setup_user(module);
+                }
+              catch (const semantic_error& er)
+                {
+                  /* ignore and go to the next module */
+                  delete dw;
+                  continue;
+                }
               db.user_dw[module] = dw;
             }
           else
