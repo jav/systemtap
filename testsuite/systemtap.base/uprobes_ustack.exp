@@ -71,7 +71,10 @@ set main 0
 set main_func 0
 set lib_main 0
 set lib_func 0
-spawn stap $srcdir/$subdir/$test.stp -c $testexe
+# Needs extra space since on 64bit the last ubacktrace string is
+# 7 entries * (16 hex + 2 for 0x + 1 space) = 133 chars.
+# Default MAXSTRINGLEN is 128 chars.
+spawn stap -DMAXSTRINGLEN=133 $srcdir/$subdir/$test.stp -c $testexe
 
 wait
 expect {
