@@ -1,5 +1,10 @@
 * What's new
 
+- @cast can now determine its type information using an explicit header
+  specification.  For example:
+    @cast(tv, "timeval", "<sys/time.h>")->tv_sec
+    @cast(task, "task_struct", "kernel<linux/sched.h>")->tgid
+
 - The overlapping process.* tapsets are now separated.  Those probe points
   documented in stapprobes(3stap) remain the same.  Those that were formerly
   in stapprobes.process(3stap) have been renamed to kprocess, to reflect
