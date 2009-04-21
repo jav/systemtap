@@ -10,4 +10,8 @@ probe begin {
 
     // would be nice to test usermode @cast too,
     // but who knows what debuginfo is installed...
+
+    // check modules generated from headers
+    println(@cast(0, "task_struct", "kmod<linux/sched.h>")->tgid)
+    println(@cast(0, "timeval", "umod<sys/time.h>")->tv_sec)
 }

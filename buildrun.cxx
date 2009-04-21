@@ -443,4 +443,61 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
   return run_make_cmd(s, make_cmd);
 }
 
+
+// Build a tiny kernel module to query type information
+int
+make_typequery_kmod(systemtap_session& s, const string& header, string& name)
+{
+  static unsigned tick = 0;
+  string basename("typequery_kmod_" + lex_cast<string>(++tick));
+
+  // create a subdirectory for the module
+  string dir(s.tmpdir + "/" + basename);
+  if (create_dir(dir.c_str()) != 0)
+    {
+      if (! s.suppress_warnings)
+        cerr << "Warning: failed to create directory for querying types." << endl;
+      return 1;
+    }
+
+  name = dir + "/" + basename + ".ko";
+
+  // create a simple Makefile
+  string makefile(dir + "/Makefile");
+  ofstream omf(makefile.c_str());
+  omf << "EXTRA_CFLAGS := -g -fno-eliminate-unused-debug-types" << endl;
+  omf << "CFLAGS_" << basename << ".o := -include " << header << endl;
+  omf << "obj-m := " + basename + ".o" << endl;
+  omf.close();
+
+  // create our empty source file
+  string source(dir + "/" + basename + ".c");
+  ofstream osrc(source.c_str());
+  osrc.close();
+
+  // make the module
+  string make_cmd = "make -C '" + s.kernel_build_tree + "'"
+    + " M='" + dir + "' modules";
+  if (s.verbose < 4)
+    make_cmd += " >/dev/null 2>&1";
+  return run_make_cmd(s, make_cmd);
+}
+
+
+// Build a tiny user module to query type information
+int
+make_typequery_umod(systemtap_session& s, const string& header, string& name)
+{
+  static unsigned tick = 0;
+
+  name = s.tmpdir + "/typequery_umod_" + lex_cast<string>(++tick) + ".so";
+
+  // make the module
+  string cmd = "gcc -shared -g -fno-eliminate-unused-debug-types -o "
+     + name + " -xc /dev/null -include " + header;
+  if (s.verbose < 4)
+    cmd += " >/dev/null 2>&1";
+  return stap_system (cmd.c_str());
+}
+
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

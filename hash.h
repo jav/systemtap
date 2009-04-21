@@ -37,5 +37,7 @@ public:
 
 void find_hash (systemtap_session& s, const std::string& script);
 void find_tracequery_hash (systemtap_session& s);
+void find_typequery_hash (systemtap_session& s, const std::string& name,
+                          std::string& module);
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
