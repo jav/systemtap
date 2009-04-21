@@ -12,6 +12,9 @@
 #ifndef _VSPRINTF_C_
 #define _VSPRINTF_C_
 
+//forward declaration for _stp_vsnprintf
+static void * _stp_reserve_bytes (int);
+
 static int skip_atoi(const char **s)
 {
 	int i=0;
@@ -22,6 +25,10 @@ static int skip_atoi(const char **s)
 
 enum print_flag {STP_ZEROPAD=1, STP_SIGN=2, STP_PLUS=4, STP_SPACE=8, STP_LEFT=16, STP_SPECIAL=32, STP_LARGE=64};
 
+/*
+ * Changes to number() will require a corresponding change to number_size below,
+ * to ensure proper buffer allocation for _stp_printf.
+ */
 static char * number(char * buf, char * end, uint64_t num, int base, int size, int precision, enum print_flag type)
 {
 	char c,sign,tmp[66];
@@ -115,6 +122,85 @@ static char * number(char * buf, char * end, uint64_t num, int base, int size, i
 	return buf;
 }
 
+/*
+ * Calculates the number of bytes required to print the paramater num. A change to 
+ * number() requires a corresponding change here, and vice versa, to ensure the 
+ * calculated size and printed size match.
+ */
+static int number_size(uint64_t num, int base, int size, int precision, enum print_flag type) {
+    char c,sign,tmp[66];
+    const char *digits;
+    static const char small_digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+    static const char large_digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    int i, num_bytes = 0;
+
+    digits = (type & STP_LARGE) ? large_digits : small_digits;
+    if (type & STP_LEFT)
+            type &= ~STP_ZEROPAD;
+    if (base < 2 || base > 36)
+            return 0;
+    c = (type & STP_ZEROPAD) ? '0' : ' ';
+    sign = 0;
+    if (type & STP_SIGN) {
+            if ((int64_t) num < 0) {
+                    sign = '-';
+                    num = - (int64_t) num;
+                    size--;
+            } else if (type & STP_PLUS) {
+                    sign = '+';
+                    size--;
+            } else if (type & STP_SPACE) {
+                    sign = ' ';
+                    size--;
+            }
+    }
+    if (type & STP_SPECIAL) {
+            if (base == 16)
+                    size -= 2;
+            else if (base == 8)
+                    size--;
+    }
+    i = 0;
+    if (num == 0)
+            tmp[i++]='0';
+    else while (num != 0)
+            tmp[i++] = digits[do_div(num,base)];
+    if (i > precision)
+            precision = i;
+    size -= precision;
+    if (!(type&(STP_ZEROPAD+STP_LEFT))) {
+            while(size-->0) {
+              num_bytes++;
+            }
+    }
+    if (sign) {
+      num_bytes++;
+    }
+    if (type & STP_SPECIAL) {
+            if (base==8) {
+                    num_bytes++;
+            } else if (base==16) {
+                    num_bytes+=2;
+            }
+    }
+    if (!(type & STP_LEFT)) {
+            while (size-- > 0) {
+                    num_bytes++;
+            }
+    }
+    while (i < precision--) {
+            num_bytes++;
+    }
+    while (i-- > 0) {
+            num_bytes++;
+    }
+    while (size-- > 0) {
+            num_bytes++;
+    }
+    return num_bytes;
+
+}
+
 static int check_binary_precision (int precision) {
   /* precision can be unspecified (-1) or one of 1, 2, 4 or 8.  */
   switch (precision) {
@@ -148,9 +234,262 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	if (unlikely((int) size < 0))
 		return 0;
 
-	str = buf;
-	end = buf + size - 1;
+	/*
+	 * buf will be NULL when this function is called from _stp_printf.
+	 * This branch calculates the exact size print buffer required for 
+	 * the string and allocates it with _stp_reserve_bytes. A change
+	 * to this branch requires a corresponding change to the same 
+	 * section of code below.
+	 */
+	if (buf == NULL) {
+	  const char* fmt_copy = fmt;
+	  int num_bytes = 0;
+          va_list args_copy;
 
+          va_copy(args_copy, args);
+
+          for (; *fmt_copy ; ++fmt_copy) {
+                    if (*fmt_copy != '%') {
+                            num_bytes++;
+                            continue;
+                    }
+
+                    /* process flags */
+                    flags = 0;
+            repeat_copy:
+                    ++fmt_copy;          /* this also skips first '%' */
+                    switch (*fmt_copy) {
+                    case '-': flags |= STP_LEFT; goto repeat_copy;
+                    case '+': flags |= STP_PLUS; goto repeat_copy;
+                    case ' ': flags |= STP_SPACE; goto repeat_copy;
+                    case '#': flags |= STP_SPECIAL; goto repeat_copy;
+                    case '0': flags |= STP_ZEROPAD; goto repeat_copy;
+                    }
+
+                    /* get field width */
+                    field_width = -1;
+                    if (isdigit(*fmt_copy))
+                            field_width = skip_atoi(&fmt_copy);
+                    else if (*fmt_copy == '*') {
+                            ++fmt_copy;
+                            /* it's the next argument */
+                            field_width = va_arg(args_copy, int);
+                            if (field_width < 0) {
+                                    field_width = -field_width;
+                                    flags |= STP_LEFT;
+                            }
+                    }
+
+                    /* get the precision */
+                    precision = -1;
+                    if (*fmt_copy == '.') {
+                            ++fmt_copy;
+                            if (isdigit(*fmt_copy))
+                                    precision = skip_atoi(&fmt_copy);
+                            else if (*fmt_copy == '*') {
+                                    ++fmt_copy;
+                                    /* it's the next argument */
+                                    precision = va_arg(args_copy, int);
+                            }
+                            if (precision < 0)
+                                    precision = 0;
+                    }
+
+                    /* get the conversion qualifier */
+                    qualifier = -1;
+                    if (*fmt_copy == 'h' || *fmt_copy == 'l' || *fmt_copy == 'L') {
+                            qualifier = *fmt_copy;
+                            ++fmt_copy;
+                            if (qualifier == 'l' && *fmt_copy == 'l') {
+                                    qualifier = 'L';
+                                    ++fmt_copy;
+                            }
+                    }
+
+                    /* default base */
+                    base = 10;
+
+                    switch (*fmt_copy) {
+                    case 'b':
+                            num = va_arg(args_copy, int64_t);
+
+                            /* Only certain values are valid for the precision.  */
+                            precision = check_binary_precision (precision);
+
+                            /* Unspecified field width defaults to the specified
+                               precision and vice versa. If neither is specified,
+                               then both default to 8.  */
+                            if (field_width == -1) {
+                              if (precision == -1) {
+                                field_width = 8;
+                                precision = 8;
+                              }
+                              else
+                                field_width = precision;
+                            }
+                            else if (precision == -1) {
+                              precision = check_binary_precision (field_width);
+                              if (precision == -1)
+                                precision = 8;
+                            }
+
+                            len = precision;
+                            if (!(flags & STP_LEFT)) {
+                              while (len < field_width--) {
+                                num_bytes++;
+                              }
+                            }
+
+                            num_bytes += precision;
+
+                            while (len < field_width--)
+                              num_bytes++;
+
+                            continue;
+
+                    case 's':
+                    case 'M':
+                    case 'm':
+                            s = va_arg(args_copy, char *);
+                            if ((unsigned long)s < PAGE_SIZE)
+                                    s = "<NULL>";
+
+                            if (*fmt_copy == 's')
+                              len = strnlen(s, precision);
+                            else if (precision > 0)
+                              len = precision;
+                            else
+                              len = 1;
+
+                            if (!(flags & STP_LEFT)) {
+                              while (len < field_width--) {
+                                num_bytes++;
+                              }
+                            }
+                            if (*fmt_copy == 'M') {
+                              num_bytes += number_size((unsigned long) *(uint64_t *) s,
+                                  16, field_width, len, flags);
+                            }
+                            else {
+                              num_bytes += len;
+                            }
+
+                            while (len < field_width--) {
+                              num_bytes++;
+                            }
+                            if(flags & STP_ZEROPAD) {
+                              num_bytes++;
+                            }
+                            continue;
+                    case 'X':
+                            flags |= STP_LARGE;
+                    case 'x':
+                            base = 16;
+                            break;
+
+                    case 'd':
+                    case 'i':
+                            flags |= STP_SIGN;
+                    case 'u':
+                            break;
+
+                    case 'p':
+                            /* Note that %p takes an int64_t argument. */
+                            len = 2*sizeof(void *) + 2;
+                            flags |= STP_ZEROPAD;
+
+                            if (field_width == -1)
+                              field_width = len;
+
+                            if (!(flags & STP_LEFT)) {
+                              while (len < field_width) {
+                                field_width--;
+                                num_bytes++;
+                              }
+                            }
+
+                            //account for "0x"
+                            num_bytes+=2;
+                            field_width-=2;
+
+                            num_bytes += number_size((unsigned long) va_arg(args_copy, int64_t),
+                                               16, field_width, field_width, flags);
+                            continue;
+
+                    case '%':
+                            num_bytes++;
+                            continue;
+
+                            /* integer number formats - set up the flags and "break" */
+                    case 'o':
+                            base = 8;
+                            break;
+
+                    case 'c':
+                            if (!(flags & STP_LEFT)) {
+                              while (--field_width > 0) {
+                                num_bytes++;
+                              }
+                            }
+                            c = (unsigned char) va_arg(args_copy, int);
+                            num_bytes++;
+                            while (--field_width > 0) {
+                              num_bytes++;
+                            }
+                            continue;
+
+                    default:
+                            num_bytes++;
+                            if (*fmt_copy) {
+                              num_bytes++;
+                            } else {
+                              --fmt_copy;
+                            }
+                            continue;
+                    }
+
+                    if (qualifier == 'L')
+                            num = va_arg(args_copy, int64_t);
+                    else if (qualifier == 'l') {
+                            num = va_arg(args_copy, unsigned long);
+                            if (flags & STP_SIGN)
+                                    num = (signed long) num;
+                    } else if (qualifier == 'h') {
+                            num = (unsigned short) va_arg(args_copy, int);
+                            if (flags & STP_SIGN)
+                                    num = (signed short) num;
+                    } else {
+                            num = va_arg(args_copy, unsigned int);
+                            if (flags & STP_SIGN)
+                                    num = (signed int) num;
+                    }
+                    num_bytes += number_size(num, base, field_width, precision, flags);
+            }
+
+	  va_end(args_copy);
+
+	  if (num_bytes == 0)
+	    return 0;
+
+	  //max print buffer size
+	  if (num_bytes > STP_BUFFER_SIZE) {
+	    num_bytes = STP_BUFFER_SIZE;
+	  }
+
+	  str = (char*)_stp_reserve_bytes(num_bytes);
+	  size = num_bytes;
+	  end = str + size - 1;
+
+	} else {
+          str = buf;
+          end = buf + size - 1;
+	}
+
+	/*
+	 * Note that a change to code below requires a corresponding
+	 * change in the code above to properly calculate the bytes
+	 * required in the output buffer.
+	 */
 	for (; *fmt ; ++fmt) {
 		if (*fmt != '%') {
 			if (str <= end)
@@ -433,11 +772,13 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			     field_width, precision, flags);
 	}
 
-	if (likely(str <= end))
-		*str = '\0';
-	else if (size > 0)
-		/* don't write out a null byte if the buf size is zero */
-		*end = '\0';
+	if (buf != NULL) {
+          if (likely(str <= end))
+                  *str = '\0';
+          else if (size > 0)
+                  /* don't write out a null byte if the buf size is zero */
+                  *end = '\0';
+	}
 	return str-buf;
 }
 

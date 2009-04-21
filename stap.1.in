@@ -157,11 +157,16 @@ be used to override limit parameters described below.
 Look for the systemtap runtime sources in the given directory.
 .TP
 .BI \-r " /DIR"
-Build for kernel in given build tree.
+Build for kernel in given build tree. Can also be set with the
+.I SYSTEMTAP_RELEASE
+environment variable.
 .TP
 .BI \-r " RELEASE"
 Build for kernel in build tree
-.BR /lib/modules/RELEASE/build .
+.BR /lib/modules/RELEASE/build . 
+Can also be set with the
+.I SYSTEMTAP_RELEASE
+environment variable.
 .TP
 .BI \-m " MODULE"
 Use the given name for the generated kernel object module, instead

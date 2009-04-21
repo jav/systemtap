@@ -14,8 +14,6 @@
 
 @SET_MAKE@
 
-# Makefile.am --- automake input file for systemtap tapset reference manual
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
@@ -32,8 +30,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-noinst_PROGRAMS = docproc$(EXEEXT)
-subdir = doc/SystemTap_Tapset_Reference
+@BUILD_GRAPHER_TRUE@bin_PROGRAMS = grapher$(EXEEXT)
+subdir = grapher
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -42,19 +40,28 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
-PROGRAMS = $(noinst_PROGRAMS)
-docproc_SOURCES = docproc.c
-docproc_OBJECTS = docproc.$(OBJEXT)
-docproc_LDADD = $(LDADD)
+am__installdirs = "$(DESTDIR)$(bindir)"
+binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
+PROGRAMS = $(bin_PROGRAMS)
+am__grapher_SOURCES_DIST = grapher.cxx GraphWidget.cxx CairoWidget.cxx
+@BUILD_GRAPHER_TRUE@am_grapher_OBJECTS = grapher-grapher.$(OBJEXT) \
+@BUILD_GRAPHER_TRUE@	grapher-GraphWidget.$(OBJEXT) \
+@BUILD_GRAPHER_TRUE@	grapher-CairoWidget.$(OBJEXT)
+grapher_OBJECTS = $(am_grapher_OBJECTS)
+am__DEPENDENCIES_1 =
+@BUILD_GRAPHER_TRUE@grapher_DEPENDENCIES = $(am__DEPENDENCIES_1)
+grapher_LINK = $(CXXLD) $(grapher_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-CCLD = $(CC)
-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = docproc.c
-DIST_SOURCES = docproc.c
+CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+CXXLD = $(CXX)
+CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
+SOURCES = $(grapher_SOURCES)
+DIST_SOURCES = $(am__grapher_SOURCES_DIST)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -171,15 +178,13 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-DOC_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap
-MAN_INSTALL_DIR = $(DESTDIR)$(mandir)/man3
-HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
-SRCTREE = $(abs_top_srcdir)/
-DOCPROC = $(abs_builddir)/docproc
+@BUILD_GRAPHER_TRUE@grapher_CXXFLAGS = $(GRAPHER_CFLAGS)
+@BUILD_GRAPHER_TRUE@grapher_SOURCES = grapher.cxx GraphWidget.cxx CairoWidget.cxx
+@BUILD_GRAPHER_TRUE@grapher_LDADD = $(GRAPHER_LIBS)
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .o .obj
+.SUFFIXES: .cxx .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -189,9 +194,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  doc/SystemTap_Tapset_Reference/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  grapher/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  doc/SystemTap_Tapset_Reference/Makefile
+	  $(AUTOMAKE) --gnu  grapher/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -209,12 +214,32 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  p1=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
+	  if test -f $$p \
+	  ; then \
+	    f=`echo "$$p1" | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'`; \
+	   echo " $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) '$$p' '$(DESTDIR)$(bindir)/$$f'"; \
+	   $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) "$$p" "$(DESTDIR)$(bindir)/$$f" || exit 1; \
+	  else :; fi; \
+	done
 
-clean-noinstPROGRAMS:
-	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
-docproc$(EXEEXT): $(docproc_OBJECTS) $(docproc_DEPENDENCIES) 
-	@rm -f docproc$(EXEEXT)
-	$(LINK) $(docproc_OBJECTS) $(docproc_LDADD) $(LIBS)
+uninstall-binPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  f=`echo "$$p" | sed 's,^.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/'`; \
+	  echo " rm -f '$(DESTDIR)$(bindir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(bindir)/$$f"; \
+	done
+
+clean-binPROGRAMS:
+	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+grapher$(EXEEXT): $(grapher_OBJECTS) $(grapher_DEPENDENCIES) 
+	@rm -f grapher$(EXEEXT)
+	$(grapher_LINK) $(grapher_OBJECTS) $(grapher_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -222,21 +247,65 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/docproc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-CairoWidget.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-GraphWidget.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-grapher.Po@am__quote@
 
-.c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+.cxx.o:
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ $<
 
-.c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+.cxx.obj:
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+grapher-grapher.o: grapher.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-grapher.o -MD -MP -MF $(DEPDIR)/grapher-grapher.Tpo -c -o grapher-grapher.o `test -f 'grapher.cxx' || echo '$(srcdir)/'`grapher.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-grapher.Tpo $(DEPDIR)/grapher-grapher.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='grapher.cxx' object='grapher-grapher.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-grapher.o `test -f 'grapher.cxx' || echo '$(srcdir)/'`grapher.cxx
+
+grapher-grapher.obj: grapher.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-grapher.obj -MD -MP -MF $(DEPDIR)/grapher-grapher.Tpo -c -o grapher-grapher.obj `if test -f 'grapher.cxx'; then $(CYGPATH_W) 'grapher.cxx'; else $(CYGPATH_W) '$(srcdir)/grapher.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-grapher.Tpo $(DEPDIR)/grapher-grapher.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='grapher.cxx' object='grapher-grapher.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-grapher.obj `if test -f 'grapher.cxx'; then $(CYGPATH_W) 'grapher.cxx'; else $(CYGPATH_W) '$(srcdir)/grapher.cxx'; fi`
+
+grapher-GraphWidget.o: GraphWidget.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-GraphWidget.o -MD -MP -MF $(DEPDIR)/grapher-GraphWidget.Tpo -c -o grapher-GraphWidget.o `test -f 'GraphWidget.cxx' || echo '$(srcdir)/'`GraphWidget.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-GraphWidget.Tpo $(DEPDIR)/grapher-GraphWidget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GraphWidget.cxx' object='grapher-GraphWidget.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-GraphWidget.o `test -f 'GraphWidget.cxx' || echo '$(srcdir)/'`GraphWidget.cxx
+
+grapher-GraphWidget.obj: GraphWidget.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-GraphWidget.obj -MD -MP -MF $(DEPDIR)/grapher-GraphWidget.Tpo -c -o grapher-GraphWidget.obj `if test -f 'GraphWidget.cxx'; then $(CYGPATH_W) 'GraphWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/GraphWidget.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-GraphWidget.Tpo $(DEPDIR)/grapher-GraphWidget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GraphWidget.cxx' object='grapher-GraphWidget.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-GraphWidget.obj `if test -f 'GraphWidget.cxx'; then $(CYGPATH_W) 'GraphWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/GraphWidget.cxx'; fi`
+
+grapher-CairoWidget.o: CairoWidget.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-CairoWidget.o -MD -MP -MF $(DEPDIR)/grapher-CairoWidget.Tpo -c -o grapher-CairoWidget.o `test -f 'CairoWidget.cxx' || echo '$(srcdir)/'`CairoWidget.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-CairoWidget.Tpo $(DEPDIR)/grapher-CairoWidget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CairoWidget.cxx' object='grapher-CairoWidget.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-CairoWidget.o `test -f 'CairoWidget.cxx' || echo '$(srcdir)/'`CairoWidget.cxx
+
+grapher-CairoWidget.obj: CairoWidget.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-CairoWidget.obj -MD -MP -MF $(DEPDIR)/grapher-CairoWidget.Tpo -c -o grapher-CairoWidget.obj `if test -f 'CairoWidget.cxx'; then $(CYGPATH_W) 'CairoWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/CairoWidget.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-CairoWidget.Tpo $(DEPDIR)/grapher-CairoWidget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CairoWidget.cxx' object='grapher-CairoWidget.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-CairoWidget.obj `if test -f 'CairoWidget.cxx'; then $(CYGPATH_W) 'CairoWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/CairoWidget.cxx'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -316,6 +385,9 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
+	for dir in "$(DESTDIR)$(bindir)"; do \
+	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -340,10 +412,9 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-@BUILD_REFDOCS_FALSE@install-data-hook:
 clean: clean-am
 
-clean-am: clean-generic clean-noinstPROGRAMS mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -362,12 +433,10 @@ info: info-am
 info-am:
 
 install-data-am:
-	@$(NORMAL_INSTALL)
-	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
 
 install-dvi: install-dvi-am
 
-install-exec-am:
+install-exec-am: install-binPROGRAMS
 
 install-html: install-html-am
 
@@ -398,53 +467,23 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am:
+uninstall-am: uninstall-binPROGRAMS
 
-.MAKE: install-am install-data-am install-strip
+.MAKE: install-am install-strip
 
-.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-noinstPROGRAMS ctags distclean distclean-compile \
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
+	clean-generic ctags distclean distclean-compile \
 	distclean-generic distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-data-hook install-dvi install-dvi-am \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-man install-pdf \
 	install-pdf-am install-ps install-ps-am install-strip \
 	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
-	uninstall-am
+	uninstall-am uninstall-binPROGRAMS
 
-
-@BUILD_REFDOCS_TRUE@all: tapsets.pdf stamp-htmldocs stamp-mandocs
-@BUILD_REFDOCS_TRUE@tapsets.xml: docproc $(shell find $(SRCTREE) -name '*.stp')
-@BUILD_REFDOCS_TRUE@	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
-@BUILD_REFDOCS_TRUE@	if cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
-@BUILD_REFDOCS_TRUE@		echo tapsets.xml unchanged; \
-@BUILD_REFDOCS_TRUE@	else \
-@BUILD_REFDOCS_TRUE@		mv tapsets.xml.new tapsets.xml; \
-@BUILD_REFDOCS_TRUE@	fi
-
-@BUILD_REFDOCS_TRUE@stamp-htmldocs: tapsets.xml
-@BUILD_REFDOCS_TRUE@	xmlto html -o tapsets tapsets.xml
-@BUILD_REFDOCS_TRUE@	touch stamp-htmldocs
-
-@BUILD_REFDOCS_TRUE@tapsets.pdf: tapsets.xml
-@BUILD_REFDOCS_TRUE@	xmlto pdf tapsets.xml
-
-@BUILD_REFDOCS_TRUE@stamp-mandocs: tapsets.xml
-@BUILD_REFDOCS_TRUE@	xmlto man -o man3 tapsets.xml
-@BUILD_REFDOCS_TRUE@	touch stamp-mandocs
-
-#FIXME need to figure out where to install things appropriately
-#installmandocs: mandocs
-@BUILD_REFDOCS_TRUE@install-data-hook:
-@BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(DOC_INSTALL_DIR)
-@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) tapsets.pdf $(DOC_INSTALL_DIR)
-@BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(MAN_INSTALL_DIR)
-@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) man3/* $(MAN_INSTALL_DIR)
-@BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(HTML_INSTALL_DIR)
-@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) tapsets/* $(HTML_INSTALL_DIR)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

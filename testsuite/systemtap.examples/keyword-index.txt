@@ -30,6 +30,15 @@ keywords: io scheduler backtrace
   so is the total delay.
 
 
+= BUFFER =
+
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
+
+
 = CALLGRAPH =
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -86,6 +95,15 @@ keywords: format
   The script prints a table showing the available attributes (bold,
   underline, and inverse) with color combinations for the
   ans_set_color3() function in the ansi.stp tapset.
+
+
+= FREE =
+
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
 
 
 = FUNCTIONS =
@@ -250,6 +268,13 @@ keywords: memory
 
 
 = NETWORK =
+
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
+
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
 keywords: network traffic per-process
@@ -592,6 +617,15 @@ keywords: trace callgraph
   points for trigger functions, which acts to enable tracing for only
   those functions that occur while the current thread is nested within
   the trigger.
+
+
+= TRACEPOINT =
+
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
 
 
 = TRAFFIC =

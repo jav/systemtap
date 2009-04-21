@@ -1,0 +1,32 @@
+#! /usr/bin/stap
+
+probe begin
+{
+printf ("%s\n", "%Title:CPU utilization");
+printf ("%s\n", "%XAxisTitle:Time");
+printf ("%s\n", "%YAxisTitle:Percent");
+printf ("%s\n", "%DataSet:cpu 100 00ff00 bar");
+printf ("%s\n", "%DataSet:kbd 100 ff0000 dot");
+}
+
+# CPU utilization
+probe begin { qnames["cpu"] ++; qsq_start ("cpu") }
+probe scheduler.cpu_on { if (!idle) {qs_wait ("cpu") qs_run ("cpu") }}
+probe scheduler.cpu_off { if (!idle) qs_done ("cpu") }
+
+global qnames
+
+function qsq_util_reset(q) {
+  u=qsq_utilization (q, 100)
+  qsq_start (q)
+  return u
+}
+
+probe timer.ms(100) {  # collect utilization percentages frequently
+  foreach (q in qnames)
+    printf("cpu %d %d\n", gettimeofday_ms(), qsq_util_reset(q))
+}
+
+probe kernel.function("kbd_event") {
+ printf("kbd %d %d\n", gettimeofday_ms(), 75)
+}
