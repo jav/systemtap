@@ -69,11 +69,15 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 			levels--;
 			continue;
 		}
-		/* If an error happened or we hit a kretprobe trampoline, use fallback backtrace */
-		/* FIXME: is there a way to unwind across kretprobe trampolines? */
-		if (ret < 0 || (ret > 0 && UNW_PC(&info) == _stp_kretprobe_trampoline))
+		/* If an error happened or we hit a kretprobe trampoline,
+		 * use fallback backtrace, unless user task backtrace.
+		 * FIXME: is there a way to unwind across kretprobe
+		 * trampolines? */
+		if ((ret < 0
+		     || (ret > 0 && UNW_PC(&info) == _stp_kretprobe_trampoline))
+		    && ! (tsk || arch_unw_user_mode(&info)))
 			_stp_stack_print_fallback(UNW_SP(&info), verbose, levels);
-		break;
+		return;
 	}
 #else /* ! STP_USE_DWARF_UNWINDER */
 	_stp_stack_print_fallback((unsigned long)&REG_SP(regs), verbose, levels);
