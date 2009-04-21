@@ -466,7 +466,16 @@ make_typequery_kmod(systemtap_session& s, const string& header, string& name)
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
   omf << "EXTRA_CFLAGS := -g -fno-eliminate-unused-debug-types" << endl;
+
+  // NB: We use -include instead of #include because that gives us more power.
+  // Using #include searches relative to the source's path, which in this case
+  // is /tmp/..., so that's not helpful.  Using -include will search relative
+  // to the cwd, which will be the kernel build root.  This means if you have a
+  // full kernel build tree, it's possible to get at types that aren't in the
+  // normal include path, e.g.:
+  //    @cast(foo, "bsd_acct_struct", "kernel<kernel/acct.c>")->...
   omf << "CFLAGS_" << basename << ".o := -include " << header << endl;
+
   omf << "obj-m := " + basename + ".o" << endl;
   omf.close();
 
@@ -493,6 +502,11 @@ make_typequery_umod(systemtap_session& s, const string& header, string& name)
   name = s.tmpdir + "/typequery_umod_" + lex_cast<string>(++tick) + ".so";
 
   // make the module
+  //
+  // NB: As with kmod, using -include makes relative paths more useful.  The
+  // cwd in this case will be the cwd of stap itself though, which may be
+  // trickier to deal with.  It might be better to "cd `dirname $script`"
+  // first...
   string cmd = "gcc -shared -g -fno-eliminate-unused-debug-types -o "
      + name + " -xc /dev/null -include " + header;
   if (s.verbose < 4)
