@@ -1,0 +1,52 @@
+// User context unwind tapset
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#ifndef STP_NEED_UNWIND_DATA
+#define STP_NEED_UNWIND_DATA 1
+#endif
+#ifndef STP_NEED_SYMBOL_DATA
+#define STP_NEED_SYMBOL_DATA 1
+#endif
+#ifndef STP_NEED_VMA_TRACKER
+#define STP_NEED_VMA_TRACKER 1
+#endif
+%}
+
+/**
+ * sfunction print_ubacktrace - Print stack back trace for current task.
+ *
+ *  Equivalent to <command>print_ustack(ubacktrace())</command>, 
+ *  except that deeper stack nesting may be supported.  Return nothing.
+ */
+function print_ubacktrace () %{
+	if (CONTEXT->regs) {
+		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE,
+				 current);
+	} else {
+		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
+	}
+%}
+
+/**
+ * sfunction ubacktrace - Hex backtrace of current task stack.
+ *
+ *  Return a string of hex addresses that are a backtrace of the 
+ *  stack of the current task.  Output may be truncated as per maximum
+ *  string length. Returns empty string when current probe point cannot
+ *  determine user backtrace.
+ */
+
+function ubacktrace:string () %{ /* pure */
+	if (CONTEXT->regs)
+		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN,
+				    CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE,
+				    current);
+	else 
+		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+%}
