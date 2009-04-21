@@ -1,0 +1,4 @@
+#! stap -p2
+
+# process path doesn't need to be absolute
+probe process("cat").end { }

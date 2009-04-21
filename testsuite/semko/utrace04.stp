@@ -1,4 +1,4 @@
 #! stap -p2
 
-# death probes don't support target symbols
-probe process("/bin/cat").death.return { print($syscall) }
+# end probes don't support target symbols
+probe process("/bin/cat").end { print($syscall) }

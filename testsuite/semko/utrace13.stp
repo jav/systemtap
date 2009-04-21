@@ -1,4 +1,0 @@
-#! stap -p2
-
-# path can't end with '..'
-probe process("/foo/bar/..").death { }
