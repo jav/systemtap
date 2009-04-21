@@ -4202,7 +4202,8 @@ c_unparser::visit_print_format (print_format* e)
       int use_print = 0;
 
       string format_string = print_format::components_to_string(components);
-      if (tmp.size() == 0 || (tmp.size() == 1 && format_string == "%s"))
+      if ((tmp.size() == 0 && format_string.find("%%") == std::string::npos)
+          || (tmp.size() == 1 && format_string == "%s"))
 	use_print = 1;
       else if (tmp.size() == 1
 	       && e->args[0]->tok->type == tok_string

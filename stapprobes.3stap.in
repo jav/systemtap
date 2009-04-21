@@ -64,6 +64,7 @@ syscall.*
 kernel.function("no_such_function") ?
 module("awol").function("no_such_function") !
 signal.*? if (switch)
+kprobe.function("foo")
 .ESAMPLE
 
 
@@ -376,6 +377,40 @@ The expressions evaluate to the
 values of those variables, since that is when a snapshot is taken.
 Other local variables are not generally accessible, since by the time
 a ".return" probe hits, the probed function will have already returned.
+
+
+.SS DWARFLESS
+In absence of debugging information, entry & exit points of kernel & module
+functions can be probed using the "kprobe" family of probes.
+However, these do not permit looking up the arguments / local variables
+of the function.
+Following constructs are supported :
+.SAMPLE
+kprobe.function(FUNCTION)
+kprobe.function(FUNCTION).return
+kprobe.module(NAME).function(FUNCTION)
+kprobe.module(NAME).function(FUNCTION).return
+kprobe.statement.(ADDRESS).absolute
+.ESAMPLE
+.PP
+Probes of type
+.B function
+are recommended for kernel functions, whereas probes of type
+.B module
+are recommended for probing functions of the specified module.
+In case the absolute address of a kernel or module function is known,
+.B statement
+probes can be utilized.
+.PP
+Note that
+.I FUNCTION
+and
+.I MODULE
+names
+.B must not
+contain wildcards, or the probe will not be registered.
+Also, statement probes must be run under guru-mode only.
+
 
 
 .SS USER-SPACE

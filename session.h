@@ -30,6 +30,7 @@ struct functiondecl;
 struct derived_probe;
 struct be_derived_probe_group;
 struct dwarf_derived_probe_group;
+struct kprobe_derived_probe_group;
 struct uprobe_derived_probe_group;
 struct utrace_derived_probe_group;
 struct itrace_derived_probe_group;
@@ -172,6 +173,7 @@ struct systemtap_session
   // session.probes vector.
   be_derived_probe_group* be_derived_probes;
   dwarf_derived_probe_group* dwarf_derived_probes;
+  kprobe_derived_probe_group* kprobe_derived_probes;
   uprobe_derived_probe_group* uprobe_derived_probes;
   utrace_derived_probe_group* utrace_derived_probes;
   itrace_derived_probe_group* itrace_derived_probes;

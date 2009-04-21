@@ -124,6 +124,14 @@ syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 static inline long
 syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 {
+	if ((long)regs->cr_ifs < 0) /* Not a syscall */
+		return -1;
+
+#ifdef CONFIG_IA32_SUPPORT
+	if (IS_IA32_PROCESS(regs))
+		return regs->r1;
+#endif
+
 	return regs->r15;
 }
 #endif
@@ -320,38 +328,119 @@ syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
 #endif
 
 #if defined(__ia64__)
-#define syscall_get_arguments(task, regs, i, n, args)		\
-	__ia64_syscall_get_arguments(task, regs, i, n, args, &c->unwaddr)
 
-static inline void
-__ia64_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
-			     unsigned int i, unsigned int n,
-			     unsigned long *args, unsigned long **cache)
+/* Return TRUE if PT was created due to kernel-entry via a system-call.  */
+
+static inline int
+in_syscall (struct pt_regs *pt)
 {
-	if (i + n > 6) {
-		_stp_error("invalid syscall arg request");
+	return (long) pt->cr_ifs >= 0;
+}
+
+struct syscall_get_set_args {
+	unsigned int i;
+	unsigned int n;
+	unsigned long *args;
+	struct pt_regs *regs;
+	int rw;
+};
+
+static void syscall_get_set_args_cb(struct unw_frame_info *info, void *data)
+{
+	struct syscall_get_set_args *args = data;
+	struct pt_regs *pt = args->regs;
+	unsigned long *krbs, cfm, ndirty;
+	int i, count;
+
+	if (unw_unwind_to_user(info) < 0)
+		return;
+
+	cfm = pt->cr_ifs;
+	krbs = (unsigned long *)info->task + IA64_RBS_OFFSET/8;
+	ndirty = ia64_rse_num_regs(krbs, krbs + (pt->loadrs >> 19));
+
+	count = 0;
+	if (in_syscall(pt))
+		count = min_t(int, args->n, cfm & 0x7f);
+
+	for (i = 0; i < count; i++) {
+		if (args->rw)
+			*ia64_rse_skip_regs(krbs, ndirty + i + args->i) =
+				args->args[i];
+		else
+			args->args[i] = *ia64_rse_skip_regs(krbs,
+				ndirty + i + args->i);
+	}
+
+	if (!args->rw) {
+		while (i < args->n) {
+			args->args[i] = 0;
+			i++;
+		}
+	}
+}
+
+void ia64_syscall_get_set_arguments(struct task_struct *task,
+	struct pt_regs *regs, unsigned int i, unsigned int n,
+	unsigned long *args, int rw)
+{
+	struct syscall_get_set_args data = {
+		.i = i,
+		.n = n,
+		.args = args,
+		.regs = regs,
+		.rw = rw,
+	};
+
+	if (task == current)
+		unw_init_running(syscall_get_set_args_cb, &data);
+	else {
+		struct unw_frame_info ufi;
+		memset(&ufi, 0, sizeof(ufi));
+		unw_init_from_blocked_task(&ufi, task);
+		syscall_get_set_args_cb(&ufi, &data);
+	}
+}
+
+static inline void syscall_get_arguments(struct task_struct *task,
+					 struct pt_regs *regs,
+					 unsigned int i, unsigned int n,
+					 unsigned long *args)
+{
+	BUG_ON(i + n > 6);
+
+#ifdef CONFIG_IA32_SUPPORT
+	if (IS_IA32_PROCESS(regs)) {
+		switch (i + n) {
+		case 6:
+			if (!n--) break;
+			*args++ = regs->r13;
+		case 5:
+			if (!n--) break;
+			*args++ = regs->r15;
+		case 4:
+			if (!n--) break;
+			*args++ = regs->r14;
+		case 3:
+			if (!n--) break;
+			*args++ = regs->r10;
+		case 2:
+			if (!n--) break;
+			*args++ = regs->r9;
+		case 1:
+			if (!n--) break;
+			*args++ = regs->r11;
+		case 0:
+			if (!n--) break;
+		default:
+			BUG();
+			break;
+		}
+
 		return;
 	}
-	switch (i) {
-	case 0:
-		if (!n--) break;
-		*args++ = ia64_fetch_register(32, regs, cache);
-	case 1:
-		if (!n--) break;
-		*args++ = ia64_fetch_register(33, regs, cache);
-	case 2:
-		if (!n--) break;
-		*args++ = ia64_fetch_register(34, regs, cache);
-	case 3:
-		if (!n--) break;
-		*args++ = ia64_fetch_register(35, regs, cache);
-	case 4:
-		if (!n--) break;
-		*args++ = ia64_fetch_register(36, regs, cache);
-	case 5:
-		if (!n--) break;
-		*args++ = ia64_fetch_register(37, regs, cache);
-	}
+#endif
+	ia64_syscall_get_set_arguments(task, regs, i, n, args, 0);
 }
 #endif
 

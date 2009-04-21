@@ -1460,6 +1460,7 @@ systemtap_session::systemtap_session ():
   user_file (0),
   be_derived_probes(0),
   dwarf_derived_probes(0),
+  kprobe_derived_probes(0),
   uprobe_derived_probes(0),
   utrace_derived_probes(0),
   itrace_derived_probes(0),

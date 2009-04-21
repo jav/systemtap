@@ -310,14 +310,28 @@ clean_cache(systemtap_session& s)
 
       globfree(&cache_glob);
 
+      //grab info for each typequery user module (.so)
+      glob_str = s.cache_path + "/*/*.so";
+      glob(glob_str.c_str(), 0, NULL, &cache_glob);
+      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
+        {
+          string cache_ent_path = cache_glob.gl_pathv[i];
+          struct cache_ent_info cur_info(cache_ent_path, false);
+          if (cur_info.size != 0 && cur_info.weight != 0)
+            {
+              cache_size_b += cur_info.size;
+              cache_contents.insert(cur_info);
+            }
+        }
+
+      globfree(&cache_glob);
+
       //grab info for each stapconf cache entry (.h)
       glob_str = s.cache_path + "/*/*.h";
       glob(glob_str.c_str(), 0, NULL, &cache_glob);
       for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
         {
           string cache_ent_path = cache_glob.gl_pathv[i];
-          cache_ent_path.resize(cache_ent_path.length() - 3);
-
           struct cache_ent_info cur_info(cache_ent_path, false);
           if (cur_info.size != 0 && cur_info.weight != 0)
             {

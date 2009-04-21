@@ -10,6 +10,13 @@ probe begin
     else
         printf("PID %d != %d\n", pid, cast_pid)
 
+    // Compare PIDs using a generated kernel module
+    cast_pid = @cast(curr, "task_struct", "kmod<linux/sched.h>")->tgid
+    if (pid == cast_pid)
+        println("PID2 OK")
+    else
+        printf("PID2 %d != %d\n", pid, cast_pid)
+
     // Compare execnames
     name = execname()
     cast_name = kernel_string(@cast(curr, "task_struct")->comm)
@@ -18,5 +25,19 @@ probe begin
     else
         printf("execname \"%s\" != \"%s\"\n", name, cast_name)
 
+    // Compare tv_sec using a generated user module
+    sec = 42
+    cast_sec = @cast(get_timeval(sec), "timeval", "umod<sys/time.h>")->tv_sec
+    if (sec == cast_sec)
+        println("tv_sec OK")
+    else
+        printf("tv_sec %d != %d\n", sec, cast_sec)
+
     exit()
 }
+
+function get_timeval:long(sec:long) %{
+    static struct timeval mytime = {0};
+    mytime.tv_sec = THIS->sec;
+    THIS->__retvalue = (long)&mytime;
+%}

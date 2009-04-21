@@ -113,18 +113,23 @@ probe process("utrace_syscall_args").syscall.return {
     if (syscalls_seen >= 4) {
 	if (syscalls_seen == 4) {
 	    mmap_args[7] = $return
+	    mmap_args[8] = $syscall
 	}
 	else if (syscalls_seen == 5) {
 	    munmap_args[3] = $return
+	    munmap_args[4] = $syscall
 	}
 	else if (syscalls_seen == 6) {
 	    close_args[2] = $return
+	    close_args[3] = $syscall
 	}
 	else if (syscalls_seen == 7) {
 	    dup_args[7] = $return
+	    dup_args[8] = $syscall
 	}
 	else if (syscalls_seen == 8) {
 	    bad_syscall_args[7] = $return
+	    bad_syscall_args[8] = $syscall
 	    syscalls_seen = 0
 	}
     }
@@ -159,6 +164,13 @@ probe end
 	    failures += 1
 	    printf("mmap bad arg 6: 0x%x vs 0x0\n", mmap_args[6])
 	}
+
+	# Validate syscall number
+	if (mmap_args[0] != mmap_args[8]) {
+	    failures += 1
+	    printf("mmap $syscall mismatch: %d vs. %d\n",
+		   mmap_args[0], mmap_args[8])
+	}
     }
 
     # print munmap info
@@ -191,6 +203,13 @@ probe end
 	    failures += 1
 	    printf("munmap bad return value: 0x%x vs 0x0\n", munmap_args[7])
 	}
+
+	# Validate syscall number
+	if (munmap_args[0] != munmap_args[4]) {
+	    failures += 1
+	    printf("munmap $syscall mismatch: %d vs. %d\n",
+		   munmap_args[0], munmap_args[4])
+	}
     }
 
     # print close info
@@ -206,6 +225,13 @@ probe end
 	    failures += 1
 	    printf("close bad arg 1: 0x%x vs 0x%x\n",
 	           close_args[0], mmap_args[5])
+	}
+
+	# Validate syscall number
+	if (close_args[0] != close_args[3]) {
+	    failures += 1
+	    printf("close $syscall mismatch: %d vs. %d\n",
+		   close_args[0], close_args[3])
 	}
     }
 
@@ -278,6 +304,13 @@ probe end
 		printf("dup bad arg 6: 0x%x vs 0xe38e38e3\n", dup_args[6])
 	    }
         }
+
+	# Validate syscall number
+	if (dup_args[0] != dup_args[8]) {
+	    failures += 1
+	    printf("dup $syscall mismatch: %d vs. %d\n",
+		   dup_args[0], dup_args[8])
+	}
     }
 
     # print bad_syscall info
@@ -355,6 +388,13 @@ probe end
 		       bad_syscall_args[6])
 	    }
         }
+
+	# Validate syscall number
+	if (bad_syscall_args[0] != bad_syscall_args[8]) {
+	    failures += 1
+	    printf("bad_syscall $syscall mismatch: %d vs. %d\n",
+		   bad_syscall_args[0], bad_syscall_args[8])
+	}
     }
 
     if (failures == 0) {

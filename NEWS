@@ -10,6 +10,12 @@
   Such accesses can originate from $context expressions fueled by
   erroneous debug data, or by kernel_{long,string,...}() tapset calls.
 
+- New probes kprobe.function(FUNCTION) and kprobe.function(FUNCTION).return
+  for dwarfless probing. These postpone function address resolution to
+  run-time and use the kprobe symbol-resolution mechanism.
+  Probing of absolute statements can be done using the
+  kprobe.statement(ADDRESS).absolute construct.
+
 * What's new in version 0.9.5
 
 - New probes process().insn and process().insn.block that allows
