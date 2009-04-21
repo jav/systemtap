@@ -5140,11 +5140,10 @@ struct dwarf_cast_expanding_visitor: public var_expanding_visitor
 
 void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
 {
-  // look for "kmod<path/to/header>" or "umod<path/to/header>"
+  // look for "<path/to/header>" or "kernel<path/to/header>"
   // for those cases, build a module including that header
-  if (module.rfind('>') == module.size() - 1 &&
-      (module.compare(0, 5, "kmod<") == 0 ||
-       module.compare(0, 5, "umod<") == 0))
+  if (module[module.size() - 1] == '>' &&
+      (module[0] == '<' || module.compare(0, 7, "kernel<") == 0))
     {
       string cached_module;
       if (s.use_cache)
@@ -5166,25 +5165,17 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
         }
 
       // no cached module, time to make it
-      int rc;
-      string new_module, header = module.substr(5, module.size() - 6);
-      if (module[0] == 'k')
-        rc = make_typequery_kmod(s, header, new_module);
-      else
-        rc = make_typequery_umod(s, header, new_module);
-      if (rc == 0)
+      if (make_typequery(s, module) == 0)
         {
-          module = new_module;
-
           if (s.use_cache)
             {
               // try to save typequery in the cache
               if (s.verbose > 2)
-                clog << "Copying " << new_module
+                clog << "Copying " << module
                   << " to " << cached_module << endl;
-              if (copy_file(new_module.c_str(),
+              if (copy_file(module.c_str(),
                             cached_module.c_str()) != 0)
-                cerr << "Copy failed (\"" << new_module << "\" to \""
+                cerr << "Copy failed (\"" << module << "\" to \""
                   << cached_module << "\"): " << strerror(errno) << endl;
             }
         }

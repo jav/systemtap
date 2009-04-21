@@ -445,7 +445,7 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
 
 
 // Build a tiny kernel module to query type information
-int
+static int
 make_typequery_kmod(systemtap_session& s, const string& header, string& name)
 {
   static unsigned tick = 0;
@@ -485,7 +485,7 @@ make_typequery_kmod(systemtap_session& s, const string& header, string& name)
 
 
 // Build a tiny user module to query type information
-int
+static int
 make_typequery_umod(systemtap_session& s, const string& header, string& name)
 {
   static unsigned tick = 0;
@@ -498,6 +498,35 @@ make_typequery_umod(systemtap_session& s, const string& header, string& name)
   if (s.verbose < 4)
     cmd += " >/dev/null 2>&1";
   return stap_system (cmd.c_str());
+}
+
+
+int
+make_typequery(systemtap_session& s, string& module)
+{
+  int rc;
+  string new_module;
+
+  if (module[module.size() - 1] != '>')
+    return -1;
+
+  if (module[0] == '<')
+    {
+      string header = module.substr(1, module.size() - 2);
+      rc = make_typequery_umod(s, header, new_module);
+    }
+  else if (module.compare(0, 7, "kernel<") == 0)
+    {
+      string header = module.substr(7, module.size() - 8);
+      rc = make_typequery_kmod(s, header, new_module);
+    }
+  else
+    return -1;
+
+  if (!rc)
+    module = new_module;
+
+  return rc;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
