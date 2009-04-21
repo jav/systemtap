@@ -5194,13 +5194,13 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   string code;
   exp_type type = pe_long;
-  size_t mod_end = ~0;
-  do
+
+  // split the module string by ':' for alternatives
+  vector<string> modules;
+  tokenize(e->module, modules, ":");
+  for (unsigned i = 0; code.empty() && i < modules.size(); ++i)
     {
-      // split the module string by ':' for alternatives
-      size_t mod_begin = mod_end + 1;
-      mod_end = e->module.find(':', mod_begin);
-      string module = e->module.substr(mod_begin, mod_end - mod_begin);
+      string& module = modules[i];
       filter_special_modules(module);
 
       // NB: This uses '/' to distinguish between kernel modules and userspace,
@@ -5255,7 +5255,6 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       dwarf_cast_query q (*dw, module, *e, lvalue, type, code);
       dw->query_modules(&q);
     }
-  while (code.empty() && mod_end != string::npos);
 
   if (code.empty())
     {
