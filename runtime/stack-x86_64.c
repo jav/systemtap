@@ -19,7 +19,7 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 			/* cannot access stack.  give up. */
 			return;
 		}
-		if (_stp_func_print(addr, verbose, 0))
+		if (_stp_func_print(addr, verbose, 0, NULL))
 			levels--;
 		stack++;
 	}
@@ -27,26 +27,31 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 #endif
 
 
-static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels)
+static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
+                              struct task_struct *tsk)
 {
 #ifdef STP_USE_DWARF_UNWINDER
 	// FIXME: large stack allocation
 	struct unwind_frame_info info;
 	arch_unw_init_frame_info(&info, regs);
 
-	while (levels && !arch_unw_user_mode(&info)) {
-		int ret = unwind(&info);
+	while (levels && (tsk || !arch_unw_user_mode(&info))) {
+		int ret = unwind(&info, tsk);
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
 		if (ret == 0) {
-			_stp_func_print(UNW_PC(&info), verbose, 1);
+			_stp_func_print(UNW_PC(&info), verbose, 1, tsk);
 			levels--;
 			continue;
 		}
-		/* If an error happened or we hit a kretprobe trampoline, use fallback backtrace */
-		/* FIXME: is there a way to unwind across kretprobe trampolines? */
-		if (ret < 0 || (ret > 0 && UNW_PC(&info) == _stp_kretprobe_trampoline))
+		/* If an error happened or we hit a kretprobe trampoline,
+		 * use fallback backtrace, unless user task backtrace.
+		 * FIXME: is there a way to unwind across kretprobe
+		 * trampolines? */
+		if ((ret < 0
+		     || (ret > 0 && UNW_PC(&info) == _stp_kretprobe_trampoline))
+		    && ! (tsk || arch_unw_user_mode(&info)))
 			_stp_stack_print_fallback(UNW_SP(&info), verbose, levels);
-		break;
+		return;
 	}
 #else /* ! STP_USE_DWARF_UNWINDER */
 	_stp_stack_print_fallback(REG_SP(regs), verbose, levels);
