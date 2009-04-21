@@ -2239,7 +2239,8 @@ static u32 uprobe_report_exit(enum utrace_resume_action action,
 			}
 		}
 		up_read(&uproc->rwsem);
-		if (utask->state == UPTASK_TRAMPOLINE_HIT)
+		if (utask->state == UPTASK_TRAMPOLINE_HIT ||
+						utask->state == UPTASK_BP_HIT)
 			uprobe_decref_process(uproc);
 	}
 
