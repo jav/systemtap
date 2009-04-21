@@ -6851,17 +6851,24 @@ public:
 
 struct utrace_var_expanding_visitor: public var_expanding_visitor
 {
-  utrace_var_expanding_visitor(systemtap_session& s, const string& pn,
+  utrace_var_expanding_visitor(systemtap_session& s, probe_point* l,
+			       const string& pn,
                                enum utrace_derived_probe_flags f):
-    sess (s), probe_name (pn), flags (f), target_symbol_seen (false) {}
+    sess (s), base_loc (l), probe_name (pn), flags (f),
+    target_symbol_seen (false), add_block(NULL), add_probe(NULL) {}
 
   systemtap_session& sess;
+  probe_point* base_loc;
   string probe_name;
   enum utrace_derived_probe_flags flags;
   bool target_symbol_seen;
+  block *add_block;
+  probe *add_probe;
+  std::map<std::string, symbol *> return_ts_map;
 
   void visit_target_symbol_arg (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
+  void visit_target_symbol_cached (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
 };
 
@@ -6876,9 +6883,22 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   target_symbol_seen(false)
 {
   // Expand local variables in the probe body
-  utrace_var_expanding_visitor v (s, name, flags);
+  utrace_var_expanding_visitor v (s, l, name, flags);
   this->body = v.require (this->body);
   target_symbol_seen = v.target_symbol_seen;
+
+  // If during target-variable-expanding the probe, we added a new block
+  // of code, add it to the start of the probe.
+  if (v.add_block)
+    this->body = new block(v.add_block, this->body);
+  // If when target-variable-expanding the probe, we added a new
+  // probe, add it in a new file to the list of files to be processed.
+  if (v.add_probe)
+    {
+      stapfile *f = new stapfile;
+      f->probes.push_back(v.add_probe);
+      s.files.push_back(f);
+    }
 
   // Reset the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
@@ -6935,6 +6955,216 @@ utrace_derived_probe::join_group (systemtap_session& s)
   s.utrace_derived_probes->enroll (this);
 
   task_finder_derived_probe_group::create_session_group (s);
+}
+
+
+void
+utrace_var_expanding_visitor::visit_target_symbol_cached (target_symbol* e)
+{
+      // Get the full name of the target symbol.
+      stringstream ts_name_stream;
+      e->print(ts_name_stream);
+      string ts_name = ts_name_stream.str();
+
+      // Check and make sure we haven't already seen this target
+      // variable in this return probe.  If we have, just return our
+      // last replacement.
+      map<string, symbol *>::iterator i = return_ts_map.find(ts_name);
+      if (i != return_ts_map.end())
+	{
+	  provide (i->second);
+	  return;
+	}
+
+      // We've got to do several things here to handle target
+      // variables in return probes.
+
+      // (1) Synthesize a global array which is the cache of the
+      // target variable value.  We don't need a nesting level counter
+      // like the dwarf_var_expanding_visitor::visit_target_symbol()
+      // does since a particular thread can only be in one system
+      // calls at a time. The array will look like this:
+      //
+      //   _utrace_tvar_{name}_{num}
+      string aname = (string("_utrace_tvar_")
+		      + e->base_name.substr(1)
+		      + "_" + lex_cast<string>(tick++));
+      vardecl* vd = new vardecl;
+      vd->name = aname;
+      vd->tok = e->tok;
+      sess.globals.push_back (vd);
+
+      // (2) Create a new code block we're going to insert at the
+      // beginning of this probe to get the cached value into a
+      // temporary variable.  We'll replace the target variable
+      // reference with the temporary variable reference.  The code
+      // will look like this:
+      //
+      //   _utrace_tvar_tid = tid()
+      //   _utrace_tvar_{name}_{num}_tmp
+      //       = _utrace_tvar_{name}_{num}[_utrace_tvar_tid]
+      //   delete _utrace_tvar_{name}_{num}[_utrace_tvar_tid]
+
+      // (2a) Synthesize the tid temporary expression, which will look
+      // like this:
+      //
+      //   _utrace_tvar_tid = tid()
+      symbol* tidsym = new symbol;
+      tidsym->name = string("_utrace_tvar_tid");
+      tidsym->tok = e->tok;
+
+      if (add_block == NULL)
+        {
+	   add_block = new block;
+	   add_block->tok = e->tok;
+
+	   // Synthesize a functioncall to grab the thread id.
+	   functioncall* fc = new functioncall;
+	   fc->tok = e->tok;
+	   fc->function = string("tid");
+
+	   // Assign the tid to '_utrace_tvar_tid'.
+	   assignment* a = new assignment;
+	   a->tok = e->tok;
+	   a->op = "=";
+	   a->left = tidsym;
+	   a->right = fc;
+
+	   expr_statement* es = new expr_statement;
+	   es->tok = e->tok;
+	   es->value = a;
+	   add_block->statements.push_back (es);
+	}
+
+      // (2b) Synthesize an array reference and assign it to a
+      // temporary variable (that we'll use as replacement for the
+      // target variable reference).  It will look like this:
+      //
+      //   _utrace_tvar_{name}_{num}_tmp
+      //       = _utrace_tvar_{name}_{num}[_utrace_tvar_tid]
+
+      arrayindex* ai_tvar = new arrayindex;
+      ai_tvar->tok = e->tok;
+
+      symbol* sym = new symbol;
+      sym->name = aname;
+      sym->tok = e->tok;
+      ai_tvar->base = sym;
+
+      ai_tvar->indexes.push_back(tidsym);
+
+      symbol* tmpsym = new symbol;
+      tmpsym->name = aname + "_tmp";
+      tmpsym->tok = e->tok;
+
+      assignment* a = new assignment;
+      a->tok = e->tok;
+      a->op = "=";
+      a->left = tmpsym;
+      a->right = ai_tvar;
+
+      expr_statement* es = new expr_statement;
+      es->tok = e->tok;
+      es->value = a;
+
+      add_block->statements.push_back (es);
+
+      // (2c) Delete the array value.  It will look like this:
+      //
+      //   delete _utrace_tvar_{name}_{num}[_utrace_tvar_tid]
+
+      delete_statement* ds = new delete_statement;
+      ds->tok = e->tok;
+      ds->value = ai_tvar;
+      add_block->statements.push_back (ds);
+
+      // (3) We need an entry probe that saves the value for us in the
+      // global array we created.  Create the entry probe, which will
+      // look like this:
+      //
+      //   probe process(PATH_OR_PID).syscall {
+      //     _utrace_tvar_tid = tid()
+      //     _utrace_tvar_{name}_{num}[_utrace_tvar_tid] = ${param}
+      //   }
+      //
+      // Why the temporary for tid()?  If we end up caching more
+      // than one target variable, we can reuse the temporary instead
+      // of calling tid() multiple times.
+
+      if (add_probe == NULL)
+        {
+	   add_probe = new probe;
+	   add_probe->tok = e->tok;
+
+	   // We need the name of the current probe point, minus the
+	   // ".return".  Create a new probe point, copying all the
+	   // components, stopping when we see the ".return"
+	   // component.
+	   probe_point* pp = new probe_point;
+	   for (unsigned c = 0; c < base_loc->components.size(); c++)
+	     {
+	        if (base_loc->components[c]->functor == "return")
+		  break;
+	        else
+		  pp->components.push_back(base_loc->components[c]);
+	     }
+	   pp->tok = e->tok;
+	   pp->optional = base_loc->optional;
+	   add_probe->locations.push_back(pp);
+
+	   add_probe->body = new block;
+	   add_probe->body->tok = e->tok;
+
+	   // Synthesize a functioncall to grab the thread id.
+	   functioncall* fc = new functioncall;
+	   fc->tok = e->tok;
+	   fc->function = string("tid");
+
+	   // Assign the tid to '_utrace_tvar_tid'.
+	   assignment* a = new assignment;
+	   a->tok = e->tok;
+	   a->op = "=";
+	   a->left = tidsym;
+	   a->right = fc;
+
+	   expr_statement* es = new expr_statement;
+	   es->tok = e->tok;
+	   es->value = a;
+           add_probe->body = new block(add_probe->body, es);
+
+	   vardecl* vd = new vardecl;
+	   vd->tok = e->tok;
+	   vd->name = tidsym->name;
+	   vd->type = pe_long;
+	   vd->set_arity(0);
+	   add_probe->locals.push_back(vd);
+	}
+
+      // Save the value, like this:
+      //
+      //   _utrace_tvar_{name}_{num}[_utrace_tvar_tid] = ${param}
+      a = new assignment;
+      a->tok = e->tok;
+      a->op = "=";
+      a->left = ai_tvar;
+      a->right = e;
+
+      es = new expr_statement;
+      es->tok = e->tok;
+      es->value = a;
+
+      add_probe->body = new block(add_probe->body, es);
+
+      // (4) Provide the '_utrace_tvar_{name}_{num}_tmp' variable to
+      // our parent so it can be used as a substitute for the target
+      // symbol.
+      provide (tmpsym);
+
+      // (5) Remember this replacement since we might be able to reuse
+      // it later if the same return probe references this target
+      // symbol again.
+      return_ts_map[ts_name] = tmpsym;
+      return;
 }
 
 
@@ -7026,8 +7256,30 @@ utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 	throw semantic_error ("only \"process(PATH_OR_PID).syscall.return\" support $return.", e->tok);
       fname = "_utrace_syscall_return";
     }
+  else if (sname == "$syscall")
+    {
+      // If we've got a syscall entry probe, we can just call the
+      // right function.
+      if (flags == UDPF_SYSCALL) {
+        fname = "_utrace_syscall_nr";
+      }
+      // If we're in a syscal return probe, we can't really access
+      // $syscall.  So, similar to what
+      // dwarf_var_expanding_visitor::visit_target_symbol() does,
+      // we'll create an syscall entry probe to cache $syscall, then
+      // we'll access the cached value in the syscall return probe.
+      else {
+	visit_target_symbol_cached (e);
+
+	// Remember that we've seen a target variable.
+	target_symbol_seen = true;
+	return;
+      }
+    }
   else
-    fname = "_utrace_syscall_nr";
+    {
+      throw semantic_error ("unknown target variable", e->tok);
+    }
 
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
@@ -7381,7 +7633,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "switch (p->flags) {";
   s.op->indent(1);
-  // For death probes, go ahead and call the probe directly.
+  // For end probes, go ahead and call the probe directly.
   if (flags_seen[UDPF_END])
     {
       s.op->newline() << "case UDPF_END:";
