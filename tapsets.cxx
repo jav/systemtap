@@ -5190,10 +5190,21 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
           // kernel or kernel module target
           if (! db.kern_dw)
             {
-              db.kern_dw = new dwflpp(s);
-              db.kern_dw->setup_kernel(true);
+              dw = new dwflpp(s);
+              try
+                {
+                  dw->setup_kernel(true);
+                }
+              catch (const semantic_error& er)
+                {
+                  /* ignore and go to the next module */
+                  delete dw;
+                  continue;
+                }
+              db.kern_dw = dw;
             }
-          dw = db.kern_dw;
+          else
+            dw = db.kern_dw;
         }
       else
         {
