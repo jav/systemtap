@@ -23,7 +23,7 @@
 %}
 
 /**
- * sfunction usymname - Return the symbol of an address in the current task.
+ * sfunction usymname - Return the symbol of an address in the current task. EXPERIMENTAL!
  * @addr: The address to translate.
  *
  * Description: Returns the (function) symbol name associated with the
@@ -36,7 +36,7 @@ function usymname:string (addr: long) %{ /* pure */
 %}
 
 /**
- * sfunction usymdata - Return the symbol and module offset of an address.
+ * sfunction usymdata - Return the symbol and module offset of an address. EXPERIMENTAL!
  * @addr: The address to translate.
  *
  * Description: Returns the (function) symbol name associated with the
@@ -52,7 +52,7 @@ function usymdata:string (addr: long) %{ /* pure */
 %}
 
 /**
- * sfunction print_ustack - Print out stack for the current task from string.
+ * sfunction print_ustack - Print out stack for the current task from string. EXPERIMENTAL!
  * @stk: String with list of hexidecimal addresses for the current task.
  *
  *  Perform a symbolic lookup of the addresses in the given string,
