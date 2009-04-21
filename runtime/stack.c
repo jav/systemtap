@@ -118,7 +118,10 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
 		} else {
 			_stp_print_char(' ');
-			_stp_symbol_print(REG_IP(regs));
+			if (tsk)
+			  _stp_usymbol_print(REG_IP(regs), tsk);
+			else
+			  _stp_symbol_print(REG_IP(regs));
 		}
 		_stp_print_char('\n');
 	} else if (pi)
