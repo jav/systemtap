@@ -3,10 +3,10 @@
 probe begin
 {
 printf ("%%Title:CPU utilization\n");
-printf ("%%XAxisTitle:Time");
-printf ("%%YAxisTitle:Percent");
-printf ("%%DataSet:cpu 100 00ff00 bar");
-printf ("%%DataSet:kbd 100 ff0000 dot");
+printf ("%%XAxisTitle:Time\n");
+printf ("%%YAxisTitle:Percent\n");
+printf ("%%DataSet:cpu 100 00ff00 bar\n");
+printf ("%%DataSet:kbd 100 ff0000 dot\n");
 }
 
 # CPU utilization
