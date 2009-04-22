@@ -210,7 +210,7 @@ namespace systemtap
     // Draw axes
     double diff = _right - _left;
     double majorUnit = pow(10.0, floor(log(diff) / log(10.0)));
-    double startTime = floor(_left / majorUnit) * majorUnit;
+    double startTime = ceil(_left / majorUnit) * majorUnit;
     cr->save();
     cr->set_source_rgba(1.0, 1.0, 1.0, .9);
     cr->set_line_cap(Cairo::LINE_CAP_BUTT);
@@ -226,15 +226,23 @@ namespace systemtap
     std::valarray<double> dash(1);
     dash[0] = height / 10;
     cr->set_dash(dash, 0.0);
-    for (double tickVal = startTime; tickVal < _right; tickVal += majorUnit)
+    double prevTextAdvance = 0;
+    for (double tickVal = startTime; tickVal <= _right; tickVal += majorUnit)
       {
-        cr->move_to((tickVal - _left) * horizScale + 20.0, graphHeight - 5);
+        double x = (tickVal - _left) * horizScale + 20.0;
+        cr->move_to(x, 0.0);
+        cr->line_to(x, height);
+        cr->move_to(x, graphHeight - 5);
         std::ostringstream stream;
         stream << std::fixed << std::setprecision(0) << tickVal;
-        cr->show_text(stream.str());
-        cr->move_to((tickVal - _left) * horizScale + 20.0, 0.0);
-        cr->line_to((tickVal - _left) * horizScale + 20.0, height);
-        cr->stroke();
+        Cairo::TextExtents extents;
+        cr->get_text_extents(stream.str(), extents);
+        // Room for this label?
+        if (x + extents.x_bearing > prevTextAdvance)
+          {
+            cr->show_text(stream.str());
+            prevTextAdvance = x + extents.x_advance;
+          }
       }
     cr->stroke();
     cr->restore();
