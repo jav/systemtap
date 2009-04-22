@@ -236,8 +236,7 @@ match_node
   typedef std::map<match_key, match_node*>::iterator sub_map_iterator_t;
   sub_map_t sub;
   derived_probe_builder* end;
-
-  std::vector<std::string> unprivileged_whitelist;
+  bool unprivileged_ok;
 
  public:
   match_node();
@@ -252,6 +251,9 @@ match_node
   match_node* bind_str(std::string const & k);
   match_node* bind_num(std::string const & k);
   void bind(derived_probe_builder* e);
+
+  match_node* allow_unprivileged (bool b = true);
+  bool unprivileged_allowed () const;
 };
 
 // ------------------------------------------------------------------------

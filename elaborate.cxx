@@ -261,9 +261,8 @@ match_key::globmatch(match_key const & other) const
 // ------------------------------------------------------------------------
 
 match_node::match_node()
-  : end(NULL)
+  : end(NULL), unprivileged_ok (false)
 {
-  unprivileged_whitelist.push_back ("process");
 }
 
 match_node *
@@ -306,6 +305,18 @@ match_node::bind_num(string const & k)
   return bind(match_key(k).with_number());
 }
 
+match_node*
+match_node::allow_unprivileged (bool b)
+{
+  unprivileged_ok = b;
+  return this;
+}
+
+bool
+match_node::unprivileged_allowed () const
+{
+  return unprivileged_ok;
+}
 
 void
 match_node::find_and_build (systemtap_session& s,
@@ -313,23 +324,6 @@ match_node::find_and_build (systemtap_session& s,
                             vector<derived_probe *>& results)
 {
   assert (pos <= loc->components.size());
-
-  // If we are in --unprivileged mode, exclude all "unsafe" probes.
-  if (s.unprivileged && pos == 0)
-    {
-      unsigned i;
-      for (i = 0; i < unprivileged_whitelist.size(); i++)
-	{
-	  if (unprivileged_whitelist[i] == loc->components[pos]->functor)
-	    break;
-	}
-      if (i == unprivileged_whitelist.size()) {
-	throw semantic_error (string("probe class ") +
-			      loc->components[pos]->functor +
-			      " is not allowed for unprivileged users");
-      }
-    }
-
   if (pos == loc->components.size()) // matched all probe point components so far
     {
       derived_probe_builder *b = end; // may be 0 if only nested names are bound
@@ -349,6 +343,14 @@ match_node::find_and_build (systemtap_session& s,
       for (unsigned i=0; i<pos; i++)
         param_map[loc->components[i]->functor] = loc->components[i]->arg;
       // maybe 0
+
+      // Are we compiling for unprivileged users?  */
+      if (s.unprivileged)
+	{
+	  // Is this probe point ok for unprivileged users?
+	  if (! unprivileged_allowed ())
+	    throw semantic_error (string("probe point is not allowed for unprivileged users"));
+	}
 
       b->build (s, p, loc, param_map, results);
     }
