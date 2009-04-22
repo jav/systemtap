@@ -370,7 +370,8 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
   // create a simple Makefile
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
-  omf << "EXTRA_CFLAGS := -g" << endl; // force debuginfo generation
+  // force debuginfo generation, and relax implicit functions
+  omf << "EXTRA_CFLAGS := -g -Wno-implicit-function-declaration" << endl;
   omf << "obj-m := tracequery.o" << endl;
   omf.close();
 
