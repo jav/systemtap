@@ -4659,11 +4659,7 @@ dump_unwindsyms (Dwfl_Module *m,
                   // absolute, dynamic or kernel have just one relocation
                   // section, which covers the whole module address range.
                   unsigned size;
-                  if (secidx == 0
-                      && (n == 0
-                          || (n == 1
-                              && (strcmp(secname, ".dynamic") == 0
-                                  || strcmp(secname, "_stext") == 0))))
+                  if (n <= 1)
                     size = end - start;
                   else
                    {
