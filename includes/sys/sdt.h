@@ -13,6 +13,12 @@
 #include <string.h>
 #include <sys/types.h>
 
+#ifdef __LP64__
+#define STAP_PROBE_ADDR "\t.quad "
+#else
+#define STAP_PROBE_ADDR "\t.long "
+#endif
+
 #define STAP_PROBE_DATA_(probe)	\
   __asm__ volatile (".section .probes\n" \
 		    "\t.align 8\n"   \
@@ -20,9 +26,9 @@
 		    "\t.align 4\n" \
 		    "\t.int 0x31425250\n" \
   		    "\t.align 8\n" \
-		    "\t.quad 1b\n" \
+		    STAP_PROBE_ADDR "1b\n" \
   		    "\t.align 8\n" \
-		    "\t.quad 2f\n" \
+		    STAP_PROBE_ADDR "2f\n" \
 		    "\t.previous\n")
 
 #define STAP_PROBE_DATA(probe)					\
