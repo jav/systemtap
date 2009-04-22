@@ -345,6 +345,10 @@ struct syscall_get_set_args {
 	int rw;
 };
 
+#define CFM_SOF(cfm) ((cfm) & 0x7f)			/* Size of frame */
+#define CFM_SOL(cfm) (((cfm) >> 7) & 0x7f)		/* Size of locals */
+#define CFM_OUT(cfm) (CFM_SOF(cfm) - CFM_SOL(cfm))	/* Size of outputs */
+
 static void syscall_get_set_args_cb(struct unw_frame_info *info, void *data)
 {
 	struct syscall_get_set_args *args = data;
@@ -361,15 +365,18 @@ static void syscall_get_set_args_cb(struct unw_frame_info *info, void *data)
 
 	count = 0;
 	if (in_syscall(pt))
-		count = min_t(int, args->n, cfm & 0x7f);
+		/* args->i + args->n must be less equal than nr outputs */
+		count = min_t(int, args->n, CFM_OUT(cfm) - args->i);
 
 	for (i = 0; i < count; i++) {
+		/* Skips dirties and locals */
 		if (args->rw)
-			*ia64_rse_skip_regs(krbs, ndirty + i + args->i) =
+			*ia64_rse_skip_regs(krbs,
+				ndirty + CFM_SOL(cfm) + args->i + i) =
 				args->args[i];
 		else
 			args->args[i] = *ia64_rse_skip_regs(krbs,
-				ndirty + i + args->i);
+				ndirty + CFM_SOL(cfm) + args->i + i);
 	}
 
 	if (!args->rw) {
