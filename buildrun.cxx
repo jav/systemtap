@@ -390,10 +390,6 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
   osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
   osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
 
-  // some headers may have been pulled in already indirectly, so we need this
-  // to ensure that they still use our definition
-  osrc << "#define TRACE_HEADER_MULTI_READ 1" << endl;
-
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
   for (unsigned z=0; z<extra_headers.size(); z++)
