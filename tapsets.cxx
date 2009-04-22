@@ -5507,7 +5507,7 @@ dwarf_derived_probe::register_function_variants(match_node * root,
   root->bind(TOK_INLINE)->allow_unprivileged(unprivileged_ok)->bind(dw);
   root->bind(TOK_CALL)->allow_unprivileged(unprivileged_ok)->bind(dw);
   root->bind(TOK_RETURN)->allow_unprivileged(unprivileged_ok)->bind(dw);
-  root->bind(TOK_RETURN)->allow_unprivileged(unprivileged_ok)->bind_num(TOK_MAXACTIVE)->bind(dw);
+  root->bind(TOK_RETURN)->bind_num(TOK_MAXACTIVE)->allow_unprivileged(unprivileged_ok)->bind(dw);
 }
 
 void
