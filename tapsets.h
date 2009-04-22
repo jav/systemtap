@@ -17,6 +17,7 @@ struct derived_probe_group;
 
 void register_standard_tapsets(systemtap_session& sess);
 std::vector<derived_probe_group*> all_session_groups(systemtap_session& s);
+int dwfl_report_offline_predicate (const char* modname, const char* filename);
 
 
 #endif // TAPSETS_H

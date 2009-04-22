@@ -4871,7 +4871,7 @@ emit_symbol_data (systemtap_session& s)
 
   int rc = dwfl_linux_kernel_report_offline (dwfl,
                                              elfutils_kernel_path.c_str(),
-                                             NULL /* XXX: filtering callback */);
+					     &dwfl_report_offline_predicate);
   dwfl_report_end (dwfl, NULL, NULL);
   if (rc == 0) // tolerate missing data; will warn user about it anyway
     {
