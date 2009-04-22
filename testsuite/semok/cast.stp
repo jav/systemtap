@@ -12,6 +12,6 @@ probe begin {
     // but who knows what debuginfo is installed...
 
     // check modules generated from headers
-    println(@cast(0, "task_struct", "kmod<linux/sched.h>")->tgid)
-    println(@cast(0, "timeval", "umod<sys/time.h>")->tv_sec)
+    println(@cast(0, "task_struct", "kernel<linux/sched.h>")->tgid)
+    println(@cast(0, "timeval", "<sys/time.h>")->tv_sec)
 }

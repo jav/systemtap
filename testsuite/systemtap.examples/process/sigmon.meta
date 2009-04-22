@@ -1,5 +1,5 @@
-title: System-Wide Count of Syscalls by PID
-name: syscalls_by_pid.stp
+title: Track a particular signal to a specific process
+name: sigmon.stp
 version: 1.0
 author: IBM
 keywords: signals

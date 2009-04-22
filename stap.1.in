@@ -800,6 +800,15 @@ separators.  If the module is not specified, it will default either to
 the probe module for dwarf probes, or to "kernel" for functions and all
 other probes types.
 .PP
+The translator can create its own module with type information from a header
+surrounded by angle brackets, in case normal debuginfo is not available.  For
+kernel headers, prefix it with "kernel" to use the appropriate build system.
+All other headers are build with default GCC parameters into a user module.
+.SAMPLE
+@cast(tv, "timeval", "<sys/time.h>")->tv_sec
+@cast(task, "task_struct", "kernel<linux/sched.h>")->tgid
+.ESAMPLE
+.PP
 When in guru mode, the translator will also allow scripts to assign new
 values to members of typecasted pointers.
 .PP

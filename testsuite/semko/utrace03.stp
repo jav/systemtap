@@ -1,4 +1,4 @@
 #! stap -p2
 
 # invalid probe type
-probe process("/bin/cat").death.return { }
+probe process("/bin/cat").end.return { }

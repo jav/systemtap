@@ -1,0 +1,97 @@
+set test "uprobes_ustack"
+set testpath "$srcdir/$subdir"
+set testsrc  "$testpath/uprobes_exe.c"
+set testsrclib  "$testpath/uprobes_lib.c"
+set testexe  "./uprobes_exe"
+set testlibname  "uprobes_lib"
+set testlibdir "."
+set testso  "$testlibdir/lib${testlibname}.so"
+set testflags "additional_flags=-g additional_flags=-O"
+set testlibflags "$testflags additional_flags=-fPIC additional_flags=-shared"
+set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$testlibname additional_flags=-Wl,-rpath,$testlibdir"
+
+# Compile our test program and library.
+set res [target_compile $testsrclib $testso executable $testlibflags]
+if { $res != "" } {
+    verbose "target_compile for $testso failed: $res" 2
+    fail "$test compile $testsrclib"
+    return
+} else {
+    pass "$test compile $testsrclib"
+}
+
+set res [target_compile $testsrc $testexe executable $maintestflags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test compile $testsrc"
+    return
+} else {
+    pass "$test compile $testsrc"
+}
+
+set ::result_string {exe: main=main
+exe: main_func=main_func
+exe: main_func=main_func
+exe: main_func=main_func
+lib: lib_main=lib_main
+lib: lib_func=lib_func
+lib: lib_func=lib_func
+lib: lib_func=lib_func}
+
+# Only run on make installcheck
+if {! [installtest_p]} { untested "$test"; return }
+if {! [utrace_p]} { untested $test; return }
+
+# Output is:
+#print_ubacktrace exe 0
+# 0x080484ba : main_func+0xa/0x29 [.../uprobes_exe]
+# 0x080484f6 : main+0x1d/0x37 [.../uprobes_exe]
+#print_ustack exe 1
+# 0x080484ba : main_func+0xa/0x29 [.../uprobes_exe]
+# 0x080484c9 : main_func+0x19/0x29 [.../uprobes_exe]
+# 0x080484f6 : main+0x1d/0x37 [.../uprobes_exe]
+#print_ubacktrace lib 2
+# 0x00db2422 : lib_func+0x16/0x2b [.../libuprobes_lib.so]
+# 0x00db2455 : lib_main+0x1e/0x29 [.../libuprobes_lib.so]
+# 0x080484d0 : main_func+0x20/0x29 [.../uprobes_exe]
+# 0x080484c9 : main_func+0x19/0x29 [.../uprobes_exe]
+# 0x080484c9 : main_func+0x19/0x29 [.../uprobes_exe]
+# 0x080484f6 : main+0x1d/0x37 [.../uprobes_exe]
+#print_ustack lib 3
+# 0x00db2422 : lib_func+0x16/0x2b [.../libuprobes_lib.so]
+# 0x00db2431 : lib_func+0x25/0x2b [.../libuprobes_lib.so]
+# 0x00db2455 : lib_main+0x1e/0x29 [.../libuprobes_lib.so]
+# 0x080484d0 : main_func+0x20/0x29 [.../uprobes_exe]
+# 0x080484c9 : main_func+0x19/0x29 [.../uprobes_exe]
+# 0x080484c9 : main_func+0x19/0x29 [.../uprobes_exe]
+# 0x080484f6 : main+0x1d/0x37 [.../uprobes_exe]
+
+set print 0
+set main 0
+set main_func 0
+set lib_main 0
+set lib_func 0
+# Needs extra space since on 64bit the last ubacktrace string is
+# 7 entries * (16 hex + 2 for 0x + 1 space) = 133 chars.
+# Default MAXSTRINGLEN is 128 chars.
+spawn stap -DMAXSTRINGLEN=133 $srcdir/$subdir/$test.stp -c $testexe
+
+wait
+expect {
+  -timeout 60
+  -re {^print_[^\r\n]+\r\n} {incr print; exp_continue}
+  -re {^ 0x[a-f0-9]+ : main\+0x[^\r\n]+\r\n} {incr main; exp_continue}
+  -re {^ 0x[a-f0-9]+ : main_func\+0x[^\r\n]+\r\n} {incr main_func; exp_continue}
+  -re {^ 0x[a-f0-9]+ : lib_main\+0x[^\r\n]+\r\n} {incr lib_main; exp_continue}
+  -re {^ 0x[a-f0-9]+ : lib_func\+0x[^\r\n]+\r\n} {incr lib_func; exp_continue}
+  timeout { fail "$test (timeout)" }
+  eof { }
+}
+
+if {$print == 4} {pass "$test print"} {fail "$test print ($print)"}
+if {$main == 4} {pass "$test main"} {fail "$test main ($main)"}
+if {$main_func == 9} {pass "$test main_func"} {fail "$test main_func ($main_func)"}
+if {$lib_main == 2} {pass "$test lib_main"} {fail "$test lib_main ($lib_main)"}
+if {$lib_func == 3} {pass "$test lib_func"} {fail "$test lib_func ($lib_func)"}
+
+#exec rm -f $testexe $testso

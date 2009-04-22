@@ -381,7 +381,8 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
   // create a simple Makefile
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
-  omf << "EXTRA_CFLAGS := -g" << endl; // force debuginfo generation
+  // force debuginfo generation, and relax implicit functions
+  omf << "EXTRA_CFLAGS := -g -Wno-implicit-function-declaration" << endl;
   omf << "obj-m := tracequery.o" << endl;
   omf.close();
 
@@ -400,10 +401,6 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
   osrc << "#undef DEFINE_TRACE" << endl;
   osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
   osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
-
-  // some headers may have been pulled in already indirectly, so we need this
-  // to ensure that they still use our definition
-  osrc << "#define TRACE_HEADER_MULTI_READ 1" << endl;
 
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
@@ -456,7 +453,7 @@ make_tracequery(systemtap_session& s, string& name, const vector<string>& extra_
 
 
 // Build a tiny kernel module to query type information
-int
+static int
 make_typequery_kmod(systemtap_session& s, const string& header, string& name)
 {
   static unsigned tick = 0;
@@ -477,7 +474,16 @@ make_typequery_kmod(systemtap_session& s, const string& header, string& name)
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
   omf << "EXTRA_CFLAGS := -g -fno-eliminate-unused-debug-types" << endl;
+
+  // NB: We use -include instead of #include because that gives us more power.
+  // Using #include searches relative to the source's path, which in this case
+  // is /tmp/..., so that's not helpful.  Using -include will search relative
+  // to the cwd, which will be the kernel build root.  This means if you have a
+  // full kernel build tree, it's possible to get at types that aren't in the
+  // normal include path, e.g.:
+  //    @cast(foo, "bsd_acct_struct", "kernel<kernel/acct.c>")->...
   omf << "CFLAGS_" << basename << ".o := -include " << header << endl;
+
   omf << "obj-m := " + basename + ".o" << endl;
   omf.close();
 
@@ -496,7 +502,7 @@ make_typequery_kmod(systemtap_session& s, const string& header, string& name)
 
 
 // Build a tiny user module to query type information
-int
+static int
 make_typequery_umod(systemtap_session& s, const string& header, string& name)
 {
   static unsigned tick = 0;
@@ -504,11 +510,45 @@ make_typequery_umod(systemtap_session& s, const string& header, string& name)
   name = s.tmpdir + "/typequery_umod_" + lex_cast<string>(++tick) + ".so";
 
   // make the module
+  //
+  // NB: As with kmod, using -include makes relative paths more useful.  The
+  // cwd in this case will be the cwd of stap itself though, which may be
+  // trickier to deal with.  It might be better to "cd `dirname $script`"
+  // first...
   string cmd = "gcc -shared -g -fno-eliminate-unused-debug-types -o "
      + name + " -xc /dev/null -include " + header;
   if (s.verbose < 4)
     cmd += " >/dev/null 2>&1";
   return stap_system (cmd.c_str());
+}
+
+
+int
+make_typequery(systemtap_session& s, string& module)
+{
+  int rc;
+  string new_module;
+
+  if (module[module.size() - 1] != '>')
+    return -1;
+
+  if (module[0] == '<')
+    {
+      string header = module.substr(1, module.size() - 2);
+      rc = make_typequery_umod(s, header, new_module);
+    }
+  else if (module.compare(0, 7, "kernel<") == 0)
+    {
+      string header = module.substr(7, module.size() - 8);
+      rc = make_typequery_kmod(s, header, new_module);
+    }
+  else
+    return -1;
+
+  if (!rc)
+    module = new_module;
+
+  return rc;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

@@ -1,0 +1,35 @@
+// Prints backtrace from lib through exe twice using diffent ustack functions.
+
+global hits = 0;
+
+probe process("uprobes_exe").function("main_func")
+{
+  if (hits == 0)
+    {
+      log("print_ubacktrace exe 0");
+      print_ubacktrace();
+      hits++;
+    }
+  else if (hits == 1)
+    {
+      log("print_ustack exe 1");
+      print_ustack(ubacktrace());
+      hits++;
+    }
+}
+
+probe process("libuprobes_lib.so").function("lib_func")
+{
+  if (hits == 2)
+    {
+      log("print_ubacktrace lib 2");
+      print_ubacktrace();
+      hits++;
+    }
+  else if (hits == 3)
+    {
+      log("print_ustack lib 3");
+      print_ustack(ubacktrace());
+      hits++;
+    }
+}

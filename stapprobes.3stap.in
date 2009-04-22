@@ -412,10 +412,14 @@ contain wildcards, or the probe will not be registered.
 Also, statement probes must be run under guru-mode only.
 
 
-
 .SS USER-SPACE
-Early prototype support for user-space probing is available in the
-form of a non-symbolic probe point:
+Support for user-space probing is available for kernels
+that are configured with the utrace extensions.  See
+.SAMPLE
+http://people.redhat.com/roland/utrace/
+.ESAMPLE
+.PP
+There are several forms.  First, a non-symbolic probe point:
 .SAMPLE
 process(PID).statement(ADDRESS).absolute
 .ESAMPLE
@@ -427,7 +431,8 @@ no $variables.  The target PID parameter must identify a running
 process, and ADDRESS should identify a valid instruction address.
 All threads of that process will be probed.
 .PP
-Additional user-space probing is available in the following forms:
+Second, non-symbolic user-kernel interface events handled by
+utrace may be probed:
 .SAMPLE
 process(PID).begin
 process("PATH").begin
@@ -451,7 +456,6 @@ process(PID).insn
 process("PATH").insn
 process(PID).insn.block
 process("PATH").insn.block
-process("PATH").mark("LABEL")
 .ESAMPLE
 .PP
 A
@@ -490,6 +494,15 @@ probe gets called for every single-stepped instruction of the process described 
 A
 .B .insn.block
 probe gets called for every block-stepped instruction of the process described by PID or PATH.
+
+.PP
+Third, symbolic static instrumentation compiled into programs and
+shared libraries may be
+probed:
+.SAMPLE
+process("PATH").mark("LABEL")
+.ESAMPLE
+.PP
 A
 .B .mark
 probe gets called via a static probe which is defined in the
@@ -501,14 +514,29 @@ for probes with 2 arguments, and so on.
 The arguments of the probe are available in the context variables
 $arg1, $arg2, ...  An alternative to using the STAP_PROBE macros is to
 use the dtrace script to create custom macros.
+
 .PP
-Note that
+Finally, full symbolic source-level probes in user-space programs
+and shared libraries are supported.  These are exactly analogous
+to the symbolic DWARF-based kernel/module probes described above,
+and expose similar contextual $-variables.
+.SAMPLE
+process("PATH").function("NAME")
+process("PATH").statement("*@FILE.c:123")
+process("PATH").function("*").return
+process("PATH").function("myfun").label("foo")
+.ESAMPLE
+
+.PP
+Note that for all process probes,
 .I PATH
 names refer to executables that are searched the same way shells do: relative
 to the working directory if they contain a "/" character, otherwise in 
 .BR $PATH .
 If a process probe is specified without a PID or PATH, all user
-threads are probed.
+threads are probed.  PATH may sometimes name a shared library
+in which case all processes that map that shared library may be
+probed.
 
 .SS PROCFS
 
