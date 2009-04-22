@@ -5978,7 +5978,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 
-	    probe_name = ((char*)((long)(pdata->d_buf) + (long)(*((int*)((long)pdata->d_buf + probe_scn_offset)) - probe_scn_addr)));
+	    probe_name = ((char*)((long)(pdata->d_buf) + (long)(*((long*)((char*)pdata->d_buf + probe_scn_offset)) - probe_scn_addr)));
 	    probe_scn_offset += sizeof(void*);
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
@@ -5997,7 +5997,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      continue;
 	    const token* sv_tok = location->components[1]->arg->tok;
 	    location->components[1]->functor = TOK_STATEMENT;
-	    location->components[1]->arg = new literal_number((int)probe_arg);
+	    location->components[1]->arg = new literal_number((long)probe_arg);
 	    location->components[1]->arg->tok = sv_tok;
 	    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
 	    
