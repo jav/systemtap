@@ -180,7 +180,7 @@ fi
 
 # Detect git tools (should work with old and new git versions)
 git_found=yes
-for git_tool in git-symbolic-ref git-rev-parse git-diff-files git-diff-index git
+for git_tool in git-symbolic-ref git-rev-parse git-diff-files git-diff-index git git-describe
 do
     if [ x`which $git_tool 2>/dev/null` = "x" ]; then
         git_found="'$git_tool' not found"
@@ -207,7 +207,7 @@ if [ "x$git_repo_dir" != "x" ] && [ "x${abs_repo_dir}" = "x${abs_srcdir}/.git" ]
     git_repo=yes
     if [ "x$git_found" = "xyes" ]; then
         # git-1.4 and probably earlier understand "git-rev-parse HEAD"
-        git_shaid=`git-rev-parse HEAD | $SED -n 's/^\(.\{8\}\).*/\1/p'`
+        git_shaid=`git-describe`
         if [ "x$git_shaid" = "x" ]; then
             git_errors="${git_errors+${git_errors}; }error running 'git-rev-parse HEAD'"
         fi
