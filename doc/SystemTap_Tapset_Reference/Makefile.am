@@ -34,7 +34,9 @@ stamp-htmldocs: tapsets.xml
 
 # bump up the allocated space so "xmlto pdf" works
 tapsets.pdf: tapsets.xml
-	 env pool_size=2000000 hash_size=120000 xmlto pdf tapsets.xml
+	export pool_size=2000000
+	export hash_size=120000
+	xmlto pdf tapsets.xml
 
 stamp-mandocs: tapsets.xml
 	xmlto man -o man3 tapsets.xml
