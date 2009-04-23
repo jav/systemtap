@@ -6,16 +6,15 @@
 
 probe begin
 {
-  println("\n Systemtap starting probe");
+  println("systemtap starting probe");
 }
 
 probe kprobe.function("vfs_read")
 {
-  printf("\n probe point hit");
   exit();
 }
 
 probe end
 {
-  println("\n Systemtap starting probe");
+  println("systemtap ending probe");
 }
