@@ -207,7 +207,7 @@ if [ "x$git_repo_dir" != "x" ] && [ "x${abs_repo_dir}" = "x${abs_srcdir}/.git" ]
     git_repo=yes
     if [ "x$git_found" = "xyes" ]; then
         # git-1.4 and probably earlier understand "git-rev-parse HEAD"
-        git_shaid=`git-describe`
+        git_shaid=`git-describe --long`
         if [ "x$git_shaid" = "x" ]; then
             git_errors="${git_errors+${git_errors}; }error running 'git-rev-parse HEAD'"
         fi
