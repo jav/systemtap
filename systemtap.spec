@@ -6,7 +6,7 @@
 %{!?pie_supported: %define pie_supported 1}
 
 Name: systemtap
-Version: 0.9.6
+Version: 0.9.7
 Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
@@ -323,7 +323,7 @@ exit 0
 
 
 %changelog
-* Thu Apr 23 2009 Josh Stone <jistone@redhat.com> - 0.9.6-1
+* Thu Apr 23 2009 Josh Stone <jistone@redhat.com> - 0.9.7-1
 - Upstream release.
 
 * Fri Mar 27 2009 Josh Stone <jistone@redhat.com> - 0.9.5-1
