@@ -1,0 +1,43 @@
+set test "flightrec1"
+if {![installtest_p]} { untested $test; return }
+
+# run stapio in background mode
+spawn stap -F -o $test.out -we {probe begin {}}
+# check whether stap outputs stapio pid
+set pid 0
+expect {
+  -timeout 240
+  -re {([0-9]+)\r\n} {
+      pass "$test (flight recorder option)"
+      set pid $expect_out(1,string)
+      exp_continue}
+  timeout { fail "$test (timeout)" }
+  eof { }
+}
+wait
+if {$pid == 0} {
+  fail "$test (no pid)"
+  return -1
+}
+
+# check whether stapio is running in background
+spawn ps -o cmd hc $pid
+expect {
+  -timeout 10
+  "stapio" {pass "$test (stapio in background)"} # don't contine
+  timeout { fail "$test (timeout)"}
+  eof { fail "$test (stapio was not found)" }
+}
+wait
+
+exec kill -TERM $pid
+
+# check output file
+if {[catch {exec rm $test.out}]} {
+  fail "$test (no output file)"
+  return -1
+} else {
+  pass "$test (output file)"
+}
+
+

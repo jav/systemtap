@@ -668,6 +668,15 @@ enum line_t { ABSOLUTE, RELATIVE, RANGE, WILDCARD };
 typedef vector<inline_instance_info> inline_instance_map_t;
 typedef vector<func_info> func_info_map_t;
 
+
+// PR 9941 introduces the need for a predicate
+
+int dwfl_report_offline_predicate (const char* modname, const char* filename)
+{
+  if (pending_interrupts) { return -1; }
+  return 1;
+}
+
 struct dwflpp
 {
   systemtap_session & sess;
@@ -946,7 +955,7 @@ struct dwflpp
 
     int rc = dwfl_linux_kernel_report_offline (dwfl,
                                                elfutils_kernel_path.c_str(),
-                                               NULL);
+                                               &dwfl_report_offline_predicate);
 
     if (debuginfo_needed)
       dwfl_assert (string("missing ") + sess.architecture +

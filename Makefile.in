@@ -353,7 +353,8 @@ staprun_SOURCES = runtime/staprun/staprun.c \
 	runtime/staprun/common.c $(am__append_14)
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
 staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ \
-	-DSINGLE_THREADED -fno-strict-aliasing $(am__append_15)
+	-DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime \
+	$(am__append_15)
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 staprun_LDADD = @PROCFLAGS@ $(am__append_16)
 stapio_SOURCES = runtime/staprun/stapio.c \
@@ -361,7 +362,7 @@ stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/ctl.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c
 
-stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing
+stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_LDADD = @PROCFLAGS@ -lpthread
 @BUILD_SERVER_TRUE@stap_client_connect_SOURCES = stap-client-connect.c

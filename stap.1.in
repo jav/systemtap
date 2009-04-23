@@ -181,8 +181,7 @@ even if they do not have an explicit probe placed into them.
 .BI \-o " FILE"
 Send standard output to named file. In bulk mode, percpu files will
 start with FILE_ (FILE_cpu with -F) followed by the cpu number.
-This supports a subset of strftime(3) (%%, %C, %Y, %y, %m, %d, %e, %F,
-%H, %I, %j, %l, %M, %S, %R, %T, %u, %w) for FILE.
+This supports strftime(3) formats for FILE.
 .TP
 .BI \-c " CMD"
 Start the probes, run CMD, and exit when CMD finishes.
