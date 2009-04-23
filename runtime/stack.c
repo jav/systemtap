@@ -1,6 +1,6 @@
 /*  -*- linux-c -*-
  * Stack tracing functions
- * Copyright (C) 2005-2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -77,7 +77,7 @@ static void print_stack_address(void *data, unsigned long addr, int reliable)
 {
 	struct print_stack_data *sdata = data;
         if (sdata->level++ < sdata->max_level)
-                _stp_func_print(addr,sdata->verbose, 0);
+                _stp_func_print(addr, sdata->verbose, 0, NULL);
 }
 
 static const struct stacktrace_ops print_stack_ops = {
@@ -107,7 +107,7 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
  * @param regs A pointer to the struct pt_regs.
  */
 
-static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
+static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk)
 {
 	if (verbose) {
 		/* print the current address */
@@ -118,7 +118,10 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
 		} else {
 			_stp_print_char(' ');
-			_stp_symbol_print(REG_IP(regs));
+			if (tsk)
+			  _stp_usymbol_print(REG_IP(regs), tsk);
+			else
+			  _stp_symbol_print(REG_IP(regs));
 		}
 		_stp_print_char('\n');
 	} else if (pi)
@@ -126,7 +129,7 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 	else 
 		_stp_printf("%p ", (int64_t) REG_IP(regs));
 
-	__stp_stack_print(regs, verbose, levels);
+	__stp_stack_print(regs, verbose, levels, tsk);
 }
 
 /** Writes stack backtrace to a string
@@ -135,36 +138,19 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
+static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk)
 {
 	/* To get a string, we use a simple trick. First flush the print buffer, */
 	/* then call _stp_stack_print, then copy the result into the output string  */
 	/* and clear the print buffer. */
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
-	_stp_stack_print(regs, verbose, pi, levels);
+	_stp_stack_print(regs, verbose, pi, levels, tsk);
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
 }
 
 #endif /* CONFIG_KPROBES */
-
-/** Prints the user stack backtrace
- * @param str string
- * @returns Same string as was input with trace info appended,
- * @note Currently limited to a depth of two. Works from jprobes and kprobes.
- */
-#if 0
-static void _stp_ustack_print(char *str)
-{
-	struct pt_regs *nregs = ((struct pt_regs *)(THREAD_SIZE + (unsigned long)current->thread_info)) - 1;
-	_stp_printf("%p : [user]\n", (int64_t) REG_IP(nregs));
-	if (REG_SP(nregs))
-		_stp_printf("%p : [user]\n", (int64_t) (*(unsigned long *)REG_SP(nregs)));
-}
-#endif /* 0 */
-
-/** @} */
 
 void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
 {

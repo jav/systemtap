@@ -668,6 +668,15 @@ enum line_t { ABSOLUTE, RELATIVE, RANGE, WILDCARD };
 typedef vector<inline_instance_info> inline_instance_map_t;
 typedef vector<func_info> func_info_map_t;
 
+
+// PR 9941 introduces the need for a predicate
+
+int dwfl_report_offline_predicate (const char* modname, const char* filename)
+{
+  if (pending_interrupts) { return -1; }
+  return 1;
+}
+
 struct dwflpp
 {
   systemtap_session & sess;
@@ -946,7 +955,7 @@ struct dwflpp
 
     int rc = dwfl_linux_kernel_report_offline (dwfl,
                                                elfutils_kernel_path.c_str(),
-                                               NULL);
+                                               &dwfl_report_offline_predicate);
 
     if (debuginfo_needed)
       dwfl_assert (string("missing ") + sess.architecture +
@@ -5140,11 +5149,10 @@ struct dwarf_cast_expanding_visitor: public var_expanding_visitor
 
 void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
 {
-  // look for "kmod<path/to/header>" or "umod<path/to/header>"
+  // look for "<path/to/header>" or "kernel<path/to/header>"
   // for those cases, build a module including that header
-  if (module.rfind('>') == module.size() - 1 &&
-      (module.compare(0, 5, "kmod<") == 0 ||
-       module.compare(0, 5, "umod<") == 0))
+  if (module[module.size() - 1] == '>' &&
+      (module[0] == '<' || module.compare(0, 7, "kernel<") == 0))
     {
       string cached_module;
       if (s.use_cache)
@@ -5166,25 +5174,17 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
         }
 
       // no cached module, time to make it
-      int rc;
-      string new_module, header = module.substr(5, module.size() - 6);
-      if (module[0] == 'k')
-        rc = make_typequery_kmod(s, header, new_module);
-      else
-        rc = make_typequery_umod(s, header, new_module);
-      if (rc == 0)
+      if (make_typequery(s, module) == 0)
         {
-          module = new_module;
-
           if (s.use_cache)
             {
               // try to save typequery in the cache
               if (s.verbose > 2)
-                clog << "Copying " << new_module
+                clog << "Copying " << module
                   << " to " << cached_module << endl;
-              if (copy_file(new_module.c_str(),
+              if (copy_file(module.c_str(),
                             cached_module.c_str()) != 0)
-                cerr << "Copy failed (\"" << new_module << "\" to \""
+                cerr << "Copy failed (\"" << module << "\" to \""
                   << cached_module << "\"): " << strerror(errno) << endl;
             }
         }
@@ -5203,13 +5203,13 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   string code;
   exp_type type = pe_long;
-  size_t mod_end = ~0;
-  do
+
+  // split the module string by ':' for alternatives
+  vector<string> modules;
+  tokenize(e->module, modules, ":");
+  for (unsigned i = 0; code.empty() && i < modules.size(); ++i)
     {
-      // split the module string by ':' for alternatives
-      size_t mod_begin = mod_end + 1;
-      mod_end = e->module.find(':', mod_begin);
-      string module = e->module.substr(mod_begin, mod_end - mod_begin);
+      string& module = modules[i];
       filter_special_modules(module);
 
       // NB: This uses '/' to distinguish between kernel modules and userspace,
@@ -5264,7 +5264,6 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       dwarf_cast_query q (*dw, module, *e, lvalue, type, code);
       dw->query_modules(&q);
     }
-  while (code.empty() && mod_end != string::npos);
 
   if (code.empty())
     {
@@ -5988,7 +5987,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 
-	    probe_name = ((char*)((long)(pdata->d_buf) + (long)(*((int*)((long)pdata->d_buf + probe_scn_offset)) - probe_scn_addr)));
+	    probe_name = ((char*)((long)(pdata->d_buf) + (long)(*((long*)((char*)pdata->d_buf + probe_scn_offset)) - probe_scn_addr)));
 	    probe_scn_offset += sizeof(void*);
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
@@ -6007,7 +6006,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      continue;
 	    const token* sv_tok = location->components[1]->arg->tok;
 	    location->components[1]->functor = TOK_STATEMENT;
-	    location->components[1]->arg = new literal_number((int)probe_arg);
+	    location->components[1]->arg = new literal_number((long)probe_arg);
 	    location->components[1]->arg->tok = sv_tok;
 	    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
 	    

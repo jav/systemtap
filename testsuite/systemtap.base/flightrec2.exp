@@ -1,0 +1,69 @@
+set test "flightrec2"
+if {![installtest_p]} { untested $test; return }
+
+# cleanup
+system "rm -f flightlog.out*"
+
+set pid 0
+# check -S option
+spawn stap -F -o flightlog.out -S 1,3 $srcdir/$subdir/$test.stp
+expect {
+  -timeout 240
+  -re {([0-9]+)\r\n} {
+      pass "$test (-S option)"
+      set pid $expect_out(1,string)
+      exp_continue}
+  timeout { fail "$test (timeout)"}
+  eof { }
+}
+wait
+if {$pid == 0} {
+  fail "$test (no pid)"
+  return -1
+}
+
+exec sleep 4
+set scnt 0
+set cnt1 0
+# wait for log files
+spawn ls -sk1
+expect {
+  -timeout 100
+  -re {([0-9]+) flightlog\.out\.[0-9]+} {
+      incr cnt1;
+      if {$expect_out(1,string) <= 1028} {incr scnt}
+      # 1024 + 4(for inode blocks?)
+      exp_continue}
+  timeout { fail "$test (logfile timeout)"}
+}
+wait
+exec sleep 3
+set cnt2 0
+# wait for log files
+spawn ls -sk1
+expect {
+  -timeout 100
+  -re {([0-9]+) flightlog\.out\.[0-9]+} {
+      incr cnt2;
+      if {$expect_out(1,string) <= 1028} {incr scnt}
+      exp_continue}
+  timeout { fail "$test (logfile timeout)"}
+}
+wait
+# check logfile number
+if {$cnt1 == 3 && $cnt2 == 3} {
+    pass "$test (log file numbers limitation)"
+} else {
+  fail "$test (log file numbers ($cnt1, $cnt2))"
+}
+# check logfile size
+if {$scnt == 6} {
+    pass "$test (log file size limitation)"
+} else {
+  fail "$test (log file size ($scnt))"
+}
+exec kill -TERM $pid
+# wait for exiting...
+exec sleep 1
+system "rm -f flightlog.out*"
+

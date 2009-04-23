@@ -1,2 +1,2 @@
 set test "kprobes"
-stap_run $srcdir/$subdir/$test.stp
+stap_run $srcdir/$subdir/$test.stp no_load "probe point hit"

@@ -16,10 +16,10 @@
 #define STP_NEED_SYMBOL_DATA 1
 #endif
 %}
-// weirdness with print_stack, argument appears in build as undescribed
+
 /**
  * sfunction print_stack - Print out stack from string.
- * @stk: String with list of hexidecimal addresses. (FIXME)
+ * @stk: String with list of hexidecimal addresses.
  *
  *  Perform a symbolic lookup of the addresses in the given  string,
  *  which is assumed to be the result of a prior call to 

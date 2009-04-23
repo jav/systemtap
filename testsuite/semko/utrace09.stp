@@ -1,4 +1,0 @@
-#! stap -p2
-
-# process path must be absolute
-probe process("/foo/../bar").death { }

@@ -14,9 +14,9 @@
 int compile_pass (systemtap_session& s);
 int run_pass (systemtap_session& s);
 
-int make_tracequery(systemtap_session& s, std::string& name, const std::vector<std::string>& extra_headers);
-int make_typequery_kmod(systemtap_session& s, const std::string& header, std::string& name);
-int make_typequery_umod(systemtap_session& s, const std::string& header, std::string& name);
+int make_tracequery(systemtap_session& s, std::string& name,
+                    const std::vector<std::string>& extra_headers);
+int make_typequery(systemtap_session& s, std::string& module);
 
 #endif // BUILDRUN_H
 
