@@ -21,6 +21,21 @@
   Probing of absolute statements can be done using the
   kprobe.statement(ADDRESS).absolute construct.
 
+- EXPERIMENTAL support for user process unwinding. A new collection of
+  tapset functions have been added to handle user space backtraces from
+  probe points that support them (currently process and timer probes -
+  for timer probes test whether or not in user space first with the
+  already existing user_mode() function). The new tapset functions are:
+    uaddr - User space address of current running task.
+    usymname - Return the symbol of an address in the current task.
+    usymdata - Return the symbol and module offset of an address.
+    print_ustack - Print out stack for the current task from string.
+    print_ubacktrace - Print stack back trace for current task.
+    ubacktrace - Hex backtrace of current task stack.
+  Please read http://sourceware.org/ml/systemtap/2009-q2/msg00364.html
+  on the current restrictions and possible changes in the future and
+  give feedback if you want to influence future developments.
+
 * What's new in version 0.9.5
 
 - New probes process().insn and process().insn.block that allows
