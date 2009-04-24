@@ -324,6 +324,34 @@ setup_signals (sighandler_t handler)
   sigaction (SIGTERM, &sa, NULL);
 }
 
+void
+setup_kernel_release (systemtap_session &s, const char* kstr) {
+    if (kstr[0] == '/') // fully specified path
+      {
+        s.kernel_build_tree = kstr;
+        string version_file_name = s.kernel_build_tree + "/include/config/kernel.release";
+        // The file include/config/kernel.release within the
+        // build tree is used to pull out the version information
+        ifstream version_file (version_file_name.c_str());
+        if (version_file.fail ())
+          {
+            cerr << "Missing " << version_file_name << endl;
+            exit(1);
+          }
+        else
+          {
+            char c;
+            s.kernel_release = "";
+            while (version_file.get(c) && c != '\n')
+              s.kernel_release.push_back(c);
+          }
+      }
+    else
+      {
+        s.kernel_release = string (kstr);
+        s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
+      }
+}
 
 int
 main (int argc, char * const argv [])
@@ -426,31 +454,7 @@ main (int argc, char * const argv [])
 
   const char* s_kr = getenv ("SYSTEMTAP_RELEASE");
   if (s_kr != NULL) {
-    if (s_kr[0] == '/') // fully specified path
-      {
-        s.kernel_build_tree = s_kr;
-        string version_file_name = s.kernel_build_tree + "/include/config/kernel.release";
-        // The file include/config/kernel.release within the
-        // build tree is used to pull out the version information
-        ifstream version_file (version_file_name.c_str());
-        if (version_file.fail ())
-          {
-            cerr << "Missing " << version_file_name << endl;
-            exit(1);
-          }
-        else
-          {
-            char c;
-            s.kernel_release = "";
-            while (version_file.get(c) && c != '\n')
-              s.kernel_release.push_back(c);
-          }
-      }
-    else
-      {
-        s.kernel_release = string (s_kr);
-        s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
-      }
+    setup_kernel_release(s, s_kr);
   }
 
 
@@ -588,31 +592,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'r':
-          if (optarg[0] == '/') // fully specified path
-            {
-              s.kernel_build_tree = optarg;
-              string version_file_name = s.kernel_build_tree + "/include/config/kernel.release";
-              // The file include/config/kernel.release within the
-              // build tree is used to pull out the version information
-              ifstream version_file (version_file_name.c_str());
-              if (version_file.fail ())
-                {
-                  cerr << "Missing " << version_file_name << endl;
-                  usage (s, 1);
-                }
-              else 
-                {
-                  char c;
-                  s.kernel_release = "";
-                  while (version_file.get(c) && c != '\n')
-                    s.kernel_release.push_back(c);
-                }
-            }
-          else
-            {
-              s.kernel_release = string (optarg);
-              s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
-            }
+          setup_kernel_release(s, optarg);
           break;
 
         case 'k':
