@@ -8588,7 +8588,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "sdp->registered_p = 0;";
   s.op->newline() << "if (rc == -EINVAL)";
   s.op->newline() << "{";
-  s.op->newline() << "  _stp_error (\"Error registering kprobe,possibly an incorrect name %s OR addr = %p, rc = %d \", sdp->symbol_string, sdp->address, rc);";
+  s.op->newline() << "  _stp_error (\"Error registering kprobe, possibly an incorrect name %s OR addr = %p, rc = %d \", sdp->symbol_string, sdp->address, rc);";
   s.op->newline() << "  atomic_set (&session_state, STAP_SESSION_ERROR);";
   s.op->newline() << "  goto out;";
   s.op->newline() << "}";
