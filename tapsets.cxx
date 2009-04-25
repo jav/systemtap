@@ -8586,14 +8586,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "if (rc) {"; // PR6749: tolerate a failed register_*probe.
   s.op->newline(1) << "sdp->registered_p = 0;";
-  s.op->newline() << "if (rc == -EINVAL)";
-  s.op->newline() << "{";
-  s.op->newline() << "  _stp_error (\"Error registering kprobe, possibly an incorrect name %s OR addr = %p, rc = %d \", sdp->symbol_string, sdp->address, rc);";
-  s.op->newline() << "  atomic_set (&session_state, STAP_SESSION_ERROR);";
-  s.op->newline() << "  goto out;";
-  s.op->newline() << "}";
-  s.op->newline() << "else";
-  s.op->newline() << "_stp_warn (\"probe %s for %s registration error (rc %d)\", probe_point, sdp->pp, rc);";
+  s.op->newline() << "_stp_warn (\"probe %s registration error (rc %d)\", probe_point, rc);";
   s.op->newline() << "rc = 0;"; // continue with other probes
   // XXX: shall we increment numskipped?
   s.op->newline(-1) << "}";
