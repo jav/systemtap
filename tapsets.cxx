@@ -2635,7 +2635,9 @@ struct kprobe_derived_probe: public derived_probe
 			const string& name,
 			int64_t stmt_addr,
 			bool has_return,
-			bool has_statement
+			bool has_statement,
+			bool has_maxactive,
+			long maxactive_val
 			);
   string symbol_name;
   Dwarf_Addr addr;
@@ -8334,14 +8336,17 @@ static string TOK_KPROBE("kprobe");
 
 kprobe_derived_probe::kprobe_derived_probe (probe *base,
 					    probe_point *location,
-				  	    const string& name,
+					    const string& name,
 					    int64_t stmt_addr,
-					    bool if_return,
-					    bool if_statement
-):
+					    bool has_return,
+					    bool has_statement,
+					    bool has_maxactive,
+					    long maxactive_val
+					    ):
   derived_probe (base, location),
   symbol_name (name), addr (stmt_addr),
-  has_return (if_return), has_statement (if_statement)
+  has_return (has_return), has_statement (has_statement),
+  has_maxactive (has_maxactive), maxactive_val (maxactive_val)
 {
   this->tok = base->tok;
   this->access_var = false;
@@ -8373,10 +8378,12 @@ kprobe_derived_probe::kprobe_derived_probe (probe *base,
         }
       else
         comps.push_back (new probe_point::component(TOK_FUNCTION, new literal_string(name)));
-
-      if (has_return)
-        comps.push_back (new probe_point::component(TOK_RETURN));
     }
+
+  if (has_return)
+    comps.push_back (new probe_point::component(TOK_RETURN));
+  if (has_maxactive)
+    comps.push_back (new probe_point::component(TOK_MAXACTIVE, new literal_number(maxactive_val)));
 
   this->sole_location()->components = comps;
 }
@@ -8693,36 +8700,46 @@ kprobe_builder::build(systemtap_session & sess,
 		      vector<derived_probe *> & finished_results)
 {
   string function_string_val, module_string_val;
-  int64_t statement_num_val = 0;
-  bool has_function_str, has_module_str, has_statement_num, has_absolute, has_return;
+  int64_t statement_num_val = 0, maxactive_val = 0;
+  bool has_function_str, has_module_str, has_statement_num;
+  bool has_absolute, has_return, has_maxactive;
 
-  has_function_str = this->get_param(parameters, TOK_FUNCTION, function_string_val);
-  has_module_str = this->get_param(parameters, TOK_MODULE, module_string_val);
-  has_return = this->has_null_param (parameters, TOK_RETURN);
-  has_statement_num = this->get_param(parameters, TOK_STATEMENT, statement_num_val);
-  has_absolute = this->has_null_param (parameters, TOK_ABSOLUTE);
+  has_function_str = get_param(parameters, TOK_FUNCTION, function_string_val);
+  has_module_str = get_param(parameters, TOK_MODULE, module_string_val);
+  has_return = has_null_param (parameters, TOK_RETURN);
+  has_maxactive = get_param(parameters, TOK_MAXACTIVE, maxactive_val);
+  has_statement_num = get_param(parameters, TOK_STATEMENT, statement_num_val);
+  has_absolute = has_null_param (parameters, TOK_ABSOLUTE);
 
-  if ( has_function_str )
-	{
-	  if ( has_module_str )
-	  	function_string_val = module_string_val + ":" + function_string_val;
-          finished_results.push_back ( new kprobe_derived_probe ( base,
-						location, function_string_val,
-						0, has_return,
-						has_statement_num) );
-	}
+  if (has_function_str)
+    {
+      if (has_module_str)
+	function_string_val = module_string_val + ":" + function_string_val;
+
+      finished_results.push_back (new kprobe_derived_probe (base,
+							    location, function_string_val,
+							    0, has_return,
+							    has_statement_num,
+							    has_maxactive,
+							    maxactive_val));
+    }
   else
-	{
-	  // assert guru mode for absolute probes
-	  if ( has_statement_num && has_absolute && !base->privileged )
-        	  throw semantic_error ("absolute statement probe in unprivileged script", base->tok);
+    {
+      // assert guru mode for absolute probes
+      if ( has_statement_num && has_absolute && !base->privileged )
+	throw semantic_error ("absolute statement probe in unprivileged script", base->tok);
 
-	  finished_results.push_back(new kprobe_derived_probe ( base,
-						location,"",
-						statement_num_val, has_return,
-						has_statement_num));
-	}
+      finished_results.push_back (new kprobe_derived_probe (base,
+							    location, "",
+							    statement_num_val,
+							    has_return,
+							    has_statement_num,
+							    has_maxactive,
+							    maxactive_val));
+    }
 }
+
+
 // ------------------------------------------------------------------------
 // timer derived probes
 // ------------------------------------------------------------------------
@@ -11856,8 +11873,13 @@ register_standard_tapsets(systemtap_session & s)
      ->bind_str(TOK_FUNCTION)->bind(new kprobe_builder());
   s.pattern_root->bind(TOK_KPROBE)->bind_str(TOK_FUNCTION)->bind(TOK_RETURN)
      ->bind(new kprobe_builder());
+  s.pattern_root->bind(TOK_KPROBE)->bind_str(TOK_FUNCTION)->bind(TOK_RETURN)
+     ->bind_num(TOK_MAXACTIVE)->bind(new kprobe_builder());
   s.pattern_root->bind(TOK_KPROBE)->bind_str(TOK_MODULE)
      ->bind_str(TOK_FUNCTION)->bind(TOK_RETURN)->bind(new kprobe_builder());
+  s.pattern_root->bind(TOK_KPROBE)->bind_str(TOK_MODULE)
+     ->bind_str(TOK_FUNCTION)->bind(TOK_RETURN)
+     ->bind_num(TOK_MAXACTIVE)->bind(new kprobe_builder());
   s.pattern_root->bind(TOK_KPROBE)->bind_num(TOK_STATEMENT)
       ->bind(TOK_ABSOLUTE)->bind(new kprobe_builder());
 }
