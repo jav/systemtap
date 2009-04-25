@@ -8350,11 +8350,33 @@ kprobe_derived_probe::kprobe_derived_probe (probe *base,
 #define USHRT_MAX 32767
 #endif
 
-  // Expansion of $target variables in the probe body produces an error during translate phase
-  vector<probe_point::component*> comps;
+  // Expansion of $target variables in the probe body produces an error during
+  // translate phase, since we're not using debuginfo
 
-  if (has_return)
-	comps.push_back (new probe_point::component(TOK_RETURN));
+  vector<probe_point::component*> comps;
+  comps.push_back (new probe_point::component(TOK_KPROBE));
+
+  if (has_statement)
+    {
+      comps.push_back (new probe_point::component(TOK_STATEMENT, new literal_number(addr)));
+      comps.push_back (new probe_point::component(TOK_ABSOLUTE));
+    }
+  else
+    {
+      size_t pos = name.find(':');
+      if (pos != string::npos)
+        {
+          string module = name.substr(0, pos);
+          string function = name.substr(pos + 1);
+          comps.push_back (new probe_point::component(TOK_MODULE, new literal_string(module)));
+          comps.push_back (new probe_point::component(TOK_FUNCTION, new literal_string(function)));
+        }
+      else
+        comps.push_back (new probe_point::component(TOK_FUNCTION, new literal_string(name)));
+
+      if (has_return)
+        comps.push_back (new probe_point::component(TOK_RETURN));
+    }
 
   this->sole_location()->components = comps;
 }
