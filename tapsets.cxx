@@ -8424,9 +8424,9 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   // Forward declare the master entry functions
-  s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
+  s.op->newline() << "static int enter_kprobe2_probe (struct kprobe *inst,";
   s.op->line() << " struct pt_regs *regs);";
-  s.op->newline() << "static int enter_kretprobe_probe (struct kretprobe_instance *inst,";
+  s.op->newline() << "static int enter_kretprobe2_probe (struct kretprobe_instance *inst,";
   s.op->line() << " struct pt_regs *regs);";
 
   // Emit an array of kprobe/kretprobe pointers
@@ -8507,7 +8507,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Emit the kprobes callback function
   s.op->newline();
-  s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
+  s.op->newline() << "static int enter_kprobe2_probe (struct kprobe *inst,";
   s.op->line() << " struct pt_regs *regs) {";
   // NB: as of PR5673, the kprobe|kretprobe union struct is in BSS
   s.op->newline(1) << "int kprobe_idx = ((uintptr_t)inst-(uintptr_t)stap_dwarfless_kprobes)/sizeof(struct stap_dwarfless_kprobe);";
@@ -8526,7 +8526,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Same for kretprobes
   s.op->newline();
-  s.op->newline() << "static int enter_kretprobe_probe (struct kretprobe_instance *inst,";
+  s.op->newline() << "static int enter_kretprobe2_probe (struct kretprobe_instance *inst,";
   s.op->line() << " struct pt_regs *regs) {";
   s.op->newline(1) << "struct kretprobe *krp = inst->rp;";
 
@@ -8566,7 +8566,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "kp->u.krp.maxactive = max(10, 4*NR_CPUS);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "kp->u.krp.handler = &enter_kretprobe_probe;";
+  s.op->newline() << "kp->u.krp.handler = &enter_kretprobe2_probe;";
   // to ensure safeness of bspcache, always use aggr_kprobe on ia64
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "kp->dummy.addr = kp->u.krp.kp.addr;";
@@ -8585,7 +8585,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   // to ensure safeness of bspcache, always use aggr_kprobe on ia64
   s.op->newline(1) << "kp->u.kp.addr = addr;";
   s.op->newline() << "kp->u.kp.symbol_name = symbol_name;";
-  s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe_probe;";
+  s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe2_probe;";
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "kp->dummy.pre_handler = NULL;";
   s.op->newline() << "kp->dummy.addr = kp->u.kp.addr;";
