@@ -8560,7 +8560,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "probe_point = sdp->pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "kp->u.krp.kp.addr = addr;";
-  s.op->newline() << "kp->u.krp.kp.symbol_name = symbol_name;";
+  s.op->newline() << "kp->u.krp.kp.symbol_name = (char *) symbol_name;";
   s.op->newline() << "if (sdp->maxactive_p) {";
   s.op->newline(1) << "kp->u.krp.maxactive = sdp->maxactive_val;";
   s.op->newline(-1) << "} else {";
@@ -8584,7 +8584,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "} else {";
   // to ensure safeness of bspcache, always use aggr_kprobe on ia64
   s.op->newline(1) << "kp->u.kp.addr = addr;";
-  s.op->newline() << "kp->u.kp.symbol_name = symbol_name;";
+  s.op->newline() << "kp->u.kp.symbol_name = (char *) symbol_name;";
   s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe2_probe;";
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "kp->dummy.pre_handler = NULL;";
