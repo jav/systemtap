@@ -18,6 +18,7 @@
 #include <linux/sched.h>
 #include <linux/rcupdate.h>
 #include <linux/utrace.h>
+#include "ptrace_compatibility.h"
 
 /* PR9974: Adapt to struct renaming. */
 #ifdef UTRACE_API_VERSION
@@ -143,7 +144,7 @@ static u32 usr_itrace_report_quiesce(enum utrace_resume_action action,
 	WARN_ON(!ui);
 
 #ifdef UTRACE_ORIG_VERSION
-	return (ui->step_flag); // XXX XXX XXX 
+	return (ui->step_flag | UTRACE_ACTION_NEWSTATE);
 #else
 	return (event == 0 ? ui->step_flag : UTRACE_RESUME);
 #endif
