@@ -361,18 +361,16 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                             else
                               len = 1;
 
+                            if (*fmt_copy == 'M')
+                               len = len * 2; /* hex dump print size */
+
                             if (!(flags & STP_LEFT)) {
                               while (len < field_width--) {
                                 num_bytes++;
                               }
                             }
-                            if (*fmt_copy == 'M') {
-                              num_bytes += number_size((unsigned long) *(uint64_t *) s,
-                                  16, field_width, len, flags);
-                            }
-                            else {
-                              num_bytes += len;
-                            }
+
+                            num_bytes += len;
 
                             while (len < field_width--) {
                               num_bytes++;
@@ -636,16 +634,25 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			  len = 1;
 
 			if (!(flags & STP_LEFT)) {
-				while (len < field_width--) {
+				int actlen = len;
+				if (*fmt == 'M')
+                                    actlen = len * 2;
+                                while (actlen < field_width--) {
 					if (str <= end)
 						*str = ' ';
 					++str;
 				}
 			}
-			if (*fmt == 'M') {
-			  str = number(str, str + len - 1 < end ? str + len - 1 : end,
-			      (unsigned long) *(uint64_t *) s,
-			      16, field_width, len, flags);
+			if (*fmt == 'M') { /* stolen from kernel: trace_seq_putmem_hex() */
+				const char _stp_hex_asc[] = "0123456789abcdef";
+				int j;
+			        for (i = 0, j = 0; i < len; i++) {
+			               *str = _stp_hex_asc[((*s) & 0xf0) >> 4];
+				       str++;
+			               *str = _stp_hex_asc[((*s) & 0x0f)];
+				       str++; s++;
+			         }
+				len = len * 2; /* the actual length */
 			}
 			else {
                                 for (i = 0; i < len; ++i) {
