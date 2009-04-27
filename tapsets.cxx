@@ -2943,7 +2943,7 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
  * only picks up top level stuff (i.e. nothing in a lower scope) */
 int
 dwflpp::iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
-				   void * data)
+                              void * data)
 {
   int rc = DWARF_CB_OK;
   Dwarf_Die die;
@@ -2955,18 +2955,20 @@ dwflpp::iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
   if (dwarf_child(cu, &die) != 0)
     return rc;
 
-  do {
-    /* We're only currently looking for structures and unions,
+  do
+    /* We're only currently looking for named types,
      * although other types of declarations exist */
-    if (dwarf_tag(&die) != DW_TAG_structure_type &&
-	dwarf_tag(&die) != DW_TAG_union_type)
-      continue;
-
-    rc = (*callback)(&die, data);
-    if (rc != DWARF_CB_OK)
-      break;
-
-  } while (dwarf_siblingof(&die, &die) == 0);
+    switch (dwarf_tag(&die))
+      {
+      case DW_TAG_base_type:
+      case DW_TAG_enumeration_type:
+      case DW_TAG_structure_type:
+      case DW_TAG_typedef:
+      case DW_TAG_union_type:
+        rc = (*callback)(&die, data);
+        break;
+      }
+  while (rc == DWARF_CB_OK && dwarf_siblingof(&die, &die) == 0);
 
   return rc;
 }
