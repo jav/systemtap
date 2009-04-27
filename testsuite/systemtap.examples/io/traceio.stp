@@ -10,22 +10,20 @@
 global reads, writes, total_io
 
 probe vfs.read.return {
-  reads[execname()] += $return
+  reads[pid(),execname()] += $return
+  total_io[pid(),execname()] += $return
 }
 
 probe vfs.write.return {
-  writes[execname()] += $return
+  writes[pid(),execname()] += $return
+  total_io[pid(),execname()] += $return
 }
 
 probe timer.s(1) {
-  foreach (p in reads)
-    total_io[p] += reads[p]
-  foreach (p in writes)
-    total_io[p] += writes[p]
-  foreach(p in total_io- limit 10)
-    printf("%15s r: %8d KiB w: %8d KiB\n",
-           p, reads[p]/1024,
-           writes[p]/1024)
+  foreach([p,e] in total_io- limit 10)
+    printf("%8d %15s r: %8d MiB w: %8d MiB\n",
+           p, e, reads[p,e]/1024/1024,
+           writes[p,e]/1024/1024)
   printf("\n")
   # Note we don't zero out reads, writes and total_io,
   # so the values are cumulative since the script started.
