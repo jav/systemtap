@@ -3,6 +3,7 @@ probe begin
 	printf("%c", 115)
 	printf("%c", 116)
 	printf("%c%c", 97, 112)
+	printf("%c%c", stringat("ok", 0), stringat("ok", 1))
 	print("\n")
 	exit()
 }

@@ -25,6 +25,18 @@ function substr:string(str:string,start:long, length:long) %{ /* pure */
 		strlcpy(THIS->__retvalue, THIS->str + THIS->start, length);
 %}
 
+/** @addtogroup library
+* @code function stringat:string(str:string, pos:long) @endcode
+* @param str string
+* @param pos the given position.  0 = start of the string
+* @return Returns the char in given position of string.
+*/
+function stringat:long(str:string, pos:long) %{ /* pure */
+	if (THIS->pos >= 0 && THIS->pos < strlen(THIS->str))
+		THIS->__retvalue = THIS->str[THIS->pos];
+	else
+		THIS->__retvalue = 0;
+%}
 
 /** @addtogroup library
 * @code isinstr:long(s1:string,s2:string) @endcode
