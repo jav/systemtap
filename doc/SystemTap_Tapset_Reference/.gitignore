@@ -1,1 +1,4 @@
 /docproc
+stamp-*
+tapsets/
+tapsets.xml

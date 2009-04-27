@@ -271,34 +271,29 @@ static int _stp_module_check(void)
                        dwfl_module_build_id was not intended to return the end address. */
 		    notes_addr -= m->build_id_len;
 
-		    if (notes_addr > base_addr) {
-		      for (j = 0; j < m->build_id_len; j++)	 
-                        {
-                          unsigned char theory, practice;
-                          theory = m->build_id_bits [j];
-                          practice = ((unsigned char*) notes_addr) [j];
-                          /* XXX: consider using kread() instead of above. */
-                          if (theory != practice)
-                            {
-                              #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
-                              _stp_error ("%s: inconsistent %s build-id byte #%d "
-                                          "(0x%x [actual] vs. 0x%x [debuginfo])\n",
-                                          THIS_MODULE->name, m->name, j,
-                                          practice, theory);
-                              return 1;
-                              #else
-                              /* This branch is a surrogate for
-                                 kernels affected by Fedora bug
-                                 #465873. */
-                              printk(KERN_WARNING
-                                     "%s: inconsistent %s build-id byte #%d "
-                                     "(0x%x [actual] vs. 0x%x [debuginfo])\n",
-                                     THIS_MODULE->name, m->name, j,
-                                     practice, theory);
-                              break; /* Note just the first mismatch. */
-                              #endif
-                            }
-			} 
+		    if (notes_addr <= base_addr)  /* shouldn't happen */
+			 continue;
+		    if (memcmp(m->build_id_bits, (unsigned char*) notes_addr, m->build_id_len)) {
+	                 const char *basename;
+
+			 basename = strrchr(m->path, '/');
+			 if (basename)
+			     basename++;
+			 else
+			     basename = m->path;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
+                         _stp_error ("Build-id mismatch: \"%s\" %.*M"
+				     " vs. \"%s\" %.*M\n",
+				     m->name, m->build_id_len, notes_addr,
+				     basename, m->build_id_len, m->build_id_bits);
+                         return 1;
+#else
+                         /* This branch is a surrogate for kernels
+			  * affected by Fedora bug #465873. */
+                         printk(KERN_WARNING
+				 "Build-id mismatch: \"%s\" vs. \"%s\"\n",
+				 m->name, basename);
+#endif
 		    }
 		} /* end checking */
 	} /* end loop */

@@ -674,7 +674,7 @@ Signed decimal.
 Safely reads kernel memory at the given address, outputs its content.  The precision specifier determines the number of bytes to read.  Default is 1 byte.
 .TP
 %M
-Same as %m, but outputs in hexadecimal.  The precision specifier determines the number of hexadecimal digits to output.  Default is 1 digit.
+Same as %m, but outputs in hexadecimal.  The minimal size of output is double the precision specifier.
 .TP
 %o
 Unsigned octal.

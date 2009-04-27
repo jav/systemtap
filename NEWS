@@ -1,5 +1,8 @@
 * What's new
 
+
+* What's new in version 0.9.7
+
 - @cast can now determine its type information using an explicit header
   specification.  For example:
     @cast(tv, "timeval", "<sys/time.h>")->tv_sec

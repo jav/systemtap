@@ -19,6 +19,7 @@ struct stap_task_finder_target { };
 
 #include "syscall.h"
 #include "utrace_compatibility.h"
+#include "task_finder_map.c"
 
 static LIST_HEAD(__stp_task_finder_list);
 
@@ -129,6 +130,19 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 
 #ifdef UTRACE_ORIG_VERSION
 static u32
+__stp_utrace_task_finder_target_syscall_entry(struct utrace_attached_engine *engine,
+					      struct task_struct *tsk,
+					      struct pt_regs *regs);
+#else
+static u32
+__stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
+					      struct utrace_attached_engine *engine,
+					      struct task_struct *tsk,
+					      struct pt_regs *regs);
+#endif
+
+#ifdef UTRACE_ORIG_VERSION
+static u32
 __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engine,
 					     struct task_struct *tsk,
 					     struct pt_regs *regs);
@@ -166,6 +180,8 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	memset(&new_tgt->ops, 0, sizeof(new_tgt->ops));
 	new_tgt->ops.report_death = &__stp_utrace_task_finder_target_death;
 	new_tgt->ops.report_quiesce = &__stp_utrace_task_finder_target_quiesce;
+	new_tgt->ops.report_syscall_entry = \
+		&__stp_utrace_task_finder_target_syscall_entry;
 	new_tgt->ops.report_syscall_exit = \
 		&__stp_utrace_task_finder_target_syscall_exit;
 
@@ -394,6 +410,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 #define __STP_TASK_BASE_EVENTS	(UTRACE_EVENT(DEATH))
 
 #define __STP_TASK_VM_BASE_EVENTS (__STP_TASK_BASE_EVENTS	\
+				   | UTRACE_EVENT(SYSCALL_ENTRY)\
 				   | UTRACE_EVENT(SYSCALL_EXIT))
 
 /*
@@ -1053,24 +1070,21 @@ __stp_find_file_based_vma(struct mm_struct *mm, unsigned long addr)
 
 #ifdef UTRACE_ORIG_VERSION
 static u32
-__stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engine,
-					     struct task_struct *tsk,
-					     struct pt_regs *regs)
+__stp_utrace_task_finder_target_syscall_entry(struct utrace_attached_engine *engine,
+					      struct task_struct *tsk,
+					      struct pt_regs *regs)
 #else
 static u32
-__stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
-					     struct utrace_attached_engine *engine,
-					     struct task_struct *tsk,
-					     struct pt_regs *regs)
+__stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
+					      struct utrace_attached_engine *engine,
+					      struct task_struct *tsk,
+					      struct pt_regs *regs)
 #endif
 {
 	struct stap_task_finder_target *tgt = engine->data;
 	long syscall_no;
-	unsigned long rv;
-	unsigned long args[3];
+	unsigned long args[3] = { 0L };
 	int rc;
-	struct mm_struct *mm;
-	struct vm_area_struct *vma;
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
@@ -1100,37 +1114,92 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 		&& tgt->munmap_events == 0))
 		return UTRACE_RESUME;
 
-	// Get return value
-	rv = syscall_get_return_value(tsk, regs);
+	__stp_tf_handler_start();
+	if (syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
+		// We need 2 arguments
+		syscall_get_arguments(tsk, regs, 0, 2, args);
+	}
+	else if (syscall_no == MMAP_SYSCALL_NO(tsk)
+		 || syscall_no == MMAP2_SYSCALL_NO(tsk)) {
+		// For mmap, we really just need the return value, so
+		// there is no need to save arguments
+	}
+	else {				// mprotect()
+		// We need 3 arguments
+		syscall_get_arguments(tsk, regs, 0, 3, args);
+	}
 
-	// We need the first syscall argument to see what address we
-	// were operating on.
-	syscall_get_arguments(tsk, regs, 0, 1, args);
+	// Remember the syscall information
+	rc = __stp_tf_add_map(tsk, syscall_no, args[0], args[1], args[2]);
+	if (rc != 0)
+		_stp_error("__stp_tf_add_map returned error %d on pid %d",
+			   rc, tsk->pid);
+	__stp_tf_handler_end();
+	return UTRACE_RESUME;
+}
+
+#ifdef UTRACE_ORIG_VERSION
+static u32
+__stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engine,
+					     struct task_struct *tsk,
+					     struct pt_regs *regs)
+#else
+static u32
+__stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
+					     struct utrace_attached_engine *engine,
+					     struct task_struct *tsk,
+					     struct pt_regs *regs)
+#endif
+{
+	struct stap_task_finder_target *tgt = engine->data;
+	unsigned long rv;
+	struct __stp_tf_map_entry *entry;
+
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
+		debug_task_finder_detach();
+		return UTRACE_DETACH;
+	}
+
+	if (tgt == NULL)
+		return UTRACE_RESUME;
+
+	// See if we can find saved syscall info.  If we can, it must
+	// be one of the syscalls we are interested in (and we must
+	// have callbacks to call for it).
+	entry = __stp_tf_get_map_entry(tsk);
+	if (entry == NULL)
+		return UTRACE_RESUME;
+
+	// Get return value
+	__stp_tf_handler_start();
+	rv = syscall_get_return_value(tsk, regs);
 
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "tsk %d found %s(0x%lx), returned 0x%lx\n",
 		  tsk->pid,
-		  ((syscall_no == MMAP_SYSCALL_NO(tsk)) ? "mmap"
-		   : ((syscall_no == MMAP2_SYSCALL_NO(tsk)) ? "mmap2"
-		      : ((syscall_no == MPROTECT_SYSCALL_NO(tsk)) ? "mprotect"
-			 : ((syscall_no == MUNMAP_SYSCALL_NO(tsk)) ? "munmap"
+		  ((entry->syscall_no == MMAP_SYSCALL_NO(tsk)) ? "mmap"
+		   : ((entry->syscall_no == MMAP2_SYSCALL_NO(tsk)) ? "mmap2"
+		      : ((entry->syscall_no == MPROTECT_SYSCALL_NO(tsk))
+			 ? "mprotect"
+			 : ((entry->syscall_no == MUNMAP_SYSCALL_NO(tsk))
+			    ? "munmap"
 			    : "UNKNOWN")))),
-		  args[0], rv);
+		  entry->arg0, rv);
 #endif
-	__stp_tf_handler_start();
 
-	if (syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
-		// We need the 2nd syscall argument for the length.
-		syscall_get_arguments(tsk, regs, 1, 1, &args[1]);
+	if (entry->syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
 		// Call the callbacks
-		__stp_call_munmap_callbacks(tgt, tsk, args[0], args[1]);
+		__stp_call_munmap_callbacks(tgt, tsk, entry->arg0, entry->arg1);
 	}
-	else if (syscall_no == MMAP_SYSCALL_NO(tsk)
-		 || syscall_no == MMAP2_SYSCALL_NO(tsk)) {
+	else if (entry->syscall_no == MMAP_SYSCALL_NO(tsk)
+		 || entry->syscall_no == MMAP2_SYSCALL_NO(tsk)) {
+		struct mm_struct *mm;
 
 		mm = get_task_mm(tsk);
 		if (mm) {
+			struct vm_area_struct *vma;
+
 			down_read(&mm->mmap_sem);
 			vma = __stp_find_file_based_vma(mm, rv);
 
@@ -1144,18 +1213,14 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 			mmput(mm);
 		}
 	}
-	else {
-		// We need the 2nd syscall argument for the length and
-		// the 3rd argument for the protection.
-		syscall_get_arguments(tsk, regs, 1, 2, &args[1]);
-
+	else {				// mprotect
 		// Call the callbacks
-		__stp_call_mprotect_callbacks(tgt, tsk, args[0], args[1],
-					      args[2]);
+		__stp_call_mprotect_callbacks(tgt, tsk, entry->arg0,
+					      entry->arg1, entry->arg2);
 	}
 
-syscall_exit_done:
 	__stp_tf_handler_end();
+	__stp_tf_remove_map_entry(entry);
 	return UTRACE_RESUME;
 }
 
@@ -1178,6 +1243,8 @@ stap_start_task_finder(void)
 		_stp_error("Unable to allocate space for path");
 		return ENOMEM;
 	}
+
+        __stp_tf_map_initialize();
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 
