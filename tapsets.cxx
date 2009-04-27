@@ -2090,6 +2090,13 @@ struct dwflpp
 	    ++i;
 	    break;
 
+	  case DW_TAG_enumeration_type:
+	    throw semantic_error ("field '"
+				  + e->components[i].second
+				  + "' vs. enum type "
+				  + string(dwarf_diename_integrate (die) ?: "<anonymous type>"),
+                                  e->tok);
+	    break;
 	  case DW_TAG_base_type:
 	    throw semantic_error ("field '"
 				  + e->components[i].second
