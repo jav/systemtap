@@ -34,3 +34,5 @@ else
 fi
 
 stap_signing_db=$stap_sysconfdir/systemtap/staprun
+stap_certfile=stap.cert
+stap_old_certfile=stap-server.cert

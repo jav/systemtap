@@ -37,20 +37,28 @@ function initialization {
     # Where is the ssl certificate/key database?
     ssl_db=$2
     if test "X$ssl_db" = "X"; then
+	ssl_db=$stap_ssl_db/server
+	# Update the certificate file if it is old.
+	if test -f $ssl_db/$stap_old_certfile; then
+	    if ! test -e $ssl_db/$stap_certfile; then
+		mv $ssl_db/$stap_old_certfile $ssl_db/$stap_certfile
+	    else
+		rm -fr $ssl_db/$stap_old_certfile
+	    fi
+	fi
 	# If no certificate/key database has been specified, then find/create
 	# a local one.
-	ssl_db=$stap_ssl_db/server
-	if ! test -f $ssl_db/stap-server.cert; then
+	if ! test -f $ssl_db/$stap_certfile; then
 	    ${stap_exec_prefix}stap-gen-cert $ssl_db || exit 1
             # Now add the server's certificate to the client's database,
 	    # making it a trusted peer. Do this only if the client has been installed.
 	    if test -f `which ${stap_exec_prefix}stap-add-server-cert` -a -x `which ${stap_exec_prefix}stap-add-server-cert`; then
-		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/stap-server.cert
+		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile
 	    fi
 	elif ! test -f $stap_ssl_db/client/cert8.db; then
 	    # If the client's database does not exist, then initialize it with our certificate.
 	    if test -f `which ${stap_exec_prefix}stap-add-server-cert` -a -x `which ${stap_exec_prefix}stap-add-server-cert`; then
-		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/stap-server.cert
+		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile
 	    fi
 	fi
     fi
@@ -155,7 +163,7 @@ function check_db {
     check_db_file $dir/key3.db || rc=1
     check_db_file $dir/secmod.db || rc=1
     check_db_file $dir/pw || rc=1
-    check_cert_file $dir/stap-server.cert || rc=1
+    check_cert_file $dir/$stap_certfile || rc=1
 
     test $rc = 1 && fatal "Unable to use certificate database '$dir' due to errors"
 

@@ -56,7 +56,7 @@ init_cert_db_path (const string &cert_db_path) {
 static int
 check_cert_db_path (const string &cert_db_path) {
   static const char* keyFiles[] = {
-    "cert8.db", "key3.db", "pw", "secmod.db", "stap-server.cert", NULL
+    "cert8.db", "key3.db", "pw", "secmod.db", "stap.cert", NULL
   };
 
   // Does the path exist?
@@ -65,9 +65,22 @@ check_cert_db_path (const string &cert_db_path) {
   if (prStatus != PR_SUCCESS || fileInfo.type != PR_FILE_DIRECTORY)
     return init_cert_db_path (cert_db_path);
 
+  // Update the user's cert file if it is old.
+  string fname = cert_db_path + "/stap-server.cert";
+  prStatus = PR_GetFileInfo (fname.c_str (), &fileInfo);
+  if (prStatus == PR_SUCCESS && fileInfo.type == PR_FILE_FILE && fileInfo.size > 0)
+    {
+      string fname1 = cert_db_path + "/stap.cert";
+      prStatus = PR_GetFileInfo (fname1.c_str (), &fileInfo);
+      if (prStatus != PR_SUCCESS)
+	PR_Rename (fname.c_str (), fname1.c_str ());
+      else
+	PR_Delete (fname.c_str ());
+    }
+
   // Does it contain the key files?
   for (int i = 0; keyFiles[i]; ++i) {
-    string fname = cert_db_path + "/" + keyFiles[i];
+    fname = cert_db_path + "/" + keyFiles[i];
     prStatus = PR_GetFileInfo (fname.c_str (), &fileInfo);
     if (prStatus != PR_SUCCESS || fileInfo.type != PR_FILE_FILE || fileInfo.size < 0)
       return init_cert_db_path (cert_db_path);
