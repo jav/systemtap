@@ -1,0 +1,6 @@
+#! stap
+
+# test optional probe
+
+probe foo ?, bar !, foo* ?, bar* !, begin {
+}
