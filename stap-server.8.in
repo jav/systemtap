@@ -174,7 +174,7 @@ program accepts two arguments:
 .TP
 .B CERTFILE
 This is the name of the file containing the certificate of the new trusted
-server. This is the file named \fIstap-server.cert\fR which can be found in the
+server. This is the file named \fIstap.cert\fR which can be found in the
 server\[aq]s certificate database.
 
 .TP
