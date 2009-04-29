@@ -43,8 +43,10 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am__grapher_SOURCES_DIST = grapher.cxx GraphWidget.cxx CairoWidget.cxx
+am__grapher_SOURCES_DIST = grapher.cxx StapParser.cxx GraphWidget.cxx \
+	CairoWidget.cxx
 @BUILD_GRAPHER_TRUE@am_grapher_OBJECTS = grapher-grapher.$(OBJEXT) \
+@BUILD_GRAPHER_TRUE@	grapher-StapParser.$(OBJEXT) \
 @BUILD_GRAPHER_TRUE@	grapher-GraphWidget.$(OBJEXT) \
 @BUILD_GRAPHER_TRUE@	grapher-CairoWidget.$(OBJEXT)
 grapher_OBJECTS = $(am_grapher_OBJECTS)
@@ -184,7 +186,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @BUILD_GRAPHER_TRUE@grapher_CXXFLAGS = $(GRAPHER_CFLAGS)
-@BUILD_GRAPHER_TRUE@grapher_SOURCES = grapher.cxx GraphWidget.cxx CairoWidget.cxx
+@BUILD_GRAPHER_TRUE@grapher_SOURCES = grapher.cxx StapParser.cxx GraphWidget.cxx CairoWidget.cxx
 @BUILD_GRAPHER_TRUE@grapher_LDADD = $(GRAPHER_LIBS)
 all: all-am
 
@@ -254,6 +256,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-CairoWidget.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-GraphWidget.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-StapParser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/grapher-grapher.Po@am__quote@
 
 .cxx.o:
@@ -283,6 +286,20 @@ grapher-grapher.obj: grapher.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='grapher.cxx' object='grapher-grapher.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-grapher.obj `if test -f 'grapher.cxx'; then $(CYGPATH_W) 'grapher.cxx'; else $(CYGPATH_W) '$(srcdir)/grapher.cxx'; fi`
+
+grapher-StapParser.o: StapParser.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-StapParser.o -MD -MP -MF $(DEPDIR)/grapher-StapParser.Tpo -c -o grapher-StapParser.o `test -f 'StapParser.cxx' || echo '$(srcdir)/'`StapParser.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-StapParser.Tpo $(DEPDIR)/grapher-StapParser.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='StapParser.cxx' object='grapher-StapParser.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-StapParser.o `test -f 'StapParser.cxx' || echo '$(srcdir)/'`StapParser.cxx
+
+grapher-StapParser.obj: StapParser.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-StapParser.obj -MD -MP -MF $(DEPDIR)/grapher-StapParser.Tpo -c -o grapher-StapParser.obj `if test -f 'StapParser.cxx'; then $(CYGPATH_W) 'StapParser.cxx'; else $(CYGPATH_W) '$(srcdir)/StapParser.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/grapher-StapParser.Tpo $(DEPDIR)/grapher-StapParser.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='StapParser.cxx' object='grapher-StapParser.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -c -o grapher-StapParser.obj `if test -f 'StapParser.cxx'; then $(CYGPATH_W) 'StapParser.cxx'; else $(CYGPATH_W) '$(srcdir)/StapParser.cxx'; fi`
 
 grapher-GraphWidget.o: GraphWidget.cxx
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(grapher_CXXFLAGS) $(CXXFLAGS) -MT grapher-GraphWidget.o -MD -MP -MF $(DEPDIR)/grapher-GraphWidget.Tpo -c -o grapher-GraphWidget.o `test -f 'GraphWidget.cxx' || echo '$(srcdir)/'`GraphWidget.cxx
