@@ -25,19 +25,23 @@ probe begin
     else
         printf("execname \"%s\" != \"%s\"\n", name, cast_name)
 
-    // Compare tv_sec using a generated user module
-    sec = 42
-    cast_sec = @cast(get_timeval(sec), "timeval", "<sys/time.h>")->tv_sec
-    if (sec == cast_sec)
-        println("tv_sec OK")
+    // Compare sa_data using a generated user module
+    data = 42
+    cast_data = @cast(get_sockaddr(data), "sockaddr", "<sys/socket.h>")->sa_data[0]
+    if (data == cast_data)
+        println("sa_data OK")
     else
-        printf("tv_sec %d != %d\n", sec, cast_sec)
+        printf("sa_data %d != %d\n", data, cast_data)
 
     exit()
 }
 
-function get_timeval:long(sec:long) %{
-    static struct timeval mytime = {0};
-    mytime.tv_sec = THIS->sec;
-    THIS->__retvalue = (long)&mytime;
+%{
+#include <linux/socket.h>
+%}
+
+function get_sockaddr:long(data:long) %{
+    static struct sockaddr sa = {0};
+    sa.sa_data[0] = THIS->data;
+    THIS->__retvalue = (long)&sa;
 %}
