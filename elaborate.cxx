@@ -427,6 +427,9 @@ match_node::find_and_build (systemtap_session& s,
       sub_map_iterator_t i = sub.find (match);
       if (i == sub.end()) // no match
         {
+          if (loc->optional) /* PR10102: to tolerate mismatched optional probe */
+		return;
+
           string alternatives;
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
             alternatives += string(" ") + i->first.str();

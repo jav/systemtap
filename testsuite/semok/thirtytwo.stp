@@ -2,4 +2,4 @@
 
 # PR 6836
 
-probe kernel.function("sys_open").return { log($$return . $$parms) }
+probe kernel.function("do_sys_open").return { log($$return . $$parms) }

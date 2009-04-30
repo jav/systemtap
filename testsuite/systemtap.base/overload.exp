@@ -8,7 +8,7 @@ set script {
 	k["foo"] = 0
     }
 
-    probe kernel.function("sys_read"), kernel.function("sys_write") {
+    probe kernel.function("vfs_read"), kernel.function("vfs_write") {
 	k["foo"]++
     }
     probe end {

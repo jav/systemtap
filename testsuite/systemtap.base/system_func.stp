@@ -4,10 +4,10 @@
 
 global saw_echo, did_cat
 
-probe kernel.function("sys_open") {
+probe kernel.function("do_sys_open") {
   if (!saw_echo) {
     # very inefficient. Testing only. DO NOT DO THIS
-    msg="echo sys_open"
+    msg="echo do_sys_open"
     system(msg)
     saw_echo = 1
   }

@@ -120,6 +120,8 @@ function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */
 				(char __user *) (uintptr_t) THIS->addr,
 				len) < 0)
 		strlcpy(THIS->__retvalue, THIS->err_msg, MAXSTRINGLEN);
+	else
+		THIS->__retvalue[len - 1] = '\0';
 %}
 
 function user_string_n_warn:string (addr:long, n:long) %{ /* pure */
@@ -137,7 +139,8 @@ function user_string_n_warn:string (addr:long, n:long) %{ /* pure */
 				(void *) (uintptr_t) THIS->addr);
 		_stp_warn(CONTEXT->error_buffer);
 		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
-	}
+	} else
+		THIS->__retvalue[len - 1] = '\0';
 %}
 
 function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */

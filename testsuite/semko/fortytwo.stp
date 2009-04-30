@@ -1,6 +1,6 @@
 #! stap -p2
 
-probe kernel.function("sys_open") if (foo(2)) { }  # must not call functions
+probe kernel.function("vfs_read") if (foo(2)) { }  # must not call functions
 
 function foo(x) { return x }
 

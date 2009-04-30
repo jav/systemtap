@@ -26,13 +26,12 @@ exec sleep 4
 set scnt 0
 set cnt1 0
 # wait for log files
-spawn ls -sk1
+eval spawn stat -c %s [glob flightlog.out.*]
 expect {
   -timeout 100
-  -re {([0-9]+) flightlog\.out\.[0-9]+} {
+  -re {[0-9]+} {
       incr cnt1;
-      if {$expect_out(1,string) <= 1028} {incr scnt}
-      # 1024 + 4(for inode blocks?)
+      if {$expect_out(buffer) <= 1048576 } {incr scnt}
       exp_continue}
   timeout { fail "$test (logfile timeout)"}
 }
@@ -40,12 +39,12 @@ wait
 exec sleep 3
 set cnt2 0
 # wait for log files
-spawn ls -sk1
+eval spawn stat -c %s [glob flightlog.out.*]
 expect {
   -timeout 100
-  -re {([0-9]+) flightlog\.out\.[0-9]+} {
+  -re {[0-9]+} {
       incr cnt2;
-      if {$expect_out(1,string) <= 1028} {incr scnt}
+      if {$expect_out(buffer) <= 1048576 } {incr scnt}
       exp_continue}
   timeout { fail "$test (logfile timeout)"}
 }
@@ -57,10 +56,10 @@ if {$cnt1 == 3 && $cnt2 == 3} {
   fail "$test (log file numbers ($cnt1, $cnt2))"
 }
 # check logfile size
-if {$scnt == 6} {
+if {$scnt == $cnt1 + $cnt2 } {
     pass "$test (log file size limitation)"
 } else {
-  fail "$test (log file size ($scnt))"
+  fail "$test (log file size ($scnt != $cnt1 + $cnt2))"
 }
 exec kill -TERM $pid
 # wait for exiting...
