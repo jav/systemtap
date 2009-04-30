@@ -14,11 +14,11 @@
 # listed, but that some alternatives are listed.
 
 set local1_script {
-    probe kernel.function("sys_getrlimit") { x = $z; }
+    probe kernel.funtion("vfs_write") { ret = $z; }
 }
 
 set struct1_script {
-    probe kernel.function("sys_getrlimit") { rlim_cur = $rlim->rlim_cud; }
+    probe kernel.function("vfs_write") { f_pos = $file->f_po; }
 }
 
 proc stap_run_alternatives {args} {
@@ -38,8 +38,8 @@ proc stap_run_alternatives {args} {
 
 set test "LOCAL1"
 set rc [stap_run_alternatives stap -vu -p2 -e $local1_script]
-if {$rc == 1} { pass $test } else { fail "$test ($rc)" }
+if {$rc >= 1} { pass $test } else { fail "$test ($rc)" }
 
 set test "STRUCT1"
 set rc [stap_run_alternatives stap -vu -p2 -e $struct1_script]
-if {$rc == 1} { pass $test } else { fail "$test ($rc)" }
+if {$rc >= 1} { pass $test } else { fail "$test ($rc)" }

@@ -1,6 +1,6 @@
 #! stap -p2
 
-probe kernel.function("sys_read")
+probe kernel.function("vfs_read")
 {
     # this should fail - using $return not in a '.return' probe
     printf("in sys_read - return = %d\n", $return)
