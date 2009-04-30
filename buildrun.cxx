@@ -225,8 +225,8 @@ compile_pass (systemtap_session& s)
   // If a certificate database was specified, then try to sign the module.
   // Failure to do so is not a fatal error. If the signature is actually needed,
   // staprun will complain at that time.
-  if (!s.cert_db_path.empty())
-    sign_module (s);
+  assert (! s.cert_db_path.empty());
+  sign_module (s);
 #endif
 
   return rc;

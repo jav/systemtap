@@ -139,8 +139,6 @@ usage (systemtap_session& s, int exitcode)
 #endif
   // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
   // only, and don't belong in the eyesight of a plain user.
-    << "   --signing-cert=DIRECTORY" << endl
-    << "              specify an alternate certificate database for module signing" << endl
     << "   --skip-badvars" << endl
     << "              overlook context of bad $ variables" << endl
     << endl
@@ -408,7 +406,7 @@ main (int argc, char * const argv [])
   s.skip_badvars = false;
   s.unprivileged = false;
 
-  // Default location for our signing certificate.
+  // Location of our signing certificate.
   // If we're root, use the database in SYSCONFDIR, otherwise
   // use the one in our $HOME directory.  */
   if (getuid() == 0)
@@ -480,8 +478,7 @@ main (int argc, char * const argv [])
 #define LONG_OPT_IGNORE_DWARF 4
 #define LONG_OPT_VERBOSE_PASS 5
 #define LONG_OPT_SKIP_BADVARS 6
-#define LONG_OPT_SIGNING_CERT 7
-#define LONG_OPT_UNPRIVILEGED 8
+#define LONG_OPT_UNPRIVILEGED 7
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -490,7 +487,6 @@ main (int argc, char * const argv [])
         { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
 	{ "skip-badvars", 0, &long_opt, LONG_OPT_SKIP_BADVARS },
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
-        { "signing-cert", 2, &long_opt, LONG_OPT_SIGNING_CERT },
         { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
         { NULL, 0, NULL, 0 }
       };
@@ -735,30 +731,6 @@ main (int argc, char * const argv [])
               }
 	    case LONG_OPT_SKIP_BADVARS:
 	      s.skip_badvars = true;
-	      break;
-            case LONG_OPT_SIGNING_CERT:
-#if HAVE_NSS
-              if (optarg)
-		{
-		  string arg = optarg;
-		  string::size_type len = arg.length();
-
-		  // Make sure the name is not empty (i.e. --signing-cert= )
-		  if (len == 0)
-		    {
-		      cerr << "Certificate database directory name for --signing-cert can not be empty." << endl;
-		      usage (s, 1);
-		    }
-
-		  s.cert_db_path = arg;
-
-		  // Chop off any trailing '/'.
-		  if (len > 1 && s.cert_db_path.substr(len - 1, 1) == "/")
-		    s.cert_db_path.erase(len - 1);
-		}
-#else
-	      cerr << "WARNING: Module signing is disabled. The required nss libraries are not available." << endl;
-#endif
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      s.unprivileged = true;
@@ -1182,19 +1154,17 @@ main (int argc, char * const argv [])
 		 << module_dest_path << "\"): " << strerror(errno) << endl;
 
 #if HAVE_NSS
-	  // Save the signature as well, if the module was signed.
-	  if (!s.cert_db_path.empty())
-	    {
-	      module_src_path += ".sgn";
-	      module_dest_path += ".sgn";
+	  // Save the signature as well.
+	  assert (! s.cert_db_path.empty());
+	  module_src_path += ".sgn";
+	  module_dest_path += ".sgn";
 
-	      if (s.verbose > 1)
-		clog << "Copying " << module_src_path << " to "
-		     << module_dest_path << endl;
-	      if (copy_file(module_src_path.c_str(), module_dest_path.c_str()) != 0)
-		cerr << "Copy failed (\"" << module_src_path << "\" to \""
-		     << module_dest_path << "\"): " << strerror(errno) << endl;
-	    }
+	  if (s.verbose > 1)
+	    clog << "Copying " << module_src_path << " to "
+		 << module_dest_path << endl;
+	  if (copy_file(module_src_path.c_str(), module_dest_path.c_str()) != 0)
+	    cerr << "Copy failed (\"" << module_src_path << "\" to \""
+		 << module_dest_path << "\"): " << strerror(errno) << endl;
 #endif
 	}
     }

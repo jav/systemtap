@@ -168,7 +168,7 @@ program requires a process id argument which identifies the server to be stopped
 
 .PP
 The
-.I stap\-authorize\-cert
+.I stap\-authorize\-server\-cert
 program accepts two arguments:
 
 .TP
@@ -222,7 +222,7 @@ For root users (EUID=0), it will be created in
 .I $sysconfdir/systemtap/ssl/server\fP.
 
 .IP \(bu 4
-At this time the
+At this time, the
 server will also create a local client\-side certificate database and add the
 server\[aq]s certificate to it. For non\-root users,
 this database will be created in
@@ -255,7 +255,7 @@ A user may add the certificate of a new trusted server to his own local
 client\-side certificate database using
 \[aq]\fBstap\-authorize\-server\-cert \fICERTFILE\fR\[aq]
 (see above), where \fICERTFILE\fP is the server\[aq]s certificate file
-(\fIstap\-server.cert\fP) from the servers certificate database directory and
+(\fIstap.cert\fP) from the server\[aq]s certificate database directory and
 \fIDIRNAME\fP is the
 directory containing the user\[aq]s client\-side certificate database.
 
@@ -316,11 +316,11 @@ simple example
 .PP
 To permanently trust a given server for your own use
 .PP
-.B \& $ stap\-authorize\-cert \fICERTFILE\fP
+.B \& $ stap\-authorize\-server\-cert \fICERTFILE\fP
 .PP
 As root, to permanently trust a given server for all users on your host
 .PP
-.B \& $ stap\-authorize\-cert \fICERTFILE\fP
+.B \& $ stap\-authorize\-server\-cert \fICERTFILE\fP
 .PP
 If a process id was echoed by
 .I stap\-start\-server
@@ -341,11 +341,9 @@ manual page for additional information on safety and security.
 .PP
 The systemtap server and its related utilities use the Secure Socket Layer
 (SSL) as implemented by Network Security Services (NSS)
-for network security and the NSS tools
+for network security. The NSS tool
 .I certutil
-and
-.I signtool
-for the generation of certificates and for signing respectively. The related
+is used for the generation of certificates. The related
 certificate databases must be protected in order to maintain the security of
 the system.
 Use of the utilities provided will help to ensure that the proper protection
@@ -359,8 +357,7 @@ access permissions before making use of any certificate database.
 .IR stapfuncs (3stap),
 .IR stapex (3stap),
 .IR NSS ,
-.IR certutil ,
-.IR signtool
+.IR certutil
 
 .SH BUGS
 Use the Bugzilla link off of the project web page or our mailing list.

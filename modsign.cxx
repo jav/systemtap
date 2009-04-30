@@ -34,9 +34,246 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <pwd.h>
 }
 
 using namespace std;
+
+/* Function: int check_cert_db_permissions (const string &cert_db_path);
+ * 
+ * Check that the given certificate directory and its contents have
+ * the correct permissions.
+ *
+ * Returns 0 if there is an error, 1 otherwise.
+ */
+static int
+check_cert_file_permissions (
+  const string &cert_file,
+  uid_t euid,
+  const struct passwd *pw
+) {
+  struct stat info;
+  int rc;
+
+  rc = stat (cert_file.c_str (), & info);
+  if (rc)
+    {
+      cerr << "Could not obtain information on certificate database " << cert_file << "." << endl;
+      perror ("");
+      return 0;
+    }
+
+  rc = 1; // ok
+
+  // We must be the owner of the file.
+  if (info.st_uid != euid)
+    {
+      cerr << "Certificate file " << cert_file << " must be owned by "
+	   << pw->pw_name << endl;
+      rc = 0;
+    }
+
+  // Check the access permissions of the file
+  if ((info.st_mode & S_IRUSR) == 0)
+    cerr << "Certificate file " << cert_file << " should be readable by the owner" << "."  << endl;
+  if ((info.st_mode & S_IWUSR) == 0)
+    cerr << "Certificate file " << cert_file << " should be writeable by the owner" << "."  << endl;
+  if ((info.st_mode & S_IXUSR) != 0)
+    {
+      cerr << "Certificate file " << cert_file << " must not be executable by the owner" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IRGRP) == 0)
+    cerr << "Certificate file " << cert_file << " should be readable by the group" << "."  << endl;
+  if ((info.st_mode & S_IWGRP) != 0)
+    {
+      cerr << "Certificate file " << cert_file << " must not be writable by the group" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXGRP) != 0)
+    {
+      cerr << "Certificate file " << cert_file << " must not be executable by the group" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IROTH) == 0)
+    cerr << "Certificate file " << cert_file << " should be readable by others" << "."  << endl;
+  if ((info.st_mode & S_IWOTH) != 0)
+    {
+      cerr << "Certificate file " << cert_file << " must not be writable by others" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXOTH) != 0)
+    {
+      cerr << "Certificate file " << cert_file << " must not be executable by others" << "."  << endl;
+      rc = 0;
+    }
+
+  return rc;
+}
+
+/* Function: int check_cert_db_permissions (const string &cert_db_path);
+ * 
+ * Check that the given certificate directory and its contents have
+ * the correct permissions.
+ *
+ * Returns 0 if there is an error, 1 otherwise.
+ */
+static int
+check_db_file_permissions (
+  const string &cert_db_file,
+  uid_t euid,
+  const struct passwd *pw
+) {
+  struct stat info;
+  int rc;
+
+  rc = stat (cert_db_file.c_str (), & info);
+  if (rc)
+    {
+      cerr << "Could not obtain information on certificate database file " << cert_db_file << "." << endl;
+      perror ("");
+      return 0;
+    }
+
+  rc = 1; // ok
+
+  // We must be the owner of the file.
+  if (info.st_uid != euid)
+    {
+      cerr << "Certificate database file " << cert_db_file << " must be owned by "
+	   << pw->pw_name << endl;
+      rc = 0;
+    }
+
+  // Check the access permissions of the file
+  if ((info.st_mode & S_IRUSR) == 0)
+    cerr << "Certificate database file " << cert_db_file << " should be readable by the owner" << "."  << endl;
+  if ((info.st_mode & S_IWUSR) == 0)
+    cerr << "Certificate database file " << cert_db_file << " should be writeable by the owner" << "."  << endl;
+  if ((info.st_mode & S_IXUSR) != 0)
+    {
+      cerr << "Certificate database file " << cert_db_file << " must not be executable by the owner" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IRGRP) != 0)
+    {
+      cerr << "Certificate database file " << cert_db_file << " must not be readable by the group" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IWGRP) != 0)
+    {
+      cerr << "Certificate database file " << cert_db_file << " must not be writable by the group" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXGRP) != 0)
+    {
+      cerr << "Certificate database file " << cert_db_file << " must not be executable by the group" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IROTH) != 0)
+    {
+      cerr << "Certificate database file " << cert_db_file << " must not be readable by others" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IWOTH) != 0)
+    {
+      cerr << "Certificate database file " << cert_db_file << " must not be writable by others" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXOTH) != 0)
+    {
+      cerr << "Certificate database file " << cert_db_file << " must not be executable by others" << "."  << endl;
+      rc = 0;
+    }
+
+  return rc;
+}
+
+/* Function: int check_cert_db_permissions (const string &cert_db_path);
+ * 
+ * Check that the given certificate directory and its contents have
+ * the correct permissions.
+ *
+ * Returns 0 if there is an error, 1 otherwise.
+ */
+static int
+check_cert_db_permissions (const string &cert_db_path) {
+  struct stat info;
+  const struct passwd *pw;
+  uid_t euid;
+  int rc;
+
+  rc = stat (cert_db_path.c_str (), & info);
+  if (rc)
+    {
+      cerr << "Could not obtain information on certificate database directory " << cert_db_path << "." << endl;
+      perror ("");
+      return 0;
+    }
+
+  rc = 1; // ok
+
+  // We must be the owner of the database.
+  euid = geteuid ();
+  if (info.st_uid != euid)
+    {
+      pw = getpwuid (euid);
+      if (pw)
+	{
+	  cerr << "Certificate database " << cert_db_path << " must be owned by "
+	       << pw->pw_name << endl;
+	}
+      else
+	{
+	  cerr << "Unable to obtain current user information which checking certificate database "
+	       << cert_db_path << endl;
+	  perror ("");
+	}
+      rc = 0;
+    }
+
+  // Check the database directory access permissions
+  if ((info.st_mode & S_IRUSR) == 0)
+    cerr << "Certificate database " << cert_db_path << " should be readable by the owner" << "."  << endl;
+  if ((info.st_mode & S_IWUSR) == 0)
+    cerr << "Certificate database " << cert_db_path << " should be writeable by the owner" << "."  << endl;
+  if ((info.st_mode & S_IXUSR) == 0)
+    cerr << "Certificate database " << cert_db_path << " should be searchable by the owner" << "."  << endl;
+  if ((info.st_mode & S_IRGRP) == 0)
+    cerr << "Certificate database " << cert_db_path << " should be readable by the group" << "."  << endl;
+  if ((info.st_mode & S_IWGRP) != 0)
+    {
+      cerr << "Certificate database " << cert_db_path << " must not be writable by the group" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXGRP) == 0)
+    cerr << "Certificate database " << cert_db_path << " should be searchable by the group" << "."  << endl;
+  if ((info.st_mode & S_IROTH) == 0)
+    cerr << "Certificate database " << cert_db_path << " should be readable by others" << "."  << endl;
+  if ((info.st_mode & S_IWOTH) != 0)
+    {
+      cerr << "Certificate database " << cert_db_path << " must not be writable by others" << "."  << endl;
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXOTH) == 0)
+    cerr << "Certificate database " << cert_db_path << " should be searchable by others" << "."  << endl;
+
+  // Now check the permissions of the critical files.
+  rc &= check_db_file_permissions (cert_db_path + "/cert8.db", euid, pw);
+  rc &= check_db_file_permissions (cert_db_path + "/key3.db", euid, pw);
+  rc &= check_db_file_permissions (cert_db_path + "/secmod.db", euid, pw);
+  rc &= check_db_file_permissions (cert_db_path + "/pw", euid, pw);
+  rc &= check_cert_file_permissions (cert_db_path + "/stap.cert", euid, pw);
+
+  if (rc == 0)
+    cerr << "Unable to use certificate database " << cert_db_path << " due to errors" << "."  << endl;
+
+  return rc;
+}
 
 /* Function: int init_cert_db_path (const string &cert_db_path);
  * 
@@ -55,10 +292,6 @@ init_cert_db_path (const string &cert_db_path) {
  */
 static int
 check_cert_db_path (const string &cert_db_path) {
-  static const char* keyFiles[] = {
-    "cert8.db", "key3.db", "pw", "secmod.db", "stap.cert", NULL
-  };
-
   // Does the path exist?
   PRFileInfo fileInfo;
   PRStatus prStatus = PR_GetFileInfo (cert_db_path.c_str(), &fileInfo);
@@ -78,15 +311,7 @@ check_cert_db_path (const string &cert_db_path) {
 	PR_Delete (fname.c_str ());
     }
 
-  // Does it contain the key files?
-  for (int i = 0; keyFiles[i]; ++i) {
-    fname = cert_db_path + "/" + keyFiles[i];
-    prStatus = PR_GetFileInfo (fname.c_str (), &fileInfo);
-    if (prStatus != PR_SUCCESS || fileInfo.type != PR_FILE_FILE || fileInfo.size < 0)
-      return init_cert_db_path (cert_db_path);
-  }
-
-  return 1; // ok
+  return check_cert_db_permissions (cert_db_path);
 }
 
 /* Function: char * password_callback()
