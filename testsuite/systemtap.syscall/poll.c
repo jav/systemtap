@@ -17,21 +17,21 @@ int main()
   sigaddset(&sigs,SIGUSR2);
 
   fd = epoll_create(32);
-  // epoll_create (32)
+  //staptest// epoll_create (32)
 
   epoll_ctl(fd, EPOLL_CTL_ADD, 13, &ev);
-  // epoll_ctl (NNNN, EPOLL_CTL_ADD, 13, XXXX)
+  //staptest// epoll_ctl (NNNN, EPOLL_CTL_ADD, 13, XXXX)
 
   epoll_wait(fd, &ev, 17,0);
-  // epoll_wait (NNNN, XXXX, 17, 0)
+  //staptest// epoll_wait (NNNN, XXXX, 17, 0)
   close(fd);
 
   poll(&pfd, 1, 0);
-  // poll (XXXX, 1, 0)
+  //staptest// poll (XXXX, 1, 0)
 
 #ifdef SYS_ppoll
   ppoll(&pfd, 1, &tim, &sigs);
-  //  ppoll (XXXX, 1, \[0.200000000\], XXXX, 8)
+  //staptest//  ppoll (XXXX, 1, \[0.200000000\], XXXX, 8)
 #endif
 
   return 0;

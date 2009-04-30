@@ -13,13 +13,13 @@ int main()
   fd = creat("foobar",S_IREAD|S_IWRITE);
 
   sync();
-  // sync () = 0
+  //staptest// sync () = 0
 
   fsync(fd);
-  // fsync (NNNN) = 0
+  //staptest// fsync (NNNN) = 0
 
   fdatasync(fd);
-  // fdatasync (NNNN) = 0
+  //staptest// fdatasync (NNNN) = 0
 
   close(fd);
 

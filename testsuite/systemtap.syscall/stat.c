@@ -17,38 +17,38 @@ int main()
   struct utimbuf ubuf;
 
   getcwd(cwd, 128);
-  // getcwd (XXXX, 128) = NNNN
+  //staptest// getcwd (XXXX, 128) = NNNN
 
   fd = creat("foobar",S_IREAD|S_IWRITE);
-  // open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = NNNN
+  //staptest// open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = NNNN
 
   fstat(fd, &sbuf);
-  // fstat (NNNN, XXXX) = 0
+  //staptest// fstat (NNNN, XXXX) = 0
 
   close(fd);
 
   stat("foobar",&sbuf);
-  // stat ("foobar", XXXX) = 0
+  //staptest// stat ("foobar", XXXX) = 0
 
   lstat("foobar",&sbuf);
-  // lstat ("foobar", XXXX) = 0
+  //staptest// lstat ("foobar", XXXX) = 0
 
   ubuf.actime = 1;
   ubuf.modtime = 1135641600;
   utime("foobar", &ubuf);
 #ifdef __ia64__
-  // utimes ("foobar", \[1.000000\]\[1135641600.000000\]) =
+  //staptest// utimes ("foobar", \[1.000000\]\[1135641600.000000\]) =
 #else
-  // utime ("foobar", \[Thu Jan  1 00:00:01 1970, Tue Dec 27 00:00:00 2005\]) = 0
+  //staptest// utime ("foobar", \[Thu Jan  1 00:00:01 1970, Tue Dec 27 00:00:00 2005\]) = 0
 #endif
 
   ubuf.actime =  1135690000;
   ubuf.modtime = 1135700000;
   utime("foobar", &ubuf);
 #ifdef __ia64__
-  // utimes ("foobar", \[1135690000.000000\]\[1135700000.000000\]) =
+  //staptest// utimes ("foobar", \[1135690000.000000\]\[1135700000.000000\]) =
 #else
-  // utime ("foobar", \[Tue Dec 27 13:26:40 2005, Tue Dec 27 16:13:20 2005\]) = 0
+  //staptest// utime ("foobar", \[Tue Dec 27 13:26:40 2005, Tue Dec 27 16:13:20 2005\]) = 0
 #endif
   return 0;
 }

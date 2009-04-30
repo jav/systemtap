@@ -12,14 +12,14 @@ int main ()
 	int status;
 	
 	child = fork();
-	// fork () = NNNN
+	//staptest// fork () = NNNN
 	if (!child) {
 		int i = 0xfffff;
 		while (i > 0) i--;
 		exit(0);
 	}
 	wait4(child, &status, WNOHANG, NULL);
-	// wait4 (NNNN, XXXX, WNOHANG, XXXX) = NNNN
+	//staptest// wait4 (NNNN, XXXX, WNOHANG, XXXX) = NNNN
 
 	return 0;
 }

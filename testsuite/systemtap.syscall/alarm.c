@@ -20,36 +20,36 @@ int main()
 
   alarm(1);
 #ifdef __ia64__
-  // setitimer (ITIMER_REAL, \[0.000000,1.000000\], XXXX) = 0
+  //staptest// setitimer (ITIMER_REAL, \[0.000000,1.000000\], XXXX) = 0
 #else
-  // alarm (1) = 0
+  //staptest// alarm (1) = 0
 #endif
 
   pause();
 #ifdef __ia64__
-  // rt_sigsuspend () =
+  //staptest// rt_sigsuspend () =
 #else
-  // pause () =
+  //staptest// pause () =
 #endif
 
   alarm(0);
 #ifdef __ia64__
-  // setitimer (ITIMER_REAL, \[0.000000,0.000000\], XXXX) = 0
+  //staptest// setitimer (ITIMER_REAL, \[0.000000,0.000000\], XXXX) = 0
 #else
-  // alarm (0) = 0
+  //staptest// alarm (0) = 0
 #endif
 
   sleep(1);
-  // nanosleep (\[1.000000000\], XXXX) = 0
+  //staptest// nanosleep (\[1.000000000\], XXXX) = 0
 
   usleep(1234);
-  // nanosleep (\[0.001234000\], 0x[0]+) = 0
+  //staptest// nanosleep (\[0.001234000\], 0x[0]+) = 0
 
   nanosleep(&t, &rem); 
-  // nanosleep (\[0.000000789\], XXXX) = 0
+  //staptest// nanosleep (\[0.000000789\], XXXX) = 0
 
   nanosleep(&t, NULL); 
-  // nanosleep (\[0.000000789\], 0x[0]+) = 0
+  //staptest// nanosleep (\[0.000000789\], 0x[0]+) = 0
 
   return 0;
 }
