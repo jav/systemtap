@@ -14,7 +14,7 @@
 # listed, but that some alternatives are listed.
 
 set local1_script {
-    probe kernel.funtion("vfs_write") { ret = $z; }
+    probe kernel.function("vfs_write") { ret = $z; }
 }
 
 set struct1_script {
