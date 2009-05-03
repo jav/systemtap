@@ -58,8 +58,10 @@ proc run_one_test {filename flags} {
 	    regsub -all {\(} $line {\\(} line
 	    regsub -all {\)} $line {\\)} line
 	    regsub -all {\|} $line {\|} line
-	    regsub -all {\+} $line {\\+} line
-	    regsub -all {\*} $line {\\*} line
+	    # + and * are metacharacters, but should always be used
+	    # as metacharacters in the expressions, don't escape them.
+	    #regsub -all {\+} $line {\\+} line
+	    #regsub -all {\*} $line {\\*} line
 	    
 	    regsub -all NNNN $line {[\-0-9]+} line
 	    regsub -all XXXX $line {[x0-9a-fA-F]+} line
