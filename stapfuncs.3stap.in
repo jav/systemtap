@@ -154,6 +154,9 @@ Return the number of characters in str.
 substr:string (str:string,start:long, stop:long)
 Return the substring of str starting from character start and ending at character stop.
 .TP
+stringat:string (str:string,pos:long)
+Return the character in given position of string.
+.TP
 isinstr:long (s1:string, s2:string)
 Return 1 if string s1 contains string s2, returns 0 otherwise.
 .TP
