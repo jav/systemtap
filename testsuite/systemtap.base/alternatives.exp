@@ -37,9 +37,9 @@ proc stap_run_alternatives {args} {
 }
 
 set test "LOCAL1"
-set rc [stap_run_alternatives stap -vu -p2 -e $local1_script]
+set rc [stap_run_alternatives stap -u -p2 -e $local1_script]
 if {$rc >= 1} { pass $test } else { fail "$test ($rc)" }
 
 set test "STRUCT1"
-set rc [stap_run_alternatives stap -vu -p2 -e $struct1_script]
+set rc [stap_run_alternatives stap -u -p2 -e $struct1_script]
 if {$rc >= 1} { pass $test } else { fail "$test ($rc)" }
