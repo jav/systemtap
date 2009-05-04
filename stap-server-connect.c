@@ -94,7 +94,7 @@ readDataFromSocket(PRFileDesc *sslSocket)
       return SECFailure;
     }
 
-  /* Read the number fo bytes to be received.  */
+  /* Read the number of bytes to be received.  */
   numBytesRead = PR_Read(sslSocket, & info.size, sizeof (info.size));
   if (numBytesRead == 0) /* EOF */
     {

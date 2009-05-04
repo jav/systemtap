@@ -12,15 +12,12 @@
 # This script uses avahi to find systemtap compile servers on the local
 # network. Information about each server found is printed to stdout.
 
+# Initialize the environment
+. `dirname $0`/stap-env
+
 #-----------------------------------------------------------------------------
 # Helper functions.
 #-----------------------------------------------------------------------------
-# function: configuration
-function configuration {
-    avahi_service_tag=_stap._tcp
-    timeout=10 # seconds
-}
-
 # function: initialization
 function initialization {
     rc=1 # not found yet
@@ -29,6 +26,7 @@ function initialization {
     else
 	find_all=0
     fi
+    timeout=10 # seconds
 }
 
 # function: find_servers
@@ -37,12 +35,12 @@ function initialization {
 function find_servers {
     # Create a temp file for the list of servers. We do this instead
     # of using a pipe so that we can kill avahi-browse if it
-    # takes more than a minute.
+    # takes too long.
     tmpfile=`mktemp -t stap-serversXXXXXX` || \
 	fatal "Cannot create temporary file " $tmpfile
 
     # Find servers
-    avahi-browse $avahi_service_tag --terminate -r 2>/dev/null > $tmpfile &
+    avahi-browse $stap_avahi_service_tag --terminate -r 2>/dev/null > $tmpfile &
     
     for ((attempt=0; $attempt < $timeout; ++attempt))
     do
@@ -97,7 +95,7 @@ function match_server {
 		    ;;
 		address )
 		    # Sometimes (seems random), avahi-resolve-host-name resolves a local server to its
-		    # hardware address rather its ip address. Keep trying until we get
+		    # hardware address rather than its ip address. Keep trying until we get
 		    # an ip address.
 		    server_ip=`expr "$service_data" : '\[\([^]]*\)\]'`
 		    local attempt
@@ -125,7 +123,7 @@ function match_server {
 	    esac
 	done
 
-	# It is a stap server, but is it compatible?
+	# It's an stap server, but is it compatible?
 	if test $find_all = 0 -a "$server_sysinfo" != "`client_sysinfo`"; then
 	    continue
 	fi
@@ -159,7 +157,6 @@ function fatal {
 #-----------------------------------------------------------------------------
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
-configuration
 initialization "$@"
 find_servers
 

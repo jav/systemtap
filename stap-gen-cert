@@ -10,6 +10,9 @@
 # Public License (GPL); either version 2, or (at your option) any
 # later version.
 
+# Initialize the environment
+. `dirname $0`/stap-env
+
 # Obtain a password from stdin and echo it.
 function user_enter_password
 {
@@ -35,14 +38,13 @@ function user_enter_password
 }
 
 # Obtain the certificate database directory name.
-if  test "X$1" = "X"; then
-    echo "Certificate database directory must be specified" >&2
-    exit 1
+serverdb=$1
+if  test "X$serverdb" = "X"; then
+    serverdb=$stap_ssl_db/server
 fi
-rm -fr $1
+rm -fr $serverdb
 
 # Create the server's certificate database directory.
-serverdb=$1/server
 if ! mkdir -p -m 755 $serverdb; then
     echo "Unable to create the server certificate database directory: $serverdb" >&2
     exit 1
@@ -67,27 +69,27 @@ if ! certutil -N -d $serverdb -f $serverdb/pw > /dev/null; then
 fi
 
 # We need some random noise for generating keys
-dd bs=123 count=1 < /dev/urandom > $1/noise 2> /dev/null
+dd bs=123 count=1 < /dev/urandom > $serverdb/noise 2> /dev/null
 
 # Generate a request for the server's certificate.
-certutil -R -d $serverdb -f $serverdb/pw -s "CN=Systemtap Compile Server, OU=Systemtap, O=Red Hat, C=US" -o $1/stap-server.req -z $1/noise 2> /dev/null
-rm -fr $1/noise
+certutil -R -d $serverdb -f $serverdb/pw -s "CN=Systemtap Compile Server, OU=Systemtap, O=Red Hat, C=US" -o $serverdb/stap.req -z $serverdb/noise 2> /dev/null
+rm -fr $serverdb/noise
 
 # Create the certificate file first so that it always has the proper access permissions.
-if ! (touch $serverdb/stap-server.cert && chmod 644 $serverdb/stap-server.cert); then
-    echo "Unable to create the server certificate file: $serverdb/stap-server.cert" >&2
+if ! (touch $serverdb/$stap_certfile && chmod 644 $serverdb/$stap_certfile); then
+    echo "Unable to create the server certificate file: $serverdb/$stap_certfile" >&2
     exit 1
 fi
 
 # Now generate the actual certificate.
-certutil -C -i $1/stap-server.req -o $serverdb/stap-server.cert -x -d $serverdb -f $serverdb/pw -5 -8 "$HOSTNAME,localhost" >/dev/null <<-EOF
+certutil -C -i $serverdb/stap.req -o $serverdb/$stap_certfile -x -d $serverdb -f $serverdb/pw -5 -8 "$HOSTNAME,localhost" >/dev/null <<-EOF
 1
 3
 7
 8
 y
 EOF
-rm -fr $1/stap-server.req
+rm -fr $serverdb/stap.req
 
 # Add the certificate to the server's certificate/key database as a trusted peer, ssl server and object signer
-certutil -A -n stap-server -t "PCu,,PCu" -i $serverdb/stap-server.cert -d $serverdb -f $serverdb/pw
+certutil -A -n stap-server -t "PCu,,PCu" -i $serverdb/$stap_certfile -d $serverdb -f $serverdb/pw

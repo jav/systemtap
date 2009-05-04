@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Add an existing server certificate to the
+# database of trusted SSL servers for the client.
+#
+# Copyright (C) 2009 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# Initialize the environment
+. `dirname $0`/stap-env
+
+certfile=$1
+certdb=$2
+
+# Obtain the filename of the certificate
+if  test "X$certfile" = "X"; then
+    echo "Certificate file must be specified" >&2
+    exit 1
+fi
+
+# Obtain the certificate database directory name.
+if  test "X$certdb" = "X"; then
+    certdb=$stap_signing_db
+fi
+
+${stap_exec_prefix}stap-authorize-cert $certfile $certdb

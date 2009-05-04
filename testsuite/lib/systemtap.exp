@@ -128,8 +128,10 @@ proc setup_server {} {
     # The server does not call this instance of 'stap'
     if {[installtest_p]} then {
 	exec /bin/cp -p [exec which stap-client] $net_path/stap
+	exec /bin/cp -p [exec which stap-env] $net_path/stap-env
     } else {
 	exec /bin/cp -p $srcdir/../stap-client $net_path/stap
+	exec /bin/cp -p $srcdir/../stap-env $net_path/stap-env
     }
     set env(PATH) "$net_path:$env(PATH)"
 
