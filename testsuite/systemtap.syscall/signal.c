@@ -18,13 +18,13 @@ int main()
 
 #ifdef SYS_signal
   syscall(SYS_signal, SIGUSR1, SIG_IGN);
-  // signal (SIGUSR1, SIG_IGN)
+  //staptest// signal (SIGUSR1, SIG_IGN)
 
   syscall (SYS_signal, SIGUSR1, SIG_DFL);
-  // signal (SIGUSR1, SIG_DFL) = 1
+  //staptest// signal (SIGUSR1, SIG_DFL) = 1
 
   syscall (SYS_signal, SIGUSR1, sig_act_handler);
-  // signal (SIGUSR1, XXXX) = 0
+  //staptest// signal (SIGUSR1, XXXX) = 0
 #endif
 
   sigemptyset(&mask);
@@ -32,10 +32,10 @@ int main()
 
 #ifdef SYS_sigprocmask
   syscall (SYS_sigprocmask, SIG_BLOCK, &mask, NULL);
-  // sigprocmask (SIG_BLOCK, XXXX, 0x0+) = 0
+  //staptest// sigprocmask (SIG_BLOCK, XXXX, 0x0+) = 0
 
   syscall (SYS_sigprocmask, SIG_UNBLOCK, &mask, NULL);
-  // sigprocmask (SIG_UNBLOCK, XXXX, 0x0+) = 0
+  //staptest// sigprocmask (SIG_UNBLOCK, XXXX, 0x0+) = 0
 #endif
 
   memset(&sa, 0, sizeof(sa));
@@ -44,12 +44,12 @@ int main()
 
 #ifdef SYS_sigaction
   syscall (SYS_sigaction, SIGUSR1, &sa, NULL);
-  // sigaction (SIGUSR1, {SIG_IGN}, 0x0+) = 0
+  //staptest// sigaction (SIGUSR1, {SIG_IGN}, 0x0+) = 0
  #endif
 
 #ifdef SYS_tgkill
   syscall(SYS_tgkill, 1234, 5678, 0);
-  // tgkill (1234, 5678, SIG_0)
+  //staptest// tgkill (1234, 5678, SIG_0)
 #endif
 
   return 0;

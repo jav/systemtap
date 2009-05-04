@@ -14,22 +14,22 @@ int main()
   close (fd1);
   
   unlink("foobar1");
-  // unlink ("foobar1") = 0
+  //staptest// unlink ("foobar1") = 0
 
   unlink("foobar1");
-  // unlink ("foobar1") = -NNNN (ENOENT)
+  //staptest// unlink ("foobar1") = -NNNN (ENOENT)
 
   unlink("foobar2");
-  // unlink ("foobar2") = -NNNN (ENOENT)
+  //staptest// unlink ("foobar2") = -NNNN (ENOENT)
 
   unlink(0);
-  // unlink (NULL) = -NNNN (EFAULT)
+  //staptest// unlink (NULL) = -NNNN (EFAULT)
 
   unlink("..");
-  // unlink ("..") = -NNNN (EISDIR)
+  //staptest// unlink ("..") = -NNNN (EISDIR)
 
   unlink("");
-  // unlink ("") = -NNNN (ENOENT)
+  //staptest// unlink ("") = -NNNN (ENOENT)
 
   return 0;
 }

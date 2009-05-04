@@ -13,24 +13,24 @@ int main()
   close(fd);
 
   link("foobar", "foobar2");
-  // link ("foobar", "foobar2")
-  //   linkat (AT_FDCWD, "foobar", AT_FDCWD, "foobar2", 0x0) = 0
+  //staptest// link ("foobar", "foobar2")
+  //staptest//   linkat (AT_FDCWD, "foobar", AT_FDCWD, "foobar2", 0x0) = 0
 
   link("foobar", "foobar");
-  // link ("foobar", "foobar")
-  //   linkat (AT_FDCWD, "foobar", AT_FDCWD, "foobar", 0x0) = -NNNN (EEXIST)
+  //staptest// link ("foobar", "foobar")
+  //staptest//   linkat (AT_FDCWD, "foobar", AT_FDCWD, "foobar", 0x0) = -NNNN (EEXIST)
 
   link("nonexist", "foo");
-  // link ("nonexist", "foo")
-  //   linkat (AT_FDCWD, "nonexist", AT_FDCWD, "foo", 0x0) = -NNNN (ENOENT)
+  //staptest// link ("nonexist", "foo")
+  //staptest//   linkat (AT_FDCWD, "nonexist", AT_FDCWD, "foo", 0x0) = -NNNN (ENOENT)
 
   symlink("foobar", "Sfoobar");
-  // symlink ("foobar", "Sfoobar")
-  //   symlinkat ("foobar", AT_FDCWD, "Sfoobar") = 0
+  //staptest// symlink ("foobar", "Sfoobar")
+  //staptest//   symlinkat ("foobar", AT_FDCWD, "Sfoobar") = 0
 
   readlink("Sfoobar", buf, sizeof(buf));
-  // readlink ("Sfoobar", XXXX, 128)
-  //   readlinkat (AT_FDCWD, "Sfoobar", XXXX, 128)
+  //staptest// readlink ("Sfoobar", XXXX, 128)
+  //staptest//   readlinkat (AT_FDCWD, "Sfoobar", XXXX, 128)
 
   return 0;
 }

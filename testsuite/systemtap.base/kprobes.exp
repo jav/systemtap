@@ -1,2 +1,7 @@
 set test "kprobes"
-stap_run $srcdir/$subdir/$test.stp no_load "probe point hit"
+spawn stap -vv $srcdir/$subdir/$test.stp
+expect {
+         -timeout 120
+         "systemtap starting probe" { pass "$test (probe_hit)" }
+         timeout { fail "$test (timeout)" }
+        }

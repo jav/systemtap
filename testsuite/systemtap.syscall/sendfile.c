@@ -36,7 +36,7 @@ int main ()
 	 * sendfile will fail. So we test for failure here.
 	 */
 	ret = sendfile (write_fd, read_fd, &offset, stat_buf.st_size);
-	// sendfile (NNNN, NNNN, XXXX, 512) = -22 (EINVAL)
+	//staptest// sendfile (NNNN, NNNN, XXXX, 512) = -22 (EINVAL)
 
 	close (read_fd);
 	close (write_fd);

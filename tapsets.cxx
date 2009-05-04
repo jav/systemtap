@@ -3069,7 +3069,10 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
 	case DW_TAG_label:
 	  break;
 	case DW_TAG_subprogram:
-	  function_name = name;
+	  if (!dwarf_hasattr(&die, DW_AT_declaration))
+	    function_name = name;
+	  else
+	    continue;
 	default:
 	  if (dwarf_haschildren (&die))
 	    iterate_over_labels (&die, q, callback);

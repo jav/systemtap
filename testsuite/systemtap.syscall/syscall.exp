@@ -48,15 +48,9 @@ proc test_procedure {} {
 
     set do_32_bit_pass 1    
     switch -regexp $::tcl_platform(machine) {
-	^(x86_64|ppc64)$ {
-	    set flags "additional_flags=-m32"
-	}
-	^s390x$ {
-	    set flags "additional_flags=-m31"
-	}
-	^ia64$ {
-	    set do_32_bit_pass 0
-	}
+	{^(x86_64|ppc64)$} { set flags "additional_flags=-m32" }
+	{^s390x$} { set flags "additional_flags=-m31" }
+	{^ia64$} { set do_32_bit_pass 0	}
     }
 
     if {$do_32_bit_pass} {

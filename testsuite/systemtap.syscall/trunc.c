@@ -13,11 +13,11 @@ int main()
 
   fd = creat("foobar",S_IREAD|S_IWRITE);
   ftruncate(fd, 1024);
-  // ftruncate (NNNN, 1024) = 0
+  //staptest// ftruncate (NNNN, 1024) = 0
   close(fd);
 
   truncate("foobar", 2048);
-  // truncate ("foobar", 2048) = 0
+  //staptest// truncate ("foobar", 2048) = 0
 
   return 0;
 }
