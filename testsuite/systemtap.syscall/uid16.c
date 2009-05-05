@@ -17,54 +17,54 @@ int main ()
 	gid_t gid, rgid, egid, sgid;
 
 	uid = syscall(__NR_getuid);
-	// getuid () = NNNN
+	//staptest// getuid () = NNNN
 
 	uid = syscall(__NR_geteuid);
-	// geteuid () = NNNN
+	//staptest// geteuid () = NNNN
 
 	gid = syscall(__NR_getgid);
-	// getgid () = NNNN
+	//staptest// getgid () = NNNN
 
 	gid = syscall(__NR_getegid);
-	// getegid () = NNNN
+	//staptest// getegid () = NNNN
 
 
 
 	syscall(__NR_setuid, 4096);
-	// setuid (4096) =
+	//staptest// setuid (4096) =
 
 	syscall(__NR_setresuid, -1, 4097, -1);
-	// setresuid (-1, 4097, -1) =
+	//staptest// setresuid (-1, 4097, -1) =
 
 	syscall(__NR_getresuid, &ruid, &euid, &suid);
-	// getresuid (XXXX, XXXX, XXXX) =
+	//staptest// getresuid (XXXX, XXXX, XXXX) =
 
 	syscall(__NR_setgid, 4098);
-	// setgid (4098) =
+	//staptest// setgid (4098) =
 
 	syscall(__NR_setresgid, -1, 4099, -1);
-	// setresgid (-1, 4099, -1) =
+	//staptest// setresgid (-1, 4099, -1) =
 	
 	syscall(__NR_getresgid, &rgid, &egid, &sgid);
-	// getresgid (XXXX, XXXX, XXXX) =
+	//staptest// getresgid (XXXX, XXXX, XXXX) =
 
 	syscall(__NR_setreuid, -1, 5000);
-	// setreuid (-1, 5000) = 
+	//staptest// setreuid (-1, 5000) = 
 
 	syscall(__NR_setreuid, 5001, -1);
-	// setreuid (5001, -1) = 
+	//staptest// setreuid (5001, -1) = 
 
 	syscall(__NR_setregid, -1, 5002);
-	// setregid (-1, 5002) = 
+	//staptest// setregid (-1, 5002) = 
 
 	syscall(__NR_setregid, 5003, -1);
-	// setregid (5003, -1) = 
+	//staptest// setregid (5003, -1) = 
 
 	syscall(__NR_setfsuid, 5004);
-	// setfsuid (5004) = 
+	//staptest// setfsuid (5004) = 
 	
 	syscall(__NR_setfsgid, 5005);
-	// setfsgid (5005) =
+	//staptest// setfsgid (5005) =
 
 #endif /* __i386__ */
 

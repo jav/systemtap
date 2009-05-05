@@ -27,4 +27,4 @@ if  test "X$certdb" = "X"; then
     certdb=$stap_ssl_db/client
 fi
 
-stap-authorize-cert $certfile $certdb
+${stap_exec_prefix}stap-authorize-cert $certfile $certdb

@@ -1,5 +1,12 @@
 * What's new
 
+- Module signing: If the appropriate nss libraries are available on your system,
+  stap will sign each compiled module using a self-generated certificate.
+  This is the first step toward extending authority to load certain modules to
+  unprivileged users. For now, if the system administrator adds a certificate
+  to a database of trusted signers (stap-authorize-signing-cert), modules signed
+  using that certificate will be verified by staprun against tampering.
+  Otherwise, you should notice no difference in the operation of stap or staprun.
 
 * What's new in version 0.9.7
 

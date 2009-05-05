@@ -13,19 +13,19 @@ int main()
   struct itimerspec val, oval;
 
   syscall(SYS_timer_create, CLOCK_REALTIME, NULL, &tid);
-  // timer_create (CLOCK_REALTIME, 0x[0]+, XXXX)
+  //staptest// timer_create (CLOCK_REALTIME, 0x[0]+, XXXX)
 
   syscall(SYS_timer_gettime, tid, &val);
-  // timer_gettime (NNNN, XXXX)
+  //staptest// timer_gettime (NNNN, XXXX)
 
   syscall(SYS_timer_settime, 0, tid, &val, &oval);
-  // timer_settime (0, NNNN, \[0.000000,0.000000\], XXXX)
+  //staptest// timer_settime (0, NNNN, \[0.000000,0.000000\], XXXX)
 
   syscall(SYS_timer_getoverrun, tid);
-  // timer_getoverrun (NNNN)
+  //staptest// timer_getoverrun (NNNN)
 
   syscall(SYS_timer_delete, tid);
-  // timer_delete (NNNN)
+  //staptest// timer_delete (NNNN)
 
   return 0;
 }

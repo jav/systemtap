@@ -293,6 +293,7 @@ exit 0
 %files client
 %defattr(-,root,root)
 %{_bindir}/stap-client
+%{_bindir}/stap-env
 %{_bindir}/stap-find-servers
 %{_bindir}/stap-authorize-server-cert
 %{_bindir}/stap-client-connect
@@ -302,10 +303,13 @@ exit 0
 %defattr(-,root,root)
 %{_bindir}/stap-server
 %{_bindir}/stap-serverd
+%{_bindir}/stap-env
 %{_bindir}/stap-start-server
 %{_bindir}/stap-find-servers
 %{_bindir}/stap-find-or-start-server
 %{_bindir}/stap-stop-server
+%{_bindir}/stap-gen-cert
+%{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-server-cert
 %{_bindir}/stap-server-connect
 %{_mandir}/man8/stap-server.8*

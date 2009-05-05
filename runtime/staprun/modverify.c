@@ -31,6 +31,163 @@
 #include "nsscommon.h"
 #include "modverify.h"
 
+#include <sys/stat.h>
+
+/* Function: int check_cert_db_permissions (const char *cert_db_path);
+ * 
+ * Check that the given certificate directory and its contents have
+ * the correct permissions.
+ *
+ * Returns 0 if there is an error, 1 otherwise.
+ */
+static int
+check_db_file_permissions (const char *cert_db_file) {
+  struct stat info;
+  int rc;
+
+  rc = stat (cert_db_file, & info);
+  if (rc)
+    {
+      fprintf (stderr, "Could not obtain information on certificate database file %s.\n",
+	      cert_db_file);
+      perror ("");
+      return 0;
+    }
+
+  rc = 1; /* ok */
+
+  /* The owner of the file must be root.  */
+  if (info.st_uid != 0)
+    {
+      fprintf (stderr, "Certificate database file %s must be owned by root.\n",
+	       cert_db_file);
+      rc = 0;
+    }
+
+  /* Check the access permissions of the file.  */
+  if ((info.st_mode & S_IRUSR) == 0)
+    fprintf (stderr, "Certificate database file %s should be readable by the owner.\n", cert_db_file);
+  if ((info.st_mode & S_IWUSR) == 0)
+    fprintf (stderr, "Certificate database file %s should be writeable by the owner.\n", cert_db_file);
+  if ((info.st_mode & S_IXUSR) != 0)
+    {
+      fprintf (stderr, "Certificate database file %s must not be executable by the owner.\n", cert_db_file);
+      rc = 0;
+    }
+  if ((info.st_mode & S_IRGRP) == 0)
+    {
+      fprintf (stderr, "Certificate database file %s should be readable by the group.\n", cert_db_file);
+      rc = 0;
+    }
+  if ((info.st_mode & S_IWGRP) != 0)
+    {
+      fprintf (stderr, "Certificate database file %s must not be writable by the group.\n", cert_db_file);
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXGRP) != 0)
+    {
+      fprintf (stderr, "Certificate database file %s must not be executable by the group.\n", cert_db_file);
+      rc = 0;
+    }
+  if ((info.st_mode & S_IROTH) == 0)
+    {
+      fprintf (stderr, "Certificate database file %s should be readable by others.\n", cert_db_file);
+      rc = 0;
+    }
+  if ((info.st_mode & S_IWOTH) != 0)
+    {
+      fprintf (stderr, "Certificate database file %s must not be writable by others.\n", cert_db_file);
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXOTH) != 0)
+    {
+      fprintf (stderr, "Certificate database file %s must not be executable by others.\n", cert_db_file);
+      rc = 0;
+    }
+
+  return rc;
+}
+
+/* Function: int check_cert_db_permissions (const char *cert_db_path);
+ * 
+ * Check that the given certificate directory and its contents have
+ * the correct permissions.
+ *
+ * Returns 0 if there is an error, 1 otherwise.
+ */
+static int
+check_cert_db_permissions (const char *cert_db_path) {
+  struct stat info;
+  char *fileName;
+  int rc;
+
+  rc = stat (cert_db_path, & info);
+  if (rc)
+    {
+      fprintf (stderr, "Could not obtain information on certificate database directory %s.\n",
+	       cert_db_path);
+      perror ("");
+      return 0;
+    }
+
+  rc = 1; /* ok */
+
+  /* The owner of the database must be root.  */
+  if (info.st_uid != 0)
+    {
+      fprintf (stderr, "Certificate database directory %s must be owned by root.\n", cert_db_path);
+      rc = 0;
+    }
+
+  /* Check the database directory access permissions  */
+  if ((info.st_mode & S_IRUSR) == 0)
+    fprintf (stderr, "Certificate database %s should be readable by the owner.\n", cert_db_path);
+  if ((info.st_mode & S_IWUSR) == 0)
+    fprintf (stderr, "Certificate database %s should be writeable by the owner.\n", cert_db_path);
+  if ((info.st_mode & S_IXUSR) == 0)
+    fprintf (stderr, "Certificate database %s should be searchable by the owner.\n", cert_db_path);
+  if ((info.st_mode & S_IRGRP) == 0)
+    fprintf (stderr, "Certificate database %s should be readable by the group.\n", cert_db_path);
+  if ((info.st_mode & S_IWGRP) != 0)
+    {
+      fprintf (stderr, "Certificate database %s must not be writable by the group.\n", cert_db_path);
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXGRP) == 0)
+    fprintf (stderr, "Certificate database %s should be searchable by the group.\n", cert_db_path);
+  if ((info.st_mode & S_IROTH) == 0)
+    fprintf (stderr, "Certificate database %s should be readable by others.\n", cert_db_path);
+  if ((info.st_mode & S_IWOTH) != 0)
+    {
+      fprintf (stderr, "Certificate database %s must not be writable by others.\n", cert_db_path);
+      rc = 0;
+    }
+  if ((info.st_mode & S_IXOTH) == 0)
+    fprintf (stderr, "Certificate database %s should be searchable by others.\n", cert_db_path);
+
+  /* Now check the permissions of the critical files.  */
+  fileName = PORT_Alloc (strlen (cert_db_path) + 11);
+  if (! fileName)
+    {
+      fprintf (stderr, "Unable to allocate memory for certificate database file names\n");
+      return 0;
+    }
+
+  sprintf (fileName, "%s/cert8.db", cert_db_path);
+  rc &= check_db_file_permissions (fileName);
+  sprintf (fileName, "%s/key3.db", cert_db_path);
+  rc &= check_db_file_permissions (fileName);
+  sprintf (fileName, "%s/secmod.db", cert_db_path);
+  rc &= check_db_file_permissions (fileName);
+
+  PORT_Free (fileName);
+
+  if (rc == 0)
+    fprintf (stderr, "Unable to use certificate database %s due to errors.\n", cert_db_path);
+
+  return rc;
+}
+
 static int
 verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pubKey)
 {
@@ -167,7 +324,19 @@ int verify_module (const char *module_name, const char *signature_name)
   CERTCertList *certList;
   CERTCertListNode *certListNode;
   CERTCertificate *cert;
+  PRStatus prStatus;
+  PRFileInfo info;
   int rc = 0;
+
+  /* Look for the certificate database. If it's not there, it's not an error, it
+     just means that the module can't be verified.  */
+  prStatus = PR_GetFileInfo (dbdir, &info);
+  if (prStatus != PR_SUCCESS || info.type != PR_FILE_DIRECTORY)
+    return MODULE_UNTRUSTED;
+
+  /* Verify the permissions of the certificate database and its files.  */
+  if (! check_cert_db_permissions (dbdir))
+    return MODULE_UNTRUSTED;
 
   /* Call the NSPR initialization routines. */
   PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);

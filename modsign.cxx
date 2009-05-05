@@ -62,7 +62,7 @@ check_cert_file_permissions (
   rc = stat (cert_file.c_str (), & info);
   if (rc)
     {
-      cerr << "Could not obtain information on certificate database " << cert_file << "." << endl;
+      cerr << "Could not obtain information on certificate file " << cert_file << "." << endl;
       perror ("");
       return 0;
     }
@@ -281,8 +281,21 @@ check_cert_db_permissions (const string &cert_db_path) {
  */
 static int
 init_cert_db_path (const string &cert_db_path) {
-  string cmd = "stap-gen-cert " + cert_db_path;
-  return system (cmd.c_str()) == 0;
+  int rc;
+
+  // Generate the certificate and database.
+  string cmd = BINDIR "/stap-gen-cert " + cert_db_path;
+  rc = system (cmd.c_str()) == 0;
+
+  // If we are root, authorize the new certificate as a trusted
+  // signer. It is not an error if this fails.
+  if (geteuid () == 0)
+    {
+      cmd = BINDIR "/stap-authorize-signing-cert " + cert_db_path + "/stap.cert";
+      system (cmd.c_str());
+    }
+
+  return rc;
 }
 
 /* Function: int check_cert_db_path (const string &cert_db_path);

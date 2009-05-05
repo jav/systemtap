@@ -414,6 +414,14 @@ main (int argc, char * const argv [])
   else
     s.cert_db_path = getenv("HOME") + string ("/.systemtap/ssl/server");
 
+  // Location of our signing certificate.
+  // If we're root, use the database in SYSCONFDIR, otherwise
+  // use the one in our $HOME directory.  */
+  if (geteuid() == 0)
+    s.cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
+  else
+    s.cert_db_path = getenv("HOME") + string ("/.systemtap/ssl/server");
+
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)
   {

@@ -4,7 +4,7 @@
 int main()
 {
   acct("foobar");
-  // acct ("foobar") = -NNNN
+  //staptest// acct ("foobar") = -NNNN
 
   return 0;
 }

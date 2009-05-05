@@ -225,7 +225,7 @@ check_signature(void)
 
   /* Use realpath() to canonicalize the module path. */
   if (realpath(modpath, module_realpath) == NULL) {
-    perr("Unable to canonicalize signature path \"%s\"", modpath);
+    perr("Unable to canonicalize module path \"%s\"", modpath);
     return MODULE_CHECK_ERROR;
   }
 
@@ -403,7 +403,6 @@ check_groups (void)
 			perr("Unable to retrieve group list");
 			return -1;
 		}
-
 		for (i = 0; i < ngids; i++) {
 			/* If the user is a member of 'stapdev', then we're
 			 *  done, since he can use staprun without any
@@ -419,7 +418,6 @@ check_groups (void)
 			if (gidlist[i] == stapusr_gid)
 				gid = stapusr_gid;
 		}
-
 		if (gid != stapusr_gid) {
 			unprivileged_user = 1;
 			return 0;

@@ -13,41 +13,41 @@ int main()
 
 	/* create a file with something in it */
 	fd = open("foobar",O_WRONLY|O_CREAT|O_TRUNC, 0600);
-	// open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = NNNN
+	//staptest// open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = NNNN
 	lseek(fd, 1024, SEEK_SET);
 	write(fd, "abcdef", 6);
 	close(fd);
-	// close (NNNN) = 0
+	//staptest// close (NNNN) = 0
 
 	fd = open("foobar", O_RDONLY);
-	// open ("foobar", O_RDONLY) = NNNN
+	//staptest// open ("foobar", O_RDONLY) = NNNN
 
 	/* stat for file size */
 	ret = fstat(fd, &fs);
-	// fstat (NNNN, XXXX) = 0
+	//staptest// fstat (NNNN, XXXX) = 0
 
 	r = mmap(NULL, fs.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	// mmap[2]* (XXXX, 1030, PROT_READ, MAP_SHARED, NNNN, XXXX) = XXXX
+	//staptest// mmap[2]* (XXXX, 1030, PROT_READ, MAP_SHARED, NNNN, XXXX) = XXXX
 
 	close(fd);
 
 	mlock(r, fs.st_size);
-	// mlock (XXXX, 1030) = 0
+	//staptest// mlock (XXXX, 1030) = 0
 
 	msync(r, fs.st_size, MS_SYNC);	
-	// msync (XXXX, 1030, MS_SYNC) = 0
+	//staptest// msync (XXXX, 1030, MS_SYNC) = 0
 
 	munlock(r, fs.st_size);
-	// munlock (XXXX, 1030) = 0
+	//staptest// munlock (XXXX, 1030) = 0
 
 	mlockall(MCL_CURRENT);
-	// mlockall (MCL_CURRENT) = 
+	//staptest// mlockall (MCL_CURRENT) = 
 
 	munlockall();
-	// munlockall () = 0
+	//staptest// munlockall () = 0
 
 	munmap(r, fs.st_size);
-	// munmap (XXXX, 1030) = 0
+	//staptest// munmap (XXXX, 1030) = 0
 
 	return 0;
 }
