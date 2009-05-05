@@ -196,6 +196,9 @@ cat > conftest.$ac_ext << EOF
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" []>
    <book id="pdffromxml">
+     <bookinfo>
+       <title>test</title>
+     </bookinfo>
    </book>
 EOF
    xmlto pdf conftest.$ac_ext >& /dev/null
