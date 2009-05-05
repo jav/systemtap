@@ -19,7 +19,11 @@ SRCTREE=$(abs_top_srcdir)/
 DOCPROC=$(abs_builddir)/docproc
 
 if BUILD_REFDOCS
-all: tapsets.pdf stamp-htmldocs stamp-mandocs
+PDFDOCS = tapsets.pdf
+endif
+
+if BUILD_DOCS
+all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
 tapsets.xml: docproc $(shell find $(SRCTREE) -name '*.stp')
 	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
 	if cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
@@ -43,8 +47,10 @@ stamp-mandocs: tapsets.xml
 #FIXME need to figure out where to install things appropriately
 #installmandocs: mandocs
 install-data-hook:
+if BUILD_REFDOCS
 	$(MKDIR_P)  $(DOC_INSTALL_DIR)
 	$(INSTALL_DATA) tapsets.pdf $(DOC_INSTALL_DIR)
+endif
 	$(MKDIR_P)  $(MAN_INSTALL_DIR)
 	$(INSTALL_DATA) man3/* $(MAN_INSTALL_DIR)
 	$(MKDIR_P)  $(HTML_INSTALL_DIR)
