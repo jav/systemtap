@@ -164,8 +164,7 @@ AC_ARG_ENABLE([docs],
 AC_CHECK_PROG(have_latex, latex, yes, no)
 AC_CHECK_PROG(have_dvips, dvips, yes, no)
 AC_CHECK_PROG(have_ps2pdf, ps2pdf, yes, no)
-AC_CHECK_PROG(have_latex2html, latex2html, yes, no)
-if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesyesyesyes"; then
+if test "x${have_latex}${have_dvips}${have_ps2pdf}" != "xyesyesyes"; then
    if test "$enable_docs" == "yes"; then
       AC_MSG_ERROR([cannot find all tools for building documentation])
    fi
@@ -173,7 +172,7 @@ if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesye
     AC_MSG_WARN([will not build documentation, cannot find all tools])
   fi
 fi
-if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"; then
+if test "x${have_latex}${have_dvips}${have_ps2pdf}" == "xyesyesyes" -a "$enable_docs" != "no"; then
    building_docs="yes"
 fi
 AM_CONDITIONAL([BUILD_DOCS], [test "$building_docs" == "yes"])
