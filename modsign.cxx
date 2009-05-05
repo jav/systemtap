@@ -219,8 +219,8 @@ check_cert_db_permissions (const string &cert_db_path) {
   rc = 1; // ok
 
   // We must be the owner of the database.
-  pw = getpwuid (euid);
   euid = geteuid ();
+  pw = getpwuid (euid);
   if (info.st_uid != euid)
     {
       if (pw)
