@@ -32,7 +32,7 @@ proc run_one_test {filename flags} {
     set testname [file tail [string range $filename 0 end-2]]
     set result "UNSUPP"
 
-    if {[catch {exec mktemp -d [pwd]/staptestXXXXX} dir]} {
+    if {[catch {exec mktemp -d [pwd]/staptestXXXXXX} dir]} {
 	puts stderr "Failed to create temporary directory: $dir"
 	cleanup
     }
