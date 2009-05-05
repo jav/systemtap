@@ -295,6 +295,7 @@ exit 0
 %{_bindir}/stap-client
 %{_bindir}/stap-env
 %{_bindir}/stap-find-servers
+%{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-server-cert
 %{_bindir}/stap-client-connect
 %{_mandir}/man8/stap-server.8*
