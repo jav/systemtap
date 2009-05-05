@@ -21,6 +21,7 @@
 */
 
 #include "session.h"
+#include "util.h"
 #include <iostream>
 #include <string>
 
@@ -219,20 +220,18 @@ check_cert_db_permissions (const string &cert_db_path) {
 
   // We must be the owner of the database.
   euid = geteuid ();
+  pw = getpwuid (euid);
+  if (! pw)
+    {
+      cerr << "Unable to obtain current user information which checking certificate database "
+	   << cert_db_path << endl;
+      perror ("");
+      return 0;
+    }
   if (info.st_uid != euid)
     {
-      pw = getpwuid (euid);
-      if (pw)
-	{
-	  cerr << "Certificate database " << cert_db_path << " must be owned by "
-	       << pw->pw_name << endl;
-	}
-      else
-	{
-	  cerr << "Unable to obtain current user information which checking certificate database "
-	       << cert_db_path << endl;
-	  perror ("");
-	}
+      cerr << "Certificate database " << cert_db_path << " must be owned by "
+	   << pw->pw_name << endl;
       rc = 0;
     }
 
@@ -285,14 +284,14 @@ init_cert_db_path (const string &cert_db_path) {
 
   // Generate the certificate and database.
   string cmd = BINDIR "/stap-gen-cert " + cert_db_path;
-  rc = system (cmd.c_str()) == 0;
+  rc = stap_system (cmd.c_str()) == 0;
 
   // If we are root, authorize the new certificate as a trusted
   // signer. It is not an error if this fails.
   if (geteuid () == 0)
     {
       cmd = BINDIR "/stap-authorize-signing-cert " + cert_db_path + "/stap.cert";
-      system (cmd.c_str());
+      stap_system (cmd.c_str());
     }
 
   return rc;
@@ -552,3 +551,5 @@ sign_module (systemtap_session& s)
   /* Shutdown NSS and exit NSPR gracefully. */
   nssCleanup ();
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
