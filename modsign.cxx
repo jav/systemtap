@@ -21,6 +21,7 @@
 */
 
 #include "session.h"
+#include "util.h"
 #include <iostream>
 #include <string>
 
@@ -285,14 +286,14 @@ init_cert_db_path (const string &cert_db_path) {
 
   // Generate the certificate and database.
   string cmd = BINDIR "/stap-gen-cert " + cert_db_path;
-  rc = system (cmd.c_str()) == 0;
+  rc = stap_system (cmd.c_str()) == 0;
 
   // If we are root, authorize the new certificate as a trusted
   // signer. It is not an error if this fails.
   if (geteuid () == 0)
     {
       cmd = BINDIR "/stap-authorize-signing-cert " + cert_db_path + "/stap.cert";
-      system (cmd.c_str());
+      stap_system (cmd.c_str());
     }
 
   return rc;
