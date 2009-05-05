@@ -221,19 +221,17 @@ check_cert_db_permissions (const string &cert_db_path) {
   // We must be the owner of the database.
   euid = geteuid ();
   pw = getpwuid (euid);
+  if (! pw)
+    {
+      cerr << "Unable to obtain current user information which checking certificate database "
+	   << cert_db_path << endl;
+      perror ("");
+      return 0;
+    }
   if (info.st_uid != euid)
     {
-      if (pw)
-	{
-	  cerr << "Certificate database " << cert_db_path << " must be owned by "
-	       << pw->pw_name << endl;
-	}
-      else
-	{
-	  cerr << "Unable to obtain current user information which checking certificate database "
-	       << cert_db_path << endl;
-	  perror ("");
-	}
+      cerr << "Certificate database " << cert_db_path << " must be owned by "
+	   << pw->pw_name << endl;
       rc = 0;
     }
 
