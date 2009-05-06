@@ -398,21 +398,6 @@ profile_derived_probe::join_group (systemtap_session& s)
 }
 
 
-struct profile_builder: public derived_probe_builder
-{
-  profile_builder() {}
-  virtual void build(systemtap_session & sess,
-                     probe * base,
-                     probe_point * location,
-                     literal_map_t const &,
-                     vector<derived_probe *> & finished_results)
-  {
-    sess.unwindsym_modules.insert ("kernel");
-    finished_results.push_back(new profile_derived_probe(sess, base, location));
-  }
-};
-
-
 // timer.profile probe handlers are hooked up in an entertaining way
 // to the underlying kernel facility.  The fact that 2.6.11+ era
 // "register_timer_hook" API allows only one consumer *system-wide*
@@ -531,6 +516,14 @@ timer_builder::build(systemtap_session & sess,
 {
   int64_t scale=1, period, rand=0;
 
+  if (has_null_param(parameters, "profile"))
+    {
+      sess.unwindsym_modules.insert ("kernel");
+      finished_results.push_back
+        (new profile_derived_probe(sess, base, location));
+      return;
+    }
+
   if (!get_param(parameters, "randomize", rand))
     rand = 0;
 
@@ -625,7 +618,7 @@ register_tapset_timers(systemtap_session& s)
 
   root->bind_num("hz")->bind(builder);
 
-  root->bind("profile")->bind(new profile_builder());
+  root->bind("profile")->bind(builder);
 }
 
 
