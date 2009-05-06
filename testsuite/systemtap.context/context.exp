@@ -23,7 +23,7 @@ proc build_modules {} {
     global build_dir
     global srcdir subdir
 
-    if {[catch {exec mktemp -d staptestXXXXX} build_dir]} {
+    if {[catch {exec mktemp -d staptestXXXXXX} build_dir]} {
 	puts stderr "Failed to create temporary directory: $build_dir"
 	return 0
     }

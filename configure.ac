@@ -189,13 +189,26 @@ if test "$building_docs" == "no" -a "$enable_refdocs" == "yes" ; then
    AC_MSG_ERROR([must use --enable-docs with --enable-refdocs])
 fi
 AC_CHECK_PROG(have_xmlto, xmlto, yes, no)
-if test "x${have_xmlto}" == "xyes"; then
+if test "$enable_refdocs" == "yes"; then
+   if test "x${have_xmlto}" != "xyes"; then
+      AC_MSG_ERROR([cannot find xmlto for building reference documentation])
+   fi
+fi
+if test "x${have_xmlto}" == "xyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
+   building_refdocs="yes"
+fi
+AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
+
+if test "x${building_refdocs}" == "xyes"; then
 AC_MSG_CHECKING([for xmlto pdf support])
 cat > conftest.$ac_ext << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" []>
    <book id="pdffromxml">
+     <bookinfo>
+       <title>test</title>
+     </bookinfo>
    </book>
 EOF
    xmlto pdf conftest.$ac_ext >& /dev/null
@@ -204,17 +217,10 @@ EOF
       AC_MSG_RESULT([yes])
    else
       AC_MSG_RESULT([no])
+      AC_MSG_WARN([Not building reference documentation in PDF format])
    fi
 fi
-if test "$enable_refdocs" == "yes"; then
-   if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
-      AC_MSG_ERROR([cannot find proper xmlto for building reference documentation])
-   fi
-fi
-if test "x${have_xmlto}${have_xmlto_pdf}" == "xyesyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
-   building_refdocs="yes"
-fi
-AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
+AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "have_xmlto_pdf" == "yes"])
 
 dnl Handle the option to build the server setup.
 AC_ARG_ENABLE([server],

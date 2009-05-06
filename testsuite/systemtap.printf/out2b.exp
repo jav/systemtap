@@ -9,7 +9,7 @@ if (![file executable $stap_merge_path]) {
     return
 }
 
-if {[catch {exec mktemp -t staptestXXXXX} tmpfile]} {
+if {[catch {exec mktemp -t staptestXXXXXX} tmpfile]} {
     puts stderr "Failed to create temporary file: $tmpfile"
     untested "$TEST_NAME : failed to create temporary file"
     return

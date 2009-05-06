@@ -24,7 +24,7 @@
 ${stap_exec_prefix}stap-find-servers >/dev/null 2>&1 && echo 0 && exit 0
 
 # No server available, try to start one.
-pid=`${exec_prefix}stap-start-server "$@"`
+pid=`${stap_exec_prefix}stap-start-server "$@"`
 if test $? = 0; then
     echo $pid
     exit 0

@@ -427,9 +427,6 @@ match_node::find_and_build (systemtap_session& s,
       sub_map_iterator_t i = sub.find (match);
       if (i == sub.end()) // no match
         {
-          if (loc->optional) /* PR10102: to tolerate mismatched optional probe */
-		return;
-
           string alternatives;
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
             alternatives += string(" ") + i->first.str();
@@ -654,7 +651,18 @@ derive_probes (systemtap_session& s,
           // and set a flag on the copy permanently.
           bool old_loc_opt = loc->optional;
           loc->optional = loc->optional || optional;
-          s.pattern_root->find_and_build (s, p, loc, 0, dps); // <-- actual derivation!
+          try
+	    {
+	      s.pattern_root->find_and_build (s, p, loc, 0, dps); // <-- actual derivation!
+	    }
+          catch (const semantic_error& e)
+	    {
+              if (!loc->optional)
+                throw semantic_error(e);
+              else /* tolerate failure for optional probe */
+	        continue;
+	    }
+
           loc->optional = old_loc_opt;
           unsigned num_atend = dps.size();
 

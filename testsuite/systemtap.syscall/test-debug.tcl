@@ -68,7 +68,7 @@ if {$ind == 0} {
     exit
 }
 
-if {[catch {exec mktemp -d staptestXXXXX} dir]} {
+if {[catch {exec mktemp -d staptestXXXXXX} dir]} {
     puts stderr "Failed to create temporary directory: $dir"
     cleanup
 }
