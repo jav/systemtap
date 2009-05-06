@@ -658,6 +658,8 @@ BUILD_SERVER_FALSE
 BUILD_SERVER_TRUE
 nspr_CFLAGS
 nss_CFLAGS
+BUILD_PDFREFDOCS_FALSE
+BUILD_PDFREFDOCS_TRUE
 BUILD_REFDOCS_FALSE
 BUILD_REFDOCS_TRUE
 have_xmlto
@@ -6620,7 +6622,26 @@ $as_echo "no" >&6; }
 fi
 
 
-if test "x${have_xmlto}" == "xyes"; then
+if test "$enable_refdocs" == "yes"; then
+   if test "x${have_xmlto}" != "xyes"; then
+      { { $as_echo "$as_me:$LINENO: error: cannot find xmlto for building reference documentation" >&5
+$as_echo "$as_me: error: cannot find xmlto for building reference documentation" >&2;}
+   { (exit 1); exit 1; }; }
+   fi
+fi
+if test "x${have_xmlto}" == "xyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
+   building_refdocs="yes"
+fi
+ if test "$building_refdocs" == "yes"; then
+  BUILD_REFDOCS_TRUE=
+  BUILD_REFDOCS_FALSE='#'
+else
+  BUILD_REFDOCS_TRUE='#'
+  BUILD_REFDOCS_FALSE=
+fi
+
+
+if test "x${building_refdocs}" == "xyes"; then
 { $as_echo "$as_me:$LINENO: checking for xmlto pdf support" >&5
 $as_echo_n "checking for xmlto pdf support... " >&6; }
 cat > conftest.$ac_ext << EOF
@@ -6641,24 +6662,16 @@ $as_echo "yes" >&6; }
    else
       { $as_echo "$as_me:$LINENO: result: no" >&5
 $as_echo "no" >&6; }
+      { $as_echo "$as_me:$LINENO: WARNING: Not building reference documentation in PDF format" >&5
+$as_echo "$as_me: WARNING: Not building reference documentation in PDF format" >&2;}
    fi
 fi
-if test "$enable_refdocs" == "yes"; then
-   if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
-      { { $as_echo "$as_me:$LINENO: error: cannot find proper xmlto for building reference documentation" >&5
-$as_echo "$as_me: error: cannot find proper xmlto for building reference documentation" >&2;}
-   { (exit 1); exit 1; }; }
-   fi
-fi
-if test "x${have_xmlto}${have_xmlto_pdf}" == "xyesyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
-   building_refdocs="yes"
-fi
- if test "$building_refdocs" == "yes"; then
-  BUILD_REFDOCS_TRUE=
-  BUILD_REFDOCS_FALSE='#'
+ if test "have_xmlto_pdf" == "yes"; then
+  BUILD_PDFREFDOCS_TRUE=
+  BUILD_PDFREFDOCS_FALSE='#'
 else
-  BUILD_REFDOCS_TRUE='#'
-  BUILD_REFDOCS_FALSE=
+  BUILD_PDFREFDOCS_TRUE='#'
+  BUILD_PDFREFDOCS_FALSE=
 fi
 
 
@@ -8434,6 +8447,13 @@ if test -z "${BUILD_REFDOCS_TRUE}" && test -z "${BUILD_REFDOCS_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"BUILD_REFDOCS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"BUILD_REFDOCS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_PDFREFDOCS_TRUE}" && test -z "${BUILD_PDFREFDOCS_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"BUILD_PDFREFDOCS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"BUILD_PDFREFDOCS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi

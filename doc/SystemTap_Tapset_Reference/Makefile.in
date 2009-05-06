@@ -176,7 +176,7 @@ MAN_INSTALL_DIR = $(DESTDIR)$(mandir)/man3
 HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
 SRCTREE = $(abs_top_srcdir)/
 DOCPROC = $(abs_builddir)/docproc
-@BUILD_REFDOCS_TRUE@PDFDOCS = tapsets.pdf
+@BUILD_PDFREFDOCS_TRUE@PDFDOCS = tapsets.pdf
 all: all-am
 
 .SUFFIXES:
@@ -340,7 +340,7 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-@BUILD_DOCS_FALSE@install-data-hook:
+@BUILD_REFDOCS_FALSE@install-data-hook:
 clean: clean-am
 
 clean-am: clean-generic clean-noinstPROGRAMS mostlyclean-am
@@ -416,36 +416,36 @@ uninstall-am:
 	uninstall-am
 
 
-@BUILD_DOCS_TRUE@all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
-@BUILD_DOCS_TRUE@tapsets.xml: docproc $(shell find $(SRCTREE) -name '*.stp')
-@BUILD_DOCS_TRUE@	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
-@BUILD_DOCS_TRUE@	if cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
-@BUILD_DOCS_TRUE@		echo tapsets.xml unchanged; \
-@BUILD_DOCS_TRUE@	else \
-@BUILD_DOCS_TRUE@		mv tapsets.xml.new tapsets.xml; \
-@BUILD_DOCS_TRUE@	fi
+@BUILD_REFDOCS_TRUE@all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
+@BUILD_REFDOCS_TRUE@tapsets.xml: docproc $(shell find $(SRCTREE) -name '*.stp')
+@BUILD_REFDOCS_TRUE@	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
+@BUILD_REFDOCS_TRUE@	if cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
+@BUILD_REFDOCS_TRUE@		echo tapsets.xml unchanged; \
+@BUILD_REFDOCS_TRUE@	else \
+@BUILD_REFDOCS_TRUE@		mv tapsets.xml.new tapsets.xml; \
+@BUILD_REFDOCS_TRUE@	fi
 
-@BUILD_DOCS_TRUE@stamp-htmldocs: tapsets.xml
-@BUILD_DOCS_TRUE@	xmlto html -o tapsets tapsets.xml
-@BUILD_DOCS_TRUE@	touch stamp-htmldocs
+@BUILD_REFDOCS_TRUE@stamp-htmldocs: tapsets.xml
+@BUILD_REFDOCS_TRUE@	xmlto html -o tapsets tapsets.xml
+@BUILD_REFDOCS_TRUE@	touch stamp-htmldocs
 
 # bump up the allocated space so "xmlto pdf" works
-@BUILD_DOCS_TRUE@tapsets.pdf: tapsets.xml
-@BUILD_DOCS_TRUE@	env pool_size=2000000 hash_extra=2000000 xmlto pdf tapsets.xml
+@BUILD_REFDOCS_TRUE@tapsets.pdf: tapsets.xml
+@BUILD_REFDOCS_TRUE@	env pool_size=2000000 hash_extra=2000000 xmlto pdf tapsets.xml
 
-@BUILD_DOCS_TRUE@stamp-mandocs: tapsets.xml
-@BUILD_DOCS_TRUE@	xmlto man -o man3 tapsets.xml
-@BUILD_DOCS_TRUE@	touch stamp-mandocs
+@BUILD_REFDOCS_TRUE@stamp-mandocs: tapsets.xml
+@BUILD_REFDOCS_TRUE@	xmlto man -o man3 tapsets.xml
+@BUILD_REFDOCS_TRUE@	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately
 #installmandocs: mandocs
-@BUILD_DOCS_TRUE@install-data-hook:
-@BUILD_DOCS_TRUE@@BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(DOC_INSTALL_DIR)
-@BUILD_DOCS_TRUE@@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) tapsets.pdf $(DOC_INSTALL_DIR)
-@BUILD_DOCS_TRUE@	$(MKDIR_P)  $(MAN_INSTALL_DIR)
-@BUILD_DOCS_TRUE@	$(INSTALL_DATA) man3/* $(MAN_INSTALL_DIR)
-@BUILD_DOCS_TRUE@	$(MKDIR_P)  $(HTML_INSTALL_DIR)
-@BUILD_DOCS_TRUE@	$(INSTALL_DATA) tapsets/* $(HTML_INSTALL_DIR)
+@BUILD_REFDOCS_TRUE@install-data-hook:
+@BUILD_PDFREFDOCS_TRUE@@BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(DOC_INSTALL_DIR)
+@BUILD_PDFREFDOCS_TRUE@@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) tapsets.pdf $(DOC_INSTALL_DIR)
+@BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(MAN_INSTALL_DIR)
+@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) man3/* $(MAN_INSTALL_DIR)
+@BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(HTML_INSTALL_DIR)
+@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) tapsets/* $(HTML_INSTALL_DIR)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
