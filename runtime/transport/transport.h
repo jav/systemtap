@@ -61,7 +61,25 @@ static gid_t _stp_gid;
 static int _stp_ctl_attached;
 
 static int _stp_bufsize;
+
+/*
+ * All transports must provide the following functions.
+ */
+
+/*
+ * _stp_transport_data_fs_init
+ *
+ * This function allocates any buffers needed, creates files,
+ * etc. needed for this transport.
+ */
 static int _stp_transport_data_fs_init(void);
+
+/* 
+ * _stp_transport_data_fs_close
+ *
+ * This function cleans up items created by
+ * _stp_transport_data_fs_init().
+ */
 static void _stp_transport_data_fs_close(void);
 
 struct _stp_entry {
@@ -70,8 +88,27 @@ struct _stp_entry {
 	char			buf[];
 };
 
+/*
+ * _stp_data_write_reserve - reserve bytes
+ * size_request:	number of bytes to reserve
+ * entry:		allocated buffer is returned here
+ *
+ * This function attempts to reserve size_request number of bytes,
+ * returning the number of bytes actually reserved.  The allocated
+ * buffer is returned in entry.  Note that the number of bytes
+ * allocated may be less than the number of bytes requested.
+ */
 static size_t _stp_data_write_reserve(size_t size_request,
 				      struct _stp_entry **entry);
+
+/*
+ * _stp_data_write_commit - 
+ * entry:		_stp_entry returned by
+ *			 _stp-data_write_reserve()
+ *
+ * This function notifies the transport that the bytes in entry are
+ * ready to be written.  
+ */
 static int _stp_data_write_commit(struct _stp_entry *entry);
 
 #endif /* _TRANSPORT_TRANSPORT_H_ */
