@@ -13,12 +13,27 @@
 #include "staptree.h"
 #include "elaborate.h"
 
-struct derived_probe_group;
-
 void register_standard_tapsets(systemtap_session& sess);
 std::vector<derived_probe_group*> all_session_groups(systemtap_session& s);
 int dwfl_report_offline_predicate (const char* modname, const char* filename);
+void common_probe_entryfn_prologue (translator_output* o, std::string statestr,
+				    std::string new_pp, bool overload_processing = true);
+void common_probe_entryfn_epilogue (translator_output* o, bool overload_processing = true);
 
+void register_tapset_timers(systemtap_session& sess);
+
+// ------------------------------------------------------------------------
+// Generic derived_probe_group: contains an ordinary vector of the
+// given type.  It provides only the enrollment function.
+
+template <class DP> struct generic_dpg: public derived_probe_group
+{
+protected:
+  std::vector <DP*> probes;
+public:
+  generic_dpg () {}
+  void enroll (DP* probe) { probes.push_back (probe); }
+};
 
 #endif // TAPSETS_H
 

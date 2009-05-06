@@ -37,7 +37,8 @@ bin_SCRIPTS += dtrace
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
-	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx
+	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
+	tapset-timers.cxx
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 
 BUILT_SOURCES =
