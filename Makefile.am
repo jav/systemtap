@@ -129,7 +129,7 @@ PHONIES += install-scripts
 # scripts should be installed before this rule is run
 install-scripts: install-binSCRIPTS
 	for f in $(bin_SCRIPTS); do \
-	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
 	done
 endif
 
