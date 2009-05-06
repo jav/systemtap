@@ -18,11 +18,14 @@
 #include <linux/debugfs.h>
 #include <linux/namei.h>
 #include <linux/workqueue.h>
+#include <linux/delay.h>
 
+#if 0
 static void utt_set_overwrite(int overwrite)
 {
 	return;
 }
+#endif
 
 static int _stp_exit_flag = 0;
 
@@ -35,21 +38,19 @@ static int _stp_ctl_attached = 0;
 static pid_t _stp_target = 0;
 static int _stp_probes_started = 0;
 
-#if 0
-#include <linux/delay.h>
-
-static struct utt_trace *_stp_utt = NULL;
-static unsigned int utt_seq = 1;
+#if 1
+//static struct utt_trace *_stp_utt = NULL;
+//static unsigned int utt_seq = 1;
 #include "control.h"
 #if STP_TRANSPORT_VERSION == 1
 #include "relayfs.c"
 #include "procfs.c"
 #elif STP_TRANSPORT_VERSION == 2
-#include "utt.c"
+#include "relay_v2.c"
 #include "debugfs.c"
 #elif STP_TRANSPORT_VERSION == 3
-#include "debugfs.c"
 #include "ring_buffer.c"
+#include "debugfs.c"
 #else
 #error "Unknown STP_TRANSPORT_VERSION"
 #endif
@@ -59,7 +60,6 @@ static unsigned int utt_seq = 1;
 #include "control.h"
 #include "debugfs.c"
 #include "control.c"
-#include "ring_buffer.c"
 #endif	/* if 0 */
 static unsigned _stp_nsubbufs = 8;
 static unsigned _stp_subbuf_size = 65536*4;
@@ -158,8 +158,10 @@ static void _stp_detach(void)
 	_stp_ctl_attached = 0;
 	_stp_pid = 0;
 
+#if 0
 	if (!_stp_exit_flag)
 		utt_set_overwrite(1);
+#endif
 
 	cancel_delayed_work(&_stp_work);
 	wake_up_interruptible(&_stp_ctl_wq);
@@ -173,7 +175,9 @@ static void _stp_attach(void)
 	dbug_trans(1, "attach\n");
 	_stp_ctl_attached = 1;
 	_stp_pid = current->pid;
+#if 0
 	utt_set_overwrite(0);
+#endif
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
@@ -458,7 +462,7 @@ static void _stp_remove_root_dir(void)
 
 static struct dentry *__stp_module_dir = NULL;
 
-static inline struct dentry *_stp_get_module_dir(void)
+static struct dentry *_stp_get_module_dir(void)
 {
 	return __stp_module_dir;
 }

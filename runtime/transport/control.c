@@ -12,6 +12,7 @@
 #include "control.h"
 #include "../mempool.c"
 #include "symbols.c"
+#include <linux/delay.h>
 
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
