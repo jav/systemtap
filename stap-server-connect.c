@@ -377,6 +377,7 @@ handle_connection(PRFileDesc *tcpSocket)
   PRSocketOptionData socketOption;
   PRFileInfo         info;
   char              *cmdline;
+  char              *stap_server_prefix;
   int                rc;
   char              *rc1;
 
@@ -465,10 +466,11 @@ handle_connection(PRFileDesc *tcpSocket)
 #endif
 
   /* Call the stap-server script.  */
-  cmdline = PORT_Alloc(sizeof ("stap-server") +
-		       sizeof (requestFileName) +
-		       sizeof (responseDirName) +
-		       sizeof (responseZipName) +
+  stap_server_prefix = getenv("SYSTEMTAP_SERVER_SCRIPTS") ?: BINDIR;
+  cmdline = PORT_Alloc(strlen (stap_server_prefix) + sizeof ("/stap-server") + 1 +
+		       sizeof (requestFileName) + 1 +
+		       sizeof (responseDirName) + 1 +
+		       sizeof (responseZipName) + 1 +
 		       strlen (dbdir) + 1);
   if (! cmdline) {
     errWarn ("PORT_Alloc");
@@ -476,7 +478,7 @@ handle_connection(PRFileDesc *tcpSocket)
     goto cleanup;
   }
 
-  sprintf (cmdline, "stap-server %s %s %s %s",
+  sprintf (cmdline, "%s/stap-server %s %s %s %s", stap_server_prefix,
 	   requestFileName, responseDirName, responseZipName, dbdir);
   rc = system (cmdline);
 

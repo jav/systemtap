@@ -109,6 +109,7 @@ proc setup_server {} {
     if {! [installtest_p]} then {
 	# Make sure the server management scripts and tools are on the $PATH.
 	set env(PATH) "$srcdir/..:[exec pwd]/..:$env(PATH)"
+	set env(SYSTEMTAP_SERVER_SCRIPTS) "$srcdir/.."
     }
 
     # Try to find or start the server.

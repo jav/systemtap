@@ -448,9 +448,9 @@ check_groups (void)
 int check_permissions(void)
 {
 	int check_groups_rc;
+#if HAVE_NSS
 	int check_signature_rc = 0;
 
-#if HAVE_NSS
 	/* Attempt to verify the module against its signature. Return failure
 	   if the module has been tampered with (altered).  */
 	check_signature_rc = check_signature ();
