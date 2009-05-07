@@ -103,39 +103,24 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
   if (probes.empty()) return;
 
-  s.op->newline() << "/* ---- begin/end probes ---- */";
-  s.op->newline() << "static void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
-  s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", "pp", false);
-  s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false);
-  s.op->newline(-1) << "}";
+  map<be_t, const char *> states;
+  states[BEGIN] = "STAP_SESSION_STARTING";
+  states[END] = "STAP_SESSION_STOPPING";
+  states[ERROR] = "STAP_SESSION_ERROR";
 
-  s.op->newline() << "static void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
-  s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", "pp", false);
-  s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false);
-  s.op->newline(-1) << "}";
-
-  s.op->newline() << "static void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
-  s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", "pp", false);
-  s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false);
-  s.op->newline(-1) << "}";
-
-  s.op->newline() << "static struct stap_be_probe {";
-  s.op->newline(1) << "void (*ph)(struct context*);";
-  s.op->newline() << "const char* pp;";
-  s.op->newline() << "int type;";
-  s.op->newline(-1) << "} stap_be_probes[] = {";
-  s.op->indent(1);
+  s.op->newline() << "/* ---- begin/end/error probes ---- */";
 
   // NB: We emit the table in sorted order here, so we don't have to
   // store the priority numbers as integers and sort at run time.
 
   sort(probes.begin(), probes.end(), be_derived_probe::comp);
+
+  s.op->newline() << "static struct stap_be_probe {";
+  s.op->newline(1) << "void (*ph)(struct context*);";
+  s.op->newline() << "const char* pp;";
+  s.op->newline() << "int state, type;";
+  s.op->newline(-1) << "} stap_be_probes[] = {";
+  s.op->indent(1);
 
   for (unsigned i=0; i < probes.size(); i++)
     {
@@ -143,10 +128,18 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .pp="
                    << lex_cast_qstring (*probes[i]->sole_location()) << ",";
       s.op->line() << " .ph=&" << probes[i]->name << ",";
+      s.op->line() << " .state=" << states[probes[i]->type] << ",";
       s.op->line() << " .type=" << probes[i]->type;
       s.op->line() << " },";
     }
   s.op->newline(-1) << "};";
+
+  s.op->newline() << "static void enter_be_probe (struct stap_be_probe *stp) {";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "stp->state", "stp->pp", false);
+  s.op->newline() << "(*stp->ph) (c);";
+  common_probe_entryfn_epilogue (s.op, false);
+  s.op->newline(-1) << "}";
 }
 
 void
@@ -156,15 +149,14 @@ be_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_be_probe* stp = & stap_be_probes [i];";
-  s.op->newline() << "if (stp->type != " << BEGIN << ") continue;";
-  s.op->newline() << "enter_begin_probe (stp->ph, stp->pp);";
-  s.op->newline() << "/* rc = 0; */";
+  s.op->newline() << "if (stp->type == " << BEGIN << ")";
+  s.op->newline(1) << "enter_be_probe (stp); /* rc = 0 */";
   // NB: begin probes that cause errors do not constitute registration
   // failures.  An error message will probably get printed and if
   // MAXERRORS was left at 1, we'll get an stp_exit.  The
   // error-handling probes will be run during the ordinary
   // unregistration phase.
-  s.op->newline(-1) << "}";
+  s.op->newline(-2) << "}";
 }
 
 void
@@ -174,15 +166,15 @@ be_derived_probe_group::emit_module_exit (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_be_probe* stp = & stap_be_probes [i];";
-  s.op->newline() << "if (stp->type != " << END << ") continue;";
-  s.op->newline() << "enter_end_probe (stp->ph, stp->pp);";
-  s.op->newline(-1) << "}";
+  s.op->newline() << "if (stp->type == " << END << ")";
+  s.op->newline(1) << "enter_be_probe (stp);";
+  s.op->newline(-2) << "}";
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_be_probe* stp = & stap_be_probes [i];";
-  s.op->newline() << "if (stp->type != " << ERROR << ") continue;";
-  s.op->newline() << "enter_error_probe (stp->ph, stp->pp);";
-  s.op->newline(-1) << "}";
+  s.op->newline() << "if (stp->type == " << ERROR << ")";
+  s.op->newline(1) << "enter_be_probe (stp);";
+  s.op->newline(-2) << "}";
 }
 
 
