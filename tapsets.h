@@ -20,6 +20,7 @@ void common_probe_entryfn_prologue (translator_output* o, std::string statestr,
 				    std::string new_pp, bool overload_processing = true);
 void common_probe_entryfn_epilogue (translator_output* o, bool overload_processing = true);
 
+void register_tapset_been(systemtap_session& sess);
 void register_tapset_timers(systemtap_session& sess);
 
 // ------------------------------------------------------------------------

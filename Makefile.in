@@ -121,8 +121,8 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-buildrun.$(OBJEXT) stap-loc2c.$(OBJEXT) \
 	stap-hash.$(OBJEXT) stap-mdfour.$(OBJEXT) stap-cache.$(OBJEXT) \
 	stap-util.$(OBJEXT) stap-coveragedb.$(OBJEXT) \
-	stap-dwarf_wrappers.$(OBJEXT) stap-tapset-timers.$(OBJEXT) \
-	$(am__objects_1)
+	stap-dwarf_wrappers.$(OBJEXT) stap-tapset-been.$(OBJEXT) \
+	stap-tapset-timers.$(OBJEXT) $(am__objects_1)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -328,7 +328,7 @@ oldinclude_HEADERS = includes/sys/sdt.h
 stap_SOURCES = main.cxx parse.cxx staptree.cxx elaborate.cxx \
 	translate.cxx tapsets.cxx buildrun.cxx loc2c.c hash.cxx \
 	mdfour.c cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
-	tapset-timers.cxx $(am__append_4)
+	tapset-been.cxx tapset-timers.cxx $(am__append_4)
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ $(am__append_6)
 
 # Arrange for git_version.h to be regenerated at every "make".
@@ -602,6 +602,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-parse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-staptree.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-been.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-timers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapsets.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-translate.Po@am__quote@
@@ -1082,6 +1083,20 @@ stap-dwarf_wrappers.obj: dwarf_wrappers.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='dwarf_wrappers.cxx' object='stap-dwarf_wrappers.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-dwarf_wrappers.obj `if test -f 'dwarf_wrappers.cxx'; then $(CYGPATH_W) 'dwarf_wrappers.cxx'; else $(CYGPATH_W) '$(srcdir)/dwarf_wrappers.cxx'; fi`
+
+stap-tapset-been.o: tapset-been.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-been.o -MD -MP -MF $(DEPDIR)/stap-tapset-been.Tpo -c -o stap-tapset-been.o `test -f 'tapset-been.cxx' || echo '$(srcdir)/'`tapset-been.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-tapset-been.Tpo $(DEPDIR)/stap-tapset-been.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-been.cxx' object='stap-tapset-been.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-been.o `test -f 'tapset-been.cxx' || echo '$(srcdir)/'`tapset-been.cxx
+
+stap-tapset-been.obj: tapset-been.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-been.obj -MD -MP -MF $(DEPDIR)/stap-tapset-been.Tpo -c -o stap-tapset-been.obj `if test -f 'tapset-been.cxx'; then $(CYGPATH_W) 'tapset-been.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-been.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-tapset-been.Tpo $(DEPDIR)/stap-tapset-been.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-been.cxx' object='stap-tapset-been.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-been.obj `if test -f 'tapset-been.cxx'; then $(CYGPATH_W) 'tapset-been.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-been.cxx'; fi`
 
 stap-tapset-timers.o: tapset-timers.cxx
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-timers.o -MD -MP -MF $(DEPDIR)/stap-tapset-timers.Tpo -c -o stap-tapset-timers.o `test -f 'tapset-timers.cxx' || echo '$(srcdir)/'`tapset-timers.cxx
