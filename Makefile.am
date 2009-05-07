@@ -39,7 +39,7 @@ stap_SOURCES = main.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
 	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
 	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
-	tapset-perfmon.cxx
+	tapset-perfmon.cxx tapset-mark.cxx
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 
 BUILT_SOURCES =
