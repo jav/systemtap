@@ -2595,13 +2595,13 @@ struct dwarf_derived_probe: public derived_probe
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw,
-					  bool unprivileged_ok = false);
+					  bool unprivileged_ok_p = false);
   static void register_function_variants(match_node * root,
 					 dwarf_builder * dw,
-					 bool unprivileged_ok = false);
+					 bool unprivileged_ok_p = false);
   static void register_function_and_statement_variants(match_node * root,
 						       dwarf_builder * dw,
-						       bool unprivileged_ok = false);
+						       bool unprivileged_ok_p = false);
   static void register_patterns(systemtap_session& s);
 };
 
@@ -5516,27 +5516,27 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 void
 dwarf_derived_probe::register_statement_variants(match_node * root,
 						 dwarf_builder * dw,
-						 bool unprivileged_ok)
+						 bool unprivileged_ok_p)
 {
-  root->allow_unprivileged(unprivileged_ok)->bind(dw);
+  root->allow_unprivileged(unprivileged_ok_p)->bind(dw);
 }
 
 void
 dwarf_derived_probe::register_function_variants(match_node * root,
 						dwarf_builder * dw,
-						bool unprivileged_ok)
+						bool unprivileged_ok_p)
 {
-  root->allow_unprivileged(unprivileged_ok)->bind(dw);
-  root->bind(TOK_INLINE)->allow_unprivileged(unprivileged_ok)->bind(dw);
-  root->bind(TOK_CALL)->allow_unprivileged(unprivileged_ok)->bind(dw);
-  root->bind(TOK_RETURN)->allow_unprivileged(unprivileged_ok)->bind(dw);
-  root->bind(TOK_RETURN)->bind_num(TOK_MAXACTIVE)->allow_unprivileged(unprivileged_ok)->bind(dw);
+  root->allow_unprivileged(unprivileged_ok_p)->bind(dw);
+  root->bind(TOK_INLINE)->allow_unprivileged(unprivileged_ok_p)->bind(dw);
+  root->bind(TOK_CALL)->allow_unprivileged(unprivileged_ok_p)->bind(dw);
+  root->bind(TOK_RETURN)->allow_unprivileged(unprivileged_ok_p)->bind(dw);
+  root->bind(TOK_RETURN)->bind_num(TOK_MAXACTIVE)->allow_unprivileged(unprivileged_ok_p)->bind(dw);
 }
 
 void
 dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
 							      dwarf_builder * dw,
-							      bool unprivileged_ok)
+							      bool unprivileged_ok_p)
 {
   // Here we match 4 forms:
   //
@@ -5545,10 +5545,10 @@ dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
   // .statement("foo")
   // .statement(0xdeadbeef)
 
-  register_function_variants(root->bind_str(TOK_FUNCTION), dw, unprivileged_ok);
-  register_function_variants(root->bind_num(TOK_FUNCTION), dw, unprivileged_ok);
-  register_statement_variants(root->bind_str(TOK_STATEMENT), dw, unprivileged_ok);
-  register_statement_variants(root->bind_num(TOK_STATEMENT), dw, unprivileged_ok);
+  register_function_variants(root->bind_str(TOK_FUNCTION), dw, unprivileged_ok_p);
+  register_function_variants(root->bind_num(TOK_FUNCTION), dw, unprivileged_ok_p);
+  register_statement_variants(root->bind_str(TOK_STATEMENT), dw, unprivileged_ok_p);
+  register_statement_variants(root->bind_num(TOK_STATEMENT), dw, unprivileged_ok_p);
 }
 
 void
@@ -5564,10 +5564,10 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(dw);
   root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->allow_unprivileged()->bind(dw);
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw, true/*unprivileged_ok*/);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)->allow_unprivileged()->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_num(TOK_MARK)->allow_unprivileged()->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->bind(dw);
+  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw, false/*!unprivileged_ok_p*/);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_num(TOK_MARK)->bind(dw);
 }
 
 void
@@ -11812,81 +11812,57 @@ register_standard_tapsets(systemtap_session & s)
   // XXX: user-space starter set
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
-    ->allow_unprivileged()
     ->bind(new uprobe_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
-    ->allow_unprivileged()
     ->bind(new uprobe_builder ());
 
   // utrace user-space probes
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_BEGIN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_BEGIN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind(TOK_PROCESS)->bind(TOK_BEGIN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_END)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_END)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind(TOK_PROCESS)->bind(TOK_END)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind(TOK_PROCESS)->bind(TOK_SYSCALL)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
   s.pattern_root->bind(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-    ->allow_unprivileged()
     ->bind(new utrace_builder ());
 
   // itrace user-space probes
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_INSN)
-    ->allow_unprivileged()
     ->bind(new itrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_INSN)
-    ->allow_unprivileged()
     ->bind(new itrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
-    ->allow_unprivileged()
     ->bind(new itrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
-    ->allow_unprivileged()
     ->bind(new itrace_builder ());
 
   // marker-based parts
