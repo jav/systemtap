@@ -124,6 +124,7 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-dwarf_wrappers.$(OBJEXT) stap-tapset-been.$(OBJEXT) \
 	stap-tapset-procfs.$(OBJEXT) stap-tapset-timers.$(OBJEXT) \
 	stap-tapset-perfmon.$(OBJEXT) stap-tapset-mark.$(OBJEXT) \
+	stap-tapset-itrace.$(OBJEXT) stap-task_finder.$(OBJEXT) \
 	$(am__objects_1)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
@@ -331,7 +332,8 @@ stap_SOURCES = main.cxx parse.cxx staptree.cxx elaborate.cxx \
 	translate.cxx tapsets.cxx buildrun.cxx loc2c.c hash.cxx \
 	mdfour.c cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
 	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
-	tapset-perfmon.cxx tapset-mark.cxx $(am__append_4)
+	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
+	task_finder.cxx $(am__append_4)
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ $(am__append_6)
 
 # Arrange for git_version.h to be regenerated at every "make".
@@ -606,11 +608,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-parse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-staptree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-been.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-itrace.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-mark.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-perfmon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-procfs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-timers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapsets.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-task_finder.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-translate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_client_connect-stap-client-connect.Po@am__quote@
@@ -1159,6 +1163,34 @@ stap-tapset-mark.obj: tapset-mark.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-mark.cxx' object='stap-tapset-mark.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-mark.obj `if test -f 'tapset-mark.cxx'; then $(CYGPATH_W) 'tapset-mark.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-mark.cxx'; fi`
+
+stap-tapset-itrace.o: tapset-itrace.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-itrace.o -MD -MP -MF $(DEPDIR)/stap-tapset-itrace.Tpo -c -o stap-tapset-itrace.o `test -f 'tapset-itrace.cxx' || echo '$(srcdir)/'`tapset-itrace.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-tapset-itrace.Tpo $(DEPDIR)/stap-tapset-itrace.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-itrace.cxx' object='stap-tapset-itrace.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-itrace.o `test -f 'tapset-itrace.cxx' || echo '$(srcdir)/'`tapset-itrace.cxx
+
+stap-tapset-itrace.obj: tapset-itrace.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-itrace.obj -MD -MP -MF $(DEPDIR)/stap-tapset-itrace.Tpo -c -o stap-tapset-itrace.obj `if test -f 'tapset-itrace.cxx'; then $(CYGPATH_W) 'tapset-itrace.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-itrace.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-tapset-itrace.Tpo $(DEPDIR)/stap-tapset-itrace.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-itrace.cxx' object='stap-tapset-itrace.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-itrace.obj `if test -f 'tapset-itrace.cxx'; then $(CYGPATH_W) 'tapset-itrace.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-itrace.cxx'; fi`
+
+stap-task_finder.o: task_finder.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-task_finder.o -MD -MP -MF $(DEPDIR)/stap-task_finder.Tpo -c -o stap-task_finder.o `test -f 'task_finder.cxx' || echo '$(srcdir)/'`task_finder.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-task_finder.Tpo $(DEPDIR)/stap-task_finder.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='task_finder.cxx' object='stap-task_finder.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-task_finder.o `test -f 'task_finder.cxx' || echo '$(srcdir)/'`task_finder.cxx
+
+stap-task_finder.obj: task_finder.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-task_finder.obj -MD -MP -MF $(DEPDIR)/stap-task_finder.Tpo -c -o stap-task_finder.obj `if test -f 'task_finder.cxx'; then $(CYGPATH_W) 'task_finder.cxx'; else $(CYGPATH_W) '$(srcdir)/task_finder.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-task_finder.Tpo $(DEPDIR)/stap-task_finder.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='task_finder.cxx' object='stap-task_finder.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-task_finder.obj `if test -f 'task_finder.cxx'; then $(CYGPATH_W) 'task_finder.cxx'; else $(CYGPATH_W) '$(srcdir)/task_finder.cxx'; fi`
 
 stap-modsign.o: modsign.cxx
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-modsign.o -MD -MP -MF $(DEPDIR)/stap-modsign.Tpo -c -o stap-modsign.o `test -f 'modsign.cxx' || echo '$(srcdir)/'`modsign.cxx

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2009 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -21,6 +21,7 @@ void common_probe_entryfn_prologue (translator_output* o, std::string statestr,
 void common_probe_entryfn_epilogue (translator_output* o, bool overload_processing = true);
 
 void register_tapset_been(systemtap_session& sess);
+void register_tapset_itrace(systemtap_session& sess);
 void register_tapset_mark(systemtap_session& sess);
 void register_tapset_perfmon(systemtap_session& sess);
 void register_tapset_procfs(systemtap_session& sess);
