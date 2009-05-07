@@ -26,6 +26,7 @@ void register_tapset_mark(systemtap_session& sess);
 void register_tapset_perfmon(systemtap_session& sess);
 void register_tapset_procfs(systemtap_session& sess);
 void register_tapset_timers(systemtap_session& sess);
+void register_tapset_utrace(systemtap_session& sess);
 
 
 // ------------------------------------------------------------------------
