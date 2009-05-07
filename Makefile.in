@@ -123,7 +123,7 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-util.$(OBJEXT) stap-coveragedb.$(OBJEXT) \
 	stap-dwarf_wrappers.$(OBJEXT) stap-tapset-been.$(OBJEXT) \
 	stap-tapset-procfs.$(OBJEXT) stap-tapset-timers.$(OBJEXT) \
-	$(am__objects_1)
+	stap-tapset-perfmon.$(OBJEXT) $(am__objects_1)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -330,7 +330,7 @@ stap_SOURCES = main.cxx parse.cxx staptree.cxx elaborate.cxx \
 	translate.cxx tapsets.cxx buildrun.cxx loc2c.c hash.cxx \
 	mdfour.c cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
 	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
-	$(am__append_4)
+	tapset-perfmon.cxx $(am__append_4)
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ $(am__append_6)
 
 # Arrange for git_version.h to be regenerated at every "make".
@@ -605,6 +605,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-parse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-staptree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-been.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-perfmon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-procfs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-timers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapsets.Po@am__quote@
@@ -1128,6 +1129,20 @@ stap-tapset-timers.obj: tapset-timers.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-timers.cxx' object='stap-tapset-timers.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-timers.obj `if test -f 'tapset-timers.cxx'; then $(CYGPATH_W) 'tapset-timers.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-timers.cxx'; fi`
+
+stap-tapset-perfmon.o: tapset-perfmon.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-perfmon.o -MD -MP -MF $(DEPDIR)/stap-tapset-perfmon.Tpo -c -o stap-tapset-perfmon.o `test -f 'tapset-perfmon.cxx' || echo '$(srcdir)/'`tapset-perfmon.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-tapset-perfmon.Tpo $(DEPDIR)/stap-tapset-perfmon.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-perfmon.cxx' object='stap-tapset-perfmon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-perfmon.o `test -f 'tapset-perfmon.cxx' || echo '$(srcdir)/'`tapset-perfmon.cxx
+
+stap-tapset-perfmon.obj: tapset-perfmon.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-perfmon.obj -MD -MP -MF $(DEPDIR)/stap-tapset-perfmon.Tpo -c -o stap-tapset-perfmon.obj `if test -f 'tapset-perfmon.cxx'; then $(CYGPATH_W) 'tapset-perfmon.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-perfmon.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-tapset-perfmon.Tpo $(DEPDIR)/stap-tapset-perfmon.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-perfmon.cxx' object='stap-tapset-perfmon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-perfmon.obj `if test -f 'tapset-perfmon.cxx'; then $(CYGPATH_W) 'tapset-perfmon.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-perfmon.cxx'; fi`
 
 stap-modsign.o: modsign.cxx
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-modsign.o -MD -MP -MF $(DEPDIR)/stap-modsign.Tpo -c -o stap-modsign.o `test -f 'modsign.cxx' || echo '$(srcdir)/'`modsign.cxx

@@ -21,6 +21,7 @@ void common_probe_entryfn_prologue (translator_output* o, std::string statestr,
 void common_probe_entryfn_epilogue (translator_output* o, bool overload_processing = true);
 
 void register_tapset_been(systemtap_session& sess);
+void register_tapset_perfmon(systemtap_session& sess);
 void register_tapset_procfs(systemtap_session& sess);
 void register_tapset_timers(systemtap_session& sess);
 
