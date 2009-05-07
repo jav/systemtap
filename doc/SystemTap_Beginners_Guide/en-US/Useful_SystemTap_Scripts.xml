@@ -42,7 +42,7 @@
 	<xi:include href="Useful_Scripts-nettop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-sockettrace.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-tcp_connections.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-
+	<xi:include condition="fedora" href="Useful_Scripts-tcpdumplike.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </section>		
 <section id="mainsect-disk">
 	<title>Disk</title>
