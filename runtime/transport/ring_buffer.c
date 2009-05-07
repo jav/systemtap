@@ -4,6 +4,11 @@
 #include <linux/poll.h>
 #include <linux/cpumask.h>
 
+struct _stp_data_entry {
+	size_t			len;
+	unsigned char		buf[];
+};
+
 static struct ring_buffer *__stp_ring_buffer = NULL;
 
 /* _stp_poll_wait is a waitqueue for tasks blocked on
@@ -98,12 +103,18 @@ static int _stp_data_release_trace(struct inode *inode, struct file *file)
 }
 
 size_t
-_stp_entry_to_user(struct _stp_entry *entry, char __user *ubuf, size_t cnt)
+_stp_event_to_user(struct ring_buffer_event *event, char __user *ubuf,
+		   size_t cnt)
 {
 	int ret;
+	struct _stp_data_entry *entry;
 
-	dbug_trans(1, "entry(%p), ubuf(%p), cnt(%lu)\n", entry, ubuf, cnt);
-	if (entry == NULL || ubuf == NULL)
+	dbug_trans(1, "event(%p), ubuf(%p), cnt(%lu)\n", event, ubuf, cnt);
+	if (event == NULL || ubuf == NULL)
+		return -EFAULT;
+
+	entry = (struct _stp_data_entry *)ring_buffer_event_data(event);
+	if (entry == NULL)
 		return -EFAULT;
 
 	/* We don't do partial entries - just fail. */
@@ -152,21 +163,17 @@ static ssize_t tracing_wait_pipe(struct file *filp)
 	return 1;
 }
 
-static struct _stp_entry *
-peek_next_entry(int cpu, u64 *ts)
+static struct ring_buffer_event *
+peek_next_event(int cpu, u64 *ts)
 {
-	struct ring_buffer_event *event;
-
-	event = ring_buffer_peek(__stp_ring_buffer, cpu, ts);
-
-	return event ? ring_buffer_event_data(event) : NULL;
+	return ring_buffer_peek(__stp_ring_buffer, cpu, ts);
 }
 
-/* Find the next real entry */
-static struct _stp_entry *
-_stp_find_next_entry(long cpu_file)
+/* Find the next real event */
+static struct ring_buffer_event *
+_stp_find_next_event(long cpu_file)
 {
-	struct _stp_entry *ent;
+	struct ring_buffer_event *event;
 
 #ifdef STP_BULKMODE
 	/*
@@ -175,12 +182,12 @@ _stp_find_next_entry(long cpu_file)
 	 */
 	if (ring_buffer_empty_cpu(__stp_ring_buffer, (int)cpu_file))
 		return NULL;
-	ent = peek_next_entry(cpu_file, ent_ts);
+	event = peek_next_event(cpu_file, &_stp_rb_data.ts);
 	_stp_rb_data.cpu = cpu_file;
 
-	return ent;
+	return event;
 #else
-	struct _stp_entry *next = NULL;
+	struct ring_buffer_event *next = NULL;
 	u64 next_ts = 0, ts;
 	int next_cpu = -1;
 	int cpu;
@@ -190,13 +197,13 @@ _stp_find_next_entry(long cpu_file)
 		if (ring_buffer_empty_cpu(__stp_ring_buffer, cpu))
 			continue;
 
-		ent = peek_next_entry(cpu, &ts);
+		event = peek_next_event(cpu, &ts);
 
 		/*
-		 * Pick the entry with the smallest timestamp:
+		 * Pick the event with the smallest timestamp:
 		 */
-		if (ent && (!next || ts < next_ts)) {
-			next = ent;
+		if (event && (!next || ts < next_ts)) {
+			next = event;
 			next_cpu = cpu;
 			next_ts = ts;
 		}
@@ -218,7 +225,7 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 		     size_t cnt, loff_t *ppos)
 {
 	ssize_t sret;
-	struct _stp_entry *entry;
+	struct ring_buffer_event *event;
 	long cpu_file = (long) filp->private_data;
 
 	dbug_trans(1, "%lu\n", (unsigned long)cnt);
@@ -239,10 +246,10 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 
 	dbug_trans(1, "sret = %lu\n", (unsigned long)sret);
 	sret = 0;
-	while ((entry = _stp_find_next_entry(cpu_file)) != NULL) {
+	while ((event = _stp_find_next_event(cpu_file)) != NULL) {
 		ssize_t len;
 
-		len = _stp_entry_to_user(entry, ubuf, cnt);
+		len = _stp_event_to_user(event, ubuf, cnt);
 		if (len <= 0)
 			break;
 
@@ -284,13 +291,14 @@ static struct file_operations __stp_data_fops = {
 #endif
 };
 
-/* Here's how __STP_MAX_RESERVE_SIZE is figured.  The value of
+/*
+ * Here's how __STP_MAX_RESERVE_SIZE is figured.  The value of
  * BUF_PAGE_SIZE was gotten from the kernel's ring_buffer code.  It
  * is divided by 4, so we waste a maximum of 1/4 of the buffer (in
- * the case of a small reservation).  We then subtract the sizes of
- * structures needed for every reservation. */
-#define __STP_MAX_RESERVE_SIZE ((/*BUF_PAGE_SIZE*/ 4080 / 4) \
-				- sizeof(struct _stp_entry) \
+ * the case of a small reservation).
+ */
+#define __STP_MAX_RESERVE_SIZE ((/*BUF_PAGE_SIZE*/ 4080 / 4)	\
+				- sizeof(struct _stp_data_entry) \
 				- sizeof(struct ring_buffer_event))
 
 /*
@@ -306,9 +314,10 @@ static struct file_operations __stp_data_fops = {
  *
  */
 static size_t
-_stp_data_write_reserve(size_t size_request, struct _stp_entry **entry)
+_stp_data_write_reserve(size_t size_request, void **entry)
 {
 	struct ring_buffer_event *event;
+	struct _stp_data_entry *sde;
 
 	if (entry == NULL)
 		return -EINVAL;
@@ -318,7 +327,7 @@ _stp_data_write_reserve(size_t size_request, struct _stp_entry **entry)
 	}
 
 	event = ring_buffer_lock_reserve(__stp_ring_buffer,
-					 (sizeof(struct _stp_entry) + size_request),
+					 sizeof(struct _stp_data_entry) + size_request,
 					 0);
 	if (unlikely(! event)) {
 		dbug_trans(1, "event = NULL (%p)?\n", event);
@@ -326,22 +335,36 @@ _stp_data_write_reserve(size_t size_request, struct _stp_entry **entry)
 		return 0;
 	}
 
-	*entry = ring_buffer_event_data(event);
-	(*entry)->event = event;
-	(*entry)->len = size_request;
+	sde = (struct _stp_data_entry *)ring_buffer_event_data(event);
+	sde->len = size_request;
+	
+	*entry = event;
 	return size_request;
 }
 
-static int _stp_data_write_commit(struct _stp_entry *entry)
+static unsigned char *_stp_data_entry_data(void *entry)
+{
+	struct ring_buffer_event *event = entry;
+	struct _stp_data_entry *sde;
+
+	if (event == NULL)
+		return NULL;
+
+	sde = (struct _stp_data_entry *)ring_buffer_event_data(event);
+	return sde->buf;
+}
+
+static int _stp_data_write_commit(void *entry)
 {
 	int ret;
+	struct ring_buffer_event *event = (struct ring_buffer_event *)entry;
 
 	if (unlikely(! entry)) {
 		dbug_trans(1, "entry = NULL, returning -EINVAL\n");
 		return -EINVAL;
 	}
 
-	ret = ring_buffer_unlock_commit(__stp_ring_buffer, entry->event, 0);
+	ret = ring_buffer_unlock_commit(__stp_ring_buffer, event, 0);
 	dbug_trans(1, "after commit, empty returns %d\n",
 		   ring_buffer_empty(__stp_ring_buffer));
 

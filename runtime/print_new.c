@@ -21,7 +21,7 @@ static DEFINE_SPINLOCK(_stp_print_lock);
 void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 {
 	size_t len = pb->len;
-	struct _stp_entry *entry = NULL;
+	void *entry = NULL;
 
 	/* check to see if there is anything in the buffer */
 	dbug_trans(1, "len = %zu\n", len);
@@ -44,7 +44,8 @@ void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 
 			bytes_reserved = _stp_data_write_reserve(len, &entry);
 			if (likely(entry && bytes_reserved > 0)) {
-				memcpy(entry->buf, bufp, bytes_reserved);
+				memcpy(_stp_data_entry_data(entry), bufp,
+				       bytes_reserved);
 				_stp_data_write_commit(entry);
 				bufp += bytes_reserved;
 				len -= bytes_reserved;
@@ -67,7 +68,7 @@ void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 		bytes_reserved = _stp_data_write_reserve(sizeof(struct _stp_trace), &entry);
 		if (likely(entry && bytes_reserved > 0)) {
 			/* prevent unaligned access by using memcpy() */
-			memcpy(entry->buf, &t, sizeof(t));
+			memcpy(_stp_data_entry_data(entry), &t, sizeof(t));
 			_stp_data_write_commit(entry);
 		}
 		else {
@@ -78,7 +79,8 @@ void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 		while (len > 0) {
 			bytes_reserved = _stp_data_write_reserve(len, &entry);
 			if (likely(entry && bytes_reserved > 0)) {
-				memcpy(entry->buf, bufp, bytes_reserved);
+				memcpy(_stp_data_entry_data(entry), bufp,
+				       bytes_reserved);
 				_stp_data_write_commit(entry);
 				bufp += bytes_reserved;
 				len -= bytes_reserved;
@@ -102,7 +104,8 @@ void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 
 			bytes_reserved = _stp_data_write_reserve(len, &entry);
 			if (likely(entry && bytes_reserved > 0)) {
-				memcpy(entry->buf, bufp, bytes_reserved);
+				memcpy(_stp_data_entry_data(entry), bufp,
+				       bytes_reserved);
 				_stp_data_write_commit(entry);
 				bufp += bytes_reserved;
 				len -= bytes_reserved;

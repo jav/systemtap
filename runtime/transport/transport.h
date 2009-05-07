@@ -82,12 +82,6 @@ static int _stp_transport_data_fs_init(void);
  */
 static void _stp_transport_data_fs_close(void);
 
-struct _stp_entry {
-	void			*event;
-	size_t			len;
-	char			buf[];
-};
-
 /*
  * _stp_data_write_reserve - reserve bytes
  * size_request:	number of bytes to reserve
@@ -98,17 +92,24 @@ struct _stp_entry {
  * buffer is returned in entry.  Note that the number of bytes
  * allocated may be less than the number of bytes requested.
  */
-static size_t _stp_data_write_reserve(size_t size_request,
-				      struct _stp_entry **entry);
+static size_t _stp_data_write_reserve(size_t size_request, void **entry);
+
+
+/*
+ * _stp_data_entry_data - return data pointer from entry
+ * entry:		entry
+ *
+ * This function returns the data pointer from entry.
+ */
+static unsigned char *_stp_data_entry_data(void *entry);
 
 /*
  * _stp_data_write_commit - 
- * entry:		_stp_entry returned by
- *			 _stp-data_write_reserve()
+ * entry:		pointer returned by _stp-data_write_reserve()
  *
  * This function notifies the transport that the bytes in entry are
  * ready to be written.  
  */
-static int _stp_data_write_commit(struct _stp_entry *entry);
+static int _stp_data_write_commit(void *entry);
 
 #endif /* _TRANSPORT_TRANSPORT_H_ */
