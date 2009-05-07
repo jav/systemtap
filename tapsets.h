@@ -21,7 +21,9 @@ void common_probe_entryfn_prologue (translator_output* o, std::string statestr,
 void common_probe_entryfn_epilogue (translator_output* o, bool overload_processing = true);
 
 void register_tapset_been(systemtap_session& sess);
+void register_tapset_procfs(systemtap_session& sess);
 void register_tapset_timers(systemtap_session& sess);
+
 
 // ------------------------------------------------------------------------
 // Generic derived_probe_group: contains an ordinary vector of the
@@ -34,6 +36,19 @@ protected:
 public:
   generic_dpg () {}
   void enroll (DP* probe) { probes.push_back (probe); }
+};
+
+
+// ------------------------------------------------------------------------
+// An update visitor that allows replacing assignments with a function call
+
+struct var_expanding_visitor: public update_visitor
+{
+  static unsigned tick;
+  std::stack<functioncall**> target_symbol_setter_functioncalls;
+
+  var_expanding_visitor() {}
+  void visit_assignment (assignment* e);
 };
 
 #endif // TAPSETS_H
