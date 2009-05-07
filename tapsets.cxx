@@ -2429,41 +2429,6 @@ struct uprobe_derived_probe: public derived_probe
   void join_group (systemtap_session& s);
 };
 
-struct kprobe_derived_probe: public derived_probe
-{
-  kprobe_derived_probe (probe *base,
-			probe_point *location,
-			const string& name,
-			int64_t stmt_addr,
-			bool has_return,
-			bool has_statement,
-			bool has_maxactive,
-			long maxactive_val
-			);
-  string symbol_name;
-  Dwarf_Addr addr;
-  bool has_return;
-  bool has_statement;
-  bool has_maxactive;
-  long maxactive_val;
-  bool access_var;
-  void printsig (std::ostream &o) const;
-  void join_group (systemtap_session& s);
-};
-
-struct kprobe_derived_probe_group: public derived_probe_group
-{
-private:
-  multimap<string,kprobe_derived_probe*> probes_by_module;
-  typedef multimap<string,kprobe_derived_probe*>::iterator p_b_m_iterator;
-
-public:
-  void enroll (kprobe_derived_probe* probe);
-  void emit_module_decls (systemtap_session& s);
-  void emit_module_init (systemtap_session& s);
-  void emit_module_exit (systemtap_session& s);
-};
-
 struct dwarf_derived_probe_group: public derived_probe_group
 {
 private:
@@ -5372,24 +5337,6 @@ dwarf_derived_probe_group::enroll (dwarf_derived_probe* p)
   // sequentially.
 }
 
-/*
-void
-dwarf_derived_probe_group::enroll (kprobe_derived_probe* p)
-{
-  dwarf_derived_probe *dw_probe = new dwarf_derived_probe (p->symbol_name,
-							   "",0,
-							   p->module_name,
-							   p->section_name,
-							   0,0,
-							   p->q,NULL);
-  probes_by_module.insert (make_pair (p->module, p));
-
-  // XXX: probes put at the same address should all share a
-  // single kprobe/kretprobe, and have their handlers executed
-  // sequentially.
-}
-*/
-
 void
 dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
@@ -8133,6 +8080,41 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
 
 static string TOK_KPROBE("kprobe");
 
+struct kprobe_derived_probe: public derived_probe
+{
+  kprobe_derived_probe (probe *base,
+			probe_point *location,
+			const string& name,
+			int64_t stmt_addr,
+			bool has_return,
+			bool has_statement,
+			bool has_maxactive,
+			long maxactive_val
+			);
+  string symbol_name;
+  Dwarf_Addr addr;
+  bool has_return;
+  bool has_statement;
+  bool has_maxactive;
+  long maxactive_val;
+  bool access_var;
+  void printsig (std::ostream &o) const;
+  void join_group (systemtap_session& s);
+};
+
+struct kprobe_derived_probe_group: public derived_probe_group
+{
+private:
+  multimap<string,kprobe_derived_probe*> probes_by_module;
+  typedef multimap<string,kprobe_derived_probe*>::iterator p_b_m_iterator;
+
+public:
+  void enroll (kprobe_derived_probe* probe);
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
+};
+
 kprobe_derived_probe::kprobe_derived_probe (probe *base,
 					    probe_point *location,
 					    const string& name,
@@ -10482,10 +10464,6 @@ perfmon_derived_probe_group::emit_module_init (translator_output* o)
   o->newline(-1) << "}\n";
 }
 #endif
-
-// ------------------------------------------------------------------------
-//   kprobes-based probes,which postpone symbol resolution until runtime.
-// ------------------------------------------------------------------------
 
 
 // ------------------------------------------------------------------------
