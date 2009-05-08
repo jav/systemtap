@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 INFILE="../SystemTap_Tapset_Reference/tapsets.xml"
 OUTFILE="en-US/Tapset_Reference_Guide.xml"
 TMPFILE=`mktemp` || exit 1
