@@ -1,475 +1,269 @@
-#include <linux/types.h>
+/* -*- linux-c -*- 
+ *
+ * This is a modified version of the proposed utt interface. If that
+ * interface makes it into the kernel, this file can go away.
+ *
+ * Copyright (C) 2006 Jens Axboe <axboe@suse.de>
+ *
+ * Moved to utt.c by Tom Zanussi, 2006
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
 #include <linux/kernel.h>
-#include <linux/relay.h>
+#include <linux/module.h>
+#include <linux/percpu.h>
+#include <linux/init.h>
 #include <linux/debugfs.h>
-#if 0
-#include <linux/ring_buffer.h>
-#include <linux/wait.h>
-#include <linux/poll.h>
-#include <linux/cpumask.h>
+#include <linux/mm.h>
+#include <linux/relay.h>
+#include <linux/timer.h>
 
-static struct ring_buffer *__stp_ring_buffer = NULL;
-//DEFINE_PER_CPU(struct oprofile_cpu_buffer, cpu_buffer);
-
-/* _stp_poll_wait is a waitqueue for tasks blocked on
- * _stp_data_poll_trace() */
-static DECLARE_WAIT_QUEUE_HEAD(_stp_poll_wait);
-
-#if 1
-/*
- * Trace iterator - used by printout routines who present trace
- * results to users and which routines might sleep, etc:
- */
-struct _stp_ring_buffer_iterator {
-#if 0
-	struct trace_array	*tr;
-	struct tracer		*trace;
-	void			*private;
-	struct ring_buffer_iter	*buffer_iter[NR_CPUS];
-
-	/* The below is zeroed out in pipe_read */
-	struct trace_seq	seq;
-	struct trace_entry	*ent;
-#endif
-	int			cpu;
-	u64			ts;
-
-#if 0
-	unsigned long		iter_flags;
-	loff_t			pos;
-	long			idx;
-
-	cpumask_var_t		started;
-#endif
-};
-static struct _stp_ring_buffer_iterator _stp_iter;
+#ifndef STP_RELAY_TIMER_INTERVAL
+/* Wakeup timer interval in jiffies (default 10 ms) */
+#define STP_RELAY_TIMER_INTERVAL		((HZ + 99) / 100)
 #endif
 
-static cpumask_var_t _stp_trace_reader_cpumask;
-
-static void __stp_free_ring_buffer(void)
-{
-	free_cpumask_var(_stp_trace_reader_cpumask);
-	if (__stp_ring_buffer)
-		ring_buffer_free(__stp_ring_buffer);
-	__stp_ring_buffer = NULL;
-}
-
-static int __stp_alloc_ring_buffer(void)
-{
-	int i;
-	unsigned long buffer_size = _stp_bufsize;
-
-	if (!alloc_cpumask_var(&_stp_trace_reader_cpumask, GFP_KERNEL))
-		goto fail;
-	cpumask_clear(_stp_trace_reader_cpumask);
-
-	if (buffer_size == 0) {
-		dbug_trans(1, "using default buffer size...\n");
-		buffer_size = _stp_nsubbufs * _stp_subbuf_size;
-	}
-	/* The number passed to ring_buffer_alloc() is per cpu.  Our
-	 * 'buffer_size' is a total number of bytes to allocate.  So,
-	 * we need to divide buffer_size by the number of cpus. */
-	buffer_size /= num_online_cpus();
-	dbug_trans(1, "%lu\n", buffer_size);
-	__stp_ring_buffer = ring_buffer_alloc(buffer_size, 0);
-	if (!__stp_ring_buffer)
-		goto fail;
-
-	dbug_trans(1, "size = %lu\n", ring_buffer_size(__stp_ring_buffer));
-	return 0;
-
-fail:
-	__stp_free_ring_buffer();
-	return -ENOMEM;
-}
-
-static int _stp_data_open_trace(struct inode *inode, struct file *file)
-{
-	long cpu_file = (long) inode->i_private;
-
-	/* We only allow for one reader per cpu */
-	dbug_trans(1, "trace attach\n");
-#ifdef STP_BULKMODE
-	if (!cpumask_test_cpu(cpu_file, _stp_trace_reader_cpumask))
-		cpumask_set_cpu(cpu_file, _stp_trace_reader_cpumask);
-	else {
-		dbug_trans(1, "returning EBUSY\n");
-		return -EBUSY;
-	}
-#else
-	if (!cpumask_empty(_stp_trace_reader_cpumask)) {
-		dbug_trans(1, "returning EBUSY\n");
-		return -EBUSY;
-	}
-	cpumask_setall(_stp_trace_reader_cpumask);
-#endif
-	file->private_data = inode->i_private;
-	return 0;
-}
-
-static int _stp_data_release_trace(struct inode *inode, struct file *file)
-{
-	long cpu_file = (long) inode->i_private;
-	dbug_trans(1, "trace detach\n");
-#ifdef STP_BULKMODE
-	cpumask_clear_cpu(cpu_file, _stp_trace_reader_cpumask);
-#else
-	cpumask_clear(_stp_trace_reader_cpumask);
-#endif
-
-	return 0;
-}
-
-size_t
-_stp_entry_to_user(struct _stp_entry *entry, char __user *ubuf, size_t cnt)
-{
-	int ret;
-
-	dbug_trans(1, "entry(%p), ubuf(%p), cnt(%lu)\n", entry, ubuf, cnt);
-	if (entry == NULL || ubuf == NULL)
-		return -EFAULT;
-
-	/* We don't do partial entries - just fail. */
-	if (entry->len > cnt)
-		return -EBUSY;
-
-	if (cnt > entry->len)
-		cnt = entry->len;
-	ret = copy_to_user(ubuf, entry->buf, cnt);
-	if (ret)
-		return -EFAULT;
-
-	return cnt;
-}
-
-static ssize_t tracing_wait_pipe(struct file *filp)
-{
-	while (ring_buffer_empty(__stp_ring_buffer)) {
-
-		if ((filp->f_flags & O_NONBLOCK)) {
-			dbug_trans(1, "returning -EAGAIN\n");
-			return -EAGAIN;
-		}
-
-		/*
-		 * This is a make-shift waitqueue. The reason we don't use
-		 * an actual wait queue is because:
-		 *  1) we only ever have one waiter
-		 *  2) the tracing, traces all functions, we don't want
-		 *     the overhead of calling wake_up and friends
-		 *     (and tracing them too)
-		 *     Anyway, this is really very primitive wakeup.
-		 */
-		set_current_state(TASK_INTERRUPTIBLE);
-		//iter->tr->waiter = current;
-
-		/* sleep for 100 msecs, and try again. */
-		schedule_timeout(HZ/10);
-
-		//iter->tr->waiter = NULL;
-
-		if (signal_pending(current)) {
-			dbug_trans(1, "returning -EINTR\n");
-			return -EINTR;
-		}
-	}
-
-	dbug_trans(1, "returning 1\n");
-	return 1;
-}
-
-static struct _stp_entry *
-peek_next_entry(int cpu, u64 *ts)
-{
-	struct ring_buffer_event *event;
-
-	event = ring_buffer_peek(__stp_ring_buffer, cpu, ts);
-
-	return event ? ring_buffer_event_data(event) : NULL;
-}
-
-static struct _stp_entry *
-__stp_find_next_entry(long cpu_file, int *ent_cpu, u64 *ent_ts)
-{
-	struct _stp_entry *ent;
-
-#ifdef STP_BULKMODE
-	/*
-	 * If we are in a per_cpu trace file, don't bother by iterating over
-	 * all cpus and peek directly.
-	 */
-	if (ring_buffer_empty_cpu(__stp_ring_buffer, (int)cpu_file))
-		return NULL;
-	ent = peek_next_entry(cpu_file, ent_ts);
-	if (ent_cpu)
-		*ent_cpu = cpu_file;
-
-	return ent;
-#else
-	struct _stp_entry *next = NULL;
-	u64 next_ts = 0, ts;
-	int next_cpu = -1;
-	int cpu;
-
-	for_each_possible_cpu(cpu) {
-
-		if (ring_buffer_empty_cpu(__stp_ring_buffer, cpu))
-			continue;
-
-		ent = peek_next_entry(cpu, &ts);
-
-		/*
-		 * Pick the entry with the smallest timestamp:
-		 */
-		if (ent && (!next || ts < next_ts)) {
-			next = ent;
-			next_cpu = cpu;
-			next_ts = ts;
-		}
-	}
-
-	if (ent_cpu)
-		*ent_cpu = next_cpu;
-
-	if (ent_ts)
-		*ent_ts = next_ts;
-
-	return next;
-#endif
-}
-
-/* Find the next real entry, and increment the iterator to the next entry */
-static struct _stp_entry *_stp_find_next_entry(long cpu_file)
-{
-    return __stp_find_next_entry(cpu_file, &_stp_iter.cpu, &_stp_iter.ts);
-}
-
-
-/*
- * Consumer reader.
- */
-static ssize_t
-_stp_data_read_trace(struct file *filp, char __user *ubuf,
-		     size_t cnt, loff_t *ppos)
-{
-	ssize_t sret;
-	struct _stp_entry *entry;
-	long cpu_file = (long) filp->private_data;
-
-	dbug_trans(1, "%lu\n", (unsigned long)cnt);
-
-	sret = tracing_wait_pipe(filp);
-	dbug_trans(1, "tracing_wait_pipe returned %ld\n", sret);
-	if (sret <= 0)
-		goto out;
-
-	/* stop when tracing is finished */
-	if (ring_buffer_empty(__stp_ring_buffer)) {
-		sret = 0;
-		goto out;
-	}
-
-	if (cnt >= PAGE_SIZE)
-		cnt = PAGE_SIZE - 1;
-
-	dbug_trans(1, "sret = %lu\n", (unsigned long)sret);
-	sret = 0;
-	while ((entry = _stp_find_next_entry(cpu_file)) != NULL) {
-		ssize_t len;
-
-		len = _stp_entry_to_user(entry, ubuf, cnt);
-		if (len <= 0)
-			break;
-
-		ring_buffer_consume(__stp_ring_buffer, _stp_iter.cpu,
-				    &_stp_iter.ts);
-		ubuf += len;
-		cnt -= len;
-		sret += len;
-		if (cnt <= 0)
-			break;
-	}
-out:
-	return sret;
-}
-
-
-static unsigned int
-_stp_data_poll_trace(struct file *filp, poll_table *poll_table)
-{
-	dbug_trans(1, "entry\n");
-	if (! ring_buffer_empty(__stp_ring_buffer))
-		return POLLIN | POLLRDNORM;
-	poll_wait(filp, &_stp_poll_wait, poll_table);
-	if (! ring_buffer_empty(__stp_ring_buffer))
-		return POLLIN | POLLRDNORM;
-
-	dbug_trans(1, "exit\n");
-	return 0;
-}
-
-static struct file_operations __stp_data_fops = {
-	.owner		= THIS_MODULE,
-	.open		= _stp_data_open_trace,
-	.release	= _stp_data_release_trace,
-	.poll		= _stp_data_poll_trace,
-	.read		= _stp_data_read_trace,
-#if 0
-	.splice_read	= tracing_splice_read_pipe,
-#endif
+enum _stp_transport_state {
+	STP_TRANSPORT_STOPPED,
+	STP_TRANSPORT_INITIALIZED,
+	STP_TRANSPORT_RUNNING,
 };
 
-/* Here's how __STP_MAX_RESERVE_SIZE is figured.  The value of
- * BUF_PAGE_SIZE was gotten from the kernel's ring_buffer code.  It
- * is divided by 4, so we waste a maximum of 1/4 of the buffer (in
- * the case of a small reservation).  We then subtract the sizes of
- * structures needed for every reservation. */
-#define __STP_MAX_RESERVE_SIZE ((/*BUF_PAGE_SIZE*/ 4080 / 4) \
-				- sizeof(struct _stp_entry) \
-				- sizeof(struct ring_buffer_event))
+struct _stp_relay_data_type {
+	enum _stp_transport_state transport_state;
+	struct rchan *rchan;
+	struct dentry *dir;		/* systemtap/module_name */
+	struct dentry *dropped_file;
+	atomic_t dropped;
+	struct dentry *utt_tree_root;	/* systemtap */
+	atomic_t wakeup;
+	struct timer_list timer;
+	int overwrite_flag;
+};
+struct _stp_relay_data_type _stp_relay_data;
 
 /*
- * This function prepares the cpu buffer to write a sample.
+ *	__stp_relay_switch_subbuf - switch to a new sub-buffer
  *
- * Struct op_entry is used during operations on the ring buffer while
- * struct op_sample contains the data that is stored in the ring
- * buffer. Struct entry can be uninitialized. The function reserves a
- * data array that is specified by size. Use
- * op_cpu_buffer_write_commit() after preparing the sample. In case of
- * errors a null pointer is returned, otherwise the pointer to the
- * sample.
- *
+ *	Most of this function is deadcopy of relay_switch_subbuf.
  */
-static size_t
-_stp_data_write_reserve(size_t size_request, struct _stp_entry **entry)
+static size_t __stp_relay_switch_subbuf(struct rchan_buf *buf, size_t length)
 {
-	struct ring_buffer_event *event;
+	char *old, *new;
+	size_t old_subbuf, new_subbuf;
 
-	if (entry == NULL)
-		return -EINVAL;
+	if (unlikely(buf == NULL))
+		return 0;
 
-	if (size_request > __STP_MAX_RESERVE_SIZE) {
-		size_request = __STP_MAX_RESERVE_SIZE;
+	if (unlikely(length > buf->chan->subbuf_size))
+		goto toobig;
+
+	if (buf->offset != buf->chan->subbuf_size + 1) {
+		buf->prev_padding = buf->chan->subbuf_size - buf->offset;
+		old_subbuf = buf->subbufs_produced % buf->chan->n_subbufs;
+		buf->padding[old_subbuf] = buf->prev_padding;
+		buf->subbufs_produced++;
+		buf->dentry->d_inode->i_size += buf->chan->subbuf_size -
+			buf->padding[old_subbuf];
+		smp_mb();
+		if (waitqueue_active(&buf->read_wait))
+			/*
+			 * Calling wake_up_interruptible() and __mod_timer()
+			 * from here will deadlock if we happen to be logging
+			 * from the scheduler and timer (trying to re-grab
+			 * rq->lock/timer->base->lock), so just set a flag.
+			 */
+			atomic_set(&_stp_relay_data.wakeup, 1);
 	}
 
-	event = ring_buffer_lock_reserve(__stp_ring_buffer,
-					 (sizeof(struct _stp_entry) + size_request),
-					 0);
-	if (unlikely(! event)) {
-		dbug_trans(1, "event = NULL (%p)?\n", event);
-		entry = NULL;
+	old = buf->data;
+	new_subbuf = buf->subbufs_produced % buf->chan->n_subbufs;
+	new = (char*)buf->start + new_subbuf * buf->chan->subbuf_size;
+	buf->offset = 0;
+	if (!buf->chan->cb->subbuf_start(buf, new, old, buf->prev_padding)) {
+		buf->offset = buf->chan->subbuf_size + 1;
 		return 0;
 	}
+	buf->data = new;
+	buf->padding[new_subbuf] = 0;
 
-	*entry = ring_buffer_event_data(event);
-	(*entry)->event = event;
-	(*entry)->len = size_request;
-	return size_request;
+	if (unlikely(length + buf->offset > buf->chan->subbuf_size))
+		goto toobig;
+
+	return length;
+
+toobig:
+	buf->chan->last_toobig = length;
+	return 0;
 }
+
+static void __stp_relay_wakeup_readers(struct rchan_buf *buf)
+{
+	if (buf && waitqueue_active(&buf->read_wait) &&
+	    buf->subbufs_produced != buf->subbufs_consumed)
+		wake_up_interruptible(&buf->read_wait);
+}
+
+static void __stp_relay_wakeup_timer(unsigned long val)
+{
+#ifdef STP_BULKMODE
+	int i;
 #endif
 
-static int _stp_data_write_commit(struct _stp_entry *entry)
-{
-#if 0
-	int ret;
-
-	if (unlikely(! entry)) {
-		dbug_trans(1, "entry = NULL, returning -EINVAL\n");
-		return -EINVAL;
+	if (atomic_read(&_stp_relay_data.wakeup)) {
+		atomic_set(&_stp_relay_data.wakeup, 0);
+#ifdef STP_BULKMODE
+		for_each_possible_cpu(i)
+			__stp_relay_wakeup_readers(_stp_relay_data.rchan->buf[i]);
+#else
+		__stp_relay_wakeup_readers(_stp_relay_data.rchan->buf[0]);
+#endif
 	}
 
-	ret = ring_buffer_unlock_commit(__stp_ring_buffer, entry->event, 0);
-	dbug_trans(1, "after commit, empty returns %d\n",
-		   ring_buffer_empty(__stp_ring_buffer));
-
-	wake_up_interruptible(&_stp_poll_wait);
-	return ret;
-#else
-	return 0;
-#endif
+ 	mod_timer(&_stp_relay_data.timer, jiffies + STP_RELAY_TIMER_INTERVAL);
 }
 
+static void __stp_relay_timer_init(void)
+{
+	atomic_set(&_stp_relay_data.wakeup, 0);
+	init_timer(&_stp_relay_data.timer);
+	_stp_relay_data.timer.expires = jiffies + STP_RELAY_TIMER_INTERVAL;
+	_stp_relay_data.timer.function = __stp_relay_wakeup_timer;
+	_stp_relay_data.timer.data = 0;
+	add_timer(&_stp_relay_data.timer);
+	smp_mb();
+}
 
-#if 0
-static struct dentry *__stp_entry[NR_CPUS] = { NULL };
-#endif
+static void stp_relay_set_overwrite(int overwrite)
+{
+	_stp_relay_data.overwrite_flag = overwrite;
+}
 
+static void __stp_relay_remove_root(void)
+{
+	if (_stp_relay_data.utt_tree_root) {
+		if (!_stp_lock_transport_dir()) {
+			errk("Unable to lock transport directory.\n");
+			return;
+		}
+		if (simple_empty(_stp_relay_data.utt_tree_root))
+			debugfs_remove(_stp_relay_data.utt_tree_root);
+		_stp_unlock_transport_dir();
+		_stp_relay_data.utt_tree_root = NULL;
+	}
+}
 
+static void __stp_relay_remove_tree(void)
+{
+	if (_stp_relay_data.dir == NULL)
+		return;
+	debugfs_remove(_stp_relay_data.dir);
+	__stp_relay_remove_root();
+}
 
-struct _stp_relay_data {
-    struct rchan *rchan;
-    int overwrite_flag;
+static struct dentry *__stp_relay_create_tree(const char *root,
+					      const char *name)
+{
+        struct dentry *dir = NULL;
+
+        if (root == NULL || name == NULL)
+                return NULL;
+
+        if (!_stp_relay_data.utt_tree_root) {
+                _stp_relay_data.utt_tree_root = _stp_get_root_dir();
+                if (!_stp_relay_data.utt_tree_root)
+                        goto err;
+        }
+
+        dir = debugfs_create_dir(name, _stp_relay_data.utt_tree_root);
+        if (!dir)
+                __stp_relay_remove_root();
+err:
+        return dir;
+}
+
+static void __stp_relay_cleanup(void)
+{
+	if (_stp_relay_data.rchan)
+		relay_close(_stp_relay_data.rchan);
+	if (_stp_relay_data.dropped_file)
+		debugfs_remove(_stp_relay_data.dropped_file);
+	__stp_relay_remove_tree();
+}
+
+static int _stp_relay_remove(void)
+{
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED ||
+	    _stp_relay_data.transport_state == STP_TRANSPORT_STOPPED)
+		__stp_relay_cleanup();
+
+	return 0;
+}
+
+static int __stp_relay_dropped_open(struct inode *inode, struct file *filp)
+{
+	return 0;
+}
+
+static ssize_t __stp_relay_dropped_read(struct file *filp, char __user *buffer,
+				size_t count, loff_t *ppos)
+{
+	char buf[16];
+
+	snprintf(buf, sizeof(buf), "%u\n",
+		 atomic_read(&_stp_relay_data.dropped));
+
+	return simple_read_from_buffer(buffer, count, ppos, buf, strlen(buf));
+}
+
+static struct file_operations __stp_relay_dropped_fops = {
+	.owner =	THIS_MODULE,
+	.open =		__stp_relay_dropped_open,
+	.read =		__stp_relay_dropped_read,
 };
-static struct _stp_relay_data _stp_relay;
 
-
-
-static size_t utt_switch_subbuf(struct utt_trace *utt, struct rchan_buf *buf,
-				size_t length);
-/**
- *      utt_reserve - reserve slot in channel buffer
- *      @utt: utt channel
- *      @length: number of bytes to reserve
- *
- *      Returns pointer to reserved slot, NULL if full.
- *
- *      This function is utt_switch_subbuf version of relay_reserve.
+/*
+ * Keep track of how many times we encountered a full subbuffer, to aid
+ * the user space app in telling how many lost events there were.
  */
-static size_t
-_stp_data_write_reserve(size_t size_request, struct _stp_entry **entry)
+static int __stp_relay_subbuf_start_callback(struct rchan_buf *buf,
+					     void *subbuf, void *prev_subbuf,
+					     size_t prev_padding)
 {
-#if 0
-	void *reserved;
-	struct rchan_buf *buf = utt->rchan->buf[smp_processor_id()];
-
-	if (unlikely(buf->offset + length > buf->chan->subbuf_size)) {
-		length = utt_switch_subbuf(utt, buf, length);
-		if (!length)
-			return NULL;
-	}
-	reserved = (char*)buf->data + buf->offset;
-	buf->offset += length;
-
-	return reserved;
-#else
-	return 0;
-#endif
-}
-
-
-
-
-static int
-_stp_relay_subbuf_start_callback(struct rchan_buf *buf, void *subbuf,
-				 void *prev_subbuf, size_t prev_padding)
-{
-	if (_stp_relay.overwrite_flag || !relay_buf_full(buf))
+	if (_stp_relay_data.overwrite_flag || !relay_buf_full(buf))
 		return 1;
 
+	atomic_inc(&_stp_relay_data.dropped);
+	return 0;
+}
+
+static int __stp_relay_remove_buf_file_callback(struct dentry *dentry)
+{
+	debugfs_remove(dentry);
 	return 0;
 }
 
 static struct dentry *
-_stp_relay_create_buf_file_callback(const char *filename,
-				    struct dentry *parent,
-				    int mode,
-				    struct rchan_buf *buf,
-				    int *is_global)
+__stp_relay_create_buf_file_callback(const char *filename,
+				     struct dentry *parent,
+				     int mode,
+				     struct rchan_buf *buf,
+				     int *is_global)
 {
-	struct dentry *file; 
-
-	if (is_global) {
-#ifdef STP_BULKMODE
-		*is_global = 0;
-#else
-		*is_global = 1;
-#endif
-	}
-
-	file = debugfs_create_file(filename, mode, parent, buf,
-				   &relay_file_operations);
+	struct dentry *file = debugfs_create_file(filename, mode, parent, buf,
+						  &relay_file_operations);
 	if (file) {
 		file->d_inode->i_uid = _stp_uid;
 		file->d_inode->i_gid = _stp_gid;
@@ -477,18 +271,134 @@ _stp_relay_create_buf_file_callback(const char *filename,
 	return file;
 }
 
-static int
-_stp_relay_remove_buf_file_callback(struct dentry *dentry)
+static struct rchan_callbacks __stp_relay_callbacks = {
+	.subbuf_start		= __stp_relay_subbuf_start_callback,
+	.create_buf_file	= __stp_relay_create_buf_file_callback,
+	.remove_buf_file	= __stp_relay_remove_buf_file_callback,
+};
+
+#if 0
+/*
+ * Setup everything required to start tracing
+ */
+static struct _stp_relay_data_type *utt_trace_setup(struct utt_trace_setup *utts)
 {
-	debugfs_remove(dentry);
-	return 0;
+	struct dentry *dir = NULL;
+	int ret = -EINVAL;
+	u64 npages;
+	struct sysinfo si;
+
+	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+	_stp_relay_data.overwrite_flag = 0;
+
+	if (!utts->buf_size || !utts->buf_nr)
+		goto err;
+
+	ret = -ENOENT;
+	dir = __stp_relay_create_tree(utts->root, utts->name);
+	if (!dir)
+		goto err;
+	_stp_relay_data.dir = dir;
+	atomic_set(&_stp_relay_data.dropped, 0);
+
+	ret = -EIO;
+	_stp_relay_data.dropped_file = debugfs_create_file("dropped", 0444,
+							   dir, NULL,
+							   &__stp_relay_dropped_fops);
+	if (!_stp_relay_data.dropped_file)
+		goto err;
+
+	npages = utts->buf_size * utts->buf_nr;
+#ifndef STP_BULKMODE
+	npages *= num_possible_cpus();
+#endif
+	npages >>= PAGE_SHIFT;
+	si_meminfo(&si);
+#define MB(i) (unsigned long)((i) >> (20 - PAGE_SHIFT))
+	if (npages > (si.freeram + si.bufferram)) {
+		errk("Not enough free+buffered memory(%luMB) for log buffer(%luMB)\n",
+		     MB(si.freeram + si.bufferram),
+		     MB(npages));
+		ret = -ENOMEM;
+		goto err;
+	} else if (npages > si.freeram) {
+		/* exceeds freeram, but below freeram+bufferram */
+		printk(KERN_WARNING
+		       "log buffer size exceeds free memory(%luMB)\n",
+		       MB(si.freeram));
+	}
+
+#if (RELAYFS_CHANNEL_VERSION >= 7)
+	_stp_relay_data.rchan = relay_open("trace", dir, utts->buf_size,
+					   utts->buf_nr, 
+					   &__stp_relay_callbacks, NULL);
+#else
+	_stp_relay_data.rchan = relay_open("trace", dir, utts->buf_size,
+					   utts->buf_nr,
+					   &__stp_relay_callbacks);
+#endif
+
+	if (!_stp_relay_data.rchan)
+		goto err;
+
+	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
+
+	utts->err = 0;
+	return utt;
+err:
+	if (_stp_relay_data.dropped_file)
+		debugfs_remove(_stp_relay_data.dropped_file);
+	if (_stp_relay_data.rchan)
+		relay_close(_stp_relay_data.rchan);
+	if (dir)
+		__stp_relay_remove_tree();
+	utts->err = ret;
+	return NULL;
 }
 
-static struct rchan_callbacks _stp_relay_callbacks = {
-	.subbuf_start		= _stp_relay_subbuf_start_callback,
-	.create_buf_file	= _stp_relay_create_buf_file_callback,
-	.remove_buf_file	= _stp_relay_remove_buf_file_callback,
-};
+static int utt_trace_startstop(struct _stp_relay_data_type *utt, int start)
+{
+	int ret;
+
+	/*
+	 * For starting a trace, we can transition from a setup or stopped
+	 * trace. For stopping a trace, the state must be running
+	 */
+	ret = -EINVAL;
+	if (start) {
+		if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED ||
+		    _stp_relay_data.transport_state == STP_TRANSPORT_STOPPED) {
+			__stp_relay_timer_init();
+			smp_mb();
+			_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
+			ret = 0;
+		}
+	} else {
+		if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING) {
+			_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+			del_timer_sync(&_stp_relay_data.timer);
+			relay_flush(_stp_relay_data.rchan);
+			ret = 0;
+		}
+	}
+
+	return ret;
+}
+#endif
+
+static void _stp_transport_data_fs_close(void)
+{
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING)
+		del_timer_sync(&_stp_relay_data.timer);
+
+	if (_stp_relay_data.dropped_file)
+		debugfs_remove(_stp_relay_data.dropped_file);
+	if (_stp_relay_data.rchan) {
+		relay_flush(_stp_relay_data.rchan);
+		relay_close(_stp_relay_data.rchan);
+	}
+	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+}
 
 static int _stp_transport_data_fs_init(void)
 {
@@ -496,8 +406,22 @@ static int _stp_transport_data_fs_init(void)
 	u64 npages;
 	struct sysinfo si;
 
-	_stp_relay.overwrite_flag = 0;
+	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+	_stp_relay_data.overwrite_flag = 0;
+	atomic_set(&_stp_relay_data.dropped, 0);
+	_stp_relay_data.dropped_file = NULL;
+	_stp_relay_data.rchan = NULL;
 
+	/* Create "dropped" file. */
+	_stp_relay_data.dropped_file
+		= debugfs_create_file("dropped", 0444, _stp_get_module_dir(),
+				      NULL, &__stp_relay_dropped_fops);
+	if (!_stp_relay_data.dropped_file) {
+		rc = -EIO;
+		goto err;
+	}
+
+	/* Create "trace" file. */
 	npages = _stp_subbuf_size * _stp_nsubbufs;
 #ifdef STP_BULKMODE
 	npages *= num_possible_cpus();
@@ -518,33 +442,71 @@ static int _stp_transport_data_fs_init(void)
 		       "log buffer size exceeds free memory(%luMB)\n",
 		       MB(si.freeram));
 	}
-
 #if (RELAYFS_CHANNEL_VERSION >= 7)
-	_stp_relay.rchan = relay_open("trace", _stp_get_module_dir(),
-				      _stp_subbuf_size, _stp_nsubbufs,
-				      &_stp_relay_callbacks, NULL);
+	_stp_relay_data.rchan = relay_open("trace", _stp_get_module_dir(),
+					   _stp_subbuf_size, _stp_nsubbufs,
+					   &__stp_relay_callbacks, NULL);
 #else  /* (RELAYFS_CHANNEL_VERSION < 7) */
-	_stp_relay.rchan = relay_open("trace", _stp_get_module_dir(),
-				      _stp_subbuf_size, _stp_nsubbufs,
-				      &_stp_relay_callbacks);
+	_stp_relay_data.rchan = relay_open("trace", _stp_get_module_dir(),
+					   _stp_subbuf_size, _stp_nsubbufs,
+					   &__stp_relay_callbacks);
 #endif  /* (RELAYFS_CHANNEL_VERSION < 7) */
-
-	if (!_stp_relay.rchan) {
+	if (!_stp_relay_data.rchan) {
 		rc = -ENOENT;
 		goto err;
 	}
 	dbug_trans(1, "returning 0...\n");
+	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
+
+	/* We're initialized.  Now start the timer. */
+	__stp_relay_timer_init();
+	_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
+
 	return 0;
 
 err:
-	if (_stp_relay.rchan)
-		relay_close(_stp_relay.rchan);
+	_stp_transport_data_fs_close();
 	return rc;
 }
 
-static void _stp_transport_data_fs_close(void)
+
+/**
+ *      utt_reserve - reserve slot in channel buffer
+ *      @utt: utt channel
+ *      @length: number of bytes to reserve
+ *
+ *      Returns pointer to reserved slot, NULL if full.
+ *
+ *      This function is utt_switch_subbuf version of relay_reserve.
+ */
+static size_t
+_stp_data_write_reserve(size_t size_request, void **entry)
 {
-	if (_stp_relay.rchan)
-		relay_close(_stp_relay.rchan);
+	struct rchan_buf *buf;
+
+	if (entry == NULL)
+		return -EINVAL;
+
+	buf = _stp_relay_data.rchan->buf[smp_processor_id()];
+	if (unlikely(buf->offset + size_request > buf->chan->subbuf_size)) {
+		size_request = __stp_relay_switch_subbuf(buf, size_request);
+		if (!size_request)
+			return 0;
+	}
+	*entry = (char*)buf->data + buf->offset;
+	buf->offset += size_request;
+
+	return size_request;
 }
 
+static unsigned char *_stp_data_entry_data(void *entry)
+{
+	/* Nothing to do here. */
+	return entry;
+}
+
+static int _stp_data_write_commit(void *entry)
+{
+	/* Nothing to do here. */
+	return 0;
+}
