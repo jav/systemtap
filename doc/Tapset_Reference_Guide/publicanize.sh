@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/bash -x
 INFILE="../SystemTap_Tapset_Reference/tapsets.xml"
 OUTFILE="en-US/Tapset_Reference_Guide.xml"
-TMPFILE='mktemp' || exit 1
-TMPFILE2='mktemp' || exit 1
+TMPFILE=`mktemp` || exit 1
+TMPFILE2=`mktemp` || exit 1
 
 do_help()
 { 
