@@ -228,7 +228,8 @@ AC_ARG_ENABLE([server],
     [enable building of stap-server/client (default on if nss etc. found).]),
   [enable_server=$enableval],
   [enable_server="check"])
-dnl Find the location of nss and nspr headers
+dnl Find the location of nss and nspr headers and certutil
+AC_CHECK_PROG(have_certutil, certutil, [yes], [no])
 AC_CHECK_FILE([/usr/include/nss3], nssdir=nss3, [
 	AC_CHECK_FILE([/usr/include/nss], nssdir=nss)
 ])
@@ -249,18 +250,18 @@ AC_CHECK_LIB(nspr4, PR_Connect, [
 	AC_CHECK_LIB(ssl3, SSL_ReHandshake, have_nss_libs=yes)
 ])
 fi
-if test "x${have_nss_includes}${have_nss_libs}" != "xyesyes"; then
+if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" != "xyesyesyes"; then
   if test "$enable_server" == "yes"; then
-    AC_MSG_ERROR([cannot find all libraries for stap-server])
+    AC_MSG_ERROR([cannot find all libraries or tools for stap-server])
   fi
   if test "$enable_server" == "check"; then
-    AC_MSG_WARN([will not build stap-server, cannot find all libraries])
+    AC_MSG_WARN([will not build stap-server, cannot find all libraries or tools])
   fi
 else
     AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
 fi
-AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes" -a "$enable_server" != "no"])
-AM_CONDITIONAL([HAVE_NSS],     [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes"])
+AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}${javer_certutil}" == "xyesyesyes" -a "$enable_server" != "no"])
+AM_CONDITIONAL([HAVE_NSS],     [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes"])
 
 dnl Handle the optional grapher
 AC_ARG_ENABLE([grapher],

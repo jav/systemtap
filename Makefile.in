@@ -78,7 +78,7 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(top_srcdir)/man/stapprobes.tcp.3stap.in \
 	$(top_srcdir)/man/stapprobes.udp.3stap.in \
 	$(top_srcdir)/initscript/systemtap.in $(srcdir)/run-stap.in \
-	$(srcdir)/run-staprun.in depcomp $(oldinclude_HEADERS)
+	$(srcdir)/run-staprun.in depcomp depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -275,6 +275,7 @@ docdir = @docdir@
 dvidir = @dvidir@
 elfutils_abs_srcdir = @elfutils_abs_srcdir@
 exec_prefix = @exec_prefix@
+have_certutil = @have_certutil@
 have_dvips = @have_dvips@
 have_latex = @have_latex@
 have_latex2html = @have_latex2html@
