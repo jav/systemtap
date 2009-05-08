@@ -251,6 +251,8 @@ static int _stp_transport_data_fs_init(void)
 		rc = -EIO;
 		goto err;
 	}
+	_stp_relay_data.dropped_file->d_inode->i_uid = _stp_uid;
+	_stp_relay_data.dropped_file->d_inode->i_gid = _stp_gid;
 
 	/* Create "trace" file. */
 	npages = _stp_subbuf_size * _stp_nsubbufs;
