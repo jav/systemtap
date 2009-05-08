@@ -1,11 +1,14 @@
 /* -*- linux-c -*- 
  *
- * This is a modified version of the proposed utt interface. If that
- * interface makes it into the kernel, this file can go away.
+ * This transport version uses relayfs on top of a debugfs file.  This
+ * code started as a proposed relayfs interface called 'utt'.  It has
+ * been modified and simplified for systemtap.
  *
- * Copyright (C) 2006 Jens Axboe <axboe@suse.de>
+ * Changes Copyright (C) 2009 Red Hat Inc.
  *
- * Moved to utt.c by Tom Zanussi, 2006
+ * Original utt code by:
+ *   Copyright (C) 2006 Jens Axboe <axboe@suse.de>
+ *   Moved to utt.c by Tom Zanussi, 2006
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -44,10 +47,8 @@ enum _stp_transport_state {
 struct _stp_relay_data_type {
 	enum _stp_transport_state transport_state;
 	struct rchan *rchan;
-	struct dentry *dir;		/* systemtap/module_name */
 	struct dentry *dropped_file;
 	atomic_t dropped;
-	struct dentry *utt_tree_root;	/* systemtap */
 	atomic_t wakeup;
 	struct timer_list timer;
 	int overwrite_flag;
@@ -151,67 +152,6 @@ static void stp_relay_set_overwrite(int overwrite)
 	_stp_relay_data.overwrite_flag = overwrite;
 }
 
-static void __stp_relay_remove_root(void)
-{
-	if (_stp_relay_data.utt_tree_root) {
-		if (!_stp_lock_transport_dir()) {
-			errk("Unable to lock transport directory.\n");
-			return;
-		}
-		if (simple_empty(_stp_relay_data.utt_tree_root))
-			debugfs_remove(_stp_relay_data.utt_tree_root);
-		_stp_unlock_transport_dir();
-		_stp_relay_data.utt_tree_root = NULL;
-	}
-}
-
-static void __stp_relay_remove_tree(void)
-{
-	if (_stp_relay_data.dir == NULL)
-		return;
-	debugfs_remove(_stp_relay_data.dir);
-	__stp_relay_remove_root();
-}
-
-static struct dentry *__stp_relay_create_tree(const char *root,
-					      const char *name)
-{
-        struct dentry *dir = NULL;
-
-        if (root == NULL || name == NULL)
-                return NULL;
-
-        if (!_stp_relay_data.utt_tree_root) {
-                _stp_relay_data.utt_tree_root = _stp_get_root_dir();
-                if (!_stp_relay_data.utt_tree_root)
-                        goto err;
-        }
-
-        dir = debugfs_create_dir(name, _stp_relay_data.utt_tree_root);
-        if (!dir)
-                __stp_relay_remove_root();
-err:
-        return dir;
-}
-
-static void __stp_relay_cleanup(void)
-{
-	if (_stp_relay_data.rchan)
-		relay_close(_stp_relay_data.rchan);
-	if (_stp_relay_data.dropped_file)
-		debugfs_remove(_stp_relay_data.dropped_file);
-	__stp_relay_remove_tree();
-}
-
-static int _stp_relay_remove(void)
-{
-	if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED ||
-	    _stp_relay_data.transport_state == STP_TRANSPORT_STOPPED)
-		__stp_relay_cleanup();
-
-	return 0;
-}
-
 static int __stp_relay_dropped_open(struct inode *inode, struct file *filp)
 {
 	return 0;
@@ -276,115 +216,6 @@ static struct rchan_callbacks __stp_relay_callbacks = {
 	.create_buf_file	= __stp_relay_create_buf_file_callback,
 	.remove_buf_file	= __stp_relay_remove_buf_file_callback,
 };
-
-#if 0
-/*
- * Setup everything required to start tracing
- */
-static struct _stp_relay_data_type *utt_trace_setup(struct utt_trace_setup *utts)
-{
-	struct dentry *dir = NULL;
-	int ret = -EINVAL;
-	u64 npages;
-	struct sysinfo si;
-
-	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
-	_stp_relay_data.overwrite_flag = 0;
-
-	if (!utts->buf_size || !utts->buf_nr)
-		goto err;
-
-	ret = -ENOENT;
-	dir = __stp_relay_create_tree(utts->root, utts->name);
-	if (!dir)
-		goto err;
-	_stp_relay_data.dir = dir;
-	atomic_set(&_stp_relay_data.dropped, 0);
-
-	ret = -EIO;
-	_stp_relay_data.dropped_file = debugfs_create_file("dropped", 0444,
-							   dir, NULL,
-							   &__stp_relay_dropped_fops);
-	if (!_stp_relay_data.dropped_file)
-		goto err;
-
-	npages = utts->buf_size * utts->buf_nr;
-#ifndef STP_BULKMODE
-	npages *= num_possible_cpus();
-#endif
-	npages >>= PAGE_SHIFT;
-	si_meminfo(&si);
-#define MB(i) (unsigned long)((i) >> (20 - PAGE_SHIFT))
-	if (npages > (si.freeram + si.bufferram)) {
-		errk("Not enough free+buffered memory(%luMB) for log buffer(%luMB)\n",
-		     MB(si.freeram + si.bufferram),
-		     MB(npages));
-		ret = -ENOMEM;
-		goto err;
-	} else if (npages > si.freeram) {
-		/* exceeds freeram, but below freeram+bufferram */
-		printk(KERN_WARNING
-		       "log buffer size exceeds free memory(%luMB)\n",
-		       MB(si.freeram));
-	}
-
-#if (RELAYFS_CHANNEL_VERSION >= 7)
-	_stp_relay_data.rchan = relay_open("trace", dir, utts->buf_size,
-					   utts->buf_nr, 
-					   &__stp_relay_callbacks, NULL);
-#else
-	_stp_relay_data.rchan = relay_open("trace", dir, utts->buf_size,
-					   utts->buf_nr,
-					   &__stp_relay_callbacks);
-#endif
-
-	if (!_stp_relay_data.rchan)
-		goto err;
-
-	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
-
-	utts->err = 0;
-	return utt;
-err:
-	if (_stp_relay_data.dropped_file)
-		debugfs_remove(_stp_relay_data.dropped_file);
-	if (_stp_relay_data.rchan)
-		relay_close(_stp_relay_data.rchan);
-	if (dir)
-		__stp_relay_remove_tree();
-	utts->err = ret;
-	return NULL;
-}
-
-static int utt_trace_startstop(struct _stp_relay_data_type *utt, int start)
-{
-	int ret;
-
-	/*
-	 * For starting a trace, we can transition from a setup or stopped
-	 * trace. For stopping a trace, the state must be running
-	 */
-	ret = -EINVAL;
-	if (start) {
-		if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED ||
-		    _stp_relay_data.transport_state == STP_TRANSPORT_STOPPED) {
-			__stp_relay_timer_init();
-			smp_mb();
-			_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
-			ret = 0;
-		}
-	} else {
-		if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING) {
-			_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
-			del_timer_sync(&_stp_relay_data.timer);
-			relay_flush(_stp_relay_data.rchan);
-			ret = 0;
-		}
-	}
-
-	return ret;
-}
-#endif
 
 static void _stp_transport_data_fs_close(void)
 {
@@ -471,13 +302,16 @@ err:
 
 
 /**
- *      utt_reserve - reserve slot in channel buffer
- *      @utt: utt channel
- *      @length: number of bytes to reserve
+ *      _stp_data_write_reserve - try to reserve size_request bytes
+ *      @size_request: number of bytes to attempt to reserve
+ *      @entry: entry is returned here
  *
- *      Returns pointer to reserved slot, NULL if full.
+ *      Returns number of bytes reserved, 0 if full.  On return, entry
+ *      will point to allocated opaque pointer.  Use
+ *      _stp_data_entry_data() to get pointer to copy data into.
  *
- *      This function is utt_switch_subbuf version of relay_reserve.
+ *	(For this code's purposes, entry is filled in with the actual
+ *	data pointer, but the caller doesn't know that.)
  */
 static size_t
 _stp_data_write_reserve(size_t size_request, void **entry)
