@@ -418,10 +418,11 @@ uninstall-am:
 
 
 @BUILD_REFDOCS_TRUE@all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
-@BUILD_REFDOCS_TRUE@tapsets.xml: docproc $(shell find $(SRCTREE) -name '*.stp')
+@BUILD_REFDOCS_TRUE@tapsets.xml: docproc $(shell find $(SRCTREE)/tapset -name '*.stp')
 @BUILD_REFDOCS_TRUE@	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
 @BUILD_REFDOCS_TRUE@	if cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
 @BUILD_REFDOCS_TRUE@		echo tapsets.xml unchanged; \
+@BUILD_REFDOCS_TRUE@		rm tapsets.xml.new; \
 @BUILD_REFDOCS_TRUE@	else \
 @BUILD_REFDOCS_TRUE@		mv tapsets.xml.new tapsets.xml; \
 @BUILD_REFDOCS_TRUE@	fi
