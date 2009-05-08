@@ -1,6 +1,6 @@
 #! stap -p4
 
-function print_stuff () {
+probe begin {
 	print_regs()
 	print_backtrace()
 	bt = backtrace()
@@ -19,23 +19,4 @@ function print_stuff () {
 	printf("egid is %d\n", egid())
 	printf("pp is %s\n", pp())
 	printf("sid is %d\n", sid())
-}
-
-probe kernel.function("uptime_read_proc") ? {
-	print("NOW IN UPTIME\n")
-	print_stuff ()
-}
-
-probe kernel.function("uptime_read_proc").return ? {
-	print("DONE WITH UPTIME\n")
-	print_stuff ()
-	exit ()
-}
-
-probe begin {
-	print ("BEGIN\n")
-}
-
-probe end {
-	print ("END\n")
 }
