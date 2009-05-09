@@ -4775,13 +4775,13 @@ dwarf_var_expanding_visitor::visit_cast_op (cast_op *e)
 
 struct dwarf_cast_query : public base_query
 {
-  const cast_op& e;
+  cast_op& e;
   const bool lvalue;
 
   exp_type& pe_type;
   string& code;
 
-  dwarf_cast_query(dwflpp& dw, const string& module, const cast_op& e,
+  dwarf_cast_query(dwflpp& dw, const string& module, cast_op& e,
                    bool lvalue, exp_type& pe_type, string& code):
     base_query(dw, module), e(e), lvalue(lvalue),
     pe_type(pe_type), code(code) {}
@@ -4819,11 +4819,15 @@ dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
           code = dw.literal_stmt_for_pointer (type_die, &e,
                                               lvalue, pe_type);
         }
-      catch (const semantic_error& e)
+      catch (const semantic_error& er)
         {
-          // XXX might be better to save the error
-          // and try again in another CU
-          sess.print_error (e);
+          // XXX might be better to try again in another CU
+	  // NB: we can have multiple errors, since a @cast
+	  // may be expanded in several different contexts:
+	  //     function ("*") { @cast(...) }
+	  semantic_error* new_er = new semantic_error(er);
+	  new_er->chain = e.saved_conversion_error;
+	  e.saved_conversion_error = new_er;
         }
       return DWARF_CB_ABORT;
     }
@@ -4972,17 +4976,9 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   if (code.empty())
     {
-      // We generate an error message, and pass the unresolved
-      // cast_op to the next pass.  We hope that this value ends
-      // up not being referenced after all, so it can be optimized out
-      // quietly.
-      string msg = "type definition '" + e->type + "' not found";
-      semantic_error* er = new semantic_error (msg, e->tok);
-      // NB: we can have multiple errors, since a @cast
-      // may be expanded in several different contexts:
-      //     function ("*") { @cast(...) }
-      er->chain = e->saved_conversion_error;
-      e->saved_conversion_error = er;
+      // We pass the unresolved cast_op to the next pass, and hope
+      // that this value ends up not being referenced after all, so
+      // it can be optimized out quietly.
       provide (e);
       return;
     }
