@@ -1843,7 +1843,18 @@ success:
 	      {
 		vector<Dwarf_Attribute> locs;
 		if (!find_struct_member(e->components[i].second, die, e, die, locs))
-		  return NULL;
+		  {
+		    string alternatives;
+		    stringstream members;
+		    print_members(die, members);
+		    if (members.str().size() != 0)
+		      alternatives = " (alternatives:" + members.str();
+		    throw semantic_error("unable to find member '" +
+					 e->components[i].second + "' for struct "
+					 + string(dwarf_diename_integrate(die) ?: "<unknown>")
+					 + alternatives,
+					 e->tok);
+		  }
 
 		for (unsigned j = 0; j < locs.size(); ++j)
 		  translate_location (pool, &locs[j], pc, NULL, tail, e);
@@ -2130,17 +2141,6 @@ success:
     Dwarf_Die die_mem, *die = dwarf_formref_die (&attr_mem, &die_mem);
     die = translate_components (&pool, &tail, pc, e,
 				die, &die_mem, &attr_mem);
-    if(!die)
-	{ 
-	  die = dwarf_formref_die (&attr_mem, &die_mem);
-          stringstream alternatives;
-          if (die != NULL)
-	    print_members(die,alternatives); 
-	  throw semantic_error("unable to find local '" + local + "'"
-                               + " near pc " + lex_cast_hex<string>(pc)
-                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")),
-                               e->tok);
-	}
 
     /* Translate the assignment part, either
        x = $foo->bar->baz[NN]
@@ -2218,22 +2218,6 @@ success:
     Dwarf_Die die_mem, *die = dwarf_formref_die (&attr_mem, &die_mem);
     die = translate_components (&pool, &tail, pc, e,
 				die, &die_mem, &attr_mem);
-    if(!die)
-	{ 
-	  die = dwarf_formref_die (&attr_mem, &die_mem);
-          stringstream alternatives;
-          if (die != NULL)
-	    print_members(die,alternatives); 
-	  throw semantic_error("unable to find return value"
-                               " near pc " + lex_cast_hex<string>(pc)
-                               + " for "
-			       + string(dwarf_diename(scope_die) ?: "<unknown>")
-			       + "(" + string(dwarf_diename(cu) ?: "<unknown>")
-			       + ")"
-                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")),
-                               e->tok);
-	}
-
 
     /* Translate the assignment part, either
        x = $return->bar->baz[NN]
@@ -2277,17 +2261,6 @@ success:
     Dwarf_Die die_mem, *die = NULL;
     die = translate_components (&pool, &tail, 0, e,
 				type_die, &die_mem, &attr_mem);
-    if(!die)
-	{
-	  die = dwarf_formref_die (&attr_mem, &die_mem);
-          stringstream alternatives;
-          print_members(die ?: type_die, alternatives);
-	  throw semantic_error("unable to find member for struct "
-			       + string(dwarf_diename(die ?: type_die) ?: "<unknown>")
-                               + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")),
-                               e->tok);
-	}
-
 
     /* Translate the assignment part, either
        x = (THIS->pointer)->bar->baz[NN]
