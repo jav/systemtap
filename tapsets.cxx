@@ -1667,36 +1667,102 @@ struct dwflpp
     while (dwarf_tag (die) == DW_TAG_member)
       {
 	const char *member = dwarf_diename_integrate (die) ;
-	
+
 	if ( member != NULL )
-
-		o << " " << member;
-
+	  o << " " << member;
 	else
-	    { 
-		Dwarf_Die temp_die = *die; 
-		Dwarf_Attribute temp_attr ;
-		
-		 if (!dwarf_attr_integrate (&temp_die, DW_AT_type, &temp_attr))
-                        {
-                          clog<<"\n Error in obtaining type attribute for "
-			      <<(dwarf_diename(&temp_die)?:"<anonymous>");
-                          return ;
-                        }
+	  {
+	    Dwarf_Die temp_die = *die;
+	    Dwarf_Attribute temp_attr ;
 
-                   if ( ! dwarf_formref_die (&temp_attr,&temp_die))
-                        {
-                          clog<<"\n Error in decoding type attribute for "
-			      <<(dwarf_diename(&temp_die)?:"<anonymous>");
-                          return ;
-                        }
-		   print_members(&temp_die,o);
+	    if (!dwarf_attr_integrate (&temp_die, DW_AT_type, &temp_attr))
+	      {
+		clog << "\n Error in obtaining type attribute for "
+		     << (dwarf_diename(&temp_die)?:"<anonymous>");
+		return;
+	      }
 
-	    }
+	    if (!dwarf_formref_die (&temp_attr, &temp_die))
+	      {
+		clog << "\n Error in decoding type attribute for "
+		     << (dwarf_diename(&temp_die)?:"<anonymous>");
+		return;
+	      }
+
+	    print_members(&temp_die,o);
+	  }
 
 	if (dwarf_siblingof (die, &die_mem) != 0)
 	  break;
       }
+  }
+
+  bool
+  find_struct_member(const string& member,
+		     Dwarf_Die *parentdie,
+		     const target_symbol *e,
+		     Dwarf_Die *memberdie,
+		     vector<Dwarf_Attribute>& locs)
+  {
+    Dwarf_Attribute attr;
+    Dwarf_Die die = *parentdie;
+
+    switch (dwarf_child (&die, &die))
+      {
+      case 0:		/* First child found.  */
+	break;
+      case 1:		/* No children.  */
+	return false;
+      case -1:		/* Error.  */
+      default:		/* Shouldn't happen */
+	throw semantic_error (string (dwarf_tag(&die) == DW_TAG_union_type ? "union" : "struct")
+			      + string (dwarf_diename_integrate (&die) ?: "<anonymous>")
+			      + string (dwarf_errmsg (-1)),
+			      e->tok);
+      }
+
+    do
+      {
+	if (dwarf_tag(&die) != DW_TAG_member)
+	  continue;
+
+	const char *name = dwarf_diename_integrate(&die);
+	if (name == NULL)
+	  {
+	    // need to recurse for anonymous structs/unions
+	    Dwarf_Die subdie;
+
+	    if (!dwarf_attr_integrate (&die, DW_AT_type, &attr) ||
+		!dwarf_formref_die (&attr, &subdie))
+	      continue;
+
+	    if (find_struct_member(member, &subdie, e, memberdie, locs))
+	      goto success;
+	  }
+	else if (name == member)
+	  {
+	    *memberdie = die;
+	    goto success;
+	  }
+      }
+    while (dwarf_siblingof (&die, &die) == 0);
+
+    return false;
+
+success:
+    /* As we unwind the recursion, we need to build the chain of
+     * locations that got to the final answer. */
+    if (dwarf_attr_integrate (&die, DW_AT_data_member_location, &attr))
+      locs.insert(locs.begin(), attr);
+
+    /* Union members don't usually have a location,
+     * but just use the containing union's location.  */
+    else if (dwarf_tag(parentdie) != DW_TAG_union_type)
+      throw semantic_error ("no location for field '" + member
+			    + "': " + string(dwarf_errmsg (-1)),
+			    e->tok);
+
+    return true;
   }
 
   Dwarf_Die *
@@ -1709,8 +1775,6 @@ struct dwflpp
 		       Dwarf_Attribute *attr_mem)
   {
     Dwarf_Die *die = NULL;
-    Dwarf_Die struct_die;
-    Dwarf_Attribute temp_attr;
 
     unsigned i = 0;
 
@@ -1719,11 +1783,6 @@ struct dwflpp
 
     if (e->components.empty())
       return die_mem;
-
-    static unsigned int func_call_level ;
-    static unsigned int dwarf_error_flag ; // indicates current error is dwarf error
-    static unsigned int dwarf_error_count ; // keeps track of no of dwarf errors
-    static semantic_error saved_dwarf_error("");
 
     while (i < e->components.size())
       {
@@ -1771,7 +1830,6 @@ struct dwflpp
 
 	  case DW_TAG_structure_type:
 	  case DW_TAG_union_type:
-	    struct_die = *die;
 	    if (dwarf_hasattr(die, DW_AT_declaration))
 	      {
 		Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(die));
@@ -1781,93 +1839,16 @@ struct dwflpp
                                         e->tok);
 		*die_mem = *tmpdie;
 	      }
-	    switch (dwarf_child (die, die_mem))
-	      {
-	      case 1:		/* No children.  */
-		return NULL;
-	      case -1:		/* Error.  */
-	      default:		/* Shouldn't happen */
-		throw semantic_error (string (typetag == DW_TAG_union_type ? "union" : "struct")
-				      + string (dwarf_diename_integrate (die) ?: "<anonymous>")
-				      + string (dwarf_errmsg (-1)),
-                                      e->tok);
-		break;
 
-	      case 0:
-		break;
+	      {
+		vector<Dwarf_Attribute> locs;
+		if (!find_struct_member(e->components[i].second, die, e, die, locs))
+		  return NULL;
+
+		for (unsigned j = 0; j < locs.size(); ++j)
+		  translate_location (pool, &locs[j], pc, NULL, tail, e);
 	      }
 
-	    while (dwarf_tag (die) != DW_TAG_member
-		   || ({ const char *member = dwarf_diename_integrate (die);
-		       member == NULL || string(member) != e->components[i].second; }))
-	    {
-	      if ( dwarf_diename (die) == NULL )  // handling Anonymous structs/unions
-		{ 
-		   Dwarf_Die temp_die = *die;
-		   Dwarf_Die temp_die_2;
-
-		   try 
-		    {		   
-		      if (!dwarf_attr_integrate (&temp_die, DW_AT_type, &temp_attr))
-                       { 
-			  dwarf_error_flag ++ ;
-			  dwarf_error_count ++;
-			  throw semantic_error(" Error in obtaining type attribute for "+ string(dwarf_diename(&temp_die)?:"<anonymous>"), e->tok);
-                	}
-
-	              if ( !dwarf_formref_die (&temp_attr, &temp_die))
-        	        { 
-			  dwarf_error_flag ++ ;
-			  dwarf_error_count ++;
-			  throw semantic_error(" Error in decoding DW_AT_type attribute for " + string(dwarf_diename(&temp_die)?:"<anonymous>"), e->tok); 
-                	}
-
-		      func_call_level ++ ;
-
-                      Dwarf_Die *result_die = translate_components(pool, tail, pc, e, &temp_die, &temp_die_2, &temp_attr);
-
-		      func_call_level -- ;
-
-		      if (result_die != NULL)
-			{ 
-			  memcpy(die_mem, &temp_die_2, sizeof(Dwarf_Die));
-			  memcpy(attr_mem, &temp_attr, sizeof(Dwarf_Attribute));
-			  return die_mem;
-			}
-		     }
-		   catch (const semantic_error& e)
-		     { 
-			if ( !dwarf_error_flag ) //not a dwarf error
-				throw;
-			else
-				{
-				  dwarf_error_flag = 0 ;
-				  saved_dwarf_error = e ;
-				}
-		     }
-		}
-	      if (dwarf_siblingof (die, die_mem) != 0)
-		{ 
-		  if ( func_call_level == 0 && dwarf_error_count ) // this is parent call & a dwarf error has been reported in a branch somewhere
-			throw semantic_error( saved_dwarf_error );
-		  else	
-		  	 return NULL;
-		}
-	    }
-
-	    if (dwarf_attr_integrate (die, DW_AT_data_member_location,
-				      attr_mem) == NULL)
-	      {
-		/* Union members don't usually have a location,
-		   but just use the containing union's location.  */
-		if (typetag != DW_TAG_union_type)
-		  throw semantic_error ("no location for field '"
-					+ e->components[i].second
-					+ "' :" + string(dwarf_errmsg (-1)),
-                                        e->tok);
-	      }
-	    else
-	      translate_location (pool, attr_mem, pc, NULL, tail, e);
 	    ++i;
 	    break;
 

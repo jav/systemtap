@@ -1,5 +1,9 @@
 #! stap -p2
 # Per bz3016, this should get through the semantic pass without warnings.
 probe kernel.function("do_mpage_readpage") {
-       printf("\n page->mapping %p",$page->mapping)
+    printf("\n page->mapping %p",$page->mapping)
+    %( kernel_v >= "2.6.22" %?
+       printf("\n page->first_page->mapping %p",$page->first_page->mapping)
+    %)
+
 }
