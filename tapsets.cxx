@@ -5617,6 +5617,9 @@ dwarf_builder::build(systemtap_session & sess,
         dw = user_dw[module_name];
     }
 
+  if (sess.verbose > 3)
+    clog << "dwarf_builder::build for " << module_name << endl;
+
   if (((probe_point::component*)(location->components[1]))->functor == TOK_MARK)
   {
     enum probe_types       
@@ -5628,9 +5631,13 @@ dwarf_builder::build(systemtap_session & sess,
 
     int probe_type = dwarf_no_probes;
     string probe_name = (char*) location->components[1]->arg->tok->content.c_str();
+    if (sess.verbose > 3)
+      clog << "TOK_MARK: " << probe_name << endl;
+
     __uint64_t probe_arg = 0;
     Dwarf_Addr bias;
-    Elf* elf = dwfl_module_getelf (dw->module, &bias);
+    Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw->module, &bias))
+		?: dwfl_module_getelf (dw->module, &bias));
     size_t shstrndx;
     Elf_Scn *probe_scn = NULL;
 
@@ -5651,18 +5658,31 @@ dwarf_builder::build(systemtap_session & sess,
 	  }
       }
     
+    // We got our .probes section, extract data.
     if (probe_type == probes_and_dwarf)
       {
+	if (sess.verbose > 3)
+	  clog << "probe_type == probes_and_dwarf, use statement addr" << endl;
+ 
 	Elf_Data *pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
 	assert (pdata != NULL);
 	size_t probe_scn_offset = 0;
 	size_t probe_scn_addr = shdr->sh_addr;
+        if (sess.verbose > 4)
+	  clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
+	       << ", size: " << pdata->d_size << endl;
 	while (probe_scn_offset < pdata->d_size)
 	  {
 	    const int stap_sentinel = 0x31425250;
 	    probe_type = *((int*)((char*)pdata->d_buf + probe_scn_offset));
 	    if (probe_type != stap_sentinel)
 	      {
+		// Unless this is a mangled .probes section, this happens
+		// because the name of the probe comes first, followed by
+		// the sentinel.
+		if (sess.verbose > 5)
+		  clog << "got unknown probe_type: 0x" << hex << probe_type
+		       << dec << endl;
 		probe_scn_offset += sizeof(int);
 		continue;
 	      }
@@ -5675,6 +5695,10 @@ dwarf_builder::build(systemtap_session & sess,
 	    if (probe_scn_offset % (sizeof(__uint64_t)))
 	      probe_scn_offset += sizeof(__uint64_t) - (probe_scn_offset % sizeof(__uint64_t));
 	    probe_arg = *((__uint64_t*)((char*)pdata->d_buf + probe_scn_offset));
+	    if (sess.verbose > 4)
+	      clog << "saw .probes " << probe_name
+		   << "@0x" << hex << probe_arg << dec << endl;
+    
 	    if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	      probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
 	    if ((strcmp (location->components[1]->arg->tok->content.c_str(),
@@ -5684,6 +5708,9 @@ dwarf_builder::build(systemtap_session & sess,
 		    (probe_name.c_str(),
 		     location->components[1]->arg->tok->content.c_str())))
 	      {
+		if (sess.verbose > 3)
+		  clog << "found probe_name" << probe_name << " at 0x"
+		       << hex << probe_arg << dec << endl;
 	      }
 	    else
 	      continue;
@@ -5692,6 +5719,10 @@ dwarf_builder::build(systemtap_session & sess,
 	    location->components[1]->arg = new literal_number((long)probe_arg);
 	    location->components[1]->arg->tok = sv_tok;
 	    ((literal_map_t&)parameters)[TOK_STATEMENT] = location->components[1]->arg;
+
+	    if (sess.verbose > 3)
+	      clog << "probe_type == probes_and_dwarf, use statement addr: 0x"
+		   << hex << probe_arg << dec << endl;
 	    
 	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 	    q.has_mark = true;
@@ -5714,7 +5745,14 @@ dwarf_builder::build(systemtap_session & sess,
 	location->components[2]->arg = new literal_string("_stapprobe1_" + probe_name);
 	((literal_map_t&)parameters).erase(TOK_MARK);
 	((literal_map_t&)parameters).insert(pair<string,literal*>(TOK_LABEL, location->components[2]->arg));
+
+	if (sess.verbose > 3)
+	  clog << "probe_type == dwarf_no_probes, use label name: "
+	       << "_stapprobe1_" << probe_name << endl;
       }
+
+    else if (sess.verbose > 3)
+      clog << "probe_type == probes_no_dwarf" << endl;
 
     dw->module = 0;
   }
