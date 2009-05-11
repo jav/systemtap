@@ -3469,7 +3469,7 @@ typeresolution_info::visit_cast_op (cast_op* e)
   if (e->saved_conversion_error)
     throw (* (e->saved_conversion_error));
   else
-    throw semantic_error("unresolved cast expression", e->tok);
+    throw semantic_error("type definition '" + e->type + "' not found", e->tok);
 }
 
 

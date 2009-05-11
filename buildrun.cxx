@@ -227,7 +227,8 @@ compile_pass (systemtap_session& s)
   // Failure to do so is not a fatal error. If the signature is actually needed,
   // staprun will complain at that time.
   assert (! s.cert_db_path.empty());
-  sign_module (s);
+  if (!rc)
+    sign_module (s);
 #endif
 
   return rc;

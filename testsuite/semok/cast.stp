@@ -14,4 +14,10 @@ probe begin {
     // check modules generated from headers
     println(@cast(0, "task_struct", "kernel<linux/sched.h>")->tgid)
     println(@cast(0, "timeval", "<sys/time.h>")->tv_sec)
+
+    // make sure that bogus @casts can get optimized away
+    @cast(0, "task_struct")->no_such_field
+    @cast(0, "task_struct")->parent->no_such_field
+    @cast(0, "no_such_type")->tgid
+    @cast(0, "task_struct", "no_such_module")->tgid
 }
