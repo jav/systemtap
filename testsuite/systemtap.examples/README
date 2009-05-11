@@ -1,57 +1,105 @@
-This directory contains example scripts.  
+This text describes contribution procedures for adding scripts to
+systemtap.examples directory.  Please read before submitting SystemTap
+examples.  Discussions take place on the
+<systemtap@sources.redhat.com> mailing list.
 
-Each script should be checked in as executable.
+- general
 
-The first line should be
-#! /usr/bin/env stap
+  The script should do something that normal users of SystemTap might
+  like to do, such as show which processes have system calls that time
+  out or show which memory accesses cause page faults.  Scripts that
+  check that some aspect of SystemTap operates correctly, but would
+  never be used by a regular user should go in one of the other
+  testsuite directories.
 
-There should be an accompanying ".meta" file describing what the
-script does and how to use it, and how the testsuite should compile
-and run it. The meta files are also used to create a txt and html
-index (by keyword and subsystem) of all the examples by the
-examples-index-gen.pl script.
+- copyright
 
-The meta file contains the following elements. Each element (key and
-value) are on one line. If a key can have a list of values, the list
-elements are separated by spaces.
+  You must designate the appropriate copyright holder for your
+  contribution.  The copyright holder is assumed to agree with the
+  general licensing terms (GPLv2+).
+  
+- coding style
 
-title: Descriptive title for the script (required)
-name: the file name for the script, e.g. iotime.stp (required)
-version: versioning if any fixes and developed can be identified (required)
-author: name of author(s), "anonymous" if unknown (required)
-exclusivearch: Stated if the script can only run on some arches
+  Abide by the general formatting of the code for SystemTap.  The
+  code base generally follows the GNU standards in usermode code and
+  the Linux kernel standards in runtime code.
+
+  - Try to keep the lines shorter than 80 characters long.
+  - Make use of SystemTap functions to factor out common idioms in code.
+  - Use tapset probe points rather than raw function names.
+  - No probes by file and line number are allowed in examples.
+  - Avoid using guru mode (-g) in the examples.
+  - Minimize use of globals variables:
+ 	All associative arrays must be global in SystemTap.
+	Variables used only for the duration of a probe should be local.
+  - Make the file executable and use the following line at the
+    beginning of the script to select the proper interpreter:
+
+    #! /usr/bin/env stap
+
+- Describe the example
+
+  Each example script has a description in a .meta file that provide
+  an easy-to-parse format that describes various aspect of the example
+  script. The .meta file has the same base name as the example script.
+  The .meta file is parsed to generate a web page listing all the
+  available examples; the webpage is available at:
+  http://sourceware.org/systemtap/examples/.  The .meta file also
+  describes how to run the compiled example script for testing. This
+  ensures that the example is frequently run to verified it works on a
+  wide range fo platforms.
+
+  The meta file contains the following elements. Each element (key and
+  value) are on one line. If a key can have a list of values, the list
+  elements are separated by spaces.
+
+  title: Descriptive title for the script (required)
+  name: the file name for the script, e.g. iotime.stp (required)
+  version: versioning if any fixes and developed can be identified (required)
+  author: name of author(s), "anonymous" if unknown (required)
+  exclusivearch: Stated if the script can only run on some arches
 	       this concept borrowed from rpm, matches types for rpm:
 	       x86 i386 x86_64 ppc ppc64, s390 (optional)
-requires: Some scripts may require software to be available. In some cases
-	  may need version numbering, e.g. kernel >= 2.6
-    	  Can have multiple "requires:" tags. (optional)
-keywords: List of likely words to categorize the script (required)
-	  keywords are separated by spaces.
-          #FIXME have list of keyword
-subsystem: List what part of the kernel the instrumentation probes (required)
-	   audit cpu blockio file filesystem locking memory numa network
-	   process scheduler or user-space (probes are in the user-space)
-application: when user-space probing becomes available (optional)
-             a script might probe a particular application
-	     this tag indicates the applicaton
-status: describes the state of development for the script (required)
-	proposed    	just an idea
-	experimental	an implemented idea, but use at own risk
-	alpha		   
-	beta
-	production	should be safe to use
-exit: how long do the script run? (required)
-      fixed	    	exits in a fixed amount of time
-      user-controlled	      exits with "cntrl-c"
-      event-ended	      	    exits with some arbitrary event
-output: what kind of output does the script generate? (required)
-	trace histogram graph sorted batch timed
-scope: How much of the processes on the machine does the script watch?
-       system-wide or pid
-arg_[0-9]+: Describe what the arguments into the script are. (optional)
-description: A text description what the script does. (required)
-test_check: How to check that the example compiles.
-	    (e.g. stap -p4 iotime.stp)
-test_installcheck: How to check that the example runs.
-		   (e.g. stap iotime.stp -c "sleep 1")
+  requires: Some scripts may require software to be available. In some cases
+	    may need version numbering, e.g. kernel >= 2.6
+    	    Can have multiple "requires:" tags. (optional)
+  keywords: List of likely words to categorize the script (required)
+	    keywords are separated by spaces.
+            #FIXME have list of keyword
+  subsystem: List what part of the kernel the instrumentation probes (required)
+	     audit cpu blockio file filesystem locking memory numa network
+	     process scheduler or user-space (probes are in the user-space)
+  application: when user-space probing becomes available (optional)
+               a script might probe a particular application
+	       this tag indicates the applicaton
+  status: describes the state of development for the script (required)
+	  proposed    	just an idea
+	  experimental	an implemented idea, but use at own risk
+	  alpha		   
+	  beta
+	  production	should be safe to use
+  exit: how long do the script run? (required)
+        fixed	    	exits in a fixed amount of time
+        user-controlled	      exits with "cntrl-c"
+        event-ended	      	    exits with some arbitrary event
+  output: what kind of output does the script generate? (required)
+	  trace histogram graph sorted batch timed
+  scope: How much of the processes on the machine does the script watch?
+         system-wide or pid
+  arg_[0-9]+: Describe what the arguments into the script are. (optional)
+  description: A text description what the script does. (required)
+  test_check: How to check that the example compiles.
+	      (e.g. stap -p4 iotime.stp)
+  test_installcheck: How to check that the example runs.
+		     (e.g. stap iotime.stp -c "sleep 1")
+
+
+- Review, revision, and submission of the example script
+
+  When you have a SystemTap script that should be included as an
+  example, submit it to the SystemTap mailing list,
+  systemtap@sources.redhat.com for review. Even if the script is not
+  ready for submission as an example, feel free to ask questions or
+  discuss the work-in-progress script with other people working with
+  SystemTap.
 
