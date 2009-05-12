@@ -680,7 +680,7 @@ struct dwflpp
     return t;
   }
 
-  dwflpp(systemtap_session & session)
+  dwflpp(systemtap_session & session, const string& user_module="")
     :
     sess(session),
     dwfl(NULL),
@@ -693,6 +693,10 @@ struct dwflpp
     cu(NULL),
     function(NULL)
   {
+    if (user_module.empty())
+      setup_kernel();
+    else
+      setup_user(user_module);
   }
 
 
@@ -763,7 +767,7 @@ struct dwflpp
     dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
   }
 
-  void setup_user(string module_name, bool debuginfo_needed = true)
+  void setup_user(const string& module_name, bool debuginfo_needed = true)
   {
     if (! sess.module_cache)
       sess.module_cache = new module_cache ();
@@ -2839,6 +2843,19 @@ struct dwarf_builder: public derived_probe_builder
   map <string,dwflpp*> user_dw;
   dwarf_builder(): kern_dw(0) {}
 
+  dwflpp *get_kern_dw(systemtap_session& sess)
+  {
+    if (!kern_dw)
+      kern_dw = new dwflpp(sess);
+    return kern_dw;
+  }
+
+  dwflpp *get_user_dw(systemtap_session& sess, const string& module)
+  {
+    if (user_dw.find(module) == user_dw.end())
+      user_dw[module] = new dwflpp(sess, module);
+    return user_dw[module];
+  }
 
   /* NB: not virtual, so can be called from dtor too: */
   void dwarf_build_no_more (bool verbose)
@@ -4924,51 +4941,24 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       // NB: This uses '/' to distinguish between kernel modules and userspace,
       // which means that userspace modules won't get any PATH searching.
       dwflpp* dw;
-      if (module.find('/') == string::npos)
-        {
-          // kernel or kernel module target
-          if (! db.kern_dw)
-            {
-              dw = new dwflpp(s);
-              try
-                {
-                  dw->setup_kernel(true);
-                }
-              catch (const semantic_error& er)
-                {
-                  /* ignore and go to the next module */
-                  delete dw;
-                  continue;
-                }
-              db.kern_dw = dw;
-            }
-          else
-            dw = db.kern_dw;
-        }
-      else
-        {
-          module = find_executable (module); // canonicalize it
-
-          // user-space target; we use one dwflpp instance per module name
-          // (= program or shared library)
-          if (db.user_dw.find(module) == db.user_dw.end())
-            {
-              dw = new dwflpp(s);
-              try
-                {
-                  dw->setup_user(module);
-                }
-              catch (const semantic_error& er)
-                {
-                  /* ignore and go to the next module */
-                  delete dw;
-                  continue;
-                }
-              db.user_dw[module] = dw;
-            }
-          else
-            dw = db.user_dw[module];
-        }
+      try
+	{
+	  if (module.find('/') == string::npos)
+	    {
+	      // kernel or kernel module target
+	      dw = db.get_kern_dw(s);
+	    }
+	  else
+	    {
+	      module = find_executable (module); // canonicalize it
+	      dw = db.get_user_dw(s, module);
+	    }
+	}
+      catch (const semantic_error& er)
+	{
+	  /* ignore and go to the next module */
+	  continue;
+	}
 
       dwarf_cast_query q (*dw, module, *e, lvalue, type, code);
       dw->query_modules(&q);
@@ -5592,13 +5582,7 @@ dwarf_builder::build(systemtap_session & sess,
       || get_param (parameters, TOK_MODULE, module_name))
     {
       // kernel or kernel module target
-      if (! kern_dw)
-        {
-          kern_dw = new dwflpp(sess);
-          // XXX: PR 3498, PR 6864
-          kern_dw->setup_kernel(true);
-        }
-      dw = kern_dw;
+      dw = get_kern_dw(sess);
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
@@ -5606,15 +5590,7 @@ dwarf_builder::build(systemtap_session & sess,
 
       // user-space target; we use one dwflpp instance per module name
       // (= program or shared library)
-      if (user_dw.find(module_name) == user_dw.end())
-        {
-          dw = new dwflpp(sess);
-          // XXX: PR 3498
-          dw->setup_user(module_name);
-          user_dw[module_name] = dw;
-        }
-      else
-        dw = user_dw[module_name];
+      dw = get_user_dw(sess, module_name);
     }
 
   if (sess.verbose > 3)
@@ -7886,8 +7862,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
               if (s.verbose > 2)
                 clog << "Pass 2: using cached " << s.tracequery_path << endl;
 
-              dw = new dwflpp(s);
-              dw->setup_user(s.tracequery_path);
+              dw = new dwflpp(s, s.tracequery_path);
               close(fd);
               return true;
             }
@@ -7912,8 +7887,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
              << s.tracequery_path << "\"): " << strerror(errno) << endl;
     }
 
-  dw = new dwflpp(s);
-  dw->setup_user(tracequery_ko);
+  dw = new dwflpp(s, tracequery_ko);
   return true;
 }
 
