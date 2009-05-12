@@ -44,7 +44,6 @@ static int _stp_probes_started = 0;
 #include "control.h"
 #if STP_TRANSPORT_VERSION == 1
 #include "relayfs.c"
-#include "procfs.c"
 #elif STP_TRANSPORT_VERSION == 2
 #include "relay_v2.c"
 #include "debugfs.c"

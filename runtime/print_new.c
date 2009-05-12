@@ -92,7 +92,15 @@ void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 		}
 	}
 #endif /* !NO_PERCPU_HEADERS */
+
 #else  /* !STP_BULKMODE */
+
+#if STP_TRANSPORT_VERSION == 1
+
+	if (unlikely(_stp_ctl_write(STP_REALTIME_DATA, pb->buf, len) <= 0))
+		atomic_inc (&_stp_transport_failures);
+
+#else  /* STP_TRANSPORT_VERSION != 1 */
 	{
 		unsigned long flags;
 		char *bufp = pb->buf;
@@ -117,5 +125,6 @@ void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 		}
 		spin_unlock_irqrestore(&_stp_print_lock, flags);
 	}
+#endif /* STP_TRANSPORT_VERSION != 1 */
 #endif /* !STP_BULKMODE */
 }

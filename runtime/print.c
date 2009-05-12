@@ -87,14 +87,8 @@ static void _stp_print_cleanup (void)
 #endif
 
 #if !defined(RELAY_GUEST)
-/* The relayfs API changed between 2.6.15 and 2.6.16. */
-/* Use the appropriate print flush function. */
 
-#if STP_TRANSPORT_VERSION == 1
-#include "print_old.c"
-#else
 #include "print_new.c"
-#endif
 #if defined(RELAY_HOST)
 EXPORT_SYMBOL_GPL(EXPORT_FN(stp_print_flush));
 #endif
