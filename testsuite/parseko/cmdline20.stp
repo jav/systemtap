@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# You have to specify ouput FILE with '-D' option
+#
+#-D              Run in background. This requires '-o' option.
+#-o FILE         Send output to FILE. This supports strftime(3)
+#                formats for FILE.
+
+staprun -D fake_module

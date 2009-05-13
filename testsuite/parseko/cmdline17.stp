@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# options '-D' and '-L' are mutually exclusive
+#
+#-D              Run in background. This requires '-o' option.
+#-L              Load module and start probes, then detach.
+
+staprun -L -D fake_module

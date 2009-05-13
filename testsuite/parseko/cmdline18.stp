@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# options '-D' and '-d' are mutually exclusive
+#
+#-D              Run in background. This requires '-o' option.
+#-d              Delete a module.  Only detached or unused modules
+#                the user has permission to access will be deleted. Use "*"
+#                (quoted) to delete all unused modules.
+
+staprun -d -D fake_module
