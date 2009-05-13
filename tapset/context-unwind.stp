@@ -51,16 +51,13 @@ function backtrace:string () %{ /* pure */
  * sfunction caller - Return name and address of calling function
  *
  *  Return the address and name of the calling function. 
+ *  This is equivalent to calling:
+ *  sprintf("%s 0x%x", symname(caller_addr(), caller_addr()))
  *  <emphasis>Works only for return probes at this time.</emphasis>
  */
-function caller:string() %{ /* pure */
-        if (CONTEXT->pi) 
-		_stp_symbol_snprint( THIS->__retvalue, MAXSTRINGLEN, 
-			(unsigned long)_stp_ret_addr_r(CONTEXT->pi),
-                        current, 0);
-        else
-		strlcpy(THIS->__retvalue,"unknown",MAXSTRINGLEN);
-%}
+function caller:string() {
+	return sprintf("%s 0x%x", symname(caller_addr()), caller_addr());
+}
 
 /**
  * sfunction caller_addr -  Return caller address
