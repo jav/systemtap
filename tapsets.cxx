@@ -5642,12 +5642,12 @@ dwarf_builder::build(systemtap_session & sess,
     Elf_Scn *probe_scn = NULL;
 
     dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+    GElf_Shdr shdr_mem;
     GElf_Shdr *shdr = NULL;
 
     // Is there a .probes section?
     while ((probe_scn = elf_nextscn (elf, probe_scn)))
       {
-	GElf_Shdr shdr_mem;
 	shdr = gelf_getshdr (probe_scn, &shdr_mem);
 	assert (shdr != NULL);
 
@@ -5658,6 +5658,22 @@ dwarf_builder::build(systemtap_session & sess,
 	  }
       }
     
+    // Older versions put .probes section in the debuginfo dwarf file,
+    // so check if it actually exists, if not take the main elf file
+    if (probe_type == probes_and_dwarf && shdr->sh_type == SHT_NOBITS)
+      {
+	elf = dwfl_module_getelf (dw->module, &bias);
+	dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+	probe_scn = NULL;
+	while ((probe_scn = elf_nextscn (elf, probe_scn)))
+	  {
+	    shdr = gelf_getshdr (probe_scn, &shdr_mem);
+	    if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name),
+			".probes") == 0)
+	      break;
+	  }
+      }
+
     // We got our .probes section, extract data.
     if (probe_type == probes_and_dwarf)
       {
