@@ -281,8 +281,8 @@ namespace systemtap
     Glib::RefPtr<Gdk::Window> win = get_window();
     if(!win)
       return true;
-    double x;
-    double y;
+    double x = 0.0;
+    double y = 0.0;
     // XXX Hint
     if (event->is_hint)
       {
