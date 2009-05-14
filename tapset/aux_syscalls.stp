@@ -60,10 +60,10 @@ function _struct_timezone_u:string(uaddr:long)
 %} 
 
 %{
-	// Needed for the following four functions
-	// _struct_utimbuf_actime, _struct_utimbuf_modtime,
-	// _struct_compat_utimbuf_actime, _struct_compat_utimbuf_modtime
-	#include <linux/utime.h>
+// Needed for the following four functions
+// _struct_utimbuf_actime, _struct_utimbuf_modtime,
+// _struct_compat_utimbuf_actime, _struct_compat_utimbuf_modtime
+#include <linux/utime.h>
 %}
 
 // Returns the value of the actime field of a utimbuf in user space
