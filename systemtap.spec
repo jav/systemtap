@@ -7,7 +7,7 @@
 
 Name: systemtap
 Version: 0.9.7
-Release: 2%{?dist}
+Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
 Group: Development/System
@@ -260,7 +260,6 @@ exit 0
 %{_bindir}/stap-gen-cert
 %{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-signing-cert
-%{_bindir}/grapher
 %{_mandir}/man1/*
 %{_mandir}/man3/*
 
@@ -332,9 +331,6 @@ exit 0
 
 
 %changelog
-* Thu May 14 2009 Will Cohen <wcohen@redhat.com> - 0.9.7-2
-- Include grapher in installed file list.
-
 * Thu Apr 23 2009 Josh Stone <jistone@redhat.com> - 0.9.7-1
 - Upstream release.
 
