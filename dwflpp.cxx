@@ -182,17 +182,6 @@ dwflpp::focus_on_function(Dwarf_Die * f)
 
 
 void
-dwflpp::focus_on_module_containing_global_address(Dwarf_Addr a)
-{
-  assert(dwfl);
-  cu = NULL;
-  Dwfl_Module* mod = dwfl_addrmodule(dwfl, a);
-  if (mod) // address could be wildly out of range
-    focus_on_module(mod, NULL);
-}
-
-
-void
 dwflpp::query_cu_containing_global_address(Dwarf_Addr a, void *arg)
 {
   Dwarf_Addr bias;
@@ -221,15 +210,6 @@ dwflpp::module_address_to_global(Dwarf_Addr a)
   if (module_name == TOK_KERNEL || dwfl_module_relocations (module) <= 0)
     return a;
   return a + module_start;
-}
-
-
-Dwarf_Addr
-dwflpp::global_address_to_module(Dwarf_Addr a)
-{
-  assert(module);
-  get_module_dwarf();
-  return a - module_bias;
 }
 
 
@@ -288,25 +268,6 @@ bool
 dwflpp::function_name_final_match(string pattern)
 {
   return module_name_final_match (pattern);
-}
-
-
-bool
-dwflpp::cu_name_matches(string pattern)
-{
-  assert(cu);
-
-  // PR 5049: implicit * in front of given path pattern.
-  // NB: fnmatch() is used without FNM_PATHNAME.
-  string prefixed_pattern = string("*/") + pattern;
-
-  bool t = (fnmatch(pattern.c_str(), cu_name.c_str(), 0) == 0 ||
-            fnmatch(prefixed_pattern.c_str(), cu_name.c_str(), 0) == 0);
-  if (t && sess.verbose>3)
-    clog << "pattern '" << prefixed_pattern << "' "
-         << "matches "
-         << "CU '" << cu_name << "'" << "\n";
-  return t;
 }
 
 

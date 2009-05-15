@@ -196,13 +196,11 @@ struct dwflpp
   void focus_on_module(Dwfl_Module * m, module_info * mi);
   void focus_on_cu(Dwarf_Die * c);
   void focus_on_function(Dwarf_Die * f);
-  void focus_on_module_containing_global_address(Dwarf_Addr a);
 
   void query_cu_containing_global_address(Dwarf_Addr a, void *arg);
   void query_cu_containing_module_address(Dwarf_Addr a, void *arg);
 
   Dwarf_Addr module_address_to_global(Dwarf_Addr a);
-  Dwarf_Addr global_address_to_module(Dwarf_Addr a);
 
   bool module_name_matches(std::string pattern);
   bool name_has_wildcard(std::string pattern);
@@ -211,8 +209,6 @@ struct dwflpp
   bool function_name_matches_pattern(std::string name, std::string pattern);
   bool function_name_matches(std::string pattern);
   bool function_name_final_match(std::string pattern);
-
-  bool cu_name_matches(std::string pattern);
 
   void setup_kernel(bool debuginfo_needed = true);
   void setup_user(const std::string& module_name, bool debuginfo_needed = true);
