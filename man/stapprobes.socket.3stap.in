@@ -52,7 +52,7 @@ The message sender.
     to convert to a string.
 
     Common values include:
-         0 - IP (Internet Procotol, local interprocess communications)
+         0 - IP (Internet Protocol, local interprocess communications)
          6 - TCP (Transmission Control Protocol)
         17 - UDP (User Datagram Protocol)
        132 - SCTP (Stream Control Transmission Protocol)

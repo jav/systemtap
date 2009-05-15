@@ -29,7 +29,7 @@ It contains the following probe points:
 .TP
 .B nfsd.proc.lookup
 
-Fires whenever client opens/searchs file on server 
+Fires whenever client opens/searches file on server
 
 .B Arguments:
 
@@ -348,7 +348,7 @@ Fires when server commits all pending writes to stable storage
 .TP
 .B nfsd.lookup
 
-Fires whenever client opens/searchs file on server
+Fires whenever client opens/searches file on server
 
 .B Arguments:
 
@@ -419,7 +419,7 @@ on server side,only called by nfsd3_proc_create and nfsd4_open
     NFS3_CREATE_EXCLUSIVE,NFS3_CREATE_UNCHECKED,NFS3_CREATE_GUARDED
 
 .I  truncp 
-  trunp arguments, indicates if the file shouldbe truncate
+  trunp arguments, indicates if the file should be truncated
 
 .I  verfier 
   file attributes (atime,mtime,mode).It's used to reset file
@@ -485,7 +485,7 @@ Fires whenever server closes file
 .TP
 .B nfsd.dispatch
 
-Fires whenever server receives NFS operation from client 
+Fires whenever server receives NFS operation from client
 
 .B Arguments:
 

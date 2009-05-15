@@ -375,7 +375,7 @@ Fires when an RPC client is to be processed
   The procedure number in the request
 
 .I rq_prot
-  The IP protocol of the reqeust
+  The IP protocol of the request
 
 .P
 .TP
@@ -403,7 +403,7 @@ Fires when an RPC client is to be authorised
   The procedure number in the request
 
 .I rq_prot
-  The IP protocol of the reqeust
+  The IP protocol of the request
 
 .P
 .TP
@@ -450,7 +450,7 @@ Fires when want to return reply to client
   The procedure number in the request
 
 .I rq_prot
-  The IP protocol of the reqeust
+  The IP protocol of the request
 
 .P
 .TP
@@ -478,7 +478,7 @@ Fires when a request is to be dropped
   The procedure number in the request
 
 .I rq_prot
-  The IP protocol of the reqeust
+  The IP protocol of the request
 
 .P
 .TP

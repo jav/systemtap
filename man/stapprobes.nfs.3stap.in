@@ -551,7 +551,7 @@ Fires when a previous async read operation failed
 .TP
 .B nfs.aop.readpages
 
-Fies when in readahead way,read several pages once
+Fires when in readahead way,read several pages once
 
 .B Arguments:
 
@@ -577,7 +577,7 @@ Fies when in readahead way,read several pages once
 .TP
 .B nfs.aop.readpages.return
 
-Fies whenever a nfs read pages operation is done 
+Fires whenever a nfs read pages operation is done
 
 .B Arguments:
 
@@ -588,7 +588,7 @@ Fies whenever a nfs read pages operation is done
 .TP
 .B nfs.aop.set_page_dirty
 
-Fies whenever set page dirty on nfs client side
+Fires whenever set page dirty on nfs client side
 
 .B Arguments:
 
@@ -602,7 +602,7 @@ Fies whenever set page dirty on nfs client side
 .TP
 .B nfs.aop.writepage
 
-Fies whenever writing an mapped page to the server from nfs client side
+Fires whenever writing an mapped page to the server from nfs client side
 
 .B Arguments:
 
@@ -644,7 +644,7 @@ Fies whenever writing an mapped page to the server from nfs client side
 .TP
 .B nfs.aop.writepages
 
-Fies whenever writing several dirty pages to the server from nfs client sides
+Fires whenever writing several dirty pages to the server from nfs client sides
 
 .B Arguments:
 
@@ -674,7 +674,7 @@ Fies whenever writing several dirty pages to the server from nfs client sides
 .TP
 .B nfs.aop.prepare_write
 
-Fies whenever prepare a page for writting on nfs client sides
+Fires whenever prepare a page for writing on nfs client sides
 
 .B Arguments:
 
@@ -703,7 +703,7 @@ Fies whenever prepare a page for writting on nfs client sides
 .TP
 .B nfs.aop.commit_write
 
-Fies often after prepare write operation  
+Fires often after prepare write operation
 
 .B Arguments:
 
@@ -771,7 +771,7 @@ Fies often after prepare write operation
   nfs version
 
 .I filename 
-  the name of  file which client opens/searchs on server
+  the name of  file which client opens/searches on server
 
 .I name_len 
   the length of file name
@@ -851,7 +851,7 @@ Fires when client synchronously writes file to server
 .TP
 .B nfs.proc.write.return
 
-Fires when synchronously writting file from server is done
+Fires when synchronously writing file from server is done
 
 .B Arguments:
 
