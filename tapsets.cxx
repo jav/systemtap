@@ -7404,11 +7404,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
           expression *texp = require (tsym); // NB: throws nothing ...
           assert (!tsym->saved_conversion_error); // ... but this is how we know it happened.
 
-          if (args[i].isptr)
-            pf->raw_components += "=%p";
-          else
-            pf->raw_components += "=%#x";
-
+          pf->raw_components += args[i].isptr ? "=%p" : "=%#x";
           pf->args.push_back(texp);
         }
 
