@@ -160,11 +160,9 @@ struct inline_instance_info
 struct dwflpp
 {
   systemtap_session & sess;
-  Dwfl * dwfl;
 
   // These are "current" values we focus on.
   Dwfl_Module * module;
-  Dwarf * module_dwarf;
   Dwarf_Addr module_bias;
   module_info * mod_info;
 
@@ -173,7 +171,6 @@ struct dwflpp
   Dwarf_Addr module_end;
 
   Dwarf_Die * cu;
-  Dwarf_Die * function;
 
   std::string module_name;
   std::string cu_name;
@@ -181,8 +178,6 @@ struct dwflpp
 
   dwflpp(systemtap_session & session, const std::string& user_module="");
   ~dwflpp();
-
-  std::string const default_name(char const * in, char const *);
 
   void get_module_dwarf(bool required = false, bool report = true);
 
@@ -200,54 +195,26 @@ struct dwflpp
   bool function_name_matches(std::string pattern);
   bool function_name_final_match(std::string pattern);
 
-  void setup_kernel(bool debuginfo_needed = true);
-  void setup_user(const std::string& module_name, bool debuginfo_needed = true);
-
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                              const char *, Dwarf_Addr,
                                              void *),
                             base_query *data);
-
-  typedef std::map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
-  module_cu_cache_t module_cu_cache;
 
   void iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
                          void * data);
 
   bool func_is_inline();
 
-  typedef std::map<std::string, std::vector<Dwarf_Die>*> cu_inl_function_cache_t;
-  cu_inl_function_cache_t cu_inl_function_cache;
-
-  static int cu_inl_function_caching_callback (Dwarf_Die* func, void *arg);
-
   void iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * arg),
                                       void * data);
-
-  /* The global alias cache is used to resolve any DIE found in a
-   * module that is stubbed out with DW_AT_declaration with a defining
-   * DIE found in a different module.  The current assumption is that
-   * this only applies to structures and unions, which have a global
-   * namespace (it deliberately only traverses program scope), so this
-   * cache is indexed by name.  If other declaration lookups were
-   * added to it, it would have to be indexed by name and tag
-   */
-  mod_cu_function_cache_t global_alias_cache;
-  static int global_alias_caching_callback(Dwarf_Die *die, void *arg);
 
   Dwarf_Die *declaration_resolve(const char *name);
 
   mod_cu_function_cache_t cu_function_cache;
 
-  static int cu_function_caching_callback (Dwarf_Die* func, void *arg);
-
   int iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
                               base_query * q, const std::string& function,
                               bool has_statement_num=false);
-  int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
-                                 void * data);
-
-  bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
 
   void iterate_over_srcfile_lines (char const * srcfile,
                                    int lines[2],
@@ -282,16 +249,71 @@ struct dwflpp
 
   bool die_has_pc (Dwarf_Die & die, Dwarf_Addr pc);
 
+  std::string literal_stmt_for_local (Dwarf_Die *scope_die,
+                                      Dwarf_Addr pc,
+                                      std::string const & local,
+                                      const target_symbol *e,
+                                      bool lvalue,
+                                      exp_type & ty);
+
+
+  std::string literal_stmt_for_return (Dwarf_Die *scope_die,
+                                       Dwarf_Addr pc,
+                                       const target_symbol *e,
+                                       bool lvalue,
+                                       exp_type & ty);
+
+  std::string literal_stmt_for_pointer (Dwarf_Die *type_die,
+                                        const target_symbol *e,
+                                        bool lvalue,
+                                        exp_type & ty);
+
+private:
+  Dwfl * dwfl;
+
+  // These are "current" values we focus on.
+  Dwarf * module_dwarf;
+  Dwarf_Die * function;
+
+  std::string const default_name(char const * in, char const *);
+
+  void setup_kernel(bool debuginfo_needed = true);
+  void setup_user(const std::string& module_name, bool debuginfo_needed = true);
+
+  typedef std::map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
+  module_cu_cache_t module_cu_cache;
+
+  typedef std::map<std::string, std::vector<Dwarf_Die>*> cu_inl_function_cache_t;
+  cu_inl_function_cache_t cu_inl_function_cache;
+  static int cu_inl_function_caching_callback (Dwarf_Die* func, void *arg);
+
+  /* The global alias cache is used to resolve any DIE found in a
+   * module that is stubbed out with DW_AT_declaration with a defining
+   * DIE found in a different module.  The current assumption is that
+   * this only applies to structures and unions, which have a global
+   * namespace (it deliberately only traverses program scope), so this
+   * cache is indexed by name.  If other declaration lookups were
+   * added to it, it would have to be indexed by name and tag
+   */
+  mod_cu_function_cache_t global_alias_cache;
+  static int global_alias_caching_callback(Dwarf_Die *die, void *arg);
+  int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
+                            void * data);
+
+  static int cu_function_caching_callback (Dwarf_Die* func, void *arg);
+
+  bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
+
   static void loc2c_error (void *, const char *fmt, ...);
 
   // This function generates code used for addressing computations of
   // target variables.
   void emit_address (struct obstack *pool, Dwarf_Addr address);
-
   static void loc2c_emit_address (void *arg, struct obstack *pool,
                                   Dwarf_Addr address);
 
   void print_locals(Dwarf_Die *die, std::ostream &o);
+  void print_members(Dwarf_Die *vardie, std::ostream &o);
 
   Dwarf_Attribute *find_variable_and_frame_base (Dwarf_Die *scope_die,
                                                  Dwarf_Addr pc,
@@ -300,15 +322,12 @@ struct dwflpp
                                                  Dwarf_Die *vardie,
                                                  Dwarf_Attribute *fb_attr_mem);
 
-
   struct location *translate_location(struct obstack *pool,
                                       Dwarf_Attribute *attr,
                                       Dwarf_Addr pc,
                                       Dwarf_Attribute *fb_attr,
                                       struct location **tail,
                                       const target_symbol *e);
-
-  void print_members(Dwarf_Die *vardie, std::ostream &o);
 
   bool find_struct_member(const std::string& member,
                           Dwarf_Die *parentdie,
@@ -342,25 +361,6 @@ struct dwflpp
   std::string express_as_string (std::string prelude,
                                  std::string postlude,
                                  struct location *head);
-
-  std::string literal_stmt_for_local (Dwarf_Die *scope_die,
-                                      Dwarf_Addr pc,
-                                      std::string const & local,
-                                      const target_symbol *e,
-                                      bool lvalue,
-                                      exp_type & ty);
-
-
-  std::string literal_stmt_for_return (Dwarf_Die *scope_die,
-                                       Dwarf_Addr pc,
-                                       const target_symbol *e,
-                                       bool lvalue,
-                                       exp_type & ty);
-
-  std::string literal_stmt_for_pointer (Dwarf_Die *type_die,
-                                        const target_symbol *e,
-                                        bool lvalue,
-                                        exp_type & ty);
 };
 
 #endif // DWFLPP_H

@@ -63,9 +63,9 @@ static string TOK_KERNEL("kernel");
 
 
 dwflpp::dwflpp(systemtap_session & session, const string& user_module):
-  sess(session), dwfl(NULL), module(NULL), module_dwarf(NULL),
-  module_bias(0), mod_info(NULL), module_start(0), module_end(0),
-  cu(NULL), function(NULL)
+  sess(session), module(NULL), module_bias(0), mod_info(NULL),
+  module_start(0), module_end(0), cu(NULL), dwfl(NULL),
+  module_dwarf(NULL), function(NULL)
 {
   if (user_module.empty())
     setup_kernel();
