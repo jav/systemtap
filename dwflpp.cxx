@@ -181,8 +181,8 @@ dwflpp::focus_on_function(Dwarf_Die * f)
 }
 
 
-void
-dwflpp::query_cu_containing_address(Dwarf_Addr a, void *arg)
+Dwarf_Die *
+dwflpp::query_cu_containing_address(Dwarf_Addr a)
 {
   Dwarf_Addr bias;
   assert(dwfl);
@@ -194,9 +194,8 @@ dwflpp::query_cu_containing_address(Dwarf_Addr a, void *arg)
     a += module_start;
 
   Dwarf_Die* cudie = dwfl_module_addrdie(module, a, &bias);
-  if (cudie) // address could be wildly out of range
-    query_cu (cudie, arg);
   assert(bias == module_bias);
+  return cudie;
 }
 
 

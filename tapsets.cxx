@@ -260,6 +260,8 @@ static string TOK_MARK("mark");
 static string TOK_TRACE("trace");
 static string TOK_LABEL("label");
 
+static int query_cu (Dwarf_Die * cudie, void * arg);
+
 // Can we handle this query with just symbol-table info?
 enum dbinfo_reqt
 {
@@ -751,7 +753,9 @@ dwarf_query::query_module_dwarf()
 
       // NB: we don't need to add the module base address or bias
       // value here (for reasons that may be coincidental).
-      dw.query_cu_containing_address(addr, this);
+      Dwarf_Die* cudie = dw.query_cu_containing_address(addr);
+      if (cudie) // address could be wildly out of range
+        query_cu(cudie, this);
     }
   else
     {
@@ -1638,7 +1642,7 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
     }
 }
 
-int
+static int
 query_cu (Dwarf_Die * cudie, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);

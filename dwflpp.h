@@ -62,7 +62,6 @@ typedef std::vector<inline_instance_info> inline_instance_map_t;
 
 
 /* XXX FIXME functions that dwflpp needs from tapsets.cxx */
-int query_cu (Dwarf_Die * cudie, void * arg);
 func_info_map_t *get_filtered_functions(dwarf_query *q);
 inline_instance_map_t *get_filtered_inlines(dwarf_query *q);
 void add_label_name(dwarf_query *q, const char *name);
@@ -195,7 +194,7 @@ struct dwflpp
   void focus_on_cu(Dwarf_Die * c);
   void focus_on_function(Dwarf_Die * f);
 
-  void query_cu_containing_address(Dwarf_Addr a, void *arg);
+  Dwarf_Die *query_cu_containing_address(Dwarf_Addr a);
 
   bool module_name_matches(std::string pattern);
   bool name_has_wildcard(std::string pattern);
