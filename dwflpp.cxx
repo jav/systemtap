@@ -405,13 +405,6 @@ dwflpp::iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
 
 
 void
-dwflpp::query_modules(base_query *q)
-{
-  iterate_over_modules(&query_module, q);
-}
-
-
-void
 dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
                           void * data)
 {

@@ -63,8 +63,6 @@ typedef std::vector<inline_instance_info> inline_instance_map_t;
 
 /* XXX FIXME functions that dwflpp needs from tapsets.cxx */
 int query_cu (Dwarf_Die * cudie, void * arg);
-int query_module (Dwfl_Module *mod, void **, const char *name,
-                  Dwarf_Addr addr, void *arg);
 func_info_map_t *get_filtered_functions(dwarf_query *q);
 inline_instance_map_t *get_filtered_inlines(dwarf_query *q);
 void add_label_name(dwarf_query *q, const char *name);
@@ -214,7 +212,6 @@ struct dwflpp
                                              const char *, Dwarf_Addr,
                                              void *),
                             base_query *data);
-  void query_modules(base_query *q);
 
   typedef std::map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
   module_cu_cache_t module_cu_cache;

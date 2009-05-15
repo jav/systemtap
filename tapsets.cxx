@@ -1894,7 +1894,7 @@ lookup_symbol_address (Dwfl_Module *m, const char* wanted)
 
 
 
-int
+static int
 query_module (Dwfl_Module *mod,
               void **,
 	      const char *name,
@@ -2756,7 +2756,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 	}
 
       dwarf_cast_query q (*dw, module, *e, lvalue, type, code);
-      dw->query_modules(&q);
+      dw->iterate_over_modules(&query_module, &q);
     }
 
   if (code.empty())
@@ -3497,7 +3497,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    
 	    dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 	    q.has_mark = true;
-	    dw->query_modules(&q);
+	    dw->iterate_over_modules(&query_module, &q);
 	    if (sess.listing_mode)
 	      {
 		finished_results.back()->locations[0]->components[1]->functor = TOK_MARK;
@@ -3554,7 +3554,7 @@ dwarf_builder::build(systemtap_session & sess,
       return;
     }
 
-  dw->query_modules(&q);
+  dw->iterate_over_modules(&query_module, &q);
 }
 
 symbol_table::~symbol_table()
@@ -5700,7 +5700,7 @@ tracepoint_builder::build(systemtap_session& s,
   assert(get_param (parameters, TOK_TRACE, tracepoint));
 
   tracepoint_query q(*dw, tracepoint, base, location, finished_results);
-  dw->query_modules(&q);
+  dw->iterate_over_modules(&query_module, &q);
 }
 
 
