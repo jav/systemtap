@@ -27,11 +27,6 @@
 #include <deque>
 #include <iostream>
 #include <map>
-#ifdef HAVE_TR1_UNORDERED_MAP
-#include <tr1/unordered_map>
-#else
-#include <ext/hash_map>
-#endif
 #include <set>
 #include <sstream>
 #include <stdexcept>

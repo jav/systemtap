@@ -23,12 +23,6 @@
 #include <string>
 #include <vector>
 
-#ifdef HAVE_TR1_UNORDERED_MAP
-#include <tr1/unordered_map>
-#else
-#include <ext/hash_map>
-#endif
-
 extern "C" {
 #include <elfutils/libdwfl.h>
 }
@@ -44,18 +38,20 @@ enum line_t { ABSOLUTE, RELATIVE, RANGE, WILDCARD };
 enum info_status { info_unknown, info_present, info_absent };
 
 #ifdef HAVE_TR1_UNORDERED_MAP
-typedef std::tr1::unordered_map<std::string,Dwarf_Die> cu_function_cache_t;
-typedef std::tr1::unordered_map<std::string,cu_function_cache_t*> mod_cu_function_cache_t; // module:cu -> function -> die
+#include <tr1/unordered_map>
+template<class T> struct stap_map {
+  typedef std::tr1::unordered_map<std::string, T> type;
+};
 #else
-struct stringhash {
-  // __gnu_cxx:: is needed because our own hash.h has an ambiguous hash<> decl too.
+#include <ext/hash_map>
+template<class T> struct stap_map {
+  typedef __gnu_cxx::hash_map<std::string, T, stap_map> type;
   size_t operator() (const std::string& s) const
   { __gnu_cxx::hash<const char*> h; return h(s.c_str()); }
 };
-
-typedef __gnu_cxx::hash_map<std::string,Dwarf_Die,stringhash> cu_function_cache_t;
-typedef __gnu_cxx::hash_map<std::string,cu_function_cache_t*,stringhash> mod_cu_function_cache_t; // module:cu -> function -> die
 #endif
+typedef stap_map<Dwarf_Die>::type cu_function_cache_t; // function -> die
+typedef stap_map<cu_function_cache_t*>::type mod_cu_function_cache_t; // module:cu -> function -> die
 
 typedef std::vector<func_info> func_info_map_t;
 typedef std::vector<inline_instance_info> inline_instance_map_t;
