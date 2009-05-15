@@ -197,10 +197,7 @@ struct dwflpp
   void focus_on_cu(Dwarf_Die * c);
   void focus_on_function(Dwarf_Die * f);
 
-  void query_cu_containing_global_address(Dwarf_Addr a, void *arg);
-  void query_cu_containing_module_address(Dwarf_Addr a, void *arg);
-
-  Dwarf_Addr module_address_to_global(Dwarf_Addr a);
+  void query_cu_containing_address(Dwarf_Addr a, void *arg);
 
   bool module_name_matches(std::string pattern);
   bool name_has_wildcard(std::string pattern);

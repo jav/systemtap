@@ -751,7 +751,7 @@ dwarf_query::query_module_dwarf()
 
       // NB: we don't need to add the module base address or bias
       // value here (for reasons that may be coincidental).
-      dw.query_cu_containing_module_address(addr, this);
+      dw.query_cu_containing_address(addr, this);
     }
   else
     {

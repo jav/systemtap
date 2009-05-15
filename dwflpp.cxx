@@ -182,34 +182,21 @@ dwflpp::focus_on_function(Dwarf_Die * f)
 
 
 void
-dwflpp::query_cu_containing_global_address(Dwarf_Addr a, void *arg)
+dwflpp::query_cu_containing_address(Dwarf_Addr a, void *arg)
 {
   Dwarf_Addr bias;
   assert(dwfl);
+  assert(module);
   get_module_dwarf();
+
+  // globalize the module-relative address
+  if (module_name != TOK_KERNEL && dwfl_module_relocations (module) > 0)
+    a += module_start;
+
   Dwarf_Die* cudie = dwfl_module_addrdie(module, a, &bias);
   if (cudie) // address could be wildly out of range
     query_cu (cudie, arg);
   assert(bias == module_bias);
-}
-
-
-void
-dwflpp::query_cu_containing_module_address(Dwarf_Addr a, void *arg)
-{
-  query_cu_containing_global_address(module_address_to_global(a), arg);
-}
-
-
-Dwarf_Addr
-dwflpp::module_address_to_global(Dwarf_Addr a)
-{
-  assert(dwfl);
-  assert(module);
-  get_module_dwarf();
-  if (module_name == TOK_KERNEL || dwfl_module_relocations (module) <= 0)
-    return a;
-  return a + module_start;
 }
 
 
