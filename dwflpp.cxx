@@ -1314,8 +1314,7 @@ void
 dwflpp::loc2c_emit_address (void *arg, struct obstack *pool,
                             Dwarf_Addr address)
 {
-  dwflpp *dwfl = (dwflpp *) arg;
-  dwfl->emit_address (pool, address);
+  static_cast<dwflpp *>(arg)->emit_address (pool, address);
 }
 
 
