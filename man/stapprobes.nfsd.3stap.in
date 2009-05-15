@@ -78,7 +78,7 @@ Fires whenever client reads file on server
   the offset of file
 
 .I vec
-  struct kvec ,includes buf address in kernel address
+  struct kvec, includes buf address in kernel address
   and the length of each buffer
 
 .I vlen 
@@ -111,7 +111,7 @@ Fires whenever client writes data to file on server
   the offset of file
 
 .I vec
-  struct kvec ,includes buf address in kernel address
+  struct kvec, includes buf address in kernel address
   and the length of each buffer
 
 .I vlen 
@@ -294,7 +294,7 @@ Fires whenever server reads file
   the offset of file
 
 .I vec
-  struct kvec ,includes buf address in kernel address
+  struct kvec, includes buf address in kernel address
   and the length of each buffer
 
 .I vlen 
@@ -321,7 +321,7 @@ Fires whenever server writes file
   the offset of file
 
 .I vec
-  struct kvec ,includes buf address in kernel address
+  struct kvec, includes buf address in kernel address
   and the length of each buffer
 
 .I vlen 
@@ -394,7 +394,7 @@ Fires whenever client opens/searches file on server
 .B nfsd.createv3
 
 Fires when client creates a regular file or set file attributes
-on server side,only called by nfsd3_proc_create and nfsd4_open
+on server side, only called by nfsd3_proc_create and nfsd4_open
 (op_claim_type is NFS4_OPEN_CLAIM_NULL)
 
 .B Arguments:
@@ -415,14 +415,14 @@ on server side,only called by nfsd3_proc_create and nfsd4_open
   file access mode
 
 .I  createmode 
-  create mode .The possible values could be:
+  create mode. The possible values could be:
     NFS3_CREATE_EXCLUSIVE,NFS3_CREATE_UNCHECKED,NFS3_CREATE_GUARDED
 
 .I  truncp 
   trunp arguments, indicates if the file should be truncated
 
 .I  verfier 
-  file attributes (atime,mtime,mode).It's used to reset file
+  file attributes (atime,mtime,mode). It's used to reset file
   attributes for CREATE_EXCLUSIVE
 
 .P

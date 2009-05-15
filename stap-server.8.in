@@ -181,7 +181,7 @@ server\[aq]s certificate database.
 .B DIRNAME
 This optional argument is the name of the directory containing the client\-side
 certificate database to which the certificate is to be added. If not specified, the
-default, for non\-root users,is
+default, for non\-root users, is
 .I $HOME/.systemtap/ssl/server\fP.
 For root users (EUID=0), the default is
 .I $sysconfdir/systemtap/ssl/server\fP.
