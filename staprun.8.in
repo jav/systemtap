@@ -52,7 +52,7 @@ The '_stp_target' variable will be set to PID.
 .TP
 .B \-o FILE
 Send output to FILE. If the module uses bulk mode, the output will
-be in percpu files FILE_x(FILE_cpux in backgroud and bulk mode)
+be in percpu files FILE_x(FILE_cpux in background and bulk mode)
 where 'x' is the cpu number. This supports strftime(3) formats
 for FILE.
 .TP

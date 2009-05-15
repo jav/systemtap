@@ -456,7 +456,7 @@ proceed in a sorted order, by ascending or descending index or value.
 Using the optional
 .BR limit
 keyword limits the number of loop iterations to EXP times.  EXP is
-evaluted once at the beginning of the loop.
+evaluated once at the beginning of the loop.
 .TP
 .BR foreach " ([VAR1, VAR2, ...] " in " ARRAY [ "limit " EXP ]) STMT"
 Same as above, used when the array is indexed with a tuple of keys.

@@ -37,7 +37,7 @@ that it is optional, and that no error should result if it fails to
 resolve.  Optionalness passes down through all levels of
 alias/wildcard expansion.  Alternately, a probe point may be followed
 by a "!" character, to indicate that it is both optional and
-sufficient.  (Think vaguely of the prolog cut operator.) If it does
+sufficient.  (Think vaguely of the Prolog cut operator.) If it does
 resolve, then no further probe points in the same comma-separated list
 will be resolved.  Therefore, the "!"  sufficiency mark only makes
 sense in a list of probe point alternatives.
@@ -115,7 +115,7 @@ probe point is similar to the
 .IR end
 probe, except that each such probe handler run when the session ends
 after errors have occurred.  In such cases, "end" probes are skipped,
-but each "error" prober is still attempted.  This kind of probe can be
+but each "error" probe is still attempted.  This kind of probe can be
 used to clean up or emit a "final gasp".  It may also be numerically
 parametrized to set a sequence.
 
@@ -606,7 +606,7 @@ The marker name string, which may contain the usual wildcard characters,
 is matched against the names given to the marker macros when the kernel
 and/or module was compiled.    Optionally, you can specify
 .BR format("format") .
-Specifying the marker format string allows differentation between two
+Specifying the marker format string allows differentiation between two
 markers with the same name but different marker format strings.
 
 The handler associated with a marker-based probe may read the
@@ -618,7 +618,7 @@ and string parameters are passed in a type-safe manner.
 
 The marker format string associated with a marker is available in
 .BR $format .
-And also the marker name string is avalable in
+And also the marker name string is available in
 .BR $name .
 
 .SS TRACEPOINTS
@@ -669,10 +669,10 @@ Performance monitor hardware points begin with a
 The next part of the names the event being counted
 .BR counter("event") .
 The event names are processor implementation specific with the
-execption of the generic
+exception of the generic
 .BR cycles " and " instructions
 events, which are available on all processors. This sets up a counter
-on the processor to count the number of events occuring on the
+on the processor to count the number of events occurring on the
 processor. For more details on the performance monitoring events
 available on a specific processor use the command perfmon2 command:
 
