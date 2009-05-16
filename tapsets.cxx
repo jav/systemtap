@@ -246,19 +246,19 @@ common_probe_entryfn_epilogue (translator_output* o,
 //  Dwarf derived probes.  "We apologize for the inconvience."
 // ------------------------------------------------------------------------
 
-static string TOK_KERNEL("kernel");
-static string TOK_MODULE("module");
-static string TOK_FUNCTION("function");
-static string TOK_INLINE("inline");
-static string TOK_CALL("call");
-static string TOK_RETURN("return");
-static string TOK_MAXACTIVE("maxactive");
-static string TOK_STATEMENT("statement");
-static string TOK_ABSOLUTE("absolute");
-static string TOK_PROCESS("process");
-static string TOK_MARK("mark");
-static string TOK_TRACE("trace");
-static string TOK_LABEL("label");
+static const string TOK_KERNEL("kernel");
+static const string TOK_MODULE("module");
+static const string TOK_FUNCTION("function");
+static const string TOK_INLINE("inline");
+static const string TOK_CALL("call");
+static const string TOK_RETURN("return");
+static const string TOK_MAXACTIVE("maxactive");
+static const string TOK_STATEMENT("statement");
+static const string TOK_ABSOLUTE("absolute");
+static const string TOK_PROCESS("process");
+static const string TOK_MARK("mark");
+static const string TOK_TRACE("trace");
+static const string TOK_LABEL("label");
 
 static int query_cu (Dwarf_Die * cudie, void * arg);
 
@@ -4461,7 +4461,7 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
 // Kprobe derived probes
 // ------------------------------------------------------------------------
 
-static string TOK_KPROBE("kprobe");
+static const string TOK_KPROBE("kprobe");
 
 struct kprobe_derived_probe: public derived_probe
 {

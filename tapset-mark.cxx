@@ -27,9 +27,9 @@ using namespace std;
 using namespace __gnu_cxx;
 
 
-static string TOK_KERNEL("kernel");
-static string TOK_MARK("mark");
-static string TOK_FORMAT("format");
+static const string TOK_KERNEL("kernel");
+static const string TOK_MARK("mark");
+static const string TOK_FORMAT("format");
 
 
 // ------------------------------------------------------------------------

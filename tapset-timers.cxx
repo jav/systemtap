@@ -22,7 +22,7 @@ using namespace std;
 using namespace __gnu_cxx;
 
 
-static string TOK_TIMER("timer");
+static const string TOK_TIMER("timer");
 
 
 // ------------------------------------------------------------------------

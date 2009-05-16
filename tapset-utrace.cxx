@@ -23,12 +23,12 @@ using namespace std;
 using namespace __gnu_cxx;
 
 
-static string TOK_PROCESS("process");
-static string TOK_BEGIN("begin");
-static string TOK_END("end");
-static string TOK_THREAD("thread");
-static string TOK_SYSCALL("syscall");
-static string TOK_RETURN("return");
+static const string TOK_PROCESS("process");
+static const string TOK_BEGIN("begin");
+static const string TOK_END("end");
+static const string TOK_THREAD("thread");
+static const string TOK_SYSCALL("syscall");
+static const string TOK_RETURN("return");
 
 
 // ------------------------------------------------------------------------
