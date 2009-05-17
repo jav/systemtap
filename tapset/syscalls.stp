@@ -2976,7 +2976,7 @@ probe syscall.mq_timedreceive =
 	msg_ptr_uaddr = $u_msg_ptr
 	msg_len = $msg_len
 	msg_prio_uaddr = $u_msg_prio
-	abs_timout_uaddr = $u_abs_timeout
+	abs_timeout_uaddr = $u_abs_timeout
 	argstr = sprintf("%d, %p, %d, %p, %p", $mqdes, $u_msg_ptr, $msg_len,
 			$u_msg_prio, $u_abs_timeout)
 }
