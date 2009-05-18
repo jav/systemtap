@@ -12,6 +12,7 @@
 #include <cstring>
 #include <string>
 #include <elfutils/libdwfl.h>
+#include <dwarf.h>
 
 using std::string;
 
@@ -44,5 +45,17 @@ void dwfl_assert(const std::string& desc, bool condition)
     if (!condition)
         dwfl_assert(desc, -1);
 }
+
+
+// Helper for dealing with selected portions of libdwfl in a more readable
+// fashion, and with specific cleanup / checking / logging options.
+
+const char *
+dwarf_diename_integrate (Dwarf_Die *die)
+{
+  Dwarf_Attribute attr_mem;
+  return dwarf_formstring (dwarf_attr_integrate (die, DW_AT_name, &attr_mem));
+}
+
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

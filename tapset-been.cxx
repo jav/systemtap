@@ -21,10 +21,10 @@ using namespace std;
 using namespace __gnu_cxx;
 
 
-static string TOK_BEGIN("begin");
-static string TOK_END("end");
-static string TOK_ERROR("error");
-static string TOK_NEVER("never");
+static const string TOK_BEGIN("begin");
+static const string TOK_END("end");
+static const string TOK_ERROR("error");
+static const string TOK_NEVER("never");
 
 
 // ------------------------------------------------------------------------

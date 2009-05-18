@@ -23,9 +23,9 @@ using namespace std;
 using namespace __gnu_cxx;
 
 
-static string TOK_PROCESS("process");
-static string TOK_INSN("insn");
-static string TOK_BLOCK("block");
+static const string TOK_PROCESS("process");
+static const string TOK_INSN("insn");
+static const string TOK_BLOCK("block");
 
 
 // ------------------------------------------------------------------------
