@@ -20,6 +20,11 @@
 #include <linux/utrace.h>
 #include "ptrace_compatibility.h"
 
+/* PR10171: To avoid ia64 lockups, disable itrace on ia64. */
+#if defined(__ia64__)
+#error "Unsupported itrace architecture"
+#endif
+
 /* PR9974: Adapt to struct renaming. */
 #ifdef UTRACE_API_VERSION
 #define utrace_attached_engine utrace_engine
