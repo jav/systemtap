@@ -469,6 +469,7 @@ main (int argc, char * const argv [])
   while (true)
     {
       int long_opt;
+      char * num_endptr;
 #define LONG_OPT_KELF 1
 #define LONG_OPT_KMAP 2
 #define LONG_OPT_IGNORE_VMLINUX 3
@@ -518,8 +519,8 @@ main (int argc, char * const argv [])
               cerr << "Listing (-l) mode implies pass 2." << endl;
               usage (s, 1);
             }
-          s.last_pass = atoi (optarg);
-          if (s.last_pass < 1 || s.last_pass > 5)
+          s.last_pass = (int)strtoul(optarg, &num_endptr, 10);
+          if (*num_endptr != '\0' || s.last_pass < 1 || s.last_pass > 5)
             {
               cerr << "Invalid pass number (should be 1-5)." << endl;
               usage (s, 1);
