@@ -4,6 +4,7 @@
 %{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
 %{!?elfutils_version: %define elfutils_version 0.127}
 %{!?pie_supported: %define pie_supported 1}
+%{!?with_grapher: %define with_grapher 0}
 
 Name: systemtap
 Version: 0.9.7
@@ -183,8 +184,14 @@ cd ..
 %define pie_config --disable-pie
 %endif
 
+%if %{with_grapher}
+%define grapher_config --enable-grapher
+%else
+%define grapher_config --disable-grapher
+%endif
 
-%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config}
+
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{grapher_config}
 make %{?_smp_mflags}
 
 %install
