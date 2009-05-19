@@ -520,7 +520,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 
 #ifdef DEBUG_UNWIND
 static const char *_stp_enc_hi_name[] = {
-	"",
+	"DW_EH_PE",
 	"DW_EH_PE_pcrel",
 	"DW_EH_PE_textrel",
 	"DW_EH_PE_datarel",
@@ -528,15 +528,15 @@ static const char *_stp_enc_hi_name[] = {
 	"DW_EH_PE_aligned"
 };
 static const char *_stp_enc_lo_name[] = {
-	"DW_EH_PE_absptr",
-	"DW_EH_PE_uleb128",
-	"DW_EH_PE_udata2",
-	"DW_EH_PE_udata4",
-	"DW_EH_PE_udata8",
-	"DW_EH_PE_sleb128",
-	"DW_EH_PE_sdata2",
-	"DW_EH_PE_sdata4",
-	"DW_EH_PE_sdata8"
+	"_absptr",
+	"_uleb128",
+	"_udata2",
+	"_udata4",
+	"_udata8",
+	"_sleb128",
+	"_sdata2",
+	"_sdata4",
+	"_sdata8"
 };
 static char *_stp_eh_enc_name(signed type)
 {
@@ -555,8 +555,7 @@ static char *_stp_eh_enc_name(signed type)
 	buf[0] = 0;
 	if (type & DW_EH_PE_indirect)
 		strlcpy(buf, "DW_EH_PE_indirect|", sizeof(buf));
-	if (hi)
-		strlcat(buf, _stp_enc_hi_name[hi], sizeof(buf));
+	strlcat(buf, _stp_enc_hi_name[hi], sizeof(buf));
 
 	if (type & DW_EH_PE_signed)
 		low += 4;
@@ -610,7 +609,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
 			startLoc = adjustStartLoc(startLoc, m, s);
 
-			dbug_unwind(2, "startLoc=%lx, ptrType=%s", startLoc, _stp_eh_enc_name(ptrType));
+			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!(ptrType & DW_EH_PE_indirect))
 				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
 			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
@@ -640,7 +639,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
 			startLoc = adjustStartLoc(startLoc, m, s);
-			dbug_unwind(2, "startLoc=%lx, ptrType=%s", startLoc, _stp_eh_enc_name(ptrType));
+			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;
 			if (!(ptrType & DW_EH_PE_indirect))

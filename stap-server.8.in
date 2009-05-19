@@ -93,7 +93,7 @@ certificate database, making that server a trusted server for clients using that
 .PP
 The
 .I stap\-client
-program is analagous to the
+program is analogous to the
 .I stap
 front end except that it attempts to find a compatible systemtap server on the
 local network and then attempts to use that server for actions related to
@@ -125,13 +125,13 @@ accepts the following:
 
 .TP
 .B \-\-server=\fIHOSTNAME\fR|\fIIP_ADDRESS\fR[\fB:\fIPORT\fR]
-This option intructs
+This option instructs
 .I stap\-client
 to use the named server instead of looking for one automatically. The server may
 be specified using a valid host name or ip address. If no port is specified, then
 .I stap\-client
-searches for the server among the servers advertizing their presence on the
-local network and uses the port which is being advertized. This is useful for
+searches for the server among the servers advertising their presence on the
+local network and uses the port which is being advertised. This is useful for
 connecting to a specific server on the local network. If a port is specified,
 then
 .I stap\-client
@@ -181,7 +181,7 @@ server\[aq]s certificate database.
 .B DIRNAME
 This optional argument is the name of the directory containing the client\-side
 certificate database to which the certificate is to be added. If not specified, the
-default, for non\-root users,is
+default, for non\-root users, is
 .I $HOME/.systemtap/ssl/server\fP.
 For root users (EUID=0), the default is
 .I $sysconfdir/systemtap/ssl/server\fP.

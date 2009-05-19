@@ -19,8 +19,9 @@
 #define STAP_PROBE_ADDR "\t.long "
 #endif
 
+/* An allocated section .probes that holds the probe names and addrs. */
 #define STAP_PROBE_DATA_(probe)	\
-  __asm__ volatile (".section .probes\n" \
+  __asm__ volatile (".section .probes, \"a\"\n" \
 		    "\t.align 8\n"   \
 		    "1:\n\t.asciz " #probe "\n" \
 		    "\t.align 4\n" \

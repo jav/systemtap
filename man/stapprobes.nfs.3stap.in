@@ -551,7 +551,7 @@ Fires when a previous async read operation failed
 .TP
 .B nfs.aop.readpages
 
-Fies when in readahead way,read several pages once
+Fires when in readahead way, read several pages once
 
 .B Arguments:
 
@@ -577,7 +577,7 @@ Fies when in readahead way,read several pages once
 .TP
 .B nfs.aop.readpages.return
 
-Fies whenever a nfs read pages operation is done 
+Fires whenever a nfs read pages operation is done
 
 .B Arguments:
 
@@ -588,7 +588,7 @@ Fies whenever a nfs read pages operation is done
 .TP
 .B nfs.aop.set_page_dirty
 
-Fies whenever set page dirty on nfs client side
+Fires whenever set page dirty on nfs client side
 
 .B Arguments:
 
@@ -602,7 +602,7 @@ Fies whenever set page dirty on nfs client side
 .TP
 .B nfs.aop.writepage
 
-Fies whenever writing an mapped page to the server from nfs client side
+Fires whenever writing an mapped page to the server from nfs client side
 
 .B Arguments:
 
@@ -644,7 +644,7 @@ Fies whenever writing an mapped page to the server from nfs client side
 .TP
 .B nfs.aop.writepages
 
-Fies whenever writing several dirty pages to the server from nfs client sides
+Fires whenever writing several dirty pages to the server from nfs client sides
 
 .B Arguments:
 
@@ -674,7 +674,7 @@ Fies whenever writing several dirty pages to the server from nfs client sides
 .TP
 .B nfs.aop.prepare_write
 
-Fies whenever prepare a page for writting on nfs client sides
+Fires whenever prepare a page for writing on nfs client sides
 
 .B Arguments:
 
@@ -703,7 +703,7 @@ Fies whenever prepare a page for writting on nfs client sides
 .TP
 .B nfs.aop.commit_write
 
-Fies often after prepare write operation  
+Fires often after prepare write operation
 
 .B Arguments:
 
@@ -771,7 +771,7 @@ Fies often after prepare write operation
   nfs version
 
 .I filename 
-  the name of  file which client opens/searchs on server
+  the name of  file which client opens/searches on server
 
 .I name_len 
   the length of file name
@@ -851,7 +851,7 @@ Fires when client synchronously writes file to server
 .TP
 .B nfs.proc.write.return
 
-Fires when synchronously writting file from server is done
+Fires when synchronously writing file from server is done
 
 .B Arguments:
 
@@ -862,7 +862,7 @@ Fires when synchronously writting file from server is done
 .TP
 .B nfs.proc.commit
 
-Fires when client writes the buffered data to disk,the buffered 
+Fires when client writes the buffered data to disk, the buffered 
 data is asynchronously written by client before(not exist in NFSV2)
 
 .B Arguments:
@@ -902,7 +902,7 @@ Fires when committing operation is done
 .B nfs.proc.read_setup
 
 Fires when client asynchronously reads file from server,
-this function is used to setup a read rpc task,not do
+this function is used to setup a read rpc task, not do
 a real read operation.
 
 .B Arguments:
@@ -947,7 +947,7 @@ Fires when a read reply is received or some read error occur
   number of bytes read 
 
 .I timestamp
-  time stamp ,which is used for lease renewal (only 
+  time stamp, which is used for lease renewal (only 
   in nfs.proc4.read_done)
 
 .P
@@ -955,7 +955,7 @@ Fires when a read reply is received or some read error occur
 .B nfs.proc.write_setup
 
 Fires when client asynchronously write data to server,
-this function is used to setup a write rpc task,not do
+this function is used to setup a write rpc task, not do
 a write read operation.
 
 .B Arguments:
@@ -976,7 +976,7 @@ a write read operation.
   the file offset
 
 .I how
-  used to set args.stable,The possible value could be:
+  used to set args.stable, The possible value could be:
           NFS_UNSTABLE,
           NFS_DATA_SYNC,
           NFS_FILE_SYNC
@@ -1008,13 +1008,13 @@ Fires when a write reply is received or some write error occur
   result of last async write operation 
 
 .I valid  
-  fattr\->valid ,indicates which fields are valid
+  fattr\->valid, indicates which fields are valid
 
 .I count 
   number of bytes written 
 
 .I timestamp
-  time stamp ,which is used for lease renewal (only 
+  time stamp, which is used for lease renewal (only 
   in nfs.proc4.read_done)
 
 .P
@@ -1022,7 +1022,7 @@ Fires when a write reply is received or some write error occur
 .B nfs.proc.commit_setup
 
 Fires when client asynchronously do a commit operation,
-this function is used to setup a commit rpc task,not do
+this function is used to setup a commit rpc task, not do
 a commit read operation.
 
 .B Arguments:
@@ -1068,13 +1068,13 @@ Fires when a commit reply is received or some commit error occur
   result of last async write operation 
 
 .I valid  
-  fattr\->valid ,indicates which fields are valid
+  fattr\->valid, indicates which fields are valid
 
 .I count 
   number of bytes written 
 
 .I timestamp
-  time stamp ,which is used for lease renewal (only 
+  time stamp, which is used for lease renewal (only 
   in nfs.proc4.read_done)
 
 .P

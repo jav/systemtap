@@ -719,7 +719,7 @@ static MAP _stp_pmap_agg (PMAP pmap)
 {
 	int i, hash;
 	MAP m, agg;
-	struct map_node *ptr, *aptr;
+	struct map_node *ptr, *aptr = NULL;
 	struct hlist_head *head, *ahead;
 	struct hlist_node *e, *f;
 

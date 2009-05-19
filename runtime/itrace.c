@@ -20,6 +20,11 @@
 #include <linux/utrace.h>
 #include "ptrace_compatibility.h"
 
+/* PR10171: To avoid ia64 lockups, disable itrace on ia64. */
+#if defined(__ia64__)
+#error "Unsupported itrace architecture"
+#endif
+
 /* PR9974: Adapt to struct renaming. */
 #ifdef UTRACE_API_VERSION
 #define utrace_attached_engine utrace_engine
@@ -182,8 +187,14 @@ static u32 usr_itrace_report_signal(u32 action,
 	if (info->si_signo != SIGTRAP || !ui)
 		return UTRACE_RESUME;
 
+#if defined(UTRACE_ORIG_VERSION) && defined(CONFIG_PPC)
+	/* Because of a ppc utrace bug, we need to stop the task here.
+	   usr_itrace_report_quiesce() will continue stepping the task. */
+	return_flags = UTRACE_SIGNAL_IGN | UTRACE_STOP | UTRACE_ACTION_NEWSTATE;
+#else
 	/* normal case: continue stepping */
 	return_flags =  ui->step_flag | UTRACE_SIGNAL_IGN;
+#endif
 #ifdef CONFIG_PPC
 	if (ui->ppc_atomic_ss.step_over_atomic) {
 		remove_atomic_ss_breakpoint(tsk, &ui->ppc_atomic_ss.end_bpt);

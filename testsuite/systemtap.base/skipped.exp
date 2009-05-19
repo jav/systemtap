@@ -2,8 +2,8 @@ set test "skip tracking"
 
 if {! [installtest_p]} { untested $test; return }
 
-set cpus [exec sh -c "grep ^processor /proc/cpuinfo | wc -l"]
-if {$cpus < 2} { unsupported $test; return }
+set nr_cpus [exec sh -c "grep ^processor /proc/cpuinfo | wc -l"]
+if {$nr_cpus < 2} { unsupported $test; return }
 
 set ok 0
 spawn stap -e "probe timer.s(5) {exit()} probe timer.profile,syscall.* {f++} global f" -DMAXTRYLOCK=0 -tu
@@ -18,4 +18,4 @@ expect {
 catch {close}
 catch {wait}
 
-if {$ok >= 3} { pass "$test ($cpus $ok)" } else { fail "$test ($cpus $ok)" }
+if {$ok >= 3} { pass "$test ($nr_cpus $ok)" } else { fail "$test ($nr_cpus $ok)" }
