@@ -712,13 +712,12 @@ probe syscall.exit_group = kernel.function("SyS_exit_group") !,
 probe syscall.faccessat = kernel.function("SyS_faccessat") !,
 		kernel.function("sys_faccessat") ? {
 	name = "faccessat"
-	dfd = $dfd
-	dfd_str = _dfd_str($dfd)
-	filename = $filename
-	filename_str = user_string($filename)
+	dirfd = $dfd
+	dirfd_str = _dfd_str($dfd)
+	pathname = user_string($filename)
 	mode = $mode
 	mode_str = _access_mode_str($mode)
-	argstr = sprintf("%s, %s, %s", dfd_str, user_string_quoted($filename), mode_str)
+	argstr = sprintf("%s, %s, %s", dirfd_str, user_string_quoted($filename), mode_str)
 }
 probe syscall.faccessat.return = kernel.function("SyS_faccessat").return !,
 		kernel.function("sys_faccessat").return ? {
@@ -838,12 +837,11 @@ probe syscall.fchmod.return = kernel.function("SyS_fchmod").return !,
 probe syscall.fchmodat = kernel.function("SyS_fchmodat") !,
 		kernel.function("sys_fchmodat") ? {
 	name = "fchmodat"
-	dfd = $dfd
-	dfd_str = _dfd_str($dfd)
-	filename = $filename
-	filename_str = user_string($filename)
+	dirfd = $dfd
+	dirfd_str = _dfd_str($dfd)
+	pathname = user_string($filename)
 	mode = $mode
-	argstr = sprintf("%s, %s, %#o", dfd_str, user_string_quoted($filename), $mode)
+	argstr = sprintf("%s, %s, %#o", dirfd_str, user_string_quoted($filename), $mode)
 }
 probe syscall.fchmodat.return = kernel.function("SyS_fchmodat").return !,
 		kernel.function("sys_fchmodat").return ? {
@@ -888,16 +886,15 @@ probe syscall.fchown16.return = kernel.function("sys_fchown16").return ? {
 probe syscall.fchownat = kernel.function("SyS_fchownat") !,
 		kernel.function("sys_fchownat") ? {
 	name = "fchownat"
-	dfd = $dfd
-	dfd_str = _dfd_str($dfd)
-	filename = $filename
-	filename_str = user_string($filename)
-	user = __int32($user)
+	dirfd = $dfd
+	dirfd_str = _dfd_str($dfd)
+	pathname = user_string($filename)
+	owner = __int32($user)
 	group = __int32($group)
-	flag = $flag
-	flag_str = _at_flag_str($flag)
+	flags = $flag
+	flags_str = _at_flag_str($flag)
 	argstr = sprintf("%s, %s, %d, %d, %s",
-		dfd_str, user_string_quoted($filename), user, group, flag_str)
+		dirfd_str, user_string_quoted($filename), owner, group, flags_str)
 }
 probe syscall.fchownat.return = kernel.function("SyS_fchownat").return !,
 		kernel.function("sys_fchownat").return ? {
@@ -2332,19 +2329,17 @@ probe syscall.link.return = kernel.function("SyS_link").return !,
 probe syscall.linkat = kernel.function("SyS_linkat") !,
 		kernel.function("sys_linkat") ? {
 	name = "linkat"
-	olddfd = $olddfd
-	olddfd_str = _dfd_str($olddfd)
-	oldname = $oldname
-	oldname_str = user_string($oldname)
-	newdfd = $newdfd
-	newdfd_str = _dfd_str($newdfd)
-	newname = $newname
-	newname_str = user_string($newname)
+	olddirfd = $olddfd
+	olddirfd_str = _dfd_str($olddfd)
+	oldpath = user_string($oldname)
+	newdirfd = $newdfd
+	newdirfd_str = _dfd_str($newdfd)
+	newpath = user_string($newname)
 	flags = $flags
 	flags_str = _at_flag_str($flags)
 	argstr = sprintf("%s, %s, %s, %s, %s",
-		olddfd_str, user_string_quoted($oldname),
-		newdfd_str, user_string_quoted($newname),
+		olddirfd_str, user_string_quoted($oldname),
+		newdirfd_str, user_string_quoted($newname),
 		flags_str)
 }
 probe syscall.linkat.return = kernel.function("SyS_linkat").return !,
@@ -2720,15 +2715,14 @@ probe syscall.mknod.return = kernel.function("SyS_mknod").return !,
 probe syscall.mknodat = kernel.function("SyS_mknodat") !,
 		kernel.function("sys_mknodat") ? {
 	name = "mknodat"
-	dfd = $dfd
-	dfd_str = _dfd_str($dfd)
-	filename = $filename
-	filename_str = user_string($filename)
+	dirfd = $dfd
+	dirfd_str = _dfd_str($dfd)
+	pathname = user_string($filename)
 	mode = $mode
 	mode_str = _mknod_mode_str($mode)
 	dev = $dev
 	argstr = sprintf("%s, %s, %s, %p",
-		dfd_str, user_string_quoted($filename), mode_str, $dev)
+		dirfd_str, user_string_quoted($filename), mode_str, $dev)
 }
 probe syscall.mknodat.return = kernel.function("SyS_mknodat").return !,
 		kernel.function("sys_mknodat").return ? {
