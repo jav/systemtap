@@ -639,7 +639,12 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'x':
-	  s.target_pid = atoi(optarg);
+	  s.target_pid = (int) strtoul(optarg, &num_endptr, 10);
+	  if (*num_endptr != '\0')
+	    {
+	      cerr << "Invalid target process ID number." << endl;
+	      usage (s, 1);
+	    }
 	  break;
 
 	case 'D':
