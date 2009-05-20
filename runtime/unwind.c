@@ -8,9 +8,9 @@
  *
  * This code is released under version 2 of the GNU GPL.
  *
- * This code currently does stack unwinding in the
- * kernel and modules. It will need some extension to handle
- * userspace unwinding.
+ * This code currently does stack unwinding in the kernel and modules.
+ * It has been extended to handle userspace unwinding using systemtap
+ * data structures.
  */
 
 #include "unwind/unwind.h"
@@ -511,7 +511,7 @@ adjustStartLoc (unsigned long startLoc,
 }
 
 /* If we previously created an unwind header, then use it now to binary search */
-/* for the FDE corresponding to pc. */
+/* for the FDE corresponding to pc. XXX FIXME not currently supported. */
 
 static u32 *_stp_search_unwind_hdr(unsigned long pc,
 				   struct _stp_module *m,
@@ -562,7 +562,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 	do {
 		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
 		startLoc = read_pointer(&cur, cur + tableSize, hdr[3]);
-		startLoc = adjustStartLoc(startLoc, m, s, hdr[3], false);
+		startLoc = adjustStartLoc(startLoc, m, s, hdr[3], true);
 		if (pc < startLoc)
 			num /= 2;
 		else {
@@ -581,7 +581,9 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 /* Unwind to previous to frame.  Returns 0 if successful, negative
  * number in case of an error.  A positive return means unwinding is finished; 
  * don't try to fallback to dumping addresses on the stack. */
-static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
+static int unwind_frame(struct unwind_frame_info *frame,
+			struct _stp_module *m, struct _stp_section *s,
+			void *table, uint32_t table_len, int is_ehframe)
 {
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
 	const u32 *fde, *cie = NULL;
@@ -591,23 +593,10 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 	unsigned i;
 	signed ptrType = -1;
 	uleb128_t retAddrReg = 0;
-	struct _stp_module *m;
-	struct _stp_section *s = NULL;
 	struct unwind_state state;
 
-	dbug_unwind(1, "pc=%lx, %lx", pc, UNW_PC(frame));
-
-	if (UNW_PC(frame) == 0)
-		return -EINVAL;
-
-	m = _stp_mod_sec_lookup (pc, tsk, &s);
-	if (unlikely(m == NULL)) {
-		dbug_unwind(1, "No module found for pc=%lx", pc);
-		return -EINVAL;
-	}
-
-	if (unlikely(m->debug_frame_len == 0 || m->debug_frame_len & (sizeof(*fde) - 1))) {
-		dbug_unwind(1, "Module %s: unwind_data_len=%d", m->name, m->debug_fram_len);
+	if (unlikely(table_len == 0 || table_len & (sizeof(*fde) - 1))) {
+		dbug_unwind(1, "Module %s: frame_len=%d", m->name, table_len);
 		goto err;
 	}
 
@@ -616,7 +605,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 	/* found the fde, now set startLoc and endLoc */
 	if (fde != NULL) {
-		cie = cie_for_fde(fde, m->debug_frame, false);
+		cie = cie_for_fde(fde, table, is_ehframe);
 		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie);
@@ -639,10 +628,10 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 	/* did not a good fde find with binary search, so do slow linear search */
 	if (fde == NULL) {
-	    for (fde = m->debug_frame, tableSize = m->debug_frame_len; cie = NULL, tableSize > sizeof(*fde)
+	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)
 		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
-			cie = cie_for_fde(fde, m->debug_frame, false);
+			cie = cie_for_fde(fde, table, is_ehframe);
 			if (cie == &bad_cie) {
 				cie = NULL;
 				break;
@@ -869,5 +858,31 @@ done:
 #undef FRAME_REG
 }
 
+static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
+{
+	struct _stp_module *m;
+	struct _stp_section *s = NULL;
+	unsigned long pc = UNW_PC(frame) - frame->call_frame;
+	int res;
+
+	dbug_unwind(1, "pc=%lx, %lx", pc, UNW_PC(frame));
+
+	if (UNW_PC(frame) == 0)
+		return -EINVAL;
+
+	m = _stp_mod_sec_lookup (pc, tsk, &s);
+	if (unlikely(m == NULL)) {
+		dbug_unwind(1, "No module found for pc=%lx", pc);
+		return -EINVAL;
+	}
+
+	res = unwind_frame (frame, m, s, m->debug_frame,
+			    m->debug_frame_len, false);
+	if (res != 0)
+	  res = unwind_frame (frame, m, s, m->eh_frame,
+			      m->eh_frame_len, true);
+
+	return res;
+}
 
 #endif /* STP_USE_DWARF_UNWINDER */
