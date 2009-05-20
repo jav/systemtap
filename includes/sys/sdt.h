@@ -59,7 +59,7 @@
 #define STAP_UNINLINE_LABEL(label) \
   __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label
 
-#if defined(__x86_64__) || defined(__i386__)
+#if defined(__x86_64__) || defined(__i386__) || defined(__powerpc__)
 #define STAP_NOP "\tnop "
 #else
 #define STAP_NOP "\tnop 0 "
