@@ -7,22 +7,9 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-function _gettimeofday_init:long() %{
-  THIS->__retvalue = _stp_init_time(); /* Kick off the Big Bang.  */
+%{
+#define STAP_NEED_GETTIMEOFDAY 1
 %}
-
-probe begin(-0x8000000000000000) {
-  if (_gettimeofday_init() != 0)
-    error("couldn't initialize gettimeofday")
-}
-
-function _gettimeofday_kill() %{
-  _stp_kill_time();  /* Go to a beach.  Drink a beer.  */
-%}
-
-probe end(0x7FFFFFFFFFFFFFFF), error(0x7FFFFFFFFFFFFFFF) {
-  _gettimeofday_kill()
-}
 
 
 /**
