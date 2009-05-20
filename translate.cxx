@@ -4724,9 +4724,9 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "static uint8_t _stp_module_" << stpmod_idx
 		<< "_eh_frame[] = \n";
       c->output << "  {";
-      for (size_t i = 0; i < debug_len; i++)
+      for (size_t i = 0; i < eh_len; i++)
 	{
-	  int h = ((uint8_t *)debug_frame)[i];
+	  int h = ((uint8_t *)eh_frame)[i];
 	  c->output << "0x" << hex << h << dec << ",";
 	  if ((i + 1) % 16 == 0)
 	    c->output << "\n" << "   ";

@@ -485,8 +485,8 @@ adjustStartLoc (unsigned long startLoc,
 {
   /* XXX - some, or all, of this should really be done by
      _stp_module_relocate and/or read_pointer. */
-  dbug_unwind(2, "adjustStartLoc=%lx, ptrType=%s, m=%s, s=%s\n",
-	      startLoc, _stp_eh_enc_name(ptrType), m->name, s->name);
+  dbug_unwind(2, "adjustStartLoc=%lx, ptrType=%s, m=%s, s=%s eh=%d\n",
+	      startLoc, _stp_eh_enc_name(ptrType), m->name, s->name, is_ehframe);
   if (startLoc == 0
       || strcmp (m->name, "kernel")  == 0
       || (strcmp (s->name, ".absolute") == 0 && !is_ehframe))
@@ -494,6 +494,7 @@ adjustStartLoc (unsigned long startLoc,
 
   /* eh_frame data has been loaded in the kernel, so readjust offset. */
   if (is_ehframe) {
+    dbug_unwind(2, "eh_frame=%lx, eh_frame_addr=%lx\n", (unsigned long) m->eh_frame, m->eh_frame_addr);
     if ((ptrType & DW_EH_PE_ADJUST) == DW_EH_PE_pcrel) {
       startLoc -= (unsigned long) m->eh_frame;
       startLoc += m->eh_frame_addr;
@@ -571,7 +572,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 		}
 	} while (startLoc && num > 1);
 
-	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s, hdr[3], false)) != 0 && pc >= startLoc)
+	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s, hdr[3], true)) != 0 && pc >= startLoc)
 		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
 
 	dbug_unwind(1, "returning fde=%lx startLoc=%lx", fde, startLoc);
@@ -610,7 +611,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			startLoc = adjustStartLoc(startLoc, m, s, ptrType, false);
+			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe);
 
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!(ptrType & DW_EH_PE_indirect))
@@ -641,7 +642,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			startLoc = adjustStartLoc(startLoc, m, s, ptrType, false);
+			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe);
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;
@@ -876,11 +877,14 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 		return -EINVAL;
 	}
 
+	dbug_unwind(1, "trying debug_frame\n");
 	res = unwind_frame (frame, m, s, m->debug_frame,
 			    m->debug_frame_len, false);
-	if (res != 0)
+	if (res != 0) {
+	  dbug_unwind(1, "debug_frame failed: %d, trying eh_frame\n", res);
 	  res = unwind_frame (frame, m, s, m->eh_frame,
 			      m->eh_frame_len, true);
+	}
 
 	return res;
 }
