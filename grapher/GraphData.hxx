@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <vector>
+#include <tr1/memory>
 
 namespace systemtap
 {
@@ -39,6 +40,12 @@ namespace systemtap
         return lhs.first < rhs;
       }
     };
+  };
+
+  struct CSVData
+  {
+    typedef std::pair<std::string, std::tr1::shared_ptr<GraphData> > Element;
+    std::vector<Element> elements;
   };
 }
 #endif
