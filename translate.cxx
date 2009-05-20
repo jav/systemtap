@@ -4713,7 +4713,7 @@ dump_unwindsyms (Dwfl_Module *m,
   size_t debug_len = 0;
   void *eh_frame = NULL;
   size_t eh_len = 0;
-  Dwarf_Addr eh_addr = NULL;
+  Dwarf_Addr eh_addr = 0;
   get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr);
   if (debug_frame != NULL && debug_len > 0)
     {
