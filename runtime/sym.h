@@ -42,11 +42,13 @@ struct _stp_module {
   	unsigned long dwarf_module_base;
 
 	/* the stack unwind data for this module */
-	void *unwind_data;
+	void *debug_frame;
+	void *eh_frame;
 	void *unwind_hdr;	
-	uint32_t unwind_data_len;
+	uint32_t debug_frame_len;
+	uint32_t eh_frame_len;
 	uint32_t unwind_hdr_len;
-	uint32_t unwind_is_ehframe; /* unwind data comes from .eh_frame */
+	unsigned long eh_frame_addr; /* Orig load address (offset) .eh_frame */
 	/* build-id information */
 	unsigned char *build_id_bits;
 	unsigned long  build_id_offset;

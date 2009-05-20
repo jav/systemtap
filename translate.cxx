@@ -4413,41 +4413,56 @@ struct unwindsym_dump_context
 };
 
 
-// Get the .debug_frame section for the given module.
-// l will be set to the length of the size of the unwind data if found.
-static void *get_unwind_data (Dwfl_Module *m, size_t *l)
+// Get the .debug_frame end .eh_frame sections for the given module.
+// Also returns the lenght of both sections when found, plus the section
+// address of the eh_frame data.
+static void get_unwind_data (Dwfl_Module *m,
+			     void **debug_frame, void **eh_frame,
+			     size_t *debug_len, size_t *eh_len,
+			     Dwarf_Addr *eh_addr)
 {
   Dwarf_Addr bias = 0;
-  Dwarf *dw;
   GElf_Ehdr *ehdr, ehdr_mem;
   GElf_Shdr *shdr, shdr_mem;
-  Elf_Scn *scn = NULL;
-  Elf_Data *data = NULL;
+  Elf_Scn *scn;
+  Elf_Data *data;
+  Elf *elf;
 
-  dw = dwfl_module_getdwarf(m, &bias);
-  if (dw != NULL)
+  // fetch .eh_frame info preferably from main elf file.
+  elf = dwfl_module_getelf(m, &bias);
+  ehdr = gelf_getehdr(elf, &ehdr_mem);
+  scn = NULL;
+  while ((scn = elf_nextscn(elf, scn)))
     {
-      Elf *elf = dwarf_getelf(dw);
-      ehdr = gelf_getehdr(elf, &ehdr_mem);
-      while ((scn = elf_nextscn(elf, scn)))
+      shdr = gelf_getshdr(scn, &shdr_mem);
+      if (strcmp(elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name),
+		 ".eh_frame") == 0)
 	{
-	  shdr = gelf_getshdr(scn, &shdr_mem);
-	  if (strcmp(elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name),
-		     ".debug_frame") == 0)
-	    {
-	      data = elf_rawdata(scn, NULL);
-	      break;
-	    }
+	  data = elf_rawdata(scn, NULL);
+	  *eh_frame = data->d_buf;
+	  *eh_len = data->d_size;
+	  *eh_addr = shdr->sh_addr;
+	  break;
 	}
     }
 
-  if (data != NULL)
+  // fetch .debug_frame info preferably from dwarf debuginfo file.
+  elf = (dwarf_getelf (dwfl_module_getdwarf (m, &bias))
+	 ?: dwfl_module_getelf (m, &bias));
+  ehdr = gelf_getehdr(elf, &ehdr_mem);
+  scn = NULL;
+  while ((scn = elf_nextscn(elf, scn)))
     {
-      *l = data->d_size;
-      return data->d_buf;
+      shdr = gelf_getshdr(scn, &shdr_mem);
+      if (strcmp(elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name),
+		 ".debug_frame") == 0)
+	{
+	  data = elf_rawdata(scn, NULL);
+	  *debug_frame = data->d_buf;
+	  *debug_len = data->d_size;
+	  break;
+	}
     }
-
-  return NULL;
 }
 
 static int
@@ -4680,17 +4695,21 @@ dump_unwindsyms (Dwfl_Module *m,
     }
 
   // Add unwind data to be included if it exists for this module.
-  size_t len = 0;
-  void *unwind = get_unwind_data (m, &len);
-  if (unwind != NULL)
+  void *debug_frame = NULL;
+  size_t debug_len = 0;
+  void *eh_frame = NULL;
+  size_t eh_len = 0;
+  Dwarf_Addr eh_addr = NULL;
+  get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr);
+  if (debug_frame != NULL && debug_len > 0)
     {
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << "static uint8_t _stp_module_" << stpmod_idx
-		<< "_unwind_data[] = \n";
+		<< "_debug_frame[] = \n";
       c->output << "  {";
-      for (size_t i = 0; i < len; i++)
+      for (size_t i = 0; i < debug_len; i++)
 	{
-	  int h = ((uint8_t *)unwind)[i];
+	  int h = ((uint8_t *)debug_frame)[i];
 	  c->output << "0x" << hex << h << dec << ",";
 	  if ((i + 1) % 16 == 0)
 	    c->output << "\n" << "   ";
@@ -4698,7 +4717,25 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "};\n";
       c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
-  else
+
+  if (eh_frame != NULL && eh_len > 0)
+    {
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
+      c->output << "static uint8_t _stp_module_" << stpmod_idx
+		<< "_eh_frame[] = \n";
+      c->output << "  {";
+      for (size_t i = 0; i < debug_len; i++)
+	{
+	  int h = ((uint8_t *)debug_frame)[i];
+	  c->output << "0x" << hex << h << dec << ",";
+	  if ((i + 1) % 16 == 0)
+	    c->output << "\n" << "   ";
+	}
+      c->output << "};\n";
+      c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
+    }
+
+  if (debug_frame == NULL && eh_frame == NULL)
     {
       // There would be only a small benefit to warning.  A user
       // likely can't do anything about this; backtraces for the
@@ -4755,25 +4792,40 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
 
   c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
+  c->output << ".eh_frame_addr = 0x" << hex << eh_addr << dec << ", \n";
 
-  if (unwind != NULL)
+  if (debug_frame != NULL)
     {
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
-      c->output << ".unwind_data = "
-		<< "_stp_module_" << stpmod_idx << "_unwind_data, \n";
-      c->output << ".unwind_data_len = " << len << ", \n";
+      c->output << ".debug_frame = "
+		<< "_stp_module_" << stpmod_idx << "_debug_frame, \n";
+      c->output << ".debug_frame_len = " << debug_len << ", \n";
       c->output << "#else\n";
     }
 
-  c->output << ".unwind_data = NULL,\n";
-  c->output << ".unwind_data_len = 0,\n";
+  c->output << ".debug_frame = NULL,\n";
+  c->output << ".debug_frame_len = 0,\n";
 
-  if (unwind != NULL)
+  if (debug_frame != NULL)
+    c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/\n";
+
+  if (eh_frame != NULL)
+    {
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
+      c->output << ".eh_frame = "
+		<< "_stp_module_" << stpmod_idx << "_eh_frame, \n";
+      c->output << ".eh_frame_len = " << eh_len << ", \n";
+      c->output << "#else\n";
+    }
+
+  c->output << ".eh_frame = NULL,\n";
+  c->output << ".eh_frame_len = 0,\n";
+
+  if (eh_frame != NULL)
     c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/\n";
 
   c->output << ".unwind_hdr = NULL,\n";
   c->output << ".unwind_hdr_len = 0,\n";
-  c->output << ".unwind_is_ehframe = 0,\n";
 
   c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ",\n";
   c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"

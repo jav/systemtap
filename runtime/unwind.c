@@ -87,7 +87,8 @@ static sleb128_t get_sleb128(const u8 **pcur, const u8 *end)
 }
 
 /* given an FDE, find its CIE */
-static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *m)
+static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
+			      int is_ehframe)
 {
 	const u32 *cie;
 
@@ -96,7 +97,7 @@ static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *m)
 		return &bad_cie;
 
 	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
-	if (m->unwind_is_ehframe && fde[1] == 0)
+	if (is_ehframe && fde[1] == 0)
 		return &not_fde;
 	else if (fde[1] == 0xffffffff)
 		return &not_fde;
@@ -104,18 +105,18 @@ static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *m)
 	/* OK, must be an FDE.  Now find its CIE. */
 
 	/* CIE_pointer must be a proper offset */
-	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)m->unwind_data) {
+	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)unwind_data) {
 		dbug_unwind(1, "fde[1]=%lx fde+1=%lx, unwind_data=%lx  %lx\n",
 			    (unsigned long)fde[1], (unsigned long)(fde + 1),
-			    (unsigned long)m->unwind_data, (unsigned long)(fde + 1) - (unsigned long)m->unwind_data);
+			    (unsigned long)unwind_data, (unsigned long)(fde + 1) - (unsigned long)unwind_data);
 		return NULL;	/* this is not a valid FDE */
 	}
 
 	/* cie pointer field is different in eh_frame vs debug_frame */
-	if (m->unwind_is_ehframe)
+	if (is_ehframe)
 		cie = fde + 1 - fde[1] / sizeof(*fde);
 	else
-		cie = m->unwind_data + fde[1];
+		cie = unwind_data + fde[1];
 
 	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
 	    || (*cie & (sizeof(*cie) - 1))
@@ -488,7 +489,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 	ptr = hdr + 4;
 	end = hdr + m->unwind_hdr_len;
 
-	if (read_pointer(&ptr, end, hdr[1]) != (unsigned long)m->unwind_data) {
+	if (read_pointer(&ptr, end, hdr[1]) != (unsigned long)m->debug_frame) {
 		dbug_unwind(1, "eh_frame_ptr not valid");
 		return NULL;
 	}
@@ -592,8 +593,8 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 		return -EINVAL;
 	}
 
-	if (unlikely(m->unwind_data_len == 0 || m->unwind_data_len & (sizeof(*fde) - 1))) {
-		dbug_unwind(1, "Module %s: unwind_data_len=%d", m->name, m->unwind_data_len);
+	if (unlikely(m->debug_frame_len == 0 || m->debug_frame_len & (sizeof(*fde) - 1))) {
+		dbug_unwind(1, "Module %s: unwind_data_len=%d", m->name, m->debug_fram_len);
 		goto err;
 	}
 
@@ -602,7 +603,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 	/* found the fde, now set startLoc and endLoc */
 	if (fde != NULL) {
-		cie = cie_for_fde(fde, m);
+		cie = cie_for_fde(fde, m->debug_frame, false);
 		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie);
@@ -625,10 +626,10 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 	/* did not a good fde find with binary search, so do slow linear search */
 	if (fde == NULL) {
-		for (fde = m->unwind_data, tableSize = m->unwind_data_len; cie = NULL, tableSize > sizeof(*fde)
-		     && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
+	    for (fde = m->debug_frame, tableSize = m->debug_frame_len; cie = NULL, tableSize > sizeof(*fde)
+		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
-			cie = cie_for_fde(fde, m);
+			cie = cie_for_fde(fde, m->debug_frame, false);
 			if (cie == &bad_cie) {
 				cie = NULL;
 				break;
@@ -651,7 +652,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 		}
 	}
 
-	dbug_unwind(1, "cie=%lx fde=%lx startLoc=%lx endLoc=%lx\n", cie, fde, startLoc, endLoc);
+	dbug_unwind(1, "cie=%lx fde=%lx startLoc=%lx endLoc=%lx, pc=%lx\n", cie, fde, startLoc, endLoc, pc);
 	if (cie == NULL || fde == NULL)
 		goto err;
 
