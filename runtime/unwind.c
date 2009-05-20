@@ -428,20 +428,79 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 	return result && ptr.p8 == end && (targetLoc == 0 || state->label == NULL);
 }
 
+#ifdef DEBUG_UNWIND
+static const char *_stp_enc_hi_name[] = {
+	"DW_EH_PE",
+	"DW_EH_PE_pcrel",
+	"DW_EH_PE_textrel",
+	"DW_EH_PE_datarel",
+	"DW_EH_PE_funcrel",
+	"DW_EH_PE_aligned"
+};
+static const char *_stp_enc_lo_name[] = {
+	"_absptr",
+	"_uleb128",
+	"_udata2",
+	"_udata4",
+	"_udata8",
+	"_sleb128",
+	"_sdata2",
+	"_sdata4",
+	"_sdata8"
+};
+static char *_stp_eh_enc_name(signed type)
+{
+	static char buf[64];
+	int hi, low;
+	if (type == DW_EH_PE_omit)
+		return "DW_EH_PE_omit";
+
+	hi = (type & DW_EH_PE_ADJUST) >> 4;
+	low = type & DW_EH_PE_FORM;
+	if (hi > 5 || low > 4 || (low == 0 && (type & DW_EH_PE_signed))) {
+		sprintf(buf, "ERROR:encoding=0x%x", type);
+		return buf;
+	}
+
+	buf[0] = 0;
+	if (type & DW_EH_PE_indirect)
+		strlcpy(buf, "DW_EH_PE_indirect|", sizeof(buf));
+	strlcat(buf, _stp_enc_hi_name[hi], sizeof(buf));
+
+	if (type & DW_EH_PE_signed)
+		low += 4;
+	strlcat(buf, _stp_enc_lo_name[low], sizeof(buf));
+	return buf;
+}
+#endif /* DEBUG_UNWIND */
+
 // If this is an address inside a module, adjust for section relocation
 // and the elfutils base relocation done during loading of the .dwarf_frame
 // in translate.cxx.
 static unsigned long
 adjustStartLoc (unsigned long startLoc,
 		struct _stp_module *m,
-		struct _stp_section *s)
+		struct _stp_section *s,
+		unsigned ptrType, int is_ehframe)
 {
   /* XXX - some, or all, of this should really be done by
-     _stp_module_relocate. */
+     _stp_module_relocate and/or read_pointer. */
+  dbug_unwind(2, "adjustStartLoc=%lx, ptrType=%s, m=%s, s=%s\n",
+	      startLoc, _stp_eh_enc_name(ptrType), m->name, s->name);
   if (startLoc == 0
       || strcmp (m->name, "kernel")  == 0
-      || strcmp (s->name, ".absolute") == 0)
+      || (strcmp (s->name, ".absolute") == 0 && !is_ehframe))
     return startLoc;
+
+  /* eh_frame data has been loaded in the kernel, so readjust offset. */
+  if (is_ehframe) {
+    if ((ptrType & DW_EH_PE_ADJUST) == DW_EH_PE_pcrel) {
+      startLoc -= (unsigned long) m->eh_frame;
+      startLoc += m->eh_frame_addr;
+    }
+    if (strcmp (s->name, ".absolute") == 0)
+      return startLoc;
+  }
 
   if (strcmp (s->name, ".dynamic") == 0)
     return startLoc + s->addr;
@@ -503,7 +562,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 	do {
 		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
 		startLoc = read_pointer(&cur, cur + tableSize, hdr[3]);
-		startLoc = adjustStartLoc(startLoc, m, s);
+		startLoc = adjustStartLoc(startLoc, m, s, hdr[3], false);
 		if (pc < startLoc)
 			num /= 2;
 		else {
@@ -512,58 +571,12 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 		}
 	} while (startLoc && num > 1);
 
-	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s)) != 0 && pc >= startLoc)
+	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s, hdr[3], false)) != 0 && pc >= startLoc)
 		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
 
 	dbug_unwind(1, "returning fde=%lx startLoc=%lx", fde, startLoc);
 	return fde;
 }
-
-#ifdef DEBUG_UNWIND
-static const char *_stp_enc_hi_name[] = {
-	"DW_EH_PE",
-	"DW_EH_PE_pcrel",
-	"DW_EH_PE_textrel",
-	"DW_EH_PE_datarel",
-	"DW_EH_PE_funcrel",
-	"DW_EH_PE_aligned"
-};
-static const char *_stp_enc_lo_name[] = {
-	"_absptr",
-	"_uleb128",
-	"_udata2",
-	"_udata4",
-	"_udata8",
-	"_sleb128",
-	"_sdata2",
-	"_sdata4",
-	"_sdata8"
-};
-static char *_stp_eh_enc_name(signed type)
-{
-	static char buf[64];
-	int hi, low;
-	if (type == DW_EH_PE_omit)
-		return "DW_EH_PE_omit";
-
-	hi = (type & DW_EH_PE_ADJUST) >> 4;
-	low = type & DW_EH_PE_FORM;
-	if (hi > 5 || low > 4 || (low == 0 && (type & DW_EH_PE_signed))) {
-		sprintf(buf, "ERROR:encoding=0x%x", type);
-		return buf;
-	}
-
-	buf[0] = 0;
-	if (type & DW_EH_PE_indirect)
-		strlcpy(buf, "DW_EH_PE_indirect|", sizeof(buf));
-	strlcat(buf, _stp_enc_hi_name[hi], sizeof(buf));
-
-	if (type & DW_EH_PE_signed)
-		low += 4;
-	strlcat(buf, _stp_enc_lo_name[low], sizeof(buf));
-	return buf;
-}
-#endif /* DEBUG_UNWIND */
 
 /* Unwind to previous to frame.  Returns 0 if successful, negative
  * number in case of an error.  A positive return means unwinding is finished; 
@@ -608,7 +621,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			startLoc = adjustStartLoc(startLoc, m, s);
+			startLoc = adjustStartLoc(startLoc, m, s, ptrType, false);
 
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!(ptrType & DW_EH_PE_indirect))
@@ -639,7 +652,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			startLoc = adjustStartLoc(startLoc, m, s);
+			startLoc = adjustStartLoc(startLoc, m, s, ptrType, false);
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;
