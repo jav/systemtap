@@ -1133,6 +1133,15 @@ c_unparser::emit_module_init ()
   o->newline(-1) << "}";
   o->newline() << "if (rc) goto out;";
 
+  // initialize gettimeofday (if needed)
+  o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
+  o->newline() << "rc = _stp_init_time();";  // Kick off the Big Bang.
+  o->newline() << "if (rc) {";
+  o->newline(1) << "_stp_error (\"couldn't initialize gettimeofday\");";
+  o->newline() << "goto out;";
+  o->newline(-1) << "}";
+  o->newline() << "#endif";
+
   o->newline() << "(void) probe_point;";
   o->newline() << "(void) i;";
   o->newline() << "(void) j;";
@@ -1358,6 +1367,11 @@ c_unparser::emit_module_exit ()
     o->newline(-1) << "}";
     o->newline() << "#endif";
   }
+
+  // teardown gettimeofday (if needed)
+  o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
+  o->newline() << " _stp_kill_time();";  // Go to a beach.  Drink a beer.
+  o->newline() << "#endif";
 
   // print final error/skipped counts if non-zero
   o->newline() << "if (atomic_read (& skipped_count) || "

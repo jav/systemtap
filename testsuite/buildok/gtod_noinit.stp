@@ -1,0 +1,13 @@
+#! stap -gp4
+
+# check that STAP_NEED_GETTIMEOFDAY is NOT defined without a gettimeofday
+function check() %{
+#ifdef STAP_NEED_GETTIMEOFDAY
+#error "STAP_NEED_GETTIMEOFDAY should not be defined!"
+#endif
+%}
+
+probe begin {
+    check()
+    println(get_cycles())
+}
