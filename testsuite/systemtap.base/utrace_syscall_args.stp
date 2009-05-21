@@ -1,0 +1,406 @@
+%{
+#include "syscall.h"
+%}
+
+function mmap_syscall_no:long () %{
+    THIS->__retvalue = MMAP_SYSCALL_NO(current); /* pure */
+%}
+function mmap2_syscall_no:long () %{
+    THIS->__retvalue = MMAP2_SYSCALL_NO(current); /* pure */
+%}
+function munmap_syscall_no:long () %{
+    THIS->__retvalue = MUNMAP_SYSCALL_NO(current); /* pure */
+%}
+
+global syscalls_seen = 0
+global failures = 0
+
+global mmap_found = 0
+global mmap_args[10]
+
+global munmap_found = 0
+global munmap_args[10]
+
+global close_found = 0
+global close_args[10]
+
+global dup_found = 0
+global dup_args[10]
+
+global bad_syscall_found = 0
+global bad_syscall_args[10]
+
+probe begin
+{
+	printf("systemtap starting probe\n")
+}
+
+probe syscall.open {
+      if (filename == "foobar") {
+      	 syscalls_seen += 1
+      }
+}
+
+probe process("utrace_syscall_args").syscall {
+    if (syscalls_seen >= 2) {
+	syscalls_seen += 1
+	 
+	# We skip the fstat() syscall, which is the 1st syscall after
+	# the open() by not looking at 'syscalls_seen == 3'.
+
+	if (syscalls_seen == 4 && ($syscall == mmap_syscall_no()
+				   || $syscall == mmap2_syscall_no())) {
+	    mmap_found = 1
+	    mmap_args[0] = $syscall
+	    mmap_args[1] = $arg1
+	    mmap_args[2] = $arg2
+	    mmap_args[3] = $arg3
+	    mmap_args[4] = $arg4
+	    mmap_args[5] = $arg5
+	    mmap_args[6] = $arg6
+
+%(arch == "s390x" %?
+	    # s390 requires this for mmap.  Verified by running:
+	    # #  strace strace utrace_syscall_args
+	    addr = mmap_args[1]
+	    mmap_args[1] = user_long(addr)
+	    addr += 8
+	    mmap_args[2] = user_long(addr)
+	    addr += 8
+	    mmap_args[3] = user_long(addr)
+	    addr += 8
+	    mmap_args[4] = user_long(addr)
+	    addr += 8
+	    mmap_args[5] = user_long(addr)
+	    addr += 8
+	    mmap_args[6] = user_long(addr)
+%)
+	}
+	else if (syscalls_seen == 5 && $syscall == munmap_syscall_no()) {
+	    munmap_found = 1
+	    munmap_args[0] = $syscall
+	    munmap_args[1] = $arg1
+	    munmap_args[2] = $arg2
+	}
+	else if (syscalls_seen == 6) {
+	    close_found = 1
+	    close_args[0] = $syscall
+	    close_args[1] = $arg1
+	}
+	else if (syscalls_seen == 7) {
+	    dup_found = 1
+	    dup_args[0] = $syscall
+	    dup_args[1] = $arg1
+	    dup_args[2] = $arg2
+	    dup_args[3] = $arg3
+	    dup_args[4] = $arg4
+	    dup_args[5] = $arg5
+	    dup_args[6] = $arg6
+	}
+	else if (syscalls_seen == 8) {
+	    bad_syscall_found = 1
+	    bad_syscall_args[0] = $syscall
+	    bad_syscall_args[1] = $arg1
+	    bad_syscall_args[2] = $arg2
+	    bad_syscall_args[3] = $arg3
+	    bad_syscall_args[4] = $arg4
+	    bad_syscall_args[5] = $arg5
+	    bad_syscall_args[6] = $arg6
+	}
+    }
+}
+probe process("utrace_syscall_args").syscall.return {
+    if (syscalls_seen >= 4) {
+	if (syscalls_seen == 4) {
+	    mmap_args[7] = $return
+	    mmap_args[8] = $syscall
+	}
+	else if (syscalls_seen == 5) {
+	    munmap_args[3] = $return
+	    munmap_args[4] = $syscall
+	}
+	else if (syscalls_seen == 6) {
+	    close_args[2] = $return
+	    close_args[3] = $syscall
+	}
+	else if (syscalls_seen == 7) {
+	    dup_args[7] = $return
+	    dup_args[8] = $syscall
+	}
+	else if (syscalls_seen == 8) {
+	    bad_syscall_args[7] = $return
+	    bad_syscall_args[8] = $syscall
+	    syscalls_seen = 0
+	}
+    }
+}
+
+probe end
+{
+    printf("systemtap ending probe\n")
+    
+    # print mmap info
+    if (mmap_found == 0) {
+	printf("error: no mmap system call found\n")
+	failures += 1
+    }
+    else {
+	printf("mmap(%d)(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x) = 0x%x\n",
+	       mmap_args[0], mmap_args[1], mmap_args[2], mmap_args[3],
+	       mmap_args[4], mmap_args[5], mmap_args[6], mmap_args[7])
+
+	# Validate arguments.  We can only check certain arguments.
+	# It is possible that mmap's 'prot' and 'flags' arguments
+	# could vary per platform, so we'll ignore them.
+	if (mmap_args[1] != 0) {
+	    failures += 1
+	    printf("mmap bad arg 1: 0x%x vs 0x0\n", mmap_args[1])
+	}
+	if (mmap_args[2] != 0x406) {
+	    failures += 1
+	    printf("mmap bad arg 2: 0x%x vs 0x406\n", mmap_args[2])
+	}
+	if (mmap_args[6] != 0) {
+	    failures += 1
+	    printf("mmap bad arg 6: 0x%x vs 0x0\n", mmap_args[6])
+	}
+
+	# Validate syscall number
+	if (mmap_args[0] != mmap_args[8]) {
+	    failures += 1
+	    printf("mmap $syscall mismatch: %d vs. %d\n",
+		   mmap_args[0], mmap_args[8])
+	}
+    }
+
+    # print munmap info
+    if (munmap_found == 0) {
+	printf("error: no munmap system call found\n")
+	failures += 1
+    }
+    else if (munmap_found == 0 || mmap_found == 0) {
+	printf("error: no munmap/mmap system call found\n")
+	failures += 1
+    }
+    else {
+	printf("munmap(%d)(0x%x, 0x%x) = 0x%x\n",
+	       munmap_args[0], munmap_args[1], munmap_args[2], munmap_args[3])
+
+	# Validate arguments.  munmap()'s first argument should be the
+	# same as the mmap() return value.
+	if (munmap_args[1] != mmap_args[7]) {
+	    failures += 1
+	    printf("munmap bad arg 1: 0x%x vs 0x%x\n", munmap_args[1],
+		   mmap_args[7])
+	}
+	if (munmap_args[2] != mmap_args[2]) {
+	    failures += 1
+	    printf("munmap bad arg 2: 0x%x vs 0x%x\n", munmap_args[2],
+		   mmap_args[2])
+	}
+	# Validate return value
+	if (munmap_args[7] != 0) {
+	    failures += 1
+	    printf("munmap bad return value: 0x%x vs 0x0\n", munmap_args[7])
+	}
+
+	# Validate syscall number
+	if (munmap_args[0] != munmap_args[4]) {
+	    failures += 1
+	    printf("munmap $syscall mismatch: %d vs. %d\n",
+		   munmap_args[0], munmap_args[4])
+	}
+    }
+
+    # print close info
+    if (close_found == 0) {
+	printf("error: no close system call found\n")
+	failures += 1
+    }
+    else if (close_found == 1) {
+	printf("close(%d)(0x%x) = 0x%x\n",
+	       close_args[0], close_args[1], close_args[2])
+
+	if (mmap_args[5] != close_args[1]) {
+	    failures += 1
+	    printf("close bad arg 1: 0x%x vs 0x%x\n",
+	           close_args[0], mmap_args[5])
+	}
+
+	# Validate syscall number
+	if (close_args[0] != close_args[3]) {
+	    failures += 1
+	    printf("close $syscall mismatch: %d vs. %d\n",
+		   close_args[0], close_args[3])
+	}
+    }
+
+    # print dup info
+    if (dup_found == 0) {
+	printf("error: no dup system call found\n")
+	failures += 1
+    }
+    else {
+	printf("dup(%d)(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x) = 0x%x\n",
+	       dup_args[0], dup_args[1], dup_args[2], dup_args[3],
+	       dup_args[4], dup_args[5], dup_args[6], dup_args[7])
+
+	# Validate arguments - handle 32-bit vs. 64-bit.
+	if ((dup_args[1] & 0xffffffff00000000) != 0) {
+	    if (dup_args[1] != 0xffffffffffffcfc7) {
+		failures += 1
+		printf("dup bad arg 1: 0x%x vs 0xffffffffffffcfc7\n",
+		       dup_args[1])
+	    }
+	    if (dup_args[2] != 0xffffffffffffffff) {
+		failures += 1
+		printf("dup bad arg 2: 0x%x vs 0xffffffffffffffff\n",
+		       dup_args[2])
+	    }
+	    if (dup_args[3] != 0xa5a5a5a5a5a5a5a5) {
+		failures += 1
+		printf("dup bad arg 3: 0x%x vs 0xa5a5a5a5a5a5a5a5\n",
+		       dup_args[3])
+	    }
+	    if (dup_args[4] != 0xf0f0f0f0f0f0f0f0) {
+		failures += 1
+		printf("dup bad arg 4: 0x%x vs 0xf0f0f0f0f0f0f0f0\n",
+		       dup_args[4])
+	    }
+	    if (dup_args[5] != 0x5a5a5a5a5a5a5a5a) {
+		failures += 1
+		printf("dup bad arg 5: 0x%x vs 0x5a5a5a5a5a5a5a5a\n",
+		       dup_args[5])
+	    }
+	    if (dup_args[6] != 0xe38e38e38e38e38e) {
+		failures += 1
+		printf("dup bad arg 6: 0x%x vs 0xe38e38e38e38d38e\n",
+		       dup_args[6])
+	    }
+	}
+	else {
+	    if (dup_args[1] != 0xffffcfc7) {
+		failures += 1
+		printf("dup bad arg 1: 0x%x vs 0xffffcfc7\n", dup_args[1])
+	    }
+	    if (dup_args[2] != 0xffffffff) {
+		failures += 1
+		printf("dup bad arg 2: 0x%x vs 0xffffffff\n", dup_args[2])
+	    }
+	    if (dup_args[3] != 0xa5a5a5a5) {
+		failures += 1
+		printf("dup bad arg 3: 0x%x vs 0xa5a5a5a5\n", dup_args[3])
+	    }
+	    if (dup_args[4] != 0xf0f0f0f0) {
+		failures += 4
+		printf("dup bad arg 4: 0x%x vs 0xf0f0f0f0\n", dup_args[4])
+	    }
+	    if (dup_args[5] != 0x5a5a5a5a) {
+		failures += 1
+		printf("dup bad arg 5: 0x%x vs 0x5a5a5a5a\n", dup_args[5])
+	    }
+	    if (dup_args[6] != 0xe38e38e3) {
+		failures += 1
+		printf("dup bad arg 6: 0x%x vs 0xe38e38e3\n", dup_args[6])
+	    }
+        }
+
+	# Validate syscall number
+	if (dup_args[0] != dup_args[8]) {
+	    failures += 1
+	    printf("dup $syscall mismatch: %d vs. %d\n",
+		   dup_args[0], dup_args[8])
+	}
+    }
+
+    # print bad_syscall info
+    if (bad_syscall_found == 0) {
+	printf("error: no bad_syscall system call found\n")
+	failures += 1
+    }
+    else {
+	printf("bad_syscall(%d)(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x) = 0x%x\n",
+	       bad_syscall_args[0], bad_syscall_args[1], bad_syscall_args[2], bad_syscall_args[3],
+	       bad_syscall_args[4], bad_syscall_args[5], bad_syscall_args[6], bad_syscall_args[7])
+
+	# Validate arguments - handle 32-bit vs. 64-bit.
+	if (bad_syscall_args[1] > 0xffffffff) {
+	    if (bad_syscall_args[1] != 0x1c71c71c71c71c71) {
+		failures += 1
+		printf("bad_syscall bad arg 1: 0x%x vs 0x1c71c71c71c71c71\n",
+		       bad_syscall_args[1])
+	    }
+	    if (bad_syscall_args[2] != 0x0f0f0f0f0f0f0f0f) {
+		failures += 1
+		printf("bad_syscall bad arg 2: 0x%x vs 0x0f0f0f0f0f0f0f0f\n",
+		       bad_syscall_args[2])
+	    }
+	    if (bad_syscall_args[3] != 0xdb6db6db6db6db6d) {
+		failures += 1
+		printf("bad_syscall bad arg 3: 0x%x vs 0xdb6db6db6db6db6d\n",
+		       bad_syscall_args[3])
+	    }
+	    if (bad_syscall_args[4] != 0x2492492492492492) {
+		failures += 1
+		printf("bad_syscall bad arg 4: 0x%x vs 0x2492492492492492\n",
+		       bad_syscall_args[4])
+	    }
+	    if (bad_syscall_args[5] != 0xad6b5ad6b5ad6b5a) {
+		failures += 1
+		printf("bad_syscall bad arg 5: 0x%x vs 0xad6b5ad6b5ad6b5a\n",
+		       bad_syscall_args[5])
+	    }
+	    if (bad_syscall_args[6] != 0xdef7ddef7ddef7dd) {
+		failures += 1
+		printf("bad_syscall bad arg 6: 0x%x vs 0xdef7ddef7ddef7dd\n",
+		       bad_syscall_args[6])
+	    }
+	}
+	else {
+	    if (bad_syscall_args[1] != 0x1c71c71c) {
+		failures += 1
+		printf("bad_syscall bad arg 1: 0x%x vs 0x1c71c71c\n",
+		       bad_syscall_args[1])
+	    }
+	    if (bad_syscall_args[2] != 0x0f0f0f0f) {
+		failures += 1
+		printf("bad_syscall bad arg 2: 0x%x vs 0x0f0f0f0f\n",
+		       bad_syscall_args[2])
+	    }
+	    if (bad_syscall_args[3] != 0xdb6db6db) {
+		failures += 1
+		printf("bad_syscall bad arg 3: 0x%x vs 0xdb6db6db\n",
+		       bad_syscall_args[3])
+	    }
+	    if (bad_syscall_args[4] != 0x24924924) {
+		failures += 4
+		printf("bad_syscall bad arg 4: 0x%x vs 0x24924924\n",
+		       bad_syscall_args[4])
+	    }
+	    if (bad_syscall_args[5] != 0xad6b5ad6) {
+		failures += 1
+		printf("bad_syscall bad arg 5: 0x%x vs 0xad6b5ad6\n",
+		       bad_syscall_args[5])
+	    }
+	    if (bad_syscall_args[6] != 0xdef7ddef) {
+		failures += 1
+		printf("bad_syscall bad arg 6: 0x%x vs 0xdef7ddef\n",
+		       bad_syscall_args[6])
+	    }
+        }
+
+	# Validate syscall number
+	if (bad_syscall_args[0] != bad_syscall_args[8]) {
+	    failures += 1
+	    printf("bad_syscall $syscall mismatch: %d vs. %d\n",
+		   bad_syscall_args[0], bad_syscall_args[8])
+	}
+    }
+
+    if (failures == 0) {
+	printf("systemtap test success\n")
+    }
+    else {
+	printf("systemtap test failure\n")
+    }
+}

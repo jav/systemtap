@@ -1,5 +1,6 @@
+set test "static_uprobes"
 
-set test "sduprobes"
+# Test miscellaneous features of .mark probes
 
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_uprobes.c"
@@ -81,6 +82,9 @@ provider static_uprobes {
 };
 "
 close $fp
+
+# Test dtrace
+
 if {[installtest_p]} { 
     set dtrace $env(SYSTEMTAP_PATH)/dtrace 
 } else {
@@ -89,11 +93,10 @@ if {[installtest_p]} {
 if {[catch {exec $dtrace -h -s $sup_dpath} res]} {
     verbose -log "unable to run $dtrace: $res"
 }
-catch {exec rm -f $sup_dpath}
 if {[file exists $sup_hpath]} then {
-    pass "$test generating header"
+    pass "$test dtrace"
 } else {
-    fail "$test generating header"
+    fail "$test dtrace"
     catch {exec rm -f $sup_srcpath $sup_hpath $sup_stppath}
     return
 }
@@ -104,7 +107,11 @@ if {[installtest_p]} {
     set sdtdir $srcdir/../includes
 }
 
-set sup_flags "additional_flags=-I$sdtdir additional_flags=-g additional_flags=-O additional_flags=-I."
+set sup_flags "additional_flags=-I$srcdir/../includes/sys"
+set sup_flags "$sup_flags additional_flags=-I$sdtdir"
+set sup_flags "$sup_flags additional_flags=-g"
+set sup_flags "$sup_flags  additional_flags=-O"
+set sup_flags "$sup_flags  additional_flags=-I."
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -115,33 +122,14 @@ if { $res != "" } {
     pass "$test compiling C -g"
 }
 
-spawn mv $sup_srcpath "[pwd]/static_uprobes.cc"
-set sup_srcpath "[pwd]/static_uprobes.cc"
-set sup_flags "$sup_flags c++"
-set res [target_compile $sup_srcpath $supcplus_exepath executable $sup_flags]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "$test compiling C++ -g"
-    catch {exec rm -f $sup_srcpath $sup_exepath $sup_hpath $sup_stppath}
-    return
-} else {
-    pass "$test compiling C++ -g"
-}
-
 if {![installtest_p]} {untested $test; return}
-
-# Try to find utrace_attach symbol in /proc/kallsyms
-# copy from utrace_p5.exp
-set utrace_support_found 0
-set path "/proc/kallsyms"
-if {! [catch {exec grep -q utrace_attach $path} dummy]} {
-    set utrace_support_found 1
-}
-if {$utrace_support_found == 0} {
+if {![utrace_p]} {
     untested "$test"
     catch {exec rm -f $sup_srcpath}
     return
 }
+
+# Run stap on executable built with dtrace generated header file
 
 set ok 0
 
@@ -161,28 +149,56 @@ wait
 
 if {$ok == 5} { pass "$test C" } { fail "$test C ($ok)" }
 
-set ok 0
+# Test passing various C types to .mark probes
 
-# spawn objcopy -R .probes $supcplus_exepath $sup_exepath 
-verbose -log "cp $supcplus_exepath $sup_exepath"
-spawn cp $supcplus_exepath $sup_exepath
-verbose -log "spawn stap -c $sup_exepath $sup_stppath"
-spawn stap -c $sup_exepath $sup_stppath
+set sup_flags "$sup_flags  additional_flags=-O0"
+set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $sup_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test compiling types -g"
+    return
+} else {
+    pass "$test compiling types -g"
+}
+
+set ok 0
+set fail "types"
+verbose -log "spawn stap -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x"
+spawn stap -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x
 expect {
     -timeout 180
-    -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
-    -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
-    -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
-    -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
-    timeout { fail "$test C++ (timeout)" }
+    -re {FAIL: [a-z_]+var} { regexp " .*$" $expect_out(0,string) s; 
+	incr ok; set fail "$fail $s"; exp_continue }
+    timeout { fail "$test C (timeout)" }
     eof { }
 }
 
 wait
 
-if {$ok == 5} { pass "$test C++" } { fail "$test C++ ($ok)" }
+if { $ok != 0 } {
+    fail "$test $fail"
+} else {
+    pass "$test types"
+}
 
-# catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_hpath $sup_stppath}
+# Test .mark probe wildcard matching
 
-# It's not so important to clean up, and it's unhelpful if
-# one needs to diagnose a test failure.
+set ok 0
+spawn stap -l "process(\"./sdt_types.x\").mark(\"*\")"
+expect {
+    -timeout 180
+    -re {mark\(\"[a-z_]+\"\)} { incr ok; exp_continue }
+    timeout { fail "$test C (timeout)" }
+    eof { }
+}
+
+if { $ok == 45 } {
+    pass "$test wildcard"
+} else {
+    fail "$test wildcard ($ok)"
+}
+
+if { $verbose == 0 } {
+catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_dpath $sup_hpath $sup_stppath sdt_types.x}
+}
+

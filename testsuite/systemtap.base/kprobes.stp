@@ -1,0 +1,25 @@
+/*
+ * kprobes.stp
+ * Probe to test the functionality of kprobe-based probes
+ * (Dwarfless Probing)
+ */
+global hit_str
+
+probe begin
+{
+  println("systemtap starting probe");
+  hit_str = ""
+}
+
+probe kprobe.function("vfs_read")
+{
+  hit_str = "probe point hit"
+  exit();
+}
+
+probe end
+{
+  println("systemtap ending probe");
+  println(hit_str);
+  delete hit_str;
+}

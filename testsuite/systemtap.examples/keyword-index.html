@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#NETWORK">NETWORK</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#NETWORK">NETWORK</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="BACKTRACE">BACKTRACE</a></h3>
 <ul>
 <li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
@@ -51,6 +51,12 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BAC
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend waiting for IO operations (in "D" state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.</p></li>
+</ul>
+<h3><a name="BUFFER">BUFFER</a></h3>
+<ul>
+<li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
+<p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.</p></li>
 </ul>
 <h3><a name="CALLGRAPH">CALLGRAPH</a></h3>
 <ul>
@@ -72,6 +78,21 @@ keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html
 <li><a href="io/disktop.stp">io/disktop.stp</a> - Summarize Disk Read/Write Traffic<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.</p></li>
+</ul>
+<h3><a name="FORMAT">FORMAT</a></h3>
+<ul>
+<li><a href="general/ansi_colors.stp">general/ansi_colors.stp</a> - Color Table for ansi_set_color2() and ansi_set_color3()<br>
+keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
+<p>The script prints a table showing the available color combinations for the ansi_set_color2() and ans_set_color3() functions in the ansi.stp tapset.</p></li>
+<li><a href="general/ansi_colors2.stp">general/ansi_colors2.stp</a> - Show Attribues in Table for ansi_set_color3()<br>
+keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
+<p>The script prints a table showing the available attributes (bold, underline, and inverse) with color combinations for the ans_set_color3() function in the ansi.stp tapset.</p></li>
+</ul>
+<h3><a name="FREE">FREE</a></h3>
+<ul>
+<li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
+<p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.</p></li>
 </ul>
 <h3><a name="FUNCTIONS">FUNCTIONS</a></h3>
 <ul>
@@ -102,6 +123,9 @@ keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-
 <li><a href="io/io_submit.stp">io/io_submit.stp</a> - Tally Reschedule Reason During AIO io_submit Call<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.</p></li>
+<li><a href="io/ioblktime.stp">io/ioblktime.stp</a> - Average Time Block IO Requests Spend in Queue <br>
+keywords: <a href="keyword-index.html#IO">IO</a> <br>
+<p>The ioblktime.stp script tracks the amount of time that each block IO requests spend waiting for completion. The script computes the average time waiting time for block IO per device and prints list every 10 seconds. In some cases there can be too many oustanding block IO operations and the script may exceed the default number of MAXMAPENTRIES allowed. In this case the allowed number can be increased with "-DMAXMAPENTRIES=10000" option on the stap command line.</p></li>
 <li><a href="io/iostats.stp">io/iostats.stp</a> - List Executables Reading and Writing the Most Data<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p> The iostat.stp script measures the amount of data successfully read and written by all the executables on the system.  The output is sorted from most greatest sum of bytes read and written by an executable to the least. The output contains  the count of operations (opens, reads, and writes), the totals and averages for the number of bytes read and written.</p></li>
@@ -138,6 +162,9 @@ keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 </ul>
 <h3><a name="NETWORK">NETWORK</a></h3>
 <ul>
+<li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
+<p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.</p></li>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>
@@ -147,12 +174,21 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.</p></li>
+<li><a href="network/tcpdumplike.stp">network/tcpdumplike.stp</a> - Dump of Received TCP Packets<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
+<p>The tcpdumplike.stp prints out a line for each TCP packet received. Each line includes the source and destination IP addresses, the source and destination ports, and flags.</p></li>
 </ul>
 <h3><a name="PER-PROCESS">PER-PROCESS</a></h3>
 <ul>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>
+</ul>
+<h3><a name="PROCESS">PROCESS</a></h3>
+<ul>
+<li><a href="process/errsnoop.stp">process/errsnoop.stp</a> - tabulate system call errors<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
+<p>The script prints a periodic tabular report about failing system calls, by process and by syscall failure.  The first optional argument specifies the reporting interval (in seconds, default 5); the second optional argument gives a screen height (number of lines in the report, default 20).</p></li>
 </ul>
 <h3><a name="PROFILING">PROFILING</a></h3>
 <ul>
@@ -198,7 +234,7 @@ keywords: <a href="keyword-index.html#SIGNALS">SIGNALS</a> <br>
 <li><a href="process/sigkill.stp">process/sigkill.stp</a> - Track SIGKILL Signals<br>
 keywords: <a href="keyword-index.html#SIGNALS">SIGNALS</a> <br>
 <p>The script traces any SIGKILL signals. When that SIGKILL signal is sent to a process, the script prints out the signal name, the desination executable and process ID, the executable name user ID that sent the signal.</p></li>
-<li><a href="process/syscalls_by_pid.stp">process/syscalls_by_pid.stp</a> - System-Wide Count of Syscalls by PID<br>
+<li><a href="process/sigmon.stp">process/sigmon.stp</a> - Track a particular signal to a specific process<br>
 keywords: <a href="keyword-index.html#SIGNALS">SIGNALS</a> <br>
 <p>The script watches for a particular signal sent to a specific process. When that signal is sent to the specified process, the script prints out the PID and executable of the process sending the signal, the PID and executable name of the process receiving the signal, and the signal number and name.</p></li>
 </ul>
@@ -228,6 +264,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#READ">READ</a> <a href="keyword-index.html#WRITE">WRITE</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#IO">IO</a> <br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
+<li><a href="process/errsnoop.stp">process/errsnoop.stp</a> - tabulate system call errors<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
+<p>The script prints a periodic tabular report about failing system calls, by process and by syscall failure.  The first optional argument specifies the reporting interval (in seconds, default 5); the second optional argument gives a screen height (number of lines in the report, default 20).</p></li>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#LOCKING">LOCKING</a> <a href="keyword-index.html#FUTEX">FUTEX</a> <br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.</p></li>
@@ -262,11 +301,20 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
 <p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.</p></li>
 </ul>
+<h3><a name="TRACEPOINT">TRACEPOINT</a></h3>
+<ul>
+<li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
+<p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.</p></li>
+</ul>
 <h3><a name="TRAFFIC">TRAFFIC</a></h3>
 <ul>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>
+<li><a href="network/tcpdumplike.stp">network/tcpdumplike.stp</a> - Dump of Received TCP Packets<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
+<p>The tcpdumplike.stp prints out a line for each TCP packet received. Each line includes the source and destination IP addresses, the source and destination ports, and flags.</p></li>
 </ul>
 <h3><a name="USE">USE</a></h3>
 <ul>

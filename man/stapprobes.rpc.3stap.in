@@ -1,0 +1,583 @@
+.\" -*- nroff -*-
+.TH STAPPROBES.RPC 3stap @DATE@ "IBM"
+.SH NAME
+stapprobes.rpc \- systemtap SunRPC probe points
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+
+This family of probe points is used to probe the SUNRPC activities,
+including the client, the server and the sunrpc scheduler. 
+
+It contains the following probe points:
+
+.P
+.TP
+.B sunrpc.clnt.create_client
+Fires when an RPC client is to be created
+
+.B Arguments:
+
+.I servername
+  The name of the server machine
+
+.I progname
+  The name of the RPC program
+
+.I prog
+  The number of the RPC program
+
+.I vers
+  The version number of the RPC program
+
+.I prot
+  The number of the IP protocol
+
+.I authflavor
+  The authentication flavor
+
+.P
+.TP 
+.B sunrpc.clnt.clone_client
+Fires when an RPC client structure is to be cloned
+
+.B Arguments:
+
+.I servername
+  The name of the server machine
+
+.I progname
+  The name of the RPC program
+
+.I prog
+  The number of the RPC program
+
+.I vers
+  The version number of the RPC program
+
+.I prot
+  The number of the IP protocol
+
+.I authflavor
+  The authentication flavor
+
+.P
+.TP
+.B sunrpc.clnt.shutdown_client
+Fires when an RPC client is to be shut down
+
+.B Arguments
+
+.I servername
+  The name of the server machine
+
+.I progname
+  The name of the RPC program
+
+.I prog
+  The number of the RPC program
+
+.I vers
+  The version number of the RPC program
+
+.I prot
+  The number of the IP protocol
+
+.I authflavor
+  The authentication flavor
+
+.I clones
+  The number of clones
+
+.I tasks
+  The number of references
+
+.I netreconn
+  The count of reconnections
+
+.I rpccnt
+  The count of RPC calls
+
+.I om_ops
+  The count of operations
+
+.I om_ntrans
+  The count of RPC transmissions
+
+.I om_bytes_sent
+  The count of bytes out
+
+.I om_bytes_recv
+  The count of bytes in
+
+.I om_queue
+  The jiffies queued for transmission
+
+.I om_rtt
+  The RPC RTT jiffies
+
+.I om_execution
+  The RPC execution jiffies
+
+.P
+.TP
+.B sunrpc.clnt.bind_new_program
+Fires when a new RPC program is to be bound an existing client
+
+.B Arguments
+
+.I servername
+  The name of the server machine
+
+.I old_progname
+  The name of old RPC program
+
+.I old_prog
+  The number of old RPC program
+
+.I old_vers
+  The version of old RPC program
+
+.I progname
+  The name of new RPC program
+
+.I prog
+  The number of new RPC program
+
+.I vers
+  The version of new RPC program
+
+.P
+.TP
+.B sunrpc.clnt.call_sync
+Fires when an RPC procedure is to be called synchronously
+
+.B Arguments
+
+.I servername
+  The name of the server machine
+
+.I progname
+  The name of the RPC program
+
+.I prog
+  The number of the RPC program
+
+.I vers
+  The version number of the RPC program
+
+.I prot
+  The number of the IP protocol
+
+.I port
+  The port number
+
+.I xid
+  Current transmission id
+
+.I dead
+  Whether this client is abandoned
+
+.I procname
+  The procedure name in this RPC call
+
+.I proc
+  The procedure number in this RPC call
+
+.I flags
+  The flags of this RPC call
+
+.P
+.TP
+.B sunrpc.clnt.call_async
+Fires when an RPC procedure is to be called asynchronously
+
+.B Arguments
+
+.I servername
+  The name of the server machine
+
+.I progname
+  The name of the RPC program
+
+.I prog
+  The number of the RPC program
+
+.I vers
+  The version number of the RPC program
+
+.I prot
+  The number of the IP protocol
+
+.I port
+  The port number
+
+.I xid
+  Current transmission id
+
+.I dead
+  Whether this client is abandoned
+
+.I procname
+  The procedure name in this RPC call
+
+.I proc
+  The procedure number in this RPC call
+
+.I flags
+  The flags of this RPC call
+
+.P
+.TP
+.B sunrpc.clnt.restart_call
+Fires when an (async) RPC client is to be restarted
+
+.B Arguments
+
+.I servername
+  The name of the server machine
+
+.I prog
+  The number of the RPC program
+
+.I xid
+  The transmission id
+
+.I tk_pid
+  The debugging aid of this task
+
+.I tk_flags
+  The task flags
+
+.I tk_priority
+  The task priority
+
+.I tk_runstate
+  The task run status
+
+.P
+.TP
+.B sunrpc.svc.register
+Fires when an RPC service is to be registered with the local portmapper.
+If proto and port == 0, it means to unregister a service.
+
+.B Arguments
+
+.I sv_name
+  The name of the service
+
+.I progname
+  The name of the RPC program
+
+.I prog
+  The number of the RPC program
+
+.I prot
+  The number of the IP protocol
+
+.I port
+  The port number
+
+.P
+.TP
+.B sunrpc.svc.create
+Fires when an RPC service is to be created
+
+.B Arguments
+
+.I progname
+  The name of the RPC program
+
+.I prog
+  The number of the RPC program
+
+.I pg_nvers
+  The total of the supported versions
+
+.I bufsize
+  The buffer size
+
+.P
+.TP
+.B sunrpc.svc.destroy
+Fires when an RPC client is to be destroyed
+
+.B Arguments
+
+.I sv_name
+  The service name
+
+.I sv_progname
+  The name of the program
+
+.I sv_prog
+  The number of the program
+
+.I sv_nrthreads
+  The number of concurrent threads
+
+.I netcnt
+  The count of received RPC requests
+
+.I nettcpconn
+  The count of accepted TCP connections
+
+.I rpccnt
+  The count of valid RPC requests
+
+.I rpcbadfmt
+  The count of requests dropped for bad formats
+
+.I rpcbadauth
+  The count of requests drooped for authentication failure
+
+.P
+.TP
+.B sunrpc.svc.process
+Fires when an RPC client is to be processed
+
+.B Arguments
+
+.I sv_name
+  The service name
+
+.I sv_prog
+  The number of the program
+
+.I sv_nrthreads
+  The number of concurrent threads
+
+.I peer_ip
+  The peer address where the request is from
+
+.I rq_xid
+  The transmission id in the request
+
+.I rq_prog
+  The program number in the request
+
+.I rq_vers
+  The program version in the request
+
+.I rq_proc
+  The procedure number in the request
+
+.I rq_prot
+  The IP protocol of the request
+
+.P
+.TP
+.B sunrpc.svc.authorise
+Fires when an RPC client is to be authorised
+
+.B Arguments
+
+.I sv_name
+  The service name
+
+.I peer_ip
+  The peer address where the request is from
+
+.I rq_xid
+  The transmission id in the request
+
+.I rq_prog
+  The program number in the request
+
+.I rq_vers
+  The program version in the request
+
+.I rq_proc
+  The procedure number in the request
+
+.I rq_prot
+  The IP protocol of the request
+
+.P
+.TP
+.B sunrpc.svc.recv
+Fires when the server is to receive the next request on any socket
+
+.B Arguments
+
+.I sv_name
+  The service name
+
+.I sv_prog
+  The number of the program
+
+.I sv_nrthreads
+  The number of concurrent threads
+
+.I timeout
+  The timeout of waiting for data
+
+.P
+.TP
+.B sunrpc.svc.send
+Fires when want to return reply to client
+
+.B Arguments
+
+.I sv_name
+  The service name
+
+.I peer_ip
+  The peer address where the request is from
+
+.I rq_xid
+  The transmission id in the request
+
+.I rq_prog
+  The program number in the request
+
+.I rq_vers
+  The program version in the request
+
+.I rq_proc
+  The procedure number in the request
+
+.I rq_prot
+  The IP protocol of the request
+
+.P
+.TP
+.B sunrpc.svc.drop
+Fires when a request is to be dropped
+
+.B Arguments
+
+.I sv_name
+  The service name
+
+.I peer_ip
+  The peer address where the request is from
+
+.I rq_xid
+  The transmission id in the request
+
+.I rq_prog
+  The program number in the request
+
+.I rq_vers
+  The program version in the request
+
+.I rq_proc
+  The procedure number in the request
+
+.I rq_prot
+  The IP protocol of the request
+
+.P
+.TP
+.B sunrpc.sched.new_task
+Fires when a new task is to be created for the specified client
+
+.B Arguments
+.I xid
+  The transmission id in the RPC call
+
+.I prog
+  The program number in the RPC call
+
+.I vers
+  The program version in the RPC call
+
+.I prot
+  The IP protocol in the RPC call
+
+.I tk_flags
+  The flags of the task
+
+.P
+.TP
+.B sunrpc.sched.release_task
+Fires when all resources associated with a task are to be released
+
+.B Arguments
+
+.I xid
+  The transmission id in the RPC call
+
+.I prog
+  The program number in the RPC call
+
+.I vers
+  The program version in the RPC call
+
+.I prot
+  The IP protocol in the RPC call
+
+.I tk_flags
+  The flags of the task
+
+.P
+.TP
+.B sunrpc.sched.execute
+Fires when the RPC `scheduler'(or rather, the finite state machine)
+is to be executed
+
+.B Arguments
+
+.I xid
+  The transmission id in the RPC call
+
+.I prog
+  The program number in the RPC call
+
+.I vers
+  The program version in the RPC call
+
+.I prot
+  The IP protocol in the RPC call
+
+.I tk_pid
+  The debugging id of the task
+
+.I tk_flags
+  The flags of the task
+
+.P
+.TP
+.B sunrpc.sched.delay
+Fires when a task is to be delayed
+
+.B Arguments
+
+.I xid
+  The transmission id in the RPC call
+
+.I prog
+  The program number in the RPC call
+
+.I vers
+  The program version in the RPC call
+
+.I prot
+  The IP protocol in the RPC call
+
+.I tk_pid
+  The debugging id of the task
+
+.I tk_flags
+  The flags of the task
+
+.I delay
+  The time delayed
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes (3stap)
+

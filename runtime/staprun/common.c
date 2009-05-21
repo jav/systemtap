@@ -27,6 +27,9 @@ int attach_mod;
 int delete_mod;
 int load_only;
 int need_uprobes;
+int daemon_mode;
+off_t fsize_max;
+int fnum_max;
 
 /* module variables */
 char *modname = NULL;
@@ -35,9 +38,38 @@ char *modoptions[MAXMODOPTIONS];
 
 int control_channel = -1; /* NB: fd==0 possible */
 
+static char path_buf[PATH_MAX];
+static char *get_abspath(char *path)
+{
+	int len;
+	if (path[0] == '/')
+		return path;
+
+	len = strlen(getcwd(path_buf, PATH_MAX));
+	if (len + 2 + strlen(path) >= PATH_MAX)
+		return NULL;
+	path_buf[len] = '/';
+	strcpy(&path_buf[len + 1], path);
+	return path_buf;
+}
+
+int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t)
+{
+	struct tm tm;
+	size_t ret;
+	if (buf == NULL || fmt == NULL || max <= 1)
+		return -EINVAL;
+	localtime_r(&t, &tm);
+	ret = strftime(buf, max, fmt, &tm);
+	if (ret == 0)
+		return -EINVAL;
+	return (int)ret;
+}
+
 void parse_args(int argc, char **argv)
 {
 	int c;
+	char *s;
 
 	/* Initialize option variables. */
 	verbose = 0;
@@ -49,8 +81,11 @@ void parse_args(int argc, char **argv)
 	delete_mod = 0;
 	load_only = 0;
 	need_uprobes = 0;
+	daemon_mode = 0;
+	fsize_max = 0;
+	fnum_max = 0;
 
-	while ((c = getopt(argc, argv, "ALuvb:t:dc:o:x:")) != EOF) {
+	while ((c = getopt(argc, argv, "ALuvb:t:dc:o:x:S:D")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
@@ -85,11 +120,38 @@ void parse_args(int argc, char **argv)
 		case 'L':
 			load_only = 1;
 			break;
+		case 'D':
+			daemon_mode = 1;
+			break;
+		case 'S':
+			fsize_max = strtoul(optarg, &s, 10);
+			fsize_max <<= 20;
+			if (s[0] == ',')
+				fnum_max = (int)strtoul(&s[1], &s, 10);
+			if (s[0] != '\0') {
+				err("Invalid file size option '%s'.\n", optarg);
+				usage(argv[0]);
+			}
+			break;
 		default:
 			usage(argv[0]);
 		}
 	}
-
+	if (outfile_name) {
+		char tmp[PATH_MAX];
+		int ret;
+		outfile_name = get_abspath(outfile_name);
+		if (outfile_name == NULL) {
+			err("File name is too long.\n");
+			usage(argv[0]);
+		}
+		ret = stap_strfloctime(tmp, PATH_MAX - 18, /* = _cpuNNN.SSSSSSSSSS */
+				       outfile_name, time(NULL));
+		if (ret < 0) {
+			err("Filename format is invalid or too long.\n");
+			usage(argv[0]);
+		}
+	}
 	if (attach_mod && load_only) {
 		err("You can't specify the '-A' and '-L' options together.\n");
 		usage(argv[0]);
@@ -118,18 +180,40 @@ void parse_args(int argc, char **argv)
 		err("You can't specify the '-c' and '-x' options together.\n");
 		usage(argv[0]);
 	}
+
+	if (daemon_mode && load_only) {
+		err("You can't specify the '-D' and '-L' options together.\n");
+		usage(argv[0]);
+	}
+	if (daemon_mode && delete_mod) {
+		err("You can't specify the '-D' and '-d' options together.\n");
+		usage(argv[0]);
+	}
+	if (daemon_mode && target_cmd) {
+		err("You can't specify the '-D' and '-c' options together.\n");
+		usage(argv[0]);
+	}
+	if (daemon_mode && outfile_name == NULL) {
+		err("You have to specify output FILE with '-D' option.\n");
+		usage(argv[0]);
+	}
+	if (outfile_name == NULL && fsize_max != 0) {
+		err("You have to specify output FILE with '-S' option.\n");
+		usage(argv[0]);
+	}
 }
 
 void usage(char *prog)
 {
-	err("\n%s [-v]  [-c cmd ] [-x pid] [-u user]\n"
-                "\t[-A|-L] [-b bufsize] [-o FILE] MODULE [module-options]\n", prog);
+	err("\n%s [-v]  [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
+                "\t[-b bufsize] [-o FILE [-D] [-S size[,N]]] MODULE [module-options]\n", prog);
 	err("-v              Increase verbosity.\n");
 	err("-c cmd          Command \'cmd\' will be run and staprun will\n");
 	err("                exit when it does.  The '_stp_target' variable\n");
 	err("                will contain the pid for the command.\n");
 	err("-x pid          Sets the '_stp_target' variable to pid.\n");
-	err("-o FILE         Send output to FILE.\n");
+	err("-o FILE         Send output to FILE. This supports strftime(3)\n");
+	err("                formats for FILE.\n");
 	err("-b buffer size  The systemtap module specifies a buffer size.\n");
 	err("                Setting one here will override that value.  The\n");
 	err("                value should be an integer between 1 and 4095 \n");
@@ -140,6 +224,14 @@ void usage(char *prog)
 	err("-d              Delete a module.  Only detached or unused modules\n");
 	err("                the user has permission to access will be deleted. Use \"*\"\n");
 	err("                (quoted) to delete all unused modules.\n");
+	err("-D              Run in background. This requires '-o' option.\n");
+	err("-S size[,N]     Switches output file to next file when the size\n");
+	err("                of file reaches the specified size. The value\n");
+	err("                should be an integer greater than 1 which is\n");
+	err("                assumed to be the maximum file size in MB.\n");
+	err("                When the number of output files reaches N, it\n");
+	err("                switches to the first output file. You can omit\n");
+	err("                the second argument.\n");
 	err("MODULE can be either a module name or a module path.  If a\n");
 	err("module name is used, it is looked for in the following\n");
 	err("directory: /lib/modules/`uname -r`/systemtap\n");
@@ -343,4 +435,25 @@ int send_request(int type, void *data, int len)
 	rc = write (control_channel, buf, len + 4);
         if (rc < 0) return rc;
         return (rc != len+4);
+}
+
+#include <stdarg.h>
+
+static int use_syslog = 0;
+
+void eprintf(const char *fmt, ...)
+{
+	va_list va;
+	va_start(va, fmt);
+	if (use_syslog)
+		vsyslog(LOG_ERR, fmt, va);
+	else
+		vfprintf(stderr, fmt, va);
+	va_end(va);
+}
+
+void switch_syslog(const char *name)
+{
+	openlog(name, LOG_PID, LOG_DAEMON);
+	use_syslog = 1;
 }

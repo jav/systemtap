@@ -150,18 +150,23 @@ Add the given directory to the tapset search directory.  See the
 description of pass 2 for details.
 .TP
 .BI \-D " NAME=VALUE"
-Add the given C preprocessor directive to the module Makefile.  These can 
+Add the given C preprocessor directive to the module Makefile.  These can
 be used to override limit parameters described below.
 .TP
 .BI \-R " DIR"
 Look for the systemtap runtime sources in the given directory.
 .TP
 .BI \-r " /DIR"
-Build for kernel in given build tree.
+Build for kernel in given build tree. Can also be set with the
+.I SYSTEMTAP_RELEASE
+environment variable.
 .TP
 .BI \-r " RELEASE"
 Build for kernel in build tree
-.BR /lib/modules/RELEASE/build .
+.BR /lib/modules/RELEASE/build . 
+Can also be set with the
+.I SYSTEMTAP_RELEASE
+environment variable.
 .TP
 .BI \-m " MODULE"
 Use the given name for the generated kernel object module, instead
@@ -175,13 +180,14 @@ even if they do not have an explicit probe placed into them.
 .TP
 .BI \-o " FILE"
 Send standard output to named file. In bulk mode, percpu files will
-start with FILE_ followed by the cpu number.
+start with FILE_ (FILE_cpu with -F) followed by the cpu number.
+This supports strftime(3) formats for FILE.
 .TP
 .BI \-c " CMD"
 Start the probes, run CMD, and exit when CMD finishes.
 .TP
 .BI \-x " PID"
-Sets target() to PID. This allows scripts to be written that filter on 
+Sets target() to PID. This allows scripts to be written that filter on
 a specific process.
 .TP
 .BI \-l " PROBE"
@@ -193,8 +199,18 @@ and aliases.
 Similar to "-l", but list probe points and script-level local variables.
 .TP
 .BI \-F
-Load module and start probes, then detach from the module leaving the
-probes running.
+Without -o option, load module and start probes, then detach from the module
+leaving the probes running.
+With -o option, run staprun in background as a daemon and show its pid.
+.TP
+.BI \-S " size[,N]"
+Sets the maximum size of output file and the maximum number of output files.
+If the size of output file will exceed
+.B size
+, systemtap switches output file to the next file. And if the number of
+output files exceed
+.B N
+, systemtap removes the oldest output file. You can omit the second argument.
 .TP
 .B \-\-kelf
 For names and addresses of functions to probe,
@@ -241,7 +257,7 @@ parser for substitution.  See below.
 
 .SH SCRIPT LANGUAGE
 
-The systemtap script language resembles 
+The systemtap script language resembles
 .IR awk .
 There are two main outermost constructs: probes and functions.  Within
 these, statements and expressions use C-like operator syntax and
@@ -280,7 +296,7 @@ number beyond what was actually given is an error.
 
 .SS PREPROCESSING
 A simple conditional preprocessing stage is run as a part of parsing.
-The general form is similar to the 
+The general form is similar to the
 .RB cond " ? " exp1 " : " exp2
 ternary operator:
 .SAMPLE
@@ -304,7 +320,7 @@ version of the target kernel (as optionally overridden by the
 option) compares to the given version string.  The comparison is
 performed by the glibc function
 .BR strverscmp .
-As a special case, if the operator is for simple equality 
+As a special case, if the operator is for simple equality
 .RB ( == ),
 or inequality
 .RB ( != ),
@@ -336,14 +352,14 @@ kernel version is newer than 2.6.5:
 .ESAMPLE
 The following code might adapt to hypothetical kernel version drift:
 .SAMPLE
-probe kernel.function ( 
-  %( kernel_v <= "2.6.12" %? "__mm_do_fault" %: 
+probe kernel.function (
+  %( kernel_v <= "2.6.12" %? "__mm_do_fault" %:
      %( kernel_vr == "2.6.13*smp" %? "do_page_fault" %:
         UNSUPPORTED %) %)
 ) { /* ... */ }
 
 %( arch == "ia64" %?
-   probe syscall.vliw = kernel.function("vliw_widget") {} 
+   probe syscall.vliw = kernel.function("vliw_widget") {}
 %)
 .ESAMPLE
 
@@ -411,7 +427,7 @@ Execute the string- or integer-valued expression and throw away
 the value.
 .TP
 .BR { " STMT1 STMT2 ... " }
-Execute each statement in sequence in this block.  Note that 
+Execute each statement in sequence in this block.  Note that
 separators or terminators are generally not necessary between statements.
 .TP
 .BR ;
@@ -433,14 +449,14 @@ STMT, then the iteration expression EXP3.
 .BR foreach " (VAR " in " ARRAY [ "limit " EXP ]) STMT"
 Loop over each element of the named global array, assigning current
 key to VAR.  The array may not be modified within the statement.
-By adding a single 
+By adding a single
 .BR + " or " \-
 operator after the VAR or the ARRAY identifier, the iteration will
 proceed in a sorted order, by ascending or descending index or value.
 Using the optional
-.BR limit 
+.BR limit
 keyword limits the number of loop iterations to EXP times.  EXP is
-evaluted once at the beginning of the loop.
+evaluated once at the beginning of the loop.
 .TP
 .BR foreach " ([VAR1, VAR2, ...] " in " ARRAY [ "limit " EXP ]) STMT"
 Same as above, used when the array is indexed with a tuple of keys.
@@ -491,7 +507,7 @@ string assignment operators
 .B = .=
 .TP
 unary numeric operators
-.B + \- ! ~ ++ \-\- 
+.B + \- ! ~ ++ \-\-
 .TP
 binary numeric or string comparison operators
 .B < > <= >= == !=
@@ -523,14 +539,14 @@ Events are specified in a special syntax called "probe points".  There
 are several varieties of probe points defined by the translator, and
 tapset scripts may define further ones using aliases.  These are
 listed in the
-.IR stapprobes (5)
+.IR stapprobes (3stap)
 manual pages.
 .PP
 The probe handler is interpreted relative to the context of each
 event.  For events associated with kernel code, this context may
 include
 .I variables
-defined in the 
+defined in the
 .I source code
 at that spot.  These "target variables" are presented to the script as
 variables whose names are prefixed with "$".  They may be accessed
@@ -541,9 +557,9 @@ with optimized code.  Some other events have very little context.
 New probe points may be defined using "aliases".  Probe point aliases
 look similar to probe definitions, but instead of activating a probe
 at the given point, it just defines a new probe point name as an alias
-to an existing one. There are two types of alias, i.e. the prologue 
+to an existing one. There are two types of alias, i.e. the prologue
 style and the epilogue style which are identified by "=" and "+="
-respectively. 
+respectively.
 .PP
 For prologue style alias, the statement block that follows an alias
 definition is implicitly added as a prologue to any probe that refers
@@ -643,9 +659,9 @@ The
 .IR printf
 formatting directives similar to those of C, except that they are
 fully type-checked by the translator:
-.RS 
+.RS
 .TP
-%b  
+%b
 Writes a binary blob of the value given, instead of ASCII text.  The width specifier determines the number of bytes to write; valid specifiers are %b %1b %2b %4b %8b.  Default (%b) is 8 bytes.
 .TP
 %c
@@ -658,7 +674,7 @@ Signed decimal.
 Safely reads kernel memory at the given address, outputs its content.  The precision specifier determines the number of bytes to read.  Default is 1 byte.
 .TP
 %M
-Same as %m, but outputs in hexadecimal.  The precision specifier determines the number of hexadecimal digits to output.  Default is 1 digit.
+Same as %m, but outputs in hexadecimal.  The minimal size of output is double the precision specifier.
 .TP
 %o
 Unsigned octal.
@@ -726,7 +742,7 @@ distinct extraction function operating on a given identifier, the
 translator arranges to compute a set of statistics that satisfy it.
 The statistics system is thereby "on-demand".  Each execution of
 an extraction function causes the aggregation to be computed for
-that moment across all processors. 
+that moment across all processors.
 .PP
 Here is the set of extractor functions.  The first argument of each is
 the same style of lvalue used on the left hand side of the accumulate
@@ -739,7 +755,7 @@ integers.
 Histograms are also available, but are more complicated because they
 have a vector rather than scalar value.
 .I @hist_linear(v,start,stop,interval)
-represents a linear histogram from "start" to "stop" by increments 
+represents a linear histogram from "start" to "stop" by increments
 of "interval".  The interval must be positive. Similarly,
 .I @hist_log(v)
 represents a base-2 logarithmic histogram. Printing a histogram
@@ -751,7 +767,7 @@ family of functions renders a histogram object as a tabular
 probe foo {
   x <<< $value
 }
-probe end {  
+probe end {
   printf ("avg %d = sum %d / count %d\\n",
           @avg(x), @sum(x), @count(x))
   print (@hist_log(v))
@@ -776,10 +792,21 @@ and dereference the
 .I member
 value.  The optional
 .I module
-tells the translator where to look for information about that type.  If
-the module is not specified, it will default either to the probe module
-for dwarf probes, or to "kernel" for functions and all other probes
-types.
+tells the translator where to look for information about that type.
+Multiple modules may be specified as a list with
+.IR :
+separators.  If the module is not specified, it will default either to
+the probe module for dwarf probes, or to "kernel" for functions and all
+other probes types.
+.PP
+The translator can create its own module with type information from a header
+surrounded by angle brackets, in case normal debuginfo is not available.  For
+kernel headers, prefix it with "kernel" to use the appropriate build system.
+All other headers are build with default GCC parameters into a user module.
+.SAMPLE
+@cast(tv, "timeval", "<sys/time.h>")->tv_sec
+@cast(task, "task_struct", "kernel<linux/sched.h>")->tgid
+.ESAMPLE
 .PP
 When in guru mode, the translator will also allow scripts to assign new
 values to members of typecasted pointers.
@@ -809,7 +836,7 @@ sequence, into the generated C code.  At the outermost level, this may
 be useful to add
 .IR #include
 instructions, and any auxiliary definitions for use by other embedded
-code.  
+code.
 .PP
 The other place where embedded code is permitted is as a function body.
 In this case, the script language body is replaced entirely by a piece
@@ -846,7 +873,7 @@ by the scripts installed under the
 .IR @prefix@/share/systemtap/tapset
 .hy
 directory.  These are described in the
-.IR stapfuncs "(5) and " stapprobes (5)
+.IR stapfuncs "(3stap) and " stapprobes (3stap)
 manual pages.
 
 .SH PROCESSING
@@ -870,7 +897,7 @@ the following patterns would be searched, in sequence:
 .IR 2.6/*.stp ,
 and finally
 .IR *.stp
-Stopping the translator after pass 1 causes it to print the parse trees. 
+Stopping the translator after pass 1 causes it to print the parse trees.
 
 .PP
 In pass 2, the translator analyzes the input script to resolve symbols
@@ -882,7 +909,7 @@ added to the translator's resolution queue.  This process iterates
 until all symbols are resolved and a subset of tapset scripts is
 selected.
 .PP
-Next, all probe point descriptions are validated 
+Next, all probe point descriptions are validated
 against the wide variety supported by the translator.  Probe points that
 refer to code locations ("synchronous probe points") require the
 appropriate kernel debugging information to be installed.  In the
@@ -899,7 +926,7 @@ Since this optimization can hide latent code errors such as type
 mismatches or invalid $target variables, it sometimes may be useful
 to disable the optimizations with the
 .BR \-u
-option. 
+option.
 .PP
 Finally, all variable, function, parameter, array, and index types are
 inferred from context (literals and operators).  Stopping the
@@ -942,8 +969,8 @@ Finally,
 unloads the module, and cleans up.
 
 .SH EXAMPLES
-See the 
-.IR stapex (5)
+See the
+.IR stapex (3stap)
 manual page for a collection of samples.
 
 .SH CACHING
@@ -956,10 +983,10 @@ the
 .I $SYSTEMTAP_DIR/cache
 directory. The cache can be limited by having the file
 .I cache_mb_limit
-placed in the cache directory (shown above) containing only an ASCII 
+placed in the cache directory (shown above) containing only an ASCII
 integer representing how many MiB the cache should not exceed. Note that
 this is a 'soft' limit in that the cache will be cleaned after a new entry
-is added, so the total cache size may temporarily exceed this limit. In the 
+is added, so the total cache size may temporarily exceed this limit. In the
 absence of this file, a default will be created with the limit set to 64MiB.
 
 .SH SAFETY AND SECURITY
@@ -991,11 +1018,11 @@ program are run by the
 .IR staprun
 program.  The latter is a part of the Systemtap package, dedicated to
 module loading and unloading (but only in the white zone), and
-kernel-to-user data transfer.  Since 
+kernel-to-user data transfer.  Since
 .IR staprun
 does not perform any additional security checks on the kernel objects
 it is given, it would be unwise for a system administrator to add
-untrusted users to the 
+untrusted users to the
 .I stapdev
 or
 .I stapusr
@@ -1012,7 +1039,7 @@ to kernel crash or data corruption.
 The resource use limits are set by macros in the generated C code.
 These may be overridden with the
 .BR \-D
-flag.  A selection of these is as follows: 
+flag.  A selection of these is as follows:
 .TP
 MAXNESTING
 Maximum number of recursive function call levels, default 10.
@@ -1044,7 +1071,8 @@ means that the first error will exit the script.
 MAXSKIPPED
 Maximum number of skipped probes before an exit is triggered, default 100.
 Running systemtap with \-t (timing) mode gives more details about skipped
-probes.
+probes.  With the default \-DINTERRUPTIBLE=1 setting, probes skipped due to
+reentrancy are not accumulated against this limit.
 .TP
 MINSTACKSPACE
 Minimum number of free kernel stack bytes required in order to
@@ -1084,7 +1112,7 @@ Note that you must unload guests before unloading a host. If there are some
 guests connected to the host, unloading the host will be failed.
 
 .PP
-In case something goes wrong with 
+In case something goes wrong with
 .IR stap " or " staprun
 after a probe has already started running, one may safely kill both
 user processes, and remove the active probe kernel module with
@@ -1158,7 +1186,7 @@ environment variable.
 Temporary directory for systemtap files, including translated C code
 and kernel object.
 .TP
-@prefix@/share/systemtap/tapset 
+@prefix@/share/systemtap/tapset
 The automatic tapset search directory, unless overridden by
 the
 .I SYSTEMTAP_TAPSET
@@ -1187,10 +1215,10 @@ The auxiliary program supervising module loading, interaction, and
 unloading.
 
 .SH SEE ALSO
-.IR stapprobes (5),
-.IR stapfuncs (5),
-.IR stapvars (5),
-.IR stapex (5),
+.IR stapprobes (3stap),
+.IR stapfuncs (3stap),
+.IR stapvars (3stap),
+.IR stapex (3stap),
 .IR awk (1),
 .IR gdb (1)
 

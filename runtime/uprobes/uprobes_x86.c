@@ -45,8 +45,8 @@ static const unsigned long long good_insns_64[256 / 64] = {
 	W(0x50, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 50 */
 	W(0x60, 0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,0)| /* 60 */
 	W(0x70, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* 70 */
-	W(0x80, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 80 */
-	W(0x90, 1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1)| /* 90 */
+	W(0x80, 1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 80 */
+	W(0x90, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 90 */
 	W(0xa0, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* a0 */
 	W(0xb0, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* b0 */
 	W(0xc0, 1,1,1,1,0,0,1,1,1,1,1,1,0,0,0,0)| /* c0 */
@@ -71,7 +71,7 @@ static const unsigned long long good_insns_32[256 / 64] = {
 	W(0x60, 1,1,1,0,1,1,0,0,1,1,1,1,0,0,0,0)| /* 60 */
 	W(0x70, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* 70 */
 	W(0x80, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 80 */
-	W(0x90, 1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1)| /* 90 */
+	W(0x90, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 90 */
 	W(0xa0, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* a0 */
 	W(0xb0, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* b0 */
 	W(0xc0, 1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0)| /* c0 */
@@ -119,7 +119,7 @@ static const unsigned long long good_2byte_insns[256 / 64] = {
  * 0f - lar, lsl, syscall, clts, sysret, sysenter, sysexit, invd, wbinvd, ud2
  *
  * invalid opcodes in 64-bit mode:
- * 06, 0e, 16, 1e, 27, 2f, 37, 3f, 60-62, c4-c5, d4-d5
+ * 06, 0e, 16, 1e, 27, 2f, 37, 3f, 60-62, 82, c4-c5, d4-d5
  *
  * 63 - we support this opcode in x86_64 but not in i386.
  * opcodes we may need to refine support for:
@@ -141,7 +141,6 @@ static const unsigned long long good_2byte_insns[256 / 64] = {
  * 26, 2e, 36, 3e - es:, cs:, ss:, ds: segment prefixes --
  *	but 64 and 65 (fs: and gs:) seems to be used, so we support them.
  * 67 - addr16 prefix
- * 9b - wait/fwait
  * ce - into
  * f0 - lock prefix
  */
@@ -717,12 +716,23 @@ unsigned long arch_hijack_uret_addr(unsigned long trampoline_address,
 	return orig_ret_addr;
 }
 
+/*
+ * On x86_32, if a function returns a struct or union, the return
+ * value is copied into an area created by the caller.  The address
+ * of this area is passed on the stack as a "hidden" first argument.
+ * When such a function returns, it uses a "ret $4" instruction to pop
+ * not only the return address but also the hidden arg.  To accommodate
+ * such functions, we add 4 bytes of slop when predicting the return
+ * address. See PR #10078.
+ */
+#define STRUCT_RETURN_SLOP 4
+
 static
 unsigned long arch_predict_sp_at_ret(struct pt_regs *regs,
 		struct task_struct *tsk)
 {
 	if (test_tsk_thread_flag(tsk, TIF_IA32))
-		return (unsigned long) (REGS_SP + 4);
+		return (unsigned long) (REGS_SP + 4 + STRUCT_RETURN_SLOP);
 	else
 		return (unsigned long) (REGS_SP + 8);
 }

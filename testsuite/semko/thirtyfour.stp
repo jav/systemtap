@@ -2,9 +2,9 @@
 
 # can't write to target variables in .return probes
 
-probe kernel.function("sys_read").return
+probe kernel.function("fget_light").return
 {
     $fd = 0
     printf("fd is %d\n", $fd)
 }
-probe kernel.function("sys_open").return { $filename }
+probe kernel.function("do_sys_open").return { $filename }

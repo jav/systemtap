@@ -7,12 +7,15 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// This family of probe points is used to probe events that occur in the TCP layer, 
+// </tapsetdescription>
 %{
 #include <linux/version.h>
 #include <net/sock.h>
 #include <net/tcp.h>
 #include <net/ip.h>
+#include <linux/skbuff.h>
 %}
 
 // Get retransmission timeout in usecs. RTO is initialized from default
@@ -70,6 +73,80 @@ function tcp_ts_get_info_state:long(sock:long)
 	THIS->__retvalue = (int64_t) kread(&(sk->sk_state));
 	CATCH_DEREF_FAULT();
 %}
+
+/* return the TCP destination port for a given sock */
+function __tcp_sock_dport:long (sock:long){
+	return @cast(sock, "inet_sock")->dport
+}
+
+/* returns the TCP header for recent (<2.6.21) kernel */
+function __get_skb_tcphdr_new:long(skb:long)
+%{ /* pure */
+	struct sk_buff *skb;
+	skb = (struct sk_buff *)(long)THIS->skb;
+	/* as done by skb_transport_header() */
+	#ifdef NET_SKBUFF_DATA_USES_OFFSET
+		THIS->__retvalue = (long)(kread(&(skb->head)) + kread(&(skb->transport_header)));
+	#else
+		THIS->__retvalue = (long)kread(&(skb->transport_header));
+	#endif
+	CATCH_DEREF_FAULT();
+%}
+
+/* returns the TCP header for a given sk_buff structure */
+function __get_skb_tcphdr:long(skb:long){
+%( kernel_v < "2.6.21" %?
+	tcphdr = @cast(skb, "sk_buff")->h->raw
+	return tcphdr
+%:
+	return __get_skb_tcphdr_new(skb)
+%)
+}
+
+/* returns TCP URG flag for a given sk_buff structure */
+function __tcp_skb_urg:long (tcphdr){
+	return @cast(tcphdr, "tcphdr")->urg
+}
+
+/* returns TCP ACK flag for a given sk_buff structure */
+function __tcp_skb_ack:long (tcphdr){
+	return @cast(tcphdr, "tcphdr")->ack
+}
+
+/* returns TCP PSH flag for a given sk_buff structure */
+function __tcp_skb_psh:long (tcphdr){
+	return @cast(tcphdr, "tcphdr")->psh
+}
+
+/* returns TCP RST flag for a given sk_buff structure */
+function __tcp_skb_rst:long (tcphdr){
+	return @cast(tcphdr, "tcphdr")->rst
+}
+
+/* returns TCP SYN flag for a given sk_buff structure */
+function __tcp_skb_syn:long (tcphdr){
+	return @cast(tcphdr, "tcphdr")->syn
+}
+
+/* returns TCP FIN flag for a given sk_buff structure */
+function __tcp_skb_fin:long (tcphdr){
+	return @cast(tcphdr, "tcphdr")->fin
+}
+
+/* returns TCP source port for a given sk_buff structure */
+function __tcp_skb_sport:long (tcphdr){
+	return ntohs(@cast(tcphdr, "tcphdr")->source)
+}
+
+/* returns TCP destination port for a given sk_buff structure */
+function __tcp_skb_dport:long (tcphdr){
+	return @cast(tcphdr, "tcphdr")->dest
+}
+
+/* return the TCP source port for a given sock */
+function __tcp_sock_sport:long (sock:long){
+	return @cast(sock, "inet_sock")->sport
+}
 
 global sockstate[13], sockstate_init_p
 function tcp_sockstate_str:string (state:long) {
@@ -180,6 +257,10 @@ probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
  * @name: Name of this probe
  * @sock: Network socket
  * @size: Number of bytes to be received  
+ * @saddr: A string representing the source IP address
+ * @daddr: A string representing the destination IP address
+ * @sport: TCP source port 
+ * @dport: TCP destination port
  * Context:
  *  The process which receives a tcp message
  */
@@ -187,12 +268,20 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 	name = "tcp.recvmsg"
 	sock    = $sk
 	size    = $len
+	saddr   = ip_ntop(__ip_sock_saddr($sk))
+	daddr   = ip_ntop(__ip_sock_daddr($sk))
+	sport   = __tcp_sock_sport($sk)
+	dport   = __tcp_sock_dport($sk)
 }
 
 /**
  * probe tcp.recvmsg.return - Receiving TCP message complete
  * @name: Name of this probe
  * @size: Number of bytes received or error code if an error occurred.
+ * @saddr: A string representing the source IP address
+ * @daddr: A string representing the destination IP address
+ * @sport: TCP source port 
+ * @dport: TCP destination port
  *
  * Context:
  *  The process which receives a tcp message
@@ -200,6 +289,10 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 	name = "tcp.recvmsg"
 	size = $return
+	saddr = ip_ntop(__ip_sock_saddr($sk))
+	daddr = ip_ntop(__ip_sock_daddr($sk))
+	sport = __tcp_sock_sport($sk)
+	dport = __tcp_sock_dport($sk)
 }
 
 /**
@@ -207,6 +300,10 @@ probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
  * @name: Name of this probe
  * @sock: Network socket 
  * @flags: TCP flags (e.g. FIN, etc)  
+ * @saddr: A string representing the source IP address
+ * @daddr: A string representing the destination IP address
+ * @sport: TCP source port 
+ * @dport: TCP destination port
  *
  * Context:
  *  The process which disconnects tcp 
@@ -215,6 +312,10 @@ probe tcp.disconnect = kernel.function("tcp_disconnect") {
 	name = "tcp.disconnect"
 	sock  = $sk
 	flags = $flags
+	saddr = ip_ntop(__ip_sock_saddr($sk))
+	daddr = ip_ntop(__ip_sock_daddr($sk))
+	sport = __tcp_sock_sport($sk)
+	dport = __tcp_sock_dport($sk)
 }
 
 /**
@@ -264,3 +365,32 @@ probe tcp.setsockopt.return = kernel.function("tcp_setsockopt").return {
 	ret = $return
 }
 
+/**
+ * probe tcp.receive - Called when a TCP packet is received
+ * @saddr: A string representing the source IP address
+ * @daddr: A string representing the destination IP address
+ * @sport: TCP source port
+ * @dport: TCP destination port
+ * @urg: TCP URG flag
+ * @ack: TCP ACK flag
+ * @psh: TCP PSH flag
+ * @rst: TCP RST flag
+ * @syn: TCP SYN flag
+ * @fin: TCP FIN flag
+ */
+probe tcp.receive = kernel.function("tcp_v4_rcv") {
+	iphdr = __get_skb_iphdr($skb)
+	saddr = ip_ntop(__ip_skb_saddr(iphdr))
+	daddr = ip_ntop(__ip_skb_daddr(iphdr))
+	protocol = __ip_skb_proto(iphdr)
+
+	tcphdr = __get_skb_tcphdr($skb)
+	dport = __tcp_skb_dport(tcphdr)
+	sport = __tcp_skb_sport(tcphdr)
+	urg = __tcp_skb_urg(tcphdr)
+	ack = __tcp_skb_ack(tcphdr)
+	psh = __tcp_skb_psh(tcphdr)
+	rst = __tcp_skb_rst(tcphdr)
+	syn = __tcp_skb_syn(tcphdr)
+	fin = __tcp_skb_fin(tcphdr)
+}

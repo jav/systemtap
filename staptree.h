@@ -231,6 +231,7 @@ struct target_symbol: public symbol
     };
   std::string base_name;
   std::vector<std::pair<component_type, std::string> > components;
+  std::string probe_context_var;
   semantic_error* saved_conversion_error;
   target_symbol(): saved_conversion_error (0) {}
   void print (std::ostream& o) const;

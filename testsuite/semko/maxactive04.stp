@@ -1,5 +1,5 @@
 #! stap -p2
 
-probe kernel.function("sys_open").return.maxactive(-4)
+probe kernel.function("vfs_read").return.maxactive(-4)
 {
 }

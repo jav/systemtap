@@ -16,6 +16,7 @@
 #include "vsprintf.c"
 #include "print.h"
 #include "transport/transport.c"
+#include "vsprintf.c"
 
 /** @file print.c
  * Printing Functions.
@@ -168,34 +169,10 @@ static void _stp_print_binary (int num, ...)
  */
 static void _stp_printf (const char *fmt, ...)
 {
-	int num;
 	va_list args;
-	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
-	char *buf = pb->buf + pb->len;
-	int size = STP_BUFFER_SIZE - pb->len;
-
 	va_start(args, fmt);
-	num = _stp_vsnprintf(buf, size, fmt, args);
+	_stp_vsnprintf(NULL, 0, fmt, args);
 	va_end(args);
-	if (unlikely(num >= size)) { 
-		/* overflowed the buffer */
-		if (pb->len == 0) {
-			/* A single print request exceeded the buffer size. */
-			/* Should not be possible with Systemtap-generated code. */
-			pb->len = STP_BUFFER_SIZE;
-			_stp_print_flush();
-			num = 0;
-		} else {
-			/* Need more space. Flush the previous contents */
-			_stp_print_flush();
-			
-			/* try again */
-			va_start(args, fmt);
-			num = _stp_vsnprintf(pb->buf, STP_BUFFER_SIZE, fmt, args);
-			va_end(args);
-		}
-	}
-	pb->len += num;
 }
 
 /** Write a string into the print buffer.

@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006, 2009 Red Hat Inc. (systemtap changes)
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as
@@ -20,13 +20,15 @@
 #include <cerrno>
 
 extern "C" {
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <fcntl.h>
 #include <pwd.h>
-#include <unistd.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 }
 
 using namespace std;
@@ -133,6 +135,25 @@ create_dir(const char *dir)
   return 0;
 }
 
+// Remove a file or directory
+int
+remove_file_or_dir (const char *name)
+{
+  int rc;
+  struct stat st;
+
+  if ((rc = stat(name, &st)) != 0)
+    {
+      if (errno == ENOENT)
+	return 0;
+      return 1;
+    }
+
+  if (remove (name) != 0)
+    return 1;
+  cerr << "remove returned 0" << endl;
+  return 0;
+}
 
 void
 tokenize(const string& str, vector<string>& tokens,
@@ -246,6 +267,64 @@ const string cmdstr_quoted(const string& cmd)
 	quoted_cmd += quote;
 
 	return quoted_cmd;
+}
+
+
+string
+git_revision(const string& path)
+{
+  string revision = "(not-a-git-repository)";
+  string git_dir = path + "/.git/";
+
+  struct stat st;
+  if (stat(git_dir.c_str(), &st) == 0)
+    {
+      string command = "git --git-dir=\"" + git_dir
+        + "\" rev-parse HEAD 2>/dev/null";
+
+      char buf[50];
+      FILE *fp = popen(command.c_str(), "r");
+      if (fp != NULL)
+        {
+          char *bufp = fgets(buf, sizeof(buf), fp);
+          int rc = pclose(fp);
+          if (bufp != NULL && rc == 0)
+            revision = buf;
+        }
+    }
+
+  return revision;
+}
+
+
+static pid_t spawned_pid = 0;
+
+// Runs a command with a saved PID, so we can kill it from the signal handler
+int
+stap_system(const char *command)
+{
+  const char * argv[] = { "sh", "-c", command, NULL };
+  int ret, status;
+
+  spawned_pid = 0;
+  ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL,
+                    const_cast<char **>(argv), environ);
+  if (ret == 0)
+    {
+      if (waitpid(spawned_pid, &status, 0) == spawned_pid)
+        ret = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
+      else
+        ret = errno;
+    }
+  spawned_pid = 0;
+  return ret;
+}
+
+// Send a signal to our spawned command
+int
+kill_stap_spawn(int sig)
+{
+  return spawned_pid ? kill(spawned_pid, sig) : 0;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

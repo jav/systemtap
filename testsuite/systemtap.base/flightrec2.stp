@@ -1,0 +1,5 @@
+probe timer.ms(10)
+{
+  for (j = 0; j < 1000; j++)
+    printf("1234567890\n")
+}

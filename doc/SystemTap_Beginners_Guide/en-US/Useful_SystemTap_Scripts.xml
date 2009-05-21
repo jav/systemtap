@@ -41,6 +41,8 @@
 	<para>The following sections showcase scripts that trace network-related functions and build a profile of network activity.</para>
 	<xi:include href="Useful_Scripts-nettop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-sockettrace.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-tcp_connections.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include condition="fedora" href="Useful_Scripts-tcpdumplike.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </section>		
 <section id="mainsect-disk">
 	<title>Disk</title>
@@ -54,6 +56,7 @@
 <!-- 	<xi:include href="Useful_Scripts-Kernel.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 	<xi:include href="Useful_Scripts-inodewatch.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-inodewatch2.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include condition="fedora" href="Useful_Scripts-ioblktime.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </section>
 
 <section id="mainsect-profiling">
@@ -69,6 +72,7 @@
 <!-- 	removed; handler function no longer working as expected
 	<xi:include href="Useful_Scripts-kernelprofiling.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 
+	
 <xi:include href="Useful_Scripts-futexes.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 
 <!--	<xi:include href="Useful_Scripts-Network.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />

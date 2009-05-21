@@ -23,6 +23,14 @@
 #include <linux/types.h>
 #include <linux/list.h>
 
+/* Adapt to struct renaming. */
+#ifdef UTRACE_API_VERSION
+#define utrace_attached_engine utrace_engine
+#endif
+
+/* Version 2 includes unmap_u[ret]probe(). */
+#define UPROBES_API_VERSION 2
+
 struct pt_regs;
 
 enum uprobe_type {
@@ -77,6 +85,9 @@ extern void unregister_uprobe(struct uprobe *u);
 /* For runtime, assume uprobes support includes uretprobes. */
 extern int register_uretprobe(struct uretprobe *rp);
 extern void unregister_uretprobe(struct uretprobe *rp);
+/* For PRs 9940, 6852... */
+extern void unmap_uprobe(struct uprobe *u);
+extern void unmap_uretprobe(struct uretprobe *rp);
 
 #ifdef UPROBES_IMPLEMENTATION
 

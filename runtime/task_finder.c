@@ -2,17 +2,24 @@
 #define TASK_FINDER_C
 
 #if ! defined(CONFIG_UTRACE)
-#error "Need CONFIG_UTRACE!"
-#endif
+/* Dummy definitions for use in sym.c */
+struct stap_task_finder_target { };
+#else
 
 #include <linux/utrace.h>
+
+/* PR9974: Adapt to struct renaming. */
+#ifdef UTRACE_API_VERSION
+#define utrace_attached_engine utrace_engine
+#endif
+
 #include <linux/list.h>
 #include <linux/binfmts.h>
 #include <linux/mount.h>
 
 #include "syscall.h"
 #include "utrace_compatibility.h"
-#include "task_finder_vma.c"
+#include "task_finder_map.c"
 
 static LIST_HEAD(__stp_task_finder_list);
 
@@ -33,51 +40,49 @@ static atomic_t __stp_attach_count = ATOMIC_INIT (0);
 
 #define debug_task_finder_attach() (atomic_inc(&__stp_attach_count))
 #define debug_task_finder_detach() (atomic_dec(&__stp_attach_count))
+#ifdef DEBUG_TASK_FINDER_PRINTK
+#define debug_task_finder_report() (printk(KERN_ERR \
+					   "%s:%d attach count: %d, inuse count: %d\n", \
+					   __FUNCTION__, __LINE__,	\
+					   atomic_read(&__stp_attach_count), \
+					   atomic_read(&__stp_inuse_count)))
+#else
 #define debug_task_finder_report() (_stp_dbug(__FUNCTION__, __LINE__, \
 					      "attach count: %d, inuse count: %d\n", \
 					      atomic_read(&__stp_attach_count), \
 					      atomic_read(&__stp_inuse_count)))
+#endif	/* !DEBUG_TASK_FINDER_PRINTK */
 #else
 #define debug_task_finder_attach()	/* empty */
 #define debug_task_finder_detach()	/* empty */
 #define debug_task_finder_report()	/* empty */
-#endif
+#endif	/* !DEBUG_TASK_FINDER */
 
 typedef int (*stap_task_finder_callback)(struct stap_task_finder_target *tgt,
 					 struct task_struct *tsk,
 					 int register_p,
 					 int process_p);
 
-typedef int (*stap_task_finder_vm_callback)(struct stap_task_finder_target *tgt,
-					    struct task_struct *tsk,
-					    int map_p, char *vm_path,
-					    unsigned long vm_start,
-					    unsigned long vm_end,
-					    unsigned long vm_pgoff);
+typedef int
+(*stap_task_finder_mmap_callback)(struct stap_task_finder_target *tgt,
+				  struct task_struct *tsk,
+				  char *path,
+				  unsigned long addr,
+				  unsigned long length,
+				  unsigned long offset,
+				  unsigned long vm_flags);
+typedef int
+(*stap_task_finder_munmap_callback)(struct stap_task_finder_target *tgt,
+				    struct task_struct *tsk,
+				    unsigned long addr,
+				    unsigned long length);
 
-#ifdef DEBUG_TASK_FINDER_VMA
-static int __stp_tf_vm_cb(struct stap_task_finder_target *tgt,
-		   struct task_struct *tsk,
-		   int map_p, char *vm_path,
-		   unsigned long vm_start,
-		   unsigned long vm_end,
-		   unsigned long vm_pgoff)
-{
-	_stp_dbug(__FUNCTION__, __LINE__,
-		  "vm_cb: tsk %d:%d path %s, start 0x%08lx, end 0x%08lx, offset 0x%lx\n",
-		  tsk->pid, map_p, vm_path, vm_start, vm_end, vm_pgoff);
-	if (map_p) {
-		// FIXME: What should we do with vm_path?  We can't save
-		// the vm_path pointer itself, but we don't have any
-		// storage space allocated to save it in...
-		stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
-	}
-	else {
-		stap_remove_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
-	}
-	return 0;
-}
-#endif
+typedef int
+(*stap_task_finder_mprotect_callback)(struct stap_task_finder_target *tgt,
+				      struct task_struct *tsk,
+				      unsigned long addr,
+				      unsigned long length,
+				      int prot);
 
 struct stap_task_finder_target {
 /* private: */
@@ -86,14 +91,18 @@ struct stap_task_finder_target {
 	struct list_head callback_list;
 	struct utrace_engine_ops ops;
 	unsigned engine_attached:1;
-	unsigned vm_events:1;
+	unsigned mmap_events:1;
+	unsigned munmap_events:1;
+	unsigned mprotect_events:1;
 	size_t pathlen;
 
 /* public: */
 	const char *pathname;
 	pid_t pid;
 	stap_task_finder_callback callback;
-	stap_task_finder_vm_callback vm_callback;
+	stap_task_finder_mmap_callback mmap_callback;
+	stap_task_finder_munmap_callback munmap_callback;
+	stap_task_finder_mprotect_callback mprotect_callback;
 };
 
 #ifdef UTRACE_ORIG_VERSION
@@ -165,7 +174,9 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 
 	// Make sure everything is initialized properly.
 	new_tgt->engine_attached = 0;
-	new_tgt->vm_events = 0;
+	new_tgt->mmap_events = 0;
+	new_tgt->munmap_events = 0;
+	new_tgt->mprotect_events = 0;
 	memset(&new_tgt->ops, 0, sizeof(new_tgt->ops));
 	new_tgt->ops.report_death = &__stp_utrace_task_finder_target_death;
 	new_tgt->ops.report_quiesce = &__stp_utrace_task_finder_target_quiesce;
@@ -184,7 +195,7 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 			 && strcmp(tgt->pathname, new_tgt->pathname) == 0)
 			/* pid-based target (a specific pid or all
 			 * pids) */
-			|| (new_tgt->pathlen == 0
+			|| (new_tgt->pathlen == 0 && tgt->pathlen == 0
 			    && tgt->pid == new_tgt->pid))) {
 			found_node = 1;
 			break;
@@ -202,9 +213,13 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	// Add this target to the callback list for this task.
 	list_add_tail(&new_tgt->callback_list, &tgt->callback_list_head);
 
-	// If the new target has a vm_callback, remember this.
-	if (new_tgt->vm_callback != NULL)
-		tgt->vm_events = 1;
+	// If the new target has any m* callbacks, remember this.
+	if (new_tgt->mmap_callback != NULL)
+		tgt->mmap_events = 1;
+	if (new_tgt->munmap_callback != NULL)
+		tgt->munmap_events = 1;
+	if (new_tgt->mprotect_callback != NULL)
+		tgt->mprotect_events = 1;
 	return 0;
 }
 
@@ -264,11 +279,15 @@ stap_utrace_detach(struct task_struct *tsk,
 			break;
 		case -ESRCH:	    /* REAP callback already begun */
 		case -EALREADY:	    /* DEATH callback already begun */
-			rc = 0;	    /* ignore these errors*/
+			rc = 0;	    /* ignore these errors */
+			break;
+		case -EINPROGRESS:
+			debug_task_finder_detach();
+			rc = 0;
 			break;
 		default:
 			rc = -rc;
-			_stp_error("utrace_detach returned error %d on pid %d",
+			_stp_error("utrace_control returned error %d on pid %d",
 				   rc, tsk->pid);
 			break;
 		}
@@ -282,7 +301,6 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 {
 	struct task_struct *grp, *tsk;
 	struct utrace_attached_engine *engine;
-	int rc = 0;
 	pid_t pid = 0;
 
 	// Notice we're not calling get_task_mm() in this loop. In
@@ -308,11 +326,12 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 			continue;
 #endif
 
-		rc = stap_utrace_detach(tsk, ops);
-		if (rc != 0)
-			goto udo_err;
+		/* Notice we're purposefully ignoring errors from
+		 * stap_utrace_detach().  Even if we got an error on
+		 * this task, we need to keep detaching from other
+		 * tasks. */
+		(void) stap_utrace_detach(tsk, ops);
 	} while_each_thread(grp, tsk);
-udo_err:
 	rcu_read_unlock();
 	debug_task_finder_report();
 }
@@ -383,10 +402,10 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 
 /*
  * __STP_TASK_BASE_EVENTS: base events for stap_task_finder_target's
- * without vm_callback's
+ * without map callback's
  *
  * __STP_TASK_VM_BASE_EVENTS: base events for
- * stap_task_finder_target's with vm_callback's
+ * stap_task_finder_target's with map callback's
  */
 #define __STP_TASK_BASE_EVENTS	(UTRACE_EVENT(DEATH))
 
@@ -403,8 +422,10 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 #define __STP_ATTACHED_TASK_EVENTS (__STP_TASK_BASE_EVENTS	\
 				    | UTRACE_EVENT(QUIESCE))
 
-#define __STP_ATTACHED_TASK_BASE_EVENTS(tgt) \
-	((tgt)->vm_events ? __STP_TASK_VM_BASE_EVENTS : __STP_TASK_BASE_EVENTS)
+#define __STP_ATTACHED_TASK_BASE_EVENTS(tgt)			\
+	(((tgt)->mmap_events || (tgt)->munmap_events		\
+	  || (tgt)->mprotect_events)				\
+	 ? __STP_TASK_VM_BASE_EVENTS : __STP_TASK_BASE_EVENTS)
 
 static int
 __stp_utrace_attach(struct task_struct *tsk,
@@ -459,7 +480,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 			 * ref.
 			 */
 			rc = utrace_barrier(tsk, engine);
-			if (rc != 0)
+			if (rc != -ESRCH && rc != -EALREADY)
 				_stp_error("utrace_barrier returned error %d on pid %d",
 					   rc, (int)tsk->pid);
 		}
@@ -478,7 +499,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 			}
 
 		}
-		else
+		else if (rc != -ESRCH && rc != -EALREADY)
 			_stp_error("utrace_set_events2 returned error %d on pid %d",
 				   rc, (int)tsk->pid);
 		utrace_engine_put(engine);
@@ -520,11 +541,86 @@ __stp_call_callbacks(struct stap_task_finder_target *tgt,
 	}
 }
 
+static void
+__stp_call_mmap_callbacks(struct stap_task_finder_target *tgt,
+			  struct task_struct *tsk, char *path,
+			  unsigned long addr, unsigned long length,
+			  unsigned long offset, unsigned long vm_flags)
+{
+	struct list_head *cb_node;
+	int rc;
+
+	if (tgt == NULL || tsk == NULL)
+		return;
+
+#ifdef DEBUG_TASK_FINDER_VMA
+	_stp_dbug(__FUNCTION__, __LINE__,
+		  "pid %d, a/l/o/p/path 0x%lx  0x%lx  0x%lx  %c%c%c%c  %s\n",
+		  tsk->pid, addr, length, offset,
+		  vm_flags & VM_READ ? 'r' : '-',
+		  vm_flags & VM_WRITE ? 'w' : '-',
+		  vm_flags & VM_EXEC ? 'x' : '-',
+		  vm_flags & VM_MAYSHARE ? 's' : 'p',
+		  path);
+#endif
+	list_for_each(cb_node, &tgt->callback_list_head) {
+		struct stap_task_finder_target *cb_tgt;
+
+		cb_tgt = list_entry(cb_node, struct stap_task_finder_target,
+				    callback_list);
+		if (cb_tgt == NULL || cb_tgt->mmap_callback == NULL)
+			continue;
+
+		rc = cb_tgt->mmap_callback(cb_tgt, tsk, path, addr, length,
+					  offset, vm_flags);
+		if (rc != 0) {
+			_stp_error("mmap callback for %d failed: %d",
+				   (int)tsk->pid, rc);
+		}
+	}
+}
+
+static void
+__stp_call_mmap_callbacks_with_vma(struct stap_task_finder_target *tgt,
+				   struct task_struct *tsk,
+				   struct vm_area_struct *vma)
+{
+	char *mmpath_buf;
+	char *mmpath;
+	int rc;
+
+	// Allocate space for a path
+	mmpath_buf = _stp_kmalloc(PATH_MAX);
+	if (mmpath_buf == NULL) {
+		_stp_error("Unable to allocate space for path");
+		return;
+	}
+
+	// Grab the path associated with this vma.
+#ifdef STAPCONF_DPATH_PATH
+	mmpath = d_path(&(vma->vm_file->f_path), mmpath_buf, PATH_MAX);
+#else
+	mmpath = d_path(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt,
+			mmpath_buf, PATH_MAX);
+#endif
+	if (mmpath == NULL || IS_ERR(mmpath)) {
+		rc = -PTR_ERR(mmpath);
+		_stp_error("Unable to get path (error %d) for pid %d",
+			   rc, (int)tsk->pid);
+	}
+	else {
+		__stp_call_mmap_callbacks(tgt, tsk, mmpath, vma->vm_start,
+					  vma->vm_end - vma->vm_start,
+					  (vma->vm_pgoff << PAGE_SHIFT),
+					  vma->vm_flags);
+	}
+	_stp_kfree(mmpath_buf);
+}
+
 static inline void
-__stp_call_vm_callbacks(struct stap_task_finder_target *tgt,
-			struct task_struct *tsk, int map_p, char *vm_path,
-			unsigned long vm_start, unsigned long vm_end,
-			unsigned long vm_pgoff)
+__stp_call_munmap_callbacks(struct stap_task_finder_target *tgt,
+			    struct task_struct *tsk, unsigned long addr,
+			    unsigned long length)
 {
 	struct list_head *cb_node;
 	int rc;
@@ -537,13 +633,40 @@ __stp_call_vm_callbacks(struct stap_task_finder_target *tgt,
 
 		cb_tgt = list_entry(cb_node, struct stap_task_finder_target,
 				    callback_list);
-		if (cb_tgt == NULL || cb_tgt->vm_callback == NULL)
+		if (cb_tgt == NULL || cb_tgt->munmap_callback == NULL)
 			continue;
 
-		rc = cb_tgt->vm_callback(cb_tgt, tsk, map_p, vm_path,
-					 vm_start, vm_end, vm_pgoff);
+		rc = cb_tgt->munmap_callback(cb_tgt, tsk, addr, length);
 		if (rc != 0) {
-			_stp_error("vm callback for %d failed: %d",
+			_stp_error("munmap callback for %d failed: %d",
+				   (int)tsk->pid, rc);
+		}
+	}
+}
+
+static inline void
+__stp_call_mprotect_callbacks(struct stap_task_finder_target *tgt,
+			      struct task_struct *tsk, unsigned long addr,
+			      unsigned long length, int prot)
+{
+	struct list_head *cb_node;
+	int rc;
+
+	if (tgt == NULL || tsk == NULL)
+		return;
+
+	list_for_each(cb_node, &tgt->callback_list_head) {
+		struct stap_task_finder_target *cb_tgt;
+
+		cb_tgt = list_entry(cb_node, struct stap_task_finder_target,
+				    callback_list);
+		if (cb_tgt == NULL || cb_tgt->mprotect_callback == NULL)
+			continue;
+
+		rc = cb_tgt->mprotect_callback(cb_tgt, tsk, addr, length,
+					       prot);
+		if (rc != 0) {
+			_stp_error("mprotect callback for %d failed: %d",
 				   (int)tsk->pid, rc);
 		}
 	}
@@ -853,11 +976,12 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 		 * a stale task pointer, if we have an engine ref.
 		 */
 		rc = utrace_barrier(tsk, engine);
-		if (rc != 0)
+		if (rc == 0)
+			rc = utrace_set_events(tsk, engine,
+					       __STP_ATTACHED_TASK_BASE_EVENTS(tgt));
+		else if (rc != -ESRCH && rc != -EALREADY)
 			_stp_error("utrace_barrier returned error %d on pid %d",
 				   rc, (int)tsk->pid);
-		rc = utrace_set_events(tsk, engine,
-				       __STP_ATTACHED_TASK_BASE_EVENTS(tgt));
 	}
 	if (rc != 0)
 		_stp_error("utrace_set_events returned error %d on pid %d",
@@ -869,16 +993,16 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 	__stp_call_callbacks(tgt, tsk, 1, (tsk->pid == tsk->tgid));
  
 	/* If this is just a thread other than the thread group leader,
-           don't bother inform vm_callback clients about its memory map,
+           don't bother inform map callback clients about its memory map,
            since they will simply duplicate each other. */
-	if (tgt->vm_events == 1 && tsk->tgid == tsk->pid) {
+	if (tgt->mmap_events == 1 && tsk->tgid == tsk->pid) {
 		struct mm_struct *mm;
 		char *mmpath_buf;
 		char *mmpath;
 		struct vm_area_struct *vma;
 		int rc;
 
-		/* Call the vm_callback for every vma associated with
+		/* Call the mmap_callback for every vma associated with
 		 * a file. */
 		mm = get_task_mm(tsk);
 		if (! mm)
@@ -905,12 +1029,13 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 						mmpath_buf, PATH_MAX);
 #endif
 				if (mmpath) {
-					__stp_call_vm_callbacks(tgt, tsk, 1, 
-								mmpath,
-								vma->vm_start,
-								vma->vm_end,
-								(vma->vm_pgoff
-								 << PAGE_SHIFT));
+					__stp_call_mmap_callbacks(tgt, tsk,
+								  mmpath,
+								  vma->vm_start,
+								  vma->vm_end - vma->vm_start,
+								  (vma->vm_pgoff
+								   << PAGE_SHIFT),
+								  vma->vm_flags);
 				}
 				else {
 					_stp_dbug(__FUNCTION__, __LINE__,
@@ -957,96 +1082,60 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 #endif
 {
 	struct stap_task_finder_target *tgt = engine->data;
-	unsigned long syscall_no;
-	struct mm_struct *mm;
-	struct vm_area_struct *vma;
-	unsigned long *arg0_addr, arg0;
+	long syscall_no;
+	unsigned long args[3] = { 0L };
 	int rc;
-#if defined(__ia64__)
-	struct { unsigned long *unwaddr; } _c = {.unwaddr = NULL}, *c = &_c;
-#endif
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
 		return UTRACE_DETACH;
 	}
 
-	if (tgt == NULL || tgt->vm_events == 0)
+	if (tgt == NULL)
 		return UTRACE_RESUME;
 
 	// See if syscall is one we're interested in.
 	//
 	// FIXME: do we need to handle mremap()?
-	syscall_no = __stp_user_syscall_nr(regs);
+	syscall_no = syscall_get_nr(tsk, regs);
 	if (syscall_no != MMAP_SYSCALL_NO(tsk)
 	    && syscall_no != MMAP2_SYSCALL_NO(tsk)
 	    && syscall_no != MPROTECT_SYSCALL_NO(tsk)
 	    && syscall_no != MUNMAP_SYSCALL_NO(tsk))
 		return UTRACE_RESUME;
 
+	// The syscall is one we're interested in, but do we have a
+	// handler for it?
+	if (((syscall_no == MMAP_SYSCALL_NO(tsk)
+	      || syscall_no == MMAP2_SYSCALL_NO(tsk)) && tgt->mmap_events == 0)
+	    || (syscall_no == MPROTECT_SYSCALL_NO(tsk)
+		&& tgt->mprotect_events == 0)
+	    || (syscall_no == MUNMAP_SYSCALL_NO(tsk)
+		&& tgt->munmap_events == 0))
+		return UTRACE_RESUME;
+
 	__stp_tf_handler_start();
-
-	// We need the first syscall argument to see what address
-	// we're operating on.
-	arg0_addr = __stp_user_syscall_arg(tsk, regs, 0);
-	if ((rc = __stp_get_user(arg0, arg0_addr)) != 0) {
-		_stp_error("couldn't read syscall arg 0 for pid %d: %d",
-			   tsk->pid, rc);
+	if (syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
+		// We need 2 arguments
+		syscall_get_arguments(tsk, regs, 0, 2, args);
 	}
-	else if (arg0 != (unsigned long)NULL) {
-		mm = get_task_mm(tsk);
-		if (mm) {
-			down_read(&mm->mmap_sem);
-
-			// If we can find a matching vma associated
-			// with a file, save off its details.
-			vma = __stp_find_file_based_vma(mm, arg0);
-			if (vma != NULL) {
-				__stp_tf_add_vma(tsk, arg0, vma);
-			}
-
-			up_read(&mm->mmap_sem);
-			mmput(mm);
-		}
+	else if (syscall_no == MMAP_SYSCALL_NO(tsk)
+		 || syscall_no == MMAP2_SYSCALL_NO(tsk)) {
+		// For mmap, we really just need the return value, so
+		// there is no need to save arguments
 	}
+	else {				// mprotect()
+		// We need 3 arguments
+		syscall_get_arguments(tsk, regs, 0, 3, args);
+	}
+
+	// Remember the syscall information
+	rc = __stp_tf_add_map(tsk, syscall_no, args[0], args[1], args[2]);
+	if (rc != 0)
+		_stp_error("__stp_tf_add_map returned error %d on pid %d",
+			   rc, tsk->pid);
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
-}
-
-static void
-__stp_call_vm_callbacks_with_vma(struct stap_task_finder_target *tgt,
-				 struct task_struct *tsk,
-				 struct vm_area_struct *vma)
-{
-	char *mmpath_buf;
-	char *mmpath;
-	int rc;
-
-	// Allocate space for a path
-	mmpath_buf = _stp_kmalloc(PATH_MAX);
-	if (mmpath_buf == NULL) {
-		_stp_error("Unable to allocate space for path");
-		return;
-	}
-
-	// Grab the path associated with this vma.
-#ifdef STAPCONF_DPATH_PATH
-	mmpath = d_path(&(vma->vm_file->f_path), mmpath_buf, PATH_MAX);
-#else
-	mmpath = d_path(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt,
-			mmpath_buf, PATH_MAX);
-#endif
-	if (mmpath == NULL || IS_ERR(mmpath)) {
-		rc = -PTR_ERR(mmpath);
-		_stp_error("Unable to get path (error %d) for pid %d",
-			   rc, (int)tsk->pid);
-	}
-	else {
-		__stp_call_vm_callbacks(tgt, tsk, 1, mmpath,
-					vma->vm_start, vma->vm_end,
-					(vma->vm_pgoff << PAGE_SHIFT));
-	}
-	_stp_kfree(mmpath_buf);
 }
 
 #ifdef UTRACE_ORIG_VERSION
@@ -1063,165 +1152,75 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 #endif
 {
 	struct stap_task_finder_target *tgt = engine->data;
-	unsigned long syscall_no;
-	unsigned long *rv_addr, rv;
-	unsigned long *arg0_addr, arg0;
-	int rc;
-	struct mm_struct *mm;
-	struct vm_area_struct *vma;
-	struct __stp_tf_vma_entry *entry = NULL;
-#if defined(__ia64__)
-	struct { unsigned long *unwaddr; } _c = {.unwaddr = NULL}, *c = &_c;
-#endif
+	unsigned long rv;
+	struct __stp_tf_map_entry *entry;
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
 		return UTRACE_DETACH;
 	}
 
-	if (tgt == NULL || tgt->vm_events == 0)
+	if (tgt == NULL)
 		return UTRACE_RESUME;
 
-	// See if syscall is one we're interested in.
-	//
-	// FIXME: do we need to handle mremap()?
-	syscall_no = __stp_user_syscall_nr(regs);
-	if (syscall_no != MMAP_SYSCALL_NO(tsk)
-	    && syscall_no != MMAP2_SYSCALL_NO(tsk)
-	    && syscall_no != MPROTECT_SYSCALL_NO(tsk)
-	    && syscall_no != MUNMAP_SYSCALL_NO(tsk))
+	// See if we can find saved syscall info.  If we can, it must
+	// be one of the syscalls we are interested in (and we must
+	// have callbacks to call for it).
+	entry = __stp_tf_get_map_entry(tsk);
+	if (entry == NULL)
 		return UTRACE_RESUME;
 
 	// Get return value
-	rv_addr = __stp_user_syscall_return_value(tsk, regs);
-	if ((rc = __stp_get_user(rv, rv_addr)) != 0) {
-		_stp_error("couldn't read syscall return value for pid %d: %d",
-			   tsk->pid, rc);
-		return UTRACE_RESUME;
-	}
-
-	// We need the first syscall argument to see what address we
-	// were operating on.
-	arg0_addr = __stp_user_syscall_arg(tsk, regs, 0);
-	if ((rc = __stp_get_user(arg0, arg0_addr)) != 0) {
-		_stp_error("couldn't read syscall arg 0 for pid %d: %d",
-			   tsk->pid, rc);
-		return UTRACE_RESUME;
-	}
+	__stp_tf_handler_start();
+	rv = syscall_get_return_value(tsk, regs);
 
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "tsk %d found %s(0x%lx), returned 0x%lx\n",
 		  tsk->pid,
-		  ((syscall_no == MMAP_SYSCALL_NO(tsk)) ? "mmap"
-		   : ((syscall_no == MMAP2_SYSCALL_NO(tsk)) ? "mmap2"
-		      : ((syscall_no == MPROTECT_SYSCALL_NO(tsk)) ? "mprotect"
-			 : ((syscall_no == MUNMAP_SYSCALL_NO(tsk)) ? "munmap"
+		  ((entry->syscall_no == MMAP_SYSCALL_NO(tsk)) ? "mmap"
+		   : ((entry->syscall_no == MMAP2_SYSCALL_NO(tsk)) ? "mmap2"
+		      : ((entry->syscall_no == MPROTECT_SYSCALL_NO(tsk))
+			 ? "mprotect"
+			 : ((entry->syscall_no == MUNMAP_SYSCALL_NO(tsk))
+			    ? "munmap"
 			    : "UNKNOWN")))),
-		  arg0, rv);
+		  entry->arg0, rv);
 #endif
-	__stp_tf_handler_start();
 
-	// Try to find the vma info we might have saved.
-	if (arg0 != (unsigned long)NULL)
-		entry = __stp_tf_get_vma_entry(tsk, arg0);
+	if (entry->syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
+		// Call the callbacks
+		__stp_call_munmap_callbacks(tgt, tsk, entry->arg0, entry->arg1);
+	}
+	else if (entry->syscall_no == MMAP_SYSCALL_NO(tsk)
+		 || entry->syscall_no == MMAP2_SYSCALL_NO(tsk)) {
+		struct mm_struct *mm;
 
-	// If entry is NULL, this means we didn't find a file based
-	// vma to store in the syscall_entry routine. This could mean
-	// we just created a new vma.
-	if (entry == NULL) {
 		mm = get_task_mm(tsk);
 		if (mm) {
+			struct vm_area_struct *vma;
+
 			down_read(&mm->mmap_sem);
 			vma = __stp_find_file_based_vma(mm, rv);
-			if (vma != NULL) {
-				__stp_call_vm_callbacks_with_vma(tgt, tsk, vma);
+
+			// Call the callbacks
+			if (vma) {
+				__stp_call_mmap_callbacks_with_vma(tgt, tsk,
+								   vma);
 			}
+
 			up_read(&mm->mmap_sem);
 			mmput(mm);
 		}
 	}
-	// If we found saved vma information, try to match it up with
-	// what currently exists.
-	else {
-#ifdef DEBUG_TASK_FINDER_VMA
-		_stp_dbug(__FUNCTION__, __LINE__,
-			  "** found stored vma 0x%lx/0x%lx/0x%lx!\n",
-			  entry->vm_start, entry->vm_end, entry->vm_pgoff);
-#endif
-		mm = get_task_mm(tsk);
-		if (mm) {
-			down_read(&mm->mmap_sem);
-			vma = __stp_find_file_based_vma(mm, entry->vm_start);
-
-			// We couldn't find the vma at all. The
-			// original vma was deleted.
-			if (vma == NULL) {
-				// FIXME: We'll need to figure out to
-				// retrieve the path of a deleted
-				// vma.
-
-				__stp_call_vm_callbacks(tgt, tsk, 0, NULL,
-							entry->vm_start,
-							entry->vm_end,
-							(entry->vm_pgoff
-							 << PAGE_SHIFT));
-			}
-
-			// If nothing has changed, there is no
-			// need to call the callback.
-			else if (vma->vm_start == entry->vm_start
-				 && vma->vm_end == entry->vm_end
-				 && vma->vm_pgoff == entry->vm_pgoff) {
-				// do nothing
-			}
-
-			// The original vma has been changed. It is
-			// possible that calling mprotect (e.g.) split
-			// up an  existing vma into 2 or 3 new vma's
-			// (assuming it protected a portion of the
-			// original vma at the beginning, middle, or
-			// end).  Try to determine what happened.
-			else {
-				unsigned long tmp;
-
-				// First report that the original vma
-				// is gone.
-				//
-				// FIXME: We'll need to figure out to
-				// retrieve the path of a deleted
-				// vma.
-				__stp_call_vm_callbacks(tgt, tsk, 0, NULL,
-							entry->vm_start,
-							entry->vm_end,
-							(entry->vm_pgoff
-							 << PAGE_SHIFT));
-
-				// Now find all the new vma's that
-				// made up the original vma's address
-				// space and call the callback on each
-				// new vma.
-				tmp = entry->vm_start;
-				while (((vma = __stp_find_file_based_vma(mm,
-									 tmp))
-					!= NULL)
-				       && vma->vm_end <= entry->vm_end) {
-					__stp_call_vm_callbacks_with_vma(tgt,
-									 tsk,
-									 vma);
-					if (vma->vm_end >= entry->vm_end)
-						break;
-					tmp = vma->vm_end;
-				}
-			}
-			up_read(&mm->mmap_sem);
-			mmput(mm);
-		}
-
-		// Cleanup by deleting the saved vma info.
-		__stp_tf_remove_vma_entry(entry);
+	else {				// mprotect
+		// Call the callbacks
+		__stp_call_mprotect_callbacks(tgt, tsk, entry->arg0,
+					      entry->arg1, entry->arg2);
 	}
+
 	__stp_tf_handler_end();
+	__stp_tf_remove_map_entry(entry);
 	return UTRACE_RESUME;
 }
 
@@ -1245,7 +1244,7 @@ stap_start_task_finder(void)
 		return ENOMEM;
 	}
 
-	__stp_tf_vma_initialize();
+        __stp_tf_map_initialize();
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 
@@ -1362,5 +1361,5 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 }
 
-
+#endif /* defined(CONFIG_UTRACE) */
 #endif /* TASK_FINDER_C */

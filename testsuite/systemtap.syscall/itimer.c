@@ -28,27 +28,27 @@ int main()
   itv.it_value.tv_sec = 1;
   itv.it_value.tv_usec = 0;
   setitimer(ITIMER_REAL, &itv, &old_itv);
-  // setitimer (ITIMER_REAL, \[0.500000,1.000000\], XXXX) = 0
+  //staptest// setitimer (ITIMER_REAL, \[0.500000,1.000000\], XXXX) = 0
 
   itv.it_value.tv_sec = 0;
   itv.it_value.tv_usec = 0;
   setitimer(ITIMER_REAL, &itv, NULL);
-  // setitimer (ITIMER_REAL, \[0.500000,0.000000\], 0x[0]+) = 0
+  //staptest// setitimer (ITIMER_REAL, \[0.500000,0.000000\], 0x[0]+) = 0
 
   setitimer(ITIMER_VIRTUAL, &itv, NULL);
-  // setitimer (ITIMER_VIRTUAL, \[0.500000,0.000000\], 0x[0]+) = 0
+  //staptest// setitimer (ITIMER_VIRTUAL, \[0.500000,0.000000\], 0x[0]+) = 0
   
   setitimer(ITIMER_PROF, &itv, NULL);
-  // setitimer (ITIMER_PROF, \[0.500000,0.000000\], 0x[0]+) = 0
+  //staptest// setitimer (ITIMER_PROF, \[0.500000,0.000000\], 0x[0]+) = 0
 
   getitimer(ITIMER_REAL, &itv);
-  // getitimer (ITIMER_REAL, XXXX) = 0
+  //staptest// getitimer (ITIMER_REAL, XXXX) = 0
 
   getitimer(ITIMER_VIRTUAL, &itv);
-  // getitimer (ITIMER_VIRTUAL, XXXX) = 0
+  //staptest// getitimer (ITIMER_VIRTUAL, XXXX) = 0
 
   getitimer(ITIMER_PROF, &itv);
-  // getitimer (ITIMER_PROF, XXXX) = 0
+  //staptest// getitimer (ITIMER_PROF, XXXX) = 0
   return 0;
 }
  

@@ -1,0 +1,29 @@
+#! /usr/bin/env stap
+
+global req_time, etimes
+
+probe ioblock.request
+{
+  req_time[$bio] = gettimeofday_us()
+}
+
+probe ioblock.end
+{
+  t = gettimeofday_us()
+  s =  req_time[$bio]
+  delete req_time[$bio]
+  if (s) {
+    etimes[devname, bio_rw_str(rw)] <<< t - s
+  }
+}
+
+probe timer.s(10), end {
+  ansi_clear_screen()
+  printf("%10s %3s %10s %10s %10s\n",
+         "device", "rw", "total (us)", "count", "avg (us)")
+  foreach ([dev,rw] in etimes - limit 20) {
+    printf("%10s %3s %10d %10d %10d\n", dev, rw,
+           @sum(etimes[dev,rw]), @count(etimes[dev,rw]), @avg(etimes[dev,rw]))
+  }
+  delete etimes
+}

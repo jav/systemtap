@@ -5,7 +5,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// This family of probe points is used to probe SCSI activities.  
+// </tapsetdescription>
 %{
 #include <linux/types.h>
 #include <scsi/scsi_cmnd.h>
@@ -21,7 +23,7 @@
   * @disk_minor: The minor number of the disk (-1 if no information)
   * @device_state: The current state of the device.
   */
-/* FIXME describe the device_state */
+// FIXME describe the device_state
 probe scsi.ioentry
 	= module("scsi_mod").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?,
 	  kernel.function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?
@@ -44,9 +46,9 @@ probe scsi.ioentry
  * @lun: The lun number
  * @dev_id: The scsi device id
  * @device_state: The current state of the device.
- * @data_direction: The data_direction specifies whether this command is from/to
- *            the device. 0 (DMA_BIDIRECTIONAL), 1 (DMA_TO_DEVICE),
- *	      2 (DMA_FROM_DEVICE), 3 (DMA_NONE)
+ * @data_direction: The data_direction specifies whether this command is from/to the device.
+ *		0 (DMA_BIDIRECTIONAL), 1 (DMA_TO_DEVICE),
+ *		2 (DMA_FROM_DEVICE), 3 (DMA_NONE)
  * @request_buffer: The request buffer address
  * @req_bufflen: The request buffer length
  */
@@ -79,7 +81,7 @@ probe scsi.iodispatching
  * @dev_id: The scsi device id
  * @device_state: The current state of the device
  * @data_direction: The data_direction specifies whether this command is
- * 		    from/to the device.
+ * 		from/to the device.
  */
 probe scsi.iodone
 	= module("scsi_mod").function("scsi_done@drivers/scsi/scsi.c")?,
@@ -104,10 +106,10 @@ probe scsi.iodone
  * @dev_id: The scsi device id
  * @device_state: The current state of the device
  * @data_direction: The data_direction specifies whether this command is from/to
- *                  the device
+ * 		the device
  * @goodbytes: The bytes completed.
  */
-/* mid-layer processes the completed IO */
+// mid-layer processes the completed IO
 probe scsi.iocompleted
 	= module("scsi_mod").function("scsi_io_completion@drivers/scsi/scsi_lib.c")?,
 	  kernel.function("scsi_io_completion@drivers/scsi/scsi_lib.c")?

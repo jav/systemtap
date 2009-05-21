@@ -1,6 +1,6 @@
 #! stap -p4
 
-probe kernel.function("sys_read")
+probe kernel.function("vfs_read")
 {
  printf ("count=%d\n", $count)
 }

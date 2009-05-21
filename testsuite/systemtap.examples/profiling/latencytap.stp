@@ -23,7 +23,7 @@ function _get_sleep_time:long(rq_param:long, p_param:long)
 function task_backtrace:string (task:long)
 %{
     _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
-                                          (struct task_struct *)THIS->task, 0, MAXTRACE);
+                           (struct task_struct *)(unsigned long)THIS->task, 0, MAXTRACE);
 %}
 
 probe kernel.function("enqueue_task_fair") {

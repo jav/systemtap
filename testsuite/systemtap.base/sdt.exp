@@ -10,11 +10,12 @@ set ::result_string {1
 1 2 3 4 5 6 7 8 9
 1 2 3 4 5 6 7 8 9 10}
 
-set extra_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic}}
+set extra_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic} {additional_flags=-ansi additional_flags=-pedantic} {additional_flags=-O2} {additional_flags="-O3"}}
 
 # Iterate extra_flags, trying each with C and C++
 for {set i 0} {$i < [llength $extra_flags]} {incr i} {
 set extra_flag [lindex $extra_flags $i]
+set testprog "sdt.c.exe.$i"
 
 # C
 set test_flags "additional_flags=-g"
@@ -23,44 +24,47 @@ set test_flags "$test_flags additional_flags=-Wall"
 set test_flags "$test_flags additional_flags=-Wextra"
 set test_flags "$test_flags additional_flags=-Werror"
 
-set res [target_compile $srcdir/$subdir/$test.c $test.prog executable "$test_flags $extra_flag"]
+set saveidx 0
+
+set res [target_compile $srcdir/$subdir/$test.c $testprog executable "$test_flags $extra_flag"]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
     fail "compiling $test.c $extra_flag"
-    return
+    untested "$test $extra_flag"
+    continue
 } else {
     pass "compiling $test.c $extra_flag"
 }
 
-if {[installtest_p]} {
-# XXX: we need distinct test names for these 
-  stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
+if {[installtest_p] && [utrace_p]} {
+  stap_run3 "$test $extra_flag" $srcdir/$subdir/$test.stp $testprog -c ./$testprog
 } else {
   untested "$test $extra_flag"
 }
 
 # C++
+set testprog "sdt.cxx.exe.$i"
+
 set test_flags "additional_flags=-g"
 set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
 set test_flags "$test_flags additional_flags=-Wall"
 set test_flags "$test_flags additional_flags=-Werror"
 set test_flags "$test_flags additional_flags=-x additional_flags=c++"
 
-set res [target_compile $srcdir/$subdir/$test.c $test.prog executable "$test_flags $extra_flag"]
+set res [target_compile $srcdir/$subdir/$test.c $testprog executable "$test_flags $extra_flag"]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
     fail "compiling $test.c c++ $extra_flag"
-    return
+    untested "$test $extra_flag"
+    continue
 } else {
     pass "compiling $test.c c++ $extra_flag"
 }
 
-if {[installtest_p]} {
-# XXX: we need distinct test names for these 
-  stap_run2 $srcdir/$subdir/$test.stp -c ./$test.prog
+if {[installtest_p] && [utrace_p]} {
+  stap_run3 "$test c++ $extra_flag" $srcdir/$subdir/$test.stp $testprog -c ./$testprog
 } else {
   untested "$test c++ $extra_flag"
 }
 }
 
-catch {exec rm -f $test.prog}

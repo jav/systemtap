@@ -119,7 +119,7 @@ probe syscall.set_zone_reclaim.return =
 #
 probe syscall.sigaltstack = kernel.function("sys_sigaltstack") {
 	name = "sigaltstack"
-	ussp = %( kernel_vr < "2.6.25" %? $ebx %: $bx %)
+	ussp = %( kernel_vr < "2.6.25" %? $ebx %: %( kernel_vr < "2.6.29" %? $bx %: $regs->bx %) %)
 	argstr = sprintf("%p", ussp)
 }
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {

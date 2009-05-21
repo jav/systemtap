@@ -18,7 +18,7 @@ stap-server \- systemtap server and related utilities
 .B stap\-stop\-server
 .I PID
 .br
-.B stap\-add\-server\-cert \fICERTFILE\fR  \fIDIRNAME\fR
+.B stap\-authorize\-server\-cert \fICERTFILE\fR [ \fIDIRNAME\fR ]
 .br
 .B stap\-client
 [
@@ -66,13 +66,13 @@ using
 .IR stap\-find\-servers .
 If a compatible server is found,
 .I stap\-find\-or\-start\-server
-echoes \[aq]0\[aq] to stdout and the exit code is 0. Otherwise
+echoes \[aq]0\[aq] to stdout. Otherwise
 .I stap\-find\-or\-start\-server
 attempts to start a server on the local network using
 .IR stap\-start\-server .
-If successful, the process id of the new server is echoed to stdout and the
-exit code is 0. If no server can be found or started, \[aq]-1\[aq] is echoed
-to stdout and the exit code is 1.
+If successful, the process id of the new server is echoed to stdout.
+If no server can be found or started, \[aq]-1\[aq] is echoed
+to stdout. The exit code is 0 in all cases.
 
 .PP
 The
@@ -86,14 +86,14 @@ does not verify that the server actually shuts down.
 
 .PP
 The
-.I stap\-add\-server\-cert
+.I stap\-authorize\-server\-cert
 program adds the given server certificate to the given client\-side
 certificate database, making that server a trusted server for clients using that database.
 
 .PP
 The
 .I stap\-client
-program is analagous to the
+program is analogous to the
 .I stap
 front end except that it attempts to find a compatible systemtap server on the
 local network and then attempts to use that server for actions related to
@@ -125,13 +125,13 @@ accepts the following:
 
 .TP
 .B \-\-server=\fIHOSTNAME\fR|\fIIP_ADDRESS\fR[\fB:\fIPORT\fR]
-This option intructs
+This option instructs
 .I stap\-client
 to use the named server instead of looking for one automatically. The server may
 be specified using a valid host name or ip address. If no port is specified, then
 .I stap\-client
-searches for the server among the servers advertizing their presence on the
-local network and uses the port which is being advertized. This is useful for
+searches for the server among the servers advertising their presence on the
+local network and uses the port which is being advertised. This is useful for
 connecting to a specific server on the local network. If a port is specified,
 then
 .I stap\-client
@@ -168,19 +168,23 @@ program requires a process id argument which identifies the server to be stopped
 
 .PP
 The
-.I stap\-add\-server\-cert
+.I stap\-authorize\-server\-cert
 program accepts two arguments:
 
 .TP
 .B CERTFILE
 This is the name of the file containing the certificate of the new trusted
-server. This is the file named \fIstap-server.cert\fR which can be found in the
+server. This is the file named \fIstap.cert\fR which can be found in the
 server\[aq]s certificate database.
 
 .TP
 .B DIRNAME
-This is the name of the directory containing the client\-side certificate database to which
-the certificate is to be added.
+This optional argument is the name of the directory containing the client\-side
+certificate database to which the certificate is to be added. If not specified, the
+default, for non\-root users, is
+.I $HOME/.systemtap/ssl/server\fP.
+For root users (EUID=0), the default is
+.I $sysconfdir/systemtap/ssl/server\fP.
 
 .PP
 The
@@ -218,7 +222,7 @@ For root users (EUID=0), it will be created in
 .I $sysconfdir/systemtap/ssl/server\fP.
 
 .IP \(bu 4
-At this time the
+At this time, the
 server will also create a local client\-side certificate database and add the
 server\[aq]s certificate to it. For non\-root users,
 this database will be created in
@@ -249,9 +253,9 @@ will be considered to be trusted for that invocation of the client.
 .IP \(bu 4
 A user may add the certificate of a new trusted server to his own local
 client\-side certificate database using
-\[aq]\fBstap-add-server-cert \fICERTFILE\fR \fIDIRNAME\fR\[aq]
+\[aq]\fBstap\-authorize\-server\-cert \fICERTFILE\fR\[aq]
 (see above), where \fICERTFILE\fP is the server\[aq]s certificate file
-(\fIstap\-server.cert\fP) from the servers certificate database directory and
+(\fIstap.cert\fP) from the server\[aq]s certificate database directory and
 \fIDIRNAME\fP is the
 directory containing the user\[aq]s client\-side certificate database.
 
@@ -265,7 +269,7 @@ host.
 
 .SH EXAMPLES
 See the 
-.IR stapex (5)
+.IR stapex (3stap)
 manual page for a collection of sample scripts.
 .PP
 Here is a very basic example of how to use
@@ -312,11 +316,11 @@ simple example
 .PP
 To permanently trust a given server for your own use
 .PP
-.B \& $ stap\-add\-server\-cert \fICERTFILE\fP $HOME/.systemtap/ssl/client
+.B \& $ stap\-authorize\-server\-cert \fICERTFILE\fP
 .PP
 As root, to permanently trust a given server for all users on your host
 .PP
-.B \& $ stap\-add\-server\-cert \fICERTFILE\fP $sysconfdir/systemtap/ssl/client
+.B \& $ stap\-authorize\-server\-cert \fICERTFILE\fP
 .PP
 If a process id was echoed by
 .I stap\-start\-server
@@ -337,11 +341,9 @@ manual page for additional information on safety and security.
 .PP
 The systemtap server and its related utilities use the Secure Socket Layer
 (SSL) as implemented by Network Security Services (NSS)
-for network security and the NSS tools
+for network security. The NSS tool
 .I certutil
-and
-.I signtool
-for the generation of certificates and for signing respectively. The related
+is used for the generation of certificates. The related
 certificate databases must be protected in order to maintain the security of
 the system.
 Use of the utilities provided will help to ensure that the proper protection
@@ -351,12 +353,11 @@ access permissions before making use of any certificate database.
 .SH SEE ALSO
 .IR stap (1),
 .IR staprun (8),
-.IR stapprobes (5),
-.IR stapfuncs (5),
-.IR stapex (5),
+.IR stapprobes (3stap),
+.IR stapfuncs (3stap),
+.IR stapex (3stap),
 .IR NSS ,
-.IR certutil ,
-.IR signtool
+.IR certutil
 
 .SH BUGS
 Use the Bugzilla link off of the project web page or our mailing list.

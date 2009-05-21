@@ -108,10 +108,13 @@ usage (systemtap_session& s, int exitcode)
     << "              " << s.kernel_build_tree << endl
     << "   -m MODULE  set probe module name, instead of " << endl
     << "              " << s.module_name << endl
-    << "   -o FILE    send script output to file, instead of stdout" << endl
+    << "   -o FILE    send script output to file, instead of stdout. This supports" << endl
+    << "              strftime(3) formats for FILE" << endl
     << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
     << "   -x PID     sets target() to PID" << endl
-    << "   -F         load module and start probes, then detach" << endl
+    << "   -F         run as on-file flight recorder with -o." << endl
+    << "              run as on-memory flight recorder without -o." << endl
+    << "   -S size[,n] set maximum of the size and the number of files." << endl
     << "   -d OBJECT  add unwind/symbol data for OBJECT file";
   if (s.unwindsym_modules.size() == 0)
     clog << endl;
@@ -287,14 +290,9 @@ int pending_interrupts;
 extern "C"
 void handle_interrupt (int sig)
 {
-  if (pending_interrupts == 0)
-    kill (0, sig); // Forward signals to child processes if any.
-
+  kill_stap_spawn(sig);
   pending_interrupts ++;
-  // NB: the "2" below is intended to skip the effect of the self-induced
-  // deferred signal coming from the kill() above.
-
-  if (pending_interrupts > 2) // XXX: should be configurable? time-based?
+  if (pending_interrupts > 1) // XXX: should be configurable? time-based?
     {
       char msg[] = "Too many interrupts received, exiting.\n";
       int rc = write (2, msg, sizeof(msg)-1);
@@ -318,7 +316,7 @@ setup_signals (sighandler_t handler)
       sigaddset (&sa.sa_mask, SIGINT);
       sigaddset (&sa.sa_mask, SIGTERM);
     }
-  sa.sa_flags = 0;
+  sa.sa_flags = SA_RESTART;
 
   sigaction (SIGHUP, &sa, NULL);
   sigaction (SIGPIPE, &sa, NULL);
@@ -326,6 +324,34 @@ setup_signals (sighandler_t handler)
   sigaction (SIGTERM, &sa, NULL);
 }
 
+void
+setup_kernel_release (systemtap_session &s, const char* kstr) {
+    if (kstr[0] == '/') // fully specified path
+      {
+        s.kernel_build_tree = kstr;
+        string version_file_name = s.kernel_build_tree + "/include/config/kernel.release";
+        // The file include/config/kernel.release within the
+        // build tree is used to pull out the version information
+        ifstream version_file (version_file_name.c_str());
+        if (version_file.fail ())
+          {
+            cerr << "Missing " << version_file_name << endl;
+            exit(1);
+          }
+        else
+          {
+            char c;
+            s.kernel_release = "";
+            while (version_file.get(c) && c != '\n')
+              s.kernel_release.push_back(c);
+          }
+      }
+    else
+      {
+        s.kernel_release = string (kstr);
+        s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
+      }
+}
 
 int
 main (int argc, char * const argv [])
@@ -375,6 +401,15 @@ main (int argc, char * const argv [])
   s.ignore_vmlinux = false;
   s.ignore_dwarf = false;
   s.load_only = false;
+  s.skip_badvars = false;
+
+  // Location of our signing certificate.
+  // If we're root, use the database in SYSCONFDIR, otherwise
+  // use the one in our $HOME directory.  */
+  if (geteuid() == 0)
+    s.cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
+  else
+    s.cert_db_path = getenv("HOME") + string ("/.systemtap/ssl/server");
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)
@@ -425,6 +460,12 @@ main (int argc, char * const argv [])
   if (s_tc != NULL)
     s.tapset_compile_coverage = true;
 
+  const char* s_kr = getenv ("SYSTEMTAP_RELEASE");
+  if (s_kr != NULL) {
+    setup_kernel_release(s, s_kr);
+  }
+
+
   while (true)
     {
       int long_opt;
@@ -444,7 +485,7 @@ main (int argc, char * const argv [])
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:F",
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:FS:",
                                                           long_options, NULL);
       if (grc < 0)
         break;
@@ -559,31 +600,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'r':
-          if (optarg[0] == '/') // fully specified path
-            {
-              s.kernel_build_tree = optarg;
-              string version_file_name = s.kernel_build_tree + "/include/config/kernel.release";
-              // The file include/config/kernel.release within the
-              // build tree is used to pull out the version information
-              ifstream version_file (version_file_name.c_str());
-              if (version_file.fail ())
-                {
-                  cerr << "Missing " << version_file_name << endl;
-                  usage (s, 1);
-                }
-              else 
-                {
-                  char c;
-                  s.kernel_release = "";
-                  while (version_file.get(c) && c != '\n')
-                    s.kernel_release.push_back(c);
-                }
-            }
-          else
-            {
-              s.kernel_release = string (optarg);
-              s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
-            }
+          setup_kernel_release(s, optarg);
           break;
 
         case 'k':
@@ -626,6 +643,10 @@ main (int argc, char * const argv [])
 
 	case 'D':
 	  s.macros.push_back (string (optarg));
+	  break;
+
+	case 'S':
+	  s.size_option = string (optarg);
 	  break;
 
 	case 'q':
@@ -1121,6 +1142,20 @@ main (int argc, char * const argv [])
 	  if (copy_file(module_src_path.c_str(), module_dest_path.c_str()) != 0)
 	    cerr << "Copy failed (\"" << module_src_path << "\" to \""
 		 << module_dest_path << "\"): " << strerror(errno) << endl;
+
+#if HAVE_NSS
+	  // Save the signature as well.
+	  assert (! s.cert_db_path.empty());
+	  module_src_path += ".sgn";
+	  module_dest_path += ".sgn";
+
+	  if (s.verbose > 1)
+	    clog << "Copying " << module_src_path << " to "
+		 << module_dest_path << endl;
+	  if (copy_file(module_src_path.c_str(), module_dest_path.c_str()) != 0)
+	    cerr << "Copy failed (\"" << module_src_path << "\" to \""
+		 << module_dest_path << "\"): " << strerror(errno) << endl;
+#endif
 	}
     }
 
@@ -1178,7 +1213,7 @@ pass_5:
           string cleanupcmd = "rm -rf ";
           cleanupcmd += s.tmpdir;
           if (s.verbose>1) clog << "Running " << cleanupcmd << endl;
-	  int status = system (cleanupcmd.c_str());
+	  int status = stap_system (cleanupcmd.c_str());
 	  if (status != 0 && s.verbose>1)
 	    clog << "Cleanup command failed, status: " << status << endl;
         }

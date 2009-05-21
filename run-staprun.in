@@ -1,0 +1,24 @@
+#!/bin/sh
+
+srcdir='@abs_top_srcdir@'
+builddir='@abs_top_builddir@'
+
+rundir="${0%/*}"
+[ "$rundir" == "$0" ] || builddir="$rundir"
+
+# Absolutify the paths.
+case "$srcdir" in
+/*) ;;
+*) srcdir=`cd "$srcdir" && pwd` || exit ;;
+esac
+case "$builddir" in
+/*) ;;
+*) builddir=`cd "$builddir" && pwd` || exit ;;
+esac
+
+exec sudo -P "SYSTEMTAP_STAPIO=${builddir}/stapio" \
+             "SYSTEMTAP_STAPRUN=${builddir}/run-staprun" \
+             "SYSTEMTAP_RUNTIME=${srcdir}/runtime" \
+             "SYSTEMTAP_REAL_UID=`id -ru`" \
+             "SYSTEMTAP_REAL_GID=`id -rg`" \
+             ${builddir}/staprun ${1+"$@"}

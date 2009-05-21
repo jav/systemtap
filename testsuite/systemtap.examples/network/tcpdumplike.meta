@@ -1,0 +1,12 @@
+title: Dump of Received TCP Packets
+name: tcpdumplike.stp
+version: 1.0
+author: anonymous
+keywords: network traffic
+subsystem: network
+status: production
+exit: user-controlled
+output: timed
+scope: system-wide
+description: The tcpdumplike.stp prints out a line for each TCP packet received. Each line includes the source and destination IP addresses, the source and destination ports, and flags.
+test_installcheck: stap tcpdumplike.stp -c "sleep 1"

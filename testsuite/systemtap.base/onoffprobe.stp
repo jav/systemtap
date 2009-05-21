@@ -10,13 +10,13 @@ probe begin if (switch==0) {
 }
 
 #dwarf probe (return)
-probe kernel.function("sys_write").return if (switch == 1) {
+probe kernel.function("vfs_write").return if (switch == 1) {
 	log("function return probed")
 	switch = 0
 }
 
 #dwarf probe (entry)
-probe kernel.function("sys_write") if (switch == 2) {
+probe kernel.function("vfs_write").return if (switch == 2) {
 	log("function entry probed")
 	switch = 0
 }

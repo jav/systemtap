@@ -630,7 +630,18 @@ derive_probes (systemtap_session& s,
           // and set a flag on the copy permanently.
           bool old_loc_opt = loc->optional;
           loc->optional = loc->optional || optional;
-          s.pattern_root->find_and_build (s, p, loc, 0, dps); // <-- actual derivation!
+          try
+	    {
+	      s.pattern_root->find_and_build (s, p, loc, 0, dps); // <-- actual derivation!
+	    }
+          catch (const semantic_error& e)
+	    {
+              if (!loc->optional)
+                throw semantic_error(e);
+              else /* tolerate failure for optional probe */
+	        continue;
+	    }
+
           loc->optional = old_loc_opt;
           unsigned num_atend = dps.size();
 
@@ -1441,6 +1452,7 @@ systemtap_session::systemtap_session ():
   user_file (0),
   be_derived_probes(0),
   dwarf_derived_probes(0),
+  kprobe_derived_probes(0),
   uprobe_derived_probes(0),
   utrace_derived_probes(0),
   itrace_derived_probes(0),
@@ -2433,7 +2445,8 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       p->body = duv.require(p->body, true);
       if (p->body == 0)
         {
-          if (! s.suppress_warnings)
+          if (! s.suppress_warnings
+              && ! s.timing) // PR10070
             s.print_warning ("side-effect-free probe '" + p->name + "'", p->tok);
 
           p->body = new null_statement();
@@ -3392,6 +3405,9 @@ typeresolution_info::visit_symbol (symbol* e)
 void
 typeresolution_info::visit_target_symbol (target_symbol* e)
 {
+  if (!e->probe_context_var.empty())
+    return;
+
   // This occurs only if a target symbol was not resolved over in
   // tapset.cxx land, that error was properly suppressed, and the
   // later unused-expression-elimination pass didn't get rid of it
@@ -3432,7 +3448,7 @@ typeresolution_info::visit_cast_op (cast_op* e)
   if (e->saved_conversion_error)
     throw (* (e->saved_conversion_error));
   else
-    throw semantic_error("unresolved cast expression", e->tok);
+    throw semantic_error("type definition '" + e->type + "' not found", e->tok);
 }
 
 

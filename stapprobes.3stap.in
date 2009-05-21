@@ -1,0 +1,744 @@
+.\" -*- nroff -*-
+.TH STAPPROBES 3stap @DATE@ "Red Hat"
+.SH NAME
+stapprobes \- systemtap probe points
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+The following sections enumerate the variety of probe points supported
+by the systemtap translator, and additional aliases defined by
+standard tapset scripts.
+.PP
+The general probe point syntax is a dotted-symbol sequence.  This
+allows a breakdown of the event namespace into parts, somewhat like
+the Domain Name System does on the Internet.  Each component
+identifier may be parametrized by a string or number literal, with a
+syntax like a function call.  A component may include a "*" character,
+to expand to a set of matching probe points.  Probe aliases likewise
+expand to other probe points.  Each and every resulting probe point is
+normally resolved to some low-level system instrumentation facility
+(e.g., a kprobe address, marker, or a timer configuration), otherwise
+the elaboration phase will fail.
+.PP
+However, a probe point may be followed by a "?" character, to indicate
+that it is optional, and that no error should result if it fails to
+resolve.  Optionalness passes down through all levels of
+alias/wildcard expansion.  Alternately, a probe point may be followed
+by a "!" character, to indicate that it is both optional and
+sufficient.  (Think vaguely of the Prolog cut operator.) If it does
+resolve, then no further probe points in the same comma-separated list
+will be resolved.  Therefore, the "!"  sufficiency mark only makes
+sense in a list of probe point alternatives.
+.PP
+Additionally, a probe point may be followed by a "if (expr)" statement, in
+order to enable/disable the probe point on-the-fly. With the "if" statement,
+if the "expr" is false when the probe point is hit, the whole probe body
+including alias's body is skipped. The condition is stacked up through
+all levels of alias/wildcard expansion. So the final condition becomes
+the logical-and of conditions of all expanded alias/wildcard.
+
+These are all
+.B syntactically
+valid probe points.  (They are generally
+.B semantically
+invalid, depending on the contents of the tapsets, and the versions of
+kernel/user software installed.)
+
+.SAMPLE
+kernel.function("foo").return
+process("/bin/vi").statement(0x2222)
+end
+syscall.*
+kernel.function("no_such_function") ?
+module("awol").function("no_such_function") !
+signal.*? if (switch)
+kprobe.function("foo")
+.ESAMPLE
+
+
+Probes may be broadly classified into "synchronous" and
+"asynchronous".  A "synchronous" event is deemed to occur when any
+processor executes an instruction matched by the specification.  This
+gives these probes a reference point (instruction address) from which
+more contextual data may be available.  Other families of probe points
+refer to "asynchronous" events such as timers/counters rolling over,
+where there is no fixed reference point that is related.  Each probe
+point specification may match multiple locations (for example, using
+wildcards or aliases), and all them are then probed.  A probe
+declaration may also contain several comma-separated specifications,
+all of which are probed.
+
+.SS BEGIN/END/ERROR
+
+The probe points
+.IR begin " and " end
+are defined by the translator to refer to the time of session startup
+and shutdown.  All "begin" probe handlers are run, in some sequence,
+during the startup of the session.  All global variables will have
+been initialized prior to this point.  All "end" probes are run, in
+some sequence, during the
+.I normal
+shutdown of a session, such as in the aftermath of an
+.I exit ()
+function call, or an interruption from the user.  In the case of an
+error-triggered shutdown, "end" probes are not run.  There are no
+target variables available in either context.
+.PP
+If the order of execution among "begin" or "end" probes is significant,
+then an optional sequence number may be provided:
+
+.SAMPLE
+begin(N)
+end(N)
+.ESAMPLE
+
+The number N may be positive or negative.  The probe handlers are run in
+increasing order, and the order between handlers with the same sequence
+number is unspecified.  When "begin" or "end" are given without a
+sequence, they are effectively sequence zero.
+
+The
+.IR error
+probe point is similar to the 
+.IR end
+probe, except that each such probe handler run when the session ends
+after errors have occurred.  In such cases, "end" probes are skipped,
+but each "error" probe is still attempted.  This kind of probe can be
+used to clean up or emit a "final gasp".  It may also be numerically
+parametrized to set a sequence.
+
+.SS NEVER
+The probe point
+.IR never
+is specially defined by the translator to mean "never".  Its probe
+handler is never run, though its statements are analyzed for symbol /
+type correctness as usual.  This probe point may be useful in
+conjunction with optional probes.
+
+.SS SYSCALL
+
+The
+.IR syscall.*
+aliases define several hundred probes, too many to
+summarize here.  They are:
+
+.SAMPLE
+syscall.NAME
+.br
+syscall.NAME.return
+.ESAMPLE
+
+Generally, two probes are defined for each normal system call as listed in the
+.IR syscalls(2)
+manual page, one for entry and one for return.  Those system calls that never
+return do not have a corresponding
+.IR .return
+probe.
+.PP
+Each probe alias defines a variety of variables. Looking at the tapset source
+code is the most reliable way.  Generally, each variable listed in the standard
+manual page is made available as a script-level variable, so
+.IR syscall.open
+exposes
+.IR filename ", " flags ", and " mode .
+In addition, a standard suite of variables is available at most aliases:
+.TP
+.IR argstr
+A pretty-printed form of the entire argument list, without parentheses.
+.TP
+.IR name
+The name of the system call.
+.TP
+.IR retstr
+For return probes, a pretty-printed form of the system-call result.
+.PP
+Not all probe aliases obey all of these general guidelines.  Please report
+any bothersome ones you encounter as a bug.
+
+
+.SS TIMERS
+
+Intervals defined by the standard kernel "jiffies" timer may be used
+to trigger probe handlers asynchronously.  Two probe point variants
+are supported by the translator:
+
+.SAMPLE
+timer.jiffies(N)
+timer.jiffies(N).randomize(M)
+.ESAMPLE
+
+The probe handler is run every N jiffies (a kernel-defined unit of
+time, typically between 1 and 60 ms).  If the "randomize" component is
+given, a linearly distributed random value in the range [\-M..+M] is
+added to N every time the handler is run.  N is restricted to a
+reasonable range (1 to around a million), and M is restricted to be
+smaller than N.  There are no target variables provided in either
+context.  It is possible for such probes to be run concurrently on
+a multi-processor computer.
+.PP
+Alternatively, intervals may be specified in units of time.
+There are two probe point variants similar to the jiffies timer:
+
+.SAMPLE
+timer.ms(N)
+timer.ms(N).randomize(M)
+.ESAMPLE
+
+Here, N and M are specified in milliseconds, but the full options for units
+are seconds (s/sec), milliseconds (ms/msec), microseconds (us/usec),
+nanoseconds (ns/nsec), and hertz (hz).  Randomization is not supported for
+hertz timers.
+
+The actual resolution of the timers depends on the target kernel.  For
+kernels prior to 2.6.17, timers are limited to jiffies resolution, so
+intervals are rounded up to the nearest jiffies interval.  After 2.6.17,
+the implementation uses hrtimers for tighter precision, though the actual
+resolution will be arch-dependent.  In either case, if the "randomize"
+component is given, then the random value will be added to the interval
+before any rounding occurs.
+.PP
+Profiling timers are also available to provide probes that execute on all
+CPUs at the rate of the system tick (CONFIG_HZ).
+This probe takes no parameters.
+
+.SAMPLE
+timer.profile
+.ESAMPLE
+
+Full context information of the interrupted process is available, making
+this probe suitable for a time-based sampling profiler.
+
+.SS DWARF
+
+This family of probe points uses symbolic debugging information for
+the target kernel/module/program, as may be found in unstripped
+executables, or the separate
+.I debuginfo
+packages.  They allow placement of probes logically into the execution
+path of the target program, by specifying a set of points in the
+source or object code.  When a matching statement executes on any
+processor, the probe handler is run in that context.
+.PP
+Points in a kernel, which are identified by
+module, source file, line number, function name, or some
+combination of these.  
+.PP
+Here is a list of probe point families currently supported.  The
+.B .function
+variant places a probe near the beginning of the named function, so that
+parameters are available as context variables.  The
+.B .return
+variant places a probe at the moment
+.B after
+the return from the named function, so the return value is available
+as the "$return" context variable.  The
+.B .inline
+modifier for
+.B .function
+filters the results to include only instances of inlined functions.
+The
+.B .call
+modifier selects the opposite subset.  Inline functions do not have an
+identifiable return point, so
+.B .return
+is not supported on 
+.B .inline
+probes. The
+.B .statement
+variant places a probe at the exact spot, exposing those local variables
+that are visible there.
+
+.SAMPLE
+kernel.function(PATTERN)
+.br
+kernel.function(PATTERN).call
+.br
+kernel.function(PATTERN).return
+.br
+kernel.function(PATTERN).inline
+.br
+kernel.function(PATTERN).label(LPATTERN)
+.br
+module(MPATTERN).function(PATTERN)
+.br
+module(MPATTERN).function(PATTERN).call
+.br
+module(MPATTERN).function(PATTERN).return
+.br
+module(MPATTERN).function(PATTERN).inline
+.br
+.br
+kernel.statement(PATTERN)
+.br
+kernel.statement(ADDRESS).absolute
+.br
+module(MPATTERN).statement(PATTERN)
+.ESAMPLE
+
+In the above list, MPATTERN stands for a string literal that aims to
+identify the loaded kernel module of interest and LPATTERN stands for
+a source program label.  Both MPATTERN and LPATTERN may include the "*"
+"[]", and "?" wildcards.  
+PATTERN stands for a string literal that
+aims to identify a point in the program.  It is made up of three
+parts:
+.IP \(bu 4
+The first part is the name of a function, as would appear in the
+.I nm
+program's output.  This part may use the "*" and "?" wildcarding
+operators to match multiple names.
+.IP \(bu 4
+The second part is optional and begins with the "@" character. 
+It is followed by the path to the source file containing the function,
+which may include a wildcard pattern, such as mm/slab*.
+If it does not match as is, an implicit "*/" is optionally added
+.I before
+the pattern, so that a script need only name the last few components
+of a possibly long source directory path.
+.IP \(bu 4
+Finally, the third part is optional if the file name part was given,
+and identifies the line number in the source file preceded by a ":"
+or a "+".  The line number is assumed to be an
+absolute line number if preceded by a ":", or relative to the entry of
+the function if preceded by a "+".  
+All the lines in the function can be matched with ":*".  
+A range of lines x through y can be matched with ":x-y".
+.PP
+As an alternative, PATTERN may be a numeric constant, indicating an
+address.  Such an address may be found from symbol tables of the
+appropriate kernel / module object file.  It is verified against
+known statement code boundaries, and will be relocated for use at
+run time.
+.PP
+In guru mode only, absolute kernel-space addresses may be specified with
+the ".absolute" suffix.  Such an address is considered already relocated,
+as if it came from 
+.BR /proc/kallsyms ,
+so it cannot be checked against statement/instruction boundaries.
+.PP
+Some of the source-level context variables, such as function parameters,
+locals, globals visible in the compilation unit, may be visible to
+probe handlers.  They may refer to these variables by prefixing their
+name with "$" within the scripts.  In addition, a special syntax
+allows limited traversal of structures, pointers, and arrays.
+.TP
+$var
+refers to an in-scope variable "var".  If it's an integer-like type,
+it will be cast to a 64-bit int for systemtap script use.  String-like
+pointers (char *) may be copied to systemtap string values using the
+.IR kernel_string " or " user_string
+functions.
+.TP
+$var\->field
+traversal to a structure's field.  The indirection operator
+may be repeated to follow more levels of pointers.
+.TP
+$return
+is available in return probes only for functions that are declared
+with a return value.
+.TP
+.TP
+$var[N]
+indexes into an array.  The index is given with a
+literal number.
+.TP
+$$vars
+expands to a character string that is equivalent to
+sprintf("parm1=%x ... parmN=%x var1=%x ... varN=%x", parm1, ..., parmN,
+var1, ..., varN)
+.TP
+$$locals
+expands to a subset of $$vars for only local variables.
+.TP
+$$parms
+expands to a subset of $$vars for only function parameters.
+.TP
+$$return
+is available in return probes only.  It expands to a string that
+is equivalent to sprintf("return=%x", $return)
+if the probed function has a return value, or else an empty string.
+.PP
+For ".return" probes, context variables other than the "$return"
+value itself are only available for the function call parameters.
+The expressions evaluate to the
+.IR entry-time
+values of those variables, since that is when a snapshot is taken.
+Other local variables are not generally accessible, since by the time
+a ".return" probe hits, the probed function will have already returned.
+
+
+.SS DWARFLESS
+In absence of debugging information, entry & exit points of kernel & module
+functions can be probed using the "kprobe" family of probes.
+However, these do not permit looking up the arguments / local variables
+of the function.
+Following constructs are supported :
+.SAMPLE
+kprobe.function(FUNCTION)
+kprobe.function(FUNCTION).return
+kprobe.module(NAME).function(FUNCTION)
+kprobe.module(NAME).function(FUNCTION).return
+kprobe.statement.(ADDRESS).absolute
+.ESAMPLE
+.PP
+Probes of type
+.B function
+are recommended for kernel functions, whereas probes of type
+.B module
+are recommended for probing functions of the specified module.
+In case the absolute address of a kernel or module function is known,
+.B statement
+probes can be utilized.
+.PP
+Note that
+.I FUNCTION
+and
+.I MODULE
+names
+.B must not
+contain wildcards, or the probe will not be registered.
+Also, statement probes must be run under guru-mode only.
+
+
+.SS USER-SPACE
+Support for user-space probing is available for kernels
+that are configured with the utrace extensions.  See
+.SAMPLE
+http://people.redhat.com/roland/utrace/
+.ESAMPLE
+.PP
+There are several forms.  First, a non-symbolic probe point:
+.SAMPLE
+process(PID).statement(ADDRESS).absolute
+.ESAMPLE
+is analogous to 
+.IR
+kernel.statement(ADDRESS).absolute
+in that both use raw (unverified) virtual addresses and provide
+no $variables.  The target PID parameter must identify a running
+process, and ADDRESS should identify a valid instruction address.
+All threads of that process will be probed.
+.PP
+Second, non-symbolic user-kernel interface events handled by
+utrace may be probed:
+.SAMPLE
+process(PID).begin
+process("PATH").begin
+process.begin
+process(PID).thread.begin
+process("PATH").thread.begin
+process.thread.begin
+process(PID).end
+process("PATH").end
+process.end
+process(PID).thread.end
+process("PATH").thread.end
+process.thread.end
+process(PID).syscall
+process("PATH").syscall
+process.syscall
+process(PID).syscall.return
+process("PATH").syscall.return
+process.syscall.return
+process(PID).insn
+process("PATH").insn
+process(PID).insn.block
+process("PATH").insn.block
+.ESAMPLE
+.PP
+A
+.B .begin
+probe gets called when new process described by PID or PATH gets created.
+A
+.B .thread.begin
+probe gets called when a new thread described by PID or PATH gets created.
+A
+.B .end
+probe gets called when process described by PID or PATH dies.
+A
+.B .thread.end
+probe gets called when a thread described by PID or PATH dies.
+A
+.B .syscall
+probe gets called when a thread described by PID or PATH makes a
+system call.  The system call number is available in the
+.BR $syscall
+context variable, and the first 6 arguments of the system call
+are available in the
+.BR $argN
+(ex. $arg1, $arg2, ...) context variable.
+A
+.B .syscall.return
+probe gets called when a thread described by PID or PATH returns from a
+system call.  The system call number is available in the
+.BR $syscall
+context variable, and the return value of the system call is available
+in the
+.BR $return
+context variable.
+A
+.B .insn
+probe gets called for every single-stepped instruction of the process described by PID or PATH.
+A
+.B .insn.block
+probe gets called for every block-stepped instruction of the process described by PID or PATH.
+
+.PP
+Third, symbolic static instrumentation compiled into programs and
+shared libraries may be
+probed:
+.SAMPLE
+process("PATH").mark("LABEL")
+.ESAMPLE
+.PP
+A
+.B .mark
+probe gets called via a static probe which is defined in the
+application by
+STAP_PROBE1(handle,LABEL,arg1), which is defined in sdt.h.  The handle is an application handle,
+LABEL corresponds to the .mark argument, and arg1 is the argument.
+STAP_PROBE1 is used for probes with 1 argument, STAP_PROBE2 is used
+for probes with 2 arguments, and so on.
+The arguments of the probe are available in the context variables
+$arg1, $arg2, ...  An alternative to using the STAP_PROBE macros is to
+use the dtrace script to create custom macros.
+
+.PP
+Finally, full symbolic source-level probes in user-space programs
+and shared libraries are supported.  These are exactly analogous
+to the symbolic DWARF-based kernel/module probes described above,
+and expose similar contextual $-variables.
+.SAMPLE
+process("PATH").function("NAME")
+process("PATH").statement("*@FILE.c:123")
+process("PATH").function("*").return
+process("PATH").function("myfun").label("foo")
+.ESAMPLE
+
+.PP
+Note that for all process probes,
+.I PATH
+names refer to executables that are searched the same way shells do: relative
+to the working directory if they contain a "/" character, otherwise in 
+.BR $PATH .
+If a process probe is specified without a PID or PATH, all user
+threads are probed.  PATH may sometimes name a shared library
+in which case all processes that map that shared library may be
+probed.
+
+.SS PROCFS
+
+These probe points allow procfs "files" in
+/proc/systemtap/MODNAME to be created, read and written
+.RI ( MODNAME
+is the name of the systemtap module). The
+.I proc
+filesystem is a pseudo-filesystem which is used an an interface to
+kernel data structures.  There are four probe point variants supported
+by the translator:
+
+.SAMPLE
+procfs("PATH").read
+procfs("PATH").write
+procfs.read
+procfs.write
+.ESAMPLE
+
+.I PATH
+is the file name (relative to /proc/systemtap/MODNAME) to be created.
+If no
+.I PATH
+is specified (as in the last two variants above),
+.I PATH
+defaults to "command".
+.PP
+When a user reads /proc/systemtap/MODNAME/PATH, the corresponding
+procfs
+.I read
+probe is triggered.  The string data to be read should be assigned to
+a variable named
+.IR $value ,
+like this:
+
+.SAMPLE
+procfs("PATH").read { $value = "100\\n" }
+.ESAMPLE
+.PP
+When a user writes into /proc/systemtap/MODNAME/PATH, the
+corresponding procfs
+.I write
+probe is triggered.  The data the user wrote is available in the
+string variable named
+.IR $value ,
+like this:
+
+.SAMPLE
+procfs("PATH").write { printf("user wrote: %s", $value) }
+.ESAMPLE
+
+.SS MARKERS
+
+This family of probe points hooks up to static probing markers
+inserted into the kernel or modules.  These markers are special macro
+calls inserted by kernel developers to make probing faster and more
+reliable than with DWARF-based probes.  Further, DWARF debugging
+information is 
+.I not
+required to probe markers.
+
+Marker probe points begin with 
+.BR kernel .
+The next part names the marker itself:
+.BR mark("name") .
+The marker name string, which may contain the usual wildcard characters,
+is matched against the names given to the marker macros when the kernel
+and/or module was compiled.    Optionally, you can specify
+.BR format("format") .
+Specifying the marker format string allows differentiation between two
+markers with the same name but different marker format strings.
+
+The handler associated with a marker-based probe may read the
+optional parameters specified at the macro call site.  These are
+named
+.BR $arg1 " through " $argNN ,
+where NN is the number of parameters supplied by the macro.  Number
+and string parameters are passed in a type-safe manner.
+
+The marker format string associated with a marker is available in
+.BR $format .
+And also the marker name string is available in
+.BR $name .
+
+.SS TRACEPOINTS
+
+This family of probe points hooks up to static probing tracepoints
+inserted into the kernel or modules.  As with markers, these
+tracepoints are special macro calls inserted by kernel developers to
+make probing faster and more reliable than with DWARF-based probes,
+and DWARF debugging information is not required to probe tracepoints.
+Tracepoints have an extra advantage of more strongly-typed parameters
+than markers.
+
+Tracepoint probes begin with 
+.BR kernel .
+The next part names the tracepoint itself:
+.BR trace("name") .
+The tracepoint name string, which may contain the usual wildcard
+characters, is matched against the names defined by the kernel
+developers in the tracepoint header files.
+
+The handler associated with a tracepoint-based probe may read the
+optional parameters specified at the macro call site.  These are
+named according to the declaration by the tracepoint author.  For
+example, the tracepoint probe
+.BR kernel.trace("sched_switch")
+provides the parameters
+.BR $rq ", " $prev ", and " $next .
+If the parameter is a complex type, as in a struct pointer, then a
+script can access fields with the same syntax as DWARF $target
+variables.  Also, tracepoint parameters cannot be modified, but in
+guru-mode a script may modify fields of parameters.
+
+The name of the tracepoint is available in
+.BR $$name ,
+and a string of name=value pairs for all parameters of the tracepoint
+is available in
+.BR $$vars " or " $$parms .
+
+.SS PERFORMANCE MONITORING HARDWARE
+
+The perfmon family of probe points is used to access the performance
+monitoring hardware available in modern processors. This family of
+probes points needs the perfmon2 support in the kernel to access the
+performance monitoring hardware.
+.PP
+Performance monitor hardware points begin with a 
+.BR perfmon ". "
+The next part of the names the event being counted
+.BR counter("event") .
+The event names are processor implementation specific with the
+exception of the generic
+.BR cycles " and " instructions
+events, which are available on all processors. This sets up a counter
+on the processor to count the number of events occurring on the
+processor. For more details on the performance monitoring events
+available on a specific processor use the command perfmon2 command:
+
+.SAMPLE
+pfmon \-l
+.ESAMPLE
+.TP
+$counter
+is a handle used in the body of the probe for operations
+involving the counter associated with the probe.
+.TP
+read_counter
+is a function that is passed the handle for the perfmon probe and returns
+the current count for the event.
+
+.SH EXAMPLES
+.PP
+Here are some example probe points, defining the associated events.
+.TP
+begin, end, end
+refers to the startup and normal shutdown of the session.  In this
+case, the handler would run once during startup and twice during
+shutdown.
+.TP
+timer.jiffies(1000).randomize(200)
+refers to a periodic interrupt, every 1000 +/\- 200 jiffies.
+.TP
+kernel.function("*init*"), kernel.function("*exit*")
+refers to all kernel functions with "init" or "exit" in the name.
+.TP
+kernel.function("*@kernel/sched.c:240")
+refers to any functions within the "kernel/sched.c" file that span
+line 240.
+.TP
+kernel.mark("getuid")
+refers to an STAP_MARK(getuid, ...) macro call in the kernel.
+.TP
+module("usb*").function("*sync*").return
+refers to the moment of return from all functions with "sync" in the
+name in any of the USB drivers.
+.TP
+kernel.statement(0xc0044852)
+refers to the first byte of the statement whose compiled instructions
+include the given address in the kernel.
+.TP
+kernel.statement("*@kernel/sched.c:2917")
+refers to the statement of line 2917 within "kernel/sched.c".
+.TP
+kernel.statement("bio_init@fs/bio.c+3")
+refers to the statement at line bio_init+3 within "fs/bio.c".
+.TP
+syscall.*.return
+refers to the group of probe aliases with any name in the third position
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes.iosched (3stap),
+.IR stapprobes.netdev (3stap),
+.IR stapprobes.nfs (3stap),
+.IR stapprobes.nfsd (3stap),
+.IR stapprobes.pagefault (3stap),
+.IR stapprobes.process (3stap),
+.IR stapprobes.rpc (3stap),
+.IR stapprobes.scsi (3stap),
+.IR stapprobes.signal (3stap),
+.IR stapprobes.socket (3stap),
+.IR stapprobes.tcp (3stap),
+.IR stapprobes.udp (3stap),
+.IR proc (3stap)

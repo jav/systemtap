@@ -7,29 +7,40 @@ AUTOMAKE_OPTIONS = no-dist foreign
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 oldincludedir = ${includedir}/sys
 
-AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
+AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
-man_MANS =  stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
+man_MANS =  stap.1 \
+stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
+staprun.8 \
+man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap \
+man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap \
+man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap \
+man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap \
+man/stapprobes.signal.3stap man/stapprobes.socket.3stap \
+man/stapprobes.tcp.3stap man/stapprobes.udp.3stap
 # see also configure.ac
 
 bin_PROGRAMS = stap staprun
-bin_SCRIPTS = stap-report
+bin_SCRIPTS = stap-report stap-env stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
 oldinclude_HEADERS = includes/sys/sdt.h
 if BUILD_SERVER
 man_MANS += stap-server.8 
 bin_PROGRAMS += stap-client-connect stap-server-connect
 bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server \
-	       stap-gen-server-cert stap-add-server-cert
+	       stap-authorize-server-cert
 endif
 bin_SCRIPTS += dtrace
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
-	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx
+	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
+	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
+	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
+	tapset-utrace.cxx task_finder.cxx
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 
 BUILT_SOURCES =
@@ -78,7 +89,11 @@ stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
-if BUILD_SERVER
+if HAVE_NSS
+stap_SOURCES += modsign.cxx nsscommon.c
+stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_LDADD += -lnss3
+
 stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 endif
@@ -114,9 +129,10 @@ if BUILD_SERVER
 install-exec-local: install-scripts
 
 PHONIES += install-scripts
-install-scripts:
+# scripts should be installed before this rule is run
+install-scripts: install-binSCRIPTS
 	for f in $(bin_SCRIPTS); do \
-	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
 	done
 endif
 
@@ -124,15 +140,21 @@ staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing
+staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 staprun_LDADD = @PROCFLAGS@
+
+if HAVE_NSS
+staprun_SOURCES += runtime/staprun/modverify.c nsscommon.c
+staprun_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
+staprun_LDADD += -lnss3
+endif
 
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c
-stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing
+stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_LDADD = @PROCFLAGS@ -lpthread
 
@@ -256,7 +278,7 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 # XXX: leaves behind man pages
 
-SUBDIRS = doc
+SUBDIRS = doc grapher
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 
 check-local:

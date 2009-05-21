@@ -1,9 +1,130 @@
 * What's new
 
+- Module signing: If the appropriate nss libraries are available on your system,
+  stap will sign each compiled module using a self-generated certificate.
+  This is the first step toward extending authority to load certain modules to
+  unprivileged users. For now, if the system administrator adds a certificate
+  to a database of trusted signers (stap-authorize-signing-cert), modules signed
+  using that certificate will be verified by staprun against tampering.
+  Otherwise, you should notice no difference in the operation of stap or staprun.
+
+* What's new in version 0.9.7
+
+- @cast can now determine its type information using an explicit header
+  specification.  For example:
+    @cast(tv, "timeval", "<sys/time.h>")->tv_sec
+    @cast(task, "task_struct", "kernel<linux/sched.h>")->tgid
+
+- The overlapping process.* tapsets are now separated.  Those probe points
+  documented in stapprobes(3stap) remain the same.  Those that were formerly
+  in stapprobes.process(3stap) have been renamed to kprocess, to reflect
+  their kernel perspective on processes.
+
+- The --skip-badvars option now also suppresses run-time error
+  messages that would otherwise result from erroneous memory accesses.
+  Such accesses can originate from $context expressions fueled by
+  erroneous debug data, or by kernel_{long,string,...}() tapset calls.
+
+- New probes kprobe.function(FUNCTION) and kprobe.function(FUNCTION).return
+  for dwarfless probing. These postpone function address resolution to
+  run-time and use the kprobe symbol-resolution mechanism.
+  Probing of absolute statements can be done using the
+  kprobe.statement(ADDRESS).absolute construct.
+
+- EXPERIMENTAL support for user process unwinding. A new collection of
+  tapset functions have been added to handle user space backtraces from
+  probe points that support them (currently process and timer probes -
+  for timer probes test whether or not in user space first with the
+  already existing user_mode() function). The new tapset functions are:
+    uaddr - User space address of current running task.
+    usymname - Return the symbol of an address in the current task.
+    usymdata - Return the symbol and module offset of an address.
+    print_ustack - Print out stack for the current task from string.
+    print_ubacktrace - Print stack back trace for current task.
+    ubacktrace - Hex backtrace of current task stack.
+  Please read http://sourceware.org/ml/systemtap/2009-q2/msg00364.html
+  on the current restrictions and possible changes in the future and
+  give feedback if you want to influence future developments.
+
+* What's new in version 0.9.5
+
+- New probes process().insn and process().insn.block that allows
+  inspection of the process after each instruction or block of
+  instructions executed. So to count the total number of instructions
+  a process executes during a run do something like:
+    $ stap -e 'global steps; probe process("/bin/ls").insn {steps++}
+               probe end {printf("Total instructions: %d\n", steps);}' \
+           -c /bin/ls
+  This feature can slow down execution of a process somewhat.
+
+- Systemtap probes and function man pages extracted from the tapsets
+  are now available under 3stap. To show the page for probe vm.pagefault
+  or the stap function pexecname do:
+    $ man 3stap vm.pagefault
+    $ man 3stap pexecname
+
+- Kernel tracepoints are now supported for probing predefined kernel
+  events without any debuginfo.  Tracepoints incur less overhead than
+  kprobes, and context parameters are available with full type
+  information.  Any kernel 2.6.28 and later should have defined
+  tracepoints.  Try the following to see what's available:
+    $ stap -L 'kernel.trace("*")'
+
+- Typecasting with @cast now supports modules search paths, which is
+  useful in case there are multiple places where the type definition
+  may be found.  For example:
+    @cast(sdev, "scsi_device", "kernel:scsi_mod")->sdev_state
+
+- On-file flight recorder is supported. It allows stap to record huge
+  trace log on the disk and to run in background.
+  Passing -F option with -o option runs stap in background mode. In this
+  mode, staprun is detached from console, and stap itself shows staprun's
+  pid and exits.
+  Specifying the max size and the max number of log files are also available
+  by passing -S option. This option has one or two arguments seperated by
+  a comma. The first argument is the max size of a log file in MB. If the
+  size of a log file exceeds it, stap switches to the next log file
+  automatically. The second is how many files are kept on the disk. If the
+  number of log files exceeds it, the oldest log file is removed
+  automatically. The second argument can be omitted.
+
+  For example, this will record output on log files each of them is smaller
+  than 1024MB and keep last 3 logs, in background.
+    % stap -F -o /tmp/staplog -S 1024,3 script.stp
+
+- In guru mode (-g), the kernel probing blacklist is disabled, leaving 
+  only a subset - the kernel's own internal kprobe blacklist - to attempt
+  to filter out areas unsafe to probe.  The differences may be enough to
+  probe more interrupt handlers.
+
 - Variables unavailable in current context may be skipped by setting a 
-  session level flag with command line option --skip-badvars now available. 
-  This will simply substitute the otherwise error causing variable with a 
-  literal 0 and print a warning message when the substitution has been made.
+  session level flag with command line option --skip-badvars now available.
+  This replaces any dwarf $variable expressions that could not be resolved
+  with literal numeric zeros, along with a warning message.
+
+- Both kernel markers and kernel tracepoint support argument listing
+  through stap -L 'kernel.mark("*")' or stap -L 'kernel.trace("*")'
+
+- Users can use -DINTERRUPTIBLE=0 to prevent interrupt reentrancy in
+  their script, at the cost of a bit more overhead to toggle the
+  interrupt mask.
+
+- Added reentrancy debugging. If stap is run with the arguments
+  "-t -DDEBUG_REENTRANCY", additional warnings will be printed for
+  every reentrancy event, including the probe points of the
+  resident and interloper probes.
+
+- Default to --disable-pie for configure.
+  Use --enable-pie to turn it back on.
+
+- Improved sdt.h compatibility and test suite for static dtrace
+  compatible user space markers.
+
+- Some architectures now use syscall wrappers (HAVE_SYSCALL_WRAPPERS).
+  The syscall tapset has been enhanced to take care of the syscall
+  wrappers in this release.
+
+- Security fix for CVE-2009-0784: stapusr module-path checking race.
 
 * What's new in version 0.9
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# options '-D' and '-c cmd' are mutually exclusive
+#
+#-D              Run in background. This requires '-o' option.
+#-c cmd          Command 'cmd' will be run and staprun will
+#                exit when it does.  The '_stp_target' variable
+#                will contain the pid for the command.
+
+staprun -c /bin/ls -D fake_module

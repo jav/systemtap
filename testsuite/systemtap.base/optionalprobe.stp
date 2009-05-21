@@ -1,0 +1,14 @@
+#! stap
+
+# test optional probe
+
+probe foo ?,
+      process("/do/not/exist").function("main") !,
+      kernel.mark("no such mark") ?,
+      kernel.trace("no trace") !,
+      process.foo ?,
+      kernel.statement("no statement") !,
+      module("no mod").function("*") ?,
+      kernel.function("no such func*") !,
+      begin {
+}

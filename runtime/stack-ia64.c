@@ -48,7 +48,8 @@ static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
 	} while (unw_unwind(info) >= 0);
 }
 
-static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
+static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
+                               struct task_struct *tsk)
 {
 	unsigned long *stack = (unsigned long *)&REG_SP(regs);
 	struct dump_para para;

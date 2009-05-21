@@ -1,0 +1,8 @@
+#! stap -p4
+#
+# Test the translatability for usymname()
+#
+probe begin
+{
+   log(usymname(0))
+}

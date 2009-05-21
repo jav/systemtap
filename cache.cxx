@@ -1,12 +1,12 @@
 // systemtap cache manager
-// Copyright (C) 2006-2008 Red Hat Inc.
+// Copyright (C) 2006-2009 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-
+#include "config.h"
 #include "session.h"
 #include "cache.h"
 #include "util.h"
@@ -14,6 +14,7 @@
 #include <string>
 #include <fstream>
 #include <cstring>
+#include <cassert>
 
 extern "C" {
 #include <sys/types.h>
@@ -68,6 +69,29 @@ add_to_cache(systemtap_session& s)
       return;
     }
 
+#if HAVE_NSS
+  // This is the name of the cached module signature.
+  string module_signature_dest_path = s.hash_path;
+  module_signature_dest_path += ".sgn";
+
+  // Copy the module signature.
+  assert (! s.cert_db_path.empty());
+  string module_signature_src_path = module_src_path;
+  module_signature_src_path += ".sgn";
+
+  if (s.verbose > 1)
+    clog << "Copying " << module_signature_src_path << " to " << module_signature_dest_path << endl;
+  if (copy_file(module_signature_src_path.c_str(), module_signature_dest_path.c_str()) != 0)
+    {
+      cerr << "Copy failed (\"" << module_signature_src_path << "\" to \""
+	   << module_signature_dest_path << "\"): " << strerror(errno) << endl;
+      // NB: this is not so severe as to prevent reuse of the .ko
+      // already copied.
+      //
+      // s.use_cache = false;
+    }
+#endif /* HAVE_NSS */
+
   string c_dest_path = s.hash_path;
   if (c_dest_path.rfind(".ko") == (c_dest_path.size() - 3))
     c_dest_path.resize(c_dest_path.size() - 3);
@@ -98,6 +122,10 @@ get_from_cache(systemtap_session& s)
   string module_dest_path = s.tmpdir + "/" + s.module_name + ".ko";
   string c_src_path = s.hash_path;
   int fd_stapconf, fd_module, fd_c;
+#if HAVE_NSS
+  string hash_signature_path = s.hash_path + ".sgn";
+  int fd_signature;
+#endif
 
   if (c_src_path.rfind(".ko") == (c_src_path.size() - 3))
     c_src_path.resize(c_src_path.size() - 3);
@@ -167,6 +195,24 @@ get_from_cache(systemtap_session& s)
 	  close(fd_c);
 	  return false;
 	}
+#if HAVE_NSS
+      // See if module signature exists. It's not an error if it doesn't. It just
+      // means that the module is unsigned.
+      fd_signature = open(hash_signature_path.c_str(), O_RDONLY);
+      if (fd_signature != -1) {
+	string signature_dest_path = module_dest_path + ".sgn";
+	close(fd_signature);
+	if (copy_file(hash_signature_path.c_str(), signature_dest_path.c_str()) != 0)
+	  {
+	    cerr << "Copy failed (\"" << hash_signature_path << "\" to \""
+		 << signature_dest_path << "\"): " << strerror(errno) << endl;
+	    unlink(c_src_path.c_str());
+	    close(fd_module);
+	    close(fd_c);
+	    return false;
+	  }
+      }
+#endif
     }
 
   // We're done with these file handles.
@@ -253,14 +299,28 @@ clean_cache(systemtap_session& s)
 
       globfree(&cache_glob);
 
+      //grab info for each typequery user module (.so)
+      glob_str = s.cache_path + "/*/*.so";
+      glob(glob_str.c_str(), 0, NULL, &cache_glob);
+      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
+        {
+          string cache_ent_path = cache_glob.gl_pathv[i];
+          struct cache_ent_info cur_info(cache_ent_path, false);
+          if (cur_info.size != 0 && cur_info.weight != 0)
+            {
+              cache_size_b += cur_info.size;
+              cache_contents.insert(cur_info);
+            }
+        }
+
+      globfree(&cache_glob);
+
       //grab info for each stapconf cache entry (.h)
       glob_str = s.cache_path + "/*/*.h";
       glob(glob_str.c_str(), 0, NULL, &cache_glob);
       for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
         {
           string cache_ent_path = cache_glob.gl_pathv[i];
-          cache_ent_path.resize(cache_ent_path.length() - 3);
-
           struct cache_ent_info cur_info(cache_ent_path, false);
           if (cur_info.size != 0 && cur_info.weight != 0)
             {

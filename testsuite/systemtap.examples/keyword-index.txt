@@ -30,6 +30,15 @@ keywords: io scheduler backtrace
   so is the total delay.
 
 
+= BUFFER =
+
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
+
+
 = CALLGRAPH =
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -68,6 +77,33 @@ keywords: disk
 
   Get the status of reading/writing disk every 5 seconds, output top
   ten entries during that period.
+
+
+= FORMAT =
+
+general/ansi_colors.stp - Color Table for ansi_set_color2() and ansi_set_color3()
+keywords: format
+
+  The script prints a table showing the available color combinations
+  for the ansi_set_color2() and ans_set_color3() functions in the
+  ansi.stp tapset.
+
+
+general/ansi_colors2.stp - Show Attribues in Table for ansi_set_color3()
+keywords: format
+
+  The script prints a table showing the available attributes (bold,
+  underline, and inverse) with color combinations for the
+  ans_set_color3() function in the ansi.stp tapset.
+
+
+= FREE =
+
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
 
 
 = FUNCTIONS =
@@ -123,6 +159,19 @@ keywords: io backtrace
   When a reschedule occurs during an AIO io_submit call, accumulate the
   traceback in a histogram. When the script exits prints out a sorted
   list from most common to least common backtrace.
+
+
+io/ioblktime.stp - Average Time Block IO Requests Spend in Queue 
+keywords: io
+
+  The ioblktime.stp script tracks the amount of time that each block IO
+  requests spend waiting for completion. The script computes the
+  average time waiting time for block IO per device and prints list
+  every 10 seconds. In some cases there can be too many oustanding
+  block IO operations and the script may exceed the default number of
+  MAXMAPENTRIES allowed. In this case the allowed number can be
+  increased with "-DMAXMAPENTRIES=10000" option on the stap command
+  line.
 
 
 io/iostats.stp - List Executables Reading and Writing the Most Data
@@ -220,6 +269,13 @@ keywords: memory
 
 = NETWORK =
 
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
+
+
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
 keywords: network traffic per-process
 
@@ -250,6 +306,14 @@ keywords: network tcp socket
   originator of the request.
 
 
+network/tcpdumplike.stp - Dump of Received TCP Packets
+keywords: network traffic
+
+  The tcpdumplike.stp prints out a line for each TCP packet received.
+  Each line includes the source and destination IP addresses, the
+  source and destination ports, and flags.
+
+
 = PER-PROCESS =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
@@ -259,6 +323,18 @@ keywords: network traffic per-process
   processed (PID and command) with the number of packets sent/received
   and the amount of data sent/received by the process during that
   interval.
+
+
+= PROCESS =
+
+process/errsnoop.stp - tabulate system call errors
+keywords: process syscall
+
+  The script prints a periodic tabular report about failing system
+  calls, by process and by syscall failure.  The first optional
+  argument specifies the reporting interval (in seconds, default 5);
+  the second optional argument gives a screen height (number of lines
+  in the report, default 20).
 
 
 = PROFILING =
@@ -373,7 +449,7 @@ keywords: signals
   that sent the signal.
 
 
-process/syscalls_by_pid.stp - System-Wide Count of Syscalls by PID
+process/sigmon.stp - Track a particular signal to a specific process
 keywords: signals
 
   The script watches for a particular signal sent to a specific
@@ -443,6 +519,16 @@ keywords: syscall read write time io
   operations. The second line with the "iotime" keyword list the file
   name and the number of microseconds accumulated in the read and write
   syscalls.
+
+
+process/errsnoop.stp - tabulate system call errors
+keywords: process syscall
+
+  The script prints a periodic tabular report about failing system
+  calls, by process and by syscall failure.  The first optional
+  argument specifies the reporting interval (in seconds, default 5);
+  the second optional argument gives a screen height (number of lines
+  in the report, default 20).
 
 
 process/futexes.stp - System-Wide Futex Contention
@@ -533,6 +619,15 @@ keywords: trace callgraph
   the trigger.
 
 
+= TRACEPOINT =
+
+network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
+keywords: network tracepoint buffer free
+
+  Every five seconds the dropwatch.stp script lists the number of
+  socket buffers freed at locations in the kernel.
+
+
 = TRAFFIC =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
@@ -542,6 +637,14 @@ keywords: network traffic per-process
   processed (PID and command) with the number of packets sent/received
   and the amount of data sent/received by the process during that
   interval.
+
+
+network/tcpdumplike.stp - Dump of Received TCP Packets
+keywords: network traffic
+
+  The tcpdumplike.stp prints out a line for each TCP packet received.
+  Each line includes the source and destination IP addresses, the
+  source and destination ports, and flags.
 
 
 = USE =

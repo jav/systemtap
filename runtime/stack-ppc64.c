@@ -7,7 +7,8 @@
  * later version.
  */
 
-static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
+static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
+                               struct task_struct *tsk)
 {
 	unsigned long ip, newsp, lr = 0;
 	int count = 0;

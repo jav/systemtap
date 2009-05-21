@@ -1,0 +1,46 @@
+set test "uprobes_lib"
+set testpath "$srcdir/$subdir"
+set testsrc  "$testpath/uprobes_exe.c"
+set testsrclib  "$testpath/uprobes_lib.c"
+set testexe  "./uprobes_exe"
+set testlibname  "uprobes_lib"
+set testlibdir "."
+set testso  "$testlibdir/lib${testlibname}.so"
+set testflags "additional_flags=-g additional_flags=-O"
+set testlibflags "$testflags additional_flags=-fPIC additional_flags=-shared"
+set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$testlibname additional_flags=-Wl,-rpath,$testlibdir"
+
+# Compile our test program and library.
+set res [target_compile $testsrclib $testso executable $testlibflags]
+if { $res != "" } {
+    verbose "target_compile for $testso failed: $res" 2
+    fail "$test compile $testsrclib"
+    return
+} else {
+    pass "$test compile $testsrclib"
+}
+
+set res [target_compile $testsrc $testexe executable $maintestflags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test compile $testsrc"
+    return
+} else {
+    pass "$test compile $testsrc"
+}
+
+set ::result_string {main
+main_func
+main_func
+main_func
+lib_main
+lib_func
+lib_func
+lib_func}
+
+# Only run on make installcheck
+if {! [installtest_p]} { untested "$test"; return }
+if {! [utrace_p]} { untested $test; return }
+stap_run2 $srcdir/$subdir/$test.stp -c $testexe
+
+#exec rm -f $testexe $testso

@@ -106,3 +106,7 @@ Building a kernel.org kernel:
 - Or else, if you wish to install the kernel build/debuginfo data into
   a place where systemtap will find it without the "-r" option:
   % ln -s /path/to/kernel/build/tree /lib/modules/RELEASE/build 
+
+- Instead of using the "-r" option, you can also use the environment 
+  variable SYSTEMTAP_RELEASE to direct systemtap to the kernel data.
+

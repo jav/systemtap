@@ -1,0 +1,75 @@
+// User context symbols tapset
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+// <tapsetdescription>
+// User context symbol functions provide additional information about
+// addresses from an application. These functions can provide
+// information about the user space map (library) that the event occured or
+// the function symbol of an address.
+// </tapsetdescription>
+
+%{
+#ifndef STP_NEED_SYMBOL_DATA
+#define STP_NEED_SYMBOL_DATA 1
+#endif
+#ifndef STP_NEED_VMA_TRACKER
+#define STP_NEED_VMA_TRACKER 1
+#endif
+%}
+
+/**
+ * sfunction usymname - Return the symbol of an address in the current task. EXPERIMENTAL!
+ * @addr: The address to translate.
+ *
+ * Description: Returns the (function) symbol name associated with the
+ * given address if known. If not known it will return the hex string
+ * representation of addr.
+ */
+function usymname:string (addr: long) %{ /* pure */
+	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+			     current, 0);
+%}
+
+/**
+ * sfunction usymdata - Return the symbol and module offset of an address. EXPERIMENTAL!
+ * @addr: The address to translate.
+ *
+ * Description: Returns the (function) symbol name associated with the
+ * given address in the current task if known, plus the module name
+ * (between brackets) and the offset inside the module (shared library),
+ * plus the size of the symbol function. If any element is not known it
+ * will be ommitted and if the symbol name is unknown it will return the
+ * hex string for the given address.
+ */
+function usymdata:string (addr: long) %{ /* pure */
+	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+			     current, 1);
+%}
+
+/**
+ * sfunction print_ustack - Print out stack for the current task from string. EXPERIMENTAL!
+ * @stk: String with list of hexidecimal addresses for the current task.
+ *
+ *  Perform a symbolic lookup of the addresses in the given string,
+ *  which is assumed to be the result of a prior call to 
+ *  <command>ubacktrace()</command> for the current task.
+ * 
+ *  Print one line per address, including the address, the
+ *  name  of the function containing the address, and an estimate of
+ *  its position within that function.  Return nothing.
+ */
+function print_ustack(stk:string) %{
+        char *ptr = THIS->stk;
+        char *tok = strsep(&ptr, " ");
+        while (tok && *tok) {
+                _stp_print_char(' ');
+                _stp_usymbol_print (simple_strtol(tok, NULL, 16), current);
+                _stp_print_char('\n');
+                tok = strsep(&ptr, " ");
+        }
+%}

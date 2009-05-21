@@ -1,0 +1,102 @@
+.\" -*- nroff -*-
+.TH STAPPROBES.TCP 3stap @DATE@ "IBM, Intel"
+.SH NAME
+stapprobes.tcp \- systemtap tcp probe points
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+
+This family of probe points is used to probe TCP layer activities.
+It contains the following probe points:
+
+.P
+.TP
+.B tcp.sendmsg
+
+Fires whenever sending a tcp message
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I size
+  number of bytes to send
+
+.P
+.TP
+.B tcp.sendmsg.return
+
+Fires whenever sending message is done
+
+.B Arguments:
+
+.I size
+  number of bytes sent
+
+.P
+.TP
+.B tcp.recvmsg
+
+Fires whenever a message is received
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I size
+  number of bytes to be received
+
+.P
+.TP
+.B tcp.recvmsg.return
+
+Fires whenever message receiving is done
+
+.B Arguments:
+
+.I size
+  number of bytes received
+
+.P
+.TP
+.B tcp.disconnect
+
+Fires whenever tcp is disconnected
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I flags
+  TCP flags (e.g. FIN, etc)
+
+.P
+.TP
+.B tcp.disconnect.return
+
+Fires when returning from tcp.disconnect
+
+.B Arguments:
+
+.I ret
+  error code (0: no error)
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes (3stap)
+

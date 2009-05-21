@@ -30,10 +30,14 @@ public:
   void add(const char *s) { add((const unsigned char *)s, strlen(s)); }
   void add(const std::string& s) { add((const unsigned char *)s.c_str(),
 				       s.length()); }
+  void add_file(const std::string& filename);
 
   void result(std::string& r);
 };
 
 void find_hash (systemtap_session& s, const std::string& script);
+void find_tracequery_hash (systemtap_session& s);
+void find_typequery_hash (systemtap_session& s, const std::string& name,
+                          std::string& module);
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

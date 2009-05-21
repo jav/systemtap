@@ -113,6 +113,20 @@ probe syscall.open {
 		success = 0;
 	}
 
+	expected_16_actual = sprintf ("  %02x%02x%02x%02x%02x%02x",
+				      stringat(filename, 0),
+				      stringat(filename, 1),
+				      stringat(filename, 2),
+				      stringat(filename, 3),
+				      stringat(filename, 4),
+				      stringat(filename, 5));
+	testName = "%M dynamic width larger than dynamic precision";
+	result = sprintf ("%*.*M", 14, 6, $filename);
+	if (result != expected_16_actual) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
 	if (success)
 	   print ("Test passed\n");
 

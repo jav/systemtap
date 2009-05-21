@@ -8,16 +8,16 @@ function print_report()
 }
 
 probe tcp.sendmsg {
-	ports   = inet_get_local_port(sk)
-	src_ips = inet_get_ip_source(sk)
-	rtos    = tcp_get_info_rto(sk)
+	ports   = inet_get_local_port(sock)
+	src_ips = inet_get_ip_source(sock)
+	rtos    = tcp_get_info_rto(sock)
 }
 
 probe tcp.recvmsg {
-        cwnd     = tcp_get_info_snd_cwnd(sk)
-        mss      = tcp_ts_get_info_rcv_mss(sk)      
-        ssthresh = tcp_ts_get_info_snd_ssthresh(sk)       
-        state    =  tcp_ts_get_info_state(sk)
+        cwnd     = tcp_get_info_snd_cwnd(sock)
+        mss      = tcp_ts_get_info_rcv_mss(sock)
+        ssthresh = tcp_ts_get_info_snd_ssthresh(sock)
+        state    =  tcp_ts_get_info_state(sock)
 }
 
 probe tcp.sendmsg.return {

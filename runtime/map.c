@@ -38,27 +38,16 @@ static int int64_eq_p (int64_t key1, int64_t key2)
 
 static void str_copy(char *dest, char *src)
 {
-	int len = 0;
-	if (src) {
-		len = strlen(src);
-		if (len > MAP_STRING_LENGTH - 1)
-			len = MAP_STRING_LENGTH - 1;
-		memcpy (dest, src, len);
-	}
-	dest[len] = 0;
+	if (src)
+		strlcpy(dest, src, MAP_STRING_LENGTH);
+	else
+		*dest = 0;
 }
 
 static void str_add(void *dest, char *val)
 {
 	char *dst = (char *)dest;
-	int len = strlen(val);
-	int len1 = strlen(dst);
-	int num = MAP_STRING_LENGTH - 1 - len1;
-
-	if (len > num)
-		len = num;
-	memcpy (&dst[len1], val, len);
-	dst[len + len1] = 0;
+	strlcat(dst, val, MAP_STRING_LENGTH);
 }
 
 static int str_eq_p (char *key1, char *key2)
@@ -730,7 +719,7 @@ static MAP _stp_pmap_agg (PMAP pmap)
 {
 	int i, hash;
 	MAP m, agg;
-	struct map_node *ptr, *aptr;
+	struct map_node *ptr, *aptr = NULL;
 	struct hlist_head *head, *ahead;
 	struct hlist_node *e, *f;
 

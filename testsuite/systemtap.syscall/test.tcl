@@ -32,7 +32,7 @@ proc run_one_test {filename flags} {
     set testname [file tail [string range $filename 0 end-2]]
     set result "UNSUPP"
 
-    if {[catch {exec mktemp -d [pwd]/staptestXXXXX} dir]} {
+    if {[catch {exec mktemp -d [pwd]/staptestXXXXXX} dir]} {
 	puts stderr "Failed to create temporary directory: $dir"
 	cleanup
     }
@@ -40,22 +40,28 @@ proc run_one_test {filename flags} {
     target_compile $filename $dir/$testname executable $flags
     
     set sys_prog "[file dirname [file normalize $filename]]/sys.stp"
-    set cmd "stap -c $dir/${testname} ${sys_prog}"
+    set cmd "stap --skip-badvars -c $dir/${testname} ${sys_prog}"
     
     # Extract the expected results
     # Use the preprocessor so we can ifdef tests in and out
     
     set ccmd "gcc -E -C -P $filename"
+    # XXX: but note, this will expand all system headers too!
     catch {eval exec $ccmd} output
     
     set ind 0
     foreach line [split $output "\n"] {
-	if {[regsub {//} $line {} line]} {
+	if {[regsub {//staptest//} $line {} line]} {
 	    set line "$testname: [string trimleft $line]"
-	    
+
+	    # We need to quote all these metacharacters
 	    regsub -all {\(} $line {\\(} line
-		regsub -all {\)} $line {\\)} line
+	    regsub -all {\)} $line {\\)} line
 	    regsub -all {\|} $line {\|} line
+	    # + and * are metacharacters, but should always be used
+	    # as metacharacters in the expressions, don't escape them.
+	    #regsub -all {\+} $line {\\+} line
+	    #regsub -all {\*} $line {\\*} line
 	    
 	    regsub -all NNNN $line {[\-0-9]+} line
 	    regsub -all XXXX $line {[x0-9a-fA-F]+} line
@@ -78,6 +84,7 @@ proc run_one_test {filename flags} {
     
     set i 0
     foreach line [split $output "\n"] {
+        # send_log "Comparing $results($i) against $line"
 	if {[regexp $results($i) $line]} {
 	    incr i
 	    if {$i >= $ind} {break}

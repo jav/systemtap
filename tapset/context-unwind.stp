@@ -6,7 +6,11 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// Context functions provide additional information about where an event occurred. These functions can 
+//provide information such as a backtrace to where the event occured and the current register values for the 
+//processor.
+// </tapsetdescription>
 %{
 #ifndef STP_NEED_UNWIND_DATA
 #define STP_NEED_UNWIND_DATA 1
@@ -19,12 +23,12 @@
 /**
  * sfunction print_backtrace - Print stack back trace
  *
- *  Equivalent to <command>print_stack(backtrace())</command>,
+ *  Equivalent to <command>print_stack(backtrace())</command>, 
  *  except that deeper stack nesting may be supported.  Return nothing.
  */
 function print_backtrace () %{
 	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE);
+		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE, NULL);
 	} else {
 		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
 	}
@@ -33,12 +37,12 @@ function print_backtrace () %{
 /**
  * sfunction backtrace - Hex backtrace of current stack
  *
- *  Return a string of hex addresses that are a backtrace of the
- *  stack.  It may be truncated due to maximum string length.
+ *  Return a string of hex addresses that are a backtrace of the 
+ *  stack.  Output may be truncated as per maximum string length.
  */
 function backtrace:string () %{ /* pure */
 	if (CONTEXT->regs)
-		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE);
+		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE, NULL);
 	else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
@@ -46,21 +50,19 @@ function backtrace:string () %{ /* pure */
 /**
  * sfunction caller - Return name and address of calling function
  *
- *  Return the address and name of the calling function.
+ *  Return the address and name of the calling function. 
+ *  This is equivalent to calling:
+ *  sprintf("%s 0x%x", symname(caller_addr(), caller_addr()))
  *  <emphasis>Works only for return probes at this time.</emphasis>
  */
-function caller:string() %{ /* pure */
-        if (CONTEXT->pi) 
-		_stp_symbol_snprint( THIS->__retvalue, MAXSTRINGLEN, 
-			(unsigned long)_stp_ret_addr_r(CONTEXT->pi));
-        else
-		strlcpy(THIS->__retvalue,"unknown",MAXSTRINGLEN);
-%}
+function caller:string() {
+	return sprintf("%s 0x%x", symname(caller_addr()), caller_addr());
+}
 
 /**
  * sfunction caller_addr -  Return caller address
  *
- *  Return the address of the calling function.
+ *  Return the address of the calling function. 
  *  <emphasis> Works only for return probes at this time.</emphasis>
  */
 function caller_addr:long () %{ /* pure */

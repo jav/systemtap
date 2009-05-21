@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap],   0.9, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 0.9.7, systemtap@sources.redhat.com, systemtap)
 dnl                  ^^^^^ see also NEWS, systemtap.spec, testsuite/configure.ac
 
 AC_PREREQ(2.59)
@@ -82,9 +82,10 @@ AS_IF([test "x$enable_ssp" != xno],[
        CFLAGS="$save_CFLAGS"
        CXXFLAGS="$save_CXXFLAGS"])])
 
+# Compiling without fPIE by default (see PR 9922)
 AC_ARG_ENABLE([pie],
-  [AS_HELP_STRING([--disable-pie], [disable position-independent-executable])])
-AS_IF([test "x$enable_pie" != xno],[
+  [AS_HELP_STRING([--enable-pie], [enable position-independent-executable])])
+AS_IF([test "x$enable_pie" == xyes],[
    save_CFLAGS="$CFLAGS"
    save_CXXFLAGS="$CXXFLAGS"
    save_LDFLAGS="$LDFLAGS"
@@ -188,13 +189,26 @@ if test "$building_docs" == "no" -a "$enable_refdocs" == "yes" ; then
    AC_MSG_ERROR([must use --enable-docs with --enable-refdocs])
 fi
 AC_CHECK_PROG(have_xmlto, xmlto, yes, no)
-if test "x${have_xmlto}" == "xyes"; then
+if test "$enable_refdocs" == "yes"; then
+   if test "x${have_xmlto}" != "xyes"; then
+      AC_MSG_ERROR([cannot find xmlto for building reference documentation])
+   fi
+fi
+if test "x${have_xmlto}" == "xyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
+   building_refdocs="yes"
+fi
+AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
+
+if test "x${building_refdocs}" == "xyes"; then
 AC_MSG_CHECKING([for xmlto pdf support])
 cat > conftest.$ac_ext << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" []>
    <book id="pdffromxml">
+     <bookinfo>
+       <title>test</title>
+     </bookinfo>
    </book>
 EOF
    xmlto pdf conftest.$ac_ext >& /dev/null
@@ -203,17 +217,10 @@ EOF
       AC_MSG_RESULT([yes])
    else
       AC_MSG_RESULT([no])
+      AC_MSG_WARN([Not building reference documentation in PDF format])
    fi
 fi
-if test "$enable_refdocs" == "yes"; then
-   if test "x${have_xmlto}${have_xmlto_pdf}" != "xyesyes"; then
-      AC_MSG_ERROR([cannot find proper yxmlto for building reference documentation])
-   fi
-fi
-if test "x${have_xmlto}${have_xmlto_pdf}" == "xyesyes" -a "$enable_refdocs" != "no" -a "${building_docs}" == "yes"; then
-   building_refdocs="yes"
-fi
-AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
+AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "have_xmlto_pdf" == "yes"])
 
 dnl Handle the option to build the server setup.
 AC_ARG_ENABLE([server],
@@ -221,7 +228,8 @@ AC_ARG_ENABLE([server],
     [enable building of stap-server/client (default on if nss etc. found).]),
   [enable_server=$enableval],
   [enable_server="check"])
-dnl Find the location of nss and nspr headers
+dnl Find the location of nss and nspr headers and certutil
+AC_CHECK_PROG(have_certutil, certutil, [yes], [no])
 AC_CHECK_FILE([/usr/include/nss3], nssdir=nss3, [
 	AC_CHECK_FILE([/usr/include/nss], nssdir=nss)
 ])
@@ -242,15 +250,27 @@ AC_CHECK_LIB(nspr4, PR_Connect, [
 	AC_CHECK_LIB(ssl3, SSL_ReHandshake, have_nss_libs=yes)
 ])
 fi
-if test "x${have_nss_includes}${have_nss_libs}" != "xyesyes"; then
+if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" != "xyesyesyes"; then
   if test "$enable_server" == "yes"; then
-    AC_MSG_ERROR([cannot find all libraries for stap-server])
+    AC_MSG_ERROR([cannot find all libraries or tools for stap-server])
   fi
   if test "$enable_server" == "check"; then
-    AC_MSG_WARN([will not build stap-server, cannot find all libraries])
+    AC_MSG_WARN([will not build stap-server, cannot find all libraries or tools])
   fi
+else
+    AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
 fi
-AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes" -a "$enable_server" != "no"])
+AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes" -a "$enable_server" != "no"])
+AM_CONDITIONAL([HAVE_NSS],     [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes"])
+
+dnl Handle the optional grapher
+AC_ARG_ENABLE([grapher],
+  AS_HELP_STRING([--enable-grapher],
+    [enable building of grapher (default on if gtkmm is found).]),
+  [enable_grapher=$enableval],
+  [enable_grapher="check"])
+PKG_CHECK_MODULES([GRAPHER], [gtkmm-2.4 >= 2.8.0],have_gtkmm=yes,have_gtkmm=no)
+AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_gtkmm}" == "xyes" -a x"$enable_grapher" != "xno"])
 
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
@@ -355,9 +375,10 @@ dnl Don't use this directly (when not given it is set to NONE).
 AC_DEFINE_UNQUOTED(STAP_PREFIX, "$prefix", [configure prefix location])
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 stap-server.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5 initscript/systemtap)
+AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-server.8 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap initscript/systemtap)
 AC_CONFIG_SUBDIRS(testsuite)
 AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
+AC_CONFIG_FILES([run-staprun], [chmod +x run-staprun])
 AC_OUTPUT
 
 if test "${prefix}" = "/usr/local"; then

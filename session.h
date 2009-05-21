@@ -30,6 +30,7 @@ struct functiondecl;
 struct derived_probe;
 struct be_derived_probe_group;
 struct dwarf_derived_probe_group;
+struct kprobe_derived_probe_group;
 struct uprobe_derived_probe_group;
 struct utrace_derived_probe_group;
 struct itrace_derived_probe_group;
@@ -74,8 +75,9 @@ struct statistic_decl
 struct systemtap_session
 {
   systemtap_session ();
-  // NB: new POD members likely need to be explicitly cleared in the ctor.
-  // See elaborate.cxx.
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
 
   // command line args
   std::vector<std::string> include_path;
@@ -87,9 +89,11 @@ struct systemtap_session
   std::string architecture;
   std::string runtime_path;
   std::string data_path;
+  std::string cert_db_path;
   std::string module_name;
   std::string stapconf_name;
   std::string output_file;
+  std::string size_option;
   std::string cmd;
   int target_pid;
   int last_pass;
@@ -111,11 +115,16 @@ struct systemtap_session
   bool need_uprobes;
   bool load_only; // flight recorder mode
 
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
+
   // Cache data
   bool use_cache;
   std::string cache_path;
   std::string hash_path;
   std::string stapconf_path;
+  std::string tracequery_path;
 
   // dwarfless operation
   bool consult_symtab;
@@ -125,6 +134,10 @@ struct systemtap_session
 
   // Skip bad $ vars
   bool skip_badvars;
+
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
 
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
@@ -159,6 +172,7 @@ struct systemtap_session
   // session.probes vector.
   be_derived_probe_group* be_derived_probes;
   dwarf_derived_probe_group* dwarf_derived_probes;
+  kprobe_derived_probe_group* kprobe_derived_probes;
   uprobe_derived_probe_group* uprobe_derived_probes;
   utrace_derived_probe_group* utrace_derived_probes;
   itrace_derived_probe_group* itrace_derived_probes;
@@ -170,8 +184,10 @@ struct systemtap_session
   hrtimer_derived_probe_group* hrtimer_derived_probes;
   perfmon_derived_probe_group* perfmon_derived_probes;
   procfs_derived_probe_group* procfs_derived_probes;
+
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (elaborate.cxx).
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
 
   // unparser data
   translator_output* op;
@@ -187,6 +203,10 @@ struct systemtap_session
   std::set<std::string> unwindsym_modules;
   struct module_cache* module_cache;
 
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
+
   std::set<std::string> seen_errors;
   std::set<std::string> seen_warnings;
   unsigned num_errors () { return seen_errors.size(); }
@@ -198,7 +218,9 @@ struct systemtap_session
   void print_error_source (std::ostream&, std::string&, const token* tok);
   void print_warning (const std::string& w, const token* tok = 0);
 
-  // reNB: new POD members likely need to be explicitly cleared in the ctor.
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (elaborate.cxx)
+  // and/or main.cxx(main).
 };
 
 

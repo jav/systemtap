@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# You have to specify ouput FILE with '-S' option
+#
+#-S size[,N]     Switches output file to next file when the size
+#                of file reaches the specified size. The value
+#                should be an integer greater than 1 which is
+#                assumed to be the maximum file size in MB.
+#                When the number of output files reaches N, it
+#                switches to the first output file. You can omit
+#                the second argument.
+#-o FILE         Send output to FILE. This supports strftime(3)
+#                formats for FILE.
+
+staprun -S 1,1 fake_module

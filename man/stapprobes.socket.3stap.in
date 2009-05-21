@@ -1,0 +1,485 @@
+.\" -*- nroff -*-
+.TH STAPPROBES.SOCKET 3stap @DATE@ "IBM"
+.SH NAME
+stapprobes.socket \- systemtap socket probe points
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+
+This family of probe points is used to probe socket activities.
+It contains the following probe points:
+
+.P
+.TP
+.B socket.send
+
+Fires at the conclusion of sending a message on a socket.
+This probe alias includes the
+.B socket.sendmsg.return,
+.B socket.aio_write.return
+and
+.B socket.writev.return
+probes (these probes should
+catch all messages sent on sockets).  The arguments supplied at the beginning
+of the send are cached and made available in this probe.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+.I name
+    Name of this probe.
+
+.I size
+    Size of message sent (in bytes) or error code if success == 0
+
+.I protocol
+    Protocol used on the socket. Use sock_prot_num2str(protocol) 
+    to convert to a string.
+
+    Common values include:
+         0 - IP (Internet Protocol, local interprocess communications)
+         6 - TCP (Transmission Control Protocol)
+        17 - UDP (User Datagram Protocol)
+       132 - SCTP (Stream Control Transmission Protocol)
+
+     Refer to /etc/protocols for a complete list of possible values.
+
+.I family
+    Protocol family of the socket (from include/linux/socket.h).
+    Use sock_fam_num2str(family) to convert to a string.
+
+    Possible values are:
+        0  - UNSPEC (Unspecified)
+        1  - LOCAL (Unix domain/local sockets)
+        2  - INET (Internet Protocol (IP))
+        3  - AX25 (Amateur Radio AX.25)
+        4  - IPX (Novell IPX)
+        5  - APPLETALK (AppleTalk DDP)
+        6  - NETROM (Amateur Radio NET/ROM)
+        7  - BRIDGE (Multiprotocol bridge)
+        8  - ATMPVC (ATM PVCs)
+        9  - X25 (X.25)
+        10 - INET6 (IP version 6)
+        11 - ROSE (Amateur Radio X.25 PLP)
+        12 - DECNET (Reserved for DECnet project)
+        13 - NETBEUI (Reserved for 802.2LLC project)
+        14 - SECURITY (Security callback pseudo AF)
+        15 - KEY (key management API)
+        16 - NETLINK (Netlink protocol)
+        17 - PACKET (Packet family)
+        18 - ASH (Ash)
+        19 - ECONET (Acorn Econet)
+        20 - ATMSVC (ATM SVCs)
+        22 - SNA (Linux SNA Project)
+        23 - IRDA (IRDA sockets)
+        24 - PPP0X (PPPoX sockets)
+        25 - WANPIPE (Wanpipe API Sockets)
+        26 - LLC (Linux LLC)
+        30 - TIPC (TIPC sockets)
+        31 - BLUETOOTH (Bluetooth sockets)
+
+.I state
+    State of the socket.  Use sock_state_num2str(state) to convert
+    to a string.
+
+    Possible values are:
+        0 - FREE (not allocated)
+        1 - UNCONNECTED (unconnected to any socket)
+        2 - CONNECTING (in the process of connecting)
+        3 - CONNECTED (connected to a socket)
+        4 - DISCONNECTING (in the process of disconnecting)
+
+.I flags
+    Socket flags.  Use sock_flags_num2str(flags) to convert
+    to a string.
+
+    Possible values are:
+        0 - ASYNC_NOSPACE
+        1 - ASYNC_WAITDATA
+        2 - NOSPACE
+        3 - PASSCRED
+        4 - PASSSEC
+
+.I type
+    Socket type.  Use sock_type_num2str(type) to convert
+    to a string.
+
+    Possible values are:
+        1  - STREAM (stream connection socket)
+        2  - DGRAM (datagram connectionless socket)
+        3  - RAW (raw socket)
+        4  - RDM (reliably-deliverd message)
+        5  - SEQPACKET (sequential packet socket)
+        6  - DCCP (datagram congestion control protocol socket)
+        10 - PACKET (Linux-specific way of getting packets at device level)
+
+.I success
+    Was send successful?
+
+    Possible values are:
+        1 - Yes
+        0 - No
+
+.TP
+.B socket.receive
+
+Fires at the conclusion of receiving a message on a socket.
+This probe alias includes the
+.B socket.recvmsg.return,
+.B socket.aio_read.return
+and
+.B socket.readv.return
+probes (these probes should
+catch all messages received on sockets).  The arguments supplied at
+the beginning of the receive are cached and made available in this probe.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as 
+.B socket.send.
+
+.TP
+.B socket.sendmsg
+
+Fires when the sock_sendmsg() kernel function is entered.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+Same as 
+.B socket.send,
+with the following exceptions:
+
+.I size
+
+    Size of message being sent (in bytes).
+
+.I success
+
+    Not used.
+
+.TP
+.B socket.sendmsg.return
+
+Fires when the sock_sendmsg() kernel function returns.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+Same as 
+.B socket.send
+
+.TP
+.B socket.recvmsg
+
+Fires when the sock_recvmsg() kernel function is entered.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as 
+.B socket.receive,
+with the following exceptions:
+
+.I size
+
+    Size of message being received (in bytes).
+
+.I success
+
+    Not used.
+
+.TP
+.B socket.recvmsg.return
+
+Fires when the sock_recvmsg() kernel function returns.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as 
+.B socket.receive.
+
+
+
+
+
+
+.TP
+.B socket.aio_write
+
+Fires when the sock_aio_write() kernel function is entered.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+Same as
+.B socket.send,
+with the following exceptions:
+
+.I size
+
+    Size of message being sent (in bytes).
+
+.I success
+
+    Not used.
+
+.TP
+.B socket.aio_write.return
+
+Fires when the sock_aio_write() kernel function returns.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+Same as
+.B socket.send.
+
+.TP
+.B socket.aio_read
+
+Fires when the sock_aio_read() kernel function is entered.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as 
+.B socket.receive,
+with the following exceptions:
+
+.I size
+
+    Size of message being received (in bytes).
+
+.I success
+
+    Not used.
+
+.TP
+.B socket.aio_read.return
+
+Fires when the sock_aio_read() kernel function returns.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as
+.B socket.receive.
+
+.TP
+.B socket.writev
+
+Fires when the sock_writev() kernel function is entered.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+Same as
+.B socket.send,
+with the following exceptions:
+
+.I size
+
+    Size of message being sent (in bytes).
+
+.I success
+
+    Not used.
+
+.TP
+.B socket.writev.return
+
+Fires when the sock_writev() kernel function returns.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+Same as
+.B socket.send.
+
+.TP
+.B socket.readv
+
+Fires when the sock_readv() kernel function is entered.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as 
+.B socket.receive,
+with the following exceptions:
+
+.I size
+
+    Size of message being received (in bytes).
+
+.I success
+
+    Not used.
+
+.TP
+.B socket.readv.return
+
+Fires when the sock_readv() kernel function returns.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as
+.B socket.receive.
+
+.TP
+.B socket.create
+
+Fires at the beginning of creating a socket.
+
+.B Context:
+
+The socket creator.
+
+.B Arguments:
+
+.I name
+.br
+.I protocol
+.br
+.I family
+.br
+.I type
+    See 
+.B socket.send.
+
+.I requester
+    Requester type.
+
+    Possible values are:
+        1 - kernel
+        0 - user
+
+.TP
+.B socket.create.return
+
+Fires at the end of creating a socket.
+
+.B Context:
+
+The socket creator.
+
+.B Arguments:
+
+Same as 
+.B socket.create,
+plus:
+
+.I err
+    Return code.
+
+    Possible values are:
+        0 - success
+      < 0 - error
+
+.I success
+    Was the socket created successfully?
+
+    Possible values are:
+        1 - Yes
+        0 - No
+.TP
+.B socket.close
+
+Fires at the beginning of closing a socket.
+
+.B Context:
+
+The socket closer.
+
+.B Arguments:
+
+.I name
+.br
+.I protocol
+.br
+.I family
+.br
+.I state
+.br
+.I flags
+.br
+.I type
+    See
+.B socket.send.
+
+.TP
+.B socket.close.return
+
+Fires at the end of closing a socket.
+
+.B Context:
+
+The socket closer.
+
+.B Arguments:
+
+.I name
+    Name of this probe.
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes (3stap),
+.IR stapfuncs (3stap)

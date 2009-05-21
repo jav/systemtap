@@ -1,0 +1,86 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="tcpconnectionssect">
+		<title>Monitoring Incoming TCP Connections</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>monitoring incoming TCP connections</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>monitoring incoming TCP connections</secondary>
+</indexterm>
+
+<indexterm>
+<primary>monitoring incoming TCP connections</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+<indexterm>
+	<primary>TCP connections (incoming), monitoring</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+	<primary>incoming TCP connections, monitoring</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>	
+<!--				
+<indexterm>
+	<primary>script examples</primary>
+	<secondary>net/socket.c, tracing functions from</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>examples of SystemTap scripts</primary>
+	<secondary>net/socket.c, tracing functions from</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>net/socket.c, tracing functions from</primary>
+	<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+-->
+
+<para>
+	This section illustrates how to monitor incoming TCP connections. This task is useful in 
+	identifying any unauthorized, suspicious, or otherwise unwanted network access requests
+	in real time. 
+</para>
+
+<formalpara id="tcpconnections">
+		<title>tcp_connections.stp</title>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/testsuite/systemtap.examples/network/tcp_connections.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>		
+
+<para>
+	While <xref linkend="tcpconnections"/> is running, it will print out the following information
+	about any incoming TCP connections accepted by the system in real time:
+</para>
+
+<itemizedlist>
+	<listitem><para>Current <command>UID</command></para></listitem>
+	<listitem><para><command>CMD</command> - the command accepting the connection</para></listitem>
+	<listitem><para><command>PID</command> of the command</para></listitem>
+	<listitem><para>Port used by the connection</para></listitem>
+	<listitem><para>IP address from which the TCP connection originated</para></listitem>
+</itemizedlist>
+	
+	
+<example id="tcpconnectionsoutput">
+	<title><xref linkend="tcpconnections"/> Sample Output</title>
+<screen>
+UID            CMD    PID   PORT        IP_SOURCE
+0             sshd   3165     22      10.64.0.227
+0             sshd   3165     22      10.64.0.227
+</screen>
+</example>
+
+</section>
+

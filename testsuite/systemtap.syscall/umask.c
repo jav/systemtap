@@ -5,16 +5,16 @@
 int main()
 {
   umask (0);
-  // umask (00) = NNNN
+  //staptest// umask (00) = NNNN
   umask (7);
-  // umask (07) = 00
+  //staptest// umask (07) = 00
   umask (077);
-  // umask (077) = 07
+  //staptest// umask (077) = 07
   umask (0666);
-  // umask (0666) = 077
+  //staptest// umask (0666) = 077
   umask (0777);
-  // umask (0777) = 0666
+  //staptest// umask (0777) = 0666
   umask (01777);
-  // umask (01777) = 0777
+  //staptest// umask (01777) = 0777
   return 0;
 }

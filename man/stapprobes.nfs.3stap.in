@@ -1,0 +1,1236 @@
+.\" -*- nroff -*-
+.TH STAPPROBES.NFS 3stap @DATE@ "IBM"
+.SH NAME
+stapprobes.nfs \- systemtap NFS client side probe points
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+
+This family of probe points is used to probe NFS activities on 
+client side.
+It contains the following probe points:
+
+.P
+.TP
+.B nfs.fop.llseek 
+
+Fires whenever doing a llseek operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I maxbyte
+  Maximum size of the files
+
+.I offset
+  the offset of file to be repositioned 
+
+.I origin
+  the original position. The possible value could be:
+          SEEK_SET
+                The offset is set to offset bytes.
+          SEEK_CUR
+                The offset is set to its current location 
+                plus offset bytes.
+          SEEK_END
+                The offset is set to the size of the file 
+                plus offset bytes.
+
+.P
+.TP
+.B nfs.fop.llseek.return
+
+Fires whenever nfs llseek operation is done
+
+.B Arguments:
+
+.I retstr 
+   resulting offset location 
+
+.P
+.TP
+.B nfs.fop.read
+
+Fires whenever doing a read operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I len,size
+  number of bytes to be read
+
+.I pos 
+  current file offset 	
+
+.I buf 
+  the buf address 
+
+.P
+.TP
+.B nfs.fop.read.return
+
+Fires whenever nfs read operation is done
+
+.B Arguments:
+
+.I size 
+  number of bytes read
+
+.P
+.TP
+.B nfs.fop.write
+
+Fires whenever doing a write operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I len,size
+  number of bytes to written
+
+.I pos 
+  current file offset 	
+
+.I buf 
+  the buf address 
+
+.P
+.TP
+.B nfs.fop.write.return
+
+Fires whenever nfs write operation is done
+
+.B Arguments:
+
+.I size 
+  number of bytes written 
+
+.P
+.TP
+.B nfs.fop.aio_read
+
+Fires whenever doing an aio_read operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I count,size
+  number of bytes to be read 
+
+.I pos 
+  current file offset 	
+
+.I buf 
+  the buf address
+
+.I parent_name 
+  parent dir name
+
+.I file_name
+  file name
+
+.I cache_valid 
+  cache related bit mask flag
+
+.I cache_time 
+  when we started read-caching this inode
+
+.I attrtimeo 
+  how long the cached information is assumed to be valid.
+
+  The cached attrs for this inode needed to be revalidated if
+     jiffies \- read_cache_jiffies > attrtime
+
+.P
+.TP
+.B nfs.fop.aio_read.return
+
+Fires whenever nfs aio_read operation is done
+
+.B Arguments:
+
+.I size 
+  number of bytes read 
+
+.P
+.TP
+.B nfs.fop.aio_write
+
+Fires whenever doing an aio_write operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I count,size
+  number of bytes to written
+
+.I pos 
+  current file offset 	
+
+.I buf 
+  the buf address
+
+.I parent_name 
+  parent dir name
+
+.I file_name
+  file name
+
+.P
+.TP
+.B nfs.fop.aio_write.return
+
+Fires whenever nfs aio_write operation is done
+
+.B Arguments:
+
+.I size 
+  number of bytes written 
+
+.P
+.TP
+.B nfs.fop.mmap
+
+Fires whenever doing an mmap operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I vm_start
+  start address within vm_mm 
+
+.I vm_end
+  the first byte after end address within vm_mm
+
+.I vm_flag  
+  vm flags
+
+.I parent_name 
+  parent dir name
+
+.I file_name
+  file name
+
+.I cache_valid 
+  cache related bit mask flag
+
+.I cache_time 
+  when we started read-caching this inode
+
+.I attrtimeo 
+  how long the cached information is assumed to be valid.
+
+  The cached attrs for this inode needed to be revalidated if
+     jiffies \- read_cache_jiffies > attrtime
+
+.P
+.TP
+.B nfs.fop.open
+
+Fires whenever doing an open operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I file_name
+  file name
+
+.I flag
+  file flag
+
+.I i_size
+  file length in bytes
+
+.P
+.TP
+.B nfs.fop.flush
+
+Fires whenever doing an flush operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I mode  
+  file mode 
+
+.I ndirty 
+  number of dirty page to be flushed
+
+.P
+.TP
+.B nfs.fop.release
+
+Fires whenever doing a release page operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I mode  
+  file mode 
+
+.P
+.TP
+.B nfs.fop.fsync
+
+Fires whenever doing a fsync operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I ndirty 
+  number of dirty page to be flushed
+
+.P
+.TP
+.B nfs.fop.lock
+
+Fires whenever doing a file lock operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I i_mode 
+  file type and access rights
+
+.I cmd 
+  cmd arguments
+
+.I fl_type 
+  lock type
+
+.I fl_flag 
+  lock flags
+
+.I fl_start 
+  starting offset of locked region 
+
+.I fl_end   
+  ending offset of locked region
+ 
+.P
+.TP
+.B nfs.fop.sendfile
+
+Fires whenever doing a send file operation on nfs client side
+
+.B Arguments:
+
+.I dev 
+  device identifier 
+
+.I ino 
+  inode number
+
+.I s_id
+  the pointer to s_id
+
+.I devname 
+  the combination of server ip and the name of block device 
+  on server
+
+.I count,size
+  number of bytes to sent 
+
+.I ppos 
+  current file offset 	
+
+.I cache_valid 
+  cache related bit mask flag
+
+.I cache_time 
+  when we started read-caching this inode
+
+.I attrtimeo 
+  how long the cached information is assumed to be valid.
+
+  The cached attrs for this inode needed to be revalidated if
+     jiffies \- read_cache_jiffies > attrtime
+
+.P
+.TP
+.B nfs.fop.sendfile.return
+
+Fires whenever nfs sendfile operation is done
+
+.B Arguments:
+
+.I size 
+  number of bytes sent
+
+.P
+.TP
+.B nfs.fop.check_flags
+
+Fires whenever doing a check flag operation on nfs client side
+
+.B Arguments:
+
+.I flags
+  file flag
+
+.P
+.TP
+.B nfs.aop.readpage
+
+Fires when a previous async read operation failed
+
+.B Arguments:
+
+.I __page 
+  the address of page
+
+.I dev 
+  device identifier
+
+.I ino 
+  inode number    
+
+.I i_flag 
+  file flags
+
+.I i_size 
+  file length in bytes
+
+.I sb_flag 
+  super block flags
+
+.I file 
+  file argument
+
+.I page_index 
+  offset within mapping
+
+.I rsize 
+   read size  (in bytes)
+
+.P
+.TP
+.B nfs.aop.readpages
+
+Fires when in readahead way, read several pages once
+
+.B Arguments:
+
+.I dev 
+  device identifier
+
+.I ino 
+  inode number    
+
+.I nr_pages ,size 
+  number of pages attempted to read in this execution 
+
+.I file 
+  filp argument
+
+.I rpages 
+  read size (in pages) 
+
+.I rsize  
+  read size (in bytes)
+
+.P
+.TP
+.B nfs.aop.readpages.return
+
+Fires whenever a nfs read pages operation is done
+
+.B Arguments:
+
+.I size 
+  number of pages read
+
+.P
+.TP
+.B nfs.aop.set_page_dirty
+
+Fires whenever set page dirty on nfs client side
+
+.B Arguments:
+
+.I __page
+  the address of page
+
+.I page_flag
+  page flags
+
+.P
+.TP
+.B nfs.aop.writepage
+
+Fires whenever writing an mapped page to the server from nfs client side
+
+.B Arguments:
+
+.I __page 
+  the address of page
+
+.I dev 
+  device identifier
+
+.I ino 
+  inode number  
+
+.I for_reclaim 
+  a flag of writeback_control, indicates if it's invoked from the page allocator 
+
+.I for_kupdate 
+  a flag of writeback_control, indicates if it's a kupdate writeback
+  The priority of wb is decided by above two flags
+
+.I i_flag 
+  file flags
+
+.I i_size 
+  file length in bytes
+
+.I i_state 
+  inode state flags
+
+.I sb_flag 
+  super block flags
+
+.I page_index 
+  offset within mapping
+
+.I wsize 
+  write size
+
+.P
+.TP
+.B nfs.aop.writepages
+
+Fires whenever writing several dirty pages to the server from nfs client sides
+
+.B Arguments:
+
+.I dev 
+  device identifier
+
+.I ino 
+  inode number  
+
+.I for_reclaim 
+  a flag of writeback_control, indicates if it's invoked from the page allocator 
+
+.I for_kupdate 
+  a flag of writeback_control, indicates if it's a kupdate writeback
+  The priority of wb is decided by above two flags
+
+.I wpages 
+   write size (in pages)
+
+.I wsize 
+  write size
+
+.I nr_to_write ,size
+  number of pages attempted to be written in this execution  
+
+.P
+.TP
+.B nfs.aop.prepare_write
+
+Fires whenever prepare a page for writing on nfs client sides
+
+.B Arguments:
+
+.I __page
+  the address of page
+
+.I dev 
+  device identifier
+
+.I ino 
+  inode number  
+
+.I offset
+  start address of this write operation 
+
+.I to     
+  end address of this write operation 
+
+.I page_index 
+  offset within mapping 
+
+.I size   
+  read bytes
+
+.P
+.TP
+.B nfs.aop.commit_write
+
+Fires often after prepare write operation
+
+.B Arguments:
+
+.I __page
+  the address of page
+
+.I dev 
+  device identifier
+
+.I ino 
+  inode number  
+
+.I offset
+  start address of this write operation 
+
+.I to     
+  end address of this write operation 
+
+.I i_flag 
+  file flags
+
+.I i_size 
+  file length in bytes
+
+.I sb_flag 
+  super block flag
+
+.I page_index 
+  offset within mapping 
+
+.I size   
+  read bytes
+
+.P
+.TP
+.B nfs.aop.release_page
+
+.B Arguments:
+
+.I __page 
+  the address of page
+
+.I dev 
+  device identifier
+
+.I ino 
+  inode number
+
+.I page_index 
+  offset within mapping 
+
+.P
+.TP
+.B nfs.proc.lookup
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I filename 
+  the name of  file which client opens/searches on server
+
+.I name_len 
+  the length of file name
+
+.I bitmask0, bitmask1 
+  V4 bitmask representing the set of attributes 
+  supported on this filesystem (only in probe nfs.proc4.lookup)
+
+.P
+.TP
+.B nfs.proc.read
+
+Fires when client synchronously reads file from server
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I flags  
+  used to set task\->tk_flags in rpc_init_task function
+
+.I size,count 
+  number of bytes to be read in this execution
+
+.I offset 
+  the file offset
+
+.P
+.TP
+.B nfs.proc.read.return
+
+Fires when synchronously reading file from server is done
+
+.B Arguments:
+
+.I size 
+  number of bytes read
+
+.P
+.TP
+.B nfs.proc.write
+
+Fires when client synchronously writes file to server
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I flags  
+  used to set task\->tk_flags in rpc_init_task function
+
+.I size,count 
+  number of  bytes to be written in this execution
+
+.I offset 
+  the file offset
+
+.I bitmask0, bitmask1 
+  V4 bitmask representing the set of attributes 
+  supported on this filesystem (only in probe nfs.proc4.lookup)
+
+.P
+.TP
+.B nfs.proc.write.return
+
+Fires when synchronously writing file from server is done
+
+.B Arguments:
+
+.I size 
+  number of bytes written 
+
+.P
+.TP
+.B nfs.proc.commit
+
+Fires when client writes the buffered data to disk, the buffered 
+data is asynchronously written by client before(not exist in NFSV2)
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I size,count 
+  number of  bytes to be written in this execution
+
+.I offset 
+  the file offset
+
+.I bitmask0, bitmask1 
+  V4 bitmask representing the set of attributes 
+  supported on this filesystem (only in probe nfs.proc4.lookup)
+
+.P
+.TP
+.B nfs.proc.commit.return
+
+Fires when committing operation is done
+
+.B Arguments:
+
+.I size 
+  number of bytes written 
+
+.P
+.TP
+.B nfs.proc.read_setup
+
+Fires when client asynchronously reads file from server,
+this function is used to setup a read rpc task, not do
+a real read operation.
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I size,count 
+  number of  bytes to be read in this execution
+
+.I offset 
+  the file offset
+
+.P
+.TP
+.B nfs.proc.read_done
+
+Fires when a read reply is received or some read error occur
+(timeout or socket shutdown)
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I status 
+  result of last async read operation 
+
+.I count 
+  number of bytes read 
+
+.I timestamp
+  time stamp, which is used for lease renewal (only 
+  in nfs.proc4.read_done)
+
+.P
+.TP
+.B nfs.proc.write_setup
+
+Fires when client asynchronously write data to server,
+this function is used to setup a write rpc task, not do
+a write read operation.
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I size,count 
+  number of  bytes to be written in this execution
+
+.I offset 
+  the file offset
+
+.I how
+  used to set args.stable, The possible value could be:
+          NFS_UNSTABLE,
+          NFS_DATA_SYNC,
+          NFS_FILE_SYNC
+          (only in nfs.proc3.write_setup and nfs.proc4.write_setup)
+
+.I bitmask0, bitmask1 
+   V4 bitmask representing the set of attributes supported 
+   on this filesystem (only in probe nfs.proc4.write_setup)
+
+.P
+.TP
+.B nfs.proc.write_done
+
+Fires when a write reply is received or some write error occur
+(timeout or socket shutdown)
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I status 
+  result of last async write operation 
+
+.I valid  
+  fattr\->valid, indicates which fields are valid
+
+.I count 
+  number of bytes written 
+
+.I timestamp
+  time stamp, which is used for lease renewal (only 
+  in nfs.proc4.read_done)
+
+.P
+.TP
+.B nfs.proc.commit_setup
+
+Fires when client asynchronously do a commit operation,
+this function is used to setup a commit rpc task, not do
+a commit read operation.
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I size,count 
+  number of  bytes to be written in this execution
+
+.I offset 
+  the file offset
+
+.I bitmask0, bitmask1 
+   V4 bitmask representing the set of attributes supported 
+   on this filesystem (only in probe nfs.proc4.commit_setup)
+
+.P
+.TP
+.B nfs.proc.commit_done
+
+Fires when a commit reply is received or some commit error occur
+(timeout or socket shutdown)
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I status 
+  result of last async write operation 
+
+.I valid  
+  fattr\->valid, indicates which fields are valid
+
+.I count 
+  number of bytes written 
+
+.I timestamp
+  time stamp, which is used for lease renewal (only 
+  in nfs.proc4.read_done)
+
+.P
+.TP
+.B nfs.proc.open
+
+Fires whenever doing a open operation on nfs client side,
+the nfs_open function is used to allocate file read/write
+context information 
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I filename
+  file name
+
+.I flag
+  file flag
+
+.I mode
+  file mode
+
+.P
+.TP
+.B nfs.proc.release
+
+Fires whenever doing a release operation on nfs client side,
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I filename
+  file name
+
+.I flag
+  file flag
+
+.I mode
+  file mode
+
+.P
+.TP
+.B nfs.proc4.handle_exception
+
+Fires whenever doing the error handling, only exist in NFSV4  
+
+.I errorcode 
+  error code 
+
+.P
+.TP
+.B nfs.proc.create
+
+Fires whenever nfs client creates a file on server 
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I fh 
+  file handler of parent dir
+
+.I filename 
+  file name 
+
+.I filelen 
+  length of file name
+
+.I flag 
+  indicates create mode(only for NFSV3 and NFSV4)
+
+.P
+.TP
+.B nfs.proc.remove
+
+Fires whenever nfs client removes a file from server 
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I fh 
+  file handler of parent dir
+
+.I filename 
+  file name 
+
+.I filelen 
+  length of file name
+
+.P
+.TP
+.B nfs.proc.rename
+
+Fires whenever nfs client renames a file on server 
+
+.B Arguments:
+
+.I server_ip 
+  ip address of server
+
+.I prot  
+  transfer protocol
+
+.I version 
+  nfs version
+
+.I old_fh 
+  file handler of old parent dir
+
+.I old_name 
+  old file name 
+
+.I old_filelen 
+  length of old file name
+
+.I new_fh 
+  file handler of new parent dir
+
+.I new_name 
+  new file name 
+
+.I new_filelen 
+  length of new file name
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes (3stap)
+

@@ -1,0 +1,15 @@
+probe process("uprobes_exe").function("main") {
+  printf("main\n");
+}
+
+probe process("uprobes_exe").function("main_func") {
+  printf("main_func\n");
+}
+
+probe process("libuprobes_lib.so").function("lib_main") {
+  printf("lib_main\n");
+}
+
+probe process("libuprobes_lib.so").function("lib_func") {
+  printf("lib_func\n");
+}

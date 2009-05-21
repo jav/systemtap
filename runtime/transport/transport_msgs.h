@@ -21,12 +21,12 @@ struct _stp_trace {
 enum
 {
 	STP_START,
-        STP_EXIT,
+	STP_EXIT,
 	STP_OOB_DATA,
 	STP_SYSTEM,
 	STP_TRANSPORT,
 	STP_CONNECT,
- 	STP_DISCONNECT,
+	STP_DISCONNECT,
 	STP_BULK,
 	STP_READY,
         STP_RELOCATION,
@@ -34,6 +34,7 @@ enum
 	STP_BUF_INFO,
 	STP_SUBBUFS_CONSUMED,
 	STP_REALTIME_DATA,
+	STP_REQUEST_EXIT,
 	STP_MAX_CMD
 };
 
@@ -52,6 +53,7 @@ static const char *_stp_command_name[] = {
 	"STP_BUF_INFO",
 	"STP_SUBBUFS_CONSUMED",
 	"STP_REALTIME_DATA",
+	"STP_REQUEST_EXIT",
 };
 #endif /* DEBUG_TRANS */
 

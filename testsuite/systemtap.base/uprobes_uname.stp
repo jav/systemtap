@@ -1,0 +1,7 @@
+probe process("uprobes_exe").function("*") {
+  printf("exe: %s=%s\n",probefunc(), usymname(uaddr()));
+}
+
+probe process("libuprobes_lib.so").function("*") {
+  printf("lib: %s=%s\n",probefunc(), usymname(uaddr()));
+}

@@ -1,14 +1,14 @@
-%{!?release: %define release 1}
 %{!?with_sqlite: %define with_sqlite 1}
 %{!?with_docs: %define with_docs 1}
 %{!?with_crash: %define with_crash 0}
 %{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
 %{!?elfutils_version: %define elfutils_version 0.127}
+%{!?pie_supported: %define pie_supported 1}
 
 Name: systemtap
+Version: 0.9.7
+Release: 1%{?dist}
 # for version, see also configure.ac
-Version: 0.9
-Release: %{release}%{?dist}
 Summary: Instrumentation System
 Group: Development/System
 License: GPLv2+
@@ -30,7 +30,7 @@ Requires: kernel-devel
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
-BuildRequires: nss-devel
+BuildRequires: nss-devel nss-tools pkgconfig
 
 %if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
@@ -176,9 +176,15 @@ cd ..
 %define docs_config --disable-docs
 %endif
 
+# Enable pie as configure defaults to disabling it
+%if %{pie_supported}
+%define pie_config --enable-pie
+%else
+%define pie_config --disable-pie
+%endif
 
 
-%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config}
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config}
 make %{?_smp_mflags}
 
 %install
@@ -250,8 +256,12 @@ exit 0
 
 %{_bindir}/stap
 %{_bindir}/stap-report
+%{_bindir}/stap-env
+%{_bindir}/stap-gen-cert
+%{_bindir}/stap-authorize-cert
+%{_bindir}/stap-authorize-signing-cert
 %{_mandir}/man1/*
-%{_mandir}/man5/*
+%{_mandir}/man3/*
 
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/runtime
@@ -283,9 +293,8 @@ exit 0
 %files client
 %defattr(-,root,root)
 %{_bindir}/stap-client
+%{_bindir}/stap-env
 %{_bindir}/stap-find-servers
-%{_bindir}/stap-find-or-start-server
-%{_bindir}/stap-add-server-cert
 %{_bindir}/stap-client-connect
 %{_mandir}/man8/stap-server.8*
 
@@ -293,9 +302,14 @@ exit 0
 %defattr(-,root,root)
 %{_bindir}/stap-server
 %{_bindir}/stap-serverd
+%{_bindir}/stap-env
 %{_bindir}/stap-start-server
+%{_bindir}/stap-find-servers
+%{_bindir}/stap-find-or-start-server
 %{_bindir}/stap-stop-server
-%{_bindir}/stap-gen-server-cert
+%{_bindir}/stap-gen-cert
+%{_bindir}/stap-authorize-cert
+%{_bindir}/stap-authorize-server-cert
 %{_bindir}/stap-server-connect
 %{_mandir}/man8/stap-server.8*
 
@@ -317,6 +331,15 @@ exit 0
 
 
 %changelog
+* Thu Apr 23 2009 Josh Stone <jistone@redhat.com> - 0.9.7-1
+- Upstream release.
+
+* Fri Mar 27 2009 Josh Stone <jistone@redhat.com> - 0.9.5-1
+- Upstream release.
+
+* Wed Mar 18 2009 Will Cohen <wcohen@redhat.com> - 0.9-2
+- Add location of man pages.
+
 * Tue Feb 17 2009 Frank Ch. Eigler <fche@redhat.com> - 0.9-1
 - Upstream release.
 

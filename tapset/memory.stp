@@ -6,6 +6,9 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
+// <tapsetdescription>
+// This family of probe points is used to probe memory-related events. 
+// </tapsetdescription>
 %{
 #include <linux/mm.h>
 %}
@@ -53,7 +56,7 @@ function vm_fault_contains:long (value:long, test:long)
 /**
  * probe vm.pagefault - Records that a page fault occurred.
  * @address: The address of the faulting memory access; i.e. the address that caused the page fault.
- * @write_access: Indicates whether this was a write or read access; <command>1</command> indicates a write,
+ * @write_access: Indicates whether this was a write or read access; <command>1</command> indicates a write, 
  * while <command>0</command> indicates a read.
  *
  * Context: The process which triggered the fault
@@ -97,7 +100,7 @@ function addr_to_node:long(addr:long) %{ /* pure */
 		}
 %}
 
-/* Return whether a page to be copied is a zero page. */
+// Return whether a page to be copied is a zero page.
 function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
     THIS->__retvalue = (THIS->from == (long) ZERO_PAGE(THIS->vaddr));
 %}
@@ -110,8 +113,8 @@ function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
  * Context:
  *  The context is the process attempting the write.
  *
- *  Fires when a process attempts to write to a shared page.
- *  If a copy is necessary, this will be followed by a
+ *  Fires when a process attempts to write to a shared page. 
+ *  If a copy is necessary, this will be followed by a 
  *  <command>vm.write_shared_copy</command>.
  */
 probe vm.write_shared = kernel.function("do_wp_page") {
@@ -119,7 +122,7 @@ probe vm.write_shared = kernel.function("do_wp_page") {
 }
 
 /**
- * probe vm.write_shared_copy- Page copy for shared page write.
+ * probe vm.write_shared_copy - Page copy for shared page write.
  * @address: The address of the shared write.
  * @zero: Boolean indicating whether it is a zero page
  *         (can do a clear instead of a copy).

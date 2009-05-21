@@ -93,11 +93,22 @@ static inline unsigned long arch_get_cur_sp(struct pt_regs *regs)
 	return (unsigned long) regs->sp;
 }
 
+/*
+ * On x86_32, if a function returns a struct or union, the return
+ * value is copied into an area created by the caller.  The address
+ * of this area is passed on the stack as a "hidden" first argument.
+ * When such a function returns, it uses a "ret $4" instruction to pop
+ * not only the return address but also the hidden arg.  To accommodate
+ * such functions, we add 4 bytes of slop when predicting the return
+ * address. See PR #10078.
+ */
+#define STRUCT_RETURN_SLOP 4
+
 static inline unsigned long arch_predict_sp_at_ret(struct pt_regs *regs,
 		struct task_struct *tsk)
 {
 	if (test_tsk_thread_flag(tsk, TIF_IA32))
-		return (unsigned long) (regs->sp + 4);
+		return (unsigned long) (regs->sp + 4 + STRUCT_RETURN_SLOP);
 	else
 		return (unsigned long) (regs->sp + 8);
 }

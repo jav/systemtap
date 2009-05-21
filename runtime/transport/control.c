@@ -18,6 +18,8 @@ static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
 static DEFINE_SPINLOCK(_stp_ctl_ready_lock);
 
+static void _stp_cleanup_and_exit(int send_exit);
+
 static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
 	u32 type;
@@ -51,7 +53,7 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 		}
 		break;
 	case STP_EXIT:
-		_stp_exit_flag = 1;
+		_stp_cleanup_and_exit(1);
 		break;
 	case STP_BULK:
 #ifdef STP_BULKMODE
@@ -97,6 +99,9 @@ static void _stp_ctl_write_dbug(int type, void *data, int len)
 		break;
 	case STP_TRANSPORT:
 		_dbug("sending STP_TRANSPORT\n");
+		break;
+	case STP_REQUEST_EXIT:
+		_dbug("sending STP_REQUEST_EXIT\n");
 		break;
 	default:
 		_dbug("ERROR: unknown message type: %d\n", type);

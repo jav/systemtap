@@ -13,12 +13,12 @@ int main()
   
 
   listenfd = socket(AF_INET, SOCK_STREAM, 0);
-  // socket (PF_INET, SOCK_STREAM, 0) = NNNN
+  //staptest// socket (PF_INET, SOCK_STREAM, 0) = NNNN
 
   flags = fcntl(listenfd, F_GETFL, 0);
-  // fcntl[64]* (NNNN, F_GETFL, 0x[0]+) = NNNN
+  //staptest// fcntl[64]* (NNNN, F_GETFL, 0x[0]+) = NNNN
   fcntl(listenfd, F_SETFL, flags | O_NONBLOCK);
-  // fcntl[64]* (NNNN, F_SETFL, XXXX) = 0
+  //staptest// fcntl[64]* (NNNN, F_SETFL, XXXX) = 0
 
   bzero(&sa, sizeof(sa));
   sa.sin_family=AF_INET;
@@ -26,13 +26,13 @@ int main()
   sa.sin_port = htons(8765);
 
   bind(listenfd, (struct sockaddr *)&sa, sizeof(sa));
-  // bind (NNNN, {AF_INET, 0.0.0.0, 8765}, 16) = 0
+  //staptest// bind (NNNN, {AF_INET, 0.0.0.0, 8765}, 16) = 0
 
   listen (listenfd, 7);
-  // listen (NNNN, 7) = 0
+  //staptest// listen (NNNN, 7) = 0
 
   cfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
-  // accept (NNNN, 0x[0]+, 0x[0]+) = -NNNN (EAGAIN)
+  //staptest// accept (NNNN, 0x[0]+, 0x[0]+) = -NNNN (EAGAIN)
 
   close(cfd);
   close(listenfd);

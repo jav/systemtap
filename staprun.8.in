@@ -52,7 +52,9 @@ The '_stp_target' variable will be set to PID.
 .TP
 .B \-o FILE
 Send output to FILE. If the module uses bulk mode, the output will
-be in percpu files FILE_x where 'x' is the cpu number.
+be in percpu files FILE_x(FILE_cpux in background and bulk mode)
+where 'x' is the cpu number. This supports strftime(3) formats
+for FILE.
 .TP
 .B \-b BUFFER_SIZE
 The systemtap module will specify a buffer size.
@@ -73,6 +75,18 @@ Attach to loaded systemtap module.
 Delete a module.  Only detached or unused modules
 the user has permission to access will be deleted. Use "*"
 (quoted) to delete all unused modules.
+.TP
+.BI \-D
+Run staprun in background as a daemon and show it's pid.
+.TP
+.BI \-S " size[,N]"
+Sets the maximum size of output file and the maximum number of output files.
+If the size of output file will exceed
+.B size
+, systemtap switches output file to the next file. And if the number of
+output files exceed
+.B N
+, systemtap removes the oldest output file. You can omit the second argument.
 
 .SH ARGUMENTS
 .B MODULE
@@ -88,7 +102,7 @@ module.
 
 .SH EXAMPLES
 See the 
-.IR stapex (5)
+.IR stapex (3stap)
 manual page for a collection of sample scripts.
 .PP
 Here is a very basic example of how to use
@@ -152,9 +166,9 @@ located in this directory.  This directory should be owned by the root
 user and not be world writable.
 .SH SEE ALSO
 .IR stap (1),
-.IR stapprobes (5),
-.IR stapfuncs (5),
-.IR stapex (5),
+.IR stapprobes (3stap),
+.IR stapfuncs (3stap),
+.IR stapex (3stap),
 
 .SH BUGS
 Use the Bugzilla link off of the project web page or our mailing list.

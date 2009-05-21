@@ -1,0 +1,115 @@
+// kernel process tapset
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+// <tapsetdescription>
+//  This family of probe points is used to probe process-related activities.
+// </tapsetdescription>
+
+function _IS_ERR:long(ptr:long) %{ /* pure */
+    THIS->__retvalue = IS_ERR((const void *)(long)THIS->ptr);
+%}
+
+
+/**
+ * probe kprocess.create - Fires whenever a new process is successfully created
+ * @new_pid: The PID of the newly created process
+ *
+ * Context:
+ *  Parent of the created process.
+ *
+ *  Fires whenever a new process is successfully created, either as a result of
+ *  <command>fork</command> (or one of its syscall variants), or a new kernel thread.
+ */
+probe kprocess.create = kernel.function("copy_process").return {
+    task = $return
+    if (_IS_ERR(task)) next
+    new_pid = task_pid(task)
+}
+
+
+/**
+ * probe kprocess.start - Starting new process
+ *
+ * Context:
+ * Newly created process.
+ *
+ * Fires immediately before a new process begins execution.
+ *
+ */
+probe kprocess.start = kernel.function("schedule_tail") { }
+
+
+/**
+ * probe kprocess.exec - Attempt to exec to a new program
+ * @filename: The path to the new executable
+ *
+ * Context:
+ *  The caller of exec.
+ *
+ *  Fires whenever a process attempts to exec to a new program.
+ */
+probe kprocess.exec = 
+    kernel.function("do_execve"),
+    kernel.function("compat_do_execve") ?
+{
+    filename = kernel_string($filename)
+}
+
+
+/**
+ * probe kprocess.exec_complete - Return from exec to a new program
+ * @errno: The error number resulting from the exec
+ * @success: A boolean indicating whether the exec was successful
+ *
+ * Context:
+ *  On success, the context of the new executable.
+ *  On failure, remains in the context of the caller.
+ *
+ *  Fires at the completion of an exec call.
+ */
+probe kprocess.exec_complete =
+    kernel.function("do_execve").return,
+    kernel.function("compat_do_execve").return ?
+{
+    errno = $return
+    success = (errno >= 0)
+}
+
+
+/**
+ * probe kprocess.exit - Exit from process
+ * @code: The exit code of the process
+ *
+ * Context:
+ *  The process which is terminating.
+ *
+ *  Fires when a process terminates.  This will always be followed by a
+ *  kprocess.release, though the latter may be delayed if the process waits in a
+ *  zombie state.
+ */
+probe kprocess.exit = kernel.function("do_exit") {
+    code = $code
+}
+
+
+/**
+ * probe kprocess.release - Process released
+ * @task: A task handle to the process being released
+ * @pid: PID of the process being released
+ *
+ * Context:
+ *  The context of the parent, if it wanted notification of this process'
+ *  termination, else the context of the process itself.
+ *
+ *  Fires when a process is released from the kernel.  This always follows a
+ *  kprocess.exit, though it may be delayed somewhat if the process waits in a
+ *  zombie state.
+ */
+probe kprocess.release = kernel.function("release_task") {
+    task = $p
+    pid = $p->pid;
+}

@@ -16,22 +16,12 @@
 # Catch ctrl-c and other termination signals
 trap 'terminate' SIGTERM SIGINT
 
+# Initialize the environment
+. `dirname $0`/stap-env
+
 #-----------------------------------------------------------------------------
 # Helper functions.
 #-----------------------------------------------------------------------------
-# function: configuration
-function configuration {
-    # INSTALL-HOOK These settings work for running the client from the source tree
-    # INSTALL-HOOK using the dejagnu test harness and will be overridden at install
-    # INSTALL-HOOK time.
-    exec_prefix=
-    sysconfdir=`pwd`/net
-
-    # Configuration
-    tmpdir_prefix_client=stap.client
-    tmpdir_prefix_server=stap.server
-}
-
 # function: initialization
 function initialization {
     # Initialization
@@ -92,18 +82,18 @@ function unpack_request {
 	fatal "Cannot unpack zip archive $zip_client"
 
     # Identify the client's request tree. The zip file should have expanded
-    # into a single directory named to match $tmpdir_prefix_client.??????
+    # into a single directory named to match $stap_tmpdir_prefix_client.??????
     # which should now be the only item in the current directory.
     test "`ls | wc -l`" = 3 || \
 	fatal "Wrong number of files after expansion of client's zip file"
 
-    tmpdir_client=`ls | grep $tmpdir_prefix_client.......\$`
+    tmpdir_client=`ls | grep $stap_tmpdir_prefix_client.......\$`
 
     test "X$tmpdir_client" != "X" || \
 	fatal "Client zip file did not expand as expected"
 
     # Move the client's temp directory to a local temp location
-    local local_tmpdir_client=`mktemp -dt $tmpdir_prefix_server.client.XXXXXX` || \
+    local local_tmpdir_client=`mktemp -dt $stap_tmpdir_prefix_server.client.XXXXXX` || \
 	fatal "Cannot create temporary client request directory " $local_tmpdir_client
     mv $tmpdir_client/* $local_tmpdir_client
     rm -fr $tmpdir_client
@@ -340,7 +330,7 @@ function call_stap {
 	server_p_phase=$p_phase
     fi
 
-    eval ${exec_prefix}stap "$cmdline" -k -p $server_p_phase \
+    eval ${stap_exec_prefix}stap "$cmdline" -k -p $server_p_phase \
 	>>  $tmpdir_server/stdout \
 	2>> $tmpdir_server/stderr
 
@@ -433,7 +423,6 @@ function terminate {
 #-----------------------------------------------------------------------------
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
-configuration
 initialization "$@"
 unpack_request
 check_request

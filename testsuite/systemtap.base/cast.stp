@@ -10,6 +10,13 @@ probe begin
     else
         printf("PID %d != %d\n", pid, cast_pid)
 
+    // Compare PIDs using a generated kernel module
+    cast_pid = @cast(curr, "task_struct", "kernel<linux/sched.h>")->tgid
+    if (pid == cast_pid)
+        println("PID2 OK")
+    else
+        printf("PID2 %d != %d\n", pid, cast_pid)
+
     // Compare execnames
     name = execname()
     cast_name = kernel_string(@cast(curr, "task_struct")->comm)
@@ -18,5 +25,23 @@ probe begin
     else
         printf("execname \"%s\" != \"%s\"\n", name, cast_name)
 
+    // Compare sa_data using a generated user module
+    data = 42
+    cast_data = @cast(get_sockaddr(data), "sockaddr", "<sys/socket.h>")->sa_data[0]
+    if (data == cast_data)
+        println("sa_data OK")
+    else
+        printf("sa_data %d != %d\n", data, cast_data)
+
     exit()
 }
+
+%{
+#include <linux/socket.h>
+%}
+
+function get_sockaddr:long(data:long) %{
+    static struct sockaddr sa = {0};
+    sa.sa_data[0] = THIS->data;
+    THIS->__retvalue = (long)&sa;
+%}

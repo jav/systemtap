@@ -1,4 +1,4 @@
 #! stap -p2
 
 global x
-probe kernel.function("sys_open") if (x = 1) { }  # bad side-effect
+probe kernel.function("do_sys_open") if (x = 1) { }  # bad side-effect

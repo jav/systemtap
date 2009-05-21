@@ -1,0 +1,5 @@
+probe kernel.function("update_process_times")
+{
+  for (j = 0; j < 100; j++)
+    printf("1234567890\n")
+}

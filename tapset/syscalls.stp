@@ -733,7 +733,7 @@ probe syscall.faccessat.return = kernel.function("SyS_faccessat").return !,
 probe syscall.fadvise64 = kernel.function("SyS_fadvise64") !,
 		kernel.function("sys_fadvise64") ? {
 	name = "fadvise64"
-	fs = $fd
+	fd = $fd
 	offset = $offset
 	len = $len
 	advice = $advice
@@ -751,7 +751,7 @@ probe syscall.fadvise64.return = kernel.function("SyS_fadvise64").return !,
 probe syscall.fadvise64_64 = kernel.function("SyS_fadvise64_64") !,
 		kernel.function("sys_fadvise64_64") ? {
 	name = "fadvise64_64"
-	fs = $fd
+	fd = $fd
 	offset = $offset
 	len = $len
 	advice = $advice
@@ -771,7 +771,7 @@ probe syscall.fadvise64_64.return = kernel.function("SyS_fadvise64_64").return !
 probe syscall.fadvise64 = kernel.function("SyS_fadvise64") !,
 		kernel.function("sys_fadvise64") {
 	name = "fadvise64"
-	fs = 0
+	fd = 0
 	offset = 0
 	len = 0
 	advice = 0
@@ -789,7 +789,7 @@ probe syscall.fadvise64.return = kernel.function("SyS_fadvise64").return !,
 probe syscall.fadvise64_64 = kernel.function("SyS_fadvise64_64") !,
 		kernel.function("sys_fadvise64_64") {
 	name = "fadvise64_64"
-	fs = 0
+	fd = 0
 	offset = 0
 	len = 0
 	advice = 0

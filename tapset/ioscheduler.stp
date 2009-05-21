@@ -5,15 +5,17 @@
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
+// <tapsetdescription>
+// This family of probe points is used to probe IO scheduler activities. 
+// </tapsetdescription>
 %{
 #include <linux/blkdev.h>
 #include <linux/elevator.h>
 %}
 
 /**
- * probe ioscheduler.elv_next_request - Retrieve request from request queue
- * @elevator_name: The elevator name
+ * probe ioscheduler.elv_next_request - Fires when a request is retrieved from the request queue
+ * @elevator_name: The type of I/O elevator currently enabled
  */
 probe ioscheduler.elv_next_request
 	=  kernel.function("elv_next_request")
@@ -26,7 +28,7 @@ probe ioscheduler.elv_next_request
 }
 
 /**
- * probe ioscheduler.elv_next_request.return - Return from retrieving a request
+ * probe ioscheduler.elv_next_request.return - Fires when a request retrieval issues a return signal
  * @req: Address of the request
  * @req_flags: Request flags
  * @disk_major: Disk major number of the request
@@ -58,14 +60,14 @@ probe ioscheduler.elv_next_request.return
 }
 
 /**
- * probe ioscheduler.elv_add_request - Add a request into request queue
- * @elevator_name: The elevator name
+ * probe ioscheduler.elv_add_request - A request was added to the request queue
+ * @elevator_name: The type of I/O elevator currently enabled
  * @req: Address of the request
  * @req_flags: Request flags
  * @disk_major: Disk major number of the request
  * @disk_minor: Disk minor number of the request
  */
-/* when a request is added to the request queue */
+// when a request is added to the request queue
 probe ioscheduler.elv_add_request
 	= kernel.function("__elv_add_request")
 {
@@ -96,8 +98,8 @@ probe ioscheduler.elv_add_request
 }
 
 /**
- * probe ioscheduler.elv_completed_request - Request is completed
- * @elevator_name: The elevator name
+ * probe ioscheduler.elv_completed_request - Fires when a request is completed
+ * @elevator_name: The type of I/O elevator currently enabled
  * @req: Address of the request
  * @req_flags: Request flags
  * @disk_major: Disk major number of the request

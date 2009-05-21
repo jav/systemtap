@@ -10,12 +10,12 @@ proc sleep_five_sec {} {
     return 0;
 }
 
-# Script1.  For 5 seconds, probe the return of "sys_select" and
-# "sys_read".  See if we skip any probes.
+# Script1.  For 5 seconds, probe the return of "vfs_read" and
+# "do_select".  See if we skip any probes.
 set script1 {
     global foo
-    probe kernel.function("sys_select").return,
-        kernel.function("sys_read").return { foo++ }
+    probe kernel.function("vfs_read").return,
+        kernel.function("do_select").return { foo++ }
 
     probe timer.ms(5000) { exit(); }
     probe begin { log("systemtap starting probe"); log("systemtap ending probe");}
@@ -26,13 +26,13 @@ set script1 {
 stap_run "MAXACTIVE01" sleep_five_sec "" -e $script1
 set skipped1 $skipped_probes
 
-# Script2.  For 5 seconds, probe the return of "sys_select" and
-# "sys_read", with a limit of 1 probe active at a time.  See if we
+# Script2.  For 5 seconds, probe the return of "vfs_read" and
+# "do_select", with a limit of 1 probe active at a time.  See if we
 # skip any probes.
 set script2 {
     global foo
-    probe kernel.function("sys_select").return.maxactive(1),
-        kernel.function("sys_read").return.maxactive(1) { foo++ }
+    probe kernel.function("vfs_read").return.maxactive(1),
+        kernel.function("do_select").return.maxactive(1) { foo++ }
 
     probe timer.ms(5000) { exit(); }
     probe begin { log("systemtap starting probe"); log("systemtap ending probe");}

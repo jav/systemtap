@@ -148,6 +148,18 @@ static void _stp_cleanup_and_exit(int send_exit)
 	}
 }
 
+static void _stp_request_exit(void)
+{
+	static int called = 0;
+	if (!called) {
+		/* we only want to do this once */
+		called = 1;
+		dbug_trans(1, "ctl_send STP_REQUEST_EXIT\n");
+		_stp_ctl_send(STP_REQUEST_EXIT, NULL, 0);
+		dbug_trans(1, "done with ctl_send STP_REQUEST_EXIT\n");
+	}
+}
+
 /*
  * Called when stapio closes the control channel.
  */
@@ -202,7 +214,7 @@ static void _stp_work_queue(void *data)
 
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && _stp_probes_started))
-		_stp_cleanup_and_exit(1);
+		_stp_request_exit();
 	if (likely(_stp_ctl_attached))
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }

@@ -1,0 +1,35 @@
+set test bz10078
+
+catch {exec gcc -g -o $test $srcdir/$subdir/$test.c} err
+if {$err == "" && [file exists $test]} then { pass "$test compile" } else { fail "$test compile" }
+
+if {![utrace_p]} {
+    catch {exec rm -f $test}
+    untested "$test -p4"
+    untested "$test -p5"
+    return
+}
+
+set rc [stap_run_batch $srcdir/$subdir/$test.stp]
+if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
+
+if {! [installtest_p]} {
+    catch {exec rm -f $test}
+    untested "$test -p5"
+    return
+}
+
+# Pick up the stap being tested.
+set stapexe [exec /usr/bin/which stap]
+spawn sudo $stapexe $srcdir/$subdir/$test.stp -c ./$test
+set ok 0
+expect {
+	-timeout 60
+	-re {mkpoint[^\r\n]* returns\r\n} { incr ok; exp_continue }
+	-re {1,2\r\n} { incr ok; exp_continue }
+	timeout { fail "$test (timeout)" }
+	eof { }
+}
+wait
+if {$ok == 3} then { pass "$test -p5" } else { fail "$test -p5 ($ok)" }
+exec rm -f $test
