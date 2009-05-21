@@ -36,6 +36,7 @@ BuildRequires: nss-devel nss-tools pkgconfig
 %if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
 Patch1: elfutils-portability.patch
+BuildRequires: m4
 %define setup_elfutils -a1
 %else
 BuildRequires: elfutils-devel >= %{elfutils_version}
