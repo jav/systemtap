@@ -252,6 +252,13 @@ exit 0
 chkconfig --del systemtap
 exit 0
 
+%post
+# Remove any previously-built uprobes.ko materials
+(make -C /usr/share/systemtap/runtime/uprobes clean) >/dev/null 3>&1 || true
+
+%preun
+# Ditto
+(make -C /usr/share/systemtap/runtime/uprobes clean) >/dev/null 3>&1 || true
 
 %files
 %defattr(-,root,root)
