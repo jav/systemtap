@@ -12,6 +12,8 @@
 #ifndef _VSPRINTF_C_
 #define _VSPRINTF_C_
 
+#include "transport/transport.h"
+
 //forward declaration for _stp_vsnprintf
 static void * _stp_reserve_bytes (int);
 

@@ -36,6 +36,13 @@ static int _stp_register_ctl_channel_fs(void)
 		errk("Error creating systemtap debugfs entries.\n");
 		return -1;
 	}
+	else if (IS_ERR(_stp_cmd_file)) {
+		_stp_cmd_file = NULL;
+		errk("Error creating systemtap debugfs entries: %ld\n",
+		     -PTR_ERR(_stp_cmd_file));
+		return -1;
+	}
+
 	_stp_cmd_file->d_inode->i_uid = _stp_uid;
 	_stp_cmd_file->d_inode->i_gid = _stp_gid;
 

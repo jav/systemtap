@@ -453,6 +453,12 @@ static struct dentry *_stp_get_root_dir(void)
 			errk("Could not create or find transport directory.\n");
 		}
 	}
+	else if (IS_ERR(__stp_root_dir)) {
+	    __stp_root_dir = NULL;
+	    errk("Could not create root directory \"%s\", error %ld\n", name,
+		 -PTR_ERR(__stp_root_dir));
+	}
+
 	_stp_unlock_transport_dir();
 	return __stp_root_dir;
 }
@@ -490,8 +496,20 @@ static int _stp_transport_fs_init(const char *module_name)
 	if (root_dir == NULL)
 		return -1;
 
+#if STP_TRANSPORT_VERSION == 1
+        __stp_module_dir = relayfs_create_dir(module_name, root_dir);
+#else
         __stp_module_dir = debugfs_create_dir(module_name, root_dir);
+#endif
         if (!__stp_module_dir) {
+		errk("Could not create module directory \"%s\"\n",
+		     module_name);
+		_stp_remove_root_dir();
+		return -1;
+	}
+	else if (IS_ERR(__stp_module_dir)) {
+		errk("Could not create module directory \"%s\", error %ld\n",
+		     module_name, -PTR_ERR(__stp_module_dir));
 		_stp_remove_root_dir();
 		return -1;
 	}

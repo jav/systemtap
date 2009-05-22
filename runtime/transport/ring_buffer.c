@@ -405,6 +405,13 @@ static int _stp_transport_data_fs_init(void)
 			__stp_free_ring_buffer();
 			return -ENOENT;
 		}
+		else if (IS_ERR(__stp_entry[cpu])) {
+			rc = PTR_ERR(__stp_entry[cpu]);
+			pr_warning("Could not create debugfs 'trace' entry\n");
+			__stp_free_ring_buffer();
+			return rc;
+		}
+
 		__stp_entry[cpu]->d_inode->i_uid = _stp_uid;
 		__stp_entry[cpu]->d_inode->i_gid = _stp_gid;
 

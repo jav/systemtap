@@ -204,7 +204,10 @@ __stp_relay_create_buf_file_callback(const char *filename,
 {
 	struct dentry *file = debugfs_create_file(filename, mode, parent, buf,
 						  &relay_file_operations);
-	if (file) {
+	if (IS_ERR(file)) {
+		file = NULL;
+	}
+	else if (file) {
 		file->d_inode->i_uid = _stp_uid;
 		file->d_inode->i_gid = _stp_gid;
 	}
@@ -251,6 +254,12 @@ static int _stp_transport_data_fs_init(void)
 		rc = -EIO;
 		goto err;
 	}
+	else if (IS_ERR(_stp_relay_data.dropped_file)) {
+		rc = PTR_ERR(_stp_relay_data.dropped_file);
+		_stp_relay_data.dropped_file = NULL;
+		goto err;
+	}
+
 	_stp_relay_data.dropped_file->d_inode->i_uid = _stp_uid;
 	_stp_relay_data.dropped_file->d_inode->i_gid = _stp_gid;
 
