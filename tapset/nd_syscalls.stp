@@ -2973,7 +2973,7 @@ probe nd_syscall.lremovexattr.return = kprobe.function("sys_lremovexattr").retur
 # off_t sys_lseek(unsigned int fd, off_t offset, unsigned int origin)
 probe nd_syscall.lseek = kprobe.function("sys_lseek")
 {
-	// name = "lseek"
+	name = "lseek"
 	// fildes = $fd
 	// # offset = __int32($offset)
 	// offset = $offset
