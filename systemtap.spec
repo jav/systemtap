@@ -36,6 +36,7 @@ BuildRequires: nss-devel nss-tools pkgconfig
 %if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
 Patch1: elfutils-portability.patch
+BuildRequires: m4
 %define setup_elfutils -a1
 %else
 BuildRequires: elfutils-devel >= %{elfutils_version}
@@ -251,6 +252,13 @@ exit 0
 chkconfig --del systemtap
 exit 0
 
+%post
+# Remove any previously-built uprobes.ko materials
+(make -C /usr/share/systemtap/runtime/uprobes clean) >/dev/null 3>&1 || true
+
+%preun
+# Ditto
+(make -C /usr/share/systemtap/runtime/uprobes clean) >/dev/null 3>&1 || true
 
 %files
 %defattr(-,root,root)

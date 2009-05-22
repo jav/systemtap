@@ -8,9 +8,9 @@
  *
  * This code is released under version 2 of the GNU GPL.
  *
- * This code currently does stack unwinding in the
- * kernel and modules. It will need some extension to handle
- * userspace unwinding.
+ * This code currently does stack unwinding in the kernel and modules.
+ * It has been extended to handle userspace unwinding using systemtap
+ * data structures.
  */
 
 #include "unwind/unwind.h"
@@ -87,7 +87,8 @@ static sleb128_t get_sleb128(const u8 **pcur, const u8 *end)
 }
 
 /* given an FDE, find its CIE */
-static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *m)
+static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
+			      int is_ehframe)
 {
 	const u32 *cie;
 
@@ -96,7 +97,7 @@ static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *m)
 		return &bad_cie;
 
 	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
-	if (m->unwind_is_ehframe && fde[1] == 0)
+	if (is_ehframe && fde[1] == 0)
 		return &not_fde;
 	else if (fde[1] == 0xffffffff)
 		return &not_fde;
@@ -104,18 +105,18 @@ static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *m)
 	/* OK, must be an FDE.  Now find its CIE. */
 
 	/* CIE_pointer must be a proper offset */
-	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)m->unwind_data) {
+	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)unwind_data) {
 		dbug_unwind(1, "fde[1]=%lx fde+1=%lx, unwind_data=%lx  %lx\n",
 			    (unsigned long)fde[1], (unsigned long)(fde + 1),
-			    (unsigned long)m->unwind_data, (unsigned long)(fde + 1) - (unsigned long)m->unwind_data);
+			    (unsigned long)unwind_data, (unsigned long)(fde + 1) - (unsigned long)unwind_data);
 		return NULL;	/* this is not a valid FDE */
 	}
 
 	/* cie pointer field is different in eh_frame vs debug_frame */
-	if (m->unwind_is_ehframe)
+	if (is_ehframe)
 		cie = fde + 1 - fde[1] / sizeof(*fde);
 	else
-		cie = m->unwind_data + fde[1];
+		cie = unwind_data + fde[1];
 
 	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
 	    || (*cie & (sizeof(*cie) - 1))
@@ -427,97 +428,6 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 	return result && ptr.p8 == end && (targetLoc == 0 || state->label == NULL);
 }
 
-// If this is an address inside a module, adjust for section relocation
-// and the elfutils base relocation done during loading of the .dwarf_frame
-// in translate.cxx.
-static unsigned long
-adjustStartLoc (unsigned long startLoc,
-		struct _stp_module *m,
-		struct _stp_section *s)
-{
-  /* XXX - some, or all, of this should really be done by
-     _stp_module_relocate. */
-  if (startLoc == 0
-      || strcmp (m->name, "kernel")  == 0
-      || strcmp (s->name, ".absolute") == 0)
-    return startLoc;
-
-  if (strcmp (s->name, ".dynamic") == 0)
-    return startLoc + s->addr;
-
-  startLoc = _stp_module_relocate (m->name, s->name, startLoc);
-  startLoc -= m->dwarf_module_base;
-  return startLoc;
-}
-
-/* If we previously created an unwind header, then use it now to binary search */
-/* for the FDE corresponding to pc. */
-
-static u32 *_stp_search_unwind_hdr(unsigned long pc,
-				   struct _stp_module *m,
-				   struct _stp_section *s)
-{
-	const u8 *ptr, *end, *hdr = m->unwind_hdr;
-	unsigned long startLoc;
-	u32 *fde = NULL;
-	unsigned num, tableSize, t2;
-
-	if (hdr == NULL || hdr[0] != 1)
-		return NULL;
-
-	dbug_unwind(1, "search for %lx", pc);
-
-	/* table_enc */
-	switch (hdr[3] & DW_EH_PE_FORM) {
-	case DW_EH_PE_absptr:
-		tableSize = sizeof(unsigned long);
-		break;
-	case DW_EH_PE_data2:
-		tableSize = 2;
-		break;
-	case DW_EH_PE_data4:
-		tableSize = 4;
-		break;
-	case DW_EH_PE_data8:
-		tableSize = 8;
-		break;
-	default:
-		dbug_unwind(1, "bad table encoding");
-		return NULL;
-	}
-	ptr = hdr + 4;
-	end = hdr + m->unwind_hdr_len;
-
-	if (read_pointer(&ptr, end, hdr[1]) != (unsigned long)m->unwind_data) {
-		dbug_unwind(1, "eh_frame_ptr not valid");
-		return NULL;
-	}
-
-	num = read_pointer(&ptr, end, hdr[2]);
-	if (num == 0 || num != (end - ptr) / (2 * tableSize) || (end - ptr) % (2 * tableSize)) {
-		dbug_unwind(1, "Bad num=%d end-ptr=%ld 2*tableSize=%d", num, end - ptr, 2 * tableSize);
-		return NULL;
-	}
-
-	do {
-		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
-		startLoc = read_pointer(&cur, cur + tableSize, hdr[3]);
-		startLoc = adjustStartLoc(startLoc, m, s);
-		if (pc < startLoc)
-			num /= 2;
-		else {
-			ptr = cur - tableSize;
-			num = (num + 1) / 2;
-		}
-	} while (startLoc && num > 1);
-
-	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s)) != 0 && pc >= startLoc)
-		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
-
-	dbug_unwind(1, "returning fde=%lx startLoc=%lx", fde, startLoc);
-	return fde;
-}
-
 #ifdef DEBUG_UNWIND
 static const char *_stp_enc_hi_name[] = {
 	"DW_EH_PE",
@@ -564,10 +474,117 @@ static char *_stp_eh_enc_name(signed type)
 }
 #endif /* DEBUG_UNWIND */
 
+// If this is an address inside a module, adjust for section relocation
+// and the elfutils base relocation done during loading of the .dwarf_frame
+// in translate.cxx.
+static unsigned long
+adjustStartLoc (unsigned long startLoc,
+		struct _stp_module *m,
+		struct _stp_section *s,
+		unsigned ptrType, int is_ehframe)
+{
+  /* XXX - some, or all, of this should really be done by
+     _stp_module_relocate and/or read_pointer. */
+  dbug_unwind(2, "adjustStartLoc=%lx, ptrType=%s, m=%s, s=%s eh=%d\n",
+	      startLoc, _stp_eh_enc_name(ptrType), m->name, s->name, is_ehframe);
+  if (startLoc == 0
+      || strcmp (m->name, "kernel")  == 0
+      || (strcmp (s->name, ".absolute") == 0 && !is_ehframe))
+    return startLoc;
+
+  /* eh_frame data has been loaded in the kernel, so readjust offset. */
+  if (is_ehframe) {
+    dbug_unwind(2, "eh_frame=%lx, eh_frame_addr=%lx\n", (unsigned long) m->eh_frame, m->eh_frame_addr);
+    if ((ptrType & DW_EH_PE_ADJUST) == DW_EH_PE_pcrel) {
+      startLoc -= (unsigned long) m->eh_frame;
+      startLoc += m->eh_frame_addr;
+    }
+    if (strcmp (s->name, ".absolute") == 0)
+      return startLoc;
+  }
+
+  if (strcmp (s->name, ".dynamic") == 0)
+    return startLoc + s->addr;
+
+  startLoc = _stp_module_relocate (m->name, s->name, startLoc);
+  startLoc -= m->dwarf_module_base;
+  return startLoc;
+}
+
+/* If we previously created an unwind header, then use it now to binary search */
+/* for the FDE corresponding to pc. XXX FIXME not currently supported. */
+
+static u32 *_stp_search_unwind_hdr(unsigned long pc,
+				   struct _stp_module *m,
+				   struct _stp_section *s)
+{
+	const u8 *ptr, *end, *hdr = m->unwind_hdr;
+	unsigned long startLoc;
+	u32 *fde = NULL;
+	unsigned num, tableSize, t2;
+
+	if (hdr == NULL || hdr[0] != 1)
+		return NULL;
+
+	dbug_unwind(1, "search for %lx", pc);
+
+	/* table_enc */
+	switch (hdr[3] & DW_EH_PE_FORM) {
+	case DW_EH_PE_absptr:
+		tableSize = sizeof(unsigned long);
+		break;
+	case DW_EH_PE_data2:
+		tableSize = 2;
+		break;
+	case DW_EH_PE_data4:
+		tableSize = 4;
+		break;
+	case DW_EH_PE_data8:
+		tableSize = 8;
+		break;
+	default:
+		dbug_unwind(1, "bad table encoding");
+		return NULL;
+	}
+	ptr = hdr + 4;
+	end = hdr + m->unwind_hdr_len;
+
+	if (read_pointer(&ptr, end, hdr[1]) != (unsigned long)m->debug_frame) {
+		dbug_unwind(1, "eh_frame_ptr not valid");
+		return NULL;
+	}
+
+	num = read_pointer(&ptr, end, hdr[2]);
+	if (num == 0 || num != (end - ptr) / (2 * tableSize) || (end - ptr) % (2 * tableSize)) {
+		dbug_unwind(1, "Bad num=%d end-ptr=%ld 2*tableSize=%d", num, end - ptr, 2 * tableSize);
+		return NULL;
+	}
+
+	do {
+		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
+		startLoc = read_pointer(&cur, cur + tableSize, hdr[3]);
+		startLoc = adjustStartLoc(startLoc, m, s, hdr[3], true);
+		if (pc < startLoc)
+			num /= 2;
+		else {
+			ptr = cur - tableSize;
+			num = (num + 1) / 2;
+		}
+	} while (startLoc && num > 1);
+
+	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s, hdr[3], true)) != 0 && pc >= startLoc)
+		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
+
+	dbug_unwind(1, "returning fde=%lx startLoc=%lx", fde, startLoc);
+	return fde;
+}
+
 /* Unwind to previous to frame.  Returns 0 if successful, negative
  * number in case of an error.  A positive return means unwinding is finished; 
  * don't try to fallback to dumping addresses on the stack. */
-static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
+static int unwind_frame(struct unwind_frame_info *frame,
+			struct _stp_module *m, struct _stp_section *s,
+			void *table, uint32_t table_len, int is_ehframe)
 {
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
 	const u32 *fde, *cie = NULL;
@@ -577,23 +594,10 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 	unsigned i;
 	signed ptrType = -1;
 	uleb128_t retAddrReg = 0;
-	struct _stp_module *m;
-	struct _stp_section *s = NULL;
 	struct unwind_state state;
 
-	dbug_unwind(1, "pc=%lx, %lx", pc, UNW_PC(frame));
-
-	if (UNW_PC(frame) == 0)
-		return -EINVAL;
-
-	m = _stp_mod_sec_lookup (pc, tsk, &s);
-	if (unlikely(m == NULL)) {
-		dbug_unwind(1, "No module found for pc=%lx", pc);
-		return -EINVAL;
-	}
-
-	if (unlikely(m->unwind_data_len == 0 || m->unwind_data_len & (sizeof(*fde) - 1))) {
-		dbug_unwind(1, "Module %s: unwind_data_len=%d", m->name, m->unwind_data_len);
+	if (unlikely(table_len == 0 || table_len & (sizeof(*fde) - 1))) {
+		dbug_unwind(1, "Module %s: frame_len=%d", m->name, table_len);
 		goto err;
 	}
 
@@ -602,12 +606,12 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 	/* found the fde, now set startLoc and endLoc */
 	if (fde != NULL) {
-		cie = cie_for_fde(fde, m);
+		cie = cie_for_fde(fde, table, is_ehframe);
 		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			startLoc = adjustStartLoc(startLoc, m, s);
+			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe);
 
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!(ptrType & DW_EH_PE_indirect))
@@ -625,10 +629,10 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 	/* did not a good fde find with binary search, so do slow linear search */
 	if (fde == NULL) {
-		for (fde = m->unwind_data, tableSize = m->unwind_data_len; cie = NULL, tableSize > sizeof(*fde)
-		     && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
+	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)
+		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
-			cie = cie_for_fde(fde, m);
+			cie = cie_for_fde(fde, table, is_ehframe);
 			if (cie == &bad_cie) {
 				cie = NULL;
 				break;
@@ -638,7 +642,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			startLoc = adjustStartLoc(startLoc, m, s);
+			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe);
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;
@@ -651,7 +655,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 		}
 	}
 
-	dbug_unwind(1, "cie=%lx fde=%lx startLoc=%lx endLoc=%lx\n", cie, fde, startLoc, endLoc);
+	dbug_unwind(1, "cie=%lx fde=%lx startLoc=%lx endLoc=%lx, pc=%lx\n", cie, fde, startLoc, endLoc, pc);
 	if (cie == NULL || fde == NULL)
 		goto err;
 
@@ -855,5 +859,34 @@ done:
 #undef FRAME_REG
 }
 
+static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
+{
+	struct _stp_module *m;
+	struct _stp_section *s = NULL;
+	unsigned long pc = UNW_PC(frame) - frame->call_frame;
+	int res;
+
+	dbug_unwind(1, "pc=%lx, %lx", pc, UNW_PC(frame));
+
+	if (UNW_PC(frame) == 0)
+		return -EINVAL;
+
+	m = _stp_mod_sec_lookup (pc, tsk, &s);
+	if (unlikely(m == NULL)) {
+		dbug_unwind(1, "No module found for pc=%lx", pc);
+		return -EINVAL;
+	}
+
+	dbug_unwind(1, "trying debug_frame\n");
+	res = unwind_frame (frame, m, s, m->debug_frame,
+			    m->debug_frame_len, false);
+	if (res != 0) {
+	  dbug_unwind(1, "debug_frame failed: %d, trying eh_frame\n", res);
+	  res = unwind_frame (frame, m, s, m->eh_frame,
+			      m->eh_frame_len, true);
+	}
+
+	return res;
+}
 
 #endif /* STP_USE_DWARF_UNWINDER */

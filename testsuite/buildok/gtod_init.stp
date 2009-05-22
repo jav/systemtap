@@ -1,0 +1,13 @@
+#! stap -gp4
+
+# check that STAP_NEED_GETTIMEOFDAY is defined with a gettimeofday
+function check() %{
+#ifndef STAP_NEED_GETTIMEOFDAY
+#error "gettimeofday should define STAP_NEED_GETTIMEOFDAY!"
+#endif
+%}
+
+probe begin {
+    check()
+    println(gettimeofday_s())
+}

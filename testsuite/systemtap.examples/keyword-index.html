@@ -189,6 +189,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="process/errsnoop.stp">process/errsnoop.stp</a> - tabulate system call errors<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <p>The script prints a periodic tabular report about failing system calls, by process and by syscall failure.  The first optional argument specifies the reporting interval (in seconds, default 5); the second optional argument gives a screen height (number of lines in the report, default 20).</p></li>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 </ul>
 <h3><a name="PROFILING">PROFILING</a></h3>
 <ul>
@@ -219,6 +222,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 </ul>
 <h3><a name="SCHEDULER">SCHEDULER</a></h3>
 <ul>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend waiting for IO operations (in "D" state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.</p></li>
@@ -294,6 +300,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#READ">READ</a> <a href="keyword-index.html#WRITE">WRITE</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#IO">IO</a> <br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 </ul>
 <h3><a name="TRACE">TRACE</a></h3>
 <ul>
@@ -306,6 +315,9 @@ keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.ht
 <li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
 <p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.</p></li>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 </ul>
 <h3><a name="TRAFFIC">TRAFFIC</a></h3>
 <ul>

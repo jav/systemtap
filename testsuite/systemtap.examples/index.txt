@@ -224,6 +224,16 @@ keywords: profiling
   samples.
 
 
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
+
+
 process/sig_by_pid.stp -  Signal Counts by Process ID
 keywords: signals
 

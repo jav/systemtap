@@ -337,6 +337,16 @@ keywords: process syscall
   in the report, default 20).
 
 
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
+
+
 = PROFILING =
 
 io/iostats.stp - List Executables Reading and Writing the Most Data
@@ -416,6 +426,16 @@ keywords: syscall read write time io
 
 
 = SCHEDULER =
+
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
+
 
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
@@ -606,6 +626,16 @@ keywords: syscall read write time io
   syscalls.
 
 
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
+
+
 = TRACE =
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -626,6 +656,16 @@ keywords: network tracepoint buffer free
 
   Every five seconds the dropwatch.stp script lists the number of
   socket buffers freed at locations in the kernel.
+
+
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
 
 
 = TRAFFIC =
