@@ -1210,8 +1210,9 @@ probe nd_syscall.flock.return = kprobe.function("sys_flock").return
 	retstr = returnstr(1)
 }
 
-function __is_user_regs:long (regs:long) /* pure */
+function __is_user_regs:long (regs:long)
 %{
+	/* pure */
 	struct pt_regs * regs = (void *)((unsigned long)THIS->regs);
 /* copied from asm/ptrace.h */
 #if defined(__i386__)
