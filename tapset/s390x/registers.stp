@@ -210,11 +210,9 @@ function u64_arg:long (argnum:long) {
 	return ulonglong_arg(argnum)
 }
 
-function asmlinkage() {
-}
+function asmlinkage() %{ /* pure */ %}
 
-function fastcall() {
-}
+function fastcall() %{ /* pure */ %}
 
 function regparm() %{
 	snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),

@@ -235,11 +235,9 @@ function u64_arg:long (argnum:long) {
 	return ulonglong_arg(argnum)
 }
 
-function asmlinkage() {
-}
+function asmlinkage() %{ /* pure */ %}
 
-function fastcall() {
-}
+function fastcall() %{ /* pure */ %}
 
 function regparm(n:long) %{
 	if (_stp_probing_32bit_app(CONTEXT->regs) &&
