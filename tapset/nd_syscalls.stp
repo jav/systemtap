@@ -850,6 +850,32 @@ probe nd_syscall.exit_group = kprobe.function("sys_exit_group")
 # sys_exit_group() never returns, and is blacklisted for return probes,
 # so no alias here.  See bz6588.
 
+# faccessat __________________________________________________
+# new function with 2.6.16
+# long sys_faccessat(int dfd, const char __user *filename, int mode)
+probe nd_syscall.faccessat = kprobe.function("sys_faccessat") ?
+{
+	name = "faccessat"
+	// dirfd = $dfd
+	// dirfd_str = _dfd_str($dfd)
+	// pathname = user_string($filename)
+	// mode = $mode
+	// mode_str = _access_mode_str($mode)
+	// argstr = sprintf("%s, %s, %s", dirfd_str, user_string_quoted($filename), mode_str)
+	asmlinkage()
+	dirfd = int_arg(1)
+	dirfd_str = _dfd_str(dirfd)
+	pathname = user_string(pointer_arg(2))
+	mode = int_arg(3)
+	mode_str = _access_mode_str(mode)
+	argstr = sprintf("%s, %s, %s", dirfd_str, user_string_quoted(pointer_arg(2)), mode_str)
+}
+probe nd_syscall.faccessat.return = kprobe.function("sys_faccessat").return ?
+{
+	name = "faccessat"
+	retstr = returnstr(1)
+}
+
 %(arch != "x86_64" %?
 # fadvise64 __________________________________________________
 # long sys_fadvise64(int fd, loff_t offset, size_t len,  int advice)
@@ -973,6 +999,31 @@ probe nd_syscall.fchmod.return = kprobe.function("sys_fchmod").return
 	retstr = returnstr(1)
 }
 
+# fchmodat ___________________________________________________
+# new function with 2.6.16
+# long sys_fchmodat(int dfd, const char __user *filename,
+#	mode_t mode)
+probe nd_syscall.fchmodat = kprobe.function("sys_fchmodat") ?
+{
+	name = "fchmodat"
+	// dirfd = $dfd
+	// dirfd_str = _dfd_str($dfd)
+	// pathname = user_string($filename)
+	// mode = $mode
+	// argstr = sprintf("%s, %s, %#o", dirfd_str, user_string_quoted($filename), $mode)
+	asmlinkage()
+	dirfd = int_arg(1)
+	dirfd_str = _dfd_str(dirfd)
+	pathname = user_string(pointer_arg(2))
+	mode = uint_arg(3)
+	argstr = sprintf("%s, %s, %#o", dirfd_str, user_string_quoted(pointer_arg(2)), mode)
+}
+probe nd_syscall.fchmodat.return = kprobe.function("sys_fchmodat").return ?
+{
+	name = "fchmodat"
+	retstr = returnstr(1)
+}
+
 # fchown _____________________________________________________
 # long sys_fchown(unsigned int fd, uid_t user, gid_t group)
 probe nd_syscall.fchown = kprobe.function("sys_fchown")
@@ -1012,6 +1063,39 @@ probe nd_syscall.fchown16 = kprobe.function("sys_fchown16") ?
 probe nd_syscall.fchown16.return = kprobe.function("sys_fchown16").return ?
 {
 	name = "fchown16"
+	retstr = returnstr(1)
+}
+
+# fchownat ___________________________________________________
+# new function with 2.6.16
+# long sys_fchownat(int dfd, const char __user *filename,
+#	uid_t user, gid_t group, int flag)
+probe nd_syscall.fchownat = kprobe.function("sys_fchownat") ?
+{
+	name = "fchownat"
+	// dirfd = $dfd
+	// dirfd_str = _dfd_str($dfd)
+	// pathname = user_string($filename)
+	// owner = __int32($user)
+	// group = __int32($group)
+	// flags = $flag
+	// flags_str = _at_flag_str($flag)
+	// argstr = sprintf("%s, %s, %d, %d, %s",
+	// 	dirfd_str, user_string_quoted($filename), owner, group, flags_str)
+	asmlinkage()
+	dirfd = int_arg(1)
+	dirfd_str = _dfd_str(dirfd)
+	pathname = user_string(pointer_arg(2))
+	owner = __int32(uint_arg(3))
+	group = __int32(uint_arg(4))
+	flags = int_arg(5)
+	flags_str = _at_flag_str(flags)
+	argstr = sprintf("%s, %s, %d, %d, %s",
+		dirfd_str, user_string_quoted(pointer_arg(2)), owner, group, flags_str)
+}
+probe nd_syscall.fchownat.return = kprobe.function("sys_fchownat").return ?
+{
+	name = "fchownat"
 	retstr = returnstr(1)
 }
 
@@ -2682,6 +2766,45 @@ probe nd_syscall.link.return = kprobe.function("sys_link").return
 	retstr = returnstr(1)	
 }
 
+# linkat _____________________________________________________
+# new function with 2.6.16
+# long sys_linkat(int olddfd, const char __user *oldname,
+#	int newdfd, const char __user *newname, int flags)
+probe nd_syscall.linkat = kprobe.function("sys_linkat") ?
+{
+	name = "linkat"
+	// olddirfd = $olddfd
+	// olddirfd_str = _dfd_str($olddfd)
+	// oldpath = user_string($oldname)
+	// newdirfd = $newdfd
+	// newdirfd_str = _dfd_str($newdfd)
+	// newpath = user_string($newname)
+	// flags = $flags
+	// flags_str = _at_flag_str($flags)
+	// argstr = sprintf("%s, %s, %s, %s, %s",
+	// 	olddirfd_str, user_string_quoted($oldname),
+	// 	newdirfd_str, user_string_quoted($newname),
+	// 	flags_str)
+	asmlinkage()
+	olddirfd = int_arg(1)
+	olddirfd_str = _dfd_str(olddirfd)
+	oldpath = user_string(pointer_arg(2))
+	newdirfd = int_arg(3)
+	newdirfd_str = _dfd_str(newdirfd)
+	newpath = user_string(pointer_arg(4))
+	flags = int_arg(5)
+	flags_str = _at_flag_str(flags)
+	argstr = sprintf("%s, %s, %s, %s, %s",
+		olddirfd_str, user_string_quoted(pointer_arg(2)),
+		newdirfd_str, user_string_quoted(pointer_arg(4)),
+		flags_str)
+}
+probe nd_syscall.linkat.return = kprobe.function("sys_linkat").return ?
+{
+	name = "linkat"
+	retstr = returnstr(1)
+}
+
 # listen _____________________________________________________
 # long sys_listen(int fd, int backlog)
 probe nd_syscall.listen = kprobe.function("sys_listen") ?
@@ -3124,6 +3247,37 @@ probe nd_syscall.mknod = kprobe.function("sys_mknod")
 probe nd_syscall.mknod.return = kprobe.function("sys_mknod").return
 {
 	name = "mknod"
+	retstr = returnstr(1)
+}
+
+# mknodat ____________________________________________________
+# new function with 2.6.16
+# long sys_mknodat(int dfd, const char __user *filename,
+#	int mode, unsigned dev)
+probe nd_syscall.mknodat = kprobe.function("sys_mknodat") ?
+{
+	name = "mknodat"
+	// dirfd = $dfd
+	// dirfd_str = _dfd_str($dfd)
+	// pathname = user_string($filename)
+	// mode = $mode
+	// mode_str = _mknod_mode_str($mode)
+	// dev = $dev
+	// argstr = sprintf("%s, %s, %s, %p",
+	// 	dirfd_str, user_string_quoted($filename), mode_str, $dev)
+	asmlinkage()
+	dirfd = int_arg(1)
+	dirfd_str = _dfd_str(dirfd)
+	pathname = user_string(pointer_arg(2))
+	mode = int_arg(3)
+	mode_str = _mknod_mode_str(mode)
+	dev = uint_arg(4)
+	argstr = sprintf("%s, %s, %s, %p",
+		dirfd_str, user_string_quoted(pointer_arg(2)), mode_str, dev)
+}
+probe nd_syscall.mknodat.return = kprobe.function("sys_mknodat").return ?
+{
+	name = "mknodat"
 	retstr = returnstr(1)
 }
 
