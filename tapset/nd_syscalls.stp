@@ -832,7 +832,8 @@ probe nd_syscall.exit = kprobe.function("do_exit")
 	status = int_arg(1)
 	argstr = sprint(status)
 }
-probe nd_syscall.exit.return = end {}
+# sys_exit() never returns, and is blacklisted for return probes,
+# so no alias here.  See bz6588.
 
 # exit_group _________________________________________________
 # void sys_exit_group(int error_code)
@@ -846,8 +847,8 @@ probe nd_syscall.exit_group = kprobe.function("sys_exit_group")
 	status = int_arg(1)
 	argstr = sprint(status)
 }
-
-probe nd_syscall.exit_group.return = end {}
+# sys_exit_group() never returns, and is blacklisted for return probes,
+# so no alias here.  See bz6588.
 
 %(arch != "x86_64" %?
 # fadvise64 __________________________________________________
