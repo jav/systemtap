@@ -4599,7 +4599,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Emit an array of kprobe/kretprobe pointers
   s.op->newline() << "#if defined(STAPCONF_UNREGISTER_KPROBES)";
-  s.op->newline() << "static void * stap_unreg_kprobes[" << probes_by_module.size() << "];";
+  s.op->newline() << "static void * stap_unreg_kprobes2[" << probes_by_module.size() << "];";
   s.op->newline() << "#endif";
 
   // Emit the actual probe list.
@@ -4795,27 +4795,27 @@ kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "struct stap_dwarfless_kprobe *kp = & stap_dwarfless_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
   s.op->newline() << "if (!sdp->return_p)";
-  s.op->newline(1) << "stap_unreg_kprobes[j++] = &kp->u.kp;";
+  s.op->newline(1) << "stap_unreg_kprobes2[j++] = &kp->u.kp;";
   s.op->newline(-2) << "}";
-  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes2, j);";
   s.op->newline() << "j = 0;";
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarfless_probe *sdp = & stap_dwarfless_probes[i];";
   s.op->newline() << "struct stap_dwarfless_kprobe *kp = & stap_dwarfless_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
   s.op->newline() << "if (sdp->return_p)";
-  s.op->newline(1) << "stap_unreg_kprobes[j++] = &kp->u.krp;";
+  s.op->newline(1) << "stap_unreg_kprobes2[j++] = &kp->u.krp;";
   s.op->newline(-2) << "}";
-  s.op->newline() << "unregister_kretprobes((struct kretprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "unregister_kretprobes((struct kretprobe **)stap_unreg_kprobes2, j);";
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "j = 0;";
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarfless_probe *sdp = & stap_dwarfless_probes[i];";
   s.op->newline() << "struct stap_dwarfless_kprobe *kp = & stap_dwarfless_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
-  s.op->newline() << "stap_unreg_kprobes[j++] = &kp->dummy;";
+  s.op->newline() << "stap_unreg_kprobes2[j++] = &kp->dummy;";
   s.op->newline(-1) << "}";
-  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes2, j);";
   s.op->newline() << "#endif";
   s.op->newline() << "#endif";
 
