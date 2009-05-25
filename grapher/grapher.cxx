@@ -97,12 +97,42 @@ int main(int argc, char** argv)
 
   StapParser stapParser(win, win.w);
 
-   StapParser stapParser(win, w);
+  int childPid = -1;
+  if (argc > 1)
+    {
+      int pipefd[2];
+      if (pipe(pipefd) < 0)
+        {
+          std::perror("pipe");
+          exit(1);
+        }
+      if ((childPid = fork()) == -1)
+        {
+          exit(1);
+        }
+      else if (childPid)
+        {
+          dup2(pipefd[0], 0);
+          close(pipefd[0]);
+        }
+      else
+        {
+          dup2(pipefd[1], 1);
+          close(pipefd[1]);
+          execlp("stap", argv[1]);
+          exit(1);
+          return 1;
+        }
+     }
    Glib::signal_io().connect(sigc::mem_fun(stapParser,
                                            &StapParser::ioCallback),
                              0,
                              Glib::IO_IN);
    Gtk::Main::run(win);
-
+   if (childPid > 0)
+   kill(childPid, SIGTERM);
+   int status;
+   while (wait(&status) != -1)
+     ;
    return 0;
 }
