@@ -19,7 +19,20 @@ foreach bk $bad_kprobes {
     spawn stap -g -w -e "$script" "$bk"
     expect {
         -timeout 60
-        -re "^WARNING: probe .*registration error.*\r\ncleanup ok" { pass $test }
+        -re "^WARNING: probe .*registration error.*\r\ncleanup ok\r\n" { pass $test }
+        eof { fail "$test (eof)" }
+        timeout { fail "$test (timeout)" }
+    }
+    catch {close}
+    catch {wait}
+}
+
+foreach bk $bad_kprobes {
+    set test "bad optional kprobe registration: $bk"
+    spawn stap -g -w -e "$script" "$bk ?"
+    expect {
+        -timeout 60
+        -re "^cleanup ok\r\n" { pass $test }
         eof { fail "$test (eof)" }
         timeout { fail "$test (timeout)" }
     }

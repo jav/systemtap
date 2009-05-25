@@ -1,4 +1,5 @@
 #! stap -p4
 
+probe kprobe.function("sys_stat") {}
 probe kprobe.function("sys_open") {}
 probe kernel.function("sys_close") {}

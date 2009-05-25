@@ -3108,6 +3108,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static struct stap_dwarf_probe {";
   s.op->newline(1) << "const unsigned return_p:1;";
   s.op->newline() << "const unsigned maxactive_p:1;";
+  s.op->newline() << "const unsigned optional_p:1;";
   s.op->newline() << "unsigned registered_p:1;";
   s.op->newline() << "const unsigned short maxactive_val;";
 
@@ -3168,6 +3169,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
           assert (p->maxactive_val >= 0 && p->maxactive_val <= USHRT_MAX);
           s.op->line() << " .maxactive_val=" << p->maxactive_val << ",";
         }
+      if (p->locations[0]->optional)
+        s.op->line() << " .optional_p=1,";
       s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .module=\"" << p->module << "\",";
       s.op->line() << " .section=\"" << p->section << "\",";
@@ -3271,8 +3274,9 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "if (rc) {"; // PR6749: tolerate a failed register_*probe.
   s.op->newline(1) << "sdp->registered_p = 0;";
-  s.op->newline() << "_stp_warn (\"probe %s registration error (rc %d)\", probe_point, rc);";
-  s.op->newline() << "rc = 0;"; // continue with other probes
+  s.op->newline() << "if (!sdp->optional_p)";
+  s.op->newline(1) << "_stp_warn (\"probe %s registration error (rc %d)\", probe_point, rc);";
+  s.op->newline(-1) << "rc = 0;"; // continue with other probes
   // XXX: shall we increment numskipped?
   s.op->newline(-1) << "}";
 
@@ -4600,7 +4604,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Emit an array of kprobe/kretprobe pointers
   s.op->newline() << "#if defined(STAPCONF_UNREGISTER_KPROBES)";
-  s.op->newline() << "static void * stap_unreg_kprobes[" << probes_by_module.size() << "];";
+  s.op->newline() << "static void * stap_unreg_kprobes2[" << probes_by_module.size() << "];";
   s.op->newline() << "#endif";
 
   // Emit the actual probe list.
@@ -4616,6 +4620,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static struct stap_dwarfless_probe {";
   s.op->newline(1) << "const unsigned return_p:1;";
   s.op->newline() << "const unsigned maxactive_p:1;";
+  s.op->newline() << "const unsigned optional_p:1;";
   s.op->newline() << "unsigned registered_p:1;";
   s.op->newline() << "const unsigned short maxactive_val;";
 
@@ -4661,6 +4666,9 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
           assert (p->maxactive_val >= 0 && p->maxactive_val <= USHRT_MAX);
           s.op->line() << " .maxactive_val=" << p->maxactive_val << ",";
         }
+
+      if (p->locations[0]->optional)
+        s.op->line() << " .optional_p=1,";
 
       if (p->has_statement)
         s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
@@ -4771,8 +4779,9 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "if (rc) {"; // PR6749: tolerate a failed register_*probe.
   s.op->newline(1) << "sdp->registered_p = 0;";
-  s.op->newline() << "_stp_warn (\"probe %s registration error (rc %d)\", probe_point, rc);";
-  s.op->newline() << "rc = 0;"; // continue with other probes
+  s.op->newline() << "if (!sdp->optional_p)";
+  s.op->newline(1) << "_stp_warn (\"probe %s registration error (rc %d)\", probe_point, rc);";
+  s.op->newline(-1) << "rc = 0;"; // continue with other probes
   // XXX: shall we increment numskipped?
   s.op->newline(-1) << "}";
 
@@ -4791,27 +4800,27 @@ kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "struct stap_dwarfless_kprobe *kp = & stap_dwarfless_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
   s.op->newline() << "if (!sdp->return_p)";
-  s.op->newline(1) << "stap_unreg_kprobes[j++] = &kp->u.kp;";
+  s.op->newline(1) << "stap_unreg_kprobes2[j++] = &kp->u.kp;";
   s.op->newline(-2) << "}";
-  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes2, j);";
   s.op->newline() << "j = 0;";
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarfless_probe *sdp = & stap_dwarfless_probes[i];";
   s.op->newline() << "struct stap_dwarfless_kprobe *kp = & stap_dwarfless_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
   s.op->newline() << "if (sdp->return_p)";
-  s.op->newline(1) << "stap_unreg_kprobes[j++] = &kp->u.krp;";
+  s.op->newline(1) << "stap_unreg_kprobes2[j++] = &kp->u.krp;";
   s.op->newline(-2) << "}";
-  s.op->newline() << "unregister_kretprobes((struct kretprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "unregister_kretprobes((struct kretprobe **)stap_unreg_kprobes2, j);";
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "j = 0;";
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarfless_probe *sdp = & stap_dwarfless_probes[i];";
   s.op->newline() << "struct stap_dwarfless_kprobe *kp = & stap_dwarfless_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
-  s.op->newline() << "stap_unreg_kprobes[j++] = &kp->dummy;";
+  s.op->newline() << "stap_unreg_kprobes2[j++] = &kp->dummy;";
   s.op->newline(-1) << "}";
-  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes2, j);";
   s.op->newline() << "#endif";
   s.op->newline() << "#endif";
 
