@@ -470,8 +470,13 @@ static void _stp_remove_root_dir(void)
 			errk("Unable to lock transport directory.\n");
 			return;
 		}
-		if (simple_empty(__stp_root_dir))
+		if (simple_empty(__stp_root_dir)) {
+#if STP_TRANSPORT_VERSION == 1
+			relayfs_remove_dir(__stp_root_dir);
+#else
 			debugfs_remove(__stp_root_dir);
+#endif
+		}
 		_stp_unlock_transport_dir();
 		__stp_root_dir = NULL;
 	}
@@ -529,7 +534,11 @@ static void _stp_transport_fs_close(void)
 	_stp_transport_data_fs_close();
 
 	if (__stp_module_dir) {
+#if STP_TRANSPORT_VERSION == 1
+		relayfs_remove_dir(__stp_module_dir);
+#else
 		debugfs_remove(__stp_module_dir);
+#endif
 		__stp_module_dir = NULL;
 	}
 

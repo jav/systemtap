@@ -12,5 +12,6 @@
 
 static int _stp_print_init(void);
 static void _stp_print_cleanup(void);
+static void *_stp_reserve_bytes(int numbytes);
 
 #endif /* _STP_PRINT_H_ */
