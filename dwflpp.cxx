@@ -21,6 +21,7 @@
 #include "dwarf_wrappers.h"
 #include "auto_free.h"
 #include "hash.h"
+#include "rpm_finder.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -107,6 +108,9 @@ dwflpp::get_module_dwarf(bool required, bool report)
       int i = dwfl_errno();
       if (i)
         msg += string(": ") + dwfl_errmsg (i);
+
+      /* add module_name to list to find rpm */
+      find_debug_rpms(sess, module_name.c_str());
 
       if (required)
         throw semantic_error (msg);

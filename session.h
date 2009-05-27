@@ -211,6 +211,8 @@ struct systemtap_session
   std::set<std::string> seen_warnings;
   unsigned num_errors () { return seen_errors.size(); }
 
+  std::set<std::string> rpms_to_install;
+
   // void print_error (const parse_error& e);
   const token* last_token;
   void print_token (std::ostream& o, const token* tok);

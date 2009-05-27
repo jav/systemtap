@@ -1,6 +1,7 @@
 %{!?with_sqlite: %define with_sqlite 1}
 %{!?with_docs: %define with_docs 1}
 %{!?with_crash: %define with_crash 0}
+%{!?with_rpm: %define with_rpm 1}
 %{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
 %{!?elfutils_version: %define elfutils_version 0.127}
 %{!?pie_supported: %define pie_supported 1}
@@ -24,6 +25,9 @@ BuildRequires: sqlite-devel
 %endif
 %if %{with_crash}
 BuildRequires: crash-devel zlib-devel
+%endif
+%if %{with_rpm}
+BuildRequires: rpm-devel glibc-headers
 %endif
 # Alternate kernel packages kernel-PAE-devel et al have a virtual
 # provide for kernel-devel, so this requirement does the right thing.
@@ -172,6 +176,13 @@ cd ..
 %define crash_config --disable-crash
 %endif
 
+# Enable/disable the code to find and suggest needed rpms
+%if %{with_rpm}
+%define rpm_config --with-rpm
+%else
+%define rpm_config --without-rpm
+%endif
+
 %if %{with_docs}
 %define docs_config --enable-docs
 %else
@@ -192,7 +203,7 @@ cd ..
 %endif
 
 
-%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{grapher_config}
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{grapher_config} %{rpm_config}
 make %{?_smp_mflags}
 
 %install
