@@ -20,6 +20,7 @@
 #include "util.h"
 #include "coveragedb.h"
 #include "git_version.h"
+#include "rpm_finder.h"
 
 #include <iostream>
 #include <fstream>
@@ -1086,6 +1087,9 @@ main (int argc, char * const argv [])
 	  goto pass_5;
 	}
     }
+
+  /* Print out list of missing files */
+  missing_rpm_list_print(s);
 
   if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) goto cleanup;
 

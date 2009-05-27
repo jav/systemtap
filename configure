@@ -647,6 +647,9 @@ stap_LIBS
 elfutils_abs_srcdir
 BUILD_ELFUTILS_FALSE
 BUILD_ELFUTILS_TRUE
+RPM_LIBS
+RPM_CFLAGS
+rpm_LIBS
 BUILD_GRAPHER_FALSE
 BUILD_GRAPHER_TRUE
 GRAPHER_LIBS
@@ -784,6 +787,7 @@ enable_docs
 enable_refdocs
 enable_server
 enable_grapher
+with_rpm
 with_elfutils
 '
       ac_precious_vars='build_alias
@@ -801,6 +805,8 @@ CPP
 PKG_CONFIG
 GRAPHER_CFLAGS
 GRAPHER_LIBS
+RPM_CFLAGS
+RPM_LIBS
 CXXCPP'
 ac_subdirs_all='testsuite'
 
@@ -1458,6 +1464,8 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-rpm              query rpm database for missing debuginfos
+                          [yes/no,], [def.], [auto=librpm.so]
   --with-elfutils=DIRECTORY
                           find elfutils source code in DIRECTORY
 
@@ -1477,6 +1485,8 @@ Some influential environment variables:
               C compiler flags for GRAPHER, overriding pkg-config
   GRAPHER_LIBS
               linker flags for GRAPHER, overriding pkg-config
+  RPM_CFLAGS  C compiler flags for RPM, overriding pkg-config
+  RPM_LIBS    linker flags for RPM, overriding pkg-config
   CXXCPP      C++ preprocessor
 
 Use these variables to override the choices made by `configure' or to help
@@ -5193,9 +5203,8 @@ fi
 # FIXME: we rely on the cache variable name because
 # there is no other way.
 set dummy $CC
-am_cc=`echo $2 | sed 's/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/'`
-eval am_t=\$ac_cv_prog_cc_${am_cc}_c_o
-if test "$am_t" != yes; then
+ac_cc=`echo $2 | sed 's/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/'`
+if eval "test \"`echo '$ac_cv_prog_cc_'${ac_cc}_c_o`\" != yes"; then
    # Losing compiler, so override with the script.
    # FIXME: It is wrong to rewrite CC.
    # But if we don't then we get into trouble of one sort or another.
@@ -7388,6 +7397,469 @@ fi
 else
   BUILD_GRAPHER_TRUE='#'
   BUILD_GRAPHER_FALSE=
+fi
+
+
+
+# Integration with rpm library to support missing debuginfo suggestions.
+# --without-rpm: Disable any rpm support.
+# --with-rpm=libname.so: Try to dynamically open `libname.so' during runtime.
+#   Even with runtime missing `libname.so' GDB will still other run correctly.
+#   Missing `libname.so' during ./configure will abort the configuration.
+# --with-rpm=librpm.so: Like `--with-rpm=libname.so' but try to find specific
+#   minor version first such as `librpm-4.6.so' as minor version differences
+#   mean API+ABI incompatibility.  If the specific match versioned library name
+#   could not be found still open dynamically at least `librpm.so'.
+# --with-rpm: Like `--with-rpm=librpm.so' but if any of its detection fails try
+#   to find librpm for compilation-time linking by pkg-config.  GDB binary will
+#   be probably linked with the version specific library (as `librpm-4.6.so').
+#   Failure to find librpm by pkg-config will abort the configuration.
+# (default) --with-rpm=auto: Like `--with-rpm=librpm.so' but if even pkg-config
+#   cannot find librpm use to the rpmless compilation (like `--without-rpm').
+
+
+# Check whether --with-rpm was given.
+if test "${with_rpm+set}" = set; then
+  withval=$with_rpm;
+else
+  with_rpm="auto"
+fi
+
+
+
+
+if test "x$with_rpm" != "xno"; then
+  if test "x$with_rpm" = "xyes"; then
+    LIBRPM="librpm.so"
+    RPM_REQUIRE=true
+    DLOPEN_REQUIRE=false
+  elif test "x$with_rpm" = "xauto"; then
+    LIBRPM="librpm.so"
+    RPM_REQUIRE=false
+    DLOPEN_REQUIRE=false
+  else
+    LIBRPM="$with_rpm"
+    RPM_REQUIRE=true
+    DLOPEN_REQUIRE=true
+  fi
+  LIBRPM_STRING='"'"$LIBRPM"'"'
+
+  { $as_echo "$as_me:$LINENO: checking specific librpm version" >&5
+$as_echo_n "checking specific librpm version... " >&6; }
+  HAVE_DLOPEN_LIBRPM=false
+  save_LIBS="$LIBS"
+  LIBS="$LIBS -ldl"
+  if test "$cross_compiling" = yes; then
+  { { $as_echo "$as_me:$LINENO: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+{ { $as_echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }; }
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <rpm/rpmlib.h>
+#include <dlfcn.h>
+#include <errno.h>
+
+int
+main ()
+{
+
+    void *h;
+    const char *const *rpmverp;
+    FILE *f;
+
+    f = fopen ("conftest.out", "w");
+    if (!f)
+      {
+	fprintf (stderr, "Cannot write \"%s\": %s\n", "conftest.out",
+		 strerror (errno));
+	return 1;
+      }
+    h = dlopen ($LIBRPM_STRING, RTLD_LAZY);
+    if (!h)
+      {
+	fprintf (stderr, "dlopen (\"%s\"): %s\n", $LIBRPM_STRING, dlerror ());
+	return 1;
+      }
+    rpmverp = dlsym (h, "RPMVERSION");
+    if (!rpmverp)
+      {
+	fprintf (stderr, "dlsym (\"RPMVERSION\"): %s\n", dlerror ());
+	return 1;
+      }
+    fprintf (stderr, "RPMVERSION is: \"");
+    fprintf (stderr, "%s\"\n", *rpmverp);
+
+    /* Try to find the specific librpm version only for "librpm.so" as we do
+       not know how to assemble the version string otherwise.  */
+
+    if (strcmp ("librpm.so", $LIBRPM_STRING) != 0)
+      {
+	fprintf (f, "%s\n", $LIBRPM_STRING);
+	return 0;
+      }
+    else
+      {
+	char *h2_name;
+	void *h2;
+	int major, minor;
+
+	if (sscanf (*rpmverp, "%d.%d", &major, &minor) != 2)
+	  {
+	    fprintf (stderr, "Unable to parse RPMVERSION.\n");
+	    fprintf (f, "%s\n", $LIBRPM_STRING);
+	    return 0;
+	  }
+	/* Avoid the square brackets by malloc.  */
+	h2_name = malloc (64);
+	sprintf (h2_name, "librpm-%d.%d.so", major, minor);
+	h2 = dlopen (h2_name, RTLD_LAZY);
+	if (!h2)
+	  {
+	    fprintf (stderr, "dlopen (\"%s\"): %s\n", h2_name, dlerror ());
+	    fprintf (f, "%s\n", $LIBRPM_STRING);
+	    return 0;
+	  }
+	if (h2 != h)
+	  {
+	    fprintf (stderr, "dlopen of \"%s\" and \"%s\" are different.\n",
+		     $LIBRPM_STRING, h2_name);
+	    fprintf (f, "%s\n", $LIBRPM_STRING);
+	    return 0;
+	  }
+	/* Found the valid .so name with a specific version.  */
+	fprintf (f, "%s\n", h2_name);
+	return 0;
+      }
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_try") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+    DLOPEN_LIBRPM="`cat conftest.out`"
+    if test "x$DLOPEN_LIBRPM" != "x"; then
+      HAVE_DLOPEN_LIBRPM=true
+      { $as_echo "$as_me:$LINENO: result: $DLOPEN_LIBRPM" >&5
+$as_echo "$DLOPEN_LIBRPM" >&6; }
+    fi
+
+else
+  $as_echo "$as_me: program exited with status $ac_status" >&5
+$as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -rf conftest.dSYM
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+
+
+  rm -f conftest.out
+
+
+
+
+  if $HAVE_DLOPEN_LIBRPM; then
+
+    { $as_echo "$as_me:$LINENO: checking rpm library API compatibility" >&5
+$as_echo_n "checking rpm library API compatibility... " >&6; }
+    # The compilation requires -Werror to verify anything.
+    save_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS -Werror"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Duplicate here the declarations to verify they match "symfile.c".  */
+#include <rpm/rpmlib.h>
+#include <rpm/rpmts.h>
+#include <rpm/rpmdb.h>
+#include <rpm/header.h>
+extern char * headerFormat(Header h, const char * fmt, errmsg_t * errmsg);
+extern int rpmReadConfigFiles(const char * file, const char * target);
+extern rpmdbMatchIterator rpmdbFreeIterator(rpmdbMatchIterator mi);
+extern Header rpmdbNextIterator(rpmdbMatchIterator mi);
+extern rpmts rpmtsCreate(void);
+extern rpmts rpmtsFree(rpmts ts);
+extern rpmdbMatchIterator rpmtsInitIterator(const rpmts ts, rpmTag rpmtag,
+					    const void * keyp, size_t keylen);
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+
+      LIBRPM_COMPAT=true
+      rpm_LIBS=-lrpm
+      { $as_echo "$as_me:$LINENO: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+      LIBRPM_COMPAT=false
+      rpm_LIBS=
+      { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    CFLAGS="$save_CFLAGS"
+
+    if ! $LIBRPM_COMPAT; then
+      HAVE_DLOPEN_LIBRPM=false
+    fi
+  fi
+
+  if $HAVE_DLOPEN_LIBRPM; then
+    DLOPEN_LIBRPM_STRING='"'"$DLOPEN_LIBRPM"'"'
+
+cat >>confdefs.h <<_ACEOF
+#define DLOPEN_LIBRPM $DLOPEN_LIBRPM_STRING
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LIBRPM 1
+_ACEOF
+
+  else
+    { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+    LIBS="$save_LIBS"
+    if $DLOPEN_REQUIRE; then
+      { { $as_echo "$as_me:$LINENO: error: Specific name $LIBRPM was requested but it could not be opened." >&5
+$as_echo "$as_me: error: Specific name $LIBRPM was requested but it could not be opened." >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+pkg_failed=no
+{ $as_echo "$as_me:$LINENO: checking for RPM" >&5
+$as_echo_n "checking for RPM... " >&6; }
+
+if test -n "$RPM_CFLAGS"; then
+    pkg_cv_RPM_CFLAGS="$RPM_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"rpm\"") >&5
+  ($PKG_CONFIG --exists --print-errors "rpm") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_RPM_CFLAGS=`$PKG_CONFIG --cflags "rpm" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$RPM_LIBS"; then
+    pkg_cv_RPM_LIBS="$RPM_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"rpm\"") >&5
+  ($PKG_CONFIG --exists --print-errors "rpm") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_RPM_LIBS=`$PKG_CONFIG --libs "rpm" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        RPM_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "rpm" 2>&1`
+        else
+	        RPM_PKG_ERRORS=`$PKG_CONFIG --print-errors "rpm" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$RPM_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+                HAVE_LIBRPM=false
+elif test $pkg_failed = untried; then
+	HAVE_LIBRPM=false
+else
+	RPM_CFLAGS=$pkg_cv_RPM_CFLAGS
+	RPM_LIBS=$pkg_cv_RPM_LIBS
+        { $as_echo "$as_me:$LINENO: result: yes" >&5
+$as_echo "yes" >&6; }
+	HAVE_LIBRPM=true
+fi
+
+    if $HAVE_LIBRPM; then
+
+    { $as_echo "$as_me:$LINENO: checking rpm library API compatibility" >&5
+$as_echo_n "checking rpm library API compatibility... " >&6; }
+    # The compilation requires -Werror to verify anything.
+    save_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS -Werror"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Duplicate here the declarations to verify they match "symfile.c".  */
+#include <rpm/rpmlib.h>
+#include <rpm/rpmts.h>
+#include <rpm/rpmdb.h>
+#include <rpm/header.h>
+extern char * headerFormat(Header h, const char * fmt, errmsg_t * errmsg);
+extern int rpmReadConfigFiles(const char * file, const char * target);
+extern rpmdbMatchIterator rpmdbFreeIterator(rpmdbMatchIterator mi);
+extern Header rpmdbNextIterator(rpmdbMatchIterator mi);
+extern rpmts rpmtsCreate(void);
+extern rpmts rpmtsFree(rpmts ts);
+extern rpmdbMatchIterator rpmtsInitIterator(const rpmts ts, rpmTag rpmtag,
+					    const void * keyp, size_t keylen);
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+
+      LIBRPM_COMPAT=true
+      rpm_LIBS=-lrpm
+      { $as_echo "$as_me:$LINENO: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+      LIBRPM_COMPAT=false
+      rpm_LIBS=
+      { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    CFLAGS="$save_CFLAGS"
+
+      if ! $LIBRPM_COMPAT; then
+	HAVE_LIBRPM=false
+	RPM_PKG_ERRORS="Found $LIBRPM API is incompatibile with this GDB"
+      fi
+    fi
+
+    if $HAVE_LIBRPM; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LIBRPM 1
+_ACEOF
+
+      CFLAGS="$CFLAGS $RPM_CFLAGS"
+      LIBS="$LIBS $RPM_LIBS"
+    else
+      if $RPM_REQUIRE; then
+	{ { $as_echo "$as_me:$LINENO: error: $RPM_PKG_ERRORS" >&5
+$as_echo "$as_me: error: $RPM_PKG_ERRORS" >&2;}
+   { (exit 1); exit 1; }; }
+      else
+	{ $as_echo "$as_me:$LINENO: WARNING: $RPM_PKG_ERRORS" >&5
+$as_echo "$as_me: WARNING: $RPM_PKG_ERRORS" >&2;}
+      fi
+    fi
+  fi
 fi
 
 
@@ -9749,16 +10221,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "depfiles":C) test x"$AMDEP_TRUE" != x"" || # Autoconf 2.62 quotes --file arguments for eval, but not when files
-# are listed without --file.  Let's play safe and only enable the eval
-# if we detect the quoting.
-case $CONFIG_FILES in
-*\'*) eval set x "$CONFIG_FILES" ;;
-*)   set x $CONFIG_FILES ;;
-esac
-shift
-for mf
-do
+    "depfiles":C) test x"$AMDEP_TRUE" != x"" || for mf in $CONFIG_FILES; do
   # Strip MF so we end up with the name of the file.
   mf=`echo "$mf" | sed -e 's/:.*$//'`
   # Check whether this is an Automake generated Makefile or not.

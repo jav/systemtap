@@ -272,6 +272,204 @@ AC_ARG_ENABLE([grapher],
 PKG_CHECK_MODULES([GRAPHER], [gtkmm-2.4 >= 2.8.0],have_gtkmm=yes,have_gtkmm=no)
 AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_gtkmm}" == "xyes" -a x"$enable_grapher" != "xno"])
 
+
+# Integration with rpm library to support missing debuginfo suggestions.
+# --without-rpm: Disable any rpm support.
+# --with-rpm=libname.so: Try to dynamically open `libname.so' during runtime.
+#   Even with runtime missing `libname.so' GDB will still other run correctly.
+#   Missing `libname.so' during ./configure will abort the configuration.
+# --with-rpm=librpm.so: Like `--with-rpm=libname.so' but try to find specific
+#   minor version first such as `librpm-4.6.so' as minor version differences
+#   mean API+ABI incompatibility.  If the specific match versioned library name
+#   could not be found still open dynamically at least `librpm.so'.
+# --with-rpm: Like `--with-rpm=librpm.so' but if any of its detection fails try
+#   to find librpm for compilation-time linking by pkg-config.  GDB binary will
+#   be probably linked with the version specific library (as `librpm-4.6.so').
+#   Failure to find librpm by pkg-config will abort the configuration.
+# (default) --with-rpm=auto: Like `--with-rpm=librpm.so' but if even pkg-config
+#   cannot find librpm use to the rpmless compilation (like `--without-rpm').
+
+AC_ARG_WITH([rpm],
+  [AS_HELP_STRING([--with-rpm],
+                  [query rpm database for missing debuginfos [yes/no, def. auto=librpm.so]])], [], [with_rpm="auto"])
+
+m4_pattern_allow([^AC_MSG_ERROR$])
+m4_pattern_allow([^AC_MSG_WARN$])
+if test "x$with_rpm" != "xno"; then
+  if test "x$with_rpm" = "xyes"; then
+    LIBRPM="librpm.so"
+    RPM_REQUIRE=true
+    DLOPEN_REQUIRE=false
+  elif test "x$with_rpm" = "xauto"; then
+    LIBRPM="librpm.so"
+    RPM_REQUIRE=false
+    DLOPEN_REQUIRE=false
+  else
+    LIBRPM="$with_rpm"
+    RPM_REQUIRE=true
+    DLOPEN_REQUIRE=true
+  fi
+  LIBRPM_STRING='"'"$LIBRPM"'"'
+
+  AC_MSG_CHECKING([specific librpm version])
+  HAVE_DLOPEN_LIBRPM=false
+  save_LIBS="$LIBS"
+  LIBS="$LIBS -ldl"
+  AC_RUN_IFELSE(AC_LANG_PROGRAM([[
+#include <rpm/rpmlib.h>
+#include <dlfcn.h>
+#include <errno.h>
+  ]], [[
+    void *h;
+    const char *const *rpmverp;
+    FILE *f;
+
+    f = fopen ("conftest.out", "w");
+    if (!f)
+      {
+	fprintf (stderr, "Cannot write \"%s\": %s\n", "conftest.out",
+		 strerror (errno));
+	return 1;
+      }
+    h = dlopen ($LIBRPM_STRING, RTLD_LAZY);
+    if (!h)
+      {
+	fprintf (stderr, "dlopen (\"%s\"): %s\n", $LIBRPM_STRING, dlerror ());
+	return 1;
+      }
+    rpmverp = dlsym (h, "RPMVERSION");
+    if (!rpmverp)
+      {
+	fprintf (stderr, "dlsym (\"RPMVERSION\"): %s\n", dlerror ());
+	return 1;
+      }
+    fprintf (stderr, "RPMVERSION is: \"");
+    fprintf (stderr, "%s\"\n", *rpmverp);
+
+    /* Try to find the specific librpm version only for "librpm.so" as we do
+       not know how to assemble the version string otherwise.  */
+
+    if (strcmp ("librpm.so", $LIBRPM_STRING) != 0)
+      {
+	fprintf (f, "%s\n", $LIBRPM_STRING);
+	return 0;
+      }
+    else
+      {
+	char *h2_name;
+	void *h2;
+	int major, minor;
+
+	if (sscanf (*rpmverp, "%d.%d", &major, &minor) != 2)
+	  {
+	    fprintf (stderr, "Unable to parse RPMVERSION.\n");
+	    fprintf (f, "%s\n", $LIBRPM_STRING);
+	    return 0;
+	  }
+	/* Avoid the square brackets by malloc.  */
+	h2_name = malloc (64);
+	sprintf (h2_name, "librpm-%d.%d.so", major, minor);
+	h2 = dlopen (h2_name, RTLD_LAZY);
+	if (!h2)
+	  {
+	    fprintf (stderr, "dlopen (\"%s\"): %s\n", h2_name, dlerror ());
+	    fprintf (f, "%s\n", $LIBRPM_STRING);
+	    return 0;
+	  }
+	if (h2 != h)
+	  {
+	    fprintf (stderr, "dlopen of \"%s\" and \"%s\" are different.\n",
+		     $LIBRPM_STRING, h2_name);
+	    fprintf (f, "%s\n", $LIBRPM_STRING);
+	    return 0;
+	  }
+	/* Found the valid .so name with a specific version.  */
+	fprintf (f, "%s\n", h2_name);
+	return 0;
+      }
+  ]]), [
+    DLOPEN_LIBRPM="`cat conftest.out`"
+    if test "x$DLOPEN_LIBRPM" != "x"; then
+      HAVE_DLOPEN_LIBRPM=true
+      AC_MSG_RESULT($DLOPEN_LIBRPM)
+    fi
+  ])
+  rm -f conftest.out
+
+  m4_define([CHECK_LIBRPM_COMPAT], [
+    AC_MSG_CHECKING([rpm library API compatibility])
+    # The compilation requires -Werror to verify anything.
+    save_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS -Werror"
+    AC_COMPILE_IFELSE(AC_LANG_PROGRAM([[
+/* Duplicate here the declarations to verify they match "symfile.c".  */
+#include <rpm/rpmlib.h>
+#include <rpm/rpmts.h>
+#include <rpm/rpmdb.h>
+#include <rpm/header.h>
+extern char * headerFormat(Header h, const char * fmt, errmsg_t * errmsg);
+extern int rpmReadConfigFiles(const char * file, const char * target);
+extern rpmdbMatchIterator rpmdbFreeIterator(rpmdbMatchIterator mi);
+extern Header rpmdbNextIterator(rpmdbMatchIterator mi);
+extern rpmts rpmtsCreate(void);
+extern rpmts rpmtsFree(rpmts ts);
+extern rpmdbMatchIterator rpmtsInitIterator(const rpmts ts, rpmTag rpmtag,
+					    const void * keyp, size_t keylen);
+    ]]), [
+      LIBRPM_COMPAT=true
+      rpm_LIBS=-lrpm
+      AC_MSG_RESULT(yes)
+    ], [
+      LIBRPM_COMPAT=false
+      rpm_LIBS=
+      AC_MSG_RESULT(no)
+    ])
+    CFLAGS="$save_CFLAGS"
+  ])
+  AC_SUBST(rpm_LIBS)
+
+  if $HAVE_DLOPEN_LIBRPM; then
+    CHECK_LIBRPM_COMPAT
+    if ! $LIBRPM_COMPAT; then
+      HAVE_DLOPEN_LIBRPM=false
+    fi
+  fi
+
+  if $HAVE_DLOPEN_LIBRPM; then
+    DLOPEN_LIBRPM_STRING='"'"$DLOPEN_LIBRPM"'"'
+    AC_DEFINE_UNQUOTED(DLOPEN_LIBRPM, $DLOPEN_LIBRPM_STRING, [librpm version specific library name to dlopen.])
+    AC_DEFINE(HAVE_LIBRPM, 1, [Define if librpm library is being used.])
+  else
+    AC_MSG_RESULT(no)
+    LIBS="$save_LIBS"
+    if $DLOPEN_REQUIRE; then
+      AC_MSG_ERROR([Specific name $LIBRPM was requested but it could not be opened.])
+    fi
+    PKG_CHECK_MODULES(RPM, rpm, [HAVE_LIBRPM=true], [HAVE_LIBRPM=false])
+
+    if $HAVE_LIBRPM; then
+      CHECK_LIBRPM_COMPAT
+      if ! $LIBRPM_COMPAT; then
+	HAVE_LIBRPM=false
+	RPM_PKG_ERRORS="Found $LIBRPM API is incompatibile with this GDB"
+      fi
+    fi
+
+    if $HAVE_LIBRPM; then
+      AC_DEFINE(HAVE_LIBRPM, 1, [Define if librpm library is being used.])
+      CFLAGS="$CFLAGS $RPM_CFLAGS"
+      LIBS="$LIBS $RPM_LIBS"
+    else
+      if $RPM_REQUIRE; then
+	AC_MSG_ERROR($RPM_PKG_ERRORS)
+      else
+	AC_MSG_WARN($RPM_PKG_ERRORS)
+      fi
+    fi
+  fi
+fi
+
+
 dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
 dnl the system's elfutils.
 build_elfutils=no

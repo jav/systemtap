@@ -89,3 +89,9 @@
 
 /* Define like PROTOTYPES; this can be used by system headers. */
 #undef __PROTOTYPES
+
+/* librpm version specific library name to dlopen. */
+#undef DLOPEN_LIBRPM
+
+/* Define if librpm library is being used. */
+#undef HAVE_LIBRPM
