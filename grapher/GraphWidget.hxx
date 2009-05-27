@@ -17,7 +17,7 @@ namespace systemtap
   public:
     GraphWidget();
     virtual ~GraphWidget();
-    void addGraphData(std::tr1::shared_ptr<GraphData> data);
+    void addGraphData(std::tr1::shared_ptr<GraphDataBase> data);
     void getExtents(double& left, double& right, double& top, double& bottom) const;
     void setExtents(double left, double right, double top, double bottom);
     double getLineWidth() { return _lineWidth; }
@@ -38,7 +38,7 @@ namespace systemtap
     virtual bool on_button_release_event(GdkEventButton* event);
     virtual bool on_scroll_event(GdkEventScroll* event);
     bool on_timeout();
-    typedef std::vector<std::tr1::shared_ptr<GraphData> > DatasetList;
+    typedef std::vector<std::tr1::shared_ptr<GraphDataBase> > DatasetList;
     DatasetList _datasets;
     double _left;
     double _right;

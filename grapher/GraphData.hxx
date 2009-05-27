@@ -7,44 +7,38 @@
 
 namespace systemtap
 {
-  struct GraphData
+  struct GraphDataBase
   {
-  public:
+    virtual ~GraphDataBase() {}
     enum Style
       { BAR,
-        DOT
+        DOT,
+        EVENT
       };
-    GraphData() : scale(1.0), style(BAR)
+    GraphDataBase() : scale(1.0), style(BAR)
     {
       color[0] = 0.0;  color[1] = 1.0;  color[2] = 0.0;
     }
-    typedef std::pair<double, double> Datum;
-    typedef std::vector<Datum> List;
+    typedef std::vector<double> TimeList;
     // size of grid square at "normal" viewing
     double scale;
     double color[3];
     Style style;
-    List data;
-    struct Compare
-    {
-      bool operator() (const Datum& lhs, const Datum& rhs) const
-      {
-        return lhs.first < rhs.first;
-      }
-      bool operator() (double lhs, const Datum& rhs) const
-      {
-        return lhs < rhs.first;
-      }
-      bool operator() (const Datum& lhs, double rhs) const
-      {
-        return lhs.first < rhs;
-      }
-    };
+    TimeList times;
   };
 
+  template<typename T>
+  class GraphData : public GraphDataBase
+  {
+  public:
+    typedef T data_type;
+    typedef std::vector<data_type> DataList;
+    DataList data;
+  };
   struct CSVData
   {
-    typedef std::pair<std::string, std::tr1::shared_ptr<GraphData> > Element;
+    typedef std::pair<std::string, std::tr1::shared_ptr<GraphDataBase> >
+    Element;
     std::vector<Element> elements;
   };
 }
