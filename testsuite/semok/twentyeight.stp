@@ -1,4 +1,4 @@
 #! stap -p2
 
 # Make sure wildcards are handled
-probe kerne*.funct*("sys_read").* {}
+probe kerne*.funct*("vfs_read").* {}

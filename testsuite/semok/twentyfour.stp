@@ -2,7 +2,7 @@
 
 # read access to target variables should work in .return probes
 
-probe kernel.function("sys_read").return
+probe kernel.function("vfs_read").return
 {
-    printf("fd is %d\n", $fd)
+    printf("count is %d\n", $count)
 }

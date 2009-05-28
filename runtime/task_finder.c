@@ -580,42 +580,89 @@ __stp_call_mmap_callbacks(struct stap_task_finder_target *tgt,
 	}
 }
 
-static void
-__stp_call_mmap_callbacks_with_vma(struct stap_task_finder_target *tgt,
-				   struct task_struct *tsk,
-				   struct vm_area_struct *vma)
+
+static struct vm_area_struct *
+__stp_find_file_based_vma(struct mm_struct *mm, unsigned long addr)
 {
-	char *mmpath_buf;
-	char *mmpath;
-	int rc;
+	struct vm_area_struct *vma = find_vma(mm, addr);
 
-	// Allocate space for a path
-	mmpath_buf = _stp_kmalloc(PATH_MAX);
-	if (mmpath_buf == NULL) {
-		_stp_error("Unable to allocate space for path");
-		return;
-	}
-
-	// Grab the path associated with this vma.
-#ifdef STAPCONF_DPATH_PATH
-	mmpath = d_path(&(vma->vm_file->f_path), mmpath_buf, PATH_MAX);
-#else
-	mmpath = d_path(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt,
-			mmpath_buf, PATH_MAX);
-#endif
-	if (mmpath == NULL || IS_ERR(mmpath)) {
-		rc = -PTR_ERR(mmpath);
-		_stp_error("Unable to get path (error %d) for pid %d",
-			   rc, (int)tsk->pid);
-	}
-	else {
-		__stp_call_mmap_callbacks(tgt, tsk, mmpath, vma->vm_start,
-					  vma->vm_end - vma->vm_start,
-					  (vma->vm_pgoff << PAGE_SHIFT),
-					  vma->vm_flags);
-	}
-	_stp_kfree(mmpath_buf);
+	// I'm not positive why the checking for vm_start > addr is
+	// necessary, but it seems to be (sometimes find_vma() returns
+	// a vma that addr doesn't belong to).
+	if (vma && (vma->vm_file == NULL || vma->vm_start > addr))
+		vma = NULL;
+	return vma;
 }
+
+
+static void
+__stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
+				    struct task_struct *tsk,
+				    unsigned long addr)
+{
+	struct mm_struct *mm;
+	struct vm_area_struct *vma;
+	char *mmpath_buf = NULL;
+	char *mmpath = NULL;
+	long err;
+	unsigned long length;
+	unsigned long offset;
+	unsigned long vm_flags;
+
+	mm = get_task_mm(tsk);
+	if (! mm)
+		return;
+
+	down_read(&mm->mmap_sem);
+	vma = __stp_find_file_based_vma(mm, addr);
+	if (vma) {
+		// Cache information we need from the vma
+		addr = vma->vm_start;
+		length = vma->vm_end - vma->vm_start;
+		offset = (vma->vm_pgoff << PAGE_SHIFT);
+		vm_flags = vma->vm_flags;
+
+		// Allocate space for a path
+		mmpath_buf = _stp_kmalloc(PATH_MAX);
+		if (mmpath_buf == NULL) {
+			_stp_error("Unable to allocate space for path");
+		}
+		else {
+			// Grab the path associated with this vma.
+#ifdef STAPCONF_DPATH_PATH
+			mmpath = d_path(&(vma->vm_file->f_path), mmpath_buf,
+					PATH_MAX);
+#else
+			mmpath = d_path(vma->vm_file->f_dentry,
+					vma->vm_file->f_vfsmnt, mmpath_buf,
+					PATH_MAX);
+#endif
+			if (mmpath == NULL || IS_ERR(mmpath)) {
+				long err = ((mmpath == NULL) ? 0
+					    : -PTR_ERR(mmpath));
+				_stp_error("Unable to get path (error %ld) for pid %d",
+					   err, (int)tsk->pid);
+				mmpath = NULL;
+			}
+		}
+	}
+
+	// At this point, we're done with the vma (assuming we found
+	// one).  We can't hold the 'mmap_sem' semaphore while making
+	// callbacks.
+	up_read(&mm->mmap_sem);
+		
+	if (mmpath)
+		__stp_call_mmap_callbacks(tgt, tsk, mmpath, addr,
+					  length, offset, vm_flags);
+
+	// Cleanup.
+	if (mmpath_buf)
+		_stp_kfree(mmpath_buf);
+	mmput(mm);
+	return;
+}
+
 
 static inline void
 __stp_call_munmap_callbacks(struct stap_task_finder_target *tgt,
@@ -1055,19 +1102,6 @@ utftq_out:
 }
 
 
-static struct vm_area_struct *
-__stp_find_file_based_vma(struct mm_struct *mm, unsigned long addr)
-{
-	struct vm_area_struct *vma = find_vma(mm, addr);
-
-	// I'm not positive why the checking for vm_start > addr is
-	// necessary, but it seems to be (sometimes find_vma() returns
-	// a vma that addr doesn't belong to).
-	if (vma && (vma->vm_file == NULL || vma->vm_start > addr))
-		vma = NULL;
-	return vma;
-}
-
 #ifdef UTRACE_ORIG_VERSION
 static u32
 __stp_utrace_task_finder_target_syscall_entry(struct utrace_attached_engine *engine,
@@ -1194,24 +1228,8 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 	}
 	else if (entry->syscall_no == MMAP_SYSCALL_NO(tsk)
 		 || entry->syscall_no == MMAP2_SYSCALL_NO(tsk)) {
-		struct mm_struct *mm;
-
-		mm = get_task_mm(tsk);
-		if (mm) {
-			struct vm_area_struct *vma;
-
-			down_read(&mm->mmap_sem);
-			vma = __stp_find_file_based_vma(mm, rv);
-
-			// Call the callbacks
-			if (vma) {
-				__stp_call_mmap_callbacks_with_vma(tgt, tsk,
-								   vma);
-			}
-
-			up_read(&mm->mmap_sem);
-			mmput(mm);
-		}
+		// Call the callbacks
+		__stp_call_mmap_callbacks_with_addr(tgt, tsk, rv);
 	}
 	else {				// mprotect
 		// Call the callbacks

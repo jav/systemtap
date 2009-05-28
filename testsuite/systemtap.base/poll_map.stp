@@ -5,7 +5,7 @@
 
 global called, num_polls
 
-probe kernel.function( "sys_*" ).call {
+probe kernel.function( "vfs_*" ).call {
 	called[execname(),probefunc()]++
 }
 
