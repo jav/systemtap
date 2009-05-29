@@ -4647,6 +4647,7 @@ dump_unwindsyms (Dwfl_Module *m,
 	  // We omit symbols that have suspicious addresses (before base,
 	  // or after end).
           if ((GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
+               GELF_ST_TYPE (sym.st_info) == STT_NOTYPE || // PR10206 ppc fn-desc are in .opd
                GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
                && !(sym.st_shndx == SHN_UNDEF	// Value undefined,
 		    || shndxp == (GElf_Word) -1	// in a non-allocated section,
