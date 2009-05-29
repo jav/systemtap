@@ -1208,7 +1208,7 @@ probe nd_syscall.rt_sigaction32 = kprobe.function("sys32_rt_sigaction") ?,
 	act_uaddr = pointer_arg(2)
 	oact_uaddr = pointer_arg(3)
 	sigsetsize = uint_arg(4)
-	argstr = sprintf("%s, %p, %p, %d", _signal_name(sig), act_uadd, oact_uaddr, sigsetsize)
+	argstr = sprintf("%s, %p, %p, %d", _signal_name(sig), act_uaddr, oact_uaddr, sigsetsize)
 }
 probe nd_syscall.rt_sigaction32.return = kprobe.function("sys32_rt_sigaction").return ?,
                                          kprobe.function("compat_sys_rt_sigaction").return ?
@@ -1686,16 +1686,16 @@ probe nd_syscall.semctl.return = kprobe.function("sys_semctl").return ?
 #
 # long compat_sys_semctl(int first, int second, int third, void __user *uptr)
 #
-probe nd_syscall.compat_sys_semctl = kprobe.function("compat_sys_semctl") ?
-{
-	name = "compat_sys_semctl"
-	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr) // ** not asmlinkage
-}
-probe nd_syscall.compat_sys_semctl.return = kprobe.function("compat_sys_semctl").return ?
-{
-	name = "compat_sys_semctl"
-	retstr = returnstr(1)
-}
+#probe nd_syscall.compat_sys_semctl = kprobe.function("compat_sys_semctl") ?
+#{
+#	name = "compat_sys_semctl"
+#	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr) // ** not asmlinkage
+#}
+#probe nd_syscall.compat_sys_semctl.return = kprobe.function("compat_sys_semctl").return ?
+#{
+#	name = "compat_sys_semctl"
+#	retstr = returnstr(1)
+#}
 
 # semget _____________________________________________________
 # long sys_semget (key_t key, int nsems, int semflg)
@@ -2799,7 +2799,7 @@ probe nd_syscall.sigaction32 = kprobe.function("sys32_sigaction") ?
 	sig = int_arg(1)
 	act_uaddr = pointer_arg(2)
 	oact_uaddr = pointer_arg(3)
-	argstr = sprintf("%s, %p, %p", _signal_name(sig), sact_uaddr, soact_uaddr)
+	argstr = sprintf("%s, %p, %p", _signal_name(sig), act_uaddr, oact_uaddr)
 }
 probe nd_syscall.sigaction32.return = kprobe.function("sys32_sigaction").return ?
 {
@@ -3896,7 +3896,7 @@ probe nd_syscall.compat_sys_utimes = kprobe.function("compat_sys_utimes") ?
 	// 			 _struct_compat_timeval_u($t, 2))
 	asmlinkage()
 	filename = user_string(pointer_arg(1))
-	argstr = sprintf("%s, %s", user_string_quoted(filename),
+	argstr = sprintf("%s, %s", user_string_quoted(pointer_arg(1)),
 				 _struct_compat_timeval_u(pointer_arg(2), 2))
 }
 probe nd_syscall.compat_sys_utimes.return = kprobe.function("compat_sys_utimes").return ?
