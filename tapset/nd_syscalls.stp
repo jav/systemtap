@@ -141,7 +141,7 @@ probe nd_syscall.adjtimex = kprobe.function("SyS_adjtimex") ?,
                             kprobe.function("sys_adjtimex") ?
 {
 	name = "adjtimex"
-	
+
 	/*
 	* buf_offset       = __uget_timex_m($txc_p, 1)
 	* buf_freq         = __uget_timex_m($txc_p, 2)
@@ -1354,7 +1354,7 @@ probe nd_syscall.fork = kprobe.function("do_fork")
 	stack_size = ulong_arg(4)
 	parent_tid_uaddr = pointer_arg(5)
 	child_tid_uaddr = pointer_arg(6)
-	
+
 	if (!__is_user_regs(regs)) {
 		name = "fork_kernel_thread"
 		argstr = __fork_flags(clone_flags)
@@ -2505,7 +2505,7 @@ probe nd_syscall.io_cancel = kprobe.function("SyS_io_cancel") ?,
 	ctx_id = ulong_arg(1)
 	iocb_uaddr = pointer_arg(2)
 	result_uaddr = pointer_arg(3)
-	argstr = sprintf("%d, %p, %p", ctx_id, iocb_uaddr, result_uaddr)	
+	argstr = sprintf("%d, %p, %p", ctx_id, iocb_uaddr, result_uaddr)
 }
 probe nd_syscall.io_cancel.return = kprobe.function("SyS_io_cancel").return ?,
                                     kprobe.function("sys_io_cancel").return ?
@@ -2788,7 +2788,7 @@ probe nd_syscall.kexec_load.return = kprobe.function("compat_sys_kexec_load").re
                                      kprobe.function("sys_kexec_load").return ?
 {
 	name = "kexec_load"
-	retstr = returnstr(1)	
+	retstr = returnstr(1)
 }
 
 # keyctl _____________________________________________________
@@ -2854,7 +2854,7 @@ probe nd_syscall.lchown = kprobe.function("SyS_lchown") ?,
 	owner = __int32(uint_arg(2))
 	group = __int32(uint_arg(3))
 	argstr = sprintf("%s, %d, %d", user_string_quoted(pointer_arg(1)), owner, group)
-}	
+}
 probe nd_syscall.lchown.return = kprobe.function("SyS_lchown").return ?,
                                  kprobe.function("sys_lchown").return ?
 {
@@ -2951,7 +2951,7 @@ probe nd_syscall.link.return = kprobe.function("SyS_link").return ?,
                                kprobe.function("sys_link").return ?
 {
 	name = "link"
-	retstr = returnstr(1)	
+	retstr = returnstr(1)
 }
 
 # linkat _____________________________________________________
@@ -3008,7 +3008,7 @@ probe nd_syscall.listen = kprobe.function("SyS_listen") ?,
 	sockfd = int_arg(1)
 	backlog = int_arg(2)
 	argstr = sprintf("%d, %d", sockfd, backlog)
-}	
+}
 probe nd_syscall.listen.return = kprobe.function("SyS_listen").return ?,
                                  kprobe.function("sys_listen").return ?
 {
@@ -3400,7 +3400,7 @@ probe nd_syscall.mincore.return = kprobe.function("SyS_mincore").return ?,
                                   kprobe.function("sys_mincore").return ?
 {
 	name = "mincore"
-	retstr = returnstr(1)	
+	retstr = returnstr(1)
 }
 
 # mkdir ______________________________________________________
@@ -3423,7 +3423,7 @@ probe nd_syscall.mkdir.return = kprobe.function("SyS_mkdir").return ?,
                                 kprobe.function("sys_mkdir").return ?
 {
 	name = "mkdir"
-	retstr = returnstr(1)	
+	retstr = returnstr(1)
 }
 
 # mkdirat ____________________________________________________
