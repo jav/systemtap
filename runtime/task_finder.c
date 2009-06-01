@@ -983,6 +983,135 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 	return UTRACE_DETACH;
 }
 
+static void
+__stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
+				   struct task_struct *tsk)
+{
+	struct mm_struct *mm;
+	char *mmpath_buf;
+	char *mmpath;
+	struct vm_area_struct *vma;
+	int file_based_vmas = 0;
+	struct vma_cache_t {
+#ifdef STAPCONF_DPATH_PATH
+		struct path *f_path;
+#else
+		struct dentry *f_dentry;
+		struct vfsmount *f_vfsmnt;
+#endif
+		unsigned long addr;
+		unsigned long length;
+		unsigned long offset;
+		unsigned long vm_flags;
+	};
+	struct vma_cache_t *vma_cache = NULL;
+	struct vma_cache_t *vma_cache_p; 
+
+	/* Call the mmap_callback for every vma associated with
+	 * a file. */
+	mm = get_task_mm(tsk);
+	if (! mm)
+		return;
+
+	// Allocate space for a path
+	mmpath_buf = _stp_kmalloc(PATH_MAX);
+	if (mmpath_buf == NULL) {
+		mmput(mm);
+		_stp_error("Unable to allocate space for path");
+		return;
+	}
+
+	down_read(&mm->mmap_sem);
+
+	// First find the number of file-based vmas.
+	vma = mm->mmap;
+	while (vma) {
+		if (vma->vm_file)
+			file_based_vmas++;
+		vma = vma->vm_next;
+	}
+
+	// Now allocate an array to cache vma information in.
+	if (file_based_vmas > 0)
+		vma_cache = _stp_kmalloc(sizeof(struct vma_cache_t)
+					 * file_based_vmas);
+	if (vma_cache != NULL) {
+		// Loop through the vmas again, and cache needed information.
+		vma = mm->mmap;
+		vma_cache_p = vma_cache;
+		while (vma) {
+			if (vma->vm_file) {
+#ifdef STAPCONF_DPATH_PATH
+			    // Notice we're increasing the reference
+			    // count for 'f_path'.  This way it won't
+			    // get deleted from out under us.
+			    vma_cache_p->f_path = &(vma->vm_file->f_path);
+			    path_get(vma_cache_p->f_path);
+#else
+			    // Notice we're increasing the reference
+			    // count for 'f_dentry' and 'f_vfsmnt'.
+			    // This way they won't get deleted from
+			    // out under us.
+			    vma_cache_p->f_dentry = vma->vm_file->f_dentry;
+			    dget(vma_cache_p->f_path);
+			    vma_cache_p->f_vfsmnt = vma->vm_file->f_vfsmnt;
+			    mntget(vma_cache_p->f_vfsmnt);
+#endif
+			    vma_cache_p->addr = vma->vm_start;
+			    vma_cache_p->length = vma->vm_end - vma->vm_start;
+			    vma_cache_p->offset = (vma->vm_pgoff << PAGE_SHIFT);
+			    vma_cache_p->vm_flags = vma->vm_flags;
+			    vma_cache_p++;
+			}
+			vma = vma->vm_next;
+		}
+	}
+
+	// At this point, we're done with the vmas (assuming we found
+	// any).  We can't hold the 'mmap_sem' semaphore while making
+	// callbacks.
+	up_read(&mm->mmap_sem);
+
+	if (vma_cache) {
+		int i;
+
+		// Loop over our cached information and make callbacks
+		// based on it.
+		vma_cache_p = vma_cache;
+		for (i = 0; i < file_based_vmas; i++) {
+#ifdef STAPCONF_DPATH_PATH
+			mmpath = d_path(vma_cache_p->f_path, mmpath_buf,
+					PATH_MAX);
+			path_put(vma_cache_p->f_path);
+#else
+			mmpath = d_path(vma_cache_p->f_dentry,
+					vma_cache_p->f_vfsmnt, mmpath_buf,
+					PATH_MAX);
+			dput(vma_cache_p->f_dentry);
+			mntput(vma_cache_p->f_vfsmnt);
+#endif
+			if (mmpath == NULL || IS_ERR(mmpath)) {
+				long err = ((mmpath == NULL) ? 0
+					    : -PTR_ERR(mmpath));
+				_stp_error("Unable to get path (error %ld) for pid %d",
+					   err, (int)tsk->pid);
+			}
+			else {
+				__stp_call_mmap_callbacks(tgt, tsk, mmpath,
+							  vma_cache_p->addr,
+							  vma_cache_p->length,
+							  vma_cache_p->offset,
+							  vma_cache_p->vm_flags);
+			}
+			vma_cache_p++;
+		}
+		_stp_kfree(vma_cache);
+	}
+
+	mmput(mm);		/* We're done with mm */
+	_stp_kfree(mmpath_buf);
+}
+
 #ifdef UTRACE_ORIG_VERSION
 static u32
 __stp_utrace_task_finder_target_quiesce(struct utrace_attached_engine *engine,
@@ -1043,60 +1172,9 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
            don't bother inform map callback clients about its memory map,
            since they will simply duplicate each other. */
 	if (tgt->mmap_events == 1 && tsk->tgid == tsk->pid) {
-		struct mm_struct *mm;
-		char *mmpath_buf;
-		char *mmpath;
-		struct vm_area_struct *vma;
-		int rc;
-
-		/* Call the mmap_callback for every vma associated with
-		 * a file. */
-		mm = get_task_mm(tsk);
-		if (! mm)
-			goto utftq_out;
-
-		// Allocate space for a path
-		mmpath_buf = _stp_kmalloc(PATH_MAX);
-		if (mmpath_buf == NULL) {
-			mmput(mm);
-			_stp_error("Unable to allocate space for path");
-			goto utftq_out;
-		}
-
-		down_read(&mm->mmap_sem);
-		vma = mm->mmap;
-		while (vma) {
-			if (vma->vm_file) {
-#ifdef STAPCONF_DPATH_PATH
-				mmpath = d_path(&(vma->vm_file->f_path),
-						mmpath_buf, PATH_MAX);
-#else
-				mmpath = d_path(vma->vm_file->f_dentry,
-						vma->vm_file->f_vfsmnt,
-						mmpath_buf, PATH_MAX);
-#endif
-				if (mmpath) {
-					__stp_call_mmap_callbacks(tgt, tsk,
-								  mmpath,
-								  vma->vm_start,
-								  vma->vm_end - vma->vm_start,
-								  (vma->vm_pgoff
-								   << PAGE_SHIFT),
-								  vma->vm_flags);
-				}
-				else {
-					_stp_dbug(__FUNCTION__, __LINE__,
-						  "no mmpath?\n");
-				}
-			}
-			vma = vma->vm_next;
-		}
-		up_read(&mm->mmap_sem);
-		mmput(mm);		/* We're done with mm */
-		_stp_kfree(mmpath_buf);
+		__stp_call_mmap_callbacks_for_task(tgt, tsk);
 	}
 
-utftq_out:
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
 }
