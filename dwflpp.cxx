@@ -304,11 +304,17 @@ dwflpp::setup_kernel(bool debuginfo_needed)
                                              elfutils_kernel_path.c_str(),
                                              &dwfl_report_offline_predicate);
 
-  if (debuginfo_needed)
+  if (debuginfo_needed) {
+    if (rc) {
+      // Suggest a likely kernel dir to find debuginfo rpm for
+      string dir = string("/lib/modules/" + sess.kernel_release );
+      find_debug_rpms(sess, dir.c_str());
+    }
     dwfl_assert (string("missing ") + sess.architecture +
                  string(" kernel/module debuginfo under '") +
                  sess.kernel_build_tree + string("'"),
                  rc);
+  }
 
   // XXX: it would be nice if we could do a single
   // ..._report_offline call for an entire systemtap script, so
