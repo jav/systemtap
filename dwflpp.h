@@ -382,6 +382,11 @@ private:
   bool blacklist_enabled;
   void build_blacklist();
   std::string get_blacklist_section(Dwarf_Addr addr);
+
+  Dwarf_Addr pc_cached_scopes;
+  int num_cached_scopes;
+  Dwarf_Die *cached_scopes;
+  int dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes);
 };
 
 #endif // DWFLPP_H

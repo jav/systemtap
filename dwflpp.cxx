@@ -66,7 +66,8 @@ static string TOK_KERNEL("kernel");
 dwflpp::dwflpp(systemtap_session & session, const string& user_module):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL), dwfl(NULL),
-  module_dwarf(NULL), function(NULL), blacklist_enabled(false)
+  module_dwarf(NULL), function(NULL), blacklist_enabled(false),
+  pc_cached_scopes(0), num_cached_scopes(0), cached_scopes(NULL)
 {
   if (user_module.empty())
     setup_kernel();
@@ -77,6 +78,7 @@ dwflpp::dwflpp(systemtap_session & session, const string& user_module):
 
 dwflpp::~dwflpp()
 {
+  free(cached_scopes);
   if (dwfl)
     dwfl_end(dwfl);
 }
@@ -165,6 +167,9 @@ dwflpp::focus_on_cu(Dwarf_Die * c)
   // Reset existing pointers and names
   function_name.clear();
   function = NULL;
+
+  free(cached_scopes);
+  cached_scopes = NULL;
 }
 
 
@@ -1341,7 +1346,7 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
 
   assert (cu);
 
-  nscopes = dwarf_getscopes (cu, pc, &scopes);
+  nscopes = dwarf_getscopes_cached (pc, &scopes);
   int sidx;
   // if pc and scope_die are disjoint then we need dwarf_getscopes_die
   for (sidx = 0; sidx < nscopes; sidx++)
@@ -2380,6 +2385,21 @@ dwflpp::relocate_address(Dwarf_Addr addr,
       reloc_section = ".absolute";
     }
   return reloc_addr;
+}
+
+
+int
+dwflpp::dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes)
+{
+  if (!cached_scopes || pc != pc_cached_scopes)
+    {
+      free(cached_scopes);
+      cached_scopes = NULL;
+      pc_cached_scopes = pc;
+      num_cached_scopes = dwarf_getscopes(cu, pc, &cached_scopes);
+    }
+  *scopes = cached_scopes;
+  return num_cached_scopes;
 }
 
 
