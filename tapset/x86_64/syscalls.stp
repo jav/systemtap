@@ -5,13 +5,15 @@
 #
 # NOTE: x86_64 only.
 #
-probe syscall.arch_prctl = kernel.function("sys_arch_prctl") {
+probe syscall.arch_prctl = kernel.function("sys_arch_prctl")
+{
 	name = "arch_prctl"
 	code = $code
 	addr = $addr
 	argstr = sprintf("%d, %p", $code, $addr)
 }
-probe syscall.arch_prctl.return = kernel.function("sys_arch_prctl").return {
+probe syscall.arch_prctl.return = kernel.function("sys_arch_prctl").return
+{
 	name = "arch_prctl"
 	retstr = returnstr(1)
 }
@@ -21,7 +23,8 @@ probe syscall.arch_prctl.return = kernel.function("sys_arch_prctl").return {
 # NOTE. This function is only in i386 and x86_64 and its args vary
 # between those two archs.
 #
-probe syscall.iopl = kernel.function("sys_iopl") {
+probe syscall.iopl = kernel.function("sys_iopl")
+{
 	name = "iopl"
 %( kernel_vr == "*xen" %?
 	level = $new_iopl
@@ -30,7 +33,8 @@ probe syscall.iopl = kernel.function("sys_iopl") {
 %)
 	argstr = sprint(level)
 }
-probe syscall.iopl.return = kernel.function("sys_iopl").return {
+probe syscall.iopl.return = kernel.function("sys_iopl").return
+{
 	name = "iopl"
 	retstr = returnstr(1)
 }
@@ -41,14 +45,16 @@ probe syscall.iopl.return = kernel.function("sys_iopl").return {
 #
 # NOTE: args vary between archs.
 #
-probe syscall.sigaltstack = kernel.function("sys_sigaltstack") {
+probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
+{
 	name = "sigaltstack"
 	uss_uaddr = $uss
 	uoss_uaddr = $uoss
 	regs_uaddr = $regs
 	argstr = sprintf("%p, %p", $uss, $uoss)
 }
-probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {
+probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
+{
 	name = "sigaltstack"
 	retstr = returnstr(1)
 }
@@ -57,11 +63,13 @@ probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {
 #
 # long sys32_sysctl(struct sysctl_ia32 __user *args32)
 #
-probe syscall.sysctl32 = kernel.function("sys32_sysctl") ? {
+probe syscall.sysctl32 = kernel.function("sys32_sysctl") ?
+{
 	name = "sysctl"
 	argstr = sprintf("%p", $args32)
 }
-probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ? {
+probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ?
+{
 	name = "sysctl"
 	retstr = returnstr(1)
 }
@@ -70,7 +78,8 @@ probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ? {
 # long sys_mmap(unsigned long addr, unsigned long len,
 #          unsigned long prot, unsigned long flags,
 #          unsigned long fd, unsigned long off)
-probe syscall.mmap = kernel.function("sys_mmap") ? {
+probe syscall.mmap = kernel.function("sys_mmap") ?
+{
 	name = "mmap"
 	start = $addr
 	len = $len
@@ -82,19 +91,22 @@ probe syscall.mmap = kernel.function("sys_mmap") ? {
 		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $off)
 }
 
-probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
+probe syscall.mmap.return = kernel.function("sys_mmap").return ?
+{
 	name = "mmap"
 	retstr = returnstr(2)
 }
 #
 # sys32_mmap(struct mmap_arg_struct __user *arg)
 #
-probe syscall.mmap32 = kernel.function("sys32_mmap") {
+probe syscall.mmap32 = kernel.function("sys32_mmap")
+{
 	name = "mmap"
 	argstr = get_mmap_args($arg)
 }
 
-probe syscall.mmap32.return = kernel.function("sys32_mmap").return {
+probe syscall.mmap32.return = kernel.function("sys32_mmap").return
+{
         name = "mmap"
         retstr = returnstr(2)
 }
@@ -103,13 +115,15 @@ probe syscall.mmap32.return = kernel.function("sys32_mmap").return {
 #	unsigned long prot, unsigned long flags,
 #	unsigned long fd, unsigned long pgoff)
 #
-probe syscall.mmap2 = kernel.function("sys32_mmap2") {
+probe syscall.mmap2 = kernel.function("sys32_mmap2")
+{
 	name = "mmap2"
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
 		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $pgoff)
 }
 
-probe syscall.mmap2.return = kernel.function("sys32_mmap2").return {
+probe syscall.mmap2.return = kernel.function("sys32_mmap2").return
+{
 	name = "mmap2"
 	retstr = returnstr(2)
 }
@@ -118,11 +132,13 @@ probe syscall.mmap2.return = kernel.function("sys32_mmap2").return {
 #
 # long sys32_vm86_warning(void)
 #
-probe syscall.vm86_warning = kernel.function("sys32_vm86_warning") {
+probe syscall.vm86_warning = kernel.function("sys32_vm86_warning")
+{
 	name = "vm86_warning"
 	argstr = ""
 }
-probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return {
+probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return
+{
 	name = "wm86_warning"
 	retstr = returnstr(1)
 }
@@ -130,11 +146,13 @@ probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return
 #
 # long sys32_pipe(int __user *fd)
 #
-probe syscall.pipe32 = kernel.function("sys32_pipe") {
+probe syscall.pipe32 = kernel.function("sys32_pipe")
+{
 	name = "pipe"
 	argstr = sprintf("%p", $fd)
 }
-probe syscall.pipe32.return = kernel.function("sys32_pipe").return {
+probe syscall.pipe32.return = kernel.function("sys32_pipe").return
+{
 	name = "pipe"
 	retstr = returnstr(1)
 }
