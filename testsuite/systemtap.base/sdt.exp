@@ -41,6 +41,7 @@ if {[installtest_p] && [utrace_p]} {
 } else {
   untested "$test $extra_flag"
 }
+catch {exec rm -f $testprog}
 
 # C++
 set testprog "sdt.cxx.exe.$i"
@@ -66,5 +67,5 @@ if {[installtest_p] && [utrace_p]} {
 } else {
   untested "$test c++ $extra_flag"
 }
+catch {exec rm -f $testprog}
 }
-
