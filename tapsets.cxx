@@ -43,7 +43,6 @@ extern "C" {
 #include <dwarf.h>
 #include <elf.h>
 #include <obstack.h>
-#include <regex.h>
 #include <glob.h>
 #include <fnmatch.h>
 #include <stdio.h>
@@ -550,19 +549,6 @@ struct dwarf_query : public base_query
 		       int line,
 		       Dwarf_Die *scope_die,
 		       Dwarf_Addr addr);
-  string get_blacklist_section(Dwarf_Addr addr);
-
-  regex_t blacklist_func; // function/statement probes
-  regex_t blacklist_func_ret; // only for .return probes
-  regex_t blacklist_file; // file name
-  void build_blacklist();
-
-  bool blacklisted_p(const string& funcname,
-                     const string& filename,
-                     int line,
-                     const string& module,
-                     const string& section,
-                     Dwarf_Addr addr);
 
   // Extracted parameters.
   string function_val;
@@ -705,7 +691,6 @@ dwarf_query::dwarf_query(systemtap_session & sess,
   else if (has_statement_str)
     spec_type = parse_function_spec(statement_str_val);
 
-  build_blacklist(); // XXX: why not reuse amongst dwarf_query instances?
   dbinfo_reqt = assess_dbinfo_reqt();
   query_done = false;
 }
@@ -872,138 +857,6 @@ dwarf_query::handle_query_module()
 }
 
 
-void
-dwarf_query::build_blacklist()
-{
-  // No blacklist for userspace.
-  if (has_process)
-    return;
-
-  // We build up the regexps in these strings
-
-  // Add ^ anchors at the front; $ will be added just before regcomp.
-
-  string blfn = "^(";
-  string blfn_ret = "^(";
-  string blfile = "^(";
-
-  blfile += "kernel/kprobes.c"; // first alternative, no "|"
-  blfile += "|arch/.*/kernel/kprobes.c";
-  // Older kernels need ...
-  blfile += "|include/asm/io.h";
-  blfile += "|include/asm/bitops.h";
-  // While newer ones need ...
-  blfile += "|arch/.*/include/asm/io.h";
-  blfile += "|arch/.*/include/asm/bitops.h";
-  blfile += "|drivers/ide/ide-iops.c";
-
-  // XXX: it would be nice if these blacklisted functions were pulled
-  // in dynamically, instead of being statically defined here.
-  // Perhaps it could be populated from script files.  A "noprobe
-  // kernel.function("...")"  construct might do the trick.
-
-  // Most of these are marked __kprobes in newer kernels.  We list
-  // them here (anyway) so the translator can block them on older
-  // kernels that don't have the __kprobes function decorator.  This
-  // also allows detection of problems at translate- rather than
-  // run-time.
-
-  blfn += "atomic_notifier_call_chain"; // first blfn; no "|"
-  blfn += "|default_do_nmi";
-  blfn += "|__die";
-  blfn += "|die_nmi";
-  blfn += "|do_debug";
-  blfn += "|do_general_protection";
-  blfn += "|do_int3";
-  blfn += "|do_IRQ";
-  blfn += "|do_page_fault";
-  blfn += "|do_sparc64_fault";
-  blfn += "|do_trap";
-  blfn += "|dummy_nmi_callback";
-  blfn += "|flush_icache_range";
-  blfn += "|ia64_bad_break";
-  blfn += "|ia64_do_page_fault";
-  blfn += "|ia64_fault";
-  blfn += "|io_check_error";
-  blfn += "|mem_parity_error";
-  blfn += "|nmi_watchdog_tick";
-  blfn += "|notifier_call_chain";
-  blfn += "|oops_begin";
-  blfn += "|oops_end";
-  blfn += "|program_check_exception";
-  blfn += "|single_step_exception";
-  blfn += "|sync_regs";
-  blfn += "|unhandled_fault";
-  blfn += "|unknown_nmi_error";
-
-  // Lots of locks
-  blfn += "|.*raw_.*lock.*";
-  blfn += "|.*read_.*lock.*";
-  blfn += "|.*write_.*lock.*";
-  blfn += "|.*spin_.*lock.*";
-  blfn += "|.*rwlock_.*lock.*";
-  blfn += "|.*rwsem_.*lock.*";
-  blfn += "|.*mutex_.*lock.*";
-  blfn += "|raw_.*";
-  blfn += "|.*seq_.*lock.*";
-
-  // atomic functions
-  blfn += "|atomic_.*";
-  blfn += "|atomic64_.*";
-
-  // few other problematic cases
-  blfn += "|get_bh";
-  blfn += "|put_bh";
-
-  // Experimental
-  blfn += "|.*apic.*|.*APIC.*";
-  blfn += "|.*softirq.*";
-  blfn += "|.*IRQ.*";
-  blfn += "|.*_intr.*";
-  blfn += "|__delay";
-  blfn += "|.*kernel_text.*";
-  blfn += "|get_current";
-  blfn += "|current_.*";
-  blfn += "|.*exception_tables.*";
-  blfn += "|.*setup_rt_frame.*";
-
-  // PR 5759, CONFIG_PREEMPT kernels
-  blfn += "|.*preempt_count.*";
-  blfn += "|preempt_schedule";
-
-  // These functions don't return, so return probes would never be recovered
-  blfn_ret += "do_exit"; // no "|"
-  blfn_ret += "|sys_exit";
-  blfn_ret += "|sys_exit_group";
-
-  // __switch_to changes "current" on x86_64 and i686, so return probes
-  // would cause kernel panic, and it is marked as "__kprobes" on x86_64
-  if (sess.architecture == "x86_64")
-    blfn += "|__switch_to";
-  if (sess.architecture == "i686")
-    blfn_ret += "|__switch_to";
-
-  blfn += ")$";
-  blfn_ret += ")$";
-  blfile += ")$";
-
-  if (sess.verbose > 2)
-    {
-      clog << "blacklist regexps:" << endl;
-      clog << "blfn: " << blfn << endl;
-      clog << "blfn_ret: " << blfn_ret << endl;
-      clog << "blfile: " << blfile << endl;
-    }
-
-  int rc = regcomp (& blacklist_func, blfn.c_str(), REG_NOSUB|REG_EXTENDED);
-  if (rc) throw semantic_error ("blacklist_func regcomp failed");
-  rc = regcomp (& blacklist_func_ret, blfn_ret.c_str(), REG_NOSUB|REG_EXTENDED);
-  if (rc) throw semantic_error ("blacklist_func_ret regcomp failed");
-  rc = regcomp (& blacklist_file, blfile.c_str(), REG_NOSUB|REG_EXTENDED);
-  if (rc) throw semantic_error ("blacklist_file regcomp failed");
-}
-
-
 function_spec_type
 dwarf_query::parse_function_spec(string & spec)
 {
@@ -1094,129 +947,6 @@ dwarf_query::parse_function_spec(string & spec)
 }
 
 
-#if 0
-// Forward declaration.
-static int query_kernel_module (Dwfl_Module *, void **, const char *,
-				Dwarf_Addr, void *);
-#endif
-
-
-// XXX: pull this into dwflpp
-static bool
-in_kprobes_function(systemtap_session& sess, Dwarf_Addr addr)
-{
-  if (sess.sym_kprobes_text_start != 0 && sess.sym_kprobes_text_end != 0)
-    {
-      // If the probe point address is anywhere in the __kprobes
-      // address range, we can't use this probe point.
-      if (addr >= sess.sym_kprobes_text_start && addr < sess.sym_kprobes_text_end)
-	return true;
-    }
-  return false;
-}
-
-
-bool
-dwarf_query::blacklisted_p(const string& funcname,
-                           const string& filename,
-                           int,
-                           const string& module,
-                           const string& section,
-                           Dwarf_Addr addr)
-{
-  if (has_process)
-    return false; // no blacklist for userspace
-
-  if (section.substr(0, 6) == string(".init.") ||
-      section.substr(0, 6) == string(".exit.") ||
-      section.substr(0, 9) == string(".devinit.") ||
-      section.substr(0, 9) == string(".devexit.") ||
-      section.substr(0, 9) == string(".cpuinit.") ||
-      section.substr(0, 9) == string(".cpuexit.") ||
-      section.substr(0, 9) == string(".meminit.") ||
-      section.substr(0, 9) == string(".memexit."))
-    {
-      // NB: module .exit. routines could be probed in theory:
-      // if the exit handler in "struct module" is diverted,
-      // first inserting the kprobes
-      // then allowing the exit code to run
-      // then removing these kprobes
-      if (sess.verbose>1)
-        clog << " skipping - init/exit";
-      return true;
-    }
-
-  // Check for function marked '__kprobes'.
-  if (module == TOK_KERNEL && in_kprobes_function(sess, addr))
-    {
-      if (sess.verbose>1)
-	clog << " skipping - __kprobes";
-      return true;
-    }
-
-  // Check probe point against blacklist.
-  int goodfn = regexec (&blacklist_func, funcname.c_str(), 0, NULL, 0);
-  if (has_return)
-    goodfn = goodfn && regexec (&blacklist_func_ret, funcname.c_str(), 0, NULL, 0);
-  int goodfile = regexec (&blacklist_file, filename.c_str(), 0, NULL, 0);
-
-  if (! (goodfn && goodfile))
-    {
-      if (sess.guru_mode)
-        {
-	  if (sess.verbose>1)
-	    clog << " guru mode enabled - ignoring blacklist";
-        }
-      else
-        {
-	  if (sess.verbose>1)
-	    clog << " skipping - blacklisted";
-	  return true;
-        }
-    }
-
-  // This probe point is not blacklisted.
-  return false;
-}
-
-string dwarf_query::get_blacklist_section(Dwarf_Addr addr)
-{
-       string blacklist_section;
-       Dwarf_Addr bias;
-       // We prefer dwfl_module_getdwarf to dwfl_module_getelf here,
-       // because dwfl_module_getelf can force costly section relocations
-       // we don't really need, while either will do for this purpose.
-       Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.module, &bias))
-		   ?: dwfl_module_getelf (dw.module, &bias));
-
-       Dwarf_Addr offset = addr - bias;
-       if (elf)
-        {
-          Elf_Scn* scn = 0;
-          size_t shstrndx;
-          dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
-          while ((scn = elf_nextscn (elf, scn)) != NULL)
-            {
-              GElf_Shdr shdr_mem;
-              GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-              if (! shdr) continue; // XXX error?
-
-	      if (!(shdr->sh_flags & SHF_ALLOC))
-		continue;
-
-              GElf_Addr start = shdr->sh_addr;
-              GElf_Addr end = start + shdr->sh_size;
-              if (! (offset >= start && offset < end))
-                continue;
-
-              blacklist_section =  elf_strptr (elf, shstrndx, shdr->sh_name);
-              break;
-            }
-         }
-	return blacklist_section;
-}
-
-
 void
 dwarf_query::add_probe_point(const string& funcname,
 			     const char* filename,
@@ -1225,40 +955,13 @@ dwarf_query::add_probe_point(const string& funcname,
 			     Dwarf_Addr addr)
 {
   string reloc_section; // base section for relocation purposes
-  Dwarf_Addr reloc_addr = addr; // relocated
+  Dwarf_Addr reloc_addr; // relocated
   string blacklist_section; // linking section for blacklist purposes
   const string& module = dw.module_name; // "kernel" or other
 
   assert (! has_absolute); // already handled in dwarf_builder::build()
 
-  if (!dw.module)
-    {
-      assert(module == TOK_KERNEL);
-      reloc_section = "";
-      blacklist_section = "";
-    }
-  else if (dwfl_module_relocations (dw.module) > 0)
-    {
-      // This is a relocatable module; libdwfl already knows its
-      // sections, so we can relativize addr.
-      int idx = dwfl_module_relocate_address (dw.module, &reloc_addr);
-      const char* r_s = dwfl_module_relocation_info (dw.module, idx, NULL);
-      if (r_s)
-        reloc_section = r_s;
-      blacklist_section = reloc_section;
-
-     if(reloc_section == "" && dwfl_module_relocations (dw.module) == 1)
-       {
-         blacklist_section = this->get_blacklist_section(addr);
-         reloc_section = ".dynamic";
-         reloc_addr = addr;
-       }
-    }
-  else
-    {
-      blacklist_section = this->get_blacklist_section(addr);
-      reloc_section = ".absolute";
-    }
+  reloc_addr = dw.relocate_address(addr, reloc_section, blacklist_section);
 
   if (sess.verbose > 1)
     {
@@ -1274,7 +977,8 @@ dwarf_query::add_probe_point(const string& funcname,
       clog << " pc=0x" << hex << addr << dec;
     }
 
-  bool bad = blacklisted_p (funcname, filename, line, module, blacklist_section, addr);
+  bool bad = dw.blacklisted_p (funcname, filename, line, module,
+                               blacklist_section, addr, has_return);
   if (sess.verbose > 1)
     clog << endl;
 
@@ -1775,26 +1479,6 @@ query_cu (Dwarf_Die * cudie, void * arg)
       return DWARF_CB_ABORT;
     }
 }
-
-
-#if 0
-static int
-query_kernel_module (Dwfl_Module *mod,
-                     void **,
-		     const char *name,
-		     Dwarf_Addr,
-		     void *arg)
-{
-  if (TOK_KERNEL == name)
-  {
-    Dwfl_Module **m = (Dwfl_Module **)arg;
-
-    *m = mod;
-    return DWARF_CB_ABORT;
-  }
-  return DWARF_CB_OK;
-}
-#endif
 
 
 static void

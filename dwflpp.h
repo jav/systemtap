@@ -25,6 +25,7 @@
 
 extern "C" {
 #include <elfutils/libdwfl.h>
+#include <regex.h>
 }
 
 
@@ -268,6 +269,19 @@ struct dwflpp
                                         bool lvalue,
                                         exp_type & ty);
 
+  bool blacklisted_p(const std::string& funcname,
+                     const std::string& filename,
+                     int line,
+                     const std::string& module,
+                     const std::string& section,
+                     Dwarf_Addr addr,
+                     bool has_return);
+
+  Dwarf_Addr relocate_address(Dwarf_Addr addr,
+                              std::string& reloc_section,
+                              std::string& blacklist_section);
+
+
 private:
   Dwfl * dwfl;
 
@@ -361,6 +375,13 @@ private:
   std::string express_as_string (std::string prelude,
                                  std::string postlude,
                                  struct location *head);
+
+  regex_t blacklist_func; // function/statement probes
+  regex_t blacklist_func_ret; // only for .return probes
+  regex_t blacklist_file; // file name
+  bool blacklist_enabled;
+  void build_blacklist();
+  std::string get_blacklist_section(Dwarf_Addr addr);
 };
 
 #endif // DWFLPP_H
