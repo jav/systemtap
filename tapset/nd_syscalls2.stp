@@ -156,8 +156,8 @@ probe nd_syscall.open = kprobe.function("compat_sys_open") ?,
 			_sys_open_flag_str(flags))
 }
 probe nd_syscall.open.return = kprobe.function("compat_sys_open").return ?,
-                               kprobe.function("sys32_open").return ?
-                               kprobe.function("SyS_open").return ?
+                               kprobe.function("sys32_open").return ?,
+                               kprobe.function("SyS_open").return ?,
                                kprobe.function("sys_open").return ?
 {
 	name = "open"
