@@ -1141,15 +1141,43 @@ probe nd_syscall.rename.return = kprobe.function("SyS_rename").return ?,
 }
 
 # renameat ___________________________________________________
-# TODO
-#probe nd_syscall.renameat = kprobe.function("SyS_renameat") ?,
-#                            kprobe.function("sys_renameat") ?
-#{
-#}
-#probe nd_syscall.renameat.return = kprobe.function("SyS_renameat").return ?,
-#                                   kprobe.function("sys_renameat").return ?
-#{
-#}
+# new function with 2.6.16
+# long sys_renameat(int olddfd, const char __user *oldname,
+#	int newdfd, const char __user *newname)
+probe nd_syscall.renameat = kprobe.function("SyS_renameat") ?,
+                            kprobe.function("sys_renameat") ?
+{
+	name = "renameat"
+	// olddfd = $olddfd
+	// olddfd_str = _dfd_str($olddfd)
+	// oldname = $oldname
+	// oldname_str = user_string($oldname)
+	// newdfd = $newdfd
+	// newdfd_str = _dfd_str($newdfd)
+	// newname = $newname
+	// newname_str = user_string($newname)
+	// argstr = sprintf("%s, %s, %s, %s",
+	// 	olddfd_str, user_string_quoted($oldname),
+	// 	newdfd_str, user_string_quoted($newname))
+	asmlinkage()
+	olddfd = int_arg(1)
+	olddfd_str = _dfd_str(olddfd)
+	oldname = pointer_arg(2)
+	oldname_str = user_string(oldname)
+	newdfd = int_arg(3)
+	newdfd_str = _dfd_str(newdfd)
+	newname = pointer_arg(4)
+	newname_str = user_string(newname)
+	argstr = sprintf("%s, %s, %s, %s",
+		olddfd_str, user_string_quoted(oldname),
+		newdfd_str, user_string_quoted(newname))
+}
+probe nd_syscall.renameat.return = kprobe.function("SyS_renameat").return ?,
+                                   kprobe.function("sys_renameat").return ?
+{
+	name = "renameat"
+	retstr = returnstr(1)
+}
 
 # request_key ________________________________________________
 #
@@ -1775,7 +1803,7 @@ probe nd_syscall.semctl = kprobe.function("SyS_semctl") ?,
 	semid = int_arg(1)
 	semnum = int_arg(2)
 	cmd = int_arg(3)
-	argstr = sprintf("%d, %d, %s", semid, semnum, _semctl_cmd(cmd))	// ** jk done
+	argstr = sprintf("%d, %d, %s", semid, semnum, _semctl_cmd(cmd))
 }
 probe nd_syscall.semctl.return = kprobe.function("SyS_semctl").return ?,
                                  kprobe.function("sys_semctl").return ?
@@ -1783,21 +1811,22 @@ probe nd_syscall.semctl.return = kprobe.function("SyS_semctl").return ?,
 	name = "semctl"
 	retstr = returnstr(1)
 }
-
 # compat_sys_semctl ________________________________________
 #
 # long compat_sys_semctl(int first, int second, int third, void __user *uptr)
 #
-#probe nd_syscall.compat_sys_semctl = kprobe.function("compat_sys_semctl") ?
-#{
-#	name = "compat_sys_semctl"
-#	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr) // ** not asmlinkage
-#}
-#probe nd_syscall.compat_sys_semctl.return = kprobe.function("compat_sys_semctl").return ?
-#{
-#	name = "compat_sys_semctl"
-#	retstr = returnstr(1)
-#}
+probe nd_syscall.compat_sys_semctl = kprobe.function("compat_sys_semctl") ?
+{
+	name = "compat_sys_semctl"
+	// argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr)
+	// NB: no asmlinkage()
+	argstr = sprintf("%d, %d, %d, %p", int_arg(1), int_arg(2), int_arg(3), pointer_arg(4))
+}
+probe nd_syscall.compat_sys_semctl.return = kprobe.function("compat_sys_semctl").return ?
+{
+	name = "compat_sys_semctl"
+	retstr = returnstr(1)
+}
 
 # semget _____________________________________________________
 # long sys_semget (key_t key, int nsems, int semflg)
@@ -4006,26 +4035,54 @@ probe nd_syscall.unlink.return = kprobe.function("SyS_unlink").return ?,
 }
 
 # unlinkat ___________________________________________________
-# TODO
-#probe nd_syscall.unlinkat = kprobe.function("SyS_unlinkat") ?,
-#                            kprobe.function("sys_unlinkat") ?
-#{
-#}
-#probe nd_syscall.unlinkat.return = kprobe.function("SyS_unlinkat").return ?,
-#                                   kprobe.function("sys_unlinkat").return ?
-#{
-#}
+# new function with 2.6.16
+# long sys_unlinkat(int dfd, const char __user *pathname,
+#	int flag)
+probe nd_syscall.unlinkat = kprobe.function("SyS_unlinkat") ?,
+                            kprobe.function("sys_unlinkat") ?
+{
+	name = "unlinkat"
+	// dfd = $dfd
+	// dfd_str = _dfd_str($dfd)
+	// pathname = $pathname
+	// pathname_str = user_string($pathname)
+	// flag = $flag
+	// flag_str = _at_flag_str($flag)
+	// argstr = sprintf("%s, %s, %s", dfd_str, user_string_quoted($pathname), flag_str)
+	asmlinkage()
+	dfd = int_arg(1)
+	dfd_str = _dfd_str(dfd)
+	pathname = pointer_arg(2)
+	pathname_str = user_string(pathname)
+	flag = int_arg(3)
+	flag_str = _at_flag_str(flag)
+	argstr = sprintf("%s, %s, %s", dfd_str, user_string_quoted(pathname), flag_str)
+}
+probe nd_syscall.unlinkat.return = kprobe.function("SyS_unlinkat").return ?,
+                                   kprobe.function("sys_unlinkat").return ?
+{
+	name = "unlinkat"
+	retstr = returnstr(1)
+}
 
 # unshare ____________________________________________________
-# TODO
-#probe nd_syscall.unshare = kprobe.function("SyS_unshare") ?,
-#                           kprobe.function("sys_unshare") ?
-#{
-#}
-#probe nd_syscall.unshare.return = kprobe.function("SyS_unshare").return ?,
-#                                  kprobe.function("sys_unshare").return ?
-#{
-#}
+# new function with 2.6.16
+# long sys_unshare(unsigned long unshare_flags)
+probe nd_syscall.unshare = kprobe.function("SyS_unshare") ?,
+                           kprobe.function("sys_unshare") ?
+{
+	name = "unshare"
+	// unshare_flags = $unshare_flags
+	asmlinkage()
+	unshare_flags = ulong_arg(1)
+	argstr = __fork_flags(unshare_flags)
+}
+probe nd_syscall.unshare.return = kprobe.function("SyS_unshare").return ?,
+                                  kprobe.function("sys_unshare").return ?
+{
+	name = "unshare"
+	retstr = returnstr(1)
+}
 
 # uselib _____________________________________________________
 #
