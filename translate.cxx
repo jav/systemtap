@@ -4423,6 +4423,7 @@ struct unwindsym_dump_context
   systemtap_session& session;
   ostream& output;
   unsigned stp_module_index;
+  unsigned long stp_kretprobe_trampoline_addr;
   set<string> undone_unwindsym_modules;
 };
 
@@ -4660,6 +4661,11 @@ dump_unwindsyms (Dwfl_Module *m,
                   secname = "_stext";
                   // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
                   // Instead, sym_addr will get compensated later via extra_offset.
+
+                  // We need to note this for the unwinder.
+                  if (c->stp_kretprobe_trampoline_addr == (unsigned long) -1
+                      && ! strcmp (name, "kretprobe_trampoline_holder"))
+                    c->stp_kretprobe_trampoline_addr = sym_addr;
                 }
               else if (n > 0)
                 {
@@ -4708,6 +4714,10 @@ dump_unwindsyms (Dwfl_Module *m,
             }
         }
     }
+
+  // Must be relative to actual kernel load address.
+  if (c->stp_kretprobe_trampoline_addr != (unsigned long) -1)
+    c->stp_kretprobe_trampoline_addr -= extra_offset;
 
   // Add unwind data to be included if it exists for this module.
   void *debug_frame = NULL;
@@ -4893,7 +4903,7 @@ emit_symbol_data (systemtap_session& s)
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
 
-  unwindsym_dump_context ctx = { s, kallsyms_out, 0, s.unwindsym_modules };
+  unwindsym_dump_context ctx = { s, kallsyms_out, 0, -1, s.unwindsym_modules };
 
   // Micro optimization, mainly to speed up tiny regression tests
   // using just begin probe.
@@ -5010,6 +5020,9 @@ emit_symbol_data_done (unwindsym_dump_context *ctx, systemtap_session& s)
     }
   ctx->output << "};\n";
   ctx->output << "static unsigned _stp_num_modules = " << ctx->stp_module_index << ";\n";
+
+  ctx->output << "static unsigned long _stp_kretprobe_trampoline = 0x"
+	      << hex << ctx->stp_kretprobe_trampoline_addr << dec << ";\n";
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
   for (set<string>::iterator it = ctx->undone_unwindsym_modules.begin();

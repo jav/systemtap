@@ -30,6 +30,14 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
 
   dbug_sym(2, "relocate (%s %s 0x%lx)\n", msg.module, msg.reloc, (unsigned long) msg.address);
 
+  /* Detect actual kernel load address. */
+  if (!strcmp ("kernel", msg.module)
+      && !strcmp ("_stext", msg.reloc)) {
+    dbug_sym(2, "found kernel _stext load address: 0x%lx\n",
+             (unsigned long) msg.address);
+    if (_stp_kretprobe_trampoline != (unsigned long) -1)
+      _stp_kretprobe_trampoline += (unsigned long) msg.address;
+  }
 
   /* Save the relocation value.  XXX: While keeping the data here is
      fine for the kernel address space ("kernel" and "*.ko" modules),
