@@ -61,10 +61,10 @@ struct _stp_module {
 static struct _stp_module *_stp_modules [];
 static unsigned _stp_num_modules;
 
-
-/* the number of modules in the arrays */
-
-static unsigned long _stp_kretprobe_trampoline = 0;
+/* Used in the unwinder to special case unwinding through kretprobes. */
+/* Initialized through translator (stap-symbols.h) relative to kernel */
+/* load address, fixup by transport symbols _stp_do_relocation */
+static unsigned long _stp_kretprobe_trampoline;
 
 static unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset);
 static struct _stp_module *_stp_get_unwind_info (unsigned long addr);

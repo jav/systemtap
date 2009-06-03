@@ -32,11 +32,13 @@ probe syscall.getresuid16.return = kernel.function("sys32_getresuid16").return ?
 # ipc _________________________________________________
 # long sys32_ipc(u32 call, int first, int second, int third, u32 ptr)
 #
-probe syscall.ipc = kernel.function("sys32_ipc") ? {
+probe syscall.ipc = kernel.function("sys32_ipc") ?
+{
 	name = "ipc"
 	argstr = sprintf("%d, %d, %d, %d, %p", $call, $first, $second, $third, $ptr)
 }
-probe syscall.ipc.return = kernel.function("sys_ipc").return ? {
+probe syscall.ipc.return = kernel.function("sys_ipc").return ?
+{
 	name = "ipc"
 	retstr = returnstr(1)
 }
@@ -46,8 +48,8 @@ probe syscall.ipc.return = kernel.function("sys_ipc").return ? {
 # long old32_mmap(struct mmap_arg_struct_emu31 __user *arg)
 #
 probe syscall.mmap = kernel.function("old_mmap") ?,
-		     kernel.function("old32_mmap") ?,
-		     kernel.function("SyS_s390_old_mmap") ?
+                     kernel.function("old32_mmap") ?,
+                     kernel.function("SyS_s390_old_mmap") ?
 {
 	name = "mmap"
 
@@ -58,8 +60,8 @@ probe syscall.mmap = kernel.function("old_mmap") ?,
 }
 
 probe syscall.mmap.return = kernel.function("old_mmap").return ?,
-			    kernel.function("old32_mmap").return ?,
-			    kernel.function("SyS_s390_old_mmap").return ?
+                            kernel.function("old32_mmap").return ?,
+                            kernel.function("SyS_s390_old_mmap").return ?
 {
         name = "mmap"
         retstr = returnstr(2)
@@ -72,8 +74,8 @@ probe syscall.mmap.return = kernel.function("old_mmap").return ?,
 # long sys32_mmap2(struct mmap_arg_struct_emu31 __user *arg)
 #
 probe syscall.mmap2 = kernel.function("sys_mmap2") ?,
-		      kernel.function("sys32_mmap2") ?,
-		      kernel.function("SyS_mmap2") ?
+                      kernel.function("sys32_mmap2") ?,
+                      kernel.function("SyS_mmap2") ?
 {
         name = "mmap2"
 
@@ -84,8 +86,8 @@ probe syscall.mmap2 = kernel.function("sys_mmap2") ?,
 }
 
 probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?,
-			     kernel.function("sys32_mmap2").return ?,
-		             kernel.function("SyS_mmap2").return ?
+                             kernel.function("sys32_mmap2").return ?,
+                             kernel.function("SyS_mmap2").return ?
 {
         name = "mmap2"
         retstr = returnstr(2)
@@ -95,11 +97,13 @@ probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?,
 #
 # long sys32_sysctl(struct __sysctl_args32 __user *args)
 #
-probe syscall.sysctl32 = kernel.function("sys32_sysctl") ? {
+probe syscall.sysctl32 = kernel.function("sys32_sysctl") ?
+{
 	name = "sysctl"
 	argstr = sprintf("%p", $args)
 }
-probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ? {
+probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ?
+{
 	name = "sysctl"
 	retstr = returnstr(1)
 }
