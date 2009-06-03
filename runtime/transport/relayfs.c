@@ -75,14 +75,29 @@ static struct rchan_callbacks stp_rchan_callbacks =
 	.buf_full = __stp_relay_buf_full_callback,
 };
 
+static void _stp_transport_data_fs_start(void)
+{
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED)
+		_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
+}
+
+static void _stp_transport_data_fs_stop(void)
+{
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING) {
+		_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+		_stp_relay_data.flushing = 1;
+		if (_stp_relay_data.rchan)
+			relay_flush(_stp_relay_data.rchan);
+	}
+}
+
 static void _stp_transport_data_fs_close(void)
 {
+	_stp_transport_data_fs_stop();
 	if (_stp_relay_data.rchan) {
-		_stp_relay_data.flushing = 1;
-		relay_flush(_stp_relay_data.rchan);
 		relay_close(_stp_relay_data.rchan);
+		_stp_relay_data.rchan = NULL;
 	}
-	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
 }
 
 static int _stp_transport_data_fs_init(void)
@@ -111,9 +126,8 @@ static int _stp_transport_data_fs_init(void)
 			= _stp_gid;
 	}
 
-	/* We're off and running. */
-	smp_mb();
-	_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
+	/* We're initialized. */
+	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
 	return rc;
 
 err:

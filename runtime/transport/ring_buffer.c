@@ -425,6 +425,16 @@ static int _stp_transport_data_fs_init(void)
 	return 0;
 }
 
+static void _stp_transport_data_fs_start(void)
+{
+	/* Do nothing. */
+}
+
+static void _stp_transport_data_fs_stop(void)
+{
+	/* Do nothing. */
+}
+
 static void _stp_transport_data_fs_close(void)
 {
 	int cpu;

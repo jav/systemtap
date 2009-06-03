@@ -75,6 +75,20 @@ static int _stp_bufsize;
 static int _stp_transport_data_fs_init(void);
 
 /* 
+ * _stp_transport_data_fs_start
+ *
+ * This function actually starts the transport.
+ */
+static void _stp_transport_data_fs_start(void);
+
+/* 
+ * _stp_transport_data_fs_start
+ *
+ * This function stops the transport without doing any cleanup.
+ */
+static void _stp_transport_data_fs_stop(void);
+
+/* 
  * _stp_transport_data_fs_close
  *
  * This function cleans up items created by

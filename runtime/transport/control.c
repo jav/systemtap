@@ -100,6 +100,24 @@ static void _stp_ctl_write_dbug(int type, void *data, int len)
 	case STP_TRANSPORT:
 		_dbug("sending STP_TRANSPORT\n");
 		break;
+	case STP_CONNECT:
+		_dbug("sending STP_CONNECT\n");
+		break;
+	case STP_DISCONNECT:
+		_dbug("sending STP_DISCONNECT\n");
+		break;
+	case STP_BULK:
+		_dbug("sending STP_BULK\n");
+		break;
+	case STP_READY:
+	case STP_RELOCATION:
+	case STP_BUF_INFO:
+	case STP_SUBBUFS_CONSUMED:
+		_dbug("sending old message\n");
+		break;
+	case STP_REALTIME_DATA:
+		_dbug("sending %d bytes of STP_REALTIME_DATA\n", len);
+		break;
 	case STP_REQUEST_EXIT:
 		_dbug("sending STP_REQUEST_EXIT\n");
 		break;

@@ -220,18 +220,35 @@ static struct rchan_callbacks __stp_relay_callbacks = {
 	.remove_buf_file	= __stp_relay_remove_buf_file_callback,
 };
 
+static void _stp_transport_data_fs_start(void)
+{
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED) {
+		/* We're initialized.  Now start the timer. */
+		__stp_relay_timer_init();
+		_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
+	}
+}
+
+static void _stp_transport_data_fs_stop(void)
+{
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING) {
+		del_timer_sync(&_stp_relay_data.timer);
+		dbug_trans(0, "flushing...\n");
+		_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+		if (_stp_relay_data.rchan)
+			relay_flush(_stp_relay_data.rchan);
+	}
+}
+
 static void _stp_transport_data_fs_close(void)
 {
-	if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING)
-		del_timer_sync(&_stp_relay_data.timer);
-
+	_stp_transport_data_fs_stop();
 	if (_stp_relay_data.dropped_file)
 		debugfs_remove(_stp_relay_data.dropped_file);
 	if (_stp_relay_data.rchan) {
-		relay_flush(_stp_relay_data.rchan);
 		relay_close(_stp_relay_data.rchan);
+		_stp_relay_data.rchan = NULL;
 	}
-	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
 }
 
 static int _stp_transport_data_fs_init(void)
@@ -299,10 +316,6 @@ static int _stp_transport_data_fs_init(void)
 	}
 	dbug_trans(1, "returning 0...\n");
 	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
-
-	/* We're initialized.  Now start the timer. */
-	__stp_relay_timer_init();
-	_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
 
 	return 0;
 

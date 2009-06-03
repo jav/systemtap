@@ -135,11 +135,8 @@ static void _stp_cleanup_and_exit(int send_exit)
 		if (failures)
 			_stp_warn("There were %d transport failures.\n", failures);
 
-		dbug_trans(1, "************** calling startstop 0 *************\n");
-#if 0
-		if (_stp_utt)
-			utt_trace_startstop(_stp_utt, 0, &utt_seq);
-#endif
+		dbug_trans(1, "*** calling _stp_transport_data_fs_stop ***\n");
+		_stp_transport_data_fs_stop();
 
 		dbug_trans(1, "ctl_send STP_EXIT\n");
 		if (send_exit)
@@ -236,9 +233,9 @@ static void _stp_transport_close(void)
 	if (_stp_utt)
 		utt_trace_remove(_stp_utt);
 #endif /* #if 0 */
+	_stp_transport_fs_close();
 	_stp_print_cleanup();	/* free print buffers */
 	_stp_mem_debug_done();
-	_stp_transport_fs_close();
 
 	dbug_trans(1, "---- CLOSED ----\n");
 }
@@ -317,10 +314,8 @@ static int _stp_transport_init(void)
 	if (_stp_print_init() < 0)
 		goto err2;
 
-#if 0
 	/* start transport */
-	utt_trace_startstop(_stp_utt, 1, &utt_seq);
-#endif /* #if 0 */
+	_stp_transport_data_fs_start();
 
 	/* create workqueue of kernel threads */
 	_stp_wq = create_workqueue("systemtap");
