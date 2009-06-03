@@ -1,0 +1,205 @@
+# 32-bit x86-specific system calls
+# These are typically defined in arch/i386
+#
+
+# get_thread_area ____________________________________________
+/*
+ * asmlinkage int
+ * sys_get_thread_area(struct user_desc __user *u_info)
+ */
+probe nd_syscall.get_thread_area = kprobe.function("sys_get_thread_area")
+{
+	name = "get_thread_area"
+	// u_info_uaddr = $u_info
+	asmlinkage()
+	u_info_uaddr = pointer_arg(1)
+	argstr = sprintf("%p", u_info_uaddr)
+}
+probe nd_syscall.get_thread_area.return = kprobe.function("sys_get_thread_area").return
+{
+	name = "get_thread_area"
+	retstr = returnstr(1)
+}
+
+# iopl _______________________________________________________
+# long sys_iopl(unsigned long unused)
+# NOTE. This function is only in i386 and x86_64 and its args vary
+# between those two archs.
+#
+probe nd_syscall.iopl = kprobe.function("sys_iopl")
+{
+	name = "iopl"
+	argstr = ""
+}
+probe nd_syscall.iopl.return = kprobe.function("sys_iopl").return
+{
+	name = "iopl"
+	retstr = returnstr(1)
+}
+
+# ipc ________________________________________________________
+#  int sys_ipc (uint call, int first, int second, int third, void __user *ptr, long fifth)
+#
+probe nd_syscall.ipc = kprobe.function("sys_ipc") ?
+{
+	name = "ipc"
+	// call = $call
+	// first = $first
+	// second = $second
+	// third = $third
+	// ptr_uaddr = $ptr
+	// fifth = $fifth
+	// argstr = sprintf("%d, %d, %d, %d, %p, %d", $call, $first,
+	// 		$second, $third, $ptr, $fifth)
+	asmlinkage()
+	call = uint_arg(1)
+	first = int_arg(2)
+	second = int_arg(3)
+	third = int_arg(4)
+	ptr_uaddr = pointer_arg(5)
+	fifth = long_arg(6)
+	argstr = sprintf("%d, %d, %d, %d, %p, %d", call, first,
+			second, third, ptr_uaddr, fifth)
+}
+probe nd_syscall.ipc.return = kprobe.function("sys_ipc").return ?
+{
+	name = "ipc"
+	retstr = returnstr(1)
+}
+
+# mmap2 ____________________________________________
+# sys_mmap2(unsigned long addr, unsigned long len,
+#	  unsigned long prot, unsigned long flags,
+#	  unsigned long fd, unsigned long pgoff)
+#
+probe nd_syscall.mmap2 = kprobe.function("sys_mmap2") ?
+{
+	name = "mmap2"
+	// start = $addr
+	// length = $len
+	// prot = $prot
+	// flags = $flags
+	// fd = $fd
+	// pgoffset = $pgoff
+	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr,
+	// 		$len, _mprotect_prot_str($prot), _mmap_flags($flags),
+	// 		$fd, $pgoff)
+	asmlinkage()
+	start = ulong_arg(1)
+	length = ulong_arg(2)
+	prot = ulong_arg(3)
+	flags = ulong_arg(4)
+	fd = ulong_arg(5)
+	pgoffset = ulong_arg(6)
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start,
+			length, _mprotect_prot_str(prot), _mmap_flags(flags),
+			fd, pgoffset)
+}
+probe nd_syscall.mmap2.return = kprobe.function("sys_mmap2").return ?
+{
+	name = "mmap2"
+	retstr = returnstr(2)
+}
+
+# set_thread_area ____________________________________________
+/*
+ * asmlinkage int
+ * sys_set_thread_area(struct user_desc __user *u_info)
+ */
+probe nd_syscall.set_thread_area = kprobe.function("sys_set_thread_area")
+{
+	name = "set_thread_area"
+	// u_info_uaddr = $u_info
+	asmlinkage()
+	u_info_uaddr = pointer_arg(1)
+	argstr = sprintf("%p", u_info_uaddr)
+}
+probe nd_syscall.set_thread_area.return = kprobe.function("sys_set_thread_area").return
+{
+	name = "set_thread_area"
+	retstr = returnstr(1)
+}
+
+# set_zone_reclaim ___________________________________________
+/*
+ * asmlinkage long
+ * sys_set_zone_reclaim(unsigned int node,
+ *                      unsigned int zone,
+ *                      unsigned int state)
+ */
+probe nd_syscall.set_zone_reclaim = kprobe.function("sys_set_zone_reclaim") ?
+{
+	name = "set_zone_reclaim"
+	// node = $node
+	// zone = $zone
+	// state = $state
+	// argstr = sprintf("%d, %d, %d", $node, $zone, $state)
+	asmlinkage()
+	node = uint_arg(1)
+	zone = uint_arg(2)
+	state = uint_arg(3)
+	argstr = sprintf("%d, %d, %d", node, zone, state)
+}
+probe nd_syscall.set_zone_reclaim.return = kprobe.function("sys_set_zone_reclaim").return ?
+{
+	name = "set_zone_reclaim"
+	retstr = returnstr(1)
+}
+
+# sigaltstack ________________________________________________
+# int sys_sigaltstack(unsigned long ebx)
+#
+# NOTE: args vary between archs.
+#
+probe nd_syscall.sigaltstack = kprobe.function("sys_sigaltstack")
+{
+	name = "sigaltstack"
+	// ussp = %( kernel_vr < "2.6.25" %? $ebx %: %( kernel_vr < "2.6.29" %? $bx %: $regs->bx %) %)
+	// NB: no asmlinkage()
+	ussp = %( kernel_vr < "2.6.29" %? ulong_arg(1) %: @cast(ulong_arg(1), "pt_regs")->bx %)
+	argstr = sprintf("%p", ussp)
+}
+probe nd_syscall.sigaltstack.return = kprobe.function("sys_sigaltstack").return
+{
+	name = "sigaltstack"
+	retstr = returnstr(1)
+}
+
+# vm86 _______________________________________________________
+#
+# int sys_vm86(struct pt_regs regs)
+#
+probe nd_syscall.vm86 = kprobe.function("sys_vm86") ?
+{
+	name = "vm86"
+	/*
+	 * unsupported type identifier '$regs'
+	 * regs = $regs
+	 */
+	argstr = ""
+}
+probe nd_syscall.vm86.return = kprobe.function("sys_vm86").return ?
+{
+	name = "vm86"
+	retstr = returnstr(1)
+}
+
+# vm86old ____________________________________________________
+#
+# int sys_vm86old(struct pt_regs regs)
+#
+probe nd_syscall.vm86old = kprobe.function("sys_vm86old") ?
+{
+	name = "vm86old"
+	/*
+	 * unsupported type identifier '$regs'
+	 * regs = $regs
+	 */
+	argstr = ""
+}
+probe nd_syscall.vm86old.return = kprobe.function("sys_vm86old").return ?
+{
+	name = "vm86old"
+	retstr = returnstr(1)
+}
+
