@@ -119,7 +119,7 @@ int main(int argc, char** argv)
         {
           dup2(pipefd[1], 1);
           close(pipefd[1]);
-          execlp("stap", argv[1]);
+          execlp("stap", "stap", argv[1], static_cast<char*>(0));
           exit(1);
           return 1;
         }
