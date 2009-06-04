@@ -688,7 +688,7 @@ dwarf_builder::probe_table::probe_table(systemtap_session & sess, dwflpp* dw, pr
 {
   Elf* elf;
   GElf_Shdr shdr_mem;
-  GElf_Shdr *shdr;
+  GElf_Shdr *shdr = NULL;
   Dwarf_Addr bias;
   size_t shstrndx;
 
@@ -703,7 +703,7 @@ dwarf_builder::probe_table::probe_table(systemtap_session & sess, dwflpp* dw, pr
   this->location = location;
   this->mark_name = location->components[1]->arg->tok->content;
   have_probes = false;
-  
+
   // Is there a .probes section?
   while ((probe_scn = elf_nextscn (elf, probe_scn)))
     {
@@ -716,14 +716,18 @@ dwarf_builder::probe_table::probe_table(systemtap_session & sess, dwflpp* dw, pr
 	  break;
 	}
     }
-    
+
+  if (!have_probes)
+    return;
+
   // Older versions put .probes section in the debuginfo dwarf file,
   // so check if it actually exists, if not take the main elf file
-  if (have_probes && shdr->sh_type == SHT_NOBITS)
+  if (shdr->sh_type == SHT_NOBITS)
     {
       elf = dwfl_module_getelf (dw->module, &bias);
       dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
       probe_scn = NULL;
+      have_probes = false;
       while ((probe_scn = elf_nextscn (elf, probe_scn)))
 	{
 	  shdr = gelf_getshdr (probe_scn, &shdr_mem);
@@ -733,6 +737,9 @@ dwarf_builder::probe_table::probe_table(systemtap_session & sess, dwflpp* dw, pr
 	    break;
 	}
     }
+
+  if (!have_probes)
+    return;
 
   pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
   probe_scn_offset = 0;
@@ -748,11 +755,11 @@ dwarf_builder::probe_table::get_next_probe()
 {
   if (! have_probes)
     return false;
-    
+
   // Extract probe info from the .probes section
   if (sess.verbose > 3)
     clog << "probe_type == use_uprobe, use statement addr" << endl;
- 
+
   while (probe_scn_offset < pdata->d_size)
     {
       probe_type = (enum probe_types)*((int*)((char*)pdata->d_buf + probe_scn_offset));
@@ -780,7 +787,7 @@ dwarf_builder::probe_table::get_next_probe()
       if (sess.verbose > 4)
 	clog << "saw .probes " << probe_name
 	     << "@0x" << hex << probe_arg << dec << endl;
-    
+
       if (probe_scn_offset % (sizeof(__uint64_t)*2))
 	probe_scn_offset = (probe_scn_offset + sizeof(__uint64_t)*2) - (probe_scn_offset % (sizeof(__uint64_t)*2));
       if ((strcmp (mark_name.c_str(), probe_name.c_str()) == 0)
@@ -2346,9 +2353,9 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  saveme->chain = e->saved_conversion_error;
 	  e->saved_conversion_error = saveme;
 	}
-      else 
+      else
 	{
-	  // Upon user request for ignoring context, the symbol is replaced 
+	  // Upon user request for ignoring context, the symbol is replaced
 	  // with a literal 0 and a warning message displayed
 	  literal_number* ln_zero = new literal_number (0);
 	  ln_zero->tok = e->tok;
@@ -3218,7 +3225,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       provide(e);
       return;
     }
-  
+
   bool lvalue = is_active_lvalue(e);
   string argname = e->base_name.substr(1);
   functioncall *fc = new functioncall;
@@ -3254,7 +3261,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       be->right = inc;
       fc->args.push_back(be);
     }
-  
+
   if (lvalue)
     *(target_symbol_setter_functioncalls.top()) = fc;
 
@@ -3321,7 +3328,7 @@ dwarf_builder::build(systemtap_session & sess,
       probe_table probe_table(sess, dw, location);
       if (! probe_table.get_next_probe())
 	return;
-      
+
       if (sess.verbose > 3)
 	clog << "TOK_MARK: " << probe_table.mark_name << endl;
 
@@ -3338,7 +3345,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      if (sess.verbose > 3)
 		clog << "probe_type == use_uprobe, use statement addr: 0x"
 		     << hex << probe_table.probe_arg << dec << endl;
-	    
+
 	      // Now expand the local variables in the probe body
 	      sdt_var_expanding_visitor svv (*dw, probe_table.mark_name,
 					     probe_table.probe_arg, false);
@@ -3501,7 +3508,7 @@ dwarf_builder::build(systemtap_session & sess,
 
       dw->module = 0;
     }
-  
+
   dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 
 
@@ -5420,7 +5427,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
         }
       s.op->line() << ") {";
       s.op->indent(1);
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", 
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING",
                                      lex_cast_qstring (*p->sole_location()));
       s.op->newline() << "c->marker_name = "
                       << lex_cast_qstring (p->tracepoint_name)
