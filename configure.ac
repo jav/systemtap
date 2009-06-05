@@ -130,6 +130,13 @@ AS_IF([test "x$enable_sqlite" != xno],
       AC_MSG_FAILURE([--enable-sqlite was given, but test for sqlite failed])
      fi])])
 
+dnl Handle the option to only build runtime
+AC_ARG_ENABLE([translator],
+  AS_HELP_STRING([--disable-translator], [build only runtime utilities]),
+  [],
+  [enable_translator="yes"])
+AM_CONDITIONAL([BUILD_TRANSLATOR], [test "$enable_translator" == "yes"])
+
 dnl Handle the option to build the crash extension
 AC_ARG_ENABLE([crash],
   AS_HELP_STRING([--enable-crash@<:@=DIRECTORY@:>@],
@@ -575,7 +582,9 @@ AC_DEFINE_UNQUOTED(STAP_PREFIX, "$prefix", [configure prefix location])
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-server.8 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap initscript/systemtap)
 AC_CONFIG_SUBDIRS(testsuite)
-AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
+if test $enable_translator == "yes"; then
+	AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
+fi
 AC_CONFIG_FILES([run-staprun], [chmod +x run-staprun])
 AC_OUTPUT
 

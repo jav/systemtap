@@ -12,8 +12,7 @@ AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
-man_MANS =  stap.1 \
-stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
+man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
 staprun.8 \
 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap \
 man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap \
@@ -23,9 +22,15 @@ man/stapprobes.signal.3stap man/stapprobes.socket.3stap \
 man/stapprobes.tcp.3stap man/stapprobes.udp.3stap
 # see also configure.ac
 
-bin_PROGRAMS = stap staprun
+bin_PROGRAMS = staprun
 bin_SCRIPTS = stap-report stap-env stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
 oldinclude_HEADERS = includes/sys/sdt.h
+
+if BUILD_TRANSLATOR
+bin_PROGRAMS += stap
+man_MANS += stap.1
+bin_SCRIPTS += dtrace
+
 if BUILD_SERVER
 man_MANS += stap-server.8 
 bin_PROGRAMS += stap-client-connect stap-server-connect
@@ -33,7 +38,7 @@ bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server \
 	       stap-authorize-server-cert
 endif
-bin_SCRIPTS += dtrace
+
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -42,10 +47,11 @@ stap_SOURCES = main.cxx \
 	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
 	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @rpm_LIBS@
+stap_DEPENDENCIES =
+endif
 
 BUILT_SOURCES =
 CLEANFILES =
-stap_DEPENDENCIES =
 
 # Arrange for git_version.h to be regenerated at every "make".
 # Code fragment is based upon RadeonHD.am.
@@ -83,7 +89,8 @@ cscope:
 	(echo -q ; git ls-files '*.cxx' '*.c' '*.h' | grep -v '^testsuite' ) > cscope.files && \
 	cscope -b -q
 
-
+PHONIES =
+if BUILD_TRANSLATOR
 stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
 stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
 stap_CPPFLAGS = $(AM_CPPFLAGS)
@@ -98,7 +105,6 @@ stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 endif
 
-PHONIES =
 if BUILD_ELFUTILS
 stap_CPPFLAGS += -Iinclude-elfutils
 stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
@@ -135,6 +141,7 @@ install-scripts: install-binSCRIPTS
 	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
 	done
 endif
+endif
 
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
@@ -158,15 +165,6 @@ stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-b
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_LDADD = @PROCFLAGS@ -lpthread
 
-if BUILD_SERVER
-stap_client_connect_SOURCES = stap-client-connect.c
-stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_client_connect_LDADD = -lssl3
-
-stap_server_connect_SOURCES = stap-server-connect.c
-stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_server_connect_LDADD = -lssl3
-endif
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
@@ -178,12 +176,24 @@ install-exec-hook:
 pkglibexec_PROGRAMS = stapio
 CLEANFILES +=  $(pkglibexec_PROGRAMS)
 
+if BUILD_TRANSLATOR
+if BUILD_SERVER
+stap_client_connect_SOURCES = stap-client-connect.c
+stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_client_connect_LDADD = -lssl3
+
+stap_server_connect_SOURCES = stap-server-connect.c
+stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_server_connect_LDADD = -lssl3
+endif
+
 noinst_PROGRAMS = loc2c-test
 loc2c_test_SOURCES = loc2c-test.c loc2c.c
 loc2c_test_CFLAGS = $(stap_CFLAGS)
 loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
 loc2c_test_LDFLAGS = $(stap_LDFLAGS)
 loc2c_test_LDADD = $(stap_LDADD)
+endif
 
 # crash(8) extension
 if BUILD_CRASHMOD
