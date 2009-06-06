@@ -20,7 +20,7 @@ function strcattail:string(head:string,tail:string,num:long) %{
 probe kernel.function("tty_audit_add_data") {
       major=$tty->driver->major;
       minor=$tty->driver->minor_start + $tty->index;
-      pgrp=$tty->pgrp %( kernel_v > "2.6.24" %? ->numbers[0]->nr %: %);
+      pgrp=$tty->pgrp %( kernel_v >= "2.6.24" %? ->numbers[0]->nr %: %);
       data=kernel_string_n($data,$size);
       uid=uid()
 
