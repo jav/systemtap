@@ -129,6 +129,14 @@ keywords: io
   to the specified device occur.
 
 
+io/ttyspy.stp - Monitor tty typing.
+keywords: io tty per-process monitor
+
+  The ttyspy.stp script uses tty_audit hooks to monitor recent typing
+  activity on the system, printing a scrolling record of recent
+  keystrokes, on a per-tty basis.
+
+
 memory/kmalloc-top - Show Paths to Kernel Malloc (kmalloc) Invocations
 keywords: memory
 

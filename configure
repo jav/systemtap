@@ -676,6 +676,8 @@ have_latex
 BUILD_CRASHMOD_FALSE
 BUILD_CRASHMOD_TRUE
 staplog_CPPFLAGS
+BUILD_TRANSLATOR_FALSE
+BUILD_TRANSLATOR_TRUE
 sqlite3_LIBS
 PIECXXFLAGS
 PIECFLAGS
@@ -782,6 +784,7 @@ enable_prologues
 enable_ssp
 enable_pie
 enable_sqlite
+enable_translator
 enable_crash
 enable_docs
 enable_refdocs
@@ -1447,6 +1450,7 @@ Optional Features:
   --disable-ssp           disable gcc stack-protector
   --enable-pie            enable position-independent-executable
   --enable-sqlite         build with sqlite support
+  --disable-translator    build only runtime utilities
   --enable-crash[=DIRECTORY]
                           enable crash extension (default is disabled).
                           Optional DIRECTORY is the path to the crash header
@@ -5203,8 +5207,9 @@ fi
 # FIXME: we rely on the cache variable name because
 # there is no other way.
 set dummy $CC
-ac_cc=`echo $2 | sed 's/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/'`
-if eval "test \"`echo '$ac_cv_prog_cc_'${ac_cc}_c_o`\" != yes"; then
+am_cc=`echo $2 | sed 's/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/'`
+eval am_t=\$ac_cv_prog_cc_${am_cc}_c_o
+if test "$am_t" != yes; then
    # Losing compiler, so override with the script.
    # FIXME: It is wrong to rewrite CC.
    # But if we don't then we get into trouble of one sort or another.
@@ -6342,6 +6347,22 @@ See \`config.log' for more details." >&2;}
      fi
 fi
 
+fi
+
+
+# Check whether --enable-translator was given.
+if test "${enable_translator+set}" = set; then
+  enableval=$enable_translator;
+else
+  enable_translator="yes"
+fi
+
+ if test "$enable_translator" == "yes"; then
+  BUILD_TRANSLATOR_TRUE=
+  BUILD_TRANSLATOR_FALSE='#'
+else
+  BUILD_TRANSLATOR_TRUE='#'
+  BUILD_TRANSLATOR_FALSE=
 fi
 
 
@@ -8839,8 +8860,10 @@ ac_config_files="$ac_config_files Makefile doc/Makefile doc/SystemTap_Tapset_Ref
 
 subdirs="$subdirs testsuite"
 
-ac_config_files="$ac_config_files run-stap"
+if test $enable_translator == "yes"; then
+	ac_config_files="$ac_config_files run-stap"
 
+fi
 ac_config_files="$ac_config_files run-staprun"
 
 cat >confcache <<\_ACEOF
@@ -8972,6 +8995,13 @@ if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_TRANSLATOR_TRUE}" && test -z "${BUILD_TRANSLATOR_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"BUILD_TRANSLATOR\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"BUILD_TRANSLATOR\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -10221,7 +10251,16 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "depfiles":C) test x"$AMDEP_TRUE" != x"" || for mf in $CONFIG_FILES; do
+    "depfiles":C) test x"$AMDEP_TRUE" != x"" || # Autoconf 2.62 quotes --file arguments for eval, but not when files
+# are listed without --file.  Let's play safe and only enable the eval
+# if we detect the quoting.
+case $CONFIG_FILES in
+*\'*) eval set x "$CONFIG_FILES" ;;
+*)   set x $CONFIG_FILES ;;
+esac
+shift
+for mf
+do
   # Strip MF so we end up with the name of the file.
   mf=`echo "$mf" | sed -e 's/:.*$//'`
   # Check whether this is an Automake generated Makefile or not.
