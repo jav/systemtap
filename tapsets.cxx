@@ -1776,13 +1776,13 @@ query_module (Dwfl_Module *mod,
       // If we have enough information in the pattern to skip a module and
       // the module does not match that information, return early.
       if (!q->dw.module_name_matches(q->module_val))
-        return DWARF_CB_OK;
+        return pending_interrupts ? DWARF_CB_ABORT : DWARF_CB_OK;
 
       // Don't allow module("*kernel*") type expressions to match the
       // elfutils module "kernel", which we refer to in the probe
       // point syntax exclusively as "kernel.*".
       if (q->dw.module_name == TOK_KERNEL && ! q->has_kernel)
-        return DWARF_CB_OK;
+        return pending_interrupts ? DWARF_CB_ABORT : DWARF_CB_OK;
 
       if (mod)
         validate_module_elf(mod, name, q);
@@ -1810,7 +1810,7 @@ query_module (Dwfl_Module *mod,
 
 
       // If we know that there will be no more matches, abort early.
-      if (q->dw.module_name_final_match(q->module_val))
+      if (q->dw.module_name_final_match(q->module_val) || pending_interrupts)
         return DWARF_CB_ABORT;
       else
         return DWARF_CB_OK;

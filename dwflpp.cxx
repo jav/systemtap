@@ -397,13 +397,8 @@ dwflpp::iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                               void *),
                              base_query *data)
 {
-  ptrdiff_t off = 0;
-  do
-    {
-      if (pending_interrupts) return;
-      off = dwfl_getmodules (dwfl, callback, data, off);
-    }
-  while (off > 0);
+  dwfl_getmodules (dwfl, callback, data, 0);
+
   // Don't complain if we exited dwfl_getmodules early.
   // This could be a $target variable error that will be
   // reported soon anyway.
