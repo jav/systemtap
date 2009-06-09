@@ -3195,11 +3195,10 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 
 struct sdt_var_expanding_visitor: public var_expanding_visitor
 {
-  sdt_var_expanding_visitor(dwflpp& dw, string & process_name, string & probe_name,
+  sdt_var_expanding_visitor(string & process_name, string & probe_name,
 			    int arg_count, bool have_reg_args):
-    dw (dw), process_name (process_name), probe_name (probe_name),
+    process_name (process_name), probe_name (probe_name),
     have_reg_args (have_reg_args), arg_count (arg_count) {}
-  dwflpp & dw;
   string & process_name;
   string & probe_name;
   bool have_reg_args;
@@ -3344,7 +3343,7 @@ dwarf_builder::build(systemtap_session & sess,
 		     << hex << probe_table.probe_arg << dec << endl;
 	    
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, module_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
 					     probe_table.probe_arg, false);
 	      new_base->body = svv.require (new_base->body);
 
@@ -3401,7 +3400,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      b->statements.insert(b->statements.begin(),(statement*) is);
 
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, module_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
 	      new_location->components[0]->functor = "kernel";
@@ -3476,7 +3475,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      b->statements.insert(b->statements.begin(),(statement*) is);
 
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, module_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
 
