@@ -3274,9 +3274,6 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   cast->components = e->components;
   cast->type = probe_name + "_arg" + lex_cast<string>(argno);
   cast->module = process_name;
-  dwarf_builder *db = new dwarf_builder();
-  dwarf_cast_expanding_visitor *v = new dwarf_cast_expanding_visitor(this->dw.sess, *db);
-  v->visit_cast_op(cast);
 
   provide(cast);
 }
