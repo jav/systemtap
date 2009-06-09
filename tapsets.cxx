@@ -3313,12 +3313,9 @@ dwarf_builder::build(systemtap_session & sess,
   if (sess.verbose > 3)
     clog << "dwarf_builder::build for " << module_name << endl;
 
-  if (((probe_point::component*)(location->components[1]))->functor == TOK_MARK)
+  string mark_name;
+  if (get_param(parameters, TOK_MARK, mark_name))
     {
-      string mark_name;
-      assert (get_param(parameters, TOK_MARK, mark_name));
-      string process_name;
-      assert (get_param(parameters, TOK_PROCESS, process_name));
       probe_table probe_table(mark_name, sess, dw, location);
       if (! probe_table.get_next_probe())
 	return;
@@ -3350,7 +3347,7 @@ dwarf_builder::build(systemtap_session & sess,
 		     << hex << probe_table.probe_arg << dec << endl;
 	    
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, process_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (*dw, module_name, probe_table.mark_name,
 					     probe_table.probe_arg, false);
 	      new_base->body = svv.require (new_base->body);
 
@@ -3407,7 +3404,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      b->statements.insert(b->statements.begin(),(statement*) is);
 
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, process_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (*dw, module_name, probe_table.mark_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
 	      new_location->components[0]->functor = "kernel";
@@ -3482,7 +3479,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      b->statements.insert(b->statements.begin(),(statement*) is);
 
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, process_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (*dw, module_name, probe_table.mark_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
 
