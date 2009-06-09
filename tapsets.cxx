@@ -689,7 +689,7 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
 {
   Elf* elf;
   GElf_Shdr shdr_mem;
-  GElf_Shdr *shdr;
+  GElf_Shdr *shdr = NULL;
   Dwarf_Addr bias;
   size_t shstrndx;
 
@@ -713,6 +713,9 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
 	  break;
 	}
     }
+
+  if (!have_probes)
+    return;
     
   // Older versions put .probes section in the debuginfo dwarf file,
   // so check if it actually exists, if not take the main elf file
@@ -721,6 +724,7 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
       elf = dwfl_module_getelf (dw->module, &bias);
       dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
       probe_scn = NULL;
+      have_probes = false;
       while ((probe_scn = elf_nextscn (elf, probe_scn)))
 	{
 	  shdr = gelf_getshdr (probe_scn, &shdr_mem);
@@ -730,6 +734,9 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
 	    break;
 	}
     }
+
+  if (!have_probes)
+    return;
 
   pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
   probe_scn_offset = 0;
