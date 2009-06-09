@@ -289,8 +289,6 @@ private:
   Dwarf * module_dwarf;
   Dwarf_Die * function;
 
-  std::string const default_name(char const * in, char const *);
-
   void setup_kernel(bool debuginfo_needed = true);
   void setup_user(const std::string& module_name, bool debuginfo_needed = true);
 

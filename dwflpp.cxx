@@ -84,15 +84,6 @@ dwflpp::~dwflpp()
 }
 
 
-string const
-dwflpp::default_name(char const * in, char const *)
-{
-  if (in)
-    return in;
-  return string("");
-}
-
-
 void
 dwflpp::get_module_dwarf(bool required, bool report)
 {
@@ -129,10 +120,8 @@ dwflpp::focus_on_module(Dwfl_Module * m, module_info * mi)
   mod_info = mi;
   if (m)
     {
-      module_name = default_name(dwfl_module_info(module, NULL,
-                                                  &module_start, &module_end,
-                                                  NULL, NULL, NULL, NULL),
-                                 "module");
+      module_name = dwfl_module_info(module, NULL, &module_start, &module_end,
+                                     NULL, NULL, NULL, NULL) ?: "module";
     }
   else
     {
@@ -162,7 +151,7 @@ dwflpp::focus_on_cu(Dwarf_Die * c)
   assert(module);
 
   cu = c;
-  cu_name = default_name(dwarf_diename(c), "CU");
+  cu_name = dwarf_diename(c) ?: "CU";
 
   // Reset existing pointers and names
   function_name.clear();
@@ -181,7 +170,7 @@ dwflpp::focus_on_function(Dwarf_Die * f)
   assert(cu);
 
   function = f;
-  function_name = default_name(dwarf_diename(function), "function");
+  function_name = dwarf_diename(function) ?: "function";
 }
 
 
@@ -397,13 +386,8 @@ dwflpp::iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                               void *),
                              base_query *data)
 {
-  ptrdiff_t off = 0;
-  do
-    {
-      if (pending_interrupts) return;
-      off = dwfl_getmodules (dwfl, callback, data, off);
-    }
-  while (off > 0);
+  dwfl_getmodules (dwfl, callback, data, 0);
+
   // Don't complain if we exited dwfl_getmodules early.
   // This could be a $target variable error that will be
   // reported soon anyway.
