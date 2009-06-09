@@ -670,22 +670,21 @@ struct dwarf_builder: public derived_probe_builder
     __uint64_t probe_arg;
     string & mark_name;
     string probe_name;
-    probe_table(string & mark_name, systemtap_session & sess, dwflpp * dw, probe_point * location);
+    probe_table(string & mark_name, systemtap_session & sess, dwflpp * dw);
     bool get_next_probe();
 
   private:
     bool have_probes;
     systemtap_session & sess;
     dwflpp* dw;
-    probe_point* location;
     Elf_Data *pdata;
     size_t probe_scn_offset;
     size_t probe_scn_addr;
   };
 };
 
-dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & sess, dwflpp* dw, probe_point* location):
-  mark_name(mark_name), sess(sess), dw(dw), location(location)
+dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & sess, dwflpp* dw):
+  mark_name(mark_name), sess(sess), dw(dw)
 {
   Elf* elf;
   GElf_Shdr shdr_mem;
@@ -3312,7 +3311,7 @@ dwarf_builder::build(systemtap_session & sess,
   string mark_name;
   if (get_param(parameters, TOK_MARK, mark_name))
     {
-      probe_table probe_table(mark_name, sess, dw, location);
+      probe_table probe_table(mark_name, sess, dw);
       if (! probe_table.get_next_probe())
 	return;
       
