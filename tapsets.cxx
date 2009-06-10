@@ -3197,7 +3197,10 @@ struct sdt_var_expanding_visitor: public var_expanding_visitor
   sdt_var_expanding_visitor(string & process_name, string & probe_name,
 			    int arg_count, bool have_reg_args):
     process_name (process_name), probe_name (probe_name),
-    have_reg_args (have_reg_args), arg_count (arg_count) {}
+    have_reg_args (have_reg_args), arg_count (arg_count)
+  {
+    assert(!have_reg_args || (arg_count >= 0 && arg_count <= 10));
+  }
   string & process_name;
   string & probe_name;
   bool have_reg_args;
@@ -3221,12 +3224,13 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       provide(e);
       return;
     }
-  
-  bool lvalue = is_active_lvalue(e);
-  string argname = e->base_name.substr(1);
-  functioncall *fc = new functioncall;
 
-  int argno = lex_cast<int>(argname.substr(3));
+  int argno = lex_cast<int>(e->base_name.substr(4));
+  if (argno < 1 || argno > arg_count)
+    throw semantic_error ("invalid argument number", e->tok);
+
+  bool lvalue = is_active_lvalue(e);
+  functioncall *fc = new functioncall;
 
   if (arg_count < 6)
     {
