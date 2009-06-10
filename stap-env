@@ -25,7 +25,11 @@ stap_avahi_service_tag=_stap._tcp
 
 # NSS certificate databases
 stap_root_ssl_db=$stap_sysconfdir/systemtap/ssl
-stap_user_ssl_db=$HOME/.systemtap/ssl
+if test "X$SYSTEMTAP_DIR" = "X"; then
+    stap_user_ssl_db=$HOME/.systemtap/ssl
+else
+    stap_user_ssl_db=$SYSTEMTAP_DIR/ssl
+fi
 
 if test $EUID = 0; then
     stap_ssl_db=$stap_root_ssl_db
