@@ -1249,6 +1249,14 @@ c_unparser::emit_module_init ()
   o->newline() << "synchronize_sched();";
   o->newline() << "#endif";
 
+  // In case gettimeofday was started, it needs to be stopped
+  o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
+  o->newline() << " _stp_kill_time();";  // An error is no cause to hurry...
+  o->newline() << "#endif";
+
+  // Free up the context memory after an error too
+  o->newline() << "free_percpu (contexts);";
+
   o->newline() << "return rc;";
   o->newline(-1) << "}\n";
 }
