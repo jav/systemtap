@@ -563,7 +563,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 	do {
 		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
 		startLoc = read_pointer(&cur, cur + tableSize, hdr[3]);
-		startLoc = adjustStartLoc(startLoc, m, s, hdr[3], true);
+		startLoc = adjustStartLoc(startLoc, m, s, hdr[3], 1);
 		if (pc < startLoc)
 			num /= 2;
 		else {
@@ -572,7 +572,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 		}
 	} while (startLoc && num > 1);
 
-	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s, hdr[3], true)) != 0 && pc >= startLoc)
+	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s, hdr[3], 1)) != 0 && pc >= startLoc)
 		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
 
 	dbug_unwind(1, "returning fde=%lx startLoc=%lx", fde, startLoc);
@@ -879,11 +879,11 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 	dbug_unwind(1, "trying debug_frame\n");
 	res = unwind_frame (frame, m, s, m->debug_frame,
-			    m->debug_frame_len, false);
+			    m->debug_frame_len, 0);
 	if (res != 0) {
 	  dbug_unwind(1, "debug_frame failed: %d, trying eh_frame\n", res);
 	  res = unwind_frame (frame, m, s, m->eh_frame,
-			      m->eh_frame_len, true);
+			      m->eh_frame_len, 1);
 	}
 
 	return res;
