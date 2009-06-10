@@ -488,11 +488,15 @@ alias_expansion_builder
     alias_derived_probe * n = new alias_derived_probe (use, location /* soon overwritten */, this->alias);
     n->body = new block();
 
-    // The new probe gets the location list of the alias (with incoming condition joined)
-    n->locations = alias->locations;
-    for (unsigned i=0; i<n->locations.size(); i++)
-      n->locations[i]->condition = add_condition (n->locations[i]->condition,
-                                                  location->condition);
+    // The new probe gets a deep copy of the location list of
+    // the alias (with incoming condition joined)
+    n->locations.clear();
+    for (unsigned i=0; i<alias->locations.size(); i++)
+      {
+        probe_point *pp = new probe_point(*alias->locations[i]);
+        pp->condition = add_condition (pp->condition, location->condition);
+        n->locations.push_back(pp);
+      }
 
     // the token location of the alias,
     n->tok = location->tok;
