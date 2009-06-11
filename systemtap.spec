@@ -117,7 +117,6 @@ Summary: Static probe support tools
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap
 
 %description sdt-devel
 Support tools to allow applications to use static probes.
