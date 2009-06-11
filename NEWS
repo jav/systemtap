@@ -1,4 +1,4 @@
-* What's new
+* What's new in version 0.9.8
 
 - Miscellaneous new tapset functions:
   - sid() returns the session ID of the current process
