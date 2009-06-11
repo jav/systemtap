@@ -215,14 +215,30 @@ register_tapset_been(systemtap_session& s)
 {
   match_node* root = s.pattern_root;
 
-  root->bind(TOK_BEGIN)->allow_unprivileged()->bind(new be_builder(BEGIN));
-  root->bind_num(TOK_BEGIN)->allow_unprivileged()->bind(new be_builder(BEGIN));
-  root->bind(TOK_END)->allow_unprivileged()->bind(new be_builder(END));
-  root->bind_num(TOK_END)->allow_unprivileged()->bind(new be_builder(END));
-  root->bind(TOK_ERROR)->allow_unprivileged()->bind(new be_builder(ERROR));
-  root->bind_num(TOK_ERROR)->allow_unprivileged()->bind(new be_builder(ERROR));
+  root->bind(TOK_BEGIN)
+    ->allow_unprivileged()
+    ->bind(new be_builder(BEGIN));
+  root->bind_num(TOK_BEGIN)
+    ->allow_unprivileged()
+    ->bind(new be_builder(BEGIN));
 
-  root->bind(TOK_NEVER)->allow_unprivileged()->bind(new never_builder());
+  root->bind(TOK_END)
+    ->allow_unprivileged()
+    ->bind(new be_builder(END));
+  root->bind_num(TOK_END)
+    ->allow_unprivileged()
+    ->bind(new be_builder(END));
+
+  root->bind(TOK_ERROR)
+    ->allow_unprivileged()
+    ->bind(new be_builder(ERROR));
+  root->bind_num(TOK_ERROR)
+    ->allow_unprivileged()
+    ->bind(new be_builder(ERROR));
+
+  root->bind(TOK_NEVER)
+    ->allow_unprivileged()
+    ->bind(new never_builder());
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

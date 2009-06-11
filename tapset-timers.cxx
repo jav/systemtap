@@ -593,32 +593,71 @@ register_tapset_timers(systemtap_session& s)
 
   root = root->bind(TOK_TIMER);
 
-  root->bind_num("s")->bind(builder);
-  root->bind_num("s")->bind_num("randomize")->bind(builder);
-  root->bind_num("sec")->bind(builder);
-  root->bind_num("sec")->bind_num("randomize")->bind(builder);
+  root->bind_num("s")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("s")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("sec")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("sec")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
 
-  root->bind_num("ms")->bind(builder);
-  root->bind_num("ms")->bind_num("randomize")->bind(builder);
-  root->bind_num("msec")->bind(builder);
-  root->bind_num("msec")->bind_num("randomize")->bind(builder);
+  root->bind_num("ms")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("ms")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("msec")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("msec")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
 
-  root->bind_num("us")->bind(builder);
-  root->bind_num("us")->bind_num("randomize")->bind(builder);
-  root->bind_num("usec")->bind(builder);
-  root->bind_num("usec")->bind_num("randomize")->bind(builder);
+  root->bind_num("us")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("us")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("usec")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("usec")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
 
-  root->bind_num("ns")->bind(builder);
-  root->bind_num("ns")->bind_num("randomize")->bind(builder);
-  root->bind_num("nsec")->bind(builder);
-  root->bind_num("nsec")->bind_num("randomize")->bind(builder);
+  root->bind_num("ns")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("ns")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("nsec")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("nsec")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
 
-  root->bind_num("jiffies")->bind(builder);
-  root->bind_num("jiffies")->bind_num("randomize")->bind(builder);
+  root->bind_num("jiffies")
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num("jiffies")->bind_num("randomize")
+    ->allow_unprivileged()
+    ->bind(builder);
 
-  root->bind_num("hz")->bind(builder);
+  root->bind_num("hz")
+    ->allow_unprivileged()
+    ->bind(builder);
 
-  root->bind("profile")->bind(builder);
+  root->bind("profile")
+    ->bind(builder);
 }
 
 

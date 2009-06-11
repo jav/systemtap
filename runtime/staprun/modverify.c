@@ -203,11 +203,7 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
   /* Get the size of the signature file.  */
   prStatus = PR_GetFileInfo (signatureName, &info);
   if (prStatus != PR_SUCCESS || info.type != PR_FILE_FILE || info.size < 0)
-    {
-      fprintf (stderr, "Unable to obtain information on the signature file %s.\n", signatureName);
-      nssError ();
-      return MODULE_UNTRUSTED; /* Not signed */
-    }
+    return MODULE_UNTRUSTED; /* Not signed */
 
   /* Open the signature file.  */
   local_file_fd = PR_Open (signatureName, PR_RDONLY, 0);

@@ -79,16 +79,19 @@ add_to_cache(systemtap_session& s)
   string module_signature_src_path = module_src_path;
   module_signature_src_path += ".sgn";
 
-  if (s.verbose > 1)
-    clog << "Copying " << module_signature_src_path << " to " << module_signature_dest_path << endl;
-  if (copy_file(module_signature_src_path.c_str(), module_signature_dest_path.c_str()) != 0)
+  if (file_exists (module_signature_src_path))
     {
-      cerr << "Copy failed (\"" << module_signature_src_path << "\" to \""
-	   << module_signature_dest_path << "\"): " << strerror(errno) << endl;
-      // NB: this is not so severe as to prevent reuse of the .ko
-      // already copied.
-      //
-      // s.use_cache = false;
+      if (s.verbose > 1)
+	clog << "Copying " << module_signature_src_path << " to " << module_signature_dest_path << endl;
+      if (copy_file(module_signature_src_path.c_str(), module_signature_dest_path.c_str()) != 0)
+	{
+	  cerr << "Copy failed (\"" << module_signature_src_path << "\" to \""
+	       << module_signature_dest_path << "\"): " << strerror(errno) << endl;
+	  // NB: this is not so severe as to prevent reuse of the .ko
+	  // already copied.
+	  //
+	  // s.use_cache = false;
+	}
     }
 #endif /* HAVE_NSS */
 
@@ -362,18 +365,6 @@ clean_cache(systemtap_session& s)
       if (s.verbose > 1)
         clog << "Cache cleaning skipped, no cache path." << endl;
     }
-}
-
-// Get the size of a file in bytes
-static size_t
-get_file_size(const string &path)
-{
-  struct stat file_info;
-
-  if (stat(path.c_str(), &file_info) == 0)
-    return file_info.st_size;
-  else
-    return 0;
 }
 
 //Assign a weight for a particular file. A lower weight

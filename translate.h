@@ -79,9 +79,6 @@ struct unparser
   virtual void emit_functionsig (functiondecl* v) = 0;
   // static void function_NAME (context* c);
 
-  virtual void emit_unprivileged_user_check () = 0;
-  // static void systemtap_check_unprivileged_user
-
   virtual void emit_module_init () = 0;
   virtual void emit_module_exit () = 0;
   // XXX

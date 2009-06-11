@@ -51,6 +51,30 @@ get_home_directory(void)
 }
 
 
+// Get the size of a file in bytes
+size_t
+get_file_size(const string &path)
+{
+  struct stat file_info;
+
+  if (stat(path.c_str(), &file_info) == 0)
+    return file_info.st_size;
+  else
+    return 0;
+}
+
+// Get the size of a file in bytes
+bool
+file_exists (const string &path)
+{
+  struct stat file_info;
+
+  if (stat(path.c_str(), &file_info) == 0)
+    return true;
+
+  return false;
+}
+
 // Copy a file.  The copy is done via a temporary file and atomic
 // rename.
 int

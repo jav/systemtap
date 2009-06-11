@@ -500,7 +500,7 @@ int check_permissions(void)
 		check_groups_rc = -1;
 	}
 #if HAVE_NSS
-	err("Alternatively, your module must be signed by a trusted signer.\n"
+	err("Alternatively, your module must be compiled using the --unprivileged option and signed by a trusted signer.\n"
 	    "For more information, please consult the \"SAFETY AND SECURITY\" section of the \"stap(1)\" manpage\n");
 #endif
 

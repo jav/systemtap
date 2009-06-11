@@ -6,6 +6,8 @@
 #include <cctype>
 
 const char *get_home_directory(void);
+size_t get_file_size(const std::string &path);
+bool file_exists (const std::string &path);
 int copy_file(const char *src, const char *dest);
 int create_dir(const char *dir);
 int remove_file_or_dir(const char *dir);
