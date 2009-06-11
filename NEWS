@@ -1,5 +1,12 @@
 * What's new
 
+- Miscellaneous new tapset functions:
+  - sid() returns the session ID of the current process
+  - stringat() indexes a single character from a string.
+
+- Using %M in print formats for hex dumps can now print entire buffers,
+  instead of just small numbers.
+
 - Dwarfless syscalls: The nd_syscalls tapset is now available to probe
   system calls without requiring kernel debugging information.  All of
   the same probepoints in the normal syscalls tapset are available with
