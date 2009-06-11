@@ -70,9 +70,13 @@ function ppid:long () %{ /* pure */
  * leader. Session ID is stored in the signal_struct since Kernel 2.6.0.
  */
 function sid:long () %{ /* pure */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	struct signal_struct *ss = kread( &(current->signal) );
 	THIS->__retvalue = kread ( &(ss->session) );
 	CATCH_DEREF_FAULT();
+#else
+	THIS->__retvalue = task_session_nr_ns(current, &init_pid_ns);
+#endif
 %}
 
 /**

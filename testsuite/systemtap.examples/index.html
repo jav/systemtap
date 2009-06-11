@@ -82,6 +82,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <li><a href="io/traceio2.stp">io/traceio2.stp</a> - Watch I/O Activity on a Particular Device<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Print out the executable name and process number as reads and writes to the specified device occur.</p></li>
+<li><a href="io/ttyspy.stp">io/ttyspy.stp</a> - Monitor tty typing.<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <a href="keyword-index.html#MONITOR">MONITOR</a> <br>
+<p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.</p></li>
 <li><a href="memory/kmalloc-top">memory/kmalloc-top</a> - Show Paths to Kernel Malloc (kmalloc) Invocations<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The kmalloc-top perl program runs a small systemtap script to collect stack traces for each call to the kmalloc function and counts the time that each stack trace is observed. When kmalloc-top exits it prints out sorted list. The output can be be filtered to print only only the first stack traces (-t) stack traces with more a minimum counts (-m), or exclude certain stack traces (-e).</p></li>
@@ -112,6 +115,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 <li><a href="process/pf2.stp">process/pf2.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.</p></li>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 <li><a href="process/sig_by_pid.stp">process/sig_by_pid.stp</a> -  Signal Counts by Process ID<br>
 keywords: <a href="keyword-index.html#SIGNALS">SIGNALS</a> <br>
 <p>Print signal counts by process ID in descending order.</p></li>

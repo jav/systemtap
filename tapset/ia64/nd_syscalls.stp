@@ -1,0 +1,102 @@
+# IA64 system calls
+
+# mmap
+# sys_mmap (unsigned long addr, unsigned long len, int prot, int flags, int fd, long off)
+#
+probe nd_syscall.mmap = kprobe.function("sys_mmap") ?
+{
+	name = "mmap"
+	// start = $addr
+	// len = $len
+	// prot = $prot
+	// flags = $flags
+	// fd = $fd
+	// offset = $off
+	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
+	// 		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $off)
+	asmlinkage()
+	start = ulong_arg(1)
+	len = ulong_arg(2)
+	prot = int_arg(3)
+	flags = int_arg(4)
+	fd = int_arg(5)
+	offset = long_arg(6)
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, len,
+			_mprotect_prot_str(prot), _mmap_flags(flags), fd, offset)
+}
+
+probe nd_syscall.mmap.return = kprobe.function("sys_mmap").return ?
+{
+	name = "mmap"
+	retstr = returnstr(2)
+}
+
+# mmap2
+# sys_mmap2 (unsigned long addr, unsigned long len, int prot, int flags, int fd, long pgoff)
+probe nd_syscall.mmap2 = kprobe.function("sys_mmap2") ?
+{
+	name = "mmap2"
+	// start = $addr
+	// length = $len
+	// prot = $prot
+	// flags = $flags
+	// fd = $fd
+	// pgoffset = $pgoff
+	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr,
+	// 		$len, _mprotect_prot_str($prot), _mmap_flags($flags),
+	// 		$fd, $pgoff)
+	asmlinkage()
+	start = ulong_arg(1)
+	length = ulong_arg(2)
+	prot = int_arg(3)
+	flags = int_arg(4)
+	fd = int_arg(5)
+	pgoffset = long_arg(6)
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, length,
+			_mprotect_prot_str(prot), _mmap_flags(flags), fd, pgoffset)
+}
+probe nd_syscall.mmap2.return = kprobe.function("sys_mmap2").return ?
+{
+	name = "mmap2"
+	retstr = returnstr(2)
+}
+
+# sigaltstack _______________________________________________
+# asmlinkage long
+# sys_sigaltstack (const stack_t __user *uss, stack_t __user *uoss, long arg2,
+#                  long arg3, long arg4, long arg5, long arg6, long arg7,
+#                  struct pt_regs regs)
+#
+probe nd_syscall.sigaltstack = kprobe.function("sys_sigaltstack")
+{
+	name = "sigaltstack";
+	// ss_uaddr = $uss
+	// oss_uaddr = $uoss
+	// argstr = sprintf("%p, %p", $uss, $uoss)
+	asmlinkage()
+	ss_uaddr = pointer_arg(1)
+	oss_uaddr = pointer_arg(2)
+	argstr = sprintf("%p, %p", ss_uaddr, oss_uaddr)
+}
+probe nd_syscall.sigaltstack.return = kprobe.function("sys_sigaltstack").return
+{
+	name = "sigaltstack";
+	retstr = returnstr(1)
+}
+
+# sysctl _____________________________________________________
+#
+# long sys32_sysctl (struct sysctl32 __user *args)
+#
+probe nd_syscall.sysctl32 = kprobe.function("sys32_sysctl") ?
+{
+	name = "sysctl"
+	// argstr = sprintf("%p", $args)
+	asmlinkage()
+	argstr = sprintf("%p", pointer_arg(1))
+}
+probe nd_syscall.sysctl32.return = kprobe.function("sys32_sysctl").return ?
+{
+	name = "sysctl"
+	retstr = returnstr(1)
+}

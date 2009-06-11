@@ -1,0 +1,26 @@
+/*
+ * alias-condition.stp
+ *
+ * Check that conditions are copied correctly across aliases
+ */
+
+/* x should be incremented exactly once */
+global x = 0
+probe foo = begin { }
+probe foo if (x < 0), foo { ++x }
+
+probe begin(1)
+{
+    println("systemtap starting probe")
+    exit()
+}
+
+probe end
+{
+    println("systemtap ending probe")
+    if ( x != 1 ) {
+        println("systemtap test failure")
+    } else {
+        println("systemtap test success")
+    }
+}

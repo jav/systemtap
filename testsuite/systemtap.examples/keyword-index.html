@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#NETWORK">NETWORK</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITOR">MONITOR</a> <a href="#NETWORK">NETWORK</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="BACKTRACE">BACKTRACE</a></h3>
 <ul>
 <li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
@@ -141,6 +141,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <li><a href="io/traceio2.stp">io/traceio2.stp</a> - Watch I/O Activity on a Particular Device<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Print out the executable name and process number as reads and writes to the specified device occur.</p></li>
+<li><a href="io/ttyspy.stp">io/ttyspy.stp</a> - Monitor tty typing.<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <a href="keyword-index.html#MONITOR">MONITOR</a> <br>
+<p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.</p></li>
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend waiting for IO operations (in "D" state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.</p></li>
@@ -159,6 +162,12 @@ keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <li><a href="memory/pfaults.stp">memory/pfaults.stp</a> - Generate Log of Major and Minor Page Faults<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The pfaults.stp script generates a simple log for each major and minor page fault that occurs on the system. Each line contains a timestamp (in microseconds) when the page fault servicing was completed, the pid of the process, the address of the page fault, the type of access (read or write), the type of fault (major or minor), and the elapsed time for page fault. This log can be examined to determine where the page faults are occuring.</p></li>
+</ul>
+<h3><a name="MONITOR">MONITOR</a></h3>
+<ul>
+<li><a href="io/ttyspy.stp">io/ttyspy.stp</a> - Monitor tty typing.<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <a href="keyword-index.html#MONITOR">MONITOR</a> <br>
+<p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.</p></li>
 </ul>
 <h3><a name="NETWORK">NETWORK</a></h3>
 <ul>
@@ -180,6 +189,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 </ul>
 <h3><a name="PER-PROCESS">PER-PROCESS</a></h3>
 <ul>
+<li><a href="io/ttyspy.stp">io/ttyspy.stp</a> - Monitor tty typing.<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <a href="keyword-index.html#MONITOR">MONITOR</a> <br>
+<p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.</p></li>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>
@@ -189,6 +201,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="process/errsnoop.stp">process/errsnoop.stp</a> - tabulate system call errors<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <p>The script prints a periodic tabular report about failing system calls, by process and by syscall failure.  The first optional argument specifies the reporting interval (in seconds, default 5); the second optional argument gives a screen height (number of lines in the report, default 20).</p></li>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 </ul>
 <h3><a name="PROFILING">PROFILING</a></h3>
 <ul>
@@ -219,6 +234,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 </ul>
 <h3><a name="SCHEDULER">SCHEDULER</a></h3>
 <ul>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend waiting for IO operations (in "D" state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.</p></li>
@@ -294,6 +312,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#READ">READ</a> <a href="keyword-index.html#WRITE">WRITE</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#IO">IO</a> <br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 </ul>
 <h3><a name="TRACE">TRACE</a></h3>
 <ul>
@@ -306,6 +327,9 @@ keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.ht
 <li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
 <p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.</p></li>
+<li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
+<p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
 </ul>
 <h3><a name="TRAFFIC">TRAFFIC</a></h3>
 <ul>
@@ -315,6 +339,12 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcpdumplike.stp">network/tcpdumplike.stp</a> - Dump of Received TCP Packets<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
 <p>The tcpdumplike.stp prints out a line for each TCP packet received. Each line includes the source and destination IP addresses, the source and destination ports, and flags.</p></li>
+</ul>
+<h3><a name="TTY">TTY</a></h3>
+<ul>
+<li><a href="io/ttyspy.stp">io/ttyspy.stp</a> - Monitor tty typing.<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <a href="keyword-index.html#MONITOR">MONITOR</a> <br>
+<p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.</p></li>
 </ul>
 <h3><a name="USE">USE</a></h3>
 <ul>

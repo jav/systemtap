@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * dwarf unwinder header file
- * Copyright (C) 2008 Red Hat Inc.
+ * Copyright (C) 2008, 2009 Red Hat Inc.
  * Copyright (C) 2002-2006 Novell, Inc.
  * 
  * This file is part of systemtap, and is free software.  You can
@@ -143,7 +143,7 @@ static unsigned long read_pointer(const u8 **pLoc,
                                   const void *end,
                                   signed ptrType);
 static const u32 bad_cie, not_fde;
-static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *);
+static const u32 *cie_for_fde(const u32 *fde, void *table, int is_ehframe);
 static signed fde_pointer_type(const u32 *cie);
 
 

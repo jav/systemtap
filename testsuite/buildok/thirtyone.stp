@@ -1,4 +1,5 @@
 #! stap -p4
 
-probe kprobe.function("sys_open") {}
-probe kernel.function("sys_close") {}
+probe kprobe.function("vfs_stat") {}
+probe kprobe.function("do_sys_open") {}
+probe kernel.function("filp_close") {}

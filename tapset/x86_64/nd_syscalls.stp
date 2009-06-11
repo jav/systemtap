@@ -1,0 +1,187 @@
+# x86_64-specific system calls
+
+# arch_prctl _________________________________________________
+# long sys_arch_prctl(int code, unsigned long addr)
+#
+# NOTE: x86_64 only.
+#
+probe nd_syscall.arch_prctl = kprobe.function("sys_arch_prctl")
+{
+	name = "arch_prctl"
+	// code = $code
+	// addr = $addr
+	// argstr = sprintf("%d, %p", $code, $addr)
+	// NB: no asmlinkage()
+	code = int_arg(1)
+	addr = ulong_arg(2)
+	argstr = sprintf("%d, %p", code, addr)
+}
+probe nd_syscall.arch_prctl.return = kprobe.function("sys_arch_prctl").return
+{
+	name = "arch_prctl"
+	retstr = returnstr(1)
+}
+
+# iopl _______________________________________________________
+# long sys_iopl(unsigned int level, struct pt_regs *regs);
+# NOTE. This function is only in i386 and x86_64 and its args vary
+# between those two archs.
+#
+probe nd_syscall.iopl = kprobe.function("sys_iopl")
+{
+	name = "iopl"
+// %( kernel_vr == "*xen" %?
+// 	level = $new_iopl
+// %:
+// 	level = $level
+// %)
+	asmlinkage()
+	level = int_arg(1)
+	argstr = sprint(level)
+}
+probe nd_syscall.iopl.return = kprobe.function("sys_iopl").return
+{
+	name = "iopl"
+	retstr = returnstr(1)
+}
+
+# sigaltstack ________________________________________________
+# long sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss,
+#		struct pt_regs *regs)
+#
+# NOTE: args vary between archs.
+#
+probe nd_syscall.sigaltstack = kprobe.function("sys_sigaltstack")
+{
+	name = "sigaltstack"
+	// uss_uaddr = $uss
+	// uoss_uaddr = $uoss
+	// regs_uaddr = $regs
+	// argstr = sprintf("%p, %p", $uss, $uoss)
+	asmlinkage()
+	uss_uaddr = pointer_arg(1)
+	uoss_uaddr = pointer_arg(2)
+	regs_uaddr = pointer_arg(3)
+	argstr = sprintf("%p, %p", uss_uaddr, uoss_uaddr)
+}
+probe nd_syscall.sigaltstack.return = kprobe.function("sys_sigaltstack").return
+{
+	name = "sigaltstack"
+	retstr = returnstr(1)
+}
+
+# sysctl _____________________________________________________
+#
+# long sys32_sysctl(struct sysctl_ia32 __user *args32)
+#
+probe nd_syscall.sysctl32 = kprobe.function("sys32_sysctl") ?
+{
+	name = "sysctl"
+	// argstr = sprintf("%p", $args32)
+	asmlinkage()
+	argstr = sprintf("%p", pointer_arg(1))
+}
+probe nd_syscall.sysctl32.return = kprobe.function("sys32_sysctl").return ?
+{
+	name = "sysctl"
+	retstr = returnstr(1)
+}
+
+# mmap
+# long sys_mmap(unsigned long addr, unsigned long len,
+#          unsigned long prot, unsigned long flags,
+#          unsigned long fd, unsigned long off)
+probe nd_syscall.mmap = kprobe.function("sys_mmap") ?
+{
+	name = "mmap"
+	// start = $addr
+	// len = $len
+	// prot = $prot
+	// flags = $flags
+	// fd = $fd
+	// offset = $off
+	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
+	// 	_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $off)
+	asmlinkage()
+	start = ulong_arg(1)
+	len = ulong_arg(2)
+	prot = ulong_arg(3)
+	flags = ulong_arg(4)
+	fd = ulong_arg(5)
+	offset = ulong_arg(6)
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, len,
+		_mprotect_prot_str(prot), _mmap_flags(flags), fd, offset)
+}
+probe nd_syscall.mmap.return = kprobe.function("sys_mmap").return ?
+{
+	name = "mmap"
+	retstr = returnstr(2)
+}
+
+#
+# sys32_mmap(struct mmap_arg_struct __user *arg)
+#
+probe nd_syscall.mmap32 = kprobe.function("sys32_mmap")
+{
+	name = "mmap"
+	// argstr = get_mmap_args($arg)
+	asmlinkage()
+	argstr = get_mmap_args(pointer_arg(1))
+}
+probe nd_syscall.mmap32.return = kprobe.function("sys32_mmap").return
+{
+	name = "mmap"
+	retstr = returnstr(2)
+}
+
+# sys32_mmap2(unsigned long addr, unsigned long len,
+#	unsigned long prot, unsigned long flags,
+#	unsigned long fd, unsigned long pgoff)
+#
+probe nd_syscall.mmap2 = kprobe.function("sys32_mmap2")
+{
+	name = "mmap2"
+	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
+	// 	_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $pgoff)
+	asmlinkage()
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", ulong_arg(1), ulong_arg(2),
+		_mprotect_prot_str(ulong_arg(3)), _mmap_flags(ulong_arg(4)),
+		ulong_arg(5), ulong_arg(6))
+}
+probe nd_syscall.mmap2.return = kprobe.function("sys32_mmap2").return
+{
+	name = "mmap2"
+	retstr = returnstr(2)
+}
+
+# vm86_warning _____________________________________________________
+#
+# long sys32_vm86_warning(void)
+#
+probe nd_syscall.vm86_warning = kprobe.function("sys32_vm86_warning")
+{
+	name = "vm86_warning"
+	argstr = ""
+}
+probe nd_syscall.vm86_warning.return = kprobe.function("sys32_vm86_warning").return
+{
+	name = "wm86_warning"
+	retstr = returnstr(1)
+}
+
+# pipe _______________________________________________________
+#
+# long sys32_pipe(int __user *fd)
+#
+probe nd_syscall.pipe32 = kprobe.function("sys32_pipe")
+{
+	name = "pipe"
+	// argstr = sprintf("%p", $fd)
+	asmlinkage()
+	argstr = sprintf("%p", pointer_arg(1))
+}
+probe nd_syscall.pipe32.return = kprobe.function("sys32_pipe").return
+{
+	name = "pipe"
+	retstr = returnstr(1)
+}

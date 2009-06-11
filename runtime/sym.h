@@ -42,11 +42,13 @@ struct _stp_module {
   	unsigned long dwarf_module_base;
 
 	/* the stack unwind data for this module */
-	void *unwind_data;
+	void *debug_frame;
+	void *eh_frame;
 	void *unwind_hdr;	
-	uint32_t unwind_data_len;
+	uint32_t debug_frame_len;
+	uint32_t eh_frame_len;
 	uint32_t unwind_hdr_len;
-	uint32_t unwind_is_ehframe; /* unwind data comes from .eh_frame */
+	unsigned long eh_frame_addr; /* Orig load address (offset) .eh_frame */
 	/* build-id information */
 	unsigned char *build_id_bits;
 	unsigned long  build_id_offset;
@@ -59,10 +61,10 @@ struct _stp_module {
 static struct _stp_module *_stp_modules [];
 static unsigned _stp_num_modules;
 
-
-/* the number of modules in the arrays */
-
-static unsigned long _stp_kretprobe_trampoline = 0;
+/* Used in the unwinder to special case unwinding through kretprobes. */
+/* Initialized through translator (stap-symbols.h) relative to kernel */
+/* load address, fixup by transport symbols _stp_do_relocation */
+static unsigned long _stp_kretprobe_trampoline;
 
 static unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset);
 static struct _stp_module *_stp_get_unwind_info (unsigned long addr);

@@ -222,6 +222,14 @@ keywords: io
   to the specified device occur.
 
 
+io/ttyspy.stp - Monitor tty typing.
+keywords: io tty per-process monitor
+
+  The ttyspy.stp script uses tty_audit hooks to monitor recent typing
+  activity on the system, printing a scrolling record of recent
+  keystrokes, on a per-tty basis.
+
+
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
 
@@ -265,6 +273,16 @@ keywords: memory
   type of access (read or write), the type of fault (major or minor),
   and the elapsed time for page fault. This log can be examined to
   determine where the page faults are occuring.
+
+
+= MONITOR =
+
+io/ttyspy.stp - Monitor tty typing.
+keywords: io tty per-process monitor
+
+  The ttyspy.stp script uses tty_audit hooks to monitor recent typing
+  activity on the system, printing a scrolling record of recent
+  keystrokes, on a per-tty basis.
 
 
 = NETWORK =
@@ -316,6 +334,14 @@ keywords: network traffic
 
 = PER-PROCESS =
 
+io/ttyspy.stp - Monitor tty typing.
+keywords: io tty per-process monitor
+
+  The ttyspy.stp script uses tty_audit hooks to monitor recent typing
+  activity on the system, printing a scrolling record of recent
+  keystrokes, on a per-tty basis.
+
+
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
 keywords: network traffic per-process
 
@@ -335,6 +361,16 @@ keywords: process syscall
   argument specifies the reporting interval (in seconds, default 5);
   the second optional argument gives a screen height (number of lines
   in the report, default 20).
+
+
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
 
 
 = PROFILING =
@@ -416,6 +452,16 @@ keywords: syscall read write time io
 
 
 = SCHEDULER =
+
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
+
 
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
@@ -606,6 +652,16 @@ keywords: syscall read write time io
   syscalls.
 
 
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
+
+
 = TRACE =
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -628,6 +684,16 @@ keywords: network tracepoint buffer free
   socket buffers freed at locations in the kernel.
 
 
+process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+keywords: process scheduler time tracepoint
+
+  The schedtimes.stp script instruments the scheduler to track the
+  amount of time that each process spends running, sleeping, queued,
+  and waiting for io. On exit the script prints out the accumulated
+  time for each state of processes observed.  Optionally, this script
+  can be used with the '-c' or '-x' options to focus on a specific PID.
+
+
 = TRAFFIC =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
@@ -645,6 +711,16 @@ keywords: network traffic
   The tcpdumplike.stp prints out a line for each TCP packet received.
   Each line includes the source and destination IP addresses, the
   source and destination ports, and flags.
+
+
+= TTY =
+
+io/ttyspy.stp - Monitor tty typing.
+keywords: io tty per-process monitor
+
+  The ttyspy.stp script uses tty_audit hooks to monitor recent typing
+  activity on the system, printing a scrolling record of recent
+  keystrokes, on a per-tty basis.
 
 
 = USE =

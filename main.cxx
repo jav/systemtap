@@ -20,6 +20,7 @@
 #include "util.h"
 #include "coveragedb.h"
 #include "git_version.h"
+#include "rpm_finder.h"
 
 #include <iostream>
 #include <fstream>
@@ -469,6 +470,7 @@ main (int argc, char * const argv [])
   while (true)
     {
       int long_opt;
+      char * num_endptr;
 #define LONG_OPT_KELF 1
 #define LONG_OPT_KMAP 2
 #define LONG_OPT_IGNORE_VMLINUX 3
@@ -518,8 +520,8 @@ main (int argc, char * const argv [])
               cerr << "Listing (-l) mode implies pass 2." << endl;
               usage (s, 1);
             }
-          s.last_pass = atoi (optarg);
-          if (s.last_pass < 1 || s.last_pass > 5)
+          s.last_pass = (int)strtoul(optarg, &num_endptr, 10);
+          if (*num_endptr != '\0' || s.last_pass < 1 || s.last_pass > 5)
             {
               cerr << "Invalid pass number (should be 1-5)." << endl;
               usage (s, 1);
@@ -625,8 +627,8 @@ main (int argc, char * const argv [])
 	  break;
 
         case 's':
-          s.buffer_size = atoi (optarg);
-          if (s.buffer_size < 1 || s.buffer_size > 4095)
+          s.buffer_size = (int) strtoul (optarg, &num_endptr, 10);
+          if (*num_endptr != '\0' || s.buffer_size < 1 || s.buffer_size > 4095)
             {
               cerr << "Invalid buffer size (should be 1-4095)." << endl;
 	      usage (s, 1);
@@ -638,7 +640,12 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'x':
-	  s.target_pid = atoi(optarg);
+	  s.target_pid = (int) strtoul(optarg, &num_endptr, 10);
+	  if (*num_endptr != '\0')
+	    {
+	      cerr << "Invalid target process ID number." << endl;
+	      usage (s, 1);
+	    }
 	  break;
 
 	case 'D':
@@ -1062,6 +1069,9 @@ main (int argc, char * const argv [])
 	  goto pass_5;
 	}
     }
+
+  /* Print out list of missing files */
+  missing_rpm_list_print(s);
 
   if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) goto cleanup;
 

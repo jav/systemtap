@@ -41,7 +41,6 @@ function print_ubacktrace () %{
  *  string length. Returns empty string when current probe point cannot
  *  determine user backtrace.
  */
-
 function ubacktrace:string () %{ /* pure */
 	if (CONTEXT->regs)
 		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN,

@@ -22,9 +22,9 @@ using namespace std;
 using namespace __gnu_cxx;
 
 
-static string TOK_PROCFS("procfs");
-static string TOK_READ("read");
-static string TOK_WRITE("write");
+static const string TOK_PROCFS("procfs");
+static const string TOK_READ("read");
+static const string TOK_WRITE("write");
 
 
 // ------------------------------------------------------------------------

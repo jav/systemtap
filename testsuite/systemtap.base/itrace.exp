@@ -1,53 +1,55 @@
 # itrace test
 
-
 # Initialize variables
 set exepath "[pwd]/ls_[pid]"
 
-set itrace1_script {
+# Why check for 1000 instructions executed?  We can't know the actual
+# number to look for, so we just look for a reasonable number that
+# should work for all platforms.
+
+set itrace_single1_script {
     global instrs = 0
     probe begin { printf("systemtap starting probe\n") }
     probe process("%s").insn
     {
         instrs += 1
-	if (instrs == 5)
-		exit()
     }
-
-
-    probe end { printf("systemtap ending probe\n")
-          printf("itraced = %%d\n", instrs)
+    probe end {
+	printf("systemtap ending probe\n")
+	if (instrs > 1000) {
+	    printf("instrs > 1000 (%%d)\n", instrs)
+	}
+	else {
+	    printf("instrs <= 1000 (%%d)\n", instrs)
+	}
     }
 }
-set itrace1_script_output "itraced = 5\r\n"
+set itrace_single1_script_output "instrs > 1000 \\(\[0-9\]\[0-9\]*\\)\r\n"
 
-set itrace2_script {
+set itrace_single2_script {
     global instrs = 0, itrace_on = 0, start_timer = 0
     probe begin { start_timer = 1; printf("systemtap starting probe\n") }
     probe process("%s").insn if (itrace_on)
     {
         instrs += 1
 	if (instrs == 5)
-		exit()
+	    exit()
     }
-
-
     probe timer.ms(1) if (start_timer)
     {   
         itrace_on = 1
     }
-
     probe timer.ms(10) if (start_timer)
     {   
         itrace_on = 0
     }
     probe end { printf("systemtap ending probe\n")
-          printf("itraced = %%d\n", instrs)
+	printf("itraced = %%d\n", instrs)
     }
 }
-set itrace2_script_output "itraced = 5\r\n"
+set itrace_single2_script_output "itraced = 5\r\n"
 
-set itrace3_script {
+set itrace_block1_script {
     global branches = 0
     probe begin
     {
@@ -59,14 +61,80 @@ set itrace3_script {
         if (branches == 5)
                 exit()
     }
-
-
     probe end { printf("systemtap ending probe\n")
           printf("itraced block mode = %%d\n", branches)
     }
 }
-set itrace3_script_output "itraced block mode = 5\r\n"
+set itrace_block1_script_output "itraced block mode = 5\r\n"
 
+set itrace_block2_script {
+    global instrs = 0, itrace_on = 0, start_timer = 0
+    probe begin { start_timer = 1; printf("systemtap starting probe\n") }
+    probe process("%s").insn.block if (itrace_on)
+    {
+        instrs += 1
+	if (instrs == 5)
+	    exit()
+    }
+    probe timer.ms(1) if (start_timer)
+    {   
+        itrace_on = 1
+    }
+    probe timer.ms(10) if (start_timer)
+    {   
+        itrace_on = 0
+    }
+    probe end { printf("systemtap ending probe\n")
+	printf("itraced = %%d\n", instrs)
+    }
+}
+set itrace_block2_script_output "itraced = 5\r\n"
+
+set itrace_single_step_script {
+    %{
+    #include "ptrace_compatibility.h"
+    %}
+
+    function has_single_step() %{
+        THIS->__retvalue = arch_has_single_step(); /* pure */
+    %}
+
+    probe begin {
+        printf("has_single_step: %d\n", has_single_step())
+        exit()
+    }
+}
+
+set itrace_block_step_script {
+    %{
+    #include "ptrace_compatibility.h"
+    %}
+
+    function has_block_step() %{
+        THIS->__retvalue = arch_has_block_step(); /* pure */
+    %}
+
+    probe begin {
+        printf("has_block_step: %d\n", has_block_step())
+        exit()
+    }
+}
+
+proc stap_check_feature { test_name script feature } {
+    set rc -1
+    verbose -log "stap -g -e \"$script\""
+    spawn stap -g -e "$script"
+    expect {
+	-timeout 60
+	-re "^$feature: 0" { set rc 0; pass $test_name }
+	-re "^$feature: 1" { set rc 1; pass $test_name }
+	eof { fail "$test_name (eof)" }
+	timeout { fail "$test_name (timeout)" }
+    }
+    catch {close}
+    catch {wait}
+    return $rc
+}
 
 # Set up our own copy of /bin/ls, to make testing for a particular
 # executable easy.  We can't use 'ln' here, since we might be creating
@@ -90,37 +158,80 @@ proc run_ls_5_sec {} {
     return 0;
 }
 
-
-set TEST_NAME "itrace1"
+# figure out if this system supports single stepping (if we've got
+# utrace and we're doing install testing)
+set TEST_NAME "itrace single step check"
+set single_step_p 0
 if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested $TEST_NAME
 } else {
-    set script [format $itrace1_script $exepath]
-    stap_run $TEST_NAME run_ls_5_sec $itrace1_script_output -e $script
+    set single_step_p [stap_check_feature $TEST_NAME \
+		       $itrace_single_step_script "has_single_step"]
 }
 
-
-set TEST_NAME "itrace2"
+# figure out if this system supports block stepping (if we've got
+# utrace and we're doing install testing)
+set TEST_NAME "itrace block step check"
+set block_step_p 0
 if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested $TEST_NAME
 } else {
-    set script [format $itrace2_script $exepath]
-    stap_run $TEST_NAME run_ls_5_sec $itrace2_script_output -e $script
+    set block_step_p [stap_check_feature $TEST_NAME \
+		      $itrace_block_step_script "has_block_step"]
 }
 
-set TEST_NAME "itrace3"
+# Run the single step tests
+set TEST_NAME "itrace_single1"
 if {![utrace_p]} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
     untested $TEST_NAME
+} elseif {$single_step_p != 1} {
+    xfail "$TEST_NAME : no kernel single step support"
 } else {
-    send_log "ATTENTION: if arch_has_block_step is not defined for this arch, this testcase will fail\n"
-    set script [format $itrace3_script $exepath]
-    stap_run $TEST_NAME run_ls_5_sec $itrace3_script_output -e $script
+    set script [format $itrace_single1_script $exepath]
+    stap_run $TEST_NAME run_ls_5_sec $itrace_single1_script_output -e $script
+}
+
+set TEST_NAME "itrace_single2"
+if {![utrace_p]} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested $TEST_NAME
+} elseif {$single_step_p != 1} {
+    xfail "$TEST_NAME : no kernel single step support"
+} else {
+    set script [format $itrace_single2_script $exepath]
+    stap_run $TEST_NAME run_ls_5_sec $itrace_single2_script_output -e $script
+}
+
+# Run the block step tests
+set TEST_NAME "itrace_block1"
+if {![utrace_p]} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested $TEST_NAME
+} elseif {$block_step_p != 1} {
+    xfail "$TEST_NAME : no kernel block step support"
+} else {
+    set script [format $itrace_block1_script $exepath]
+    stap_run $TEST_NAME run_ls_5_sec $itrace_block1_script_output -e $script
+}
+
+set TEST_NAME "itrace_block2"
+if {![utrace_p]} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested $TEST_NAME
+} elseif {$block_step_p != 1} {
+    xfail "$TEST_NAME : no kernel block step support"
+} else {
+    set script [format $itrace_block2_script $exepath]
+    stap_run $TEST_NAME run_ls_5_sec $itrace_block2_script_output -e $script
 }
 
 # Cleanup
