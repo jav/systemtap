@@ -673,26 +673,25 @@ struct dwarf_builder: public derived_probe_builder
     __uint64_t probe_arg;
     string & mark_name;
     string probe_name;
-    probe_table(string & mark_name, systemtap_session & sess, dwflpp * dw, probe_point * location);
+    probe_table(string & mark_name, systemtap_session & sess, dwflpp * dw);
     bool get_next_probe();
 
   private:
     bool have_probes;
     systemtap_session & sess;
     dwflpp* dw;
-    probe_point* location;
     Elf_Data *pdata;
     size_t probe_scn_offset;
     size_t probe_scn_addr;
   };
 };
 
-dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & sess, dwflpp* dw, probe_point* location):
-  mark_name(mark_name), sess(sess), dw(dw), location(location)
+dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & sess, dwflpp* dw):
+  mark_name(mark_name), sess(sess), dw(dw)
 {
   Elf* elf;
   GElf_Shdr shdr_mem;
-  GElf_Shdr *shdr;
+  GElf_Shdr *shdr = NULL;
   Dwarf_Addr bias;
   size_t shstrndx;
 
@@ -716,6 +715,9 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
 	  break;
 	}
     }
+
+  if (!have_probes)
+    return;
     
   // Older versions put .probes section in the debuginfo dwarf file,
   // so check if it actually exists, if not take the main elf file
@@ -724,6 +726,7 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
       elf = dwfl_module_getelf (dw->module, &bias);
       dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
       probe_scn = NULL;
+      have_probes = false;
       while ((probe_scn = elf_nextscn (elf, probe_scn)))
 	{
 	  shdr = gelf_getshdr (probe_scn, &shdr_mem);
@@ -733,6 +736,9 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
 	    break;
 	}
     }
+
+  if (!have_probes)
+    return;
 
   pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
   probe_scn_offset = 0;
@@ -3193,12 +3199,15 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 
 struct sdt_var_expanding_visitor: public var_expanding_visitor
 {
-  sdt_var_expanding_visitor(dwflpp& dw, string& probe_name,
+  sdt_var_expanding_visitor(string & process_name, string & probe_name,
 			    int arg_count, bool have_reg_args):
-    dw (dw), probe_name (probe_name), have_reg_args (have_reg_args),
-    arg_count (arg_count) {}
-  dwflpp& dw;
-  string probe_name;
+    process_name (process_name), probe_name (probe_name),
+    have_reg_args (have_reg_args), arg_count (arg_count)
+  {
+    assert(!have_reg_args || (arg_count >= 0 && arg_count <= 10));
+  }
+  string & process_name;
+  string & probe_name;
   bool have_reg_args;
   int arg_count;
 
@@ -3220,12 +3229,13 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       provide(e);
       return;
     }
-  
-  bool lvalue = is_active_lvalue(e);
-  string argname = e->base_name.substr(1);
-  functioncall *fc = new functioncall;
 
-  int argno = lex_cast<int>(argname.substr(3));
+  int argno = lex_cast<int>(e->base_name.substr(4));
+  if (argno < 1 || argno > arg_count)
+    throw semantic_error ("invalid argument number", e->tok);
+
+  bool lvalue = is_active_lvalue(e);
+  functioncall *fc = new functioncall;
 
   if (arg_count < 6)
     {
@@ -3270,14 +3280,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   cast->operand = fc;
   cast->components = e->components;
   cast->type = probe_name + "_arg" + lex_cast<string>(argno);
-  string sdt_include_path = "";
-  for (unsigned int i = 0; i < dw.sess.args.size(); i++)
-    if (dw.sess.args[i].find("isdt=") == 0)
-      sdt_include_path = dw.sess.args[i].substr(5);
-  cast->module = "<" + sdt_include_path + ">";
-  dwarf_builder *db = new dwarf_builder();
-  dwarf_cast_expanding_visitor *v = new dwarf_cast_expanding_visitor(this->dw.sess, *db);
-  v->visit_cast_op(cast);
+  cast->module = process_name;
 
   provide(cast);
 }
@@ -3314,11 +3317,10 @@ dwarf_builder::build(systemtap_session & sess,
   if (sess.verbose > 3)
     clog << "dwarf_builder::build for " << module_name << endl;
 
-  if (((probe_point::component*)(location->components[1]))->functor == TOK_MARK)
+  string mark_name;
+  if (get_param(parameters, TOK_MARK, mark_name))
     {
-      string mark_name;
-      assert (get_param(parameters, TOK_MARK, mark_name));
-      probe_table probe_table(mark_name, sess, dw, location);
+      probe_table probe_table(mark_name, sess, dw);
       if (! probe_table.get_next_probe())
 	return;
       
@@ -3349,7 +3351,7 @@ dwarf_builder::build(systemtap_session & sess,
 		     << hex << probe_table.probe_arg << dec << endl;
 	    
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
 					     probe_table.probe_arg, false);
 	      new_base->body = svv.require (new_base->body);
 
@@ -3406,7 +3408,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      b->statements.insert(b->statements.begin(),(statement*) is);
 
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
 	      new_location->components[0]->functor = "kernel";
@@ -3481,7 +3483,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      b->statements.insert(b->statements.begin(),(statement*) is);
 
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (*dw, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
 

@@ -1249,6 +1249,14 @@ c_unparser::emit_module_init ()
   o->newline() << "synchronize_sched();";
   o->newline() << "#endif";
 
+  // In case gettimeofday was started, it needs to be stopped
+  o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
+  o->newline() << " _stp_kill_time();";  // An error is no cause to hurry...
+  o->newline() << "#endif";
+
+  // Free up the context memory after an error too
+  o->newline() << "free_percpu (contexts);";
+
   o->newline() << "return rc;";
   o->newline(-1) << "}\n";
 }
@@ -4903,7 +4911,7 @@ emit_symbol_data (systemtap_session& s)
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
 
-  unwindsym_dump_context ctx = { s, kallsyms_out, 0, -1, s.unwindsym_modules };
+  unwindsym_dump_context ctx = { s, kallsyms_out, 0, ~0, s.unwindsym_modules };
 
   // Micro optimization, mainly to speed up tiny regression tests
   // using just begin probe.
