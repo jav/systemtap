@@ -1,5 +1,11 @@
 * What's new
 
+- Dwarfless syscalls: The nd_syscalls tapset is now available to probe
+  system calls without requiring kernel debugging information.  All of
+  the same probepoints in the normal syscalls tapset are available with
+  an "nd_" prefix, e.g. syscall.open becomes nd_syscall.open.  Most
+  syscall arguments are also available by name in nd_syscalls.
+
 - Module signing: If the appropriate nss libraries are available on your
   system, stap will sign each compiled module using a self-generated
   certificate.  This is the first step toward extending authority to
