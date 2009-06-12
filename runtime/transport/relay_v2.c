@@ -204,6 +204,21 @@ __stp_relay_create_buf_file_callback(const char *filename,
 {
 	struct dentry *file = debugfs_create_file(filename, mode, parent, buf,
 						  &relay_file_operations);
+	/*
+	 * Here's what 'is_global' does (from linux/relay.h):
+	 *
+	 * Setting the is_global outparam to a non-zero value will
+	 * cause relay_open() to create a single global buffer rather
+	 * than the default set of per-cpu buffers.
+	 */
+	if (is_global) {
+#ifdef STP_BULKMODE
+		*is_global = 0;
+#else
+		*is_global = 1;
+#endif
+	}
+
 	if (IS_ERR(file)) {
 		file = NULL;
 	}
