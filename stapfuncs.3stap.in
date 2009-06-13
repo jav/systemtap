@@ -210,6 +210,12 @@ Return the id of the current process.
 ppid:long ()
 Return the id of the parent process.
 .TP
+pgrp:long ()
+Return the pgrp of the current process.
+.TP
+sid:long ()
+Return the sid of the current process.
+.TP
 uid:long ()
 Return the uid of the current process.
 .TP
