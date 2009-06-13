@@ -70,7 +70,7 @@ lex_cast_qstring(IN const & in)
   out2 += '"';
   for (unsigned i=0; i<out.length(); i++)
     {
-      char c = out[i];
+      unsigned char c = out[i];
       if (! isprint(c))
         {
           out2 += '\\';
