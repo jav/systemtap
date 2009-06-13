@@ -2902,6 +2902,10 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#endif";
   s.op->newline();
 
+  s.op->newline() << "#ifndef KRETACTIVE";
+  s.op->newline() << "#define KRETACTIVE (max(15,6*NR_CPUS))";
+  s.op->newline() << "#endif";
+
   // Forward declare the master entry functions
   s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
   s.op->line() << " struct pt_regs *regs);";
@@ -3060,7 +3064,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "if (sdp->maxactive_p) {";
   s.op->newline(1) << "kp->u.krp.maxactive = sdp->maxactive_val;";
   s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "kp->u.krp.maxactive = max(10, 4*NR_CPUS);";
+  s.op->newline(1) << "kp->u.krp.maxactive = KRETACTIVE;";
   s.op->newline(-1) << "}";
   s.op->newline() << "kp->u.krp.handler = &enter_kretprobe_probe;";
   // to ensure safeness of bspcache, always use aggr_kprobe on ia64
@@ -4550,6 +4554,10 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#endif";
   s.op->newline();
 
+  s.op->newline() << "#ifndef KRETACTIVE";
+  s.op->newline() << "#define KRETACTIVE (max(15,6*NR_CPUS))";
+  s.op->newline() << "#endif";
+
   // Forward declare the master entry functions
   s.op->newline() << "static int enter_kprobe2_probe (struct kprobe *inst,";
   s.op->line() << " struct pt_regs *regs);";
@@ -4695,7 +4703,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "if (sdp->maxactive_p) {";
   s.op->newline(1) << "kp->u.krp.maxactive = sdp->maxactive_val;";
   s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "kp->u.krp.maxactive = max(10, 4*NR_CPUS);";
+  s.op->newline(1) << "kp->u.krp.maxactive = KRETACTIVE;";
   s.op->newline(-1) << "}";
   s.op->newline() << "kp->u.krp.handler = &enter_kretprobe2_probe;";
   // to ensure safeness of bspcache, always use aggr_kprobe on ia64

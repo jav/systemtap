@@ -1,3 +1,8 @@
+* What's new
+
+- Systemwide kernel .function.return (kretprobe) maxactive defaults may
+  be overridden with the -DKRETACTIVE=nnn parameter.
+
 * What's new in version 0.9.8
 
 - Miscellaneous new tapset functions:
