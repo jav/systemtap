@@ -2,8 +2,7 @@
 # (with gcc/g++, -O0/-O3, prelinked/pie, seperate debuginfo)
 # Then runs tests with a list of execs.
 
-set subtestlist {lib uname ustack cleanup}
-#set subtestlist {mark} # Currently disabled, fails sep-debug case.
+set subtestlist {lib mark uname ustack cleanup}
 
 proc seperate_debuginfo {elffile} {
     set objcopy [list "objcopy" "--only-keep-debug"]

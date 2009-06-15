@@ -692,8 +692,8 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
   Dwarf_Addr bias;
   size_t shstrndx;
 
-  elf = (dwarf_getelf (dwfl_module_getdwarf (dw->module, &bias))
-	 ?: dwfl_module_getelf (dw->module, &bias));
+  // Explicitly look in the main elf file first.
+  elf = dwfl_module_getelf (dw->module, &bias);
   Elf_Scn *probe_scn = NULL;
 
   dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
@@ -713,17 +713,15 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
 	}
     }
 
-  if (!have_probes)
-    return;
-    
   // Older versions put .probes section in the debuginfo dwarf file,
-  // so check if it actually exists, if not take the main elf file
-  if (have_probes && shdr->sh_type == SHT_NOBITS)
+  // so check if it actually exists, if not take a look in the debuginfo file
+  if (! have_probes || (have_probes && shdr->sh_type == SHT_NOBITS))
     {
-      elf = dwfl_module_getelf (dw->module, &bias);
+      elf = dwarf_getelf (dwfl_module_getdwarf (dw->module, &bias));
+      if (! elf)
+	return;
       dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
       probe_scn = NULL;
-      have_probes = false;
       while ((probe_scn = elf_nextscn (elf, probe_scn)))
 	{
 	  shdr = gelf_getshdr (probe_scn, &shdr_mem);
