@@ -672,6 +672,8 @@ struct dwarf_builder: public derived_probe_builder
     string probe_name;
     probe_table(string & mark_name, systemtap_session & sess, dwflpp * dw);
     bool get_next_probe();
+    void convert_probe(probe *new_base);
+    void convert_location(probe *new_base, probe_point *new_location);
 
   private:
     bool have_probes;
@@ -799,6 +801,113 @@ dwarf_builder::probe_table::get_next_probe()
     }
   return false;
 }
+
+
+void
+dwarf_builder::probe_table::convert_probe (probe *new_base)
+{
+  block *b = ((block*)(new_base->body));
+  if (probe_type == utrace_type)
+    {
+      // Generate: if ($syscall != 0xbead) next;
+      if_statement *issc = new if_statement;
+      issc->thenblock = new next_statement;
+      issc->elseblock = NULL;
+      issc->tok = new_base->body->tok;
+      comparison *besc = new comparison;
+      besc->op = "!=";
+      besc->tok = new_base->body->tok;
+      functioncall* n = new functioncall;
+      n->tok = new_base->body->tok;
+      n->function = "_utrace_syscall_nr";
+      n->referent = 0;
+      besc->left = n;
+      literal_number* fake_syscall = new literal_number(0xbead);
+      fake_syscall->tok = new_base->body->tok;
+      besc->right = fake_syscall;
+      issc->condition = besc;
+      b->statements.insert(b->statements.begin(),(statement*) issc);
+
+      // Generate: if (ulong_arg(2) != task_tid(task_current())) next;
+      if_statement *istid = new if_statement;
+      istid->thenblock = new next_statement;
+      istid->elseblock = NULL;
+      istid->tok = new_base->body->tok;
+      comparison *betid = new comparison;
+      betid->op = "!=";
+      betid->tok = new_base->body->tok;
+      functioncall* task_tid = new functioncall;
+      task_tid->tok = new_base->body->tok;
+      task_tid->function = "task_tid";
+      task_tid->referent = 0;
+      functioncall* task_current = new functioncall;
+      task_current->tok = new_base->body->tok;
+      task_current->function = "task_current";
+      task_current->referent = 0;
+      task_tid->args.push_back(task_current);
+      betid->left = task_tid;
+      functioncall *arg2tid = new functioncall;
+      arg2tid->tok = new_base->body->tok;
+      arg2tid->function = "ulong_arg";
+      arg2tid->tok = new_base->body->tok;
+      literal_number* littid = new literal_number(2);
+      littid->tok = new_base->body->tok;
+      arg2tid->args.push_back(littid);
+
+      betid->right = arg2tid;
+      istid->condition = betid;
+      b->statements.insert(b->statements.begin(),(statement*) istid);
+    }
+  
+  // Generate: if (arg1 != mark("label")) next;
+  functioncall *fc = new functioncall;
+  fc->function = "ulong_arg";
+  fc->tok = new_base->body->tok;
+  literal_number* num = new literal_number(1);
+  num->tok = new_base->body->tok;
+  fc->args.push_back(num);
+
+  functioncall *fcus = new functioncall;
+  fcus->function = "user_string";
+  fcus->type = pe_string;
+  fcus->tok = new_base->body->tok;
+  fcus->args.push_back(fc);
+
+  if_statement *is = new if_statement;
+  is->thenblock = new next_statement;
+  is->elseblock = NULL;
+  is->tok = new_base->body->tok;
+  comparison *be = new comparison;
+  be->op = "!=";
+  be->tok = new_base->body->tok;
+  be->left = fcus;
+  be->right = new literal_string(mark_name);
+  is->condition = be;
+  b->statements.insert(b->statements.begin(),(statement*) is);
+}
+
+
+void
+dwarf_builder::probe_table::convert_location (probe *new_base,
+					      probe_point *new_location)
+{
+  if (probe_type == kprobe_type)
+    {
+      new_location->components[0]->functor = "kernel";
+      new_location->components[0]->arg = NULL;
+      new_location->components[1]->functor = "function";
+      new_location->components[1]->arg = new literal_string("*getegid*");
+      new_base->locations.push_back(new_location);
+    }
+  else if (probe_type == utrace_type)
+    {
+      // process("executable").syscall
+      new_location->components[1]->functor = "syscall";
+      new_location->components[1]->arg = NULL;
+      new_base->locations.push_back(new_location);
+    }
+}
+
 
 dwarf_query::dwarf_query(systemtap_session & sess,
 			 probe * base_probe,
@@ -3234,12 +3343,13 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   bool lvalue = is_active_lvalue(e);
   functioncall *fc = new functioncall;
 
-  if (arg_count < 6)
+  // First two args are hidden: 1. pointer to probe name 2. task id
+  if (arg_count < 2)
     {
       fc->function = "ulong_arg";
       fc->type = pe_long;
       fc->tok = e->tok;
-      literal_number* num = new literal_number(argno + 1);
+      literal_number* num = new literal_number(argno + 2);
       num->tok = e->tok;
       fc->args.push_back(num);
     }
@@ -3252,7 +3362,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       functioncall *get_arg1 = new functioncall;
       get_arg1->function = "pointer_arg";
       get_arg1->tok = e->tok;
-      literal_number* num = new literal_number(2);
+      literal_number* num = new literal_number(3);
       num->tok = e->tok;
       get_arg1->args.push_back(num);
 
@@ -3365,7 +3475,8 @@ dwarf_builder::build(systemtap_session & sess,
 	  return;
 	}
 
-      else if (probe_table.probe_type == probe_table.kprobe_type)
+      else if (probe_table.probe_type == probe_table.kprobe_type
+	       || probe_table.probe_type == probe_table.utrace_type)
 	{
 	  do
 	    {
@@ -3377,118 +3488,13 @@ dwarf_builder::build(systemtap_session & sess,
 	      *new_location = *location;
 	      new_base->locations.clear();
 	      
-	      block *b = ((block*)(new_base->body));
-	      functioncall *fc = new functioncall;
-	      fc->function = "ulong_arg";
-	      fc->tok = new_base->body->tok;
-	      literal_number* num = new literal_number(1);
-	      num->tok = new_base->body->tok;
-	      fc->args.push_back(num);
+	      probe_table.convert_probe(new_base);
 
-	      functioncall *fcus = new functioncall;
-	      fcus->function = "user_string";
-	      fcus->type = pe_string;
-	      fcus->tok = new_base->body->tok;
-	      fcus->args.push_back(fc);
-
-	      // Generate: if (arg1 != mark("label")) next;
-	      if_statement *is = new if_statement;
-	      is->thenblock = new next_statement;
-	      is->elseblock = NULL;
-	      is->tok = new_base->body->tok;
-	      comparison *be = new comparison;
-	      be->op = "!=";
-	      be->tok = new_base->body->tok;
-	      be->left = fcus;
-	      be->right = new literal_string(probe_table.mark_name);
-	      is->condition = be;
-	      b->statements.insert(b->statements.begin(),(statement*) is);
-
-	      // Now expand the local variables in the probe body
+	      // Expand the local variables in the probe body
 	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
-	      new_location->components[0]->functor = "kernel";
-	      new_location->components[0]->arg = NULL;
-	      new_location->components[1]->functor = "function";
-	      new_location->components[1]->arg = new literal_string("*getegid*");
-	      new_base->locations.push_back(new_location);
-	      
-	      derive_probes(sess, new_base, finished_results);
-	    }
-	  while (probe_table.get_next_probe());
-	  return;
-	}
-
-      else if (probe_table.probe_type == probe_table.utrace_type)
-	{
-	  do
-	    {
-	      probe *new_base = new probe;
-	      *new_base = *base;
-	      
-	      new_base->body = deep_copy_visitor::deep_copy(base->body);
-	      probe_point *new_location = new probe_point;
-	      *new_location = *location;
-	      new_base->locations.clear();
-	      
-	      block *b = ((block*)(new_base->body));
-
-	      // Generate: if ($syscall != 0xbead) next;
-	      if_statement *issc = new if_statement;
-	      issc->thenblock = new next_statement;
-	      issc->elseblock = NULL;
-	      issc->tok = new_base->body->tok;
-	      comparison *besc = new comparison;
-	      besc->op = "!=";
-	      besc->tok = new_base->body->tok;
-	      functioncall* n = new functioncall;
-	      n->tok = new_base->body->tok;
-	      n->function = "_utrace_syscall_nr";
-	      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-	      besc->left = n;
-	      literal_number* fake_syscall = new literal_number(0xbead);
-	      fake_syscall->tok = new_base->body->tok;
-	      besc->right = fake_syscall;
-	      issc->condition = besc;
-	      b->statements.insert(b->statements.begin(),(statement*) issc);
-
-	      functioncall *fc = new functioncall;
-	      fc->function = "ulong_arg";
-	      fc->tok = new_base->body->tok;
-	      literal_number* num = new literal_number(1);
-	      num->tok = new_base->body->tok;
-	      fc->args.push_back(num);
-
-	      functioncall *fcus = new functioncall;
-	      fcus->function = "user_string";
-	      fcus->type = pe_string;
-	      fcus->tok = new_base->body->tok;
-	      fcus->args.push_back(fc);
-
-	      // Generate: if (arg1 != mark("label")) next;
-	      if_statement *is = new if_statement;
-	      is->thenblock = new next_statement;
-	      is->elseblock = NULL;
-	      is->tok = new_base->body->tok;
-	      comparison *be = new comparison;
-	      be->op = "!=";
-	      be->tok = new_base->body->tok;
-	      be->left = fcus;
-	      be->right = new literal_string(probe_table.mark_name);
-	      is->condition = be;
-	      b->statements.insert(b->statements.begin(),(statement*) is);
-
-	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
-					     probe_table.probe_arg, true);
-	      new_base->body = svv.require (new_base->body);
-
-	      // process("executable").syscall
-	      new_location->components[1]->functor = "syscall";
-	      new_location->components[1]->arg = NULL;
-	      new_base->locations.push_back(new_location);
-
+	      probe_table.convert_location(new_base, new_location);
 	      derive_probes(sess, new_base, finished_results);
 	    }
 	  while (probe_table.get_next_probe());
