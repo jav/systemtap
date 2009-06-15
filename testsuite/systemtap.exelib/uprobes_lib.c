@@ -7,15 +7,24 @@
  * later version.
  */
 
-void
+// volatile static variable to prevent folding of lib_func
+static volatile int foo;
+
+// Marked noinline and has an empty asm statement to prevent inlining
+// or optimizing away totally.
+int
+__attribute__((noinline))
 lib_func (int bar)
 {
-  if (bar > 1)
-    lib_func (bar - 1);
+  asm ("");
+  if (bar - foo > 0)
+    foo = lib_func (bar - foo);
+  return foo;
 }
 
 void
 lib_main ()
 {
-  lib_func (3);
+  foo = 1;
+  foo = lib_func (3);
 }

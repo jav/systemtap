@@ -44,8 +44,7 @@ foreach arch $arches {
 	
 	# Just try -O0 and -O3.
 	# Adding -O, -O2, -Os and mixing lib/exe is a bit overdone
-	# BUG! -O2, -O3, -Os all break uname tests...
-	foreach opt {-O0} {
+	foreach opt {-O0 -O3} {
 	    
 	    foreach libprelink {no} { # BUG! "yes" breaks uname tests
 		
