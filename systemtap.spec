@@ -8,7 +8,7 @@
 %{!?with_grapher: %define with_grapher 0}
 
 Name: systemtap
-Version: 0.9.7
+Version: 0.9.8
 Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
@@ -117,7 +117,6 @@ Summary: Static probe support tools
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap
 
 %description sdt-devel
 Support tools to allow applications to use static probes.
@@ -359,6 +358,9 @@ exit 0
 
 
 %changelog
+* Thu Jun 11 2009 Josh Stone <jistone@redhat.com> - 0.9.8-1
+- Upstream release.
+
 * Thu Apr 23 2009 Josh Stone <jistone@redhat.com> - 0.9.7-1
 - Upstream release.
 

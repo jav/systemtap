@@ -1,8 +1,9 @@
 // Prints backtrace from lib through exe twice using diffent ustack functions.
+// Arguments: @1 uprobes_exe, @2 libuprobes_lib.so
 
 global hits = 0;
 
-probe process("uprobes_exe").function("main_func")
+probe process(@1).function("main_func")
 {
   if (hits == 0)
     {
@@ -18,7 +19,7 @@ probe process("uprobes_exe").function("main_func")
     }
 }
 
-probe process("libuprobes_lib.so").function("lib_func")
+probe process(@2).function("lib_func")
 {
   if (hits == 2)
     {

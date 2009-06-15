@@ -1,0 +1,18 @@
+// Plain function call probes in executable and shared library
+// Arguments: @1 uprobes_exe, @2 libuprobes_lib.so
+
+probe process(@1).function("main") {
+  printf("main\n");
+}
+
+probe process(@1).function("main_func") {
+  printf("main_func\n");
+}
+
+probe process(@2).function("lib_main") {
+  printf("lib_main\n");
+}
+
+probe process(@2).function("lib_func") {
+  printf("lib_func\n");
+}

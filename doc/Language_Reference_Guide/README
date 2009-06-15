@@ -14,3 +14,15 @@ The main source of the Language Reference Guide is in:
 
 As such, any revisions to this document should be applied to ../langref.tex, 
 not to the source in this directory.
+
+IMPORTANT: 
+The publicanize-langref.sh script uses latexml to create the raw XML files
+from langref.tex first before cleaning it up for Publican. You will need 
+LaTeXML along with all its required perl modules to use publicanize-langref.sh.
+
+For more information on building from source, downloading, and installing LaTeXML, 
+refer to the following URLs:
+
+http://dlmf.nist.gov/LaTeXML/download.html
+http://dlmf.nist.gov/LaTeXML/install.html
+

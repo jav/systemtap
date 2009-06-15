@@ -1,0 +1,10 @@
+#! /bin/sh
+
+stap -t -p4 -DKRETACTIVE=8888 -e '
+probe kprobe.function("sys_open").return {}
+probe kprobe.function("sys_open").return.maxactive(100) {}
+probe kernel.function("sys_open").return {}
+probe kernel.function("sys_open").return.maxactive(100) {}
+probe syscall.*.return {}
+'
+

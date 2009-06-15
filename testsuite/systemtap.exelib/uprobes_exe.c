@@ -7,23 +7,33 @@
  * later version.
  */
 
-#include <unistd.h>
+#include "sdt.h" /* Really <sys/sdt.h>, but pick current source version. */
 
 // function from our library
 int lib_main (void);
 
-void
+// volatile static variable to prevent folding of main_func
+static volatile int bar;
+
+// Marked noinline and has an empty asm statement to prevent inlining
+// or optimizing away totally.
+int
+__attribute__((noinline))
 main_func (int foo)
 {
-  if (foo > 1)
-    main_func (foo - 1);
+  asm ("");
+  STAP_PROBE1(test, main_count, foo);
+  if (foo - bar > 0)
+    bar = main_func (foo - bar);
   else
     lib_main();
+  return bar;
 }
 
 int
 main (int argc, char *argv[], char *envp[])
 {
-  main_func (3);
+  bar = 1;
+  bar = main_func (3);
   return 0;
 }
