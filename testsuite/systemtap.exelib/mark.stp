@@ -1,0 +1,10 @@
+// Markers probes in executable and shared library plus argument.
+// Arguments: @1 uprobes_exe, @2 libuprobes_lib.so
+
+probe process(@1).mark("main_count") {
+  printf("main_count: %d\n", $arg1);
+}
+
+probe process(@2).mark("func_count") {
+  printf("func_count: %d\n", $arg1);
+}

@@ -7,7 +7,7 @@
  * later version.
  */
 
-#include <unistd.h>
+#include "sdt.h" /* Really <sys/sdt.h>, but pick current source version. */
 
 // function from our library
 int lib_main (void);
@@ -22,6 +22,7 @@ __attribute__((noinline))
 main_func (int foo)
 {
   asm ("");
+  STAP_PROBE1(test, main_count, foo);
   if (foo - bar > 0)
     bar = main_func (foo - bar);
   else

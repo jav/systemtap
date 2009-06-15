@@ -3,7 +3,7 @@
 # Then runs tests with a list of execs.
 
 set subtestlist {lib uname ustack cleanup}
-#set subtestlist {uname}
+#set subtestlist {mark} # Currently disabled, fails sep-debug case.
 
 proc seperate_debuginfo {elffile} {
     set objcopy [list "objcopy" "--only-keep-debug"]
@@ -64,8 +64,10 @@ foreach arch $arches {
 		    }
 		    
 		    # General compiler flags
+		    # We want the sdt.h from the source dir.
+		    set testflags "additional_flags=-I$srcdir/../includes/sys"
 		    # For now we always require debuginfo
-		    set testflags "additional_flags=-g"
+		    set testflags "$testflags additional_flags=-g"
 		    if {$arch != "default"} {
 			set testflags "$testflags additional_flags=$arch"
 		    }

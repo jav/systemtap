@@ -7,6 +7,8 @@
  * later version.
  */
 
+#include "sdt.h" /* Really <sys/sdt.h>, but pick current source version. */
+
 // volatile static variable to prevent folding of lib_func
 static volatile int foo;
 
@@ -17,6 +19,7 @@ __attribute__((noinline))
 lib_func (int bar)
 {
   asm ("");
+  STAP_PROBE1(test, func_count, bar);
   if (bar - foo > 0)
     foo = lib_func (bar - foo);
   return foo;
