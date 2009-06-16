@@ -182,6 +182,7 @@ proc get_system_info {} {
     # Easily parsable version first major minor patch level
     set n [exec echo "__GNUC__ __GNUC_MINOR__ __GNUC_PATCHLEVEL__" | cpp -P]
     set n [string map {" " "."} $n]
+    set n [string map {"\n" ""} $n]
     # Plus full version between square brackets.
     set full [exec gcc --version | head -1]
     set GCC_Version "$n \[$full\]"
