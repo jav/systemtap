@@ -102,12 +102,13 @@ proc no_load {} {
 }
 
 proc print_system_info {} {
-	global Host Snapshot Distro
+	global Host Snapshot Distro GCC_Version
 
 	clone_output "\nHost: $Host"
 	if {[string compare $Snapshot "unknown"]!=0} {
 		clone_output "Snapshot: $Snapshot"
 	}
+	clone_output "GCC: $GCC_Version"
 	clone_output "Distro: $Distro\n"
 }
 
