@@ -3459,7 +3459,7 @@ dwarf_builder::build(systemtap_session & sess,
 		     << hex << probe_table.probe_arg << dec << endl;
 	    
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.probe_name,
 					     probe_table.probe_arg, false);
 	      new_base->body = svv.require (new_base->body);
 
@@ -3499,7 +3499,7 @@ dwarf_builder::build(systemtap_session & sess,
 	      probe_table.convert_probe(new_base);
 
 	      // Expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.probe_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
 	      probe_table.convert_location(new_base, new_location);
