@@ -68,9 +68,9 @@ probe process(@1).mark("short_int_var")
 
 probe process(@1).mark("const_short_int_var")
 {
-  if ($arg1 != -32767)
+ if ($arg1 != -32767)
     printf("FAIL: const_short_int_var\n")
-  else
+ else
     printf("PASS: const_short_int_var\n")
 }
 

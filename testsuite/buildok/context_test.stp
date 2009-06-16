@@ -18,5 +18,6 @@ probe begin {
 	printf("gid is %d\n", gid())
 	printf("egid is %d\n", egid())
 	printf("pp is %s\n", pp())
+	printf("pgrp is %d\n", pgrp())
 	printf("sid is %d\n", sid())
 }

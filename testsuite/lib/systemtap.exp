@@ -43,6 +43,12 @@ proc print_systemtap_version {} {
 
     print "systemtap location: $location"
     print "systemtap version: $version"
+
+    set location [exec /usr/bin/which gcc]
+    set version [exec gcc --version | head -1]
+
+    print "gcc location: $location"
+    print "gcc version: $version"
 }
 
 
@@ -152,7 +158,7 @@ proc shutdown_server {} {
 }
 
 proc get_system_info {} {
-    global Host Snapshot Distro env
+    global Host Snapshot Distro GCC_Version env
     
     set Host [exec /bin/uname -a] 
     if [file exists ../SNAPSHOT] {
@@ -173,6 +179,13 @@ proc get_system_info {} {
             if [file exists $f] then {set Distro [exec /bin/cat $f]; break }
         }
     }
+    # Easily parsable version first major minor patch level
+    set n [exec echo "__GNUC__ __GNUC_MINOR__ __GNUC_PATCHLEVEL__" | cpp -P]
+    set n [string map {" " "."} $n]
+    set n [string map {"\n" ""} $n]
+    # Plus full version between square brackets.
+    set full [exec gcc --version | head -1]
+    set GCC_Version "$n \[$full\]"
 }
 
 if {! [setup_systemtap_environment]} then {

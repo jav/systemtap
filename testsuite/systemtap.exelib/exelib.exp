@@ -1,0 +1,164 @@
+# Builds various variants of an executable and a shared library
+# (with gcc/g++, -O0/-O3, prelinked/pie, seperate debuginfo)
+# Then runs tests with a list of execs.
+
+set subtestlist {lib mark uname ustack cleanup}
+
+proc seperate_debuginfo {elffile} {
+    set objcopy [list "objcopy" "--only-keep-debug"]
+    lappend objcopy "$elffile"
+    lappend objcopy "${elffile}.debug"
+    send_log "Executing: $objcopy\n"
+    eval exec $objcopy
+    
+    set objcopy [list "objcopy" "--strip-debug"]
+    lappend objcopy "$elffile"
+    send_log "Executing: $objcopy\n"
+    eval exec $objcopy
+    
+    set objcopy [list "objcopy"]
+    lappend objcopy "--add-gnu-debuglink=${elffile}.debug"
+    lappend objcopy "$elffile"
+    send_log "Executing: $objcopy\n"
+    eval exec $objcopy
+}
+
+set testnames   {}
+
+set testpath    "$srcdir/$subdir"
+set testsrc     "$testpath/uprobes_exe.c"
+set testsrclib  "$testpath/uprobes_lib.c"
+set testlibdir  "."
+
+set arches [list "default"]
+# BUG! non-default arch breaks ustack tests.
+#switch -regexp $::tcl_platform(machine) {
+#    {^(x86_64|ppc64)$} { lappend arches "-m32" }
+#    {^s390x$} { lappend arches "-m31" }
+#}
+
+foreach arch $arches {
+
+    foreach compiler {gcc g++} {
+	
+	# Just try -O0 and -O3.
+	# Adding -O, -O2, -Os and mixing lib/exe is a bit overdone
+	foreach opt {-O0 -O3} {
+	    
+	    foreach libprelink {no} { # BUG! "yes" breaks uname tests
+		
+		# not done yet, "no" lib debug.
+		foreach libdebug {yes sep} {
+		    
+		    set libname "uprobeslib${compiler}${opt}${arch}"
+		    
+		    if {$libprelink == "yes"} {
+			set libname $libname-prelink
+		    }
+		    
+		    if {$libdebug == "sep"} {
+			set libname $libname-sep-debug
+		    } else {
+			set libname $libname-debug
+		    }
+		    
+		    # General compiler flags
+		    # We want the sdt.h from the source dir.
+		    set testflags "additional_flags=-I$srcdir/../includes/sys"
+		    # For now we always require debuginfo
+		    set testflags "$testflags additional_flags=-g"
+		    if {$arch != "default"} {
+			set testflags "$testflags additional_flags=$arch"
+		    }
+		    if {$compiler == "g++"} {
+			set testflags "$testflags additional_flags=-x additional_flags=c++"
+		    }
+		    set testflags "$testflags additional_flags=$opt"
+		    
+		    # Extra flags for libraries
+		    set testlibflags "$testflags additional_flags=-fPIC"
+		    set testlibflags "$testlibflags additional_flags=-shared"
+		    
+		    set testso "$testlibdir/lib${libname}.so"
+		    set res [target_compile $testsrclib $testso executable $testlibflags]
+		    if { $res != "" } {
+			verbose "target_compile for $testso failed: $res" 2
+			fail "$libname compile $testsrclib"
+			return
+		    } else {
+			pass "$libname compile $testsrclib"
+		    }
+		    
+		    
+		    if {$libdebug == "sep"} {
+			seperate_debuginfo $testso
+		    }
+
+		    if {$libprelink == "yes"} {
+			set prelink_bin "/usr/sbin/prelink"
+			set addr "-r 0x6400000"
+			set prelink_cmd [concat $prelink_bin -vfNR $addr $testso]
+			send_log "Executing: $prelink_cmd\n"
+			catch {eval exec $prelink_cmd} result
+			verbose -log "result is $result"
+		    }
+		    
+		    # should we also prelink exes?
+		    foreach exepie {no yes} {
+			# not supported, "no" exe debug.
+			foreach exedebug {yes sep} {
+			    
+			    set exename uprobes$compiler$opt$arch
+			    
+			    # Extra exe compile flags to include lib
+			    set testexeflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$libname additional_flags=-Wl,-rpath,$testlibdir"
+			    
+			    if {$exepie == "yes"} {
+				set exename $exename-pie
+				set testexeflags "$testexeflags additional_flags=-fPIE additional_flags=-pie"
+			    }
+			    
+			    if {$exedebug == "sep"} {
+				set exename $exename-sep-debug
+			    } else {
+				set exename $exename-debug
+			    }
+			    
+			    set exename $exename-$libname
+			    
+			    set testexe "$testlibdir/${exename}_exe"
+			    set res [target_compile $testsrc $testexe executable $testexeflags]
+			    if { $res != "" } {
+				verbose "target_compile for $testexe failed: $res" 2
+				fail "$exename compile $testsrc"
+				return
+			    } else {
+				pass "$exename compile $testsrc"
+			    }
+			    
+			    if {$exedebug == "sep"} {
+				seperate_debuginfo $testexe
+			    }
+
+			    set testname "${exename}_${libname}"
+			    lappend testnames $testname
+			}
+		    }
+		}
+	    }
+	}
+    }
+}
+
+# Call a test for each exe, set lib to shared library used
+foreach subtest $subtestlist {
+    foreach testname $testnames {
+	set exelib [split $testname {_}]
+	set testexe [lindex $exelib 0]
+	set testexe "${testlibdir}/${testexe}_exe"
+	set testlib [lindex $exelib 1]
+	set testlib "${testlibdir}/lib${testlib}.so"
+	send_log "sourcing: $srcdir/$subdir/$subtest.tcl for $testname\n"
+	source $srcdir/$subdir/$subtest.tcl
+    }
+}
