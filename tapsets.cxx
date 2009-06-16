@@ -658,6 +658,7 @@ struct dwarf_builder: public derived_probe_builder
 		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results);
 
+  set<string> probes_handled;
   struct probe_table
   {
   public:
@@ -3480,6 +3481,13 @@ dwarf_builder::build(systemtap_session & sess,
 	{
 	  do
 	    {
+	      set<string>::iterator pb;
+	      pb = probes_handled.find(probe_table.mark_name);
+	      if (pb == probes_handled.end())
+		probes_handled.insert (probe_table.mark_name);
+	      else
+		return;
+
 	      probe *new_base = new probe;
 	      *new_base = *base;
 	      
