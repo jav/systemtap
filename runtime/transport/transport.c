@@ -17,7 +17,6 @@
 #include <linux/delay.h>
 #include <linux/namei.h>
 #include "transport.h"
-#include "time.c"
 #include "../mempool.c"
 #include "symbols.c"
 
