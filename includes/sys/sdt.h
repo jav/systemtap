@@ -12,6 +12,8 @@
 
 #include <string.h>
 #include <sys/types.h>
+#include <errno.h>
+
 
 #ifdef __LP64__
 #define STAP_PROBE_ADDR "\t.quad "
@@ -20,20 +22,22 @@
 #endif
 
 /* An allocated section .probes that holds the probe names and addrs. */
-#define STAP_PROBE_DATA_(probe)	\
+#define STAP_PROBE_DATA_(probe,guard,arg)	\
   __asm__ volatile (".section .probes, \"a\"\n" \
-		    "\t.align 8\n"   \
+		    "\t.align 8\n"		\
 		    "1:\n\t.asciz " #probe "\n" \
-		    "\t.align 4\n" \
-		    "\t.int 0x31425250\n" \
-  		    "\t.align 8\n" \
-		    STAP_PROBE_ADDR "1b\n" \
-  		    "\t.align 8\n" \
-		    STAP_PROBE_ADDR "2f\n" \
+		    "\t.align 4\n"		\
+		    "\t.int " #guard "\n"	\
+  		    "\t.align 8\n"		\
+		    STAP_PROBE_ADDR "1b\n"	\
+  		    "\t.align 8\n"		\
+		    STAP_PROBE_ADDR #arg "\n"	\
 		    "\t.previous\n")
 
-#define STAP_PROBE_DATA(probe)					\
-  STAP_PROBE_DATA_(#probe)
+#define STAP_PROBE_DATA(probe, guard, arg)	\
+  STAP_PROBE_DATA_(#probe,guard,arg)
+
+#if ! (defined EXPERIMENTAL_UTRACE_SDT || defined EXPERIMENTAL_KPROBE_SDT)
 
 /* These baroque macros are used to create a unique label. */
 #define STAP_CONCAT(a,b) a ## b
@@ -59,173 +63,330 @@
 #define STAP_UNINLINE_LABEL(label) \
   __extension__ static volatile long labelval  __attribute__ ((unused)) = (long) &&label
 
-#if defined(__x86_64__) || defined(__i386__) || defined(__powerpc__)
+#if defined __x86_64__ || defined __i386__  || defined __powerpc__
 #define STAP_NOP "\tnop "
 #else
 #define STAP_NOP "\tnop 0 "
 #endif
 
+#define STAP_UPROBE_GUARD 0x31425250
+
 #define STAP_PROBE_(probe)			\
 do { \
-  STAP_PROBE_DATA(probe);	\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);	\
   __asm__ volatile ("2:\n"	\
 		    STAP_NOP);	\
  } while (0)
 
-#define STAP_PROBE1_(probe,label,parm1)		\
-do { \
-  STAP_UNINLINE_LABEL(label);			\
-  volatile __typeof__((parm1)) arg1 = parm1;	\
-  STAP_UNINLINE;				\
-  STAP_PROBE_DATA(probe);						\
+#define STAP_PROBE1_(probe,label,parm1)			\
+do {							\
+  STAP_UNINLINE_LABEL(label);				\
+  volatile __typeof__((parm1)) arg1 = parm1;		\
+  STAP_UNINLINE;					\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);		\
   label:						\
-  __asm__ volatile ("2:\n" \
+  __asm__ volatile ("2:\n"				\
 		    STAP_NOP "/* %0 */" :: "g"(arg1));	\
  } while (0)
 
-#define STAP_PROBE2_(probe,label,parm1,parm2)	\
-do { \
-  STAP_UNINLINE_LABEL(label);			\
-  volatile __typeof__((parm1)) arg1 = parm1;	\
-  volatile __typeof__((parm2)) arg2 = parm2;	\
-  STAP_UNINLINE;				\
-  STAP_PROBE_DATA(probe);						\
-  label:						\
+#define STAP_PROBE2_(probe,label,parm1,parm2)				\
+do {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+  label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 */" :: "g"(arg1), "g"(arg2));	\
 } while (0)
 
-#define STAP_PROBE3_(probe,label,parm1,parm2,parm3)	\
-do { \
-  STAP_UNINLINE_LABEL(label);		     \
-  volatile __typeof__((parm1)) arg1 = parm1; \
-  volatile __typeof__((parm2)) arg2 = parm2; \
-  volatile __typeof__((parm3)) arg3 = parm3; \
-  STAP_UNINLINE;			     \
-  STAP_PROBE_DATA(probe);						\
-   label:						\
+#define STAP_PROBE3_(probe,label,parm1,parm2,parm3)			\
+do {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  volatile __typeof__((parm3)) arg3 = parm3;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+   label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 %2 */" :: "g"(arg1), "g"(arg2), "g"(arg3)); \
 } while (0)
 
-#define STAP_PROBE4_(probe,label,parm1,parm2,parm3,parm4)	\
-do { \
-  STAP_UNINLINE_LABEL(label);		     \
-  volatile __typeof__((parm1)) arg1 = parm1; \
-  volatile __typeof__((parm2)) arg2 = parm2; \
-  volatile __typeof__((parm3)) arg3 = parm3; \
-  volatile __typeof__((parm4)) arg4 = parm4; \
-  STAP_UNINLINE;			     \
-  STAP_PROBE_DATA(probe);						\
-  label:						\
+#define STAP_PROBE4_(probe,label,parm1,parm2,parm3,parm4)		\
+do {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  volatile __typeof__((parm3)) arg3 = parm3;				\
+  volatile __typeof__((parm4)) arg4 = parm4;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+  label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 %2 %3 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4)); \
 } while (0)
 
-#define STAP_PROBE5_(probe,label,parm1,parm2,parm3,parm4,parm5)	\
-do  { \
-  STAP_UNINLINE_LABEL(label);		     \
-  volatile __typeof__((parm1)) arg1 = parm1; \
-  volatile __typeof__((parm2)) arg2 = parm2; \
-  volatile __typeof__((parm3)) arg3 = parm3; \
-  volatile __typeof__((parm4)) arg4 = parm4; \
-  volatile __typeof__((parm5)) arg5 = parm5; \
-  STAP_UNINLINE;			     \
-  STAP_PROBE_DATA(probe);						\
-  label:						\
+#define STAP_PROBE5_(probe,label,parm1,parm2,parm3,parm4,parm5)		\
+do  {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  volatile __typeof__((parm3)) arg3 = parm3;				\
+  volatile __typeof__((parm4)) arg4 = parm4;				\
+  volatile __typeof__((parm5)) arg5 = parm5;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+  label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 %2 %3 %4 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5)); \
 } while (0)
 
 #define STAP_PROBE6_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6)	\
-do { \
-  STAP_UNINLINE_LABEL(label);		     \
-  volatile __typeof__((parm1)) arg1 = parm1; \
-  volatile __typeof__((parm2)) arg2 = parm2; \
-  volatile __typeof__((parm3)) arg3 = parm3; \
-  volatile __typeof__((parm4)) arg4 = parm4; \
-  volatile __typeof__((parm5)) arg5 = parm5; \
-  volatile __typeof__((parm6)) arg6 = parm6; \
-  STAP_UNINLINE;				     \
-  STAP_PROBE_DATA(probe);						\
-  label:						\
+do {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  volatile __typeof__((parm3)) arg3 = parm3;				\
+  volatile __typeof__((parm4)) arg4 = parm4;				\
+  volatile __typeof__((parm5)) arg5 = parm5;				\
+  volatile __typeof__((parm6)) arg6 = parm6;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+  label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 %2 %3 %4 %5 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6)); \
 } while (0)
 
-#define STAP_PROBE7_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7)	\
-do  { \
-  STAP_UNINLINE_LABEL(label);		     \
-  volatile __typeof__((parm1)) arg1 = parm1; \
-  volatile __typeof__((parm2)) arg2 = parm2; \
-  volatile __typeof__((parm3)) arg3 = parm3; \
-  volatile __typeof__((parm4)) arg4 = parm4; \
-  volatile __typeof__((parm5)) arg5 = parm5; \
-  volatile __typeof__((parm6)) arg6 = parm6; \
-  volatile __typeof__((parm7)) arg7 = parm7; \
-  STAP_UNINLINE;				     \
-  STAP_PROBE_DATA(probe);						\
-   label:						\
+#define STAP_PROBE7_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7) \
+do  {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  volatile __typeof__((parm3)) arg3 = parm3;				\
+  volatile __typeof__((parm4)) arg4 = parm4;				\
+  volatile __typeof__((parm5)) arg5 = parm5;				\
+  volatile __typeof__((parm6)) arg6 = parm6;				\
+  volatile __typeof__((parm7)) arg7 = parm7;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+   label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 %2 %3 %4 %5 %6 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7)); \
 } while (0)
 
 #define STAP_PROBE8_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
-do { \
-  STAP_UNINLINE_LABEL(label);		     \
-  volatile __typeof__((parm1)) arg1 = parm1; \
-  volatile __typeof__((parm2)) arg2 = parm2; \
-  volatile __typeof__((parm3)) arg3 = parm3; \
-  volatile __typeof__((parm4)) arg4 = parm4; \
-  volatile __typeof__((parm5)) arg5 = parm5; \
-  volatile __typeof__((parm6)) arg6 = parm6; \
-  volatile __typeof__((parm7)) arg7 = parm7; \
-  volatile __typeof__((parm8)) arg8 = parm8; \
-  STAP_UNINLINE;				     \
-  STAP_PROBE_DATA(probe);						\
-   label:						\
+do {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  volatile __typeof__((parm3)) arg3 = parm3;				\
+  volatile __typeof__((parm4)) arg4 = parm4;				\
+  volatile __typeof__((parm5)) arg5 = parm5;				\
+  volatile __typeof__((parm6)) arg6 = parm6;				\
+  volatile __typeof__((parm7)) arg7 = parm7;				\
+  volatile __typeof__((parm8)) arg8 = parm8;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+   label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 %2 %3 %4 %5 %6 %7 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8)); \
 } while (0)
 
 #define STAP_PROBE9_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
-do { \
-  STAP_UNINLINE_LABEL(label);		     \
-  volatile __typeof__((parm1)) arg1 = parm1; \
-  volatile __typeof__((parm2)) arg2 = parm2; \
-  volatile __typeof__((parm3)) arg3 = parm3; \
-  volatile __typeof__((parm4)) arg4 = parm4; \
-  volatile __typeof__((parm5)) arg5 = parm5; \
-  volatile __typeof__((parm6)) arg6 = parm6; \
-  volatile __typeof__((parm7)) arg7 = parm7; \
-  volatile __typeof__((parm8)) arg8 = parm8; \
-  volatile __typeof__((parm9)) arg9 = parm9; \
-  STAP_UNINLINE;				     \
-  STAP_PROBE_DATA(probe);						\
-  label:						\
+do {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  volatile __typeof__((parm3)) arg3 = parm3;				\
+  volatile __typeof__((parm4)) arg4 = parm4;				\
+  volatile __typeof__((parm5)) arg5 = parm5;				\
+  volatile __typeof__((parm6)) arg6 = parm6;				\
+  volatile __typeof__((parm7)) arg7 = parm7;				\
+  volatile __typeof__((parm8)) arg8 = parm8;				\
+  volatile __typeof__((parm9)) arg9 = parm9;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+  label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 %2 %3 %4 %5 %6 %7 %8 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9)); \
 } while (0)
 
 #define STAP_PROBE10_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
-do { \
-  STAP_UNINLINE_LABEL(label);		     \
-  volatile __typeof__((parm1)) arg1 = parm1; \
-  volatile __typeof__((parm2)) arg2 = parm2; \
-  volatile __typeof__((parm3)) arg3 = parm3; \
-  volatile __typeof__((parm4)) arg4 = parm4; \
-  volatile __typeof__((parm5)) arg5 = parm5; \
-  volatile __typeof__((parm6)) arg6 = parm6; \
-  volatile __typeof__((parm7)) arg7 = parm7; \
-  volatile __typeof__((parm8)) arg8 = parm8; \
-  volatile __typeof__((parm9)) arg9 = parm9; \
-  volatile __typeof__((parm10)) arg10 = parm10; \
-  STAP_UNINLINE;				     \
-  STAP_PROBE_DATA(probe);						\
-  label:						\
+do {									\
+  STAP_UNINLINE_LABEL(label);						\
+  volatile __typeof__((parm1)) arg1 = parm1;				\
+  volatile __typeof__((parm2)) arg2 = parm2;				\
+  volatile __typeof__((parm3)) arg3 = parm3;				\
+  volatile __typeof__((parm4)) arg4 = parm4;				\
+  volatile __typeof__((parm5)) arg5 = parm5;				\
+  volatile __typeof__((parm6)) arg6 = parm6;				\
+  volatile __typeof__((parm7)) arg7 = parm7;				\
+  volatile __typeof__((parm8)) arg8 = parm8;				\
+  volatile __typeof__((parm9)) arg9 = parm9;				\
+  volatile __typeof__((parm10)) arg10 = parm10;				\
+  STAP_UNINLINE;							\
+  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
+  label:								\
   __asm__ volatile ("2:\n"						\
 		    STAP_NOP "/* %0 %1 %2 %3 %4 %5 %6 %7 %8 %9 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9), "g"(arg10)); \
 } while (0)
+
+#else /* ! (defined EXPERIMENTAL_UTRACE_SDT || defined EXPERIMENTAL_KPROBE_SDT) */
+#include <unistd.h>
+#include <sys/syscall.h>
+# if defined (__USE_ANSI)
+extern long int syscall (long int __sysno, ...) __THROW;
+# endif
+# if defined EXPERIMENTAL_KPROBE_SDT
+# define STAP_SYSCALL __NR_getegid
+# define STAP_GUARD 0x32425250
+# define GETTID 0
+# elif defined EXPERIMENTAL_UTRACE_SDT
+# define STAP_SYSCALL 0xbead
+# define STAP_GUARD 0x33425250
+# define GETTID syscall(SYS_gettid)
+# endif
+
+#include <sys/syscall.h>
+
+#define STAP_PROBE_(probe)			\
+do {						\
+  STAP_PROBE_DATA(probe,STAP_SYSCALL,0);	\
+  syscall (STAP_SYSCALL, #probe, GETTID);	\
+ } while (0)
+
+#define STAP_PROBE1_(probe,label,parm1)			\
+do {							\
+  STAP_PROBE_DATA(probe,STAP_GUARD,1);			\
+  syscall (STAP_SYSCALL, #probe, GETTID, parm1);	\
+ } while (0)
+
+#define STAP_PROBE2_(probe,label,parm1,parm2)				\
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
+	  size_t arg2 __attribute__((aligned(8)));}			\
+  stap_probe2_args = {(size_t)parm1, (size_t)parm2};			\
+  STAP_PROBE_DATA(probe,STAP_GUARD,2);					\
+  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe2_args);		\
+ } while (0)
+
+#define STAP_PROBE3_(probe,label,parm1,parm2,parm3)			\
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
+	  size_t arg2 __attribute__((aligned(8)));			\
+	  size_t arg3 __attribute__((aligned(8)));}			\
+  stap_probe3_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3};	\
+  STAP_PROBE_DATA(probe,STAP_GUARD,3);					\
+  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe3_args);		\
+ } while (0)
+
+#define STAP_PROBE4_(probe,label,parm1,parm2,parm3,parm4)		\
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
+	  size_t arg2 __attribute__((aligned(8)));			\
+	  size_t arg3 __attribute__((aligned(8)));			\
+	  size_t arg4 __attribute__((aligned(8)));}			\
+  stap_probe4_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4}; \
+  STAP_PROBE_DATA(probe,STAP_GUARD,4);					\
+  syscall (STAP_SYSCALL, #probe, GETTID,&stap_probe4_args);		\
+ } while (0)
+
+#define STAP_PROBE5_(probe,label,parm1,parm2,parm3,parm4,parm5)		\
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));			\
+	  size_t arg2 __attribute__((aligned(8)));			\
+	  size_t arg3 __attribute__((aligned(8)));			\
+	  size_t arg4 __attribute__((aligned(8)));			\
+	  size_t arg5 __attribute__((aligned(8)));}			\
+  stap_probe5_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
+	(size_t)parm5};							\
+  STAP_PROBE_DATA(probe,STAP_GUARD,5);					\
+  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe5_args);		\
+ } while (0)
+
+#define STAP_PROBE6_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6)	\
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));			\
+	  size_t arg2 __attribute__((aligned(8)));			\
+	  size_t arg3 __attribute__((aligned(8)));			\
+	  size_t arg4 __attribute__((aligned(8)));			\
+	  size_t arg5 __attribute__((aligned(8)));			\
+	  size_t arg6 __attribute__((aligned(8)));}			\
+  stap_probe6_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
+	(size_t)parm5, (size_t)parm6};					\
+  STAP_PROBE_DATA(probe,STAP_GUARD,6);					\
+  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe6_args);		\
+ } while (0)
+
+#define STAP_PROBE7_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7) \
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));			\
+	  size_t arg2 __attribute__((aligned(8)));			\
+	  size_t arg3 __attribute__((aligned(8)));			\
+	  size_t arg4 __attribute__((aligned(8)));			\
+	  size_t arg5 __attribute__((aligned(8)));			\
+	  size_t arg6 __attribute__((aligned(8)));			\
+	  size_t arg7 __attribute__((aligned(8)));}			\
+  stap_probe7_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
+	(size_t)parm5, (size_t)parm6, (size_t)parm7};			\
+  STAP_PROBE_DATA(probe,STAP_GUARD,7);					\
+  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe7_args);		\
+ } while (0)
+
+#define STAP_PROBE8_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));			\
+	  size_t arg2 __attribute__((aligned(8)));			\
+	  size_t arg3 __attribute__((aligned(8)));			\
+	  size_t arg4 __attribute__((aligned(8)));			\
+	  size_t arg5 __attribute__((aligned(8)));			\
+	  size_t arg6 __attribute__((aligned(8)));			\
+	  size_t arg7 __attribute__((aligned(8)));			\
+	  size_t arg8 __attribute__((aligned(8)));}			\
+  stap_probe8_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
+	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8};	\
+  STAP_PROBE_DATA(probe,STAP_GUARD,8);					\
+  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe8_args);		\
+ } while (0)
+
+#define STAP_PROBE9_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));			\
+	  size_t arg2 __attribute__((aligned(8)));			\
+	  size_t arg3 __attribute__((aligned(8)));			\
+	  size_t arg4 __attribute__((aligned(8)));			\
+	  size_t arg5 __attribute__((aligned(8)));			\
+	  size_t arg6 __attribute__((aligned(8)));			\
+	  size_t arg7 __attribute__((aligned(8)));			\
+	  size_t arg8 __attribute__((aligned(8)));			\
+	  size_t arg9 __attribute__((aligned(8)));}			\
+  stap_probe9_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
+	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8, (size_t)parm9}; \
+  STAP_PROBE_DATA(probe,STAP_GUARD,9);					\
+  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe9_args);		\
+ } while (0)
+
+#define STAP_PROBE10_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
+do {									\
+  __extension__ struct {size_t arg1 __attribute__((aligned(8)));			\
+	  size_t arg2 __attribute__((aligned(8)));			\
+	  size_t arg3 __attribute__((aligned(8)));			\
+	  size_t arg4 __attribute__((aligned(8)));			\
+	  size_t arg5 __attribute__((aligned(8)));			\
+	  size_t arg6 __attribute__((aligned(8)));			\
+	  size_t arg7 __attribute__((aligned(8)));			\
+	  size_t arg8 __attribute__((aligned(8)));			\
+	  size_t arg9 __attribute__((aligned(8)));			\
+	  size_t arg10 __attribute__((aligned(8)));}			\
+  stap_probe10_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
+	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8, (size_t)parm9, (size_t)parm10}; \
+  STAP_PROBE_DATA(probe,STAP_GUARD,10);					\
+  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe10_args);		\
+ } while (0)
+
+#endif
 
 #define STAP_PROBE(provider,probe)	\
   STAP_PROBE_(probe)
@@ -270,5 +431,6 @@ STAP_PROBE7(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7)
 STAP_PROBE8(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) 
 #define DTRACE_PROBE9(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
 STAP_PROBE9(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) 
+
 #endif /* sys/sdt.h */
 

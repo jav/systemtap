@@ -1,21 +1,21 @@
-set test "static_uprobes"
+set test "static_user_markers"
 
 # Test miscellaneous features of .mark probes
 
 # Compile a C program to use as the user-space probing target
-set sup_srcpath "[pwd]/static_uprobes.c"
-set sup_exepath "[pwd]/static_uprobes.x"
-set supcplus_exepath "[pwd]/static_uprobes_cplus.x"
+set sup_srcpath "[pwd]/static_user_markers.c"
+set sup_exepath "[pwd]/static_user_markers.x"
+set supcplus_exepath "[pwd]/static_user_markers_cplus.x"
 set fp [open $sup_srcpath "w"]
 puts $fp "
 #include <stdlib.h>
 #define USE_STAP_PROBE 1
-#include \"static_uprobes.h\"
+#include \"static_user_markers_.h\"
 
 void
 bar (int i)
 {
-  STATIC_UPROBES_TEST_PROBE_2(i);
+  STATIC_USER_MARKERS_TEST_PROBE_2(i);
   if (i == 0)
     i = 1000;
   STAP_PROBE1(static_uprobes,test_probe_2,i);
@@ -27,7 +27,7 @@ baz (int i, char* s)
   STAP_PROBE1(static_uprobes,test_probe_0,i);
   if (i == 0)
     i = 1000;
-  STATIC_UPROBES_TEST_PROBE_3(i,s);
+  STATIC_USER_MARKERS_TEST_PROBE_3(i,s);
 }
 
 void
@@ -35,7 +35,7 @@ buz (int parm)
 {
   if (parm == 0)
     parm = 1000;
-  DTRACE_PROBE1(static_uprobes,test_probe_4,parm);
+  DTRACE_PROBE1(static_user_markers,test_probe_4,parm);
 }
 
 int
@@ -48,33 +48,33 @@ main ()
 "
 close $fp
 
-set sup_stppath "[pwd]/static_uprobes.stp"
+set sup_stppath "[pwd]/static_user_markers.stp"
 set fp [open $sup_stppath "w"]
 puts $fp "
-probe process(\"static_uprobes.x\").mark(\"test_probe_0\") 
+probe process(\"static_user_markers.x\").mark(\"test_probe_0\") 
 { 
   printf(\"In test_probe_0 probe %#x\\n\", \$arg1)
 }
-probe process(\"static_uprobes.x\").mark(\"test_probe_2\") 
+probe process(\"static_user_markers.x\").mark(\"test_probe_2\") 
 {
   printf(\"In test_probe_2 probe %#x\\n\", \$arg1)
 }
-probe process(\"static_uprobes.x\").mark(\"test_probe_3\") 
+probe process(\"static_user_markers.x\").mark(\"test_probe_3\") 
 { 
   printf(\"In test_probe_3 probe %#x %#x\\n\", \$arg1, \$arg2)
 }
-probe process(\"static_uprobes.x\").mark(\"test_probe_4\")
+probe process(\"static_user_markers.x\").mark(\"test_probe_4\")
 { 
   printf(\"In test_probe_4 dtrace probe %#x\\n\", \$arg1)
 }
 "
 close $fp
 
-set sup_dpath "[pwd]/static_uprobes.d" 
-set sup_hpath "[pwd]/static_uprobes.h" 
+set sup_dpath "[pwd]/static_user_markers_.d" 
+set sup_hpath "[pwd]/static_user_markers_.h" 
 set fp [open $sup_dpath "w"]
 puts $fp "
-provider static_uprobes {
+provider static_user_markers {
         probe test_probe_1 ();
 	probe test_probe_2 (int i);
 	probe test_probe_3 (int i, char* x);
@@ -97,7 +97,9 @@ if {[file exists $sup_hpath]} then {
     pass "$test dtrace"
 } else {
     fail "$test dtrace"
+    if { $verbose == 0 } {
     catch {exec rm -f $sup_srcpath $sup_hpath $sup_stppath}
+    }
     return
 }
 
@@ -107,25 +109,38 @@ if {[installtest_p]} {
     set sdtdir $srcdir/../includes
 }
 
+set pbtype_flags {{""} {additional_flags=-DEXPERIMENTAL_UTRACE_SDT} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
+set pbtype_mssgs {{uprobe} {utrace} {kprobe}}
+
+# Iterate pbtype_flags
+for {set i 0} {$i < [llength $pbtype_flags]} {incr i} {
+set pbtype_flag [lindex $pbtype_flags $i]
+set pbtype_mssg [lindex $pbtype_mssgs $i]
+set testprog "sdt.c.exe.$i"
+
 set sup_flags "additional_flags=-I$srcdir/../includes/sys"
 set sup_flags "$sup_flags additional_flags=-I$sdtdir"
 set sup_flags "$sup_flags additional_flags=-g"
 set sup_flags "$sup_flags  additional_flags=-O"
-set sup_flags "$sup_flags  additional_flags=-I."
+set sup_flags "$sup_flags  additional_flags=-I. $pbtype_flag"
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "$test compiling C -g"
+    fail "$test compiling -g $pbtype_mssg"
+    if { $verbose == 0 } {
     catch {exec rm -f $sup_srcpath $sup_hpath $sup_stppath}
+    }
     return
 } else {
-    pass "$test compiling C -g"
+    pass "$test compiling -g $pbtype_mssg"
 }
 
 if {![installtest_p]} {untested $test; return}
 if {![utrace_p]} {
     untested "$test"
+    if { $verbose == 0 } {
     catch {exec rm -f $sup_srcpath}
+    }
     return
 }
 
@@ -141,24 +156,33 @@ expect {
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
     -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
-    timeout { fail "$test C (timeout)" }
+    timeout { fail "$test (timeout)" }
     eof { }
 }
 
 wait
 
-if {$ok == 5} { pass "$test C" } { fail "$test C ($ok)" }
+if {$ok == 5} { 
+    pass "$test $pbtype_mssg"
+} else {
+    if { $pbtype_mssg == "uprobe" } {
+	fail "$test ($ok) $pbtype_mssg"
+    } else {
+	# probe fires multiple times
+	xfail "$test ($ok) $pbtype_mssg"
+    }
+}
 
 # Test passing various C types to .mark probes
 
-set sup_flags "$sup_flags  additional_flags=-O0"
+set sup_flags "$sup_flags  additional_flags=-O0 $pbtype_flag"
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "$test compiling types -g"
+    fail "$test compiling types -g $pbtype_mssg"
     return
 } else {
-    pass "$test compiling types -g"
+    pass "$test compiling types -g $pbtype_mssg"
 }
 
 set ok 0
@@ -169,16 +193,22 @@ expect {
     -timeout 180
     -re {FAIL: [a-z_]+var} { regexp " .*$" $expect_out(0,string) s; 
 	incr ok; set fail "$fail $s"; exp_continue }
-    timeout { fail "$test C (timeout)" }
+    timeout { fail "$test (timeout) }
     eof { }
 }
 
 wait
 
-if { $ok != 0 } {
-    fail "$test $fail"
+set pbtype_mssgs {{uprobe} {utrace} {kprobe}}
+if { $ok != 0} {
+    if { $pbtype_mssg == "uprobe" } {
+	fail "$test $fail $pbtype_mssg"
+    } else {
+	# (needs cast)
+	xfail "$test $fail $pbtype_mssg"
+    }
 } else {
-    pass "$test types"
+    pass "$test types $pbtype_mssg"
 }
 
 # Test .mark probe wildcard matching
@@ -188,14 +218,21 @@ spawn stap -l "process(\"./sdt_types.x\").mark(\"*\")"
 expect {
     -timeout 180
     -re {mark\(\"[a-z_]+\"\)} { incr ok; exp_continue }
-    timeout { fail "$test C (timeout)" }
+    timeout { fail "$test (timeout)" }
     eof { }
 }
 
 if { $ok == 45 } {
-    pass "$test wildcard"
+    pass "$test wildcard $pbtype_mssg"
 } else {
-    fail "$test wildcard ($ok)"
+    if { $pbtype_mssg == "uprobe" } {
+	fail "$test wildcard ($ok) $pbtype_mssg"
+    } else {
+	xfail "$test wildcard ($ok) $pbtype_mssg"
+    }
+}
+
+# for {set i 0}
 }
 
 if { $verbose == 0 } {
