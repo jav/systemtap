@@ -165,12 +165,7 @@ wait
 if {$ok == 5} { 
     pass "$test $pbtype_mssg"
 } else {
-    if { $pbtype_mssg == "uprobe" } {
-	fail "$test ($ok) $pbtype_mssg"
-    } else {
-	# probe fires multiple times
-	xfail "$test ($ok) $pbtype_mssg"
-    }
+    fail "$test ($ok) $pbtype_mssg"
 }
 
 # Test passing various C types to .mark probes
@@ -225,11 +220,7 @@ expect {
 if { $ok == 45 } {
     pass "$test wildcard $pbtype_mssg"
 } else {
-    if { $pbtype_mssg == "uprobe" } {
-	fail "$test wildcard ($ok) $pbtype_mssg"
-    } else {
-	xfail "$test wildcard ($ok) $pbtype_mssg"
-    }
+    fail "$test wildcard ($ok) $pbtype_mssg"
 }
 
 # for {set i 0}

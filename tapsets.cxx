@@ -3482,9 +3482,9 @@ dwarf_builder::build(systemtap_session & sess,
 	  do
 	    {
 	      set<string>::iterator pb;
-	      pb = probes_handled.find(probe_table.mark_name);
+	      pb = probes_handled.find(probe_table.probe_name);
 	      if (pb == probes_handled.end())
-		probes_handled.insert (probe_table.mark_name);
+		probes_handled.insert (probe_table.probe_name);
 	      else
 		return;
 
@@ -3504,6 +3504,13 @@ dwarf_builder::build(systemtap_session & sess,
 	      new_base->body = svv.require (new_base->body);
 	      probe_table.convert_location(new_base, new_location);
 	      derive_probes(sess, new_base, finished_results);
+	      if (sess.listing_mode)
+		{
+		  finished_results.back()->locations[0]->components[0]->functor = TOK_FUNCTION;
+		  finished_results.back()->locations[0]->components[0]->arg = new literal_string (module_name);
+		  finished_results.back()->locations[0]->components[1]->functor = TOK_MARK;
+		  finished_results.back()->locations[0]->components[1]->arg = new literal_string (probe_table.probe_name.c_str());
+		}
 	    }
 	  while (probe_table.get_next_probe());
 	  return;
