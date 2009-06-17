@@ -3464,7 +3464,7 @@ dwarf_builder::build(systemtap_session & sess,
 		     << hex << probe_table.probe_arg << dec << endl;
 	    
 	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.probe_name,
 					     probe_table.probe_arg, false);
 	      new_base->body = svv.require (new_base->body);
 
@@ -3487,9 +3487,9 @@ dwarf_builder::build(systemtap_session & sess,
 	  do
 	    {
 	      set<string>::iterator pb;
-	      pb = probes_handled.find(probe_table.mark_name);
+	      pb = probes_handled.find(probe_table.probe_name);
 	      if (pb == probes_handled.end())
-		probes_handled.insert (probe_table.mark_name);
+		probes_handled.insert (probe_table.probe_name);
 	      else
 		return;
 
@@ -3504,11 +3504,18 @@ dwarf_builder::build(systemtap_session & sess,
 	      probe_table.convert_probe(new_base);
 
 	      // Expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (module_name, probe_table.mark_name,
+	      sdt_var_expanding_visitor svv (module_name, probe_table.probe_name,
 					     probe_table.probe_arg, true);
 	      new_base->body = svv.require (new_base->body);
 	      probe_table.convert_location(new_base, new_location);
 	      derive_probes(sess, new_base, finished_results);
+	      if (sess.listing_mode)
+		{
+		  finished_results.back()->locations[0]->components[0]->functor = TOK_FUNCTION;
+		  finished_results.back()->locations[0]->components[0]->arg = new literal_string (module_name);
+		  finished_results.back()->locations[0]->components[1]->functor = TOK_MARK;
+		  finished_results.back()->locations[0]->components[1]->arg = new literal_string (probe_table.probe_name.c_str());
+		}
 	    }
 	  while (probe_table.get_next_probe());
 	  return;
