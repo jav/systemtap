@@ -5,42 +5,61 @@ probe begin
 	teststr3 = "1,,2,3, ,4"
 	teststr4 = ""
 	teststr5 = "this is a string with no delimiters"
+	teststr6 = "this is a string, which has two delimiters"
 
 	tok = tokenize(teststr1, "|")
 	while (tok != "") {
-		printf("%s\n", tok)
+		println(tok)
 		tok = tokenize("", "|")
 	}
 
-        tok = tokenize(teststr1, ",")
-        while (tok != "") {
-                printf("%s\n", tok)
-                tok = tokenize("", "|")
-        }
+	println("-")
+
+	tok = tokenize(teststr1, ",")
+	while (tok != "") {
+		println(tok)
+		tok = tokenize("", "|")
+	}
 	
+	println("-")
+
 	tok = tokenize(teststr2, ",")
-        while (tok != "") {
-                printf("%s\n", tok)
-                tok = tokenize("", ",")
-        }
+	while (tok != "") {
+		println(tok)
+		tok = tokenize("", ",")
+	}
 
-        tok = tokenize(teststr3, ",")
-        while (tok != "") {
-                printf("%s\n", tok)
-                tok = tokenize("", ",")
-        }
+	println("-")
 
-        tok = tokenize(teststr4, ",")
-        while (tok != "") {
-                printf("%s\n", tok)
-                tok = tokenize("", ",")
-        }
+	tok = tokenize(teststr3, ",")
+	while (tok != "") {
+		println(tok)
+		tok = tokenize("", ",")
+	}
 
-        tok = tokenize(teststr5, ",")
-        while (tok != "") {
-                printf("%s\n", tok)
-                tok = tokenize("", ",")
-        }
+	println("-")
+
+	tok = tokenize(teststr4, ",")
+	while (tok != "") {
+		println(tok)
+		tok = tokenize("", ",")
+	}
+
+	println("-")
+
+	tok = tokenize(teststr5, ",")
+	while (tok != "") {
+		println(tok)
+		tok = tokenize("", ",")
+	}
+
+	println("-")
+
+	tok = tokenize(teststr6, ", ")
+	while (tok != "") {
+		println(tok)
+		tok = tokenize("", ", ")
+	}
 
 	exit()
 }

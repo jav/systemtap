@@ -70,25 +70,32 @@ function text_strn:string(input:string, len:long, quoted:long)
 
 /*
  * tokenize - Given a string and a token delimiter,
- *            return the next token in the string
- * input  String to tokenize. If NULL, returns the next token in the
- *        string passed in the previous call to tokenize().
- * delim  Token delimiter. Note this is a string, but only the first
- *        character is used as the delimiter.
+ *            return the next non-empty token in the string
+ *            or blank when no more non-empty tokens are left
+ * input  String to tokenize. If NULL, returns the next non-empty token
+ *        in the string passed in the previous call to tokenize().
+ * delim  Token delimiter. Set of characters that delimit the tokens.
  */
 function tokenize:string(input:string, delim:string)
 %{ /* pure */
 	static char str[MAXSTRINGLEN];
 	static char *str_start;
+	static char *str_end;
 	char *token = NULL;
+	char *token_end = NULL;
 
 	if (THIS->input[0]) {
 		strncpy(str, THIS->input, MAXSTRINGLEN);
 		str_start = &str[0];
+		str_end = &str[0] + strlen(str);
 	}
-	token = strsep(&str_start, THIS->delim);
-	if (token)
-		strncpy (THIS->__retvalue, token, MAXSTRINGLEN);
+	do {
+		token = strsep(&str_start, THIS->delim);
+	} while (token && !token[0]);
+	if (token) {
+		token_end = (str_start ? str_start - 1 : str_end);
+		memcpy(THIS->__retvalue, token, token_end - token + 1);
+	}
 %}
 
 /*
