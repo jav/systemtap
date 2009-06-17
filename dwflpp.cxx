@@ -2366,7 +2366,7 @@ dwflpp::relocate_address(Dwarf_Addr addr,
         {
           blacklist_section = get_blacklist_section(addr);
           reloc_section = ".dynamic";
-          reloc_addr = addr;
+          reloc_addr += module_bias;  // PR10273
         }
     }
   else
