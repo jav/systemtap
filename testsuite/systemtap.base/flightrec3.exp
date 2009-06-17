@@ -6,7 +6,7 @@ system "rm -f flightlog.out*"
 
 set pid 0
 # check -S option with bulk(percpu file) mode
-spawn stap -F -o flightlog.out -S 1,3 -b $srcdir/$subdir/$test.stp
+catch {spawn stap -F -o flightlog.out -S 1,3 -b $srcdir/$subdir/$test.stp}
 expect {
   -timeout 240
   -re {([0-9]+)\r\n} {
@@ -26,9 +26,9 @@ exec sleep 4
 array set cpus {}
 set scnt 0
 # wait for log files
-exec kill -STOP $pid
+catch {exec kill -STOP $pid}
 exec sleep 1
-eval spawn stat -c \"%n %s\" [glob flightlog.out_cpu*]
+catch {eval spawn stat -c \"%n %s\" [glob -nocomplain flightlog.out_cpu*]}
 expect {
   -timeout 100
   -re {flightlog.out_cpu([0-9]+).[0-9]+ ([0-9]+)\r\n} {
@@ -41,10 +41,10 @@ expect {
   timeout { fail "$test (logfile timeout)"}
 }
 wait
-exec kill -CONT $pid
+catch {exec kill -CONT $pid}
 exec sleep 3
-exec kill -STOP $pid
-eval spawn stat -c \"%n %s\" [glob flightlog.out_cpu*]
+catch {exec kill -STOP $pid}
+catch {eval spawn stat -c \"%n %s\" [glob -nocomplain flightlog.out_cpu*]}
 expect {
   -timeout 100
   -re {flightlog.out_cpu([0-9]+).[0-9]+ ([0-9]+)\r\n} {
@@ -57,7 +57,7 @@ expect {
   timeout { fail "$test (logfile timeout)"}
 }
 wait
-exec kill -CONT $pid
+catch {exec kill -CONT $pid}
 # check logfile number
 set cnt 0
 foreach e [array names cpus] {
@@ -72,8 +72,8 @@ if {$scnt == $cnt} {
 } else {
     fail "$test (log file size ($scnt != $cnt))"
 }
-exec kill -TERM $pid
+catch {exec kill -TERM $pid}
 # wait for exiting...
 exec sleep 1
-system "rm -f flightlog.out*"
+catch {system "rm -f flightlog.out*"}
 
