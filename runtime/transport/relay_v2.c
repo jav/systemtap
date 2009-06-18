@@ -38,12 +38,6 @@
 #define STP_RELAY_TIMER_INTERVAL		((HZ + 99) / 100)
 #endif
 
-enum _stp_transport_state {
-	STP_TRANSPORT_STOPPED,
-	STP_TRANSPORT_INITIALIZED,
-	STP_TRANSPORT_RUNNING,
-};
-
 struct _stp_relay_data_type {
 	enum _stp_transport_state transport_state;
 	struct rchan *rchan;
@@ -145,6 +139,11 @@ static void __stp_relay_timer_init(void)
 	_stp_relay_data.timer.data = 0;
 	add_timer(&_stp_relay_data.timer);
 	smp_mb();
+}
+
+static enum _stp_transport_state _stp_transport_get_state(void)
+{
+	return _stp_relay_data.transport_state;
 }
 
 static void _stp_transport_data_fs_overwrite(int overwrite)

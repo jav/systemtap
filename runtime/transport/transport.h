@@ -54,9 +54,23 @@ static int _stp_ctl_attached;
 
 static int _stp_bufsize;
 
+
+enum _stp_transport_state {
+	STP_TRANSPORT_STOPPED,
+	STP_TRANSPORT_INITIALIZED,
+	STP_TRANSPORT_RUNNING,
+};
+
 /*
  * All transports must provide the following functions.
  */
+
+/*
+ * _stp_transport_get_state
+ *
+ * This function returns the current transport state.
+ */
+static enum _stp_transport_state _stp_transport_get_state(void);
 
 /*
  * _stp_transport_data_fs_init

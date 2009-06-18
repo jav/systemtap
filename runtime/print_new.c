@@ -30,9 +30,8 @@ void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 
 	pb->len = 0;
 
-//DRS FIXME: this digs down too deep in internals
-//	if (unlikely(!_stp_utt || _stp_utt->trace_state != Utt_trace_running))
-//		return;
+	if (unlikely(_stp_transport_get_state() != STP_TRANSPORT_RUNNING))
+		return;
 
 #ifdef STP_BULKMODE
 #ifdef NO_PERCPU_HEADERS

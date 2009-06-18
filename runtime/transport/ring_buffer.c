@@ -19,6 +19,7 @@ struct _stp_ring_buffer_data {
 };
 
 struct _stp_relay_data_type {
+	enum _stp_transport_state transport_state;
 	struct ring_buffer *rb;
 	struct _stp_ring_buffer_data rb_data;
 	cpumask_var_t trace_reader_cpumask;
@@ -384,6 +385,7 @@ static int _stp_transport_data_fs_init(void)
 	int rc;
 	long cpu;
 
+	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
 	_stp_relay_data.rb = NULL;
 
 	// allocate buffer
@@ -428,17 +430,22 @@ static int _stp_transport_data_fs_init(void)
 	}
 
 	dbug_trans(1, "returning 0...\n");
+	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
 	return 0;
 }
 
 static void _stp_transport_data_fs_start(void)
 {
-	/* Do nothing. */
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED) {
+		_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
+	}
 }
 
 static void _stp_transport_data_fs_stop(void)
 {
-	/* Do nothing. */
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING) {
+		_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+	}
 }
 
 static void _stp_transport_data_fs_close(void)
@@ -452,6 +459,11 @@ static void _stp_transport_data_fs_close(void)
 	}
 
 	__stp_free_ring_buffer();
+}
+
+static enum _stp_transport_state _stp_transport_get_state(void)
+{
+	return _stp_relay_data.transport_state;
 }
 
 static void _stp_transport_data_fs_overwrite(int overwrite)

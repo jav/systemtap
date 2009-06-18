@@ -23,12 +23,6 @@
 #include <linux/relayfs_fs.h>
 #include <linux/namei.h>
 
-enum _stp_transport_state {
-	STP_TRANSPORT_STOPPED,
-	STP_TRANSPORT_INITIALIZED,
-	STP_TRANSPORT_RUNNING,
-};
-
 struct _stp_relay_data_type {
 	enum _stp_transport_state transport_state;
 	struct rchan *rchan;
@@ -134,6 +128,11 @@ err:
 	errk("couldn't create relay channel.\n");
 	_stp_transport_data_fs_close();
 	return rc;
+}
+
+static enum _stp_transport_state _stp_transport_get_state(void)
+{
+	return _stp_relay_data.transport_state;
 }
 
 static void _stp_transport_data_fs_overwrite(int overwrite)
