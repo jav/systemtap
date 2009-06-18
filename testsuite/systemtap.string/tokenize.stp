@@ -1,3 +1,14 @@
+function tokprint(str, delim)
+{
+	println("-")
+
+	tok = tokenize(str, delim)
+	while (tok != "") {
+		println(tok)
+		tok = tokenize("", delim)
+	}
+}
+
 probe begin
 {
 	teststr1 = "one|two|three|four|five|six|seven|eight|nine|ten"
@@ -7,59 +18,13 @@ probe begin
 	teststr5 = "this is a string with no delimiters"
 	teststr6 = "this is a string, which has two delimiters"
 
-	tok = tokenize(teststr1, "|")
-	while (tok != "") {
-		println(tok)
-		tok = tokenize("", "|")
-	}
-
-	println("-")
-
-	tok = tokenize(teststr1, ",")
-	while (tok != "") {
-		println(tok)
-		tok = tokenize("", "|")
-	}
-	
-	println("-")
-
-	tok = tokenize(teststr2, ",")
-	while (tok != "") {
-		println(tok)
-		tok = tokenize("", ",")
-	}
-
-	println("-")
-
-	tok = tokenize(teststr3, ",")
-	while (tok != "") {
-		println(tok)
-		tok = tokenize("", ",")
-	}
-
-	println("-")
-
-	tok = tokenize(teststr4, ",")
-	while (tok != "") {
-		println(tok)
-		tok = tokenize("", ",")
-	}
-
-	println("-")
-
-	tok = tokenize(teststr5, ",")
-	while (tok != "") {
-		println(tok)
-		tok = tokenize("", ",")
-	}
-
-	println("-")
-
-	tok = tokenize(teststr6, ", ")
-	while (tok != "") {
-		println(tok)
-		tok = tokenize("", ", ")
-	}
+	tokprint(teststr1, "|")
+	tokprint(teststr1, ",")
+	tokprint(teststr2, ",")
+	tokprint(teststr3, ",")
+	tokprint(teststr4, ",")
+	tokprint(teststr5, ",")
+	tokprint(teststr6, ", ")
 
 	exit()
 }

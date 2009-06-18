@@ -1,5 +1,6 @@
 set test "tokenize"
-set ::result_string {one
+set ::result_string {-
+one
 two
 three
 four
