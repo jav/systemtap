@@ -257,10 +257,10 @@ do {						\
   syscall (STAP_SYSCALL, #probe, GETTID);	\
  } while (0)
 
-#define STAP_PROBE1_(probe,label,parm1)			\
-do {							\
-  STAP_PROBE_DATA(probe,STAP_GUARD,1);			\
-  syscall (STAP_SYSCALL, #probe, GETTID, parm1);	\
+#define STAP_PROBE1_(probe,label,parm1)				\
+do {								\
+  STAP_PROBE_DATA(probe,STAP_GUARD,1);				\
+  syscall (STAP_SYSCALL, #probe, GETTID, (size_t)parm1);	\
  } while (0)
 
 #define STAP_PROBE2_(probe,label,parm1,parm2)				\

@@ -1,5 +1,6 @@
 set test "tokenize"
-set ::result_string {one
+set ::result_string {-
+one
 two
 three
 four
@@ -9,7 +10,9 @@ seven
 eight
 nine
 ten
+-
 one|two|three|four|five|six|seven|eight|nine|ten
+-
 a
 b
 c
@@ -17,10 +20,22 @@ d
 e
 f
 g
+-
 1
 2
 3
  
 4
-this is a string with no delimiters}
+-
+-
+this is a string with no delimiters
+-
+this
+is
+a
+string
+which
+has
+two
+delimiters}
 stap_run2 $srcdir/$subdir/$test.stp
