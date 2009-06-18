@@ -136,7 +136,7 @@ err:
 	return rc;
 }
 
-static void stp_relay_set_overwrite(int overwrite)
+static void _stp_transport_data_fs_overwrite(int overwrite)
 {
 	_stp_relay_data.rchan->overwrite = overwrite;
 }

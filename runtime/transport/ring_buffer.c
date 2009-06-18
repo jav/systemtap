@@ -448,3 +448,7 @@ static void _stp_transport_data_fs_close(void)
 	__stp_free_ring_buffer();
 }
 
+static void _stp_transport_data_fs_overwrite(int overwrite)
+{
+	/* FIXME: Just a place holder for now. */
+}

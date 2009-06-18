@@ -20,13 +20,6 @@
 #include <linux/workqueue.h>
 #include <linux/delay.h>
 
-#if 0
-static void utt_set_overwrite(int overwrite)
-{
-	return;
-}
-#endif
-
 static int _stp_exit_flag = 0;
 
 static uid_t _stp_uid = 0;
@@ -166,10 +159,8 @@ static void _stp_detach(void)
 	_stp_ctl_attached = 0;
 	_stp_pid = 0;
 
-#if 0
 	if (!_stp_exit_flag)
-		utt_set_overwrite(1);
-#endif
+		_stp_transport_data_fs_overwrite(1);
 
 	cancel_delayed_work(&_stp_work);
 	wake_up_interruptible(&_stp_ctl_wq);
@@ -183,9 +174,7 @@ static void _stp_attach(void)
 	dbug_trans(1, "attach\n");
 	_stp_ctl_attached = 1;
 	_stp_pid = current->pid;
-#if 0
-	utt_set_overwrite(0);
-#endif
+	_stp_transport_data_fs_overwrite(0);
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 

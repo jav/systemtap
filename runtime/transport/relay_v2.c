@@ -147,7 +147,7 @@ static void __stp_relay_timer_init(void)
 	smp_mb();
 }
 
-static void stp_relay_set_overwrite(int overwrite)
+static void _stp_transport_data_fs_overwrite(int overwrite)
 {
 	_stp_relay_data.overwrite_flag = overwrite;
 }

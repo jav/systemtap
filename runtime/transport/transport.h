@@ -11,18 +11,10 @@
 /* amount of data a print can send. */
 #define STP_BUFFER_SIZE 8192
 
-struct utt_trace;
-
 static int _stp_ctl_write(int type, void *data, unsigned len);
 
 static int _stp_transport_init(void);
 static void _stp_transport_close(void);
-
-static inline void *utt_reserve(struct utt_trace *utt, size_t length)
-{
-    return NULL;
-}
-
 
 /* STP_CTL_BUFFER_SIZE is the maximum size of a message */
 /* exchanged on the control channel. */
@@ -95,6 +87,15 @@ static void _stp_transport_data_fs_stop(void);
  * _stp_transport_data_fs_init().
  */
 static void _stp_transport_data_fs_close(void);
+
+/*
+ * _stp_transport_data_fs_overwrite - set data overwrite mode
+ * overwrite:		boolean
+ *
+ * When in overwrite mode and the transport buffers are full, older
+ * data gets overwritten.
+ */
+static void _stp_transport_data_fs_overwrite(int overwrite);
 
 /*
  * _stp_data_write_reserve - reserve bytes
