@@ -61,7 +61,9 @@ catch {exec kill -CONT $pid}
 # check logfile number
 set cnt 0
 foreach e [array names cpus] {
-    if {$cpus($e) != 6} {
+    # If we have more than 6 files per cpu, something is wrong. We
+    # might have less than 6 files per cpu if the machine is slow.
+    if {$cpus($e) > 6} {
         fail "$test (log file numbers cpu:$e, cnt:$cpus($e)))"
     }
     set cnt [expr $cnt + $cpus($e)]

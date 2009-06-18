@@ -3160,8 +3160,8 @@ General syntax:
 tokenize:string (input:string, delim:string)
 \end{verbatim}
 \end{vindent}
-This function returns the next token in the given input string, where 
-the tokens are delimited by one of the characters in the delim string.
+This function returns the next non-empty token in the given input string,
+where the tokens are delimited by characters in the delim string.
 If the input string is non-NULL, it returns the first token. If the input string
 is NULL, it returns the next token in the string passed in the previous call
 to tokenize. If no delimiter is found, the entire remaining input string
