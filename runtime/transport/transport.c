@@ -31,9 +31,6 @@ static int _stp_ctl_attached = 0;
 static pid_t _stp_target = 0;
 static int _stp_probes_started = 0;
 
-#if 1
-//static struct utt_trace *_stp_utt = NULL;
-//static unsigned int utt_seq = 1;
 #include "control.h"
 #if STP_TRANSPORT_VERSION == 1
 #include "relayfs.c"
@@ -48,11 +45,6 @@ static int _stp_probes_started = 0;
 #endif
 #include "control.c"
 
-#else  /* #if 0 */
-#include "control.h"
-#include "debugfs.c"
-#include "control.c"
-#endif	/* if 0 */
 static unsigned _stp_nsubbufs = 8;
 static unsigned _stp_subbuf_size = 65536*4;
 
@@ -218,35 +210,12 @@ static void _stp_transport_close(void)
 	_stp_cleanup_and_exit(0);
 	destroy_workqueue(_stp_wq);
 	_stp_unregister_ctl_channel();
-#if 0
-	if (_stp_utt)
-		utt_trace_remove(_stp_utt);
-#endif /* #if 0 */
 	_stp_transport_fs_close();
 	_stp_print_cleanup();	/* free print buffers */
 	_stp_mem_debug_done();
 
 	dbug_trans(1, "---- CLOSED ----\n");
 }
-
-#if 0
-static struct utt_trace *_stp_utt_open(void)
-{
-	struct utt_trace_setup utts;
-	strlcpy(utts.root, "systemtap", sizeof(utts.root));
-	strlcpy(utts.name, THIS_MODULE->name, sizeof(utts.name));
-	utts.buf_size = _stp_subbuf_size;
-	utts.buf_nr = _stp_nsubbufs;
-
-#ifdef STP_BULKMODE
-	utts.is_global = 0;
-#else
-	utts.is_global = 1;
-#endif
-
-	return utt_trace_setup(&utts);
-}
-#endif /* #if 0 */
 
 /**
  * _stp_transport_init() is called from the module initialization.
@@ -263,8 +232,6 @@ static int _stp_transport_init(void)
 	_stp_gid = current_gid();
 #endif
 
-// DRS:  is RELAY_GUEST/RELAY_HOST documented? does it work?  are there
-// test cases?
 #ifdef RELAY_GUEST
 	/* Guest scripts use relay only for reporting warnings and errors */
 	_stp_subbuf_size = 65536;
@@ -284,16 +251,6 @@ static int _stp_transport_init(void)
 
 	if (_stp_transport_fs_init(THIS_MODULE->name) != 0)
 		goto err0;
-
-#if 0
-#if !defined (STP_OLD_TRANSPORT) || defined (STP_BULKMODE)
-	/* open utt (relayfs) channel to send data to userspace */
-	_stp_utt = _stp_utt_open();
-	if (!_stp_utt)
-		goto err0;
-#endif
-#else  /* #if 0 */
-#endif /* #if 0 */
 
 	/* create control channel */
 	if (_stp_register_ctl_channel() < 0)
@@ -318,21 +275,12 @@ static int _stp_transport_init(void)
 	return 0;
 
 err3:
-	dbug_trans(1, "err3\n");
 	_stp_print_cleanup();
 err2:
-	dbug_trans(1, "err2\n");
 	_stp_unregister_ctl_channel();
 err1:
-#if 0
-	if (_stp_utt)
-		utt_trace_remove(_stp_utt);
-#else
-	dbug_trans(1, "err1\n");
 	_stp_transport_fs_close();
-#endif /* #if 0 */
 err0:
-	dbug_trans(1, "err0\n");
 	return -1;
 }
 
