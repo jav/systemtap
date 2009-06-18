@@ -176,6 +176,15 @@ keywords: network traffic per-process
   interval.
 
 
+network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
+keywords: network tcp buffer memory
+
+  The sk_stream-wait_memory.stp prints a time stamp, executable, and
+  pid each time a process blocks due to the send buffer being full. A
+  similar entry is printed each time a process continues because there
+  is room in the buffer.
+
+
 network/socket-trace.stp - Trace Functions called in Network Socket Code
 keywords: network socket
 

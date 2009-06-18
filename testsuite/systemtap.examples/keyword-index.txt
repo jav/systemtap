@@ -39,6 +39,15 @@ keywords: network tracepoint buffer free
   socket buffers freed at locations in the kernel.
 
 
+network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
+keywords: network tcp buffer memory
+
+  The sk_stream-wait_memory.stp prints a time stamp, executable, and
+  pid each time a process blocks due to the send buffer being full. A
+  similar entry is printed each time a process continues because there
+  is room in the buffer.
+
+
 = CALLGRAPH =
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -275,6 +284,15 @@ keywords: memory
   determine where the page faults are occuring.
 
 
+network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
+keywords: network tcp buffer memory
+
+  The sk_stream-wait_memory.stp prints a time stamp, executable, and
+  pid each time a process blocks due to the send buffer being full. A
+  similar entry is printed each time a process continues because there
+  is room in the buffer.
+
+
 = MONITOR =
 
 io/ttyspy.stp - Monitor tty typing.
@@ -301,6 +319,15 @@ keywords: network traffic per-process
   processed (PID and command) with the number of packets sent/received
   and the amount of data sent/received by the process during that
   interval.
+
+
+network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
+keywords: network tcp buffer memory
+
+  The sk_stream-wait_memory.stp prints a time stamp, executable, and
+  pid each time a process blocks due to the send buffer being full. A
+  similar entry is printed each time a process continues because there
+  is room in the buffer.
 
 
 network/socket-trace.stp - Trace Functions called in Network Socket Code
@@ -623,6 +650,15 @@ keywords: syscall wait4
 
 
 = TCP =
+
+network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
+keywords: network tcp buffer memory
+
+  The sk_stream-wait_memory.stp prints a time stamp, executable, and
+  pid each time a process blocks due to the send buffer being full. A
+  similar entry is printed each time a process continues because there
+  is room in the buffer.
+
 
 network/tcp_connections.stp - Track Creation of Incoming TCP Connections
 keywords: network tcp socket
