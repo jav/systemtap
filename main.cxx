@@ -44,6 +44,7 @@ extern "C" {
 
 using namespace std;
 
+#define PATH_TBD string("__TBD__")
 
 void
 version ()
@@ -356,6 +357,90 @@ setup_kernel_release (systemtap_session &s, const char* kstr) {
       }
 }
 
+static void
+checkOptions (systemtap_session &s)
+{
+  bool optionsConflict = false;
+
+  if(!s.bulk_mode && !s.merge)
+    {
+      cerr << "-M option is valid only for bulk (relayfs) mode." <<endl;
+      optionsConflict = true;
+    }
+
+  if(!s.output_file.empty() && s.bulk_mode && !s.merge)
+    {
+      cerr << "You can't specify -M, -b and -o options together." <<endl;
+      optionsConflict = true;
+    }
+
+  if((s.cmd != "") && (s.target_pid))
+    {
+      cerr << "You can't specify -c and -x options together." <<endl;
+      optionsConflict = true;
+    }
+
+  if (s.unprivileged)
+    {
+      if (s.guru_mode)
+	{
+	  cerr << "You can't specify -g and --unprivileged together." << endl;
+	  optionsConflict = true;
+	}
+      if (s.include_path.size () > 1)
+	{
+	  cerr << "You can't specify -I and --unprivileged together." << endl;
+	  optionsConflict = true;
+	}
+      if (s.runtime_path != string(PKGDATADIR) + "/runtime")
+	{
+	  cerr << "You can't use -R to specify an alternate runtime path when --unprivileged is specified." << endl;
+	  optionsConflict = true;
+	}
+      if (s.kernel_build_tree.substr(0, 13) != "/lib/modules/")
+	{
+	  cerr << "You can't use -r to specify a kernel release which is not installed when --unprivileged is specified." << endl;
+	  optionsConflict = true;
+	}
+      if (! s.macros.empty ())
+	{
+	  cerr << "You can't specify -D and --unprivileged together." << endl;
+	  optionsConflict = true;
+	}
+
+      if (getenv ("SYSTEMTAP_TAPSET"))
+	{
+	  cerr << "The environment variable SYSTEMTAP_TAPSET can not be defined when --unprivileged is specified." << endl;
+	  optionsConflict = true;
+	}
+      if (getenv ("SYSTEMTAP_RUNTIME"))
+	{
+	  cerr << "The environment variable SYSTEMTAP_RUNTIME can not be defined when --unprivileged is specified." << endl;
+	  optionsConflict = true;
+	}
+      if (getenv ("SYSTEMTAP_DEBUGINFO_PATH"))
+	{
+	  cerr << "The environment variable SYSTEMTAP_DEBUGINFO_PATH can not be defined when --unprivileged is specified." << endl;
+	  optionsConflict = true;
+	}
+    }
+
+  if (!s.kernel_symtab_path.empty())
+    {
+      if (s.consult_symtab)
+      {
+        cerr << "You can't specify --kelf and --kmap together." << endl;
+	optionsConflict = true;
+      }
+      s.consult_symtab = true;
+      if (s.kernel_symtab_path == PATH_TBD)
+        s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
+    }
+
+  if (optionsConflict)
+    usage (s, 1);
+}
+
 int
 main (int argc, char * const argv [])
 {
@@ -625,7 +710,6 @@ main (int argc, char * const argv [])
 
         case 'g':
           s.guru_mode = true;
-	  s.unprivileged = false;
           break;
 
         case 'P':
@@ -715,7 +799,6 @@ main (int argc, char * const argv [])
               if (optarg)
                 s.kernel_symtab_path = optarg;
               else
-#define PATH_TBD string("__TBD__")
                 s.kernel_symtab_path = PATH_TBD;
 	      break;
 	    case LONG_OPT_IGNORE_VMLINUX:
@@ -749,7 +832,6 @@ main (int argc, char * const argv [])
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      s.unprivileged = true;
-	      s.guru_mode = false;
 	      break;
             default:
               cerr << "Internal error parsing command arguments." << endl;
@@ -763,35 +845,8 @@ main (int argc, char * const argv [])
         }
     }
 
-  if(!s.bulk_mode && !s.merge)
-    {
-      cerr << "-M option is valid only for bulk (relayfs) mode." <<endl;
-      usage (s, 1);
-    }
-
-  if(!s.output_file.empty() && s.bulk_mode && !s.merge)
-    {
-      cerr << "You can't specify -M, -b and -o options together." <<endl;
-      usage (s, 1);
-    }
-
-  if((s.cmd != "") && (s.target_pid))
-    {
-      cerr << "You can't specify -c and -x options together." <<endl;
-      usage (s, 1);
-    }
-
-  if (!s.kernel_symtab_path.empty())
-    {
-      if (s.consult_symtab)
-      {
-        cerr << "You can't specify --kelf and --kmap together." << endl;
-	usage (s, 1);
-      }
-      s.consult_symtab = true;
-      if (s.kernel_symtab_path == PATH_TBD)
-        s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
-    }
+  // Check for options conflicts.
+  checkOptions (s);
 
   // Warn in case the target kernel release doesn't match the running one.
   if (s.last_pass > 4 &&
