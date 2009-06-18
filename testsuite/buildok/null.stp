@@ -1,0 +1,5 @@
+#! stap -p4
+
+# PR10298
+global foo = 5
+probe begin { if (foo == NULL) log("hello") }
