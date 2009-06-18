@@ -89,7 +89,7 @@ static void _stp_print_cleanup (void)
 
 #if !defined(RELAY_GUEST)
 
-#include "print_new.c"
+#include "print_flush.c"
 #if defined(RELAY_HOST)
 EXPORT_SYMBOL_GPL(EXPORT_FN(stp_print_flush));
 #endif
