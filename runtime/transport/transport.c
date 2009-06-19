@@ -31,6 +31,12 @@ static int _stp_ctl_attached = 0;
 static pid_t _stp_target = 0;
 static int _stp_probes_started = 0;
 
+// For now, disable transport version 3
+#if STP_TRANSPORT_VERSION == 3
+#undef STP_TRANSPORT_VERSION
+#define STP_TRANSPORT_VERSION 2
+#endif
+
 #include "control.h"
 #if STP_TRANSPORT_VERSION == 1
 #include "relayfs.c"
