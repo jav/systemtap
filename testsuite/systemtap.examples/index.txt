@@ -176,6 +176,15 @@ keywords: network traffic per-process
   interval.
 
 
+network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
+keywords: network tcp buffer memory
+
+  The sk_stream-wait_memory.stp prints a time stamp, executable, and
+  pid each time a process blocks due to the send buffer being full. A
+  similar entry is printed each time a process continues because there
+  is room in the buffer.
+
+
 network/socket-trace.stp - Trace Functions called in Network Socket Code
 keywords: network socket
 
@@ -213,6 +222,14 @@ keywords: process syscall
   argument specifies the reporting interval (in seconds, default 5);
   the second optional argument gives a screen height (number of lines
   in the report, default 20).
+
+
+process/forktracker.stp - Trace Creation of Processes
+keywords: process scheduler
+
+  The forktracker.stp script prints out a time-stamped entry showing
+  each fork and exec operation on the machine. This can be useful for
+  determine what process is creating a flurry of short-lived processes.
 
 
 process/futexes.stp - System-Wide Futex Contention
