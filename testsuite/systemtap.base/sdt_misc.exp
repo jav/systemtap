@@ -33,9 +33,15 @@ baz (int i, char* s)
 void
 buz (int parm)
 {
+ struct astruct
+  {
+    int a;
+    int b;
+  };
+  struct astruct bstruct = {parm, parm + 1};
   if (parm == 0)
     parm = 1000;
-  DTRACE_PROBE1(static_user_markers,test_probe_4,parm);
+  DTRACE_PROBE1(static_user_markers,test_probe_4,&bstruct);
 }
 
 int
@@ -65,21 +71,23 @@ probe process(\"static_user_markers.x\").mark(\"test_probe_3\")
 }
 probe process(\"static_user_markers.x\").mark(\"test_probe_4\")
 { 
-  printf(\"In test_probe_4 dtrace probe %#x\\n\", \$arg1)
+  printf(\"In test_probe_4 dtrace probe %#x %#x\\n\", \$arg1->a, \$arg1->b)
 }
 "
 close $fp
 
 set sup_dpath "[pwd]/static_user_markers_.d" 
 set sup_hpath "[pwd]/static_user_markers_.h" 
+set sup_opath "[pwd]/static_user_markers_.o" 
 set fp [open $sup_dpath "w"]
 puts $fp "
 provider static_user_markers {
         probe test_probe_1 ();
 	probe test_probe_2 (int i);
 	probe test_probe_3 (int i, char* x);
-	probe test_probe_4 (int i);
+	probe test_probe_4 (struct astruct arg);
 };
+struct astruct {int a; int b;};
 "
 close $fp
 
@@ -90,10 +98,10 @@ if {[installtest_p]} {
 } else {
     set dtrace $srcdir/../dtrace
 }
-if {[catch {exec $dtrace -h -s $sup_dpath} res]} {
+if {[catch {exec $dtrace --types -G -s $sup_dpath} res]} {
     verbose -log "unable to run $dtrace: $res"
 }
-if {[file exists $sup_hpath]} then {
+if {[file exists $sup_hpath] && [file exists $sup_opath]} then {
     pass "$test dtrace"
 } else {
     fail "$test dtrace"
@@ -109,7 +117,7 @@ if {[installtest_p]} {
     set sdtdir $srcdir/../includes
 }
 
-set pbtype_flags {{""} {additional_flags=-DEXPERIMENTAL_UTRACE_SDT} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
+set pbtype_flags {{""} {additional_flags=-O additional_flags=-DEXPERIMENTAL_UTRACE_SDT} {additional_flags=-O additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
 set pbtype_mssgs {{uprobe} {utrace} {kprobe}}
 
 # Iterate pbtype_flags
@@ -121,8 +129,8 @@ set testprog "sdt.c.exe.$i"
 set sup_flags "additional_flags=-I$srcdir/../includes/sys"
 set sup_flags "$sup_flags additional_flags=-I$sdtdir"
 set sup_flags "$sup_flags additional_flags=-g"
-set sup_flags "$sup_flags  additional_flags=-O"
-set sup_flags "$sup_flags  additional_flags=-I. $pbtype_flag"
+set sup_flags "$sup_flags additional_flags=$sup_opath"
+set sup_flags "$sup_flags additional_flags=-I. $pbtype_flag"
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -155,7 +163,7 @@ expect {
     -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
-    -re {In test_probe_4 dtrace probe 0x4} { incr ok; exp_continue }
+    -re {In test_probe_4 dtrace probe 0x4 0x5} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
@@ -170,7 +178,7 @@ if {$ok == 5} {
 
 # Test passing various C types to .mark probes
 
-set sup_flags "$sup_flags  additional_flags=-O0 $pbtype_flag"
+set sup_flags "$sup_flags $pbtype_flag additional_flags=-O0 "
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $sup_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2

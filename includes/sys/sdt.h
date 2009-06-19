@@ -32,6 +32,7 @@
 		    STAP_PROBE_ADDR "1b\n"	\
   		    "\t.align 8\n"		\
 		    STAP_PROBE_ADDR #arg "\n"	\
+		    "\t.int 0\n"  		\
 		    "\t.previous\n")
 
 #define STAP_PROBE_DATA(probe, guard, arg)	\
