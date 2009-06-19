@@ -66,6 +66,33 @@ int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t)
 	return (int)ret;
 }
 
+int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t, int bulk)
+{
+	int len;
+	if (PATH_MAX < max)
+		max = PATH_MAX;
+	len = stap_strfloctime(buf, max, outfile_name, t);
+	if (len < 0) {
+		err("Invalid FILE name format\n");
+		return -1;
+	}
+	/* special case: for testing we sometimes want to write to /dev/null */
+	if (strcmp(outfile_name, "/dev/null") == 0) {
+		strcpy(buf, "/dev/null");
+	} else {
+		if (bulk) {
+			if (snprintf_chk(&buf[len], max - len, "_cpu%d.%d",
+					 cpu, fnum))
+				return -1;
+		} else {
+			/* stream mode */
+			if (snprintf_chk(&buf[len], max - len, ".%d", fnum))
+				return -1;
+		}
+	}
+	return 0;
+}
+
 void parse_args(int argc, char **argv)
 {
 	int c;

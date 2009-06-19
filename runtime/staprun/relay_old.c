@@ -87,30 +87,33 @@ static int open_oldoutfile(int fnum, int cpu, int remove_file)
 		if (fnum_max) {
 			if (remove_file) {
 				 /* remove oldest file */
-				if (make_outfile_name(buf, PATH_MAX, fnum - fnum_max,
-					 cpu, read_backlog(cpu, fnum - fnum_max)) < 0)
+				if (make_outfile_name(buf, PATH_MAX,
+					fnum - fnum_max, cpu,
+					read_backlog(cpu, fnum - fnum_max),
+					bulkmode) < 0)
 					return -1;
 				remove(buf); /* don't care */
 			}
 			write_backlog(cpu, fnum, t);
 		}
-		if (make_outfile_name(buf, PATH_MAX, fnum, cpu, t) < 0)
+		if (make_outfile_name(buf, PATH_MAX, fnum, cpu, t, bulkmode) < 0)
 			return -1;
 	} else if (bulkmode) {
 		if (sprintf_chk(buf, "stpd_cpu%d.%d", cpu, fnum))
 			return -1;
 	} else { /* stream mode */
-		out_fd[cpu] = STDOUT_FILENO;
+		percpu_tmpfile[cpu] = stdout;
 		return 0;
 	}
 
-	out_fd[cpu] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
-	if (out_fd[cpu] < 0) {
+	if((percpu_tmpfile[cpu] = fopen(buf, "w+")) == NULL) {
 		perr("Couldn't open output file %s", buf);
 		return -1;
 	}
-	if (set_clexec(out_fd[cpu]) < 0)
+	if (set_clexec(fileno(percpu_tmpfile[cpu])) < 0) {
+		perr("Couldn't clear exec bit of open output file %s", buf);
 		return -1;
+	}
 	return 0;
 }
 /**

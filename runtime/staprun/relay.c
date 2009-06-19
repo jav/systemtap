@@ -73,31 +73,6 @@ time_t read_backlog(int cpu, int fnum)
 	return time_backlog[cpu][fnum & BACKLOG_MASK];
 }
 
-int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t)
-{
-	int len;
-	len = stap_strfloctime(buf, max, outfile_name, t);
-	if (len < 0) {
-		err("Invalid FILE name format\n");
-  		return -1;
-  	}
-	if (bulkmode) {
-		/* special case: for testing we sometimes want to write to /dev/null */
-		if (strcmp(outfile_name, "/dev/null") == 0) {
-			strcpy(buf, "/dev/null");
-		} else {
-			if (snprintf_chk(&buf[len], PATH_MAX - len,
-					 "_cpu%d.%d", cpu, fnum))
-				return -1;
-		}
-	} else {
-		/* stream mode */
-		if (snprintf_chk(&buf[len], PATH_MAX - len, ".%d", fnum))
-			return -1;
-	}
-	return 0;
-}
-
 static int open_outfile(int fnum, int cpu, int remove_file)
 {
 	char buf[PATH_MAX];
@@ -112,14 +87,15 @@ static int open_outfile(int fnum, int cpu, int remove_file)
 		if (remove_file) {
 			 /* remove oldest file */
 			if (make_outfile_name(buf, PATH_MAX, fnum - fnum_max,
-				 cpu, read_backlog(cpu, fnum - fnum_max)) < 0)
+				 cpu, read_backlog(cpu, fnum - fnum_max),
+				 bulkmode) < 0)
 				return -1;
 			remove(buf); /* don't care */
 		}
 		write_backlog(cpu, fnum, t);
 	}
 
-	if (make_outfile_name(buf, PATH_MAX, fnum, cpu, t) < 0)
+	if (make_outfile_name(buf, PATH_MAX, fnum, cpu, t, bulkmode) < 0)
 		return -1;
 	out_fd[cpu] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 	if (out_fd[cpu] < 0) {
