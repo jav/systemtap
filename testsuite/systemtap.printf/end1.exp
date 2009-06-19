@@ -11,15 +11,15 @@ if {[catch {exec mktemp -t staptestXXXXXX} tmpfile]} {
 }
 
 if {[catch {exec stap -o $tmpfile $tpath} res]} {
-    untested $TEST_NAME
-    puts "$res"
+    fail $TEST_NAME
+    puts "stap failed: $res"
     catch {exec rm -f $tmpfile}
     return
 }
 
 if {[catch {exec cmp $tmpfile $srcdir/$subdir/large_output} res]} {
-    fail $TEST_NAME
     puts "$res"
+    fail $TEST_NAME
     catch {exec rm -f $tmpfile}
     return
 }

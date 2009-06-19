@@ -9,6 +9,11 @@
  * later version.
  */
 
+#include "control.h"
+#include "../mempool.c"
+#include "symbols.c"
+#include <linux/delay.h>
+
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
 static DEFINE_SPINLOCK(_stp_ctl_ready_lock);
@@ -32,7 +37,8 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 
 #ifdef DEBUG_TRANS
 	if (type < STP_MAX_CMD)
-		_dbug("Got %s. len=%d\n", _stp_command_name[type], (int)count);
+		dbug_trans2("Got %s. len=%d\n", _stp_command_name[type],
+			    (int)count);
 #endif
 
 	switch (type) {
@@ -79,27 +85,46 @@ static void _stp_ctl_write_dbug(int type, void *data, int len)
 	char buf[64];
 	switch (type) {
 	case STP_START:
-		_dbug("sending STP_START\n");
+		dbug_trans2("sending STP_START\n");
 		break;
 	case STP_EXIT:
-		_dbug("sending STP_EXIT\n");
+		dbug_trans2("sending STP_EXIT\n");
 		break;
 	case STP_OOB_DATA:
 		snprintf(buf, sizeof(buf), "%s", (char *)data);
-		_dbug("sending %d bytes of STP_OOB_DATA: %s\n", len, buf);
+		dbug_trans2("sending %d bytes of STP_OOB_DATA: %s\n", len,
+			    buf);
 		break;
 	case STP_SYSTEM:
 		snprintf(buf, sizeof(buf), "%s", (char *)data);
-		_dbug("sending STP_SYSTEM: %s\n", buf);
+		dbug_trans2("sending STP_SYSTEM: %s\n", buf);
 		break;
 	case STP_TRANSPORT:
-		_dbug("sending STP_TRANSPORT\n");
+		dbug_trans2("sending STP_TRANSPORT\n");
+		break;
+	case STP_CONNECT:
+		dbug_trans2("sending STP_CONNECT\n");
+		break;
+	case STP_DISCONNECT:
+		dbug_trans2("sending STP_DISCONNECT\n");
+		break;
+	case STP_BULK:
+		dbug_trans2("sending STP_BULK\n");
+		break;
+	case STP_READY:
+	case STP_RELOCATION:
+	case STP_BUF_INFO:
+	case STP_SUBBUFS_CONSUMED:
+		dbug_trans2("sending old message\n");
+		break;
+	case STP_REALTIME_DATA:
+		dbug_trans2("sending %d bytes of STP_REALTIME_DATA\n", len);
 		break;
 	case STP_REQUEST_EXIT:
-		_dbug("sending STP_REQUEST_EXIT\n");
+		dbug_trans2("sending STP_REQUEST_EXIT\n");
 		break;
 	default:
-		_dbug("ERROR: unknown message type: %d\n", type);
+		dbug_trans2("ERROR: unknown message type: %d\n", type);
 		break;
 	}
 }
@@ -197,7 +222,7 @@ static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf,
 
 static int _stp_ctl_open_cmd(struct inode *inode, struct file *file)
 {
-	if (_stp_attached)
+	if (_stp_ctl_attached)
 		return -1;
 	_stp_attach();
 	return 0;
@@ -205,7 +230,7 @@ static int _stp_ctl_open_cmd(struct inode *inode, struct file *file)
 
 static int _stp_ctl_close_cmd(struct inode *inode, struct file *file)
 {
-	if (_stp_attached)
+	if (_stp_ctl_attached)
 		_stp_detach();
 	return 0;
 }

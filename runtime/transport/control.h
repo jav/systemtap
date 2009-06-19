@@ -15,7 +15,6 @@
 #include <linux/spinlock.h>
 #include <linux/list.h>
 
-static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
 static spinlock_t _stp_ctl_ready_lock;
 static wait_queue_head_t _stp_ctl_wq;

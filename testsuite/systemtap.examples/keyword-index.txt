@@ -390,6 +390,14 @@ keywords: process syscall
   in the report, default 20).
 
 
+process/forktracker.stp - Trace Creation of Processes
+keywords: process scheduler
+
+  The forktracker.stp script prints out a time-stamped entry showing
+  each fork and exec operation on the machine. This can be useful for
+  determine what process is creating a flurry of short-lived processes.
+
+
 process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
 keywords: process scheduler time tracepoint
 
@@ -479,6 +487,14 @@ keywords: syscall read write time io
 
 
 = SCHEDULER =
+
+process/forktracker.stp - Trace Creation of Processes
+keywords: process scheduler
+
+  The forktracker.stp script prints out a time-stamped entry showing
+  each fork and exec operation on the machine. This can be useful for
+  determine what process is creating a flurry of short-lived processes.
+
 
 process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
 keywords: process scheduler time tracepoint
