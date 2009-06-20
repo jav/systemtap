@@ -1,0 +1,25 @@
+# Test of str_replace() 
+
+global	long_str1 = "hello system tap"
+global	long_str2 = "Here I am, on the road again. there I am, up on the stage, Here I go, playing star again. There I go, turn the page.- Bob Seger"
+global	long_src_str1 = "system"
+global	long_src_str2 = "hello"
+global	long_src_str3 = "tap"
+global	long_rlpc_str = "pointer"
+
+probe begin {
+	printf("Result = %s\n",str_replace(long_str1, long_src_str1, long_rlpc_str))
+	printf("Result = %s\n",str_replace(long_str1, long_src_str2, long_rlpc_str))
+	printf("Result = %s\n",str_replace(long_str1, long_src_str3, long_rlpc_str))
+
+	printf("Result = %s\n",str_replace(long_str2, "road", "bored"))
+	printf("Result = %s\n",str_replace(long_str2, "Here", "here"))
+	printf("Result = %s\n",str_replace(long_str2, "Bob Seger", "Metallica"))
+	printf("Result = %s\n",str_replace(long_str1, long_src_str1, "\0"))
+	printf("Result = %s\n",str_replace(long_str1, "\0", long_rlpc_str))
+	printf("Result = %s\n",str_replace("\0", "\0", long_rlpc_str))
+	printf("Result = %s\n",str_replace("\0", "\0", "\0"))
+}
+probe begin {
+	exit()
+}

@@ -1,0 +1,14 @@
+set test "str_replace"
+
+set ::result_string {Result = hello pointer tap
+Result = pointer system tap
+Result = hello system pointer
+Result = Here I am, on the bored again. there I am, up on the stage, Here I go, playing star again. There I go, turn the page.- Bob Sege
+Result = here I am, on the road again. there I am, up on the stage, here I go, playing star again. There I go, turn the page.- Bob Seger
+Result = Here I am, on the road again. there I am, up on the stage, Here I go, playing star again. There I go, turn the page.- Metallica
+Result = hello  tap
+Result = hello system tap
+Result = 
+Result = }
+stap_run2 $srcdir/$subdir/$test.stp
+
