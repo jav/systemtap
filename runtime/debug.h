@@ -14,7 +14,6 @@
  * _dbug() writes to systemtap stderr.
  * errk() writes to the system log.
  */
-static int _stp_transport_state = 0;
 
 #define _dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
 
@@ -39,8 +38,14 @@ static int _stp_transport_state = 0;
 			printk(args);					\
 		}							\
 	} while (0)
+
+#define dbug_trans2(args...) do {					\
+		printk("%s:%d ",__FUNCTION__, __LINE__);		\
+		printk(args);						\
+	} while (0)
 #else
 #define dbug_trans(level, args...) ;
+#define dbug_trans2(args...) ;
 #endif
 
 #ifdef DEBUG_UNWIND /* stack unwinder */

@@ -1642,6 +1642,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
           // statement. This is a somewhat lame check that the address
           // is at the start of an assembly instruction.  Mark probes are in the
 	  // middle of a macro and thus not strictly at a statement beginning.
+	  // Guru mode may override this check.
           if (q->has_statement_num && ! q->has_mark)
             {
               Dwarf_Addr queryaddr = q->statement_num_val;
@@ -1654,7 +1655,12 @@ query_cu (Dwarf_Die * cudie, void * arg)
                   stringstream msg;
                   msg << "address 0x" << hex << queryaddr
                       << " does not match the beginning of a statement";
-                  throw semantic_error(msg.str());
+                  if (address_line)
+                    msg << " (try 0x" << hex << lineaddr << ")";
+                  if (! q->sess.guru_mode)
+                    throw semantic_error(msg.str());
+                  else if (! q->sess.suppress_warnings)
+                   q->sess.print_warning(msg.str());
                 }
             }
 	  // Pick up [entrypc, name, DIE] tuples for all the functions

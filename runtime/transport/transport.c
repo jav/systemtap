@@ -14,26 +14,45 @@
 #ifndef _TRANSPORT_TRANSPORT_C_
 #define _TRANSPORT_TRANSPORT_C_
 
-#include <linux/delay.h>
-#include <linux/namei.h>
 #include "transport.h"
-#include "../mempool.c"
-#include "symbols.c"
+#include <linux/debugfs.h>
+#include <linux/namei.h>
+#include <linux/workqueue.h>
+#include <linux/delay.h>
 
-static struct utt_trace *_stp_utt = NULL;
-static unsigned int utt_seq = 1;
-static int _stp_probes_started = 0;
-static pid_t _stp_target = 0;
 static int _stp_exit_flag = 0;
+
+static uid_t _stp_uid = 0;
+static gid_t _stp_gid = 0;
+static int _stp_pid = 0;
+
+static int _stp_ctl_attached = 0;
+
+static pid_t _stp_target = 0;
+static int _stp_probes_started = 0;
+
+// For now, disable transport version 3
+#if STP_TRANSPORT_VERSION == 3
+#undef STP_TRANSPORT_VERSION
+#define STP_TRANSPORT_VERSION 2
+#endif
+
 #include "control.h"
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 #include "relayfs.c"
-#include "procfs.c"
-#else
-#include "utt.c"
+#elif STP_TRANSPORT_VERSION == 2
+#include "relay_v2.c"
 #include "debugfs.c"
+#elif STP_TRANSPORT_VERSION == 3
+#include "ring_buffer.c"
+#include "debugfs.c"
+#else
+#error "Unknown STP_TRANSPORT_VERSION"
 #endif
 #include "control.c"
+
+static unsigned _stp_nsubbufs = 8;
+static unsigned _stp_subbuf_size = 65536*4;
 
 /* module parameters */
 static int _stp_bufsize;
@@ -47,7 +66,6 @@ MODULE_PARM_DESC(_stp_unprivileged_user, "user is unprivileged");
 /* forward declarations */
 static void probe_exit(void);
 static int probe_start(void);
-static void _stp_exit(void);
 
 /* check for new workqueue API */
 #ifdef DECLARE_DELAYED_WORK
@@ -91,14 +109,15 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
 static void _stp_cleanup_and_exit(int send_exit)
 {
-	static int called = 0;
-	if (!called) {
+	static int _stp_exit_called = 0;
+
+	if (!_stp_exit_called) {
 		int failures;
 
                 dbug_trans(1, "cleanup_and_exit (%d)\n", send_exit);
 		_stp_exit_flag = 1;
 		/* we only want to do this stuff once */
-		called = 1;
+		_stp_exit_called = 1;
 
 		if (_stp_probes_started) {
 			dbug_trans(1, "calling probe_exit\n");
@@ -111,9 +130,8 @@ static void _stp_cleanup_and_exit(int send_exit)
 		if (failures)
 			_stp_warn("There were %d transport failures.\n", failures);
 
-		dbug_trans(1, "************** calling startstop 0 *************\n");
-		if (_stp_utt)
-			utt_trace_startstop(_stp_utt, 0, &utt_seq);
+		dbug_trans(1, "*** calling _stp_transport_data_fs_stop ***\n");
+		_stp_transport_data_fs_stop();
 
 		dbug_trans(1, "ctl_send STP_EXIT\n");
 		if (send_exit)
@@ -140,11 +158,11 @@ static void _stp_request_exit(void)
 static void _stp_detach(void)
 {
 	dbug_trans(1, "detach\n");
-	_stp_attached = 0;
+	_stp_ctl_attached = 0;
 	_stp_pid = 0;
 
 	if (!_stp_exit_flag)
-		utt_set_overwrite(1);
+		_stp_transport_data_fs_overwrite(1);
 
 	cancel_delayed_work(&_stp_work);
 	wake_up_interruptible(&_stp_ctl_wq);
@@ -156,9 +174,9 @@ static void _stp_detach(void)
 static void _stp_attach(void)
 {
 	dbug_trans(1, "attach\n");
-	_stp_attached = 1;
+	_stp_ctl_attached = 1;
 	_stp_pid = current->pid;
-	utt_set_overwrite(0);
+	_stp_transport_data_fs_overwrite(0);
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
@@ -185,7 +203,7 @@ static void _stp_work_queue(void *data)
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && _stp_probes_started))
 		_stp_request_exit();
-	if (likely(_stp_attached))
+	if (likely(_stp_ctl_attached))
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
@@ -195,34 +213,18 @@ static void _stp_work_queue(void *data)
  *	This is called automatically when the module is unloaded.
  *     
  */
-static void _stp_transport_close()
+static void _stp_transport_close(void)
 {
-	dbug_trans(1, "%d: ************** transport_close *************\n", current->pid);
+	dbug_trans(1, "%d: ************** transport_close *************\n",
+		   current->pid);
 	_stp_cleanup_and_exit(0);
 	destroy_workqueue(_stp_wq);
 	_stp_unregister_ctl_channel();
-	if (_stp_utt)
-		utt_trace_remove(_stp_utt);
+	_stp_transport_fs_close();
 	_stp_print_cleanup();	/* free print buffers */
 	_stp_mem_debug_done();
+
 	dbug_trans(1, "---- CLOSED ----\n");
-}
-
-static struct utt_trace *_stp_utt_open(void)
-{
-	struct utt_trace_setup utts;
-	strlcpy(utts.root, "systemtap", sizeof(utts.root));
-	strlcpy(utts.name, THIS_MODULE->name, sizeof(utts.name));
-	utts.buf_size = _stp_subbuf_size;
-	utts.buf_nr = _stp_nsubbufs;
-
-#ifdef STP_BULKMODE
-	utts.is_global = 0;
-#else
-	utts.is_global = 1;
-#endif
-
-	return utt_trace_setup(&utts);
 }
 
 /**
@@ -232,7 +234,6 @@ static struct utt_trace *_stp_utt_open(void)
 static int _stp_transport_init(void)
 {
 	dbug_trans(1, "transport_init\n");
-	_stp_init_pid = current->pid;
 #ifdef STAPCONF_TASK_UID
 	_stp_uid = current->uid;
 	_stp_gid = current->gid;
@@ -258,12 +259,8 @@ static int _stp_transport_init(void)
 		dbug_trans(1, "Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
 	}
 
-#if !defined (STP_OLD_TRANSPORT) || defined (STP_BULKMODE)
-	/* open utt (relayfs) channel to send data to userspace */
-	_stp_utt = _stp_utt_open();
-	if (!_stp_utt)
+	if (_stp_transport_fs_init(THIS_MODULE->name) != 0)
 		goto err0;
-#endif
 
 	/* create control channel */
 	if (_stp_register_ctl_channel() < 0)
@@ -274,18 +271,17 @@ static int _stp_transport_init(void)
 		goto err2;
 
 	/* start transport */
-	utt_trace_startstop(_stp_utt, 1, &utt_seq);
+	_stp_transport_data_fs_start();
 
 	/* create workqueue of kernel threads */
 	_stp_wq = create_workqueue("systemtap");
 	if (!_stp_wq)
 		goto err3;
 	
-	_stp_transport_state = 1;
-
         /* Signal stapio to send us STP_START back (XXX: ?!?!?!).  */
 	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 
+	dbug_trans(1, "returning 0...\n");
 	return 0;
 
 err3:
@@ -293,8 +289,7 @@ err3:
 err2:
 	_stp_unregister_ctl_channel();
 err1:
-	if (_stp_utt)
-		utt_trace_remove(_stp_utt);
+	_stp_transport_fs_close();
 err0:
 	return -1;
 }
@@ -322,7 +317,7 @@ static struct dentry *_stp_lockfile = NULL;
 static int _stp_lock_transport_dir(void)
 {
 	int numtries = 0;
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 	while ((_stp_lockfile = relayfs_create_dir("systemtap_lock", NULL)) == NULL) {
 #else
 	while ((_stp_lockfile = debugfs_create_dir("systemtap_lock", NULL)) == NULL) {
@@ -337,7 +332,7 @@ static int _stp_lock_transport_dir(void)
 static void _stp_unlock_transport_dir(void)
 {
 	if (_stp_lockfile) {
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
 		relayfs_remove_dir(_stp_lockfile);
 #else
 		debugfs_remove(_stp_lockfile);
@@ -346,51 +341,151 @@ static void _stp_unlock_transport_dir(void)
 	}
 }
 
-/* _stp_get_root_dir(name) - creates root directory 'name' or */
-/* returns a pointer to it if it already exists. Used in */
-/* utt.c and relayfs.c. Will not be necessary if utt is included */
-/* in the kernel. */
+static struct dentry *__stp_root_dir = NULL;
 
-static struct dentry *_stp_get_root_dir(const char *name)
+/* _stp_get_root_dir() - creates root directory or returns
+ * a pointer to it if it already exists. */
+
+static struct dentry *_stp_get_root_dir(void)
 {
 	struct file_system_type *fs;
-	struct dentry *root;
 	struct super_block *sb;
+	const char *name = "systemtap";
 
-#ifdef STP_OLD_TRANSPORT
+	if (__stp_root_dir != NULL) {
+		return __stp_root_dir;
+	}
+
+#if STP_TRANSPORT_VERSION == 1
 	fs = get_fs_type("relayfs");
-#else
-	fs = get_fs_type("debugfs");
-#endif
 	if (!fs) {
-		errk("Couldn't find debugfs or relayfs filesystem.\n");
+		errk("Couldn't find relayfs filesystem.\n");
 		return NULL;
 	}
+#else
+	fs = get_fs_type("debugfs");
+	if (!fs) {
+		errk("Couldn't find debugfs filesystem.\n");
+		return NULL;
+	}
+#endif
 
 	if (!_stp_lock_transport_dir()) {
 		errk("Couldn't lock transport directory.\n");
 		return NULL;
 	}
-#ifdef STP_OLD_TRANSPORT
-	root = relayfs_create_dir(name, NULL);
+#if STP_TRANSPORT_VERSION == 1
+	__stp_root_dir = relayfs_create_dir(name, NULL);
 #else
-	root = debugfs_create_dir(name, NULL);
+	__stp_root_dir = debugfs_create_dir(name, NULL);
 #endif
-	if (!root) {
-		/* couldn't create it because it is already there, so find it. */
-		sb = list_entry(fs->fs_supers.next, struct super_block, s_instances);
+	if (!__stp_root_dir) {
+		/* Couldn't create it because it is already there, so
+		 * find it. */
+		sb = list_entry(fs->fs_supers.next, struct super_block,
+				s_instances);
 		_stp_lock_inode(sb->s_root->d_inode);
-		root = lookup_one_len(name, sb->s_root, strlen(name));
+		__stp_root_dir = lookup_one_len(name, sb->s_root,
+						strlen(name));
 		_stp_unlock_inode(sb->s_root->d_inode);
-		if (!IS_ERR(root))
-			dput(root);
+		if (!IS_ERR(__stp_root_dir))
+			dput(__stp_root_dir);
 		else {
-			root = NULL;
+			__stp_root_dir = NULL;
 			errk("Could not create or find transport directory.\n");
 		}
 	}
+	else if (IS_ERR(__stp_root_dir)) {
+	    __stp_root_dir = NULL;
+	    errk("Could not create root directory \"%s\", error %ld\n", name,
+		 -PTR_ERR(__stp_root_dir));
+	}
+
 	_stp_unlock_transport_dir();
-	return root;
+	return __stp_root_dir;
 }
+
+static void _stp_remove_root_dir(void)
+{
+	if (__stp_root_dir) {
+		if (!_stp_lock_transport_dir()) {
+			errk("Unable to lock transport directory.\n");
+			return;
+		}
+		if (simple_empty(__stp_root_dir)) {
+#if STP_TRANSPORT_VERSION == 1
+			relayfs_remove_dir(__stp_root_dir);
+#else
+			debugfs_remove(__stp_root_dir);
+#endif
+		}
+		_stp_unlock_transport_dir();
+		__stp_root_dir = NULL;
+	}
+}
+
+static struct dentry *__stp_module_dir = NULL;
+
+static struct dentry *_stp_get_module_dir(void)
+{
+	return __stp_module_dir;
+}
+
+static int _stp_transport_fs_init(const char *module_name)
+{
+	struct dentry *root_dir;
+    
+	dbug_trans(1, "entry\n");
+	if (module_name == NULL)
+		return -1;
+
+	root_dir = _stp_get_root_dir();
+	if (root_dir == NULL)
+		return -1;
+
+#if STP_TRANSPORT_VERSION == 1
+        __stp_module_dir = relayfs_create_dir(module_name, root_dir);
+#else
+        __stp_module_dir = debugfs_create_dir(module_name, root_dir);
+#endif
+        if (!__stp_module_dir) {
+		errk("Could not create module directory \"%s\"\n",
+		     module_name);
+		_stp_remove_root_dir();
+		return -1;
+	}
+	else if (IS_ERR(__stp_module_dir)) {
+		errk("Could not create module directory \"%s\", error %ld\n",
+		     module_name, -PTR_ERR(__stp_module_dir));
+		_stp_remove_root_dir();
+		return -1;
+	}
+
+	if (_stp_transport_data_fs_init() != 0) {
+		_stp_remove_root_dir();
+		return -1;
+	}
+	dbug_trans(1, "returning 0\n");
+	return 0;
+}
+
+static void _stp_transport_fs_close(void)
+{
+	dbug_trans(1, "stp_transport_fs_close\n");
+
+	_stp_transport_data_fs_close();
+
+	if (__stp_module_dir) {
+#if STP_TRANSPORT_VERSION == 1
+		relayfs_remove_dir(__stp_module_dir);
+#else
+		debugfs_remove(__stp_module_dir);
+#endif
+		__stp_module_dir = NULL;
+	}
+
+	_stp_remove_root_dir();
+}
+
 
 #endif /* _TRANSPORT_C_ */

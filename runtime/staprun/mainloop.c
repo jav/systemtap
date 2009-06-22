@@ -487,7 +487,7 @@ int stp_main_loop(void)
     nb -= sizeof(uint32_t);
 
     switch (type) {
-#ifdef STP_OLD_TRANSPORT
+#if STP_TRANSPORT_VERSION == 1
     case STP_REALTIME_DATA:
       if (write_realtime_data(data, nb)) {
         _perr("write error (nb=%ld)", (long)nb);

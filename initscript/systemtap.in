@@ -74,7 +74,7 @@ log () { # message
   echo `LC_ALL=en date +"%b %e %T"`": $1" >> "$LOG_FILE"
 }
 clog () { # message [-n]
-  echo $2 $1
+  echo $2 "$1"
   log "$1"
 }
 slog () { # message
@@ -154,7 +154,7 @@ parse_args () { # arguments
 
 CMD=$1
 shift 1
-OPTS=`getopt -s bash -u -o 'r:c:R' -- $@`
+OPTS=`getopt -s bash -u -o 'r:c:Ry' -- $@`
 if [ $? -ne 0 ]; then
   slog "Error: Argument parse error: $@"
   failure $"parse error"
@@ -381,7 +381,7 @@ compile_script () { # script checkcache
   clog " Compiling $1 ... " -n
   tmpdir=`mktemp -d -p "$TEMP_PATH" cache.XXXXXXXX`
   if [ $? -ne 0 ]; then
-    clog "failed to create temporary directory."
+    clog "Failed to create temporary directory."
     return 1
   fi
   pushd "$tmpdir" &> /dev/null
@@ -460,7 +460,7 @@ start_script () { # script
   clog " Starting $1 ... " -n
   tmpdir=`mktemp -d -p "$TEMP_PATH" cache.XXXXXXXX`  # bz7097
   if [ $? -ne 0 ]; then
-    clog "failed to create temporary directory."
+    clog "Failed to create temporary directory."
     return 1
   fi
   pushd "$tmpdir" &> /dev/null
@@ -486,7 +486,7 @@ start () {
   fi
 
   if [ -z "$SCRIPTS" ]; then
-    do_warning $"no scripts exist."
+    do_warning $"No scripts exist."
     return 5 # program is not installed
   fi
 
@@ -553,7 +553,7 @@ stop () {
   done
   for s in $sl; do
     stop_script $s
-    [ $? -ne 0 ] && might_fail $"Failed to run \"$s\". "
+    [ $? -ne 0 ] && might_fail $"Failed to stop \"$s\". "
   done
   might_success $"$prog stopping "
   return 0
@@ -563,6 +563,10 @@ status () {
   local s pid ret r
   [ -z "$SCRIPTS" ] && SCRIPTS=`get_all_runnings`
   ret=3
+  if [ -z "$SCRIPTS" ] ; then
+    echo "No systemtap scripts are present"
+    return $ret
+  fi
   for s in $SCRIPTS; do
     check_running $s
     r=$?
@@ -581,7 +585,7 @@ status () {
 
 compile () {
   local s ss
-  clog $"Compiling $prog: " -n
+  clog $"Compiling systemtap scripts: " -n
   prepare_cache_dir
   if [ $? -ne 0 ]; then
     do_failure $"Failed to make cache directory ($CACHE_PATH)"
@@ -607,7 +611,7 @@ compile () {
 # Cleanup caches
 cleanup () {
   local s ss ret
-  clog $"Cleaning up $prog: " -n
+  clog $"Cleaning up systemtap scripts: " -n
   if [ ! -d "$CACHE_PATH" ]; then
     do_success "no cache"
     return 0
@@ -630,6 +634,15 @@ cleanup () {
   fi
 }
 
+# Restart scripts
+function restart () {
+  [ -z "$OPT_SCRIPTS" ] && SCRIPTS=`get_all_runnings`
+  [ "$SCRIPTS" ] && stop
+  echo
+  start
+  return $?
+}
+
 RETVAL=0
 
 case $CMD in
@@ -642,13 +655,12 @@ case $CMD in
   RETVAL=$?
   ;;
   restart|force-reload)
-  stop
-  start
+  restart
   RETVAL=$?
   ;;
   status)
   status
-  RETVAL=$?
+  exit $?
   ;;
   compile)
   compile

@@ -5212,17 +5212,18 @@ translate_pass (systemtap_session& s)
       s.op->newline(-1) << "}";
       s.op->assert_0_indent();
 
+      emit_symbol_data (s);
+
+      s.op->newline() << "MODULE_DESCRIPTION(\"systemtap-generated probe\");";
+      s.op->newline() << "MODULE_LICENSE(\"GPL\");";
+      s.op->assert_0_indent();
+
+      // PR10298: attempt to avoid collisions with symbols
       for (unsigned i=0; i<s.globals.size(); i++)
         {
           s.op->newline();
           s.up->emit_global_param (s.globals[i]);
         }
-      s.op->assert_0_indent();
-
-      emit_symbol_data (s);
-
-      s.op->newline() << "MODULE_DESCRIPTION(\"systemtap-generated probe\");";
-      s.op->newline() << "MODULE_LICENSE(\"GPL\");";
       s.op->assert_0_indent();
     }
   catch (const semantic_error& e)

@@ -14,7 +14,6 @@
 #define STP_DEFAULT_BUFFERS 256
 
 #ifdef STP_BULKMODE
-extern int _stp_relay_flushing;
 /* handle the per-cpu subbuf info read for relayfs */
 static ssize_t _stp_proc_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
@@ -23,13 +22,13 @@ static ssize_t _stp_proc_read(struct file *file, char __user *buf, size_t count,
 
 	int cpu = *(int *)(PDE(file->f_dentry->d_inode)->data);
 
-	if (!_stp_utt->rchan)
+	if (!_stp_relay_data.rchan)
 		return -EINVAL;
 
 	out.cpu = cpu;
-	out.produced = atomic_read(&_stp_utt->rchan->buf[cpu]->subbufs_produced);
-	out.consumed = atomic_read(&_stp_utt->rchan->buf[cpu]->subbufs_consumed);
-	out.flushing = _stp_relay_flushing;
+	out.produced = atomic_read(&_stp_relay_data.rchan->buf[cpu]->subbufs_produced);
+	out.consumed = atomic_read(&_stp_relay_data.rchan->buf[cpu]->subbufs_consumed);
+	out.flushing = _stp_relay_data.flushing;
 
 	num = sizeof(out);
 	if (copy_to_user(buf, &out, num))
@@ -46,7 +45,7 @@ static ssize_t _stp_proc_write(struct file *file, const char __user *buf, size_t
 	if (copy_from_user(&info, buf, count))
 		return -EFAULT;
 
-	relay_subbufs_consumed(_stp_utt->rchan, cpu, info.consumed);
+	relay_subbufs_consumed(_stp_relay_data.rchan, cpu, info.consumed);
 	return count;
 }
 

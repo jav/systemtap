@@ -2341,11 +2341,13 @@ dwflpp::get_blacklist_section(Dwarf_Addr addr)
 
 
 Dwarf_Addr
-dwflpp::relocate_address(Dwarf_Addr addr,
+dwflpp::relocate_address(Dwarf_Addr dw_addr,
                          string& reloc_section,
                          string& blacklist_section)
 {
-  Dwarf_Addr reloc_addr = addr;
+  // PR10273
+  // libdw address, so adjust for bias gotten from dwfl_module_getdwarf
+  Dwarf_Addr reloc_addr = dw_addr + module_bias;
   if (!module)
     {
       assert(module_name == TOK_KERNEL);
@@ -2364,14 +2366,13 @@ dwflpp::relocate_address(Dwarf_Addr addr,
 
       if (reloc_section == "" && dwfl_module_relocations (module) == 1)
         {
-          blacklist_section = get_blacklist_section(addr);
+          blacklist_section = get_blacklist_section(dw_addr);
           reloc_section = ".dynamic";
-          reloc_addr += module_bias;  // PR10273
         }
     }
   else
     {
-      blacklist_section = get_blacklist_section(addr);
+      blacklist_section = get_blacklist_section(dw_addr);
       reloc_section = ".absolute";
     }
   return reloc_addr;

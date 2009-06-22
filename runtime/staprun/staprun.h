@@ -94,8 +94,9 @@ extern char *__name__;
 /* Grabbed from linux/module.h kernel include. */
 #define MODULE_NAME_LEN (64 - sizeof(unsigned long))
 
-/* we define this so we are compatible with old transport, but we don't have to use it. */
-#define STP_OLD_TRANSPORT
+/* We define this so we are compatible with old transport, but we
+ * don't have to use it. */
+#define STP_TRANSPORT_VERSION 1
 #include "../transport/transport_msgs.h"
 
 #define RELAYFS_MAGIC	0xF0B4A981
@@ -119,7 +120,8 @@ int init_oldrelayfs(void);
 void close_oldrelayfs(int);
 int write_realtime_data(void *data, ssize_t nb);
 void setup_signals(void);
-int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t);
+int make_outfile_name(char *buf, int max, int fnum, int cpu,
+		      time_t t, int bulk);
 int init_backlog(int cpu);
 void write_backlog(int cpu, int fnum, time_t t);
 time_t read_backlog(int cpu, int fnum);

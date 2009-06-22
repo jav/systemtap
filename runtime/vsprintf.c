@@ -12,8 +12,8 @@
 #ifndef _VSPRINTF_C_
 #define _VSPRINTF_C_
 
-//forward declaration for _stp_vsnprintf
-static void * _stp_reserve_bytes (int);
+#include "print.h"
+#include "transport/transport.h"
 
 static int skip_atoi(const char **s)
 {

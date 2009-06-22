@@ -22,17 +22,27 @@
 #include <linux/init.h>
 #include <linux/relayfs_fs.h>
 #include <linux/namei.h>
-#include "utt.h"
 
-static int _stp_relay_flushing = 0;
+struct _stp_relay_data_type {
+	enum _stp_transport_state transport_state;
+	struct rchan *rchan;
+	int flushing;
+};
+struct _stp_relay_data_type _stp_relay_data;
+
+/* We need to include procfs.c here so that it can see the
+ * _stp_relay_data_type definition. */
+#include "procfs.c"
 
 /**
- *	_stp_subbuf_start - subbuf_start() relayfs callback implementation
+ *	__stp_relay_subbuf_start_callback - subbuf_start() relayfs
+ *	callback implementation
  */
-static int _stp_subbuf_start(struct rchan_buf *buf,
-			     void *subbuf,
-			     unsigned prev_subbuf_idx,
-			     void *prev_subbuf)
+static int
+__stp_relay_subbuf_start_callback(struct rchan_buf *buf,
+				  void *subbuf,
+				  unsigned prev_subbuf_idx,
+				  void *prev_subbuf)
 {
 	unsigned padding = buf->padding[prev_subbuf_idx];
 	if (prev_subbuf)
@@ -42,11 +52,12 @@ static int _stp_subbuf_start(struct rchan_buf *buf,
 }
 
 /**
- *	_stp_buf_full - buf_full() relayfs callback implementation
+ *	__stp_relay_buf_full_callback - buf_full() relayfs callback
+ *	implementation
  */
-static void _stp_buf_full(struct rchan_buf *buf,
-			  unsigned subbuf_idx,
-			  void *subbuf)
+static void __stp_relay_buf_full_callback(struct rchan_buf *buf,
+					  unsigned subbuf_idx,
+					  void *subbuf)
 {
 	unsigned padding = buf->padding[subbuf_idx];
 	*((unsigned *)subbuf) = padding;
@@ -54,126 +65,113 @@ static void _stp_buf_full(struct rchan_buf *buf,
 
 static struct rchan_callbacks stp_rchan_callbacks =
 {
-	.subbuf_start = _stp_subbuf_start,
-	.buf_full = _stp_buf_full,
+	.subbuf_start = __stp_relay_subbuf_start_callback,
+	.buf_full = __stp_relay_buf_full_callback,
 };
 
-
-static void _stp_remove_relay_dir(struct dentry *dir)
+static void _stp_transport_data_fs_start(void)
 {
-	if (dir)
-		relayfs_remove_dir(dir);
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED)
+		_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
 }
 
-static void _stp_remove_relay_root(struct dentry *root)
+static void _stp_transport_data_fs_stop(void)
 {
-	if (root) {
-		if (!_stp_lock_transport_dir()) {
-			errk("Unable to lock transport directory.\n");
-			return;
-		}
-		_stp_remove_relay_dir(root);
-		_stp_unlock_transport_dir();
+	if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING) {
+		_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+		_stp_relay_data.flushing = 1;
+		if (_stp_relay_data.rchan)
+			relay_flush(_stp_relay_data.rchan);
 	}
 }
 
-static struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
+static void _stp_transport_data_fs_close(void)
 {
-	struct utt_trace *utt;
+	_stp_transport_data_fs_stop();
+	if (_stp_relay_data.rchan) {
+		relay_close(_stp_relay_data.rchan);
+		_stp_relay_data.rchan = NULL;
+	}
+}
+
+static int _stp_transport_data_fs_init(void)
+{
+	int rc = 0;
 	int i;
 
-	utt = _stp_kzalloc(sizeof(*utt));
-	if (!utt)
-		return NULL;
+	dbug_trans(1, "relay_open %d %d\n", _stp_subbuf_size, _stp_nsubbufs);
+	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+	_stp_relay_data.flushing = 0;
 
-	utt->utt_tree_root = _stp_get_root_dir(utts->root);
-	if (!utt->utt_tree_root)
+	/* Create "trace" file. */
+	_stp_relay_data.rchan = relay_open("trace", _stp_get_module_dir(),
+					   _stp_subbuf_size, _stp_nsubbufs,
+					   0, &stp_rchan_callbacks);
+	if (!_stp_relay_data.rchan) {
+		rc = -ENOENT;
 		goto err;
-
-	utt->dir = relayfs_create_dir(utts->name, utt->utt_tree_root);
-	if (!utt->dir)
-		goto err;
-
-	dbug_trans(1, "relay_open %d %d\n",  utts->buf_size, utts->buf_nr);
-
-	utt->rchan = relay_open("trace", utt->dir, utts->buf_size,
-				utts->buf_nr, 0, &stp_rchan_callbacks);
-	if (!utt->rchan)
-		goto err;
+	}
 
 	/* now set ownership */
 	for_each_online_cpu(i) {
-		utt->rchan->buf[i]->dentry->d_inode->i_uid = _stp_uid;
-		utt->rchan->buf[i]->dentry->d_inode->i_gid = _stp_gid;
+		_stp_relay_data.rchan->buf[i]->dentry->d_inode->i_uid
+			= _stp_uid;
+		_stp_relay_data.rchan->buf[i]->dentry->d_inode->i_gid
+			= _stp_gid;
 	}
 
-	utt->rchan->private_data = utt;
-	utt->trace_state = Utt_trace_setup;
-	utts->err = 0;
-	return utt;
+	/* We're initialized. */
+	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
+	return rc;
 
 err:
 	errk("couldn't create relay channel.\n");
-	if (utt->dir)
-		_stp_remove_relay_dir(utt->dir);
-	if (utt->utt_tree_root)
-		_stp_remove_relay_root(utt->utt_tree_root);
-	_stp_kfree(utt);
-	return NULL;
+	_stp_transport_data_fs_close();
+	return rc;
 }
 
-static void utt_set_overwrite(int overwrite)
+static enum _stp_transport_state _stp_transport_get_state(void)
 {
-	if (_stp_utt)
-		_stp_utt->rchan->overwrite = overwrite;
+	return _stp_relay_data.transport_state;
 }
 
-static int utt_trace_startstop(struct utt_trace *utt, int start,
-			unsigned int *trace_seq)
+static void _stp_transport_data_fs_overwrite(int overwrite)
 {
-	int ret;
+	_stp_relay_data.rchan->overwrite = overwrite;
+}
 
-	if (!utt)
+/**
+ *      _stp_data_write_reserve - try to reserve size_request bytes
+ *      @size_request: number of bytes to attempt to reserve
+ *      @entry: entry is returned here
+ *
+ *      Returns number of bytes reserved, 0 if full.  On return, entry
+ *      will point to allocated opaque pointer.  Use
+ *      _stp_data_entry_data() to get pointer to copy data into.
+ *
+ *	(For this code's purposes, entry is filled in with the actual
+ *	data pointer, but the caller doesn't know that.)
+ */
+static size_t
+_stp_data_write_reserve(size_t size_request, void **entry)
+{
+	if (entry == NULL)
+		return -EINVAL;
+
+	*entry = relay_reserve(_stp_relay_data.rchan, size_request);
+	if (*entry == NULL)
 		return 0;
-
-	/*
-	 * For starting a trace, we can transition from a setup or stopped
-	 * trace. For stopping a trace, the state must be running
-	 */
-	ret = -EINVAL;
-	if (start) {
-		if (utt->trace_state == Utt_trace_setup ||
-		    utt->trace_state == Utt_trace_stopped) {
-			if (trace_seq)
-				(*trace_seq)++;
-			smp_mb();
-			utt->trace_state = Utt_trace_running;
-			ret = 0;
-		}
-	} else {
-		if (utt->trace_state == Utt_trace_running) {
-			utt->trace_state = Utt_trace_stopped;
-			_stp_relay_flushing = 1;
-			relay_flush(utt->rchan);
-			ret = 0;
-		}
-	}
-
-	return ret;
+	return size_request;
 }
 
-
-static int utt_trace_remove(struct utt_trace *utt)
+static unsigned char *_stp_data_entry_data(void *entry)
 {
-  	dbug_trans(1, "removing relayfs files. %d\n", utt->trace_state);
-	if (utt && (utt->trace_state == Utt_trace_setup || utt->trace_state == Utt_trace_stopped)) {
-		if (utt->rchan)
-			relay_close(utt->rchan);
-		if (utt->dir)
-			_stp_remove_relay_dir(utt->dir);
-		if (utt->utt_tree_root)
-			_stp_remove_relay_root(utt->utt_tree_root);
-		_stp_kfree(utt);
-	}
+	/* Nothing to do here. */
+	return entry;
+}
+
+static int _stp_data_write_commit(void *entry)
+{
+	/* Nothing to do here. */
 	return 0;
 }
