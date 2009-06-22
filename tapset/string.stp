@@ -109,9 +109,7 @@ function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
 %{
 	char *ptr = THIS->prnt_str;
 	char *ptr_base = THIS->prnt_str;
-	int strlen_prnt_str = strlen(THIS->prnt_str);
 	int strlen_srch_str = strlen(THIS->srch_str);
-	int strlen_rplc_str = strlen(THIS->rplc_str);
 
 	if(strlen_srch_str == 0) {
 		strlcat(THIS->__retvalue, ptr_base, MAXSTRINGLEN);
