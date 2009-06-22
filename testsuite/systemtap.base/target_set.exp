@@ -46,6 +46,7 @@ proc expect_target_set_pids generations {
 spawn stap $file $time -c "$stap_cmd"
 
 expect {
+	-timeout 180
 	-re {^(\d+)\r\n} { set stp_pid $expect_out(1,string) }
 	timeout { failtest; return }
 }
