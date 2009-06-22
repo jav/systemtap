@@ -1652,6 +1652,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
                   stringstream msg;
                   msg << "address 0x" << hex << queryaddr
                       << " does not match the beginning of a statement";
+                  if (address_line)
+                    msg << " (try 0x" << hex << lineaddr << ")";
                   if (! q->sess.guru_mode)
                     throw semantic_error(msg.str());
                   else if (! q->sess.suppress_warnings)
