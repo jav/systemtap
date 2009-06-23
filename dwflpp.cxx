@@ -2316,7 +2316,7 @@ dwflpp::get_blacklist_section(Dwarf_Addr addr)
     {
       Elf_Scn* scn = 0;
       size_t shstrndx;
-      dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+      dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
       while ((scn = elf_nextscn (elf, scn)) != NULL)
         {
           GElf_Shdr shdr_mem;

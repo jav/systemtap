@@ -25,6 +25,13 @@
 
 extern "C" {
 #include <elfutils/libdwfl.h>
+#ifdef HAVE_ELFUTILS_VERSION_H
+  #include <elfutils/version.h>
+  #if !_ELFUTILS_PREREQ(0,142)
+    // Always use newer name, old name is deprecated in 0.142.
+    #define elf_getshdrstrndx elf_getshstrndx
+  #endif
+#endif
 #include <regex.h>
 }
 
