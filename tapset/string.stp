@@ -98,6 +98,37 @@ function tokenize:string(input:string, delim:string)
 	}
 %}
 
+/** @addtogroup library
+ * @code str_replace:string (prnt_str:string, srch_str:string, rplc_str:string) @endcode
+ * @param prnt_str The parent string.
+ * @param srch_str The substring which is used to search in the parent string prnt_str.
+ * @param rplc_str The substring which is used to replace the searched string srch_str.
+ * @return Returns the parent string with substrings replaced. Else returns parent string.
+ */
+function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
+%{
+	char *ptr = THIS->prnt_str;
+	char *ptr_base = THIS->prnt_str;
+	int strlen_srch_str = strlen(THIS->srch_str);
+
+	if(strlen_srch_str == 0) {
+		strlcat(THIS->__retvalue, ptr_base, MAXSTRINGLEN);
+		return;
+	}
+
+	while((ptr = strstr(ptr, THIS->srch_str)) != NULL) {
+
+		*ptr = '\0';
+		strlcat(THIS->__retvalue, ptr_base, MAXSTRINGLEN);
+		strlcat(THIS->__retvalue, THIS->rplc_str, MAXSTRINGLEN);
+		ptr = ptr + strlen_srch_str;
+		ptr_base = ptr;
+	}
+
+	strlcat(THIS->__retvalue, ptr_base, MAXSTRINGLEN);
+	return;
+%}
+
 /*
  * strtol - Convert a string to a long
  *   str   String to convert

@@ -702,7 +702,7 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
   elf = dwfl_module_getelf (dw->module, &bias);
   Elf_Scn *probe_scn = NULL;
 
-  dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+  dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
 
   have_probes = false;
   
@@ -726,7 +726,7 @@ dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & s
       elf = dwarf_getelf (dwfl_module_getdwarf (dw->module, &bias));
       if (! elf)
 	return;
-      dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+      dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
       probe_scn = NULL;
       while ((probe_scn = elf_nextscn (elf, probe_scn)))
 	{
@@ -3707,7 +3707,7 @@ symbol_table::prepare_section_rejection(Dwfl_Module *mod)
 
   if (!elf)
     return;
-  if (elf_getshstrndx(elf, &shstrndx) != 0)
+  if (elf_getshdrstrndx (elf, &shstrndx) != 0)
     return;
   while ((scn = elf_nextscn(elf, scn)) != NULL)
     {

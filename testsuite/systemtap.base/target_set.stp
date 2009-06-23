@@ -1,0 +1,16 @@
+probe begin
+{
+	stp_pid = stp_pid()
+	printf("%d\n%d begat %d\n", stp_pid, stp_pid, target())
+}
+
+probe syscall.nanosleep, syscall.compat_nanosleep ?
+{
+	if (target_set_pid(pid()) && $rqtp->tv_sec == $1)
+		target_set_report()
+}
+
+probe end
+{
+	target_set_report()
+}

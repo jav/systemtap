@@ -1,0 +1,68 @@
+# Test for target_set tapset
+
+set test target_set
+
+if {![installtest_p]} { untested $test; continue }
+
+set file $srcdir/$subdir/target_set.stp
+set time 12345
+set stap_cmd  "( ( /bin/sleep $time ) ; ( /bin/sleep $time ) ; ( /bin/sleep $time ) )"
+set stap_cmd_sleep_count 3
+set stap_cmd_child_level 3
+
+proc failtest {} {
+	global test
+	fail $test
+}
+
+proc expect_target_set_string {} {
+	expect {
+		"^target set:\r\n" { }
+		timeout { failtest; return -code return }
+	}
+}
+
+proc expect_target_set_pids generations {
+	global test
+	global stp_pid
+	for {set i 0} {$i < $generations} {incr i} {
+		expect {
+			-re {^([0-9]+) begat ([0-9]+)\r\n} { set pid_array($expect_out(1,string)) $expect_out(2,string) }
+			timeout { failtest; return -code return }
+		}
+	}
+	set pid_it $stp_pid
+	while {[info exists pid_array($pid_it)]} {
+		if {[exec pgrep -P $pid_it] != $pid_array($pid_it)} {
+			failtest; return -code return
+		}
+		set pid_it $pid_array($pid_it)
+	}
+	if {$generations > 1} {
+		exec kill -INT $pid_it
+	}
+}
+
+spawn stap $file $time -c "$stap_cmd"
+
+expect {
+	-timeout 180
+	-re {^(\d+)\r\n} { set stp_pid $expect_out(1,string) }
+	timeout { failtest; return }
+}
+
+expect_target_set_pids 1
+for {set i 0} {$i < $stap_cmd_sleep_count} {incr i} {
+	expect_target_set_string
+	expect_target_set_pids $stap_cmd_child_level
+}
+expect_target_set_string
+expect_target_set_pids 0
+
+expect {
+	eof {}
+	timeout { failtest; return }
+}
+
+wait
+pass $test
