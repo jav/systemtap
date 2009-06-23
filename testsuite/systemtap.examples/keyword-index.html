@@ -153,6 +153,12 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCH
 </ul>
 <h3><a name="LOCKING">LOCKING</a></h3>
 <ul>
+<li><a href="locks/bkl.stp">locks/bkl.stp</a> - Tracing Contention on Big Kernel Lock (BKL)<br>
+keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
+<p>The bkl.stp script can help determine whether the Big Kernel Lock (BKL) is causing serialization on a multiprocessor system due to excessive contention of the BKL. The bkl.stp script takes one argument which is the number of processes waiting for the Big Kernel Lock (BKL). When the number of processes waiting for the BKL is reached or exceeded, the script will print a time stamp, the number of processes waiting for the BKL, the holder of the BKL, and the amount of time the BKL was held.</p></li>
+<li><a href="locks/bkl_stats.stp">locks/bkl_stats.stp</a> - Per Process Statistics on Big Kernel Lock (BKL) Use<br>
+keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
+<p>The bkl_stats.stp script can indicate which processes have excessive waits for the Big Kernel Lock (BKL) and which processes are taking the BKL for long periods of time. The bkl_stats.stp script prints lists of all the processes that require the BKL. Every five seconds two tables are printed out. The first table lists the processes that waited for the BKL followed by the number of times that the process waited, the minimum time of the wait, the average and the maximum time waited. The second table lists has similar information for the time spent holding the lock for each of the processes.</p></li>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#LOCKING">LOCKING</a> <a href="keyword-index.html#FUTEX">FUTEX</a> <br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.</p></li>

@@ -1,0 +1,54 @@
+#! /usr/bin/env stap
+
+/*
+ * Copyright (C) 2009 Red Hat Inc.
+ * 
+ * This copyrighted material is made available to anyone wishing to use,
+ * modify, copy, or redistribute it subject to the terms and conditions
+ * of the GNU General Public License v.2.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *
+ * Description: displays which task is holding big kernel lock (BKL) when the 
+ *              number of waiting processes reaches a certain number.
+ *
+ * Run: stap bkl.stp <number_of_processes_waiting>
+ *
+ * Author: Flavio Leitner <fbl@redhat.com>
+ */
+
+# how many tasks waiting on big lock
+global waiting = 0
+# who is holding big lock
+global holder = 0
+global holder_time
+
+probe begin { printf("stap ready\n"); }
+
+probe end { printf("stap exiting\n"); }
+
+probe kernel.function("lock_kernel") {
+  ++waiting;
+}
+
+probe kernel.function("lock_kernel").return {
+  # under biglock
+  holder_time = gettimeofday_us();
+  holder = task_current();
+  --waiting;
+}
+
+probe kernel.function("unlock_kernel") {
+  # under biglock
+  if (waiting >= $1) {
+    printf("%-25s: waiting(%d), holder: %s(%d) %dus\n",
+           ctime(gettimeofday_s()),
+           waiting,
+           task_execname(holder),
+           task_pid(holder),
+           gettimeofday_us() - holder_time);
+  }
+}

@@ -137,6 +137,33 @@ keywords: io tty per-process monitor
   keystrokes, on a per-tty basis.
 
 
+locks/bkl.stp - Tracing Contention on Big Kernel Lock (BKL)
+keywords: locking
+
+  The bkl.stp script can help determine whether the Big Kernel Lock
+  (BKL) is causing serialization on a multiprocessor system due to
+  excessive contention of the BKL. The bkl.stp script takes one
+  argument which is the number of processes waiting for the Big Kernel
+  Lock (BKL). When the number of processes waiting for the BKL is
+  reached or exceeded, the script will print a time stamp, the number
+  of processes waiting for the BKL, the holder of the BKL, and the
+  amount of time the BKL was held.
+
+
+locks/bkl_stats.stp - Per Process Statistics on Big Kernel Lock (BKL) Use
+keywords: locking
+
+  The bkl_stats.stp script can indicate which processes have excessive
+  waits for the Big Kernel Lock (BKL) and which processes are taking
+  the BKL for long periods of time. The bkl_stats.stp script prints
+  lists of all the processes that require the BKL. Every five seconds
+  two tables are printed out. The first table lists the processes that
+  waited for the BKL followed by the number of times that the process
+  waited, the minimum time of the wait, the average and the maximum
+  time waited. The second table lists has similar information for the
+  time spent holding the lock for each of the processes.
+
+
 memory/kmalloc-top - Show Paths to Kernel Malloc (kmalloc) Invocations
 keywords: memory
 
