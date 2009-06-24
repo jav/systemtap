@@ -193,7 +193,7 @@ dwflpp::query_cu_containing_address(Dwarf_Addr a)
 
 
 bool
-dwflpp::module_name_matches(string pattern)
+dwflpp::module_name_matches(const string& pattern)
 {
   bool t = (fnmatch(pattern.c_str(), module_name.c_str(), 0) == 0);
   if (t && sess.verbose>3)
@@ -205,7 +205,7 @@ dwflpp::module_name_matches(string pattern)
 
 
 bool
-dwflpp::name_has_wildcard(string pattern)
+dwflpp::name_has_wildcard(const string& pattern)
 {
   return (pattern.find('*') != string::npos ||
           pattern.find('?') != string::npos ||
@@ -214,7 +214,7 @@ dwflpp::name_has_wildcard(string pattern)
 
 
 bool
-dwflpp::module_name_final_match(string pattern)
+dwflpp::module_name_final_match(const string& pattern)
 {
   // Assume module_name_matches().  Can there be any more matches?
   // Not unless the pattern is a wildcard, since module names are
@@ -224,7 +224,7 @@ dwflpp::module_name_final_match(string pattern)
 
 
 bool
-dwflpp::function_name_matches_pattern(string name, string pattern)
+dwflpp::function_name_matches_pattern(const string& name, const string& pattern)
 {
   bool t = (fnmatch(pattern.c_str(), name.c_str(), 0) == 0);
   if (t && sess.verbose>3)
@@ -236,7 +236,7 @@ dwflpp::function_name_matches_pattern(string name, string pattern)
 
 
 bool
-dwflpp::function_name_matches(string pattern)
+dwflpp::function_name_matches(const string& pattern)
 {
   assert(function);
   return function_name_matches_pattern(function_name, pattern);
@@ -244,7 +244,7 @@ dwflpp::function_name_matches(string pattern)
 
 
 bool
-dwflpp::function_name_final_match(string pattern)
+dwflpp::function_name_final_match(const string& pattern)
 {
   return module_name_final_match (pattern);
 }
@@ -565,26 +565,26 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
         clog << "function cache " << key << " size " << v->size() << endl;
     }
 
-  string subkey = function;
-  if (v->find(subkey) != v->end())
+  cu_function_cache_t::iterator it = v->find(function);
+  if (it != v->end())
     {
-      Dwarf_Die die = v->find(subkey)->second;
+      Dwarf_Die die = it->second;
       if (sess.verbose > 4)
-        clog << "function cache " << key << " hit " << subkey << endl;
+        clog << "function cache " << key << " hit " << function << endl;
       return (*callback)(& die, q);
     }
-  else if (name_has_wildcard (subkey))
+  else if (name_has_wildcard (function))
     {
-      for (cu_function_cache_t::iterator it = v->begin(); it != v->end(); it++)
+      for (it = v->begin(); it != v->end(); it++)
         {
         if (pending_interrupts) return DWARF_CB_ABORT;
           string func_name = it->first;
           Dwarf_Die die = it->second;
-          if (function_name_matches_pattern (func_name, subkey))
+          if (function_name_matches_pattern (func_name, function))
             {
               if (sess.verbose > 4)
                 clog << "function cache " << key << " match " << func_name << " vs "
-                     << subkey << endl;
+                     << function << endl;
 
               rc = (*callback)(& die, q);
               if (rc != DWARF_CB_OK) break;

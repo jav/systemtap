@@ -198,13 +198,13 @@ struct dwflpp
 
   Dwarf_Die *query_cu_containing_address(Dwarf_Addr a);
 
-  bool module_name_matches(std::string pattern);
-  bool name_has_wildcard(std::string pattern);
-  bool module_name_final_match(std::string pattern);
+  bool module_name_matches(const std::string& pattern);
+  bool name_has_wildcard(const std::string& pattern);
+  bool module_name_final_match(const std::string& pattern);
 
-  bool function_name_matches_pattern(std::string name, std::string pattern);
-  bool function_name_matches(std::string pattern);
-  bool function_name_final_match(std::string pattern);
+  bool function_name_matches_pattern(const std::string& name, const std::string& pattern);
+  bool function_name_matches(const std::string& pattern);
+  bool function_name_final_match(const std::string& pattern);
 
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                              const char *, Dwarf_Addr,
