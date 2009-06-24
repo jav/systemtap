@@ -7,6 +7,9 @@ lib: lib_func=lib_func
 lib: lib_func=lib_func
     lib: lib_func=lib_func}
 
+# BUG XXX PR10323 skip all prelink scenarios for now.
+if {[string match "*prelink*" "$testname"]} { return }
+
 # Only run on make installcheck
 if {! [installtest_p]} { untested "ustack-$testname"; return }
 if {! [utrace_p]} { untested "ustack-$testname"; return }

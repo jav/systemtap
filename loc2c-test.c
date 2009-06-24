@@ -255,7 +255,9 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
       if (typedie == NULL)
 	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
       typetag = dwarf_tag (typedie);
-      if (typetag != DW_TAG_typedef)
+      if (typetag != DW_TAG_typedef &&
+	  typetag != DW_TAG_const_type &&
+	  typetag != DW_TAG_volatile_type)
 	break;
       if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
 	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
