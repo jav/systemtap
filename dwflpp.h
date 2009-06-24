@@ -291,6 +291,8 @@ struct dwflpp
                               std::string& reloc_section,
                               std::string& blacklist_section);
 
+  Dwarf_Addr literal_addr_to_sym_addr(Dwarf_Addr lit_addr);
+
 
 private:
   Dwfl * dwfl;

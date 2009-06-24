@@ -174,6 +174,10 @@ dwflpp::focus_on_function(Dwarf_Die * f)
 }
 
 
+/* Return the Dwarf_Die for the given address in the current module.
+ * The address should be in the module address address space (this
+ * function will take care of any dw bias).
+ */
 Dwarf_Die *
 dwflpp::query_cu_containing_address(Dwarf_Addr a)
 {
@@ -181,10 +185,6 @@ dwflpp::query_cu_containing_address(Dwarf_Addr a)
   assert(dwfl);
   assert(module);
   get_module_dwarf();
-
-  // globalize the module-relative address
-  if (module_name != TOK_KERNEL && dwfl_module_relocations (module) > 0)
-    a += module_start;
 
   Dwarf_Die* cudie = dwfl_module_addrdie(module, a, &bias);
   assert(bias == module_bias);
@@ -2378,6 +2378,33 @@ dwflpp::relocate_address(Dwarf_Addr dw_addr,
   return reloc_addr;
 }
 
+/* Converts a "global" literal address to the module symbol address
+ * space.  If necessary (not for kernel and executables using absolute
+ * addresses), this adjust the address for the current module symbol
+ * bias.  Literal addresses are provided by the user (or contained on
+ * the .probes section) based on the "on disk" layout of the module.
+ */
+Dwarf_Addr
+dwflpp::literal_addr_to_sym_addr(Dwarf_Addr lit_addr)
+{
+  // Assume the address came from the symbol list.
+  // If we cannot get the symbol bias fall back on the dw bias.
+  // The kernel (and other absolute executable modules) is special though.
+  if (module_name != TOK_KERNEL
+      && dwfl_module_relocations (module) > 0)
+    {
+      Dwarf_Addr symbias = ~0;
+      if (dwfl_module_getsymtab (module) != -1)
+	dwfl_module_info (module, NULL, NULL, NULL, NULL,
+			  &symbias, NULL, NULL);
+      if (symbias == (Dwarf_Addr) ~0)
+	symbias = module_bias;
+
+      lit_addr += symbias;
+    }
+
+  return lit_addr;
+}
 
 int
 dwflpp::dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes)

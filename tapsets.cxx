@@ -986,8 +986,9 @@ dwarf_query::query_module_dwarf()
       else
 	addr = statement_num_val;
 
-      // NB: we don't need to add the module base address or bias
-      // value here (for reasons that may be coincidental).
+      // Translate to an actual symbol address.
+      addr = dw.literal_addr_to_sym_addr (addr);
+
       Dwarf_Die* cudie = dw.query_cu_containing_address(addr);
       if (cudie) // address could be wildly out of range
         query_cu(cudie, this);
@@ -1546,6 +1547,11 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 	      Dwarf_Die d;
 	      q->dw.function_die (&d);
 
+	      // Translate literal address to symbol address, then
+	      // compensate for dw bias.
+	      query_addr = q->dw.literal_addr_to_sym_addr(query_addr);
+	      query_addr -= q->dw.module_bias;
+
 	      if (q->dw.die_has_pc (d, query_addr))
 		record_this_function = true;
 	    }
@@ -1576,6 +1582,12 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
               else if (q->has_statement_num)
                 {
                   func.entrypc = q->statement_num_val;
+
+		  // Translate literal address to symbol address, then
+		  // compensate for dw bias (will be used for query dw funcs).
+		  func.entrypc = q->dw.literal_addr_to_sym_addr(func.entrypc);
+		  func.entrypc -= q->dw.module_bias;
+
                   q->filtered_functions.push_back (func);
                   if (q->dw.function_name_final_match (q->function))
                     return DWARF_CB_ABORT;
