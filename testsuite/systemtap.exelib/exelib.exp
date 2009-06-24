@@ -31,7 +31,7 @@ set testsrclib  "$testpath/uprobes_lib.c"
 set testlibdir  "."
 
 set arches [list "default"]
-# BUG! non-default arch breaks ustack tests.
+# BUG! non-default arch breaks mark and ustack tests PR10318 and PR10272
 #switch -regexp $::tcl_platform(machine) {
 #    {^(x86_64|ppc64)$} { lappend arches "-m32" }
 #    {^s390x$} { lappend arches "-m31" }
@@ -45,7 +45,7 @@ foreach arch $arches {
 	# Adding -O, -O2, -Os and mixing lib/exe is a bit overdone
 	foreach opt {-O0 -O3} {
 	    
-	    foreach libprelink {no} { # BUG! "yes" breaks uname tests
+	    foreach libprelink {no yes} { # BUG! "yes" breaks ustack PR10323
 		
 		# not done yet, "no" lib debug.
 		foreach libdebug {yes sep} {
