@@ -536,7 +536,10 @@ to the working directory if they contain a "/" character, otherwise in
 If a process probe is specified without a PID or PATH, all user
 threads are probed.  PATH may sometimes name a shared library
 in which case all processes that map that shared library may be
-probed.
+probed.  However, if systemtap was invoked with the
+.IR -c " or " -x
+options, then process probes are restricted to the process
+hierarchy associated with the target process.
 
 .SS PROCFS
 

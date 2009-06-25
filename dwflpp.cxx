@@ -174,6 +174,10 @@ dwflpp::focus_on_function(Dwarf_Die * f)
 }
 
 
+/* Return the Dwarf_Die for the given address in the current module.
+ * The address should be in the module address address space (this
+ * function will take care of any dw bias).
+ */
 Dwarf_Die *
 dwflpp::query_cu_containing_address(Dwarf_Addr a)
 {
@@ -182,10 +186,6 @@ dwflpp::query_cu_containing_address(Dwarf_Addr a)
   assert(module);
   get_module_dwarf();
 
-  // globalize the module-relative address
-  if (module_name != TOK_KERNEL && dwfl_module_relocations (module) > 0)
-    a += module_start;
-
   Dwarf_Die* cudie = dwfl_module_addrdie(module, a, &bias);
   assert(bias == module_bias);
   return cudie;
@@ -193,7 +193,7 @@ dwflpp::query_cu_containing_address(Dwarf_Addr a)
 
 
 bool
-dwflpp::module_name_matches(string pattern)
+dwflpp::module_name_matches(const string& pattern)
 {
   bool t = (fnmatch(pattern.c_str(), module_name.c_str(), 0) == 0);
   if (t && sess.verbose>3)
@@ -205,7 +205,7 @@ dwflpp::module_name_matches(string pattern)
 
 
 bool
-dwflpp::name_has_wildcard(string pattern)
+dwflpp::name_has_wildcard(const string& pattern)
 {
   return (pattern.find('*') != string::npos ||
           pattern.find('?') != string::npos ||
@@ -214,7 +214,7 @@ dwflpp::name_has_wildcard(string pattern)
 
 
 bool
-dwflpp::module_name_final_match(string pattern)
+dwflpp::module_name_final_match(const string& pattern)
 {
   // Assume module_name_matches().  Can there be any more matches?
   // Not unless the pattern is a wildcard, since module names are
@@ -224,7 +224,7 @@ dwflpp::module_name_final_match(string pattern)
 
 
 bool
-dwflpp::function_name_matches_pattern(string name, string pattern)
+dwflpp::function_name_matches_pattern(const string& name, const string& pattern)
 {
   bool t = (fnmatch(pattern.c_str(), name.c_str(), 0) == 0);
   if (t && sess.verbose>3)
@@ -236,7 +236,7 @@ dwflpp::function_name_matches_pattern(string name, string pattern)
 
 
 bool
-dwflpp::function_name_matches(string pattern)
+dwflpp::function_name_matches(const string& pattern)
 {
   assert(function);
   return function_name_matches_pattern(function_name, pattern);
@@ -244,7 +244,7 @@ dwflpp::function_name_matches(string pattern)
 
 
 bool
-dwflpp::function_name_final_match(string pattern)
+dwflpp::function_name_final_match(const string& pattern)
 {
   return module_name_final_match (pattern);
 }
@@ -565,26 +565,26 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
         clog << "function cache " << key << " size " << v->size() << endl;
     }
 
-  string subkey = function;
-  if (v->find(subkey) != v->end())
+  cu_function_cache_t::iterator it = v->find(function);
+  if (it != v->end())
     {
-      Dwarf_Die die = v->find(subkey)->second;
+      Dwarf_Die die = it->second;
       if (sess.verbose > 4)
-        clog << "function cache " << key << " hit " << subkey << endl;
+        clog << "function cache " << key << " hit " << function << endl;
       return (*callback)(& die, q);
     }
-  else if (name_has_wildcard (subkey))
+  else if (name_has_wildcard (function))
     {
-      for (cu_function_cache_t::iterator it = v->begin(); it != v->end(); it++)
+      for (it = v->begin(); it != v->end(); it++)
         {
         if (pending_interrupts) return DWARF_CB_ABORT;
           string func_name = it->first;
           Dwarf_Die die = it->second;
-          if (function_name_matches_pattern (func_name, subkey))
+          if (function_name_matches_pattern (func_name, function))
             {
               if (sess.verbose > 4)
                 clog << "function cache " << key << " match " << func_name << " vs "
-                     << subkey << endl;
+                     << function << endl;
 
               rc = (*callback)(& die, q);
               if (rc != DWARF_CB_OK) break;
@@ -2378,6 +2378,33 @@ dwflpp::relocate_address(Dwarf_Addr dw_addr,
   return reloc_addr;
 }
 
+/* Converts a "global" literal address to the module symbol address
+ * space.  If necessary (not for kernel and executables using absolute
+ * addresses), this adjust the address for the current module symbol
+ * bias.  Literal addresses are provided by the user (or contained on
+ * the .probes section) based on the "on disk" layout of the module.
+ */
+Dwarf_Addr
+dwflpp::literal_addr_to_sym_addr(Dwarf_Addr lit_addr)
+{
+  // Assume the address came from the symbol list.
+  // If we cannot get the symbol bias fall back on the dw bias.
+  // The kernel (and other absolute executable modules) is special though.
+  if (module_name != TOK_KERNEL
+      && dwfl_module_relocations (module) > 0)
+    {
+      Dwarf_Addr symbias = ~0;
+      if (dwfl_module_getsymtab (module) != -1)
+	dwfl_module_info (module, NULL, NULL, NULL, NULL,
+			  &symbias, NULL, NULL);
+      if (symbias == (Dwarf_Addr) ~0)
+	symbias = module_bias;
+
+      lit_addr += symbias;
+    }
+
+  return lit_addr;
+}
 
 int
 dwflpp::dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes)

@@ -31,7 +31,7 @@ set testsrclib  "$testpath/uprobes_lib.c"
 set testlibdir  "."
 
 set arches [list "default"]
-# BUG! non-default arch breaks ustack tests.
+# BUG! non-default arch breaks mark and ustack tests PR10318 and PR10272
 #switch -regexp $::tcl_platform(machine) {
 #    {^(x86_64|ppc64)$} { lappend arches "-m32" }
 #    {^s390x$} { lappend arches "-m31" }
@@ -39,25 +39,37 @@ set arches [list "default"]
 
 foreach arch $arches {
 
-    foreach compiler {gcc g++} {
+    # Compiling with plain gcc.  g++ is also supported but disabled
+    # because it didn't add much interesting differences in binaries
+    # and exploded the test search case a bit.
+    foreach compiler {gcc} { # Add g++
 	
 	# Just try -O0 and -O3.
 	# Adding -O, -O2, -Os and mixing lib/exe is a bit overdone
 	foreach opt {-O0 -O3} {
 	    
-	    foreach libprelink {no} { # BUG! "yes" breaks uname tests
+	    foreach libprelink {no yes} { # BUG! "yes" breaks ustack PR10323
 		
 		# not done yet, "no" lib debug.
-		foreach libdebug {yes sep} {
+		# seperate debuginfo can be done before or after prelinking
+		# (after is only done if prelinking is also done
+		foreach libdebug {yes sep sep-after} {
 		    
 		    set libname "uprobeslib${compiler}${opt}${arch}"
 		    
 		    if {$libprelink == "yes"} {
 			set libname $libname-prelink
 		    }
+
+		    # This combination doesn't make sense
+		    if {$libdebug == "sep-after" && $libprelink == "no"} {
+			continue;
+		    }
 		    
 		    if {$libdebug == "sep"} {
 			set libname $libname-sep-debug
+		    } elseif {$libdebug == "sep-after"} {
+			set libname $libname-sep-debug-after
 		    } else {
 			set libname $libname-debug
 		    }
@@ -89,7 +101,7 @@ foreach arch $arches {
 			pass "$libname compile $testsrclib"
 		    }
 		    
-		    
+		    # seperate debuginfo before prelinking
 		    if {$libdebug == "sep"} {
 			seperate_debuginfo $testso
 		    }
@@ -103,6 +115,11 @@ foreach arch $arches {
 			verbose -log "result is $result"
 		    }
 		    
+		    # seperate debuginfo after prelinking
+		    if {$libdebug == "sep-after"} {
+			seperate_debuginfo $testso
+		    }
+
 		    # should we also prelink exes?
 		    foreach exepie {no yes} {
 			# not supported, "no" exe debug.
