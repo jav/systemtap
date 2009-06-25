@@ -16,7 +16,7 @@
  *
  *  Return the processor cycle counter value, or 0 if unavailable.
  */
-function get_cycles:long () %{ /* pure */
+function get_cycles:long () %{ /* pure */ /* unprivileged */
   cycles_t c = get_cycles();
   THIS->__retvalue = (int64_t) c;
 %}

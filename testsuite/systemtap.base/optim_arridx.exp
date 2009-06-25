@@ -10,7 +10,7 @@ elide_global_a:long
 elide_global_b:long
 # functions
 exit:unknown ()
-%{
+%{ /* unprivileged */
     atomic_set (&session_state, STAP_SESSION_STOPPING);
     _stp_exit ();
 %}

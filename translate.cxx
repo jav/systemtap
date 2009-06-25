@@ -57,7 +57,8 @@ struct c_unparser: public unparser, public visitor
 
   c_unparser (systemtap_session* ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
-  tmpvar_counter (0), label_counter (0) {}
+    tmpvar_counter (0), label_counter (0),
+    vcv_needs_global_locks (*ss) {}
   ~c_unparser () {}
 
   void emit_map_type_instantiations ();
@@ -1600,7 +1601,7 @@ c_unparser::emit_probe (derived_probe* v)
       v->emit_probe_local_init(o);
 
       // emit all read/write locks for global variables
-      varuse_collecting_visitor vut;
+      varuse_collecting_visitor vut(*session);
       if (v->needs_global_locks ())
         {
 	  v->body->visit (& vut);

@@ -8,21 +8,21 @@
 
 // send a string out with a newline
 // Deprecated.  print* functions are much more efficient.
-function log (msg:string) %{
+function log (msg:string) %{ /* unprivileged */
 	_stp_printf ("%s\n", THIS->msg);
 %}
 
-function warn (msg:string) %{
+function warn (msg:string) %{ /* unprivileged */
     _stp_warn ("%s", THIS->msg);
 %}
 
 // NB: exit() does *not* cause immediate return from current function/probe
-function exit () %{
+function exit () %{ /* unprivileged */
     atomic_set (&session_state, STAP_SESSION_STOPPING);
     _stp_exit ();
 %}
 
-function error (msg:string) %{
+function error (msg:string) %{ /* unprivileged */
     /* This is an assignment of a local char[] to a global char*.
        It would normally be just as unsafe as returning a pointer to
        a local variable from a function.  However, the translated

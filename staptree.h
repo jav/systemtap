@@ -23,6 +23,8 @@ extern "C" {
 }
 
 struct token; // parse.h
+struct systemtap_session; // session.h
+
 struct semantic_error: public std::runtime_error
 {
   const token* tok1;
@@ -752,12 +754,14 @@ struct functioncall_traversing_visitor: public traversing_visitor
 // the elaboration-time optimizer pass.
 struct varuse_collecting_visitor: public functioncall_traversing_visitor
 {
+  systemtap_session& session;
   std::set<vardecl*> read;
   std::set<vardecl*> written;
   bool embedded_seen;
   expression* current_lvalue;
   expression* current_lrvalue;
-  varuse_collecting_visitor():
+  varuse_collecting_visitor(systemtap_session& s):
+    session (s),
     embedded_seen (false),
     current_lvalue(0),
     current_lrvalue(0) {}

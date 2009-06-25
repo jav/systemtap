@@ -1044,7 +1044,7 @@ semantic_pass_conditions (systemtap_session & sess)
       expression* e = p->sole_location()->condition;
       if (e)
         {
-          varuse_collecting_visitor vut;
+          varuse_collecting_visitor vut(sess);
           e->visit (& vut);
 
           if (! vut.written.empty())
@@ -1199,7 +1199,7 @@ void add_global_var_display (systemtap_session& s)
   // it would clutter up the list of probe points with "end ...".
   if (s.listing_mode) return;
 
-  varuse_collecting_visitor vut;
+  varuse_collecting_visitor vut(s);
   for (unsigned i=0; i<s.probes.size(); i++)
     {
       s.probes[i]->body->visit (& vut);
@@ -1986,7 +1986,7 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
 // written nor read.
 void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterations)
 {
-  varuse_collecting_visitor vut;
+  varuse_collecting_visitor vut(s);
 
   for (unsigned i=0; i<s.probes.size(); i++)
     {
@@ -2183,7 +2183,7 @@ dead_assignment_remover::visit_assignment (assignment* e)
 		break;
 	      }
 
-          varuse_collecting_visitor lvut;
+          varuse_collecting_visitor lvut(session);
           e->left->visit (& lvut);
           if (lvut.side_effect_free () && !is_global) // XXX: use _wrt() once we track focal_vars
             {
@@ -2216,7 +2216,7 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
   // Recompute the varuse data, which will probably match the opt2
   // copy of the computation, except for those totally unused
   // variables that opt2 removed.
-  varuse_collecting_visitor vut;
+  varuse_collecting_visitor vut(s);
   for (unsigned i=0; i<s.probes.size(); i++)
     s.probes[i]->body->visit (& vut); // includes reachable functions too
 
@@ -2320,7 +2320,7 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
         {
           // We may be able to elide this statement, if the condition
           // expression is side-effect-free.
-          varuse_collecting_visitor vct;
+          varuse_collecting_visitor vct(session);
           s->condition->visit(& vct);
           if (vct.side_effect_free ())
             {
@@ -2384,7 +2384,7 @@ dead_stmtexpr_remover::visit_for_loop (for_loop *s)
     {
       // We may be able to elide this statement, if the condition
       // expression is side-effect-free.
-      varuse_collecting_visitor vct;
+      varuse_collecting_visitor vct(session);
       if (s->init) s->init->visit(& vct);
       s->cond->visit(& vct);
       if (s->incr) s->incr->visit(& vct);
@@ -2421,7 +2421,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
   // NB.  While we don't share nodes in the parse tree, let's not
   // deallocate *s anyway, just in case...
 
-  varuse_collecting_visitor vut;
+  varuse_collecting_visitor vut(session);
   s->value->visit (& vut);
 
   if (vut.side_effect_free_wrt (focal_vars))
@@ -2761,7 +2761,7 @@ void_statement_reducer::visit_functioncall (functioncall* e)
       return;
     }
 
-  varuse_collecting_visitor vut;
+  varuse_collecting_visitor vut(session);
   vut.traversed.insert (e->referent);
   vut.current_function = e->referent;
   e->referent->body->visit (& vut);

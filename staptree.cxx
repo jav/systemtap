@@ -10,6 +10,7 @@
 #include "staptree.h"
 #include "parse.h"
 #include "util.h"
+#include "session.h"
 
 #include <iostream>
 #include <typeinfo>
@@ -1684,6 +1685,14 @@ functioncall_traversing_visitor::visit_functioncall (functioncall* e)
 void
 varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
 {
+  assert (current_function); // only they get embedded code
+
+  // Don't allow embedded C functions in unprivileged mode unless
+  // they are tagged with /* unprivileged */
+  if (session.unprivileged && s->code.find ("/* unprivileged */") == string::npos)
+    throw semantic_error ("function may not be used when --unprivileged is specified",
+			  current_function->tok);
+
   // We want to elide embedded-C functions when possible.  For
   // example, each $target variable access is expanded to an
   // embedded-C function call.  Yet, for safety reasons, we should
@@ -1694,7 +1703,6 @@ varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
   // $target variables as rvalues will have this; lvalues won't.
   // Also, explicit side-effect-free tapset functions will have this.
 
-  assert (current_function); // only they get embedded code
   if (s->code.find ("/* pure */") != string::npos)
     return;
 
