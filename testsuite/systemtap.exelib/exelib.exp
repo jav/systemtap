@@ -39,7 +39,10 @@ set arches [list "default"]
 
 foreach arch $arches {
 
-    foreach compiler {gcc g++} {
+    # Compiling with plain gcc.  g++ is also supported but disabled
+    # because it didn't add much interesting differences in binaries
+    # and exploded the test search case a bit.
+    foreach compiler {gcc} { # Add g++
 	
 	# Just try -O0 and -O3.
 	# Adding -O, -O2, -Os and mixing lib/exe is a bit overdone
