@@ -4438,13 +4438,13 @@ struct unwindsym_dump_context
 
 // Get the .debug_frame end .eh_frame sections for the given module.
 // Also returns the lenght of both sections when found, plus the section
-// address of the eh_frame data.
+// address (offset) of the eh_frame data.
 static void get_unwind_data (Dwfl_Module *m,
 			     void **debug_frame, void **eh_frame,
 			     size_t *debug_len, size_t *eh_len,
 			     Dwarf_Addr *eh_addr)
 {
-  Dwarf_Addr bias = 0;
+  Dwarf_Addr start, bias = 0;
   GElf_Ehdr *ehdr, ehdr_mem;
   GElf_Shdr *shdr, shdr_mem;
   Elf_Scn *scn;
@@ -4452,6 +4452,7 @@ static void get_unwind_data (Dwfl_Module *m,
   Elf *elf;
 
   // fetch .eh_frame info preferably from main elf file.
+  dwfl_module_info (m, NULL, &start, NULL, NULL, NULL, NULL, NULL);
   elf = dwfl_module_getelf(m, &bias);
   ehdr = gelf_getehdr(elf, &ehdr_mem);
   scn = NULL;
@@ -4464,7 +4465,11 @@ static void get_unwind_data (Dwfl_Module *m,
 	  data = elf_rawdata(scn, NULL);
 	  *eh_frame = data->d_buf;
 	  *eh_len = data->d_size;
-	  *eh_addr = shdr->sh_addr;
+	  // For ".dynamic" sections we want the offset, not absolute addr.
+	  if (dwfl_module_relocations (m) > 0)
+	    *eh_addr = shdr->sh_addr - start + bias;
+	  else
+	    *eh_addr = shdr->sh_addr;
 	  break;
 	}
     }
