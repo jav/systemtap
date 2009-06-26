@@ -887,6 +887,23 @@ dwarf_builder::probe_table::convert_probe (probe *new_base)
   be->right = new literal_string(mark_name);
   is->condition = be;
   b->statements.insert(b->statements.begin(),(statement*) is);
+
+#ifdef __i386__
+  if (probe_type == kprobe_type)
+    {
+      functioncall *rp = new functioncall;
+      rp->tok = new_base->body->tok;
+      rp->function = "regparm";
+      rp->tok = new_base->body->tok;
+      literal_number* littid = new literal_number(0);
+      littid->tok = new_base->body->tok;
+      rp->args.push_back(littid);
+      expr_statement* es = new expr_statement;
+      es->tok = new_base->body->tok;
+      es->value = rp;
+      b->statements.insert(b->statements.begin(),(statement*) es);
+    }
+#endif
 }
 
 
