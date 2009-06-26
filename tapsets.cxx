@@ -672,6 +672,8 @@ struct dwarf_builder: public derived_probe_builder
     string & mark_name;
     string probe_name;
     probe_table(string & mark_name, systemtap_session & sess, dwflpp * dw);
+    bool is_uprobe() {return probe_type == uprobe_type;};
+    bool is_utrace() {return probe_type == utrace_type;};
     bool get_next_probe();
     void convert_probe(probe *new_base);
     void convert_location(probe *new_base, probe_point *new_location);
@@ -849,9 +851,9 @@ dwarf_builder::probe_table::convert_probe (probe *new_base)
       betid->left = task_tid;
       functioncall *arg2tid = new functioncall;
       arg2tid->tok = new_base->body->tok;
-      arg2tid->function = "ulong_arg";
+      arg2tid->function = "_utrace_syscall_arg";
       arg2tid->tok = new_base->body->tok;
-      literal_number* littid = new literal_number(2);
+      literal_number* littid = new literal_number(1);
       littid->tok = new_base->body->tok;
       arg2tid->args.push_back(littid);
 
@@ -862,9 +864,9 @@ dwarf_builder::probe_table::convert_probe (probe *new_base)
   
   // Generate: if (arg1 != mark("label")) next;
   functioncall *fc = new functioncall;
-  fc->function = "ulong_arg";
+  fc->function = (probe_type == utrace_type) ? "_utrace_syscall_arg" : "ulong_arg";
   fc->tok = new_base->body->tok;
-  literal_number* num = new literal_number(1);
+  literal_number* num = new literal_number((probe_type == utrace_type) ? 0 : 1);
   num->tok = new_base->body->tok;
   fc->args.push_back(num);
 
@@ -3325,15 +3327,17 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 struct sdt_var_expanding_visitor: public var_expanding_visitor
 {
   sdt_var_expanding_visitor(string & process_name, string & probe_name,
-			    int arg_count, bool have_reg_args):
+			    int arg_count, bool have_reg_args, bool utrace_probe):
     process_name (process_name), probe_name (probe_name),
-    have_reg_args (have_reg_args), arg_count (arg_count)
+    have_reg_args (have_reg_args), utrace_probe (utrace_probe),
+    arg_count (arg_count)
   {
     assert(!have_reg_args || (arg_count >= 0 && arg_count <= 10));
   }
   string & process_name;
   string & probe_name;
   bool have_reg_args;
+  bool utrace_probe;
   int arg_count;
 
   void visit_target_symbol (target_symbol* e);
@@ -3365,10 +3369,10 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   // First two args are hidden: 1. pointer to probe name 2. task id
   if (arg_count < 2)
     {
-      fc->function = "ulong_arg";
+      fc->function = utrace_probe ? "_utrace_syscall_arg" : "ulong_arg";
       fc->type = pe_long;
       fc->tok = e->tok;
-      literal_number* num = new literal_number(argno + 2);
+      literal_number* num = new literal_number(argno + (utrace_probe ? 1 : 2));
       num->tok = e->tok;
       fc->args.push_back(num);
     }
@@ -3379,9 +3383,9 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       binary_expression *be = new binary_expression;
       be->tok = e->tok;
       functioncall *get_arg1 = new functioncall;
-      get_arg1->function = "pointer_arg";
+      get_arg1->function = utrace_probe ? "_utrace_syscall_arg" : "pointer_arg";
       get_arg1->tok = e->tok;
-      literal_number* num = new literal_number(3);
+      literal_number* num = new literal_number((utrace_probe ? 2 : 3));
       num->tok = e->tok;
       get_arg1->args.push_back(num);
 
@@ -3453,7 +3457,7 @@ dwarf_builder::build(systemtap_session & sess,
       if (sess.verbose > 3)
 	clog << "TOK_MARK: " << probe_table.mark_name << endl;
 
-      if (probe_table.probe_type == probe_table.uprobe_type)
+      if (probe_table.is_uprobe())
 	{
 	  do
 	    {
@@ -3478,7 +3482,7 @@ dwarf_builder::build(systemtap_session & sess,
 	    
 	      // Now expand the local variables in the probe body
 	      sdt_var_expanding_visitor svv (module_name, probe_table.probe_name,
-					     probe_table.probe_arg, false);
+					     probe_table.probe_arg, false, false);
 	      new_base->body = svv.require (new_base->body);
 
 	      dwarf_query q(sess, new_base, new_location, *dw, parameters, finished_results);
@@ -3518,7 +3522,8 @@ dwarf_builder::build(systemtap_session & sess,
 
 	      // Expand the local variables in the probe body
 	      sdt_var_expanding_visitor svv (module_name, probe_table.probe_name,
-					     probe_table.probe_arg, true);
+					     probe_table.probe_arg, true,
+					     probe_table.is_utrace());
 	      new_base->body = svv.require (new_base->body);
 	      probe_table.convert_location(new_base, new_location);
 	      derive_probes(sess, new_base, finished_results);
