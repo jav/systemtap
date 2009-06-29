@@ -7,15 +7,9 @@ system "rm -f %*"
 set format %%%S_%T
 exec stap -o $format -we {probe begin {println("hello");exit()}}
 
-spawn ls -1
-set ok 0
-expect {
-  -re {%([0-9][0-9])_[0-9][0-9]:[0-9][0-9]:\1} {incr ok}
-  eof { }
-}
-wait
+set file [glob -nocomplain -types f %\[0-9\]\[0-9\]_\[0-9\]\[0-9\]:\[0-9\]\[0-9\]:\[0-9\]\[0-9\]]
 
-if {$ok == 1} {
+if {[llength $file] == 1} {
   pass "$test (%S and %T)"
 } else {
   fail "$test (%S and %T)"
@@ -27,19 +21,8 @@ set format %%,%C,%Y,%y,%m,%d,%e,%F,%H,%I,%j,%k,%l,%M,%R,%u,%w
 set date1 [exec date +$format]
 # run stapio with strftime
 exec stap -o $format -we {probe begin {println("hello");exit()}}
-# check whether stap outputs stapio pid
-set date2 [exec date +$format]
 
-spawn ls -1
-set ok 0
-expect {
-  $date1 {incr ok}
-  $date2 {incr ok}
-  eof { }
-}
-wait
-
-if {$ok == 1} {
+if {[file exists $date1]} {
   pass "$test (except %S and %T)"
 } else {
   fail "$test (except %S and %T)"
