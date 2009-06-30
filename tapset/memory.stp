@@ -15,6 +15,7 @@
 
 global VM_FAULT_OOM=0, VM_FAULT_SIGBUS=1, VM_FAULT_MINOR=2, VM_FAULT_MAJOR=3
 global VM_FAULT_NOPAGE=4, VM_FAULT_LOCKED=5, VM_FAULT_ERROR=6
+global FAULT_FLAG_WRITE=1
 
 /**
  * sfunction vm_fault_contains - Test return value for page fault reason
@@ -64,7 +65,11 @@ function vm_fault_contains:long (value:long, test:long)
 probe vm.pagefault = kernel.function("__handle_mm_fault@mm/memory.c") ?,
                      kernel.function("handle_mm_fault@mm/memory.c") ?
 {
+%( kernel_v >= "2.6.31" %?
+	write_access = $flags & FAULT_FLAG_WRITE
+%:
 	write_access = $write_access
+%)
 	address =  $address
 }
 
