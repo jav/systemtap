@@ -18,7 +18,11 @@
  * @elevator_name: The type of I/O elevator currently enabled
  */
 probe ioscheduler.elv_next_request
-	=  kernel.function("elv_next_request")
+	=  %( kernel_v >= "2.6.31" %? 
+		kernel.function("blk_peek_request") 
+	   %:
+		kernel.function("elv_next_request")
+	   %)
 {
 %( kernel_v >= "2.6.10" %?
 	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
@@ -35,7 +39,11 @@ probe ioscheduler.elv_next_request
  * @disk_minor: Disk minor number of the request
  */
 probe ioscheduler.elv_next_request.return
-	= kernel.function("elv_next_request").return
+        =  %( kernel_v >= "2.6.31" %?
+                kernel.function("blk_peek_request").return
+           %:   
+                kernel.function("elv_next_request").return
+           %)
 {
 	if($return == 0)  {
 		req = 0
