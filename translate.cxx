@@ -4546,7 +4546,7 @@ dump_unwindsyms (Dwfl_Module *m,
     // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
 #ifdef _ELFUTILS_PREREQ
   #if _ELFUTILS_PREREQ(0,138)
-    // Let's standardize to the buggy "end of build-id bits" behavior. 
+    // Let's standardize to the buggy "end of build-id bits" behavior.
     build_id_vaddr += build_id_len;
   #endif
   #if !_ELFUTILS_PREREQ(0,141)
@@ -4661,7 +4661,7 @@ dump_unwindsyms (Dwfl_Module *m,
                 {
                   // This is a symbol within a (possibly relocatable)
                   // kernel image.
-                  
+
 		  // We only need the function symbols to identify kernel-mode
 		  // PC's, so we omit undefined or "fake" absolute addresses.
 		  // These fake absolute addresses occur in some older i386
@@ -4874,10 +4874,10 @@ dump_unwindsyms (Dwfl_Module *m,
     for (int j=0; j<build_id_len;j++)
       c->output << "\\x" << hex
                 << (unsigned short) *(build_id_bits+j) << dec;
-    
+
     c->output << "\",\n";
     c->output << ".build_id_len = " << build_id_len << ",\n";
-    
+
     /* XXX: kernel data boot-time relocation works differently from text.
        This hack disables relocation altogether, but that's not necessarily
        correct either.  We may instead need a relocation basis different
@@ -4891,7 +4891,7 @@ dump_unwindsyms (Dwfl_Module *m,
                 << dec << ",\n";
   } else
     c->output << ".build_id_len = 0,\n";
-  
+
   //initialize the note section representing unloaded
   c->output << ".notes_sect = 0,\n";
 
@@ -5034,8 +5034,13 @@ emit_symbol_data_done (unwindsym_dump_context *ctx, systemtap_session& s)
   ctx->output << "};\n";
   ctx->output << "static unsigned _stp_num_modules = " << ctx->stp_module_index << ";\n";
 
-  ctx->output << "static unsigned long _stp_kretprobe_trampoline = 0x"
-	      << hex << ctx->stp_kretprobe_trampoline_addr << dec << ";\n";
+  ctx->output << "static unsigned long _stp_kretprobe_trampoline = ";
+  // Special case for -1, which is invalid in hex if host width > target width.
+  if (ctx->stp_kretprobe_trampoline_addr == (unsigned long) -1)
+    ctx->output << "-1;\n";
+  else
+    ctx->output << "0x" << hex << ctx->stp_kretprobe_trampoline_addr << dec
+		<< ";\n";
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
   for (set<string>::iterator it = ctx->undone_unwindsym_modules.begin();
