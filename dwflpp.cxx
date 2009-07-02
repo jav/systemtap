@@ -563,28 +563,39 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
       dwarf_getfuncs (cu, cu_function_caching_callback, v, 0);
       if (sess.verbose > 4)
         clog << "function cache " << key << " size " << v->size() << endl;
+      mod_info->update_symtab(v);
     }
 
   cu_function_cache_t::iterator it = v->find(function);
   if (it != v->end())
     {
-      Dwarf_Die die = it->second;
+      Dwarf_Die& die = it->second;
       if (sess.verbose > 4)
         clog << "function cache " << key << " hit " << function << endl;
       return (*callback)(& die, q);
     }
   else if (name_has_wildcard (function))
     {
+      // track addresses we've already seen
+      set<Dwarf_Addr> alias_dupes;
+
       for (it = v->begin(); it != v->end(); it++)
         {
-        if (pending_interrupts) return DWARF_CB_ABORT;
-          string func_name = it->first;
-          Dwarf_Die die = it->second;
+          if (pending_interrupts) return DWARF_CB_ABORT;
+          const string& func_name = it->first;
+          Dwarf_Die& die = it->second;
           if (function_name_matches_pattern (func_name, function))
             {
               if (sess.verbose > 4)
                 clog << "function cache " << key << " match " << func_name << " vs "
                      << function << endl;
+
+              // make sure that this function address hasn't
+              // already been matched under an aliased name
+              Dwarf_Addr addr;
+              if (dwarf_entrypc(&die, &addr) == 0 &&
+                  !alias_dupes.insert(addr).second)
+                continue;
 
               rc = (*callback)(& die, q);
               if (rc != DWARF_CB_OK) break;
