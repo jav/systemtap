@@ -87,6 +87,7 @@ module_info
   info_status symtab_status;    // symbol table cached?
 
   void get_symtab(dwarf_query *q);
+  void update_symtab(cu_function_cache_t *funcs);
 
   module_info(const char *name) :
     mod(NULL),
@@ -128,28 +129,6 @@ struct func_info
   Dwarf_Addr entrypc;
   Dwarf_Addr prologue_end;
   bool weak;
-
-  // Comparison functor for list of functions sorted by address. The
-  // two versions that take a Dwarf_Addr let us use the STL algorithms
-  // upper_bound, equal_range et al., but we don't know whether the
-  // searched-for value will be passed as the first or the second
-  // argument.
-  struct Compare
-  {
-    bool operator() (const func_info* f1, const func_info* f2) const
-    {
-      return f1->addr < f2->addr;
-    }
-    // For doing lookups by address.
-    bool operator() (Dwarf_Addr addr, const func_info* f2) const
-    {
-      return addr < f2->addr;
-    }
-    bool operator() (const func_info* f1, Dwarf_Addr addr) const
-    {
-      return f1->addr < addr;
-    }
-  };
 };
 
 

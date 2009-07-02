@@ -282,24 +282,20 @@ symbol_table
 {
   module_info *mod_info;	// associated module
   map<string, func_info*> map_by_name;
-  vector<func_info*> list_by_addr;
-  typedef vector<func_info*>::iterator iterator_t;
+  multimap<Dwarf_Addr, func_info*> map_by_addr;
+  typedef multimap<Dwarf_Addr, func_info*>::iterator iterator_t;
   typedef pair<iterator_t, iterator_t> range_t;
 #ifdef __powerpc__
   GElf_Word opd_section;
 #endif
-  // add_symbol doesn't leave symbol table in order; call
-  // symbol_table::sort() when done adding symbols.
   void add_symbol(const char *name, bool weak, Dwarf_Addr addr,
                                                Dwarf_Addr *high_addr);
-  void sort();
   enum info_status read_symbols(FILE *f, const string& path);
   enum info_status read_from_elf_file(const string& path);
   enum info_status read_from_text_file(const string& path);
   enum info_status get_from_elf();
   void prepare_section_rejection(Dwfl_Module *mod);
   bool reject_section(GElf_Word section);
-  void mark_dwarf_redundancies(dwflpp *dw);
   void purge_syscall_stubs();
   func_info *lookup_symbol(const string& name);
   Dwarf_Addr lookup_symbol_address(const string& name);
@@ -1067,11 +1063,11 @@ dwarf_query::query_module_symtab()
               return;
             }
           symbol_table::iterator_t iter;
-          for (iter = sym_table->list_by_addr.begin();
-               iter != sym_table->list_by_addr.end();
+          for (iter = sym_table->map_by_addr.begin();
+               iter != sym_table->map_by_addr.end();
                ++iter)
             {
-              fi = *iter;
+              fi = iter->second;
               if (!null_die(&fi->die))
                 continue;       // already handled in query_module_dwarf()
               if (dw.function_name_matches_pattern(fi->name, function_str_val))
@@ -1119,10 +1115,15 @@ dwarf_query::query_module_symtab()
 void
 dwarf_query::handle_query_module()
 {
-  dw.get_module_dwarf(false,
-              (dbinfo_reqt == dbr_need_dwarf || !sess.consult_symtab));
+  bool report = dbinfo_reqt == dbr_need_dwarf || !sess.consult_symtab;
+  dw.get_module_dwarf(false, report);
+
+  // prebuild the symbol table to resolve aliases
+  dw.mod_info->get_symtab(this);
+
   if (dw.mod_info->dwarf_status == info_present)
     query_module_dwarf();
+
   // Consult the symbol table if we haven't found all we're looking for.
   // asm functions can show up in the symbol table but not in dwarf.
   if (sess.consult_symtab && !query_done)
@@ -1540,8 +1541,7 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 
       if (q->dw.func_is_inline ()
           && (! q->has_call) && (! q->has_return)
-	  && (((q->has_statement_str || q->has_function_str)
-	       && q->dw.function_name_matches(q->function))))
+	  && (q->has_statement_str || q->has_function_str))
 	{
 	  if (q->sess.verbose>3)
 	    clog << "checking instances of inline " << q->dw.function_name
@@ -1555,8 +1555,7 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 	{
 	  bool record_this_function = false;
 
-	  if ((q->has_statement_str || q->has_function_str)
-	      && q->dw.function_name_matches(q->function))
+	  if (q->has_statement_str || q->has_function_str)
 	    {
 	      record_this_function = true;
 	    }
@@ -3613,8 +3612,8 @@ dwarf_builder::build(systemtap_session & sess,
 
 symbol_table::~symbol_table()
 {
-  for (iterator_t i = list_by_addr.begin(); i != list_by_addr.end(); ++i)
-    delete *i;
+  for (iterator_t i = map_by_addr.begin(); i != map_by_addr.end(); ++i)
+    delete i->second;
 }
 
 void
@@ -3633,7 +3632,7 @@ symbol_table::add_symbol(const char *name, bool weak, Dwarf_Addr addr,
   map_by_name[fi->name] = fi;
   // TODO: Use a multimap in case there are multiple static
   // functions with the same name?
-  list_by_addr.push_back(fi);
+  map_by_addr.insert(make_pair(addr, fi));
 }
 
 enum info_status
@@ -3674,13 +3673,12 @@ symbol_table::read_symbols(FILE *f, const string& path)
         add_symbol(name, (type == 'W'), (Dwarf_Addr) addr, &high_addr);
     }
 
-  if (list_by_addr.size() < 1)
+  if (map_by_addr.size() < 1)
     {
       cerr << "Symbol table error: "
            << path << " contains no function symbols." << endl;
       return info_absent;
     }
-  sort();
   return info_present;
 }
 
@@ -3792,53 +3790,17 @@ symbol_table::get_from_elf()
         add_symbol(name, (GELF_ST_BIND(sym.st_info) == STB_WEAK),
                                               sym.st_value, &high_addr);
     }
-  sort();
   return info_present;
-}
-
-void
-symbol_table::mark_dwarf_redundancies(dwflpp *dw)
-{
-  // dwflpp.cu_function_cache maps each module_name:cu_name to a
-  // vector of Dwarf_Dies, one per function.
-  string module_prefix = string(mod_info->name) + ":";
-
-  for (mod_cu_function_cache_t::iterator cu = dw->cu_function_cache.begin();
-       cu != dw->cu_function_cache.end(); cu++)
-    {
-      string key = cu->first;
-      if (key.find(module_prefix) == 0)
-        {
-          // Found a compilation unit in the module of interest.
-          // Mark all its functions in the symbol table.
-          cu_function_cache_t* v = cu->second;
-          assert(v);
-          for (cu_function_cache_t::iterator fc = v->begin(); fc != v->end(); fc++)
-            {
-              Dwarf_Die func = fc->second;
-              string func_name = fc->first; // == dwarf_diename(&func);
-              // map_by_name[func_name]->die = func;
-              map<string, func_info*>::iterator i = map_by_name.find(func_name);
-              // Func names can show up in the dwarf but not the symtab (!).
-              if (i != map_by_name.end())
-                {
-                  func_info *fi = i->second;
-                  fi->die = func;
-                }
-            }
-        }
-    }
 }
 
 func_info *
 symbol_table::get_func_containing_address(Dwarf_Addr addr)
 {
-  iterator_t iter = upper_bound(list_by_addr.begin(), list_by_addr.end(), addr,
-                              func_info::Compare());
-  if (iter == list_by_addr.begin())
+  iterator_t iter = map_by_addr.upper_bound(addr);
+  if (iter == map_by_addr.begin())
     return NULL;
   else
-    return *(iter - 1);
+    return (--iter)->second;
 }
 
 func_info *
@@ -3873,36 +3835,30 @@ symbol_table::purge_syscall_stubs()
   Dwarf_Addr stub_addr = lookup_symbol_address("sys_ni_syscall");
   if (stub_addr == 0)
     return;
-  range_t purge_range = equal_range(list_by_addr.begin(), list_by_addr.end(),
-                                    stub_addr, func_info::Compare());
+  range_t purge_range = map_by_addr.equal_range(stub_addr);
   for (iterator_t iter = purge_range.first;
        iter != purge_range.second;
-       ++iter)
+       )
     {
-      func_info *fi = *iter;
+      func_info *fi = iter->second;
       if (fi->weak && fi->name != "sys_ni_syscall")
         {
           map_by_name.erase(fi->name);
+          map_by_addr.erase(iter++);
           delete fi;
-          *iter = 0;
         }
+      else
+        iter++;
     }
-  // Range might have null pointer entries that should be erased.
-  list_by_addr.erase(remove(purge_range.first, purge_range.second,
-                            (func_info*)0),
-                     purge_range.second);
-}
-
-void
-symbol_table::sort()
-{
-  stable_sort(list_by_addr.begin(), list_by_addr.end(), func_info::Compare());
 }
 
 void
 module_info::get_symtab(dwarf_query *q)
 {
   systemtap_session &sess = q->sess;
+
+  if (symtab_status != info_unknown)
+    return;
 
   sym_table = new symbol_table(this);
   if (!elf_path.empty())
@@ -3946,16 +3902,51 @@ module_info::get_symtab(dwarf_query *q)
       return;
     }
 
-  // If we have dwarf for the same module, mark the redundant symtab
-  // entries.
-  //
-  // In dwarf_query::handle_query_module(), the call to query_module_dwarf()
-  // precedes the call to query_module_symtab().  So we should never read
-  // a module's symbol table without first having tried to get its dwarf.
-  sym_table->mark_dwarf_redundancies(&q->dw);
-
   if (name == TOK_KERNEL)
     sym_table->purge_syscall_stubs();
+}
+
+// update_symtab reconciles data between the elf symbol table and the dwarf
+// function enumeration.  It updates the symbol table entries with the dwarf
+// die that describes the function, which also signals to query_module_symtab
+// that a statement probe isn't needed.  In return, it also adds aliases to the
+// function table for names that share the same addr/die.
+void
+module_info::update_symtab(cu_function_cache_t *funcs)
+{
+  if (!sym_table)
+    return;
+
+  cu_function_cache_t new_funcs;
+
+  for (cu_function_cache_t::iterator func = funcs->begin();
+       func != funcs->end(); func++)
+    {
+      // optimization: inlines will never be in the symbol table
+      if (dwarf_func_inline(&func->second) != 0)
+        continue;
+
+      func_info *fi = sym_table->lookup_symbol(func->first);
+      if (!fi)
+        continue;
+
+      // iterate over all functions at the same address
+      symbol_table::range_t er = sym_table->map_by_addr.equal_range(fi->addr);
+      for (symbol_table::iterator_t it = er.first; it != er.second; ++it)
+        {
+          // update this function with the dwarf die
+          it->second->die = func->second;
+
+          // if this function is a new alias, then
+          // save it to merge into the function cache
+          if (it->second != fi)
+            new_funcs[it->second->name] = it->second->die;
+        }
+    }
+
+  // add all discovered aliases back into the function cache
+  // NB: this won't replace any names that dwarf may have already found
+  funcs->insert(new_funcs.begin(), new_funcs.end());
 }
 
 module_info::~module_info()

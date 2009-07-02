@@ -53,7 +53,7 @@
 This document was derived from other documents contributed to the SystemTap project by employees of Red Hat, IBM and Intel.\newline
 
 Copyright \copyright\space  2007 Red Hat Inc.\newline
-Copyright \copyright\space  2007 IBM Corp.\newline
+Copyright \copyright\space  2007-2009 IBM Corp.\newline
 Copyright \copyright\space  2007 Intel Corporation.\newline
 
 Permission is granted to copy, distribute and/or modify this document
@@ -852,6 +852,64 @@ kernel.statement("*@kernel/sched.c:2917")
 kernel.statement("bio_init@fs/bio.c+3")
 \end{verbatim}
 \end{vindent}
+
+
+\subsection{DWARF-less probing}
+\index{DWARF-less probing}
+
+In the absence of debugging information, you can still use the
+\emph{kprobe} family of probes to examine the entry and exit points of
+kernel and module functions. You cannot look up the arguments or local
+variables of a function using these probes. However, you can access
+the parameters by following this procedure:
+
+When you're stopped at the entry to a function, you can refer to the 
+function's arguments by number. For example, when probing the function 
+declared:
+
+\begin{vindent}
+\begin{verbatim}
+asmlinkage ssize_t sys_read(unsigned int fd, char __user * buf, size_t
+count)
+\end{verbatim}
+\end{vindent}
+
+You can obtain the values of \texttt{fd}, \texttt{buf}, and
+\texttt{count}, respectively, as \texttt{uint\_arg(1)},
+\texttt{pointer\_arg(2)}, and \texttt{ulong\_arg(3)}. In this case, your
+probe code must first call \texttt{asmlinkage()}, because on some
+architectures the asmlinkage attribute affects how the function's
+arguments are passed.
+
+When you're in a return probe, \texttt{\$return} isn't supported
+without DWARF, but you can call \texttt{returnval()} to get the value
+of the register in which the function value is typically returned, or
+call \texttt{returnstr()} to get a string version of that value.
+
+And at any code probepoint, you can call
+\texttt{{register("regname")}} to get the value of the specified CPU
+register when the probe point was hit.
+\texttt{u\_register("regname")} is like \texttt{register("regname")},
+but interprets the value as an unsigned integer.
+
+SystemTap supports the following constructs:
+\begin{vindent}
+\begin{verbatim}
+kprobe.function(FUNCTION)
+kprobe.function(FUNCTION).return
+kprobe.module(NAME).function(FUNCTION)
+kprobe.module(NAME).function(FUNCTION).return
+kprobe.statement(ADDRESS).absolute
+\end{verbatim}
+\end{vindent}
+
+Use \textbf{.function} probes for kernel functions and
+\textbf{.module} probes for probing functions of a specified module.
+If you do not know the absolute address of a kernel or module
+function, use \textbf{.statement} probes. Do not use wildcards in
+\textit{FUNCTION} and \textit{MODULE} names. Wildcards cause the probe
+to not register. Also, run statement probes in guru mode only.
+
 
 \begin{comment}
 \subsection{Marker probes}
