@@ -378,6 +378,9 @@ static void
 print_vars (unsigned int indent, Dwarf_Die *die)
 {
   Dwarf_Die child;
+  Dwarf_Attribute attr_mem;
+  Dwarf_Die typedie_mem;
+  Dwarf_Die *typedie;
   if (dwarf_child (die, &child) == 0)
     do
       switch (dwarf_tag (&child))
@@ -387,9 +390,7 @@ print_vars (unsigned int indent, Dwarf_Die *die)
 	  printf ("%*s%-30s[%6" PRIx64 "]", indent, "",
 		  dwarf_diename (&child),
 		  (uint64_t) dwarf_dieoffset (&child));
-	  Dwarf_Attribute attr_mem;
-	  Dwarf_Die typedie_mem;
-	  Dwarf_Die *typedie = dwarf_formref_die
+	  typedie = dwarf_formref_die
 	    (dwarf_attr_integrate (&child, DW_AT_type, &attr_mem),
 	     &typedie_mem);
 	  print_type (typedie, '\t');

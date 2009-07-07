@@ -251,9 +251,11 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	  break;
 
 	case DW_OP_drop:
-	  POP (ignore);
-	  emit ("%*s/* drop " STACKFMT "*/\n", indent * 2, "", ignore);
-	  break;
+	  {
+	    POP (ignore);
+	    emit ("%*s/* drop " STACKFMT "*/\n", indent * 2, "", ignore);
+	    break;
+	  }
 
 	case DW_OP_pick:
 	  sp = expr[i].number;
@@ -622,7 +624,7 @@ location_relative (struct obstack *pool,
 		   const Dwarf_Op *expr, size_t len, Dwarf_Addr address,
 		   struct location **input, Dwarf_Attribute *fb_attr)
 {
-  Dwarf_Sword *stack;
+  Dwarf_Sword *stack = NULL;
   unsigned int stack_depth = 0, max_stack = 0;
   inline void deepen (void)
     {
