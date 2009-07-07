@@ -1669,7 +1669,38 @@ c_translate_pointer_store (struct obstack *pool, int indent,
 }
 
 
+/* Translate a fragment to add an offset to the currently calculated
+   address of the input location. Used for struct fields. Only works
+   when location is already an actual base address.
+*/
 
+void
+c_translate_add_offset (struct obstack *pool, int indent, const char *comment,
+                        Dwarf_Sword off, struct location **input)
+{
+  indent++;
+  if (comment == NULL || comment[0] == '\0')
+    comment = "field offset";
+  switch ((*input)->type)
+    {
+    case loc_address:
+      obstack_printf (pool, "%*saddr += " SFORMAT "; // %s\n",
+		      indent * 2 + 2, "", off, comment);
+      *input = (*input)->next = new_synthetic_loc (pool, *input, false);
+    break;
+
+    case loc_register:
+      FAIL (*input, N_("cannot add offset of object in register"));
+      break;
+    case loc_noncontiguous:
+      FAIL (*input, N_("cannot add offset of noncontiguous object"));
+      break;
+
+    default:
+      abort ();
+      break;
+    }
+}
 
 /* Determine the element stride of an array type.  */
 static Dwarf_Word

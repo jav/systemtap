@@ -85,6 +85,13 @@ c_translate_pointer_store (struct obstack *pool, int indent,
                            Dwarf_Die *typedie, struct location **input,
                            const char *rvalue);
 
+/* Translate a fragment to add an offset to the currently calculated
+   address of the input location. Used for struct fields. Only works
+   when location is already an actual base address. */
+void
+c_translate_add_offset (struct obstack *pool, int indent, const char *comment,
+			Dwarf_Sword off, struct location **input);
+
 /* Translate a C fragment for a direct argument VALUE.  On errors, call FAIL,
    which should not return.  Any later errors will use FAIL and FAIL_ARG from
    this translate call.  On success, return the fragment created. */

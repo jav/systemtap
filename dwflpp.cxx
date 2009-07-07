@@ -1449,6 +1449,24 @@ dwflpp::translate_location(struct obstack *pool,
                            struct location **tail,
                            const target_symbol *e)
 {
+
+  /* DW_AT_data_member_location, can be either constant offsets
+     (struct member fields), or full blown location expressions. */
+  if (dwarf_whatattr (attr) == DW_AT_data_member_location)
+    {
+      unsigned int form = dwarf_whatform (attr);
+      if (form == DW_FORM_data1 || form == DW_FORM_data2
+	  || form == DW_FORM_sdata || form == DW_FORM_udata)
+	{
+	  Dwarf_Sword off;
+	  if (dwarf_formsdata (attr, &off) != 0)
+	    throw semantic_error (string ("dwarf_formsdata failed, ")
+				  + string (dwarf_errmsg (-1)), e->tok);
+	  c_translate_add_offset (pool, 1, NULL, off, tail);
+	  return *tail;
+	}
+    }
+
   Dwarf_Op *expr;
   size_t len;
 
@@ -1470,7 +1488,7 @@ dwflpp::translate_location(struct obstack *pool,
 
     default:			/* Shouldn't happen.  */
     case -1:
-      throw semantic_error (string ("dwarf_getlocation_addr failed") +
+      throw semantic_error (string ("dwarf_getlocation_addr failed, ") +
                             string (dwarf_errmsg (-1)),
                             e->tok);
     }
