@@ -38,6 +38,11 @@ static void _stp_close_procfs(void);
  */
 static void _stp_rmdir_proc_module(void)
 {
+	if (!_stp_lock_transport_dir()) {
+		errk("Unable to lock transport directory.\n");
+		return;
+	}
+
         if (_stp_proc_root && _stp_proc_root->subdir == NULL) {
 		if (atomic_read(&_stp_proc_root->count) != LAST_ENTRY_COUNT)
 			_stp_warn("Removal of /proc/systemtap/%s\nis deferred until it is no longer in use.\n"
@@ -46,12 +51,7 @@ static void _stp_rmdir_proc_module(void)
 		_stp_proc_root = NULL;
 	}
 
-	if (_stp_proc_stap) {
-		if (!_stp_lock_transport_dir()) {
-			errk("Unable to lock transport directory.\n");
-			return;
-		}
-
+	if (_stp_proc_stap && _stp_proc_stap->subdir == NULL) {
 		/* Important! Do not attempt removal of /proc/systemtap */
 		/* if in use.  This will put the PDE in deleted state */
 		/* pending usage count dropping to 0. During this time, */
@@ -63,9 +63,8 @@ static void _stp_rmdir_proc_module(void)
 			remove_proc_entry("systemtap", NULL);
 			_stp_proc_stap = NULL;
 		}
-
-		_stp_unlock_transport_dir();
 	}
+	_stp_unlock_transport_dir();
 }
 
 

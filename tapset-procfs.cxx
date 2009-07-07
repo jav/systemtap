@@ -103,7 +103,19 @@ void
 procfs_derived_probe::join_group (systemtap_session& s)
 {
   if (! s.procfs_derived_probes)
-    s.procfs_derived_probes = new procfs_derived_probe_group ();
+    {
+      s.procfs_derived_probes = new procfs_derived_probe_group ();
+
+      // Make sure 'struct _stp_procfs_data' is defined early.
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = NULL;
+      ec->code = string("struct _stp_procfs_data {\n")
+	  + string("  const char *buffer;\n")
+	  + string("  off_t off;\n")
+	  + string("  unsigned long count;\n")
+	  + string("};\n");
+      s.embeds.push_back(ec);
+    }
   s.procfs_derived_probes->enroll (this);
 }
 
@@ -208,13 +220,15 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static int _stp_procfs_read(char *page, char **start, off_t off, int count, int *eof, void *data) {";
 
       s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
-      s.op->newline() << "int bytes = 0;";
-      s.op->newline() << "string_t strdata = {'\\0'};";
+      s.op->newline() << "struct _stp_procfs_data pdata;";
 
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->read_pp");
 
+      s.op->newline() << "pdata.buffer = page;";
+      s.op->newline() << "pdata.off = off;";
+      s.op->newline() << "pdata.count = count;";
       s.op->newline() << "if (c->data == NULL)";
-      s.op->newline(1) << "c->data = &strdata;";
+      s.op->newline(1) << "c->data = &pdata;";
       s.op->newline(-1) << "else {";
 
       s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
@@ -225,24 +239,16 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "goto probe_epilogue;";
       s.op->newline(-1) << "}";
 
-      // call probe function (which copies data into strdata)
+      // call probe function
       s.op->newline() << "(*spp->read_ph) (c);";
 
-      // copy string data into 'page'
+      // Note that _procfs_value_set copied string data into 'page'
       s.op->newline() << "c->data = NULL;";
-      s.op->newline() << "bytes = strnlen(strdata, MAXSTRINGLEN - 1);";
-      s.op->newline() << "if (off >= bytes)";
-      s.op->newline(1) << "*eof = 1;";
-      s.op->newline(-1) << "else {";
-      s.op->newline(1) << "bytes -= off;";
-      s.op->newline() << "if (bytes > count)";
-      s.op->newline(1) << "bytes = count;";
-      s.op->newline(-1) << "memcpy(page, strdata + off, bytes);";
-      s.op->newline() << "*start = page;";
-      s.op->newline(-1) << "}";
-
       common_probe_entryfn_epilogue (s.op);
-      s.op->newline() << "return bytes;";
+      s.op->newline() << "if (pdata.count == 0)";
+      s.op->newline(1) << "*eof = 1;";
+      s.op->indent(-1);
+      s.op->newline() << "return pdata.count;";
 
       s.op->newline(-1) << "}";
     }
@@ -251,16 +257,18 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static int _stp_procfs_write(struct file *file, const char *buffer, unsigned long count, void *data) {";
 
       s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
-      s.op->newline() << "string_t strdata = {'\\0'};";
+      s.op->newline() << "struct _stp_procfs_data pdata;";
 
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->write_pp");
 
       s.op->newline() << "if (count > (MAXSTRINGLEN - 1))";
       s.op->newline(1) << "count = MAXSTRINGLEN - 1;";
-      s.op->newline(-1) << "_stp_copy_from_user(strdata, buffer, count);";
+      s.op->indent(-1);
+      s.op->newline() << "pdata.buffer = buffer;";
+      s.op->newline() << "pdata.count = count;";
 
       s.op->newline() << "if (c->data == NULL)";
-      s.op->newline(1) << "c->data = &strdata;";
+      s.op->newline(1) << "c->data = &pdata;";
       s.op->newline(-1) << "else {";
 
       s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
@@ -271,7 +279,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "goto probe_epilogue;";
       s.op->newline(-1) << "}";
 
-      // call probe function (which copies data out of strdata)
+      // call probe function
       s.op->newline() << "(*spp->write_ph) (c);";
 
       s.op->newline() << "c->data = NULL;";
@@ -389,11 +397,22 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
   string locvalue = "CONTEXT->data";
 
   if (! lvalue)
-    ec->code = string("strlcpy (THIS->__retvalue, ") + locvalue
-      + string(", MAXSTRINGLEN); /* pure */");
+    ec->code = string("_stp_copy_from_user(THIS->__retvalue, ((struct _stp_procfs_data *)(")
+      + locvalue + string("))->buffer, ((struct _stp_procfs_data *)(") + locvalue
+      + string("))->count); /* pure */");
   else
-    ec->code = string("strlcpy (") + locvalue
-      + string(", THIS->value, MAXSTRINGLEN);");
+      ec->code = string("int bytes = 0;\n")
+	+ string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string(");\n")
+	+ string("    bytes = strnlen(THIS->value, MAXSTRINGLEN - 1);\n")
+	+ string("    if (data->off >= bytes)\n")
+	+ string("      bytes = 0;\n")
+	+ string("    else {\n")
+	+ string("      bytes -= data->off;\n")
+	+ string("      if (bytes > data->count)\n")
+	+ string("        bytes = data->count;\n")
+	+ string("      memcpy((void *)data->buffer, THIS->value + data->off, bytes);\n")
+	+ string("    }\n")
+	+ string("    data->count = bytes;\n");
 
   fdecl->name = fname;
   fdecl->body = ec;
