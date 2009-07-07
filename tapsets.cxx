@@ -312,15 +312,6 @@ static bool null_die(Dwarf_Die *die)
 }
 
 
-// PR 9941 introduces the need for a predicate
-
-int dwfl_report_offline_predicate (const char* modname, const char* filename)
-{
-  if (pending_interrupts) { return -1; }
-  return 1;
-}
-
-
 enum
 function_spec_type
   {
@@ -598,34 +589,36 @@ struct dwarf_query : public base_query
 
 struct dwarf_builder: public derived_probe_builder
 {
-  dwflpp *kern_dw;
+  map <string,dwflpp*> kern_dw;
   map <string,dwflpp*> user_dw;
-  dwarf_builder(): kern_dw(0) {}
+  dwarf_builder() {}
 
-  dwflpp *get_kern_dw(systemtap_session& sess)
+  dwflpp *get_kern_dw(systemtap_session& sess, const string& module)
   {
-    if (!kern_dw)
-      kern_dw = new dwflpp(sess);
-    return kern_dw;
+    if (kern_dw.find(module) == kern_dw.end())
+      kern_dw[module] = new dwflpp(sess, module, true);
+    return kern_dw[module];
   }
 
   dwflpp *get_user_dw(systemtap_session& sess, const string& module)
   {
     if (user_dw.find(module) == user_dw.end())
-      user_dw[module] = new dwflpp(sess, module);
+      user_dw[module] = new dwflpp(sess, module, false);
     return user_dw[module];
   }
 
   /* NB: not virtual, so can be called from dtor too: */
   void dwarf_build_no_more (bool verbose)
   {
-    if (kern_dw)
+    for (map<string,dwflpp*>::iterator udi = kern_dw.begin();
+         udi != kern_dw.end();
+         udi ++)
       {
         if (verbose)
-          clog << "dwarf_builder releasing kernel dwflpp" << endl;
-        delete kern_dw;
-        kern_dw = 0;
+          clog << "dwarf_builder releasing kernel dwflpp " << udi->first << endl;
+        delete udi->second;
       }
+    kern_dw.erase (kern_dw.begin(), kern_dw.end());
 
     for (map<string,dwflpp*>::iterator udi = user_dw.begin();
          udi != user_dw.end();
@@ -2715,7 +2708,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 	  if (module.find('/') == string::npos)
 	    {
 	      // kernel or kernel module target
-	      dw = db.get_kern_dw(s);
+	      dw = db.get_kern_dw(s, module);
 	    }
 	  else
 	    {
@@ -3445,11 +3438,13 @@ dwarf_builder::build(systemtap_session & sess,
   dwflpp* dw = 0;
 
   string module_name;
-  if (has_null_param (parameters, TOK_KERNEL)
-      || get_param (parameters, TOK_MODULE, module_name))
+  if (has_null_param (parameters, TOK_KERNEL))
     {
-      // kernel or kernel module target
-      dw = get_kern_dw(sess);
+      dw = get_kern_dw(sess, "kernel");
+    }
+  else if (get_param (parameters, TOK_MODULE, module_name))
+    {
+      dw = get_kern_dw(sess, module_name);
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
@@ -5703,7 +5698,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
               if (s.verbose > 2)
                 clog << "Pass 2: using cached " << s.tracequery_path << endl;
 
-              dw = new dwflpp(s, s.tracequery_path);
+              dw = new dwflpp(s, s.tracequery_path, false);
               close(fd);
               return true;
             }
@@ -5728,7 +5723,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
              << s.tracequery_path << "\"): " << strerror(errno) << endl;
     }
 
-  dw = new dwflpp(s, tracequery_ko);
+  dw = new dwflpp(s, tracequery_ko, false);
   return true;
 }
 
