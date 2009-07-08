@@ -84,12 +84,18 @@ function get_prot_from_client:long(clnt:long) %{ /* pure */
   1:get proto
 */
 function __i2n_ip_proto :long(dir:long,index:long) %{ /* pure */
-        int index = (int) (THIS->index);
-        struct inode * dir = (struct inode *)(uintptr_t)(THIS->dir);
-        struct rpc_clnt * clnt = NFS_CLIENT(dir); /* FIXME: deref hazard! */
-        struct rpc_xprt * cl_xprt = kread(&(clnt->cl_xprt));
+        int index;
+        struct inode * dir;
+        struct rpc_clnt * clnt;
+        struct rpc_xprt * cl_xprt;
+        struct sockaddr_in *addr;
+
+        index = (int) (THIS->index);
+        dir = (struct inode *)(uintptr_t)(THIS->dir);
+        clnt = NFS_CLIENT(dir); /* FIXME: deref hazard! */
+        cl_xprt = kread(&(clnt->cl_xprt));
   	/* sockaddr_storage is used since 2.6.19. Need cast*/
-	struct sockaddr_in *addr = (struct sockaddr_in *)&(cl_xprt->addr);
+	addr = (struct sockaddr_in *)&(cl_xprt->addr);
 
         if(index == 0) {
                 if (kread(&(addr->sin_family)) == AF_INET) {

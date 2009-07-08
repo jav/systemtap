@@ -189,10 +189,13 @@ function task_cpu:long (task:long)
 function task_open_file_handles:long (task:long)
 %( kernel_v >= "2.6.15" %?
 %{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    struct files_struct *fs = kread(&(t->files));
-    struct fdtable *f = kread(&(fs->fdt));
     unsigned int count=0, fd, max;
+    struct task_struct *t;
+    struct files_struct *fs;
+    struct fdtable *f;
+    t = (struct task_struct *)(long)THIS->task;
+    fs = kread(&(t->files));
+    f = kread(&(fs->fdt));
     rcu_read_lock();
     max = kread(&(f->max_fds));
     for (fd = 0; fd < max; fd++) {
@@ -205,9 +208,11 @@ function task_open_file_handles:long (task:long)
 %}
 %:
 %{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    struct files_struct *f = kread(&(t->files));
     unsigned int count=0, fd, max;
+    struct task_struct *t;
+    struct files_struct *f;
+    t = (struct task_struct *)(long)THIS->task;
+    f = kread(&(t->files));
     rcu_read_lock();
     max = kread(&(f->max_fds));
     for (fd = 0; fd < max; fd++) {
@@ -225,9 +230,12 @@ function task_open_file_handles:long (task:long)
 function task_max_file_handles:long (task:long)
 %( kernel_v >= "2.6.15" %?
 %{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    struct files_struct *fs = kread (&(t->files));
-    struct fdtable *f = kread(&(fs->fdt));
+    struct task_struct *t;
+    struct files_struct *fs;
+    struct fdtable *f;
+    t = (struct task_struct *)(long)THIS->task;
+    fs = kread (&(t->files));
+    f = kread(&(fs->fdt));
     rcu_read_lock();
     THIS->__retvalue = kread(&(f->max_fds));
     rcu_read_unlock();
@@ -235,8 +243,10 @@ function task_max_file_handles:long (task:long)
 %}
 %:
 %{ /* pure */
-    struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    struct files_struct *f = kread(&(t->files));
+    struct task_struct *t;
+    struct files_struct *f;
+    t = (struct task_struct *)(long)THIS->task;
+    f = kread(&(t->files));
     rcu_read_lock();
     THIS->__retvalue = kread(&(f->max_fds));
     rcu_read_unlock();
