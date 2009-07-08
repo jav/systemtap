@@ -47,9 +47,12 @@ function bio_rw_str(rw)
 /* returns start sector */
 function __bio_start_sect:long(bio:long)
 %{ /* pure */
-    struct bio *bio = (struct bio *)(long)THIS->bio;
-    struct block_device *bi_bdev = bio? kread(&(bio->bi_bdev)) : NULL;
-    struct hd_struct *bd_part = bi_bdev? kread(&(bi_bdev->bd_part)) : NULL;
+    struct bio *bio;
+    struct block_device *bi_bdev;
+    struct hd_struct *bd_part;
+    bio = (struct bio *)(long)THIS->bio;
+    bi_bdev = bio? kread(&(bio->bi_bdev)) : NULL;
+    bd_part = bi_bdev? kread(&(bi_bdev->bd_part)) : NULL;
     if (bd_part == NULL)
         THIS->__retvalue = -1;
     else

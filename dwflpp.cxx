@@ -63,16 +63,16 @@ using namespace __gnu_cxx;
 static string TOK_KERNEL("kernel");
 
 
-dwflpp::dwflpp(systemtap_session & session, const string& user_module):
+dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL), dwfl(NULL),
   module_dwarf(NULL), function(NULL), blacklist_enabled(false),
   pc_cached_scopes(0), num_cached_scopes(0), cached_scopes(NULL)
 {
-  if (user_module.empty())
-    setup_kernel();
+  if (kernel_p)
+    setup_kernel(name);
   else
-    setup_user(user_module);
+    setup_user(name);
 }
 
 
@@ -250,8 +250,32 @@ dwflpp::function_name_final_match(const string& pattern)
 }
 
 
+static const char *offline_search_modname = NULL;
+static int offline_search_match_p = 0;
+
+static int dwfl_report_offline_predicate (const char* modname, const char* filename)
+{
+  if (pending_interrupts)
+    return -1;
+
+  if (offline_search_match_p)
+    return -1;
+
+  assert (offline_search_modname);
+
+  /* Reject mismatching module names */
+  if (strcmp(modname, offline_search_modname))
+    return 0;
+  else
+    {
+      offline_search_match_p ++;
+      return 1;
+    }
+}
+
+
 void
-dwflpp::setup_kernel(bool debuginfo_needed)
+dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
 {
   // XXX: See also translate.cxx:emit_symbol_data
 
@@ -289,21 +313,31 @@ dwflpp::setup_kernel(bool debuginfo_needed)
   else
     elfutils_kernel_path = sess.kernel_build_tree;      
 
+  offline_search_modname = name.c_str();
+  offline_search_match_p = 0;
   int rc = dwfl_linux_kernel_report_offline (dwfl,
                                              elfutils_kernel_path.c_str(),
                                              &dwfl_report_offline_predicate);
+  offline_search_modname = NULL;
 
-  if (debuginfo_needed) {
-    if (rc) {
-      // Suggest a likely kernel dir to find debuginfo rpm for
-      string dir = string("/lib/modules/" + sess.kernel_release );
-      find_debug_rpms(sess, dir.c_str());
+  (void) rc; /* Ignore since the predicate probably returned -1 at some point,
+                And libdwfl interprets that as "whole query failed" rather than
+                "found it already, stop looking". */
+
+  /* But we still need to check whether the module was itself found.  One could
+     do an iterate_modules() search over the resulting dwfl and count hits.  Or
+     one could rely on the match_p flag being set just before. */
+  if (! offline_search_match_p)
+    {
+      if (debuginfo_needed) {
+        // Suggest a likely kernel dir to find debuginfo rpm for
+        string dir = string("/lib/modules/" + sess.kernel_release );
+        find_debug_rpms(sess, dir.c_str());
+      }
+      throw semantic_error (string("missing ") + sess.architecture +
+                            string(" kernel/module debuginfo under '") +
+                            sess.kernel_build_tree + string("'"));
     }
-    dwfl_assert (string("missing ") + sess.architecture +
-                 string(" kernel/module debuginfo under '") +
-                 sess.kernel_build_tree + string("'"),
-                 rc);
-  }
 
   // XXX: it would be nice if we could do a single
   // ..._report_offline call for an entire systemtap script, so
@@ -1415,6 +1449,24 @@ dwflpp::translate_location(struct obstack *pool,
                            struct location **tail,
                            const target_symbol *e)
 {
+
+  /* DW_AT_data_member_location, can be either constant offsets
+     (struct member fields), or full blown location expressions. */
+  if (dwarf_whatattr (attr) == DW_AT_data_member_location)
+    {
+      unsigned int form = dwarf_whatform (attr);
+      if (form == DW_FORM_data1 || form == DW_FORM_data2
+	  || form == DW_FORM_sdata || form == DW_FORM_udata)
+	{
+	  Dwarf_Sword off;
+	  if (dwarf_formsdata (attr, &off) != 0)
+	    throw semantic_error (string ("dwarf_formsdata failed, ")
+				  + string (dwarf_errmsg (-1)), e->tok);
+	  c_translate_add_offset (pool, 1, NULL, off, tail);
+	  return *tail;
+	}
+    }
+
   Dwarf_Op *expr;
   size_t len;
 
@@ -1436,7 +1488,7 @@ dwflpp::translate_location(struct obstack *pool,
 
     default:			/* Shouldn't happen.  */
     case -1:
-      throw semantic_error (string ("dwarf_getlocation_addr failed") +
+      throw semantic_error (string ("dwarf_getlocation_addr failed, ") +
                             string (dwarf_errmsg (-1)),
                             e->tok);
     }

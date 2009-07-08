@@ -214,10 +214,35 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 	    }
 	  else
 	    {
-	      locexpr = get_location (cubias, pc, &attr_mem, &locexpr_len);
-	      c_translate_location (&pool, NULL, NULL, NULL,
-				    1, cubias, pc, locexpr, locexpr_len,
-				    &tail, NULL);
+	      /* We are expection a block, constant or loclistptr. */
+	      unsigned int form = dwarf_whatform (&attr_mem);
+	      Dwarf_Sword off;
+	      switch (form)
+		{
+		/* constant */
+		case DW_FORM_data1:
+		case DW_FORM_data2:
+		case DW_FORM_sdata:
+		case DW_FORM_udata:
+		  if (dwarf_formsdata (&attr_mem, &off) != 0)
+		    error (2, 0, _("Bad offset for %s %s: %s"),
+			   typetag == DW_TAG_union_type ? "union" : "struct",
+			   dwarf_diename_integrate (die) ?: "<anonymous>",
+			   dwarf_errmsg (-1));
+		    if (off != 0)
+		      c_translate_add_offset (&pool, 1,
+					      dwarf_diename_integrate (die)
+					      ?: "", off, &tail);
+		  break;
+
+		default:
+		    locexpr = get_location (cubias, pc, &attr_mem,
+					    &locexpr_len);
+		    c_translate_location (&pool, NULL, NULL, NULL,
+					  1, cubias, pc, locexpr, locexpr_len,
+					  &tail, NULL);
+		    break;
+		}
 	    }
 	  ++fields;
 	  break;
@@ -378,6 +403,9 @@ static void
 print_vars (unsigned int indent, Dwarf_Die *die)
 {
   Dwarf_Die child;
+  Dwarf_Attribute attr_mem;
+  Dwarf_Die typedie_mem;
+  Dwarf_Die *typedie;
   if (dwarf_child (die, &child) == 0)
     do
       switch (dwarf_tag (&child))
@@ -387,9 +415,7 @@ print_vars (unsigned int indent, Dwarf_Die *die)
 	  printf ("%*s%-30s[%6" PRIx64 "]", indent, "",
 		  dwarf_diename (&child),
 		  (uint64_t) dwarf_dieoffset (&child));
-	  Dwarf_Attribute attr_mem;
-	  Dwarf_Die typedie_mem;
-	  Dwarf_Die *typedie = dwarf_formref_die
+	  typedie = dwarf_formref_die
 	    (dwarf_attr_integrate (&child, DW_AT_type, &attr_mem),
 	     &typedie_mem);
 	  print_type (typedie, '\t');

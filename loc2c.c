@@ -251,9 +251,11 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	  break;
 
 	case DW_OP_drop:
-	  POP (ignore);
-	  emit ("%*s/* drop " STACKFMT "*/\n", indent * 2, "", ignore);
-	  break;
+	  {
+	    POP (ignore);
+	    emit ("%*s/* drop " STACKFMT "*/\n", indent * 2, "", ignore);
+	    break;
+	  }
 
 	case DW_OP_pick:
 	  sp = expr[i].number;
@@ -622,7 +624,7 @@ location_relative (struct obstack *pool,
 		   const Dwarf_Op *expr, size_t len, Dwarf_Addr address,
 		   struct location **input, Dwarf_Attribute *fb_attr)
 {
-  Dwarf_Sword *stack;
+  Dwarf_Sword *stack = NULL;
   unsigned int stack_depth = 0, max_stack = 0;
   inline void deepen (void)
     {
@@ -1667,7 +1669,38 @@ c_translate_pointer_store (struct obstack *pool, int indent,
 }
 
 
+/* Translate a fragment to add an offset to the currently calculated
+   address of the input location. Used for struct fields. Only works
+   when location is already an actual base address.
+*/
 
+void
+c_translate_add_offset (struct obstack *pool, int indent, const char *comment,
+                        Dwarf_Sword off, struct location **input)
+{
+  indent++;
+  if (comment == NULL || comment[0] == '\0')
+    comment = "field offset";
+  switch ((*input)->type)
+    {
+    case loc_address:
+      obstack_printf (pool, "%*saddr += " SFORMAT "; // %s\n",
+		      indent * 2 + 2, "", off, comment);
+      *input = (*input)->next = new_synthetic_loc (pool, *input, false);
+    break;
+
+    case loc_register:
+      FAIL (*input, N_("cannot add offset of object in register"));
+      break;
+    case loc_noncontiguous:
+      FAIL (*input, N_("cannot add offset of noncontiguous object"));
+      break;
+
+    default:
+      abort ();
+      break;
+    }
+}
 
 /* Determine the element stride of an array type.  */
 static Dwarf_Word
