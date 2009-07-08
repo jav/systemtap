@@ -95,10 +95,10 @@ foreach arch $arches {
 		    set res [target_compile $testsrclib $testso executable $testlibflags]
 		    if { $res != "" } {
 			verbose "target_compile for $testso failed: $res" 2
-			fail "$libname compile $testsrclib"
+			fail "$libname compile [file tail $testsrclib]"
 			return
 		    } else {
-			pass "$libname compile $testsrclib"
+			pass "$libname compile [file tail $testsrclib]"
 		    }
 		    
 		    # seperate debuginfo before prelinking
@@ -147,10 +147,10 @@ foreach arch $arches {
 			    set res [target_compile $testsrc $testexe executable $testexeflags]
 			    if { $res != "" } {
 				verbose "target_compile for $testexe failed: $res" 2
-				fail "$exename compile $testsrc"
+				fail "$exename compile [file tail $testsrc]"
 				return
 			    } else {
-				pass "$exename compile $testsrc"
+				pass "$exename compile [file tail $testsrc]"
 			    }
 			    
 			    if {$exedebug == "sep"} {
