@@ -1,10 +1,6 @@
 /* Copyright (C) 2005-2009 Red Hat Inc.
-   Copyright (C) 2006 Intel Corporation.
 
-   This file is part of systemtap, and is free software.  You can
-   redistribute it and/or modify it under the terms of the GNU General
-   Public License (GPL); either version 2, or (at your option) any
-   later version.
+   This file is part of systemtap, and is free software.
 */
 
 #ifndef _SYS_SDT_H
