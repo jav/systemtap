@@ -1,0 +1,3 @@
+#! stap -p4
+// PR 3498 + wildcarded modules
+probe module("*scsi*").function("*").call { }

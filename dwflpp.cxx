@@ -205,7 +205,7 @@ dwflpp::module_name_matches(const string& pattern)
 
 
 bool
-dwflpp::name_has_wildcard(const string& pattern)
+dwflpp::name_has_wildcard (const string& pattern)
 {
   return (pattern.find('*') != string::npos ||
           pattern.find('?') != string::npos ||
@@ -258,19 +258,30 @@ static int dwfl_report_offline_predicate (const char* modname, const char* filen
   if (pending_interrupts)
     return -1;
 
-  if (offline_search_match_p)
-    return -1;
-
   assert (offline_search_modname);
 
-  /* Reject mismatching module names */
-  if (strcmp(modname, offline_search_modname))
-    return 0;
-  else
-    {
+  if (dwflpp::name_has_wildcard (offline_search_modname)) {
+    int match_p = !fnmatch(offline_search_modname, modname, 0);
+    // In the wildcard case, we don't short-circuit (return -1) upon 
+    // offline_search_match_p, analogously to dwflpp::module_name_final_match().
+
+    if (match_p) 
       offline_search_match_p ++;
-      return 1;
-    }
+
+    return match_p;
+  } else { /* non-wildcard mode */
+    if (offline_search_match_p)
+      return -1;
+
+    /* Reject mismatching module names */
+    if (strcmp(modname, offline_search_modname))
+      return 0;
+    else
+      {
+        offline_search_match_p ++;
+        return 1;
+      }
+  }
 }
 
 
@@ -338,17 +349,6 @@ dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
                             string(" kernel/module debuginfo under '") +
                             sess.kernel_build_tree + string("'"));
     }
-
-  // XXX: it would be nice if we could do a single
-  // ..._report_offline call for an entire systemtap script, so
-  // that a selection predicate would filter out modules outside
-  // the union of all the requested wildcards.  But we build
-  // derived_probes one-by-one and we don't have lookahead.
-  // PR 3498.
-
-  // XXX: a special case: if we have only kernel.* probe points,
-  // we shouldn't waste time looking for module debug-info (and
-  // vice versa).
 
   // NB: the result of an _offline call is the assignment of
   // virtualized addresses to relocatable objects such as
