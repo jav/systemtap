@@ -1,6 +1,6 @@
 /* Copyright (C) 2005-2009 Red Hat Inc.
 
-   This file is part of systemtap, and is free software.
+   This file is part of systemtap, and is free software in the public domain.
 */
 
 #ifndef _SYS_SDT_H
