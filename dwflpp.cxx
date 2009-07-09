@@ -260,6 +260,10 @@ static int dwfl_report_offline_predicate (const char* modname, const char* filen
 
   assert (offline_search_modname);
 
+  // elfutils sends us NULL filenames sometimes if it can't find dwarf
+  if (filename == NULL)
+    return 0;
+
   if (dwflpp::name_has_wildcard (offline_search_modname)) {
     int match_p = !fnmatch(offline_search_modname, modname, 0);
     // In the wildcard case, we don't short-circuit (return -1) upon 
