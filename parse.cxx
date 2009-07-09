@@ -584,11 +584,12 @@ parser::peek_kw (std::string const & kw)
 
 
 lexer::lexer (istream& input, const string& in, systemtap_session& s):
-  input_name (in), input_contents (""), input_pointer (0),
+  input_name (in), input_pointer (0), input_end (0),
   cursor_suspend_count(0), cursor_line (1), cursor_column (1),
   session(s), current_file (0)
 {
   getline(input, input_contents, '\0');
+
   input_pointer = input_contents.data();
   input_end = input_contents.data() + input_contents.size();
 
@@ -616,16 +617,15 @@ lexer::lexer (istream& input, const string& in, systemtap_session& s):
 
 set<string> lexer::keywords;
 
-std::string
-lexer::get_input_contents ()
-{
-  return input_contents;
-}
-
 void
 lexer::set_current_file (stapfile* f)
 {
   current_file = f;
+  if (f)
+    {
+      f->file_contents = input_contents;
+      f->name = input_name;
+    }
 }
 
 int
@@ -682,9 +682,7 @@ token*
 lexer::scan (bool wildcard)
 {
   token* n = new token;
-  n->location.file = input_name;
-  if (current_file)
-    n->location.stap_file = current_file;
+  n->location.file = current_file;
 
   unsigned semiskipped_p = 0;
 
@@ -952,8 +950,6 @@ parser::parse ()
 {
   stapfile* f = new stapfile;
   input.set_current_file (f);
-  f->file_contents = input.get_input_contents ();
-  f->name = input_name;
 
   bool empty = true;
 
@@ -1021,18 +1017,16 @@ parser::parse ()
     {
       cerr << "Input file '" << input_name << "' is empty or missing." << endl;
       delete f;
-      input.set_current_file (0);
-      return 0;
+      f = 0;
     }
   else if (num_errors > 0)
     {
       cerr << num_errors << " parse error(s)." << endl;
       delete f;
-      input.set_current_file (0);
-      return 0;
+      f = 0;
     }
 
-  input.set_current_file (0);
+  input.set_current_file(0);
   return f;
 }
 

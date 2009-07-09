@@ -10,6 +10,7 @@
 #define COVERAGEDB_H
 
 #include "session.h"
+#include "staptree.h"
 
 #include <string>
 
@@ -62,12 +63,12 @@ public:
   int compiled;
   int executed;
 
-  coverage_element() { line = 0; col = 0;
-	  compiled = 0; executed = 0; }
+  coverage_element():
+    line(0), col(0), compiled(0), executed(0) {}
 
-  coverage_element(source_loc &place) {
-	  file = place.file; line = place.line; col = place.column;
-	  compiled = 0; executed = 0; }
+  coverage_element(source_loc &place):
+    file(place.file->name), line(place.line), col(place.column),
+    compiled(0), executed(0) {}
 };
 
 

@@ -23,10 +23,9 @@ struct stapfile;
 
 struct source_loc
 {
-  std::string file;
+  stapfile* file;
   unsigned line;
   unsigned column;
-  stapfile* stap_file;
 };
 
 std::ostream& operator << (std::ostream& o, const source_loc& loc);
@@ -75,7 +74,6 @@ class lexer
 public:
   token* scan (bool wildcard=false);
   lexer (std::istream&, const std::string&, systemtap_session&);
-  std::string get_input_contents ();
   void set_current_file (stapfile* f);
 
 private:
