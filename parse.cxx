@@ -583,16 +583,38 @@ parser::peek_kw (std::string const & kw)
 
 
 
-lexer::lexer (istream& i, const string& in, systemtap_session& s):
-  input (i), input_name (in), input_contents (""),
-  input_pointer (0), cursor_suspend_count(0),
-  cursor_line (1), cursor_column (1), session(s),
-  current_file (0)
+lexer::lexer (istream& input, const string& in, systemtap_session& s):
+  input_name (in), input_contents (""), input_pointer (0),
+  cursor_suspend_count(0), cursor_line (1), cursor_column (1),
+  session(s), current_file (0)
 {
-  char c;
-  while(input.get(c))
-    input_contents.push_back(c);
+  getline(input, input_contents, '\0');
+  input_pointer = input_contents.data();
+  input_end = input_contents.data() + input_contents.size();
+
+  if (keywords.empty())
+    {
+      keywords.insert("probe");
+      keywords.insert("global");
+      keywords.insert("function");
+      keywords.insert("if");
+      keywords.insert("else");
+      keywords.insert("for");
+      keywords.insert("foreach");
+      keywords.insert("in");
+      keywords.insert("limit");
+      keywords.insert("return");
+      keywords.insert("delete");
+      keywords.insert("while");
+      keywords.insert("break");
+      keywords.insert("continue");
+      keywords.insert("next");
+      keywords.insert("string");
+      keywords.insert("long");
+    }
 }
+
+set<string> lexer::keywords;
 
 std::string
 lexer::get_input_contents ()
@@ -609,20 +631,19 @@ lexer::set_current_file (stapfile* f)
 int
 lexer::input_peek (unsigned n)
 {
-  if (input_contents.size() > (input_pointer + n))
-    return (int)(unsigned char)input_contents[input_pointer+n];
-  else
-    return -1;
+  if (input_pointer + n >= input_end)
+    return -1; // EOF
+  return (unsigned char)*(input_pointer + n);
 }
 
 
 int
 lexer::input_get ()
 {
-  int c = input_peek (0);
-  input_pointer ++;
-
+  int c = input_peek();
   if (c < 0) return c; // EOF
+
+  ++input_pointer;
 
   if (cursor_suspend_count)
     // Track effect of input_put: preserve previous cursor/line_column
@@ -648,9 +669,12 @@ lexer::input_get ()
 void
 lexer::input_put (const string& chars)
 {
-  // clog << "[put:" << chars << " @" << input_pointer << "]";
-  input_contents.insert (input_contents.begin() + input_pointer, chars.begin(), chars.end());
+  size_t pos = input_pointer - input_contents.data();
+  // clog << "[put:" << chars << " @" << pos << "]";
+  input_contents.insert (pos, chars);
   cursor_suspend_count += chars.size();
+  input_pointer = input_contents.data() + pos;
+  input_end = input_contents.data() + input_contents.size();
 }
 
 
@@ -676,7 +700,6 @@ lexer::scan (bool wildcard)
     }
 
   int c = input_get();
-  int c2 = input_peek ();
   // clog << "{" << (char)c << (char)c2 << "}";
   if (c < 0)
     {
@@ -686,6 +709,8 @@ lexer::scan (bool wildcard)
 
   if (isspace (c))
     goto skip;
+
+  int c2 = input_peek ();
 
   // Paste command line arguments as character streams into
   // the beginning of a token.  $1..$999 go through as raw
@@ -740,23 +765,7 @@ lexer::scan (bool wildcard)
           c2 = input_peek ();
         }
 
-      if (n->content    == "probe"
-          || n->content == "global"
-          || n->content == "function"
-          || n->content == "if"
-          || n->content == "else"
-          || n->content == "for"
-          || n->content == "foreach"
-          || n->content == "in"
-          || n->content == "limit"
-          || n->content == "return"
-          || n->content == "delete"
-          || n->content == "while"
-          || n->content == "break"
-          || n->content == "continue"
-          || n->content == "next"
-          || n->content == "string"
-          || n->content == "long")
+      if (keywords.count(n->content))
         n->type = tok_keyword;
 
       return n;
@@ -767,23 +776,15 @@ lexer::scan (bool wildcard)
       n->type = tok_number;
       n->content = (char) c;
 
-      while (1)
+      while (isalnum (c2))
 	{
-	  int c2 = input_peek ();
-	  if (c2 < 0)
-	    break;
-
           // NB: isalnum is very permissive.  We rely on strtol, called in
           // parser::parse_literal below, to confirm that the number string
           // is correctly formatted and in range.
 
-	  if (isalnum (c2))
-	    {
-	      n->content.push_back (c2);
-	      input_get ();
-	    }
-	  else
-	    break;
+          input_get ();
+          n->content.push_back (c2);
+          c2 = input_peek ();
 	}
       return n;
     }
@@ -835,25 +836,21 @@ lexer::scan (bool wildcard)
 
   else if (ispunct (c))
     {
-      int c2 = input_peek ();
       int c3 = input_peek (1);
-      string s1 = string("") + (char) c;
-      string s2 = (c2 > 0 ? s1 + (char) c2 : s1);
-      string s3 = (c3 > 0 ? s2 + (char) c3 : s2);
 
       // NB: if we were to recognize negative numeric literals here,
       // we'd introduce another grammar ambiguity:
       // 1-1 would be parsed as tok_number(1) and tok_number(-1)
       // instead of tok_number(1) tok_operator('-') tok_number(1)
 
-      if (s1 == "#") // shell comment
+      if (c == '#') // shell comment
         {
           unsigned this_line = cursor_line;
           do { c = input_get (); }
           while (c >= 0 && cursor_line == this_line);
           goto skip;
         }
-      else if (s2 == "//") // C++ comment
+      else if ((c == '/' && c2 == '/')) // C++ comment
         {
           unsigned this_line = cursor_line;
           do { c = input_get (); }
@@ -862,15 +859,15 @@ lexer::scan (bool wildcard)
         }
       else if (c == '/' && c2 == '*') // C comment
 	{
+          (void) input_get (); // swallow '*' already in c2
+          c = input_get ();
           c2 = input_get ();
-          unsigned chars = 0;
           while (c2 >= 0)
             {
-              chars ++; // track this to prevent "/*/" from being accepted
+              if (c == '*' && c2 == '/')
+                break;
               c = c2;
               c2 = input_get ();
-              if (chars > 1 && c == '*' && c2 == '/')
-                break;
             }
           goto skip;
 	}
@@ -878,72 +875,62 @@ lexer::scan (bool wildcard)
         {
           n->type = tok_embedded;
           (void) input_get (); // swallow '{' already in c2
-          while (true)
+          c = input_get ();
+          c2 = input_get ();
+          while (c2 >= 0)
             {
-              c = input_get ();
-              if (c < 0) // EOF
-                {
-                  n->type = tok_junk;
-                  break;
-                }
-              if (c == '%')
-                {
-                  c2 = input_peek ();
-                  if (c2 == '}')
-                    {
-                      (void) input_get (); // swallow '}' too
-                      break;
-                    }
-                }
+              if (c == '%' && c2 == '}')
+                return n;
               n->content += c;
+              c = c2;
+              c2 = input_get ();
             }
+          n->type = tok_junk;
           return n;
         }
 
       // We're committed to recognizing at least the first character
       // as an operator.
       n->type = tok_operator;
+      n->content = c;
 
       // match all valid operators, in decreasing size order
-      if (s3 == "<<<" ||
-          s3 == "<<=" ||
-          s3 == ">>=")
+      if ((c == '<' && c2 == '<' && c3 == '<') ||
+          (c == '<' && c2 == '<' && c3 == '=') ||
+          (c == '>' && c2 == '>' && c3 == '='))
         {
-          n->content = s3;
+          n->content += c2;
+          n->content += c3;
           input_get (); input_get (); // swallow other two characters
         }
-      else if (s2 == "==" ||
-               s2 == "!=" ||
-               s2 == "<=" ||
-               s2 == ">=" ||
-               s2 == "+=" ||
-               s2 == "-=" ||
-               s2 == "*=" ||
-               s2 == "/=" ||
-               s2 == "%=" ||
-               s2 == "&=" ||
-               s2 == "^=" ||
-               s2 == "|=" ||
-               s2 == ".=" ||
-               s2 == "&&" ||
-               s2 == "||" ||
-               s2 == "++" ||
-               s2 == "--" ||
-               s2 == "->" ||
-               s2 == "<<" ||
-               s2 == ">>" ||
+      else if ((c == '=' && c2 == '=') ||
+               (c == '!' && c2 == '=') ||
+               (c == '<' && c2 == '=') ||
+               (c == '>' && c2 == '=') ||
+               (c == '+' && c2 == '=') ||
+               (c == '-' && c2 == '=') ||
+               (c == '*' && c2 == '=') ||
+               (c == '/' && c2 == '=') ||
+               (c == '%' && c2 == '=') ||
+               (c == '&' && c2 == '=') ||
+               (c == '^' && c2 == '=') ||
+               (c == '|' && c2 == '=') ||
+               (c == '.' && c2 == '=') ||
+               (c == '&' && c2 == '&') ||
+               (c == '|' && c2 == '|') ||
+               (c == '+' && c2 == '+') ||
+               (c == '-' && c2 == '-') ||
+               (c == '-' && c2 == '>') ||
+               (c == '<' && c2 == '<') ||
+               (c == '>' && c2 == '>') ||
                // preprocessor tokens
-               s2 == "%(" ||
-               s2 == "%?" ||
-               s2 == "%:" ||
-               s2 == "%)")
+               (c == '%' && c2 == '(') ||
+               (c == '%' && c2 == '?') ||
+               (c == '%' && c2 == ':') ||
+               (c == '%' && c2 == ')'))
         {
-          n->content = s2;
+          n->content += c2;
           input_get (); // swallow other character
-        }
-      else
-        {
-          n->content = s1;
         }
 
       return n;
