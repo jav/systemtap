@@ -171,6 +171,7 @@ compile_pass (systemtap_session& s)
                   "STAPCONF_KERNEL_STACKTRACE", NULL);
   output_autoconf(s, o, "autoconf-asm-syscall.c",
 		  "STAPCONF_ASM_SYSCALL_H", NULL);
+  output_autoconf(s, o, "autoconf-ring_buffer-flags.c", "STAPCONF_RING_BUFFER_FLAGS", NULL);
 
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 
