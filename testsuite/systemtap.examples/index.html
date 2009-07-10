@@ -94,6 +94,9 @@ keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
 <li><a href="memory/kmalloc-top">memory/kmalloc-top</a> - Show Paths to Kernel Malloc (kmalloc) Invocations<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The kmalloc-top perl program runs a small systemtap script to collect stack traces for each call to the kmalloc function and counts the time that each stack trace is observed. When kmalloc-top exits it prints out sorted list. The output can be be filtered to print only only the first stack traces (-t) stack traces with more a minimum counts (-m), or exclude certain stack traces (-e).</p></li>
+<li><a href="memory/numa_faults.stp">memory/numa_faults.stp</a> - Summarize Process Misses across NUMA Nodes<br>
+keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#NUMA">NUMA</a> <br>
+<p>The numa_faults.stp script tracks the read and write pages faults for each process. When the script exits it prints out the total read and write pages faults for each process. The script also providea a break down of page faults per node for each process. This script is useful for determining whether the program has good locality (page faults limited to a single node) on a NUMA computer.</p></li>
 <li><a href="memory/pfaults.stp">memory/pfaults.stp</a> - Generate Log of Major and Minor Page Faults<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The pfaults.stp script generates a simple log for each major and minor page fault that occurs on the system. Each line contains a timestamp (in microseconds) when the page fault servicing was completed, the pid of the process, the address of the page fault, the type of access (read or write), the type of fault (major or minor), and the elapsed time for page fault. This log can be examined to determine where the page faults are occuring.</p></li>

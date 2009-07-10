@@ -1491,9 +1491,9 @@ systemtap_session::print_token (ostream& o, const token* tok)
       tmpo << *tok;
       string ts = tmpo.str();
       // search & replace the file name with nothing
-      size_t idx = ts.find (tok->location.file);
+      size_t idx = ts.find (tok->location.file->name);
       if (idx != string::npos)
-          ts.replace (idx, tok->location.file.size(), "");
+          ts.replace (idx, tok->location.file->name.size(), "");
 
       o << ts;
     }
@@ -1560,16 +1560,16 @@ systemtap_session::print_error_source (std::ostream& message,
                                        std::string& align, const token* tok)
 {
   unsigned i = 0;
-  unsigned line = tok->location.line;
-  unsigned col = tok->location.column;
-  string file_contents;
 
   assert (tok);
-  if (tok->location.stap_file)
-    file_contents = tok->location.stap_file->file_contents;
-  else
+  if (!tok->location.file)
     //No source to print, silently exit
     return;
+
+  unsigned line = tok->location.line;
+  unsigned col = tok->location.column;
+  const string &file_contents = tok->location.file->file_contents;
+
   size_t start_pos = 0, end_pos = 0;
   //Navigate to the appropriate line
   while (i != line && end_pos != std::string::npos)
@@ -1937,7 +1937,7 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
       functiondecl* fd = it->second;
       if (ftv.traversed.find(fd) == ftv.traversed.end())
         {
-          if (fd->tok->location.file == s.user_file->name && // !tapset
+          if (fd->tok->location.file->name == s.user_file->name && // !tapset
               ! s.suppress_warnings)
 	    s.print_warning ("eliding unused function '" + fd->name + "'", fd->tok);
           else if (s.verbose>2)
@@ -1993,7 +1993,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
         if (vut.read.find (l) == vut.read.end() &&
             vut.written.find (l) == vut.written.end())
           {
-            if (l->tok->location.file == s.user_file->name && // !tapset
+            if (l->tok->location.file->name == s.user_file->name && // !tapset
                 ! s.suppress_warnings)
 	      s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
             else if (s.verbose>2)
@@ -2037,7 +2037,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
           if (vut.read.find (l) == vut.read.end() &&
               vut.written.find (l) == vut.written.end())
             {
-              if (l->tok->location.file == s.user_file->name && // !tapset
+              if (l->tok->location.file->name == s.user_file->name && // !tapset
                   ! s.suppress_warnings)
                 s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
               else if (s.verbose>2)
@@ -2083,7 +2083,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
       if (vut.read.find (l) == vut.read.end() &&
           vut.written.find (l) == vut.written.end())
         {
-          if (l->tok->location.file == s.user_file->name && // !tapset
+          if (l->tok->location.file->name == s.user_file->name && // !tapset
               ! s.suppress_warnings)
             s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
           else if (s.verbose>2)

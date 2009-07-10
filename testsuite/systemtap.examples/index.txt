@@ -175,6 +175,17 @@ keywords: memory
   counts (-m), or exclude certain stack traces (-e).
 
 
+memory/numa_faults.stp - Summarize Process Misses across NUMA Nodes
+keywords: memory numa
+
+  The numa_faults.stp script tracks the read and write pages faults for
+  each process. When the script exits it prints out the total read and
+  write pages faults for each process. The script also providea a break
+  down of page faults per node for each process. This script is useful
+  for determining whether the program has good locality (page faults
+  limited to a single node) on a NUMA computer.
+
+
 memory/pfaults.stp - Generate Log of Major and Minor Page Faults
 keywords: memory
 
