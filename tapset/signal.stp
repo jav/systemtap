@@ -1,7 +1,7 @@
 // Signal tapset
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
-// Copyright (C) 2008 Red Hat, Inc.
+// Copyright (C) 2008-2009 Red Hat, Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -17,7 +17,7 @@
 //  (if sig==2) or for a particular process (if pid_name==stap).
 // </tapsetdescription>
 
-/** 
+/**
  * probe signal.send - Signal being sent to a process
  * Arguments:
  * @sig: The number of the signal
@@ -83,7 +83,9 @@ probe _signal.send.part4 = kernel.function("specific_send_sig_info")
 %)
 
 %( kernel_v > "2.6.25" %?
-probe _signal.send.part1 = kernel.function("send_signal")
+probe _signal.send.part1 =
+		kernel.function("__send_signal") !,
+		kernel.function("send_signal")
 {
     if ($group == 1) {
 	name = "__group_send_sig_info"
@@ -128,7 +130,7 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  * Context:
  * The signal's sender. <remark>(correct?)</remark>
  *
- * Possible <command>__group_send_sig_info</command> and 
+ * Possible <command>__group_send_sig_info</command> and
  * <command>specific_send_sig_info</command> return values are as follows;
  *
  * <command>0</command> -- The signal is sucessfully sent to a process,
@@ -137,11 +139,11 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  * <2> this is a non-RT signal and the system already has one queued, and
  * <3> the signal was successfully added to the <command>sigqueue</command> of the receiving process.
  *
- * <command>-EAGAIN</command> -- The <command>sigqueue</command> of the receiving process is 
- * overflowing, the signal was RT, and the signal was sent by a user using something other 
- * than <command>kill()</command>. 
+ * <command>-EAGAIN</command> -- The <command>sigqueue</command> of the receiving process is
+ * overflowing, the signal was RT, and the signal was sent by a user using something other
+ * than <command>kill()</command>.
  *
- * Possible <command>send_group_sigqueue</command> and 
+ * Possible <command>send_group_sigqueue</command> and
  * <command>send_sigqueue</command> return values are as follows;
  *
  * <command>0</command> -- The signal was either sucessfully added into the
@@ -152,7 +154,7 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
  *
  * <command>-1</command> -- (<command>send_sigqueue</command> only) The task was marked
  * <command>exiting</command>, allowing * <command>posix_timer_event</command> to redirect it to the group
- * leader. 
+ * leader.
  *
  */
 probe signal.send.return = _signal.send.*.return
@@ -302,7 +304,7 @@ probe signal.wakeup = kernel.function("signal_wake_up")
 
 /**
  * probe signal.check_ignored - Checking to see signal is ignored
- * @sig_pid: The PID of the process receiving the signal 
+ * @sig_pid: The PID of the process receiving the signal
  * @pid_name: Name of the process receiving the signal
  * @sig: The number of the signal
  * @sig_name: A string representation of the signal
@@ -350,7 +352,7 @@ probe signal.handle_stop = kernel.function("handle_stop_signal")
  * @sig_pid: The PID of the process receiving the signal
  * @pid_name: Name of the process receiving the signal
  * @sig: The number of the signal
- * @sig_name: A string representation of the signal 
+ * @sig_name: A string representation of the signal
  */
 probe signal.force_segv = _signal.force_segv.*
 {
@@ -404,7 +406,7 @@ probe signal.syskill.return = syscall.kill.return
 {
 }
 
-/** 
+/**
  * probe signal.sys_tkill - Sending a kill signal to a thread
  * @pid: The PID of the process receiving the kill signal
  * @sig: The specific signal sent to the process
@@ -413,7 +415,7 @@ probe signal.syskill.return = syscall.kill.return
  * The <command>tkill</command> call is analogous to <command>kill(2)</command>,
  * except that it also allows a process within a specific thread group to
  * be targetted. Such processes are targetted through their unique
- * thread IDs (TID). 
+ * thread IDs (TID).
  */
 probe signal.systkill = syscall.tkill
 {
@@ -434,9 +436,9 @@ probe signal.systkill.return = syscall.tkill.return
  * @sig: The specific kill signal sent to the process
  * @sig_name: A string representation of the signal
  *
- * The <command>tgkill</command> call is similar to <command>tkill</command>, 
- * except that it also allows the caller to specify the thread group ID of 
- * the thread to be signalled. This protects against TID reuse. 
+ * The <command>tgkill</command> call is similar to <command>tkill</command>,
+ * except that it also allows the caller to specify the thread group ID of
+ * the thread to be signalled. This protects against TID reuse.
  */
 probe signal.systgkill = syscall.tgkill
 {
@@ -481,14 +483,14 @@ probe signal.send_sig_queue.return =
 }
 
 
-/** 
+/**
  * probe signal.pending - Examining pending signal
  * @sigset_add: The address of the user-space signal set
  * (<command>sigset_t</command>)
  * @sigset_size: The size of the user-space signal set
- * 
- * This probe is used to examine a set of signals pending for delivery 
- * to a specific thread. This normally occurs when the 
+ *
+ * This probe is used to examine a set of signals pending for delivery
+ * to a specific thread. This normally occurs when the
  * <command>do_sigpending</command> kernel function is executed.
  */
 probe signal.pending = kernel.function("do_sigpending")
@@ -497,7 +499,7 @@ probe signal.pending = kernel.function("do_sigpending")
     sigset_size=$sigsetsize
 }
 
-/** 
+/**
  * probe signal.pending.return - Examination of pending signal completed
  * @retstr: Return value as a string
  */
@@ -515,7 +517,7 @@ probe signal.pending.return = kernel.function("do_sigpending").return
  * <command>siginfo</command> signal
  * @ka_addr: The address of the <command>k_sigaction</command> table
  * associated with the signal
- * @oldset_addr: The address of the bitmask array of blocked signals 
+ * @oldset_addr: The address of the bitmask array of blocked signals
  * @regs: The address of the kernel-mode stack area
  * @sig_mode: Indicates whether the signal was a user-mode or kernel-mode signal
  */
@@ -593,9 +595,9 @@ function __get_action_mask:long(act:long) %{ /* pure */
 
 /**
  * probe signal.procmask - Examining or changing blocked signals
- * @how: Indicates how to change the blocked signals; possible values are 
- * <command>SIG_BLOCK=0</command> (for blocking signals), 
- * <command>SIG_UNBLOCK=1</command> (for unblocking signals), and 
+ * @how: Indicates how to change the blocked signals; possible values are
+ * <command>SIG_BLOCK=0</command> (for blocking signals),
+ * <command>SIG_UNBLOCK=1</command> (for unblocking signals), and
  * <command>SIG_SETMASK=2</command> for setting the signal mask.
  * @sigset_addr: The address of the signal set (<command>sigset_t</command>)
  * to be implemented
@@ -635,7 +637,7 @@ probe signal.procmask.return = kernel.function("sigprocmask").return
  * @sig_pid: The PID of the process associated with the task
  * performing the flush
  * @pid_name: The name of the process associated with the task
- * performing the flush 
+ * performing the flush
  */
 probe signal.flush = kernel.function("flush_signals")
 {

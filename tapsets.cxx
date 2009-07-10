@@ -592,7 +592,7 @@ struct dwarf_query : public base_query
 
 struct dwarf_builder: public derived_probe_builder
 {
-  map <string,dwflpp*> kern_dw;
+  map <string,dwflpp*> kern_dw; /* NB: key string could be a wildcard */
   map <string,dwflpp*> user_dw;
   dwarf_builder() {}
 

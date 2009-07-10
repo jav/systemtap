@@ -299,6 +299,17 @@ keywords: memory
   counts (-m), or exclude certain stack traces (-e).
 
 
+memory/numa_faults.stp - Summarize Process Misses across NUMA Nodes
+keywords: memory numa
+
+  The numa_faults.stp script tracks the read and write pages faults for
+  each process. When the script exits it prints out the total read and
+  write pages faults for each process. The script also providea a break
+  down of page faults per node for each process. This script is useful
+  for determining whether the program has good locality (page faults
+  limited to a single node) on a NUMA computer.
+
+
 memory/pfaults.stp - Generate Log of Major and Minor Page Faults
 keywords: memory
 
@@ -384,6 +395,19 @@ keywords: network traffic
   The tcpdumplike.stp prints out a line for each TCP packet received.
   Each line includes the source and destination IP addresses, the
   source and destination ports, and flags.
+
+
+= NUMA =
+
+memory/numa_faults.stp - Summarize Process Misses across NUMA Nodes
+keywords: memory numa
+
+  The numa_faults.stp script tracks the read and write pages faults for
+  each process. When the script exits it prints out the total read and
+  write pages faults for each process. The script also providea a break
+  down of page faults per node for each process. This script is useful
+  for determining whether the program has good locality (page faults
+  limited to a single node) on a NUMA computer.
 
 
 = PER-PROCESS =

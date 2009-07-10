@@ -1,10 +1,6 @@
 /* Copyright (C) 2005-2009 Red Hat Inc.
-   Copyright (C) 2006 Intel Corporation.
 
-   This file is part of systemtap, and is free software.  You can
-   redistribute it and/or modify it under the terms of the GNU General
-   Public License (GPL); either version 2, or (at your option) any
-   later version.
+   This file is part of systemtap, and is free software in the public domain.
 */
 
 #ifndef _SYS_SDT_H
@@ -21,9 +17,17 @@
 #define STAP_PROBE_ADDR "\t.long "
 #endif
 
+/* Allocated section needs to be writable when creating pic shared objects
+   because we store relocatable addresses in them. */
+#ifdef __PIC__
+#define ALLOCSEC "\"aw\""
+#else
+#define ALLOCSEC "\"a\""
+#endif
+
 /* An allocated section .probes that holds the probe names and addrs. */
 #define STAP_PROBE_DATA_(probe,guard,arg)	\
-  __asm__ volatile (".section .probes, \"a\"\n" \
+  __asm__ volatile (".section .probes," ALLOCSEC "\n" \
 		    "\t.align 8\n"		\
 		    "1:\n\t.asciz " #probe "\n" \
 		    "\t.align 4\n"		\

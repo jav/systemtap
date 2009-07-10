@@ -178,7 +178,7 @@ struct dwflpp
   Dwarf_Die *query_cu_containing_address(Dwarf_Addr a);
 
   bool module_name_matches(const std::string& pattern);
-  bool name_has_wildcard(const std::string& pattern);
+  static bool name_has_wildcard(const std::string& pattern);
   bool module_name_final_match(const std::string& pattern);
 
   bool function_name_matches_pattern(const std::string& name, const std::string& pattern);
