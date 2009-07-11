@@ -99,9 +99,8 @@ stap_compile MERGE1 [F_UNCACHED_COMPILE] $basic_script1 -b -M
 stap_compile MERGE2 [F_CACHED_COMPILE] $basic_script1 -b -M
 
 # Using '-t' (benchmark timing) should change the hash
-# These two tests will fail until PR3523 is fixed.
-#stap_compile TIMING1 [F_UNCACHED_COMPILE] $basic_script1 -t
-#stap_compile TIMING2 [F_CACHED_COMPILE] $basic_script1 -t
+stap_compile TIMING1 [F_UNCACHED_COMPILE] $basic_script1 -t
+stap_compile TIMING2 [F_CACHED_COMPILE] $basic_script1 -t
 
 # Changing the runtime directory should change the hash
 set new_runtime [exec pwd]/.cache_test_runtime
