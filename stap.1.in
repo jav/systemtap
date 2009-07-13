@@ -188,7 +188,8 @@ Optimization to use for C code. Passed to gcc in pass 4. -O is an
 alias for -O1, -O0 enables fast compilation, -O1 optimizes the code and
 takes a bit more time, -O2 optimizes more and takes more time, -O3
 optimizes even more and takes even more time, -Os optimizes for size,
-like -O2 but tuned for small code size. The default is -O0.
+like -O2 but tuned for small code size. Default is the kernel opt-level
+default (-O2 or -Os).
 .TP
 .BI \-c " CMD"
 Start the probes, run CMD, and exit when CMD finishes.

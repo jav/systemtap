@@ -105,10 +105,11 @@ stap_compile TIMING2 [F_CACHED_COMPILE] $basic_script1 -t
 # Using '-O[0123s]' (C compile optimizations) should change the hash
 # unless they are the same
 stap_compile OPTO [F_UNCACHED_COMPILE] $basic_script1 -O
-# -O0 is the default, so will have been cached by BASIC1
-stap_compile OPTZERO [F_CACHED_COMPILE] $basic_script1 -O0
+stap_compile OPTZERO [F_UNCACHED_COMPILE] $basic_script1 -O0
 # -O is an alias for -O1, so already cached
 stap_compile OPTONE [F_CACHED_COMPILE] $basic_script1 -O1
+# Either -O2 or -Os could be the kernel opt-level default,
+# so don't assume either is already there.
 stap_compile OPTTWO [F_UNCACHED_COMPILE] $basic_script1 -O2
 stap_compile OPTTHREE [F_UNCACHED_COMPILE] $basic_script1 -O3
 stap_compile OPTSMALL [F_UNCACHED_COMPILE] $basic_script1 -Os

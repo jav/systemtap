@@ -118,7 +118,7 @@ usage (systemtap_session& s, int exitcode)
     << "              -O2 Optimize more, takes more time" << endl
     << "              -O3 Optimize even more, takes even more time" << endl
     << "              -Os Optimize for size, like -O2 but tuned for small code size" << endl
-    << "              Default is -O0." << endl
+    << "              Default is the kernel opt-level default (-O2 or -Os)." << endl
     << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
     << "   -x PID     sets target() to PID" << endl
     << "   -F         run as on-file flight recorder with -o." << endl
@@ -411,7 +411,7 @@ main (int argc, char * const argv [])
   s.ignore_dwarf = false;
   s.load_only = false;
   s.skip_badvars = false;
-  s.gcc_flags = "-O0";
+  s.gcc_flags = ""; // Default to kernel opt-level.
 
   // Location of our signing certificate.
   // If we're root, use the database in SYSCONFDIR, otherwise
