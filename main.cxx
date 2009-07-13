@@ -112,6 +112,14 @@ usage (systemtap_session& s, int exitcode)
     << "              " << s.module_name << endl
     << "   -o FILE    send script output to file, instead of stdout. This supports" << endl
     << "              strftime(3) formats for FILE" << endl
+    << "   -O[0123s]  optimization to use for C code. Passed to gcc in pass 4." << endl
+    << "              -O  Alias for -O1" << endl
+    << "              -O0 Fast compilation" << endl
+    << "              -O1 Optimize, takes a bit more time" << endl
+    << "              -O2 Optimize more, takes more time" << endl
+    << "              -O3 Optimize even more, takes even more time" << endl
+    << "              -Os Optimize for size, like -O2 but tuned for small code size" << endl
+    << "              Default is -O0." << endl
     << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
     << "   -x PID     sets target() to PID" << endl
     << "   -F         run as on-file flight recorder with -o." << endl
@@ -491,6 +499,8 @@ main (int argc, char * const argv [])
   s.load_only = false;
   s.skip_badvars = false;
   s.unprivileged = false;
+  s.gcc_flags = "-O0";
+  s.unprivileged = false;
 
   // Location of our signing certificate.
   // If we're root, use the database in SYSCONFDIR, otherwise
@@ -585,7 +595,7 @@ main (int argc, char * const argv [])
         { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:FS:",
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:O::R:r:m:kgPc:x:D:bs:uqwl:d:L:FS:",
                                                           long_options, NULL);
       if (grc < 0)
         break;
@@ -647,6 +657,22 @@ main (int argc, char * const argv [])
 
         case 'o':
           s.output_file = string (optarg);
+          break;
+
+        case 'O':
+	  if (optarg == NULL)
+	    s.gcc_flags = "-O1";
+	  else
+	    s.gcc_flags = "-O" + string (optarg);
+
+	  if (s.gcc_flags != "-O0" && s.gcc_flags != "-O1"
+	      && s.gcc_flags != "-O2" && s.gcc_flags != "-O3"
+	      && s.gcc_flags != "-Os")
+	    {
+	      cerr << "'" << s.gcc_flags << "'"
+		   << " isn't a valid optimization option." << endl;
+	      usage (s, 1);
+	    }
           break;
 
         case 'R':

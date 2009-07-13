@@ -187,7 +187,7 @@ compile_pass (systemtap_session& s)
   // if (s.keep_tmpdir)
   // o << "CFLAGS += -fverbose-asm -save-temps" << endl;
 
-  o << "EXTRA_CFLAGS += -freorder-blocks" << endl; // improve on -Os
+  o << "EXTRA_CFLAGS += " << s.gcc_flags << endl; // Add -O[0123s]
 
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
 

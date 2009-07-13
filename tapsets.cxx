@@ -3245,7 +3245,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "if (rc) {"; // PR6749: tolerate a failed register_*probe.
   s.op->newline(1) << "sdp->registered_p = 0;";
   s.op->newline() << "if (!sdp->optional_p)";
-  s.op->newline(1) << "_stp_warn (\"probe %s registration error (rc %d)\", probe_point, rc);";
+  s.op->newline(1) << "_stp_warn (\"probe %s (address 0x%lx) registration error (rc %d)\", probe_point, relocated_addr, rc);";
   s.op->newline(-1) << "rc = 0;"; // continue with other probes
   // XXX: shall we increment numskipped?
   s.op->newline(-1) << "}";
@@ -4795,7 +4795,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "if (rc) {"; // PR6749: tolerate a failed register_*probe.
   s.op->newline(1) << "sdp->registered_p = 0;";
   s.op->newline() << "if (!sdp->optional_p)";
-  s.op->newline(1) << "_stp_warn (\"probe %s registration error (rc %d)\", probe_point, rc);";
+  s.op->newline(1) << "_stp_warn (\"probe %s (address 0x%lx) registration error (rc %d)\", probe_point, addr, rc);";
   s.op->newline(-1) << "rc = 0;"; // continue with other probes
   // XXX: shall we increment numskipped?
   s.op->newline(-1) << "}";

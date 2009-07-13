@@ -292,6 +292,9 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 #define DADDR   (&inet->daddr)
 #endif
 
+// Use kernel builtin instead of picking up user space ntohs (function).
+#define _stp_ntohs be16_to_cpu
+
 	//FIXME. Not done yet.
 	char *str = THIS->__retvalue;
 	const int strlen = MAXSTRINGLEN;
@@ -301,7 +304,7 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 		struct sockaddr_in *sin = (struct sockaddr_in *)buf;
 		const unsigned char *addr = (unsigned char *)&sin->sin_addr;
 		snprintf(str, strlen, "{AF_INET, %d.%d.%d.%d, %d}", 
-			addr[0], addr[1], addr[2], addr[3], ntohs(sin->sin_port));
+			addr[0], addr[1], addr[2], addr[3], _stp_ntohs(sin->sin_port));
 	}
 	else if ((sa->sa_family == AF_UNIX)&&(len == sizeof(struct sockaddr_un)))
 	{	
@@ -318,7 +321,7 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 		// FIXME. Address is probably not correctly displayed
 		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)buf;
 		snprintf(str, strlen, "{AF_INET6, %016llx, %d}", 
-			*(long long *)&sin->sin6_addr, ntohs(sin->sin6_port));
+			*(long long *)&sin->sin6_addr, _stp_ntohs(sin->sin6_port));
 	}
 	else if ((sa->sa_family == AF_PACKET)&&(len == sizeof(struct sockaddr_ll))) 
 	{

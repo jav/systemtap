@@ -91,7 +91,7 @@ tt2str(token_type tt)
 ostream&
 operator << (ostream& o, const source_loc& loc)
 {
-  o << loc.file << ":"
+  o << loc.file->name << ":"
     << loc.line << ":"
     << loc.column;
 
