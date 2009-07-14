@@ -136,9 +136,6 @@ struct systemtap_session
   // Skip bad $ vars
   bool skip_badvars;
 
-  // Optimization flag passed to gcc -O[0123s]
-  std::string gcc_flags;
-
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (elaborate.cxx)
   // and/or main.cxx(main).

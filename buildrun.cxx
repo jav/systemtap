@@ -187,7 +187,16 @@ compile_pass (systemtap_session& s)
   // if (s.keep_tmpdir)
   // o << "CFLAGS += -fverbose-asm -save-temps" << endl;
 
-  o << "EXTRA_CFLAGS += " << s.gcc_flags << endl; // Add -O[0123s]
+  // Kernels can be compiled with CONFIG_CC_OPTIMIZE_FOR_SIZE to select
+  // -Os, otherwise -O2 is the default.
+  o << "EXTRA_CFLAGS += -freorder-blocks" << endl; // improve on -Os
+
+  // We used to allow the user to override default optimization when so
+  // requested by adding a -O[0123s] so they could determine the
+  // time/space/speed tradeoffs themselves, but we cannot guantantee that
+  // the (un)optimized code actually compiles and/or generates functional
+  // code, so we had to remove it.
+  // o << "EXTRA_CFLAGS += " << s.gcc_flags << endl; // Add -O[0123s]
 
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
 
