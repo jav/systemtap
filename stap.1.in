@@ -183,14 +183,6 @@ Send standard output to named file. In bulk mode, percpu files will
 start with FILE_ (FILE_cpu with -F) followed by the cpu number.
 This supports strftime(3) formats for FILE.
 .TP
-.BI \-O[0123s]
-Optimization to use for C code. Passed to gcc in pass 4. -O is an
-alias for -O1, -O0 enables fast compilation, -O1 optimizes the code and
-takes a bit more time, -O2 optimizes more and takes more time, -O3
-optimizes even more and takes even more time, -Os optimizes for size,
-like -O2 but tuned for small code size. Default is the kernel opt-level
-default (-O2 or -Os).
-.TP
 .BI \-c " CMD"
 Start the probes, run CMD, and exit when CMD finishes.
 .TP
