@@ -48,7 +48,6 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 
-#include "loc2c.h"
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 }
