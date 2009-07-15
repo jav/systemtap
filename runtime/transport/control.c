@@ -34,8 +34,7 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 	count -= sizeof(u32);
 	buf += sizeof(u32);
 
-
-#ifdef DEBUG_TRANS
+#if defined(DEBUG_TRANS) && (DEBUG_TRANS >= 2)
 	if (type < STP_MAX_CMD)
 		dbug_trans2("Got %s. len=%d\n", _stp_command_name[type],
 			    (int)count);
