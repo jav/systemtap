@@ -1,0 +1,114 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="dropwatchsect">
+		<title>Monitoring Network Packets Drops in Kernel</title>
+<indexterm>
+<primary>script examples</primary>
+<secondary>network profiling</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>network profiling</secondary>
+</indexterm>
+
+<indexterm>
+<primary>network profiling</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>		
+		
+		
+<remark>
+	probably http://sourceware.org/systemtap/examples/network/nettop.stp
+</remark>	
+				
+<indexterm>
+<primary>profiling the network</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>network traffic, monitoring</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<para>
+<indexterm><primary>tracepoint</primary></indexterm>
+The network stack in Linux
+can discard packets for various reasons.  Some Linux kernels include a
+tracepoint, <command>kernel.trace("kfree_skb")</command>, to allow easy probing
+to determine where the packets are discarded.  The <xref linkend="dropwatch"/>
+script uses that tracepoint trace packet discards. The script summarizes the
+locations discarding packets every five seconds as totals number of packets
+discarded for each location.
+</para>
+
+<formalpara id="dropwatch">
+		<title>dropwatch.stp</title>
+<para>
+<programlisting>
+<xi:include parse="text" href="extras/testsuite/systemtap.examples/network/dropwatch.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</programlisting>
+</para>
+</formalpara>	
+
+<para>
+The <command>kernel.trace("kfree_skb")</command> instruments each of the places
+in the kernel that drops network packets.  Like probes for functions the
+tracepoint probes also have arguments. The
+<command>kernel.trace("kfree_skb")</command> has two arguments: a pointer to the
+buffer being freed (<command>$skb</command>) and the location in kernel code the
+buffer is being freed (<command>$location</command>).
+</para>
+
+<para>
+Running the dropwatch.stp script 15 seconds would result in output similar in
+<xref linkend="dropwatchoutput"/>. The output lists the number of misses for
+tracepoint address and the actual address.
+</para>
+
+<example id="dropwatchoutput">
+	<title><xref linkend="dropwatch"/> Sample Output</title>
+<screen>
+Monitoring for dropped packets
+
+51 packets dropped at location 0xffffffff8024cd0f
+2 packets dropped at location 0xffffffff8044b472
+
+51 packets dropped at location 0xffffffff8024cd0f
+1 packets dropped at location 0xffffffff8044b472
+
+97 packets dropped at location 0xffffffff8024cd0f
+1 packets dropped at location 0xffffffff8044b472
+Stopping dropped packet monitor
+</screen>
+</example>
+
+<para>
+The functions containing the location of the packet drops is determined using
+<command>/boot/System.map-`uname -r`</command> file.  The System.map file lists
+the starting addesses for each function. Below are the sections of the
+System.map file containing the addresses in the dropwatch.stp output. The
+address 0xffffffff8024cd0f maps to the function
+<command>unix_stream_recvmsg</command> and the address 0xffffffff8044b472 maps
+to the function <command>arp_rcv</command>.
+</para>
+
+<screen>
+[...]
+ffffffff8024c5cd T unlock_new_inode
+ffffffff8024c5da t unix_stream_sendmsg
+ffffffff8024c920 t unix_stream_recvmsg
+ffffffff8024cea1 t udp_v4_lookup_longway
+[...]
+ffffffff8044addc t arp_process
+ffffffff8044b360 t arp_rcv
+ffffffff8044b487 t parp_redo
+ffffffff8044b48c t arp_solicit
+[...]
+</screen>
+	</section>
+
