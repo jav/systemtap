@@ -179,5 +179,5 @@ if (build_source):
     f = open(fn,mode='w')
     f.write("#include \"" + filename + ".h\"\nstatic __dtrace () {}\n")
     f.close()
-    call(["gcc", "-fPIC", "-I.", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
+    call(["gcc", "-fPIC", "-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
     os.remove(fn)
