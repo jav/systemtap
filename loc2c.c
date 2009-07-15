@@ -1745,7 +1745,8 @@ c_translate_array (struct obstack *pool, int indent,
 		   Dwarf_Die *typedie, struct location **input,
 		   const char *idx, Dwarf_Word const_idx)
 {
-  assert (dwarf_tag (typedie) == DW_TAG_array_type);
+  assert (dwarf_tag (typedie) == DW_TAG_array_type ||
+          dwarf_tag (typedie) == DW_TAG_pointer_type);
 
   ++indent;
 

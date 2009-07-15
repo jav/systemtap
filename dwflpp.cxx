@@ -1684,13 +1684,10 @@ dwflpp::translate_components(struct obstack *pool,
           break;
 
         case DW_TAG_pointer_type:
-          if (e->components[i].first == target_symbol::comp_literal_array_index)
-            throw semantic_error ("cannot index pointer", e->tok);
-          // XXX: of course, we should support this the same way C does,
-          // by explicit pointer arithmetic etc.  PR4166.
-
           c_translate_pointer (pool, 1, 0 /* PR9768*/, die, tail);
-          break;
+          if (e->components[i].first != target_symbol::comp_literal_array_index)
+            break;
+          /* else fall through as an array access */
 
         case DW_TAG_array_type:
           if (e->components[i].first == target_symbol::comp_literal_array_index)
@@ -1772,6 +1769,11 @@ dwflpp::translate_components(struct obstack *pool,
       if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
         throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)), e->tok);
     }
+
+  /* For an array index, we need to dereference the final DIE */
+  if (e->components.back().first == target_symbol::comp_literal_array_index)
+    die = dwarf_formref_die (attr_mem, die_mem);
+
   return die;
 }
 

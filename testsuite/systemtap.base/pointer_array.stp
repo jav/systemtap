@@ -1,0 +1,16 @@
+probe syscall.execve
+{
+    if (pid() == target()) {
+        println(user_string($argv[0]))
+        printf("%c\n", $argv[0][0])
+        printf("%c\n", $argv[0][1])
+        printf("%c\n", $argv[0][2])
+        printf("%c\n", $argv[0][3])
+        printf("%c\n", $argv[0][4])
+        printf("%c\n", $argv[0][5])
+        printf("%c\n", $argv[0][6])
+        printf("%c\n", $argv[0][7])
+        printf("%c\n", $argv[0][8])
+        println($argv[0][9])
+    }
+}

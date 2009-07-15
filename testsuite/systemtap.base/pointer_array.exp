@@ -1,0 +1,13 @@
+set test "pointer_array"
+set ::result_string {/bin/true
+/
+b
+i
+n
+/
+t
+r
+u
+e
+0}
+stap_run2 $srcdir/$subdir/$test.stp -c/bin/true
