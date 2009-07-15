@@ -11,7 +11,8 @@ struct location;		/* Opaque */
 /* Translate a C fragment for the location expression, using *INPUT
    as the starting location, begin from scratch if *INPUT is null.
    If DW_OP_fbreg is used, it may have a subfragment computing from
-   the FB_ATTR location expression.
+   the FB_ATTR location expression. The call_frame might need to be
+   calculated by the cfa_ops for the given pc_address.
 
    On errors, call FAIL, which should not return.  Any later errors will use
    FAIL and FAIL_ARG from the first c_translate_location call.
@@ -34,7 +35,8 @@ struct location *c_translate_location (struct obstack *,
 				       const Dwarf_Op *locexpr,
 				       size_t locexprlen,
 				       struct location **input,
-				       Dwarf_Attribute *fb_attr);
+				       Dwarf_Attribute *fb_attr,
+				       const Dwarf_Op *cfa_ops);
 
 /* Translate a fragment to dereference the given DW_TAG_pointer_type DIE,
    where *INPUT is the location of the pointer with that type.  */

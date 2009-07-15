@@ -376,6 +376,10 @@ private:
   int num_cached_scopes;
   Dwarf_Die *cached_scopes;
   int dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes);
+
+  // Returns the call frame address operations for the given program counter.
+  Dwarf_Op *get_cfa_ops (Dwarf_Addr pc);
+
 };
 
 #endif // DWFLPP_H
