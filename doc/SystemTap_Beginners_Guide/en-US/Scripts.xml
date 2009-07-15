@@ -377,6 +377,32 @@ probe kernel.function("*@net/socket.c").return { }
       </varlistentry>
 
       <varlistentry>
+	<term>kernel.trace("<replaceable>tracepoint</replaceable>")</term>
+	<listitem>
+<indexterm><primary>tracepoint</primary></indexterm>
+<indexterm>
+<primary>Events</primary>
+<secondary><command>kernel.trace("<replaceable>tracepoint</replaceable>")</command></secondary>
+</indexterm>
+
+<indexterm>
+<primary><command>kernel.trace("<replaceable>tracepoint</replaceable>")</command></primary>
+<secondary>Events</secondary>
+</indexterm>
+	  <para>
+	    The static probe for <replaceable>tracepoint</replaceable>.
+	    Recent kernels (2.6.30 and newer)
+	    include instrumentation for specific events in the kernel. These
+	    events are statically marked with tracepoints.  One example of a
+	    tracepoint available in systemtap is
+	    <command>kernel.trace("kfree_skb")</command> which indicates each
+	    time a network buffer is freed in the kernel.
+	  </para>
+	</listitem>
+
+      </varlistentry>
+
+      <varlistentry>
 	<term>module("<replaceable>module</replaceable>").function("<replaceable>function</replaceable>")</term>
 	<listitem>
 <indexterm>
