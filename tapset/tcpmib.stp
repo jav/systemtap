@@ -1,0 +1,352 @@
+/*
+ *      Copyright (C) 2009 IBM Corp.
+ *      This file is part of systemtap, and is free software.  You can
+ *      redistribute it and/or modify it under the terms of the GNU General
+ *      Public License (GPL); either version 2, or (at your option) any
+ *      later version.
+ *      
+ *      Version 1.0     wilder@us.ibm.com     2009-07-06
+ */
+
+/* Global counter definitions for mib TCP_MIB. */
+
+%{
+#include <net/sock.h>
+#include <linux/tcp.h>
+#include <net/tcp_states.h>
+#include <linux/skbuff.h>
+#include <net/route.h>
+%}
+
+global ActiveOpens
+global AttemptFails
+global CurrEstab
+global EstabResets
+// global InErrs, this mib is not yet supported
+global InSegs
+global OutRsts
+global OutSegs
+global PassiveOpens
+global RetransSegs
+
+/**
+ * sfunction tcpmib_get_state - Get a socket's state.
+ *
+ * Returns the sk_state from a struct sock.
+ * @sk: Pointer to a struct sock.
+ *
+ */
+function tcpmib_get_state:long (sk:long)
+%{ /* pure */
+	struct sock *sk = (struct sock *)(long)THIS->sk;
+	THIS->__retvalue = kread(&(sk->sk_state));
+	CATCH_DEREF_FAULT();
+%}
+
+/**
+ * sfunction tcpmib_local_addr - Get the source address.
+ *
+ * Returns the saddr from a struct inet_sock.
+ * @sk: Pointer to a struct inet_sock.
+ *
+ */
+function tcpmib_local_addr:long(sk:long)
+%{ /* pure */
+        struct inet_sock *inet = (struct inet_sock *) (long) THIS->sk;
+        THIS->__retvalue = ntohl(kread(&(inet->saddr)));
+        CATCH_DEREF_FAULT();
+%}
+
+/**
+ * sfunction tcpmib_remote_addr - Get the remote address.
+ *
+ * Returns the daddr from a struct inet_sock.
+ * @sk: Pointer to a struct inet_sock.
+ *
+ */
+function tcpmib_remote_addr:long(sk:long)
+%{ /* pure */
+        struct inet_sock *inet = (struct inet_sock *) (long) THIS->sk;
+        THIS->__retvalue = ntohl(kread(&(inet->daddr)));
+        CATCH_DEREF_FAULT();
+%}
+
+/**
+ * sfunction tcpmib_local_port - Get the local port.
+ *
+ * Returns the sport from a struct inet_sock.
+ * @sk: Pointer to a struct inet_sock.
+ *
+ */
+function tcpmib_local_port:long(sk:long)
+%{ /* pure */
+        struct inet_sock *inet = (struct inet_sock *) (long) THIS->sk;
+        THIS->__retvalue = ntohs(kread(&(inet->sport)));
+        CATCH_DEREF_FAULT();
+%}
+
+/**
+ * sfunction tcpmib_remote_port - Get the remote port.
+ *
+ * Returns the dport from a struct inet_sock.
+ * @sk: Pointer to a struct inet_sock.
+ *
+ */
+function tcpmib_remote_port:long(sk:long)
+%{ /* pure */
+        struct inet_sock *inet = (struct inet_sock *) (long) THIS->sk;
+        THIS->__retvalue = ntohs(kread(&(inet->dport)));
+        CATCH_DEREF_FAULT();
+%}
+
+/**
+ * probe tcpmib.ActiveOpens - Count an active opening of a socket.
+ * @sk:	Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: ActiveOpens
+ * MIB: TCP_MIB_ACTIVEOPENS
+ *
+ */
+probe
+tcpmib.ActiveOpens=kernel.function("tcp_connect").return
+{
+	sk = $sk;
+	op = 1;
+	if ( $return ) next;
+	key = tcpmib_filter_key(sk,op);
+	if ( key ) ActiveOpens[key] += op;
+}
+
+/**
+ * probe tcpmib.AttemptFails - Count a failed attempt to open a socket.
+ * @sk: Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: AttemptFails
+ * MIB: TCP_MIB_ATTEMPTFAILS
+ *
+ */
+probe
+tcpmib.AttemptFails=kernel.function("tcp_done")
+{
+	sk = $sk;
+	state = tcpmib_get_state(sk);
+	op = 1;
+
+	TCP_SYN_SENT = 2;
+	TCP_SYN_RECV = 3;
+	if( state == TCP_SYN_SENT || state == TCP_SYN_RECV){
+		key = tcpmib_filter_key(sk,op);
+		if ( key ) AttemptFails[key] += op;
+	}
+}
+
+/**
+ * probe tcpmib.CurrEstab - Update the count of open sockets.
+ * @sk: Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: CurrEstab
+ * MIB: TCP_MIB_CURRESTAB
+ *
+ */
+probe
+tcpmib.CurrEstab=kernel.function("tcp_set_state")
+{
+	sk = $sk;
+	state = $state;
+	oldstate = tcpmib_get_state(sk);
+
+	TCP_ESTABLISHED = 1;
+	if ( oldstate == TCP_ESTABLISHED ) {
+		op = -1;
+		key = tcpmib_filter_key(sk,op);
+		if ( key ) CurrEstab[key] += op;
+	} else {
+		if ( state == TCP_ESTABLISHED ) {
+			op = 1;
+			key = tcpmib_filter_key(sk,op);
+			if ( key ) CurrEstab[key] += op;
+		}
+	}
+}
+
+/**
+ * probe tcpmib.EstabResets - Count the reset of a socket.
+ * @sk: Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: EstabResets
+ * MIB: TCP_MIB_ESTABRESETS
+ *
+ */
+probe
+tcpmib.EstabResets=kernel.function("tcp_set_state")
+{
+	sk = $sk;
+        state = $state;
+        oldstate = tcpmib_get_state(sk);
+	op = 1;
+
+	TCP_CLOSE = 7;
+	TCP_CLOSE_WAIT = 8;
+	TCP_ESTABLISHED = 1;
+	if ( ( state == TCP_CLOSE ) && 
+	   (oldstate == TCP_CLOSE_WAIT || oldstate == TCP_ESTABLISHED) ){
+        	key = tcpmib_filter_key(sk,op);
+		if ( key ) EstabResets[key] += op;
+	}
+}
+
+/**
+ * probe tcpmib.InSegs - Count an incomming tcp segment.
+ * @sk: Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: InSegs
+ * MIB: TCP_MIB_INSEGS
+ *
+ */
+probe
+tcpmib.InSegs=kernel.function("__inet_lookup_established").return
+{
+        sk=$return
+	op=1
+	key = tcpmib_filter_key(sk,op);
+	if ( key ) InSegs[key] += op;
+}
+
+/**
+ * probe tcpmib.OutRsts - Count the sending of a reset packet.
+ * @sk: Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: OutRsts
+ * MIB: TCP_MIB_OUTRSTS
+ *
+ */
+probe
+tcpmib.OutRsts = 	tcpmib.OutRsts.A,
+			tcpmib.OutRsts.B { }
+
+function _rtn_local:long ()
+%{
+        THIS->__retvalue = RTN_LOCAL;
+%}
+
+function _is_reset:long (skb:long)
+%{ /* pure */
+        struct tcphdr *th;
+        struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
+
+	#ifdef NET_SKBUFF_DATA_USES_OFFSET
+		th = (struct tcphdr *)(kread(&(skb->network_header)) + kread(&(skb->head)));
+	#else
+		th = (struct tcphdr *)kread(&(skb->network_header));
+	#endif
+        THIS->__retvalue = th->rst;
+        CATCH_DEREF_FAULT();
+%}
+
+function _tcpmib_input_route_type:long (skb:long)
+%{ /* pure */
+        struct rtable *rt;
+        struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
+        rt = (struct rtable *)kread(&(skb->rtable));
+        THIS->__retvalue = kread(&(rt->rt_type));
+        CATCH_DEREF_FAULT();
+%}
+
+/*
+ * note:
+ * tcp_v4_send_reset may be called with a NULL sk.
+ * This happens when sending a reset in response to a syn 
+ * when no socket exists (for example the service is not running).
+ * Without a socket we can't count the reset.
+ */
+probe
+tcpmib.OutRsts.A=kernel.function("tcp_v4_send_reset")
+{
+        sk = $sk;
+        skb = $skb
+        op = 1;
+        if ( _is_reset(skb) ) next
+        if (_tcpmib_input_route_type($skb) != _rtn_local() )
+                next;
+        key = tcpmib_filter_key(sk,op);
+        if ( key ) OutRsts[key] += op;
+}
+
+probe
+tcpmib.OutRsts.B= kernel.function("tcp_send_active_reset")
+{
+	/* Almost correct,
+	 * If alloc_skb() fails it incorrectly bumps TCP_MIB_OUTRSTS,
+	 */
+	sk = $sk;
+	op = 1;
+	key = tcpmib_filter_key(sk,op);
+        if ( key ) OutRsts[key] += op;
+}
+
+/**
+ * probe tcpmib.OutSegs - Count the sending of a TCP segment.
+ * @sk: Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: OutSegs
+ * MIB: TCP_MIB_OUTSEGS
+ *
+ */
+probe
+tcpmib.OutSegs=kernel.function("ip_queue_xmit").return
+{
+	if ( $return < 0 ) next;
+	sk = $skb->sk;
+	op = 1;
+	
+        //  Only count the events with protocol IPPROTO_TCP,6.
+	iphdr = __get_skb_iphdr($skb);
+        if( !(__ip_skb_proto(iphdr) == 6) ) next ;
+	key = tcpmib_filter_key(sk,op);
+	if ( key ) OutSegs[key] += op;
+}
+
+/**
+ * probe tcpmib.PassiveOpens - Count the passive creation of a socket.
+ * @sk: Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: PassiveOpens
+ * MIB: TCP_MIB_PASSIVEOPENS
+ *
+ */
+probe
+tcpmib.PassiveOpens=kernel.function("tcp_v4_syn_recv_sock").return
+{
+        sk = $return;
+        op = 1;
+        if ( !sk ) next;
+        key = tcpmib_filter_key(sk,op);
+        if ( key ) PassiveOpens[key] += op;
+}
+
+/**
+ * probe tcpmib.RetransSegs - Count the retransmission of a TCP segment.
+ * @sk: Pointer to the struct sock being acted on.
+ * @op: Value to be added to the counter (Operation). 
+ *
+ * Counter Name: RetransSegs
+ * MIB: TCP_MIB_RETRANSSEGS
+ *
+ */
+probe
+tcpmib.RetransSegs=kernel.function("tcp_retransmit_skb").return
+{
+	sk = $sk;
+	op = 1;
+	if ( $return ) next;
+	key = tcpmib_filter_key(sk,op);
+	if ( key ) RetransSegs[key] += op;
+}
