@@ -383,6 +383,9 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
   else if (! write_probe && ! lvalue)
     throw semantic_error("procfs $value variable cannot be read in a procfs read probe", e->tok);
 
+  if (e->addressof)
+    throw semantic_error("cannot take address of procfs variable", e->tok);
+
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 

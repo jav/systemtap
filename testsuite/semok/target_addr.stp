@@ -1,0 +1,11 @@
+#! stap -p2
+
+// read the address of various task_struct members.
+// all should roughly be $p + offsetof(foo)
+probe kernel.function("release_task") {
+    println(& $p->state)  // long
+    println(& $p->usage)  // atomic_t
+    println(& $p->comm)   // comm[TASK_COMM_LEN]
+    println(& $p->comm[1])
+    println(& $p->parent) // task_struct*
+}

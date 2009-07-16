@@ -261,6 +261,8 @@ void symbol::print (ostream& o) const
 
 void target_symbol::print (std::ostream& o) const
 {
+  if (addressof)
+    o << "&";
   o << base_name;
   for (unsigned i = 0; i < components.size(); ++i)
     {
@@ -279,6 +281,8 @@ void target_symbol::print (std::ostream& o) const
 
 void cast_op::print (std::ostream& o) const
 {
+  if (addressof)
+    o << "&";
   o << base_name << '(' << *operand;
   o << ", " << lex_cast_qstring (type);
   if (module.length() > 0)

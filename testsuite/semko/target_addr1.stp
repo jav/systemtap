@@ -1,0 +1,6 @@
+#! stap -p2
+
+// can't take the address of bitfields
+probe kernel.function("release_task") {
+    println(& $p->did_exec)  // unsigned:1
+}

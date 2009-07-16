@@ -2331,6 +2331,9 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       if (dwarf_getscopes_die (scope_die, &scopes) == 0)
 	return;
 
+      if (e->addressof)
+        throw semantic_error("cannot take address of context variable", e->tok);
+
       target_symbol *tsym = new target_symbol;
       print_format* pf = new print_format;
 
@@ -3356,6 +3359,9 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   if (e->base_name == "$$name")
     {
+      if (e->addressof)
+        throw semantic_error("cannot take address of sdt variable", e->tok);
+
       literal_string *myname = new literal_string (probe_name);
       myname->tok = e->tok;
       provide(myname);
@@ -3409,6 +3415,9 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   if (e->components.empty())
     {
+      if (e->addressof)
+        throw semantic_error("cannot take address of sdt variable", e->tok);
+
       provide(fc);
       return;
     }
@@ -5041,6 +5050,9 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
   if (e->components.empty())
     {
+      if (e->addressof)
+        throw semantic_error("cannot take address of tracepoint variable", e->tok);
+
       // Just grab the value from the probe locals
       e->probe_context_var = "__tracepoint_arg_" + arg->name;
       e->type = pe_long;
@@ -5140,6 +5152,9 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 void
 tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
+  if (e->addressof)
+    throw semantic_error("cannot take address of context variable", e->tok);
+
   if (is_active_lvalue (e))
     throw semantic_error("write to tracepoint '" + e->base_name + "' not permitted", e->tok);
 

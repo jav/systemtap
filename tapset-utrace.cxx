@@ -539,6 +539,9 @@ utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
     throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
 			  e->tok);
 
+  if (e->addressof)
+    throw semantic_error("cannot take address of utrace variable", e->tok);
+
   if (e->base_name.substr(0,4) == "$arg")
     visit_target_symbol_arg(e);
   else if (e->base_name == "$syscall" || e->base_name == "$return")

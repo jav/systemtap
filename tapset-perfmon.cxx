@@ -64,6 +64,9 @@ perfmon_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   if (e->base_name != "$counter")
     throw semantic_error ("target variables not available to perfmon probes");
 
+  if (e->addressof)
+    throw semantic_error("cannot take address of perfmon variable", e->tok);
+
   if (e->components.size() > 0)
     {
       switch (e->components[0].first)

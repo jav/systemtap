@@ -1830,6 +1830,21 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
   typedie = resolve_unqualified_inner_typedie (&typedie_mem, attr_mem, e);
   typetag = dwarf_tag (typedie);
 
+  /* If we're looking for an address, then we can just provide what
+     we computed to this point, without using a fetch/store. */
+  if (e->addressof)
+    {
+      if (lvalue)
+        throw semantic_error ("cannot write to member address", e->tok);
+
+      if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
+        throw semantic_error ("cannot take address of bit-field", e->tok);
+
+      c_translate_addressof (pool, 1, 0, 0, die, tail, "THIS->__retvalue");
+      ty = pe_long;
+      return;
+    }
+
   /* Then switch behavior depending on the type of fetch/store we
      want, and the type and pointer-ness of the final location. */
 
