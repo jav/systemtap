@@ -48,7 +48,7 @@ foreach arch $arches {
 	# Adding -O, -O2, -Os and mixing lib/exe is a bit overdone
 	foreach opt {-O0 -O3} {
 	    
-	    foreach libprelink {no yes} { # BUG! "yes" breaks ustack PR10323
+	    foreach libprelink {no yes} {
 		
 		# not done yet, "no" lib debug.
 		# seperate debuginfo can be done before or after prelinking

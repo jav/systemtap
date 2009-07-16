@@ -8866,6 +8866,8 @@ if test $enable_translator == "yes"; then
 fi
 ac_config_files="$ac_config_files run-staprun"
 
+ac_config_files="$ac_config_files dtrace"
+
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -9597,6 +9599,7 @@ do
     "initscript/systemtap") CONFIG_FILES="$CONFIG_FILES initscript/systemtap" ;;
     "run-stap") CONFIG_FILES="$CONFIG_FILES run-stap" ;;
     "run-staprun") CONFIG_FILES="$CONFIG_FILES run-staprun" ;;
+    "dtrace") CONFIG_FILES="$CONFIG_FILES dtrace" ;;
 
   *) { { $as_echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 $as_echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -10386,6 +10389,7 @@ done
  ;;
     "run-stap":F) chmod +x run-stap ;;
     "run-staprun":F) chmod +x run-staprun ;;
+    "dtrace":F) chmod +x dtrace ;;
 
   esac
 done # for ac_tag

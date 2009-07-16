@@ -2239,6 +2239,18 @@ parser::parse_value ()
         throw parse_error ("expected ')'");
       return e;
     }
+  else if (t->type == tok_operator && t->content == "&")
+    {
+      next ();
+      t = peek ();
+      if (t->type != tok_identifier ||
+          (t->content != "@cast" && t->content[0] != '$'))
+        throw parse_error ("expected @cast or $var");
+
+      target_symbol *ts = static_cast<target_symbol*>(parse_symbol());
+      ts->addressof = true;
+      return ts;
+    }
   else if (t->type == tok_identifier)
     return parse_symbol ();
   else

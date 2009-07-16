@@ -80,7 +80,7 @@ Summary: Instrumentation System Testsuite
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap dejagnu
+Requires: systemtap systemtap-sdt-devel dejagnu
 
 %description testsuite
 The testsuite allows testing of the entire SystemTap toolchain

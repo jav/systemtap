@@ -586,6 +586,7 @@ if test $enable_translator == "yes"; then
 	AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
 fi
 AC_CONFIG_FILES([run-staprun], [chmod +x run-staprun])
+AC_CONFIG_FILES([dtrace], [chmod +x dtrace])
 AC_OUTPUT
 
 if test "${prefix}" = "/usr/local"; then

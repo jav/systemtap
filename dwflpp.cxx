@@ -41,6 +41,9 @@ extern "C" {
 #include <fcntl.h>
 #include <elfutils/libdwfl.h>
 #include <elfutils/libdw.h>
+#ifdef HAVE_ELFUTILS_VERSION_H
+#include <elfutils/version.h>
+#endif
 #include <dwarf.h>
 #include <elf.h>
 #include <obstack.h>
@@ -1497,10 +1500,11 @@ dwflpp::translate_location(struct obstack *pool,
                             e->tok);
     }
 
+  Dwarf_Op *cfa_ops = get_cfa_ops (pc);
   return c_translate_location (pool, &loc2c_error, this,
                                &loc2c_emit_address,
                                1, 0 /* PR9768 */,
-                               pc, expr, len, tail, fb_attr);
+                               pc, expr, len, tail, fb_attr, cfa_ops);
 }
 
 
@@ -1684,13 +1688,10 @@ dwflpp::translate_components(struct obstack *pool,
           break;
 
         case DW_TAG_pointer_type:
-          if (e->components[i].first == target_symbol::comp_literal_array_index)
-            throw semantic_error ("cannot index pointer", e->tok);
-          // XXX: of course, we should support this the same way C does,
-          // by explicit pointer arithmetic etc.  PR4166.
-
           c_translate_pointer (pool, 1, 0 /* PR9768*/, die, tail);
-          break;
+          if (e->components[i].first != target_symbol::comp_literal_array_index)
+            break;
+          /* else fall through as an array access */
 
         case DW_TAG_array_type:
           if (e->components[i].first == target_symbol::comp_literal_array_index)
@@ -1772,6 +1773,11 @@ dwflpp::translate_components(struct obstack *pool,
       if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
         throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)), e->tok);
     }
+
+  /* For an array index, we need to dereference the final DIE */
+  if (e->components.back().first == target_symbol::comp_literal_array_index)
+    die = dwarf_formref_die (attr_mem, die_mem);
+
   return die;
 }
 
@@ -1823,6 +1829,21 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
 
   typedie = resolve_unqualified_inner_typedie (&typedie_mem, attr_mem, e);
   typetag = dwarf_tag (typedie);
+
+  /* If we're looking for an address, then we can just provide what
+     we computed to this point, without using a fetch/store. */
+  if (e->addressof)
+    {
+      if (lvalue)
+        throw semantic_error ("cannot write to member address", e->tok);
+
+      if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
+        throw semantic_error ("cannot take address of bit-field", e->tok);
+
+      c_translate_addressof (pool, 1, 0, 0, die, tail, "THIS->__retvalue");
+      ty = pe_long;
+      return;
+    }
 
   /* Then switch behavior depending on the type of fetch/store we
      want, and the type and pointer-ness of the final location. */
@@ -2083,7 +2104,7 @@ dwflpp::literal_stmt_for_return (Dwarf_Die *scope_die,
                                                  &loc2c_emit_address,
                                                  1, 0 /* PR9768 */,
                                                  pc, locops, nlocops,
-                                                 &tail, NULL);
+                                                 &tail, NULL, NULL);
 
   /* Translate the ->bar->baz[NN] parts. */
 
@@ -2487,5 +2508,36 @@ dwflpp::dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes)
   return num_cached_scopes;
 }
 
+Dwarf_Op *
+dwflpp::get_cfa_ops (Dwarf_Addr pc)
+{
+  Dwarf_Op *cfa_ops = NULL;
+
+#ifdef _ELFUTILS_PREREQ
+#if _ELFUTILS_PREREQ(0,142)
+  // Try debug_frame first, then fall back on eh_frame.             
+  Dwarf_Addr bias;
+  Dwarf_CFI *cfi = dwfl_module_dwarf_cfi (module, &bias);
+  if (cfi != NULL)
+    {
+      Dwarf_Frame *frame = NULL;
+      if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+	dwarf_frame_cfa (frame, &cfa_ops);
+    }
+  if (cfa_ops == NULL)
+    {
+      cfi = dwfl_module_eh_cfi (module, &bias);
+      if (cfi != NULL)
+	{
+	  Dwarf_Frame *frame = NULL;
+	  if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+	    dwarf_frame_cfa (frame, &cfa_ops);
+	}
+    }
+#endif
+#endif
+
+  return cfa_ops;
+}
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

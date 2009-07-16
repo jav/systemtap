@@ -75,7 +75,7 @@ get_location (Dwarf_Addr dwbias, Dwarf_Addr pc, Dwarf_Attribute *loc_attr,
 static void
 handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 		 Dwarf_Addr cubias, Dwarf_Die *vardie, Dwarf_Addr pc,
-		 char **fields)
+		 Dwarf_Op *cfa_ops, char **fields)
 {
 #define obstack_chunk_alloc malloc
 #define obstack_chunk_free free
@@ -121,7 +121,7 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
   struct location *head, *tail = NULL;
   head = c_translate_location (&pool, &fail, NULL, NULL,
 			       1, cubias, pc, locexpr, locexpr_len,
-			       &tail, fb_attr);
+			       &tail, fb_attr, cfa_ops);
 
   if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
     error (2, 0, _("cannot get type of variable: %s"),
@@ -240,7 +240,7 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 					    &locexpr_len);
 		    c_translate_location (&pool, NULL, NULL, NULL,
 					  1, cubias, pc, locexpr, locexpr_len,
-					  &tail, NULL);
+					  &tail, NULL, NULL);
 		    break;
 		}
 	    }
@@ -521,7 +521,40 @@ main (int argc, char **argv)
 	error (0, 0, "dwarf_getscopevar: %s (+%d, %s:%d:%d): %s",
 	       spec, shadow, at, lineno, colno, dwarf_errmsg (-1));
       else
-	handle_variable (scopes, n, out, cubias, &vardie, pc, &argv[argi]);
+	{
+	  Dwarf_Op *cfa_ops = NULL;
+
+#ifdef _ELFUTILS_PREREQ
+#if _ELFUTILS_PREREQ(0,142)
+	  Dwarf_Addr bias;
+	  Dwfl_Module *module = dwfl_addrmodule (dwfl, pc);
+	  if (module != NULL)
+	    {
+	      // Try debug_frame first, then fall back on eh_frame.
+	      Dwarf_CFI *cfi = dwfl_module_dwarf_cfi (module, &bias);
+	      if (cfi != NULL)
+		{
+		  Dwarf_Frame *frame = NULL;
+		  if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+		    dwarf_frame_cfa (frame, &cfa_ops);
+		}
+	      if (cfa_ops == NULL)
+		{
+		  cfi = dwfl_module_eh_cfi (module, &bias);
+		  if (cfi != NULL)
+		    {
+		      Dwarf_Frame *frame = NULL;
+		      if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+			dwarf_frame_cfa (frame, &cfa_ops);
+		    }
+		}
+	    }
+#endif
+#endif	  
+
+	  handle_variable (scopes, n, out, cubias, &vardie, pc, cfa_ops,
+			   &argv[argi]);
+	}
     }
 
   free (scopes);

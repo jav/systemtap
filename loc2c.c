@@ -509,6 +509,15 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    }
 	  break;
 
+	case DW_OP_call_frame_cfa:
+	  // We pick this out when processing DW_AT_frame_base in
+	  // so it really shouldn't turn up here.
+	  if (need_fb == NULL)
+	    DIE ("DW_OP_call_frame_cfa while processing frame base");
+	  else
+	    DIE ("DW_OP_call_frame_cfa not expected outside DW_AT_frame_base");
+	  break;
+
 	case DW_OP_push_object_address:
 	  DIE ("XXX DW_OP_push_object_address");
 	  break;
@@ -552,7 +561,8 @@ location_from_address (struct obstack *pool,
 					     struct obstack *, Dwarf_Addr),
 		       int indent, Dwarf_Addr dwbias,
 		       const Dwarf_Op *expr, size_t len, Dwarf_Addr address,
-		       struct location **input, Dwarf_Attribute *fb_attr)
+		       struct location **input, Dwarf_Attribute *fb_attr,
+		       const Dwarf_Op *cfa_ops)
 {
   struct location *loc = obstack_alloc (pool, sizeof *loc);
   loc->fail = *input == NULL ? fail : (*input)->fail;
@@ -599,8 +609,19 @@ location_from_address (struct obstack *pool,
 	  return NULL;
 	}
 
+      // If it is DW_OP_call_frame_cfa then get cfi cfa ops.
+      const Dwarf_Op * fb_ops;
+      if (fb_len == 1 && fb_expr[0].atom == DW_OP_call_frame_cfa)
+	{
+	  if (cfa_ops == NULL)
+	    FAIL (loc, N_("No cfa_ops supplied, but needed by DW_OP_call_frame_cfa"));
+	  fb_ops = cfa_ops;
+	}
+      else
+	fb_ops = fb_expr;
+
       loc->frame_base = alloc_location (pool, loc);
-      failure = translate (pool, indent + 1, dwbias, fb_expr, fb_len, NULL,
+      failure = translate (pool, indent + 1, dwbias, fb_ops, fb_len, NULL,
 			   NULL, &loser, loc->frame_base);
       if (failure != NULL)
 	return lose (loc, failure, fb_expr, loser);
@@ -622,7 +643,8 @@ static struct location *
 location_relative (struct obstack *pool,
 		   int indent, Dwarf_Addr dwbias,
 		   const Dwarf_Op *expr, size_t len, Dwarf_Addr address,
-		   struct location **input, Dwarf_Attribute *fb_attr)
+		   struct location **input, Dwarf_Attribute *fb_attr,
+		   const Dwarf_Op *cfa_ops)
 {
   Dwarf_Sword *stack = NULL;
   unsigned int stack_depth = 0, max_stack = 0;
@@ -752,7 +774,8 @@ location_relative (struct obstack *pool,
 	  /* This started from a register, but now it's following a pointer.
 	     So we can do the translation starting from address here.  */
 	  return location_from_address (pool, NULL, NULL, NULL, indent, dwbias,
-					expr, len, address, input, fb_attr);
+					expr, len, address, input, fb_attr,
+					cfa_ops);
 
 
 	  /* Constant-value operations.  */
@@ -911,7 +934,8 @@ location_relative (struct obstack *pool,
 		    loc = location_from_address (pool, NULL, NULL, NULL,
 						 indent, dwbias,
 						 &expr[i + 1], len - i - 1,
-						 address, input, fb_attr);
+						 address, input, fb_attr,
+						 cfa_ops);
 		    if (loc == NULL)
 		      return NULL;
 		  }
@@ -994,7 +1018,8 @@ c_translate_location (struct obstack *pool,
 					    struct obstack *, Dwarf_Addr),
 		      int indent, Dwarf_Addr dwbias, Dwarf_Addr pc_address,
 		      const Dwarf_Op *expr, size_t len,
-		      struct location **input, Dwarf_Attribute *fb_attr)
+		      struct location **input, Dwarf_Attribute *fb_attr,
+		      const Dwarf_Op *cfa_ops)
 {
   indent += 2;
 
@@ -1006,14 +1031,14 @@ c_translate_location (struct obstack *pool,
       return location_from_address (pool, fail, fail_arg,
 				    emit_address ?: &default_emit_address,
 				    indent, dwbias, expr, len, pc_address,
-				    input, fb_attr);
+				    input, fb_attr, cfa_ops);
 
     case loc_noncontiguous:
     case loc_register:
       /* The starting point is not an address computation, but a
 	 register.  We can only handle limited computations from here.  */
       return location_relative (pool, indent, dwbias, expr, len, pc_address,
-				input, fb_attr);
+				input, fb_attr, cfa_ops);
 
     default:
       abort ();
@@ -1745,7 +1770,8 @@ c_translate_array (struct obstack *pool, int indent,
 		   Dwarf_Die *typedie, struct location **input,
 		   const char *idx, Dwarf_Word const_idx)
 {
-  assert (dwarf_tag (typedie) == DW_TAG_array_type);
+  assert (dwarf_tag (typedie) == DW_TAG_array_type ||
+          dwarf_tag (typedie) == DW_TAG_pointer_type);
 
   ++indent;
 

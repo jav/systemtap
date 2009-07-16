@@ -36,7 +36,7 @@ probe begin
 }
 
 probe syscall.open {
-      if (filename == "foobar") {
+      if (pid() == target() && filename == "foobar") {
       	 syscalls_seen += 1
       }
 }

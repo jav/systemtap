@@ -19,8 +19,29 @@ struct _stp_data_entry {
  * results to users and which routines might sleep, etc:
  */
 struct _stp_ring_buffer_data {
+#if 0
+	struct trace_array	*tr;
+	struct tracer		*trace;
+	void			*private;
+	int			cpu_file;
+	struct mutex		mutex;
+#endif
+	struct ring_buffer_iter	*buffer_iter[NR_CPUS];
+#if 0
+	unsigned long		iter_flags;
+
+	/* The below is zeroed out in pipe_read */
+	struct trace_seq	seq;
+	struct trace_entry	*ent;
+#endif
 	int			cpu;
 	u64			ts;
+#if 0
+	loff_t			pos;
+	long			idx;
+
+	cpumask_var_t		started;
+#endif
 };
 
 struct _stp_relay_data_type {
@@ -68,7 +89,7 @@ static int __stp_alloc_ring_buffer(void)
 	if (!_stp_relay_data.rb)
 		goto fail;
 
-	dbug_trans(1, "size = %lu\n", ring_buffer_size(_stp_relay_data.rb));
+	dbug_trans(0, "size = %lu\n", ring_buffer_size(_stp_relay_data.rb));
 	return 0;
 
 fail:
@@ -78,7 +99,7 @@ fail:
 
 static int _stp_data_open_trace(struct inode *inode, struct file *file)
 {
-	long cpu_file = (long) inode->i_private;
+	int cpu_file = (int)(long) inode->i_private;
 
 	/* We only allow for one reader per cpu */
 	dbug_trans(1, "trace attach\n");
@@ -102,14 +123,13 @@ static int _stp_data_open_trace(struct inode *inode, struct file *file)
 
 static int _stp_data_release_trace(struct inode *inode, struct file *file)
 {
-	long cpu_file = (long) inode->i_private;
+	int cpu_file = (int)(long) inode->i_private;
 	dbug_trans(1, "trace detach\n");
 #ifdef STP_BULKMODE
 	cpumask_clear_cpu(cpu_file, _stp_relay_data.trace_reader_cpumask);
 #else
 	cpumask_clear(_stp_relay_data.trace_reader_cpumask);
 #endif
-
 	return 0;
 }
 
@@ -141,9 +161,43 @@ _stp_event_to_user(struct ring_buffer_event *event, char __user *ubuf,
 	return cnt;
 }
 
+static int _stp_ring_buffer_empty_cpu(int cpu)
+{
+	if (_stp_relay_data.rb_data.buffer_iter[cpu]) {
+		if (ring_buffer_iter_empty(_stp_relay_data.rb_data.buffer_iter[cpu]))
+			return 1;
+	}
+	else {
+		if (ring_buffer_empty_cpu(_stp_relay_data.rb, cpu))
+			return 1;
+	}
+	return 0;
+}
+
+static int _stp_ring_buffer_empty(void)
+{
+#ifdef STP_BULKMODE
+	return _stp_ring_buffer_empty_cpu(_stp_relay_data.rb_data.cpu);
+#else
+	int cpu;
+	for_each_possible_cpu(cpu) {
+		if (! _stp_ring_buffer_empty_cpu(cpu))
+			return 0;
+	}
+	return 1;
+#endif
+}
+
+static void _stp_ring_buffer_iterator_increment(void)
+{
+	if (_stp_relay_data.rb_data.buffer_iter[_stp_relay_data.rb_data.cpu]) {
+		ring_buffer_read(_stp_relay_data.rb_data.buffer_iter[_stp_relay_data.rb_data.cpu], NULL);
+	}
+}
+
 static ssize_t _stp_tracing_wait_pipe(struct file *filp)
 {
-	if (ring_buffer_empty(_stp_relay_data.rb)) {
+	if (_stp_ring_buffer_empty()) {
 		if ((filp->f_flags & O_NONBLOCK)) {
 			dbug_trans(1, "returning -EAGAIN\n");
 			return -EAGAIN;
@@ -163,11 +217,14 @@ static ssize_t _stp_tracing_wait_pipe(struct file *filp)
 
 static struct ring_buffer_event *_stp_peek_next_event(int cpu, u64 *ts)
 {
-	return ring_buffer_peek(_stp_relay_data.rb, cpu, ts);
+	if (_stp_relay_data.rb_data.buffer_iter[cpu])
+		return ring_buffer_iter_peek(_stp_relay_data.rb_data.buffer_iter[cpu], ts);
+	else
+		return ring_buffer_peek(_stp_relay_data.rb, cpu, ts);
 }
 
 /* Find the next real event */
-static struct ring_buffer_event *_stp_find_next_event(long cpu_file)
+static struct ring_buffer_event *_stp_find_next_event(int cpu_file)
 {
 	struct ring_buffer_event *event;
 
@@ -176,11 +233,13 @@ static struct ring_buffer_event *_stp_find_next_event(long cpu_file)
 	 * If we are in a per_cpu trace file, don't bother by iterating over
 	 * all cpus and peek directly.
 	 */
-	if (ring_buffer_empty_cpu(_stp_relay_data.rb, (int)cpu_file))
+	if (_stp_ring_buffer_empty_cpu(cpu_file))
 		return NULL;
 	event = _stp_peek_next_event(cpu_file, &_stp_relay_data.rb_data.ts);
 	_stp_relay_data.rb_data.cpu = cpu_file;
 
+	if (event)
+		_stp_ring_buffer_iterator_increment();
 	return event;
 #else
 	struct ring_buffer_event *next = NULL;
@@ -189,8 +248,7 @@ static struct ring_buffer_event *_stp_find_next_event(long cpu_file)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-
-		if (ring_buffer_empty_cpu(_stp_relay_data.rb, cpu))
+		if (_stp_ring_buffer_empty_cpu(cpu))
 			continue;
 
 		event = _stp_peek_next_event(cpu, &ts);
@@ -207,6 +265,8 @@ static struct ring_buffer_event *_stp_find_next_event(long cpu_file)
 
 	_stp_relay_data.rb_data.cpu = next_cpu;
 	_stp_relay_data.rb_data.ts = next_ts;
+	if (next)
+		_stp_ring_buffer_iterator_increment();
 
 	return next;
 #endif
@@ -222,7 +282,10 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 {
 	ssize_t sret;
 	struct ring_buffer_event *event;
-	long cpu_file = (long) filp->private_data;
+	int cpu_file = (int)(long) filp->private_data;
+#ifndef STP_BULKMODE
+	int cpu;
+#endif
 
 	dbug_trans(1, "%lu\n", (unsigned long)cnt);
 
@@ -231,8 +294,19 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 	if (sret <= 0)
 		goto out;
 
+#ifdef STP_BULKMODE
+	_stp_relay_data.rb_data.buffer_iter[cpu_file]
+	    = ring_buffer_read_start(_stp_relay_data.rb, cpu_file);
+#else
+	for_each_possible_cpu(cpu) {
+		_stp_relay_data.rb_data.buffer_iter[cpu]
+		    = ring_buffer_read_start(_stp_relay_data.rb, cpu);
+	}
+#endif
+	dbug_trans(0, "iterator(s) started\n");
+
 	/* stop when tracing is finished */
-	if (ring_buffer_empty(_stp_relay_data.rb)) {
+	if (_stp_ring_buffer_empty()) {
 		sret = 0;
 		goto out;
 	}
@@ -259,6 +333,22 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 			break;
 	}
 out:
+#ifdef STP_BULKMODE
+	if (_stp_relay_data.rb_data.buffer_iter[cpu_file]) {
+		ring_buffer_read_finish(_stp_relay_data.rb_data.buffer_iter[cpu_file]);
+		_stp_relay_data.rb_data.buffer_iter[cpu_file] = NULL;
+		dbug_trans(0, "iterator finished\n");
+	}
+#else
+	for_each_possible_cpu(cpu) {
+		if (_stp_relay_data.rb_data.buffer_iter[cpu]) {
+			ring_buffer_read_finish(_stp_relay_data.rb_data.buffer_iter[cpu]);
+			_stp_relay_data.rb_data.buffer_iter[cpu] = NULL;
+		}
+	}
+#endif
+	dbug_trans(0, "iterator(s) finished\n");
+
 	return sret;
 }
 
@@ -267,10 +357,10 @@ static unsigned int
 _stp_data_poll_trace(struct file *filp, poll_table *poll_table)
 {
 	dbug_trans(1, "entry\n");
-	if (! ring_buffer_empty(_stp_relay_data.rb))
+	if (! _stp_ring_buffer_empty())
 		return POLLIN | POLLRDNORM;
 	poll_wait(filp, &_stp_poll_wait, poll_table);
-	if (! ring_buffer_empty(_stp_relay_data.rb))
+	if (! _stp_ring_buffer_empty())
 		return POLLIN | POLLRDNORM;
 
 	dbug_trans(1, "exit\n");
@@ -410,7 +500,7 @@ static int _stp_data_write_commit(void *entry)
 static void __stp_relay_wakeup_timer(unsigned long val)
 {
 	if (waitqueue_active(&_stp_poll_wait)
-	    && ! ring_buffer_empty(_stp_relay_data.rb))
+	    && ! _stp_ring_buffer_empty())
 		wake_up_interruptible(&_stp_poll_wait);
  	mod_timer(&_stp_relay_data.timer, jiffies + STP_RELAY_TIMER_INTERVAL);
 }
@@ -435,7 +525,7 @@ static struct dentry *__stp_entry[NR_CPUS] = { NULL };
 static int _stp_transport_data_fs_init(void)
 {
 	int rc;
-	long cpu;
+	int cpu;
 
 	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
 	_stp_relay_data.rb = NULL;
@@ -454,10 +544,10 @@ static int _stp_transport_data_fs_init(void)
 			_stp_transport_data_fs_close();
 			return -EINVAL;
 		}
-		sprintf(cpu_file, "trace%ld", cpu);
+		sprintf(cpu_file, "trace%d", cpu);
 		__stp_entry[cpu] = debugfs_create_file(cpu_file, 0600,
 						       _stp_get_module_dir(),
-						       (void *)cpu,
+						       (void *)(long)cpu,
 						       &__stp_data_fops);
 
 		if (!__stp_entry[cpu]) {
@@ -474,7 +564,7 @@ static int _stp_transport_data_fs_init(void)
 
 		__stp_entry[cpu]->d_inode->i_uid = _stp_uid;
 		__stp_entry[cpu]->d_inode->i_gid = _stp_gid;
-		__stp_entry[cpu]->d_inode->i_private = (void *)cpu;
+		__stp_entry[cpu]->d_inode->i_private = (void *)(long)cpu;
 
 #ifndef STP_BULKMODE
 		if (cpu != 0)

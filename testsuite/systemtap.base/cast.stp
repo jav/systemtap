@@ -33,6 +33,15 @@ probe begin
     else
         printf("sa_data %d != %d\n", data, cast_data)
 
+    // Compare usage counter values through a struct address
+    usage = @cast(curr, "task_struct")->usage->counter
+    pusage = & @cast(curr, "task_struct")->usage
+    cast_usage = @cast(pusage, "atomic_t")->counter
+    if (usage == cast_usage)
+        println("usage OK")
+    else
+        printf("usage %d != %d\n", usage, cast_usage)
+
     exit()
 }
 
