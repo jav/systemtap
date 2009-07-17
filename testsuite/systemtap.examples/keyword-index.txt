@@ -397,6 +397,15 @@ keywords: network traffic
   source and destination ports, and flags.
 
 
+network/tcpipstat.stp - Display network statistics for individual TCP sockets.
+keywords: network statistics
+
+  tcpipstat collects and display network statistics related to
+  individual TCP sockets or groups of sockets.	The statistics that are
+  collected are simmer to that of the command netstat -s, only sorted
+  and grouped by individual sockets.
+
+
 = NUMA =
 
 memory/numa_faults.stp - Summarize Process Misses across NUMA Nodes
@@ -539,12 +548,35 @@ keywords: syscall read write time io
 
 = SCHEDULER =
 
+process/chng_cpu.stp - Monitor Changes in Processor Executing a Task
+keywords: scheduler
+
+  The chng_cpu.stp script takes an argument which is the executable
+  name of the task it should monitor. Each time a task with that
+  executable name is found running on a different processor, the script
+  prints out the thread id (tid), the executable name, the processor
+  now running the task, the thread state, and a backtrace showing the
+  kernel functions that triggered the running of the task on the
+  processor.
+
+
 process/forktracker.stp - Trace Creation of Processes
 keywords: process scheduler
 
   The forktracker.stp script prints out a time-stamped entry showing
   each fork and exec operation on the machine. This can be useful for
   determine what process is creating a flurry of short-lived processes.
+
+
+process/migrate.stp - Track the Migration of Specific Executables
+keywords: scheduler
+
+  The migrate.stp script takes an argument which is the executable name
+  of the task it should monitor. Each time a task with that executable
+  name migrates between processors an entry is printed with the process
+  id (pid), the executable name, the processor off loading the task,
+  and the process taking the task. Note that the task may or may not be
+  executing at the time of the migration.
 
 
 process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
@@ -641,6 +673,17 @@ keywords: network tcp socket
   includes the UID, the command accepting the connection, the PID of
   the command, the port the connection is on, and the IP address of the
   originator of the request.
+
+
+= STATISTICS =
+
+network/tcpipstat.stp - Display network statistics for individual TCP sockets.
+keywords: network statistics
+
+  tcpipstat collects and display network statistics related to
+  individual TCP sockets or groups of sockets.	The statistics that are
+  collected are simmer to that of the command netstat -s, only sorted
+  and grouped by individual sockets.
 
 
 = SYSCALL =
