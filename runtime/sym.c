@@ -309,9 +309,10 @@ static int _stp_module_check(void)
 
 static void _stp_symbol_print(unsigned long address)
 {
-	const char *modname;
-	const char *name;
-	unsigned long offset, size;
+	const char *modname = 0;
+	const char *name = 0;
+	unsigned long offset = 0;
+        unsigned long size = 0;
 
 	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, NULL);
 
