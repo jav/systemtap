@@ -597,15 +597,15 @@ struct dwarf_builder: public derived_probe_builder
 
   dwflpp *get_kern_dw(systemtap_session& sess, const string& module)
   {
-    if (kern_dw.find(module) == kern_dw.end())
-      kern_dw[module] = new dwflpp(sess, module, true);
+    if (kern_dw[module] == 0)
+      kern_dw[module] = new dwflpp(sess, module, true); // might throw
     return kern_dw[module];
   }
 
   dwflpp *get_user_dw(systemtap_session& sess, const string& module)
   {
-    if (user_dw.find(module) == user_dw.end())
-      user_dw[module] = new dwflpp(sess, module, false);
+    if (user_dw[module] == 0)
+      user_dw[module] = new dwflpp(sess, module, false); // might throw
     return user_dw[module];
   }
 

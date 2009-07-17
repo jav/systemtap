@@ -1,0 +1,138 @@
+.\" -*- nroff -*-
+.TH STAPPROBES.SNMP 3stap @DATE@ "IBM"
+.SH NAME
+stapprobes.snmp \- Systemtap simple network management protocol probe points.
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+
+This family of probe points enhances the Linux system's implementation of the Simple Network Management Protocol
+.B (SNMP)
+by allowing the user to collect per-socket statistics. SNMP data is collected in the Linux kernel by counting various events occurring in the networking subsystem. Linux provides one counter for each type of event, thus providing a system-wide collection of network statistics. These statistics can be viewed with the command:
+.B netstat -s. 
+
+The probpoints defined in the SNMP group of tapsets allow users to aberrate each SNMP counter into groups of counters. For example, the user may count SNMP events for a single network socket or for a group of sockets.
+
+Severals SNMP tapsets have been created. Each tapset represents a single layer of the network stack and defines a group of counters called management information blocks or MIBs. Currently tapsets are provided that support MIBS for IP, TCP layers and the enhanced linux MIB. See the file /usr/include/linux/snmp.h for a list of MIBS supported by linux.
+
+.SH PROBE HANDLERS, COUNTERS AND CALLBACKS
+
+Each probe represents a single SNMP statistic. The probe's handler is called each time the system performs an operation that would alter the associated statistic. Each probe also defines an indexed set of counters used to record probe hits. The probe handler calls a user supplied callback functions to determine which counter to alter. The user's callback should return a key value that will be used to index the counter. For example a callback could return a unique value for each socket. This would results in a separate counter being used for each socket. 
+
+Each tapset is now described. Examples of probe names and counter names are given. See the  tapset itself for a complete list of supported probes. Users of the tapset must provide a callback function matching the name and prototype as shown. 
+
+.P
+.TP
+.B IP MIB Tapset:
+.P File name: ipmib.stp
+
+Example probe name:
+.I ipmib.InReceives
+
+Example counter name:
+.I InReceives
+
+Callback prototype:  
+
+.I ipmib_filter_key:long  (skb:long,  op:long,  SourceIsLocal:long)
+
+This user supplied function should compute and return a value used to index the statistical counter. The 
+.I skb
+is a pointer to the 
+.B struct sk_buff
+being processed at the time. The local ip-address and port number will be located in either the source or destination fields of the network packet.
+.I SourceIsLocal
+will be true if the local address is in the source field. The probe handler will add the value of
+.I op
+to the counter. To skip counting the event return a value of zero.
+
+.P
+.TP
+.B TCP MIB tapset:
+.P File name: tcpmib.stp
+
+Example probe name:
+.I tcpmib.InSegs
+
+Example counter name:
+.I InSegs
+
+Callback prototype:  
+
+.I tcpmib_filter_key:long (sk:long, op:long)
+
+This user supplied function should compute and return a value used to index the statistical counter. The
+.I sk
+is a pointer to the
+.B struct sock
+being processed at the time. The probe handler will add the value of
+.I op
+to the counter. To skip counting the event return a value of zero.
+
+.P
+.TP
+.B LINUX MIB tapset:
+.P File name:
+.I linuxmib.stp
+
+Example probe name:
+.I linuxmib.DelayedACKs 
+
+Example counter name:
+.I DelayedACKs
+
+Callback prototype:  
+
+.I linuxmib_filter_key:long (sk:long, op:long)
+
+This user supplied function should compute and return a value used to index the statistical counter. The
+.I sk
+is a pointer to the 
+.B struct sock
+being processed at the time. The probe handler will add the value of
+.I op
+to the counter. To skip counting the event return a value of zero.  
+
+.SH EXAMPLE  
+This example script counts the number of TCP retransmits and records them per-remote address. It displays the counts when terminated.
+
+.SAMPLE
+/* Enable the statistic we want to record. */
+probe tcpmib.RetransSegs {}
+
+/*
+ * Find the remote address and return 
+ * it as an index to the counter array.
+ */
+function tcpmib_filter_key: long ( sk:long, op:long ){
+	if ( !sk ) return 0;
+	raddr = sk_get_daddr(sk);
+	return raddr
+}
+
+/* Print the results. */
+probe end {
+	foreach (addr in  RetransSegs )
+		printf ("%s  %d \n ",ip_ntop(htonl(addr)), lport)
+}
+.ESAMPLE
+	
+.SH FILES
+/usr/share/doc/systemtap*/examples/tcpipstat.stp
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes (3stap),
+.IR stapfuncs (3stap)

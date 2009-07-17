@@ -1500,7 +1500,9 @@ dwflpp::translate_location(struct obstack *pool,
                             e->tok);
     }
 
-  Dwarf_Op *cfa_ops = get_cfa_ops (pc);
+  // get_cfa_ops works on the dw address space, pc is relative to current
+  // module, so add do need to add module_bias.
+  Dwarf_Op *cfa_ops = get_cfa_ops (pc + module_bias);
   return c_translate_location (pool, &loc2c_error, this,
                                &loc2c_emit_address,
                                1, 0 /* PR9768 */,
@@ -2475,6 +2477,9 @@ dwflpp::relocate_address(Dwarf_Addr dw_addr,
 Dwarf_Addr
 dwflpp::literal_addr_to_sym_addr(Dwarf_Addr lit_addr)
 {
+  if (sess.verbose > 2)
+    clog << "literal_addr_to_sym_addr 0x" << hex << lit_addr << dec << endl;
+
   // Assume the address came from the symbol list.
   // If we cannot get the symbol bias fall back on the dw bias.
   // The kernel (and other absolute executable modules) is special though.
@@ -2485,11 +2490,19 @@ dwflpp::literal_addr_to_sym_addr(Dwarf_Addr lit_addr)
       if (dwfl_module_getsymtab (module) != -1)
 	dwfl_module_info (module, NULL, NULL, NULL, NULL,
 			  &symbias, NULL, NULL);
+
+      if (sess.verbose > 3)
+        clog << "symbias 0x" << hex << symbias << dec
+	     << ", dwbias 0x" << hex << module_bias << dec << endl;
+
       if (symbias == (Dwarf_Addr) ~0)
 	symbias = module_bias;
 
       lit_addr += symbias;
     }
+
+  if (sess.verbose > 2)
+    clog << "literal_addr_to_sym_addr ret 0x" << hex << lit_addr << dec << endl;
 
   return lit_addr;
 }
@@ -2508,10 +2521,17 @@ dwflpp::dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes)
   return num_cached_scopes;
 }
 
+/* Returns the call frame address operations for the given program counter
+ * in the libdw address space.
+ */
 Dwarf_Op *
 dwflpp::get_cfa_ops (Dwarf_Addr pc)
 {
   Dwarf_Op *cfa_ops = NULL;
+
+  if (sess.verbose > 2)
+    clog << "get_cfa_ops @0x" << hex << pc << dec
+	 << ", module_start @0x" << hex << module_start << dec << endl;
 
 #ifdef _ELFUTILS_PREREQ
 #if _ELFUTILS_PREREQ(0,142)
@@ -2520,22 +2540,39 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
   Dwarf_CFI *cfi = dwfl_module_dwarf_cfi (module, &bias);
   if (cfi != NULL)
     {
+      if (sess.verbose > 3)
+	clog << "got dwarf cfi bias: 0x" << hex << bias << dec << endl;
       Dwarf_Frame *frame = NULL;
-      if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+      if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
 	dwarf_frame_cfa (frame, &cfa_ops);
+      else if (sess.verbose > 3)
+	clog << "dwarf_cfi_addrframe failed: " << dwarf_errmsg(-1) << endl;
     }
+  else if (sess.verbose > 3)
+    clog << "dwfl_module_dwarf_cfi failed: " << dwfl_errmsg(-1) << endl;
+
   if (cfa_ops == NULL)
     {
       cfi = dwfl_module_eh_cfi (module, &bias);
       if (cfi != NULL)
 	{
+	  if (sess.verbose > 3)
+	    clog << "got eh cfi bias: 0x" << hex << bias << dec << endl;
 	  Dwarf_Frame *frame = NULL;
-	  if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+	  if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
 	    dwarf_frame_cfa (frame, &cfa_ops);
+	  else if (sess.verbose > 3)
+	    clog << "dwarf_cfi_addrframe failed: " << dwarf_errmsg(-1) << endl;
 	}
+      else if (sess.verbose > 3)
+	clog << "dwfl_module_eh_cfi failed: " << dwfl_errmsg(-1) << endl;
+
     }
 #endif
 #endif
+
+  if (sess.verbose > 2)
+    clog << (cfa_ops == NULL ? "not " : " ") << "found cfa" << endl;
 
   return cfa_ops;
 }

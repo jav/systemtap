@@ -1,0 +1,15 @@
+#! stap -p4
+
+// Tests if all probes in the ipmib tapset are resolvable.
+
+probe ipmib.* {}
+
+function ipmib_filter_key:long (skb:long, op:long, SourceIsLocal:long) {
+	// Insure all these functions will build
+	if ( ipmib_remote_addr(skb, SourceIsLocal) ) return 0
+	if ( ipmib_local_addr(skb, SourceIsLocal) ) return 0
+	if ( ipmib_tcp_remote_port(skb, SourceIsLocal) ) return 0
+	if ( ipmib_tcp_local_port(skb, SourceIsLocal) ) return 0
+	if ( ipmib_get_proto(skb) ) return 0
+	return op
+}

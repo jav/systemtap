@@ -12,6 +12,9 @@
 #include <locale.h>
 #include <argp.h>
 #include <elfutils/libdwfl.h>
+#ifdef HAVE_ELFUTILS_VERSION_H
+#include <elfutils/version.h>
+#endif
 #include <dwarf.h>
 #include <obstack.h>
 #include <unistd.h>

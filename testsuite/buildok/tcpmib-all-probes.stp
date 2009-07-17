@@ -1,0 +1,15 @@
+#! stap -p4
+
+// Tests if all probes in the tcpmib tapset are resolvable.
+
+probe tcpmib.* {}
+
+function tcpmib_filter_key:long (sk:long, op:long) {
+	// Insure all these functions will build
+	if ( tcpmib_get_state(sk) ) return 0
+	if ( tcpmib_local_addr(sk) ) return 0
+	if ( tcpmib_remote_addr(sk) ) return 0
+	if ( tcpmib_local_port(sk) ) return 0
+	if ( tcpmib_remote_port(sk) ) return 0
+	return op
+}

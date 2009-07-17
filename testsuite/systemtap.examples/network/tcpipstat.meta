@@ -1,0 +1,14 @@
+title: Display network statistics for individual TCP sockets.
+name: tcpipstat.stp
+version: 1.0
+author: wilder@us.ibm.com
+keywords: network statistics
+subsystem: network
+status: production
+exit: user-controlled
+output: timed
+scope: per-socket
+arg_[0-9]+: tcpstat.stp [index=laddr|raddr|lport|rport|tuple] [timeout=<N sec>] [nozeros=1|0] [filters...]
+description: tcpipstat collects and display network statistics related to individual TCP sockets or groups of sockets.  The statistics that are collected are simmer to that of the command netstat -s, only sorted and grouped by individual sockets.
+test_check: stap -p4 tcpipstat.stp
+test_installcheck: stap tcpipstat.stp timeout=1
