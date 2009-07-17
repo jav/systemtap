@@ -1,6 +1,15 @@
 SYSTEMTAP EXAMPLES INDEX BY KEYWORD
 (see also index.txt)
 
+= AUTOFS =
+
+network/autofs4.stp - Watch autofs4 operations
+keywords: network autofs nfs
+
+  Trace key autofs4 operations such as mounting or unmounting remote
+  filesystems.
+
+
 = BACKTRACE =
 
 interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt (IPI)
@@ -343,6 +352,13 @@ keywords: io tty per-process monitor
 
 = NETWORK =
 
+network/autofs4.stp - Watch autofs4 operations
+keywords: network autofs nfs
+
+  Trace key autofs4 operations such as mounting or unmounting remote
+  filesystems.
+
+
 network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
 keywords: network tracepoint buffer free
 
@@ -404,6 +420,15 @@ keywords: network statistics
   individual TCP sockets or groups of sockets.	The statistics that are
   collected are simmer to that of the command netstat -s, only sorted
   and grouped by individual sockets.
+
+
+= NFS =
+
+network/autofs4.stp - Watch autofs4 operations
+keywords: network autofs nfs
+
+  Trace key autofs4 operations such as mounting or unmounting remote
+  filesystems.
 
 
 = NUMA =

@@ -39,7 +39,13 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITOR">MONITOR</a> <a href="#NETWORK">NETWORK</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITOR">MONITOR</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<h3><a name="AUTOFS">AUTOFS</a></h3>
+<ul>
+<li><a href="network/autofs4.stp">network/autofs4.stp</a> - Watch autofs4 operations<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#AUTOFS">AUTOFS</a> <a href="keyword-index.html#NFS">NFS</a> <br>
+<p>Trace key autofs4 operations such as mounting or unmounting remote filesystems.</p></li>
+</ul>
 <h3><a name="BACKTRACE">BACKTRACE</a></h3>
 <ul>
 <li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
@@ -186,6 +192,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY
 </ul>
 <h3><a name="NETWORK">NETWORK</a></h3>
 <ul>
+<li><a href="network/autofs4.stp">network/autofs4.stp</a> - Watch autofs4 operations<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#AUTOFS">AUTOFS</a> <a href="keyword-index.html#NFS">NFS</a> <br>
+<p>Trace key autofs4 operations such as mounting or unmounting remote filesystems.</p></li>
 <li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
 <p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.</p></li>
@@ -207,6 +216,12 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcpipstat.stp">network/tcpipstat.stp</a> - Display network statistics for individual TCP sockets.<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
 <p>tcpipstat collects and display network statistics related to individual TCP sockets or groups of sockets.  The statistics that are collected are simmer to that of the command netstat -s, only sorted and grouped by individual sockets.</p></li>
+</ul>
+<h3><a name="NFS">NFS</a></h3>
+<ul>
+<li><a href="network/autofs4.stp">network/autofs4.stp</a> - Watch autofs4 operations<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#AUTOFS">AUTOFS</a> <a href="keyword-index.html#NFS">NFS</a> <br>
+<p>Trace key autofs4 operations such as mounting or unmounting remote filesystems.</p></li>
 </ul>
 <h3><a name="NUMA">NUMA</a></h3>
 <ul>
