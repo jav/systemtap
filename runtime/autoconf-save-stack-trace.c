@@ -11,7 +11,7 @@ void foo(struct task_struct *foo)
   trace.entries = &backtrace[0];
   trace.max_entries = 20;
   trace.skip = 0;
-  save_stack_trace_tsk(tsk, &trace);
+  save_stack_trace_tsk(foo, &trace);
 }
 
 static const struct stacktrace_ops print_stack_ops;
