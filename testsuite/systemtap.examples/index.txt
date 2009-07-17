@@ -252,6 +252,15 @@ keywords: network traffic
   source and destination ports, and flags.
 
 
+network/tcpipstat.stp - Display network statistics for individual TCP sockets.
+keywords: network statistics
+
+  tcpipstat collects and display network statistics related to
+  individual TCP sockets or groups of sockets.	The statistics that are
+  collected are simmer to that of the command netstat -s, only sorted
+  and grouped by individual sockets.
+
+
 process/errsnoop.stp - tabulate system call errors
 keywords: process syscall
 

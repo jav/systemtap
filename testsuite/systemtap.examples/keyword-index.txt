@@ -397,6 +397,15 @@ keywords: network traffic
   source and destination ports, and flags.
 
 
+network/tcpipstat.stp - Display network statistics for individual TCP sockets.
+keywords: network statistics
+
+  tcpipstat collects and display network statistics related to
+  individual TCP sockets or groups of sockets.	The statistics that are
+  collected are simmer to that of the command netstat -s, only sorted
+  and grouped by individual sockets.
+
+
 = NUMA =
 
 memory/numa_faults.stp - Summarize Process Misses across NUMA Nodes
@@ -641,6 +650,17 @@ keywords: network tcp socket
   includes the UID, the command accepting the connection, the PID of
   the command, the port the connection is on, and the IP address of the
   originator of the request.
+
+
+= STATISTICS =
+
+network/tcpipstat.stp - Display network statistics for individual TCP sockets.
+keywords: network statistics
+
+  tcpipstat collects and display network statistics related to
+  individual TCP sockets or groups of sockets.	The statistics that are
+  collected are simmer to that of the command netstat -s, only sorted
+  and grouped by individual sockets.
 
 
 = SYSCALL =

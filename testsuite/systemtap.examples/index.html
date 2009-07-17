@@ -118,6 +118,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcpdumplike.stp">network/tcpdumplike.stp</a> - Dump of Received TCP Packets<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
 <p>The tcpdumplike.stp prints out a line for each TCP packet received. Each line includes the source and destination IP addresses, the source and destination ports, and flags.</p></li>
+<li><a href="network/tcpipstat.stp">network/tcpipstat.stp</a> - Display network statistics for individual TCP sockets.<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
+<p>tcpipstat collects and display network statistics related to individual TCP sockets or groups of sockets.  The statistics that are collected are simmer to that of the command netstat -s, only sorted and grouped by individual sockets.</p></li>
 <li><a href="process/errsnoop.stp">process/errsnoop.stp</a> - tabulate system call errors<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <p>The script prints a periodic tabular report about failing system calls, by process and by syscall failure.  The first optional argument specifies the reporting interval (in seconds, default 5); the second optional argument gives a screen height (number of lines in the report, default 20).</p></li>
