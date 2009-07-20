@@ -208,7 +208,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "if (register_p) ";
   s.op->indent(1);
 
-  s.op->newline() << "rc = usr_itrace_init(p->single_step, tsk->pid, p);";
+  s.op->newline() << "rc = usr_itrace_init(p->single_step, tsk, p);";
   s.op->newline(-1) << "else";
   s.op->newline(1) << "remove_usr_itrace_info(find_itrace_info(p->tgt.pid));";
   s.op->newline(-1) << "return rc;";
