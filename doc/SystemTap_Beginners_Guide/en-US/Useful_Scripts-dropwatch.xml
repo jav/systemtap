@@ -39,11 +39,10 @@
 <indexterm><primary>tracepoint</primary></indexterm>
 The network stack in Linux
 can discard packets for various reasons.  Some Linux kernels include a
-tracepoint, <command>kernel.trace("kfree_skb")</command>, to allow easy probing
-to determine where the packets are discarded.  The <xref linkend="dropwatch"/>
-script uses that tracepoint trace packet discards. The script summarizes the
-locations discarding packets every five seconds as totals number of packets
-discarded for each location.
+tracepoint, <command>kernel.trace("kfree_skb")</command>, which easily tracks where packets 
+are discarded. <xref linkend="dropwatch"/> uses <command>kernel.trace("kfree_skb")</command> to trace 
+packet discards; the script summarizes which locations 
+discard packets every five-second interval.
 </para>
 
 <formalpara id="dropwatch">
@@ -56,9 +55,8 @@ discarded for each location.
 </formalpara>	
 
 <para>
-The <command>kernel.trace("kfree_skb")</command> instruments each of the places
-in the kernel that drops network packets.  Like probes for functions the
-tracepoint probes also have arguments. The
+The <command>kernel.trace("kfree_skb")</command> traces which places
+in the kernel drop network packets.  The
 <command>kernel.trace("kfree_skb")</command> has two arguments: a pointer to the
 buffer being freed (<command>$skb</command>) and the location in kernel code the
 buffer is being freed (<command>$location</command>).
@@ -88,6 +86,18 @@ Stopping dropped packet monitor
 </example>
 
 <para>
+To make the location of packet drops more meaningful, refer to the 
+<filename>/boot/System.map-`uname -r`</filename> file. This file lists the
+starting addresses for each function, allowing you to map the
+addresses in the output of <xref linkend="dropwatchoutput"/> to a specific
+function name. Given the following snippet of the <filename>/boot/System.map-`uname -r`</filename> file,
+the
+address 0xffffffff8024cd0f maps to the function
+<command>unix_stream_recvmsg</command> and the address 0xffffffff8044b472 maps
+to the function <command>arp_rcv</command>:
+</para>
+<!--
+<para>
 The functions containing the location of the packet drops is determined using
 <command>/boot/System.map-`uname -r`</command> file.  The System.map file lists
 the starting addesses for each function. Below are the sections of the
@@ -96,7 +106,7 @@ address 0xffffffff8024cd0f maps to the function
 <command>unix_stream_recvmsg</command> and the address 0xffffffff8044b472 maps
 to the function <command>arp_rcv</command>.
 </para>
-
+-->
 <screen>
 [...]
 ffffffff8024c5cd T unlock_new_inode
