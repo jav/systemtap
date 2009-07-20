@@ -5,7 +5,7 @@
 <bookinfo id="SystemTap_Beginners_Guide">
 	<title>SystemTap Beginners Guide</title>
 	<subtitle condition="RedHat">Introduction to SystemTap (for Red Hat Enterprise Linux 5.4)</subtitle>
-	<subtitle condition="fedora">Introduction to SystemTap (for Fedora 10)</subtitle>
+<!--	<subtitle condition="fedora">Introduction to SystemTap (for Fedora 10)</subtitle> -->
 	<edition>2.0</edition>
 	
 	<productname>Red Hat Enterprise Linux</productname>
