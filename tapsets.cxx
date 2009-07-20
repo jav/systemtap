@@ -798,6 +798,33 @@ void
 dwarf_builder::probe_table::convert_probe (probe *new_base)
 {
   block *b = ((block*)(new_base->body));
+
+  functioncall *fc = new functioncall;
+  fc->function = (probe_type == utrace_type) ? "_utrace_syscall_arg" : "ulong_arg";
+  fc->tok = new_base->body->tok;
+  literal_number* num = new literal_number((probe_type == utrace_type) ? 0 : 1);
+  num->tok = new_base->body->tok;
+  fc->args.push_back(num);
+
+  // Generate: if (arg1 != mark("label")) next;
+  functioncall *fcus = new functioncall;
+  fcus->function = "user_string";
+  fcus->type = pe_string;
+  fcus->tok = new_base->body->tok;
+  fcus->args.push_back(fc);
+
+  if_statement *is = new if_statement;
+  is->thenblock = new next_statement;
+  is->elseblock = NULL;
+  is->tok = new_base->body->tok;
+  comparison *be = new comparison;
+  be->op = "!=";
+  be->tok = new_base->body->tok;
+  be->left = fcus;
+  be->right = new literal_string(mark_name);
+  is->condition = be;
+  b->statements.insert(b->statements.begin(),(statement*) is);
+
   if (probe_type == utrace_type)
     {
       // Generate: if ($syscall != 0xbead) next;
@@ -818,8 +845,11 @@ dwarf_builder::probe_table::convert_probe (probe *new_base)
       besc->right = fake_syscall;
       issc->condition = besc;
       b->statements.insert(b->statements.begin(),(statement*) issc);
-
-      // Generate: if (ulong_arg(2) != task_tid(task_current())) next;
+    }
+  
+  if (probe_type == kprobe_type)
+    {
+      // Generate: if (arg2 != kprobe_type) next;
       if_statement *istid = new if_statement;
       istid->thenblock = new next_statement;
       istid->elseblock = NULL;
@@ -827,55 +857,22 @@ dwarf_builder::probe_table::convert_probe (probe *new_base)
       comparison *betid = new comparison;
       betid->op = "!=";
       betid->tok = new_base->body->tok;
-      functioncall* task_tid = new functioncall;
-      task_tid->tok = new_base->body->tok;
-      task_tid->function = "task_tid";
-      task_tid->referent = 0;
-      functioncall* task_current = new functioncall;
-      task_current->tok = new_base->body->tok;
-      task_current->function = "task_current";
-      task_current->referent = 0;
-      task_tid->args.push_back(task_current);
-      betid->left = task_tid;
-      functioncall *arg2tid = new functioncall;
-      arg2tid->tok = new_base->body->tok;
-      arg2tid->function = "_utrace_syscall_arg";
-      arg2tid->tok = new_base->body->tok;
-      literal_number* littid = new literal_number(1);
-      littid->tok = new_base->body->tok;
-      arg2tid->args.push_back(littid);
 
-      betid->right = arg2tid;
+      functioncall *arg2 = new functioncall;
+      arg2->function = "ulong_arg";
+      arg2->tok = new_base->body->tok;
+      literal_number* num = new literal_number(2);
+      num->tok = new_base->body->tok;
+      arg2->args.push_back(num);
+
+      betid->left = arg2;
+      literal_number* littid = new literal_number(kprobe_type);
+      littid->tok = new_base->body->tok;
+      betid->right = littid;
       istid->condition = betid;
       b->statements.insert(b->statements.begin(),(statement*) istid);
     }
   
-  // Generate: if (arg1 != mark("label")) next;
-  functioncall *fc = new functioncall;
-  fc->function = (probe_type == utrace_type) ? "_utrace_syscall_arg" : "ulong_arg";
-  fc->tok = new_base->body->tok;
-  literal_number* num = new literal_number((probe_type == utrace_type) ? 0 : 1);
-  num->tok = new_base->body->tok;
-  fc->args.push_back(num);
-
-  functioncall *fcus = new functioncall;
-  fcus->function = "user_string";
-  fcus->type = pe_string;
-  fcus->tok = new_base->body->tok;
-  fcus->args.push_back(fc);
-
-  if_statement *is = new if_statement;
-  is->thenblock = new next_statement;
-  is->elseblock = NULL;
-  is->tok = new_base->body->tok;
-  comparison *be = new comparison;
-  be->op = "!=";
-  be->tok = new_base->body->tok;
-  be->left = fcus;
-  be->right = new literal_string(mark_name);
-  is->condition = be;
-  b->statements.insert(b->statements.begin(),(statement*) is);
-
 #ifdef __i386__
   if (probe_type == kprobe_type)
     {

@@ -247,11 +247,9 @@ extern long int syscall (long int __sysno, ...) __THROW;
 # if defined EXPERIMENTAL_KPROBE_SDT
 # define STAP_SYSCALL __NR_getegid
 # define STAP_GUARD 0x32425250
-# define GETTID 0
 # elif defined EXPERIMENTAL_UTRACE_SDT
 # define STAP_SYSCALL 0xbead
 # define STAP_GUARD 0x33425250
-# define GETTID syscall(SYS_gettid)
 # endif
 
 #include <sys/syscall.h>
@@ -259,13 +257,13 @@ extern long int syscall (long int __sysno, ...) __THROW;
 #define STAP_PROBE_(probe)			\
 do {						\
   STAP_PROBE_DATA(probe,STAP_SYSCALL,0);	\
-  syscall (STAP_SYSCALL, #probe, GETTID);	\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD);	\
  } while (0)
 
 #define STAP_PROBE1_(probe,label,parm1)				\
 do {								\
   STAP_PROBE_DATA(probe,STAP_GUARD,1);				\
-  syscall (STAP_SYSCALL, #probe, GETTID, (size_t)parm1);	\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, (size_t)parm1);	\
  } while (0)
 
 #define STAP_PROBE2_(probe,label,parm1,parm2)				\
@@ -274,7 +272,7 @@ do {									\
 	  size_t arg2 __attribute__((aligned(8)));}			\
   stap_probe2_args = {(size_t)parm1, (size_t)parm2};			\
   STAP_PROBE_DATA(probe,STAP_GUARD,2);					\
-  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe2_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe2_args);		\
  } while (0)
 
 #define STAP_PROBE3_(probe,label,parm1,parm2,parm3)			\
@@ -284,7 +282,7 @@ do {									\
 	  size_t arg3 __attribute__((aligned(8)));}			\
   stap_probe3_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3};	\
   STAP_PROBE_DATA(probe,STAP_GUARD,3);					\
-  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe3_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe3_args);		\
  } while (0)
 
 #define STAP_PROBE4_(probe,label,parm1,parm2,parm3,parm4)		\
@@ -295,7 +293,7 @@ do {									\
 	  size_t arg4 __attribute__((aligned(8)));}			\
   stap_probe4_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4}; \
   STAP_PROBE_DATA(probe,STAP_GUARD,4);					\
-  syscall (STAP_SYSCALL, #probe, GETTID,&stap_probe4_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD,&stap_probe4_args);		\
  } while (0)
 
 #define STAP_PROBE5_(probe,label,parm1,parm2,parm3,parm4,parm5)		\
@@ -308,7 +306,7 @@ do {									\
   stap_probe5_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5};							\
   STAP_PROBE_DATA(probe,STAP_GUARD,5);					\
-  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe5_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe5_args);		\
  } while (0)
 
 #define STAP_PROBE6_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6)	\
@@ -322,7 +320,7 @@ do {									\
   stap_probe6_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6};					\
   STAP_PROBE_DATA(probe,STAP_GUARD,6);					\
-  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe6_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe6_args);		\
  } while (0)
 
 #define STAP_PROBE7_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7) \
@@ -337,7 +335,7 @@ do {									\
   stap_probe7_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6, (size_t)parm7};			\
   STAP_PROBE_DATA(probe,STAP_GUARD,7);					\
-  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe7_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe7_args);		\
  } while (0)
 
 #define STAP_PROBE8_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
@@ -353,7 +351,7 @@ do {									\
   stap_probe8_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8};	\
   STAP_PROBE_DATA(probe,STAP_GUARD,8);					\
-  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe8_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe8_args);		\
  } while (0)
 
 #define STAP_PROBE9_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
@@ -370,7 +368,7 @@ do {									\
   stap_probe9_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8, (size_t)parm9}; \
   STAP_PROBE_DATA(probe,STAP_GUARD,9);					\
-  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe9_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe9_args);		\
  } while (0)
 
 #define STAP_PROBE10_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
@@ -388,7 +386,7 @@ do {									\
   stap_probe10_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8, (size_t)parm9, (size_t)parm10}; \
   STAP_PROBE_DATA(probe,STAP_GUARD,10);					\
-  syscall (STAP_SYSCALL, #probe, GETTID, &stap_probe10_args);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe10_args);		\
  } while (0)
 
 #endif
