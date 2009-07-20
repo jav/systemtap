@@ -310,8 +310,7 @@ probe ipmib.InDiscards=kernel.function("ip_rcv").return
  * MIB: IPSTATS_MIB_OUTFORWDATAGRAMS
  *
  */
-probe ipmib.ForwDatagrams=kernel.function("ip_forward_finish"),
-			 kernel.function("ipmr_forward_finish")
+probe ipmib.ForwDatagrams=kernel.function("ip_forward_finish")
 {
 	skb = $skb;
 	op = 1;
@@ -416,22 +415,70 @@ probe ipmib.FragFails=kernel.function("ip_fragment").return
 }
 
 function _input_route_type:long (skb:long)
+{
+%( kernel_v < "2.6.31" %?
+	return __input_route_type_old(skb)
+%:
+	return __input_route_type_new(skb)
+%)
+}
+
+function __input_route_type_old:long (skb:long)
 %{ /* pure */
 	struct rtable *rt;
 	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
-	rt = (struct rtable *)kread(&(skb->rtable)); 
-	THIS->__retvalue = kread(&(rt->rt_type));
+	rt = (struct rtable *)kread(&(skb->rtable));
+	if  ( rt )
+		THIS->__retvalue = kread(&(rt->rt_type));
+	else
+		THIS->__retvalue = RTN_UNSPEC;
+	CATCH_DEREF_FAULT();
+%}
+
+function __input_route_type_new:long (skb:long)
+%{ /* pure */
+	struct rtable *rt;
+	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
+	rt = (struct rtable *)kread(&(skb->_skb_dst));
+	if  ( rt )
+		THIS->__retvalue = kread(&(rt->rt_type));
+	else
+		THIS->__retvalue = RTN_UNSPEC;
 	CATCH_DEREF_FAULT();
 %}
 
 function _output_route_type:long (skb:long)
+{
+%( kernel_v < "2.6.31" %?
+	return __output_route_type_old(skb)
+%:
+	return __output_route_type_new(skb)
+%)
+}
+
+function __output_route_type_old:long (skb:long)
 %{ /* pure */
 	struct rtable *rt;
 	struct dst_entry *dst;
 	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
 	dst = (struct dst_entry *)kread(&(skb->dst));
 	rt = (struct rtable *)dst;
-	THIS->__retvalue = kread(&(rt->rt_type));
+	if ( rt )
+		THIS->__retvalue = kread(&(rt->rt_type));
+	else
+		THIS->__retvalue = RTN_UNSPEC;
+	CATCH_DEREF_FAULT();
+%}
+
+function __output_route_type_new:long (skb:long)
+%{ /* pure */
+	struct rtable *rt;
+	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
+	rt = (struct rtable *)kread(&(skb->_skb_dst));
+	if ( rt )
+		THIS->__retvalue = kread(&(rt->rt_type));
+	else
+		THIS->__retvalue = RTN_UNSPEC;
 	CATCH_DEREF_FAULT();
 %}
 

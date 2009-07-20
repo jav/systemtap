@@ -250,12 +250,36 @@ function _is_reset:long (skb:long)
 %}
 
 function _tcpmib_input_route_type:long (skb:long)
+{
+%( kernel_v < "2.6.31" %?
+	return __tcpmib_input_route_type_old(skb)
+%:
+	return __tcpmib_input_route_type_new(skb)
+%)
+}
+
+function __tcpmib_input_route_type_old:long (skb:long)
 %{ /* pure */
-        struct rtable *rt;
-        struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
-        rt = (struct rtable *)kread(&(skb->rtable));
-        THIS->__retvalue = kread(&(rt->rt_type));
-        CATCH_DEREF_FAULT();
+	struct rtable *rt;
+	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
+	rt = (struct rtable *)kread(&(skb->rtable));
+	if ( rt )
+		THIS->__retvalue = kread(&(rt->rt_type));
+	else
+		THIS->__retvalue = RTN_UNSPEC;
+	CATCH_DEREF_FAULT();
+%}
+
+function __tcpmib_input_route_type_new:long (skb:long)
+%{ /* pure */
+	struct rtable *rt;
+	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
+	rt = (struct rtable *)kread(&(skb->_skb_dst));
+	if ( rt )
+		THIS->__retvalue = kread(&(rt->rt_type));
+	else
+		THIS->__retvalue = RTN_UNSPEC;
+	CATCH_DEREF_FAULT();
 %}
 
 /*
