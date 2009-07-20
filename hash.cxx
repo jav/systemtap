@@ -256,7 +256,7 @@ find_hash (systemtap_session& s, const string& script)
 }
 
 
-void
+string
 find_tracequery_hash (systemtap_session& s)
 {
   hash h;
@@ -268,14 +268,14 @@ find_tracequery_hash (systemtap_session& s)
   string result, hashdir;
   h.result(result);
   if (!create_hashdir(s, result, hashdir))
-    return;
+    return "";
 
-  s.tracequery_path = hashdir + "/tracequery_" + result + ".ko";
+  return hashdir + "/tracequery_" + result + ".ko";
 }
 
 
-void
-find_typequery_hash (systemtap_session& s, const string& name, string& module)
+string
+find_typequery_hash (systemtap_session& s, const string& name)
 {
   hash h;
   get_base_hash(s, h);
@@ -287,9 +287,9 @@ find_typequery_hash (systemtap_session& s, const string& name, string& module)
   string result, hashdir;
   h.result(result);
   if (!create_hashdir(s, result, hashdir))
-    return;
+    return "";
 
-  module = hashdir + "/typequery_" + result
+  return hashdir + "/typequery_" + result
     + (name[0] == 'k' ? ".ko" : ".so");
 }
 

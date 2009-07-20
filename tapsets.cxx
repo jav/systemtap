@@ -2645,7 +2645,7 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
       if (s.use_cache)
         {
           // see if the cached module exists
-          find_typequery_hash(s, module, cached_module);
+          cached_module = find_typequery_hash(s, module);
           if (!cached_module.empty())
             {
               int fd = open(cached_module.c_str(), O_RDONLY);
@@ -5697,19 +5697,20 @@ tracepoint_builder::init_dw(systemtap_session& s)
   if (dw != NULL)
     return true;
 
+  string tracequery_path;
   if (s.use_cache)
     {
       // see if the cached module exists
-      find_tracequery_hash(s);
-      if (!s.tracequery_path.empty())
+      tracequery_path = find_tracequery_hash(s);
+      if (!tracequery_path.empty())
         {
-          int fd = open(s.tracequery_path.c_str(), O_RDONLY);
+          int fd = open(tracequery_path.c_str(), O_RDONLY);
           if (fd != -1)
             {
               if (s.verbose > 2)
-                clog << "Pass 2: using cached " << s.tracequery_path << endl;
+                clog << "Pass 2: using cached " << tracequery_path << endl;
 
-              dw = new dwflpp(s, s.tracequery_path, false);
+              dw = new dwflpp(s, tracequery_path, false);
               close(fd);
               return true;
             }
@@ -5727,11 +5728,11 @@ tracepoint_builder::init_dw(systemtap_session& s)
       // try to save tracequery in the cache
       if (s.verbose > 2)
         clog << "Copying " << tracequery_ko
-             << " to " << s.tracequery_path << endl;
+             << " to " << tracequery_path << endl;
       if (copy_file(tracequery_ko.c_str(),
-                    s.tracequery_path.c_str()) != 0)
+                    tracequery_path.c_str()) != 0)
         cerr << "Copy failed (\"" << tracequery_ko << "\" to \""
-             << s.tracequery_path << "\"): " << strerror(errno) << endl;
+             << tracequery_path << "\"): " << strerror(errno) << endl;
     }
 
   dw = new dwflpp(s, tracequery_ko, false);
