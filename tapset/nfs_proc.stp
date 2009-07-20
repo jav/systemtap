@@ -270,7 +270,7 @@ probe nfs.proc.lookup.return = nfs.proc2.lookup.return,
                                nfs.proc4.lookup.return
 {}
 
-probe nfs.proc2.lookup = kernel.function("nfs_proc_lookup")?,
+probe nfs.proc2.lookup = kernel.function("nfs_proc_lookup")!,
                          module("nfs").function("nfs_proc_lookup")?
 {
 	server_ip = __i2n_ip_proto($dir,0)
@@ -284,7 +284,7 @@ probe nfs.proc2.lookup = kernel.function("nfs_proc_lookup")?,
         argstr = sprintf("%s",filename) 
 }
 
-probe nfs.proc2.lookup.return = kernel.function("nfs_proc_lookup").return?,
+probe nfs.proc2.lookup.return = kernel.function("nfs_proc_lookup").return!,
                                 module("nfs").function("nfs_proc_lookup").return?
 {
         version =2
@@ -292,7 +292,7 @@ probe nfs.proc2.lookup.return = kernel.function("nfs_proc_lookup").return?,
 	retstr = sprintf("%d", $return)
 }
 
-probe nfs.proc3.lookup = kernel.function("nfs3_proc_lookup")?,
+probe nfs.proc3.lookup = kernel.function("nfs3_proc_lookup")!,
                          module("nfs").function("nfs3_proc_lookup")?
 {
 
@@ -308,7 +308,7 @@ probe nfs.proc3.lookup = kernel.function("nfs3_proc_lookup")?,
 }
 
 
-probe nfs.proc3.lookup.return = kernel.function("nfs3_proc_lookup").return?,
+probe nfs.proc3.lookup.return = kernel.function("nfs3_proc_lookup").return!,
                                 module("nfs").function("nfs3_proc_lookup").return?
 {
         version =3
@@ -316,7 +316,7 @@ probe nfs.proc3.lookup.return = kernel.function("nfs3_proc_lookup").return?,
 	retstr = sprintf("%d", $return)
 }
 
-probe nfs.proc4.lookup = kernel.function("nfs4_proc_lookup")?,
+probe nfs.proc4.lookup = kernel.function("nfs4_proc_lookup")!,
                          module("nfs").function("nfs4_proc_lookup")?
 {
 
@@ -333,7 +333,7 @@ probe nfs.proc4.lookup = kernel.function("nfs4_proc_lookup")?,
         argstr = sprintf("%s",filename) 
 }
 
-probe nfs.proc4.lookup.return = kernel.function("nfs4_proc_lookup").return?,
+probe nfs.proc4.lookup.return = kernel.function("nfs4_proc_lookup").return!,
                                 module("nfs").function("nfs4_proc_lookup").return?
 {
         version =4
@@ -368,7 +368,7 @@ probe nfs.proc.read.return = nfs.proc2.read.return ,
 {
 }
 
-probe nfs.proc2.read = kernel.function("nfs_proc_read") ?,
+probe nfs.proc2.read = kernel.function("nfs_proc_read") !,
                        module("nfs").function("nfs_proc_read")?
 {
 	server_ip = __nfs_read_data_info($rdata,0)
@@ -386,7 +386,7 @@ probe nfs.proc2.read = kernel.function("nfs_proc_read") ?,
         units = "bytes"
 }
 
-probe nfs.proc2.read.return = kernel.function("nfs_proc_read").return ?,
+probe nfs.proc2.read.return = kernel.function("nfs_proc_read").return !,
                        module("nfs").function("nfs_proc_read").return?
 {
         version =2
@@ -395,7 +395,7 @@ probe nfs.proc2.read.return = kernel.function("nfs_proc_read").return ?,
 }
 
 
-probe nfs.proc3.read = kernel.function("nfs3_proc_read") ?,
+probe nfs.proc3.read = kernel.function("nfs3_proc_read") !,
                        module("nfs").function("nfs3_proc_read")?
 {
 	server_ip = __nfs_read_data_info($rdata,0)
@@ -413,7 +413,7 @@ probe nfs.proc3.read = kernel.function("nfs3_proc_read") ?,
         units = "bytes"
 }
 
-probe nfs.proc3.read.return = kernel.function("nfs3_proc_read").return ?,
+probe nfs.proc3.read.return = kernel.function("nfs3_proc_read").return !,
                        module("nfs").function("nfs3_proc_read").return?
 {
         version =3
@@ -421,7 +421,7 @@ probe nfs.proc3.read.return = kernel.function("nfs3_proc_read").return ?,
         retstr = sprintf("%d", $return)
 }
 
-probe nfs.proc4.read = kernel.function("nfs4_proc_read") ?,
+probe nfs.proc4.read = kernel.function("nfs4_proc_read") !,
                        module("nfs").function("nfs4_proc_read")?
 {
 	server_ip = __nfs_read_data_info($rdata,0)
@@ -439,7 +439,7 @@ probe nfs.proc4.read = kernel.function("nfs4_proc_read") ?,
         units = "bytes"
 }
 
-probe nfs.proc4.read.return = kernel.function("nfs4_proc_read").return ?,
+probe nfs.proc4.read.return = kernel.function("nfs4_proc_read").return !,
                        module("nfs").function("nfs4_proc_read").return?
 {
         version =4
@@ -477,7 +477,7 @@ probe nfs.proc.write.return = nfs.proc2.write.return ,
                       nfs.proc4.write.return 
 {}
 
-probe nfs.proc2.write = kernel.function("nfs_proc_write")?,
+probe nfs.proc2.write = kernel.function("nfs_proc_write")!,
                         module("nfs").function("nfs_proc_write")?
 {
       
@@ -496,7 +496,7 @@ probe nfs.proc2.write = kernel.function("nfs_proc_write")?,
         units = "bytes"
 }
 
-probe nfs.proc2.write.return = kernel.function("nfs_proc_write").return ?,
+probe nfs.proc2.write.return = kernel.function("nfs_proc_write").return !,
                        module("nfs").function("nfs_proc_write").return?
 {
         version =2
@@ -510,7 +510,7 @@ probe nfs.proc2.write.return = kernel.function("nfs_proc_write").return ?,
 }
 
 
-probe nfs.proc3.write = kernel.function("nfs3_proc_write")?,
+probe nfs.proc3.write = kernel.function("nfs3_proc_write")!,
                         module("nfs").function("nfs3_proc_write")?
 {
       
@@ -530,7 +530,7 @@ probe nfs.proc3.write = kernel.function("nfs3_proc_write")?,
 }
 
 
-probe nfs.proc3.write.return = kernel.function("nfs3_proc_write").return ?,
+probe nfs.proc3.write.return = kernel.function("nfs3_proc_write").return !,
                        module("nfs").function("nfs3_proc_write").return?
 {
         version =3
@@ -545,7 +545,7 @@ probe nfs.proc3.write.return = kernel.function("nfs3_proc_write").return ?,
 }
 
 
-probe nfs.proc4.write = kernel.function("nfs4_proc_write")?,
+probe nfs.proc4.write = kernel.function("nfs4_proc_write")!,
                         module("nfs").function("nfs4_proc_write")?
 {
       
@@ -567,7 +567,7 @@ probe nfs.proc4.write = kernel.function("nfs4_proc_write")?,
 }
 
 
-probe nfs.proc4.write.return = kernel.function("nfs4_proc_write").return ?,
+probe nfs.proc4.write.return = kernel.function("nfs4_proc_write").return !,
                        module("nfs").function("nfs4_proc_write").return?
 {
         version =4
@@ -610,7 +610,7 @@ probe nfs.proc.commit.return = nfs.proc3.commit.return,
 // XXX: on kernels > 2.6.18 (?), module("nfs") -> module("nfsd") and
 // function("nfsN...") becomes function("nfsdN...").  PR3833.
    
-probe nfs.proc3.commit = kernel.function ("nfs3_proc_commit")?,
+probe nfs.proc3.commit = kernel.function ("nfs3_proc_commit")!,
                          module("nfs").function("nfs3_proc_commit")?
 {
 	server_ip = __nfs_write_data_info($cdata,0)
@@ -627,7 +627,7 @@ probe nfs.proc3.commit = kernel.function ("nfs3_proc_commit")?,
         units = "bytes"
 }
 
-probe nfs.proc3.commit.return = kernel.function ("nfs3_proc_commit").return?,
+probe nfs.proc3.commit.return = kernel.function ("nfs3_proc_commit").return!,
                          module("nfs").function("nfs3_proc_commit").return?
 {
         version =3
@@ -642,7 +642,7 @@ probe nfs.proc3.commit.return = kernel.function ("nfs3_proc_commit").return?,
 }
 
 
-probe nfs.proc4.commit = kernel.function ("nfs4_proc_commit")?,
+probe nfs.proc4.commit = kernel.function ("nfs4_proc_commit")!,
                          module("nfs").function("nfs4_proc_commit")?
 {
 	server_ip = __nfs_write_data_info($cdata,0)
@@ -661,7 +661,7 @@ probe nfs.proc4.commit = kernel.function ("nfs4_proc_commit")?,
         units = "bytes"
 }
 
-probe nfs.proc4.commit.return = kernel.function ("nfs4_proc_commit").return?,
+probe nfs.proc4.commit.return = kernel.function ("nfs4_proc_commit").return!,
                          module("nfs").function("nfs4_proc_commit").return?
 {
         version =4
@@ -701,7 +701,7 @@ probe nfs.proc.read_setup.return = nfs.proc2.read_setup.return ,
 
 
 
-probe nfs.proc2.read_setup = kernel.function("nfs_proc_read_setup") ?,
+probe nfs.proc2.read_setup = kernel.function("nfs_proc_read_setup") !,
                        module("nfs").function("nfs_proc_read_setup")?
 {
 	client = stap_NFS_CLIENT($data->inode)
@@ -719,14 +719,14 @@ probe nfs.proc2.read_setup = kernel.function("nfs_proc_read_setup") ?,
         units = "bytes"
 }
 
-probe nfs.proc2.read_setup.return = kernel.function("nfs_proc_read_setup").return ?,
+probe nfs.proc2.read_setup.return = kernel.function("nfs_proc_read_setup").return !,
                        module("nfs").function("nfs_proc_read_setup").return?
 {
 	name =  "nfs.proc2.read_setup.return"
 	retvalue = 0;
 }
 
-probe nfs.proc3.read_setup = kernel.function("nfs3_proc_read_setup") ?,
+probe nfs.proc3.read_setup = kernel.function("nfs3_proc_read_setup") !,
                        module("nfs").function("nfs3_proc_read_setup")?
 {
 	client = stap_NFS_CLIENT($data->inode)
@@ -745,14 +745,14 @@ probe nfs.proc3.read_setup = kernel.function("nfs3_proc_read_setup") ?,
         units = "bytes"
 }
 
-probe nfs.proc3.read_setup.return = kernel.function("nfs3_proc_read_setup").return ?,
+probe nfs.proc3.read_setup.return = kernel.function("nfs3_proc_read_setup").return !,
                        module("nfs").function("nfs3_proc_read_setup").return?
 {
 	name =  "nfs.proc3.read_setup.return"
 	retvalue = 0;
 }
 
-probe nfs.proc4.read_setup = kernel.function("nfs4_proc_read_setup") ?,
+probe nfs.proc4.read_setup = kernel.function("nfs4_proc_read_setup") !,
                        module("nfs").function("nfs4_proc_read_setup")?
 {
 	client = stap_NFS_CLIENT($data->inode)
@@ -770,7 +770,7 @@ probe nfs.proc4.read_setup = kernel.function("nfs4_proc_read_setup") ?,
         size = count
         units = "bytes"
 }
-probe nfs.proc4.read_setup.return = kernel.function("nfs4_proc_read_setup").return ?,
+probe nfs.proc4.read_setup.return = kernel.function("nfs4_proc_read_setup").return !,
                        module("nfs").function("nfs4_proc_read_setup").return?
 {
 	name =  "nfs.proc4.read_setup.return"
@@ -801,7 +801,7 @@ probe nfs.proc.read_done.return = nfs.proc2.read_done.return,
                            nfs.proc4.read_done.return
 {}
 
-probe nfs.proc2.read_done = kernel.function("nfs_read_done")?,
+probe nfs.proc2.read_done = kernel.function("nfs_read_done")!,
                             module("nfs").function("nfs_read_done")?
 {
 %( kernel_v >= "2.6.10" %?
@@ -821,7 +821,7 @@ probe nfs.proc2.read_done = kernel.function("nfs_read_done")?,
 
 }
 
-probe nfs.proc2.read_done.return = kernel.function("nfs_read_done").return?,
+probe nfs.proc2.read_done.return = kernel.function("nfs_read_done").return!,
                             module("nfs").function("nfs_read_done").return?
 {
         version =2
@@ -832,7 +832,7 @@ probe nfs.proc2.read_done.return = kernel.function("nfs_read_done").return?,
 }
 
 
-probe nfs.proc3.read_done = kernel.function("nfs3_read_done")?,
+probe nfs.proc3.read_done = kernel.function("nfs3_read_done")!,
                             module("nfs").function("nfs3_read_done")?
 {
 %( kernel_v >= "2.6.10" %?
@@ -852,7 +852,7 @@ probe nfs.proc3.read_done = kernel.function("nfs3_read_done")?,
 
 }
 
-probe nfs.proc3.read_done.return = kernel.function("nfs3_read_done").return?,
+probe nfs.proc3.read_done.return = kernel.function("nfs3_read_done").return!,
                             module("nfs").function("nfs3_read_done").return?
 {
         version =3
@@ -863,7 +863,7 @@ probe nfs.proc3.read_done.return = kernel.function("nfs3_read_done").return?,
 }
 
 
-probe nfs.proc4.read_done = kernel.function("nfs4_read_done")?,
+probe nfs.proc4.read_done = kernel.function("nfs4_read_done")!,
                             module("nfs").function("nfs4_read_done")?
 {
 %( kernel_v >= "2.6.10" %?
@@ -885,7 +885,7 @@ probe nfs.proc4.read_done = kernel.function("nfs4_read_done")?,
 
 }
 
-probe nfs.proc4.read_done.return = kernel.function("nfs4_read_done").return?,
+probe nfs.proc4.read_done.return = kernel.function("nfs4_read_done").return!,
                             module("nfs").function("nfs4_read_done").return?
 {
         version =4
@@ -925,7 +925,7 @@ probe nfs.proc.write_setup.return = nfs.proc2.write_setup.return,
 {}
 
 
-probe nfs.proc2.write_setup = kernel.function("nfs_proc_write_setup") ?,
+probe nfs.proc2.write_setup = kernel.function("nfs_proc_write_setup") !,
                               module("nfs").function("nfs_proc_write_setup") ?
 {
 	client = stap_NFS_CLIENT($data->inode)
@@ -942,7 +942,7 @@ probe nfs.proc2.write_setup = kernel.function("nfs_proc_write_setup") ?,
         size = count
         units = "bytes"
 }
-probe nfs.proc2.write_setup.return = kernel.function("nfs_proc_write_setup").return ?,
+probe nfs.proc2.write_setup.return = kernel.function("nfs_proc_write_setup").return !,
                               module("nfs").function("nfs_proc_write_setup").return ?
 {
 	name = "nfs.proc2.write_setup.return"
@@ -950,7 +950,7 @@ probe nfs.proc2.write_setup.return = kernel.function("nfs_proc_write_setup").ret
 }
 
 
-probe nfs.proc3.write_setup = kernel.function("nfs3_proc_write_setup") ?,
+probe nfs.proc3.write_setup = kernel.function("nfs3_proc_write_setup") !,
                               module("nfs").function("nfs3_proc_write_setup") ?
 {
 	client = stap_NFS_CLIENT($data->inode)
@@ -968,14 +968,14 @@ probe nfs.proc3.write_setup = kernel.function("nfs3_proc_write_setup") ?,
         size = count
         units = "bytes"
 }
-probe nfs.proc3.write_setup.return = kernel.function("nfs3_proc_write_setup").return ?,
+probe nfs.proc3.write_setup.return = kernel.function("nfs3_proc_write_setup").return !,
                               module("nfs").function("nfs3_proc_write_setup").return ?
 {
 	name = "nfs.proc3.write_setup.return"
 	retvalue = 0
 }
 
-probe nfs.proc4.write_setup = kernel.function("nfs4_proc_write_setup") ?,
+probe nfs.proc4.write_setup = kernel.function("nfs4_proc_write_setup") !,
                               module("nfs").function("nfs4_proc_write_setup") ?
 {
 	client = stap_NFS_CLIENT($data->inode)
@@ -996,7 +996,7 @@ probe nfs.proc4.write_setup = kernel.function("nfs4_proc_write_setup") ?,
         size = count
         units = "bytes"
 }
-probe nfs.proc4.write_setup.return = kernel.function("nfs4_proc_write_setup").return ?,
+probe nfs.proc4.write_setup.return = kernel.function("nfs4_proc_write_setup").return !,
                               module("nfs").function("nfs4_proc_write_setup").return ?
 {
 	name = "nfs.proc4.write_setup.return"
@@ -1029,7 +1029,7 @@ probe nfs.proc.write_done.return = nfs.proc2.write_done.return,
                             nfs.proc4.write_done.return 
 {}
 
-probe nfs.proc2.write_done = kernel.function("nfs_write_done") ?,
+probe nfs.proc2.write_done = kernel.function("nfs_write_done") !,
                              module("nfs").function("nfs_write_done") ?
 {
 %( kernel_v >= "2.6.10" %?
@@ -1050,7 +1050,7 @@ probe nfs.proc2.write_done = kernel.function("nfs_write_done") ?,
 	argstr = sprintf("%d",status)
 }
 
-probe nfs.proc2.write_done.return = kernel.function("nfs_write_done").return ?,
+probe nfs.proc2.write_done.return = kernel.function("nfs_write_done").return !,
                              module("nfs").function("nfs_write_done").return ?
 {
         version =2
@@ -1060,7 +1060,7 @@ probe nfs.proc2.write_done.return = kernel.function("nfs_write_done").return ?,
 %)
 }
 
-probe nfs.proc3.write_done = kernel.function("nfs3_write_done") ?,
+probe nfs.proc3.write_done = kernel.function("nfs3_write_done") !,
                              module("nfs").function("nfs3_write_done") ?
 {
 %( kernel_v >= "2.6.10" %?
@@ -1081,7 +1081,7 @@ probe nfs.proc3.write_done = kernel.function("nfs3_write_done") ?,
 	argstr = sprintf("%d",status)
 }
 
-probe nfs.proc3.write_done.return = kernel.function("nfs3_write_done").return ?,
+probe nfs.proc3.write_done.return = kernel.function("nfs3_write_done").return !,
                              module("nfs").function("nfs3_write_done").return ?
 {
         version =3
@@ -1091,7 +1091,7 @@ probe nfs.proc3.write_done.return = kernel.function("nfs3_write_done").return ?,
 %)
 }
 
-probe nfs.proc4.write_done = kernel.function("nfs4_write_done") ?,
+probe nfs.proc4.write_done = kernel.function("nfs4_write_done") !,
                              module("nfs").function("nfs4_write_done") ?
 {
 %( kernel_v >= "2.6.10" %?
@@ -1114,7 +1114,7 @@ probe nfs.proc4.write_done = kernel.function("nfs4_write_done") ?,
 	argstr = sprintf("%d",status)
 }
 
-probe nfs.proc4.write_done.return = kernel.function("nfs4_write_done").return ?,
+probe nfs.proc4.write_done.return = kernel.function("nfs4_write_done").return !,
                              module("nfs").function("nfs4_write_done").return ?
 {
         version =4
@@ -1151,7 +1151,7 @@ probe nfs.proc.commit_setup.return =nfs.proc3.commit_setup.return,
 
 
 
-probe nfs.proc3.commit_setup = kernel.function("nfs3_proc_commit_setup") ?,
+probe nfs.proc3.commit_setup = kernel.function("nfs3_proc_commit_setup") !,
                               module("nfs").function("nfs3_proc_commit_setup") ?
 {
 	client = stap_NFS_CLIENT($data->inode)
@@ -1168,14 +1168,14 @@ probe nfs.proc3.commit_setup = kernel.function("nfs3_proc_commit_setup") ?,
         size = count
         units = "bytes"
 }
-probe nfs.proc3.commit_setup.return = kernel.function("nfs3_proc_commit_setup") .return?,
+probe nfs.proc3.commit_setup.return = kernel.function("nfs3_proc_commit_setup") .return!,
                               module("nfs").function("nfs3_proc_commit_setup").return ?
 {
 	name = "nfs.proc3.commit_setup.return"
 	retvalue = 0
 }
 
-probe nfs.proc4.commit_setup = kernel.function("nfs4_proc_commit_setup") ?,
+probe nfs.proc4.commit_setup = kernel.function("nfs4_proc_commit_setup") !,
                               module("nfs").function("nfs4_proc_commit_setup") ?
 {
 	client = stap_NFS_CLIENT($data->inode)
@@ -1195,7 +1195,7 @@ probe nfs.proc4.commit_setup = kernel.function("nfs4_proc_commit_setup") ?,
         size = count
         units = "bytes"
 }
-probe nfs.proc4.commit_setup.return = kernel.function("nfs4_proc_commit_setup") .return?,
+probe nfs.proc4.commit_setup.return = kernel.function("nfs4_proc_commit_setup") .return!,
                               module("nfs").function("nfs4_proc_commit_setup").return ?
 {
 	name = "nfs.proc4.commit_setup.return"
@@ -1229,7 +1229,7 @@ probe nfs.proc.commit_done.return =
 {}
 
 
-probe nfs.proc3.commit_done = kernel.function("nfs3_commit_done") ?,
+probe nfs.proc3.commit_done = kernel.function("nfs3_commit_done") !,
                              module("nfs").function("nfs3_commit_done") ?
 {
 %( kernel_v >= "2.6.10" %?
@@ -1250,7 +1250,7 @@ probe nfs.proc3.commit_done = kernel.function("nfs3_commit_done") ?,
 	argstr = sprintf("%d",status)
 }
 
-probe nfs.proc3.commit_done.return = kernel.function("nfs3_commit_done").return ?,
+probe nfs.proc3.commit_done.return = kernel.function("nfs3_commit_done").return !,
                              module("nfs").function("nfs3_commit_done").return ?
 {
         version =3
@@ -1260,7 +1260,7 @@ probe nfs.proc3.commit_done.return = kernel.function("nfs3_commit_done").return 
 %)
 }
 
-probe nfs.proc4.commit_done = kernel.function("nfs4_commit_done") ?,
+probe nfs.proc4.commit_done = kernel.function("nfs4_commit_done") !,
                              module("nfs").function("nfs4_commit_done") ?
 {
 %( kernel_v >= "2.6.10" %?
@@ -1283,7 +1283,7 @@ probe nfs.proc4.commit_done = kernel.function("nfs4_commit_done") ?,
 	argstr = sprintf("%d",status)
 }
 
-probe nfs.proc4.commit_done.return = kernel.function("nfs4_commit_done").return ?,
+probe nfs.proc4.commit_done.return = kernel.function("nfs4_commit_done").return !,
                              module("nfs").function("nfs4_commit_done").return ?
 {
         version =4
@@ -1305,7 +1305,7 @@ probe nfs.proc4.commit_done.return = kernel.function("nfs4_commit_done").return 
 *   mode   : file  mode
 */
 
-probe nfs.proc.open = kernel.function("nfs_open") ?,
+probe nfs.proc.open = kernel.function("nfs_open") !,
                       module("nfs").function("nfs_open") ?
 {
 	server_ip = __i2n_ip_proto($inode,0)
@@ -1320,7 +1320,7 @@ probe nfs.proc.open = kernel.function("nfs_open") ?,
 	argstr = sprintf("%s,%d,%d",filename,flag,mode)
 }
 
-probe nfs.proc.open.return = kernel.function("nfs_open").return ?,
+probe nfs.proc.open.return = kernel.function("nfs_open").return !,
                       module("nfs").function("nfs_open").return ?
 {
 	name = "nfs.proc.open.return"
@@ -1339,7 +1339,7 @@ probe nfs.proc.open.return = kernel.function("nfs_open").return ?,
 *   flag   : file flag
 *   mode   : file  mode
 */
-probe nfs.proc.release= kernel.function("nfs_release") ?,
+probe nfs.proc.release= kernel.function("nfs_release") !,
                       module("nfs").function("nfs_release") ?
 {
 	server_ip = __i2n_ip_proto($inode,0)
@@ -1354,7 +1354,7 @@ probe nfs.proc.release= kernel.function("nfs_release") ?,
 	argstr = sprintf("%s,%d,%d",filename,flag,mode)
 }
 
-probe nfs.proc.release.return = kernel.function("nfs_release").return ?,
+probe nfs.proc.release.return = kernel.function("nfs_release").return !,
                       module("nfs").function("nfs_release").return ?
 {
 	name = "nfs.proc.release.return"
@@ -1367,7 +1367,7 @@ probe nfs.proc.release.return = kernel.function("nfs_release").return ?,
 * Arguments:
 *  errorcode : indicates the type of error
 */
-probe nfs.proc4.handle_exception = kernel.function("nfs4_handle_exception") ?,
+probe nfs.proc4.handle_exception = kernel.function("nfs4_handle_exception") !,
                                module("nfs").function("nfs4_handle_exception")?
 {
 	version =4
@@ -1378,7 +1378,7 @@ probe nfs.proc4.handle_exception = kernel.function("nfs4_handle_exception") ?,
         argstr =  sprintf("%d",errorcode)
 }
 
-probe nfs.proc4.handle_exception.return = kernel.function("nfs4_handle_exception").return ?,
+probe nfs.proc4.handle_exception.return = kernel.function("nfs4_handle_exception").return !,
                                module("nfs").function("nfs4_handle_exception").return?
 {
         name = "nfs.proc4.handle_exception.return"
@@ -1408,7 +1408,7 @@ probe nfs.proc.create.return = nfs.proc2.create.return,
                                nfs.proc4.create.return
 {}
 
-probe nfs.proc2.create = kernel.function("nfs_proc_create")?,
+probe nfs.proc2.create = kernel.function("nfs_proc_create")!,
                          module("nfs").function("nfs_proc_create")?
 {
 	server_ip = __i2n_ip_proto($dir,0)
@@ -1424,7 +1424,7 @@ probe nfs.proc2.create = kernel.function("nfs_proc_create")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfs.proc2.create.return = kernel.function("nfs_proc_create").return?,
+probe nfs.proc2.create.return = kernel.function("nfs_proc_create").return!,
                          module("nfs").function("nfs_proc_create").return?
 {
 	name = "nfs.proc2.create.return"
@@ -1432,7 +1432,7 @@ probe nfs.proc2.create.return = kernel.function("nfs_proc_create").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfs.proc3.create = kernel.function("nfs3_proc_create")?,
+probe nfs.proc3.create = kernel.function("nfs3_proc_create")!,
                          module("nfs").function("nfs3_proc_create")?
 {
 	server_ip = __i2n_ip_proto($dir,0)
@@ -1449,7 +1449,7 @@ probe nfs.proc3.create = kernel.function("nfs3_proc_create")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfs.proc3.create.return = kernel.function("nfs3_proc_create").return?,
+probe nfs.proc3.create.return = kernel.function("nfs3_proc_create").return!,
                          module("nfs").function("nfs3_proc_create").return?
 {
 	name = "nfs.proc3.create.return"
@@ -1457,7 +1457,7 @@ probe nfs.proc3.create.return = kernel.function("nfs3_proc_create").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfs.proc4.create = kernel.function("nfs4_proc_create")?,
+probe nfs.proc4.create = kernel.function("nfs4_proc_create")!,
                          module("nfs").function("nfs4_proc_create")?
 {
 	server_ip = __i2n_ip_proto($dir,0)
@@ -1474,7 +1474,7 @@ probe nfs.proc4.create = kernel.function("nfs4_proc_create")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfs.proc4.create.return = kernel.function("nfs4_proc_create").return?,
+probe nfs.proc4.create.return = kernel.function("nfs4_proc_create").return!,
                          module("nfs").function("nfs4_proc_create").return?
 {
 	name = "nfs.proc4.create.return"
@@ -1504,7 +1504,7 @@ probe nfs.proc.remove.return = nfs.proc2.remove.return,
                                nfs.proc4.remove.return
 {}
 
-probe nfs.proc2.remove = kernel.function("nfs_proc_remove")?,
+probe nfs.proc2.remove = kernel.function("nfs_proc_remove")!,
                          module("nfs").function("nfs_proc_remove")?
 {
 	server_ip = __i2n_ip_proto($dir,0)
@@ -1519,7 +1519,7 @@ probe nfs.proc2.remove = kernel.function("nfs_proc_remove")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfs.proc2.remove.return = kernel.function("nfs_proc_remove").return?,
+probe nfs.proc2.remove.return = kernel.function("nfs_proc_remove").return!,
                          module("nfs").function("nfs_proc_remove").return?
 {
 	name = "nfs.proc2.remove.return"
@@ -1527,7 +1527,7 @@ probe nfs.proc2.remove.return = kernel.function("nfs_proc_remove").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfs.proc3.remove = kernel.function("nfs3_proc_remove")?,
+probe nfs.proc3.remove = kernel.function("nfs3_proc_remove")!,
                          module("nfs").function("nfs3_proc_remove")?
 {
 	server_ip = __i2n_ip_proto($dir,0)
@@ -1542,7 +1542,7 @@ probe nfs.proc3.remove = kernel.function("nfs3_proc_remove")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfs.proc3.remove.return = kernel.function("nfs3_proc_remove").return?,
+probe nfs.proc3.remove.return = kernel.function("nfs3_proc_remove").return!,
                          module("nfs").function("nfs3_proc_remove").return?
 {
 	name = "nfs.proc3.remove.return"
@@ -1550,7 +1550,7 @@ probe nfs.proc3.remove.return = kernel.function("nfs3_proc_remove").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfs.proc4.remove = kernel.function("nfs4_proc_remove")?,
+probe nfs.proc4.remove = kernel.function("nfs4_proc_remove")!,
                          module("nfs").function("nfs4_proc_remove")?
 {
 	server_ip = __i2n_ip_proto($dir,0)
@@ -1565,7 +1565,7 @@ probe nfs.proc4.remove = kernel.function("nfs4_proc_remove")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfs.proc4.remove.return = kernel.function("nfs4_proc_remove").return?,
+probe nfs.proc4.remove.return = kernel.function("nfs4_proc_remove").return!,
                          module("nfs").function("nfs4_proc_remove").return?
 {
 	name = "nfs.proc4.remove.return"
@@ -1598,7 +1598,7 @@ probe nfs.proc.rename.return = nfs.proc2.rename.return,
                                nfs.proc4.rename.return
 {}
 
-probe nfs.proc2.rename = kernel.function("nfs_proc_rename")?,
+probe nfs.proc2.rename = kernel.function("nfs_proc_rename")!,
                          module("nfs").function("nfs_proc_rename")?
 {
 	server_ip = __i2n_ip_proto($old_dir,0)
@@ -1616,7 +1616,7 @@ probe nfs.proc2.rename = kernel.function("nfs_proc_rename")?,
 	argstr = sprintf("%s,%s",old_name,new_name)
 }
 
-probe nfs.proc2.rename.return = kernel.function("nfs_proc_rename").return?,
+probe nfs.proc2.rename.return = kernel.function("nfs_proc_rename").return!,
                          module("nfs").function("nfs_proc_rename").return?
 {
 	name = "nfs.proc2.rename.return"
@@ -1624,7 +1624,7 @@ probe nfs.proc2.rename.return = kernel.function("nfs_proc_rename").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfs.proc3.rename = kernel.function("nfs3_proc_rename")?,
+probe nfs.proc3.rename = kernel.function("nfs3_proc_rename")!,
                          module("nfs").function("nfs3_proc_rename")?
 {
 	server_ip = __i2n_ip_proto($old_dir,0)
@@ -1642,7 +1642,7 @@ probe nfs.proc3.rename = kernel.function("nfs3_proc_rename")?,
 	argstr = sprintf("%s,%s",old_name,new_name)
 }
 
-probe nfs.proc3.rename.return = kernel.function("nfs3_proc_rename").return?,
+probe nfs.proc3.rename.return = kernel.function("nfs3_proc_rename").return!,
                          module("nfs").function("nfs3_proc_rename").return?
 {
 	name = "nfs.proc3.rename.return"
@@ -1650,7 +1650,7 @@ probe nfs.proc3.rename.return = kernel.function("nfs3_proc_rename").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfs.proc4.rename = kernel.function("nfs4_proc_rename")?,
+probe nfs.proc4.rename = kernel.function("nfs4_proc_rename")!,
                          module("nfs").function("nfs4_proc_rename")?
 {
 	server_ip = __i2n_ip_proto($old_dir,0)
@@ -1668,7 +1668,7 @@ probe nfs.proc4.rename = kernel.function("nfs4_proc_rename")?,
 	argstr = sprintf("%s,%s",old_name,new_name)
 }
 
-probe nfs.proc4.rename.return = kernel.function("nfs4_proc_rename").return?,
+probe nfs.proc4.rename.return = kernel.function("nfs4_proc_rename").return!,
                          module("nfs").function("nfs4_proc_rename").return?
 {
 	name = "nfs.proc4.rename.return"
