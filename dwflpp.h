@@ -167,6 +167,7 @@ struct dwflpp
   std::string function_name;
 
   dwflpp(systemtap_session & session, const std::string& user_module, bool kernel_p);
+  dwflpp(systemtap_session & session, const std::vector<std::string>& user_modules);
   ~dwflpp();
 
   void get_module_dwarf(bool required = false, bool report = true);
@@ -281,7 +282,7 @@ private:
   Dwarf_Die * function;
 
   void setup_kernel(const std::string& module_name, bool debuginfo_needed = true);
-  void setup_user(const std::string& module_name, bool debuginfo_needed = true);
+  void setup_user(const std::vector<std::string>& modules, bool debuginfo_needed = true);
 
   typedef std::map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
   module_cu_cache_t module_cu_cache;
