@@ -515,8 +515,7 @@ base_query::get_number_param(literal_map_t const & params,
 
 struct dwarf_query : public base_query
 {
-  dwarf_query(systemtap_session & sess,
-	      probe * base_probe,
+  dwarf_query(probe * base_probe,
 	      probe_point * base_loc,
 	      dwflpp & dw,
 	      literal_map_t const & params,
@@ -914,8 +913,7 @@ dwarf_builder::probe_table::convert_location (probe *new_base,
 }
 
 
-dwarf_query::dwarf_query(systemtap_session & sess,
-			 probe * base_probe,
+dwarf_query::dwarf_query(probe * base_probe,
 			 probe_point * base_loc,
 			 dwflpp & dw,
 			 literal_map_t const & params,
@@ -3501,7 +3499,7 @@ dwarf_builder::build(systemtap_session & sess,
 					     probe_table.probe_arg, false, false);
 	      new_base->body = svv.require (new_base->body);
 
-	      dwarf_query q(sess, new_base, new_location, *dw, parameters, finished_results);
+	      dwarf_query q(new_base, new_location, *dw, parameters, finished_results);
 	      q.has_mark = true;
 	      dw->iterate_over_modules(&query_module, &q);
 	      if (sess.listing_mode)
@@ -3573,7 +3571,7 @@ dwarf_builder::build(systemtap_session & sess,
       dw->module = 0;
     }
   
-  dwarf_query q(sess, base, location, *dw, parameters, finished_results);
+  dwarf_query q(base, location, *dw, parameters, finished_results);
 
 
   // XXX: kernel.statement.absolute is a special case that requires no
