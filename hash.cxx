@@ -52,12 +52,12 @@ hash::add_file(const std::string& filename)
 {
   struct stat st;
 
-  if (stat(filename.c_str(), &st) == 0)
-    {
-      add(filename);
-      add(st.st_size);
-      add(st.st_mtime);
-    }
+  if (stat(filename.c_str(), &st) != 0)
+    st.st_size = st.st_mtime = -1;
+
+  add(filename);
+  add(st.st_size);
+  add(st.st_mtime);
 }
 
 
