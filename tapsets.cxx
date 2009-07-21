@@ -5603,6 +5603,7 @@ struct tracepoint_query : public base_query
   probe * base_probe;
   probe_point * base_loc;
   vector<derived_probe *> & results;
+  set<string> probed_names;
 
   void handle_query_module();
   int handle_query_cu(Dwarf_Die * cudie);
@@ -5639,6 +5640,12 @@ tracepoint_query::handle_query_func(Dwarf_Die * func)
 
   assert(dw.function_name.compare(0, 10, "stapprobe_") == 0);
   string tracepoint_instance = dw.function_name.substr(10);
+
+  // check for duplicates -- sometimes tracepoint headers may be indirectly
+  // included in more than one of our tracequery modules.
+  if (!probed_names.insert(tracepoint_instance).second)
+    return DWARF_CB_OK;
+
   derived_probe *dp = new tracepoint_derived_probe (dw.sess, dw, *func,
                                                     tracepoint_instance,
                                                     base_probe, base_loc);
@@ -5670,6 +5677,7 @@ struct tracepoint_builder: public derived_probe_builder
 private:
   dwflpp *dw;
   bool init_dw(systemtap_session& s);
+  string get_tracequery_module(systemtap_session& s, const string& header);
 
 public:
 
@@ -5691,17 +5699,15 @@ public:
 };
 
 
-bool
-tracepoint_builder::init_dw(systemtap_session& s)
+string
+tracepoint_builder::get_tracequery_module(systemtap_session& s,
+                                          const string& header)
 {
-  if (dw != NULL)
-    return true;
-
   string tracequery_path;
   if (s.use_cache)
     {
       // see if the cached module exists
-      tracequery_path = find_tracequery_hash(s);
+      tracequery_path = find_tracequery_hash(s, header);
       if (!tracequery_path.empty())
         {
           int fd = open(tracequery_path.c_str(), O_RDONLY);
@@ -5709,19 +5715,23 @@ tracepoint_builder::init_dw(systemtap_session& s)
             {
               if (s.verbose > 2)
                 clog << "Pass 2: using cached " << tracequery_path << endl;
-
-              dw = new dwflpp(s, tracequery_path, false);
               close(fd);
-              return true;
+              return tracequery_path;
             }
         }
     }
 
   // no cached module, time to make it
+
+  size_t root_pos = header.rfind("/include/");
+  string short_header = (root_pos != string::npos) ?
+    header.substr(root_pos + 9) : header;
+
   string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko, tracepoint_extra_headers());
+  int rc = make_tracequery(s, tracequery_ko, short_header,
+                           tracepoint_extra_headers());
   if (rc != 0)
-    return false;
+    return "";
 
   if (s.use_cache)
     {
@@ -5734,8 +5744,52 @@ tracepoint_builder::init_dw(systemtap_session& s)
         cerr << "Copy failed (\"" << tracequery_ko << "\" to \""
              << tracequery_path << "\"): " << strerror(errno) << endl;
     }
+  return tracequery_ko;
+}
 
-  dw = new dwflpp(s, tracequery_ko, false);
+
+bool
+tracepoint_builder::init_dw(systemtap_session& s)
+{
+  if (dw != NULL)
+    return true;
+
+  vector<string> tracequery_modules;
+
+  glob_t trace_glob;
+  string globs[] = {
+      "/include/trace/*.h",
+      "/include/trace/events/*.h",
+      "/source/include/trace/*.h",
+      "/source/include/trace/events/*.h",
+  };
+  for (unsigned z = 0; z < sizeof(globs) / sizeof(globs[0]); z++)
+    {
+      string glob_str(s.kernel_build_tree + globs[z]);
+      glob(glob_str.c_str(), 0, NULL, &trace_glob);
+      for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
+        {
+          string header(trace_glob.gl_pathv[i]);
+
+          // filter out a few known "internal-only" headers
+          if (header.find("/ftrace.h") != string::npos)
+            continue;
+          if (header.find("/trace_events.h") != string::npos)
+            continue;
+          if (header.find("_event_types.h") != string::npos)
+            continue;
+
+          string tracequery_path = get_tracequery_module(s, header);
+          if (!tracequery_path.empty())
+            tracequery_modules.push_back(tracequery_path);
+        }
+      globfree(&trace_glob);
+    }
+
+  // TODO: consider other sources of tracepoint headers too, like from
+  // a command-line parameter or some environment or .systemtaprc
+
+  dw = new dwflpp(s, tracequery_modules);
   return true;
 }
 

@@ -257,12 +257,13 @@ find_hash (systemtap_session& s, const string& script)
 
 
 string
-find_tracequery_hash (systemtap_session& s)
+find_tracequery_hash (systemtap_session& s, const string& header)
 {
   hash h;
   get_base_hash(s, h);
 
-  // The basic hash should be good enough for the tracepoint query module
+  // Add the tracepoint header to the computed hash
+  h.add_file(header);
 
   // Get the directory path to store our cached module
   string result, hashdir;
