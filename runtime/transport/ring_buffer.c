@@ -141,22 +141,37 @@ _stp_event_to_user(struct ring_buffer_event *event, char __user *ubuf,
 	struct _stp_data_entry *entry;
 
 	dbug_trans(1, "event(%p), ubuf(%p), cnt(%lu)\n", event, ubuf, cnt);
-	if (event == NULL || ubuf == NULL)
+	if (event == NULL || ubuf == NULL) {
+		dbug_trans(1, "returning -EFAULT(1)\n");
 		return -EFAULT;
+	}
 
 	entry = (struct _stp_data_entry *)ring_buffer_event_data(event);
-	if (entry == NULL)
+	if (entry == NULL) {
+		dbug_trans(1, "returning -EFAULT(2)\n");
 		return -EFAULT;
+	}
 
 	/* We don't do partial entries - just fail. */
-	if (entry->len > cnt)
+	if (entry->len > cnt) {
+		dbug_trans(1, "returning -EBUSY\n");
 		return -EBUSY;
+	}
+
+#if defined(DEBUG_TRANS) && (DEBUG_TRANS >= 2)
+	{
+		char *last = entry->buf + (entry->len - 5);
+		dbug_trans2("copying %.5s...%.5s\n", entry->buf, last);
+	}
+#endif
 
 	if (cnt > entry->len)
 		cnt = entry->len;
 	ret = copy_to_user(ubuf, entry->buf, cnt);
-	if (ret)
+	if (ret) {
+		dbug_trans(1, "returning -EFAULT(3)\n");
 		return -EFAULT;
+	}
 
 	return cnt;
 }
@@ -193,6 +208,13 @@ static void _stp_ring_buffer_iterator_increment(void)
 	if (_stp_relay_data.rb_data.buffer_iter[_stp_relay_data.rb_data.cpu]) {
 		ring_buffer_read(_stp_relay_data.rb_data.buffer_iter[_stp_relay_data.rb_data.cpu], NULL);
 	}
+}
+
+static void _stp_ring_buffer_consume(void)
+{
+	_stp_ring_buffer_iterator_increment();
+	ring_buffer_consume(_stp_relay_data.rb, _stp_relay_data.rb_data.cpu,
+			    &_stp_relay_data.rb_data.ts);
 }
 
 static ssize_t _stp_tracing_wait_pipe(struct file *filp)
@@ -238,8 +260,10 @@ static struct ring_buffer_event *_stp_find_next_event(int cpu_file)
 	event = _stp_peek_next_event(cpu_file, &_stp_relay_data.rb_data.ts);
 	_stp_relay_data.rb_data.cpu = cpu_file;
 
+#if 0
 	if (event)
 		_stp_ring_buffer_iterator_increment();
+#endif
 	return event;
 #else
 	struct ring_buffer_event *next = NULL;
@@ -265,9 +289,10 @@ static struct ring_buffer_event *_stp_find_next_event(int cpu_file)
 
 	_stp_relay_data.rb_data.cpu = next_cpu;
 	_stp_relay_data.rb_data.ts = next_ts;
+#if 0
 	if (next)
 		_stp_ring_buffer_iterator_increment();
-
+#endif
 	return next;
 #endif
 }
@@ -303,6 +328,7 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 		    = ring_buffer_read_start(_stp_relay_data.rb, cpu);
 	}
 #endif
+	_stp_relay_data.rb_data.ts = 0;
 	dbug_trans(0, "iterator(s) started\n");
 
 	/* stop when tracing is finished */
@@ -323,15 +349,15 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 		if (len <= 0)
 			break;
 
-		ring_buffer_consume(_stp_relay_data.rb,
-				    _stp_relay_data.rb_data.cpu,
-				    &_stp_relay_data.rb_data.ts);
+		_stp_ring_buffer_consume();
+		dbug_trans(1, "event consumed\n");
 		ubuf += len;
 		cnt -= len;
 		sret += len;
 		if (cnt <= 0)
 			break;
 	}
+
 out:
 #ifdef STP_BULKMODE
 	if (_stp_relay_data.rb_data.buffer_iter[cpu_file]) {
@@ -346,9 +372,8 @@ out:
 			_stp_relay_data.rb_data.buffer_iter[cpu] = NULL;
 		}
 	}
-#endif
 	dbug_trans(0, "iterator(s) finished\n");
-
+#endif
 	return sret;
 }
 
@@ -440,9 +465,7 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 			sde = (struct _stp_data_entry *)ring_buffer_event_data(event);
 			if (sde->len < size_request)
 				size_request = sde->len;
-			ring_buffer_consume(_stp_relay_data.rb, cpu,
-					    &_stp_relay_data.rb_data.ts);
-			_stp_relay_data.rb_data.cpu = cpu;
+			_stp_ring_buffer_consume();
 
 			/* Try to reserve again. */
 #ifdef STAPCONF_RING_BUFFER_FLAGS
@@ -489,6 +512,14 @@ static int _stp_data_write_commit(void *entry)
 		dbug_trans(1, "entry = NULL, returning -EINVAL\n");
 		return -EINVAL;
 	}
+
+#if defined(DEBUG_TRANS) && (DEBUG_TRANS >= 2)
+	{
+		struct _stp_data_entry *sde = (struct _stp_data_entry *)ring_buffer_event_data(event);
+		char *last = sde->buf + (sde->len - 5);
+		dbug_trans2("commiting %.5s...%.5s\n", sde->buf, last);
+	}
+#endif
 
 #ifdef STAPCONF_RING_BUFFER_FLAGS
 	return ring_buffer_unlock_commit(_stp_relay_data.rb, event, 0);
