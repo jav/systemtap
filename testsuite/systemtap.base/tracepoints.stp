@@ -14,7 +14,9 @@ probe all_tracepoints = kernel.trace("*")
 // If there aren't any tracepoints in the kernel,
 // we use "begin" instead to quit right away.
 probe all_tracepoints!, begin {
-    println("tracepoints OK")
+    // Only print once (after enough hits, or at the begin probe). PR10427
+    if (hits == 0 || hits == 100)
+      println("tracepoints OK")
     exit()
 }
 
