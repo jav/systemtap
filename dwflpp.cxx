@@ -417,8 +417,6 @@ dwflpp::setup_user(const vector<string>& modules, bool debuginfo_needed)
                                     module_name.c_str(),
                                     module_name.c_str(),
                                     -1);
-      // XXX: save mod!
-      module = mod;
 
       if (debuginfo_needed)
         dwfl_assert (string("missing process ") +

@@ -644,273 +644,7 @@ struct dwarf_builder: public derived_probe_builder
 		     probe_point * location,
 		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results);
-
-  set<string> probes_handled;
-  struct probe_table
-  {
-  public:
-    enum probe_types
-      {
-	uprobe_type = 0x31425250, // "PRB1"
-	kprobe_type = 0x32425250, // "PRB2"
-	utrace_type = 0x33425250, // "PRB3"
-      } probe_type;
-    __uint64_t probe_arg;
-    string & mark_name;
-    string probe_name;
-    probe_table(string & mark_name, systemtap_session & sess, dwflpp * dw);
-    bool is_uprobe() {return probe_type == uprobe_type;};
-    bool is_utrace() {return probe_type == utrace_type;};
-    bool get_next_probe();
-    void convert_probe(probe *new_base);
-    void convert_location(probe *new_base, probe_point *new_location);
-
-  private:
-    bool have_probes;
-    systemtap_session & sess;
-    dwflpp* dw;
-    Elf_Data *pdata;
-    size_t probe_scn_offset;
-    size_t probe_scn_addr;
-  };
 };
-
-dwarf_builder::probe_table::probe_table(string& mark_name, systemtap_session & sess, dwflpp* dw):
-  mark_name(mark_name), sess(sess), dw(dw)
-{
-  Elf* elf;
-  GElf_Shdr shdr_mem;
-  GElf_Shdr *shdr = NULL;
-  Dwarf_Addr bias;
-  size_t shstrndx;
-
-  // Explicitly look in the main elf file first.
-  elf = dwfl_module_getelf (dw->module, &bias);
-  Elf_Scn *probe_scn = NULL;
-
-  dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
-
-  have_probes = false;
-  
-  // Is there a .probes section?
-  while ((probe_scn = elf_nextscn (elf, probe_scn)))
-    {
-      shdr = gelf_getshdr (probe_scn, &shdr_mem);
-      assert (shdr != NULL);
-
-      if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") == 0)
-	{
-	  have_probes = true;
-	  break;
-	}
-    }
-
-  // Older versions put .probes section in the debuginfo dwarf file,
-  // so check if it actually exists, if not take a look in the debuginfo file
-  if (! have_probes || (have_probes && shdr->sh_type == SHT_NOBITS))
-    {
-      elf = dwarf_getelf (dwfl_module_getdwarf (dw->module, &bias));
-      if (! elf)
-	return;
-      dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
-      probe_scn = NULL;
-      while ((probe_scn = elf_nextscn (elf, probe_scn)))
-	{
-	  shdr = gelf_getshdr (probe_scn, &shdr_mem);
-	  if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name),
-		      ".probes") == 0)
-	    have_probes = true;
-	    break;
-	}
-    }
-
-  if (!have_probes)
-    return;
-
-  pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
-  probe_scn_offset = 0;
-  probe_scn_addr = shdr->sh_addr;
-  assert (pdata != NULL);
-  if (sess.verbose > 4)
-    clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
-	 << ", size: " << pdata->d_size << endl;
-}
-
-bool
-dwarf_builder::probe_table::get_next_probe()
-{
-  if (! have_probes)
-    return false;
-    
-  // Extract probe info from the .probes section
-  if (sess.verbose > 3)
-    clog << "probe_type == use_uprobe, use statement addr" << endl;
- 
-  while (probe_scn_offset < pdata->d_size)
-    {
-      struct probe_entry
-      {
-	__uint64_t name;
-	__uint64_t arg;
-      }  *pbe;
-      __uint32_t *type = (__uint32_t*) ((char*)pdata->d_buf + probe_scn_offset);
-      probe_type = (enum probe_types)*type;
-      if (probe_type != uprobe_type && probe_type != kprobe_type
-	  && probe_type != utrace_type)
-	{
-	  // Unless this is a mangled .probes section, this happens
-	  // because the name of the probe comes first, followed by
-	  // the sentinel.
-	  if (sess.verbose > 5)
-	    clog << "got unknown probe_type: 0x" << hex << probe_type
-		 << dec << endl;
-	  probe_scn_offset += sizeof(__uint32_t);
-	  continue;
-	}
-      probe_scn_offset += sizeof(__uint32_t);
-      probe_scn_offset += probe_scn_offset % sizeof(__uint64_t);
-      pbe = (struct probe_entry*) ((char*)pdata->d_buf + probe_scn_offset);
-      probe_name = (char*)((char*)pdata->d_buf + pbe->name - (char*)probe_scn_addr);
-      probe_arg = pbe->arg;
-      if (sess.verbose > 4)
-	clog << "saw .probes " << probe_name
-	     << "@0x" << hex << probe_arg << dec << endl;
-    
-      probe_scn_offset += sizeof (struct probe_entry);
-      if ((mark_name == probe_name)
-	  || (dw->name_has_wildcard (mark_name)
-	      && dw->function_name_matches_pattern (probe_name, mark_name)))
-	{
-	  if (sess.verbose > 3)
-	    clog << "found probe_name" << probe_name << " at 0x"
-		 << hex << probe_arg << dec << endl;
-	  return true;
-	}
-      else
-	continue;
-    }
-  return false;
-}
-
-
-void
-dwarf_builder::probe_table::convert_probe (probe *new_base)
-{
-  block *b = ((block*)(new_base->body));
-
-  functioncall *fc = new functioncall;
-  fc->function = (probe_type == utrace_type) ? "_utrace_syscall_arg" : "ulong_arg";
-  fc->tok = new_base->body->tok;
-  literal_number* num = new literal_number((probe_type == utrace_type) ? 0 : 1);
-  num->tok = new_base->body->tok;
-  fc->args.push_back(num);
-
-  // Generate: if (arg1 != mark("label")) next;
-  functioncall *fcus = new functioncall;
-  fcus->function = "user_string";
-  fcus->type = pe_string;
-  fcus->tok = new_base->body->tok;
-  fcus->args.push_back(fc);
-
-  if_statement *is = new if_statement;
-  is->thenblock = new next_statement;
-  is->elseblock = NULL;
-  is->tok = new_base->body->tok;
-  comparison *be = new comparison;
-  be->op = "!=";
-  be->tok = new_base->body->tok;
-  be->left = fcus;
-  be->right = new literal_string(mark_name);
-  is->condition = be;
-  b->statements.insert(b->statements.begin(),(statement*) is);
-
-  if (probe_type == utrace_type)
-    {
-      // Generate: if ($syscall != 0xbead) next;
-      if_statement *issc = new if_statement;
-      issc->thenblock = new next_statement;
-      issc->elseblock = NULL;
-      issc->tok = new_base->body->tok;
-      comparison *besc = new comparison;
-      besc->op = "!=";
-      besc->tok = new_base->body->tok;
-      functioncall* n = new functioncall;
-      n->tok = new_base->body->tok;
-      n->function = "_utrace_syscall_nr";
-      n->referent = 0;
-      besc->left = n;
-      literal_number* fake_syscall = new literal_number(0xbead);
-      fake_syscall->tok = new_base->body->tok;
-      besc->right = fake_syscall;
-      issc->condition = besc;
-      b->statements.insert(b->statements.begin(),(statement*) issc);
-    }
-  
-  if (probe_type == kprobe_type)
-    {
-      // Generate: if (arg2 != kprobe_type) next;
-      if_statement *istid = new if_statement;
-      istid->thenblock = new next_statement;
-      istid->elseblock = NULL;
-      istid->tok = new_base->body->tok;
-      comparison *betid = new comparison;
-      betid->op = "!=";
-      betid->tok = new_base->body->tok;
-
-      functioncall *arg2 = new functioncall;
-      arg2->function = "ulong_arg";
-      arg2->tok = new_base->body->tok;
-      literal_number* num = new literal_number(2);
-      num->tok = new_base->body->tok;
-      arg2->args.push_back(num);
-
-      betid->left = arg2;
-      literal_number* littid = new literal_number(kprobe_type);
-      littid->tok = new_base->body->tok;
-      betid->right = littid;
-      istid->condition = betid;
-      b->statements.insert(b->statements.begin(),(statement*) istid);
-    }
-  
-#ifdef __i386__
-  if (probe_type == kprobe_type)
-    {
-      functioncall *rp = new functioncall;
-      rp->tok = new_base->body->tok;
-      rp->function = "regparm";
-      rp->tok = new_base->body->tok;
-      literal_number* littid = new literal_number(0);
-      littid->tok = new_base->body->tok;
-      rp->args.push_back(littid);
-      expr_statement* es = new expr_statement;
-      es->tok = new_base->body->tok;
-      es->value = rp;
-      b->statements.insert(b->statements.begin(),(statement*) es);
-    }
-#endif
-}
-
-
-void
-dwarf_builder::probe_table::convert_location (probe *new_base,
-					      probe_point *new_location)
-{
-  if (probe_type == kprobe_type)
-    {
-      new_location->components[0]->functor = "kernel";
-      new_location->components[0]->arg = NULL;
-      new_location->components[1]->functor = "function";
-      new_location->components[1]->arg = new literal_string("*getegid*");
-      new_base->locations.push_back(new_location);
-    }
-  else if (probe_type == utrace_type)
-    {
-      // process("executable").syscall
-      new_location->components[1]->functor = "syscall";
-      new_location->components[1]->arg = NULL;
-      new_base->locations.push_back(new_location);
-    }
-}
 
 
 dwarf_query::dwarf_query(probe * base_probe,
@@ -3427,6 +3161,384 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   provide(cast);
 }
 
+
+struct sdt_query : public base_query
+{
+  sdt_query(probe * base_probe, probe_point * base_loc,
+            dwflpp & dw, literal_map_t const & params,
+            vector<derived_probe *> & results);
+
+  void handle_query_module();
+
+private:
+  enum probe_types
+    {
+      uprobe_type = 0x31425250, // "PRB1"
+      kprobe_type = 0x32425250, // "PRB2"
+      utrace_type = 0x33425250, // "PRB3"
+    } probe_type;
+
+  probe * base_probe;
+  probe_point * base_loc;
+  vector<derived_probe *> & results;
+  string mark_name;
+
+  set<string> probes_handled;
+
+  Elf_Data *pdata;
+  size_t probe_scn_offset;
+  size_t probe_scn_addr;
+  uint64_t probe_arg;
+  string probe_name;
+
+  bool init_probe_scn();
+  bool get_next_probe();
+
+  void convert_probe(probe *base);
+  void convert_location(probe *base, probe_point *location);
+};
+
+
+sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
+                     dwflpp & dw, literal_map_t const & params,
+                     vector<derived_probe *> & results):
+  base_query(dw, params), base_probe(base_probe),
+  base_loc(base_loc), results(results)
+{
+  assert(get_string_param(params, TOK_MARK, mark_name));
+}
+
+
+void
+sdt_query::handle_query_module()
+{
+  if (!init_probe_scn())
+    return;
+
+  if (sess.verbose > 3)
+    clog << "TOK_MARK: " << mark_name << endl;
+
+  while (get_next_probe())
+    {
+      if (!probes_handled.insert(probe_name).second)
+        continue;
+
+      probe *new_base = new probe(*base_probe);
+      probe_point *new_location = new probe_point(*base_loc);
+      convert_location(new_base, new_location);
+      new_base->body = deep_copy_visitor::deep_copy(base_probe->body);
+
+      bool have_reg_args = false;
+      if (probe_type == kprobe_type || probe_type == utrace_type)
+        {
+          convert_probe(new_base);
+          have_reg_args = true;
+        }
+
+      // Expand the local variables in the probe body
+      sdt_var_expanding_visitor svv (module_val, probe_name,
+                                     probe_arg, have_reg_args,
+                                     probe_type == utrace_type);
+      new_base->body = svv.require (new_base->body);
+
+      unsigned i = results.size();
+
+      if (probe_type == kprobe_type || probe_type == utrace_type)
+        derive_probes(sess, new_base, results);
+      else
+        {
+          literal_map_t params;
+          for (unsigned i = 0; i < new_location->components.size(); ++i)
+            {
+              probe_point::component *c = new_location->components[i];
+              params[c->functor] = c->arg;
+            }
+
+          dwarf_query q(base_probe, base_loc, dw, params, results);
+          q.has_mark = true; // enables mid-statement probing
+          dw.iterate_over_modules(&query_module, &q);
+        }
+
+      if (sess.listing_mode)
+        {
+          // restore the locations to print a nicer probe name
+          probe_point loc(*base_loc);
+          loc.components[1] =
+            new probe_point::component(TOK_MARK, new literal_string (probe_name));
+          for (; i < results.size(); ++i)
+            for (unsigned j = 0; j < results[i]->locations.size(); ++j)
+              *results[i]->locations[j] = loc;
+        }
+    }
+}
+
+
+bool
+sdt_query::init_probe_scn()
+{
+  Elf* elf;
+  GElf_Shdr shdr_mem;
+  GElf_Shdr *shdr = NULL;
+  Dwarf_Addr bias;
+  size_t shstrndx;
+
+  // Explicitly look in the main elf file first.
+  elf = dwfl_module_getelf (dw.module, &bias);
+  Elf_Scn *probe_scn = NULL;
+
+  dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
+
+  bool have_probes = false;
+
+  // Is there a .probes section?
+  while ((probe_scn = elf_nextscn (elf, probe_scn)))
+    {
+      shdr = gelf_getshdr (probe_scn, &shdr_mem);
+      assert (shdr != NULL);
+
+      if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") == 0)
+	{
+	  have_probes = true;
+	  break;
+	}
+    }
+
+  // Older versions put .probes section in the debuginfo dwarf file,
+  // so check if it actually exists, if not take a look in the debuginfo file
+  if (! have_probes || (have_probes && shdr->sh_type == SHT_NOBITS))
+    {
+      elf = dwarf_getelf (dwfl_module_getdwarf (dw.module, &bias));
+      if (! elf)
+	return false;
+      dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
+      probe_scn = NULL;
+      while ((probe_scn = elf_nextscn (elf, probe_scn)))
+	{
+	  shdr = gelf_getshdr (probe_scn, &shdr_mem);
+	  if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name),
+		      ".probes") == 0)
+	    have_probes = true;
+	    break;
+	}
+    }
+
+  if (!have_probes)
+    return false;
+
+  pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
+  probe_scn_offset = 0;
+  probe_scn_addr = shdr->sh_addr;
+  assert (pdata != NULL);
+  if (sess.verbose > 4)
+    clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
+	 << ", size: " << pdata->d_size << endl;
+  return true;
+}
+
+bool
+sdt_query::get_next_probe()
+{
+  // Extract probe info from the .probes section
+
+  while (probe_scn_offset < pdata->d_size)
+    {
+      struct probe_entry
+      {
+	__uint64_t name;
+	__uint64_t arg;
+      }  *pbe;
+      __uint32_t *type = (__uint32_t*) ((char*)pdata->d_buf + probe_scn_offset);
+      probe_type = (enum probe_types)*type;
+      if (probe_type != uprobe_type && probe_type != kprobe_type
+	  && probe_type != utrace_type)
+	{
+	  // Unless this is a mangled .probes section, this happens
+	  // because the name of the probe comes first, followed by
+	  // the sentinel.
+	  if (sess.verbose > 5)
+	    clog << "got unknown probe_type: 0x" << hex << probe_type
+		 << dec << endl;
+	  probe_scn_offset += sizeof(__uint32_t);
+	  continue;
+	}
+      probe_scn_offset += sizeof(__uint32_t);
+      probe_scn_offset += probe_scn_offset % sizeof(__uint64_t);
+      pbe = (struct probe_entry*) ((char*)pdata->d_buf + probe_scn_offset);
+      probe_name = (char*)((char*)pdata->d_buf + pbe->name - (char*)probe_scn_addr);
+      probe_arg = pbe->arg;
+      if (sess.verbose > 4)
+	clog << "saw .probes " << probe_name
+	     << "@0x" << hex << probe_arg << dec << endl;
+
+      probe_scn_offset += sizeof (struct probe_entry);
+      if ((mark_name == probe_name)
+	  || (dw.name_has_wildcard (mark_name)
+	      && dw.function_name_matches_pattern (probe_name, mark_name)))
+	{
+	  if (sess.verbose > 3)
+	    clog << "found probe_name" << probe_name << " at 0x"
+		 << hex << probe_arg << dec << endl;
+	  return true;
+	}
+      else
+	continue;
+    }
+  return false;
+}
+
+
+void
+sdt_query::convert_probe (probe *base)
+{
+  block *b = new block;
+  b->tok = base->body->tok;
+
+  // XXX: Does this also need to happen for i386 under x86_64 stap?
+#ifdef __i386__
+  if (probe_type == kprobe_type)
+    {
+      functioncall *rp = new functioncall;
+      rp->tok = b->tok;
+      rp->function = "regparm";
+      rp->tok = b->tok;
+      literal_number* littid = new literal_number(0);
+      littid->tok = b->tok;
+      rp->args.push_back(littid);
+      expr_statement* es = new expr_statement;
+      es->tok = b->tok;
+      es->value = rp;
+      b->statements.push_back(es);
+    }
+#endif
+
+  if (probe_type == utrace_type)
+    {
+      // Generate: if ($syscall != 0xbead) next;
+      if_statement *issc = new if_statement;
+      issc->thenblock = new next_statement;
+      issc->elseblock = NULL;
+      issc->tok = b->tok;
+      comparison *besc = new comparison;
+      besc->op = "!=";
+      besc->tok = b->tok;
+      functioncall* n = new functioncall;
+      n->tok = b->tok;
+      n->function = "_utrace_syscall_nr";
+      n->referent = 0;
+      besc->left = n;
+      literal_number* fake_syscall = new literal_number(0xbead);
+      fake_syscall->tok = b->tok;
+      besc->right = fake_syscall;
+      issc->condition = besc;
+      b->statements.push_back(issc);
+    }
+  else if (probe_type == kprobe_type)
+    {
+      // Generate: if (arg2 != kprobe_type) next;
+      if_statement *istid = new if_statement;
+      istid->thenblock = new next_statement;
+      istid->elseblock = NULL;
+      istid->tok = b->tok;
+      comparison *betid = new comparison;
+      betid->op = "!=";
+      betid->tok = b->tok;
+
+      functioncall *arg2 = new functioncall;
+      arg2->function = "ulong_arg";
+      arg2->tok = b->tok;
+      literal_number* num = new literal_number(2);
+      num->tok = b->tok;
+      arg2->args.push_back(num);
+
+      betid->left = arg2;
+      literal_number* littid = new literal_number(kprobe_type);
+      littid->tok = b->tok;
+      betid->right = littid;
+      istid->condition = betid;
+      b->statements.push_back(istid);
+    }
+
+  // Generate: if (arg1 != mark("label")) next;
+  functioncall *fc = new functioncall;
+  fc->function = (probe_type == utrace_type) ? "_utrace_syscall_arg" : "ulong_arg";
+  fc->tok = b->tok;
+  literal_number* num = new literal_number((probe_type == utrace_type) ? 0 : 1);
+  num->tok = b->tok;
+  fc->args.push_back(num);
+
+  functioncall *fcus = new functioncall;
+  fcus->function = "user_string";
+  fcus->type = pe_string;
+  fcus->tok = b->tok;
+  fcus->args.push_back(fc);
+
+  if_statement *is = new if_statement;
+  is->thenblock = new next_statement;
+  is->elseblock = NULL;
+  is->tok = b->tok;
+  comparison *be = new comparison;
+  be->op = "!=";
+  be->tok = b->tok;
+  be->left = fcus;
+  be->right = new literal_string(probe_name);
+  is->condition = be;
+  b->statements.push_back(is);
+
+  // Now replace the body
+  b->statements.push_back(base->body);
+  base->body = b;
+}
+
+
+void
+sdt_query::convert_location (probe *base, probe_point *location)
+{
+  switch (probe_type)
+    {
+    case uprobe_type:
+      if (sess.verbose > 3)
+        clog << "probe_type == uprobe_type, use statement addr: 0x"
+             << hex << probe_arg << dec << endl;
+      // process("executable").statement(probe_arg)
+      location->components[1]->functor = TOK_STATEMENT;
+      location->components[1]->arg = new literal_number(probe_arg);
+      break;
+
+    case kprobe_type:
+      if (sess.verbose > 3)
+        clog << "probe_type == kprobe_type" << endl;
+      // kernel.function("*getegid*")
+      location->components[0]->functor = TOK_KERNEL;
+      location->components[0]->arg = NULL;
+      location->components[1]->functor = TOK_FUNCTION;
+      location->components[1]->arg = new literal_string("*getegid*");
+      break;
+
+    case utrace_type:
+      if (sess.verbose > 3)
+        clog << "probe_type == utrace_type" << endl;
+      // process("executable").syscall
+      location->components[1]->functor = "syscall";
+      location->components[1]->arg = NULL;
+      break;
+
+    default:
+      if (sess.verbose > 3)
+        clog << "probe_type == use_uprobe_no_dwarf, use label name: "
+          << "_stapprobe1_" << mark_name << endl;
+      // process("executable").function("*").label("_stapprobe1_MARK_NAME")
+      location->components[1]->functor = TOK_FUNCTION;
+      location->components[1]->arg = new literal_string("*");
+      location->components.push_back(new probe_point::component(TOK_LABEL));
+      location->components[2]->arg = new literal_string("_stapprobe1_" + mark_name);
+      break;
+    }
+
+  base->locations.clear();
+  base->locations.push_back(location);
+}
+
+
 void
 dwarf_builder::build(systemtap_session & sess,
 		     probe * base,
@@ -3464,125 +3576,22 @@ dwarf_builder::build(systemtap_session & sess,
   string mark_name;
   if (get_param(parameters, TOK_MARK, mark_name))
     {
-      probe_table probe_table(mark_name, sess, dw);
-      if (! probe_table.get_next_probe())
-	return;
-      
-      if (sess.verbose > 3)
-	clog << "TOK_MARK: " << probe_table.mark_name << endl;
-
-      if (probe_table.is_uprobe())
-	{
-	  do
-	    {
-	      probe *new_base = new probe;
-	      *new_base = *base;
-	      
-	      new_base->body = deep_copy_visitor::deep_copy(base->body);
-	      probe_point *new_location = new probe_point;
-	      *new_location = *location;
-	      new_base->locations.clear();
-	      
-	      const token* sv_tok = new_location->components[1]->arg->tok;
-	      new_location->components[1]->functor = TOK_STATEMENT;
-	      new_location->components[1]->arg = new literal_number((long)probe_table.probe_arg);
-	      new_location->components[1]->arg->tok = sv_tok;
-	      ((literal_map_t&)parameters)[TOK_STATEMENT] = new_location->components[1]->arg;
-	      new_base->locations.push_back(new_location);
-
-	      if (sess.verbose > 3)
-		clog << "probe_type == use_uprobe, use statement addr: 0x"
-		     << hex << probe_table.probe_arg << dec << endl;
-	    
-	      // Now expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (module_name, probe_table.probe_name,
-					     probe_table.probe_arg, false, false);
-	      new_base->body = svv.require (new_base->body);
-
-	      dwarf_query q(new_base, new_location, *dw, parameters, finished_results);
-	      q.has_mark = true;
-	      dw->iterate_over_modules(&query_module, &q);
-	      if (sess.listing_mode)
-		{
-		  finished_results.back()->locations[0]->components[1]->functor = TOK_MARK;
-		  finished_results.back()->locations[0]->components[1]->arg = new literal_string (probe_table.probe_name.c_str());
-		}
-	    }
-	  while (probe_table.get_next_probe());
-	  return;
-	}
-
-      else if (probe_table.probe_type == probe_table.kprobe_type
-	       || probe_table.probe_type == probe_table.utrace_type)
-	{
-	  do
-	    {
-	      set<string>::iterator pb;
-	      pb = probes_handled.find(probe_table.probe_name);
-	      if (pb == probes_handled.end())
-		probes_handled.insert (probe_table.probe_name);
-	      else
-		return;
-
-	      probe *new_base = new probe;
-	      *new_base = *base;
-	      
-	      new_base->body = deep_copy_visitor::deep_copy(base->body);
-	      probe_point *new_location = new probe_point;
-	      *new_location = *location;
-	      new_base->locations.clear();
-	      
-	      probe_table.convert_probe(new_base);
-
-	      // Expand the local variables in the probe body
-	      sdt_var_expanding_visitor svv (module_name, probe_table.probe_name,
-					     probe_table.probe_arg, true,
-					     probe_table.is_utrace());
-	      new_base->body = svv.require (new_base->body);
-	      probe_table.convert_location(new_base, new_location);
-	      derive_probes(sess, new_base, finished_results);
-	      if (sess.listing_mode)
-		{
-		  finished_results.back()->locations[0]->components[0]->functor = TOK_FUNCTION;
-		  finished_results.back()->locations[0]->components[0]->arg = new literal_string (module_name);
-		  finished_results.back()->locations[0]->components[1]->functor = TOK_MARK;
-		  finished_results.back()->locations[0]->components[1]->arg = new literal_string (probe_table.probe_name.c_str());
-		}
-	    }
-	  while (probe_table.get_next_probe());
-	  return;
-	}
-
-      else
-	{
-	  location->components[1]->functor = TOK_FUNCTION;
-	  location->components[1]->arg = new literal_string("*");
-	  ((literal_map_t&)parameters)[TOK_FUNCTION] = location->components[1]->arg;
-	  location->components.push_back(new probe_point::component(TOK_LABEL));
-	  location->components[2]->arg = new literal_string("_stapprobe1_" + probe_table.mark_name);
-	  ((literal_map_t&)parameters).erase(TOK_MARK);
-	  ((literal_map_t&)parameters).insert(pair<string,literal*>(TOK_LABEL, location->components[2]->arg));
-
-	  if (sess.verbose > 3)
-	    clog << "probe_type == use_uprobe_no_dwarf, use label name: "
-		 << "_stapprobe1_" << probe_table.mark_name << endl;
-	}
-
-      dw->module = 0;
+      sdt_query sdtq(base, location, *dw, parameters, finished_results);
+      dw->iterate_over_modules(&query_module, &sdtq);
+      return;
     }
-  
-  dwarf_query q(base, location, *dw, parameters, finished_results);
 
+  dwarf_query q(base, location, *dw, parameters, finished_results);
 
   // XXX: kernel.statement.absolute is a special case that requires no
   // dwfl processing.  This code should be in a separate builder.
-
   if (q.has_kernel && q.has_absolute)
     {
       // assert guru mode for absolute probes
       if (! q.base_probe->privileged)
         {
-          throw semantic_error ("absolute statement probe in unprivileged script", q.base_probe->tok);
+          throw semantic_error ("absolute statement probe in unprivileged script",
+                                q.base_probe->tok);
         }
 
       // For kernel.statement(NUM).absolute probe points, we bypass
