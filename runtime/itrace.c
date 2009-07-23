@@ -324,20 +324,14 @@ done:
 }
 
 
-static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe *p)
+static int usr_itrace_init(int single_step, struct task_struct *tsk, struct stap_itrace_probe *p)
 {
 	struct itrace_info *ui;
-	struct task_struct *tsk;
 
 	spin_lock_init(&itrace_lock);
 	rcu_read_lock();
-#ifdef STAPCONF_FIND_TASK_PID
-	tsk = find_task_by_pid(tid);
-#else
-	tsk = find_task_by_vpid(tid);
-#endif
-	if (!tsk) {
-		printk(KERN_ERR "usr_itrace_init: Cannot find process %d\n", tid);
+	if (tsk == NULL) {
+		printk(KERN_ERR "usr_itrace_init: Invalid task\n");
 		rcu_read_unlock();
 		return 1;
 	}
@@ -353,7 +347,8 @@ static int usr_itrace_init(int single_step, pid_t tid, struct stap_itrace_probe 
 	rcu_read_unlock();
 
         if (debug)
-          printk(KERN_INFO "usr_itrace_init: completed for tid = %d\n", tid);
+		printk(KERN_INFO "usr_itrace_init: completed for tid = %d\n",
+		       tsk->pid);
 
 	return 0;
 }

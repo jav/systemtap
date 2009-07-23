@@ -25,7 +25,7 @@
   */
 // FIXME describe the device_state
 probe scsi.ioentry
-	= module("scsi_mod").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?,
+	= module("scsi_mod").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")!,
 	  kernel.function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?
 {
 	if($req->rq_disk == 0)  {
@@ -53,7 +53,7 @@ probe scsi.ioentry
  * @req_bufflen: The request buffer length
  */
 probe scsi.iodispatching
-	= module("scsi_mod").function("scsi_dispatch_cmd@drivers/scsi/scsi.c")?,
+	= module("scsi_mod").function("scsi_dispatch_cmd@drivers/scsi/scsi.c")!,
 	  kernel.function("scsi_dispatch_cmd@drivers/scsi/scsi.c")?
 {
 
@@ -84,7 +84,7 @@ probe scsi.iodispatching
  * 		from/to the device.
  */
 probe scsi.iodone
-	= module("scsi_mod").function("scsi_done@drivers/scsi/scsi.c")?,
+	= module("scsi_mod").function("scsi_done@drivers/scsi/scsi.c")!,
 	  kernel.function("scsi_done@drivers/scsi/scsi.c")?
 
 {
@@ -111,7 +111,7 @@ probe scsi.iodone
  */
 // mid-layer processes the completed IO
 probe scsi.iocompleted
-	= module("scsi_mod").function("scsi_io_completion@drivers/scsi/scsi_lib.c")?,
+	= module("scsi_mod").function("scsi_io_completion@drivers/scsi/scsi_lib.c")!,
 	  kernel.function("scsi_io_completion@drivers/scsi/scsi_lib.c")?
 {
 	host_no = $cmd->device->host->host_no

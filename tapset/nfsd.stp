@@ -139,7 +139,7 @@ function p_long:long(cnt:long) %{ /* pure */
 *  prog : program number
 *  proc : procedure number
 */
-probe nfsd.dispatch = kernel.function("nfsd_dispatch")?,
+probe nfsd.dispatch = kernel.function("nfsd_dispatch")!,
                       module("nfsd").function("nfsd_dispatch") ?
 {
 	client_ip = addr_from_rqst($rqstp)
@@ -154,7 +154,7 @@ probe nfsd.dispatch = kernel.function("nfsd_dispatch")?,
 	argstr = sprintf("%d,%d",version,proto)
 }
 
-probe nfsd.dispatch.return = kernel.function("nfsd_dispatch").return?,
+probe nfsd.dispatch.return = kernel.function("nfsd_dispatch").return!,
                       module("nfsd").function("nfsd_dispatch").return ?
 {
 	name = "nfsd.dispatch.return"
@@ -201,7 +201,7 @@ probe nfsd.proc.lookup.return = nfsd.proc2.lookup.return,
                          nfsd.proc3.lookup.return
 {}
 
-probe nfsd.proc2.lookup = kernel.function("nfsd_proc_lookup") ?,
+probe nfsd.proc2.lookup = kernel.function("nfsd_proc_lookup") !,
                           module("nfsd").function("nfsd_proc_lookup") ?
 {
 	client_ip = addr_from_rqst($rqstp)
@@ -217,7 +217,7 @@ probe nfsd.proc2.lookup = kernel.function("nfsd_proc_lookup") ?,
 }
 
  
-probe nfsd.proc2.lookup.return = kernel.function("nfsd_proc_lookup").return ?,
+probe nfsd.proc2.lookup.return = kernel.function("nfsd_proc_lookup").return !,
                           module("nfsd").function("nfsd_proc_lookup").return ?
 {
 	name = "nfsd.proc2.lookup.return"
@@ -225,7 +225,7 @@ probe nfsd.proc2.lookup.return = kernel.function("nfsd_proc_lookup").return ?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfsd.proc3.lookup = kernel.function("nfsd3_proc_lookup") ?,
+probe nfsd.proc3.lookup = kernel.function("nfsd3_proc_lookup") !,
                           module("nfsd").function("nfsd3_proc_lookup") ?
 {
 	client_ip = addr_from_rqst($rqstp)
@@ -240,7 +240,7 @@ probe nfsd.proc3.lookup = kernel.function("nfsd3_proc_lookup") ?,
 	argstr = sprintf("%s",filename)
 } 
 
-probe nfsd.proc3.lookup.return = kernel.function("nfsd3_proc_lookup").return ?,
+probe nfsd.proc3.lookup.return = kernel.function("nfsd3_proc_lookup").return !,
                           module("nfsd").function("nfsd3_proc_lookup").return ?
 {
 	name = "nfsd.proc3.lookup.return"
@@ -275,7 +275,7 @@ probe nfsd.proc.read.return = nfsd.proc2.read.return,
 
 }
 
-probe nfsd.proc2.read = kernel.function("nfsd_proc_read")?,
+probe nfsd.proc2.read = kernel.function("nfsd_proc_read")!,
                         module("nfsd").function("nfsd_proc_read")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -300,7 +300,7 @@ probe nfsd.proc2.read = kernel.function("nfsd_proc_read")?,
 }
 
  
-probe nfsd.proc2.read.return = kernel.function("nfsd_proc_read").return?,
+probe nfsd.proc2.read.return = kernel.function("nfsd_proc_read").return!,
                         module("nfsd").function("nfsd_proc_read").return?
 {
 	name = "nfsd.proc2.read.return"
@@ -308,7 +308,7 @@ probe nfsd.proc2.read.return = kernel.function("nfsd_proc_read").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfsd.proc3.read = kernel.function("nfsd3_proc_read")?,
+probe nfsd.proc3.read = kernel.function("nfsd3_proc_read")!,
                         module("nfsd").function("nfsd3_proc_read")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -333,7 +333,7 @@ probe nfsd.proc3.read = kernel.function("nfsd3_proc_read")?,
 }
 
  
-probe nfsd.proc3.read.return = kernel.function("nfsd3_proc_read").return?,
+probe nfsd.proc3.read.return = kernel.function("nfsd3_proc_read").return!,
                         module("nfsd").function("nfsd3_proc_read").return?
 {
 	name = "nfsd.proc3.read.return"
@@ -368,7 +368,7 @@ probe nfsd.proc.write.return = nfsd.proc2.write.return,
 
 }
 
-probe nfsd.proc2.write = kernel.function("nfsd_proc_write")?,
+probe nfsd.proc2.write = kernel.function("nfsd_proc_write")!,
                         module("nfsd").function("nfsd_proc_write")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -393,7 +393,7 @@ probe nfsd.proc2.write = kernel.function("nfsd_proc_write")?,
 }
 
  
-probe nfsd.proc2.write.return = kernel.function("nfsd_proc_write").return?,
+probe nfsd.proc2.write.return = kernel.function("nfsd_proc_write").return!,
                         module("nfsd").function("nfsd_proc_write").return?
 {
 	name = "nfsd.proc2.write.return"
@@ -401,7 +401,7 @@ probe nfsd.proc2.write.return = kernel.function("nfsd_proc_write").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")?,
+probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")!,
                         module("nfsd").function("nfsd3_proc_write")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -427,7 +427,7 @@ probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")?,
 }
 
  
-probe nfsd.proc3.write.return = kernel.function("nfsd3_proc_write").return?,
+probe nfsd.proc3.write.return = kernel.function("nfsd3_proc_write").return!,
                         module("nfsd").function("nfsd3_proc_write").return?
 {
 	name = "nfsd.proc3.write.return"
@@ -458,7 +458,7 @@ probe nfsd.proc.commit.return = nfsd.proc3.commit.return
 
 }
 
-probe nfsd.proc3.commit = kernel.function("nfsd3_proc_commit")?,
+probe nfsd.proc3.commit = kernel.function("nfsd3_proc_commit")!,
                         module("nfsd").function("nfsd3_proc_commit")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -476,7 +476,7 @@ probe nfsd.proc3.commit = kernel.function("nfsd3_proc_commit")?,
         units = "bytes"
 }
 
-probe nfsd.proc3.commit.return = kernel.function("nfsd3_proc_commit").return?,
+probe nfsd.proc3.commit.return = kernel.function("nfsd3_proc_commit").return!,
                         module("nfsd").function("nfsd3_proc_commit").return?
 {
 	name = "nfsd.proc3.commit.return"
@@ -503,7 +503,7 @@ probe nfsd.proc.create.return = nfsd.proc2.create.return,
                                 nfsd.proc3.create.return
 {}
 
-probe nfsd.proc2.create = kernel.function("nfsd_proc_create")?,
+probe nfsd.proc2.create = kernel.function("nfsd_proc_create")!,
                          module("nfsd").function("nfsd_proc_create")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -518,7 +518,7 @@ probe nfsd.proc2.create = kernel.function("nfsd_proc_create")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfsd.proc2.create.return =  kernel.function("nfsd_proc_create").return?,
+probe nfsd.proc2.create.return =  kernel.function("nfsd_proc_create").return!,
                                  module("nfsd").function("nfsd_proc_create").return?
 {
 	name = "nfsd.proc2.create.return"
@@ -526,7 +526,7 @@ probe nfsd.proc2.create.return =  kernel.function("nfsd_proc_create").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")?,
+probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")!,
                          module("nfsd").function("nfsd3_proc_create")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -541,7 +541,7 @@ probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfsd.proc3.create.return =  kernel.function("nfsd3_proc_create").return?,
+probe nfsd.proc3.create.return =  kernel.function("nfsd3_proc_create").return!,
                                  module("nfsd").function("nfsd3_proc_create").return?
 {
 	name = "nfsd.proc3.create.return"
@@ -568,7 +568,7 @@ probe nfsd.proc.remove.return = nfsd.proc2.remove.return,
                                 nfsd.proc3.remove.return
 {}
 
-probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")?,
+probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")!,
                          module("nfsd").function("nfsd_proc_remove")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -583,7 +583,7 @@ probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfsd.proc2.remove.return =  kernel.function("nfsd_proc_remove").return?,
+probe nfsd.proc2.remove.return =  kernel.function("nfsd_proc_remove").return!,
                                  module("nfsd").function("nfsd_proc_remove").return?
 {
 	name = "nfsd.proc2.remove.return"
@@ -591,7 +591,7 @@ probe nfsd.proc2.remove.return =  kernel.function("nfsd_proc_remove").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfsd.proc3.remove = kernel.function("nfsd3_proc_remove")?,
+probe nfsd.proc3.remove = kernel.function("nfsd3_proc_remove")!,
                          module("nfsd").function("nfsd3_proc_remove")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -606,7 +606,7 @@ probe nfsd.proc3.remove = kernel.function("nfsd3_proc_remove")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfsd.proc3.remove.return =  kernel.function("nfsd3_proc_remove").return?,
+probe nfsd.proc3.remove.return =  kernel.function("nfsd3_proc_remove").return!,
                                  module("nfsd").function("nfsd3_proc_remove").return?
 {
 	name = "nfsd.proc3.remove.return"
@@ -634,7 +634,7 @@ probe nfsd.proc.rename.return = nfsd.proc2.rename.return,
                          nfsd.proc3.rename.return
 {}
 
-probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")?,
+probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")!,
                            module("nfsd").function("nfsd_proc_rename")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -652,7 +652,7 @@ probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")?,
 	argstr = sprintf("%s,%s",filename,tname)
 }
 
-probe nfsd.proc2.rename.return =  kernel.function("nfsd_proc_rename").return?,
+probe nfsd.proc2.rename.return =  kernel.function("nfsd_proc_rename").return!,
                            module("nfsd").function("nfsd_proc_rename").return?
 {
 	name = "nfsd.proc2.rename.return"
@@ -660,7 +660,7 @@ probe nfsd.proc2.rename.return =  kernel.function("nfsd_proc_rename").return?,
 	retstr = sprintf("%d",$return)
 }
 
-probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")?,
+probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")!,
                            module("nfsd").function("nfsd3_proc_rename")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -678,7 +678,7 @@ probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")?,
 	argstr = sprintf("%s,%s",filename,tname)
 }
 
-probe nfsd.proc3.rename.return =  kernel.function("nfsd3_proc_rename").return?,
+probe nfsd.proc3.rename.return =  kernel.function("nfsd3_proc_rename").return!,
                            module("nfsd").function("nfsd3_proc_rename").return?
 {
 	name = "nfsd.proc3.rename.return"
@@ -702,7 +702,7 @@ probe nfsd.proc.compound = nfsd.proc4.compound
 probe nfsd.proc.compound.return = nfsd.proc4.compound.return
 {}
 
-probe nfsd.proc4.compound = kernel.function("nfsd4_proc_compound")?,
+probe nfsd.proc4.compound = kernel.function("nfsd4_proc_compound")!,
                             module("nfsd").function("nfsd4_proc_compound")?
 {
 	client_ip =  addr_from_rqst($rqstp)
@@ -716,7 +716,7 @@ probe nfsd.proc4.compound = kernel.function("nfsd4_proc_compound")?,
 	argstr = sprintf("%d",num)
 }
 
-probe nfsd.proc4.compound.return = kernel.function("nfsd4_proc_compound").return?,
+probe nfsd.proc4.compound.return = kernel.function("nfsd4_proc_compound").return!,
                             module("nfsd").function("nfsd4_proc_compound").return?
 {
 	name = "nfsd.proc4.compound.return"
@@ -754,7 +754,7 @@ probe nfsd.return = nfsd.open.return,
 *  access : indicates the type of open(read/write/commit/readdir...) 
 *  type : type of file(regular file or dir)
 */
-probe nfsd.open = kernel.function("nfsd_open") ?,
+probe nfsd.open = kernel.function("nfsd_open") !,
                   module("nfsd").function("nfsd_open")?
 {
 	fh = __svc_fh($fhp)
@@ -766,7 +766,7 @@ probe nfsd.open = kernel.function("nfsd_open") ?,
 	argstr = sprintf("%d",access)
 }
 
-probe nfsd.open.return = kernel.function("nfsd_open").return ?,
+probe nfsd.open.return = kernel.function("nfsd_open").return !,
                   module("nfsd").function("nfsd_open").return?
 {
 	name = "nfsd.open.return"
@@ -779,7 +779,7 @@ probe nfsd.open.return = kernel.function("nfsd_open").return ?,
 * Arguments:
 * filename : file name
 */
-probe nfsd.close = kernel.function("nfsd_close")?,
+probe nfsd.close = kernel.function("nfsd_close")!,
                    module("nfsd").function("nfsd_close")?
 {
 	filename = __file_filename($filp)
@@ -788,7 +788,7 @@ probe nfsd.close = kernel.function("nfsd_close")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfsd.close.return = kernel.function("nfsd_close").return?,
+probe nfsd.close.return = kernel.function("nfsd_close").return!,
                    module("nfsd").function("nfsd_close").return?
 {}
 /*probe nfsd.read
@@ -804,7 +804,7 @@ probe nfsd.close.return = kernel.function("nfsd_close").return?,
          and length of each buffer
 *  vlen : read blocks 
 */
-probe nfsd.read = kernel.function("nfsd_read") ?,
+probe nfsd.read = kernel.function("nfsd_read") !,
                   module("nfsd").function("nfsd_read")?
 {
 	fh = __svc_fh($fhp)
@@ -824,7 +824,7 @@ probe nfsd.read = kernel.function("nfsd_read") ?,
 	units = "bytes"
 } 
 
-probe nfsd.read.return = kernel.function("nfsd_read").return ?,
+probe nfsd.read.return = kernel.function("nfsd_read").return !,
                   module("nfsd").function("nfsd_read").return?
 {
 	name = "nfsd.read.return"
@@ -844,7 +844,7 @@ probe nfsd.read.return = kernel.function("nfsd_read").return ?,
          and length of each buffer
 *  vlen : read blocks 
 */
-probe nfsd.write = kernel.function("nfsd_write")?,
+probe nfsd.write = kernel.function("nfsd_write")!,
                    module("nfsd").function("nfsd_write")?
 {
 	fh = __svc_fh($fhp)
@@ -864,7 +864,7 @@ probe nfsd.write = kernel.function("nfsd_write")?,
 	units = "bytes"
 }
 
-probe nfsd.write.return = kernel.function("nfsd_write").return?,
+probe nfsd.write.return = kernel.function("nfsd_write").return!,
                    module("nfsd").function("nfsd_write").return?
 {
 	name = "nfsd.write.return"
@@ -881,7 +881,7 @@ probe nfsd.write.return = kernel.function("nfsd_write").return?,
 *  count : read bytes
 *  offset : the offset of file
 */
-probe nfsd.commit = kernel.function("nfsd_commit")?,
+probe nfsd.commit = kernel.function("nfsd_commit")!,
                     module("nfsd").function("nfsd_commit")?
 {
 	fh = __svc_fh($fhp)
@@ -897,7 +897,7 @@ probe nfsd.commit = kernel.function("nfsd_commit")?,
 	units = "bytes"
 }
 
-probe nfsd.commit.return = kernel.function("nfsd_commit").return?,
+probe nfsd.commit.return = kernel.function("nfsd_commit").return!,
                     module("nfsd").function("nfsd_commit").return ?
 {
 	name = "nfsd.commit.return"
@@ -914,7 +914,7 @@ probe nfsd.commit.return = kernel.function("nfsd_commit").return?,
 *  filelen  : the length of file name
 */
 
-probe nfsd.lookup = kernel.function("nfsd_lookup")?,
+probe nfsd.lookup = kernel.function("nfsd_lookup")!,
                     module("nfsd").function("nfsd_lookup")?
 {
 	fh = __svc_fh($fhp)
@@ -926,7 +926,7 @@ probe nfsd.lookup = kernel.function("nfsd_lookup")?,
 	argstr = sprintf("%s",filename)
 }
 
-probe nfsd.lookup.return = kernel.function("nfsd_lookup").return?,
+probe nfsd.lookup.return = kernel.function("nfsd_lookup").return!,
                             module("nfsd").function("nfsd_lookup").return?
 {
 	name = "nfsd.lookup.return"
@@ -946,7 +946,7 @@ probe nfsd.lookup.return = kernel.function("nfsd_lookup").return?,
 *  iap_valid: Attribute flags
 *  iap_mode : file access mode
 */
-probe nfsd.create = kernel.function("nfsd_create")?,         
+probe nfsd.create = kernel.function("nfsd_create")!,         
                     module("nfsd").function("nfsd_create")?
 {
 	fh = __svc_fh($fhp)
@@ -961,7 +961,7 @@ probe nfsd.create = kernel.function("nfsd_create")?,
 	argstr = sprintf("%s,%d",filename,type)
 }
 
-probe nfsd.create.return = kernel.function("nfsd_create").return?,         
+probe nfsd.create.return = kernel.function("nfsd_create").return!,         
                     module("nfsd").function("nfsd_create").return?
 {
 	name = "nfsd.create.return"
@@ -986,7 +986,7 @@ probe nfsd.create.return = kernel.function("nfsd_create").return?,
 *  verfier :  file attributes (atime,mtime,mode).It's used to reset file
               attributes for CREATE_EXCLUSIVE
 */
-probe nfsd.createv3 = kernel.function("nfsd_create_v3")?,         
+probe nfsd.createv3 = kernel.function("nfsd_create_v3")!,         
                     module("nfsd").function("nfsd_create_v3")?
 {
 	fh = __svc_fh($fhp)
@@ -1003,7 +1003,7 @@ probe nfsd.createv3 = kernel.function("nfsd_create_v3")?,
 	argstr = sprintf("%s,%d",filename,createmode)
 }
 
-probe nfsd.createv3.return = kernel.function("nfsd_create_v3").return?,         
+probe nfsd.createv3.return = kernel.function("nfsd_create_v3").return!,         
                     module("nfsd").function("nfsd_create_v3").return?
 {
 	name = "nfsd.createv3.return"
@@ -1021,7 +1021,7 @@ probe nfsd.createv3.return = kernel.function("nfsd_create_v3").return?,
 *  filelen  : the length of file name
 *  type : file type(file or dir)
 */
-probe nfsd.unlink = kernel.function("nfsd_unlink")?,         
+probe nfsd.unlink = kernel.function("nfsd_unlink")!,         
                     module("nfsd").function("nfsd_unlink")?
 {
 	fh = __svc_fh($fhp)
@@ -1034,7 +1034,7 @@ probe nfsd.unlink = kernel.function("nfsd_unlink")?,
 	argstr = sprintf("%s,%d",filename,type)
 }
 
-probe nfsd.unlink.return = kernel.function("nfsd_unlink").return?,         
+probe nfsd.unlink.return = kernel.function("nfsd_unlink").return!,         
                     module("nfsd").function("nfsd_unlink").return?
 {
 	name = "nfsd.unlink.return"
@@ -1054,7 +1054,7 @@ probe nfsd.unlink.return = kernel.function("nfsd_unlink").return?,
 *   tlen : length of new file name
 */
 
-probe nfsd.rename =  kernel.function("nfsd_rename")?,
+probe nfsd.rename =  kernel.function("nfsd_rename")!,
                            module("nfsd").function("nfsd_rename")?
 {
 	fh = __svc_fh($ffhp)
@@ -1069,7 +1069,7 @@ probe nfsd.rename =  kernel.function("nfsd_rename")?,
 	argstr = sprintf("%s,%s",filename,tname)
 }
 
-probe nfsd.rename.return =  kernel.function("nfsd_rename").return?,
+probe nfsd.rename.return =  kernel.function("nfsd_rename").return!,
                            module("nfsd").function("nfsd_rename").return?
 {
 	name = "nfsd.rename.return"

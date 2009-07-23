@@ -67,13 +67,19 @@ function task_pid:long (task:long)
 function pid2task:long (pid:long) %{ /* pure */
     struct task_struct *t = NULL;
     pid_t t_pid  = (pid_t)(long)THIS->pid;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)
+    struct pid *p_pid = find_get_pid(t_pid);
+    t = pid_task(p_pid, PIDTYPE_PID);
+    put_pid(p_pid);
+#else
     rcu_read_lock();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
-      t = find_task_by_vpid (t_pid);
+    t = find_task_by_vpid (t_pid);
 #else
-      t = find_task_by_pid (t_pid);
-#endif
+    t = find_task_by_pid (t_pid);
+#endif /* 2.6.24 */
     rcu_read_unlock();
+#endif /* 2.6.31 */
     THIS->__retvalue = (long)t;
     CATCH_DEREF_FAULT();
 %}

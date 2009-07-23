@@ -75,7 +75,21 @@ dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
   if (kernel_p)
     setup_kernel(name);
   else
-    setup_user(name);
+    {
+      vector<string> modules;
+      modules.push_back(name);
+      setup_user(modules);
+    }
+}
+
+
+dwflpp::dwflpp(systemtap_session & session, const vector<string>& names):
+  sess(session), module(NULL), module_bias(0), mod_info(NULL),
+  module_start(0), module_end(0), cu(NULL), dwfl(NULL),
+  module_dwarf(NULL), function(NULL), blacklist_enabled(false),
+  pc_cached_scopes(0), num_cached_scopes(0), cached_scopes(NULL)
+{
+  setup_user(names);
 }
 
 
@@ -369,7 +383,7 @@ dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
 
 
 void
-dwflpp::setup_user(const string& module_name, bool debuginfo_needed)
+dwflpp::setup_user(const vector<string>& modules, bool debuginfo_needed)
 {
   if (! sess.module_cache)
     sess.module_cache = new module_cache ();
@@ -393,24 +407,25 @@ dwflpp::setup_user(const string& module_name, bool debuginfo_needed)
     throw semantic_error ("cannot open dwfl");
   dwfl_report_begin (dwfl);
 
-  // XXX: should support buildid-based naming
+  vector<string>::const_iterator it;
+  for (it = modules.begin(); it != modules.end(); ++it)
+    {
+      // XXX: should support buildid-based naming
 
-  Dwfl_Module *mod = dwfl_report_offline (dwfl,
-                                module_name.c_str(),
-                                module_name.c_str(),
-                                -1);
-  // XXX: save mod!
+      const string& module_name = *it;
+      Dwfl_Module *mod = dwfl_report_offline (dwfl,
+                                    module_name.c_str(),
+                                    module_name.c_str(),
+                                    -1);
 
-  if (debuginfo_needed)
-    dwfl_assert (string("missing process ") +
-                 module_name +
-                 string(" ") +
-                 sess.architecture +
-                 string(" debuginfo"),
-                 mod);
-
-  if (!module)
-    module = mod;
+      if (debuginfo_needed)
+        dwfl_assert (string("missing process ") +
+                     module_name +
+                     string(" ") +
+                     sess.architecture +
+                     string(" debuginfo"),
+                     mod);
+    }
 
   // NB: the result of an _offline call is the assignment of
   // virtualized addresses to relocatable objects such as
@@ -2536,6 +2551,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 #ifdef _ELFUTILS_PREREQ
 #if _ELFUTILS_PREREQ(0,142)
   // Try debug_frame first, then fall back on eh_frame.             
+  size_t cfa_nops;
   Dwarf_Addr bias;
   Dwarf_CFI *cfi = dwfl_module_dwarf_cfi (module, &bias);
   if (cfi != NULL)
@@ -2544,7 +2560,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	clog << "got dwarf cfi bias: 0x" << hex << bias << dec << endl;
       Dwarf_Frame *frame = NULL;
       if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
-	dwarf_frame_cfa (frame, &cfa_ops);
+	dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
       else if (sess.verbose > 3)
 	clog << "dwarf_cfi_addrframe failed: " << dwarf_errmsg(-1) << endl;
     }
@@ -2560,7 +2576,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	    clog << "got eh cfi bias: 0x" << hex << bias << dec << endl;
 	  Dwarf_Frame *frame = NULL;
 	  if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
-	    dwarf_frame_cfa (frame, &cfa_ops);
+	    dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 	  else if (sess.verbose > 3)
 	    clog << "dwarf_cfi_addrframe failed: " << dwarf_errmsg(-1) << endl;
 	}

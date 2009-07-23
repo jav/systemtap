@@ -529,6 +529,7 @@ main (int argc, char **argv)
 
 #ifdef _ELFUTILS_PREREQ
 #if _ELFUTILS_PREREQ(0,142)
+	  size_t cfa_nops;
 	  Dwarf_Addr bias;
 	  Dwfl_Module *module = dwfl_addrmodule (dwfl, pc);
 	  if (module != NULL)
@@ -539,7 +540,7 @@ main (int argc, char **argv)
 		{
 		  Dwarf_Frame *frame = NULL;
 		  if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
-		    dwarf_frame_cfa (frame, &cfa_ops);
+		    dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 		}
 	      if (cfa_ops == NULL)
 		{
@@ -548,7 +549,7 @@ main (int argc, char **argv)
 		    {
 		      Dwarf_Frame *frame = NULL;
 		      if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
-			dwarf_frame_cfa (frame, &cfa_ops);
+			dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 		    }
 		}
 	    }

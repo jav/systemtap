@@ -198,6 +198,13 @@ keywords: memory
   determine where the page faults are occuring.
 
 
+network/autofs4.stp - Watch autofs4 operations
+keywords: network autofs nfs
+
+  Trace key autofs4 operations such as mounting or unmounting remote
+  filesystems.
+
+
 network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
 keywords: network tracepoint buffer free
 
@@ -252,6 +259,27 @@ keywords: network traffic
   source and destination ports, and flags.
 
 
+network/tcpipstat.stp - Display network statistics for individual TCP sockets.
+keywords: network statistics
+
+  tcpipstat collects and display network statistics related to
+  individual TCP sockets or groups of sockets.	The statistics that are
+  collected are simmer to that of the command netstat -s, only sorted
+  and grouped by individual sockets.
+
+
+process/chng_cpu.stp - Monitor Changes in Processor Executing a Task
+keywords: scheduler
+
+  The chng_cpu.stp script takes an argument which is the executable
+  name of the task it should monitor. Each time a task with that
+  executable name is found running on a different processor, the script
+  prints out the thread id (tid), the executable name, the processor
+  now running the task, the thread state, and a backtrace showing the
+  kernel functions that triggered the running of the task on the
+  processor.
+
+
 process/errsnoop.stp - tabulate system call errors
 keywords: process syscall
 
@@ -277,6 +305,17 @@ keywords: syscall locking futex
   futexes address, the number of contentions, and the average time for
   each contention on the futex are printed from lowest pid number to
   highest.
+
+
+process/migrate.stp - Track the Migration of Specific Executables
+keywords: scheduler
+
+  The migrate.stp script takes an argument which is the executable name
+  of the task it should monitor. Each time a task with that executable
+  name migrates between processors an entry is printed with the process
+  id (pid), the executable name, the processor off loading the task,
+  and the process taking the task. Note that the task may or may not be
+  executing at the time of the migration.
 
 
 process/pf2.stp - Profile kernel functions

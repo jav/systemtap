@@ -52,12 +52,12 @@ hash::add_file(const std::string& filename)
 {
   struct stat st;
 
-  if (stat(filename.c_str(), &st) == 0)
-    {
-      add(filename);
-      add(st.st_size);
-      add(st.st_mtime);
-    }
+  if (stat(filename.c_str(), &st) != 0)
+    st.st_size = st.st_mtime = -1;
+
+  add(filename);
+  add(st.st_size);
+  add(st.st_mtime);
 }
 
 
@@ -256,26 +256,27 @@ find_hash (systemtap_session& s, const string& script)
 }
 
 
-void
-find_tracequery_hash (systemtap_session& s)
+string
+find_tracequery_hash (systemtap_session& s, const string& header)
 {
   hash h;
   get_base_hash(s, h);
 
-  // The basic hash should be good enough for the tracepoint query module
+  // Add the tracepoint header to the computed hash
+  h.add_file(header);
 
   // Get the directory path to store our cached module
   string result, hashdir;
   h.result(result);
   if (!create_hashdir(s, result, hashdir))
-    return;
+    return "";
 
-  s.tracequery_path = hashdir + "/tracequery_" + result + ".ko";
+  return hashdir + "/tracequery_" + result + ".ko";
 }
 
 
-void
-find_typequery_hash (systemtap_session& s, const string& name, string& module)
+string
+find_typequery_hash (systemtap_session& s, const string& name)
 {
   hash h;
   get_base_hash(s, h);
@@ -287,9 +288,9 @@ find_typequery_hash (systemtap_session& s, const string& name, string& module)
   string result, hashdir;
   h.result(result);
   if (!create_hashdir(s, result, hashdir))
-    return;
+    return "";
 
-  module = hashdir + "/typequery_" + result
+  return hashdir + "/typequery_" + result
     + (name[0] == 'k' ? ".ko" : ".so");
 }
 

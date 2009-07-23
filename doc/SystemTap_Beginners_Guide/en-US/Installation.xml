@@ -213,7 +213,7 @@ enabled=1
 	Replace <command><replaceable>kernelname</replaceable></command> with the appropriate kernel variant name 
 	(for example, <filename>kernel-PAE</filename>), and <command><replaceable>version</replaceable></command> 
 	with the target kernel's version. For example, to install the required kernel information packages for
-	the <command>kernel-PAE--2.6.18-53.1.13.el5</command> kernel, run:
+	the <command>kernel-PAE-2.6.18-53.1.13.el5</command> kernel, run:
 </para>
 
 <itemizedlist>

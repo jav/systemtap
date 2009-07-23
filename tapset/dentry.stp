@@ -1,0 +1,117 @@
+// dentry tapset
+// Copyright (c) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+ 
+
+function __dentry_IS_ROOT:long(dentry:long)
+{
+        return (@cast(dentry, "dentry")->d_parent == dentry)
+}
+
+
+function __dentry_prepend:string(dentry:long,name:string)
+{
+        dname = d_name(dentry)
+
+        /*
+         * In case we are following down a mount point trigger, we can get
+         * multiple instances of a root mount.
+         */
+        c = substr(name, strlen(name)-1, strlen(name)-1)
+        if (dname == "/" && c == "/")
+                return name;
+
+        return sprintf("%s/%s", dname, name);
+}
+
+
+
+%{
+#include <linux/sched.h>
+#include <linux/fs_struct.h>
+%}
+
+
+function __dentry_get_current_root:long()
+%{
+        THIS->__retvalue = (long)&current->fs->root;
+%}
+
+
+
+
+/**
+ *   sfunction d_name - get the dirent name
+ *
+ *   Returns the dirent name (path basename).
+ *   @dentry: Pointer to dentry.
+ */
+function d_name:string(dentry:long)
+{
+        len = @cast(dentry, "dentry")->d_name->len;
+        return kernel_string_n(@cast(dentry, "dentry")->d_name->name, len);
+}
+
+
+
+/**
+ *   sfunction reverse_path_walk - get the full dirent path
+ *
+ *   Returns the path name (partial path to mount point).
+ *   @dentry: Pointer to dentry.
+ */
+function reverse_path_walk:string(dentry:long)
+{
+        while(1) {
+                name = __dentry_prepend(dentry, name);
+                dentry = @cast(dentry, "dentry")->d_parent;
+                if (__dentry_IS_ROOT(dentry))
+                        return name;
+        }
+}
+
+
+
+/**
+ *   sfunction d_path - get the full nameidata path
+ *
+ *   Returns the full dirent name (full path to the root), like
+ *   the kernel d_path function.
+ *   @nd: Pointer to nameidata.
+ */
+function d_path:string(nd:long)
+{
+        root = __dentry_get_current_root()
+        dentry = %( kernel_vr < "2.6.25"
+                 %? @cast(nd,"nameidata")->dentry
+                 %: @cast(nd,"nameidata")->path->dentry 
+                 %)
+        vfsmnt = %( kernel_vr < "2.6.25"
+                 %? @cast(nd,"nameidata")->mnt
+                 %: @cast(nd,"nameidata")->path->mnt 
+                 %)
+        while (1) {
+                if (dentry == @cast(root, "path")->dentry &&
+                    vfsmnt == @cast(root, "path")->mnt)
+                        break;
+
+                if (dentry == @cast(vfsmnt, "vfsmount")->mnt_root ||
+                    __dentry_IS_ROOT(dentry)) {
+                        /* Global root? */
+                        if (@cast(vfsmnt, "vfsmount")->mnt_parent == vfsmnt)
+                                return sprintf("/%s", name);
+
+                        dentry = @cast(vfsmnt, "vfsmount")->mnt_mountpoint;
+                        vfsmnt = @cast(vfsmnt, "vfsmount")->mnt_parent;
+                        continue;
+                }
+                name = __dentry_prepend(dentry, name);
+                dentry = @cast(dentry, "dentry")->d_parent;
+        }
+
+        return sprintf("/%s", name);
+}
