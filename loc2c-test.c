@@ -526,10 +526,10 @@ main (int argc, char **argv)
       else
 	{
 	  Dwarf_Op *cfa_ops = NULL;
-	  size_t cfa_nops;
 
 #ifdef _ELFUTILS_PREREQ
 #if _ELFUTILS_PREREQ(0,142)
+	  size_t cfa_nops;
 	  Dwarf_Addr bias;
 	  Dwfl_Module *module = dwfl_addrmodule (dwfl, pc);
 	  if (module != NULL)

@@ -2543,7 +2543,6 @@ Dwarf_Op *
 dwflpp::get_cfa_ops (Dwarf_Addr pc)
 {
   Dwarf_Op *cfa_ops = NULL;
-  size_t cfa_nops;
 
   if (sess.verbose > 2)
     clog << "get_cfa_ops @0x" << hex << pc << dec
@@ -2552,6 +2551,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 #ifdef _ELFUTILS_PREREQ
 #if _ELFUTILS_PREREQ(0,142)
   // Try debug_frame first, then fall back on eh_frame.             
+  size_t cfa_nops;
   Dwarf_Addr bias;
   Dwarf_CFI *cfi = dwfl_module_dwarf_cfi (module, &bias);
   if (cfi != NULL)
