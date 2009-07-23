@@ -526,6 +526,7 @@ main (int argc, char **argv)
       else
 	{
 	  Dwarf_Op *cfa_ops = NULL;
+	  size_t cfa_nops;
 
 #ifdef _ELFUTILS_PREREQ
 #if _ELFUTILS_PREREQ(0,142)
@@ -539,7 +540,7 @@ main (int argc, char **argv)
 		{
 		  Dwarf_Frame *frame = NULL;
 		  if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
-		    dwarf_frame_cfa (frame, &cfa_ops);
+		    dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 		}
 	      if (cfa_ops == NULL)
 		{
@@ -548,7 +549,7 @@ main (int argc, char **argv)
 		    {
 		      Dwarf_Frame *frame = NULL;
 		      if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
-			dwarf_frame_cfa (frame, &cfa_ops);
+			dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 		    }
 		}
 	    }

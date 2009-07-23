@@ -2543,6 +2543,7 @@ Dwarf_Op *
 dwflpp::get_cfa_ops (Dwarf_Addr pc)
 {
   Dwarf_Op *cfa_ops = NULL;
+  size_t cfa_nops;
 
   if (sess.verbose > 2)
     clog << "get_cfa_ops @0x" << hex << pc << dec
@@ -2559,7 +2560,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	clog << "got dwarf cfi bias: 0x" << hex << bias << dec << endl;
       Dwarf_Frame *frame = NULL;
       if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
-	dwarf_frame_cfa (frame, &cfa_ops);
+	dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
       else if (sess.verbose > 3)
 	clog << "dwarf_cfi_addrframe failed: " << dwarf_errmsg(-1) << endl;
     }
@@ -2575,7 +2576,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	    clog << "got eh cfi bias: 0x" << hex << bias << dec << endl;
 	  Dwarf_Frame *frame = NULL;
 	  if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
-	    dwarf_frame_cfa (frame, &cfa_ops);
+	    dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 	  else if (sess.verbose > 3)
 	    clog << "dwarf_cfi_addrframe failed: " << dwarf_errmsg(-1) << endl;
 	}
