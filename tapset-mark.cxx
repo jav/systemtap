@@ -39,6 +39,7 @@ static const string TOK_FORMAT("format");
 struct mark_arg
 {
   bool str;
+  bool isptr;
   string c_type;
   exp_type stp_type;
 };
@@ -155,19 +156,63 @@ mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 	}
     }
 
-  string fname;
-  if (e->base_name == "$format") {
-    fname = string("_mark_format_get");
-  } else {
-    fname = string("_mark_name_get");
-  }
+  if (e->base_name == "$format" || e->base_name == "$name") {
+     string fname;
+     if (e->base_name == "$format") {
+        fname = string("_mark_format_get");
+     } else {
+        fname = string("_mark_name_get");
+     }
 
-  // Synthesize a functioncall.
-  functioncall* n = new functioncall;
-  n->tok = e->tok;
-  n->function = fname;
-  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  provide (n);
+     // Synthesize a functioncall.
+     functioncall* n = new functioncall;
+     n->tok = e->tok;
+     n->function = fname;
+     n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+     provide (n);
+  }
+ else if (e->base_name == "$$vars" || e->base_name == "$$parms") 
+  {
+     //copy from tracepoint
+     print_format* pf = new print_format;
+     token* pf_tok = new token(*e->tok);
+     pf_tok->content = "sprintf";
+     pf->tok = pf_tok;
+     pf->print_to_stream = false;
+     pf->print_with_format = true;
+     pf->print_with_delim = false;
+     pf->print_with_newline = false;
+     pf->print_char = false;
+
+     for (unsigned i = 0; i < mark_args.size(); ++i)
+        {
+          if (i > 0)
+            pf->raw_components += " ";
+          pf->raw_components += "$arg" + lex_cast<string>(i+1);
+          target_symbol *tsym = new target_symbol;
+          tsym->tok = e->tok;
+          tsym->base_name = "$arg" + lex_cast<string>(i+1);
+
+          tsym->saved_conversion_error = 0;
+          expression *texp = require (tsym); //same treatment as tracepoint
+          assert (!tsym->saved_conversion_error);
+          switch (mark_args[i]->stp_type)
+           {
+             case pe_long:
+               pf->raw_components += mark_args[i]->isptr ? "=%p" : "=%#x";
+               break;
+             case pe_string:
+               pf->raw_components += "=%s";
+               break;
+             default:
+               pf->raw_components += "=%#x";
+               break;
+            }
+          pf->args.push_back(texp);
+        }
+     pf->components = print_format::string_to_components(pf->raw_components);
+     provide (pf);
+  }
 }
 
 void
@@ -180,10 +225,11 @@ mark_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 
   if (e->base_name.substr(0,4) == "$arg")
     visit_target_symbol_arg (e);
-  else if (e->base_name == "$format" || e->base_name == "$name")
+  else if (e->base_name == "$format" || e->base_name == "$name" 
+           || e->base_name == "$$parms" || e->base_name == "$$vars")
     visit_target_symbol_context (e);
   else
-    throw semantic_error ("invalid target symbol for marker, $argN, $name or $format expected",
+    throw semantic_error ("invalid target symbol for marker, $argN, $name, $format, $$parms or $$vars expected",
 			  e->tok);
 }
 
@@ -288,6 +334,7 @@ repeat:
 	case 'c':
 	  arg = new mark_arg;
 	  arg->str = false;
+	  arg->isptr = false;
 	  arg->c_type = "int";
 	  arg->stp_type = pe_long;
 	  mark_args.push_back(arg);
@@ -296,6 +343,7 @@ repeat:
 	case 's':
 	  arg = new mark_arg;
 	  arg->str = true;
+	  arg->isptr = false;
 	  arg->c_type = "char *";
 	  arg->stp_type = pe_string;
 	  mark_args.push_back(arg);
@@ -304,6 +352,7 @@ repeat:
 	case 'p':
 	  arg = new mark_arg;
 	  arg->str = false;
+	  arg->isptr = true;
 	  // This should really be 'void *'.  But, then we'll get a
 	  // compile error when we assign the void pointer to an
 	  // integer without a cast.  So, we use 'long' instead, since
@@ -333,6 +382,7 @@ repeat:
 
       arg = new mark_arg;
       arg->str = false;
+      arg->isptr = false;
       arg->stp_type = pe_long;
       switch (qualifier)
         {
