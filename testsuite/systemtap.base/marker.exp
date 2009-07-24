@@ -275,3 +275,20 @@ if {$kernel_markers_found == 0} {
     stap_compile $TEST_NAME 0 $script
 }
 
+set TEST_NAME "K_MARKER22"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that print $$parms.
+    set script_vars {"probe kernel.mark(\"*\") { printf(\"%s\",\$\$parms) }"}
+    stap_compile $TEST_NAME 1 $script_vars
+}
+
+set TEST_NAME "K_MARKER23"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that print $$vars.
+    set script_parms {"probe kernel.mark(\"*\") { printf(\"%s\",\$\$vars) }"}
+    stap_compile $TEST_NAME 1 $script_parms
+}
