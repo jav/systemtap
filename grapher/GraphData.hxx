@@ -1,6 +1,7 @@
 #ifndef SYSTEMTAP_GRAPHDATA_HXX
 #define SYSTEMTAP_GRAPHDATA_HXX 1
 
+#include <string>
 #include <utility>
 #include <vector>
 #include <tr1/memory>
@@ -24,6 +25,9 @@ namespace systemtap
     double scale;
     double color[3];
     Style style;
+    std::string title;
+    std::string xAxisText;
+    std::string yAxisText;
     TimeList times;
   };
 

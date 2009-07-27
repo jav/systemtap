@@ -40,9 +40,6 @@ GrapherWindow::GrapherWindow()
 {
   set_title("systemtap grapher");
   add(m_Box);
-  w.setExtents(0.0, 1.0, 5.0, 0.0);
-  w.setLineWidth(2);
-
 
 
   //Create actions for menus and toolbars:
