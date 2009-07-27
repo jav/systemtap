@@ -1405,6 +1405,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
                       << " does not match the beginning of a statement";
                   if (address_line)
                     msg << " (try 0x" << hex << lineaddr << ")";
+                  else
+                    msg << " (no line info found for '" << q->dw.cu_name
+                        << "', in module '" << q->dw.module_name << "')";
                   if (! q->sess.guru_mode)
                     throw semantic_error(msg.str());
                   else if (! q->sess.suppress_warnings)
