@@ -99,7 +99,7 @@ stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 if HAVE_NSS
 stap_SOURCES += modsign.cxx nsscommon.c
 stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_LDADD += -lnss3
+stap_LDADD += -lnss3 -lnspr4
 
 stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
@@ -154,7 +154,7 @@ staprun_LDADD = @PROCFLAGS@
 if HAVE_NSS
 staprun_SOURCES += runtime/staprun/modverify.c nsscommon.c
 staprun_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
-staprun_LDADD += -lnss3
+staprun_LDADD += -lnss3 -lnspr4
 endif
 
 stapio_SOURCES = runtime/staprun/stapio.c \
@@ -180,11 +180,11 @@ if BUILD_TRANSLATOR
 if BUILD_SERVER
 stap_client_connect_SOURCES = stap-client-connect.c
 stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_client_connect_LDADD = -lssl3
+stap_client_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 
 stap_server_connect_SOURCES = stap-server-connect.c
 stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_server_connect_LDADD = -lssl3
+stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 endif
 
 noinst_PROGRAMS = loc2c-test
