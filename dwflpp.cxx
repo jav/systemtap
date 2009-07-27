@@ -808,19 +808,43 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
     }
   else if (line_type == WILDCARD)
     function_line (&lineno);
+  else if (line_type == RANGE) { /* correct lineno */
+      int start_lineno;
+
+      function_line (&start_lineno);
+      lineno = lineno < start_lineno ? start_lineno : lineno;
+      if (lineno > lines[1]) { /* invalid line range */
+        stringstream advice;
+        advice << "Invalid line range (" << lines[0] << "-" << lines[1] << ")";
+        if (start_lineno > lines[1])
+          advice << ", the end line number " << lines[1] << " < " << start_lineno;
+        throw semantic_error (advice.str());
+       }
+  }
+
 
   for (int l = lineno; ; l = l + 1)
     {
       set<int> lines_probed;
       pair<set<int>::iterator,bool> line_probed;
-      dwarf_assert ("dwarf_getsrc_file",
-                    dwarf_getsrc_file (module_dwarf,
-                                       srcfile, l, 0,
-                                       &srcsp, &nsrcs));
+      int ret = 0;
+
+      ret = dwarf_getsrc_file (module_dwarf, srcfile, l, 0,
+					 &srcsp, &nsrcs);
+      if (line_type != WILDCARD && line_type != RANGE)
+         dwarf_assert ("dwarf_getsrc_file", ret);
+
       if (line_type == WILDCARD || line_type == RANGE)
         {
           Dwarf_Addr line_addr;
+
+          if (ret != 0) /* tolerate invalid line number */
+   	     break;
+
           dwarf_lineno (srcsp [0], &lineno);
+	  /* Maybe lineno will exceed the input end */
+	  if (line_type == RANGE && lineno > lines[1])
+ 	     break;
           line_probed = lines_probed.insert(lineno);
           if (lineno != l || line_probed.second == false || nsrcs > 1)
             continue;
