@@ -5,7 +5,7 @@ if {![installtest_p]} { untested $test; return }
 if {![file exists $env(CRASH_LIBDIR)/staplog.so]} { untested "$test - no staplog.so"; return }
 
 # Load a test script
-spawn stap $srcdir/$subdir/testlog.stp -m testlog
+spawn stap -e {probe begin {print("HelloWorld\n")}} -m testlog
 expect {
     -timeout 120
     "HelloWorld\r\n" { 
