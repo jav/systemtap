@@ -10,7 +10,8 @@ namespace systemtap
   using namespace std::tr1;
   
   Graph::Graph(double x, double y)
-    : _graphX(0), _graphY(0),
+    : _width(600), _height(200), _graphX(0), _graphY(0),
+      _graphWidth(580), _graphHeight(180),
       _lineWidth(2), _autoScaling(true), _autoScrolling(true),
       _zoomFactor(1.0), _playButton(new CairoPlayButton),
       _left(0.0), _right(1.0), _top(5.0), _bottom(0.0)
@@ -78,10 +79,6 @@ namespace systemtap
     double horizScale = _zoomFactor * _graphWidth / ( _right - _left);
     cr->translate(20.0, 0.0);
     cr->set_line_width(_lineWidth);
-    cr->save();
-    cr->set_source_rgba(0.0, 0.0, 0.0, 1.0);
-    cr->paint();
-    cr->restore();
 
     for (DatasetList::iterator itr = _datasets.begin(), e = _datasets.end();
          itr != e;

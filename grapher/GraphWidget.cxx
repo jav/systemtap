@@ -12,7 +12,7 @@ namespace systemtap
   using namespace std::tr1;
   
   GraphWidget::GraphWidget()
-    : _trackingDrag(false)
+    : _trackingDrag(false), _width(600), _height(200)
   {
     add_events(Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK
                | Gdk::BUTTON_RELEASE_MASK | Gdk::SCROLL_MASK);
@@ -33,8 +33,6 @@ namespace systemtap
       .connect(sigc::mem_fun(*this, &GraphWidget::on_scroll_event), false);
     // Temporary testing of multiple graphs
     shared_ptr<Graph> graph(new Graph);
-    graph->_graphHeight = 180;
-    graph->_graphWidth = 580;
     _graphs.push_back(graph);
   }
 
@@ -45,6 +43,22 @@ namespace systemtap
   void GraphWidget::addGraphData(std::tr1::shared_ptr<GraphDataBase> data)
   {
     _graphs[0]->addGraphData(data);
+  }
+
+  void GraphWidget::addGraph()
+  {
+    shared_ptr<Graph> graph(new Graph);
+    double x = 0.0;
+    double y = 0.0;
+    if (!_graphs.empty())
+      {
+        _graphs.back()->getOrigin(x, y);
+        y += _graphs.back()->_height + 10;
+        _height = y + graph->_height;
+      }
+    graph->setOrigin(x, y);
+    _graphs.push_back(graph);
+    queue_resize();
   }
   
   bool GraphWidget::on_expose_event(GdkEventExpose* event)
@@ -173,5 +187,11 @@ namespace systemtap
   {
     queue_draw();
     return true;
+  }
+
+  void GraphWidget::on_size_request(Gtk::Requisition* req)
+  {
+    req->width = _width;
+    req->height = _height;
   }
 }

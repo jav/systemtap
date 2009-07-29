@@ -18,6 +18,7 @@ namespace systemtap
     GraphWidget();
     virtual ~GraphWidget();
     void addGraphData(std::tr1::shared_ptr<GraphDataBase> data);
+    void addGraph();
 
   protected:
     typedef std::vector<std::tr1::shared_ptr<Graph> > GraphList;
@@ -34,11 +35,14 @@ namespace systemtap
     virtual bool on_button_release_event(GdkEventButton* event);
     virtual bool on_scroll_event(GdkEventScroll* event);
     bool on_timeout();
+    virtual void on_size_request(Gtk::Requisition* req);
     bool _trackingDrag;
     double _dragOriginX;
     double _dragOriginY;
     double _dragOrigLeft;
     double _dragOrigRight;
+    double _width;
+    double _height;
   };
 }
 #endif // SYSTEMTAP_GRAPHWIDGET_H

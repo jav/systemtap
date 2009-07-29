@@ -32,6 +32,7 @@ public:
   GraphWidget w;
 protected:
   virtual void on_menu_file_quit();
+  void addGraph();
   // menu support
   Glib::RefPtr<Gtk::UIManager> m_refUIManager;
   Glib::RefPtr<Gtk::ActionGroup> m_refActionGroup;
@@ -48,6 +49,8 @@ GrapherWindow::GrapherWindow()
   m_refActionGroup = Gtk::ActionGroup::create();
   //File menu:
   m_refActionGroup->add(Gtk::Action::create("FileMenu", "File"));
+  m_refActionGroup->add(Gtk::Action::create("AddGraph", "Add graph"),
+                        sigc::mem_fun(*this, &GrapherWindow::addGraph));
   m_refActionGroup->add(Gtk::Action::create("FileQuit", Gtk::Stock::QUIT),
                         sigc::mem_fun(*this, &GrapherWindow::on_menu_file_quit));
   m_refUIManager = Gtk::UIManager::create();
@@ -59,6 +62,7 @@ GrapherWindow::GrapherWindow()
     "<ui>"
     "  <menubar name='MenuBar'>"
     "    <menu action='FileMenu'>"
+    "      <menuitem action='AddGraph'/>"    
     "      <menuitem action='FileQuit'/>"
     "    </menu>"
     "  </menubar>"
@@ -135,4 +139,10 @@ int main(int argc, char** argv)
    while (wait(&status) != -1)
      ;
    return 0;
+}
+
+void GrapherWindow::addGraph()
+{
+  w.addGraph();
+  
 }
