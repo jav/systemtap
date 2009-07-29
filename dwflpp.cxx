@@ -124,7 +124,7 @@ dwflpp::get_module_dwarf(bool required, bool report)
 
       if (required)
         throw semantic_error (msg);
-      else
+      else if (! sess.suppress_warnings)
         cerr << "WARNING: " << msg << "\n";
     }
 }

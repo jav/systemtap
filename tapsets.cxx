@@ -290,8 +290,10 @@ symbol_table
   void add_symbol(const char *name, bool weak, Dwarf_Addr addr,
                                                Dwarf_Addr *high_addr);
   enum info_status read_symbols(FILE *f, const string& path);
-  enum info_status read_from_elf_file(const string& path);
-  enum info_status read_from_text_file(const string& path);
+  enum info_status read_from_elf_file(const string& path,
+				      const systemtap_session &sess);
+  enum info_status read_from_text_file(const string& path,
+				       const systemtap_session &sess);
   enum info_status get_from_elf();
   void prepare_section_rejection(Dwfl_Module *mod);
   bool reject_section(GElf_Word section);
@@ -816,10 +818,11 @@ dwarf_query::query_module_symtab()
       fi = sym_table->get_func_containing_address(addr);
       if (!fi)
         {
-          cerr << "Warning: address "
-               << hex << addr << dec
-               << " out of range for module "
-               << dw.module_name;
+	  if (! sess.suppress_warnings)
+	    cerr << "Warning: address "
+		 << hex << addr << dec
+		 << " out of range for module "
+		 << dw.module_name;
           return;
         }
       if (!null_die(&fi->die))
@@ -828,10 +831,11 @@ dwarf_query::query_module_symtab()
           // the indicated function, but query_module_dwarf() didn't
           // match addr to any compilation unit, so addr must be
           // above that cu's address range.
-          cerr << "Warning: address "
-               << hex << addr << dec
-               << " maps to no known compilation unit in module "
-               << dw.module_name;
+	  if (! sess.suppress_warnings)
+	    cerr << "Warning: address "
+		 << hex << addr << dec
+		 << " maps to no known compilation unit in module "
+		 << dw.module_name;
           return;
         }
       query_func_info(fi->addr, *fi, this);
@@ -3779,7 +3783,8 @@ symbol_table::read_symbols(FILE *f, const string& path)
 // that gives us raw addresses -- which we need for modules -- whereas
 // nm provides the address relative to the beginning of the section.
 enum info_status
-symbol_table::read_from_elf_file(const string &path)
+symbol_table::read_from_elf_file(const string &path,
+				 const systemtap_session &sess)
 {
   FILE *f;
   string cmd = string("/usr/bin/nm -n --defined-only ") + path;
@@ -3794,7 +3799,7 @@ symbol_table::read_from_elf_file(const string &path)
   enum info_status status = read_symbols(f, path);
   if (pclose(f) != 0)
     {
-      if (status == info_present)
+      if (status == info_present && ! sess.suppress_warnings)
         cerr << "Warning: nm cannot read symbol table from " << path;
       return info_absent;
     }
@@ -3802,13 +3807,15 @@ symbol_table::read_from_elf_file(const string &path)
 }
 
 enum info_status
-symbol_table::read_from_text_file(const string& path)
+symbol_table::read_from_text_file(const string& path,
+				  const systemtap_session &sess)
 {
   FILE *f = fopen(path.c_str(), "r");
   if (!f)
     {
-      cerr << "Warning: cannot read symbol table from "
-           << path << " -- " << strerror (errno);
+      if (! sess.suppress_warnings)
+	cerr << "Warning: cannot read symbol table from "
+	     << path << " -- " << strerror (errno);
       return info_absent;
     }
   enum info_status status = read_symbols(f, path);
@@ -3956,12 +3963,13 @@ module_info::get_symtab(dwarf_query *q)
   sym_table = new symbol_table(this);
   if (!elf_path.empty())
     {
-      if (name == TOK_KERNEL && !sess.kernel_symtab_path.empty())
+      if (name == TOK_KERNEL && !sess.kernel_symtab_path.empty()
+	  && ! sess.suppress_warnings)
         cerr << "Warning: reading symbol table from "
              << elf_path
              << " -- ignoring "
              << sess.kernel_symtab_path
-             << endl ;;
+             << endl;
       symtab_status = sym_table->get_from_elf();
     }
   else
@@ -3977,7 +3985,7 @@ module_info::get_symtab(dwarf_query *q)
       else
         {
           symtab_status =
-      		sym_table->read_from_text_file(sess.kernel_symtab_path);
+	    sym_table->read_from_text_file(sess.kernel_symtab_path, sess);
           if (symtab_status == info_present)
             {
               sess.sym_kprobes_text_start =
