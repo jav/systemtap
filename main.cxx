@@ -193,16 +193,17 @@ printscript(systemtap_session& s, ostream& o)
             {
               o << pp;
               // Print the locals for -L mode only
-              if (s.unoptimized) {
-                for (unsigned j=0; j<p->locals.size(); j++)
-                  {
-                    o << " ";
-                    vardecl* v = p->locals[j];
-                    v->printsig (o);
-                  }
-                // Print arguments of probe if there
-                p->printargs(o);
-		}
+              if (s.listing_mode_vars)
+                {
+                  for (unsigned j=0; j<p->locals.size(); j++)
+                    {
+                      o << " ";
+                      vardecl* v = p->locals[j];
+                      v->printsig (o);
+                    }
+                  // Print arguments of probe if there
+                  p->printargs(o);
+                }
               o << endl;
               seen.insert (pp);
             }
@@ -377,6 +378,7 @@ main (int argc, char * const argv [])
   s.unoptimized = false;
   s.suppress_warnings = false;
   s.listing_mode = false;
+  s.listing_mode_vars = false;
 
 #ifdef ENABLE_PROLOGUES
   s.prologue_searching = true;
@@ -665,6 +667,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'L':
+          s.listing_mode_vars = true;
           s.unoptimized = true; // This causes retention of variables for listing_mode
 
         case 'l':
