@@ -394,6 +394,10 @@ struct uprobe_derived_probe: public derived_probe
                         Dwarf_Addr addr,
                         bool return_p);
 
+  string args;
+  void saveargs(Dwarf_Die* scope_die);
+  void printargs(std::ostream &o) const;
+
   void printsig (std::ostream &o) const;
   void join_group (systemtap_session& s);
 };
@@ -4100,6 +4104,10 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
     }
   // else - null scope_die - $target variables will produce an error during translate phase
 
+  // Save the local variables for listing mode
+  if (q.sess.listing_mode_vars)
+    saveargs(scope_die);
+
   // Reset the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
   // point.  This allows a user to see what function / file / line
@@ -4170,6 +4178,67 @@ uprobe_derived_probe::uprobe_derived_probe (probe *base,
   derived_probe (base, location), // location is not rewritten here
   return_p (has_return), pid (pid), address (addr)
 {
+}
+
+
+void
+uprobe_derived_probe::saveargs(Dwarf_Die* scope_die)
+{
+  // same as dwarf_derived_probe::saveargs
+
+  Dwarf_Die *scopes;
+  if (!null_die(scope_die) && dwarf_getscopes_die (scope_die, &scopes) == 0)
+    return;
+  auto_free free_scopes(scopes);
+
+  stringstream argstream;
+  string type_name;
+  Dwarf_Attribute type_attr;
+  Dwarf_Die type_die;
+
+  if (return_p &&
+      dwarf_attr_integrate (scope_die, DW_AT_type, &type_attr) &&
+      dwarf_formref_die (&type_attr, &type_die) &&
+      dwarf_type_name(type_die, type_name))
+    argstream << " $return:" << type_name;
+
+  Dwarf_Die arg;
+  if (dwarf_child (&scopes[0], &arg) == 0)
+    do
+      {
+        switch (dwarf_tag (&arg))
+          {
+          case DW_TAG_variable:
+          case DW_TAG_formal_parameter:
+            break;
+
+          default:
+            continue;
+          }
+
+        const char *arg_name = dwarf_diename (&arg);
+        if (!arg_name)
+          continue;
+
+        type_name.clear();
+        if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr) ||
+            !dwarf_formref_die (&type_attr, &type_die) ||
+            !dwarf_type_name(type_die, type_name))
+          continue;
+
+        argstream << " $" << arg_name << ":" << type_name;
+      }
+    while (dwarf_siblingof (&arg, &arg) == 0);
+
+  args = argstream.str();
+}
+
+
+void
+uprobe_derived_probe::printargs(std::ostream &o) const
+{
+  // same as dwarf_derived_probe::printargs
+  o << args;
 }
 
 
