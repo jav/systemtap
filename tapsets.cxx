@@ -1699,6 +1699,8 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
 
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
     q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL), visited(false) {}
+  void visit_target_symbol_saved_return (target_symbol* e);
+  void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
   void visit_cast_op (cast_op* e);
 };
@@ -1758,6 +1760,397 @@ var_expanding_visitor::visit_assignment (assignment* e)
 
 
 void
+dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
+{
+  // Get the full name of the target symbol.
+  stringstream ts_name_stream;
+  e->print(ts_name_stream);
+  string ts_name = ts_name_stream.str();
+
+  // Check and make sure we haven't already seen this target
+  // variable in this return probe.  If we have, just return our
+  // last replacement.
+  map<string, symbol *>::iterator i = return_ts_map.find(ts_name);
+  if (i != return_ts_map.end())
+    {
+      provide (i->second);
+      return;
+    }
+
+  // We've got to do several things here to handle target
+  // variables in return probes.
+
+  // (1) Synthesize two global arrays.  One is the cache of the
+  // target variable and the other contains a thread specific
+  // nesting level counter.  The arrays will look like
+  // this:
+  //
+  //   _dwarf_tvar_{name}_{num}
+  //   _dwarf_tvar_{name}_{num}_ctr
+
+  string aname = (string("_dwarf_tvar_")
+                  + e->base_name.substr(1)
+                  + "_" + lex_cast<string>(tick++));
+  vardecl* vd = new vardecl;
+  vd->name = aname;
+  vd->tok = e->tok;
+  q.sess.globals.push_back (vd);
+
+  string ctrname = aname + "_ctr";
+  vd = new vardecl;
+  vd->name = ctrname;
+  vd->tok = e->tok;
+  q.sess.globals.push_back (vd);
+
+  // (2) Create a new code block we're going to insert at the
+  // beginning of this probe to get the cached value into a
+  // temporary variable.  We'll replace the target variable
+  // reference with the temporary variable reference.  The code
+  // will look like this:
+  //
+  //   _dwarf_tvar_tid = tid()
+  //   _dwarf_tvar_{name}_{num}_tmp
+  //       = _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+  //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
+  //   delete _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+  //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]--]
+  //   if (! _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid])
+  //       delete _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]
+
+  // (2a) Synthesize the tid temporary expression, which will look
+  // like this:
+  //
+  //   _dwarf_tvar_tid = tid()
+  symbol* tidsym = new symbol;
+  tidsym->name = string("_dwarf_tvar_tid");
+  tidsym->tok = e->tok;
+
+  if (add_block == NULL)
+    {
+      add_block = new block;
+      add_block->tok = e->tok;
+
+      // Synthesize a functioncall to grab the thread id.
+      functioncall* fc = new functioncall;
+      fc->tok = e->tok;
+      fc->function = string("tid");
+
+      // Assign the tid to '_dwarf_tvar_tid'.
+      assignment* a = new assignment;
+      a->tok = e->tok;
+      a->op = "=";
+      a->left = tidsym;
+      a->right = fc;
+
+      expr_statement* es = new expr_statement;
+      es->tok = e->tok;
+      es->value = a;
+      add_block->statements.push_back (es);
+    }
+
+  // (2b) Synthesize an array reference and assign it to a
+  // temporary variable (that we'll use as replacement for the
+  // target variable reference).  It will look like this:
+  //
+  //   _dwarf_tvar_{name}_{num}_tmp
+  //       = _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+  //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
+
+  arrayindex* ai_tvar_base = new arrayindex;
+  ai_tvar_base->tok = e->tok;
+
+  symbol* sym = new symbol;
+  sym->name = aname;
+  sym->tok = e->tok;
+  ai_tvar_base->base = sym;
+
+  ai_tvar_base->indexes.push_back(tidsym);
+
+  // We need to create a copy of the array index in its current
+  // state so we can have 2 variants of it (the original and one
+  // that post-decrements the second index).
+  arrayindex* ai_tvar = new arrayindex;
+  arrayindex* ai_tvar_postdec = new arrayindex;
+  *ai_tvar = *ai_tvar_base;
+  *ai_tvar_postdec = *ai_tvar_base;
+
+  // Synthesize the
+  // "_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]" used as the
+  // second index into the array.
+  arrayindex* ai_ctr = new arrayindex;
+  ai_ctr->tok = e->tok;
+
+  sym = new symbol;
+  sym->name = ctrname;
+  sym->tok = e->tok;
+  ai_ctr->base = sym;
+  ai_ctr->indexes.push_back(tidsym);
+  ai_tvar->indexes.push_back(ai_ctr);
+
+  symbol* tmpsym = new symbol;
+  tmpsym->name = aname + "_tmp";
+  tmpsym->tok = e->tok;
+
+  assignment* a = new assignment;
+  a->tok = e->tok;
+  a->op = "=";
+  a->left = tmpsym;
+  a->right = ai_tvar;
+
+  expr_statement* es = new expr_statement;
+  es->tok = e->tok;
+  es->value = a;
+
+  add_block->statements.push_back (es);
+
+  // (2c) Add a post-decrement to the second array index and
+  // delete the array value.  It will look like this:
+  //
+  //   delete _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+  //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]--]
+
+  post_crement* pc = new post_crement;
+  pc->tok = e->tok;
+  pc->op = "--";
+  pc->operand = ai_ctr;
+  ai_tvar_postdec->indexes.push_back(pc);
+
+  delete_statement* ds = new delete_statement;
+  ds->tok = e->tok;
+  ds->value = ai_tvar_postdec;
+
+  add_block->statements.push_back (ds);
+
+  // (2d) Delete the counter value if it is 0.  It will look like
+  // this:
+  //   if (! _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid])
+  //       delete _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]
+
+  ds = new delete_statement;
+  ds->tok = e->tok;
+  ds->value = ai_ctr;
+
+  unary_expression *ue = new unary_expression;
+  ue->tok = e->tok;
+  ue->op = "!";
+  ue->operand = ai_ctr;
+
+  if_statement *ifs = new if_statement;
+  ifs->tok = e->tok;
+  ifs->condition = ue;
+  ifs->thenblock = ds;
+  ifs->elseblock = NULL;
+
+  add_block->statements.push_back (ifs);
+
+  // (3) We need an entry probe that saves the value for us in the
+  // global array we created.  Create the entry probe, which will
+  // look like this:
+  //
+  //   probe kernel.function("{function}") {
+  //     _dwarf_tvar_tid = tid()
+  //     _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+  //                       ++_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
+  //       = ${param}
+  //   }
+
+  if (add_probe == NULL)
+    {
+      add_probe = new probe;
+      add_probe->tok = e->tok;
+
+      // We need the name of the current probe point, minus the
+      // ".return" (or anything after it, such as ".maxactive(N)").
+      // Create a new probe point, copying all the components,
+      // stopping when we see the ".return" component.
+      probe_point* pp = new probe_point;
+      for (unsigned c = 0; c < q.base_loc->components.size(); c++)
+        {
+          if (q.base_loc->components[c]->functor == "return")
+            break;
+          else
+            pp->components.push_back(q.base_loc->components[c]);
+        }
+      pp->tok = e->tok;
+      pp->optional = q.base_loc->optional;
+      add_probe->locations.push_back(pp);
+
+      add_probe->body = new block;
+      add_probe->body->tok = e->tok;
+
+      // Synthesize a functioncall to grab the thread id.
+      functioncall* fc = new functioncall;
+      fc->tok = e->tok;
+      fc->function = string("tid");
+
+      // Assign the tid to '_dwarf_tvar_tid'.
+      assignment* a = new assignment;
+      a->tok = e->tok;
+      a->op = "=";
+      a->left = tidsym;
+      a->right = fc;
+
+      expr_statement* es = new expr_statement;
+      es->tok = e->tok;
+      es->value = a;
+      add_probe->body = new block(add_probe->body, es);
+
+      vardecl* vd = new vardecl;
+      vd->tok = e->tok;
+      vd->name = tidsym->name;
+      vd->type = pe_long;
+      vd->set_arity(0);
+      add_probe->locals.push_back(vd);
+    }
+
+  // Save the value, like this:
+  //     _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+  //                       ++_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
+  //       = ${param}
+  arrayindex* ai_tvar_preinc = new arrayindex;
+  *ai_tvar_preinc = *ai_tvar_base;
+
+  pre_crement* preinc = new pre_crement;
+  preinc->tok = e->tok;
+  preinc->op = "++";
+  preinc->operand = ai_ctr;
+  ai_tvar_preinc->indexes.push_back(preinc);
+
+  a = new assignment;
+  a->tok = e->tok;
+  a->op = "=";
+  a->left = ai_tvar_preinc;
+  a->right = e;
+
+  es = new expr_statement;
+  es->tok = e->tok;
+  es->value = a;
+
+  add_probe->body = new block(add_probe->body, es);
+
+  // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
+  // our parent so it can be used as a substitute for the target
+  // symbol.
+  provide (tmpsym);
+
+  // (5) Remember this replacement since we might be able to reuse
+  // it later if the same return probe references this target
+  // symbol again.
+  return_ts_map[ts_name] = tmpsym;
+}
+
+
+void
+dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
+{
+  Dwarf_Die *scopes;
+  if (dwarf_getscopes_die (scope_die, &scopes) == 0)
+    return;
+
+  target_symbol *tsym = new target_symbol;
+  print_format* pf = new print_format;
+
+  // Convert $$parms to sprintf of a list of parms and active local vars
+  // which we recursively evaluate
+
+  // NB: we synthesize a new token here rather than reusing
+  // e->tok, because print_format::print likes to use
+  // its tok->content.
+  token* pf_tok = new token;
+  pf_tok->location = e->tok->location;
+  pf_tok->type = tok_identifier;
+  pf_tok->content = "sprint";
+
+  pf->tok = pf_tok;
+  pf->print_to_stream = false;
+  pf->print_with_format = true;
+  pf->print_with_delim = false;
+  pf->print_with_newline = false;
+  pf->print_char = false;
+
+  if (q.has_return && (e->base_name == "$$return"))
+    {
+      tsym->tok = e->tok;
+      tsym->base_name = "$return";
+
+      // Ignore any variable that isn't accessible.
+      tsym->saved_conversion_error = 0;
+      expression *texp = tsym;
+      texp = require (texp); // NB: throws nothing ...
+      if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+        {
+
+        }
+      else
+        {
+          pf->raw_components += "return";
+          pf->raw_components += "=%#x ";
+          pf->args.push_back(texp);
+        }
+    }
+  else
+    {
+      // non-.return probe: support $$parms, $$vars, $$locals
+      Dwarf_Die result;
+      if (dwarf_child (&scopes[0], &result) == 0)
+        do
+          {
+            switch (dwarf_tag (&result))
+              {
+              case DW_TAG_variable:
+                if (e->base_name == "$$parms")
+                  continue;
+                break;
+              case DW_TAG_formal_parameter:
+                if (e->base_name == "$$locals")
+                  continue;
+                break;
+
+              default:
+                continue;
+              }
+
+            const char *diename = dwarf_diename (&result);
+            if (! diename) continue;
+
+            tsym->tok = e->tok;
+            tsym->base_name = "$";
+            tsym->base_name += diename;
+
+            // Ignore any variable that isn't accessible.
+            tsym->saved_conversion_error = 0;
+            expression *texp = tsym;
+            texp = require (texp); // NB: throws nothing ...
+            if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+              {
+                if (q.sess.verbose>2)
+                  {
+                    for (semantic_error *c = tsym->saved_conversion_error;
+                         c != 0;
+                         c = c->chain) {
+                        clog << "variable location problem: " << c->what() << endl;
+                    }
+                  }
+
+                pf->raw_components += diename;
+                pf->raw_components += "=? ";
+              }
+            else
+              {
+                pf->raw_components += diename;
+                pf->raw_components += "=%#x ";
+                pf->args.push_back(texp);
+              }
+          }
+        while (dwarf_siblingof (&result, &result) == 0);
+    }
+
+  pf->components = print_format::string_to_components(pf->raw_components);
+  provide (pf);
+}
+
+
+void
 dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
@@ -1776,281 +2169,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       if (lvalue)
 	throw semantic_error("write to target variable not permitted in .return probes", e->tok);
 
-      // Get the full name of the target symbol.
-      stringstream ts_name_stream;
-      e->print(ts_name_stream);
-      string ts_name = ts_name_stream.str();
-
-      // Check and make sure we haven't already seen this target
-      // variable in this return probe.  If we have, just return our
-      // last replacement.
-      map<string, symbol *>::iterator i = return_ts_map.find(ts_name);
-      if (i != return_ts_map.end())
-	{
-	  provide (i->second);
-	  return;
-	}
-
-      // We've got to do several things here to handle target
-      // variables in return probes.
-
-      // (1) Synthesize two global arrays.  One is the cache of the
-      // target variable and the other contains a thread specific
-      // nesting level counter.  The arrays will look like
-      // this:
-      //
-      //   _dwarf_tvar_{name}_{num}
-      //   _dwarf_tvar_{name}_{num}_ctr
-
-      string aname = (string("_dwarf_tvar_")
-		      + e->base_name.substr(1)
-		      + "_" + lex_cast<string>(tick++));
-      vardecl* vd = new vardecl;
-      vd->name = aname;
-      vd->tok = e->tok;
-      q.sess.globals.push_back (vd);
-
-      string ctrname = aname + "_ctr";
-      vd = new vardecl;
-      vd->name = ctrname;
-      vd->tok = e->tok;
-      q.sess.globals.push_back (vd);
-
-      // (2) Create a new code block we're going to insert at the
-      // beginning of this probe to get the cached value into a
-      // temporary variable.  We'll replace the target variable
-      // reference with the temporary variable reference.  The code
-      // will look like this:
-      //
-      //   _dwarf_tvar_tid = tid()
-      //   _dwarf_tvar_{name}_{num}_tmp
-      //       = _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
-      //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
-      //   delete _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
-      //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]--]
-      //   if (! _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid])
-      //       delete _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]
-
-      // (2a) Synthesize the tid temporary expression, which will look
-      // like this:
-      //
-      //   _dwarf_tvar_tid = tid()
-      symbol* tidsym = new symbol;
-      tidsym->name = string("_dwarf_tvar_tid");
-      tidsym->tok = e->tok;
-
-      if (add_block == NULL)
-        {
-	   add_block = new block;
-	   add_block->tok = e->tok;
-
-	   // Synthesize a functioncall to grab the thread id.
-	   functioncall* fc = new functioncall;
-	   fc->tok = e->tok;
-	   fc->function = string("tid");
-
-	   // Assign the tid to '_dwarf_tvar_tid'.
-	   assignment* a = new assignment;
-	   a->tok = e->tok;
-	   a->op = "=";
-	   a->left = tidsym;
-	   a->right = fc;
-
-	   expr_statement* es = new expr_statement;
-	   es->tok = e->tok;
-	   es->value = a;
-	   add_block->statements.push_back (es);
-	}
-
-      // (2b) Synthesize an array reference and assign it to a
-      // temporary variable (that we'll use as replacement for the
-      // target variable reference).  It will look like this:
-      //
-      //   _dwarf_tvar_{name}_{num}_tmp
-      //       = _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
-      //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
-
-      arrayindex* ai_tvar_base = new arrayindex;
-      ai_tvar_base->tok = e->tok;
-
-      symbol* sym = new symbol;
-      sym->name = aname;
-      sym->tok = e->tok;
-      ai_tvar_base->base = sym;
-
-      ai_tvar_base->indexes.push_back(tidsym);
-
-      // We need to create a copy of the array index in its current
-      // state so we can have 2 variants of it (the original and one
-      // that post-decrements the second index).
-      arrayindex* ai_tvar = new arrayindex;
-      arrayindex* ai_tvar_postdec = new arrayindex;
-      *ai_tvar = *ai_tvar_base;
-      *ai_tvar_postdec = *ai_tvar_base;
-
-      // Synthesize the
-      // "_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]" used as the
-      // second index into the array.
-      arrayindex* ai_ctr = new arrayindex;
-      ai_ctr->tok = e->tok;
-
-      sym = new symbol;
-      sym->name = ctrname;
-      sym->tok = e->tok;
-      ai_ctr->base = sym;
-      ai_ctr->indexes.push_back(tidsym);
-      ai_tvar->indexes.push_back(ai_ctr);
-
-      symbol* tmpsym = new symbol;
-      tmpsym->name = aname + "_tmp";
-      tmpsym->tok = e->tok;
-
-      assignment* a = new assignment;
-      a->tok = e->tok;
-      a->op = "=";
-      a->left = tmpsym;
-      a->right = ai_tvar;
-
-      expr_statement* es = new expr_statement;
-      es->tok = e->tok;
-      es->value = a;
-
-      add_block->statements.push_back (es);
-
-      // (2c) Add a post-decrement to the second array index and
-      // delete the array value.  It will look like this:
-      //
-      //   delete _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
-      //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]--]
-
-      post_crement* pc = new post_crement;
-      pc->tok = e->tok;
-      pc->op = "--";
-      pc->operand = ai_ctr;
-      ai_tvar_postdec->indexes.push_back(pc);
-
-      delete_statement* ds = new delete_statement;
-      ds->tok = e->tok;
-      ds->value = ai_tvar_postdec;
-
-      add_block->statements.push_back (ds);
-
-      // (2d) Delete the counter value if it is 0.  It will look like
-      // this:
-      //   if (! _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid])
-      //       delete _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]
-
-      ds = new delete_statement;
-      ds->tok = e->tok;
-      ds->value = ai_ctr;
-
-      unary_expression *ue = new unary_expression;
-      ue->tok = e->tok;
-      ue->op = "!";
-      ue->operand = ai_ctr;
-
-      if_statement *ifs = new if_statement;
-      ifs->tok = e->tok;
-      ifs->condition = ue;
-      ifs->thenblock = ds;
-      ifs->elseblock = NULL;
-
-      add_block->statements.push_back (ifs);
-
-      // (3) We need an entry probe that saves the value for us in the
-      // global array we created.  Create the entry probe, which will
-      // look like this:
-      //
-      //   probe kernel.function("{function}") {
-      //     _dwarf_tvar_tid = tid()
-      //     _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
-      //                       ++_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
-      //       = ${param}
-      //   }
-
-      if (add_probe == NULL)
-        {
-	   add_probe = new probe;
-	   add_probe->tok = e->tok;
-
-	   // We need the name of the current probe point, minus the
-	   // ".return" (or anything after it, such as ".maxactive(N)").
-	   // Create a new probe point, copying all the components,
-	   // stopping when we see the ".return" component.
-	   probe_point* pp = new probe_point;
-	   for (unsigned c = 0; c < q.base_loc->components.size(); c++)
-	     {
-	        if (q.base_loc->components[c]->functor == "return")
-		  break;
-	        else
-		  pp->components.push_back(q.base_loc->components[c]);
-	     }
-	   pp->tok = e->tok;
-	   pp->optional = q.base_loc->optional;
-	   add_probe->locations.push_back(pp);
-
-	   add_probe->body = new block;
-	   add_probe->body->tok = e->tok;
-
-	   // Synthesize a functioncall to grab the thread id.
-	   functioncall* fc = new functioncall;
-	   fc->tok = e->tok;
-	   fc->function = string("tid");
-
-	   // Assign the tid to '_dwarf_tvar_tid'.
-	   assignment* a = new assignment;
-	   a->tok = e->tok;
-	   a->op = "=";
-	   a->left = tidsym;
-	   a->right = fc;
-
-	   expr_statement* es = new expr_statement;
-	   es->tok = e->tok;
-	   es->value = a;
-           add_probe->body = new block(add_probe->body, es);
-
-	   vardecl* vd = new vardecl;
-	   vd->tok = e->tok;
-	   vd->name = tidsym->name;
-	   vd->type = pe_long;
-	   vd->set_arity(0);
-	   add_probe->locals.push_back(vd);
-	}
-
-      // Save the value, like this:
-      //     _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
-      //                       ++_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
-      //       = ${param}
-      arrayindex* ai_tvar_preinc = new arrayindex;
-      *ai_tvar_preinc = *ai_tvar_base;
-
-      pre_crement* preinc = new pre_crement;
-      preinc->tok = e->tok;
-      preinc->op = "++";
-      preinc->operand = ai_ctr;
-      ai_tvar_preinc->indexes.push_back(preinc);
-
-      a = new assignment;
-      a->tok = e->tok;
-      a->op = "=";
-      a->left = ai_tvar_preinc;
-      a->right = e;
-
-      es = new expr_statement;
-      es->tok = e->tok;
-      es->value = a;
-
-      add_probe->body = new block(add_probe->body, es);
-
-      // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
-      // our parent so it can be used as a substitute for the target
-      // symbol.
-      provide (tmpsym);
-
-      // (5) Remember this replacement since we might be able to reuse
-      // it later if the same return probe references this target
-      // symbol again.
-      return_ts_map[ts_name] = tmpsym;
+      visit_target_symbol_saved_return(e);
       return;
     }
 
@@ -2059,114 +2178,13 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       || e->base_name == "$$locals"
       || (q.has_return && (e->base_name == "$$return")))
     {
-      Dwarf_Die *scopes;
-      if (dwarf_getscopes_die (scope_die, &scopes) == 0)
-	return;
+      if (lvalue)
+	throw semantic_error("cannot write to context variable", e->tok);
 
       if (e->addressof)
         throw semantic_error("cannot take address of context variable", e->tok);
 
-      target_symbol *tsym = new target_symbol;
-      print_format* pf = new print_format;
-
-      // Convert $$parms to sprintf of a list of parms and active local vars
-      // which we recursively evaluate
-
-      // NB: we synthesize a new token here rather than reusing
-      // e->tok, because print_format::print likes to use
-      // its tok->content.
-      token* pf_tok = new token;
-      pf_tok->location = e->tok->location;
-      pf_tok->type = tok_identifier;
-      pf_tok->content = "sprint";
-
-      pf->tok = pf_tok;
-      pf->print_to_stream = false;
-      pf->print_with_format = true;
-      pf->print_with_delim = false;
-      pf->print_with_newline = false;
-      pf->print_char = false;
-
-      if (q.has_return && (e->base_name == "$$return"))
-        {
-          tsym->tok = e->tok;
-          tsym->base_name = "$return";
-
-          // Ignore any variable that isn't accessible.
-          tsym->saved_conversion_error = 0;
-          expression *texp = tsym;
-          texp = require (texp); // NB: throws nothing ...
-          if (tsym->saved_conversion_error) // ... but this is how we know it happened.
-            {
-
-            }
-          else
-            {
-              pf->raw_components += "return";
-              pf->raw_components += "=%#x ";
-              pf->args.push_back(texp);
-            }
-        }
-      else
-        {
-          // non-.return probe: support $$parms, $$vars, $$locals
-          Dwarf_Die result;
-          if (dwarf_child (&scopes[0], &result) == 0)
-            do
-              {
-                switch (dwarf_tag (&result))
-                  {
-                  case DW_TAG_variable:
-                    if (e->base_name == "$$parms")
-                      continue;
-                    break;
-                  case DW_TAG_formal_parameter:
-                    if (e->base_name == "$$locals")
-                      continue;
-                    break;
-
-                  default:
-                    continue;
-                  }
-
-                const char *diename = dwarf_diename (&result);
-                if (! diename) continue;
-
-                tsym->tok = e->tok;
-                tsym->base_name = "$";
-                tsym->base_name += diename;
-
-                // Ignore any variable that isn't accessible.
-                tsym->saved_conversion_error = 0;
-                expression *texp = tsym;
-                texp = require (texp); // NB: throws nothing ...
-                if (tsym->saved_conversion_error) // ... but this is how we know it happened.
-                  {
-                    if (q.sess.verbose>2)
-                      {
-                        for (semantic_error *c = tsym->saved_conversion_error;
-                             c != 0;
-                             c = c->chain) {
-                          clog << "variable location problem: " << c->what() << endl;
-                        }
-                      }
-
-                    pf->raw_components += diename;
-                    pf->raw_components += "=? ";
-                  }
-                else
-                  {
-                    pf->raw_components += diename;
-                    pf->raw_components += "=%#x ";
-                    pf->args.push_back(texp);
-                  }
-              }
-            while (dwarf_siblingof (&result, &result) == 0);
-        }
-
-      pf->components = print_format::string_to_components(pf->raw_components);
-      provide (pf);
-
+      visit_target_symbol_context(e);
       return;
     }
 
