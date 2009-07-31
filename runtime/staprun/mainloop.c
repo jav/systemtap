@@ -485,6 +485,7 @@ int stp_main_loop(void)
     type = *(uint32_t *) recvbuf;
     data = (void *)(recvbuf + sizeof(uint32_t));
     nb -= sizeof(uint32_t);
+    STAP_PROBE3(staprun, recv__ctlmsg, type, data, nb);
 
     switch (type) {
 #if STP_TRANSPORT_VERSION == 1

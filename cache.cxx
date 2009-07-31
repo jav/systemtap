@@ -10,6 +10,7 @@
 #include "session.h"
 #include "cache.h"
 #include "util.h"
+#include "sys/sdt.h"
 #include <cerrno>
 #include <string>
 #include <fstream>
@@ -59,6 +60,7 @@ add_to_cache(systemtap_session& s)
     }
 
   string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
+  STAP_PROBE2(stap, cache__add__module, module_src_path.c_str(), s.hash_path.c_str());
   if (s.verbose > 1)
     clog << "Copying " << module_src_path << " to " << s.hash_path << endl;
   if (copy_file(module_src_path.c_str(), s.hash_path.c_str()) != 0)
@@ -79,6 +81,8 @@ add_to_cache(systemtap_session& s)
   string module_signature_src_path = module_src_path;
   module_signature_src_path += ".sgn";
 
+  STAP_PROBE2(stap, cache__add__nss, module_signature_src_path.c_str(), module_signature_dest_path.c_str());
+
   if (s.verbose > 1)
     clog << "Copying " << module_signature_src_path << " to " << module_signature_dest_path << endl;
   if (copy_file(module_signature_src_path.c_str(), module_signature_dest_path.c_str()) != 0)
@@ -97,6 +101,7 @@ add_to_cache(systemtap_session& s)
     c_dest_path.resize(c_dest_path.size() - 3);
   c_dest_path += ".c";
 
+  STAP_PROBE2(stap, cache__add__source, s.translated_source.c_str(), c_dest_path.c_str());
   if (s.verbose > 1)
     clog << "Copying " << s.translated_source << " to " << c_dest_path
 	 << endl;
@@ -241,6 +246,8 @@ get_from_cache(systemtap_session& s)
 	clog << "Pass 4: using cached " << s.hash_path << endl;
     }
 
+  STAP_PROBE2(stap, cache__get, c_src_path.c_str(), s.hash_path.c_str());
+
   return true;
 }
 
@@ -341,6 +348,7 @@ clean_cache(systemtap_session& s)
           if ( (r_cache_size / 1024 / 1024) < cache_mb_max)    //convert r_cache_size to MiB
             break;
 
+          STAP_PROBE1(stap, cache__clean, (i->path).c_str());
           //remove this (*i) cache_entry, add to removed list
           i->unlink();
           r_cache_size -= i->size;

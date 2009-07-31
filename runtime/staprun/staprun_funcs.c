@@ -94,6 +94,7 @@ int insert_module(const char *path, const char *special_options, char **options)
 		return -1;
 	}
 
+	STAP_PROBE1(staprun, insert__module, path);
 	/* Actually insert the module */
 	ret = init_module(file, sbuf.st_size, opts);
 	saved_errno = errno;
