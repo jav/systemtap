@@ -3,6 +3,9 @@
 - Systemwide kernel .function.return (kretprobe) maxactive defaults may
   be overridden with the -DKRETACTIVE=nnn parameter.
 
+- Translation pass 2 is significantly faster by avoiding unnecessary
+  searching through a kernel build/module directory tree.
+
 * What's new in version 0.9.8
 
 - Miscellaneous new tapset functions:
