@@ -112,6 +112,7 @@ struct next_statement;
 struct continue_statement;
 struct indexable;
 struct expression;
+struct target_symbol;
 struct hist_op;
 
 class parser
@@ -203,6 +204,8 @@ private: // nonterminals
   expression* parse_crement ();
   expression* parse_value ();
   expression* parse_symbol ();
+
+  void parse_target_symbol_components (target_symbol* e);
 };
 
 

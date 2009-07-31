@@ -2346,27 +2346,8 @@ parser::parse_symbol ()
               expect_unknown(tok_string, cop->module);
             }
 	  expect_op(")");
-	  while (true)
-	    {
-	      string c;
-	      if (peek_op ("->"))
-		{
-		  next();
-		  expect_ident_or_keyword (c);
-		  cop->components.push_back
-		    (make_pair (target_symbol::comp_struct_member, c));
-		}
-	      else if (peek_op ("["))
-		{
-		  next();
-		  expect_unknown (tok_number, c);
-		  expect_op ("]");
-		  cop->components.push_back
-		    (make_pair (target_symbol::comp_literal_array_index, c));
-		}
-	      else
-		break;
-	    }
+          parse_target_symbol_components(cop);
+
           // if there aren't any dereferences, then the cast is pointless
           if (cop->components.empty())
             {
@@ -2494,27 +2475,7 @@ parser::parse_symbol ()
 	  target_symbol *tsym = new target_symbol;
 	  tsym->tok = t;
 	  tsym->base_name = name;
-	  while (true)
-	    {
-	      string c;
-	      if (peek_op ("->"))
-		{
-		  next();
-		  expect_ident_or_keyword (c);
-		  tsym->components.push_back
-		    (make_pair (target_symbol::comp_struct_member, c));
-		}
-	      else if (peek_op ("["))
-		{
-		  next();
-		  expect_unknown (tok_number, c);
-		  expect_op ("]");
-		  tsym->components.push_back
-		    (make_pair (target_symbol::comp_literal_array_index, c));
-		}
-	      else
-		break;
-	    }
+          parse_target_symbol_components(tsym);
 	  return tsym;
 	}
 
@@ -2602,6 +2563,33 @@ parser::parse_symbol ()
     throw parse_error("base histogram operator where expression expected", t);
 
   return sym;
+}
+
+
+void
+parser::parse_target_symbol_components (target_symbol* e)
+{
+  while (true)
+    {
+      string c;
+      if (peek_op ("->"))
+        {
+          next();
+          expect_ident_or_keyword (c);
+          e->components.push_back
+            (make_pair (target_symbol::comp_struct_member, c));
+        }
+      else if (peek_op ("["))
+        {
+          next();
+          expect_unknown (tok_number, c);
+          expect_op ("]");
+          e->components.push_back
+            (make_pair (target_symbol::comp_literal_array_index, c));
+        }
+      else
+        break;
+    }
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
