@@ -1,0 +1,4 @@
+probe process("uprobe_stmt_num").statement("func@uprobe_stmt_num.c:*")
+{
+  printf("0x%x\n", uaddr());
+}
