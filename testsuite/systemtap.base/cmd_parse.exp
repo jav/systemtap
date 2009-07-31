@@ -116,7 +116,7 @@ wait;close
 spawn stap -L syscall.a*
 expect {
     -timeout 60
-    -re {(syscall\.a[_a-zA-Z0-9]*(\ [_a-zA-Z0-9\$]+:(string|long|unknown|stats))*\r\n)+} { pass "cmd_parse13" }
+    -re {(syscall\.a[_a-zA-Z0-9]*(\ [_a-zA-Z0-9\$]+:[^:]+?)+\r\n)+} { pass "cmd_parse13" }
     timeout {fail "cmd_parse13: unexpected timeout"}
     eof {fail "cmd_parse13: unexpected EOF"}
 }
