@@ -259,7 +259,7 @@ void symbol::print (ostream& o) const
 }
 
 
-void target_symbol::print (std::ostream& o) const
+void target_symbol::print (ostream& o) const
 {
   if (addressof)
     o << "&";
@@ -279,7 +279,7 @@ void target_symbol::print (std::ostream& o) const
 }
 
 
-void cast_op::print (std::ostream& o) const
+void cast_op::print (ostream& o) const
 {
   if (addressof)
     o << "&";
