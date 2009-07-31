@@ -107,7 +107,7 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs)
 {
 	info->regs = *regs;
-	info->call_frame = 1;
+	info->call_frame = 0;
 }
 
 static inline void arch_unw_init_blocked(struct unwind_frame_info *info)

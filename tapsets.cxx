@@ -2986,7 +2986,18 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
   s.op->newline() << "c->regs = regs;";
+
+  // Make it look like the IP is set as it wouldn't have been replaced
+  // by a breakpoint instruction when calling real probe handler. Reset
+  // IP regs on return, so we don't confuse kprobes. PR10458
+  s.op->newline() << "{";
+  s.op->indent(1);
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->addr;";
   s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline(-1) << "}";
+
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
@@ -3009,7 +3020,18 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->pi = inst;"; // for assisting runtime's backtrace logic
+
+  // Make it look like the IP is set as it wouldn't have been replaced
+  // by a breakpoint instruction when calling real probe handler. Reset
+  // IP regs on return, so we don't confuse kprobes. PR10458
+  s.op->newline() << "{";
+  s.op->indent(1);
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->rp->kp.addr;";
   s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline(-1) << "}";
+
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
@@ -4381,7 +4403,18 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "if (sup->spec_index < 0 ||"
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
   s.op->newline() << "c->regs = regs;";
+
+  // Make it look like the IP is set as it would in the actual user
+  // task when calling real probe handler. Reset IP regs on return, so
+  // we don't confuse uprobes. PR10458
+  s.op->newline() << "{";
+  s.op->indent(1);
+  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "REG_IP(regs) = inst->vaddr;";
   s.op->newline() << "(*sups->ph) (c);";
+  s.op->newline() << "REG_IP(regs) = uprobes_ip;";
+  s.op->newline(-1) << "}";
+
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 
@@ -4393,7 +4426,18 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
   // XXX: kretprobes saves "c->pi = inst;" too
   s.op->newline() << "c->regs = regs;";
+
+  // Make it look like the IP is set as it would in the actual user
+  // task when calling real probe handler. Reset IP regs on return, so
+  // we don't confuse uprobes. PR10458
+  s.op->newline() << "{";
+  s.op->indent(1);
+  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "REG_IP(regs) = inst->rp->u.vaddr;";
   s.op->newline() << "(*sups->ph) (c);";
+  s.op->newline() << "REG_IP(regs) = uprobes_ip;";
+  s.op->newline(-1) << "}";
+
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 
@@ -4882,7 +4926,18 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
   s.op->newline() << "c->regs = regs;";
+
+  // Make it look like the IP is set as it wouldn't have been replaced
+  // by a breakpoint instruction when calling real probe handler. Reset
+  // IP regs on return, so we don't confuse kprobes. PR10458
+  s.op->newline() << "{";
+  s.op->indent(1);
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->addr;";
   s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline(-1) << "}";
+
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
@@ -4905,7 +4960,18 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->pi = inst;"; // for assisting runtime's backtrace logic
+
+  // Make it look like the IP is set as it wouldn't have been replaced
+  // by a breakpoint instruction when calling real probe handler. Reset
+  // IP regs on return, so we don't confuse kprobes. PR10458
+  s.op->newline() << "{";
+  s.op->indent(1);
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->rp->kp.addr;";
   s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline(-1) << "}";
+
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
