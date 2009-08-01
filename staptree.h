@@ -252,6 +252,7 @@ struct target_symbol: public symbol
   target_symbol(): addressof(false), saved_conversion_error (0) {}
   void print (std::ostream& o) const;
   void visit (visitor* u);
+  void assert_no_components(const std::string& tapset);
 };
 
 std::ostream& operator << (std::ostream& o, const target_symbol::component& c);

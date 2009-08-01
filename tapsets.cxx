@@ -5261,19 +5261,8 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
     }
 
   // make sure we're not dereferencing base types
-  if (!e->components.empty() && !arg->isptr)
-    switch (e->components[0].type)
-      {
-      case target_symbol::comp_literal_array_index:
-        throw semantic_error("tracepoint variable '" + e->base_name
-                             + "' may not be used as array", e->tok);
-      case target_symbol::comp_struct_member:
-        throw semantic_error("tracepoint variable '" + e->base_name
-                             + "' may not be used as a structure", e->tok);
-      default:
-        throw semantic_error("invalid use of tracepoint variable '"
-                             + e->base_name + "'", e->tok);
-      }
+  if (!arg->isptr)
+    e->assert_no_components("tracepoint");
 
   // we can only write to dereferenced fields, and only if guru mode is on
   bool lvalue = is_active_lvalue(e);
@@ -5393,18 +5382,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   if (is_active_lvalue (e))
     throw semantic_error("write to tracepoint '" + e->base_name + "' not permitted", e->tok);
 
-  if (!e->components.empty())
-    switch (e->components[0].type)
-      {
-      case target_symbol::comp_literal_array_index:
-        throw semantic_error("tracepoint '" + e->base_name + "' may not be used as array",
-                             e->tok);
-      case target_symbol::comp_struct_member:
-        throw semantic_error("tracepoint '" + e->base_name + "' may not be used as a structure",
-                             e->tok);
-      default:
-        throw semantic_error("invalid tracepoint '" + e->base_name + "' use", e->tok);
-      }
+  e->assert_no_components("tracepoint");
 
   if (e->base_name == "$$name")
     {

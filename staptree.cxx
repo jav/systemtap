@@ -186,6 +186,30 @@ operator << (ostream& o, const exp_type& e)
 }
 
 
+void
+target_symbol::assert_no_components(const std::string& tapset)
+{
+  if (components.empty())
+    return;
+
+  switch (components[0].type)
+    {
+    case target_symbol::comp_literal_array_index:
+      throw semantic_error(tapset + " variable '" + base_name +
+                           "' may not be used as array",
+                           components[0].tok);
+    case target_symbol::comp_struct_member:
+      throw semantic_error(tapset + " variable '" + base_name +
+                           "' may not be used as a structure",
+                           components[0].tok);
+    default:
+      throw semantic_error ("invalid use of " + tapset +
+                            " variable '" + base_name + "'",
+                            components[0].tok);
+    }
+}
+
+
 // ------------------------------------------------------------------------
 // parse tree printing
 

@@ -455,24 +455,7 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
         string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
         int argnum = lex_cast<int>(argnum_s);
 
-        if (e->components.size() > 0)
-         {
-           switch (e->components[0].type)
-     	    {
-	     case target_symbol::comp_literal_array_index:
-	       throw semantic_error("utrace target variable '$argN' may not be used as array",
-	   		            e->tok);
-	       break;
-	     case target_symbol::comp_struct_member:
-	       throw semantic_error("utrace target variable '$argN' may not be used as a structure",
-			            e->tok);
-	       break;
-  	     default:
-	       throw semantic_error ("invalid use of utrace target variable '$argN'",
-	  			     e->tok);
-	      break;
-	    }
-         }
+        e->assert_no_components("utrace");
 
         // FIXME: max argnument number should not be hardcoded.
         if (argnum < 1 || argnum > 6)
@@ -505,24 +488,7 @@ utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
   string sname = e->base_name;
 
-  if (e->components.size() > 0)
-    {
-      switch (e->components[0].type)
-	{
-	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("utrace target variable '" + sname + "' may not be used as array",
-			       e->tok);
-	  break;
-	case target_symbol::comp_struct_member:
-	  throw semantic_error("utrace target variable '" + sname + "' may not be used as a structure",
-			       e->tok);
-	  break;
-	default:
-	  throw semantic_error ("invalid use of utrace target variable '" + sname + "'",
-				e->tok);
-	  break;
-	}
-    }
+  e->assert_no_components("utrace");
 
   bool lvalue = is_active_lvalue(e);
   if (lvalue)
