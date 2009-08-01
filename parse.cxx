@@ -2571,21 +2571,20 @@ parser::parse_target_symbol_components (target_symbol* e)
 {
   while (true)
     {
-      string c;
       if (peek_op ("->"))
         {
-          next();
-          expect_ident_or_keyword (c);
-          e->components.push_back
-            (make_pair (target_symbol::comp_struct_member, c));
+          const token* t = next();
+          string member;
+          expect_ident_or_keyword (member);
+          e->components.push_back (target_symbol::component(t, member));
         }
       else if (peek_op ("["))
         {
-          next();
-          expect_unknown (tok_number, c);
+          const token* t = next();
+          int64_t index;
+          expect_number (index);
+          e->components.push_back (target_symbol::component(t, index));
           expect_op ("]");
-          e->components.push_back
-            (make_pair (target_symbol::comp_literal_array_index, c));
         }
       else
         break;

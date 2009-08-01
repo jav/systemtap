@@ -1620,9 +1620,8 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
 
 
 bool
-dwflpp::find_struct_member(const string& member,
+dwflpp::find_struct_member(const target_symbol::component& c,
                            Dwarf_Die *parentdie,
-                           const target_symbol *e,
                            Dwarf_Die *memberdie,
                            vector<Dwarf_Attribute>& locs)
 {
@@ -1640,7 +1639,7 @@ dwflpp::find_struct_member(const string& member,
       throw semantic_error (string (dwarf_tag(&die) == DW_TAG_union_type ? "union" : "struct")
                             + string (dwarf_diename_integrate (&die) ?: "<anonymous>")
                             + string (dwarf_errmsg (-1)),
-                            e->tok);
+                            c.tok);
     }
 
   do
@@ -1658,10 +1657,10 @@ dwflpp::find_struct_member(const string& member,
               !dwarf_formref_die (&attr, &subdie))
             continue;
 
-          if (find_struct_member(member, &subdie, e, memberdie, locs))
+          if (find_struct_member(c, &subdie, memberdie, locs))
             goto success;
         }
-      else if (name == member)
+      else if (name == c.member)
         {
           *memberdie = die;
           goto success;
@@ -1680,9 +1679,9 @@ success:
   /* Union members don't usually have a location,
    * but just use the containing union's location.  */
   else if (dwarf_tag(parentdie) != DW_TAG_union_type)
-    throw semantic_error ("no location for field '" + member
+    throw semantic_error ("no location for field '" + c.member
                           + "': " + string(dwarf_errmsg (-1)),
-                          e->tok);
+                          c.tok);
 
   return true;
 }
@@ -1709,6 +1708,8 @@ dwflpp::translate_components(struct obstack *pool,
 
   while (i < e->components.size())
     {
+      const target_symbol::component& c = e->components[i];
+
       /* XXX: This would be desirable, but we don't get the target_symbol token,
          and printing that gives us the file:line number too early anyway. */
 #if 0
@@ -1730,39 +1731,45 @@ dwflpp::translate_components(struct obstack *pool,
 
         case DW_TAG_pointer_type:
           c_translate_pointer (pool, 1, 0 /* PR9768*/, die, tail);
-          if (e->components[i].first != target_symbol::comp_literal_array_index)
+          if (c.type != target_symbol::comp_literal_array_index)
             break;
           /* else fall through as an array access */
 
         case DW_TAG_array_type:
-          if (e->components[i].first == target_symbol::comp_literal_array_index)
+          if (c.type == target_symbol::comp_literal_array_index)
             {
               c_translate_array (pool, 1, 0 /* PR9768 */, die, tail,
-                                 NULL, lex_cast<Dwarf_Word>(e->components[i].second));
+                                 NULL, c.num_index);
               ++i;
             }
           else
-            throw semantic_error("bad field '"
-                                 + e->components[i].second
-                                 + "' for array type",
-                                 e->tok);
+            throw semantic_error ("invalid access '"
+                                  + lex_cast<string>(c)
+                                  + "' for array type",
+                                  c.tok);
           break;
 
         case DW_TAG_structure_type:
         case DW_TAG_union_type:
+          if (c.type != target_symbol::comp_struct_member)
+            throw semantic_error ("invalid access '"
+                                  + lex_cast<string>(c)
+                                  + "' for struct/union type",
+                                  c.tok);
+
           if (dwarf_hasattr(die, DW_AT_declaration))
             {
               Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(die));
               if (tmpdie == NULL)
                 throw semantic_error ("unresolved struct "
                                       + string (dwarf_diename_integrate (die) ?: "<anonymous>"),
-                                      e->tok);
+                                      c.tok);
               *die_mem = *tmpdie;
             }
 
             {
               vector<Dwarf_Attribute> locs;
-              if (!find_struct_member(e->components[i].second, die, e, die, locs))
+              if (!find_struct_member(c, die, die, locs))
                 {
                   string alternatives;
                   stringstream members;
@@ -1770,10 +1777,10 @@ dwflpp::translate_components(struct obstack *pool,
                   if (members.str().size() != 0)
                     alternatives = " (alternatives:" + members.str();
                   throw semantic_error("unable to find member '" +
-                                       e->components[i].second + "' for struct "
+                                       c.member + "' for struct "
                                        + string(dwarf_diename_integrate(die) ?: "<unknown>")
                                        + alternatives,
-                                       e->tok);
+                                       c.tok);
                 }
 
               for (unsigned j = 0; j < locs.size(); ++j)
@@ -1784,39 +1791,40 @@ dwflpp::translate_components(struct obstack *pool,
           break;
 
         case DW_TAG_enumeration_type:
-          throw semantic_error ("field '"
-                                + e->components[i].second
+          throw semantic_error ("invalid access '"
+                                + lex_cast<string>(c)
                                 + "' vs. enum type "
                                 + string(dwarf_diename_integrate (die) ?: "<anonymous type>"),
-                                e->tok);
+                                c.tok);
           break;
         case DW_TAG_base_type:
-          throw semantic_error ("field '"
-                                + e->components[i].second
+          throw semantic_error ("invalid access '"
+                                + lex_cast<string>(c)
                                 + "' vs. base type "
                                 + string(dwarf_diename_integrate (die) ?: "<anonymous type>"),
-                                e->tok);
+                                c.tok);
           break;
         case -1:
           throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)),
-                                e->tok);
+                                c.tok);
           break;
 
         default:
           throw semantic_error (string(dwarf_diename_integrate (die) ?: "<anonymous type>")
                                 + ": unexpected type tag "
                                 + lex_cast<string>(dwarf_tag (die)),
-                                e->tok);
+                                c.tok);
           break;
         }
 
       /* Now iterate on the type in DIE's attribute.  */
       if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
-        throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)), e->tok);
+        throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)),
+                              c.tok);
     }
 
   /* For an array index, we need to dereference the final DIE */
-  if (e->components.back().first == target_symbol::comp_literal_array_index)
+  if (e->components.back().type == target_symbol::comp_literal_array_index)
     die = dwarf_formref_die (attr_mem, die_mem);
 
   return die;

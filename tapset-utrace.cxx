@@ -457,7 +457,7 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
         if (e->components.size() > 0)
          {
-           switch (e->components[0].first)
+           switch (e->components[0].type)
      	    {
 	     case target_symbol::comp_literal_array_index:
 	       throw semantic_error("utrace target variable '$argN' may not be used as array",
@@ -507,7 +507,7 @@ utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
   if (e->components.size() > 0)
     {
-      switch (e->components[0].first)
+      switch (e->components[0].type)
 	{
 	case target_symbol::comp_literal_array_index:
 	  throw semantic_error("utrace target variable '" + sname + "' may not be used as array",

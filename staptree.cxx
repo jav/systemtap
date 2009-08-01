@@ -259,23 +259,34 @@ void symbol::print (ostream& o) const
 }
 
 
+void target_symbol::component::print (ostream& o) const
+{
+  switch (type)
+    {
+    case comp_struct_member:
+      o << "->" << member;
+      break;
+    case comp_literal_array_index:
+      o << '[' << num_index << ']';
+      break;
+    }
+}
+
+
+std::ostream& operator << (std::ostream& o, const target_symbol::component& c)
+{
+  c.print (o);
+  return o;
+}
+
+
 void target_symbol::print (ostream& o) const
 {
   if (addressof)
     o << "&";
   o << base_name;
   for (unsigned i = 0; i < components.size(); ++i)
-    {
-      switch (components[i].first)
-	{
-	case comp_literal_array_index:
-	  o << '[' << components[i].second << ']';
-	  break;
-	case comp_struct_member:
-	  o << "->" << components[i].second;
-	  break;
-	}
-    }
+    o << components[i];
 }
 
 
@@ -289,17 +300,7 @@ void cast_op::print (ostream& o) const
     o << ", " << lex_cast_qstring (module);
   o << ')';
   for (unsigned i = 0; i < components.size(); ++i)
-    {
-      switch (components[i].first)
-	{
-	case comp_literal_array_index:
-	  o << '[' << components[i].second << ']';
-	  break;
-	case comp_struct_member:
-	  o << "->" << components[i].second;
-	  break;
-	}
-    }
+    o << components[i];
 }
 
 

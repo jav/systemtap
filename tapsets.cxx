@@ -2244,7 +2244,6 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // quietly.
 	  provide (e);
 	  semantic_error* saveme = new semantic_error (er); // copy it
-	  saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
 	  // NB: we can have multiple errors, since a $target variable
 	  // may be expanded in several different contexts:
 	  //     function ("*") { $var }
@@ -5263,7 +5262,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
   // make sure we're not dereferencing base types
   if (!e->components.empty() && !arg->isptr)
-    switch (e->components[0].first)
+    switch (e->components[0].type)
       {
       case target_symbol::comp_literal_array_index:
         throw semantic_error("tracepoint variable '" + e->base_name
@@ -5323,7 +5322,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
           // up not being referenced after all, so it can be optimized out
           // quietly.
           semantic_error* saveme = new semantic_error (er); // copy it
-          saveme->tok1 = e->tok; // XXX: token not passed to dw code generation routines
           // NB: we can have multiple errors, since a target variable
           // may be expanded in several different contexts:
           //     trace ("*") { $foo->bar }
@@ -5396,7 +5394,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     throw semantic_error("write to tracepoint '" + e->base_name + "' not permitted", e->tok);
 
   if (!e->components.empty())
-    switch (e->components[0].first)
+    switch (e->components[0].type)
       {
       case target_symbol::comp_literal_array_index:
         throw semantic_error("tracepoint '" + e->base_name + "' may not be used as array",

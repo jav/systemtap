@@ -333,9 +333,8 @@ private:
                                       struct location **tail,
                                       const target_symbol *e);
 
-  bool find_struct_member(const std::string& member,
+  bool find_struct_member(const target_symbol::component& c,
                           Dwarf_Die *parentdie,
-                          const target_symbol *e,
                           Dwarf_Die *memberdie,
                           std::vector<Dwarf_Attribute>& locs);
 

@@ -229,15 +229,32 @@ struct target_symbol: public symbol
       comp_struct_member,
       comp_literal_array_index
     };
+
+  struct component
+    {
+      const token* tok;
+      component_type type;
+      std::string member; // comp_struct_member
+      int64_t num_index; // comp_literal_array_index
+
+      component(const token* t, const std::string& m):
+        tok(t), type(comp_struct_member), member(m), num_index(0) {}
+      component(const token* t, int64_t n):
+        tok(t), type(comp_literal_array_index), num_index(n) {}
+      void print (std::ostream& o) const;
+    };
+
   bool addressof;
   std::string base_name;
-  std::vector<std::pair<component_type, std::string> > components;
+  std::vector<component> components;
   std::string probe_context_var;
   semantic_error* saved_conversion_error;
   target_symbol(): addressof(false), saved_conversion_error (0) {}
   void print (std::ostream& o) const;
   void visit (visitor* u);
 };
+
+std::ostream& operator << (std::ostream& o, const target_symbol::component& c);
 
 
 struct cast_op: public target_symbol
