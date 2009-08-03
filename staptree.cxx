@@ -186,6 +186,31 @@ operator << (ostream& o, const exp_type& e)
 }
 
 
+void
+target_symbol::assert_no_components(const std::string& tapset)
+{
+  if (components.empty())
+    return;
+
+  switch (components[0].type)
+    {
+    case target_symbol::comp_literal_array_index:
+    case target_symbol::comp_expression_array_index:
+      throw semantic_error(tapset + " variable '" + base_name +
+                           "' may not be used as array",
+                           components[0].tok);
+    case target_symbol::comp_struct_member:
+      throw semantic_error(tapset + " variable '" + base_name +
+                           "' may not be used as a structure",
+                           components[0].tok);
+    default:
+      throw semantic_error ("invalid use of " + tapset +
+                            " variable '" + base_name + "'",
+                            components[0].tok);
+    }
+}
+
+
 // ------------------------------------------------------------------------
 // parse tree printing
 
@@ -259,27 +284,41 @@ void symbol::print (ostream& o) const
 }
 
 
-void target_symbol::print (std::ostream& o) const
+void target_symbol::component::print (ostream& o) const
+{
+  switch (type)
+    {
+    case comp_struct_member:
+      o << "->" << member;
+      break;
+    case comp_literal_array_index:
+      o << '[' << num_index << ']';
+      break;
+    case comp_expression_array_index:
+      o << '[' << *expr_index << ']';
+      break;
+    }
+}
+
+
+std::ostream& operator << (std::ostream& o, const target_symbol::component& c)
+{
+  c.print (o);
+  return o;
+}
+
+
+void target_symbol::print (ostream& o) const
 {
   if (addressof)
     o << "&";
   o << base_name;
   for (unsigned i = 0; i < components.size(); ++i)
-    {
-      switch (components[i].first)
-	{
-	case comp_literal_array_index:
-	  o << '[' << components[i].second << ']';
-	  break;
-	case comp_struct_member:
-	  o << "->" << components[i].second;
-	  break;
-	}
-    }
+    o << components[i];
 }
 
 
-void cast_op::print (std::ostream& o) const
+void cast_op::print (ostream& o) const
 {
   if (addressof)
     o << "&";
@@ -289,17 +328,7 @@ void cast_op::print (std::ostream& o) const
     o << ", " << lex_cast_qstring (module);
   o << ')';
   for (unsigned i = 0; i < components.size(); ++i)
-    {
-      switch (components[i].first)
-	{
-	case comp_literal_array_index:
-	  o << '[' << components[i].second << ']';
-	  break;
-	case comp_struct_member:
-	  o << "->" << components[i].second;
-	  break;
-	}
-    }
+    o << components[i];
 }
 
 
@@ -1246,6 +1275,22 @@ target_symbol::visit (visitor* u)
 }
 
 void
+target_symbol::visit_components (visitor* u)
+{
+  for (unsigned i = 0; i < components.size(); ++i)
+    if (components[i].type == comp_expression_array_index)
+      components[i].expr_index->visit (u);
+}
+
+void
+target_symbol::visit_components (update_visitor* u)
+{
+  for (unsigned i = 0; i < components.size(); ++i)
+    if (components[i].type == comp_expression_array_index)
+      components[i].expr_index = u->require (components[i].expr_index);
+}
+
+void
 cast_op::visit (visitor* u)
 {
   u->visit_cast_op(this);
@@ -1613,14 +1658,16 @@ traversing_visitor::visit_symbol (symbol*)
 }
 
 void
-traversing_visitor::visit_target_symbol (target_symbol*)
+traversing_visitor::visit_target_symbol (target_symbol* e)
 {
+  e->visit_components (this);
 }
 
 void
 traversing_visitor::visit_cast_op (cast_op* e)
 {
   e->operand->visit (this);
+  e->visit_components (this);
 }
 
 void
@@ -1715,6 +1762,8 @@ varuse_collecting_visitor::visit_target_symbol (target_symbol *e)
 
   if (is_active_lvalue (e))
     embedded_seen = true;
+
+  functioncall_traversing_visitor::visit_target_symbol (e);
 }
 
 void
@@ -2348,6 +2397,7 @@ update_visitor::visit_symbol (symbol* e)
 void
 update_visitor::visit_target_symbol (target_symbol* e)
 {
+  e->visit_components (this);
   provide (e);
 }
 
@@ -2355,6 +2405,7 @@ void
 update_visitor::visit_cast_op (cast_op* e)
 {
   e->operand = require (e->operand);
+  e->visit_components (this);
   provide (e);
 }
 

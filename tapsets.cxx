@@ -2244,7 +2244,6 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // quietly.
 	  provide (e);
 	  semantic_error* saveme = new semantic_error (er); // copy it
-	  saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
 	  // NB: we can have multiple errors, since a $target variable
 	  // may be expanded in several different contexts:
 	  //     function ("*") { $var }
@@ -2269,6 +2268,18 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   fdecl->name = fname;
   fdecl->body = ec;
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      {
+        vardecl *v = new vardecl;
+        v->type = pe_long;
+        v->name = "index" + lex_cast<string>(i);
+        v->tok = e->tok;
+        fdecl->formal_args.push_back(v);
+      }
+
   if (lvalue)
     {
       // Modify the fdecl so it carries a single pe_long formal
@@ -2292,6 +2303,11 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   n->tok = e->tok;
   n->function = fname;
   n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      n->args.push_back(require(e->components[i].expr_index));
 
   if (lvalue)
     {
@@ -2522,6 +2538,17 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   v1->tok = e->tok;
   fdecl->formal_args.push_back(v1);
 
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      {
+        vardecl *v = new vardecl;
+        v->type = pe_long;
+        v->name = "index" + lex_cast<string>(i);
+        v->tok = e->tok;
+        fdecl->formal_args.push_back(v);
+      }
+
   if (lvalue)
     {
       // Modify the fdecl so it carries a second pe_long formal
@@ -2549,6 +2576,11 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   n->function = fname;
   n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
   n->args.push_back(e->operand);
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      n->args.push_back(require(e->components[i].expr_index));
 
   if (lvalue)
     {
@@ -3278,7 +3310,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   cast->type = probe_name + "_arg" + lex_cast<string>(argno);
   cast->module = process_name;
 
-  provide(cast);
+  cast->visit(this);
 }
 
 
@@ -5262,19 +5294,8 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
     }
 
   // make sure we're not dereferencing base types
-  if (!e->components.empty() && !arg->isptr)
-    switch (e->components[0].first)
-      {
-      case target_symbol::comp_literal_array_index:
-        throw semantic_error("tracepoint variable '" + e->base_name
-                             + "' may not be used as array", e->tok);
-      case target_symbol::comp_struct_member:
-        throw semantic_error("tracepoint variable '" + e->base_name
-                             + "' may not be used as a structure", e->tok);
-      default:
-        throw semantic_error("invalid use of tracepoint variable '"
-                             + e->base_name + "'", e->tok);
-      }
+  if (!arg->isptr)
+    e->assert_no_components("tracepoint");
 
   // we can only write to dereferenced fields, and only if guru mode is on
   bool lvalue = is_active_lvalue(e);
@@ -5323,7 +5344,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
           // up not being referenced after all, so it can be optimized out
           // quietly.
           semantic_error* saveme = new semantic_error (er); // copy it
-          saveme->tok1 = e->tok; // XXX: token not passed to dw code generation routines
           // NB: we can have multiple errors, since a target variable
           // may be expanded in several different contexts:
           //     trace ("*") { $foo->bar }
@@ -5339,6 +5359,17 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       v1->name = "pointer";
       v1->tok = e->tok;
       fdecl->formal_args.push_back(v1);
+
+      // Any non-literal indexes need to be passed in too.
+      for (unsigned i = 0; i < e->components.size(); ++i)
+        if (e->components[i].type == target_symbol::comp_expression_array_index)
+          {
+            vardecl *v = new vardecl;
+            v->type = pe_long;
+            v->name = "index" + lex_cast<string>(i);
+            v->tok = e->tok;
+            fdecl->formal_args.push_back(v);
+          }
 
       if (lvalue)
         {
@@ -5367,10 +5398,16 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       n->function = fname;
       n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
-      // make the original a bare target symbol for the tracepoint value,
-      // which will be passed into the dwarf dereferencing code
-      e->components.clear();
-      n->args.push_back(require(e));
+      // make a copy of the original as a bare target symbol for the tracepoint
+      // value, which will be passed into the dwarf dereferencing code
+      target_symbol* e2 = deep_copy_visitor::deep_copy(e);
+      e2->components.clear();
+      n->args.push_back(require(e2));
+
+      // Any non-literal indexes need to be passed in too.
+      for (unsigned i = 0; i < e->components.size(); ++i)
+        if (e->components[i].type == target_symbol::comp_expression_array_index)
+          n->args.push_back(require(e->components[i].expr_index));
 
       if (lvalue)
         {
@@ -5395,18 +5432,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   if (is_active_lvalue (e))
     throw semantic_error("write to tracepoint '" + e->base_name + "' not permitted", e->tok);
 
-  if (!e->components.empty())
-    switch (e->components[0].first)
-      {
-      case target_symbol::comp_literal_array_index:
-        throw semantic_error("tracepoint '" + e->base_name + "' may not be used as array",
-                             e->tok);
-      case target_symbol::comp_struct_member:
-        throw semantic_error("tracepoint '" + e->base_name + "' may not be used as a structure",
-                             e->tok);
-      default:
-        throw semantic_error("invalid tracepoint '" + e->base_name + "' use", e->tok);
-      }
+  e->assert_no_components("tracepoint");
 
   if (e->base_name == "$$name")
     {
