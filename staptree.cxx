@@ -2450,7 +2450,7 @@ update_visitor::visit_hist_op (hist_op* e)
 }
 
 template <> indexable*
-update_visitor::require <indexable*> (indexable* src, bool clearok)
+update_visitor::require <indexable> (indexable* src, bool clearok)
 {
   indexable *dst = NULL;
   if (src != NULL)
