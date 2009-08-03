@@ -94,7 +94,7 @@ procfs_derived_probe::procfs_derived_probe (systemtap_session &s, probe* p,
 {
   // Expand local variables in the probe body
   procfs_var_expanding_visitor v (s, name, path, write);
-  this->body = v.require (this->body);
+  v.replace (this->body);
   target_symbol_seen = v.target_symbol_seen;
 }
 

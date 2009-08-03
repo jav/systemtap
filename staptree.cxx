@@ -1287,7 +1287,7 @@ target_symbol::visit_components (update_visitor* u)
 {
   for (unsigned i = 0; i < components.size(); ++i)
     if (components[i].type == comp_expression_array_index)
-      components[i].expr_index = u->require (components[i].expr_index);
+      u->replace (components[i].expr_index);
 }
 
 void
@@ -2205,7 +2205,7 @@ void
 update_visitor::visit_block (block* s)
 {
   for (unsigned i = 0; i < s->statements.size(); ++i)
-    s->statements[i] = require (s->statements[i]);
+    replace (s->statements[i]);
   provide (s);
 }
 
@@ -2224,26 +2224,26 @@ update_visitor::visit_null_statement (null_statement* s)
 void
 update_visitor::visit_expr_statement (expr_statement* s)
 {
-  s->value = require (s->value);
+  replace (s->value);
   provide (s);
 }
 
 void
 update_visitor::visit_if_statement (if_statement* s)
 {
-  s->condition = require (s->condition);
-  s->thenblock = require (s->thenblock);
-  s->elseblock = require (s->elseblock);
+  replace (s->condition);
+  replace (s->thenblock);
+  replace (s->elseblock);
   provide (s);
 }
 
 void
 update_visitor::visit_for_loop (for_loop* s)
 {
-  s->init = require (s->init);
-  s->cond = require (s->cond);
-  s->incr = require (s->incr);
-  s->block = require (s->block);
+  replace (s->init);
+  replace (s->cond);
+  replace (s->incr);
+  replace (s->block);
   provide (s);
 }
 
@@ -2251,24 +2251,24 @@ void
 update_visitor::visit_foreach_loop (foreach_loop* s)
 {
   for (unsigned i = 0; i < s->indexes.size(); ++i)
-    s->indexes[i] = require (s->indexes[i]);
-  s->base = require (s->base);
-  s->limit = require (s->limit);
-  s->block = require (s->block);
+    replace (s->indexes[i]);
+  replace (s->base);
+  replace (s->limit);
+  replace (s->block);
   provide (s);
 }
 
 void
 update_visitor::visit_return_statement (return_statement* s)
 {
-  s->value = require (s->value);
+  replace (s->value);
   provide (s);
 }
 
 void
 update_visitor::visit_delete_statement (delete_statement* s)
 {
-  s->value = require (s->value);
+  replace (s->value);
   provide (s);
 }
 
@@ -2305,29 +2305,29 @@ update_visitor::visit_literal_number (literal_number* e)
 void
 update_visitor::visit_binary_expression (binary_expression* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_unary_expression (unary_expression* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   provide (e);
 }
 
 void
 update_visitor::visit_pre_crement (pre_crement* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   provide (e);
 }
 
 void
 update_visitor::visit_post_crement (post_crement* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   provide (e);
 }
 
@@ -2335,56 +2335,56 @@ update_visitor::visit_post_crement (post_crement* e)
 void
 update_visitor::visit_logical_or_expr (logical_or_expr* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_logical_and_expr (logical_and_expr* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_array_in (array_in* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   provide (e);
 }
 
 void
 update_visitor::visit_comparison (comparison* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_concatenation (concatenation* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_ternary_expression (ternary_expression* e)
 {
-  e->cond = require (e->cond);
-  e->truevalue = require (e->truevalue);
-  e->falsevalue = require (e->falsevalue);
+  replace (e->cond);
+  replace (e->truevalue);
+  replace (e->falsevalue);
   provide (e);
 }
 
 void
 update_visitor::visit_assignment (assignment* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
@@ -2404,7 +2404,7 @@ update_visitor::visit_target_symbol (target_symbol* e)
 void
 update_visitor::visit_cast_op (cast_op* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   e->visit_components (this);
   provide (e);
 }
@@ -2412,9 +2412,9 @@ update_visitor::visit_cast_op (cast_op* e)
 void
 update_visitor::visit_arrayindex (arrayindex* e)
 {
-  e->base = require (e->base);
+  replace (e->base);
   for (unsigned i = 0; i < e->indexes.size(); ++i)
-    e->indexes[i] = require (e->indexes[i]);
+    replace (e->indexes[i]);
   provide (e);
 }
 
@@ -2422,7 +2422,7 @@ void
 update_visitor::visit_functioncall (functioncall* e)
 {
   for (unsigned i = 0; i < e->args.size(); ++i)
-    e->args[i] = require (e->args[i]);
+    replace (e->args[i]);
   provide (e);
 }
 
@@ -2430,22 +2430,22 @@ void
 update_visitor::visit_print_format (print_format* e)
 {
   for (unsigned i = 0; i < e->args.size(); ++i)
-    e->args[i] = require (e->args[i]);
-  e->hist = require (e->hist);
+    replace (e->args[i]);
+  replace (e->hist);
   provide (e);
 }
 
 void
 update_visitor::visit_stat_op (stat_op* e)
 {
-  e->stat = require (e->stat);
+  replace (e->stat);
   provide (e);
 }
 
 void
 update_visitor::visit_hist_op (hist_op* e)
 {
-  e->stat = require (e->stat);
+  replace (e->stat);
   provide (e);
 }
 

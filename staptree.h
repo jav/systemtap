@@ -874,6 +874,11 @@ struct update_visitor: public visitor
     targets.push(static_cast<void*>(src));
   }
 
+  template <typename T> void replace (T*& src, bool clearok=false)
+  {
+    src = require(src, clearok);
+  }
+
   virtual ~update_visitor() { assert(targets.empty()); }
 
   virtual void visit_block (block *s);

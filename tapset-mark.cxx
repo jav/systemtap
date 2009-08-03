@@ -223,7 +223,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 
   // Now expand the local variables in the probe body
   mark_var_expanding_visitor v (sess, name, mark_args);
-  this->body = v.require (this->body);
+  v.replace (this->body);
   target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 2)

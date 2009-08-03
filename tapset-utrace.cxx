@@ -120,7 +120,7 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
 {
   // Expand local variables in the probe body
   utrace_var_expanding_visitor v (s, l, name, flags);
-  this->body = v.require (this->body);
+  v.replace (this->body);
   target_symbol_seen = v.target_symbol_seen;
 
   // If during target-variable-expanding the probe, we added a new block

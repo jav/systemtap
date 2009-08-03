@@ -2089,7 +2089,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       // Ignore any variable that isn't accessible.
       tsym->saved_conversion_error = 0;
       expression *texp = tsym;
-      texp = require (texp); // NB: throws nothing ...
+      replace (texp); // NB: throws nothing ...
       if (tsym->saved_conversion_error) // ... but this is how we know it happened.
         {
 
@@ -2133,7 +2133,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
             // Ignore any variable that isn't accessible.
             tsym->saved_conversion_error = 0;
             expression *texp = tsym;
-            texp = require (texp); // NB: throws nothing ...
+            replace (texp); // NB: throws nothing ...
             if (tsym->saved_conversion_error) // ... but this is how we know it happened.
               {
                 if (q.sess.verbose>2)
@@ -2664,7 +2664,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   if (!null_die(scope_die))
     {
       dwarf_var_expanding_visitor v (q, scope_die, dwfl_addr);
-      this->body = v.require (this->body);
+      v.replace (this->body);
       this->access_vars = v.visited;
 
       // If during target-variable-expanding the probe, we added a new block
@@ -3391,7 +3391,7 @@ sdt_query::handle_query_module()
       sdt_var_expanding_visitor svv (module_val, probe_name,
                                      probe_arg, have_reg_args,
                                      probe_type == utrace_type);
-      new_base->body = svv.require (new_base->body);
+      svv.replace (new_base->body);
 
       unsigned i = results.size();
 
@@ -4148,7 +4148,7 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
   if (!null_die(scope_die))
     {
       dwarf_var_expanding_visitor v (q, scope_die, dwfl_addr); // XXX: user-space deref's!
-      this->body = v.require (this->body);
+      v.replace (this->body);
 
       // If during target-variable-expanding the probe, we added a new block
       // of code, add it to the start of the probe.
@@ -5538,7 +5538,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 
   // Now expand the local variables in the probe body
   tracepoint_var_expanding_visitor v (dw, name, args);
-  this->body = v.require (this->body);
+  v.replace (this->body);
 
   if (sess.verbose > 2)
     clog << "tracepoint-based " << name << " tracepoint='" << tracepoint_name

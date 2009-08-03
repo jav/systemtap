@@ -153,7 +153,7 @@ perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
 
   // Now expand the local variables in the probe body
   perfmon_var_expanding_visitor v (sess, probes_allocated-1);
-  this->body = v.require (this->body);
+  v.replace (this->body);
 
   if (sess.verbose > 1)
     clog << "perfmon-based probe" << endl;
