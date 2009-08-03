@@ -3515,7 +3515,7 @@ c_unparser::visit_target_symbol (target_symbol* e)
   if (!e->probe_context_var.empty())
     o->line() << "l->" << e->probe_context_var;
   else
-    throw semantic_error("cannot translate general cast expression", e->tok);
+    throw semantic_error("cannot translate general target expression", e->tok);
 }
 
 

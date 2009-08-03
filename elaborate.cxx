@@ -2534,6 +2534,7 @@ struct void_statement_reducer: public update_visitor
   void visit_concatenation (concatenation* e);
   void visit_functioncall (functioncall* e);
   void visit_print_format (print_format* e);
+  void visit_target_symbol (target_symbol* e);
   void visit_cast_op (cast_op* e);
 
   // these are a bit hairy to grok due to the intricacies of indexables and
@@ -2803,16 +2804,73 @@ void_statement_reducer::visit_print_format (print_format* e)
 }
 
 void
+void_statement_reducer::visit_target_symbol (target_symbol* e)
+{
+  // When target_symbol isn't needed, it's just as good to
+  // evaluate any array indexes directly
+
+  block *b = new block;
+  b->tok = e->tok;
+
+  for (unsigned i=0; i<e->components.size(); i++ )
+    {
+      if (e->components[i].type != target_symbol::comp_expression_array_index)
+        continue;
+
+      expr_statement *es = new expr_statement;
+      es->value = e->components[i].expr_index;
+      es->tok = es->value->tok;
+      b->statements.push_back(es);
+    }
+
+  if (b->statements.empty())
+    {
+      delete b;
+      provide (e);
+      return;
+    }
+
+  if (session.verbose>2)
+    clog << "Eliding unused target symbol " << *e->tok << endl;
+
+  b->visit(this);
+  relaxed_p = false;
+  e = 0;
+  provide (e);
+}
+
+void
 void_statement_reducer::visit_cast_op (cast_op* e)
 {
   // When the result of a cast operation isn't needed, it's just as good to
-  // evaluate the operand directly
+  // evaluate the operand and any array indexes directly
+
+  block *b = new block;
+  b->tok = e->tok;
+
+  expr_statement *es = new expr_statement;
+  es->value = e->operand;
+  es->tok = es->value->tok;
+  b->statements.push_back(es);
+
+  for (unsigned i=0; i<e->components.size(); i++ )
+    {
+      if (e->components[i].type != target_symbol::comp_expression_array_index)
+        continue;
+
+      es = new expr_statement;
+      es->value = e->components[i].expr_index;
+      es->tok = es->value->tok;
+      b->statements.push_back(es);
+    }
 
   if (session.verbose>2)
     clog << "Eliding unused typecast " << *e->tok << endl;
 
+  b->visit(this);
   relaxed_p = false;
-  e->operand->visit(this);
+  e = 0;
+  provide (e);
 }
 
 

@@ -195,6 +195,7 @@ target_symbol::assert_no_components(const std::string& tapset)
   switch (components[0].type)
     {
     case target_symbol::comp_literal_array_index:
+    case target_symbol::comp_expression_array_index:
       throw semantic_error(tapset + " variable '" + base_name +
                            "' may not be used as array",
                            components[0].tok);
@@ -292,6 +293,9 @@ void target_symbol::component::print (ostream& o) const
       break;
     case comp_literal_array_index:
       o << '[' << num_index << ']';
+      break;
+    case comp_expression_array_index:
+      o << '[' << *expr_index << ']';
       break;
     }
 }
@@ -1271,6 +1275,22 @@ target_symbol::visit (visitor* u)
 }
 
 void
+target_symbol::visit_components (visitor* u)
+{
+  for (unsigned i = 0; i < components.size(); ++i)
+    if (components[i].type == comp_expression_array_index)
+      components[i].expr_index->visit (u);
+}
+
+void
+target_symbol::visit_components (update_visitor* u)
+{
+  for (unsigned i = 0; i < components.size(); ++i)
+    if (components[i].type == comp_expression_array_index)
+      components[i].expr_index = u->require (components[i].expr_index);
+}
+
+void
 cast_op::visit (visitor* u)
 {
   u->visit_cast_op(this);
@@ -1638,14 +1658,16 @@ traversing_visitor::visit_symbol (symbol*)
 }
 
 void
-traversing_visitor::visit_target_symbol (target_symbol*)
+traversing_visitor::visit_target_symbol (target_symbol* e)
 {
+  e->visit_components (this);
 }
 
 void
 traversing_visitor::visit_cast_op (cast_op* e)
 {
   e->operand->visit (this);
+  e->visit_components (this);
 }
 
 void
@@ -1740,6 +1762,8 @@ varuse_collecting_visitor::visit_target_symbol (target_symbol *e)
 
   if (is_active_lvalue (e))
     embedded_seen = true;
+
+  functioncall_traversing_visitor::visit_target_symbol (e);
 }
 
 void
@@ -2373,6 +2397,7 @@ update_visitor::visit_symbol (symbol* e)
 void
 update_visitor::visit_target_symbol (target_symbol* e)
 {
+  e->visit_components (this);
   provide (e);
 }
 
@@ -2380,6 +2405,7 @@ void
 update_visitor::visit_cast_op (cast_op* e)
 {
   e->operand = require (e->operand);
+  e->visit_components (this);
   provide (e);
 }
 

@@ -2581,9 +2581,12 @@ parser::parse_target_symbol_components (target_symbol* e)
       else if (peek_op ("["))
         {
           const token* t = next();
-          int64_t index;
-          expect_number (index);
-          e->components.push_back (target_symbol::component(t, index));
+          expression* index = parse_expression();
+          literal_number* ln = dynamic_cast<literal_number*>(index);
+          if (ln)
+            e->components.push_back (target_symbol::component(t, ln->value));
+          else
+            e->components.push_back (target_symbol::component(t, index));
           expect_op ("]");
         }
       else

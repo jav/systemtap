@@ -58,6 +58,7 @@ std::ostream& operator << (std::ostream& o, const exp_type& e);
 
 struct token;
 struct visitor;
+struct update_visitor;
 
 struct expression
 {
@@ -227,7 +228,8 @@ struct target_symbol: public symbol
   enum component_type
     {
       comp_struct_member,
-      comp_literal_array_index
+      comp_literal_array_index,
+      comp_expression_array_index,
     };
 
   struct component
@@ -236,11 +238,14 @@ struct target_symbol: public symbol
       component_type type;
       std::string member; // comp_struct_member
       int64_t num_index; // comp_literal_array_index
+      expression* expr_index; // comp_expression_array_index
 
       component(const token* t, const std::string& m):
-        tok(t), type(comp_struct_member), member(m), num_index(0) {}
+        tok(t), type(comp_struct_member), member(m) {}
       component(const token* t, int64_t n):
         tok(t), type(comp_literal_array_index), num_index(n) {}
+      component(const token* t, expression* e):
+        tok(t), type(comp_expression_array_index), expr_index(e) {}
       void print (std::ostream& o) const;
     };
 
@@ -252,6 +257,8 @@ struct target_symbol: public symbol
   target_symbol(): addressof(false), saved_conversion_error (0) {}
   void print (std::ostream& o) const;
   void visit (visitor* u);
+  void visit_components (visitor* u);
+  void visit_components (update_visitor* u);
   void assert_no_components(const std::string& tapset);
 };
 

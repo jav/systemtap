@@ -2268,6 +2268,18 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   fdecl->name = fname;
   fdecl->body = ec;
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      {
+        vardecl *v = new vardecl;
+        v->type = pe_long;
+        v->name = "index" + lex_cast<string>(i);
+        v->tok = e->tok;
+        fdecl->formal_args.push_back(v);
+      }
+
   if (lvalue)
     {
       // Modify the fdecl so it carries a single pe_long formal
@@ -2291,6 +2303,11 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   n->tok = e->tok;
   n->function = fname;
   n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      n->args.push_back(require(e->components[i].expr_index));
 
   if (lvalue)
     {
@@ -2521,6 +2538,17 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   v1->tok = e->tok;
   fdecl->formal_args.push_back(v1);
 
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      {
+        vardecl *v = new vardecl;
+        v->type = pe_long;
+        v->name = "index" + lex_cast<string>(i);
+        v->tok = e->tok;
+        fdecl->formal_args.push_back(v);
+      }
+
   if (lvalue)
     {
       // Modify the fdecl so it carries a second pe_long formal
@@ -2548,6 +2576,11 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   n->function = fname;
   n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
   n->args.push_back(e->operand);
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      n->args.push_back(require(e->components[i].expr_index));
 
   if (lvalue)
     {
@@ -3277,7 +3310,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   cast->type = probe_name + "_arg" + lex_cast<string>(argno);
   cast->module = process_name;
 
-  provide(cast);
+  cast->visit(this);
 }
 
 
@@ -5327,6 +5360,17 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       v1->tok = e->tok;
       fdecl->formal_args.push_back(v1);
 
+      // Any non-literal indexes need to be passed in too.
+      for (unsigned i = 0; i < e->components.size(); ++i)
+        if (e->components[i].type == target_symbol::comp_expression_array_index)
+          {
+            vardecl *v = new vardecl;
+            v->type = pe_long;
+            v->name = "index" + lex_cast<string>(i);
+            v->tok = e->tok;
+            fdecl->formal_args.push_back(v);
+          }
+
       if (lvalue)
         {
           // Modify the fdecl so it carries a pe_long formal
@@ -5354,10 +5398,16 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       n->function = fname;
       n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
-      // make the original a bare target symbol for the tracepoint value,
-      // which will be passed into the dwarf dereferencing code
-      e->components.clear();
-      n->args.push_back(require(e));
+      // make a copy of the original as a bare target symbol for the tracepoint
+      // value, which will be passed into the dwarf dereferencing code
+      target_symbol* e2 = deep_copy_visitor::deep_copy(e);
+      e2->components.clear();
+      n->args.push_back(require(e2));
+
+      // Any non-literal indexes need to be passed in too.
+      for (unsigned i = 0; i < e->components.size(); ++i)
+        if (e->components[i].type == target_symbol::comp_expression_array_index)
+          n->args.push_back(require(e->components[i].expr_index));
 
       if (lvalue)
         {

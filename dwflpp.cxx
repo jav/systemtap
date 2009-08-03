@@ -1731,7 +1731,8 @@ dwflpp::translate_components(struct obstack *pool,
 
         case DW_TAG_pointer_type:
           c_translate_pointer (pool, 1, 0 /* PR9768*/, die, tail);
-          if (c.type != target_symbol::comp_literal_array_index)
+          if (c.type != target_symbol::comp_literal_array_index &&
+              c.type != target_symbol::comp_expression_array_index)
             break;
           /* else fall through as an array access */
 
@@ -1740,6 +1741,13 @@ dwflpp::translate_components(struct obstack *pool,
             {
               c_translate_array (pool, 1, 0 /* PR9768 */, die, tail,
                                  NULL, c.num_index);
+              ++i;
+            }
+          else if (c.type == target_symbol::comp_expression_array_index)
+            {
+              string index = "THIS->index" + lex_cast<string>(i);
+              c_translate_array (pool, 1, 0 /* PR9768 */, die, tail,
+                                 index.c_str(), 0);
               ++i;
             }
           else
@@ -1824,7 +1832,8 @@ dwflpp::translate_components(struct obstack *pool,
     }
 
   /* For an array index, we need to dereference the final DIE */
-  if (e->components.back().type == target_symbol::comp_literal_array_index)
+  if (e->components.back().type == target_symbol::comp_literal_array_index ||
+      e->components.back().type == target_symbol::comp_expression_array_index)
     die = dwarf_formref_die (attr_mem, die_mem);
 
   return die;
