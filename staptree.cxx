@@ -187,6 +187,31 @@ operator << (ostream& o, const exp_type& e)
 }
 
 
+void
+target_symbol::assert_no_components(const std::string& tapset)
+{
+  if (components.empty())
+    return;
+
+  switch (components[0].type)
+    {
+    case target_symbol::comp_literal_array_index:
+    case target_symbol::comp_expression_array_index:
+      throw semantic_error(tapset + " variable '" + base_name +
+                           "' may not be used as array",
+                           components[0].tok);
+    case target_symbol::comp_struct_member:
+      throw semantic_error(tapset + " variable '" + base_name +
+                           "' may not be used as a structure",
+                           components[0].tok);
+    default:
+      throw semantic_error ("invalid use of " + tapset +
+                            " variable '" + base_name + "'",
+                            components[0].tok);
+    }
+}
+
+
 // ------------------------------------------------------------------------
 // parse tree printing
 
@@ -260,27 +285,41 @@ void symbol::print (ostream& o) const
 }
 
 
-void target_symbol::print (std::ostream& o) const
+void target_symbol::component::print (ostream& o) const
+{
+  switch (type)
+    {
+    case comp_struct_member:
+      o << "->" << member;
+      break;
+    case comp_literal_array_index:
+      o << '[' << num_index << ']';
+      break;
+    case comp_expression_array_index:
+      o << '[' << *expr_index << ']';
+      break;
+    }
+}
+
+
+std::ostream& operator << (std::ostream& o, const target_symbol::component& c)
+{
+  c.print (o);
+  return o;
+}
+
+
+void target_symbol::print (ostream& o) const
 {
   if (addressof)
     o << "&";
   o << base_name;
   for (unsigned i = 0; i < components.size(); ++i)
-    {
-      switch (components[i].first)
-	{
-	case comp_literal_array_index:
-	  o << '[' << components[i].second << ']';
-	  break;
-	case comp_struct_member:
-	  o << "->" << components[i].second;
-	  break;
-	}
-    }
+    o << components[i];
 }
 
 
-void cast_op::print (std::ostream& o) const
+void cast_op::print (ostream& o) const
 {
   if (addressof)
     o << "&";
@@ -290,17 +329,7 @@ void cast_op::print (std::ostream& o) const
     o << ", " << lex_cast_qstring (module);
   o << ')';
   for (unsigned i = 0; i < components.size(); ++i)
-    {
-      switch (components[i].first)
-	{
-	case comp_literal_array_index:
-	  o << '[' << components[i].second << ']';
-	  break;
-	case comp_struct_member:
-	  o << "->" << components[i].second;
-	  break;
-	}
-    }
+    o << components[i];
 }
 
 
@@ -1247,6 +1276,22 @@ target_symbol::visit (visitor* u)
 }
 
 void
+target_symbol::visit_components (visitor* u)
+{
+  for (unsigned i = 0; i < components.size(); ++i)
+    if (components[i].type == comp_expression_array_index)
+      components[i].expr_index->visit (u);
+}
+
+void
+target_symbol::visit_components (update_visitor* u)
+{
+  for (unsigned i = 0; i < components.size(); ++i)
+    if (components[i].type == comp_expression_array_index)
+      u->replace (components[i].expr_index);
+}
+
+void
 cast_op::visit (visitor* u)
 {
   u->visit_cast_op(this);
@@ -1614,14 +1659,16 @@ traversing_visitor::visit_symbol (symbol*)
 }
 
 void
-traversing_visitor::visit_target_symbol (target_symbol*)
+traversing_visitor::visit_target_symbol (target_symbol* e)
 {
+  e->visit_components (this);
 }
 
 void
 traversing_visitor::visit_cast_op (cast_op* e)
 {
   e->operand->visit (this);
+  e->visit_components (this);
 }
 
 void
@@ -1723,6 +1770,8 @@ varuse_collecting_visitor::visit_target_symbol (target_symbol *e)
 
   if (is_active_lvalue (e))
     embedded_seen = true;
+
+  functioncall_traversing_visitor::visit_target_symbol (e);
 }
 
 void
@@ -2164,7 +2213,7 @@ void
 update_visitor::visit_block (block* s)
 {
   for (unsigned i = 0; i < s->statements.size(); ++i)
-    s->statements[i] = require (s->statements[i]);
+    replace (s->statements[i]);
   provide (s);
 }
 
@@ -2183,26 +2232,26 @@ update_visitor::visit_null_statement (null_statement* s)
 void
 update_visitor::visit_expr_statement (expr_statement* s)
 {
-  s->value = require (s->value);
+  replace (s->value);
   provide (s);
 }
 
 void
 update_visitor::visit_if_statement (if_statement* s)
 {
-  s->condition = require (s->condition);
-  s->thenblock = require (s->thenblock);
-  s->elseblock = require (s->elseblock);
+  replace (s->condition);
+  replace (s->thenblock);
+  replace (s->elseblock);
   provide (s);
 }
 
 void
 update_visitor::visit_for_loop (for_loop* s)
 {
-  s->init = require (s->init);
-  s->cond = require (s->cond);
-  s->incr = require (s->incr);
-  s->block = require (s->block);
+  replace (s->init);
+  replace (s->cond);
+  replace (s->incr);
+  replace (s->block);
   provide (s);
 }
 
@@ -2210,24 +2259,24 @@ void
 update_visitor::visit_foreach_loop (foreach_loop* s)
 {
   for (unsigned i = 0; i < s->indexes.size(); ++i)
-    s->indexes[i] = require (s->indexes[i]);
-  s->base = require (s->base);
-  s->limit = require (s->limit);
-  s->block = require (s->block);
+    replace (s->indexes[i]);
+  replace (s->base);
+  replace (s->limit);
+  replace (s->block);
   provide (s);
 }
 
 void
 update_visitor::visit_return_statement (return_statement* s)
 {
-  s->value = require (s->value);
+  replace (s->value);
   provide (s);
 }
 
 void
 update_visitor::visit_delete_statement (delete_statement* s)
 {
-  s->value = require (s->value);
+  replace (s->value);
   provide (s);
 }
 
@@ -2264,29 +2313,29 @@ update_visitor::visit_literal_number (literal_number* e)
 void
 update_visitor::visit_binary_expression (binary_expression* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_unary_expression (unary_expression* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   provide (e);
 }
 
 void
 update_visitor::visit_pre_crement (pre_crement* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   provide (e);
 }
 
 void
 update_visitor::visit_post_crement (post_crement* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   provide (e);
 }
 
@@ -2294,56 +2343,56 @@ update_visitor::visit_post_crement (post_crement* e)
 void
 update_visitor::visit_logical_or_expr (logical_or_expr* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_logical_and_expr (logical_and_expr* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_array_in (array_in* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
   provide (e);
 }
 
 void
 update_visitor::visit_comparison (comparison* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_concatenation (concatenation* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
 void
 update_visitor::visit_ternary_expression (ternary_expression* e)
 {
-  e->cond = require (e->cond);
-  e->truevalue = require (e->truevalue);
-  e->falsevalue = require (e->falsevalue);
+  replace (e->cond);
+  replace (e->truevalue);
+  replace (e->falsevalue);
   provide (e);
 }
 
 void
 update_visitor::visit_assignment (assignment* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
   provide (e);
 }
 
@@ -2356,22 +2405,24 @@ update_visitor::visit_symbol (symbol* e)
 void
 update_visitor::visit_target_symbol (target_symbol* e)
 {
+  e->visit_components (this);
   provide (e);
 }
 
 void
 update_visitor::visit_cast_op (cast_op* e)
 {
-  e->operand = require (e->operand);
+  replace (e->operand);
+  e->visit_components (this);
   provide (e);
 }
 
 void
 update_visitor::visit_arrayindex (arrayindex* e)
 {
-  e->base = require (e->base);
+  replace (e->base);
   for (unsigned i = 0; i < e->indexes.size(); ++i)
-    e->indexes[i] = require (e->indexes[i]);
+    replace (e->indexes[i]);
   provide (e);
 }
 
@@ -2379,7 +2430,7 @@ void
 update_visitor::visit_functioncall (functioncall* e)
 {
   for (unsigned i = 0; i < e->args.size(); ++i)
-    e->args[i] = require (e->args[i]);
+    replace (e->args[i]);
   provide (e);
 }
 
@@ -2387,27 +2438,27 @@ void
 update_visitor::visit_print_format (print_format* e)
 {
   for (unsigned i = 0; i < e->args.size(); ++i)
-    e->args[i] = require (e->args[i]);
-  e->hist = require (e->hist);
+    replace (e->args[i]);
+  replace (e->hist);
   provide (e);
 }
 
 void
 update_visitor::visit_stat_op (stat_op* e)
 {
-  e->stat = require (e->stat);
+  replace (e->stat);
   provide (e);
 }
 
 void
 update_visitor::visit_hist_op (hist_op* e)
 {
-  e->stat = require (e->stat);
+  replace (e->stat);
   provide (e);
 }
 
 template <> indexable*
-update_visitor::require <indexable*> (indexable* src, bool clearok)
+update_visitor::require <indexable> (indexable* src, bool clearok)
 {
   indexable *dst = NULL;
   if (src != NULL)

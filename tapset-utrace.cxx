@@ -120,7 +120,7 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
 {
   // Expand local variables in the probe body
   utrace_var_expanding_visitor v (s, l, name, flags);
-  this->body = v.require (this->body);
+  v.replace (this->body);
   target_symbol_seen = v.target_symbol_seen;
 
   // If during target-variable-expanding the probe, we added a new block
@@ -407,54 +407,80 @@ utrace_var_expanding_visitor::visit_target_symbol_cached (target_symbol* e)
 void
 utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
-  string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
-  int argnum = lex_cast<int>(argnum_s);
-
   if (flags != UDPF_SYSCALL)
-    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" support $argN.", e->tok);
+    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" support $argN or $$parms.", e->tok);
 
-  if (e->components.size() > 0)
+  if (e->base_name == "$$parms") 
     {
-      switch (e->components[0].first)
-	{
-	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("utrace target variable '$argN' may not be used as array",
-			       e->tok);
-	  break;
-	case target_symbol::comp_struct_member:
-	  throw semantic_error("utrace target variable '$argN' may not be used as a structure",
-			       e->tok);
-	  break;
-	default:
-	  throw semantic_error ("invalid use of utrace target variable '$argN'",
-				e->tok);
-	  break;
-	}
-    }
+      // copy from tracepoint
+      print_format* pf = new print_format;
+      token* pf_tok = new token(*e->tok);
+      pf_tok->content = "sprintf";
+      pf->tok = pf_tok;
+      pf->print_to_stream = false;
+      pf->print_with_format = true;
+      pf->print_with_delim = false;
+      pf->print_with_newline = false;
+      pf->print_char = false;
 
-  // FIXME: max argnument number should not be hardcoded.
-  if (argnum < 1 || argnum > 6)
-    throw semantic_error ("invalid syscall argument number (1-6)", e->tok);
+      target_symbol_seen = true;
 
-  bool lvalue = is_active_lvalue(e);
-  if (lvalue)
-    throw semantic_error("utrace '$argN' variable is read-only", e->tok);
+      for (unsigned i = 0; i < 6; ++i)
+        {
+          if (i > 0)
+            pf->raw_components += " ";
+          pf->raw_components += "$arg" + lex_cast<string>(i+1);
+          target_symbol *tsym = new target_symbol;
+          tsym->tok = e->tok;
+          tsym->base_name = "$arg" + lex_cast<string>(i+1);
+          tsym->saved_conversion_error = 0;
+          pf->raw_components += "=%#x"; //FIXME: missing type info
 
-  // Remember that we've seen a target variable.
-  target_symbol_seen = true;
+	  functioncall* n = new functioncall; //same as the following
+	  n->tok = e->tok;
+	  n->function = "_utrace_syscall_arg";
+	  n->referent = 0;
+	  literal_number *num = new literal_number(i);
+	  num->tok = e->tok;
+	  n->args.push_back(num);
 
-  // We're going to substitute a synthesized '_utrace_syscall_arg'
-  // function call for the '$argN' reference.
-  functioncall* n = new functioncall;
-  n->tok = e->tok;
-  n->function = "_utrace_syscall_arg";
-  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+          pf->args.push_back(n);
+        }
+      pf->components = print_format::string_to_components(pf->raw_components);
 
-  literal_number *num = new literal_number(argnum - 1);
-  num->tok = e->tok;
-  n->args.push_back(num);
+      provide (pf);
+     } 
+   else // $argN
+     {
+        string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
+        int argnum = lex_cast<int>(argnum_s);
 
-  provide (n);
+        e->assert_no_components("utrace");
+
+        // FIXME: max argnument number should not be hardcoded.
+        if (argnum < 1 || argnum > 6)
+           throw semantic_error ("invalid syscall argument number (1-6)", e->tok);
+
+        bool lvalue = is_active_lvalue(e);
+        if (lvalue)
+           throw semantic_error("utrace '$argN' variable is read-only", e->tok);
+
+        // Remember that we've seen a target variable.
+        target_symbol_seen = true;
+
+        // We're going to substitute a synthesized '_utrace_syscall_arg'
+        // function call for the '$argN' reference.
+        functioncall* n = new functioncall;
+        n->tok = e->tok;
+        n->function = "_utrace_syscall_arg";
+        n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+        literal_number *num = new literal_number(argnum - 1);
+        num->tok = e->tok;
+        n->args.push_back(num);
+
+        provide (n);
+     }
 }
 
 void
@@ -462,24 +488,7 @@ utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
   string sname = e->base_name;
 
-  if (e->components.size() > 0)
-    {
-      switch (e->components[0].first)
-	{
-	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("utrace target variable '" + sname + "' may not be used as array",
-			       e->tok);
-	  break;
-	case target_symbol::comp_struct_member:
-	  throw semantic_error("utrace target variable '" + sname + "' may not be used as a structure",
-			       e->tok);
-	  break;
-	default:
-	  throw semantic_error ("invalid use of utrace target variable '" + sname + "'",
-				e->tok);
-	  break;
-	}
-    }
+  e->assert_no_components("utrace");
 
   bool lvalue = is_active_lvalue(e);
   if (lvalue)
@@ -542,12 +551,12 @@ utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
   if (e->addressof)
     throw semantic_error("cannot take address of utrace variable", e->tok);
 
-  if (e->base_name.substr(0,4) == "$arg")
+  if (e->base_name.substr(0,4) == "$arg" || e->base_name == "$$parms")
     visit_target_symbol_arg(e);
   else if (e->base_name == "$syscall" || e->base_name == "$return")
     visit_target_symbol_context(e);
   else
-    throw semantic_error ("invalid target symbol for utrace probe, $syscall, $return or $argN expected",
+    throw semantic_error ("invalid target symbol for utrace probe, $syscall, $return, $argN or $$parms expected",
 			  e->tok);
 }
 

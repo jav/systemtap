@@ -3516,7 +3516,7 @@ c_unparser::visit_target_symbol (target_symbol* e)
   if (!e->probe_context_var.empty())
     o->line() << "l->" << e->probe_context_var;
   else
-    throw semantic_error("cannot translate general cast expression", e->tok);
+    throw semantic_error("cannot translate general target expression", e->tok);
 }
 
 
@@ -4780,7 +4780,7 @@ dump_unwindsyms (Dwfl_Module *m,
       // likely can't do anything about this; backtraces for the
       // affected module would just get all icky heuristicy.
       // So only report in verbose mode.
-      if (c->session.verbose > 2)
+      if (c->session.verbose > 2 && ! c->session.suppress_warnings)
 	c->session.print_warning ("No unwind data for " + modname
 				  + ", " + dwfl_errmsg (-1));
     }
@@ -5081,12 +5081,12 @@ emit_symbol_data_done (unwindsym_dump_context *ctx, systemtap_session& s)
 		<< ";\n";
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
-  for (set<string>::iterator it = ctx->undone_unwindsym_modules.begin();
-       it != ctx->undone_unwindsym_modules.end();
-       it ++)
-    {
-      s.print_warning ("missing unwind/symbol data for module '" + (*it) + "'");
-    }
+  if (! s.suppress_warnings)
+    for (set<string>::iterator it = ctx->undone_unwindsym_modules.begin();
+	 it != ctx->undone_unwindsym_modules.end();
+	 it ++)
+      s.print_warning ("missing unwind/symbol data for module '"
+		       + (*it) + "'");
 }
 
 

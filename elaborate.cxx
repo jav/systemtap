@@ -1129,7 +1129,7 @@ semantic_pass_symbols (systemtap_session& s)
           try
             {
               for (unsigned j=0; j<s.code_filters.size(); j++)
-                fd->body = s.code_filters[j]->require (fd->body);
+                s.code_filters[j]->replace (fd->body);
 
               sym.current_function = fd;
               sym.current_probe = 0;
@@ -1164,7 +1164,7 @@ semantic_pass_symbols (systemtap_session& s)
               try
                 {
                   for (unsigned k=0; k<s.code_filters.size(); k++)
-                    dp->body = s.code_filters[k]->require (dp->body);
+                    s.code_filters[k]->replace (dp->body);
 
                   sym.current_function = 0;
                   sym.current_probe = dp;
@@ -2157,8 +2157,8 @@ struct dead_assignment_remover: public update_visitor
 void
 dead_assignment_remover::visit_assignment (assignment* e)
 {
-  e->left = require (e->left);
-  e->right = require (e->right);
+  replace (e->left);
+  replace (e->right);
 
   symbol* left = get_symbol_within_expression (e->left);
   vardecl* leftvar = left->referent; // NB: may be 0 for unresolved $target
@@ -2224,10 +2224,10 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
   // This instance may be reused for multiple probe/function body trims.
 
   for (unsigned i=0; i<s.probes.size(); i++)
-    s.probes[i]->body = dar.require (s.probes[i]->body);
+    dar.replace (s.probes[i]->body);
   for (map<string,functiondecl*>::iterator it = s.functions.begin();
        it != s.functions.end(); it++)
-    it->second->body = dar.require (it->second->body);
+    dar.replace (it->second->body);
   // The rewrite operation is performed within the visitor.
 
   // XXX: we could also zap write-only globals here
@@ -2311,8 +2311,8 @@ dead_stmtexpr_remover::visit_block (block *s)
 void
 dead_stmtexpr_remover::visit_if_statement (if_statement *s)
 {
-  s->thenblock = require (s->thenblock, true);
-  s->elseblock = require (s->elseblock, true);
+  replace (s->thenblock, true);
+  replace (s->elseblock, true);
 
   if (s->thenblock == 0)
     {
@@ -2364,7 +2364,7 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
 void
 dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
 {
-  s->block = require(s->block, true);
+  replace (s->block, true);
 
   if (s->block == 0)
     {
@@ -2378,7 +2378,7 @@ dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
 void
 dead_stmtexpr_remover::visit_for_loop (for_loop *s)
 {
-  s->block = require(s->block, true);
+  replace (s->block, true);
 
   if (s->block == 0)
     {
@@ -2467,7 +2467,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       duv.focal_vars.insert (p->locals.begin(),
                              p->locals.end());
 
-      p->body = duv.require(p->body, true);
+      duv.replace (p->body, true);
       if (p->body == 0)
         {
           if (! s.suppress_warnings
@@ -2493,7 +2493,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       duv.focal_vars.insert (s.globals.begin(),
                              s.globals.end());
 
-      fn->body = duv.require(fn->body, true);
+      duv.replace (fn->body, true);
       if (fn->body == 0)
         {
           if (! s.suppress_warnings)
@@ -2555,6 +2555,7 @@ struct void_statement_reducer: public update_visitor
   void visit_concatenation (concatenation* e);
   void visit_functioncall (functioncall* e);
   void visit_print_format (print_format* e);
+  void visit_target_symbol (target_symbol* e);
   void visit_cast_op (cast_op* e);
 
   // these are a bit hairy to grok due to the intricacies of indexables and
@@ -2576,7 +2577,7 @@ struct void_statement_reducer: public update_visitor
 void
 void_statement_reducer::visit_expr_statement (expr_statement* s)
 {
-  s->value = require (s->value, true);
+  replace (s->value, true);
 
   // if the expression provides 0, that's our signal that a new
   // statement has been provided, so we shouldn't provide this one.
@@ -2588,8 +2589,8 @@ void
 void_statement_reducer::visit_if_statement (if_statement* s)
 {
   // s->condition is never void
-  s->thenblock = require (s->thenblock);
-  s->elseblock = require (s->elseblock);
+  replace (s->thenblock);
+  replace (s->elseblock);
   provide (s);
 }
 
@@ -2597,7 +2598,7 @@ void
 void_statement_reducer::visit_for_loop (for_loop* s)
 {
   // s->init/cond/incr are never void
-  s->block = require (s->block);
+  replace (s->block);
   provide (s);
 }
 
@@ -2605,7 +2606,7 @@ void
 void_statement_reducer::visit_foreach_loop (foreach_loop* s)
 {
   // s->indexes/base/limit are never void
-  s->block = require (s->block);
+  replace (s->block);
   provide (s);
 }
 
@@ -2824,16 +2825,73 @@ void_statement_reducer::visit_print_format (print_format* e)
 }
 
 void
+void_statement_reducer::visit_target_symbol (target_symbol* e)
+{
+  // When target_symbol isn't needed, it's just as good to
+  // evaluate any array indexes directly
+
+  block *b = new block;
+  b->tok = e->tok;
+
+  for (unsigned i=0; i<e->components.size(); i++ )
+    {
+      if (e->components[i].type != target_symbol::comp_expression_array_index)
+        continue;
+
+      expr_statement *es = new expr_statement;
+      es->value = e->components[i].expr_index;
+      es->tok = es->value->tok;
+      b->statements.push_back(es);
+    }
+
+  if (b->statements.empty())
+    {
+      delete b;
+      provide (e);
+      return;
+    }
+
+  if (session.verbose>2)
+    clog << "Eliding unused target symbol " << *e->tok << endl;
+
+  b->visit(this);
+  relaxed_p = false;
+  e = 0;
+  provide (e);
+}
+
+void
 void_statement_reducer::visit_cast_op (cast_op* e)
 {
   // When the result of a cast operation isn't needed, it's just as good to
-  // evaluate the operand directly
+  // evaluate the operand and any array indexes directly
+
+  block *b = new block;
+  b->tok = e->tok;
+
+  expr_statement *es = new expr_statement;
+  es->value = e->operand;
+  es->tok = es->value->tok;
+  b->statements.push_back(es);
+
+  for (unsigned i=0; i<e->components.size(); i++ )
+    {
+      if (e->components[i].type != target_symbol::comp_expression_array_index)
+        continue;
+
+      es = new expr_statement;
+      es->value = e->components[i].expr_index;
+      es->tok = es->value->tok;
+      b->statements.push_back(es);
+    }
 
   if (session.verbose>2)
     clog << "Eliding unused typecast " << *e->tok << endl;
 
+  b->visit(this);
   relaxed_p = false;
-  e->operand->visit(this);
+  e = 0;
+  provide (e);
 }
 
 
@@ -2847,10 +2905,10 @@ void semantic_pass_opt5 (systemtap_session& s, bool& relaxed_p)
   vuv.focal_vars.insert (s.globals.begin(), s.globals.end());
 
   for (unsigned i=0; i<s.probes.size(); i++)
-    s.probes[i]->body = vuv.require (s.probes[i]->body);
+    vuv.replace (s.probes[i]->body);
   for (map<string,functiondecl*>::iterator it = s.functions.begin();
        it != s.functions.end(); it++)
-    it->second->body = vuv.require (it->second->body);
+    vuv.replace (it->second->body);
 }
 
 

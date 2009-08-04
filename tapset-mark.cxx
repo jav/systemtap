@@ -103,23 +103,7 @@ mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   if (is_active_lvalue (e))
     throw semantic_error("write to marker parameter not permitted", e->tok);
 
-  if (e->components.size() > 0)
-    {
-      switch (e->components[0].first)
-	{
-	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("marker argument may not be used as array",
-			       e->tok);
-	  break;
-	case target_symbol::comp_struct_member:
-	  throw semantic_error("marker argument may not be used as a structure",
-			       e->tok);
-	  break;
-	default:
-	  throw semantic_error ("invalid marker argument use", e->tok);
-	  break;
-	}
-    }
+  e->assert_no_components("marker");
 
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
@@ -138,23 +122,7 @@ mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   if (is_active_lvalue (e))
     throw semantic_error("write to marker '" + sname + "' not permitted", e->tok);
 
-  if (e->components.size() > 0)
-    {
-      switch (e->components[0].first)
-	{
-	case target_symbol::comp_literal_array_index:
-	  throw semantic_error("marker '" + sname + "' may not be used as array",
-			       e->tok);
-	  break;
-	case target_symbol::comp_struct_member:
-	  throw semantic_error("marker '" + sname + "' may not be used as a structure",
-			       e->tok);
-	  break;
-	default:
-	  throw semantic_error ("invalid marker '" + sname + "' use", e->tok);
-	  break;
-	}
-    }
+  e->assert_no_components("marker");
 
   if (e->base_name == "$format" || e->base_name == "$name") {
      string fname;
@@ -255,7 +223,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 
   // Now expand the local variables in the probe body
   mark_var_expanding_visitor v (sess, name, mark_args);
-  this->body = v.require (this->body);
+  v.replace (this->body);
   target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 2)

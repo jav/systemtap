@@ -7,7 +7,7 @@ AUTOMAKE_OPTIONS = no-dist foreign
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 oldincludedir = ${includedir}/sys
 
-AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
+AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"' -I$(srcdir)/includes
 
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror

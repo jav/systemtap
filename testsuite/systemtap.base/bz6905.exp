@@ -1,0 +1,25 @@
+set test bz6905
+
+catch {exec gcc -g -o $test $srcdir/$subdir/$test.c} err
+if {$err == "" && [file exists $test]} then { pass "$test compile" } else { fail "$test compile" }
+
+if {![utrace_p]} {
+    catch {exec rm -f $test}
+    untested "$test -p2"
+    return
+}
+
+set stapexe [exec /usr/bin/which stap]
+spawn sudo $stapexe -p2 $srcdir/$subdir/$test.stp
+set hint 0 
+set probes 0 
+expect {
+	-timeout 60
+	-re "# probes" { incr hint; exp_continue }
+	-re {process.*statement.*} { incr probes; exp_continue }
+	timeout { fail "$test (timeout)" }
+	eof { }
+}
+wait
+if { $hint == 1 && $probes > 0 } then { pass "$test -p2" } else { fail "$test -p2 ($probes)" }
+exec rm -f $test

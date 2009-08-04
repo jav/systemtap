@@ -67,24 +67,7 @@ perfmon_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   if (e->addressof)
     throw semantic_error("cannot take address of perfmon variable", e->tok);
 
-  if (e->components.size() > 0)
-    {
-      switch (e->components[0].first)
-        {
-        case target_symbol::comp_literal_array_index:
-          throw semantic_error("perfmon probe '$counter' variable may not be used as array",
-                               e->tok);
-          break;
-        case target_symbol::comp_struct_member:
-          throw semantic_error("perfmon probe '$counter' variable may not be used as a structure",
-                               e->tok);
-          break;
-        default:
-          throw semantic_error ("invalid use of perfmon probe '$counter' variable",
-                                e->tok);
-          break;
-        }
-    }
+  e->assert_no_components("perfmon");
 
   ec->code = "THIS->__retvalue = _pfm_pmd_x[" +
           lex_cast<string>(counter_number) + "].reg_num;";
@@ -170,7 +153,7 @@ perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
 
   // Now expand the local variables in the probe body
   perfmon_var_expanding_visitor v (sess, probes_allocated-1);
-  this->body = v.require (this->body);
+  v.replace (this->body);
 
   if (sess.verbose > 1)
     clog << "perfmon-based probe" << endl;

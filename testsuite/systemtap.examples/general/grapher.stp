@@ -2,11 +2,13 @@
 
 probe begin
 {
-printf ("%%Title:CPU utilization\n");
-printf ("%%XAxisTitle:Time");
-printf ("%%YAxisTitle:Percent");
-printf ("%%DataSet:cpu 100 00ff00 bar");
-printf ("%%DataSet:kbd 100 ff0000 dot");
+printf ("%%DataSet:cpu 100 00ff00 bar\n");
+printf ("%%DataSet:kbd 75 ff0000 discreet\n");
+printf ("%%DataSet:pty 50 0000ff discreet\n");
+printf ("cpu %%Title:CPU utilization\n");
+printf ("cpu %%XAxisTitle:Time\n");
+printf ("cpu %%YAxisTitle:Percent\n");
+
 }
 
 # CPU utilization
@@ -28,5 +30,14 @@ probe timer.ms(100) {  # collect utilization percentages frequently
 }
 
 probe kernel.function("kbd_event") {
- printf("kbd %d %d\n", gettimeofday_ms(), 75)
+ if ($event_type == 1 && $value)
+   printf("kbd %d %d\n", gettimeofday_ms(), $event_code)
 }
+
+probe kernel.function("pty_write") {
+ if (count > 0)
+  printf("pty %d %.5s\n", gettimeofday_ms(), buf)
+}
+
+
+

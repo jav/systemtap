@@ -26,6 +26,10 @@ if [ "$NEEDED" != "" ]; then
     echo -e "Need to install the following packages:\n$NEEDED"
     if [ `id -u` = "0" ]; then #attempt download and install
         DIR=`mktemp -d` || exit 1
+        if [ ! -x /usr/bin/yumdownloader ]; then
+            echo "Need to first install yum-utils for yumdownloader"
+            yum install -y yum-utils
+        fi
         yumdownloader --enablerepo="*debuginfo*" $NEEDED --destdir=$DIR
         check_error $? "problem downloading rpm(s) $NEEDED"
         rpm --force -ivh $DIR/*.rpm

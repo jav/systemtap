@@ -16,6 +16,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "util.h"
+#include "sys/sdt.h"
 #include <stdexcept>
 #include <cerrno>
 
@@ -327,12 +328,14 @@ static pid_t spawned_pid = 0;
 int
 stap_system(const char *command)
 {
+  STAP_PROBE1(stap, stap_system__start, command);
   const char * argv[] = { "sh", "-c", command, NULL };
   int ret, status;
 
   spawned_pid = 0;
   ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL,
                     const_cast<char **>(argv), environ);
+  STAP_PROBE2(stap, stap_system__spawn, ret, spawned_pid);
   if (ret == 0)
     {
       if (waitpid(spawned_pid, &status, 0) == spawned_pid)
@@ -340,6 +343,7 @@ stap_system(const char *command)
       else
         ret = errno;
     }
+  STAP_PROBE1(stap, stap_system__complete, ret);
   spawned_pid = 0;
   return ret;
 }

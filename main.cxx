@@ -21,6 +21,7 @@
 #include "coveragedb.h"
 #include "git_version.h"
 #include "rpm_finder.h"
+#include "sys/sdt.h"
 
 #include <iostream>
 #include <fstream>
@@ -196,16 +197,17 @@ printscript(systemtap_session& s, ostream& o)
             {
               o << pp;
               // Print the locals for -L mode only
-              if (s.unoptimized) {
-                for (unsigned j=0; j<p->locals.size(); j++)
-                  {
-                    o << " ";
-                    vardecl* v = p->locals[j];
-                    v->printsig (o);
-                  }
-                // Print arguments of probe if there
-                p->printargs(o);
-		}
+              if (s.listing_mode_vars)
+                {
+                  for (unsigned j=0; j<p->locals.size(); j++)
+                    {
+                      o << " ";
+                      vardecl* v = p->locals[j];
+                      v->printsig (o);
+                    }
+                  // Print arguments of probe if there
+                  p->printargs(o);
+                }
               o << endl;
               seen.insert (pp);
             }
@@ -464,6 +466,7 @@ main (int argc, char * const argv [])
   s.unoptimized = false;
   s.suppress_warnings = false;
   s.listing_mode = false;
+  s.listing_mode_vars = false;
 
 #ifdef ENABLE_PROLOGUES
   s.prologue_searching = true;
@@ -763,6 +766,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'L':
+          s.listing_mode_vars = true;
           s.unoptimized = true; // This causes retention of variables for listing_mode
 
         case 'l':
@@ -890,6 +894,8 @@ main (int argc, char * const argv [])
   
   // PASS 0: setting up
   s.verbose = s.perpass_verbose[0];
+  STAP_PROBE1(stap, pass0__start, &s);
+
 
   // For PR1477, we used to override $PATH and $LC_ALL and other stuff
   // here.  We seem to use complete pathnames in
@@ -941,12 +947,15 @@ main (int argc, char * const argv [])
   // and reasonably timely exit.
   setup_signals(&handle_interrupt);
 
+  STAP_PROBE1(stap, pass0__end, &s);
+
   struct tms tms_before;
   times (& tms_before);
   struct timeval tv_before;
   gettimeofday (&tv_before, NULL);
 
   // PASS 1a: PARSING USER SCRIPT
+  STAP_PROBE1(stap, pass1a__start, &s);
 
   struct stat user_file_stat;
   int user_file_stat_rc = -1;
@@ -998,6 +1007,8 @@ main (int argc, char * const argv [])
   version_suffixes.push_back ("");
 
   // PASS 1b: PARSING LIBRARY SCRIPTS
+  STAP_PROBE1(stap, pass1b__start, &s);
+
   for (unsigned i=0; i<s.include_path.size(); i++)
     {
       // now iterate upon it
@@ -1085,6 +1096,8 @@ main (int argc, char * const argv [])
          << "Try again with another '--vp 1' option."
          << endl;
 
+  STAP_PROBE1(stap, pass1__end, &s);
+
   if (rc || s.last_pass == 1 || pending_interrupts) goto cleanup;
 
   times (& tms_before);
@@ -1092,6 +1105,7 @@ main (int argc, char * const argv [])
 
   // PASS 2: ELABORATION
   s.verbose = s.perpass_verbose[1];
+  STAP_PROBE1(stap, pass2__start, &s);
   rc = semantic_pass (s);
 
   if (s.listing_mode || (rc == 0 && s.last_pass == 2))
@@ -1146,12 +1160,15 @@ main (int argc, char * const argv [])
   /* Print out list of missing files */
   missing_rpm_list_print(s);
 
+  STAP_PROBE1(stap, pass2__end, &s);
+
   if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) goto cleanup;
 
   // PASS 3: TRANSLATION
   s.verbose = s.perpass_verbose[2];
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
+  STAP_PROBE1(stap, pass3__start, &s);
 
   rc = translate_pass (s);
 
@@ -1175,12 +1192,15 @@ main (int argc, char * const argv [])
          << "Try again with another '--vp 001' option."
          << endl;
 
+  STAP_PROBE1(stap, pass3__end, &s);
+
   if (rc || s.last_pass == 3 || pending_interrupts) goto cleanup;
 
   // PASS 4: COMPILATION
   s.verbose = s.perpass_verbose[3];
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
+  STAP_PROBE1(stap, pass4__start, &s);
   rc = compile_pass (s);
 
   if (rc == 0 && s.last_pass == 4)
@@ -1245,6 +1265,8 @@ main (int argc, char * const argv [])
 	}
     }
 
+  STAP_PROBE1(stap, pass4__end, &s);
+
   if (rc || s.last_pass == 4 || pending_interrupts) goto cleanup;
 
 
@@ -1256,6 +1278,7 @@ pass_5:
   // NB: this message is a judgement call.  The other passes don't emit
   // a "hello, I'm starting" message, but then the others aren't interactive
   // and don't take an indefinite amount of time.
+  STAP_PROBE1(stap, pass5__start, &s);
   if (s.verbose) clog << "Pass 5: starting run." << endl;
   rc = run_pass (s);
   times (& tms_after);
@@ -1271,8 +1294,12 @@ pass_5:
 
   // if (rc) goto cleanup;
 
+  STAP_PROBE1(stap, pass5__end, &s);
+
   // PASS 6: cleaning up
  cleanup:
+
+  STAP_PROBE1(stap, pass6__start, &s);
 
   // update the database information
   if (!rc && s.tapset_compile_coverage && !pending_interrupts) {
@@ -1304,6 +1331,8 @@ pass_5:
 	    clog << "Cleanup command failed, status: " << status << endl;
         }
     }
+
+  STAP_PROBE1(stap, pass6__end, &s);
 
   return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
 }

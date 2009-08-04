@@ -137,6 +137,7 @@ i = 1
 build_header = False
 build_source = False
 add_typedefs = False
+h_ext = '.h'
 filename = ""
 while (i < len (sys.argv)):
     if (sys.argv[i] == "-o"):
@@ -148,7 +149,6 @@ while (i < len (sys.argv)):
     elif (sys.argv[i] == "-h"):
         build_header = True
     elif (sys.argv[i] == "-G"):
-        build_header = True
         build_source = True
     elif (sys.argv[i] == "--types"):
         add_typedefs = True
@@ -162,22 +162,23 @@ if (build_header == False and build_source == False):
 if (filename == ""):
     if (s_filename != ""):
 	(filename,ext) = os.path.splitext(s_filename)
-        filename = os.path.basename(filename)
     else:
         usage
         sys.exit(1)
 else:
-    (filename,ext) = os.path.splitext(filename)
-
+    if (build_header):
+        h_ext = ""
+    else:
+        (filename,ext) = os.path.splitext(filename)
 if (build_header):
     providers = provider()
-    providers.generate(s_filename, filename + ".h", add_typedefs)
-if (build_source):
+    providers.generate(s_filename, filename + h_ext, add_typedefs)
+elif (build_source):
     (basename,ext) = os.path.splitext(s_filename)
     basename = os.path.basename(basename)
     (d,fn) = mkstemp(suffix=".c",prefix=basename)
     f = open(fn,mode='w')
-    f.write("#include \"" + filename + ".h\"\nstatic __dtrace () {}\n")
+    f.write("static __dtrace () {}\n")
     f.close()
-    call(["gcc", "-fPIC", "-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
+    call(["gcc", "-fPIC", "-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", os.path.basename(filename) + ".o"], shell=False)
     os.remove(fn)

@@ -1,0 +1,78 @@
+# Tests whether we can put statement probes on all lines of a function,
+# even without debuginfo around (in guru mode currently). PR10454.
+
+set test "uprobe_stmt_num"
+
+# Only run on make installcheck and utrace present.
+if {! [installtest_p]} { untested "$test"; return }
+if {! [utrace_p]} { untested "$test"; return }
+
+set testpath  "$srcdir/$subdir"
+set testsrc   "$testpath/$test.c"
+set testexe   "[pwd]/$test"
+# We want debug info and no optimization (every line counts).
+set testflags "additional_flags=-g additional_flags=-O0"
+set teststp   "$testpath/$test.stp"
+
+set res [target_compile $testsrc $testexe executable $testflags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $testsrc"
+    return
+}
+
+set cmd [concat stap -c $testexe $teststp]
+send_log "cmd: $cmd\n"
+catch {eval exec $cmd} output
+send_log "cmd output: $output\n"
+
+# There should be at least 6 lines probes
+# Function entry, 4 actual source lines and function exit.
+set output_lines [split $output "\n"]
+set lines [llength $output_lines]
+if { $lines >= 6 } {
+    pass "$test-run-one"
+} else {
+    fail "$test-run-one ($lines)"
+}
+
+# Expect the same output for next runs
+set ::result_string $output
+
+# Sanity check, just run again...
+stap_run3 $test-run-two $testpath/$test.stp -c $testexe
+
+# create a script based on the given statements,
+# probe all of them individually.
+set fp [open $test-run-statements.stp "w"]
+foreach line $output_lines {
+    puts $fp "probe process(\"uprobe_stmt_num\").statement($line)"
+    puts $fp "{"
+    puts $fp "  printf(\"0x%x\\n\", uaddr());"
+    puts $fp "}"
+}
+close $fp
+stap_run3 $test-run-statements $test-run-statements.stp -c $testexe
+
+# Now strip away the line info and try again (with -g).
+set strip_cmd [list "objcopy" "-R" ".debug_line"]
+lappend strip_cmd "$testexe"
+send_log "Executing: $strip_cmd\n"
+eval exec $strip_cmd
+
+stap_run3 $test-run-statements-nolines -w -g $test-run-statements.stp -c $testexe
+
+# XXX Last test still fails. PR10454.
+return
+
+# Now strip away all debuginfo. Since the script doesn't need any it
+# should still work.
+set strip_cmd [list "strip" "-g"]
+lappend strip_cmd "$testexe"
+send_log "Executing: $strip_cmd\n"
+eval exec $strip_cmd
+
+stap_run3 $test-run-statements-nodebuginfo -w -g $test-run-statements.stp -c $testexe
+
+# cleanup
+eval exec rm $testexe $test-run-statements.stp

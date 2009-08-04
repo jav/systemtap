@@ -451,6 +451,7 @@ int send_request(int type, void *data, int len)
 	char buf[1024];
         int rc = 0;
 
+    STAP_PROBE3(stapio, send__ctlmsg, type, data, len);
 	/* Before doing memcpy, make sure 'buf' is big enough. */
 	if ((len + 4) > (int)sizeof(buf)) {
 		_err("exceeded maximum send_request size.\n");

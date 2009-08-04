@@ -10,6 +10,7 @@
 set begin_script {"probe process(\"/bin/ls\").begin { print(\"ls begin\") }"}
 set end_script {"probe process(\"/bin/ls\").end { print(\"ls end\") }"}
 set syscall_script {"probe process(\"/bin/ls\").syscall { printf(\"|%d\", \$syscall) }"}
+set syscall_parms_script {"probe process(\"/bin/ls\").syscall { printf(\"|%s\", \$\$parms) }"}
 set syscall_return_script {"probe process(\"/bin/ls\").syscall.return { printf(\"|%d\", \$syscall) }"}
 set thread_begin_script {"probe process(\"/bin/ls\").thread.begin { print(\"ls thread.begin\") }"}
 set thread_end_script {"probe process(\"/bin/ls\").thread.end { print(\"ls thread.end\") }"}
@@ -18,6 +19,7 @@ set all_begin_script {"probe process.begin { print(\"begin\") }"}
 set pid_begin_script {"probe process(123).begin { print(\"123 begin\") }"}
 set pid_end_script {"probe process(123).end { print(\"123 end\") }"}
 set pid_syscall_script {"probe process(123).syscall { printf(\"|%d\", \$syscall) }"}
+set pid_parms_script {"probe process(123).syscall { printf(\"|%s\", \$\$parms) }"}
 set pid_syscall_return_script {"probe process(123).syscall.return { printf(\"|%d\", \$syscall) }"}
 set pid_thread_begin_script {"probe process(123).thread.begin { print(\"123 thread.begin\") }"}
 set pid_thread_end_script {"probe process(123).thread.end { print(\"123 thread.end\") }"}
@@ -129,3 +131,20 @@ if {![utrace_p]} {
     # Try compiling an system-wide begin script
     stap_compile $TEST_NAME 1 $all_begin_script
 }
+
+set TEST_NAME "UTRACE_P4_08"
+if {![utrace_p]} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} else {
+    # Try compiling a syscall parms script using a path
+    stap_compile $TEST_NAME 1 $syscall_parms_script
+}
+
+set TEST_NAME "UTRACE_P4_09"
+if {![utrace_p]} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} else {
+    # Try compiling a syscall parms script using a pid
+    stap_compile $TEST_NAME 1 $pid_parms_script
+}
+

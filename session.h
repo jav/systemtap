@@ -103,6 +103,7 @@ struct systemtap_session
   bool keep_tmpdir;
   bool guru_mode;
   bool listing_mode;
+  bool listing_mode_vars;
   bool bulk_mode;
   bool unoptimized;
   bool merge;

@@ -89,6 +89,18 @@ set bz6841_script {
 }
 set bz6841_script_output ".+ issues syscall \\d+ times\r\n"
 
+set syscall_parms_script {
+    global syscall_parms_string
+    probe begin { printf("systemtap starting probe\n") }
+    probe process.syscall { syscall_parms_string = $$parms exit() }
+    probe end { printf("systemtap ending probe\n")
+	        printf("%s\n",syscall_parms_string)
+		delete syscall_parms_string
+              }
+}
+set syscall_parms_script_output "(.+arg\[1-6\]=0x\[0-9a-f\]+)+\r\n"
+
+
 # Set up our own copy of /bin/cat, to make testing for a particular
 # executable easy.  We can't use 'ln' here, since we might be creating
 # a cross-device link.  We can't use 'ln -s' here, since the kernel
@@ -200,6 +212,16 @@ if {![utrace_p]} {
 } else {
     stap_run $TEST_NAME run_utrace_p5_multi $bz6841_script_output \
 	-e $bz6841_script
+}
+
+set TEST_NAME "UTRACE_P5_08"
+if {![utrace_p]} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    set script [format $syscall_parms_script "%s"]
+    stap_run $TEST_NAME no_load $syscall_parms_script_output -e $script
 }
 
 # Cleanup

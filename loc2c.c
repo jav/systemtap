@@ -1749,6 +1749,19 @@ array_stride (Dwarf_Die *typedie, struct location *origin)
 	  dwarf_diename (typedie) ?: "<anonymous>",
 	  dwarf_errmsg (-1));
 
+  int typetag = dwarf_tag(&die_mem);
+  while (typetag == DW_TAG_typedef ||
+         typetag == DW_TAG_const_type ||
+         typetag == DW_TAG_volatile_type)
+    {
+      if (dwarf_attr_integrate (&die_mem, DW_AT_type, &attr_mem) == NULL
+          || dwarf_formref_die (&attr_mem, &die_mem) == NULL)
+        FAIL (origin, N_("cannot get inner type of type %s: %s"),
+              dwarf_diename (&die_mem) ?: "<anonymous>",
+              dwarf_errmsg (-1));
+      typetag = dwarf_tag(&die_mem);
+    }
+
   if (dwarf_attr_integrate (&die_mem, DW_AT_byte_size, &attr_mem) != NULL)
     {
       Dwarf_Word stride;
