@@ -22,11 +22,40 @@
   errors in guru mode. They also provide alternative addresses to use
   in non-guru mode.
 
-- the stapgraph application can generate graphs of data and events
-  emitted by systemtap scripts in real time. run "stapgraph
+- The stapgraph application can generate graphs of data and events
+  emitted by systemtap scripts in real time.  Run "stapgraph
   testsuite/systemtap.examples/general/grapher.stp" for an example of
   graphing the system load average and keyboard events.
   
+- Dwarf probes now show parameters and local variables in the verbose
+  listing mode (-L).
+
+- Symbol aliases are now resolved to their canonical dwarf names.  For
+  example, probing "malloc" in libc resolves to "__libc_malloc".
+
+- The syntax for dereferencing $target variables and @cast() gained new
+  capabilities:
+  - Array indexes can now be arbitrary numeric expressions.
+  - Array subscripts are now supported on pointer types.
+  - An '&' operator before a @cast or $target returns the address of the
+    final component, especially useful for nested structures.
+
+- For reading all probe variables, kernel.mark now supports $$vars and
+  $$parms, and process.syscall now supports $$vars.
+
+- The SNMP tapset provides probes and functions for many network
+  statistics.  See stapprobes.snmp(3stap) for more details.
+
+- The dentry tapset provides functions to map kernel VFS directory entries
+  to file or full path names: d_path(), d_name() and reverse_path_walk().
+
+- SystemTap now has userspace markers in its own binaries, and the stap
+  tapset provides the available probepoints and local variables.
+
+- Miscellaneous new tapset functions:
+  - pgrp() returns the process group ID of the current process
+  - str_replace() performs string replacement
+
 * What's new in version 0.9.8
 
 - Miscellaneous new tapset functions:
