@@ -17,6 +17,8 @@ namespace systemtap
       _left(0.0), _right(1.0), _top(5.0), _bottom(0.0)
   {
     setOrigin(x, y);
+    _graphX = x;
+    _graphY = y;
   }
   
   

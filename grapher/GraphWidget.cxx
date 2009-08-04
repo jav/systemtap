@@ -47,15 +47,15 @@ namespace systemtap
 
   void GraphWidget::addGraph()
   {
-    shared_ptr<Graph> graph(new Graph);
     double x = 0.0;
     double y = 0.0;
     if (!_graphs.empty())
       {
         _graphs.back()->getOrigin(x, y);
         y += _graphs.back()->_height + 10;
-        _height = y + graph->_height;
       }
+    shared_ptr<Graph> graph(new Graph(x, y));
+    _height = y + graph->_height;
     graph->setOrigin(x, y);
     _graphs.push_back(graph);
     queue_resize();
@@ -109,8 +109,11 @@ namespace systemtap
       }
     if (!_activeGraph)
       return true;
+    double activeX, activeY;
+    _activeGraph->getOrigin(activeX, activeY);
     if (!_activeGraph->_autoScrolling
-        && _activeGraph->_playButton->containsPoint(event->x, event->y))
+        && _activeGraph->_playButton->containsPoint(event->x - activeX,
+                                                    event->y - activeY))
       {
         _activeGraph->_autoScaling = true;
         _activeGraph->_autoScrolling = true;
@@ -131,6 +134,7 @@ namespace systemtap
 
   bool GraphWidget::on_button_release_event(GdkEventButton* event)
   {
+    _activeGraph.reset();
     _trackingDrag = false;
     return true;
   }
