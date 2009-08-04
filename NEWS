@@ -22,6 +22,11 @@
   errors in guru mode. They also provide alternative addresses to use
   in non-guru mode.
 
+- the stapgraph application can generate graphs of data and events
+  emitted by systemtap scripts in real time. run "stapgraph
+  testsuite/systemtap.examples/general/grapher.stp" for an example of
+  graphing the system load average and keyboard events.
+  
 * What's new in version 0.9.8
 
 - Miscellaneous new tapset functions:
