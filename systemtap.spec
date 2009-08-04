@@ -5,7 +5,7 @@
 %{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
 %{!?elfutils_version: %define elfutils_version 0.127}
 %{!?pie_supported: %define pie_supported 1}
-%{!?with_grapher: %define with_grapher 0}
+%{!?with_grapher: %define with_grapher 1}
 
 Name: systemtap
 Version: 0.9.8
@@ -55,6 +55,10 @@ BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
 # called 'xmlto-tex'.  To avoid a specific F10 BuildReq, we'll do a
 # file-based buildreq on '/usr/share/xmlto/format/fo/pdf'.
 BuildRequires: xmlto /usr/share/xmlto/format/fo/pdf
+%endif
+
+%if %{with_grapher}
+BuildRequires: gtkmm24-devel >= 2.8
 %endif
 
 %description
@@ -130,6 +134,19 @@ Requires: systemtap-runtime, initscripts
 
 %description initscript
 Initscript for Systemtap scripts.
+
+%if %{with_grapher}
+%package grapher
+Summary: Instrumentation System Grapher
+Group: Development/System
+License: GPLv2+
+URL: http://sourceware.org/systemtap/
+Requires: systemtap-runtime
+
+%description grapher
+SystemTap grapher is a utility for real-time visualization of
+data from SystemTap instrumentation scripts.
+%endif
 
 %prep
 %setup -q %{?setup_elfutils}
@@ -355,6 +372,12 @@ exit 0
 %dir %{_localstatedir}/cache/systemtap
 %dir %{_localstatedir}/run/systemtap
 %doc initscript/README.initscript
+
+%if %{with_grapher}
+%files grapher
+%defattr(-,root,root)
+%{_bindir}/stapgraph
+%endif
 
 
 %changelog

@@ -1,7 +1,7 @@
 if BUILD_GRAPHER
-bin_PROGRAMS = grapher
+bin_PROGRAMS = stapgraph
 
-grapher_CXXFLAGS = $(GRAPHER_CFLAGS)
-grapher_SOURCES = grapher.cxx StapParser.cxx Graph.cxx GraphWidget.cxx CairoWidget.cxx
-grapher_LDADD = $(GRAPHER_LIBS)
+stapgraph_CXXFLAGS = $(GRAPHER_CFLAGS)
+stapgraph_SOURCES = grapher.cxx StapParser.cxx Graph.cxx GraphWidget.cxx CairoWidget.cxx
+stapgraph_LDADD = $(GRAPHER_LIBS)
 endif
