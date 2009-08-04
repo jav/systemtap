@@ -23,9 +23,9 @@ namespace systemtap
     if (_autoScaling)
       {
         // line separation
-        int linesPossible = _graphWidth / (_lineWidth + 2);
+        int linesPossible = (int)(_graphWidth / (_lineWidth + 2.0));
         // Find latest time.
-        double latestTime = 0;
+        double latestTime = 0.0;
         for (DatasetList::iterator ditr = _datasets.begin(),
                de = _datasets.end();
              ditr != de;
