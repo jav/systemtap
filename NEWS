@@ -1,4 +1,4 @@
-* What's new
+* What's new in version 0.9.9
 
 - Systemwide kernel .function.return (kretprobe) maxactive defaults may
   be overridden with the -DKRETACTIVE=nnn parameter.
