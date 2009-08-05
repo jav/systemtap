@@ -54,13 +54,6 @@ namespace systemtap
     if(!window)
       return true;
 
-    Gtk::Allocation allocation = get_allocation();
-    
-    const int graphWidth = allocation.get_width();
-    const int graphHeight = allocation.get_height();
-    const int width = graphWidth - 20;
-    const int height = graphHeight - 20;
-
     Cairo::RefPtr<Cairo::Context> cr = window->create_cairo_context();
 #if 0
     if(event && !_autoScaling)

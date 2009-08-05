@@ -10,9 +10,9 @@ namespace systemtap
   using namespace std::tr1;
   
   Graph::Graph()
-    : _left(0.0), _right(1.0), _top(5.0), _bottom(0.0), _lineWidth(2),
-      _autoScaling(true), _autoScrolling(true), _zoomFactor(1.0),
-      _playButton(new CairoPlayButton)
+    : _lineWidth(2), _autoScaling(true), _autoScrolling(true),
+      _zoomFactor(1.0), _playButton(new CairoPlayButton),
+      _left(0.0), _right(1.0), _top(5.0), _bottom(0.0)
   {
   }
   
