@@ -9,8 +9,7 @@ if {![utrace_p]} {
     return
 }
 
-set stapexe [exec /usr/bin/which stap]
-spawn sudo $stapexe -p2 $srcdir/$subdir/$test.stp
+spawn stap -p2 $srcdir/$subdir/$test.stp
 set hint 0 
 set probes 0 
 expect {

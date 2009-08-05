@@ -18,7 +18,7 @@ if [file exists $path] then { pass "$test prep" } else { fail "$test prep" }
 catch {exec gcc -g -o jennie jennie.c} err
 if {$err == "" && [file exists jennie]} then { pass "$test compile" } else { fail "$test compile" }
 
-if {![utrace_p]} {
+if {! [uprobes_p]} {
     untested "$test -p4"; untested "$test -p5"
     catch {exec rm -f jennie.c jennie}
     return
@@ -33,9 +33,7 @@ if {! [installtest_p]} {
     return
 }
 
-# Pick up the stap being tested.
-set stapexe [exec /usr/bin/which stap]
-spawn sudo $stapexe $srcdir/$subdir/uprobes.stp -w -c "./jennie 1 2 3 4"
+spawn stap $srcdir/$subdir/uprobes.stp -w -c "./jennie 1 2 3 4"
 set ok 0
 expect {
     -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*argc=0x[1-5][^\r\n]*\r\n} { incr ok; exp_continue }
