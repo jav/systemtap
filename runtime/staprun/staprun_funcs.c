@@ -23,6 +23,7 @@
 #include <assert.h>
 
 extern long init_module(void *, unsigned long, const char *);
+static int check_permissions(const void *, off_t);
 
 /* Module errors get translated. */
 const char *moderror(int err)
@@ -48,6 +49,7 @@ int insert_module(const char *path, const char *special_options, char **options)
 	void *file;
 	char *opts;
 	int fd, saved_errno;
+	char module_realpath[PATH_MAX];
 	struct stat sbuf;
 
 	dbug(2, "inserting module\n");
@@ -71,8 +73,24 @@ int insert_module(const char *path, const char *special_options, char **options)
 	}
 	dbug(2, "module options: %s\n", opts);
 
-	/* Open the module file. */
-	fd = open(path, O_RDONLY);
+	/* Use realpath() to canonicalize the module path. */
+	if (realpath(modpath, module_realpath) == NULL) {
+		perr("Unable to canonicalize path \"%s\"", modpath);
+		return -1;
+	}
+
+        /* Overwrite the modpath with the canonicalized one, to defeat
+           a possible race between path and signature checking below and,
+	   somewhat later, module loading. */
+        modpath = strdup (module_realpath);
+        if (modpath == NULL) {
+		_perr("allocating memory failed");
+                exit (1);
+        }
+
+	/* Open the module file. Work with the open file descriptor from this
+	   point on to avoid TOCTOU problems. */
+	fd = open(modpath, O_RDONLY);
 	if (fd < 0) {
 		perr("Error opening '%s'", path);
 		return -1;
@@ -93,6 +111,11 @@ int insert_module(const char *path, const char *special_options, char **options)
 		free(opts);
 		return -1;
 	}
+
+	/* Check whether this module can be loaded by the current user.  */
+	ret = check_permissions (file, sbuf.st_size);
+	if (ret != 1)
+		return -1;
 
 	STAP_PROBE1(staprun, insert__module, path);
 	/* Actually insert the module */
@@ -216,28 +239,22 @@ int mountfs(void)
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
 static int
-check_signature(void)
+check_signature(const void *module_data, off_t module_size)
 {
-  char module_realpath[PATH_MAX];
   char signature_realpath[PATH_MAX];
   int rc;
 
   dbug(2, "checking signature for %s\n", modpath);
 
-  /* Use realpath() to canonicalize the module path. */
-  if (realpath(modpath, module_realpath) == NULL) {
-    perr("Unable to canonicalize module path \"%s\"", modpath);
-    return MODULE_CHECK_ERROR;
+  /* Add the .sgn suffix to the canonicalized module path to get the signature
+     file path.  */
+  if (strlen (modpath) >= PATH_MAX - 4) {
+    err("Path \"%s.sgn\" is too long.", modpath);
+    return -1;
   }
+  sprintf (signature_realpath, "%s.sgn", modpath);
 
-  /* Now add the .sgn suffix to get the signature file name.  */
-  if (strlen (module_realpath) > PATH_MAX - 4) {
-    err("Path \"%s\" is too long.", modpath);
-    return MODULE_CHECK_ERROR;
-  }
-  sprintf (signature_realpath, "%s.sgn", module_realpath);
-
-  rc = verify_module (module_realpath, signature_realpath);
+  rc = verify_module (signature_realpath, module_data, module_size);
 
   dbug(2, "verify_module returns %d\n", rc);
 
@@ -255,11 +272,10 @@ check_signature(void)
 static int
 check_path(void)
 {
-	struct utsname utsbuf;
-	struct stat sb;
 	char staplib_dir_path[PATH_MAX];
 	char staplib_dir_realpath[PATH_MAX];
-	char module_realpath[PATH_MAX];
+	struct utsname utsbuf;
+	struct stat sb;
 
 	/* First, we need to figure out what the kernel
 	 * version is and build the '/lib/modules/KVER/systemtap' path. */
@@ -308,21 +324,6 @@ check_path(void)
 		return -1;
 	}
 
-	/* Use realpath() to canonicalize the module path. */
-	if (realpath(modpath, module_realpath) == NULL) {
-		perr("Unable to canonicalize path \"%s\"", modpath);
-		return -1;
-	}
-
-        /* Overwrite the modpath with the canonicalized one, to defeat
-           a possible race between path checking below and somewhat later
-           module loading. */
-        modpath = strdup (module_realpath);
-        if (modpath == NULL) {
-		_perr("allocating memory failed");
-                exit (1);
-        }
-
 	/* To make sure the user can't specify something like
 	 * /lib/modules/`uname -r`/systemtapmod.ko, put a '/' on the
 	 * end of staplib_dir_realpath. */
@@ -334,8 +335,8 @@ check_path(void)
 	}
 
 	/* Now we've got two canonicalized paths.  Make sure
-	 * module_realpath starts with staplib_dir_realpath. */
-	if (strncmp(staplib_dir_realpath, module_realpath,
+	 * modpath starts with staplib_dir_realpath. */
+	if (strncmp(staplib_dir_realpath, modpath,
 		    strlen(staplib_dir_realpath)) != 0) {
 		err("ERROR: Members of the \"stapusr\" group can only use modules within\n"
 		    "  the \"%s\" directory.\n"
@@ -347,7 +348,7 @@ check_path(void)
 }
 
 /*
- * Check the user's group membership.  Is he allowed to run staprun (or is
+ * Check the user's group membership.
  *
  * o members of stapdev can do anything
  * o members of stapusr can load modules from /lib/modules/KVER/systemtap
@@ -433,8 +434,8 @@ check_groups (void)
 }
 
 /*
- * Check the user's permissions.  Is he allowed to run staprun (or is
- * he limited to "blessed" modules)?
+ * Check the user's permissions.  Is he allowed to run staprun, or is
+ * he limited to "blessed" modules?
  *
  * There are several levels of possible permission:
  *
@@ -447,15 +448,15 @@ check_groups (void)
  *
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
-int check_permissions(void)
+int check_permissions(const void *module_data, off_t module_size)
 {
 	int check_groups_rc;
 	int check_signature_rc = 0;
-#if HAVE_NSS
 
+#if HAVE_NSS
 	/* Attempt to verify the module against its signature. Return failure
 	   if the module has been tampered with (altered).  */
-	check_signature_rc = check_signature ();
+	check_signature_rc = check_signature (module_data, module_size);
 	if (check_signature_rc == MODULE_ALTERED)
 		return 0;
 #endif
@@ -483,7 +484,7 @@ int check_permissions(void)
 		return 1;
 
 	/* The user is an ordinary user. If the module has been signed with
-	 * a "blessed" certificate and private key, then we will load it for
+	 * an authorized certificate and private key, then we will load it for
 	 * anyone.  */
 #if HAVE_NSS
 	if (check_signature_rc == MODULE_OK)

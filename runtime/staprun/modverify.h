@@ -1,4 +1,4 @@
-int verify_module (const char *module_name, const char *signature_name);
+int verify_module (const char *signature_name, const void *module_data, off_t module_size);
 
 /* return codes for verify_module.  */
 #define MODULE_OK           1

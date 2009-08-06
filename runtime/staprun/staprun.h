@@ -134,7 +134,6 @@ const char *moderror(int err);
 int insert_module(const char *path, const char *special_options,
 	char **options);
 int mountfs(void);
-int check_permissions(void);
 void start_symbol_thread(void);
 void stop_symbol_thread(void);
 

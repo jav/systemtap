@@ -29,6 +29,7 @@
 #include <certt.h>
 
 #include "nsscommon.h"
+#include "staprun.h"
 #include "modverify.h"
 
 #include <sys/stat.h>
@@ -130,7 +131,11 @@ check_cert_db_permissions (const char *cert_db_path) {
       return 0;
     }
 
-  rc = 1; /* ok */
+  if (! S_ISDIR (info.st_mode))
+    {
+      fprintf (stderr, "Certificate database %s is not a directory.\n", cert_db_path);
+      return 0;
+    }
 
   /* The owner of the database must be root.  */
   if (info.st_uid != 0)
@@ -138,6 +143,8 @@ check_cert_db_permissions (const char *cert_db_path) {
       fprintf (stderr, "Certificate database directory %s must be owned by root.\n", cert_db_path);
       rc = 0;
     }
+
+  rc = 1; /* ok */
 
   /* Check the database directory access permissions  */
   if ((info.st_mode & S_IRUSR) == 0)
@@ -189,16 +196,75 @@ check_cert_db_permissions (const char *cert_db_path) {
 }
 
 static int
-verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pubKey)
+verify_it (const char *signatureName, const SECItem *signature,
+	   const void *module_data, off_t module_size,
+	   const SECKEYPublicKey *pubKey)
 {
-  unsigned char buffer[4096];
-  PRFileInfo info;
+  VFYContext *vfy;
+  SECStatus secStatus;
+
+  /* Create a verification context.  */
+  vfy = VFY_CreateContextDirect (pubKey, signature, SEC_OID_PKCS1_RSA_ENCRYPTION,
+				 SEC_OID_UNKNOWN, NULL, NULL);
+  if (! vfy)
+    {
+      /* The key does not match the signature. This is not an error. It just
+	 means we are currently trying the wrong certificate/key. i.e. the
+	 module remains untrusted for now.  */
+      return MODULE_UNTRUSTED;
+    }
+
+  /* Begin the verification process.  */
+  secStatus = VFY_Begin(vfy);
+  if (secStatus != SECSuccess)
+    {
+      fprintf (stderr, "Unable to initialize verification context while verifying %s using the signature in %s.\n",
+	       modpath, signatureName);
+      nssError ();
+      return MODULE_CHECK_ERROR;
+    }
+
+  /* Add the data to be verified.  */
+  secStatus = VFY_Update (vfy, module_data, module_size);
+  if (secStatus != SECSuccess)
+    {
+      fprintf (stderr, "Error while verifying %s using the signature in %s.\n",
+	       modpath, signatureName);
+      nssError ();
+      return MODULE_CHECK_ERROR;
+    }
+
+  /* Complete the verification.  */
+  secStatus = VFY_End (vfy);
+  if (secStatus != SECSuccess) {
+    fprintf (stderr, "Unable to verify the signed module %s. It may have been altered since it was created.\n",
+	     modpath);
+    nssError ();
+    return MODULE_ALTERED;
+  }
+
+  return MODULE_OK;
+}
+
+int verify_module (const char *signatureName, const void *module_data,
+		   off_t module_size)
+{
+  const char *dbdir  = SYSCONFDIR "/systemtap/staprun";
+  SECKEYPublicKey *pubKey;
+  SECStatus secStatus;
+  CERTCertList *certList;
+  CERTCertListNode *certListNode;
+  CERTCertificate *cert;
   PRStatus prStatus;
+  PRFileInfo info;
   PRInt32  numBytes;
   PRFileDesc *local_file_fd;
-  VFYContext *vfy;
   SECItem signature;
-  SECStatus secStatus;
+  int rc = 0;
+
+  /* Verify the permissions of the certificate database and its files.  */
+  if (! check_cert_db_permissions (dbdir))
+    return MODULE_UNTRUSTED;
 
   /* Get the size of the signature file.  */
   prStatus = PR_GetFileInfo (signatureName, &info);
@@ -246,94 +312,6 @@ verify_it (const char *inputName, const char *signatureName, SECKEYPublicKey *pu
   /* Done with the signature file.  */
   PR_Close (local_file_fd);
 
-  /* Create a verification context.  */
-  vfy = VFY_CreateContextDirect (pubKey, & signature, SEC_OID_PKCS1_RSA_ENCRYPTION,
-				 SEC_OID_UNKNOWN, NULL, NULL);
-  if (! vfy)
-    {
-      /* The key does not match the signature. This is not an error. It just means
-	 we are currently trying the wrong certificate/key. i.e. the module
-	 remains untrusted for now.  */
-      return MODULE_UNTRUSTED;
-    }
-
-  /* Begin the verification process.  */
-  secStatus = VFY_Begin(vfy);
-  if (secStatus != SECSuccess)
-    {
-      fprintf (stderr, "Unable to initialize verification context while verifying %s using the signature in %s.\n",
-	       inputName, signatureName);
-      nssError ();
-      return MODULE_CHECK_ERROR;
-    }
-
-  /* Now read the data and add it to the signature.  */
-  local_file_fd = PR_Open (inputName, PR_RDONLY, 0);
-  if (local_file_fd == NULL)
-    {
-      fprintf (stderr, "Could not open module file %s.\n", inputName);
-      nssError ();
-      return MODULE_CHECK_ERROR;
-    }
-
-  for (;;)
-    {
-      numBytes = PR_Read (local_file_fd, buffer, sizeof (buffer));
-      if (numBytes == 0)
-	break;	/* EOF */
-
-      if (numBytes < 0)
-	{
-	  fprintf (stderr, "Error reading module file %s.\n", inputName);
-	  nssError ();
-	  return MODULE_CHECK_ERROR;
-	}
-
-      /* Add the data to the signature.  */
-      secStatus = VFY_Update (vfy, buffer, numBytes);
-      if (secStatus != SECSuccess)
-	{
-	  fprintf (stderr, "Error while verifying module file %s.\n", inputName);
-	  nssError ();
-	  return MODULE_CHECK_ERROR;
-	}
-    }
-
-  PR_Close(local_file_fd);
-
-  /* Complete the verification.  */
-  secStatus = VFY_End (vfy);
-  if (secStatus != SECSuccess) {
-    fprintf (stderr, "Unable to verify signed module %s. It may have been altered since it was created.\n", inputName);
-    nssError ();
-    return MODULE_ALTERED;
-  }
-
-  return MODULE_OK;
-}
-
-int verify_module (const char *module_name, const char *signature_name)
-{
-  const char *dbdir  = SYSCONFDIR "/systemtap/staprun";
-  SECKEYPublicKey *pubKey;
-  SECStatus secStatus;
-  CERTCertList *certList;
-  CERTCertListNode *certListNode;
-  CERTCertificate *cert;
-  PRStatus prStatus;
-  PRFileInfo info;
-  int rc = 0;
-
-  /* Look for the certificate database. If it's not there, it's not an error, it
-     just means that the module can't be verified.  */
-  prStatus = PR_GetFileInfo (dbdir, &info);
-  if (prStatus != PR_SUCCESS || info.type != PR_FILE_DIRECTORY)
-    return MODULE_UNTRUSTED;
-
-  /* Verify the permissions of the certificate database and its files.  */
-  if (! check_cert_db_permissions (dbdir))
-    return MODULE_UNTRUSTED;
-
   /* Call the NSPR initialization routines. */
   PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
@@ -373,7 +351,7 @@ int verify_module (const char *module_name, const char *signature_name)
 	}
 
       /* Verify the file. */
-      rc = verify_it (module_name, signature_name, pubKey);
+      rc = verify_it (signatureName, & signature, module_data, module_size, pubKey);
       if (rc == MODULE_OK || rc == MODULE_ALTERED || rc == MODULE_CHECK_ERROR)
 	break; /* resolved or error */
     }

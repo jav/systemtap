@@ -303,9 +303,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (check_permissions() != 1)
-		usage(argv[0]);
-
 	if (init_staprun())
 		exit(1);
 
