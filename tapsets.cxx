@@ -1452,7 +1452,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 		for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
 		     i != q->filtered_srcfiles.end(); ++i)
 		  q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
-						    q->line_type, query_srcfile_label, q);
+						    q->line_type, query_srcfile_label, q->function, q);
 	    }
 	  else if ((q->has_statement_str || q->has_function_str)
 	      && (q->spec_type == function_file_and_line))
@@ -1462,7 +1462,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	      for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
 		   i != q->filtered_srcfiles.end(); ++i)
 		q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
-						  q->line_type, query_srcfile_line, q);
+						  q->line_type, query_srcfile_line, q->function, q);
 	    }
 	  else
 	    {

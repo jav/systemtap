@@ -1,0 +1,4 @@
+#! stap -p2
+probe process("./bz10294").statement("*@bz10294.c:10-10") {
+  printf("ok")
+}
