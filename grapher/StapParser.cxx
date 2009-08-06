@@ -3,6 +3,7 @@
 #include <gtkmm/window.h>
 #include <iostream>
 #include <sstream>
+#include <cstring>
 
 namespace systemtap
 {
