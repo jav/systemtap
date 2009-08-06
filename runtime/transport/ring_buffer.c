@@ -63,7 +63,7 @@ struct _stp_relay_data_type {
 	struct timer_list timer;
 	int overwrite_flag;
 };
-static struct _stp_relay_data_type _stp_relay_data;
+static struct _stp_relay_data_type _stp_relay_data = { 0 };
 
 /* _stp_poll_wait is a waitqueue for tasks blocked on
  * _stp_data_poll_trace() */
@@ -294,10 +294,15 @@ _stp_find_next_event(struct _stp_iterator *iter)
 	 * If we are in a per_cpu trace file, don't bother by iterating over
 	 * all cpus and peek directly.
 	 */
-	if (ring_buffer_iter_empty(iter->buffer_iter[cpu_file]))
-		return NULL;
+	if (iter->buffer_iter[cpu_file] == NULL ) {
+		if (ring_buffer_empty_cpu(_stp_relay_data.rb, cpu_file))
+			return NULL;
+	}
+	else {
+		if (ring_buffer_iter_empty(iter->buffer_iter[cpu_file]))
+			return NULL;
+	}
 	event = _stp_peek_next_event(iter, cpu_file, &iter->ts);
-	iter->cpu = cpu_file;
 
 	return event;
 #else
@@ -307,11 +312,14 @@ _stp_find_next_event(struct _stp_iterator *iter)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-		if (iter->buffer_iter[cpu] == NULL)
-			continue;
-
-		if (ring_buffer_iter_empty(iter->buffer_iter[cpu]))
-			continue;
+		if (iter->buffer_iter[cpu] == NULL ) {
+			if (ring_buffer_empty_cpu(_stp_relay_data.rb, cpu))
+				continue;
+		}
+		else {
+			if (ring_buffer_iter_empty(iter->buffer_iter[cpu]))
+				continue;
+		}
 
 		event = _stp_peek_next_event(iter, cpu, &ts);
 
@@ -355,6 +363,7 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 	if (sret <= 0)
 		goto out;
 
+#ifdef USE_ITERS
 #ifdef STP_BULKMODE
 	iter->buffer_iter[cpu_file]
 	    = ring_buffer_read_start(_stp_relay_data.rb, cpu_file);
@@ -368,8 +377,9 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 		    = ring_buffer_read_start(_stp_relay_data.rb, cpu);
 	}
 #endif
-	iter->ts = 0;
 	dbug_trans(0, "iterator(s) started\n");
+#endif /* USE_ITERS */
+	iter->ts = 0;
 
 	if (cnt >= PAGE_SIZE)
 		cnt = PAGE_SIZE - 1;
@@ -393,11 +403,11 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 	}
 
 out:
+#ifdef USE_ITERS
 #ifdef STP_BULKMODE
 	if (iter->buffer_iter[cpu_file]) {
 		ring_buffer_read_finish(iter->buffer_iter[cpu_file]);
 		iter->buffer_iter[cpu_file] = NULL;
-		dbug_trans(0, "iterator finished\n");
 	}
 #else
 	for_each_possible_cpu(cpu) {
@@ -406,8 +416,9 @@ out:
 			iter->buffer_iter[cpu] = NULL;
 		}
 	}
-	dbug_trans(0, "iterator(s) finished\n");
 #endif
+	dbug_trans(0, "iterator(s) finished\n");
+#endif	/* USE_ITERS */
 	return sret;
 }
 
@@ -436,6 +447,16 @@ static struct file_operations __stp_data_fops = {
 	.read		= _stp_data_read_trace,
 };
 
+static struct _stp_iterator *_stp_get_iterator(void)
+{
+#ifdef STP_BULKMODE
+	int cpu = raw_smp_processor_id();
+	return &_stp_relay_data.iter[cpu];
+#else
+	return &_stp_relay_data.iter[0];
+#endif
+}
+
 /*
  * Here's how __STP_MAX_RESERVE_SIZE is figured.  The value of
  * BUF_PAGE_SIZE was gotten from the kernel's ring_buffer code.  It
@@ -463,6 +484,7 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 {
 	struct ring_buffer_event *event;
 	struct _stp_data_entry *sde;
+	struct _stp_iterator *iter = _stp_get_iterator();
 
 	if (entry == NULL)
 		return -EINVAL;
@@ -481,9 +503,6 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 					  + size_request));
 #endif
 	if (unlikely(! event)) {
-		int cpu;
-		struct _stp_iterator *iter;
-
 		dbug_trans(0, "event = NULL (%p)?\n", event);
 		if (! _stp_relay_data.overwrite_flag) {
 			entry = NULL;
@@ -494,12 +513,6 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 		 * full, take a event out of the buffer and consume it
 		 * (throw it away).  This should make room for the new
 		 * data. */
-#ifdef STP_BULKMODE
-		cpu = raw_smp_processor_id();
-		iter = &_stp_relay_data.iter[cpu];
-#else
-		iter = &_stp_relay_data.iter[0];
-#endif
 		event = _stp_find_next_event(iter);
 		if (event) {
 			ssize_t len;
