@@ -10,5 +10,7 @@ Result = hello  tap
 Result = hello system tap
 Result = 
 Result = }
-stap_run2 $srcdir/$subdir/$test.stp
+
+# Expect strings to be cut off if they are too long.
+stap_run2 $srcdir/$subdir/$test.stp -DMAXSTRINGLEN=128
 

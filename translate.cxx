@@ -5106,9 +5106,18 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING 10";
       s.op->newline() << "#endif";
+
+      // Strings are used for storing backtraces, they are larger on 64bit
+      // so raise the size on 64bit architectures. PR10486
+      s.op->newline() << "#include <asm/types.h>";
       s.op->newline() << "#ifndef MAXSTRINGLEN";
-      s.op->newline() << "#define MAXSTRINGLEN 128";
+      s.op->newline() << "#if BITS_PER_LONG == 32";
+      s.op->newline() << "#define MAXSTRINGLEN 256";
+      s.op->newline() << "#else";
+      s.op->newline() << "#define MAXSTRINGLEN 512";
       s.op->newline() << "#endif";
+      s.op->newline() << "#endif";
+
       s.op->newline() << "#ifndef MAXACTION";
       s.op->newline() << "#define MAXACTION 1000";
       s.op->newline() << "#endif";

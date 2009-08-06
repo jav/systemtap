@@ -5,8 +5,8 @@ set m4 0
 set m5 0
 set m6 0
 
-#spawn stap -d kernel -d systemtap_test_module1 -DMAXSTRINGLEN=256 $srcdir/$subdir/backtrace.stp
-spawn stap -DMAXSTRINGLEN=256 $srcdir/$subdir/backtrace.stp
+#spawn stap -d kernel -d systemtap_test_module1 $srcdir/$subdir/backtrace.stp
+spawn stap $srcdir/$subdir/backtrace.stp
 #exp_internal 1
 expect {
     -timeout 60

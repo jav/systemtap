@@ -31,11 +31,8 @@ set main 0
 set main_func 0
 set lib_main 0
 set lib_func 0
-# Needs extra space since on 64bit the last ubacktrace string is
-# 7 entries * (16 hex + 2 for 0x + 1 space) = 133 chars.
-# Default MAXSTRINGLEN is 128 chars.
-send_log "Running: stap -DMAXSTRINGLEN=133 $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe\n"
-spawn stap -DMAXSTRINGLEN=133 $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe
+send_log "Running: stap $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe\n"
+spawn stap $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe
 
 wait
 expect {
