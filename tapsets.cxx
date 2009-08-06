@@ -3390,7 +3390,8 @@ sdt_query::handle_query_module()
 
   while (get_next_probe())
     {
-      if (!probes_handled.insert(probe_name).second)
+      if (probe_type != uprobe_type
+	  && !probes_handled.insert(probe_name).second)
         continue;
 
       probe *new_base = new probe(*base_probe);
@@ -3424,7 +3425,7 @@ sdt_query::handle_query_module()
               params[c->functor] = c->arg;
             }
 
-          dwarf_query q(base_probe, base_loc, dw, params, results);
+          dwarf_query q(new_base, new_location, dw, params, results);
           q.has_mark = true; // enables mid-statement probing
           dw.iterate_over_modules(&query_module, &q);
         }

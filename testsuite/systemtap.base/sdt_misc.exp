@@ -59,19 +59,19 @@ set fp [open $sup_stppath "w"]
 puts $fp "
 probe process(\"static_user_markers.x\").mark(\"test_probe_0\") 
 { 
-  printf(\"In test_probe_0 probe %#x\\n\", \$arg1)
+  printf(\"In %s probe %#x\\n\", \$\$name, \$arg1)
 }
 probe process(\"static_user_markers.x\").mark(\"test_probe_2\") 
 {
-  printf(\"In test_probe_2 probe %#x\\n\", \$arg1)
+  printf(\"In %s probe %#x\\n\", \$\$name, \$arg1)
 }
 probe process(\"static_user_markers.x\").mark(\"test_probe_3\") 
 { 
-  printf(\"In test_probe_3 probe %#x %#x\\n\", \$arg1, \$arg2)
+  printf(\"In %s probe %#x %#x\\n\", \$\$name, \$arg1, \$arg2)
 }
 probe process(\"static_user_markers.x\").mark(\"test_probe_4\")
 { 
-  printf(\"In test_probe_4 dtrace probe %#x %#x\\n\", \$arg1->a, \$arg1->b)
+  printf(\"In %s dtrace probe %#x %#x\\n\", \$\$name, \$arg1->a, \$arg1->b)
 }
 "
 close $fp
@@ -97,6 +97,9 @@ if {[installtest_p]} {
     set dtrace $env(SYSTEMTAP_PATH)/dtrace 
 } else {
     set dtrace $srcdir/../dtrace
+}
+if {[catch {exec $dtrace --types -h -s $sup_dpath} res]} {
+    verbose -log "unable to run $dtrace: $res"
 }
 if {[catch {exec $dtrace --types -G -s $sup_dpath} res]} {
     verbose -log "unable to run $dtrace: $res"
