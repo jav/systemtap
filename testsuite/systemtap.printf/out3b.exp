@@ -18,24 +18,24 @@ if {[catch {exec mktemp -t staptestXXXXXX} tmpfile]} {
 if {[catch {exec stap -DMAXACTION=100000 -b -o $tmpfile $test} res]} {
     fail $TEST_NAME
     puts "stap failed: $res"
-    as_root "/bin/rm -f [glob ${tmpfile}*]"
+    eval [list exec /bin/rm -f] [glob "${tmpfile}*"]
     return
 }
 
 if {[catch {eval [list exec $stap_merge_path -o $tmpfile] [glob "${tmpfile}_*"]} res]} {
     puts "merge failed: $res"
     fail $TEST_NAME
-    as_root "/bin/rm -f [glob ${tmpfile}*]"
+    eval [list exec /bin/rm -f] [glob "${tmpfile}*"]
     return
 }
 
 if {[catch {exec cmp $tmpfile $srcdir/$subdir/large_output} res]} {
     puts "$res"
     fail $TEST_NAME
-    as_root "/bin/rm -f [glob ${tmpfile}*]"
+    eval [list exec /bin/rm -f] [glob "${tmpfile}*"]
     return
 }
 
 pass $TEST_NAME
-as_root "/bin/rm -f [glob ${tmpfile}*]"
+eval [list exec /bin/rm -f] [glob "${tmpfile}*"]
 
