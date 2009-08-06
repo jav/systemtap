@@ -13,17 +13,20 @@
 
 #if defined  (STAPCONF_X86_UNIREGS) && (defined (__x86_64__) || defined (__i386__))
 #define REG_IP(regs) regs->ip
+#define REG_IP_LVALUE 1
 #define REG_SP(regs) regs->sp
 #define REG_FP(regs) regs->bp
 
 #elif defined  (__x86_64__)
 
 #define REG_IP(regs) regs->rip
+#define REG_IP_LVALUE 1
 #define REG_SP(regs) regs->rsp
 
 #elif defined (__i386__)
 
 #define REG_IP(regs) regs->eip
+#define REG_IP_LVALUE 1
 #define REG_SP(regs) regs->esp
 #define REG_FP(regs) regs->ebp
 
@@ -34,12 +37,14 @@
 #elif defined (__powerpc64__)
 
 #define REG_IP(regs) regs->nip
+#define REG_IP_LVALUE 1
 #define REG_SP(regs) regs->gpr[1]
 #define REG_LINK(regs) regs->link
 
 #elif defined (__arm__)
 
 #define REG_IP(regs) regs->ARM_pc
+#define REG_IP_LVALUE 1
 #define REG_SP(regs) regs->ARM_sp
 #define REG_LINK(regs) regs->ARM_lr
 

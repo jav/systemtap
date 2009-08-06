@@ -281,13 +281,13 @@ exit 0
 
 %post
 # Remove any previously-built uprobes.ko materials
-(make -C /usr/share/systemtap/runtime/uprobes clean) >/dev/null 3>&1 || true
-(/sbin/rmmod uprobes) >/dev/null 3>&1 || true
+(make -C /usr/share/systemtap/runtime/uprobes clean) >/dev/null 2>&1 || true
+(/sbin/rmmod uprobes) >/dev/null 2>&1 || true
 
 %preun
 # Ditto
-(make -C /usr/share/systemtap/runtime/uprobes clean) >/dev/null 3>&1 || true
-(/sbin/rmmod uprobes) >/dev/null 3>&1 || true
+(make -C /usr/share/systemtap/runtime/uprobes clean) >/dev/null 2>&1 || true
+(/sbin/rmmod uprobes) >/dev/null 2>&1 || true
 
 %files
 %defattr(-,root,root)

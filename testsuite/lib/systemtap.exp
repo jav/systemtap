@@ -26,6 +26,29 @@ proc utrace_p {} {
 }
 
 
+proc uprobes_p {} {
+    global env
+    if {! [utrace_p]} {
+        return 0
+    }
+    set uprobes $env(SYSTEMTAP_RUNTIME)/uprobes
+    set res [catch "exec make -q -C $uprobes uprobes.ko" output]
+    if {$res != 0} {
+        if {! [installtest_p]} {
+            # build as user in the source tree
+            verbose -log "exec make -C $uprobes"
+            set res [catch "exec make -C $uprobes" output]
+            verbose -log "OUT $output"
+            verbose -log "RC $res"
+        } else {
+            # build as root in the installed location
+            set res [as_root "make -C $uprobes"]
+        }
+    }
+    if {$res == 0} { return 1 } else { return 0 }
+}
+
+
 proc print_systemtap_version {} {
     set version [exec /bin/uname -r]
     set location "/boot/vmlinux-$version"

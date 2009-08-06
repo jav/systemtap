@@ -784,6 +784,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
                                     enum line_t line_type,
                                     void (* callback) (const dwarf_line_t& line,
                                                        void * arg),
+                                    const std::string& func_pattern,
                                     void *data)
 {
   Dwarf_Line **srcsp = NULL;
@@ -811,7 +812,10 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
   else if (line_type == RANGE) { /* correct lineno */
       int start_lineno;
 
-      function_line (&start_lineno);
+      if (name_has_wildcard(func_pattern)) /* PR10294: wider range like statement("*@foo.c") */
+         start_lineno = lineno;
+      else
+         function_line (&start_lineno);
       lineno = lineno < start_lineno ? start_lineno : lineno;
       if (lineno > lines[1]) { /* invalid line range */
         stringstream advice;
@@ -849,7 +853,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
           if (lineno != l || line_probed.second == false || nsrcs > 1)
             continue;
           dwarf_lineaddr (srcsp [0], &line_addr);
-          if (dwarf_haspc (function, line_addr) != 1)
+          if (!function_name_matches(func_pattern) && dwarf_haspc (function, line_addr) != 1)
             break;
         }
 

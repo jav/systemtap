@@ -1452,7 +1452,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 		for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
 		     i != q->filtered_srcfiles.end(); ++i)
 		  q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
-						    q->line_type, query_srcfile_label, q);
+						    q->line_type, query_srcfile_label, q->function, q);
 	    }
 	  else if ((q->has_statement_str || q->has_function_str)
 	      && (q->spec_type == function_file_and_line))
@@ -1462,7 +1462,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	      for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
 		   i != q->filtered_srcfiles.end(); ++i)
 		q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
-						  q->line_type, query_srcfile_line, q);
+						  q->line_type, query_srcfile_line, q->function, q);
 	    }
 	  else
 	    {
@@ -3030,6 +3030,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
+  // But only for architectures where REG_IP is a proper lvalue. PR10491
+  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
@@ -3037,6 +3039,9 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "(*sdp->ph) (c);";
   s.op->newline() << "REG_IP(regs) = kprobes_ip;";
   s.op->newline(-1) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -3064,6 +3069,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
+  // But only for architectures where REG_IP is a proper lvalue. PR10491
+  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
@@ -3071,6 +3078,9 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "(*sdp->ph) (c);";
   s.op->newline() << "REG_IP(regs) = kprobes_ip;";
   s.op->newline(-1) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -4447,6 +4457,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
   // we don't confuse uprobes. PR10458
+  // But only for architectures where REG_IP is a proper lvalue. PR10491
+  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
@@ -4454,6 +4466,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "(*sups->ph) (c);";
   s.op->newline() << "REG_IP(regs) = uprobes_ip;";
   s.op->newline(-1) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -4470,6 +4485,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
   // we don't confuse uprobes. PR10458
+  // But only for architectures where REG_IP is a proper lvalue. PR10491
+  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
@@ -4477,6 +4494,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "(*sups->ph) (c);";
   s.op->newline() << "REG_IP(regs) = uprobes_ip;";
   s.op->newline(-1) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -4970,6 +4990,8 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
+  // But only for architectures where REG_IP is a proper lvalue. PR10491
+  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
@@ -4977,6 +4999,9 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "(*sdp->ph) (c);";
   s.op->newline() << "REG_IP(regs) = kprobes_ip;";
   s.op->newline(-1) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -5004,6 +5029,8 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
+  // But only for architectures where REG_IP is a proper lvalue. PR10491
+  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
@@ -5011,6 +5038,9 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "(*sdp->ph) (c);";
   s.op->newline() << "REG_IP(regs) = kprobes_ip;";
   s.op->newline(-1) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";

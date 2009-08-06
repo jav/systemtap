@@ -213,6 +213,7 @@ struct dwflpp
                                    enum line_t line_type,
                                    void (* callback) (const dwarf_line_t& line,
                                                       void * arg),
+                                   const std::string& func_pattern,
                                    void *data);
 
   void iterate_over_labels (Dwarf_Die *begin_die,
