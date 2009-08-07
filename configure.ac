@@ -298,7 +298,7 @@ AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_gtkmm}" == "xyes" -a x"$enable_gr
 
 AC_ARG_WITH([rpm],
   [AS_HELP_STRING([--with-rpm],
-                  [query rpm database for missing debuginfos [yes/no, def. auto=librpm.so]])], [], [with_rpm="auto"])
+                  [query rpm database for missing debuginfos @<:@yes/no, def. auto=librpm.so@:>@])], [], [with_rpm="auto"])
 
 m4_pattern_allow([^AC_MSG_ERROR$])
 m4_pattern_allow([^AC_MSG_WARN$])
