@@ -89,8 +89,6 @@ public:
   }
 };
 
-const char *dwarf_diename_integrate (Dwarf_Die *die);
-
 
 #endif
 

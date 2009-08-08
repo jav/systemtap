@@ -23,14 +23,6 @@
 
 #define _(msg) msg
 
-static const char *
-dwarf_diename_integrate (Dwarf_Die *die)
-{
-  Dwarf_Attribute attr_mem;
-  return dwarf_formstring (dwarf_attr_integrate (die, DW_AT_name, &attr_mem));
-}
-
-
 static void __attribute__ ((noreturn))
 fail (void *arg __attribute__ ((unused)), const char *fmt, ...)
 {
@@ -187,13 +179,13 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 	    {
 	    case 1:		/* No children.  */
 	      error (2, 0, _("empty struct %s"),
-		     dwarf_diename_integrate (die) ?: "<anonymous>");
+		     dwarf_diename (die) ?: "<anonymous>");
 	      break;
 	    case -1:		/* Error.  */
 	    default:		/* Shouldn't happen */
 	      error (2, 0, _("%s %s: %s"),
 		     typetag == DW_TAG_union_type ? "union" : "struct",
-		     dwarf_diename_integrate (die) ?: "<anonymous>",
+		     dwarf_diename (die) ?: "<anonymous>",
 		     dwarf_errmsg (-1));
 	      break;
 
@@ -201,7 +193,7 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 	      break;
 	    }
 	  while (dwarf_tag (die) != DW_TAG_member
-		 || ({ const char *member = dwarf_diename_integrate (die);
+		 || ({ const char *member = dwarf_diename (die);
 		       member == NULL || strcmp (member, *fields); }))
 	    if (dwarf_siblingof (die, &die_mem) != 0)
 	      error (2, 0, _("field name %s not found"), *fields);
@@ -230,11 +222,11 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 		  if (dwarf_formsdata (&attr_mem, &off) != 0)
 		    error (2, 0, _("Bad offset for %s %s: %s"),
 			   typetag == DW_TAG_union_type ? "union" : "struct",
-			   dwarf_diename_integrate (die) ?: "<anonymous>",
+			   dwarf_diename (die) ?: "<anonymous>",
 			   dwarf_errmsg (-1));
 		    if (off != 0)
 		      c_translate_add_offset (&pool, 1,
-					      dwarf_diename_integrate (die)
+					      dwarf_diename (die)
 					      ?: "", off, &tail);
 		  break;
 
@@ -252,7 +244,7 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 
 	case DW_TAG_base_type:
 	  error (2, 0, _("field %s vs base type %s"),
-		 *fields, dwarf_diename_integrate (die) ?: "<anonymous type>");
+		 *fields, dwarf_diename (die) ?: "<anonymous type>");
 	  break;
 
 	case -1:
@@ -261,7 +253,7 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 
 	default:
 	  error (2, 0, _("%s: unexpected type tag %#x"),
-		 dwarf_diename_integrate (die) ?: "<anonymous type>",
+		 dwarf_diename (die) ?: "<anonymous type>",
 		 dwarf_tag (die));
 	  break;
 	}

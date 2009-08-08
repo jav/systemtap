@@ -1561,7 +1561,7 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
   if (typetag != DW_TAG_structure_type && typetag != DW_TAG_union_type)
     {
       o << " Error: "
-        << (dwarf_diename_integrate (vardie) ?: "<anonymous>")
+        << (dwarf_diename (vardie) ?: "<anonymous>")
         << " isn't a struct/union";
       return;
     }
@@ -1573,14 +1573,14 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
     {
     case 1:				// No children.
       o << ((typetag == DW_TAG_union_type) ? " union " : " struct ")
-        << (dwarf_diename_integrate (die) ?: "<anonymous>")
+        << (dwarf_diename (die) ?: "<anonymous>")
         << " is empty";
       break;
 
     case -1:				// Error.
     default:				// Shouldn't happen.
       o << ((typetag == DW_TAG_union_type) ? " union " : " struct ")
-        << (dwarf_diename_integrate (die) ?: "<anonymous>")
+        << (dwarf_diename (die) ?: "<anonymous>")
         << ": " << dwarf_errmsg (-1);
       break;
 
@@ -1591,7 +1591,7 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
   // Output each sibling's name to 'o'.
   while (dwarf_tag (die) == DW_TAG_member)
     {
-      const char *member = dwarf_diename_integrate (die) ;
+      const char *member = dwarf_diename (die) ;
 
       if ( member != NULL )
         o << " " << member;
@@ -1641,7 +1641,7 @@ dwflpp::find_struct_member(const target_symbol::component& c,
     case -1:		/* Error.  */
     default:		/* Shouldn't happen */
       throw semantic_error (string (dwarf_tag(&die) == DW_TAG_union_type ? "union" : "struct")
-                            + string (dwarf_diename_integrate (&die) ?: "<anonymous>")
+                            + string (dwarf_diename (&die) ?: "<anonymous>")
                             + string (dwarf_errmsg (-1)),
                             c.tok);
     }
@@ -1651,7 +1651,7 @@ dwflpp::find_struct_member(const target_symbol::component& c,
       if (dwarf_tag(&die) != DW_TAG_member)
         continue;
 
-      const char *name = dwarf_diename_integrate(&die);
+      const char *name = dwarf_diename(&die);
       if (name == NULL)
         {
           // need to recurse for anonymous structs/unions
@@ -1774,7 +1774,7 @@ dwflpp::translate_components(struct obstack *pool,
               Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(die));
               if (tmpdie == NULL)
                 throw semantic_error ("unresolved struct "
-                                      + string (dwarf_diename_integrate (die) ?: "<anonymous>"),
+                                      + string (dwarf_diename (die) ?: "<anonymous>"),
                                       c.tok);
               *die_mem = *tmpdie;
             }
@@ -1790,7 +1790,7 @@ dwflpp::translate_components(struct obstack *pool,
                     alternatives = " (alternatives:" + members.str();
                   throw semantic_error("unable to find member '" +
                                        c.member + "' for struct "
-                                       + string(dwarf_diename_integrate(die) ?: "<unknown>")
+                                       + string(dwarf_diename(die) ?: "<unknown>")
                                        + alternatives,
                                        c.tok);
                 }
@@ -1806,14 +1806,14 @@ dwflpp::translate_components(struct obstack *pool,
           throw semantic_error ("invalid access '"
                                 + lex_cast<string>(c)
                                 + "' vs. enum type "
-                                + string(dwarf_diename_integrate (die) ?: "<anonymous type>"),
+                                + string(dwarf_diename (die) ?: "<anonymous type>"),
                                 c.tok);
           break;
         case DW_TAG_base_type:
           throw semantic_error ("invalid access '"
                                 + lex_cast<string>(c)
                                 + "' vs. base type "
-                                + string(dwarf_diename_integrate (die) ?: "<anonymous type>"),
+                                + string(dwarf_diename (die) ?: "<anonymous type>"),
                                 c.tok);
           break;
         case -1:
@@ -1822,7 +1822,7 @@ dwflpp::translate_components(struct obstack *pool,
           break;
 
         default:
-          throw semantic_error (string(dwarf_diename_integrate (die) ?: "<anonymous type>")
+          throw semantic_error (string(dwarf_diename (die) ?: "<anonymous type>")
                                 + ": unexpected type tag "
                                 + lex_cast<string>(dwarf_tag (die)),
                                 c.tok);

@@ -5607,7 +5607,7 @@ dwarf_type_name(Dwarf_Die& type_die, string& c_type)
     }
   if (done)
     {
-      c_type.append(dwarf_diename_integrate(&type_die));
+      c_type.append(dwarf_diename(&type_die));
       return true;
     }
 
@@ -5699,7 +5699,7 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
         {
           // build a tracepoint_arg for this parameter
           tracepoint_arg tparg;
-          tparg.name = dwarf_diename_integrate(&arg);
+          tparg.name = dwarf_diename(&arg);
 
           // read the type of this parameter
           Dwarf_Attribute type_attr;
