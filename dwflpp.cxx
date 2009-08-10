@@ -41,9 +41,6 @@ extern "C" {
 #include <fcntl.h>
 #include <elfutils/libdwfl.h>
 #include <elfutils/libdw.h>
-#ifdef HAVE_ELFUTILS_VERSION_H
-#include <elfutils/version.h>
-#endif
 #include <dwarf.h>
 #include <elf.h>
 #include <obstack.h>
@@ -2593,9 +2590,8 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
     clog << "get_cfa_ops @0x" << hex << pc << dec
 	 << ", module_start @0x" << hex << module_start << dec << endl;
 
-#ifdef _ELFUTILS_PREREQ
 #if _ELFUTILS_PREREQ(0,142)
-  // Try debug_frame first, then fall back on eh_frame.             
+  // Try debug_frame first, then fall back on eh_frame.
   size_t cfa_nops;
   Dwarf_Addr bias;
   Dwarf_CFI *cfi = dwfl_module_dwarf_cfi (module, &bias);
@@ -2629,7 +2625,6 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	clog << "dwfl_module_eh_cfi failed: " << dwfl_errmsg(-1) << endl;
 
     }
-#endif
 #endif
 
   if (sess.verbose > 2)

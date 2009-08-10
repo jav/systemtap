@@ -21,6 +21,11 @@
 #include <stdarg.h>
 #include "loc2c.h"
 
+#if !defined(_ELFUTILS_PREREQ)
+// make a dummy PREREQ check for elfutils < 0.138
+#define _ELFUTILS_PREREQ(major, minor) (0 >= 1)
+#endif
+
 #define _(msg) msg
 
 static void __attribute__ ((noreturn))
@@ -519,7 +524,6 @@ main (int argc, char **argv)
 	{
 	  Dwarf_Op *cfa_ops = NULL;
 
-#ifdef _ELFUTILS_PREREQ
 #if _ELFUTILS_PREREQ(0,142)
 	  size_t cfa_nops;
 	  Dwarf_Addr bias;
@@ -546,7 +550,6 @@ main (int argc, char **argv)
 		}
 	    }
 #endif
-#endif	  
 
 	  handle_variable (scopes, n, out, cubias, &vardie, pc, cfa_ops,
 			   &argv[argi]);

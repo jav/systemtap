@@ -8,9 +8,22 @@
 
 #ifndef DWARF_WRAPPERS_H
 #define DWARF_WRAPPERS_H 1
+
+#include "config.h"
+
+extern "C" {
 #include <elfutils/libdw.h>
+#ifdef HAVE_ELFUTILS_VERSION_H
+#include <elfutils/version.h>
+#endif
+}
 
 #include <string>
+
+#if !defined(_ELFUTILS_PREREQ)
+// make a dummy PREREQ check for elfutils < 0.138
+#define _ELFUTILS_PREREQ(major, minor) (0 >= 1)
+#endif
 
 // NB: "rc == 0" means OK in this case
 void dwfl_assert(const std::string& desc, int rc);

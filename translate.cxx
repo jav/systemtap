@@ -26,9 +26,6 @@
 
 extern "C" {
 #include <elfutils/libdwfl.h>
-#ifdef HAVE_ELFUTILS_VERSION_H
-#include <elfutils/version.h>
-#endif
 }
 
 using namespace std;
@@ -4545,22 +4542,15 @@ dump_unwindsyms (Dwfl_Module *m,
     // Enable workaround for elfutils dwfl bug.
     // see https://bugzilla.redhat.com/show_bug.cgi?id=465872
     // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
-#ifdef _ELFUTILS_PREREQ
-  #if _ELFUTILS_PREREQ(0,138)
+#if _ELFUTILS_PREREQ(0,138)
     // Let's standardize to the buggy "end of build-id bits" behavior.
     build_id_vaddr += build_id_len;
-  #endif
-  #if !_ELFUTILS_PREREQ(0,141)
-    #define NEED_ELFUTILS_BUILDID_WORKAROUND
-  #endif
-#else
-  #define NEED_ELFUTILS_BUILDID_WORKAROUND
 #endif
 
     // And check for another workaround needed.
     // see https://bugzilla.redhat.com/show_bug.cgi?id=489439
     // and http://sourceware.org/ml/systemtap/2009-q1/msg00513.html
-#ifdef NEED_ELFUTILS_BUILDID_WORKAROUND
+#if !_ELFUTILS_PREREQ(0,141)
     if (build_id_vaddr < base && dwfl_module_relocations (m) == 1)
       {
         GElf_Addr main_bias;
