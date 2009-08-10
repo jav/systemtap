@@ -978,11 +978,11 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
               && function_name_matches_pattern (name, sym)))
         {
           const char *file = dwarf_decl_file (&die);
+
           // Get the line number for this label
-          Dwarf_Attribute attr;
-          dwarf_attr (&die,DW_AT_decl_line, &attr);
-          Dwarf_Sword dline;
-          dwarf_formsdata (&attr, &dline);
+          int dline;
+          dwarf_decl_line (&die, &dline);
+
           Dwarf_Addr stmt_addr;
           if (dwarf_lowpc (&die, &stmt_addr) != 0)
             {
@@ -993,7 +993,7 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
               size_t nlines = 0;
               // Get the line for this label
               Dwarf_Line **aline;
-              dwarf_getsrc_file (module_dwarf, file, (int)dline, 0, &aline, &nlines);
+              dwarf_getsrc_file (module_dwarf, file, dline, 0, &aline, &nlines);
               // Get the address
               for (size_t i = 0; i < nlines; i++)
                 {
@@ -1009,7 +1009,7 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
           if (nscopes > 1)
             {
               callback(function_name.c_str(), file,
-                       (int)dline, &scopes[1], stmt_addr, q);
+                       dline, &scopes[1], stmt_addr, q);
               add_label_name(q, name);
             }
         }

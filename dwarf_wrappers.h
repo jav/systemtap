@@ -103,6 +103,21 @@ public:
 };
 
 
+#if !_ELFUTILS_PREREQ(0, 143)
+// Elfutils prior to 0.143 didn't use attr_integrate when looking up the
+// decl_file or decl_line, so the attributes would sometimes be missed.  For
+// those old versions, we define custom implementations to do the integration.
+
+const char *dwarf_decl_file_integrate (Dwarf_Die *die);
+#define dwarf_decl_file dwarf_decl_file_integrate
+
+int dwarf_decl_line_integrate (Dwarf_Die *die, int *linep)
+  __nonnull_attribute__ (2);
+#define dwarf_decl_line dwarf_decl_line_integrate
+
+#endif // !_ELFUTILS_PREREQ(0, 143)
+
+
 #endif
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
