@@ -132,9 +132,14 @@ static int enable_uprobes(void)
 	snprintf (runtimeko, sizeof(runtimeko), "%s/uprobes/uprobes.ko",
 		  (getenv("SYSTEMTAP_RUNTIME") ?: PKGDATADIR "/runtime"));
 	dbug(2, "Inserting uprobes module from SystemTap runtime %s.\n", runtimeko);
-	argv[0] = NULL;
+	i = 0;
+	argv[i++] = "/sbin/insmod";
+	argv[i++] = runtimeko;
+	argv[i] = NULL;
+	if (run_as(0, 0, 0, argv[0], argv) == 0)
+		return 0;
 
-	return insert_module(runtimeko, NULL, argv);
+	return 1; /* failure */
 }
 
 static int insert_stap_module(void)
