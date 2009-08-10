@@ -34,5 +34,17 @@ expect {
 }
 wait
 if { $hint == 1 && $probes == 1 } then { pass "$test -p2" } else { fail "$test -p2 ($probes)" }
+
+set no_func stmtnofunc
+set func_script "probe process(\"%s\").statement(\"foo@%s.c:*\"){}"
+set script [format $func_script "./$test" "$test"]
+spawn stap -p2 -e $script
+expect {
+        -timeout 60
+        -re {semantic error: no match while resolving probe point.*\r\n} { xfail $no_func }
+        timeout { fail "$no_func (timeout)" }
+        eof { fail $no_func }
+}
+wait
 exec rm -f $test
 

@@ -791,6 +791,8 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
   auto_free_ref<Dwarf_Line**> free_srcsp(srcsp);
 
   get_module_dwarf();
+  if (!this->function)
+    return;
 
   if (line_type == RELATIVE)
     {
