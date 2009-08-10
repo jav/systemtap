@@ -33,6 +33,7 @@
 #include "modverify.h"
 
 #include <sys/stat.h>
+#include <errno.h>
 
 /* Function: int check_cert_db_permissions (const char *cert_db_path);
  * 
@@ -125,6 +126,10 @@ check_cert_db_permissions (const char *cert_db_path) {
   rc = stat (cert_db_path, & info);
   if (rc)
     {
+      /* It is ok if the directory does not exist. This simply means that no signing
+	 certificates have been authorized yet.  */
+      if (errno == ENOENT)
+	return 0;
       fprintf (stderr, "Could not obtain information on certificate database directory %s.\n",
 	       cert_db_path);
       perror ("");
