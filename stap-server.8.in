@@ -35,7 +35,7 @@ stap-server \- systemtap server and related utilities
 
 The systemtap server listens for connections from
 .I stap\-client
-on a secure SLL network port and accepts requests to run the
+on a secure SSL network port and accepts requests to run the
 .I stap
 front end.
 
