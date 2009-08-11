@@ -24,7 +24,7 @@ proc build_modules {} {
     global srcdir subdir
 
     if {[catch {exec mktemp -d staptestXXXXXX} build_dir]} {
-	puts stderr "Failed to create temporary directory: $build_dir"
+	verbose -log "Failed to create temporary directory: $build_dir"
 	return 0
     }
 
@@ -35,21 +35,21 @@ proc build_modules {} {
     cd $build_dir
 
     foreach n {2 1} {
-	exec cp $srcdir/$subdir/makefile$n Makefile
+	exec cp -p $srcdir/$subdir/makefile$n Makefile
 	if {[catch {exec make clean} res]} {
-	    puts $res
+	    verbose -log "$res"
 	    cd $old_dir
 	    return 0
 	}
 	catch {exec make} res
 	if {![file exists systemtap_test_module$n.ko]} {
-	    puts $res
+	    verbose -log "$res"
 	    cd $old_dir
 	    return 0
 	}
 	set res [as_root  [list cp systemtap_test_module$n.ko /lib/modules/$::uname/kernel]]
 	if { $res != 0 } {
-	    puts $res
+	    verbose -log "$res"
 	    cd $old_dir
 	    return 0
 	}
@@ -72,7 +72,7 @@ proc build_modules {} {
 set uname [exec /bin/uname -r]
 
 if {[build_modules] == 0} {
-    puts "BUILD FAILED"
+    verbose -log "BUILD FAILED"
     foreach test $testlist {
 	fail "$test - could not build modules"
     }

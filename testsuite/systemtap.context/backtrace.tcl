@@ -163,7 +163,5 @@ if {$m6 == 5} {
     fail "print_stack of yyy_func4 ($m6)"
 }
 
-
-
-close
+catch { close }
 wait
