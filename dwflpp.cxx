@@ -1193,7 +1193,6 @@ dwflpp::function_entrypc (Dwarf_Addr * addr)
 {
   assert (function);
   return (dwarf_entrypc (function, addr) == 0);
-  // XXX: see also _lowpc ?
 }
 
 
@@ -1207,12 +1206,6 @@ dwflpp::die_entrypc (Dwarf_Die * die, Dwarf_Addr * addr)
 
   lookup_method = "dwarf_entrypc";
   rc = dwarf_entrypc (die, addr);
-
-  if (rc)
-    {
-      lookup_method = "dwarf_lowpc";
-      rc = dwarf_lowpc (die, addr);
-    }
 
   if (rc)
     {
