@@ -1,6 +1,6 @@
 # Only run on make installcheck
 if {! [installtest_p]} { untested "ustack-$testname"; return }
-if {! [utrace_p]} { untested "ustack-$testname"; return }
+if {! [uprobes_p]} { untested "ustack-$testname"; return }
 
 # Output is:
 #print_ubacktrace exe 0
