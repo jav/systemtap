@@ -448,8 +448,10 @@ check_groups (void)
  *
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
-int check_permissions(const void *module_data, off_t module_size)
-{
+int check_permissions(
+  const void *module_data __attribute__ ((unused)),
+  off_t module_size __attribute__ ((unused))
+) {
 	int check_groups_rc;
 	int check_signature_rc = 0;
 
