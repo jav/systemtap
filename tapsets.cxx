@@ -548,6 +548,9 @@ struct dwarf_query : public base_query
 		       Dwarf_Die *scope_die,
 		       Dwarf_Addr addr);
 
+  // Track addresses we've already seen in a given module
+  set<Dwarf_Addr> alias_dupes;
+
   // Extracted parameters.
   string function_val;
 
@@ -853,6 +856,9 @@ dwarf_query::handle_query_module()
 
   // prebuild the symbol table to resolve aliases
   dw.mod_info->get_symtab(this);
+
+  // reset the dupe-checking for each new module
+  alias_dupes.clear();
 
   if (dw.mod_info->dwarf_status == info_present)
     query_module_dwarf();
@@ -1271,6 +1277,14 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
   try
     {
       q->dw.focus_on_function (func);
+
+      // make sure that this function address hasn't
+      // already been matched under an aliased name
+      Dwarf_Addr addr;
+      if (!q->dw.func_is_inline() &&
+          dwarf_entrypc(func, &addr) == 0 &&
+          !q->alias_dupes.insert(addr).second)
+        return DWARF_CB_OK;
 
       if (q->dw.func_is_inline ()
           && (! q->has_call) && (! q->has_return)
