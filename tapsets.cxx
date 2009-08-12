@@ -4400,12 +4400,19 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#define UPROBES_API_VERSION 1";
   s.op->newline() << "#endif";
 
-  s.op->newline() << "#ifndef MULTIPLE_UPROBES";
-  s.op->newline() << "#define MULTIPLE_UPROBES 256"; // maximum possible armed uprobes per process() probe point
-						     // or apprx. max number of processes mapping a shared library
-  s.op->newline() << "#endif";
+  // We'll probably need at least this many:
+  unsigned minuprobes = probes.size();
+  // .. but we don't want so many that .bss is inflated (PR10507):
+  unsigned uprobesize = 64;
+  unsigned maxuprobesmem = 10*1024*1024; // 10 MB
+  unsigned maxuprobes = maxuprobesmem / uprobesize;
+
+  // Let's choose a value on the middle, but clamped on the minimum size
+  unsigned default_maxuprobes = 
+    (minuprobes < maxuprobes) ? ((minuprobes + maxuprobes) / 2) : minuprobes;
+
   s.op->newline() << "#ifndef MAXUPROBES";
-  s.op->newline() << "#define MAXUPROBES (MULTIPLE_UPROBES * " << probes.size() << ")";
+  s.op->newline() << "#define MAXUPROBES " << default_maxuprobes;
   s.op->newline() << "#endif";
 
   // In .bss, the shared pool of uprobe/uretprobe structs.  These are

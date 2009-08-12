@@ -1081,9 +1081,9 @@ for the probe handler's own needs, plus a safety margin.
 .TP
 MAXUPROBES
 Maximum number of concurrently armed user-space probes (uprobes), default
-100 times the number of user-space probe points named in the script.  This
-pool is large because individual uprobe objects are allocated for each
-process for each script-level probe.
+somewhat larger than the number of user-space probe points named in the script.
+This pool needs to be potentialy large because individual uprobe objects (about
+64 bytes each) are allocated for each process for each matching script-level probe.
 
 .PP
 With scripts that contain probes on any interrupt path, it is possible that
