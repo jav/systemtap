@@ -61,7 +61,7 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
   else if (s.verbose > 1)
     make_cmd += " >/dev/null";
   else
-    make_cmd += " -s >/dev/null 2>&1";
+    make_cmd += " -s >/dev/null";
 
   if (s.verbose > 1) clog << "Running " << make_cmd << endl;
   rc = stap_system (make_cmd.c_str());
