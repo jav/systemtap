@@ -935,25 +935,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "return rc;";
   s.op->newline(-1) << "}";
 
-  // Emit vma callbacks.
-  s.op->newline() << "#ifdef STP_NEED_VMA_TRACKER";
-  s.op->newline() << "static struct stap_task_finder_target stap_utrace_vmcbs[] = {";
-  s.op->indent(1);
-  if (! probes_by_path.empty())
-    {
-      for (p_b_path_iterator it = probes_by_path.begin();
-           it != probes_by_path.end(); it++)
-	emit_vma_callback_probe_decl (s, it->first, (int64_t)0);
-    }
-  if (! probes_by_pid.empty())
-    {
-      for (p_b_pid_iterator it = probes_by_pid.begin();
-	   it != probes_by_pid.end(); it++)
-	emit_vma_callback_probe_decl (s, "", it->first);
-    }
-  s.op->newline(-1) << "};";
-  s.op->newline() << "#endif";
-
   s.op->newline() << "static struct stap_utrace_probe stap_utrace_probes[] = {";
   s.op->indent(1);
 
@@ -993,17 +974,6 @@ utrace_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   if (probes_by_path.empty() && probes_by_pid.empty())
     return;
-
-  s.op->newline();
-  s.op->newline() << "#ifdef STP_NEED_VMA_TRACKER";
-  s.op->newline() << "_stp_sym_init();";
-  s.op->newline() << "/* ---- utrace vma callbacks ---- */";
-  s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_vmcbs); i++) {";
-  s.op->indent(1);
-  s.op->newline() << "struct stap_task_finder_target *r = &stap_utrace_vmcbs[i];";
-  s.op->newline() << "rc = stap_register_task_finder_target(r);";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "#endif";
 
   s.op->newline() << "/* ---- utrace probes ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_probes); i++) {";

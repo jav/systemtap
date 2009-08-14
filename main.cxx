@@ -21,6 +21,8 @@
 #include "coveragedb.h"
 #include "git_version.h"
 #include "rpm_finder.h"
+#include "task_finder.h"
+
 #include "sys/sdt.h"
 
 #include <iostream>
@@ -635,6 +637,9 @@ main (int argc, char * const argv [])
 
         case 'd':
           s.unwindsym_modules.insert (string (optarg));
+          // PR10228: trigger task-finder logic early if -d /USER-MODULE/ given.
+          if (optarg[0] == '/')
+            enable_task_finder (s);
           break;
 
         case 'e':

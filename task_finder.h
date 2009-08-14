@@ -12,8 +12,6 @@
 // Declare that task_finder is needed in this session
 void enable_task_finder(systemtap_session& s);
 
-// Helper function to emit vma tracker callbacks.
-void emit_vma_callback_probe_decl (systemtap_session& s, std::string path, int64_t pid);
 
 #endif // TASK_FINDER_H
 

@@ -31,8 +31,8 @@ static void _stp_sym_init(void)
 	}
 }
 
-/* Callback that needs to be registered (in tapsets.cxx for
-   emit_module_init) for every user task path or pid for which we
+/* Callback that needs to be registered (in
+   session.unwindsyms_modules) for every user task path for which we
    might need symbols or unwind info. */
 static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			   struct task_struct *tsk,

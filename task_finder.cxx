@@ -76,28 +76,4 @@ enable_task_finder(systemtap_session& s)
     s.task_finder_derived_probes = new task_finder_derived_probe_group();
 }
 
-// Helper function to emit vma tracker callbacks.
-void
-emit_vma_callback_probe_decl (systemtap_session& s,
-			      string path,
-			      int64_t pid)
-{
-  s.op->newline() << "{";
-  if (pid == 0)
-    {
-      s.op->line() << " .pathname=\"" << path << "\",";
-      s.op->line() << " .pid=0,";
-    }
-  else
-    {
-      s.op->line() << " .pathname=NULL,";
-      s.op->line() << " .pid=" << pid << ",";
-    }
-  s.op->line() << " .callback=NULL,";
-  s.op->line() << " .mmap_callback=&_stp_tf_mmap_cb,";
-  s.op->line() << " .munmap_callback=&_stp_tf_munmap_cb,";
-  s.op->line() << " .mprotect_callback=NULL,";
-  s.op->line() << " },";
-}
-
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
