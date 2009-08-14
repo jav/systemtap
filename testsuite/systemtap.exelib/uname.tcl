@@ -9,5 +9,5 @@ lib: lib_func=lib_func}
 
 # Only run on make installcheck
 if {! [installtest_p]} { untested "uname-$testname"; return }
-if {! [uprobes_p]} { untested "uname-$testname; return }
+if {! [uprobes_p]} { untested "uname-$testname"; return }
 stap_run3 uname-$testname $srcdir/$subdir/uname.stp $testexe $testlib -c $testexe
