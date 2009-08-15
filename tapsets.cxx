@@ -6005,6 +6005,9 @@ string
 tracepoint_builder::get_tracequery_module(systemtap_session& s,
                                           const string& header)
 {
+  if (s.verbose > 2)
+    clog << "Pass 2: getting a tracequery for " << header << endl;
+
   string tracequery_path;
   if (s.use_cache)
     {
@@ -6033,7 +6036,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
   int rc = make_tracequery(s, tracequery_ko, short_header,
                            tracepoint_extra_headers());
   if (rc != 0)
-    return "";
+    tracequery_ko = "/dev/null";
 
   if (s.use_cache)
     {
@@ -6082,7 +6085,10 @@ tracepoint_builder::init_dw(systemtap_session& s)
             continue;
 
           string tracequery_path = get_tracequery_module(s, header);
-          if (!tracequery_path.empty())
+
+          /* NB: An empty tracequery means that the
+           * header didn't even compile correctly. */
+          if (get_file_size(tracequery_path))
             tracequery_modules.push_back(tracequery_path);
         }
       globfree(&trace_glob);
