@@ -1654,13 +1654,13 @@ c_unparser::emit_probe (derived_probe* v)
       // NB: no need to uninitialize locals, except if arrays/stats can
       // someday be local
 
-      // XXX: do this flush only if the body included a
-      // print/printf/etc. routine!
-      o->newline(1) << "_stp_print_flush();";
-
+      o->indent(1);
       if (v->needs_global_locks ())
 	emit_unlocks (vut);
 
+      // XXX: do this flush only if the body included a
+      // print/printf/etc. routine!
+      o->newline() << "_stp_print_flush();";
       o->newline(-1) << "}\n";
     }
 
