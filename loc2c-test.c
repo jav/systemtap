@@ -115,7 +115,7 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 	      if (nscopes == -1)
 		error (2, 0, _("cannot get die scopes inlined_subroutine: %s"),
 		       dwarf_errmsg (-1));
-	      inner = 1;
+	      inner = 0; // zero is current scope, for look will increase.
 	      out = -1;
 	    }
 	  break;
