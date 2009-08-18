@@ -471,7 +471,8 @@ main (int argc, char **argv)
 	  Dwarf_Die *const die = &scopes[n];
 
 	  indent += INDENT;
-	  printf ("%*s%s (%#x)", indent, "",
+	  printf ("%*s[%6" PRIx64 "] %s (%#x)", indent, "",
+		  dwarf_dieoffset (die),
 		  dwarf_diename (die) ?: "<unnamed>",
 		  dwarf_tag (die));
 
