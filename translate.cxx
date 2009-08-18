@@ -897,6 +897,9 @@ c_unparser::emit_common_header ()
   o->newline() << "cycles_t cycles_base;";
   o->newline() << "cycles_t cycles_sum;";
   o->newline() << "#endif";
+
+
+  // PR10516: probe locals
   o->newline() << "union {";
   o->indent(1);
 
@@ -927,8 +930,6 @@ c_unparser::emit_common_header ()
         {
           tmp_probe_contents[oss.str()] = dp->name; // save it
 
-          // XXX: probe locals need not be recursion-nested, only function locals
-
           o->newline() << "struct " << dp->name << "_locals {";
           o->indent(1);
           for (unsigned j=0; j<dp->locals.size(); j++)
@@ -954,6 +955,11 @@ c_unparser::emit_common_header ()
           o->newline(-1) << "} " << dp->name << ";";
         }
     }
+  o->newline(-1) << "} probe_locals;";
+
+  // PR10516: function locals
+  o->newline() << "union {";
+  o->indent(1);
 
   for (map<string,functiondecl*>::iterator it = session->functions.begin(); it != session->functions.end(); it++)
     {
@@ -1603,7 +1609,7 @@ c_unparser::emit_probe (derived_probe* v)
 
       // initialize frame pointer
       o->newline() << "struct " << v->name << "_locals * __restrict__ l =";
-      o->newline(1) << "& c->locals[0]." << v->name << ";";
+      o->newline(1) << "& c->probe_locals." << v->name << ";";
       o->newline(-1) << "(void) l;"; // make sure "l" is marked used
 
       o->newline() << "#ifdef STP_TIMING";
