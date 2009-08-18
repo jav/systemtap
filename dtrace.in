@@ -175,10 +175,9 @@ if (build_header):
     providers.generate(s_filename, filename + h_ext, add_typedefs)
 elif (build_source):
     (basename,ext) = os.path.splitext(s_filename)
-    basename = os.path.basename(basename)
     (d,fn) = mkstemp(suffix=".c",prefix=basename)
     f = open(fn,mode='w')
     f.write("static __dtrace () {}\n")
     f.close()
-    call(["gcc", "-fPIC", "-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", os.path.basename(filename) + ".o"], shell=False)
+    call(["gcc", "-fPIC", "-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
     os.remove(fn)

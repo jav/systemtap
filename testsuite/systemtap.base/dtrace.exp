@@ -1,0 +1,118 @@
+set test "dtrace"
+
+# Test the dtrace compatible python script
+
+if {[installtest_p]} { 
+    set dtrace $env(SYSTEMTAP_PATH)/dtrace 
+} else {
+    set dtrace $srcdir/../dtrace
+}
+
+exec mkdir /tmp/dtrace
+
+set dpath "/tmp/dtrace/test.d"
+set fp [open $dpath "w"]
+puts $fp "
+provider tstsyscall
+{
+ probe test(short arg1, int arg2, int arg3, int arg4, struct astruct arg5)
+}
+"
+close $fp
+
+# -----------------------------------------------------------------
+# test command line option and file handling 
+
+verbose -log "$dtrace -G -s $dpath -o XXX.o"
+exec $dtrace -G -s $dpath -o XXX.o
+if {[file exists XXX.o]} then {
+    pass "dtrace -G -o XXX.o"
+} else {
+    fail "dtrace -G -o XXX.o"
+}
+exec rm -f XXX.o
+
+verbose -log "$dtrace -G -s $dpath -o XXX"
+exec $dtrace -G -s $dpath -o XXX
+if {[file exists XXX.o]} then {
+    pass "dtrace -G -o XXX"
+} else {
+    fail "dtrace -G -o XXX"
+}
+exec rm -f XXX.o
+
+verbose -log "$dtrace -h -s $dpath -o XXX.h"
+exec $dtrace -h -s $dpath -o XXX.h
+if {[file exists XXX.h]} then {
+    pass "dtrace -h -o XXX.h"
+} else {
+    fail "dtrace -h -o XXX.h"
+}
+exec rm -f XXX.h
+
+verbose -log "$dtrace -h -s $dpath -o XXX"
+exec $dtrace -h -s $dpath -o XXX
+if {[file exists XXX]} then {
+    pass "dtrace -h -o XXX"
+} else {
+    fail "dtrace -h -o XXX"
+}
+exec rm -f XXX.h
+
+verbose -log "$dtrace -G -s $dpath -o /tmp/XXX.o"
+exec $dtrace -G -s $dpath -o /tmp/XXX.o
+if {[file exists /tmp/XXX.o]} then {
+    pass "dtrace -G -o /tmp/XXX.o"
+} else {
+    fail "dtrace -G -o /tmp/XXX.o"
+}
+exec rm -f /tmp/XXX.o
+
+verbose -log "$dtrace -G -s $dpath -o /tmp/XXX"
+exec $dtrace -G -s $dpath -o /tmp/XXX
+if {[file exists /tmp/XXX.o]} then {
+    pass "dtrace -G -o /tmp/XXX.o"
+} else {
+    fail "dtrace -G -o /tmp/XXX.o"
+}
+exec rm -f /tmp/XXX.o
+
+verbose -log "$dtrace -h -s $dpath -o /tmp/XXX.h"
+exec $dtrace -h -s $dpath -o /tmp/XXX.h
+if {[file exists /tmp/XXX.h]} then {
+    pass "dtrace -h -o /tmp/XXX.h"
+} else {
+    fail "dtrace -h -o /tmp/XXX.h"
+}
+exec rm -f /tmp/XXX.h
+
+verbose -log "$dtrace -h -s $dpath -o /tmp/XXX"
+exec $dtrace -h -s $dpath -o /tmp/XXX
+if {[file exists /tmp/XXX]} then {
+    pass "dtrace -h -o /tmp/XXX"
+} else {
+    fail "dtrace -h -o /tmp/XXX"
+}
+exec rm -f /tmp/XXX
+
+verbose -log "$dtrace -G -s $dpath"
+exec $dtrace -G -s $dpath
+if {[file exists /tmp/dtrace/test.o]} then {
+    pass "dtrace -G"
+} else {
+    fail "dtrace -G"
+}
+exec rm -f /tmp/dtrace/test.o
+
+verbose -log "$dtrace -h -s $dpath"
+exec $dtrace -h -s $dpath
+if {[file exists /tmp/dtrace/test.h]} then {
+    pass "dtrace -h"
+} else {
+    fail "dtrace -h"
+}
+exec rm -f /tmp/dtrace/test.o
+
+exec /bin/rm -r /tmp/dtrace
+# -----------------------------------------------------------------
+
