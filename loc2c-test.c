@@ -73,7 +73,7 @@ get_location (Dwarf_Addr dwbias, Dwarf_Addr pc, Dwarf_Attribute *loc_attr,
 }
 
 static void
-handle_variable (Dwarf_Die *scopes, int nscopes, int out,
+handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 		 Dwarf_Addr cubias, Dwarf_Die *vardie, Dwarf_Addr pc,
 		 Dwarf_Op *cfa_ops, char **fields)
 {
@@ -82,13 +82,18 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
   struct obstack pool;
   obstack_init (&pool);
 
-   /* Figure out the appropriate frame base for accessing this variable.
-     XXX not handling nested functions
-     XXX inlines botched
-  */
+  /* Figure out the appropriate frame base for accessing this variable.
+   * XXX not handling nested functions
+   */
   Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
   int inner;
-  for (inner = 0; inner < nscopes; ++inner)
+  /* We start out walking the "lexical scopes" as returned by
+   * as returned by dwarf_getscopes for the address, starting with the
+   * 'out' scope that the variable was found in.
+   */
+  Dwarf_Die *scopes = lscopes;
+  int nscopes = lnscopes;
+  for (inner = out; inner < nscopes && fb_attr == NULL; ++inner)
     {
       switch (dwarf_tag (&scopes[inner]))
 	{
@@ -96,14 +101,25 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 	  continue;
 	case DW_TAG_subprogram:
 	case DW_TAG_entry_point:
-	case DW_TAG_inlined_subroutine:	/* XXX */
-	  if (inner >= out)
-	    fb_attr = dwarf_attr_integrate (&scopes[inner],
-					    DW_AT_frame_base,
-					    &fb_attr_mem);
+	  fb_attr = dwarf_attr_integrate (&scopes[inner],
+					  DW_AT_frame_base,
+					  &fb_attr_mem);
+	  break;
+	case DW_TAG_inlined_subroutine:
+	  /* Unless we already are going through the "pyshical die tree",
+	   * we now need to start walking the die tree where this
+	   * subroutine is inlined to find the appropriate frame base. */
+          if (out != -1)
+	    {
+	      nscopes = dwarf_getscopes_die (&scopes[inner], &scopes);
+	      if (nscopes == -1)
+		error (2, 0, _("cannot get die scopes inlined_subroutine: %s"),
+		       dwarf_errmsg (-1));
+	      inner = 1;
+	      out = -1;
+	    }
 	  break;
 	}
-      break;
     }
 
   Dwarf_Attribute attr_mem;
