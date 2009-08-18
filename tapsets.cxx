@@ -5803,7 +5803,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       for (unsigned j = 0; j < p->args.size(); ++j)
         if (p->args[j].used)
           {
-            s.op->newline() << "c->locals[0]." << p->name << ".__tracepoint_arg_"
+            s.op->newline() << "c->probe_locals." << p->name << ".__tracepoint_arg_"
                             << p->args[j].name << " = (int64_t)";
             s.op->line() << p->args[j].typecast;
             s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";

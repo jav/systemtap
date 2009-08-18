@@ -13,7 +13,7 @@ catch {close}; catch { wait }
 
 foreach tp $tracepoints {
     set test "tracepoint $tp -p4"
-    if {[catch {exec stap -w -p4 -e "probe $tp {}"} res]} {
+    if {[catch {exec stap -w -p4 -e "probe $tp { println($\$name, $\$vars) }"} res]} {
         fail "$test $res"
     } else {
         pass "$test"
