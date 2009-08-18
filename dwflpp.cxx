@@ -1414,14 +1414,6 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
   assert (cu);
 
   nscopes = dwarf_getscopes_cached (pc, &scopes);
-  int sidx;
-  // if pc and scope_die are disjoint then we need dwarf_getscopes_die
-  for (sidx = 0; sidx < nscopes; sidx++)
-    if (scopes[sidx].addr == scope_die->addr)
-      break;
-  if (sidx == nscopes)
-    nscopes = dwarf_getscopes_die (scope_die, &scopes);
-
   if (nscopes <= 0)
     {
       throw semantic_error ("unable to find any scopes containing "
@@ -1454,7 +1446,13 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
                             e->tok);
     }
 
-  for (int inner = 0; inner < nscopes; ++inner)
+  /* We start out walking the "lexical scopes" as returned by
+   * as returned by dwarf_getscopes for the address, starting with the
+   * declaring_scope that the variable was found in.
+   */
+  for (int inner = declaring_scope;
+       inner < nscopes && fb_attr == NULL;
+       ++inner)
     {
       switch (dwarf_tag (&scopes[inner]))
         {
@@ -1462,14 +1460,28 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
           continue;
         case DW_TAG_subprogram:
         case DW_TAG_entry_point:
-        case DW_TAG_inlined_subroutine:  /* XXX */
-          if (inner >= declaring_scope)
-            fb_attr = dwarf_attr_integrate (&scopes[inner],
-                                            DW_AT_frame_base,
-                                            fb_attr_mem);
+          fb_attr = dwarf_attr_integrate (&scopes[inner],
+                                          DW_AT_frame_base,
+                                          fb_attr_mem);
+          break;
+        case DW_TAG_inlined_subroutine:
+          /* Unless we already are going through the "pyshical die tree",
+           * we now need to start walking the die tree where this
+           * subroutine is inlined to find the appropriate frame base. */
+           if (declaring_scope != -1)
+             {
+               nscopes = dwarf_getscopes_die (&scopes[inner], &scopes);
+               if (nscopes == -1)
+                 throw semantic_error ("unable to get die scopes for '" +
+                                       local + "' in an inlined subroutines",
+                                       e->tok);
+               inner = 0; // zero is current scope, for look will increase.
+               declaring_scope = -1;
+             }
           break;
         }
     }
+
   return fb_attr;
 }
 
