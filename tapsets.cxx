@@ -121,7 +121,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline();
   o->newline() << "c->last_stmt = 0;";
   o->newline() << "c->last_error = 0;";
-  o->newline() << "c->nesting = 0;";
+  o->newline() << "c->nesting = -1;"; // NB: PR10516 packs locals[] tighter
   o->newline() << "c->regs = 0;";
   o->newline() << "c->unwaddr = 0;";
   o->newline() << "c->probe_point = " << new_pp << ";";

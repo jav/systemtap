@@ -874,7 +874,7 @@ c_unparser::emit_common_header ()
   o->newline(1) << "atomic_t busy;";
   o->newline() << "const char *probe_point;";
   o->newline() << "int actionremaining;";
-  o->newline() << "unsigned nesting;";
+  o->newline() << "int nesting;";
   o->newline() << "string_t error_buffer;";
   o->newline() << "const char *last_error;";
   // NB: last_error is used as a health flag within a probe.
@@ -1003,7 +1003,22 @@ c_unparser::emit_common_header ()
 	}
       o->newline(-1) << "} function_" << c_varname (fd->name) << ";";
     }
-  o->newline(-1) << "} locals [MAXNESTING];";
+  o->newline(-1) << "} locals [MAXNESTING+1];"; 
+
+  // NB: The +1 above for extra room for outgoing arguments of next nested function.
+  // If MAXNESTING is set too small, the args will be written, but the MAXNESTING
+  // check done at c_unparser::emit_function will reject.
+  //
+  // This policy wastes memory (one row of locals[] that cannot really
+  // be used), but trades that for smaller code (not having to check
+  // c->nesting against MAXNESTING at every call site).
+
+  // Try to catch a crazy user dude passing in -DMAXNESTING=-1, leading to a [0]-sized
+  // locals[] array.
+  o->newline() << "#if MAXNESTING < 0";
+  o->newline() << "#error \"MAXNESTING must be positive\"";
+  o->newline() << "#endif";
+
   o->newline(-1) << "};\n";
   o->newline() << "static void *contexts = NULL; /* alloc_percpu */\n";
 
@@ -1461,7 +1476,11 @@ c_unparser::emit_function (functiondecl* v)
   o->newline() << "c->last_stmt = " << lex_cast_qstring(*v->tok) << ";";
 
   // check/increment nesting level
-  o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) {";
+  // NB: incoming c->nesting level will be -1 (if we're called directly from a probe),
+  // or 0...N (if we're called from another function).  Incoming parameters are already
+  // stored in c->locals[c->nesting+1].  See also ::emit_common_header() for more.
+
+  o->newline() << "if (unlikely (c->nesting+1 > MAXNESTING)) {";
   o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
   o->newline() << "return;";
   o->newline(-1) << "} else {";
@@ -5117,6 +5136,49 @@ emit_symbol_data_done (unwindsym_dump_context *ctx, systemtap_session& s)
 }
 
 
+
+
+struct recursion_info: public traversing_visitor
+{
+  recursion_info (systemtap_session& s): sess(s), nesting_max(0), recursive(false) {}
+  systemtap_session& sess;
+  unsigned nesting_max;
+  bool recursive;
+  std::vector <functiondecl *> current_nesting;
+
+  void visit_functioncall (functioncall* e) {
+    traversing_visitor::visit_functioncall (e); // for arguments
+
+    // check for nesting level
+    unsigned nesting_depth = current_nesting.size() + 1;
+    if (nesting_max < nesting_depth)
+      {
+        if (sess.verbose > 3)
+          clog << "identified max-nested function: " << e->referent->name
+               << " (" << nesting_depth << ")" << endl;
+        nesting_max = nesting_depth;
+      }
+
+    // check for (direct or mutual) recursion
+    for (unsigned j=0; j<current_nesting.size(); j++)
+      if (current_nesting[j] == e->referent)
+        {
+          recursive = true;
+          if (sess.verbose > 3)
+            clog << "identified recursive function: " << e->referent->name << endl;
+          return;
+        }
+
+    // non-recursive traversal
+    current_nesting.push_back (e->referent);
+    e->referent->body->visit (this);
+    current_nesting.pop_back ();
+  }
+};
+
+
+
+
 int
 translate_pass (systemtap_session& s)
 {
@@ -5128,10 +5190,26 @@ translate_pass (systemtap_session& s)
 
   try
     {
-      // This is at the very top of the file.
+      recursion_info ri (s);
 
+      // NB: we start our traversal from the s.functions[] rather than the probes.
+      // We assume that each function is called at least once, or else it would have
+      // been elided already.
+      for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
+	{
+          functiondecl *fd = it->second;
+          fd->body->visit (& ri);
+	}
+
+      if (s.verbose > 1)
+        clog << "function recursion-analysis: max-nesting " << ri.nesting_max
+             << (ri.recursive ? " recursive" : " non-recursive") << endl;
+      unsigned nesting = ri.nesting_max + 1; /* to account for initial probe->function call */
+      if (ri.recursive) nesting += 10;
+
+      // This is at the very top of the file.
       s.op->newline() << "#ifndef MAXNESTING";
-      s.op->newline() << "#define MAXNESTING 10";
+      s.op->newline() << "#define MAXNESTING " << nesting;
       s.op->newline() << "#endif";
 
       // Strings are used for storing backtraces, they are larger on 64bit
