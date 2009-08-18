@@ -550,12 +550,12 @@ if test $build_elfutils = yes; then
   elfutils_rpath="-Wl,--enable-new-dtags,-rpath,${libdir}/${PACKAGE_NAME}"
   here=`pwd`
   (mkdir -p build-elfutils && cd build-elfutils &&
-   ${elfutils_srcdir}/configure --enable-libebl-subdir=${PACKAGE_NAME} \
+   bash ${elfutils_srcdir}/configure --enable-libebl-subdir=${PACKAGE_NAME} \
 				--includedir="${here}/include-elfutils" \
 				--libdir="${here}/lib-elfutils" \
 				--exec-prefix="$exec_prefix" \
 				--prefix="$prefix" \
-				CFLAGS="${CFLAGS/-Wall/}" \
+				CFLAGS="${CFLAGS/-Wall/} -fgnu89-inline" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
    if test -f ${elfutils_srcdir}/config/version.h.in; then
         echo Trying to install elfutils version header...
