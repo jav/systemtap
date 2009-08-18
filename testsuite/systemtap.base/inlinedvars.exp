@@ -1,0 +1,26 @@
+set test "inlinedvars"
+# XXX PR10537 - so only one result for now.
+#set ::result_string {call (22,84)
+#call2 (118,-22)
+#main (54,150)}
+set ::result_string {main (54,150)}
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-O2"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.c"
+    untested "$test.c compile"
+    continue
+} else {
+    pass "$test.c compile"
+}
+
+if {[installtest_p] && [uprobes_p]} {
+  stap_run3 "$test" $srcdir/$subdir/$test.stp $test.exe -c ./$test.exe
+} else {
+  untested "$test"
+}
+#catch {exec rm -f $test.exe}

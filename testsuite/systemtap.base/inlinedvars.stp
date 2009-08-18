@@ -1,0 +1,4 @@
+probe process("inlinedvars.exe").function("m").label("inlined_label")
+{
+  printf("%s (%d,%d)\n", user_string($p_name), $p_i, $p_j);
+}
