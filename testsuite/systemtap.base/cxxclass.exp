@@ -1,0 +1,33 @@
+set test "cxxclass"
+set ::result_string {main_enter
+call: 64
+cons call: 64
+meth call: 64 24
+dest call: 42
+call2: 24
+cons call2: 24
+meth call2: 24 40
+dest call2: 42
+main_exit}
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-O2"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags compiler=g++"
+
+set res [target_compile $srcdir/$subdir/$test.cxx $test.exe executable "$test_flags"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.c"
+    untested "$test.c compile"
+    continue
+} else {
+    pass "$test.c compile"
+}
+
+if {[installtest_p] && [uprobes_p]} {
+  stap_run3 "$test" $srcdir/$subdir/$test.stp $test.exe -c ./$test.exe
+} else {
+  untested "$test"
+}
+catch {exec rm -f $test.exe}

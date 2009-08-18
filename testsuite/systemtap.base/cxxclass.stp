@@ -1,0 +1,34 @@
+probe process("cxxclass.exe").mark("main_enter")
+{
+  log("main_enter");
+}
+
+probe process("cxxclass.exe").mark("main_exit")
+{
+  log("main_exit");
+}
+
+probe process("cxxclass.exe").mark("call")
+{
+  printf("call: %d\n", $arg1);
+}
+
+probe process("cxxclass.exe").mark("call2")
+{
+  printf("call2: %d\n", $arg1);
+}
+
+probe process("cxxclass.exe").mark("cons")
+{
+  printf("cons %s: %d\n", user_string($arg1), $arg2);
+}
+
+probe process("cxxclass.exe").mark("meth")
+{
+  printf("meth %s: %d %d\n", user_string($arg1), $arg2, $arg3);
+}
+
+probe process("cxxclass.exe").mark("dest")
+{
+  printf("dest %s: %d\n", user_string($arg1), $arg2);
+}
