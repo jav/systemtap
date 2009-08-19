@@ -7,56 +7,102 @@ if {![installtest_p]} { untested $TEST_NAME; return }
 set c1 0
 set c2 0
 
-# Load a host script
+set test2 0
+proc run_test2 {} {
+    global test2 c2 srcdir subdir
+
+    # Ensure this test is only run once.
+    if { $test2 != 0 } {
+	return
+    }
+    incr test2
+
+    # Run a guest script which uses print and warn.  The 'print'
+    # output should go to the relay host and the 'warn' output should
+    # come here. 
+    if {[catch {exec stap $srcdir/$subdir/hello2.stp -DRELAY_GUEST=test1} res]} {
+	# Check that the guest outputs a warning message.  Note we're
+	# using 'regexp', because modpost can output a warning of its
+	# own.
+	verbose -log $res
+	if {[regexp ".*WARNING: warning" $res]} {
+	    pass "shared buffer guest2"
+	    incr c2
+	} else {
+	    fail "shared buffer guest2"
+	}
+    } else {
+	# We didn't get the warning message.  Fail.
+	verbose -log $res
+	fail "shared buffer guest2"
+    }
+}
+
+# Run a relay host script.  Output from relay guest scripts should be
+# output by the relay host.
 spawn stap $srcdir/$subdir/$test.stp -DRELAY_HOST=test1
 
 expect {
-	-timeout 120
-	"Host: begin\r\n" {
-		pass "shared buffer hosting"
-		# Run a guest script which uses printf.
-		if {[catch {exec stap $srcdir/$subdir/hello.stp -DRELAY_GUEST=test1} res]} {
-			fail "shared buffer guest"
-			print $res
-		} else {
-			incr c1
-			exp_continue
-		}
+    -timeout 120
+    "Host: begin\r\n" {
+	# The relay host has started successfully.
+	pass "shared buffer hosting"
+
+	# Run a guest script which uses printf.
+	if {[catch {exec stap $srcdir/$subdir/hello.stp -DRELAY_GUEST=test1} res]} {
+	    verbose -log $res
+
+	    # Ignore the possible modpost warning message.
+	    if {[regexp "^WARNING: \"stp_print_flush_test1\".+ undefined!" $res]} {
+		pass "shared buffer guest"
+		incr c1
+	    } else {	    
+		fail "shared buffer guest"
+
+		# Even if the 1st guest script failed, try to run the
+		# 2nd guest script.
+		run_test2
+	    }
+	} else {
+	    verbose -log $res
+	    pass "shared buffer guest"
+	    incr c1
 	}
-	"HelloWorld" {
-		if {$c1 == 1} {incr c1}
-		# Run a guest script which uses print, log and warn.
-		if {[catch {exec stap $srcdir/$subdir/hello2.stp -DRELAY_GUEST=test1} res]} {
-			# check that the guest outputs a warning message.
-			if {$res == "WARNING: warning"} {
-				xfail "shared buffer guest2"
-				incr c2
-				exp_continue
-			} else {
-				fail "shared buffer guest2"
-			}
-		} else {
-			kpass "shared buffer guest2"
-			incr c2
-			exp_continue
-		}
+	exp_continue
+    }
+
+    "HelloWorld" {
+	# The relay host received the output from the 1st guest script.
+	if { $c1 == 1 } { incr c1 }
+
+	# Run the 2nd guest script.
+	run_test2
+	exp_continue
+    }
+
+    "PrintSystemtap" {
+	# The relay host received the output from the 2nd guest script.
+	if { $c2 == 1 } { incr c2 }
+
+	# Run a guest script which tries to use nonexist buffer.  This
+	# should fail (since relay host 'test2' doesn't exist).
+	if {[catch {exec stap $srcdir/$subdir/hello.stp -DRELAY_GUEST=test2} res]} {
+	    verbose -log $res
+	    pass "nonexist buffer sharing"
+	} else {
+	    verbose -log $res
+	    fail "nonexist buffer sharing"
 	}
-	"PrintSystemtap" {
-		if {$c2 == 1} {incr c2}
-		# Run a guest script which tries to use nonexist buffer.
-		if {[catch {exec stap $srcdir/$subdir/hello.stp -DRELAY_GUEST=test2} res]} {
-			xfail "nonexist buffer sharing"
-		} else {
-			fail "nonexist buffer sharing"
-		}
-	}
-	eof {fail "shared buffer hosting. unexpected EOF" }
+    }
+    eof {
+	fail "shared buffer hosting. unexpected EOF"
+    }
 }
 exec kill -INT -[exp_pid]
-if {$c1 == 2 && $c2 == 2} {
+if { $c1 == 2 && $c2 == 2 } {
 	pass "buffer sharing"
 } else {
 	fail "buffer sharing ($c1, $c2)"
 }
-close
+catch { close }
 wait
