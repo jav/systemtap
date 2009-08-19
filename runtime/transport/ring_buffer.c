@@ -4,6 +4,27 @@
 #include <linux/poll.h>
 #include <linux/cpumask.h>
 
+#define USE_ITERS
+
+static DEFINE_PER_CPU(local_t, _stp_cpu_disabled);
+
+static inline void _stp_ring_buffer_disable_cpu(void)
+{
+	preempt_disable();
+	local_inc(&__get_cpu_var(_stp_cpu_disabled));
+}
+
+static inline void _stp_ring_buffer_enable_cpu(void)
+{
+	local_dec(&__get_cpu_var(_stp_cpu_disabled));
+	preempt_enable();
+}
+
+static inline int _stp_ring_buffer_cpu_disabled(void)
+{
+    return local_read(&__get_cpu_var(_stp_cpu_disabled));
+}
+
 #ifndef STP_RELAY_TIMER_INTERVAL
 /* Wakeup timer interval in jiffies (default 10 ms) */
 #define STP_RELAY_TIMER_INTERVAL		((HZ + 99) / 100)
@@ -19,31 +40,11 @@ struct _stp_data_entry {
  * results to users and which routines might sleep, etc:
  */
 struct _stp_iterator {
-#if 0
-	struct trace_array	*tr;
-	struct tracer		*trace;
-	void			*private;
-#endif
 	int			cpu_file;
-#if 0
-	struct mutex		mutex;
-#endif
 	struct ring_buffer_iter	*buffer_iter[NR_CPUS];
-#if 0
-	unsigned long		iter_flags;
-
-	/* The below is zeroed out in pipe_read */
-	struct trace_seq	seq;
-	struct trace_entry	*ent;
-#endif
 	int			cpu;
 	u64			ts;
-#if 0
-	loff_t			pos;
-	long			idx;
-
-	cpumask_var_t		started;
-#endif
+	atomic_t		nr_events;
 };
 
 /* In bulk mode, we need 1 'struct _stp_iterator' for each cpu.  In
@@ -202,18 +203,18 @@ static int _stp_ring_buffer_empty_cpu(struct _stp_iterator *iter)
 			return 1;
 	}
 	else {
-		if (ring_buffer_empty_cpu(_stp_relay_data.rb, cpu))
+		if (atomic_read(&iter->nr_events) == 0)
 			return 1;
 	}
 	return 0;
 #else
-	for_each_possible_cpu(cpu) {
+	for_each_online_cpu(cpu) {
 		if (iter->buffer_iter[cpu]) {
 			if (!ring_buffer_iter_empty(iter->buffer_iter[cpu]))
 				return 0;
 		}
 		else {
-			if (!ring_buffer_empty_cpu(_stp_relay_data.rb, cpu))
+			if (atomic_read(&iter->nr_events) != 0)
 				return 0;
 		}
 	}
@@ -241,21 +242,27 @@ static int _stp_ring_buffer_empty(void)
 
 static void _stp_ring_buffer_iterator_increment(struct _stp_iterator *iter)
 {
-	if (iter->buffer_iter[iter->cpu])
+	if (iter->buffer_iter[iter->cpu]) {
+		_stp_ring_buffer_disable_cpu();
 		ring_buffer_read(iter->buffer_iter[iter->cpu], NULL);
+		_stp_ring_buffer_enable_cpu();
+	}
 }
 
 static void _stp_ring_buffer_consume(struct _stp_iterator *iter)
 {
 	_stp_ring_buffer_iterator_increment(iter);
+	_stp_ring_buffer_disable_cpu();
 	ring_buffer_consume(_stp_relay_data.rb, iter->cpu, &iter->ts);
+	_stp_ring_buffer_enable_cpu();
+	atomic_dec(&iter->nr_events);
 }
 
 static ssize_t _stp_tracing_wait_pipe(struct file *filp)
 {
 	struct _stp_iterator *iter = filp->private_data;
 
-	if (_stp_ring_buffer_empty_cpu(iter)) {
+	if (atomic_read(&iter->nr_events) == 0) {
 		if ((filp->f_flags & O_NONBLOCK)) {
 			dbug_trans(1, "returning -EAGAIN\n");
 			return -EAGAIN;
@@ -276,10 +283,15 @@ static ssize_t _stp_tracing_wait_pipe(struct file *filp)
 static struct ring_buffer_event *
 _stp_peek_next_event(struct _stp_iterator *iter, int cpu, u64 *ts)
 {
+	struct ring_buffer_event *event;
+
+	_stp_ring_buffer_disable_cpu();
 	if (iter->buffer_iter[cpu])
-		return ring_buffer_iter_peek(iter->buffer_iter[cpu], ts);
+		event = ring_buffer_iter_peek(iter->buffer_iter[cpu], ts);
 	else
-		return ring_buffer_peek(_stp_relay_data.rb, cpu, ts);
+		event = ring_buffer_peek(_stp_relay_data.rb, cpu, ts);
+	_stp_ring_buffer_enable_cpu();
+	return event;
 }
 
 /* Find the next real event */
@@ -287,15 +299,16 @@ static struct ring_buffer_event *
 _stp_find_next_event(struct _stp_iterator *iter)
 {
 	struct ring_buffer_event *event;
-	int cpu_file = iter->cpu_file;
 
 #ifdef STP_BULKMODE
+	int cpu_file = iter->cpu_file;
+
 	/*
 	 * If we are in a per_cpu trace file, don't bother by iterating over
 	 * all cpus and peek directly.
 	 */
 	if (iter->buffer_iter[cpu_file] == NULL ) {
-		if (ring_buffer_empty_cpu(_stp_relay_data.rb, cpu_file))
+		if (atomic_read(&iter->nr_events) == 0)
 			return NULL;
 	}
 	else {
@@ -311,9 +324,9 @@ _stp_find_next_event(struct _stp_iterator *iter)
 	int next_cpu = -1;
 	int cpu;
 
-	for_each_possible_cpu(cpu) {
+	for_each_online_cpu(cpu) {
 		if (iter->buffer_iter[cpu] == NULL ) {
-			if (ring_buffer_empty_cpu(_stp_relay_data.rb, cpu))
+			if (atomic_read(&iter->nr_events) == 0)
 				continue;
 		}
 		else {
@@ -340,6 +353,62 @@ _stp_find_next_event(struct _stp_iterator *iter)
 }
 
 
+static void
+_stp_buffer_iter_finish(struct _stp_iterator *iter)
+{
+#ifdef STP_BULKMODE
+	int cpu_file = iter->cpu_file;
+
+	if (iter->buffer_iter[cpu_file]) {
+		ring_buffer_read_finish(iter->buffer_iter[cpu_file]);
+		iter->buffer_iter[cpu_file] = NULL;
+	}
+#else
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+		if (iter->buffer_iter[cpu]) {
+			ring_buffer_read_finish(iter->buffer_iter[cpu]);
+			iter->buffer_iter[cpu] = NULL;
+		}
+	}
+#endif
+	dbug_trans(0, "iterator(s) finished\n");
+}
+
+
+static int
+_stp_buffer_iter_start(struct _stp_iterator *iter)
+{
+#ifdef STP_BULKMODE
+	int cpu_file = iter->cpu_file;
+
+	iter->buffer_iter[cpu_file]
+	    = ring_buffer_read_start(_stp_relay_data.rb, cpu_file);
+	if (iter->buffer_iter[cpu_file] == NULL) {
+		dbug_trans(0, "buffer_iter[%d] was NULL\n", cpu_file);
+		return 1;
+	}
+	dbug_trans(0, "iterator(s) started\n");
+	return 0;
+#else
+	int cpu;
+
+	for_each_online_cpu(cpu) {
+		iter->buffer_iter[cpu]
+		    = ring_buffer_read_start(_stp_relay_data.rb, cpu);
+		if (iter->buffer_iter[cpu] == NULL) {
+			dbug_trans(0, "buffer_iter[%d] was NULL\n", cpu);
+			_stp_buffer_iter_finish(iter);
+			return 1;
+		}
+	}
+	dbug_trans(0, "iterator(s) started\n");
+	return 0;
+#endif
+}
+
+
 /*
  * Consumer reader.
  */
@@ -347,7 +416,7 @@ static ssize_t
 _stp_data_read_trace(struct file *filp, char __user *ubuf,
 		     size_t cnt, loff_t *ppos)
 {
-	ssize_t sret;
+	ssize_t sret = 0;
 	struct ring_buffer_event *event;
 	struct _stp_iterator *iter = filp->private_data;
 #ifdef STP_BULKMODE
@@ -357,38 +426,27 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 #endif
 
 	dbug_trans(1, "%lu\n", (unsigned long)cnt);
-
 	sret = _stp_tracing_wait_pipe(filp);
 	dbug_trans(1, "_stp_tracing_wait_pipe returned %ld\n", sret);
 	if (sret <= 0)
 		goto out;
-
-#ifdef USE_ITERS
-#ifdef STP_BULKMODE
-	iter->buffer_iter[cpu_file]
-	    = ring_buffer_read_start(_stp_relay_data.rb, cpu_file);
-	if (iter->buffer_iter[cpu_file] == NULL) {
-		dbug_trans(0, "buffer_iter[%d] was NULL\n", cpu_file);
-		goto out;
-	}
-#else
-	for_each_possible_cpu(cpu) {
-		iter->buffer_iter[cpu]
-		    = ring_buffer_read_start(_stp_relay_data.rb, cpu);
-	}
-#endif
-	dbug_trans(0, "iterator(s) started\n");
-#endif /* USE_ITERS */
-	iter->ts = 0;
 
 	if (cnt >= PAGE_SIZE)
 		cnt = PAGE_SIZE - 1;
 
 	dbug_trans(1, "sret = %lu\n", (unsigned long)sret);
 	sret = 0;
+	iter->ts = 0;
+#ifdef USE_ITERS
+	if (_stp_buffer_iter_start(iter))
+		goto out;
+#endif
 	while ((event = _stp_find_next_event(iter)) != NULL) {
 		ssize_t len;
 
+#ifdef USE_ITERS
+		_stp_buffer_iter_finish(iter);
+#endif
 		len = _stp_event_to_user(event, ubuf, cnt);
 		if (len <= 0)
 			break;
@@ -400,25 +458,16 @@ _stp_data_read_trace(struct file *filp, char __user *ubuf,
 		sret += len;
 		if (cnt <= 0)
 			break;
+#ifdef USE_ITERS
+		if (_stp_buffer_iter_start(iter))
+			break;
+#endif
 	}
 
-out:
 #ifdef USE_ITERS
-#ifdef STP_BULKMODE
-	if (iter->buffer_iter[cpu_file]) {
-		ring_buffer_read_finish(iter->buffer_iter[cpu_file]);
-		iter->buffer_iter[cpu_file] = NULL;
-	}
-#else
-	for_each_possible_cpu(cpu) {
-		if (iter->buffer_iter[cpu]) {
-			ring_buffer_read_finish(iter->buffer_iter[cpu]);
-			iter->buffer_iter[cpu] = NULL;
-		}
-	}
+	_stp_buffer_iter_finish(iter);
 #endif
-	dbug_trans(0, "iterator(s) finished\n");
-#endif	/* USE_ITERS */
+out:
 	return sret;
 }
 
@@ -493,6 +542,12 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 		size_request = __STP_MAX_RESERVE_SIZE;
 	}
 
+	if (_stp_ring_buffer_cpu_disabled()) {
+		dbug_trans(0, "cpu disabled\n");
+		entry = NULL;
+		return 0;
+	}
+
 #ifdef STAPCONF_RING_BUFFER_FLAGS
 	event = ring_buffer_lock_reserve(_stp_relay_data.rb,
 					 (sizeof(struct _stp_data_entry)
@@ -502,9 +557,15 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 					 (sizeof(struct _stp_data_entry)
 					  + size_request));
 #endif
+
 	if (unlikely(! event)) {
 		dbug_trans(0, "event = NULL (%p)?\n", event);
 		if (! _stp_relay_data.overwrite_flag) {
+			entry = NULL;
+			return 0;
+		}
+
+		if (_stp_buffer_iter_start(iter)) {
 			entry = NULL;
 			return 0;
 		}
@@ -521,6 +582,7 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 			if (sde->len < size_request)
 				size_request = sde->len;
 			_stp_ring_buffer_consume(iter);
+			_stp_buffer_iter_finish(iter);
 
 			/* Try to reserve again. */
 #ifdef STAPCONF_RING_BUFFER_FLAGS
@@ -532,6 +594,9 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 							 sizeof(struct _stp_data_entry) + size_request);
 #endif
 			dbug_trans(0, "overwritten event = 0x%p\n", event);
+		}
+		else {
+			_stp_buffer_iter_finish(iter);
 		}
 
 		if (unlikely(! event)) {
@@ -575,6 +640,7 @@ static int _stp_data_write_commit(void *entry)
 		dbug_trans2("commiting %.5s...%.5s\n", sde->buf, last);
 	}
 #endif
+	atomic_inc(&(_stp_get_iterator()->nr_events));
 
 #ifdef STAPCONF_RING_BUFFER_FLAGS
 	return ring_buffer_unlock_commit(_stp_relay_data.rb, event, 0);
@@ -611,7 +677,7 @@ static struct dentry *__stp_entry[NR_CPUS] = { NULL };
 static int _stp_transport_data_fs_init(void)
 {
 	int rc;
-	int cpu;
+	int cpu, cpu2;
 
 	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
 	_stp_relay_data.rb = NULL;
@@ -657,12 +723,21 @@ static int _stp_transport_data_fs_init(void)
 #endif
 	}
 
-#ifdef STP_BULKMODE
 	for_each_possible_cpu(cpu) {
+#ifdef STP_BULKMODE
 		_stp_relay_data.iter[cpu].cpu_file = cpu;
 		_stp_relay_data.iter[cpu].cpu = cpu;
-	}
 #endif
+		for_each_possible_cpu(cpu2) {
+			_stp_relay_data.iter[cpu].buffer_iter[cpu2] = NULL;
+		}
+
+		atomic_set(&_stp_relay_data.iter[cpu].nr_events, 0);
+
+#ifndef STP_BULKMODE
+		break;
+#endif
+	}
 
 	dbug_trans(1, "returning 0...\n");
 	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
