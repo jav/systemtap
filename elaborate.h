@@ -235,7 +235,7 @@ match_node
   typedef std::map<match_key, match_node*> sub_map_t;
   typedef std::map<match_key, match_node*>::iterator sub_map_iterator_t;
   sub_map_t sub;
-  derived_probe_builder* end;
+  std::vector<derived_probe_builder*> ends;
   bool unprivileged_ok;
 
  public:

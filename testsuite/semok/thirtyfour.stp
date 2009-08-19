@@ -1,0 +1,9 @@
+#! stap -p2
+# PR10495
+
+probe foo = kernel.function("sys_open") { name = "a" }
+probe foo = kernel.function("sys_close") { name = "c" }
+probe foo.bar = kernel.function("sys_exit") { name = "nothing" }
+
+probe foo { log(name) }
+probe foo.* { log(name) }

@@ -379,8 +379,8 @@ probe <alias> += <probepoint> { <epilogue_stmts> }
 New probe points may be defined using \emph{aliases}. A probe point alias
 looks similar to probe definitions, but instead of activating a probe at
 the given point, it defines a new probe point name as an alias to an existing
-one. New probe aliases may refer to one or more existing probe aliases. The
-following is an example.
+one. New probe aliases may refer to one or more existing probe aliases. 
+Multiple aliases may share the same name. The following is an example.
 
 \begin{vindent}
 \begin{verbatim}

@@ -1,5 +1,11 @@
 * What's new
 
+- It is now possible to define multiple probe aliases with the same name.
+  A probe will expand to all matching aliases.
+	probe foo = bar { }
+	probe foo = baz { }
+	probe foo { } # expands twice, once to bar and once to baz
+
 - Support for unprivileged users:
   *****************************************************************************
   * WARNING!!!!!!!!!!

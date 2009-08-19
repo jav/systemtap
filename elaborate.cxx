@@ -261,7 +261,7 @@ match_key::globmatch(match_key const & other) const
 // ------------------------------------------------------------------------
 
 match_node::match_node()
-  : end(NULL), unprivileged_ok (false)
+  : unprivileged_ok (false)
 {
 }
 
@@ -282,9 +282,7 @@ match_node::bind(match_key const & k)
 void
 match_node::bind(derived_probe_builder * e)
 {
-  if (end)
-    throw semantic_error("duplicate probe point pattern");
-  end = e;
+  ends.push_back (e);
 }
 
 match_node *
@@ -326,9 +324,7 @@ match_node::find_and_build (systemtap_session& s,
   assert (pos <= loc->components.size());
   if (pos == loc->components.size()) // matched all probe point components so far
     {
-      derived_probe_builder *b = end; // may be 0 if only nested names are bound
-
-      if (! b)
+      if (ends.empty())
         {
           string alternatives;
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
@@ -352,7 +348,12 @@ match_node::find_and_build (systemtap_session& s,
 	    throw semantic_error (string("probe point is not allowed for unprivileged users"));
 	}
 
-      b->build (s, p, loc, param_map, results);
+      // Iterate over all bound builders
+      for (unsigned k=0; k<ends.size(); k++) 
+        {
+          derived_probe_builder *b = ends[k];
+          b->build (s, p, loc, param_map, results);
+        }
     }
   else if (isglob(loc->components[pos]->functor)) // wildcard?
     {
@@ -449,7 +450,11 @@ match_node::build_no_more (systemtap_session& s)
 {
   for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
     i->second->build_no_more (s);
-  if (end) end->build_no_more (s);
+  for (unsigned k=0; k<ends.size(); k++) 
+    {
+      derived_probe_builder *b = ends[k];
+      b->build_no_more (s);
+    }
 }
 
 
