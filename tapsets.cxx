@@ -5604,7 +5604,9 @@ dwarf_type_name(Dwarf_Die& type_die, string& c_type)
     }
   if (done)
     {
-      c_type.append(dwarf_diename(&type_die));
+      // this follows gdb precedent that anonymous structs/unions
+      // are displayed as "struct {...}" and "union {...}".
+      c_type.append(dwarf_diename(&type_die) ?: "{...}");
       return true;
     }
 
