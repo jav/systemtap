@@ -4858,13 +4858,15 @@ dump_unwindsyms (Dwfl_Module *m,
   mainfile = canonicalize_file_name(mainfile);
 
   // PR10228: populate the task_finder_vmcb.
-  if (mainfile[0] == '/') // user-space module
+  if (modname[0] == '/') // user-space module
     {
       // NB: runtime/sym.c
       c->output << "static struct stap_task_finder_target _stp_vmcb_" << stpmod_idx << "= {\n";
+      c->output << "#ifdef CONFIG_UTRACE\n";
       c->output << ".pathname = " << lex_cast_qstring (mainfile) << ",\n";
       c->output << ".mmap_callback = &_stp_tf_mmap_cb,\n";
       c->output << ".munmap_callback = &_stp_tf_munmap_cb,\n";
+      c->output << "#endif\n";
       c->output << "};\n";
     }
 
@@ -4873,7 +4875,7 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
 
   // PR10228: populate the task_finder_vmcb.
-  if (mainfile[0] == '/') // user-space module
+  if (modname[0] == '/') // user-space module
       c->output << ".vmcb = & _stp_vmcb_" << stpmod_idx << ",\n";
 
   c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
