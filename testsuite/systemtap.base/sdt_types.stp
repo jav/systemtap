@@ -125,9 +125,9 @@ probe process(@1).mark("short_int_ptr_volatile_var")
 probe process(@1).mark("int_var")
 {
   if ($arg1 != 65536)
-    printf("FAIL: int_var")
+    printf("FAIL: int_var\n")
   else
-    printf("PASS: int_var")
+    printf("PASS: int_var\n")
 }
 
 probe process(@1).mark("const_int_var")
