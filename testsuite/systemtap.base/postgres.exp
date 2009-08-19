@@ -1,0 +1,136 @@
+set test "postgres"
+
+# Test sdt support in postgres.  Assumes a markered postgres is installed.
+
+########## Create /tmp/stap-postgres.stp ########## 
+set dpath "/tmp/stap-postgres.stp"
+set fp [open $dpath "w"]
+puts $fp "
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"transaction__start\")
+{
+  printf(\"%s %#x\\n\", \$\$name, \$arg1);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"transaction__commit\")
+{
+  printf(\"%s %#x\\n\", \$\$name, \$arg1);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"transaction__abort\")
+{
+  printf(\"%s %#x\\n\", \$\$name, \$arg1);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"lock__startwait\")
+{
+  printf(\"%s %#x %#x\\n\", \$\$name, \$arg1, \$arg2);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"lock__endwait\")
+{
+  printf(\"%s %#x %#x\\n\", \$\$name, \$arg1, \$arg2);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"lwlock__endwait\")
+{
+  printf(\"%s %#x %#x\\n\", \$\$name, \$arg1, \$arg2);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"lwlock__acquire\")
+{
+  printf(\"%s %#x %#x\\n\", \$\$name, \$arg1, \$arg2);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"lwlock__condacquire__fail\")
+{
+  printf(\"%s %#x %#x\\n\", \$\$name, 
+  	 \$arg1, \$arg2);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"lwlock__condacquire\")
+{
+  printf(\"%s %#x %#x\\n\", \$\$name, \$arg1, \$arg2);
+}
+probe process(\"/usr/local/pgsql/bin/postgres\").mark(\"lwlock__release\")
+{
+  printf(\"%s %#x\\n\", \$\$name, \$arg1);
+}
+"
+close $fp
+
+########## Create /tmp/stap-postgres.sh ########## 
+set dpath "/tmp/stap-postgres.sh"
+set fp [open $dpath "w"]
+puts $fp "
+if locate pg_regress_main.o ; then
+   POSTGRESBUILD=\$(dirname \$(locate pg_regress_main.o))
+else
+   echo UNSUPPORTED: Directory does not exist: postgres-build-dir/src/test/regress 
+   exit
+fi
+if \[ -d /usr/local/pgsql \] ; then
+   POSTGRESDIR=/usr/local/pgsql/bin
+else
+   echo UNSUPPORTED: Directory does not exist /usr/local/pgsql
+   exit
+fi
+\$POSTGRESDIR/initdb /tmp/stap-postgres
+
+if \[ \$(objdump -h \$POSTGRESDIR/postgres | grep probes | wc -l) -eq 0 \] ; then
+   echo UNSUPPORTED: \$POSTGRESDIR/postgres does not contain probes
+   exit
+fi
+PGDATA=/tmp/stap-postgres/ stap -c \"\$POSTGRESDIR/postgres -D /tmp/stap-postgres\" /tmp/stap-postgres.stp >/tmp/stap-postgres-markers.log 2>&1 &
+
+# wait until postgres is running
+I=0
+while \[ \$I -ne 10 \] ; do
+    if expr \$(ps --no-headers -C postgres | wc -l) > 0
+    then
+	I=10
+    else
+	sleep 5
+	I=\$\[\$I+1\]
+    fi
+    done
+
+cd \$POSTGRESBUILD/
+make installcheck > /tmp/stap-postgres.log 2>&1
+
+ACQUIRE=\$(grep 'lwlock__acquire 0x\[0-9\]* 0x\[0-9\]*' /tmp/stap-postgres-markers.log | wc -l)
+RELEASE=\$(grep 'lwlock__release 0x\[0-9\]*' /tmp/stap-postgres-markers.log | wc -l)
+START=\$(grep 'transaction__start 0x\[0-9\]*' /tmp/stap-postgres-markers.log | wc -l)
+COMMIT=\$(grep 'transaction__commit 0x\[0-9\]*' /tmp/stap-postgres-markers.log | wc -l)
+OKAY=\$(grep 'test .*ok' /tmp/stap-postgres.log | wc -l)
+
+echo lwlock__acquire=\$ACQUIRE lwlock__release=\$RELEASE transaction__start=\$START transaction__commit=\$COMMIT test-ok=\$OKAY
+: 44873 75325 591 489 0
+
+if \[ \$ACQUIRE -gt 44000 -a \$RELEASE -gt 75000 -a \$START -gt 580 -a \$COMMIT -gt 480 \] ; then
+   echo PASS: postgres markers
+else
+   echo FAIL: postgres markers
+fi
+
+if \[ \$OKAY -gt 100 \] ; then
+   echo PASS: postgres tests
+else
+   echo FAIL: postgres tests
+
+fi
+
+kill \$(ps --no-headers -C postgres | head -1 | awk '{print \$1}')
+"
+close $fp
+
+########## /tmp/stap-postgres.sh does most of the work ########## 
+verbose -log Running postgres testsuite
+spawn sh /tmp/stap-postgres.sh 2>&1
+expect {
+    -timeout 180
+    -re {FAIL: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	fail "$s"; exp_continue }
+    -re {PASS: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	pass "$s"; exp_continue }
+    -re {UNSUPPORTED: [a-zA-Z_/: ]+} { regexp " .*$" $expect_out(0,string) s; 
+	verbose -log "$s"
+	unsupported "$s"; exp_continue }
+    timeout { fail "$test (timeout) }
+    eof { }
+}
+
+Catch {exec rm -rf /tmp/stap-postgres}
+catch {exec rm /tmp/stap-postgres.stp /tmp/stap-postgres.log \
+	   /tmp/stap-postgres-markers.log /tmp/stap-postgres.sh}
