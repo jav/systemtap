@@ -1624,9 +1624,9 @@ dwflpp::find_struct_member(const target_symbol::component& c,
                            vector<Dwarf_Attribute>& locs)
 {
   Dwarf_Attribute attr;
-  Dwarf_Die die = *parentdie;
+  Dwarf_Die die;
 
-  switch (dwarf_child (&die, &die))
+  switch (dwarf_child (parentdie, &die))
     {
     case 0:		/* First child found.  */
       break;
@@ -1634,8 +1634,8 @@ dwflpp::find_struct_member(const target_symbol::component& c,
       return false;
     case -1:		/* Error.  */
     default:		/* Shouldn't happen */
-      throw semantic_error (string (dwarf_tag(&die) == DW_TAG_union_type ? "union" : "struct")
-                            + string (dwarf_diename (&die) ?: "<anonymous>")
+      throw semantic_error (string (dwarf_tag(parentdie) == DW_TAG_union_type ? "union" : "struct")
+                            + string (dwarf_diename (parentdie) ?: "<anonymous>")
                             + string (dwarf_errmsg (-1)),
                             c.tok);
     }
@@ -1774,17 +1774,18 @@ dwflpp::translate_components(struct obstack *pool,
             }
 
             {
+              Dwarf_Die parentdie = *die;
               vector<Dwarf_Attribute> locs;
-              if (!find_struct_member(c, die, die, locs))
+              if (!find_struct_member(c, &parentdie, die, locs))
                 {
                   string alternatives;
                   stringstream members;
-                  print_members(die, members);
+                  print_members(&parentdie, members);
                   if (members.str().size() != 0)
                     alternatives = " (alternatives:" + members.str();
                   throw semantic_error("unable to find member '" +
                                        c.member + "' for struct "
-                                       + string(dwarf_diename(die) ?: "<unknown>")
+                                       + string(dwarf_diename(&parentdie) ?: "<unknown>")
                                        + alternatives,
                                        c.tok);
                 }
