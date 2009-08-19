@@ -9,6 +9,6 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
-close
+catch { close }
 wait
 if {$ok == 1} { pass "$test" } { fail "$test" }
