@@ -118,6 +118,11 @@ int dwarf_decl_line_integrate (Dwarf_Die *die, int *linep)
 #endif // !_ELFUTILS_PREREQ(0, 143)
 
 
+// Resolve a full name for dwarf types
+bool dwarf_type_name(Dwarf_Die *type_die, std::string& type_name);
+std::string dwarf_type_name(Dwarf_Die *type_die);
+
+
 #endif
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

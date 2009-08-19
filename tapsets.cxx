@@ -2770,8 +2770,6 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 }
 
 
-static bool dwarf_type_name(Dwarf_Die& type_die, string& c_type);
-
 void
 dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
 {
@@ -2788,7 +2786,7 @@ dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
   if (has_return &&
       dwarf_attr_integrate (scope_die, DW_AT_type, &type_attr) &&
       dwarf_formref_die (&type_attr, &type_die) &&
-      dwarf_type_name(type_die, type_name))
+      dwarf_type_name(&type_die, type_name))
     argstream << " $return:" << type_name;
 
   Dwarf_Die arg;
@@ -2812,7 +2810,7 @@ dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
         type_name.clear();
         if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr) ||
             !dwarf_formref_die (&type_attr, &type_die) ||
-            !dwarf_type_name(type_die, type_name))
+            !dwarf_type_name(&type_die, type_name))
           continue;
 
         argstream << " $" << arg_name << ":" << type_name;
@@ -4294,7 +4292,7 @@ uprobe_derived_probe::saveargs(Dwarf_Die* scope_die)
   if (return_p &&
       dwarf_attr_integrate (scope_die, DW_AT_type, &type_attr) &&
       dwarf_formref_die (&type_attr, &type_die) &&
-      dwarf_type_name(type_die, type_name))
+      dwarf_type_name(&type_die, type_name))
     argstream << " $return:" << type_name;
 
   Dwarf_Die arg;
@@ -4318,7 +4316,7 @@ uprobe_derived_probe::saveargs(Dwarf_Die* scope_die)
         type_name.clear();
         if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr) ||
             !dwarf_formref_die (&type_attr, &type_die) ||
-            !dwarf_type_name(type_die, type_name))
+            !dwarf_type_name(&type_die, type_name))
           continue;
 
         argstream << " $" << arg_name << ":" << type_name;
@@ -5583,73 +5581,6 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 
 
 static bool
-dwarf_type_name(Dwarf_Die& type_die, string& c_type)
-{
-  // if we've gotten down to a basic type, then we're done
-  bool done = true;
-  switch (dwarf_tag(&type_die))
-    {
-    case DW_TAG_structure_type:
-      c_type.append("struct ");
-      break;
-    case DW_TAG_union_type:
-      c_type.append("union ");
-      break;
-    case DW_TAG_typedef:
-    case DW_TAG_base_type:
-      break;
-    default:
-      done = false;
-      break;
-    }
-  if (done)
-    {
-      // this follows gdb precedent that anonymous structs/unions
-      // are displayed as "struct {...}" and "union {...}".
-      c_type.append(dwarf_diename(&type_die) ?: "{...}");
-      return true;
-    }
-
-  // otherwise, this die is a type modifier.
-
-  // recurse into the referent type
-  // if it can't be named, just call it "void"
-  Dwarf_Attribute subtype_attr;
-  Dwarf_Die subtype_die;
-  if (!dwarf_attr_integrate(&type_die, DW_AT_type, &subtype_attr)
-      || !dwarf_formref_die(&subtype_attr, &subtype_die)
-      || !dwarf_type_name(subtype_die, c_type))
-    c_type = "void";
-
-  const char *suffix = NULL;
-  switch (dwarf_tag(&type_die))
-    {
-    case DW_TAG_pointer_type:
-      suffix = "*";
-      break;
-    case DW_TAG_array_type:
-      suffix = "[]";
-      break;
-    case DW_TAG_const_type:
-      suffix = " const";
-      break;
-    case DW_TAG_volatile_type:
-      suffix = " volatile";
-      break;
-    default:
-      return false;
-    }
-  c_type.append(suffix);
-
-  // XXX HACK!  The va_list isn't usable as found in the debuginfo...
-  if (c_type == "struct __va_list_tag*")
-    c_type = "va_list";
-
-  return true;
-}
-
-
-static bool
 resolve_tracepoint_arg_type(tracepoint_arg& arg)
 {
   Dwarf_Attribute type_attr;
@@ -5704,7 +5635,7 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
           Dwarf_Attribute type_attr;
           if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr)
               || !dwarf_formref_die (&type_attr, &tparg.type_die)
-              || !dwarf_type_name(tparg.type_die, tparg.c_type))
+              || !dwarf_type_name(&tparg.type_die, tparg.c_type))
             throw semantic_error ("cannot get type of tracepoint '"
                                   + tracepoint_name + "' parameter '"
                                   + tparg.name + "'");

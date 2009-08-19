@@ -1555,7 +1555,7 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
   if (typetag != DW_TAG_structure_type && typetag != DW_TAG_union_type)
     {
       o << " Error: "
-        << (dwarf_diename (vardie) ?: "<anonymous>")
+        << dwarf_type_name(vardie)
         << " isn't a struct/union";
       return;
     }
@@ -1566,15 +1566,13 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
   switch (dwarf_child (vardie, die))
     {
     case 1:				// No children.
-      o << ((typetag == DW_TAG_union_type) ? " union " : " struct ")
-        << (dwarf_diename (die) ?: "<anonymous>")
+      o << dwarf_type_name(vardie)
         << " is empty";
       break;
 
     case -1:				// Error.
     default:				// Shouldn't happen.
-      o << ((typetag == DW_TAG_union_type) ? " union " : " struct ")
-        << (dwarf_diename (die) ?: "<anonymous>")
+      o << dwarf_type_name(vardie)
         << ": " << dwarf_errmsg (-1);
       break;
 
@@ -1591,20 +1589,17 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
         o << " " << member;
       else
         {
-          Dwarf_Die temp_die = *die;
-          Dwarf_Attribute temp_attr ;
+          Dwarf_Die temp_die;
+          Dwarf_Attribute temp_attr;
 
-          if (!dwarf_attr_integrate (&temp_die, DW_AT_type, &temp_attr))
+          if (!dwarf_attr_integrate (die, DW_AT_type, &temp_attr) ||
+              !dwarf_formref_die (&temp_attr, &temp_die))
             {
-              clog << "\n Error in obtaining type attribute for "
-                   << (dwarf_diename(&temp_die)?:"<anonymous>");
-              return;
-            }
-
-          if (!dwarf_formref_die (&temp_attr, &temp_die))
-            {
-              clog << "\n Error in decoding type attribute for "
-                   << (dwarf_diename(&temp_die)?:"<anonymous>");
+              string source = dwarf_decl_file(die) ?: "<unknown source>";
+              int line = -1;
+              dwarf_decl_line(die, &line);
+              clog << "\n Error in obtaining type attribute for anonymous member at "
+                   << source << ":" << line;
               return;
             }
 
@@ -1634,8 +1629,7 @@ dwflpp::find_struct_member(const target_symbol::component& c,
       return false;
     case -1:		/* Error.  */
     default:		/* Shouldn't happen */
-      throw semantic_error (string (dwarf_tag(parentdie) == DW_TAG_union_type ? "union" : "struct")
-                            + string (dwarf_diename (parentdie) ?: "<anonymous>")
+      throw semantic_error (dwarf_type_name(parentdie) + ": "
                             + string (dwarf_errmsg (-1)),
                             c.tok);
     }
@@ -1760,15 +1754,14 @@ dwflpp::translate_components(struct obstack *pool,
           if (c.type != target_symbol::comp_struct_member)
             throw semantic_error ("invalid access '"
                                   + lex_cast<string>(c)
-                                  + "' for struct/union type",
+                                  + "' for " + dwarf_type_name(die),
                                   c.tok);
 
           if (dwarf_hasattr(die, DW_AT_declaration))
             {
               Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(die));
               if (tmpdie == NULL)
-                throw semantic_error ("unresolved struct "
-                                      + string (dwarf_diename (die) ?: "<anonymous>"),
+                throw semantic_error ("unresolved " + dwarf_type_name(die),
                                       c.tok);
               *die_mem = *tmpdie;
             }
@@ -1784,8 +1777,8 @@ dwflpp::translate_components(struct obstack *pool,
                   if (members.str().size() != 0)
                     alternatives = " (alternatives:" + members.str();
                   throw semantic_error("unable to find member '" +
-                                       c.member + "' for struct "
-                                       + string(dwarf_diename(&parentdie) ?: "<unknown>")
+                                       c.member + "' for "
+                                       + dwarf_type_name(&parentdie)
                                        + alternatives,
                                        c.tok);
                 }
@@ -1798,27 +1791,20 @@ dwflpp::translate_components(struct obstack *pool,
           break;
 
         case DW_TAG_enumeration_type:
-          throw semantic_error ("invalid access '"
-                                + lex_cast<string>(c)
-                                + "' vs. enum type "
-                                + string(dwarf_diename (die) ?: "<anonymous type>"),
-                                c.tok);
-          break;
         case DW_TAG_base_type:
           throw semantic_error ("invalid access '"
                                 + lex_cast<string>(c)
-                                + "' vs. base type "
-                                + string(dwarf_diename (die) ?: "<anonymous type>"),
+                                + "' vs. " + dwarf_type_name(die),
                                 c.tok);
           break;
+
         case -1:
           throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)),
                                 c.tok);
           break;
 
         default:
-          throw semantic_error (string(dwarf_diename (die) ?: "<anonymous type>")
-                                + ": unexpected type tag "
+          throw semantic_error (dwarf_type_name(die) + ": unexpected type tag "
                                 + lex_cast<string>(dwarf_tag (die)),
                                 c.tok);
           break;
@@ -1881,8 +1867,6 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
   Dwarf_Die typedie_mem;
   Dwarf_Die *typedie;
   int typetag;
-  char const *dname;
-  string diestr;
 
   typedie = resolve_unqualified_inner_typedie (&typedie_mem, attr_mem, e);
   typetag = dwarf_tag (typedie);
@@ -1908,19 +1892,15 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
   switch (typetag)
     {
     default:
-      dname = dwarf_diename(die);
-      diestr = (dname != NULL) ? dname : "<unknown>";
       throw semantic_error ("unsupported type tag "
                             + lex_cast<string>(typetag)
-                            + " for " + diestr, e->tok);
+                            + " for " + dwarf_type_name(die), e->tok);
       break;
 
     case DW_TAG_structure_type:
     case DW_TAG_union_type:
-      dname = dwarf_diename(die);
-      diestr = (dname != NULL) ? dname : "<unknown>";
-      throw semantic_error ("struct/union '" + diestr
-                            + "' is being accessed instead of a member of the struct/union", e->tok);
+      throw semantic_error ("'" + dwarf_type_name(die)
+                            + "' is being accessed instead of a member", e->tok);
       break;
 
     case DW_TAG_enumeration_type:
@@ -1928,9 +1908,6 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
 
       // Reject types we can't handle in systemtap
       {
-        dname = dwarf_diename(die);
-        diestr = (dname != NULL) ? dname : "<unknown>";
-
         Dwarf_Attribute encoding_attr;
         Dwarf_Word encoding = (Dwarf_Word) -1;
         dwarf_formudata (dwarf_attr_integrate (typedie, DW_AT_encoding, &encoding_attr),
@@ -1939,7 +1916,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
           {
             // clog << "bad type1 " << encoding << " diestr" << endl;
             throw semantic_error ("unsupported type (mystery encoding " + lex_cast<string>(encoding) + ")" +
-                                  " for " + diestr, e->tok);
+                                  " for " + dwarf_type_name(die), e->tok);
           }
 
         if (encoding == DW_ATE_float
@@ -1948,7 +1925,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
           {
             // clog << "bad type " << encoding << " diestr" << endl;
             throw semantic_error ("unsupported type (encoding " + lex_cast<string>(encoding) + ")" +
-                                  " for " + diestr, e->tok);
+                                  " for " + dwarf_type_name(die), e->tok);
           }
       }
 
@@ -2201,7 +2178,7 @@ dwflpp::literal_stmt_for_pointer (Dwarf_Die *type_die,
 {
   if (sess.verbose>2)
       clog << "literal_stmt_for_pointer: finding value for "
-           << (dwarf_diename(type_die) ?: "<unknown>")
+           << dwarf_type_name(type_die)
            << "("
            << (dwarf_diename(cu) ?: "<unknown>")
            << ")\n";

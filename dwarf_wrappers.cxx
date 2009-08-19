@@ -10,11 +10,12 @@
 #include "staptree.h"
 
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <elfutils/libdwfl.h>
 #include <dwarf.h>
 
-using std::string;
+using namespace std;
 
 void dwfl_assert(const string& desc, int rc)
 {
@@ -87,6 +88,92 @@ dwarf_decl_line_integrate (Dwarf_Die *die, int *linep)
 }
 
 #endif // !_ELFUTILS_PREREQ(0, 143)
+
+
+static bool
+dwarf_type_name(Dwarf_Die *type_die, ostringstream& o)
+{
+  // if we've gotten down to a basic type, then we're done
+  bool done = true;
+  switch (dwarf_tag(type_die))
+    {
+    case DW_TAG_enumeration_type:
+      o << "enum ";
+      break;
+    case DW_TAG_structure_type:
+      o << "struct ";
+      break;
+    case DW_TAG_union_type:
+      o << "union ";
+      break;
+    case DW_TAG_typedef:
+    case DW_TAG_base_type:
+      break;
+    default:
+      done = false;
+      break;
+    }
+  if (done)
+    {
+      // this follows gdb precedent that anonymous structs/unions
+      // are displayed as "struct {...}" and "union {...}".
+      o << (dwarf_diename(type_die) ?: "{...}");
+      return true;
+    }
+
+  // otherwise, this die is a type modifier.
+
+  // recurse into the referent type
+  // if it can't be named, just call it "void"
+  Dwarf_Attribute subtype_attr;
+  Dwarf_Die subtype_die;
+  if (!dwarf_attr_integrate(type_die, DW_AT_type, &subtype_attr)
+      || !dwarf_formref_die(&subtype_attr, &subtype_die)
+      || !dwarf_type_name(&subtype_die, o))
+    o.str("void"), o.seekp(4);
+
+  switch (dwarf_tag(type_die))
+    {
+    case DW_TAG_pointer_type:
+      o << "*";
+      break;
+    case DW_TAG_array_type:
+      o << "[]";
+      break;
+    case DW_TAG_const_type:
+      o << " const";
+      break;
+    case DW_TAG_volatile_type:
+      o << " volatile";
+      break;
+    default:
+      return false;
+    }
+
+  // XXX HACK!  The va_list isn't usable as found in the debuginfo...
+  if (o.str() == "struct __va_list_tag*")
+    o.str("va_list"), o.seekp(7);
+
+  return true;
+}
+
+
+bool
+dwarf_type_name(Dwarf_Die *type_die, string& type_name)
+{
+  ostringstream o;
+  bool ret = dwarf_type_name(type_die, o);
+  type_name = o.str();
+  return ret;
+}
+
+
+string
+dwarf_type_name(Dwarf_Die *type_die)
+{
+  ostringstream o;
+  return dwarf_type_name(type_die, o) ? o.str() : "<unknown>";
+}
 
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
