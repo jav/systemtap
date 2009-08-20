@@ -137,6 +137,7 @@ i = 1
 build_header = False
 build_source = False
 add_typedefs = False
+use_cpp = False
 h_ext = '.h'
 filename = ""
 while (i < len (sys.argv)):
@@ -146,6 +147,8 @@ while (i < len (sys.argv)):
     elif (sys.argv[i] == "-s"):
         i += 1
         s_filename = sys.argv[i]
+    elif (sys.argv[i] == "-C"):
+        use_cpp = True
     elif (sys.argv[i] == "-h"):
         build_header = True
     elif (sys.argv[i] == "-G"):
@@ -159,6 +162,14 @@ if (build_header == False and build_source == False):
     usage()
     sys.exit(1)
 
+if (s_filename != "" and use_cpp):
+    (d,fn) = mkstemp(suffix=".d")
+    retcode = call(["cpp", s_filename, fn])
+    if (retcode != 0):
+        print "\"cpp s_filename\" failed"
+        usage()
+        sys.exit(1)
+    s_filename = fn
 if (filename == ""):
     if (s_filename != ""):
 	(filename,ext) = os.path.splitext(s_filename)
@@ -181,3 +192,6 @@ elif (build_source):
     f.close()
     call(["gcc", "-fPIC", "-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
     os.remove(fn)
+if (use_cpp):
+    os.remove(s_filename)
+

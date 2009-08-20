@@ -5,7 +5,7 @@ set test "dtrace"
 if {[installtest_p]} { 
     set dtrace $env(SYSTEMTAP_PATH)/dtrace 
 } else {
-    set dtrace $srcdir/../dtrace
+    set dtrace ../dtrace
 }
 
 exec mkdir /tmp/dtrace
@@ -13,9 +13,12 @@ exec mkdir /tmp/dtrace
 set dpath "/tmp/dtrace/test.d"
 set fp [open $dpath "w"]
 puts $fp "
+#define INT16 short
+#define INT32 int
+
 provider tstsyscall
 {
- probe test(short arg1, int arg2, int arg3, int arg4, struct astruct arg5)
+ probe test(INT16 arg1, INT32 arg2, INT32 arg3, INT32 arg4, struct astruct arg5)
 }
 "
 close $fp
@@ -57,7 +60,7 @@ if {[file exists XXX]} then {
 } else {
     fail "dtrace -h -o XXX"
 }
-exec rm -f XXX.h
+exec rm -f XXX
 
 verbose -log "$dtrace -G -s $dpath -o /tmp/XXX.o"
 exec $dtrace -G -s $dpath -o /tmp/XXX.o
@@ -112,6 +115,20 @@ if {[file exists /tmp/dtrace/test.h]} then {
     fail "dtrace -h"
 }
 exec rm -f /tmp/dtrace/test.o
+
+set ok 0
+verbose -log "$dtrace -C -h -s $dpath -o XXX.h"
+exec $dtrace -C -h -s $dpath -o XXX.h
+spawn cat XXX.h
+expect {
+    "short arg1, int arg2, int arg3, int arg4" {incr ok}
+}
+if { $ok != 0} {
+    pass "dtrace -C -h -o XXX.h"
+} else {
+    fail "dtrace -C -h -o XXX.h"
+}
+exec rm -f XXX.h
 
 exec /bin/rm -r /tmp/dtrace
 # -----------------------------------------------------------------
