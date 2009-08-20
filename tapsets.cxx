@@ -2780,12 +2780,10 @@ dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
 
   stringstream argstream;
   string type_name;
-  Dwarf_Attribute type_attr;
   Dwarf_Die type_die;
 
   if (has_return &&
-      dwarf_attr_integrate (scope_die, DW_AT_type, &type_attr) &&
-      dwarf_formref_die (&type_attr, &type_die) &&
+      dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
       dwarf_type_name(&type_die, type_name))
     argstream << " $return:" << type_name;
 
@@ -2808,8 +2806,7 @@ dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
           continue;
 
         type_name.clear();
-        if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr) ||
-            !dwarf_formref_die (&type_attr, &type_die) ||
+        if (!dwarf_attr_die (&arg, DW_AT_type, &type_die) ||
             !dwarf_type_name(&type_die, type_name))
           continue;
 
@@ -4286,12 +4283,10 @@ uprobe_derived_probe::saveargs(Dwarf_Die* scope_die)
 
   stringstream argstream;
   string type_name;
-  Dwarf_Attribute type_attr;
   Dwarf_Die type_die;
 
   if (return_p &&
-      dwarf_attr_integrate (scope_die, DW_AT_type, &type_attr) &&
-      dwarf_formref_die (&type_attr, &type_die) &&
+      dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
       dwarf_type_name(&type_die, type_name))
     argstream << " $return:" << type_name;
 
@@ -4314,8 +4309,7 @@ uprobe_derived_probe::saveargs(Dwarf_Die* scope_die)
           continue;
 
         type_name.clear();
-        if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr) ||
-            !dwarf_formref_die (&type_attr, &type_die) ||
+        if (!dwarf_attr_die (&arg, DW_AT_type, &type_die) ||
             !dwarf_type_name(&type_die, type_name))
           continue;
 
@@ -5583,15 +5577,13 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 static bool
 resolve_tracepoint_arg_type(tracepoint_arg& arg)
 {
-  Dwarf_Attribute type_attr;
   switch (dwarf_tag(&arg.type_die))
     {
     case DW_TAG_typedef:
     case DW_TAG_const_type:
     case DW_TAG_volatile_type:
       // iterate on the referent type
-      return (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
-              && dwarf_formref_die(&type_attr, &arg.type_die)
+      return (dwarf_attr_die(&arg.type_die, DW_AT_type, &arg.type_die)
               && resolve_tracepoint_arg_type(arg));
     case DW_TAG_base_type:
       // base types will simply be treated as script longs
@@ -5600,8 +5592,7 @@ resolve_tracepoint_arg_type(tracepoint_arg& arg)
     case DW_TAG_pointer_type:
       // pointers can be treated as script longs,
       // and if we know their type, they can also be dereferenced
-      if (dwarf_attr_integrate(&arg.type_die, DW_AT_type, &type_attr)
-          && dwarf_formref_die(&type_attr, &arg.type_die))
+      if (dwarf_attr_die(&arg.type_die, DW_AT_type, &arg.type_die))
         arg.isptr = true;
       arg.typecast = "(intptr_t)";
       return true;
@@ -5632,9 +5623,7 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
           tparg.name = dwarf_diename(&arg);
 
           // read the type of this parameter
-          Dwarf_Attribute type_attr;
-          if (!dwarf_attr_integrate (&arg, DW_AT_type, &type_attr)
-              || !dwarf_formref_die (&type_attr, &tparg.type_die)
+          if (!dwarf_attr_die (&arg, DW_AT_type, &tparg.type_die)
               || !dwarf_type_name(&tparg.type_die, tparg.c_type))
             throw semantic_error ("cannot get type of tracepoint '"
                                   + tracepoint_name + "' parameter '"

@@ -103,6 +103,16 @@ public:
 };
 
 
+// Look up the DIE for a reference-form attribute name
+inline Dwarf_Die *
+dwarf_attr_die (Dwarf_Die *die, unsigned int attr, Dwarf_Die *result)
+{
+  Dwarf_Attribute attr_mem;
+  return dwarf_formref_die (dwarf_attr_integrate (die, attr, &attr_mem),
+                            result);
+}
+
+
 #if !_ELFUTILS_PREREQ(0, 143)
 // Elfutils prior to 0.143 didn't use attr_integrate when looking up the
 // decl_file or decl_line, so the attributes would sometimes be missed.  For

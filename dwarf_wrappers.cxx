@@ -125,10 +125,8 @@ dwarf_type_name(Dwarf_Die *type_die, ostringstream& o)
 
   // recurse into the referent type
   // if it can't be named, just call it "void"
-  Dwarf_Attribute subtype_attr;
   Dwarf_Die subtype_die;
-  if (!dwarf_attr_integrate(type_die, DW_AT_type, &subtype_attr)
-      || !dwarf_formref_die(&subtype_attr, &subtype_die)
+  if (!dwarf_attr_die(type_die, DW_AT_type, &subtype_die)
       || !dwarf_type_name(&subtype_die, o))
     o.str("void"), o.seekp(4);
 

@@ -1588,10 +1588,7 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
       else
         {
           Dwarf_Die temp_die;
-          Dwarf_Attribute temp_attr;
-
-          if (!dwarf_attr_integrate (die, DW_AT_type, &temp_attr) ||
-              !dwarf_formref_die (&temp_attr, &temp_die))
+          if (!dwarf_attr_die (die, DW_AT_type, &temp_die))
             {
               string source = dwarf_decl_file(die) ?: "<unknown source>";
               int line = -1;
@@ -1642,12 +1639,8 @@ dwflpp::find_struct_member(const target_symbol::component& c,
         {
           // need to recurse for anonymous structs/unions
           Dwarf_Die subdie;
-
-          if (!dwarf_attr_integrate (&die, DW_AT_type, &attr) ||
-              !dwarf_formref_die (&attr, &subdie))
-            continue;
-
-          if (find_struct_member(c, &subdie, memberdie, locs))
+          if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
+              find_struct_member(c, &subdie, memberdie, locs))
             goto success;
         }
       else if (name == c.member)
