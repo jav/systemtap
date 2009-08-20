@@ -1162,7 +1162,7 @@ c_unparser::emit_module_init ()
   o->newline() << "#endif";
 
   // PR10228: set up symbol table-related task finders
-  o->newline() << "#ifdef STP_NEED_VMA_TRACKER";
+  o->newline() << "#if defined(STP_NEED_VMA_TRACKER) && defined(CONFIG_UTRACE)";
   o->newline() << "_stp_sym_init();";
   o->newline() << "for (i=0; i<_stp_num_modules; i++) {";
   o->newline(1) << "if (_stp_modules[i]->vmcb) {";

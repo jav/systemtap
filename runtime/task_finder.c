@@ -4,7 +4,7 @@
 #if ! defined(CONFIG_UTRACE)
 /* Dummy definitions for use in sym.c */
 struct stap_task_finder_target { };
-static int stap_start_task_finder(void) { return -EINVAL; }
+static int stap_start_task_finder(void) { return 0; }
 static void stap_stop_task_finder(void) { }
 
 #else
