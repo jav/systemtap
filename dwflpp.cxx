@@ -1713,6 +1713,12 @@ dwflpp::translate_components(struct obstack *pool,
           break;
 
         case DW_TAG_pointer_type:
+          /* A pointer with no type is a void* -- can't dereference it. */
+          if (!dwarf_hasattr_integrate (die, DW_AT_type))
+            throw semantic_error ("invalid access '" + lex_cast<string>(c)
+                                  + "' vs. " + dwarf_type_name(die),
+                                  c.tok);
+
           c_translate_pointer (pool, 1, 0 /* PR9768*/, die, tail);
           if (c.type != target_symbol::comp_literal_array_index &&
               c.type != target_symbol::comp_expression_array_index)
