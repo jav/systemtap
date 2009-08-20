@@ -131,6 +131,6 @@ expect {
     eof { }
 }
 
-Catch {exec rm -rf /tmp/stap-postgres}
+catch {exec rm -rf /tmp/stap-postgres}
 catch {exec rm /tmp/stap-postgres.stp /tmp/stap-postgres.log \
 	   /tmp/stap-postgres-markers.log /tmp/stap-postgres.sh}
