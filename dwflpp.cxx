@@ -1762,15 +1762,26 @@ dwflpp::translate_components(struct obstack *pool,
               vector<Dwarf_Attribute> locs;
               if (!find_struct_member(c, &parentdie, die, locs))
                 {
+                  /* Add a file:line hint for anonymous types */
+                  string source;
+                  if (!dwarf_hasattr_integrate(&parentdie, DW_AT_name))
+                    {
+                      int line;
+                      const char *file = dwarf_decl_file(&parentdie);
+                      if (file && dwarf_decl_line(&parentdie, &line) == 0)
+                        source = " (" + string(file) + ":"
+                                 + lex_cast<string>(line) + ")";
+                    }
+
                   string alternatives;
                   stringstream members;
                   print_members(&parentdie, members);
                   if (members.str().size() != 0)
-                    alternatives = " (alternatives:" + members.str();
+                    alternatives = " (alternatives:" + members.str() + ")";
                   throw semantic_error("unable to find member '" +
                                        c.member + "' for "
                                        + dwarf_type_name(&parentdie)
-                                       + alternatives,
+                                       + source + alternatives,
                                        c.tok);
                 }
 
