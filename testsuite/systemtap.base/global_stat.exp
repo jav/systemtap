@@ -10,4 +10,4 @@ expect {
     timeout {fail "global_stat: unexpected timeout"}
     eof {fail "global_stat: unexpected EOF"}
 }
-wait;close
+wait; catch { close }
