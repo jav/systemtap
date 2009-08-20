@@ -1,26 +1,28 @@
 set test "inlinedvars"
-# XXX PR10537 - so only one result for now.
-#set ::result_string {call (22,84)
-#call2 (118,-22)
-#main (54,150)}
-set ::result_string {main (54,150)}
+set ::result_string {call (22,84)
+call2 (128,-22)
+main (64,42)}
 
-set test_flags "additional_flags=-g"
-set test_flags "$test_flags additional_flags=-O2"
+# Try both inlined and non-inlined compiles.
+set opt_flags {{-O0} {-O1} {-O2} {-O3}}
+foreach opt $opt_flags {
+  set test_flags "additional_flags=-g"
+  set test_flags "$test_flags additional_flags=$opt"
 
-set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
-if { $res != "" } {
+  set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+  if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "compiling $test.c"
-    untested "$test.c compile"
+    fail "compiling $test.c $opt"
+    untested "$test.c compile $opt"
     continue
-} else {
-    pass "$test.c compile"
-}
+  } else {
+    pass "$test.c compile $opt"
+  }
 
-if {[installtest_p] && [uprobes_p]} {
-  stap_run3 "$test" $srcdir/$subdir/$test.stp $test.exe -c ./$test.exe
-} else {
-  untested "$test"
+  if {[installtest_p] && [uprobes_p]} {
+    stap_run3 "$test-$opt" $srcdir/$subdir/$test.stp $test.exe -c ./$test.exe
+  } else {
+    untested "$test-$opt"
+  }
+  catch {exec rm -f $test.exe}
 }
-#catch {exec rm -f $test.exe}

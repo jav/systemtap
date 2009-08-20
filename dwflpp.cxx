@@ -939,17 +939,22 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
     {
       int tag = dwarf_tag(&die);
       const char *name = dwarf_diename (&die);
-      if (name == 0)
-        continue;
       switch (tag)
         {
         case DW_TAG_label:
+          if (name)
+            break;
+          else
+            continue; // Cannot handle unnamed label.
           break;
         case DW_TAG_subprogram:
-          if (!dwarf_hasattr(&die, DW_AT_declaration))
+          if (!dwarf_hasattr(&die, DW_AT_declaration) && name)
             function_name = name;
           else
             continue;
+        case DW_TAG_inlined_subroutine:
+            if (name)
+              function_name = name;
         default:
           if (dwarf_haschildren (&die))
             iterate_over_labels (&die, sym, symfunction, q, callback);
@@ -975,23 +980,7 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
 
           Dwarf_Addr stmt_addr;
           if (dwarf_lowpc (&die, &stmt_addr) != 0)
-            {
-              // There is no lowpc so figure out the address
-              // Get the real die for this cu
-              Dwarf_Die cudie;
-              dwarf_diecu (cu, &cudie, NULL, NULL);
-              size_t nlines = 0;
-              // Get the line for this label
-              Dwarf_Line **aline;
-              dwarf_getsrc_file (module_dwarf, file, dline, 0, &aline, &nlines);
-              // Get the address
-              for (size_t i = 0; i < nlines; i++)
-                {
-                  dwarf_lineaddr (*aline, &stmt_addr);
-                  if ((dwarf_haspc (&die, stmt_addr)))
-                    break;
-                }
-            }
+            continue; // Don't try to be smart. Just drop no addr labels.
 
           Dwarf_Die *scopes;
           int nscopes = 0;
