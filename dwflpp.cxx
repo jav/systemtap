@@ -937,10 +937,8 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
   static string function_name = dwarf_diename (begin_die);
   do
     {
-      Dwarf_Attribute attr_mem;
-      Dwarf_Attribute *attr = dwarf_attr (&die, DW_AT_name, &attr_mem);
       int tag = dwarf_tag(&die);
-      const char *name = dwarf_formstring (attr);
+      const char *name = dwarf_diename (&die);
       if (name == 0)
         continue;
       switch (tag)
