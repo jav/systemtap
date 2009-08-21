@@ -4431,7 +4431,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .finder = {";
       if (p->pid != 0)
         s.op->line() << " .pid=" << p->pid;
-      else if (p->section == ".absolute")
+      else if (p->section == ".absolute") // proxy for ET_EXEC -> exec()'d program
         s.op->line() << " .procname=" << lex_cast_qstring(p->module) << ", ";
       // else ".dynamic" gets procname=0, pid=0, activating task_finder "global tracing"
       s.op->line() << "},";

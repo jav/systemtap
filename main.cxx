@@ -1330,10 +1330,8 @@ pass_5:
 	  // Remove the temporary directory.
           string cleanupcmd = "rm -rf ";
           cleanupcmd += s.tmpdir;
-          if (s.verbose>1) clog << "Running " << cleanupcmd << endl;
-	  int status = stap_system (cleanupcmd.c_str());
-	  if (status != 0 && s.verbose>1)
-	    clog << "Cleanup command failed, status: " << status << endl;
+
+	  (void) stap_system (s.verbose, cleanupcmd);
         }
     }
 

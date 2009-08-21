@@ -326,22 +326,41 @@ static pid_t spawned_pid = 0;
 
 // Runs a command with a saved PID, so we can kill it from the signal handler
 int
-stap_system(const char *command)
+stap_system(int verbose, const std::string& command)
 {
-  STAP_PROBE1(stap, stap_system__start, command);
-  const char * argv[] = { "sh", "-c", command, NULL };
+  const char *cmd = command.c_str();
+  STAP_PROBE1(stap, stap_system__start, cmd);
+  char const * const argv[] = { "sh", "-c", cmd, NULL };
   int ret, status;
 
   spawned_pid = 0;
-  ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL,
-                    const_cast<char **>(argv), environ);
+
+  if (verbose > 1) 
+    clog << "Running " << command << endl;
+
+  ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL, const_cast<char * const *>(argv), environ);
   STAP_PROBE2(stap, stap_system__spawn, ret, spawned_pid);
   if (ret == 0)
     {
-      if (waitpid(spawned_pid, &status, 0) == spawned_pid)
-        ret = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
+      ret = waitpid(spawned_pid, &status, 0);
+      if (ret == spawned_pid)
+        {
+          ret = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
+          if (verbose > 2) 
+            clog << "Spawn waitpid result (0x" << ios::hex << status << ios::dec << "): " << ret << endl;
+        }
       else
-        ret = errno;
+        {
+          if (verbose > 1) 
+            clog << "Spawn waitpid error (" << ret << "): " << strerror(errno) << endl;
+          ret = -1;
+        }
+    }
+  else
+    {
+      if (verbose > 1) 
+        clog << "Spawn error (" << ret << "): " << strerror(ret) << endl;
+      ret = -1;
     }
   STAP_PROBE1(stap, stap_system__complete, ret);
   spawned_pid = 0;

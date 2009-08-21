@@ -284,14 +284,14 @@ init_cert_db_path (const string &cert_db_path) {
 
   // Generate the certificate and database.
   string cmd = BINDIR "/stap-gen-cert " + cert_db_path;
-  rc = stap_system (cmd.c_str()) == 0;
+  rc = stap_system (0, cmd) == 0;
 
   // If we are root, authorize the new certificate as a trusted
   // signer. It is not an error if this fails.
   if (geteuid () == 0)
     {
       cmd = BINDIR "/stap-authorize-signing-cert " + cert_db_path + "/stap.cert";
-      stap_system (cmd.c_str());
+      stap_system (0, cmd);
     }
 
   return rc;
