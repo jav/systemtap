@@ -47,6 +47,7 @@ extern "C" {
 #include <fnmatch.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <math.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -4399,9 +4400,12 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   unsigned maxuprobesmem = 10*1024*1024; // 10 MB
   unsigned maxuprobes = maxuprobesmem / uprobesize;
 
-  // Let's choose a value on the middle, but clamped on the minimum size
-  unsigned default_maxuprobes = 
-    (minuprobes < maxuprobes) ? ((minuprobes + maxuprobes) / 2) : minuprobes;
+  // Let's choose a value on the geometric middle.  This should end up
+  // between minuprobes and maxuprobes.  It's OK if this number turns
+  // out to be < minuprobes or > maxuprobes.  At worst, we get a
+  // run-time error of one kind (too few: missed uprobe registrations)
+  // or another (too many: vmalloc errors at module load time).
+  unsigned default_maxuprobes = (unsigned)sqrt((double)minuprobes * (double)maxuprobes);
 
   s.op->newline() << "#ifndef MAXUPROBES";
   s.op->newline() << "#define MAXUPROBES " << default_maxuprobes;
