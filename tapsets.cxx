@@ -4432,8 +4432,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       if (p->pid != 0)
         s.op->line() << " .pid=" << p->pid;
       else if (p->section == ".absolute")
-        s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
-      // else ".dynamic" gets pathname=0, pid=0, activating task_finder "global tracing"
+        s.op->line() << " .procname=" << lex_cast_qstring(p->module) << ", ";
+      // else ".dynamic" gets procname=0, pid=0, activating task_finder "global tracing"
       s.op->line() << "},";
       if (p->section != ".absolute")
         s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
@@ -4684,7 +4684,7 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_uprobe_spec *sups = & stap_uprobe_specs[i];";
   s.op->newline() << "probe_point = sups->pp;"; // for error messages
-  s.op->newline() << "if (sups->finder.pathname) sups->finder.callback = & stap_uprobe_process_found;";
+  s.op->newline() << "if (sups->finder.procname) sups->finder.callback = & stap_uprobe_process_found;";
   s.op->newline() << "else if (sups->pathname) sups->finder.mmap_callback = & stap_uprobe_mmap_found;";
   s.op->newline() << "rc = stap_register_task_finder_target (& sups->finder);";
 

@@ -100,7 +100,7 @@ struct stap_task_finder_target {
 	size_t pathlen;
 
 /* public: */
-	const char *pathname;
+	const char *procname;
 	pid_t pid;
 	stap_task_finder_callback callback;
 	stap_task_finder_mmap_callback mmap_callback;
@@ -170,8 +170,8 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	if (new_tgt == NULL)
 		return EFAULT;
 
-	if (new_tgt->pathname != NULL)
-		new_tgt->pathlen = strlen(new_tgt->pathname);
+	if (new_tgt->procname != NULL)
+		new_tgt->pathlen = strlen(new_tgt->procname);
 	else
 		new_tgt->pathlen = 0;
 
@@ -188,14 +188,14 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	new_tgt->ops.report_syscall_exit = \
 		&__stp_utrace_task_finder_target_syscall_exit;
 
-	// Search the list for an existing entry for pathname/pid.
+	// Search the list for an existing entry for procname/pid.
 	list_for_each(node, &__stp_task_finder_list) {
 		tgt = list_entry(node, struct stap_task_finder_target, list);
 		if (tgt != NULL
-		    /* pathname-based target */
+		    /* procname-based target */
 		    && ((new_tgt->pathlen > 0
 			 && tgt->pathlen == new_tgt->pathlen
-			 && strcmp(tgt->pathname, new_tgt->pathname) == 0)
+			 && strcmp(tgt->procname, new_tgt->procname) == 0)
 			/* pid-based target (a specific pid or all
 			 * pids) */
 			|| (new_tgt->pathlen == 0 && tgt->pathlen == 0
@@ -737,15 +737,15 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 
 		tgt = list_entry(tgt_node, struct stap_task_finder_target,
 				 list);
-		// If we've got a matching pathname or we're probing
+		// If we've got a matching procname or we're probing
 		// all threads, we've got a match.  We've got to keep
 		// matching since a single thread could match a
-		// pathname and match an "all thread" probe.
+		// procname and match an "all thread" probe.
 		if (tgt == NULL)
 			continue;
 		else if (tgt->pathlen > 0
 			 && (tgt->pathlen != filelen
-			     || strcmp(tgt->pathname, filename) != 0))
+			     || strcmp(tgt->procname, filename) != 0))
 			continue;
 		/* Ignore pid-based target, they were handled at startup. */
 		else if (tgt->pid != 0)
@@ -783,8 +783,8 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 }
 
 // This function handles the details of getting a task's associated
-// pathname, and calling __stp_utrace_attach_match_filename() to
-// attach to it if we find the pathname "interesting".  So, what's the
+// procname, and calling __stp_utrace_attach_match_filename() to
+// attach to it if we find the procname "interesting".  So, what's the
 // difference between path_tsk and match_tsk?  Normally they are the
 // same, except in one case.  In an UTRACE_EVENT(EXEC), we need to
 // detach engines from the newly exec'ed process (since its path has
@@ -1403,10 +1403,10 @@ stap_start_task_finder(void)
 					 struct stap_task_finder_target, list);
 			if (tgt == NULL)
 				continue;
-			/* pathname-based target */
+			/* procname-based target */
 			else if (tgt->pathlen > 0
 				 && (tgt->pathlen != mmpathlen
-				     || strcmp(tgt->pathname, mmpath) != 0))
+				     || strcmp(tgt->procname, mmpath) != 0))
 				 continue;
 			/* pid-based target */
 			else if (tgt->pid != 0 && tgt->pid != tsk->pid)

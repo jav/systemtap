@@ -652,12 +652,12 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
 
   if (p->has_path)
     {
-      s.op->line() << " .pathname=\"" << p->path << "\",";
+      s.op->line() << " .procname=\"" << p->path << "\",";
       s.op->line() << " .pid=0,";
     }
   else
     {
-      s.op->line() << " .pathname=NULL,";
+      s.op->line() << " .procname=NULL,";
       s.op->line() << " .pid=" << p->pid << ",";
     }
 

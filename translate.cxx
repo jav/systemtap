@@ -1170,7 +1170,7 @@ c_unparser::emit_module_init ()
   o->newline() << "if (rc) {"; 
   o->newline(1) << "_stp_error ("
                 << "\"couldn't initialize task-finder for %s\\n\","
-                << "_stp_modules[i]->vmcb->pathname);";
+                << "_stp_modules[i]->vmcb->procname);";
   o->newline() << "goto out;";
   o->newline(-1) << "}";
   o->newline(-1) << "}";
@@ -4863,7 +4863,7 @@ dump_unwindsyms (Dwfl_Module *m,
       // NB: runtime/sym.c
       c->output << "static struct stap_task_finder_target _stp_vmcb_" << stpmod_idx << "= {\n";
       c->output << "#ifdef CONFIG_UTRACE\n";
-      c->output << ".pathname = " << lex_cast_qstring (mainfile) << ",\n";
+      c->output << ".procname = " << lex_cast_qstring (mainfile) << ",\n";
       c->output << ".mmap_callback = &_stp_tf_mmap_cb,\n";
       c->output << ".munmap_callback = &_stp_tf_munmap_cb,\n";
       c->output << "#endif\n";
