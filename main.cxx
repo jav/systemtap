@@ -1229,7 +1229,7 @@ main (int argc, char * const argv [])
          << endl;
   else
     {
-      // Update cache. Cache cleaning is kicked off at the end of this function.
+      // Update cache. Cache cleaning is kicked off at the beginning of this function.
       if (s.use_cache)
         add_to_cache(s);
 

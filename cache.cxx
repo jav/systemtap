@@ -48,6 +48,10 @@ static void clean_cache(systemtap_session& s);
 void
 add_to_cache(systemtap_session& s)
 {
+  // PR10543: clean the cache *before* we try putting something new into it.
+  // We don't want to risk having the brand new contents being erased again.
+  clean_cache(s);
+
   string stapconf_src_path = s.tmpdir + "/" + s.stapconf_name;
   if (s.verbose > 1)
     clog << "Copying " << stapconf_src_path << " to " << s.stapconf_path << endl;
@@ -117,8 +121,6 @@ add_to_cache(systemtap_session& s)
       //
       // s.use_cache = false;
     }
-
-  clean_cache(s);
 }
 
 
