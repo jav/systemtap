@@ -91,7 +91,7 @@ dwarf_decl_line_integrate (Dwarf_Die *die, int *linep)
 
 
 static bool
-dwarf_type_name(Dwarf_Die *type_die, ostringstream& o)
+dwarf_type_name(Dwarf_Die *type_die, ostream& o)
 {
   // if we've gotten down to a basic type, then we're done
   bool done = true;
@@ -106,12 +106,26 @@ dwarf_type_name(Dwarf_Die *type_die, ostringstream& o)
     case DW_TAG_union_type:
       o << "union ";
       break;
+    case DW_TAG_class_type:
+      o << "class ";
+      break;
     case DW_TAG_typedef:
     case DW_TAG_base_type:
       break;
-    default:
+
+    // modifier types that require recursion first
+    case DW_TAG_reference_type:
+    case DW_TAG_rvalue_reference_type:
+    case DW_TAG_pointer_type:
+    case DW_TAG_array_type:
+    case DW_TAG_const_type:
+    case DW_TAG_volatile_type:
       done = false;
       break;
+
+    // unknown tag
+    default:
+      return false;
     }
   if (done)
     {
@@ -124,14 +138,33 @@ dwarf_type_name(Dwarf_Die *type_die, ostringstream& o)
   // otherwise, this die is a type modifier.
 
   // recurse into the referent type
+  Dwarf_Die subtype_die_mem, *subtype_die;
+  subtype_die = dwarf_attr_die(type_die, DW_AT_type, &subtype_die_mem);
+
+  // NB: va_list is a builtin type that shows up in the debuginfo as a
+  // "struct __va_list_tag*", but it has to be called only va_list.
+  if (subtype_die != NULL &&
+      dwarf_tag(type_die) == DW_TAG_pointer_type &&
+      dwarf_tag(subtype_die) == DW_TAG_structure_type &&
+      strcmp(dwarf_diename(subtype_die) ?: "", "__va_list_tag") == 0)
+    {
+      o << "va_list";
+      return true;
+    }
+
   // if it can't be named, just call it "void"
-  Dwarf_Die subtype_die;
-  if (!dwarf_attr_die(type_die, DW_AT_type, &subtype_die)
-      || !dwarf_type_name(&subtype_die, o))
-    o.str("void"), o.seekp(4);
+  if (subtype_die == NULL ||
+      !dwarf_type_name(subtype_die, o))
+    o << "void";
 
   switch (dwarf_tag(type_die))
     {
+    case DW_TAG_reference_type:
+      o << "&";
+      break;
+    case DW_TAG_rvalue_reference_type:
+      o << "&&";
+      break;
     case DW_TAG_pointer_type:
       o << "*";
       break;
@@ -139,7 +172,12 @@ dwarf_type_name(Dwarf_Die *type_die, ostringstream& o)
       o << "[]";
       break;
     case DW_TAG_const_type:
-      o << " const";
+      // NB: the debuginfo may sometimes have an extra const tag
+      // on reference types, which is redundant to us.
+      if (subtype_die == NULL ||
+          (dwarf_tag(subtype_die) != DW_TAG_reference_type &&
+           dwarf_tag(subtype_die) != DW_TAG_rvalue_reference_type))
+        o << " const";
       break;
     case DW_TAG_volatile_type:
       o << " volatile";
@@ -147,10 +185,6 @@ dwarf_type_name(Dwarf_Die *type_die, ostringstream& o)
     default:
       return false;
     }
-
-  // XXX HACK!  The va_list isn't usable as found in the debuginfo...
-  if (o.str() == "struct __va_list_tag*")
-    o.str("va_list"), o.seekp(7);
 
   return true;
 }

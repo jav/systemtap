@@ -1612,7 +1612,9 @@ c_translate_pointer (struct obstack *pool, int indent,
 		     Dwarf_Addr dwbias __attribute__ ((unused)),
 		     Dwarf_Die *typedie, struct location **input)
 {
-  assert (dwarf_tag (typedie) == DW_TAG_pointer_type);
+  assert (dwarf_tag (typedie) == DW_TAG_pointer_type ||
+          dwarf_tag (typedie) == DW_TAG_reference_type ||
+          dwarf_tag (typedie) == DW_TAG_rvalue_reference_type);
 
   Dwarf_Attribute attr_mem;
   Dwarf_Word byte_size;

@@ -686,6 +686,7 @@ dwflpp::iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
       case DW_TAG_base_type:
       case DW_TAG_enumeration_type:
       case DW_TAG_structure_type:
+      case DW_TAG_class_type:
       case DW_TAG_typedef:
       case DW_TAG_union_type:
         rc = (*callback)(&die, data);
@@ -1539,11 +1540,13 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
 {
   const int typetag = dwarf_tag (vardie);
 
-  if (typetag != DW_TAG_structure_type && typetag != DW_TAG_union_type)
+  if (typetag != DW_TAG_structure_type &&
+      typetag != DW_TAG_class_type &&
+      typetag != DW_TAG_union_type)
     {
       o << " Error: "
         << dwarf_type_name(vardie)
-        << " isn't a struct/union";
+        << " isn't a struct/class/union";
       return;
     }
 
@@ -1568,11 +1571,15 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
     }
 
   // Output each sibling's name to 'o'.
-  while (dwarf_tag (die) == DW_TAG_member)
+  do
     {
+      int tag = dwarf_tag(die);
+      if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
+        continue;
+
       const char *member = dwarf_diename (die) ;
 
-      if ( member != NULL )
+      if ( tag == DW_TAG_member && member != NULL )
         o << " " << member;
       else
         {
@@ -1590,9 +1597,8 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
           print_members(&temp_die,o);
         }
 
-      if (dwarf_siblingof (die, &die_mem) != 0)
-        break;
     }
+  while (dwarf_siblingof (die, die) == 0);
 }
 
 
@@ -1620,13 +1626,15 @@ dwflpp::find_struct_member(const target_symbol::component& c,
 
   do
     {
-      if (dwarf_tag(&die) != DW_TAG_member)
+      int tag = dwarf_tag(&die);
+      if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
         continue;
 
       const char *name = dwarf_diename(&die);
-      if (name == NULL)
+      if (name == NULL || tag == DW_TAG_inheritance)
         {
-          // need to recurse for anonymous structs/unions
+          // need to recurse for anonymous structs/unions and
+          // for inherited members
           Dwarf_Die subdie;
           if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
               find_struct_member(c, &subdie, memberdie, locs))
@@ -1701,6 +1709,11 @@ dwflpp::translate_components(struct obstack *pool,
           /* Just iterate on the referent type.  */
           break;
 
+        case DW_TAG_reference_type:
+        case DW_TAG_rvalue_reference_type:
+          c_translate_pointer (pool, 1, 0 /* PR9768*/, die, tail);
+          break;
+
         case DW_TAG_pointer_type:
           /* A pointer with no type is a void* -- can't dereference it. */
           if (!dwarf_hasattr_integrate (die, DW_AT_type))
@@ -1737,6 +1750,7 @@ dwflpp::translate_components(struct obstack *pool,
 
         case DW_TAG_structure_type:
         case DW_TAG_union_type:
+        case DW_TAG_class_type:
           if (c.type != target_symbol::comp_struct_member)
             throw semantic_error ("invalid access '"
                                   + lex_cast<string>(c)
@@ -1891,12 +1905,13 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
     default:
       throw semantic_error ("unsupported type tag "
                             + lex_cast<string>(typetag)
-                            + " for " + dwarf_type_name(die), e->tok);
+                            + " for " + dwarf_type_name(typedie), e->tok);
       break;
 
     case DW_TAG_structure_type:
+    case DW_TAG_class_type:
     case DW_TAG_union_type:
-      throw semantic_error ("'" + dwarf_type_name(die)
+      throw semantic_error ("'" + dwarf_type_name(typedie)
                             + "' is being accessed instead of a member", e->tok);
       break;
 
@@ -1913,7 +1928,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
           {
             // clog << "bad type1 " << encoding << " diestr" << endl;
             throw semantic_error ("unsupported type (mystery encoding " + lex_cast<string>(encoding) + ")" +
-                                  " for " + dwarf_type_name(die), e->tok);
+                                  " for " + dwarf_type_name(typedie), e->tok);
           }
 
         if (encoding == DW_ATE_float
@@ -1922,7 +1937,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
           {
             // clog << "bad type " << encoding << " diestr" << endl;
             throw semantic_error ("unsupported type (encoding " + lex_cast<string>(encoding) + ")" +
-                                  " for " + dwarf_type_name(die), e->tok);
+                                  " for " + dwarf_type_name(typedie), e->tok);
           }
       }
 
@@ -1937,6 +1952,8 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
 
     case DW_TAG_array_type:
     case DW_TAG_pointer_type:
+    case DW_TAG_reference_type:
+    case DW_TAG_rvalue_reference_type:
 
         {
         Dwarf_Die pointee_typedie_mem;
@@ -1957,6 +1974,9 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
             ty = pe_long;
             if (typetag == DW_TAG_array_type)
               throw semantic_error ("cannot write to array address", e->tok);
+            if (typetag == DW_TAG_reference_type ||
+                typetag == DW_TAG_rvalue_reference_type)
+              throw semantic_error ("cannot write to reference", e->tok);
             assert (typetag == DW_TAG_pointer_type);
             c_translate_pointer_store (pool, 1, 0 /* PR9768 */, typedie, tail,
                                        "THIS->value");
