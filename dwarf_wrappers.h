@@ -25,6 +25,11 @@ extern "C" {
 #define _ELFUTILS_PREREQ(major, minor) (0 >= 1)
 #endif
 
+#if ! _ELFUTILS_PREREQ(0,142)
+#define DW_TAG_rvalue_reference_type 0x42
+#endif
+
+
 // NB: "rc == 0" means OK in this case
 void dwfl_assert(const std::string& desc, int rc);
 

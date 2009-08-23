@@ -10,6 +10,22 @@
 #include <assert.h>
 #include "loc2c.h"
 
+#include "config.h"
+
+#include <elfutils/libdw.h>
+#ifdef HAVE_ELFUTILS_VERSION_H
+#include <elfutils/version.h>
+#endif
+
+#if !defined(_ELFUTILS_PREREQ)
+// make a dummy PREREQ check for elfutils < 0.138
+#define _ELFUTILS_PREREQ(major, minor) (0 >= 1)
+#endif
+
+#if ! _ELFUTILS_PREREQ(0,142)
+#define DW_TAG_rvalue_reference_type 0x42
+#endif
+
 #define N_(x) x
 
 #define STACK_TYPE	"intptr_t"  /* Must be the signed type.  */
