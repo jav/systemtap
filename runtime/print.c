@@ -228,11 +228,12 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
                ", probes: %d\n",
 	       THIS_MODULE->name,
 	       vstr, 
-	       THIS_MODULE->module_core,
 #ifndef STAPCONF_GRSECURITY
+	       THIS_MODULE->module_core,
 	       (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size),
                (unsigned long) THIS_MODULE->core_text_size,
 #else
+	       THIS_MODULE->module_core_rx,
 	       (unsigned long) (THIS_MODULE->core_size_rw - THIS_MODULE->core_size_rx),
                (unsigned long) THIS_MODULE->core_size_rx,
 #endif
