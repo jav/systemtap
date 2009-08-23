@@ -216,28 +216,32 @@ static void _stp_print_char (const char c)
 
 static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 {
+	printk(KERN_DEBUG
+               "%s: systemtap: %s, base: %p, memory: %lu+%lu+%u+%u"
 #ifdef DEBUG_MEM
-	printk(KERN_DEBUG "%s: systemtap: %s, base: %p, memory: %lu+%lu+%u+%u+%u data+text+ctx+net+alloc, probes: %d\n",
-	       THIS_MODULE->name,
-	       vstr, 
-	       THIS_MODULE->module_core,  
-	       (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size),
-               (unsigned long) THIS_MODULE->core_text_size,
-	       ctx,
-	       _stp_allocated_net_memory,
-	       _stp_allocated_memory - _stp_allocated_net_memory,
-		num_probes);
-#else
-	printk(KERN_DEBUG "%s: systemtap: %s, base: %p, memory: %lu+%lu+%u+%u data+text+ctx+net, probes: %d\n",
-	       THIS_MODULE->name,
-	       vstr, 
-	       THIS_MODULE->module_core,  
-	       (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size),
-               (unsigned long) THIS_MODULE->core_text_size,
-	       ctx,
-	       _stp_allocated_net_memory,
-	       num_probes);
+               "+%u"
 #endif
+               " data+text+ctx+net"
+#ifdef DEBUG_MEM
+               "+alloc"
+#endif
+               ", probes: %d\n",
+	       THIS_MODULE->name,
+	       vstr, 
+	       THIS_MODULE->module_core,
+#ifndef STAPCONF_GRSECURITY
+	       (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size),
+               (unsigned long) THIS_MODULE->core_text_size,
+#else
+	       (unsigned long) (THIS_MODULE->core_size_rw - THIS_MODULE->core_size_rx),
+               (unsigned long) THIS_MODULE->core_size_rx,
+#endif
+	       ctx,
+	       _stp_allocated_net_memory,
+#ifdef DEBUG_MEM
+	       _stp_allocated_memory - _stp_allocated_net_memory,
+#endif
+		num_probes);
 }
 
 /** @} */
