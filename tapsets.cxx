@@ -2115,13 +2115,14 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       else
         {
           pf->raw_components += "return";
-          pf->raw_components += "=%#x ";
+          pf->raw_components += "=%#x";
           pf->args.push_back(texp);
         }
     }
   else
     {
       // non-.return probe: support $$parms, $$vars, $$locals
+      bool first = true;
       Dwarf_Die result;
       if (dwarf_child (&scopes[0], &result) == 0)
         do
@@ -2144,6 +2145,10 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
             const char *diename = dwarf_diename (&result);
             if (! diename) continue;
 
+            if (! first)
+              pf->raw_components += " ";
+            pf->raw_components += diename;
+
             tsym->tok = e->tok;
             tsym->base_name = "$";
             tsym->base_name += diename;
@@ -2163,15 +2168,14 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
                     }
                   }
 
-                pf->raw_components += diename;
-                pf->raw_components += "=? ";
+                pf->raw_components += "=?";
               }
             else
               {
-                pf->raw_components += diename;
-                pf->raw_components += "=%#x ";
+                pf->raw_components += "=%#x";
                 pf->args.push_back(texp);
               }
+            first = false;
           }
         while (dwarf_siblingof (&result, &result) == 0);
     }

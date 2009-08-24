@@ -3,7 +3,7 @@
 set test "vars"
 
 # grab C statement that $$vars yields
-set cmd [concat stap -p3 -e {"probe kernel.statement(\"bio_copy_user@fs/bio.c+1\") \{print (\$\$vars)\}"} | grep {"printf.*="} | sed -e {"s/^.*MAXSTRINGLEN, \"//"} -e {s/.\".*$//}]
+set cmd [concat stap -p3 -e {"probe kernel.statement(\"bio_copy_user@fs/bio.c+1\") \{print (\$\$vars)\}"} | grep {"printf.*="} | sed -e {"s/^.*MAXSTRINGLEN, \"//"} -e {s/\".*$//}]
 catch {eval exec $cmd} vars
 
 # grab C statement that $$parms yields

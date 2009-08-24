@@ -36,8 +36,8 @@ if {! [installtest_p]} {
 spawn stap $srcdir/$subdir/uprobes.stp -w -c "./jennie 1 2 3 4"
 set ok 0
 expect {
-    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*argc=0x[1-5][^\r\n]*\r\n} { incr ok; exp_continue }
-    -re {^process[^\r\n]*jennie[^\r\n]*main[^\r\n]*return=0x0[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^process[^\r\n]+jennie[^\r\n]+main[^\r\n]+arg[cv]=0x[0-9a-f]+\ +arg[cv]=0x[0-9a-f]+\r\n} { incr ok; exp_continue }
+    -re {^process[^\r\n]+jennie[^\r\n]+main[^\r\n]+return=0x0\r\n} { incr ok; exp_continue }
     -timeout 30
     timeout { }
     eof { }
