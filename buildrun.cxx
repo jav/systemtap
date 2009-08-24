@@ -59,9 +59,9 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
   if (s.verbose > 2)
     make_cmd += " V=1";
   else if (s.verbose > 1)
-    make_cmd += " >/dev/null";
+    make_cmd += " --no-print-directory";
   else
-    make_cmd += " -s >/dev/null";
+    make_cmd += " -s --no-print-directory";
 
   return stap_system (s.verbose, make_cmd);
 }
@@ -222,8 +222,17 @@ compile_pass (systemtap_session& s)
 
   // Run make
   string make_cmd = string("make")
-    + string (" -C \"") + module_dir + string("\"");
-  make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
+    + string (" -C \"") + module_dir + string("\""); // XXX: lex_cast_qstring?
+  make_cmd += string(" M=\"") + s.tmpdir + string("\"");
+
+  // Add architecture
+  make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+
+  // Add any custom kbuild flags
+  for (unsigned k=0; k<s.kbuildflags.size(); k++)
+    make_cmd += string(" ") + lex_cast_qstring(s.kbuildflags[k]);
+
+  make_cmd += string (" modules");
 
   rc = run_make_cmd(s, make_cmd);
 

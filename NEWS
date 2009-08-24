@@ -1,5 +1,14 @@
 * What's new
 
+- It is now possible to cross-compile systemtap scripts for foreign
+  architectures, using the new '-a ARCH' and '-B OPT=VALUE' flags.
+  For example, put arm-linux-gcc etc. into your $PATH, and point
+  systemtap at the target kernel build tree with:
+     stap -a arm -B CROSS_COMPILE=arm-linux- -r /build/tree  [...]
+  The -B option is passed to kbuild make.  -r identifies the already
+  configured/built kernel tree and -a its architecture (kbuild ARCH=...).
+  Systemtap will infer -p4.
+
 - It is now possible to define multiple probe aliases with the same name.
   A probe will expand to all matching aliases.
 	probe foo = bar { }

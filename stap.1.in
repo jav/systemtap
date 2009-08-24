@@ -153,6 +153,10 @@ description of pass 2 for details.
 Add the given C preprocessor directive to the module Makefile.  These can
 be used to override limit parameters described below.
 .TP
+.BI \-B " NAME=VALUE"
+Add the given make directive to the kernel module build's make invocation.
+These can be used to add or override kconfig options.
+.TP
 .BI \-R " DIR"
 Look for the systemtap runtime sources in the given directory.
 .TP

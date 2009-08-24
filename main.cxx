@@ -106,11 +106,13 @@ usage (systemtap_session& s, int exitcode)
     clog << "              " << s.include_path[i] << endl;
   clog
     << "   -D NM=VAL  emit macro definition into generated C code" << endl
+    << "   -B NM=VAL  pass option to kbuild make" << endl
     << "   -R DIR     look in DIR for runtime, instead of" << endl
     << "              " << s.runtime_path << endl
     << "   -r DIR     cross-compile to kernel with given build tree; or else" << endl
     << "   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of" << endl
     << "              " << s.kernel_build_tree << endl
+    << "   -a ARCH    cross-compile to given architecture, instead of " << s.architecture << endl
     << "   -m MODULE  set probe module name, instead of " << endl
     << "              " << s.module_name << endl
     << "   -o FILE    send script output to file, instead of stdout. This supports" << endl
@@ -590,8 +592,8 @@ main (int argc, char * const argv [])
         { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:L:FS:",
-                                                          long_options, NULL);
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:",
+                             long_options, NULL);
       if (grc < 0)
         break;
       switch (grc)
@@ -711,6 +713,10 @@ main (int argc, char * const argv [])
           setup_kernel_release(s, optarg);
           break;
 
+        case 'a':
+          s.architecture = string(optarg);
+          break;
+
         case 'k':
           s.keep_tmpdir = true;
           s.use_cache = false; /* User wants to keep a usable build tree. */
@@ -790,6 +796,10 @@ main (int argc, char * const argv [])
 
         case 'F':
           s.load_only = true;
+	  break;
+
+	case 'B':
+          s.kbuildflags.push_back (string (optarg));
 	  break;
 
         case 0:

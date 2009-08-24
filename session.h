@@ -83,6 +83,7 @@ struct systemtap_session
   std::vector<std::string> include_path;
   std::vector<std::string> macros;
   std::vector<std::string> args;
+  std::vector<std::string> kbuildflags;
   std::string kernel_release;
   std::string kernel_base_release;
   std::string kernel_build_tree;

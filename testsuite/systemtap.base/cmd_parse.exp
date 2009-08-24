@@ -1,5 +1,5 @@
 if {![installtest_p]} {
-    for {set i 0} { $i < 8} {incr i} {
+    for {set i 0} { $i < 16} {incr i} {
         untested cmd_parse$i
     }
     return
@@ -129,3 +129,29 @@ expect {
     eof { fail "cmd_parse14: eof" }
 }
 wait;catch {close}
+
+set uname [exec uname -r]
+spawn sh -c "stap -m do_not_cache_me -B kernelrelease -p4 -e 'probe begin {exit()}'"
+# the \r below is meant to match the "kernelrelease" output, as distinct from
+# any possible auxiliary make verbosity.
+expect {
+    -re "$uname\r" { pass "cmd_parse15" }
+    timeout { fail "cmd_parse15: timeout" }
+    eof { fail "cmd_parse15: eof" }
+}
+wait;catch {close}
+
+set uname [exec uname -m]
+spawn sh -c "stap -m do_not_cache_me -a $uname -p4 -e 'probe begin {exit()}'"
+# the \r below is meant to match the "kernelrelease" output, as distinct from
+# any possible auxiliary make verbosity.
+expect {
+    -re "do_not_cache_me.ko\r" { pass "cmd_parse16" }
+    timeout { fail "cmd_parse16: timeout" }
+    eof { fail "cmd_parse16: eof" }
+}
+wait;catch {close}
+
+
+# NB: when adding extra tests here, increment the ![installtest_p]
+# loop count too at the top.

@@ -190,6 +190,9 @@ find_script_hash (systemtap_session& s, const string& script, const hash &base)
   for (unsigned i = 0; i < s.macros.size(); i++)
     h.add(s.macros[i]);
 
+  for (unsigned i = 0; i < s.kbuildflags.size(); i++)
+    h.add(s.kbuildflags[i]);
+
   // -d MODULE
   for (set<string>::iterator it = s.unwindsym_modules.begin();
        it != s.unwindsym_modules.end();
