@@ -1,6 +1,6 @@
 set test "./bz5274"
 set tpath "$srcdir/$subdir/$test"
-set arch [exec uname -m]
+set arch [exec uname -i]
 
 if {$arch == "ppc64"} {
 	catch {exec gcc -o $test -g -m64 $srcdir/$subdir/$test.c} err

@@ -141,7 +141,7 @@ expect {
 }
 wait;catch {close}
 
-set uname [exec uname -m]
+set uname [exec uname -i]
 spawn sh -c "stap -m do_not_cache_me -a $uname -p4 -e 'probe begin {exit()}'"
 # the \r below is meant to match the "kernelrelease" output, as distinct from
 # any possible auxiliary make verbosity.
