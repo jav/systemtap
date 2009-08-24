@@ -186,7 +186,7 @@ if (build_header):
     providers.generate(s_filename, filename + h_ext, add_typedefs)
 elif (build_source):
     (basename,ext) = os.path.splitext(s_filename)
-    (d,fn) = mkstemp(suffix=".c",prefix=basename)
+    (d,fn) = mkstemp(suffix=".c")
     f = open(fn,mode='w')
     f.write("static __dtrace () {}\n")
     f.close()
