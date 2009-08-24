@@ -63,6 +63,14 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
   else
     make_cmd += " -s --no-print-directory";
 
+  if (strverscmp (s.kernel_base_release.c_str(), "2.6.29") < 0)
+    {
+      // Older kernels, before linux commit #fd54f502841c1, include
+      // gratuitous "echo"s in their Makefile.  We need to suppress
+      // that with this bluntness.
+      make_cmd += " >/dev/null";
+    }
+
   return stap_system (s.verbose, make_cmd);
 }
 
