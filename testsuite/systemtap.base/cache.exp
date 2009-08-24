@@ -15,12 +15,12 @@ proc F_CACHED_COMPILE {}      {return [expr [F_CACHED] | [F_COMPILE]]}
 proc F_UNCACHED_COMPILE {}    {return [expr [F_UNCACHED] | [F_COMPILE]]}
 proc F_UNCACHED_NO_COMPILE {} {return [expr [F_UNCACHED] | [F_NO_COMPILE]]}
 
-# stap_compile TEST_NAME flags script args
+# cache_compile TEST_NAME flags script args
 # - TEST_NAME is the name of the current test
 # - flags indicates the expected outcome of this test
 # - script is the script to compile
 # Additional arguments are passed to stap as-is.
-proc stap_compile { TEST_NAME flags script args } {
+proc cache_compile { TEST_NAME flags script args } {
     set cmd [concat {stap -v -p4 -e} $script $args]
     
     eval spawn $cmd
@@ -82,54 +82,54 @@ set error_script "\"probe XbeginX { }\""
 
 # Check basic functionality.  The 1st compilation of a script won't
 # be cached, the 2nd should be cached.
-stap_compile BASIC1 [F_UNCACHED_COMPILE] $basic_script1
-stap_compile BASIC2 [F_CACHED_COMPILE] $basic_script1
+cache_compile BASIC1 [F_UNCACHED_COMPILE] $basic_script1
+cache_compile BASIC2 [F_CACHED_COMPILE] $basic_script1
 
 # Adding in a macro definition should change the hash
-stap_compile OPTION1 [F_UNCACHED_COMPILE] $basic_script1 -DFOO=1
-stap_compile OPTION2 [F_CACHED_COMPILE] $basic_script1 -DFOO=1
+cache_compile OPTION1 [F_UNCACHED_COMPILE] $basic_script1 -DFOO=1
+cache_compile OPTION2 [F_CACHED_COMPILE] $basic_script1 -DFOO=1
 
 # Using '-b' (bulk/relayfs mode) should change the hash
-stap_compile BULK1 [F_UNCACHED_COMPILE] $basic_script1 -b
-stap_compile BULK2 [F_CACHED_COMPILE] $basic_script1 -b
+cache_compile BULK1 [F_UNCACHED_COMPILE] $basic_script1 -b
+cache_compile BULK2 [F_CACHED_COMPILE] $basic_script1 -b
 
 # Using '-M' (don't merge per-cpu files for bulk mode) should change
 # the hash 
-stap_compile MERGE1 [F_UNCACHED_COMPILE] $basic_script1 -b -M
-stap_compile MERGE2 [F_CACHED_COMPILE] $basic_script1 -b -M
+cache_compile MERGE1 [F_UNCACHED_COMPILE] $basic_script1 -b -M
+cache_compile MERGE2 [F_CACHED_COMPILE] $basic_script1 -b -M
 
 # Using '-t' (benchmark timing) should change the hash
-stap_compile TIMING1 [F_UNCACHED_COMPILE] $basic_script1 -t
-stap_compile TIMING2 [F_CACHED_COMPILE] $basic_script1 -t
+cache_compile TIMING1 [F_UNCACHED_COMPILE] $basic_script1 -t
+cache_compile TIMING2 [F_CACHED_COMPILE] $basic_script1 -t
 
 # Changing the runtime directory should change the hash
 set new_runtime [exec pwd]/.cache_test_runtime
 exec /bin/rm -f $new_runtime
 exec /bin/ln -s $env(SYSTEMTAP_RUNTIME) $new_runtime
-stap_compile RUNTIME1 [F_UNCACHED_COMPILE] $basic_script1 -R $new_runtime
-stap_compile RUNTIME2 [F_CACHED_COMPILE] $basic_script1 -R $new_runtime
+cache_compile RUNTIME1 [F_UNCACHED_COMPILE] $basic_script1 -R $new_runtime
+cache_compile RUNTIME2 [F_CACHED_COMPILE] $basic_script1 -R $new_runtime
 exec /bin/rm -f $new_runtime
 
 # Disable the cache with SYSTEMTAP_DIR
 set env(SYSTEMTAP_DIR) /dev/null
-stap_compile DISABLED1 [F_UNCACHED_COMPILE] $basic_script1
-stap_compile DISABLED2 [F_UNCACHED_COMPILE] $basic_script1
+cache_compile DISABLED1 [F_UNCACHED_COMPILE] $basic_script1
+cache_compile DISABLED2 [F_UNCACHED_COMPILE] $basic_script1
 set env(SYSTEMTAP_DIR) $local_systemtap_dir
 eval [list exec /bin/rm -f] [glob "stap_*.ko"]
 
 # Disable the cache with '-m'
-stap_compile MODNAM1 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
+cache_compile MODNAM1 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
 exec /bin/rm -f modnam.ko
-stap_compile MODNAM2 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
+cache_compile MODNAM2 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
 exec /bin/rm -f modnam.ko
 
 # Make sure scripts that don't actually compile don't get cached
-stap_compile ERROR1 [F_UNCACHED_NO_COMPILE] $error_script
-stap_compile ERROR2 [F_UNCACHED_NO_COMPILE] $error_script
+cache_compile ERROR1 [F_UNCACHED_NO_COMPILE] $error_script
+cache_compile ERROR2 [F_UNCACHED_NO_COMPILE] $error_script
 
 # Make sure basic stuff still works.
-stap_compile BASIC3 [F_UNCACHED_COMPILE] $basic_script2
-stap_compile BASIC4 [F_CACHED_COMPILE] $basic_script2
+cache_compile BASIC3 [F_UNCACHED_COMPILE] $basic_script2
+cache_compile BASIC4 [F_CACHED_COMPILE] $basic_script2
 
 # Cleanup.
 exec /bin/rm -rf $local_systemtap_dir
