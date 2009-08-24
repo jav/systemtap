@@ -462,6 +462,11 @@ main (int argc, char * const argv [])
   s.kernel_release = string (buf.release);
   s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
 
+  // Copy logic from coreutils uname (uname -i) to squash i?86 -> i386
+  if (strlen(buf.machine)==4 && buf.machine[0] == 'i' &&
+      buf.machine[2] == '8' && buf.machine[3] == '6')
+    buf.machine[1] = '3';
+
   s.architecture = string (buf.machine);
   for (unsigned i=0; i<5; i++) s.perpass_verbose[i]=0;
   s.timing = false;
