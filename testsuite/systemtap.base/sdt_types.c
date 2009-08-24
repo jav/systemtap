@@ -86,7 +86,7 @@ main (int argc, char **argv)
   long long int * volatile long_long_int_ptr_volatile_var = &long_long_int_var;
   STAP_PROBE2(provider,long_long_int_ptr_volatile_var,long_long_int_ptr_volatile_var,&long_long_int_var);
 
-  char arr_char [2] = "!~";
+  char arr_char [] = "!~";
   STAP_PROBE1(provider,arr_char,&arr_char);
   struct {
     int int_var;
