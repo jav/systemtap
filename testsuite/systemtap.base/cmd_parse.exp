@@ -131,6 +131,11 @@ expect {
 wait;catch {close}
 
 set uname [exec uname -r]
+set linux26ver [lindex [split $uname {.-}] 2]
+if {$linux26ver < 29} {
+  verbose -log "kfail, see commit e0ccd3\n";
+  setup_kfail 4186 "*-*-*"
+}
 spawn sh -c "stap -m do_not_cache_me -B kernelrelease -p4 -e 'probe begin {exit()}'"
 # the \r below is meant to match the "kernelrelease" output, as distinct from
 # any possible auxiliary make verbosity.
