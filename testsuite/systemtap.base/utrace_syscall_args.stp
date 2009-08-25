@@ -59,7 +59,7 @@ probe process("utrace_syscall_args").syscall {
 	    mmap_args[5] = $arg5
 	    mmap_args[6] = $arg6
 
-%(arch == "s390x" %?
+%(arch == "s390" %?
 	    # s390 requires this for mmap.  Verified by running:
 	    # #  strace strace utrace_syscall_args
 	    addr = mmap_args[1]

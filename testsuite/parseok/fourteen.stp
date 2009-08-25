@@ -11,7 +11,7 @@ global
 
 global
 %( arch == "i386" %? i386
-%: %( arch == "i686" %? i686
+%: %( arch == "powerpc" %? powerpc
    %: %( arch != "x86_64" %? other %: x86_64 %) 
    %)
 %)

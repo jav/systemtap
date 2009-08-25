@@ -131,7 +131,7 @@ probe scheduler.ctxswitch =
 	kernel.function("context_switch")
 %)
 {
-%( arch == "ppc64" %?
+%( arch == "powerpc" %?
         prev_pid = $prev->pid
         next_pid =  $new->pid
         prev_task = $prev

@@ -24,7 +24,7 @@ probe
       %( arch != "x86_64" %?
         # __switch_to can not be probed on x86_64 - see PR2068
         kernel.function("__switch_to").call,
-        %( arch != "i686" %?
+        %( arch != "i386" %?
           # __switch_to.return is broken on i686 - see PR4542
           kernel.function("__switch_to").return,
         %)

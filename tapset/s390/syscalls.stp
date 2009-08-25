@@ -1,6 +1,6 @@
 # S390-specific system calls
 
-%(arch == "s390x" %?
+%(arch == "s390" %?
 
 # getresgid __________________________________________________
 # long sys32_getresgid16(u16 __user *rgid, u16 __user *egid, u16 __user *sgid)

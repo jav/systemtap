@@ -1559,6 +1559,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
   string expect_machine; // to match sess.machine (i.e., kernel machine)
   string expect_machine2;
 
+  // NB: See also the 'uname -m' squashing done in main.cxx.
   switch (elf_machine)
     {
       // x86 and ppc are bi-architecture; a 64-bit kernel
@@ -1579,7 +1580,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
       break;
     case EM_S390: expect_machine = "s390x"; break;
     case EM_IA_64: expect_machine = "ia64"; break;
-    case EM_ARM: expect_machine = "armv*"; break;
+    case EM_ARM: expect_machine = "arm*"; break;
       // XXX: fill in some more of these
     default: expect_machine = "?"; break;
     }

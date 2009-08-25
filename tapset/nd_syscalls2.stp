@@ -337,7 +337,7 @@ probe nd_syscall.pipe = kprobe.function("SyS_pipe") ?,
 %:
 	// fildes_uaddr = $fildes
 	// argstr = _fildes_u($fildes)
-	%( arch != "ppc64" %? asmlinkage() %)
+	%( arch != "powerpc" %? asmlinkage() %)
 	fildes_uaddr = pointer_arg(1)
 	argstr = _fildes_u(fildes_uaddr)
 %)
@@ -663,7 +663,7 @@ probe nd_syscall.pwrite32 = kprobe.function("sys32_pwrite64") ?
 	// buf_uaddr = $buf
 	// count = $count
 	// offset = ($poshi << 32) + $poslo
-// %( arch == "s390x" %?
+// %( arch == "s390" %?
     //     buf_uaddr = $ubuf
     //     argstr = sprintf("%d, %s, %d, %d", $fd,
     //                     text_strn(user_string($ubuf), syscall_string_trunc, 1),
@@ -870,7 +870,7 @@ probe nd_syscall.readv = kprobe.function("compat_sys_readv") ?,
 	// vector_uaddr = $vec
 	// count = $vlen
 /* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
-// %( arch != "ppc64" %?
+// %( arch != "powerpc" %?
 	// fd = $fd
 	// argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
 // %:
@@ -2974,7 +2974,7 @@ probe nd_syscall.sigaction = kprobe.function("sys_sigaction") ?
 	// act_uaddr = $act
 	// oact_uaddr = $oact
 	// argstr = sprintf("%s, {%s}, %p", _signal_name($sig), _struct_sigaction_u($act), $oact)
-	%( arch != "ppc64" %? asmlinkage() %)
+	%( arch != "powerpc" %? asmlinkage() %)
 	sig = int_arg(1)
 	act_uaddr = pointer_arg(2)
 	oact_uaddr = pointer_arg(3)
@@ -3994,7 +3994,7 @@ probe nd_syscall.uname = kprobe.function("sys_uname") ?,
 	_func_name = probefunc()
 	if (_func_name != "sys32_uname") {
 		if (_func_name == "sys_uname" || _func_name == "sys_olduname") {
-			%( arch != "ppc64" %? asmlinkage() %)
+			%( arch != "powerpc" %? asmlinkage() %)
 		} else
 			asmlinkage()
 	}
@@ -4465,7 +4465,7 @@ probe nd_syscall.writev = kprobe.function("compat_sys_writev") ?,
 	// vector_uaddr = $vec
 	// count = $vlen
 /* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
-// %( arch != "ppc64" %?
+// %( arch != "powerpc" %?
     // fd = $fd
 	// argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
 // %:

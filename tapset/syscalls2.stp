@@ -567,7 +567,7 @@ probe syscall.pwrite32 = kernel.function("sys32_pwrite64") ?
 	buf_uaddr = $buf
 	count = $count
 	offset = ($poshi << 32) + $poslo
-%( arch == "s390x" %?
+%( arch == "s390" %?
 	buf_uaddr = $ubuf
 	argstr = sprintf("%d, %s, %d, %d", $fd,
 		text_strn(user_string($ubuf), syscall_string_trunc, 1),
@@ -740,7 +740,7 @@ probe syscall.readv = kernel.function("compat_sys_readv") ?,
 	vector_uaddr = $vec
 	count = $vlen
 /* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
-%( arch != "ppc64" %?
+%( arch != "powerpc" %?
 	fd = $fd
 	argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
 %:
@@ -3696,7 +3696,7 @@ probe syscall.writev = kernel.function("compat_sys_writev") ?,
 	vector_uaddr = $vec
 	count = $vlen
 /* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
-%( arch != "ppc64" %?
+%( arch != "powerpc" %?
 	fd = $fd
 	argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
 %:

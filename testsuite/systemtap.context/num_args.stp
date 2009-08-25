@@ -1,8 +1,7 @@
 %( arch == "i386" %? global ir = "eax", lr = "eax" %)
-%( arch == "i686" %? global ir = "eax", lr = "eax" %)
 %( arch == "x86_64" %? global ir = "eax", lr = "rax" %)
-%( arch == "ppc64" %? global ir = "r3", lr = "r3" %)
-%( arch == "s390x" %? global ir = "r2", lr = "r2" %)
+%( arch == "powerpc" %? global ir = "r3", lr = "r3" %)
+%( arch == "s390" %? global ir = "r2", lr = "r2" %)
 
 probe module("systemtap_test_module2").function("yyy_int") {
 	printf("yyy_int %d %d %d\n", int_arg(1), int_arg(2), int_arg(3))
@@ -28,9 +27,7 @@ probe module("systemtap_test_module2").function("yyy_int64") {
 # and the stack, but rather passed entirely on the stack.
 	printf("yyy_int64 %d %d %d\n",
 %( arch == "i386" %? s64_arg(1), s64_arg(4), s64_arg(6)
-%: %( arch == "i686" %? s64_arg(1), s64_arg(4), s64_arg(6)
-   %: s64_arg(1), s64_arg(2), s64_arg(3)
-   %)
+%: s64_arg(1), s64_arg(2), s64_arg(3)
 %)
 					)
 }

@@ -336,8 +336,9 @@ by
 .PP
 If, on the other hand, the first part is the identifier
 .BR arch
-to refer to the processor architecture, then the second part
-then the second part is one of the two string comparison operators
+to refer to the processor architecture (as named by the kernel
+build system ARCH/SUBARCH), then the second part then the second
+part is one of the two string comparison operators
 .BR == " or " != ,
 and the third part is a string literal for matching it.  This
 comparison is a wildcard (mis)match.

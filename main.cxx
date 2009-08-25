@@ -462,12 +462,25 @@ main (int argc, char * const argv [])
   s.kernel_release = string (buf.release);
   s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
 
-  // Copy logic from coreutils uname (uname -i) to squash i?86 -> i386
-  if (strlen(buf.machine)==4 && buf.machine[0] == 'i' &&
-      buf.machine[2] == '8' && buf.machine[3] == '6')
-    buf.machine[1] = '3';
+  // PR4186: Copy logic from coreutils uname (uname -i) to squash
+  // i?86->i386.  Actually, copy logic from linux top-level Makefile
+  // to squash uname -m -> $(SUBARCH).
 
-  s.architecture = string (buf.machine);
+  string machine = buf.machine;
+  if (machine == "i486") machine = "i386";
+  else if (machine == "i586") machine = "i386";
+  else if (machine == "i686") machine = "i386";
+  else if (machine == "sun4u") machine = "sparc64";
+  else if (machine.substr(0,3) == "arm") machine = "arm";
+  else if (machine == "sa110") machine = "arm";
+  else if (machine == "s390x") machine = "s390";
+  else if (machine.substr(0,3) == "ppc") machine = "powerpc";
+  else if (machine.substr(0,4) == "mips") machine = "mips";
+  else if (machine.substr(0,3) == "sh2") machine = "sh";
+  else if (machine.substr(0,3) == "sh3") machine = "sh";
+  else if (machine.substr(0,3) == "sh4") machine = "sh";
+
+  s.architecture = machine;
   for (unsigned i=0; i<5; i++) s.perpass_verbose[i]=0;
   s.timing = false;
   s.guru_mode = false;
@@ -875,7 +888,7 @@ main (int argc, char * const argv [])
   // Warn in case the target kernel release doesn't match the running one.
   if (s.last_pass > 4 &&
       (string(buf.release) != s.kernel_release ||
-       string(buf.machine) != s.architecture))
+       machine != s.architecture)) // NB: squashed ARCH by PR4186 logic
    {
      if(! s.suppress_warnings)
        cerr << "WARNING: kernel release/architecture mismatch with host forces last-pass 4." << endl;
