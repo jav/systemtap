@@ -45,19 +45,25 @@ enum info_status { info_unknown, info_present, info_absent };
 
 #ifdef HAVE_TR1_UNORDERED_MAP
 #include <tr1/unordered_map>
-template<class T> struct stap_map {
-  typedef std::tr1::unordered_map<std::string, T> type;
+template<class K, class V> struct stap_map {
+  typedef std::tr1::unordered_map<K, V> type;
 };
 #else
 #include <ext/hash_map>
-template<class T> struct stap_map {
-  typedef __gnu_cxx::hash_map<std::string, T, stap_map> type;
-  size_t operator() (const std::string& s) const
+template<class K, class V> struct stap_map {
+  typedef __gnu_cxx::hash_map<K, V, stap_map> type;
+  size_t operator() (std::string const& s) const
   { __gnu_cxx::hash<const char*> h; return h(s.c_str()); }
+  size_t operator() (void* const& p) const
+  { __gnu_cxx::hash<long> h; return h(reinterpret_cast<long>(p)); }
 };
 #endif
-typedef stap_map<Dwarf_Die>::type cu_function_cache_t; // function -> die
-typedef stap_map<cu_function_cache_t*>::type mod_cu_function_cache_t; // module:cu -> function -> die
+
+// function -> die
+typedef stap_map<std::string, Dwarf_Die>::type cu_function_cache_t;
+
+// cu die -> (function -> die)
+typedef stap_map<void*, cu_function_cache_t*>::type mod_cu_function_cache_t;
 
 typedef std::vector<func_info> func_info_map_t;
 typedef std::vector<inline_instance_info> inline_instance_map_t;

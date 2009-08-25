@@ -558,15 +558,15 @@ dwflpp::declaration_resolve(const char *name)
   if (!name)
     return NULL;
 
-  string key = module_name + ":" + cu_name;
-  cu_function_cache_t *v = global_alias_cache[key];
+  cu_function_cache_t *v = global_alias_cache[cu->addr];
   if (v == 0) // need to build the cache, just once per encountered module/cu
     {
       v = new cu_function_cache_t;
-      global_alias_cache[key] = v;
+      global_alias_cache[cu->addr] = v;
       iterate_over_globals(global_alias_caching_callback, v);
       if (sess.verbose > 4)
-        clog << "global alias cache " << key << " size " << v->size() << endl;
+        clog << "global alias cache " << module_name << ":" << cu_name
+             << " size " << v->size() << endl;
     }
 
   // XXX: it may be desirable to search other modules' declarations
@@ -607,15 +607,15 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
   assert (module);
   assert (cu);
 
-  string key = module_name + ":" + cu_name;
-  cu_function_cache_t *v = cu_function_cache[key];
+  cu_function_cache_t *v = cu_function_cache[cu->addr];
   if (v == 0)
     {
       v = new cu_function_cache_t;
-      cu_function_cache[key] = v;
+      cu_function_cache[cu->addr] = v;
       dwarf_getfuncs (cu, cu_function_caching_callback, v, 0);
       if (sess.verbose > 4)
-        clog << "function cache " << key << " size " << v->size() << endl;
+        clog << "function cache " << module_name << ":" << cu_name
+             << " size " << v->size() << endl;
       mod_info->update_symtab(v);
     }
 
@@ -624,7 +624,8 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
     {
       Dwarf_Die& die = it->second;
       if (sess.verbose > 4)
-        clog << "function cache " << key << " hit " << function << endl;
+        clog << "function cache " << module_name << ":" << cu_name
+             << " hit " << function << endl;
       return (*callback)(& die, q);
     }
   else if (name_has_wildcard (function))
@@ -637,8 +638,8 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
           if (function_name_matches_pattern (func_name, function))
             {
               if (sess.verbose > 4)
-                clog << "function cache " << key << " match " << func_name << " vs "
-                     << function << endl;
+                clog << "function cache " << module_name << ":" << cu_name
+                     << " match " << func_name << " vs " << function << endl;
 
               rc = (*callback)(& die, q);
               if (rc != DWARF_CB_OK) break;
