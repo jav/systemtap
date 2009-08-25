@@ -12,7 +12,7 @@ m(char *name, int i, long j)
     volatile __typeof__(i) p_i = i;
     volatile __typeof__(j) p_j = j;
     // empty asm to force locals into regs.
-    inlined_label: asm volatile ("nop" : "=g"(c) : "g"(p_name), "g"(p_i), "g"(p_j));
+    inlined_label: asm volatile ("" : "=g"(c) : "g"(p_name), "g"(p_i), "g"(p_j));
     if (c != 0) goto inlined_label;
   } while (0);
   return i + 32;
