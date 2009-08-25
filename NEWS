@@ -9,6 +9,12 @@
   configured/built kernel tree and -a its architecture (kbuild ARCH=...).
   Systemtap will infer -p4.
 
+- The systemtap notion of "architecture" now matches the kernel's, rather
+  than that of "uname -m".  This means that 32-bit i386 family are all
+  known as "i386" rather than "i386" or "i686"; "ppc64" as "powerpc";
+  "s390x" as "s390", and so on.  This is consistent between the new
+  "-a ARCH" flag and the script-level %( arch ... %) conditional.
+
 - It is now possible to define multiple probe aliases with the same name.
   A probe will expand to all matching aliases.
 	probe foo = bar { }
