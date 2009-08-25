@@ -223,7 +223,7 @@ struct dwflpp
                                               dwarf_query *));
 
   void collect_srcfiles_matching (std::string const & pattern,
-                                  std::set<char const *> & filtered_srcfiles);
+                                  std::set<std::string> & filtered_srcfiles);
 
   void resolve_prologue_endings (func_info_map_t & funcs);
 

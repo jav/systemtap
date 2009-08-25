@@ -1000,7 +1000,7 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
 
 void
 dwflpp::collect_srcfiles_matching (string const & pattern,
-                                   set<char const *> & filtered_srcfiles)
+                                   set<string> & filtered_srcfiles)
 {
   assert (module);
   assert (cu);

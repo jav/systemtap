@@ -592,7 +592,7 @@ struct dwarf_query : public base_query
   int line[2];
   bool query_done;	// Found exact match
 
-  set<char const *> filtered_srcfiles;
+  set<string> filtered_srcfiles;
 
   // Map official entrypc -> func_info object
   inline_instance_map_t filtered_inlines;
@@ -1275,6 +1275,13 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 {
   dwarf_query * q = static_cast<dwarf_query *>(bq);
 
+  // weed out functions whose decl_file isn't one of
+  // the source files that we actually care about
+  if ((q->has_statement_str || q->has_function_str) &&
+      q->spec_type != function_alone &&
+      q->filtered_srcfiles.count(dwarf_decl_file(func)?:"") == 0)
+        return DWARF_CB_OK;
+
   try
     {
       q->dw.focus_on_function (func);
@@ -1464,9 +1471,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
                 q->dw.iterate_over_labels (q->dw.cu, q->label_val.c_str(), q->function.c_str(),
                                            q, query_statement);
 	      else
-		for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
+		for (set<string>::const_iterator i = q->filtered_srcfiles.begin();
 		     i != q->filtered_srcfiles.end(); ++i)
-		  q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
+		  q->dw.iterate_over_srcfile_lines (i->c_str(), q->line, q->has_statement_str,
 						    q->line_type, query_srcfile_label, q->function, q);
 	    }
 	  else if ((q->has_statement_str || q->has_function_str)
@@ -1474,9 +1481,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    {
 	      // If we have a pattern string with target *line*, we
 	      // have to look at lines in all the matched srcfiles.
-	      for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
+	      for (set<string>::const_iterator i = q->filtered_srcfiles.begin();
 		   i != q->filtered_srcfiles.end(); ++i)
-		q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
+		q->dw.iterate_over_srcfile_lines (i->c_str(), q->line, q->has_statement_str,
 						  q->line_type, query_srcfile_line, q->function, q);
 	    }
 	  else
