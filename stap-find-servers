@@ -26,7 +26,7 @@ function initialization {
     else
 	find_all=0
     fi
-    timeout=10 # seconds
+    timeout=20 # seconds
 }
 
 # function: find_servers
