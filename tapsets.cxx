@@ -1395,7 +1395,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
       q->dw.focus_on_cu (cudie);
 
       if (false && q->sess.verbose>2)
-        clog << "focused on CU '" << q->dw.cu_name
+        clog << "focused on CU '" << q->dw.cu_name()
              << "', in module '" << q->dw.module_name << "'\n";
 
       if (q->has_statement_str || q->has_statement_num
@@ -1443,7 +1443,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
                   if (address_line)
                     msg << " (try 0x" << hex << lineaddr << ")";
                   else
-                    msg << " (no line info found for '" << q->dw.cu_name
+                    msg << " (no line info found for '" << q->dw.cu_name()
                         << "', in module '" << q->dw.module_name << "')";
                   if (! q->sess.guru_mode)
                     throw semantic_error(msg.str());

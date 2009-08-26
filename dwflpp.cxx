@@ -150,7 +150,6 @@ dwflpp::focus_on_module(Dwfl_Module * m, module_info * mi)
 
   module_dwarf = NULL;
 
-  cu_name.clear();
   cu = NULL;
 
   function_name.clear();
@@ -165,7 +164,6 @@ dwflpp::focus_on_cu(Dwarf_Die * c)
   assert(module);
 
   cu = c;
-  cu_name = dwarf_diename(c) ?: "CU";
 
   // Reset existing pointers and names
   function_name.clear();
@@ -173,6 +171,13 @@ dwflpp::focus_on_cu(Dwarf_Die * c)
 
   free(cached_scopes);
   cached_scopes = NULL;
+}
+
+
+string
+dwflpp::cu_name(void)
+{
+  return dwarf_diename(cu) ?: "<unknown source>";
 }
 
 
@@ -562,7 +567,7 @@ dwflpp::declaration_resolve(const char *name)
       global_alias_cache[cu->addr] = v;
       iterate_over_globals(global_alias_caching_callback, v);
       if (sess.verbose > 4)
-        clog << "global alias cache " << module_name << ":" << cu_name
+        clog << "global alias cache " << module_name << ":" << cu_name()
              << " size " << v->size() << endl;
     }
 
@@ -611,7 +616,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
       cu_function_cache[cu->addr] = v;
       dwarf_getfuncs (cu, cu_function_caching_callback, v, 0);
       if (sess.verbose > 4)
-        clog << "function cache " << module_name << ":" << cu_name
+        clog << "function cache " << module_name << ":" << cu_name()
              << " size " << v->size() << endl;
       mod_info->update_symtab(v);
     }
@@ -621,7 +626,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
     {
       Dwarf_Die& die = it->second;
       if (sess.verbose > 4)
-        clog << "function cache " << module_name << ":" << cu_name
+        clog << "function cache " << module_name << ":" << cu_name()
              << " hit " << function << endl;
       return (*callback)(& die, q);
     }
@@ -635,7 +640,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
           if (function_name_matches_pattern (func_name, function))
             {
               if (sess.verbose > 4)
-                clog << "function cache " << module_name << ":" << cu_name
+                clog << "function cache " << module_name << ":" << cu_name()
                      << " match " << func_name << " vs " << function << endl;
 
               rc = (*callback)(& die, q);

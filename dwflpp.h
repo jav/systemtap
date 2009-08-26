@@ -170,7 +170,6 @@ struct dwflpp
   Dwarf_Die * cu;
 
   std::string module_name;
-  std::string cu_name;
   std::string function_name;
 
   dwflpp(systemtap_session & session, const std::string& user_module, bool kernel_p);
@@ -182,6 +181,8 @@ struct dwflpp
   void focus_on_module(Dwfl_Module * m, module_info * mi);
   void focus_on_cu(Dwarf_Die * c);
   void focus_on_function(Dwarf_Die * f);
+
+  std::string cu_name(void);
 
   Dwarf_Die *query_cu_containing_address(Dwarf_Addr a);
 
