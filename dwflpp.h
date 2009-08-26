@@ -59,6 +59,9 @@ template<class K, class V> struct stap_map {
 };
 #endif
 
+// module -> cu die[]
+typedef stap_map<Dwarf*, std::vector<Dwarf_Die>*>::type module_cu_cache_t;
+
 // function -> die
 typedef stap_map<std::string, Dwarf_Die>::type cu_function_cache_t;
 
@@ -289,7 +292,6 @@ private:
   void setup_kernel(const std::string& module_name, bool debuginfo_needed = true);
   void setup_user(const std::vector<std::string>& modules, bool debuginfo_needed = true);
 
-  typedef std::map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
   module_cu_cache_t module_cu_cache;
 
   cu_inl_function_cache_t cu_inl_function_cache;
