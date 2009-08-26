@@ -154,7 +154,7 @@ bad_argnum:
 	return;
 
 	if (0) {
-deref_fault: /* branched to from deref() */
+deref_fault: /* branched to from kread() */
 		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
         		"kernel fault at %#lx accessing arg(%lld)", val,
 			THIS->argnum);
