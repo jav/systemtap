@@ -480,12 +480,11 @@ dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
         }
     }
 
-  for (unsigned i = 0; i < v->size(); i++)
+  for (vector<Dwarf_Die>::iterator i = v->begin(); i != v->end(); ++i)
     {
-      if (pending_interrupts) return;
-      Dwarf_Die die = v->at(i);
-      int rc = (*callback)(& die, data);
-      if (rc != DWARF_CB_OK) break;
+      int rc = (*callback)(&*i, data);
+      if (rc != DWARF_CB_OK || pending_interrupts)
+        break;
     }
 }
 
@@ -522,12 +521,11 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
       dwarf_func_inline_instances (function, cu_inl_function_caching_callback, v);
     }
 
-  for (unsigned i=0; i<v->size(); i++)
+  for (vector<Dwarf_Die>::iterator i = v->begin(); i != v->end(); ++i)
     {
-      if (pending_interrupts) return;
-      Dwarf_Die die = v->at(i);
-      int rc = (*callback)(& die, data);
-      if (rc != DWARF_CB_OK) break;
+      int rc = (*callback)(&*i, data);
+      if (rc != DWARF_CB_OK || pending_interrupts)
+        break;
     }
 }
 
@@ -629,7 +627,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
     }
   else if (name_has_wildcard (function))
     {
-      for (it = v->begin(); it != v->end(); it++)
+      for (it = v->begin(); it != v->end(); ++it)
         {
           if (pending_interrupts) return DWARF_CB_ABORT;
           const string& func_name = it->first;
@@ -647,10 +645,9 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
     }
   else if (has_statement_num) // searching all for kernel.statement
     {
-      for (cu_function_cache_t::iterator it = v->begin(); it != v->end(); it++)
+      for (it = v->begin(); it != v->end(); ++it)
         {
-          Dwarf_Die die = it->second;
-          rc = (*callback)(& die, q);
+          rc = (*callback)(&it->second, q);
           if (rc != DWARF_CB_OK) break;
         }
     }
