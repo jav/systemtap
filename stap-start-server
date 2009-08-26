@@ -14,22 +14,23 @@
 
 # Initialize the environment
 . `dirname $0`/stap-env
+startup_timeout=20
 
 # start the server
 ${stap_exec_prefix}stap-serverd "$@" </dev/null >/dev/null 2>&1 &
 server_pid=$!
 
 # Make sure the server is started
-for ((attempt=0; $attempt < 10; ++attempt))
+for ((attempt=0; $attempt < $startup_timeout; ++attempt))
 do
     # Has the server started?
-    if ! (ps -a | grep $server_pid) >/dev/null 2>&1; then
+    if ! (ps -e | grep $server_pid) >/dev/null 2>&1; then
 	sleep 1
 	continue
     fi
 
     # Is avahi advertizing the server?
-    if ! (ps -fa | grep avahi-publish-service | grep $server_pid) > /dev/null 2>&1; then
+    if ! (ps -fe | grep avahi-publish-service | grep $server_pid) > /dev/null 2>&1; then
 	sleep 1
 	continue
     fi
