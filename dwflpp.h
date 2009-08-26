@@ -65,6 +65,9 @@ typedef stap_map<std::string, Dwarf_Die>::type cu_function_cache_t;
 // cu die -> (function -> die)
 typedef stap_map<void*, cu_function_cache_t*>::type mod_cu_function_cache_t;
 
+// inline function die -> instance die[]
+typedef stap_map<void*, std::vector<Dwarf_Die>*>::type cu_inl_function_cache_t;
+
 typedef std::vector<func_info> func_info_map_t;
 typedef std::vector<inline_instance_info> inline_instance_map_t;
 
@@ -289,7 +292,6 @@ private:
   typedef std::map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
   module_cu_cache_t module_cu_cache;
 
-  typedef std::map<std::string, std::vector<Dwarf_Die>*> cu_inl_function_cache_t;
   cu_inl_function_cache_t cu_inl_function_cache;
   static int cu_inl_function_caching_callback (Dwarf_Die* func, void *arg);
 

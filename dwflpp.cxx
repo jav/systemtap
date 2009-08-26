@@ -514,12 +514,11 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
   assert (function);
   assert (func_is_inline ());
 
-  string key = module_name + ":" + cu_name + ":" + function_name;
-  vector<Dwarf_Die>* v = cu_inl_function_cache[key];
+  vector<Dwarf_Die>* v = cu_inl_function_cache[function->addr];
   if (v == 0)
     {
       v = new vector<Dwarf_Die>;
-      cu_inl_function_cache[key] = v;
+      cu_inl_function_cache[function->addr] = v;
       dwarf_func_inline_instances (function, cu_inl_function_caching_callback, v);
     }
 
