@@ -918,18 +918,18 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
 
 void
 dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
-                             const char *sym,
-                             const char *symfunction,
-                             void *data,
+                             const string& sym,
+                             const string& symfunction,
+                             dwarf_query *q,
                              void (* callback)(const string &,
+                                               const char *,
                                                const char *,
                                                int,
                                                Dwarf_Die *,
                                                Dwarf_Addr,
-                                               dwarf_query *))
+                                               dwarf_query *),
+                             const string& current_function)
 {
-  dwarf_query * q __attribute__ ((unused)) = static_cast<dwarf_query *>(data) ;
-
   get_module_dwarf();
 
   Dwarf_Die die;
@@ -937,63 +937,54 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
   if (res != 0)
     return;  // die without children, bail out.
 
-  static string function_name = dwarf_diename (begin_die);
+  bool function_match =
+    (current_function == symfunction
+     || (name_has_wildcard(symfunction)
+         && function_name_matches_pattern (current_function, symfunction)));
+
   do
     {
       int tag = dwarf_tag(&die);
       const char *name = dwarf_diename (&die);
+      bool subfunction = false;
+
       switch (tag)
         {
         case DW_TAG_label:
-          if (name)
-            break;
-          else
-            continue; // Cannot handle unnamed label.
+          if (function_match && name &&
+              (name == sym
+               || (name_has_wildcard(sym)
+                   && function_name_matches_pattern (name, sym))))
+            {
+              // Get the file/line number for this label
+              int dline;
+              const char *file = dwarf_decl_file (&die);
+              dwarf_decl_line (&die, &dline);
+
+              // Don't try to be smart. Just drop no addr labels.
+              Dwarf_Addr stmt_addr;
+              if (dwarf_lowpc (&die, &stmt_addr) == 0)
+                {
+                  Dwarf_Die *scopes;
+                  int nscopes = dwarf_getscopes_die (&die, &scopes);
+                  if (nscopes > 1)
+                    callback(current_function, name, file, dline,
+                             &scopes[1], stmt_addr, q);
+                }
+            }
           break;
+
         case DW_TAG_subprogram:
-          if (!dwarf_hasattr(&die, DW_AT_declaration) && name)
-            function_name = name;
-          else
-            continue;
+          if (dwarf_hasattr(&die, DW_AT_declaration) || !name)
+            break;
         case DW_TAG_inlined_subroutine:
-            if (name)
-              function_name = name;
+          if (name)
+            subfunction = true;
         default:
           if (dwarf_haschildren (&die))
-            iterate_over_labels (&die, sym, symfunction, q, callback);
-          continue;
-        }
-
-      if (strcmp(function_name.c_str(), symfunction) == 0
-          || (name_has_wildcard(symfunction)
-              && function_name_matches (symfunction)))
-        {
-        }
-      else
-        continue;
-      if (strcmp(name, sym) == 0
-          || (name_has_wildcard(sym)
-              && function_name_matches_pattern (name, sym)))
-        {
-          const char *file = dwarf_decl_file (&die);
-
-          // Get the line number for this label
-          int dline;
-          dwarf_decl_line (&die, &dline);
-
-          Dwarf_Addr stmt_addr;
-          if (dwarf_lowpc (&die, &stmt_addr) != 0)
-            continue; // Don't try to be smart. Just drop no addr labels.
-
-          Dwarf_Die *scopes;
-          int nscopes = 0;
-          nscopes = dwarf_getscopes_die (&die, &scopes);
-          if (nscopes > 1)
-            {
-              callback(function_name.c_str(), file,
-                       dline, &scopes[1], stmt_addr, q);
-              add_label_name(q, name);
-            }
+            iterate_over_labels (&die, sym, symfunction, q, callback,
+                                 subfunction ? name : current_function);
+          break;
         }
     }
   while (dwarf_siblingof (&die, &die) == 0);

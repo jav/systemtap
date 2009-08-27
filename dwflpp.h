@@ -78,7 +78,6 @@ typedef std::vector<inline_instance_info> inline_instance_map_t;
 /* XXX FIXME functions that dwflpp needs from tapsets.cxx */
 func_info_map_t *get_filtered_functions(dwarf_query *q);
 inline_instance_map_t *get_filtered_inlines(dwarf_query *q);
-void add_label_name(dwarf_query *q, const char *name);
 
 
 struct
@@ -225,15 +224,17 @@ struct dwflpp
                                    void *data);
 
   void iterate_over_labels (Dwarf_Die *begin_die,
-                            const char *sym,
-                            const char *symfunction,
-                            void *data,
+                            const std::string& sym,
+                            const std::string& symfunction,
+                            dwarf_query *q,
                             void (* callback)(const std::string &,
+                                              const char *,
                                               const char *,
                                               int,
                                               Dwarf_Die *,
                                               Dwarf_Addr,
-                                              dwarf_query *));
+                                              dwarf_query *),
+                            const std::string& current_function);
 
   void collect_srcfiles_matching (std::string const & pattern,
                                   std::set<std::string> & filtered_srcfiles);

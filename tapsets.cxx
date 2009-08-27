@@ -714,16 +714,6 @@ get_filtered_inlines(dwarf_query *q)
 
 
 void
-add_label_name(dwarf_query *q, const char *name)
-{
-  // this is a kludge to let the listing mode show labels to the user
-  if (q->sess.listing_mode)
-    q->results.back()->locations[0]->components.push_back
-      (new probe_point::component(TOK_LABEL, new literal_string (name)));
-}
-
-
-void
 dwarf_query::query_module_dwarf()
 {
   if (has_function_num || has_statement_num)
@@ -1114,6 +1104,33 @@ query_statement (string const & func,
 }
 
 static void
+query_label (string const & func,
+             char const * label,
+             char const * file,
+             int line,
+             Dwarf_Die *scope_die,
+             Dwarf_Addr stmt_addr,
+             dwarf_query * q)
+{
+  size_t i = q->results.size();
+
+  // weed out functions whose decl_file isn't one of
+  // the source files that we actually care about
+  if ((q->has_statement_str || q->has_function_str) &&
+      q->spec_type != function_alone &&
+      q->filtered_srcfiles.count(file) == 0)
+    return;
+
+  query_statement(func, file, line, scope_die, stmt_addr, q);
+
+  // this is a kludge to let the listing mode show labels to the user
+  if (q->sess.listing_mode)
+    for (; i < q->results.size(); ++i)
+      q->results[i]->locations[0]->components.push_back
+        (new probe_point::component(TOK_LABEL, new literal_string (label)));
+}
+
+static void
 query_inline_instance_info (inline_instance_info & ii,
 			    dwarf_query * q)
 {
@@ -1184,8 +1201,8 @@ query_srcfile_label (const dwarf_line_t& line, void * arg)
   for (func_info_map_t::iterator i = q->filtered_functions.begin();
        i != q->filtered_functions.end(); ++i)
     if (q->dw.die_has_pc (i->die, addr))
-      q->dw.iterate_over_labels (&i->die, q->label_val.c_str(), q->function.c_str(),
-                                 q, query_statement);
+      q->dw.iterate_over_labels (&i->die, q->label_val, q->function,
+                                 q, query_label, i->name);
 }
 
 static void
@@ -1280,7 +1297,7 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
   if ((q->has_statement_str || q->has_function_str) &&
       q->spec_type != function_alone &&
       q->filtered_srcfiles.count(dwarf_decl_file(func)?:"") == 0)
-        return DWARF_CB_OK;
+    return DWARF_CB_OK;
 
   try
     {
@@ -1468,8 +1485,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  if (q->has_label)
 	    {
 	      if (q->line[0] == 0)		// No line number specified
-                q->dw.iterate_over_labels (q->dw.cu, q->label_val.c_str(), q->function.c_str(),
-                                           q, query_statement);
+                q->dw.iterate_over_labels (q->dw.cu, q->label_val, q->function,
+                                           q, query_label, "");
 	      else
 		for (set<string>::const_iterator i = q->filtered_srcfiles.begin();
 		     i != q->filtered_srcfiles.end(); ++i)
