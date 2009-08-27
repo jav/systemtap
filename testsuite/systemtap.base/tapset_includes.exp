@@ -1,0 +1,21 @@
+# Check that globals, functions, and aliases will pull in probes from the
+# tapset file in which they are defined.
+
+if {![installtest_p]} { untested "tapset includes"; return }
+
+set tapset "$srcdir/$subdir/tapset"
+
+# global
+set script "probe end { if (test_global) println(\"end\") }"
+set ::result_string "included global\nend"
+stap_run_exact "tapset include global" -I$tapset -e $script -c true
+
+# function
+set script "probe end { if (test_function()) println(\"end\") }"
+set ::result_string "included function\nend"
+stap_run_exact "tapset include function" -I$tapset -e $script -c true
+
+# alias
+set script "probe test_alias { if (alias_local) println(\"end\") }"
+set ::result_string "included alias\nend"
+stap_run_exact "tapset include alias" -I$tapset -e $script -c true

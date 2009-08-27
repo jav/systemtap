@@ -540,7 +540,18 @@ alias_expansion_builder
     else
       n->body = new block (alias->body, use->body);
 
+    unsigned old_num_results = finished_results.size();
     derive_probes (sess, n, finished_results, location->optional);
+
+    // Check whether we resolved something. If so, put the
+    // whole library into the queue if not already there.
+    if (finished_results.size() > old_num_results)
+      {
+        stapfile *f = alias->tok->location.file;
+        if (find (sess.files.begin(), sess.files.end(), f)
+            == sess.files.end())
+          sess.files.push_back (f);
+      }
   }
 
   bool checkForRecursiveExpansion (probe *use)

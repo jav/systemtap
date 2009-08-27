@@ -1,0 +1,6 @@
+function test_function:long() {
+  return 1
+}
+probe begin {
+  println("included function")
+}
