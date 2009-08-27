@@ -96,10 +96,6 @@ enum perfmon_mode
 
 struct perfmon_derived_probe: public derived_probe
 {
-protected:
-  static unsigned probes_allocated;
-
-public:
   systemtap_session & sess;
   string event;
   perfmon_mode mode;
@@ -142,17 +138,15 @@ struct perfmon_builder: public derived_probe_builder
 };
 
 
-unsigned perfmon_derived_probe::probes_allocated;
-
 perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
                                               systemtap_session &s,
                                               string e, perfmon_mode m)
         : derived_probe (p, l), sess(s), event(e), mode(m)
 {
-  ++probes_allocated;
+  static unsigned probes_allocated = 0;
 
   // Now expand the local variables in the probe body
-  perfmon_var_expanding_visitor v (sess, probes_allocated-1);
+  perfmon_var_expanding_visitor v (sess, probes_allocated++);
   v.replace (this->body);
 
   if (sess.verbose > 1)

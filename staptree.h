@@ -660,9 +660,6 @@ struct probe
   virtual probe* basest () { return this; }
   virtual ~probe() {}
   bool privileged;
-private:
-  static unsigned last_probeidx;
-public:
   std::string name;
 };
 

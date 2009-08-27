@@ -97,10 +97,10 @@ probe_point::probe_point ():
 }
 
 
-unsigned probe::last_probeidx = 0;
 probe::probe ():
   body (0), tok (0)
 {
+  static unsigned last_probeidx = 0;
   this->name = string ("probe_") + lex_cast<string>(last_probeidx ++);
 }
 
