@@ -100,21 +100,21 @@ exec rm -f /tmp/XXX
 
 verbose -log "$dtrace -G -s $dpath"
 exec $dtrace -G -s $dpath
-if {[file exists /tmp/dtrace/test.o]} then {
+if {[file exists test.o]} then {
     pass "dtrace -G"
 } else {
     fail "dtrace -G"
 }
-exec rm -f /tmp/dtrace/test.o
+exec rm -f test.o
 
 verbose -log "$dtrace -h -s $dpath"
 exec $dtrace -h -s $dpath
-if {[file exists /tmp/dtrace/test.h]} then {
+if {[file exists test.h]} then {
     pass "dtrace -h"
 } else {
     fail "dtrace -h"
 }
-exec rm -f /tmp/dtrace/test.o
+exec rm -f test.o
 
 set ok 0
 verbose -log "$dtrace -C -h -s $dpath -o XXX.h"
@@ -132,4 +132,3 @@ exec rm -f XXX.h
 
 exec /bin/rm -r /tmp/dtrace
 # -----------------------------------------------------------------
-

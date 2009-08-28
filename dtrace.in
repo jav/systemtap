@@ -173,6 +173,7 @@ if (s_filename != "" and use_cpp):
 if (filename == ""):
     if (s_filename != ""):
 	(filename,ext) = os.path.splitext(s_filename)
+        filename = os.path.basename(filename)
     else:
         usage
         sys.exit(1)
