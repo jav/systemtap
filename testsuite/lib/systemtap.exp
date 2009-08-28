@@ -144,13 +144,11 @@ proc setup_server {} {
     }
 
     # Try to find or start the server.
-    set server_pid [exec stap-find-or-start-server]
-    if { "$server_pid" == "-1" } then {
-	print "Cannot find or start a systemtap server"
+    set server_pid [exec stap-start-server]
+    if { "$server_pid" == "" } then {
+	print "Cannot start a systemtap server"
 	set server_pid 0
 	return 0
-    } elseif { "$server_pid" == "0" } then {
-	print "A compatible systemtap server is already available"
     } else {
 	print "Started a systemtap server as PID==$server_pid"
     }

@@ -251,10 +251,11 @@ function parse_options {
     test "X$local_ssl_dbs" != "X " -o "X$public_ssl_dbs" != "X" || \
 	fatal "No usable certificate databases found"
 
-    # We can use any server if the phase is less than 5
-    if test $p_phase -lt 5; then
-	find_all="--all"
-    fi
+    # We can use any server if the phase is less than 4
+    # But don't for now....
+    #if test $p_phase -lt 4; then
+    #	find_all="--all"
+    #fi
 }
 
 # function: get_arg FIRSTWORD SECONDWORD
