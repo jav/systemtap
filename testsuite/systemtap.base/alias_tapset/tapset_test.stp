@@ -1,0 +1,8 @@
+global _reads
+
+probe tapset_test.foo = never { next }
+
+probe syscall.read { _reads++ }
+
+probe timer.s(5) { printf("%d\n", _reads) }
+

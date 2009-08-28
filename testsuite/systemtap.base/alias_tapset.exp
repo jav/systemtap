@@ -1,0 +1,33 @@
+# This testcase is based on pr10568.  It ensures that when an alias
+# causes a tapset file to be included, the entire files gets included.
+
+set test alias_tapset
+
+set never_found 0
+set kernel_function_found 0
+set timer_found 0
+
+set cmd "stap -p2 -I $srcdir/$subdir/${test} $srcdir/$subdir/${test}.stp"
+verbose -log "running $cmd"
+eval spawn $cmd
+expect {
+    -timeout 60
+    -re {^never.+\r\n} { incr never_found; exp_continue }
+    -re {^kernel.function.+\r\n} { incr kernel_function_found; exp_continue }
+    -re {^timer.+\r\n} { incr timer_found; exp_continue }
+    -re {^.+\r\n} {
+	# ignore output we're not interested in
+	exp_continue }
+    timeout { verbose -log "TIMEOUT" }
+}
+catch { close }
+
+# get the return code of the process
+set rc [lindex [wait -i $spawn_id] 3]
+
+if { $rc == 0 && $never_found == 1 && $kernel_function_found == 1
+     && $timer_found == 1 } {
+    pass $test
+} else {
+    fail "$test ($rc, $never_found, $kernel_function_found, $timer_found)"
+}
