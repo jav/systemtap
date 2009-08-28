@@ -1,0 +1,4 @@
+#! stap -p1
+
+# bad compound condition
+%( arch == "2.6" && || arch == "2.66" %? probe begin() { } %)

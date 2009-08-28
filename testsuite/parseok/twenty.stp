@@ -1,0 +1,12 @@
+#! stap -p1
+
+global
+%( kernel_v > "2.6" && kernel_vr != "2.9.77-2873NOTHING" && kernel_v <= "3.5" && kernel_vr == "2.3.5-2.43.54.2" %? "FAIL1" %: PASS %)
+
+global
+%( arch == "i386" || arch == "i686" || arch == "x86_64" %? x86 %: other %)
+
+global
+%( $# != 2 && @# < "1" && @# == "0" && $# >= 3 %?
+   %( $2 >= "12" %? $3 FAIL2 %: $2 FAIL3 %) #This line must not be evaluated
+%: PASS2 %)

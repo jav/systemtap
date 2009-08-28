@@ -1,0 +1,4 @@
+#! stap -p1
+
+# incomplete compound condition
+%( arch == "2.6" && %? probe begin() { } %)

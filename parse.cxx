@@ -321,27 +321,41 @@ parser::scan_pp (bool wildcard)
 
       // We have a %( - it's time to throw a preprocessing party!
 
-      const token *l, *op, *r;
-      l = input.scan (false); // NB: not recursive, though perhaps could be
-      op = input.scan (false);
-      r = input.scan (false);
-      if (l == 0 || op == 0 || r == 0)
-        throw parse_error ("incomplete condition after '%('", t);
-      // NB: consider generalizing to consume all tokens until %?, and
-      // passing that as a vector to an evaluator.
+      bool result = false;
+      bool and_result = true;
+      const token *n = NULL;
+      do {
+        const token *l, *op, *r;
+        l = input.scan (false); // NB: not recursive, though perhaps could be
+        op = input.scan (false);
+        r = input.scan (false);
+        if (l == 0 || op == 0 || r == 0)
+          throw parse_error ("incomplete condition after '%('", t);
+        // NB: consider generalizing to consume all tokens until %?, and
+        // passing that as a vector to an evaluator.
 
-      // Do not evaluate the condition if we haven't expanded everything.
-      // This may occur when having several recursive conditionals.
-      bool result = eval_pp_conditional (session, l, op, r);
-      delete l;
-      delete op;
-      delete r;
+        // Do not evaluate the condition if we haven't expanded everything.
+        // This may occur when having several recursive conditionals.
+        and_result &= eval_pp_conditional (session, l, op, r);
+        delete l;
+        delete op;
+        delete r;
+        delete n;
+
+        n = input.scan ();
+        if (n && n->type == tok_operator && n->content == "&&")
+          continue;
+        result |= and_result;
+        and_result = true;
+        if (! (n && n->type == tok_operator && n->content == "||"))
+          break;
+      } while (true);
 
       /*
       clog << "PP eval (" << *t << ") == " << result << endl;
       */
 
-      const token *m = input.scan (); // NB: not recursive
+      const token *m = n; // NB: not recursive
       if (! (m && m->type == tok_operator && m->content == "%?"))
         throw parse_error ("expected '%?' marker for conditional", t);
       delete m; // "%?"

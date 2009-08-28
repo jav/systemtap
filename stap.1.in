@@ -309,7 +309,10 @@ ternary operator:
 .ESAMPLE
 The CONDITION is either an expression whose format is determined by its
 first keyword, or a string literals comparison or a numeric literals
-comparison.
+comparison.  It can be also composed of many alternatives and conjunctions
+of CONDITIONs (meant as in previous sentence) using || and && respectively.
+However, parentheses are not supported yet, so remembering that conjunction
+takes precedence over alternative is important.
 .PP
 If the first part is the identifier
 .BR kernel_vr " or " kernel_v
