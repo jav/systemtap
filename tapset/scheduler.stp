@@ -121,12 +121,8 @@ probe scheduler.balance = kernel.function("idle_balance")? {}
  *    prevtsk_state: the state of the process to be switched out
  */
 probe scheduler.ctxswitch =
-%( arch != "x86_64" %?
- %( arch != "ia64" %?
+%( arch != "x86_64" && arch != "ia64" %?
 	kernel.function("__switch_to")
- %:
-	kernel.function("context_switch")
- %)
 %:
 	kernel.function("context_switch")
 %)
@@ -137,13 +133,7 @@ probe scheduler.ctxswitch =
         prev_task = $prev
         next_task = $new
         prevtsk_state = $prev->state
-%: %( arch == "x86_64" %?
-        prev_pid = $prev->pid
-        next_pid =  $next->pid
-        prev_task = $prev
-        next_task = $next
-        prevtsk_state = $prev->state
-%: %( arch == "ia64" %?
+%: %( arch == "x86_64" || arch == "ia64" %?
         prev_pid = $prev->pid
         next_pid =  $next->pid
         prev_task = $prev
@@ -155,5 +145,5 @@ probe scheduler.ctxswitch =
         prev_task = $prev_p
         next_task = $next_p
         prevtsk_state = $prev_p->state
-%) %) %)
+%) %)
 }
