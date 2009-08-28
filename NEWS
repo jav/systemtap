@@ -1,5 +1,8 @@
 * What's new
 
+- The preprocessor now supports || and && in the conditions.
+        %( arch == "x86_64" || arch == "ia64" %: ... %)
+
 - It is now possible to cross-compile systemtap scripts for foreign
   architectures, using the new '-a ARCH' and '-B OPT=VALUE' flags.
   For example, put arm-linux-gcc etc. into your $PATH, and point
