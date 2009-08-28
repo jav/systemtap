@@ -20,7 +20,20 @@ proc stap_compile { TEST_NAME compile script args } {
 	-re "semantic error:" {incr compile_errors 1; exp_continue}
     }
     catch close
-    wait
+    set res [wait -i $spawn_id]
+    set res [lindex $res 3]
+
+    if {($res == 0 && $compile_errors == 0)
+	|| ($res != 0 && $compile_errors > 0)} {
+	# Expected case. Ignore. Real pass/fail result will come below.
+    } else {
+	# stap result doesn't match errors seen.
+	if {$res == 0} {
+	    fail "${TEST_NAME}_compile successfull, but got error messages"
+	} else {
+	    fail "${TEST_NAME}_compile failed, but got no error messages"
+	}
+    }
 
     # If we've got compile errors and the script was supposed to
     # compile, fail.
