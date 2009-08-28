@@ -10,7 +10,7 @@ proc stap_compile { TEST_NAME compile script args } {
     eval spawn $cmd
     set compile_errors 0
     expect {
-	-re {^Pass\ [1234]:[^\r]*\ in\ .*\ ms.\r\n} {exp_continue}
+	-re {^Pass\ [1234]:[^\n\r]+\ in\ [^\n\r]+\ ms.\r\n} {exp_continue}
 	-re {^Pass\ [34]: using cached [^\r\n]+\r\n} {exp_continue}
 	-re "^WARNING" {exp_continue}
         # pass-4 output
