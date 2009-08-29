@@ -12,10 +12,10 @@ verbose -log "running $cmd"
 eval spawn $cmd
 expect {
     -timeout 60
-    -re {^never.+\r\n} { incr never_found; exp_continue }
-    -re {^kernel.function.+\r\n} { incr kernel_function_found; exp_continue }
-    -re {^timer.+\r\n} { incr timer_found; exp_continue }
-    -re {^.+\r\n} {
+    -re {^never[^\r\n]+\r\n} { incr never_found; exp_continue }
+    -re {^kernel[^\r\n]function.+\r\n} { incr kernel_function_found; exp_continue }
+    -re {^timer[^\r\n]+\r\n} { incr timer_found; exp_continue }
+    -re {^[^\r\n]+\r\n} {
 	# ignore output we're not interested in
 	exp_continue }
     timeout { verbose -log "TIMEOUT" }
