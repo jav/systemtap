@@ -502,12 +502,52 @@ dwflpp::func_is_inline()
 }
 
 
-int
-dwflpp::cu_inl_function_caching_callback (Dwarf_Die* func, void *arg)
+void
+dwflpp::cache_inline_instances (Dwarf_Die* die)
 {
-  vector<Dwarf_Die>* v = static_cast<vector<Dwarf_Die>*>(arg);
-  v->push_back (* func);
-  return DWARF_CB_OK;
+  // If this is an inline instance, link it back to its origin
+  Dwarf_Die origin;
+  if (dwarf_tag(die) == DW_TAG_inlined_subroutine &&
+      dwarf_attr_die(die, DW_AT_abstract_origin, &origin))
+    {
+      vector<Dwarf_Die>*& v = cu_inl_function_cache[origin.addr];
+      if (!v)
+        v = new vector<Dwarf_Die>;
+      v->push_back(*die);
+    }
+
+  // Recurse through other scopes that may contain inlines
+  Dwarf_Die child, import;
+  if (dwarf_child(die, &child) == 0)
+    do
+      {
+        switch (dwarf_tag (&child))
+          {
+          // tags that could contain inlines
+          case DW_TAG_compile_unit:
+          case DW_TAG_module:
+          case DW_TAG_lexical_block:
+          case DW_TAG_with_stmt:
+          case DW_TAG_catch_block:
+          case DW_TAG_try_block:
+          case DW_TAG_entry_point:
+          case DW_TAG_inlined_subroutine:
+          case DW_TAG_subprogram:
+            cache_inline_instances(&child);
+            break;
+
+          // imported dies should be followed
+          case DW_TAG_imported_unit:
+            if (dwarf_attr_die(&child, DW_AT_import, &import))
+              cache_inline_instances(&import);
+            break;
+
+          // nothing to do for other tags
+          default:
+            break;
+          }
+      }
+    while (dwarf_siblingof(&child, &child) == 0);
 }
 
 
@@ -518,13 +558,12 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
   assert (function);
   assert (func_is_inline ());
 
+  if (cu_inl_function_cache_done.insert(cu->addr).second)
+    cache_inline_instances(cu);
+
   vector<Dwarf_Die>* v = cu_inl_function_cache[function->addr];
-  if (v == 0)
-    {
-      v = new vector<Dwarf_Die>;
-      cu_inl_function_cache[function->addr] = v;
-      dwarf_func_inline_instances (function, cu_inl_function_caching_callback, v);
-    }
+  if (!v)
+    return;
 
   for (vector<Dwarf_Die>::iterator i = v->begin(); i != v->end(); ++i)
     {

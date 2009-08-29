@@ -296,8 +296,9 @@ private:
 
   module_cu_cache_t module_cu_cache;
 
+  std::set<void*> cu_inl_function_cache_done; // CUs that are already cached
   cu_inl_function_cache_t cu_inl_function_cache;
-  static int cu_inl_function_caching_callback (Dwarf_Die* func, void *arg);
+  void cache_inline_instances (Dwarf_Die* die);
 
   /* The global alias cache is used to resolve any DIE found in a
    * module that is stubbed out with DW_AT_declaration with a defining
