@@ -154,9 +154,9 @@ probe nd_syscall.set_zone_reclaim.return = kprobe.function("sys_set_zone_reclaim
 probe nd_syscall.sigaltstack = kprobe.function("sys_sigaltstack")
 {
 	name = "sigaltstack"
-	// ussp = %( kernel_vr < "2.6.25" %? $ebx %: %( kernel_vr < "2.6.29" %? $bx %: $regs->bx %) %)
+	// ussp = %( kernel_vr < "2.6.25" %? $ebx %: %( kernel_vr < "2.6.30" %? $bx %: $regs->bx %) %)
 	// NB: no asmlinkage()
-	ussp = %( kernel_vr < "2.6.29" %? ulong_arg(1) %: @cast(ulong_arg(1), "pt_regs")->bx %)
+	ussp = %( kernel_vr < "2.6.30" %? ulong_arg(1) %: @cast(ulong_arg(1), "pt_regs")->bx %)
 	argstr = sprintf("%p", ussp)
 }
 probe nd_syscall.sigaltstack.return = kprobe.function("sys_sigaltstack").return
