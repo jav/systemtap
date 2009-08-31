@@ -1,0 +1,66 @@
+#! /usr/bin/env stap
+
+global traced_pid, command
+global allocation, free
+global file_fault, file_cow, file_uunmap, file_kunmap
+
+function log_event:long ()
+{
+  return (!traced_pid || traced_pid == pid())
+}
+
+probe kernel.trace("mm_page_allocation") {
+  if (!log_event()) next
+  allocation[pid()] <<< 1
+  command[pid()] = execname()
+}
+
+probe kernel.trace("mm_page_free") {
+  if (!log_event()) next
+  free[pid()] <<< 1
+}
+
+probe kernel.trace("mm_filemap_fault") {
+  if (!log_event()) next
+  file_fault[pid()] <<< 1
+}
+
+probe kernel.trace("mm_filemap_cow") {
+  if (!log_event()) next
+  file_cow[pid()] <<< 1
+}
+
+probe kernel.trace("mm_filemap_unmap") {
+  if (!log_event()) next
+  file_kunmap[pid()] <<< 1
+}
+
+probe kernel.trace("mm_filemap_userunmap") {
+  if (!log_event()) next
+  file_uunmap[pid()] <<< 1
+}
+
+probe begin {
+  printf("Starting data collection\n")
+  traced_pid = target()
+  if (traced_pid)
+    printf("mode Specific Pid, traced pid: %d\n\n", traced_pid)
+  else
+    printf("mode - All Pids\n\n")
+}
+
+probe end {
+  printf("Terminating data collection\n")
+  printf("%-16s %6s %9s %9s %8s %8s %8s %8s\n",
+         "Command", "Pid", "Alloc", "Free", "F_fault",
+         "F_cow", "F_kunmap", "F_uunmap")
+  printf("%-16s %6s %9s %9s %8s %8s %8s %8s\n",
+         "-------", "---", "-----", "----", "-------",
+         "-----", "--------", "--------")
+  foreach (pid in allocation-)
+    printf("%-16s %6d %9d %9d %8d %8d %8d %8d\n",
+           command[pid], pid,
+           @count(allocation[pid]), @count(free[pid]),
+           @count(file_fault[pid]), @count(file_cow[pid]),
+           @count(file_kunmap[pid]), @count(file_uunmap[pid]))
+}

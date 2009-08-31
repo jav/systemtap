@@ -308,6 +308,50 @@ keywords: memory
   counts (-m), or exclude certain stack traces (-e).
 
 
+memory/mmanonpage.stp - Track Virtual Memory System Actions on Anonymous Pages
+keywords: memory
+
+  The mmanonpage.stp script uses the virtual memory tracepoints
+  available in some kernels to track the number of faults, user space
+  frees, page ins, copy on writes and unmaps for anonymous pages. When
+  the script is terminated the counts are printed for each process that
+  allocated pages while the script was running. This script displays
+  the anonymous page statistics for each process that ran while the
+  script is active.  Its useful in debugging leaks in the anonymous
+  regions of a process.
+
+
+memory/mmfilepage.stp - Track Virtual Memory System Actions on File Backed Pages
+keywords: memory
+
+  The mmfilepage.stp script uses the virtual memory tracepoints
+  available in some kernels to track the number of faults, copy on
+  writes mapping, and unmapping operations for file backed pages. When
+  the script is terminated the counts are printed for each process that
+  allocated pages while the script was running. The mmfilepage.stp
+  script is useful in debugging leaks in the mapped file regions of a
+  process.
+
+
+memory/mmreclaim.stp - Track Virtual Memory System Page Reclamation
+keywords: memory
+
+  The mmreclaim.stp script uses the virtual memory tracepoints
+  available in some kernels to track page reclaim activity that occured
+  while the script was running. Its useful is debugging performance
+  problems that occur due to page reclamation.
+
+
+memory/mmwriteback.stp - Track Virtual Memory System Writing to Disk
+keywords: memory
+
+  The mmwriteback.stp script uses the virtual memory tracepoints
+  available in some kernels to report all of the file writebacks that
+  occur form kupdate, pdflush and kjournald while the script is
+  running.  Its useful in determining where writes are coming from on a
+  supposedly idle system that is experiencing upexpected IO.
+
+
 memory/numa_faults.stp - Summarize Process Misses across NUMA Nodes
 keywords: memory numa
 

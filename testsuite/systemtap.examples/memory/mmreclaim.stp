@@ -1,0 +1,81 @@
+#! /usr/bin/env stap
+
+global traced_pid, command
+global reclaims, direct_reclaims, freed
+global reactivate, deactivate, pgout
+global t_reclaims, t_direct_reclaims, t_freed
+global t_reactivate, t_deactivate, t_pgout
+
+function log_event:long ()
+{
+  return (!traced_pid || traced_pid == pid())
+}
+
+probe kernel.trace("mm_directreclaim_reclaimall") {
+  if (!log_event()) next
+  direct_reclaims[pid()] <<< 1
+  t_direct_reclaims <<< 1
+}
+
+probe kernel.trace("mm_pagereclaim_shrinkinactive") {
+  if (!log_event()) next
+  reclaims[pid()] += $reclaimed
+  t_reclaims += $reclaimed
+  command[pid()] = execname()
+}
+
+probe kernel.trace("mm_pagereclaim_free") {
+  if (!log_event()) next
+  freed[pid()] <<< 1
+  t_freed <<< 1
+}
+
+probe kernel.trace("mm_pagereclaim_pgout") {
+  if (!log_event()) next
+  pgout[pid()] <<< 1
+  t_pgout <<< 1
+}
+
+probe kernel.trace("mm_pagereclaim_shrinkactive_a2a"),
+      kernel.trace("mm_pagereclaim_shrinkinactive_i2a") {
+  if (!log_event()) next
+  reactivate[pid()] <<< 1
+  t_reactivate <<< 1
+}
+
+probe kernel.trace("mm_pagereclaim_shrinkactive_a2i"),
+      kernel.trace("mm_pagereclaim_shrinkinactive_i2i") {
+  if (!log_event()) next
+  deactivate[pid()] <<< 1
+  t_deactivate <<< 1
+}
+
+probe begin {
+  printf("Starting data collection\n")
+  traced_pid = target()
+  if (traced_pid)
+    printf("mode Specific Pid, traced pid: %d\n\n", traced_pid)
+  else
+    printf("mode - All Pids\n\n")
+}
+
+probe end {
+  printf("Terminating data collection\n")
+  printf("%-16s %6s %8s %8s %8s %10s %8s %8s\n",
+         "Command", "Pid", "Direct", "Activate", "Deactive",
+         "Reclaims", "Pgout", "Freed")
+  printf("%-16s %6s %8s %8s %8s %10s %8s %8s\n",
+         "-------", "-----", "------", "--------", "--------",
+         "-----", "-----", "-----")
+  foreach (pid in reclaims-)
+    printf("%-16s %6d %8d %8d %8d %10d %8d %8d\n",
+           command[pid], pid,
+           @count(direct_reclaims[pid]), @count(reactivate[pid]),
+           @count(deactivate[pid]), reclaims[pid],
+           @count(pgout[pid]), @count(freed[pid]))
+  printf("\n")
+  printf("%-23s %8d %8d %8d %10d %8d %8d\n", "Totals",
+         @count(t_direct_reclaims), @count(t_reactivate),
+         @count(t_deactivate), t_reclaims,
+         @count(t_pgout), @count(t_freed))
+}
