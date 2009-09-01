@@ -1,0 +1,344 @@
+set test "mysql"
+
+# Test sdt support in mysql.
+
+global env
+
+if {! [info exists env(SYSTEMTAP_TEST_SDT)]} {
+    unsupported "mysql (\"SYSTEMTAP_TEST_SDT\" not in env)"
+    exit
+}
+
+########## Create /tmp/stap-mysql.stp ########## 
+set msdata "[pwd]/stap-mysql"
+set mysqlrelease "mysql-5.4.1-beta"
+set mysqldir "[pwd]/mysql/install/"
+set testsuite "[pwd]"
+
+set fp [open "$testsuite/stap-mysql.stp" "w"]
+puts $fp "
+probe process(@1).mark(\"connection__start\")
+{
+  arg2 = user_string(\$arg2)
+  arg3 = user_string(\$arg3)
+  printf(\"%s %#x %s %s\\n\",\"connection__start\", \$arg1, arg2, arg3);
+}
+probe process(@1).mark(\"connection__done\")
+{
+  printf(\"%s %#x %#x \\n\",\"connection__done\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"command__start\")
+{
+  arg3 = user_string(\$arg3)
+  arg4 = user_string(\$arg4)
+ printf(\"%s %#x %#x %s %s\\n\",\"command__start\",  \$arg1, \$arg2, arg3, arg4);
+}
+probe process(@1).mark(\"command__done\")
+{
+  printf(\"%s %#x\\n\",\"command__done\", \$arg1);
+}
+probe process(@1).mark(\"query__start\")
+{
+  arg1 = user_string(\$arg1)
+  arg3 = user_string(\$arg3)
+  arg4 = user_string(\$arg4)
+  arg5 = user_string(\$arg5)
+  printf(\"%s %s %#x %s %s %s\\n\",\"query__start\",  arg1, \$arg2,
+         arg3, arg4, arg5);
+}
+probe process(@1).mark(\"query__done\")
+{
+  printf(\"%s %#x\\n\",\"query__done\", \$arg1); 
+}
+probe process(@1).mark(\"query__parse__start\")
+{
+  arg1 = user_string(\$arg1)
+  printf(\"%s %s\\n\",\"query__parse__start\", arg1);
+}
+probe process(@1).mark(\"query__parse__done\")
+{
+  printf(\"%s %#x\\n\",\"query__parse__done\", \$arg1);
+}
+probe process(@1).mark(\"query__cache__hit\")
+{
+  arg1=user_string(\$arg1)
+  arg2=user_string(\$arg2)
+  printf(\"%s %s %s \\n\",\"query__cache__hit\", arg1, arg2);
+}
+probe process(@1).mark(\"query__cache__miss\")
+{
+  arg1=user_string(\$arg1)
+  printf(\"%s %s\\n\",\"query__cache__miss\", arg1);
+}
+probe process(@1).mark(\"query__exec__start\")
+{
+  arg1=user_string(\$arg1)
+  arg3=user_string(\$arg3)
+  arg4=user_string(\$arg4)
+  arg5=user_string(\$arg5)
+  printf(\"%s %s %#x %s %s %s\\n\",\"query__exec__start\",  arg1, \$arg2,
+         arg3, arg4, arg5);
+}
+probe process(@1).mark(\"query__exec__done\")
+{
+  printf(\"%s %#x\\n\",\"query__exec__done\", \$arg1);
+}
+probe process(@1).mark(\"insert__row__start\")
+{
+  arg1=user_string(\$arg1)
+  arg2=user_string(\$arg2)
+  printf(\"%s %s %s \\n\",\"insert__row__start\", arg1, arg2);
+}
+probe process(@1).mark(\"insert__row__done\")
+{
+  printf(\"%s %#x\\n\",\"insert__row__done\", \$arg1);
+}
+probe process(@1).mark(\"update__row__start\")
+{
+  arg1=user_string(\$arg1)
+  arg2=user_string(\$arg2)
+  printf(\"%s %s %s \\n\",\"update__row__start\", arg1, arg2);
+}
+probe process(@1).mark(\"update__row__done\")
+{
+  printf(\"%s %#x\\n\",\"update__row__done\", \$arg1);
+}
+probe process(@1).mark(\"delete__row__start\")
+{
+  arg1=user_string(\$arg1)
+  arg2=user_string(\$arg2)
+  printf(\"%s %s %s \\n\",\"delete__row__start\", arg1, arg2);
+}
+probe process(@1).mark(\"delete__row__done\")
+{
+  printf(\"%s %#x\\n\",\"delete__row__done\", \$arg1);
+}
+probe process(@1).mark(\"handler__rdlock__start\")
+{
+  arg1=user_string(\$arg1)
+  arg2=user_string(\$arg2)
+  printf(\"%s %s %s \\n\",\"handler__rdlock__start\", arg1, arg2);
+}
+probe process(@1).mark(\"handler__wrlock__start\")
+{
+  arg1=user_string(\$arg1)
+  arg2=user_string(\$arg2)
+  printf(\"%s %s %s \\n\",\"handler__wrlock__start\", arg1, arg2);
+}
+probe process(@1).mark(\"handler__unlock__start\")
+{
+  arg1=user_string(\$arg1)
+  arg2=user_string(\$arg2)
+  printf(\"%s %s %s \\n\",\"handler__unlock__start\", arg1, arg2);
+}
+probe process(@1).mark(\"handler__rdlock__done\")
+{
+  printf(\"%s %#x\\n\",\"handler__rdlock__done\", \$arg1);
+}
+probe process(@1).mark(\"handler__wrlock__done\")
+{
+  printf(\"%s %#x\\n\",\"handler__wrlock__done\", \$arg1);
+}
+probe process(@1).mark(\"handler__unlock__done\")
+{
+  printf(\"%s %#x\\n\",\"handler__unlock__done\", \$arg1);
+}
+probe process(@1).mark(\"filesort__start\")
+{
+  printf(\"%s %#x %#x \\n\",\"filesort__start\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"filesort__done\")
+{
+  printf(\"%s %#x %#x \\n\",\"filesort__done\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"select__start\")
+{
+  arg1=user_string(\$arg1)
+  printf(\"%s %s\\n\",\"select__start\", arg1);
+}
+probe process(@1).mark(\"select__done\")
+{
+  printf(\"%s %#x %#x \\n\",\"select__done\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"insert__start\")
+{
+  arg1=user_string(\$arg1)
+  printf(\"%s %s\\n\",\"insert__start\", arg1);
+}
+probe process(@1).mark(\"insert__done\")
+{
+  printf(\"%s %#x %#x \\n\",\"insert__done\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"insert__select__start\")
+{
+  arg1=user_string(\$arg1)
+  printf(\"%s %s\\n\",\"insert__select__start\", arg1);
+}
+probe process(@1).mark(\"insert__select__done\")
+{
+  printf(\"%s %#x %#x \\n\",\"insert__select__done\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"update__start\")
+{
+  arg1=user_string(\$arg1)
+  printf(\"%s %s\\n\",\"update__start\", arg1);
+}
+probe process(@1).mark(\"update__done\")
+{
+  printf(\"%s %#x %#x %#x\\n\",\"update__done\",  \$arg1, \$arg2, \$arg3);
+}
+probe process(@1).mark(\"multi__update__start\")
+{
+  arg1=user_string(\$arg1)
+  printf(\"%s %s\\n\",\"multi__update__start\", arg1);
+}
+probe process(@1).mark(\"multi__update__done\")
+{
+  printf(\"%s %#x %#x %#x\\n\",\"multi__update__done\",  \$arg1, \$arg2, \$arg3);
+}
+probe process(@1).mark(\"delete__start\")
+{
+  arg1=user_string(\$arg1)
+  printf(\"%s %s\\n\",\"delete__start\", arg1);
+}
+probe process(@1).mark(\"delete__done\")
+{
+  printf(\"%s %#x %#x \\n\",\"delete__done\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"multi__delete__start\")
+{
+  arg1=user_string(\$arg1)
+  printf(\"%s %s\\n\",\"multi__delete__start\", arg1);
+}
+probe process(@1).mark(\"multi__delete__done\")
+{
+  printf(\"%s %#x %#x \\n\",\"multi__delete__done\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"net__read__start\")
+{
+  printf(\"%s \\n\",\"net__read__start\");
+}
+probe process(@1).mark(\"net__read__done\")
+{
+  printf(\"%s %#x %#x \\n\",\"net__read__done\", \$arg1, \$arg2);
+}
+probe process(@1).mark(\"net__write__start\")
+{
+  printf(\"%s %#x\\n\",\"net__write__start\", \$arg1);
+}
+probe process(@1).mark(\"net__write__done\")
+{
+  printf(\"%s %#x\\n\",\"net__write__done\", \$arg1);
+}
+"
+close $fp
+
+########## Begin /tmp/stap-mysql.sh ########## 
+set fp [open "$testsuite/stap-mysql.sh" "w"]
+puts $fp "
+##### begin run_tests #####
+function run_tests \{
+/bin/rm -rf $testsuite/stap-mysql
+$mysqldir/bin/mysql_install_db --basedir=$mysqldir --datadir=$msdata
+
+(cd $mysqldir/mysql-test
+# wait until mysql is running
+MOD=stapsdt_\$(date +%j%k%M%N | sed 's/ //')
+/usr/local/bin/stap -m \$MOD -c \"$mysqldir/libexec/mysqld --basedir=$mysqldir --datadir=$msdata --log-error=$msdata/mysql.log --pid-file=$msdata/mysql.pid  --socket=$msdata/mysql.sock\" $testsuite/stap-mysql.stp $mysqldir/libexec/mysqld >$testsuite/stap-mysql-markers.log 2>&1 &
+STAPPID=\$!
+
+for i in \$(seq 0 10) ; do
+    if $mysqldir/bin/mysqladmin ping --socket=$msdata/mysql.sock
+    then break;
+    fi
+    sleep 5
+done
+
+for i in select join insert query
+do
+  echo '##### ' \$i
+  ./mysql-test-run.pl --force --extern socket=$msdata/mysql.sock \
+    --tmpdir=/tmp/,mysql --vardir=/tmp/,mysql  --do-test=\$i
+done > $testsuite/stap-mysql.log
+)
+
+ACQUIRE=\$(grep 'handler__unlock__start' $testsuite/stap-mysql-markers.log | wc -l)
+RELEASE=\$(grep 'handler__unlock__done' $testsuite/stap-mysql-markers.log | wc -l)
+COMMAND=\$(grep 'command__start' $testsuite/stap-mysql-markers.log | wc -l)
+QUERY=\$(grep 'query__start' $testsuite/stap-mysql-markers.log | wc -l)
+RDLOCK=\$(grep 'handler__rdlock__start' $testsuite/stap-mysql-markers.log | wc -l)
+SELECT=\$(grep 'select_start' $testsuite/stap-mysql-markers.log | wc -l)
+OKAY=\$(grep 'All.*tests were successful' $testsuite/stap-mysql.log | wc -l)
+
+echo  ACQUIRE=\$ACQUIRE  RELEASE=\$RELEASE COMMAND=\$COMMAND  QUERY=\$QUERY RDLOCK=\$RDLOCK  SELECT=\$SELECT OKAY=\$OKAY
+if \[ \$ACQUIRE -gt 10000 -a \$RELEASE -gt 1000 -a \$COMMAND -gt 12000 -a \$QUERY -gt 13000 -a \$RDLOCK -gt 3000 \] ; then
+   echo PASS: mysql markers \$1
+else
+   echo FAIL: mysql markers \$1
+fi
+
+if \[ \$OKAY -eq 4 \] ; then
+   echo PASS: mysql tests \$1
+else
+   echo FAIL: mysql tests \$1
+fi
+
+$mysqldir/bin/mysqladmin shutdown -u root --socket=stap-mysql/mysql.sock
+kill \$STAPPID
+\}
+##### end run_tests #####
+
+if \[ ! -r $mysqlrelease.tar.gz \] ; then
+wget  http://dev.mysql.com/get/Downloads/MySQL-5.4/$mysqlrelease.tar.gz/from/ftp://mirror.services.wisc.edu/mirrors/mysql/
+fi
+
+if \[ ! -d mysql/src \] ; then
+tar -x -z -f $mysqlrelease.tar.gz
+mkdir mysql
+mv $mysqlrelease mysql/src
+fi
+
+if \[ ! -f mysql/install/bin/mysql \] ; then
+cd mysql
+mkdir bld
+cd bld
+# Force the use of dtrace
+sed -i -e 's/HAVE_DTRACE_DASH_G=\"no\"/HAVE_DTRACE_DASH_G=\"yes\"/' ../src/configure
+../src/configure --enable-dtrace --prefix=$mysqldir
+for i in \$(find . -name Makefile) ; do 
+    sed -i -e 's/^CXXFLAGS =/& -g/' \$i
+done
+
+make -j2
+cp ./abi_check.out ../../src/include/mysql.h.pp
+make -j2
+make install
+fi
+
+run_tests uprobe
+"
+########## End /tmp/stap-mysql.sh ########## 
+close $fp
+
+########## /tmp/stap-mysql.sh does most of the work ########## 
+verbose -log Running mysql testsuite
+spawn sh stap-mysql.sh 2>&1
+expect {
+    -timeout 1000
+    -re {FAIL: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	fail "$s"; exp_continue }
+    -re {PASS: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	pass "$s"; exp_continue }
+    -re {UNSUPPORTED: [a-zA-Z_/: ]+} { regexp " .*$" $expect_out(0,string) s; 
+	verbose -log "$s"
+	unsupported "$s"; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if { $verbose == 0 } {
+catch {exec rm -rf $msdata}
+catch {exec rm -rf $testsuite/stap-mysql.stp $testsuite/stap-mysql.log \
+	   $testsuite/stap-mysql-markers.log $testsuite/stap-mysql.sh $mysqlrelease.tar.gz}
+catch {exec rm -rf mysql}
+}

@@ -74,7 +74,7 @@ STAPPID=\$!
 
 # wait until postgres is running
 for i in \$(seq 0 10) ; do
-    if pg_ctl status -D $pgdata
+    if $postgresdir/bin/pg_ctl status -D $pgdata
     then break;
     fi
     sleep 5
