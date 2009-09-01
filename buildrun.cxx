@@ -442,6 +442,14 @@ make_tracequery(systemtap_session& s, string& name,
   // make the module
   string make_cmd = "make -C '" + s.kernel_build_tree + "'"
     + " M='" + dir + "' modules";
+
+  // Add architecture
+  make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+
+  // Add any custom kbuild flags
+  for (unsigned k=0; k<s.kbuildflags.size(); k++)
+    make_cmd += string(" ") + lex_cast_qstring(s.kbuildflags[k]);
+
   if (s.verbose < 4)
     make_cmd += " >/dev/null 2>&1";
   return run_make_cmd(s, make_cmd);
@@ -491,6 +499,14 @@ make_typequery_kmod(systemtap_session& s, const string& header, string& name)
   // make the module
   string make_cmd = "make -C '" + s.kernel_build_tree + "'"
     + " M='" + dir + "' modules";
+
+  // Add architecture
+  make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+
+  // Add any custom kbuild flags
+  for (unsigned k=0; k<s.kbuildflags.size(); k++)
+    make_cmd += string(" ") + lex_cast_qstring(s.kbuildflags[k]);
+
   if (s.verbose < 4)
     make_cmd += " >/dev/null 2>&1";
   return run_make_cmd(s, make_cmd);

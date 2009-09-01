@@ -190,6 +190,7 @@ find_script_hash (systemtap_session& s, const string& script, const hash &base)
   for (unsigned i = 0; i < s.macros.size(); i++)
     h.add(s.macros[i]);
 
+  // Add any custom kbuild flags (-B)
   for (unsigned i = 0; i < s.kbuildflags.size(); i++)
     h.add(s.kbuildflags[i]);
 
@@ -236,7 +237,9 @@ find_stapconf_hash (systemtap_session& s, const hash& base)
 {
   hash h(base);
 
-  // The basic hash should be good enough for STAPCONF variables
+  // Add any custom kbuild flags
+  for (unsigned i = 0; i < s.kbuildflags.size(); i++)
+    h.add(s.kbuildflags[i]);
 
   // Get the directory path to store our cached stapconf parameters
   string result, hashdir;
@@ -268,6 +271,10 @@ find_tracequery_hash (systemtap_session& s, const string& header)
   // Add the tracepoint header to the computed hash
   h.add_file(header);
 
+  // Add any custom kbuild flags
+  for (unsigned i = 0; i < s.kbuildflags.size(); i++)
+    h.add(s.kbuildflags[i]);
+
   // Get the directory path to store our cached module
   string result, hashdir;
   h.result(result);
@@ -286,6 +293,11 @@ find_typequery_hash (systemtap_session& s, const string& name)
 
   // Add the typequery name to distinguish the hash
   h.add(name);
+
+  if (name[0] == 'k')
+    // Add any custom kbuild flags
+    for (unsigned i = 0; i < s.kbuildflags.size(); i++)
+      h.add(s.kbuildflags[i]);
 
   // Get the directory path to store our cached module
   string result, hashdir;
