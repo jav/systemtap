@@ -107,7 +107,6 @@ struct systemtap_session
   bool listing_mode_vars;
   bool bulk_mode;
   bool unoptimized;
-  bool merge;
   bool suppress_warnings;
   int buffer_size;
   unsigned perfmon;

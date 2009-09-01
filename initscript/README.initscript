@@ -223,7 +223,7 @@ Configuration file allows us
  - Below options are ignored when compiling script.
    -p,-m,-r,-c,-x,-e,-s,-o,-h,-V,-k
  - Below options are ignored when starting script.
-   -h,-V,-M,-v,-t,-p,-I,-e,-R,-r,-m,-k,-g,-P,-D,-b,-u,-q,-w,-l,-d,-L,-F, and
+   -h,-V,-v,-t,-p,-I,-e,-R,-r,-m,-k,-g,-P,-D,-b,-u,-q,-w,-l,-d,-L,-F, and
    other long options.
 
 4.2.2 <script-name>_REQ

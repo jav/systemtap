@@ -368,18 +368,6 @@ checkOptions (systemtap_session &s)
 {
   bool optionsConflict = false;
 
-  if(!s.bulk_mode && !s.merge)
-    {
-      cerr << "-M option is valid only for bulk (relayfs) mode." <<endl;
-      optionsConflict = true;
-    }
-
-  if(!s.output_file.empty() && s.bulk_mode && !s.merge)
-    {
-      cerr << "You can't specify -M, -b and -o options together." <<endl;
-      optionsConflict = true;
-    }
-
   if((s.cmd != "") && (s.target_pid))
     {
       cerr << "You can't specify -c and -x options together." <<endl;
@@ -504,7 +492,6 @@ main (int argc, char * const argv [])
   s.keep_tmpdir = false;
   s.cmd = "";
   s.target_pid = 0;
-  s.merge=true;
   s.perfmon=0;
   s.symtab = false;
   s.use_cache = true;
@@ -610,7 +597,7 @@ main (int argc, char * const argv [])
         { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:",
+      int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:",
                              long_options, NULL);
       if (grc < 0)
         break;
@@ -619,10 +606,6 @@ main (int argc, char * const argv [])
         case 'V':
           version ();
           exit (0);
-
-        case 'M':
-          s.merge = false;
-          break;
 
         case 'v':
           for (unsigned i=0; i<5; i++)

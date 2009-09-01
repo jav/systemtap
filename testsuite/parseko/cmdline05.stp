@@ -1,5 +1,0 @@
-#!/bin/sh
-
-# You can't specify '-M', '-b', and '-o' simultaneously.
-
-stap -p1 -b -M -o stdout -e 'probe begin { exit() }'

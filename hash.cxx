@@ -168,7 +168,6 @@ find_script_hash (systemtap_session& s, const string& script, const hash &base)
 
   // Hash user-specified arguments (that change the generated module).
   h.add(s.bulk_mode);			// '-b'
-  h.add(s.merge);			// '-M'
   h.add(s.timing);			// '-t'
   h.add(s.prologue_searching);		// '-P'
   h.add(s.ignore_vmlinux);		// --ignore-vmlinux
