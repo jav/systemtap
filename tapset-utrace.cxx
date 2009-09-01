@@ -979,7 +979,9 @@ utrace_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_probes); i++) {";
   s.op->indent(1);
   s.op->newline() << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
+  s.op->newline() << "probe_point = p->pp;"; // for error messages
   s.op->newline() << "rc = stap_register_task_finder_target(&p->tgt);";
+  s.op->newline() << "if (rc) break;";
   s.op->newline(-1) << "}";
 
   // rollback all utrace probes
