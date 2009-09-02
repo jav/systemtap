@@ -23,6 +23,9 @@
 enum code { INFO=0, WARN, ERROR, DBUG };
 
 static void _stp_vlog (enum code type, const char *func, int line, const char *fmt, va_list args)
+        __attribute ((format (printf, 4, 0)));
+
+static void _stp_vlog (enum code type, const char *func, int line, const char *fmt, va_list args)
 {
 	int num;
 	char *buf = per_cpu_ptr(Stp_lbuf, get_cpu());
@@ -38,7 +41,7 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 		start = sizeof(ERR_STRING) - 1;
 	}
 
-	num = _stp_vscnprintf (buf + start, STP_LOG_BUF_LEN - start - 1, fmt, args);
+	num = vscnprintf (buf + start, STP_LOG_BUF_LEN - start - 1, fmt, args);
 	if (num + start) {
 		if (buf[num + start - 1] != '\n') {
 			buf[num + start] = '\n';

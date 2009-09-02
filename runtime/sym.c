@@ -276,24 +276,22 @@ static int _stp_module_check(void)
 			 continue;
 		    if (memcmp(m->build_id_bits, (unsigned char*) notes_addr, m->build_id_len)) {
 	                 const char *basename;
-
 			 basename = strrchr(m->path, '/');
 			 if (basename)
 			     basename++;
 			 else
 			     basename = m->path;
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
-                         _stp_error ("Build-id mismatch: \"%s\" %.*M"
-				     " vs. \"%s\" %.*M\n",
-				     m->name, m->build_id_len, notes_addr,
-				     basename, m->build_id_len, m->build_id_bits);
+                         _stp_error ("Build-id mismatch: \"%s\" vs. \"%s\"\n",
+				     m->name, basename);
                          return 1;
 #else
                          /* This branch is a surrogate for kernels
 			  * affected by Fedora bug #465873. */
-                         printk(KERN_WARNING
-				 "Build-id mismatch: \"%s\" vs. \"%s\"\n",
-				 m->name, basename);
+                         _stp_warn (KERN_WARNING
+                                    "Build-id mismatch: \"%s\" vs. \"%s\"\n",
+                                    m->name, basename);
 #endif
 		    }
 		} /* end checking */

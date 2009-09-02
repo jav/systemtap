@@ -1189,7 +1189,7 @@ c_unparser::emit_module_init ()
   o->newline() << "if (sizeof (struct context) <= 131072)";
   o->newline(1) << "contexts = alloc_percpu (struct context);";
   o->newline(-1) << "if (contexts == NULL) {";
-  o->newline(1) << "_stp_error (\"percpu context (size %lu) allocation failed\", sizeof (struct context));";
+  o->newline(1) << "_stp_error (\"percpu context (size %lu) allocation failed\", (unsigned long) sizeof (struct context));";
   o->newline() << "rc = -ENOMEM;";
   o->newline() << "goto out;";
   o->newline(-1) << "}";

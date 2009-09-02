@@ -121,7 +121,7 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
 	    || (*cie & (sizeof(*cie) - 1))
 	    || (cie[1] != 0xffffffff && cie[1] != 0)) {
-		dbug_unwind(1, "cie is not valid %lx %x %x %x\n", cie, *cie, fde[1], cie[1]);
+		dbug_unwind(1, "cie is not valid %lx %x %x %x\n", (unsigned long)cie, *cie, fde[1], cie[1]);
 		return NULL;	/* this is not a (valid) CIE */
 	}
 
@@ -260,7 +260,7 @@ static int advance_loc(unsigned long delta, struct unwind_state *state)
 
 static void set_rule(uleb128_t reg, enum item_location where, uleb128_t value, struct unwind_state *state)
 {
-	dbug_unwind(1, "reg=%d, where=%d, value=%lx\n", reg, where, value);
+	dbug_unwind(1, "reg=%lx, where=%d, value=%lx\n", reg, where, value);
 	if (reg < ARRAY_SIZE(state->regs)) {
 		state->regs[reg].where = where;
 		state->regs[reg].value = value;
@@ -556,7 +556,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 
 	num = read_pointer(&ptr, end, hdr[2]);
 	if (num == 0 || num != (end - ptr) / (2 * tableSize) || (end - ptr) % (2 * tableSize)) {
-		dbug_unwind(1, "Bad num=%d end-ptr=%ld 2*tableSize=%d", num, end - ptr, 2 * tableSize);
+		dbug_unwind(1, "Bad num=%d end-ptr=%ld 2*tableSize=%d", num, (long)(end - ptr), 2 * tableSize);
 		return NULL;
 	}
 
@@ -575,7 +575,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s, hdr[3], 1)) != 0 && pc >= startLoc)
 		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
 
-	dbug_unwind(1, "returning fde=%lx startLoc=%lx", fde, startLoc);
+	dbug_unwind(1, "returning fde=%lx startLoc=%lx", (unsigned long) fde, startLoc);
 	return fde;
 }
 
@@ -602,7 +602,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	}
 
 	fde = _stp_search_unwind_hdr(pc, m, s);
-	dbug_unwind(1, "%s: fde=%lx\n", m->name, fde);
+	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
 
 	/* found the fde, now set startLoc and endLoc */
 	if (fde != NULL) {
@@ -655,7 +655,8 @@ static int unwind_frame(struct unwind_frame_info *frame,
 		}
 	}
 
-	dbug_unwind(1, "cie=%lx fde=%lx startLoc=%lx endLoc=%lx, pc=%lx\n", cie, fde, startLoc, endLoc, pc);
+	dbug_unwind(1, "cie=%lx fde=%lx startLoc=%lx endLoc=%lx, pc=%lx\n",
+                    (unsigned long) cie, (unsigned long)fde, (unsigned long) startLoc, (unsigned long) endLoc, pc);
 	if (cie == NULL || fde == NULL)
 		goto err;
 
@@ -750,14 +751,15 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	if (STACK_LIMIT(startLoc) != STACK_LIMIT(endLoc)) {
 		startLoc = min(STACK_LIMIT(cfa), cfa);
 		endLoc = max(STACK_LIMIT(cfa), cfa);
-		dbug_unwind(1, "cfa startLoc=%p, endLoc=%p\n", (u64)startLoc, (u64)endLoc);
+		dbug_unwind(1, "cfa startLoc=%lx, endLoc=%lx\n",
+                            (unsigned long)startLoc, (unsigned long)endLoc);
 	}
 #ifndef CONFIG_64BIT
 # define CASES CASE(8); CASE(16); CASE(32)
 #else
 # define CASES CASE(8); CASE(16); CASE(32); CASE(64)
 #endif
-	dbug_unwind(1, "cie=%lx fde=%lx\n", cie, fde);
+	dbug_unwind(1, "cie=%lx fde=%lx\n", (unsigned long) cie, (unsigned long) fde);
 	for (i = 0; i < ARRAY_SIZE(state.regs); ++i) {
 		if (REG_INVALID(i)) {
 			if (state.regs[i].where == Nowhere)
