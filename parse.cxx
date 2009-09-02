@@ -754,9 +754,8 @@ lexer::scan (bool wildcard)
                  idx <= session.args.size()); // prevent overflow
       if (idx == 0 ||
           idx-1 >= session.args.size())
-        throw parse_error ("command line argument index " + lex_cast<string>(idx)
-                           + " out of range [1-" + lex_cast<string>(session.args.size()) + "]", n);
-
+        throw parse_error ("command line argument index " + lex_cast(idx)
+                           + " out of range [1-" + lex_cast(session.args.size()) + "]", n);
       string arg = session.args[idx-1];
       if (c == '$') input_put (arg);
       else input_put (lex_cast_qstring (arg));

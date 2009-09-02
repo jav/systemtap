@@ -108,7 +108,7 @@ mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
-  e->probe_context_var = "__mark_arg" + lex_cast<string>(argnum);
+  e->probe_context_var = "__mark_arg" + lex_cast(argnum);
   e->type = mark_args[argnum-1]->stp_type;
   provide (e);
 }
@@ -156,10 +156,10 @@ mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
         {
           if (i > 0)
             pf->raw_components += " ";
-          pf->raw_components += "$arg" + lex_cast<string>(i+1);
+          pf->raw_components += "$arg" + lex_cast(i+1);
           target_symbol *tsym = new target_symbol;
           tsym->tok = e->tok;
-          tsym->base_name = "$arg" + lex_cast<string>(i+1);
+          tsym->base_name = "$arg" + lex_cast(i+1);
 
           tsym->saved_conversion_error = 0;
           expression *texp = require (tsym); //same treatment as tracepoint
@@ -414,7 +414,7 @@ mark_derived_probe::emit_probe_context_vars (translator_output* o)
 
   for (unsigned i = 0; i < mark_args.size(); i++)
     {
-      string localname = "__mark_arg" + lex_cast<string>(i+1);
+      string localname = "__mark_arg" + lex_cast(i+1);
       switch (mark_args[i]->stp_type)
         {
 	case pe_long:
@@ -441,7 +441,7 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
   bool deref_fault_needed = false;
   for (unsigned i = 0; i < mark_args.size(); i++)
     {
-      string localname = "l->__mark_arg" + lex_cast<string>(i+1);
+      string localname = "l->__mark_arg" + lex_cast(i+1);
       switch (mark_args[i]->stp_type)
         {
 	case pe_long:
@@ -475,7 +475,7 @@ mark_derived_probe::printargs(std::ostream &o) const
 {
   for (unsigned i = 0; i < mark_args.size(); i++)
     {
-      string localname = "$arg" + lex_cast<string>(i+1);
+      string localname = "$arg" + lex_cast(i+1);
       switch (mark_args[i]->stp_type)
         {
         case pe_long:

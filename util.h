@@ -23,38 +23,35 @@ int kill_stap_spawn(int sig);
 // stringification generics
 
 
-template <typename T>
-inline std::string
-stringify(T t)
+template <typename IN>
+inline std::string lex_cast(IN const & in)
 {
-  std::ostringstream s;
-  s << t;
-  return s.str ();
+  std::ostringstream ss;
+  if (!(ss << in))
+    throw std::runtime_error("bad lexical cast");
+  return ss.str();
 }
 
 
-template <typename OUT, typename IN>
-inline OUT lex_cast(IN const & in)
+template <typename OUT>
+inline OUT lex_cast(std::string const & in)
 {
-  std::stringstream ss;
+  std::istringstream ss(in);
   OUT out;
-  // NB: ss >> string out assumes that "in" renders to one word
-  if (!(ss << in && ss >> out))
+  if (!(ss >> out && ss.eof()))
     throw std::runtime_error("bad lexical cast");
   return out;
 }
 
 
-template <typename OUT, typename IN>
-inline OUT
+template <typename IN>
+inline std::string
 lex_cast_hex(IN const & in)
 {
-  std::stringstream ss;
-  OUT out;
-  // NB: ss >> string out assumes that "in" renders to one word
-  if (!(ss << "0x" << std::hex << in && ss >> out))
+  std::ostringstream ss;
+  if (!(ss << std::showbase << std::hex << in))
     throw std::runtime_error("bad lexical cast");
-  return out;
+  return ss.str();
 }
 
 
@@ -65,32 +62,39 @@ inline std::string
 lex_cast_qstring(IN const & in)
 {
   std::stringstream ss;
-  std::string out, out2;
   if (!(ss << in))
     throw std::runtime_error("bad lexical cast");
-  out = ss.str(); // "in" is expected to render to more than one word
-  out2 += '"';
-  for (unsigned i=0; i<out.length(); i++)
+  return lex_cast_qstring(ss.str());
+}
+
+
+template <>
+inline std::string
+lex_cast_qstring(std::string const & in)
+{
+  std::string out;
+  out += '"';
+  for (const char *p = in.c_str(); *p; ++p)
     {
-      unsigned char c = out[i];
+      unsigned char c = *p;
       if (! isprint(c))
         {
-          out2 += '\\';
+          out += '\\';
           // quick & dirty octal converter
-          out2 += "01234567" [(c >> 6) & 0x07];
-          out2 += "01234567" [(c >> 3) & 0x07];
-          out2 += "01234567" [(c >> 0) & 0x07];
+          out += "01234567" [(c >> 6) & 0x07];
+          out += "01234567" [(c >> 3) & 0x07];
+          out += "01234567" [(c >> 0) & 0x07];
         }
       else if (c == '"' || c == '\\')
         {
-          out2 += '\\';
-          out2 += c;
+          out += '\\';
+          out += c;
         }
       else
-        out2 += c;
+        out += c;
     }
-  out2 += '"';
-  return out2;
+  out += '"';
+  return out;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

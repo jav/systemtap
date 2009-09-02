@@ -1845,7 +1845,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
 
   string aname = (string("_dwarf_tvar_")
                   + e->base_name.substr(1)
-                  + "_" + lex_cast<string>(tick++));
+                  + "_" + lex_cast(tick++));
   vardecl* vd = new vardecl;
   vd->name = aname;
   vd->tok = e->tok;
@@ -2256,7 +2256,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
 		  + "_" + e->base_name.substr(1)
-		  + "_" + lex_cast<string>(tick++));
+		  + "_" + lex_cast(tick++));
 
   try
     {
@@ -2322,7 +2322,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       {
         vardecl *v = new vardecl;
         v->type = pe_long;
-        v->name = "index" + lex_cast<string>(i);
+        v->name = "index" + lex_cast(i);
         v->tok = e->tok;
         fdecl->formal_args.push_back(v);
       }
@@ -2568,7 +2568,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
 		  + "_" + e->base_name.substr(1)
-		  + "_" + lex_cast<string>(tick++));
+		  + "_" + lex_cast(tick++));
 
   // Synthesize a function.
   functiondecl *fdecl = new functiondecl;
@@ -2594,7 +2594,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       {
         vardecl *v = new vardecl;
         v->type = pe_long;
-        v->name = "index" + lex_cast<string>(i);
+        v->name = "index" + lex_cast(i);
         v->tok = e->tok;
         fdecl->formal_args.push_back(v);
       }
@@ -2707,7 +2707,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   // Range limit maxactive() value
   if (q.has_maxactive && (q.maxactive_val < 0 || q.maxactive_val > USHRT_MAX))
     throw semantic_error ("maxactive value out of range [0,"
-                          + lex_cast<string>(USHRT_MAX) + "]",
+                          + lex_cast(USHRT_MAX) + "]",
                           q.base_loc->tok);
 
   // Expand target variables in the probe body
@@ -2764,7 +2764,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
           {
             retro_name += ("@" + string (filename));
             if (line > 0)
-              retro_name += (":" + lex_cast<string> (line));
+              retro_name += (":" + lex_cast (line));
           }
         comps.push_back
           (new probe_point::component
@@ -3364,7 +3364,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   cast->tok = e->tok;
   cast->operand = fc;
   cast->components = e->components;
-  cast->type = probe_name + "_arg" + lex_cast<string>(argno);
+  cast->type = probe_name + "_arg" + lex_cast(argno);
   cast->module = process_name;
 
   cast->visit(this);
@@ -4252,7 +4252,7 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
           {
             retro_name += ("@" + string (filename));
             if (line > 0)
-              retro_name += (":" + lex_cast<string> (line));
+              retro_name += (":" + lex_cast (line));
           }
         comps.push_back
           (new probe_point::component
@@ -5388,7 +5388,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
       string fname = (string(lvalue ? "_tracepoint_tvar_set" : "_tracepoint_tvar_get")
                       + "_" + e->base_name.substr(1)
-                      + "_" + lex_cast<string>(tick++));
+                      + "_" + lex_cast(tick++));
 
       fdecl->name = fname;
       fdecl->body = ec;
@@ -5427,7 +5427,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
           {
             vardecl *v = new vardecl;
             v->type = pe_long;
-            v->name = "index" + lex_cast<string>(i);
+            v->name = "index" + lex_cast(i);
             v->tok = e->tok;
             fdecl->formal_args.push_back(v);
           }

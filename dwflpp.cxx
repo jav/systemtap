@@ -1243,7 +1243,7 @@ dwflpp::die_entrypc (Dwarf_Die * die, Dwarf_Addr * addr)
           while ((offset = dwarf_ranges (die, offset, &base, &begin, &end)) > 0)
             extra ++;
           if (extra)
-            lookup_method += ", ignored " + lex_cast<string>(extra) + " more";
+            lookup_method += ", ignored " + lex_cast(extra) + " more";
         }
     }
 
@@ -1437,7 +1437,7 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
   if (nscopes <= 0)
     {
       throw semantic_error ("unable to find any scopes containing "
-                            + lex_cast_hex<string>(pc)
+                            + lex_cast_hex(pc)
                             + ((scope_die == NULL) ? ""
                                : (string (" in ")
                                   + (dwarf_diename(scope_die) ?: "<unknown>")
@@ -1456,7 +1456,7 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
       stringstream alternatives;
       print_locals (scopes, alternatives);
       throw semantic_error ("unable to find local '" + local + "'"
-                            + " near pc " + lex_cast_hex<string>(pc)
+                            + " near pc " + lex_cast_hex(pc)
                             + ((scope_die == NULL) ? ""
                                : (string (" in ")
                                   + (dwarf_diename(scope_die) ?: "<unknown>")
@@ -1727,7 +1727,7 @@ dwflpp::translate_components(struct obstack *pool,
 #if 0
       // Emit a marker to note which field is being access-attempted, to give
       // better error messages if deref() fails.
-      string piece = string(...target_symbol token...) + string ("#") + stringify(components[i].second);
+      string piece = string(...target_symbol token...) + string ("#") + lex_cast(components[i].second);
       obstack_printf (pool, "c->last_stmt = %s;", lex_cast_qstring(piece).c_str());
 #endif
 
@@ -1749,7 +1749,7 @@ dwflpp::translate_components(struct obstack *pool,
         case DW_TAG_pointer_type:
           /* A pointer with no type is a void* -- can't dereference it. */
           if (!dwarf_hasattr_integrate (die, DW_AT_type))
-            throw semantic_error ("invalid access '" + lex_cast<string>(c)
+            throw semantic_error ("invalid access '" + lex_cast(c)
                                   + "' vs. " + dwarf_type_name(die),
                                   c.tok);
 
@@ -1768,14 +1768,14 @@ dwflpp::translate_components(struct obstack *pool,
             }
           else if (c.type == target_symbol::comp_expression_array_index)
             {
-              string index = "THIS->index" + lex_cast<string>(i);
+              string index = "THIS->index" + lex_cast(i);
               c_translate_array (pool, 1, 0 /* PR9768 */, die, tail,
                                  index.c_str(), 0);
               ++i;
             }
           else
             throw semantic_error ("invalid access '"
-                                  + lex_cast<string>(c)
+                                  + lex_cast(c)
                                   + "' for array type",
                                   c.tok);
           break;
@@ -1785,7 +1785,7 @@ dwflpp::translate_components(struct obstack *pool,
         case DW_TAG_class_type:
           if (c.type != target_symbol::comp_struct_member)
             throw semantic_error ("invalid access '"
-                                  + lex_cast<string>(c)
+                                  + lex_cast(c)
                                   + "' for " + dwarf_type_name(die),
                                   c.tok);
 
@@ -1811,7 +1811,7 @@ dwflpp::translate_components(struct obstack *pool,
                       const char *file = dwarf_decl_file(&parentdie);
                       if (file && dwarf_decl_line(&parentdie, &line) == 0)
                         source = " (" + string(file) + ":"
-                                 + lex_cast<string>(line) + ")";
+                                 + lex_cast(line) + ")";
                     }
 
                   string alternatives;
@@ -1836,7 +1836,7 @@ dwflpp::translate_components(struct obstack *pool,
         case DW_TAG_enumeration_type:
         case DW_TAG_base_type:
           throw semantic_error ("invalid access '"
-                                + lex_cast<string>(c)
+                                + lex_cast(c)
                                 + "' vs. " + dwarf_type_name(die),
                                 c.tok);
           break;
@@ -1848,7 +1848,7 @@ dwflpp::translate_components(struct obstack *pool,
 
         default:
           throw semantic_error (dwarf_type_name(die) + ": unexpected type tag "
-                                + lex_cast<string>(dwarf_tag (die)),
+                                + lex_cast(dwarf_tag (die)),
                                 c.tok);
           break;
         }
@@ -1936,7 +1936,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
     {
     default:
       throw semantic_error ("unsupported type tag "
-                            + lex_cast<string>(typetag)
+                            + lex_cast(typetag)
                             + " for " + dwarf_type_name(typedie), e->tok);
       break;
 
@@ -1959,7 +1959,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
         if (encoding < 0)
           {
             // clog << "bad type1 " << encoding << " diestr" << endl;
-            throw semantic_error ("unsupported type (mystery encoding " + lex_cast<string>(encoding) + ")" +
+            throw semantic_error ("unsupported type (mystery encoding " + lex_cast(encoding) + ")" +
                                   " for " + dwarf_type_name(typedie), e->tok);
           }
 
@@ -1968,7 +1968,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
             /* XXX || many others? */)
           {
             // clog << "bad type " << encoding << " diestr" << endl;
-            throw semantic_error ("unsupported type (encoding " + lex_cast<string>(encoding) + ")" +
+            throw semantic_error ("unsupported type (encoding " + lex_cast(encoding) + ")" +
                                   " for " + dwarf_type_name(typedie), e->tok);
           }
       }
@@ -2097,7 +2097,7 @@ dwflpp::literal_stmt_for_local (Dwarf_Die *scope_die,
       throw semantic_error("failed to retrieve location "
                            "attribute for local '" + local
                            + "' (dieoffset: "
-                           + lex_cast_hex<string>(dwarf_dieoffset (&vardie))
+                           + lex_cast_hex(dwarf_dieoffset (&vardie))
                            + ")",
                            e->tok);
     }

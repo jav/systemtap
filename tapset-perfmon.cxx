@@ -59,7 +59,7 @@ perfmon_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   string fname = string("_perfmon_tvar_get")
                   + "_" + e->base_name.substr(1)
-                  + "_" + lex_cast<string>(counter_number);
+                  + "_" + lex_cast(counter_number);
 
   if (e->base_name != "$counter")
     throw semantic_error ("target variables not available to perfmon probes");
@@ -70,7 +70,7 @@ perfmon_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   e->assert_no_components("perfmon");
 
   ec->code = "THIS->__retvalue = _pfm_pmd_x[" +
-          lex_cast<string>(counter_number) + "].reg_num;";
+          lex_cast(counter_number) + "].reg_num;";
   ec->code += "/* pure */";
   fdecl->name = fname;
   fdecl->body = ec;
@@ -390,7 +390,7 @@ perfmon_derived_probe_group::emit_module_init (translator_output* o)
   /* output the needed bits for pmc here */
   for (unsigned i=0; i < outp.pfp_pmc_count; i++) {
     o->newline() << "{.reg_num=" << pc[i].reg_num << ", "
-                 << ".reg_value=" << lex_cast_hex<string>(pc[i].reg_value)
+                 << ".reg_value=" << lex_cast_hex(pc[i].reg_value)
                  << "},";
   }
 

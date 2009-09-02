@@ -384,9 +384,9 @@ public:
 
             case statistic_decl::linear:
               prefix += string("HIST_LINEAR")
-                + ", " + stringify(sd.linear_low)
-                + ", " + stringify(sd.linear_high)
-                + ", " + stringify(sd.linear_step);
+                + ", " + lex_cast(sd.linear_low)
+                + ", " + lex_cast(sd.linear_high)
+                + ", " + lex_cast(sd.linear_step);
               break;
 
             case statistic_decl::logarithmic:
@@ -456,7 +456,7 @@ protected:
 public:
   tmpvar(exp_type ty,
 	 unsigned & counter)
-    : var(true, ty, ("__tmp" + stringify(counter++))), overridden(false)
+    : var(true, ty, ("__tmp" + lex_cast(counter++))), overridden(false)
   {}
 
   tmpvar(const var& source)
@@ -487,7 +487,7 @@ struct aggvar
   : public var
 {
   aggvar(unsigned & counter)
-    : var(true, pe_stats, ("__tmp" + stringify(counter++)))
+    : var(true, pe_stats, ("__tmp" + lex_cast(counter++)))
   {}
 
   string init() const
@@ -625,8 +625,8 @@ struct mapvar
       throw semantic_error("adding a value of an unsupported map type");
 
     res += "; if (unlikely(rc)) { c->last_error = \"Array overflow, check " +
-      stringify(maxsize > 0 ?
-	  "size limit (" + stringify(maxsize) + ")" : "MAXMAPENTRIES")
+      lex_cast(maxsize > 0 ?
+	  "size limit (" + lex_cast(maxsize) + ")" : "MAXMAPENTRIES")
       + "\"; goto out; }}";
 
     return res;
@@ -646,8 +646,8 @@ struct mapvar
       throw semantic_error("setting a value of an unsupported map type");
 
     res += "; if (unlikely(rc)) { c->last_error = \"Array overflow, check " +
-      stringify(maxsize > 0 ?
-	  "size limit (" + stringify(maxsize) + ")" : "MAXMAPENTRIES")
+      lex_cast(maxsize > 0 ?
+	  "size limit (" + lex_cast(maxsize) + ")" : "MAXMAPENTRIES")
       + "\"; goto out; }}";
 
     return res;
@@ -671,7 +671,7 @@ struct mapvar
   {
     string mtype = is_parallel() ? "pmap" : "map";
     string prefix = value() + " = _stp_" + mtype + "_new_" + keysym() + " (" +
-      (maxsize > 0 ? stringify(maxsize) : "MAXMAPENTRIES") ;
+      (maxsize > 0 ? lex_cast(maxsize) : "MAXMAPENTRIES") ;
 
     // See also var::init().
 
@@ -689,9 +689,9 @@ struct mapvar
 	  case statistic_decl::linear:
 	    // FIXME: check for "reasonable" values in linear stats
 	    prefix = prefix + ", HIST_LINEAR"
-	      + ", " + stringify(sdecl().linear_low)
-	      + ", " + stringify(sdecl().linear_high)
-	      + ", " + stringify(sdecl().linear_step);
+	      + ", " + lex_cast(sdecl().linear_low)
+	      + ", " + lex_cast(sdecl().linear_high)
+	      + ", " + lex_cast(sdecl().linear_step);
 	    break;
 
 	  case statistic_decl::logarithmic:
@@ -728,7 +728,7 @@ public:
 
   itervar (symbol* e, unsigned & counter)
     : referent_ty(e->referent->type),
-      name("__tmp" + stringify(counter++))
+      name("__tmp" + lex_cast(counter++))
   {
     if (referent_ty == pe_unknown)
       throw semantic_error("iterating over unknown reference type", e->tok);
@@ -775,11 +775,11 @@ public:
     switch (ty)
       {
       case pe_long:
-	return "_stp_key_get_int64 ("+ value() + ", " + stringify(i+1) + ")";
+	return "_stp_key_get_int64 ("+ value() + ", " + lex_cast(i+1) + ")";
       case pe_string:
         // impedance matching: NULL -> empty strings
 	return "({ char *v = "
-          "_stp_key_get_str ("+ value() + ", " + stringify(i+1) + "); "
+          "_stp_key_get_str ("+ value() + ", " + lex_cast(i+1) + "); "
           "if (! v) v = \"\"; "
           "v; })";
       default:
@@ -2464,7 +2464,7 @@ c_tmpcounter::visit_for_loop (for_loop *s)
 void
 c_unparser::visit_for_loop (for_loop *s)
 {
-  string ctr = stringify (label_counter++);
+  string ctr = lex_cast (label_counter++);
   string toplabel = "top_" + ctr;
   string contlabel = "continue_" + ctr;
   string breaklabel = "break_" + ctr;
@@ -2617,7 +2617,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       itervar iv = getiter (array);
       vector<var> keys;
 
-      string ctr = stringify (label_counter++);
+      string ctr = lex_cast (label_counter++);
       string toplabel = "top_" + ctr;
       string contlabel = "continue_" + ctr;
       string breaklabel = "break_" + ctr;

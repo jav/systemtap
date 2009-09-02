@@ -224,7 +224,7 @@ utrace_var_expanding_visitor::visit_target_symbol_cached (target_symbol* e)
       //   _utrace_tvar_{name}_{num}
       string aname = (string("_utrace_tvar_")
 		      + e->base_name.substr(1)
-		      + "_" + lex_cast<string>(tick++));
+		      + "_" + lex_cast(tick++));
       vardecl* vd = new vardecl;
       vd->name = aname;
       vd->tok = e->tok;
@@ -429,10 +429,10 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
         {
           if (i > 0)
             pf->raw_components += " ";
-          pf->raw_components += "$arg" + lex_cast<string>(i+1);
+          pf->raw_components += "$arg" + lex_cast(i+1);
           target_symbol *tsym = new target_symbol;
           tsym->tok = e->tok;
-          tsym->base_name = "$arg" + lex_cast<string>(i+1);
+          tsym->base_name = "$arg" + lex_cast(i+1);
           tsym->saved_conversion_error = 0;
           pf->raw_components += "=%#x"; //FIXME: missing type info
 
