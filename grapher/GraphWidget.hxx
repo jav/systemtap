@@ -5,12 +5,25 @@
 #include <vector>
 #include <tr1/memory>
 
-#include <gtkmm/drawingarea.h>
+#include <gtkmm.h>
+#include <libglademm.h>
 #include <Graph.hxx>
 
 namespace systemtap
 {
   class CairoPlayButton;
+
+  class DataModelColumns : public Gtk::TreeModelColumnRecord
+  {
+  public:
+    DataModelColumns()
+    {
+      add(_dataName);
+      add(_graphData);
+    }
+    Gtk::TreeModelColumn<Glib::ustring> _dataName;
+    Gtk::TreeModelColumn<std::tr1::shared_ptr<GraphDataBase> > _graphData;
+  };
   
   class GraphWidget : public Gtk::DrawingArea
   {
@@ -43,6 +56,15 @@ namespace systemtap
     double _dragOrigRight;
     double _width;
     double _height;
+    Glib::RefPtr<Gnome::Glade::Xml> _refXmlDataDialog;
+    Gtk::Dialog* _dataDialog;
+    Gtk::TreeView* _dataTreeView;
+    void onDataDialogCancel();
+    void onDataAdd();
+    void onDataRemove();
+    void onDataDialogOpen();
+    DataModelColumns _dataColumns;
+    Glib::RefPtr<Gtk::ListStore> _listStore;
   };
 }
 #endif // SYSTEMTAP_GRAPHWIDGET_H

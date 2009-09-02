@@ -282,7 +282,7 @@ AC_ARG_ENABLE([grapher],
   [enable_grapher="check"])		dnl ACTION-IF-NOT-GIVEN
 dnl If the user didn't disable the grapher, check for gtkmm.
 AS_IF([test "x$enable_grapher" != xno],
-  [PKG_CHECK_MODULES([gtkmm], [gtkmm-2.4 >= 2.8.0],
+  [PKG_CHECK_MODULES([gtkmm], [libglademm-2.4 >= 2.6.7],
    have_gtkmm="yes", have_gtkmm="no")])
 dnl If the user explicitly said to enable the grapher, but we can't
 dnl (since gtkmm isn't installed), error.

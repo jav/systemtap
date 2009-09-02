@@ -1,8 +1,13 @@
 #include <algorithm>
 #include <ctime>
 #include <math.h>
+#include <iostream>
 
 #include <cairomm/context.h>
+#include <libglademm.h>
+
+#include "../config.h"
+
 #include "GraphWidget.hxx"
 #include "CairoWidget.hxx"
 
@@ -10,7 +15,9 @@ namespace systemtap
 {
   using namespace std;
   using namespace std::tr1;
-  
+
+
+    
   GraphWidget::GraphWidget()
     : _trackingDrag(false), _width(600), _height(200)
   {
@@ -34,6 +41,30 @@ namespace systemtap
     // Temporary testing of multiple graphs
     shared_ptr<Graph> graph(new Graph);
     _graphs.push_back(graph);
+    try
+      {
+        _refXmlDataDialog = Gnome::Glade::Xml::create(PKGDATADIR "/graph-dialog.glade");
+        _refXmlDataDialog->get_widget("dialog1", _dataDialog);
+        Gtk::Button* button = 0;
+        _refXmlDataDialog->get_widget("cancelbutton1", button);
+        button->signal_clicked()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogCancel),
+                   false);
+        _refXmlDataDialog->get_widget("button1", button);
+        button->signal_clicked()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onDataAdd), false);
+        _refXmlDataDialog->get_widget("button2", button);        
+        button->signal_clicked()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onDataRemove), false);
+        _refXmlDataDialog->get_widget("treeview1", _dataTreeView);
+        _dataDialog->signal_map()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogOpen));
+      }
+    catch (const Gnome::Glade::XmlError& ex )
+      {
+        std::cerr << ex.what() << std::endl;
+        throw;
+      }
   }
 
   GraphWidget::~GraphWidget()
@@ -103,8 +134,16 @@ namespace systemtap
             && event->y >= (*g)->_graphY
             && event->y < (*g)->_graphY + (*g)->_graphHeight)
           {
-            _activeGraph = *g;
-            break;
+            _activeGraph = *g;            
+            if (event->button == 3)
+              {
+                _dataDialog->show();
+                return true;
+              }
+            else
+              {
+                break;
+              }
           }
       }
     if (!_activeGraph)
@@ -197,5 +236,22 @@ namespace systemtap
   {
     req->width = _width;
     req->height = _height;
+  }
+
+  void GraphWidget::onDataDialogCancel()
+  {
+    _dataDialog->hide();
+  }
+
+  void GraphWidget::onDataAdd()
+  {
+  }
+
+    void GraphWidget::onDataRemove()
+  {
+  }
+
+  void GraphWidget::onDataDialogOpen()
+  {
   }
 }

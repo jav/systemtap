@@ -7444,12 +7444,12 @@ if test -n "$gtkmm_CFLAGS"; then
     pkg_cv_gtkmm_CFLAGS="$gtkmm_CFLAGS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkmm-2.4 >= 2.8.0\"") >&5
-  ($PKG_CONFIG --exists --print-errors "gtkmm-2.4 >= 2.8.0") 2>&5
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libglademm-2.4 >= 2.6.7\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libglademm-2.4 >= 2.6.7") 2>&5
   ac_status=$?
   $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_gtkmm_CFLAGS=`$PKG_CONFIG --cflags "gtkmm-2.4 >= 2.8.0" 2>/dev/null`
+  pkg_cv_gtkmm_CFLAGS=`$PKG_CONFIG --cflags "libglademm-2.4 >= 2.6.7" 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -7460,12 +7460,12 @@ if test -n "$gtkmm_LIBS"; then
     pkg_cv_gtkmm_LIBS="$gtkmm_LIBS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkmm-2.4 >= 2.8.0\"") >&5
-  ($PKG_CONFIG --exists --print-errors "gtkmm-2.4 >= 2.8.0") 2>&5
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libglademm-2.4 >= 2.6.7\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libglademm-2.4 >= 2.6.7") 2>&5
   ac_status=$?
   $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_gtkmm_LIBS=`$PKG_CONFIG --libs "gtkmm-2.4 >= 2.8.0" 2>/dev/null`
+  pkg_cv_gtkmm_LIBS=`$PKG_CONFIG --libs "libglademm-2.4 >= 2.6.7" 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -7483,9 +7483,9 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        gtkmm_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gtkmm-2.4 >= 2.8.0" 2>&1`
+	        gtkmm_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "libglademm-2.4 >= 2.6.7" 2>&1`
         else
-	        gtkmm_PKG_ERRORS=`$PKG_CONFIG --print-errors "gtkmm-2.4 >= 2.8.0" 2>&1`
+	        gtkmm_PKG_ERRORS=`$PKG_CONFIG --print-errors "libglademm-2.4 >= 2.6.7" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$gtkmm_PKG_ERRORS" >&5
