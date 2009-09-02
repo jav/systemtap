@@ -6,7 +6,7 @@ global env
 
 if {! [info exists env(SYSTEMTAP_TEST_SDT)]} {
     unsupported "mysql (\"SYSTEMTAP_TEST_SDT\" not in env)"
-    exit
+    return
 }
 
 ########## Create /tmp/stap-mysql.stp ########## 
