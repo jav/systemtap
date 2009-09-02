@@ -36,6 +36,8 @@ namespace systemtap
   protected:
     typedef std::vector<std::tr1::shared_ptr<Graph> > GraphList;
     GraphList _graphs;
+    typedef std::vector<std::tr1::shared_ptr<GraphDataBase> > GraphDataList;
+    GraphDataList _graphData;
     // For click and drag
     std::tr1::shared_ptr<Graph> _activeGraph;
     // Dragging all graphs simultaneously, or perhaps seperately

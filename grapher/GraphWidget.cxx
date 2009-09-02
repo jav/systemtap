@@ -59,6 +59,9 @@ namespace systemtap
         _refXmlDataDialog->get_widget("treeview1", _dataTreeView);
         _dataDialog->signal_map()
           .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogOpen));
+        _listStore = Gtk::ListStore::create(_dataColumns);
+        _dataTreeView->set_model(_listStore);
+        _dataTreeView->append_column("Data", _dataColumns._dataName);
       }
     catch (const Gnome::Glade::XmlError& ex )
       {
@@ -74,6 +77,7 @@ namespace systemtap
   void GraphWidget::addGraphData(std::tr1::shared_ptr<GraphDataBase> data)
   {
     _graphs[0]->addGraphData(data);
+    _graphData.push_back(data);
   }
 
   void GraphWidget::addGraph()
@@ -253,5 +257,16 @@ namespace systemtap
 
   void GraphWidget::onDataDialogOpen()
   {
+      _listStore.clear();
+      for (GraphDataList::iterator itr = _graphData.begin(),
+               end = _graphData.end();
+           itr != end;
+           ++itr)
+      {
+          Gtk::TreeModel::iterator litr = _listStore->append();
+          Gtk::TreeModel::Row row = *litr;
+          row[_dataColumns._dataName] = (*itr)->title;
+          row[_dataColumns._graphData] = *itr;
+      }
   }
 }
