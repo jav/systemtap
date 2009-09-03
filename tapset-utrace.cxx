@@ -1033,12 +1033,20 @@ register_tapset_utrace(systemtap_session& s)
 
   for (unsigned i = 0; i < roots.size(); ++i)
     {
-      roots[i]->bind(TOK_BEGIN)->bind(builder);
-      roots[i]->bind(TOK_END)->bind(builder);
-      roots[i]->bind(TOK_THREAD)->bind(TOK_BEGIN)->bind(builder);
-      roots[i]->bind(TOK_THREAD)->bind(TOK_END)->bind(builder);
-      roots[i]->bind(TOK_SYSCALL)->bind(builder);
-      roots[i]->bind(TOK_SYSCALL)->bind(TOK_RETURN)->bind(builder);
+      roots[i]->bind(TOK_BEGIN)
+	->allow_unprivileged()
+	->bind(builder);
+      roots[i]->bind(TOK_END)
+	->allow_unprivileged()
+	->bind(builder);
+      roots[i]->bind(TOK_THREAD)->bind(TOK_BEGIN)
+	->bind(builder);
+      roots[i]->bind(TOK_THREAD)->bind(TOK_END)
+	->bind(builder);
+      roots[i]->bind(TOK_SYSCALL)
+	->bind(builder);
+      roots[i]->bind(TOK_SYSCALL)->bind(TOK_RETURN)
+	->bind(builder);
     }
 }
 

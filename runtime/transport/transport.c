@@ -59,10 +59,6 @@ static int _stp_bufsize;
 module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
-static int _stp_unprivileged_user;
-module_param(_stp_unprivileged_user, int, 1);
-MODULE_PARM_DESC(_stp_unprivileged_user, "user is unprivileged");
-
 /* forward declarations */
 static void probe_exit(void);
 static int probe_start(void);

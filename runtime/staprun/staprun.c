@@ -145,18 +145,10 @@ static int enable_uprobes(void)
 static int insert_stap_module(void)
 {
 	char special_options[128];
-	char *bufptr = special_options;
 
 	/* Add the _stp_bufsize option.  */
-	if (snprintf_chk(bufptr, sizeof (special_options), "_stp_bufsize=%d", buffer_size))
+	if (snprintf_chk(special_options, sizeof (special_options), "_stp_bufsize=%d", buffer_size))
 		return -1;
-
-	/* Add the _stp_unprivileged_user option.  */
-	bufptr += strlen (bufptr);
-	if (snprintf_chk(bufptr,
-			 sizeof (special_options) - (bufptr - special_options),
-			 " _stp_unprivileged_user=%d", unprivileged_user))
-	  return -1;
 
 	return insert_module(modpath, special_options, modoptions);
 }

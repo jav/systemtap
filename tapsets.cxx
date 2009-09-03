@@ -2525,9 +2525,6 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
 
 void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 {
-  if (s.unprivileged)
-    throw semantic_error("typecasting may not be used when --unprivileged is specified", e->tok);
-
   bool lvalue = is_active_lvalue(e);
   if (lvalue && !s.guru_mode)
     throw semantic_error("write to typecast value not permitted", e->tok);
@@ -2632,6 +2629,8 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
     }
   else
     ec->code += "/* pure */";
+
+  ec->code += "/* unprivileged */";
 
   s.functions[fdecl->name] = fdecl;
 
@@ -3192,7 +3191,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "if (rc) {"; // PR6749: tolerate a failed register_*probe.
   s.op->newline(1) << "sdp->registered_p = 0;";
   s.op->newline() << "if (!sdp->optional_p)";
-  s.op->newline(1) << "_stp_warn (\"probe %s (address 0x%lx) registration error (rc %d)\", probe_point, relocated_addr, rc);";
+  s.op->newline(1) << "_stp_warn (\"probe %s (address 0x%lx) registration error (rc %d)\", probe_point, (unsigned long) relocated_addr, rc);";
   s.op->newline(-1) << "rc = 0;"; // continue with other probes
   // XXX: shall we increment numskipped?
   s.op->newline(-1) << "}";
@@ -3269,7 +3268,7 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %d\\n\", sdp->pp, kp->u.krp.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->pp, kp->u.krp.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "} else {";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
@@ -3278,7 +3277,7 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %d\\n\", sdp->pp, kp->u.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->pp, kp->u.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "}";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES) && defined(__ia64__)";
@@ -5140,7 +5139,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "if (rc) {"; // PR6749: tolerate a failed register_*probe.
   s.op->newline(1) << "sdp->registered_p = 0;";
   s.op->newline() << "if (!sdp->optional_p)";
-  s.op->newline(1) << "_stp_warn (\"probe %s (address 0x%lx) registration error (rc %d)\", probe_point, addr, rc);";
+  s.op->newline(1) << "_stp_warn (\"probe %s (address 0x%lx) registration error (rc %d)\", probe_point, (unsigned long) addr, rc);";
   s.op->newline(-1) << "rc = 0;"; // continue with other probes
   // XXX: shall we increment numskipped?
   s.op->newline(-1) << "}";
@@ -5200,7 +5199,7 @@ kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %d\\n\", sdp->pp, kp->u.krp.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->pp, kp->u.krp.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "} else {";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
@@ -5209,7 +5208,7 @@ kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %d\\n\", sdp->pp, kp->u.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->pp, kp->u.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "}";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES) && defined(__ia64__)";

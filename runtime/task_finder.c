@@ -753,6 +753,18 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		/* Notice that "pid == 0" (which means to probe all
 		 * threads) falls through. */
 
+#ifndef STP_PRIVILEGED
+		/* Make sure unprivileged users only probe their own threads. */
+		if (_stp_uid != tsk->euid) {
+			if (tgt->pid != 0) {
+				_stp_warn("Process %d does not belong to unprivileged user %d",
+					  tsk->pid, _stp_uid);
+			}
+			continue;
+		}
+#endif
+
+
 		// Set up events we need for attached tasks. When
 		// register_p is set, we won't actually call the
 		// callbacks here - we'll call it when the thread gets
@@ -1413,6 +1425,17 @@ stap_start_task_finder(void)
 				continue;
 			/* Notice that "pid == 0" (which means to
 			 * probe all threads) falls through. */
+
+#ifndef STP_PRIVILEGED
+			/* Make sure unprivileged users only probe their own threads.  */
+			if (_stp_uid != tsk->euid) {
+				if (tgt->pid != 0) {
+					_stp_warn("Process %d does not belong to unprivileged user %d",
+						  tsk->pid, _stp_uid);
+				}
+				continue;
+			}
+#endif
 
 			// Set up events we need for attached tasks.
 			rc = __stp_utrace_attach(tsk, &tgt->ops, tgt,
