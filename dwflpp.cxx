@@ -106,7 +106,7 @@ dwflpp::~dwflpp()
        it != cu_inl_function_cache.end(); ++it)
     delete it->second;
 
-  for (mod_cu_function_cache_t::iterator it = global_alias_cache.begin();
+  for (mod_cu_type_cache_t::iterator it = global_alias_cache.begin();
        it != global_alias_cache.end(); ++it)
     delete it->second;
 
@@ -594,7 +594,7 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
 int
 dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
 {
-  cu_function_cache_t *cache = static_cast<cu_function_cache_t*>(arg);
+  cu_type_cache_t *cache = static_cast<cu_type_cache_t*>(arg);
   const char *name = dwarf_diename(die);
 
   if (!name)
@@ -616,10 +616,10 @@ dwflpp::declaration_resolve(const char *name)
   if (!name)
     return NULL;
 
-  cu_function_cache_t *v = global_alias_cache[cu->addr];
+  cu_type_cache_t *v = global_alias_cache[cu->addr];
   if (v == 0) // need to build the cache, just once per encountered module/cu
     {
-      v = new cu_function_cache_t;
+      v = new cu_type_cache_t;
       global_alias_cache[cu->addr] = v;
       iterate_over_globals(global_alias_caching_callback, v);
       if (sess.verbose > 4)
@@ -650,8 +650,7 @@ dwflpp::cu_function_caching_callback (Dwarf_Die* func, void *arg)
   if (!name)
     return DWARF_CB_OK;
 
-  string function_name = name;
-  (*v)[function_name] = * func;
+  v->insert(make_pair(string(name), *func));
   return DWARF_CB_OK;
 }
 
@@ -677,14 +676,19 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
       mod_info->update_symtab(v);
     }
 
-  cu_function_cache_t::iterator it = v->find(function);
-  if (it != v->end())
+  cu_function_cache_t::iterator it;
+  cu_function_cache_range_t range = v->equal_range(function);
+  if (range.first != range.second)
     {
-      Dwarf_Die& die = it->second;
-      if (sess.verbose > 4)
-        clog << "function cache " << module_name << ":" << cu_name()
-             << " hit " << function << endl;
-      return (*callback)(& die, q);
+      for (it = range.first; it != range.second; ++it)
+        {
+          Dwarf_Die& die = it->second;
+          if (sess.verbose > 4)
+            clog << "function cache " << module_name << ":" << cu_name()
+              << " hit " << function << endl;
+          rc = (*callback)(& die, q);
+          if (rc != DWARF_CB_OK) break;
+        }
     }
   else if (name_has_wildcard (function))
     {

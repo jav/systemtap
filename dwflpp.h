@@ -47,8 +47,17 @@ enum info_status { info_unknown, info_present, info_absent };
 // module -> cu die[]
 typedef unordered_map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
 
+// typename -> die
+typedef unordered_map<std::string, Dwarf_Die> cu_type_cache_t;
+
+// cu die -> (typename -> die)
+typedef unordered_map<void*, cu_type_cache_t*> mod_cu_type_cache_t;
+
 // function -> die
-typedef unordered_map<std::string, Dwarf_Die> cu_function_cache_t;
+typedef unordered_multimap<std::string, Dwarf_Die> cu_function_cache_t;
+typedef std::pair<cu_function_cache_t::iterator,
+                  cu_function_cache_t::iterator>
+        cu_function_cache_range_t;
 
 // cu die -> (function -> die)
 typedef unordered_map<void*, cu_function_cache_t*> mod_cu_function_cache_t;
@@ -293,7 +302,7 @@ private:
    * cache is indexed by name.  If other declaration lookups were
    * added to it, it would have to be indexed by name and tag
    */
-  mod_cu_function_cache_t global_alias_cache;
+  mod_cu_type_cache_t global_alias_cache;
   static int global_alias_caching_callback(Dwarf_Die *die, void *arg);
   int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
                             void * data);

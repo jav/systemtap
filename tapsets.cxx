@@ -1319,9 +1319,6 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 	    clog << "checking instances of inline " << q->dw.function_name
                  << "\n";
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, q);
-
-          if (q->dw.function_name_final_match (q->function))
-            return DWARF_CB_ABORT;
 	}
       else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
@@ -1382,14 +1379,9 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 		  func.entrypc -= q->dw.module_bias;
 
                   q->filtered_functions.push_back (func);
-                  if (q->dw.function_name_final_match (q->function))
-                    return DWARF_CB_ABORT;
                 }
               else
                 assert(0);
-
-              if (q->dw.function_name_final_match (q->function))
-                return DWARF_CB_ABORT;
 	    }
 	}
       return DWARF_CB_OK;
@@ -4153,7 +4145,7 @@ module_info::update_symtab(cu_function_cache_t *funcs)
           // if this function is a new alias, then
           // save it to merge into the function cache
           if (it->second != fi)
-            new_funcs[it->second->name] = it->second->die;
+            new_funcs.insert(make_pair(it->second->name, it->second->die));
         }
     }
 
