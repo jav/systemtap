@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Map of addresses to disallow.
- * Copyright (C) 2005-2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -59,28 +59,41 @@ upper_bound(unsigned long addr, struct addr_map* map)
   return entry - &map->entries[0];
 }
 
+/* Search for an entry in the given map which overlaps the range specified by
+   addr and size.  */
 static struct addr_map_entry*
-lookup_addr_aux(unsigned long addr, struct addr_map* map)
+lookup_addr_aux(unsigned long addr, size_t size, struct addr_map* map)
 {
   size_t start = 0;
   size_t end;
+
+  /* No map? No matching entry. */
   if (!map)
     return 0;
-  end = map->size;
+  /* Empty map? No matching entry.  */
   if (map->size == 0)
     return 0;
 
+  /* Use binary search on the sorted map entries.  */
+  end = map->size;
   do
     {
       int entry_idx;
       struct addr_map_entry *entry = 0;
-      if (addr < map->entries[start].min || addr >= map->entries[end - 1].max)
+      /* If the target range is beyond those of the remaining entries in the
+	 map, then a matching entry will not be found  */
+      if (addr + size <= map->entries[start].min ||
+	  addr >= map->entries[end - 1].max)
         return 0;
+      /* Choose the map entry at the mid point of the remaining entries.  */
       entry_idx = (end + start) / 2;
       entry = &map->entries[entry_idx];
-      if (entry->min <= addr && entry->max > addr)
+      /* If our range overlaps the range of this entry, then we have a match. */
+      if (addr + size > entry->min && addr < entry->max)
         return entry;
-      if (addr < entry->min)
+      /* If our range is below the range of this entry, then cull the entries
+	 above this entry, otherwise cull the entries below it.  */
+      if (addr + size <= entry->min)
         end = entry_idx;
       else
         start = entry_idx + 1;
@@ -88,12 +101,24 @@ lookup_addr_aux(unsigned long addr, struct addr_map* map)
   return 0;
 }
 
+#ifndef STP_PRIVILEGED
+#include <asm/processor.h> /* For TASK_SIZE */
+#endif
+
 static int
-lookup_bad_addr(unsigned long addr)
+lookup_bad_addr(unsigned long addr, size_t size)
 {
   struct addr_map_entry* result = 0;
+
+#ifndef STP_PRIVILEGED
+  /* Unprivileged users must not access kernel space memory.  */
+  if (addr + size > TASK_SIZE)
+    return 1;
+#endif
+
+  /* Search for the given range in the black-listed map.  */
   spin_lock(&addr_map_lock);
-  result = lookup_addr_aux(addr, blackmap);
+  result = lookup_addr_aux(addr, size, blackmap);
   spin_unlock(&addr_map_lock);
   if (result)
     return 1;
@@ -149,8 +174,8 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
     }
   else
     {
-      min_entry = lookup_addr_aux(min_addr, blackmap);
-      max_entry = lookup_addr_aux(max_addr, blackmap);
+      min_entry = lookup_addr_aux(min_addr, 1, blackmap);
+      max_entry = lookup_addr_aux(max_addr, 1, blackmap);
       if (min_entry || max_entry)
         {
           if (existing_min)

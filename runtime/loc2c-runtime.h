@@ -192,7 +192,7 @@
 
 #define kread(ptr) ({ \
         typeof(*(ptr)) _v = 0; \
-        if (lookup_bad_addr((unsigned long)(ptr)) || \
+        if (lookup_bad_addr((unsigned long)(ptr), sizeof (*(ptr))) ||	\
             probe_kernel_read((void *)&_v, (void *)(ptr), sizeof(*(ptr)))) \
           DEREF_FAULT(ptr); \
         _v; \
@@ -201,7 +201,7 @@
 #define kwrite(ptr, value) ({ \
         typeof(*(ptr)) _v; \
         _v = (typeof(*(ptr)))(value); \
-        if (lookup_bad_addr((unsigned long)addr) || \
+        if (lookup_bad_addr((unsigned long)addr, sizeof (*(ptr))) ||	\
             probe_kernel_write((void *)(ptr), (void *)&_v, sizeof(*(ptr)))) \
           STORE_DEREF_FAULT(ptr); \
     })
@@ -240,7 +240,7 @@ extern void __store_deref_bad(void);
     int _bad = 0;							      \
     u8 _b; u16 _w; u32 _l;	                                              \
     intptr_t _v = 0;							      \
-    if (lookup_bad_addr((unsigned long)addr))                                 \
+    if (lookup_bad_addr((unsigned long)addr, size))			      \
       _bad = 1;                                                               \
     else                                                                      \
       switch (size)                                                           \
@@ -258,7 +258,7 @@ extern void __store_deref_bad(void);
 #define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
-    if (lookup_bad_addr((unsigned long)addr))                                 \
+    if (lookup_bad_addr((unsigned long)addr, size))			      \
       _bad = 1;                                                               \
     else                                                                      \
       switch (size)                                                           \
@@ -280,7 +280,7 @@ extern void __store_deref_bad(void);
     int _bad = 0;							      \
     u8 _b; u16 _w; u32 _l; u64 _q;					      \
     intptr_t _v = 0;							      \
-    if (lookup_bad_addr((unsigned long)addr))                                 \
+    if (lookup_bad_addr((unsigned long)addr, size))			      \
       _bad = 1;                                                               \
     else                                                                      \
       switch (size)                                                           \
@@ -299,7 +299,7 @@ extern void __store_deref_bad(void);
 #define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
-    if (lookup_bad_addr((unsigned long)addr))                                 \
+    if (lookup_bad_addr((unsigned long)addr, size))			      \
       _bad = 1;                                                               \
     else                                                                      \
       switch (size)                                                           \
@@ -319,7 +319,7 @@ extern void __store_deref_bad(void);
   ({									\
      int _bad = 0;							\
      intptr_t _v=0;							\
-     if (lookup_bad_addr((unsigned long)addr))                          \
+     if (lookup_bad_addr((unsigned long)addr, size))			\
        _bad = 1;                                                        \
      else                                                               \
        switch (size){							\
@@ -337,7 +337,7 @@ extern void __store_deref_bad(void);
 #define store_deref(size, addr, value)					\
   ({									\
     int _bad=0;								\
-    if (lookup_bad_addr((unsigned long)addr))                           \
+    if (lookup_bad_addr((unsigned long)addr, size))			\
       _bad = 1;                                                         \
     else                                                                \
       switch (size){							\
@@ -397,7 +397,7 @@ extern void __store_deref_bad(void);
   ({									      \
     int _bad = 0;							      \
     intptr_t _v = 0;							      \
-    if (lookup_bad_addr((unsigned long)addr))                                 \
+    if (lookup_bad_addr((unsigned long)addr, size))			      \
       _bad = 1;                                                               \
     else                                                                      \
       switch (size)                                                           \
@@ -416,7 +416,7 @@ extern void __store_deref_bad(void);
 #define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
-    if (lookup_bad_addr((unsigned long)addr))                                 \
+    if (lookup_bad_addr((unsigned long)addr, size))			      \
       _bad = 1;                                                               \
     else                                                                      \
       switch (size)                                                           \
@@ -571,7 +571,7 @@ extern void __store_deref_bad(void);
   ({									\
      int _bad = 0;							\
      intptr_t _v=0;							\
-     if (lookup_bad_addr((unsigned long)addr))                          \
+     if (lookup_bad_addr((unsigned long)addr, size))			\
       _bad = 1;                                                         \
     else                                                                \
       switch (size){							\
@@ -588,7 +588,7 @@ extern void __store_deref_bad(void);
 #define store_deref(size, addr, value)					\
   ({									\
     int _bad=0;								\
-    if (lookup_bad_addr((unsigned long)addr))                           \
+    if (lookup_bad_addr((unsigned long)addr, size))			\
       _bad = 1;                                                         \
     else                                                                \
       switch (size){							\
@@ -660,7 +660,7 @@ extern void __store_deref_bad(void);
 	u8 _b; u16 _w; u32 _l; u64 _q;				\
 	int _bad = 0;						\
 	intptr_t _v = 0;					\
-        if (lookup_bad_addr((unsigned long)addr))               \
+        if (lookup_bad_addr((unsigned long)addr, size))		\
           _bad = 1;                                             \
         else                                                    \
           switch (size) {		                	\
@@ -696,7 +696,7 @@ extern void __store_deref_bad(void);
 ({                                                              \
         int _bad = 0;                                           \
 	int i;							\
-        if (lookup_bad_addr((unsigned long)addr))               \
+        if (lookup_bad_addr((unsigned long)addr, size))		\
           _bad = 1;                                             \
         else                                                    \
           for(i=0;i<size;i++){                                  \
