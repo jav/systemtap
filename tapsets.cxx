@@ -552,6 +552,10 @@ struct dwarf_query : public base_query
   // Track addresses we've already seen in a given module
   set<Dwarf_Addr> alias_dupes;
 
+  // Track inlines we've already seen as well
+  // NB: this can't be compared just by entrypc, as inlines can overlap
+  set<inline_instance_info> inline_dupes;
+
   // Extracted parameters.
   string function_val;
 
@@ -850,6 +854,7 @@ dwarf_query::handle_query_module()
 
   // reset the dupe-checking for each new module
   alias_dupes.clear();
+  inline_dupes.clear();
 
   if (dw.mod_info->dwarf_status == info_present)
     query_module_dwarf();
@@ -960,12 +965,11 @@ dwarf_query::add_probe_point(const string& funcname,
 {
   string reloc_section; // base section for relocation purposes
   Dwarf_Addr reloc_addr; // relocated
-  string blacklist_section; // linking section for blacklist purposes
   const string& module = dw.module_name; // "kernel" or other
 
   assert (! has_absolute); // already handled in dwarf_builder::build()
 
-  reloc_addr = dw.relocate_address(addr, reloc_section, blacklist_section);
+  reloc_addr = dw.relocate_address(addr, reloc_section);
 
   if (sess.verbose > 1)
     {
@@ -977,12 +981,11 @@ dwarf_query::add_probe_point(const string& funcname,
       else if (has_process)
         clog << " process=" << module;
       if (reloc_section != "") clog << " reloc=" << reloc_section;
-      if (blacklist_section != "") clog << " section=" << blacklist_section;
       clog << " pc=0x" << hex << addr << dec;
     }
 
   bool bad = dw.blacklisted_p (funcname, filename, line, module,
-                               blacklist_section, addr, has_return);
+                               addr, has_return);
   if (sess.verbose > 1)
     clog << endl;
 
@@ -1248,6 +1251,22 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
 }
 
 
+bool
+inline_instance_info::operator<(const inline_instance_info& other) const
+{
+  if (entrypc != other.entrypc)
+    return entrypc < other.entrypc;
+
+  if (decl_line != other.decl_line)
+    return decl_line < other.decl_line;
+
+  int cmp = name.compare(other.name);
+  if (!cmp)
+    cmp = strcmp(decl_file, other.decl_file);
+  return cmp < 0;
+}
+
+
 static int
 query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 {
@@ -1275,7 +1294,11 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 	      inl.entrypc = entrypc;
 	      q->dw.function_file (&inl.decl_file);
 	      q->dw.function_line (&inl.decl_line);
-	      q->filtered_inlines.push_back(inl);
+
+              // make sure that this inline hasn't already
+              // been matched from a different CU
+              if (q->inline_dupes.insert(inl).second)
+                q->filtered_inlines.push_back(inl);
 	    }
 	}
       return DWARF_CB_OK;
@@ -1319,9 +1342,6 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 	    clog << "checking instances of inline " << q->dw.function_name
                  << "\n";
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, q);
-
-          if (q->dw.function_name_final_match (q->function))
-            return DWARF_CB_ABORT;
 	}
       else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
@@ -1382,14 +1402,9 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 		  func.entrypc -= q->dw.module_bias;
 
                   q->filtered_functions.push_back (func);
-                  if (q->dw.function_name_final_match (q->function))
-                    return DWARF_CB_ABORT;
                 }
               else
                 assert(0);
-
-              if (q->dw.function_name_final_match (q->function))
-                return DWARF_CB_ABORT;
 	    }
 	}
       return DWARF_CB_OK;
@@ -1845,7 +1860,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
 
   string aname = (string("_dwarf_tvar_")
                   + e->base_name.substr(1)
-                  + "_" + lex_cast<string>(tick++));
+                  + "_" + lex_cast(tick++));
   vardecl* vd = new vardecl;
   vd->name = aname;
   vd->tok = e->tok;
@@ -2256,7 +2271,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
 		  + "_" + e->base_name.substr(1)
-		  + "_" + lex_cast<string>(tick++));
+		  + "_" + lex_cast(tick++));
 
   try
     {
@@ -2322,7 +2337,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       {
         vardecl *v = new vardecl;
         v->type = pe_long;
-        v->name = "index" + lex_cast<string>(i);
+        v->name = "index" + lex_cast(i);
         v->tok = e->tok;
         fdecl->formal_args.push_back(v);
       }
@@ -2565,7 +2580,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
 		  + "_" + e->base_name.substr(1)
-		  + "_" + lex_cast<string>(tick++));
+		  + "_" + lex_cast(tick++));
 
   // Synthesize a function.
   functiondecl *fdecl = new functiondecl;
@@ -2591,7 +2606,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       {
         vardecl *v = new vardecl;
         v->type = pe_long;
-        v->name = "index" + lex_cast<string>(i);
+        v->name = "index" + lex_cast(i);
         v->tok = e->tok;
         fdecl->formal_args.push_back(v);
       }
@@ -2706,7 +2721,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   // Range limit maxactive() value
   if (q.has_maxactive && (q.maxactive_val < 0 || q.maxactive_val > USHRT_MAX))
     throw semantic_error ("maxactive value out of range [0,"
-                          + lex_cast<string>(USHRT_MAX) + "]",
+                          + lex_cast(USHRT_MAX) + "]",
                           q.base_loc->tok);
 
   // Expand target variables in the probe body
@@ -2763,7 +2778,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
           {
             retro_name += ("@" + string (filename));
             if (line > 0)
-              retro_name += (":" + lex_cast<string> (line));
+              retro_name += (":" + lex_cast (line));
           }
         comps.push_back
           (new probe_point::component
@@ -3363,7 +3378,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   cast->tok = e->tok;
   cast->operand = fc;
   cast->components = e->components;
-  cast->type = probe_name + "_arg" + lex_cast<string>(argno);
+  cast->type = probe_name + "_arg" + lex_cast(argno);
   cast->module = process_name;
 
   cast->visit(this);
@@ -4152,7 +4167,7 @@ module_info::update_symtab(cu_function_cache_t *funcs)
           // if this function is a new alias, then
           // save it to merge into the function cache
           if (it->second != fi)
-            new_funcs[it->second->name] = it->second->die;
+            new_funcs.insert(make_pair(it->second->name, it->second->die));
         }
     }
 
@@ -4251,7 +4266,7 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
           {
             retro_name += ("@" + string (filename));
             if (line > 0)
-              retro_name += (":" + lex_cast<string> (line));
+              retro_name += (":" + lex_cast (line));
           }
         comps.push_back
           (new probe_point::component
@@ -5387,7 +5402,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
       string fname = (string(lvalue ? "_tracepoint_tvar_set" : "_tracepoint_tvar_get")
                       + "_" + e->base_name.substr(1)
-                      + "_" + lex_cast<string>(tick++));
+                      + "_" + lex_cast(tick++));
 
       fdecl->name = fname;
       fdecl->body = ec;
@@ -5426,7 +5441,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
           {
             vardecl *v = new vardecl;
             v->type = pe_long;
-            v->name = "index" + lex_cast<string>(i);
+            v->name = "index" + lex_cast(i);
             v->tok = e->tok;
             fdecl->formal_args.push_back(v);
           }

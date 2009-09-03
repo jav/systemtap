@@ -15,6 +15,7 @@
 #include "dwarf_wrappers.h"
 #include "elaborate.h"
 #include "session.h"
+#include "unordered.h"
 
 #include <cstring>
 #include <iostream>
@@ -43,33 +44,26 @@ struct dwarf_query;
 enum line_t { ABSOLUTE, RELATIVE, RANGE, WILDCARD };
 enum info_status { info_unknown, info_present, info_absent };
 
-#ifdef HAVE_TR1_UNORDERED_MAP
-#include <tr1/unordered_map>
-template<class K, class V> struct stap_map {
-  typedef std::tr1::unordered_map<K, V> type;
-};
-#else
-#include <ext/hash_map>
-template<class K, class V> struct stap_map {
-  typedef __gnu_cxx::hash_map<K, V, stap_map> type;
-  size_t operator() (std::string const& s) const
-  { __gnu_cxx::hash<const char*> h; return h(s.c_str()); }
-  size_t operator() (void* const& p) const
-  { __gnu_cxx::hash<long> h; return h(reinterpret_cast<long>(p)); }
-};
-#endif
-
 // module -> cu die[]
-typedef stap_map<Dwarf*, std::vector<Dwarf_Die>*>::type module_cu_cache_t;
+typedef unordered_map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
+
+// typename -> die
+typedef unordered_map<std::string, Dwarf_Die> cu_type_cache_t;
+
+// cu die -> (typename -> die)
+typedef unordered_map<void*, cu_type_cache_t*> mod_cu_type_cache_t;
 
 // function -> die
-typedef stap_map<std::string, Dwarf_Die>::type cu_function_cache_t;
+typedef unordered_multimap<std::string, Dwarf_Die> cu_function_cache_t;
+typedef std::pair<cu_function_cache_t::iterator,
+                  cu_function_cache_t::iterator>
+        cu_function_cache_range_t;
 
 // cu die -> (function -> die)
-typedef stap_map<void*, cu_function_cache_t*>::type mod_cu_function_cache_t;
+typedef unordered_map<void*, cu_function_cache_t*> mod_cu_function_cache_t;
 
 // inline function die -> instance die[]
-typedef stap_map<void*, std::vector<Dwarf_Die>*>::type cu_inl_function_cache_t;
+typedef unordered_map<void*, std::vector<Dwarf_Die>*> cu_inl_function_cache_t;
 
 typedef std::vector<func_info> func_info_map_t;
 typedef std::vector<inline_instance_info> inline_instance_map_t;
@@ -145,6 +139,7 @@ struct inline_instance_info
   {
     std::memset(&die, 0, sizeof(die));
   }
+  bool operator<(const inline_instance_info& other) const;
   std::string name;
   char const * decl_file;
   int decl_line;
@@ -273,13 +268,10 @@ struct dwflpp
                      const std::string& filename,
                      int line,
                      const std::string& module,
-                     const std::string& section,
                      Dwarf_Addr addr,
                      bool has_return);
 
-  Dwarf_Addr relocate_address(Dwarf_Addr addr,
-                              std::string& reloc_section,
-                              std::string& blacklist_section);
+  Dwarf_Addr relocate_address(Dwarf_Addr addr, std::string& reloc_section);
 
   Dwarf_Addr literal_addr_to_sym_addr(Dwarf_Addr lit_addr);
 
@@ -308,7 +300,7 @@ private:
    * cache is indexed by name.  If other declaration lookups were
    * added to it, it would have to be indexed by name and tag
    */
-  mod_cu_function_cache_t global_alias_cache;
+  mod_cu_type_cache_t global_alias_cache;
   static int global_alias_caching_callback(Dwarf_Die *die, void *arg);
   int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
                             void * data);
@@ -377,6 +369,7 @@ private:
   regex_t blacklist_func; // function/statement probes
   regex_t blacklist_func_ret; // only for .return probes
   regex_t blacklist_file; // file name
+  regex_t blacklist_section; // init/exit sections
   bool blacklist_enabled;
   void build_blacklist();
   std::string get_blacklist_section(Dwarf_Addr addr);

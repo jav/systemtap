@@ -363,10 +363,10 @@ run_pass (systemtap_session& s)
     staprun_cmd += "-c " + cmdstr_quoted(s.cmd) + " ";
 
   if (s.target_pid)
-    staprun_cmd += "-t " + stringify(s.target_pid) + " ";
+    staprun_cmd += "-t " + lex_cast(s.target_pid) + " ";
 
   if (s.buffer_size)
-    staprun_cmd += "-b " + stringify(s.buffer_size) + " ";
+    staprun_cmd += "-b " + lex_cast(s.buffer_size) + " ";
 
   if (s.need_uprobes)
     staprun_cmd += "-u ";
@@ -390,7 +390,7 @@ make_tracequery(systemtap_session& s, string& name,
                 const vector<string>& extra_headers)
 {
   static unsigned tick = 0;
-  string basename("tracequery_kmod_" + lex_cast<string>(++tick));
+  string basename("tracequery_kmod_" + lex_cast(++tick));
 
   // create a subdirectory for the module
   string dir(s.tmpdir + "/" + basename);
@@ -461,7 +461,7 @@ static int
 make_typequery_kmod(systemtap_session& s, const string& header, string& name)
 {
   static unsigned tick = 0;
-  string basename("typequery_kmod_" + lex_cast<string>(++tick));
+  string basename("typequery_kmod_" + lex_cast(++tick));
 
   // create a subdirectory for the module
   string dir(s.tmpdir + "/" + basename);
@@ -519,7 +519,7 @@ make_typequery_umod(systemtap_session& s, const string& header, string& name)
 {
   static unsigned tick = 0;
 
-  name = s.tmpdir + "/typequery_umod_" + lex_cast<string>(++tick) + ".so";
+  name = s.tmpdir + "/typequery_umod_" + lex_cast(++tick) + ".so";
 
   // make the module
   //

@@ -331,7 +331,7 @@ match_node::find_and_build (systemtap_session& s,
             alternatives += string(" ") + i->first.str();
 
           throw semantic_error (string("probe point truncated at position ") +
-                                lex_cast<string> (pos) +
+                                lex_cast (pos) +
                                 " (follow:" + alternatives + ")", loc->tok);
         }
 
@@ -416,7 +416,7 @@ match_node::find_and_build (systemtap_session& s,
             alternatives += string(" ") + i->first.str();
 
 	  throw semantic_error(string("probe point mismatch at position ") +
-			       lex_cast<string> (pos) +
+			       lex_cast (pos) +
 			       " (alternatives:" + alternatives + ")" +
 			       " didn't find any wildcard matches",
                                loc->tok);
@@ -433,7 +433,7 @@ match_node::find_and_build (systemtap_session& s,
             alternatives += string(" ") + i->first.str();
 
           throw semantic_error (string("probe point mismatch at position ") +
-                                lex_cast<string> (pos) +
+                                lex_cast (pos) +
                                 " (alternatives:" + alternatives + ")",
                                 loc->tok);
         }

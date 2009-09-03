@@ -193,10 +193,10 @@ struct hrtimer_derived_probe: public derived_probe
   {
     if ((i < min_ns_interval) || (i > max_ns_interval))
       throw semantic_error(string("interval value out of range (")
-                           + lex_cast<string>(scale < min_ns_interval
+                           + lex_cast(scale < min_ns_interval
                                               ? min_ns_interval/scale : 1)
                            + ","
-                           + lex_cast<string>(max_ns_interval/scale) + ")");
+                           + lex_cast(max_ns_interval/scale) + ")");
 
     // randomize = 0 means no randomization
     if ((r < 0) || (r > i))

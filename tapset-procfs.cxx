@@ -379,7 +379,7 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
   ec->tok = e->tok;
 
   string fname = (string(lvalue ? "_procfs_value_set" : "_procfs_value_get")
-                  + "_" + lex_cast<string>(tick++));
+                  + "_" + lex_cast(tick++));
   string locvalue = "CONTEXT->data";
 
   if (! lvalue)

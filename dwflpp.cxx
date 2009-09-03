@@ -93,6 +93,23 @@ dwflpp::dwflpp(systemtap_session & session, const vector<string>& names):
 dwflpp::~dwflpp()
 {
   free(cached_scopes);
+
+  for (module_cu_cache_t::iterator it = module_cu_cache.begin();
+       it != module_cu_cache.end(); ++it)
+    delete it->second;
+
+  for (mod_cu_function_cache_t::iterator it = cu_function_cache.begin();
+       it != cu_function_cache.end(); ++it)
+    delete it->second;
+
+  for (cu_inl_function_cache_t::iterator it = cu_inl_function_cache.begin();
+       it != cu_inl_function_cache.end(); ++it)
+    delete it->second;
+
+  for (mod_cu_type_cache_t::iterator it = global_alias_cache.begin();
+       it != global_alias_cache.end(); ++it)
+    delete it->second;
+
   if (dwfl)
     dwfl_end(dwfl);
 }
@@ -577,7 +594,7 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
 int
 dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
 {
-  cu_function_cache_t *cache = static_cast<cu_function_cache_t*>(arg);
+  cu_type_cache_t *cache = static_cast<cu_type_cache_t*>(arg);
   const char *name = dwarf_diename(die);
 
   if (!name)
@@ -599,10 +616,10 @@ dwflpp::declaration_resolve(const char *name)
   if (!name)
     return NULL;
 
-  cu_function_cache_t *v = global_alias_cache[cu->addr];
+  cu_type_cache_t *v = global_alias_cache[cu->addr];
   if (v == 0) // need to build the cache, just once per encountered module/cu
     {
-      v = new cu_function_cache_t;
+      v = new cu_type_cache_t;
       global_alias_cache[cu->addr] = v;
       iterate_over_globals(global_alias_caching_callback, v);
       if (sess.verbose > 4)
@@ -633,8 +650,7 @@ dwflpp::cu_function_caching_callback (Dwarf_Die* func, void *arg)
   if (!name)
     return DWARF_CB_OK;
 
-  string function_name = name;
-  (*v)[function_name] = * func;
+  v->insert(make_pair(string(name), *func));
   return DWARF_CB_OK;
 }
 
@@ -660,14 +676,19 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
       mod_info->update_symtab(v);
     }
 
-  cu_function_cache_t::iterator it = v->find(function);
-  if (it != v->end())
+  cu_function_cache_t::iterator it;
+  cu_function_cache_range_t range = v->equal_range(function);
+  if (range.first != range.second)
     {
-      Dwarf_Die& die = it->second;
-      if (sess.verbose > 4)
-        clog << "function cache " << module_name << ":" << cu_name()
-             << " hit " << function << endl;
-      return (*callback)(& die, q);
+      for (it = range.first; it != range.second; ++it)
+        {
+          Dwarf_Die& die = it->second;
+          if (sess.verbose > 4)
+            clog << "function cache " << module_name << ":" << cu_name()
+              << " hit " << function << endl;
+          rc = (*callback)(& die, q);
+          if (rc != DWARF_CB_OK) break;
+        }
     }
   else if (name_has_wildcard (function))
     {
@@ -1243,7 +1264,7 @@ dwflpp::die_entrypc (Dwarf_Die * die, Dwarf_Addr * addr)
           while ((offset = dwarf_ranges (die, offset, &base, &begin, &end)) > 0)
             extra ++;
           if (extra)
-            lookup_method += ", ignored " + lex_cast<string>(extra) + " more";
+            lookup_method += ", ignored " + lex_cast(extra) + " more";
         }
     }
 
@@ -1437,7 +1458,7 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
   if (nscopes <= 0)
     {
       throw semantic_error ("unable to find any scopes containing "
-                            + lex_cast_hex<string>(pc)
+                            + lex_cast_hex(pc)
                             + ((scope_die == NULL) ? ""
                                : (string (" in ")
                                   + (dwarf_diename(scope_die) ?: "<unknown>")
@@ -1456,7 +1477,7 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
       stringstream alternatives;
       print_locals (scopes, alternatives);
       throw semantic_error ("unable to find local '" + local + "'"
-                            + " near pc " + lex_cast_hex<string>(pc)
+                            + " near pc " + lex_cast_hex(pc)
                             + ((scope_die == NULL) ? ""
                                : (string (" in ")
                                   + (dwarf_diename(scope_die) ?: "<unknown>")
@@ -1727,7 +1748,7 @@ dwflpp::translate_components(struct obstack *pool,
 #if 0
       // Emit a marker to note which field is being access-attempted, to give
       // better error messages if deref() fails.
-      string piece = string(...target_symbol token...) + string ("#") + stringify(components[i].second);
+      string piece = string(...target_symbol token...) + string ("#") + lex_cast(components[i].second);
       obstack_printf (pool, "c->last_stmt = %s;", lex_cast_qstring(piece).c_str());
 #endif
 
@@ -1749,7 +1770,7 @@ dwflpp::translate_components(struct obstack *pool,
         case DW_TAG_pointer_type:
           /* A pointer with no type is a void* -- can't dereference it. */
           if (!dwarf_hasattr_integrate (die, DW_AT_type))
-            throw semantic_error ("invalid access '" + lex_cast<string>(c)
+            throw semantic_error ("invalid access '" + lex_cast(c)
                                   + "' vs. " + dwarf_type_name(die),
                                   c.tok);
 
@@ -1768,14 +1789,14 @@ dwflpp::translate_components(struct obstack *pool,
             }
           else if (c.type == target_symbol::comp_expression_array_index)
             {
-              string index = "THIS->index" + lex_cast<string>(i);
+              string index = "THIS->index" + lex_cast(i);
               c_translate_array (pool, 1, 0 /* PR9768 */, die, tail,
                                  index.c_str(), 0);
               ++i;
             }
           else
             throw semantic_error ("invalid access '"
-                                  + lex_cast<string>(c)
+                                  + lex_cast(c)
                                   + "' for array type",
                                   c.tok);
           break;
@@ -1785,7 +1806,7 @@ dwflpp::translate_components(struct obstack *pool,
         case DW_TAG_class_type:
           if (c.type != target_symbol::comp_struct_member)
             throw semantic_error ("invalid access '"
-                                  + lex_cast<string>(c)
+                                  + lex_cast(c)
                                   + "' for " + dwarf_type_name(die),
                                   c.tok);
 
@@ -1811,7 +1832,7 @@ dwflpp::translate_components(struct obstack *pool,
                       const char *file = dwarf_decl_file(&parentdie);
                       if (file && dwarf_decl_line(&parentdie, &line) == 0)
                         source = " (" + string(file) + ":"
-                                 + lex_cast<string>(line) + ")";
+                                 + lex_cast(line) + ")";
                     }
 
                   string alternatives;
@@ -1836,7 +1857,7 @@ dwflpp::translate_components(struct obstack *pool,
         case DW_TAG_enumeration_type:
         case DW_TAG_base_type:
           throw semantic_error ("invalid access '"
-                                + lex_cast<string>(c)
+                                + lex_cast(c)
                                 + "' vs. " + dwarf_type_name(die),
                                 c.tok);
           break;
@@ -1848,7 +1869,7 @@ dwflpp::translate_components(struct obstack *pool,
 
         default:
           throw semantic_error (dwarf_type_name(die) + ": unexpected type tag "
-                                + lex_cast<string>(dwarf_tag (die)),
+                                + lex_cast(dwarf_tag (die)),
                                 c.tok);
           break;
         }
@@ -1936,7 +1957,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
     {
     default:
       throw semantic_error ("unsupported type tag "
-                            + lex_cast<string>(typetag)
+                            + lex_cast(typetag)
                             + " for " + dwarf_type_name(typedie), e->tok);
       break;
 
@@ -1959,7 +1980,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
         if (encoding < 0)
           {
             // clog << "bad type1 " << encoding << " diestr" << endl;
-            throw semantic_error ("unsupported type (mystery encoding " + lex_cast<string>(encoding) + ")" +
+            throw semantic_error ("unsupported type (mystery encoding " + lex_cast(encoding) + ")" +
                                   " for " + dwarf_type_name(typedie), e->tok);
           }
 
@@ -1968,7 +1989,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
             /* XXX || many others? */)
           {
             // clog << "bad type " << encoding << " diestr" << endl;
-            throw semantic_error ("unsupported type (encoding " + lex_cast<string>(encoding) + ")" +
+            throw semantic_error ("unsupported type (encoding " + lex_cast(encoding) + ")" +
                                   " for " + dwarf_type_name(typedie), e->tok);
           }
       }
@@ -2097,7 +2118,7 @@ dwflpp::literal_stmt_for_local (Dwarf_Die *scope_die,
       throw semantic_error("failed to retrieve location "
                            "attribute for local '" + local
                            + "' (dieoffset: "
-                           + lex_cast_hex<string>(dwarf_dieoffset (&vardie))
+                           + lex_cast_hex(dwarf_dieoffset (&vardie))
                            + ")",
                            e->tok);
     }
@@ -2281,21 +2302,14 @@ dwflpp::blacklisted_p(const string& funcname,
                       const string& filename,
                       int,
                       const string& module,
-                      const string& section,
                       Dwarf_Addr addr,
                       bool has_return)
 {
   if (!blacklist_enabled)
     return false; // no blacklist for userspace
 
-  if (section.substr(0, 6) == string(".init.") ||
-      section.substr(0, 6) == string(".exit.") ||
-      section.substr(0, 9) == string(".devinit.") ||
-      section.substr(0, 9) == string(".devexit.") ||
-      section.substr(0, 9) == string(".cpuinit.") ||
-      section.substr(0, 9) == string(".cpuexit.") ||
-      section.substr(0, 9) == string(".meminit.") ||
-      section.substr(0, 9) == string(".memexit."))
+  string section = get_blacklist_section(addr);
+  if (!regexec (&blacklist_section, section.c_str(), 0, NULL, 0))
     {
       // NB: module .exit. routines could be probed in theory:
       // if the exit handler in "struct module" is diverted,
@@ -2351,16 +2365,26 @@ dwflpp::build_blacklist()
   string blfn = "^(";
   string blfn_ret = "^(";
   string blfile = "^(";
+  string blsection = "^(";
 
-  blfile += "kernel/kprobes.c"; // first alternative, no "|"
-  blfile += "|arch/.*/kernel/kprobes.c";
+  blsection += "\\.init\\."; // first alternative, no "|"
+  blsection += "|\\.exit\\.";
+  blsection += "|\\.devinit\\.";
+  blsection += "|\\.devexit\\.";
+  blsection += "|\\.cpuinit\\.";
+  blsection += "|\\.cpuexit\\.";
+  blsection += "|\\.meminit\\.";
+  blsection += "|\\.memexit\\.";
+
+  blfile += "kernel/kprobes\\.c"; // first alternative, no "|"
+  blfile += "|arch/.*/kernel/kprobes\\.c";
   // Older kernels need ...
-  blfile += "|include/asm/io.h";
-  blfile += "|include/asm/bitops.h";
+  blfile += "|include/asm/io\\.h";
+  blfile += "|include/asm/bitops\\.h";
   // While newer ones need ...
-  blfile += "|arch/.*/include/asm/io.h";
-  blfile += "|arch/.*/include/asm/bitops.h";
-  blfile += "|drivers/ide/ide-iops.c";
+  blfile += "|arch/.*/include/asm/io\\.h";
+  blfile += "|arch/.*/include/asm/bitops\\.h";
+  blfile += "|drivers/ide/ide-iops\\.c";
 
   // XXX: it would be nice if these blacklisted functions were pulled
   // in dynamically, instead of being statically defined here.
@@ -2451,6 +2475,7 @@ dwflpp::build_blacklist()
   blfn += ")$";
   blfn_ret += ")$";
   blfile += ")$";
+  blsection += ")"; // NB: no $, sections match just the beginning
 
   if (sess.verbose > 2)
     {
@@ -2458,6 +2483,7 @@ dwflpp::build_blacklist()
       clog << "blfn: " << blfn << endl;
       clog << "blfn_ret: " << blfn_ret << endl;
       clog << "blfile: " << blfile << endl;
+      clog << "blsection: " << blsection << endl;
     }
 
   int rc = regcomp (& blacklist_func, blfn.c_str(), REG_NOSUB|REG_EXTENDED);
@@ -2466,6 +2492,8 @@ dwflpp::build_blacklist()
   if (rc) throw semantic_error ("blacklist_func_ret regcomp failed");
   rc = regcomp (& blacklist_file, blfile.c_str(), REG_NOSUB|REG_EXTENDED);
   if (rc) throw semantic_error ("blacklist_file regcomp failed");
+  rc = regcomp (& blacklist_section, blsection.c_str(), REG_NOSUB|REG_EXTENDED);
+  if (rc) throw semantic_error ("blacklist_section regcomp failed");
 
   blacklist_enabled = true;
 }
@@ -2512,9 +2540,7 @@ dwflpp::get_blacklist_section(Dwarf_Addr addr)
 
 
 Dwarf_Addr
-dwflpp::relocate_address(Dwarf_Addr dw_addr,
-                         string& reloc_section,
-                         string& blacklist_section)
+dwflpp::relocate_address(Dwarf_Addr dw_addr, string& reloc_section)
 {
   // PR10273
   // libdw address, so adjust for bias gotten from dwfl_module_getdwarf
@@ -2523,7 +2549,6 @@ dwflpp::relocate_address(Dwarf_Addr dw_addr,
     {
       assert(module_name == TOK_KERNEL);
       reloc_section = "";
-      blacklist_section = "";
     }
   else if (dwfl_module_relocations (module) > 0)
     {
@@ -2533,19 +2558,12 @@ dwflpp::relocate_address(Dwarf_Addr dw_addr,
       const char* r_s = dwfl_module_relocation_info (module, idx, NULL);
       if (r_s)
         reloc_section = r_s;
-      blacklist_section = reloc_section;
 
       if (reloc_section == "" && dwfl_module_relocations (module) == 1)
-        {
-          blacklist_section = get_blacklist_section(dw_addr);
           reloc_section = ".dynamic";
-        }
     }
   else
-    {
-      blacklist_section = get_blacklist_section(dw_addr);
-      reloc_section = ".absolute";
-    }
+    reloc_section = ".absolute";
   return reloc_addr;
 }
 
