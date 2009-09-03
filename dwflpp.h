@@ -139,6 +139,7 @@ struct inline_instance_info
   {
     std::memset(&die, 0, sizeof(die));
   }
+  bool operator<(const inline_instance_info& other) const;
   std::string name;
   char const * decl_file;
   int decl_line;

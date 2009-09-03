@@ -552,6 +552,10 @@ struct dwarf_query : public base_query
   // Track addresses we've already seen in a given module
   set<Dwarf_Addr> alias_dupes;
 
+  // Track inlines we've already seen as well
+  // NB: this can't be compared just by entrypc, as inlines can overlap
+  set<inline_instance_info> inline_dupes;
+
   // Extracted parameters.
   string function_val;
 
@@ -850,6 +854,7 @@ dwarf_query::handle_query_module()
 
   // reset the dupe-checking for each new module
   alias_dupes.clear();
+  inline_dupes.clear();
 
   if (dw.mod_info->dwarf_status == info_present)
     query_module_dwarf();
@@ -1248,6 +1253,22 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
 }
 
 
+bool
+inline_instance_info::operator<(const inline_instance_info& other) const
+{
+  if (entrypc != other.entrypc)
+    return entrypc < other.entrypc;
+
+  if (decl_line != other.decl_line)
+    return decl_line < other.decl_line;
+
+  int cmp = name.compare(other.name);
+  if (!cmp)
+    cmp = strcmp(decl_file, other.decl_file);
+  return cmp < 0;
+}
+
+
 static int
 query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 {
@@ -1275,7 +1296,11 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 	      inl.entrypc = entrypc;
 	      q->dw.function_file (&inl.decl_file);
 	      q->dw.function_line (&inl.decl_line);
-	      q->filtered_inlines.push_back(inl);
+
+              // make sure that this inline hasn't already
+              // been matched from a different CU
+              if (q->inline_dupes.insert(inl).second)
+                q->filtered_inlines.push_back(inl);
 	    }
 	}
       return DWARF_CB_OK;
