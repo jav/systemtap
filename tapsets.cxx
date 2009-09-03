@@ -2510,9 +2510,6 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
 
 void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 {
-  if (s.unprivileged)
-    throw semantic_error("typecasting may not be used when --unprivileged is specified", e->tok);
-
   bool lvalue = is_active_lvalue(e);
   if (lvalue && !s.guru_mode)
     throw semantic_error("write to typecast value not permitted", e->tok);
@@ -2617,6 +2614,8 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
     }
   else
     ec->code += "/* pure */";
+
+  ec->code += "/* unprivileged */";
 
   s.functions[fdecl->name] = fdecl;
 

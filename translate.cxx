@@ -5210,6 +5210,8 @@ translate_pass (systemtap_session& s)
       if (ri.recursive) nesting += 10;
 
       // This is at the very top of the file.
+      if (! s.unprivileged)
+	s.op->newline() << "#define STP_PRIVILEGED 1";
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING " << nesting;
       s.op->newline() << "#endif";
