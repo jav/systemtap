@@ -93,6 +93,23 @@ dwflpp::dwflpp(systemtap_session & session, const vector<string>& names):
 dwflpp::~dwflpp()
 {
   free(cached_scopes);
+
+  for (module_cu_cache_t::iterator it = module_cu_cache.begin();
+       it != module_cu_cache.end(); ++it)
+    delete it->second;
+
+  for (mod_cu_function_cache_t::iterator it = cu_function_cache.begin();
+       it != cu_function_cache.end(); ++it)
+    delete it->second;
+
+  for (cu_inl_function_cache_t::iterator it = cu_inl_function_cache.begin();
+       it != cu_inl_function_cache.end(); ++it)
+    delete it->second;
+
+  for (mod_cu_function_cache_t::iterator it = global_alias_cache.begin();
+       it != global_alias_cache.end(); ++it)
+    delete it->second;
+
   if (dwfl)
     dwfl_end(dwfl);
 }
