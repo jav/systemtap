@@ -369,6 +369,7 @@ private:
   regex_t blacklist_func; // function/statement probes
   regex_t blacklist_func_ret; // only for .return probes
   regex_t blacklist_file; // file name
+  regex_t blacklist_section; // init/exit sections
   bool blacklist_enabled;
   void build_blacklist();
   std::string get_blacklist_section(Dwarf_Addr addr);

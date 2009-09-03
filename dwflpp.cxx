@@ -2309,14 +2309,7 @@ dwflpp::blacklisted_p(const string& funcname,
     return false; // no blacklist for userspace
 
   string section = get_blacklist_section(addr);
-  if (section.substr(0, 6) == string(".init.") ||
-      section.substr(0, 6) == string(".exit.") ||
-      section.substr(0, 9) == string(".devinit.") ||
-      section.substr(0, 9) == string(".devexit.") ||
-      section.substr(0, 9) == string(".cpuinit.") ||
-      section.substr(0, 9) == string(".cpuexit.") ||
-      section.substr(0, 9) == string(".meminit.") ||
-      section.substr(0, 9) == string(".memexit."))
+  if (!regexec (&blacklist_section, section.c_str(), 0, NULL, 0))
     {
       // NB: module .exit. routines could be probed in theory:
       // if the exit handler in "struct module" is diverted,
@@ -2372,6 +2365,16 @@ dwflpp::build_blacklist()
   string blfn = "^(";
   string blfn_ret = "^(";
   string blfile = "^(";
+  string blsection = "^(";
+
+  blsection += "\\.init\\."; // first alternative, no "|"
+  blsection += "|\\.exit\\.";
+  blsection += "|\\.devinit\\.";
+  blsection += "|\\.devexit\\.";
+  blsection += "|\\.cpuinit\\.";
+  blsection += "|\\.cpuexit\\.";
+  blsection += "|\\.meminit\\.";
+  blsection += "|\\.memexit\\.";
 
   blfile += "kernel/kprobes.c"; // first alternative, no "|"
   blfile += "|arch/.*/kernel/kprobes.c";
@@ -2472,6 +2475,7 @@ dwflpp::build_blacklist()
   blfn += ")$";
   blfn_ret += ")$";
   blfile += ")$";
+  blsection += ")"; // NB: no $, sections match just the beginning
 
   if (sess.verbose > 2)
     {
@@ -2479,6 +2483,7 @@ dwflpp::build_blacklist()
       clog << "blfn: " << blfn << endl;
       clog << "blfn_ret: " << blfn_ret << endl;
       clog << "blfile: " << blfile << endl;
+      clog << "blsection: " << blsection << endl;
     }
 
   int rc = regcomp (& blacklist_func, blfn.c_str(), REG_NOSUB|REG_EXTENDED);
@@ -2487,6 +2492,8 @@ dwflpp::build_blacklist()
   if (rc) throw semantic_error ("blacklist_func_ret regcomp failed");
   rc = regcomp (& blacklist_file, blfile.c_str(), REG_NOSUB|REG_EXTENDED);
   if (rc) throw semantic_error ("blacklist_file regcomp failed");
+  rc = regcomp (& blacklist_section, blsection.c_str(), REG_NOSUB|REG_EXTENDED);
+  if (rc) throw semantic_error ("blacklist_section regcomp failed");
 
   blacklist_enabled = true;
 }
