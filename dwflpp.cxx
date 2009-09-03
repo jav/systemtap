@@ -2376,15 +2376,15 @@ dwflpp::build_blacklist()
   blsection += "|\\.meminit\\.";
   blsection += "|\\.memexit\\.";
 
-  blfile += "kernel/kprobes.c"; // first alternative, no "|"
-  blfile += "|arch/.*/kernel/kprobes.c";
+  blfile += "kernel/kprobes\\.c"; // first alternative, no "|"
+  blfile += "|arch/.*/kernel/kprobes\\.c";
   // Older kernels need ...
-  blfile += "|include/asm/io.h";
-  blfile += "|include/asm/bitops.h";
+  blfile += "|include/asm/io\\.h";
+  blfile += "|include/asm/bitops\\.h";
   // While newer ones need ...
-  blfile += "|arch/.*/include/asm/io.h";
-  blfile += "|arch/.*/include/asm/bitops.h";
-  blfile += "|drivers/ide/ide-iops.c";
+  blfile += "|arch/.*/include/asm/io\\.h";
+  blfile += "|arch/.*/include/asm/bitops\\.h";
+  blfile += "|drivers/ide/ide-iops\\.c";
 
   // XXX: it would be nice if these blacklisted functions were pulled
   // in dynamically, instead of being statically defined here.
