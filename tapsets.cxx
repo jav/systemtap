@@ -965,12 +965,11 @@ dwarf_query::add_probe_point(const string& funcname,
 {
   string reloc_section; // base section for relocation purposes
   Dwarf_Addr reloc_addr; // relocated
-  string blacklist_section; // linking section for blacklist purposes
   const string& module = dw.module_name; // "kernel" or other
 
   assert (! has_absolute); // already handled in dwarf_builder::build()
 
-  reloc_addr = dw.relocate_address(addr, reloc_section, blacklist_section);
+  reloc_addr = dw.relocate_address(addr, reloc_section);
 
   if (sess.verbose > 1)
     {
@@ -982,12 +981,11 @@ dwarf_query::add_probe_point(const string& funcname,
       else if (has_process)
         clog << " process=" << module;
       if (reloc_section != "") clog << " reloc=" << reloc_section;
-      if (blacklist_section != "") clog << " section=" << blacklist_section;
       clog << " pc=0x" << hex << addr << dec;
     }
 
   bool bad = dw.blacklisted_p (funcname, filename, line, module,
-                               blacklist_section, addr, has_return);
+                               addr, has_return);
   if (sess.verbose > 1)
     clog << endl;
 

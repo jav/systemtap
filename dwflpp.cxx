@@ -2302,13 +2302,13 @@ dwflpp::blacklisted_p(const string& funcname,
                       const string& filename,
                       int,
                       const string& module,
-                      const string& section,
                       Dwarf_Addr addr,
                       bool has_return)
 {
   if (!blacklist_enabled)
     return false; // no blacklist for userspace
 
+  string section = get_blacklist_section(addr);
   if (section.substr(0, 6) == string(".init.") ||
       section.substr(0, 6) == string(".exit.") ||
       section.substr(0, 9) == string(".devinit.") ||
@@ -2533,9 +2533,7 @@ dwflpp::get_blacklist_section(Dwarf_Addr addr)
 
 
 Dwarf_Addr
-dwflpp::relocate_address(Dwarf_Addr dw_addr,
-                         string& reloc_section,
-                         string& blacklist_section)
+dwflpp::relocate_address(Dwarf_Addr dw_addr, string& reloc_section)
 {
   // PR10273
   // libdw address, so adjust for bias gotten from dwfl_module_getdwarf
@@ -2544,7 +2542,6 @@ dwflpp::relocate_address(Dwarf_Addr dw_addr,
     {
       assert(module_name == TOK_KERNEL);
       reloc_section = "";
-      blacklist_section = "";
     }
   else if (dwfl_module_relocations (module) > 0)
     {
@@ -2554,19 +2551,12 @@ dwflpp::relocate_address(Dwarf_Addr dw_addr,
       const char* r_s = dwfl_module_relocation_info (module, idx, NULL);
       if (r_s)
         reloc_section = r_s;
-      blacklist_section = reloc_section;
 
       if (reloc_section == "" && dwfl_module_relocations (module) == 1)
-        {
-          blacklist_section = get_blacklist_section(dw_addr);
           reloc_section = ".dynamic";
-        }
     }
   else
-    {
-      blacklist_section = get_blacklist_section(dw_addr);
-      reloc_section = ".absolute";
-    }
+    reloc_section = ".absolute";
   return reloc_addr;
 }
 

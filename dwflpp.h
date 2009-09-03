@@ -268,13 +268,10 @@ struct dwflpp
                      const std::string& filename,
                      int line,
                      const std::string& module,
-                     const std::string& section,
                      Dwarf_Addr addr,
                      bool has_return);
 
-  Dwarf_Addr relocate_address(Dwarf_Addr addr,
-                              std::string& reloc_section,
-                              std::string& blacklist_section);
+  Dwarf_Addr relocate_address(Dwarf_Addr addr, std::string& reloc_section);
 
   Dwarf_Addr literal_addr_to_sym_addr(Dwarf_Addr lit_addr);
 
