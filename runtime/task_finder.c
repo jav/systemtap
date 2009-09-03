@@ -19,7 +19,9 @@ static void stap_stop_task_finder(void) { }
 #include <linux/list.h>
 #include <linux/binfmts.h>
 #include <linux/mount.h>
-
+#ifndef STAPCONF_TASK_UID
+#include <linux/cred.h>
+#endif
 #include "syscall.h"
 #include "utrace_compatibility.h"
 #include "task_finder_map.c"
@@ -730,7 +732,13 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 	size_t filelen;
 	struct list_head *tgt_node;
 	struct stap_task_finder_target *tgt;
+	uid_t tsk_euid;
 
+#ifdef STAPCONF_TASK_UID
+	tsk_euid = tsk->euid;
+#else
+	tsk_euid = task_euid(tsk);
+#endif
 	filelen = strlen(filename);
 	list_for_each(tgt_node, &__stp_task_finder_list) {
 		int rc;
@@ -755,7 +763,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 
 #ifndef STP_PRIVILEGED
 		/* Make sure unprivileged users only probe their own threads. */
-		if (_stp_uid != tsk->euid) {
+		if (_stp_uid != tsk_euid) {
 			if (tgt->pid != 0) {
 				_stp_warn("Process %d does not belong to unprivileged user %d",
 					  tsk->pid, _stp_uid);
@@ -1347,6 +1355,7 @@ stap_start_task_finder(void)
 	int rc = 0;
 	struct task_struct *grp, *tsk;
 	char *mmpath_buf;
+	uid_t tsk_euid;
 
 	debug_task_finder_report();
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
@@ -1407,6 +1416,11 @@ stap_start_task_finder(void)
 		}
 
 		/* Check the thread's exe's path/pid against our list. */
+#ifdef STAPCONF_TASK_UID
+		tsk_euid = tsk->euid;
+#else
+		tsk_euid = task_euid(tsk);
+#endif
 		mmpathlen = strlen(mmpath);
 		list_for_each(tgt_node, &__stp_task_finder_list) {
 			struct stap_task_finder_target *tgt;
@@ -1428,7 +1442,7 @@ stap_start_task_finder(void)
 
 #ifndef STP_PRIVILEGED
 			/* Make sure unprivileged users only probe their own threads.  */
-			if (_stp_uid != tsk->euid) {
+			if (_stp_uid != tsk_euid) {
 				if (tgt->pid != 0) {
 					_stp_warn("Process %d does not belong to unprivileged user %d",
 						  tsk->pid, _stp_uid);
