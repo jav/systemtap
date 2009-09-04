@@ -146,7 +146,7 @@ check_cert_db_permissions (const char *cert_db_path) {
   if (info.st_uid != 0)
     {
       fprintf (stderr, "Certificate database directory %s must be owned by root.\n", cert_db_path);
-      rc = 0;
+      return 0;
     }
 
   rc = 1; /* ok */
