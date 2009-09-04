@@ -110,6 +110,10 @@ lookup_bad_addr(unsigned long addr, size_t size)
 {
   struct addr_map_entry* result = 0;
 
+  /* Is this a valid memory access?  */
+  if (size == 0 || ULONG_MAX - addr < size - 1)
+    return 1;
+
 #ifndef STP_PRIVILEGED
   /* Unprivileged users must not access kernel space memory.  */
   if (addr + size > TASK_SIZE)
