@@ -4928,11 +4928,12 @@ dump_unwindsyms (Dwfl_Module *m,
     c->output << ".build_id_len = " << build_id_len << ",\n";
 
     /* XXX: kernel data boot-time relocation works differently from text.
-       This hack disables relocation altogether, but that's not necessarily
+       This hack assumes that offset between _stext and build id
+       stays constant after relocation, but that's not necessarily
        correct either.  We may instead need a relocation basis different
        from _stext, such as __start_notes.  */
     if (modname == "kernel")
-      c->output << ".build_id_offset = 0x" << hex << build_id_vaddr
+      c->output << ".build_id_offset = 0x" << hex << build_id_vaddr - (base + extra_offset)
                 << dec << ",\n";
     else
       c->output << ".build_id_offset = 0x" << hex
