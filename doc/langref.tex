@@ -1031,14 +1031,33 @@ of an \texttt{exit} function call, or an interruption from the user. In the
 case of an shutdown triggered by error, \texttt{end} probes are not run.
 
 
-\subsubsection{begin and end probe sequence}
-\index{sequence}
-\texttt{begin} and \texttt{end} probes are specified with an optional sequence
-number that controls the order in which they are run. If no sequence number
-is provided, the sequence number defaults to zero and probes are run in the
-order that they occur in the script file. Sequence numbers may be either
-positive or negative, and are especially useful for tapset writers who want
-to do initialization in a \texttt{begin} probe. The following are examples.
+\subsubsection{error}
+\index{error}
+The \emph{error} probe point is similar to the end
+probe, except the probe handler runs when the session ends if an error
+occurred.  In this case, an \texttt{end} probe is skipped, but each
+\texttt{error} probe is still attempted.  You can use an
+\texttt{error} probe to clean up or perform a final action on script
+termination.
+
+Here is a simple example:
+\begin{vindent}
+\begin{verbatim}
+probe error { println ("Oops, errors occurred. Here's a report anyway.")
+              foreach (coin in mint) { println (coin) } }
+\end{verbatim}
+\end{vindent}
+
+
+\subsubsection{begin, end, and error probe sequence}
+\index{probe sequence}
+\texttt{begin}, \texttt{end}, and \texttt{error} probes can be
+specified with an optional sequence number that controls the order in
+which they are run. If no sequence number is provided, the sequence
+number defaults to zero and probes are run in the order that they
+occur in the script file. Sequence numbers may be either positive or
+negative, and are especially useful for tapset writers who want to do
+initialization in a \texttt{begin} probe. The following are examples.
 
 \begin{vindent}
 \begin{verbatim}
