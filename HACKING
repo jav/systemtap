@@ -118,3 +118,15 @@ the <systemtap@sources.redhat.com> mailing list.
 
   Proposed changes to these guidelines should be discussed on the
   mailing list.
+
+- git basics
+
+  git clone ssh://sources.redhat.com/git/systemtap.git
+  # build ; hack hack hack; test
+  git commit # to your local repository, add nice commit message
+  git pull # to make sure your copy is up to date & merged
+  # last minute rebuild; retest
+  git rebase origin/master # clean git commit of merge history
+  git diff origin/master # final visual check
+  git push # to the central one
+
