@@ -9,5 +9,6 @@ exit: user-controlled
 output: sorted-list
 scope: system-wide
 description: The mmanonpage.stp script uses the virtual memory tracepoints available in some kernels to track the number of faults, user space frees, page ins, copy on writes and unmaps for anonymous pages. When the script is terminated the counts are printed for each process that allocated pages while the script was running. This script displays the anonymous page statistics for each process that ran while the script is active.  Its useful in debugging leaks in the anonymous regions of a process.
+test_support: stap -l kernel.trace("mm_page_allocation"),kernel.trace("mm_page_free"),kernel.trace("mm_anon_fault"),kernel.trace("mm_anon_pgin"),kernel.trace("mm_anon_cow"),kernel.trace("mm_anon_unmap"),kernel.trace("mm_anon_userfree")
 test_check: stap -p4 mmanonpage.stp
 test_installcheck: stap mmanonpage.stp -c "sleep 1"

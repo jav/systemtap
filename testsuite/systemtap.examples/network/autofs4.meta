@@ -4,5 +4,6 @@ name: autofs4.stp
 author: Jeff Moyer
 keywords: network autofs nfs
 subsystem: network
+test_support: stap -l module("autofs4").function("autofs4_lookup"),module("autofs4").function("autofs4_follow_link"),module("autofs4").function("autofs4_expire_indirect").return,module("autofs4").function("autofs4_wait").return
 test_check: stap -p4 autofs4.stp
 test_installcheck: stap autofs4.stp -c "sleep 10"

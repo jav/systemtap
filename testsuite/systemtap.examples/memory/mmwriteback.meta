@@ -9,5 +9,6 @@ exit: user-controlled
 output: sorted-list
 scope: system-wide
 description: The mmwriteback.stp script uses the virtual memory tracepoints available in some kernels to report all of the file writebacks that occur form kupdate, pdflush and kjournald while the script is running.  Its useful in determining where writes are coming from on a supposedly idle system that is experiencing upexpected IO.
+test_support: stap -l kernel.trace("mm_pdflush_bgwriteout"),kernel.trace("mm_pdflush_kupdate"),kernel.trace("mm_pagereclaim_pgout")
 test_check: stap -p4 mmwriteback.stp
 test_installcheck: stap mmwriteback.stp -c "sleep 1"
