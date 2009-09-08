@@ -97,6 +97,7 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap-runtime = %{version}-%{release}
 Requires: avahi avahi-tools nss nss-tools mktemp
+Requires: zip unzip
 
 %description client
 SystemTap client is the client component of an instrumentation
@@ -110,6 +111,7 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap
 Requires: avahi avahi-tools nss nss-tools mktemp
+Requires: zip unzip
 
 %description server
 SystemTap server is the server component of an instrumentation
