@@ -12,4 +12,4 @@ probe kernel.function("*") {
 probe timer.sec(15) {
 	exit()
 }
-'
+' >/dev/null
