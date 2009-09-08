@@ -1604,11 +1604,8 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
       expect_machine2 = "x86_64";
       break;
     case EM_PPC:
-      expect_machine = "ppc";
-      if (! q->has_process) break; // 32-bit kernel/module
-      /* FALLSTHROUGH */
     case EM_PPC64:
-      expect_machine2 = "ppc64";
+      expect_machine = "powerpc";
       break;
     case EM_S390: expect_machine = "s390"; break;
     case EM_IA_64: expect_machine = "ia64"; break;
