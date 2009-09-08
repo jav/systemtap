@@ -1107,9 +1107,74 @@ read\_counter is a function passed to the handle for a perfmon probe. It
 returns the current count for the event.
 \end{comment}
 
+\subsection{Pointer typecasting}
+\index{Pointer typecasting}
+
+\emph{Typecasting} is supported using the \texttt{@cast()} operator. A
+script can define a pointer type for a \emph{long} value, then access
+type members using the same syntax as with \texttt{\$target}
+variables. After a pointer is saved into a script integer variable,
+the translator loses the necessary type information to access members
+from that pointer.  The \texttt{@cast()} operator tells the translator
+how to read a pointer.
+
+The following statement interprets \texttt{p} as a pointer to a struct
+or union named \texttt{type\_name} and dereferences the
+\texttt{member} value:
+\begin{vindent}
+\begin{verbatim}
+@cast(p, "type_name"[, "module"])->member
+\end{verbatim}
+\end{vindent}
+
+The optional \texttt{module} parameter tells the translator where to
+look for information about that type. You can specify multiple modules
+as a list with colon (\texttt{:}) separators. If you do not specify
+the module parameter, the translator defaults to either the probe
+module for dwarf probes or to \textit{kernel} for functions and all
+other probe types.
+
+The following statement retrieves the parent PID from a kernel
+task\_struct:
+\begin{vindent}
+\begin{verbatim}
+@cast(pointer, "task_struct", "kernel")->parent->tgid
+\end{verbatim}
+\end{vindent}
+
+The translator can create its own module with type information from a
+header surrounded by angle brackets (\texttt{< >}) if normal debugging
+information is not available.  For kernel headers, prefix it with
+\texttt{kernel} to use the appropriate build system.  All other
+headers are built with default GCC parameters into a user module. The
+following statements are examples.
+\begin{vindent}
+\begin{verbatim}
+@cast(tv, "timeval", "<sys/time.h>")->tv_sec
+@cast(task, "task_struct", "kernel<linux/sched.h>")->tgid
+\end{verbatim}
+\end{vindent}
+
+In guru mode, the translator allows scripts to assign new values to
+members of typecasted pointers.
+
+Typecasting is also useful in the case of \texttt{void*} members whose
+type might be determinable at run time.
+\begin{vindent}
+\begin{verbatim}
+probe foo {
+   if ($var->type == 1) {
+      value = @cast($var->data, "type1")->bar
+   } else {
+      value = @cast($var->data, "type2")->baz
+   }
+   print(value)
+}
+\end{verbatim}
+\end{vindent}
+
+
 \section{Language elements\label{sec:Language-Elements}}
-
-
 \subsection{Identifiers}
 \index{identifiers}
 \emph{Identifiers} are used to name variables and functions. They are an
