@@ -1443,7 +1443,7 @@ stap_start_task_finder(void)
 #ifndef STP_PRIVILEGED
 			/* Make sure unprivileged users only probe their own threads.  */
 			if (_stp_uid != tsk_euid) {
-				if (tgt->pid != 0) {
+				if (tgt->pid != 0 || _stp_target) {
 					_stp_warn("Process %d does not belong to unprivileged user %d",
 						  tsk->pid, _stp_uid);
 				}
