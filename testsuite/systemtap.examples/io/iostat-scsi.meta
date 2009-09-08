@@ -1,0 +1,13 @@
+title: iostat for SCSI Devices
+name: iostat-scsi.stp
+version: 1.0
+author: anonymous
+keywords: io profiling scsi
+subsystem: io
+status: production
+exit: user-controlled
+output: timed 
+scope: system-wide
+description: The iostat-scsi.stp script provides a breakdown of the number of blks read and written on the various machines's SCSI devices. The script takes one argument which is the number of seconds between reports.
+test_check: stap -p4 iostat-scsi.stp 1
+test_installcheck: stap iostat-scsi.stp 1 -c "sleep 1"

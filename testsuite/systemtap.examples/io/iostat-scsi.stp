@@ -19,15 +19,10 @@ probe module("sd_mod").function("sd_init_command") !, kernel.function("sd_init_c
     reads[device] <<< nr_sectors * sector_size
 }
 %:
-%{
-#include <scsi/scsi_device.h>
-%}
 
-function get_sector_size:long (data:long) %{ /* pure */
-  struct scsi_device *sdp = (struct scsi_device *)((long)THIS->data);
-  THIS->__retvalue = kread(&(sdp->sector_size));
-  CATCH_DEREF_FAULT();
-%}
+function get_sector_size:long (data:long) { /* pure */
+  return @cast(data, "scsi_device", "kernel<scsi/scsi_device.h>")->sector_size
+}
 
 probe module("sd_mod").function("sd_prep_fn") !, kernel.function("sd_prep_fn") {
   device=kernel_string($rq->rq_disk->disk_name)
