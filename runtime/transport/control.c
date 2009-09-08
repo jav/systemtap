@@ -175,7 +175,7 @@ static int _stp_ctl_send(int type, void *data, int len)
 		wake_up_interruptible(&_stp_ctl_wq);
         else
                 // printk instead of _stp_error since an error here means our transport is suspect
-                printk(KERN_ERROR "ctl_send (type=%d len=%d) failed: %d\n", type, len, err);
+                printk(KERN_ERR "ctl_send (type=%d len=%d) failed: %d\n", type, len, err);
 	dbug_trans(1, "returning %d\n", err);
 	return err;
 }
