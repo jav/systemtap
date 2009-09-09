@@ -192,6 +192,14 @@ keywords: io
   line.
 
 
+io/iostat-scsi.stp - iostat for SCSI Devices
+keywords: io profiling scsi
+
+  The iostat-scsi.stp script provides a breakdown of the number of blks
+  read and written on the various machines's SCSI devices. The script
+  takes one argument which is the number of seconds between reports.
+
+
 io/iostats.stp - List Executables Reading and Writing the Most Data
 keywords: io profiling
 
@@ -539,6 +547,14 @@ keywords: process scheduler time tracepoint
 
 = PROFILING =
 
+io/iostat-scsi.stp - iostat for SCSI Devices
+keywords: io profiling scsi
+
+  The iostat-scsi.stp script provides a breakdown of the number of blks
+  read and written on the various machines's SCSI devices. The script
+  takes one argument which is the number of seconds between reports.
+
+
 io/iostats.stp - List Executables Reading and Writing the Most Data
 keywords: io profiling
 
@@ -665,6 +681,16 @@ keywords: io scheduler backtrace
   operations (in "D" state) in the wait_for_completion function.  If a
   thread spends over 10ms, its name and backtrace is printed, and later
   so is the total delay.
+
+
+= SCSI =
+
+io/iostat-scsi.stp - iostat for SCSI Devices
+keywords: io profiling scsi
+
+  The iostat-scsi.stp script provides a breakdown of the number of blks
+  read and written on the various machines's SCSI devices. The script
+  takes one argument which is the number of seconds between reports.
 
 
 = SIGNALS =
