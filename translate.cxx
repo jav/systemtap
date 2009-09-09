@@ -1161,22 +1161,12 @@ c_unparser::emit_module_init ()
   o->newline(-1) << "}";
   o->newline() << "#endif";
 
-  // PR10228: set up symbol table-related task finders
-  o->newline() << "#if defined(STP_NEED_VMA_TRACKER) && defined(CONFIG_UTRACE)";
+  // PR10228: set up symbol table-related task finders.
+  o->newline() << "#if defined(STP_NEED_VMA_TRACKER)";
   o->newline() << "_stp_sym_init();";
-  o->newline() << "for (i=0; i<_stp_num_modules; i++) {";
-  o->newline(1) << "if (_stp_modules[i]->vmcb) {";
-  o->newline(1) << "rc = stap_register_task_finder_target (_stp_modules[i]->vmcb);";
-  o->newline() << "if (rc) {"; 
-  o->newline(1) << "_stp_error ("
-                << "\"couldn't initialize task-finder for %s\\n\","
-                << "_stp_modules[i]->vmcb->procname);";
-  o->newline() << "goto out;";
-  o->newline(-1) << "}";
-  o->newline(-1) << "}";
-  o->newline(-1) << "}";
   o->newline() << "#endif";
-
+  // NB: we don't need per-_stp_module task_finders, since a single common one
+  // set up in runtime/sym.c's _stp_sym_init() will scan through all _stp_modules.
   o->newline() << "(void) probe_point;";
   o->newline() << "(void) i;";
   o->newline() << "(void) j;";
@@ -4857,27 +4847,9 @@ dump_unwindsyms (Dwfl_Module *m,
 
   mainfile = canonicalize_file_name(mainfile);
 
-  // PR10228: populate the task_finder_vmcb.
-  if (modname[0] == '/') // user-space module
-    {
-      // NB: runtime/sym.c
-      c->output << "static struct stap_task_finder_target _stp_vmcb_" << stpmod_idx << "= {\n";
-      c->output << "#ifdef CONFIG_UTRACE\n";
-      c->output << ".procname = " << lex_cast_qstring (mainfile) << ",\n";
-      c->output << ".mmap_callback = &_stp_tf_mmap_cb,\n";
-      c->output << ".munmap_callback = &_stp_tf_munmap_cb,\n";
-      c->output << "#endif\n";
-      c->output << "};\n";
-    }
-
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
   c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
-
-  // PR10228: populate the task_finder_vmcb.
-  if (modname[0] == '/') // user-space module
-      c->output << ".vmcb = & _stp_vmcb_" << stpmod_idx << ",\n";
-
   c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
   c->output << ".eh_frame_addr = 0x" << hex << eh_addr << dec << ", \n";
 
