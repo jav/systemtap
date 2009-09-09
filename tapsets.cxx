@@ -3080,18 +3080,13 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->addr;";
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
   s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -3119,18 +3114,13 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->rp->kp.addr;";
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
   s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -4553,18 +4543,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
   // we don't confuse uprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = inst->vaddr;";
+  s.op->newline() << "SET_REG_IP(regs, inst->vaddr);";
   s.op->newline() << "(*sups->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = uprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -4581,18 +4566,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
   // we don't confuse uprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = inst->rp->u.vaddr;";
+  s.op->newline() << "SET_REG_IP(regs, inst->rp->u.vaddr);";
   s.op->newline() << "(*sups->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = uprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -5166,18 +5146,13 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->addr;";
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
   s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -5205,18 +5180,13 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->rp->kp.addr;";
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
   s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
