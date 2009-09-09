@@ -3820,8 +3820,7 @@ dwarf_builder::build(systemtap_session & sess,
 
 symbol_table::~symbol_table()
 {
-  for (iterator_t i = map_by_addr.begin(); i != map_by_addr.end(); ++i)
-    delete i->second;
+  delete_map(map_by_addr);
 }
 
 void
