@@ -83,7 +83,7 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(top_srcdir)/man/stapprobes.udp.3stap.in \
 	$(top_srcdir)/man/stapprobes.snmp.3stap.in \
 	$(top_srcdir)/initscript/systemtap.in $(srcdir)/run-stap.in \
-	$(srcdir)/run-staprun.in $(srcdir)/dtrace.in depcomp depcomp \
+	$(srcdir)/run-staprun.in $(srcdir)/dtrace.in depcomp \
 	$(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -443,7 +443,6 @@ LDADD =
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 TEST_COV_DIR = coverage
-# XXX: leaves behind man pages
 SUBDIRS = doc grapher
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 
@@ -1872,7 +1871,6 @@ distclean-local:
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
-	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
 	rm -rf $(DESTDIR)$(libdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 	@list='$(EXAMPLE_SRC)'; for f in $$list; do p=`basename $$f`; \
@@ -1888,6 +1886,7 @@ uninstall-local:
 	  rm -f "$(SAMPLE_INSTALL_DIR)/$$p"; \
 	done
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
+	rm -rf $(DESTDIR)$(docdir)/examples
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
