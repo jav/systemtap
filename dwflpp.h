@@ -65,6 +65,12 @@ typedef unordered_map<void*, cu_function_cache_t*> mod_cu_function_cache_t;
 // inline function die -> instance die[]
 typedef unordered_map<void*, std::vector<Dwarf_Die>*> cu_inl_function_cache_t;
 
+// die -> parent die
+typedef unordered_map<void*, Dwarf_Die> cu_die_parent_cache_t;
+
+// cu die -> (die -> parent die)
+typedef unordered_map<void*, cu_die_parent_cache_t*> mod_cu_die_parent_cache_t;
+
 typedef std::vector<func_info> func_info_map_t;
 typedef std::vector<inline_instance_info> inline_instance_map_t;
 
@@ -201,6 +207,8 @@ struct dwflpp
   void iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * arg),
                                       void * data);
 
+  std::vector<Dwarf_Die> getscopes_die(Dwarf_Die* die);
+
   Dwarf_Die *declaration_resolve(const char *name);
 
   mod_cu_function_cache_t cu_function_cache;
@@ -291,6 +299,9 @@ private:
   std::set<void*> cu_inl_function_cache_done; // CUs that are already cached
   cu_inl_function_cache_t cu_inl_function_cache;
   void cache_inline_instances (Dwarf_Die* die);
+
+  mod_cu_die_parent_cache_t cu_die_parent_cache;
+  void cache_die_parents(cu_die_parent_cache_t* parents, Dwarf_Die* die);
 
   /* The global alias cache is used to resolve any DIE found in a
    * module that is stubbed out with DW_AT_declaration with a defining

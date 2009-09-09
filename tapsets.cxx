@@ -355,7 +355,7 @@ struct dwarf_derived_probe: public derived_probe
   void emit_probe_local_init(translator_output * o);
 
   string args;
-  void saveargs(Dwarf_Die* scope_die);
+  void saveargs(dwarf_query& q, Dwarf_Die* scope_die);
   void printargs(std::ostream &o) const;
 
   // Pattern registration helpers.
@@ -401,7 +401,7 @@ struct uprobe_derived_probe: public derived_probe
                         bool return_p);
 
   string args;
-  void saveargs(Dwarf_Die* scope_die);
+  void saveargs(dwarf_query& q, Dwarf_Die* scope_die);
   void printargs(std::ostream &o) const;
 
   void printsig (std::ostream &o) const;
@@ -2110,10 +2110,8 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
 void
 dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
-  Dwarf_Die *scopes;
-  if (dwarf_getscopes_die (scope_die, &scopes) == 0)
+  if (null_die(scope_die))
     return;
-  auto_free free_scopes(scopes);
 
   target_symbol *tsym = new target_symbol;
   print_format* pf = new print_format;
@@ -2161,6 +2159,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       // non-.return probe: support $$parms, $$vars, $$locals
       bool first = true;
       Dwarf_Die result;
+      vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
       if (dwarf_child (&scopes[0], &result) == 0)
         do
           {
@@ -2745,7 +2744,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
   // Save the local variables for listing mode
   if (q.sess.listing_mode_vars)
-    saveargs(scope_die);
+    saveargs(q, scope_die);
 
   // Reset the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
@@ -2812,12 +2811,10 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
 
 void
-dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
+dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die)
 {
-  Dwarf_Die *scopes;
-  if (!null_die(scope_die) && dwarf_getscopes_die (scope_die, &scopes) == 0)
+  if (null_die(scope_die))
     return;
-  auto_free free_scopes(scopes);
 
   stringstream argstream;
   string type_name;
@@ -2829,6 +2826,7 @@ dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
     argstream << " $return:" << type_name;
 
   Dwarf_Die arg;
+  vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
   if (dwarf_child (&scopes[0], &arg) == 0)
     do
       {
@@ -4232,7 +4230,7 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
 
   // Save the local variables for listing mode
   if (q.sess.listing_mode_vars)
-    saveargs(scope_die);
+    saveargs(q, scope_die);
 
   // Reset the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
@@ -4308,14 +4306,12 @@ uprobe_derived_probe::uprobe_derived_probe (probe *base,
 
 
 void
-uprobe_derived_probe::saveargs(Dwarf_Die* scope_die)
+uprobe_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die)
 {
   // same as dwarf_derived_probe::saveargs
 
-  Dwarf_Die *scopes;
-  if (!null_die(scope_die) && dwarf_getscopes_die (scope_die, &scopes) == 0)
+  if (null_die(scope_die))
     return;
-  auto_free free_scopes(scopes);
 
   stringstream argstream;
   string type_name;
@@ -4327,6 +4323,7 @@ uprobe_derived_probe::saveargs(Dwarf_Die* scope_die)
     argstream << " $return:" << type_name;
 
   Dwarf_Die arg;
+  vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
   if (dwarf_child (&scopes[0], &arg) == 0)
     do
       {

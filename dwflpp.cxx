@@ -56,6 +56,10 @@ extern "C" {
 }
 
 
+// debug flag to compare to the uncached version from libdw
+// #define DEBUG_DWFLPP_GETSCOPES 1
+
+
 using namespace std;
 using namespace __gnu_cxx;
 
@@ -108,6 +112,10 @@ dwflpp::~dwflpp()
 
   for (mod_cu_type_cache_t::iterator it = global_alias_cache.begin();
        it != global_alias_cache.end(); ++it)
+    delete it->second;
+
+  for (mod_cu_die_parent_cache_t::iterator it = cu_die_parent_cache.begin();
+       it != cu_die_parent_cache.end(); ++it)
     delete it->second;
 
   if (dwfl)
@@ -591,6 +599,89 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
 }
 
 
+void
+dwflpp::cache_die_parents(cu_die_parent_cache_t* parents, Dwarf_Die* die)
+{
+  // Record and recurse through DIEs we care about
+  Dwarf_Die child, import;
+  if (dwarf_child(die, &child) == 0)
+    do
+      {
+        switch (dwarf_tag (&child))
+          {
+          // normal tags to recurse
+          case DW_TAG_compile_unit:
+          case DW_TAG_module:
+          case DW_TAG_lexical_block:
+          case DW_TAG_with_stmt:
+          case DW_TAG_catch_block:
+          case DW_TAG_try_block:
+          case DW_TAG_entry_point:
+          case DW_TAG_inlined_subroutine:
+          case DW_TAG_subprogram:
+            parents->insert(make_pair(child.addr, *die));
+            cache_die_parents(parents, &child);
+            break;
+
+          // record only, nothing to recurse
+          case DW_TAG_label:
+            parents->insert(make_pair(child.addr, *die));
+            break;
+
+          // imported dies should be followed
+          case DW_TAG_imported_unit:
+            if (dwarf_attr_die(&child, DW_AT_import, &import))
+              {
+                parents->insert(make_pair(import.addr, *die));
+                cache_die_parents(parents, &import);
+              }
+            break;
+
+          // nothing to do for other tags
+          default:
+            break;
+          }
+      }
+    while (dwarf_siblingof(&child, &child) == 0);
+}
+
+
+vector<Dwarf_Die>
+dwflpp::getscopes_die(Dwarf_Die* die)
+{
+  assert (cu);
+
+  cu_die_parent_cache_t *parents = cu_die_parent_cache[cu->addr];
+  if (!parents)
+    {
+      parents = new cu_die_parent_cache_t;
+      cu_die_parent_cache[cu->addr] = parents;
+      cache_die_parents(parents, cu);
+      if (sess.verbose > 4)
+        clog << "die parent cache " << module_name << ":" << cu_name()
+             << " size " << parents->size() << endl;
+    }
+
+  vector<Dwarf_Die> scopes;
+  scopes.push_back(*die);
+  for (cu_die_parent_cache_t::iterator it = parents->find(die->addr);
+       it != parents->end(); it = parents->find(it->second.addr))
+    scopes.push_back(it->second);
+
+#ifdef DEBUG_DWFLPP_GETSCOPES
+  Dwarf_Die *dscopes;
+  int nscopes = dwarf_getscopes_die(die, &dscopes);
+
+  assert(nscopes == (int)scopes.size());
+  for (unsigned i = 0; i < scopes.size(); ++i)
+    assert(scopes[i].addr == dscopes[i].addr);
+  free(dscopes);
+#endif
+
+  return scopes;
+}
+
+
 int
 dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
 {
@@ -1025,9 +1116,8 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
               Dwarf_Addr stmt_addr;
               if (dwarf_lowpc (&die, &stmt_addr) == 0)
                 {
-                  Dwarf_Die *scopes;
-                  int nscopes = dwarf_getscopes_die (&die, &scopes);
-                  if (nscopes > 1)
+                  vector<Dwarf_Die> scopes = getscopes_die(&die);
+                  if (scopes.size() > 1)
                     callback(current_function, name, file, dline,
                              &scopes[1], stmt_addr, q);
                 }
@@ -1491,6 +1581,7 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
    * as returned by dwarf_getscopes for the address, starting with the
    * declaring_scope that the variable was found in.
    */
+  vector<Dwarf_Die> vscopes;
   for (int inner = declaring_scope;
        inner < nscopes && fb_attr == NULL;
        ++inner)
@@ -1511,8 +1602,10 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
            * subroutine is inlined to find the appropriate frame base. */
            if (declaring_scope != -1)
              {
-               nscopes = dwarf_getscopes_die (&scopes[inner], &scopes);
-               if (nscopes == -1)
+               vscopes = getscopes_die(&scopes[inner]);
+               scopes = &vscopes[0];
+               nscopes = vscopes.size();
+               if (!nscopes)
                  throw semantic_error ("unable to get die scopes for '" +
                                        local + "' in an inlined subroutines",
                                        e->tok);
