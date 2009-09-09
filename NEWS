@@ -1,5 +1,8 @@
 * What's new
 
+- Memory consumption for scripts involving many uprobes has been
+  dramatically reduced.
+
 - The preprocessor now supports || and && in the conditions.
         %( arch == "x86_64" || arch == "ia64" %: ... %)
 
