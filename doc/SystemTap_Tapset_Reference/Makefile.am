@@ -57,3 +57,7 @@ endif
 	$(MKDIR_P)  $(HTML_INSTALL_DIR)
 	$(INSTALL_DATA) tapsets/* $(HTML_INSTALL_DIR)
 endif
+
+CLEANFILES=tapsets.xml stamp-* $(PDFDOCS)
+clean-local:
+	rm -rf man3 tapsets
