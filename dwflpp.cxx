@@ -1717,7 +1717,8 @@ dwflpp::translate_location(struct obstack *pool,
       /* Fall through.  */
 
     case 0:			/* Shouldn't happen.  */
-      throw semantic_error ("not accessible at this address", e->tok);
+      throw semantic_error ("not accessible at this address ("
+                            + lex_cast_hex(pc) + ")", e->tok);
 
     default:			/* Shouldn't happen.  */
     case -1:
