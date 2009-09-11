@@ -1761,7 +1761,8 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   Dwarf_Addr addr;
   block *add_block;
   probe *add_probe;
-  std::map<std::string, symbol *> return_ts_map;
+  map<std::string, symbol *> return_ts_map;
+  vector<Dwarf_Die> scopes;
   bool visited;
 
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
@@ -1770,6 +1771,8 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
   void visit_cast_op (cast_op* e);
+private:
+  vector<Dwarf_Die>& getscopes(target_symbol *e);
 };
 
 
@@ -2281,7 +2284,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	}
       else
         {
-	  ec->code = q.dw.literal_stmt_for_local (scope_die,
+	  ec->code = q.dw.literal_stmt_for_local (getscopes(e),
 						  addr,
 						  e->base_name.substr(1),
 						  e,
@@ -2388,6 +2391,35 @@ dwarf_var_expanding_visitor::visit_cast_op (cast_op *e)
     e->module = q.dw.module_name;
 
   var_expanding_visitor::visit_cast_op(e);
+}
+
+
+vector<Dwarf_Die>&
+dwarf_var_expanding_visitor::getscopes(target_symbol *e)
+{
+  if (scopes.empty())
+    {
+      // If the address is at the beginning of the scope_die, we can do a fast
+      // getscopes from there.  Otherwise we need to look it up by address.
+      Dwarf_Addr entrypc;
+      if (q.dw.die_entrypc(scope_die, &entrypc) && entrypc == addr)
+        scopes = q.dw.getscopes(scope_die);
+      else
+        scopes = q.dw.getscopes(addr);
+
+      if (scopes.empty())
+        throw semantic_error ("unable to find any scopes containing "
+                              + lex_cast_hex(addr)
+                              + ((scope_die == NULL) ? ""
+                                 : (string (" in ")
+                                    + (dwarf_diename(scope_die) ?: "<unknown>")
+                                    + "(" + (dwarf_diename(q.dw.cu) ?: "<unknown>")
+                                    + ")"))
+                              + " while searching for local '"
+                              + e->base_name.substr(1) + "'",
+                              e->tok);
+    }
+  return scopes;
 }
 
 

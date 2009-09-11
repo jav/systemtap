@@ -208,6 +208,8 @@ struct dwflpp
                                       void * data);
 
   std::vector<Dwarf_Die> getscopes_die(Dwarf_Die* die);
+  std::vector<Dwarf_Die> getscopes(Dwarf_Die* die);
+  std::vector<Dwarf_Die> getscopes(Dwarf_Addr pc);
 
   Dwarf_Die *declaration_resolve(const char *name);
 
@@ -253,7 +255,7 @@ struct dwflpp
 
   bool die_has_pc (Dwarf_Die & die, Dwarf_Addr pc);
 
-  std::string literal_stmt_for_local (Dwarf_Die *scope_die,
+  std::string literal_stmt_for_local (std::vector<Dwarf_Die>& scopes,
                                       Dwarf_Addr pc,
                                       std::string const & local,
                                       const target_symbol *e,
@@ -302,6 +304,7 @@ private:
 
   mod_cu_die_parent_cache_t cu_die_parent_cache;
   void cache_die_parents(cu_die_parent_cache_t* parents, Dwarf_Die* die);
+  cu_die_parent_cache_t *get_die_parents();
 
   /* The global alias cache is used to resolve any DIE found in a
    * module that is stubbed out with DW_AT_declaration with a defining
@@ -328,10 +331,10 @@ private:
   static void loc2c_emit_address (void *arg, struct obstack *pool,
                                   Dwarf_Addr address);
 
-  void print_locals(Dwarf_Die *die, std::ostream &o);
+  void print_locals(std::vector<Dwarf_Die>& scopes, std::ostream &o);
   void print_members(Dwarf_Die *vardie, std::ostream &o);
 
-  Dwarf_Attribute *find_variable_and_frame_base (Dwarf_Die *scope_die,
+  Dwarf_Attribute *find_variable_and_frame_base (std::vector<Dwarf_Die>& scopes,
                                                  Dwarf_Addr pc,
                                                  std::string const & local,
                                                  const target_symbol *e,
@@ -384,11 +387,6 @@ private:
   bool blacklist_enabled;
   void build_blacklist();
   std::string get_blacklist_section(Dwarf_Addr addr);
-
-  Dwarf_Addr pc_cached_scopes;
-  int num_cached_scopes;
-  Dwarf_Die *cached_scopes;
-  int dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes);
 
   // Returns the call frame address operations for the given program counter.
   Dwarf_Op *get_cfa_ops (Dwarf_Addr pc);

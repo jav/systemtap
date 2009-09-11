@@ -70,8 +70,7 @@ static string TOK_KERNEL("kernel");
 dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL), dwfl(NULL),
-  module_dwarf(NULL), function(NULL), blacklist_enabled(false),
-  pc_cached_scopes(0), num_cached_scopes(0), cached_scopes(NULL)
+  module_dwarf(NULL), function(NULL), blacklist_enabled(false)
 {
   if (kernel_p)
     setup_kernel(name);
@@ -87,8 +86,7 @@ dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
 dwflpp::dwflpp(systemtap_session & session, const vector<string>& names):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL), dwfl(NULL),
-  module_dwarf(NULL), function(NULL), blacklist_enabled(false),
-  pc_cached_scopes(0), num_cached_scopes(0), cached_scopes(NULL)
+  module_dwarf(NULL), function(NULL), blacklist_enabled(false)
 {
   setup_user(names);
 }
@@ -96,8 +94,6 @@ dwflpp::dwflpp(systemtap_session & session, const vector<string>& names):
 
 dwflpp::~dwflpp()
 {
-  free(cached_scopes);
-
   delete_map(module_cu_cache);
   delete_map(cu_function_cache);
   delete_map(cu_inl_function_cache);
@@ -179,9 +175,6 @@ dwflpp::focus_on_cu(Dwarf_Die * c)
   // Reset existing pointers and names
   function_name.clear();
   function = NULL;
-
-  free(cached_scopes);
-  cached_scopes = NULL;
 }
 
 
@@ -632,36 +625,125 @@ dwflpp::cache_die_parents(cu_die_parent_cache_t* parents, Dwarf_Die* die)
 }
 
 
-vector<Dwarf_Die>
-dwflpp::getscopes_die(Dwarf_Die* die)
+cu_die_parent_cache_t*
+dwflpp::get_die_parents()
 {
   assert (cu);
 
-  cu_die_parent_cache_t *parents = cu_die_parent_cache[cu->addr];
+  cu_die_parent_cache_t *& parents = cu_die_parent_cache[cu->addr];
   if (!parents)
     {
       parents = new cu_die_parent_cache_t;
-      cu_die_parent_cache[cu->addr] = parents;
       cache_die_parents(parents, cu);
       if (sess.verbose > 4)
         clog << "die parent cache " << module_name << ":" << cu_name()
              << " size " << parents->size() << endl;
     }
+  return parents;
+}
+
+
+vector<Dwarf_Die>
+dwflpp::getscopes_die(Dwarf_Die* die)
+{
+  cu_die_parent_cache_t *parents = get_die_parents();
 
   vector<Dwarf_Die> scopes;
-  scopes.push_back(*die);
-  for (cu_die_parent_cache_t::iterator it = parents->find(die->addr);
-       it != parents->end(); it = parents->find(it->second.addr))
-    scopes.push_back(it->second);
+  Dwarf_Die *scope = die;
+  cu_die_parent_cache_t::iterator it;
+  do
+    {
+      scopes.push_back(*scope);
+      it = parents->find(scope->addr);
+      scope = &it->second;
+    }
+  while (it != parents->end());
 
 #ifdef DEBUG_DWFLPP_GETSCOPES
-  Dwarf_Die *dscopes;
+  Dwarf_Die *dscopes = NULL;
   int nscopes = dwarf_getscopes_die(die, &dscopes);
 
   assert(nscopes == (int)scopes.size());
   for (unsigned i = 0; i < scopes.size(); ++i)
     assert(scopes[i].addr == dscopes[i].addr);
   free(dscopes);
+#endif
+
+  return scopes;
+}
+
+
+std::vector<Dwarf_Die>
+dwflpp::getscopes(Dwarf_Die* die)
+{
+  cu_die_parent_cache_t *parents = get_die_parents();
+
+  vector<Dwarf_Die> scopes;
+
+  Dwarf_Die origin;
+  Dwarf_Die *scope = die;
+  cu_die_parent_cache_t::iterator it;
+  do
+    {
+      scopes.push_back(*scope);
+      if (dwarf_tag(scope) == DW_TAG_inlined_subroutine &&
+          dwarf_attr_die(scope, DW_AT_abstract_origin, &origin))
+        scope = &origin;
+
+      it = parents->find(scope->addr);
+      scope = &it->second;
+    }
+  while (it != parents->end());
+
+#ifdef DEBUG_DWFLPP_GETSCOPES
+  // there isn't an exact libdw equivalent, but if dwarf_getscopes on the
+  // entrypc returns the same first die, then all the scopes should match
+  Dwarf_Addr pc;
+  if (die_entrypc(die, &pc))
+    {
+      Dwarf_Die *dscopes = NULL;
+      int nscopes = dwarf_getscopes(cu, pc, &dscopes);
+      if (nscopes > 0 && dscopes[0].addr == die->addr)
+        {
+          assert(nscopes == (int)scopes.size());
+          for (unsigned i = 0; i < scopes.size(); ++i)
+            assert(scopes[i].addr == dscopes[i].addr);
+        }
+      free(dscopes);
+    }
+#endif
+
+  return scopes;
+}
+
+
+std::vector<Dwarf_Die>
+dwflpp::getscopes(Dwarf_Addr pc)
+{
+  // The die_parent_cache doesn't help us without knowing where the pc is
+  // contained, so we have to do this one the old fashioned way.
+
+  assert (cu);
+
+  vector<Dwarf_Die> scopes;
+
+  Dwarf_Die* dwarf_scopes;
+  int nscopes = dwarf_getscopes(cu, pc, &dwarf_scopes);
+  if (nscopes > 0)
+    {
+      scopes.assign(dwarf_scopes, dwarf_scopes + nscopes);
+      free(dwarf_scopes);
+    }
+
+#ifdef DEBUG_DWFLPP_GETSCOPES
+  // check that getscopes on the starting die gets the same result
+  if (!scopes.empty())
+    {
+      vector<Dwarf_Die> other = getscopes(&scopes[0]);
+      assert(scopes.size() == other.size());
+      for (unsigned i = 0; i < scopes.size(); ++i)
+        assert(scopes[i].addr == other[i].addr);
+    }
 #endif
 
   return scopes;
@@ -1488,11 +1570,13 @@ dwflpp::loc2c_emit_address (void *arg, struct obstack *pool,
 
 
 void
-dwflpp::print_locals(Dwarf_Die *die, ostream &o)
+dwflpp::print_locals(vector<Dwarf_Die>& scopes, ostream &o)
 {
+  // XXX Shouldn't this be walking up to outer scopes too?
+
   // Try to get the first child of die.
   Dwarf_Die child;
-  if (dwarf_child (die, &child) == 0)
+  if (dwarf_child (&scopes[0], &child) == 0)
     {
       do
         {
@@ -1517,34 +1601,19 @@ dwflpp::print_locals(Dwarf_Die *die, ostream &o)
 
 
 Dwarf_Attribute *
-dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
+dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
                                       Dwarf_Addr pc,
                                       string const & local,
                                       const target_symbol *e,
                                       Dwarf_Die *vardie,
                                       Dwarf_Attribute *fb_attr_mem)
 {
-  Dwarf_Die *scopes;
-  int nscopes = 0;
+  Dwarf_Die *scope_die = &scopes[0];
   Dwarf_Attribute *fb_attr = NULL;
 
   assert (cu);
 
-  nscopes = dwarf_getscopes_cached (pc, &scopes);
-  if (nscopes <= 0)
-    {
-      throw semantic_error ("unable to find any scopes containing "
-                            + lex_cast_hex(pc)
-                            + ((scope_die == NULL) ? ""
-                               : (string (" in ")
-                                  + (dwarf_diename(scope_die) ?: "<unknown>")
-                                  + "(" + (dwarf_diename(cu) ?: "<unknown>")
-                                  + ")"))
-                            + " while searching for local '" + local + "'",
-                            e->tok);
-    }
-
-  int declaring_scope = dwarf_getscopevar (scopes, nscopes,
+  int declaring_scope = dwarf_getscopevar (&scopes[0], scopes.size(),
                                            local.c_str(),
                                            0, NULL, 0, 0,
                                            vardie);
@@ -1567,18 +1636,19 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
    * as returned by dwarf_getscopes for the address, starting with the
    * declaring_scope that the variable was found in.
    */
-  vector<Dwarf_Die> vscopes;
-  for (int inner = declaring_scope;
-       inner < nscopes && fb_attr == NULL;
+  vector<Dwarf_Die> physcopes, *fbscopes = &scopes;
+  for (size_t inner = declaring_scope;
+       inner < fbscopes->size() && fb_attr == NULL;
        ++inner)
     {
-      switch (dwarf_tag (&scopes[inner]))
+      Dwarf_Die& scope = (*fbscopes)[inner];
+      switch (dwarf_tag (&scope))
         {
         default:
           continue;
         case DW_TAG_subprogram:
         case DW_TAG_entry_point:
-          fb_attr = dwarf_attr_integrate (&scopes[inner],
+          fb_attr = dwarf_attr_integrate (&scope,
                                           DW_AT_frame_base,
                                           fb_attr_mem);
           break;
@@ -1588,13 +1658,12 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
            * subroutine is inlined to find the appropriate frame base. */
            if (declaring_scope != -1)
              {
-               vscopes = getscopes_die(&scopes[inner]);
-               scopes = &vscopes[0];
-               nscopes = vscopes.size();
-               if (!nscopes)
+               physcopes = getscopes_die(&scope);
+               if (physcopes.empty())
                  throw semantic_error ("unable to get die scopes for '" +
                                        local + "' in an inlined subroutines",
                                        e->tok);
+               fbscopes = &physcopes;
                inner = 0; // zero is current scope, for look will increase.
                declaring_scope = -1;
              }
@@ -2172,7 +2241,7 @@ dwflpp::express_as_string (string prelude,
 
 
 string
-dwflpp::literal_stmt_for_local (Dwarf_Die *scope_die,
+dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
                                 Dwarf_Addr pc,
                                 string const & local,
                                 const target_symbol *e,
@@ -2182,7 +2251,7 @@ dwflpp::literal_stmt_for_local (Dwarf_Die *scope_die,
   Dwarf_Die vardie;
   Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
 
-  fb_attr = find_variable_and_frame_base (scope_die, pc, local, e,
+  fb_attr = find_variable_and_frame_base (scopes, pc, local, e,
                                           &vardie, &fb_attr_mem);
 
   if (sess.verbose>2)
@@ -2683,20 +2752,6 @@ dwflpp::literal_addr_to_sym_addr(Dwarf_Addr lit_addr)
     clog << "literal_addr_to_sym_addr ret 0x" << hex << lit_addr << dec << endl;
 
   return lit_addr;
-}
-
-int
-dwflpp::dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes)
-{
-  if (!cached_scopes || pc != pc_cached_scopes)
-    {
-      free(cached_scopes);
-      cached_scopes = NULL;
-      pc_cached_scopes = pc;
-      num_cached_scopes = dwarf_getscopes(cu, pc, &cached_scopes);
-    }
-  *scopes = cached_scopes;
-  return num_cached_scopes;
 }
 
 /* Returns the call frame address operations for the given program counter
