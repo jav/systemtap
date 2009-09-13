@@ -10,4 +10,4 @@ output: sorted-list on-exit
 scope: system-wide
 description: The script watches all syscall on the system. On exit the script prints a list showing the number of systemcalls executed by each PID ordered from greatest to least number of syscalls.
 test_check: stap -p4 syscalls_by_pid.stp
-test_installcheck: stap syscalls_by_pid.stp -c "sleep 1"
+test_installcheck: stap syscalls_by_pid.stp -c "sleep 0.2"

@@ -4,4 +4,4 @@ keywords: process syscall
 subsystem: general
 description: The script prints a periodic tabular report about failing system calls, by process and by syscall failure.  The first optional argument specifies the reporting interval (in seconds, default 5); the second optional argument gives a screen height (number of lines in the report, default 20).
 test_check: stap -p4 errsnoop.stp
-test_installcheck: stap errsnoop.stp 1 10 -c "sleep 3"
+test_installcheck: stap errsnoop.stp 1 10 -c "sleep 1"

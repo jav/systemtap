@@ -10,4 +10,4 @@ output: sorted-list on-exit
 scope: system-wide
 description: Print signal counts by process ID in descending order.
 test_check: stap -p4 sig_by_pid.stp
-test_installcheck: stap sig_by_pid.stp -c "sleep 1"
+test_installcheck: stap sig_by_pid.stp -c "sleep 0.2"

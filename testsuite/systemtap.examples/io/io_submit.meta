@@ -10,4 +10,4 @@ output: sorted on-exit
 scope: system-wide
 description: When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.
 test_check: stap -p4 io_submit.stp
-test_installcheck: stap io_submit.stp -c "sleep 1"
+test_installcheck: stap io_submit.stp -c "sleep 0.2"

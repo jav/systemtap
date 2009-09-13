@@ -10,4 +10,4 @@ output: sorted-list
 scope: system-wide
 description: The timeout.stp script is based on a blog entry (http://udrepper.livejournal.com/19041.html) mentioning a need for a tool to help developers find applications that are polling. The timeout.stp script monitors systemcall used for polling and records the systemcalls that timed out rather than returned because some action occurred. The script updates the screen once a second with the top twenty processes.
 test_check: stap -p4 timeout.stp
-test_installcheck: stap timeout.stp -c "sleep 1"
+test_installcheck: stap timeout.stp -c "sleep 0.2"
