@@ -48,9 +48,9 @@ foreach arch $arches {
     # and exploded the test search case a bit.
     foreach compiler {gcc} { # Add g++
 	
-	# Just try -O0 and -O3.
-	# Adding -O, -O2, -Os and mixing lib/exe is a bit overdone
-	foreach opt {-O0 -O3} {
+	# Just try -O3.
+	# Adding -O0, -O, -O2, -Os and mixing lib/exe is a bit overdone
+	foreach opt {-O3} {
 	    
 	    foreach libprelink {no yes} {
 		
