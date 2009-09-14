@@ -39,17 +39,23 @@
   - Using the --unprivileged option on stap enables translation-time checking
     for use by unprivileged users (see restrictions below).
   - All modules deemed suitable for use by unprivileged users will be signed
-    by stap (see module signing in release 0.9.8 below).
-  - Modules signed by trusted users and verified by staprun will be loaded by
+    by stap-server (see module signing in release 0.9.8 and stap-server in
+    release 0.9 below).
+  - Modules signed by trusted signers and verified by staprun will be loaded by
     staprun regardless of the user's privilege level.
-  - The system administrator asserts the trustworthiness of a user by running
+  - The system administrator asserts the trustworthiness of a signer by running
     stap-authorize-signing-cert <cert-file> as root, where <cert-file> can
-    be found in ~<user>/.systemtap/ssl/server/stap.cert.
+    be found in ~<user>/.systemtap/ssl/server/stap.cert for servers started by
+    ordinary users and in $sysconfdir/systemtap/ssl/server/stap.cert for servers
+    started by root.
+  - Servers started by root are automatically authorized as trusted signers on
+    the local host.
   - Restrictions are intentionally strict at this time and will be relaxed in
     the future:
      - probe points are restricted to:
-         begin, begin(n), end, end(n), error(n), never,
-         timer.{jiffies,s,sec,ms,msec,us,usec,ns,nsec}(n)*, timer.hz(n)
+         begin, begin(n), end, end(n), error, error(n), never,
+         timer.{jiffies,s,sec,ms,msec,us,usec,ns,nsec}(n)*, timer.hz(n),
+	 process.* (for processes owned by the user).
      - embedded C code is not allowed.
      - use of tapset functions using embedded C code is restricted.
      - accessing the kernel memory space is not allowed.
