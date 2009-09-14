@@ -299,10 +299,18 @@ register_tapset_itrace(systemtap_session& s)
   match_node* root = s.pattern_root;
   derived_probe_builder *builder = new itrace_builder();
 
-  root->bind_str(TOK_PROCESS)->bind(TOK_INSN)->bind(builder);
-  root->bind_num(TOK_PROCESS)->bind(TOK_INSN)->bind(builder);
-  root->bind_str(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)->bind(builder);
-  root->bind_num(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)->bind(builder);
+  root->bind_str(TOK_PROCESS)->bind(TOK_INSN)
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num(TOK_PROCESS)->bind(TOK_INSN)
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_str(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
+    ->allow_unprivileged()
+    ->bind(builder);
+  root->bind_num(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
+    ->allow_unprivileged()
+    ->bind(builder);
 }
 
 

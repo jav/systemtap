@@ -16,21 +16,6 @@
 #include "string.c"
 #include "task_finder_vma.c"
 
-/** @file sym.c
- * @addtogroup sym Symbolic Functions
- * Symbolic Lookup Functions
- * @{
- */
-
-static void _stp_sym_init(void)
-{
-	static int initialized = 0;
-	if (! initialized) {
-		__stp_tf_vma_initialize();
-		initialized = 1;
-	}
-}
-
 /* Callback that needs to be registered (in
    session.unwindsyms_modules) for every user task path for which we
    might need symbols or unwind info. */
@@ -259,7 +244,8 @@ static int _stp_module_check(void)
 
 		    /* notes end address */
 		    if (!strcmp(m->name, "kernel")) {
-		  	  notes_addr = m->build_id_offset;
+			  notes_addr = _stp_module_relocate("kernel",
+					 "_stext", m->build_id_offset);
 			  base_addr = _stp_module_relocate("kernel",
 							   "_stext", 0);
                     } else {
@@ -408,4 +394,44 @@ static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 }
 
 /** @} */
+
+
+/** @file sym.c
+ * @addtogroup sym Symbolic Functions
+ * Symbolic Lookup Functions
+ * @{
+ */
+static void _stp_sym_init(void)
+{
+        // NB: it's too "early" to make this conditional on STP_NEED_VMA_TRACKER,
+        // since we're #included at the top of the generated module, before any
+        // tapset-induced #define's.
+#if defined(CONFIG_UTRACE)
+	static int initialized = 0;
+        static struct stap_task_finder_target vmcb = {
+                // NB: no .pid, no .procname filters here.
+                // This means that we get a system-wide mmap monitoring
+                // widget while the script is running.  (The system-wideness may
+                // be restricted by stap -c or -x.)  But this seems to
+                // be necessary if we want to to stack tracebacks through arbitrary
+                // shared libraries.  XXX: There may be an optimization opportunity
+                // for executables (for which the main task-finder callback should be
+                // sufficient).
+                .mmap_callback = &_stp_tf_mmap_cb,
+                .munmap_callback = &_stp_tf_munmap_cb,
+        };
+	if (! initialized) {
+                int rc;
+		__stp_tf_vma_initialize();
+                rc = stap_register_task_finder_target (& vmcb);
+#ifdef DEBUG_TASK_FINDER_VMA
+                _stp_dbug(__FUNCTION__, __LINE__, "registered vmcb");
+#endif
+                (void) rc; // XXX
+		initialized = 1;
+	}
+#endif
+}
+
+
 #endif /* _STP_SYM_C_ */

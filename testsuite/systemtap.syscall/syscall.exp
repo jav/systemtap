@@ -32,17 +32,9 @@ proc test_procedure {} {
     if {$do_64_bit_pass} {
 	foreach filename [lsort [glob $pattern]] {
 	    set testname [file tail [string range $filename 0 end-2]]
-	    if {![installtest_p]} { untested $testname; continue }
+	    if {![installtest_p]} { untested "64-bit $testname"; continue }
 	    send_log "Testing 64-bit ${testname}\n"
-	    set res [run_one_test $filename $flags]
-	    if {$res == "PASS"} {
-		pass "$testname"
-	    } elseif {$res == "UNSUPP"} {
-		unsupported "$testname not supported on this arch"
-	    } else {
-		fail "64-bit $testname"
-		send_log "$res\n"
-	    }
+	    run_one_test $filename $flags 64
 	}
     }
 
@@ -56,17 +48,9 @@ proc test_procedure {} {
     if {$do_32_bit_pass} {
 	foreach filename [lsort [glob $pattern]] {
 	    set testname [file tail [string range $filename 0 end-2]]
-	    if {![installtest_p]} { untested $testname; continue }
+	    if {![installtest_p]} { untested "32-bit $testname"; continue }
 	    send_log "Testing 32-bit ${testname}\n"
-	    set res [run_one_test $filename $flags]
-	    if {$res == "PASS"} {
-		pass "32-bit $testname"
-	    } elseif {$res == "UNSUPP"} {
-		unsupported "$testname not supported on this arch"
-	    } else {
-		fail "32-bit $testname"
-		send_log "$res\n"
-	    }
+	    run_one_test $filename $flags 32
 	}
     }
 }

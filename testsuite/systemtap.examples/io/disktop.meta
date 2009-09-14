@@ -10,4 +10,4 @@ output: timed
 scope: system-wide
 description: Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.
 test_check: stap -p4 disktop.stp
-test_installcheck: stap disktop.stp -c "sleep 1"
+test_installcheck: stap disktop.stp -c "sleep 0.2"

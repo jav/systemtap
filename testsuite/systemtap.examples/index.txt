@@ -81,6 +81,14 @@ keywords: io
   line.
 
 
+io/iostat-scsi.stp - iostat for SCSI Devices
+keywords: io profiling scsi
+
+  The iostat-scsi.stp script provides a breakdown of the number of blks
+  read and written on the various machines's SCSI devices. The script
+  takes one argument which is the number of seconds between reports.
+
+
 io/iostats.stp - List Executables Reading and Writing the Most Data
 keywords: io profiling
 

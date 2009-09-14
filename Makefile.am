@@ -272,7 +272,6 @@ distclean-local:
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
-	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
 	rm -rf $(DESTDIR)$(libdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 	@list='$(EXAMPLE_SRC)'; for f in $$list; do p=`basename $$f`; \
@@ -288,7 +287,7 @@ uninstall-local:
 	  rm -f "$(SAMPLE_INSTALL_DIR)/$$p"; \
 	done
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
-# XXX: leaves behind man pages
+	rm -rf $(DESTDIR)$(docdir)/examples
 
 SUBDIRS = doc grapher
 DIST_SUBDIRS = testsuite $(SUBDIRS)

@@ -19,20 +19,29 @@ probe module("sd_mod").function("sd_init_command") !, kernel.function("sd_init_c
     reads[device] <<< nr_sectors * sector_size
 }
 %:
+
+function get_sector_size:long (data:long) { 
+  return @cast(data, "scsi_device", "kernel<scsi/scsi_device.h>")->sector_size
+}
+
+%(kernel_v>="2.6.31" %?
 %{
-#include <scsi/scsi_device.h>
+#include <linux/blkdev.h>
 %}
 
-function get_sector_size:long (data:long) %{ /* pure */
-  struct scsi_device *sdp = (struct scsi_device *)((long)THIS->data);
-  THIS->__retvalue = kread(&(sdp->sector_size));
-  CATCH_DEREF_FAULT();
+function get_nr_sectors:long(rq:long) %{ /* pure */
+  THIS->__retvalue = blk_rq_sectors((const struct request *)(long)THIS->rq);
 %}
+%)
 
 probe module("sd_mod").function("sd_prep_fn") !, kernel.function("sd_prep_fn") {
   device=kernel_string($rq->rq_disk->disk_name)
   sector_size=get_sector_size($q->queuedata)
+%(kernel_v>="2.6.31" %?
+  nr_sectors=get_nr_sectors($rq)
+%:
   nr_sectors=$rq->nr_sectors
+%)
   devices[device] = 1
   if ($rq->cmd_flags & 1)
     writes[device] <<< nr_sectors * sector_size

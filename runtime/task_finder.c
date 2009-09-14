@@ -45,18 +45,10 @@ static atomic_t __stp_attach_count = ATOMIC_INIT (0);
 
 #define debug_task_finder_attach() (atomic_inc(&__stp_attach_count))
 #define debug_task_finder_detach() (atomic_dec(&__stp_attach_count))
-#ifdef DEBUG_TASK_FINDER_PRINTK
-#define debug_task_finder_report() (printk(KERN_ERR \
-					   "%s:%d attach count: %d, inuse count: %d\n", \
-					   __FUNCTION__, __LINE__,	\
-					   atomic_read(&__stp_attach_count), \
-					   atomic_read(&__stp_inuse_count)))
-#else
 #define debug_task_finder_report() (_stp_dbug(__FUNCTION__, __LINE__, \
 					      "attach count: %d, inuse count: %d\n", \
 					      atomic_read(&__stp_attach_count), \
 					      atomic_read(&__stp_inuse_count)))
-#endif	/* !DEBUG_TASK_FINDER_PRINTK */
 #else
 #define debug_task_finder_attach()	/* empty */
 #define debug_task_finder_detach()	/* empty */
@@ -1357,7 +1349,6 @@ stap_start_task_finder(void)
 	char *mmpath_buf;
 	uid_t tsk_euid;
 
-	debug_task_finder_report();
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
 		_stp_error("Unable to allocate space for path");
@@ -1443,7 +1434,7 @@ stap_start_task_finder(void)
 #ifndef STP_PRIVILEGED
 			/* Make sure unprivileged users only probe their own threads.  */
 			if (_stp_uid != tsk_euid) {
-				if (tgt->pid != 0) {
+				if (tgt->pid != 0 || _stp_target) {
 					_stp_warn("Process %d does not belong to unprivileged user %d",
 						  tsk->pid, _stp_uid);
 				}
@@ -1462,8 +1453,8 @@ stap_start_task_finder(void)
 	} while_each_thread(grp, tsk);
 stf_err:
 	rcu_read_unlock();
-
 	_stp_kfree(mmpath_buf);
+	debug_task_finder_report(); // report at end for utrace engine counting
 	return rc;
 }
 

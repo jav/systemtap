@@ -15,7 +15,7 @@
 
 static void _stp_do_relocation(const char __user *buf, size_t count)
 {
-  struct _stp_msg_relocation msg;
+  static struct _stp_msg_relocation msg; /* by protocol, never concurrently used */
   unsigned mi, si;
 
   if (sizeof(msg) != count)

@@ -97,4 +97,16 @@ lex_cast_qstring(std::string const & in)
   return out;
 }
 
+
+// Delete all values from a map-like container and clear it
+// (The template is permissive -- be good!)
+template <typename T>
+void delete_map(T& t)
+{
+  for (typename T::iterator i = t.begin(); i != t.end(); ++i)
+    delete i->second;
+  t.clear();
+}
+
+
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

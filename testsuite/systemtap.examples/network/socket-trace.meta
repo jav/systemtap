@@ -10,4 +10,4 @@ output: trace
 scope: system-wide
 description: The script instrument each of the functions inn the Linux kernel's net/socket.c file. The script prints out trace. The first element of a line is  time delta in microseconds from the previous entry. This is followed by the command name and the PID. The "->" and "<-" indicates function entry and  function exit, respectively. The last element of the line is the function name.
 test_check: stap -p4 socket-trace.stp
-test_installcheck: stap socket-trace.stp -c "sleep 1"
+test_installcheck: stap socket-trace.stp -c "sleep 0.2"

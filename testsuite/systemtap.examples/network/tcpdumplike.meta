@@ -10,4 +10,4 @@ output: timed
 scope: system-wide
 description: The tcpdumplike.stp prints out a line for each TCP packet received. Each line includes the source and destination IP addresses, the source and destination ports, and flags.
 test_check: stap -p4 tcpdumplike.stp
-test_installcheck: stap tcpdumplike.stp -c "sleep 1"
+test_installcheck: stap tcpdumplike.stp -c "sleep 0.2"

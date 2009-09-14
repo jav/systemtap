@@ -110,7 +110,8 @@ static int open_oldoutfile(int fnum, int cpu, int remove_file)
 		perr("Couldn't open output file %s", buf);
 		return -1;
 	}
-	if (set_clexec(fileno(percpu_tmpfile[cpu])) < 0) {
+	out_fd[cpu] = fileno(percpu_tmpfile[cpu]);
+	if (set_clexec(out_fd[cpu]) < 0) {
 		perr("Couldn't clear exec bit of open output file %s", buf);
 		return -1;
 	}
@@ -181,7 +182,8 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		perr("Couldn't open output file %s", tmp);
 		goto err2;
 	}
-	if (set_clexec(fileno(percpu_tmpfile[cpu])) < 0) {
+	out_fd[cpu] = fileno(percpu_tmpfile[cpu]);
+	if (set_clexec(out_fd[cpu]) < 0) {
 		perr("Couldn't open output file %s", tmp);
 		goto err2;
 	}

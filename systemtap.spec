@@ -84,7 +84,7 @@ Summary: Instrumentation System Testsuite
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap systemtap-sdt-devel dejagnu
+Requires: systemtap systemtap-sdt-devel dejagnu which
 
 %description testsuite
 The testsuite allows testing of the entire SystemTap toolchain
@@ -97,11 +97,13 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap-runtime = %{version}-%{release}
 Requires: avahi avahi-tools nss nss-tools mktemp
+Requires: zip unzip
 
 %description client
-SystemTap client is the client component of an instrumentation
-system for systems running Linux 2.6.  Developers can write
-instrumentation to collect data on the operation of the system.
+This is the remote script compilation client component of systemtap.
+It relies on a nearby compilation server to translate systemtap
+scripts to kernel objects, so a client workstation only needs the
+runtime, and not the compiler/etc toolchain.
 
 %package server
 Summary: Instrumentation System Server
@@ -110,11 +112,12 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap
 Requires: avahi avahi-tools nss nss-tools mktemp
+Requires: zip unzip
 
 %description server
-SystemTap server is the server component of an instrumentation
-system for systems running Linux 2.6.  Developers can write
-instrumentation to collect data on the operation of the system.
+This is the remote script compilation server component of systemtap.
+It announces itself to local clients with avahi, and compiles systemtap
+scripts to kernel objects on their demand.
 
 %package sdt-devel
 Summary: Static probe support tools

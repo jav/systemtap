@@ -30,8 +30,6 @@ struct _stp_module {
 	struct _stp_section *sections;
   	unsigned num_sections;
 
-        struct stap_task_finder_target *vmcb; /* PR10228 */
-
 	/* A pointer to the struct module. Note that we cannot */
 	/* trust this because as of 2.6.19, there are not yet */
 	/* any notifier hooks that will tell us when a module */
