@@ -357,6 +357,7 @@ exit 0
 %{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-server-cert
 %{_bindir}/stap-server-connect
+%{_bindir}/stap-sign-module
 %{_mandir}/man8/stap-server.8*
 
 %files sdt-devel

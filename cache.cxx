@@ -75,33 +75,6 @@ add_to_cache(systemtap_session& s)
       return;
     }
 
-#if HAVE_NSS
-  // This is the name of the cached module signature.
-  string module_signature_dest_path = s.hash_path;
-  module_signature_dest_path += ".sgn";
-
-  // Copy the module signature.
-  assert (! s.cert_db_path.empty());
-  string module_signature_src_path = module_src_path;
-  module_signature_src_path += ".sgn";
-
-  if (file_exists (module_signature_src_path))
-    {
-      STAP_PROBE2(stap, cache__add__nss, module_signature_src_path.c_str(), module_signature_dest_path.c_str());
-      if (s.verbose > 1)
-	clog << "Copying " << module_signature_src_path << " to " << module_signature_dest_path << endl;
-      if (copy_file(module_signature_src_path.c_str(), module_signature_dest_path.c_str()) != 0)
-	{
-	  cerr << "Copy failed (\"" << module_signature_src_path << "\" to \""
-	       << module_signature_dest_path << "\"): " << strerror(errno) << endl;
-	  // NB: this is not so severe as to prevent reuse of the .ko
-	  // already copied.
-	  //
-	  // s.use_cache = false;
-	}
-    }
-#endif /* HAVE_NSS */
-
   string c_dest_path = s.hash_path;
   if (c_dest_path.rfind(".ko") == (c_dest_path.size() - 3))
     c_dest_path.resize(c_dest_path.size() - 3);
@@ -131,10 +104,6 @@ get_from_cache(systemtap_session& s)
   string module_dest_path = s.tmpdir + "/" + s.module_name + ".ko";
   string c_src_path = s.hash_path;
   int fd_stapconf, fd_module, fd_c;
-#if HAVE_NSS
-  string hash_signature_path = s.hash_path + ".sgn";
-  int fd_signature;
-#endif
 
   if (c_src_path.rfind(".ko") == (c_src_path.size() - 3))
     c_src_path.resize(c_src_path.size() - 3);
@@ -204,24 +173,6 @@ get_from_cache(systemtap_session& s)
 	  close(fd_c);
 	  return false;
 	}
-#if HAVE_NSS
-      // See if module signature exists. It's not an error if it doesn't. It just
-      // means that the module is unsigned.
-      fd_signature = open(hash_signature_path.c_str(), O_RDONLY);
-      if (fd_signature != -1) {
-	string signature_dest_path = module_dest_path + ".sgn";
-	close(fd_signature);
-	if (copy_file(hash_signature_path.c_str(), signature_dest_path.c_str()) != 0)
-	  {
-	    cerr << "Copy failed (\"" << hash_signature_path << "\" to \""
-		 << signature_dest_path << "\"): " << strerror(errno) << endl;
-	    unlink(c_src_path.c_str());
-	    close(fd_module);
-	    close(fd_c);
-	    return false;
-	  }
-      }
-#endif
     }
 
   // We're done with these file handles.

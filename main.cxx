@@ -1261,23 +1261,6 @@ main (int argc, char * const argv [])
 	  if (copy_file(module_src_path.c_str(), module_dest_path.c_str()) != 0)
 	    cerr << "Copy failed (\"" << module_src_path << "\" to \""
 		 << module_dest_path << "\"): " << strerror(errno) << endl;
-
-#if HAVE_NSS
-	  // Save the signature as well.
-	  assert (! s.cert_db_path.empty());
-	  module_src_path += ".sgn";
-	  if (file_exists (module_src_path))
-	    {
-	      module_dest_path += ".sgn";
-
-	      if (s.verbose > 1)
-		clog << "Copying " << module_src_path << " to "
-		     << module_dest_path << endl;
-	      if (copy_file(module_src_path.c_str(), module_dest_path.c_str()) != 0)
-		cerr << "Copy failed (\"" << module_src_path << "\" to \""
-		     << module_dest_path << "\"): " << strerror(errno) << endl;
-	    }
-#endif
 	}
     }
 

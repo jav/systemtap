@@ -280,18 +280,18 @@ check_cert_db_permissions (const string &cert_db_path) {
  */
 static int
 init_cert_db_path (const string &cert_db_path) {
-  int rc;
+  int rc, rc1;
 
   // Generate the certificate and database.
   string cmd = BINDIR "/stap-gen-cert " + cert_db_path;
-  rc = stap_system (0, cmd) == 0;
+  rc = system (cmd.c_str ()) == 0;
 
   // If we are root, authorize the new certificate as a trusted
   // signer. It is not an error if this fails.
   if (geteuid () == 0)
     {
       cmd = BINDIR "/stap-authorize-signing-cert " + cert_db_path + "/stap.cert";
-      stap_system (0, cmd);
+      rc1 = system (cmd.c_str ());
     }
 
   return rc;
@@ -492,23 +492,37 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
   PR_Close (local_file_fd);
 }
 
-void
-sign_module (systemtap_session& s)
+int
+main(int argc, char **argv)
 {
   const char *nickName = "stap-server";
+  string module_name;
+  string cert_db_path;
   char *password;
   CERTCertificate *cert;
   SECKEYPrivateKey *privKey;
   SECStatus secStatus;
 
-  if (! check_cert_db_path (s.cert_db_path))
-    return;
+  if (argc < 2) {
+      cerr << "Module name was not specified." << endl;
+      return 1;
+  }
+  module_name = argv[1];
 
-  password = get_password (s.cert_db_path + "/pw");
+  if (argc < 3) {
+      cerr << "Certificate database path was not specified." << endl;
+      return 1;
+  }
+  cert_db_path = argv[2];
+
+  if (! check_cert_db_path (cert_db_path))
+    return 1;
+
+  password = get_password (cert_db_path + "/pw");
   if (! password)
     {
       cerr << "Unable to obtain certificate database password." << endl;
-      return;
+      return 1;
     }
 
   /* Call the NSPR initialization routines. */
@@ -518,12 +532,12 @@ sign_module (systemtap_session& s)
   PK11_SetPasswordFunc (password_callback);
 
 	/* Initialize NSS. */
-  secStatus = NSS_Init (s.cert_db_path.c_str());
+  secStatus = NSS_Init (cert_db_path.c_str());
   if (secStatus != SECSuccess)
     {
       cerr << "Unable to initialize nss library." << endl;
       nssError ();
-      return;
+      return 1;
     }
 
   /* Get own certificate and private key. */
@@ -531,25 +545,27 @@ sign_module (systemtap_session& s)
   if (cert == NULL)
     {
       cerr << "Unable to find certificate with nickname " << nickName
-	   << " in " << s.cert_db_path << "." << endl;
+	   << " in " << cert_db_path << "." << endl;
       nssError ();
-      return;
+      return 1;
     }
 
   privKey = PK11_FindKeyByAnyCert (cert, password);
   if (privKey == NULL)
     {
       cerr << "Unable to obtain private key from the certificate with nickname " << nickName
-	   << " in " << s.cert_db_path << "." << endl;
+	   << " in " << cert_db_path << "." << endl;
       nssError ();
-      return;
+      return 1;
     }
 
   /* Sign the file. */
-  sign_it (s.tmpdir + "/" + s.module_name + ".ko", s.tmpdir + "/" + s.module_name + ".ko.sgn", privKey);
+  sign_it (module_name, module_name + ".sgn", privKey);
 
   /* Shutdown NSS and exit NSPR gracefully. */
   nssCleanup ();
+
+  return 0;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
