@@ -33,7 +33,7 @@ function __is_idle:long()
  *  idle - boolean indicating whether current is the idle process
  */
 probe scheduler.cpu_off
-    = kernel.function("context_switch")
+    = kernel.trace("sched_switch") !, kernel.function("context_switch")
 {
     task_prev = $prev
     task_next = $next
@@ -122,9 +122,9 @@ probe scheduler.balance = kernel.function("idle_balance")? {}
  */
 probe scheduler.ctxswitch =
 %( arch != "x86_64" && arch != "ia64" %?
-	kernel.function("__switch_to")
+	kernel.trace("sched_switch") !, kernel.function("__switch_to")
 %:
-	kernel.function("context_switch")
+	kernel.trace("sched_switch") !, kernel.function("context_switch")
 %)
 {
 %( arch == "powerpc" %?
