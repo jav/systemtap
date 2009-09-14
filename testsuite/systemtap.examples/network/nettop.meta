@@ -10,4 +10,4 @@ output: timed
 scope: system-wide
 description: Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.
 test_check: stap -p4 nettop.stp
-test_installcheck: stap nettop.stp -c "sleep 1"
+test_installcheck: stap nettop.stp -c "sleep 0.2"

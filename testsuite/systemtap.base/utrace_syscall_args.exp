@@ -37,7 +37,8 @@ if {$do_64_bit_pass} {
     set res [target_compile $srcpath $exepath executable $flags]
     if { $res != "" } {
 	verbose "target_compile for $exepath failed: $res" 2
-	fail "$testname: unable to compile $srcpath"
+	send_log "$testname: unable to compile $srcpath\n"
+	untested $testname       
 	return
     }
 
@@ -72,7 +73,8 @@ if {$do_32_bit_pass} {
     set res [target_compile $srcpath $exepath executable $flags]
     if { $res != "" } {
 	verbose "target_compile for $exepath failed: $res" 2
-	fail "$testname: unable to compile $srcpath"
+	send_log "$testname: unable to compile $srcpath\n"
+	untested $testname       
 	return
     }
 

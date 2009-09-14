@@ -351,11 +351,8 @@ struct dwarf_derived_probe: public derived_probe
   bool access_vars;
 
   void printsig (std::ostream &o) const;
-  void join_group (systemtap_session& s);
+  virtual void join_group (systemtap_session& s);
   void emit_probe_local_init(translator_output * o);
-
-  string args;
-  void saveargs(Dwarf_Die* scope_die);
   void printargs(std::ostream &o) const;
 
   // Pattern registration helpers.
@@ -369,42 +366,48 @@ struct dwarf_derived_probe: public derived_probe
 						       dwarf_builder * dw,
 						       bool unprivileged_ok_p = false);
   static void register_patterns(systemtap_session& s);
+
+protected:
+  dwarf_derived_probe(probe *base,
+                      probe_point *location,
+                      Dwarf_Addr addr,
+                      bool has_return):
+    derived_probe(base, location), addr(addr), has_return(has_return),
+    has_maxactive(0), maxactive_val(0), access_vars(false)
+  {}
+
+private:
+  string args;
+  void saveargs(dwarf_query& q, Dwarf_Die* scope_die);
 };
 
 
-struct uprobe_derived_probe: public derived_probe
+struct uprobe_derived_probe: public dwarf_derived_probe
 {
-  bool return_p;
-  string module; // * => unrestricted
   int pid; // 0 => unrestricted
-  string section; // empty => absolute address
-  Dwarf_Addr address;
-  // bool has_maxactive;
-  // long maxactive_val;
 
   uprobe_derived_probe (const string& function,
                         const string& filename,
                         int line,
                         const string& module,
-                        int pid,
                         const string& section,
                         Dwarf_Addr dwfl_addr,
                         Dwarf_Addr addr,
                         dwarf_query & q,
-                        Dwarf_Die* scope_die);
+                        Dwarf_Die* scope_die):
+    dwarf_derived_probe(function, filename, line, module, section,
+                        dwfl_addr, addr, q, scope_die), pid(0)
+  {}
 
   // alternate constructor for process(PID).statement(ADDR).absolute
   uprobe_derived_probe (probe *base,
                         probe_point *location,
                         int pid,
                         Dwarf_Addr addr,
-                        bool return_p);
+                        bool has_return):
+    dwarf_derived_probe(base, location, addr, has_return), pid(pid)
+  {}
 
-  string args;
-  void saveargs(Dwarf_Die* scope_die);
-  void printargs(std::ostream &o) const;
-
-  void printsig (std::ostream &o) const;
   void join_group (systemtap_session& s);
 };
 
@@ -1003,7 +1006,7 @@ dwarf_query::add_probe_point(const string& funcname,
       if (has_process)
         {
           results.push_back (new uprobe_derived_probe(funcname, filename, line,
-                                                      module, 0, reloc_section, addr, reloc_addr,
+                                                      module, reloc_section, addr, reloc_addr,
                                                       *this, scope_die));
         }
       else
@@ -1761,7 +1764,8 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   Dwarf_Addr addr;
   block *add_block;
   probe *add_probe;
-  std::map<std::string, symbol *> return_ts_map;
+  map<std::string, symbol *> return_ts_map;
+  vector<Dwarf_Die> scopes;
   bool visited;
 
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
@@ -1770,6 +1774,8 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
   void visit_cast_op (cast_op* e);
+private:
+  vector<Dwarf_Die>& getscopes(target_symbol *e);
 };
 
 
@@ -2110,10 +2116,8 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
 void
 dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
-  Dwarf_Die *scopes;
-  if (dwarf_getscopes_die (scope_die, &scopes) == 0)
+  if (null_die(scope_die))
     return;
-  auto_free free_scopes(scopes);
 
   target_symbol *tsym = new target_symbol;
   print_format* pf = new print_format;
@@ -2161,6 +2165,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       // non-.return probe: support $$parms, $$vars, $$locals
       bool first = true;
       Dwarf_Die result;
+      vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
       if (dwarf_child (&scopes[0], &result) == 0)
         do
           {
@@ -2282,7 +2287,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	}
       else
         {
-	  ec->code = q.dw.literal_stmt_for_local (scope_die,
+	  ec->code = q.dw.literal_stmt_for_local (getscopes(e),
 						  addr,
 						  e->base_name.substr(1),
 						  e,
@@ -2389,6 +2394,35 @@ dwarf_var_expanding_visitor::visit_cast_op (cast_op *e)
     e->module = q.dw.module_name;
 
   var_expanding_visitor::visit_cast_op(e);
+}
+
+
+vector<Dwarf_Die>&
+dwarf_var_expanding_visitor::getscopes(target_symbol *e)
+{
+  if (scopes.empty())
+    {
+      // If the address is at the beginning of the scope_die, we can do a fast
+      // getscopes from there.  Otherwise we need to look it up by address.
+      Dwarf_Addr entrypc;
+      if (q.dw.die_entrypc(scope_die, &entrypc) && entrypc == addr)
+        scopes = q.dw.getscopes(scope_die);
+      else
+        scopes = q.dw.getscopes(addr);
+
+      if (scopes.empty())
+        throw semantic_error ("unable to find any scopes containing "
+                              + lex_cast_hex(addr)
+                              + ((scope_die == NULL) ? ""
+                                 : (string (" in ")
+                                    + (dwarf_diename(scope_die) ?: "<unknown>")
+                                    + "(" + (dwarf_diename(q.dw.cu) ?: "<unknown>")
+                                    + ")"))
+                              + " while searching for local '"
+                              + e->base_name.substr(1) + "'",
+                              e->tok);
+    }
+  return scopes;
 }
 
 
@@ -2699,16 +2733,25 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     module (module), section (section), addr (addr),
     has_return (q.has_return),
     has_maxactive (q.has_maxactive),
-    maxactive_val (q.maxactive_val)
+    maxactive_val (q.maxactive_val),
+    access_vars(false)
 {
-  // Assert relocation invariants
-  if (section == "" && dwfl_addr != addr) // addr should be absolute
-    throw semantic_error ("missing relocation base against", q.base_loc->tok);
-  if (section != "" && dwfl_addr == addr) // addr should be an offset
-    throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
-
-  this->tok = q.base_probe->tok;
-  this->access_vars = false;
+  if (q.has_process)
+    {
+      // We may receive probes on two types of ELF objects: ET_EXEC or ET_DYN.
+      // ET_EXEC ones need no further relocation on the addr(==dwfl_addr), whereas
+      // ET_DYN ones do (addr += run-time mmap base address).  We tell these apart
+      // by the incoming section value (".absolute" vs. ".dynamic").
+      // XXX Assert invariants here too?
+    }
+  else
+    {
+      // Assert kernel relocation invariants
+      if (section == "" && dwfl_addr != addr) // addr should be absolute
+        throw semantic_error ("missing relocation base against", tok);
+      if (section != "" && dwfl_addr == addr) // addr should be an offset
+        throw semantic_error ("inconsistent relocation address", tok);
+    }
 
   // XXX: hack for strange g++/gcc's
 #ifndef USHRT_MAX
@@ -2716,7 +2759,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 #endif
 
   // Range limit maxactive() value
-  if (q.has_maxactive && (q.maxactive_val < 0 || q.maxactive_val > USHRT_MAX))
+  if (has_maxactive && (maxactive_val < 0 || maxactive_val > USHRT_MAX))
     throw semantic_error ("maxactive value out of range [0,"
                           + lex_cast(USHRT_MAX) + "]",
                           q.base_loc->tok);
@@ -2724,9 +2767,11 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   // Expand target variables in the probe body
   if (!null_die(scope_die))
     {
+      // XXX: user-space deref's for q.has_process!
       dwarf_var_expanding_visitor v (q, scope_die, dwfl_addr);
       v.replace (this->body);
-      this->access_vars = v.visited;
+      if (!q.has_process)
+        access_vars = v.visited;
 
       // If during target-variable-expanding the probe, we added a new block
       // of code, add it to the start of the probe.
@@ -2745,7 +2790,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
   // Save the local variables for listing mode
   if (q.sess.listing_mode_vars)
-    saveargs(scope_die);
+    saveargs(q, scope_die);
 
   // Reset the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
@@ -2812,12 +2857,10 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
 
 void
-dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
+dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die)
 {
-  Dwarf_Die *scopes;
-  if (!null_die(scope_die) && dwarf_getscopes_die (scope_die, &scopes) == 0)
+  if (null_die(scope_die))
     return;
-  auto_free free_scopes(scopes);
 
   stringstream argstream;
   string type_name;
@@ -2829,6 +2872,7 @@ dwarf_derived_probe::saveargs(Dwarf_Die* scope_die)
     argstream << " $return:" << type_name;
 
   Dwarf_Die arg;
+  vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
   if (dwarf_child (&scopes[0], &arg) == 0)
     do
       {
@@ -3089,18 +3133,13 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->addr;";
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
   s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -3128,18 +3167,13 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->rp->kp.addr;";
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
   s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -3841,8 +3875,7 @@ dwarf_builder::build(systemtap_session & sess,
 
 symbol_table::~symbol_table()
 {
-  for (iterator_t i = map_by_addr.begin(); i != map_by_addr.end(); ++i)
-    delete i->second;
+  delete_map(map_by_addr);
 }
 
 void
@@ -4207,193 +4240,6 @@ public:
 };
 
 
-uprobe_derived_probe::uprobe_derived_probe (const string& function,
-                                            const string& filename,
-                                            int line,
-                                            const string& module,
-                                            int pid,
-                                            const string& section,
-                                            Dwarf_Addr dwfl_addr,
-                                            Dwarf_Addr addr,
-                                            dwarf_query & q,
-                                            Dwarf_Die* scope_die /* may be null */):
-  derived_probe (q.base_probe, new probe_point (*q.base_loc) /* .components soon rewritten */ ),
-  return_p (q.has_return), module (module), pid (pid), section (section), address (addr)
-{
-  // We may receive probes on two types of ELF objects: ET_EXEC or ET_DYN.
-  // ET_EXEC ones need no further relocation on the addr(==dwfl_addr), whereas
-  // ET_DYN ones do (addr += run-time mmap base address).  We tell these apart
-  // by the incoming section value (".absolute" vs. ".dynamic").
-
-  this->tok = q.base_probe->tok;
-
-  // Expand target variables in the probe body
-  if (!null_die(scope_die))
-    {
-      dwarf_var_expanding_visitor v (q, scope_die, dwfl_addr); // XXX: user-space deref's!
-      v.replace (this->body);
-
-      // If during target-variable-expanding the probe, we added a new block
-      // of code, add it to the start of the probe.
-      if (v.add_block)
-        this->body = new block(v.add_block, this->body);
-
-      // If when target-variable-expanding the probe, we added a new
-      // probe, add it in a new file to the list of files to be processed.
-      if (v.add_probe)
-        {
-          stapfile *f = new stapfile;
-          f->probes.push_back(v.add_probe);
-          q.sess.files.push_back(f);
-        }
-    }
-  // else - null scope_die - $target variables will produce an error during translate phase
-
-  // Save the local variables for listing mode
-  if (q.sess.listing_mode_vars)
-    saveargs(scope_die);
-
-  // Reset the sole element of the "locations" vector as a
-  // "reverse-engineered" form of the incoming (q.base_loc) probe
-  // point.  This allows a user to see what function / file / line
-  // number any particular match of the wildcards.
-
-  vector<probe_point::component*> comps;
-  if(q.has_process)
-    comps.push_back (new probe_point::component(TOK_PROCESS, new literal_string(module)));
-  else
-    assert (0);
-
-  string fn_or_stmt;
-  if (q.has_function_str || q.has_function_num)
-    fn_or_stmt = "function";
-  else
-    fn_or_stmt = "statement";
-
-  if (q.has_function_str || q.has_statement_str)
-      {
-        string retro_name = function;
-	if (filename != "")
-          {
-            retro_name += ("@" + string (filename));
-            if (line > 0)
-              retro_name += (":" + lex_cast (line));
-          }
-        comps.push_back
-          (new probe_point::component
-           (fn_or_stmt, new literal_string (retro_name)));
-      }
-  else if (q.has_function_num || q.has_statement_num)
-    {
-      Dwarf_Addr retro_addr;
-      if (q.has_function_num)
-        retro_addr = q.function_num_val;
-      else
-        retro_addr = q.statement_num_val;
-      comps.push_back (new probe_point::component
-                       (fn_or_stmt,
-                        new literal_number(retro_addr))); // XXX: should be hex if possible
-
-      if (q.has_absolute)
-        comps.push_back (new probe_point::component (TOK_ABSOLUTE));
-    }
-
-  if (q.has_call)
-      comps.push_back (new probe_point::component(TOK_CALL));
-  if (q.has_inline)
-      comps.push_back (new probe_point::component(TOK_INLINE));
-  if (return_p)
-    comps.push_back (new probe_point::component(TOK_RETURN));
-  /*
-  if (has_maxactive)
-    comps.push_back (new probe_point::component
-                     (TOK_MAXACTIVE, new literal_number(maxactive_val)));
-  */
-
-  // Overwrite it.
-  this->sole_location()->components = comps;
-}
-
-
-uprobe_derived_probe::uprobe_derived_probe (probe *base,
-                                            probe_point *location,
-                                            int pid,
-                                            Dwarf_Addr addr,
-                                            bool has_return):
-  derived_probe (base, location), // location is not rewritten here
-  return_p (has_return), pid (pid), address (addr)
-{
-}
-
-
-void
-uprobe_derived_probe::saveargs(Dwarf_Die* scope_die)
-{
-  // same as dwarf_derived_probe::saveargs
-
-  Dwarf_Die *scopes;
-  if (!null_die(scope_die) && dwarf_getscopes_die (scope_die, &scopes) == 0)
-    return;
-  auto_free free_scopes(scopes);
-
-  stringstream argstream;
-  string type_name;
-  Dwarf_Die type_die;
-
-  if (return_p &&
-      dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
-      dwarf_type_name(&type_die, type_name))
-    argstream << " $return:" << type_name;
-
-  Dwarf_Die arg;
-  if (dwarf_child (&scopes[0], &arg) == 0)
-    do
-      {
-        switch (dwarf_tag (&arg))
-          {
-          case DW_TAG_variable:
-          case DW_TAG_formal_parameter:
-            break;
-
-          default:
-            continue;
-          }
-
-        const char *arg_name = dwarf_diename (&arg);
-        if (!arg_name)
-          continue;
-
-        type_name.clear();
-        if (!dwarf_attr_die (&arg, DW_AT_type, &type_die) ||
-            !dwarf_type_name(&type_die, type_name))
-          continue;
-
-        argstream << " $" << arg_name << ":" << type_name;
-      }
-    while (dwarf_siblingof (&arg, &arg) == 0);
-
-  args = argstream.str();
-}
-
-
-void
-uprobe_derived_probe::printargs(std::ostream &o) const
-{
-  // same as dwarf_derived_probe::printargs
-  o << args;
-}
-
-
-void
-uprobe_derived_probe::printsig (ostream& o) const
-{
-  // Same as dwarf_derived_probe.
-  sole_location()->print (o);
-  o << " /* pc=" << section << "+0x" << hex << address << dec << " */";
-  printsig_nested (o);
-}
-
-
 void
 uprobe_derived_probe::join_group (systemtap_session& s)
 {
@@ -4541,10 +4387,10 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       string key = make_pbm_key (p);
       unsigned value = module_index[key];
       s.op->line() << " .tfi=" << value << ",";
-      s.op->line() << " .address=(unsigned long)0x" << hex << p->address << dec << "ULL,";
+      s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
-      if (p->return_p) s.op->line() << " .return_p=1,";
+      if (p->has_return) s.op->line() << " .return_p=1,";
       s.op->line() << " },";
     }
   s.op->newline(-1) << "};";
@@ -4562,18 +4408,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
   // we don't confuse uprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = inst->vaddr;";
+  s.op->newline() << "SET_REG_IP(regs, inst->vaddr);";
   s.op->newline() << "(*sups->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = uprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -4590,18 +4431,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
   // we don't confuse uprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = inst->rp->u.vaddr;";
+  s.op->newline() << "SET_REG_IP(regs, inst->rp->u.vaddr);";
   s.op->newline() << "(*sups->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = uprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -5175,18 +5011,13 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->addr;";
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
   s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
@@ -5214,18 +5045,13 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
-  // But only for architectures where REG_IP is a proper lvalue. PR10491
-  s.op->newline() << "#ifdef REG_IP_LVALUE";
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "REG_IP(regs) = (unsigned long) inst->rp->kp.addr;";
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
   s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "REG_IP(regs) = kprobes_ip;";
+  s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "#else";
-  s.op->newline() << "(*sdp->ph) (c);";
-  s.op->newline() << "#endif";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";

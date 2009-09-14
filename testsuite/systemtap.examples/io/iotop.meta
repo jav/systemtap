@@ -10,4 +10,4 @@ output: timed
 scope: system-wide
 description: Every five seconds print out the top ten executables generating I/O traffic during that interval sorted in descending order.
 test_check: stap -p4 iotop.stp
-test_installcheck: stap iotop.stp -c "sleep 1"
+test_installcheck: stap iotop.stp -c "sleep 0.2"

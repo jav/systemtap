@@ -162,7 +162,7 @@ _stp_event_to_user(struct ring_buffer_event *event, char __user *ubuf,
 		return -EFAULT;
 	}
 
-	entry = (struct _stp_data_entry *)ring_buffer_event_data(event);
+	entry = ring_buffer_event_data(event);
 	if (entry == NULL) {
 		dbug_trans(1, "returning -EFAULT(2)\n");
 		return -EFAULT;
@@ -578,7 +578,7 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 		if (event) {
 			ssize_t len;
 
-			sde = (struct _stp_data_entry *)ring_buffer_event_data(event);
+			sde = ring_buffer_event_data(event);
 			if (sde->len < size_request)
 				size_request = sde->len;
 			_stp_ring_buffer_consume(iter);
@@ -605,7 +605,7 @@ _stp_data_write_reserve(size_t size_request, void **entry)
 		}
 	}
 
-	sde = (struct _stp_data_entry *)ring_buffer_event_data(event);
+	sde = ring_buffer_event_data(event);
 	sde->len = size_request;
 	
 	*entry = event;
@@ -620,7 +620,7 @@ static unsigned char *_stp_data_entry_data(void *entry)
 	if (event == NULL)
 		return NULL;
 
-	sde = (struct _stp_data_entry *)ring_buffer_event_data(event);
+	sde = ring_buffer_event_data(event);
 	return sde->buf;
 }
 
@@ -635,7 +635,7 @@ static int _stp_data_write_commit(void *entry)
 
 #if defined(DEBUG_TRANS) && (DEBUG_TRANS >= 2)
 	{
-		struct _stp_data_entry *sde = (struct _stp_data_entry *)ring_buffer_event_data(event);
+		struct _stp_data_entry *sde = ring_buffer_event_data(event);
 		char *last = sde->buf + (sde->len - 5);
 		dbug_trans2("commiting %.5s...%.5s\n", sde->buf, last);
 	}

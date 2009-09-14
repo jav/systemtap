@@ -3,4 +3,4 @@ name: ttyspy.stp
 keywords: io tty per-process monitor
 description: The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.
 test_check: stap -gp4 ttyspy.stp
-test_installcheck: stap --skip-badvars -g ttyspy.stp -c "sleep 7"
+test_installcheck: stap --skip-badvars -g ttyspy.stp -c "sleep 1"
