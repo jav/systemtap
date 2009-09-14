@@ -377,7 +377,7 @@ function package_response {
 
     # Compress the server's temporary directory into a .zip archive.
     (rm $zip_server && zip -r $zip_server `basename $tmpdir_server` > /dev/null) || \
-	fatal "zip of request tree, $tmpdir_server, failed"
+	fatal "zip of server response tree, $tmpdir_server, failed"
 }
 
 # function: fatal [ MESSAGE ]

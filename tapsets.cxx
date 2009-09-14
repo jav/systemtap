@@ -2915,12 +2915,21 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
 
   register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
-  root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(dw);
-  root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)->bind(dw);
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw, false/*!unprivileged_ok_p*/);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_num(TOK_MARK)->bind(dw);
+  root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
+    ->bind(dw);
+  root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
+    ->bind(dw);
+
+  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw, true/*unprivileged_ok_p*/);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
+    ->allow_unprivileged()
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
+    ->allow_unprivileged()
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_num(TOK_MARK)
+    ->allow_unprivileged()
+    ->bind(dw);
 }
 
 void
@@ -6249,9 +6258,11 @@ register_standard_tapsets(systemtap_session & s)
   // XXX: user-space starter set
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
+    ->allow_unprivileged()
     ->bind(new uprobe_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
+    ->allow_unprivileged()
     ->bind(new uprobe_builder ());
 
   // kernel tracepoint probes
