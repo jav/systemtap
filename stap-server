@@ -368,9 +368,9 @@ function create_response {
         # Add the contents of the stap temp directory to the server output directory
 	ln -s $tmpdir_stap `basename $tmpdir_stap`
 
-        # Sign any resulting module if --unprivileged was specified.
-	if test $unprivileged = 1; then
-	    modname=`find $tmpdir_stap -name '*.ko'`
+        # Sign the resulting module if --unprivileged was specified.
+	if test $unprivileged = 1 -a $p_phase -ge 4; then
+	    modname=$tmpdir_stap/`grep -m1 '^.*\.ko$' stdout`
 	    if test "X$modname" != "X"; then
 		${stap_exec_prefix}stap-sign-module $modname $ssl_db
 	    fi
