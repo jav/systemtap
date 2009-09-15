@@ -1760,12 +1760,12 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   Dwarf_Die *scope_die;
   Dwarf_Addr addr;
   block *add_block;
-  probe *add_probe;
+  block *add_call_probe; // synthesized from .return probes with saved $vars
   std::map<std::string, symbol *> return_ts_map;
   bool visited;
 
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
-    q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL), visited(false) {}
+    q(q), scope_die(sd), addr(a), add_block(NULL), add_call_probe(NULL), visited(false) {}
   void visit_target_symbol_saved_return (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
@@ -2014,36 +2014,17 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
   // global array we created.  Create the entry probe, which will
   // look like this:
   //
-  //   probe kernel.function("{function}") {
+  //   probe kernel.function("{function}").call {
   //     _dwarf_tvar_tid = tid()
   //     _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
   //                       ++_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
   //       = ${param}
   //   }
 
-  if (add_probe == NULL)
+  if (add_call_probe == NULL)
     {
-      add_probe = new probe;
-      add_probe->tok = e->tok;
-
-      // We need the name of the current probe point, minus the
-      // ".return" (or anything after it, such as ".maxactive(N)").
-      // Create a new probe point, copying all the components,
-      // stopping when we see the ".return" component.
-      probe_point* pp = new probe_point;
-      for (unsigned c = 0; c < q.base_loc->components.size(); c++)
-        {
-          if (q.base_loc->components[c]->functor == "return")
-            break;
-          else
-            pp->components.push_back(q.base_loc->components[c]);
-        }
-      pp->tok = e->tok;
-      pp->optional = q.base_loc->optional;
-      add_probe->locations.push_back(pp);
-
-      add_probe->body = new block;
-      add_probe->body->tok = e->tok;
+      add_call_probe = new block;
+      add_call_probe->tok = e->tok;
 
       // Synthesize a functioncall to grab the thread id.
       functioncall* fc = new functioncall;
@@ -2060,14 +2041,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
       expr_statement* es = new expr_statement;
       es->tok = e->tok;
       es->value = a;
-      add_probe->body = new block(add_probe->body, es);
-
-      vardecl* vd = new vardecl;
-      vd->tok = e->tok;
-      vd->name = tidsym->name;
-      vd->type = pe_long;
-      vd->set_arity(0);
-      add_probe->locals.push_back(vd);
+      add_call_probe = new block(add_call_probe, es);
     }
 
   // Save the value, like this:
@@ -2093,7 +2067,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
   es->tok = e->tok;
   es->value = a;
 
-  add_probe->body = new block(add_probe->body, es);
+  add_call_probe = new block(add_call_probe, es);
 
   // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
   // our parent so it can be used as a substitute for the target
@@ -2732,13 +2706,29 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
       // of code, add it to the start of the probe.
       if (v.add_block)
         this->body = new block(v.add_block, this->body);
-      // If when target-variable-expanding the probe, we added a new
-      // probe, add it in a new file to the list of files to be processed.
-      if (v.add_probe)
+
+      // If when target-variable-expanding the probe, we need to synthesize a
+      // sibling function-entry probe.  We don't go through the whole probe derivation
+      // business (PR10642) that could lead to wildcard/alias resolution, or for that
+      // dwarf-induced duplication.
+      if (v.add_call_probe)
         {
-          stapfile *f = new stapfile;
-          f->probes.push_back(v.add_probe);
-          q.sess.files.push_back(f);
+          assert (q.has_return && !q.has_call);
+
+          // We temporarily replace q.base_probe.
+          statement* old_body = q.base_probe->body;
+          q.base_probe->body = v.add_call_probe;
+          q.has_return = false;
+          q.has_call = true;
+
+          dwarf_derived_probe *synthetic = new dwarf_derived_probe (funcname, filename, line,
+                                                                    module, section, dwfl_addr,
+                                                                    addr, q, scope_die);
+          q.results.push_back (synthetic);
+
+          q.has_return = true;
+          q.has_call = false;
+          q.base_probe->body = old_body;
         }
     }
   // else - null scope_die - $target variables will produce an error during translate phase
@@ -4221,11 +4211,24 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
 
       // If when target-variable-expanding the probe, we added a new
       // probe, add it in a new file to the list of files to be processed.
-      if (v.add_probe)
+      if (v.add_call_probe)
         {
-          stapfile *f = new stapfile;
-          f->probes.push_back(v.add_probe);
-          q.sess.files.push_back(f);
+          assert (q.has_return && !q.has_call);
+
+          // We temporarily replace q.base_probe.
+          statement* old_body = q.base_probe->body;
+          q.base_probe->body = v.add_call_probe;
+          q.has_return = false;
+          q.has_call = true;
+
+          uprobe_derived_probe *synthetic = new uprobe_derived_probe (function, filename, line,
+                                                                      module, pid, section, dwfl_addr,
+                                                                      addr, q, scope_die);
+          q.results.push_back (synthetic);
+
+          q.has_return = true;
+          q.has_call = false;
+          q.base_probe->body = old_body;
         }
     }
   // else - null scope_die - $target variables will produce an error during translate phase
