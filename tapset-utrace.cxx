@@ -1040,12 +1040,16 @@ register_tapset_utrace(systemtap_session& s)
 	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_BEGIN)
+	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_END)
+	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)
+	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)->bind(TOK_RETURN)
+	->allow_unprivileged()
 	->bind(builder);
     }
 }

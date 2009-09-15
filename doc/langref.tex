@@ -52,7 +52,7 @@
 \newpage{}
 This document was derived from other documents contributed to the SystemTap project by employees of Red Hat, IBM and Intel.\newline
 
-Copyright \copyright\space  2007 Red Hat Inc.\newline
+Copyright \copyright\space  2007-2009 Red Hat Inc.\newline
 Copyright \copyright\space  2007-2009 IBM Corp.\newline
 Copyright \copyright\space  2007 Intel Corporation.\newline
 
@@ -327,18 +327,17 @@ two probes.
 
 \begin{vindent}
 \begin{verbatim}
-probe kernel.function("sys_mkdir") { log ("enter") }
+probe kernel.function("sys_mkdir").call { log ("enter") }
 probe kernel.function("sys_mkdir").return { log ("exit") }
 \end{verbatim}
 \end{vindent}
 
-To list the probe-able functions in the kernel, use the last-pass option
-to the translator. The output needs to be filtered because each inlined function
-instance is listed separately. The following statement is an example.
+To list the probe-able functions in the kernel, use the listing option
+(\texttt{\textbf{-l}}).  For example:
 
 \begin{vindent}
 \begin{verbatim}
-# stap -p2 -e 'probe kernel.function("*") {}' | sort | uniq
+# stap -l 'kernel.function("*")' | sort
 \end{verbatim}
 \end{vindent}
 
@@ -601,11 +600,11 @@ are examples.
 \begin{verbatim}
 function add_one (val) %{
     THIS->__retvalue = THIS->val + 1;
-}
+%}
 function add_one_str (val) %{
     strlcpy (THIS->__retvalue, THIS->val, MAXSTRINGLEN);
     strlcat (THIS->__retvalue, "one", MAXSTRINGLEN);
-}
+%}
 \end{verbatim}
 \end{vindent}
 The function argument and return value types must be inferred by the translator
@@ -911,26 +910,46 @@ function, use \textbf{.statement} probes. Do not use wildcards in
 to not register. Also, run statement probes in guru mode only.
 
 
-\begin{comment}
 \subsection{Marker probes}
+\index{marker probes}
+This family of probe points connects to static probe markers inserted
+into the kernel or a module. These markers are special macro calls in
+the kernel that make probing faster and more reliable than with
+DWARF-based probes.  DWARF debugging information is not required to
+use probe markers.
 
-This family of probe points connects to static probe markers inserted into
-the kernel or a module. These markers are special macro calls in the kernel
-that make probing faster and more reliable than with DWARF-based probes.
-DWARF debugging information is not required to use probe markers.
+Marker probe points begin with a \texttt{kernel} prefix which
+identifies the source of the symbol table used for finding
+markers. The suffix names the marker itself:
+\texttt{mark.("MARK")}. The marker name string, which can contain
+wildcard characters, is matched against the names given to the marker
+macros when the kernel or module is compiled.  Optionally, you can
+specify \texttt{format("FORMAT")}.  Specifying the marker format
+string allows differentiation between two markers with the same name
+but different marker format strings.
 
-Marker probe points begin with a kernel or module(\char`\"{}\emph{name}\char`\"{})
-prefix, the same as DWARF probes. This prefix identifies the source of the
-symbol table used for finding markers. The suffix names the marker itself:
-mark(\char`\"{}\emph{name}\char`\"{}). The marker name string, which may
-contain wildcard characters, is matched against the names given to the marker
-macros when the kernel or module was compiled.
+The handler associated with a marker probe reads any optional
+parameters specified at the macro call site named \texttt{\$arg1}
+through \texttt{\$argNN}, where \texttt{NN} is the number of
+parameters supplied by the macro. Number and string parameters are
+passed in a type-safe manner.
 
-The handler associated with a marker probe reads any optional parameters
-specified at the macro call site named \$arg1 through \$argNN, where NN is
-the number of parameters supplied by the macro. Number and string parameters
-are passed in a type-safe manner.
-\end{comment}
+The marker format string associated with a marker is available in
+\texttt{\$format}. The marker name string is available in
+\texttt{\$name}.
+
+Here are the marker probe constructs:
+\begin{vindent}
+\begin{verbatim}
+kernel.mark("MARK")
+kernel.mark("MARK").format("FORMAT")
+\end{verbatim}
+\end{vindent}
+
+For more information about marker probes, see
+\url{http://sourceware.org/systemtap/wiki/UsingMarkers}.
+
+
 
 \subsection{Timer probes}
 \index{timer probes}
@@ -1031,14 +1050,33 @@ of an \texttt{exit} function call, or an interruption from the user. In the
 case of an shutdown triggered by error, \texttt{end} probes are not run.
 
 
-\subsubsection{begin and end probe sequence}
-\index{sequence}
-\texttt{begin} and \texttt{end} probes are specified with an optional sequence
-number that controls the order in which they are run. If no sequence number
-is provided, the sequence number defaults to zero and probes are run in the
-order that they occur in the script file. Sequence numbers may be either
-positive or negative, and are especially useful for tapset writers who want
-to do initialization in a \texttt{begin} probe. The following are examples.
+\subsubsection{error}
+\index{error}
+The \emph{error} probe point is similar to the end
+probe, except the probe handler runs when the session ends if an error
+occurred.  In this case, an \texttt{end} probe is skipped, but each
+\texttt{error} probe is still attempted.  You can use an
+\texttt{error} probe to clean up or perform a final action on script
+termination.
+
+Here is a simple example:
+\begin{vindent}
+\begin{verbatim}
+probe error { println ("Oops, errors occurred. Here's a report anyway.")
+              foreach (coin in mint) { println (coin) } }
+\end{verbatim}
+\end{vindent}
+
+
+\subsubsection{begin, end, and error probe sequence}
+\index{probe sequence}
+\texttt{begin}, \texttt{end}, and \texttt{error} probes can be
+specified with an optional sequence number that controls the order in
+which they are run. If no sequence number is provided, the sequence
+number defaults to zero and probes are run in the order that they
+occur in the script file. Sequence numbers may be either positive or
+negative, and are especially useful for tapset writers who want to do
+initialization in a \texttt{begin} probe. The following are examples.
 
 \begin{vindent}
 \begin{verbatim}
@@ -1088,9 +1126,74 @@ read\_counter is a function passed to the handle for a perfmon probe. It
 returns the current count for the event.
 \end{comment}
 
+\subsection{Pointer typecasting}
+\index{Pointer typecasting}
+
+\emph{Typecasting} is supported using the \texttt{@cast()} operator. A
+script can define a pointer type for a \emph{long} value, then access
+type members using the same syntax as with \texttt{\$target}
+variables. After a pointer is saved into a script integer variable,
+the translator loses the necessary type information to access members
+from that pointer.  The \texttt{@cast()} operator tells the translator
+how to read a pointer.
+
+The following statement interprets \texttt{p} as a pointer to a struct
+or union named \texttt{type\_name} and dereferences the
+\texttt{member} value:
+\begin{vindent}
+\begin{verbatim}
+@cast(p, "type_name"[, "module"])->member
+\end{verbatim}
+\end{vindent}
+
+The optional \texttt{module} parameter tells the translator where to
+look for information about that type. You can specify multiple modules
+as a list with colon (\texttt{:}) separators. If you do not specify
+the module parameter, the translator defaults to either the probe
+module for dwarf probes or to \textit{kernel} for functions and all
+other probe types.
+
+The following statement retrieves the parent PID from a kernel
+task\_struct:
+\begin{vindent}
+\begin{verbatim}
+@cast(pointer, "task_struct", "kernel")->parent->tgid
+\end{verbatim}
+\end{vindent}
+
+The translator can create its own module with type information from a
+header surrounded by angle brackets (\texttt{< >}) if normal debugging
+information is not available.  For kernel headers, prefix it with
+\texttt{kernel} to use the appropriate build system.  All other
+headers are built with default GCC parameters into a user module. The
+following statements are examples.
+\begin{vindent}
+\begin{verbatim}
+@cast(tv, "timeval", "<sys/time.h>")->tv_sec
+@cast(task, "task_struct", "kernel<linux/sched.h>")->tgid
+\end{verbatim}
+\end{vindent}
+
+In guru mode, the translator allows scripts to assign new values to
+members of typecasted pointers.
+
+Typecasting is also useful in the case of \texttt{void*} members whose
+type might be determinable at run time.
+\begin{vindent}
+\begin{verbatim}
+probe foo {
+   if ($var->type == 1) {
+      value = @cast($var->data, "type1")->bar
+   } else {
+      value = @cast($var->data, "type2")->baz
+   }
+   print(value)
+}
+\end{verbatim}
+\end{vindent}
+
+
 \section{Language elements\label{sec:Language-Elements}}
-
-
 \subsection{Identifiers}
 \index{identifiers}
 \emph{Identifiers} are used to name variables and functions. They are an

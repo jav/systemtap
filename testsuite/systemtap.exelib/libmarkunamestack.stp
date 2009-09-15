@@ -1,0 +1,72 @@
+// Jumbo stp script
+// Arguments: @1 uprobes_exe, @2 libuprobes_lib.so
+
+# lib
+probe process(@1).function("main") {
+  printf("main\n");
+}
+
+probe process(@1).function("main_func") {
+  printf("main_func\n");
+}
+
+probe process(@2).function("lib_main") {
+  printf("lib_main\n");
+}
+
+probe process(@2).function("lib_func") {
+  printf("lib_func\n");
+}
+
+#mark
+probe process(@1).mark("main_count") {
+  printf("main_count: %d\n", $arg1);
+}
+
+probe process(@2).mark("func_count") {
+  printf("func_count: %d\n", $arg1);
+}
+
+#uname
+probe process(@1).function("*") {
+  printf("exe: %s=%s\n",probefunc(), usymname(uaddr()));
+}
+
+probe process(@2).function("*") {
+  printf("lib: %s=%s\n",probefunc(), usymname(uaddr()));
+}
+
+# ustack
+global hits = 0;
+
+probe process(@1).function("main_func")
+{
+  if (hits == 0)
+    {
+      log("print_ubacktrace exe 0");
+      print_ubacktrace();
+      hits++;
+    }
+  else if (hits == 1)
+    {
+      log("print_ustack exe 1");
+      print_ustack(ubacktrace());
+      hits++;
+    }
+}
+
+probe process(@2).function("lib_func")
+{
+  if (hits == 2)
+    {
+      log("print_ubacktrace lib 2");
+      print_ubacktrace();
+      hits++;
+    }
+  else if (hits == 3)
+    {
+      log("print_ustack lib 3");
+      print_ustack(ubacktrace());
+      hits++;
+    }
+}
