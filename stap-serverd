@@ -56,11 +56,6 @@ function initialization {
 		    -x `which ${stap_exec_prefix}stap-client`; then
 		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile
 	    fi
-	    # If we are root, then add the server's certificate as a trusted
-	    # signer.
-	    if test $EUID = 0; then
-		${stap_exec_prefix}stap-authorize-signing-cert $ssl_db/$stap_certfile
-	    fi
 	elif ! test -f $stap_ssl_db/client/cert8.db; then
 	    # If the client's database does not exist, then initialize it with our certificate.
 	    # Do this only if the client has been installed.
