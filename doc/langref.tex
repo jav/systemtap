@@ -327,18 +327,17 @@ two probes.
 
 \begin{vindent}
 \begin{verbatim}
-probe kernel.function("sys_mkdir") { log ("enter") }
+probe kernel.function("sys_mkdir").call { log ("enter") }
 probe kernel.function("sys_mkdir").return { log ("exit") }
 \end{verbatim}
 \end{vindent}
 
-To list the probe-able functions in the kernel, use the last-pass option
-to the translator. The output needs to be filtered because each inlined function
-instance is listed separately. The following statement is an example.
+To list the probe-able functions in the kernel, use the listing option
+(\texttt{\textbf{-l}}).  For example:
 
 \begin{vindent}
 \begin{verbatim}
-# stap -p2 -e 'probe kernel.function("*") {}' | sort | uniq
+# stap -l 'kernel.function("*")' | sort
 \end{verbatim}
 \end{vindent}
 
@@ -601,11 +600,11 @@ are examples.
 \begin{verbatim}
 function add_one (val) %{
     THIS->__retvalue = THIS->val + 1;
-}
+%}
 function add_one_str (val) %{
     strlcpy (THIS->__retvalue, THIS->val, MAXSTRINGLEN);
     strlcat (THIS->__retvalue, "one", MAXSTRINGLEN);
-}
+%}
 \end{verbatim}
 \end{vindent}
 The function argument and return value types must be inferred by the translator
