@@ -19,6 +19,7 @@ static int proc_fd[NR_CPUS];
 static FILE *percpu_tmpfile[NR_CPUS];
 static char *relay_buffer[NR_CPUS];
 static pthread_t reader[NR_CPUS];
+static int switch_file[NR_CPUS];
 static int bulkmode = 0;
 unsigned subbuf_size = 0;
 unsigned n_subbufs = 0;
@@ -214,6 +215,22 @@ err1:
 
 }
 
+static int switch_oldoutfile(int cpu, struct switchfile_ctrl_block *scb)
+{
+	dbug(3, "thread %d switching file\n", cpu);
+	if (percpu_tmpfile[cpu])
+		fclose(percpu_tmpfile[cpu]);
+	else
+		close(out_fd[cpu]);
+	scb->fnum ++;
+	if (fnum_max && scb->fnum == fnum_max)
+		scb->rmfile = 1;
+	if (open_oldoutfile(scb->fnum, cpu, scb->rmfile) < 0) {
+		perr("Couldn't open file for cpu %d, exiting.", cpu);
+		return -1;
+	}
+	return 0;
+}
 /**
  *	process_subbufs - write ready subbufs to disk
  */
@@ -238,11 +255,7 @@ static int process_subbufs(struct _stp_buf_info *info,
 		len = (subbuf_size - sizeof(padding)) - padding;
 		scb->wsize += len;
 		if (fsize_max && scb->wsize > fsize_max) {
-			fclose(percpu_tmpfile[cpu]);
-			scb->fnum ++;
-			if (fnum_max && scb->fnum == fnum_max)
-				scb->rmfile = 1;
-			if (open_oldoutfile(scb->fnum, cpu, scb->rmfile) < 0) {
+			if (switch_oldoutfile(cpu, scb) < 0) {
 				perr("Couldn't open file for cpu %d, exiting.", cpu);
 				return -1;
 			}
@@ -272,8 +285,17 @@ static void *reader_thread(void *data)
 	struct _stp_consumed_info consumed_info;
 	unsigned subbufs_consumed;
 	cpu_set_t cpu_mask;
+	struct timespec tim = {.tv_sec=0, .tv_nsec=200000000}, *timeout = &tim;
 	struct switchfile_ctrl_block scb = {0, 0, 0};
+	sigset_t sigs;
 
+	sigemptyset(&sigs);
+	sigaddset(&sigs,SIGUSR2);
+	pthread_sigmask(SIG_BLOCK, &sigs, NULL);
+
+	sigfillset(&sigs);
+	sigdelset(&sigs,SIGUSR2);
+	
 	CPU_ZERO(&cpu_mask);
 	CPU_SET(cpu, &cpu_mask);
 	if( sched_setaffinity( 0, sizeof(cpu_mask), &cpu_mask ) < 0 )
@@ -281,15 +303,29 @@ static void *reader_thread(void *data)
 
 	pollfd.fd = relay_fd[cpu];
 	pollfd.events = POLLIN;
+#ifdef NEED_PPOLL
+	/* Without a real ppoll, there is a small race condition that could */
+	/* block ppoll(). So use a timeout to prevent that. */
+	timeout->tv_sec = 10;
+	timeout->tv_nsec = 0;
+#else
+	timeout = NULL;
+#endif
 
 	do {
-		rc = poll(&pollfd, 1, -1);
+                rc = ppoll(&pollfd, 1, timeout, &sigs);
 		if (rc < 0) {
-			if (errno != EINTR) {
+			if (errno == EINTR) {
+				if (switch_file[cpu]) {
+					switch_file[cpu] = 0;
+					if (switch_oldoutfile(cpu, &scb) < 0)
+						break;
+					scb.wsize = 0;
+				}
+			} else {
 				_perr("poll error");
 				break;
 			}
-			err("WARNING: poll warning: %s\n", strerror(errno));
 			rc = 0;
 		}
 
@@ -324,12 +360,7 @@ int write_realtime_data(void *data, ssize_t nb)
 	ssize_t bw;
 	global_scb.wsize += nb;
 	if (fsize_max && global_scb.wsize > fsize_max) {
-		close(out_fd[0]);
-		global_scb.fnum++;
-		if (fnum_max && global_scb.fnum == fnum_max)
-			global_scb.rmfile = 1;
-		if (open_oldoutfile(global_scb.fnum, 0,
-				    global_scb.rmfile) < 0) {
+		if (switch_oldoutfile(0, &global_scb) < 0) {
 			perr("Couldn't open file, exiting.");
 			return -1;
 		}
@@ -343,6 +374,23 @@ int write_realtime_data(void *data, ssize_t nb)
 	return bw != nb;
 }
 
+static void switchfile_handler(int sig)
+{
+	int i;
+	for (i = 0; i < ncpus; i++)
+		if (reader[i] && switch_file[i]) {
+			dbug(2, "file switching is progressing, signal ignored.\n", sig);
+			return;
+		}
+	for (i = 0; i < ncpus; i++) {
+		if (reader[i]) {
+			switch_file[i] = 1;
+			pthread_kill(reader[i], SIGUSR2);
+		} else
+			break;
+	}
+}
+
 /**
  *	init_relayfs - create files and threads for relayfs processing
  *
@@ -353,6 +401,12 @@ int init_oldrelayfs(void)
 	int i, j;
 	struct statfs st;
 	char relay_filebase[PATH_MAX], proc_filebase[PATH_MAX];
+	struct sigaction sa;
+
+	sa.sa_handler = switchfile_handler;
+	sa.sa_flags = 0;
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGUSR2, &sa, NULL);
 
 	dbug(2, "initializing relayfs.n_subbufs=%d subbuf_size=%d\n", n_subbufs, subbuf_size);
 
