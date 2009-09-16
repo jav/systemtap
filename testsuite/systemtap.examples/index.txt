@@ -17,6 +17,13 @@ keywords: format
   ans_set_color3() function in the ansi.stp tapset.
 
 
+general/badname.stp - Bad Filename Filter
+keywords: filesystem hack
+
+  The badname.stp script shows how one could prevent the creation of
+  files with undesirable names.
+
+
 general/graphs.stp - Graphing Disk and CPU Utilization
 keywords: disk cpu use graph
 

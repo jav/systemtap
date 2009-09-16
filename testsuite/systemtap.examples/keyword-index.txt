@@ -106,6 +106,15 @@ keywords: disk
   ten entries during that period.
 
 
+= FILESYSTEM =
+
+general/badname.stp - Bad Filename Filter
+keywords: filesystem hack
+
+  The badname.stp script shows how one could prevent the creation of
+  files with undesirable names.
+
+
 = FORMAT =
 
 general/ansi_colors.stp - Color Table for ansi_set_color2() and ansi_set_color3()
@@ -164,6 +173,15 @@ keywords: disk cpu use graph
   The script tracks the disk and CPU utilization. The resulting output
   of the script can be piped into gnuplot to generate a graph of disk
   and CPU USE.
+
+
+= HACK =
+
+general/badname.stp - Bad Filename Filter
+keywords: filesystem hack
+
+  The badname.stp script shows how one could prevent the creation of
+  files with undesirable names.
 
 
 = INTERRUPT =
