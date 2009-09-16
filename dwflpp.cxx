@@ -1674,21 +1674,20 @@ dwflpp::translate_location(struct obstack *pool,
 {
 
   /* DW_AT_data_member_location, can be either constant offsets
-     (struct member fields), or full blown location expressions. */
+     (struct member fields), or full blown location expressions.
+     In older elfutils, dwarf_getlocation_addr would not handle the
+     constant for us, but newer ones do.  For older ones, we work
+     it by faking an expression, which is what newer ones do. */
+#if !_ELFUTILS_PREREQ (0,142)
   if (dwarf_whatattr (attr) == DW_AT_data_member_location)
     {
-      unsigned int form = dwarf_whatform (attr);
-      if (form == DW_FORM_data1 || form == DW_FORM_data2
-	  || form == DW_FORM_sdata || form == DW_FORM_udata)
-	{
-	  Dwarf_Sword off;
-	  if (dwarf_formsdata (attr, &off) != 0)
-	    throw semantic_error (string ("dwarf_formsdata failed, ")
-				  + string (dwarf_errmsg (-1)), e->tok);
-	  c_translate_add_offset (pool, 1, NULL, off, tail);
-	  return *tail;
-	}
+      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
+      if (dwarf_formudata (attr, &offset_loc.number) == 0)
+        return c_translate_location (pool, &loc2c_error, this,
+                                     &loc2c_emit_address, 1, 0, pc,
+                                     &offset_loc, 1, NULL, NULL);
     }
+#endif
 
   Dwarf_Op *expr;
   size_t len;
