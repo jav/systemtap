@@ -138,6 +138,39 @@ To reattach to a kernel module, the
 .I staprun
 .B \-A
 option would be used.
+
+.SH FILE SWITCHING BY SIGNAL
+After the
+.I staprun
+launched the
+.I stapio
+, users can command it to switch output file to next file when it
+outputs to file(s) (running staprun with
+.B \-o
+option) by sending a
+.B SIGUSR2
+signal to the
+.I stapio
+process. When it receives SIGUSR2, it will switch output file to
+new file with suffix 
+.I .N
+where N is the sequential number.
+For example,
+.PP
+\& $ staprun \-o foo ...
+.PP
+outputs trace logs to 
+.I foo
+and if it receives
+.B SIGUSR2
+signal, it switches output to
+.I foo.1
+file. And receiving
+.B SIGUSR2
+again, it switches to 
+.I foo.2
+file.
+
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
 structures and potentially private user information.  See the 

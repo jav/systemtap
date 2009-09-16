@@ -1,0 +1,64 @@
+set test "flightrec5"
+if {![installtest_p]} { untested $test; return }
+
+# run stapio in background mode with number limit and bulk mode
+spawn stap -F -S 1,2 -b -o $test.out -we {probe begin {}}
+# check whether stap outputs stapio pid
+set pid 0
+expect {
+  -timeout 240
+  -re {([0-9]+)\r\n} {
+      pass "$test (flight recorder option)"
+      set pid $expect_out(1,string)
+      exp_continue}
+  timeout { fail "$test (timeout)" }
+  eof { }
+}
+wait
+if {$pid == 0} {
+  fail "$test (no pid)"
+  return -1
+}
+
+# switch file to .1
+exec kill -USR2 $pid
+
+# check output file
+eval set outfile {[glob -nocomplain $test.out_cpu*.0]}
+if {$outfile == ""} {
+  fail "$test (no output file) $outfile"
+  exec kill -TERM $pid
+  return -1
+} else {
+  pass "$test (output file)"
+}
+eval exec rm $outfile
+
+print "pid = $pid"
+# switch file to .2
+exec kill -USR2 $pid
+# switch file to .3 (this time, .1 file should be deleted)
+exec kill -USR2 $pid
+
+exec kill -TERM $pid
+
+# check switched output file
+eval set outfile {[glob -nocomplain $test.out_cpu*.1]}
+if {$outfile == ""} {
+  pass "$test (old output file is removed)"
+} else {
+  fail "$test (failed to remove output file)"
+  eval exec rm $outfile
+  return -1
+}
+
+# check switched output file
+eval set outfile {[glob -nocomplain $test.out_cpu*.*]}
+if {$outfile == ""} {
+  fail "$test (failed to switch output file)"
+  return -1
+} else {
+  pass "$test (switch output file)"
+}
+eval exec rm $outfile
+

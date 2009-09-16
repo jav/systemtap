@@ -15,6 +15,7 @@
 int out_fd[NR_CPUS];
 static pthread_t reader[NR_CPUS];
 static int relay_fd[NR_CPUS];
+static int switch_file[NR_CPUS];
 static int bulkmode = 0;
 static volatile int stop_threads = 0;
 static time_t *time_backlog[NR_CPUS];
@@ -107,11 +108,25 @@ static int open_outfile(int fnum, int cpu, int remove_file)
 	return 0;
 }
 
+static int switch_outfile(int cpu, int *fnum)
+{
+	int remove_file = 0;
+
+	dbug(3, "thread %d switching file\n", cpu);
+	close(out_fd[cpu]);
+	*fnum += 1;
+	if (fnum_max && *fnum >= fnum_max)
+		remove_file = 1;
+	if (open_outfile(*fnum, cpu, remove_file) < 0) {
+		perr("Couldn't open file for cpu %d, exiting.", cpu);
+		return -1;
+	}
+	return 0;
+}
+
 /**
  *	reader_thread - per-cpu channel buffer reader
  */
-static void empty_handler(int __attribute__((unused)) sig) { /* do nothing */  }
-
 static void *reader_thread(void *data)
 {
         char buf[131072];
@@ -119,10 +134,8 @@ static void *reader_thread(void *data)
         struct pollfd pollfd;
 	struct timespec tim = {.tv_sec=0, .tv_nsec=200000000}, *timeout = &tim;
 	sigset_t sigs;
-	struct sigaction sa;
 	off_t wsize = 0;
 	int fnum = 0;
-	int remove_file = 0;
 
 	sigemptyset(&sigs);
 	sigaddset(&sigs,SIGUSR2);
@@ -131,11 +144,6 @@ static void *reader_thread(void *data)
 	sigfillset(&sigs);
 	sigdelset(&sigs,SIGUSR2);
 	
-	sa.sa_handler = empty_handler;
-        sa.sa_flags = 0;
-	sigemptyset(&sa.sa_mask);
-        sigaction(SIGUSR2, &sa, NULL);
-
 	if (bulkmode) {
 		cpu_set_t cpu_mask;
 		CPU_ZERO(&cpu_mask);
@@ -156,33 +164,39 @@ static void *reader_thread(void *data)
 	pollfd.events = POLLIN;
 
         do {
+		dbug(3, "thread %d start ppoll\n", cpu);
                 rc = ppoll(&pollfd, 1, timeout, &sigs);
+		dbug(3, "thread %d end ppoll:%d\n", cpu, rc);
                 if (rc < 0) {
 			dbug(3, "cpu=%d poll=%d errno=%d\n", cpu, rc, errno);
-                        if (errno != EINTR) {
+			if (errno == EINTR) {
+				if (stop_threads)
+					break;
+				if (switch_file[cpu]) {
+					switch_file[cpu] = 0;
+					if (switch_outfile(cpu, &fnum) < 0)
+						goto error_out;
+					wsize = 0;
+				}
+			} else {
 				_perr("poll error");
 				goto error_out;
-                        }
+			}
                 }
+
 		while ((rc = read(relay_fd[cpu], buf, sizeof(buf))) > 0) {
-			wsize += rc;
 			/* Switching file */
-			if (fsize_max && wsize > fsize_max) {
-				close(out_fd[cpu]);
-				fnum++;
-				if (fnum_max && fnum == fnum_max)
-					remove_file = 1;
-				if (open_outfile(fnum, cpu, remove_file) < 0) {
-					perr("Couldn't open file for cpu %d, exiting.", cpu);
+			if (fsize_max && wsize + rc > fsize_max) {
+				if (switch_outfile(cpu, &fnum) < 0)
 					goto error_out;
-				}
-				wsize = rc;
+				wsize = 0;
 			}
 			if (write(out_fd[cpu], buf, rc) != rc) {
 				if (errno != EPIPE)
 					perr("Couldn't write to output %d for cpu %d, exiting.", out_fd[cpu], cpu);
 				goto error_out;
 			}
+			wsize += rc;
 		}
         } while (!stop_threads);
 	dbug(3, "exiting thread for cpu %d\n", cpu);
@@ -193,6 +207,25 @@ error_out:
 	kill(getpid(), SIGTERM);
 	dbug(2, "exiting thread for cpu %d after error\n", cpu);
 	return(NULL);
+}
+
+static void switchfile_handler(int sig)
+{
+	int i;
+	if (stop_threads)
+		return;
+	for (i = 0; i < ncpus; i++)
+		if (reader[i] && switch_file[i]) {
+			dbug(2, "file switching is progressing, signal ignored.\n", sig);
+			return;
+		}
+	for (i = 0; i < ncpus; i++) {
+		if (reader[i]) {
+			switch_file[i] = 1;
+			pthread_kill(reader[i], SIGUSR2);
+		} else
+			break;
+	}
 }
 
 /**
@@ -308,6 +341,12 @@ int init_relayfs(void)
 		
 	}
 	if (!load_only) {
+		struct sigaction sa;
+
+		sa.sa_handler = switchfile_handler;
+		sa.sa_flags = 0;
+		sigemptyset(&sa.sa_mask);
+		sigaction(SIGUSR2, &sa, NULL);
 		dbug(2, "starting threads\n");
 		for (i = 0; i < ncpus; i++) {
 			if (pthread_create(&reader[i], NULL, reader_thread,
@@ -327,7 +366,7 @@ void close_relayfs(void)
 	stop_threads = 1;
 	dbug(2, "closing\n");
 	for (i = 0; i < ncpus; i++) {
-		if (reader[i]) 
+		if (reader[i])
 			pthread_kill(reader[i], SIGUSR2);
 		else
 			break;

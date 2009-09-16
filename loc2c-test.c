@@ -304,6 +304,7 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
       break;
 
     case DW_TAG_pointer_type:
+    case DW_TAG_reference_type:
       if (store)
 	error (2, 0, _("store not supported for pointer type"));
       c_translate_pointer (&pool, 1, cubias, typedie, &tail);
