@@ -147,6 +147,20 @@ function euid:long () %{ /* pure */
 #endif
 %}
 
+/**
+ * sfunction is_myproc - Determines if the current probe point has occurred in
+ * the user's own process.
+ *
+ *  Return 1 if the current probe point has occurred in the user's own process.
+ */
+function is_myproc:long () %{ /* pure */ /* unprivileged */
+#ifdef STAPCONF_TASK_UID
+	THIS->__retvalue = (current->euid == _stp_uid);
+#else
+	THIS->__retvalue = (task_euid(current) == _stp_uid);
+#endif
+%}
+
 // cpuid() is not documented
 function cpuid:long () %{ /* pure */
 	THIS->__retvalue = smp_processor_id();
