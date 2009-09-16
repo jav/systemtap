@@ -1,5 +1,7 @@
 #include "StapParser.hxx"
 
+#include <unistd.h>
+
 #include <gtkmm/window.h>
 #include <iostream>
 #include <sstream>
@@ -65,11 +67,16 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
   bool StapParser::ioCallback(Glib::IOCondition ioCondition)
     {
       using namespace std;
+      if (ioCondition & Glib::IO_HUP)
+        {
+          _win.hide();
+          return true;
+        }
       if ((ioCondition & Glib::IO_IN) == 0)
         return true;
       char buf[256];
       ssize_t bytes_read = 0;
-      bytes_read = read(0, buf, sizeof(buf) - 1);
+      bytes_read = read(STDIN_FILENO, buf, sizeof(buf) - 1);
       if (bytes_read <= 0)
         {
           _win.hide();
@@ -203,4 +210,22 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
         }
       return true;
     }
+
+  bool StapParser::errIoCallback(Glib::IOCondition ioCondition)
+  {
+    using namespace std;
+    if ((ioCondition & Glib::IO_IN) == 0)
+      return true;
+    char buf[256];
+    ssize_t bytes_read = 0;
+    bytes_read = read(_errFd, buf, sizeof(buf) - 1);
+    if (bytes_read <= 0)
+      {
+        _win.hide();
+        return true;
+      }
+    if (write(STDOUT_FILENO, buf, bytes_read) < 0)
+      ;
+    return true;
+  }
 }
