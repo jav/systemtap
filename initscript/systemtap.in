@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-# systemtap	Startup script for systemtap scrips
+# systemtap	Startup script for SystemTap scripts
 #
 # chkconfig: - 00 99
-# description: Systemtap is a programable kernel/application tracing tool.
+# description: SystemTap is a programmable kernel/application tracing tool.
 # config: /etc/systemtap/config
 # config: /etc/systemtap/conf.d
 ### BEGIN INIT INFO
-# Provides: Systemtap scripts startup
+# Provides: SystemTap scripts startup
 # Required-Start: $local_fs
 # Required-Stop: $local_fs
-# Short-Description: start and stop systemtap scripts
-# Description: Systemtap is a programable kernel/application tracing tool.
+# Short-Description: Start and stop SystemTap scripts
+# Description: SystemTap is a programmable kernel/application tracing tool.
 ### END INIT INFO
 
 # Source function library.
@@ -231,7 +231,7 @@ might_fail () { # message exitcode
 }
 might_success () { # message
   if [ $NR_FAILS -ne 0 ]; then
-    log "Warning: $NR_FAILS failure occured."
+    log "Warning: $NR_FAILS failure occurred."
     do_warning "$1"
   else
     do_success "$1"
