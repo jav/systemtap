@@ -992,6 +992,39 @@ For more information about marker probes, see
 \url{http://sourceware.org/systemtap/wiki/UsingMarkers}.
 
 
+\subsection{Tracepoints}
+\label{sec:tracepoints}
+\index{tracepoints}
+
+This family of probe points hooks to static probing tracepoints
+inserted into the kernel or kernel modules.  As with marker probes,
+these tracepoints are special macro calls inserted by kernel
+developers to make probing faster and more reliable than with
+DWARF-based probes.  DWARF debugging information is not required to
+probe tracepoints.  Tracepoints have more strongly-typed parameters
+than marker probes.
+
+Tracepoint probes begin with \texttt{kernel}.  The next part names the
+tracepoint itself: \texttt{trace("name")}.  The tracepoint
+\texttt{name} string, which can contain wildcard characters, is
+matched against the names defined by the kernel developers in the
+tracepoint header files.
+
+The handler associated with a tracepoint-based probe can read the
+optional parameters specified at the macro call site.  These
+parameters are named according to the declaration by the tracepoint
+author.  For example, the tracepoint probe
+\texttt{kernel.trace("sched\_switch")} provides the parameters
+\texttt{\$rq}, \texttt{\$prev}, and \texttt{\$next}.  If the parameter
+is a complex type such as a struct pointer, then a script can access
+fields with the same syntax as DWARF \texttt{\$target} variables.
+Tracepoint parameters cannot be modified; however, in guru mode a
+script can modify fields of parameters.
+
+The name of the tracepoint is available in \texttt{\$\$name}, and a
+string of \texttt{name=value} pairs for all parameters of the
+tracepoint is available in \texttt{\$\$vars} or \texttt{\$\$parms}.
+
 
 \subsection{Timer probes}
 \index{timer probes}
