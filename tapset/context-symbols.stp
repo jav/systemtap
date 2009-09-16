@@ -8,7 +8,7 @@
 // later version.
 // <tapsetdescription>
 // Context functions provide additional information about where an event occurred. These functions can 
-//provide information such as a backtrace to where the event occured and the current register values for the 
+//provide information such as a backtrace to where the event occurred and the current register values for the 
 //processor.
 // </tapsetdescription>
 %{
@@ -19,7 +19,7 @@
 
 /**
  * sfunction print_stack - Print out stack from string.
- * @stk: String with list of hexidecimal addresses.
+ * @stk: String with list of hexadecimal addresses.
  *
  *  Perform a symbolic lookup of the addresses in the given  string,
  *  which is assumed to be the result of a prior call to 
@@ -138,7 +138,7 @@ function symname:string (addr: long) %{ /* pure */
  * Description: Returns the (function) symbol name associated with the
  * given address if known, plus the module name (between brackets) and
  * the offset inside the module, plus the size of the symbol function.
- * If any element is not known it will be ommitted and if the symbol name
+ * If any element is not known it will be omitted and if the symbol name
  * is unknown it will return the hex string for the given address.
  */
 function symdata:string (addr: long) %{ /* pure */

@@ -414,7 +414,7 @@ probe signal.syskill.return = syscall.kill.return
  *
  * The <command>tkill</command> call is analogous to <command>kill(2)</command>,
  * except that it also allows a process within a specific thread group to
- * be targetted. Such processes are targetted through their unique
+ * be targeted. Such processes are targeted through their unique
  * thread IDs (TID).
  */
 probe signal.systkill = syscall.tkill
@@ -632,7 +632,7 @@ probe signal.procmask.return = kernel.function("sigprocmask").return
 
 
 /**
- * probe signal.flush - Flusing all pending signals for a task
+ * probe signal.flush - Flushing all pending signals for a task
  * @task: The task handler of the process performing the flush
  * @sig_pid: The PID of the process associated with the task
  * performing the flush

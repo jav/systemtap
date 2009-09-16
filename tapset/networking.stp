@@ -15,10 +15,10 @@ function get_netdev_name:string (addr:long) {
 }
 
 /**
- * probe netdev.receive - Data recieved from network device.
+ * probe netdev.receive - Data received from network device.
  * @dev_name: The name of the device. e.g: eth0, ath1.
  * @length: The length of the receiving buffer.
- * @protocol: Protocol of recieved packet.
+ * @protocol: Protocol of received packet.
  *
  */
 ///    <varlistentry><term>protocol</term>
@@ -72,7 +72,7 @@ probe netdev.receive
  * @dev_name: The name of the device. e.g: eth0, ath1.
  * @length: The length of the transmit buffer.
  * @protocol: The protocol of this packet.
- * @truesize: The size of the the data to be transmitted.
+ * @truesize: The size of the data to be transmitted.
  *
  */
 // Queue a buffer for transmission to a network device
@@ -124,7 +124,7 @@ probe netdev.close
  * @dev_name: The device scheduled to transmit
  * @protocol: The protocol used in the transmission
  * @length: The length of the transmit buffer.
- * @truesize: The size of the the data to be transmitted.
+ * @truesize: The size of the data to be transmitted.
  */
 probe netdev.hard_transmit
 	= kernel.function("dev_hard_start_xmit")

@@ -70,7 +70,7 @@ Fires when the network device wants to transmit a buffer
   The protocol of this packet.
 
 .I truesize
-  The size of the the data to be transmitted.
+  The size of the data to be transmitted.
 
 .SH SEE ALSO
 .IR stap (1),

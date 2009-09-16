@@ -7,8 +7,8 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 // <tapsetdescription>
-// Context functions provide additional information about where an event occurred. These functions can 
-//provide information such as a backtrace to where the event occured and the current register values for the 
+// Context functions provide additional information about where an event occurred. These functions can
+//provide information such as a backtrace to where the event occurred and the current register values for the
 //processor.
 // </tapsetdescription>
 
@@ -78,7 +78,7 @@ function pgrp:long () %{ /* pure */
 
 /**
  * sfunction sid - Returns the session ID of the current process.
- * 
+ *
  * The session ID of a process is the process group ID of the session
  * leader. Session ID is stored in the signal_struct since Kernel 2.6.0.
  */
@@ -108,9 +108,9 @@ function pexecname:string () %{ /* pure */
  */
 function gid:long () %{ /* pure */
 #ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = current->gid;		
+	THIS->__retvalue = current->gid;
 #else
-	THIS->__retvalue = current_gid();	
+	THIS->__retvalue = current_gid();
 #endif
 %}
 
@@ -119,9 +119,9 @@ function gid:long () %{ /* pure */
  */
 function egid:long () %{ /* pure */
 #ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = current->egid;		
+	THIS->__retvalue = current->egid;
 #else
-	THIS->__retvalue = current_egid();	
+	THIS->__retvalue = current_egid();
 #endif
 %}
 
@@ -130,9 +130,9 @@ function egid:long () %{ /* pure */
  */
 function uid:long () %{ /* pure */
 #ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = current->uid;		
+	THIS->__retvalue = current->uid;
 #else
-	THIS->__retvalue = current_uid();	
+	THIS->__retvalue = current_uid();
 #endif
 %}
 
@@ -141,15 +141,14 @@ function uid:long () %{ /* pure */
  */
 function euid:long () %{ /* pure */
 #ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = current->euid;		
+	THIS->__retvalue = current->euid;
 #else
-	THIS->__retvalue = current_euid();	
+	THIS->__retvalue = current_euid();
 #endif
 %}
 
 /**
- * sfunction is_myproc - Determines if the current probe point has occurred in
- * the user's own process.
+ * sfunction is_myproc - Determines if the current probe point has occurred in the user's own process.
  *
  *  Return 1 if the current probe point has occurred in the user's own process.
  */
@@ -177,7 +176,7 @@ function cpu:long () %{ /* pure */
  * sfunction pp - Return the probe point associated with the currently running probe handler,
  * including alias and wildcard expansion effects
  * Context:
- * The current probe point. 
+ * The current probe point.
  */
 function pp:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
@@ -221,8 +220,8 @@ function user_mode:long () %{ /* pure */ /* currently a user-mode address? */
 function is_return:long () %{ /* pure */
 	if (CONTEXT->pi)
 		THIS->__retvalue = 1;
-	else	
-		THIS->__retvalue = 0;	
+	else
+		THIS->__retvalue = 0;
 %}
 
 /**
@@ -285,7 +284,7 @@ function stack_unused:long () %{ /* pure */
  * sfunction uaddr - User space address of current running task. EXPERIMENTAL.
  *
  * Description: Returns the address in userspace that the current
- * task was at when the probe occured. When the current running task
+ * task was at when the probe occurred. When the current running task
  * isn't a user space thread, or the address cannot be found, zero
  * is returned. Can be used to see where the current task is combined
  * with usymname() or symdata(). Often the task will be in the VDSO

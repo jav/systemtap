@@ -9,7 +9,7 @@
 // <tapsetdescription>
 // User context symbol functions provide additional information about
 // addresses from an application. These functions can provide
-// information about the user space map (library) that the event occured or
+// information about the user space map (library) that the event occurred or
 // the function symbol of an address.
 // </tapsetdescription>
 
@@ -43,7 +43,7 @@ function usymname:string (addr: long) %{ /* pure */
  * given address in the current task if known, plus the module name
  * (between brackets) and the offset inside the module (shared library),
  * plus the size of the symbol function. If any element is not known it
- * will be ommitted and if the symbol name is unknown it will return the
+ * will be omitted and if the symbol name is unknown it will return the
  * hex string for the given address.
  */
 function usymdata:string (addr: long) %{ /* pure */
@@ -53,7 +53,7 @@ function usymdata:string (addr: long) %{ /* pure */
 
 /**
  * sfunction print_ustack - Print out stack for the current task from string. EXPERIMENTAL!
- * @stk: String with list of hexidecimal addresses for the current task.
+ * @stk: String with list of hexadecimal addresses for the current task.
  *
  *  Perform a symbolic lookup of the addresses in the given string,
  *  which is assumed to be the result of a prior call to 
