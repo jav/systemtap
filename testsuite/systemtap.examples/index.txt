@@ -264,6 +264,13 @@ keywords: network tracepoint buffer free
   socket buffers freed at locations in the kernel.
 
 
+network/netdev.stp - Trace Activity on Network Devices
+keywords: network device traffic
+
+  The netdev.stp script traces configuration and transmit/receive
+  activity on network devices.
+
+
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
 keywords: network traffic per-process
 
