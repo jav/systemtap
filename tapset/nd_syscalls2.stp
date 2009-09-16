@@ -4134,10 +4134,23 @@ probe nd_syscall.ustat32 = kprobe.function("sys32_ustat") ?
 	dev = uint_arg(1)
 	argstr = sprintf("%d, %p", dev, pointer_arg(2))
 }
+# Since 2.6.30 sys32_ustat is called compat_sys_ustat and is now asmlinkage.
+#asmlinkage long compat_sys_ustat(unsigned dev, struct compat_ustat __user *u)
+probe nd_syscall.ustat32 = kprobe.function("compat_sys_ustat") ?
+{
+	name = "ustat"
+	// dev = $dev
+	// argstr = sprintf("%d, %p", $dev, $u)
+	// asmlinkage
+	asmlinkage()
+	dev = uint_arg(1)
+	argstr = sprintf("%d, %p", dev, pointer_arg(2))
+}
 
 probe nd_syscall.ustat.return = kprobe.function("SyS_ustat").return ?,
                                 kprobe.function("sys_ustat").return ?,
-                                kprobe.function("sys32_ustat").return ?
+                                kprobe.function("sys32_ustat").return ?,
+                                kprobe.function("compat_sys_ustat").return ?
 {
 	name = "ustat"
 	retstr = returnstr(1)

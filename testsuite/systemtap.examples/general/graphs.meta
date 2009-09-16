@@ -10,4 +10,4 @@ output: plot data
 scope: system-wide
 description: The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.
 test_check: stap -p4 graphs.stp
-test_installcheck: stap graphs.stp -c "sleep 1"
+test_installcheck: stap graphs.stp -c "sleep 0.2"

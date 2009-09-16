@@ -9,5 +9,6 @@ exit: user-controlled
 output: sorted-list
 scope: system-wide
 description: The mmfilepage.stp script uses the virtual memory tracepoints available in some kernels to track the number of faults, copy on writes mapping, and unmapping operations for file backed pages. When the script is terminated the counts are printed for each process that allocated pages while the script was running. The mmfilepage.stp script is useful in debugging leaks in the mapped file regions of a process.
+test_support: stap -l kernel.trace("mm_page_allocation"),kernel.trace("mm_page_free"),kernel.trace("mm_filemap_fault"),kernel.trace("mm_filemap_cow"),kernel.trace("mm_filemap_unmap"),kernel.trace("mm_filemap_userunmap")
 test_check: stap -p4 mmfilepage.stp
-test_installcheck: stap mmfilepage.stp -c "sleep 1"
+test_installcheck: stap mmfilepage.stp -c "sleep 0.2"

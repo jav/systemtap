@@ -32,7 +32,7 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 	int start = 0;
 
 	if (type == DBUG) {
-		start = _stp_snprintf(buf, STP_LOG_BUF_LEN, "\033[36m%s:%d:\033[0m ", func, line);
+		start = _stp_snprintf(buf, STP_LOG_BUF_LEN, "%s:%d: ", func, line);
 	} else if (type == WARN) {
 		strcpy (buf, WARN_STRING);
 		start = sizeof(WARN_STRING) - 1;
@@ -49,12 +49,19 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 			buf[num + start] = '\0';
 		}
 
+#ifdef STAP_DEBUG_PRINTK
+                if (type == DBUG) printk (KERN_DEBUG "%s", buf);
+                else if (type == WARN) printk (KERN_WARNING "%s", buf);
+                else if (type == ERROR) printk (KERN_ERR "%s", buf);
+                else printk (KERN_INFO "%s", buf);
+#else
 		if (type != DBUG)
 			_stp_ctl_write(STP_OOB_DATA, buf, start + num + 1);
 		else {
 			_stp_print(buf);
 			_stp_print_flush();
 		}
+#endif
 	}
 	put_cpu();
 }

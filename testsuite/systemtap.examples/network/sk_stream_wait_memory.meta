@@ -10,4 +10,4 @@ output: trace
 scope: system-wide
 description: The sk_stream-wait_memory.stp prints a time stamp, executable, and pid each time a process blocks due to the send buffer being full. A similar entry is printed each time a process continues because there is room in the buffer.
 test_check: stap -p4 sk_stream_wait_memory.stp
-test_installcheck: stap sk_stream_wait_memory.stp -c "sleep 1"
+test_installcheck: stap sk_stream_wait_memory.stp -c "sleep 0.2"

@@ -33,7 +33,7 @@ bin_SCRIPTS += dtrace
 
 if BUILD_SERVER
 man_MANS += stap-server.8 
-bin_PROGRAMS += stap-client-connect stap-server-connect
+bin_PROGRAMS += stap-client-connect stap-server-connect stap-sign-module
 bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server \
 	       stap-authorize-server-cert
@@ -97,12 +97,9 @@ stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
 if HAVE_NSS
-stap_SOURCES += modsign.cxx nsscommon.c
-stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_LDADD += -lnss3 -lnspr4
-
 stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
+stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
 endif
 
 if BUILD_ELFUTILS
@@ -185,6 +182,11 @@ stap_client_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 stap_server_connect_SOURCES = stap-server-connect.c
 stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
+
+stap_sign_module_SOURCES = modsign.cxx nsscommon.c
+stap_sign_module_CPPFLAGS = -Wall -Werror $(AM_CPPFLAGS) $(nss_CFLAGS) $(nspr_CFLAGS)
+
+stap_sign_module_LDADD = -lnss3 -lnspr4
 endif
 
 noinst_PROGRAMS = loc2c-test
@@ -270,7 +272,6 @@ distclean-local:
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
-	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
 	rm -rf $(DESTDIR)$(libdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 	@list='$(EXAMPLE_SRC)'; for f in $$list; do p=`basename $$f`; \
@@ -286,7 +287,7 @@ uninstall-local:
 	  rm -f "$(SAMPLE_INSTALL_DIR)/$$p"; \
 	done
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
-# XXX: leaves behind man pages
+	rm -rf $(DESTDIR)$(docdir)/examples
 
 SUBDIRS = doc grapher
 DIST_SUBDIRS = testsuite $(SUBDIRS)

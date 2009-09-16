@@ -67,6 +67,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BAC
 <li><a href="io/ioblktime.stp">io/ioblktime.stp</a> - Average Time Block IO Requests Spend in Queue <br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>The ioblktime.stp script tracks the amount of time that each block IO requests spend waiting for completion. The script computes the average time waiting time for block IO per device and prints list every 10 seconds. In some cases there can be too many oustanding block IO operations and the script may exceed the default number of MAXMAPENTRIES allowed. In this case the allowed number can be increased with "-DMAXMAPENTRIES=10000" option on the stap command line.</p></li>
+<li><a href="io/iostat-scsi.stp">io/iostat-scsi.stp</a> - iostat for SCSI Devices<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#SCSI">SCSI</a> <br>
+<p>The iostat-scsi.stp script provides a breakdown of the number of blks read and written on the various machines's SCSI devices. The script takes one argument which is the number of seconds between reports.</p></li>
 <li><a href="io/iostats.stp">io/iostats.stp</a> - List Executables Reading and Writing the Most Data<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p> The iostat.stp script measures the amount of data successfully read and written by all the executables on the system.  The output is sorted from most greatest sum of bytes read and written by an executable to the least. The output contains  the count of operations (opens, reads, and writes), the totals and averages for the number of bytes read and written.</p></li>

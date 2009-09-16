@@ -32,7 +32,7 @@ proc extract_tag { META_DATA TAG } {
     return $value
 }
 
-proc run_command { test command } {
+proc run_command { test action command } {
     #FIXME tcl says that single quotes not dealt with
     if { $command != "" } then {
 	verbose -log "attempting command $command"
@@ -42,13 +42,16 @@ proc run_command { test command } {
 	set res [catch {eval exec "$command |& cat"} value]
 	verbose -log "OUT $value"
 	verbose -log "RC $res"
-	if {$res != 0 } {
-	    fail $test
+	if { $res != 0 } { # allow failure for support
+	    if { $action != "support" } { fail "$test $action" }
+	    return $res
 	} else {
-	    pass $test
+	    pass "$test $action"
+	    return $res
 	}
     } else {
-	untested $test
+	untested "$test $action"
+	return 0
     }
 }
 
@@ -64,16 +67,33 @@ foreach file $meta_files {
     cd $dir
     
     set meta_data [get_meta_data $file]
-    set test_check [extract_tag "$meta_data" "test_check"]
-    set command $test_check
-    run_command "$test build" $command
+    set test_support [extract_tag "$meta_data" "test_support"]
+    set command $test_support
+    set supported_p 1
+    if { $command != "" }  { # need to test support
+       set res [run_command "$test" "support" $command]
+       if { $res != 0 } { set supported_p 0 }
+    }
+
+    if { $supported_p == 1 } {
+        set test_check [extract_tag "$meta_data" "test_check"]
+        set command $test_check
+        run_command "$test" "build" $command
+    } else { 
+        untested "$test build" 
+    }
+
     set test_installcheck [extract_tag "$meta_data" "test_installcheck"]
     # The pass/fail logic too simple and fails for some examples
     # FIXME would like to be able to run more complicated test code
     if {[info procs installtest_p] != "" && [installtest_p]
 	&& $test_installcheck != "" } then {
-	set command $test_installcheck
-	run_command "$test run" $command
+         if { $supported_p == 1 } {
+             set command $test_installcheck
+             run_command "$test" "run" $command
+         } else { 
+             untested "$test run" 
+         }
     }
 }
 

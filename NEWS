@@ -1,5 +1,52 @@
 * What's new
 
+- Support for unprivileged users:
+  *****************************************************************************
+  * WARNING!!!!!!!!!!
+  * This feature is EXPERIMENTAL at this time and should be used with care.
+  * This feature allows systemtap kernel modules to be loaded by unprivileged
+  * users. The user interface and restrictions will change as this feature
+  * evolves.
+  *****************************************************************************
+  - Systemtap modules generated from scripts which use a restricted subset of
+    the features available may be loaded by staprun for unprivileged users.
+    Previously, staprun would load modules only for root or for members of the
+    groups stapdev and stapusr.
+  - Using the --unprivileged option on stap enables translation-time checking
+    for use by unprivileged users (see restrictions below).
+  - All modules deemed suitable for use by unprivileged users will be signed
+    by stap-server when --unprivileged is specified on stap-client (see module
+    signing in release 0.9.8 and stap-server in release 0.9 below).
+  - Modules signed by trusted signers (servers) and verified by staprun will be
+    loaded by staprun regardless of the user's privilege level.
+  - The system administrator asserts the trustworthiness of a signer (server) by
+    running stap-authorize-signing-cert <cert-file> as root, where <cert-file>
+    can be found in ~<user>/.systemtap/ssl/server/stap.cert for servers started
+    by ordinary users and in $sysconfdir/systemtap/ssl/server/stap.cert for
+    servers started by root.
+  - Servers started by root are automatically authorized as trusted signers on
+    the local host.
+  - Restrictions are intentionally strict at this time and may be relaxed in
+    the future:
+     - probe points are restricted to:
+         begin, begin(n), end, end(n), error, error(n), never,
+         timer.{jiffies,s,sec,ms,msec,us,usec,ns,nsec}(n)*, timer.hz(n),
+	 process.* (for processes owned by the user).
+     - use of embedded C code is not allowed.
+     - use of tapset functions using embedded C code is restricted.
+     - accessing the kernel memory space is not allowed.
+     - The following command line options may not be used:
+       -g, -I, -D, -R
+       -r may not be used to select a target kernel other than one from
+       /lib/modules/RELEASE/build, where RELEASE is a currently installed kernel
+         release.
+     - The following environment variables may not be set:
+       SYSTEMTAP_RUNTIME, SYSTEMTAP_TAPSET, SYSTEMTAP_DEBUGINFO_PATH
+  - nss and nss-tools are required to use this feature.
+
+- Memory consumption for scripts involving many uprobes has been
+  dramatically reduced.
+
 - The preprocessor now supports || and && in the conditions.
         %( arch == "x86_64" || arch == "ia64" %: ... %)
 
@@ -24,43 +71,10 @@
 	probe foo = baz { }
 	probe foo { } # expands twice, once to bar and once to baz
 
-- Support for unprivileged users:
-  *****************************************************************************
-  * WARNING!!!!!!!!!!
-  * This feature is EXPERIMENTAL at this time and should be used with care.
-  * This feature allows systemtap kernel modules to be loaded by unprivileged
-  * users. The user interface and restrictions will change as this feature
-  * evolves.
-  *****************************************************************************
-  - Systemtap modules generated from scripts which use a restricted subset of
-    the features available may be loaded by staprun for unprivileged users.
-    Previously, staprun would load modules only for root or for members of the
-    groups stapdev and stapusr.
-  - Using the --unprivileged option on stap enables translation-time checking
-    for use by unprivileged users (see restrictions below).
-  - All modules deemed suitable for use by unprivileged users will be signed
-    by stap (see module signing in release 0.9.8 below).
-  - Modules signed by trusted users and verified by staprun will be loaded by
-    staprun regardless of the user's privilege level.
-  - The system administrator asserts the trustworthiness of a user by running
-    stap-authorize-signing-cert <cert-file> as root, where <cert-file> can
-    be found in ~<user>/.systemtap/ssl/server/stap.cert.
-  - Restrictions are intentionally strict at this time and will be relaxed in
-    the future:
-     - probe points are restricted to:
-         begin, begin(n), end, end(n), error(n), never,
-         timer.{jiffies,s,sec,ms,msec,us,usec,ns,nsec}(n)*, timer.hz(n)
-     - embedded C code is not allowed.
-     - use of tapset functions using embedded C code is restricted.
-     - accessing the kernel memory space is not allowed.
-     - The following command line options may not be used:
-       -g, -I, -D, -R
-       -r may not be used to select a target kernel other than one from
-       /lib/modules/RELEASE/build, where RELEASE is a currently installed kernel
-         release.
-     - The following environment variables may not be set:
-       SYSTEMTAP_RUNTIME, SYSTEMTAP_TAPSET, SYSTEMTAP_DEBUGINFO_PATH
-  - nss and nss-tools are required to use this feature.
+- A new experimental transport mechanism, using ftrace's ring_buffer,
+  has been added.  This may become the default transport mechanism in
+  future versions of systemtap.  To test this new transport mechanism,
+  define 'STP_USE_RING_BUFFER'.
 
 * What's new in version 0.9.9
 
@@ -136,7 +150,7 @@
   syscall arguments are also available by name in nd_syscalls.
 
 - Module signing: If the appropriate nss libraries are available on your
-  system, stap will sign each compiled module using a self-generated
+  system, stap-server will sign each compiled module using a self-generated
   certificate.  This is the first step toward extending authority to
   load certain modules to unprivileged users. For now, if the system
   administrator adds a certificate to a database of trusted signers

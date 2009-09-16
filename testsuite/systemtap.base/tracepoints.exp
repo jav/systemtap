@@ -2,6 +2,7 @@
 set tracepoints {}
 spawn stap -l {kernel.trace("*")}
 expect {
+    -timeout 60
     -re {^kernel.trace[^\r\n]*\r\n} {
         append tracepoints $expect_out(0,string)
         exp_continue
@@ -11,13 +12,26 @@ expect {
 }
 catch {close}; catch { wait }
 
+# Use this to test each tracepoint individually.
+#foreach tp $tracepoints {
+#    set test "tracepoint $tp -p4"
+#    if {[catch {exec stap -w -p4 -e "probe $tp { println($\$name, $\$vars) }"} res]} {
+#        fail "$test $res"
+#    } else {
+#        pass "$test"
+#    }
+#}
+
+# This tests all tracepoints all at once (much faster than the above)
+set script "probe begin {}"
 foreach tp $tracepoints {
-    set test "tracepoint $tp -p4"
-    if {[catch {exec stap -w -p4 -e "probe $tp { println($\$name, $\$vars) }"} res]} {
-        fail "$test $res"
-    } else {
-        pass "$test"
-    }
+	set script "$script probe $tp { println($\$name, $\$vars) }"
+}
+send_log "Trying stap -w -p4 -e $script\n"
+if {[catch {exec stap -w -p4 -e "$script"} res]} {
+	fail "tracepoints $res"
+} else {
+	pass "tracepoints"
 }
 
 set test "tracepoints"

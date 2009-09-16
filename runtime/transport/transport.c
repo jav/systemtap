@@ -31,8 +31,9 @@ static int _stp_ctl_attached = 0;
 static pid_t _stp_target = 0;
 static int _stp_probes_started = 0;
 
-// For now, disable transport version 3
-#if STP_TRANSPORT_VERSION == 3
+// For now, disable transport version 3 (unless STP_USE_RING_BUFFER is
+// defined).
+#if STP_TRANSPORT_VERSION == 3 && !defined(STP_USE_RING_BUFFER)
 #undef STP_TRANSPORT_VERSION
 #define STP_TRANSPORT_VERSION 2
 #endif

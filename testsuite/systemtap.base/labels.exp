@@ -93,12 +93,19 @@ wait
 set ok 0
 expect {
     -timeout 180
-    -re {process.*function.*labels.c:5...label..init_an_int.*process.*function.*labels.c:16...label..init_an_int.*process.*function.*labels.c:18...label..init_an_int_again} { incr ok; exp_continue }
+    -re {^process[^\r\n]*function[^\r\n]*labels.c:5...label..init_an_int..\r\n}
+	{ incr ok; exp_continue }
+    -re {^process[^\r\n]*function[^\r\n]*labels.c:16...label..init_an_int..\r\n}
+	{ incr ok; exp_continue }
+    -re {^process[^\r\n]*function[^\r\n]*labels.c:18...label..init_an_int_again..\r\n}
+	{ incr ok; exp_continue }
+    -re {^process[^\r\n]*function[^\r\n]*labels.c:21...label..ptr_inited..\r\n}
+	{ incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
 
-if {$ok == 1} { pass "$test -l .label" } { fail "$test -l .label $ok" }
+if {$ok == 4} { pass "$test -l .label" } { fail "$test -l .label $ok" }
 
 # label in an executable
 

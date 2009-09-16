@@ -3414,10 +3414,20 @@ probe syscall.ustat32 = kernel.function("sys32_ustat") ?
 	dev = $dev
 	argstr = sprintf("%d, %p", $dev, $u32p)
 }
+# Since 2.6.30 sys32_ustat is compat_sys_ustat
+# Note that last argument changed name.
+#long compat_sys_ustat(unsigned dev, struct compat_ustat __user *u)
+probe syscall.ustat32 = kernel.function("compat_sys_ustat") ?
+{
+	name = "ustat"
+	dev = $dev
+	argstr = sprintf("%d, %p", $dev, $u)
+}
 
 probe syscall.ustat.return = kernel.function("SyS_ustat").return ?,
                              kernel.function("sys_ustat").return ?,
-                             kernel.function("sys32_ustat").return ?
+                             kernel.function("sys32_ustat").return ?,
+                             kernel.function("compat_sys_ustat").return ?
 {
 	name = "ustat"
 	retstr = returnstr(1)

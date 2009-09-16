@@ -11,4 +11,4 @@ scope: systemwide
 description: The script traces any SIGKILL signals. When that SIGKILL signal is sent to a process, the script prints out the signal name, the desination executable and process ID, the executable name user ID that sent the signal.
 arg_1: The name of the signal to look for on selected process.
 test_check: stap -p4 sigkill.stp
-test_installcheck: stap sigkill.stp -c "sleep 1"
+test_installcheck: stap sigkill.stp -c "sleep 0.2"

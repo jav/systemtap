@@ -1,10 +1,11 @@
-set test "static_user_markers"
+set test "sdt_misc"
 
 # Test miscellaneous features of .mark probes
 
 # Compile a C program to use as the user-space probing target
 set sup_srcpath "[pwd]/static_user_markers.c"
 set sup_exepath "[pwd]/static_user_markers.x"
+set sup_sopath "[pwd]/libsdt.so"
 set supcplus_exepath "[pwd]/static_user_markers_cplus.x"
 set fp [open $sup_srcpath "w"]
 puts $fp "
@@ -44,6 +45,7 @@ buz (int parm)
   DTRACE_PROBE1(static_user_markers,test_probe_4,&bstruct);
 }
 
+#ifndef NO_MAIN
 int
 main ()
 {
@@ -51,6 +53,7 @@ main ()
   baz(3,(char*)\"abc\");
   buz(4);
 }
+#endif
 "
 close $fp
 
@@ -217,6 +220,56 @@ if { $ok != 0} {
     pass "$test types $pbtype_mssg"
 }
 
+# Test probe in shared object
+
+set sup_srcmainpath "[pwd]/static_user_markers_.c"
+set fp [open $sup_srcmainpath "w"]
+puts $fp "
+int
+main ()
+{
+  bar(2);
+  baz(3,(char*)\"abc\");
+  buz(4);
+}
+"
+close $fp
+
+set sup_flags "$sup_flags additional_flags=-shared"
+set sup_flags "$sup_flags additional_flags=-fPIC"
+set sup_flags "$sup_flags additional_flags=-DNO_MAIN"
+set res0 [target_compile $sup_srcpath $sup_sopath executable $sup_flags ]
+set sup0_flags "additional_flags=-g additional_flags=-Wl,-rpath,[pwd]"
+set sup0_flags "$sup0_flags additional_flags=-L[pwd] additional_flags=-lsdt"
+set res [target_compile $sup_srcmainpath $sup_exepath executable $sup0_flags ]
+if { $res0 != "" || $res != "" } {
+    verbose "target_compile failed: $res0 $res" 2
+    fail "$test compiling -g -shared $pbtype_mssg"
+    if { $verbose == 0 } {
+    catch {exec rm -f $sup_srcpath $sup_srcmainpath}
+    }
+    return
+} else {
+    pass "$test compiling -g -shared $pbtype_mssg"
+}
+
+verbose -log "stap -c $sup_exepath -e probe process(\"$sup_sopath\").mark(\"test_probe_2\") {printf(\"In %s probe %#x\\n\", \$\$name, \$arg1)}"
+spawn stap -c $sup_exepath -e "probe process(\"$sup_sopath\").mark(\"test_probe_2\") {printf(\"In %s probe %#x\\n\", \$\$name, \$arg1)}"
+expect {
+    -timeout 180
+    -re {In test_probe_2 probe 0x2} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+wait
+
+if {$ok == 2} { 
+    pass "$test shared $pbtype_mssg"
+} else {
+    fail "$test shared ($ok) $pbtype_mssg"
+}
+
 # Test .mark probe wildcard matching
 
 set ok 0
@@ -238,6 +291,5 @@ if { $ok == 45 } {
 }
 
 if { $verbose == 0 } {
-catch {exec rm -f $sup_srcpath $sup_exepath $supcplus_exepath $sup_dpath $sup_hpath $sup_stppath sdt_types.x}
+catch {exec rm -f $sup_srcpath $sup_exepath $sup_sopath $supcplus_exepath $sup_dpath $sup_hpath $sup_opath $sup_stppath $sdt_types.x $sup_srcmainpath}
 }
-

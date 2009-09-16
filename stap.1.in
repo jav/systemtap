@@ -971,10 +971,19 @@ kernel into temporary files, until the user sends an interrupt signal.
 Any run-time error encountered by the probe handlers, such as running
 out of memory, division by zero, exceeding nesting or runtime limits,
 results in a soft error indication.  Soft errors in excess of
-MAXERRORS block of all subsequent probes, and terminate the session.
-Finally,
+MAXERRORS block of all subsequent probes (except error-handling
+probes), and terminate the session.  Finally,
 .I staprun
 unloads the module, and cleans up.
+
+.SS ABNORMAL TERMINATION
+
+One should avoid killing the stap process forcibly, for example with
+SIGKILL, because the stapio process (a child process of the stap
+process) and the loaded module may be left running on the system.  If
+this happens, send SIGTERM or SIGINT to any remaining stapio
+processes, then use rmmod to unload the systemtap module.
+
 
 .SH EXAMPLES
 See the

@@ -10,4 +10,4 @@ output: sorted-list
 scope: system-wide
 description: The thread-times.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top twenty processes with samples broken down into percentage total time spent in user-space and kernel-space.
 test_check: stap -p4 thread-times.stp
-test_installcheck: stap thread-times.stp -c "sleep 1"
+test_installcheck: stap thread-times.stp -c "sleep 0.2"

@@ -1,10 +1,9 @@
 #! stap -p2
 // bz10475: pointer-array confused about array element size
 
-// struct file *do_filp_open(int dfd, const char *pathname,
-//                           int open_flag, int mode, int acc_mode)
-probe kernel.function("do_filp_open")
+// struct file *filp_open(int dfd, const char *filename, int flags, int mode)
+probe kernel.function("filp_open")
 {
     // check array access on a "complex" pointer type
-    println($pathname[0])
+    println($filename[0])
 }

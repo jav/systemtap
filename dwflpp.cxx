@@ -56,6 +56,10 @@ extern "C" {
 }
 
 
+// debug flag to compare to the uncached version from libdw
+// #define DEBUG_DWFLPP_GETSCOPES 1
+
+
 using namespace std;
 using namespace __gnu_cxx;
 
@@ -66,8 +70,7 @@ static string TOK_KERNEL("kernel");
 dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL), dwfl(NULL),
-  module_dwarf(NULL), function(NULL), blacklist_enabled(false),
-  pc_cached_scopes(0), num_cached_scopes(0), cached_scopes(NULL)
+  module_dwarf(NULL), function(NULL), blacklist_enabled(false)
 {
   if (kernel_p)
     setup_kernel(name);
@@ -83,8 +86,7 @@ dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
 dwflpp::dwflpp(systemtap_session & session, const vector<string>& names):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL), dwfl(NULL),
-  module_dwarf(NULL), function(NULL), blacklist_enabled(false),
-  pc_cached_scopes(0), num_cached_scopes(0), cached_scopes(NULL)
+  module_dwarf(NULL), function(NULL), blacklist_enabled(false)
 {
   setup_user(names);
 }
@@ -92,23 +94,11 @@ dwflpp::dwflpp(systemtap_session & session, const vector<string>& names):
 
 dwflpp::~dwflpp()
 {
-  free(cached_scopes);
-
-  for (module_cu_cache_t::iterator it = module_cu_cache.begin();
-       it != module_cu_cache.end(); ++it)
-    delete it->second;
-
-  for (mod_cu_function_cache_t::iterator it = cu_function_cache.begin();
-       it != cu_function_cache.end(); ++it)
-    delete it->second;
-
-  for (cu_inl_function_cache_t::iterator it = cu_inl_function_cache.begin();
-       it != cu_inl_function_cache.end(); ++it)
-    delete it->second;
-
-  for (mod_cu_type_cache_t::iterator it = global_alias_cache.begin();
-       it != global_alias_cache.end(); ++it)
-    delete it->second;
+  delete_map(module_cu_cache);
+  delete_map(cu_function_cache);
+  delete_map(cu_inl_function_cache);
+  delete_map(global_alias_cache);
+  delete_map(cu_die_parent_cache);
 
   if (dwfl)
     dwfl_end(dwfl);
@@ -185,9 +175,6 @@ dwflpp::focus_on_cu(Dwarf_Die * c)
   // Reset existing pointers and names
   function_name.clear();
   function = NULL;
-
-  free(cached_scopes);
-  cached_scopes = NULL;
 }
 
 
@@ -591,6 +578,178 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
 }
 
 
+void
+dwflpp::cache_die_parents(cu_die_parent_cache_t* parents, Dwarf_Die* die)
+{
+  // Record and recurse through DIEs we care about
+  Dwarf_Die child, import;
+  if (dwarf_child(die, &child) == 0)
+    do
+      {
+        switch (dwarf_tag (&child))
+          {
+          // normal tags to recurse
+          case DW_TAG_compile_unit:
+          case DW_TAG_module:
+          case DW_TAG_lexical_block:
+          case DW_TAG_with_stmt:
+          case DW_TAG_catch_block:
+          case DW_TAG_try_block:
+          case DW_TAG_entry_point:
+          case DW_TAG_inlined_subroutine:
+          case DW_TAG_subprogram:
+            parents->insert(make_pair(child.addr, *die));
+            cache_die_parents(parents, &child);
+            break;
+
+          // record only, nothing to recurse
+          case DW_TAG_label:
+            parents->insert(make_pair(child.addr, *die));
+            break;
+
+          // imported dies should be followed
+          case DW_TAG_imported_unit:
+            if (dwarf_attr_die(&child, DW_AT_import, &import))
+              {
+                parents->insert(make_pair(import.addr, *die));
+                cache_die_parents(parents, &import);
+              }
+            break;
+
+          // nothing to do for other tags
+          default:
+            break;
+          }
+      }
+    while (dwarf_siblingof(&child, &child) == 0);
+}
+
+
+cu_die_parent_cache_t*
+dwflpp::get_die_parents()
+{
+  assert (cu);
+
+  cu_die_parent_cache_t *& parents = cu_die_parent_cache[cu->addr];
+  if (!parents)
+    {
+      parents = new cu_die_parent_cache_t;
+      cache_die_parents(parents, cu);
+      if (sess.verbose > 4)
+        clog << "die parent cache " << module_name << ":" << cu_name()
+             << " size " << parents->size() << endl;
+    }
+  return parents;
+}
+
+
+vector<Dwarf_Die>
+dwflpp::getscopes_die(Dwarf_Die* die)
+{
+  cu_die_parent_cache_t *parents = get_die_parents();
+
+  vector<Dwarf_Die> scopes;
+  Dwarf_Die *scope = die;
+  cu_die_parent_cache_t::iterator it;
+  do
+    {
+      scopes.push_back(*scope);
+      it = parents->find(scope->addr);
+      scope = &it->second;
+    }
+  while (it != parents->end());
+
+#ifdef DEBUG_DWFLPP_GETSCOPES
+  Dwarf_Die *dscopes = NULL;
+  int nscopes = dwarf_getscopes_die(die, &dscopes);
+
+  assert(nscopes == (int)scopes.size());
+  for (unsigned i = 0; i < scopes.size(); ++i)
+    assert(scopes[i].addr == dscopes[i].addr);
+  free(dscopes);
+#endif
+
+  return scopes;
+}
+
+
+std::vector<Dwarf_Die>
+dwflpp::getscopes(Dwarf_Die* die)
+{
+  cu_die_parent_cache_t *parents = get_die_parents();
+
+  vector<Dwarf_Die> scopes;
+
+  Dwarf_Die origin;
+  Dwarf_Die *scope = die;
+  cu_die_parent_cache_t::iterator it;
+  do
+    {
+      scopes.push_back(*scope);
+      if (dwarf_tag(scope) == DW_TAG_inlined_subroutine &&
+          dwarf_attr_die(scope, DW_AT_abstract_origin, &origin))
+        scope = &origin;
+
+      it = parents->find(scope->addr);
+      scope = &it->second;
+    }
+  while (it != parents->end());
+
+#ifdef DEBUG_DWFLPP_GETSCOPES
+  // there isn't an exact libdw equivalent, but if dwarf_getscopes on the
+  // entrypc returns the same first die, then all the scopes should match
+  Dwarf_Addr pc;
+  if (die_entrypc(die, &pc))
+    {
+      Dwarf_Die *dscopes = NULL;
+      int nscopes = dwarf_getscopes(cu, pc, &dscopes);
+      if (nscopes > 0 && dscopes[0].addr == die->addr)
+        {
+          assert(nscopes == (int)scopes.size());
+          for (unsigned i = 0; i < scopes.size(); ++i)
+            assert(scopes[i].addr == dscopes[i].addr);
+        }
+      free(dscopes);
+    }
+#endif
+
+  return scopes;
+}
+
+
+std::vector<Dwarf_Die>
+dwflpp::getscopes(Dwarf_Addr pc)
+{
+  // The die_parent_cache doesn't help us without knowing where the pc is
+  // contained, so we have to do this one the old fashioned way.
+
+  assert (cu);
+
+  vector<Dwarf_Die> scopes;
+
+  Dwarf_Die* dwarf_scopes;
+  int nscopes = dwarf_getscopes(cu, pc, &dwarf_scopes);
+  if (nscopes > 0)
+    {
+      scopes.assign(dwarf_scopes, dwarf_scopes + nscopes);
+      free(dwarf_scopes);
+    }
+
+#ifdef DEBUG_DWFLPP_GETSCOPES
+  // check that getscopes on the starting die gets the same result
+  if (!scopes.empty())
+    {
+      vector<Dwarf_Die> other = getscopes(&scopes[0]);
+      assert(scopes.size() == other.size());
+      for (unsigned i = 0; i < scopes.size(); ++i)
+        assert(scopes[i].addr == other[i].addr);
+    }
+#endif
+
+  return scopes;
+}
+
+
 int
 dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
 {
@@ -979,7 +1138,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
 void
 dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                              const string& sym,
-                             const string& symfunction,
+                             const string& function,
                              dwarf_query *q,
                              void (* callback)(const string &,
                                                const char *,
@@ -987,63 +1146,52 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                                                int,
                                                Dwarf_Die *,
                                                Dwarf_Addr,
-                                               dwarf_query *),
-                             const string& current_function)
+                                               dwarf_query *))
 {
   get_module_dwarf();
 
   Dwarf_Die die;
+  const char *name;
   int res = dwarf_child (begin_die, &die);
   if (res != 0)
     return;  // die without children, bail out.
 
-  bool function_match =
-    (current_function == symfunction
-     || (name_has_wildcard(symfunction)
-         && function_name_matches_pattern (current_function, symfunction)));
-
   do
     {
-      int tag = dwarf_tag(&die);
-      const char *name = dwarf_diename (&die);
-      bool subfunction = false;
-
-      switch (tag)
+      switch (dwarf_tag(&die))
         {
         case DW_TAG_label:
-          if (function_match && name &&
+          name = dwarf_diename (&die);
+          if (name &&
               (name == sym
                || (name_has_wildcard(sym)
                    && function_name_matches_pattern (name, sym))))
             {
-              // Get the file/line number for this label
-              int dline;
-              const char *file = dwarf_decl_file (&die);
-              dwarf_decl_line (&die, &dline);
-
               // Don't try to be smart. Just drop no addr labels.
               Dwarf_Addr stmt_addr;
               if (dwarf_lowpc (&die, &stmt_addr) == 0)
                 {
-                  Dwarf_Die *scopes;
-                  int nscopes = dwarf_getscopes_die (&die, &scopes);
-                  if (nscopes > 1)
-                    callback(current_function, name, file, dline,
+                  // Get the file/line number for this label
+                  int dline;
+                  const char *file = dwarf_decl_file (&die);
+                  dwarf_decl_line (&die, &dline);
+
+                  vector<Dwarf_Die> scopes = getscopes_die(&die);
+                  if (scopes.size() > 1)
+                    callback(function, name, file, dline,
                              &scopes[1], stmt_addr, q);
                 }
             }
           break;
 
         case DW_TAG_subprogram:
-          if (dwarf_hasattr(&die, DW_AT_declaration) || !name)
-            break;
         case DW_TAG_inlined_subroutine:
-          if (name)
-            subfunction = true;
+          // Stay within our filtered function
+          break;
+
         default:
           if (dwarf_haschildren (&die))
-            iterate_over_labels (&die, sym, symfunction, q, callback,
-                                 subfunction ? name : current_function);
+            iterate_over_labels (&die, sym, function, q, callback);
           break;
         }
     }
@@ -1412,11 +1560,13 @@ dwflpp::loc2c_emit_address (void *arg, struct obstack *pool,
 
 
 void
-dwflpp::print_locals(Dwarf_Die *die, ostream &o)
+dwflpp::print_locals(vector<Dwarf_Die>& scopes, ostream &o)
 {
+  // XXX Shouldn't this be walking up to outer scopes too?
+
   // Try to get the first child of die.
   Dwarf_Die child;
-  if (dwarf_child (die, &child) == 0)
+  if (dwarf_child (&scopes[0], &child) == 0)
     {
       do
         {
@@ -1441,34 +1591,19 @@ dwflpp::print_locals(Dwarf_Die *die, ostream &o)
 
 
 Dwarf_Attribute *
-dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
+dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
                                       Dwarf_Addr pc,
                                       string const & local,
                                       const target_symbol *e,
                                       Dwarf_Die *vardie,
                                       Dwarf_Attribute *fb_attr_mem)
 {
-  Dwarf_Die *scopes;
-  int nscopes = 0;
+  Dwarf_Die *scope_die = &scopes[0];
   Dwarf_Attribute *fb_attr = NULL;
 
   assert (cu);
 
-  nscopes = dwarf_getscopes_cached (pc, &scopes);
-  if (nscopes <= 0)
-    {
-      throw semantic_error ("unable to find any scopes containing "
-                            + lex_cast_hex(pc)
-                            + ((scope_die == NULL) ? ""
-                               : (string (" in ")
-                                  + (dwarf_diename(scope_die) ?: "<unknown>")
-                                  + "(" + (dwarf_diename(cu) ?: "<unknown>")
-                                  + ")"))
-                            + " while searching for local '" + local + "'",
-                            e->tok);
-    }
-
-  int declaring_scope = dwarf_getscopevar (scopes, nscopes,
+  int declaring_scope = dwarf_getscopevar (&scopes[0], scopes.size(),
                                            local.c_str(),
                                            0, NULL, 0, 0,
                                            vardie);
@@ -1491,17 +1626,19 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
    * as returned by dwarf_getscopes for the address, starting with the
    * declaring_scope that the variable was found in.
    */
-  for (int inner = declaring_scope;
-       inner < nscopes && fb_attr == NULL;
+  vector<Dwarf_Die> physcopes, *fbscopes = &scopes;
+  for (size_t inner = declaring_scope;
+       inner < fbscopes->size() && fb_attr == NULL;
        ++inner)
     {
-      switch (dwarf_tag (&scopes[inner]))
+      Dwarf_Die& scope = (*fbscopes)[inner];
+      switch (dwarf_tag (&scope))
         {
         default:
           continue;
         case DW_TAG_subprogram:
         case DW_TAG_entry_point:
-          fb_attr = dwarf_attr_integrate (&scopes[inner],
+          fb_attr = dwarf_attr_integrate (&scope,
                                           DW_AT_frame_base,
                                           fb_attr_mem);
           break;
@@ -1511,11 +1648,12 @@ dwflpp::find_variable_and_frame_base (Dwarf_Die *scope_die,
            * subroutine is inlined to find the appropriate frame base. */
            if (declaring_scope != -1)
              {
-               nscopes = dwarf_getscopes_die (&scopes[inner], &scopes);
-               if (nscopes == -1)
+               physcopes = getscopes_die(&scope);
+               if (physcopes.empty())
                  throw semantic_error ("unable to get die scopes for '" +
                                        local + "' in an inlined subroutines",
                                        e->tok);
+               fbscopes = &physcopes;
                inner = 0; // zero is current scope, for look will increase.
                declaring_scope = -1;
              }
@@ -1536,21 +1674,20 @@ dwflpp::translate_location(struct obstack *pool,
 {
 
   /* DW_AT_data_member_location, can be either constant offsets
-     (struct member fields), or full blown location expressions. */
+     (struct member fields), or full blown location expressions.
+     In older elfutils, dwarf_getlocation_addr would not handle the
+     constant for us, but newer ones do.  For older ones, we work
+     it by faking an expression, which is what newer ones do. */
+#if !_ELFUTILS_PREREQ (0,142)
   if (dwarf_whatattr (attr) == DW_AT_data_member_location)
     {
-      unsigned int form = dwarf_whatform (attr);
-      if (form == DW_FORM_data1 || form == DW_FORM_data2
-	  || form == DW_FORM_sdata || form == DW_FORM_udata)
-	{
-	  Dwarf_Sword off;
-	  if (dwarf_formsdata (attr, &off) != 0)
-	    throw semantic_error (string ("dwarf_formsdata failed, ")
-				  + string (dwarf_errmsg (-1)), e->tok);
-	  c_translate_add_offset (pool, 1, NULL, off, tail);
-	  return *tail;
-	}
+      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
+      if (dwarf_formudata (attr, &offset_loc.number) == 0)
+        return c_translate_location (pool, &loc2c_error, this,
+                                     &loc2c_emit_address, 1, 0, pc,
+                                     &offset_loc, 1, NULL, NULL);
     }
+#endif
 
   Dwarf_Op *expr;
   size_t len;
@@ -1569,7 +1706,8 @@ dwflpp::translate_location(struct obstack *pool,
       /* Fall through.  */
 
     case 0:			/* Shouldn't happen.  */
-      throw semantic_error ("not accessible at this address", e->tok);
+      throw semantic_error ("not accessible at this address ("
+                            + lex_cast_hex(pc) + ")", e->tok);
 
     default:			/* Shouldn't happen.  */
     case -1:
@@ -2093,7 +2231,7 @@ dwflpp::express_as_string (string prelude,
 
 
 string
-dwflpp::literal_stmt_for_local (Dwarf_Die *scope_die,
+dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
                                 Dwarf_Addr pc,
                                 string const & local,
                                 const target_symbol *e,
@@ -2103,7 +2241,7 @@ dwflpp::literal_stmt_for_local (Dwarf_Die *scope_die,
   Dwarf_Die vardie;
   Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
 
-  fb_attr = find_variable_and_frame_base (scope_die, pc, local, e,
+  fb_attr = find_variable_and_frame_base (scopes, pc, local, e,
                                           &vardie, &fb_attr_mem);
 
   if (sess.verbose>2)
@@ -2604,20 +2742,6 @@ dwflpp::literal_addr_to_sym_addr(Dwarf_Addr lit_addr)
     clog << "literal_addr_to_sym_addr ret 0x" << hex << lit_addr << dec << endl;
 
   return lit_addr;
-}
-
-int
-dwflpp::dwarf_getscopes_cached (Dwarf_Addr pc, Dwarf_Die **scopes)
-{
-  if (!cached_scopes || pc != pc_cached_scopes)
-    {
-      free(cached_scopes);
-      cached_scopes = NULL;
-      pc_cached_scopes = pc;
-      num_cached_scopes = dwarf_getscopes(cu, pc, &cached_scopes);
-    }
-  *scopes = cached_scopes;
-  return num_cached_scopes;
 }
 
 /* Returns the call frame address operations for the given program counter

@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITOR">MONITOR</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITOR">MONITOR</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="AUTOFS">AUTOFS</a></h3>
 <ul>
 <li><a href="network/autofs4.stp">network/autofs4.stp</a> - Watch autofs4 operations<br>
@@ -135,6 +135,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BAC
 <li><a href="io/ioblktime.stp">io/ioblktime.stp</a> - Average Time Block IO Requests Spend in Queue <br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>The ioblktime.stp script tracks the amount of time that each block IO requests spend waiting for completion. The script computes the average time waiting time for block IO per device and prints list every 10 seconds. In some cases there can be too many oustanding block IO operations and the script may exceed the default number of MAXMAPENTRIES allowed. In this case the allowed number can be increased with "-DMAXMAPENTRIES=10000" option on the stap command line.</p></li>
+<li><a href="io/iostat-scsi.stp">io/iostat-scsi.stp</a> - iostat for SCSI Devices<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#SCSI">SCSI</a> <br>
+<p>The iostat-scsi.stp script provides a breakdown of the number of blks read and written on the various machines's SCSI devices. The script takes one argument which is the number of seconds between reports.</p></li>
 <li><a href="io/iostats.stp">io/iostats.stp</a> - List Executables Reading and Writing the Most Data<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p> The iostat.stp script measures the amount of data successfully read and written by all the executables on the system.  The output is sorted from most greatest sum of bytes read and written by an executable to the least. The output contains  the count of operations (opens, reads, and writes), the totals and averages for the number of bytes read and written.</p></li>
@@ -264,6 +267,9 @@ keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-inde
 </ul>
 <h3><a name="PROFILING">PROFILING</a></h3>
 <ul>
+<li><a href="io/iostat-scsi.stp">io/iostat-scsi.stp</a> - iostat for SCSI Devices<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#SCSI">SCSI</a> <br>
+<p>The iostat-scsi.stp script provides a breakdown of the number of blks read and written on the various machines's SCSI devices. The script takes one argument which is the number of seconds between reports.</p></li>
 <li><a href="io/iostats.stp">io/iostats.stp</a> - List Executables Reading and Writing the Most Data<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p> The iostat.stp script measures the amount of data successfully read and written by all the executables on the system.  The output is sorted from most greatest sum of bytes read and written by an executable to the least. The output contains  the count of operations (opens, reads, and writes), the totals and averages for the number of bytes read and written.</p></li>
@@ -306,6 +312,12 @@ keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-inde
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend waiting for IO operations (in "D" state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.</p></li>
+</ul>
+<h3><a name="SCSI">SCSI</a></h3>
+<ul>
+<li><a href="io/iostat-scsi.stp">io/iostat-scsi.stp</a> - iostat for SCSI Devices<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#SCSI">SCSI</a> <br>
+<p>The iostat-scsi.stp script provides a breakdown of the number of blks read and written on the various machines's SCSI devices. The script takes one argument which is the number of seconds between reports.</p></li>
 </ul>
 <h3><a name="SIGNALS">SIGNALS</a></h3>
 <ul>

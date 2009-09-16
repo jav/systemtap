@@ -26,19 +26,23 @@ proc bgerror {error} {
 }
 trap {cleanup_and_exit} SIGINT
 
-proc run_one_test {filename flags} {
+proc run_one_test {filename flags bits} {
     global dir current_dir
 
     set testname [file tail [string range $filename 0 end-2]]
-    set result "UNSUPP"
 
     if {[catch {exec mktemp -d [pwd]/staptestXXXXXX} dir]} {
 	puts stderr "Failed to create temporary directory: $dir"
 	cleanup
     }
 
-    target_compile $filename $dir/$testname executable $flags
-    
+    set res [target_compile $filename $dir/$testname executable $flags]
+    if { $res != "" } {
+      send_log "$bits-bit $testname : no corresponding devel environment found\n"
+      untested "$bits-bit $testname"
+      return
+    }
+
     set sys_prog "[file dirname [file normalize $filename]]/sys.stp"
     set cmd "stap --skip-badvars -c $dir/${testname} ${sys_prog}"
     
@@ -74,7 +78,8 @@ proc run_one_test {filename flags} {
     if {$ind == 0} {
 	# unsupported
 	cleanup
-	return $result
+	unsupported "$bits-bit $testname not supported on this arch"
+	return
     }
 
     set current_dir [pwd]
@@ -91,10 +96,9 @@ proc run_one_test {filename flags} {
 	}
     }
     if {$i >= $ind} {
-	set result "PASS"
 	# puts "PASS $testname"
+	pass "$bits-bit $testname"
     } else {
-	set result "FAIL $testname"
 	send_log "$testname FAILED. output of \"$cmd\" was:"
 	send_log "\n------------------------------------------\n"
 	send_log $output
@@ -118,7 +122,8 @@ proc run_one_test {filename flags} {
 	for {} {$i < $ind} {incr i} {
 	    send_log "$results($i)\n"
 	}
+	fail "$bits-bit $testname"
     }
     cleanup
-    return $result
+    return
 }
