@@ -177,8 +177,12 @@ namespace systemtap
 
   bool GraphWidget::on_button_release_event(GdkEventButton* event)
   {
-    _activeGraph.reset();
-    _trackingDrag = false;
+    // Was data dialog launched?
+    if (event->button != 3)
+      {
+        _activeGraph.reset();
+        _trackingDrag = false;
+      }
     return true;
   }
   
@@ -249,6 +253,15 @@ namespace systemtap
 
   void GraphWidget::onDataAdd()
   {
+    Glib::RefPtr<Gtk::TreeSelection> treeSelection =
+      _dataTreeView->get_selection();
+    Gtk::TreeModel::iterator iter = treeSelection->get_selected();
+    if (iter)
+      {
+        Gtk::TreeModel::Row row = *iter;
+        shared_ptr<GraphDataBase> data = row[_dataColumns._graphData];
+        _activeGraph->addGraphData(data);
+      }
   }
 
     void GraphWidget::onDataRemove()
@@ -257,7 +270,7 @@ namespace systemtap
 
   void GraphWidget::onDataDialogOpen()
   {
-      _listStore.clear();
+      _listStore->clear();
       for (GraphDataList::iterator itr = _graphData.begin(),
                end = _graphData.end();
            itr != end;
