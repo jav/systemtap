@@ -1207,8 +1207,14 @@ query_srcfile_label (const dwarf_line_t& line, void * arg)
   for (func_info_map_t::iterator i = q->filtered_functions.begin();
        i != q->filtered_functions.end(); ++i)
     if (q->dw.die_has_pc (i->die, addr))
-      q->dw.iterate_over_labels (&i->die, q->label_val, q->function,
-                                 q, query_label, i->name);
+      q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                 q, query_label);
+
+  for (inline_instance_map_t::iterator i = q->filtered_inlines.begin();
+       i != q->filtered_inlines.end(); ++i)
+    if (q->dw.die_has_pc (i->die, addr))
+      q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                 q, query_label);
 }
 
 static void
@@ -1503,8 +1509,17 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  if (q->has_label)
 	    {
 	      if (q->line[0] == 0)		// No line number specified
-                q->dw.iterate_over_labels (q->dw.cu, q->label_val, q->function,
-                                           q, query_label, "");
+                {
+                  for (func_info_map_t::iterator i = q->filtered_functions.begin();
+                       i != q->filtered_functions.end(); ++i)
+                    q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                               q, query_label);
+
+                  for (inline_instance_map_t::iterator i = q->filtered_inlines.begin();
+                       i != q->filtered_inlines.end(); ++i)
+                    q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                               q, query_label);
+                }
 	      else
 		for (set<string>::const_iterator i = q->filtered_srcfiles.begin();
 		     i != q->filtered_srcfiles.end(); ++i)

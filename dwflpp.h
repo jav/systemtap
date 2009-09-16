@@ -230,7 +230,7 @@ struct dwflpp
 
   void iterate_over_labels (Dwarf_Die *begin_die,
                             const std::string& sym,
-                            const std::string& symfunction,
+                            const std::string& function,
                             dwarf_query *q,
                             void (* callback)(const std::string &,
                                               const char *,
@@ -238,8 +238,7 @@ struct dwflpp
                                               int,
                                               Dwarf_Die *,
                                               Dwarf_Addr,
-                                              dwarf_query *),
-                            const std::string& current_function);
+                                              dwarf_query *));
 
   void collect_srcfiles_matching (std::string const & pattern,
                                   std::set<std::string> & filtered_srcfiles);

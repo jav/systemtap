@@ -1138,7 +1138,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
 void
 dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                              const string& sym,
-                             const string& symfunction,
+                             const string& function,
                              dwarf_query *q,
                              void (* callback)(const string &,
                                                const char *,
@@ -1146,62 +1146,52 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                                                int,
                                                Dwarf_Die *,
                                                Dwarf_Addr,
-                                               dwarf_query *),
-                             const string& current_function)
+                                               dwarf_query *))
 {
   get_module_dwarf();
 
   Dwarf_Die die;
+  const char *name;
   int res = dwarf_child (begin_die, &die);
   if (res != 0)
     return;  // die without children, bail out.
 
-  bool function_match =
-    (current_function == symfunction
-     || (name_has_wildcard(symfunction)
-         && function_name_matches_pattern (current_function, symfunction)));
-
   do
     {
-      int tag = dwarf_tag(&die);
-      const char *name = dwarf_diename (&die);
-      bool subfunction = false;
-
-      switch (tag)
+      switch (dwarf_tag(&die))
         {
         case DW_TAG_label:
-          if (function_match && name &&
+          name = dwarf_diename (&die);
+          if (name &&
               (name == sym
                || (name_has_wildcard(sym)
                    && function_name_matches_pattern (name, sym))))
             {
-              // Get the file/line number for this label
-              int dline;
-              const char *file = dwarf_decl_file (&die);
-              dwarf_decl_line (&die, &dline);
-
               // Don't try to be smart. Just drop no addr labels.
               Dwarf_Addr stmt_addr;
               if (dwarf_lowpc (&die, &stmt_addr) == 0)
                 {
+                  // Get the file/line number for this label
+                  int dline;
+                  const char *file = dwarf_decl_file (&die);
+                  dwarf_decl_line (&die, &dline);
+
                   vector<Dwarf_Die> scopes = getscopes_die(&die);
                   if (scopes.size() > 1)
-                    callback(current_function, name, file, dline,
+                    callback(function, name, file, dline,
                              &scopes[1], stmt_addr, q);
                 }
             }
           break;
 
         case DW_TAG_subprogram:
-          if (dwarf_hasattr(&die, DW_AT_declaration) || !name)
-            break;
         case DW_TAG_inlined_subroutine:
-          if (name)
-            subfunction = true;
+          // Stay within our filtered function
+          break;
+
         default:
           if (dwarf_haschildren (&die))
-            iterate_over_labels (&die, sym, symfunction, q, callback,
-                                 subfunction ? name : current_function);
+            iterate_over_labels (&die, sym, function, q, callback);
           break;
         }
     }
