@@ -26,9 +26,9 @@ probe netdev.ioctl{
 
 probe netdev.set_promiscuity {
 	if (enable)
-		printf("Device %s entering in prosmicuous mode\n", dev_name)
+		printf("Device %s entering in promiscuous mode\n", dev_name)
 	else
-		printf("Device %s leaving prosmicuous mode\n", dev_name)
+		printf("Device %s leaving promiscuous mode\n", dev_name)
 }
 
 probe netdev.change_rx_flag {
@@ -41,7 +41,7 @@ probe netdev.change_mtu {
 }
 
 probe netdev.change_mac {
-	printf("Changing MAC adddres on device %s from %s to %s\n",
+	printf("Changing MAC address on device %s from %s to %s\n",
 				dev_name, old_mac, new_mac)
 }
 
