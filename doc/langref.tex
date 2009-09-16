@@ -910,6 +910,48 @@ function, use \textbf{.statement} probes. Do not use wildcards in
 to not register. Also, run statement probes in guru mode only.
 
 
+\subsection{PROCFS probes}
+\index{PROCFS probes}
+
+These probe points allow procfs pseudo-files in
+\texttt{/proc/systemtap/\textit{MODNAME}} to be created, read and
+written.  Specify the name of the systemtap module as
+\texttt{\textit{MODNAME}}.  There are four probe point variants
+supported by the translator:
+\begin{vindent}
+\begin{verbatim}
+procfs("PATH").read
+procfs("PATH").write
+procfs.read
+procfs.write
+\end{verbatim}
+\end{vindent}
+
+\texttt{PATH} is the file name to be created, relative to
+\texttt{/proc/systemtap/MODNAME}.  If no \texttt{PATH} is specified
+(as in the last two variants in the previous list), \texttt{PATH}
+defaults to "command".
+
+When a user reads \texttt{/proc/systemtap/MODNAME/PATH}, the
+corresponding procfs read probe is triggered.  Assign the string data
+to be read to a variable named \texttt{\$value}, as follows:
+\begin{vindent}
+\begin{verbatim}
+procfs("PATH").read { $value = "100\n" }
+\end{verbatim}
+\end{vindent}
+
+When a user writes into \texttt{/proc/systemtap/MODNAME/PATH}, the
+corresponding procfs write probe is triggered.  The data the user
+wrote is available in the string variable named \texttt{\$value}, as
+follows:
+\begin{vindent}
+\begin{verbatim}
+procfs("PATH").write { printf("User wrote: %s", $value) }
+\end{verbatim}
+\end{vindent}
+
+
 \subsection{Marker probes}
 \index{marker probes}
 This family of probe points connects to static probe markers inserted
