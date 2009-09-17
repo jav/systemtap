@@ -3458,6 +3458,7 @@ private:
 
   probe * base_probe;
   probe_point * base_loc;
+  literal_map_t const & params;
   vector<derived_probe *> & results;
   string mark_name;
 
@@ -3473,6 +3474,7 @@ private:
   bool get_next_probe();
 
   void convert_probe(probe *base);
+  void record_semaphore(vector<derived_probe *> & results);
   void convert_location(probe *base, probe_point *location);
 };
 
@@ -3481,7 +3483,7 @@ sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
                      dwflpp & dw, literal_map_t const & params,
                      vector<derived_probe *> & results):
   base_query(dw, params), base_probe(base_probe),
-  base_loc(base_loc), results(results)
+  base_loc(base_loc), params(params), results(results)
 {
   assert(get_string_param(params, TOK_MARK, mark_name));
 }
@@ -3523,7 +3525,11 @@ sdt_query::handle_query_module()
       unsigned i = results.size();
 
       if (probe_type == kprobe_type || probe_type == utrace_type)
-        derive_probes(sess, new_base, results);
+	{
+	  derive_probes(sess, new_base, results);
+	  record_semaphore(results);
+	}
+      
       else
         {
           literal_map_t params;
@@ -3536,6 +3542,7 @@ sdt_query::handle_query_module()
           dwarf_query q(new_base, new_location, dw, params, results);
           q.has_mark = true; // enables mid-statement probing
           dw.iterate_over_modules(&query_module, &q);
+	  record_semaphore(results);
         }
 
       if (sess.listing_mode)
@@ -3663,6 +3670,28 @@ sdt_query::get_next_probe()
 	continue;
     }
   return false;
+}
+
+
+void
+sdt_query::record_semaphore (vector<derived_probe *> & results)
+{
+  int sym_count = dwfl_module_getsymtab(dw.module);
+  assert (sym_count >= 0);
+  for (int i = 0; i < sym_count; i++)
+    {
+      GElf_Sym sym;
+      GElf_Word shndxp;
+      char *sym_str = (char*)dwfl_module_getsym (dw.module, i, &sym, &shndxp);
+      if (strcmp(sym_str, string(probe_name + "_semaphore").c_str()) == 0)
+	{
+	  string process_name;
+	  derived_probe_builder::get_param(params, TOK_PROCESS, process_name);
+          for (unsigned int i = 0; i < results.size(); ++i)
+	      sess.sdt_semaphore_addr.insert(make_pair(sym.st_value, results[i]));
+	  break;
+	}
+    }
 }
 
 
@@ -4392,6 +4421,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "unsigned long sdt_sem_address;";
+  s.op->newline() << "struct task_struct *tsk;";
   s.op->newline() << "unsigned return_p:1;";
   s.op->newline(-1) << "} stap_uprobe_specs [] = {";
   s.op->indent(1);
@@ -4405,6 +4436,21 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
+      map<Dwarf_Addr, derived_probe*>::iterator its;
+      if (s.sdt_semaphore_addr.empty())
+	s.op->line() << " .sdt_sem_address=(unsigned long)0x0,";
+      else
+	for (its = s.sdt_semaphore_addr.begin();
+	     its != s.sdt_semaphore_addr.end();
+	     its++)
+	  {
+	    if (p->module == ((struct uprobe_derived_probe*)(its->second))->module
+		&& p->addr == ((struct uprobe_derived_probe*)(its->second))->addr)
+	      {
+		s.op->line() << " .sdt_sem_address=(unsigned long)0x" << hex << its->first << dec << "ULL,";
+		break;
+	      }
+	  }
       if (p->has_return) s.op->line() << " .return_p=1,";
       s.op->line() << " },";
     }
@@ -4478,7 +4524,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "for (spec_index=0; spec_index<sizeof(stap_uprobe_specs)/sizeof(stap_uprobe_specs[0]); spec_index++) {";
   s.op->newline(1) << "int handled_p = 0;";
   s.op->newline() << "int slotted_p = 0;";
-  s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [spec_index];";
+  s.op->newline() << "struct stap_uprobe_spec *sups = (struct stap_uprobe_spec*) &stap_uprobe_specs [spec_index];";
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "int i;";
 
@@ -4558,6 +4604,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 
+  //----------
+  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
+  s.op->newline(1) << "size_t sdt_semaphore;";
+  s.op->newline() << "sups->tsk = tsk;";
+  s.op->newline() << "__access_process_vm (tsk, relocation + sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore += 1;";
+  s.op->newline() << "__access_process_vm (tsk, relocation + sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+  //----------
+
   // close iteration over stap_uprobe_spec[]
   s.op->newline(-1) << "}";
 
@@ -4580,9 +4636,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {"; // XXX: slow linear search
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
-  s.op->newline() << "const struct stap_uprobe_spec *sups;";
+  s.op->newline() << "struct stap_uprobe_spec *sups;";
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // skip free uprobes slot
-  s.op->newline() << "sups = & stap_uprobe_specs[sup->spec_index];";
+  s.op->newline() << "sups = (struct stap_uprobe_spec*) & stap_uprobe_specs[sup->spec_index];";
 
   s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
 
@@ -4641,6 +4697,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
 
   s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
+
+  //----------
+  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
+  s.op->newline(1) << "size_t sdt_semaphore;";
+  s.op->newline() << "sups->tsk = tsk;";
+  s.op->newline() << "__access_process_vm (tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore += 1;";
+  s.op->newline() << "__access_process_vm (tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+  //----------
 
   // close iteration over stap_uprobes[]
   s.op->newline(-1) << "}";
@@ -4764,6 +4830,16 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // free slot
+
+  //----------
+  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
+  s.op->newline(1) << "size_t sdt_semaphore;";
+  s.op->newline() << "__access_process_vm (sups->tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore -= 1;";
+  s.op->newline() << "__access_process_vm (sups->tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+  //----------
+
 
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";

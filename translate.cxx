@@ -5268,6 +5268,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/version.h>";
       // s.op->newline() << "#include <linux/compile.h>";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
+      s.op->newline() << "#include \"access_process_vm.h\" ";
 
       // XXX: old 2.6 kernel hack
       s.op->newline() << "#ifndef read_trylock";

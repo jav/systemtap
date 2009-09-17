@@ -716,6 +716,21 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
       break;
     }
   s.op->line() << " .engine_attached=0,";
+  map<Dwarf_Addr, derived_probe*>::iterator its;
+  if (s.sdt_semaphore_addr.empty())
+    s.op->line() << " .sdt_sem_address=(unsigned long)0x0,";
+  else
+    for (its = s.sdt_semaphore_addr.begin();
+	 its != s.sdt_semaphore_addr.end();
+	 its++)
+      {
+	if (p == ((struct utrace_derived_probe*)(its->second)))
+	  {
+	    s.op->line() << " .sdt_sem_address=(unsigned long)0x" << hex << its->first << dec << "ULL,";
+	    break;
+	  }
+      }
+  s.op->line() << " .tsk=0,";
   s.op->line() << " },";
 }
 
@@ -750,6 +765,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "struct utrace_engine_ops ops;";
   s.op->newline() << "unsigned long events;";
   s.op->newline() << "int engine_attached;";
+  s.op->newline() << "struct task_struct *tsk;";
+  s.op->newline() << "unsigned long sdt_sem_address;";
   s.op->newline(-1) << "};";
 
 
@@ -872,6 +889,15 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "break;";
   s.op->indent(-1);
   s.op->newline(-1) << "}";
+
+  s.op->newline() << "if (p->sdt_sem_address != 0) {";
+  s.op->newline(1) << "size_t sdt_semaphore;";
+  s.op->newline() << "p->tsk = tsk;";
+  s.op->newline() << "__access_process_vm (tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore += 1;";
+  s.op->newline() << "__access_process_vm (tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+
   s.op->newline(-1) << "}";
 
   // Since this engine could be attached to multiple threads, don't
@@ -1017,6 +1043,26 @@ utrace_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "stap_utrace_detach_ops(&p->ops);";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
+
+  int sem_idx = 0;
+  if (! s.sdt_semaphore_addr.empty())
+    for (p_b_path_iterator it = probes_by_path.begin();
+	 it != probes_by_path.end(); it++)
+      {
+	s.op->newline() << "{";
+	s.op->indent(1);
+	s.op->newline() << "size_t sdt_semaphore;";
+	s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_probes); i++) {";
+	s.op->newline(1) << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
+
+	s.op->newline() << "__access_process_vm (p->tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+	s.op->newline() << "sdt_semaphore -= 1;";
+	s.op->newline() << "__access_process_vm (p->tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+	
+	s.op->newline(-1) << "}";
+	s.op->newline(-1) << "}";
+	sem_idx += it->second.size() - 1;
+      }
 }
 
 
