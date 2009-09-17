@@ -8,6 +8,6 @@ status: experimental
 exit: user-controlled
 output: none
 scope: system-wide
-description: The badname.stp script shows how one could prevent the creation of files with undesirable names.
-test_check: stap -p4 badname.stp
-test_installcheck: stap badname.stp -c "sleep 0.2"
+description: The badname.stp script shows how one could prevent the creation of files with undesirable names using guru mode.
+test_check: stap -g -p4 badname.stp
+test_installcheck: stap -g badname.stp -c "sleep 0.2"
