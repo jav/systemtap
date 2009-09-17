@@ -266,13 +266,6 @@ dwflpp::function_name_matches(const string& pattern)
 }
 
 
-bool
-dwflpp::function_name_final_match(const string& pattern)
-{
-  return module_name_final_match (pattern);
-}
-
-
 static const char *offline_search_modname = NULL;
 static int offline_search_match_p = 0;
 

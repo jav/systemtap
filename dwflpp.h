@@ -192,7 +192,6 @@ struct dwflpp
 
   bool function_name_matches_pattern(const std::string& name, const std::string& pattern);
   bool function_name_matches(const std::string& pattern);
-  bool function_name_final_match(const std::string& pattern);
 
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                              const char *, Dwarf_Addr,
