@@ -12,7 +12,9 @@ struct location;		/* Opaque */
    as the starting location, begin from scratch if *INPUT is null.
    If DW_OP_fbreg is used, it may have a subfragment computing from
    the FB_ATTR location expression. The call_frame might need to be
-   calculated by the cfa_ops for the given pc_address.
+   calculated by the cfa_ops for the given pc_address. If known the
+   locattr provides the attribute from which the locexpr array was
+   retrieved.
 
    On errors, call FAIL, which should not return.  Any later errors will use
    FAIL and FAIL_ARG from the first c_translate_location call.
@@ -32,6 +34,7 @@ struct location *c_translate_location (struct obstack *,
 				       int indent,
 				       Dwarf_Addr bias,
 				       Dwarf_Addr pc_address,
+				       Dwarf_Attribute *attr,
 				       const Dwarf_Op *locexpr,
 				       size_t locexprlen,
 				       struct location **input,

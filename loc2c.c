@@ -151,7 +151,7 @@ lose (struct location *loc,
 
 static const char *
 translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
-	   const Dwarf_Op *expr, const size_t len,
+	   Dwarf_Attribute *attr, const Dwarf_Op *expr, const size_t len,
 	   struct location *input,
 	   bool *need_fb, size_t *loser,
 	   struct location *loc)
@@ -525,6 +525,28 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    }
 	  break;
 
+	case DW_OP_stack_value:
+	  DIE ("DW_OP_stack_value not supported");
+	  break;
+
+	case DW_OP_implicit_value:
+	  {
+	    if (attr == NULL)
+	      DIE ("No Dwarf_Attribute given, but DW_OP_implicit_value used");
+	    else
+	      {
+#if ! _ELFUTILS_PREREQ(0,142)
+		Dwarf_Block block;
+		Dwarf_Op *op = (Dwarf_Op *) &expr[i];
+		if (dwarf_getlocation_implicit_value (attr, op, &block) != 0)
+		  DIE("DW_OP_implicit_value, dwarf_getlocation_implicit_value failed");
+		else
+#endif
+		  DIE ("DW_OP_implicit_value not supported");
+	      }
+	    break;
+	  }
+
 	case DW_OP_call_frame_cfa:
 	  // We pick this out when processing DW_AT_frame_base in
 	  // so it really shouldn't turn up here.
@@ -576,6 +598,7 @@ location_from_address (struct obstack *pool,
 		       void (*emit_address) (void *fail_arg,
 					     struct obstack *, Dwarf_Addr),
 		       int indent, Dwarf_Addr dwbias,
+		       Dwarf_Attribute *attr,
 		       const Dwarf_Op *expr, size_t len, Dwarf_Addr address,
 		       struct location **input, Dwarf_Attribute *fb_attr,
 		       const Dwarf_Op *cfa_ops)
@@ -589,7 +612,7 @@ location_from_address (struct obstack *pool,
 
   bool need_fb = false;
   size_t loser;
-  const char *failure = translate (pool, indent + 1, dwbias, expr, len,
+  const char *failure = translate (pool, indent + 1, dwbias, attr, expr, len,
 				   *input, &need_fb, &loser, loc);
   if (failure != NULL)
     return lose (loc, failure, expr, loser);
@@ -637,7 +660,7 @@ location_from_address (struct obstack *pool,
 	fb_ops = fb_expr;
 
       loc->frame_base = alloc_location (pool, loc);
-      failure = translate (pool, indent + 1, dwbias, fb_ops, fb_len, NULL,
+      failure = translate (pool, indent + 1, dwbias, attr, fb_ops, fb_len, NULL,
 			   NULL, &loser, loc->frame_base);
       if (failure != NULL)
 	return lose (loc, failure, fb_expr, loser);
@@ -653,11 +676,11 @@ location_from_address (struct obstack *pool,
 /* Translate a location starting from a non-address "on the top of the
    stack".  The *INPUT location is a register name or noncontiguous
    object specification, and this expression wants to find the "address"
-   of an object relative to that "address".  */
+   of an object (or the actual value) relative to that "address".  */
 
 static struct location *
 location_relative (struct obstack *pool,
-		   int indent, Dwarf_Addr dwbias,
+		   int indent, Dwarf_Addr dwbias, Dwarf_Attribute *attr,
 		   const Dwarf_Op *expr, size_t len, Dwarf_Addr address,
 		   struct location **input, Dwarf_Attribute *fb_attr,
 		   const Dwarf_Op *cfa_ops)
@@ -790,7 +813,7 @@ location_relative (struct obstack *pool,
 	  /* This started from a register, but now it's following a pointer.
 	     So we can do the translation starting from address here.  */
 	  return location_from_address (pool, NULL, NULL, NULL, indent, dwbias,
-					expr, len, address, input, fb_attr,
+					attr, expr, len, address, input, fb_attr,
 					cfa_ops);
 
 
@@ -948,7 +971,7 @@ location_relative (struct obstack *pool,
 		       computations now have an address to start with.
 		       So we can punt to the address computation generator.  */
 		    loc = location_from_address (pool, NULL, NULL, NULL,
-						 indent, dwbias,
+						 indent, dwbias, attr,
 						 &expr[i + 1], len - i - 1,
 						 address, input, fb_attr,
 						 cfa_ops);
@@ -1033,6 +1056,7 @@ c_translate_location (struct obstack *pool,
 		      void (*emit_address) (void *fail_arg,
 					    struct obstack *, Dwarf_Addr),
 		      int indent, Dwarf_Addr dwbias, Dwarf_Addr pc_address,
+		      Dwarf_Attribute *attr,
 		      const Dwarf_Op *expr, size_t len,
 		      struct location **input, Dwarf_Attribute *fb_attr,
 		      const Dwarf_Op *cfa_ops)
@@ -1046,15 +1070,16 @@ c_translate_location (struct obstack *pool,
 	 This expression will compute starting with that on the stack.  */
       return location_from_address (pool, fail, fail_arg,
 				    emit_address ?: &default_emit_address,
-				    indent, dwbias, expr, len, pc_address,
+				    indent, dwbias, attr, expr, len, pc_address,
 				    input, fb_attr, cfa_ops);
 
     case loc_noncontiguous:
     case loc_register:
       /* The starting point is not an address computation, but a
-	 register.  We can only handle limited computations from here.  */
-      return location_relative (pool, indent, dwbias, expr, len, pc_address,
-				input, fb_attr, cfa_ops);
+	 register or implicit value.  We can only handle limited
+	 computations from here.  */
+      return location_relative (pool, indent, dwbias, attr, expr, len,
+				pc_address, input, fb_attr, cfa_ops);
 
     default:
       abort ();

@@ -1774,7 +1774,7 @@ dwflpp::translate_location(struct obstack *pool,
   return c_translate_location (pool, &loc2c_error, this,
                                &loc2c_emit_address,
                                1, 0 /* PR9768 */,
-                               pc, expr, len, tail, fb_attr, cfa_ops);
+                               pc, attr, expr, len, tail, fb_attr, cfa_ops);
 }
 
 
@@ -2397,7 +2397,7 @@ dwflpp::literal_stmt_for_return (Dwarf_Die *scope_die,
   struct location  *head = c_translate_location (&pool, &loc2c_error, this,
                                                  &loc2c_emit_address,
                                                  1, 0 /* PR9768 */,
-                                                 pc, locops, nlocops,
+                                                 pc, NULL, locops, nlocops,
                                                  &tail, NULL, NULL);
 
   /* Translate the ->bar->baz[NN] parts. */

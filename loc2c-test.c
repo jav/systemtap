@@ -136,7 +136,7 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 
   struct location *head, *tail = NULL;
   head = c_translate_location (&pool, &fail, NULL, NULL,
-			       1, cubias, pc, locexpr, locexpr_len,
+			       1, cubias, pc, &attr_mem, locexpr, locexpr_len,
 			       &tail, fb_attr, cfa_ops);
 
   if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
@@ -238,7 +238,8 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 	      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
 	      if (dwarf_formudata (&attr_mem, &offset_loc.number) == 0)
 		c_translate_location (&pool, NULL, NULL, NULL,
-				      1, cubias, pc, &offset_loc, 1,
+				      1, cubias, pc, &attr_mem,
+				      &offset_loc, 1,
 				      &tail, NULL, NULL);
 	      else
 #endif
@@ -246,7 +247,8 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 		  locexpr = get_location (cubias, pc, &attr_mem,
 					  &locexpr_len);
 		  c_translate_location (&pool, NULL, NULL, NULL,
-					1, cubias, pc, locexpr, locexpr_len,
+					1, cubias, pc, &attr_mem,
+					locexpr, locexpr_len,
 					&tail, NULL, NULL);
 		}
 	    }
