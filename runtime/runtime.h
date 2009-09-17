@@ -54,6 +54,32 @@ static void _stp_warn (const char *fmt, ...) __attribute__ ((format (printf, 1, 
 
 static void _stp_exit(void);
 
+
+
+/* unprivileged user support */
+
+#ifdef STAPCONF_TASK_UID
+#define STP_CURRENT_EUID (current->euid)
+#else
+#define STP_CURRENT_EUID (task_euid(current))
+#endif
+
+#define is_myproc() (STP_CURRENT_EUID == _stp_uid)
+
+#ifndef STP_PRIVILEGED
+#define assert_is_myproc() do { \
+  if (! is_myproc()) { \
+    snprintf (CONTEXT->error_buffer, MAXSTRINGLEN, "semi-privileged tapset function called without is_myproc checking for pid %d (euid %d)", \
+             current->tgid, STP_CURRENT_EUID); \
+    CONTEXT->last_error = CONTEXT->error_buffer; \
+    goto out; \
+  } } while (0)
+#else
+#define assert_is_myproc() do {} while (0)
+#endif
+
+
+
 #include "debug.h"
 
 /* atomic globals */
@@ -105,6 +131,8 @@ static struct
 #include "perf.c"
 #endif
 #include "addr-map.c"
+
+
 
 /* Support functions for int64_t module parameters. */
 static int param_set_int64_t(const char *val, struct kernel_param *kp)

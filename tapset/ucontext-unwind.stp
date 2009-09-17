@@ -24,7 +24,8 @@
  *  Equivalent to <command>print_ustack(ubacktrace())</command>, 
  *  except that deeper stack nesting may be supported.  Return nothing.
  */
-function print_ubacktrace () %{
+function print_ubacktrace () %{ /* unprivileged */
+        assert_is_myproc();
 	if (CONTEXT->regs) {
 		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE,
 				 current);
@@ -41,7 +42,8 @@ function print_ubacktrace () %{
  *  string length. Returns empty string when current probe point cannot
  *  determine user backtrace.
  */
-function ubacktrace:string () %{ /* pure */
+function ubacktrace:string () %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (CONTEXT->regs)
 		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN,
 				    CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE,

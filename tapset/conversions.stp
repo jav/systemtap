@@ -1,5 +1,5 @@
 // conversions tapset
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2009 Red Hat Inc.
 // Copyright (C) 2007 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -79,15 +79,18 @@ deref_fault: /* branched to from kread() */
 
 function user_string:string (addr:long) { return user_string2 (addr, "<unknown>") }
 
-function user_string2:string (addr:long, err_msg:string) %{ /* pure */
+function user_string2:string (addr:long, err_msg:string) %{ /* pure */ /* unprivileged */
+  assert_is_myproc();
   if (_stp_strncpy_from_user (THIS->__retvalue, 
         (const char __user*) (uintptr_t) THIS->addr,
         MAXSTRINGLEN) < 0)
     strlcpy (THIS->__retvalue, THIS->err_msg, MAXSTRINGLEN);
 %}
 
-function user_string_warn:string (addr:long) %{ /* pure */
-  long rc = _stp_strncpy_from_user (THIS->__retvalue,
+function user_string_warn:string (addr:long) %{ /* pure */ /* unprivileged */
+  long rc;
+  assert_is_myproc();
+  rc = _stp_strncpy_from_user (THIS->__retvalue,
       (const char __user*) (uintptr_t) THIS->addr, MAXSTRINGLEN);
   if (rc < 0) {
     // NB: using error_buffer to get local space for the warning, but we're
@@ -100,7 +103,8 @@ function user_string_warn:string (addr:long) %{ /* pure */
   }
 %}
 
-function user_string_quoted:string (addr:long) %{ /* pure */
+function user_string_quoted:string (addr:long) %{ /* pure */ /* unprivileged */
+  assert_is_myproc();
   if (THIS->addr == 0)	
     strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
   else
@@ -113,8 +117,9 @@ function user_string_n:string (addr:long, n:long) {
 	return user_string_n2(addr, n, "<unknown>")
 }
 	
-function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */
+function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */ /* unprivileged */
 	long len = THIS->n + 1;
+        assert_is_myproc();
 	len = (len > MAXSTRINGLEN) ? MAXSTRINGLEN : len;
 	if (_stp_strncpy_from_user(THIS->__retvalue,
 				(char __user *) (uintptr_t) THIS->addr,
@@ -124,10 +129,11 @@ function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */
 		THIS->__retvalue[len - 1] = '\0';
 %}
 
-function user_string_n_warn:string (addr:long, n:long) %{ /* pure */
+function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* unprivileged */
 	long len = THIS->n + 1;
 	long rc;
 
+        assert_is_myproc();
 	len = (len > MAXSTRINGLEN) ? MAXSTRINGLEN : len;
 	rc = _stp_strncpy_from_user(THIS->__retvalue,
 			(char __user *) (uintptr_t) THIS->addr, len);
@@ -143,8 +149,10 @@ function user_string_n_warn:string (addr:long, n:long) %{ /* pure */
 		THIS->__retvalue[len - 1] = '\0';
 %}
 
-function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */
-	long len = THIS->n + 1;
+function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */ /* unprivileged */
+        long len;
+        assert_is_myproc();
+	len = THIS->n + 1;
 	if (THIS->addr == 0)
 		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else
@@ -155,7 +163,8 @@ function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */
 
 // When userspace data is not accessible, the following functions return 0
 
-function user_short:long (addr:long) %{ /* pure */
+function user_short:long (addr:long) %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (short *) (intptr_t) THIS->addr, sizeof(short)))
 		goto fault;
 	if (__stp_get_user(THIS->__retvalue, (short *) (intptr_t) THIS->addr)) {
@@ -164,7 +173,8 @@ fault:
 	}
 %}
 
-function user_short_warn:long (addr:long) %{ /* pure */
+function user_short_warn:long (addr:long) %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (short *) (intptr_t) THIS->addr, sizeof(short)))
 		goto fault;
 	if (__stp_get_user(THIS->__retvalue, (short *) (intptr_t) THIS->addr)) {
@@ -176,7 +186,8 @@ fault:
 	}
 %}
 
-function user_int:long (addr:long) %{ /* pure */
+function user_int:long (addr:long) %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (int *) (intptr_t) THIS->addr, sizeof(int)))
 		goto fault;
 	if (__stp_get_user(THIS->__retvalue, (int *) (intptr_t) THIS->addr)) {
@@ -185,7 +196,8 @@ fault:
 	}
 %}
 
-function user_int_warn:long (addr:long) %{ /* pure */
+function user_int_warn:long (addr:long) %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (int *) (intptr_t) THIS->addr, sizeof(int)))
 		goto fault;
 	if (__stp_get_user(THIS->__retvalue, (int *) (intptr_t) THIS->addr)) {
@@ -197,7 +209,8 @@ fault:
 	}
 %}
 
-function user_long:long (addr:long) %{ /* pure */
+function user_long:long (addr:long) %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, sizeof(long)))
 		goto fault;
 	if (__stp_get_user(THIS->__retvalue, (long *) (intptr_t) THIS->addr)) {
@@ -206,7 +219,8 @@ fault:
 	}
 %}
 
-function user_long_warn:long (addr:long) %{ /* pure */
+function user_long_warn:long (addr:long) %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, sizeof(long)))
 		goto fault;
 	if (__stp_get_user(THIS->__retvalue, (long *) (intptr_t) THIS->addr)) {
@@ -218,7 +232,8 @@ fault:
 	}
 %}
 
-function user_char:long (addr:long) %{ /* pure */
+function user_char:long (addr:long) %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (char *) (intptr_t) THIS->addr, sizeof(char)))
 		goto fault;
 	if (__stp_get_user(THIS->__retvalue, (char *) (intptr_t) THIS->addr)) {
@@ -227,7 +242,8 @@ fault:
 	}
 %}
 
-function user_char_warn:long (addr:long) %{ /* pure */
+function user_char_warn:long (addr:long) %{ /* pure */ /* unprivileged */
+        assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (char *) (intptr_t) THIS->addr, sizeof(char)))
 		goto fault;
 	if (__stp_get_user(THIS->__retvalue, (char *) (intptr_t) THIS->addr)) {

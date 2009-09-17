@@ -225,7 +225,11 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 #ifdef DEBUG_MEM
                "+alloc"
 #endif
-               ", probes: %d\n",
+               ", probes: %d"
+#ifndef STP_PRIVILEGED
+               ", unpriv-uid: %d"
+#endif
+               "\n",
 	       THIS_MODULE->name,
 	       vstr, 
 #ifndef STAPCONF_GRSECURITY
@@ -242,7 +246,11 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 #ifdef DEBUG_MEM
 	       _stp_allocated_memory - _stp_allocated_net_memory,
 #endif
-		num_probes);
+		num_probes
+#ifndef STP_PRIVILEGED
+               , _stp_uid
+#endif
+                );
 }
 
 /** @} */

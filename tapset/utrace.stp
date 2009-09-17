@@ -4,23 +4,38 @@
 #include "syscall.h"
 %}
 
-function _utrace_syscall_nr:long () %{		/* pure */
-    THIS->__retvalue = syscall_get_nr(current, CONTEXT->regs);
+function _utrace_syscall_nr:long () %{		/* pure */ /* unprivileged */
+    assert_is_myproc();
+    if (! CONTEXT->regs) {
+       CONTEXT->last_error = "invalid call without context registers";
+    } else {
+       THIS->__retvalue = syscall_get_nr(current, CONTEXT->regs);
+    }
 %}
 
-function _utrace_syscall_arg:long (n:long) %{	/* pure */
+function _utrace_syscall_arg:long (n:long) %{	/* pure */ /* unprivileged */
     unsigned long arg = 0;
-    syscall_get_arguments(current, CONTEXT->regs, (int)THIS->n, 1, &arg);
+    assert_is_myproc();
+    if (! CONTEXT->regs) {
+       CONTEXT->last_error = "invalid call without context registers";
+    } else {
+       syscall_get_arguments(current, CONTEXT->regs, (int)THIS->n, 1, &arg);
+    }
     THIS->__retvalue = arg;
 %}
 
-function _utrace_syscall_return:long () %{	/* pure */
+function _utrace_syscall_return:long () %{	/* pure */ /* unprivileged */
     /*
      * Here's the reason for the "unsigned long" cast.  Since all
      * values inside systemtap are 64-bit numbers, return values were
      * getting sign extended.  This caused return values to not match
      * up with the same values passes as arguments.
      */
-    THIS->__retvalue = (unsigned long)syscall_get_return_value(current,
+    assert_is_myproc();
+    if (! CONTEXT->regs) {
+       CONTEXT->last_error = "invalid call without context registers";
+    } else {
+       THIS->__retvalue = (unsigned long)syscall_get_return_value(current,
 							       CONTEXT->regs);
+    }
 %}

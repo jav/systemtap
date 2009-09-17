@@ -34,28 +34,28 @@ function print_regs () %{
 /**
  * sfunction execname - Returns the execname of a target process (or group of processes).
  */
-function execname:string () %{ /* pure */
+function execname:string () %{ /* pure */ /* unprivileged */
 	strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
 %}
 
 /**
  * sfunction pid - Returns the ID of a target process.
  */
-function pid:long () %{ /* pure */
+function pid:long () %{ /* pure */ /* unprivileged */
 	THIS->__retvalue = current->tgid;
 %}
 
 /**
  * sfunction tid - Returns the thread ID of a target process.
  */
-function tid:long () %{ /* pure */
+function tid:long () %{ /* pure */ /* unprivileged */
 	THIS->__retvalue = current->pid;
 %}
 
 /**
  * sfunction ppid - Returns the process ID of a target process's parent process.
  */
-function ppid:long () %{ /* pure */
+function ppid:long () %{ /* pure */ /* unprivileged */
 #if defined(STAPCONF_REAL_PARENT)
 	THIS->__retvalue = current->real_parent->tgid;
 #else
@@ -66,7 +66,7 @@ function ppid:long () %{ /* pure */
 /**
  * sfunction pgrp - Returns the process group ID of the current process.
  */
-function pgrp:long () %{ /* pure */
+function pgrp:long () %{ /* pure */ /* unprivileged */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	struct signal_struct *ss = kread( &(current->signal) );
 	THIS->__retvalue = kread ( &(ss->pgrp) );
@@ -82,7 +82,7 @@ function pgrp:long () %{ /* pure */
  * The session ID of a process is the process group ID of the session
  * leader. Session ID is stored in the signal_struct since Kernel 2.6.0.
  */
-function sid:long () %{ /* pure */
+function sid:long () %{ /* pure */ /* unprivileged */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	struct signal_struct *ss = kread( &(current->signal) );
 	THIS->__retvalue = kread ( &(ss->session) );
@@ -95,7 +95,7 @@ function sid:long () %{ /* pure */
 /**
  * sfunction pexecname - Returns the execname of a target process's parent process.
  */
-function pexecname:string () %{ /* pure */
+function pexecname:string () %{ /* pure */ /* unprivileged */
 #if defined(STAPCONF_REAL_PARENT)
 	strlcpy (THIS->__retvalue, current->real_parent->comm, MAXSTRINGLEN);
 #else
@@ -106,7 +106,7 @@ function pexecname:string () %{ /* pure */
 /**
  * sfunction gid - Returns the group ID of a target process.
  */
-function gid:long () %{ /* pure */
+function gid:long () %{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->gid;
 #else
@@ -117,7 +117,7 @@ function gid:long () %{ /* pure */
 /**
  * sfunction egid - Returns the effective gid of a target process.
  */
-function egid:long () %{ /* pure */
+function egid:long () %{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->egid;
 #else
@@ -128,7 +128,7 @@ function egid:long () %{ /* pure */
 /**
  * sfunction uid - Returns the user ID of a target process.
  */
-function uid:long () %{ /* pure */
+function uid:long () %{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->uid;
 #else
@@ -139,7 +139,7 @@ function uid:long () %{ /* pure */
 /**
  * sfunction euid - Return the effective uid of a target process.
  */
-function euid:long () %{ /* pure */
+function euid:long () %{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->euid;
 #else
@@ -147,18 +147,17 @@ function euid:long () %{ /* pure */
 #endif
 %}
 
+
 /**
  * sfunction is_myproc - Determines if the current probe point has occurred in the user's own process.
  *
  *  Return 1 if the current probe point has occurred in the user's own process.
  */
 function is_myproc:long () %{ /* pure */ /* unprivileged */
-#ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = (current->euid == _stp_uid);
-#else
-	THIS->__retvalue = (task_euid(current) == _stp_uid);
-#endif
+        THIS->__retvalue = is_myproc();
 %}
+
+
 
 // cpuid() is not documented
 function cpuid:long () %{ /* pure */
@@ -168,7 +167,7 @@ function cpuid:long () %{ /* pure */
 /**
  * sfunction cpu - Returns the current cpu number.
  */
-function cpu:long () %{ /* pure */
+function cpu:long () %{ /* pure */ /* unprivileged */
 	THIS->__retvalue = smp_processor_id();
 %}
 
@@ -178,7 +177,7 @@ function cpu:long () %{ /* pure */
  * Context:
  * The current probe point.
  */
-function pp:string () %{ /* pure */
+function pp:string () %{ /* pure */ /* unprivileged */
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
 %}
 
@@ -190,7 +189,7 @@ function pp:string () %{ /* pure */
  *  For example, <command>registers_valid()</command> returns 0
  *  when called from a begin or end probe.
  */
-function registers_valid:long () %{ /* pure */
+function registers_valid:long () %{ /* pure */ /* unprivileged */
 	THIS->__retvalue = (CONTEXT->regs != NULL);
 %}
 
@@ -199,7 +198,7 @@ function registers_valid:long () %{ /* pure */
  *
  * Return 1 if the probe point occurred in user-mode.
  */
-function user_mode:long () %{ /* pure */ /* currently a user-mode address? */
+function user_mode:long () %{ /* pure */ /* unprivileged */
   if (CONTEXT->regs) {
 #if defined(__i386__) || defined(__x86_64__)
      THIS->__retvalue = (uint64_t) user_mode_vm (CONTEXT->regs);
@@ -227,7 +226,7 @@ function is_return:long () %{ /* pure */
 /**
  * sfunction target - Return the process ID of the target process.
  */
-function target:long () %{ /* pure */
+function target:long () %{ /* pure */ /* unprivileged */
         THIS->__retvalue = _stp_target;
 %}
 
@@ -238,7 +237,7 @@ function target:long () %{ /* pure */
 ///	<remark>FIXME: need description.</remark>
 ///  </para>
 ///</formalpara>
-function module_name:string () %{ /* pure */
+function module_name:string () %{ /* pure */ /* unprivileged */
 	strlcpy(THIS->__retvalue, THIS_MODULE->name, MAXSTRINGLEN);
 %}
 
@@ -290,8 +289,9 @@ function stack_unused:long () %{ /* pure */
  * with usymname() or symdata(). Often the task will be in the VDSO
  * where it entered the kernel. FIXME - need VDSO tracking support #10080.
  */
-function uaddr:long () %{ /* pure */
+function uaddr:long () %{ /* pure */ /* unprivileged */
   int64_t addr = 0;
+  assert_is_myproc();
   if (current->mm)
     {
       struct pt_regs *uregs;

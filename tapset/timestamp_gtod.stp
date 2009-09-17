@@ -17,7 +17,7 @@
  *
  *  Return the number of nanoseconds since the UNIX epoch.
  */
-function gettimeofday_ns:long () %{ /* pure */
+function gettimeofday_ns:long () %{ /* pure */ /* unprivileged */
   /* NOTE: we can't use do_gettimeofday because we could be called from a
    * context where xtime_lock is already held.  See bug #2525. */
   THIS->__retvalue = _stp_gettimeofday_ns();

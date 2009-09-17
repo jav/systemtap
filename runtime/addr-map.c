@@ -115,6 +115,10 @@ lookup_bad_addr(unsigned long addr, size_t size)
     return 1;
 
 #ifndef STP_PRIVILEGED
+  /* Unprivileged users must not access memory while the context
+     does not refer to their own process.  */
+  if (! is_myproc ())
+    return 1;
   /* Unprivileged users must not access kernel space memory.  */
   if (addr + size > TASK_SIZE)
     return 1;
