@@ -112,7 +112,7 @@ general/badname.stp - Bad Filename Filter
 keywords: filesystem hack
 
   The badname.stp script shows how one could prevent the creation of
-  files with undesirable names.
+  files with undesirable names using guru mode.
 
 
 = FORMAT =
@@ -181,7 +181,7 @@ general/badname.stp - Bad Filename Filter
 keywords: filesystem hack
 
   The badname.stp script shows how one could prevent the creation of
-  files with undesirable names.
+  files with undesirable names using guru mode.
 
 
 = INTERRUPT =
