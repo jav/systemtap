@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  * Copyright (C) IBM Corporation, 2006
+ * Copyright (C) Red Hat, Inc. 2009
  */
 #include <linux/types.h>
 #include <linux/hash.h>
@@ -28,6 +29,8 @@
 #include <linux/kref.h>
 #include <linux/utrace.h>
 #include <linux/regset.h>
+#include <linux/file.h>
+#include <linux/version.h>
 #define UPROBES_IMPLEMENTATION 1
 
 /* PR9974: Adapt to struct renaming. */
@@ -1387,6 +1390,9 @@ static noinline unsigned long uprobe_setup_ssol_vma(unsigned long nbytes)
 	unsigned long addr;
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28)
+	struct file *file;
+#endif
 
 	BUG_ON(nbytes & ~PAGE_MASK);
 	if ((addr = find_old_ssol_vma()) != 0)
@@ -1400,17 +1406,40 @@ static noinline unsigned long uprobe_setup_ssol_vma(unsigned long nbytes)
 	 * Find the end of the top mapping and skip a page.
 	 * If there is no space for PAGE_SIZE above
 	 * that, mmap will ignore our address hint.
+	 *
+	 * We allocate a "fake" unlinked shmem file because anonymous
+	 * memory might not be granted execute permission when the selinux
+	 * security hooks have their way. Only do this for 2.6.28 or higher
+	 * since shmem_file_setup() isn't exported before that.
 	 */
 	vma = rb_entry(rb_last(&mm->mm_rb), struct vm_area_struct, vm_rb);
 	addr = vma->vm_end + PAGE_SIZE;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28)
+	file = shmem_file_setup("uprobes/ssol", nbytes, VM_NORESERVE);
+	if (file) {
+		addr = do_mmap_pgoff(file, addr, nbytes, PROT_EXEC,
+				     MAP_PRIVATE, 0);
+		fput(file);
+	}
+	if (!file || addr & ~PAGE_MASK) {
+#else
 	addr = do_mmap_pgoff(NULL, addr, nbytes, PROT_EXEC,
 					MAP_PRIVATE|MAP_ANONYMOUS, 0);
 	if (addr & ~PAGE_MASK) {
+#endif
 		up_write(&mm->mmap_sem);
 		mmput(mm);
-		printk(KERN_ERR "Uprobes failed to allocate a vma for"
-			" pid/tgid %d/%d for single-stepping out of line.\n",
-			current->pid, current->tgid);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28)
+		if (!file)
+			printk(KERN_ERR "Uprobes shmem_file_setup failed while"
+				  " allocating vma for pid/tgid %d/%d for"
+				  " single-stepping out of line.\n",
+				  current->pid, current->tgid);
+		else
+#endif
+			printk(KERN_ERR "Uprobes failed to allocate a vma for"
+				" pid/tgid %d/%d for single-stepping out of"
+				" line.\n", current->pid, current->tgid);
 		return addr;
 	}
 
