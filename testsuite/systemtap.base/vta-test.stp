@@ -1,0 +1,1 @@
+probe process("vta-test.exe").mark("t1") { printf("i: 0x%x\n", $i) }
