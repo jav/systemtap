@@ -194,11 +194,18 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
       tos_register = -1;
     }
 
+  bool tos_value = false;
+
   if (input != NULL)
     switch (input->type)
       {
       case loc_address:
 	push ("addr");
+	break;
+
+      case loc_value:
+	push ("addr");
+	tos_value = true;
 	break;
 
       case loc_register:
@@ -212,7 +219,6 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 
   size_t i;
 
-  bool tos_value = false;
   bool used_deref = false;
   inline const char *finish (struct location *piece)
     {
@@ -1924,7 +1930,7 @@ static void
 emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
 		  const char *target)
 {
-  assert (loc->type == loc_address);
+  assert (loc->type == loc_address || loc->type == loc_value);
 
   if (loc->address.stack_depth == 0)
     /* Synthetic program.  */
@@ -1966,6 +1972,7 @@ emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
       break;
 
     case loc_address:
+    case loc_value:
       emit_loc_address (out, loc, indent, target);
       break;
     }
@@ -1988,6 +1995,7 @@ c_emit_location (FILE *out, struct location *loc, int indent)
 	break;
 
       case loc_address:
+      case loc_value:
 	if (declared_addr)
 	  break;
 	declared_addr = true;
@@ -2017,6 +2025,7 @@ c_emit_location (FILE *out, struct location *loc, int indent)
     switch (loc->type)
       {
       case loc_address:
+      case loc_value:
 	/* Emit the program fragment to calculate the address.  */
 	emit_loc_value (out, loc, indent + 1, "addr", false);
 	deref = deref || loc->address.used_deref;
