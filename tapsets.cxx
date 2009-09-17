@@ -3709,22 +3709,11 @@ sdt_query::get_next_probe()
 void
 sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
 {
-  int sym_count = dwfl_module_getsymtab(dw.module);
-  assert (sym_count >= 0);
-  for (int i = 0; i < sym_count; i++)
-    {
-      GElf_Sym sym;
-      GElf_Word shndxp;
-      char *sym_str = (char*)dwfl_module_getsym (dw.module, i, &sym, &shndxp);
-      if (strcmp(sym_str, string(probe_name + "_semaphore").c_str()) == 0)
-	{
-	  string process_name;
-	  derived_probe_builder::get_param(params, TOK_PROCESS, process_name);
-          for (unsigned i = start; i < results.size(); ++i)
-            sess.sdt_semaphore_addr.insert(make_pair(results[i], sym.st_value));
-	  break;
-	}
-    }
+  string semaphore = probe_name + "_semaphore";
+  Dwarf_Addr addr = lookup_symbol_address(dw.module, semaphore.c_str());
+  if (addr)
+    for (unsigned i = start; i < results.size(); ++i)
+      sess.sdt_semaphore_addr.insert(make_pair(results[i], addr));
 }
 
 
