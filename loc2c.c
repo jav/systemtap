@@ -51,13 +51,13 @@ struct location
 
   enum
     {
-      loc_address, loc_register, loc_noncontiguous,
+      loc_address, loc_register, loc_noncontiguous, loc_value,
       loc_decl, loc_fragment, loc_final
     } type;
   struct location *frame_base;
   union
   {
-    struct			/* loc_address, loc_fragment, loc_final */
+    struct	      /* loc_address, loc_value, loc_fragment, loc_final */
     {
       const char *declare;	/* Temporary that needs declared.  */
       char *program;		/* C fragment, leaves address in s0.  */
@@ -194,11 +194,18 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
       tos_register = -1;
     }
 
+  bool tos_value = false;
+
   if (input != NULL)
     switch (input->type)
       {
       case loc_address:
 	push ("addr");
+	break;
+
+      case loc_value:
+	push ("addr");
+	tos_value = true;
 	break;
 
       case loc_register:
@@ -221,12 +228,13 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	{
 	  obstack_1grow (pool, '\0');
 	  char *program = obstack_finish (pool);
-	  piece->type = loc_address;
+	  piece->type = tos_value ? loc_value : loc_address;
 	  piece->address.declare = NULL;
 	  piece->address.program = program;
 	  piece->address.stack_depth = max_stack;
 	  piece->address.used_deref = used_deref;
 	  used_deref = false;
+	  tos_value = false;
 	}
       else if (tos_register == -1)
 	DIE ("stack underflow");
@@ -249,6 +257,12 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
       unsigned int reg;
       uint_fast8_t sp;
       Dwarf_Word value;
+
+      if (tos_value
+	  && expr[i].atom != DW_OP_nop
+	  && expr[i].atom != DW_OP_piece
+	  && expr[i].atom != DW_OP_bit_piece)
+	DIE ("operations follow DW_OP_stack_value");
 
       switch (expr[i].atom)
 	{
@@ -526,26 +540,35 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	  break;
 
 	case DW_OP_stack_value:
-	  DIE ("DW_OP_stack_value not supported");
+	  if (stack_depth > 1)
+	    DIE ("DW_OP_stack_value left multiple values on stack");
+	  else
+	    {
+	      /* Fetch a register to top of stack, or check for underflow.
+		 Then mark the TOS as being a value.  */
+	      POP (tos);
+	      assert (tos == 0);
+	      PUSH;
+	      tos_value = true;
+	    }
 	  break;
 
 	case DW_OP_implicit_value:
+	  if (attr == NULL)
+	    DIE ("DW_OP_implicit_value used in invalid context (no DWARF attribute, ABI return value location?)");
+
+#if _ELFUTILS_PREREQ (0, 143)
 	  {
-	    if (attr == NULL)
-	      DIE ("DW_OP_implicit_value used in invalid context (no dwarf attribute, ABI return value location?)");
-	    else
-	      {
-#if ! _ELFUTILS_PREREQ(0,143)
-		Dwarf_Block block;
-		Dwarf_Op *op = (Dwarf_Op *) &expr[i];
-		if (dwarf_getlocation_implicit_value (attr, op, &block) != 0)
-		  DIE("DW_OP_implicit_value, dwarf_getlocation_implicit_value failed");
-		else
-#endif
-		  DIE ("DW_OP_implicit_value not supported");
-	      }
-	    break;
+	    Dwarf_Block block;
+	    Dwarf_Op *op = (Dwarf_Op *) &expr[i];
+	    if (dwarf_getlocation_implicit_value (attr, op, &block) != 0)
+	      DIE ("dwarf_getlocation_implicit_value failed");
+
+	    /* XXX insert real support here */
 	  }
+#endif
+	  DIE ("DW_OP_implicit_value not supported");
+	  break;
 
 	case DW_OP_call_frame_cfa:
 	  // We pick this out when processing DW_AT_frame_base in
@@ -1075,6 +1098,7 @@ c_translate_location (struct obstack *pool,
 
     case loc_noncontiguous:
     case loc_register:
+    case loc_value:
       /* The starting point is not an address computation, but a
 	 register or implicit value.  We can only handle limited
 	 computations from here.  */
@@ -1140,6 +1164,10 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
 
   switch (loc->type)
     {
+    case loc_value:
+      obstack_printf (pool, "addr;");
+      break;
+
     case loc_address:
       if (byte_size != 0 && byte_size != (Dwarf_Word) -1)
 	obstack_printf (pool, "deref (%" PRIu64 ", addr);", byte_size);
@@ -1192,6 +1220,10 @@ emit_base_store (struct obstack *pool, Dwarf_Word byte_size,
 
     case loc_noncontiguous:
       FAIL (loc, N_("noncontiguous location for base store"));
+      break;
+
+    case loc_value:
+      FAIL (loc, N_("location is computed value, cannot store"));
       break;
 
     default:
@@ -1269,6 +1301,10 @@ discontiguify (struct obstack *pool, int indent, struct location *loc,
 	--indent;
 	break;
       }
+
+    case loc_value:
+      FAIL (loc, N_("stack value too big for fetch ???"));
+      break;
 
     case loc_register:
       FAIL (loc, N_("single register too big for fetch/store ???"));
@@ -1700,6 +1736,9 @@ c_translate_addressof (struct obstack *pool, int indent,
     case loc_noncontiguous:
       FAIL (*input, N_("cannot take address of noncontiguous object"));
       break;
+    case loc_value:
+      FAIL (*input, N_("cannot take address of computed value"));
+      break;
 
     default:
       abort();
@@ -1847,6 +1886,10 @@ c_translate_array (struct obstack *pool, int indent,
 	}
       break;
 
+    case loc_value:
+      FAIL (*input, N_("cannot index into computed value"));
+      break;
+
     default:
       abort();
       break;
@@ -1907,7 +1950,7 @@ static void
 emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
 		  const char *target)
 {
-  assert (loc->type == loc_address);
+  assert (loc->type == loc_address || loc->type == loc_value);
 
   if (loc->address.stack_depth == 0)
     /* Synthetic program.  */
@@ -1949,6 +1992,7 @@ emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
       break;
 
     case loc_address:
+    case loc_value:
       emit_loc_address (out, loc, indent, target);
       break;
     }
@@ -1971,6 +2015,7 @@ c_emit_location (FILE *out, struct location *loc, int indent)
 	break;
 
       case loc_address:
+      case loc_value:
 	if (declared_addr)
 	  break;
 	declared_addr = true;
@@ -2000,6 +2045,7 @@ c_emit_location (FILE *out, struct location *loc, int indent)
     switch (loc->type)
       {
       case loc_address:
+      case loc_value:
 	/* Emit the program fragment to calculate the address.  */
 	emit_loc_value (out, loc, indent + 1, "addr", false);
 	deref = deref || loc->address.used_deref;
