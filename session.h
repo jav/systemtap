@@ -223,7 +223,7 @@ struct systemtap_session
 
 
   // Location of semaphores to activate sdt probes
-  std::map<Dwarf_Addr, derived_probe*> sdt_semaphore_addr;
+  std::map<derived_probe*, Dwarf_Addr> sdt_semaphore_addr;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (elaborate.cxx)

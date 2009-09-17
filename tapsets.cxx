@@ -3509,7 +3509,7 @@ private:
   bool get_next_probe();
 
   void convert_probe(probe *base);
-  void record_semaphore(vector<derived_probe *> & results);
+  void record_semaphore(vector<derived_probe *> & results, unsigned start);
   void convert_location(probe *base, probe_point *location);
 };
 
@@ -3560,11 +3560,8 @@ sdt_query::handle_query_module()
       unsigned i = results.size();
 
       if (probe_type == kprobe_type || probe_type == utrace_type)
-	{
-	  derive_probes(sess, new_base, results);
-	  record_semaphore(results);
-	}
-      
+        derive_probes(sess, new_base, results);
+
       else
         {
           literal_map_t params;
@@ -3577,8 +3574,9 @@ sdt_query::handle_query_module()
           dwarf_query q(new_base, new_location, dw, params, results);
           q.has_mark = true; // enables mid-statement probing
           dw.iterate_over_modules(&query_module, &q);
-	  record_semaphore(results);
         }
+
+      record_semaphore(results, i);
 
       if (sess.listing_mode)
         {
@@ -3709,7 +3707,7 @@ sdt_query::get_next_probe()
 
 
 void
-sdt_query::record_semaphore (vector<derived_probe *> & results)
+sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
 {
   int sym_count = dwfl_module_getsymtab(dw.module);
   assert (sym_count >= 0);
@@ -3722,8 +3720,8 @@ sdt_query::record_semaphore (vector<derived_probe *> & results)
 	{
 	  string process_name;
 	  derived_probe_builder::get_param(params, TOK_PROCESS, process_name);
-          for (unsigned int i = 0; i < results.size(); ++i)
-	      sess.sdt_semaphore_addr.insert(make_pair(sym.st_value, results[i]));
+          for (unsigned i = start; i < results.size(); ++i)
+            sess.sdt_semaphore_addr.insert(make_pair(results[i], sym.st_value));
 	  break;
 	}
     }
@@ -4471,22 +4469,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
-      map<Dwarf_Addr, derived_probe*>::iterator its;
-      if (s.sdt_semaphore_addr.empty())
+
+      map<derived_probe*, Dwarf_Addr>::iterator its = s.sdt_semaphore_addr.find(p);
+      if (its == s.sdt_semaphore_addr.end())
 	s.op->line() << " .sdt_sem_address=(unsigned long)0x0,";
       else
-	for (its = s.sdt_semaphore_addr.begin();
-	     its != s.sdt_semaphore_addr.end();
-	     its++)
-	  {
-	    if (p->module == ((struct uprobe_derived_probe*)(its->second))->module
-		&& p->addr == ((struct uprobe_derived_probe*)(its->second))->addr)
-	      {
-		s.op->line() << " .sdt_sem_address=(unsigned long)0x" << hex << its->first << dec << "ULL,";
-		break;
-	      }
-	  }
-      if (p->has_return) s.op->line() << " .return_p=1,";
+        s.op->line() << " .sdt_sem_address=(unsigned long)0x"
+                     << hex << its->second << dec << "ULL,";
+
+      if (p->has_return)
+        s.op->line() << " .return_p=1,";
       s.op->line() << " },";
     }
   s.op->newline(-1) << "};";

@@ -716,20 +716,14 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
       break;
     }
   s.op->line() << " .engine_attached=0,";
-  map<Dwarf_Addr, derived_probe*>::iterator its;
-  if (s.sdt_semaphore_addr.empty())
+
+  map<derived_probe*, Dwarf_Addr>::iterator its = s.sdt_semaphore_addr.find(p);
+  if (its == s.sdt_semaphore_addr.end())
     s.op->line() << " .sdt_sem_address=(unsigned long)0x0,";
   else
-    for (its = s.sdt_semaphore_addr.begin();
-	 its != s.sdt_semaphore_addr.end();
-	 its++)
-      {
-	if (p == ((struct utrace_derived_probe*)(its->second)))
-	  {
-	    s.op->line() << " .sdt_sem_address=(unsigned long)0x" << hex << its->first << dec << "ULL,";
-	    break;
-	  }
-      }
+    s.op->line() << " .sdt_sem_address=(unsigned long)0x"
+                 << hex << its->second << dec << "ULL,";
+
   s.op->line() << " .tsk=0,";
   s.op->line() << " },";
 }
