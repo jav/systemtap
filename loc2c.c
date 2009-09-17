@@ -535,7 +535,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	      DIE ("DW_OP_implicit_value used in invalid context (no dwarf attribute, ABI return value location?)");
 	    else
 	      {
-#if ! _ELFUTILS_PREREQ(0,143)
+#if _ELFUTILS_PREREQ(0,143)
 		Dwarf_Block block;
 		Dwarf_Op *op = (Dwarf_Op *) &expr[i];
 		if (dwarf_getlocation_implicit_value (attr, op, &block) != 0)
