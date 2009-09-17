@@ -192,6 +192,7 @@ struct dwflpp
 
   bool function_name_matches_pattern(const std::string& name, const std::string& pattern);
   bool function_name_matches(const std::string& pattern);
+  bool function_scope_matches(const std::vector<std::string> scopes);
 
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                              const char *, Dwarf_Addr,
@@ -303,6 +304,8 @@ private:
   mod_cu_die_parent_cache_t cu_die_parent_cache;
   void cache_die_parents(cu_die_parent_cache_t* parents, Dwarf_Die* die);
   cu_die_parent_cache_t *get_die_parents();
+
+  Dwarf_Die* get_parent_scope(Dwarf_Die* die);
 
   /* The global alias cache is used to resolve any DIE found in a
    * module that is stubbed out with DW_AT_declaration with a defining

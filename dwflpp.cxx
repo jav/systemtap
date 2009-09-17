@@ -266,6 +266,33 @@ dwflpp::function_name_matches(const string& pattern)
 }
 
 
+bool
+dwflpp::function_scope_matches(const vector<string> scopes)
+{
+  // walk up the containing scopes
+  Dwarf_Die* die = function;
+  for (int i = scopes.size() - 1; i >= 0; --i)
+    {
+      die = get_parent_scope(die);
+
+      // check if this scope matches, and prepend it if so
+      // NB: a NULL die is the global scope, compared as ""
+      string name = dwarf_diename(die) ?: "";
+      if (name_has_wildcard(scopes[i]) ?
+          function_name_matches_pattern(name, scopes[i]) :
+          name == scopes[i])
+        function_name = name + "::" + function_name;
+      else
+        return false;
+
+      // make sure there's no more if we're at the global scope
+      if (!die && i > 0)
+        return false;
+    }
+  return true;
+}
+
+
 static const char *offline_search_modname = NULL;
 static int offline_search_match_p = 0;
 
@@ -591,6 +618,9 @@ dwflpp::cache_die_parents(cu_die_parent_cache_t* parents, Dwarf_Die* die)
           case DW_TAG_entry_point:
           case DW_TAG_inlined_subroutine:
           case DW_TAG_subprogram:
+          case DW_TAG_namespace:
+          case DW_TAG_class_type:
+          case DW_TAG_structure_type:
             parents->insert(make_pair(child.addr, *die));
             cache_die_parents(parents, &child);
             break;
@@ -740,6 +770,34 @@ dwflpp::getscopes(Dwarf_Addr pc)
 #endif
 
   return scopes;
+}
+
+
+Dwarf_Die*
+dwflpp::get_parent_scope(Dwarf_Die* die)
+{
+  Dwarf_Die specification;
+  if (dwarf_attr_die(die, DW_AT_specification, &specification))
+    die = &specification;
+
+  cu_die_parent_cache_t *parents = get_die_parents();
+  cu_die_parent_cache_t::iterator it = parents->find(die->addr);
+  while (it != parents->end())
+    {
+      Dwarf_Die* scope = &it->second;
+      switch (dwarf_tag (scope))
+        {
+        case DW_TAG_namespace:
+        case DW_TAG_class_type:
+        case DW_TAG_structure_type:
+          return scope;
+
+        default:
+          break;
+        }
+      it = parents->find(scope->addr);
+    }
+  return NULL;
 }
 
 

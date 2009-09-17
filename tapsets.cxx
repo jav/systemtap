@@ -591,8 +591,9 @@ struct dwarf_query : public base_query
   enum dbinfo_reqt dbinfo_reqt;
   enum dbinfo_reqt assess_dbinfo_reqt();
 
-  function_spec_type parse_function_spec(string & spec);
+  void parse_function_spec(const string & spec);
   function_spec_type spec_type;
+  vector<string> scopes;
   string function;
   string file;
   line_t line_type;
@@ -697,9 +698,9 @@ dwarf_query::dwarf_query(probe * base_probe,
   has_mark = false;
 
   if (has_function_str)
-    spec_type = parse_function_spec(function_str_val);
+    parse_function_spec(function_str_val);
   else if (has_statement_str)
-    spec_type = parse_function_spec(statement_str_val);
+    parse_function_spec(statement_str_val);
 
   dbinfo_reqt = assess_dbinfo_reqt();
   query_done = false;
@@ -869,93 +870,124 @@ dwarf_query::handle_query_module()
 }
 
 
-function_spec_type
-dwarf_query::parse_function_spec(string & spec)
+void
+dwarf_query::parse_function_spec(const string & spec)
 {
-  string::const_iterator i = spec.begin(), e = spec.end();
+  size_t src_pos, line_pos, dash_pos, scope_pos, next_scope_pos;
 
-  function.clear();
-  file.clear();
-  line[0] = 0;
-  line[1] = 0;
-
-  while (i != e && *i != '@')
+  // look for named scopes
+  scope_pos = 0;
+  next_scope_pos = spec.find("::");
+  while (next_scope_pos != string::npos)
     {
-      if (*i == ':' || *i == '+')
-	goto bad;
-      function += *i++;
+      scopes.push_back(spec.substr(scope_pos, next_scope_pos - scope_pos));
+      scope_pos = next_scope_pos + 2;
+      next_scope_pos = spec.find("::", scope_pos);
     }
 
-  if (i == e)
+  // look for a source separator
+  src_pos = spec.find('@', scope_pos);
+  if (src_pos == string::npos)
     {
-      if (sess.verbose>2)
-	clog << "parsed '" << spec
-	     << "' -> func '" << function
-	     << "'\n";
-      return function_alone;
+      function = spec.substr(scope_pos);
+      spec_type = function_alone;
     }
-
-  if (i++ == e)
-    goto bad;
-
-  while (i != e && *i != ':' && *i != '+')
-    file += *i++;
-  if (*i == ':')
+  else
     {
-      if (*(i + 1) == '*')
-	line_type = WILDCARD;
+      function = spec.substr(scope_pos, src_pos - scope_pos);
+
+      // look for a line-number separator
+      line_pos = spec.find_first_of(":+", src_pos);
+      if (line_pos == string::npos)
+        {
+          file = spec.substr(src_pos + 1);
+          spec_type = function_and_file;
+        }
       else
-	line_type = ABSOLUTE;
-    }
-  else if (*i == '+')
-    line_type = RELATIVE;
+        {
+          file = spec.substr(src_pos + 1, line_pos - src_pos - 1);
 
-  if (i == e)
-    {
-      if (sess.verbose>2)
-	clog << "parsed '" << spec
-	     << "' -> func '"<< function
-	     << "', file '" << file
-	     << "'\n";
-      return function_and_file;
+          // classify the line spec
+          spec_type = function_file_and_line;
+          if (spec[line_pos] == '+')
+            line_type = RELATIVE;
+          else if (spec[line_pos + 1] == '*' &&
+                   spec.length() == line_pos + 2)
+            line_type = WILDCARD;
+          else
+            line_type = ABSOLUTE;
+
+          if (line_type != WILDCARD)
+            try
+              {
+                // try to parse either N or N-M
+                dash_pos = spec.find('-', line_pos + 1);
+                if (dash_pos == string::npos)
+                  line[0] = line[1] = lex_cast<int>(spec.substr(line_pos + 1));
+                else
+                  {
+                    line_type = RANGE;
+                    line[0] = lex_cast<int>(spec.substr(line_pos + 1,
+                                                        dash_pos - line_pos - 1));
+                    line[1] = lex_cast<int>(spec.substr(dash_pos + 1));
+                  }
+              }
+            catch (runtime_error & exn)
+              {
+                goto bad;
+              }
+        }
     }
 
-  if (i++ == e)
+  if (function.empty() ||
+      (spec_type != function_alone && file.empty()))
     goto bad;
 
-  try
+  if (sess.verbose > 2)
     {
-      if (line_type != WILDCARD)
-	{
-	  string::const_iterator dash = i;
+      clog << "parsed '" << spec << "'";
 
-	  while (dash != e && *dash != '-')
-	    dash++;
-	  if (dash == e)
-	    line[0] = line[1] = lex_cast<int>(string(i, e));
-	  else
-	    {
-	      line_type = RANGE;
-	      line[0] = lex_cast<int>(string(i, dash));
-	      line[1] = lex_cast<int>(string(dash + 1, e));
-	    }
-	}
+      if (!scopes.empty())
+        clog << ", scope '" << scopes[0] << "'";
+      for (unsigned i = 1; i < scopes.size(); ++i)
+        clog << "::'" << scopes[i] << "'";
 
-      if (sess.verbose>2)
-	clog << "parsed '" << spec
-	     << "' -> func '"<< function
-	     << "', file '" << file
-	     << "', line " << line << "\n";
-      return function_file_and_line;
+      clog << ", func '" << function << "'";
+
+      if (spec_type != function_alone)
+        clog << ", file '" << file << "'";
+
+      if (spec_type == function_file_and_line)
+        {
+          clog << ", line ";
+          switch (line_type)
+            {
+            case ABSOLUTE:
+              clog << line[0];
+              break;
+
+            case RELATIVE:
+              clog << "+" << line[0];
+              break;
+
+            case RANGE:
+              clog << line[0] << " - " << line[1];
+              break;
+
+            case WILDCARD:
+              clog << "*";
+              break;
+            }
+        }
+
+      clog << endl;
     }
-  catch (runtime_error & exn)
-    {
-      goto bad;
-    }
 
- bad:
-    throw semantic_error("malformed specification '" + spec + "'",
-			 base_probe->tok);
+  return;
+
+bad:
+  throw semantic_error("malformed specification '" + spec + "'",
+                       base_probe->tok);
 }
 
 
@@ -1334,6 +1366,9 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
   try
     {
       q->dw.focus_on_function (func);
+
+      if (!q->dw.function_scope_matches(q->scopes))
+        return DWARF_CB_OK;
 
       // make sure that this function address hasn't
       // already been matched under an aliased name
