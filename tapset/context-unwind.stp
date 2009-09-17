@@ -48,6 +48,19 @@ function backtrace:string () %{ /* pure */
 %}
 
 /**
+ * sfunction task_backtrace - Hex backtrace of an arbitrary task
+ * @task: pointer to task_struct
+ *
+ *  Return a string of hex addresses that are a backtrace of the 
+ *  stack of a particular task.  Output may be truncated as per
+ *  maximum string length.
+ */
+function task_backtrace:string (task:long) %{ /* pure */
+	 _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
+		(struct task_struct *)(unsigned long)THIS->task, 0, MAXTRACE);
+%}
+
+/**
  * sfunction caller - Return name and address of calling function
  *
  *  Return the address and name of the calling function. 
