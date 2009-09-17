@@ -1732,11 +1732,12 @@ dwflpp::translate_location(struct obstack *pool,
 #if !_ELFUTILS_PREREQ (0,142)
   if (dwarf_whatattr (attr) == DW_AT_data_member_location)
     {
-      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
+      Dwarf_Op offset_loc;
+      offset_loc.atom = DW_OP_plus_uconst;
       if (dwarf_formudata (attr, &offset_loc.number) == 0)
         return c_translate_location (pool, &loc2c_error, this,
                                      &loc2c_emit_address, 1, 0, pc,
-                                     &offset_loc, 1, NULL, NULL);
+                                     &offset_loc, 1, NULL, NULL, NULL);
     }
 #endif
 
