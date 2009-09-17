@@ -34,7 +34,6 @@ if {$outfile == ""} {
 }
 eval exec rm $outfile
 
-print "pid = $pid"
 # switch file to .2
 exec kill -USR2 $pid
 # switch file to .3 (this time, .1 file should be deleted)
