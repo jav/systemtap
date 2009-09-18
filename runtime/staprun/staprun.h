@@ -186,3 +186,13 @@ extern int out_fd[NR_CPUS];
 /* relay_old uses these. Set in ctl.c */
 extern unsigned subbuf_size;
 extern unsigned n_subbufs;
+
+/*
+ * ppoll exists in glibc >= 2.4
+ */
+#if (__GLIBC__ < 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 4))
+#define NEED_PPOLL
+
+extern int ppoll(struct pollfd *fds, nfds_t nfds,
+		 const struct timespec *timeout, const sigset_t *sigmask);
+#endif

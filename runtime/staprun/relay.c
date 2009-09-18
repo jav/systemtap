@@ -22,16 +22,9 @@ static time_t *time_backlog[NR_CPUS];
 static int backlog_order=0;
 #define BACKLOG_MASK ((1 << backlog_order) - 1)
 
-/*
- * ppoll exists in glibc >= 2.4
- */
-#if (__GLIBC__ < 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 4))
-#define NEED_PPOLL
-#endif
-
 #ifdef NEED_PPOLL
-static int ppoll(struct pollfd *fds, nfds_t nfds,
-		 const struct timespec *timeout, const sigset_t *sigmask)
+int ppoll(struct pollfd *fds, nfds_t nfds,
+	  const struct timespec *timeout, const sigset_t *sigmask)
 {
 	sigset_t origmask;
 	int ready;
