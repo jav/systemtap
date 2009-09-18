@@ -1,33 +1,35 @@
 * What's new
 
 - Support for unprivileged users:
-  *****************************************************************************
-  * WARNING!!!!!!!!!!
-  * This feature is EXPERIMENTAL at this time and should be used with care.
-  * This feature allows systemtap kernel modules to be loaded by unprivileged
-  * users. The user interface and restrictions will change as this feature
-  * evolves.
-  *****************************************************************************
-  - Systemtap modules generated from scripts which use a restricted subset of
-    the features available may be loaded by staprun for unprivileged users.
-    Previously, staprun would load modules only for root or for members of the
-    groups stapdev and stapusr.
-  - Using the --unprivileged option on stap enables translation-time checking
-    for use by unprivileged users (see restrictions below).
-  - All modules deemed suitable for use by unprivileged users will be signed
-    by stap-server when --unprivileged is specified on stap-client (see module
-    signing in release 0.9.8 and stap-server in release 0.9 below).
-  - Modules signed by trusted signers (servers) and verified by staprun will be
-    loaded by staprun regardless of the user's privilege level.
-  - The system administrator asserts the trustworthiness of a signer (server) by
-    running stap-authorize-signing-cert <cert-file> as root, where <cert-file>
-    can be found in ~<user>/.systemtap/ssl/server/stap.cert for servers started
-    by ordinary users and in $sysconfdir/systemtap/ssl/server/stap.cert for
-    servers started by root.
-  - Servers started by root are automatically authorized as trusted signers on
-    the local host.
-  - Restrictions are intentionally strict at this time and may be relaxed in
-    the future:
+  ***********************************************************************
+  * WARNING!!!!!!!!!!                                                   *
+  * This feature is EXPERIMENTAL at this time and should be used with   *
+  * care. This feature allows systemtap kernel modules to be loaded by  *
+  * unprivileged users. The user interface and restrictions will change *
+  * as this feature evolves.                                            *
+  ***********************************************************************
+  - Systemtap modules generated from scripts which use a restricted subset
+    of the features available may be loaded by staprun for unprivileged
+    users. Previously, staprun would load modules only for root or for
+    members of the groups stapdev and stapusr.
+  - Using the --unprivileged option on stap enables translation-time
+    checking for use by unprivileged users (see restrictions below).
+  - All modules deemed suitable for use by unprivileged users will be
+    signed by stap-server when --unprivileged is specified on stap-client.
+    See module signing in release 0.9.8 and stap-server in release 0.9
+    below.
+  - Modules signed by trusted signers (servers) and verified by staprun
+    will be loaded by staprun regardless of the user's privilege level.
+  - The system administrator asserts the trustworthiness of a signer
+    (server) by running stap-authorize-signing-cert <cert-file> as root,
+    where the <cert-file> can be found in the user home dir as
+    ~<user>/.systemtap/ssl/server/stap.cert for servers started
+    by ordinary users and in $sysconfdir/systemtap/ssl/server/stap.cert
+    for servers started by root.
+  - Servers started by root are automatically authorized as trusted signers
+    on the local host.
+  - Restrictions are intentionally strict at this time and may be relaxed
+    in the future:
      - probe points are restricted to:
          begin, begin(n), end, end(n), error, error(n), never,
          timer.{jiffies,s,sec,ms,msec,us,usec,ns,nsec}(n)*, timer.hz(n),
@@ -38,8 +40,8 @@
      - The following command line options may not be used:
        -g, -I, -D, -R
        -r may not be used to select a target kernel other than one from
-       /lib/modules/RELEASE/build, where RELEASE is a currently installed kernel
-         release.
+       /lib/modules/RELEASE/build, where RELEASE is a currently installed
+       kernel release.
      - The following environment variables may not be set:
        SYSTEMTAP_RUNTIME, SYSTEMTAP_TAPSET, SYSTEMTAP_DEBUGINFO_PATH
   - nss and nss-tools are required to use this feature.
@@ -51,7 +53,7 @@
   dramatically reduced.
 
 - The preprocessor now supports || and && in the conditions.
-        %( arch == "x86_64" || arch == "ia64" %: ... %)
+  e.g. %( arch == "x86_64" || arch == "ia64" %: ... %)
 
 - It is now possible to cross-compile systemtap scripts for foreign
   architectures, using the new '-a ARCH' and '-B OPT=VALUE' flags.
@@ -79,8 +81,8 @@
   future versions of systemtap.  To test this new transport mechanism,
   define 'STP_USE_RING_BUFFER'.
 
-- Support for recognizing DW_OP_{stack,implicit}_value dwarf expressions
-  as emitted by gcc-vta.
+- Support for recognizing DW_OP_{stack,implicit}_value DWARF expressions
+  as emitted by GCC 4.5.
 
 * What's new in version 0.9.9
 
