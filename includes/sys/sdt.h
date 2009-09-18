@@ -18,12 +18,10 @@
 #endif
 
 /* Allocated section needs to be writable when creating pic shared objects
-   because we store relocatable addresses in them. */
-#ifdef __PIC__
+   because we store relocatable addresses in them.  We used to make this
+   read only for non-pic executables, but the new semaphore support relies
+   on having a writable .probes section to put the enabled variables in. */
 #define ALLOCSEC "\"aw\""
-#else
-#define ALLOCSEC "\"a\""
-#endif
 
 /* An allocated section .probes that holds the probe names and addrs. */
 #define STAP_PROBE_DATA_(probe,guard,arg)		\
