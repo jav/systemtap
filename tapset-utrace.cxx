@@ -886,6 +886,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "if (p->sdt_sem_address != 0) {";
   s.op->newline(1) << "size_t sdt_semaphore;";
+  // XXX p could get registered to more than one task!
   s.op->newline() << "p->tsk = tsk;";
   s.op->newline() << "__access_process_vm (tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
   s.op->newline() << "sdt_semaphore += 1;";
@@ -997,25 +998,16 @@ utrace_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "/* ---- utrace probes ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_probes); i++) {";
-  s.op->indent(1);
-  s.op->newline() << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
+  s.op->newline(1) << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
   s.op->newline() << "probe_point = p->pp;"; // for error messages
   s.op->newline() << "rc = stap_register_task_finder_target(&p->tgt);";
+
+  // NB: if (rc), there is no need (XXX: nor any way) to clean up any
+  // finders already registered, since mere registration does not
+  // cause any utrace or memory allocation actions.  That happens only
+  // later, once the task finder engine starts running.  So, for a
+  // partial initialization requiring unwind, we need do nothing.
   s.op->newline() << "if (rc) break;";
-  s.op->newline(-1) << "}";
-
-  // rollback all utrace probes
-  s.op->newline() << "if (rc) {";
-  s.op->indent(1);
-  s.op->newline() << "for (j=i-1; j>=0; j--) {";
-  s.op->indent(1);
-  s.op->newline() << "struct stap_utrace_probe *p = &stap_utrace_probes[j];";
-
-  s.op->newline() << "if (p->engine_attached) {";
-  s.op->indent(1);
-  s.op->newline() << "stap_utrace_detach_ops(&p->ops);";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
 
   s.op->newline(-1) << "}";
 }
@@ -1029,34 +1021,22 @@ utrace_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "/* ---- utrace probes ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_probes); i++) {";
-  s.op->indent(1);
-  s.op->newline() << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
+  s.op->newline(1) << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
 
   s.op->newline() << "if (p->engine_attached) {";
-  s.op->indent(1);
-  s.op->newline() << "stap_utrace_detach_ops(&p->ops);";
-  s.op->newline(-1) << "}";
+  s.op->newline(1) << "stap_utrace_detach_ops(&p->ops);";
+
+  s.op->newline() << "if (p->sdt_sem_address) {";
+  s.op->newline(1) << "size_t sdt_semaphore;";
+  // XXX p could get registered to more than one task!
+  s.op->newline() << "__access_process_vm (p->tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore -= 1;";
+  s.op->newline() << "__access_process_vm (p->tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
   s.op->newline(-1) << "}";
 
-  int sem_idx = 0;
-  if (! s.sdt_semaphore_addr.empty())
-    for (p_b_path_iterator it = probes_by_path.begin();
-	 it != probes_by_path.end(); it++)
-      {
-	s.op->newline() << "{";
-	s.op->indent(1);
-	s.op->newline() << "size_t sdt_semaphore;";
-	s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_probes); i++) {";
-	s.op->newline(1) << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
+  s.op->newline(-1) << "}";
 
-	s.op->newline() << "__access_process_vm (p->tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
-	s.op->newline() << "sdt_semaphore -= 1;";
-	s.op->newline() << "__access_process_vm (p->tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
-	
-	s.op->newline(-1) << "}";
-	s.op->newline(-1) << "}";
-	sem_idx += it->second.size() - 1;
-      }
+  s.op->newline(-1) << "}";
 }
 
 

@@ -4623,6 +4623,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   //----------
   s.op->newline() << "if (sups->sdt_sem_address != 0) {";
   s.op->newline(1) << "size_t sdt_semaphore;";
+  // XXX sups could get registered to more than one task!
   s.op->newline() << "sups->tsk = tsk;";
   s.op->newline() << "__access_process_vm (tsk, relocation + sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
   s.op->newline() << "sdt_semaphore += 1;";
@@ -4717,6 +4718,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   //----------
   s.op->newline() << "if (sups->sdt_sem_address != 0) {";
   s.op->newline(1) << "size_t sdt_semaphore;";
+  // XXX sups could get registered to more than one task!
   s.op->newline() << "sups->tsk = tsk;";
   s.op->newline() << "__access_process_vm (tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
   s.op->newline() << "sdt_semaphore += 1;";
@@ -4850,6 +4852,7 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   //----------
   s.op->newline() << "if (sups->sdt_sem_address != 0) {";
   s.op->newline(1) << "size_t sdt_semaphore;";
+  // XXX sups could get registered to more than one task!
   s.op->newline() << "__access_process_vm (sups->tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
   s.op->newline() << "sdt_semaphore -= 1;";
   s.op->newline() << "__access_process_vm (sups->tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
