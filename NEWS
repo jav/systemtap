@@ -1,5 +1,13 @@
 * What's new
 
+- Cross compilation using the systemtap client and server
+  - stap-start-server now accepts the -r, -R, -I, -B and -a options in order
+    to start a cross compiling server. The server will correctly advertise
+    itself with respect to the kernel release and architecture that it
+    compiles for.
+  - When specified on stap-client, the -r and -a options will be considered
+    when searching for a suitable server.
+
 - Support for unprivileged users:
   ***********************************************************************
   * WARNING!!!!!!!!!!                                                   *
@@ -15,19 +23,17 @@
   - Using the --unprivileged option on stap enables translation-time
     checking for use by unprivileged users (see restrictions below).
   - All modules deemed suitable for use by unprivileged users will be
-    signed by stap-server when --unprivileged is specified on stap-client.
-    See module signing in release 0.9.8 and stap-server in release 0.9
-    below.
+    signed by the systemtap server when --unprivileged is specified on
+    stap-client. See module signing in release 0.9.8 and stap-server in release
+    0.9 below.
   - Modules signed by trusted signers (servers) and verified by staprun
     will be loaded by staprun regardless of the user's privilege level.
   - The system administrator asserts the trustworthiness of a signer
     (server) by running stap-authorize-signing-cert <cert-file> as root,
-    where the <cert-file> can be found in the user home dir as
+    where the <cert-file> can be found in
     ~<user>/.systemtap/ssl/server/stap.cert for servers started
     by ordinary users and in $sysconfdir/systemtap/ssl/server/stap.cert
     for servers started by root.
-  - Servers started by root are automatically authorized as trusted signers
-    on the local host.
   - Restrictions are intentionally strict at this time and may be relaxed
     in the future:
      - probe points are restricted to:
@@ -35,14 +41,19 @@
          timer.{jiffies,s,sec,ms,msec,us,usec,ns,nsec}(n)*, timer.hz(n),
 	 process.* (for processes owned by the user).
      - use of embedded C code is not allowed.
-     - use of tapset functions using embedded C code is restricted.
+     - use of tapset functions is restricted.
+       - some tapset functions may not be used at all. A message will be
+         generated at module compilation time.
+       - some actions by allowed tapset functions may only be performed in the
+         context of the user's own process. A runtime fault will occur in these
+	 situations, for example, direct memory access.
+       - The is_myproc() tapset function has been provided so that tapset
+         writers for unprivileged users can check that the context is of the
+         users own process before attempting these actions.
      - accessing the kernel memory space is not allowed.
-     - The following command line options may not be used:
-       -g, -I, -D, -R
-       -r may not be used to select a target kernel other than one from
-       /lib/modules/RELEASE/build, where RELEASE is a currently installed
-       kernel release.
-     - The following environment variables may not be set:
+     - The following command line options may not be used by stap-client
+       -g, -I, -D, -R, -B
+     - The following environment variables are ignored by stap-client:
        SYSTEMTAP_RUNTIME, SYSTEMTAP_TAPSET, SYSTEMTAP_DEBUGINFO_PATH
   - nss and nss-tools are required to use this feature.
 
