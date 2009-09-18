@@ -1407,12 +1407,12 @@ declare_noncontig_union (struct obstack *pool, int indent,
   obstack_printf (pool, "%*schar bytes[%" PRIu64 "];\n",
 		  indent * 2, "", loc->byte_size);
 
-  obstack_printf (pool, "%*sstruct {\n", indent++ * 2, "");
-
   if (loc->type == loc_noncontiguous)
     {
       Dwarf_Word offset = 0;
       struct location *p;
+      obstack_printf (pool, "%*sstruct {\n", indent++ * 2, "");
+
       for (p = loc->pieces; p != NULL; p = p->next)
 	{
 	  obstack_printf (pool, "%*suint%" PRIu64 "_t p%" PRIu64 ";\n",
