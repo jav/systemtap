@@ -381,42 +381,6 @@ checkOptions (systemtap_session &s)
 	  cerr << "You can't specify -g and --unprivileged together." << endl;
 	  optionsConflict = true;
 	}
-      if (s.include_path.size () > 1)
-	{
-	  cerr << "You can't specify -I and --unprivileged together." << endl;
-	  optionsConflict = true;
-	}
-      if (s.runtime_path != string(PKGDATADIR) + "/runtime")
-	{
-	  cerr << "You can't use -R to specify an alternate runtime path when --unprivileged is specified." << endl;
-	  optionsConflict = true;
-	}
-      if (s.kernel_build_tree.substr(0, 13) != "/lib/modules/")
-	{
-	  cerr << "You can't use -r to specify a kernel release which is not installed when --unprivileged is specified." << endl;
-	  optionsConflict = true;
-	}
-      if (! s.macros.empty ())
-	{
-	  cerr << "You can't specify -D and --unprivileged together." << endl;
-	  optionsConflict = true;
-	}
-
-      if (getenv ("SYSTEMTAP_TAPSET"))
-	{
-	  cerr << "The environment variable SYSTEMTAP_TAPSET can not be defined when --unprivileged is specified." << endl;
-	  optionsConflict = true;
-	}
-      if (getenv ("SYSTEMTAP_RUNTIME"))
-	{
-	  cerr << "The environment variable SYSTEMTAP_RUNTIME can not be defined when --unprivileged is specified." << endl;
-	  optionsConflict = true;
-	}
-      if (getenv ("SYSTEMTAP_DEBUGINFO_PATH"))
-	{
-	  cerr << "The environment variable SYSTEMTAP_DEBUGINFO_PATH can not be defined when --unprivileged is specified." << endl;
-	  optionsConflict = true;
-	}
     }
 
   if (!s.kernel_symtab_path.empty())
@@ -621,15 +585,15 @@ main (int argc, char * const argv [])
 	  break;
 
         case 'p':
-          if (s.listing_mode)
-            {
-              cerr << "Listing (-l) mode implies pass 2." << endl;
-              usage (s, 1);
-            }
           s.last_pass = (int)strtoul(optarg, &num_endptr, 10);
           if (*num_endptr != '\0' || s.last_pass < 1 || s.last_pass > 5)
             {
               cerr << "Invalid pass number (should be 1-5)." << endl;
+              usage (s, 1);
+            }
+          if (s.listing_mode && s.last_pass != 2)
+            {
+              cerr << "Listing (-l) mode implies pass 2." << endl;
               usage (s, 1);
             }
           break;
