@@ -58,6 +58,11 @@ function initialization {
     v_level=0
     keep_temps=0
     b_specified=0
+    m_name=
+    module_name=stap_$$
+    uname_r="`uname -r`"
+    uname_v="`uname -v`"
+    uname_m="`uname -m`"
 
     # Default variable settings
     find_all=
@@ -81,6 +86,7 @@ function parse_options {
     cmdline=
     cmdline1=
     cmdline2=
+
     while test $# != 0
     do
 	advance_p=0
@@ -128,13 +134,11 @@ function parse_options {
 		fi
 		if test $dash_seen = 0; then
 	            # The dash has not been seen. This is either the script file
-	            # name, a long argument or an argument to be passed to the probe module.
+	            # name or an argument to be passed to the probe module.
 	            # If this is the first time, and -e has not been specified,
 	            # then it could be the name of the script file.
-		    if test "X$second_char" = "X-"; then
-			cmdline2="$cmdline2 $first_token"
-		    elif test "X$e_script" = "X" -a "X$script_file" = "X"; then
-			script_file=$first_token
+		    if test "X$e_script" = "X" -a "X$script_file" = "X"; then
+			script_file="$first_token"
 			cmdline1="$cmdline2"
 			cmdline2=
 		    elif test "$first_char" != "'"; then
@@ -149,9 +153,17 @@ function parse_options {
 
             # We are at the start of an option. Look at the first character.
 	    case $first_char in
+		a)
+		    get_arg $first_token $2
+		    cmdline2="${cmdline2}s '$stap_arg'"
+		    ;;	
 		b)
 		    b_specified=1
 		    ;;
+		B)
+		    get_arg $first_token $2
+		    cmdline2="${cmdline2}s '$stap_arg'"
+		    ;;	
 		c)
 		    get_arg $first_token "$2"
 		    process_c "$stap_arg"
@@ -174,6 +186,12 @@ function parse_options {
 		l)
 		    get_arg $first_token $2
 		    cmdline2="${cmdline2}l '$stap_arg'"
+		    p_phase=2
+		    ;;
+		L)
+		    get_arg $first_token $2
+		    cmdline2="${cmdline2}l '$stap_arg'"
+		    p_phase=2
 		    ;;
 		m)
 		    get_arg $first_token $2
@@ -189,13 +207,17 @@ function parse_options {
 		    ;;
 		r)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}r '$stap_arg'"
+		    process_r $stap_arg
 		    ;;	
 		R)
 		    get_arg $first_token $2
 		    process_R $stap_arg
 		    ;;	
 		s)
+		    get_arg $first_token $2
+		    cmdline2="${cmdline2}s '$stap_arg'"
+		    ;;	
+		S)
 		    get_arg $first_token $2
 		    cmdline2="${cmdline2}s '$stap_arg'"
 		    ;;	
@@ -234,13 +256,13 @@ function parse_options {
     if test "X$script_file" != "X"; then
 	local local_name
 	if test "$script_file" != "-"; then
-	    local_name=`generate_client_temp_name $script_file`
+	    local_name=`generate_client_temp_name "$script_file"`
 	else
-	    local_name=$script_file
+	    local_name="$script_file"
 	fi
-	cmdline="$cmdline1 script/$local_name $cmdline2"
+	cmdline="$cmdline1 'script/$local_name' $cmdline2"
     else
-	cmdline="$cmdline1 $cmdline2"
+	cmdline="$cmdline2"
     fi
 
     # Processing based on final options settings
@@ -323,8 +345,8 @@ function process_e {
     if test "X$e_script" = "X"; then
 	e_script="$1"
 	if test "X$script_file" != "X"; then
-	    cmdline1="$cmdline1 $script_file $cmdline2"
-	    cmdline2=
+	    cmdline2="$cmdline1 '$script_file' $cmdline2"
+	    cmdline1=
 	    script_file=
 	fi
     fi
@@ -344,6 +366,7 @@ function process_I {
 #
 # Process the -m flag.
 function process_m {
+    module_name="$1"
     m_name="$1"
     cmdline2="${cmdline2}m '$1'"
 }
@@ -364,6 +387,33 @@ function process_p {
     cmdline2="${cmdline2}p '$1'"
 }
 
+# function: process_r ARGUMENT
+#
+# Process the -r flag.
+function process_r {
+    local first_char=`expr "$1" : '\(.\).*'`
+
+    if test "$first_char" = "/"; then # fully specified path
+        kernel_build_tree=$1
+        version_file_name="$kernel_build_tree/include/config/kernel.release"
+        # The file include/config/kernel.release within the
+        # build tree is used to pull out the version information
+	release=`cat $version_file_name 2>/dev/null`
+	if test "X$release" = "X"; then
+	    fatal "Missing $version_file_name"
+	    return
+	fi
+    else
+	# kernel release specified directly
+	release=$1
+    fi
+
+    if test "X$release" != "X$uname_r"; then
+	uname_r=$release
+	find_all="--all"
+    fi
+}
+
 # function: process_R ARGUMENT
 #
 # Process the -R flag.
@@ -379,10 +429,11 @@ function process_R {
 # tree to be sent to the server.
 function include_file_or_directory {
     # Add a symbolic link of the named file or directory to our temporary directory
-    local local_name=`generate_client_temp_name $2`
-    mkdir -p $tmpdir_client/$1/`dirname $local_name` || \
-	fatal "Could not create $tmpdir_client/$1/`dirname $local_name`"
-    ln -s /$local_name $tmpdir_client/$1/$local_name || \
+    local local_name=`generate_client_temp_name "$2"`
+    local local_dirname=`dirname "$local_name"`
+    mkdir -p "$tmpdir_client/$1/$local_dirname" || \
+	fatal "Could not create $tmpdir_client/$1/$local_dirname"
+    ln -s "/$local_name" "$tmpdir_client/$1/$local_name" || \
 	fatal "Could not link $tmpdir_client/$1/$local_name to /$local_name"
     echo "$local_name"
 }
@@ -413,9 +464,9 @@ function create_request {
 	if test "$script_file" = "-"; then
 	    mkdir -p $tmpdir_client/script || \
 		fatal "Cannot create temporary directory " $tmpdir_client/script
-	    cat > $tmpdir_client/script/$script_file
+	    cat > "$tmpdir_client/script/$script_file"
 	else
-	    include_file_or_directory script $script_file > /dev/null
+	    include_file_or_directory script "$script_file" > /dev/null
 	fi
     fi
 
@@ -428,11 +479,7 @@ function create_request {
 #
 # Generate the client's sysinfo and echo it to stdout
 function client_sysinfo {
-    if test "X$sysinfo_client" = "X"; then
-	# Add some info from uname
-	sysinfo_client="`uname -rvm`"
-    fi
-    echo "$sysinfo_client"
+    echo "$uname_r $uname_v $uname_m"
 }
 
 # function: package_request
@@ -507,8 +554,9 @@ function unpack_response {
 	    sed -i "s,^Keeping temporary directory.*,Keeping temporary directory \"$local_tmpdir_stap\"," $tmpdir_server/stderr
 	    tmpdir_stap=$local_tmpdir_stap
 	else
+	    tmpdir_stap=$tmpdir_server/$tmpdir_stap
             # Make sure we own the systemtap temp directory if we are root.
-	    test $EUID = 0 && chown $EUID:$EUID $tmpdir_server/$tmpdir_stap
+	    test $EUID = 0 && chown $EUID:$EUID $tmpdir_stap
 	fi
     fi
 }
@@ -632,6 +680,10 @@ function choose_server {
 	    fatal "Server port not provided by avahi"
 	fi
 
+	# Does the server build for the kernel release that we want?
+	release=`expr "$remain" : ".sysinfo=\\\([^ ]*\\\).*"`
+	test "X$release" != "X$uname_r" && continue
+
 	ssl_db=`send_receive $name $port`
 	test "X$ssl_db" != "X" && echo $ssl_db && return
     done
@@ -696,15 +748,26 @@ function process_response {
     cd $tmpdir_server
     rc=`cat rc`
 
-    # Copy the module to the current directory, if -m was specified
-    if test "X$m_name" != "X"; then
-	if test -f $tmpdir_stap/$m_name.ko; then
-	    cp $tmpdir_stap/$m_name.ko $wd
-	else
+    if test $p_phase -ge 4; then
+	if test -f $tmpdir_stap/*.ko; then
+	    if test $p_phase = 4 -o "X$m_name" != "X"; then
+		cp -p $tmpdir_stap/*.ko $wd/$module_name.ko
+		test -f $tmpdir_stap/*.sgn && cp -p $tmpdir_stap/*.sgn $wd/$module_name.ko.sgn
+	    else
+		module_name=`ls $tmpdir_stap/*.ko`
+		module_name=`expr "$module_name" : '\(.*\)\.ko'`
+	    fi
+	elif test "X$script_file" != "X" -o "X$e_script" != "X"; then
 	    stream_output
-	    fatal "module $tmpdir_stap/$m_name.ko does not exist"
+	    fatal "no module returned by the server"
 	fi
     fi
+
+    # Change the name of the temp directory and module name in stdout and stderr
+    sed -i "s,stap_[0-9]\+,$module_name,g" $tmpdir_server/stdout
+    sed -i "s,stap_[0-9]\+,$module_name,g" $tmpdir_server/stderr
+    sed -i "s,into \".*$module_name,into \"$module_name,g" $tmpdir_server/stdout
+    sed -i "s,into \".*$module_name,into \"$module_name,g" $tmpdir_server/stderr
 
     # Output stdout and stderr as directed
     stream_output
@@ -738,12 +801,6 @@ function maybe_call_staprun {
 	    return
 	fi
 
-        # There should be a module.
-	local mod_name=`ls $tmpdir_stap | grep '.ko$'`
-	if test "X$mod_name" = "X"; then
-	    fatal "No module was found in $tmpdir_stap"
-	fi
-
 	if test $p_phase = 5; then
 	    test $v_level -gt 0 && echo "Pass 5: starting run." >&2
 
@@ -765,13 +822,15 @@ function maybe_call_staprun {
 		staprun_opts="$staprun_opts -o $stdout_redirection"
 	    fi
 
+	    # Run it from our original working directory
+	    cd $wd
+
 	    # Run it in the background and wait for it. This
 	    # way any signals sent to us can be caught.
 	    if test $v_level -ge 2; then
-		echo "running `which staprun` $staprun_opts $tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`" >&2
+		echo "running `which staprun` $staprun_opts $module_name.ko" >&2
 	    fi
-	    eval `staprun_PATH` "$staprun_opts" \
-		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
+	    eval `staprun_PATH` "$staprun_opts" $module_name.ko
 	    rc=$?
 
 	    # Wait until the job actually disappears so that its output is complete.
