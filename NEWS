@@ -79,6 +79,9 @@
   future versions of systemtap.  To test this new transport mechanism,
   define 'STP_USE_RING_BUFFER'.
 
+- Support for recognizing DW_OP_{stack,implicit}_value dwarf expressions
+  as emitted by gcc-vta.
+
 * What's new in version 0.9.9
 
 - Systemwide kernel .function.return (kretprobe) maxactive defaults may

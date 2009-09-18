@@ -23,8 +23,7 @@ if {[installtest_p] && [uprobes_p]} {
   # See if GCC produce DW_OP_implicit_value and/or DW_OP_stack_value for us.
   set regexp {[stack|implicit]_value}
   if {![catch {exec readelf --debug-dump=loc vta-test.exe | egrep "$regexp"}]} {
-    setup_xfail 10417 "*-*-*"
-    stap_run $srcdir/$subdir/$test.stp -c ./$test.exe
+    stap_run2 $srcdir/$subdir/$test.stp -c ./$test.exe
   } {
     untested "$test (no-gcc-vta)"
   }
