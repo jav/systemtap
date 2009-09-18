@@ -143,7 +143,6 @@ architectures:
 - i386
 - x86_64 (AMD-64, EM64T)
 - ppc64
-- ia64
 - s390x
 
 3. Configuring Uprobes
