@@ -64,7 +64,7 @@ function usymdata:string (addr: long) %{ /* pure */ /* unprivileged */
  *  name  of the function containing the address, and an estimate of
  *  its position within that function.  Return nothing.
  */
-function print_ustack(stk:string) %{ /* pure */ /* unprivileged */
+function print_ustack(stk:string) %{ /* unprivileged */
         char *ptr = THIS->stk;
         char *tok = strsep(&ptr, " ");
         assert_is_myproc();
