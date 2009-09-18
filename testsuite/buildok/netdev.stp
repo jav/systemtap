@@ -1,4 +1,4 @@
-#! /usr/bin/env stap -wp4
+#! stap -wp4
 
 probe netdev.get_stats{
 	printf("%s", dev_name)
