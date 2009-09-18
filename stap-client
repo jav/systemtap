@@ -38,7 +38,7 @@ function initialization {
 
     # Default location for server certificates if we're not root
     # Must be owned by us.
-    local uid uname
+    local uid
     if test $EUID != 0; then
 	if test -e $stap_user_ssl_db/client; then
 	    if check_db $stap_user_ssl_db/client $EUID $USER; then
@@ -61,8 +61,7 @@ function initialization {
     m_name=
     module_name=stap_$$
     uname_r="`uname -r`"
-    uname_v="`uname -v`"
-    uname_m="`uname -m`"
+    arch=`get_arch`
 
     # Default variable settings
     find_all=
@@ -129,7 +128,6 @@ function parse_options {
 			first_token=`expr "$first_token" : '-\(.*\)'`
 			dash_seen=1
 			first_char=`expr "$first_token" : '\(.\).*'`
-			cmdline2="$cmdline2 -"
 		    fi
 		fi
 		if test $dash_seen = 0; then
@@ -155,14 +153,14 @@ function parse_options {
 	    case $first_char in
 		a)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}s '$stap_arg'"
+		    process_a $stap_arg
 		    ;;	
 		b)
 		    b_specified=1
 		    ;;
 		B)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}s '$stap_arg'"
+		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
 		    ;;	
 		c)
 		    get_arg $first_token "$2"
@@ -170,7 +168,7 @@ function parse_options {
 		    ;;
 		D)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}D '$stap_arg'"
+		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
 		    ;;
 		e)
 		    get_arg $first_token "$2"
@@ -185,12 +183,12 @@ function parse_options {
 		    ;;
 		l)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}l '$stap_arg'"
+		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
 		    p_phase=2
 		    ;;
 		L)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}l '$stap_arg'"
+		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
 		    p_phase=2
 		    ;;
 		m)
@@ -215,18 +213,18 @@ function parse_options {
 		    ;;	
 		s)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}s '$stap_arg'"
+		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
 		    ;;	
 		S)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}s '$stap_arg'"
+		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
 		    ;;	
 		v)
 		    v_level=$(($v_level + 1))
 		    ;;
 		x)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}x '$stap_arg'"
+		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
 		    ;;
 		*)
 		    # An unknown or unimportant flag. Ignore it, but pass it on to the server.
@@ -235,7 +233,7 @@ function parse_options {
 
 	    if test $advance_p = 0; then
 	        # Just another flag character. Consume it.
-		cmdline2="$cmdline2$first_char"
+		cmdline2="$cmdline2 -$first_char"
 		first_token=`expr "$first_token" : '.\(.*\)'`
 		if test "X$first_token" = "X"; then
 		    advance_p=$(($advance_p + 1))
@@ -333,7 +331,7 @@ function process_server {
 # Process the -c flag.
 function process_c {
     c_cmd="$1"
-    cmdline2="${cmdline2}c '$1'"
+    cmdline2="${cmdline2} -c '$1'"
 }
 
 # function: process_e ARGUMENT
@@ -350,7 +348,7 @@ function process_e {
 	    script_file=
 	fi
     fi
-    cmdline2="${cmdline2}e '$1'"
+    cmdline2="${cmdline2} -e '$1'"
 }
 
 # function: process_I ARGUMENT
@@ -359,7 +357,7 @@ function process_e {
 function process_I {
     local local_name=`include_file_or_directory tapsets $1`
     test "X$local_name" != "X" || return
-    cmdline2="${cmdline2}I 'tapsets/$local_name'"
+    cmdline2="${cmdline2} -I 'tapsets/$local_name'"
 }
 
 # function: process_m ARGUMENT
@@ -368,7 +366,7 @@ function process_I {
 function process_m {
     module_name="$1"
     m_name="$1"
-    cmdline2="${cmdline2}m '$1'"
+    cmdline2="${cmdline2} -m '$1'"
 }
 
 # function: process_o ARGUMENT
@@ -376,7 +374,7 @@ function process_m {
 # Process the -o flag.
 function process_o {
     stdout_redirection="$1"
-    cmdline2="${cmdline2}o '$1'"
+    cmdline2="${cmdline2} -o '$1'"
 }
 
 # function: process_p ARGUMENT
@@ -384,7 +382,7 @@ function process_o {
 # Process the -p flag.
 function process_p {
     p_phase=$1
-    cmdline2="${cmdline2}p '$1'"
+    cmdline2="${cmdline2} -p '$1'"
 }
 
 # function: process_r ARGUMENT
@@ -414,13 +412,23 @@ function process_r {
     fi
 }
 
+# function: process_a ARGUMENT
+#
+# Process the -a flag.
+function process_a {
+    if test "X$1" != "X$arch"; then
+	arch=$1
+	find_all="--all"
+    fi
+}
+
 # function: process_R ARGUMENT
 #
 # Process the -R flag.
 function process_R {
     local local_name=`include_file_or_directory runtime $1`
     test "X$local_name" != "X" || return
-    cmdline2="${cmdline2}R 'runtime/$local_name'"
+    cmdline2="${cmdline2} -R 'runtime/$local_name'"
 }
 
 # function: include_file_or_directory PREFIX NAME
@@ -479,7 +487,7 @@ function create_request {
 #
 # Generate the client's sysinfo and echo it to stdout
 function client_sysinfo {
-    echo "$uname_r $uname_v $uname_m"
+    echo "$uname_r $arch"
 }
 
 # function: package_request
@@ -680,9 +688,9 @@ function choose_server {
 	    fatal "Server port not provided by avahi"
 	fi
 
-	# Does the server build for the kernel release that we want?
-	release=`expr "$remain" : ".sysinfo=\\\([^ ]*\\\).*"`
-	test "X$release" != "X$uname_r" && continue
+	# Does the server build for the kernel release and architecture that we want?
+	sysinfo=`expr "$remain" : "'sysinfo=\\\(.*\\\)'"`
+	test "X$sysinfo" != "X$uname_r $arch" && continue
 
 	ssl_db=`send_receive $name $port`
 	test "X$ssl_db" != "X" && echo $ssl_db && return
@@ -758,8 +766,10 @@ function process_response {
 		module_name=`expr "$module_name" : '\(.*\)\.ko'`
 	    fi
 	elif test "X$script_file" != "X" -o "X$e_script" != "X"; then
-	    stream_output
-	    fatal "no module returned by the server"
+	    if test "X$rc" != "X" -a $rc = 0; then
+		stream_output
+		fatal "no module returned by the server"
+	    fi
 	fi
     fi
 

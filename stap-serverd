@@ -24,9 +24,18 @@ trap 'terminate' SIGTERM SIGINT
 #-----------------------------------------------------------------------------
 # function: initialization PORT
 function initialization {
+    # Initial values
+    port=
+    ssl_db=
+    stap_options=
+    uname_r="`uname -r`"
+    arch="`get_arch`"
+
+    # Parse the arguments
+    parse_options "$@"
+
     # What port will we listen on?
-    port=$1
-    test "X$port" = "X" && port=65000
+    test "X$port" = "X" && port=$((1024+$RANDOM%64000))
     while netstat -atn | awk '{print $4}' | cut -f2 -d: | egrep -q "^$port\$";
     do
         # Whoops, the port is busy; try another one.
@@ -35,7 +44,6 @@ function initialization {
     done
 
     # Where is the ssl certificate/key database?
-    ssl_db=$2
     if test "X$ssl_db" = "X"; then
 	ssl_db=$stap_ssl_db/server
 	# Update the certificate file if it is old.
@@ -73,14 +81,231 @@ function initialization {
     nss_cert=stap-server
 }
 
+# function: parse_options [ STAP-OPTIONS ]
+#
+# Examine the command line. We need not do much checking, but we do need to
+# parse all options in order to discover the ones we're interested in.
+function parse_options {
+    while test $# != 0
+    do
+	advance_p=0
+	dash_seen=0
+
+        # Start of a new token.
+	first_token=$1
+
+	# Process the option.
+	until test $advance_p != 0
+	do
+            # Identify the next option
+	    first_char=`expr "$first_token" : '\(.\).*'`
+	    if test $dash_seen = 0; then
+		if test "$first_char" = "-"; then
+		    if test "$first_token" != "-"; then
+	                # It's not a lone dash, so it's an option.
+			# Is it a long option (i.e. --option)?
+			second_char=`expr "$first_token" : '.\(.\).*'`
+			if test "X$second_char" = "X-"; then
+			    case `expr "$first_token" : '--\([^=]*\)'` in
+				port)
+				    get_long_arg $first_token $2
+				    port=$stap_arg
+				    ;;
+				ssl)
+				    get_long_arg $first_token $2
+				    ssl_db=$stap_arg
+				    ;;
+				*)
+				    warning "Option '$first_token' ignored"
+				    advance_p=$(($advance_p + 1))
+				    break
+				    ;;
+			    esac
+			fi
+	                # It's not a lone dash, or a long option, so it's a short option string.
+			# Remove the dash.
+			first_token=`expr "$first_token" : '-\(.*\)'`
+			dash_seen=1
+			first_char=`expr "$first_token" : '\(.\).*'`
+		    fi
+		fi
+		if test $dash_seen = 0; then
+	            # The dash has not been seen. This is not an option at all.
+		    warning "Option '$first_token' ignored"
+		    advance_p=$(($advance_p + 1))
+		    break
+		fi
+	    fi
+	    
+            # We are at the start of an option. Look at the first character.
+	    case $first_char in
+		a)
+		    get_arg $first_token $2
+		    process_a $stap_arg
+		    ;;
+		B)
+		    get_arg $first_token $2
+		    stap_options="$stap_options -$first_char $stap_arg"
+		    ;;
+		c)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		d)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		D)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		e)
+		    get_arg $first_token "$2"
+		    warning "Option '-$first_char '$stap_arg' ignored'"
+		    ;;
+		I)
+		    get_arg $first_token $2
+		    stap_options="$stap_options -$first_char $stap_arg"
+		    ;;	
+		l)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		L)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		m)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		o)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		p)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		r)
+		    get_arg $first_token $2
+		    process_r $stap_arg
+		    ;;	
+		R)
+		    get_arg $first_token $2
+		    stap_options="$stap_options -$first_char $stap_arg"
+		    ;;	
+		s)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;	
+		S)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;	
+		x)
+		    get_arg $first_token $2
+		    warning "Option '-$first_char $stap_arg' ignored"
+		    ;;
+		*)
+		    # An unknown flag. Ignore it.
+		    ;;
+	    esac
+
+	    if test $advance_p = 0; then
+	        # Just another flag character. Consume it.
+		warning "Option '-$first_char' ignored"
+		first_token=`expr "$first_token" : '.\(.*\)'`
+		if test "X$first_token" = "X"; then
+		    advance_p=$(($advance_p + 1))
+		fi
+	    fi
+	done
+
+        # Consume the arguments we just processed.
+	while test $advance_p != 0
+	do
+	    shift
+	    advance_p=$(($advance_p - 1))
+	done
+    done
+}
+
+# function: get_arg FIRSTWORD SECONDWORD
+#
+# Collect an argument to the given short option
+function get_arg {
+    # Remove first character. Advance to the next token, if the first one
+    # is exhausted.
+    local first=`expr "$1" : '.\(.*\)'`
+    if test "X$first" = "X"; then
+	shift
+	advance_p=$(($advance_p + 1))
+	first=$1
+    fi
+    stap_arg="$first"
+    advance_p=$(($advance_p + 1))
+}
+
+# function: get_arg FIRSTWORD SECONDWORD
+#
+# Collect an argument to the given long option
+function get_long_arg {
+    # Remove first character. Advance to the next token, if the first one
+    # is exhausted.
+    local first=`expr "$1" : '.*\=\(.*\)'`
+    if test "X$first" = "X"; then
+	shift
+	advance_p=$(($advance_p + 1))
+	first=$1
+    fi
+    stap_arg="$first"
+    advance_p=$(($advance_p + 1))
+}
+
+# function: process_a ARGUMENT
+#
+# Process the -a flag.
+function process_a {
+    if test "X$1" != "X$arch"; then
+	arch=$1
+	stap_options="$stap_options -a $1"
+    fi
+}
+
+# function: process_r ARGUMENT
+#
+# Process the -r flag.
+function process_r {
+    local first_char=`expr "$1" : '\(.\).*'`
+
+    if test "$first_char" = "/"; then # fully specified path
+        kernel_build_tree=$1
+        version_file_name="$kernel_build_tree/include/config/kernel.release"
+        # The file include/config/kernel.release within the
+        # build tree is used to pull out the version information
+	release=`cat $version_file_name 2>/dev/null`
+	if test "X$release" = "X"; then
+	    fatal "Missing $version_file_name"
+	    return
+	fi
+    else
+	# kernel release specified directly
+	release=$1
+    fi
+
+    if test "X$release" != "X$uname_r"; then
+	uname_r=$release
+	stap_options="$stap_options -r $release"
+    fi
+}
+
 # function: advertise_presence
 #
 # Advertise the availability of the server on the network.
 function advertise_presence {
     # Build up a string representing our server's properties.
-    # TODO: this needs fleshing out.
-    local sysinfo=`uname -rvm`
-    local txt="sysinfo=$sysinfo"
+    local txt="sysinfo=$uname_r $arch"
 
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "Systemtap Compile Server on `uname -n`" \
@@ -95,7 +320,10 @@ function advertise_presence {
 function listen {
     # The stap-server-connect program will listen forever
     # accepting requests.
-    ${stap_exec_prefix}stap-server-connect -p $port -n $nss_cert -d $ssl_db -w $nss_pw 2>&1 &
+    ${stap_exec_prefix}stap-server-connect \
+	-p $port -n $nss_cert -d $ssl_db -w $nss_pw \
+	-s "$stap_options" \
+	2>&1 &
     wait '%${stap_exec_prefix}stap-server-connect' >/dev/null 2>&1
 }
 

@@ -34,38 +34,36 @@ function initialization {
     unprivileged=0
     stap_options=
 
-    # Request file name.
     zip_client=$1
-    test "X$zip_client" != "X" || \
-	fatal "Client request file not specified"
-    test -f $zip_client || \
-	fatal "Unable to find request file $zip_client"
-
-    # Temp directory we will be working in
     tmpdir_server=$2
-    test "X$tmpdir_server" != "X" || \
-	fatal "Server temporary directory not specified"
-    test -d $tmpdir_server || \
-	fatal "Unable to find temporary directory $tmpdir_server"
+    zip_server=$3
+    ssl_db=$4
+    server_options="$5"
+
+    # This script is not intended to be called directly, so if the arguments
+    # aren't specified correctly, just exit with non-zero
+    test "X$tmpdir_server" != "X" || exit 2
+    test -d $tmpdir_server || exit 3
     tmpdir_env=`dirname $tmpdir_server`
 
-    # Signed reponse file name.
-    zip_server=$3
-    test "X$zip_server" != "X" || \
-	fatal ".zip archive file not specified"
+    # Response file name.
+    test "X$zip_server" != "X" || exit 4
     # Make sure the specified .zip file exists.
-    test -f $zip_server || \
-	fatal "Unable to find .zip archive file $zip_server"
+    test -f $zip_server || exit 5
+
+    # Request file name.
+    test "X$zip_client" != "X" || exit 6
+    test -f $zip_client || exit 7
 
     # Where is the ssl certificate/key database?
-    ssl_db=$4
-    test "X$ssl_db" != "X" || \
-	fatal "SSL certificate database not specified"
-    test -d $ssl_db || \
-	fatal "Unable to find SSL certificate database $ssl_db"
+    test "X$ssl_db" != "X" || exit 8
+    test -d $ssl_db || exit 9
     nss_pw=$ssl_db/pw
-    test -f $nss_pw || \
-	fatal "Unable to find SSL certificate database password file $nss_pw"
+    test -f $nss_pw || exit 10
+
+    # What are the options that the server was started with?
+    eval parse_options "$server_options"
+
     nss_cert=stap-server
 
     touch $tmpdir_server/stdout
@@ -127,7 +125,7 @@ function check_request {
 function server_sysinfo {
     if test "X$sysinfo_server" = "X"; then
 	# Add some info from uname
-	sysinfo_server="`uname -rvm`"
+	sysinfo_server="`uname -r` `get_arch`"
     fi
     echo "$sysinfo_server"
 }
@@ -233,11 +231,19 @@ function parse_options {
 	    case $first_char in
 		a)
 		    get_arg $first_token $2
-		    stap_options="$stap_options -$first_char $stap_arg"
+		    if test $unprivileged = 1; then
+			fatal "You can't specify -$first_char and --unprivileged together."
+		    else
+			stap_options="$stap_options -$first_char $stap_arg"
+		    fi
 		    ;;
 		B)
 		    get_arg $first_token $2
-		    stap_options="$stap_options -$first_char $stap_arg"
+		    if test $unprivileged = 1; then
+			fatal "You can't specify -$first_char and --unprivileged together."
+		    else
+			stap_options="$stap_options -$first_char $stap_arg"
+		    fi
 		    ;;
 		d)
 		    get_arg $first_token $2
@@ -246,7 +252,7 @@ function parse_options {
 		D)
 		    get_arg $first_token $2
 		    if test $unprivileged = 1; then
-			fatal "You can't specify -D and --unprivileged together."
+			fatal "You can't specify -$first_char and --unprivileged together."
 		    else
 			stap_options="$stap_options -$first_char $stap_arg"
 		    fi
@@ -259,7 +265,7 @@ function parse_options {
 		I)
 		    get_arg $first_token $2
 		    if test $unprivileged = 1; then
-			fatal "You can't specify -I and --unprivileged together."
+			fatal "You can't specify -$first_char and --unprivileged together."
 		    else
 			stap_options="$stap_options -$first_char $stap_arg"
 		    fi
@@ -289,10 +295,18 @@ function parse_options {
 		    get_arg $first_token $2
 		    process_p $stap_arg
 		    ;;
+		r)
+		    get_arg $first_token $2
+		    if test $unprivileged = 1; then
+			fatal "You can't specify -$first_char and --unprivileged together."
+		    else
+			stap_options="$stap_options -$first_char $stap_arg"
+		    fi
+		    ;;	
 		R)
 		    get_arg $first_token $2
 		    if test $unprivileged = 1; then
-			fatal "You can't specify -R and --unprivileged together."
+			fatal "You can't specify -$first_char and --unprivileged together."
 		    else
 			stap_options="$stap_options -$first_char $stap_arg"
 		    fi
@@ -411,7 +425,7 @@ function create_response {
 	ln -s $tmpdir_stap `basename $tmpdir_stap`
 
         # Sign the resulting module if --unprivileged was specified.
-	if test $unprivileged = 1 -a $p_phase -ge 4; then
+	if test $unprivileged = 1 -a $p_phase -ge 4 -a $stap_rc = 0; then
 	    modname=$tmpdir_stap/`grep -m1 '^.*\.ko$' stdout`
 	    if test "X$modname" != "X"; then
 		${stap_exec_prefix}stap-sign-module $modname $ssl_db
@@ -436,8 +450,8 @@ function package_response {
     cd $tmpdir_env
 
     # Compress the server's temporary directory into a .zip archive.
-    (rm $zip_server && zip -r $zip_server `basename $tmpdir_server` > /dev/null) || \
-	fatal "zip of server response tree, $tmpdir_server, failed"
+    (rm $zip_server && zip -r $zip_server `basename $tmpdir_server` > /dev/null)
+    return $?
 }
 
 # function: fatal [ MESSAGE ]

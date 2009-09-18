@@ -41,6 +41,7 @@ static char             *dbdir   = NULL;
 static char requestFileName[] = "/tmp/stap.server.client.zip.XXXXXX";
 static char responseDirName[] = "/tmp/stap.server.XXXXXX";
 static char responseZipName[] = "/tmp/stap.server.XXXXXX.zip.XXXXXX";
+static const char *stapOptions = "";
 
 static void
 Usage(const char *progName)
@@ -471,15 +472,18 @@ handle_connection(PRFileDesc *tcpSocket)
 		       sizeof (requestFileName) + 1 +
 		       sizeof (responseDirName) + 1 +
 		       sizeof (responseZipName) + 1 +
-		       strlen (dbdir) + 1);
+		       strlen (dbdir) + 1 +
+		       1 + strlen (stapOptions) + 1 +
+		       1);
   if (! cmdline) {
     errWarn ("PORT_Alloc");
     secStatus = SECFailure;
     goto cleanup;
   }
 
-  sprintf (cmdline, "%s/stap-server %s %s %s %s", stap_server_prefix,
-	   requestFileName, responseDirName, responseZipName, dbdir);
+  sprintf (cmdline, "%s/stap-server %s %s %s %s '%s'", stap_server_prefix,
+	   requestFileName, responseDirName, responseZipName, dbdir,
+	   stapOptions);
   rc = system (cmdline);
 
   PR_Free (cmdline);
@@ -703,25 +707,26 @@ getPassword(char *fileName)
 int
 main(int argc, char **argv)
 {
-  char *              progName      = NULL;
-  char *              nickName      = NULL;
-  char *              passwordFile  = NULL;
-  unsigned short      port          = 0;
-  SECStatus           secStatus;
-  PLOptState *        optstate;
-  PLOptStatus         status;
+  const char *    progName      = NULL;
+  const char *    nickName      = NULL;
+  char       *    passwordFile  = NULL;
+  unsigned short  port          = 0;
+  SECStatus       secStatus;
+  PLOptState *    optstate;
+  PLOptStatus     status;
 
   progName = PL_strdup(argv[0]);
 
-  optstate = PL_CreateOptState(argc, argv, "d:p:n:w:");
+  optstate = PL_CreateOptState(argc, argv, "d:p:n:w:s:");
   while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK)
     {
       switch(optstate->option)
 	{
-	case 'd': dbdir = PL_strdup(optstate->value);           break;
-	case 'n': nickName = PL_strdup(optstate->value);      break;
-	case 'p': port = PORT_Atoi(optstate->value);          break;
-	case 'w': passwordFile = PL_strdup(optstate->value);  break;
+	case 'd': dbdir        = PL_strdup(optstate->value); break;
+	case 'n': nickName     = PL_strdup(optstate->value); break;
+	case 'p': port         = PORT_Atoi(optstate->value); break;
+	case 'w': passwordFile = PL_strdup(optstate->value); break;
+	case 's': stapOptions  = PL_strdup(optstate->value); break;
 	default:
 	case '?': Usage(progName);
 	}

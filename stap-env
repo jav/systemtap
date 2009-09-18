@@ -40,3 +40,29 @@ fi
 stap_signing_db=$stap_sysconfdir/systemtap/staprun
 stap_certfile=stap.cert
 stap_old_certfile=stap-server.cert
+
+function get_arch {
+  # PR4186: Copy logic from coreutils uname (uname -i) to squash
+  # i?86->i386.  Actually, copy logic from linux top-level Makefile
+  # to squash uname -m -> $(SUBARCH).
+
+  local machine=`uname -m`
+  machine=`expr "$machine" : '\(...\).*'`
+  case $machine in
+      i48) machine="i386" ;;
+      i58) machine="i386" ;;
+      i68) machine="i386" ;;
+      sun) machine="sparc64" ;;
+      arm) machine="arm" ;;
+      sa1) machine="arm" ;;
+      s39) machine="s390" ;;
+      ppc) machine="powerpc" ;;
+      mip) machine="mips" ;;
+      sh2) machine="sh" ;;
+      sh3) machine="sh" ;;
+      sh4) machine="sh" ;;
+      *)   machine="unknown" ;;
+  esac
+
+  echo $machine
+}

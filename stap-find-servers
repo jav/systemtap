@@ -140,7 +140,7 @@ function match_server {
 function client_sysinfo {
     if test "X$sysinfo_client" = "X"; then
 	# Add some info from uname
-	sysinfo_client="`uname -rvm`"
+	sysinfo_client="`uname -r` `get_arch`"
     fi
     echo sysinfo=$sysinfo_client
 }
