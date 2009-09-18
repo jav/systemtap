@@ -221,6 +221,10 @@ struct systemtap_session
   void print_error_source (std::ostream&, std::string&, const token* tok);
   void print_warning (const std::string& w, const token* tok = 0);
 
+
+  // Location of semaphores to activate sdt probes
+  std::map<Dwarf_Addr, derived_probe*> sdt_semaphore_addr;
+
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (elaborate.cxx)
   // and/or main.cxx(main).

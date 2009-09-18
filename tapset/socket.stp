@@ -81,7 +81,7 @@ probe socket.receive = socket.recvmsg.return,
  *  The message sender
  *
  * Fires at the beginning of sending a message on a socket
- * via the the sock_sendmsg() function
+ * via the sock_sendmsg() function
  */
 probe socket.sendmsg = kernel.function ("sock_sendmsg")
 {

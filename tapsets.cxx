@@ -591,8 +591,9 @@ struct dwarf_query : public base_query
   enum dbinfo_reqt dbinfo_reqt;
   enum dbinfo_reqt assess_dbinfo_reqt();
 
-  function_spec_type parse_function_spec(string & spec);
+  void parse_function_spec(const string & spec);
   function_spec_type spec_type;
+  vector<string> scopes;
   string function;
   string file;
   line_t line_type;
@@ -697,9 +698,9 @@ dwarf_query::dwarf_query(probe * base_probe,
   has_mark = false;
 
   if (has_function_str)
-    spec_type = parse_function_spec(function_str_val);
+    parse_function_spec(function_str_val);
   else if (has_statement_str)
-    spec_type = parse_function_spec(statement_str_val);
+    parse_function_spec(statement_str_val);
 
   dbinfo_reqt = assess_dbinfo_reqt();
   query_done = false;
@@ -869,93 +870,124 @@ dwarf_query::handle_query_module()
 }
 
 
-function_spec_type
-dwarf_query::parse_function_spec(string & spec)
+void
+dwarf_query::parse_function_spec(const string & spec)
 {
-  string::const_iterator i = spec.begin(), e = spec.end();
+  size_t src_pos, line_pos, dash_pos, scope_pos, next_scope_pos;
 
-  function.clear();
-  file.clear();
-  line[0] = 0;
-  line[1] = 0;
-
-  while (i != e && *i != '@')
+  // look for named scopes
+  scope_pos = 0;
+  next_scope_pos = spec.find("::");
+  while (next_scope_pos != string::npos)
     {
-      if (*i == ':' || *i == '+')
-	goto bad;
-      function += *i++;
+      scopes.push_back(spec.substr(scope_pos, next_scope_pos - scope_pos));
+      scope_pos = next_scope_pos + 2;
+      next_scope_pos = spec.find("::", scope_pos);
     }
 
-  if (i == e)
+  // look for a source separator
+  src_pos = spec.find('@', scope_pos);
+  if (src_pos == string::npos)
     {
-      if (sess.verbose>2)
-	clog << "parsed '" << spec
-	     << "' -> func '" << function
-	     << "'\n";
-      return function_alone;
+      function = spec.substr(scope_pos);
+      spec_type = function_alone;
     }
-
-  if (i++ == e)
-    goto bad;
-
-  while (i != e && *i != ':' && *i != '+')
-    file += *i++;
-  if (*i == ':')
+  else
     {
-      if (*(i + 1) == '*')
-	line_type = WILDCARD;
+      function = spec.substr(scope_pos, src_pos - scope_pos);
+
+      // look for a line-number separator
+      line_pos = spec.find_first_of(":+", src_pos);
+      if (line_pos == string::npos)
+        {
+          file = spec.substr(src_pos + 1);
+          spec_type = function_and_file;
+        }
       else
-	line_type = ABSOLUTE;
-    }
-  else if (*i == '+')
-    line_type = RELATIVE;
+        {
+          file = spec.substr(src_pos + 1, line_pos - src_pos - 1);
 
-  if (i == e)
-    {
-      if (sess.verbose>2)
-	clog << "parsed '" << spec
-	     << "' -> func '"<< function
-	     << "', file '" << file
-	     << "'\n";
-      return function_and_file;
+          // classify the line spec
+          spec_type = function_file_and_line;
+          if (spec[line_pos] == '+')
+            line_type = RELATIVE;
+          else if (spec[line_pos + 1] == '*' &&
+                   spec.length() == line_pos + 2)
+            line_type = WILDCARD;
+          else
+            line_type = ABSOLUTE;
+
+          if (line_type != WILDCARD)
+            try
+              {
+                // try to parse either N or N-M
+                dash_pos = spec.find('-', line_pos + 1);
+                if (dash_pos == string::npos)
+                  line[0] = line[1] = lex_cast<int>(spec.substr(line_pos + 1));
+                else
+                  {
+                    line_type = RANGE;
+                    line[0] = lex_cast<int>(spec.substr(line_pos + 1,
+                                                        dash_pos - line_pos - 1));
+                    line[1] = lex_cast<int>(spec.substr(dash_pos + 1));
+                  }
+              }
+            catch (runtime_error & exn)
+              {
+                goto bad;
+              }
+        }
     }
 
-  if (i++ == e)
+  if (function.empty() ||
+      (spec_type != function_alone && file.empty()))
     goto bad;
 
-  try
+  if (sess.verbose > 2)
     {
-      if (line_type != WILDCARD)
-	{
-	  string::const_iterator dash = i;
+      clog << "parsed '" << spec << "'";
 
-	  while (dash != e && *dash != '-')
-	    dash++;
-	  if (dash == e)
-	    line[0] = line[1] = lex_cast<int>(string(i, e));
-	  else
-	    {
-	      line_type = RANGE;
-	      line[0] = lex_cast<int>(string(i, dash));
-	      line[1] = lex_cast<int>(string(dash + 1, e));
-	    }
-	}
+      if (!scopes.empty())
+        clog << ", scope '" << scopes[0] << "'";
+      for (unsigned i = 1; i < scopes.size(); ++i)
+        clog << "::'" << scopes[i] << "'";
 
-      if (sess.verbose>2)
-	clog << "parsed '" << spec
-	     << "' -> func '"<< function
-	     << "', file '" << file
-	     << "', line " << line << "\n";
-      return function_file_and_line;
+      clog << ", func '" << function << "'";
+
+      if (spec_type != function_alone)
+        clog << ", file '" << file << "'";
+
+      if (spec_type == function_file_and_line)
+        {
+          clog << ", line ";
+          switch (line_type)
+            {
+            case ABSOLUTE:
+              clog << line[0];
+              break;
+
+            case RELATIVE:
+              clog << "+" << line[0];
+              break;
+
+            case RANGE:
+              clog << line[0] << " - " << line[1];
+              break;
+
+            case WILDCARD:
+              clog << "*";
+              break;
+            }
+        }
+
+      clog << endl;
     }
-  catch (runtime_error & exn)
-    {
-      goto bad;
-    }
 
- bad:
-    throw semantic_error("malformed specification '" + spec + "'",
-			 base_probe->tok);
+  return;
+
+bad:
+  throw semantic_error("malformed specification '" + spec + "'",
+                       base_probe->tok);
 }
 
 
@@ -1207,8 +1239,14 @@ query_srcfile_label (const dwarf_line_t& line, void * arg)
   for (func_info_map_t::iterator i = q->filtered_functions.begin();
        i != q->filtered_functions.end(); ++i)
     if (q->dw.die_has_pc (i->die, addr))
-      q->dw.iterate_over_labels (&i->die, q->label_val, q->function,
-                                 q, query_label, i->name);
+      q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                 q, query_label);
+
+  for (inline_instance_map_t::iterator i = q->filtered_inlines.begin();
+       i != q->filtered_inlines.end(); ++i)
+    if (q->dw.die_has_pc (i->die, addr))
+      q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                 q, query_label);
 }
 
 static void
@@ -1328,6 +1366,9 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
   try
     {
       q->dw.focus_on_function (func);
+
+      if (!q->dw.function_scope_matches(q->scopes))
+        return DWARF_CB_OK;
 
       // make sure that this function address hasn't
       // already been matched under an aliased name
@@ -1503,8 +1544,17 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  if (q->has_label)
 	    {
 	      if (q->line[0] == 0)		// No line number specified
-                q->dw.iterate_over_labels (q->dw.cu, q->label_val, q->function,
-                                           q, query_label, "");
+                {
+                  for (func_info_map_t::iterator i = q->filtered_functions.begin();
+                       i != q->filtered_functions.end(); ++i)
+                    q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                               q, query_label);
+
+                  for (inline_instance_map_t::iterator i = q->filtered_inlines.begin();
+                       i != q->filtered_inlines.end(); ++i)
+                    q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                               q, query_label);
+                }
 	      else
 		for (set<string>::const_iterator i = q->filtered_srcfiles.begin();
 		     i != q->filtered_srcfiles.end(); ++i)
@@ -1763,13 +1813,13 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   Dwarf_Die *scope_die;
   Dwarf_Addr addr;
   block *add_block;
-  probe *add_probe;
+  block *add_call_probe; // synthesized from .return probes with saved $vars
   map<std::string, symbol *> return_ts_map;
   vector<Dwarf_Die> scopes;
   bool visited;
 
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
-    q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL), visited(false) {}
+    q(q), scope_die(sd), addr(a), add_block(NULL), add_call_probe(NULL), visited(false) {}
   void visit_target_symbol_saved_return (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
@@ -2020,36 +2070,17 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
   // global array we created.  Create the entry probe, which will
   // look like this:
   //
-  //   probe kernel.function("{function}") {
+  //   probe kernel.function("{function}").call {
   //     _dwarf_tvar_tid = tid()
   //     _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
   //                       ++_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
   //       = ${param}
   //   }
 
-  if (add_probe == NULL)
+  if (add_call_probe == NULL)
     {
-      add_probe = new probe;
-      add_probe->tok = e->tok;
-
-      // We need the name of the current probe point, minus the
-      // ".return" (or anything after it, such as ".maxactive(N)").
-      // Create a new probe point, copying all the components,
-      // stopping when we see the ".return" component.
-      probe_point* pp = new probe_point;
-      for (unsigned c = 0; c < q.base_loc->components.size(); c++)
-        {
-          if (q.base_loc->components[c]->functor == "return")
-            break;
-          else
-            pp->components.push_back(q.base_loc->components[c]);
-        }
-      pp->tok = e->tok;
-      pp->optional = q.base_loc->optional;
-      add_probe->locations.push_back(pp);
-
-      add_probe->body = new block;
-      add_probe->body->tok = e->tok;
+      add_call_probe = new block;
+      add_call_probe->tok = e->tok;
 
       // Synthesize a functioncall to grab the thread id.
       functioncall* fc = new functioncall;
@@ -2066,14 +2097,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
       expr_statement* es = new expr_statement;
       es->tok = e->tok;
       es->value = a;
-      add_probe->body = new block(add_probe->body, es);
-
-      vardecl* vd = new vardecl;
-      vd->tok = e->tok;
-      vd->name = tidsym->name;
-      vd->type = pe_long;
-      vd->set_arity(0);
-      add_probe->locals.push_back(vd);
+      add_call_probe = new block(add_call_probe, es);
     }
 
   // Save the value, like this:
@@ -2099,7 +2123,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
   es->tok = e->tok;
   es->value = a;
 
-  add_probe->body = new block(add_probe->body, es);
+  add_call_probe = new block(add_call_probe, es);
 
   // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
   // our parent so it can be used as a substitute for the target
@@ -2777,13 +2801,39 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
       // of code, add it to the start of the probe.
       if (v.add_block)
         this->body = new block(v.add_block, this->body);
-      // If when target-variable-expanding the probe, we added a new
-      // probe, add it in a new file to the list of files to be processed.
-      if (v.add_probe)
+
+      // If when target-variable-expanding the probe, we need to synthesize a
+      // sibling function-entry probe.  We don't go through the whole probe derivation
+      // business (PR10642) that could lead to wildcard/alias resolution, or for that
+      // dwarf-induced duplication.
+      if (v.add_call_probe)
         {
-          stapfile *f = new stapfile;
-          f->probes.push_back(v.add_probe);
-          q.sess.files.push_back(f);
+          assert (q.has_return && !q.has_call);
+
+          // We temporarily replace q.base_probe.
+          statement* old_body = q.base_probe->body;
+          q.base_probe->body = v.add_call_probe;
+          q.has_return = false;
+          q.has_call = true;
+          
+          if (q.has_process)
+            {
+              uprobe_derived_probe *synthetic = new uprobe_derived_probe (funcname, filename, line,
+                                                                        module, section, dwfl_addr,
+                                                                        addr, q, scope_die);
+              q.results.push_back (synthetic);
+            }
+          else
+            {
+              dwarf_derived_probe *synthetic = new dwarf_derived_probe (funcname, filename, line,
+                                                                        module, section, dwfl_addr,
+                                                                        addr, q, scope_die);
+              q.results.push_back (synthetic);
+            }
+
+          q.has_return = true;
+          q.has_call = false;
+          q.base_probe->body = old_body;
         }
     }
   // else - null scope_die - $target variables will produce an error during translate phase
@@ -3443,6 +3493,7 @@ private:
 
   probe * base_probe;
   probe_point * base_loc;
+  literal_map_t const & params;
   vector<derived_probe *> & results;
   string mark_name;
 
@@ -3458,6 +3509,7 @@ private:
   bool get_next_probe();
 
   void convert_probe(probe *base);
+  void record_semaphore(vector<derived_probe *> & results);
   void convert_location(probe *base, probe_point *location);
 };
 
@@ -3466,7 +3518,7 @@ sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
                      dwflpp & dw, literal_map_t const & params,
                      vector<derived_probe *> & results):
   base_query(dw, params), base_probe(base_probe),
-  base_loc(base_loc), results(results)
+  base_loc(base_loc), params(params), results(results)
 {
   assert(get_string_param(params, TOK_MARK, mark_name));
 }
@@ -3508,7 +3560,11 @@ sdt_query::handle_query_module()
       unsigned i = results.size();
 
       if (probe_type == kprobe_type || probe_type == utrace_type)
-        derive_probes(sess, new_base, results);
+	{
+	  derive_probes(sess, new_base, results);
+	  record_semaphore(results);
+	}
+      
       else
         {
           literal_map_t params;
@@ -3521,6 +3577,7 @@ sdt_query::handle_query_module()
           dwarf_query q(new_base, new_location, dw, params, results);
           q.has_mark = true; // enables mid-statement probing
           dw.iterate_over_modules(&query_module, &q);
+	  record_semaphore(results);
         }
 
       if (sess.listing_mode)
@@ -3648,6 +3705,28 @@ sdt_query::get_next_probe()
 	continue;
     }
   return false;
+}
+
+
+void
+sdt_query::record_semaphore (vector<derived_probe *> & results)
+{
+  int sym_count = dwfl_module_getsymtab(dw.module);
+  assert (sym_count >= 0);
+  for (int i = 0; i < sym_count; i++)
+    {
+      GElf_Sym sym;
+      GElf_Word shndxp;
+      char *sym_str = (char*)dwfl_module_getsym (dw.module, i, &sym, &shndxp);
+      if (strcmp(sym_str, string(probe_name + "_semaphore").c_str()) == 0)
+	{
+	  string process_name;
+	  derived_probe_builder::get_param(params, TOK_PROCESS, process_name);
+          for (unsigned int i = 0; i < results.size(); ++i)
+	      sess.sdt_semaphore_addr.insert(make_pair(sym.st_value, results[i]));
+	  break;
+	}
+    }
 }
 
 
@@ -4377,6 +4456,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "unsigned long sdt_sem_address;";
+  s.op->newline() << "struct task_struct *tsk;";
   s.op->newline() << "unsigned return_p:1;";
   s.op->newline(-1) << "} stap_uprobe_specs [] = {";
   s.op->indent(1);
@@ -4390,6 +4471,21 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
+      map<Dwarf_Addr, derived_probe*>::iterator its;
+      if (s.sdt_semaphore_addr.empty())
+	s.op->line() << " .sdt_sem_address=(unsigned long)0x0,";
+      else
+	for (its = s.sdt_semaphore_addr.begin();
+	     its != s.sdt_semaphore_addr.end();
+	     its++)
+	  {
+	    if (p->module == ((struct uprobe_derived_probe*)(its->second))->module
+		&& p->addr == ((struct uprobe_derived_probe*)(its->second))->addr)
+	      {
+		s.op->line() << " .sdt_sem_address=(unsigned long)0x" << hex << its->first << dec << "ULL,";
+		break;
+	      }
+	  }
       if (p->has_return) s.op->line() << " .return_p=1,";
       s.op->line() << " },";
     }
@@ -4463,7 +4559,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "for (spec_index=0; spec_index<sizeof(stap_uprobe_specs)/sizeof(stap_uprobe_specs[0]); spec_index++) {";
   s.op->newline(1) << "int handled_p = 0;";
   s.op->newline() << "int slotted_p = 0;";
-  s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [spec_index];";
+  s.op->newline() << "struct stap_uprobe_spec *sups = (struct stap_uprobe_spec*) &stap_uprobe_specs [spec_index];";
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "int i;";
 
@@ -4543,6 +4639,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 
+  //----------
+  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
+  s.op->newline(1) << "size_t sdt_semaphore;";
+  s.op->newline() << "sups->tsk = tsk;";
+  s.op->newline() << "__access_process_vm (tsk, relocation + sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore += 1;";
+  s.op->newline() << "__access_process_vm (tsk, relocation + sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+  //----------
+
   // close iteration over stap_uprobe_spec[]
   s.op->newline(-1) << "}";
 
@@ -4565,9 +4671,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {"; // XXX: slow linear search
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
-  s.op->newline() << "const struct stap_uprobe_spec *sups;";
+  s.op->newline() << "struct stap_uprobe_spec *sups;";
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // skip free uprobes slot
-  s.op->newline() << "sups = & stap_uprobe_specs[sup->spec_index];";
+  s.op->newline() << "sups = (struct stap_uprobe_spec*) & stap_uprobe_specs[sup->spec_index];";
 
   s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
 
@@ -4626,6 +4732,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
 
   s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
+
+  //----------
+  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
+  s.op->newline(1) << "size_t sdt_semaphore;";
+  s.op->newline() << "sups->tsk = tsk;";
+  s.op->newline() << "__access_process_vm (tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore += 1;";
+  s.op->newline() << "__access_process_vm (tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+  //----------
 
   // close iteration over stap_uprobes[]
   s.op->newline(-1) << "}";
@@ -4749,6 +4865,16 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // free slot
+
+  //----------
+  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
+  s.op->newline(1) << "size_t sdt_semaphore;";
+  s.op->newline() << "__access_process_vm (sups->tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore -= 1;";
+  s.op->newline() << "__access_process_vm (sups->tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+  //----------
+
 
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";

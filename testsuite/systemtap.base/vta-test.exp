@@ -1,0 +1,34 @@
+set test "vta-test"
+set ::result_string {i: 0x6
+i: 0xdeadbeef
+i: 0xdeadbeef87654321}
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-O2"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  return
+} else {
+  pass "$test.c compile"
+}
+
+# Test only when we are running an install test (can execute) and when gcc
+# vta generated DW_OP_{stack|implicit}_values for us. See PR10417.
+if {[installtest_p] && [uprobes_p]} {
+  # See if GCC produce DW_OP_implicit_value and/or DW_OP_stack_value for us.
+  set regexp {[stack|implicit]_value}
+  if {![catch {exec readelf --debug-dump=loc vta-test.exe | egrep "$regexp"}]} {
+    setup_xfail 10417 "*-*-*"
+    stap_run $srcdir/$subdir/$test.stp -c ./$test.exe
+  } {
+    untested "$test (no-gcc-vta)"
+  }
+} else {
+  untested "$test"
+}
+catch {exec rm -f $test.exe}

@@ -12,7 +12,7 @@ namespace systemtap
   {
   public:
     friend class GraphWidget;
-    Graph();
+    Graph(double x = 0.0, double y = 0.0);
     virtual void draw(Cairo::RefPtr<Cairo::Context> cr);
     virtual bool containsPoint(double x, double y);
     double getLineWidth() { return _lineWidth; }

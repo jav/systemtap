@@ -1,8 +1,8 @@
-set test "flightrec1"
+set test "flightrec4"
 if {![installtest_p]} { untested $test; return }
 
-# run stapio in background mode
-spawn stap -F -o $test.out -we {probe begin {}}
+# run stapio in background mode with number limit
+spawn stap -F -S 1,2 -o $test.out -we {probe begin {}}
 # check whether stap outputs stapio pid
 set pid 0
 expect {
@@ -20,31 +20,34 @@ if {$pid == 0} {
   return -1
 }
 
-# check whether stapio is running in background
-spawn ps -o cmd hc $pid
-expect {
-  -timeout 10
-  "stapio" {pass "$test (stapio in background)"} # don't contine
-  timeout { fail "$test (timeout)"}
-  eof { fail "$test (stapio was not found)" }
-}
-wait
-
-# switch file
+# switch file to .1
 exec kill -USR2 $pid
 
 # check output file
-if {[catch {exec rm $test.out}]} {
+if {[catch {exec rm $test.out.0}]} {
   fail "$test (no output file)"
   return -1
 } else {
   pass "$test (output file)"
 }
 
-exec kill -TERM $pid
+# switch file to .2
+exec kill -USR2 $pid
+# switch file to .3 (this time, .1 file should be deleted)
+exec kill -USR2 $pid
 
 # check switched output file
 if {[catch {exec rm $test.out.1}]} {
+  pass "$test (old output file is removed)"
+} else {
+  fail "$test (failed to remove output file)"
+  return -1
+}
+
+exec kill -TERM $pid
+
+# check switched output file
+if {[catch {exec rm $test.out.2 $test.out.3}]} {
   fail "$test (failed to switch output file)"
   return -1
 } else {

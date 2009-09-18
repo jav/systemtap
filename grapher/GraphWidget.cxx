@@ -70,8 +70,10 @@ namespace systemtap
     cr->paint();
     for (GraphList::iterator g = _graphs.begin(); g != _graphs.end(); ++g)
       {
+        double x, y;
+        (*g)->getOrigin(x, y);
         cr->save();
-        cr->translate((*g)->_graphX, (*g)->_graphY);
+        cr->translate(x, y);
         (*g)->draw(cr);
         cr->restore();
       }

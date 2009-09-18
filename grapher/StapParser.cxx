@@ -58,7 +58,7 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
   {
     size_t found;
     if ((found = src.find(tag)) != string::npos)
-        result = src.substr(strlen(tag));
+        result = src.substr(found + strlen(tag));
     return found;
   }
 
@@ -152,7 +152,7 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
                   shared_ptr<GraphDataBase> gdata = itr->second;
                   string decl;
                   // Hack: scan from the beginning of dataString again
-                  if (findTaggedValue(dataString, "%Title", decl)
+                  if (findTaggedValue(dataString, "%Title:", decl)
                       != string::npos)
                     {
                       gdata->title = decl;

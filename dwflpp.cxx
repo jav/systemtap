@@ -267,9 +267,29 @@ dwflpp::function_name_matches(const string& pattern)
 
 
 bool
-dwflpp::function_name_final_match(const string& pattern)
+dwflpp::function_scope_matches(const vector<string> scopes)
 {
-  return module_name_final_match (pattern);
+  // walk up the containing scopes
+  Dwarf_Die* die = function;
+  for (int i = scopes.size() - 1; i >= 0; --i)
+    {
+      die = get_parent_scope(die);
+
+      // check if this scope matches, and prepend it if so
+      // NB: a NULL die is the global scope, compared as ""
+      string name = dwarf_diename(die) ?: "";
+      if (name_has_wildcard(scopes[i]) ?
+          function_name_matches_pattern(name, scopes[i]) :
+          name == scopes[i])
+        function_name = name + "::" + function_name;
+      else
+        return false;
+
+      // make sure there's no more if we're at the global scope
+      if (!die && i > 0)
+        return false;
+    }
+  return true;
 }
 
 
@@ -598,6 +618,9 @@ dwflpp::cache_die_parents(cu_die_parent_cache_t* parents, Dwarf_Die* die)
           case DW_TAG_entry_point:
           case DW_TAG_inlined_subroutine:
           case DW_TAG_subprogram:
+          case DW_TAG_namespace:
+          case DW_TAG_class_type:
+          case DW_TAG_structure_type:
             parents->insert(make_pair(child.addr, *die));
             cache_die_parents(parents, &child);
             break;
@@ -747,6 +770,34 @@ dwflpp::getscopes(Dwarf_Addr pc)
 #endif
 
   return scopes;
+}
+
+
+Dwarf_Die*
+dwflpp::get_parent_scope(Dwarf_Die* die)
+{
+  Dwarf_Die specification;
+  if (dwarf_attr_die(die, DW_AT_specification, &specification))
+    die = &specification;
+
+  cu_die_parent_cache_t *parents = get_die_parents();
+  cu_die_parent_cache_t::iterator it = parents->find(die->addr);
+  while (it != parents->end())
+    {
+      Dwarf_Die* scope = &it->second;
+      switch (dwarf_tag (scope))
+        {
+        case DW_TAG_namespace:
+        case DW_TAG_class_type:
+        case DW_TAG_structure_type:
+          return scope;
+
+        default:
+          break;
+        }
+      it = parents->find(scope->addr);
+    }
+  return NULL;
 }
 
 
@@ -1138,7 +1189,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
 void
 dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                              const string& sym,
-                             const string& symfunction,
+                             const string& function,
                              dwarf_query *q,
                              void (* callback)(const string &,
                                                const char *,
@@ -1146,62 +1197,52 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                                                int,
                                                Dwarf_Die *,
                                                Dwarf_Addr,
-                                               dwarf_query *),
-                             const string& current_function)
+                                               dwarf_query *))
 {
   get_module_dwarf();
 
   Dwarf_Die die;
+  const char *name;
   int res = dwarf_child (begin_die, &die);
   if (res != 0)
     return;  // die without children, bail out.
 
-  bool function_match =
-    (current_function == symfunction
-     || (name_has_wildcard(symfunction)
-         && function_name_matches_pattern (current_function, symfunction)));
-
   do
     {
-      int tag = dwarf_tag(&die);
-      const char *name = dwarf_diename (&die);
-      bool subfunction = false;
-
-      switch (tag)
+      switch (dwarf_tag(&die))
         {
         case DW_TAG_label:
-          if (function_match && name &&
+          name = dwarf_diename (&die);
+          if (name &&
               (name == sym
                || (name_has_wildcard(sym)
                    && function_name_matches_pattern (name, sym))))
             {
-              // Get the file/line number for this label
-              int dline;
-              const char *file = dwarf_decl_file (&die);
-              dwarf_decl_line (&die, &dline);
-
               // Don't try to be smart. Just drop no addr labels.
               Dwarf_Addr stmt_addr;
               if (dwarf_lowpc (&die, &stmt_addr) == 0)
                 {
+                  // Get the file/line number for this label
+                  int dline;
+                  const char *file = dwarf_decl_file (&die);
+                  dwarf_decl_line (&die, &dline);
+
                   vector<Dwarf_Die> scopes = getscopes_die(&die);
                   if (scopes.size() > 1)
-                    callback(current_function, name, file, dline,
+                    callback(function, name, file, dline,
                              &scopes[1], stmt_addr, q);
                 }
             }
           break;
 
         case DW_TAG_subprogram:
-          if (dwarf_hasattr(&die, DW_AT_declaration) || !name)
-            break;
         case DW_TAG_inlined_subroutine:
-          if (name)
-            subfunction = true;
+          // Stay within our filtered function
+          break;
+
         default:
           if (dwarf_haschildren (&die))
-            iterate_over_labels (&die, sym, symfunction, q, callback,
-                                 subfunction ? name : current_function);
+            iterate_over_labels (&die, sym, function, q, callback);
           break;
         }
     }
@@ -1684,21 +1725,21 @@ dwflpp::translate_location(struct obstack *pool,
 {
 
   /* DW_AT_data_member_location, can be either constant offsets
-     (struct member fields), or full blown location expressions. */
+     (struct member fields), or full blown location expressions.
+     In older elfutils, dwarf_getlocation_addr would not handle the
+     constant for us, but newer ones do.  For older ones, we work
+     it by faking an expression, which is what newer ones do. */
+#if !_ELFUTILS_PREREQ (0,142)
   if (dwarf_whatattr (attr) == DW_AT_data_member_location)
     {
-      unsigned int form = dwarf_whatform (attr);
-      if (form == DW_FORM_data1 || form == DW_FORM_data2
-	  || form == DW_FORM_sdata || form == DW_FORM_udata)
-	{
-	  Dwarf_Sword off;
-	  if (dwarf_formsdata (attr, &off) != 0)
-	    throw semantic_error (string ("dwarf_formsdata failed, ")
-				  + string (dwarf_errmsg (-1)), e->tok);
-	  c_translate_add_offset (pool, 1, NULL, off, tail);
-	  return *tail;
-	}
+      Dwarf_Op offset_loc;
+      offset_loc.atom = DW_OP_plus_uconst;
+      if (dwarf_formudata (attr, &offset_loc.number) == 0)
+        return c_translate_location (pool, &loc2c_error, this,
+                                     &loc2c_emit_address, 1, 0, pc,
+                                     &offset_loc, 1, NULL, NULL, NULL);
     }
+#endif
 
   Dwarf_Op *expr;
   size_t len;
@@ -1733,7 +1774,7 @@ dwflpp::translate_location(struct obstack *pool,
   return c_translate_location (pool, &loc2c_error, this,
                                &loc2c_emit_address,
                                1, 0 /* PR9768 */,
-                               pc, expr, len, tail, fb_attr, cfa_ops);
+                               pc, attr, expr, len, tail, fb_attr, cfa_ops);
 }
 
 
@@ -2356,7 +2397,7 @@ dwflpp::literal_stmt_for_return (Dwarf_Die *scope_die,
   struct location  *head = c_translate_location (&pool, &loc2c_error, this,
                                                  &loc2c_emit_address,
                                                  1, 0 /* PR9768 */,
-                                                 pc, locops, nlocops,
+                                                 pc, NULL, locops, nlocops,
                                                  &tail, NULL, NULL);
 
   /* Translate the ->bar->baz[NN] parts. */

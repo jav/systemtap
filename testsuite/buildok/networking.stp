@@ -1,5 +1,5 @@
 #! stap -p4
-probe netdev.*
+probe netdev.transmit, netdev.receive
 {
 	printf("ppname: %s, dev_name: %s, %d, %d, %d\n", probefunc(),
 		dev_name, length, protocol, truesize)

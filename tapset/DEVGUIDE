@@ -244,6 +244,23 @@ potentially be invalid.  If you're not sure, err on the side of caution.
 The cost of using kread() is small compared to the cost of your tapset
 inadvertently crashing a system!
 
+Add the string 
+    /* pure */
+into the body of the embedded-C function if it has no side-effects
+such as changing external state, so that systemtap could elide
+(optimize away) a call to the function if its results are unused.
+
+Add the string
+    /* unprivileged */
+into the body of the embedded-C function, only if it is safe for use
+by unprivileged users.  In general, this requires the function to be
+absolutely robust with respect to its inputs, and expose/modify no
+information except that belonging to the user's own processes.
+(The assert_is_myproc() macro may help enforce this.)  Roughly
+speaking, it should only perform operations that the same user
+could already do from ordinary userspace interfaces.
+
+
 Review & Submission
 -------------------
 All new tapsets and major changes should be reviewed "early and often"

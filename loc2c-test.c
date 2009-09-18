@@ -136,7 +136,7 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 
   struct location *head, *tail = NULL;
   head = c_translate_location (&pool, &fail, NULL, NULL,
-			       1, cubias, pc, locexpr, locexpr_len,
+			       1, cubias, pc, &attr_mem, locexpr, locexpr_len,
 			       &tail, fb_attr, cfa_ops);
 
   if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
@@ -230,34 +230,26 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 	    }
 	  else
 	    {
-	      /* We are expection a block, constant or loclistptr. */
-	      unsigned int form = dwarf_whatform (&attr_mem);
-	      Dwarf_Sword off;
-	      switch (form)
+	      /* We expect a block or a constant.  In older elfutils,
+		 dwarf_getlocation_addr would not handle the constant for
+		 us, but newer ones do.  For older ones, we work around
+		 it by faking an expression, which is what newer ones do.  */
+#if !_ELFUTILS_PREREQ (0,142)
+	      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
+	      if (dwarf_formudata (&attr_mem, &offset_loc.number) == 0)
+		c_translate_location (&pool, NULL, NULL, NULL,
+				      1, cubias, pc, &attr_mem,
+				      &offset_loc, 1,
+				      &tail, NULL, NULL);
+	      else
+#endif
 		{
-		/* constant */
-		case DW_FORM_data1:
-		case DW_FORM_data2:
-		case DW_FORM_sdata:
-		case DW_FORM_udata:
-		  if (dwarf_formsdata (&attr_mem, &off) != 0)
-		    error (2, 0, _("Bad offset for %s %s: %s"),
-			   typetag == DW_TAG_union_type ? "union" : "struct",
-			   dwarf_diename (die) ?: "<anonymous>",
-			   dwarf_errmsg (-1));
-		    if (off != 0)
-		      c_translate_add_offset (&pool, 1,
-					      dwarf_diename (die)
-					      ?: "", off, &tail);
-		  break;
-
-		default:
-		    locexpr = get_location (cubias, pc, &attr_mem,
-					    &locexpr_len);
-		    c_translate_location (&pool, NULL, NULL, NULL,
-					  1, cubias, pc, locexpr, locexpr_len,
-					  &tail, NULL, NULL);
-		    break;
+		  locexpr = get_location (cubias, pc, &attr_mem,
+					  &locexpr_len);
+		  c_translate_location (&pool, NULL, NULL, NULL,
+					1, cubias, pc, &attr_mem,
+					locexpr, locexpr_len,
+					&tail, NULL, NULL);
 		}
 	    }
 	  ++fields;
@@ -314,6 +306,7 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
       break;
 
     case DW_TAG_pointer_type:
+    case DW_TAG_reference_type:
       if (store)
 	error (2, 0, _("store not supported for pointer type"));
       c_translate_pointer (&pool, 1, cubias, typedie, &tail);

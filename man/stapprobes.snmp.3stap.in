@@ -23,7 +23,7 @@ This family of probe points enhances the Linux system's implementation of the Si
 by allowing the user to collect per-socket statistics. SNMP data is collected in the Linux kernel by counting various events occurring in the networking subsystem. Linux provides one counter for each type of event, thus providing a system-wide collection of network statistics. These statistics can be viewed with the command:
 .B netstat -s. 
 
-The probpoints defined in the SNMP group of tapsets allow users to aberrate each SNMP counter into groups of counters. For example, the user may count SNMP events for a single network socket or for a group of sockets.
+The probe points defined in the SNMP group of tapsets allow users to aberrate each SNMP counter into groups of counters. For example, the user may count SNMP events for a single network socket or for a group of sockets.
 
 Severals SNMP tapsets have been created. Each tapset represents a single layer of the network stack and defines a group of counters called management information blocks or MIBs. Currently tapsets are provided that support MIBS for IP, TCP layers and the enhanced linux MIB. See the file /usr/include/linux/snmp.h for a list of MIBS supported by linux.
 

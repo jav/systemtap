@@ -8,7 +8,7 @@
 * @param s string
 * @return Returns the length of the string.
 */
-function strlen:long(s:string) %{ /* pure */
+function strlen:long(s:string) %{ /* pure */ /* unprivileged */
         THIS->__retvalue = strlen(THIS->s);
 %}
 
@@ -19,7 +19,7 @@ function strlen:long(s:string) %{ /* pure */
 * @param length Length of string to return.
 * @return Returns the substring.
 */
-function substr:string(str:string,start:long, length:long) %{ /* pure */
+function substr:string(str:string,start:long, length:long) %{ /* pure */ /* unprivileged */
 	int length = THIS->length >= MAXSTRINGLEN ? MAXSTRINGLEN : THIS->length + 1;
 	if (THIS->start >= 0 && length > 0 && THIS->start < strlen(THIS->str))
 		strlcpy(THIS->__retvalue, THIS->str + THIS->start, length);
@@ -31,7 +31,7 @@ function substr:string(str:string,start:long, length:long) %{ /* pure */
 * @param pos the given position.  0 = start of the string
 * @return Returns the char in given position of string.
 */
-function stringat:long(str:string, pos:long) %{ /* pure */
+function stringat:long(str:string, pos:long) %{ /* pure */ /* unprivileged */
 	if (THIS->pos >= 0 && THIS->pos < strlen(THIS->str))
 		THIS->__retvalue = THIS->str[THIS->pos];
 	else
@@ -44,7 +44,7 @@ function stringat:long(str:string, pos:long) %{ /* pure */
 * @param s2 string
 * @return Returns 1 if s2 is in s1. Otherwise 0.
 */
-function isinstr:long(s1:string,s2:string) %{ /* pure */
+function isinstr:long(s1:string,s2:string) %{ /* pure */ /* unprivileged */
 	if (strstr(THIS->s1,THIS->s2) != NULL)
 		THIS->__retvalue = 1;
 	else
@@ -58,13 +58,13 @@ function isinstr:long(s1:string,s2:string) %{ /* pure */
  * replaced by the corresponding escape sequence in the returned
  * string.
  */
-function text_str:string(input:string)
-%{ /* pure */
+function text_str:string(input:string) 
+%{ /* pure */ /* unprivileged */
 	_stp_text_str(THIS->__retvalue, THIS->input, 0, 0, 0);
 %}
 
 function text_strn:string(input:string, len:long, quoted:long)
-%{ /* pure */
+%{ /* pure */ /* unprivileged */
 	_stp_text_str(THIS->__retvalue, THIS->input, THIS->len, THIS->quoted, 0);
 %}
 
@@ -77,7 +77,7 @@ function text_strn:string(input:string, len:long, quoted:long)
  * delim  Token delimiter. Set of characters that delimit the tokens.
  */
 function tokenize:string(input:string, delim:string)
-%{ /* pure */
+%{ /* unprivileged */
 	static char str[MAXSTRINGLEN];
 	static char *str_start;
 	static char *str_end;
@@ -106,7 +106,7 @@ function tokenize:string(input:string, delim:string)
  * @return Returns the parent string with substrings replaced. Else returns parent string.
  */
 function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
-%{
+%{ /* pure */ /* unprivileged */
 	char *ptr = THIS->prnt_str;
 	char *ptr_base = THIS->prnt_str;
 	int strlen_srch_str = strlen(THIS->srch_str);
@@ -135,7 +135,7 @@ function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
  *   base  The base to use
  */
 function strtol:long(str:string, base:long)
-%{ /* pure */
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = simple_strtol(THIS->str, NULL, THIS->base);
 %}
 

@@ -1,0 +1,47 @@
+#! /usr/bin/env stap -wp4
+
+probe netdev.get_stats{
+	printf("%s", dev_name)
+}
+
+probe netdev.register{
+	printf("%s", dev_name)
+}
+
+probe netdev.unregister{
+	printf("%s", dev_name)
+}
+
+probe netdev.ioctl{
+	printf("%d %s", cmd, arg)
+}
+
+probe netdev.set_promiscuity {
+	printf("%s %d %d %d", dev_name, enable,
+				disable, inc)
+}
+
+probe netdev.change_rx_flag {
+	printf("%s %d", dev_name, flags)
+}
+
+probe netdev.change_mtu {
+	printf("%s %d %d", dev_name, old_mtu, new_mtu)
+}
+
+probe netdev.change_mac {
+	printf("%s %s %s", dev_name, old_mac, new_mac)
+}
+
+probe netdev.transmit {
+	printf("%s %d %d %d", dev_name, protocol,
+				length, truesize)
+}
+
+probe netdev.hard_transmit {
+	printf("%s %d", dev_name, protocol)
+}
+
+probe netdev.receive {
+	printf("%s %d", dev_name, protocol)
+}

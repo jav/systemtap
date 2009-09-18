@@ -1,0 +1,28 @@
+#!/usr/bin/stap -g
+# badname.stp
+# Prevent the creation of files with undesirable names.
+# Source: http://blog.cuviper.com/2009/04/08/hacking-linux-filenames/
+
+# return non-zero if the filename should be blocked
+function filter:long (name:string)
+{
+  return euid() && isinstr(name, "XXX")
+}
+
+global squash_inode_permission
+probe kernel.function("may_create@fs/namei.c")
+{
+  # screen out the conditions which may_create will fail anyway
+  if ($child->d_inode || $dir->i_flags & 16) next
+
+  # check that the new file meets our naming rules
+  if (filter(kernel_string($child->d_name->name)))
+    squash_inode_permission[tid()] = 1
+}
+probe kernel.function("inode_permission@fs/namei.c").return !,
+      kernel.function("permission@fs/namei.c").return
+{
+  if (!$return && squash_inode_permission[tid()])
+    $return = -13 # -EACCES (Permission denied)
+  delete squash_inode_permission[tid()]
+}

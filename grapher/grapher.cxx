@@ -13,6 +13,7 @@
 #include <gtkmm/stock.h>
 #include <gtkmm/main.h>
 #include <gtkmm/window.h>
+#include <gtkmm/scrolledwindow.h>
 #include <unistd.h>
 #include <poll.h>
 #include <signal.h>
@@ -27,6 +28,7 @@ public:
   GrapherWindow();
   virtual ~GrapherWindow() {}
   Gtk::VBox m_Box;
+  Gtk::ScrolledWindow scrolled;
   GraphWidget w;
 protected:
   virtual void on_menu_file_quit();
@@ -70,10 +72,11 @@ GrapherWindow::GrapherWindow()
       std::cerr << "building menus failed: " <<  ex.what();
     }
   Gtk::Widget* pMenubar = m_refUIManager->get_widget("/MenuBar");
+  scrolled.add(w);
   if(pMenubar)
     m_Box.pack_start(*pMenubar, Gtk::PACK_SHRINK);
-  m_Box.pack_start(w, Gtk::PACK_EXPAND_WIDGET);
-  w.show();
+  m_Box.pack_start(scrolled, Gtk::PACK_EXPAND_WIDGET);
+  scrolled.show();
 
   show_all_children();
 
