@@ -22,8 +22,10 @@
 #define _ELFUTILS_PREREQ(major, minor) (0 >= 1)
 #endif
 
-#if ! _ELFUTILS_PREREQ(0,142)
-#define DW_TAG_rvalue_reference_type 0x42
+#if !_ELFUTILS_PREREQ (0,142)
+#define DW_TAG_rvalue_reference_type	0x42
+#define DW_OP_implicit_value		0x9e
+#define DW_OP_stack_value		0x9f
 #endif
 
 #define N_(x) x
