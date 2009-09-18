@@ -309,10 +309,10 @@ static int dwfl_report_offline_predicate (const char* modname, const char* filen
 
   if (dwflpp::name_has_wildcard (offline_search_modname)) {
     int match_p = !fnmatch(offline_search_modname, modname, 0);
-    // In the wildcard case, we don't short-circuit (return -1) upon 
+    // In the wildcard case, we don't short-circuit (return -1) upon
     // offline_search_match_p, analogously to dwflpp::module_name_final_match().
 
-    if (match_p) 
+    if (match_p)
       offline_search_match_p ++;
 
     return match_p;
@@ -369,7 +369,7 @@ dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
   if (sess.kernel_build_tree == string("/lib/modules/" + sess.kernel_release + "/build"))
     elfutils_kernel_path = sess.kernel_release;
   else
-    elfutils_kernel_path = sess.kernel_build_tree;      
+    elfutils_kernel_path = sess.kernel_build_tree;
 
   offline_search_modname = name.c_str();
   offline_search_match_p = 0;
@@ -1737,7 +1737,7 @@ dwflpp::translate_location(struct obstack *pool,
       if (dwarf_formudata (attr, &offset_loc.number) == 0)
         return c_translate_location (pool, &loc2c_error, this,
                                      &loc2c_emit_address, 1, 0, pc,
-                                     &offset_loc, 1, NULL, NULL, NULL);
+                                     NULL, &offset_loc, 1, NULL, NULL, NULL);
     }
 #endif
 
