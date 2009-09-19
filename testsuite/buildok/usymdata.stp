@@ -1,8 +1,0 @@
-#! stap -p4
-#
-# Test the translatability for usymdata()
-#
-probe begin
-{
-   log(usymdata(0))
-}

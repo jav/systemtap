@@ -1,8 +1,0 @@
-#! stap -p4
-#
-# Test the translatability for probefunc()
-#
-probe begin
-{
-   log(probefunc())
-}
