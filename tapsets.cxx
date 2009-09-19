@@ -873,6 +873,9 @@ dwarf_query::handle_query_module()
 void
 dwarf_query::parse_function_spec(const string & spec)
 {
+  line_type = ABSOLUTE;
+  line[0] = line[1] = 0;
+
   size_t src_pos, line_pos, dash_pos, scope_pos, next_scope_pos;
 
   // look for named scopes
@@ -1543,7 +1546,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 
 	  if (q->has_label)
 	    {
-	      if (q->line[0] == 0)		// No line number specified
+	      if (q->spec_type != function_file_and_line) // No line number specified
                 {
                   for (func_info_map_t::iterator i = q->filtered_functions.begin();
                        i != q->filtered_functions.end(); ++i)
