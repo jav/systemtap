@@ -147,13 +147,13 @@ if {[catch {exec cp /bin/ls $exepath} res]} {
 }
 
 # "load" generation function for stap_run.  It spawns our own copy of
-# /bin/ls, waits 5 seconds, then kills it.
-proc run_ls_5_sec {} {
+# /bin/ls, waits 1 second, then kills it.
+proc run_ls_1_sec {} {
     global exepath
 
     spawn $exepath
     set exe_id $spawn_id
-    after 5000;
+    after 1000;
     exec kill -INT -[exp_pid -i $exe_id]
     return 0;
 }
@@ -194,7 +194,7 @@ if {![utrace_p]} {
     xfail "$TEST_NAME : no kernel single step support"
 } else {
     set script [format $itrace_single1_script $exepath]
-    stap_run $TEST_NAME run_ls_5_sec $itrace_single1_script_output -e $script
+    stap_run $TEST_NAME run_ls_1_sec $itrace_single1_script_output -e $script
 }
 
 set TEST_NAME "itrace_single2"
@@ -206,7 +206,7 @@ if {![utrace_p]} {
     xfail "$TEST_NAME : no kernel single step support"
 } else {
     set script [format $itrace_single2_script $exepath]
-    stap_run $TEST_NAME run_ls_5_sec $itrace_single2_script_output -e $script
+    stap_run $TEST_NAME run_ls_1_sec $itrace_single2_script_output -e $script
 }
 
 # Run the block step tests
@@ -219,7 +219,7 @@ if {![utrace_p]} {
     xfail "$TEST_NAME : no kernel block step support"
 } else {
     set script [format $itrace_block1_script $exepath]
-    stap_run $TEST_NAME run_ls_5_sec $itrace_block1_script_output -e $script
+    stap_run $TEST_NAME run_ls_1_sec $itrace_block1_script_output -e $script
 }
 
 set TEST_NAME "itrace_block2"
@@ -231,7 +231,7 @@ if {![utrace_p]} {
     xfail "$TEST_NAME : no kernel block step support"
 } else {
     set script [format $itrace_block2_script $exepath]
-    stap_run $TEST_NAME run_ls_5_sec $itrace_block2_script_output -e $script
+    stap_run $TEST_NAME run_ls_1_sec $itrace_block2_script_output -e $script
 }
 
 # Cleanup

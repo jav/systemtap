@@ -31,7 +31,7 @@ probe begin {
  epsilon["two",2] <<< 40
 }
 
-probe timer.ms(2000) {
+probe timer.ms(100) {
   exit ()
 }
 

@@ -1,7 +1,7 @@
 set test "bad kprobe registration"
 set script {
     probe $1 {}
-    probe timer.s(1) { exit() }
+    probe timer.ms(100) { exit() }
     probe end { println("cleanup ok") }
 }
 

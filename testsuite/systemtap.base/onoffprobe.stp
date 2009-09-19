@@ -2,7 +2,7 @@ global switch=-1
 
 #begin probe
 probe begin if (switch==-1) {
-	log("begin1 probed");
+	printf("begin1 probed: %s\n", module_name());
 }
 
 probe begin if (switch==0) {
@@ -22,7 +22,7 @@ probe kernel.function("vfs_write").return if (switch == 2) {
 }
 
 #timer probe
-probe timer.s(1) if (switch == 3) {
+probe timer.ms(100) if (switch == 3) {
 	log("timer probed")
 	switch = 0
 }
@@ -34,10 +34,10 @@ probe timer.profile if (switch == 4) {
 }
 
 # aliasess
-probe alias.one.a  = timer.s(2) if (switch == 5) { print("alias.one.a and") }
-probe alias.one.b  = timer.s(3) if (switch == 6) { print("alias.one.b and") }
+probe alias.one.a  = timer.ms(150) if (switch == 5) { print("alias.one.a and") }
+probe alias.one.b  = timer.ms(200) if (switch == 6) { print("alias.one.b and") }
 probe alias.one = alias.one.* if (switch >= 5 && switch < 7) { print(" alias.one and") }
-probe alias.two = timer.s(4) if (switch == 7) { print("alias.two and") }
+probe alias.two = timer.ms(250) if (switch == 7) { print("alias.two and") }
 probe alias.* if (switch) { log(" alias.* probed") }
 
 probe procfs("switch").write {

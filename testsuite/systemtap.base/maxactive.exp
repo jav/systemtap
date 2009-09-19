@@ -5,28 +5,28 @@
 
 if {![installtest_p]} { untested "MAXACTIVE"; return }
 
-proc sleep_five_sec {} {
-    after 5000;
+proc sleep_one_sec {} {
+    after 1000;
     return 0;
 }
 
-# Script1.  For 5 seconds, probe the return of "vfs_read" and
+# Script1.  For 1 second, probe the return of "vfs_read" and
 # "do_select".  See if we skip any probes.
 set script1 {
     global foo
     probe kernel.function("vfs_read").return,
         kernel.function("do_select").return { foo++ }
 
-    probe timer.ms(5000) { exit(); }
+    probe timer.ms(1000) { exit(); }
     probe begin { log("systemtap starting probe"); log("systemtap ending probe");}
 }
 
 # Run script1 and save the number of skipped probes (which will most
 # likely be 0).
-stap_run "MAXACTIVE01" sleep_five_sec "" -e $script1
+stap_run "MAXACTIVE01" sleep_one_sec "" -e $script1
 set skipped1 $skipped_probes
 
-# Script2.  For 5 seconds, probe the return of "vfs_read" and
+# Script2.  For 1 second, probe the return of "vfs_read" and
 # "do_select", with a limit of 1 probe active at a time.  See if we
 # skip any probes.
 set script2 {
@@ -34,13 +34,13 @@ set script2 {
     probe kernel.function("vfs_read").return.maxactive(1),
         kernel.function("do_select").return.maxactive(1) { foo++ }
 
-    probe timer.ms(5000) { exit(); }
+    probe timer.ms(1000) { exit(); }
     probe begin { log("systemtap starting probe"); log("systemtap ending probe");}
 }
 
 # Run script2 and save the number of skipped probes.
 set output_string "(WARNING: Number of errors: 0, skipped probes: \\d+\r\n)?"
-stap_run "MAXACTIVE02" sleep_five_sec $output_string -e $script2
+stap_run "MAXACTIVE02" sleep_one_sec $output_string -e $script2
 set skipped2 $skipped_probes
 
 # If the number of skipped probes for script 1 is less than the number
@@ -50,6 +50,7 @@ set skipped2 $skipped_probes
 # Note that this isn't 100% accurate based on the system load at the
 # time of the scripts.
 set test "MAXACTIVE03"
+verbose -log "skipped1: $skipped1, skipped2: $skipped2\n"
 if {$skipped1 <= $skipped2} {
     pass $test
 } else {

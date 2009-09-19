@@ -1,7 +1,7 @@
 set test "onoffprobe"
 if {![installtest_p]} { untested $test; return }
 
-spawn stap $srcdir/$subdir/$test.stp -m $test
+spawn stap $srcdir/$subdir/$test.stp
 set pid $spawn_id
 set ok 0
 
@@ -9,16 +9,18 @@ proc advance {} {
     global test
     global expect_out
     global ok
+    global modname
     pass "$test $expect_out(1,string)"
     incr ok
-    exec echo $ok > /proc/systemtap/$test/switch
+    exec echo $ok > /proc/systemtap/$modname/switch
     exec echo dummy > /dev/null
     exp_continue
 }
 
 expect {
   -timeout 240
-  -re "(begin1 probed)\r\n" { advance }
+  -re {(begin1 probed): ([^\r\n]+)\r\n}
+	{ set modname "$expect_out(2,string)"; advance }
   -re "^(function return probed)\r\n" { advance }
   -re "^(function entry probed)\r\n" { advance }
   -re "^(timer probed)\r\n" { advance }

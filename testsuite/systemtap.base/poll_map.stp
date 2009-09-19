@@ -9,7 +9,7 @@ probe kernel.function( "vfs_*" ).call {
 	called[execname(),probefunc()]++
 }
 
-probe timer.ms(1000)
+probe timer.ms(100)
 {
 	print("\n\n")
 	num_to_do = 10
