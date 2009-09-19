@@ -4381,6 +4381,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // too big to embed in the initialized .data stap_uprobe_spec array.
   s.op->newline() << "static struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
+  s.op->newline() << "unsigned long sdt_sem_address;"; // relocated to this process
   s.op->newline() << "int spec_index;"; // index into stap_uprobe_specs; <0 == free && unregistered
   s.op->newline(-1) << "} stap_uprobes [MAXUPROBES];"; // XXX: consider a slab cache or somesuch
   s.op->newline() << "DEFINE_MUTEX(stap_uprobes_lock);"; // protects against concurrent registration/unregistration
@@ -4438,15 +4439,14 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->assert_0_indent();
 
-  s.op->newline() << "static const struct stap_uprobe_spec {";
+  s.op->newline() << "static const struct stap_uprobe_spec {"; // NB: read-only structure
   s.op->newline(1) << "unsigned tfi;"; // index into stap_uprobe_finders[]
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
   s.op->newline() << "unsigned long sdt_sem_address;";
-  s.op->newline() << "struct task_struct *tsk;";
   s.op->newline() << "unsigned return_p:1;";
-  s.op->newline(-1) << "} stap_uprobe_specs [] = {";
+  s.op->newline(-1) << "} stap_uprobe_specs [] = {"; // NB: read-only structure
   s.op->indent(1);
   for (unsigned i =0; i<probes.size(); i++)
     {
@@ -4540,7 +4540,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "for (spec_index=0; spec_index<sizeof(stap_uprobe_specs)/sizeof(stap_uprobe_specs[0]); spec_index++) {";
   s.op->newline(1) << "int handled_p = 0;";
   s.op->newline() << "int slotted_p = 0;";
-  s.op->newline() << "struct stap_uprobe_spec *sups = (struct stap_uprobe_spec*) &stap_uprobe_specs [spec_index];";
+  s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [spec_index];";
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "int i;";
 
@@ -4595,6 +4595,18 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "sup->up.vaddr = relocation + sups->address;";
   s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
   s.op->newline() << "rc = register_uprobe (& sup->up);";
+
+  // PR10655: also handle ENABLED semaphore manipulations here
+  s.op->newline() << "if (!rc && sups->sdt_sem_address) {";
+  s.op->newline(1) << "unsigned short sdt_semaphore;"; // NB: fixed size
+  s.op->newline() << "sup->sdt_sem_address = relocation + sups->sdt_sem_address;";
+  s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore ++;";
+  s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  // XXX: error handling in __access_process_vm!
+  // XXX: need to analyze possibility of race condition
+  s.op->newline(-1) << "}";
+
   s.op->newline(-1) << "}";
   s.op->newline() << "if (rc) {"; // failed to register
   s.op->newline(1) << "_stp_warn (\"u*probe failed %s[%d] '%s' addr %p rc %d\\n\", tsk->comm, tsk->tgid, sups->pp, (void*)(relocation + sups->address), rc);";
@@ -4619,17 +4631,6 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "_stp_exit ();";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
-
-  //----------
-  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
-  s.op->newline(1) << "size_t sdt_semaphore;";
-  // XXX sups could get registered to more than one task!
-  s.op->newline() << "sups->tsk = tsk;";
-  s.op->newline() << "__access_process_vm (tsk, relocation + sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
-  s.op->newline() << "sdt_semaphore += 1;";
-  s.op->newline() << "__access_process_vm (tsk, relocation + sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
-  s.op->newline(-1) << "}";
-  //----------
 
   // close iteration over stap_uprobe_spec[]
   s.op->newline(-1) << "}";
@@ -4711,20 +4712,12 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "sup->spec_index = -1;";
   s.op->newline() << "#endif";
 
+  // PR10655: we don't need to fidget with the ENABLED semaphore either,
+  // as the process is gone, buh-bye, toodaloo, au revoir, see ya later!
+
   s.op->newline(-1) << "}";
 
   s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
-
-  //----------
-  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
-  s.op->newline(1) << "size_t sdt_semaphore;";
-  // XXX sups could get registered to more than one task!
-  s.op->newline() << "sups->tsk = tsk;";
-  s.op->newline() << "__access_process_vm (tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
-  s.op->newline() << "sdt_semaphore += 1;";
-  s.op->newline() << "__access_process_vm (tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
-  s.op->newline(-1) << "}";
-  //----------
 
   // close iteration over stap_uprobes[]
   s.op->newline(-1) << "}";
@@ -4849,16 +4842,35 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // free slot
 
-  //----------
+  // PR10655: decrement that ENABLED semaphore
   s.op->newline() << "if (sups->sdt_sem_address != 0) {";
-  s.op->newline(1) << "size_t sdt_semaphore;";
-  // XXX sups could get registered to more than one task!
-  s.op->newline() << "__access_process_vm (sups->tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
-  s.op->newline() << "sdt_semaphore -= 1;";
-  s.op->newline() << "__access_process_vm (sups->tsk, sups->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
-  s.op->newline(-1) << "}";
-  //----------
+  s.op->newline(1) << "unsigned short sdt_semaphore;"; // NB: fixed size
+  s.op->newline() << "pid_t pid = (sups->return_p ? sup->urp.u.pid : sup->up.pid);";
+  s.op->newline() << "struct task_struct *tsk;";
+  s.op->newline() << "rcu_read_lock();";
 
+  // XXX: what a gross cut & paste job from tapset/task.stp, just for a lousy pid->task_struct* lookup
+  s.op->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)";
+  s.op->newline() << "  { struct pid *p_pid = find_get_pid(pid);";
+  s.op->newline() << "  tsk = pid_task(p_pid, PIDTYPE_PID);";
+  s.op->newline() << "  put_pid(p_pid); }";
+  s.op->newline() << "#else";
+  s.op->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)";
+  s.op->newline() << "  tsk = find_task_by_vpid (pid);";
+  s.op->newline() << "#else";
+  s.op->newline() << "  tsk = find_task_by_pid (pid);";
+  s.op->newline() << "#endif /* 2.6.24 */";
+  s.op->newline() << "#endif /* 2.6.31 */";
+
+  s.op->newline() << "if (tsk) {"; // just in case the thing exited while we weren't watching
+  s.op->newline(1) << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
+  s.op->newline() << "sdt_semaphore --;";
+  s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  // XXX: error handling in __access_process_vm!
+  // XXX: need to analyze possibility of race condition
+  s.op->newline(-1) << "}";
+  s.op->newline() << "rcu_read_unlock();";
+  s.op->newline(-1) << "}";
 
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
@@ -4869,7 +4881,7 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "unregister_uretprobe (& sup->urp);";
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-uprobe spec %d index %d pid %d addr %p\\n\", sup->spec_index, j, sup->urp.u.pid, (void*) sup->urp.u.vaddr);";
+  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-uprobe spec %d index %d pid %d addr %p\\n\", sup->spec_index, j, sup->up.pid, (void*) sup->up.vaddr);";
   s.op->newline() << "#endif";
   s.op->newline() << "unregister_uprobe (& sup->up);";
   s.op->newline(-1) << "}";

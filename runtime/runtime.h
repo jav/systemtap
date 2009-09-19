@@ -28,6 +28,7 @@
 #include <linux/kallsyms.h>
 #include <linux/version.h>
 #include <linux/compat.h>
+#include <linux/sched.h>
 #include <linux/mm.h>
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,15)

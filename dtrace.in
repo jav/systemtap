@@ -37,7 +37,8 @@ class provider:
                 typedefs += (type_name + type_name + "_v;\n")
         return typedefs
     def semaphore_def_append(self, this_probe):
-        self.semaphores_def += "__extension__ long %s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (this_probe)
+        # NB: unsigned short is fixed in ABI
+        self.semaphores_def += "__extension__ unsigned short %s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (this_probe)
     def semaphore_def_write(self, file):
         file.write(self.semaphores_def)
     def generate(self, provider, header, add_typedefs):
@@ -106,7 +107,8 @@ class provider:
                     i += 1
                 self.h.write ('/* %s (%s) */\n' % (this_probe_canon,args_string))
                 self.h.write ('#define %s_ENABLED() %s_semaphore\n' % (this_probe_canon,this_probe))
-                self.h.write ("__extension__ extern long %s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (this_probe))
+                # NB: unsigned short is fixed in ABI
+                self.h.write ("__extension__ extern unsigned short %s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (this_probe))
                 self.h.write (define_str + ") \\\n")
                 self.h.write (stap_str + ")\n\n")
             elif (line.find("}") != -1 and have_provider):
