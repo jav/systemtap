@@ -309,7 +309,7 @@ function advertise_presence {
 
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "Systemtap Compile Server on `uname -n`" \
-	$stap_avahi_service_tag $port "$txt" > /dev/null 2>&1 &
+	$stap_avahi_service_tag $port "$txt" > /dev/null &
 
     echo "Systemtap Compile Server on `uname -n` listening on port $port"
 }

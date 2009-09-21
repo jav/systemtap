@@ -40,7 +40,7 @@ function find_servers {
 	fatal "Cannot create temporary file " $tmpfile
 
     # Find servers
-    avahi-browse $stap_avahi_service_tag --terminate -r 2>/dev/null > $tmpfile &
+    avahi-browse $stap_avahi_service_tag --terminate -r > $tmpfile &
     
     for ((attempt=0; $attempt < $timeout; ++attempt))
     do
