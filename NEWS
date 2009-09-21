@@ -8,6 +8,11 @@
   - When specified on stap-client, the -r and -a options will be considered
     when searching for a suitable server.
 
+- When using the systemtap client and server udp port 5353 must be open in
+  your firewall in order for the clent to find servers using avahi-browse. Also
+  the systemtap server will choose a random port in the range 1024-63999 for
+  accepting ssl connections.
+
 - Support for unprivileged users:
   ***********************************************************************
   * WARNING!!!!!!!!!!                                                   *
