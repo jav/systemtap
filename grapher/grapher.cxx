@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -102,8 +103,9 @@ extern "C"
   void handleChild(int signum, siginfo_t* info, void* context)
   {
     char buf[1];
+    ssize_t err;
     buf[0] = 1;
-    ssize_t err = write(signalPipe[1], buf, 1);
+    err = write(signalPipe[1], buf, 1);
   }
 }
 
@@ -184,8 +186,9 @@ int main(int argc, char** argv)
           dup2(pipefd[3], STDERR_FILENO);
           for (int i = 0; i < 4; ++i)
             close(pipefd[i]);
-          
-          execlp("stap", "stap", argv[1], static_cast<char*>(0));
+          char argv0[] = "stap";
+          argv[0] = argv0;
+          execvp("stap", argv);
           exit(1);
           return 1;
         }
