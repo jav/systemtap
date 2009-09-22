@@ -4457,15 +4457,14 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "{";
       string key = make_pbm_key (p);
       unsigned value = module_index[key];
-      s.op->line() << " .tfi=" << value << ",";
+      if (value != 0)
+        s.op->line() << " .tfi=" << value << ",";
       s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
 
       map<derived_probe*, Dwarf_Addr>::iterator its = s.sdt_semaphore_addr.find(p);
-      if (its == s.sdt_semaphore_addr.end())
-	s.op->line() << " .sdt_sem_address=(unsigned long)0x0,";
-      else
+      if (its != s.sdt_semaphore_addr.end())
         s.op->line() << " .sdt_sem_address=(unsigned long)0x"
                      << hex << its->second << dec << "ULL,";
 
