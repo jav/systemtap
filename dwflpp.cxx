@@ -1467,10 +1467,21 @@ dwflpp::die_entrypc (Dwarf_Die * die, Dwarf_Addr * addr)
         }
     }
 
+  // PR10574: reject subprograms where the entrypc address turns out
+  // to be 0, since they tend to correspond to duplicate-eliminated
+  // COMDAT copies of C++ functions.
+  if (rc == 0 && *addr == 0)
+    {
+      lookup_method += " (skip comdat)";
+      rc = 1;
+    }
+
   if (sess.verbose > 2)
-    clog << "entry-pc lookup (" << lookup_method << ") = 0x" << hex << *addr << dec
+    clog << "entry-pc lookup (" << lookup_method << " dieoffset: " << lex_cast_hex(dwarf_dieoffset (die))
+         << ") = 0x" << hex << *addr << dec
          << " (rc " << rc << ")"
          << endl;
+
   return (rc == 0);
 }
 
