@@ -38,9 +38,11 @@
 #define STP_RELAY_TIMER_INTERVAL		((HZ + 99) / 100)
 #endif
 
+/* Note: if struct _stp_relay_data_type changes, staplog.c might need
+ * to be changed. */
 struct _stp_relay_data_type {
-	enum _stp_transport_state transport_state;
 	struct rchan *rchan;
+	enum _stp_transport_state transport_state;
 	struct dentry *dropped_file;
 	atomic_t dropped;
 	atomic_t wakeup;

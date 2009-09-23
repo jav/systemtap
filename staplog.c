@@ -1,6 +1,7 @@
 /*
  crash shared object for retrieving systemtap buffer
  Copyright (c) 2007, Hitachi, Ltd.,
+ Copyright (C) 2009, Red Hat Inc.
  Created by Satoru Moriya <satoru.moriya.br@hitachi.com>
  Updated by Masami Hiramatsu <mhiramat@redhat.com>
 
@@ -124,18 +125,49 @@ ERR:
 	error(FATAL, "cannot get rchan offset\n");
 }
 
-static ulong get_rchan(ulong chan_addr)
+/*
+ * Here's a description of 'readmem()' from crash:
+ *
+ * ====
+ * readmem() is by far *the* workhorse of this whole program.  It
+ * reads memory from /dev/kmem, /dev/mem the dumpfile or /proc/kcore,
+ * whichever is appropriate:
+ *
+ *         addr  a user, kernel or physical memory address.
+ *      memtype  addr type: UVADDR, KVADDR, PHYSADDR, XENMACHADDR or
+ *               FILEADDR
+ *       buffer  supplied buffer to read the data into.
+ *         size  number of bytes to read.
+ *         type  string describing the request -- helpful when the
+ *               read fails.
+ * error_handle  what to do if the read fails: FAULT_ON_ERROR kills
+ *               the command immediately; RETURN_ON_ERROR returns
+ *               FALSE; QUIET suppresses the error message. 
+ * ====  
+ */
+
+static ulong get_rchan(ulong rchan_addr)
 {
 	ulong rchan;
 
-	readmem(chan_addr, KVADDR, &rchan, sizeof(void*),
-		"stp_channel", FAULT_ON_ERROR);
-	readmem(rchan + rchan_offsets.subbuf_size,
-		KVADDR, &chan.subbuf_size, sizeof(size_t),
-		"stp_channel.subbuf_size", FAULT_ON_ERROR);
-	readmem(rchan + rchan_offsets.n_subbufs,
-		KVADDR, &chan.n_subbufs, sizeof(size_t),
-		"stp_channel.n_subbufs", FAULT_ON_ERROR);
+	readmem(rchan_addr, KVADDR, &rchan, sizeof(void*),
+		"rchan", FAULT_ON_ERROR);
+	if (old_format == 1) {
+		readmem(rchan + rchan_offsets.subbuf_size,
+			KVADDR, &chan.subbuf_size, sizeof(unsigned),
+			"rchan.subbuf_size", FAULT_ON_ERROR);
+		readmem(rchan + rchan_offsets.n_subbufs,
+			KVADDR, &chan.n_subbufs, sizeof(unsigned),
+			"rchan.n_subbufs", FAULT_ON_ERROR);
+	} else {
+		readmem(rchan + rchan_offsets.subbuf_size,
+			KVADDR, &chan.subbuf_size, sizeof(size_t),
+			"rchan.subbuf_size", FAULT_ON_ERROR);
+		readmem(rchan + rchan_offsets.n_subbufs,
+			KVADDR, &chan.n_subbufs, sizeof(size_t),
+			"rchan.n_subbufs", FAULT_ON_ERROR);
+	}
+
 	return rchan;
 }
 
@@ -147,54 +179,70 @@ static void get_rchan_buf(int cpu, ulong rchan)
 	pcd = &per_cpu[cpu];
 	readmem(rchan + rchan_offsets.buf + sizeof(void*) * cpu,
 		KVADDR, &rchan_buf, sizeof(void*),
-		"stp_channel.buf", FAULT_ON_ERROR);
+		"rchan.buf", FAULT_ON_ERROR);
 	readmem(rchan_buf + rchan_offsets.buf_start,
 		KVADDR, &pcd->buf.start, sizeof(void*),
-		"stp_channel.buf.start", FAULT_ON_ERROR);
-	readmem(rchan_buf + rchan_offsets.buf_offset,
-		KVADDR, &pcd->buf.offset, sizeof(size_t),
-		"stp_channel.buf.offset", FAULT_ON_ERROR);
-	readmem(rchan_buf + rchan_offsets.buf_subbufs_produced,
-		KVADDR, &pcd->buf.subbufs_produced, sizeof(size_t),
-		"stp_channel.buf.subbufs_produced", FAULT_ON_ERROR);
-	readmem(rchan_buf + rchan_offsets.buf_padding,
-		KVADDR, &pcd->buf.padding, sizeof(size_t*),
-		"stp_channel.buf.padding", FAULT_ON_ERROR);
+		"rchan.buf.start", FAULT_ON_ERROR);
+	if (old_format == 1) {
+		readmem(rchan_buf + rchan_offsets.buf_offset,
+			KVADDR, &pcd->buf.offset, sizeof(unsigned),
+			"rchan.buf.offset", FAULT_ON_ERROR);
+		readmem(rchan_buf + rchan_offsets.buf_subbufs_produced,
+			KVADDR, &pcd->buf.subbufs_produced, sizeof(int32_t),
+			"rchan.buf.subbufs_produced", FAULT_ON_ERROR);
+		readmem(rchan_buf + rchan_offsets.buf_padding,
+			KVADDR, &pcd->buf.padding, sizeof(unsigned*),
+			"rchan.buf.padding", FAULT_ON_ERROR);
+	} else {
+		readmem(rchan_buf + rchan_offsets.buf_offset,
+			KVADDR, &pcd->buf.offset, sizeof(size_t),
+			"rchan.buf.offset", FAULT_ON_ERROR);
+		readmem(rchan_buf + rchan_offsets.buf_subbufs_produced,
+			KVADDR, &pcd->buf.subbufs_produced, sizeof(size_t),
+			"rchan.buf.subbufs_produced", FAULT_ON_ERROR);
+		readmem(rchan_buf + rchan_offsets.buf_padding,
+			KVADDR, &pcd->buf.padding, sizeof(size_t*),
+			"rchan.buf.padding", FAULT_ON_ERROR);
+	}
 	return;
 }
 
-static ulong get_rchan_addr(ulong stp_utt_addr)
+static ulong get_rchan_addr(ulong stp_relay_data)
 {
-	ulong stp_utt;
 	long offset;
 
-	readmem(stp_utt_addr, KVADDR, &stp_utt, sizeof(void*),
-		"stp_utt", FAULT_ON_ERROR);
+	/*
+	 * If we can get the member offset of struct
+	 * stp_relay_data.flushing, we'll assume this is a system
+	 * using STP_TRANSPORT_VERSION 1.  Note that this will fail if
+	 * the debuginfo of the trace module isn't available.
+	 */
+	if ((offset = MEMBER_OFFSET("_stp_relay_data_type", "flushing")) > 0) {
+		old_format = 1;
+	}
 
 	/*
-	 * If we couldn't get the member offset of struct utt_trace.rchan,
-	 * i.e. the debuginfo of the trace module isn't available, we use
-	 * sizeof(long) as the offset instead. Currently struct utt_trace
-	 * is defined as below:
+	 * If we can't get the member offset of struct
+	 * stp_relay_data.rchan, i.e. the debuginfo of the trace
+	 * module isn't available, we use 0 as the offset
+	 * instead. Currently struct _stp_relay_data_type is defined
+	 * as below:
 	 *
-	 *     struct utt_trace {
-	 *             int trace_state;
+	 *     struct _stp_relay_data_type {
 	 *             struct rchan *rchan;
 	 *             ...
 	 *     }
 	 *
-	 * Although the type of the preceding member is int, sizeof(long)
-	 * is OK, because rchan is aligned with long size on both 32-bit
-	 * and 64-bit environment. When the definision of struct utt_trace
-	 * changed, we must check if this code is correct.
+	 * If the definision of struct _stp_relay_data_type changes,
+	 * we must check if this code is correct.
 	 */
-	if ((offset = MEMBER_OFFSET("utt_trace", "rchan")) < 0) {
-		error(WARNING, "The debuginfo of the trace module hasn't been loaded. "
+	if ((offset = MEMBER_OFFSET("_stp_relay_data_type", "rchan")) < 0) {
+		error(WARNING, "The debuginfo of the trace module hasn't been loaded.\n"
 		      "You may not be able to retrieve the correct trace data.\n");
-		offset = sizeof(long);
+		offset = 0;
 	}
 
-	return (stp_utt + (ulong)offset);
+	return (stp_relay_data + (ulong)offset);
 }
 
 static int check_global_buffer(ulong rchan)
@@ -205,7 +253,7 @@ static int check_global_buffer(ulong rchan)
 	for (cpu = 0; cpu < 2; cpu++) {
 		readmem(rchan + rchan_offsets.buf + sizeof(void*) * cpu,
 			KVADDR, &rchan_buf[cpu], sizeof(void*),
-			"stp_channel.buf", FAULT_ON_ERROR);
+			"rchan.buf", FAULT_ON_ERROR);
 	}
 	if (rchan_buf[0] == rchan_buf[1])
 		return 1;
@@ -215,25 +263,24 @@ static int check_global_buffer(ulong rchan)
 static void setup_global_data(char *module)
 {
 	int i;
-	ulong stp_utt_addr = 0;
+	ulong stp_relay_data = 0;
 	ulong stp_rchan_addr = 0;
  	ulong rchan;
 
-	stp_utt_addr = symbol_value_module("_stp_utt", module);
-	if (stp_utt_addr == 0) {
-		stp_rchan_addr = symbol_value_module("_stp_chan", module);
-		if (stp_rchan_addr == 0) {
-			error(FATAL, "Failed to find _stp_utt/_stp_chan.\n",
-			      module);
-		}
-		old_format = 1;
-	} else {
-		stp_rchan_addr = get_rchan_addr(stp_utt_addr);
-		if (stp_rchan_addr == 0) {
-			error(FATAL, "Failed to find _stp_utt/_stp_chan.\n",
-			      module);
-		}
+	stp_relay_data = symbol_value_module("_stp_relay_data", module);
+	if (stp_relay_data == 0) {
+		error(FATAL,
+		      "Failed to find _stp_relay_data in module '%s'.\n",
+		      module);
 	}
+
+	stp_rchan_addr = get_rchan_addr(stp_relay_data);
+	if (stp_rchan_addr == 0) {
+		error(FATAL,
+		      "Failed to find '_stp_relay_data' in module '%s'.\n",
+		      module);
+	}
+
 	rchan = get_rchan(stp_rchan_addr);
 	for (i = 0; i < kt->cpus; i++)
 		get_rchan_buf(i, rchan);
@@ -273,7 +320,9 @@ static FILE *open_output_file(const char *dname, const char *fname)
 
 	output_file = GETBUF(sizeof(char) * (strlen(dname) + strlen(fname) + 2));
 	if (output_file == NULL) {
-		error(FATAL, "cannot allocate memory for logfile name\n");
+		error(FATAL,
+		      "cannot allocate memory for logfile name '%s%s'\n",
+		      dname, fname);
 	}
 
 	create_output_dir(dname);
@@ -341,14 +390,21 @@ static void output_cpu_logs(char *dirname)
 			/* read relayfs subbufs and write to log file */
 			idx = n % chan.n_subbufs;
 			source = pcd->buf.start + idx * chan.subbuf_size;
-			readmem((ulong)pcd->buf.padding + sizeof(padding) * idx,
-				KVADDR, &padding, sizeof(padding),
-				"padding", FAULT_ON_ERROR);
+			if (old_format == 1) {
+				readmem((ulong)pcd->buf.padding + sizeof(unsigned) * idx,
+					KVADDR, &padding, sizeof(unsigned),
+					"padding", FAULT_ON_ERROR);
+			} else {
+				readmem((ulong)pcd->buf.padding + sizeof(padding) * idx,
+					KVADDR, &padding, sizeof(padding),
+					"padding", FAULT_ON_ERROR);
+			}
 			if (n == end - 1) {
 				len = pcd->buf.offset;
 			} else {
 				len = chan.subbuf_size;
 			}
+
 			if (old_format == 1) {
 				source += sizeof(unsigned int);
 				len -= sizeof(unsigned int) + padding;
@@ -387,7 +443,7 @@ static void output_cpu_logs(char *dirname)
 			if (len) {
 				readmem((ulong)source, KVADDR, subbuf, len,
 					"may_broken_subbuf", FAULT_ON_ERROR);
-				if(fwrite(subbuf, len, 1, outfp) != 1) {
+				if (fwrite(subbuf, len, 1, outfp) != 1) {
 					error(FATAL,
 					      "cannot write log data(may_broken)\n");
 				}

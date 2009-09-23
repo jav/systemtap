@@ -2,7 +2,7 @@
  * relayfs.c - relayfs transport functions
  *
  * Copyright (C) IBM Corporation, 2005, 2006
- * Copyright (C) 2005-2008 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -23,9 +23,11 @@
 #include <linux/relayfs_fs.h>
 #include <linux/namei.h>
 
+/* Note: if struct _stp_relay_data_type changes, staplog.c might need
+ * to be changed. */
 struct _stp_relay_data_type {
-	enum _stp_transport_state transport_state;
 	struct rchan *rchan;
+	enum _stp_transport_state transport_state;
 	int flushing;
 };
 struct _stp_relay_data_type _stp_relay_data;
