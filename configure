@@ -654,8 +654,8 @@ RPM_CFLAGS
 rpm_LIBS
 BUILD_GRAPHER_FALSE
 BUILD_GRAPHER_TRUE
-GRAPHER_LIBS
-GRAPHER_CFLAGS
+gtkmm_LIBS
+gtkmm_CFLAGS
 PKG_CONFIG
 HAVE_NSS_FALSE
 HAVE_NSS_TRUE
@@ -808,8 +808,8 @@ CXXFLAGS
 CCC
 CPP
 PKG_CONFIG
-GRAPHER_CFLAGS
-GRAPHER_LIBS
+gtkmm_CFLAGS
+gtkmm_LIBS
 RPM_CFLAGS
 RPM_LIBS
 CXXCPP'
@@ -1487,10 +1487,9 @@ Some influential environment variables:
   CXXFLAGS    C++ compiler flags
   CPP         C preprocessor
   PKG_CONFIG  path to pkg-config utility
-  GRAPHER_CFLAGS
-              C compiler flags for GRAPHER, overriding pkg-config
-  GRAPHER_LIBS
-              linker flags for GRAPHER, overriding pkg-config
+  gtkmm_CFLAGS
+              C compiler flags for gtkmm, overriding pkg-config
+  gtkmm_LIBS  linker flags for gtkmm, overriding pkg-config
   RPM_CFLAGS  C compiler flags for RPM, overriding pkg-config
   RPM_LIBS    linker flags for RPM, overriding pkg-config
   CXXCPP      C++ preprocessor
@@ -7315,11 +7314,10 @@ fi
 
 # Check whether --enable-grapher was given.
 if test "${enable_grapher+set}" = set; then
-  enableval=$enable_grapher; enable_grapher=$enableval
+  enableval=$enable_grapher;
 else
-  enable_grapher="check"
+    enable_grapher="check"
 fi
-
 
 
 if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
@@ -7436,13 +7434,14 @@ $as_echo "no" >&6; }
 	fi
 
 fi
+if test "x$enable_grapher" != xno; then
 
 pkg_failed=no
-{ $as_echo "$as_me:$LINENO: checking for GRAPHER" >&5
-$as_echo_n "checking for GRAPHER... " >&6; }
+{ $as_echo "$as_me:$LINENO: checking for gtkmm" >&5
+$as_echo_n "checking for gtkmm... " >&6; }
 
-if test -n "$GRAPHER_CFLAGS"; then
-    pkg_cv_GRAPHER_CFLAGS="$GRAPHER_CFLAGS"
+if test -n "$gtkmm_CFLAGS"; then
+    pkg_cv_gtkmm_CFLAGS="$gtkmm_CFLAGS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkmm-2.4 >= 2.8.0\"") >&5
@@ -7450,15 +7449,15 @@ if test -n "$GRAPHER_CFLAGS"; then
   ac_status=$?
   $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_GRAPHER_CFLAGS=`$PKG_CONFIG --cflags "gtkmm-2.4 >= 2.8.0" 2>/dev/null`
+  pkg_cv_gtkmm_CFLAGS=`$PKG_CONFIG --cflags "gtkmm-2.4 >= 2.8.0" 2>/dev/null`
 else
   pkg_failed=yes
 fi
  else
     pkg_failed=untried
 fi
-if test -n "$GRAPHER_LIBS"; then
-    pkg_cv_GRAPHER_LIBS="$GRAPHER_LIBS"
+if test -n "$gtkmm_LIBS"; then
+    pkg_cv_gtkmm_LIBS="$gtkmm_LIBS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkmm-2.4 >= 2.8.0\"") >&5
@@ -7466,7 +7465,7 @@ if test -n "$GRAPHER_LIBS"; then
   ac_status=$?
   $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_GRAPHER_LIBS=`$PKG_CONFIG --libs "gtkmm-2.4 >= 2.8.0" 2>/dev/null`
+  pkg_cv_gtkmm_LIBS=`$PKG_CONFIG --libs "gtkmm-2.4 >= 2.8.0" 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -7484,25 +7483,33 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        GRAPHER_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gtkmm-2.4 >= 2.8.0" 2>&1`
+	        gtkmm_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gtkmm-2.4 >= 2.8.0" 2>&1`
         else
-	        GRAPHER_PKG_ERRORS=`$PKG_CONFIG --print-errors "gtkmm-2.4 >= 2.8.0" 2>&1`
+	        gtkmm_PKG_ERRORS=`$PKG_CONFIG --print-errors "gtkmm-2.4 >= 2.8.0" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
-	echo "$GRAPHER_PKG_ERRORS" >&5
+	echo "$gtkmm_PKG_ERRORS" >&5
 
 	{ $as_echo "$as_me:$LINENO: result: no" >&5
 $as_echo "no" >&6; }
-                have_gtkmm=no
+                have_gtkmm="no"
 elif test $pkg_failed = untried; then
-	have_gtkmm=no
+	have_gtkmm="no"
 else
-	GRAPHER_CFLAGS=$pkg_cv_GRAPHER_CFLAGS
-	GRAPHER_LIBS=$pkg_cv_GRAPHER_LIBS
+	gtkmm_CFLAGS=$pkg_cv_gtkmm_CFLAGS
+	gtkmm_LIBS=$pkg_cv_gtkmm_LIBS
         { $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }
-	have_gtkmm=yes
+	have_gtkmm="yes"
 fi
+fi
+
+if test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"; then
+  { { $as_echo "$as_me:$LINENO: error: systemtap cannot find required gtkmm-2.4 libs (gtkmm24-devel may need to be installed)" >&5
+$as_echo "$as_me: error: systemtap cannot find required gtkmm-2.4 libs (gtkmm24-devel may need to be installed)" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
  if test "x${have_gtkmm}" == "xyes" -a x"$enable_grapher" != "xno"; then
   BUILD_GRAPHER_TRUE=
   BUILD_GRAPHER_FALSE='#'

@@ -274,9 +274,18 @@ dnl Handle the optional grapher
 AC_ARG_ENABLE([grapher],
   AS_HELP_STRING([--enable-grapher],
     [enable building of grapher (default on if gtkmm is found).]),
-  [enable_grapher=$enableval],
-  [enable_grapher="check"])
-PKG_CHECK_MODULES([GRAPHER], [gtkmm-2.4 >= 2.8.0],have_gtkmm=yes,have_gtkmm=no)
+  [],					dnl ACTION-IF-GIVEN
+  [enable_grapher="check"])		dnl ACTION-IF-NOT-GIVEN
+dnl If the user didn't disable the grapher, check for gtkmm.
+AS_IF([test "x$enable_grapher" != xno],
+  [PKG_CHECK_MODULES([gtkmm], [gtkmm-2.4 >= 2.8.0],
+   have_gtkmm="yes", have_gtkmm="no")])
+dnl If the user explicitly said to enable the grapher, but we can't
+dnl (since gtkmm isn't installed), error.
+AS_IF([test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"],
+  AC_MSG_ERROR([systemtap cannot find required gtkmm-2.4 libs (gtkmm24-devel may need to be installed)]))
+dnl If the user didn't say to disable the grapher, and gtkmm is
+dnl installed, enable the grapher.
 AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_gtkmm}" == "xyes" -a x"$enable_grapher" != "xno"])
 
 
