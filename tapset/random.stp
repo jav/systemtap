@@ -1,0 +1,18 @@
+/** @addtogroup library
+* The library tapset is a collection of standard functions.
+* @{
+*/
+
+function randint:long(min:long, max:long) 
+%{	
+	
+	unsigned long difference = (unsigned long)(THIS->max - THIS->min);
+	
+	if ( THIS->min >= THIS->max || (THIS->max -THIS->min) > (1024*1024) ){
+		CONTEXT->last_error = "either first argument was not strictly less than the second argument, or their difference was greater than (1024*1024)";
+	}
+	THIS->__retvalue = THIS->min + ( _stp_random_pm_u(2147483646) % (difference + 1) );
+	
+%}
+
+/** @} */
