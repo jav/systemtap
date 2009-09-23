@@ -543,6 +543,19 @@ if test $build_elfutils = yes; then
   *) elfutils_srcdir="../$with_elfutils" ;;
   esac
   AC_MSG_NOTICE([running ${elfutils_srcdir}/configure])
+
+  save_CFLAGS="$CFLAGS"
+  save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fgnu89-inline"
+  CFLAGS="$CFLAGS -fgnu89-inline"
+  gnu89_inline_flag=""
+  AC_COMPILE_IFELSE([int something ();], [
+    AC_MSG_NOTICE([Compiling elfutils with gcc -fgnu89-inline])
+    gnu89_inline_flag="-fgnu89-inline"],[
+    AC_MSG_NOTICE([Compiler does not support -fgnu89-inline])])
+  CFLAGS="$save_CFLAGS"
+  CXXFLAGS="$save_CXXFLAGS"
+
   # Our libdw.so's libebl will look in $ORIGIN/../lib/... but that
   # $ORIGIN is where libdw.so resides, which is not where there is a ../lib.
   # Note that $libdir might be using a quoted use of $exec_prefix or $prefix.
@@ -555,7 +568,7 @@ if test $build_elfutils = yes; then
 				--libdir="${here}/lib-elfutils" \
 				--exec-prefix="$exec_prefix" \
 				--prefix="$prefix" \
-				CFLAGS="${CFLAGS/-Wall/} -fgnu89-inline" \
+				CFLAGS="${CFLAGS/-Wall/} $gnu89_inline_flag" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
    if test -f ${elfutils_srcdir}/config/version.h.in; then
         echo Trying to install elfutils version header...
