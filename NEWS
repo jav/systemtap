@@ -1,17 +1,17 @@
 * What's new
 
 - Cross compilation using the systemtap client and server
-  - stap-start-server now accepts the -r, -R, -I, -B and -a options in order
-    to start a cross compiling server. The server will correctly advertise
-    itself with respect to the kernel release and architecture that it
-    compiles for.
-  - When specified on stap-client, the -r and -a options will be considered
-    when searching for a suitable server.
+  - stap-start-server now accepts the -r, -R, -I, -B and -a options in
+    order to start a cross compiling server. The server will correctly
+    advertise itself with respect to the kernel release and architecture
+    that it compiles for.
+  - When specified on stap-client, the -r and -a options will be
+    considered when searching for a suitable server.
 
-- When using the systemtap client and server udp port 5353 must be open in
-  your firewall in order for the clent to find servers using avahi-browse. Also
-  the systemtap server will choose a random port in the range 1024-63999 for
-  accepting ssl connections.
+- When using the systemtap client and server udp port 5353 must be open
+  in your firewall in order for the clent to find servers using
+  avahi-browse.  Also the systemtap server will choose a random port in
+  the range 1024-63999 for accepting ssl connections.
 
 - Support for unprivileged users:
   ***********************************************************************
@@ -21,40 +21,41 @@
   * unprivileged users. The user interface and restrictions will change *
   * as this feature evolves.                                            *
   ***********************************************************************
-  - Systemtap modules generated from scripts which use a restricted subset
-    of the features available may be loaded by staprun for unprivileged
-    users. Previously, staprun would load modules only for root or for
-    members of the groups stapdev and stapusr.
+  - Systemtap modules generated from scripts which use a restricted
+    subset of the features available may be loaded by staprun for
+    unprivileged users. Previously, staprun would load modules only for
+    root or for members of the groups stapdev and stapusr.
   - Using the --unprivileged option on stap enables translation-time
     checking for use by unprivileged users (see restrictions below).
   - All modules deemed suitable for use by unprivileged users will be
     signed by the systemtap server when --unprivileged is specified on
-    stap-client. See module signing in release 0.9.8 and stap-server in release
-    0.9 below.
+    stap-client. See module signing in release 0.9.8 and stap-server in
+    release 0.9 below.
   - Modules signed by trusted signers (servers) and verified by staprun
     will be loaded by staprun regardless of the user's privilege level.
   - The system administrator asserts the trustworthiness of a signer
     (server) by running stap-authorize-signing-cert <cert-file> as root,
     where the <cert-file> can be found in
-    ~<user>/.systemtap/ssl/server/stap.cert for servers started
-    by ordinary users and in $sysconfdir/systemtap/ssl/server/stap.cert
-    for servers started by root.
-  - Restrictions are intentionally strict at this time and may be relaxed
-    in the future:
+    ~<user>/.systemtap/ssl/server/stap.cert for servers started by
+    ordinary users and in $sysconfdir/systemtap/ssl/server/stap.cert for
+    servers started by root.
+  - Restrictions are intentionally strict at this time and may be
+    relaxed in the future:
      - probe points are restricted to:
          begin, begin(n), end, end(n), error, error(n), never,
          timer.{jiffies,s,sec,ms,msec,us,usec,ns,nsec}(n)*, timer.hz(n),
-	 process.* (for processes owned by the user).
+         process.* (for processes owned by the user).
      - use of embedded C code is not allowed.
      - use of tapset functions is restricted.
        - some tapset functions may not be used at all. A message will be
          generated at module compilation time.
-       - some actions by allowed tapset functions may only be performed in the
-         context of the user's own process. A runtime fault will occur in these
-	 situations, for example, direct memory access.
-       - The is_myproc() tapset function has been provided so that tapset
-         writers for unprivileged users can check that the context is of the
-         users own process before attempting these actions.
+       - some actions by allowed tapset functions may only be performed
+         in the context of the user's own process. A runtime fault will
+         occur in these situations, for example, direct memory access.
+       - The is_myproc() tapset function has been provided so that
+         tapset writers for unprivileged users can check that the
+         context is of the users own process before attempting these
+         actions.
      - accessing the kernel memory space is not allowed.
      - The following command line options may not be used by stap-client
        -g, -I, -D, -R, -B
@@ -88,9 +89,9 @@
 
 - It is now possible to define multiple probe aliases with the same name.
   A probe will expand to all matching aliases.
-	probe foo = bar { }
-	probe foo = baz { }
-	probe foo { } # expands twice, once to bar and once to baz
+    probe foo = bar { }
+    probe foo = baz { }
+    probe foo { } # expands twice, once to bar and once to baz
 
 - A new experimental transport mechanism, using ftrace's ring_buffer,
   has been added.  This may become the default transport mechanism in
