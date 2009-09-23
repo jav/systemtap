@@ -106,6 +106,28 @@ static int _stp_random_pm (int n)
 #endif /* _STP_TEST_ */
 
 
+#ifndef _STP_TEST_
+/** Return a random integer between 0 and n - 1.
+ * @param n how far from zero to go.  Make it positive but less than a million or so.
+ */
+static int _stp_random_pm_u (int n)
+{
+	static unsigned long seed;
+	static int initialized_p = 0;
+
+	if (unlikely (! initialized_p)) {
+		seed = (unsigned long) jiffies;
+		initialized_p = 1;
+	}
+
+	/* from glibc rand man page */
+	seed = seed * 1103515245 + 12345;
+
+	return (seed % n);
+}
+#endif /* _STP_TEST_ */
+
+
 #if defined (__i386__) || defined (__arm__)
 
 /* 64-bit division functions extracted from libgcc */
