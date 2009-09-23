@@ -1,5 +1,8 @@
 * What's new
 
+- process().mark() probes now use an enabling semaphore to reduce the
+  computation overhead of dormant probes.
+
 - The function spec for dwarf probes now supports C++ scopes, so you can
   limit the probes to specific namespaces or classes.  Multiple scopes
   can be specified, and they will be matched progressively outward.
