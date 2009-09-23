@@ -84,33 +84,10 @@ static int64_t _stp_mod64 (const char **error, int64_t x, int64_t y)
 }
 
 
-#ifndef _STP_TEST_
-/** Return a random integer between -n and n.
- * @param n how far from zero to go.  Make it positive but less than a million or so.
- */
-static int _stp_random_pm (int n)
-{
-	static unsigned long seed;
-	static int initialized_p = 0;
-	
-	if (unlikely (! initialized_p)) {
-		seed = (unsigned long) jiffies;
-		initialized_p = 1;
-	}
-	
-	/* from glibc rand man page */
-	seed = seed * 1103515245 + 12345;
-	
-	return (seed % (2*n+1)-n);
-}
-#endif /* _STP_TEST_ */
-
-
-#ifndef _STP_TEST_
 /** Return a random integer between 0 and n - 1.
  * @param n how far from zero to go.  Make it positive but less than a million or so.
  */
-static int _stp_random_pm_u (int n)
+static unsigned long _stp_random_u (unsigned long n)
 {
 	static unsigned long seed;
 	static int initialized_p = 0;
@@ -123,9 +100,18 @@ static int _stp_random_pm_u (int n)
 	/* from glibc rand man page */
 	seed = seed * 1103515245 + 12345;
 
-	return (seed % n);
+	return (n == 0 ? 0 : seed % n);
 }
-#endif /* _STP_TEST_ */
+
+
+/** Return a random integer between -n and n.
+ * @param n how far from zero to go.  Make it positive but less than a million or so.
+ */
+static int _stp_random_pm (unsigned n)
+{
+        return -(int)n + (int)_stp_random_u (2*n + 1);
+}
+
 
 
 #if defined (__i386__) || defined (__arm__)

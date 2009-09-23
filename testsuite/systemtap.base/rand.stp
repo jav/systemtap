@@ -8,34 +8,12 @@ function checkStatus(status:long){
 
 probe begin
 {
-
-	for (i = 0; i < 100; i ++) {
-			num = randint(-5, 5)
-		if (num > 5) {
-			printf("NUMBER TOO HIGH\n")
-		}
-		if (num < -5) {
-			printf("NUMBER TOO LOW\n")
+	status = 0
+        for (i=1; i <= 100; i++){
+		if (randint(i) < 0 || randint(i) > i) {
+			status = 1
 		}
 	}
-
-	for (i = 0; i < 500; i ++) {
-		num = randint(-3, 3)
-		if (num > 3) {
-			printf("NUMBER TOO HIGH\n")
-		}
-		if (num < -3) {
-			printf("NUMBER TOO LOW\n")
-		}
-	}
-	
-		status = 0
-		for (i=1; i <= 100; i++){
-			if ( randint(-1*i,i) < (-1*i) || randint(-1*i,i) > i ){
-					status = 1
-			}
-		}
-		checkStatus(status)
-		
+	checkStatus(status)
         exit()
 }

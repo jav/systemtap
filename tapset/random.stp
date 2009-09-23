@@ -1,18 +1,14 @@
-/** @addtogroup library
-* The library tapset is a collection of standard functions.
-* @{
-*/
-
-function randint:long(min:long, max:long) 
+/**
+ * sfunction randint - Return a random number between [0,n)
+ * @n: Number past upper limit of range, not larger than 2**20.
+ */
+function randint:long(n:long) 
 %{	
-	
-	unsigned long difference = (unsigned long)(THIS->max - THIS->min);
-	
-	if ( THIS->min >= THIS->max || (THIS->max -THIS->min) > (1024*1024) ){
-		CONTEXT->last_error = "either first argument was not strictly less than the second argument, or their difference was greater than (1024*1024)";
-	}
-	THIS->__retvalue = THIS->min + ( _stp_random_pm_u(2147483646) % (difference + 1) );
-	
+#define RANDMAX (1024*1024)
+        if (THIS->n > RANDMAX)
+           CONTEXT->last_error = "range too wide";
+        else {
+  	   THIS->__retvalue = (uint64_t) _stp_random_u((unsigned long) THIS->n);
+        }
+#undef RANDMAX
 %}
-
-/** @} */
