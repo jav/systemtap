@@ -8,7 +8,7 @@
 %{!?with_grapher: %define with_grapher 1}
 
 Name: systemtap
-Version: 0.9.9
+Version: 1.0
 Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
@@ -387,6 +387,9 @@ exit 0
 
 
 %changelog
+* Tue Sep 22 2009 Josh Stone <jistone@redhat.com> - 1.0-1
+- Upstream release.
+
 * Tue Aug  4 2009 Josh Stone <jistone@redhat.com> - 0.9.9-1
 - Upstream release.
 

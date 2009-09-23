@@ -1,4 +1,4 @@
-* What's new
+* What's new in verson 1.0
 
 - process().mark() probes now use an enabling semaphore to reduce the
   computation overhead of dormant probes.
