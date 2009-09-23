@@ -1,5 +1,14 @@
 * What's new
 
+- It is now possible to cross-compile systemtap scripts for foreign
+  architectures, using the new '-a ARCH' and '-B OPT=VALUE' flags.
+  For example, put arm-linux-gcc etc. into your $PATH, and point
+  systemtap at the target kernel build tree with:
+     stap -a arm -B CROSS_COMPILE=arm-linux- -r /build/tree  [...]
+  The -B option is passed to kbuild make.  -r identifies the already
+  configured/built kernel tree and -a its architecture (kbuild ARCH=...).
+  Systemtap will infer -p4.
+
 - Cross compilation using the systemtap client and server
   - stap-start-server now accepts the -r, -R, -I, -B and -a options in
     order to start a cross compiling server. The server will correctly
@@ -71,15 +80,6 @@
 
 - The preprocessor now supports || and && in the conditions.
   e.g. %( arch == "x86_64" || arch == "ia64" %: ... %)
-
-- It is now possible to cross-compile systemtap scripts for foreign
-  architectures, using the new '-a ARCH' and '-B OPT=VALUE' flags.
-  For example, put arm-linux-gcc etc. into your $PATH, and point
-  systemtap at the target kernel build tree with:
-     stap -a arm -B CROSS_COMPILE=arm-linux- -r /build/tree  [...]
-  The -B option is passed to kbuild make.  -r identifies the already
-  configured/built kernel tree and -a its architecture (kbuild ARCH=...).
-  Systemtap will infer -p4.
 
 - The systemtap notion of "architecture" now matches the kernel's, rather
   than that of "uname -m".  This means that 32-bit i386 family are all
