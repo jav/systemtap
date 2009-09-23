@@ -6,22 +6,54 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-// send a string out with a newline
-// Deprecated.  print* functions are much more efficient.
+
+/**
+ * sfunction log - Send a line to the common trace buffer.
+ * @msg: The formatted message string.
+ *
+ * Description: An implicit end-of-line is added.
+ * Same as println() with a single string argument.
+ */
 function log (msg:string) %{ /* unprivileged */
-	_stp_printf ("%s\n", THIS->msg);
+	_stp_print (THIS->msg);
 %}
 
+
+/**
+ * sfunction warn - Send a line to the warning stream.
+ * @msg: The formatted message string.
+ *
+ * Description: An implicit end-of-line is added.  staprun
+ * prepends the string "WARNING:".
+ */
 function warn (msg:string) %{ /* unprivileged */
     _stp_warn ("%s", THIS->msg);
 %}
 
-// NB: exit() does *not* cause immediate return from current function/probe
+
+/**
+ * sfunction exit - Start shutting down probing script.
+ *
+ * Description: This only enqueues a request to start
+ * shutting down the script.  New probes will not fire
+ * (except "end" probes), but all currently   
+ * running ones may complete their work.
+ */
 function exit () %{ /* unprivileged */
     atomic_set (&session_state, STAP_SESSION_STOPPING);
     _stp_exit ();
 %}
 
+
+/**
+ * sfunction error - Send an error message.
+ * @msg: The formatted message string.
+ *
+ * Description: An implicit end-of-line is added.  staprun prepends
+ * the string "ERROR:".  Sending an error message aborts the currently
+ * running probe.  Depending on the MAXERRORS parameter, it may
+ * trigger an exit().
+ */
 function error (msg:string) %{ /* unprivileged */
     /* This is an assignment of a local char[] to a global char*.
        It would normally be just as unsafe as returning a pointer to
@@ -35,4 +67,27 @@ function error (msg:string) %{ /* unprivileged */
 
 function stp_print_binary(n:long, arg1:long, arg2:long, arg3:long, arg4:long) %{
 	_stp_print_binary (THIS->n, THIS->arg1, THIS->arg2, THIS->arg3, THIS->arg4);
+%}
+
+
+/**
+ * sfunction ftrace - Send a message to the ftrace ring-buffer (or else printk).
+ * @msg: The formatted message string.
+ *
+ * Description: If the ftrace ring-buffer is configured & available,
+ * see /debugfs/tracing/trace for the message.  Otherwise, the
+ * message may be quietly dropped.  An implicit end-of-line is added.
+ */
+function ftrace (msg:string) %{ /* unprivileged */
+#ifdef STAPCONF_TRACE_PRINTK
+       static char *fmt = "%s\n";
+       trace_printk (fmt, THIS->msg);
+
+       /* The "fmt" is designed to be non __builtin_constant_p(), so as
+       to defeat trace_printk -> __trace_bprintk optimization.  That's
+       because bprintk doesn't save the incoming strings, only their
+       addresses. */
+#else
+       /* printk(KERN_DEBUG "%s\n", THIS->msg); */
+#endif
 %}

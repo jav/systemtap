@@ -23,36 +23,6 @@ example2:unknown ()
 In function "example2", do something.  There is no explicit return value
 and take no parameters.
 
-.SS PRINTING
-
-.TP
-log:unknown (msg:string)
-Writes the given string to the common trace buffer.  Append an implicit
-end-of-line. Deprecated.  Please use the faster print functions.
-
-.TP
-warn:unknown (msg:string)
-Write the given string to the warning stream.  Append an implicit end-of-line.
-.I staprun
-prepends the string "WARNING:". 
-
-.TP
-error:unknown (msg:string)
-An error has occurred.  Write the given string to the error stream.
-Append an implicit end-of-line.
-.I staprun
-prepends the string "ERROR:".
-Block any further execution of statements in this probe.  If the number
-of errors so far exceeds the MAXERRORS parameter, also trigger an 
-.IR exit() .
-
-.TP
-exit:unknown ()
-Enqueue a request to shut down the systemtap session.  This does
-.B not
-unwind the current probe handler, nor block new probe handlers.
-.I staprun
-will shortly respond to the request and initiate an orderly shutdown.
 
 .SS CONVERSIONS
 .PP

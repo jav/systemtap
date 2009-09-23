@@ -1,3 +1,8 @@
+* What's new
+
+- ftrace(msg:string) tapset function to send strings to the system-wide
+  ftrace ring-buffer (if any).
+
 * What's new in verson 1.0
 
 - process().mark() probes now use an enabling semaphore to reduce the
