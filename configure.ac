@@ -274,9 +274,18 @@ dnl Handle the optional grapher
 AC_ARG_ENABLE([grapher],
   AS_HELP_STRING([--enable-grapher],
     [enable building of grapher (default on if gtkmm is found).]),
-  [enable_grapher=$enableval],
-  [enable_grapher="check"])
-PKG_CHECK_MODULES([GRAPHER], [gtkmm-2.4 >= 2.8.0],have_gtkmm=yes,have_gtkmm=no)
+  [],					dnl ACTION-IF-GIVEN
+  [enable_grapher="check"])		dnl ACTION-IF-NOT-GIVEN
+dnl If the user didn't disable the grapher, check for gtkmm.
+AS_IF([test "x$enable_grapher" != xno],
+  [PKG_CHECK_MODULES([gtkmm], [gtkmm-2.4 >= 2.8.0],
+   have_gtkmm="yes", have_gtkmm="no")])
+dnl If the user explicitly said to enable the grapher, but we can't
+dnl (since gtkmm isn't installed), error.
+AS_IF([test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"],
+  AC_MSG_ERROR([systemtap cannot find required gtkmm-2.4 libs (gtkmm24-devel may need to be installed)]))
+dnl If the user didn't say to disable the grapher, and gtkmm is
+dnl installed, enable the grapher.
 AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_gtkmm}" == "xyes" -a x"$enable_grapher" != "xno"])
 
 
@@ -543,6 +552,19 @@ if test $build_elfutils = yes; then
   *) elfutils_srcdir="../$with_elfutils" ;;
   esac
   AC_MSG_NOTICE([running ${elfutils_srcdir}/configure])
+
+  save_CFLAGS="$CFLAGS"
+  save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fgnu89-inline"
+  CFLAGS="$CFLAGS -fgnu89-inline"
+  gnu89_inline_flag=""
+  AC_COMPILE_IFELSE([int something ();], [
+    AC_MSG_NOTICE([Compiling elfutils with gcc -fgnu89-inline])
+    gnu89_inline_flag="-fgnu89-inline"],[
+    AC_MSG_NOTICE([Compiler does not support -fgnu89-inline])])
+  CFLAGS="$save_CFLAGS"
+  CXXFLAGS="$save_CXXFLAGS"
+
   # Our libdw.so's libebl will look in $ORIGIN/../lib/... but that
   # $ORIGIN is where libdw.so resides, which is not where there is a ../lib.
   # Note that $libdir might be using a quoted use of $exec_prefix or $prefix.
@@ -555,7 +577,7 @@ if test $build_elfutils = yes; then
 				--libdir="${here}/lib-elfutils" \
 				--exec-prefix="$exec_prefix" \
 				--prefix="$prefix" \
-				CFLAGS="${CFLAGS/-Wall/} -fgnu89-inline" \
+				CFLAGS="${CFLAGS/-Wall/} $gnu89_inline_flag" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
    if test -f ${elfutils_srcdir}/config/version.h.in; then
         echo Trying to install elfutils version header...
