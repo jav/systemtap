@@ -1152,6 +1152,105 @@ c_translate_location (struct obstack *pool,
   return NULL;
 }
 
+/* Translate a DW_AT_const_value attribute as if it were a location of
+   constant-value flavor.  */
+
+struct location *
+c_translate_constant (struct obstack *pool,
+		      void (*fail) (void *arg,
+				    const char *fmt, ...)
+		      __attribute__ ((noreturn,
+				      format (printf, 2, 3))),
+		      void *fail_arg,
+		      void (*emit_address) (void *fail_arg,
+					    struct obstack *,
+					    Dwarf_Addr),
+		      int indent, Dwarf_Addr dwbias, Dwarf_Attribute *attr)
+{
+  indent += 2;
+
+  struct location *loc = obstack_alloc (pool, sizeof *loc);
+  loc->fail = fail;
+  loc->fail_arg = fail_arg;
+  loc->emit_address = emit_address ?: &default_emit_address;
+  loc->byte_size = 0;
+  loc->frame_base = NULL;
+  loc->address.stack_depth = 0;
+  loc->address.declare = NULL;
+  loc->address.used_deref = false;
+
+  switch (dwarf_whatform (attr))
+    {
+    case DW_FORM_addr:
+      {
+	Dwarf_Addr addr;
+	if (dwarf_formaddr (attr, &addr) != 0)
+	  {
+	    FAIL (loc, N_("cannot get constant address: %s"),
+		  dwarf_errmsg (-1));
+	    return NULL;
+	  }
+	loc->type = loc_value;
+	obstack_printf (pool, "%*saddr = ", indent * 2, "");
+	(*loc->emit_address) (loc->fail_arg, pool, dwbias + addr);
+	obstack_grow (pool, ";\n", 3);
+	loc->address.program = obstack_finish (pool);
+	break;
+      }
+
+    case DW_FORM_block:
+    case DW_FORM_block1:
+    case DW_FORM_block2:
+    case DW_FORM_block4:
+      {
+	Dwarf_Block block;
+	if (dwarf_formblock (attr, &block) != 0)
+	  {
+	    FAIL (loc, N_("cannot get constant block: %s"), dwarf_errmsg (-1));
+	    return NULL;
+	  }
+	loc->type = loc_constant;
+	loc->byte_size = block.length;
+	loc->constant_block = block.data;
+	break;
+      }
+
+    case DW_FORM_string:
+    case DW_FORM_strp:
+      {
+	const char *string = dwarf_formstring (attr);
+	if (string == NULL)
+	  {
+	    FAIL (loc, N_("cannot get string constant: %s"), dwarf_errmsg (-1));
+	    return NULL;
+	  }
+	loc->type = loc_constant;
+	loc->byte_size = strlen (string) + 1;
+	loc->constant_block = string;
+	break;
+      }
+
+    default:
+      {
+	Dwarf_Sword value;
+	if (dwarf_formsdata (attr, &value) != 0)
+	  {
+	    FAIL (loc, N_("cannot get constant value: %s"), dwarf_errmsg (-1));
+	    return NULL;
+	  }
+	loc->type = loc_value;
+	obstack_printf (pool, "%*saddr = %" PRId64 "L\n;",
+			indent * 2, "", value);
+	obstack_1grow (pool, '\0');
+	loc->address.program = obstack_finish (pool);
+	break;
+      }
+    }
+
+  return loc;
+}
+
+
 /* Translate a C fragment for a direct argument VALUE.  On errors, call FAIL,
    which should not return.  Any later errors will use FAIL and FAIL_ARG from
    this translate call.  On success, return the fragment created. */
@@ -1166,7 +1265,7 @@ c_translate_argument (struct obstack *pool,
 {
   indent += 2;
 
-  obstack_printf(pool, "%*saddr = %s;\n", indent * 2, "", value);
+  obstack_printf (pool, "%*saddr = %s;\n", indent * 2, "", value);
   obstack_1grow (pool, '\0');
   char *program = obstack_finish (pool);
 
@@ -1174,7 +1273,7 @@ c_translate_argument (struct obstack *pool,
   loc->next = NULL;
   loc->fail = fail;
   loc->fail_arg = fail_arg;
-  loc->emit_address = emit_address;
+  loc->emit_address = emit_address ?: &default_emit_address;
   loc->ops = NULL;
   loc->nops = 0;
   loc->byte_size = 0;

@@ -122,22 +122,29 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 	}
     }
 
-  Dwarf_Attribute attr_mem;
-
-  if (dwarf_attr_integrate (vardie, DW_AT_location, &attr_mem) == NULL)
-    error (2, 0, _("cannot get location of variable: %s"),
-	   dwarf_errmsg (-1));
-
-#define FIELD "addr"
-#define emit(fmt, ...) printf ("  addr = " fmt "\n", ## __VA_ARGS__)
-
-  size_t locexpr_len;
-  const Dwarf_Op *locexpr = get_location (cubias, pc, &attr_mem, &locexpr_len);
-
   struct location *head, *tail = NULL;
-  head = c_translate_location (&pool, &fail, NULL, NULL,
-			       1, cubias, pc, &attr_mem, locexpr, locexpr_len,
-			       &tail, fb_attr, cfa_ops);
+
+  Dwarf_Attribute attr_mem;
+  if (dwarf_attr_integrate (vardie, DW_AT_const_value, &attr_mem) != NULL)
+    /* There is no location expression, but a constant value instead.  */
+    head = tail = c_translate_constant (&pool, &fail, NULL, NULL,
+					1, cubias, &attr_mem);
+  else
+    {
+
+      if (dwarf_attr_integrate (vardie, DW_AT_location, &attr_mem) == NULL)
+	error (2, 0, _("cannot get location of variable: %s"),
+	       dwarf_errmsg (-1));
+
+      size_t locexpr_len;
+      const Dwarf_Op *locexpr = get_location (cubias, pc,
+					      &attr_mem, &locexpr_len);
+
+      head = c_translate_location (&pool, &fail, NULL, NULL,
+				   1, cubias, pc, &attr_mem,
+				   locexpr, locexpr_len,
+				   &tail, fb_attr, cfa_ops);
+    }
 
   if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
     error (2, 0, _("cannot get type of variable: %s"),
@@ -244,8 +251,9 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 	      else
 #endif
 		{
-		  locexpr = get_location (cubias, pc, &attr_mem,
-					  &locexpr_len);
+		  size_t locexpr_len;
+		  const Dwarf_Op *locexpr = get_location (cubias, pc, &attr_mem,
+							  &locexpr_len);
 		  c_translate_location (&pool, NULL, NULL, NULL,
 					1, cubias, pc, &attr_mem,
 					locexpr, locexpr_len,
