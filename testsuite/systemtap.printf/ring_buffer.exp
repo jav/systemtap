@@ -1,0 +1,32 @@
+# Basic ring_buffer test.
+
+proc ring_buffer_p {} {
+    set path "/proc/kallsyms"
+    if {! [catch {exec grep -q ring_buffer_consume $path} dummy]} {
+        return 1
+    } else {
+        return 0
+    }
+}
+
+set script {
+    probe begin {
+	printf("systemtap starting probe\n")
+	exit()
+    }
+    probe end {
+	printf("systemtap ending probe\n")
+	printf("Hello")
+	printf("World\n")
+    }
+}
+set output "HelloWorld\r\n"
+
+set TEST_NAME "RING_BUFFER"
+if {![installtest_p]} {
+    untested "$TEST_NAME"
+} elseif {![ring_buffer_p]} {
+    untested "$TEST_NAME : no kernel ring_buffer support found"
+} else {
+    stap_run $TEST_NAME no_load $output -DSTP_USE_RING_BUFFER -e $script
+}
