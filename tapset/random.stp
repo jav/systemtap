@@ -3,7 +3,7 @@
  * @n: Number past upper limit of range, not larger than 2**20.
  */
 function randint:long(n:long) 
-%{	
+%{	/* unprivileged */
 #define RANDMAX (1024*1024)
         if (THIS->n > RANDMAX)
            CONTEXT->last_error = "range too wide";
