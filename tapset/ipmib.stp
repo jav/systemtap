@@ -40,10 +40,10 @@ global ReasmReqds
 global FragOKs
 global FragFails
 // global FragCreates
-global InMcastPkts
-global OutMcastPkts
-global InBcastPkts
-global OutBcastPkts
+// global InMcastPkts
+// global OutMcastPkts
+// global InBcastPkts
+// global OutBcastPkts
 
 /**
  * sfunction ipmib_remote_addr - Get the remote ip address.
@@ -481,81 +481,3 @@ function __output_route_type_new:long (skb:long)
 		THIS->__retvalue = RTN_UNSPEC;
 	CATCH_DEREF_FAULT();
 %}
-
-/**
- * probe tcpmib.InMcastPkts
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
- *
- * Counter Name: InMcastPkts
- * MIB: IPSTATS_MIB_INMCASTPKTS
- *
- */
-probe ipmib.InMcastPkts=kernel.function("ip_rcv_finish").return
-{
-	skb = $skb;
-	op = 1;
-	SourceIsLocal = 0;
-	if ($return == _net_rx_drop()) next;
-	if (_input_route_type(skb) != _rtn_multicast()) next;
-	key = ipmib_filter_key(skb,op,SourceIsLocal);
-	if ( key ) InMcastPkts[key] += op;
-}
-
-/**
- * probe tcpmib.OutMcastPkts
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
- *
- * Counter Name: OutMcastPkts
- * MIB: IPSTATS_MIB_OUTMCASTPKTS
- *
- */
-probe ipmib.OutMcastPkts=kernel.function("ip_finish_output2")
-{
-	skb = $skb;
-	op = 1;
-	SourceIsLocal = 1;
-	if (_output_route_type(skb) != _rtn_multicast()) next
-	key = ipmib_filter_key(skb,op,SourceIsLocal);
-	if ( key ) OutMcastPkts[key] += op;
-}
-
-/**
- * probe tcpmib.InBcastPkts
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
- *
- * Counter Name: InBcastPkts
- * MIB: IPSTATS_MIB_INBCASTPKTS
- *
- */
-probe ipmib.InBcastPkts=kernel.function("ip_rcv_finish").return
-{
-	skb = $skb;
-	op = 1;
-	SourceIsLocal = 0;
-	if ($return == _net_rx_drop()) next;
-	if (_input_route_type(skb) != _rtn_broadcast()) next;
-	key = ipmib_filter_key(skb,op,SourceIsLocal);
-	if ( key ) InBcastPkts[key] += op;
-}
-
-/**
- * probe tcpmib.OutBcastPkts
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
- *
- * Counter Name: OutBcastPkts
- * MIB: IPSTATS_MIB_OUTBCASTPKTS
- *
- */
-probe ipmib.OutBcastPkts=kernel.function("ip_finish_output2")
-{
-	skb = $skb;
-	op = 1;
-	SourceIsLocal = 1;
-	if (_output_route_type(skb) != _rtn_broadcast()) next
-	key = ipmib_filter_key(skb,op,SourceIsLocal);
-	if ( key ) OutBcastPkts[key] += op;
-}
