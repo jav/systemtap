@@ -4,8 +4,6 @@
 #include <linux/poll.h>
 #include <linux/cpumask.h>
 
-#define USE_ITERS
-
 static DEFINE_PER_CPU(local_t, _stp_cpu_disabled);
 
 static inline void _stp_ring_buffer_disable_cpu(void)
