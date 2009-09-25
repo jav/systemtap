@@ -20,6 +20,7 @@ probe begin
 	q = baz[223] 
 
 	print("hello from systemtap\n")
+	print(q)
 }
 
 

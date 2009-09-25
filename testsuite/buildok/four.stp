@@ -8,5 +8,5 @@ probe module("ext3").function("*") ?
 /*to avoid empty file*/
 probe begin
 {
-
+	log("begin")
 }

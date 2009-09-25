@@ -1,14 +1,10 @@
 #! stap -p4
 
 # test the translatability of the formatted printing operators
-
-function foo() { 
-	return 10
-}
-
 probe begin
 {
 	x = sprintf("take %d steps forward, %d steps back\n", 3, 2)
+	printf("%s", x);
 	printf("take %d steps forward, %d steps back\n", 3, 2)
 	printf("take %d steps forward, %d steps back\n", 3+1, 2*2)
 

@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -wp4
 
 // Tests if all probes in the vfs.stp are resolvable.
 

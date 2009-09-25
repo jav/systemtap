@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -wp4
 
 probe syscall.*, syscall.*.return {
 	if (retstr != "")

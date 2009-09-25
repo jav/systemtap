@@ -10,6 +10,8 @@ global linemap
 global numbers
 global strings
 
+global x, y
+
 function wibble()
 {
 	i = 0

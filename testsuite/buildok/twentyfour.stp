@@ -1,4 +1,4 @@
-#! stap -gp4
+#! stap -wgp4
 
 # If the optimizer is working, this function will get elided,
 # and thus will compile successfully.

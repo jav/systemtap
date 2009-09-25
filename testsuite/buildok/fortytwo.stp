@@ -7,7 +7,7 @@ set -e
 fn="do_readv_writev@fs/read_write.c"
 var="file"
 
-fullfn=`stap -p2 -e 'probe kernel.statement("'$fn'") {}' | grep kernel | cut -f2 -d'"'`
+fullfn=`stap -wp2 -e 'probe kernel.statement("'$fn'") {}' | grep kernel | cut -f2 -d'"'`
 lineno=`echo $fullfn | cut -f2 -d:`
 
 echo "$0: $fn found, starting line $lineno"
