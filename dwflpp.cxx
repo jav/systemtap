@@ -83,15 +83,17 @@ dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
     }
 }
 
-
-dwflpp::dwflpp(systemtap_session & session, const vector<string>& names):
+dwflpp::dwflpp(systemtap_session & session, const vector<string>& names,
+	       bool kernel_p):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL), dwfl(NULL),
   module_dwarf(NULL), function(NULL), blacklist_enabled(false)
 {
-  setup_user(names);
+  if (kernel_p)
+    setup_kernel(names);
+  else
+    setup_user(names);
 }
-
 
 dwflpp::~dwflpp()
 {
@@ -304,6 +306,33 @@ dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
   dwfl = setup_dwfl_kernel(name, &offline_search_matches, sess);
 
   if (offline_search_matches < 1)
+    {
+      if (debuginfo_needed) {
+        // Suggest a likely kernel dir to find debuginfo rpm for
+        string dir = string("/lib/modules/" + sess.kernel_release );
+        find_debug_rpms(sess, dir.c_str());
+      }
+      throw semantic_error (string("missing ") + sess.architecture +
+                            string(" kernel/module debuginfo under '") +
+                            sess.kernel_build_tree + string("'"));
+    }
+
+  build_blacklist();
+}
+
+void
+dwflpp::setup_kernel(const vector<string> &names, bool debuginfo_needed)
+{
+  if (! sess.module_cache)
+    sess.module_cache = new module_cache ();
+
+  unsigned offline_search_matches = 0;
+  set<string> offline_search_names(names.begin(), names.end());
+  dwfl = setup_dwfl_kernel(offline_search_names,
+			   &offline_search_matches,
+			   sess);
+
+  if (offline_search_matches < offline_search_names.size())
     {
       if (debuginfo_needed) {
         // Suggest a likely kernel dir to find debuginfo rpm for

@@ -6164,7 +6164,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
   // TODO: consider other sources of tracepoint headers too, like from
   // a command-line parameter or some environment or .systemtaprc
 
-  dw = new dwflpp(s, tracequery_modules);
+  dw = new dwflpp(s, tracequery_modules, true);
   return true;
 }
 
