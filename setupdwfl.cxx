@@ -25,12 +25,27 @@ static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
 static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
 static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
 
+// NB: kernel_build_tree doesn't enter into this, as it's for
+// kernel-side modules only.
+static const char *debuginfo_usr_path_arr = "+:.debug:/usr/lib/debug";
+static const char *debuginfo_usr_path = (debuginfo_env_arr
+					 ?: debuginfo_usr_path_arr);
+
 static const Dwfl_Callbacks kernel_callbacks =
   {
     dwfl_linux_kernel_find_elf,
     dwfl_standard_find_debuginfo,
     dwfl_offline_section_address,
     (char **) & debuginfo_path
+  };
+
+static const Dwfl_Callbacks user_callbacks =
+  {
+    NULL,
+    dwfl_standard_find_debuginfo,
+    NULL, /* ET_REL not supported for user space, only ET_EXEC and ET_DYN.
+	     dwfl_offline_section_address, */
+    (char **) & debuginfo_usr_path
   };
 
 using namespace std;
@@ -190,4 +205,54 @@ setup_dwfl_kernel(const std::set<std::string> &names,
   offline_search_modname = NULL;
   offline_search_names = names;
   return setup_dwfl_kernel(found, s);
+}
+
+Dwfl*
+setup_dwfl_user(const std::string &name)
+{
+  Dwfl *dwfl = dwfl_begin (&user_callbacks);
+  dwfl_assert("dwfl_begin", dwfl);
+  dwfl_report_begin (dwfl);
+
+  // XXX: should support buildid-based naming
+  const char *cname = name.c_str();
+  Dwfl_Module *mod = dwfl_report_offline (dwfl, cname, cname, -1);
+  dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
+  if (! mod)
+    {
+      dwfl_end(dwfl);
+      dwfl = NULL;
+    }
+  return dwfl;
+}
+
+Dwfl*
+setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
+		const std::vector<std::string>::const_iterator &end,
+		bool all_needed)
+{
+  Dwfl *dwfl = dwfl_begin (&user_callbacks);
+  dwfl_assert("dwfl_begin", dwfl);
+  dwfl_report_begin (dwfl);
+
+  // XXX: should support buildid-based naming
+  while (begin != end && dwfl != NULL)
+    {
+      const char *cname = (*begin).c_str();
+      Dwfl_Module *mod = dwfl_report_offline (dwfl, cname, cname, -1);
+      if (! mod && all_needed)
+	{
+	  dwfl_end(dwfl);
+	  dwfl = NULL;
+	}
+      begin++;
+    }
+  if (dwfl)
+    dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
+  return dwfl;
+}
+
+bool is_user_module(const std::string &m)
+{
+  return m[0] == '/' && m.rfind(".ko", m.length() - 1) != m.length() - 3;
 }

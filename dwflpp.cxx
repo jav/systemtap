@@ -354,53 +354,16 @@ dwflpp::setup_user(const vector<string>& modules, bool debuginfo_needed)
   if (! sess.module_cache)
     sess.module_cache = new module_cache ();
 
-  static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
-  static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-  // NB: kernel_build_tree doesn't enter into this, as it's for
-  // kernel-side modules only.
-  static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
-
-  static const Dwfl_Callbacks user_callbacks =
-    {
-      NULL, /* dwfl_linux_kernel_find_elf, */
-      dwfl_standard_find_debuginfo,
-      dwfl_offline_section_address,
-      (char **) & debuginfo_path
-    };
-
-  dwfl = dwfl_begin (&user_callbacks);
-  if (!dwfl)
-    throw semantic_error ("cannot open dwfl");
-  dwfl_report_begin (dwfl);
-
-  vector<string>::const_iterator it;
-  for (it = modules.begin(); it != modules.end(); ++it)
-    {
-      // XXX: should support buildid-based naming
-
-      const string& module_name = *it;
-      Dwfl_Module *mod = dwfl_report_offline (dwfl,
-                                    module_name.c_str(),
-                                    module_name.c_str(),
-                                    -1);
-
-      if (debuginfo_needed)
-        dwfl_assert (string("missing process ") +
-                     module_name +
-                     string(" ") +
-                     sess.architecture +
-                     string(" debuginfo"),
-                     mod);
-    }
-
-  // NB: the result of an _offline call is the assignment of
-  // virtualized addresses to relocatable objects such as
-  // modules.  These have to be converted to real addresses at
-  // run time.  See the dwarf_derived_probe ctor and its caller.
-
-  dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
+  vector<string>::const_iterator it = modules.begin();
+  dwfl = setup_dwfl_user(it, modules.end(), debuginfo_needed);
+  if (debuginfo_needed && it != modules.end())
+    dwfl_assert (string("missing process ") +
+		 *it +
+		 string(" ") +
+		 sess.architecture +
+		 string(" debuginfo"),
+		 dwfl);
 }
-
 
 void
 dwflpp::iterate_over_modules(int (* callback)(Dwfl_Module *, void **,

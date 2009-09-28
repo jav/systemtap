@@ -14,6 +14,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 extern "C" {
 #include <elfutils/libdwfl.h>
@@ -25,4 +26,13 @@ Dwfl *setup_dwfl_kernel(const std::string &name,
 Dwfl *setup_dwfl_kernel(const std::set<std::string> &names,
 			unsigned *found,
 			systemtap_session &s);
+
+Dwfl* setup_dwfl_user(const std::string &name);
+Dwfl* setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
+		      const std::vector<std::string>::const_iterator &end,
+		      bool all_needed);
+
+// user-space files must be full paths and not end in .ko
+bool is_user_module(const std::string &m);
+
 #endif

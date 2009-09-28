@@ -4957,8 +4957,9 @@ emit_symbol_data (systemtap_session& s)
        it++)
     {
       string foo = *it;
-      if (foo[0] != '/') /* Omit user-space, since we're only using this for
-                            kernel space offline searches. */
+      if (! is_user_module (foo)) /* Omit user-space, since we're only
+				     using this for kernel space
+				     offline searches. */
         offline_search_modules.insert (foo);
     }
   Dwfl *dwfl = setup_dwfl_kernel (offline_search_modules, &count, s);
@@ -4978,37 +4979,15 @@ emit_symbol_data (systemtap_session& s)
 
 
   // ---- step 2: process any user modules (files) listed
-  // XXX: see dwflpp::setup_user.
-
-  // XXX: copied from tapsets.cxx dwflpp::, sadly
-  static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
-  static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-  static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
-
-  static const Dwfl_Callbacks user_callbacks =
-    {
-      NULL, /* dwfl_linux_kernel_find_elf, */
-      dwfl_standard_find_debuginfo,
-      NULL, /* ET_REL not supported for user space, only ET_EXEC and ET_DYN.
-              dwfl_offline_section_address, */
-      (char **) & debuginfo_path
-    };
-
   for (std::set<std::string>::iterator it = s.unwindsym_modules.begin();
        it != s.unwindsym_modules.end();
        it++)
     {
       string modname = *it;
       assert (modname.length() != 0);
-      if (modname[0] != '/') continue; // user-space files must be full paths
-      Dwfl *dwfl = dwfl_begin (&user_callbacks);
-      if (!dwfl)
-        throw semantic_error ("cannot create dwfl for " + modname);
-
-      dwfl_report_begin (dwfl);
-      Dwfl_Module* mod = dwfl_report_offline (dwfl, modname.c_str(), modname.c_str(), -1);
-      dwfl_report_end (dwfl, NULL, NULL);
-      if (mod != 0) // tolerate missing data; will warn below
+      if (! is_user_module (modname)) continue;
+      Dwfl *dwfl = setup_dwfl_user (modname);
+      if (dwfl != NULL) // tolerate missing data; will warn below
         {
           ptrdiff_t off = 0;
           do

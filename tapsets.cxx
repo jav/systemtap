@@ -21,6 +21,7 @@
 #include "auto_free.h"
 #include "hash.h"
 #include "dwflpp.h"
+#include "setupdwfl.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -2606,7 +2607,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       dwflpp* dw;
       try
 	{
-	  if (module.find('/') == string::npos)
+	  if (! is_user_module (module))
 	    {
 	      // kernel or kernel module target
 	      dw = db.get_kern_dw(s, module);
