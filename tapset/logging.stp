@@ -15,7 +15,7 @@
  * Same as println() with a single string argument.
  */
 function log (msg:string) %{ /* unprivileged */
-	_stp_print (THIS->msg);
+	_stp_printf ("%s\n", THIS->msg);
 %}
 
 
