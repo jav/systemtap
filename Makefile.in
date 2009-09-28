@@ -143,7 +143,8 @@ loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 @BUILD_TRANSLATOR_TRUE@	stap-tapset-utrace.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-task_finder.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-dwflpp.$(OBJEXT) \
-@BUILD_TRANSLATOR_TRUE@	stap-rpm_finder.$(OBJEXT)
+@BUILD_TRANSLATOR_TRUE@	stap-rpm_finder.$(OBJEXT) \
+@BUILD_TRANSLATOR_TRUE@	stap-setupdwfl.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -379,7 +380,8 @@ oldinclude_HEADERS = includes/sys/sdt.h
 @BUILD_TRANSLATOR_TRUE@	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
 @BUILD_TRANSLATOR_TRUE@	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
 @BUILD_TRANSLATOR_TRUE@	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
-@BUILD_TRANSLATOR_TRUE@	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx
+@BUILD_TRANSLATOR_TRUE@	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
+@BUILD_TRANSLATOR_TRUE@	setupdwfl.cxx
 
 @BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @rpm_LIBS@
 @BUILD_TRANSLATOR_TRUE@stap_DEPENDENCIES = $(am__append_11)
@@ -708,6 +710,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-mdfour.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-parse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-rpm_finder.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-setupdwfl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-staptree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-been.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-itrace.Po@am__quote@
@@ -1338,6 +1341,20 @@ stap-rpm_finder.obj: rpm_finder.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='rpm_finder.cxx' object='stap-rpm_finder.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-rpm_finder.obj `if test -f 'rpm_finder.cxx'; then $(CYGPATH_W) 'rpm_finder.cxx'; else $(CYGPATH_W) '$(srcdir)/rpm_finder.cxx'; fi`
+
+stap-setupdwfl.o: setupdwfl.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-setupdwfl.o -MD -MP -MF $(DEPDIR)/stap-setupdwfl.Tpo -c -o stap-setupdwfl.o `test -f 'setupdwfl.cxx' || echo '$(srcdir)/'`setupdwfl.cxx
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stap-setupdwfl.Tpo $(DEPDIR)/stap-setupdwfl.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='setupdwfl.cxx' object='stap-setupdwfl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-setupdwfl.o `test -f 'setupdwfl.cxx' || echo '$(srcdir)/'`setupdwfl.cxx
+
+stap-setupdwfl.obj: setupdwfl.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-setupdwfl.obj -MD -MP -MF $(DEPDIR)/stap-setupdwfl.Tpo -c -o stap-setupdwfl.obj `if test -f 'setupdwfl.cxx'; then $(CYGPATH_W) 'setupdwfl.cxx'; else $(CYGPATH_W) '$(srcdir)/setupdwfl.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stap-setupdwfl.Tpo $(DEPDIR)/stap-setupdwfl.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='setupdwfl.cxx' object='stap-setupdwfl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-setupdwfl.obj `if test -f 'setupdwfl.cxx'; then $(CYGPATH_W) 'setupdwfl.cxx'; else $(CYGPATH_W) '$(srcdir)/setupdwfl.cxx'; fi`
 
 stap_sign_module-modsign.o: modsign.cxx
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT stap_sign_module-modsign.o -MD -MP -MF $(DEPDIR)/stap_sign_module-modsign.Tpo -c -o stap_sign_module-modsign.o `test -f 'modsign.cxx' || echo '$(srcdir)/'`modsign.cxx

@@ -22,6 +22,7 @@
 #include "auto_free.h"
 #include "hash.h"
 #include "rpm_finder.h"
+#include "setupdwfl.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -293,99 +294,16 @@ dwflpp::function_scope_matches(const vector<string> scopes)
 }
 
 
-static const char *offline_search_modname = NULL;
-static int offline_search_match_p = 0;
-
-static int dwfl_report_offline_predicate (const char* modname, const char* filename)
-{
-  if (pending_interrupts)
-    return -1;
-
-  assert (offline_search_modname);
-
-  // elfutils sends us NULL filenames sometimes if it can't find dwarf
-  if (filename == NULL)
-    return 0;
-
-  if (dwflpp::name_has_wildcard (offline_search_modname)) {
-    int match_p = !fnmatch(offline_search_modname, modname, 0);
-    // In the wildcard case, we don't short-circuit (return -1) upon
-    // offline_search_match_p, analogously to dwflpp::module_name_final_match().
-
-    if (match_p)
-      offline_search_match_p ++;
-
-    return match_p;
-  } else { /* non-wildcard mode */
-    if (offline_search_match_p)
-      return -1;
-
-    /* Reject mismatching module names */
-    if (strcmp(modname, offline_search_modname))
-      return 0;
-    else
-      {
-        offline_search_match_p ++;
-        return 1;
-      }
-  }
-}
-
-
 void
 dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
 {
-  // XXX: See also translate.cxx:emit_symbol_data
-
   if (! sess.module_cache)
     sess.module_cache = new module_cache ();
 
-  static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
-  static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-  static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr );
+  unsigned offline_search_matches = 0;
+  dwfl = setup_dwfl_kernel(name, &offline_search_matches, sess);
 
-  static const Dwfl_Callbacks kernel_callbacks =
-    {
-      dwfl_linux_kernel_find_elf,
-      dwfl_standard_find_debuginfo,
-      dwfl_offline_section_address,
-      (char **) & debuginfo_path
-    };
-
-  dwfl = dwfl_begin (&kernel_callbacks);
-  if (!dwfl)
-    throw semantic_error ("cannot open dwfl");
-  dwfl_report_begin (dwfl);
-
-  // We have a problem with -r REVISION vs -r BUILDDIR here.  If
-  // we're running against a fedora/rhel style kernel-debuginfo
-  // tree, s.kernel_build_tree is not the place where the unstripped
-  // vmlinux will be installed.  Rather, it's over yonder at
-  // /usr/lib/debug/lib/modules/$REVISION/.  It seems that there is
-  // no way to set the dwfl_callback.debuginfo_path and always
-  // passs the plain kernel_release here.  So instead we have to
-  // hard-code this magic here.
-  string elfutils_kernel_path;
-  if (sess.kernel_build_tree == string("/lib/modules/" + sess.kernel_release + "/build"))
-    elfutils_kernel_path = sess.kernel_release;
-  else
-    elfutils_kernel_path = sess.kernel_build_tree;
-
-  offline_search_modname = name.c_str();
-  offline_search_match_p = 0;
-  int rc = dwfl_linux_kernel_report_offline (dwfl,
-                                             elfutils_kernel_path.c_str(),
-                                             &dwfl_report_offline_predicate);
-  offline_search_modname = NULL;
-
-  (void) rc; /* Ignore since the predicate probably returned -1 at some point,
-                And libdwfl interprets that as "whole query failed" rather than
-                "found it already, stop looking". */
-
-  /* But we still need to check whether the module was itself found.  One could
-     do an iterate_modules() search over the resulting dwfl and count hits.  Or
-     one could rely on the match_p flag being set just before. */
-  if (! offline_search_match_p)
+  if (offline_search_matches < 1)
     {
       if (debuginfo_needed) {
         // Suggest a likely kernel dir to find debuginfo rpm for
@@ -396,13 +314,6 @@ dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
                             string(" kernel/module debuginfo under '") +
                             sess.kernel_build_tree + string("'"));
     }
-
-  // NB: the result of an _offline call is the assignment of
-  // virtualized addresses to relocatable objects such as
-  // modules.  These have to be converted to real addresses at
-  // run time.  See the dwarf_derived_probe ctor and its caller.
-
-  dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
 
   build_blacklist();
 }

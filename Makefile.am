@@ -45,7 +45,8 @@ stap_SOURCES = main.cxx \
 	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
 	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
 	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
-	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx
+	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
+	setupdwfl.cxx
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @rpm_LIBS@
 stap_DEPENDENCIES =
 endif

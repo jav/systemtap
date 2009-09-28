@@ -15,6 +15,7 @@
 #include "tapsets.h"
 #include "util.h"
 #include "dwarf_wrappers.h"
+#include "setupdwfl.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -4929,27 +4930,6 @@ dump_unwindsyms (Dwfl_Module *m,
 // them with the runtime.
 void emit_symbol_data_done (unwindsym_dump_context*, systemtap_session&);
 
-
-static set<string> offline_search_modules;
-static int dwfl_report_offline_predicate2 (const char* modname, const char* filename)
-{
-  if (pending_interrupts)
-    return -1;
-
-  if (offline_search_modules.empty())
-    return -1;
-
-  /* Reject mismatching module names */
-  if (offline_search_modules.find(modname) == offline_search_modules.end())
-    return 0;
-  else
-    {
-      offline_search_modules.erase(modname);
-      return 1;
-    }
-}
-
-
 void
 emit_symbol_data (systemtap_session& s)
 {
@@ -4969,45 +4949,9 @@ emit_symbol_data (systemtap_session& s)
       return;
     }
 
-  // XXX: copied from tapsets.cxx dwflpp::, sadly
-  static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
-  static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-  static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
-
   // ---- step 1: process any kernel modules listed
-  static const Dwfl_Callbacks kernel_callbacks =
-    {
-      dwfl_linux_kernel_find_elf,
-      dwfl_standard_find_debuginfo,
-      dwfl_offline_section_address,
-      (char **) & debuginfo_path
-    };
-
-  Dwfl *dwfl = dwfl_begin (&kernel_callbacks);
-  if (!dwfl)
-    throw semantic_error ("cannot open dwfl");
-  dwfl_report_begin (dwfl);
-
-  // We have a problem with -r REVISION vs -r BUILDDIR here.  If
-  // we're running against a fedora/rhel style kernel-debuginfo
-  // tree, s.kernel_build_tree is not the place where the unstripped
-  // vmlinux will be installed.  Rather, it's over yonder at
-  // /usr/lib/debug/lib/modules/$REVISION/.  It seems that there is
-  // no way to set the dwfl_callback.debuginfo_path and always
-  // passs the plain kernel_release here.  So instead we have to
-  // hard-code this magic here.
-  string elfutils_kernel_path;
-  if (s.kernel_build_tree == string("/lib/modules/" + s.kernel_release + "/build"))
-    elfutils_kernel_path = s.kernel_release;
-  else
-    elfutils_kernel_path = s.kernel_build_tree;
-
-
-  // Set up our offline search for kernel modules.  As in dwflpp.cxx,
-  // we don't want the offline search iteration to do a complete search
-  // of the kernel build tree, since that's wasteful.
-  offline_search_modules.erase (offline_search_modules.begin(),
-                                offline_search_modules.end());
+  set<string> offline_search_modules;
+  unsigned count;
   for (set<string>::iterator it = s.unwindsym_modules.begin();
        it != s.unwindsym_modules.end();
        it++)
@@ -5017,14 +4961,10 @@ emit_symbol_data (systemtap_session& s)
                             kernel space offline searches. */
         offline_search_modules.insert (foo);
     }
+  Dwfl *dwfl = setup_dwfl_kernel (offline_search_modules, &count, s);
+  dwfl_assert("all kernel modules found",
+	      count >= offline_search_modules.size());
 
-  int rc = dwfl_linux_kernel_report_offline (dwfl,
-                                             elfutils_kernel_path.c_str(),
-					     & dwfl_report_offline_predicate2);
-
-  (void) rc; // As in dwflpp.cxx, we ignore rc here.
-
-  dwfl_report_end (dwfl, NULL, NULL);
   ptrdiff_t off = 0;
   do
     {
@@ -5039,6 +4979,12 @@ emit_symbol_data (systemtap_session& s)
 
   // ---- step 2: process any user modules (files) listed
   // XXX: see dwflpp::setup_user.
+
+  // XXX: copied from tapsets.cxx dwflpp::, sadly
+  static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
+  static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
+  static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
+
   static const Dwfl_Callbacks user_callbacks =
     {
       NULL, /* dwfl_linux_kernel_find_elf, */
