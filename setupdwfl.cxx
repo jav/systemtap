@@ -129,6 +129,32 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
   offline_modules_found = modules_found;
   *offline_modules_found = 0;
 
+  // First try to report full path modules.
+  if (offline_search_modname != NULL
+      && offline_search_modname[0] == '/')
+    {
+      // Insert it in the set and handle it below.
+      offline_search_names.insert(offline_search_modname);
+      offline_search_modname = NULL;
+    }
+
+  set<string>::iterator it = offline_search_names.begin();
+  while (it != offline_search_names.end())
+    {
+      if ((*it)[0] == '/')
+	{
+	  const char *cname = (*it).c_str();
+	  Dwfl_Module *mod = dwfl_report_offline (dwfl, cname, cname, -1);
+	  if (mod)
+	    (*offline_modules_found)++;
+	  offline_search_names.erase(it);
+	}
+      it++;
+    }
+
+    // We always need this, even when offline_search_modname is NULL
+    // and offline_search_names is empty because we still might want
+    // the kernel vmlinux reported.
   int rc = dwfl_linux_kernel_report_offline (dwfl,
                                              elfutils_kernel_path.c_str(),
 					     &setup_dwfl_report_kernel_p);
