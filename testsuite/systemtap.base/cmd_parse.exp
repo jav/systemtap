@@ -157,6 +157,7 @@ expect {
 }
 wait;catch {close}
 
-
 # NB: when adding extra tests here, increment the ![installtest_p]
 # loop count too at the top.
+
+catch {exec rm -f do_not_cache_me.ko}
