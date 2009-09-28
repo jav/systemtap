@@ -2058,7 +2058,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
 		      if (l->name != (*it)->name)
 			o << " " <<  (*it)->name;
 
-		    s.print_warning ("read-only local variable '" + l->name + "' " +
+		    s.print_warning ("never-assigned local variable '" + l->name + "' " +
                                      (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
 		  }
             j++;
@@ -2106,7 +2106,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
                       if (l->name != (*it)->name)
                         o << " " << (*it)->name;
 
-                    s.print_warning ("read-only local variable '" + l->name + "' " +
+                    s.print_warning ("never-assigned local variable '" + l->name + "' " +
                                      (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
                   }
 
@@ -2144,7 +2144,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
                   if (l->name != (*it)->name)
                     o << " " << (*it)->name;
 
-                s.print_warning ("read-only global variable '" + l->name + "' " +
+                s.print_warning ("never-assigned global variable '" + l->name + "' " +
                                  (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
               }
 
@@ -2446,7 +2446,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
          name some arbitrary RHS expression of an assignment.
       if (s->value->tok->location.file == session.user_file->name && // not tapset
           ! session.suppress_warnings)
-        clog << "WARNING: eliding read-only " << *s->value->tok << endl;
+        clog << "WARNING: eliding never-assigned " << *s->value->tok << endl;
       else
       */
       if (session.verbose>2)
