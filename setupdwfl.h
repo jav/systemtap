@@ -16,21 +16,32 @@
 #include <string>
 #include <vector>
 
+#include <tr1/memory>
+
 extern "C" {
 #include <elfutils/libdwfl.h>
 }
 
-Dwfl *setup_dwfl_kernel(const std::string &name,
-			unsigned *found,
-			systemtap_session &s);
-Dwfl *setup_dwfl_kernel(const std::set<std::string> &names,
-			unsigned *found,
-			systemtap_session &s);
+struct StapDwfl
+{
+public:
+  StapDwfl(Dwfl *d) : dwfl(d) { }
+  ~StapDwfl() { if (dwfl) dwfl_end (dwfl); }
+  Dwfl *dwfl;
+};
+typedef std::tr1::shared_ptr<StapDwfl> DwflPtr;
 
-Dwfl* setup_dwfl_user(const std::string &name);
-Dwfl* setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
-		      const std::vector<std::string>::const_iterator &end,
-		      bool all_needed);
+DwflPtr setup_dwfl_kernel(const std::string &name,
+			  unsigned *found,
+			  systemtap_session &s);
+DwflPtr setup_dwfl_kernel(const std::set<std::string> &names,
+			  unsigned *found,
+			  systemtap_session &s);
+
+DwflPtr setup_dwfl_user(const std::string &name);
+DwflPtr setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
+		        const std::vector<std::string>::const_iterator &end,
+		        bool all_needed);
 
 // user-space files must be full paths and not end in .ko
 bool is_user_module(const std::string &m);

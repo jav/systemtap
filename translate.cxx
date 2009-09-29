@@ -4962,7 +4962,8 @@ emit_symbol_data (systemtap_session& s)
 				     offline searches. */
         offline_search_modules.insert (foo);
     }
-  Dwfl *dwfl = setup_dwfl_kernel (offline_search_modules, &count, s);
+  DwflPtr dwfl_ptr = setup_dwfl_kernel (offline_search_modules, &count, s);
+  Dwfl *dwfl = dwfl_ptr.get()->dwfl;
   dwfl_assert("all kernel modules found",
 	      count >= offline_search_modules.size());
 
@@ -4971,12 +4972,11 @@ emit_symbol_data (systemtap_session& s)
     {
       if (pending_interrupts) return;
       if (ctx.undone_unwindsym_modules.empty()) break;
-      off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
+      off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, off);
     }
   while (off > 0);
   dwfl_assert("dwfl_getmodules", off == 0);
-  dwfl_end(dwfl);
-
+  dwfl_ptr.reset();
 
   // ---- step 2: process any user modules (files) listed
   for (std::set<std::string>::iterator it = s.unwindsym_modules.begin();
@@ -4986,7 +4986,8 @@ emit_symbol_data (systemtap_session& s)
       string modname = *it;
       assert (modname.length() != 0);
       if (! is_user_module (modname)) continue;
-      Dwfl *dwfl = setup_dwfl_user (modname);
+      DwflPtr dwfl_ptr = setup_dwfl_user (modname);
+      Dwfl *dwfl = dwfl_ptr.get()->dwfl;
       if (dwfl != NULL) // tolerate missing data; will warn below
         {
           ptrdiff_t off = 0;
@@ -4994,12 +4995,12 @@ emit_symbol_data (systemtap_session& s)
             {
               if (pending_interrupts) return;
               if (ctx.undone_unwindsym_modules.empty()) break;
-              off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
+              off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, off);
             }
           while (off > 0);
           dwfl_assert("dwfl_getmodules", off == 0);
         }
-      dwfl_end(dwfl);
+      dwfl_ptr.reset();
     }
 
   emit_symbol_data_done (&ctx, s);

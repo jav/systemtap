@@ -16,6 +16,7 @@
 #include "elaborate.h"
 #include "session.h"
 #include "unordered.h"
+#include "setupdwfl.h"
 
 #include <cstring>
 #include <iostream>
@@ -286,7 +287,7 @@ struct dwflpp
 
 
 private:
-  Dwfl * dwfl;
+  DwflPtr dwfl_ptr;
 
   // These are "current" values we focus on.
   Dwarf * module_dwarf;

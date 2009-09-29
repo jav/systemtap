@@ -70,7 +70,7 @@ static string TOK_KERNEL("kernel");
 
 dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
-  module_start(0), module_end(0), cu(NULL), dwfl(NULL),
+  module_start(0), module_end(0), cu(NULL),
   module_dwarf(NULL), function(NULL), blacklist_enabled(false)
 {
   if (kernel_p)
@@ -86,7 +86,7 @@ dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
 dwflpp::dwflpp(systemtap_session & session, const vector<string>& names,
 	       bool kernel_p):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
-  module_start(0), module_end(0), cu(NULL), dwfl(NULL),
+  module_start(0), module_end(0), cu(NULL),
   module_dwarf(NULL), function(NULL), blacklist_enabled(false)
 {
   if (kernel_p)
@@ -103,8 +103,7 @@ dwflpp::~dwflpp()
   delete_map(global_alias_cache);
   delete_map(cu_die_parent_cache);
 
-  if (dwfl)
-    dwfl_end(dwfl);
+  dwfl_ptr.reset();
 }
 
 
@@ -208,7 +207,7 @@ Dwarf_Die *
 dwflpp::query_cu_containing_address(Dwarf_Addr a)
 {
   Dwarf_Addr bias;
-  assert(dwfl);
+  assert(dwfl_ptr.get()->dwfl);
   assert(module);
   get_module_dwarf();
 
@@ -303,7 +302,7 @@ dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
     sess.module_cache = new module_cache ();
 
   unsigned offline_search_matches = 0;
-  dwfl = setup_dwfl_kernel(name, &offline_search_matches, sess);
+  dwfl_ptr = setup_dwfl_kernel(name, &offline_search_matches, sess);
 
   if (offline_search_matches < 1)
     {
@@ -328,9 +327,9 @@ dwflpp::setup_kernel(const vector<string> &names, bool debuginfo_needed)
 
   unsigned offline_search_matches = 0;
   set<string> offline_search_names(names.begin(), names.end());
-  dwfl = setup_dwfl_kernel(offline_search_names,
-			   &offline_search_matches,
-			   sess);
+  dwfl_ptr = setup_dwfl_kernel(offline_search_names,
+			       &offline_search_matches,
+			       sess);
 
   if (offline_search_matches < offline_search_names.size())
     {
@@ -355,14 +354,14 @@ dwflpp::setup_user(const vector<string>& modules, bool debuginfo_needed)
     sess.module_cache = new module_cache ();
 
   vector<string>::const_iterator it = modules.begin();
-  dwfl = setup_dwfl_user(it, modules.end(), debuginfo_needed);
+  dwfl_ptr = setup_dwfl_user(it, modules.end(), debuginfo_needed);
   if (debuginfo_needed && it != modules.end())
     dwfl_assert (string("missing process ") +
 		 *it +
 		 string(" ") +
 		 sess.architecture +
 		 string(" debuginfo"),
-		 dwfl);
+		 dwfl_ptr.get()->dwfl);
 }
 
 void
@@ -371,7 +370,7 @@ dwflpp::iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                               void *),
                              base_query *data)
 {
-  dwfl_getmodules (dwfl, callback, data, 0);
+  dwfl_getmodules (dwfl_ptr.get()->dwfl, callback, data, 0);
 
   // Don't complain if we exited dwfl_getmodules early.
   // This could be a $target variable error that will be
@@ -1457,7 +1456,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
   // Turn this address into a section-relative offset if it should be one.
   // We emit a comment approximating the variable+offset expression that
   // relocatable module probing code will need to have.
-  Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
+  Dwfl_Module *mod = dwfl_addrmodule (dwfl_ptr.get()->dwfl, address);
   dwfl_assert ("dwfl_addrmodule", mod);
   const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
                                               NULL, NULL, NULL, NULL);
