@@ -9,6 +9,9 @@
 /* make -P prologue-searching default */
 #undef ENABLE_PROLOGUES
 
+/* Define to 1 if you have the <boost/shared_ptr.hpp> header file. */
+#undef HAVE_BOOST_SHARED_PTR_HPP
+
 /* Define to 1 if you have the <crash/defs.h> header file. */
 #undef HAVE_CRASH_DEFS_H
 
@@ -53,6 +56,9 @@
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <tr1/memory> header file. */
+#undef HAVE_TR1_MEMORY
 
 /* Define to 1 if you have the <tr1/unordered_map> header file. */
 #undef HAVE_TR1_UNORDERED_MAP

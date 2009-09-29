@@ -6,6 +6,7 @@
 %{!?elfutils_version: %define elfutils_version 0.127}
 %{!?pie_supported: %define pie_supported 1}
 %{!?with_grapher: %define with_grapher 1}
+%{!?with_boost: %define with_boost 0}
 
 Name: systemtap
 Version: 1.0
@@ -22,6 +23,10 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: kernel >= 2.6.9-11
 %if %{with_sqlite}
 BuildRequires: sqlite-devel
+%endif
+# Needed for libstd++ < 4.0, without <tr1/memory>
+%if %{with_boost}
+BuildRequires: boost-devel
 %endif
 %if %{with_crash}
 BuildRequires: crash-devel zlib-devel

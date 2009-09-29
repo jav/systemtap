@@ -547,6 +547,8 @@ AC_SUBST([PROCFLAGS])
 # Use tr1/unordered_map if available
 AC_LANG_PUSH(C++)
 AC_CHECK_HEADERS([tr1/unordered_map])
+AC_CHECK_HEADERS([tr1/memory])
+AC_CHECK_HEADERS([boost/shared_ptr.hpp])
 AC_LANG_POP(C++)
 
 
