@@ -3708,8 +3708,12 @@ sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
   string semaphore = probe_name + "_semaphore";
   Dwarf_Addr addr = lookup_symbol_address(dw.module, semaphore.c_str());
   if (addr)
-    for (unsigned i = start; i < results.size(); ++i)
-      sess.sdt_semaphore_addr.insert(make_pair(results[i], addr));
+    {
+      if (dwfl_module_relocations (dw.module) > 0)
+	dwfl_module_relocate_address (dw.module, &addr);
+      for (unsigned i = start; i < results.size(); ++i)
+	sess.sdt_semaphore_addr.insert(make_pair(results[i], addr));
+    }
 }
 
 
