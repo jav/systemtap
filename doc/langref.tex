@@ -910,6 +910,245 @@ function, use \textbf{.statement} probes. Do not use wildcards in
 to not register. Also, run statement probes in guru mode only.
 
 
+\subsection{Userspace probing}
+\index{userspace probing}
+\index{process}
+Support for userspace probing is supported on kernels that are
+configured to include the utrace extensions.  At the time this
+document is written, Red Hat and CentOS distributions provide kernels
+with utrace support enabled.  For more information about utrace, see
+\url{http://people.redhat.com/roland/utrace/}.
+
+Userspace probing has several forms.  A non-symbolic probe point such
+as \newline\texttt{process(PID).statement(ADDRESS).absolute} is
+analogous to \texttt{kernel.statement(ADDRESS).absolute} in that both
+use raw, unverified virtual addresses and provide no
+\texttt{\$variables}.  The target \texttt{PID} parameter must identify
+a running process and \texttt{ADDRESS} must identify a valid
+instruction address.  All threads of the listed process will be
+probed.  This is a guru-level probe.
+
+You can probe non-symbolic user-kernel interface events handled by
+utrace. The following constructs are available:
+\begin{vindent}
+\begin{verbatim}
+process(PID).begin
+process("PATH").begin
+process.begin
+process(PID).thread.begin
+process("PATH").thread.begin
+process.thread.begin
+process(PID).end
+process("PATH").end
+process.end
+process(PID).thread.end
+process("PATH").thread.end
+process.thread.end
+process(PID).syscall
+process("PATH").syscall
+process.syscall
+process(PID).syscall.return
+process("PATH").syscall.return
+process.syscall.return
+process(PID).insn
+process("PATH").insn.block
+process(PID).insn.block
+process("PATH").insn
+process("PATH").mark("LABEL")
+process("PATH").function("NAME")
+process("PATH").statement("*@FILE.c:123")
+process("PATH").function("*").return
+process("PATH").function("myfun").label("foo")
+\end{verbatim}
+\end{vindent}
+
+The \texttt{.begin} variant is called when a new process described by
+\texttt{PID} or \texttt{PATH} is created. If no \texttt{PID} or
+\texttt{PATH} argument is specified (for example
+\texttt{process.begin}), the probe flags any new process being
+spawned.
+
+The \texttt{.thread.begin} variant is called when a new thread
+described by \texttt{PID} or \texttt{PATH} is created.
+
+The \texttt{.end} variant is called when a process described by
+\texttt{PID} or \texttt{PATH} dies.
+
+The \texttt{.thread.end} variant is called when a thread described by
+\texttt{PID} or \texttt{PATH} dies.
+
+The \texttt{.syscall} variant is called when a thread described by
+\texttt{PID} or \texttt{PATH} makes a system call.  The system call
+number is available in the \texttt{\$syscall} context variable.  The
+first six arguments of the system call are available in the
+\texttt{\$argN} parameter, for example \texttt{\$arg1},
+\texttt{\$arg2}, and so on.
+
+The \texttt{.syscall.return} variant is called when a thread described
+by \texttt{PID} or \texttt{PATH} returns from a system call.  The
+system call number is available in the \texttt{\$syscall} context
+variable.  The return value of the system call is available in the
+\texttt{\$return} context variable.
+
+The \texttt{.mark} variant is called from a static probe which is
+defined in the application. For more information, see
+\S\S\ref{staticuserspace}.
+
+In addition, full symbolic source-level probes in userspace programs
+and shared libraries are supported.  These are exactly analogous to
+the symbolic DWARF-based kernel or module probes described previously
+and expose similar contextual \texttt{\$-variables}.
+\begin{vindent}
+\begin{verbatim}
+process("PATH").function("NAME")
+process("PATH").statement("*@FILE.c:123")
+process("PATH").function("*").return
+process("PATH").function("myfun").label("foo")
+\end{verbatim}
+\end{vindent}
+
+For all process probes, \texttt{PATH} names refer to executables that
+are searched the same way that shells do: either the explicit path
+specified, or relative to the working directory if they begin with a
+dot-slash (./) character sequence. Otherwise, \texttt{\$PATH} is
+searched.  For example, the following probe syntax:
+\begin{vindent}
+\begin{verbatim}
+probe process("ls").syscall {}
+probe process("./a.out").syscall {}
+\end{verbatim}
+\end{vindent}
+
+works the same as:
+\begin{vindent}
+\begin{verbatim}
+probe process("/bin/ls").syscall {}
+probe process("/my/directory/a.out").syscall {}
+\end{verbatim}
+\end{vindent}
+
+If a process probe is specified without a \texttt{PID} or
+\texttt{PATH} parameter, all user threads are probed. However, if
+systemtap is invoked in target process mode, process probes are
+restricted to the process hierarchy associated with the target
+process.
+
+Target process mode (invoked with \texttt{stap -c CMD} or \texttt{-x
+  PID}) implicitly restricts all \texttt{process.*} probes to the
+given child process.  It does not affect \texttt{kernel.*} or other
+probe types.  The \texttt{CMD} string is normally run directly, rather
+than from a ``\texttt{/bin/sh -c}'' sub-shell, since utrace and uprobe
+probes receive a fairly "clean" event stream.  If meta-characters such
+as redirection operators are present in \texttt{CMD}, ``\texttt{/bin/sh
+  -c CMD}'' is still used, and utrace and uprobe probes will receive
+events from the shell. For example:
+\begin{vindent}
+\begin{verbatim}
+% stap -e 'probe process.syscall, process.end {
+           printf("%s %d %s\n", execname(), pid(), pp())}' \
+       -c ls
+\end{verbatim}
+\end{vindent}
+
+Here is the output from this command:
+\begin{vindent}
+\begin{verbatim}
+ls 2323 process.syscall
+ls 2323 process.syscall
+ls 2323 process.end
+\end{verbatim}
+\end{vindent}
+
+If \texttt{PATH} names a shared library, all processes that map that
+shared library can be probed.  If dwarf debugging information is
+installed, try using a command with this syntax:
+\begin{vindent}
+\begin{verbatim}
+probe process("/lib64/libc-2.8.so").function("....") { ... }
+\end{verbatim}
+\end{vindent}
+This command probes all threads that call into that library.  Typing
+``\texttt{stap -c CMD}'' or ``\texttt{stap -x PID}'' restricts this to
+the target command and descendants only.  You can use
+\texttt{\$\$vars} and others. You can provide the location of debug
+information to the stap command with the \texttt{-d DIRECTORY} option.
+
+The \texttt{process().insn} and \texttt{process().insn.block} probes
+inspect the process after each instruction or block of instructions is
+executed. These probes are not implemented on all architectures. If
+they are not implemented on your system, you will receive an error
+message when the script starts.
+
+The \texttt{.insn} probe is called for every single-stepped
+instruction of the process described by \texttt{PID} or \texttt{PATH}.
+
+The \texttt{.insn.block} probe is called for every block-stepped
+instruction of the process described by \texttt{PID} or \texttt{PATH}.
+
+To count the total number of instructions that a process executes,
+type a command similar to:
+\begin{vindent}
+\begin{verbatim}
+$ stap -e 'global steps; probe process("/bin/ls").insn {steps++}
+           probe end {printf("Total instructions: %d\n", steps);}' \
+       -c /bin/ls
+\end{verbatim}
+\end{vindent}
+
+Using this feature can slow process execution.
+
+
+\subsubsection{Static userspace probing}
+\label{staticuserspace}
+You can probe symbolic static instrumentation compiled into programs
+and shared libraries with the following syntax:
+\begin{vindent}
+\begin{verbatim}
+process("PATH").mark("LABEL")
+\end{verbatim}
+\end{vindent}
+
+The \texttt{.mark} variant is called from a static probe defined in
+the application by
+\texttt{STAP\_PROBE1(handle,LABEL,arg1)}. \texttt{STAP\_PROBE1} is
+defined in the sdt.h file.  The parameters are:
+
+
+\begin{tabular}{|l|r|c|}
+  Parameter & Definition \\ \hline
+  \texttt{handle} & the application handle \\ \hline
+  \texttt{LABEL} & corresponds to the \texttt{.mark} argument \\ \hline
+  \texttt{arg1} & the argument \\ \hline
+\end{tabular}
+
+
+Use \texttt{STAP\_PROBE1} for probes with one argument.  Use
+\texttt{STAP\_PROBE2} for probes with 2 arguments, and so on.  The
+arguments of the probe are available in the context variables
+\texttt{\$arg1}, \texttt{\$arg2}, and so on.
+
+As an alternative to the \texttt{STAP\_PROBE} macros, you can use the
+dtrace script to create custom macros. The sdt.h file also provides
+dtrace compatible markers through \texttt{DTRACE\_PROBE} and an
+associated python \texttt{dtrace} script.  You can use these in builds
+based on dtrace that need dtrace -h or -G functionality.
+
+Here is an example of prototype symbolic userspace probing support:
+\begin{vindent}
+\begin{verbatim}
+# stap -e 'probe process("ls").function("*").call {
+           log (probefunc()." ".$$parms)
+           }' \
+       -c 'ls -l'
+\end{verbatim}
+\end{vindent}
+
+To run, this script requires debugging information for the named
+program and utrace support in the kernel. If you see a "pass 4a-time"
+build failure, check that your kernel supports utrace.
+
+
+
 \subsection{PROCFS probes}
 \index{PROCFS probes}
 
