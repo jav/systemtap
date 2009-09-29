@@ -394,7 +394,7 @@ make_tracequery(systemtap_session& s, string& name,
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
   // force debuginfo generation, and relax implicit functions
-  omf << "EXTRA_CFLAGS := -g -Wno-implicit-function-declaration" << endl;
+  omf << "EXTRA_CFLAGS := -g -Wno-implicit-function-declaration -Werror" << endl;
   omf << "obj-m := " + basename + ".o" << endl;
   omf.close();
 
