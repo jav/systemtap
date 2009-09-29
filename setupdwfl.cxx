@@ -145,14 +145,6 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
   *offline_modules_found = 0;
 
   // First try to report full path modules.
-  if (offline_search_modname != NULL
-      && offline_search_modname[0] == '/')
-    {
-      // Insert it in the set and handle it below.
-      offline_search_names.insert(offline_search_modname);
-      offline_search_modname = NULL;
-    }
-
   set<string>::iterator it = offline_search_names.begin();
   while (it != offline_search_names.end())
     {
@@ -192,8 +184,20 @@ setup_dwfl_kernel(const std::string &name,
 		  unsigned *found,
 		  systemtap_session &s)
 {
-  offline_search_modname = name.c_str();
-  offline_search_names.clear();
+  const char *modname = name.c_str();
+  set<string> names; // Default to empty
+
+  /* Support full path kernel modules, these cannot be regular
+     expressions, so just put them in the search set. */
+  if (name[0] == '/')
+    {
+      names.insert(name);
+      modname = NULL;
+    }
+
+  offline_search_modname = modname;
+  offline_search_names = names;
+
   return setup_dwfl_kernel(found, s);
 }
 
