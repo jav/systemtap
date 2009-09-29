@@ -374,8 +374,7 @@ run_pass (systemtap_session& s)
 // Build a tiny kernel module to query tracepoints
 int
 make_tracequery(systemtap_session& s, string& name,
-                const std::string& header,
-                const vector<string>& extra_headers)
+                const vector<string>& headers)
 {
   static unsigned tick = 0;
   string basename("tracequery_kmod_" + lex_cast(++tick));
@@ -415,13 +414,9 @@ make_tracequery(systemtap_session& s, string& name,
   osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
   osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
 
-  // PR9993: Add extra headers to work around undeclared types in individual
-  // include/trace/foo.h files
-  for (unsigned z=0; z<extra_headers.size(); z++)
-    osrc << "#include <" << extra_headers[z] << ">\n";
-
-  // add the requested tracepoint header
-  osrc << "#include <" << header << ">" << endl;
+  // add the specified headers
+  for (unsigned z=0; z<headers.size(); z++)
+    osrc << "#include <" << headers[z] << ">\n";
 
   // finish up the module source
   osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;

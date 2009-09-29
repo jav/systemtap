@@ -1,4 +1,5 @@
 #include <string>
+#include <vector>
 
 extern "C" {
 #include <string.h>
@@ -36,7 +37,8 @@ public:
 };
 
 void find_hash (systemtap_session& s, const std::string& script);
-std::string find_tracequery_hash (systemtap_session& s, const std::string& header);
+std::string find_tracequery_hash (systemtap_session& s,
+                                  const std::vector<std::string>& headers);
 std::string find_typequery_hash (systemtap_session& s, const std::string& name);
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

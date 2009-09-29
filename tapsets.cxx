@@ -6047,7 +6047,8 @@ struct tracepoint_builder: public derived_probe_builder
 private:
   dwflpp *dw;
   bool init_dw(systemtap_session& s);
-  string get_tracequery_module(systemtap_session& s, const string& header);
+  string get_tracequery_module(systemtap_session& s,
+                               const vector<string>& headers);
 
 public:
 
@@ -6071,16 +6072,21 @@ public:
 
 string
 tracepoint_builder::get_tracequery_module(systemtap_session& s,
-                                          const string& header)
+                                          const vector<string>& headers)
 {
   if (s.verbose > 2)
-    clog << "Pass 2: getting a tracequery for " << header << endl;
+    {
+      clog << "Pass 2: getting a tracequery for "
+           << headers.size() << " headers:" << endl;
+      for (size_t i = 0; i < headers.size(); ++i)
+        clog << "  " << headers[i] << endl;
+    }
 
   string tracequery_path;
   if (s.use_cache)
     {
       // see if the cached module exists
-      tracequery_path = find_tracequery_hash(s, header);
+      tracequery_path = find_tracequery_hash(s, headers);
       if (!tracequery_path.empty())
         {
           int fd = open(tracequery_path.c_str(), O_RDONLY);
@@ -6096,13 +6102,22 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 
   // no cached module, time to make it
 
-  size_t root_pos = header.rfind("/include/");
-  string short_header = (root_pos != string::npos) ?
-    header.substr(root_pos + 9) : header;
+  // PR9993: Add extra headers to work around undeclared types in individual
+  // include/trace/foo.h files
+  vector<string> short_headers = tracepoint_extra_headers();
+
+  // add each requested tracepoint header
+  for (size_t i = 0; i < headers.size(); ++i)
+    {
+      const string &header = headers[i];
+      size_t root_pos = header.rfind("/include/");
+      short_headers.push_back((root_pos != string::npos) ?
+                              header.substr(root_pos + 9) :
+                              header);
+    }
 
   string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko, short_header,
-                           tracepoint_extra_headers());
+  int rc = make_tracequery(s, tracequery_ko, short_headers);
   if (rc != 0)
     tracequery_ko = "/dev/null";
 
@@ -6128,6 +6143,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
     return true;
 
   vector<string> tracequery_modules;
+  vector<string> system_headers;
 
   glob_t trace_glob;
   string globs[] = {
@@ -6145,6 +6161,8 @@ tracepoint_builder::init_dw(systemtap_session& s)
           string header(trace_glob.gl_pathv[i]);
 
           // filter out a few known "internal-only" headers
+          if (header.find("/define_trace.h") != string::npos)
+            continue;
           if (header.find("/ftrace.h") != string::npos)
             continue;
           if (header.find("/trace_events.h") != string::npos)
@@ -6152,15 +6170,25 @@ tracepoint_builder::init_dw(systemtap_session& s)
           if (header.find("_event_types.h") != string::npos)
             continue;
 
-          string tracequery_path = get_tracequery_module(s, header);
-
-          /* NB: An empty tracequery means that the
-           * header didn't even compile correctly. */
-          if (get_file_size(tracequery_path))
-            tracequery_modules.push_back(tracequery_path);
+          system_headers.push_back(header);
         }
       globfree(&trace_glob);
     }
+
+  // First attempt to do all system headers in one go
+  string tracequery_path = get_tracequery_module(s, system_headers);
+  // NB: An empty tracequery means that the header didn't compile correctly
+  if (get_file_size(tracequery_path))
+    tracequery_modules.push_back(tracequery_path);
+  else
+    // Otherwise try to do them one at a time (PR10424)
+    for (size_t i = 0; i < system_headers.size(); ++i)
+      {
+        vector<string> one_header(1, system_headers[i]);
+        tracequery_path = get_tracequery_module(s, one_header);
+        if (get_file_size(tracequery_path))
+          tracequery_modules.push_back(tracequery_path);
+      }
 
   // TODO: consider other sources of tracepoint headers too, like from
   // a command-line parameter or some environment or .systemtaprc
