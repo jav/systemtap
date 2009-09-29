@@ -61,7 +61,7 @@ under the terms of the GNU Free Documentation License, Version 1.2
 or any later version published by the Free Software Foundation;
 with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.\newline
 
-The GNU Free Documentation License is available from 
+The GNU Free Documentation License is available from
 \url{http://www.gnu.org/licenses/fdl.html} or by writing to
 the Free Software Foundation, Inc., 51 Franklin Street,
 Fifth Floor, Boston, MA 02110-1301, USA.
@@ -83,7 +83,7 @@ the general theory and operation of SystemTap. If you are new to SystemTap,
 you will find the tutorial to be an excellent place to start learning. For
 detailed information about tapsets, see the manual pages provided with the
 distribution. For information about the entire collection of SystemTap reference
-material, see Section~\ref{sec:For-Further-Reference} 
+material, see Section~\ref{sec:For-Further-Reference}
 
 \subsection{Reasons to use SystemTap}
 
@@ -285,7 +285,7 @@ of these macros:
 \textbf{MAXTRYLOCK} -- The maximum number of iterations to wait for locks on global variables before
 declaring possible deadlock and skipping the probe. The default is 1000.
 
-\textbf{MAXACTION} -- The maximum number of statements to execute during any single probe hit. The default is 1000. 
+\textbf{MAXACTION} -- The maximum number of statements to execute during any single probe hit. The default is 1000.
 
 \textbf{MAXMAPENTRIES} -- The maximum number of rows in an array if the array size is not specified
 explicitly when declared. The default is 2048.
@@ -378,7 +378,7 @@ probe <alias> += <probepoint> { <epilogue_stmts> }
 New probe points may be defined using \emph{aliases}. A probe point alias
 looks similar to probe definitions, but instead of activating a probe at
 the given point, it defines a new probe point name as an alias to an existing
-one. New probe aliases may refer to one or more existing probe aliases. 
+one. New probe aliases may refer to one or more existing probe aliases.
 Multiple aliases may share the same name. The following is an example.
 
 \begin{vindent}
@@ -495,7 +495,7 @@ each global variable used by a probe is automatically read- or write-locked
 while the handler is running. A global declaration may be written at the
 outermost level anywhere in a script file, not just within a block of code.
 Global variables which are written but never read will be displayed
-automatically at session shutdown.  The following declaration marks 
+automatically at session shutdown.  The following declaration marks
 \texttt{var1} and \texttt{var2} as global.
 The translator will infer a value type for each, and if the variable is used
 as an array, its key types.
@@ -654,7 +654,7 @@ Prefixes specify the probe target, such as \textbf{kernel}, \textbf{module},
 \subsubsection{Suffixes}
 \index{suffixes}
 Suffixes further qualify the point to probe, such as \textbf{.return} for the
-exit point of a probed function. The absence of a suffix implies the function 
+exit point of a probed function. The absence of a suffix implies the function
 entry point.
 
 \subsubsection{Wildcarded file names, function names}
@@ -689,14 +689,14 @@ kernel.function("no_such_function") ?
 This family of probe points uses symbolic debugging information for the target
 kernel or module, as may be found in executables that have not
 been stripped, or in the separate \textbf{debuginfo} packages. They allow
-logical placement of probes into the execution path of the target 
+logical placement of probes into the execution path of the target
 by specifying a set of points in the source or object code. When a matching
 statement executes on any processor, the probe handler is run in that context.
 
 Points in a kernel are identified by module, source file, line number, function
 name or some combination of these.
 
-Here is a list of probe point specifications currently supported: 
+Here is a list of probe point specifications currently supported:
 
 \begin{vindent}
 \begin{verbatim}
@@ -717,18 +717,18 @@ module(MPATTERN).statement(PATTERN)
 \end{vindent}
 
 The \textbf{.function} variant places a probe near the beginning of the named
-function, so that parameters are available as context variables. 
+function, so that parameters are available as context variables.
 
 The \textbf{.return} variant places a probe at the moment of return from the named
 function, so the return value is available as the \$return context variable.
 The entry parameters are also available, though the function may have changed
-their values.  Return probes may be further qualified with \textbf{.maxactive}, 
+their values.  Return probes may be further qualified with \textbf{.maxactive},
 which specifies how many instances of the specified function can be probed simultaneously.
 You can leave off \textbf{.maxactive} in most cases, as the default should be sufficient.
 However, if you notice an excessive number of skipped probes, try setting \textbf{.maxactive}
 to incrementally higher values to see if the number of skipped probes decreases.
 
-The \textbf{.inline} modifier for \textbf{.function} filters the results to include only 
+The \textbf{.inline} modifier for \textbf{.function} filters the results to include only
 instances of inlined functions. The \textbf{.call} modifier selects the opposite subset.
 Inline functions do not have an identifiable return point, so \textbf{.return}
 is not supported on \textbf{.inline} probes.
@@ -756,7 +756,7 @@ In most cases, the path should be relative to the top of the
 linux source directory, although an absolute path may be necessary for some kernels.
 If a relative pathname doesn't work, try absolute.
 \item The third part is optional if the file name part was given. It identifies
-the line number in the source file, preceded by a ``:'' or ``+''.   
+the line number in the source file, preceded by a ``:'' or ``+''.
 The line number is assumed to be an
 absolute line number if preceded by a ``:'', or relative to the entry of
 the function if preceded by a ``+''.
@@ -862,8 +862,8 @@ kernel and module functions. You cannot look up the arguments or local
 variables of a function using these probes. However, you can access
 the parameters by following this procedure:
 
-When you're stopped at the entry to a function, you can refer to the 
-function's arguments by number. For example, when probing the function 
+When you're stopped at the entry to a function, you can refer to the
+function's arguments by number. For example, when probing the function
 declared:
 
 \begin{vindent}
@@ -1306,7 +1306,7 @@ tracepoint is available in \texttt{\$\$vars} or \texttt{\$\$parms}.
 You can use intervals defined by the standard kernel jiffies\index{jiffies}
 timer to trigger probe handlers asynchronously. A \emph{jiffy} is a kernel-defined
 unit of time typically between 1 and 60 msec. Two probe point variants are
-supported by the translator: 
+supported by the translator:
 
 \begin{vindent}
 \begin{verbatim}
@@ -1552,7 +1552,7 @@ alphanumeric sequence that may include the underscore (\_) and dollar sign
 the dollar sign is also a legal character. Identifiers that begin with a
 dollar sign are interpreted as references to variables in the target software,
 rather than to SystemTap script variables. Identifiers may not start with
-a plain digit. 
+a plain digit.
 
 
 \subsection{Data types\label{sub:Data-types}}
@@ -1569,7 +1569,7 @@ of identifiers signals an error.
 \index{literals}
 Literals are either strings or integers. Literals can be expressed as decimal,
 octal, or hexadecimal, using C notation. Type suffixes (e.g., \emph{L} or
-\emph{U}) are not used. 
+\emph{U}) are not used.
 
 
 \subsubsection{Integers\label{sub:Integers}}
@@ -1905,7 +1905,7 @@ The \texttt{foreach} statement loops over each element of a named global array, 
 the current key to VAR. The array must not be modified within the statement.
 If you add a single plus (+) or minus (-) operator after the VAR or the ARRAY
 identifier, the iteration order will be sorted by the ascending or descending
-index or value. 
+index or value.
 
 The following statement behaves the same as the first example, except it
 is used when an array is indexed with a tuple of keys.  Use a sorting suffix
@@ -2005,7 +2005,7 @@ while (EXP) STMT
 \end{vindent}
 The \texttt{while} statement uses the same syntax and semantics as in C.
 In the statement above, while the integer-valued EXP evaluates to non-zero,
-the parser will execute STMT. 
+the parser will execute STMT.
 
 
 \section{Associative arrays\label{sec:Associative-Arrays}}
@@ -2179,7 +2179,7 @@ The default is 2.  A \textless\hspace{1 sp}num\textgreater\hspace{1 sp} of 0
 removes all empty buckets. A negative \textless\hspace{1 sp}num\textgreater\hspace{1 sp}
 turns off bucket removal all together.
 
-For example, if you specify -DHIST\_ELISION=3 and the histogram has 10 
+For example, if you specify -DHIST\_ELISION=3 and the histogram has 10
 consecutive empty buckets, the first 3 and last 3 empty buckets will
 be printed and the middle 4 empty buckets will be represented by a
 tilde (\textasciitilde{}).
@@ -2215,15 +2215,15 @@ value |-------------------------------------------------- count
  1800 |                                                      0
 \end{verbatim}
 \end{vindent}
-This shows that 1650 network reads were of a size between 0 and 200 bytes, 
+This shows that 1650 network reads were of a size between 0 and 200 bytes,
 8 reads were between 200 and 400 bytes, and 1 read was between
-1200 and 1400 bytes.  The tilde (\textasciitilde{}) character indicates 
+1200 and 1400 bytes.  The tilde (\textasciitilde{}) character indicates
 buckets 700, 800 and 900 were removed because they were empty.
 Empty buckets at the upper end were also removed.
 
 \subsubsection{@hist\_log}
 \index{hist\_log}
-The statement \texttt{@hist\_log(v)} represents a base-2 logarithmic 
+The statement \texttt{@hist\_log(v)} represents a base-2 logarithmic
 histogram.  Empty buckets are replaced with a tilde (\textasciitilde{})
 character in the same way as \texttt{@hist\_linear()} (see above).
 
@@ -2344,41 +2344,41 @@ details of the specifier parameter:
 \textbf{Output}&
 \textbf{Example}\tabularnewline
 \hline
-\hline 
+\hline
 d or i&
 Signed decimal&
 392\tabularnewline
-\hline 
+\hline
 o&
 Unsigned octal&
 610\tabularnewline
-\hline 
+\hline
 s&
 String&
 sample\tabularnewline
-\hline 
+\hline
 u&
 Unsigned decimal&
 7235\tabularnewline
-\hline 
+\hline
 x&
 Unsigned hexadecimal (lowercase letters)&
 7fa\tabularnewline
-\hline 
+\hline
 X&
 Unsigned hexadecimal (uppercase letters)&
 7FA\tabularnewline
-\hline 
+\hline
 p&
 Pointer address&
 0x0000000000bc614e\tabularnewline
-\hline 
+\hline
 b&
 Writes a binary value as text. The field width specifies the number of bytes
 to write. Valid specifications are \%b, \%1b, \%2b, \%4b and \%8b. The default
 width is 8 (64-bits).&
 See below\tabularnewline
-\hline 
+\hline
 \%&
 A \% followed by another \% character will write \% to stdout.&
 \%\tabularnewline
@@ -2400,18 +2400,18 @@ specifications:
 - (minus sign)&
 Left-justify within the given field width. Right justification is the default
 (see \texttt{width} sub-specifier).\tabularnewline
-\hline 
+\hline
 + (plus sign)&
 Precede the result with a plus or minus sign even for positive numbers. By
 default, only negative numbers are preceded with a minus sign.\tabularnewline
-\hline 
+\hline
 (space)&
 If no sign is going to be written, a blank space is inserted before the value.\tabularnewline
-\hline 
+\hline
 \#&
 Used with \texttt{o}, \texttt{x} or \texttt{X} specifiers the value is preceded
 with \texttt{0}, \texttt{0x} or \texttt{0X} respectively for non-zero values.\tabularnewline
-\hline 
+\hline
 0&
 Left-pads the number with zeroes instead of spaces, where padding is specified
 (see \texttt{width} sub-specifier).\tabularnewline
@@ -2441,11 +2441,11 @@ is not truncated even if the result is larger.\tabularnewline
 \caption{printf precision values}
 
 \begin{tabular}{|>{\raggedright}p{1.5in}|>{\raggedright}p{4.5in}|}
-\hline 
+\hline
 \textbf{Precision}&
 \textbf{Description}\tabularnewline
 \hline
-\hline 
+\hline
 .number&
 For integer specifiers (\texttt{d, i, o, u, x, X}): \texttt{precision} specifies
 the minimum number of digits to be written. If the value to be written is
@@ -2610,7 +2610,7 @@ system (cmd:string)
 \end{verbatim}
 \end{vindent}
 The system function runs a command on the system. The specified command runs
-in the background once the current probe completes. 
+in the background once the current probe completes.
 
 
 \subsubsection{warn}
@@ -2628,7 +2628,7 @@ is not a newline, then one is added.
 
 \subsection{Context at the probe point}
 
-The following functions provide ways to access the current task context 
+The following functions provide ways to access the current task context
 at a probe point. Note that these may not return correct values when
 a probe is hit in interrupt context.
 
@@ -3187,7 +3187,7 @@ user_string_quoted:string (addr:long)
 \end{vindent}
 This function copies a string from userspace at given address. Any ASCII
 characters that are not printable are replaced by the corresponding escape
-sequence in the returned string. 
+sequence in the returned string.
 
 
 \subsection{Initializing queue statistics}
@@ -3268,7 +3268,7 @@ qsq_print:unknown (qname:string)
 \end{verbatim}
 \end{vindent}
 This function prints a line containing the following statistics for the given
-queue: 
+queue:
 
 \begin{itemize}
 \item queue name
