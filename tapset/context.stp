@@ -182,11 +182,11 @@ function pp:string () %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction registers_valid - Determines validity of <command>register()</command> and <command>u_register()</command> in current context.
+ * sfunction registers_valid - Determines validity of register() and u_register() in current context.
  *
  *  Return 1 if register() and u_register() can be used
  *  in the current context, or 0 otherwise.
- *  For example, <command>registers_valid()</command> returns 0
+ *  For example, registers_valid() returns 0
  *  when called from a begin or end probe.
  */
 function registers_valid:long () %{ /* pure */ /* unprivileged */
@@ -210,12 +210,7 @@ function user_mode:long () %{ /* pure */ /* unprivileged */
   }
 %}
 
-/**
- * sfunction is_return - Determines if probe point is a return probe.
- *
- *  Return 1 if the probe point is a return probe.
- *  <emphasis>Deprecated.</emphasis>
- */
+
 function is_return:long () %{ /* pure */
 	if (CONTEXT->pi)
 		THIS->__retvalue = 1;

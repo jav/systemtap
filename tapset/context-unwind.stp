@@ -23,7 +23,7 @@
 /**
  * sfunction print_backtrace - Print stack back trace
  *
- *  Equivalent to <command>print_stack(backtrace())</command>, 
+ *  Equivalent to print_stack(backtrace()), 
  *  except that deeper stack nesting may be supported.  Return nothing.
  */
 function print_backtrace () %{
@@ -66,7 +66,7 @@ function task_backtrace:string (task:long) %{ /* pure */
  *  Return the address and name of the calling function. 
  *  This is equivalent to calling:
  *  sprintf("%s 0x%x", symname(caller_addr(), caller_addr()))
- *  <emphasis>Works only for return probes at this time.</emphasis>
+ *  Works only for return probes at this time.
  */
 function caller:string() {
 	return sprintf("%s 0x%x", symname(caller_addr()), caller_addr());
@@ -76,7 +76,7 @@ function caller:string() {
  * sfunction caller_addr -  Return caller address
  *
  *  Return the address of the calling function. 
- *  <emphasis> Works only for return probes at this time.</emphasis>
+ *  Works only for return probes at this time.
  */
 function caller_addr:long () %{ /* pure */
         if (CONTEXT->pi)

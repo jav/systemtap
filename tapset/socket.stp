@@ -95,7 +95,7 @@ probe socket.sendmsg = kernel.function ("sock_sendmsg")
 }
 
 /**
- * probe socket.sendmsg.return - Return from <command>socket.sendmsg</command>.
+ * probe socket.sendmsg.return - Return from socket.sendmsg.
  * @name:     Name of this probe
  * @size:     Size of message sent (in bytes) or error code if success = 0
  * @protocol: Protocol value

@@ -21,7 +21,7 @@
 /**
  * sfunction print_ubacktrace - Print stack back trace for current task. EXPERIMENTAL!
  *
- *  Equivalent to <command>print_ustack(ubacktrace())</command>, 
+ *  Equivalent to print_ustack(ubacktrace()), 
  *  except that deeper stack nesting may be supported.  Return nothing.
  */
 function print_ubacktrace () %{ /* unprivileged */

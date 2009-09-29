@@ -57,8 +57,8 @@ function vm_fault_contains:long (value:long, test:long)
 /**
  * probe vm.pagefault - Records that a page fault occurred.
  * @address: The address of the faulting memory access; i.e. the address that caused the page fault.
- * @write_access: Indicates whether this was a write or read access; <command>1</command> indicates a write, 
- * while <command>0</command> indicates a read.
+ * @write_access: Indicates whether this was a write or read access; 1 indicates a write, 
+ * while 0 indicates a read.
  *
  * Context: The process which triggered the fault
  */
@@ -76,9 +76,9 @@ probe vm.pagefault = kernel.function("__handle_mm_fault@mm/memory.c") ?,
 /**
  * probe vm.pagefault.return - Indicates what type of fault occurred.
  * @fault_type: Returns either 
- * <command>0</command> (VM_FAULT_OOM) for out of memory faults, 
- * <command>2</command> (VM_FAULT_MINOR) for minor faults, <command>3</command> (VM_FAULT_MAJOR) for 
- * major faults, or <command>1</command> (VM_FAULT_SIGBUS) if the fault was neither OOM, minor fault, 
+ * 0 (VM_FAULT_OOM) for out of memory faults, 
+ * 2 (VM_FAULT_MINOR) for minor faults, 3 (VM_FAULT_MAJOR) for 
+ * major faults, or 1 (VM_FAULT_SIGBUS) if the fault was neither OOM, minor fault, 
  * nor major fault.
  */
 probe vm.pagefault.return = kernel.function("__handle_mm_fault@mm/memory.c").return ?,
@@ -120,7 +120,7 @@ function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
  *
  *  Fires when a process attempts to write to a shared page. 
  *  If a copy is necessary, this will be followed by a 
- *  <command>vm.write_shared_copy</command>.
+ *  vm.write_shared_copy.
  */
 probe vm.write_shared = kernel.function("do_wp_page") {
     address = $address
@@ -136,7 +136,7 @@ probe vm.write_shared = kernel.function("do_wp_page") {
  *  The process attempting the write.
  *
  *  Fires when a write to a shared page requires a page copy.  This is
- *  always preceded by a <command>vm.shared_write</command>.
+ *  always preceded by a vm.shared_write.
  */
 probe vm.write_shared_copy = kernel.function("copy_cow_page")? {
     address = $address
@@ -145,12 +145,12 @@ probe vm.write_shared_copy = kernel.function("copy_cow_page")? {
 
 
 /**
- * probe vm.mmap - Fires when an <command>mmap</command> is requested.
+ * probe vm.mmap - Fires when an mmap is requested.
  * @address: The requested address
  * @length: The length of the memory segment 
  *
  * Context:
- *  The process calling <command>mmap</command>.
+ *  The process calling mmap.
  */
 probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2")? {
     address = $addr
@@ -159,12 +159,12 @@ probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2")? {
 
 
 /**
- * probe vm.munmap - Fires when an <command>munmap</command> is requested.
+ * probe vm.munmap - Fires when an munmap is requested.
  * @address: The requested address
  * @length: The length of the memory segment 
  *
  * Context:
- *  The process calling <command>munmap</command>.
+ *  The process calling munmap.
  */
 probe vm.munmap = kernel.function("do_munmap") {
     address = $start
@@ -172,12 +172,12 @@ probe vm.munmap = kernel.function("do_munmap") {
 }
 
 /**
- * probe vm.brk - Fires when a <command>brk</command> is requested (i.e. the heap will be resized).
+ * probe vm.brk - Fires when a brk is requested (i.e. the heap will be resized).
  * @address: The requested address
  * @length: The length of the memory segment 
  *
  * Context:
- *  The process calling <command>brk</command>.
+ *  The process calling brk.
  */
 probe vm.brk = kernel.function("do_brk") {
     address = $addr
@@ -190,7 +190,7 @@ probe vm.brk = kernel.function("do_brk") {
  *
  * Context:
  *  The process that tried to consume excessive memory, and thus
- *  triggered the OOM. <remark>(is this correct?)</remark>
+ *  triggered the OOM.
  */
 probe vm.oom_kill = kernel.function("__oom_kill_task") {
     task = $p

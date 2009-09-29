@@ -227,7 +227,11 @@ EOF
       AC_MSG_WARN([Not building reference documentation in PDF format])
    fi
 fi
-AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "have_xmlto_pdf" == "yes"])
+dnl Unfortunately https://bugzilla.redhat.com/show_bug.cgi?id=526273 
+dnl blocks "xmlto pdf" on our docs (but not on the above test).
+dnl So we need to disable this anyway.
+dnl AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "$have_xmlto_pdf" == "yes"])
+AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "maybe later" == "yes"])
 
 dnl Handle the option to build the server setup.
 AC_ARG_ENABLE([server],

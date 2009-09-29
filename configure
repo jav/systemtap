@@ -6826,7 +6826,7 @@ $as_echo "no" >&6; }
 $as_echo "$as_me: WARNING: Not building reference documentation in PDF format" >&2;}
    fi
 fi
- if test "have_xmlto_pdf" == "yes"; then
+ if test "maybe later" == "yes"; then
   BUILD_PDFREFDOCS_TRUE=
   BUILD_PDFREFDOCS_FALSE='#'
 else

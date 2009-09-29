@@ -23,7 +23,7 @@
  *
  *  Perform a symbolic lookup of the addresses in the given  string,
  *  which is assumed to be the result of a prior call to 
- *  <command>backtrace()</command>.
+ *  backtrace().
  * 
  *  Print one line per address, including the address, the
  *  name  of the function containing the address, and an estimate of

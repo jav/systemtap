@@ -22,7 +22,7 @@ function _IS_ERR:long(ptr:long) %{ /* pure */
  *  Parent of the created process.
  *
  *  Fires whenever a new process is successfully created, either as a result of
- *  <command>fork</command> (or one of its syscall variants), or a new kernel thread.
+ *  fork (or one of its syscall variants), or a new kernel thread.
  */
 probe kprocess.create = kernel.function("copy_process").return {
     task = $return

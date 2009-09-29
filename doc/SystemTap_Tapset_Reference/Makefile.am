@@ -22,6 +22,8 @@ if BUILD_PDFREFDOCS
 PDFDOCS = tapsets.pdf
 endif
 
+XMLTOMANPARAMS=--stringparam man.authors.section.enabled=0 --stringparam man.copyright.section.enabled=0
+
 if BUILD_REFDOCS
 all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
 tapsets.xml: docproc $(shell find $(SRCTREE)/tapset -name '*.stp')
@@ -34,15 +36,15 @@ tapsets.xml: docproc $(shell find $(SRCTREE)/tapset -name '*.stp')
 	fi
 
 stamp-htmldocs: tapsets.xml
-	xmlto html -o tapsets tapsets.xml
+	xmlto $(XMLTOHTMLPARAMS) html -o tapsets tapsets.xml
 	touch stamp-htmldocs
 
 # bump up the allocated space so "xmlto pdf" works
 tapsets.pdf: tapsets.xml
-	env pool_size=2000000 hash_extra=2000000 xmlto pdf tapsets.xml
+	env pool_size=2000000 hash_extra=2000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml
 
 stamp-mandocs: tapsets.xml
-	xmlto man -o man3 tapsets.xml
+	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml
 	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately
