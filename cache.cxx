@@ -208,9 +208,9 @@ clean_cache(systemtap_session& s)
       else
         {
           //file doesnt exist, create a default size
-    	  ofstream default_cache_max(cache_max_filename.c_str(), ios::out);
-    	  default_cache_max << SYSTEMTAP_CACHE_DEFAULT_MB << endl;
-    	  cache_mb_max = SYSTEMTAP_CACHE_DEFAULT_MB;
+          ofstream default_cache_max(cache_max_filename.c_str(), ios::out);
+          default_cache_max << SYSTEMTAP_CACHE_DEFAULT_MB << endl;
+          cache_mb_max = SYSTEMTAP_CACHE_DEFAULT_MB;
 
           if (s.verbose > 1)
             clog << "Cache limit file " << s.cache_path << "/"
@@ -335,8 +335,11 @@ cache_ent_info::cache_ent_info(const string& path, bool is_module):
   if (is_module)
     {
       string mod_path    = path + ".ko";
+      string modsgn_path = path + ".ko.sgn";
       string source_path = path + ".c";
-      size = get_file_size(mod_path) + get_file_size(source_path);
+      size = get_file_size(mod_path)
+        + get_file_size(modsgn_path);
+        + get_file_size(source_path);
       weight = get_file_weight(mod_path);
     }
   else
@@ -353,8 +356,10 @@ cache_ent_info::unlink() const
   if (is_module)
     {
       string mod_path    = path + ".ko";
+      string modsgn_path = path + ".ko.sgn";
       string source_path = path + ".c";
       ::unlink(mod_path.c_str());
+      ::unlink(modsgn_path.c_str());
       ::unlink(source_path.c_str());
     }
   else
