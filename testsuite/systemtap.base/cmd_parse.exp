@@ -140,6 +140,7 @@ spawn sh -c "stap -m do_not_cache_me -B kernelrelease -p4 -e 'probe begin {exit(
 # the \r below is meant to match the "kernelrelease" output, as distinct from
 # any possible auxiliary make verbosity.
 expect {
+    -timeout 60
     -re "$uname\r" { pass "cmd_parse15" }
     timeout { fail "cmd_parse15: timeout" }
     eof { fail "cmd_parse15: eof" }
@@ -151,6 +152,7 @@ spawn sh -c "stap -m do_not_cache_me -a $uname -p4 -e 'probe begin {exit()}'"
 # the \r below is meant to match the "kernelrelease" output, as distinct from
 # any possible auxiliary make verbosity.
 expect {
+    -timeout 60
     -re "do_not_cache_me.ko\r" { pass "cmd_parse16" }
     timeout { fail "cmd_parse16: timeout" }
     eof { fail "cmd_parse16: eof" }
