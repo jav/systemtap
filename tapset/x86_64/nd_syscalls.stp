@@ -173,6 +173,7 @@ probe nd_syscall.vm86_warning.return = kprobe.function("sys32_vm86_warning").ret
 #
 # long sys32_pipe(int __user *fd)
 #
+%(kernel_v < "2.6.32" %?
 probe nd_syscall.pipe32 = kprobe.function("sys32_pipe")
 {
 	name = "pipe"
@@ -185,3 +186,4 @@ probe nd_syscall.pipe32.return = kprobe.function("sys32_pipe").return
 	name = "pipe"
 	retstr = returnstr(1)
 }
+%)
