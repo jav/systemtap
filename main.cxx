@@ -1212,19 +1212,13 @@ main (int argc, char * const argv [])
       // inaccessible for some reason.
       if (! s.use_cache && s.last_pass == 4)
         save_module = true;
-      
+
       // Copy module to the current directory.
       if (save_module && !pending_interrupts)
         {
 	  string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
 	  string module_dest_path = s.module_name + ".ko";
-
-	  if (s.verbose > 1)
-	    clog << "Copying " << module_src_path << " to "
-		 << module_dest_path << endl;
-	  if (copy_file(module_src_path.c_str(), module_dest_path.c_str()) != 0)
-	    cerr << "Copy failed (\"" << module_src_path << "\" to \""
-		 << module_dest_path << "\"): " << strerror(errno) << endl;
+	  copy_file(module_src_path, module_dest_path, s.verbose > 1);
 	}
     }
 

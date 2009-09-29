@@ -78,8 +78,8 @@ file_exists (const string &path)
 
 // Copy a file.  The copy is done via a temporary file and atomic
 // rename.
-int
-copy_file(const char *src, const char *dest)
+bool
+copy_file(const string& src, const string& dest, bool verbose)
 {
   int fd1, fd2;
   char buf[10240];
@@ -88,10 +88,13 @@ copy_file(const char *src, const char *dest)
   char *tmp_name;
   mode_t mask;
 
+  if (verbose)
+    clog << "Copying " << src << " to " << dest << endl;
+
   // Open the src file.
-  fd1 = open(src, O_RDONLY);
+  fd1 = open(src.c_str(), O_RDONLY);
   if (fd1 == -1)
-    return -1;
+    goto error;
 
   // Open the temporary output file.
   tmp = dest + string(".XXXXXX");
@@ -100,7 +103,7 @@ copy_file(const char *src, const char *dest)
   if (fd2 == -1)
     {
       close(fd1);
-      return -1;
+      goto error;
     }
 
   // Copy the src file to the temporary output file.
@@ -111,7 +114,7 @@ copy_file(const char *src, const char *dest)
 	  close(fd2);
 	  close(fd1);
 	  unlink(tmp_name);
-	  return -1;
+          goto error;
 	}
     }
   close(fd1);
@@ -126,18 +129,23 @@ copy_file(const char *src, const char *dest)
   if (close(fd2) == -1)
     {
       unlink(tmp_name);
-      return -1;
+      goto error;
     }
 
   // Rename the temporary output file to the destination file.
-  unlink(dest);
-  if (rename(tmp_name, dest) == -1)
+  unlink(dest.c_str());
+  if (rename(tmp_name, dest.c_str()) == -1)
     {
       unlink(tmp_name);
-      return -1;
+      goto error;
     }
 
-  return 0;
+  return true;
+
+error:
+  cerr << "Copy failed (\"" << src << "\" to \"" << dest << "\"): "
+       << strerror(errno) << endl;
+  return false;
 }
 
 

@@ -2566,17 +2566,9 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
       // no cached module, time to make it
       if (make_typequery(s, module) == 0)
         {
+          // try to save typequery in the cache
           if (s.use_cache)
-            {
-              // try to save typequery in the cache
-              if (s.verbose > 2)
-                clog << "Copying " << module
-                  << " to " << cached_module << endl;
-              if (copy_file(module.c_str(),
-                            cached_module.c_str()) != 0)
-                cerr << "Copy failed (\"" << module << "\" to \""
-                  << cached_module << "\"): " << strerror(errno) << endl;
-            }
+            copy_file(module, cached_module, s.verbose > 2);
         }
     }
 }
@@ -6121,17 +6113,10 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
   if (rc != 0)
     tracequery_ko = "/dev/null";
 
+  // try to save tracequery in the cache
   if (s.use_cache)
-    {
-      // try to save tracequery in the cache
-      if (s.verbose > 2)
-        clog << "Copying " << tracequery_ko
-             << " to " << tracequery_path << endl;
-      if (copy_file(tracequery_ko.c_str(),
-                    tracequery_path.c_str()) != 0)
-        cerr << "Copy failed (\"" << tracequery_ko << "\" to \""
-             << tracequery_path << "\"): " << strerror(errno) << endl;
-    }
+    copy_file(tracequery_ko, tracequery_path, s.verbose > 2);
+
   return tracequery_ko;
 }
 
