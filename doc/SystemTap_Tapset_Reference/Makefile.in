@@ -186,7 +186,7 @@ HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
 SRCTREE = $(abs_top_srcdir)/
 DOCPROC = $(abs_builddir)/docproc
 @BUILD_PDFREFDOCS_TRUE@PDFDOCS = tapsets.pdf
-XMLTOMANPARAMS = --stringparam man.authors.section.enabled=0 --stringparam man.copyright.section.enabled=0
+@XMLTO_STRINGPARAM_TRUE@XMLTOMANPARAMS = --stringparam man.authors.section.enabled=0 --stringparam man.copyright.section.enabled=0
 CLEANFILES = tapsets.xml stamp-* $(PDFDOCS)
 all: all-am
 

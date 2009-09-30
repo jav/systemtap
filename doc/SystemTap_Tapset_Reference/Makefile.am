@@ -22,7 +22,9 @@ if BUILD_PDFREFDOCS
 PDFDOCS = tapsets.pdf
 endif
 
+if XMLTO_STRINGPARAM
 XMLTOMANPARAMS=--stringparam man.authors.section.enabled=0 --stringparam man.copyright.section.enabled=0
+endif
 
 if BUILD_REFDOCS
 all: $(PDFDOCS) stamp-htmldocs stamp-mandocs

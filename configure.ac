@@ -206,19 +206,32 @@ if test "x${have_xmlto}" == "xyes" -a "$enable_refdocs" != "no" -a "${building_d
 fi
 AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
 
-if test "x${building_refdocs}" == "xyes"; then
-AC_MSG_CHECKING([for xmlto pdf support])
-cat > conftest.$ac_ext << EOF
+cat > conftest.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" []>
-   <book id="pdffromxml">
-     <bookinfo>
-       <title>test</title>
-     </bookinfo>
+   <book lang="en">
+   <bookinfo><title>foo</title></bookinfo>
+   <chapter><title>bar</title><para>baz</para></chapter>
    </book>
 EOF
-   xmlto pdf conftest.$ac_ext >& /dev/null
+
+if test "x${have_xmlto}" == "xyes"; then
+AC_MSG_CHECKING([for xmlto --stringparam support])
+   xmlto --stringparam man.authors.section.enabled=0 txt conftest.xml
+   if test $? == 0; then
+      have_xmlto_stringparam="yes"
+      AC_MSG_RESULT([yes])
+   else
+      AC_MSG_RESULT([no])
+   fi
+   rm -f conftest.txt
+fi
+AM_CONDITIONAL([XMLTO_STRINGPARAM], [test "$have_xmlto_stringparam" == "yes"])
+
+if test "x${building_refdocs}" == "xyes"; then
+AC_MSG_CHECKING([for xmlto pdf support])
+   xmlto pdf conftest.xml >& /dev/null
    if test $? == 0; then
       have_xmlto_pdf="yes"
       AC_MSG_RESULT([yes])
@@ -226,12 +239,16 @@ EOF
       AC_MSG_RESULT([no])
       AC_MSG_WARN([Not building reference documentation in PDF format])
    fi
+   rm -f conftest.pdf
 fi
 dnl Unfortunately https://bugzilla.redhat.com/show_bug.cgi?id=526273 
 dnl blocks "xmlto pdf" on our docs (but not on the above test).
 dnl So we need to disable this anyway.
 dnl AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "$have_xmlto_pdf" == "yes"])
 AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "maybe later" == "yes"])
+
+rm -f conftest.xml
+
 
 dnl Handle the option to build the server setup.
 AC_ARG_ENABLE([server],

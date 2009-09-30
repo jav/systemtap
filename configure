@@ -666,6 +666,8 @@ nss_CFLAGS
 have_certutil
 BUILD_PDFREFDOCS_FALSE
 BUILD_PDFREFDOCS_TRUE
+XMLTO_STRINGPARAM_FALSE
+XMLTO_STRINGPARAM_TRUE
 BUILD_REFDOCS_FALSE
 BUILD_REFDOCS_TRUE
 have_xmlto
@@ -6801,20 +6803,43 @@ else
 fi
 
 
-if test "x${building_refdocs}" == "xyes"; then
-{ $as_echo "$as_me:$LINENO: checking for xmlto pdf support" >&5
-$as_echo_n "checking for xmlto pdf support... " >&6; }
-cat > conftest.$ac_ext << EOF
+cat > conftest.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" >
-   <book id="pdffromxml">
-     <bookinfo>
-       <title>test</title>
-     </bookinfo>
+   <book lang="en">
+   <bookinfo><title>foo</title></bookinfo>
+   <chapter><title>bar</title><para>baz</para></chapter>
    </book>
 EOF
-   xmlto pdf conftest.$ac_ext >& /dev/null
+
+if test "x${have_xmlto}" == "xyes"; then
+{ $as_echo "$as_me:$LINENO: checking for xmlto --stringparam support" >&5
+$as_echo_n "checking for xmlto --stringparam support... " >&6; }
+   xmlto --stringparam man.authors.section.enabled=0 txt conftest.xml
+   if test $? == 0; then
+      have_xmlto_stringparam="yes"
+      { $as_echo "$as_me:$LINENO: result: yes" >&5
+$as_echo "yes" >&6; }
+   else
+      { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+   fi
+   rm -f conftest.txt
+fi
+ if test "$have_xmlto_stringparam" == "yes"; then
+  XMLTO_STRINGPARAM_TRUE=
+  XMLTO_STRINGPARAM_FALSE='#'
+else
+  XMLTO_STRINGPARAM_TRUE='#'
+  XMLTO_STRINGPARAM_FALSE=
+fi
+
+
+if test "x${building_refdocs}" == "xyes"; then
+{ $as_echo "$as_me:$LINENO: checking for xmlto pdf support" >&5
+$as_echo_n "checking for xmlto pdf support... " >&6; }
+   xmlto pdf conftest.xml >& /dev/null
    if test $? == 0; then
       have_xmlto_pdf="yes"
       { $as_echo "$as_me:$LINENO: result: yes" >&5
@@ -6825,6 +6850,7 @@ $as_echo "no" >&6; }
       { $as_echo "$as_me:$LINENO: WARNING: Not building reference documentation in PDF format" >&5
 $as_echo "$as_me: WARNING: Not building reference documentation in PDF format" >&2;}
    fi
+   rm -f conftest.pdf
 fi
  if test "maybe later" == "yes"; then
   BUILD_PDFREFDOCS_TRUE=
@@ -6833,6 +6859,9 @@ else
   BUILD_PDFREFDOCS_TRUE='#'
   BUILD_PDFREFDOCS_FALSE=
 fi
+
+
+rm -f conftest.xml
 
 
 # Check whether --enable-server was given.
@@ -9477,6 +9506,13 @@ if test -z "${BUILD_REFDOCS_TRUE}" && test -z "${BUILD_REFDOCS_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"BUILD_REFDOCS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"BUILD_REFDOCS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${XMLTO_STRINGPARAM_TRUE}" && test -z "${XMLTO_STRINGPARAM_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"XMLTO_STRINGPARAM\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"XMLTO_STRINGPARAM\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
