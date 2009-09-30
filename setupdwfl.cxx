@@ -63,9 +63,19 @@ static const char *offline_search_modname;
 static set<string> offline_search_names;
 static unsigned offline_modules_found;
 
+// Whether or not we are done reporting kernel modules in
+// set_dwfl_report_kernel_p().
+static bool setup_dwfl_done;
+
 // Kept for user_dwfl cache, user modules don't allow wildcards, so
 // just keep the set of module strings.
 static set<string> user_modset;
+
+// Determines whether or not we will make setup_dwfl_report_kernel_p
+// report true for all module dependencies. This is necessary for
+// correctly resolving some dwarf constructs that relocate against
+// symbols in vmlinux and/or other modules they depend on. See PR10678.
+static const bool setup_all_deps = true;
 
 // Set up our offline search for kernel modules.  We don't want the
 // offline search iteration to do a complete search of the kernel
@@ -74,12 +84,27 @@ static set<string> user_modset;
 static int
 setup_dwfl_report_kernel_p(const char* modname, const char* filename)
 {
-  if (pending_interrupts)
+  if (pending_interrupts || setup_dwfl_done)
     return -1;
 
   // elfutils sends us NULL filenames sometimes if it can't find dwarf
   if (filename == NULL)
     return 0;
+
+  // Check kernel first since it is often the only thing needed,
+  // then we never have to parse and setup the module deps map.
+  // It will be reported as the very first thing.
+  if (setup_all_deps && ! strcmp (modname, "kernel"))
+    {
+      if ((offline_search_modname != NULL
+	   && ! strcmp (offline_search_modname, "kernel"))
+	  || (offline_search_names.size() == 1
+	      && *offline_search_names.begin() == "kernel"))
+	setup_dwfl_done = true;
+
+      offline_modules_found++;
+      return 1;
+    }
 
   // If offline_search_modname is setup use it (either as regexp or
   // explicit module/kernel name) and ignore offline_search_names.
@@ -96,31 +121,27 @@ setup_dwfl_report_kernel_p(const char* modname, const char* filename)
 	  return match_p;
 	}
       else
-	{ /* non-wildcard mode */
-	  if (offline_modules_found)
-	    return -1; // Done, only one name needed and found it.
-	  
-	  /* Reject mismatching module names */
+	{ /* non-wildcard mode, reject mismatching module names */
 	  if (strcmp(modname, offline_search_modname))
 	    return 0;
 	  else
 	    {
+	      // Done, only one name needed and found it.
 	      offline_modules_found++;
+	      setup_dwfl_done = true;
 	      return 1;
 	    }
 	}
     }
   else
-    { /* find all in set mode */
-      if (offline_search_names.size() == offline_modules_found)
-	return -1;
-
-      /* Reject mismatching module names */
+    { /* find all in set mode, reject mismatching module names */
       if (offline_search_names.find(modname) == offline_search_names.end())
 	return 0;
       else
 	{
 	  offline_modules_found++;
+	  if (offline_search_names.size() == offline_modules_found)
+	    setup_dwfl_done = true;
 	  return 1;
 	}
     }
@@ -168,6 +189,7 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
     // We always need this, even when offline_search_modname is NULL
     // and offline_search_names is empty because we still might want
     // the kernel vmlinux reported.
+  setup_dwfl_done = false;
   int rc = dwfl_linux_kernel_report_offline (dwfl,
                                              elfutils_kernel_path.c_str(),
 					     &setup_dwfl_report_kernel_p);
@@ -306,7 +328,8 @@ setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
   return user_dwfl;
 }
 
-bool is_user_module(const std::string &m)
+bool
+is_user_module(const std::string &m)
 {
   return m[0] == '/' && m.rfind(".ko", m.length() - 1) != m.length() - 3;
 }
