@@ -15,6 +15,7 @@
 #include <signal.h>
 
 #include <gtkmm.h>
+#include <gtkmm/button.h>
 #include <gtkmm/stock.h>
 #include <gtkmm/main.h>
 #include <gtkmm/window.h>
@@ -38,6 +39,7 @@ class ChildDeathReader
 public:
   struct Callback
   {
+    virtual ~Callback() {}
     virtual void childDied(int pid) {}
   };
   ChildDeathReader() : sigfd(-1) {}
@@ -61,6 +63,23 @@ private:
   int sigfd;
 };
 
+class StapLauncher;
+
+class GraphicalStapLauncher
+{
+public:
+  GraphicalStapLauncher(StapLauncher* launcher);
+  bool runDialog();
+  void onLaunch();
+  void onLaunchCancel();
+private:
+  Glib::RefPtr<Gnome::Glade::Xml> _launchStapDialog;
+  Gtk::Window* _scriptWindow;
+  Gtk::FileChooserButton* _chooserButton;
+  Gtk::Entry* _stapArgEntry;
+  Gtk::Entry* _scriptArgEntry;
+  StapLauncher* _launcher;
+};
 
 class GrapherWindow : public Gtk::Window, public ChildDeathReader::Callback
 {
@@ -71,12 +90,19 @@ public:
   Gtk::ScrolledWindow scrolled;
   GraphWidget w;
   void childDied(int pid);
+  void setGraphicalLauncher(GraphicalStapLauncher* launcher)
+  {
+    _graphicalLauncher = launcher;
+  }
+  GraphicalStapLauncher* getGraphicalLauncher() { return _graphicalLauncher; }
 protected:
   virtual void on_menu_file_quit();
+  virtual void on_menu_script_start();
   void addGraph();
   // menu support
   Glib::RefPtr<Gtk::UIManager> m_refUIManager;
   Glib::RefPtr<Gtk::ActionGroup> m_refActionGroup;
+  GraphicalStapLauncher* _graphicalLauncher;
 
 };
 
@@ -90,10 +116,14 @@ GrapherWindow::GrapherWindow()
   m_refActionGroup = Gtk::ActionGroup::create();
   //File menu:
   m_refActionGroup->add(Gtk::Action::create("FileMenu", "File"));
+  m_refActionGroup->add(Gtk::Action::create("StartScript", "Start script"),
+                        sigc::mem_fun(*this,
+                                      &GrapherWindow::on_menu_script_start));
   m_refActionGroup->add(Gtk::Action::create("AddGraph", "Add graph"),
                         sigc::mem_fun(*this, &GrapherWindow::addGraph));
   m_refActionGroup->add(Gtk::Action::create("FileQuit", Gtk::Stock::QUIT),
-                        sigc::mem_fun(*this, &GrapherWindow::on_menu_file_quit));
+                        sigc::mem_fun(*this,
+                                      &GrapherWindow::on_menu_file_quit));
   m_refUIManager = Gtk::UIManager::create();
   m_refUIManager->insert_action_group(m_refActionGroup);
 
@@ -103,7 +133,8 @@ GrapherWindow::GrapherWindow()
     "<ui>"
     "  <menubar name='MenuBar'>"
     "    <menu action='FileMenu'>"
-    "      <menuitem action='AddGraph'/>"    
+    "      <menuitem action='StartScript'/>"
+    "      <menuitem action='AddGraph'/>"
     "      <menuitem action='FileQuit'/>"
     "    </menu>"
     "  </menubar>"
@@ -126,9 +157,15 @@ GrapherWindow::GrapherWindow()
   show_all_children();
 
 }
+
 void GrapherWindow::on_menu_file_quit()
 {
   hide();
+}
+
+void GrapherWindow::on_menu_script_start()
+{
+  _graphicalLauncher->runDialog();
 }
 
 void GrapherWindow::childDied(int pid)
@@ -276,7 +313,8 @@ int StapLauncher::launch()
         {
           string argString = "stap" +  _stapArgs + " " + _script + " "
             + _scriptArgs;
-          execl("/bin/sh", "-c", argString.c_str(), static_cast<char*>(0));
+          execl("/bin/sh", "sh", "-c", argString.c_str(),
+                static_cast<char*>(0));
         }
       _exit(1);
     }
@@ -329,7 +367,8 @@ int main(int argc, char** argv)
 
   StapParser stapParser(win, win.w);
   launcher.setStapParser(&stapParser);
-
+  GraphicalStapLauncher graphicalLauncher(&launcher);
+  win.setGraphicalLauncher(&graphicalLauncher);
   if (argc > 1)
     {
       launcher.setArgv(argv + 1);
@@ -352,4 +391,50 @@ void GrapherWindow::addGraph()
 {
   w.addGraph();
   
+}
+
+GraphicalStapLauncher::GraphicalStapLauncher(StapLauncher* launcher)
+ : _launcher(launcher)
+{
+  try
+    {
+      _launchStapDialog
+        = Gnome::Glade::Xml::create(PKGDATADIR "/stap-start.glade");
+      _launchStapDialog->get_widget("window1", _scriptWindow);
+      _launchStapDialog->get_widget("scriptChooserButton", _chooserButton);
+      _launchStapDialog->get_widget("stapEntry", _stapArgEntry);
+      _launchStapDialog->get_widget("scriptEntry", _scriptArgEntry);
+      Gtk::Button* button = 0;
+      _launchStapDialog->get_widget("launchButton", button);
+      button->signal_clicked()
+        .connect(sigc::mem_fun(*this, &GraphicalStapLauncher::onLaunch), false);
+      _launchStapDialog->get_widget("cancelButton", button);
+      button->signal_clicked()
+        .connect(sigc::mem_fun(*this, &GraphicalStapLauncher::onLaunchCancel),
+                 false);
+    }
+  catch (const Gnome::Glade::XmlError& ex )
+    {
+      std::cerr << ex.what() << std::endl;
+      throw;
+    }
+}
+
+bool GraphicalStapLauncher::runDialog()
+{
+  _scriptWindow->show();
+  return true;
+}
+
+void GraphicalStapLauncher::onLaunch()
+{
+  _launcher->setArgs(_stapArgEntry->get_text(), _chooserButton->get_filename(),
+                     _scriptArgEntry->get_text());
+  _scriptWindow->hide();
+  _launcher->launch();
+}
+
+void GraphicalStapLauncher::onLaunchCancel()
+{
+  _scriptWindow->hide();
 }
