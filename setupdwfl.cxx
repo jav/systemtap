@@ -13,6 +13,10 @@
 #include "dwflpp.h"
 #include "session.h"
 
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <set>
 #include <string>
 
@@ -77,6 +81,107 @@ static set<string> user_modset;
 // symbols in vmlinux and/or other modules they depend on. See PR10678.
 static const bool setup_all_deps = true;
 
+// Where to find the kernel (and the Modules.dep file).  Setup in
+// setup_dwfl_kernel(), used by dwfl_linux_kernel_report_offline() and
+// setup_mod_deps().
+static string elfutils_kernel_path;
+
+static bool is_comma_dash(const char c) { return (c == ',' || c == '-'); }
+
+// The module name is the basename (without the extension) of the
+// module path, with ',' and '-' replaced by '_'.
+static string
+modname_from_path(const string &path)
+{
+  size_t dot = path.rfind('.');
+  size_t slash = path.rfind('/');
+  if (dot == string::npos || slash == string::npos || dot < slash)
+    return "";
+  string name = path.substr(slash + 1, dot - slash - 1);
+  replace_if(name.begin(), name.end(), is_comma_dash, '_');
+  return name;
+}
+
+// Try to parse modules.dep file,
+// Simple format: module path (either full or relative), colon,
+// (possibly empty) space delimited list of module (path)
+// dependencies.
+static void
+setup_mod_deps()
+{
+  string modulesdep;
+  ifstream in;
+  string l;
+
+  if (elfutils_kernel_path[0] == '/')
+    {
+      modulesdep = elfutils_kernel_path;
+      modulesdep += "/modules.dep";
+    }
+  else
+    {
+      modulesdep = "/lib/modules/";
+      modulesdep += elfutils_kernel_path;
+      modulesdep += "/modules.dep";
+    }
+  in.open(modulesdep.c_str());
+  if (in.fail ())
+    return;
+
+  while (getline (in, l))
+    {
+      size_t off = l.find (':');
+      if (off != string::npos)
+	{
+	  string modpath, modname;
+	  modpath = l.substr (0, off);
+	  modname = modname_from_path (modpath);
+	  if (modname == "")
+	    continue;
+
+	  bool dep_needed;
+	  if (offline_search_modname != NULL)
+	    {
+	      if (dwflpp::name_has_wildcard (offline_search_modname))
+		{
+		  dep_needed = !fnmatch (offline_search_modname,
+					 modname.c_str (), 0);
+		  if (dep_needed)
+		    offline_search_names.insert (modname);
+		}
+	      else
+		{
+		  dep_needed = ! strcmp(modname.c_str (),
+					offline_search_modname);
+		  if (dep_needed)
+		    offline_search_names.insert (modname);
+		}
+	    }
+	  else
+	    dep_needed = (offline_search_names.find (modname)
+			  != offline_search_names.end ());
+
+	  if (! dep_needed)
+	    continue;
+
+	  string depstring = l.substr (off + 1);
+	  if (depstring.size () > 0)
+	    {
+	      stringstream ss (depstring);
+	      string deppath;
+	      while (ss >> deppath)
+		offline_search_names.insert (modname_from_path(deppath));
+
+	    }
+	}
+    }
+
+  // We always want kernel (needed in list so size checks match).
+  // Everything needed now stored in offline_search_names.
+  offline_search_names.insert ("kernel");
+  offline_search_modname = NULL;
+}
+
 // Set up our offline search for kernel modules.  We don't want the
 // offline search iteration to do a complete search of the kernel
 // build tree, since that's wasteful, so create a predicate that
@@ -101,6 +206,8 @@ setup_dwfl_report_kernel_p(const char* modname, const char* filename)
 	  || (offline_search_names.size() == 1
 	      && *offline_search_names.begin() == "kernel"))
 	setup_dwfl_done = true;
+      else
+	setup_mod_deps();
 
       offline_modules_found++;
       return 1;
@@ -162,7 +269,6 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
   // no way to set the dwfl_callback.debuginfo_path and always
   // passs the plain kernel_release here.  So instead we have to
   // hard-code this magic here.
-  string elfutils_kernel_path;
   if (s.kernel_build_tree == string("/lib/modules/"
 				    + s.kernel_release
 				    + "/build"))
