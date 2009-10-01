@@ -7534,8 +7534,8 @@ fi
 fi
 
 if test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"; then
-  { { $as_echo "$as_me:$LINENO: error: systemtap cannot find required gtkmm-2.4 libs (gtkmm24-devel may need to be installed)" >&5
-$as_echo "$as_me: error: systemtap cannot find required gtkmm-2.4 libs (gtkmm24-devel may need to be installed)" >&2;}
+  { { $as_echo "$as_me:$LINENO: error: systemtap cannot find required gtkmm/libglademm-2.4 libs (gtkmm24-devel and libglademm24-devel, version 2.6.7 or higher, may need to be installed)" >&5
+$as_echo "$as_me: error: systemtap cannot find required gtkmm/libglademm-2.4 libs (gtkmm24-devel and libglademm24-devel, version 2.6.7 or higher, may need to be installed)" >&2;}
    { (exit 1); exit 1; }; }
 fi
 

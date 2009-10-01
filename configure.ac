@@ -304,7 +304,7 @@ AS_IF([test "x$enable_grapher" != xno],
 dnl If the user explicitly said to enable the grapher, but we can't
 dnl (since gtkmm isn't installed), error.
 AS_IF([test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"],
-  AC_MSG_ERROR([systemtap cannot find required gtkmm-2.4 libs (gtkmm24-devel may need to be installed)]))
+  AC_MSG_ERROR([systemtap cannot find required gtkmm/libglademm-2.4 libs (gtkmm24-devel and libglademm24-devel, version 2.6.7 or higher, may need to be installed)]))
 dnl If the user didn't say to disable the grapher, and gtkmm is
 dnl installed, enable the grapher.
 AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_gtkmm}" == "xyes" -a x"$enable_grapher" != "xno"])
