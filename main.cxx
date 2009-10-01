@@ -43,6 +43,7 @@ extern "C" {
 #include <time.h>
 #include <elfutils/libdwfl.h>
 #include <getopt.h>
+#include <unistd.h>
 }
 
 using namespace std;
@@ -397,6 +398,31 @@ checkOptions (systemtap_session &s)
 
   if (optionsConflict)
     usage (s, 1);
+}
+
+/*
+ * Returns a string describing memory resource usage.
+ * Since it seems getrusage() doesn't maintain the mem related fields,
+ * this routine parses /proc/self/statm to get the statistics.
+ */
+static string
+getmemusage ()
+{
+  static int sz = getpagesize();
+
+  long pages, kb;
+  ostringstream oss;
+  ifstream statm("/proc/self/statm");
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << "using " << kb << "virt/";
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << kb << "res/";
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << kb << "shr kb, ";
+  return oss.str();
 }
 
 int
@@ -1053,7 +1079,7 @@ main (int argc, char * const argv [])
   struct timeval tv_after;
   gettimeofday (&tv_after, NULL);
 
-#define TIMESPRINT \
+#define TIMESPRINT "in " << \
            (tms_after.tms_cutime + tms_after.tms_utime \
             - tms_before.tms_cutime - tms_before.tms_utime) * 1000 / (_sc_clk_tck) << "usr/" \
         << (tms_after.tms_cstime + tms_after.tms_stime \
@@ -1066,7 +1092,8 @@ main (int argc, char * const argv [])
     {
       clog << "Pass 1: parsed user script and "
            << s.library_files.size()
-           << " library script(s) in "
+           << " library script(s) "
+           << getmemusage()
            << TIMESPRINT
            << endl;
     }
@@ -1098,7 +1125,8 @@ main (int argc, char * const argv [])
                       << s.probes.size() << " probe(s), "
                       << s.functions.size() << " function(s), "
                       << s.embeds.size() << " embed(s), "
-                      << s.globals.size() << " global(s) in "
+                      << s.globals.size() << " global(s) "
+                      << getmemusage()
                       << TIMESPRINT
                       << endl;
 
@@ -1163,7 +1191,8 @@ main (int argc, char * const argv [])
 
   if (s.verbose) clog << "Pass 3: translated to C into \""
                       << s.translated_source
-                      << "\" in "
+                      << "\" "
+                      << getmemusage()
                       << TIMESPRINT
                       << endl;
 
@@ -1194,7 +1223,7 @@ main (int argc, char * const argv [])
 
   if (s.verbose) clog << "Pass 4: compiled C into \""
                       << s.module_name << ".ko"
-                      << "\" in "
+                      << "\" "
                       << TIMESPRINT
                       << endl;
 
@@ -1240,7 +1269,7 @@ pass_5:
   rc = run_pass (s);
   times (& tms_after);
   gettimeofday (&tv_after, NULL);
-  if (s.verbose) clog << "Pass 5: run completed in "
+  if (s.verbose) clog << "Pass 5: run completed "
                       << TIMESPRINT
                       << endl;
 
