@@ -154,6 +154,7 @@ i = 1
 build_header = False
 build_source = False
 add_typedefs = False
+keep_temps = False
 use_cpp = False
 h_ext = '.h'
 filename = ""
@@ -170,6 +171,8 @@ while (i < len (sys.argv)):
         build_header = True
     elif (sys.argv[i] == "-G"):
         build_source = True
+    elif (sys.argv[i] == "-k"):
+        keep_temps = True
     elif (sys.argv[i] == "--types"):
         add_typedefs = True
     elif (sys.argv[i] == "--help"):
@@ -209,7 +212,10 @@ elif (build_source):
     providers = provider()
     (d,fn) = mkstemp(suffix=".h")
     providers.generate(s_filename, fn, add_typedefs)
-    os.remove(fn)
+    if (not keep_temps):
+        os.remove(fn)
+    else:
+        print "header: " + fn
 
     (d,fn) = mkstemp(suffix=".c")
     f = open(fn,mode='w')
@@ -217,6 +223,12 @@ elif (build_source):
     providers.semaphore_def_write(f)
     f.close()
     call(["gcc", "-fPIC", "-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
-    os.remove(fn)
+    if (not keep_temps):
+        os.remove(fn)
+    else:
+        print "source: " + fn
 if (use_cpp):
-    os.remove(s_filename)
+    if (not keep_temps):
+        os.remove(s_filename)
+    else:
+        print "cpp: " + s_filename

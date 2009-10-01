@@ -4601,6 +4601,10 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "sup->sdt_sem_address = relocation + sups->sdt_sem_address;";
   s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
   s.op->newline() << "sdt_semaphore ++;";
+  s.op->newline() << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx\\n\", sdt_semaphore, sup->sdt_sem_address);";
+  s.op->newline() << "#endif";
+
   s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
   // XXX: error handling in __access_process_vm!
   // XXX: need to analyze possibility of race condition
@@ -4864,6 +4868,9 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "if (tsk) {"; // just in case the thing exited while we weren't watching
   s.op->newline(1) << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
   s.op->newline() << "sdt_semaphore --;";
+  s.op->newline() << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-semaphore %#x @ %#lx\\n\", sdt_semaphore, sup->sdt_sem_address);";
+  s.op->newline() << "#endif";
   s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
   // XXX: error handling in __access_process_vm!
   // XXX: need to analyze possibility of race condition
