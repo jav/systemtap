@@ -1,3 +1,4 @@
+#! /usr/bin/env stap
 /* This script works similar to ftrace's sched_switch. It displays a list of
  * processes which get switched in and out of the scheduler. The format of display
  * is PROCESS_NAME PROCESS_PID CPU TIMESTAMP PID: PRIORITY: PROCESS STATE ->/+

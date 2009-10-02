@@ -154,6 +154,18 @@ keywords: profiling functions
   called function.
 
 
+profiling/sched_switch.stp - Display the task switches happening in the scheduler
+keywords: profiling functions
+
+  The sched_switch.stp script takes two arguments, first argument can
+  be "pid" or "name" to indicate what is being passed as second
+  argument. The script will trace the process based on pid/name and
+  print the scheduler switches happening with the process. If no
+  arguments are passed, it displays all the scheduler switches. This
+  can be used to understand which tasks schedule out the current
+  process being traced, and when it gets scheduled in again.
+
+
 = FUTEX =
 
 process/futexes.stp - System-Wide Futex Contention
@@ -616,6 +628,18 @@ keywords: profiling functions
   that each of the functions on the list is called. On exit the script
   will print a sorted list from most frequently to least frequently
   called function.
+
+
+profiling/sched_switch.stp - Display the task switches happening in the scheduler
+keywords: profiling functions
+
+  The sched_switch.stp script takes two arguments, first argument can
+  be "pid" or "name" to indicate what is being passed as second
+  argument. The script will trace the process based on pid/name and
+  print the scheduler switches happening with the process. If no
+  arguments are passed, it displays all the scheduler switches. This
+  can be used to understand which tasks schedule out the current
+  process being traced, and when it gets scheduled in again.
 
 
 profiling/thread-times.stp - Profile kernel functions
