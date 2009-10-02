@@ -1460,6 +1460,8 @@ discontiguify (struct obstack *pool, int indent, struct location *loc,
 	    piece->constant_block = loc->constant_block + offset;
 
 	    add (piece);
+
+	    offset += size;
 	  }
 
 	break;
