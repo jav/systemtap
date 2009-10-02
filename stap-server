@@ -172,7 +172,7 @@ function read_data_file {
 # parse all options in order to discover the ones we're interested in.
 function parse_options {
     # We need to know in advance if --unprivileged was specified.
-    all_options="$@"" "
+    all_options=" ""$@"" "
     token=`expr "$all_options" : '.* \(--unprivileged\) .*'`
     if test "X$token" = "X--unprivileged"; then
 	unprivileged=1
