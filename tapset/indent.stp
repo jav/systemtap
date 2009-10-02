@@ -9,11 +9,7 @@ function _generic_indent (idx, desc, delta)
   x = _indent_counters[idx] + (delta > 0 ? delta : 0)
   _indent_counters[idx] += delta
 
-  r = sprintf("%6d %s:", (ts - _indent_timestamps[idx]), desc)
-
-  for (i=1; i<x; i++) r .= " "
-
-  return r
+  return sprintf("%6d %s:%-*s", (ts - _indent_timestamps[idx]), desc, (x>0 ? x-1 : 0), "")
 }
 
 /**
