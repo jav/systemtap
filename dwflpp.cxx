@@ -1654,6 +1654,14 @@ dwflpp::translate_location(struct obstack *pool,
     }
 #endif
 
+  /* There is no location expression, but a constant value instead.  */
+  if (dwarf_whatattr (attr) == DW_AT_const_value)
+    {
+      *tail = c_translate_constant (pool, &loc2c_error, this,
+				    &loc2c_emit_address, 0, pc, attr);
+      return *tail;
+    }
+
   Dwarf_Op *expr;
   size_t len;
 
@@ -2216,7 +2224,8 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
          << "\n";
 
   Dwarf_Attribute attr_mem;
-  if (dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
+  if (dwarf_attr_integrate (&vardie, DW_AT_const_value, &attr_mem) == NULL
+      && dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
     {
       throw semantic_error("failed to retrieve location "
                            "attribute for local '" + local
