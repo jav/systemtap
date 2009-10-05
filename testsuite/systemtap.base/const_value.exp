@@ -1,0 +1,34 @@
+set test "const_value"
+set ::result_string {f: bar
+i: 2
+j: 21}
+
+set test_flags "additional_flags=-g"
+# We need -O2 to get const_value encodings in dwarf.
+set test_flags "$test_flags additional_flags=-O2"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  return
+} else {
+  pass "$test.c compile"
+}
+
+# Test only when we are running an install test (can execute) and when gcc
+# vta generated DW_AT_const_values for us. We are interested in both blocks
+# and pure constant addresses (technically only the second was added by vta).
+if {[installtest_p] && [uprobes_p]} {
+  set dw_at_c {DW_AT_const_value}
+  if {![catch {exec readelf --debug-dump=info $test.exe | grep "$dw_at_c"}]} {
+    stap_run2 $srcdir/$subdir/$test.stp -c ./$test.exe
+  } {
+    untested "$test (no-gcc-vta)"
+  }
+} else {
+  untested "$test"
+}
+catch {exec rm -f $test.exe}
