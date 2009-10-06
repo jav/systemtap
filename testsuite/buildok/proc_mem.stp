@@ -1,0 +1,13 @@
+#! stap -p4
+
+probe begin {
+  printf("%d\n", proc_mem_size());
+  printf("%d\n", proc_mem_rss());
+  printf("%d\n", proc_mem_shr());
+  printf("%d\n", proc_mem_txt());
+  printf("%d\n", proc_mem_data());
+  printf("%d\n", mem_page_size())
+  printf("%s\n", bytes_to_string(0));
+  printf("%s\n", pages_to_string(0));
+  printf("%s\n", proc_mem_string());
+}
