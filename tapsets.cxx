@@ -261,6 +261,7 @@ static const string TOK_TRACE("trace");
 static const string TOK_LABEL("label");
 
 static int query_cu (Dwarf_Die * cudie, void * arg);
+static void query_addr(Dwarf_Addr addr, dwarf_query *q);
 
 // Can we handle this query with just symbol-table info?
 enum dbinfo_reqt
@@ -731,19 +732,9 @@ dwarf_query::query_module_dwarf()
       // module("foo").statement(0xbeef), the address is relative
       // to the start of the module, so we seek the function
       // number plus the module's bias.
-
-      Dwarf_Addr addr;
-      if (has_function_num)
-	addr = function_num_val;
-      else
-	addr = statement_num_val;
-
-      // Translate to an actual symbol address.
-      addr = dw.literal_addr_to_sym_addr (addr);
-
-      Dwarf_Die* cudie = dw.query_cu_containing_address(addr);
-      if (cudie) // address could be wildly out of range
-        query_cu(cudie, this);
+      Dwarf_Addr addr = has_function_num ?
+        function_num_val : statement_num_val;
+      query_addr(addr, this);
     }
   else
     {
@@ -1146,6 +1137,111 @@ query_statement (string const & func,
 }
 
 static void
+query_addr(Dwarf_Addr addr, dwarf_query *q)
+{
+  dwflpp &dw = q->dw;
+
+  // Translate to and actual sumbol address.
+  addr = dw.literal_addr_to_sym_addr(addr);
+
+  // First pick which CU contains this address
+  Dwarf_Die* cudie = dw.query_cu_containing_address(addr);
+  if (!cudie) // address could be wildly out of range
+    return;
+  dw.focus_on_cu(cudie);
+
+  // Now compensate for the dw bias
+  addr -= dw.module_bias;
+
+  // Per PR5787, we look up the scope die even for
+  // statement_num's, for blacklist sensitivity and $var
+  // resolution purposes.
+
+  // Find the scopes containing this address
+  vector<Dwarf_Die> scopes = dw.getscopes(addr);
+  if (scopes.empty())
+    return;
+
+  // Look for the innermost containing function
+  Dwarf_Die *fnscope = NULL;
+  for (size_t i = 0; i < scopes.size(); ++i)
+    {
+      int tag = dwarf_tag(&scopes[i]);
+      if ((tag == DW_TAG_subprogram && !q->has_inline) ||
+          (tag == DW_TAG_inlined_subroutine &&
+           !q->has_call && !q->has_return))
+        {
+          fnscope = &scopes[i];
+          break;
+        }
+    }
+  if (!fnscope)
+    return;
+  dw.focus_on_function(fnscope);
+
+  Dwarf_Die *scope = q->has_function_num ? fnscope : &scopes[0];
+
+  const char *file = dwarf_decl_file(fnscope);
+  int line;
+  dwarf_decl_line(fnscope, &line);
+
+  // Function probes should reset the addr to the function entry
+  // and possibly perform prologue searching
+  if (q->has_function_num)
+    {
+      dw.die_entrypc(fnscope, &addr);
+      if (dwarf_tag(fnscope) == DW_TAG_subprogram &&
+          (q->sess.prologue_searching || q->has_process)) // PR 6871
+        {
+          func_info func;
+          func.die = *fnscope;
+          func.name = dw.function_name;
+          func.decl_file = file;
+          func.decl_line = line;
+          func.entrypc = addr;
+
+          func_info_map_t funcs(1, func);
+          dw.resolve_prologue_endings (funcs);
+          if (funcs[0].prologue_end)
+            addr = funcs[0].prologue_end;
+        }
+    }
+  else
+    {
+      dwarf_line_t address_line(dwarf_getsrc_die(cudie, addr));
+      if (address_line)
+        {
+          file = address_line.linesrc();
+          line = address_line.lineno();
+        }
+
+      // Verify that a raw address matches the beginning of a
+      // statement. This is a somewhat lame check that the address
+      // is at the start of an assembly instruction.  Mark probes are in the
+      // middle of a macro and thus not strictly at a statement beginning.
+      // Guru mode may override this check.
+      if (!q->has_mark && (!address_line || address_line.addr() != addr))
+        {
+          stringstream msg;
+          msg << "address 0x" << hex << addr
+              << " does not match the beginning of a statement";
+          if (address_line)
+            msg << " (try 0x" << hex << address_line.addr() << ")";
+          else
+            msg << " (no line info found for '" << dw.cu_name()
+                << "', in module '" << dw.module_name << "')";
+          if (! q->sess.guru_mode)
+            throw semantic_error(msg.str());
+          else if (! q->sess.suppress_warnings)
+           q->sess.print_warning(msg.str());
+        }
+    }
+
+  // Build a probe at this point
+  query_statement(dw.function_name, file, line, scope, addr, q);
+}
+
+static void
 query_label (string const & func,
              char const * label,
              char const * file,
@@ -1154,12 +1250,13 @@ query_label (string const & func,
              Dwarf_Addr stmt_addr,
              dwarf_query * q)
 {
+  assert (q->has_statement_str || q->has_function_str);
+
   size_t i = q->results.size();
 
   // weed out functions whose decl_file isn't one of
   // the source files that we actually care about
-  if ((q->has_statement_str || q->has_function_str) &&
-      q->spec_type != function_alone &&
+  if (q->spec_type != function_alone &&
       q->filtered_srcfiles.count(file) == 0)
     return;
 
@@ -1316,36 +1413,29 @@ static int
 query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
-  assert (!q->has_statement_num);
+  assert (q->has_statement_str || q->has_function_str);
+  assert (!q->has_call && !q->has_return);
 
   try
     {
       if (q->sess.verbose>2)
-	clog << "examining inline instance of " << q->dw.function_name << "\n";
+        clog << "selected inline instance of " << q->dw.function_name << "\n";
 
-      if ((q->has_function_str && ! q->has_call)
-          || q->has_statement_str)
-	{
-	  if (q->sess.verbose>2)
-	    clog << "selected inline instance of " << q->dw.function_name
-                 << "\n";
+      Dwarf_Addr entrypc;
+      if (q->dw.die_entrypc (die, &entrypc))
+        {
+          inline_instance_info inl;
+          inl.die = *die;
+          inl.name = q->dw.function_name;
+          inl.entrypc = entrypc;
+          q->dw.function_file (&inl.decl_file);
+          q->dw.function_line (&inl.decl_line);
 
-	  Dwarf_Addr entrypc;
-	  if (q->dw.die_entrypc (die, &entrypc))
-	    {
-	      inline_instance_info inl;
-	      inl.die = *die;
-	      inl.name = q->dw.function_name;
-	      inl.entrypc = entrypc;
-	      q->dw.function_file (&inl.decl_file);
-	      q->dw.function_line (&inl.decl_line);
-
-              // make sure that this inline hasn't already
-              // been matched from a different CU
-              if (q->inline_dupes.insert(inl).second)
-                q->filtered_inlines.push_back(inl);
-	    }
-	}
+          // make sure that this inline hasn't already
+          // been matched from a different CU
+          if (q->inline_dupes.insert(inl).second)
+            q->filtered_inlines.push_back(inl);
+        }
       return DWARF_CB_OK;
     }
   catch (const semantic_error& e)
@@ -1359,11 +1449,11 @@ static int
 query_dwarf_func (Dwarf_Die * func, base_query * bq)
 {
   dwarf_query * q = static_cast<dwarf_query *>(bq);
+  assert (q->has_statement_str || q->has_function_str);
 
   // weed out functions whose decl_file isn't one of
   // the source files that we actually care about
-  if ((q->has_statement_str || q->has_function_str) &&
-      q->spec_type != function_alone &&
+  if (q->spec_type != function_alone &&
       q->filtered_srcfiles.count(dwarf_decl_file(func)?:"") == 0)
     return DWARF_CB_OK;
 
@@ -1382,9 +1472,7 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
           !q->alias_dupes.insert(addr).second)
         return DWARF_CB_OK;
 
-      if (q->dw.func_is_inline ()
-          && (! q->has_call) && (! q->has_return)
-	  && (q->has_statement_str || q->has_function_str))
+      if (q->dw.func_is_inline () && (! q->has_call) && (! q->has_return))
 	{
 	  if (q->sess.verbose>3)
 	    clog << "checking instances of inline " << q->dw.function_name
@@ -1393,67 +1481,22 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 	}
       else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
-	  bool record_this_function = false;
+          if (q->sess.verbose>2)
+            clog << "selected function " << q->dw.function_name << "\n";
 
-	  if (q->has_statement_str || q->has_function_str)
-	    {
-	      record_this_function = true;
-	    }
-	  else if (q->has_function_num || q->has_statement_num)
-	    {
-              Dwarf_Addr query_addr =
-                (q->has_function_num ? q->function_num_val :
-		 q->has_statement_num ? q->statement_num_val :
-		 (assert(0) , 0));
-	      Dwarf_Die d;
-	      q->dw.function_die (&d);
+          func_info func;
+          q->dw.function_die (&func.die);
+          func.name = q->dw.function_name;
+          q->dw.function_file (&func.decl_file);
+          q->dw.function_line (&func.decl_line);
 
-	      // Translate literal address to symbol address, then
-	      // compensate for dw bias.
-	      query_addr = q->dw.literal_addr_to_sym_addr(query_addr);
-	      query_addr -= q->dw.module_bias;
-
-	      if (q->dw.die_has_pc (d, query_addr))
-		record_this_function = true;
-	    }
-
-	  if (record_this_function)
-	    {
-	      if (q->sess.verbose>2)
-		clog << "selected function " << q->dw.function_name << "\n";
-
-              func_info func;
-              q->dw.function_die (&func.die);
-              func.name = q->dw.function_name;
-              q->dw.function_file (&func.decl_file);
-              q->dw.function_line (&func.decl_line);
-
-              if (q->has_function_num || q->has_function_str || q->has_statement_str)
-                {
-                  Dwarf_Addr entrypc;
-                  if (q->dw.function_entrypc (&entrypc))
-                    {
-                      func.entrypc = entrypc;
-                      q->filtered_functions.push_back (func);
-                    }
-                  else
-                    /* this function just be fully inlined, just ignore it */
-                    return DWARF_CB_OK;
-                }
-              else if (q->has_statement_num)
-                {
-                  func.entrypc = q->statement_num_val;
-
-		  // Translate literal address to symbol address, then
-		  // compensate for dw bias (will be used for query dw funcs).
-		  func.entrypc = q->dw.literal_addr_to_sym_addr(func.entrypc);
-		  func.entrypc -= q->dw.module_bias;
-
-                  q->filtered_functions.push_back (func);
-                }
-              else
-                assert(0);
-	    }
+          Dwarf_Addr entrypc;
+          if (q->dw.function_entrypc (&entrypc))
+            {
+              func.entrypc = entrypc;
+              q->filtered_functions.push_back (func);
+            }
+          /* else this function is fully inlined, just ignore it */
 	}
       return DWARF_CB_OK;
     }
@@ -1468,6 +1511,8 @@ static int
 query_cu (Dwarf_Die * cudie, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
+  assert (q->has_statement_str || q->has_function_str);
+
   if (pending_interrupts) return DWARF_CB_ABORT;
 
   try
@@ -1478,135 +1523,77 @@ query_cu (Dwarf_Die * cudie, void * arg)
         clog << "focused on CU '" << q->dw.cu_name()
              << "', in module '" << q->dw.module_name << "'\n";
 
-      if (q->has_statement_str || q->has_statement_num
-	  || q->has_function_str || q->has_function_num)
-	{
-	  q->filtered_srcfiles.clear();
-	  q->filtered_functions.clear();
-	  q->filtered_inlines.clear();
+      q->filtered_srcfiles.clear();
+      q->filtered_functions.clear();
+      q->filtered_inlines.clear();
 
-	  // In this path, we find "abstract functions", record
-	  // information about them, and then (depending on lineno
-	  // matching) possibly emit one or more of the function's
-	  // associated addresses. Unfortunately the control of this
-	  // cannot easily be turned inside out.
+      // In this path, we find "abstract functions", record
+      // information about them, and then (depending on lineno
+      // matching) possibly emit one or more of the function's
+      // associated addresses. Unfortunately the control of this
+      // cannot easily be turned inside out.
 
-	  if ((q->has_statement_str || q->has_function_str)
-	      && (q->spec_type != function_alone))
-	    {
-	      // If we have a pattern string with a filename, we need
-	      // to elaborate the srcfile mask in question first.
-	      q->dw.collect_srcfiles_matching (q->file, q->filtered_srcfiles);
+      if (q->spec_type != function_alone)
+        {
+          // If we have a pattern string with a filename, we need
+          // to elaborate the srcfile mask in question first.
+          q->dw.collect_srcfiles_matching (q->file, q->filtered_srcfiles);
 
-	      // If we have a file pattern and *no* srcfile matches, there's
-	      // no need to look further into this CU, so skip.
-	      if (q->filtered_srcfiles.empty())
-		return DWARF_CB_OK;
-	    }
-          // Verify that a raw address matches the beginning of a
-          // statement. This is a somewhat lame check that the address
-          // is at the start of an assembly instruction.  Mark probes are in the
-	  // middle of a macro and thus not strictly at a statement beginning.
-	  // Guru mode may override this check.
-          if (q->has_statement_num && ! q->has_mark)
-            {
-              Dwarf_Addr queryaddr = q->statement_num_val;
-              dwarf_line_t address_line(dwarf_getsrc_die(cudie, queryaddr));
-              Dwarf_Addr lineaddr = 0;
-              if (address_line)
-                lineaddr = address_line.addr();
-              if (!address_line || lineaddr != queryaddr)
-                {
-                  stringstream msg;
-                  msg << "address 0x" << hex << queryaddr
-                      << " does not match the beginning of a statement";
-                  if (address_line)
-                    msg << " (try 0x" << hex << lineaddr << ")";
-                  else
-                    msg << " (no line info found for '" << q->dw.cu_name()
-                        << "', in module '" << q->dw.module_name << "')";
-                  if (! q->sess.guru_mode)
-                    throw semantic_error(msg.str());
-                  else if (! q->sess.suppress_warnings)
-                   q->sess.print_warning(msg.str());
-                }
-            }
-	  // Pick up [entrypc, name, DIE] tuples for all the functions
-	  // matching the query, and fill in the prologue endings of them
-	  // all in a single pass.
-	  int rc = q->dw.iterate_over_functions (query_dwarf_func, q,
-                                                 q->function,
-                                                 q->has_statement_num);
-	  if (rc != DWARF_CB_OK)
-	    q->query_done = true;
+          // If we have a file pattern and *no* srcfile matches, there's
+          // no need to look further into this CU, so skip.
+          if (q->filtered_srcfiles.empty())
+            return DWARF_CB_OK;
+        }
 
-          if ((q->sess.prologue_searching || q->has_process) // PR 6871
-              && !q->has_statement_str && !q->has_statement_num) // PR 2608
-            if (! q->filtered_functions.empty())
-              q->dw.resolve_prologue_endings (q->filtered_functions);
+      // Pick up [entrypc, name, DIE] tuples for all the functions
+      // matching the query, and fill in the prologue endings of them
+      // all in a single pass.
+      int rc = q->dw.iterate_over_functions (query_dwarf_func, q,
+                                             q->function, false);
+      if (rc != DWARF_CB_OK)
+        q->query_done = true;
 
-	  if (q->has_label)
-	    {
-	      if (q->spec_type != function_file_and_line) // No line number specified
-                {
-                  for (func_info_map_t::iterator i = q->filtered_functions.begin();
-                       i != q->filtered_functions.end(); ++i)
-                    q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
-                                               q, query_label);
+      if ((q->sess.prologue_searching || q->has_process) // PR 6871
+          && !q->has_statement_str) // PR 2608
+        if (! q->filtered_functions.empty())
+          q->dw.resolve_prologue_endings (q->filtered_functions);
 
-                  for (inline_instance_map_t::iterator i = q->filtered_inlines.begin();
-                       i != q->filtered_inlines.end(); ++i)
-                    q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
-                                               q, query_label);
-                }
-	      else
-		for (set<string>::const_iterator i = q->filtered_srcfiles.begin();
-		     i != q->filtered_srcfiles.end(); ++i)
-		  q->dw.iterate_over_srcfile_lines (i->c_str(), q->line, q->has_statement_str,
-						    q->line_type, query_srcfile_label, q->function, q);
-	    }
-	  else if ((q->has_statement_str || q->has_function_str)
-	      && (q->spec_type == function_file_and_line))
-	    {
-	      // If we have a pattern string with target *line*, we
-	      // have to look at lines in all the matched srcfiles.
-	      for (set<string>::const_iterator i = q->filtered_srcfiles.begin();
-		   i != q->filtered_srcfiles.end(); ++i)
-		q->dw.iterate_over_srcfile_lines (i->c_str(), q->line, q->has_statement_str,
-						  q->line_type, query_srcfile_line, q->function, q);
-	    }
-	  else
-	    {
-	      // Otherwise, simply probe all resolved functions.
-              for (func_info_map_t::iterator i = q->filtered_functions.begin();
-                   i != q->filtered_functions.end(); ++i)
-                query_func_info (i->entrypc, *i, q);
+      if (q->spec_type == function_file_and_line)
+        {
+          // If we have a pattern string with target *line*, we
+          // have to look at lines in all the matched srcfiles.
+          void (* callback) (const dwarf_line_t&, void*) =
+            q->has_label ? query_srcfile_label : query_srcfile_line;
+          for (set<string>::const_iterator i = q->filtered_srcfiles.begin();
+               i != q->filtered_srcfiles.end(); ++i)
+            q->dw.iterate_over_srcfile_lines (i->c_str(), q->line, q->has_statement_str,
+                                              q->line_type, callback, q->function, q);
+        }
+      else if (q->has_label)
+        {
+          for (func_info_map_t::iterator i = q->filtered_functions.begin();
+               i != q->filtered_functions.end(); ++i)
+            q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                       q, query_label);
 
-	      // And all inline instances (if we're not excluding inlines with ".call")
-	      if (! q->has_call)
-		for (inline_instance_map_t::iterator i
-		       = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
-		  query_inline_instance_info (*i, q);
-	    }
-	}
+          for (inline_instance_map_t::iterator i = q->filtered_inlines.begin();
+               i != q->filtered_inlines.end(); ++i)
+            q->dw.iterate_over_labels (&i->die, q->label_val, i->name,
+                                       q, query_label);
+        }
       else
         {
-          // Before PR 5787, we used to have this:
-#if 0
-	  // Otherwise we have a statement number, and we can just
-	  // query it directly within this module.
-	  assert (q->has_statement_num);
-	  Dwarf_Addr query_addr = q->statement_num_val;
-          query_addr = q->dw.module_address_to_global(query_addr);
+          // Otherwise, simply probe all resolved functions.
+          for (func_info_map_t::iterator i = q->filtered_functions.begin();
+               i != q->filtered_functions.end(); ++i)
+            query_func_info (i->entrypc, *i, q);
 
-	  query_statement ("", "", -1, NULL, query_addr, q);
-#endif
-          // But now, we traverse CUs/functions even for
-          // statement_num's, for blacklist sensitivity and $var
-          // resolution purposes.
-
-          assert (0); // NOTREACHED
-        }
+          // And all inline instances (if we're not excluding inlines with ".call")
+          if (! q->has_call)
+            for (inline_instance_map_t::iterator i
+                   = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
+              query_inline_instance_info (*i, q);
+	}
       return DWARF_CB_OK;
     }
   catch (const semantic_error& e)
