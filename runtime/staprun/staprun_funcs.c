@@ -23,7 +23,7 @@
 #include <assert.h>
 
 extern long init_module(void *, unsigned long, const char *);
-static int check_permissions(const void *, off_t);
+static void assert_permissions(const void *, off_t);
 
 /* Module errors get translated. */
 const char *moderror(int err)
@@ -112,10 +112,10 @@ int insert_module(const char *path, const char *special_options, char **options)
 		return -1;
 	}
 
-	/* Check whether this module can be loaded by the current user.  */
-	ret = check_permissions (file, sbuf.st_size);
-	if (ret != 1)
-		return -1;
+	/* Check whether this module can be loaded by the current user.
+	 * check_permissions will exit(-1) if permissions are insufficient*/
+	assert_permissions (file, sbuf.st_size);
+
 
 	STAP_PROBE1(staprun, insert__module, path);
 	/* Actually insert the module */
@@ -448,7 +448,7 @@ check_groups (void)
  *
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
-int check_permissions(
+void assert_permissions(
   const void *module_data __attribute__ ((unused)),
   off_t module_size __attribute__ ((unused))
 ) {
@@ -460,7 +460,7 @@ int check_permissions(
 	   if the module has been tampered with (altered).  */
 	check_signature_rc = check_signature (module_data, module_size);
 	if (check_signature_rc == MODULE_ALTERED)
-		return 0;
+		exit(-1);
 #endif
 
 	/* If we're root, we can do anything. */
@@ -477,20 +477,20 @@ int check_permissions(
 			err("WARNING: couldn't set staprun GID to '%s': %s",
 					env_id, strerror(errno));
 
-		return 1;
+		return;
 	}
 
 	/* Check permissions for group membership.  */
 	check_groups_rc = check_groups ();
 	if (check_groups_rc == 1)
-		return 1;
+		return;
 
 	/* The user is an ordinary user. If the module has been signed with
 	 * an authorized certificate and private key, then we will load it for
 	 * anyone.  */
 #if HAVE_NSS
 	if (check_signature_rc == MODULE_OK)
-		return 1;
+		return;
 	assert (check_signature_rc == MODULE_UNTRUSTED || check_signature_rc == MODULE_CHECK_ERROR);
 #endif
 
@@ -509,5 +509,5 @@ int check_permissions(
 #endif
 
 	/* Combine the return codes.  They are either 0 or -1. */
-	return check_groups_rc | check_signature_rc;
+	exit(-1);
 }

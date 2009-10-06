@@ -227,14 +227,14 @@ int init_staprun(void)
                      without first removing the kernel module.  This would block
                      a subsequent rerun attempt.  So here we gingerly try to
                      unload it first. */
-                  int ret = delete_module (modname, O_NONBLOCK);
-                  err("Retrying, after attempted removal of module %s (rc %d)\n", modname, ret); 
-                  /* Then we try an insert a second time.  */
-                  if (insert_stap_module() < 0)
-                    return -1;
-                }
-                if (send_relocations() < 0)
-                  	return -1;
+		  int ret = delete_module (modname, O_NONBLOCK);
+		  err("Retrying, after attempted removal of module %s (rc %d)\n", modname, ret);
+		  /* Then we try an insert a second time.  */
+		  if (insert_stap_module() < 0)
+			return -1;
+		}
+		if (send_relocations() < 0)
+			return -1;
 	}
 	return 0;
 }
