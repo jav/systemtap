@@ -9327,7 +9327,7 @@ _ACEOF
 
 ac_config_headers="$ac_config_headers config.h:config.in"
 
-ac_config_files="$ac_config_files Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-server.8 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap man/stapprobes.snmp.3stap initscript/systemtap"
+ac_config_files="$ac_config_files Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-server.8 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap man/stapprobes.snmp.3stap initscript/systemtap"
 
 
 
@@ -10065,6 +10065,7 @@ do
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "doc/SystemTap_Tapset_Reference/Makefile") CONFIG_FILES="$CONFIG_FILES doc/SystemTap_Tapset_Reference/Makefile" ;;
     "grapher/Makefile") CONFIG_FILES="$CONFIG_FILES grapher/Makefile" ;;
+    "grapher/stapgraph.1") CONFIG_FILES="$CONFIG_FILES grapher/stapgraph.1" ;;
     "stap.1") CONFIG_FILES="$CONFIG_FILES stap.1" ;;
     "stapprobes.3stap") CONFIG_FILES="$CONFIG_FILES stapprobes.3stap" ;;
     "stapfuncs.3stap") CONFIG_FILES="$CONFIG_FILES stapfuncs.3stap" ;;

@@ -36,16 +36,17 @@ POST_UNINSTALL = :
 @BUILD_GRAPHER_TRUE@bin_PROGRAMS = stapgraph$(EXEEXT)
 subdir = grapher
 DIST_COMMON = $(am__dist_pkgdata_DATA_DIST) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in
+	$(srcdir)/Makefile.in $(srcdir)/stapgraph.1.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = stapgraph.1
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgdatadir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" \
+	"$(DESTDIR)$(pkgdatadir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__stapgraph_SOURCES_DIST = grapher.cxx StapParser.cxx Graph.cxx \
 	GraphWidget.cxx CairoWidget.cxx
@@ -71,7 +72,6 @@ CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
 SOURCES = $(stapgraph_SOURCES)
 DIST_SOURCES = $(am__stapgraph_SOURCES_DIST)
-am__dist_pkgdata_DATA_DIST = graph-dialog.glade stap-start.glade
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -93,6 +93,10 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+man1dir = $(mandir)/man1
+NROFF = nroff
+MANS = $(man_MANS)
+am__dist_pkgdata_DATA_DIST = graph-dialog.glade stap-start.glade
 DATA = $(dist_pkgdata_DATA)
 ETAGS = etags
 CTAGS = ctags
@@ -215,6 +219,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+@BUILD_GRAPHER_TRUE@man_MANS = stapgraph.1
 @BUILD_GRAPHER_TRUE@stapgraph_CPPFLAGS = -DPKGDATADIR='"${pkgdatadir}"'
 @BUILD_GRAPHER_TRUE@stapgraph_CXXFLAGS = $(gtkmm_CFLAGS) -Wall -Werror
 @BUILD_GRAPHER_TRUE@stapgraph_SOURCES = grapher.cxx StapParser.cxx Graph.cxx GraphWidget.cxx CairoWidget.cxx
@@ -254,6 +259,8 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+stapgraph.1: $(top_builddir)/config.status $(srcdir)/stapgraph.1.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
@@ -390,6 +397,44 @@ stapgraph-CairoWidget.obj: CairoWidget.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CairoWidget.cxx' object='stapgraph-CairoWidget.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-CairoWidget.obj `if test -f 'CairoWidget.cxx'; then $(CYGPATH_W) 'CairoWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/CairoWidget.cxx'; fi`
+install-man1: $(man_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man1dir)" || $(MKDIR_P) "$(DESTDIR)$(man1dir)"
+	@list=''; test -n "$(man1dir)" || exit 0; \
+	{ for i in $$list; do echo "$$i"; done; \
+	l2='$(man_MANS)'; for i in $$l2; do echo "$$i"; done | \
+	  sed -n '/\.1[a-z]*$$/p'; \
+	} | while read p; do \
+	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; echo "$$p"; \
+	done | \
+	sed -e 'n;s,.*/,,;p;h;s,.*\.,,;s,^[^1][0-9a-z]*$$,1,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,' | \
+	sed 'N;N;s,\n, ,g' | { \
+	list=; while read file base inst; do \
+	  if test "$$base" = "$$inst"; then list="$$list $$file"; else \
+	    echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man1dir)/$$inst'"; \
+	    $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man1dir)/$$inst" || exit $$?; \
+	  fi; \
+	done; \
+	for i in $$list; do echo "$$i"; done | $(am__base_list) | \
+	while read files; do \
+	  test -z "$$files" || { \
+	    echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(man1dir)'"; \
+	    $(INSTALL_DATA) $$files "$(DESTDIR)$(man1dir)" || exit $$?; }; \
+	done; }
+
+uninstall-man1:
+	@$(NORMAL_UNINSTALL)
+	@list=''; test -n "$(man1dir)" || exit 0; \
+	files=`{ for i in $$list; do echo "$$i"; done; \
+	l2='$(man_MANS)'; for i in $$l2; do echo "$$i"; done | \
+	  sed -n '/\.1[a-z]*$$/p'; \
+	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^1][0-9a-z]*$$,1,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
+	test -z "$$files" || { \
+	  echo " ( cd '$(DESTDIR)$(man1dir)' && rm -f" $$files ")"; \
+	  cd "$(DESTDIR)$(man1dir)" && rm -f $$files; }
 install-dist_pkgdataDATA: $(dist_pkgdata_DATA)
 	@$(NORMAL_INSTALL)
 	test -z "$(pkgdatadir)" || $(MKDIR_P) "$(DESTDIR)$(pkgdatadir)"
@@ -464,6 +509,19 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
+	@list='$(MANS)'; if test -n "$$list"; then \
+	  list=`for p in $$list; do \
+	    if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	    if test -f "$$d$$p"; then echo "$$d$$p"; else :; fi; done`; \
+	  if test -n "$$list" && \
+	    grep 'ab help2man is required to generate this page' $$list >/dev/null; then \
+	    echo "error: found man pages containing the \`missing help2man' replacement text:" >&2; \
+	    grep -l 'ab help2man is required to generate this page' $$list | sed 's/^/         /' >&2; \
+	    echo "       to fix them, install help2man, remove and regenerate the man pages;" >&2; \
+	    echo "       typically \`make maintainer-clean' will remove them" >&2; \
+	    exit 1; \
+	  else :; fi; \
+	else :; fi
 	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
 	list='$(DISTFILES)'; \
@@ -495,9 +553,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) $(DATA)
+all-am: Makefile $(PROGRAMS) $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgdatadir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(pkgdatadir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -547,7 +605,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_pkgdataDATA
+install-data-am: install-dist_pkgdataDATA install-man
 
 install-dvi: install-dvi-am
 
@@ -563,7 +621,7 @@ install-info: install-info-am
 
 install-info-am:
 
-install-man:
+install-man: install-man1
 
 install-pdf: install-pdf-am
 
@@ -592,7 +650,10 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgdataDATA
+uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgdataDATA \
+	uninstall-man
+
+uninstall-man: uninstall-man1
 
 .MAKE: install-am install-strip
 
@@ -603,12 +664,12 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgdataDATA
 	install-data install-data-am install-dist_pkgdataDATA \
 	install-dvi install-dvi-am install-exec install-exec-am \
 	install-html install-html-am install-info install-info-am \
-	install-man install-pdf install-pdf-am install-ps \
+	install-man install-man1 install-pdf install-pdf-am install-ps \
 	install-ps-am install-strip installcheck installcheck-am \
 	installdirs maintainer-clean maintainer-clean-generic \
 	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
 	ps ps-am tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-dist_pkgdataDATA
+	uninstall-dist_pkgdataDATA uninstall-man uninstall-man1
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
