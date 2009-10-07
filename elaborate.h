@@ -18,6 +18,10 @@
 #include <sstream>
 #include <map>
 
+extern "C" {
+#include <elfutils/libdw.h>
+}
+
 // ------------------------------------------------------------------------
 
 struct derived_probe;
@@ -153,6 +157,9 @@ public:
 
   virtual bool needs_global_locks () { return true; }
   // by default, probes need locks around global variables
+
+  // Location of semaphores to activate sdt probes
+  Dwarf_Addr sdt_semaphore_addr;
 };
 
 // ------------------------------------------------------------------------
