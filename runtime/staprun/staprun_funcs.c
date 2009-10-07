@@ -453,12 +453,11 @@ void assert_permissions(
   off_t module_size __attribute__ ((unused))
 ) {
 	int check_groups_rc;
-	int check_signature_rc = 0;
 
 #if HAVE_NSS
 	/* Attempt to verify the module against its signature. Return failure
 	   if the module has been tampered with (altered).  */
-	check_signature_rc = check_signature (module_data, module_size);
+	int check_signature_rc = check_signature (module_data, module_size);
 	if (check_signature_rc == MODULE_ALTERED)
 		exit(-1);
 #endif
