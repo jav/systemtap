@@ -1,0 +1,63 @@
+#! /usr/bin/env stap
+/* This script works similar to ftrace's sched_switch. It displays a list of
+ * processes which get switched in and out of the scheduler. The format of display
+ * is PROCESS_NAME PROCESS_PID CPU TIMESTAMP PID: PRIORITY: PROCESS STATE ->/+
+ *    NEXT_PID : NEXT_PRIORITY: NEXT_STATE NEXT_PROCESS_NAME 
+ * -> indicates that prev process is scheduled out and the next process is 
+ *    scheduled in.
+ * + indicates that prev process has woken up the next process.
+ * The usage is sched_switch.stp <"pid"/"name"> pid/name
+ */
+
+function state_calc(state) {
+	if(state == 0)
+	status = "R"
+	if(state == 1)
+	status = "S"
+	if(state == 2)
+	status = "D"
+	if(state == 4)
+	status = "T"
+	if(state == 8)
+	status = "T"
+	if(state == 16)
+	status = "Z"
+	if(state == 32)
+	status = "EXIT_DEAD"
+	return status
+}
+probe scheduler.wakeup
+{
+	 %( $# == 2 %?
+
+	if(@1 == "pid")
+		if (task_pid != $2 && pid() != $2)
+			next
+	if(@1 == "name")
+		if (task_execname(task) != @2 && execname() != @2)
+			next
+
+         %)
+
+	printf("%-16s%5d%5d%d:%d:%s + %d:%d:%s %16s\n",
+                execname(), task_cpu(task), gettimeofday_ns(),
+                pid(), task_prio(task_current()), state_calc(task_state(task_current())),
+                task_pid(task), task_prio(task), state_calc(task_state(task)),
+                task_execname(task))
+}
+probe scheduler.ctxswitch
+{
+	%( $# == 2 %?
+	
+	if(@1 == "pid") 
+		if (next_pid != $2 && prev_pid != $2)
+			next
+	if(@1 == "name")
+		if (prev_task_name != @2 && next_task_name != @2)
+			next 
+	%)
+
+	printf("%-16s%5d%5d%d:%d:%s ==> %d:%d:%s %16s\n",prev_task_name,
+		task_cpu(prev_task),gettimeofday_ns(),prev_pid,prev_priority,state_calc(prevtsk_state),next_pid,
+		next_priority,state_calc(nexttsk_state),next_task_name)
+}

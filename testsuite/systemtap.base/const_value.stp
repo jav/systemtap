@@ -1,0 +1,5 @@
+probe process("const_value.exe").mark("constvalues")
+{
+  printf("i: %d\n", $baz->i);
+  printf("j: %d\n", $baz->j);
+}

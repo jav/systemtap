@@ -3,6 +3,12 @@
 - ftrace(msg:string) tapset function to send strings to the system-wide
   ftrace ring-buffer (if any).
 
+- Better support for richer DWARF debuginfo output from GCC 4.5
+  (variable tracking assignments). Kernel modules are now always resolved
+  against all their dependencies to find any info referring to missing
+  symbols. DW_AT_const_value is now supported when no DW_AT_location
+  is available.
+
 * What's new in verson 1.0
 
 - process().mark() probes now use an enabling semaphore to reduce the

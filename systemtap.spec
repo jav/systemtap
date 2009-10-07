@@ -64,6 +64,7 @@ BuildRequires: xmlto /usr/share/xmlto/format/fo/pdf
 
 %if %{with_grapher}
 BuildRequires: gtkmm24-devel >= 2.8
+BuildRequires: libglademm24-devel >= 2.6.7
 %endif
 
 %description
@@ -388,6 +389,7 @@ exit 0
 %files grapher
 %defattr(-,root,root)
 %{_bindir}/stapgraph
+%{_datadir}/%{name}/*.glade
 %endif
 
 

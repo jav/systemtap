@@ -1460,6 +1460,8 @@ discontiguify (struct obstack *pool, int indent, struct location *loc,
 	    piece->constant_block = loc->constant_block + offset;
 
 	    add (piece);
+
+	    offset += size;
 	  }
 
 	break;
@@ -1526,7 +1528,17 @@ declare_noncontig_union (struct obstack *pool, int indent,
   obstack_printf (pool, "%*suint%" PRIu64 "_t whole;\n",
 		  indent * 2, "", loc->byte_size * 8);
 
-  obstack_printf (pool, "%*s} u;\n", --indent * 2, "");
+  // Different loc types could be in the same syntactical scope, so
+  // should be named differently.
+  const char *uname;
+  if (loc->type == loc_noncontiguous)
+    uname = "u_pieces";
+  else if (loc->type == loc_constant)
+    uname = "u_const";
+  else
+    abort();
+
+  obstack_printf (pool, "%*s} %s;\n", --indent * 2, "", uname);
 
   loc = new_synthetic_loc (pool, *input, false);
   loc->type = loc_decl;
@@ -1608,7 +1620,7 @@ translate_base_fetch (struct obstack *pool, int indent,
       declare_noncontig_union (pool, indent, input, *input);
 
       Dwarf_Word offset = 0;
-      char piece[sizeof "u.pieces.p" + 20] = "u.pieces.p";
+      char piece[sizeof "u_pieces.pieces.p" + 20] = "u_pieces.pieces.p";
       while (p != NULL)
 	{
 	  struct location *newp = obstack_alloc (pool, sizeof *newp);
@@ -1617,7 +1629,8 @@ translate_base_fetch (struct obstack *pool, int indent,
 	  (*input)->next = newp;
 	  *input = newp;
 
-	  snprintf (&piece[sizeof "u.pieces.p" - 1], 20, "%" PRIu64, offset);
+	  snprintf (&piece[sizeof "u_pieces.pieces.p" - 1], 20,
+		    "%" PRIu64, offset);
 	  translate_base_fetch (pool, indent, p->byte_size, signed_p /* ? */,
                                 input, piece);
 	  (*input)->type = loc_fragment;
@@ -1626,7 +1639,8 @@ translate_base_fetch (struct obstack *pool, int indent,
 	  p = p->next;
 	}
 
-      obstack_printf (pool, "%*s%s = u.whole;\n", indent * 2, "", target);
+      obstack_printf (pool, "%*s%s = u_pieces.whole;\n", indent * 2,
+		      "", target);
     }
   else if ((*input)->type == loc_constant)
     {
@@ -1637,10 +1651,11 @@ translate_base_fetch (struct obstack *pool, int indent,
       declare_noncontig_union (pool, indent, input, *input);
 
       for (i = 0; i < byte_size; ++i)
-	obstack_printf (pool, "%*su.bytes[%zu] = %#x;\n", indent * 2, "",
-			i, constant_block[i]);
+	obstack_printf (pool, "%*su_const.bytes[%zu] = %#x;\n", indent * 2,
+			"", i, constant_block[i]);
 
-      obstack_printf (pool, "%*s%s = u.whole;\n", indent * 2, "", target);
+      obstack_printf (pool, "%*s%s = u_const.whole;\n", indent * 2,
+		      "", target);
     }
   else
     switch (byte_size)
@@ -1746,14 +1761,15 @@ translate_base_store (struct obstack *pool, int indent, Dwarf_Word byte_size,
     {
       declare_noncontig_union (pool, indent, input, store_loc);
 
-      obstack_printf (pool, "%*su.whole = %s;\n", indent * 2, "", rvalue);
+      obstack_printf (pool, "%*su_pieces.whole = %s;\n", indent * 2,
+		      "", rvalue);
       struct location *loc = new_synthetic_loc (pool, *input, deref);
       loc->type = loc_fragment;
       (*input)->next = loc;
       *input = loc;
 
       Dwarf_Word offset = 0;
-      char piece[sizeof "u.pieces.p" + 20] = "u.pieces.p";
+      char piece[sizeof "u_pieces.pieces.p" + 20] = "u_pieces.pieces.p";
       struct location *p;
       for (p = store_loc->pieces; p != NULL; p = p->next)
         {
@@ -1763,7 +1779,8 @@ translate_base_store (struct obstack *pool, int indent, Dwarf_Word byte_size,
 	  (*input)->next = newp;
 	  *input = newp;
 
-	  snprintf (&piece[sizeof "u.pieces.p" - 1], 20, "%" PRIu64, offset);
+	  snprintf (&piece[sizeof "u_pieces.pieces.p" - 1], 20, "%" PRIu64,
+		    offset);
 	  translate_base_store (pool, indent,
 				p->byte_size, input, *input, piece);
 	  (*input)->type = loc_fragment;

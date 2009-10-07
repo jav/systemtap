@@ -1,0 +1,70 @@
+# DW_AT_const_value (blocks).
+set test "const_value"
+set ::result_string {i: 2
+j: 21}
+
+set test_flags "additional_flags=-g"
+# We need -O2 to get const_value encodings in dwarf.
+set test_flags "$test_flags additional_flags=-O2"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  return
+} else {
+  pass "$test.c compile"
+}
+
+# Test only when we are running an install test (can execute) and when
+# gcc generated DW_AT_const_values for us. We are interested in block
+# constant values.
+if {[installtest_p] && [uprobes_p]} {
+  set dw_at_c {DW_AT_const_value}
+  if {![catch {exec readelf --debug-dump=info $test.exe | grep "$dw_at_c"}]} {
+    stap_run2 $srcdir/$subdir/$test.stp -c ./$test.exe
+  } {
+    untested "$test (no-const-value)"
+  }
+} else {
+  untested "$test"
+}
+catch {exec rm -f $test.exe}
+
+
+# DW_AT_const_value (address).
+set test "const_value_func"
+set ::result_string {f: bar}
+
+set test_flags "additional_flags=-g"
+# We need -O2 to get const_value encodings in dwarf.
+set test_flags "$test_flags additional_flags=-O2"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  return
+} else {
+  pass "$test.c compile"
+}
+
+# Test only when we are running an install test (can execute) and when
+# gcc generated DW_AT_const_values for us. We are interested in pure
+# constant addresses.
+if {[installtest_p] && [uprobes_p]} {
+  set dw_at_c {DW_AT_const_value}
+  if {![catch {exec readelf --debug-dump=info $test.exe | grep "$dw_at_c"}]} {
+    setup_xfail 10739 "*-*-*"
+    stap_run2 $srcdir/$subdir/$test.stp -c ./$test.exe
+  } {
+    untested "$test (no-const-value)"
+  }
+} else {
+  untested "$test"
+}
+catch {exec rm -f $test.exe}

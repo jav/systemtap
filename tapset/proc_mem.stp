@@ -1,0 +1,194 @@
+// Process memory query and utility functions.
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+// <tapsetdescription>
+// Process memory query and utility functions provide information about
+// the memory usage of the current application. These functions provide
+// information about the full size, resident, shared, code and data used
+// by the current process. And provide utility functions to query the
+// page size of the current architecture and create human readable string
+// representations of bytes and pages used.
+// </tapsetdescription>
+
+%{
+/* PF_BORROWED_MM got renamed to PF_KTHREAD with same semantics somewhere. */
+#ifdef PF_BORROWED_MM
+#define _STP_PF_KTHREAD PF_BORROWED_MM
+#else
+#define _STP_PF_KTHREAD PF_KTHREAD
+#endif
+  /* Returns the mm for the current proc. Slightly paranoid. Only returns
+     if the task isn't starting, exiting or (coopted by) a kernel thread. */
+  static struct mm_struct *_stp_proc_mm(void)
+  {
+    if (current->flags & (_STP_PF_KTHREAD | PF_EXITING | PF_STARTING))
+      return NULL;
+    return current->mm;
+  }
+%}
+
+/**
+ * sfunction proc_mem_size - Total program virtual memory size in pages.
+ *
+ * Description: Returns the total virtual memory size in pages of the
+ * current process, or zero when there is no current process or the
+ * number of pages couldn't be retrieved.
+ */
+function proc_mem_size:long ()
+%{ /* pure */ /* unprivileged */
+   struct mm_struct *mm = _stp_proc_mm ();
+   if (mm)
+     THIS->__retvalue = mm->total_vm;
+   else
+     THIS->__retvalue = 0;
+%}
+
+/**
+ * sfunction proc_mem_rss - Program resident set size in pages.
+ *
+ * Description: Returns the resident set size in pages of the current
+ * process, or zero when there is no current process or the number of
+ * pages couldn't be retrieved.
+ */
+function proc_mem_rss:long ()
+%{ /* pure */ /* unprivileged */
+   struct mm_struct *mm = _stp_proc_mm ();
+   if (mm)
+     THIS->__retvalue = (get_mm_counter(mm, file_rss)
+                         + get_mm_counter(mm, anon_rss));
+   else
+     THIS->__retvalue = 0;
+%}
+
+/**
+ * sfunction proc_mem_shr - Program shared pages (from shared mappings).
+ *
+ * Description: Returns the shared pages (from shared mappings) of the
+ * current process, or zero when there is no current process or the
+ * number of pages couldn't be retrieved.
+ */
+function proc_mem_shr:long ()
+%{ /* pure */ /* unprivileged */
+   struct mm_struct *mm = _stp_proc_mm ();
+   if (mm)
+     THIS->__retvalue = get_mm_counter(mm, file_rss);
+   else
+     THIS->__retvalue = 0;
+%}
+
+/**
+ * sfunction proc_mem_txt - Program text (code) size in pages.
+ *
+ * Description: Returns the current process text (code) size in pages,
+ * or zero when there is no current process or the number of pages
+ * couldn't be retrieved.
+ */
+function proc_mem_txt:long ()
+%{ /* pure */ /* unprivileged */
+   struct mm_struct *mm = _stp_proc_mm ();
+   if (mm)
+     THIS->__retvalue = (PAGE_ALIGN(mm->end_code)
+                         - (mm->start_code & PAGE_MASK)) >> PAGE_SHIFT;
+   else
+     THIS->__retvalue = 0;
+%}
+
+/**
+ * sfunction proc_mem_data - Program data size (data + stack) in pages.
+ *
+ * Description: Returns the current process data size (data + stack)
+ * in pages, or zero when there is no current process or the number of
+ * pages couldn't be retrieved.
+ */
+function proc_mem_data:long ()
+%{ /* pure */ /* unprivileged */
+   struct mm_struct *mm = _stp_proc_mm ();
+   if (mm)
+     THIS->__retvalue = mm->total_vm - mm->shared_vm;
+   else
+     THIS->__retvalue = 0;
+%}
+
+/**
+ * sfunction mem_page_size - Number of bytes in a page for this architecture.
+ */
+function mem_page_size:long ()
+%{ /* pure */ /* unprivileged */
+   THIS->__retvalue = PAGE_SIZE;
+%}
+
+// Return a 5 character wide string " x.yyp", " xx.yp", " xxxp", "xxxxp".
+function _stp_number_to_string_postfix:string (x:long, y:long, p:string)
+{
+  if (x < 10)
+    return sprintf("%d.%.2d%s", x, y * 100 / 1024, p);
+  if (x < 100)
+    return sprintf("%2d.%d%s", x, y * 10 / 1024, p);
+  return sprintf("%4d%s", x, p);
+}
+
+/**
+ * sfunction bytes_to_string - Human readable string for given bytes.
+ *
+ * Description: Returns a string representing the number of bytes (up
+ * to 1024 bytes), the number of kilobytes (when less than 1024K)
+ * postfixed by 'K', the number of megabytes (when less than 1024M)
+ * postfixed by 'M' or the number of gigabytes postfixed by 'G'. If
+ * representing K, M or G, and the number is amount is less than 100,
+ * it includes a '.' plus the remainer. The returned string will be 5
+ * characters wide (padding with whitespace at the front) unless
+ * negative or representing more than 9999G bytes.
+ */
+function bytes_to_string:string (bytes:long)
+{
+  if (bytes < 1024)
+    return sprintf("%5d", bytes);
+
+  remain = bytes % 1024;
+  bytes = bytes / 1024;
+  if (bytes < 1024)
+    return _stp_number_to_string_postfix(bytes, remain, "K");
+
+  remain = bytes % 1024;
+  bytes = bytes / 1024;
+  if (bytes < 1024)
+    return _stp_number_to_string_postfix(bytes, remain, "M");
+
+  remain = bytes % 1024;
+  bytes = bytes / 1024;
+    return _stp_number_to_string_postfix(bytes, remain, "G");
+}
+
+/**
+ * sfunction pages_to_string - Turns pages into a human readable string.
+ *
+ * Description: Multiplies pages by page_size() to get the number of
+ * bytes and returns the result of bytes_to_string().
+ */
+function pages_to_string:string (pages:long)
+{
+  bytes = pages * mem_page_size();
+  return bytes_to_string (bytes);
+}
+
+/**
+ * sfunction proc_mem_string - Human readable string of current proc memory usage.
+ *
+ * Description: Returns a human readable string showing the size, rss,
+ * shr, txt and data of the memory used by the current process.
+ * For example "size: 301m, rss: 11m, shr: 8m, txt: 52k, data: 2248k".
+ */
+function proc_mem_string:string ()
+{
+  return sprintf ("size: %s, rss: %s, shr: %s, txt: %s, data: %s",
+                  pages_to_string(proc_mem_size()),
+                  pages_to_string(proc_mem_rss()),
+                  pages_to_string(proc_mem_shr()),
+                  pages_to_string(proc_mem_txt()),
+                  pages_to_string(proc_mem_data()));
+}
