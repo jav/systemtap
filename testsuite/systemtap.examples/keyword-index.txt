@@ -503,6 +503,14 @@ keywords: network tcp socket
   originator of the request.
 
 
+network/tcp_trace.stp - Tcp connection tracing utility.
+keywords: network trace
+
+  This scripts traces a given tcp connection based on the filter
+  parameters given by the user. The indexing is done by the 4 tuples
+  local address, remote address, local port, remote port.
+
+
 network/tcpdumplike.stp - Dump of Received TCP Packets
 keywords: network traffic
 
@@ -972,6 +980,14 @@ keywords: trace callgraph
   points for trigger functions, which acts to enable tracing for only
   those functions that occur while the current thread is nested within
   the trigger.
+
+
+network/tcp_trace.stp - Tcp connection tracing utility.
+keywords: network trace
+
+  This scripts traces a given tcp connection based on the filter
+  parameters given by the user. The indexing is done by the 4 tuples
+  local address, remote address, local port, remote port.
 
 
 = TRACEPOINT =
