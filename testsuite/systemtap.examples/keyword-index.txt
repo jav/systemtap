@@ -273,6 +273,13 @@ keywords: io
   traffic during that interval sorted in descending order.
 
 
+io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
+keywords: io monitoring
+
+   The mbrwatch.stp script reports any attempted reads/writes of the
+  first few sectors of a raw block device.
+
+
 io/traceio.stp - Track Cumulative I/O Activity by Process Name
 keywords: io
 
@@ -439,6 +446,15 @@ keywords: io tty per-process monitor
   The ttyspy.stp script uses tty_audit hooks to monitor recent typing
   activity on the system, printing a scrolling record of recent
   keystrokes, on a per-tty basis.
+
+
+= MONITORING =
+
+io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
+keywords: io monitoring
+
+   The mbrwatch.stp script reports any attempted reads/writes of the
+  first few sectors of a raw block device.
 
 
 = NETWORK =

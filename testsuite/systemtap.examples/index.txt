@@ -130,6 +130,13 @@ keywords: io
   traffic during that interval sorted in descending order.
 
 
+io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
+keywords: io monitoring
+
+   The mbrwatch.stp script reports any attempted reads/writes of the
+  first few sectors of a raw block device.
+
+
 io/traceio.stp - Track Cumulative I/O Activity by Process Name
 keywords: io
 
