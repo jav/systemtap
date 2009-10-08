@@ -183,12 +183,14 @@ bool eval_comparison (const OPERAND& lhs, const token* op, const OPERAND& rhs)
 // The basic form is %( CONDITION %? THEN-TOKENS %: ELSE-TOKENS %)
 // where CONDITION is: kernel_v[r] COMPARISON-OP "version-string"
 //                 or: arch COMPARISON-OP "arch-string"
+//                 or: CONFIG_foo COMPARISON-OP "config-string"
 //                 or: "string1" COMPARISON-OP "string2"
 //                 or: number1 COMPARISON-OP number2
 // The %: ELSE-TOKENS part is optional.
 //
 // e.g. %( kernel_v > "2.5" %? "foo" %: "baz" %)
 // e.g. %( arch != "i?86" %? "foo" %: "baz" %)
+// e.g. %( CONFIG_foo %? "foo" %: "baz" %)
 //
 // Up to an entire %( ... %) expression is processed by a single call
 // to this function.  Tokens included by any nested conditions are
@@ -270,6 +272,23 @@ bool eval_pp_conditional (systemtap_session& s,
 
       return result;
     }
+  else if (l->type == tok_identifier && l->content.substr(0,7) == "CONFIG_" && r->type == tok_string)
+    {
+      string lhs = s.kernel_config[l->content]; // may be empty
+      string rhs = r->content;
+
+      int nomatch = fnmatch (lhs.c_str(), rhs.c_str(), FNM_NOESCAPE); // still spooky
+
+      bool result;
+      if (op->type == tok_operator && op->content == "==")
+        result = !nomatch;
+      else if (op->type == tok_operator && op->content == "!=")
+        result = nomatch;
+      else
+        throw parse_error ("expected '==' or '!='", op);
+
+      return result;
+    }
   else if (l->type == tok_string && r->type == tok_string)
     {
       string lhs = l->content;
@@ -291,10 +310,8 @@ bool eval_pp_conditional (systemtap_session& s,
 	    && op->type == tok_operator)
     throw parse_error ("expected number literal as right value", r);
 
-  // XXX: support other forms?  "CONFIG_SMP" ?
-
   else
-    throw parse_error ("expected 'arch' or 'kernel_v' or 'kernel_vr'\n"
+    throw parse_error ("expected 'arch' or 'kernel_v' or 'kernel_vr' or 'CONFIG_...'\n"
 		       "             or comparison between strings or integers", l);
 }
 

@@ -335,8 +335,8 @@ setup_signals (sighandler_t handler)
   sigaction (SIGTERM, &sa, NULL);
 }
 
-void
-setup_kernel_release (systemtap_session &s, const char* kstr) {
+void setup_kernel_release (systemtap_session &s, const char* kstr) 
+{
     if (kstr[0] == '/') // fully specified path
       {
         s.kernel_build_tree = kstr;
@@ -363,6 +363,29 @@ setup_kernel_release (systemtap_session &s, const char* kstr) {
         s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
       }
 }
+
+
+void parse_kernel_config (systemtap_session &s) 
+{
+  // PR10702: pull config options
+  string kernel_config_file = s.kernel_build_tree + "/.config";
+  ifstream kcf (kernel_config_file.c_str());
+  string line;
+  while (getline (kcf, line))
+    {
+      if (line.substr(0, 7) != "CONFIG_") continue;
+      size_t off = line.find('=');
+      if (off == string::npos) continue;
+      string key = line.substr(0, off);
+      string value = line.substr(off+1, string::npos);
+      s.kernel_config[key] = value;
+    }
+  if (s.verbose > 2)
+    clog << "Parsed kernel \"" << kernel_config_file << "\", number of tuples: " << s.kernel_config.size() << endl;
+  
+  kcf.close();
+}
+
 
 static void
 checkOptions (systemtap_session &s)
@@ -945,6 +968,9 @@ main (int argc, char * const argv [])
       clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
   }
 
+  // Now that no further changes to s.kernel_build_tree can occur, let's use it.
+  parse_kernel_config (s);
+
   // Create the name of the C source file within the temporary
   // directory.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
@@ -1028,7 +1054,7 @@ main (int argc, char * const argv [])
           // GLOB_NOMATCH is acceptable
 
           if (s.verbose>1 && globbuf.gl_pathc > 0)
-            clog << "Searched '" << dir << "', "
+            clog << "Searched \"" << dir << "\", "
                  << "found " << globbuf.gl_pathc << endl;
 
           for (unsigned j=0; j<globbuf.gl_pathc; j++)

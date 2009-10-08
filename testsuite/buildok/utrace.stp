@@ -1,0 +1,3 @@
+#! stap -p4
+
+probe   %( CONFIG_UTRACE == "y" %? process.begin %: never %)    { }

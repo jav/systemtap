@@ -1,5 +1,8 @@
 * What's new
 
+- Preprocessor conditional for kernel configuration testing:
+  %( CONFIG_foo == "y" %? ... %) 
+
 - ftrace(msg:string) tapset function to send strings to the system-wide
   ftrace ring-buffer (if any).
 

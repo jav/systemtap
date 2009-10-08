@@ -1816,6 +1816,17 @@ probe kernel.function (
 %( arch == "ia64" %?
     probe syscall.vliw = kernel.function("vliw_widget") {}
 %)
+
+\end{verbatim}
+\end{vindent}
+
+The following code adapts to the presence of a kernel CONFIG option.
+
+\begin{vindent}
+\begin{verbatim}
+%( CONFIG_UTRACE == "y" %?
+    probe process.syscall {}
+%)
 \end{verbatim}
 \end{vindent}
 
