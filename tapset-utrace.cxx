@@ -118,6 +118,9 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   has_path(hp), path(pn), pid(pd), flags(f),
   target_symbol_seen(false)
 {
+  if (s.kernel_config["CONFIG_UTRACE"] != string("y"))
+    throw semantic_error ("process probes not available without kernel CONFIG_UTRACE");
+
   // Expand local variables in the probe body
   utrace_var_expanding_visitor v (s, l, name, flags);
   v.replace (this->body);
