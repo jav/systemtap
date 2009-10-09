@@ -37,6 +37,10 @@ struct timer_derived_probe: public derived_probe
   timer_derived_probe (probe* p, probe_point* l,
                        int64_t i, int64_t r, bool ms=false);
   virtual void join_group (systemtap_session& s);
+
+  // No assertion need be emitted, since this probe is allowed for unprivileged
+  // users.
+  void emit_unprivileged_assertion (translator_output*) {}
 };
 
 
@@ -204,6 +208,10 @@ struct hrtimer_derived_probe: public derived_probe
   }
 
   void join_group (systemtap_session& s);
+
+  // No assertion need be emitted, since these probes are allowed for
+  // unprivileged users.
+  void emit_unprivileged_assertion (translator_output*) {}
 };
 
 
@@ -505,6 +513,9 @@ struct timer_builder: public derived_probe_builder
                        vector<derived_probe *> & finished_results);
 
     static void register_patterns(systemtap_session& s);
+
+    virtual void check_unprivileged (const systemtap_session & sess,
+				     const literal_map_t & parameters);
 };
 
 void
@@ -586,6 +597,16 @@ timer_builder::build(systemtap_session & sess,
 }
 
 void
+timer_builder::check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters)
+{
+  // All timer probes are allowed except for timer.profile
+  if (has_null_param(parameters, "profile"))
+    derived_probe_builder::check_unprivileged (sess, parameters);
+}
+
+
+void
 register_tapset_timers(systemtap_session& s)
 {
   match_node* root = s.pattern_root;
@@ -594,66 +615,47 @@ register_tapset_timers(systemtap_session& s)
   root = root->bind(TOK_TIMER);
 
   root->bind_num("s")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("s")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("sec")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("sec")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
 
   root->bind_num("ms")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("ms")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("msec")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("msec")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
 
   root->bind_num("us")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("us")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("usec")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("usec")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
 
   root->bind_num("ns")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("ns")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("nsec")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("nsec")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
 
   root->bind_num("jiffies")
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num("jiffies")->bind_num("randomize")
-    ->allow_unprivileged()
     ->bind(builder);
 
   root->bind_num("hz")
-    ->allow_unprivileged()
     ->bind(builder);
 
   root->bind("profile")

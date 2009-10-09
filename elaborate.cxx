@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "elaborate.h"
+#include "translate.h"
 #include "parse.h"
 #include "tapsets.h"
 #include "session.h"
@@ -132,9 +133,49 @@ derived_probe::sole_location () const
 }
 
 
+void
+derived_probe::emit_unprivileged_assertion (translator_output* o)
+{
+  // Emit code which will cause compilation to fail if it is compiled in
+  // unprivileged mode.
+  o->newline() << "#ifndef STP_PRIVILEGED";
+  o->newline() << "#error Internal Error: Probe ";
+  probe::printsig (o->line());
+  o->line()    << " generated in --unprivileged mode";
+  o->newline() << "#endif";
+}
+
+
+void
+derived_probe::emit_process_owner_assertion (translator_output* o)
+{
+  // Emit code which will abort should the current target not belong to the
+  // user in unprivileged mode.
+  o->newline()   << "#ifndef STP_PRIVILEGED";
+  o->newline(1)  << "if (! is_myproc ()) {";
+  o->newline(1)  << "snprintf(c->error_buffer, sizeof(c->error_buffer),";
+  o->newline()   << "         \"Internal Error: Process %d does not belong to user %d in probe %s in --unprivileged mode\",";
+  o->newline()   << "         current->tgid, _stp_uid, c->probe_point);";
+  o->newline()   << "c->last_error = c->error_buffer;";
+  o->newline()   << "goto out;";
+  o->newline(-1) << "}";
+  o->newline(-1) << "#endif";
+}
+
 
 // ------------------------------------------------------------------------
 // Members of derived_probe_builder
+
+void
+derived_probe_builder::check_unprivileged (const systemtap_session & sess,
+					   const literal_map_t & parameters)
+{
+      // By default, probes are not allowed for unprivileged users.
+      if (sess.unprivileged)
+	{
+	  throw semantic_error (string("probe point is not allowed for unprivileged users"));
+	}
+}
 
 bool
 derived_probe_builder::get_param (std::map<std::string, literal*> const & params,
@@ -261,7 +302,6 @@ match_key::globmatch(match_key const & other) const
 // ------------------------------------------------------------------------
 
 match_node::match_node()
-  : unprivileged_ok (false)
 {
 }
 
@@ -303,19 +343,6 @@ match_node::bind_num(string const & k)
   return bind(match_key(k).with_number());
 }
 
-match_node*
-match_node::allow_unprivileged (bool b)
-{
-  unprivileged_ok = b;
-  return this;
-}
-
-bool
-match_node::unprivileged_allowed () const
-{
-  return unprivileged_ok;
-}
-
 void
 match_node::find_and_build (systemtap_session& s,
                             probe* p, probe_point *loc, unsigned pos,
@@ -340,18 +367,11 @@ match_node::find_and_build (systemtap_session& s,
         param_map[loc->components[i]->functor] = loc->components[i]->arg;
       // maybe 0
 
-      // Are we compiling for unprivileged users?  */
-      if (s.unprivileged)
-	{
-	  // Is this probe point ok for unprivileged users?
-	  if (! unprivileged_allowed ())
-	    throw semantic_error (string("probe point is not allowed for unprivileged users"));
-	}
-
       // Iterate over all bound builders
       for (unsigned k=0; k<ends.size(); k++) 
         {
           derived_probe_builder *b = ends[k];
+	  b->check_unprivileged (s, param_map);
           b->build (s, p, loc, param_map, results);
         }
     }
@@ -573,6 +593,11 @@ alias_expansion_builder
     }
     return false;
   }
+
+  // No action required. The actual probes will be checked when they are
+  // built.
+  virtual void check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters) {}
 };
 
 

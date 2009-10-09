@@ -44,6 +44,8 @@ struct itrace_derived_probe: public derived_probe
                         bool hp, string &pn, int64_t pd, int ss
 			);
   void join_group (systemtap_session& s);
+
+  void emit_unprivileged_assertion (translator_output*);
 };
 
 
@@ -75,6 +77,15 @@ itrace_derived_probe::itrace_derived_probe (systemtap_session &s,
 					    ):
   derived_probe(p, l), has_path(hp), path(pn), pid(pd), single_step(ss)
 {
+}
+
+
+void
+itrace_derived_probe::emit_unprivileged_assertion (translator_output* o)
+{
+  // These probes are allowed for unprivileged users, but only in the
+  // context of processes which they own.
+  emit_process_owner_assertion (o);
 }
 
 
@@ -121,6 +132,10 @@ struct itrace_builder: public derived_probe_builder
 							single_step
 							));
   }
+
+  // No action required. These probes are allowed for unprivileged users.
+  virtual void check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters) {}
 };
 
 
@@ -300,16 +315,12 @@ register_tapset_itrace(systemtap_session& s)
   derived_probe_builder *builder = new itrace_builder();
 
   root->bind_str(TOK_PROCESS)->bind(TOK_INSN)
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num(TOK_PROCESS)->bind(TOK_INSN)
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_str(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
-    ->allow_unprivileged()
     ->bind(builder);
   root->bind_num(TOK_PROCESS)->bind(TOK_INSN)->bind(TOK_BLOCK)
-    ->allow_unprivileged()
     ->bind(builder);
 }
 

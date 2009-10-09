@@ -1622,6 +1622,9 @@ c_unparser::emit_probe (derived_probe* v)
       o->newline(1) << "& c->probe_locals." << v->name << ";";
       o->newline(-1) << "(void) l;"; // make sure "l" is marked used
 
+      // Emit runtime safety net for unprivileged mode.
+      v->emit_unprivileged_assertion (o);
+
       o->newline() << "#ifdef STP_TIMING";
       o->newline() << "c->statp = & time_" << v->basest()->name << ";";
       o->newline() << "#endif";

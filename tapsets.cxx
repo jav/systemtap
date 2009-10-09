@@ -359,14 +359,11 @@ struct dwarf_derived_probe: public derived_probe
 
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
-					  dwarf_builder * dw,
-					  bool unprivileged_ok_p = false);
+					  dwarf_builder * dw);
   static void register_function_variants(match_node * root,
-					 dwarf_builder * dw,
-					 bool unprivileged_ok_p = false);
+					 dwarf_builder * dw);
   static void register_function_and_statement_variants(match_node * root,
-						       dwarf_builder * dw,
-						       bool unprivileged_ok_p = false);
+						       dwarf_builder * dw);
   static void register_patterns(systemtap_session& s);
 
 protected:
@@ -411,6 +408,8 @@ struct uprobe_derived_probe: public dwarf_derived_probe
   {}
 
   void join_group (systemtap_session& s);
+
+  void emit_unprivileged_assertion (translator_output*);
 };
 
 struct dwarf_derived_probe_group: public derived_probe_group
@@ -2945,28 +2944,25 @@ dwarf_derived_probe::printargs(std::ostream &o) const
 
 void
 dwarf_derived_probe::register_statement_variants(match_node * root,
-						 dwarf_builder * dw,
-						 bool unprivileged_ok_p)
+						 dwarf_builder * dw)
 {
-  root->allow_unprivileged(unprivileged_ok_p)->bind(dw);
+  root->bind(dw);
 }
 
 void
 dwarf_derived_probe::register_function_variants(match_node * root,
-						dwarf_builder * dw,
-						bool unprivileged_ok_p)
+						dwarf_builder * dw)
 {
-  root->allow_unprivileged(unprivileged_ok_p)->bind(dw);
-  root->bind(TOK_INLINE)->allow_unprivileged(unprivileged_ok_p)->bind(dw);
-  root->bind(TOK_CALL)->allow_unprivileged(unprivileged_ok_p)->bind(dw);
-  root->bind(TOK_RETURN)->allow_unprivileged(unprivileged_ok_p)->bind(dw);
-  root->bind(TOK_RETURN)->bind_num(TOK_MAXACTIVE)->allow_unprivileged(unprivileged_ok_p)->bind(dw);
+  root->bind(dw);
+  root->bind(TOK_INLINE)->bind(dw);
+  root->bind(TOK_CALL)->bind(dw);
+  root->bind(TOK_RETURN)->bind(dw);
+  root->bind(TOK_RETURN)->bind_num(TOK_MAXACTIVE)->bind(dw);
 }
 
 void
 dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
-							      dwarf_builder * dw,
-							      bool unprivileged_ok_p)
+							      dwarf_builder * dw)
 {
   // Here we match 4 forms:
   //
@@ -2975,10 +2971,10 @@ dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
   // .statement("foo")
   // .statement(0xdeadbeef)
 
-  register_function_variants(root->bind_str(TOK_FUNCTION), dw, unprivileged_ok_p);
-  register_function_variants(root->bind_num(TOK_FUNCTION), dw, unprivileged_ok_p);
-  register_statement_variants(root->bind_str(TOK_STATEMENT), dw, unprivileged_ok_p);
-  register_statement_variants(root->bind_num(TOK_STATEMENT), dw, unprivileged_ok_p);
+  register_function_variants(root->bind_str(TOK_FUNCTION), dw);
+  register_function_variants(root->bind_num(TOK_FUNCTION), dw);
+  register_statement_variants(root->bind_str(TOK_STATEMENT), dw);
+  register_statement_variants(root->bind_num(TOK_STATEMENT), dw);
 }
 
 void
@@ -2997,15 +2993,12 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind(dw);
 
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw, true/*unprivileged_ok_p*/);
+  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->allow_unprivileged()
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->allow_unprivileged()
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_num(TOK_MARK)
-    ->allow_unprivileged()
     ->bind(dw);
 }
 
@@ -4307,6 +4300,15 @@ uprobe_derived_probe::join_group (systemtap_session& s)
 }
 
 
+void
+uprobe_derived_probe::emit_unprivileged_assertion (translator_output* o)
+{
+  // These probes are allowed for unprivileged users, but only in the
+  // context of processes which they own.
+  emit_process_owner_assertion (o);
+}
+
+
 struct uprobe_builder: public derived_probe_builder
 {
   uprobe_builder() {}
@@ -4327,6 +4329,10 @@ struct uprobe_builder: public derived_probe_builder
 
     finished_results.push_back(new uprobe_derived_probe(base, location, process, address, rr));
   }
+
+  // No action required. These probes are allowed for unprivileged users.
+  virtual void check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters) {}
 };
 
 
@@ -6220,11 +6226,9 @@ register_standard_tapsets(systemtap_session & s)
   // XXX: user-space starter set
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
-    ->allow_unprivileged()
     ->bind(new uprobe_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
-    ->allow_unprivileged()
     ->bind(new uprobe_builder ());
 
   // kernel tracepoint probes

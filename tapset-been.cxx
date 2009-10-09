@@ -52,6 +52,10 @@ struct be_derived_probe: public derived_probe
     return a->priority < b->priority;
   }
 
+  // No assertion need be emitted, since these probes are allowed for
+  // unprivileged users.
+  void emit_unprivileged_assertion (translator_output*) {}
+
   bool needs_global_locks () { return false; }
   // begin/end probes don't need locks around global variables, since
   // they aren't run concurrently with any other probes
@@ -86,6 +90,10 @@ struct be_builder: public derived_probe_builder
     finished_results.push_back
       (new be_derived_probe(base, location, type, priority));
   }
+
+  // No action required. These probes are allowed for unprivileged users.
+  virtual void check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters) {}
 };
 
 
@@ -188,6 +196,8 @@ struct never_derived_probe: public derived_probe
   never_derived_probe (probe* p): derived_probe (p) {}
   never_derived_probe (probe* p, probe_point* l): derived_probe (p, l) {}
   void join_group (systemtap_session&) { /* thus no probe_group */ }
+  void emit_unprivileged_assertion (translator_output*) {}
+
 };
 
 
@@ -202,6 +212,10 @@ struct never_builder: public derived_probe_builder
   {
     finished_results.push_back(new never_derived_probe(base, location));
   }
+
+  // No action required. This probe is allowed for unprivileged users.
+  virtual void check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters) {}
 };
 
 
@@ -216,28 +230,21 @@ register_tapset_been(systemtap_session& s)
   match_node* root = s.pattern_root;
 
   root->bind(TOK_BEGIN)
-    ->allow_unprivileged()
     ->bind(new be_builder(BEGIN));
   root->bind_num(TOK_BEGIN)
-    ->allow_unprivileged()
     ->bind(new be_builder(BEGIN));
 
   root->bind(TOK_END)
-    ->allow_unprivileged()
     ->bind(new be_builder(END));
   root->bind_num(TOK_END)
-    ->allow_unprivileged()
     ->bind(new be_builder(END));
 
   root->bind(TOK_ERROR)
-    ->allow_unprivileged()
     ->bind(new be_builder(ERROR));
   root->bind_num(TOK_ERROR)
-    ->allow_unprivileged()
     ->bind(new be_builder(ERROR));
 
   root->bind(TOK_NEVER)
-    ->allow_unprivileged()
     ->bind(new never_builder());
 }
 

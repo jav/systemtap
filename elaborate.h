@@ -146,10 +146,18 @@ struct derived_probe: public probe
   // From within unparser::emit_probe, emit any extra processing block
   // for this probe.
 
+  virtual void emit_unprivileged_assertion (translator_output*);
+  // From within unparser::emit_probe, emit any unprivileged mode
+  // checking for this probe.
+
 public:
   static void emit_common_header (translator_output* o);
   // from c_unparser::emit_common_header
   // XXX: probably can move this stuff to a probe_group::emit_module_decls
+
+  static void emit_process_owner_assertion (translator_output*);
+  // From within unparser::emit_probe, emit a check that the current
+  // process belongs to the user.
 
   virtual bool needs_global_locks () { return true; }
   // by default, probes need locks around global variables
@@ -199,6 +207,8 @@ struct derived_probe_builder
 		     probe_point* location,
 		     literal_map_t const & parameters,
 		     std::vector<derived_probe*> & finished_results) = 0;
+  virtual void check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters);
   virtual ~derived_probe_builder() {}
   virtual void build_no_more (systemtap_session &) {}
 
@@ -236,7 +246,6 @@ match_node
   typedef std::map<match_key, match_node*>::iterator sub_map_iterator_t;
   sub_map_t sub;
   std::vector<derived_probe_builder*> ends;
-  bool unprivileged_ok;
 
  public:
   match_node();
@@ -251,9 +260,6 @@ match_node
   match_node* bind_str(std::string const & k);
   match_node* bind_num(std::string const & k);
   void bind(derived_probe_builder* e);
-
-  match_node* allow_unprivileged (bool b = true);
-  bool unprivileged_allowed () const;
 };
 
 // ------------------------------------------------------------------------

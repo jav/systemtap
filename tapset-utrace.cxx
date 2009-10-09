@@ -60,6 +60,8 @@ struct utrace_derived_probe: public derived_probe
                         bool hp, string &pn, int64_t pd,
 			enum utrace_derived_probe_flags f);
   void join_group (systemtap_session& s);
+
+  void emit_unprivileged_assertion (translator_output*);
 };
 
 
@@ -191,6 +193,21 @@ utrace_derived_probe::join_group (systemtap_session& s)
   s.utrace_derived_probes->enroll (this);
 
   enable_task_finder(s);
+}
+
+
+void
+utrace_derived_probe::emit_unprivileged_assertion (translator_output* o)
+{
+  // Process end probes are allowed for unprivileged users, even if the process
+  // does not belong to them. They are required to check is_myproc() from within
+  // their probe script before doing anything "dangerous".
+  if (flags == UDPF_END)
+    return;
+
+  // Other process probes are allowed for unprivileged users, but only in the
+  // context of processes which they own.
+  emit_process_owner_assertion (o);
 }
 
 
@@ -624,6 +641,10 @@ struct utrace_builder: public derived_probe_builder
                                                         has_path, path, pid,
 							flags));
   }
+
+  // No action required. These probes are allowed for unprivileged users.
+  virtual void check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters) {}
 };
 
 
@@ -1054,22 +1075,16 @@ register_tapset_utrace(systemtap_session& s)
   for (unsigned i = 0; i < roots.size(); ++i)
     {
       roots[i]->bind(TOK_BEGIN)
-	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_END)
-	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_BEGIN)
-	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_END)
-	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)
-	->allow_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-	->allow_unprivileged()
 	->bind(builder);
     }
 }
