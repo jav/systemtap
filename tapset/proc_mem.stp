@@ -134,6 +134,7 @@ function _stp_number_to_string_postfix:string (x:long, y:long, p:string)
 
 /**
  * sfunction bytes_to_string - Human readable string for given bytes.
+ * @bytes: Number of bytes to translate.
  *
  * Description: Returns a string representing the number of bytes (up
  * to 1024 bytes), the number of kilobytes (when less than 1024K)
@@ -166,6 +167,7 @@ function bytes_to_string:string (bytes:long)
 
 /**
  * sfunction pages_to_string - Turns pages into a human readable string.
+ * @pages: Number of pages to translate.
  *
  * Description: Multiplies pages by page_size() to get the number of
  * bytes and returns the result of bytes_to_string().
