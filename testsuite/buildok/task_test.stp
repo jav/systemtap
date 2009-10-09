@@ -18,5 +18,13 @@ probe begin {
   log(sprint(task_max_file_handles(c)))
   log(sprint(pid2task(pid())))
   log(sprint(pid2execname(pid())))
+
+  // task_time.stp
+  log(task_time_string())
+  log(cputime_to_string(0))
+  log(msecs_to_string(0))
+  log(sprint(cputime_to_msecs(0)))
+  log(sprint(task_stime()))
+  log(sprint(task_utime()))
   exit()
 }
