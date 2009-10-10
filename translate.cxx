@@ -4178,6 +4178,11 @@ c_unparser::visit_print_format (print_format* e)
     {
       stmt_expr block(*this);
 
+      // PR10750: Enforce a reasonable limit on # of varargs
+      // 32 varargs leads to max 256 bytes on the stack
+      if (e->args.size() > 32)
+        throw semantic_error("too many arguments to print", e->tok);
+
       // Compute actual arguments
       vector<tmpvar> tmp;
 
