@@ -386,6 +386,10 @@ int init_stapio(void)
 void cleanup_and_exit(int detach)
 {
   static int exiting = 0;
+  const char *staprun;
+  pid_t pid;
+  int rstatus;
+  struct sigaction sa;
 
   if (exiting)
     return;
@@ -415,69 +419,59 @@ void cleanup_and_exit(int detach)
 
   if (detach) {
     err("\nDisconnecting from systemtap module.\n" "To reconnect, type \"staprun -A %s\"\n", modname);
-  } else {
-    const char *staprun = getenv ("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun";
-#define BUG9788_WORKAROUND
-#ifndef BUG9788_WORKAROUND
-    dbug(2, "removing %s\n", modname);
-    if (execlp(staprun, basename (staprun), "-d", modpath, NULL) < 0) {
-      if (errno == ENOEXEC) {
-	char *cmd;
-	if (asprintf(&cmd, "%s -d '%s'", staprun, modpath) > 0)
-	  execl("/bin/sh", "sh", "-c", cmd, NULL);
-	free(cmd);
-      }
-      perror(staprun);
-      _exit(1);
-    }
-#else
-    pid_t pid;
-    int rstatus;
-    struct sigaction sa;
-
-    dbug(2, "removing %s\n", modname);
-
-    // So that waitpid() below will work correctly, we need to clear
-    // out our SIGCHLD handler.
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sa.sa_handler = SIG_DFL;
-    sigaction(SIGCHLD, &sa, NULL);
-
-    pid = fork();
-    if (pid < 0) {
-      _perr("fork");
-      _exit(-1);
-    }
-
-    if (pid == 0) {			/* child process */
-      /* Run the command. */
-      if (execlp(staprun, basename (staprun), "-d", modpath, NULL) < 0) {
-	if (errno == ENOEXEC) {
-	  char *cmd;
-	  if (asprintf(&cmd, "%s -d '%s'", staprun, modpath) > 0)
-	    execl("/bin/sh", "sh", "-c", cmd, NULL);
-	  free(cmd);
-	}
-	perror(staprun);
-	_exit(1);
-      }
-    }
-
-    /* parent process */
-    if (waitpid(pid, &rstatus, 0) < 0) {
-      _perr("waitpid");
-      _exit(-1);
-    }
-
-    if (WIFEXITED(rstatus)) {
-      _exit(WEXITSTATUS(rstatus));
-    }
-    _exit(-1);
-#endif
+    _exit(0);
   }
-  _exit(0);
+
+  /* At this point, we're committed to calling staprun -d MODULE to
+   * unload the thing and exit. */
+  /* Due to PR9788, we fork and exec the setuid staprun only in a child process. */
+
+  staprun = getenv ("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun";
+  dbug(2, "removing %s\n", modname);
+  
+  // So that waitpid() below will work correctly, we need to clear
+  // out our SIGCHLD handler.
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sa.sa_handler = SIG_DFL;
+  sigaction(SIGCHLD, &sa, NULL);
+  
+  pid = fork();
+  if (pid < 0) {
+          _perr("fork");
+          _exit(-1);
+  }
+  
+  if (pid == 0) {			/* child process */
+          /* Run the command. */
+          char *cmd;
+          int rc = asprintf(&cmd, "%s %s %s -d '%s'", staprun, 
+                            (verbose >= 1) ? "-v" : "",
+                            (verbose >= 2) ? "-v" : "",
+                            modname);
+          if (rc >= 1) {
+                  execl("/bin/sh", "sh", "-c", cmd, NULL);
+                  /* should not return */
+                  perror(staprun);
+                  _exit(-1);
+          } else {
+                  perror("asprintf");
+                  _exit(-1);
+          }
+  }
+  
+  /* parent process */
+  if (waitpid(pid, &rstatus, 0) < 0) {
+          _perr("waitpid");
+          _exit(-1);
+  }
+  
+  if (WIFEXITED(rstatus)) {
+          _exit(WEXITSTATUS(rstatus)); /* only possibility for rc=0 exit */
+  }
+  _exit(-1);
 }
+
 
 /**
  *	stp_main_loop - loop forever reading data
