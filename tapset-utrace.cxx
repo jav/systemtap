@@ -121,6 +121,9 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   has_path(hp), path(pn), pid(pd), flags(f),
   target_symbol_seen(false)
 {
+  if (s.kernel_config["CONFIG_UTRACE"] != string("y"))
+    throw semantic_error ("process probes not available without kernel CONFIG_UTRACE");
+
   // Expand local variables in the probe body
   utrace_var_expanding_visitor v (s, l, name, flags);
   v.replace (this->body);
@@ -753,12 +756,9 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
     }
   s.op->line() << " .engine_attached=0,";
 
-  map<derived_probe*, Dwarf_Addr>::iterator its = s.sdt_semaphore_addr.find(p);
-  if (its == s.sdt_semaphore_addr.end())
-    s.op->line() << " .sdt_sem_address=(unsigned long)0x0,";
-  else
+  if (p->sdt_semaphore_addr != 0)
     s.op->line() << " .sdt_sem_address=(unsigned long)0x"
-                 << hex << its->second << dec << "ULL,";
+                 << hex << p->sdt_semaphore_addr << dec << "ULL,";
 
   s.op->line() << " .tsk=0,";
   s.op->line() << " },";

@@ -1,5 +1,6 @@
 if BUILD_GRAPHER
 bin_PROGRAMS = stapgraph
+man_MANS = stapgraph.1
 
 stapgraph_CPPFLAGS =  -DPKGDATADIR='"${pkgdatadir}"'
 stapgraph_CXXFLAGS = $(gtkmm_CFLAGS) -Wall -Werror

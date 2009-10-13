@@ -1,0 +1,101 @@
+// Task time query and utility functions.
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+// <tapsetdescription>
+// Task time query and utility functions provide information about
+// the time resource usage of the current task. These functions provide
+// information about the user time and system time of the current
+// task. And provide utility functions to turn the reported times
+// into miliseconds and create human readable string representations
+// of task time used. The reported times are approximates and should
+// be used for "coarse grained" measurements only. The reported user
+// and system time are only for the current task, not for the process
+// as a whole nor of any time spend by children of the current task.
+// </tapsetdescription>
+
+%{
+#include <asm/cputime.h>
+#include <linux/time.h>
+%}
+
+/**
+ * sfunction task_utime - User time of the current task.
+ *
+ * Description: Returns the user time of the current task in cputime.
+ * Does not include any time used by other tasks in this process, nor
+ * does it include any time of the children of this task.
+ */
+function task_utime:long ()
+%{ /* pure */ /* unprivileged */
+  THIS->__retvalue = current->utime;
+%}
+
+/**
+ * sfunction task_stime - System time of the current task.
+ *
+ * Description: Returns the system time of the current task in cputime.
+ * Does not include any time used by other tasks in this process, nor
+ * does it include any time of the children of this task.
+ */
+function task_stime:long ()
+%{ /* pure */ /* unprivileged */
+  THIS->__retvalue = current->stime;
+%}
+
+/**
+ * sfunction cputime_to_msecs - Translates the given cputime into milliseconds.
+ * @cputime: Time to convert to milliseconds.
+ */
+function cputime_to_msecs:long (cputime:long)
+%{ /* pure */ /* unprivileged */
+  THIS->__retvalue = cputime_to_msecs (THIS->cputime);
+%}
+
+/**
+ * sfunction msecs_to_string - Human readable string for given milliseconds.
+ * @msecs: Number of milliseconds to translate.
+ *
+ * Description: Returns a string representing the number of
+ * milliseconds as a human readable string consisting of "XmY.ZZZs",
+ * where X is the number of minutes, Y is the number of seconds and
+ * ZZZ is the number of milliseconds.
+ */
+function msecs_to_string:string (msecs:long)
+{
+  ms = msecs % 1000;
+  secs = msecs / 1000;
+  mins = secs / 60;
+  secs = secs % 60;
+  return sprintf("%dm%d.%.3ds", mins, secs, ms);
+}
+
+/**
+ * sfunction cputime_to_string - Human readable string for given cputime.
+ * @cputime: Time to translate.
+ *
+ * Description: Equivalent to calling:
+ * msec_to_string (cputime_to_msecs (cputime).
+ */
+function cputime_to_string:string (cputime:long)
+{
+  return msecs_to_string (cputime_to_msecs (cputime));
+}
+
+/**
+ * sfunction task_time_string - Human readable string of task time usage.
+ *
+ * Description: Returns a human readable string showing the user and
+ * system time the current task has used up to now.  For example
+ * "usr: 0m12.908s, sys: 1m6.851s".
+ */
+function task_time_string:string ()
+{
+  return sprintf ("usr: %s, sys: %s",
+                  cputime_to_string (task_utime()),
+                  cputime_to_string (task_stime()));
+}

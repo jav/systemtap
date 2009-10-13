@@ -56,7 +56,7 @@ expression* add_condition (expression* a, expression* b)
 
 
 derived_probe::derived_probe (probe *p):
-  base (p)
+  base (p), sdt_semaphore_addr(0)
 {
   assert (p);
   this->locations = p->locations;
@@ -67,7 +67,7 @@ derived_probe::derived_probe (probe *p):
 
 
 derived_probe::derived_probe (probe *p, probe_point *l):
-  base (p)
+  base (p), sdt_semaphore_addr(0)
 {
   assert (p);
   this->tok = p->tok;

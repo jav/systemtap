@@ -88,9 +88,11 @@ examples.  Discussions take place on the
          system-wide or pid
   arg_[0-9]+: Describe what the arguments into the script are. (optional)
   description: A text description what the script does. (required)
-  test_check: How to check that the example compiles.
+  test_support: How to check that the example is applicable.  Run by 'sh -c COMMAND'.
+              (e.g. stap -l needed.probe)
+  test_check: How to check that the example compiles.  Run by 'sh -c COMMAND'.
 	      (e.g. stap -p4 iotime.stp)
-  test_installcheck: How to check that the example runs.
+  test_installcheck: How to check that the example runs.  Run by 'sh -c COMMAND'.
 		     (e.g. stap iotime.stp -c "sleep 1")
 
 

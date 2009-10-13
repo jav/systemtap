@@ -87,6 +87,7 @@ struct systemtap_session
   std::string kernel_release;
   std::string kernel_base_release;
   std::string kernel_build_tree;
+  std::map<std::string,std::string> kernel_config;
   std::string architecture;
   std::string runtime_path;
   std::string data_path;
@@ -220,10 +221,6 @@ struct systemtap_session
   void print_error (const semantic_error& e);
   void print_error_source (std::ostream&, std::string&, const token* tok);
   void print_warning (const std::string& w, const token* tok = 0);
-
-
-  // Location of semaphores to activate sdt probes
-  std::map<derived_probe*, Dwarf_Addr> sdt_semaphore_addr;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (elaborate.cxx)

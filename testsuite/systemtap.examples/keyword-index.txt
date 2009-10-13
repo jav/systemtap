@@ -273,6 +273,13 @@ keywords: io
   traffic during that interval sorted in descending order.
 
 
+io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
+keywords: io monitoring
+
+   The mbrwatch.stp script reports any attempted reads/writes of the
+  first few sectors of a raw block device.
+
+
 io/traceio.stp - Track Cumulative I/O Activity by Process Name
 keywords: io
 
@@ -441,6 +448,15 @@ keywords: io tty per-process monitor
   keystrokes, on a per-tty basis.
 
 
+= MONITORING =
+
+io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
+keywords: io monitoring
+
+   The mbrwatch.stp script reports any attempted reads/writes of the
+  first few sectors of a raw block device.
+
+
 = NETWORK =
 
 network/autofs4.stp - Watch autofs4 operations
@@ -501,6 +517,14 @@ keywords: network tcp socket
   includes the UID, the command accepting the connection, the PID of
   the command, the port the connection is on, and the IP address of the
   originator of the request.
+
+
+network/tcp_trace.stp - Tcp connection tracing utility.
+keywords: network trace
+
+  This scripts traces a given tcp connection based on the filter
+  parameters given by the user. The indexing is done by the 4 tuples
+  local address, remote address, local port, remote port.
 
 
 network/tcpdumplike.stp - Dump of Received TCP Packets
@@ -972,6 +996,14 @@ keywords: trace callgraph
   points for trigger functions, which acts to enable tracing for only
   those functions that occur while the current thread is nested within
   the trigger.
+
+
+network/tcp_trace.stp - Tcp connection tracing utility.
+keywords: network trace
+
+  This scripts traces a given tcp connection based on the filter
+  parameters given by the user. The indexing is done by the 4 tuples
+  local address, remote address, local port, remote port.
 
 
 = TRACEPOINT =

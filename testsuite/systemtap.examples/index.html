@@ -82,6 +82,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 <li><a href="io/iotop.stp">io/iotop.stp</a> - Periodically Print I/O Activity by Process Name<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Every five seconds print out the top ten executables generating I/O traffic during that interval sorted in descending order.</p></li>
+<li><a href="io/mbrwatch.stp">io/mbrwatch.stp</a> - Monitor read/write of MBR (boot sector) area of block devices<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
+<p> The mbrwatch.stp script reports any attempted reads/writes of the first few sectors of a raw block device.</p></li>
 <li><a href="io/traceio.stp">io/traceio.stp</a> - Track Cumulative I/O Activity by Process Name<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Every second print out the top ten executables sorted in descending order based on cumulative I/O traffic observed.</p></li>
@@ -139,6 +142,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.</p></li>
+<li><a href="network/tcp_trace.stp">network/tcp_trace.stp</a> - Tcp connection tracing utility.<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACE">TRACE</a> <br>
+<p>This scripts traces a given tcp connection based on the filter parameters given by the user. The indexing is done by the 4 tuples local address, remote address, local port, remote port.</p></li>
 <li><a href="network/tcpdumplike.stp">network/tcpdumplike.stp</a> - Dump of Received TCP Packets<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
 <p>The tcpdumplike.stp prints out a line for each TCP packet received. Each line includes the source and destination IP addresses, the source and destination ports, and flags.</p></li>

@@ -25,10 +25,11 @@ proc get_meta_data { FILE } {
 proc extract_tag { META_DATA TAG } {
     set taglines ""
     set value ""
-    set expr "^$TAG:\[^\$\]*"
+    set expr "^$TAG: \[^\r\n\]*"
     regexp -line -all $expr $META_DATA taglines
-    set expr "$TAG:"
+    set expr "^$TAG: "
     regsub -line $expr $taglines "" value
+    verbose -log "meta taglines '$taglines' tag '$TAG' value '$value'"
     return $value
 }
 
@@ -36,10 +37,7 @@ proc run_command { test action command } {
     #FIXME tcl says that single quotes not dealt with
     if { $command != "" } then {
 	verbose -log "attempting command $command"
-	# Pipe both stdout and stderr to cat, otherwise any stderr
-	# output results in res being set to 1 (TCL_ERROR). This breaks
-	# scripts that have WARNINGS about for example skipped probes.
-	set res [catch {eval exec "$command |& cat"} value]
+	set res [catch {exec sh -c $command 2>@1} value]
 	verbose -log "OUT $value"
 	verbose -log "RC $res"
 	if { $res != 0 } { # allow failure for support

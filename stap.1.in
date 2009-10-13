@@ -340,11 +340,20 @@ by
 If, on the other hand, the first part is the identifier
 .BR arch
 to refer to the processor architecture (as named by the kernel
-build system ARCH/SUBARCH), then the second part then the second
+build system ARCH/SUBARCH), then the second  
 part is one of the two string comparison operators
 .BR == " or " != ,
 and the third part is a string literal for matching it.  This
 comparison is a wildcard (mis)match.
+.PP
+Similarly, if the first part is an identifier like
+.BR CONFIG_something
+to refer to a kernel configuration option, then the second part is
+.BR == " or " != ,
+and the third part is a string literal for matching the value
+(commonly "y" or "m").  Nonexistent or unset kernel configuration
+options are represented by the empty string.  This comparison is also
+a wildcard (mis)match.
 .PP
 Otherwise, the CONDITION is expected to be a comparison between two string
 literals or two numeric literals.  In this case, the arguments are the only

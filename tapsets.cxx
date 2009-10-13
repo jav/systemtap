@@ -3693,7 +3693,7 @@ sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
       if (dwfl_module_relocations (dw.module) > 0)
 	dwfl_module_relocate_address (dw.module, &addr);
       for (unsigned i = start; i < results.size(); ++i)
-	sess.sdt_semaphore_addr.insert(make_pair(results[i], addr));
+	results[i]->sdt_semaphore_addr = addr;
     }
 }
 
@@ -3875,6 +3875,9 @@ dwarf_builder::build(systemtap_session & sess,
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
       module_name = find_executable (module_name); // canonicalize it
+
+      if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
+        throw semantic_error ("process probes not available without kernel CONFIG_UTRACE");
 
       // user-space target; we use one dwflpp instance per module name
       // (= program or shared library)
@@ -4454,10 +4457,9 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
 
-      map<derived_probe*, Dwarf_Addr>::iterator its = s.sdt_semaphore_addr.find(p);
-      if (its != s.sdt_semaphore_addr.end())
+      if (p->sdt_semaphore_addr != 0)
         s.op->line() << " .sdt_sem_address=(unsigned long)0x"
-                     << hex << its->second << dec << "ULL,";
+                     << hex << p->sdt_semaphore_addr << dec << "ULL,";
 
       if (p->has_return)
         s.op->line() << " .return_p=1,";
