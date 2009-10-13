@@ -1283,19 +1283,16 @@ void add_global_var_display (systemtap_session& s)
       if (tapset_global)
 	continue;
 
-      print_format* pf = new print_format;
-      probe* p = new probe;
-      probe_point* pl = new probe_point;
       probe_point::component* c = new probe_point::component("end");
-      token* print_tok = new token;
+      probe_point* pl = new probe_point;
+      pl->components.push_back (c);
+
       vector<derived_probe*> dps;
       block *b = new block;
 
-      pl->components.push_back (c);
+      probe* p = new probe;
       p->tok = l->tok;
       p->locations.push_back (pl);
-      print_tok->type = tok_identifier;
-      print_tok->content = "printf";
 
       // Create a symbol
       symbol* g_sym = new symbol;
@@ -1304,13 +1301,12 @@ void add_global_var_display (systemtap_session& s)
       g_sym->type = l->type;
       g_sym->referent = l;
 
-      pf->print_to_stream = true;
-      pf->print_with_format = true;
-      pf->print_with_delim = false;
-      pf->print_with_newline = false;
-      pf->print_char = false;
+      token* print_tok = new token;
+      print_tok->type = tok_identifier;
+      print_tok->content = "printf";
+
+      print_format* pf = print_format::create(print_tok);
       pf->raw_components += l->name;
-      pf->tok = print_tok;
 
       if (l->index_types.size() == 0) // Scalar
 	{
@@ -1358,15 +1354,9 @@ void add_global_var_display (systemtap_session& s)
               be->right = new literal_number(0);
 
               /* Create printf @count=0x0 in else block */
-              print_format* pf_0 = new print_format;
-              pf_0->print_to_stream = true;
-              pf_0->print_with_format = true;
-              pf_0->print_with_delim = false;
-              pf_0->print_with_newline = false;
-              pf_0->print_char = false;
+              print_format* pf_0 = print_format::create(print_tok);
               pf_0->raw_components += l->name;
               pf_0->raw_components += " @count=0x0\\n";
-              pf_0->tok = print_tok;
               pf_0->components = print_format::string_to_components(pf_0->raw_components);
               expr_statement* feb_else = new expr_statement;
               feb_else->value = pf_0;
