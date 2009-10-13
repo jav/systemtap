@@ -62,6 +62,7 @@ struct utrace_derived_probe: public derived_probe
   void join_group (systemtap_session& s);
 
   void emit_unprivileged_assertion (translator_output*);
+  void print_dupe_stamp(ostream& o);
 };
 
 
@@ -208,6 +209,20 @@ utrace_derived_probe::emit_unprivileged_assertion (translator_output* o)
   // Other process probes are allowed for unprivileged users, but only in the
   // context of processes which they own.
   emit_process_owner_assertion (o);
+}
+
+void
+utrace_derived_probe::print_dupe_stamp(ostream& o)
+{
+  // Process end probes are allowed for unprivileged users, even if the process
+  // does not belong to them. They are required to check is_myproc() from within
+  // their probe script before doing anything "dangerous".
+  // Other process probes are allowed for unprivileged users, but only in the
+  // context of processes which they own.
+  if (flags == UDPF_END)
+    print_dupe_stamp_unprivileged (o);
+  else
+    print_dupe_stamp_unprivileged_process_owner (o);
 }
 
 

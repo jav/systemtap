@@ -162,6 +162,17 @@ derived_probe::emit_process_owner_assertion (translator_output* o)
   o->newline(-1) << "#endif";
 }
 
+void
+derived_probe::print_dupe_stamp_unprivileged(ostream& o)
+{
+  o << "unprivileged users: authorized" << endl;
+}
+
+void
+derived_probe::print_dupe_stamp_unprivileged_process_owner(ostream& o)
+{
+  o << "unprivileged users: authorized for process owner" << endl;
+}
 
 // ------------------------------------------------------------------------
 // Members of derived_probe_builder

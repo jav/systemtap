@@ -41,6 +41,7 @@ struct timer_derived_probe: public derived_probe
   // No assertion need be emitted, since this probe is allowed for unprivileged
   // users.
   void emit_unprivileged_assertion (translator_output*) {}
+  void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 };
 
 
@@ -212,6 +213,7 @@ struct hrtimer_derived_probe: public derived_probe
   // No assertion need be emitted, since these probes are allowed for
   // unprivileged users.
   void emit_unprivileged_assertion (translator_output*) {}
+  void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 };
 
 

@@ -410,6 +410,7 @@ struct uprobe_derived_probe: public dwarf_derived_probe
   void join_group (systemtap_session& s);
 
   void emit_unprivileged_assertion (translator_output*);
+  void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged_process_owner (o); }
 };
 
 struct dwarf_derived_probe_group: public derived_probe_group

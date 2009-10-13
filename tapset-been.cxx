@@ -56,6 +56,8 @@ struct be_derived_probe: public derived_probe
   // unprivileged users.
   void emit_unprivileged_assertion (translator_output*) {}
 
+  void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
+
   bool needs_global_locks () { return false; }
   // begin/end probes don't need locks around global variables, since
   // they aren't run concurrently with any other probes
@@ -197,7 +199,7 @@ struct never_derived_probe: public derived_probe
   never_derived_probe (probe* p, probe_point* l): derived_probe (p, l) {}
   void join_group (systemtap_session&) { /* thus no probe_group */ }
   void emit_unprivileged_assertion (translator_output*) {}
-
+  void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 };
 
 

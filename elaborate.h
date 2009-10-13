@@ -159,6 +159,9 @@ public:
   // From within unparser::emit_probe, emit a check that the current
   // process belongs to the user.
 
+  static void print_dupe_stamp_unprivileged(std::ostream& o);
+  static void print_dupe_stamp_unprivileged_process_owner(std::ostream& o);
+
   virtual bool needs_global_locks () { return true; }
   // by default, probes need locks around global variables
 };
