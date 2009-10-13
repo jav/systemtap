@@ -60,12 +60,15 @@ static void chld_proc(int signum)
 }
 
 #if WORKAROUND_BZ467568
-/* Used for pause()-based synchronization. */
-static void signal_dontcare(int signum)
+/* When a SIGUSR1 signal arrives, set this variable. */
+volatile sig_atomic_t usr1_interrupt = 0;
+
+static void signal_usr1(int signum)
 {
   (void) signum;
+  usr1_interrupt = 1;
 }
-#endif
+#endif	/* WORKAROUND_BZ467568 */
 
 static void setup_main_signals(void)
 {
@@ -115,6 +118,10 @@ void start_cmd(void)
 {
   pid_t pid;
   struct sigaction a;
+#if WORKAROUND_BZ467568
+  struct sigaction usr1_action, old_action;
+  sigset_t blockmask, oldmask;
+#endif	/* WORKAROUND_BZ467568 */
 
   /* if we are execing a target cmd, ignore ^C in stapio */
   /* and let the target cmd get it. */
@@ -122,6 +129,21 @@ void start_cmd(void)
   a.sa_flags = 0;
   a.sa_handler = SIG_IGN;
   sigaction(SIGINT, &a, NULL);
+
+#if WORKAROUND_BZ467568
+  /* Set up the mask of signals to temporarily block. */
+  sigemptyset (&blockmask);
+  sigaddset (&blockmask, SIGUSR1);
+
+  /* Establish the SIGUSR1 signal handler. */
+  sigfillset (&usr1_action.sa_mask);
+  usr1_action.sa_flags = 0;
+  usr1_action.sa_handler = signal_usr1;
+  sigaction (SIGUSR1, &usr1_action, &old_action);
+
+  /* Block SIGUSR1 */
+  sigprocmask(SIG_BLOCK, &blockmask, &oldmask);
+#endif	/* WORKAROUND_BZ467568 */
 
   if ((pid = fork()) < 0) {
     _perr("fork");
@@ -175,22 +197,21 @@ void start_cmd(void)
     dbug(1, "blocking briefly\n");
 #if WORKAROUND_BZ467568
     {
-      /* We use SIGUSR1 here, since pause() only returns if a
-         handled signal was received. */
-      struct sigaction sa;
-      memset(&sa, 0, sizeof(sa));
-      sigfillset(&sa.sa_mask);
-      sa.sa_handler = signal_dontcare;
-      sigaction(SIGUSR1, &sa, NULL);
-      pause ();
-      sa.sa_handler = SIG_DFL;
-      sigaction(SIGUSR1, &sa, NULL);
+      /* Wait for the SIGUSR1 */
+      while (!usr1_interrupt)
+	  sigsuspend(&oldmask);
+
+      /* Restore the old SIGUSR1 signal handler. */
+      sigaction (SIGUSR1, &old_action, NULL);
+
+      /* Restore the original signal mask */
+      sigprocmask(SIG_SETMASK, &oldmask, NULL);
     }
-#else
+#else  /* !WORKAROUND_BZ467568 */
     rc = ptrace (PTRACE_TRACEME, 0, 0, 0);
     if (rc < 0) perror ("ptrace me");
     raise (SIGCONT); /* Harmless; just passes control to parent. */
-#endif
+#endif /* !WORKAROUND_BZ467568 */
 
     dbug(1, "execing target_cmd %s\n", target_cmd);
 
@@ -217,12 +238,16 @@ void start_cmd(void)
        us to release it. */
     target_pid = pid;
 #if WORKAROUND_BZ467568
-    /* Do nothing else here; see stp_main_loop's handling of a received STP_START. */
-#else
+    /* Restore the old SIGUSR1 signal handler. */
+    sigaction (SIGUSR1, &old_action, NULL);
+
+    /* Restore the original signal mask */
+    sigprocmask(SIG_SETMASK, &oldmask, NULL);
+#else  /* !WORKAROUND_BZ467568 */
     int status;
     waitpid (target_pid, &status, 0);
     dbug(1, "waited for target_cmd %s pid %d status %x\n", target_cmd, target_pid, (unsigned) status);
-#endif
+#endif /* !WORKAROUND_BZ467568 */
   }
 }
 
