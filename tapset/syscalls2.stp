@@ -61,14 +61,21 @@ probe syscall.compat_nanosleep.return = kernel.function("compat_sys_nanosleep").
 # long compat_sys_nfsservctl(int cmd, struct compat_nfsctl_arg __user *arg,
 #					union compat_nfsctl_res __user *res)
 #
+%( CONFIG_NFSD == "[ym]" || CONFIG_COMPAT == "y" %?
 probe syscall.nfsservctl = kernel.function("sys_nfsservctl").call ?,
                            kernel.function("compat_sys_nfsservctl").call ?
 {
 	name = "nfsservctl"
 	cmd = $cmd
+%( CONFIG_NFSD == "[ym]" %?
 	argp_uaddr = $arg
 	resp_uaddr = $res
 	argstr = sprintf("%s, %p, %p", _nfsctl_cmd_str($cmd), $arg, $res)
+%:
+	argp_uaddr = $notused
+	resp_uaddr = $notused2
+	argstr = sprintf("/* NI_SYSCALL */ %s, %p, %p", _nfsctl_cmd_str($cmd), $notused, $notused2)
+%)
 }
 probe syscall.nfsservctl.return = kernel.function("sys_nfsservctl").return ?,
                                   kernel.function("compat_sys_nfsservctl").return ?
@@ -76,6 +83,7 @@ probe syscall.nfsservctl.return = kernel.function("sys_nfsservctl").return ?,
 	name = "nfsservctl"
 	retstr = returnstr(1)
 }
+%)
 
 # nice _______________________________________________________
 # long sys_nice(int increment)
