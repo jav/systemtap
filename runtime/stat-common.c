@@ -53,12 +53,15 @@ static int needed_space(int64_t v)
 	return space;
 }
 
-static void reprint (int num, char *s)
+static int reprint_buf(char *buf, size_t size, int num, char *s)
 {
+	char *cur_buf = buf, *fake = buf;
+	char **ptr = (buf == NULL ? &fake : &cur_buf);
 	while (num > 0) {
-		_stp_print(s);
+		*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, s);
 		num--;
 	}
+	return *ptr - buf;
 }
 
 /* Given a bucket number for a log histogram, return the value. */
@@ -138,12 +141,14 @@ static int _stp_val_to_bucket(int64_t val)
 #endif
 
 
-static void _stp_stat_print_histogram (Hist st, stat *sd)
+static void _stp_stat_print_histogram_buf(char *buf, size_t size, Hist st, stat *sd)
 {
 	int scale, i, j, val_space, cnt_space;
 	int low_bucket = -1, high_bucket = 0, over = 0, under = 0;
 	int64_t val, v, max = 0;
-        int eliding = 0;
+	int eliding = 0;
+	char *cur_buf = buf, *fake = buf;
+	char **ptr = (buf == NULL ? &fake : &cur_buf);
 
 	if (st->type != HIST_LOG && st->type != HIST_LINEAR)
 		return;
@@ -185,23 +190,23 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 		if (high_bucket == st->buckets-1)
 			over = 1;
 	}
-	
+
 	if (max <= HIST_WIDTH)
 		scale = 1;
 	else {
 		int64_t tmp = max;
-		int rem = do_div (tmp, HIST_WIDTH);
+		int rem = do_div(tmp, HIST_WIDTH);
 		scale = tmp;
 		if (rem) scale++;
 	}
 
 	/* count space */
-	cnt_space = needed_space (max);
+	cnt_space = needed_space(max);
 
 	/* Compute value space */
 	if (st->type == HIST_LINEAR) {
-		i = needed_space (st->start) + under;
-		val_space = needed_space (st->start +  st->interval * high_bucket) + over;
+		i = needed_space(st->start) + under;
+		val_space = needed_space(st->start +  st->interval * high_bucket) + over;
 	} else {
 		i = needed_space(_stp_bucket_to_val(high_bucket));
 		val_space = needed_space(_stp_bucket_to_val(low_bucket));
@@ -217,13 +222,13 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	else
 		val_space = 5;
 	for ( i = 0; i < j; i++)
-		_stp_print(" ");
-	_stp_print("value |");
-	reprint (HIST_WIDTH, "-");
-	_stp_print(" count\n");
+		*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, " ");
+	*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, "value |");
+	*ptr += reprint_buf(cur_buf, buf + size - cur_buf, HIST_WIDTH, "-");
+	*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, " count\n");
 
-	eliding=0;
-	for (i = low_bucket;  i <= high_bucket; i++) {
+	eliding = 0;
+	for (i = low_bucket; i <= high_bucket; i++) {
 		int over_under = 0;
 
 		/* Elide consecutive zero buckets.  Specifically, skip
@@ -231,7 +236,7 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 		   neighbours are also zero. Don't elide zero buckets
 		   if HIST_ELISION is negative */
 		if ((long)HIST_ELISION >= 0) {
-			int k, elide=1;
+			int k, elide = 1;
 			/* Can't elide more than the total # of buckets */
 			int max_elide = min_t(long, HIST_ELISION, st->buckets);
 			int min_bucket = low_bucket;
@@ -254,8 +259,8 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 			   about to print a new one.  So let's print a mark on
 			   the vertical axis to represent the missing rows. */
 			if (eliding) {
-				reprint (val_space, " ");
-				_stp_print(" ~\n");
+				*ptr += reprint_buf(cur_buf, buf + size - cur_buf, val_space, " ");
+				*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, " ~\n");
 				eliding = 0;
 			}
 		}
@@ -269,33 +274,38 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 				/* overflow */
 				val = st->start + (i - 2) * st->interval;
 				over_under = 1;
-			} else				
+			} else
 				val = st->start + (i - 1) * st->interval;
 		} else
 			val = _stp_bucket_to_val(i);
 
-		reprint (val_space - needed_space(val) - over_under, " ");
+		*ptr += reprint_buf(cur_buf, buf + size - cur_buf, val_space - needed_space(val) - over_under, " ");
 
 		if (over_under) {
 			if (i == 0)
-				_stp_printf("<%lld", val);
+				*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, "<%lld", val);
 			else if (i == st->buckets-1)
-				_stp_printf(">%lld", val);
+				*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, ">%lld", val);
 			else
-				_stp_printf("%lld", val);
+				*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, "%lld", val);
 		} else
-			_stp_printf("%lld", val);
-		_stp_print(" |");
-		
+			*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, "%lld", val);
+		*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, " |");
+
 		/* v = s->histogram[i] / scale; */
 		v = sd->histogram[i];
-		do_div (v, scale);
-		
-		reprint (v, "@");
-		reprint (HIST_WIDTH - v + 1 + cnt_space - needed_space(sd->histogram[i]), " ");
-		_stp_printf ("%lld\n", sd->histogram[i]);
+		do_div(v, scale);
+
+		*ptr += reprint_buf(cur_buf, buf + size - cur_buf, v, "@");
+		*ptr += reprint_buf(cur_buf, buf + size - cur_buf, HIST_WIDTH - v + 1 + cnt_space - needed_space(sd->histogram[i]), " ");
+		*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, "%lld\n", sd->histogram[i]);
 	}
-	_stp_print_char('\n');
+	*ptr += _stp_snprintf(cur_buf, buf + size - cur_buf, "\n");
+}
+
+static void _stp_stat_print_histogram(Hist st, stat *sd)
+{
+	_stp_stat_print_histogram_buf(NULL, 0, st, sd);
 	_stp_print_flush();
 }
 

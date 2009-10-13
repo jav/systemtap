@@ -4083,6 +4083,14 @@ c_tmpcounter::visit_print_format (print_format* e)
 	      arr->indexes[i]->visit(this);
 	    }
 	}
+
+      // And the result for sprint[ln](@hist_*)
+      if (!e->print_to_stream)
+        {
+          exp_type ty = pe_string;
+          tmpvar res = parent->gensym(ty);
+          res.declare(*parent);
+        }
     }
   else
     {
@@ -4145,8 +4153,18 @@ c_unparser::visit_print_format (print_format* e)
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	o->newline() << "goto out;";
         o->newline(-1) << "} else";
-	o->newline(1) << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.value() << ");";
-        o->indent(-1);
+        if (e->print_to_stream)
+          {
+            o->newline(1) << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.value() << ");";
+            o->indent(-1);
+          }
+        else
+          {
+            exp_type ty = pe_string;
+            tmpvar res = gensym (ty);
+            o->newline(1) << "_stp_stat_print_histogram_buf (" << res.value() << ", MAXSTRINGLEN, " << v->hist() << ", " << agg.value() << ");";
+            o->newline(-1) << res.value() << ";";
+          }
       }
 
       delete v;
