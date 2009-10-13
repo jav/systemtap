@@ -181,27 +181,25 @@ static int remove_module(const char *name, int verb)
 	int ret;
 	dbug(2, "%s\n", name);
 
+        (void) verb; /* XXX: ignore */
+
 	if (strcmp(name, "*") == 0) {
 		remove_all_modules();
 		return 0;
 	}
 
-	/* Call init_ctl_channel() which actually attempts an open()
-	 * of the control channel. This is better than using access() because
-	 * an open on an already open channel will fail, preventing us from attempting
-	 * to remove an in-use module.
-	 */
-	if (init_ctl_channel(name, 0) < 0) {
-		if (verb)
-			err("Error accessing systemtap module %s: %s\n", name, strerror(errno));
-		return 1;
-	}
-	close_ctl_channel();
+        /* We could call init_ctl_channel / close_ctl_channel here, as a heuristic
+           to determine whether the module is being used by some other stapio process.
+           However, delete_module() does basically the same thing. */
 
 	dbug(2, "removing module %s\n", name);
 	STAP_PROBE1(staprun, remove__module, name);
-	ret = delete_module (name, 0);
+	ret = delete_module (name, O_NONBLOCK);
 	if (ret != 0) {
+                /* XXX: maybe we should just accept this, with a
+                   diagnostic, but without an error.  Might it be
+                   possible for the same module to be started up just
+                   as we're shutting down?  */
 		err("Error removing module '%s': %s.\n", name, strerror(errno));
 		return 1;
 	}
