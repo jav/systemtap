@@ -1,0 +1,25 @@
+#! stap -p2
+
+# check that wildcards work in CONFIG checks
+probe
+  %( CONFIG_NFSD == "m" || CONFIG_NFSD == "y" %?
+    %( CONFIG_NFSD == "[my]" &&
+       CONFIG_NFSD == "[a-z]" &&
+       CONFIG_NFSD == "?" &&
+       CONFIG_NFSD == "*"
+    %? begin
+    %: noprobe
+    %)
+  %:
+    %( CONFIG_NFSD != "[my]" &&
+       CONFIG_NFSD != "[a-z]" &&
+       CONFIG_NFSD != "?" &&
+       CONFIG_NFSD == "*" &&
+       CONFIG_NFSD == ""
+    %? begin
+    %: noprobe
+    %)
+  %)
+{
+  exit()
+}
