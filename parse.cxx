@@ -277,7 +277,7 @@ bool eval_pp_conditional (systemtap_session& s,
       string lhs = s.kernel_config[l->content]; // may be empty
       string rhs = r->content;
 
-      int nomatch = fnmatch (lhs.c_str(), rhs.c_str(), FNM_NOESCAPE); // still spooky
+      int nomatch = fnmatch (rhs.c_str(), lhs.c_str(), FNM_NOESCAPE); // still spooky
 
       bool result;
       if (op->type == tok_operator && op->content == "==")
