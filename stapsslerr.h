@@ -1,4 +1,40 @@
 /* scraped from http://www.mozilla.org/projects/security/pki/nss/ref/ssl/sslerr.html */
+/* and mozilla security/manager/locales/en-US/chrome/pipnss/nsserrors.properties */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Netscape security libraries.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1994-2000
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ * ***** END LICENSE BLOCK ***** */
+/* For systemtap's purposes, GPLv2 is the winning license. */
 
 NSSYERROR(SSL_ERROR_EXPORT_ONLY_SERVER,"Unable to communicate securely. Peer does not support high-grade encryption.");
 NSSYERROR(SSL_ERROR_US_ONLY_SERVER,"Unable to communicate securely. Peer requires high-grade encryption which is not supported.");
@@ -100,6 +136,12 @@ NSSYERROR(SSL_ERROR_IV_PARAM_FAILURE,"PKCS11 code failed to translate an IV into
 NSSYERROR(SSL_ERROR_INIT_CIPHER_SUITE_FAILURE,"Failed to initialize the selected cipher suite.");
 NSSYERROR(SSL_ERROR_SOCKET_WRITE_FAILURE,"Attempt to write encrypted data to underlying socket failed.");
 NSSYERROR(SSL_ERROR_SESSION_KEY_GEN_FAILURE,"Failed to generate session keys for SSL session.");
+NSSYERROR(SSL_ERROR_SERVER_CACHE_NOT_CONFIGURED,"SSL server cache not configured and not disabled for this socket.");
+NSSYERROR(SSL_ERROR_UNSUPPORTED_EXTENSION_ALERT,"SSL peer does not support requested TLS hello extension.");
+NSSYERROR(SSL_ERROR_CERTIFICATE_UNOBTAINABLE_ALERT,"SSL peer could not obtain your certificate from the supplied URL.");
+NSSYERROR(SSL_ERROR_UNRECOGNIZED_NAME_ALERT,"SSL peer has no certificate for the requested DNS name.");
+NSSYERROR(SSL_ERROR_BAD_CERT_STATUS_RESPONSE_ALERT,"SSL peer was unable to get an OCSP response for its certificate.");
+NSSYERROR(SSL_ERROR_BAD_CERT_HASH_VALUE_ALERT,"SSL peer reported bad certificate hash value.");
 NSSYERROR(SEC_ERROR_IO,"An I / O error occurred during authentication) or an error occurred during crypto operation (other than signature verification).");
 NSSYERROR(SEC_ERROR_LIBRARY_FAILURE,"Security library failure.");
 NSSYERROR(SEC_ERROR_BAD_DATA,"Security library: received bad data.");
