@@ -36,6 +36,9 @@ nssError (void)
   
   /* See if PR_GetErrorText can tell us what the error is.  */
   errorNumber = PR_GetError ();
+
+  fprintf(stderr, "(%d) ", errorNumber);
+
   if (errorNumber >= PR_NSPR_ERROR_BASE && errorNumber <= PR_MAX_ERROR)
     {
       errorTextLength = PR_GetErrorTextLength ();
@@ -50,28 +53,14 @@ nssError (void)
       }
     }
 
-  /* Otherwise handle common errors ourselves.  */
-  switch (errorNumber)
-    {
-    case PR_CONNECT_RESET_ERROR:
-      fputs ("Connection reset by peer.\n", stderr);
-      break;
-    case SEC_ERROR_BAD_DATABASE:
-      fputs ("The specified certificate database does not exist or is not valid.\n", stderr);
-      break;
-    case SEC_ERROR_BAD_SIGNATURE:
-      fputs ("Certificate does not match the signature.\n", stderr);
-      break;
-    case SEC_ERROR_CA_CERT_INVALID:
-      fputs ("The issuer's certificate is invalid.\n", stderr);
-      break;
-    case SSL_ERROR_BAD_CERT_DOMAIN:
-      fputs ("The requested domain name does not match the server's certificate.\n", stderr);
-      break;
-    default:
-      fprintf (stderr, "Unknown NSS error: %d.\n", errorNumber);
-      break;
+  switch (errorNumber) {
+  default: errorText = "(unknown)"; break;
+#define NSSYERROR(code,msg) case code: errorText = msg; break
+#include "stapsslerr.h"
+#undef NSSYERROR
     }
+
+  fprintf (stderr, "%s\n", errorText);
 }
 
 void

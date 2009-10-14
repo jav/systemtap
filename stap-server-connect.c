@@ -31,6 +31,8 @@
 #include <nss.h>
 #include <pk11func.h>
 
+#include "nsscommon.h"
+
 #define READ_BUFFER_SIZE (60 * 1024)
 
 /* Global variables */
@@ -55,9 +57,8 @@ Usage(const char *progName)
 static void
 errWarn(char *function)
 {
-  PRErrorCode  errorNumber = PR_GetError();
-
-  printf("Error in function %s: %d\n\n", function, errorNumber);
+  fprintf(stderr, "Error in function %s: ", function);
+  nssError();
 }
 
 static void

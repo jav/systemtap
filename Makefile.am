@@ -176,11 +176,11 @@ CLEANFILES +=  $(pkglibexec_PROGRAMS)
 
 if BUILD_TRANSLATOR
 if BUILD_SERVER
-stap_client_connect_SOURCES = stap-client-connect.c
+stap_client_connect_SOURCES = stap-client-connect.c nsscommon.c
 stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_client_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 
-stap_server_connect_SOURCES = stap-server-connect.c
+stap_server_connect_SOURCES = stap-server-connect.c nsscommon.c
 stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 

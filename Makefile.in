@@ -148,12 +148,14 @@ loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@am_stap_client_connect_OBJECTS = stap_client_connect-stap-client-connect.$(OBJEXT)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@am_stap_client_connect_OBJECTS = stap_client_connect-stap-client-connect.$(OBJEXT) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@	stap_client_connect-nsscommon.$(OBJEXT)
 stap_client_connect_OBJECTS = $(am_stap_client_connect_OBJECTS)
 stap_client_connect_DEPENDENCIES =
 stap_client_connect_LINK = $(CCLD) $(stap_client_connect_CFLAGS) \
 	$(CFLAGS) $(stap_client_connect_LDFLAGS) $(LDFLAGS) -o $@
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@am_stap_server_connect_OBJECTS = stap_server_connect-stap-server-connect.$(OBJEXT)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@am_stap_server_connect_OBJECTS = stap_server_connect-stap-server-connect.$(OBJEXT) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@	stap_server_connect-nsscommon.$(OBJEXT)
 stap_server_connect_OBJECTS = $(am_stap_server_connect_OBJECTS)
 stap_server_connect_DEPENDENCIES =
 stap_server_connect_LINK = $(CCLD) $(stap_server_connect_CFLAGS) \
@@ -423,10 +425,10 @@ stapio_SOURCES = runtime/staprun/stapio.c \
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_LDADD = @PROCFLAGS@ -lpthread
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_client_connect_SOURCES = stap-client-connect.c
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_client_connect_SOURCES = stap-client-connect.c nsscommon.c
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_client_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_server_connect_SOURCES = stap-server-connect.c
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_server_connect_SOURCES = stap-server-connect.c nsscommon.c
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@stap_sign_module_SOURCES = modsign.cxx nsscommon.c
@@ -723,7 +725,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-task_finder.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-translate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_client_connect-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_client_connect-stap-client-connect.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_server_connect-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_server_connect-stap-server-connect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_sign_module-modsign.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_sign_module-nsscommon.Po@am__quote@
@@ -824,6 +828,20 @@ stap_client_connect-stap-client-connect.obj: stap-client-connect.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_client_connect_CFLAGS) $(CFLAGS) -c -o stap_client_connect-stap-client-connect.obj `if test -f 'stap-client-connect.c'; then $(CYGPATH_W) 'stap-client-connect.c'; else $(CYGPATH_W) '$(srcdir)/stap-client-connect.c'; fi`
 
+stap_client_connect-nsscommon.o: nsscommon.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_client_connect_CFLAGS) $(CFLAGS) -MT stap_client_connect-nsscommon.o -MD -MP -MF $(DEPDIR)/stap_client_connect-nsscommon.Tpo -c -o stap_client_connect-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/stap_client_connect-nsscommon.Tpo $(DEPDIR)/stap_client_connect-nsscommon.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap_client_connect-nsscommon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_client_connect_CFLAGS) $(CFLAGS) -c -o stap_client_connect-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
+
+stap_client_connect-nsscommon.obj: nsscommon.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_client_connect_CFLAGS) $(CFLAGS) -MT stap_client_connect-nsscommon.obj -MD -MP -MF $(DEPDIR)/stap_client_connect-nsscommon.Tpo -c -o stap_client_connect-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/stap_client_connect-nsscommon.Tpo $(DEPDIR)/stap_client_connect-nsscommon.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap_client_connect-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_client_connect_CFLAGS) $(CFLAGS) -c -o stap_client_connect-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
+
 stap_server_connect-stap-server-connect.o: stap-server-connect.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -MT stap_server_connect-stap-server-connect.o -MD -MP -MF $(DEPDIR)/stap_server_connect-stap-server-connect.Tpo -c -o stap_server_connect-stap-server-connect.o `test -f 'stap-server-connect.c' || echo '$(srcdir)/'`stap-server-connect.c
 @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/stap_server_connect-stap-server-connect.Tpo $(DEPDIR)/stap_server_connect-stap-server-connect.Po
@@ -837,6 +855,20 @@ stap_server_connect-stap-server-connect.obj: stap-server-connect.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stap-server-connect.c' object='stap_server_connect-stap-server-connect.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -c -o stap_server_connect-stap-server-connect.obj `if test -f 'stap-server-connect.c'; then $(CYGPATH_W) 'stap-server-connect.c'; else $(CYGPATH_W) '$(srcdir)/stap-server-connect.c'; fi`
+
+stap_server_connect-nsscommon.o: nsscommon.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -MT stap_server_connect-nsscommon.o -MD -MP -MF $(DEPDIR)/stap_server_connect-nsscommon.Tpo -c -o stap_server_connect-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/stap_server_connect-nsscommon.Tpo $(DEPDIR)/stap_server_connect-nsscommon.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap_server_connect-nsscommon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -c -o stap_server_connect-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
+
+stap_server_connect-nsscommon.obj: nsscommon.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -MT stap_server_connect-nsscommon.obj -MD -MP -MF $(DEPDIR)/stap_server_connect-nsscommon.Tpo -c -o stap_server_connect-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/stap_server_connect-nsscommon.Tpo $(DEPDIR)/stap_server_connect-nsscommon.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap_server_connect-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -c -o stap_server_connect-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
 
 stap_sign_module-nsscommon.o: nsscommon.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT stap_sign_module-nsscommon.o -MD -MP -MF $(DEPDIR)/stap_sign_module-nsscommon.Tpo -c -o stap_sign_module-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
