@@ -6,15 +6,21 @@ if {$err == "" && [file exists $test]} then { pass "$test compile" } else { fail
 spawn stap -p2 $srcdir/$subdir/$test.stp
 set hint 0
 set probes 0
+set skipped 0
 expect {
 	-timeout 60
 	-re "# probes" { incr hint; exp_continue }
 	-re {process.*statement.*} { incr probes; exp_continue }
+	-re {never.*} { incr skipped; exp_continue}
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
 wait
-if { $hint == 1 && $probes > 0 } then { pass "$test -p2" } else { fail "$test -p2 ($probes)" }
+if { $skipped == 1 } {
+    untested "$test -p2" 
+} else {
+    if { $hint == 1 && $probes > 0 } then { pass "$test -p2" } else { fail "$test -p2 ($probes)" }
+}
 exec rm -f $test
 
 set test bz10294
@@ -25,23 +31,30 @@ if {$err == "" && [file exists $test]} then { pass "$test compile" } else { fail
 spawn stap -p2 $srcdir/$subdir/$test.stp
 set hint 0
 set probes 0
+set skipped 0
 expect {
         -timeout 60
         -re "# probes" { incr hint; exp_continue }
         -re {process.*statement.*} { incr probes; exp_continue }
+        -re {never.*} { incr skipped; exp_continue}
         timeout { fail "$test (timeout)" }
         eof { }
 }
 wait
-if { $hint == 1 && $probes == 1 } then { pass "$test -p2" } else { fail "$test -p2 ($probes)" }
+if { $skipped == 1 } {
+    untested "$test -p2"
+} else {
+    if { $hint == 1 && $probes == 1 } then { pass "$test -p2" } else { fail "$test -p2 ($probes)" }
+}
 
 set no_func stmtnofunc
-set func_script "probe process(\"%s\").statement(\"foo@%s.c:*\"){}"
+set func_script "probe %%( CONFIG_UTRACE == \"y\" %%? process(\"%s\").statement(\"foo@%s.c:*\") %%: never %%) {}"
 set script [format $func_script "./$test" "$test"]
-spawn stap -p2 -e $script
+spawn stap -p2 -we $script
 expect {
         -timeout 60
         -re {semantic error: no match while resolving probe point.*\r\n} { xfail $no_func }
+        -re {never.*} { untested "$no_func"}
         timeout { fail "$no_func (timeout)" }
         eof { fail $no_func }
 }
