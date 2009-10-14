@@ -448,15 +448,9 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   if (e->base_name == "$$parms") 
     {
       // copy from tracepoint
-      print_format* pf = new print_format;
       token* pf_tok = new token(*e->tok);
       pf_tok->content = "sprintf";
-      pf->tok = pf_tok;
-      pf->print_to_stream = false;
-      pf->print_with_format = true;
-      pf->print_with_delim = false;
-      pf->print_with_newline = false;
-      pf->print_char = false;
+      print_format* pf = print_format::create(pf_tok);
 
       target_symbol_seen = true;
 

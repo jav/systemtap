@@ -26,5 +26,9 @@ probe end
 	print(@hist_linear(bar, 1000, 10000, 1000))
 	println(@hist_log(foo))
 	println(@hist_linear(bar, 1000, 10000, 1000))
+	print(sprint(@hist_log(foo)))
+	print(sprint(@hist_linear(bar, 1000, 10000, 1000)))
+	print(sprintln(@hist_log(foo)))
+	print(sprintln(@hist_linear(bar, 1000, 10000, 1000)))
 }
 

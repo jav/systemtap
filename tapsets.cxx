@@ -2135,7 +2135,6 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     return;
 
   target_symbol *tsym = new target_symbol;
-  print_format* pf = new print_format;
 
   // Convert $$parms to sprintf of a list of parms and active local vars
   // which we recursively evaluate
@@ -2148,12 +2147,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   pf_tok->type = tok_identifier;
   pf_tok->content = "sprint";
 
-  pf->tok = pf_tok;
-  pf->print_to_stream = false;
-  pf->print_with_format = true;
-  pf->print_with_delim = false;
-  pf->print_with_newline = false;
-  pf->print_char = false;
+  print_format* pf = print_format::create(pf_tok);
 
   if (q.has_return && (e->base_name == "$$return"))
     {
@@ -5618,8 +5612,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     }
   else if (e->base_name == "$$vars" || e->base_name == "$$parms")
     {
-      print_format* pf = new print_format;
-
       // Convert $$vars to sprintf of a list of vars which we recursively evaluate
       // NB: we synthesize a new token here rather than reusing
       // e->tok, because print_format::print likes to use
@@ -5627,12 +5619,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       token* pf_tok = new token(*e->tok);
       pf_tok->content = "sprintf";
 
-      pf->tok = pf_tok;
-      pf->print_to_stream = false;
-      pf->print_with_format = true;
-      pf->print_with_delim = false;
-      pf->print_with_newline = false;
-      pf->print_char = false;
+      print_format* pf = print_format::create(pf_tok);
 
       for (unsigned i = 0; i < args.size(); ++i)
         {
