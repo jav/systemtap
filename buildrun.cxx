@@ -214,15 +214,14 @@ compile_pass (systemtap_session& s)
   o.close ();
 
   // Generate module directory pathname and make sure it exists.
-  string module_dir;
-  module_dir = s.kernel_build_tree;
+  string module_dir = s.kernel_build_tree;
+  string module_dir_makefile = module_dir + "/Makefile";
   struct stat st;
-  rc = stat(module_dir.c_str(), &st);
+  rc = stat(module_dir_makefile.c_str(), &st);
   if (rc != 0)
     {
-	clog << "Module directory " << module_dir << " check failed: "
-	     << strerror(errno) << endl
-	     << "Make sure kernel devel is installed." << endl;
+	clog << "Checking \"" << module_dir_makefile << "\" failed: " << strerror(errno) << endl
+	     << "Ensure kernel development headers & makefiles are installed." << endl;
 	return rc;
     }
 
