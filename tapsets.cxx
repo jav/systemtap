@@ -2145,7 +2145,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   token* pf_tok = new token;
   pf_tok->location = e->tok->location;
   pf_tok->type = tok_identifier;
-  pf_tok->content = "sprint";
+  pf_tok->content = "sprintf";
 
   print_format* pf = print_format::create(pf_tok);
 
