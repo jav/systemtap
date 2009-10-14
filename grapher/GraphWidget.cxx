@@ -74,7 +74,7 @@ namespace systemtap
   {
   }
 
-  void GraphWidget::addGraphData(std::tr1::shared_ptr<GraphDataBase> data)
+  void GraphWidget::addGraphData(shared_ptr<GraphDataBase> data)
   {
     _graphs[0]->addGraphData(data);
     _graphData.push_back(data);

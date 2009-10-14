@@ -3,33 +3,24 @@
 #include <unistd.h>
 
 #include <gtkmm/window.h>
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <cstring>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/range.hpp>
 
 namespace systemtap
 {
   using namespace std;
   using namespace std::tr1;
 
-vector<string> commaSplit(const string& inStr, size_t pos = 0)
+vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
 {
-  size_t found = pos;
+  using namespace boost;
   vector<string> result;
-  while (1)
-    {
-
-      size_t commaPos = inStr.find(',', found);
-      string token
-        = inStr.substr(found, (commaPos == string::npos
-                               ? string::npos
-                               : commaPos - 1 - found));
-      result.push_back(token);
-      if (commaPos != string::npos)
-        found = commaPos + 1;
-      else
-        break;
-    }
+  split(result, range, is_any_of(","));
   return result;
 }
 
@@ -47,8 +38,7 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
         dblptr->times.push_back(time);
         dblptr->data.push_back(data);
       }
-    else if ((strptr = std::tr1
-              ::dynamic_pointer_cast<GraphData<string> >(gdata))
+    else if ((strptr = dynamic_pointer_cast<GraphData<string> >(gdata))
              != 0)
       {
         strptr->times.push_back(time);
@@ -56,17 +46,21 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
       }
   }
 
-  size_t findTaggedValue(const string& src, const char* tag, string& result)
+  bool findTaggedValue(const string& src, const char* tag, string& result)
   {
-    size_t found;
-    if ((found = src.find(tag)) != string::npos)
-        result = src.substr(found + strlen(tag));
-    return found;
+    using namespace boost;
+    sub_range<const string> found = find_first(src, tag);
+    if (found.empty())
+      return false;
+    result.insert(result.end(),found.end(), src.end());
+    return true;
   }
 
   bool StapParser::ioCallback(Glib::IOCondition ioCondition)
     {
       using namespace std;
+      using std::tr1::shared_ptr;
+      using namespace boost;
       if (ioCondition & Glib::IO_HUP)
         {
           _win.hide();
@@ -90,21 +84,22 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
           Glib::ustring dataString(_buffer, 0, ret);
           // %DataSet and %CSV declare a data set; all other statements begin with
           // the name of a data set.
-          size_t found;
+          sub_range<Glib::ustring> found;
           if (dataString[0] == '%')
             {
-              if ((found = dataString.find("%DataSet:") == 0))
+              if ((found = find_first(dataString, "%DataSet:")))
                 {
-                  std::string setName;
+                  string setName;
                   int hexColor;
                   double scale;
-                  std::string style;
-                  std::istringstream stream(dataString.substr(9));
+                  string style;
+                  istringstream stream(Glib::ustring(found.end(),
+                                                     dataString.end()));
                   stream >> setName >> scale >> std::hex >> hexColor
                          >> style;
                   if (style == "bar" || style == "dot")
                     {
-                      shared_ptr<GraphData<double> >
+                      std::tr1::shared_ptr<GraphData<double> >
                         dataSet(new GraphData<double>);
                       if (style == "dot")
                         dataSet->style = GraphDataBase::DOT;
@@ -117,7 +112,7 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
                     }
                   else if (style == "discreet")
                     {
-                      shared_ptr<GraphData<string> >
+                      std::tr1::shared_ptr<GraphData<string> >
                         dataSet(new GraphData<string>);
                       dataSet->style = GraphDataBase::EVENT;
                       dataSet->color[0] = (hexColor >> 16) / 255.0;
@@ -128,9 +123,11 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
                       _widget.addGraphData(dataSet);
                     }
                 }
-              else if ((found = dataString.find("%CSV:") == 0))
+              else if ((found = find_first(dataString, "%CSV:")))
                 {
-                  vector<string> tokens = commaSplit(dataString, found + 5);
+                  vector<string> tokens
+                    = commaSplit(sub_range<Glib::ustring>(found.end(),
+                                                          dataString.end()));
                   for (vector<string>::iterator tokIter = tokens.begin(),
                          e = tokens.end();
                        tokIter != e;
@@ -174,10 +171,11 @@ vector<string> commaSplit(const string& inStr, size_t pos = 0)
                     {
                       gdata->yAxisText = decl;
                     }
-                  else if ((found = dataString.find("%YMax:")) != string::npos)
+                  else if ((found = find_first(dataString, "%YMax:")))
                     {
                       double ymax;
-                      std::istringstream stream(dataString.substr(found));
+                      std::istringstream
+                        stream(Glib::ustring(found.end(), dataString.end()));
                       stream >> ymax;
                       gdata->scale = ymax;
                     }

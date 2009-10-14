@@ -234,7 +234,7 @@ namespace systemtap
     
   }
 
-  void Graph::addGraphData(std::tr1::shared_ptr<GraphDataBase> data)
+  void Graph::addGraphData(shared_ptr<GraphDataBase> data)
   {
     _datasets.push_back(data);
   }
