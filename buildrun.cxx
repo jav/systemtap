@@ -201,6 +201,9 @@ compile_pass (systemtap_session& s)
 
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
 
+  // 512 bytes should be enough for anybody
+  o << "EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=512)" << endl;
+
   // Assumes linux 2.6 kbuild
   o << "EXTRA_CFLAGS += -Wno-unused -Werror" << endl;
   #if CHECK_POINTER_ARITH_PR5947
