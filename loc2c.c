@@ -2187,7 +2187,8 @@ emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
    assign it to an address-sized value.  */
 static void
 emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
-		const char *target, bool declare)
+		const char *target, bool declare,
+		bool *used_deref, unsigned int *max_stack)
 {
   if (declare)
     emit ("%*s%s %s;\n", indent * 2, "", STACK_TYPE, target);
@@ -2207,6 +2208,9 @@ emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
     case loc_address:
     case loc_value:
       emit_loc_address (out, loc, indent, target);
+      *used_deref = *used_deref || loc->address.used_deref;
+      if (loc->address.stack_depth > *max_stack)
+	*max_stack = loc->address.stack_depth;
       break;
     }
 
@@ -2214,7 +2218,8 @@ emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
 }
 
 bool
-c_emit_location (FILE *out, struct location *loc, int indent)
+c_emit_location (FILE *out, struct location *loc, int indent,
+		 unsigned int *max_stack)
 {
   emit ("%*s{\n", indent * 2, "");
 
@@ -2250,9 +2255,11 @@ c_emit_location (FILE *out, struct location *loc, int indent)
       }
 
   bool deref = false;
+  *max_stack = 0;
 
   if (loc->frame_base != NULL)
-    emit_loc_value (out, loc->frame_base, indent, "frame_base", true);
+    emit_loc_value (out, loc->frame_base, indent, "frame_base", true,
+		    &deref, max_stack);
 
   for (; loc->next != NULL; loc = loc->next)
     switch (loc->type)
@@ -2260,8 +2267,7 @@ c_emit_location (FILE *out, struct location *loc, int indent)
       case loc_address:
       case loc_value:
 	/* Emit the program fragment to calculate the address.  */
-	emit_loc_value (out, loc, indent + 1, "addr", false);
-	deref = deref || loc->address.used_deref;
+	emit_loc_value (out, loc, indent + 1, "addr", false, &deref, max_stack);
 	break;
 
       case loc_fragment:
@@ -2287,6 +2293,9 @@ c_emit_location (FILE *out, struct location *loc, int indent)
     abort ();
 
   emit ("%s%*s}\n", loc->address.program, indent * 2, "");
+
+  if (loc->address.stack_depth > *max_stack)
+    *max_stack = loc->address.stack_depth;
 
   return deref || loc->address.used_deref;
 }

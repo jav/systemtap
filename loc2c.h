@@ -126,6 +126,7 @@ struct location *c_translate_argument (struct obstack *,
 
    Writes complete lines of C99, code forming a complete C block, to STREAM.
    Return value is true iff that code uses the `deref' runtime macros.  */
-bool c_emit_location (FILE *stream, struct location *loc, int indent);
+bool c_emit_location (FILE *stream, struct location *loc, int indent,
+		      unsigned int *max_stack);
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

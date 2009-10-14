@@ -337,11 +337,14 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 	"{\n"
 	"  intptr_t value;");
 
-  bool deref = c_emit_location (stdout, head, 1);
+  unsigned int stack_depth;
+  bool deref = c_emit_location (stdout, head, 1, &stack_depth);
 
   obstack_free (&pool, NULL);
 
-  puts (store ? " return;" :
+  printf ("  /* max expression stack depth %u */\n", stack_depth);
+
+  puts (store ? "  return;" :
 	"  printk (\" ---> %ld\\n\", (unsigned long) value);\n"
 	"  return;");
 

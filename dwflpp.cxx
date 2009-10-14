@@ -2182,7 +2182,8 @@ dwflpp::express_as_string (string prelude,
 
   fprintf(memstream, "{\n");
   fprintf(memstream, "%s", prelude.c_str());
-  bool deref = c_emit_location (memstream, head, 1);
+  unsigned int stack_depth;
+  bool deref = c_emit_location (memstream, head, 1, &stack_depth);
   fprintf(memstream, "%s", postlude.c_str());
   fprintf(memstream, "  goto out;\n");
 
