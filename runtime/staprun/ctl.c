@@ -24,11 +24,11 @@ int init_ctl_channel(const char *name, int verb)
 	} else {
 		old_transport = 1;
 		if (sprintf_chk(buf, "/proc/systemtap/%s/.cmd", name))
-			return -1;
+			return -2;
 	}
 
-	dbug(2, "Opening %s\n", buf);
 	control_channel = open(buf, O_RDWR);
+	dbug(2, "Opened %s (%d)\n", buf, control_channel);
 	if (control_channel < 0) {
 		if (verb) {
 			if (attach_mod && errno == ENOENT)
@@ -36,10 +36,10 @@ int init_ctl_channel(const char *name, int verb)
 			else
 				perr("Couldn't open control channel '%s'", buf);
 		}
-		return -1;
+		return -3;
 	}
 	if (set_clexec(control_channel) < 0)
-		return -1;
+		return -4;
 
 	return old_transport;
 }
@@ -47,6 +47,7 @@ int init_ctl_channel(const char *name, int verb)
 void close_ctl_channel(void)
 {
   if (control_channel >= 0) {
+          	dbug(2, "Closed ctl fd %d\n", control_channel);
 		close(control_channel);
 		control_channel = -1;
 	}

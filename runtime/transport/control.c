@@ -59,7 +59,7 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 #ifdef STP_BULKMODE
 		return count;
 #else
-		return -1;
+		return -EINVAL;
 #endif
 	case STP_RELOCATION:
           	_stp_do_relocation (buf, count);
@@ -150,7 +150,7 @@ static int _stp_ctl_write(int type, void *data, unsigned len)
 	/* get a buffer from the free pool */
 	bptr = _stp_mempool_alloc(_stp_pool_q);
 	if (unlikely(bptr == NULL))
-		return -1;
+		return -ENOMEM;
 
 	bptr->type = type;
 	memcpy(bptr->buf, data, len);
@@ -225,7 +225,7 @@ static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf,
 static int _stp_ctl_open_cmd(struct inode *inode, struct file *file)
 {
 	if (_stp_ctl_attached)
-		return -1;
+		return -EBUSY;
 	_stp_attach();
 	return 0;
 }
