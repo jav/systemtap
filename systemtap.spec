@@ -65,6 +65,11 @@ BuildRequires: xmlto /usr/share/xmlto/format/fo/pdf
 %if %{with_grapher}
 BuildRequires: gtkmm24-devel >= 2.8
 BuildRequires: libglademm24-devel >= 2.6.7
+# If 'with_boost' isn't set, the boost-devel build requirement hasn't
+# been specified yet.
+%if ! %{with_boost}
+BuildRequires: boost-devel
+%endif
 %endif
 
 %description
