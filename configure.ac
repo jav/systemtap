@@ -271,7 +271,8 @@ AC_SUBST(nss_CFLAGS)
 AC_SUBST(nspr_CFLAGS)
 save_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
-AC_CHECK_HEADERS(["$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"], have_nss_includes=yes, have_nss_includes=no)
+have_nss_includes=yes
+AC_CHECK_HEADERS(["$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"], [], have_nss_includes=no)
 CPPFLAGS="$save_CPPFLAGS"
 have_nss_libs=no
 AC_CHECK_LIB(nspr4, PR_Connect, [
@@ -294,20 +295,48 @@ AM_CONDITIONAL([HAVE_NSS],     [test "x${have_nss_includes}${have_nss_libs}${hav
 dnl Handle the optional grapher
 AC_ARG_ENABLE([grapher],
   AS_HELP_STRING([--enable-grapher],
-    [enable building of grapher (default on if gtkmm is found).]),
+    [enable building of grapher (default on if needed requirements are found).]),
   [],					dnl ACTION-IF-GIVEN
   [enable_grapher="check"])		dnl ACTION-IF-NOT-GIVEN
-dnl If the user didn't disable the grapher, check for gtkmm.
+dnl If the user didn't disable the grapher, check the grapher's requirements.
 AS_IF([test "x$enable_grapher" != xno],
-  [PKG_CHECK_MODULES([gtkmm], [libglademm-2.4 >= 2.6.7],
-   have_gtkmm="yes", have_gtkmm="no")])
+  [
+   dnl Check for gtkmm.  Strictly speaking, this isn't necessary,
+   dnl since the libglademm24-devel rpm requires the gtkmm24-devel
+   dnl rpm.  But, this could be a non-rpm system.  This check will
+   dnl give the user a better idea about how to fix missing
+   dnl requirements.
+   PKG_CHECK_MODULES([gtkmm], [gtkmm-2.4 >= 2.8.0],
+     have_gtkmm="yes", have_gtkmm="no")
+   AS_IF([test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"],
+     AC_MSG_WARN([systemtap cannot find required gtkmm libs (gtkmm24-devel version 2.8.0 or higher may need to be installed)]))   
+
+   dnl Check for libglade
+   PKG_CHECK_MODULES([libglade], [libglademm-2.4 >= 2.6.7],
+     have_libglade="yes", have_libglade="no")
+   AS_IF([test "x${have_libglade}" == "xno" -a x"$enable_grapher" == "xyes"],
+     AC_MSG_WARN([systemtap cannot find required libglade libs (libglademm24-devel version 2.6.7 or higher may need to be installed)]))   
+
+   dnl Check for needed boost headers
+   have_boost_headers="yes"
+   AC_LANG_PUSH(C++)
+   AC_CHECK_HEADERS([boost/algorithm/string.hpp boost/range.hpp],
+     [], have_boost_headers="no")
+   AC_LANG_POP(C++)
+   AS_IF([test "x${have_boost_headers}" == "xno" -a x"$enable_grapher" == "xyes"],
+     AC_MSG_WARN([cannot find required boost headers (boost-devel may need to be installed)]))
+
+   dnl Bundle up all the grapher requirements into 1 variable.
+   AS_IF([test "x${have_gtkmm}${have_libglade}${have_boost_headers}" == "xyesyesyes"],
+         have_grapher_reqs="yes", have_grapher_reqs="no")
+   ])
 dnl If the user explicitly said to enable the grapher, but we can't
-dnl (since gtkmm isn't installed), error.
-AS_IF([test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"],
-  AC_MSG_ERROR([systemtap cannot find required gtkmm/libglademm-2.4 libs (gtkmm24-devel and libglademm24-devel, version 2.6.7 or higher, may need to be installed)]))
-dnl If the user didn't say to disable the grapher, and gtkmm is
-dnl installed, enable the grapher.
-AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_gtkmm}" == "xyes" -a x"$enable_grapher" != "xno"])
+dnl (since one or more of its requirements aren't installed), error.
+AS_IF([test "x${have_grapher_reqs}" == "xno" -a x"$enable_grapher" == "xyes"],
+  AC_MSG_ERROR([systemtap cannot find grapher build requirements (gtkmm, libglade, and boost headers)]))
+dnl If the user didn't say to disable the grapher, and all the
+dnl requirements are installed, enable the grapher.
+AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_grapher_reqs}" == "xyes" -a x"$enable_grapher" != "xno"])
 
 
 # Integration with rpm library to support missing debuginfo suggestions.

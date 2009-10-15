@@ -2,9 +2,12 @@ if BUILD_GRAPHER
 bin_PROGRAMS = stapgraph
 man_MANS = stapgraph.1
 
-stapgraph_CPPFLAGS =  -DPKGDATADIR='"${pkgdatadir}"'
-stapgraph_CXXFLAGS = $(gtkmm_CFLAGS) -Wall -Werror
+# Note that since libglade_CFLAGS/libglade_LIBS variables are a
+# "superset" of the gtkmm_CFLAGS/gtkmm_LIBS variabes, we'll just use
+# the libglade ones.
+stapgraph_CPPFLAGS = -DPKGDATADIR='"${pkgdatadir}"'
+stapgraph_CXXFLAGS = $(libglade_CFLAGS) -Wall -Werror
 stapgraph_SOURCES = grapher.cxx StapParser.cxx Graph.cxx GraphWidget.cxx CairoWidget.cxx
-stapgraph_LDADD = $(gtkmm_LIBS)
+stapgraph_LDADD = $(libglade_LIBS)
 dist_pkgdata_DATA = graph-dialog.glade stap-start.glade
 endif

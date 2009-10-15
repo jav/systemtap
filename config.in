@@ -9,6 +9,12 @@
 /* make -P prologue-searching default */
 #undef ENABLE_PROLOGUES
 
+/* Define to 1 if you have the <boost/algorithm/string.hpp> header file. */
+#undef HAVE_BOOST_ALGORITHM_STRING_HPP
+
+/* Define to 1 if you have the <boost/range.hpp> header file. */
+#undef HAVE_BOOST_RANGE_HPP
+
 /* Define to 1 if you have the <boost/shared_ptr.hpp> header file. */
 #undef HAVE_BOOST_SHARED_PTR_HPP
 
