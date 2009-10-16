@@ -312,9 +312,8 @@ NSSYERROR(SEC_ERROR_LIBPKIX_INTERNAL,"Libpkix internal error occurred during cer
 NSSYERROR(SEC_ERROR_PKCS11_GENERAL_ERROR,"A PKCS #11 module returned CKR_GENERAL_ERROR, indicating that an unrecoverable error has occurred.");
 NSSYERROR(SEC_ERROR_PKCS11_FUNCTION_FAILED,"A PKCS #11 module returned CKR_FUNCTION_FAILED, indicating that the requested function could not be performed.Trying the same operation again might succeed.");
 NSSYERROR(SEC_ERROR_PKCS11_DEVICE_ERROR,"A PKCS #11 module returned CKR_DEVICE_ERROR, indicating that a problem has occurred with the token or slot.");
-#ifdef SEC_ERROR_BAD_INFO_ACCESS_METHOD
+/* 3.12.4 and later */
+#if (NSS_VMAJOR > 3) || (NSS_VMAJOR == 3 && NSS_VMINOR > 12) || (NSS_VMAJOR == 3 && NSS_VMINOR == 12 && NSS_VPATCH >= 4)
 NSSYERROR(SEC_ERROR_BAD_INFO_ACCESS_METHOD,"Unknown information access method in certificate extension.");
-#endif
-#ifdef SEC_ERROR_CRL_IMPORT_FAILED
 NSSYERROR(SEC_ERROR_CRL_IMPORT_FAILED,"Error attempting to import a CRL.");
 #endif
