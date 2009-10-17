@@ -2182,8 +2182,15 @@ dwflpp::express_as_string (string prelude,
 
   fprintf(memstream, "{\n");
   fprintf(memstream, "%s", prelude.c_str());
+
   unsigned int stack_depth;
   bool deref = c_emit_location (memstream, head, 1, &stack_depth);
+
+  // Ensure that DWARF keeps loc2c to a "reasonable" stack size
+  // 32 intptr_t leads to max 256 bytes on the stack
+  if (stack_depth > 32)
+    throw semantic_error("oversized DWARF stack");
+
   fprintf(memstream, "%s", postlude.c_str());
   fprintf(memstream, "  goto out;\n");
 
