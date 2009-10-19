@@ -1,6 +1,6 @@
 #! /usr/bin/env stap
 
-global device_of_interest, dev
+global device_of_interest
 
 probe begin {
   /* The following is not the most efficient way to do this.

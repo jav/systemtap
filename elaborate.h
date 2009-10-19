@@ -37,7 +37,7 @@ public:
   derived_probe* current_probe;
   symresolution_info (systemtap_session& s);
 
-  vardecl* find_var (const std::string& name, int arity);
+  vardecl* find_var (const std::string& name, int arity, const token *tok);
   functiondecl* find_function (const std::string& name, unsigned arity);
 
   void visit_block (block *s);
