@@ -270,7 +270,7 @@ static void _stp_stat_print_histogram_buf(char *buf, size_t size, Hist st, stat 
 
 		for (j = 0; j < v; ++j)
 			HIST_PRINTF("@");
-		HIST_PRINTF("%*lld\n", HIST_WIDTH - v + 1 + cnt_space, sd->histogram[i]);
+		HIST_PRINTF("%*lld\n", (int)(HIST_WIDTH - v + 1 + cnt_space), sd->histogram[i]);
 	}
 	HIST_PRINTF("\n");
 #undef HIST_PRINTF
