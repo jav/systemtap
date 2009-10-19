@@ -1,0 +1,165 @@
+set test "tcl"
+
+# Test sdt support in tcl.
+
+global env
+
+if {! [info exists env(SYSTEMTAP_TEST_SDT)]} {
+    unsupported "tcl (\"SYSTEMTAP_TEST_SDT\" not in env)"
+    return
+}
+
+########## Create /tmp/stap-tcl.stp ########## 
+set tclreleasemajor "8.6"
+set tclrelease "8.6b1"
+set tcldir "[pwd]/tcl/install/"
+set testsuite "[pwd]"
+
+set fp [open "$testsuite/stap-tcl.stp" "w"]
+puts $fp "
+probe process(@1).mark(\"proc__entry\")
+{
+  printf (\"%s %#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3)
+}
+probe process(@1).mark(\"proc__return\")
+{
+  printf (\"%s %#x,%#x\\n\",\$\$name, \$arg1,\$arg2)
+}
+probe process(@1).mark(\"proc__result\")
+{
+  printf (\"%s %#x,%#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3,\$arg4)
+}
+probe process(@1).mark(\"proc__args\")
+{
+  printf (\"%s %#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3,\$arg4,\$arg5,\$arg6,\$arg7,\$arg8,\$arg9,\$arg10)
+}
+probe process(@1).mark(\"proc__info\")
+{
+  printf (\"%s %#x,%#x,%#x,%#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3,\$arg4,\$arg5,\$arg6)
+}
+probe process(@1).mark(\"cmd__entry\")
+{
+  printf (\"%s %#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3)
+}
+probe process(@1).mark(\"cmd__return\")
+{
+  printf (\"%s %#x,%#x\\n\",\$\$name, \$arg1,\$arg2)
+}
+probe process(@1).mark(\"cmd__result\")
+{
+  printf (\"%s %#x,%#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3,\$arg4)
+}
+probe process(@1).mark(\"cmd__args\")
+{
+  printf (\"%s %#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3,\$arg4,\$arg5,\$arg6,\$arg7,\$arg8,\$arg9,\$arg10)
+}
+probe process(@1).mark(\"cmd__info\")
+{
+  printf (\"%s %#x,%#x,%#x,%#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3,\$arg4,\$arg5,\$arg6)
+}
+probe process(@1).mark(\"inst__start\")
+{
+  printf (\"%s %#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3)
+}
+probe process(@1).mark(\"inst__done\")
+{
+  printf (\"%s %#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3)
+}
+probe process(@1).mark(\"obj__create\")
+{
+  printf (\"%s %#x\\n\",\$\$name, \$arg1)
+}
+probe process(@1).mark(\"obj__free\")
+{
+  printf (\"%s %#x\\n\",\$\$name, \$arg1)
+}
+probe process(@1).mark(\"tcl__probe\")
+{
+  printf (\"%s %#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x,%#x\\n\",\$\$name, \$arg1,\$arg2,\$arg3,\$arg4,\$arg5,\$arg6,\$arg7,\$arg8,\$arg9,\$arg10)
+}
+"
+close $fp
+
+########## Begin /tmp/stap-tcl.sh ########## 
+set fp [open "$testsuite/stap-tcl.sh" "w"]
+puts $fp "
+##### begin run_tests #####
+function run_tests \{
+(cd $tcldir/..
+MOD=stapsdt_\$(date +%j%k%M%N | sed 's/ //')
+/work/scox/virginsystemtap/install/bin/stap -m \$MOD -c install/bin/tclsh$tclreleasemajor $testsuite/stap-tcl.stp  $testsuite/tcl/install/lib//libtcl$tclreleasemajor.so << END >$testsuite/stap-tcl-markers.log 2>&1
+source src/tests/all.tcl
+quit
+END
+)
+
+PROC_ENTRY=\$(grep 'proc__entry' $testsuite/stap-tcl-markers.log | wc -l)
+PROC_RETURN=\$(grep 'proc__return' $testsuite/stap-tcl-markers.log | wc -l)
+PROC_RESULT=\$(grep 'proc__result' $testsuite/stap-tcl-markers.log | wc -l)
+PROC_ARGS=\$(grep 'proc__args' $testsuite/stap-tcl-markers.log | wc -l)
+PROC_INFO=\$(grep 'proc__info' $testsuite/stap-tcl-markers.log | wc -l)
+CMD_ENTRY=\$(grep 'cmd__entry' $testsuite/stap-tcl-markers.log | wc -l)
+CMD_RETURN=\$(grep 'cmd__return' $testsuite/stap-tcl-markers.log | wc -l)
+CMD_RESULT=\$(grep 'cmd__result' $testsuite/stap-tcl-markers.log | wc -l)
+CMD_ARGS=\$(grep 'cmd__args' $testsuite/stap-tcl-markers.log | wc -l)
+CMD_INFO=\$(grep 'cmd__info' $testsuite/stap-tcl-markers.log | wc -l)
+INST_START=\$(grep 'inst__start' $testsuite/stap-tcl-markers.log | wc -l)
+INST_DONE=\$(grep 'inst__done' $testsuite/stap-tcl-markers.log | wc -l)
+OBJ_CREATE=\$(grep 'obj__create' $testsuite/stap-tcl-markers.log | wc -l)
+OBJ_FREE=\$(grep 'obj__free' $testsuite/stap-tcl-markers.log | wc -l)
+
+echo PROC_ENTRY=\$PROC_ENTRY PROC_RETURN=\$PROC_RETURN PROC_RESULT=\$PROC_RESULT PROC_ARGS=\$PROC_ARGS PROC_INFO=\$PROC_INFO CMD_ENTRY=\$CMD_ENTRY CMD_RETURN=\$CMD_RETURN CMD_RESULT=\$CMD_RESULT CMD_ARGS=\$CMD_ARGS CMD_INFO=\$CMD_INFO INST_START=\$INST_START INST_DONE=\$INST_DONE OBJ_CREATE=\$OBJ_CREATE OBJ_FREE=\$OBJ_FREE 
+
+if \[ \$PROC_ENTRY -gt 9000 -a \$PROC_RETURN -gt 9000 -a \$PROC_RESULT -gt 9000 -a \$PROC_ARGS -gt 9000 -a \$PROC_INFO -gt 9000 -a \$CMD_ENTRY -gt 37000 -a \$CMD_RETURN -gt 37000 -a \$CMD_RESULT -gt 37000 -a \$CMD_ARGS -gt 3700 -a \$CMD_INFO -gt 37000 -a \$INST_START -gt 542000 -a \$INST_DONE -gt 542000 -a \$OBJ_CREATE -gt 723000 -a \$OBJ_FREE -gt 704000  \] ; then
+   echo PASS: tcl markers \$1
+else
+   echo FAIL: tcl markers \$1
+fi
+
+\}
+##### end run_tests #####
+
+if \[ ! -r tcl$tclrelease-src.tar.gz \] ; then
+wget http://sourceforge.net/projects/tcl/files/Tcl/$tclrelease/tcl$tclrelease-src.tar.gz/download
+fi
+
+if \[ ! -d tcl/src \] ; then
+tar -x -z -f tcl$tclrelease-src.tar.gz
+mkdir tcl
+mv tcl$tclrelease tcl/src
+fi
+
+if \[ ! -d tcl/install/bin \] ; then
+cd tcl/src/unix
+./configure --prefix=$tcldir --enable-dtrace CFLAGS='-I$env(SYSTEMTAP_INCLUDES) -g'
+
+make -j2
+make install
+fi
+
+run_tests uprobe
+"
+########## End /tmp/stap-tcl.sh ########## 
+close $fp
+
+########## /tmp/stap-tcl.sh does most of the work ########## 
+verbose -log Running tcl testsuite
+spawn sh stap-tcl.sh 2>&1
+expect {
+    -timeout 1000
+    -re {FAIL: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	fail "$s"; exp_continue }
+    -re {PASS: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	pass "$s"; exp_continue }
+    -re {UNSUPPORTED: [a-zA-Z_/: ]+} { regexp " .*$" $expect_out(0,string) s; 
+	verbose -log "$s"
+	unsupported "$s"; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if { $verbose == 0 } {
+catch {exec rm -rf $testsuite/stap-tcl.stp tcl$tclrelease-src.tar.gz \
+	   $testsuite/stap-tcl-markers.log $testsuite/stap-tcl.sh }
+catch {exec rm -rf tcl}
+}
