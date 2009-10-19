@@ -652,8 +652,18 @@ dont_add:
 	return NULL;
 }
 
-/* Runs with uproc_mutex held; returns with uproc->rwsem write-locked. */
-static struct uprobe_process *uprobe_mk_process(struct task_struct *p)
+/*
+ * Create a per process uproc struct.
+ * at_fork: indicates uprobe_mk_process is called from
+ * a fork context of a probe process. refer uprobe_fork_uproc
+ * for more details.
+ *
+ * Runs with uproc_mutex held;
+ * Returns with uproc->rwsem write-locked when not called
+ * from fork context.
+ */
+static struct uprobe_process *uprobe_mk_process(struct task_struct *p,
+						bool at_fork)
 {
 	struct uprobe_process *uproc;
 	struct uprobe_task *utask;
@@ -668,7 +678,9 @@ static struct uprobe_process *uprobe_mk_process(struct task_struct *p)
 	/* Initialize fields */
 	atomic_set(&uproc->refcount, 1);
 	init_rwsem(&uproc->rwsem);
-	down_write(&uproc->rwsem);
+	if (!at_fork)
+		/* not called from fork context. */
+		down_write(&uproc->rwsem);
 	init_waitqueue_head(&uproc->waitq);
 	for (i = 0; i < UPROBE_TABLE_SIZE; i++)
 		INIT_HLIST_HEAD(&uproc->uprobe_table[i]);
@@ -923,7 +935,7 @@ int register_uprobe(struct uprobe *u)
 			unlock_uproc_table();
 			goto fail_tsk;
 		}
-		uproc = uprobe_mk_process(p);
+		uproc = uprobe_mk_process(p, 0);
 		if (IS_ERR(uproc)) {
 			ret = (int) PTR_ERR(uproc);
 			unlock_uproc_table();
@@ -2206,13 +2218,12 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 
 	if (!try_module_get(THIS_MODULE))
 		return -ENOSYS;
-	child_uproc = uprobe_mk_process(child_tsk);
+	child_uproc = uprobe_mk_process(child_tsk, 1);
 	if (IS_ERR(child_uproc)) {
 		ret = (int) PTR_ERR(child_uproc);
 		module_put(THIS_MODULE);
 		return ret;
 	}
-	/* child_uproc is write-locked and ref-counted at this point. */
 
 	mutex_lock(&child_uproc->ssol_area.setup_mutex);
 	uprobe_init_ssol(child_uproc, child_tsk,
@@ -2228,7 +2239,6 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 			&uproc_table[hash_long(child_uproc->tgid,
 			UPROBE_HASH_BITS)]);
 
-	up_write(&child_uproc->rwsem);
 	uprobe_decref_process(child_uproc);
 	return ret;
 }
