@@ -785,10 +785,10 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "struct stap_task_finder_target tgt;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "int engine_attached;";
   s.op->newline() << "enum utrace_derived_probe_flags flags;";
   s.op->newline() << "struct utrace_engine_ops ops;";
   s.op->newline() << "unsigned long events;";
-  s.op->newline() << "int engine_attached;";
   s.op->newline() << "struct task_struct *tsk;";
   s.op->newline() << "unsigned long sdt_sem_address;";
   s.op->newline(-1) << "};";

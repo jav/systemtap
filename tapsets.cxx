@@ -4433,11 +4433,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "static const struct stap_uprobe_spec {"; // NB: read-only structure
   s.op->newline(1) << "unsigned tfi;"; // index into stap_uprobe_finders[]
+  s.op->newline() << "unsigned return_p:1;";
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
   s.op->newline() << "unsigned long sdt_sem_address;";
-  s.op->newline() << "unsigned return_p:1;";
   s.op->newline(-1) << "} stap_uprobe_specs [] = {"; // NB: read-only structure
   s.op->indent(1);
   for (unsigned i =0; i<probes.size(); i++)
