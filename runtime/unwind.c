@@ -677,6 +677,12 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	state.cieEnd = ptr;	/* keep here temporarily */
 	ptr = (const u8 *)(cie + 2);
 	end = (const u8 *)(cie + 1) + *cie;
+
+	/* end should fall within unwind table. */
+	if (((void *)end) < table
+	    || ((void *)end) > ((void *)(table + table_len)))
+	  goto err;
+
 	frame->call_frame = 1;
 	if ((state.version = *ptr) != 1) {
 		dbug_unwind(1, "CIE version number is %d.  1 is supported.\n", state.version);
@@ -733,6 +739,11 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	ptr = state.cieEnd;
 	state.cieEnd = end;
 	end = (const u8 *)(fde + 1) + *fde;
+
+	/* end should fall within unwind table. */
+	if (((void*)end) < table
+	    || ((void *)end) > ((void *)(table + table_len)))
+	  goto err;
 
 	/* skip augmentation */
 	if (((const char *)(cie + 2))[1] == 'z') {
