@@ -106,13 +106,15 @@ parse_args () { # arguments
         CONFIG=$2
         shift 1
         ;;
+      --)
+        ;;
       *)
 	error=1
         ;;
     esac
     shift 1
   done
-  test error=1 && echo_usage
+  test error = 1 && echo_usage
 }
 
 CMD=$1
@@ -127,7 +129,9 @@ fi
 parse_args $OPTS
 
 # Include configs
-. "$CONFIG"
+if [ -f "$CONFIG" ]; then
+  . "$CONFIG"
+fi
 
 for f in "$CONFIG_PATH"/*.conf; do
   if [ -f "$f" ]; then
@@ -170,11 +174,12 @@ stop () {
 }
 
 status () {
-  # Print the status here
-  do_failure $"$prog status not implemented"
+  local ret=0
 
-  do_success $"$prog status"
-  return 0
+  # Print the status here
+  echo $"$prog status not implemented"
+
+  return $ret
 }
 
 # Cleanup caches
@@ -184,17 +189,16 @@ cleanup () {
   # Clean up the server(s) here
   do_failure $"$prog cleanup not implemented"
 
-  do_success $"$prog cleanup"
+  do_success "done"
   return 0
 }
 
 # Restart scripts
 function restart () {
-  # Restart the server(s) here
-  do_failure $"$prog restart not implemented"
-
-  do_success $"$prog restart"
-  return 0
+  stop
+  echo
+  start
+  return $?
 }
 
 RETVAL=0

@@ -121,7 +121,7 @@ Summary: Instrumentation System Server
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap
+Requires: systemtap initscripts
 Requires: avahi avahi-tools nss nss-tools mktemp
 Requires: zip unzip
 
@@ -147,7 +147,7 @@ URL: http://sourceware.org/systemtap/
 Requires: systemtap-runtime, initscripts
 
 %description initscript
-Initscripts for Systemtap scripts and Systemtap compile server.
+Initscript for Systemtap scripts
 
 %if %{with_grapher}
 %package grapher
@@ -276,6 +276,7 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/systemtap/script.d
 install -m 644 initscript/config $RPM_BUILD_ROOT%{_sysconfdir}/systemtap
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/cache/systemtap
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/run/systemtap
+
 install -m 755 initscript/stap-server $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server/conf.d
@@ -288,14 +289,20 @@ getent group stapdev >/dev/null || groupadd -r stapdev
 getent group stapusr >/dev/null || groupadd -r stapusr
 exit 0
 
+%post server
+chkconfig --add stap-server
+exit 0
+
+%preun server
+chkconfig --del stap-server
+exit 0
+
 %post initscript
 chkconfig --add systemtap
-chkconfig --add stap-server
 exit 0
 
 %preun initscript
 chkconfig --del systemtap
-chkconfig --del stap-server
 exit 0
 
 %post
@@ -378,6 +385,10 @@ exit 0
 %{_bindir}/stap-server-connect
 %{_bindir}/stap-sign-module
 %{_mandir}/man8/stap-server.8*
+%{_sysconfdir}/init.d/stap-server
+%dir %{_sysconfdir}/stap-server
+%dir %{_sysconfdir}/stap-server/conf.d
+%doc initscript/README.initscript
 
 %files sdt-devel
 %defattr(-,root,root)
@@ -393,9 +404,6 @@ exit 0
 %config(noreplace) %{_sysconfdir}/systemtap/config
 %dir %{_localstatedir}/cache/systemtap
 %dir %{_localstatedir}/run/systemtap
-%{_sysconfdir}/init.d/stap-server
-%dir %{_sysconfdir}/stap-server
-%dir %{_sysconfdir}/stap-server/conf.d
 %doc initscript/README.initscript
 
 %if %{with_grapher}
