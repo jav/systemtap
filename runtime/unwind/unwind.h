@@ -143,8 +143,10 @@ static unsigned long read_pointer(const u8 **pLoc,
                                   const void *end,
                                   signed ptrType);
 static const u32 bad_cie, not_fde;
-static const u32 *cie_for_fde(const u32 *fde, void *table, int is_ehframe);
-static signed fde_pointer_type(const u32 *cie);
+static const u32 *cie_for_fde(const u32 *fde, void *table,
+			      uint32_t table_len, int is_ehframe);
+static signed fde_pointer_type(const u32 *cie,
+			       void *table, uint32_t table_len);
 
 
 #endif /* STP_USE_DWARF_UNWINDER */
