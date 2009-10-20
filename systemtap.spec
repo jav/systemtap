@@ -140,14 +140,14 @@ URL: http://sourceware.org/systemtap/
 Support tools to allow applications to use static probes.
 
 %package initscript
-Summary: Systemtap Initscript
+Summary: Systemtap Initscripts
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap-runtime, initscripts
 
 %description initscript
-Initscript for Systemtap scripts.
+Initscripts for Systemtap scripts and Systemtap compile server.
 
 %if %{with_grapher}
 %package grapher
@@ -276,6 +276,9 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/systemtap/script.d
 install -m 644 initscript/config $RPM_BUILD_ROOT%{_sysconfdir}/systemtap
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/cache/systemtap
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/run/systemtap
+install -m 755 initscript/stap-server $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server/conf.d
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
@@ -287,10 +290,12 @@ exit 0
 
 %post initscript
 chkconfig --add systemtap
+chkconfig --add stap-server
 exit 0
 
 %preun initscript
 chkconfig --del systemtap
+chkconfig --del stap-server
 exit 0
 
 %post
@@ -388,6 +393,10 @@ exit 0
 %config(noreplace) %{_sysconfdir}/systemtap/config
 %dir %{_localstatedir}/cache/systemtap
 %dir %{_localstatedir}/run/systemtap
+%{_sysconfdir}/init.d/stap-server
+%dir %{_sysconfdir}/stap-server
+%dir %{_sysconfdir}/stap-server/conf.d
+%config(noreplace) %{_sysconfdir}/stap-server/config
 %doc initscript/README.initscript
 
 %if %{with_grapher}
