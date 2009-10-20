@@ -70,7 +70,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
         return true;
       char buf[256];
       ssize_t bytes_read = 0;
-      bytes_read = read(STDIN_FILENO, buf, sizeof(buf) - 1);
+      bytes_read = read(_inFd, buf, sizeof(buf) - 1);
       if (bytes_read <= 0)
         {
           _win.hide();

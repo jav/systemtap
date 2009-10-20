@@ -257,8 +257,6 @@ protected:
 
 int StapLauncher::launch()
 {
-  int stapErrFd = -1;
-
   if (pipe(&signalPipe[0]) < 0)
     {
       std::perror("pipe");
@@ -286,9 +284,6 @@ int StapLauncher::launch()
     }
   else if (_childPid)
     {
-      dup2(pipefd[0], STDIN_FILENO);
-      stapErrFd = pipefd[2];
-      close(pipefd[0]);
       close(pipefd[1]);
       close(pipefd[3]);
     }
@@ -318,14 +313,12 @@ int StapLauncher::launch()
         }
       _exit(1);
     }
-  if (stapErrFd >= 0)
-    {
-      _stapParser->setErrFd(stapErrFd);
-      Glib::signal_io().connect(sigc::mem_fun(*_stapParser,
-                                              &StapParser::errIoCallback),
-                                stapErrFd,
-                                Glib::IO_IN);
-    }
+  _stapParser->setErrFd(pipefd[2]);
+  _stapParser->setInFd(pipefd[0]);
+  Glib::signal_io().connect(sigc::mem_fun(*_stapParser,
+                                          &StapParser::errIoCallback),
+                            pipefd[2],
+                            Glib::IO_IN);
   setSigfd(signalPipe[0]);
   if (signalPipe[0] >= 0)
     {
@@ -335,7 +328,7 @@ int StapLauncher::launch()
     }
   Glib::signal_io().connect(sigc::mem_fun(*_stapParser,
                                           &StapParser::ioCallback),
-                            STDIN_FILENO,
+                            pipefd[0],
                             Glib::IO_IN | Glib::IO_HUP);
   return _childPid;
 }
