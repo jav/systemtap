@@ -87,7 +87,7 @@ puts $fp "
 function run_tests \{
 (cd $tcldir/..
 MOD=stapsdt_\$(date +%j%k%M%N | sed 's/ //')
-stap -m \$MOD -c install/bin/tclsh$tclreleasemajor $testsuite/stap-tcl.stp  $testsuite/tcl/install/lib//libtcl$tclreleasemajor.so << END >$testsuite/stap-tcl-markers.log 2>&1
+$env(SYSTEMTAP_PATH)/stap -m \$MOD -c install/bin/tclsh$tclreleasemajor $testsuite/stap-tcl.stp  $testsuite/tcl/install/lib//libtcl$tclreleasemajor.so << END >$testsuite/stap-tcl-markers.log 2>&1
 source src/tests/all.tcl
 quit
 END

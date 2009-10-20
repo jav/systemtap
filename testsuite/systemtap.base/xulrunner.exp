@@ -1,0 +1,133 @@
+set test "xulrunner"
+
+# Test sdt support in xulrunner.
+
+global env
+
+if {! [info exists env(SYSTEMTAP_TEST_SDT)]} {
+    unsupported "xulrunner (\"SYSTEMTAP_TEST_SDT\" not in env)"
+    return
+}
+
+########## Create /tmp/stap-xul.stp ########## 
+set xulrelease "1.9.1.3"
+set xuldir "[pwd]/xul/"
+set testsuite "[pwd]"
+
+set fp [open "$testsuite/stap-xul.stp" "w"]
+puts $fp "
+global funcinfo
+global objinfo
+
+probe process(@1).mark(\"function__info\")
+{
+  file = user_string (\$arg1)
+  func = user_string (\$arg3)
+  funcinfo\[file,func\] <<< 1
+}
+
+probe process(@1).mark(\"object__create\")
+{
+  file = user_string (\$arg1)
+  class = user_string (\$arg2)
+  objinfo\[file,class\] <<< 1
+}
+
+probe end
+{
+  foreach (\[i,j\] in funcinfo+)
+  {
+     printf (\"probes: %-20s %-25s %d\\n\", substr(i,strlen(i)-20,strlen(i)), j, @count(funcinfo\[i,j\]))
+  }
+  foreach (\[i,j\] in objinfo+)
+  {
+     printf (\"probes: %-20s %-25s %d\\n\", substr(i,strlen(i)-20,strlen(i)), j, @count(funcinfo\[i,j\]))
+  }
+}
+"
+close $fp
+
+########## Begin /tmp/stap-xul.sh ########## 
+set fp [open "$testsuite/stap-xul.sh" "w"]
+puts $fp "
+##### begin run_tests #####
+function run_tests \{
+cd $testsuite/xul/bld/js/src
+pwd
+for i in call trace-test math-trace-tests ; do 
+$env(SYSTEMTAP_PATH)/stap -c \"./js $xuldir/src/js/src/\$i.js\" $testsuite/stap-xul.stp ./js
+done | tee $testsuite/stap-xul-markers.log
+PROBES=\$(grep 'probes: ' $testsuite/stap-xul-markers.log | wc -l)
+TESTS=\$(grep '-FAIL' $testsuite/stap-xul-markers.log)
+echo PROBES=\$PROBES TESTS=\$TESTS
+
+if \[ \$PROBES -gt 400 \] ; then
+   echo PASS: xulrunner javascript markers \$1
+else
+   echo FAIL: xulrunner javascript markers \$1
+fi
+
+if \[ -z \$TESTS \] ; then
+   echo PASS: xulrunner javascript testsuite \$1
+else
+   echo FAIL: xulrunner javascript testsuite \$1
+fi
+
+\}
+##### end run_tests #####
+
+if \[ ! -r xulrunner-$xulrelease-source.tar \] ; then
+wget ftp://ftp.mozilla.org/pub/mozilla.org/xul/releases/$xulrelease/source/xulrunner-$xulrelease-source.tar.bz2
+bunzip2 xulrunner-$xulrelease-source.tar.bz2
+fi
+
+if \[ ! -d xul/src \] ; then
+tar -x -f xulrunner-$xulrelease-source.tar
+mkdir xul
+xulrelease=$xulrelease
+mv mozilla-\${xulrelease%.\[0-9\]} xul/src
+fi
+
+if \[ ! -f xul/bld/js/src/js \] ; then
+mkdir xul/bld
+cd xul/bld
+if rpm -q java-1.6.0-openjdk ; then :
+else 
+   echo FAIL: Need java-1.6.0-openjdk-devel
+   exit
+fi
+JAVA_HOME=/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64 \
+CXXFLAGS='-g -I$env(SYSTEMTAP_INCLUDES)' \
+CFLAGS='-g -I$env(SYSTEMTAP_INCLUDES)' \
+PATH=$env(SYSTEMTAP_PATH)/:\$PATH \
+../src/configure --prefix=$xuldir --enable-dtrace --enable-application=xulrunner
+J=\$(getconf _NPROCESSORS_CONF)
+make -j \$J
+fi
+
+run_tests uprobe
+"
+########## End /tmp/stap-xul.sh ########## 
+close $fp
+
+########## /tmp/stap-xul.sh does most of the work ########## 
+verbose -log Running xul testsuite
+spawn sh stap-xul.sh 2>&1
+expect {
+    -timeout 10000
+    -re {FAIL: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	fail "$s"; exp_continue }
+    -re {PASS: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	pass "$s"; exp_continue }
+    -re {UNSUPPORTED: [a-zA-Z_/: ]+} { regexp " .*$" $expect_out(0,string) s; 
+	verbose -log "$s"
+	unsupported "$s"; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if { $verbose == 0 } {
+catch {exec rm -rf $testsuite/stap-xul.stp xulrunner-$xulrelease-source.tar \
+	   $testsuite/stap-xul-markers.log $testsuite/stap-xul.sh }
+catch {exec rm -rf xul}
+}
