@@ -396,7 +396,6 @@ exit 0
 %{_sysconfdir}/init.d/stap-server
 %dir %{_sysconfdir}/stap-server
 %dir %{_sysconfdir}/stap-server/conf.d
-%config(noreplace) %{_sysconfdir}/stap-server/config
 %doc initscript/README.initscript
 
 %if %{with_grapher}
