@@ -278,6 +278,10 @@ static void set_rule(uleb128_t reg, enum item_location where, uleb128_t value, s
 	}
 }
 
+/* Limit the number of instructions we process. Arbitrary limit.
+   512 should be enough for anybody... */
+#define MAX_CFI 512
+
 static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, signed ptrType, struct unwind_state *state)
 {
 	union {
@@ -286,6 +290,9 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 		const u32 *p32;
 	} ptr;
 	int result = 1;
+
+	if (end - start > MAX_CFI)
+	  return 0;
 
 	dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
 	if (start != state->cieStart) {
