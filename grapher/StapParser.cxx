@@ -63,7 +63,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
       using namespace boost;
       if (ioCondition & Glib::IO_HUP)
         {
-          _win.hide();
+          _win->hide();
           return true;
         }
       if ((ioCondition & Glib::IO_IN) == 0)
@@ -73,7 +73,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
       bytes_read = read(_inFd, buf, sizeof(buf) - 1);
       if (bytes_read <= 0)
         {
-          _win.hide();
+          _win->hide();
           return true;
         }
       buf[bytes_read] = '\0';
@@ -108,7 +108,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       dataSet->color[2] = (hexColor & 0xff) / 255.0;
                       dataSet->scale = scale;
                       _dataSets.insert(std::make_pair(setName, dataSet));
-                      _widget.addGraphData(dataSet);
+                      _widget->addGraphData(dataSet);
                     }
                   else if (style == "discreet")
                     {
@@ -120,7 +120,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       dataSet->color[2] = (hexColor & 0xff) / 255.0;
                       dataSet->scale = scale;
                       _dataSets.insert(std::make_pair(setName, dataSet));
-                      _widget.addGraphData(dataSet);
+                      _widget->addGraphData(dataSet);
                     }
                 }
               else if ((found = find_first(dataString, "%CSV:")))
@@ -219,7 +219,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
     bytes_read = read(_errFd, buf, sizeof(buf) - 1);
     if (bytes_read <= 0)
       {
-        _win.hide();
+        _win->hide();
         return true;
       }
     if (write(STDOUT_FILENO, buf, bytes_read) < 0)
