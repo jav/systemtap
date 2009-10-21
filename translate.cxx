@@ -29,6 +29,11 @@ extern "C" {
 #include <elfutils/libdwfl.h>
 }
 
+// Max unwind table size (debug or eh) per module. Somewhat arbitrary
+// limit (a bit more than twice the .debug_frame size of my local
+// vmlinux for 2.6.31.4-83.fc12.x86_64)
+#define MAX_UNWIND_TABLE_SIZE (3 * 1024 * 1024)
+
 using namespace std;
 
 struct var;
@@ -4785,6 +4790,9 @@ dump_unwindsyms (Dwfl_Module *m,
   get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr);
   if (debug_frame != NULL && debug_len > 0)
     {
+      if (debug_len > MAX_UNWIND_TABLE_SIZE)
+	throw semantic_error ("module debug unwind table size too big");
+
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << "static uint8_t _stp_module_" << stpmod_idx
 		<< "_debug_frame[] = \n";
@@ -4802,6 +4810,9 @@ dump_unwindsyms (Dwfl_Module *m,
 
   if (eh_frame != NULL && eh_len > 0)
     {
+      if (eh_len > MAX_UNWIND_TABLE_SIZE)
+	throw semantic_error ("module eh unwind table size too big");
+
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << "static uint8_t _stp_module_" << stpmod_idx
 		<< "_eh_frame[] = \n";
