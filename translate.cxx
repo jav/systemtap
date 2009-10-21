@@ -73,6 +73,7 @@ struct c_unparser: public unparser, public visitor
   void emit_module_init ();
   void emit_module_exit ();
   void emit_function (functiondecl* v);
+  void emit_lock_decls (const varuse_collecting_visitor& v);
   void emit_locks (const varuse_collecting_visitor& v);
   void emit_probe (derived_probe* v);
   void emit_unlocks (const varuse_collecting_visitor& v);
@@ -1622,6 +1623,14 @@ c_unparser::emit_probe (derived_probe* v)
 
       probe_contents[oss.str()] = v->name;
 
+      // emit static read/write lock decls for global variables
+      varuse_collecting_visitor vut(*session);
+      if (v->needs_global_locks ())
+        {
+	  v->body->visit (& vut);
+	  emit_lock_decls (vut);
+	}
+
       // initialize frame pointer
       o->newline() << "struct " << v->name << "_locals * __restrict__ l =";
       o->newline(1) << "& c->probe_locals." << v->name << ";";
@@ -1638,12 +1647,8 @@ c_unparser::emit_probe (derived_probe* v)
       v->emit_probe_local_init(o);
 
       // emit all read/write locks for global variables
-      varuse_collecting_visitor vut(*session);
       if (v->needs_global_locks ())
-        {
-	  v->body->visit (& vut);
 	  emit_locks (vut);
-	}
 
       // initialize locals
       for (unsigned j=0; j<v->locals.size(); j++)
@@ -1694,13 +1699,16 @@ c_unparser::emit_probe (derived_probe* v)
 
 
 void
-c_unparser::emit_locks(const varuse_collecting_visitor& vut)
+c_unparser::emit_lock_decls(const varuse_collecting_visitor& vut)
 {
-  o->newline() << "{";
-  o->newline(1) << "unsigned numtrylock = 0;";
-  o->newline() << "(void) numtrylock;";
+  unsigned numvars = 0;
 
-  string last_locked_var;
+  if (session->verbose > 1)
+    clog << current_probe->name << " locks ";
+
+  o->newline() << "static const struct stp_probe_lock locks[] = {";
+  o->indent(1);
+
   for (unsigned i = 0; i < session->globals.size(); i++)
     {
       vardecl* v = session->globals[i];
@@ -1732,94 +1740,44 @@ c_unparser::emit_locks(const varuse_collecting_visitor& vut)
 	    continue;
 	}
 
-      string lockcall =
-        string (write_p ? "write" : "read") +
-        "_trylock (& global.s_" + v->name + "_lock)";
-
-      o->newline() << "while (! " << lockcall
-                   << "&& (++numtrylock < MAXTRYLOCK))";
-      o->newline(1) << "ndelay (TRYLOCKDELAY);";
-      o->newline(-1) << "if (unlikely (numtrylock >= MAXTRYLOCK)) {";
-      o->newline(1) << "atomic_inc (& skipped_count);";
+      o->newline() << "{";
+      o->newline(1) << ".lock = &global.s_" + v->name + "_lock,";
+      o->newline() << ".write_p = " << (write_p ? 1 : 0) << ",";
       o->newline() << "#ifdef STP_TIMING";
-      o->newline() << "atomic_inc (& global.s_" << c_varname (v->name) << "_lock_skip_count);";
+      o->newline() << ".skipped = &global.s_" << c_varname (v->name) << "_lock_skip_count,";
       o->newline() << "#endif";
-      // The following works even if i==0.  Note that using
-      // globals[i-1]->name is wrong since that global may not have
-      // been lockworthy by this probe.
-      o->newline() << "goto unlock_" << last_locked_var << ";";
-      o->newline(-1) << "}";
+      o->newline(-1) << "},";
 
-      last_locked_var = v->name;
+      numvars ++;
+      if (session->verbose > 1)
+        clog << v->name << "[" << (read_p ? "r" : "")
+             << (write_p ? "w" : "")  << "] ";
     }
 
-  o->newline() << "if (0) goto unlock_;";
+  o->newline(-1) << "};";
 
-  o->newline(-1) << "}";
+  if (session->verbose > 1)
+    {
+      if (!numvars)
+        clog << "nothing";
+      clog << endl;
+    }
+}
+
+
+void
+c_unparser::emit_locks(const varuse_collecting_visitor&)
+{
+  o->newline() << "if (!stp_lock_probe(locks, ARRAY_SIZE(locks)))";
+  o->newline(1) << "return;";
+  o->indent(-1);
 }
 
 
 void
 c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
 {
-  unsigned numvars = 0;
-
-  if (session->verbose>1)
-    clog << current_probe->name << " locks ";
-
-  for (int i = session->globals.size()-1; i>=0; i--) // in reverse order!
-    {
-      vardecl* v = session->globals[i];
-      bool read_p = vut.read.find(v) != vut.read.end();
-      bool write_p = vut.written.find(v) != vut.written.end();
-      if (!read_p && !write_p) continue;
-
-      // Duplicate lock flipping logic from above
-      if (v->type == pe_stats)
-        {
-          if (write_p && !read_p) { read_p = true; write_p = false; }
-          else if (read_p && !write_p) { read_p = false; write_p = true; }
-        }
-
-      // Duplicate "read-mostly" global variable logic from above.
-      if (read_p && !write_p)
-        {
-	  if (vcv_needs_global_locks.written.find(v)
-	      == vcv_needs_global_locks.written.end())
-	    continue;
-	}
-
-      numvars ++;
-      o->newline(-1) << "unlock_" << v->name << ":";
-      o->indent(1);
-
-      if (session->verbose>1)
-        clog << v->name << "[" << (read_p ? "r" : "")
-             << (write_p ? "w" : "")  << "] ";
-
-      if (write_p) // emit write lock
-        o->newline() << "write_unlock (& global.s_" << v->name << "_lock);";
-      else // (read_p && !write_p) : emit read lock
-        o->newline() << "read_unlock (& global.s_" << v->name << "_lock);";
-
-      // fall through to next variable; thus the reverse ordering
-    }
-
-  // emit plain "unlock" label, used if the very first lock failed.
-  o->newline(-1) << "unlock_: ;";
-  o->indent(1);
-
-  if (numvars) // is there a chance that any lock attempt failed?
-    {
-      // Formerly, we checked skipped_count > MAXSKIPPED here, and set
-      // SYSTEMTAP_SESSION_ERROR if so.  But now, this check is shared
-      // via common_probe_entryfn_epilogue().
-
-      if (session->verbose>1)
-        clog << endl;
-    }
-  else if (session->verbose>1)
-    clog << "nothing" << endl;
+  o->newline() << "stp_unlock_probe(locks, ARRAY_SIZE(locks));";
 }
 
 
@@ -5233,12 +5191,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
       s.op->newline() << "#include \"access_process_vm.h\" ";
 
-      // XXX: old 2.6 kernel hack
-      s.op->newline() << "#ifndef read_trylock";
-      s.op->newline() << "#define read_trylock(x) ({ read_lock(x); 1; })";
-      s.op->newline() << "#endif";
-
       s.up->emit_common_header (); // context etc.
+
+      s.op->newline() << "#include \"probe_lock.h\" ";
 
       for (unsigned i=0; i<s.embeds.size(); i++)
         {
