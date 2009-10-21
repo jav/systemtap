@@ -202,7 +202,9 @@ compile_pass (systemtap_session& s)
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
 
   // 512 bytes should be enough for anybody
-  o << "EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=512)" << endl;
+  // XXX but it's not enough for unwind_frame -- PR10821
+  // XXX temporarily bumping to 600 bytes
+  o << "EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=600)" << endl;
 
   // Assumes linux 2.6 kbuild
   o << "EXTRA_CFLAGS += -Wno-unused -Werror" << endl;
