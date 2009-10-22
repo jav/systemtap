@@ -65,11 +65,26 @@ DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+AM_V_CXX = $(am__v_CXX_$(V))
+am__v_CXX_ = $(am__v_CXX_$(AM_DEFAULT_VERBOSITY))
+am__v_CXX_0 = @echo "  CXX   " $@;
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
+AM_V_CXXLD = $(am__v_CXXLD_$(V))
+am__v_CXXLD_ = $(am__v_CXXLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CXXLD_0 = @echo "  CXXLD " $@;
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(stapgraph_SOURCES)
 DIST_SOURCES = $(am__stapgraph_SOURCES_DIST)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -103,6 +118,7 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
+AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -306,7 +322,7 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 stapgraph$(EXEEXT): $(stapgraph_OBJECTS) $(stapgraph_DEPENDENCIES) 
 	@rm -f stapgraph$(EXEEXT)
-	$(stapgraph_LINK) $(stapgraph_OBJECTS) $(stapgraph_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(stapgraph_LINK) $(stapgraph_OBJECTS) $(stapgraph_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -321,85 +337,97 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapgraph-grapher.Po@am__quote@
 
 .cxx.o:
-@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ $<
 
 .cxx.obj:
-@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 stapgraph-grapher.o: grapher.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-grapher.o -MD -MP -MF $(DEPDIR)/stapgraph-grapher.Tpo -c -o stapgraph-grapher.o `test -f 'grapher.cxx' || echo '$(srcdir)/'`grapher.cxx
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-grapher.Tpo $(DEPDIR)/stapgraph-grapher.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-grapher.o -MD -MP -MF $(DEPDIR)/stapgraph-grapher.Tpo -c -o stapgraph-grapher.o `test -f 'grapher.cxx' || echo '$(srcdir)/'`grapher.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-grapher.Tpo $(DEPDIR)/stapgraph-grapher.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='grapher.cxx' object='stapgraph-grapher.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-grapher.o `test -f 'grapher.cxx' || echo '$(srcdir)/'`grapher.cxx
 
 stapgraph-grapher.obj: grapher.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-grapher.obj -MD -MP -MF $(DEPDIR)/stapgraph-grapher.Tpo -c -o stapgraph-grapher.obj `if test -f 'grapher.cxx'; then $(CYGPATH_W) 'grapher.cxx'; else $(CYGPATH_W) '$(srcdir)/grapher.cxx'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-grapher.Tpo $(DEPDIR)/stapgraph-grapher.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-grapher.obj -MD -MP -MF $(DEPDIR)/stapgraph-grapher.Tpo -c -o stapgraph-grapher.obj `if test -f 'grapher.cxx'; then $(CYGPATH_W) 'grapher.cxx'; else $(CYGPATH_W) '$(srcdir)/grapher.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-grapher.Tpo $(DEPDIR)/stapgraph-grapher.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='grapher.cxx' object='stapgraph-grapher.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-grapher.obj `if test -f 'grapher.cxx'; then $(CYGPATH_W) 'grapher.cxx'; else $(CYGPATH_W) '$(srcdir)/grapher.cxx'; fi`
 
 stapgraph-StapParser.o: StapParser.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-StapParser.o -MD -MP -MF $(DEPDIR)/stapgraph-StapParser.Tpo -c -o stapgraph-StapParser.o `test -f 'StapParser.cxx' || echo '$(srcdir)/'`StapParser.cxx
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-StapParser.Tpo $(DEPDIR)/stapgraph-StapParser.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-StapParser.o -MD -MP -MF $(DEPDIR)/stapgraph-StapParser.Tpo -c -o stapgraph-StapParser.o `test -f 'StapParser.cxx' || echo '$(srcdir)/'`StapParser.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-StapParser.Tpo $(DEPDIR)/stapgraph-StapParser.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='StapParser.cxx' object='stapgraph-StapParser.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-StapParser.o `test -f 'StapParser.cxx' || echo '$(srcdir)/'`StapParser.cxx
 
 stapgraph-StapParser.obj: StapParser.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-StapParser.obj -MD -MP -MF $(DEPDIR)/stapgraph-StapParser.Tpo -c -o stapgraph-StapParser.obj `if test -f 'StapParser.cxx'; then $(CYGPATH_W) 'StapParser.cxx'; else $(CYGPATH_W) '$(srcdir)/StapParser.cxx'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-StapParser.Tpo $(DEPDIR)/stapgraph-StapParser.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-StapParser.obj -MD -MP -MF $(DEPDIR)/stapgraph-StapParser.Tpo -c -o stapgraph-StapParser.obj `if test -f 'StapParser.cxx'; then $(CYGPATH_W) 'StapParser.cxx'; else $(CYGPATH_W) '$(srcdir)/StapParser.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-StapParser.Tpo $(DEPDIR)/stapgraph-StapParser.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='StapParser.cxx' object='stapgraph-StapParser.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-StapParser.obj `if test -f 'StapParser.cxx'; then $(CYGPATH_W) 'StapParser.cxx'; else $(CYGPATH_W) '$(srcdir)/StapParser.cxx'; fi`
 
 stapgraph-Graph.o: Graph.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-Graph.o -MD -MP -MF $(DEPDIR)/stapgraph-Graph.Tpo -c -o stapgraph-Graph.o `test -f 'Graph.cxx' || echo '$(srcdir)/'`Graph.cxx
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-Graph.Tpo $(DEPDIR)/stapgraph-Graph.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-Graph.o -MD -MP -MF $(DEPDIR)/stapgraph-Graph.Tpo -c -o stapgraph-Graph.o `test -f 'Graph.cxx' || echo '$(srcdir)/'`Graph.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-Graph.Tpo $(DEPDIR)/stapgraph-Graph.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Graph.cxx' object='stapgraph-Graph.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-Graph.o `test -f 'Graph.cxx' || echo '$(srcdir)/'`Graph.cxx
 
 stapgraph-Graph.obj: Graph.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-Graph.obj -MD -MP -MF $(DEPDIR)/stapgraph-Graph.Tpo -c -o stapgraph-Graph.obj `if test -f 'Graph.cxx'; then $(CYGPATH_W) 'Graph.cxx'; else $(CYGPATH_W) '$(srcdir)/Graph.cxx'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-Graph.Tpo $(DEPDIR)/stapgraph-Graph.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-Graph.obj -MD -MP -MF $(DEPDIR)/stapgraph-Graph.Tpo -c -o stapgraph-Graph.obj `if test -f 'Graph.cxx'; then $(CYGPATH_W) 'Graph.cxx'; else $(CYGPATH_W) '$(srcdir)/Graph.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-Graph.Tpo $(DEPDIR)/stapgraph-Graph.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Graph.cxx' object='stapgraph-Graph.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-Graph.obj `if test -f 'Graph.cxx'; then $(CYGPATH_W) 'Graph.cxx'; else $(CYGPATH_W) '$(srcdir)/Graph.cxx'; fi`
 
 stapgraph-GraphWidget.o: GraphWidget.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-GraphWidget.o -MD -MP -MF $(DEPDIR)/stapgraph-GraphWidget.Tpo -c -o stapgraph-GraphWidget.o `test -f 'GraphWidget.cxx' || echo '$(srcdir)/'`GraphWidget.cxx
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-GraphWidget.Tpo $(DEPDIR)/stapgraph-GraphWidget.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-GraphWidget.o -MD -MP -MF $(DEPDIR)/stapgraph-GraphWidget.Tpo -c -o stapgraph-GraphWidget.o `test -f 'GraphWidget.cxx' || echo '$(srcdir)/'`GraphWidget.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-GraphWidget.Tpo $(DEPDIR)/stapgraph-GraphWidget.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GraphWidget.cxx' object='stapgraph-GraphWidget.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-GraphWidget.o `test -f 'GraphWidget.cxx' || echo '$(srcdir)/'`GraphWidget.cxx
 
 stapgraph-GraphWidget.obj: GraphWidget.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-GraphWidget.obj -MD -MP -MF $(DEPDIR)/stapgraph-GraphWidget.Tpo -c -o stapgraph-GraphWidget.obj `if test -f 'GraphWidget.cxx'; then $(CYGPATH_W) 'GraphWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/GraphWidget.cxx'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-GraphWidget.Tpo $(DEPDIR)/stapgraph-GraphWidget.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-GraphWidget.obj -MD -MP -MF $(DEPDIR)/stapgraph-GraphWidget.Tpo -c -o stapgraph-GraphWidget.obj `if test -f 'GraphWidget.cxx'; then $(CYGPATH_W) 'GraphWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/GraphWidget.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-GraphWidget.Tpo $(DEPDIR)/stapgraph-GraphWidget.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GraphWidget.cxx' object='stapgraph-GraphWidget.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-GraphWidget.obj `if test -f 'GraphWidget.cxx'; then $(CYGPATH_W) 'GraphWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/GraphWidget.cxx'; fi`
 
 stapgraph-CairoWidget.o: CairoWidget.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-CairoWidget.o -MD -MP -MF $(DEPDIR)/stapgraph-CairoWidget.Tpo -c -o stapgraph-CairoWidget.o `test -f 'CairoWidget.cxx' || echo '$(srcdir)/'`CairoWidget.cxx
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-CairoWidget.Tpo $(DEPDIR)/stapgraph-CairoWidget.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-CairoWidget.o -MD -MP -MF $(DEPDIR)/stapgraph-CairoWidget.Tpo -c -o stapgraph-CairoWidget.o `test -f 'CairoWidget.cxx' || echo '$(srcdir)/'`CairoWidget.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-CairoWidget.Tpo $(DEPDIR)/stapgraph-CairoWidget.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CairoWidget.cxx' object='stapgraph-CairoWidget.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-CairoWidget.o `test -f 'CairoWidget.cxx' || echo '$(srcdir)/'`CairoWidget.cxx
 
 stapgraph-CairoWidget.obj: CairoWidget.cxx
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-CairoWidget.obj -MD -MP -MF $(DEPDIR)/stapgraph-CairoWidget.Tpo -c -o stapgraph-CairoWidget.obj `if test -f 'CairoWidget.cxx'; then $(CYGPATH_W) 'CairoWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/CairoWidget.cxx'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/stapgraph-CairoWidget.Tpo $(DEPDIR)/stapgraph-CairoWidget.Po
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -MT stapgraph-CairoWidget.obj -MD -MP -MF $(DEPDIR)/stapgraph-CairoWidget.Tpo -c -o stapgraph-CairoWidget.obj `if test -f 'CairoWidget.cxx'; then $(CYGPATH_W) 'CairoWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/CairoWidget.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapgraph-CairoWidget.Tpo $(DEPDIR)/stapgraph-CairoWidget.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CairoWidget.cxx' object='stapgraph-CairoWidget.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapgraph_CPPFLAGS) $(CPPFLAGS) $(stapgraph_CXXFLAGS) $(CXXFLAGS) -c -o stapgraph-CairoWidget.obj `if test -f 'CairoWidget.cxx'; then $(CYGPATH_W) 'CairoWidget.cxx'; else $(CYGPATH_W) '$(srcdir)/CairoWidget.cxx'; fi`
