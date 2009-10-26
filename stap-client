@@ -61,7 +61,7 @@ function initialization {
     m_name=
     module_name=stap_$$
     uname_r="`uname -r`"
-    arch=`get_arch`
+    arch=`stap_get_arch`
 
     # Default variable settings
     find_all=

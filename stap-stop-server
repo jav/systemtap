@@ -22,7 +22,7 @@ fi
 # Verify that it is a systemtap server
 (ps -e | grep stap-serverd | grep -q $pid)
 if test $? != 0; then
-   echo "$pid is not a systemtap server"
+   echo "$pid is not a systemtap server" >&2
    exit 1
 fi
 

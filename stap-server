@@ -125,7 +125,7 @@ function check_request {
 function server_sysinfo {
     if test "X$sysinfo_server" = "X"; then
 	# Add some info from uname
-	sysinfo_server="`uname -r` `get_arch`"
+	sysinfo_server="`uname -r` `stap_get_arch`"
     fi
     echo "$sysinfo_server"
 }
