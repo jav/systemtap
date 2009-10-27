@@ -24,6 +24,7 @@ if {![installtest_p]} {
 for {set i 0} {$i < 10} {incr i} {
     spawn staprun $module -o /dev/null
     while { [catch { exec pkill stapio -P [pid] } msg ] } { }
+    catch { close }
     wait
 }
 
