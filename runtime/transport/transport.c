@@ -19,6 +19,7 @@
 #include <linux/namei.h>
 #include <linux/workqueue.h>
 #include <linux/delay.h>
+#include <linux/mutex.h>
 
 static int _stp_exit_flag = 0;
 
@@ -30,6 +31,9 @@ static int _stp_ctl_attached = 0;
 
 static pid_t _stp_target = 0;
 static int _stp_probes_started = 0;
+static int _stp_exit_called = 0;
+static DEFINE_MUTEX(_stp_transport_mutex);
+
 
 // For now, disable transport version 3 (unless STP_USE_RING_BUFFER is
 // defined).
@@ -81,22 +85,26 @@ static struct workqueue_struct *_stp_wq;
 
 static void _stp_handle_start(struct _stp_msg_start *st)
 {
-	dbug_trans(1, "stp_handle_start\n");
+	mutex_lock(&_stp_transport_mutex);
+	if (!_stp_exit_called) {
+		dbug_trans(1, "stp_handle_start\n");
 
 #ifdef STAPCONF_VM_AREA
-        { /* PR9740: workaround for kernel valloc bug. */
-                void *dummy;
-                dummy = alloc_vm_area (PAGE_SIZE);
-                free_vm_area (dummy);
-        }
+		{ /* PR9740: workaround for kernel valloc bug. */
+			void *dummy;
+			dummy = alloc_vm_area (PAGE_SIZE);
+			free_vm_area (dummy);
+		}
 #endif
 
-	_stp_target = st->target;
-	st->res = probe_start();
-	if (st->res >= 0)
-		_stp_probes_started = 1;
+		_stp_target = st->target;
+		st->res = probe_start();
+		if (st->res >= 0)
+			_stp_probes_started = 1;
 
-	_stp_ctl_send(STP_START, st, sizeof(*st));
+		_stp_ctl_send(STP_START, st, sizeof(*st));
+	}
+	mutex_unlock(&_stp_transport_mutex);
 }
 
 /* common cleanup code. */
@@ -106,8 +114,7 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
 static void _stp_cleanup_and_exit(int send_exit)
 {
-	static int _stp_exit_called = 0;
-
+	mutex_lock(&_stp_transport_mutex);
 	if (!_stp_exit_called) {
 		int failures;
 
@@ -135,6 +142,7 @@ static void _stp_cleanup_and_exit(int send_exit)
 			_stp_ctl_send(STP_EXIT, NULL, 0);
 		dbug_trans(1, "done with ctl_send STP_EXIT\n");
 	}
+	mutex_unlock(&_stp_transport_mutex);
 }
 
 static void _stp_request_exit(void)
@@ -293,7 +301,7 @@ err0:
 
 static inline void _stp_lock_inode(struct inode *inode)
 {
-#ifdef DEFINE_MUTEX
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,16)
 	mutex_lock(&inode->i_mutex);
 #else
 	down(&inode->i_sem);
@@ -302,7 +310,7 @@ static inline void _stp_lock_inode(struct inode *inode)
 
 static inline void _stp_unlock_inode(struct inode *inode)
 {
-#ifdef DEFINE_MUTEX
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,16)
 	mutex_unlock(&inode->i_mutex);
 #else
 	up(&inode->i_sem);
