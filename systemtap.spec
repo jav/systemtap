@@ -398,6 +398,7 @@ exit 0
 %{_sysconfdir}/init.d/stap-server
 %dir %{_sysconfdir}/stap-server
 %dir %{_sysconfdir}/stap-server/conf.d
+%{_localstatedir}/log/stap-server.log
 %doc initscript/README.initscript
 
 %files sdt-devel
