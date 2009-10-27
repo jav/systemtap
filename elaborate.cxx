@@ -157,7 +157,9 @@ derived_probe::emit_process_owner_assertion (translator_output* o)
   o->newline()   << "         \"Internal Error: Process %d does not belong to user %d in probe %s in --unprivileged mode\",";
   o->newline()   << "         current->tgid, _stp_uid, c->probe_point);";
   o->newline()   << "c->last_error = c->error_buffer;";
-  o->newline()   << "goto out;";
+  // NB: since this check occurs before probe locking, its exit should
+  // not be a "goto out", which would attempt unlocking.
+  o->newline()   << "return;";
   o->newline(-1) << "}";
   o->newline(-1) << "#endif";
 }

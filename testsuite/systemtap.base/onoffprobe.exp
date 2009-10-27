@@ -10,9 +10,27 @@ proc advance {} {
     global expect_out
     global ok
     global modname
+    set procfs_file "/proc/systemtap/$modname/switch"
+
     pass "$test $expect_out(1,string)"
+
+    # If this is the first time, wait until the procfs file exists
+    # (for up to 10 seconds).
+    if {$ok == 0} {
+	set i 0
+	while {![file exists $procfs_file]} {
+	    sleep 1
+	    incr i
+	    if {$i >= 10} { break }
+	}
+	# If the procfs file still doesn't exist, fail.
+	if {![file exists $procfs_file]} {
+	    fail "$test (missing procfs file)"
+	}
+    }
+
     incr ok
-    exec echo $ok > /proc/systemtap/$modname/switch
+    if {[file exists $procfs_file]} { exec echo $ok > $procfs_file }
     exec echo dummy > /dev/null
     exp_continue
 }
