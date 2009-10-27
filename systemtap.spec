@@ -280,6 +280,7 @@ mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/run/systemtap
 install -m 755 initscript/stap-server $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server/conf.d
+mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/log
 touch $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
 chmod 664 $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
 chown stap-server $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
