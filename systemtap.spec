@@ -296,7 +296,7 @@ exit 0
 
 %pre server
 getent group stap-server >/dev/null || groupadd -r stap-server
-getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -d /var/lib/stap-server -m -r -s /sbin/nologin stap-server
+getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -g stap-server -d /var/lib/stap-server -m -r -s /sbin/nologin stap-server
 exit 0
 
 %post server
