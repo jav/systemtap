@@ -280,6 +280,10 @@ mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/run/systemtap
 install -m 755 initscript/stap-server $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server/conf.d
+touch $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
+chmod 664 $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
+chown stap-server $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
+chgrp stap-server $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
@@ -287,6 +291,11 @@ rm -rf ${RPM_BUILD_ROOT}
 %pre runtime
 getent group stapdev >/dev/null || groupadd -r stapdev
 getent group stapusr >/dev/null || groupadd -r stapusr
+exit 0
+
+%pre server
+getent group stap-server >/dev/null || groupadd -r stap-server
+getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -d /var/lib/stap-server -m -r -s /sbin/nologin stap-server
 exit 0
 
 %post server

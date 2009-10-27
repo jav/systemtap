@@ -41,8 +41,6 @@ stap_signing_db=$stap_sysconfdir/systemtap/staprun
 stap_certfile=stap.cert
 stap_old_certfile=stap-server.cert
 
-stap_server_logfile=/tmp/stap-server.log # for now
-
 function stap_get_arch {
   # PR4186: Copy logic from coreutils uname (uname -i) to squash
   # i?86->i386.  Actually, copy logic from linux top-level Makefile

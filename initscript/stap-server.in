@@ -36,6 +36,9 @@ STAT_PATH=/var/run/stap-server
 TEMP_PATH=/tmp
 LOG_FILE=/var/log/stap-server.log
 
+# Default Settings
+STAP_USER=stap-server
+
 # Default option settings
 # Target architecture
 OPT_KERNEL_ARCH=`stap_get_arch`
@@ -316,9 +319,9 @@ start () { # release arch
 	  continue
       fi
 
-      # Start the server here. Use sudo for now to start it as root.
+      # Start the server here.
       local server_status=`stat_file $spec`
-      sudo $STAP_START_SERVER -r $release -a $arch > $server_status
+      runuser -s /bin/bash - $STAP_USER -c "$STAP_START_SERVER -r $release -a $arch --log=$LOG_FILE > $server_status"
       if [ $? != 0 ]; then
 	  rm -f $server_status
 	  do_failure $"$prog start: unable to start stap-server for $release $arch"
@@ -353,7 +356,7 @@ stop () {
       if check_server_running $server_status; then
 	  local server_status_file=`stat_file $server_status`
 	  local pid=`cat $server_status_file`
-	  sudo $STAP_STOP_SERVER $pid
+	  runuser -s /bin/bash - $STAP_USER -c "$STAP_STOP_SERVER $pid"
       fi
       rm -f $server_status_file
 
