@@ -15,8 +15,7 @@
 # Description: The systemtap compile server provides a centralized and secure environment for compiling systemtap scripts.
 ### END INIT INFO
 
-# TEMPORARY SEARCH DIRECTORY WHILE TESTING. SHOULD BE CHANGED TO @bindir@
-BINDIR=/usr/local/bin
+BINDIR=@bindir@
 
 # Source function library.
 . /etc/rc.d/init.d/functions
@@ -33,9 +32,9 @@ UNAME=/bin/uname
 
 # Path setup
 CONFIG_PATH=/etc/stap-server/conf.d
-STAT_PATH=/tmp/var/run/stap-server # for now, should be /var/run/stap-server
+STAT_PATH=/var/run/stap-server
 TEMP_PATH=/tmp
-LOG_FILE=$stap_server_logfile # /var/log/stap-server.log
+LOG_FILE=/var/log/stap-server.log
 
 # Default option settings
 # Target architecture
@@ -241,7 +240,7 @@ prepare_stat_dir () {
 # Default to the currently running kernel release
 get_release () { # server-spec
     if [ -z "$1" ]; then
-	uname -r
+	$UNAME -r
     else
 	expr "$1" : '\(.*\)_.*'
     fi
