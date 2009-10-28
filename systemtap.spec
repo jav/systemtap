@@ -282,9 +282,6 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server/conf.d
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/log
 touch $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
-chmod 664 $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
-chown stap-server $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
-chgrp stap-server $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
@@ -296,10 +293,13 @@ exit 0
 
 %pre server
 getent group stap-server >/dev/null || groupadd -r stap-server
-getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -g stap-server -d /var/lib/stap-server -m -r -s /sbin/nologin stap-server
+getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -g stap-server -d %{_localstatedir}/lib/stap-server -m -r -s /sbin/nologin stap-server
 exit 0
 
 %post server
+chmod 664 %{_localstatedir}/log/stap-server.log
+chown stap-server %{_localstatedir}/log/stap-server.log
+chgrp stap-server %{_localstatedir}/log/stap-server.log
 chkconfig --add stap-server
 exit 0
 
