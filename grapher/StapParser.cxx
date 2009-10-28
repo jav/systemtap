@@ -156,18 +156,15 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                   shared_ptr<GraphDataBase> gdata = itr->second;
                   string decl;
                   // Hack: scan from the beginning of dataString again
-                  if (findTaggedValue(dataString, "%Title:", decl)
-                      != string::npos)
+                  if (findTaggedValue(dataString, "%Title:", decl))
                     {
                       gdata->title = decl;
                     }
-                  else if (findTaggedValue(dataString, "%XAxisTitle:", decl)
-                           != string::npos)
+                  else if (findTaggedValue(dataString, "%XAxisTitle:", decl))
                     {
                       gdata->xAxisText = decl;
                     }
-                  else if (findTaggedValue(dataString, "%YAxisTitle:", decl)
-                           != string::npos)
+                  else if (findTaggedValue(dataString, "%YAxisTitle:", decl))
                     {
                       gdata->yAxisText = decl;
                     }
@@ -179,29 +176,32 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       stream >> ymax;
                       gdata->scale = ymax;
                     }
-
-                  if (!_csv.elements.empty())
-                    {
-                      vector<string> tokens = commaSplit(dataString);
-                      int i = 0;
-                      double time;
-                      vector<string>::iterator tokIter = tokens.begin();
-                      std::istringstream timeStream(*tokIter++);
-                      timeStream >> time;
-                      for (vector<string>::iterator e = tokens.end();
-                           tokIter != e;
-                           ++tokIter, ++i)
-                        {
-                          parseData(_csv.elements[i].second, time, *tokIter);
-                        }
-                    }
                   else
-                    {
-                      double time;
-                      string data;
-                      stream >> time >> data;
-                      parseData(itr->second, time, data);
-                    }
+                  {
+                      if (!_csv.elements.empty())
+                      {
+                          vector<string> tokens = commaSplit(dataString);
+                          int i = 0;
+                          double time;
+                          vector<string>::iterator tokIter = tokens.begin();
+                          std::istringstream timeStream(*tokIter++);
+                          timeStream >> time;
+                          for (vector<string>::iterator e = tokens.end();
+                               tokIter != e;
+                               ++tokIter, ++i)
+                          {
+                              parseData(_csv.elements[i].second, time,
+                                        *tokIter);
+                          }
+                      }
+                      else
+                      {
+                          double time;
+                          string data;
+                          stream >> time >> data;
+                          parseData(itr->second, time, data);
+                      }
+                  }
                 }
             }
           _buffer.erase(0, ret + 1);
