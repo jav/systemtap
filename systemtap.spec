@@ -423,7 +423,7 @@ exit 0
 %{_bindir}/stap-server-connect
 %{_bindir}/stap-sign-module
 %{_mandir}/man8/stap-server.8*
-%{_sysconfdir}/init.d/rc.d/stap-server
+%{_sysconfdir}/rc.d/init.d/stap-server
 %dir %{_sysconfdir}/stap-server
 %dir %{_sysconfdir}/stap-server/conf.d
 %config(noreplace) %{_sysconfdir}/sysconfig/stap-server
