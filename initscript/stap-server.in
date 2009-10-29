@@ -42,14 +42,14 @@ OPT_SERVER_LIST=
 OPT_CONFIG_FILE=
 
 echo_usage () {
-  echo $"Usage: $prog {start|stop|restart|status} [option]"
+  echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|force-reload|status} [options]"
   echo $"Options:"
-  echo $"	-c configfile	: specify config file"
+  echo $"	-c configfile	: specify additional config file"
   echo $"	-a arch		: change the target architecture"
   echo $"	-r release	: specify a kernel release"
   echo $"	-i		: specify all installed kernel releases"
   echo $""
-  echo $"All options, except -c may be specified more than once."
+  echo $"All options, except -c, may be specified more than once."
   echo $""
   echo $"Each -a option changes the target architecture for subsequent -r"
   echo $"options. The default is the architecture of the host platform."
@@ -58,17 +58,31 @@ echo_usage () {
   echo $"current architecture (either the default or set by the previous -a"
   echo $"option)."
   echo $""
-  echo $"the -i option is a shortcut which specifies one server for each kernel"
+  echo $"The -i option is a shortcut which specifies one server for each kernel"
   echo $"release installed in /lib/modules/. The default architecture is used"
   echo $"for these servers."
   echo $""
-  echo $"If no kernel release is specified, the defaults are as follows:"
+  echo $"The specified action is performed on each server specified on the command line."
+  echo $"If no servers are specified on the command line, the behavior is as follows:"
   echo $""
-  echo $"  start:   start a server for the kernel release and architecture of"
-  echo $"           the host platform."
-  echo $"  stop:    stop all servers."
-  echo $"  restart: restart all servers."
-  echo $"  status:  report the status of all servers."
+  echo $"  start:        Start the servers configured in /etc/stap-server/conf.d/*.conf."
+  echo $"                If none are configured, start a server for the kernel release"
+  echo $"                and architecture of the host platform."
+  echo $""
+  echo $"  stop:         Stop all currently running servers."
+  echo $""
+  echo $"  restart:      Restart all currently running servers. If no servers are running,"
+  echo $"                behave as if 'start' was specified."
+  echo $""
+  echo $"  condrestart:  Restart all currently running servers. If no servers are running,"
+  echo $"                do nothing."
+  echo $""
+  echo $"  try-restart:  Same as condrestart."
+  echo $""
+  echo $"  force-reload: Stop all currently running servers and behave as if 'start'"
+  echo $"                was specified."
+  echo $""
+  echo $"  status:       Report the status of all current running servers."
   echo $""
 }
 
@@ -104,7 +118,7 @@ do_success () { # message
 # Parameter parsing and setup options
 #------------------------------------------------------------------
 parse_args () { # arguments
-  local error=0
+  local rc=0
   while [ -n "$1" ]; do
     case "$1" in
       -a)
@@ -120,21 +134,20 @@ parse_args () { # arguments
 	;;
       -r)
 	process_r $2
-	test $? = 0 || error=1
+	test $? = 0 || rc=1
         shift 1
 	;;
       --)
         ;;
       *)
-	error=1
+	rc=1
         ;;
     esac
     shift 1
   done
-  test error = 1 && echo_usage && return 1
 
-  test [ -z "$OPT_SERVER_LIST" ] && OPT_SERVER_LIST=`default_server_list`
-  return 0
+  test $rc != 0 && echo_usage
+  return $rc
 }
 
 # Process the -i flag.
@@ -201,15 +214,17 @@ load_config () {
   if [ -f "$OPT_CONFIG_FILE" ]; then
     . "$OPT_CONFIG_FILE"
   fi
- 
+}
+
+load_server_config () {
   CONFIG_OPTS=
   for f in "$CONFIG_PATH"/*.conf; do
     if [ -f "$f" ]; then
       # Obtain an architecture and release from each config file.
       # Ensure that we get the default architecture and release if they
       # are not specified.
-      ARCH=
-      RELEASE=
+      local ARCH=
+      local RELEASE=
       . "$f"
       [ -z "$ARCH" ] && ARCH=`get_arch`
       [ -z "$RELEASE" ] && RELEASE=`get_release`
@@ -257,17 +272,30 @@ managed_servers () {
   echo "$list"
 }
 
-start () {
+start () { # server-list
   prepare_stat_dir
   if [ $? -ne 0 ]; then
     do_failure $"Failed to make stat directory ($STAT_PATH)"
     return 1
   fi
 
+  # Start the specified servers
+  local server_list="$1"
+  # If none specified, start the configured servers
+  if [ -z "$server_list" ]; then
+    load_server_config
+    parse_args $CONFIG_OPTS || exit 2
+    server_list="$OPT_SERVER_LIST"
+
+    # If none configured, start the default servers
+    [ -z "$server_list" ] && server_list=`default_server_list`
+  fi
+
   # Start each requested server in turn
+  local rc=0
   local spec
   local first=1
-  for spec in $OPT_SERVER_LIST; do
+  for spec in $server_list; do
       local release=`get_release $spec`
       local arch=`get_arch $spec`
 
@@ -288,27 +316,33 @@ start () {
       if [ $? != 0 ]; then
 	  rm -f $server_status
 	  do_failure $"$prog start: unable to start stap-server for $release $arch"
-	  return 1
+	  rc=1
       fi
 
       do_success $"$prog start for $release $arch"
   done
 
-  return 0
+  return $rc
 }
 
-stop () {
+stop () { # server-list
   local server_status
   local server_list
   local first=1
 
   # Stop the specified servers or all servers, if none specified.
-  if [ -n "$OPT_SERVER_LIST" ]; then
-    server_list="$OPT_SERVER_LIST"
-  else
-    server_list=`managed_servers`
+  server_list="$1"
+  [ -z "$server_list" ] && server_list=`managed_servers`
+
+  # No server specified or running?
+  if [ -z "$server_list" ]; then
+    clog $"Stopping $prog: " -n
+    do_success $"$prog: No managed servers to stop"
+    return 0
   fi
 
+  # Stop each server in turn
+  local rc=0
   for server_status in $server_list; do
       release_arch=`echo $server_status | sed 's/_/ /'`
 
@@ -316,34 +350,40 @@ stop () {
       first=0
       clog $"Stopping $prog for $release_arch: " -n
 
+      local this_rc=0
       local server_status_file=`stat_file $server_status`
       if check_server_running $server_status; then
 	  local pid=`cat $server_status_file`
 	  runuser -s /bin/bash - $STAP_USER -c "$STAP_STOP_SERVER $pid"
+	  if [ $? != 0 ]; then
+	      do_failure $"$prog start: unable to start stap-server for $release $arch"
+	      this_rc=1
+	      rc=1
+	  fi
       fi
-      rm -f $server_status_file
+      [ $this_rc = 0 ] && rm -f $server_status_file
 
       do_success $"$prog stop for $release_arch"
   done
 
-  return 0
+  return $rc
 }
 
-status () {
+status () { # server-list
   local server_list
   local rc=0
 
   # Report status for the specified servers or all servers, if none specified.
-  if [ -n "$OPT_SERVER_LIST" ]; then
-    server_list="$OPT_SERVER_LIST"
-  else
-    server_list=`managed_servers`
-    if [ -z "$server_list" ]; then
-	echo "No managed stap-server is running"
-	return 3
-    fi
+  server_list="$1"
+  [ -z "$server_list" ] && server_list=`managed_servers`
+
+  # No server specified or running?
+  if [ -z "$server_list" ]; then
+      echo "No managed stap-server is running"
+      return 3
   fi
 
+  # Get status of each server in turn
   local server_status
   for server_status in $server_list; do
       local release_arch=`echo $server_status | sed 's/_/ /'`
@@ -367,55 +407,85 @@ status () {
 }
 
 # Restart or start if not running
-function restart () {
+function restart () { # server-list
   local server_list
 
   # Restart the specified servers or all servers, if none specified.
-  if [ -n "$OPT_SERVER_LIST" ]; then
-    server_list="$OPT_SERVER_LIST"
-  else
-    server_list=`managed_servers`
-  fi
+  server_list="$1"
+  [ -z "$server_list" ] && server_list=`managed_servers`
 
-  OPT_SERVER_LIST=$server_list
-  stop
+  # Stop the specified servers, or all if none specified
+  stop "$server_list"
+  local rc=$?
   echo
-  start
-  return $?
+
+  # Restart the same servers. If none were specified then
+  # start the configured or default server(s)).
+  start "$server_list"
+  local this_rc=$?
+  [ $this_rc != 0 ] && rc=$this_rc
+
+  return $rc
 }
 
 # Restart only if running
-function condrestart () {
+function condrestart () { # server-list
   local server_list
 
   # Restart the specified servers or all servers, if none specified,
-  # But only if they are already running.
-  if [ -n "$OPT_SERVER_LIST" ]; then
-    server_list="$OPT_SERVER_LIST"
-  else
-    server_list=`managed_servers`
-  fi
+  # but only if they are already running.
+  server_list="$1"
+  [ -z "$server_list" ] && server_list=`managed_servers`
 
+  # No server specified or running?
   if [ -z "$server_list" ]; then
       clog "No managed stap-server is running" -n
       do_success "No managed stap-server is running"
       return 0
   fi
 
-  OPT_SERVER_LIST=$server_list
-  stop
-  echo
-  start
-  return $?
+  # For each server in the list, stop it if it is running
+  local rc=0
+  local this_rc
+  local start_list=
+  local server_spec
+  local first=1
+  for server_spec in $server_list; do
+    test $first = 0 && echo
+    first=0
+
+    if ! status $server_spec >/dev/null 2>&1; then
+	local release=`get_release $server_spec`
+	local arch=`get_arch $server_spec`
+	clog $"$prog for $release $arch is not running" -n
+	do_success "$prog for $release $arch is not running"
+	continue
+    fi
+
+    start_list="$start_list $server_spec"
+
+    stop "$server_spec"
+    this_rc=$?
+    [ $this_rc != 0 ] && rc=$this_rc
+  done
+
+  # Now restart the servers that were running
+  for server_spec in $start_list; do
+    echo
+    start "$server_spec"
+    local this_rc=$?
+    [ $this_rc != 0 ] && rc=$this_rc
+  done
+
+  return $rc
 }
 
 #------------------------------------------------------------------
 # Mainline script
 #------------------------------------------------------------------
-load_config
 CMD=$1
 shift 1
-OPTS=`getopt -s bash -u -o 'a:c:ir:' -- $CONFIG_OPTS $@`
+OPTS=`getopt -s bash -u -o 'a:c:ir:' -- $@`
 if [ $? -ne 0 ]; then
   slog "Error: Argument parse error: $@"
   failure $"parse error"
@@ -423,42 +493,49 @@ if [ $? -ne 0 ]; then
   exit 2
 fi
 
+parse_args $OPTS || exit 2
+load_config
+
 RETVAL=0
 
 case $CMD in
   start)
-  parse_args $OPTS || exit 2
-  parse_args $CONFIG_OPTS || exit 2
-  start
+  # Start specified servers. If none specified, start configured servers
+  start "$OPT_SERVER_LIST"
   RETVAL=$?
   ;;
   stop)
-  parse_args $OPTS || exit 2
-  stop
+  # Stop specified servers
+  stop "$OPT_SERVER_LIST"
   RETVAL=$?
   ;;
+  # Restart specified servers
   restart)
-  parse_args $OPTS || exit 2
-  restart
+  restart "$OPT_SERVER_LIST"
   RETVAL=$?
   ;;
+  # Restart specified servers if they are running
   condrestart|try-restart)
-  parse_args $OPTS || exit 2
-  condrestart
+  condrestart "$OPT_SERVER_LIST"
   RETVAL=$?
   ;;
+  # Give status on specified servers
   status)
-  parse_args $OPTS || exit 2
-  status
+  status "$OPT_SERVER_LIST"
   exit $?
   ;;
+  # Reloading config without stop/restart is not supported
   reload)
-  RETVAL=0
+  RETVAL=3
   ;;
+  # Reload config with stop/start
   force-reload)
+  # stop all running servers
   stop
-  load_config
-  start
+  echo
+  # Restart specified servers
+  # If none specified, restart configured servers
+  start "$OPT_SERVER_LIST"
   RETVAL=$?
   ;;
   usage|*)

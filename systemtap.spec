@@ -314,6 +314,8 @@ chgrp stap-server %{_localstatedir}/log/stap-server.log
 exit 0
 
 %preun server
+# Check that this is the actual deinstallation of the package, as opposed to
+# just removing the old package on upgrade.
 if [ $1 = 0 ] ; then
     /sbin/service stap-server stop >/dev/null 2>&1
     /sbin/chkconfig --del stap-server
@@ -321,6 +323,8 @@ fi
 exit 0
 
 %postun server
+# Check whether this is an upgrade of the package.
+# If so, restart the service if it's running
 if [ "$1" -ge "1" ] ; then
     /sbin/service stap-server condrestart >/dev/null 2>&1 || :
 fi
@@ -331,6 +335,8 @@ exit 0
 exit 0
 
 %preun initscript
+# Check that this is the actual deinstallation of the package, as opposed to
+# just removing the old package on upgrade.
 if [ $1 = 0 ] ; then
     /sbin/service systemtap stop >/dev/null 2>&1
     /sbin/chkconfig --del systemtap
@@ -338,6 +344,8 @@ fi
 exit 0
 
 %postun initscript
+# Check whether this is an upgrade of the package.
+# If so, restart the service if it's running
 if [ "$1" -ge "1" ] ; then
     /sbin/service systemtap condrestart >/dev/null 2>&1 || :
 fi
