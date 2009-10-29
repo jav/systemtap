@@ -5,15 +5,8 @@
 # chkconfig: - 00 99
 # description: The systemtap compile server provides a centralized and secure \
 #              environment for compiling systemtap scripts.
-# config: /etc/stap-server/config
+# config: /etc/sysconfig/stap-server
 # config: /etc/stap-server/conf.d
-### BEGIN INIT INFO
-# Provides: Systemtap compile server management
-# Required-Start: $local_fs
-# Required-Stop: $local_fs
-# Short-Description: Manage systemtap compile servers
-# Description: The systemtap compile server provides a centralized and secure environment for compiling systemtap scripts.
-### END INIT INFO
 
 BINDIR=@bindir@
 
@@ -31,6 +24,7 @@ STAP_STOP_SERVER=$BINDIR/stap-stop-server
 UNAME=/bin/uname
 
 # Path setup
+CONFIG_FILE=/etc/sysconfig/stap-server
 CONFIG_PATH=/etc/stap-server/conf.d
 STAT_PATH=/var/run/stap-server
 TEMP_PATH=/tmp
@@ -44,16 +38,16 @@ STAP_USER=stap-server
 OPT_KERNEL_ARCH=`stap_get_arch`
 # A list of release_arch pairs
 OPT_SERVER_LIST=
-
-CONFIG=/etc/stap-server/config
+# Optional global config file
+OPT_CONFIG_FILE=
 
 echo_usage () {
   echo $"Usage: $prog {start|stop|restart|status} [option]"
   echo $"Options:"
-  echo $"	-a arch		: change the target architecture"
   echo $"	-c configfile	: specify config file"
-  echo $"	-i		: specify all installed kernel releases"
+  echo $"	-a arch		: change the target architecture"
   echo $"	-r release	: specify a kernel release"
+  echo $"	-i		: specify all installed kernel releases"
   echo $""
   echo $"All options, except -c may be specified more than once."
   echo $""
@@ -70,7 +64,8 @@ echo_usage () {
   echo $""
   echo $"If no kernel release is specified, the defaults are as follows:"
   echo $""
-  echo $"  start:   start a server for the kernel release of the host platform."
+  echo $"  start:   start a server for the kernel release and architecture of"
+  echo $"           the host platform."
   echo $"  stop:    stop all servers."
   echo $"  restart: restart all servers."
   echo $"  status:  report the status of all servers."
@@ -96,10 +91,6 @@ logex () { # command
   "$@" >> "$LOG_FILE" 2>&1
   return $?
 }
-do_warning () { # message
-  slog "Warning: $1"
-  warning "$1"
-}
 do_failure () { # message
   slog "Error: $1"
   failure "$1"
@@ -107,28 +98,6 @@ do_failure () { # message
 do_success () { # message
   log "Pass: $1"
   success "$1"
-}
-# Normalize options
-check_bool () { # value
-  case $1 in
-  n|N|no|No|NO|0)
-  return 0;;
-  y|Y|yes|Yes|YES|1)
-  return 1;;
-  *)
-  return 2;;
-  esac
-}
-ask_yesno () { # message
-  local yn ret=2
-  while [ $ret -eq 2 ]; do
-    echo -n "$1 [y/N]: "
-    read yn
-    [ -z "$yn" ] && return 0
-    check_bool $yn
-    ret=$?
-  done
-  return $ret
 }
 
 #------------------------------------------------------------------
@@ -139,11 +108,11 @@ parse_args () { # arguments
   while [ -n "$1" ]; do
     case "$1" in
       -a)
-	process_a $2
+	OPT_KERNEL_ARCH=$2
         shift 1
 	;;
       -c)
-        CONFIG=$2
+        OPT_CONFIG_FILE=$2
         shift 1
         ;;
       -i)
@@ -164,12 +133,8 @@ parse_args () { # arguments
   done
   test error = 1 && echo_usage && return 1
 
+  test [ -z "$OPT_SERVER_LIST" ] && OPT_SERVER_LIST=`default_server_list`
   return 0
-}
-
-# Process the -a flag.
-process_a () {
-    OPT_KERNEL_ARCH=$1
 }
 
 # Process the -i flag.
@@ -210,36 +175,6 @@ process_r () {
     return 0
 }
 
-CMD=$1
-shift 1
-OPTS=`getopt -s bash -u -o 'a:c:ir:' -- $@`
-if [ $? -ne 0 ]; then
-  slog "Error: Argument parse error: $@"
-  failure $"parse error"
-  echo_usage
-  exit 3
-fi
-parse_args $OPTS || exit 3
-
-# Include configs
-if [ -f "$CONFIG" ]; then
-  . "$CONFIG"
-fi
-
-for f in "$CONFIG_PATH"/*.conf; do
-  if [ -f "$f" ]; then
-    . "$f"
-  fi
-done
-
-prepare_stat_dir () {
-  if [ ! -d "$STAT_PATH" ]; then
-    logex mkdir -p "$STAT_PATH"
-    [ $? -ne 0 ] && return 1
-  fi
-  return 0
-}
-
 # Default to the currently running kernel release
 get_release () { # server-spec
     if [ -z "$1" ]; then
@@ -254,20 +189,49 @@ get_arch () { # server-spec
     if [ -z "$1" ]; then
 	stap_get_arch
     else
-	expr "$spec" : '.*_\(.*\)'
+	expr "$1" : '.*_\(.*\)'
     fi
+}
+
+load_config () {
+  # Include configs
+  if [ -f "$CONFIG_FILE" ]; then
+    . "$CONFIG_FILE"
+  fi
+  if [ -f "$OPT_CONFIG_FILE" ]; then
+    . "$OPT_CONFIG_FILE"
+  fi
+ 
+  CONFIG_OPTS=
+  for f in "$CONFIG_PATH"/*.conf; do
+    if [ -f "$f" ]; then
+      # Obtain an architecture and release from each config file.
+      # Ensure that we get the default architecture and release if they
+      # are not specified.
+      ARCH=
+      RELEASE=
+      . "$f"
+      [ -z "$ARCH" ] && ARCH=`get_arch`
+      [ -z "$RELEASE" ] && RELEASE=`get_release`
+      CONFIG_OPTS="$CONFIG_OPTS -a $ARCH -r $RELEASE"
+    fi
+  done
+}
+
+prepare_stat_dir () {
+  if [ ! -d "$STAT_PATH" ]; then
+    logex mkdir -p "$STAT_PATH"
+    [ $? -ne 0 ] && return 1
+  fi
+  return 0
 }
 
 stat_file () { # server-spec
     echo $STAT_PATH/$1
 }
 
-get_server_list () {
-    if [ -z "$OPT_SERVER_LIST" ]; then
-	echo "`get_release`_`get_arch`"
-	return 0
-    fi
-    echo "$OPT_SERVER_LIST"
+default_server_list () {
+  echo "`get_release`_`get_arch`"
 }
 
 check_server_running () { # server-spec
@@ -293,7 +257,7 @@ managed_servers () {
   echo "$list"
 }
 
-start () { # release arch
+start () {
   prepare_stat_dir
   if [ $? -ne 0 ]; then
     do_failure $"Failed to make stat directory ($STAT_PATH)"
@@ -301,10 +265,9 @@ start () { # release arch
   fi
 
   # Start each requested server in turn
-  local server_list=`get_server_list`
   local spec
   local first=1
-  for spec in $server_list; do
+  for spec in $OPT_SERVER_LIST; do
       local release=`get_release $spec`
       local arch=`get_arch $spec`
 
@@ -353,8 +316,8 @@ stop () {
       first=0
       clog $"Stopping $prog for $release_arch: " -n
 
+      local server_status_file=`stat_file $server_status`
       if check_server_running $server_status; then
-	  local server_status_file=`stat_file $server_status`
 	  local pid=`cat $server_status_file`
 	  runuser -s /bin/bash - $STAP_USER -c "$STAP_STOP_SERVER $pid"
       fi
@@ -368,17 +331,17 @@ stop () {
 
 status () {
   local server_list
+  local rc=0
 
   # Report status for the specified servers or all servers, if none specified.
   if [ -n "$OPT_SERVER_LIST" ]; then
     server_list="$OPT_SERVER_LIST"
   else
     server_list=`managed_servers`
-  fi
-
-  if [ -z "$server_list" ]; then
-    echo "No managed stap-server is running"
-    return 0
+    if [ -z "$server_list" ]; then
+	echo "No managed stap-server is running"
+	return 3
+    fi
   fi
 
   local server_status
@@ -387,6 +350,7 @@ status () {
       local server_status_file=`stat_file $server_status`
       if [ ! -f $server_status_file ]; then
 	  echo "stap-server for $release_arch is not running"
+	  rc=3
       else
 	  local pid=`cat $server_status_file`
 	  if check_server_running $server_status; then
@@ -394,17 +358,38 @@ status () {
 	  else
 	      echo "stap-server for $release_arch started as PID $pid is no longer running"
 	      rm -f $server_status_file
+	      rc=1
 	  fi
       fi
   done
-  return 0
+
+  return $rc
 }
 
-# Restart scripts
+# Restart or start if not running
 function restart () {
   local server_list
 
   # Restart the specified servers or all servers, if none specified.
+  if [ -n "$OPT_SERVER_LIST" ]; then
+    server_list="$OPT_SERVER_LIST"
+  else
+    server_list=`managed_servers`
+  fi
+
+  OPT_SERVER_LIST=$server_list
+  stop
+  echo
+  start
+  return $?
+}
+
+# Restart only if running
+function condrestart () {
+  local server_list
+
+  # Restart the specified servers or all servers, if none specified,
+  # But only if they are already running.
   if [ -n "$OPT_SERVER_LIST" ]; then
     server_list="$OPT_SERVER_LIST"
   else
@@ -417,35 +402,68 @@ function restart () {
       return 0
   fi
 
+  OPT_SERVER_LIST=$server_list
   stop
   echo
-  OPT_SERVER_LIST=$server_list
   start
   return $?
 }
+
+#------------------------------------------------------------------
+# Mainline script
+#------------------------------------------------------------------
+load_config
+CMD=$1
+shift 1
+OPTS=`getopt -s bash -u -o 'a:c:ir:' -- $CONFIG_OPTS $@`
+if [ $? -ne 0 ]; then
+  slog "Error: Argument parse error: $@"
+  failure $"parse error"
+  echo_usage
+  exit 2
+fi
 
 RETVAL=0
 
 case $CMD in
   start)
+  parse_args $OPTS || exit 2
+  parse_args $CONFIG_OPTS || exit 2
   start
   RETVAL=$?
   ;;
   stop)
+  parse_args $OPTS || exit 2
   stop
   RETVAL=$?
   ;;
   restart)
+  parse_args $OPTS || exit 2
   restart
   RETVAL=$?
   ;;
+  condrestart|try-restart)
+  parse_args $OPTS || exit 2
+  condrestart
+  RETVAL=$?
+  ;;
   status)
+  parse_args $OPTS || exit 2
   status
   exit $?
   ;;
-  *)
+  reload)
+  RETVAL=0
+  ;;
+  force-reload)
+  stop
+  load_config
+  start
+  RETVAL=$?
+  ;;
+  usage|*)
   echo_usage
-  RETVAL=3
+  RETVAL=0
   ;;
 esac
 
