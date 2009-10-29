@@ -326,6 +326,7 @@ function_spec_type
 
 
 struct dwarf_builder;
+struct dwarf_var_expanding_visitor;
 
 
 // XXX: This class is a candidate for subclassing to separate
@@ -377,7 +378,7 @@ protected:
 
 private:
   string args;
-  void saveargs(dwarf_query& q, Dwarf_Die* scope_die);
+  void saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v);
 };
 
 
@@ -2813,12 +2814,13 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
           q.has_call = false;
           q.base_probe->body = old_body;
         }
+      // Save the local variables for listing mode
+      if (q.sess.listing_mode_vars)
+         saveargs(q, scope_die, v);
     }
   // else - null scope_die - $target variables will produce an error during translate phase
 
-  // Save the local variables for listing mode
-  if (q.sess.listing_mode_vars)
-    saveargs(q, scope_die);
+  // PR10820: null scope die, local variables aren't accessible, not necessary to invoke saveargs
 
   // Reset the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
@@ -2885,7 +2887,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
 
 void
-dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die)
+dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v)
 {
   if (null_die(scope_die))
     return;
@@ -2923,7 +2925,18 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die)
             !dwarf_type_name(&type_die, type_name))
           continue;
 
-        argstream << " $" << arg_name << ":" << type_name;
+        /* trick from visit_target_symbol_context */
+        target_symbol *tsym = new target_symbol;
+        token *t = new token;
+        tsym->tok = t;
+        tsym->base_name = "$";
+        tsym->base_name += arg_name;
+
+        /* Ignore any variable that isn't accessible */
+        tsym->saved_conversion_error = 0;
+        v.require (tsym);
+        if (!tsym->saved_conversion_error)
+           argstream << " $" << arg_name << ":" << type_name;
       }
     while (dwarf_siblingof (&arg, &arg) == 0);
 
