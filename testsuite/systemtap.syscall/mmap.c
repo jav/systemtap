@@ -13,14 +13,14 @@ int main()
 
 	/* create a file with something in it */
 	fd = open("foobar",O_WRONLY|O_CREAT|O_TRUNC, 0600);
-	//staptest// open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = NNNN
+	//staptest// open ("foobar", O_WRONLY|O_CREAT[[[[.O_LARGEFILE]]]]?|O_TRUNC, 0600) = NNNN
 	lseek(fd, 1024, SEEK_SET);
 	write(fd, "abcdef", 6);
 	close(fd);
 	//staptest// close (NNNN) = 0
 
 	fd = open("foobar", O_RDONLY);
-	//staptest// open ("foobar", O_RDONLY) = NNNN
+	//staptest// open ("foobar", O_RDONLY[[[[.O_LARGEFILE]]]]?) = NNNN
 
 	/* stat for file size */
 	ret = fstat(fd, &fs);

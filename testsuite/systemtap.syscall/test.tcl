@@ -67,6 +67,12 @@ proc run_one_test {filename flags bits} {
 	    #regsub -all {\+} $line {\\+} line
 	    #regsub -all {\*} $line {\\*} line
 	    
+	    # Turn '[[[[' and ']]]]' into '(' and ')' respectively.
+	    # Because normally parens get quoted, this allows us to
+	    # have non-quoted parens.
+	    regsub -all {\[\[\[\[} $line {(} line
+	    regsub -all {\]\]\]\]} $line {)} line
+
 	    regsub -all NNNN $line {[\-0-9]+} line
 	    regsub -all XXXX $line {[x0-9a-fA-F]+} line
 	    

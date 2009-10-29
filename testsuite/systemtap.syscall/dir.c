@@ -20,7 +20,7 @@ int main()
   //staptest// chdir ("..") = 0
 
   fd = open("foobar", O_RDONLY);
-  //staptest// open ("foobar", O_RDONLY) = NNNN
+  //staptest// open ("foobar", O_RDONLY[[[[.O_LARGEFILE]]]]?) = NNNN
 
   fchdir(fd);
   //staptest// fchdir (NNNN) = 0
@@ -35,7 +35,7 @@ int main()
   //staptest// rmdir ("foobar") = 0
 
   fd = open(".", O_RDONLY);
-  //staptest// open (".", O_RDONLY) = NNNN
+  //staptest// open (".", O_RDONLY[[[[.O_LARGEFILE]]]]?) = NNNN
 
 #ifdef SYS_mkdirat
   mkdirat(fd, "xyzzy", 0765);

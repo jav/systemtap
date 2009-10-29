@@ -50,9 +50,20 @@ foreach line [split $output "\n"] {
   if {[regsub {//} $line {} line]} {
     set line "$testname: [string trimleft $line]"
 
+    # We need to quote all these metacharacters
     regsub -all {\(} $line {\\(} line
     regsub -all {\)} $line {\\)} line
     regsub -all {\|} $line {\|} line
+    # + and * are metacharacters, but should always be used
+    # as metacharacters in the expressions, don't escape them.
+    #regsub -all {\+} $line {\\+} line
+    #regsub -all {\*} $line {\\*} line
+
+    # Turn '[[[[' and ']]]]' into '(' and ')' respectively.
+    # Because normally parens get quoted, this allows us to
+    # have non-quoted parens.
+    regsub -all {\[\[\[\[} $line {(} line
+    regsub -all {\]\]\]\]} $line {)} line
 
     regsub -all NNNN $line {[\-0-9]+} line
     regsub -all XXXX $line {[x0-9a-fA-F]+} line
