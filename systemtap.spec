@@ -288,6 +288,7 @@ mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/run/systemtap
 install -m 755 initscript/stap-server $RPM_BUILD_ROOT%{_sysconfdir}/rc.d/init.d/
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/stap-server/conf.d
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig
 install -m 644 initscript/config.stap-server $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/stap-server
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/log
 touch $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server.log
@@ -425,7 +426,7 @@ exit 0
 %{_sysconfdir}/init.d/rc.d/stap-server
 %dir %{_sysconfdir}/stap-server
 %dir %{_sysconfdir}/stap-server/conf.d
-%config(noreplace) %{_sysconfdir}/stap-server/config
+%config(noreplace) %{_sysconfdir}/sysconfig/stap-server
 %{_localstatedir}/log/stap-server.log
 %doc initscript/README.stap-server
 
