@@ -169,6 +169,9 @@ keywords: <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
 <li><a href="process/pf2.stp">process/pf2.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.</p></li>
+<li><a href="process/plimit.stp">process/plimit.stp</a> - print resource limits<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
+<p>The script prints a variety of resource limits for a given pid, like /proc/$$/limits on recent kernels.</p></li>
 <li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
 <p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>
