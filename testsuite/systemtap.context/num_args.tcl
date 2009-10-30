@@ -3,7 +3,7 @@ foreach arglist $arglists {
 set tag [concat numeric $arglist]
 eval spawn stap $arglist $srcdir/$subdir/num_args.stp
 expect {
-    -timeout 60
+    -timeout 120
     "READY" {
 	exec echo 1 > /proc/stap_test_cmd
 	expect {
@@ -57,6 +57,7 @@ expect {
     -re "semantic error:" {
 	fail "function arguments -- $tag: compilation failed"
     }
+    timeout {fail "all function arguments tests - timeout"}
     eof {fail "function arguments -- $tag: unexpected timeout"}
 }
 exec kill -INT -[exp_pid]
