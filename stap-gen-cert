@@ -36,7 +36,7 @@ fi
 # Generate a random password.
 mkpasswd -l 20 > $serverdb/pw 2>/dev/null || \
 apg -a 1 -n 1 -m 20 -x 20 > $serverdb/pw 2>/dev/null || \
-(read -n20 password </dev/random; echo "$password" > $serverdb/pw)
+(read -n20 password </dev/urandom; echo "$password" > $serverdb/pw)
 
 # Generate the server certificate database
 if ! certutil -N -d $serverdb -f $serverdb/pw > /dev/null; then
