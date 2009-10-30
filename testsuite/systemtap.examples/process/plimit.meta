@@ -1,0 +1,7 @@
+title: print resource limits
+name: plimit.stp
+keywords: process
+subsystem: general
+description: The script prints a variety of resource limits for a given pid, like /proc/$$/limits on recent kernels.
+test_check: stap -gp4 plimit.stp $$
+test_installcheck: stap -g plimit.stp $$

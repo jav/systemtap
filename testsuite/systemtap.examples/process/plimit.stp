@@ -1,0 +1,78 @@
+#!/usr/bin/env stap
+# plimit.stp
+# Copyright (C) 2006 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+%{ 
+   #include <linux/sched.h>
+   #include <linux/list.h>
+%}
+
+function getrlimit:string (rlim:long, pid:long) %{ /* pure */
+	struct task_struct *p;
+	struct list_head *_p, *_n;
+	static char cur_buf[24], max_buf[24];
+	long int cur, max;
+
+	list_for_each_safe(_p, _n, &current->tasks) {
+		p = list_entry(_p, struct task_struct, tasks);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,12)
+		cur = p->signal->rlim[THIS->rlim].rlim_cur;
+		max = p->signal->rlim[THIS->rlim].rlim_max;
+#else
+		cur = p->rlim[THIS->rlim].rlim_cur;
+		max = p->rlim[THIS->rlim].rlim_max;
+#endif
+		if (p->pid == (int)THIS->pid) {
+			if (cur == -1 && max == -1)
+				strcat(THIS->__retvalue, "unlimited  unlimited");
+			else if (cur == -1)
+				snprintf(THIS->__retvalue, MAXSTRINGLEN, "%-9s  %-9ld",
+					"unlimited", max);
+			else if (max == -1)
+				snprintf(THIS->__retvalue, MAXSTRINGLEN, "%-9ld  %-9s",
+					cur, "unlimited");
+			else
+				snprintf(THIS->__retvalue, MAXSTRINGLEN, "%-9ld  %-9ld",
+					cur, max);
+		}
+	}
+%}
+
+function task_execname_by_pid:string (pid:long) %{ /* pure */
+	struct task_struct *p;
+	struct list_head *_p, *_n;
+	list_for_each_safe(_p, _n, &current->tasks) {
+		p = list_entry(_p, struct task_struct, tasks);
+		if (p->pid == (int)THIS->pid) 
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s", p->comm);
+	}
+%}
+
+probe begin
+{
+	printf("%d:  -%s\n", $1, task_execname_by_pid($1))
+	/* include/asm-generic/resource.h */
+   	printf(" resource                    current    maximum\n")
+	printf("coredump(blocks)            %s\n", getrlimit(4, $1))
+	printf("data(bytes)                 %s\n", getrlimit(2, $1))
+	printf("max nice                    %s\n", getrlimit(13, $1))
+	printf("file size(blocks)           %s\n", getrlimit(1, $1))
+	printf("pending signals             %s\n", getrlimit(11, $1))
+	printf("max locked memory(bytes)    %s\n", getrlimit(8, $1))
+	printf("max memory size(bytes)      %s\n", getrlimit(5, $1))
+	printf("open files                  %s\n", getrlimit(7, $1))
+	printf("POSIX message queues(bytes) %s\n", getrlimit(12, $1))
+	printf("max rt priority             %s\n", getrlimit(14, $1))
+	printf("stack size(bytes)           %s\n", getrlimit(3, $1))
+	printf("cpu time(seconds)           %s\n", getrlimit(0, $1))
+	printf("max user processes          %s\n", getrlimit(6, $1))
+	printf("virtual memory(bytes)       %s\n", getrlimit(9, $1))
+	printf("file locks                  %s\n", getrlimit(10, $1))
+
+	exit()
+}
