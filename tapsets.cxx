@@ -3047,7 +3047,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   s.op->newline() << "#ifndef KRETACTIVE";
-  s.op->newline() << "#define KRETACTIVE (max(15,6*NR_CPUS))";
+  s.op->newline() << "#define KRETACTIVE (max(15,6*(int)num_possible_cpus()))";
   s.op->newline() << "#endif";
 
   // Forward declare the master entry functions
@@ -5036,7 +5036,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   s.op->newline() << "#ifndef KRETACTIVE";
-  s.op->newline() << "#define KRETACTIVE (max(15,6*NR_CPUS))";
+  s.op->newline() << "#define KRETACTIVE (max(15,6*(int)num_possible_cpus()))";
   s.op->newline() << "#endif";
 
   // Forward declare the master entry functions
