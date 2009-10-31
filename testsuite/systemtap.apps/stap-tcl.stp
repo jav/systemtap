@@ -1,0 +1,30 @@
+global counts
+
+probe process(@1).mark("*") {
+      counts[$$name]<<<1  # PR10878; check also $$parms length
+}
+
+function judge(name, minvalue) {
+         value = @count(counts[name])
+         printf("%s %s %d %d\n", ((value>=minvalue)?"OK":"KO"), name, value, minvalue)
+}
+
+probe end,error {
+      /* foreach (name in counts-) {
+           printf("== %s %d\n", name, @count(counts[name]))
+      } */
+      judge("proc__entry", 9000)
+      judge("proc__return", 9000)
+      judge("proc__result", 9000)
+      judge("proc__args", 9000)
+      judge("proc__info", 9000)
+      judge("cmd__entry", 37000)
+      judge("cmd__return", 37000)
+      judge("cmd__result", 37000)
+      judge("cmd__args", 3700 /* not 37000? */)
+      judge("cmd__info", 37000)
+      judge("inst__start", 542000)
+      judge("inst__done", 542000)
+      judge("obj__create", 723000)
+      judge("obj__free", 704000)
+}

@@ -602,6 +602,7 @@ PACKAGE_BUGREPORT='systemtap@sources.redhat.com'
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+enable_testapps
 dejazilla
 MAINT
 MAINTAINER_MODE_FALSE
@@ -671,6 +672,7 @@ ac_user_opts='
 enable_option_checking
 enable_maintainer_mode
 enable_dejazilla
+enable_testapps
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1308,6 +1310,9 @@ Optional Features:
                           results to a central public collection point
                           (default is disabled). Optional EMAIL overrides the
                           default email address.
+  --enable-testapps=foo,bar or all
+                          enable rebuilding of large external apps for testing
+                          <sdt.h> markers
 
 Report bugs to <systemtap@sources.redhat.com>.
 _ACEOF
@@ -2315,6 +2320,21 @@ if test -n "$dejazilla"; then
    { $as_echo "$as_me:$LINENO: A \"make *check\" will email results to $dejazilla" >&5
 $as_echo "$as_me: A \"make *check\" will email results to $dejazilla" >&6;}
 fi
+
+
+apps=
+for exp in $srcdir/systemtap.apps/*.exp
+do
+    app=`basename $exp .exp`
+    apps="$app $apps"
+done
+# Check whether --enable-testapps was given.
+if test "${enable_testapps+set}" = set; then
+  enableval=$enable_testapps;
+fi
+
+{ $as_echo "$as_me:$LINENO: Will test ${enable_testapps-none} from: $apps" >&5
+$as_echo "$as_me: Will test ${enable_testapps-none} from: $apps" >&6;}
 
 
 ac_config_files="$ac_config_files Makefile"
