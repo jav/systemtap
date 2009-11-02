@@ -1,6 +1,5 @@
 # Path setup
 # CONFIG_PATH=/etc/stap-server/conf.d
 # STAT_PATH=/var/run/stap-server
-# TEMP_PATH=/tmp
 # LOG_FILE=/var/log/stap-server.log
 # STAP_USER=stap-server

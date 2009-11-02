@@ -410,6 +410,9 @@ handle_connection(PRFileDesc *tcpSocket)
       goto cleanup;
     }
 
+  /* Log the accepted connection.  */
+  printf ("Accepted connection!\n");
+
   /* Create a temporary files and directories.  */
   memcpy (requestFileName + sizeof (requestFileName) - 1 - 6, "XXXXXX", 6);
   rc = mkstemp(requestFileName);
@@ -609,8 +612,8 @@ server_main(unsigned short port, SECKEYPrivateKey *privKey, CERTCertificate *cer
 
   /* Configure the network connection. */
   addr.inet.family = PR_AF_INET;
-  addr.inet.ip	 = PR_INADDR_ANY;
-  addr.inet.port	 = PR_htons(port);
+  addr.inet.ip	   = PR_INADDR_ANY;
+  addr.inet.port   = PR_htons(port);
 
   /* Bind the address to the listener socket. */
   prStatus = PR_Bind(listenSocket, &addr);
@@ -744,7 +747,7 @@ main(int argc, char **argv)
   /* Set the cert database password callback. */
   PK11_SetPasswordFunc(myPasswd);
 
-	/* Initialize NSS. */
+  /* Initialize NSS. */
   secStatus = NSS_Init(dbdir);
   if (secStatus != SECSuccess)
     exitErr("NSS_Init");

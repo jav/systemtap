@@ -93,3 +93,6 @@ rm -fr $serverdb/stap.req
 
 # Add the certificate to the server's certificate/key database as a trusted peer, ssl server and object signer
 certutil -A -n stap-server -t "PCu,,PCu" -i $serverdb/$stap_certfile -d $serverdb -f $serverdb/pw
+
+echo "Certificate $serverdb/$stap_certfile created and added to database $serverdb"
+exit 0
