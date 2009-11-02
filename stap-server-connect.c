@@ -410,9 +410,6 @@ handle_connection(PRFileDesc *tcpSocket)
       goto cleanup;
     }
 
-  /* Log the accepted connection.  */
-  printf ("Accepted connection!\n");
-
   /* Create a temporary files and directories.  */
   memcpy (requestFileName + sizeof (requestFileName) - 1 - 6, "XXXXXX", 6);
   rc = mkstemp(requestFileName);
@@ -548,8 +545,26 @@ accept_connection(PRFileDesc *listenSocket)
 	  break;
 	}
 
+      /* Log the accepted connection.  */
+      printf ("Accepted connection from %d.%d.%d.%d:%d\n",
+	      (addr.inet.ip      ) & 0xff,
+	      (addr.inet.ip >>  8) & 0xff,
+	      (addr.inet.ip >> 16) & 0xff,
+	      (addr.inet.ip >> 24) & 0xff,
+	      addr.inet.port);
+      fflush (stdout);
+
       /* Accepted the connection, now handle it. */
       /*result =*/ handle_connection (tcpSocket);
+
+      printf ("Request from %d.%d.%d.%d:%d complete\n",
+	      (addr.inet.ip      ) & 0xff,
+	      (addr.inet.ip >>  8) & 0xff,
+	      (addr.inet.ip >> 16) & 0xff,
+	      (addr.inet.ip >> 24) & 0xff,
+	      addr.inet.port);
+      fflush (stdout);
+
 #if 0 /* Not necessary */
       if (result != SECSuccess)
 	{

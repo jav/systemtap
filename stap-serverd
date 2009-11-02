@@ -63,14 +63,14 @@ function initialization {
 	    # making it a trusted peer. Do this only if the client has been installed.
 	    if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
 		    -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
-		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile
+		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
 	    fi
 	elif ! test -f $stap_ssl_db/client/cert8.db; then
 	    # If the client's database does not exist, then initialize it with our certificate.
 	    # Do this only if the client has been installed.
 	    if test -f `which ${stap_exec_prefix}stap-client` -a \
                     -x `which ${stap_exec_prefix}stap-client`; then
-		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile
+		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
 	    fi
 	fi
     fi
@@ -330,7 +330,7 @@ function listen {
 	-p $port -n $nss_cert -d $ssl_db -w $nss_pw \
 	-s "$stap_options" \
 	>> $logfile 2>&1 &
-    wait '%${stap_exec_prefix}stap-server-connect' >/dev/null 2>&1
+    wait '%${stap_exec_prefix}stap-server-connect' >> $logfile 2>&1
 }
 
 # function: check_db DBNAME
@@ -564,12 +564,12 @@ function terminate {
     echo "$0: Exiting" >> $logfile
 
     # Kill the running 'avahi-publish-service' job
-    kill -s SIGTERM '%avahi-publish-service' 2> /dev/null
-    wait '%avahi-publish-service' >/dev/null 2>&1
+    kill -s SIGTERM '%avahi-publish-service' >> $logfile 2>&1
+    wait '%avahi-publish-service' >> $logfile 2>&1
 
     # Kill any running 'stap-server-connect' job.
-    kill -s SIGTERM '%${stap_exec_prefix}stap-server-connect' 2> /dev/null
-    wait '%${stap_exec_prefix}stap-server-connect'  >/dev/null 2>&1
+    kill -s SIGTERM '%${stap_exec_prefix}stap-server-connect' >> $logfile 2>&1
+    wait '%${stap_exec_prefix}stap-server-connect' >> $logfile 2>&1
 
     exit
 }
