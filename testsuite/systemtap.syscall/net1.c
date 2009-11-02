@@ -32,7 +32,7 @@ int main()
   //staptest// listen (NNNN, 7) = 0
 
   cfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
-  //staptest// accept (NNNN, 0x[0]+, 0x[0]+) = -NNNN (EAGAIN)
+  //staptest// accept (NNNN, 0x[0]+, 0x[0]+, 0) = -NNNN (EAGAIN)
 
   close(cfd);
   close(listenfd);

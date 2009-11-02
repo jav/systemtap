@@ -1302,16 +1302,76 @@ function _sock_family_str(f) {
    return sprintf("UNKNOWN VALUE: %d", f)
 }
 
-function _sock_type_str(t) {
-   if(t==1) return "SOCK_STREAM"
-   if(t==2) return "SOCK_DGRAM"
-   if(t==5) return "SOCK_SEQPACKET"
-   if(t==3) return "SOCK_RAW"
-   if(t==4) return "SOCK_RDM"
-   if(t==6) return "SOCK_DCCP"
-   if(t==10) return "SOCK_PACKET"
-   return sprintf("UNKNOWN VALUE: %d", t)
-}
+function _sock_type_str:string(type:long)
+%{ /* pure */
+#ifdef SOCK_TYPE_MASK
+	int flags = (int)THIS->type & ~SOCK_TYPE_MASK;
+	int t = (int)THIS->type & SOCK_TYPE_MASK;
+#else
+	int t = (int)THIS->type;
+#endif
+
+	switch (t) {
+	case SOCK_STREAM:
+		strlcpy (THIS->__retvalue, "SOCK_STREAM", MAXSTRINGLEN);
+		break;
+	case SOCK_DGRAM:
+		strlcpy (THIS->__retvalue, "SOCK_DGRAM", MAXSTRINGLEN);
+		break;
+	case SOCK_RAW:
+		strlcpy (THIS->__retvalue, "SOCK_RAW", MAXSTRINGLEN);
+		break;
+	case SOCK_RDM:
+		strlcpy (THIS->__retvalue, "SOCK_RDM", MAXSTRINGLEN);
+		break;
+	case SOCK_SEQPACKET:
+		strlcpy (THIS->__retvalue, "SOCK_SEQPACKET", MAXSTRINGLEN);
+		break;
+#ifdef SOL_DCCP
+	case SOCK_DCCP:
+		strlcpy (THIS->__retvalue, "SOCK_DCCP", MAXSTRINGLEN);
+		break;
+#endif
+	case SOCK_PACKET:
+		strlcpy (THIS->__retvalue, "SOCK_PACKET", MAXSTRINGLEN);
+		break;
+	default:
+		strlcpy (THIS->__retvalue, "UNKNOWN VALUE: %d", t);
+		break;
+	}
+
+#ifdef SOCK_TYPE_MASK
+	if (flags & SOCK_CLOEXEC) {
+		strlcat (THIS->__retvalue, "|SOCK_CLOEXEC", MAXSTRINGLEN);
+	}
+	if (flags & SOCK_NONBLOCK) {
+		strlcat (THIS->__retvalue, "|SOCK_NONBLOCK", MAXSTRINGLEN);
+	}
+#endif
+%}
+
+function _sock_flags_str:string(f:long)
+%{ /* pure */
+#ifdef SOCK_TYPE_MASK
+	int flags = (int)THIS->f;
+	int len;
+
+	THIS->__retvalue[0] = '\0';
+	if (flags & SOCK_CLOEXEC) {
+		strlcat (THIS->__retvalue, "SOCK_CLOEXEC|", MAXSTRINGLEN);
+	}
+	if (flags & SOCK_NONBLOCK) {
+		strlcat (THIS->__retvalue, "SOCK_NONBLOCK|", MAXSTRINGLEN);
+	}
+	len = strlen(THIS->__retvalue);
+	if (len) {
+		THIS->__retvalue[len - 1] = '\0';
+	}
+	else {
+		strlcat (THIS->__retvalue, "0", MAXSTRINGLEN);
+	}
+#endif
+%}
 
 function _opoll_op_str(o) {
    if(o==1) return "EPOLL_CTL_ADD"
