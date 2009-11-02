@@ -228,8 +228,8 @@ common_probe_entryfn_epilogue (translator_output* o,
 
   // Check for excessive skip counts.
   o->newline() << "if (unlikely (atomic_read (& skipped_count) > MAXSKIPPED)) {";
-  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_exit ();";
+  o->newline(1) << "if (unlikely (atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
+  o->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
   o->newline(-1) << "}";
 
   o->newline() << "#if INTERRUPTIBLE";
@@ -4634,8 +4634,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#endif";
   // NB: duplicates common_entryfn_epilogue, but then this is not a probe entry fn epilogue.
   s.op->newline() << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
-  s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  s.op->newline() << "_stp_exit ();";
+  s.op->newline(1) << "if (unlikely (atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
+  s.op->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 
