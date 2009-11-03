@@ -157,7 +157,9 @@ derived_probe::emit_process_owner_assertion (translator_output* o)
   o->newline()   << "         \"Internal Error: Process %d does not belong to user %d in probe %s in --unprivileged mode\",";
   o->newline()   << "         current->tgid, _stp_uid, c->probe_point);";
   o->newline()   << "c->last_error = c->error_buffer;";
-  o->newline()   << "goto out;";
+  // NB: since this check occurs before probe locking, its exit should
+  // not be a "goto out", which would attempt unlocking.
+  o->newline()   << "return;";
   o->newline(-1) << "}";
   o->newline(-1) << "#endif";
 }
@@ -1711,7 +1713,7 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
     {
       if (!array->referent)
 	{
-	  vardecl* d = find_var (array->name, e->indexes.size ());
+	  vardecl* d = find_var (array->name, e->indexes.size (), array->tok);
 	  if (d)
 	    array->referent = d;
 	  else
@@ -1760,7 +1762,7 @@ delete_statement_symresolution_info:
     if (e->referent)
       return;
 
-    vardecl* d = parent->find_var (e->name, -1);
+    vardecl* d = parent->find_var (e->name, -1, e->tok);
     if (d)
       e->referent = d;
     else
@@ -1782,7 +1784,7 @@ symresolution_info::visit_symbol (symbol* e)
   if (e->referent)
     return;
 
-  vardecl* d = find_var (e->name, 0);
+  vardecl* d = find_var (e->name, 0, e->tok);
   if (d)
     e->referent = d;
   else
@@ -1818,7 +1820,7 @@ symresolution_info::visit_arrayindex (arrayindex* e)
       if (array->referent)
 	return;
 
-      vardecl* d = find_var (array->name, e->indexes.size ());
+      vardecl* d = find_var (array->name, e->indexes.size (), array->tok);
       if (d)
 	array->referent = d;
       else
@@ -1877,7 +1879,7 @@ symresolution_info::visit_functioncall (functioncall* e)
 
 
 vardecl*
-symresolution_info::find_var (const string& name, int arity)
+symresolution_info::find_var (const string& name, int arity, const token* tok)
 {
   if (current_function || current_probe)
     {
@@ -1912,6 +1914,16 @@ symresolution_info::find_var (const string& name, int arity)
 	&& session.globals[i]->compatible_arity(arity))
       {
 	session.globals[i]->set_arity (arity);
+        if (! session.suppress_warnings)
+          {
+            vardecl* v = session.globals[i];
+            // clog << "resolved " << *tok << " to global " << *v->tok << endl;
+            if (v->tok->location.file != tok->location.file)
+              {
+                session.print_warning ("cross-file global variable reference to " + lex_cast (*v->tok) + " from",
+                                       tok);
+              }
+          }
 	return session.globals[i];
       }
 

@@ -1,0 +1,32 @@
+# This test is to make sure that we've resolved PR10854's race between probe
+# initialization and shutdown.  Here we load a module and then kill the stapio
+# process as soon as we can to try to make the init and shutdown overlap.
+
+set test "pr10854"
+
+# precompile the script module
+set compile { exec stap $srcdir/$subdir/$test.stp sys_read *@fs/*.c -p4 }
+if { [catch { set module [eval $compile] } msg ] } {
+    fail "compiling $test.stp: $msg"
+    untested "$test runloop"
+    continue
+} else {
+    pass "compiling $test.stp"
+}
+
+if {![installtest_p]} {
+    untested "$test runloop"
+    continue
+}
+
+# run & kill the module 10 times
+# (this was usually enough to trigger the fault)
+for {set i 0} {$i < 10} {incr i} {
+    spawn staprun $module -o /dev/null
+    while { [catch { exec pkill stapio -P [pid] } msg ] } { }
+    catch { close }
+    wait
+}
+
+# if we're still alive, we pass :)
+pass "$test runloop"

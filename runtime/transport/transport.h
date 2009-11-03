@@ -13,9 +13,6 @@
 
 static int _stp_ctl_write(int type, void *data, unsigned len);
 
-static int _stp_transport_init(void);
-static void _stp_transport_close(void);
-
 /* STP_CTL_BUFFER_SIZE is the maximum size of a message */
 /* exchanged on the control channel. */
 #if STP_TRANSPORT_VERSION == 1

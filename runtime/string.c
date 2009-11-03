@@ -21,7 +21,11 @@
  */
 
 /** Sprintf into a string.
- * Like printf, except output goes into a string.
+ * Like printf, except output goes into a string.  
+ *
+ * NB: these are script language printf formatting directives, where
+ * %d ints are 64-bits etc, so we can't use gcc level attribute printf
+ * to type-check the arguments.
  *
  * @param str string
  * @param fmt A printf-style format string followed by a 

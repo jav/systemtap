@@ -63,17 +63,17 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
       using namespace boost;
       if (ioCondition & Glib::IO_HUP)
         {
-          _win.hide();
+          _win->hide();
           return true;
         }
       if ((ioCondition & Glib::IO_IN) == 0)
         return true;
       char buf[256];
       ssize_t bytes_read = 0;
-      bytes_read = read(STDIN_FILENO, buf, sizeof(buf) - 1);
+      bytes_read = read(_inFd, buf, sizeof(buf) - 1);
       if (bytes_read <= 0)
         {
-          _win.hide();
+          _win->hide();
           return true;
         }
       buf[bytes_read] = '\0';
@@ -108,7 +108,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       dataSet->color[2] = (hexColor & 0xff) / 255.0;
                       dataSet->scale = scale;
                       _dataSets.insert(std::make_pair(setName, dataSet));
-                      _widget.addGraphData(dataSet);
+                      _widget->addGraphData(dataSet);
                     }
                   else if (style == "discreet")
                     {
@@ -120,7 +120,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       dataSet->color[2] = (hexColor & 0xff) / 255.0;
                       dataSet->scale = scale;
                       _dataSets.insert(std::make_pair(setName, dataSet));
-                      _widget.addGraphData(dataSet);
+                      _widget->addGraphData(dataSet);
                     }
                 }
               else if ((found = find_first(dataString, "%CSV:")))
@@ -156,18 +156,15 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                   shared_ptr<GraphDataBase> gdata = itr->second;
                   string decl;
                   // Hack: scan from the beginning of dataString again
-                  if (findTaggedValue(dataString, "%Title:", decl)
-                      != string::npos)
+                  if (findTaggedValue(dataString, "%Title:", decl))
                     {
                       gdata->title = decl;
                     }
-                  else if (findTaggedValue(dataString, "%XAxisTitle:", decl)
-                           != string::npos)
+                  else if (findTaggedValue(dataString, "%XAxisTitle:", decl))
                     {
                       gdata->xAxisText = decl;
                     }
-                  else if (findTaggedValue(dataString, "%YAxisTitle:", decl)
-                           != string::npos)
+                  else if (findTaggedValue(dataString, "%YAxisTitle:", decl))
                     {
                       gdata->yAxisText = decl;
                     }
@@ -179,29 +176,32 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       stream >> ymax;
                       gdata->scale = ymax;
                     }
-
-                  if (!_csv.elements.empty())
-                    {
-                      vector<string> tokens = commaSplit(dataString);
-                      int i = 0;
-                      double time;
-                      vector<string>::iterator tokIter = tokens.begin();
-                      std::istringstream timeStream(*tokIter++);
-                      timeStream >> time;
-                      for (vector<string>::iterator e = tokens.end();
-                           tokIter != e;
-                           ++tokIter, ++i)
-                        {
-                          parseData(_csv.elements[i].second, time, *tokIter);
-                        }
-                    }
                   else
-                    {
-                      double time;
-                      string data;
-                      stream >> time >> data;
-                      parseData(itr->second, time, data);
-                    }
+                  {
+                      if (!_csv.elements.empty())
+                      {
+                          vector<string> tokens = commaSplit(dataString);
+                          int i = 0;
+                          double time;
+                          vector<string>::iterator tokIter = tokens.begin();
+                          std::istringstream timeStream(*tokIter++);
+                          timeStream >> time;
+                          for (vector<string>::iterator e = tokens.end();
+                               tokIter != e;
+                               ++tokIter, ++i)
+                          {
+                              parseData(_csv.elements[i].second, time,
+                                        *tokIter);
+                          }
+                      }
+                      else
+                      {
+                          double time;
+                          string data;
+                          stream >> time >> data;
+                          parseData(itr->second, time, data);
+                      }
+                  }
                 }
             }
           _buffer.erase(0, ret + 1);
@@ -219,7 +219,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
     bytes_read = read(_errFd, buf, sizeof(buf) - 1);
     if (bytes_read <= 0)
       {
-        _win.hide();
+        _win->hide();
         return true;
       }
     if (write(STDOUT_FILENO, buf, bytes_read) < 0)

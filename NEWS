@@ -1,5 +1,21 @@
 * What's new
 
+- Any output line that starts with "ERROR", as in error("foo"), will
+  promote a "Pass 5: run failed", and the return code is 1.
+
+- Systemtap now warns about global variables being referenced from other
+  script files.  This aims to protect against unintended local-vs-global 
+  namespace collisions such as:
+
+     % cat some_tapset.stp
+     probe baz.one = bar { foo = $foo; bar = $bar }
+     % cat end_user_script.stp
+     global foo # intended to be private variable
+     probe timer.s(1) { foo ++ }
+     probe baz.* { println(foo, pp()) }
+     % stap end_user_script.stp
+     WARNING: cross-file global variable reference to foo from some_tapset.stp
+
 - Preprocessor conditional for kernel configuration testing:
   %( CONFIG_foo == "y" %? ... %) 
 

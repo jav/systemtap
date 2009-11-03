@@ -88,7 +88,7 @@ static sleb128_t get_sleb128(const u8 **pcur, const u8 *end)
 
 /* given an FDE, find its CIE */
 static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
-			      int is_ehframe)
+			      uint32_t table_len, int is_ehframe)
 {
 	const u32 *cie;
 
@@ -117,6 +117,11 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 		cie = fde + 1 - fde[1] / sizeof(*fde);
 	else
 		cie = unwind_data + fde[1];
+
+	/* Make sure address falls in the table */
+	if (((void *)cie) < ((void*)unwind_data)
+	    || ((void*)cie) > ((void*)(unwind_data + table_len)))
+	  return NULL;
 
 	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
 	    || (*cie & (sizeof(*cie) - 1))
@@ -200,7 +205,8 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 	return value;
 }
 
-static signed fde_pointer_type(const u32 *cie)
+static signed fde_pointer_type(const u32 *cie, void *unwind_data,
+			       uint32_t table_len)
 {
 	const u8 *ptr = (const u8 *)(cie + 2);
 	unsigned version = *ptr;
@@ -212,11 +218,16 @@ static signed fde_pointer_type(const u32 *cie)
 		const u8 *end = (const u8 *)(cie + 1) + *cie;
 		uleb128_t len;
 
+		/* end of cie should fall within unwind table. */
+		if (((void*)end) < ((void *)unwind_data)
+		    || ((void *)end) > ((void *)(unwind_data + table_len)))
+		  return -1;
+
 		/* check if augmentation size is first (and thus present) */
 		if (*ptr != 'z')
 			return -1;
 		/* check if augmentation string is nul-terminated */
-		if ((ptr = memchr(aug = (const void *)ptr, 0, end - ptr)) == NULL)
+		if ((ptr = memchr(aug = (const void *)ptr, 0, end - ptr)) == NULL) 
 			return -1;
 		++ptr;		/* skip terminator */
 		get_uleb128(&ptr, end);	/* skip code alignment */
@@ -267,6 +278,10 @@ static void set_rule(uleb128_t reg, enum item_location where, uleb128_t value, s
 	}
 }
 
+/* Limit the number of instructions we process. Arbitrary limit.
+   512 should be enough for anybody... */
+#define MAX_CFI 512
+
 static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, signed ptrType, struct unwind_state *state)
 {
 	union {
@@ -275,6 +290,9 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 		const u32 *p32;
 	} ptr;
 	int result = 1;
+
+	if (end - start > MAX_CFI)
+	  return 0;
 
 	dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
 	if (start != state->cieStart) {
@@ -606,10 +624,10 @@ static int unwind_frame(struct unwind_frame_info *frame,
 
 	/* found the fde, now set startLoc and endLoc */
 	if (fde != NULL) {
-		cie = cie_for_fde(fde, table, is_ehframe);
+		cie = cie_for_fde(fde, table, table_len, is_ehframe);
 		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
 			ptr = (const u8 *)(fde + 2);
-			ptrType = fde_pointer_type(cie);
+			ptrType = fde_pointer_type(cie, table, table_len);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
 			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe);
 
@@ -632,12 +650,12 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)
 		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
-			cie = cie_for_fde(fde, table, is_ehframe);
+			cie = cie_for_fde(fde, table, table_len, is_ehframe);
 			if (cie == &bad_cie) {
 				cie = NULL;
 				break;
 			}
-			if (cie == NULL || cie == &not_fde || (ptrType = fde_pointer_type(cie)) < 0)
+			if (cie == NULL || cie == &not_fde || (ptrType = fde_pointer_type(cie, table, table_len)) < 0)
 				continue;
 
 			ptr = (const u8 *)(fde + 2);
@@ -666,6 +684,12 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	state.cieEnd = ptr;	/* keep here temporarily */
 	ptr = (const u8 *)(cie + 2);
 	end = (const u8 *)(cie + 1) + *cie;
+
+	/* end should fall within unwind table. */
+	if (((void *)end) < table
+	    || ((void *)end) > ((void *)(table + table_len)))
+	  goto err;
+
 	frame->call_frame = 1;
 	if ((state.version = *ptr) != 1) {
 		dbug_unwind(1, "CIE version number is %d.  1 is supported.\n", state.version);
@@ -722,6 +746,11 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	ptr = state.cieEnd;
 	state.cieEnd = end;
 	end = (const u8 *)(fde + 1) + *fde;
+
+	/* end should fall within unwind table. */
+	if (((void*)end) < table
+	    || ((void *)end) > ((void *)(table + table_len)))
+	  goto err;
 
 	/* skip augmentation */
 	if (((const char *)(cie + 2))[1] == 'z') {

@@ -9,7 +9,7 @@ set m6 0
 spawn stap $srcdir/$subdir/backtrace.stp
 #exp_internal 1
 expect {
-    -timeout 60
+    -timeout 120
     "Systemtap probe: begin\r\n" {
 	pass "backtrace of begin probe"
 	exec echo 0 > /proc/stap_test_cmd

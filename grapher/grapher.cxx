@@ -10,9 +10,12 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include <memory>
 #include <vector>
 
 #include <signal.h>
+
+#include <boost/bind.hpp>
 
 #include <gtkmm.h>
 #include <gtkmm/button.h>
@@ -31,6 +34,20 @@ using namespace std;
 
 using namespace systemtap;
 
+// magic for noticing that the child stap process has died.
+int signalPipe[2] = {-1, -1};
+
+extern "C"
+{
+  void handleChild(int signum, siginfo_t* info, void* context)
+  {
+    char buf[1];
+    ssize_t err;
+    buf[0] = 1;
+    err = write(signalPipe[1], buf, 1);
+  }
+}
+
 // Waits for a gtk I/O signal, indicating that a child has died, then
 // performs an action
 
@@ -46,6 +63,20 @@ public:
   ChildDeathReader(int sigfd_) : sigfd(sigfd_) {}
   int getSigfd() { return sigfd; }
   void setSigfd(int sigfd_) { sigfd = sigfd_; }
+  virtual pid_t reap()
+  {
+    pid_t pid;
+    int status;
+    if ((pid = waitpid(-1, &status, WNOHANG)) == -1)
+      {
+        std::perror("waitpid");
+        return -1;
+      }
+    else
+      {
+        return pid;
+      }
+  }
   bool ioCallback(Glib::IOCondition ioCondition)
   {
     if ((ioCondition & Glib::IO_IN) == 0)
@@ -54,21 +85,245 @@ public:
 
     if (read(sigfd, &buf, 1) <= 0)
       return true;
-    int status;
-    while (wait(&status) != -1)
-      ;
+    reap();
     return true;
   }
 private:
   int sigfd;
 };
 
-class StapLauncher;
-
-class GraphicalStapLauncher
+// Depending on how args are passed, either launch stap directly or
+// use the shell to parse arguments
+class StapLauncher : public ChildDeathReader
 {
 public:
-  GraphicalStapLauncher(StapLauncher* launcher);
+  StapLauncher() : _argv(0), _childPid(-1), _deathCallback(0) {}
+  StapLauncher(char** argv)
+    : _argv(argv), _childPid(-1), _deathCallback(0)
+  {
+  }
+  StapLauncher(const string& stapArgs, const string& script,
+               const string& scriptArgs)
+    : _childPid(-1), _deathCallback(0), _win(0), _widget(0)
+  {
+    setArgs(stapArgs, script, scriptArgs);
+  }
+  void setArgv(char** argv)
+  {
+    _argv = argv;
+  }
+
+  char** getArgv()
+  {
+    return _argv;
+  }
+
+  void setArgs(const string& stapArgs, const string& script,
+               const string& scriptArgs)
+  {
+    _stapArgs = stapArgs;
+    _script = script;
+    _scriptArgs = scriptArgs;
+  }
+
+  void getArgs(string& stapArgs, string& script, string& scriptArgs)
+  {
+    stapArgs = _stapArgs;
+    script = _script;
+    scriptArgs = _scriptArgs;
+  }
+
+  void reset()
+  {
+    _argv = 0;
+    _stapArgs.clear();
+    _script.clear();
+    _scriptArgs.clear();
+  }
+  void setDeathCallback(ChildDeathReader::Callback* callback)
+  {
+    _deathCallback = callback;
+  }
+  void setWinParams(Gtk::Window* win, GraphWidget* widget)
+  {
+    _win = win;
+    _widget = widget;
+  }
+  int launch();
+  void cleanUp();
+  tr1::shared_ptr<StapParser> makeStapParser()
+  {
+    tr1::shared_ptr<StapParser> result(new StapParser(_win, _widget));
+    _parsers.push_back(ParserInstance(-1, result));
+    return result;
+  }
+  pid_t reap()
+  {
+    pid_t pid = ChildDeathReader::reap();
+    if (pid < 0)
+      return pid;
+    ParserList::iterator itr
+      = find_if(_parsers.begin(), _parsers.end(),
+                boost::bind(&ParserInstance::childPid, _1) == pid);
+    if (itr != _parsers.end())
+      itr->childPid = -1;
+    return pid;
+  }
+  void killAll()
+  {
+    for (ParserList::iterator itr = _parsers.begin(), end = _parsers.end();
+         itr != end;
+         ++itr)
+      {
+        if (itr->childPid >= 0)
+          kill(itr->childPid, SIGTERM);
+      }
+  }
+protected:
+  char** _argv;
+  string _stapArgs;
+  string _script;
+  string _scriptArgs;
+  int _childPid;
+  ChildDeathReader::Callback* _deathCallback;
+  Gtk::Window* _win;
+  GraphWidget* _widget;
+  struct ParserInstance
+  {
+    ParserInstance() : childPid(-1) {}
+    ParserInstance(int childPid_, tr1::shared_ptr<StapParser> stapParser_)
+      : childPid(childPid_), stapParser(stapParser_)
+    {
+    }
+    pid_t childPid;
+    tr1::shared_ptr<StapParser> stapParser;
+  };
+  typedef vector<ParserInstance> ParserList;
+  ParserList _parsers;
+};
+
+int StapLauncher::launch()
+{
+  int childPid = -1;
+  if (signalPipe[0] < 0)
+    {
+      if (pipe(&signalPipe[0]) < 0)
+        {
+          std::perror("pipe");
+          exit(1);
+        }
+      setSigfd(signalPipe[0]);
+      if (signalPipe[0] >= 0)
+        {
+          Glib::signal_io().connect(sigc::mem_fun(*this,
+                                                  &ChildDeathReader::ioCallback),
+                                    signalPipe[0], Glib::IO_IN);
+        }
+    }
+  struct sigaction action;
+  action.sa_sigaction = handleChild;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
+  sigaction(SIGCLD, &action, 0);
+  int pipefd[4];
+  if (pipe(&pipefd[0]) < 0)
+    {
+      std::perror("pipe");
+      exit(1);
+    }
+  if (pipe(&pipefd[2]) < 0)
+    {
+      std::perror("pipe");
+      exit(1);
+    }
+  if ((childPid = fork()) == -1)
+    {
+      exit(1);
+    }
+  else if (childPid)
+    {
+      close(pipefd[1]);
+      close(pipefd[3]);
+    }
+  else
+    {
+      dup2(pipefd[1], STDOUT_FILENO);
+      dup2(pipefd[3], STDERR_FILENO);
+      for_each(&pipefd[0], &pipefd[4], close);
+      for_each(&signalPipe[0], &signalPipe[2], close);
+      if (_argv)
+        {
+          char argv0[] = "stap";
+          char** argvEnd = _argv;
+          for (; *argvEnd; ++argvEnd)
+            ;
+          char** realArgv = new char*[argvEnd - _argv + 2];
+          realArgv[0] = argv0;
+          std::copy(_argv, argvEnd + 1, &realArgv[1]);
+          execvp("stap", realArgv);
+        }
+      else
+        {
+          string argString = "stap" +  _stapArgs + " " + _script + " "
+            + _scriptArgs;
+          execl("/bin/sh", "sh", "-c", argString.c_str(),
+                static_cast<char*>(0));
+        }
+      _exit(1);
+    }
+  tr1::shared_ptr<StapParser> sp(new StapParser(_win, _widget));
+  _parsers.push_back(ParserInstance(childPid, sp));
+  sp->setErrFd(pipefd[2]);
+  sp->setInFd(pipefd[0]);
+  Glib::signal_io().connect(sigc::mem_fun(sp.get(),
+                                          &StapParser::errIoCallback),
+                            pipefd[2],
+                            Glib::IO_IN);
+  Glib::signal_io().connect(sigc::mem_fun(sp.get(),
+                                          &StapParser::ioCallback),
+                            pipefd[0],
+                            Glib::IO_IN | Glib::IO_HUP);
+  return childPid;
+}
+
+void StapLauncher::cleanUp()
+{
+  struct sigaction action;
+  action.sa_handler = SIG_DFL;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = 0;
+  sigaction(SIGCLD, &action, 0);
+  // Drain any outstanding signals
+  close(signalPipe[1]);
+  char buf;
+  while (read(signalPipe[0], &buf, 1) > 0)
+    reap();
+  for (ParserList::iterator itr = _parsers.begin(), end = _parsers.end();
+       itr != end;
+       ++itr)
+    {
+      if (itr->childPid > 0)
+        kill(itr->childPid, SIGTERM);
+      int status;
+      pid_t killedPid = -1;
+      if ((killedPid = wait(&status)) == -1)
+        {
+          std::perror("wait");
+        }
+      else if (killedPid != itr->childPid)
+        {
+          std::cerr << "wait: killed Pid " << killedPid << " != child Pid "
+                    << itr->childPid << "\n";
+        }
+      else if (_deathCallback)
+        _deathCallback->childDied(itr->childPid);
+    }
+}
+
+class GraphicalStapLauncher : public StapLauncher
+{
+public:
+  GraphicalStapLauncher();
   bool runDialog();
   void onLaunch();
   void onLaunchCancel();
@@ -78,7 +333,6 @@ private:
   Gtk::FileChooserButton* _chooserButton;
   Gtk::Entry* _stapArgEntry;
   Gtk::Entry* _scriptArgEntry;
-  StapLauncher* _launcher;
 };
 
 class GrapherWindow : public Gtk::Window, public ChildDeathReader::Callback
@@ -173,214 +427,35 @@ void GrapherWindow::childDied(int pid)
   hide();
 }
 
-// magic for noticing that the child stap process has died.
-int signalPipe[2] = {-1, -1};
 
-extern "C"
-{
-  void handleChild(int signum, siginfo_t* info, void* context)
-  {
-    char buf[1];
-    ssize_t err;
-    buf[0] = 1;
-    err = write(signalPipe[1], buf, 1);
-  }
-}
 
-// Depending on how args are passed, either launch stap directly or
-// use the shell to parse arguments
-class StapLauncher : public ChildDeathReader
-{
-public:
-  StapLauncher() : _argv(0), _childPid(-1), _deathCallback(0), _stapParser(0) {}
-  StapLauncher(char** argv)
-    : _argv(argv), _childPid(-1), _deathCallback(0), _stapParser(0)
-  {
-  }
-  StapLauncher(const string& stapArgs, const string& script,
-               const string& scriptArgs)
-    : _childPid(-1), _deathCallback(0), _stapParser(0)
-  {
-    setArgs(stapArgs, script, scriptArgs);
-  }
-  void setArgv(char** argv)
-  {
-    _argv = argv;
-  }
-
-  char** getArgv()
-  {
-    return _argv;
-  }
-
-  void setArgs(const string& stapArgs, const string& script,
-               const string& scriptArgs)
-  {
-    _stapArgs = stapArgs;
-    _script = script;
-    _scriptArgs = scriptArgs;
-  }
-
-  void getArgs(string& stapArgs, string& script, string& scriptArgs)
-  {
-    stapArgs = _stapArgs;
-    script = _script;
-    scriptArgs = _scriptArgs;
-  }
-
-  void reset()
-  {
-    _argv = 0;
-    _stapArgs.clear();
-    _script.clear();
-    _scriptArgs.clear();
-  }
-  void setDeathCallback(ChildDeathReader::Callback* callback)
-  {
-    _deathCallback = callback;
-  }
-  void setStapParser(StapParser *parser)
-  {
-    _stapParser = parser;
-  }
-  int launch();
-  void cleanUp();
-protected:
-  char** _argv;
-  string _stapArgs;
-  string _script;
-  string _scriptArgs;
-  int _childPid;
-  ChildDeathReader::Callback* _deathCallback;
-  StapParser* _stapParser;
-};
-
-int StapLauncher::launch()
-{
-  int stapErrFd = -1;
-
-  if (pipe(&signalPipe[0]) < 0)
-    {
-      std::perror("pipe");
-      exit(1);
-    }
-  struct sigaction action;
-  action.sa_sigaction = handleChild;
-  sigemptyset(&action.sa_mask);
-  action.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
-  sigaction(SIGCLD, &action, 0);
-  int pipefd[4];
-  if (pipe(&pipefd[0]) < 0)
-    {
-      std::perror("pipe");
-      exit(1);
-    }
-  if (pipe(&pipefd[2]) < 0)
-    {
-      std::perror("pipe");
-      exit(1);
-    }
-  if ((_childPid = fork()) == -1)
-    {
-      exit(1);
-    }
-  else if (_childPid)
-    {
-      dup2(pipefd[0], STDIN_FILENO);
-      stapErrFd = pipefd[2];
-      close(pipefd[0]);
-      close(pipefd[1]);
-      close(pipefd[3]);
-    }
-  else
-    {
-      dup2(pipefd[1], STDOUT_FILENO);
-      dup2(pipefd[3], STDERR_FILENO);
-      for (int i = 0; i < 4; ++i)
-        close(pipefd[i]);
-      if (_argv)
-        {
-          char argv0[] = "stap";
-          char** argvEnd = _argv;
-          for (; *argvEnd; ++argvEnd)
-            ;
-          char** realArgv = new char*[argvEnd - _argv + 2];
-          realArgv[0] = argv0;
-          std::copy(_argv, argvEnd + 1, &realArgv[1]);
-          execvp("stap", realArgv);
-        }
-      else
-        {
-          string argString = "stap" +  _stapArgs + " " + _script + " "
-            + _scriptArgs;
-          execl("/bin/sh", "sh", "-c", argString.c_str(),
-                static_cast<char*>(0));
-        }
-      _exit(1);
-    }
-  if (stapErrFd >= 0)
-    {
-      _stapParser->setErrFd(stapErrFd);
-      Glib::signal_io().connect(sigc::mem_fun(*_stapParser,
-                                              &StapParser::errIoCallback),
-                                stapErrFd,
-                                Glib::IO_IN);
-    }
-  setSigfd(signalPipe[0]);
-  if (signalPipe[0] >= 0)
-    {
-      Glib::signal_io().connect(sigc::mem_fun(*this,
-                                              &ChildDeathReader::ioCallback),
-                                signalPipe[0], Glib::IO_IN);
-    }
-  Glib::signal_io().connect(sigc::mem_fun(*_stapParser,
-                                          &StapParser::ioCallback),
-                            STDIN_FILENO,
-                            Glib::IO_IN | Glib::IO_HUP);
-  return _childPid;
-}
-
-void StapLauncher::cleanUp()
-{
-  if (_childPid > 0)
-    kill(_childPid, SIGTERM);
-  int status;
-  while (wait(&status) != -1)
-    ;
-  if (_deathCallback)
-    {
-      _deathCallback->childDied(_childPid);
-      _childPid = -1;
-    }
-}
-
-StapLauncher launcher;
 
 int main(int argc, char** argv)
 {
   Gtk::Main app(argc, argv);
-
+  GraphicalStapLauncher launcher;
   GrapherWindow win;
 
   win.set_title("Grapher");
   win.set_default_size(600, 200);
+  launcher.setWinParams(&win, &win.w);
 
-  StapParser stapParser(win, win.w);
-  launcher.setStapParser(&stapParser);
-  GraphicalStapLauncher graphicalLauncher(&launcher);
-  win.setGraphicalLauncher(&graphicalLauncher);
-  if (argc > 1)
+  win.setGraphicalLauncher(&launcher);
+  
+  if (argc == 2 && !std::strcmp(argv[1], "-"))
+    {
+      tr1::shared_ptr<StapParser> sp = launcher.makeStapParser();
+      sp->setInFd(STDIN_FILENO);
+      Glib::signal_io().connect(sigc::mem_fun(sp.get(),
+                                              &StapParser::ioCallback),
+                                STDIN_FILENO,
+                                Glib::IO_IN | Glib::IO_HUP);
+    }
+  else if (argc > 1)
     {
       launcher.setArgv(argv + 1);
       launcher.setDeathCallback(&win);
       launcher.launch();
-    }
-  else
-    {
-      Glib::signal_io().connect(sigc::mem_fun(stapParser,
-                                              &StapParser::ioCallback),
-                                STDIN_FILENO,
-                                Glib::IO_IN | Glib::IO_HUP);
     }
   Gtk::Main::run(win);
   launcher.cleanUp();
@@ -393,8 +468,7 @@ void GrapherWindow::addGraph()
   
 }
 
-GraphicalStapLauncher::GraphicalStapLauncher(StapLauncher* launcher)
- : _launcher(launcher)
+GraphicalStapLauncher::GraphicalStapLauncher()
 {
   try
     {
@@ -428,10 +502,10 @@ bool GraphicalStapLauncher::runDialog()
 
 void GraphicalStapLauncher::onLaunch()
 {
-  _launcher->setArgs(_stapArgEntry->get_text(), _chooserButton->get_filename(),
-                     _scriptArgEntry->get_text());
+  setArgs(_stapArgEntry->get_text(), _chooserButton->get_filename(),
+          _scriptArgEntry->get_text());
   _scriptWindow->hide();
-  _launcher->launch();
+  launch();
 }
 
 void GraphicalStapLauncher::onLaunchCancel()

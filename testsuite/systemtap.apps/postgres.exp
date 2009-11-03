@@ -69,7 +69,7 @@ function run_tests \{
 $postgresdir/bin/initdb $pgdata
 
 which stap
-stap -m \$(date +stapsdt_%j%k%M%N | sed 's/ //') -c \"$postgresdir/bin/postgres -D $pgdata\" $pgdata.stp >$pgdata-markers.log 2>&1 &
+$env(SYSTEMTAP_PATH)/stap -m \$(date +stapsdt_%j%k%M%N | sed 's/ //') -c \"$postgresdir/bin/postgres -D $pgdata\" $pgdata.stp >$pgdata-markers.log 2>&1 &
 STAPPID=\$!
 
 # wait until postgres is running

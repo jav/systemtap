@@ -13,30 +13,6 @@
 # Initialize the environment
 . `dirname $0`/stap-env
 
-# Obtain a password from stdin and echo it.
-function user_enter_password
-{
-    while true
-    do
-	while true
-	do
-	    read -sp "Enter new password for systemtap server certificate/key database:" pw1 junk
-	    echo "" >&2
-	    test "X$pw1" != "X" && break
-	done
-	while true
-	do
-	    read -sp "Reenter new password:" pw2 junk
-	    echo "" >&2
-	    test "X$pw2" != "X" && break
-	done
-	test "$pw1" = "$pw2" && break
-	echo "Passwords do not match" >&2
-    done
-
-    echo $pw1
-}
-
 # Obtain the certificate database directory name.
 serverdb=$1
 if  test "X$serverdb" = "X"; then
@@ -60,7 +36,7 @@ fi
 # Generate a random password.
 mkpasswd -l 20 > $serverdb/pw 2>/dev/null || \
 apg -a 1 -n 1 -m 20 -x 20 > $serverdb/pw 2>/dev/null || \
-user_enter_password > $serverdb/pw
+(read -n20 password </dev/urandom; echo "$password" > $serverdb/pw)
 
 # Generate the server certificate database
 if ! certutil -N -d $serverdb -f $serverdb/pw > /dev/null; then

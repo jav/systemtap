@@ -1,6 +1,6 @@
 spawn stap $srcdir/$subdir/args.stp
 expect {
-    -timeout 60
+    -timeout 120
     "READY" {
 	exec echo 1 > /proc/stap_test_cmd
 	expect {
@@ -51,6 +51,7 @@ expect {
 	    timeout {fail "string function arguments"}
 	}
     }
+    timeout {fail "all args tests - timeout"}
     eof {fail "function arguments: unexpected timeout"}
 }
 exec kill -INT -[exp_pid]

@@ -641,6 +641,7 @@ MAINTAINER_MODE_TRUE
 MAINTAINER_MODE_FALSE
 MAINT
 dejazilla
+enable_testapps
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -1229,6 +1230,9 @@ Optional Features:
                           results to a central public collection point
                           (default is disabled). Optional EMAIL overrides the
                           default email address.
+  --enable-testapps=foo bar or all
+                          enable rebuilding of large external apps for testing
+                          <sdt.h> markers
 
 Report bugs to <systemtap@sources.redhat.com>.
 _ACEOF
@@ -2182,6 +2186,21 @@ echo "$as_me: A \"make *check\" will email results to $dejazilla" >&6;}
 fi
 
 
+apps=
+for exp in $srcdir/systemtap.apps/*.exp
+do
+    app=`basename $exp .exp`
+    apps="$app $apps"
+done
+# Check whether --enable-testapps was given.
+if test "${enable_testapps+set}" = set; then
+  enableval=$enable_testapps;
+fi
+
+{ echo "$as_me:$LINENO: Will test ${enable_testapps-no} apps from: $apps" >&5
+echo "$as_me: Will test ${enable_testapps-no} apps from: $apps" >&6;}
+
+
 ac_config_files="$ac_config_files Makefile"
 
 cat >confcache <<\_ACEOF
@@ -2884,11 +2903,12 @@ MAINTAINER_MODE_TRUE!$MAINTAINER_MODE_TRUE$ac_delim
 MAINTAINER_MODE_FALSE!$MAINTAINER_MODE_FALSE$ac_delim
 MAINT!$MAINT$ac_delim
 dejazilla!$dejazilla$ac_delim
+enable_testapps!$enable_testapps$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 65; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 66; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

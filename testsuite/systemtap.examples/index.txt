@@ -407,6 +407,13 @@ keywords: profiling
   samples.
 
 
+process/plimit.stp - print resource limits
+keywords: process
+
+  The script prints a variety of resource limits for a given pid, like
+  /proc/$$/limits on recent kernels.
+
+
 process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
 keywords: process scheduler time tracepoint
 

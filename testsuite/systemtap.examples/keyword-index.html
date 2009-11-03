@@ -297,6 +297,9 @@ keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-inde
 <li><a href="process/forktracker.stp">process/forktracker.stp</a> - Trace Creation of Processes<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
 <p>The forktracker.stp script prints out a time-stamped entry showing each fork and exec operation on the machine. This can be useful for determine what process is creating a flurry of short-lived processes.</p></li>
+<li><a href="process/plimit.stp">process/plimit.stp</a> - print resource limits<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
+<p>The script prints a variety of resource limits for a given pid, like /proc/$$/limits on recent kernels.</p></li>
 <li><a href="process/schedtimes.stp">process/schedtimes.stp</a> - Track Time Processes Spend in Various States using Tracepoints<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
 <p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends running, sleeping, queued, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the '-c' or '-x' options to focus on a specific PID.</p></li>

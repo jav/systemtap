@@ -26,7 +26,7 @@ int main()
   v[2].iov_len = sizeof(STRING3);
 
   fd = open("foobar1",O_WRONLY|O_CREAT, 0666);
-  //staptest// open ("foobar1", O_WRONLY|O_CREAT, 0666) = NNNN
+  //staptest// open ("foobar1", O_WRONLY|O_CREAT[[[[.O_LARGEFILE]]]]?, 0666) = NNNN
 
   write(fd,"Hello world", 11);
   //staptest// write (NNNN, "Hello world", 11) = 11
@@ -66,7 +66,7 @@ int main()
   close (fd);
 
   fd = open("foobar1",O_RDONLY);
-  //staptest// open ("foobar1", O_RDONLY) = NNNN
+  //staptest// open ("foobar1", O_RDONLY[[[[.O_LARGEFILE]]]]?) = NNNN
 
   read(fd, buf, 11);
   //staptest// read (NNNN, XXXX, 11) = 11

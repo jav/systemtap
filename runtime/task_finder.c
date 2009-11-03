@@ -87,15 +87,15 @@ struct stap_task_finder_target {
 	struct list_head callback_list_head;
 	struct list_head callback_list;
 	struct utrace_engine_ops ops;
+	size_t pathlen;
 	unsigned engine_attached:1;
 	unsigned mmap_events:1;
 	unsigned munmap_events:1;
 	unsigned mprotect_events:1;
-	size_t pathlen;
 
 /* public: */
-	const char *procname;
 	pid_t pid;
+	const char *procname;
 	stap_task_finder_callback callback;
 	stap_task_finder_mmap_callback mmap_callback;
 	stap_task_finder_munmap_callback munmap_callback;

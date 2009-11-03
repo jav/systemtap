@@ -6,6 +6,8 @@
 #include <vector>
 #include <tr1/memory>
 
+#include <boost/circular_buffer.hpp>
+
 namespace systemtap
 {
   struct GraphDataBase
@@ -16,11 +18,12 @@ namespace systemtap
         DOT,
         EVENT
       };
-    GraphDataBase() : scale(1.0), style(BAR)
+    typedef boost::circular_buffer<double> TimeList;
+    GraphDataBase(TimeList::capacity_type cap = 50000)
+      : scale(1.0), style(BAR), times(cap)
     {
       color[0] = 0.0;  color[1] = 1.0;  color[2] = 0.0;
     }
-    typedef std::vector<double> TimeList;
     // size of grid square at "normal" viewing
     double scale;
     double color[3];
@@ -36,7 +39,11 @@ namespace systemtap
   {
   public:
     typedef T data_type;
-    typedef std::vector<data_type> DataList;
+    typedef boost::circular_buffer<data_type> DataList;
+    GraphData(typename DataList::capacity_type cap = 50000)
+      : GraphDataBase(cap), data(cap)
+    {
+    }
     DataList data;
   };
   struct CSVData

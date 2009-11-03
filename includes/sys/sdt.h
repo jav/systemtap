@@ -42,7 +42,7 @@
 
 #if defined STAP_HAS_SEMAPHORES && defined EXPERIMENTAL_UTRACE_SDT
 #define STAP_SEMAPHORE(probe)	\
-  if ( probe ## _semaphore )
+  if (__builtin_expect ( probe ## _semaphore , 0))
 #else
 #define STAP_SEMAPHORE(probe)
 #endif

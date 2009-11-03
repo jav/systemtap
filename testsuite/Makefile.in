@@ -92,6 +92,7 @@ datarootdir = @datarootdir@
 dejazilla = @dejazilla@
 docdir = @docdir@
 dvidir = @dvidir@
+enable_testapps = @enable_testapps@
 exec_prefix = @exec_prefix@
 host_alias = @host_alias@
 htmldir = @htmldir@
@@ -118,6 +119,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = dejagnu no-dist
 DEJAZILLA = @dejazilla@
+TESTAPPS = @enable_testapps@
 TOOL_OPTS = 
 
 # $(srcdir)/These values point the test suite to the install tree, and
@@ -130,7 +132,7 @@ SYSTEMTAP_PATH = $(DESTDIR)$(bindir)
 SYSTEMTAP_INCLUDES = $(DESTDIR)$(includedir)
 RUNTESTDEFAULTFLAGS = --tool $$tool --tool_opts \'$(TOOL_OPTS)\' --srcdir $$srcdir
 EXPECT = expect
-RUNTEST = "env SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) CRASH_LIBDIR=$(CRASH_LIBDIR) PATH=$(SYSTEMTAP_PATH):$$PATH SYSTEMTAP_PATH=$(SYSTEMTAP_PATH) SYSTEMTAP_INCLUDES=$(SYSTEMTAP_INCLUDES) $(srcdir)/execrc runtest"
+RUNTEST = "env SYSTEMTAP_TESTAPPS=$(TESTAPPS) SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) CRASH_LIBDIR=$(CRASH_LIBDIR) PATH=$(SYSTEMTAP_PATH):$$PATH SYSTEMTAP_PATH=$(SYSTEMTAP_PATH) SYSTEMTAP_INCLUDES=$(SYSTEMTAP_INCLUDES) $(srcdir)/execrc runtest"
 all: all-am
 
 .SUFFIXES:

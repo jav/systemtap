@@ -18,6 +18,9 @@ is expected, put "NNNN" (for decimal) or "XXXX" (for hex). Or you can
 just write regular expressions. The "NNNN" and "XXXX" are just shorthand to
 aid readability and are converted to regular expressions in test.tcl.
 
+Normally opening and closing parentheses ('(' and ')') get quoted.  If
+you want unquoted parentheses, use '[[[[' (for '(') or ']]]]' (for ')').
+
 3. Somewhere is your test program puts a comment line like this:
 /* COVERAGE: syscall1 syscall2 ... */
 where you list the systemcalls that are tested.  Then you can run 

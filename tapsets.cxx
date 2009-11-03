@@ -228,8 +228,8 @@ common_probe_entryfn_epilogue (translator_output* o,
 
   // Check for excessive skip counts.
   o->newline() << "if (unlikely (atomic_read (& skipped_count) > MAXSKIPPED)) {";
-  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_exit ();";
+  o->newline(1) << "if (unlikely (atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
+  o->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
   o->newline(-1) << "}";
 
   o->newline() << "#if INTERRUPTIBLE";
@@ -326,6 +326,7 @@ function_spec_type
 
 
 struct dwarf_builder;
+struct dwarf_var_expanding_visitor;
 
 
 // XXX: This class is a candidate for subclassing to separate
@@ -377,7 +378,7 @@ protected:
 
 private:
   string args;
-  void saveargs(dwarf_query& q, Dwarf_Die* scope_die);
+  void saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v);
 };
 
 
@@ -2317,6 +2318,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // quietly.
 	  provide (e);
 	  semantic_error* saveme = new semantic_error (er); // copy it
+          if (! saveme->tok1) { saveme->tok1 = e->tok; } // fill in token if needed
 	  // NB: we can have multiple errors, since a $target variable
 	  // may be expanded in several different contexts:
 	  //     function ("*") { $var }
@@ -2812,12 +2814,13 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
           q.has_call = false;
           q.base_probe->body = old_body;
         }
+      // Save the local variables for listing mode
+      if (q.sess.listing_mode_vars)
+         saveargs(q, scope_die, v);
     }
   // else - null scope_die - $target variables will produce an error during translate phase
 
-  // Save the local variables for listing mode
-  if (q.sess.listing_mode_vars)
-    saveargs(q, scope_die);
+  // PR10820: null scope die, local variables aren't accessible, not necessary to invoke saveargs
 
   // Reset the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
@@ -2884,7 +2887,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
 
 void
-dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die)
+dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v)
 {
   if (null_die(scope_die))
     return;
@@ -2922,7 +2925,18 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die)
             !dwarf_type_name(&type_die, type_name))
           continue;
 
-        argstream << " $" << arg_name << ":" << type_name;
+        /* trick from visit_target_symbol_context */
+        target_symbol *tsym = new target_symbol;
+        token *t = new token;
+        tsym->tok = t;
+        tsym->base_name = "$";
+        tsym->base_name += arg_name;
+
+        /* Ignore any variable that isn't accessible */
+        tsym->saved_conversion_error = 0;
+        v.require (tsym);
+        if (!tsym->saved_conversion_error)
+           argstream << " $" << arg_name << ":" << type_name;
       }
     while (dwarf_siblingof (&arg, &arg) == 0);
 
@@ -3033,7 +3047,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   s.op->newline() << "#ifndef KRETACTIVE";
-  s.op->newline() << "#define KRETACTIVE (max(15,6*NR_CPUS))";
+  s.op->newline() << "#define KRETACTIVE (max(15,6*(int)num_possible_cpus()))";
   s.op->newline() << "#endif";
 
   // Forward declare the master entry functions
@@ -4432,11 +4446,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "static const struct stap_uprobe_spec {"; // NB: read-only structure
   s.op->newline(1) << "unsigned tfi;"; // index into stap_uprobe_finders[]
+  s.op->newline() << "unsigned return_p:1;";
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
   s.op->newline() << "unsigned long sdt_sem_address;";
-  s.op->newline() << "unsigned return_p:1;";
   s.op->newline(-1) << "} stap_uprobe_specs [] = {"; // NB: read-only structure
   s.op->indent(1);
   for (unsigned i =0; i<probes.size(); i++)
@@ -4620,8 +4634,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#endif";
   // NB: duplicates common_entryfn_epilogue, but then this is not a probe entry fn epilogue.
   s.op->newline() << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
-  s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  s.op->newline() << "_stp_exit ();";
+  s.op->newline(1) << "if (unlikely (atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
+  s.op->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 
@@ -5022,7 +5036,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   s.op->newline() << "#ifndef KRETACTIVE";
-  s.op->newline() << "#define KRETACTIVE (max(15,6*NR_CPUS))";
+  s.op->newline() << "#define KRETACTIVE (max(15,6*(int)num_possible_cpus()))";
   s.op->newline() << "#endif";
 
   // Forward declare the master entry functions

@@ -114,7 +114,7 @@ int init_staprun(void);
 int init_stapio(void);
 int stp_main_loop(void);
 int send_request(int type, void *data, int len);
-void cleanup_and_exit (int);
+void cleanup_and_exit (int, int);
 int init_ctl_channel(const char *name, int verb);
 void close_ctl_channel(void);
 int init_relayfs(void);

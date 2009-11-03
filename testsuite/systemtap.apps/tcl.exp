@@ -1,0 +1,67 @@
+set test "tcl"
+
+# Test sdt support in tcl.
+
+global env
+
+if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
+    ! [string match "tcl" $env(SYSTEMTAP_TESTAPPS)] &&
+    ! [string match "all" $env(SYSTEMTAP_TESTAPPS)])} {
+    untested "$test sdt app"
+    return
+}
+
+########## Create /tmp/stap-tcl.stp ########## 
+set tclreleasemajor "8.6"
+set tclrelease "8.6b1"
+set tcldir "[pwd]/tcl/install/"
+set testsuite "[pwd]"
+
+verbose -log "Building tcl"
+set test "tcl${tclreleasemajor} build"
+set rc [catch {exec sh $srcdir/$subdir/stap-tcl.sh 2>@ stdout} out]
+if {$rc != 0} {
+    clone_output $out
+    fail $test
+    return
+} else {
+    pass $test
+}
+
+set test "stap-tcl.stp compilation"
+set rc [catch {exec stap -DMAXSKIPPED=8024 -t -p4 $srcdir/$subdir/stap-tcl.stp tcl/install/lib/libtcl${tclreleasemajor}.so} out]
+clone_output $out
+if {$rc != 0} {
+    fail $test
+    return
+} else {
+    pass $test
+}
+
+set test "stap-tcl.stp execution"
+if {![installtest_p]} {
+    untested $test
+    return
+}
+
+set ok 0
+set ko 0
+set lines 0
+spawn stap -DMAXSKIPPED=8024 -t -c "tcl/install/bin/tclsh${tclreleasemajor} tcl/src/tests/all.tcl > tcl-test.out" $srcdir/$subdir/stap-tcl.stp tcl/install/lib/libtcl${tclreleasemajor}.so
+expect {
+    -timeout 1000
+    -re {^OK [^\r\n]*[\r\n]} { incr ok; exp_continue }
+    -re {^KO [^\r\n]*[\r\n]} { incr ko; exp_continue }
+    -re {^ERROR[^\r\n]*[\r\n]} { incr ko; exp_continue }
+    -re {^[^\r\n]*[\r\n]} { incr lines; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+
+if {$ok == 14 && $ko == 0} {
+    pass "$test ($ok $ko $lines)"
+} else {
+    fail "$test ($ok $ko $lines)"
+}
+

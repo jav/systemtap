@@ -244,7 +244,7 @@ $mysqldir/bin/mysql_install_db --basedir=$mysqldir --datadir=$msdata
 (cd $mysqldir/mysql-test
 # wait until mysql is running
 MOD=stapsdt_\$(date +%j%k%M%N | sed 's/ //')
-/usr/local/bin/stap -m \$MOD -c \"$mysqldir/libexec/mysqld --basedir=$mysqldir --datadir=$msdata --log-error=$msdata/mysql.log --pid-file=$msdata/mysql.pid  --socket=$msdata/mysql.sock\" $testsuite/stap-mysql.stp $mysqldir/libexec/mysqld >$testsuite/stap-mysql-markers.log 2>&1 &
+$env(SYSTEMTAP_PATH)/stap -m \$MOD -c \"$mysqldir/libexec/mysqld --basedir=$mysqldir --datadir=$msdata --log-error=$msdata/mysql.log --pid-file=$msdata/mysql.pid  --socket=$msdata/mysql.sock\" $testsuite/stap-mysql.stp $mysqldir/libexec/mysqld >$testsuite/stap-mysql-markers.log 2>&1 &
 STAPPID=\$!
 
 for i in \$(seq 0 10) ; do

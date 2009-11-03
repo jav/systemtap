@@ -1,4 +1,4 @@
-global indent, indent_str, entry
+global indent, indent_str, entry_p
 
 probe begin {
 	indent = 0
@@ -13,22 +13,22 @@ probe begin {
 
 probe syscall.* ? {
 	if (pid() == target()) {
-		if (entry) printf("\n")
+		if (entry_p) printf("\n")
 		printf("%s%s: %s (%s) = ", indent_str[indent], execname(), name, argstr)
 #		printf("%s%s: %s (%s) = ", indent_str[indent], execname(), probefunc(), argstr)
 		indent++
-		entry = 1
+		entry_p = 1
 	}
 }
 
 probe syscall.*.return ? {
 	if (pid() == target()) {
 		if (indent) indent--
-		if (entry)
+		if (entry_p)
 			printf("%s\n", retstr)
 		else
 			printf("%s%s\n", indent_str[indent],retstr)
-		entry = 0
+		entry_p = 0
 	}
 }
 
