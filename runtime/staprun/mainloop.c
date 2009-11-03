@@ -486,7 +486,7 @@ int stp_main_loop(void)
   char recvbuf[8196];
   int error_detected = 0;
 
-  setvbuf(ofp, (char *)NULL, _IOLBF, 0);
+  setvbuf(ofp, (char *)NULL, _IONBF, 0);
   setup_main_signals();
   dbug(2, "in main loop\n");
 
