@@ -1,5 +1,10 @@
 * What's new
 
+- The stap-server initscript is available. This initscript allows you to
+  start systemtap compile servers as a system service and to manage
+  these servers as a group or individually.
+  See initscript/README.stap-server for details.
+
 - Any output line that starts with "ERROR", as in error("foo"), will
   promote a "Pass 5: run failed", and the return code is 1.
 
