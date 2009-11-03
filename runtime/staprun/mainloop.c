@@ -38,7 +38,7 @@ static void *signal_thread(void *arg)
     }
     dbug(2, "sigproc %d (%s)\n", signum, strsignal(signum));
     if (signum == SIGQUIT)
-      cleanup_and_exit(1);
+      cleanup_and_exit(1, 0);
     else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM) {
       // send STP_EXIT
       rc = write(control_channel, &btype, sizeof(btype));
@@ -383,7 +383,7 @@ int init_stapio(void)
 
 /* cleanup_and_exit() closed channels, frees memory,
  * removes the module (if necessary) and exits. */
-void cleanup_and_exit(int detach)
+void cleanup_and_exit(int detach, int rc)
 {
   static int exiting = 0;
   const char *staprun;
@@ -467,7 +467,7 @@ void cleanup_and_exit(int detach)
   }
   
   if (WIFEXITED(rstatus)) {
-          _exit(WEXITSTATUS(rstatus)); /* only possibility for rc=0 exit */
+          _exit(rc ?: WEXITSTATUS(rstatus));
   }
   _exit(-1);
 }
@@ -484,6 +484,7 @@ int stp_main_loop(void)
   uint32_t type;
   FILE *ofp = stdout;
   char recvbuf[8196];
+  int error_detected = 0;
 
   setvbuf(ofp, (char *)NULL, _IOLBF, 0);
   setup_main_signals();
@@ -511,18 +512,21 @@ int stp_main_loop(void)
     case STP_REALTIME_DATA:
       if (write_realtime_data(data, nb)) {
         _perr("write error (nb=%ld)", (long)nb);
-        cleanup_and_exit(0);
+        cleanup_and_exit(0, 1);
       }
       break;
 #endif
     case STP_OOB_DATA:
       eprintf("%s", (char *)data);
+      if (strncmp(data, "ERROR:", 5) == 0){
+        error_detected = 1;
+      }
       break;
     case STP_EXIT:
       {
         /* module asks us to unload it and exit */
         dbug(2, "got STP_EXIT\n");
-        cleanup_and_exit(0);
+        cleanup_and_exit(0, error_detected);
         break;
       }
     case STP_REQUEST_EXIT:
@@ -540,7 +544,7 @@ int stp_main_loop(void)
         if (t->res < 0) {
           if (target_cmd)
             kill(target_pid, SIGKILL);
-          cleanup_and_exit(0);
+          cleanup_and_exit(0, 1);
         } else if (target_cmd) {
           dbug(1, "detaching pid %d\n", target_pid);
 #if WORKAROUND_BZ467568
@@ -555,7 +559,7 @@ int stp_main_loop(void)
               perror ("ptrace detach");
               if (target_cmd)
                 kill(target_pid, SIGKILL);
-              cleanup_and_exit(0);
+              cleanup_and_exit(0, 1);
             }
 #endif
         }
@@ -573,15 +577,15 @@ int stp_main_loop(void)
         struct _stp_msg_start ts;
         if (use_old_transport) {
           if (init_oldrelayfs() < 0)
-            cleanup_and_exit(0);
+            cleanup_and_exit(0, 1);
         } else {
           if (init_relayfs() < 0)
-            cleanup_and_exit(0);
+            cleanup_and_exit(0, 1);
         }
         ts.target = target_pid;
         send_request(STP_START, &ts, sizeof(ts));
         if (load_only)
-          cleanup_and_exit(1);
+          cleanup_and_exit(1, 0);
         break;
       }
     default:
