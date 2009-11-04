@@ -59,7 +59,7 @@ struct mark_derived_probe: public derived_probe
   void print_dupe_stamp (ostream& o);
   void emit_probe_context_vars (translator_output* o);
   void initialize_probe_context_vars (translator_output* o);
-  void printargs (std::ostream &o) const;
+  void getargs (std::set<std::string> &arg_set) const;
 
   void parse_probe_format ();
 };
@@ -465,7 +465,7 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
 }
 
 void
-mark_derived_probe::printargs(std::ostream &o) const
+mark_derived_probe::getargs(std::set<std::string> &arg_set) const
 {
   for (unsigned i = 0; i < mark_args.size(); i++)
     {
@@ -473,13 +473,13 @@ mark_derived_probe::printargs(std::ostream &o) const
       switch (mark_args[i]->stp_type)
         {
         case pe_long:
-          o << " " << localname << ":long";
+          arg_set.insert(localname+":long");
           break;
         case pe_string:
-          o << " " << localname << ":string";
+          arg_set.insert(localname+":string");
           break;
         default:
-          o << " " << localname << ":unknown";
+          arg_set.insert(localname+":unknown");
           break;
         }
     }

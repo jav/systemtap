@@ -162,8 +162,10 @@ printscript(systemtap_session& s, ostream& o)
   if (s.listing_mode)
     {
       // We go through some heroic measures to produce clean output.
-      set<string> seen;
+      // Record the alias and probe pointer as <name, set<derived_probe *> >
+      map<string,set<derived_probe *> > probe_list;
 
+      // Pre-process the probe alias
       for (unsigned i=0; i<s.probes.size(); i++)
         {
           if (pending_interrupts) return;
@@ -198,24 +200,46 @@ printscript(systemtap_session& s, ostream& o)
           // Now duplicate-eliminate.  An alias may have expanded to
           // several actual derived probe points, but we only want to
           // print the alias head name once.
-          if (seen.find (pp) == seen.end())
+          probe_list[pp].insert(p);
+        }
+
+      // print probe name and variables if there
+      for (map<string, set<derived_probe *> >::iterator it=probe_list.begin(); it!=probe_list.end(); ++it)
+        {
+          o << it->first; // probe name or alias
+
+          // Print the locals and arguments for -L mode only
+          if (s.listing_mode_vars)
             {
-              o << pp;
-              // Print the locals for -L mode only
-              if (s.listing_mode_vars)
+              map<string,unsigned> var_list; // format <"name:type",count>
+              map<string,unsigned> arg_list;
+              // traverse set<derived_probe *> to collect all locals and arguments
+              for (set<derived_probe *>::iterator ix=it->second.begin(); ix!=it->second.end(); ++ix)
                 {
+                  derived_probe* p = *ix;
+                  // collect available locals of the probe
                   for (unsigned j=0; j<p->locals.size(); j++)
                     {
-                      o << " ";
+                      stringstream tmps;
                       vardecl* v = p->locals[j];
-                      v->printsig (o);
+                      v->printsig (tmps);
+                      var_list[tmps.str()]++;
                     }
-                  // Print arguments of probe if there
-                  p->printargs(o);
+                  // collect arguments of the probe if there
+                  set<string> arg_set;
+                  p->getargs(arg_set);
+                  for (set<string>::iterator ia=arg_set.begin(); ia!=arg_set.end(); ++ia)
+                    arg_list[*ia]++;
                 }
-              o << endl;
-              seen.insert (pp);
+              // print the set-intersection only
+              for (map<string,unsigned>::iterator ir=var_list.begin(); ir!=var_list.end(); ++ir)
+                if (ir->second == it->second.size()) // print locals
+                  o << " " << ir->first;
+              for (map<string,unsigned>::iterator ir=arg_list.begin(); ir!=arg_list.end(); ++ir)
+                if (ir->second == it->second.size()) // print arguments
+                  o << " " << ir->first;
             }
+          o << endl;
         }
     }
   else
