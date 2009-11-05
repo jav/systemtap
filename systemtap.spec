@@ -303,8 +303,7 @@ exit 0
 
 %pre server
 getent group stap-server >/dev/null || groupadd -r stap-server
-getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -g stap-server -d %{_localstatedir}/lib/stap-server -r -s /sbin/nologin stap-server
-mkdir -p %{_localstatedir}/lib/stap-server
+getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -g stap-server -d %{_localstatedir}/lib/stap-server -m -r -s /sbin/nologin stap-server
 chmod 755 %{_localstatedir}/lib/stap-server
 exit 0
 
