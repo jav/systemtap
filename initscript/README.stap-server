@@ -203,7 +203,7 @@ See if the default service operates correctly.
  # service stap-server status
  # service stap-server condrestart
  # service stap-server status
- # service stap-server force-relooad
+ # service stap-server force-reload
  # service stap-server status
  # service stap-server stop
  # service stap-server status
@@ -249,7 +249,7 @@ that server alone (if it is running). For example
 -------------------------------
 5.6.1 Create Server Config Files
  Each file in /etc/stap-server/conf.d/*.conf represents a server to be started
- by default if no servers are specifued on the 'start' action. Each such
+ by default if no servers are specified on the 'start' action. Each such
  config file may set the ARCH and/or RELEASE variables which correspond to the
  -a and -r command line options respectively.
 
@@ -272,7 +272,7 @@ that server alone (if it is running). For example
 5.6.2 Restarting After Changing the Configuration
 
  To restart the service after global configuration changes and/or when default
- servcers have been added to removed:
+ servers have been added to removed:
 
  # service stap-server force-reload
 

@@ -303,7 +303,9 @@ exit 0
 
 %pre server
 getent group stap-server >/dev/null || groupadd -r stap-server
-getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -g stap-server -d %{_localstatedir}/lib/stap-server -m -r -s /sbin/nologin stap-server
+getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -g stap-server -d %{_localstatedir}/lib/stap-server -r -s /sbin/nologin stap-server
+mkdir -p %{_localstatedir}/lib/stap-server
+chmod 755 %{_localstatedir}/lib/stap-server
 exit 0
 
 %post server
@@ -376,6 +378,7 @@ exit 0
 %{_bindir}/stap-gen-cert
 %{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-signing-cert
+%{_bindir}/stap-sign-module
 %{_mandir}/man1/*
 %{_mandir}/man3/*
 

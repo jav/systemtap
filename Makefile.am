@@ -23,7 +23,7 @@ man/stapprobes.tcp.3stap man/stapprobes.udp.3stap
 # see also configure.ac
 
 bin_PROGRAMS = staprun
-bin_SCRIPTS = stap-report stap-env stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
+bin_SCRIPTS = stap-report
 oldinclude_HEADERS = includes/sys/sdt.h
 
 if BUILD_TRANSLATOR
@@ -31,12 +31,17 @@ bin_PROGRAMS += stap
 man_MANS += stap.1
 bin_SCRIPTS += dtrace
 
+if HAVE_NSS
+bin_PROGRAMS += stap-sign-module
+bin_SCRIPTS += stap-env stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
+
 if BUILD_SERVER
 man_MANS += stap-server.8 
-bin_PROGRAMS += stap-client-connect stap-server-connect stap-sign-module
+bin_PROGRAMS += stap-client-connect stap-server-connect
 bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server \
 	       stap-authorize-server-cert
+endif
 endif
 
 stap_SOURCES = main.cxx \
@@ -101,6 +106,17 @@ if HAVE_NSS
 stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
+
+if BUILD_SERVER
+install-exec-local: install-scripts
+
+PHONIES += install-scripts
+# scripts must be installed before this rule is run
+install-scripts: install-binSCRIPTS
+	for f in $(bin_SCRIPTS); do \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
+	done
+endif
 endif
 
 if BUILD_ELFUTILS
@@ -129,16 +145,6 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
-if BUILD_SERVER
-install-exec-local: install-scripts
-
-PHONIES += install-scripts
-# scripts should be installed before this rule is run
-install-scripts: install-binSCRIPTS
-	for f in $(bin_SCRIPTS); do \
-	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
-	done
-endif
 endif
 
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
@@ -175,6 +181,11 @@ pkglibexec_PROGRAMS = stapio
 CLEANFILES +=  $(pkglibexec_PROGRAMS)
 
 if BUILD_TRANSLATOR
+if HAVE_NSS
+stap_sign_module_SOURCES = modsign.cxx nsscommon.c
+stap_sign_module_CPPFLAGS = -Wall -Werror $(AM_CPPFLAGS) $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_sign_module_LDADD = -lnss3 -lnspr4
+
 if BUILD_SERVER
 stap_client_connect_SOURCES = stap-client-connect.c nsscommon.c
 stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
@@ -183,11 +194,7 @@ stap_client_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 stap_server_connect_SOURCES = stap-server-connect.c nsscommon.c
 stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
-
-stap_sign_module_SOURCES = modsign.cxx nsscommon.c
-stap_sign_module_CPPFLAGS = -Wall -Werror $(AM_CPPFLAGS) $(nss_CFLAGS) $(nspr_CFLAGS)
-
-stap_sign_module_LDADD = -lnss3 -lnspr4
+endif
 endif
 
 noinst_PROGRAMS = loc2c-test

@@ -129,14 +129,12 @@ static int enable_uprobes(void)
 	if (run_as(0, 0, 0, argv[0], argv) == 0)
 		return 0;
 
+	/* This module may be signed, so use insert_module to load it.  */
 	snprintf (runtimeko, sizeof(runtimeko), "%s/uprobes/uprobes.ko",
 		  (getenv("SYSTEMTAP_RUNTIME") ?: PKGDATADIR "/runtime"));
 	dbug(2, "Inserting uprobes module from SystemTap runtime %s.\n", runtimeko);
-	i = 0;
-	argv[i++] = "/sbin/insmod";
-	argv[i++] = runtimeko;
-	argv[i] = NULL;
-	if (run_as(0, 0, 0, argv[0], argv) == 0)
+	argv[0] = NULL;
+	if (insert_module(runtimeko, NULL, argv) == 0)
 		return 0;
 
 	return 1; /* failure */
