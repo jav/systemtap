@@ -356,7 +356,7 @@ struct dwarf_derived_probe: public derived_probe
   void printsig (std::ostream &o) const;
   virtual void join_group (systemtap_session& s);
   void emit_probe_local_init(translator_output * o);
-  void printargs(std::ostream &o) const;
+  void getargs(std::set<std::string> &arg_set) const;
 
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
@@ -377,7 +377,7 @@ protected:
   {}
 
 private:
-  string args;
+  set<string> args;
   void saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v);
 };
 
@@ -2899,7 +2899,7 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
   if (has_return &&
       dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
       dwarf_type_name(&type_die, type_name))
-    argstream << " $return:" << type_name;
+    args.insert("$return:"+type_name);
 
   Dwarf_Die arg;
   vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
@@ -2936,18 +2936,16 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
         tsym->saved_conversion_error = 0;
         v.require (tsym);
         if (!tsym->saved_conversion_error)
-           argstream << " $" << arg_name << ":" << type_name;
+           args.insert("$"+string(arg_name)+":"+type_name);
       }
     while (dwarf_siblingof (&arg, &arg) == 0);
-
-  args = argstream.str();
 }
 
 
 void
-dwarf_derived_probe::printargs(std::ostream &o) const
+dwarf_derived_probe::getargs(std::set<std::string> &arg_set) const
 {
-  o << args;
+  arg_set.insert(args.begin(), args.end());
 }
 
 
@@ -5408,7 +5406,7 @@ struct tracepoint_derived_probe: public derived_probe
   vector <struct tracepoint_arg> args;
 
   void build_args(dwflpp& dw, Dwarf_Die& func_die);
-  void printargs (std::ostream &o) const;
+  void getargs (std::set<std::string> &arg_set) const;
   void join_group (systemtap_session& s);
   void print_dupe_stamp(ostream& o);
   void emit_probe_context_vars (translator_output* o);
@@ -5786,11 +5784,11 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
 }
 
 void
-tracepoint_derived_probe::printargs(std::ostream &o) const
+tracepoint_derived_probe::getargs(std::set<std::string> &arg_set) const
 {
   for (unsigned i = 0; i < args.size(); ++i)
     if (args[i].usable)
-      o << " $" << args[i].name << ":" << args[i].c_type;
+      arg_set.insert("$"+args[i].name+":"+args[i].c_type);
 }
 
 void
