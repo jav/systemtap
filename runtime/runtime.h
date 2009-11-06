@@ -179,6 +179,17 @@ void cleanup_module(void)
   _stp_transport_close();
 }
 
+#define pseudo_atomic_cmpxchg(v, old, new) ({\
+	int ret;\
+	unsigned long flags;\
+	local_irq_save(flags);\
+	ret = atomic_read(v);\
+	if (likely(ret == old))\
+		atomic_set(v, new);\
+	local_irq_restore(flags);\
+	ret; })
+
+
 MODULE_LICENSE("GPL");
 
 #endif /* _RUNTIME_H_ */
