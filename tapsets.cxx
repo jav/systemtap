@@ -2928,6 +2928,14 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
         /* trick from visit_target_symbol_context */
         target_symbol *tsym = new target_symbol;
         token *t = new token;
+        /* We hypothesize accessing the argument
+         * The source_loc will be base_loc since no real one  */
+        t->content = "$";
+        t->content += arg_name;
+        t->type = tok_identifier;
+        t->location.file = q.base_loc->tok->location.file;
+        t->location.column = q.base_loc->tok->location.column;
+        t->location.line = q.base_loc->tok->location.line;
         tsym->tok = t;
         tsym->base_name = "$";
         tsym->base_name += arg_name;
