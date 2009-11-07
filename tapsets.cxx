@@ -2901,6 +2901,12 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
       dwarf_type_name(&type_die, type_name))
     args.insert("$return:"+type_name);
 
+  /* Pretend that we aren't in a .return for a moment, just so we can check
+   * whether variables are accessible.  We don't want to all the entry-saving
+   * code generated during listing mode. */
+  bool saved_has_return = has_return;
+  q.has_return = has_return = false;
+
   Dwarf_Die arg;
   vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
   if (dwarf_child (&scopes[0], &arg) == 0)
@@ -2927,16 +2933,7 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
 
         /* trick from visit_target_symbol_context */
         target_symbol *tsym = new target_symbol;
-        token *t = new token;
-        /* We hypothesize accessing the argument
-         * The source_loc will be base_loc since no real one  */
-        t->content = "$";
-        t->content += arg_name;
-        t->type = tok_identifier;
-        t->location.file = q.base_loc->tok->location.file;
-        t->location.column = q.base_loc->tok->location.column;
-        t->location.line = q.base_loc->tok->location.line;
-        tsym->tok = t;
+        tsym->tok = q.base_loc->tok;
         tsym->base_name = "$";
         tsym->base_name += arg_name;
 
@@ -2947,6 +2944,9 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
            args.insert("$"+string(arg_name)+":"+type_name);
       }
     while (dwarf_siblingof (&arg, &arg) == 0);
+
+  /* restore the .return status of the probe */
+  q.has_return = has_return = saved_has_return;
 }
 
 
