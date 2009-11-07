@@ -2901,9 +2901,13 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
       dwarf_type_name(&type_die, type_name))
     args.insert("$return:"+type_name);
 
-  /* Pretend that we aren't in a .return for a moment, just so we can check
-   * whether variables are accessible.  We don't want to all the entry-saving
-   * code generated during listing mode. */
+  /* Pretend that we aren't in a .return for a moment, just so we can
+   * check whether variables are accessible.  We don't want to all the
+   * entry-saving code generated during listing mode.  This works
+   * because the set of $context variables available in a .return
+   * probe (apart from $return) is the same set as available for the
+   * corresponding .call probe, since we collect those variables at
+   * .call time. */
   bool saved_has_return = has_return;
   q.has_return = has_return = false;
 
