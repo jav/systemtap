@@ -131,8 +131,28 @@ time_t read_backlog(int cpu, int fnum);
 /* staprun_funcs.c */
 void setup_staprun_signals(void);
 const char *moderror(int err);
+
+/* insert_module helper functions.  */
+typedef void (*assert_permissions_func) (
+  const char *module_path __attribute__ ((unused)),
+  const void *module_data __attribute__ ((unused)),
+  off_t module_size __attribute__ ((unused))
+);
+
+void assert_stap_module_permissions (
+  const char *module_path __attribute__ ((unused)),
+  const void *module_data __attribute__ ((unused)),
+  off_t module_size __attribute__ ((unused))
+);
+
+void assert_uprobes_module_permissions (
+  const char *module_path __attribute__ ((unused)),
+  const void *module_data __attribute__ ((unused)),
+  off_t module_size __attribute__ ((unused))
+);
 int insert_module(const char *path, const char *special_options,
-	char **options);
+		  char **options, assert_permissions_func apf);
+
 int mountfs(void);
 void start_symbol_thread(void);
 void stop_symbol_thread(void);

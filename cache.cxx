@@ -68,6 +68,9 @@ add_to_cache(systemtap_session& s)
       s.use_cache = false;
       return;
     }
+  // Copy the signature file, if any. It is not an error if this fails.
+  if (file_exists (module_src_path + ".sgn"))
+    copy_file(module_src_path + ".sgn", s.hash_path + ".sgn", verbose);
 
   string c_dest_path = s.hash_path;
   if (c_dest_path.rfind(".ko") == (c_dest_path.size() - 3))
@@ -155,6 +158,10 @@ get_from_cache(systemtap_session& s)
 	  close(fd_c);
 	  return false;
 	}
+      // Copy the module signature file, if any.
+      // It is not an error if this fails.
+      if (file_exists (s.hash_path + ".sgn"))
+	copy_file(s.hash_path + ".sgn", module_dest_path + ".sgn");
     }
 
   // We're done with these file handles.

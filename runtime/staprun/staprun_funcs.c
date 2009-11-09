@@ -23,7 +23,6 @@
 #include <assert.h>
 
 extern long init_module(void *, unsigned long, const char *);
-static void assert_permissions(const void *, off_t);
 
 /* Module errors get translated. */
 const char *moderror(int err)
@@ -42,8 +41,12 @@ const char *moderror(int err)
 	}
 }
 
-int insert_module(const char *path, const char *special_options, char **options)
-{
+int insert_module(
+  const char *path,
+  const char *special_options,
+  char **options,
+  assert_permissions_func assert_permissions
+) {
 	int i;
 	long ret;
 	void *file;
@@ -74,23 +77,23 @@ int insert_module(const char *path, const char *special_options, char **options)
 	dbug(2, "module options: %s\n", opts);
 
 	/* Use realpath() to canonicalize the module path. */
-	if (realpath(modpath, module_realpath) == NULL) {
-		perr("Unable to canonicalize path \"%s\"", modpath);
+	if (realpath(path, module_realpath) == NULL) {
+		perr("Unable to canonicalize path \"%s\"", path);
 		return -1;
 	}
 
-        /* Overwrite the modpath with the canonicalized one, to defeat
+        /* Overwrite the path with the canonicalized one, to defeat
            a possible race between path and signature checking below and,
 	   somewhat later, module loading. */
-        modpath = strdup (module_realpath);
-        if (modpath == NULL) {
+        path = strdup (module_realpath);
+        if (path == NULL) {
 		_perr("allocating memory failed");
                 exit (1);
         }
 
 	/* Open the module file. Work with the open file descriptor from this
 	   point on to avoid TOCTOU problems. */
-	fd = open(modpath, O_RDONLY);
+	fd = open(path, O_RDONLY);
 	if (fd < 0) {
 		perr("Error opening '%s'", path);
 		return -1;
@@ -114,8 +117,7 @@ int insert_module(const char *path, const char *special_options, char **options)
 
 	/* Check whether this module can be loaded by the current user.
 	 * check_permissions will exit(-1) if permissions are insufficient*/
-	assert_permissions (file, sbuf.st_size);
-
+	assert_permissions (path, file, sbuf.st_size);
 
 	STAP_PROBE1(staprun, insert__module, path);
 	/* Actually insert the module */
@@ -239,20 +241,20 @@ int mountfs(void)
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
 static int
-check_signature(const void *module_data, off_t module_size)
+check_signature(const char *path, const void *module_data, off_t module_size)
 {
   char signature_realpath[PATH_MAX];
   int rc;
 
-  dbug(2, "checking signature for %s\n", modpath);
+  dbug(2, "checking signature for %s\n", path);
 
   /* Add the .sgn suffix to the canonicalized module path to get the signature
      file path.  */
-  if (strlen (modpath) >= PATH_MAX - 4) {
-    err("Path \"%s.sgn\" is too long.", modpath);
+  if (strlen (path) >= PATH_MAX - 4) {
+    err("Path \"%s.sgn\" is too long.", path);
     return -1;
   }
-  sprintf (signature_realpath, "%s.sgn", modpath);
+  sprintf (signature_realpath, "%s.sgn", path);
 
   rc = verify_module (signature_realpath, module_data, module_size);
 
@@ -270,7 +272,7 @@ check_signature(const void *module_data, off_t module_size)
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
 static int
-check_path(void)
+check_path(const char *module_path)
 {
 	char staplib_dir_path[PATH_MAX];
 	char staplib_dir_realpath[PATH_MAX];
@@ -330,18 +332,18 @@ check_path(void)
 	if (strlen(staplib_dir_realpath) < (PATH_MAX - 1))
 		strcat(staplib_dir_realpath, "/");
 	else {
-		err("Path \"%s\" is too long.", modpath);
+		err("Path \"%s\" is too long.", staplib_dir_realpath);
 		return -1;
 	}
 
 	/* Now we've got two canonicalized paths.  Make sure
-	 * modpath starts with staplib_dir_realpath. */
-	if (strncmp(staplib_dir_realpath, modpath,
+	 * path starts with staplib_dir_realpath. */
+	if (strncmp(staplib_dir_realpath, module_path,
 		    strlen(staplib_dir_realpath)) != 0) {
 		err("ERROR: Members of the \"stapusr\" group can only use modules within\n"
 		    "  the \"%s\" directory.\n"
 		    "  Module \"%s\" does not exist within that directory.\n",
-		    staplib_dir_path, modpath);
+		    staplib_dir_path, module_path);
 		return 0;
 	}
 	return 1;
@@ -359,7 +361,7 @@ check_path(void)
  *           1 on success
  */
 static int
-check_groups (void)
+check_groups (const char *module_path)
 {
 	gid_t gid, gidlist[NGROUPS_MAX];
 	gid_t stapdev_gid, stapusr_gid;
@@ -430,7 +432,7 @@ check_groups (void)
 	 * group.  Members of the 'stapusr' group can only use modules
 	 * in /lib/modules/KVER/systemtap.  Make sure the module path
 	 * is in that directory. */
-	return check_path();
+	return check_path (module_path);
 }
 
 /*
@@ -445,10 +447,9 @@ check_groups (void)
  * 4) anyone can load a module which has been signed by a trusted signer
  *
  * It is only an error if all 4 levels of checking fail
- *
- * Returns: -1 on errors, 0 on failure, 1 on success.
  */
-void assert_permissions(
+void assert_stap_module_permissions(
+  const char *module_path __attribute__ ((unused)),
   const void *module_data __attribute__ ((unused)),
   off_t module_size __attribute__ ((unused))
 ) {
@@ -457,7 +458,7 @@ void assert_permissions(
 #if HAVE_NSS
 	/* Attempt to verify the module against its signature. Return failure
 	   if the module has been tampered with (altered).  */
-	int check_signature_rc = check_signature (module_data, module_size);
+	int check_signature_rc = check_signature (module_path, module_data, module_size);
 	if (check_signature_rc == MODULE_ALTERED)
 		exit(-1);
 #endif
@@ -480,7 +481,7 @@ void assert_permissions(
 	}
 
 	/* Check permissions for group membership.  */
-	check_groups_rc = check_groups ();
+	check_groups_rc = check_groups (module_path);
 	if (check_groups_rc == 1)
 		return;
 
@@ -507,6 +508,32 @@ void assert_permissions(
 	    "For more information, please consult the \"SAFETY AND SECURITY\" section of the \"stap(1)\" manpage\n");
 #endif
 
-	/* Combine the return codes.  They are either 0 or -1. */
 	exit(-1);
+}
+
+/*
+ * For the uprobes.ko module, if we have NSS, then
+ * check the signature. Otherwise go ahead and load it.
+ */
+void assert_uprobes_module_permissions(
+  const char *module_path __attribute__ ((unused)),
+  const void *module_data __attribute__ ((unused)),
+  off_t module_size __attribute__ ((unused))
+) {
+#if HAVE_NSS
+	/* Attempt to verify the module against its signature. Return failure
+	   if the module has been tampered with (altered).  */
+	int rc = check_signature (module_path, module_data, module_size);
+	if (rc == MODULE_ALTERED)
+		exit(-1);
+	if (rc == MODULE_OK)
+		return;
+	assert (rc == MODULE_UNTRUSTED || rc == MODULE_CHECK_ERROR);
+	err("Signature verification failed for module %s.\n", module_path);
+	if (rc == MODULE_UNTRUSTED) {
+		err("Run '" BINDIR "/stap-sign-module %s' as root and/or\n", module_path);
+		err("run '" BINDIR "/stap-authorize-signing-cert %s' as root\n",
+		    SYSCONFDIR "/systemtap/ssl/server/stap.cert");
+	}
+#endif
 }

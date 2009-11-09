@@ -358,6 +358,9 @@ struct dwarf_derived_probe: public derived_probe
   void emit_probe_local_init(translator_output * o);
   void getargs(std::set<std::string> &arg_set) const;
 
+  void emit_unprivileged_assertion (translator_output*);
+  void print_dupe_stamp(ostream& o);
+
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw);
@@ -672,6 +675,11 @@ struct dwarf_builder: public derived_probe_builder
 		     probe_point * location,
 		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results);
+
+  // No action required. These probes are allowed for unprivileged users.
+  // as process owners.
+  virtual void check_unprivileged (const systemtap_session & sess,
+				   const literal_map_t & parameters) {}
 };
 
 
@@ -2307,6 +2315,8 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
       if (! lvalue)
         ec->code += "/* pure */";
+
+      ec->code += "/* unprivileged */";
     }
   catch (const semantic_error& er)
     {
@@ -2946,6 +2956,24 @@ void
 dwarf_derived_probe::getargs(std::set<std::string> &arg_set) const
 {
   arg_set.insert(args.begin(), args.end());
+}
+
+
+void
+dwarf_derived_probe::emit_unprivileged_assertion (translator_output* o)
+{
+  // These probes are allowed for unprivileged users, but only in the
+  // context of processes which they own.
+  emit_process_owner_assertion (o);
+}
+
+
+void
+dwarf_derived_probe::print_dupe_stamp(ostream& o)
+{
+  // These probes are allowed for unprivileged users, but only in the
+  // context of processes which they own.
+  print_dupe_stamp_unprivileged_process_owner (o);
 }
 
 
@@ -5568,6 +5596,8 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
         }
       else
         ec->code += "/* pure */";
+
+      ec->code += "/* unprivileged */";
 
       dw.sess.functions[fdecl->name] = fdecl;
 
