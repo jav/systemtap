@@ -228,7 +228,7 @@ common_probe_entryfn_epilogue (translator_output* o,
 
   // Check for excessive skip counts.
   o->newline() << "if (unlikely (atomic_read (& skipped_count) > MAXSKIPPED)) {";
-  o->newline(1) << "if (unlikely (atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
+  o->newline(1) << "if (unlikely (pseudo_atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
   o->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
   o->newline(-1) << "}";
 
@@ -2911,6 +2911,16 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
       dwarf_type_name(&type_die, type_name))
     args.insert("$return:"+type_name);
 
+  /* Pretend that we aren't in a .return for a moment, just so we can
+   * check whether variables are accessible.  We don't want any of the
+   * entry-saving code generated during listing mode.  This works
+   * because the set of $context variables available in a .return
+   * probe (apart from $return) is the same set as available for the
+   * corresponding .call probe, since we collect those variables at
+   * .call time. */
+  bool saved_has_return = has_return;
+  q.has_return = has_return = false;
+
   Dwarf_Die arg;
   vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
   if (dwarf_child (&scopes[0], &arg) == 0)
@@ -2937,8 +2947,7 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
 
         /* trick from visit_target_symbol_context */
         target_symbol *tsym = new target_symbol;
-        token *t = new token;
-        tsym->tok = t;
+        tsym->tok = q.base_loc->tok;
         tsym->base_name = "$";
         tsym->base_name += arg_name;
 
@@ -2949,6 +2958,9 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
            args.insert("$"+string(arg_name)+":"+type_name);
       }
     while (dwarf_siblingof (&arg, &arg) == 0);
+
+  /* restore the .return status of the probe */
+  q.has_return = has_return = saved_has_return;
 }
 
 
@@ -4660,7 +4672,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#endif";
   // NB: duplicates common_entryfn_epilogue, but then this is not a probe entry fn epilogue.
   s.op->newline() << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
-  s.op->newline(1) << "if (unlikely (atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
+  s.op->newline(1) << "if (unlikely (pseudo_atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
   s.op->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
