@@ -1,0 +1,172 @@
+/*
+ *      Copyright (C) 2009 IBM Corp.
+ *      This file is part of systemtap, and is free software.  You can
+ *      redistribute it and/or modify it under the terms of the GNU General
+ *      Public License (GPL); either version 2, or (at your option) any
+ *      later version.
+ *
+ *      Version 1.0     prerna@linux.vnet.ibm.com     2009-10-28
+ *
+ * Tracepoint based tapset for IRQs, Workqueues, etc
+ *
+ */
+// Probes for workqueues.
+
+/**
+ * probe workqueue.create : probes creation of a new workqueue
+ * @wq_thread : task_struct of the workqueue thread.
+ * @cpu	  : cpu for which the worker thread is created.
+ */
+probe workqueue.create = kernel.trace("workqueue_creation")
+{
+	wq_thread = $wq_thread
+	cpu = $cpu
+}
+
+/**
+ * probe workqueue.insert : probes queuing of work on a workqueue
+ * @wq_thread : task_struct of the workqueue thread.
+ * @work : work_struct* being queued.
+ * @work_func :	pointer to handler func.
+ */
+probe workqueue.insert = kernel.trace("workqueue_insertion")
+{
+	wq_thread = $wq_thread
+	work = $work
+	work_func = $work->func
+}
+
+/**
+ * probe workqueue.execute : probes execution of deferred work.
+ * @wq_thread :	task_struct of the workqueue thread.
+ * @work : work_struct* being executed.
+ * @work_func :	pointer to handler func.
+ */
+probe workqueue.execute = kernel.trace("workqueue_execution")
+{
+	wq_thread = $wq_thread
+	work = $work
+	work_func = $work->func
+}
+
+/**
+ * probe workqueue.destroy : probes destruction of each worker thread of each cpu for a workqueue.
+ * @wq_thread : task_struct of the workqueue thread.
+ */
+probe workqueue.destroy = kernel.trace("workqueue_destruction")
+{
+	wq_thread = $wq_thread
+}
+
+// Probes for IRQ handlers.
+
+/**
+ * probe irq_handler.entry : Fires prior to execution of interrupt handler.
+ * @irq	: irq number.
+ * @action : struct irqaction* for this interrupt num.
+ * @handler : interrupt handler function.
+ * @flags : Flags for IRQ handler
+ *			IRQF_DISABLED [0x00000020]	: keep irqs disabled when calling action handler.
+ *			IRQF_SAMPLE_RANDOM [0x00000040]	: irq is used to feed the random generator
+ *			IRQF_SHARED [0x00000080]	: allow sharing the irq among several devices
+ *			IRQF_PROBE_SHARED [0x00000100]	: set by callers when they expect sharing mismatches to occur
+ *			IRQF_TIMER [0x00000200]		: Flag to mark this interrupt as timer interrupt
+ *			IRQF_PERCPU [0x00000400]	: Interrupt is per cpu.
+ *			IRQF_NOBALANCING [0x00000800]	: Flag to exclude this interrupt from irq balancing
+ *			IRQF_IRQPOLL [0x00001000]	: Interrupt is used for polling.
+ *			IRQF_ONESHOT [0x00002000]	: Interrupt is not reenabled after the hardirq handler finished.
+ * @flags_str : symbolic string representation of IRQ flags.
+ * @dev_name : name of device.
+ * @dev_id : Cookie to identify device.
+ * @next_irqaction : pointer to next irqaction for shared interrupts.
+ * @dir	: pointer to the proc/irq/NN/name entry
+ * @thread_fn : interupt handler function for threaded interrupts.
+ * @thread : thread pointer for threaded interrupts.
+ * @thread_flags : Flags related to thread.
+ */
+probe irq_handler.entry = kernel.trace("irq_handler_entry")
+{
+	irq = $irq
+	action = $action
+	handler = $action->handler
+	flags = $action->flags
+	flags_str = irqflags_str(flags)
+	dev_name = $action->name
+	dev_id = $action->dev_id
+	next_irqaction = $action->next
+	dir = $action->dir
+	thread_fn = $action->thread_fn
+	thread = $action->thread
+	thread_flags = $action->thread_flags
+}
+
+/**
+ * probe irq_handler.exit : Fires just after execution of interrupt handler.
+ * @irq : interrupt number
+ * @action : struct irqaction*
+ * @ret	: return value of the handler
+ * @handler : interrupt handler function that was executed.
+ * @flags : flags for IRQ handler
+ *			IRQF_DISABLED	[0x00000020]	: keep irqs disabled when calling action handler.
+ *			IRQF_SAMPLE_RANDOM [0x00000040]	: irq is used to feed the random generator
+ *			IRQF_SHARED [0x00000080]	: allow sharing the irq among several devices
+ *			IRQF_PROBE_SHARED [0x00000100]	: set by callers when they expect sharing mismatches to occur
+ *			IRQF_TIMER [0x00000200]		: Flag to mark this interrupt as timer interrupt
+ *			IRQF_PERCPU [0x00000400]	: Interrupt is per cpu.
+ *			IRQF_NOBALANCING [0x00000800]	: Flag to exclude this interrupt from irq balancing
+ *			IRQF_IRQPOLL [0x00001000]	: Interrupt is used for polling.
+ *			IRQF_ONESHOT [0x00002000]	: Interrupt is not reenabled after the hardirq handler finished.
+ * @flags_str : symbolic string representation of IRQ flags.
+ * @dev_name : name of device.
+ * @dev_id : Cookie to identify device.
+ * @next_irqaction : pointer to next irqaction for shared interrupts.
+ * @dir	: pointer to the proc/irq/NN/name entry
+ * @thread_fn : interupt handler function for threaded interrupts.
+ * @thread : thread pointer for threaded interrupts.
+ * @thread_flags : Flags related to thread.
+ */
+probe irq_handler.exit = kernel.trace("irq_handler_exit")
+{
+	irq = $irq
+	action = $action
+	ret = $ret
+	handler = $action->handler
+	flags = $action->flags
+	flags_str = irqflags_str(flags)
+	dev_name = $action->name
+	dev_id = $action->dev_id
+	next_irqaction = $action->next
+	dir = $action->dir
+	thread_fn = $action->thread_fn
+	thread = $action->thread
+	thread_flags = $action->thread_flags
+}
+
+// Softirq based probes.
+/**
+ * probe softirq.entry 	: triggered just before executing handler
+ *			  for a pending softirq.
+ * @h : struct softirq_action* for current pending softirq.
+ * @vec	: softirq_action vector.
+ * @action : pointer to softirq handler just about to execute.
+ */
+probe softirq.entry = kernel.trace("softirq_entry")
+{
+	h = $h
+	vec = $vec
+	action = $h->action
+}
+
+/**
+ * probe softirq.exit 	: triggered just after executing handler for a pending
+ *			  softirq.
+ * @h : struct softirq_action* for just executed softirq.
+ * @vec	: softirq_action vector.
+ * @action : pointer to softirq handler that just finished execution.
+ */
+probe softirq.exit = kernel.trace("softirq_exit")
+{
+	h = $h
+	vec = $vec
+	action = $h->action
+}

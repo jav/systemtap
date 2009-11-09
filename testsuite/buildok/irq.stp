@@ -1,0 +1,7 @@
+#! stap -p4
+
+// Tests if all probes in irq tapset are resolvable
+
+probe workqueue.* {}
+probe irq_handler.* {}
+probe softirq.* {}
