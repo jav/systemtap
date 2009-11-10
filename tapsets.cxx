@@ -2775,7 +2775,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   if (has_maxactive && (maxactive_val < 0 || maxactive_val > USHRT_MAX))
     throw semantic_error ("maxactive value out of range [0,"
                           + lex_cast(USHRT_MAX) + "]",
-                          q.base_loc->tok);
+                          q.base_loc->components.front()->tok);
 
   // Expand target variables in the probe body
   if (!null_die(scope_die))
@@ -2947,7 +2947,7 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
 
         /* trick from visit_target_symbol_context */
         target_symbol *tsym = new target_symbol;
-        tsym->tok = q.base_loc->tok;
+        tsym->tok = q.base_loc->components.front()->tok;
         tsym->base_name = "$";
         tsym->base_name += arg_name;
 

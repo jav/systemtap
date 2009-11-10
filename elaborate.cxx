@@ -372,7 +372,7 @@ match_node::find_and_build (systemtap_session& s,
 
           throw semantic_error (string("probe point truncated at position ") +
                                 lex_cast (pos) +
-                                " (follow:" + alternatives + ")", loc->tok);
+                                " (follow:" + alternatives + ")", loc->components.back()->tok);
         }
 
       map<string, literal *> param_map;
@@ -452,7 +452,7 @@ match_node::find_and_build (systemtap_session& s,
 			       lex_cast (pos) +
 			       " (alternatives:" + alternatives + ")" +
 			       " didn't find any wildcard matches",
-                               loc->tok);
+                               loc->components[pos]->tok);
 	}
     }
   else
@@ -465,10 +465,11 @@ match_node::find_and_build (systemtap_session& s,
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
             alternatives += string(" ") + i->first.str();
 
+
           throw semantic_error (string("probe point mismatch at position ") +
                                 lex_cast (pos) +
                                 " (alternatives:" + alternatives + ")",
-                                loc->tok);
+                                loc->components[pos]->tok);
         }
 
       match_node* subnode = i->second;
@@ -534,7 +535,7 @@ alias_expansion_builder
     // Don't build the alias expansion if infinite recursion is detected.
     if (checkForRecursiveExpansion (use)) {
       stringstream msg;
-      msg << "Recursive loop in alias expansion of " << *location  << " at " << location->tok->location;
+      msg << "Recursive loop in alias expansion of " << *location  << " at " << location->components.front()->tok->location;
       // semantic_errors thrown here are ignored.
       sess.print_error (semantic_error (msg.str()));
       return;
@@ -558,7 +559,7 @@ alias_expansion_builder
       }
 
     // the token location of the alias,
-    n->tok = location->tok;
+    n->tok = location->components.front()->tok;
 
     // and statements representing the concatenation of the alias'
     // body with the use's.
