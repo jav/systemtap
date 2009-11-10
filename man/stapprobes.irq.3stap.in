@@ -26,8 +26,10 @@ Probe points for probing irq handler execution, softirqs, workqueues,etc
 probes creation of a new workqueue
 
 .B Arguments:
+
 .I wq_thread
    task_struct of the workqueue thread.
+
 .I cpu
    cpu for which the worker thread is created.
 
@@ -37,10 +39,13 @@ probes creation of a new workqueue
 probes queuing of work on a workqueue.
 
 .B Arguments:
+
 .I wq_thread
    task_struct of the workqueue thread.
+
 .I work
    work_struct* being executed.
+
 .I work_func
    pointer to handler func.
 
@@ -50,10 +55,13 @@ probes queuing of work on a workqueue.
 probes execution of deferred work.
 
 .B Arguments:
+
 .I wq_thread
    task_struct of the workqueue thread.
+
 .I work
    work_struct* being executed.
+
 .I work_func
    pointer to handler func.
 
@@ -63,6 +71,7 @@ probes execution of deferred work.
 probes destruction of each worker thread of each cpu for a workqueue.
 
 .B Arguments:
+
 .I wq_thread
   task_struct of the workqueue thread.
 
@@ -70,29 +79,42 @@ probes destruction of each worker thread of each cpu for a workqueue.
 .TP
 .B irq_handler.entry
 Fires prior to execution of interrupt handler.
+
 .B Arguments:
+
 .I irq
    irq number
+
 .I action
    struct irqaction* for this interrupt number
+
 .I handler
    interrupt handler function
+
 .I flags
    flags for this irq.
+
 .I flags_str
    A formatted string of flags.
+
 .I dev_name
    name of device
+
 .I dev_id
    cookie to identify device
+
 .I next_irqaction
    pointer to next irqaction for shared interrupts
+
 .I dir
    pointer to the /proc/irq/NN/name entry
+
 .I thread_fn
    interrupt handler function for threaded interrupts
+
 .I thread
    thread pointer for threaded interrupts
+
 .I thread_flags
    flags related to thread
 
@@ -100,31 +122,45 @@ Fires prior to execution of interrupt handler.
 .TP
 .B irq_handler.exit
 Fires post execution of interrupt handler.
+
 .B Arguments:
+
 .I irq
    irq number
+
 .I action
    struct irqaction* for this interrupt number
+
 .I ret
    return value from interrupt handler that just executed.
+
 .I handler
    interrupt handler function
+
 .I flags
    flags for this irq.
+
 .I flags_str
    A formatted string of flags.
+
 .I dev_name
    name of device
+
 .I dev_id
    cookie to identify device
+
 .I next_irqaction
    pointer to next irqaction for shared interrupts
+
 .I dir
    pointer to the /proc/irq/NN/name entry
+
 .I thread_fn
    interrupt handler function for threaded interrupts
+
 .I thread
    thread pointer for threaded interrupts
+
 .I thread_flags
    flags related to thread
 
@@ -132,10 +168,15 @@ Fires post execution of interrupt handler.
 .TP
 .B softirq.entry
 triggered just before executing handler for a pending softirq
+
+.B Arguments:
+
 .I h
    struct softirq* for current pending softirq.
+
 .I vec
    softirq_action vector
+
 .I action
    pointer to softirq handler just about to execute.
 
@@ -143,10 +184,15 @@ triggered just before executing handler for a pending softirq
 .TP
 .B softirq.exit
 triggered just after executing handler for a pending softirq
+
+.B Arguments:
+
 .I h
    struct softirq* for just executed softirq.
+
 .I vec
    softirq_action vector
+
 .I action
    pointer to softirq handler that just finished execution.
 
