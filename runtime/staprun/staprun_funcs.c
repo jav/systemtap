@@ -82,36 +82,32 @@ int insert_module(
 		return -1;
 	}
 
-        /* Overwrite the path with the canonicalized one, to defeat
-           a possible race between path and signature checking below and,
-	   somewhat later, module loading. This path gets propogated to the
-	   helper functions called by this function and is not used for any
-	   other purpose, so it is ok to overwrite the 'path' parameter.  */
-        path = strdup (module_realpath);
-        if (path == NULL) {
-		_perr("allocating memory failed");
-                exit (1);
-        }
+        /* Use module_realpath from this point on. "Poison" 'path'
+	   by setting it to NULL so that it doesn't get used again by
+	   mistake.  */
+        path = NULL;
 
 	/* Open the module file. Work with the open file descriptor from this
 	   point on to avoid TOCTOU problems. */
-	fd = open(path, O_RDONLY);
+	fd = open(module_realpath, O_RDONLY);
 	if (fd < 0) {
-		perr("Error opening '%s'", path);
+		perr("Error opening '%s'", module_realpath);
 		return -1;
 	}
 
 	/* Now that the file is open, figure out how big it is. */
 	if (fstat(fd, &sbuf) < 0) {
-		_perr("Error stat'ing '%s'", path);
+		_perr("Error stat'ing '%s'", module_realpath);
 		close(fd);
 		return -1;
 	}
 
-	/* mmap in the entire module. */
+	/* mmap in the entire module. Work with the memory mapped data from this
+	   point on to avoid a TOCTOU race between path and signature checking
+	   below and module loading.  */
 	file = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (file == MAP_FAILED) {
-		_perr("Error mapping '%s'", path);
+		_perr("Error mapping '%s'", module_realpath);
 		close(fd);
 		free(opts);
 		return -1;
@@ -119,9 +115,9 @@ int insert_module(
 
 	/* Check whether this module can be loaded by the current user.
 	 * check_permissions will exit(-1) if permissions are insufficient*/
-	assert_permissions (path, file, sbuf.st_size);
+	assert_permissions (module_realpath, file, sbuf.st_size);
 
-	STAP_PROBE1(staprun, insert__module, path);
+	STAP_PROBE1(staprun, insert__module, (char*)module_realpath);
 	/* Actually insert the module */
 	ret = init_module(file, sbuf.st_size, opts);
 	saved_errno = errno;
@@ -132,7 +128,7 @@ int insert_module(
 	close(fd);
 
 	if (ret != 0) {
-		err("Error inserting module '%s': %s\n", path, moderror(saved_errno));
+		err("Error inserting module '%s': %s\n", module_realpath, moderror(saved_errno));
 		return -1;
 	}
 	return 0;
