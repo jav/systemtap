@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.SNMP 3stap @DATE@ "IBM"
+.TH STAPPROBES.IRQ 3stap @DATE@ "IBM"
 .SH NAME
 stapprobes.irq \- Systemtap probes for IRQ, workqueue,etc
 
