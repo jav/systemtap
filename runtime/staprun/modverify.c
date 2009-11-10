@@ -202,7 +202,7 @@ check_cert_db_permissions (const char *cert_db_path) {
 
 static int
 verify_it (const char *signatureName, const SECItem *signature,
-	   const void *module_data, off_t module_size,
+	   const char *module_name, const void *module_data, off_t module_size,
 	   const SECKEYPublicKey *pubKey)
 {
   VFYContext *vfy;
@@ -224,7 +224,7 @@ verify_it (const char *signatureName, const SECItem *signature,
   if (secStatus != SECSuccess)
     {
       fprintf (stderr, "Unable to initialize verification context while verifying %s using the signature in %s.\n",
-	       modpath, signatureName);
+	       module_name, signatureName);
       nssError ();
       return MODULE_CHECK_ERROR;
     }
@@ -234,7 +234,7 @@ verify_it (const char *signatureName, const SECItem *signature,
   if (secStatus != SECSuccess)
     {
       fprintf (stderr, "Error while verifying %s using the signature in %s.\n",
-	       modpath, signatureName);
+	       module_name, signatureName);
       nssError ();
       return MODULE_CHECK_ERROR;
     }
@@ -243,7 +243,7 @@ verify_it (const char *signatureName, const SECItem *signature,
   secStatus = VFY_End (vfy);
   if (secStatus != SECSuccess) {
     fprintf (stderr, "Unable to verify the signed module %s. It may have been altered since it was created.\n",
-	     modpath);
+	     module_name);
     nssError ();
     return MODULE_ALTERED;
   }
@@ -251,8 +251,8 @@ verify_it (const char *signatureName, const SECItem *signature,
   return MODULE_OK;
 }
 
-int verify_module (const char *signatureName, const void *module_data,
-		   off_t module_size)
+int verify_module (const char *signatureName, const char* module_name,
+		   const void *module_data, off_t module_size)
 {
   const char *dbdir  = SYSCONFDIR "/systemtap/staprun";
   SECKEYPublicKey *pubKey;
@@ -356,7 +356,8 @@ int verify_module (const char *signatureName, const void *module_data,
 	}
 
       /* Verify the file. */
-      rc = verify_it (signatureName, & signature, module_data, module_size, pubKey);
+      rc = verify_it (signatureName, & signature,
+		      module_name, module_data, module_size, pubKey);
       if (rc == MODULE_OK || rc == MODULE_ALTERED || rc == MODULE_CHECK_ERROR)
 	break; /* resolved or error */
     }

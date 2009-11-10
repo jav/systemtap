@@ -84,7 +84,9 @@ int insert_module(
 
         /* Overwrite the path with the canonicalized one, to defeat
            a possible race between path and signature checking below and,
-	   somewhat later, module loading. */
+	   somewhat later, module loading. This path gets propogated to the
+	   helper functions called by this function and is not used for any
+	   other purpose, so it is ok to overwrite the 'path' parameter.  */
         path = strdup (module_realpath);
         if (path == NULL) {
 		_perr("allocating memory failed");
@@ -256,7 +258,7 @@ check_signature(const char *path, const void *module_data, off_t module_size)
   }
   sprintf (signature_realpath, "%s.sgn", path);
 
-  rc = verify_module (signature_realpath, module_data, module_size);
+  rc = verify_module (signature_realpath, path, module_data, module_size);
 
   dbug(2, "verify_module returns %d\n", rc);
 
