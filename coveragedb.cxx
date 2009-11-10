@@ -33,7 +33,7 @@ void print_coverage_info(systemtap_session &s)
     for (unsigned j=0; j<used_probe_list.size(); ++j) {
       for (unsigned k=0; k< used_probe_list[j]->locations.size(); ++k)
         clog << "probe: "
-	     << used_probe_list[j]->locations[k]->tok->location << endl;
+	     << used_probe_list[j]->locations[k]->components.front()->tok->location << endl;
     }
 
     clog << "----" << endl;
@@ -56,7 +56,7 @@ void print_coverage_info(systemtap_session &s)
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
       for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k)
         clog << "probe: "
-	     << unused_probe_list[j]->locations[k]->tok->location << endl;
+	     << unused_probe_list[j]->locations[k]->components.front()->tok->location << endl;
     }
 
   }
@@ -202,7 +202,7 @@ sql_update_used_probes(sqlite3 *db, systemtap_session &s)
     s.probes[i]->collect_derivation_chain(used_probe_list);
     for (unsigned j=0; j<used_probe_list.size(); ++j) {
 	    for (unsigned k=0; k< used_probe_list[j]->locations.size(); ++k){
-		    struct source_loc place = used_probe_list[j]->locations[k]->tok->location;
+		    struct source_loc place = used_probe_list[j]->locations[k]->components.front()->tok->location;
 		    coverage_element x(place);
 
 		    x.type = db_type_probe;
@@ -246,7 +246,7 @@ sql_update_unused_probes(sqlite3 *db, systemtap_session &s)
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
 	    for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k) {
 
-	      struct source_loc place = unused_probe_list[j]->locations[k]->tok->location;
+	      struct source_loc place = unused_probe_list[j]->locations[k]->components.front()->tok->location;
 	      coverage_element x(place);
 
 	      x.type = db_type_probe;

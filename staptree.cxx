@@ -76,23 +76,22 @@ symboldecl::~symboldecl ()
 {
 }
 
-probe_point::probe_point (std::vector<component*> const & comps,
-			  const token * t):
-  components(comps), tok(t), optional (false), sufficient (false),
+probe_point::probe_point (std::vector<component*> const & comps):
+  components(comps), optional (false), sufficient (false),
   condition (0)
 {
 }
 
 // NB: shallow-copy of compoonents & condition!
 probe_point::probe_point (const probe_point& pp):
-  components(pp.components), tok(pp.tok), optional (pp.optional), sufficient (pp.sufficient),
+  components(pp.components), optional (pp.optional), sufficient (pp.sufficient),
   condition (pp.condition)
 {
 }
 
 
 probe_point::probe_point ():
-  tok (0), optional (false), sufficient (false), condition (0)
+  optional (false), sufficient (false), condition (0)
 {
 }
 

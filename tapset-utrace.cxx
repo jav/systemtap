@@ -379,7 +379,6 @@ utrace_var_expanding_visitor::visit_target_symbol_cached (target_symbol* e)
 	        else
 		  pp->components.push_back(base_loc->components[c]);
 	     }
-	   pp->tok = e->tok;
 	   pp->optional = base_loc->optional;
 	   add_probe->locations.push_back(pp);
 
@@ -644,7 +643,7 @@ struct utrace_builder: public derived_probe_builder
 	// We can't probe 'init' (pid 1).  XXX: where does this limitation come from?
 	if (pid < 2)
 	  throw semantic_error ("process pid must be greater than 1",
-				location->tok);
+				location->components.front()->tok);
 
         // XXX: could we use /proc/$pid/exe in unwindsym_modules and elsewhere?
       }

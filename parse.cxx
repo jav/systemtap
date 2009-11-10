@@ -1085,7 +1085,7 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
           && t->type == tok_operator && t->content == "=")
         {
           if (pp->optional || pp->sufficient)
-            throw parse_error ("probe point alias name cannot be optional nor sufficient", pp->tok);
+            throw parse_error ("probe point alias name cannot be optional nor sufficient", pp->components.front()->tok);
           aliases.push_back(pp);
           next ();
           continue;
@@ -1094,7 +1094,7 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
           && t->type == tok_operator && t->content == "+=")
         {
           if (pp->optional || pp->sufficient)
-            throw parse_error ("probe point alias name cannot be optional nor sufficient", pp->tok);
+            throw parse_error ("probe point alias name cannot be optional nor sufficient", pp->components.front()->tok);
           aliases.push_back(pp);
           epilogue_alias = 1;
           next ();
@@ -1402,10 +1402,10 @@ parser::parse_probe_point ()
 	     || t->type == tok_keyword))
         throw parse_error ("expected identifier or '*'");
 
-      if (pl->tok == 0) pl->tok = t;
 
       probe_point::component* c = new probe_point::component;
       c->functor = t->content;
+      c->tok = t;
       pl->components.push_back (c);
       // NB we may add c->arg soon
 
@@ -1430,7 +1430,7 @@ parser::parse_probe_point ()
           continue;
         }
 
-      // We only fall through here at the end of a probe point (past
+      // We only fall through here at the end of 	a probe point (past
       // all the dotted/parametrized components).
 
       if (t && t->type == tok_operator &&
