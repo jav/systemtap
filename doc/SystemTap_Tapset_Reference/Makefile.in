@@ -479,15 +479,15 @@ uninstall-am:
 @BUILD_REFDOCS_TRUE@	fi
 
 @BUILD_REFDOCS_TRUE@stamp-htmldocs: tapsets.xml
-@BUILD_REFDOCS_TRUE@	xmlto $(XMLTOHTMLPARAMS) html -o tapsets tapsets.xml
+@BUILD_REFDOCS_TRUE@	xmlto $(XMLTOHTMLPARAMS) html -o tapsets tapsets.xml >/dev/null 2>&1
 @BUILD_REFDOCS_TRUE@	touch stamp-htmldocs
 
 # bump up the allocated space so "xmlto pdf" works
 @BUILD_REFDOCS_TRUE@tapsets.pdf: tapsets.xml
-@BUILD_REFDOCS_TRUE@	env pool_size=2000000 hash_extra=2000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml
+@BUILD_REFDOCS_TRUE@	env pool_size=2000000 hash_extra=2000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
 
 @BUILD_REFDOCS_TRUE@stamp-mandocs: tapsets.xml
-@BUILD_REFDOCS_TRUE@	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml
+@BUILD_REFDOCS_TRUE@	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml >/dev/null 2>&1
 @BUILD_REFDOCS_TRUE@	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately

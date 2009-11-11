@@ -38,15 +38,15 @@ tapsets.xml: docproc $(shell find $(SRCTREE)/tapset -name '*.stp')
 	fi
 
 stamp-htmldocs: tapsets.xml
-	xmlto $(XMLTOHTMLPARAMS) html -o tapsets tapsets.xml
+	xmlto $(XMLTOHTMLPARAMS) html -o tapsets tapsets.xml >/dev/null 2>&1
 	touch stamp-htmldocs
 
 # bump up the allocated space so "xmlto pdf" works
 tapsets.pdf: tapsets.xml
-	env pool_size=2000000 hash_extra=2000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml
+	env pool_size=2000000 hash_extra=2000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
 
 stamp-mandocs: tapsets.xml
-	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml
+	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml >/dev/null 2>&1
 	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately
