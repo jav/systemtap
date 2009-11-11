@@ -1,0 +1,4 @@
+# Check that implicitly-saved $target variables have the same
+# value as those manually saved on entry.
+set test "kretprobe-vars"
+stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string -c "cat /dev/null"

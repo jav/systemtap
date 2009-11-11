@@ -892,6 +892,7 @@ c_unparser::emit_common_header ()
   o->newline() << "unsigned long *unwaddr;";
   // unwaddr is caching unwound address in each probe handler on ia64.
   o->newline() << "struct kretprobe_instance *pi;";
+  o->newline() << "int pi_longs;"; // int64_t count in pi->data, the rest is string_t
   o->newline() << "int regparm;";
   o->newline() << "va_list *mark_va_list;";
   o->newline() << "const char * marker_name;";

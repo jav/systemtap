@@ -1,0 +1,70 @@
+# Check that implicitly-saved $target variables have the same
+# value as those manually saved on entry.
+
+
+# saved individual parameters
+global read_file
+global read_file_mode
+global read_buf
+global read_count
+global read_pos
+
+# the saved string $$parms
+global read_parms
+
+# error count
+global errors
+
+probe begin
+{
+  println("systemtap starting probe")
+}
+
+function check_num(name, ent, ret)
+{
+  if (ent != ret) {
+    printf("%s mismatch, entry:%#x vs. return:%#x\n", name, ent, ret)
+    errors++
+  }
+}
+function check_str(name, ent, ret)
+{
+  if (ent != ret) {
+    printf("%s mismatch, entry:'%s' vs. return:'%s'\n", name, ent, ret)
+    errors++
+  }
+}
+
+probe kernel.function("vfs_read").call
+{
+  if (tid() != target())
+    next
+
+  read_file = $file
+  read_file_mode = $file->f_mode
+  read_buf = $buf
+  read_count = $count
+  read_pos = $pos
+
+  read_parms = $$parms
+}
+
+probe kernel.function("vfs_read").return
+{
+  if (tid() != target())
+    next
+
+  println("systemtap ending probe")
+
+  check_num("file", read_file, $file)
+  check_num("file->f_mode", read_file_mode, $file->f_mode)
+  check_num("buf", read_buf, $buf)
+  check_num("count", read_count, $count)
+  check_num("pos", read_pos, $pos)
+
+  check_str("parms", read_parms, $$parms)
+
+  if (!errors)
+    println("systemtap test success")
+  exit()
+}
