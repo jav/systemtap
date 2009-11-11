@@ -71,7 +71,7 @@ probe netdev.receive
  * probe netdev.transmit - Network device transmitting buffer
  * @dev_name: The name of the device. e.g: eth0, ath1.
  * @length: The length of the transmit buffer.
- * @protocol: The protocol of this packet.
+ * @protocol: The protocol of this packet(defined in include/linux/if_ether.h).
  * @truesize: The size of the data to be transmitted.
  *
  */
