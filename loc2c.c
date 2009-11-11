@@ -166,7 +166,8 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 
 #define emit(fmt, ...) obstack_printf (pool, fmt, ## __VA_ARGS__)
 
-  unsigned int stack_depth = 0, max_stack = 0;
+  unsigned int stack_depth;
+  unsigned int max_stack = 0;
   inline void deepen (void)
     {
       if (stack_depth == max_stack)
@@ -188,7 +189,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 #define push(fmt, ...) \
   emit ("%*s" STACKFMT " = " fmt ";\n", indent * 2, "", PUSH, ## __VA_ARGS__)
 
-  int tos_register = -1;
+  int tos_register;
   inline void fetch_tos_register (void)
     {
       deepen ();
@@ -197,33 +198,42 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
       tos_register = -1;
     }
 
-  bool tos_value = false;
-  Dwarf_Block implicit_value = { 0, NULL };
+  bool tos_value;
+  Dwarf_Block implicit_value;
+  bool used_deref;
 
-  if (input != NULL)
-    switch (input->type)
-      {
-      case loc_address:
-	push ("addr");
-	break;
+  /* Initialize our state for handling each new piece.  */
+  inline void reset ()
+    {
+      stack_depth = 0;
+      tos_register = -1;
+      tos_value = false;
+      implicit_value.data = NULL;
+      used_deref = false;
 
-      case loc_value:
-	push ("addr");
-	tos_value = true;
-	break;
+      if (input != NULL)
+	switch (input->type)
+	  {
+	  case loc_address:
+	    push ("addr");
+	    break;
 
-      case loc_register:
-	tos_register = input->reg.regno;
-	break;
+	  case loc_value:
+	    push ("addr");
+	    tos_value = true;
+	    break;
 
-      default:
-	abort ();
-	break;
-      }
+	  case loc_register:
+	    tos_register = input->reg.regno;
+	    break;
+
+	  default:
+	    abort ();
+	    break;
+	  }
+    }
 
   size_t i;
-
-  bool used_deref = false;
   inline const char *finish (struct location *piece)
     {
       if (stack_depth > 1)
@@ -246,9 +256,6 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	      piece->byte_size = implicit_value.length;
 	      piece->constant_block = implicit_value.data;
 	    }
-	  used_deref = false;
-	  tos_value = false;
-	  implicit_value.data = NULL;
 	}
       else if (tos_register == -1)
 	DIE ("stack underflow");
@@ -263,6 +270,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
       return NULL;
     }
 
+  reset ();
   struct location *pieces = NULL, **tailpiece = &pieces;
   size_t piece_expr_start = 0;
   Dwarf_Word piece_total_bytes = 0;
@@ -557,6 +565,9 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	      *tailpiece = piece;
 	      tailpiece = &piece->next;
 	      piece->next = NULL;
+
+	      /* Reset default conditions for handling the next piece.  */
+	      reset ();
 	    }
 	  break;
 
@@ -1239,7 +1250,7 @@ c_translate_constant (struct obstack *pool,
 	    return NULL;
 	  }
 	loc->type = loc_value;
-	obstack_printf (pool, "%*saddr = %" PRId64 "L\n;",
+	obstack_printf (pool, "%*saddr = %" PRId64 "L;\n",
 			indent * 2, "", value);
 	obstack_1grow (pool, '\0');
 	loc->address.program = obstack_finish (pool);
@@ -1329,8 +1340,7 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
       break;
     }
 
-  obstack_printf (pool, "%s = value; ", target);
-  obstack_printf (pool, "}");
+  obstack_printf (pool, " %s = value; }", target);
   return deref;
 }
 
