@@ -533,5 +533,6 @@ void assert_uprobes_module_permissions(
 		err("run '" BINDIR "/stap-authorize-signing-cert %s' as root\n",
 		    SYSCONFDIR "/systemtap/ssl/server/stap.cert");
 	}
+	exit(-1);
 #endif
 }

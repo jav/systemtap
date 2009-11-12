@@ -69,6 +69,7 @@ check_cert_file_permissions (
 
   rc = 1; // ok
 
+#if 0 // these checks are probably overkill
   // We must be the owner of the file.
   if (info.st_uid != euid)
     {
@@ -111,6 +112,8 @@ check_cert_file_permissions (
       cerr << "Certificate file " << cert_file << " must not be executable by others" << "."  << endl;
       rc = 0;
     }
+#endif // these checks are probably overkill
+
 
   return rc;
 }
@@ -141,6 +144,7 @@ check_db_file_permissions (
 
   rc = 1; // ok
 
+#if 0 // these checks are probably overkill
   // We must be the owner of the file.
   if (info.st_uid != euid)
     {
@@ -189,6 +193,7 @@ check_db_file_permissions (
       cerr << "Certificate database file " << cert_db_file << " must not be executable by others" << "."  << endl;
       rc = 0;
     }
+#endif // these checks are probably overkill
 
   return rc;
 }
@@ -220,6 +225,7 @@ check_cert_db_permissions (const string &cert_db_path) {
   // We must be the owner of the database.
   euid = geteuid ();
   pw = getpwuid (euid);
+#if 0 // these checks are probably overkill
   if (! pw)
     {
       cerr << "Unable to obtain current user information which checking certificate database "
@@ -259,6 +265,7 @@ check_cert_db_permissions (const string &cert_db_path) {
     }
   if ((info.st_mode & S_IXOTH) == 0)
     cerr << "Certificate database " << cert_db_path << " should be searchable by others" << "."  << endl;
+#endif // these checks are probably overkill
 
   // Now check the permissions of the critical files.
   rc &= check_db_file_permissions (cert_db_path + "/cert8.db", euid, pw);
