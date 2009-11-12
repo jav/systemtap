@@ -30,7 +30,8 @@
  * given address if known. If not known it will return the hex string
  * representation of addr.
  */
-function usymname:string (addr: long) %{ /* pure */
+function usymname:string (addr: long) %{ /* pure */ /* unprivileged */
+         assert_is_myproc();
 	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
 			     current, 0);
 %}

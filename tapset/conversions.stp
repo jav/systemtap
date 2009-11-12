@@ -7,6 +7,13 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+/**
+ * sfunction kernel_string - Retrieves string from kernel memory.
+ * @addr: The kernel address to retrieve the string from.
+ *
+ * Description: Returns the null terminated C string from a given kernel
+ * memory address. Reports an error on string copy fault.
+ */
 function kernel_string:string (addr:long) %{ /* pure */
   char *destination = THIS->__retvalue;
   deref_string (destination, THIS->addr, MAXSTRINGLEN);
@@ -18,6 +25,14 @@ deref_fault: /* branched to from deref_string() */
   }
 %}
 
+/**
+ * sfunction kernel_string_n - Retrieves string of given length from kernel memory.
+ * @addr: The kernel address to retrieve the string from.
+ * @n: The maximum length of the string (if not null terminated).
+ *
+ * Description: Returns the C string of a maximum given length from a
+ * given kernel memory address. Reports an error on string copy fault.
+ */
 function kernel_string_n:string (addr:long, n:long) %{ /* pure */
   char *destination = THIS->__retvalue;
   long len = THIS->n + 1;
@@ -31,6 +46,13 @@ deref_fault: /* branched to from deref_string() */
   }
 %}
 
+/**
+ * sfunction kernel_long - Retrieves a long value stored in kernel memory.
+ * @addr: The kernel address to retrieve the long from.
+ *
+ * Description: Returns the long value from a given kernel memory address.
+ * Reports an error when reading from the given address fails.
+ */
 function kernel_long:long (addr:long) %{ /* pure */
   THIS->__retvalue = kread((long *) (intptr_t) THIS->addr);
   if (0) {
@@ -41,6 +63,13 @@ deref_fault: /* branched to from kread() */
   }
 %}
 
+/**
+ * sfunction kernel_int - Retrieves an int value stored in kernel memory.
+ * @addr: The kernel address to retrieve the int from.
+ *
+ * Description: Returns the int value from a given kernel memory address.
+ * Reports an error when reading from the given address fails.
+ */
 function kernel_int:long (addr:long) %{ /* pure */
   THIS->__retvalue = kread((int *) (intptr_t) THIS->addr);
   if (0) {
@@ -51,6 +80,13 @@ deref_fault: /* branched to from kread() */
   }
 %}
 
+/**
+ * sfunction kernel_short - Retrieves a short value stored in kernel memory.
+ * @addr: The kernel address to retrieve the short from.
+ *
+ * Description: Returns the short value from a given kernel memory address.
+ * Reports an error when reading from the given address fails.
+ */
 function kernel_short:long (addr:long) %{ /* pure */
   THIS->__retvalue = kread((short *) (intptr_t) THIS->addr);
   if (0) {
@@ -61,6 +97,13 @@ deref_fault: /* branched to from kread() */
   }
 %}
 
+/**
+ * sfunction kernel_char - Retrieves a char value stored in kernel memory.
+ * @addr: The kernel address to retrieve the char from.
+ *
+ * Description: Returns the char value from a given kernel memory address.
+ * Reports an error when reading from the given address fails.
+ */
 function kernel_char:long (addr:long) %{ /* pure */
   THIS->__retvalue = kread((char *) (intptr_t) THIS->addr);
   if (0) {
@@ -72,13 +115,25 @@ deref_fault: /* branched to from kread() */
 %}
 
 
-
-
-// On rare cases when userspace data is not accessible, 
-// this function returns "<unknown>"
-
+/**
+ * sfunction user_string - Retrieves string from user space.
+ * @addr: The user space address to retrieve the string from.
+ *
+ * Description: Returns the null terminated C string from a given user space
+ * memory address. Reports "<unknown>" on the rare cases when userspace
+ * data is not accessible.
+ */
 function user_string:string (addr:long) { return user_string2 (addr, "<unknown>") }
 
+/**
+ * sfunction user_string2 - Retrieves string from user space with alternative error string..
+ * @addr: The user space address to retrieve the string from.
+ * @err_msg: The error message to return when data isn't available.
+ *
+ * Description: Returns the null terminated C string from a given user space
+ * memory address. Reports the given error message on the rare cases when
+ * userspace data is not accessible.
+ */
 function user_string2:string (addr:long, err_msg:string) %{ /* pure */ /* unprivileged */
   assert_is_myproc();
   if (_stp_strncpy_from_user (THIS->__retvalue, 
@@ -87,6 +142,14 @@ function user_string2:string (addr:long, err_msg:string) %{ /* pure */ /* unpriv
     strlcpy (THIS->__retvalue, THIS->err_msg, MAXSTRINGLEN);
 %}
 
+/**
+ * sfunction user_string_warn - Retrieves string from user space.
+ * @addr: The user space address to retrieve the string from.
+ *
+ * Description: Returns the null terminated C string from a given user space
+ * memory address. Reports "<unknown>" on the rare cases when userspace
+ * data is not accessible and warns (but does not abort) about the failure.
+ */
 function user_string_warn:string (addr:long) %{ /* pure */ /* unprivileged */
   long rc;
   assert_is_myproc();
@@ -103,6 +166,16 @@ function user_string_warn:string (addr:long) %{ /* pure */ /* unprivileged */
   }
 %}
 
+/**
+ * sfunction user_string_quoted - Retrieves and quotes string from user space.
+ * @addr: The user space address to retrieve the string from.
+ *
+ * Description: Returns the null terminated C string from a given user space
+ * memory address where any ASCII characters that are not printable are
+ * replaced by the corresponding escape sequence in the returned string.
+ * Reports "NULL" for address zero. Returns "<unknown>" on the rare
+ * cases when userspace data is not accessible at the given address.
+ */
 function user_string_quoted:string (addr:long) %{ /* pure */ /* unprivileged */
   assert_is_myproc();
   if (THIS->addr == 0)	
@@ -113,10 +186,29 @@ function user_string_quoted:string (addr:long) %{ /* pure */ /* unprivileged */
         MAXSTRINGLEN, 1, 1);
 %}
 
+/**
+ * sfunction user_string_n - Retrieves string of given length from user space.
+ * @addr: The user space address to retrieve the string from.
+ * @n: The maximum length of the string (if not null terminated).
+ *
+ * Description: Returns the C string of a maximum given length from a
+ * given user space address. Returns "<unknown>" on the rare cases
+ * when userspace data is not accessible at the given address.
+ */
 function user_string_n:string (addr:long, n:long) {
 	return user_string_n2(addr, n, "<unknown>")
 }
 	
+/**
+ * sfunction user_string_n2 - Retrieves string of given length from user space.
+ * @addr: The user space address to retrieve the string from.
+ * @n: The maximum length of the string (if not null terminated).
+ * @err_msg: The error message to return when data isn't available.
+ *
+ * Description: Returns the C string of a maximum given length from a
+ * given user space address. Returns the given error message string on
+ * the rare cases when userspace data is not accessible at the given address.
+ */
 function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */ /* unprivileged */
 	long len = THIS->n + 1;
         assert_is_myproc();
@@ -129,6 +221,16 @@ function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */
 		THIS->__retvalue[len - 1] = '\0';
 %}
 
+/**
+ * sfunction user_string_n_warn - Retrieves string from user space.
+ * @addr: The user space address to retrieve the string from.
+ * @n: The maximum length of the string (if not null terminated).
+ *
+ * Description: Returns up to n characters of a C string from a given
+ * user space memory address. Reports "<unknown>" on the rare cases
+ * when userspace data is not accessible and warns (but does not abort)
+ * about the failure.
+ */
 function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* unprivileged */
 	long len = THIS->n + 1;
 	long rc;
@@ -149,6 +251,18 @@ function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* unprivil
 		THIS->__retvalue[len - 1] = '\0';
 %}
 
+/**
+ * sfunction user_string_quoted - Retrieves and quotes string from user space.
+ * @addr: The user space address to retrieve the string from.
+ * @n: The maximum length of the string (if not null terminated).
+ *
+ * Description: Returns up to n characters of a C string from the given
+ * user space memory address where any ASCII characters that are not
+ * printable are replaced by the corresponding escape sequence in the
+ * returned string. Reports "NULL" for address zero. Returns "<unknown>"
+ * on the rare cases when userspace data is not accessible at the given
+ * address.
+ */
 function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */ /* unprivileged */
         long len;
         assert_is_myproc();
@@ -161,8 +275,13 @@ function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */ /* unpriv
 				len, 1, 1);
 %}
 
-// When userspace data is not accessible, the following functions return 0
-
+/**
+ * sfunction user_short - Retrieves a short value stored in user space.
+ * @addr: The user space address to retrieve the short from.
+ *
+ * Description: Returns the short value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
 function user_short:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (short *) (intptr_t) THIS->addr, sizeof(short)))
@@ -173,6 +292,14 @@ fault:
 	}
 %}
 
+/**
+ * sfunction user_short_warn - Retrieves a short value stored in user space.
+ * @addr: The user space address to retrieve the short from.
+ *
+ * Description: Returns the short value from a given user space address.
+ * Returns zero when user space and warns (but does not abort) about the
+ * failure.
+ */
 function user_short_warn:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (short *) (intptr_t) THIS->addr, sizeof(short)))
@@ -186,6 +313,13 @@ fault:
 	}
 %}
 
+/**
+ * sfunction user_int - Retrieves an int value stored in user space.
+ * @addr: The user space address to retrieve the int from.
+ *
+ * Description: Returns the int value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
 function user_int:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (int *) (intptr_t) THIS->addr, sizeof(int)))
@@ -196,6 +330,14 @@ fault:
 	}
 %}
 
+/**
+ * sfunction user_int_warn - Retrieves an int value stored in user space.
+ * @addr: The user space address to retrieve the int from.
+ *
+ * Description: Returns the int value from a given user space address.
+ * Returns zero when user space and warns (but does not abort) about the
+ * failure.
+ */
 function user_int_warn:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (int *) (intptr_t) THIS->addr, sizeof(int)))
@@ -209,6 +351,13 @@ fault:
 	}
 %}
 
+/**
+ * sfunction user_long - Retrieves a long value stored in user space.
+ * @addr: The user space address to retrieve the long from.
+ *
+ * Description: Returns the long value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
 function user_long:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, sizeof(long)))
@@ -219,6 +368,14 @@ fault:
 	}
 %}
 
+/**
+ * sfunction user_long_warn - Retrieves a long value stored in user space.
+ * @addr: The user space address to retrieve the long from.
+ *
+ * Description: Returns the long value from a given user space address.
+ * Returns zero when user space and warns (but does not abort) about the
+ * failure.
+ */
 function user_long_warn:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, sizeof(long)))
@@ -232,6 +389,13 @@ fault:
 	}
 %}
 
+/**
+ * sfunction user_char - Retrieves a char value stored in user space.
+ * @addr: The user space address to retrieve the char from.
+ *
+ * Description: Returns the char value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
 function user_char:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (char *) (intptr_t) THIS->addr, sizeof(char)))
@@ -242,6 +406,14 @@ fault:
 	}
 %}
 
+/**
+ * sfunction user_char_warn - Retrieves a char value stored in user space.
+ * @addr: The user space address to retrieve the char from.
+ *
+ * Description: Returns the char value from a given user space address.
+ * Returns zero when user space and warns (but does not abort) about the
+ * failure.
+ */
 function user_char_warn:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 	if (!access_ok(VERIFY_READ, (char *) (intptr_t) THIS->addr, sizeof(char)))
