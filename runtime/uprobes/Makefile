@@ -10,7 +10,7 @@ default:
 	if test -f ../../../../bin/stap-sign-module; then \
 		for f in *.ko; do \
 			if test ! -e $$f.sgn -o $$f.sgn -ot $$f; then \
-				../../../../bin/stap-sign-module $$f ../../../../etc/systemtap/ssl/server; \
+				../../../../bin/stap-sign-module $$f; \
 			fi \
 		done \
 	fi
