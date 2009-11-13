@@ -1,7 +1,18 @@
-/*
- * ctime()
+/* ctime.stp - Convert seconds to human readable date string.
  *
- * Takes an argument of seconds since the epoch as returned by
+ * This code was adapted from the newlib mktm_r() and asctime_r()
+ * functions.  In newlib, mktm_r.c states that it was adapted from
+ * tzcode maintained by Arthur David Olson.  In newlib, asctime_r.c
+ * doesn't have any author/copyright information.
+ *
+ * Changes copyright (C) 2006, 2008 Red Hat Inc.
+ */
+
+/**
+ * sfunction ctime - Convert seconds since epoch into human readable date/time string.
+ * @epochsecs: Number of seconds since epoch (as returned by gettimeofday_s()).
+ *
+ * Description: Takes an argument of seconds since the epoch as returned by
  * gettimeofday_s(). Returns a string of the form
  *
  *   "Wed Jun 30 21:49:08 1993"
@@ -19,7 +30,7 @@
  *
  * The earliest full date given by ctime, corresponding to epochsecs
  * -2147483648 is "Fri Dec 13 20:45:52 1901". The latest full date
- * given by ctime, corresponding to epachsecs 2147483647 is
+ * given by ctime, corresponding to epochsecs 2147483647 is
  * "Tue Jan 19 03:14:07 2038".
  *
  * The abbreviations for the days of the week are ‘Sun’, ‘Mon’, ‘Tue’,
@@ -31,15 +42,7 @@
  * character at the end of the string that this function does not.
  * Also note that since the kernel has no concept of timezones, the
  * returned time is always in GMT.
- *
- * This code was adapted from the newlib mktm_r() and asctime_r()
- * functions.  In newlib, mktm_r.c states that it was adapted from
- * tzcode maintained by Arthur David Olson.  In newlib, asctime_r.c
- * doesn't have any author/copyright information.
- *
- * Changes copyright (C) 2006, 2008 Red Hat Inc.
  */
-
 function ctime:string(epochsecs:long)
 %{ /* pure */
 
