@@ -198,6 +198,13 @@ keywords: filesystem hack
 
 = INTERRUPT =
 
+interrupt/interrupts-by-dev.stp - Record interrupts on a per-device basis.
+keywords: interrupt
+
+  The interrupts-by-dev.stp script profiles interrupts received by each
+  device per 100 ms.
+
+
 interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt (IPI)
 keywords: interrupt backtrace
 

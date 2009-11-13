@@ -144,6 +144,9 @@ keywords: <a href="keyword-index.html#FILESYSTEM">FILESYSTEM</a> <a href="keywor
 </ul>
 <h3><a name="INTERRUPT">INTERRUPT</a></h3>
 <ul>
+<li><a href="interrupt/interrupts-by-dev.stp">interrupt/interrupts-by-dev.stp</a> - Record interrupts on a per-device basis.<br>
+keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <br>
+<p>The interrupts-by-dev.stp script profiles interrupts received by each device per 100 ms.</p></li>
 <li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
 keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The Linux kernel function smp_call_function causes expensive inter-processor interrupts (IPIs). The scf.stp script tallies the processes and backtraces causing the interprocessor interrupts to identify the cause of the expensive IPI. On exit the script prints the tallies in descending frequency.</p></li>
