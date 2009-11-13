@@ -676,11 +676,19 @@ main (int argc, char * const argv [])
           break;
 
         case 'd':
-          s.unwindsym_modules.insert (string (optarg));
-          // PR10228: trigger task-finder logic early if -d /USER-MODULE/ given.
-          if (optarg[0] == '/')
-            enable_task_finder (s);
-          break;
+          {
+            // At runtime user module names are resolved through their
+            // canonical (absolute) path.
+            const char *mpath = canonicalize_file_name (optarg);
+            if (mpath == NULL) // Must be a kernel module name
+              mpath = optarg;
+            s.unwindsym_modules.insert (string (mpath));
+            // PR10228: trigger task-finder logic early if -d /USER-MODULE/
+            // given.
+            if (mpath[0] == '/')
+              enable_task_finder (s);
+            break;
+          }
 
         case 'e':
 	  if (have_script)
