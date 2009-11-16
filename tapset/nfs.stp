@@ -816,8 +816,8 @@ probe nfs.aop.entries = nfs.aop.readpage,
                         nfs.aop.writepage,
                         nfs.aop.writepages,
                         nfs.aop.release_page ?,
-                        nfs.aop.prepare_write,
-                        nfs.aop.commit_write
+			nfs.aop.__write_begin_func,
+			nfs.aop.__write_end_func
 {
 }
  
@@ -826,8 +826,8 @@ probe nfs.aop.return = nfs.aop.readpage.return,
                         nfs.aop.writepage.return,
                         nfs.aop.writepages.return,
                         nfs.aop.release_page.return ?,
-                        nfs.aop.prepare_write.return,
-                        nfs.aop.commit_write.return
+			nfs.aop.__write_begin_func.return,
+			nfs.aop.__write_end_func.return
 {
 }
 
@@ -1061,6 +1061,78 @@ probe nfs.aop.writepages.return = kernel.function ("nfs_writepages").return !,
              module("nfs").function ("nfs_writepages").return
 {
         name = "nfs.aop.writepages.return"
+        retstr = sprintf("%d", $return)
+}
+
+# kernel commit 4899f9c852564ce7b6d0ca932ac6674bf471fd28 removed
+# nfs_prepare_write()/nfs_commit_write() and created
+# nfs_write_begin()/nfs_write_end().  So, we try to find whatever the
+# current kernel has.
+
+probe nfs.aop.__write_begin_func = nfs.aop.write_begin !,
+				   nfs.aop.prepare_write
+{
+}
+probe nfs.aop.__write_begin_func.return
+		= nfs.aop.write_begin.return !,
+		  nfs.aop.prepare_write.return
+{
+}
+
+probe nfs.aop.__write_end_func = nfs.aop.write_end !,
+				   nfs.aop.commit_write
+{
+}
+probe nfs.aop.__write_end_func.return
+		= nfs.aop.write_end.return !,
+		  nfs.aop.commit_write.return
+{
+}
+
+probe nfs.aop.write_begin = kernel.function ("nfs_write_begin") !,
+			    module("nfs").function("nfs_write_begin")
+{
+        dev = __file_dev($file)
+        ino = __file_ino($file)
+        s_id = __file_id($file)
+        devname = kernel_string(s_id)
+
+        pos = $pos
+        count = $len
+       
+        name = "nfs.aop.write_begin"
+        argstr = sprintf("%d", ino)
+
+        units = "bytes"        
+}
+probe nfs.aop.write_begin.return
+               = kernel.function ("nfs_write_begin").return !,
+                 module("nfs").function ("nfs_write_begin").return
+{
+        name = "nfs.aop.write_begin.return"
+        retstr = sprintf("%d", $return)
+}
+
+probe nfs.aop.write_end = kernel.function ("nfs_write_end") !,
+			  module("nfs").function("nfs_write_end")
+{
+        dev = __file_dev($file)
+        ino = __file_ino($file)
+        s_id = __file_id($file)
+        devname = kernel_string(s_id)
+
+        pos = $pos
+        count = $len
+       
+        name = "nfs.aop.write_end"
+        argstr = sprintf("%d", ino)
+
+        units = "bytes"        
+}
+probe nfs.aop.write_end.return = kernel.function ("nfs_write_end").return !,
+			  module("nfs").function("nfs_write_end").return
+{
+        name = "nfs.aop.write_end.return"
         retstr = sprintf("%d", $return)
 }
 
