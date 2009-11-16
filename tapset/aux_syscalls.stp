@@ -1891,3 +1891,30 @@ function _struct_sigaction32_u:string(uaddr:long)
     }
 #endif
 %}
+
+/*
+ * Function irqflags_str :
+ * 	Returns the symbolic string representation of the IRQ flags.
+ *
+ */
+
+%{
+#include <linux/interrupt.h>
+static const _stp_val_array const _stp_irq_list[] = {
+	V(IRQF_DISABLED),
+	V(IRQF_SAMPLE_RANDOM),
+	V(IRQF_SHARED),
+	V(IRQF_PROBE_SHARED),
+	V(IRQF_TIMER),
+	V(IRQF_PERCPU),
+	V(IRQF_NOBALANCING),
+	V(IRQF_IRQPOLL),
+	V(IRQF_ONESHOT),
+	{0, NULL}
+};
+%}
+
+function irqflags_str:string(f:long)
+%{ /* pure */
+	_stp_lookup_or_str(_stp_irq_list, THIS->f, THIS->__retvalue, MAXSTRINGLEN);
+%}
