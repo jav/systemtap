@@ -1172,6 +1172,8 @@ c_unparser::emit_module_init ()
   // PR10228: set up symbol table-related task finders.
   o->newline() << "#if defined(STP_NEED_VMA_TRACKER)";
   o->newline() << "_stp_sym_init();";
+  o->newline() << "#else";
+  o->newline() << "if (_stp_need_vma_tracker == 1) _stp_sym_init();";
   o->newline() << "#endif";
   // NB: we don't need per-_stp_module task_finders, since a single common one
   // set up in runtime/sym.c's _stp_sym_init() will scan through all _stp_modules.
@@ -5022,6 +5024,11 @@ emit_symbol_data_done (unwindsym_dump_context *ctx, systemtap_session& s)
   else
     ctx->output << "0x" << hex << ctx->stp_kretprobe_trampoline_addr << dec
 		<< ";\n";
+
+  // Note when someone requested the task_finder.
+  ctx->output << "static char _stp_need_vma_tracker = "
+              << (s.task_finder_derived_probes ? "1" : "0")
+              << ";\n";
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
   if (! s.suppress_warnings)
