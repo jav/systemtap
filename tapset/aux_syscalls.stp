@@ -1900,6 +1900,9 @@ function _struct_sigaction32_u:string(uaddr:long)
 
 %{
 #include <linux/interrupt.h>
+#ifndef IRQF_ONESHOT
+#define IRQF_ONESHOT 0x00002000
+#endif
 static const _stp_val_array const _stp_irq_list[] = {
 	V(IRQF_DISABLED),
 	V(IRQF_SAMPLE_RANDOM),
