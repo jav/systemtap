@@ -1502,12 +1502,11 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
         }
       else
         {
-          throw semantic_error ("cannot relocate user-space dso (?) address");
-#if 0
-          // This would happen for a Dwfl_Module that's a user-level DSO.
-          obstack_printf (pool, " /* %s+%#" PRIx64 " */",
-                          modname, address);
-#endif
+          enable_task_finder (sess);
+          obstack_printf (pool, "({ static unsigned long addr = 0; ");
+          obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+                          modname, ".dynamic", reloc_address);
+          obstack_printf (pool, "addr; })");
         }
     }
   else
