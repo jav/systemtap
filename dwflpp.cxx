@@ -2210,6 +2210,34 @@ dwflpp::express_as_string (string prelude,
   return result;
 }
 
+Dwarf_Addr
+dwflpp::vardie_from_symtable (Dwarf_Die *vardie, Dwarf_Addr *addr)
+{
+  const char *name = dwarf_diename (vardie);
+  if (sess.verbose > 2)
+    clog << "finding symtable address for " << name << "\n";
+
+  *addr = 0;
+  int syms = dwfl_module_getsymtab (module);
+  dwfl_assert ("Getting symbols", syms >= 0);
+
+  for (int i = 0; *addr == 0 && i < syms; i++)
+    {
+      GElf_Sym sym;
+      GElf_Word shndxp;
+      const char *symname = dwfl_module_getsym(module, i, &sym, &shndxp);
+      if (symname
+	  && ! strcmp (name, symname)
+	  && sym.st_shndx != SHN_UNDEF
+	  && GELF_ST_TYPE (sym.st_info) == STT_OBJECT)
+	*addr = sym.st_value;
+    }
+
+  if (sess.verbose > 2)
+    clog << "found " << name << "@0x" << hex << *addr << "\n";
+
+  return *addr;
+}
 
 string
 dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
@@ -2231,18 +2259,6 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
          << ", module bias 0x" << module_bias << dec
          << "\n";
 
-  Dwarf_Attribute attr_mem;
-  if (dwarf_attr_integrate (&vardie, DW_AT_const_value, &attr_mem) == NULL
-      && dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
-    {
-      throw semantic_error("failed to retrieve location "
-                           "attribute for local '" + local
-                           + "' (dieoffset: "
-                           + lex_cast_hex(dwarf_dieoffset (&vardie))
-                           + ")",
-                           e->tok);
-    }
-
 #define obstack_chunk_alloc malloc
 #define obstack_chunk_free free
 
@@ -2252,9 +2268,33 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
 
   /* Given $foo->bar->baz[NN], translate the location of foo. */
 
-  struct location *head = translate_location (&pool,
-                                              &attr_mem, pc, fb_attr, &tail,
-                                              e);
+  struct location *head;
+
+  Dwarf_Attribute attr_mem;
+  if (dwarf_attr_integrate (&vardie, DW_AT_const_value, &attr_mem) == NULL
+      && dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
+    {
+      Dwarf_Op addr_loc;
+      addr_loc.atom = DW_OP_addr;
+      // If it is an external variable try the symbol table. PR10622.
+      if (dwarf_attr_integrate (&vardie, DW_AT_external, &attr_mem) != NULL
+	  && vardie_from_symtable (&vardie, &addr_loc.number) != 0)
+	{
+	  head = c_translate_location (&pool, &loc2c_error, this,
+				       &loc2c_emit_address,
+				       1, 0, pc,
+				       NULL, &addr_loc, 1, &tail, NULL, NULL);
+	}
+      else
+	throw semantic_error("failed to retrieve location "
+                           "attribute for local '" + local
+                           + "' (dieoffset: "
+                           + lex_cast_hex(dwarf_dieoffset (&vardie))
+                           + ")",
+                           e->tok);
+    }
+  else
+    head = translate_location (&pool, &attr_mem, pc, fb_attr, &tail, e);
 
   if (dwarf_attr_integrate (&vardie, DW_AT_type, &attr_mem) == NULL)
     throw semantic_error("failed to retrieve type "

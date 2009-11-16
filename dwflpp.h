@@ -394,6 +394,7 @@ private:
   // Returns the call frame address operations for the given program counter.
   Dwarf_Op *get_cfa_ops (Dwarf_Addr pc);
 
+  Dwarf_Addr vardie_from_symtable(Dwarf_Die *vardie, Dwarf_Addr *addr);
 };
 
 #endif // DWFLPP_H
