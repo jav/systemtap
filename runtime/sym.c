@@ -46,6 +46,17 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 #endif
 				module = _stp_modules[i];
 				// cheat...
+				// We are abusing the "first" section address
+				// here to indicate where the module (actually
+				// first segment) is loaded (which is why we
+				// are ignoring the offset). It would be good
+				// to redesign the stp_module/stp_section
+				// data structures to better align with the
+				// actual memory mappings we are interested
+				// in (especially the "section" naming is
+				// slightly confusing since what we really
+				// seem to mean are elf segments (which can
+				// contain multiple elf sections).
 				if ((strcmp(".dynamic",
 				     module->sections[0].name) == 0)
 				    && module->sections[0].addr == 0)
