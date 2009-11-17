@@ -2215,7 +2215,14 @@ dwflpp::express_as_string (string prelude,
 Dwarf_Addr
 dwflpp::vardie_from_symtable (Dwarf_Die *vardie, Dwarf_Addr *addr)
 {
-  const char *name = dwarf_diename (vardie);
+  const char *name;
+  Dwarf_Attribute attr_mem;
+  name = dwarf_formstring (dwarf_attr_integrate (vardie,
+                                                 DW_AT_MIPS_linkage_name,
+                                                 &attr_mem));
+  if (!name)
+    name = dwarf_diename (vardie);
+
   if (sess.verbose > 2)
     clog << "finding symtable address for " << name << "\n";
 
