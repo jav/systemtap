@@ -721,6 +721,37 @@ dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
   return DWARF_CB_OK;
 }
 
+int
+dwflpp::global_alias_caching_callback_cus(Dwarf_Die *die, void *arg)
+{
+  mod_cu_type_cache_t *global_alias_cache;
+  global_alias_cache = &static_cast<dwflpp *>(arg)->global_alias_cache;
+
+  cu_type_cache_t *v = (*global_alias_cache)[die->addr];
+  if (v != 0)
+    return DWARF_CB_OK;
+
+  v = new cu_type_cache_t;
+  (*global_alias_cache)[die->addr] = v;
+  iterate_over_globals(die, global_alias_caching_callback, v);
+
+  return DWARF_CB_OK;
+}
+
+Dwarf_Die *
+dwflpp::declaration_resolve_other_cus(const char *name)
+{
+  iterate_over_cus(global_alias_caching_callback_cus, this);
+  for (mod_cu_type_cache_t::iterator i = global_alias_cache.begin();
+         i != global_alias_cache.end(); ++i)
+    {
+      cu_type_cache_t *v = (*i).second;
+      if (v->find(name) != v->end())
+        return & ((*v)[name]);
+    }
+
+  return NULL;
+}
 
 Dwarf_Die *
 dwflpp::declaration_resolve(const char *name)
@@ -733,7 +764,7 @@ dwflpp::declaration_resolve(const char *name)
     {
       v = new cu_type_cache_t;
       global_alias_cache[cu->addr] = v;
-      iterate_over_globals(global_alias_caching_callback, v);
+      iterate_over_globals(cu, global_alias_caching_callback, v);
       if (sess.verbose > 4)
         clog << "global alias cache " << module_name << ":" << cu_name()
              << " size " << v->size() << endl;
@@ -744,11 +775,8 @@ dwflpp::declaration_resolve(const char *name)
   // forward-declared pointer type only, where the actual definition
   // may only be in vmlinux or the application.
 
-  // XXX: it is probably desirable to search other CU's declarations
-  // in the same module.
-
   if (v->find(name) == v->end())
-    return NULL;
+    return declaration_resolve_other_cus(name);
 
   return & ((*v)[name]);
 }
@@ -839,17 +867,17 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
 /* This basically only goes one level down from the compile unit so it
  * only picks up top level stuff (i.e. nothing in a lower scope) */
 int
-dwflpp::iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
+dwflpp::iterate_over_globals (Dwarf_Die *cu_die,
+                              int (* callback)(Dwarf_Die *, void *),
                               void * data)
 {
   int rc = DWARF_CB_OK;
   Dwarf_Die die;
 
-  assert (module);
-  assert (cu);
-  assert (dwarf_tag(cu) == DW_TAG_compile_unit);
+  assert (cu_die);
+  assert (dwarf_tag(cu_die) == DW_TAG_compile_unit);
 
-  if (dwarf_child(cu, &die) != 0)
+  if (dwarf_child(cu_die, &die) != 0)
     return rc;
 
   do

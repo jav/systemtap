@@ -213,6 +213,7 @@ struct dwflpp
   std::vector<Dwarf_Die> getscopes(Dwarf_Addr pc);
 
   Dwarf_Die *declaration_resolve(const char *name);
+  Dwarf_Die *declaration_resolve_other_cus(const char *name);
 
   mod_cu_function_cache_t cu_function_cache;
 
@@ -319,8 +320,10 @@ private:
    */
   mod_cu_type_cache_t global_alias_cache;
   static int global_alias_caching_callback(Dwarf_Die *die, void *arg);
-  int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
-                            void * data);
+  static int global_alias_caching_callback_cus(Dwarf_Die *die, void *arg);
+  static int iterate_over_globals (Dwarf_Die *,
+                                   int (* callback)(Dwarf_Die *, void *),
+                                   void * data);
 
   static int cu_function_caching_callback (Dwarf_Die* func, void *arg);
 
