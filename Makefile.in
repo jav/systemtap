@@ -319,7 +319,6 @@ PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
 PKG_CONFIG = @PKG_CONFIG@
-PROCFLAGS = @PROCFLAGS@
 RANLIB = @RANLIB@
 RPM_CFLAGS = @RPM_CFLAGS@
 RPM_LIBS = @RPM_LIBS@
@@ -442,19 +441,18 @@ staprun_SOURCES = runtime/staprun/staprun.c \
 	runtime/staprun/staprun_funcs.c runtime/staprun/ctl.c \
 	runtime/staprun/common.c $(am__append_16)
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ \
-	-DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime \
-	$(am__append_17)
+staprun_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED \
+	-fno-strict-aliasing -fno-builtin-strftime $(am__append_17)
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-staprun_LDADD = @PROCFLAGS@ $(am__append_18)
+staprun_LDADD = $(am__append_18)
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c
 
-stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
+stapio_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stapio_LDADD = @PROCFLAGS@ -lpthread
+stapio_LDADD = -lpthread
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_SOURCES = modsign.cxx nsscommon.c
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CPPFLAGS = -Wall -Werror $(AM_CPPFLAGS) $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDADD = -lnss3 -lnspr4

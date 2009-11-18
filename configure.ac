@@ -578,19 +578,9 @@ date=`date +%Y-%m-%d`
 AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
 AC_SUBST(DATE, "$date")
 
-
-# This procflags business is for staprun/stapio, which need to
-# be compiled with the same bitness as the kernel.  On e.g. PPC,
-# userspace might be 32-bit default, but staprun needs to be
-# 64-bit.  See also bug #4037.
-
-processor=`uname -p`
-case "$processor" in
-ppc64) PROCFLAGS=-m64 ;;
-x86_64) PROCFLAGS=-m64 ;;
-*) PROCFLAGS=""
-esac
-AC_SUBST([PROCFLAGS])
+# Before PR4037, we used to arrange to pass CFLAGS+=-m64 for a staprun
+# being compiled on 32-bit userspace but running against 64-bit kernels.
+# This is no longer necessary.
 
 # Use tr1/unordered_map if available
 AC_LANG_PUSH(C++)

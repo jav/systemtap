@@ -151,9 +151,9 @@ staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime
+staprun_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-staprun_LDADD = @PROCFLAGS@
+staprun_LDADD =
 
 if HAVE_NSS
 staprun_SOURCES += runtime/staprun/modverify.c nsscommon.c
@@ -165,9 +165,9 @@ stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c
-stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
+stapio_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stapio_LDADD = @PROCFLAGS@ -lpthread
+stapio_LDADD = -lpthread
 
 
 install-exec-hook:
