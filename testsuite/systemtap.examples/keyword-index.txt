@@ -33,7 +33,7 @@ keywords: io backtrace
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
 
-  The script monitors the time that threads spend waiting for IO
+  The script monitors the time that threads spend in waiting for IO
   operations (in "D" state) in the wait_for_completion function.  If a
   thread spends over 10ms, its name and backtrace is printed, and later
   so is the total delay.
@@ -230,9 +230,9 @@ keywords: io
 
   The ioblktime.stp script tracks the amount of time that each block IO
   requests spend waiting for completion. The script computes the
-  average time waiting time for block IO per device and prints list
-  every 10 seconds. In some cases there can be too many outstanding
-  block IO operations and the script may exceed the default number of
+  average waiting time for block IO per device and prints list every 10
+  seconds. In some cases there can be too many outstanding block IO
+  operations and the script may exceed the default number of
   MAXMAPENTRIES allowed. In this case the allowed number can be
   increased with "-DMAXMAPENTRIES=10000" option on the stap command
   line.
@@ -262,7 +262,7 @@ keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
-  amount of wall clock time spend in read and write operations and the
+  amount of wall clock time spent in read and write operations and the
   number of bytes read and written. When a file is closed the script
   prints out a pair of lines for the file. Both lines begin with a
   timestamp in microseconds, the PID number, and the executable name in
@@ -312,7 +312,7 @@ keywords: io tty per-process monitor
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
 
-  The script monitors the time that threads spend waiting for IO
+  The script monitors the time that threads spend in waiting for IO
   operations (in "D" state) in the wait_for_completion function.  If a
   thread spends over 10ms, its name and backtrace is printed, and later
   so is the total delay.
@@ -344,7 +344,7 @@ keywords: locking
   waited for the BKL followed by the number of times that the process
   waited, the minimum time of the wait, the average and the maximum
   time waited. The second table lists has similar information for the
-  time spent holding the lock for each of the processes.
+  time spent in holding the lock for each of the processes.
 
 
 process/futexes.stp - System-Wide Futex Contention
@@ -364,9 +364,9 @@ keywords: memory
   The kmalloc-top perl program runs a small systemtap script to collect
   stack traces for each call to the kmalloc function and counts the
   time that each stack trace is observed. When kmalloc-top exits it
-  prints out sorted list. The output can be be filtered to print only
-  only the first stack traces (-t) stack traces with more a minimum
-  counts (-m), or exclude certain stack traces (-e).
+  prints out sorted list. The output can be filtered to print only the
+  first N stack traces (-t), stack traces with a minimum counts (-m),
+  or exclude certain stack traces (-e).
 
 
 memory/mmanonpage.stp - Track Virtual Memory System Actions on Anonymous Pages
@@ -378,7 +378,7 @@ keywords: memory
   the script is terminated the counts are printed for each process that
   allocated pages while the script was running. This script displays
   the anonymous page statistics for each process that ran while the
-  script is active.  Its useful in debugging leaks in the anonymous
+  script is active.  It's useful in debugging leaks in the anonymous
   regions of a process.
 
 
@@ -399,7 +399,7 @@ keywords: memory
 
   The mmreclaim.stp script uses the virtual memory tracepoints
   available in some kernels to track page reclaim activity that
-  occurred while the script was running. Its useful is debugging
+  occurred while the script was running. It's useful in debugging
   performance problems that occur due to page reclamation.
 
 
@@ -409,8 +409,8 @@ keywords: memory
   The mmwriteback.stp script uses the virtual memory tracepoints
   available in some kernels to report all of the file writebacks that
   occur form kupdate, pdflush and kjournald while the script is
-  running.  Its useful in determining where writes are coming from on a
-  supposedly idle system that is experiencing unexpected IO.
+  running.  It's useful in determining where writes are coming from on
+  a supposedly idle system that is experiencing unexpected IO.
 
 
 memory/numa_faults.stp - Summarize Process Misses across NUMA Nodes
@@ -508,12 +508,12 @@ keywords: network tcp buffer memory
 network/socket-trace.stp - Trace Functions called in Network Socket Code
 keywords: network socket
 
-  The script instrument each of the functions inn the Linux kernel's
-  net/socket.c file. The script prints out trace. The first element of
-  a line is  time delta in microseconds from the previous entry. This
-  is followed by the command name and the PID. The "->" and "<-"
-  indicates function entry and	function exit, respectively. The last
-  element of the line is the function name.
+  The script instruments each of the functions in the Linux kernel's
+  net/socket.c file. The script prints out trace data. The first
+  element of a line is time delta in microseconds from the previous
+  entry. This is followed by the command name and the PID. The "->" and
+  "<-" indicates function entry and function exit, respectively. The
+  last element of the line is the function name.
 
 
 network/tcp_connections.stp - Track Creation of Incoming TCP Connections
@@ -545,9 +545,9 @@ keywords: network traffic
 network/tcpipstat.stp - Display network statistics for individual TCP sockets.
 keywords: network statistics
 
-  tcpipstat collects and display network statistics related to
+  tcpipstat collects and displays network statistics related to
   individual TCP sockets or groups of sockets.	The statistics that are
-  collected are simmer to that of the command netstat -s, only sorted
+  collected are simular to that of the command netstat -s, only sorted
   and grouped by individual sockets.
 
 
@@ -608,7 +608,7 @@ process/forktracker.stp - Trace Creation of Processes
 keywords: process scheduler
 
   The forktracker.stp script prints out a time-stamped entry showing
-  each fork and exec operation on the machine. This can be useful for
+  each fork and exec operation on the machine. This can be useful to
   determine what process is creating a flurry of short-lived processes.
 
 
@@ -623,10 +623,11 @@ process/schedtimes.stp - Track Time Processes Spend in Various States using Trac
 keywords: process scheduler time tracepoint
 
   The schedtimes.stp script instruments the scheduler to track the
-  amount of time that each process spends running, sleeping, queued,
-  and waiting for io. On exit the script prints out the accumulated
-  time for each state of processes observed.  Optionally, this script
-  can be used with the '-c' or '-x' options to focus on a specific PID.
+  amount of time that each process spends in running, sleeping,
+  queuing, and waiting for io. On exit the script prints out the
+  accumulated time for each state of processes observed.  Optionally,
+  this script can be used with the '-c' or '-x' options to focus on a
+  specific PID.
 
 
 = PROFILING =
@@ -716,7 +717,7 @@ keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
-  amount of wall clock time spend in read and write operations and the
+  amount of wall clock time spent in read and write operations and the
   number of bytes read and written. When a file is closed the script
   prints out a pair of lines for the file. Both lines begin with a
   timestamp in microseconds, the PID number, and the executable name in
@@ -745,7 +746,7 @@ process/forktracker.stp - Trace Creation of Processes
 keywords: process scheduler
 
   The forktracker.stp script prints out a time-stamped entry showing
-  each fork and exec operation on the machine. This can be useful for
+  each fork and exec operation on the machine. This can be useful to
   determine what process is creating a flurry of short-lived processes.
 
 
@@ -764,16 +765,17 @@ process/schedtimes.stp - Track Time Processes Spend in Various States using Trac
 keywords: process scheduler time tracepoint
 
   The schedtimes.stp script instruments the scheduler to track the
-  amount of time that each process spends running, sleeping, queued,
-  and waiting for io. On exit the script prints out the accumulated
-  time for each state of processes observed.  Optionally, this script
-  can be used with the '-c' or '-x' options to focus on a specific PID.
+  amount of time that each process spends in running, sleeping,
+  queuing, and waiting for io. On exit the script prints out the
+  accumulated time for each state of processes observed.  Optionally,
+  this script can be used with the '-c' or '-x' options to focus on a
+  specific PID.
 
 
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
 
-  The script monitors the time that threads spend waiting for IO
+  The script monitors the time that threads spend in waiting for IO
   operations (in "D" state) in the wait_for_completion function.  If a
   thread spends over 10ms, its name and backtrace is printed, and later
   so is the total delay.
@@ -808,8 +810,8 @@ keywords: signals
 
   The script traces any SIGKILL signals. When that SIGKILL signal is
   sent to a process, the script prints out the signal name, the
-  destination executable and process ID, the executable name user ID
-  that sent the signal.
+  destination executable and process ID, the executable name and user
+  ID that sents the signal.
 
 
 process/sigmon.stp - Track a particular signal to a specific process
@@ -848,12 +850,12 @@ keywords: syscall sleep
 network/socket-trace.stp - Trace Functions called in Network Socket Code
 keywords: network socket
 
-  The script instrument each of the functions inn the Linux kernel's
-  net/socket.c file. The script prints out trace. The first element of
-  a line is  time delta in microseconds from the previous entry. This
-  is followed by the command name and the PID. The "->" and "<-"
-  indicates function entry and	function exit, respectively. The last
-  element of the line is the function name.
+  The script instruments each of the functions in the Linux kernel's
+  net/socket.c file. The script prints out trace data. The first
+  element of a line is time delta in microseconds from the previous
+  entry. This is followed by the command name and the PID. The "->" and
+  "<-" indicates function entry and function exit, respectively. The
+  last element of the line is the function name.
 
 
 network/tcp_connections.stp - Track Creation of Incoming TCP Connections
@@ -871,9 +873,9 @@ keywords: network tcp socket
 network/tcpipstat.stp - Display network statistics for individual TCP sockets.
 keywords: network statistics
 
-  tcpipstat collects and display network statistics related to
+  tcpipstat collects and displays network statistics related to
   individual TCP sockets or groups of sockets.	The statistics that are
-  collected are simmer to that of the command netstat -s, only sorted
+  collected are simular to that of the command netstat -s, only sorted
   and grouped by individual sockets.
 
 
@@ -884,7 +886,7 @@ keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
-  amount of wall clock time spend in read and write operations and the
+  amount of wall clock time spent in read and write operations and the
   number of bytes read and written. When a file is closed the script
   prints out a pair of lines for the file. Both lines begin with a
   timestamp in microseconds, the PID number, and the executable name in
@@ -978,7 +980,7 @@ keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
-  amount of wall clock time spend in read and write operations and the
+  amount of wall clock time spent in read and write operations and the
   number of bytes read and written. When a file is closed the script
   prints out a pair of lines for the file. Both lines begin with a
   timestamp in microseconds, the PID number, and the executable name in
@@ -993,10 +995,11 @@ process/schedtimes.stp - Track Time Processes Spend in Various States using Trac
 keywords: process scheduler time tracepoint
 
   The schedtimes.stp script instruments the scheduler to track the
-  amount of time that each process spends running, sleeping, queued,
-  and waiting for io. On exit the script prints out the accumulated
-  time for each state of processes observed.  Optionally, this script
-  can be used with the '-c' or '-x' options to focus on a specific PID.
+  amount of time that each process spends in running, sleeping,
+  queuing, and waiting for io. On exit the script prints out the
+  accumulated time for each state of processes observed.  Optionally,
+  this script can be used with the '-c' or '-x' options to focus on a
+  specific PID.
 
 
 = TRACE =
@@ -1033,10 +1036,11 @@ process/schedtimes.stp - Track Time Processes Spend in Various States using Trac
 keywords: process scheduler time tracepoint
 
   The schedtimes.stp script instruments the scheduler to track the
-  amount of time that each process spends running, sleeping, queued,
-  and waiting for io. On exit the script prints out the accumulated
-  time for each state of processes observed.  Optionally, this script
-  can be used with the '-c' or '-x' options to focus on a specific PID.
+  amount of time that each process spends in running, sleeping,
+  queuing, and waiting for io. On exit the script prints out the
+  accumulated time for each state of processes observed.  Optionally,
+  this script can be used with the '-c' or '-x' options to focus on a
+  specific PID.
 
 
 = TRAFFIC =
@@ -1104,7 +1108,7 @@ keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
-  amount of wall clock time spend in read and write operations and the
+  amount of wall clock time spent in read and write operations and the
   number of bytes read and written. When a file is closed the script
   prints out a pair of lines for the file. Both lines begin with a
   timestamp in microseconds, the PID number, and the executable name in
