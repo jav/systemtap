@@ -6313,10 +6313,10 @@ tracepoint_builder::init_dw(systemtap_session& s)
 
   glob_t trace_glob;
   string globs[] = {
-      "/include/trace/*.h",
       "/include/trace/events/*.h",
-      "/source/include/trace/*.h",
       "/source/include/trace/events/*.h",
+      "/include/trace/*.h",
+      "/source/include/trace/*.h",
   };
   for (unsigned z = 0; z < sizeof(globs) / sizeof(globs[0]); z++)
     {
