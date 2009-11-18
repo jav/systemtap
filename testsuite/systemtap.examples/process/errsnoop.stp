@@ -1,5 +1,4 @@
-#!/bin/sh
-//usr/bin/env stap -DMAXMAPENTRIES=20480 $0 $@; exit $?
+#!/usr/bin/env stap -DMAXMAPENTRIES=20480 $0 $@; exit $?
 # errsnoop.stp
 # Copyright (C) 2009 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
 #

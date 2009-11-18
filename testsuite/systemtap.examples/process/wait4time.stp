@@ -11,10 +11,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Print out the amount of time spent in the read and write systemcall
- * when a process closes each file is closed. Note that the script needs
- * to be running before the open operations occur for the script
- * to record data.
+ * Print out the time spent in wait4 systemcall
  *
  * Format is:
  * timestamp pid (executabable) wait4: time_us pid

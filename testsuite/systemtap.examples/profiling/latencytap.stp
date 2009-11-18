@@ -1,4 +1,4 @@
-#! /usr/bin/stap -g
+#! /usr/bin/env stap
 
 # Record the time that a process has spent asleep, and in what function
 
@@ -7,8 +7,7 @@ global sleep_time
 global process_names
 global sleep_agg
 
-function _get_sleep_time:long(rq_param:long, p_param:long)
-%{
+function _get_sleep_time:long(rq_param:long, p_param:long) %{ /* pure */
         struct rq *rq = (struct rq *)(unsigned long)THIS->rq_param;
         struct task_struct *p = (struct task_struct *)(unsigned long)THIS->p_param;
         struct sched_entity *se = &p->se;
@@ -19,9 +18,8 @@ function _get_sleep_time:long(rq_param:long, p_param:long)
         THIS->__retvalue = delta;
 %}
 
-# Get the backtrace from an arbitrary task                
-function task_backtrace:string (task:long)
-%{
+# Get the backtrace from an arbitrary task
+function task_backtrace:string (task:long) %{ /* pure */
     _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
                            (struct task_struct *)(unsigned long)THIS->task, 0, MAXTRACE);
 %}
