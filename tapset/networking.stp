@@ -154,7 +154,7 @@ probe netdev.rx
  * @flags: The new flags
  */
 probe netdev.change_rx_flag
-	= kernel.function("dev_change_rx_flags")
+	= kernel.function("dev_change_rx_flags") ?
 {
 	dev_name = get_netdev_name($dev)
 	flags = $flags
@@ -217,7 +217,7 @@ probe netdev.unregister
  * @dev_name: The device that is going to provide the statistics
  */
 probe netdev.get_stats
-	= kernel.function("dev_get_stats")
+	= kernel.function("dev_get_stats") ?
 {
 	dev_name = get_netdev_name($dev)
 }
