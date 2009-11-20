@@ -5,6 +5,10 @@ DEPENDENCIES := $(shell echo uprobes.[ch] uprobes_*.[ch])
 DEPENDENCIES += $(shell echo ../uprobes2/uprobes.[ch] ../uprobes2/uprobes_*.[ch])
 DEPENDENCIES += Makefile
 
+CLEAN_FILES := $(shell echo *.mod.c *.ko *.o .*.cmd *~ *.sgn)
+CLEAN_FILES += Module.markers modules.order Module.symvers
+CLEAN_DIRS  := .tmp_versions
+
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 	if test -f ../../../../bin/stap-sign-module; then \
@@ -14,12 +18,14 @@ default:
 			fi \
 		done \
 	fi
+	chgrp stap-server $(CLEAN_FILES) 2>/dev/null || true
+	chgrp stap-server $(CLEAN_DIRS) 2>/dev/null || true
+	chgrp stap-server $(CLEAN_DIRS)/* 2>/dev/null || true
 
 # This target is used with "make -q" to see whether a "real" build is needed.
 uprobes.ko: $(DEPENDENCIES)
 	@echo uprobes.ko is not a valid target.  See Makefile.
 
 clean:
-	rm -f *.mod.c *.ko *.o .*.cmd *~ *.sgn
-	rm -f Module.markers modules.order Module.symvers
-	rm -rf .tmp_versions
+	rm -f $(CLEAN_FILES)
+	rm -rf $(CLEAN_DIRS)

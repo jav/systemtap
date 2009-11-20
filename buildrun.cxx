@@ -277,7 +277,8 @@ verify_uprobes_uptodate (systemtap_session& s)
   int rc = run_make_cmd(s, make_cmd);
   if (rc) {
     clog << "SystemTap's version of uprobes is out of date." << endl;
-    clog << "As root, run \"make -C " << uprobes_home << "\"." << endl;
+    clog << "As root, or a member of the 'stap-server' group, run" << endl;
+    clog << "\"make -C " << uprobes_home << "\"." << endl;
   }
 
   return rc;
@@ -322,17 +323,18 @@ uprobes_pass (systemtap_session& s)
   /*
    * We need to use the version of uprobes that comes with SystemTap, so
    * we may need to rebuild uprobes.ko there.  Unfortunately, this is
-   * never a no-op; e.g., the modpost step gets run every time.  We don't
-   * want non-root users modifying uprobes, so we keep the uprobes
-   * directory writable only by root.  But that means a non-root member
-   * of group stapdev can't run the make even if everything's up to date.
+   * never a no-op; e.g., the modpost step gets run every time.  We
+   * only want root and members of the 'stap-server' group
+   * modifying uprobes, so we keep the uprobes directory writable only by
+   * those users.  But that means that other users can't run the make
+   * even if everything's up to date.
    *
-   * So for non-root users, we just use "make -q" with a fake target to
+   * So for the other users, we just use "make -q" with a fake target to
    * verify that uprobes doesn't need to be rebuilt.  If that's not so,
    * stap must fail.
    */
   int rc;
-  if (geteuid() == 0)
+  if (geteuid() == 0 || egid_in ("stap-server"))
     rc = make_uprobes(s);
   else
     rc = verify_uprobes_uptodate(s);

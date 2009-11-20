@@ -12,6 +12,7 @@ bool copy_file(const std::string& src, const std::string& dest,
                bool verbose=false);
 int create_dir(const char *dir);
 int remove_file_or_dir(const char *dir);
+bool egid_in (const char *gname);
 void tokenize(const std::string& str, std::vector<std::string>& tokens,
 	      const std::string& delimiters);
 std::string find_executable(const std::string& name);

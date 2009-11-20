@@ -22,6 +22,7 @@
 
 extern "C" {
 #include <fcntl.h>
+#include <grp.h>
 #include <pwd.h>
 #include <spawn.h>
 #include <stdio.h>
@@ -186,6 +187,48 @@ remove_file_or_dir (const char *name)
     return 1;
   cerr << "remove returned 0" << endl;
   return 0;
+}
+
+// Determine whether the current user is in the given group.
+bool
+egid_in (const char *gname)
+{
+  gid_t gid, gidlist[NGROUPS_MAX];
+  gid_t target_gid;
+  int i, ngids;
+  struct group *group;
+
+  // Lookup the gid for the target group
+  errno = 0;
+  group = getgrnam(gname);
+
+  // If we couldn't find the group, then we can't be part of it.
+  if (group == NULL)
+    return false;
+
+  target_gid = group->gr_gid;
+
+  // According to the getgroups() man page, getgroups() may not
+  // return the effective gid, so try to match it first. */
+  gid = getegid();
+  if (gid == target_gid)
+    return true;
+
+  // Get the list of the user's groups.
+  ngids = getgroups(NGROUPS_MAX, gidlist);
+  if (ngids < 0) {
+    cerr << "Unable to retrieve group list" << endl;
+    return false;
+  }
+
+  for (i = 0; i < ngids; i++) {
+    // If the user is a member of the target group, then we're done.
+    if (gidlist[i] == target_gid)
+      return true;
+  }
+
+  // The user is not a member of the target group
+  return false;
 }
 
 void
