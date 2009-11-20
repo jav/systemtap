@@ -412,7 +412,7 @@ static void _stp_pmap_del(PMAP pmap)
 }
 
 /* sort keynum values */
-#define SORT_COUNT -5
+#define SORT_COUNT -5 /* see also translate.cxx:visit_foreach_loop */
 #define SORT_SUM   -4
 #define SORT_MIN   -3
 #define SORT_MAX   -2
