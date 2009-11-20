@@ -316,6 +316,7 @@ start () { # server-list
 	  rm -f $server_status
 	  do_failure $"$prog start: unable to start stap-server for $release $arch"
 	  rc=1
+	  continue
       fi
 
       do_success $"$prog start for $release $arch"
@@ -360,9 +361,10 @@ stop () { # server-list
 	      rc=1
 	  fi
       fi
-      [ $this_rc = 0 ] && rm -f $server_status_file
-
-      do_success $"$prog stop for $release_arch"
+      if [ $this_rc = 0 ]; then
+	  rm -f $server_status_file
+	  do_success $"$prog stop for $release_arch"
+      fi
   done
 
   return $rc
