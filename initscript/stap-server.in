@@ -311,7 +311,7 @@ start () { # server-list
 
       # Start the server here.
       local server_status=`stat_file $spec`
-      runuser -s /bin/bash - $STAP_USER -c "$STAP_START_SERVER -r $release -a $arch --log=$LOG_FILE > $server_status"
+      runuser -s /bin/bash - $STAP_USER -c "$STAP_START_SERVER -r $release -a $arch --log=$LOG_FILE" > $server_status
       if [ $? != 0 ]; then
 	  rm -f $server_status
 	  do_failure $"$prog start: unable to start stap-server for $release $arch"
