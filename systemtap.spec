@@ -311,6 +311,11 @@ exit 0
 chmod 664 %{_localstatedir}/log/stap-server.log
 chown stap-server %{_localstatedir}/log/stap-server.log
 chgrp stap-server %{_localstatedir}/log/stap-server.log
+# Make sure that the uprobes module can be built by the server
+test -e /usr/share/systemtap/runtime/uprobes ] || mkdir -p /usr/share/systemtap/runtime/uprobes
+chgrp stap-server /usr/share/systemtap/runtime/uprobes
+chmod 775 /usr/share/systemtap/runtime/uprobes
+# Activate the service
 /sbin/chkconfig --add stap-server
 exit 0
 
