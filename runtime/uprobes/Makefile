@@ -18,9 +18,12 @@ default:
 			fi \
 		done \
 	fi
-	chgrp stap-server $(CLEAN_FILES) 2>/dev/null || true
-	chgrp stap-server $(CLEAN_DIRS) 2>/dev/null || true
-	chgrp stap-server $(CLEAN_DIRS)/* 2>/dev/null || true
+	if test `id -u` -eq 0; then \
+		chgrp stap-server $(CLEAN_FILES) 2>/dev/null || true; \
+		chgrp stap-server $(CLEAN_DIRS) 2>/dev/null || true' \
+		chgrp stap-server $(CLEAN_DIRS)/* 2>/dev/null || true; \
+		chmod stap-server 775 $(CLEAN_DIRS)/* 2>/dev/null || true; \
+	fi
 
 # This target is used with "make -q" to see whether a "real" build is needed.
 uprobes.ko: $(DEPENDENCIES)
