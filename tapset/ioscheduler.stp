@@ -145,7 +145,7 @@ probe ioscheduler.elv_completed_request
 }
 
 /**
- * probe ioscheduler.elv_add_request.tp : tracepoint based probe to indicate a request is added to the request queue.
+ * probe ioscheduler.elv_add_request.tp - tracepoint based probe to indicate a request is added to the request queue.
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @q			: Pointer to request queue.
  * @rq			: Address of request.
@@ -173,7 +173,7 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
 }
 
 /**
- * probe ioscheduler.elv_add_request : probe to indicate request is added to the request queue.
+ * probe ioscheduler.elv_add_request - probe to indicate request is added to the request queue.
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @q			: Pointer to request queue.
  * @rq			: Address of request.
@@ -187,7 +187,7 @@ probe ioscheduler.elv_add_request =
 {}
 
 /**
- * probe ioscheduler_trace.elv_completed_request : Fires when a request is
+ * probe ioscheduler_trace.elv_completed_request - Fires when a request is
  *							completed.
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @rq			: Address of request.
@@ -214,7 +214,7 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
 }
 
 /**
- * probe ioscheduler_trace.elv_issue_request : Fires when a request is
+ * probe ioscheduler_trace.elv_issue_request - Fires when a request is
  *							scheduled.
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @rq			: Address of request.
@@ -241,7 +241,7 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
 }
 
 /**
- * probe ioscheduler_trace.elv_requeue_request : Fires when a request is
+ * probe ioscheduler_trace.elv_requeue_request - Fires when a request is
  *	put back on the queue, when the hadware cannot accept more requests.
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @rq			: Address of request.
@@ -268,7 +268,7 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
 }
 
 /**
- * probe ioscheduler_trace.elv_abort_request : Fires when a request is aborted.
+ * probe ioscheduler_trace.elv_abort_request - Fires when a request is aborted.
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @rq			: Address of request.
  * @rq_flags		: Request flags.
