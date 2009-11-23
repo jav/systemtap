@@ -19,8 +19,8 @@ proc stap_compile { TEST_NAME compile script args } {
 	-re "compilation failed" {incr compile_errors 1; exp_continue}
 	-re "semantic error:" {incr compile_errors 1; exp_continue}
     }
-    catch close
     set res [wait -i $spawn_id]
+    catch close
     set res [lindex $res 3]
 
     if {($res == 0 && $compile_errors == 0)
