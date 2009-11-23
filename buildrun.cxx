@@ -334,7 +334,7 @@ uprobes_pass (systemtap_session& s)
    * stap must fail.
    */
   int rc;
-  if (geteuid() == 0 || egid_in ("stap-server"))
+  if (geteuid() == 0 || in_group ("stap-server"))
     rc = make_uprobes(s);
   else
     rc = verify_uprobes_uptodate(s);

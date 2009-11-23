@@ -25,20 +25,26 @@ default:
 			fi \
 		done \
 	fi
-	-chgrp stap-server $(CLEAN_FILES) 2>/dev/null
-	-chmod 664 $(CLEAN_FILES) 2>/dev/null
-	-for d in $(CLEAN_DIRS); do \
-		chgrp stap-server $$d 2>/dev/null; \
-		chmod 775 $$d 2>/dev/null; \
-		for dd in `find $$d -type d`; do \
-			chgrp stap-server $$dd 2>/dev/null; \
-			chmod 775 $$dd 2>/dev/null; \
-		done; \
-		for f in `find $$d -type f`; do \
+	if getent group stap-server >/dev/null; then \
+		for f in $(CLEAN_FILES); do \
+			test ! -f $$f && continue; \
 			chgrp stap-server $$f 2>/dev/null; \
 			chmod 664 $$f 2>/dev/null; \
 		done; \
-	done
+		for d in $(CLEAN_DIRS); do \
+			test ! -d $$d && continue; \
+			chgrp stap-server $$d 2>/dev/null; \
+			chmod 775 $$d 2>/dev/null; \
+			for dd in `find $$d -type d`; do \
+				chgrp stap-server $$dd 2>/dev/null; \
+				chmod 775 $$dd 2>/dev/null; \
+			done; \
+			for f in `find $$d -type f`; do \
+				chgrp stap-server $$f 2>/dev/null; \
+				chmod 664 $$f 2>/dev/null; \
+			done; \
+		done; \
+	fi
 
 # This target is used with "make -q" to see whether a "real" build is needed.
 uprobes.ko: $(DEPENDENCIES)

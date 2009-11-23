@@ -191,7 +191,7 @@ remove_file_or_dir (const char *name)
 
 // Determine whether the current user is in the given group.
 bool
-egid_in (const char *gname)
+in_group (const char *gname)
 {
   gid_t gid, gidlist[NGROUPS_MAX];
   gid_t target_gid;
