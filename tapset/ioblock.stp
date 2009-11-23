@@ -280,7 +280,7 @@ probe ioblock_trace.request = kernel.trace("block_bio_queue")
  *      BIO_BOUNCED     5       bio is a bounce bio
  *      BIO_USER_MAPPED 6       contains user pages
  *      BIO_EOPNOTSUPP  7       not supported
-
+ *
  *  @rw        - binary trace for read/write request
  *  @vcnt      - bio vector count which represents number of array element (page, offset, length) which makes up this I/O request
  *  @idx       - offset into the bio vector array
