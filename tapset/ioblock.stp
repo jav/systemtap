@@ -178,8 +178,6 @@ probe ioblock.end = kernel.function("bio_endio")
 /**
  * probe ioblock_trace.bounce - Fires whenever a buffer bounce is needed for at least one page of a block IO request.
  *
- *  @bio       struct bio *
- *  @q         struct request_queue*
  *  @devname    device for which a buffer bounce was needed.
  *  @ino       - i-node number of the mapped file
  *  @bytes_done - number of bytes transferred
@@ -193,7 +191,6 @@ probe ioblock.end = kernel.function("bio_endio")
  *      BIO_BOUNCED     5       bio is a bounce bio
  *      BIO_USER_MAPPED 6       contains user pages
  *      BIO_EOPNOTSUPP  7       not supported
- *  @error     - 0 on success
  *  @rw        - binary trace for read/write request
  *  @vcnt      - bio vector count which represents number of array element (page, offset, length) which makes up this I/O request
  *  @idx       - offset into the bio vector array
@@ -221,10 +218,9 @@ probe ioblock_trace.bounce = kernel.trace("block_bio_bounce")
 /**
  * probe ioblock_trace.request - Fires just as a generic block I/O request is created for a bio.
  *
- *  @bio       struct bio* for which IO request is to be submitted
- *  @q         struct request_queue* to which the request is to be added
  *  @devname   - block device name
  *  @ino       - i-node number of the mapped file
+ *  @bytes_done - number of bytes transferred
  *  @sector    - beginning sector for the entire bio
  *  @flags     - see below
  *	BIO_UPTODATE    0       ok after I/O completion
@@ -255,7 +251,6 @@ probe ioblock_trace.request = kernel.trace("block_bio_queue")
         ino = __bio_ino($bio)
 
         bytes_done = $bio->bi_size
-        error = $error
         sector = $bio->bi_sector
         flags = $bio->bi_flags
         rw = $bio->bi_rw
@@ -286,7 +281,6 @@ probe ioblock_trace.request = kernel.trace("block_bio_queue")
  *      BIO_USER_MAPPED 6       contains user pages
  *      BIO_EOPNOTSUPP  7       not supported
 
- *  @error     - 0 on success
  *  @rw        - binary trace for read/write request
  *  @vcnt      - bio vector count which represents number of array element (page, offset, length) which makes up this I/O request
  *  @idx       - offset into the bio vector array
@@ -303,7 +297,6 @@ probe ioblock_trace.end = kernel.trace("block_bio_complete")
         ino = __bio_ino($bio)
 
         bytes_done = $bio->bi_size
-        error = $error
 
         sector = $bio->bi_sector
         flags = $bio->bi_flags

@@ -16,7 +16,6 @@ probe ioscheduler_trace.elv*
 
 probe ioscheduler_trace.plug, ioscheduler_trace.unplug_io, ioscheduler_trace.unplug_timer
 {
-        printf("ppname: %s, request %p, elv_name: %s, %d, %d", probefunc(),
-                rq_queue)
+        printf("ppname: %s, request %p", probefunc(), rq_queue)
 }
 
