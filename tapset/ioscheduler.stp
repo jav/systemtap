@@ -68,22 +68,24 @@ probe ioscheduler.elv_next_request.return
 }
 
 /**
- * probe ioscheduler.elv_add_request - A request was added to the request queue
+ * probe ioscheduler.elv_add_request.kp - kprobe based probe to indicate that a request was added to the request queue
  * @elevator_name: The type of I/O elevator currently enabled
+ * @q: pointer to request queue
  * @req: Address of the request
  * @req_flags: Request flags
  * @disk_major: Disk major number of the request
  * @disk_minor: Disk minor number of the request
  */
 // when a request is added to the request queue
-probe ioscheduler.elv_add_request
-	= kernel.function("__elv_add_request")
+probe ioscheduler.elv_add_request.kp
+	= kernel.function("elv_insert")
 {
 %( kernel_v >= "2.6.10" %?
 	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
 %:
 	elevator_name = kernel_string($q->elevator->elevator_name)
 %)
+	q = $q
 	if($rq == 0)  {
 		disk_major = -1
 		disk_minor = -1
@@ -140,6 +142,189 @@ probe ioscheduler.elv_completed_request
 %:
 	req_flags = $rq==0? 0:$rq->flags
 %)
+}
+
+/**
+ * probe ioscheduler.elv_add_request.tp - tracepoint based probe to indicate a request is added to the request queue.
+ * @elevator_name	: The type of I/O elevator currently enabled.
+ * @q			: Pointer to request queue.
+ * @rq			: Address of request.
+ * @rq_flags		: Request flags.
+ * @disk_major		: Disk major no of request.
+ * @disk_minor		: Disk minor number of request.
+ *
+ */
+probe ioscheduler.elv_add_request.tp
+			= kernel.trace("block_rq_insert")
+{
+q =  $q
+elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+rq = $rq
+
+if ($rq == 0 || $rq->rq_disk ==0) {
+	disk_major = -1
+	disk_minor = -1
+} else {
+		disk_major = $rq->rq_disk->major
+		disk_minor = $rq->rq_disk->first_minor
+}
+
+rq_flags = $rq==0? 0:$rq->cmd_flags
+}
+
+/**
+ * probe ioscheduler.elv_add_request - probe to indicate request is added to the request queue.
+ * @elevator_name	: The type of I/O elevator currently enabled.
+ * @q			: Pointer to request queue.
+ * @rq			: Address of request.
+ * @rq_flags		: Request flags.
+ * @disk_major		: Disk major no of request.
+ * @disk_minor		: Disk minor number of request.
+ *
+ */
+probe ioscheduler.elv_add_request =
+	ioscheduler.elv_add_request.tp !, ioscheduler.elv_add_request.kp
+{}
+
+/**
+ * probe ioscheduler_trace.elv_completed_request - Fires when a request is
+ *							completed.
+ * @elevator_name	: The type of I/O elevator currently enabled.
+ * @rq			: Address of request.
+ * @rq_flags		: Request flags.
+ * @disk_major		: Disk major no of request.
+ * @disk_minor		: Disk minor number of request.
+ *
+ */
+probe ioscheduler_trace.elv_completed_request
+			= kernel.trace("block_rq_complete")
+{
+elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+rq = $rq
+
+if ($rq == 0 || $rq->rq_disk ==0) {
+	disk_major = -1
+	disk_minor = -1
+} else {
+		disk_major = $rq->rq_disk->major
+		disk_minor = $rq->rq_disk->first_minor
+}
+
+rq_flags = $rq==0? 0:$rq->cmd_flags
+}
+
+/**
+ * probe ioscheduler_trace.elv_issue_request - Fires when a request is
+ *							scheduled.
+ * @elevator_name	: The type of I/O elevator currently enabled.
+ * @rq			: Address of request.
+ * @rq_flags		: Request flags.
+ * @disk_major		: Disk major no of request.
+ * @disk_minor		: Disk minor number of request.
+ *
+ */
+probe ioscheduler_trace.elv_issue_request
+			= kernel.trace("block_rq_issue")
+{
+elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+rq = $rq
+
+if ($rq == 0 || $rq->rq_disk ==0) {
+	disk_major = -1
+	disk_minor = -1
+} else {
+		disk_major = $rq->rq_disk->major
+		disk_minor = $rq->rq_disk->first_minor
+}
+
+rq_flags = $rq==0? 0:$rq->cmd_flags
+}
+
+/**
+ * probe ioscheduler_trace.elv_requeue_request - Fires when a request is
+ *	put back on the queue, when the hadware cannot accept more requests.
+ * @elevator_name	: The type of I/O elevator currently enabled.
+ * @rq			: Address of request.
+ * @rq_flags		: Request flags.
+ * @disk_major		: Disk major no of request.
+ * @disk_minor		: Disk minor number of request.
+ *
+ */
+probe ioscheduler_trace.elv_requeue_request
+			= kernel.trace("block_rq_requeue")
+{
+elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+rq = $rq
+
+if ($rq == 0 || $rq->rq_disk ==0) {
+	disk_major = -1
+	disk_minor = -1
+} else {
+		disk_major = $rq->rq_disk->major
+		disk_minor = $rq->rq_disk->first_minor
+}
+
+rq_flags = $rq==0? 0:$rq->cmd_flags
+}
+
+/**
+ * probe ioscheduler_trace.elv_abort_request - Fires when a request is aborted.
+ * @elevator_name	: The type of I/O elevator currently enabled.
+ * @rq			: Address of request.
+ * @rq_flags		: Request flags.
+ * @disk_major		: Disk major no of request.
+ * @disk_minor		: Disk minor number of request.
+ *
+ */
+probe ioscheduler_trace.elv_abort_request
+			= kernel.trace("block_rq_abort")
+{
+elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+rq = $rq
+
+if ($rq == 0 || $rq->rq_disk ==0) {
+	disk_major = -1
+	disk_minor = -1
+} else {
+		disk_major = $rq->rq_disk->major
+		disk_minor = $rq->rq_disk->first_minor
+}
+
+rq_flags = $rq==0? 0:$rq->cmd_flags
+}
+
+/**
+ * probe ioscheduler_trace.plug - Fires when a request queue is plugged;
+ *		ie, requests in the queue cannot be serviced by block driver.
+ * @rq_queue	: request queue
+ *
+ */
+probe ioscheduler_trace.plug = kernel.trace("block_plug")
+{
+  rq_queue = $q
+}
+
+/**
+ * probe ioscheduler_trace.unplug_io - Fires when a request queue is unplugged;
+ *	Either, when number of pending requests in the queue exceeds threshold
+ *	or, upon expiration of timer that was activated when queue was plugged.
+ * @rq_queue	: request queue
+ *
+ */
+probe ioscheduler_trace.unplug_io = kernel.trace("block_unplug_io")
+{
+  rq_queue = $q
+}
+
+/**
+ * probe ioscheduler_trace.unplug_timer - Fires when unplug timer associated
+ *					with a request queue expires.
+ * @rq_queue	: request queue
+ *
+ */
+probe ioscheduler_trace.unplug_timer = kernel.trace("block_unplug_timer")
+{
+  rq_queue = $q
 }
 
 function disk_major_from_request:long(var_q:long)

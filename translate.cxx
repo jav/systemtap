@@ -2611,7 +2611,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	      // @count instead for aggregates.  '-5' tells the
 	      // runtime to sort by count.
 	      if (s->sort_column == 0)
-		sort_column = -5;
+		sort_column = -5; /* runtime/map.c SORT_COUNT */
 	      else
 		sort_column = s->sort_column;
 

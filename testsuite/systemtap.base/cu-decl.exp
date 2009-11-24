@@ -17,7 +17,9 @@ if { $res != "" } {
 } else {
     pass "$test target compilation"
 }
-
-stap_compile $test 1 "{$script}"
-
+if {![utrace_p]} {
+    untested "$test : no kernel utrace support found"
+} else {
+    stap_compile $test 1 "{$script}"
+}
 catch {exec rm $test}

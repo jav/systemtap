@@ -78,18 +78,13 @@ function __bio_devname:string(bio:long)
 global BIO_READ = 0, BIO_WRITE = 1
 
 
-/* probe ioblock.request
+/**
+ *  probe ioblock.request - Fires whenever making a generic block I/O request.
  *
- *  Fires whenever making a generic block I/O request.
- *
- * Context:
- *  The process makes block I/O request
- *
- * Variables:
- *  devname   - block device name
- *  ino       - i-node number of the mapped file 
- *  sector    - beginning sector for the entire bio 
- *  flags     - see below 
+ *  @devname   - block device name
+ *  @ino       - i-node number of the mapped file
+ *  @sector    - beginning sector for the entire bio
+ *  @flags     - see below
  *  	BIO_UPTODATE    0       ok after I/O completion
  *  	BIO_RW_BLOCK    1       RW_AHEAD set, and read/write would block
  *  	BIO_EOF         2       out-out-bounds error
@@ -99,20 +94,18 @@ global BIO_READ = 0, BIO_WRITE = 1
  *  	BIO_USER_MAPPED 6       contains user pages
  *  	BIO_EOPNOTSUPP  7       not supported
  *  
- *  rw        - binary trace for read/write request
- *  vcnt      - bio vector count which represents number of array element (page, 
- *              offset, length) which make up this I/O request
- *  idx       - offset into the bio vector array
- *  phys_segments - number of segments in this bio after physical address
- *                  coalescing is performed.  
- *  hw_segments -   number of segments after physical and DMA remapping
- *              hardware coalescing is performed
- *  size      - total size in bytes 
- *  bdev      - target block device
- *  bdev_contains - points to the device object which contains the
- *                  partition (when bio structure represents a partition)
- *  p_start_sect -  points to the start sector of the partition
- *                  structure of the device
+ *  @rw        - binary trace for read/write request
+ *  @vcnt      - bio vector count which represents number of array element (page, offset, length) which make up this I/O request
+ *  @idx       - offset into the bio vector array
+ *  @phys_segments - number of segments in this bio after physical address coalescing is performed
+ *  @hw_segments -   number of segments after physical and DMA remapping hardware coalescing is performed
+ *  @size      - total size in bytes
+ *  @bdev      - target block device
+ *  @bdev_contains - points to the device object which contains the partition (when bio structure represents a partition)
+ *  @p_start_sect -  points to the start sector of the partition structure of the device
+ *
+ * Context:
+ *  The process makes block I/O request
  */
 probe ioblock.request = kernel.function ("generic_make_request")
 {
@@ -135,19 +128,14 @@ probe ioblock.request = kernel.function ("generic_make_request")
         p_start_sect = __bio_start_sect($bio)
 }
 
-/* probe ioblock.end
+/**
+ * probe ioblock.end - Fires whenever a block I/O transfer is complete.
  *
- *  Fires whenever a block I/O transfer is complete.
- *
- * Context:
- *  The process signals the transfer is done.
- *
- * Variables:
- *  devname   - block device name
- *  ino       - i-node number of the mapped file
- *  byte_done - number of bytes transferred 
- *  sector    - beginning sector for the entire bio
- *  flags     - see below
+ *  @devname   - block device name
+ *  @ino       - i-node number of the mapped file
+ *  @bytes_done - number of bytes transferred
+ *  @sector    - beginning sector for the entire bio
+ *  @flags     - see below
  *      BIO_UPTODATE    0       ok after I/O completion
  *      BIO_RW_BLOCK    1       RW_AHEAD set, and read/write would block
  *      BIO_EOF         2       out-out-bounds error
@@ -156,16 +144,16 @@ probe ioblock.request = kernel.function ("generic_make_request")
  *      BIO_BOUNCED     5       bio is a bounce bio
  *      BIO_USER_MAPPED 6       contains user pages
  *      BIO_EOPNOTSUPP  7       not supported
- *  error     - 0 on success
- *  rw        - binary trace for read/write request 
- *  vcnt      - bio vector count which represents number of array element (page,
- *              offset, length) which makes up this I/O request
- *  idx       - offset into the bio vector array
- *  phys_segments - number of segments in this bio after physical address
- *                  coalescing is performed.
- *  hw_segments -   number of segments after physical and DMA remapping
- *              hardware coalescing is performed
- *  size      - total size in bytes 
+ *  @error     - 0 on success
+ *  @rw        - binary trace for read/write request
+ *  @vcnt      - bio vector count which represents number of array element (page, offset, length) which makes up this I/O request
+ *  @idx       - offset into the bio vector array
+ *  @phys_segments - number of segments in this bio after physical address coalescing is performed.
+ *  @hw_segments -   number of segments after physical and DMA remapping hardware coalescing is performed
+ *  @size      - total size in bytes
+ *
+ * Context:
+ *  The process signals the transfer is done.
  */
 probe ioblock.end = kernel.function("bio_endio")
 {
@@ -184,5 +172,137 @@ probe ioblock.end = kernel.function("bio_endio")
 %(kernel_v < "2.6.28" %?
         hw_segments = $bio->bi_hw_segments
 %)
+        size = $bio->bi_size
+}
+
+/**
+ * probe ioblock_trace.bounce - Fires whenever a buffer bounce is needed for at least one page of a block IO request.
+ *
+ *  @devname    device for which a buffer bounce was needed.
+ *  @ino       - i-node number of the mapped file
+ *  @bytes_done - number of bytes transferred
+ *  @sector    - beginning sector for the entire bio
+ *  @flags     - see below
+ *      BIO_UPTODATE    0       ok after I/O completion
+ *      BIO_RW_BLOCK    1       RW_AHEAD set, and read/write would block
+ *      BIO_EOF         2       out-out-bounds error
+ *      BIO_SEG_VALID   3       nr_hw_seg valid
+ *      BIO_CLONED      4       doesn't own data
+ *      BIO_BOUNCED     5       bio is a bounce bio
+ *      BIO_USER_MAPPED 6       contains user pages
+ *      BIO_EOPNOTSUPP  7       not supported
+ *  @rw        - binary trace for read/write request
+ *  @vcnt      - bio vector count which represents number of array element (page, offset, length) which makes up this I/O request
+ *  @idx       - offset into the bio vector array
+ *  @phys_segments - number of segments in this bio after physical address coalescing is performed.
+ *  @size      - total size in bytes
+ *
+ * Context :
+ *	The process creating a block IO request.
+ */
+probe ioblock_trace.bounce = kernel.trace("block_bio_bounce")
+{
+        devname = __bio_devname($bio)
+        ino = __bio_ino($bio)
+
+        bytes_done = $bio->bi_size
+        sector = $bio->bi_sector
+        flags = $bio->bi_flags
+        rw = $bio->bi_rw
+        vcnt = $bio->bi_vcnt
+        idx = $bio->bi_idx
+        phys_segments = $bio->bi_phys_segments
+        size = $bio->bi_size
+}
+
+/**
+ * probe ioblock_trace.request - Fires just as a generic block I/O request is created for a bio.
+ *
+ *  @devname   - block device name
+ *  @ino       - i-node number of the mapped file
+ *  @bytes_done - number of bytes transferred
+ *  @sector    - beginning sector for the entire bio
+ *  @flags     - see below
+ *	BIO_UPTODATE    0       ok after I/O completion
+ *	BIO_RW_BLOCK    1       RW_AHEAD set, and read/write would block
+ *	BIO_EOF         2       out-out-bounds error
+ *	BIO_SEG_VALID   3       nr_hw_seg valid
+ *	BIO_CLONED      4       doesn't own data
+ *	BIO_BOUNCED     5       bio is a bounce bio
+ *	BIO_USER_MAPPED 6       contains user pages
+ *	BIO_EOPNOTSUPP  7       not supported
+ *
+ *  @rw        - binary trace for read/write request
+ *  @vcnt      - bio vector count which represents number of array element (page, offset, length) which make up this I/O request
+ *  @idx       - offset into the bio vector array
+ *  @phys_segments - number of segments in this bio after physical address coalescing is performed.
+ *  @size      - total size in bytes
+ *  @bdev      - target block device
+ *  @bdev_contains - points to the device object which contains the partition (when bio structure represents a partition)
+ *  @p_start_sect -  points to the start sector of the partition structure of the device
+ *
+ * Context:
+ *  The process makes block I/O request
+ */
+
+probe ioblock_trace.request = kernel.trace("block_bio_queue")
+{
+        devname = __bio_devname($bio)
+        ino = __bio_ino($bio)
+
+        bytes_done = $bio->bi_size
+        sector = $bio->bi_sector
+        flags = $bio->bi_flags
+        rw = $bio->bi_rw
+        vcnt = $bio->bi_vcnt
+        idx = $bio->bi_idx
+        phys_segments = $bio->bi_phys_segments
+        size = $bio->bi_size
+        bdev_contains = $bio->bi_bdev->bd_contains
+        bdev = $bio->bi_bdev
+        p_start_sect = __bio_start_sect($bio)
+}
+
+/**
+ * probe ioblock_trace.end - Fires whenever a block I/O transfer is complete.
+ *
+ *  @q	      - request queue on which this bio was queued.
+ *  @devname   - block device name
+ *  @ino       - i-node number of the mapped file
+ *  @bytes_done - number of bytes transferred
+ *  @sector    - beginning sector for the entire bio
+ *  @flags     - see below
+ *      BIO_UPTODATE    0       ok after I/O completion
+ *      BIO_RW_BLOCK    1       RW_AHEAD set, and read/write would block
+ *      BIO_EOF         2       out-out-bounds error
+ *      BIO_SEG_VALID   3       nr_hw_seg valid
+ *      BIO_CLONED      4       doesn't own data
+ *      BIO_BOUNCED     5       bio is a bounce bio
+ *      BIO_USER_MAPPED 6       contains user pages
+ *      BIO_EOPNOTSUPP  7       not supported
+ *
+ *  @rw        - binary trace for read/write request
+ *  @vcnt      - bio vector count which represents number of array element (page, offset, length) which makes up this I/O request
+ *  @idx       - offset into the bio vector array
+ *  @phys_segments - number of segments in this bio after physical address coalescing is performed.
+ *  @size      - total size in bytes
+ *
+ * Context:
+ *  The process signals the transfer is done.
+ */
+probe ioblock_trace.end = kernel.trace("block_bio_complete")
+{
+	q = $q
+        devname = __bio_devname($bio)
+        ino = __bio_ino($bio)
+
+        bytes_done = $bio->bi_size
+
+        sector = $bio->bi_sector
+        flags = $bio->bi_flags
+        rw = $bio->bi_rw
+        vcnt = $bio->bi_vcnt
+        idx = $bio->bi_idx
+        phys_segments = $bio->bi_phys_segments
         size = $bio->bi_size
 }

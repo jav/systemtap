@@ -1,6 +1,6 @@
 #! stap -wp4
 
-probe netdev.get_stats{
+probe netdev.get_stats ? {
 	printf("%s", dev_name)
 }
 
@@ -21,7 +21,7 @@ probe netdev.set_promiscuity {
 				disable, inc)
 }
 
-probe netdev.change_rx_flag {
+probe netdev.change_rx_flag ? {
 	printf("%s %d", dev_name, flags)
 }
 
