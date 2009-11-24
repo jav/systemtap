@@ -135,6 +135,16 @@
 !Itapset/timestamp.stp
   </chapter>
 
+  <chapter id="ctime.stp">
+    <title>Time string utility function</title>
+    <para>
+      Utility function to turn seconds since the epoch (as returned by
+      the timestamp function gettimeofday_s()) into a human readable
+      date/time string.
+    </para>
+!Itapset/ctime.stp
+  </chapter>
+
   <chapter id="memory_stp">
     <title>Memory Tapset</title>
  <para>
@@ -157,12 +167,13 @@
   </chapter>
 
   <chapter id="iosched.stp">
-    <title>IO Scheduler Tapset</title>
+    <title>IO Scheduler and block IO Tapset</title>
     <para>
-      This family of probe points is used to probe IO scheduler activities.
+      This family of probe points is used to probe block IO layer and IO scheduler activities.
       It contains the following probe points:
     </para>
 !Itapset/ioscheduler.stp
+!Itapset/ioblock.stp
   </chapter>
 
   <chapter id="scsi.stp">
@@ -250,5 +261,14 @@
       strings are of a maximum length given by MAXSTRINGLEN.
     </para>
 !Itapset/conversions.stp
+    </chapter>
+  <chapter id="ansi.stp">
+    <title>Utility functions for using ansi control chars in logs</title>
+    <para>
+      Utility functions for logging using ansi control characters. This
+      lets you manipulate the cursor position and character color output
+      and attributes of log messages.
+    </para>
+!Itapset/ansi.stp
     </chapter>
 </book>

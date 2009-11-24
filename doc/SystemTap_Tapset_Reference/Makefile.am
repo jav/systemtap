@@ -30,7 +30,7 @@ if BUILD_REFDOCS
 all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
 tapsets.xml: docproc $(shell find $(SRCTREE)/tapset -name '*.stp')
 	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
-	if cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
+	if test -s tapsets.xml && cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
 		echo tapsets.xml unchanged; \
 		rm tapsets.xml.new; \
 	else \

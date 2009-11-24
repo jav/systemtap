@@ -450,8 +450,8 @@ probe nfs.fop.aio_read.return = kernel.function ("nfs_file_read").return !,
 
         if ($return > 0) {
                 size = $return
-                units = "bytes"
         }
+	units = "bytes"
 }
 
 /* probe nfs.fop.aio_write
@@ -503,8 +503,8 @@ probe nfs.fop.aio_write.return = kernel.function("nfs_file_write").return !,
 
         if ($return > 0) {
                 size = $return
-                units = "bytes"
         }
+        units = "bytes"
 }
 
 /* probe nfs.fop.mmap
@@ -669,7 +669,9 @@ probe nfs.fop.release.return = kernel.function("nfs_file_release").return !,
  *    ino : inode number       
  *    ndirty : number of dirty pages 
  */
-probe nfs.fop.fsync = kernel.function("nfs_fsync") !,
+probe nfs.fop.fsync = kernel.function("nfs_file_fsync") !,
+                      module("nfs").function("nfs_file_fsync") !,
+                      kernel.function("nfs_fsync") !,
                       module("nfs").function("nfs_fsync")
 {
         dev = __file_dev($file)
@@ -683,7 +685,9 @@ probe nfs.fop.fsync = kernel.function("nfs_fsync") !,
 	argstr = sprintf("%d", ino)  
 }
 
-probe nfs.fop.fsync.return = kernel.function("nfs_fsync").return !,
+probe nfs.fop.fsync.return = kernel.function("nfs_file_fsync").return !,
+                             module("nfs").function("nfs_file_fsync").return !,
+                             kernel.function("nfs_fsync").return !,
                              module("nfs").function("nfs_fsync").return
 {
         name = "nfs.fop.fsync.return"
@@ -782,8 +786,8 @@ probe nfs.fop.sendfile.return = kernel.function("nfs_file_sendfile").return !,
 
         if ($return > 0) {
                 size = $return
-                units = "bytes"
         }
+        units = "bytes"
 }
 %)
 
@@ -816,8 +820,8 @@ probe nfs.aop.entries = nfs.aop.readpage,
                         nfs.aop.writepage,
                         nfs.aop.writepages,
                         nfs.aop.release_page ?,
-                        nfs.aop.prepare_write,
-                        nfs.aop.commit_write
+			nfs.aop.write_begin,
+			nfs.aop.write_end
 {
 }
  
@@ -826,8 +830,8 @@ probe nfs.aop.return = nfs.aop.readpage.return,
                         nfs.aop.writepage.return,
                         nfs.aop.writepages.return,
                         nfs.aop.release_page.return ?,
-                        nfs.aop.prepare_write.return,
-                        nfs.aop.commit_write.return
+			nfs.aop.write_begin.return,
+			nfs.aop.write_end.return
 {
 }
 
@@ -922,9 +926,8 @@ probe nfs.aop.readpages.return = kernel.function ("nfs_readpages").return !,
         name = "nfs.aop.readpages.return"
         retstr = sprintf("%d", $return)
 
-        if ($return > 0 )
-        {
-            size = retstr
+        if ($return > 0 ) {
+            size = $return
         }
         units = "pages"
 }
@@ -1064,6 +1067,79 @@ probe nfs.aop.writepages.return = kernel.function ("nfs_writepages").return !,
         retstr = sprintf("%d", $return)
 }
 
+# kernel commit 4899f9c852564ce7b6d0ca932ac6674bf471fd28 removed
+# nfs_prepare_write()/nfs_commit_write() and created
+# nfs_write_begin()/nfs_write_end().  So, we try to find whatever the
+# current kernel has.
+
+probe nfs.aop.write_begin = __nfs.aop.write_begin !,
+			    __nfs.aop.prepare_write
+{
+}
+probe nfs.aop.write_begin.return
+		= __nfs.aop.write_begin.return !,
+		  __nfs.aop.prepare_write.return
+{
+}
+
+probe nfs.aop.write_end = __nfs.aop.write_end !,
+			  __nfs.aop.commit_write
+{
+}
+probe nfs.aop.write_end.return
+		= __nfs.aop.write_end.return !,
+		  __nfs.aop.commit_write.return
+{
+}
+
+probe __nfs.aop.write_begin = kernel.function ("nfs_write_begin") !,
+			      module("nfs").function("nfs_write_begin")
+{
+        dev = __file_dev($file)
+        ino = __file_ino($file)
+        s_id = __file_id($file)
+        devname = kernel_string(s_id)
+
+        pos = $pos
+        count = $len
+       
+        name = "nfs.aop.write_begin"
+        argstr = sprintf("%d", ino)
+
+        units = "bytes"        
+}
+probe __nfs.aop.write_begin.return
+               = kernel.function ("nfs_write_begin").return !,
+                 module("nfs").function ("nfs_write_begin").return
+{
+        name = "nfs.aop.write_begin.return"
+        retstr = sprintf("%d", $return)
+}
+
+probe __nfs.aop.write_end = kernel.function ("nfs_write_end") !,
+			    module("nfs").function("nfs_write_end")
+{
+        dev = __file_dev($file)
+        ino = __file_ino($file)
+        s_id = __file_id($file)
+        devname = kernel_string(s_id)
+
+        pos = $pos
+        count = $len
+       
+        name = "nfs.aop.write_end"
+        argstr = sprintf("%d", ino)
+
+        units = "bytes"        
+}
+probe __nfs.aop.write_end.return
+               = kernel.function ("nfs_write_end").return !,
+		 module("nfs").function("nfs_write_end").return
+{
+        name = "nfs.aop.write_end.return"
+        retstr = sprintf("%d", $return)
+}
+
 /* probe nfs.aop.prepare_write
  *  Fires when do write operation on nfs.
  *     Prepare a page for writing
@@ -1084,8 +1160,8 @@ probe nfs.aop.writepages.return = kernel.function ("nfs_writepages").return !,
  *                   in the page frame
  *     size   : write bytes
  */
-probe nfs.aop.prepare_write = kernel.function ("nfs_prepare_write") !,
-             module("nfs").function ("nfs_prepare_write")
+probe __nfs.aop.prepare_write = kernel.function ("nfs_prepare_write") !,
+                                module("nfs").function ("nfs_prepare_write")
 {
         __page = $page
         dev = __page_dev(__page)
@@ -1104,7 +1180,7 @@ probe nfs.aop.prepare_write = kernel.function ("nfs_prepare_write") !,
         units = "bytes"        
 }
 
-probe nfs.aop.prepare_write.return = 
+probe __nfs.aop.prepare_write.return = 
                  kernel.function ("nfs_prepare_write").return !,
                  module("nfs").function ("nfs_prepare_write").return
 {
@@ -1132,16 +1208,15 @@ probe nfs.aop.prepare_write.return =
  *                  in the page frame
  *     size   : write bytes
  */ 
-probe nfs.aop.commit_write = kernel.function ("nfs_commit_write") !,
-             module("nfs").function ("nfs_commit_write")
+probe __nfs.aop.commit_write = kernel.function ("nfs_commit_write") !,
+                               module("nfs").function ("nfs_commit_write")
 {
-         __page = $page
+        __page = $page
         dev = __page_dev(__page)
         ino = __page_ino(__page)
 
         offset = $offset
         to = $to
-      
 
         i_flag = __p2i_flag($page) 
         i_size = __p2i_size($page)
@@ -1157,7 +1232,7 @@ probe nfs.aop.commit_write = kernel.function ("nfs_commit_write") !,
         units = "bytes"
 }
 
-probe nfs.aop.commit_write.return =
+probe __nfs.aop.commit_write.return =
              kernel.function ("nfs_commit_write").return !,
              module("nfs").function ("nfs_commit_write").return
 {

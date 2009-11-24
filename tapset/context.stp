@@ -210,7 +210,12 @@ function user_mode:long () %{ /* pure */ /* unprivileged */
   }
 %}
 
-
+/**
+ * sfunction is_return - Whether the current probe context is a return probe.
+ *
+ * Description: Returns 1 if the current probe context is a return probe,
+ * returns 0 otherwise.
+ */
 function is_return:long () %{ /* pure */
 	if (CONTEXT->pi)
 		THIS->__retvalue = 1;
@@ -225,24 +230,22 @@ function target:long () %{ /* pure */ /* unprivileged */
         THIS->__retvalue = _stp_target;
 %}
 
-///<formalpara id="module_name">
-///  <title>module_name:string()</title>
-///  <indexterm><primary>module_name</primary></indexterm>
-///  <para>
-///	<remark>FIXME: need description.</remark>
-///  </para>
-///</formalpara>
+/**
+ * sfunction module_name - The module name of the current script.
+ *
+ * Returns the name of the stap module. Either generated randomly
+ * (stap_[0-9a-f]+_[0-9a-f]+) or set by stap -m <module_name>.
+ */
 function module_name:string () %{ /* pure */ /* unprivileged */
 	strlcpy(THIS->__retvalue, THIS_MODULE->name, MAXSTRINGLEN);
 %}
 
-///<formalpara id="stp_pid">
-///  <title>stp_pid:long()</title>
-///  <indexterm><primary>stp_pid</primary></indexterm>
-///  <para>
-///	<remark>FIXME: need description.</remark>
-///  </para>
-///</formalpara>
+/**
+ * sfunction stp_pid - The process id of the stapio process.
+ *
+ * Returns the process id of the stapio process that launched
+ * this script.
+ */
 function stp_pid:long () %{ /* pure */
         THIS->__retvalue = _stp_pid;
 %}

@@ -1,4 +1,4 @@
-#! /usr/bin/stap
+#! /usr/bin/env stap
 
 function time () { return gettimeofday_ms() }
 global time_name = "ms"

@@ -721,6 +721,37 @@ dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
   return DWARF_CB_OK;
 }
 
+int
+dwflpp::global_alias_caching_callback_cus(Dwarf_Die *die, void *arg)
+{
+  mod_cu_type_cache_t *global_alias_cache;
+  global_alias_cache = &static_cast<dwflpp *>(arg)->global_alias_cache;
+
+  cu_type_cache_t *v = (*global_alias_cache)[die->addr];
+  if (v != 0)
+    return DWARF_CB_OK;
+
+  v = new cu_type_cache_t;
+  (*global_alias_cache)[die->addr] = v;
+  iterate_over_globals(die, global_alias_caching_callback, v);
+
+  return DWARF_CB_OK;
+}
+
+Dwarf_Die *
+dwflpp::declaration_resolve_other_cus(const char *name)
+{
+  iterate_over_cus(global_alias_caching_callback_cus, this);
+  for (mod_cu_type_cache_t::iterator i = global_alias_cache.begin();
+         i != global_alias_cache.end(); ++i)
+    {
+      cu_type_cache_t *v = (*i).second;
+      if (v->find(name) != v->end())
+        return & ((*v)[name]);
+    }
+
+  return NULL;
+}
 
 Dwarf_Die *
 dwflpp::declaration_resolve(const char *name)
@@ -733,7 +764,7 @@ dwflpp::declaration_resolve(const char *name)
     {
       v = new cu_type_cache_t;
       global_alias_cache[cu->addr] = v;
-      iterate_over_globals(global_alias_caching_callback, v);
+      iterate_over_globals(cu, global_alias_caching_callback, v);
       if (sess.verbose > 4)
         clog << "global alias cache " << module_name << ":" << cu_name()
              << " size " << v->size() << endl;
@@ -744,11 +775,8 @@ dwflpp::declaration_resolve(const char *name)
   // forward-declared pointer type only, where the actual definition
   // may only be in vmlinux or the application.
 
-  // XXX: it is probably desirable to search other CU's declarations
-  // in the same module.
-
   if (v->find(name) == v->end())
-    return NULL;
+    return declaration_resolve_other_cus(name);
 
   return & ((*v)[name]);
 }
@@ -839,17 +867,17 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
 /* This basically only goes one level down from the compile unit so it
  * only picks up top level stuff (i.e. nothing in a lower scope) */
 int
-dwflpp::iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
+dwflpp::iterate_over_globals (Dwarf_Die *cu_die,
+                              int (* callback)(Dwarf_Die *, void *),
                               void * data)
 {
   int rc = DWARF_CB_OK;
   Dwarf_Die die;
 
-  assert (module);
-  assert (cu);
-  assert (dwarf_tag(cu) == DW_TAG_compile_unit);
+  assert (cu_die);
+  assert (dwarf_tag(cu_die) == DW_TAG_compile_unit);
 
-  if (dwarf_child(cu, &die) != 0)
+  if (dwarf_child(cu_die, &die) != 0)
     return rc;
 
   do
@@ -1484,8 +1512,8 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
         {
           // This gives us the module name, and section name within the
           // module, for a kernel module (or other ET_REL module object).
-          obstack_printf (pool, "({ static unsigned long addr = 0; ");
-          obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+          obstack_printf (pool, "({ unsigned long addr = 0; ");
+          obstack_printf (pool, "addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
                           modname, secname, reloc_address);
           obstack_printf (pool, "addr; })");
         }
@@ -1495,6 +1523,9 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
           // need to treat the same way here as dwarf_query::add_probe_point does: _stext.
           address -= sess.sym_stext;
           secname = "_stext";
+          // Note we "cache" the result here through a static because the
+          // kernel will never move after being loaded (unlike modules and
+          // user-space dynamic share libraries).
           obstack_printf (pool, "({ static unsigned long addr = 0; ");
           obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
                           modname, secname, address); // PR10000 NB: not reloc_address
@@ -1502,12 +1533,11 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
         }
       else
         {
-          throw semantic_error ("cannot relocate user-space dso (?) address");
-#if 0
-          // This would happen for a Dwfl_Module that's a user-level DSO.
-          obstack_printf (pool, " /* %s+%#" PRIx64 " */",
-                          modname, address);
-#endif
+          enable_task_finder (sess);
+          obstack_printf (pool, "({ unsigned long addr = 0; ");
+          obstack_printf (pool, "addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+                          modname, ".dynamic", reloc_address);
+          obstack_printf (pool, "addr; })");
         }
     }
   else
@@ -2210,6 +2240,41 @@ dwflpp::express_as_string (string prelude,
   return result;
 }
 
+Dwarf_Addr
+dwflpp::vardie_from_symtable (Dwarf_Die *vardie, Dwarf_Addr *addr)
+{
+  const char *name;
+  Dwarf_Attribute attr_mem;
+  name = dwarf_formstring (dwarf_attr_integrate (vardie,
+                                                 DW_AT_MIPS_linkage_name,
+                                                 &attr_mem));
+  if (!name)
+    name = dwarf_diename (vardie);
+
+  if (sess.verbose > 2)
+    clog << "finding symtable address for " << name << "\n";
+
+  *addr = 0;
+  int syms = dwfl_module_getsymtab (module);
+  dwfl_assert ("Getting symbols", syms >= 0);
+
+  for (int i = 0; *addr == 0 && i < syms; i++)
+    {
+      GElf_Sym sym;
+      GElf_Word shndxp;
+      const char *symname = dwfl_module_getsym(module, i, &sym, &shndxp);
+      if (symname
+	  && ! strcmp (name, symname)
+	  && sym.st_shndx != SHN_UNDEF
+	  && GELF_ST_TYPE (sym.st_info) == STT_OBJECT)
+	*addr = sym.st_value;
+    }
+
+  if (sess.verbose > 2)
+    clog << "found " << name << "@0x" << hex << *addr << "\n";
+
+  return *addr;
+}
 
 string
 dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
@@ -2231,18 +2296,6 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
          << ", module bias 0x" << module_bias << dec
          << "\n";
 
-  Dwarf_Attribute attr_mem;
-  if (dwarf_attr_integrate (&vardie, DW_AT_const_value, &attr_mem) == NULL
-      && dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
-    {
-      throw semantic_error("failed to retrieve location "
-                           "attribute for local '" + local
-                           + "' (dieoffset: "
-                           + lex_cast_hex(dwarf_dieoffset (&vardie))
-                           + ")",
-                           e->tok);
-    }
-
 #define obstack_chunk_alloc malloc
 #define obstack_chunk_free free
 
@@ -2252,9 +2305,33 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
 
   /* Given $foo->bar->baz[NN], translate the location of foo. */
 
-  struct location *head = translate_location (&pool,
-                                              &attr_mem, pc, fb_attr, &tail,
-                                              e);
+  struct location *head;
+
+  Dwarf_Attribute attr_mem;
+  if (dwarf_attr_integrate (&vardie, DW_AT_const_value, &attr_mem) == NULL
+      && dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
+    {
+      Dwarf_Op addr_loc;
+      addr_loc.atom = DW_OP_addr;
+      // If it is an external variable try the symbol table. PR10622.
+      if (dwarf_attr_integrate (&vardie, DW_AT_external, &attr_mem) != NULL
+	  && vardie_from_symtable (&vardie, &addr_loc.number) != 0)
+	{
+	  head = c_translate_location (&pool, &loc2c_error, this,
+				       &loc2c_emit_address,
+				       1, 0, pc,
+				       NULL, &addr_loc, 1, &tail, NULL, NULL);
+	}
+      else
+	throw semantic_error("failed to retrieve location "
+                           "attribute for local '" + local
+                           + "' (dieoffset: "
+                           + lex_cast_hex(dwarf_dieoffset (&vardie))
+                           + ")",
+                           e->tok);
+    }
+  else
+    head = translate_location (&pool, &attr_mem, pc, fb_attr, &tail, e);
 
   if (dwarf_attr_integrate (&vardie, DW_AT_type, &attr_mem) == NULL)
     throw semantic_error("failed to retrieve type "

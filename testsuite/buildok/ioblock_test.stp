@@ -25,3 +25,10 @@ probe ioblock.end {
                 devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments, size, bytes_done, error, ino)
 %)
 }
+
+probe ioblock_trace.*
+{
+  log(pp())
+  printf("%s\t%d\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%p\t%p\t%d\n",
+                devname, q, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments, size, bytes_done, ino, p_start_sect, bdev_contains, bdev)
+}

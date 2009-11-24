@@ -37,3 +37,4 @@ build-elfutils
 include-elfutils
 lib-elfutils
 stamp-elfutils
+dtrace

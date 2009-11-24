@@ -11,12 +11,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Print out the amount of time spent in the read and write systemcall
- * when a process closes each file is closed. Note that the systemtap 
- * script needs to be running before the open operations occur for
- * the script to record data.
- *
- * Description: displays statisics for waiting and holding big kernel lock (BKL)
+ * Description: displays statistics for waiting and holding big kernel lock (BKL)
  *
  * Run: stap bkl_stats.stap
  *
@@ -73,11 +68,10 @@ probe kernel.function("lock_kernel").return {
 }
 
 probe kernel.function("unlock_kernel") {
-  # record the amount of time the process held the lock
   t = gettimeofday_us()
   s = holder_time[tid()]
   holder_time[tid()] = t
-  # record the amount of time waiting for the lock
+  # record the amount of time the process held the lock
   if (s) {
      holder_stats[tid()] <<< t - s
      names[tid()] = execname()

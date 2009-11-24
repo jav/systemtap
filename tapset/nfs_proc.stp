@@ -207,9 +207,9 @@ function __getfh_inode :long(dir:long) %{ /* pure */
 	THIS->__retvalue =(long) fh;
 %}
 probe nfs.proc.entries = nfs.proc.lookup,
-			nfs.proc.read,
-			nfs.proc.write,
-			nfs.proc.commit,
+			nfs.proc.read ?,
+			nfs.proc.write ?,
+			nfs.proc.commit ?,
 			nfs.proc.read_setup,
 			nfs.proc.write_setup,
 			nfs.proc.commit_setup,
@@ -226,9 +226,9 @@ probe nfs.proc.entries = nfs.proc.lookup,
 
 
 probe nfs.proc.return = nfs.proc.lookup.return,
-			nfs.proc.read.return,
-			nfs.proc.write.return,
-			nfs.proc.commit.return,
+			nfs.proc.read.return ?,
+			nfs.proc.write.return ?,
+			nfs.proc.commit.return ?,
 			nfs.proc.read_setup.return,
 			nfs.proc.write_setup.return,
 			nfs.proc.commit_setup.return,
@@ -355,16 +355,18 @@ probe nfs.proc4.lookup.return = kernel.function("nfs4_proc_lookup").return!,
 *   count : read bytes in this execution
 *   offset : the file offset
 * 
+* All the nfs.proc.read kernel functions were removed in kernel commit
+* 8e0969, so these probes are optional.
 */
-probe nfs.proc.read = nfs.proc2.read ,
-                      nfs.proc3.read ,
-                      nfs.proc4.read 
+probe nfs.proc.read = nfs.proc2.read ?,
+                      nfs.proc3.read ?,
+                      nfs.proc4.read ?
 {}
 
 
-probe nfs.proc.read.return = nfs.proc2.read.return ,
-                      nfs.proc3.read.return ,
-                      nfs.proc4.read.return 
+probe nfs.proc.read.return = nfs.proc2.read.return ?,
+                      nfs.proc3.read.return ?,
+                      nfs.proc4.read.return ?
 {
 }
 
@@ -464,17 +466,20 @@ probe nfs.proc4.read.return = kernel.function("nfs4_proc_read").return !,
 *   bitmask0:
 *   bitmask1 :V4 bitmask representing the set of attributes 
 *             supported on this filesystem (only in probe nfs.proc4.write)
+*
+* All the nfs.proc.write kernel functions were removed in kernel commit
+* 200baa, so these probes are optional.
 */
 
-probe nfs.proc.write = nfs.proc2.write ,
-                      nfs.proc3.write ,
-                      nfs.proc4.write 
+probe nfs.proc.write = nfs.proc2.write ?,
+                      nfs.proc3.write ?,
+                      nfs.proc4.write ?
 {}
 
 
-probe nfs.proc.write.return = nfs.proc2.write.return ,
-                      nfs.proc3.write.return ,
-                      nfs.proc4.write.return 
+probe nfs.proc.write.return = nfs.proc2.write.return ?,
+                      nfs.proc3.write.return ?,
+                      nfs.proc4.write.return ?
 {}
 
 probe nfs.proc2.write = kernel.function("nfs_proc_write")!,
@@ -598,13 +603,16 @@ probe nfs.proc4.write.return = kernel.function("nfs4_proc_write").return !,
 *   bitmask0:
 *   bitmask1 :V4 bitmask representing the set of attributes 
 *             supported on this filesystem (only in probe nfs.proc4.commit)
+*
+* All the nfs.proc.commit kernel functions were removed in kernel
+* commit 200baa, so these probes are optional. 
 */
-probe nfs.proc.commit = nfs.proc3.commit,
-                        nfs.proc4.commit
+probe nfs.proc.commit = nfs.proc3.commit ?,
+                        nfs.proc4.commit ?
 {}
 
-probe nfs.proc.commit.return = nfs.proc3.commit.return,
-                               nfs.proc4.commit.return
+probe nfs.proc.commit.return = nfs.proc3.commit.return ?,
+                               nfs.proc4.commit.return ?
 {}
 
 // XXX: on kernels > 2.6.18 (?), module("nfs") -> module("nfsd") and

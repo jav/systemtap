@@ -1,0 +1,25 @@
+# Check that we can dereference a type declaration that is
+# defined in a separate CU from the function.
+set test "cu-decl"
+
+set script {
+    probe process("cu-decl").function("print") {
+        println($f->x * $f->y)
+    }
+}
+
+set sources "$srcdir/$subdir/$test-1.c $srcdir/$subdir/$test-2.c"
+set res [target_compile $sources $test executable "additional_flags=-g"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test target compilation"
+    untested "$test"
+} else {
+    pass "$test target compilation"
+}
+if {![utrace_p]} {
+    untested "$test : no kernel utrace support found"
+} else {
+    stap_compile $test 1 "{$script}"
+}
+catch {exec rm $test}

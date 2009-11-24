@@ -1,4 +1,4 @@
-#!/usr/bin/stap -g
+#!/usr/bin/env stap
 # badname.stp
 # Prevent the creation of files with undesirable names.
 # Source: http://blog.cuviper.com/2009/04/08/hacking-linux-filenames/

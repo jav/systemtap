@@ -241,7 +241,7 @@ cd ..
 %endif
 
 
-%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{grapher_config} %{rpm_config}
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{grapher_config} %{rpm_config} --disable-silent-rules
 make %{?_smp_mflags}
 
 %install

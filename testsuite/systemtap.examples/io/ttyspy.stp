@@ -1,11 +1,11 @@
-#! /usr/bin/stap -g
+#! /usr/bin/env stap
 # May also need --skip-badvars
 
 global activity_time, activity_log
 
 /* Concatenate head and tail, to a max of @num chars, preferring to keep the tail
    (as if it were a recent history buffer). */
-function strcattail:string(head:string,tail:string,num:long) %{
+function strcattail:string(head:string,tail:string,num:long) %{ /* pure */
          unsigned taillen = strlen(THIS->tail);
          unsigned headlen = strlen(THIS->head);
          unsigned maxlen = THIS->num < MAXSTRINGLEN ? THIS->num : MAXSTRINGLEN;
