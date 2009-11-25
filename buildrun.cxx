@@ -19,6 +19,7 @@ extern "C" {
 #include <signal.h>
 #include <sys/wait.h>
 #include <pwd.h>
+#include <grp.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -263,6 +264,42 @@ kernel_built_uprobes (systemtap_session& s)
   return (stap_system (s.verbose, grep_cmd) == 0);
 }
 
+/*
+ * We only want root, the owner of the uprobes build directory
+ * and members of the group owning the uprobes build directory
+ * modifying uprobes.
+ */
+static bool
+may_build_uprobes (const systemtap_session& s)
+{
+  // root may build uprobes.
+  uid_t euid = geteuid ();
+  if (euid == 0)
+    return true;
+
+  // Get information on the build directory.
+  string uprobes_home = s.runtime_path + "/uprobes";
+  struct stat file_info;
+  if (stat(uprobes_home.c_str(), &file_info) != 0) {
+    clog << "Unable to obtain information on " << uprobes_home << '.' << endl;
+    return false;
+  }
+
+  // The owner of the build directory may build uprobes.
+  if (euid == file_info.st_uid)
+    return true;
+
+  // Members of the group owner of the build directory may build uprobes.
+  if (in_group_id (file_info.st_gid))
+    return true;
+
+  return false;
+}
+
+/*
+ * Use "make -q" with a fake target to
+ * verify that uprobes doesn't need to be rebuilt.
+ */
 static bool
 verify_uprobes_uptodate (systemtap_session& s)
 {
@@ -277,8 +314,24 @@ verify_uprobes_uptodate (systemtap_session& s)
   int rc = run_make_cmd(s, make_cmd);
   if (rc) {
     clog << "SystemTap's version of uprobes is out of date." << endl;
-    clog << "As root, or a member of the 'stap-server' group, run" << endl;
-    clog << "\"make -C " << uprobes_home << "\"." << endl;
+
+    struct stat file_info;
+    if (stat(uprobes_home.c_str(), &file_info) != 0) {
+      clog << "Unable to obtain information on " << uprobes_home << '.' << endl;
+    }
+    else {
+      struct passwd *owner = getpwuid (file_info.st_uid);
+      string owner_name = owner == NULL ? "The owner of " + uprobes_home :
+	                                  owner->pw_name;
+      if (owner_name == "root")
+	owner_name = "";
+      struct group *owner_group = getgrgid (file_info.st_gid);
+      string owner_group_name = owner_group == NULL ? "The owner group of " + uprobes_home :
+	                                              owner_group->gr_name;
+      clog << "As root, " << owner_name << (owner_name.empty () ? "" : ", ")
+	   << "or a member of the '" << owner_group_name << "' group, run" << endl;
+      clog << "\"make -C " << uprobes_home << "\"." << endl;
+    }
   }
 
   return rc;
@@ -306,7 +359,7 @@ make_uprobes (systemtap_session& s)
  * so the script-module build can find them.
  */
 static int
-copy_uprobes_symbols (systemtap_session& s)
+copy_uprobes_symbols (const systemtap_session& s)
 {
   string uprobes_home = s.runtime_path + "/uprobes";
   string cp_cmd = string("/bin/cp ") + uprobes_home +
@@ -323,18 +376,16 @@ uprobes_pass (systemtap_session& s)
   /*
    * We need to use the version of uprobes that comes with SystemTap, so
    * we may need to rebuild uprobes.ko there.  Unfortunately, this is
-   * never a no-op; e.g., the modpost step gets run every time.  We
-   * only want root and members of the 'stap-server' group
-   * modifying uprobes, so we keep the uprobes directory writable only by
-   * those users.  But that means that other users can't run the make
-   * even if everything's up to date.
+   * never a no-op; e.g., the modpost step gets run every time.  Only
+   * certain users can build uprobes, so we keep the uprobes directory
+   * writable only by those users.  But that means that other users
+   * can't run the make even if everything's up to date.
    *
-   * So for the other users, we just use "make -q" with a fake target to
-   * verify that uprobes doesn't need to be rebuilt.  If that's not so,
-   * stap must fail.
+   * So for the other users, we just verify that uprobes doesn't need
+   * to be rebuilt.  If that's not so, stap must fail.
    */
   int rc;
-  if (geteuid() == 0 || in_group ("stap-server"))
+  if (may_build_uprobes (s))
     rc = make_uprobes(s);
   else
     rc = verify_uprobes_uptodate(s);

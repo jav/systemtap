@@ -189,24 +189,13 @@ remove_file_or_dir (const char *name)
   return 0;
 }
 
-// Determine whether the current user is in the given group.
+// Determine whether the current user is in the given group
+// by gid.
 bool
-in_group (const char *gname)
+in_group_id (gid_t target_gid)
 {
   gid_t gid, gidlist[NGROUPS_MAX];
-  gid_t target_gid;
   int i, ngids;
-  struct group *group;
-
-  // Lookup the gid for the target group
-  errno = 0;
-  group = getgrnam(gname);
-
-  // If we couldn't find the group, then we can't be part of it.
-  if (group == NULL)
-    return false;
-
-  target_gid = group->gr_gid;
 
   // According to the getgroups() man page, getgroups() may not
   // return the effective gid, so try to match it first. */
