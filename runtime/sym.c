@@ -35,7 +35,9 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 		  "mmap_cb: tsk %d:%d path %s, addr 0x%08lx, length 0x%08lx, offset 0x%lx, flags 0x%lx\n",
 		  tsk->pid, tsk->tgid, path, addr, length, offset, vm_flags);
 #endif
-	if (path != NULL) {
+	// We are only interested in the first load of the whole module that
+	// is executable. But see below for the comment about PR11015.
+	if (path != NULL && offset == 0 && (vm_flags & VM_EXEC)) {
 		for (i = 0; i < _stp_num_modules; i++) {
 			if (strcmp(path, _stp_modules[i]->path) == 0)
 			{
@@ -56,11 +58,18 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 				// in (especially the "section" naming is
 				// slightly confusing since what we really
 				// seem to mean are elf segments (which can
-				// contain multiple elf sections).
-				if ((strcmp(".dynamic",
-				     module->sections[0].name) == 0)
-				    && module->sections[0].addr == 0)
-				  module->sections[0].addr = addr;
+				// contain multiple elf sections). PR11015.
+				if (strcmp(".dynamic",
+					   module->sections[0].name) == 0)
+				  {
+				    if (module->sections[0].addr == 0)
+				      module->sections[0].addr = addr;
+				    else if (module->sections[0].addr != addr)
+				      _stp_error ("Reloaded module '%s'"
+						  " at 0x%lx, was 0x%lx\n",
+						  path, addr,
+						  module->sections[0].addr);
+				  }
 				break;
 			}
 		}

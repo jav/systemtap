@@ -85,6 +85,8 @@ alloc_location (struct obstack *pool, struct location *origin)
   loc->emit_address = origin->emit_address;
   loc->byte_size = 0;
   loc->frame_base = NULL;
+  loc->ops = NULL;
+  loc->nops = 0;
   return loc;
 }
 
@@ -669,6 +671,8 @@ location_from_address (struct obstack *pool,
   loc->emit_address = *input == NULL ? emit_address : (*input)->emit_address;
   loc->byte_size = 0;
   loc->frame_base = NULL;
+  loc->ops = NULL;
+  loc->nops = 0;
 
   bool need_fb = false;
   size_t loser;
@@ -1189,6 +1193,8 @@ c_translate_constant (struct obstack *pool,
   loc->address.stack_depth = 0;
   loc->address.declare = NULL;
   loc->address.used_deref = false;
+  loc->ops = NULL;
+  loc->nops = 0;
 
   switch (dwarf_whatform (attr))
     {

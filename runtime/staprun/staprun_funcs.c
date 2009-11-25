@@ -12,9 +12,7 @@
 
 #include "config.h"
 #include "staprun.h"
-#if HAVE_NSS
 #include "modverify.h"
-#endif
 
 #include <sys/mount.h>
 #include <sys/utsname.h>
