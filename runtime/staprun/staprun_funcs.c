@@ -289,7 +289,7 @@ check_stap_module_path(const char *module_path)
 	/* Validate /lib/modules/KVER/systemtap. */
 	if (stat(staplib_dir_path, &sb) < 0) {
 		perr("Unable to verify the signature for the module %s.\n"
-		     "  Members of the \"stapusr\" group can only use untrusted modules within\n"
+		     "  Members of the \"stapusr\" group can only use unsigned modules within\n"
 		     "  the \"%s\" directory.\n"
 		     "  Error getting information on that directory",
 		     module_path, staplib_dir_path);
@@ -298,7 +298,7 @@ check_stap_module_path(const char *module_path)
 	/* Make sure it is a directory. */
 	if (! S_ISDIR(sb.st_mode)) {
 		err("ERROR: Unable to verify the signature for the module %s.\n"
-		    "  Members of the \"stapusr\" group can only use untrusted modules within\n"
+		    "  Members of the \"stapusr\" group can only use unsigned modules within\n"
 		    "  the \"%s\" directory.\n"
 		    "  That path must refer to a directory.\n",
 		    module_path, staplib_dir_path);
@@ -307,7 +307,7 @@ check_stap_module_path(const char *module_path)
 	/* Make sure it is owned by root. */
 	if (sb.st_uid != 0) {
 		err("ERROR: Unable to verify the signature for the module %s.\n"
-		    "  Members of the \"stapusr\" group can only use untrusted modules within\n"
+		    "  Members of the \"stapusr\" group can only use unsigned modules within\n"
 		    "  the \"%s\" directory.\n"
 		    "  That directory should be owned by root.\n",
 		    module_path, staplib_dir_path);
@@ -316,7 +316,7 @@ check_stap_module_path(const char *module_path)
 	/* Make sure it isn't world writable. */
 	if (sb.st_mode & S_IWOTH) {
 		err("ERROR: Unable to verify the signature for the module %s.\n"
-		    "  Members of the \"stapusr\" group can only use untrusted modules within\n"
+		    "  Members of the \"stapusr\" group can only use unsigned modules within\n"
 		    "  the \"%s\" directory.\n"
 		    "  That directory should not be world writable.\n",
 		    module_path, staplib_dir_path);
@@ -327,7 +327,7 @@ check_stap_module_path(const char *module_path)
 	 * path. */
 	if (realpath(staplib_dir_path, staplib_dir_realpath) == NULL) {
 		perr("Unable to verify the signature for the module %s.\n"
-		     "  Members of the \"stapusr\" group can only use untrusted modules within\n"
+		     "  Members of the \"stapusr\" group can only use unsigned modules within\n"
 		     "  the \"%s\" directory.\n"
 		     "  Unable to canonicalize that directory",
 		     module_path, staplib_dir_path);
@@ -349,7 +349,7 @@ check_stap_module_path(const char *module_path)
 	if (strncmp(staplib_dir_realpath, module_path,
 		    strlen(staplib_dir_realpath)) != 0) {
 		err("ERROR: Unable to verify the signature for the module %s.\n"
-		    "  Members of the \"stapusr\" group can only use untrusted modules within\n"
+		    "  Members of the \"stapusr\" group can only use unsigned modules within\n"
 		    "  the \"%s\" directory.\n"
 		    "  Module \"%s\" does not exist within that directory.\n",
 		    module_path, staplib_dir_path, module_path);
@@ -478,7 +478,7 @@ check_groups (
  * 1) root can do anything
  * 2) members of stapdev can do anything
  * 3) members of stapusr can load a module which has been signed by a trusted signer
- * 4) members of stapusr can load untrusted modules from /lib/modules/KVER/systemtap
+ * 4) members of stapusr can load unsigned modules from /lib/modules/KVER/systemtap
  *
  * It is only an error if all 4 levels of checking fail
  */
@@ -530,10 +530,6 @@ void assert_stap_module_permissions(
 		    "group \"stapdev\" or group \"stapusr\".\n");
 		if (check_groups_rc == -2)
 			err("Your system doesn't seem to have either group.\n");
-#if HAVE_NSS
-		err("If you are part of the group \"stapusr\", the module must be "
-                     "signed by a trusted signer.\n");
-#endif
 	}
 
 	exit(-1);
@@ -588,10 +584,6 @@ void assert_uprobes_module_permissions(
 		    "group \"stapdev\" or group \"stapusr\".\n", module_path);
 		if (check_groups_rc == -2)
 			err("Your system doesn't seem to have either group.\n");
-#if HAVE_NSS
-		err("If you are part of the group \"stapusr\", the module must be "
-                     "signed by a trusted signer.\n");
-#endif
 	}
 
 	exit(-1);
