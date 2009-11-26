@@ -200,7 +200,7 @@ in_group_id (gid_t target_gid)
     return true;
 
   // Get the list of the user's groups.
-  int ngids = getgroups(NULL, 0); // Returns the number to allocate.
+  int ngids = getgroups(0, 0); // Returns the number to allocate.
   if (ngids > 0) {
     gid_t gidlist[ngids];
     ngids = getgroups(ngids, gidlist);
