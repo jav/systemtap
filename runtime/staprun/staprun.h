@@ -135,18 +135,21 @@ const char *moderror(int err);
 /* insert_module helper functions.  */
 typedef void (*assert_permissions_func) (
   const char *module_path __attribute__ ((unused)),
+  int module_fd __attribute__ ((unused)),
   const void *module_data __attribute__ ((unused)),
   off_t module_size __attribute__ ((unused))
 );
 
 void assert_stap_module_permissions (
   const char *module_path __attribute__ ((unused)),
+  int module_fd __attribute__ ((unused)),
   const void *module_data __attribute__ ((unused)),
   off_t module_size __attribute__ ((unused))
 );
 
 void assert_uprobes_module_permissions (
   const char *module_path __attribute__ ((unused)),
+  int module_fd __attribute__ ((unused)),
   const void *module_data __attribute__ ((unused)),
   off_t module_size __attribute__ ((unused))
 );

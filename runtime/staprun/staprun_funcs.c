@@ -20,7 +20,7 @@
 #include <pwd.h>
 #include <assert.h>
 
-typedef int (*check_module_path_func)(const char *module_path);
+typedef int (*check_module_path_func)(const char *module_path, int module_fd);
 
 extern long init_module(void *, unsigned long, const char *);
 
@@ -49,10 +49,11 @@ int insert_module(
 ) {
 	int i;
 	long ret;
-	void *file;
+	void *module_file;
 	char *opts;
-	int fd, saved_errno;
+	int saved_errno;
 	char module_realpath[PATH_MAX];
+	int module_fd;
 	struct stat sbuf;
 
 	dbug(2, "inserting module\n");
@@ -89,43 +90,43 @@ int insert_module(
 
 	/* Open the module file. Work with the open file descriptor from this
 	   point on to avoid TOCTOU problems. */
-	fd = open(module_realpath, O_RDONLY);
-	if (fd < 0) {
+	module_fd = open(module_realpath, O_RDONLY);
+	if (module_fd < 0) {
 		perr("Error opening '%s'", module_realpath);
 		return -1;
 	}
 
 	/* Now that the file is open, figure out how big it is. */
-	if (fstat(fd, &sbuf) < 0) {
+	if (fstat(module_fd, &sbuf) < 0) {
 		_perr("Error stat'ing '%s'", module_realpath);
-		close(fd);
+		close(module_fd);
 		return -1;
 	}
 
 	/* mmap in the entire module. Work with the memory mapped data from this
 	   point on to avoid a TOCTOU race between path and signature checking
 	   below and module loading.  */
-	file = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	if (file == MAP_FAILED) {
+	module_file = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, module_fd, 0);
+	if (module_file == MAP_FAILED) {
 		_perr("Error mapping '%s'", module_realpath);
-		close(fd);
+		close(module_fd);
 		free(opts);
 		return -1;
 	}
 
 	/* Check whether this module can be loaded by the current user.
 	 * check_permissions will exit(-1) if permissions are insufficient*/
-	assert_permissions (module_realpath, file, sbuf.st_size);
+	assert_permissions (module_realpath, module_fd, module_file, sbuf.st_size);
 
 	STAP_PROBE1(staprun, insert__module, (char*)module_realpath);
 	/* Actually insert the module */
-	ret = init_module(file, sbuf.st_size, opts);
+	ret = init_module(module_file, sbuf.st_size, opts);
 	saved_errno = errno;
 
 	/* Cleanup. */
 	free(opts);
-	munmap(file, sbuf.st_size);
-	close(fd);
+	munmap(module_file, sbuf.st_size);
+	close(module_fd);
 
 	if (ret != 0) {
 		err("Error inserting module '%s': %s\n", module_realpath, moderror(saved_errno));
@@ -268,12 +269,13 @@ check_signature(const char *path, const void *module_data, off_t module_size)
  * Returns: -1 on errors, 1 on success.
  */
 static int
-check_stap_module_path(const char *module_path)
+check_stap_module_path(const char *module_path, int module_fd)
 {
 	char staplib_dir_path[PATH_MAX];
 	char staplib_dir_realpath[PATH_MAX];
 	struct utsname utsbuf;
 	struct stat sb;
+	int rc = 1;
 
 	/* First, we need to figure out what the kernel
 	 * version is and build the '/lib/modules/KVER/systemtap' path. */
@@ -284,45 +286,7 @@ check_stap_module_path(const char *module_path)
 	if (sprintf_chk(staplib_dir_path, "/lib/modules/%s/systemtap", utsbuf.release))
 		return -1;
 
-	/* Validate /lib/modules/KVER/systemtap. */
-	if (stat(staplib_dir_path, &sb) < 0) {
-		perr("Unable to verify the signature for the module %s.\n"
-		     "  Members of the \"stapusr\" group can only use unsigned modules within\n"
-		     "  the \"%s\" directory.\n"
-		     "  Error getting information on that directory",
-		     module_path, staplib_dir_path);
-		return -1;
-	}
-	/* Make sure it is a directory. */
-	if (! S_ISDIR(sb.st_mode)) {
-		err("ERROR: Unable to verify the signature for the module %s.\n"
-		    "  Members of the \"stapusr\" group can only use unsigned modules within\n"
-		    "  the \"%s\" directory.\n"
-		    "  That path must refer to a directory.\n",
-		    module_path, staplib_dir_path);
-		return -1;
-	}
-	/* Make sure it is owned by root. */
-	if (sb.st_uid != 0) {
-		err("ERROR: Unable to verify the signature for the module %s.\n"
-		    "  Members of the \"stapusr\" group can only use unsigned modules within\n"
-		    "  the \"%s\" directory.\n"
-		    "  That directory should be owned by root.\n",
-		    module_path, staplib_dir_path);
-		return -1;
-	}
-	/* Make sure it isn't world writable. */
-	if (sb.st_mode & S_IWOTH) {
-		err("ERROR: Unable to verify the signature for the module %s.\n"
-		    "  Members of the \"stapusr\" group can only use unsigned modules within\n"
-		    "  the \"%s\" directory.\n"
-		    "  That directory should not be world writable.\n",
-		    module_path, staplib_dir_path);
-		return -1;
-	}
-
-	/* Use realpath() to canonicalize the module directory
-	 * path. */
+	/* Use realpath() to canonicalize the module directory path. */
 	if (realpath(staplib_dir_path, staplib_dir_realpath) == NULL) {
 		perr("Unable to verify the signature for the module %s.\n"
 		     "  Members of the \"stapusr\" group can only use unsigned modules within\n"
@@ -338,12 +302,51 @@ check_stap_module_path(const char *module_path)
 	if (strlen(staplib_dir_realpath) < (PATH_MAX - 1))
 		strcat(staplib_dir_realpath, "/");
 	else {
-		err("Path \"%s\" is too long.", staplib_dir_realpath);
+		err("ERROR: Path \"%s\" is too long.", staplib_dir_realpath);
+		return -1;
+	}
+
+	/* Validate /lib/modules/KVER/systemtap. No need to use fstat on
+	   an open file descriptor to avoid TOCTOU, since the path will
+	   not be used to access the file system.  */
+	if (stat(staplib_dir_path, &sb) < 0) {
+		perr("Unable to verify the signature for the module %s.\n"
+		     "  Members of the \"stapusr\" group can only use such modules within\n"
+		     "  the \"%s\" directory.\n"
+		     "  Error getting information on that directory",
+		     module_path, staplib_dir_path);
+		return -1;
+	}
+	/* Make sure it is a directory. */
+	if (! S_ISDIR(sb.st_mode)) {
+		err("ERROR: Unable to verify the signature for the module %s.\n"
+		    "  Members of the \"stapusr\" group can only use such modules within\n"
+		    "  the \"%s\" directory.\n"
+		    "  That path must refer to a directory.\n",
+		    module_path, staplib_dir_path);
+		return -1;
+	}
+	/* Make sure it is owned by root. */
+	if (sb.st_uid != 0) {
+		err("ERROR: Unable to verify the signature for the module %s.\n"
+		    "  Members of the \"stapusr\" group can only use such modules within\n"
+		    "  the \"%s\" directory.\n"
+		    "  That directory should be owned by root.\n",
+		    module_path, staplib_dir_path);
+		return -1;
+	}
+	/* Make sure it isn't world writable. */
+	if (sb.st_mode & S_IWOTH) {
+		err("ERROR: Unable to verify the signature for the module %s.\n"
+		    "  Members of the \"stapusr\" group can only use such modules within\n"
+		    "  the \"%s\" directory.\n"
+		    "  That directory should not be world writable.\n",
+		    module_path, staplib_dir_path);
 		return -1;
 	}
 
 	/* Now we've got two canonicalized paths.  Make sure
-	 * path starts with staplib_dir_realpath. */
+	 * module_path starts with staplib_dir_realpath. */
 	if (strncmp(staplib_dir_realpath, module_path,
 		    strlen(staplib_dir_realpath)) != 0) {
 		err("ERROR: Unable to verify the signature for the module %s.\n"
@@ -353,7 +356,24 @@ check_stap_module_path(const char *module_path)
 		    module_path, staplib_dir_path, module_path);
 		return -1;
 	}
-	return 1;
+
+	/* Validate the module permisions. */
+	if (fstat(module_fd, &sb) < 0) {
+		perr("Error getting information on the module\"%s\"", module_path);
+		return -1;
+	}
+	/* Make sure it is owned by root. */
+	if (sb.st_uid != 0) {
+		err("ERROR: The module \"%s\" must be owned by root.\n", module_path);
+		rc = -1;
+	}
+	/* Make sure it isn't world writable. */
+	if (sb.st_mode & S_IWOTH) {
+		err("ERROR: The module \"%s\" must not be world writable.\n", module_path);
+		rc = -1;
+	}
+
+	return rc;
 }
 
 /*
@@ -363,7 +383,10 @@ check_stap_module_path(const char *module_path)
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
 static int
-check_uprobes_module_path (const char *module_path __attribute__ ((unused)))
+check_uprobes_module_path (
+  const char *module_path __attribute__ ((unused)),
+  int module_fd __attribute__ ((unused))
+)
 {
   return 1;
 }
@@ -383,6 +406,7 @@ check_uprobes_module_path (const char *module_path __attribute__ ((unused)))
 static int
 check_groups (
   const char *module_path,
+  int module_fd,
   int module_signature_status,
   check_module_path_func check_path
 )
@@ -464,7 +488,7 @@ check_groups (
 	/* Could not verify the module's signature, so check whether this module
 	   can be loaded based on its path. check_path is a pointer to a
 	   module-specific function which will do this.  */
-	return check_path (module_path);
+	return check_path (module_path, module_fd);
 }
 
 /*
@@ -481,9 +505,10 @@ check_groups (
  * It is only an error if all 4 levels of checking fail
  */
 void assert_stap_module_permissions(
-  const char *module_path __attribute__ ((unused)),
-  const void *module_data __attribute__ ((unused)),
-  off_t module_size __attribute__ ((unused))
+  const char *module_path,
+  int module_fd,
+  const void *module_data,
+  off_t module_size
 ) {
 	int check_groups_rc;
 	int check_signature_rc;
@@ -517,7 +542,7 @@ void assert_stap_module_permissions(
 	}
 
 	/* Check permissions for group membership.  */
-	check_groups_rc = check_groups (module_path, check_signature_rc, check_stap_module_path);
+	check_groups_rc = check_groups (module_path, module_fd, check_signature_rc, check_stap_module_path);
 	if (check_groups_rc == 1)
 		return;
 
@@ -546,7 +571,8 @@ void assert_stap_module_permissions(
  * It is only an error if all 3 levels of checking fail
  */
 void assert_uprobes_module_permissions(
-  const char *module_path __attribute__ ((unused)),
+  const char *module_path,
+  int module_fd,
   const void *module_data __attribute__ ((unused)),
   off_t module_size __attribute__ ((unused))
 ) {
@@ -571,7 +597,7 @@ void assert_uprobes_module_permissions(
 		return;
 
 	/* Members of the groups stapdev and stapusr can still load this module. */
-	check_groups_rc = check_groups (module_path, check_signature_rc, check_uprobes_module_path);
+	check_groups_rc = check_groups (module_path, module_fd, check_signature_rc, check_uprobes_module_path);
 	if (check_groups_rc == 1)
 		return;
 
