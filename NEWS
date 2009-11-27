@@ -1,8 +1,56 @@
 * What's new
 
+- If NSS is available, the uprobes module
+  (<prefix>/share/systemtap/runtime/uprobes.ko where <prefix> is the location
+  where systemtap is installed), is now digitally signed
+  when it is built. For root, the signing certificate used is
+  <prefix>/etc/systemtap/ssl/server/stap.cert. For other users, the certificate
+  used is ~<user>/.systemtap/ssl/server/stap.cert. If the signing certificate
+  does not exist, one will be automatically created first.
+
+  EFFECT: Members of the group stapusr will be unable to load the uprobes
+        module unless the builder's certificate has been authorized as a
+	trusted signer. To do this the sysadmin must run the following command
+	as root:
+
+		<prefix>/bin/stap-authorize-signing-cert <certfile>
+
+	where <certfile> is the signing certificate of the builder, as
+	described above. This need be done only once for each trusted
+	builder and can be done even before the uprobes module is built,
+	provided the builder already has a signing certificate. Any user,
+	including root, can create their signing certificate by running the
+	command
+
+		<prefix>/bin/stap-gen-cert
+
+  IN PARTICULAR: Sysadmins should authorize the certificates of root. If
+	the stap-server service (see below) is enabled, sysadmins should
+	authorize the certificate of the stap-server service
+	(see initscript/README.stap-server for details).
+
+- When the systemtap-server rpm is installed, the build directory for the
+  uprobes module (/usr/share/systemtap/runtime) is now writable by the
+  'stap-server' group. All of the files generated when building the uprobes
+  module are also writable by members of stap-server. This allows systemtap 
+  compile servers started by the stap-server initscript (see below) to build
+  or rebuild the uprobes module, if necessary.
+
+- The loading of signed modules by staprun is no longer allowed for ordinary,
+  unprivileged users. This means that only root, members of the group 'stadev'
+  and members of the group 'staprun' can load systemtap modules using staprun,
+  stap or stap-client. Previously other users could load the uprobes
+  module and systemtap script modules which were signed by a trusted signer.
+
+  IN PARTICULAR: Ordinary, unprivileged users can no longer load the signed
+	modules generated using stap-client with the --unprivileged option.
+	Users must now be root or a member of stapusr or stapdev in order to
+	use this feature.
+
 - The stap-server initscript is available. This initscript allows you to
   start systemtap compile servers as a system service and to manage
-  these servers as a group or individually.
+  these servers as a group or individually. The stap-server initscript is
+  installed by the systemtap-server rpm.
   See initscript/README.stap-server for details.
 
 - Any output line that starts with "ERROR", as in error("foo"), will
