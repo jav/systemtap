@@ -369,7 +369,7 @@ static long _stp_returnval(struct pt_regs *regs) {
 #elif defined (__x86_64__)
 		// TODO: Handle -m32 apps.
 		return regs->rax;
-#elif defined (__powerpc64__)
+#elif defined (__powerpc__)
 		return regs->gpr[3];
 #elif defined (__ia64__)
 		return regs->r8;

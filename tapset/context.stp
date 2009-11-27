@@ -15,7 +15,7 @@
 %{
 #include <asm/processor.h>
 
-#if defined(__powerpc64__)
+#if defined(__powerpc__)
 #if !defined(task_pt_regs)
 #define task_pt_regs(tsk)       ((struct pt_regs *)(tsk)->thread.regs)
 #endif

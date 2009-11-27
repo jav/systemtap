@@ -36,7 +36,7 @@
   (((regs)->cr_iip = (x) & ~3UL), (ia64_psr(regs)->ri = (x) & 3UL))
 
 
-#elif defined (__powerpc64__)
+#elif defined (__powerpc__)
 
 #define REG_IP(regs) regs->nip
 #define REG_SP(regs) regs->gpr[1]
