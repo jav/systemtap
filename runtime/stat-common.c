@@ -34,7 +34,7 @@ static int _stp_stat_calc_buckets(int stop, int start, int interval)
 	return buckets;
 }
 
-static int needed_space(int64_t v)
+static int needed_space(uint64_t v)
 {
 	int space = 0;
 
@@ -134,7 +134,7 @@ static void _stp_stat_print_histogram_buf(char *buf, size_t size, Hist st, stat 
 {
 	int scale, i, j, val_space, cnt_space;
 	int low_bucket = -1, high_bucket = 0, over = 0, under = 0;
-	int64_t val, v, valmax = 0;
+	uint64_t val, v, valmax = 0;
 	int eliding = 0;
 	char *cur_buf = buf, *fake = buf;
 	char **bufptr = (buf == NULL ? &fake : &cur_buf);
@@ -186,7 +186,7 @@ static void _stp_stat_print_histogram_buf(char *buf, size_t size, Hist st, stat 
 	if (valmax <= HIST_WIDTH)
 		scale = 1;
 	else {
-		int64_t tmp = valmax;
+		uint64_t tmp = valmax;
 		int rem = do_div(tmp, HIST_WIDTH);
 		scale = tmp;
 		if (rem) scale++;
@@ -282,7 +282,7 @@ static void _stp_stat_print_histogram(Hist st, stat *sd)
 	_stp_print_flush();
 }
 
-static void __stp_stat_add (Hist st, stat *sd, int64_t val)
+static void __stp_stat_add (Hist st, stat *sd, uint64_t val)
 {
 	int n;
 	if (sd->count == 0) {
