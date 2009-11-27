@@ -194,26 +194,25 @@ remove_file_or_dir (const char *name)
 bool
 in_group_id (gid_t target_gid)
 {
-  gid_t gid, gidlist[NGROUPS_MAX];
-  int i, ngids;
-
   // According to the getgroups() man page, getgroups() may not
   // return the effective gid, so try to match it first. */
-  gid = getegid();
-  if (gid == target_gid)
+  if (target_gid == getegid())
     return true;
 
   // Get the list of the user's groups.
-  ngids = getgroups(NGROUPS_MAX, gidlist);
+  int ngids = getgroups(0, 0); // Returns the number to allocate.
+  if (ngids > 0) {
+    gid_t gidlist[ngids];
+    ngids = getgroups(ngids, gidlist);
+    for (int i = 0; i < ngids; i++) {
+      // If the user is a member of the target group, then we're done.
+      if (gidlist[i] == target_gid)
+	return true;
+    }
+  }
   if (ngids < 0) {
     cerr << "Unable to retrieve group list" << endl;
     return false;
-  }
-
-  for (i = 0; i < ngids; i++) {
-    // If the user is a member of the target group, then we're done.
-    if (gidlist[i] == target_gid)
-      return true;
   }
 
   // The user is not a member of the target group
@@ -375,7 +374,7 @@ stap_system(int verbose, const std::string& command)
 
   spawned_pid = 0;
 
-  if (verbose > 1) 
+  if (verbose > 1)
     clog << "Running " << command << endl;
 
   ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL, const_cast<char * const *>(argv), environ);
@@ -386,19 +385,19 @@ stap_system(int verbose, const std::string& command)
       if (ret == spawned_pid)
         {
           ret = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
-          if (verbose > 2) 
+          if (verbose > 2)
             clog << "Spawn waitpid result (0x" << ios::hex << status << ios::dec << "): " << ret << endl;
         }
       else
         {
-          if (verbose > 1) 
+          if (verbose > 1)
             clog << "Spawn waitpid error (" << ret << "): " << strerror(errno) << endl;
           ret = -1;
         }
     }
   else
     {
-      if (verbose > 1) 
+      if (verbose > 1)
         clog << "Spawn error (" << ret << "): " << strerror(ret) << endl;
       ret = -1;
     }
