@@ -21,7 +21,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 			return;
 		_sp = (unsigned long *) sp;
 		newsp = _sp[0];
-		ip = _sp[2];
+		ip = _sp[STACK_FRAME_LR_SAVE];
 		if (!firstframe || ip != lr) {
 			if (verbose) {
 				_stp_printf("[0x%016lx] [0x%016lx] ", sp, ip);
@@ -38,7 +38,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 		 * See if this is an exception frame.
 		 * We look for the "regshere" marker in the current frame.
 		 */
-		if ( _sp[12] == 0x7265677368657265ul) {
+		if (_sp[STACK_FRAME_MARKER] == STACK_FRAME_REGS_MARKER) {
 			struct pt_regs *regs = (struct pt_regs *)
 				(sp + STACK_FRAME_OVERHEAD);
 			if (verbose) {

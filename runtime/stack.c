@@ -40,7 +40,7 @@ static void _stp_stack_print_fallback(unsigned long, int, int);
 #include "stack-ia64.c"
 #elif  defined (__i386__)
 #include "stack-i386.c"
-#elif defined (__powerpc64__)
+#elif defined (__powerpc__)
 #include "stack-ppc.c"
 #elif defined (__arm__)
 #include "stack-arm.c"
