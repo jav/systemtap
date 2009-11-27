@@ -1320,6 +1320,9 @@ function __is_user_regs:long (regs:long)
 #elif defined(__powerpc64__)
 	unsigned long msr = kread(&regs->msr);
 	THIS->__retvalue = ((msr >> MSR_PR_LG) & 0x1);
+#elif defined(__powerpc__)
+	unsigned long msr = kread(&regs->msr);
+	THIS->__retvalue = ((msr >> MSR_PR) != 0);
 #elif defined(__arm__)
 	long cpsr = kread(&regs->ARM_cpsr);
 	THIS->__retvalue = ((cpsr & 0xf) == 0);
