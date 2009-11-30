@@ -97,7 +97,7 @@ cscope:
 
 PHONIES =
 if BUILD_TRANSLATOR
-stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
+stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -D_FILE_OFFSET_BITS=64
 stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
@@ -151,7 +151,7 @@ staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime
+staprun_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime -D_FILE_OFFSET_BITS=64
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 staprun_LDADD =
 
