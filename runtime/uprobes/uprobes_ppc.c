@@ -89,9 +89,9 @@ static inline void calc_offset(struct uprobe_probept *ppt,
 	}
 #ifdef UPROBES_DEBUG
 	printk (KERN_ERR "ppt->vaddr=%p, regs->nip=%p, offset=%ld\n",
-			ppt->vaddr, regs->nip, offset);
+                (void*)(long)ppt->vaddr, (void*)(long)regs->nip, (long)offset);
 	if (insn & 1)
-		printk (KERN_ERR "regs->link=%p \n", regs->link);
+          printk (KERN_ERR "regs->link=%p \n", (void*)(long)regs->link);
 #endif
 	return;
 }
