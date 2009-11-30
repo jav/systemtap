@@ -507,8 +507,8 @@ check_groups (
 void assert_stap_module_permissions(
   const char *module_path,
   int module_fd,
-  const void *module_data,
-  off_t module_size
+  const void *module_data __attribute__ ((unused)),
+  off_t module_size __attribute__ ((unused))
 ) {
 	int check_groups_rc;
 	int check_signature_rc;
