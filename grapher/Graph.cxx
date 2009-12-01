@@ -30,7 +30,7 @@ namespace systemtap
         // line separation
         int linesPossible = (int)(_graphWidth / (_lineWidth + 2.0));
         // Find latest time.
-        double latestTime = 0.0;
+        int64_t latestTime = 0;
         for (DatasetList::iterator ditr = _datasets.begin(),
                de = _datasets.end();
              ditr != de;
@@ -38,13 +38,13 @@ namespace systemtap
           {
             if (!(*ditr)->times.empty())
               {
-                double lastDataTime = (*ditr)->times.back();
+                int64_t lastDataTime = (*ditr)->times.back();
                 if (lastDataTime > latestTime)
                   latestTime = lastDataTime;
               }
           }
-        double minDiff = 0.0;
-        double maxTotal = 0.0;
+        int64_t minDiff = 0;
+        int64_t maxTotal = 0;
         for (DatasetList::iterator ditr = _datasets.begin(),
                de = _datasets.end();
              ditr != de;
@@ -59,11 +59,11 @@ namespace systemtap
                  ritr + 1 != gtimes.rend();
                  ritr++)
               {
-                double timeDiff = *ritr - *(ritr + 1);
+                int64_t timeDiff = *ritr - *(ritr + 1);
                 if (timeDiff < minDiff || (timeDiff != 0 && minDiff == 0))
                   minDiff = timeDiff;
                 if (minDiff != 0
-                    && (totalDiff + timeDiff) / minDiff > linesPossible)
+                    && ((totalDiff + timeDiff) / minDiff + 1) > linesPossible)
                   break;
                 totalDiff += timeDiff;
               }
@@ -75,10 +75,11 @@ namespace systemtap
         if (maxTotal != 0)
           _left = latestTime - maxTotal;
         else
-          _left = _right - 1.0;
+          _left = _right - 1;
       }
     cr->save();
-    double horizScale = _zoomFactor * _graphWidth / ( _right - _left);
+    double horizScale
+        = _zoomFactor * _graphWidth / static_cast<double>(_right - _left);
     cr->translate(20.0, 0.0);
     cr->set_line_width(_lineWidth);
 
@@ -186,9 +187,10 @@ namespace systemtap
       }
     cr->restore();
     // Draw axes
-    double diff = _right - _left;
-    double majorUnit = pow(10.0, floor(log(diff) / log(10.0)));
-    double startTime = ceil(_left / majorUnit) * majorUnit;
+    double diff = static_cast<double>(_right - _left);
+    int64_t majorUnit
+        = static_cast<int64_t>(pow(10.0, floor(log(diff) / log(10.0))));
+    int64_t startTime = (_left / majorUnit) * majorUnit;
     cr->save();
     cr->set_source_rgba(1.0, 1.0, 1.0, .9);
     cr->set_line_cap(Cairo::LINE_CAP_BUTT);
@@ -205,14 +207,14 @@ namespace systemtap
     dash[0] = _graphHeight / 10;
     cr->set_dash(dash, 0);
     double prevTextAdvance = 0;
-    for (double tickVal = startTime; tickVal <= _right; tickVal += majorUnit)
+    for (int64_t tickVal = startTime; tickVal <= _right; tickVal += majorUnit)
       {
         double x = (tickVal - _left) * horizScale + 20.0;
         cr->move_to(x, 0.0);
         cr->line_to(x, _graphHeight);
         cr->move_to(x, _graphHeight - 5);
         std::ostringstream stream;
-        stream << std::fixed << std::setprecision(0) << tickVal;
+        stream << tickVal;
         Cairo::TextExtents extents;
         cr->get_text_extents(stream.str(), extents);
         // Room for this label?
@@ -239,7 +241,7 @@ namespace systemtap
     _datasets.push_back(data);
   }
 
-  void Graph::getExtents(double& left, double& right, double& top,
+  void Graph::getExtents(int64_t& left, int64_t& right, double& top,
                          double& bottom) const
   {
     left = _left;
@@ -248,7 +250,7 @@ namespace systemtap
     bottom = _bottom;
   }
 
-  void Graph::setExtents(double left, double right, double top, double bottom)
+  void Graph::setExtents(int64_t left, int64_t right, double top, double bottom)
   {
     _left = left;
     _right = right;
@@ -259,5 +261,10 @@ namespace systemtap
   bool Graph::containsPoint(double x, double y)
   {
     return x >= _x0 && x < _x0 + _width && y >= _y0 && y < _y0 + _height;
+  }
+
+  int64_t Graph::getTimeAtPoint(double x)
+  {
+    return _left + (_right - _left) * ((x - 20.0)/_graphWidth);
   }
 }

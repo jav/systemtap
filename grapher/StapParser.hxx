@@ -21,7 +21,7 @@ public:
   {
   }
   void parseData(std::tr1::shared_ptr<GraphDataBase> gdata,
-                 double time, const std::string& dataString);
+                 int64_t time, const std::string& dataString);
   bool ioCallback(Glib::IOCondition ioCondition);
   bool errIoCallback(Glib::IOCondition ioCondition);
   int getErrFd() { return _errFd; }

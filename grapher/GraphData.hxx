@@ -1,6 +1,9 @@
 #ifndef SYSTEMTAP_GRAPHDATA_HXX
 #define SYSTEMTAP_GRAPHDATA_HXX 1
 
+#include <stdint.h>
+
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -18,12 +21,13 @@ namespace systemtap
         DOT,
         EVENT
       };
-    typedef boost::circular_buffer<double> TimeList;
+    typedef boost::circular_buffer<int64_t> TimeList;
     GraphDataBase(TimeList::capacity_type cap = 50000)
       : scale(1.0), style(BAR), times(cap)
     {
       color[0] = 0.0;  color[1] = 1.0;  color[2] = 0.0;
     }
+    virtual std::string elementAsString(size_t element) = 0;
     // size of grid square at "normal" viewing
     double scale;
     double color[3];
@@ -43,6 +47,12 @@ namespace systemtap
     GraphData(typename DataList::capacity_type cap = 50000)
       : GraphDataBase(cap), data(cap)
     {
+    }
+    std::string elementAsString(size_t element)
+    {
+      std::ostringstream stream;
+      stream << data[element];
+      return stream.str();
     }
     DataList data;
   };

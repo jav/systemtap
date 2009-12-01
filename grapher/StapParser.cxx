@@ -25,7 +25,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
 }
 
   void StapParser::parseData(shared_ptr<GraphDataBase> gdata,
-                             double time, const string& dataString)
+                             int64_t time, const string& dataString)
   {
     std::istringstream stream(dataString);
     shared_ptr<GraphData<double> > dblptr;
@@ -182,7 +182,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       {
                           vector<string> tokens = commaSplit(dataString);
                           int i = 0;
-                          double time;
+                          int64_t time;
                           vector<string>::iterator tokIter = tokens.begin();
                           std::istringstream timeStream(*tokIter++);
                           timeStream >> time;
@@ -196,7 +196,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       }
                       else
                       {
-                          double time;
+                          int64_t time;
                           string data;
                           stream >> time >> data;
                           parseData(itr->second, time, data);

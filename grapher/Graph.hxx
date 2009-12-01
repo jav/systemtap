@@ -11,6 +11,7 @@ namespace systemtap
   class Graph : public CairoWidget
   {
   public:
+    typedef std::vector<std::tr1::shared_ptr<GraphDataBase> > DatasetList;
     friend class GraphWidget;
     Graph(double x = 0.0, double y = 0.0);
     virtual void draw(Cairo::RefPtr<Cairo::Context> cr);
@@ -20,9 +21,9 @@ namespace systemtap
     bool getAutoScaling() const { return _autoScaling; }
     void setAutoScaling(bool val) { _autoScaling = val; }
     void addGraphData(std::tr1::shared_ptr<GraphDataBase> data);
-    void getExtents(double& left, double& right, double& top, double& bottom)
+    void getExtents(int64_t& left, int64_t& right, double& top, double& bottom)
         const;
-    void setExtents(double left, double right, double top, double bottom);
+    void setExtents(int64_t left, int64_t right, double top, double bottom);
     // extents of the whole graph area
     double _width;
     double _height;
@@ -36,11 +37,12 @@ namespace systemtap
     bool _autoScrolling;
     double _zoomFactor;
     std::tr1::shared_ptr<CairoPlayButton> _playButton;
+    DatasetList& getDatasets() { return _datasets; }
+    int64_t getTimeAtPoint(double x);
   protected:
-        typedef std::vector<std::tr1::shared_ptr<GraphDataBase> > DatasetList;
     DatasetList _datasets;
-    double _left;
-    double _right;
+    int64_t _left;
+    int64_t _right;
     double _top;
     double _bottom;
   };
