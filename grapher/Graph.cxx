@@ -14,7 +14,7 @@ namespace systemtap
       _graphWidth(580), _graphHeight(180),
       _lineWidth(2), _autoScaling(true), _autoScrolling(true),
       _zoomFactor(1.0), _playButton(new CairoPlayButton),
-      _left(0.0), _right(1.0), _top(5.0), _bottom(0.0)
+      _left(0), _right(1), _top(5.0), _bottom(0.0)
   {
     setOrigin(x, y);
     _graphX = x;

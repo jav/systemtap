@@ -1,8 +1,10 @@
 #include <algorithm>
 #include <ctime>
+#include <iterator>
 #include <math.h>
 #include <iostream>
 
+#include <glibmm/timer.h>
 #include <cairomm/context.h>
 #include <libglademm.h>
 
@@ -19,7 +21,8 @@ namespace systemtap
 
     
   GraphWidget::GraphWidget()
-    : _trackingDrag(false), _width(600), _height(200)
+    : _trackingDrag(false), _width(600), _height(200), _mouseX(0.0),
+      _mouseY(0.0)
   {
     add_events(Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK
                | Gdk::BUTTON_RELEASE_MASK | Gdk::SCROLL_MASK);
@@ -104,16 +107,6 @@ namespace systemtap
       return true;
 
     Cairo::RefPtr<Cairo::Context> cr = window->create_cairo_context();
-#if 0
-    if(event && !_autoScaling)
-      {
-        // clip to the area indicated by the expose event so that we only
-        // redraw the portion of the window that needs to be redrawn
-        cr->rectangle(event->area.x, event->area.y,
-                      event->area.width, event->area.height);
-        cr->clip();
-      }
-#endif
     cr->save();
     cr->set_source_rgba(0.0, 0.0, 0.0, 1.0);
     cr->paint();
@@ -126,28 +119,21 @@ namespace systemtap
         (*g)->draw(cr);
         cr->restore();
       }
+    if (_hoverText && _hoverText->isVisible())
+      _hoverText->draw(cr);
     return true;
   }
 
   bool GraphWidget::on_button_press_event(GdkEventButton* event)
   {
-    for (GraphList::iterator g = _graphs.begin(); g != _graphs.end(); ++g)
+    shared_ptr<Graph> g = getGraphUnderPoint(event->x, event->y);
+    if (g)
       {
-        if (event->x >= (*g)->_graphX
-            && event->x < (*g)->_graphX + (*g)->_graphWidth
-            && event->y >= (*g)->_graphY
-            && event->y < (*g)->_graphY + (*g)->_graphHeight)
+        _activeGraph = g;
+        if (event->button == 3)
           {
-            _activeGraph = *g;            
-            if (event->button == 3)
-              {
-                _dataDialog->show();
-                return true;
-              }
-            else
-              {
-                break;
-              }
+            _dataDialog->show();
+            return true;
           }
       }
     if (!_activeGraph)
@@ -171,6 +157,7 @@ namespace systemtap
         _dragOriginY = event->y;
         _dragOrigLeft = _activeGraph->_left;
         _dragOrigRight = _activeGraph->_right;
+        establishHoverTimeout();
       }
     return true;
   }
@@ -191,27 +178,25 @@ namespace systemtap
     Glib::RefPtr<Gdk::Window> win = get_window();
     if(!win)
       return true;
-    double x = 0.0;
-    double y = 0.0;
-    // XXX Hint
-    if (event->is_hint)
-      {
-      }
-    else
-      {
-        x = event->x;
-        y = event->y;
-      }
+    _mouseX = event->x;
+    _mouseY = event->y;
     if (_trackingDrag && _activeGraph)
       {
         Gtk::Allocation allocation = get_allocation();
         const int width = allocation.get_width();
-        double motion = (x - _dragOriginX) / (double) width;
+        double motion = (_mouseX - _dragOriginX) / (double) width;
         double increment = motion * (_dragOrigLeft - _dragOrigRight);
         _activeGraph->_left = _dragOrigLeft + increment;
         _activeGraph->_right = _dragOrigRight + increment;
         queue_draw();
       }
+    if (_hoverText && _hoverText->isVisible())
+      {
+        _hoverText->setVisible(false);
+        queue_draw();
+      }
+    establishHoverTimeout();
+
     return true;
   }
 
@@ -281,5 +266,52 @@ namespace systemtap
           row[_dataColumns._dataName] = (*itr)->title;
           row[_dataColumns._graphData] = *itr;
       }
+  }
+
+  bool GraphWidget::onHoverTimeout()
+  {
+    shared_ptr<Graph> g = getGraphUnderPoint(_mouseX, _mouseY);
+    if (g && !g->_autoScrolling)
+      {
+        if (!_hoverText)
+          _hoverText = shared_ptr<CairoTextBox>(new CairoTextBox());
+        _hoverText->setOrigin(_mouseX + 5, _mouseY - 5);
+        int64_t t = g->getTimeAtPoint(_mouseX);
+        Graph::DatasetList& dataSets = g->getDatasets();
+        if (!dataSets.empty())
+          {
+            shared_ptr<GraphDataBase> gdbase = dataSets[0];
+            GraphDataBase::TimeList::iterator itime
+              = std::lower_bound(gdbase->times.begin(), gdbase->times.end(), t);
+            if (itime != gdbase->times.end()) {
+              size_t index = distance(gdbase->times.begin(), itime);
+              _hoverText->contents = gdbase->elementAsString(index);
+              _hoverText->setVisible(true);
+              queue_draw();
+            }
+          }
+      }
+    return false;
+  }
+
+  shared_ptr<Graph> GraphWidget::getGraphUnderPoint(double x, double y)
+  {
+    for (GraphList::iterator g = _graphs.begin(); g != _graphs.end(); ++g)
+      {
+        if (x >= (*g)->_graphX
+            && x < (*g)->_graphX + (*g)->_graphWidth
+            && y >= (*g)->_graphY
+            && y < (*g)->_graphY + (*g)->_graphHeight)
+          return *g;
+      }
+    return shared_ptr<Graph>();
+  }
+
+  void GraphWidget::establishHoverTimeout()
+  {
+    if (_hover_timeout_connection.connected())
+      _hover_timeout_connection.disconnect();
+    _hover_timeout_connection = Glib::signal_timeout()
+      .connect(sigc::mem_fun(*this, &GraphWidget::onHoverTimeout), 1000);
   }
 }

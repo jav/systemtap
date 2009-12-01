@@ -65,8 +65,15 @@ namespace systemtap
     void onDataAdd();
     void onDataRemove();
     void onDataDialogOpen();
+    bool onHoverTimeout();
     DataModelColumns _dataColumns;
     Glib::RefPtr<Gtk::ListStore> _listStore;
+    sigc::connection _hover_timeout_connection;
+    std::tr1::shared_ptr<CairoTextBox> _hoverText;
+    double _mouseX;
+    double _mouseY;
+    std::tr1::shared_ptr<Graph> getGraphUnderPoint(double x, double y);
+    void establishHoverTimeout();
   };
 }
 #endif // SYSTEMTAP_GRAPHWIDGET_H
