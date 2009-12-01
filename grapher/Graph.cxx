@@ -88,74 +88,10 @@ namespace systemtap
          ++itr)
       {
         shared_ptr<GraphDataBase> graphData = *itr;
-        shared_ptr<GraphData<double> > realData
-          = dynamic_pointer_cast<GraphData<double> >(*itr);
-        shared_ptr<GraphData<string> > stringData
-          = dynamic_pointer_cast<GraphData<string> >(*itr);
         cr->save();
         cr->translate(0.0, _graphHeight);
         cr->scale(1.0, -1.0);
-        GraphDataBase::TimeList::iterator lower
-          = lower_bound(graphData->times.begin(), graphData->times.end(),
-                        _left);
-        GraphDataBase::TimeList::iterator upper
-          = upper_bound(graphData->times.begin(), graphData->times.end(),
-                        _right);
-        // event bar
-        if (graphData->style == GraphDataBase::EVENT)
-          {
-            double eventHeight = _graphHeight * (graphData->scale / 100.0);
-            cr->save();
-            cr->set_line_width(3 * _lineWidth);
-            cr->set_source_rgba(graphData->color[0], graphData->color[1],
-                                graphData->color[2], .33);
-            cr->move_to(0, eventHeight);
-            cr->line_to(_graphWidth, eventHeight);
-            cr->stroke();
-            cr->restore();
-          }
-        for (GraphDataBase::TimeList::iterator ditr = lower, de = upper;
-             ditr != de;
-             ++ditr)
-          {
-            size_t dataIndex = ditr - graphData->times.begin();
-            cr->set_source_rgba(graphData->color[0], graphData->color[1],
-                                graphData->color[2], 1.0);
-            if (graphData->style == GraphDataBase::BAR && realData)
-              {
-                cr->move_to((*ditr - _left) * horizScale, 0);
-                cr->line_to((*ditr - _left) * horizScale,
-                            realData->data[dataIndex] * _graphHeight
-                            / graphData->scale);
-                cr->stroke();
-              }
-            else if (graphData->style == GraphDataBase::DOT && realData)
-              {
-                cr->arc((*ditr - _left) * horizScale,
-                        realData->data[dataIndex] * _graphHeight / graphData->scale,
-                        _lineWidth / 2.0, 0.0, M_PI * 2.0);
-                cr->fill();
-              }
-            else if (graphData->style == GraphDataBase::EVENT && stringData)
-              {
-                double eventHeight = _graphHeight * (graphData->scale / 100.0);
-                cr->save();
-                cr->select_font_face("Sans", Cairo::FONT_SLANT_NORMAL,
-                                     Cairo::FONT_WEIGHT_NORMAL);
-                cr->set_font_size(12.0);
-                cr->save();
-                cr->scale(1.0, -1.0);
-                cr->move_to((*ditr - _left) * horizScale,
-                            -eventHeight -3.0 * _lineWidth - 2.0);
-                cr->show_text(stringData->data[dataIndex]);
-                cr->restore();
-                cr->rectangle((*ditr - _left) * horizScale - 1.5 * _lineWidth,
-                              eventHeight - 1.5 * _lineWidth,
-                              3.0 * _lineWidth, 3.0 * _lineWidth);
-                cr->fill();
-                cr->restore();
-              }
-          }
+        graphData->style->draw(graphData, this, cr);
         cr->restore();
         cr->save();
         cr->select_font_face("Sans", Cairo::FONT_SLANT_NORMAL,

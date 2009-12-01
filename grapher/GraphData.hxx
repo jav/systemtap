@@ -11,19 +11,17 @@
 
 #include <boost/circular_buffer.hpp>
 
+#include "GraphStyle.hxx"
+
 namespace systemtap
 {
   struct GraphDataBase
   {
     virtual ~GraphDataBase() {}
-    enum Style
-      { BAR,
-        DOT,
-        EVENT
-      };
+
     typedef boost::circular_buffer<int64_t> TimeList;
     GraphDataBase(TimeList::capacity_type cap = 50000)
-      : scale(1.0), style(BAR), times(cap)
+      : scale(1.0), style(&GraphStyleBar::instance), times(cap)
     {
       color[0] = 0.0;  color[1] = 1.0;  color[2] = 0.0;
     }
@@ -31,7 +29,7 @@ namespace systemtap
     // size of grid square at "normal" viewing
     double scale;
     double color[3];
-    Style style;
+    GraphStyle* style;
     std::string title;
     std::string xAxisText;
     std::string yAxisText;
