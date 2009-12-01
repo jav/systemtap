@@ -96,11 +96,11 @@ namespace systemtap
         cr->translate(0.0, _graphHeight);
         cr->scale(1.0, -1.0);
         GraphDataBase::TimeList::iterator lower
-          = std::lower_bound(graphData->times.begin(), graphData->times.end(),
-                             _left);
+          = lower_bound(graphData->times.begin(), graphData->times.end(),
+                        _left);
         GraphDataBase::TimeList::iterator upper
-          = std::upper_bound(graphData->times.begin(), graphData->times.end(),
-                             _right);
+          = upper_bound(graphData->times.begin(), graphData->times.end(),
+                        _right);
         // event bar
         if (graphData->style == GraphDataBase::EVENT)
           {
@@ -265,6 +265,6 @@ namespace systemtap
 
   int64_t Graph::getTimeAtPoint(double x)
   {
-    return _left + (_right - _left) * ((x - 20.0)/_graphWidth);
+    return _left + (_right - _left) * ((x - 20.0)/(_zoomFactor * _graphWidth));
   }
 }
