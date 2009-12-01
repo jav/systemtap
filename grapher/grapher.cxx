@@ -437,7 +437,7 @@ int main(int argc, char** argv)
   GrapherWindow win;
 
   win.set_title("Grapher");
-  win.set_default_size(600, 200);
+  win.set_default_size(600, 250);
   launcher.setWinParams(&win, &win.w);
 
   win.setGraphicalLauncher(&launcher);

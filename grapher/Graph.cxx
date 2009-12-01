@@ -212,7 +212,6 @@ namespace systemtap
         double x = (tickVal - _left) * horizScale + 20.0;
         cr->move_to(x, 0.0);
         cr->line_to(x, _graphHeight);
-        cr->move_to(x, _graphHeight - 5);
         std::ostringstream stream;
         stream << tickVal;
         Cairo::TextExtents extents;
@@ -220,6 +219,7 @@ namespace systemtap
         // Room for this label?
         if (x + extents.x_bearing > prevTextAdvance)
           {
+            cr->move_to(x, _graphHeight + 5 + extents.height);
             cr->show_text(stream.str());
             prevTextAdvance = x + extents.x_advance;
           }
