@@ -241,7 +241,7 @@ hrtimer_derived_probe_group::emit_interval (translator_output* o)
 {
   o->line() << "({";
   o->newline(1) << "unsigned long nsecs;";
-  o->newline() << "int64_t i = stp->intrv;";
+  o->newline() << "uint64_t i = stp->intrv;";
   o->newline() << "if (stp->rnd != 0) {";
   // XXX: why not use stp_random_pm instead of this?
   o->newline(1) << "int64_t r;";
