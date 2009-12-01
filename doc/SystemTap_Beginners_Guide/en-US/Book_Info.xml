@@ -9,7 +9,7 @@
 	<edition>2.0</edition>
 	
 	<productname>Red Hat Enterprise Linux</productname>
-	<productnumber>5</productnumber>
+	<productnumber>5.4</productnumber>
 	
 	<pubsnumber>2</pubsnumber>
 	<abstract condition="RedHat"><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of &PRODUCT; in finer detail. The <citetitle>SystemTap Beginners Guide</citetitle> is recommended for users who have taken <ulink url="https://www.redhat.com/courses/rh133_red_hat_linux_system_administration_and_rhct_exam/">RHCT</ulink> or have a similar level of expertise in &PRODUCT;.</para></abstract>
@@ -23,11 +23,12 @@
 			<textobject><phrase>Logo</phrase></textobject>
 		</inlinemediaobject>
 	</corpauthor>
-	<copyright>
+<!--	<copyright>
 		<year>&YEAR;</year>
 		<holder>&HOLDER;</holder>
 	</copyright>
- 	<xi:include href="Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+ 	<xi:include href="Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />-->
+<xi:include href="Common_Content/Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 	<xi:include href="Author_Group.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </bookinfo>
 
