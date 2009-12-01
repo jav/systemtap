@@ -11,14 +11,15 @@
  */
 
 #include "config.h"
-#include "staprun.h"
-#include "modverify.h"
 
 #include <sys/mount.h>
 #include <sys/utsname.h>
 #include <grp.h>
 #include <pwd.h>
 #include <assert.h>
+
+#include "staprun.h"
+#include "modverify.h"
 
 typedef int (*check_module_path_func)(const char *module_path, int module_fd);
 

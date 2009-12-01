@@ -28,12 +28,13 @@
 #include <cert.h>
 #include <certt.h>
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
 #include "nsscommon.h"
 #include "staprun.h"
 #include "modverify.h"
-
-#include <sys/stat.h>
-#include <errno.h>
 
 /* Function: int check_cert_db_permissions (const char *cert_db_path);
  * 
