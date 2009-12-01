@@ -183,7 +183,7 @@ probe scheduler.ctxswitch
 probe __scheduler.kthread_stop.kp = kernel.function("kthread_stop")
 {
 	thread_pid = $k->tgid
-	thread_priority = $k->priority
+	thread_priority = $k->prio
 }
 probe __scheduler.kthread_stop.tp = kernel.trace("sched_kthread_stop") 
 {
