@@ -25,7 +25,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
 }
 
   void StapParser::parseData(shared_ptr<GraphDataBase> gdata,
-                             double time, const string& dataString)
+                             int64_t time, const string& dataString)
   {
     std::istringstream stream(dataString);
     shared_ptr<GraphData<double> > dblptr;
@@ -101,8 +101,9 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                     {
                       std::tr1::shared_ptr<GraphData<double> >
                         dataSet(new GraphData<double>);
+                      dataSet->name = setName;
                       if (style == "dot")
-                        dataSet->style = GraphDataBase::DOT;
+                        dataSet->style = &GraphStyleDot::instance;
                       dataSet->color[0] = (hexColor >> 16) / 255.0;
                       dataSet->color[1] = ((hexColor >> 8) & 0xff) / 255.0;
                       dataSet->color[2] = (hexColor & 0xff) / 255.0;
@@ -114,7 +115,8 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                     {
                       std::tr1::shared_ptr<GraphData<string> >
                         dataSet(new GraphData<string>);
-                      dataSet->style = GraphDataBase::EVENT;
+                      dataSet->name = setName;
+                      dataSet->style = &GraphStyleEvent::instance;
                       dataSet->color[0] = (hexColor >> 16) / 255.0;
                       dataSet->color[1] = ((hexColor >> 8) & 0xff) / 255.0;
                       dataSet->color[2] = (hexColor & 0xff) / 255.0;
@@ -182,7 +184,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       {
                           vector<string> tokens = commaSplit(dataString);
                           int i = 0;
-                          double time;
+                          int64_t time;
                           vector<string>::iterator tokIter = tokens.begin();
                           std::istringstream timeStream(*tokIter++);
                           timeStream >> time;
@@ -196,7 +198,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       }
                       else
                       {
-                          double time;
+                          int64_t time;
                           string data;
                           stream >> time >> data;
                           parseData(itr->second, time, data);

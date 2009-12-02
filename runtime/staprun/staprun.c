@@ -372,7 +372,7 @@ int send_relocation_kernel ()
               free (line); line=NULL;
               if (symbol == NULL) continue; /* OOM? */
 
-#ifdef __powerpc__
+#ifdef __powerpc64__
 #define KERNEL_RELOC_SYMBOL ".__start"
 #else
 #define KERNEL_RELOC_SYMBOL "_stext"

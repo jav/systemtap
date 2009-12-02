@@ -2,7 +2,7 @@
 
 XML_LANG	= en-US
 
-BRAND = RedHat
+BRAND = fedora
 #	please define the BRAND in the pre:: section below
 #SHOW_REMARKS = 1
 

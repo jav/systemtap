@@ -275,7 +275,8 @@ static int64_t
 _stp_gettimeofday_ns(void)
 {
     int64_t base;
-    cycles_t last, delta;
+    cycles_t last;
+    uint64_t delta;
     unsigned int freq;
     unsigned int seq;
     stp_time_t *time;

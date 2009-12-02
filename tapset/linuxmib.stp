@@ -94,7 +94,11 @@ probe linuxmib.ListenDrops=kernel.function("tcp_v4_syn_recv_sock").return
  */
 probe linuxmib.TCPMemoryPressures=kernel.function("tcp_enter_memory_pressure")
 {
+%( kernel_v >= "2.6.27" %?
 	sk = $sk
+%:
+	sk = 0;
+%)
 	op = 1;
 	if ( $tcp_memory_pressure ) next
 	key = linuxmib_filter_key(sk,op);

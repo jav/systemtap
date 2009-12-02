@@ -11,6 +11,8 @@
 #ifndef _ALLOC_C_
 #define _ALLOC_C_
 
+#include <linux/percpu.h>
+
 static int _stp_allocated_net_memory = 0;
 #define STP_ALLOC_FLAGS (GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN)
 
@@ -233,12 +235,23 @@ static void *_stp_vmalloc(unsigned long size)
 
 }
 
+#ifdef PCPU_MIN_UNIT_SIZE
+#define _STP_MAX_PERCPU_SIZE PCPU_MIN_UNIT_SIZE
+#else
+#define _STP_MAX_PERCPU_SIZE 131072
+#endif
+
 static void *_stp_alloc_percpu(size_t size)
 {
+	void *ret;
+
+	if (size > _STP_MAX_PERCPU_SIZE)
+		return NULL;
+
 #ifdef STAPCONF_ALLOC_PERCPU_ALIGN
-	void *ret = __alloc_percpu(size, 8);
+	ret = __alloc_percpu(size, 8);
 #else
-	void *ret = __alloc_percpu(size);
+	ret = __alloc_percpu(size);
 #endif
 #ifdef DEBUG_MEM
 	if (likely(ret)) {

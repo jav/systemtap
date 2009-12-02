@@ -39,4 +39,25 @@ namespace systemtap
     else
     return false;
   }
+
+  void CairoTextBox::draw(Cairo::RefPtr<Cairo::Context> cr)
+  {
+    if (!_visible)
+      return;
+    cr->save();
+    Cairo::TextExtents extents;
+    cr->get_text_extents(contents, extents);
+    double width = extents.width, height = extents.height;
+    cr->move_to(_x0 - 2, _y0 - 2);
+    cr->line_to(_x0 + width + 2, _y0 - 2);
+    cr->line_to(_x0 + width + 2, _y0 + height + 2);
+    cr->line_to(_x0 - 2, _y0 + height + 2);
+    cr->close_path();
+    cr->set_source_rgba(1.0, 1.0, 1.0, .8);
+    cr->fill();
+    cr->set_source_rgba(0.0, 0.0, 0.0, 1.0);
+    cr->move_to(_x0, _y0 + height);
+    cr->show_text(contents);
+    cr->restore();
+  }
 }

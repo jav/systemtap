@@ -155,7 +155,7 @@ probe ioscheduler.elv_completed_request
  *
  */
 probe ioscheduler.elv_add_request.tp
-			= kernel.trace("block_rq_insert")
+			= kernel.trace("block_rq_insert") ?
 {
 q =  $q
 elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
@@ -197,7 +197,7 @@ probe ioscheduler.elv_add_request =
  *
  */
 probe ioscheduler_trace.elv_completed_request
-			= kernel.trace("block_rq_complete")
+			= kernel.trace("block_rq_complete") ?
 {
 elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
 rq = $rq
@@ -224,7 +224,7 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
  *
  */
 probe ioscheduler_trace.elv_issue_request
-			= kernel.trace("block_rq_issue")
+			= kernel.trace("block_rq_issue") ?
 {
 elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
 rq = $rq
@@ -251,7 +251,7 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
  *
  */
 probe ioscheduler_trace.elv_requeue_request
-			= kernel.trace("block_rq_requeue")
+			= kernel.trace("block_rq_requeue") ?
 {
 elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
 rq = $rq
@@ -277,7 +277,7 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
  *
  */
 probe ioscheduler_trace.elv_abort_request
-			= kernel.trace("block_rq_abort")
+			= kernel.trace("block_rq_abort") ?
 {
 elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
 rq = $rq
@@ -299,7 +299,7 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
  * @rq_queue	: request queue
  *
  */
-probe ioscheduler_trace.plug = kernel.trace("block_plug")
+probe ioscheduler_trace.plug = kernel.trace("block_plug") ?
 {
   rq_queue = $q
 }
@@ -311,7 +311,7 @@ probe ioscheduler_trace.plug = kernel.trace("block_plug")
  * @rq_queue	: request queue
  *
  */
-probe ioscheduler_trace.unplug_io = kernel.trace("block_unplug_io")
+probe ioscheduler_trace.unplug_io = kernel.trace("block_unplug_io") ?
 {
   rq_queue = $q
 }
@@ -322,7 +322,7 @@ probe ioscheduler_trace.unplug_io = kernel.trace("block_unplug_io")
  * @rq_queue	: request queue
  *
  */
-probe ioscheduler_trace.unplug_timer = kernel.trace("block_unplug_timer")
+probe ioscheduler_trace.unplug_timer = kernel.trace("block_unplug_timer") ?
 {
   rq_queue = $q
 }

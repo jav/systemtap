@@ -22,7 +22,11 @@ probe tty.open = kernel.function("tty_open") {
 	inode_state = $inode->i_state
 	inode_flags = $inode->i_flags
 
+%( kernel_v >= "2.6.20" %?
 	file_name = d_name($filp->f_path->dentry)
+%:
+	file_name = d_name($filp->f_dentry)
+%)
 	file_mode = $filp->f_mode
 	file_flags = $filp->f_flags
 }
@@ -41,7 +45,11 @@ probe tty.release = kernel.function("tty_release") {
 	inode_state = $inode->i_state
 	inode_flags = $inode->i_flags
 
+%( kernel_v >= "2.6.20" %?
 	file_name = d_name($filp->f_path->dentry)
+%:
+	file_name = d_name($filp->f_dentry)
+%)
 	file_mode = $filp->f_mode
 	file_flags = $filp->f_flags
 }
@@ -58,7 +66,7 @@ probe tty.release = kernel.function("tty_release") {
  * @new_ypixel: the new ypixel value
  * @new_xpixel: the new xpixel value
 */
-probe tty.resize = kernel.function("tty_do_resize"){
+probe tty.resize = kernel.function("tty_do_resize") ? {
 	name = kernel_string($tty->name)
 	old_row = $tty->winsize->ws_row
 	old_col = $tty->winsize->ws_col
@@ -78,7 +86,11 @@ probe tty.resize = kernel.function("tty_do_resize"){
  * @arg: the ioctl argument
  */
 probe tty.ioctl = kernel.function("tty_ioctl"){
+%( kernel_v >= "2.6.20" %?
 	name = kernel_string($file->f_path->dentry->d_iname)
+%:
+	name = kernel_string($file->f_dentry->d_iname)
+%)
 
 	cmd = $cmd
 	arg = $arg
@@ -90,7 +102,7 @@ probe tty.ioctl = kernel.function("tty_ioctl"){
  * @name: the driver  .dev_name name
  * @module: the module name
  */
-probe tty.init = kernel.function("tty_init_dev"){
+probe tty.init = kernel.function("tty_init_dev") ? {
 	driver_name = kernel_string($driver->driver_name)
 	name = kernel_string($driver->name)
 	module = kernel_string($driver->owner->name)
@@ -130,11 +142,17 @@ probe tty.unregister = kernel.function("tty_unregister_device"){
  * @wait_key: the wait queue key
  */
 probe tty.poll = kernel.function("tty_poll"){
+%( kernel_v >= "2.6.20" %?
 	file_name = d_name($filp->f_path->dentry)
+%:
+	file_name = d_name($filp->f_dentry)
+%)
 
+%( kernel_v >= "2.6.31" %?
 	if ($wait)
 		wait_key = $wait->key
 	else
+%)
 		wait_key = 0
 }
 
@@ -166,11 +184,15 @@ probe tty.receive = kernel.function("n_tty_receive_buf"){
  * @driver_name: the driver name
  * @file_name: the file name lreated to the tty
  */
-probe tty.write = kernel.function("n_tty_write"){
+probe tty.write = kernel.function("n_tty_write") ? {
 	buffer = kernel_string($buf)
 	nr = $nr
 
+%( kernel_v >= "2.6.20" %?
 	file_name = d_name($file->f_path->dentry)
+%:
+	file_name = d_name($file->f_dentry)
+%)
 	driver_name = kernel_string($tty->driver->driver_name)
 }
 
@@ -181,9 +203,13 @@ probe tty.write = kernel.function("n_tty_write"){
  * @driver_name: the driver name
  * @file_name: the file name lreated to the tty
  */
-probe tty.read = kernel.function("n_tty_read"){
+probe tty.read = kernel.function("n_tty_read") ? {
 	buffer = kernel_string($buf)
 	nr = $nr
+%( kernel_v >= "2.6.20" %?
 	file_name = d_name($file->f_path->dentry)
+%:
+	file_name = d_name($file->f_dentry)
+%)
 	driver_name = kernel_string($tty->driver->driver_name)
 }

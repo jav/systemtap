@@ -99,6 +99,16 @@ function tcpmib_remote_port:long(sk:long)
         CATCH_DEREF_FAULT();
 %}
 
+function tcpmib_filter_key:long (sk:long, op:long) {
+        // ensure all these functions will build
+        if ( tcpmib_get_state(sk) ) return 0
+        if ( tcpmib_local_addr(sk) ) return 0
+        if ( tcpmib_remote_addr(sk) ) return 0
+        if ( tcpmib_local_port(sk) ) return 0
+        if ( tcpmib_remote_port(sk) ) return 0
+        return op
+}
+
 /**
  * probe tcpmib.ActiveOpens - Count an active opening of a socket.
  * @sk:	Pointer to the struct sock being acted on.
@@ -209,7 +219,7 @@ tcpmib.EstabResets=kernel.function("tcp_set_state")
  *
  */
 probe
-tcpmib.InSegs=kernel.function("__inet_lookup_established").return
+tcpmib.InSegs=kernel.function("__inet_lookup_established").return ?
 {
         sk=$return
 	op=1
@@ -292,7 +302,11 @@ function __tcpmib_input_route_type_new:long (skb:long)
 probe
 tcpmib.OutRsts.A=kernel.function("tcp_v4_send_reset")
 {
+%( kernel_v >= "2.6.20" %?
         sk = $sk;
+%:
+        sk = 0;
+%)
         skb = $skb
         op = 1;
         if ( _is_reset(skb) ) next

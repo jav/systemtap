@@ -19,6 +19,9 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include "config.h"
+#include "staprun.h"
+
 #include <stdio.h>
 
 #include <nspr.h>
@@ -28,12 +31,12 @@
 #include <cert.h>
 #include <certt.h>
 
-#include "nsscommon.h"
-#include "staprun.h"
-#include "modverify.h"
-
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <errno.h>
+
+#include "nsscommon.h"
+#include "modverify.h"
 
 /* Function: int check_cert_db_permissions (const char *cert_db_path);
  * 

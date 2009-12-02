@@ -8,7 +8,7 @@ namespace systemtap
   {
   public:
     CairoWidget(bool visible = false)
-      : _visible(visible), _size(50.0), _radius(5)
+      : _visible(visible)
     {}
     bool isVisible() const { return _visible; }
     void setVisible(bool visible) { _visible = visible; }
@@ -28,15 +28,27 @@ namespace systemtap
     bool _visible;
     double _x0;
     double _y0;
-    double _size;
-    double _radius;
   };
 
   class CairoPlayButton : public CairoWidget
   {
   public:
+    CairoPlayButton(bool visible = false)
+      : CairoWidget(visible), _size(50.0), _radius(5)
+    {
+    }
     virtual void draw(Cairo::RefPtr<Cairo::Context> cr);
     virtual bool containsPoint(double x, double y);
+  protected:
+    double _size;
+    double _radius;
+  };
+
+  class CairoTextBox : public CairoWidget
+  {
+  public:
+    void draw(Cairo::RefPtr<Cairo::Context> cr);
+    std::string contents;
   };
 }
 #endif

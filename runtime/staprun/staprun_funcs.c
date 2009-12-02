@@ -12,13 +12,14 @@
 
 #include "config.h"
 #include "staprun.h"
-#include "modverify.h"
 
 #include <sys/mount.h>
 #include <sys/utsname.h>
 #include <grp.h>
 #include <pwd.h>
 #include <assert.h>
+
+#include "modverify.h"
 
 typedef int (*check_module_path_func)(const char *module_path, int module_fd);
 
@@ -507,8 +508,8 @@ check_groups (
 void assert_stap_module_permissions(
   const char *module_path,
   int module_fd,
-  const void *module_data,
-  off_t module_size
+  const void *module_data __attribute__ ((unused)),
+  off_t module_size __attribute__ ((unused))
 ) {
 	int check_groups_rc;
 	int check_signature_rc;

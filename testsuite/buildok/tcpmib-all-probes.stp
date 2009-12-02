@@ -4,12 +4,18 @@
 
 probe tcpmib.* {}
 
-function tcpmib_filter_key:long (sk:long, op:long) {
-	// Insure all these functions will build
-	if ( tcpmib_get_state(sk) ) return 0
-	if ( tcpmib_local_addr(sk) ) return 0
-	if ( tcpmib_remote_addr(sk) ) return 0
-	if ( tcpmib_local_port(sk) ) return 0
-	if ( tcpmib_remote_port(sk) ) return 0
-	return op
+probe begin{
+        print(tcpmib_get_state(0) +
+              tcpmib_local_addr(0) +
+              tcpmib_remote_addr(0) +
+              tcpmib_local_port(0) +
+              tcpmib_remote_port(0) +
+              _rtn_local() +
+              _is_reset(0) +
+%( kernel_v < "2.6.31" %?
+              __tcpmib_input_route_type_old(0)
+%:
+              __tcpmib_input_route_type_new(0)
+%)
+              )
 }

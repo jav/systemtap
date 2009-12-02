@@ -131,9 +131,16 @@ static u32 usr_itrace_report_signal(u32 action,
 
 	ui = rcu_dereference(engine->data);
 	WARN_ON(!ui);
-	
-	if (info->si_signo != SIGTRAP || !ui)
-		return UTRACE_RESUME;
+
+#if defined(UTRACE_ORIG_VERSION) 
+        if (info->si_signo != SIGTRAP || !ui)
+	  return UTRACE_RESUME;
+#else
+	if (utrace_signal_action(action) == UTRACE_SIGNAL_HANDLER ||
+            utrace_signal_action(action) == UTRACE_SIGNAL_REPORT ||
+	    info->si_signo != SIGTRAP || !ui)
+	  return UTRACE_RESUME | utrace_signal_action(action);
+#endif
 
 #if defined(UTRACE_ORIG_VERSION) && defined(CONFIG_PPC)
 	/* Because of a ppc utrace bug, we need to stop the task here.
