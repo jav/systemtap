@@ -276,20 +276,23 @@ namespace systemtap
         if (!_hoverText)
           _hoverText = shared_ptr<CairoTextBox>(new CairoTextBox());
         _hoverText->setOrigin(_mouseX + 5, _mouseY - 5);
-        int64_t t = g->getTimeAtPoint(_mouseX);
         Graph::DatasetList& dataSets = g->getDatasets();
-        if (!dataSets.empty())
-          {
-            shared_ptr<GraphDataBase> gdbase = dataSets[0];
-            GraphDataBase::TimeList::iterator itime
-              = std::lower_bound(gdbase->times.begin(), gdbase->times.end(), t);
-            if (itime != gdbase->times.end()) {
-              size_t index = distance(gdbase->times.begin(), itime);
-              _hoverText->contents = gdbase->elementAsString(index);
-              _hoverText->setVisible(true);
-              queue_draw();
+        for (Graph::DatasetList::reverse_iterator ritr = dataSets.rbegin(),
+                 end = dataSets.rend();
+             ritr != end;
+             ++ritr)
+        {
+            ssize_t index
+                = (*ritr)->style->dataIndexAtPoint(_mouseX, _mouseY, *ritr, g);
+            if (index >= 0)
+            {
+                _hoverText->contents = (*ritr)->name
+                    + ": " + (*ritr)->elementAsString(index);
+                _hoverText->setVisible(true);
+                queue_draw();
+                break;
             }
-          }
+        }
       }
     return false;
   }

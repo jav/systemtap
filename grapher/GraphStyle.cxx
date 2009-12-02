@@ -8,6 +8,9 @@ namespace systemtap
   using namespace std;
   using namespace tr1;
 
+  typedef pair<GraphDataBase::TimeList::iterator,
+               GraphDataBase::TimeList::iterator>  TimeListPair;
+
   GraphStyleBar GraphStyleBar::instance;
   
   void GraphStyleBar::draw(std::tr1::shared_ptr<GraphDataBase> graphData,
@@ -41,6 +44,29 @@ namespace systemtap
       }
   }
 
+  ssize_t GraphStyleBar::dataIndexAtPoint(double x, double y,
+                                          shared_ptr<GraphDataBase> graphData,
+                                          shared_ptr<Graph> graph)
+  {
+    shared_ptr<GraphData<double> > realData
+      = dynamic_pointer_cast<GraphData<double> >(graphData);
+    if (!realData)
+      return -1;
+    int64_t left, right;
+    double top, bottom;
+    graph->getExtents(left, right, top, bottom);
+    double t = graph->getTimeAtPoint(x);
+    TimeListPair range
+      = equal_range(graphData->times.begin(), graphData->times.end(), t);
+    size_t dataIndex = distance(graphData->times.begin(), range.first);
+    double val = realData->data[dataIndex];
+    double ycoord = val * graph->_graphHeight / graphData->scale;
+    if (y >= graph->_yOffset + graph->_graphHeight - ycoord)
+      return static_cast<ssize_t>(dataIndex);
+    else
+      return -1;
+  }
+  
   GraphStyleDot GraphStyleDot::instance;
   
   void GraphStyleDot::draw(std::tr1::shared_ptr<GraphDataBase> graphData,

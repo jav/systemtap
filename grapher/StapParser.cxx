@@ -101,6 +101,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                     {
                       std::tr1::shared_ptr<GraphData<double> >
                         dataSet(new GraphData<double>);
+                      dataSet->name = setName;
                       if (style == "dot")
                         dataSet->style = &GraphStyleDot::instance;
                       dataSet->color[0] = (hexColor >> 16) / 255.0;
@@ -114,6 +115,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                     {
                       std::tr1::shared_ptr<GraphData<string> >
                         dataSet(new GraphData<string>);
+                      dataSet->name = setName;
                       dataSet->style = &GraphStyleEvent::instance;
                       dataSet->color[0] = (hexColor >> 16) / 255.0;
                       dataSet->color[1] = ((hexColor >> 8) & 0xff) / 255.0;

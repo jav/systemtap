@@ -13,7 +13,8 @@ namespace systemtap
     : _width(600), _height(200), _graphX(0), _graphY(0),
       _graphWidth(580), _graphHeight(180),
       _lineWidth(2), _autoScaling(true), _autoScrolling(true),
-      _zoomFactor(1.0), _playButton(new CairoPlayButton),
+      _zoomFactor(1.0), _xOffset(20.0), _yOffset(0.0),
+      _playButton(new CairoPlayButton),
       _left(0), _right(1), _top(5.0), _bottom(0.0)
   {
     setOrigin(x, y);
@@ -80,7 +81,7 @@ namespace systemtap
     cr->save();
     double horizScale
         = _zoomFactor * _graphWidth / static_cast<double>(_right - _left);
-    cr->translate(20.0, 0.0);
+    cr->translate(_xOffset, _yOffset);
     cr->set_line_width(_lineWidth);
 
     for (DatasetList::iterator itr = _datasets.begin(), e = _datasets.end();
@@ -134,9 +135,9 @@ namespace systemtap
     cr->select_font_face("Sans", Cairo::FONT_SLANT_NORMAL,
                          Cairo::FONT_WEIGHT_NORMAL);
     cr->set_font_size(10.0);
-    cr->move_to(20.0, 0.0);
-    cr->line_to(20.0, _height);
-    cr->move_to(20.0, _graphHeight);
+    cr->move_to(_xOffset, _yOffset);
+    cr->line_to(_xOffset, _height);
+    cr->move_to(_xOffset, _graphHeight);
     cr->line_to(_graphWidth, _graphHeight);
     cr->stroke();
     std::valarray<double> dash(1);
@@ -145,8 +146,8 @@ namespace systemtap
     double prevTextAdvance = 0;
     for (int64_t tickVal = startTime; tickVal <= _right; tickVal += majorUnit)
       {
-        double x = (tickVal - _left) * horizScale + 20.0;
-        cr->move_to(x, 0.0);
+        double x = (tickVal - _left) * horizScale + _xOffset;
+        cr->move_to(x, _yOffset);
         cr->line_to(x, _graphHeight);
         std::ostringstream stream;
         stream << tickVal;
@@ -201,6 +202,7 @@ namespace systemtap
 
   int64_t Graph::getTimeAtPoint(double x)
   {
-    return _left + (_right - _left) * ((x - 20.0)/(_zoomFactor * _graphWidth));
+    return (_left
+            + (_right - _left) * ((x - _xOffset)/(_zoomFactor * _graphWidth)));
   }
 }

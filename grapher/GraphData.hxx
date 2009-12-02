@@ -27,6 +27,7 @@ namespace systemtap
     }
     virtual std::string elementAsString(size_t element) = 0;
     // size of grid square at "normal" viewing
+    std::string name;
     double scale;
     double color[3];
     GraphStyle* style;
