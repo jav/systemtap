@@ -331,7 +331,6 @@ function process_server {
 # Process the -c flag.
 function process_c {
     c_cmd="$1"
-    cmdline2="${cmdline2} -c '$1'"
 }
 
 # function: process_e ARGUMENT
@@ -838,7 +837,7 @@ function maybe_call_staprun {
 	    # Run it in the background and wait for it. This
 	    # way any signals sent to us can be caught.
 	    if test $v_level -ge 2; then
-		echo "running `which staprun` $staprun_opts $module_name.ko" >&2
+		echo "running `staprun_PATH` $staprun_opts $module_name.ko" >&2
 	    fi
 	    eval `staprun_PATH` "$staprun_opts" $module_name.ko
 	    rc=$?
