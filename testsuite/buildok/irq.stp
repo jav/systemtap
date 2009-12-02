@@ -2,6 +2,6 @@
 
 // Tests if all probes in irq tapset are resolvable
 
-probe workqueue.* {}
-probe irq_handler.* {}
-probe softirq.* {}
+probe workqueue.* !, never {}
+probe irq_handler.* !, never {}
+probe softirq.* !, never {}

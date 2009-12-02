@@ -8,7 +8,7 @@
 ############################################################
 
 
-probe netdev.get_stats{
+probe netdev.get_stats ? {
 	printf("%s was asked for statistics structure\n", dev_name)
 }
 
@@ -31,7 +31,7 @@ probe netdev.set_promiscuity {
 		printf("Device %s leaving promiscuous mode\n", dev_name)
 }
 
-probe netdev.change_rx_flag {
+probe netdev.change_rx_flag ? {
 	printf("Device %s is changing its RX flags to %d\n", dev_name, flags)
 }
 

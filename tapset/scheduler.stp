@@ -285,7 +285,11 @@ probe __scheduler.migrate.kp1 = kernel.function("pull_task")
 }
 probe __scheduler.migrate.kp = kernel.function("set_task_cpu")
 {
+%( kernel_v >= "2.6.23" %?
 	cpu_to = $new_cpu
+%:
+	cpu_to = $cpu
+%)
 }
 probe __scheduler.migrate.tp = kernel.trace("sched_migrate_task")
 {
@@ -384,7 +388,8 @@ probe scheduler.process_fork
  * @pid: pid of the process sending signal
  * @signal_number: signal number
  */
-probe __scheduler.signal_send.kp = kernel.function("__send_signal")
+probe __scheduler.signal_send.kp = kernel.function("__send_signal") !,
+                                   kernel.function("send_signal")
 {
 	pid = $t->tgid
 }

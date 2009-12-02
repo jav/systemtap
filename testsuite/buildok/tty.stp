@@ -24,7 +24,7 @@ probe tty.open {
 	printf("File: %s mode %x flags %x\n", file_name, file_mode, file_flags)
 }
 
-probe tty.resize {
+probe tty.resize ? {
 	printf("Resizing %s from %dx%d (%d/%d) to %dx%d (%d/%d)\n", name, old_row, old_col, old_xpixel, old_ypixel,
 		 new_row, new_col, new_xpixel, new_ypixel)
 }
@@ -33,7 +33,7 @@ probe tty.ioctl {
 	printf("Ioctling file %s with %d %d\n", name, cmd, arg)
 }
 
-probe tty.init {
+probe tty.init ? {
 	printf("new tty with name %s from driver %s and module %s\nn", driver_name, name, module)
 }
 
@@ -42,10 +42,10 @@ probe tty.receive {
 }
 
 
-probe tty.write {
+probe tty.write ? {
 	printf("Buffer %s (len %d) wrote on file %s (driver %s)\n", buffer, nr, file_name, driver_name)
 }
 
-probe tty.read {
+probe tty.read ? {
 	printf("Reading tty file %s (driver %s) to a buffer with size %d containing %s\n", file_name, driver_name, nr, buffer)
 }

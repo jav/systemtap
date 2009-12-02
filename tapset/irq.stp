@@ -17,7 +17,7 @@
  * @wq_thread : task_struct of the workqueue thread.
  * @cpu	  : cpu for which the worker thread is created.
  */
-probe workqueue.create = kernel.trace("workqueue_creation")
+probe workqueue.create = kernel.trace("workqueue_creation") ?
 {
 	wq_thread = $wq_thread
 	cpu = $cpu
@@ -29,7 +29,7 @@ probe workqueue.create = kernel.trace("workqueue_creation")
  * @work : work_struct* being queued.
  * @work_func :	pointer to handler func.
  */
-probe workqueue.insert = kernel.trace("workqueue_insertion")
+probe workqueue.insert = kernel.trace("workqueue_insertion") ?
 {
 	wq_thread = $wq_thread
 	work = $work
@@ -42,7 +42,7 @@ probe workqueue.insert = kernel.trace("workqueue_insertion")
  * @work : work_struct* being executed.
  * @work_func :	pointer to handler func.
  */
-probe workqueue.execute = kernel.trace("workqueue_execution")
+probe workqueue.execute = kernel.trace("workqueue_execution") ?
 {
 	wq_thread = $wq_thread
 	work = $work
@@ -53,7 +53,7 @@ probe workqueue.execute = kernel.trace("workqueue_execution")
  * probe workqueue.destroy : probes destruction of each worker thread of each cpu for a workqueue.
  * @wq_thread : task_struct of the workqueue thread.
  */
-probe workqueue.destroy = kernel.trace("workqueue_destruction")
+probe workqueue.destroy = kernel.trace("workqueue_destruction") ?
 {
 	wq_thread = $wq_thread
 }
@@ -84,7 +84,7 @@ probe workqueue.destroy = kernel.trace("workqueue_destruction")
  * @thread : thread pointer for threaded interrupts.
  * @thread_flags : Flags related to thread.
  */
-probe irq_handler.entry = kernel.trace("irq_handler_entry")
+probe irq_handler.entry = kernel.trace("irq_handler_entry") ?
 {
 	irq = $irq
 	action = $action
@@ -125,7 +125,7 @@ probe irq_handler.entry = kernel.trace("irq_handler_entry")
  * @thread : thread pointer for threaded interrupts.
  * @thread_flags : Flags related to thread.
  */
-probe irq_handler.exit = kernel.trace("irq_handler_exit")
+probe irq_handler.exit = kernel.trace("irq_handler_exit") ?
 {
 	irq = $irq
 	action = $action
@@ -150,7 +150,7 @@ probe irq_handler.exit = kernel.trace("irq_handler_exit")
  * @vec	: softirq_action vector.
  * @action : pointer to softirq handler just about to execute.
  */
-probe softirq.entry = kernel.trace("softirq_entry")
+probe softirq.entry = kernel.trace("softirq_entry") ?
 {
 	h = $h
 	vec = $vec
@@ -164,7 +164,7 @@ probe softirq.entry = kernel.trace("softirq_entry")
  * @vec	: softirq_action vector.
  * @action : pointer to softirq handler that just finished execution.
  */
-probe softirq.exit = kernel.trace("softirq_exit")
+probe softirq.exit = kernel.trace("softirq_exit") ?
 {
 	h = $h
 	vec = $vec
