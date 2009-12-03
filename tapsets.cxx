@@ -100,7 +100,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline(1) << "goto probe_epilogue;";
   o->indent(-1);
 
-  o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
+  o->newline() << "c = contexts[smp_processor_id()];";
   o->newline() << "if (atomic_inc_return (& c->busy) != 1) {";
   o->newline(1) << "#if !INTERRUPTIBLE";
   o->newline() << "atomic_inc (& skipped_count);";

@@ -1028,7 +1028,7 @@ c_unparser::emit_common_header ()
   o->newline() << "#endif";
 
   o->newline(-1) << "};\n";
-  o->newline() << "static void *contexts = NULL; /* alloc_percpu */\n";
+  o->newline() << "static struct context *contexts[NR_CPUS] = { NULL };\n";
 
   emit_map_type_instantiations ();
 
@@ -1124,6 +1124,7 @@ c_unparser::emit_module_init ()
   o->newline();
   o->newline() << "static int systemtap_module_init (void) {";
   o->newline(1) << "int rc = 0;";
+  o->newline() << "int cpu;";
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
   o->newline() << "const char *probe_point = \"\";";
 
@@ -1186,12 +1187,15 @@ c_unparser::emit_module_init ()
   // terminate.  These may set STAP_SESSION_ERROR!
 
   // per-cpu context
-  o->newline() << "if (sizeof (struct context) <= 131072)";
-  o->newline(1) << "contexts = alloc_percpu (struct context);";
-  o->newline(-1) << "if (contexts == NULL) {";
-  o->newline(1) << "_stp_error (\"percpu context (size %lu) allocation failed\", (unsigned long) sizeof (struct context));";
+  o->newline() << "for_each_possible_cpu(cpu) {";
+  o->indent(1);
+  o->newline() << "contexts[cpu] = _stp_kzalloc(sizeof(struct context));";
+  o->newline() << "if (contexts[cpu] == NULL) {";
+  o->indent(1);
+  o->newline() << "_stp_error (\"context (size %lu) allocation failed\", (unsigned long) sizeof (struct context));";
   o->newline() << "rc = -ENOMEM;";
   o->newline() << "goto out;";
+  o->newline(-1) << "}";
   o->newline(-1) << "}";
 
   for (unsigned i=0; i<session->globals.size(); i++)
@@ -1290,7 +1294,14 @@ c_unparser::emit_module_init ()
   o->newline() << "#endif";
 
   // Free up the context memory after an error too
-  o->newline() << "free_percpu (contexts);";
+  o->newline() << "for_each_possible_cpu(cpu) {";
+  o->indent(1);
+  o->newline() << "if (contexts[cpu] != NULL) {";
+  o->indent(1);
+  o->newline() << "_stp_kfree(contexts[cpu]);";
+  o->newline() << "contexts[cpu] = NULL;";
+  o->newline(-1) << "}";
+  o->newline(-1) << "}";
 
   o->newline() << "return rc;";
   o->newline(-1) << "}\n";
@@ -1304,6 +1315,7 @@ c_unparser::emit_module_exit ()
   // rc?
   o->newline(1) << "int holdon;";
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
+  o->newline() << "int cpu;";
 
   o->newline() << "(void) i;";
   o->newline() << "(void) j;";
@@ -1346,7 +1358,8 @@ c_unparser::emit_module_exit ()
   o->newline() << "holdon = 0;";
   o->newline() << "for (i=0; i < NR_CPUS; i++)";
   o->newline(1) << "if (cpu_possible (i) && "
-                << "atomic_read (& ((struct context *)per_cpu_ptr(contexts, i))->busy)) "
+		<< "contexts[i] != NULL && "
+                << "atomic_read (& contexts[i]->busy)) "
                 << "holdon = 1;";
   // NB: we run at least one of these during the shutdown sequence:
   o->newline () << "yield ();"; // aka schedule() and then some
@@ -1369,7 +1382,14 @@ c_unparser::emit_module_exit ()
 	o->newline() << getvar (v).fini();
     }
 
-  o->newline() << "free_percpu (contexts);";
+  o->newline() << "for_each_possible_cpu(cpu) {";
+  o->indent(1);
+  o->newline() << "if (contexts[cpu] != NULL) {";
+  o->indent(1);
+  o->newline() << "_stp_kfree(contexts[cpu]);";
+  o->newline() << "contexts[cpu] = NULL;";
+  o->newline(-1) << "}";
+  o->newline(-1) << "}";
 
   // print probe timing statistics
   {

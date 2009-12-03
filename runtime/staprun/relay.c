@@ -166,9 +166,9 @@ static void *reader_thread(void *data)
 				if (stop_threads)
 					break;
 				if (switch_file[cpu]) {
-					switch_file[cpu] = 0;
 					if (switch_outfile(cpu, &fnum) < 0)
 						goto error_out;
+					switch_file[cpu] = 0;
 					wsize = 0;
 				}
 			} else {
@@ -179,9 +179,11 @@ static void *reader_thread(void *data)
 
 		while ((rc = read(relay_fd[cpu], buf, sizeof(buf))) > 0) {
 			/* Switching file */
-			if (fsize_max && wsize + rc > fsize_max) {
+			if ((fsize_max && wsize + rc > fsize_max) ||
+			    switch_file[cpu]) {
 				if (switch_outfile(cpu, &fnum) < 0)
 					goto error_out;
+				switch_file[cpu] = 0;
 				wsize = 0;
 			}
 			if (write(out_fd[cpu], buf, rc) != rc) {
