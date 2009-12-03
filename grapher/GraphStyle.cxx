@@ -50,7 +50,7 @@ namespace systemtap
   {
     shared_ptr<GraphData<double> > realData
       = dynamic_pointer_cast<GraphData<double> >(graphData);
-    if (!realData)
+    if (!realData || graphData->times.empty())
       return -1;
     int64_t left, right;
     double top, bottom;
@@ -58,6 +58,8 @@ namespace systemtap
     double t = graph->getTimeAtPoint(x);
     TimeListPair range
       = equal_range(graphData->times.begin(), graphData->times.end(), t);
+    if (range.first == graphData->times.end())
+        return -1;
     size_t dataIndex = distance(graphData->times.begin(), range.first);
     double val = realData->data[dataIndex];
     double ycoord = val * graph->_graphHeight / graphData->scale;
@@ -149,7 +151,7 @@ namespace systemtap
   {
     shared_ptr<GraphData<string> > stringData
       = dynamic_pointer_cast<GraphData<string> >(graphData);
-    if (!stringData)
+    if (!stringData || graphData->times.empty())
       return -1;
     int64_t left, right;
     double top, bottom;
