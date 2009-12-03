@@ -205,4 +205,11 @@ namespace systemtap
     return (_left
             + (_right - _left) * ((x - _xOffset)/(_zoomFactor * _graphWidth)));
   }
+
+  void Graph::window2GraphCoords(double x, double y,
+                                 double& xgraph, double& ygraph)
+  {
+    xgraph = x -_xOffset;
+    ygraph = -y + _yOffset + _graphHeight;
+  }
 }

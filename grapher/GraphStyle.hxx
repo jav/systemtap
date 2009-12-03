@@ -48,6 +48,10 @@ namespace systemtap
   public:
     void draw(std::tr1::shared_ptr<GraphDataBase> graphData,
               Graph* graph, Cairo::RefPtr<Cairo::Context> cr);
+    virtual ssize_t dataIndexAtPoint(double x, double y,
+                                     std::tr1::shared_ptr<GraphDataBase>
+                                     graphData,
+                                     std::tr1::shared_ptr<Graph> graph);
     static GraphStyleEvent instance;
   };  
 }

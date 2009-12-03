@@ -41,6 +41,7 @@ namespace systemtap
     std::tr1::shared_ptr<CairoPlayButton> _playButton;
     DatasetList& getDatasets() { return _datasets; }
     int64_t getTimeAtPoint(double x);
+    void window2GraphCoords(double x, double y, double& xgraph, double& ygraph);
   protected:
     DatasetList _datasets;
     int64_t _left;
