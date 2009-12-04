@@ -39,9 +39,11 @@ probe kernel.function("pty_write") {
             printf("pty %d ", gettimeofday_ms())
             str = kernel_string($buf)
             for (i = 0; i < $count; ++i) {
+                if (i > 1)
+                   printf("\n")
                 # yes it's gross
                 c = substr(str, i, 1)
-                printf("%s\n", text_str(c))
+                printf("%s", text_str(c))
             }
             printf("%c", 0)
     }
