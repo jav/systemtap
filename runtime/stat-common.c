@@ -34,9 +34,10 @@ static int _stp_stat_calc_buckets(int stop, int start, int interval)
 	return buckets;
 }
 
-static int needed_space(uint64_t v)
+static int needed_space(int64_t v)
 {
 	int space = 0;
+	uint64_t tmp;
 
 	if (v == 0)
 		return 1;
@@ -45,9 +46,10 @@ static int needed_space(uint64_t v)
 		space++;
 		v = -v;
 	}
-	while (v) {
+	tmp = v;
+	while (tmp) {
 		/* v /= 10; */
-		do_div (v, 10);
+		do_div(tmp, 10);
 		space++;
 	}
 	return space;
@@ -134,7 +136,8 @@ static void _stp_stat_print_histogram_buf(char *buf, size_t size, Hist st, stat 
 {
 	int scale, i, j, val_space, cnt_space;
 	int low_bucket = -1, high_bucket = 0, over = 0, under = 0;
-	uint64_t val, v, valmax = 0;
+	int64_t val, valmax = 0;
+	uint64_t v;
 	int eliding = 0;
 	char *cur_buf = buf, *fake = buf;
 	char **bufptr = (buf == NULL ? &fake : &cur_buf);
@@ -282,7 +285,7 @@ static void _stp_stat_print_histogram(Hist st, stat *sd)
 	_stp_print_flush();
 }
 
-static void __stp_stat_add (Hist st, stat *sd, uint64_t val)
+static void __stp_stat_add(Hist st, stat *sd, int64_t val)
 {
 	int n;
 	if (sd->count == 0) {
@@ -310,7 +313,10 @@ static void __stp_stat_add (Hist st, stat *sd, uint64_t val)
 		if (val < 0)
 			val = 0;
 		else {
-			do_div (val, st->interval);
+			uint64_t tmp = val;
+
+			do_div(tmp, st->interval);
+			val = tmp;
 			val++;
 		}
 
