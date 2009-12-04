@@ -53,6 +53,11 @@ namespace systemtap
         button->signal_clicked()
           .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogCancel),
                    false);
+        // XXX
+        _refXmlDataDialog->get_widget("okbutton1", button);
+        button->signal_clicked()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogCancel),
+                   false);
         _refXmlDataDialog->get_widget("button1", button);
         button->signal_clicked()
           .connect(sigc::mem_fun(*this, &GraphWidget::onDataAdd), false);
@@ -263,7 +268,10 @@ namespace systemtap
       {
           Gtk::TreeModel::iterator litr = _listStore->append();
           Gtk::TreeModel::Row row = *litr;
-          row[_dataColumns._dataName] = (*itr)->title;
+          if (!(*itr)->title.empty())
+              row[_dataColumns._dataName] = (*itr)->title;
+          else
+              row[_dataColumns._dataName] = (*itr)->name;
           row[_dataColumns._graphData] = *itr;
       }
   }

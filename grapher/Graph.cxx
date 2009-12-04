@@ -210,6 +210,6 @@ namespace systemtap
                                  double& xgraph, double& ygraph)
   {
     xgraph = x -_xOffset;
-    ygraph = -y + _yOffset + _graphHeight;
+    ygraph = -(y - _graphY) + _yOffset + _graphHeight;
   }
 }
