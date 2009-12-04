@@ -14,10 +14,11 @@ class StapParser
   GraphWidget* _widget;
   int _errFd;
   int _inFd;
+  unsigned char _lineEndChar;
 public:
   StapParser(Gtk::Window* win,
              GraphWidget* widget) : _win(win), _widget(widget), _errFd(-1),
-                                    _inFd(-1)
+                                    _inFd(-1), _lineEndChar('\n')
   {
   }
   void parseData(std::tr1::shared_ptr<GraphDataBase> gdata,

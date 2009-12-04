@@ -4,6 +4,7 @@
 
 #include <gtkmm/window.h>
 #include <algorithm>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <cstring>
@@ -76,14 +77,14 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
           _win->hide();
           return true;
         }
-      buf[bytes_read] = '\0';
-      _buffer += buf;
+      _buffer.append(buf, bytes_read);
       string::size_type ret = string::npos;
-      while ((ret = _buffer.find('\n')) != string::npos)
+      while ((ret = _buffer.find(_lineEndChar)) != string::npos)
         {
           Glib::ustring dataString(_buffer, 0, ret);
-          // %DataSet and %CSV declare a data set; all other statements begin with
-          // the name of a data set.
+          // %DataSet and %CSV declare a data set; all other
+          // statements begin with the name of a data set.
+          // Except %LineEnd :)
           sub_range<Glib::ustring> found;
           if (dataString[0] == '%')
             {
@@ -142,6 +143,15 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                                                       setIter->second));
                     }
                 }
+              else if ((found = find_first(dataString, "%LineEnd:")))
+                {
+                  istringstream stream(Glib::ustring(found.end(),
+                                                     dataString.end()));
+                  int charAsInt = 0;
+                  // parse hex and octal numbers too
+                  stream >> std::setbase(0) >> charAsInt;
+                  _lineEndChar = static_cast<char>(charAsInt);
+                }
               else
                 {
                   cerr << "Unknown declaration " << dataString << endl;
@@ -199,9 +209,10 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       else
                       {
                           int64_t time;
-                          string data;
-                          stream >> time >> data;
-                          parseData(itr->second, time, data);
+                          stringbuf data;
+                          stream >> time;
+                          stream.get(data, _lineEndChar);
+                          parseData(itr->second, time, data.str());
                       }
                   }
                 }

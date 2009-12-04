@@ -275,7 +275,7 @@ namespace systemtap
       {
         if (!_hoverText)
           _hoverText = shared_ptr<CairoTextBox>(new CairoTextBox());
-        _hoverText->setOrigin(_mouseX + 5, _mouseY - 5);
+        _hoverText->setOrigin(_mouseX + 10, _mouseY - 5);
         Graph::DatasetList& dataSets = g->getDatasets();
         for (Graph::DatasetList::reverse_iterator ritr = dataSets.rbegin(),
                  end = dataSets.rend();
