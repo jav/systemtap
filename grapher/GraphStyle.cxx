@@ -137,6 +137,8 @@ namespace systemtap
         // size_t dataIndex = ditr - graphData->times.begin();
         double eventHeight = graph->_graphHeight * (graphData->scale / 100.0);
         cr->save();
+        cr->set_source_rgba(graphData->color[0], graphData->color[1],
+                            graphData->color[2], 1.0);
         cr->rectangle((*ditr - left) * horizScale - 1.5 * graph->_lineWidth,
                       eventHeight - 1.5 * graph->_lineWidth,
                       3.0 * graph->_lineWidth, 3.0 * graph->_lineWidth);
