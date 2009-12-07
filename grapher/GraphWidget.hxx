@@ -85,6 +85,12 @@ namespace systemtap
     void onRowChanged(const Gtk::TreeModel::Path&,
                       const Gtk::TreeModel::iterator&);
     sigc::connection _listConnection;
+    bool no_select_fun(const Glib::RefPtr<Gtk::TreeModel>& model,
+                       const Gtk::TreeModel::Path& path,
+                       bool)
+    {
+      return false;
+    }
   };
 }
 #endif // SYSTEMTAP_GRAPHWIDGET_H

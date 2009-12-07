@@ -66,7 +66,13 @@ namespace systemtap
         _dataTreeView->append_column_editable("Enabled",
                                               _dataColumns._dataEnabled);
         _dataTreeView->append_column("Data", _dataColumns._dataName);
-        _dataTreeView->append_column("Title", _dataColumns._dataTitle);        
+        _dataTreeView->append_column("Title", _dataColumns._dataTitle);
+        // Disable selection in list
+        Glib::RefPtr<Gtk::TreeSelection> listSelection
+          = _dataTreeView->get_selection();
+        listSelection
+          ->set_select_function(sigc::mem_fun(*this,
+                                              &GraphWidget::no_select_fun));
         _refXmlDataDialog->get_widget("checkbutton1", _relativeTimesButton);
         _relativeTimesButton->signal_clicked()
           .connect(sigc::mem_fun(*this,
