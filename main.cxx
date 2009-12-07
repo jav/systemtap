@@ -429,6 +429,11 @@ checkOptions (systemtap_session &s)
 	  cerr << "You can't specify -g and --unprivileged together." << endl;
 	  optionsConflict = true;
 	}
+      if (s.module_name.compare(0, 5, "stap_") != 0)
+	{
+	  cerr << "In unprivileged mode, the module name must start with 'stap_'." << endl;
+	  optionsConflict = true;
+	}
     }
 
   if (!s.kernel_symtab_path.empty())
