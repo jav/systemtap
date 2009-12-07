@@ -18,10 +18,12 @@ namespace systemtap
   public:
     DataModelColumns()
     {
+      add(_dataEnabled);
       add(_dataName);
       add(_dataTitle);
       add(_graphData);
     }
+    Gtk::TreeModelColumn<bool> _dataEnabled;
     Gtk::TreeModelColumn<Glib::ustring> _dataName;
     Gtk::TreeModelColumn<Glib::ustring> _dataTitle;
     Gtk::TreeModelColumn<std::tr1::shared_ptr<GraphDataBase> > _graphData;
@@ -64,9 +66,8 @@ namespace systemtap
     Gtk::Dialog* _dataDialog;
     Gtk::TreeView* _dataTreeView;
     void onDataDialogCancel();
-    void onDataAdd();
-    void onDataRemove();
     void onDataDialogOpen();
+    void onDataDialogClose();
     bool onHoverTimeout();
     DataModelColumns _dataColumns;
     Glib::RefPtr<Gtk::ListStore> _listStore;
@@ -81,6 +82,9 @@ namespace systemtap
     Gtk::CheckButton* _relativeTimesButton;
     bool _displayRelativeTimes;
     void onRelativeTimesButtonClicked();
+    void onRowChanged(const Gtk::TreeModel::Path&,
+                      const Gtk::TreeModel::iterator&);
+    sigc::connection _listConnection;
   };
 }
 #endif // SYSTEMTAP_GRAPHWIDGET_H

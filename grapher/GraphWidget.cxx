@@ -52,26 +52,19 @@ namespace systemtap
         _refXmlDataDialog = Gnome::Glade::Xml::create(PKGDATADIR "/graph-dialog.glade");
         _refXmlDataDialog->get_widget("dialog1", _dataDialog);
         Gtk::Button* button = 0;
-        _refXmlDataDialog->get_widget("cancelbutton1", button);
+        _refXmlDataDialog->get_widget("closebutton1", button);
         button->signal_clicked()
           .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogCancel),
                    false);
-        // XXX
-        _refXmlDataDialog->get_widget("okbutton1", button);
-        button->signal_clicked()
-          .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogCancel),
-                   false);
-        _refXmlDataDialog->get_widget("button1", button);
-        button->signal_clicked()
-          .connect(sigc::mem_fun(*this, &GraphWidget::onDataAdd), false);
-        _refXmlDataDialog->get_widget("button2", button);        
-        button->signal_clicked()
-          .connect(sigc::mem_fun(*this, &GraphWidget::onDataRemove), false);
         _refXmlDataDialog->get_widget("treeview1", _dataTreeView);
-        _dataDialog->signal_map()
+        _dataDialog->signal_show()
           .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogOpen));
+        _dataDialog->signal_hide()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogClose));
         _listStore = Gtk::ListStore::create(_dataColumns);
         _dataTreeView->set_model(_listStore);
+        _dataTreeView->append_column_editable("Enabled",
+                                              _dataColumns._dataEnabled);
         _dataTreeView->append_column("Data", _dataColumns._dataName);
         _dataTreeView->append_column("Title", _dataColumns._dataTitle);        
         _refXmlDataDialog->get_widget("checkbutton1", _relativeTimesButton);
@@ -275,23 +268,6 @@ namespace systemtap
     _dataDialog->hide();
   }
 
-  void GraphWidget::onDataAdd()
-  {
-    Glib::RefPtr<Gtk::TreeSelection> treeSelection =
-      _dataTreeView->get_selection();
-    Gtk::TreeModel::iterator iter = treeSelection->get_selected();
-    if (iter)
-      {
-        Gtk::TreeModel::Row row = *iter;
-        shared_ptr<GraphDataBase> data = row[_dataColumns._graphData];
-        _activeGraph->addGraphData(data);
-      }
-  }
-
-    void GraphWidget::onDataRemove()
-  {
-  }
-
   void GraphWidget::onDataDialogOpen()
   {
       _listStore->clear();
@@ -306,7 +282,20 @@ namespace systemtap
           if (!(*itr)->title.empty())
               row[_dataColumns._dataTitle] = (*itr)->title;
           row[_dataColumns._graphData] = *itr;
+          Graph::DatasetList& gsets = _activeGraph->getDatasets();
+          Graph::DatasetList::iterator setItr
+            = find(gsets.begin(), gsets.end(), *itr);
+          row[_dataColumns._dataEnabled] = (setItr != gsets.end());
       }
+      _listConnection =_listStore->signal_row_changed()
+        .connect(sigc::mem_fun(*this, &GraphWidget::onRowChanged));
+
+  }
+
+  void GraphWidget::onDataDialogClose()
+  {
+    if (_listConnection.connected())
+      _listConnection.disconnect();
   }
 
   bool GraphWidget::onHoverTimeout()
@@ -363,5 +352,24 @@ namespace systemtap
   {
     _displayRelativeTimes = _relativeTimesButton->get_active();
     queue_draw();
+  }
+
+  void GraphWidget::onRowChanged(const Gtk::TreeModel::Path&,
+                      const Gtk::TreeModel::iterator& litr)
+  {
+    Gtk::TreeModel::Row row = *litr;
+    bool val = row[_dataColumns._dataEnabled];
+    shared_ptr<GraphDataBase> data = row[_dataColumns._graphData];
+    Graph::DatasetList& graphData = _activeGraph->getDatasets();
+    if (val
+        && find(graphData.begin(), graphData.end(), data) == graphData.end())
+      {
+        _activeGraph->addGraphData(data);
+      }
+    else if (!val)
+      {
+        graphData.erase(remove(graphData.begin(), graphData.end(), data),
+                        graphData.end());
+      }
   }
 }
