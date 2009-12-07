@@ -4,6 +4,13 @@
 
 probe tcpmib.* {}
 
+// This function is just for test, the real one is
+// in tcpipstat.stp
+function tcpmib_filter_key:long (sk:long, op:long) {
+       if (!sk) return 0
+       return op
+}
+
 probe begin{
         print(tcpmib_get_state(0) +
               tcpmib_local_addr(0) +
