@@ -19,9 +19,11 @@ namespace systemtap
     DataModelColumns()
     {
       add(_dataName);
+      add(_dataTitle);
       add(_graphData);
     }
     Gtk::TreeModelColumn<Glib::ustring> _dataName;
+    Gtk::TreeModelColumn<Glib::ustring> _dataTitle;
     Gtk::TreeModelColumn<std::tr1::shared_ptr<GraphDataBase> > _graphData;
   };
   
@@ -72,8 +74,13 @@ namespace systemtap
     std::tr1::shared_ptr<CairoTextBox> _hoverText;
     double _mouseX;
     double _mouseY;
+    int64_t _globalTimeBase;
+    bool _timeBaseInitialized;
     std::tr1::shared_ptr<Graph> getGraphUnderPoint(double x, double y);
     void establishHoverTimeout();
+    Gtk::CheckButton* _relativeTimesButton;
+    bool _displayRelativeTimes;
+    void onRelativeTimesButtonClicked();
   };
 }
 #endif // SYSTEMTAP_GRAPHWIDGET_H

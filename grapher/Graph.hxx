@@ -39,6 +39,7 @@ namespace systemtap
     double _xOffset;
     double _yOffset;
     std::tr1::shared_ptr<CairoPlayButton> _playButton;
+    int64_t _timeBase;
     DatasetList& getDatasets() { return _datasets; }
     int64_t getTimeAtPoint(double x);
     void window2GraphCoords(double x, double y, double& xgraph, double& ygraph);

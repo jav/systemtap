@@ -14,7 +14,7 @@ namespace systemtap
       _graphWidth(580), _graphHeight(180),
       _lineWidth(2), _autoScaling(true), _autoScrolling(true),
       _zoomFactor(1.0), _xOffset(20.0), _yOffset(0.0),
-      _playButton(new CairoPlayButton),
+      _playButton(new CairoPlayButton), _timeBase(0),
       _left(0), _right(1), _top(5.0), _bottom(0.0)
   {
     setOrigin(x, y);
@@ -150,7 +150,7 @@ namespace systemtap
         cr->move_to(x, _yOffset);
         cr->line_to(x, _graphHeight);
         std::ostringstream stream;
-        stream << tickVal;
+        stream << (tickVal - _timeBase);
         Cairo::TextExtents extents;
         cr->get_text_extents(stream.str(), extents);
         // Room for this label?

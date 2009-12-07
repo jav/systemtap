@@ -4,6 +4,9 @@
 #include <math.h>
 #include <iostream>
 
+#define __STDC_LIMIT_MACROS
+#include <stdint.h>
+
 #include <glibmm/timer.h>
 #include <cairomm/context.h>
 #include <libglademm.h>
@@ -22,7 +25,7 @@ namespace systemtap
     
   GraphWidget::GraphWidget()
     : _trackingDrag(false), _width(600), _height(200), _mouseX(0.0),
-      _mouseY(0.0)
+      _mouseY(0.0), _globalTimeBase(0), _timeBaseInitialized(false)
   {
     add_events(Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK
                | Gdk::BUTTON_RELEASE_MASK | Gdk::SCROLL_MASK);
@@ -70,6 +73,14 @@ namespace systemtap
         _listStore = Gtk::ListStore::create(_dataColumns);
         _dataTreeView->set_model(_listStore);
         _dataTreeView->append_column("Data", _dataColumns._dataName);
+        _dataTreeView->append_column("Title", _dataColumns._dataTitle);        
+        _refXmlDataDialog->get_widget("checkbutton1", _relativeTimesButton);
+        _relativeTimesButton->signal_clicked()
+          .connect(sigc::mem_fun(*this,
+                                 &GraphWidget::onRelativeTimesButtonClicked));
+        // Set button's initial value from that in .glade file
+        _displayRelativeTimes = _relativeTimesButton->get_active();
+        
       }
     catch (const Gnome::Glade::XmlError& ex )
       {
@@ -100,6 +111,7 @@ namespace systemtap
     shared_ptr<Graph> graph(new Graph(x, y));
     _height = y + graph->_height;
     graph->setOrigin(x, y);
+    graph->_timeBase = _globalTimeBase;
     _graphs.push_back(graph);
     queue_resize();
   }
@@ -115,8 +127,29 @@ namespace systemtap
     cr->save();
     cr->set_source_rgba(0.0, 0.0, 0.0, 1.0);
     cr->paint();
+    if (!_timeBaseInitialized && !_graphData.empty())
+      {
+        int64_t earliest = INT64_MAX;
+        for (GraphDataList::iterator gd = _graphData.begin(),
+               end = _graphData.end();
+             gd != end;
+             ++gd)
+          {
+            if (!(*gd)->times.empty() && (*gd)->times[0] < earliest)
+              earliest = (*gd)->times[0];
+          }
+        if (earliest != INT64_MAX)
+          {
+            _globalTimeBase = earliest;
+            _timeBaseInitialized = true;
+          }
+      }
     for (GraphList::iterator g = _graphs.begin(); g != _graphs.end(); ++g)
       {
+        if (_displayRelativeTimes && _timeBaseInitialized)
+          (*g)->_timeBase = _globalTimeBase;
+        else
+          (*g)->_timeBase = 0.0;
         double x, y;
         (*g)->getOrigin(x, y);
         cr->save();
@@ -269,10 +302,9 @@ namespace systemtap
       {
           Gtk::TreeModel::iterator litr = _listStore->append();
           Gtk::TreeModel::Row row = *litr;
+          row[_dataColumns._dataName] = (*itr)->name;
           if (!(*itr)->title.empty())
-              row[_dataColumns._dataName] = (*itr)->title;
-          else
-              row[_dataColumns._dataName] = (*itr)->name;
+              row[_dataColumns._dataTitle] = (*itr)->title;
           row[_dataColumns._graphData] = *itr;
       }
   }
@@ -325,5 +357,11 @@ namespace systemtap
       _hover_timeout_connection.disconnect();
     _hover_timeout_connection = Glib::signal_timeout()
       .connect(sigc::mem_fun(*this, &GraphWidget::onHoverTimeout), 1000);
+  }
+
+  void GraphWidget::onRelativeTimesButtonClicked()
+  {
+    _displayRelativeTimes = _relativeTimesButton->get_active();
+    queue_draw();
   }
 }
