@@ -126,6 +126,7 @@ namespace systemtap
       }
     if (_hoverText && _hoverText->isVisible())
       _hoverText->draw(cr);
+    cr->restore();
     return true;
   }
 
