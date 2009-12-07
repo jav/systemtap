@@ -99,16 +99,6 @@ function tcpmib_remote_port:long(sk:long)
         CATCH_DEREF_FAULT();
 %}
 
-function tcpmib_filter_key:long (sk:long, op:long) {
-        // ensure all these functions will build
-        if ( tcpmib_get_state(sk) ) return 0
-        if ( tcpmib_local_addr(sk) ) return 0
-        if ( tcpmib_remote_addr(sk) ) return 0
-        if ( tcpmib_local_port(sk) ) return 0
-        if ( tcpmib_remote_port(sk) ) return 0
-        return op
-}
-
 /**
  * probe tcpmib.ActiveOpens - Count an active opening of a socket.
  * @sk:	Pointer to the struct sock being acted on.
@@ -124,6 +114,7 @@ tcpmib.ActiveOpens=kernel.function("tcp_connect").return
 	sk = $sk;
 	op = 1;
 	if ( $return ) next;
+        // definition in tcpipstat.stp
 	key = tcpmib_filter_key(sk,op);
 	if ( key ) ActiveOpens[key] += op;
 }
