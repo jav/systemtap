@@ -161,7 +161,7 @@ public:
   void cleanUp();
   tr1::shared_ptr<StapParser> makeStapParser()
   {
-    tr1::shared_ptr<StapParser> result(new StapParser(_win, _widget));
+    tr1::shared_ptr<StapParser> result(new StapParser(_win));
     _parsers.push_back(ParserInstance(-1, result));
     return result;
   }
@@ -274,7 +274,7 @@ int StapLauncher::launch()
         }
       _exit(1);
     }
-  tr1::shared_ptr<StapParser> sp(new StapParser(_win, _widget));
+  tr1::shared_ptr<StapParser> sp(new StapParser(_win));
   _parsers.push_back(ParserInstance(childPid, sp));
   sp->setErrFd(pipefd[2]);
   sp->setInFd(pipefd[0]);

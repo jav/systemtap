@@ -7,7 +7,6 @@
 // later version.
 
 #include "GraphData.hxx"
-#include "GraphWidget.hxx"
 
 #include <string>
 namespace systemtap
@@ -19,14 +18,12 @@ class StapParser
   DataMap _dataSets;
   CSVData _csv;
   Gtk::Window* _win;
-  GraphWidget* _widget;
   int _errFd;
   int _inFd;
   unsigned char _lineEndChar;
 public:
-  StapParser(Gtk::Window* win,
-             GraphWidget* widget) : _win(win), _widget(widget), _errFd(-1),
-                                    _inFd(-1), _lineEndChar('\n')
+  StapParser(Gtk::Window* win)
+      : _win(win), _errFd(-1), _inFd(-1), _lineEndChar('\n')
   {
   }
   void parseData(std::tr1::shared_ptr<GraphDataBase> gdata,

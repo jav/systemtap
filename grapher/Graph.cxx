@@ -16,6 +16,9 @@ namespace systemtap
 {
   using namespace std;
   using namespace std::tr1;
+
+  GraphDataList GraphDataBase::graphData;
+  sigc::signal<void> GraphDataBase::graphDataChanged;
   
   Graph::Graph(double x, double y)
     : _width(600), _height(200), _graphX(0), _graphY(0),
@@ -40,7 +43,7 @@ namespace systemtap
         int linesPossible = (int)(_graphWidth / (_lineWidth + 2.0));
         // Find latest time.
         int64_t latestTime = 0;
-        for (DatasetList::iterator ditr = _datasets.begin(),
+        for (GraphDataList::iterator ditr = _datasets.begin(),
                de = _datasets.end();
              ditr != de;
              ++ditr)
@@ -54,7 +57,7 @@ namespace systemtap
           }
         int64_t minDiff = 0;
         int64_t maxTotal = 0;
-        for (DatasetList::iterator ditr = _datasets.begin(),
+        for (GraphDataList::iterator ditr = _datasets.begin(),
                de = _datasets.end();
              ditr != de;
              ++ditr)
@@ -92,7 +95,7 @@ namespace systemtap
     cr->translate(_xOffset, _yOffset);
     cr->set_line_width(_lineWidth);
 
-    for (DatasetList::iterator itr = _datasets.begin(), e = _datasets.end();
+    for (GraphDataList::iterator itr = _datasets.begin(), e = _datasets.end();
          itr != e;
          ++itr)
       {

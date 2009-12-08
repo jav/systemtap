@@ -118,7 +118,8 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       dataSet->color[2] = (hexColor & 0xff) / 255.0;
                       dataSet->scale = scale;
                       _dataSets.insert(std::make_pair(setName, dataSet));
-                      _widget->addGraphData(dataSet);
+                      getGraphData().push_back(dataSet);
+                      graphDataSignal().emit();
                     }
                   else if (style == "discreet")
                     {
@@ -131,7 +132,8 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                       dataSet->color[2] = (hexColor & 0xff) / 255.0;
                       dataSet->scale = scale;
                       _dataSets.insert(std::make_pair(setName, dataSet));
-                      _widget->addGraphData(dataSet);
+                      getGraphData().push_back(dataSet);
+                      graphDataSignal().emit();
                     }
                 }
               else if ((found = find_first(dataString, "%CSV:")))

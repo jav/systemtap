@@ -19,10 +19,14 @@
 
 #include <boost/circular_buffer.hpp>
 
+#include <gtkmm.h>
+
 #include "GraphStyle.hxx"
 
 namespace systemtap
 {
+  struct GraphDataBase;
+  typedef std::vector<std::tr1::shared_ptr<GraphDataBase> > GraphDataList;
   struct GraphDataBase
   {
     virtual ~GraphDataBase() {}
@@ -43,6 +47,9 @@ namespace systemtap
     std::string xAxisText;
     std::string yAxisText;
     TimeList times;
+    static GraphDataList graphData;
+    // signal stuff for telling everyone about changes to the data set list
+    static sigc::signal<void> graphDataChanged;
   };
 
   template<typename T>
@@ -69,5 +76,12 @@ namespace systemtap
     Element;
     std::vector<Element> elements;
   };
+
+  inline GraphDataList& getGraphData() { return GraphDataBase::graphData; }
+
+  inline sigc::signal<void>& graphDataSignal()
+  {
+    return GraphDataBase::graphDataChanged;
+  }
 }
 #endif

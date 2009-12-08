@@ -87,7 +87,8 @@ namespace systemtap
                                  &GraphWidget::onRelativeTimesButtonClicked));
         // Set button's initial value from that in .glade file
         _displayRelativeTimes = _relativeTimesButton->get_active();
-        
+        graphDataSignal()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onGraphDataChanged));
       }
     catch (const Gnome::Glade::XmlError& ex )
       {
@@ -100,10 +101,32 @@ namespace systemtap
   {
   }
 
-  void GraphWidget::addGraphData(shared_ptr<GraphDataBase> data)
+  void GraphWidget::onGraphDataChanged()
   {
-    _graphs.back()->addGraphData(data);
-    _graphData.push_back(data);
+    // add any new graph data to the last graph
+    GraphDataList newData;
+    GraphDataList& allData = getGraphData();
+    for (GraphDataList::iterator gditr = allData.begin(), gdend = allData.end();
+         gditr != gdend;
+         ++gditr)
+      {
+        bool found = false;
+        for (GraphList::iterator gitr = _graphs.begin(), gend = _graphs.end();
+             gitr != gend;
+             ++gitr)
+          {
+            GraphDataList& gdata = (*gitr)->getDatasets();
+            if (find(gdata.begin(), gdata.end(), *gditr) != gdata.end())
+              {
+                found = true;
+                break;
+              }
+          }
+        if (!found)
+          newData.push_back(*gditr);
+      }
+    copy(newData.begin(), newData.end(),
+         back_inserter(_graphs.back()->getDatasets()));
   }
 
   void GraphWidget::addGraph()
@@ -134,11 +157,12 @@ namespace systemtap
     cr->save();
     cr->set_source_rgba(0.0, 0.0, 0.0, 1.0);
     cr->paint();
-    if (!_timeBaseInitialized && !_graphData.empty())
+    if (!_timeBaseInitialized && !getGraphData().empty())
       {
+        GraphDataList& graphData = getGraphData();
         int64_t earliest = INT64_MAX;
-        for (GraphDataList::iterator gd = _graphData.begin(),
-               end = _graphData.end();
+        for (GraphDataList::iterator gd = graphData.begin(),
+               end = graphData.end();
              gd != end;
              ++gd)
           {
@@ -285,8 +309,8 @@ namespace systemtap
   void GraphWidget::onDataDialogOpen()
   {
       _listStore->clear();
-      for (GraphDataList::iterator itr = _graphData.begin(),
-               end = _graphData.end();
+      for (GraphDataList::iterator itr = getGraphData().begin(),
+               end = getGraphData().end();
            itr != end;
            ++itr)
       {
@@ -296,8 +320,8 @@ namespace systemtap
           if (!(*itr)->title.empty())
               row[_dataColumns._dataTitle] = (*itr)->title;
           row[_dataColumns._graphData] = *itr;
-          Graph::DatasetList& gsets = _activeGraph->getDatasets();
-          Graph::DatasetList::iterator setItr
+          GraphDataList& gsets = _activeGraph->getDatasets();
+          GraphDataList::iterator setItr
             = find(gsets.begin(), gsets.end(), *itr);
           row[_dataColumns._dataEnabled] = (setItr != gsets.end());
       }
@@ -320,8 +344,8 @@ namespace systemtap
         if (!_hoverText)
           _hoverText = shared_ptr<CairoTextBox>(new CairoTextBox());
         _hoverText->setOrigin(_mouseX + 10, _mouseY - 5);
-        Graph::DatasetList& dataSets = g->getDatasets();
-        for (Graph::DatasetList::reverse_iterator ritr = dataSets.rbegin(),
+        GraphDataList& dataSets = g->getDatasets();
+        for (GraphDataList::reverse_iterator ritr = dataSets.rbegin(),
                  end = dataSets.rend();
              ritr != end;
              ++ritr)
@@ -374,7 +398,7 @@ namespace systemtap
     Gtk::TreeModel::Row row = *litr;
     bool val = row[_dataColumns._dataEnabled];
     shared_ptr<GraphDataBase> data = row[_dataColumns._graphData];
-    Graph::DatasetList& graphData = _activeGraph->getDatasets();
+    GraphDataList& graphData = _activeGraph->getDatasets();
     if (val
         && find(graphData.begin(), graphData.end(), data) == graphData.end())
       {

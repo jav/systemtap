@@ -19,7 +19,6 @@ namespace systemtap
   class Graph : public CairoWidget
   {
   public:
-    typedef std::vector<std::tr1::shared_ptr<GraphDataBase> > DatasetList;
     friend class GraphWidget;
     Graph(double x = 0.0, double y = 0.0);
     virtual void draw(Cairo::RefPtr<Cairo::Context> cr);
@@ -48,11 +47,11 @@ namespace systemtap
     double _yOffset;
     std::tr1::shared_ptr<CairoPlayButton> _playButton;
     int64_t _timeBase;
-    DatasetList& getDatasets() { return _datasets; }
+    GraphDataList& getDatasets() { return _datasets; }
     int64_t getTimeAtPoint(double x);
     void window2GraphCoords(double x, double y, double& xgraph, double& ygraph);
   protected:
-    DatasetList _datasets;
+    GraphDataList _datasets;
     int64_t _left;
     int64_t _right;
     double _top;
