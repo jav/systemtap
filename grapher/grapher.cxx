@@ -227,19 +227,14 @@ int StapLauncher::launch()
                                                   &ChildDeathReader::ioCallback),
                                     signalPipe[0], Glib::IO_IN);
         }
+      struct sigaction action;
+      action.sa_sigaction = handleChild;
+      sigemptyset(&action.sa_mask);
+      action.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
+      sigaction(SIGCLD, &action, 0);
     }
-  struct sigaction action;
-  action.sa_sigaction = handleChild;
-  sigemptyset(&action.sa_mask);
-  action.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
-  sigaction(SIGCLD, &action, 0);
   int pipefd[4];
-  if (pipe(&pipefd[0]) < 0)
-    {
-      std::perror("pipe");
-      exit(1);
-    }
-  if (pipe(&pipefd[2]) < 0)
+  if (pipe(&pipefd[0]) < 0 || pipe(&pipefd[2]) < 0)
     {
       std::perror("pipe");
       exit(1);
