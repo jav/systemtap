@@ -120,13 +120,15 @@ class provider:
 
 
 def usage ():
-    print "Usage " + sys.argv[0] + " [--help] [-h | -G] -s File.d [-o File]"
+    print "Usage " + sys.argv[0] + " [--help] [-h | -G] [-C [-I<Path>]] -s File.d [-o <File>]"
 
 def help ():
     usage()
     print "Where -h builds a systemtap header file from the .d file"
+    print "      -C when used with -h, also run cpp preprocessor"
     print "      -o specifies an explicit output file name,"
-    print "         The default for -G is file.o and -h is file.h"
+    print "         the default for -G is file.o and -h is file.h"
+    print "      -I when running cpp pass through this -I include Path"
     print "      -s specifies the name of the .d input file"
     print "      -G builds a stub file.o from file.d,"
     print "         which is required by some packages that use dtrace."
@@ -159,6 +161,8 @@ keep_temps = False
 use_cpp = False
 h_ext = '.h'
 filename = ""
+s_filename = ""
+includes = []
 while (i < len (sys.argv)):
     if (sys.argv[i] == "-o"):
         i += 1
@@ -170,6 +174,8 @@ while (i < len (sys.argv)):
         use_cpp = True
     elif (sys.argv[i] == "-h"):
         build_header = True
+    elif (sys.argv[i].startswith("-I")):
+        includes.append(sys.argv[i])
     elif (sys.argv[i] == "-G"):
         build_source = True
     elif (sys.argv[i] == "-k"):
@@ -185,9 +191,10 @@ if (build_header == False and build_source == False):
 
 if (s_filename != "" and use_cpp):
     (d,fn) = mkstemp(suffix=".d")
-    retcode = call(["cpp", s_filename, fn])
+    args = ['cpp'] + includes + [s_filename, fn]
+    retcode = call(args)
     if (retcode != 0):
-        print "\"cpp s_filename\" failed"
+        print "\"cpp includes s_filename\" failed"
         usage()
         sys.exit(1)
     s_filename = fn
