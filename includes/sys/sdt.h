@@ -40,7 +40,7 @@
 #define STAP_PROBE_DATA(probe, guard, arg)	\
   STAP_PROBE_DATA_(#probe,guard,arg)
 
-#if defined STAP_HAS_SEMAPHORES && defined EXPERIMENTAL_UTRACE_SDT
+#if defined STAP_HAS_SEMAPHORES && ! defined EXPERIMENTAL_KPROBE_SDT
 #define STAP_SEMAPHORE(probe)	\
   if (__builtin_expect ( probe ## _semaphore , 0))
 #else
