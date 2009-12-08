@@ -25,6 +25,12 @@ namespace systemtap
   using namespace std;
   using namespace std::tr1;
 
+  sigc::signal<void, pid_t>& childDiedSignal()
+  {
+    static sigc::signal<void, pid_t> deathSignal;
+    return deathSignal;
+  }
+      
 vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
 {
   using namespace boost;
@@ -72,7 +78,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
       using namespace boost;
       if (ioCondition & Glib::IO_HUP)
         {
-          _win->hide();
+          childDiedSignal().emit(getPid());
           return true;
         }
       if ((ioCondition & Glib::IO_IN) == 0)
@@ -82,7 +88,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
       bytes_read = read(_inFd, buf, sizeof(buf) - 1);
       if (bytes_read <= 0)
         {
-          _win->hide();
+          childDiedSignal().emit(getPid());
           return true;
         }
       _buffer.append(buf, bytes_read);
@@ -242,7 +248,7 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
     bytes_read = read(_errFd, buf, sizeof(buf) - 1);
     if (bytes_read <= 0)
       {
-        _win->hide();
+        cerr << "StapParser: error reading from stderr!\n";
         return true;
       }
     if (write(STDOUT_FILENO, buf, bytes_read) < 0)

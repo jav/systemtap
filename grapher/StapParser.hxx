@@ -9,30 +9,61 @@
 #include "GraphData.hxx"
 
 #include <string>
+#include <tr1/memory>
+
+#include <unistd.h>
+
 namespace systemtap
 {
-class StapParser
-{
-  std::string _buffer;
-  typedef std::map<std::string, std::tr1::shared_ptr<GraphDataBase> > DataMap;
-  DataMap _dataSets;
-  CSVData _csv;
-  Gtk::Window* _win;
-  int _errFd;
-  int _inFd;
-  unsigned char _lineEndChar;
-public:
-  StapParser(Gtk::Window* win)
-      : _win(win), _errFd(-1), _inFd(-1), _lineEndChar('\n')
+  // arguments and script for a stap process
+  struct StapProcess
   {
-  }
-  void parseData(std::tr1::shared_ptr<GraphDataBase> gdata,
-                 int64_t time, const std::string& dataString);
-  bool ioCallback(Glib::IOCondition ioCondition);
-  bool errIoCallback(Glib::IOCondition ioCondition);
-  int getErrFd() { return _errFd; }
-  void setErrFd(int fd) { _errFd = fd; }
-  int getInFd() { return _inFd; }
-  void setInFd(int fd) { _inFd = fd; }
-};
+    StapProcess(pid_t pid_ = -1) : pid(pid_) {}
+    std::string stapArgs;
+    std::string script;
+    std::string scriptArgs;
+    // arguments passed from a single array, like from the command line.
+    char **argv;
+    // -1 if the grapher is reading from stdin
+    pid_t pid;
+  };
+  
+  class StapParser
+  {
+    std::string _buffer;
+    typedef std::map<std::string, std::tr1::shared_ptr<GraphDataBase> > DataMap;
+    DataMap _dataSets;
+    CSVData _csv;
+    int _errFd;
+    int _inFd;
+    unsigned char _lineEndChar;
+    std::tr1::shared_ptr<StapProcess> _process;
+  public:
+    StapParser()
+      :  _errFd(-1), _inFd(-1), _lineEndChar('\n')
+    {
+    }
+    void parseData(std::tr1::shared_ptr<GraphDataBase> gdata,
+                   int64_t time, const std::string& dataString);
+    bool ioCallback(Glib::IOCondition ioCondition);
+    bool errIoCallback(Glib::IOCondition ioCondition);
+    int getErrFd() const { return _errFd; }
+    void setErrFd(int fd) { _errFd = fd; }
+    int getInFd() const { return _inFd; }
+    void setInFd(int fd) { _inFd = fd; }
+    pid_t getPid() const
+    {
+      if (_process)
+        return _process->pid;
+      else
+        return -1;
+    }
+    std::tr1::shared_ptr<StapProcess> getProcess() { return _process; }
+    void setProcess(std::tr1::shared_ptr<StapProcess> process)
+    {
+      _process = process;
+    }
+  };
+
+  sigc::signal<void, pid_t>& childDiedSignal();
 }

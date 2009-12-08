@@ -39,6 +39,7 @@
 #include <getopt.h>
 
 using namespace std;
+using namespace tr1;
 
 using namespace systemtap;
 
@@ -159,22 +160,33 @@ public:
   }
   int launch();
   void cleanUp();
-  tr1::shared_ptr<StapParser> makeStapParser()
+  shared_ptr<StapParser> makeStapParser()
   {
-    tr1::shared_ptr<StapParser> result(new StapParser(_win));
-    _parsers.push_back(ParserInstance(-1, result));
+    shared_ptr<StapParser> result(new StapParser);
+    _parsers.push_back(result);
     return result;
   }
+private:
+  struct pidPred
+  {
+    pidPred(pid_t pid_) : pid(pid_) {}
+    bool operator()(const shared_ptr<StapParser>& parser) const
+    {
+      return parser->getPid() == pid;
+    }
+    pid_t pid;
+  };
+public:
   pid_t reap()
   {
+    using namespace boost;
     pid_t pid = ChildDeathReader::reap();
     if (pid < 0)
       return pid;
     ParserList::iterator itr
-      = find_if(_parsers.begin(), _parsers.end(),
-                boost::bind(&ParserInstance::childPid, _1) == pid);
+      = find_if(_parsers.begin(), _parsers.end(), pidPred(pid));
     if (itr != _parsers.end())
-      itr->childPid = -1;
+      (*itr)->setProcess(tr1::shared_ptr<StapProcess>());
     return pid;
   }
   void killAll()
@@ -183,10 +195,12 @@ public:
          itr != end;
          ++itr)
       {
-        if (itr->childPid >= 0)
-          kill(itr->childPid, SIGTERM);
+        if ((*itr)->getPid() >= 0)
+          kill((*itr)->getPid(), SIGTERM);
       }
   }
+  typedef vector<shared_ptr<StapParser> > ParserList;
+  ParserList _parsers;
 protected:
   char** _argv;
   string _stapArgs;
@@ -196,18 +210,6 @@ protected:
   ChildDeathReader::Callback* _deathCallback;
   Gtk::Window* _win;
   GraphWidget* _widget;
-  struct ParserInstance
-  {
-    ParserInstance() : childPid(-1) {}
-    ParserInstance(int childPid_, tr1::shared_ptr<StapParser> stapParser_)
-      : childPid(childPid_), stapParser(stapParser_)
-    {
-    }
-    pid_t childPid;
-    tr1::shared_ptr<StapParser> stapParser;
-  };
-  typedef vector<ParserInstance> ParserList;
-  ParserList _parsers;
 };
 
 int StapLauncher::launch()
@@ -274,8 +276,18 @@ int StapLauncher::launch()
         }
       _exit(1);
     }
-  tr1::shared_ptr<StapParser> sp(new StapParser(_win));
-  _parsers.push_back(ParserInstance(childPid, sp));
+  tr1::shared_ptr<StapParser> sp(new StapParser);
+  shared_ptr<StapProcess> proc(new StapProcess(childPid));
+  if (_argv)
+    proc->argv = _argv;
+  else
+    {
+      proc->stapArgs = _stapArgs;
+      proc->script = _script;
+      proc->scriptArgs = _scriptArgs;
+    }
+  sp->setProcess(proc);
+  _parsers.push_back(sp);
   sp->setErrFd(pipefd[2]);
   sp->setInFd(pipefd[0]);
   Glib::signal_io().connect(sigc::mem_fun(sp.get(),
@@ -305,21 +317,22 @@ void StapLauncher::cleanUp()
        itr != end;
        ++itr)
     {
-      if (itr->childPid > 0)
-        kill(itr->childPid, SIGTERM);
+      pid_t childPid = (*itr)->getPid();
+      if (childPid > 0)
+        kill(childPid, SIGTERM);
       int status;
       pid_t killedPid = -1;
       if ((killedPid = wait(&status)) == -1)
         {
           std::perror("wait");
         }
-      else if (killedPid != itr->childPid)
+      else if (killedPid != childPid)
         {
           std::cerr << "wait: killed Pid " << killedPid << " != child Pid "
-                    << itr->childPid << "\n";
+                    << childPid << "\n";
         }
       else if (_deathCallback)
-        _deathCallback->childDied(itr->childPid);
+        _deathCallback->childDied(childPid);
     }
 }
 
@@ -338,6 +351,58 @@ private:
   Gtk::Entry* _scriptArgEntry;
 };
 
+class ProcModelColumns  : public Gtk::TreeModelColumnRecord
+{
+public:
+  ProcModelColumns()
+  {
+    add(_scriptName);
+    add(_proc);
+  }
+  Gtk::TreeModelColumn<Glib::ustring> _scriptName;
+  Gtk::TreeModelColumn<shared_ptr<StapProcess> > _proc;
+};
+
+class ProcWindow
+{
+public:
+  ProcWindow();
+  ProcModelColumns _modelColumns;
+  Glib::RefPtr<Gnome::Glade::Xml> _xml;
+  Gtk::Window* _window;
+  Gtk::TreeView* _dataTreeView;
+  Glib::RefPtr<Gtk::ListStore> _listStore;
+  void onClose();
+};
+
+ProcWindow::ProcWindow()
+{
+  try
+    {
+      _xml = Gnome::Glade::Xml::create(PKGDATADIR "/processwindow.glade");
+      _xml->get_widget("window1", _window);
+      _xml->get_widget("treeview1", _dataTreeView);
+      
+    }
+  catch (const Gnome::Glade::XmlError& ex )
+    {
+      std::cerr << ex.what() << std::endl;
+      throw;
+    }
+  _listStore = Gtk::ListStore::create(_modelColumns);
+  _dataTreeView->set_model(_listStore);
+  _dataTreeView->append_column("Script", _modelColumns._scriptName);
+  Gtk::Button* button = 0;
+  _xml->get_widget("button5", button);
+  button->signal_clicked().connect(sigc::mem_fun(*this, &ProcWindow::onClose),
+                                   false);
+}
+
+void ProcWindow::onClose()
+{
+  _window->hide();
+}
+
 class GrapherWindow : public Gtk::Window, public ChildDeathReader::Callback
 {
 public:
@@ -355,25 +420,28 @@ public:
 protected:
   virtual void on_menu_file_quit();
   virtual void on_menu_script_start();
+  virtual void on_menu_proc_window();
   void addGraph();
   // menu support
   Glib::RefPtr<Gtk::UIManager> m_refUIManager;
   Glib::RefPtr<Gtk::ActionGroup> m_refActionGroup;
   GraphicalStapLauncher* _graphicalLauncher;
-
+  shared_ptr<ProcWindow> _procWindow;
 };
 
+
 GrapherWindow::GrapherWindow()
+  : _procWindow(new ProcWindow)
 {
   set_title("systemtap grapher");
   add(m_Box);
 
-
+  
   //Create actions for menus and toolbars:
   m_refActionGroup = Gtk::ActionGroup::create();
   //File menu:
   m_refActionGroup->add(Gtk::Action::create("FileMenu", "File"));
-  m_refActionGroup->add(Gtk::Action::create("StartScript", "Start script"),
+  m_refActionGroup->add(Gtk::Action::create("StartScript", "Start script..."),
                         sigc::mem_fun(*this,
                                       &GrapherWindow::on_menu_script_start));
   m_refActionGroup->add(Gtk::Action::create("AddGraph", "Add graph"),
@@ -381,6 +449,12 @@ GrapherWindow::GrapherWindow()
   m_refActionGroup->add(Gtk::Action::create("FileQuit", Gtk::Stock::QUIT),
                         sigc::mem_fun(*this,
                                       &GrapherWindow::on_menu_file_quit));
+  // Window menu
+  m_refActionGroup->add(Gtk::Action::create("WindowMenu", "Window"));
+  m_refActionGroup->add(Gtk::Action::create("ProcessWindow",
+                                            "Stap processes..."),
+                        sigc::mem_fun(*this,
+                                      &GrapherWindow::on_menu_proc_window));
   m_refUIManager = Gtk::UIManager::create();
   m_refUIManager->insert_action_group(m_refActionGroup);
 
@@ -393,6 +467,9 @@ GrapherWindow::GrapherWindow()
     "      <menuitem action='StartScript'/>"
     "      <menuitem action='AddGraph'/>"
     "      <menuitem action='FileQuit'/>"
+    "    </menu>"
+    "    <menu action='WindowMenu'>"
+    "      <menuitem action='ProcessWindow'/>"
     "    </menu>"
     "  </menubar>"
     "</ui>";
@@ -423,6 +500,25 @@ void GrapherWindow::on_menu_file_quit()
 void GrapherWindow::on_menu_script_start()
 {
   _graphicalLauncher->runDialog();
+}
+
+
+void GrapherWindow::on_menu_proc_window()
+{
+  _procWindow->_listStore->clear();
+  for (StapLauncher::ParserList::iterator spitr
+         = _graphicalLauncher->_parsers.begin(),
+         end = _graphicalLauncher->_parsers.end();
+       spitr != end;
+       ++spitr)
+    {
+      shared_ptr<StapProcess> sp = (*spitr)->getProcess();
+      Gtk::TreeModel::iterator litr = _procWindow->_listStore->append();
+      Gtk::TreeModel::Row row = *litr;
+      if (sp)
+        row[_procWindow->_modelColumns._scriptName] = sp->script;
+    }
+  _procWindow->_window->show();
 }
 
 void GrapherWindow::childDied(int pid)
