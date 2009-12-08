@@ -1,6 +1,0 @@
-#! /bin/sh
-
-# Make sure unprivileged ('--unprivileged') option isn't accepted when
-# a module name not starting with 'stap_' is used.
-
-stap --unprivileged -m 'nfs' -p1 -e 'probe begin { exit() }'

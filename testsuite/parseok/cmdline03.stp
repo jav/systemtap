@@ -1,6 +1,0 @@
-#! /bin/sh
-
-# Make sure unprivileged ('--unprivileged') option is accepted when a
-# module name starting with 'stap_' is used.
-
-stap --unprivileged -m 'stap_foo' -p1 -e 'probe begin { exit() }'
