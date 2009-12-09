@@ -38,6 +38,8 @@ namespace systemtap
     int _inFd;
     unsigned char _lineEndChar;
     std::tr1::shared_ptr<StapProcess> _process;
+    sigc::connection _ioConnection;
+    sigc::connection _errIoConnection;
   public:
     StapParser()
       :  _errFd(-1), _inFd(-1), _lineEndChar('\n')
@@ -63,7 +65,13 @@ namespace systemtap
     {
       _process = process;
     }
+    void initIo(int inFd, int errFd);
   };
 
   sigc::signal<void, pid_t>& childDiedSignal();
+
+  typedef std::vector<std::tr1::shared_ptr<StapParser> > ParserList;
+  extern ParserList parsers;
+
+  sigc::signal<void>& parserListChangedSignal();
 }

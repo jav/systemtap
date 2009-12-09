@@ -106,14 +106,14 @@ private:
 class StapLauncher : public ChildDeathReader
 {
 public:
-  StapLauncher() : _argv(0), _childPid(-1), _deathCallback(0) {}
+  StapLauncher() : _argv(0), _childPid(-1) {}
   StapLauncher(char** argv)
-    : _argv(argv), _childPid(-1), _deathCallback(0)
+    : _argv(argv), _childPid(-1)
   {
   }
   StapLauncher(const string& stapArgs, const string& script,
                const string& scriptArgs)
-    : _childPid(-1), _deathCallback(0), _win(0), _widget(0)
+    : _childPid(-1), _win(0), _widget(0)
   {
     setArgs(stapArgs, script, scriptArgs);
   }
@@ -149,10 +149,7 @@ public:
     _script.clear();
     _scriptArgs.clear();
   }
-  void setDeathCallback(ChildDeathReader::Callback* callback)
-  {
-    _deathCallback = callback;
-  }
+
   void setWinParams(Gtk::Window* win, GraphWidget* widget)
   {
     _win = win;
@@ -163,7 +160,8 @@ public:
   shared_ptr<StapParser> makeStapParser()
   {
     shared_ptr<StapParser> result(new StapParser);
-    _parsers.push_back(result);
+    parsers.push_back(result);
+    parserListChangedSignal().emit();
     return result;
   }
 private:
@@ -184,14 +182,22 @@ public:
     if (pid < 0)
       return pid;
     ParserList::iterator itr
-      = find_if(_parsers.begin(), _parsers.end(), pidPred(pid));
-    if (itr != _parsers.end())
-      (*itr)->setProcess(tr1::shared_ptr<StapProcess>());
+      = find_if(parsers.begin(), parsers.end(), pidPred(pid));
+    if (itr != parsers.end())
+      {
+        tr1::shared_ptr<StapProcess> sp = (*itr)->getProcess();
+        if (sp)
+          {
+            sp->pid = -1;
+            parserListChangedSignal().emit();
+          }
+      }
+    childDiedSignal().emit(pid);
     return pid;
   }
   void killAll()
   {
-    for (ParserList::iterator itr = _parsers.begin(), end = _parsers.end();
+    for (ParserList::iterator itr = parsers.begin(), end = parsers.end();
          itr != end;
          ++itr)
       {
@@ -199,15 +205,12 @@ public:
           kill((*itr)->getPid(), SIGTERM);
       }
   }
-  typedef vector<shared_ptr<StapParser> > ParserList;
-  ParserList _parsers;
 protected:
   char** _argv;
   string _stapArgs;
   string _script;
   string _scriptArgs;
   int _childPid;
-  ChildDeathReader::Callback* _deathCallback;
   Gtk::Window* _win;
   GraphWidget* _widget;
 };
@@ -287,17 +290,9 @@ int StapLauncher::launch()
       proc->scriptArgs = _scriptArgs;
     }
   sp->setProcess(proc);
-  _parsers.push_back(sp);
-  sp->setErrFd(pipefd[2]);
-  sp->setInFd(pipefd[0]);
-  Glib::signal_io().connect(sigc::mem_fun(sp.get(),
-                                          &StapParser::errIoCallback),
-                            pipefd[2],
-                            Glib::IO_IN);
-  Glib::signal_io().connect(sigc::mem_fun(sp.get(),
-                                          &StapParser::ioCallback),
-                            pipefd[0],
-                            Glib::IO_IN | Glib::IO_HUP);
+  parsers.push_back(sp);
+  parserListChangedSignal().emit();
+  sp->initIo(pipefd[0], pipefd[2]);
   return childPid;
 }
 
@@ -313,7 +308,7 @@ void StapLauncher::cleanUp()
   char buf;
   while (read(signalPipe[0], &buf, 1) > 0)
     reap();
-  for (ParserList::iterator itr = _parsers.begin(), end = _parsers.end();
+  for (ParserList::iterator itr = parsers.begin(), end = parsers.end();
        itr != end;
        ++itr)
     {
@@ -331,8 +326,10 @@ void StapLauncher::cleanUp()
           std::cerr << "wait: killed Pid " << killedPid << " != child Pid "
                     << childPid << "\n";
         }
-      else if (_deathCallback)
-        _deathCallback->childDied(childPid);
+      else
+        {
+          childDiedSignal().emit(childPid);
+        }
     }
 }
 
@@ -356,13 +353,16 @@ class ProcModelColumns  : public Gtk::TreeModelColumnRecord
 public:
   ProcModelColumns()
   {
+    add(_iconName);
     add(_scriptName);
     add(_proc);
   }
+  Gtk::TreeModelColumn<Glib::ustring> _iconName;
   Gtk::TreeModelColumn<Glib::ustring> _scriptName;
   Gtk::TreeModelColumn<shared_ptr<StapProcess> > _proc;
 };
 
+// This should probably be a Gtk window, with the appropriate glade magic
 class ProcWindow
 {
 public:
@@ -372,10 +372,20 @@ public:
   Gtk::Window* _window;
   Gtk::TreeView* _dataTreeView;
   Glib::RefPtr<Gtk::ListStore> _listStore;
+  Glib::RefPtr<Gtk::TreeSelection> _listSelection;
   void onClose();
+  void show();
+  void hide();
+  void onParserListChanged();
+  void onSelectionChanged();
+  void onKill();
+private:
+  bool _open;
+  void refresh();
 };
 
 ProcWindow::ProcWindow()
+  : _open(false)
 {
   try
     {
@@ -390,17 +400,89 @@ ProcWindow::ProcWindow()
       throw;
     }
   _listStore = Gtk::ListStore::create(_modelColumns);
-  _dataTreeView->set_model(_listStore);
+  _dataTreeView->set_model(_listStore);  
+  // Display a nice icon for the state of the process
+  Gtk::CellRendererPixbuf* cell = Gtk::manage(new Gtk::CellRendererPixbuf);
+  _dataTreeView->append_column("State", *cell);
+  Gtk::TreeViewColumn* column = _dataTreeView->get_column(0);
+  if (column)
+    column->add_attribute(cell->property_icon_name(), _modelColumns._iconName);
   _dataTreeView->append_column("Script", _modelColumns._scriptName);
   Gtk::Button* button = 0;
   _xml->get_widget("button5", button);
   button->signal_clicked().connect(sigc::mem_fun(*this, &ProcWindow::onClose),
                                    false);
+  _xml->get_widget("button1", button);
+  button->signal_clicked().connect(sigc::mem_fun(*this, &ProcWindow::onKill),
+                                   false);
+  parserListChangedSignal()
+    .connect(sigc::mem_fun(*this, &ProcWindow::onParserListChanged));
+  _listSelection = _dataTreeView->get_selection();
+  _listSelection->signal_changed()
+    .connect(sigc::mem_fun(*this, &ProcWindow::onSelectionChanged));
+  
 }
 
 void ProcWindow::onClose()
 {
   _window->hide();
+}
+
+void ProcWindow::show()
+{
+  _open = true;
+  refresh();
+  _window->show();
+
+}
+
+void ProcWindow::hide()
+{
+  _open = false;
+  _window->hide();
+}
+
+void ProcWindow::refresh()
+{
+  _listStore->clear();
+  for (ParserList::iterator spitr = parsers.begin(), end = parsers.end();
+       spitr != end;
+       ++spitr)
+    {
+      shared_ptr<StapProcess> sp = (*spitr)->getProcess();
+      if (sp)
+        {
+          Gtk::TreeModel::iterator litr = _listStore->append();
+          Gtk::TreeModel::Row row = *litr;
+          row[_modelColumns._iconName] = sp->pid >= 0 ? "gtk-yes" : "gtk-no";
+          row[_modelColumns._scriptName] = sp->script;
+          row[_modelColumns._proc] = sp;
+        }
+    }
+}
+
+void ProcWindow::onParserListChanged()
+{
+  if (_open)
+    {
+      refresh();
+      _window->queue_draw();
+    }
+}
+
+void ProcWindow::onSelectionChanged()
+{
+}
+
+void ProcWindow::onKill()
+{
+  Gtk::TreeModel::iterator itr = _listSelection->get_selected();
+  if (!itr)
+    return;
+  Gtk::TreeModel::Row row = *itr;
+  shared_ptr<StapProcess> proc = row[_modelColumns._proc];
+  if (proc->pid >= 0)
+    kill(proc->pid, SIGTERM);
 }
 
 class GrapherWindow : public Gtk::Window, public ChildDeathReader::Callback
@@ -411,7 +493,6 @@ public:
   Gtk::VBox m_Box;
   Gtk::ScrolledWindow scrolled;
   GraphWidget w;
-  void childDied(int pid);
   void setGraphicalLauncher(GraphicalStapLauncher* launcher)
   {
     _graphicalLauncher = launcher;
@@ -505,29 +586,8 @@ void GrapherWindow::on_menu_script_start()
 
 void GrapherWindow::on_menu_proc_window()
 {
-  _procWindow->_listStore->clear();
-  for (StapLauncher::ParserList::iterator spitr
-         = _graphicalLauncher->_parsers.begin(),
-         end = _graphicalLauncher->_parsers.end();
-       spitr != end;
-       ++spitr)
-    {
-      shared_ptr<StapProcess> sp = (*spitr)->getProcess();
-      Gtk::TreeModel::iterator litr = _procWindow->_listStore->append();
-      Gtk::TreeModel::Row row = *litr;
-      if (sp)
-        row[_procWindow->_modelColumns._scriptName] = sp->script;
-    }
-  _procWindow->_window->show();
+  _procWindow->show();
 }
-
-void GrapherWindow::childDied(int pid)
-{
-  hide();
-}
-
-
-
 
 int main(int argc, char** argv)
 {
@@ -553,7 +613,6 @@ int main(int argc, char** argv)
   else if (argc > 1)
     {
       launcher.setArgv(argv + 1);
-      launcher.setDeathCallback(&win);
       launcher.launch();
     }
   Gtk::Main::run(win);
