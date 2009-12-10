@@ -37,12 +37,13 @@ namespace systemtap
     int _errFd;
     int _inFd;
     unsigned char _lineEndChar;
+    bool _catchHUP;
     std::tr1::shared_ptr<StapProcess> _process;
     sigc::connection _ioConnection;
     sigc::connection _errIoConnection;
   public:
     StapParser()
-      :  _errFd(-1), _inFd(-1), _lineEndChar('\n')
+      :  _errFd(-1), _inFd(-1), _lineEndChar('\n'), _catchHUP(false)
     {
     }
     void parseData(std::tr1::shared_ptr<GraphDataBase> gdata,
@@ -65,7 +66,7 @@ namespace systemtap
     {
       _process = process;
     }
-    void initIo(int inFd, int errFd);
+    void initIo(int inFd, int errFd, bool catchHUP);
   };
 
   sigc::signal<void, pid_t>& childDiedSignal();

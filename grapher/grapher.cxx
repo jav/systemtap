@@ -293,7 +293,7 @@ int StapLauncher::launch()
   sp->setProcess(proc);
   parsers.push_back(sp);
   parserListChangedSignal().emit();
-  sp->initIo(pipefd[0], pipefd[2]);
+  sp->initIo(pipefd[0], pipefd[2], false);
   return childPid;
 }
 
@@ -422,13 +422,18 @@ void ProcWindow::refresh()
        ++spitr)
     {
       shared_ptr<StapProcess> sp = (*spitr)->getProcess();
+      Gtk::TreeModel::iterator litr = _listStore->append();
+      Gtk::TreeModel::Row row = *litr;
       if (sp)
         {
-          Gtk::TreeModel::iterator litr = _listStore->append();
-          Gtk::TreeModel::Row row = *litr;
           row[_modelColumns._iconName] = sp->pid >= 0 ? "gtk-yes" : "gtk-no";
           row[_modelColumns._scriptName] = sp->script;
           row[_modelColumns._proc] = sp;
+        }
+      else
+        {
+          row[_modelColumns._iconName] = "gtk-yes";
+          row[_modelColumns._scriptName] = "standard input";
         }
     }
 }
@@ -615,11 +620,7 @@ int main(int argc, char** argv)
   if (argc == 2 && !std::strcmp(argv[1], "-"))
     {
       tr1::shared_ptr<StapParser> sp = launcher.makeStapParser();
-      sp->setInFd(STDIN_FILENO);
-      Glib::signal_io().connect(sigc::mem_fun(sp.get(),
-                                              &StapParser::ioCallback),
-                                STDIN_FILENO,
-                                Glib::IO_IN | Glib::IO_HUP);
+      sp->initIo(STDIN_FILENO, -1, true);
     }
   else if (argc > 1)
     {

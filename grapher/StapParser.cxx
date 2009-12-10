@@ -86,9 +86,12 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
     using namespace boost;
     if (ioCondition & Glib::IO_HUP)
       {
-        childDiedSignal().emit(getPid());
-        _ioConnection.disconnect();
-        _errIoConnection.disconnect();
+        if (_catchHUP)
+          {
+            childDiedSignal().emit(getPid());
+            _ioConnection.disconnect();
+            _errIoConnection.disconnect();
+          }
         return true;
       }
     if ((ioCondition & Glib::IO_IN) == 0)
@@ -261,22 +264,28 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
         cerr << "StapParser: error reading from stderr!\n";
         return true;
       }
-    if (write(STDOUT_FILENO, buf, bytes_read) < 0)
+    if (write(STDERR_FILENO, buf, bytes_read) < 0)
       ;
     return true;
   }
 
-  void StapParser::initIo(int inFd, int errFd)
+  void StapParser::initIo(int inFd, int errFd, bool catchHUP)
   {
     _inFd = inFd;
     _errFd = errFd;
+    _catchHUP = catchHUP;
+    Glib::IOCondition inCond = Glib::IO_IN;
+    if (catchHUP)
+      inCond |= Glib::IO_HUP;
+    if (_errFd >= 0)
+      {    
+        _errIoConnection = Glib::signal_io()
+          .connect(sigc::mem_fun(*this, &StapParser::errIoCallback),
+                                  _errFd, Glib::IO_IN);
+      }
     _ioConnection = Glib::signal_io()
-      .connect(sigc::mem_fun(*this, &StapParser::errIoCallback),
-               _errFd,
-               Glib::IO_IN);
-    _errIoConnection = Glib::signal_io()
       .connect(sigc::mem_fun(*this, &StapParser::ioCallback),
-               _inFd,
-               Glib::IO_IN | Glib::IO_HUP);
+               _inFd, inCond);
+
   }
 }
