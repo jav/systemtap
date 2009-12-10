@@ -16,7 +16,7 @@
 static int _stp_allocated_net_memory = 0;
 #define STP_ALLOC_FLAGS (GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN)
 
-#define DEBUG_MEM
+/* #define DEBUG_MEM */
 /*
  * If DEBUG_MEM is defined (stap -DDEBUG_MEM ...) then full memory
  * tracking is used. Each allocation is recorded and matched with 
@@ -32,10 +32,10 @@ static int _stp_allocated_net_memory = 0;
  * would be nice, but DEBUG_MEM is only for testing.
  */
 
-#ifdef DEBUG_MEM
-
-static DEFINE_SPINLOCK(_stp_mem_lock);
 static int _stp_allocated_memory = 0;
+
+#ifdef DEBUG_MEM
+static DEFINE_SPINLOCK(_stp_mem_lock);
 
 #define MEM_MAGIC 0xc11cf77f
 #define MEM_FENCE_SIZE 32
@@ -176,11 +176,11 @@ static void _stp_mem_debug_free(void *addr, enum _stp_memtype type)
 
 static void *_stp_kmalloc(size_t size)
 {
+        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
 	if (likely(ret)) {
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
-		_stp_allocated_memory += size;
 	}
 	return ret;
 #else
@@ -191,12 +191,12 @@ static void *_stp_kmalloc(size_t size)
 static void *_stp_kzalloc(size_t size)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 {
+        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
 	if (likely(ret)) {
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 		memset (ret, 0, size);
-		_stp_allocated_memory += size;
 	}
 #else
 	void *ret = kmalloc(size, STP_ALLOC_FLAGS);
@@ -207,11 +207,11 @@ static void *_stp_kzalloc(size_t size)
 }
 #else /* LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15) */
 {
+        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = kzalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
 	if (likely(ret)) {
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
-		_stp_allocated_memory += size;
 	}
 	return ret;
 #else
@@ -222,11 +222,11 @@ static void *_stp_kzalloc(size_t size)
 
 static void *_stp_vmalloc(unsigned long size)
 {
+        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = __vmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS, PAGE_KERNEL);
 	if (likely(ret)) {
 		ret = _stp_mem_debug_setup(ret, size, MEM_VMALLOC);
-		_stp_allocated_memory += size;
 	}
 	return ret;
 #else
@@ -248,6 +248,8 @@ static void *_stp_alloc_percpu(size_t size)
 	if (size > _STP_MAX_PERCPU_SIZE)
 		return NULL;
 
+        _stp_allocated_memory += size * num_online_cpus();
+
 #ifdef STAPCONF_ALLOC_PERCPU_ALIGN
 	ret = __alloc_percpu(size, 8);
 #else
@@ -261,7 +263,6 @@ static void *_stp_alloc_percpu(size_t size)
 			return NULL;
 		}
 		_stp_mem_debug_percpu(m, ret, size);
-		_stp_allocated_memory += size * num_online_cpus();
 	}
 #endif
 	return ret;
@@ -272,11 +273,11 @@ static void *_stp_alloc_percpu(size_t size)
 #else
 static void *_stp_kmalloc_node(size_t size, int node)
 {
+        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = kmalloc_node(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS, node);
 	if (likely(ret)) {
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
-		_stp_allocated_memory += size;
 	}
 	return ret;
 #else
