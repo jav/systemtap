@@ -335,6 +335,10 @@ public:
   Glib::RefPtr<Gnome::Glade::Xml> _xml;
   Gtk::Window* _window;
   Gtk::TreeView* _dataTreeView;
+  Gtk::Button* _killButton;
+  Gtk::Button* _restartButton;
+  Gtk::Label* _stapArgsLabel;
+  Gtk::Label* _scriptArgsLabel;
   Glib::RefPtr<Gtk::ListStore> _listStore;
   Glib::RefPtr<Gtk::TreeSelection> _listSelection;
   void onClose();
@@ -376,15 +380,19 @@ ProcWindow::ProcWindow()
   _xml->get_widget("button5", button);
   button->signal_clicked().connect(sigc::mem_fun(*this, &ProcWindow::onClose),
                                    false);
-  _xml->get_widget("button1", button);
-  button->signal_clicked().connect(sigc::mem_fun(*this, &ProcWindow::onKill),
-                                   false);
+  _xml->get_widget("button1", _killButton);
+  _killButton->signal_clicked()
+    .connect(sigc::mem_fun(*this, &ProcWindow::onKill), false);
+  _killButton->set_sensitive(false);
+  _xml->get_widget("button2", _restartButton);
+  _restartButton->set_sensitive(false);
   parserListChangedSignal()
     .connect(sigc::mem_fun(*this, &ProcWindow::onParserListChanged));
   _listSelection = _dataTreeView->get_selection();
   _listSelection->signal_changed()
     .connect(sigc::mem_fun(*this, &ProcWindow::onSelectionChanged));
-  
+  _xml->get_widget("label7", _stapArgsLabel);
+  _xml->get_widget("label8", _scriptArgsLabel);
 }
 
 void ProcWindow::onClose()
@@ -436,6 +444,28 @@ void ProcWindow::onParserListChanged()
 
 void ProcWindow::onSelectionChanged()
 {
+  Gtk::TreeModel::iterator itr = _listSelection->get_selected();
+  shared_ptr<StapProcess> proc;
+  if (itr)
+    {
+      Gtk::TreeModel::Row row = *itr;
+      proc = row[_modelColumns._proc];
+    }
+  if (proc)
+    {
+      if (proc->pid >= 0)
+        _killButton->set_sensitive(true);
+      else
+        _killButton->set_sensitive(false);
+      _stapArgsLabel->set_text(proc->stapArgs);
+      _scriptArgsLabel->set_text(proc->scriptArgs);
+    }
+  else
+    {
+      _killButton->set_sensitive(false);
+      _stapArgsLabel->set_text("");
+      _scriptArgsLabel->set_text("");
+    }
 }
 
 void ProcWindow::onKill()
