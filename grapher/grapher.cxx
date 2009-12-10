@@ -46,59 +46,78 @@ using namespace systemtap;
 // magic for noticing that the child stap process has died.
 int signalPipe[2] = {-1, -1};
 
+struct ChildInfo
+ {
+   pid_t pid;
+   int waitInfo;
+};
+
 extern "C"
-{
-  void handleChild(int signum, siginfo_t* info, void* context)
-  {
-    char buf[1];
-    ssize_t err;
-    buf[0] = 1;
-    err = write(signalPipe[1], buf, 1);
-  }
+ {
+   void handleChild(int signum, siginfo_t* info, void* context)
+   {
+     struct ChildInfo childInfo;
+     ssize_t err;
+
+     // Loop doing waitpid because the SIGCHLD signal isn't queued;
+     // multiple signals might get lost. If we get an error because
+     // there are no zombie children (return value <= 0 because of
+     // WNOHANG or no children exist at all), assume that an earlier
+     // invocation of handleChild already cleaned them up.
+     while ((childInfo.pid = waitpid(-1, &childInfo.waitInfo, WNOHANG)))
+       {
+         if (childInfo.pid < 0 && errno != ECHILD)
+           {
+             char errbuf[256];
+             strerror_r(errno, errbuf, sizeof(errbuf));
+             err = write(STDERR_FILENO, errbuf, strlen(errbuf));
+             err = write(STDERR_FILENO, "\n", 1);
+             return;
+           }
+         else if (childInfo.pid > 0)
+           {
+             err = write(signalPipe[1], &childInfo, sizeof(childInfo));
+           }
+         else
+           return;
+       }
+   }
 }
 
 // Waits for a gtk I/O signal, indicating that a child has died, then
 // performs an action
 
 class ChildDeathReader
-{
-public:
-  struct Callback
-  {
-    virtual ~Callback() {}
-    virtual void childDied(int pid) {}
-  };
-  ChildDeathReader() : sigfd(-1) {}
-  ChildDeathReader(int sigfd_) : sigfd(sigfd_) {}
-  int getSigfd() { return sigfd; }
-  void setSigfd(int sigfd_) { sigfd = sigfd_; }
-  virtual pid_t reap()
-  {
-    pid_t pid;
-    int status;
-    if ((pid = waitpid(-1, &status, WNOHANG)) == -1)
-      {
-        std::perror("waitpid");
-        return -1;
-      }
-    else
-      {
-        return pid;
-      }
-  }
-  bool ioCallback(Glib::IOCondition ioCondition)
-  {
-    if ((ioCondition & Glib::IO_IN) == 0)
-      return true;
-    char buf;
+ {
+ public:
+   ChildDeathReader() : sigfd(-1) {}
+   ChildDeathReader(int sigfd_) : sigfd(sigfd_) {}
+   int getSigfd() { return sigfd; }
+   void setSigfd(int sigfd_) { sigfd = sigfd_; }
 
-    if (read(sigfd, &buf, 1) <= 0)
-      return true;
-    reap();
-    return true;
-  }
+   bool ioCallback(Glib::IOCondition ioCondition)
+   {
+     if ((ioCondition & Glib::IO_IN) == 0)
+       return true;
+     ChildInfo info;
+     if (read(sigfd, &info, sizeof(info)) < static_cast<ssize_t>(sizeof(info)))
+       cerr << "couldn't read ChildInfo from signal handler\n";
+     else
+       childDiedSignal().emit(info.pid);
+     return true;
+   }
 private:
   int sigfd;
+};
+
+struct PidPred
+{
+  PidPred(pid_t pid_) : pid(pid_) {}
+  bool operator()(const shared_ptr<StapParser>& parser) const
+  {
+    return parser->getPid() == pid;
+  }
+  pid_t pid;
 };
 
 // Depending on how args are passed, either launch stap directly or
@@ -106,14 +125,18 @@ private:
 class StapLauncher : public ChildDeathReader
 {
 public:
-  StapLauncher() : _argv(0), _childPid(-1) {}
+  StapLauncher() : _argv(0), _childPid(-1)
+  {
+    childDiedSignal().connect(sigc::mem_fun(*this, &StapLauncher::onChildDied));
+  }
   StapLauncher(char** argv)
     : _argv(argv), _childPid(-1)
   {
+    childDiedSignal().connect(sigc::mem_fun(*this, &StapLauncher::onChildDied));
   }
   StapLauncher(const string& stapArgs, const string& script,
                const string& scriptArgs)
-    : _childPid(-1), _win(0), _widget(0)
+    : _childPid(-1)
   {
     setArgs(stapArgs, script, scriptArgs);
   }
@@ -150,13 +173,7 @@ public:
     _scriptArgs.clear();
   }
 
-  void setWinParams(Gtk::Window* win, GraphWidget* widget)
-  {
-    _win = win;
-    _widget = widget;
-  }
   int launch();
-  void cleanUp();
   shared_ptr<StapParser> makeStapParser()
   {
     shared_ptr<StapParser> result(new StapParser);
@@ -164,25 +181,11 @@ public:
     parserListChangedSignal().emit();
     return result;
   }
-private:
-  struct pidPred
-  {
-    pidPred(pid_t pid_) : pid(pid_) {}
-    bool operator()(const shared_ptr<StapParser>& parser) const
-    {
-      return parser->getPid() == pid;
-    }
-    pid_t pid;
-  };
 public:
-  pid_t reap()
+  void onChildDied(pid_t pid)
   {
-    using namespace boost;
-    pid_t pid = ChildDeathReader::reap();
-    if (pid < 0)
-      return pid;
     ParserList::iterator itr
-      = find_if(parsers.begin(), parsers.end(), pidPred(pid));
+      = find_if(parsers.begin(), parsers.end(), PidPred(pid));
     if (itr != parsers.end())
       {
         tr1::shared_ptr<StapProcess> sp = (*itr)->getProcess();
@@ -192,12 +195,12 @@ public:
             parserListChangedSignal().emit();
           }
       }
-    childDiedSignal().emit(pid);
-    return pid;
   }
   void killAll()
   {
-    for (ParserList::iterator itr = parsers.begin(), end = parsers.end();
+    ParserList parsersCopy(parsers.begin(), parsers.end());
+    for (ParserList::iterator itr = parsersCopy.begin(),
+           end = parsersCopy.end();
          itr != end;
          ++itr)
       {
@@ -211,8 +214,6 @@ protected:
   string _script;
   string _scriptArgs;
   int _childPid;
-  Gtk::Window* _win;
-  GraphWidget* _widget;
 };
 
 int StapLauncher::launch()
@@ -294,43 +295,6 @@ int StapLauncher::launch()
   parserListChangedSignal().emit();
   sp->initIo(pipefd[0], pipefd[2]);
   return childPid;
-}
-
-void StapLauncher::cleanUp()
-{
-  struct sigaction action;
-  action.sa_handler = SIG_DFL;
-  sigemptyset(&action.sa_mask);
-  action.sa_flags = 0;
-  sigaction(SIGCLD, &action, 0);
-  // Drain any outstanding signals
-  close(signalPipe[1]);
-  char buf;
-  while (read(signalPipe[0], &buf, 1) > 0)
-    reap();
-  for (ParserList::iterator itr = parsers.begin(), end = parsers.end();
-       itr != end;
-       ++itr)
-    {
-      pid_t childPid = (*itr)->getPid();
-      if (childPid > 0)
-        kill(childPid, SIGTERM);
-      int status;
-      pid_t killedPid = -1;
-      if ((killedPid = wait(&status)) == -1)
-        {
-          std::perror("wait");
-        }
-      else if (killedPid != childPid)
-        {
-          std::cerr << "wait: killed Pid " << killedPid << " != child Pid "
-                    << childPid << "\n";
-        }
-      else
-        {
-          childDiedSignal().emit(childPid);
-        }
-    }
 }
 
 class GraphicalStapLauncher : public StapLauncher
@@ -485,7 +449,7 @@ void ProcWindow::onKill()
     kill(proc->pid, SIGTERM);
 }
 
-class GrapherWindow : public Gtk::Window, public ChildDeathReader::Callback
+class GrapherWindow : public Gtk::Window
 {
 public:
   GrapherWindow();
@@ -503,21 +467,24 @@ protected:
   virtual void on_menu_script_start();
   virtual void on_menu_proc_window();
   void addGraph();
+  void onParserListChanged();
   // menu support
   Glib::RefPtr<Gtk::UIManager> m_refUIManager;
   Glib::RefPtr<Gtk::ActionGroup> m_refActionGroup;
   GraphicalStapLauncher* _graphicalLauncher;
   shared_ptr<ProcWindow> _procWindow;
+  bool _quitting;
 };
 
 
 GrapherWindow::GrapherWindow()
-  : _procWindow(new ProcWindow)
+  : _procWindow(new ProcWindow), _quitting(false)
 {
   set_title("systemtap grapher");
   add(m_Box);
 
-  
+  parserListChangedSignal()
+    .connect(sigc::mem_fun(*this, &GrapherWindow::onParserListChanged));
   //Create actions for menus and toolbars:
   m_refActionGroup = Gtk::ActionGroup::create();
   //File menu:
@@ -575,7 +542,13 @@ GrapherWindow::GrapherWindow()
 
 void GrapherWindow::on_menu_file_quit()
 {
-  hide();
+  using namespace boost;
+  _quitting = true;
+  if (find_if(parsers.begin(), parsers.end(), !bind<bool>(PidPred(-1), _1))
+      != parsers.end())
+    _graphicalLauncher->killAll();
+  else
+    hide();
 }
 
 void GrapherWindow::on_menu_script_start()
@@ -589,6 +562,15 @@ void GrapherWindow::on_menu_proc_window()
   _procWindow->show();
 }
 
+void GrapherWindow::onParserListChanged()
+{
+  using namespace boost;
+  if (_quitting
+      && (find_if(parsers.begin(), parsers.end(), !bind<bool>(PidPred(-1), _1))
+          == parsers.end()))
+    hide();
+}
+
 int main(int argc, char** argv)
 {
   Gtk::Main app(argc, argv);
@@ -597,7 +579,6 @@ int main(int argc, char** argv)
 
   win.set_title("Grapher");
   win.set_default_size(600, 250);
-  launcher.setWinParams(&win, &win.w);
 
   win.setGraphicalLauncher(&launcher);
   
@@ -616,7 +597,6 @@ int main(int argc, char** argv)
       launcher.launch();
     }
   Gtk::Main::run(win);
-  launcher.cleanUp();
   return 0;
 }
 
