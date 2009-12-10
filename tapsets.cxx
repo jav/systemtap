@@ -3829,7 +3829,13 @@ sdt_query::init_probe_scn()
 bool
 sdt_query::get_next_probe()
 {
-  // Extract probe info from the .probes section
+  // Extract probe info from the .probes section, e.g.
+  // 74657374 5f70726f 62655f32 00000000 test_probe_2....
+  // 50524233 00000000 980c2000 00000000 PRB3...... .....
+  // 01000000 00000000 00000000 00000000 ................
+  // test_probe_2 is probe_name, probe_type is 50524233,
+  // *probe_name (pbe->name) is 980c2000, probe_arg (pbe->arg) is 1
+  // probe_scn_offset is position currently being scanned in .probes
 
   while (probe_scn_offset < pdata->d_size)
     {
@@ -3855,6 +3861,8 @@ sdt_query::get_next_probe()
       probe_scn_offset += sizeof(__uint32_t);
       probe_scn_offset += probe_scn_offset % sizeof(__uint64_t);
       pbe = (struct probe_entry*) ((char*)pdata->d_buf + probe_scn_offset);
+      if (pbe->name == 0)
+	return false;
       probe_name = (char*)((char*)pdata->d_buf + pbe->name - (char*)probe_scn_addr);
       probe_arg = pbe->arg;
       if (sess.verbose > 4)

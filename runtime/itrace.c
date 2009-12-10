@@ -219,7 +219,12 @@ static struct itrace_info *create_itrace_info(
 	if (debug)
 		printk(KERN_INFO "create_itrace_info: tid=%d\n", tsk->pid);
 	/* initialize ui */
-	ui = kzalloc(sizeof(struct itrace_info), GFP_USER);
+	ui = _stp_kzalloc(sizeof(struct itrace_info));
+	if (ui == NULL) {
+		printk(KERN_ERR "%s:%d: Unable to allocate memory\n",
+		       __FUNCTION__, __LINE__);
+		return NULL;
+	}
 	ui->tsk = tsk;
 	ui->tid = tsk->pid;
 	ui->step_flag = step_flag;
@@ -329,7 +334,7 @@ void static remove_usr_itrace_info(struct itrace_info *ui)
 	spin_lock(&itrace_lock);
 	list_del(&ui->link);
 	spin_unlock(&itrace_lock);
-	kfree(ui);
+	_stp_kfree(ui);
 }
 
 void static cleanup_usr_itrace(void)

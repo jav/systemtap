@@ -163,12 +163,11 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
           spin_unlock(&addr_map_lock);
           if (new_map)
             {
-              kfree(new_map);
+	      _stp_kfree(new_map);
               new_map = 0;
             }
-          new_map = kmalloc(sizeof(*new_map)
-                            + sizeof(*new_entry) * (old_size + 1),
-                            GFP_KERNEL);
+          new_map = _stp_kmalloc(sizeof(*new_map)
+				 + sizeof(*new_entry) * (old_size + 1));
           if (!new_map)
             return -ENOMEM;
           new_map->size = old_size + 1;
@@ -191,7 +190,7 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
           if (existing_max)
             *existing_max = max_entry;
           spin_unlock(&addr_map_lock);
-          kfree(new_map);
+          _stp_kfree(new_map);
           return 1;
         }
       existing = upper_bound(min_addr, old_map);
@@ -210,7 +209,7 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
   blackmap = new_map;
   spin_unlock(&addr_map_lock);
   if (old_map)
-    kfree(old_map);
+    _stp_kfree(old_map);
   return 0;
 }
 
