@@ -267,7 +267,7 @@ static const char *processor_modes[]=
 
 static void _stp_print_regs(struct pt_regs * regs)
 {
-	unsigned long flags = condition_codes(regs);
+	unsigned long flags = regs->ARM_cpsr;
 
 #ifdef CONFIG_SMP
 	_stp_printf(" CPU: %d", smp_processor_id());
