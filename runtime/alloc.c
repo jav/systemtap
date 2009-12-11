@@ -191,7 +191,6 @@ static void *_stp_kmalloc(size_t size)
 static void *_stp_kzalloc(size_t size)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 {
-        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
 	if (likely(ret)) {
@@ -200,6 +199,7 @@ static void *_stp_kzalloc(size_t size)
 	}
 #else
 	void *ret = kmalloc(size, STP_ALLOC_FLAGS);
+        _stp_allocated_memory += size;
 	if (likely(ret))
 		memset (ret, 0, size);
 #endif /* DEBUG_MEM */
@@ -207,9 +207,9 @@ static void *_stp_kzalloc(size_t size)
 }
 #else /* LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15) */
 {
-        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = kzalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
+        _stp_allocated_memory += size;
 	if (likely(ret)) {
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
