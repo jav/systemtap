@@ -288,4 +288,22 @@ vector<string> commaSplit(const boost::sub_range<Glib::ustring>& range)
                _inFd, inCond);
 
   }
+
+  void StapParser::disconnect()
+  {
+    if (_ioConnection.connected())
+      _ioConnection.disconnect();
+    if (_errIoConnection.connected())
+      _errIoConnection.disconnect();
+    if (_inFd >= 0)
+      {
+        close(_inFd);
+        _inFd = -1;
+      }
+    if (_errFd >= 0)
+      {
+        close(_errFd);
+        _errFd = -1;
+      }
+  }
 }

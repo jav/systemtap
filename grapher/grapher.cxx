@@ -153,6 +153,7 @@ public:
   void setArgs(const string& stapArgs, const string& script,
                const string& scriptArgs)
   {
+    _argv = 0;
     _stapArgs = stapArgs;
     _script = script;
     _scriptArgs = scriptArgs;
@@ -174,6 +175,7 @@ public:
   }
 
   int launch();
+  int launchUsingParser(shared_ptr<StapParser> parser);
   shared_ptr<StapParser> makeStapParser()
   {
     shared_ptr<StapParser> result(new StapParser);
@@ -188,6 +190,7 @@ public:
       = find_if(parsers.begin(), parsers.end(), PidPred(pid));
     if (itr != parsers.end())
       {
+        (*itr)->disconnect();
         tr1::shared_ptr<StapProcess> sp = (*itr)->getProcess();
         if (sp)
           {
@@ -218,7 +221,36 @@ protected:
 
 int StapLauncher::launch()
 {
-  int childPid = -1;
+  tr1::shared_ptr<StapParser> sp(new StapParser);
+  shared_ptr<StapProcess> proc(new StapProcess(-1));
+  if (_argv)
+    proc->argv = _argv;
+  else
+    {
+      proc->stapArgs = _stapArgs;
+      proc->script = _script;
+      proc->scriptArgs = _scriptArgs;
+    }
+  sp->setProcess(proc);
+  pid_t childPid = launchUsingParser(sp);
+  if (childPid >= 0)
+    {
+      parsers.push_back(sp);
+      parserListChangedSignal().emit();
+    }
+  return childPid;
+}
+
+int StapLauncher::launchUsingParser(shared_ptr<StapParser> sp)
+{
+  shared_ptr<StapProcess> proc = sp->getProcess();
+  if (!proc)
+    {
+      cerr << "Can't launch parser with null process structure\n";
+      return -1;
+    }
+  
+  proc->pid = -1;
   if (signalPipe[0] < 0)
     {
       if (pipe(&signalPipe[0]) < 0)
@@ -245,11 +277,11 @@ int StapLauncher::launch()
       std::perror("pipe");
       exit(1);
     }
-  if ((childPid = fork()) == -1)
+  if ((proc->pid = fork()) == -1)
     {
       exit(1);
     }
-  else if (childPid)
+  else if (proc->pid)
     {
       close(pipefd[1]);
       close(pipefd[3]);
@@ -260,41 +292,28 @@ int StapLauncher::launch()
       dup2(pipefd[3], STDERR_FILENO);
       for_each(&pipefd[0], &pipefd[4], close);
       for_each(&signalPipe[0], &signalPipe[2], close);
-      if (_argv)
+      if (proc->argv)
         {
           char argv0[] = "stap";
-          char** argvEnd = _argv;
+          char** argvEnd = proc->argv;
           for (; *argvEnd; ++argvEnd)
             ;
-          char** realArgv = new char*[argvEnd - _argv + 2];
+          char** realArgv = new char*[argvEnd - proc->argv + 2];
           realArgv[0] = argv0;
           std::copy(_argv, argvEnd + 1, &realArgv[1]);
           execvp("stap", realArgv);
         }
       else
         {
-          string argString = "stap" +  _stapArgs + " " + _script + " "
-            + _scriptArgs;
+          string argString = "stap" +  proc->stapArgs + " " + proc->script + " "
+            + proc->scriptArgs;
           execl("/bin/sh", "sh", "-c", argString.c_str(),
                 static_cast<char*>(0));
         }
       _exit(1);
     }
-  tr1::shared_ptr<StapParser> sp(new StapParser);
-  shared_ptr<StapProcess> proc(new StapProcess(childPid));
-  if (_argv)
-    proc->argv = _argv;
-  else
-    {
-      proc->stapArgs = _stapArgs;
-      proc->script = _script;
-      proc->scriptArgs = _scriptArgs;
-    }
-  sp->setProcess(proc);
-  parsers.push_back(sp);
-  parserListChangedSignal().emit();
   sp->initIo(pipefd[0], pipefd[2], false);
-  return childPid;
+  return proc->pid;
 }
 
 class GraphicalStapLauncher : public StapLauncher
@@ -312,6 +331,8 @@ private:
   Gtk::Entry* _scriptArgEntry;
 };
 
+GraphicalStapLauncher *graphicalLauncher = 0;
+
 class ProcModelColumns  : public Gtk::TreeModelColumnRecord
 {
 public:
@@ -319,11 +340,11 @@ public:
   {
     add(_iconName);
     add(_scriptName);
-    add(_proc);
+    add(_parser);
   }
   Gtk::TreeModelColumn<Glib::ustring> _iconName;
   Gtk::TreeModelColumn<Glib::ustring> _scriptName;
-  Gtk::TreeModelColumn<shared_ptr<StapProcess> > _proc;
+  Gtk::TreeModelColumn<shared_ptr<StapParser> > _parser;
 };
 
 // This should probably be a Gtk window, with the appropriate glade magic
@@ -347,6 +368,7 @@ public:
   void onParserListChanged();
   void onSelectionChanged();
   void onKill();
+  void onRestart();
 private:
   bool _open;
   void refresh();
@@ -385,6 +407,8 @@ ProcWindow::ProcWindow()
     .connect(sigc::mem_fun(*this, &ProcWindow::onKill), false);
   _killButton->set_sensitive(false);
   _xml->get_widget("button2", _restartButton);
+  _restartButton->signal_clicked()
+    .connect(sigc::mem_fun(*this, &ProcWindow::onRestart), false);
   _restartButton->set_sensitive(false);
   parserListChangedSignal()
     .connect(sigc::mem_fun(*this, &ProcWindow::onParserListChanged));
@@ -416,24 +440,52 @@ void ProcWindow::hide()
 
 void ProcWindow::refresh()
 {
+  // If a process is already selected, try to leave it selected after
+  // the list is reconstructed.
+  shared_ptr<StapParser> selectedParser;
+  {
+    Gtk::TreeModel::iterator itr = _listSelection->get_selected();
+    if (itr)
+      {
+        Gtk::TreeModel::Row row = *itr;
+        selectedParser = row[_modelColumns._parser];
+      }
+  }
   _listStore->clear();
   for (ParserList::iterator spitr = parsers.begin(), end = parsers.end();
        spitr != end;
        ++spitr)
     {
-      shared_ptr<StapProcess> sp = (*spitr)->getProcess();
+      shared_ptr<StapParser> parser = *spitr;
+      shared_ptr<StapProcess> sp = parser->getProcess();
       Gtk::TreeModel::iterator litr = _listStore->append();
       Gtk::TreeModel::Row row = *litr;
       if (sp)
         {
           row[_modelColumns._iconName] = sp->pid >= 0 ? "gtk-yes" : "gtk-no";
           row[_modelColumns._scriptName] = sp->script;
-          row[_modelColumns._proc] = sp;
         }
       else
         {
           row[_modelColumns._iconName] = "gtk-yes";
           row[_modelColumns._scriptName] = "standard input";
+        }
+      row[_modelColumns._parser] = parser;
+    }
+  if (selectedParser)
+    {
+      Gtk::TreeModel::Children children = _listStore->children();
+      for (Gtk::TreeModel::Children::const_iterator itr = children.begin(),
+             end = children.end();
+           itr != end;
+           ++itr)
+        {
+          Gtk::TreeModel::Row row = *itr;
+          if (row[_modelColumns._parser] == selectedParser)
+            {
+              _listSelection->select(row);
+              break;
+            }
         }
     }
 }
@@ -450,24 +502,26 @@ void ProcWindow::onParserListChanged()
 void ProcWindow::onSelectionChanged()
 {
   Gtk::TreeModel::iterator itr = _listSelection->get_selected();
+  shared_ptr<StapParser> parser;
   shared_ptr<StapProcess> proc;
   if (itr)
     {
       Gtk::TreeModel::Row row = *itr;
-      proc = row[_modelColumns._proc];
+      parser = row[_modelColumns._parser];
+      proc = parser->getProcess();
     }
   if (proc)
     {
-      if (proc->pid >= 0)
-        _killButton->set_sensitive(true);
-      else
-        _killButton->set_sensitive(false);
+      bool procRunning = proc->pid >= 0;
+      _killButton->set_sensitive(procRunning);
+      _restartButton->set_sensitive(!procRunning);
       _stapArgsLabel->set_text(proc->stapArgs);
       _scriptArgsLabel->set_text(proc->scriptArgs);
     }
   else
     {
       _killButton->set_sensitive(false);
+      _restartButton->set_sensitive(false);
       _stapArgsLabel->set_text("");
       _scriptArgsLabel->set_text("");
     }
@@ -479,9 +533,24 @@ void ProcWindow::onKill()
   if (!itr)
     return;
   Gtk::TreeModel::Row row = *itr;
-  shared_ptr<StapProcess> proc = row[_modelColumns._proc];
-  if (proc->pid >= 0)
+  shared_ptr<StapParser> parser = row[_modelColumns._parser]; 
+  shared_ptr<StapProcess> proc = parser->getProcess();
+  if (proc && proc->pid >= 0)
     kill(proc->pid, SIGTERM);
+}
+
+void ProcWindow::onRestart()
+{
+  Gtk::TreeModel::iterator itr = _listSelection->get_selected();
+  if (!itr)
+    return;
+  Gtk::TreeModel::Row row = *itr;
+  shared_ptr<StapParser> parser = row[_modelColumns._parser]; 
+  shared_ptr<StapProcess> proc = parser->getProcess();
+  if (!proc)
+    return;
+  if (graphicalLauncher->launchUsingParser(parser) > 0)
+    parserListChangedSignal().emit();
 }
 
 class GrapherWindow : public Gtk::Window
@@ -492,11 +561,6 @@ public:
   Gtk::VBox m_Box;
   Gtk::ScrolledWindow scrolled;
   GraphWidget w;
-  void setGraphicalLauncher(GraphicalStapLauncher* launcher)
-  {
-    _graphicalLauncher = launcher;
-  }
-  GraphicalStapLauncher* getGraphicalLauncher() { return _graphicalLauncher; }
 protected:
   virtual void on_menu_file_quit();
   virtual void on_menu_script_start();
@@ -506,7 +570,6 @@ protected:
   // menu support
   Glib::RefPtr<Gtk::UIManager> m_refUIManager;
   Glib::RefPtr<Gtk::ActionGroup> m_refActionGroup;
-  GraphicalStapLauncher* _graphicalLauncher;
   shared_ptr<ProcWindow> _procWindow;
   bool _quitting;
 };
@@ -581,14 +644,14 @@ void GrapherWindow::on_menu_file_quit()
   _quitting = true;
   if (find_if(parsers.begin(), parsers.end(), !bind<bool>(PidPred(-1), _1))
       != parsers.end())
-    _graphicalLauncher->killAll();
+    graphicalLauncher->killAll();
   else
     hide();
 }
 
 void GrapherWindow::on_menu_script_start()
 {
-  _graphicalLauncher->runDialog();
+  graphicalLauncher->runDialog();
 }
 
 
@@ -609,23 +672,21 @@ void GrapherWindow::onParserListChanged()
 int main(int argc, char** argv)
 {
   Gtk::Main app(argc, argv);
-  GraphicalStapLauncher launcher;
+  graphicalLauncher = new GraphicalStapLauncher;
   GrapherWindow win;
 
   win.set_title("Grapher");
   win.set_default_size(600, 250);
 
-  win.setGraphicalLauncher(&launcher);
-  
   if (argc == 2 && !std::strcmp(argv[1], "-"))
     {
-      tr1::shared_ptr<StapParser> sp = launcher.makeStapParser();
+      tr1::shared_ptr<StapParser> sp = graphicalLauncher->makeStapParser();
       sp->initIo(STDIN_FILENO, -1, true);
     }
   else if (argc > 1)
     {
-      launcher.setArgv(argv + 1);
-      launcher.launch();
+      graphicalLauncher->setArgv(argv + 1);
+      graphicalLauncher->launch();
     }
   Gtk::Main::run(win);
   return 0;

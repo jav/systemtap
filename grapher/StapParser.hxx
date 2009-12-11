@@ -18,7 +18,7 @@ namespace systemtap
   // arguments and script for a stap process
   struct StapProcess
   {
-    StapProcess(pid_t pid_ = -1) : pid(pid_) {}
+    StapProcess(pid_t pid_ = -1) : argv(0), pid(pid_) {}
     std::string stapArgs;
     std::string script;
     std::string scriptArgs;
@@ -67,6 +67,7 @@ namespace systemtap
       _process = process;
     }
     void initIo(int inFd, int errFd, bool catchHUP);
+    void disconnect();
   };
 
   sigc::signal<void, pid_t>& childDiedSignal();
