@@ -1,6 +1,6 @@
 global counts
 
-probe process(@1).mark("*") {
+probe process(@1).library(@2).mark("*") {
       counts[$$name]<<<1  # PR10878; check also $$parms length
 }
 
