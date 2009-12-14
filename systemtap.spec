@@ -315,6 +315,13 @@ chgrp stap-server %{_localstatedir}/log/stap-server.log
 test -e /usr/share/systemtap/runtime/uprobes || mkdir -p /usr/share/systemtap/runtime/uprobes
 chgrp stap-server /usr/share/systemtap/runtime/uprobes
 chmod 775 /usr/share/systemtap/runtime/uprobes
+# As stap-server, generate the certificate used for signing and for ssl.
+runuser -s /bin/sh - stap-server -c %{_bindir}/stap-gen-cert
+# Authorize the certificate as a trusted ssl peer and as a trusted signer
+# local host.
+%{_bindir}/stap-authorize-server-cert %{_localstatedir}/lib/stap-server/.systemtap/ssl/server/stap.cert
+%{_bindir}/stap-authorize-signing-cert %{_localstatedir}/lib/stap-server/.systemtap/ssl/server/stap.cert
+
 # Activate the service
 /sbin/chkconfig --add stap-server
 exit 0
