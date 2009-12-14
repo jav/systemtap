@@ -1,8 +1,19 @@
+// systemtap grapher
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 #include <algorithm>
 #include <ctime>
 #include <iterator>
 #include <math.h>
 #include <iostream>
+
+#define __STDC_LIMIT_MACROS
+#include <stdint.h>
 
 #include <glibmm/timer.h>
 #include <cairomm/context.h>
@@ -22,7 +33,7 @@ namespace systemtap
     
   GraphWidget::GraphWidget()
     : _trackingDrag(false), _width(600), _height(200), _mouseX(0.0),
-      _mouseY(0.0)
+      _mouseY(0.0), _globalTimeBase(0), _timeBaseInitialized(false)
   {
     add_events(Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK
                | Gdk::BUTTON_RELEASE_MASK | Gdk::SCROLL_MASK);
@@ -49,22 +60,35 @@ namespace systemtap
         _refXmlDataDialog = Gnome::Glade::Xml::create(PKGDATADIR "/graph-dialog.glade");
         _refXmlDataDialog->get_widget("dialog1", _dataDialog);
         Gtk::Button* button = 0;
-        _refXmlDataDialog->get_widget("cancelbutton1", button);
+        _refXmlDataDialog->get_widget("closebutton1", button);
         button->signal_clicked()
           .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogCancel),
                    false);
-        _refXmlDataDialog->get_widget("button1", button);
-        button->signal_clicked()
-          .connect(sigc::mem_fun(*this, &GraphWidget::onDataAdd), false);
-        _refXmlDataDialog->get_widget("button2", button);        
-        button->signal_clicked()
-          .connect(sigc::mem_fun(*this, &GraphWidget::onDataRemove), false);
         _refXmlDataDialog->get_widget("treeview1", _dataTreeView);
-        _dataDialog->signal_map()
+        _dataDialog->signal_show()
           .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogOpen));
+        _dataDialog->signal_hide()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onDataDialogClose));
         _listStore = Gtk::ListStore::create(_dataColumns);
         _dataTreeView->set_model(_listStore);
+        _dataTreeView->append_column_editable("Enabled",
+                                              _dataColumns._dataEnabled);
         _dataTreeView->append_column("Data", _dataColumns._dataName);
+        _dataTreeView->append_column("Title", _dataColumns._dataTitle);
+        // Disable selection in list
+        Glib::RefPtr<Gtk::TreeSelection> listSelection
+          = _dataTreeView->get_selection();
+        listSelection
+          ->set_select_function(sigc::mem_fun(*this,
+                                              &GraphWidget::no_select_fun));
+        _refXmlDataDialog->get_widget("checkbutton1", _relativeTimesButton);
+        _relativeTimesButton->signal_clicked()
+          .connect(sigc::mem_fun(*this,
+                                 &GraphWidget::onRelativeTimesButtonClicked));
+        // Set button's initial value from that in .glade file
+        _displayRelativeTimes = _relativeTimesButton->get_active();
+        graphDataSignal()
+          .connect(sigc::mem_fun(*this, &GraphWidget::onGraphDataChanged));
       }
     catch (const Gnome::Glade::XmlError& ex )
       {
@@ -77,10 +101,32 @@ namespace systemtap
   {
   }
 
-  void GraphWidget::addGraphData(shared_ptr<GraphDataBase> data)
+  void GraphWidget::onGraphDataChanged()
   {
-    _graphs[0]->addGraphData(data);
-    _graphData.push_back(data);
+    // add any new graph data to the last graph
+    GraphDataList newData;
+    GraphDataList& allData = getGraphData();
+    for (GraphDataList::iterator gditr = allData.begin(), gdend = allData.end();
+         gditr != gdend;
+         ++gditr)
+      {
+        bool found = false;
+        for (GraphList::iterator gitr = _graphs.begin(), gend = _graphs.end();
+             gitr != gend;
+             ++gitr)
+          {
+            GraphDataList& gdata = (*gitr)->getDatasets();
+            if (find(gdata.begin(), gdata.end(), *gditr) != gdata.end())
+              {
+                found = true;
+                break;
+              }
+          }
+        if (!found)
+          newData.push_back(*gditr);
+      }
+    copy(newData.begin(), newData.end(),
+         back_inserter(_graphs.back()->getDatasets()));
   }
 
   void GraphWidget::addGraph()
@@ -95,6 +141,7 @@ namespace systemtap
     shared_ptr<Graph> graph(new Graph(x, y));
     _height = y + graph->_height;
     graph->setOrigin(x, y);
+    graph->_timeBase = _globalTimeBase;
     _graphs.push_back(graph);
     queue_resize();
   }
@@ -110,8 +157,30 @@ namespace systemtap
     cr->save();
     cr->set_source_rgba(0.0, 0.0, 0.0, 1.0);
     cr->paint();
+    if (!_timeBaseInitialized && !getGraphData().empty())
+      {
+        GraphDataList& graphData = getGraphData();
+        int64_t earliest = INT64_MAX;
+        for (GraphDataList::iterator gd = graphData.begin(),
+               end = graphData.end();
+             gd != end;
+             ++gd)
+          {
+            if (!(*gd)->times.empty() && (*gd)->times[0] < earliest)
+              earliest = (*gd)->times[0];
+          }
+        if (earliest != INT64_MAX)
+          {
+            _globalTimeBase = earliest;
+            _timeBaseInitialized = true;
+          }
+      }
     for (GraphList::iterator g = _graphs.begin(); g != _graphs.end(); ++g)
       {
+        if (_displayRelativeTimes && _timeBaseInitialized)
+          (*g)->_timeBase = _globalTimeBase;
+        else
+          (*g)->_timeBase = 0.0;
         double x, y;
         (*g)->getOrigin(x, y);
         cr->save();
@@ -121,6 +190,7 @@ namespace systemtap
       }
     if (_hoverText && _hoverText->isVisible())
       _hoverText->draw(cr);
+    cr->restore();
     return true;
   }
 
@@ -236,36 +306,34 @@ namespace systemtap
     _dataDialog->hide();
   }
 
-  void GraphWidget::onDataAdd()
-  {
-    Glib::RefPtr<Gtk::TreeSelection> treeSelection =
-      _dataTreeView->get_selection();
-    Gtk::TreeModel::iterator iter = treeSelection->get_selected();
-    if (iter)
-      {
-        Gtk::TreeModel::Row row = *iter;
-        shared_ptr<GraphDataBase> data = row[_dataColumns._graphData];
-        _activeGraph->addGraphData(data);
-      }
-  }
-
-    void GraphWidget::onDataRemove()
-  {
-  }
-
   void GraphWidget::onDataDialogOpen()
   {
       _listStore->clear();
-      for (GraphDataList::iterator itr = _graphData.begin(),
-               end = _graphData.end();
+      for (GraphDataList::iterator itr = getGraphData().begin(),
+               end = getGraphData().end();
            itr != end;
            ++itr)
       {
           Gtk::TreeModel::iterator litr = _listStore->append();
           Gtk::TreeModel::Row row = *litr;
-          row[_dataColumns._dataName] = (*itr)->title;
+          row[_dataColumns._dataName] = (*itr)->name;
+          if (!(*itr)->title.empty())
+              row[_dataColumns._dataTitle] = (*itr)->title;
           row[_dataColumns._graphData] = *itr;
+          GraphDataList& gsets = _activeGraph->getDatasets();
+          GraphDataList::iterator setItr
+            = find(gsets.begin(), gsets.end(), *itr);
+          row[_dataColumns._dataEnabled] = (setItr != gsets.end());
       }
+      _listConnection =_listStore->signal_row_changed()
+        .connect(sigc::mem_fun(*this, &GraphWidget::onRowChanged));
+
+  }
+
+  void GraphWidget::onDataDialogClose()
+  {
+    if (_listConnection.connected())
+      _listConnection.disconnect();
   }
 
   bool GraphWidget::onHoverTimeout()
@@ -275,9 +343,9 @@ namespace systemtap
       {
         if (!_hoverText)
           _hoverText = shared_ptr<CairoTextBox>(new CairoTextBox());
-        _hoverText->setOrigin(_mouseX + 5, _mouseY - 5);
-        Graph::DatasetList& dataSets = g->getDatasets();
-        for (Graph::DatasetList::reverse_iterator ritr = dataSets.rbegin(),
+        _hoverText->setOrigin(_mouseX + 10, _mouseY - 5);
+        GraphDataList& dataSets = g->getDatasets();
+        for (GraphDataList::reverse_iterator ritr = dataSets.rbegin(),
                  end = dataSets.rend();
              ritr != end;
              ++ritr)
@@ -316,5 +384,30 @@ namespace systemtap
       _hover_timeout_connection.disconnect();
     _hover_timeout_connection = Glib::signal_timeout()
       .connect(sigc::mem_fun(*this, &GraphWidget::onHoverTimeout), 1000);
+  }
+
+  void GraphWidget::onRelativeTimesButtonClicked()
+  {
+    _displayRelativeTimes = _relativeTimesButton->get_active();
+    queue_draw();
+  }
+
+  void GraphWidget::onRowChanged(const Gtk::TreeModel::Path&,
+                      const Gtk::TreeModel::iterator& litr)
+  {
+    Gtk::TreeModel::Row row = *litr;
+    bool val = row[_dataColumns._dataEnabled];
+    shared_ptr<GraphDataBase> data = row[_dataColumns._graphData];
+    GraphDataList& graphData = _activeGraph->getDatasets();
+    if (val
+        && find(graphData.begin(), graphData.end(), data) == graphData.end())
+      {
+        _activeGraph->addGraphData(data);
+      }
+    else if (!val)
+      {
+        graphData.erase(remove(graphData.begin(), graphData.end(), data),
+                        graphData.end());
+      }
   }
 }

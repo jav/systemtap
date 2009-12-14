@@ -8,7 +8,7 @@ if {[installtest_p]} {
     set dtrace ../dtrace
 }
 
-exec mkdir /tmp/dtrace
+exec mkdir -p /tmp/dtrace
 
 set dpath "/tmp/dtrace/test.d"
 set fp [open $dpath "w"]
@@ -23,11 +23,34 @@ provider tstsyscall
 "
 close $fp
 
+exec mkdir -p /tmp/dtrace_inc
+set ipath "/tmp/dtrace_inc/dtest.h"
+set $fp [open $ipath "w"]
+puts $fp "
+#define INT16 short
+#define INT32 int
+"
+close $fp
+
+set idpath "/tmp/dtrace/itest.d"
+set $fp [open $idpath "w"]
+puts $fp "
+#include <dtest.h>
+
+provider tstsyscall
+{
+ probe test(INT16 arg1, INT32 arg2, INT32 arg3, INT32 arg4, struct astruct arg5)
+}
+"
+close $fp
+
+set incpath "/tmp/dtrace_inc"
+
 # -----------------------------------------------------------------
 # test command line option and file handling 
 
 verbose -log "$dtrace -G -s $dpath -o XXX.o"
-exec $dtrace -G -s $dpath -o XXX.o
+catch {exec $dtrace -G -s $dpath -o XXX.o}
 if {[file exists XXX.o]} then {
     pass "dtrace -G -o XXX.o"
 } else {
@@ -36,7 +59,7 @@ if {[file exists XXX.o]} then {
 exec rm -f XXX.o
 
 verbose -log "$dtrace -G -s $dpath -o XXX"
-exec $dtrace -G -s $dpath -o XXX
+catch {exec $dtrace -G -s $dpath -o XXX}
 if {[file exists XXX.o]} then {
     pass "dtrace -G -o XXX"
 } else {
@@ -45,7 +68,7 @@ if {[file exists XXX.o]} then {
 exec rm -f XXX.o
 
 verbose -log "$dtrace -h -s $dpath -o XXX.h"
-exec $dtrace -h -s $dpath -o XXX.h
+catch {exec $dtrace -h -s $dpath -o XXX.h}
 if {[file exists XXX.h]} then {
     pass "dtrace -h -o XXX.h"
 } else {
@@ -54,7 +77,7 @@ if {[file exists XXX.h]} then {
 exec rm -f XXX.h
 
 verbose -log "$dtrace -h -s $dpath -o XXX"
-exec $dtrace -h -s $dpath -o XXX
+catch {exec $dtrace -h -s $dpath -o XXX}
 if {[file exists XXX]} then {
     pass "dtrace -h -o XXX"
 } else {
@@ -63,7 +86,7 @@ if {[file exists XXX]} then {
 exec rm -f XXX
 
 verbose -log "$dtrace -G -s $dpath -o /tmp/XXX.o"
-exec $dtrace -G -s $dpath -o /tmp/XXX.o
+catch {exec $dtrace -G -s $dpath -o /tmp/XXX.o}
 if {[file exists /tmp/XXX.o]} then {
     pass "dtrace -G -o /tmp/XXX.o"
 } else {
@@ -72,7 +95,7 @@ if {[file exists /tmp/XXX.o]} then {
 exec rm -f /tmp/XXX.o
 
 verbose -log "$dtrace -G -s $dpath -o /tmp/XXX"
-exec $dtrace -G -s $dpath -o /tmp/XXX
+catch {exec $dtrace -G -s $dpath -o /tmp/XXX}
 if {[file exists /tmp/XXX.o]} then {
     pass "dtrace -G -o /tmp/XXX.o"
 } else {
@@ -81,7 +104,7 @@ if {[file exists /tmp/XXX.o]} then {
 exec rm -f /tmp/XXX.o
 
 verbose -log "$dtrace -h -s $dpath -o /tmp/XXX.h"
-exec $dtrace -h -s $dpath -o /tmp/XXX.h
+catch {exec $dtrace -h -s $dpath -o /tmp/XXX.h}
 if {[file exists /tmp/XXX.h]} then {
     pass "dtrace -h -o /tmp/XXX.h"
 } else {
@@ -90,7 +113,7 @@ if {[file exists /tmp/XXX.h]} then {
 exec rm -f /tmp/XXX.h
 
 verbose -log "$dtrace -h -s $dpath -o /tmp/XXX"
-exec $dtrace -h -s $dpath -o /tmp/XXX
+catch {exec $dtrace -h -s $dpath -o /tmp/XXX}
 if {[file exists /tmp/XXX]} then {
     pass "dtrace -h -o /tmp/XXX"
 } else {
@@ -99,7 +122,7 @@ if {[file exists /tmp/XXX]} then {
 exec rm -f /tmp/XXX
 
 verbose -log "$dtrace -G -s $dpath"
-exec $dtrace -G -s $dpath
+catch {exec $dtrace -G -s $dpath}
 if {[file exists test.o]} then {
     pass "dtrace -G"
 } else {
@@ -108,7 +131,7 @@ if {[file exists test.o]} then {
 exec rm -f test.o
 
 verbose -log "$dtrace -h -s $dpath"
-exec $dtrace -h -s $dpath
+catch {exec $dtrace -h -s $dpath}
 if {[file exists test.h]} then {
     pass "dtrace -h"
 } else {
@@ -118,7 +141,7 @@ exec rm -f test.o
 
 set ok 0
 verbose -log "$dtrace -C -h -s $dpath -o XXX.h"
-exec $dtrace -C -h -s $dpath -o XXX.h
+catch {exec $dtrace -C -h -s $dpath -o XXX.h}
 spawn cat XXX.h
 expect {
     "short arg1, int arg2, int arg3, int arg4" {incr ok}
@@ -130,5 +153,28 @@ if { $ok != 0} {
 }
 exec rm -f XXX.h
 
-exec /bin/rm -r /tmp/dtrace
+set ok 0
+verbose -log "$dtrace -C -I$incpath -h -s $idpath -o XXX.h"
+catch {exec $dtrace -C -I$incpath -h -s $idpath -o XXX.h}
+spawn cat XXX.h
+expect {
+    "short arg1, int arg2, int arg3, int arg4" {incr ok}
+}
+if { $ok != 0} {
+    pass "dtrace -C -Iincpath -h -o XXX.h"
+} else {
+    fail "dtrace -C -Iincpath -h -o XXX.h"
+}
+exec rm -f XXX.h
+
+verbose -log "$dtrace -I$incpath -G -s $idpath"
+catch {exec $dtrace -G -s $dpath}
+if {[file exists test.o]} then {
+    pass "dtrace -Iincpath -G"
+} else {
+    fail "dtrace -Iincpath -G"
+}
+exec rm -f test.o
+
+exec /bin/rm -r /tmp/dtrace /tmp/dtrace_inc
 # -----------------------------------------------------------------

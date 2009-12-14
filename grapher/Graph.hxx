@@ -1,3 +1,11 @@
+// systemtap grapher
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 #ifndef SYSTEMTAP_GRAPH_HXX
 #define SYSTEMTAP_GRAPH_HXX 1
 
@@ -11,7 +19,6 @@ namespace systemtap
   class Graph : public CairoWidget
   {
   public:
-    typedef std::vector<std::tr1::shared_ptr<GraphDataBase> > DatasetList;
     friend class GraphWidget;
     Graph(double x = 0.0, double y = 0.0);
     virtual void draw(Cairo::RefPtr<Cairo::Context> cr);
@@ -39,10 +46,12 @@ namespace systemtap
     double _xOffset;
     double _yOffset;
     std::tr1::shared_ptr<CairoPlayButton> _playButton;
-    DatasetList& getDatasets() { return _datasets; }
+    int64_t _timeBase;
+    GraphDataList& getDatasets() { return _datasets; }
     int64_t getTimeAtPoint(double x);
+    void window2GraphCoords(double x, double y, double& xgraph, double& ygraph);
   protected:
-    DatasetList _datasets;
+    GraphDataList _datasets;
     int64_t _left;
     int64_t _right;
     double _top;

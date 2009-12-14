@@ -1,3 +1,11 @@
+// systemtap grapher
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 #include "Graph.hxx"
 
 #include <sstream>
@@ -8,13 +16,16 @@ namespace systemtap
 {
   using namespace std;
   using namespace std::tr1;
+
+  GraphDataList GraphDataBase::graphData;
+  sigc::signal<void> GraphDataBase::graphDataChanged;
   
   Graph::Graph(double x, double y)
     : _width(600), _height(200), _graphX(0), _graphY(0),
       _graphWidth(580), _graphHeight(180),
       _lineWidth(2), _autoScaling(true), _autoScrolling(true),
       _zoomFactor(1.0), _xOffset(20.0), _yOffset(0.0),
-      _playButton(new CairoPlayButton),
+      _playButton(new CairoPlayButton), _timeBase(0),
       _left(0), _right(1), _top(5.0), _bottom(0.0)
   {
     setOrigin(x, y);
@@ -32,7 +43,7 @@ namespace systemtap
         int linesPossible = (int)(_graphWidth / (_lineWidth + 2.0));
         // Find latest time.
         int64_t latestTime = 0;
-        for (DatasetList::iterator ditr = _datasets.begin(),
+        for (GraphDataList::iterator ditr = _datasets.begin(),
                de = _datasets.end();
              ditr != de;
              ++ditr)
@@ -46,7 +57,7 @@ namespace systemtap
           }
         int64_t minDiff = 0;
         int64_t maxTotal = 0;
-        for (DatasetList::iterator ditr = _datasets.begin(),
+        for (GraphDataList::iterator ditr = _datasets.begin(),
                de = _datasets.end();
              ditr != de;
              ++ditr)
@@ -84,7 +95,7 @@ namespace systemtap
     cr->translate(_xOffset, _yOffset);
     cr->set_line_width(_lineWidth);
 
-    for (DatasetList::iterator itr = _datasets.begin(), e = _datasets.end();
+    for (GraphDataList::iterator itr = _datasets.begin(), e = _datasets.end();
          itr != e;
          ++itr)
       {
@@ -150,7 +161,7 @@ namespace systemtap
         cr->move_to(x, _yOffset);
         cr->line_to(x, _graphHeight);
         std::ostringstream stream;
-        stream << tickVal;
+        stream << (tickVal - _timeBase);
         Cairo::TextExtents extents;
         cr->get_text_extents(stream.str(), extents);
         // Room for this label?
@@ -204,5 +215,12 @@ namespace systemtap
   {
     return (_left
             + (_right - _left) * ((x - _xOffset)/(_zoomFactor * _graphWidth)));
+  }
+
+  void Graph::window2GraphCoords(double x, double y,
+                                 double& xgraph, double& ygraph)
+  {
+    xgraph = x -_xOffset;
+    ygraph = -(y - _graphY) + _yOffset + _graphHeight;
   }
 }

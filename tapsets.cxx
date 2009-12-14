@@ -260,6 +260,7 @@ static const string TOK_PROCESS("process");
 static const string TOK_MARK("mark");
 static const string TOK_TRACE("trace");
 static const string TOK_LABEL("label");
+static const string TOK_LIBRARY("library");
 
 static int query_cu (Dwarf_Die * cudie, void * arg);
 static void query_addr(Dwarf_Addr addr, dwarf_query *q);
@@ -349,8 +350,10 @@ struct dwarf_derived_probe: public derived_probe
   string module;
   string section;
   Dwarf_Addr addr;
+  string path;
   bool has_return;
   bool has_maxactive;
+  bool has_library;
   long maxactive_val;
   bool access_vars;
 
@@ -460,7 +463,9 @@ struct base_query
   bool has_kernel;
   bool has_module;
   bool has_process;
+  bool has_library;
   string module_val; // has_kernel => module_val = "kernel"
+  string path;	     // executable path if module is a .so
 
   virtual void handle_query_module() = 0;
 };
@@ -478,8 +483,15 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
     has_process = false;
   else
     {
+      string library_name;
       has_process = get_string_param(params, TOK_PROCESS, module_val);
-      if (has_process)
+      has_library = get_string_param (params, TOK_LIBRARY, library_name);
+      if (has_library)
+	{
+	  path = find_executable (module_val);
+	  module_val = find_executable (library_name, "LD_LIBRARY_PATH");
+	}
+      else if (has_process)
         module_val = find_executable (module_val);
     }
 
@@ -2840,11 +2852,13 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          Dwarf_Die* scope_die /* may be null */)
   : derived_probe (q.base_probe, new probe_point(*q.base_loc) /* .components soon rewritten */ ),
     module (module), section (section), addr (addr),
+    path (q.path),
     has_return (q.has_return),
     has_maxactive (q.has_maxactive),
+    has_library (q.has_library), 
     maxactive_val (q.maxactive_val),
     access_vars(false),
-    saved_longs(0), saved_strings(0),
+    saved_longs(0), saved_strings(0), 
     entry_handler(0)
 {
   if (q.has_process)
@@ -3139,6 +3153,8 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
 
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
     ->bind(dw);
@@ -3813,7 +3829,13 @@ sdt_query::init_probe_scn()
 bool
 sdt_query::get_next_probe()
 {
-  // Extract probe info from the .probes section
+  // Extract probe info from the .probes section, e.g.
+  // 74657374 5f70726f 62655f32 00000000 test_probe_2....
+  // 50524233 00000000 980c2000 00000000 PRB3...... .....
+  // 01000000 00000000 00000000 00000000 ................
+  // test_probe_2 is probe_name, probe_type is 50524233,
+  // *probe_name (pbe->name) is 980c2000, probe_arg (pbe->arg) is 1
+  // probe_scn_offset is position currently being scanned in .probes
 
   while (probe_scn_offset < pdata->d_size)
     {
@@ -3839,6 +3861,8 @@ sdt_query::get_next_probe()
       probe_scn_offset += sizeof(__uint32_t);
       probe_scn_offset += probe_scn_offset % sizeof(__uint64_t);
       pbe = (struct probe_entry*) ((char*)pdata->d_buf + probe_scn_offset);
+      if (pbe->name == 0)
+	return false;
       probe_name = (char*)((char*)pdata->d_buf + pbe->name - (char*)probe_scn_addr);
       probe_arg = pbe->arg;
       if (sess.verbose > 4)
@@ -3983,46 +4007,52 @@ sdt_query::convert_probe (probe *base)
 void
 sdt_query::convert_location (probe *base, probe_point *location)
 {
-  switch (probe_type)
-    {
-    case uprobe_type:
-      if (sess.verbose > 3)
-        clog << "probe_type == uprobe_type, use statement addr: 0x"
-             << hex << probe_arg << dec << endl;
-      // process("executable").statement(probe_arg)
-      location->components[1]->functor = TOK_STATEMENT;
-      location->components[1]->arg = new literal_number(probe_arg);
-      break;
+  for (unsigned i = 0; i < location->components.size(); ++i)
+    if (location->components[i]->functor == TOK_MARK)
+      switch (probe_type)
+	{
+	case uprobe_type:
+	  if (sess.verbose > 3)
+	    clog << "probe_type == uprobe_type, use statement addr: 0x"
+		 << hex << probe_arg << dec << endl;
+	  // process("executable").statement(probe_arg)
+	  location->components[i]->functor = TOK_STATEMENT;
+	  location->components[i]->arg = new literal_number(probe_arg);
+	  break;
 
-    case kprobe_type:
-      if (sess.verbose > 3)
-        clog << "probe_type == kprobe_type" << endl;
-      // kernel.function("*getegid*")
-      location->components[0]->functor = TOK_KERNEL;
-      location->components[0]->arg = NULL;
-      location->components[1]->functor = TOK_FUNCTION;
-      location->components[1]->arg = new literal_string("*getegid*");
-      break;
+	case kprobe_type:
+	  if (sess.verbose > 3)
+	    clog << "probe_type == kprobe_type" << endl;
+	  // kernel.function("*getegid*")
+	  location->components[i]->functor = TOK_FUNCTION;
+	  location->components[i]->arg = new literal_string("*getegid*");
+	  break;
 
-    case utrace_type:
-      if (sess.verbose > 3)
-        clog << "probe_type == utrace_type" << endl;
-      // process("executable").syscall
-      location->components[1]->functor = "syscall";
-      location->components[1]->arg = NULL;
-      break;
+	case utrace_type:
+	  if (sess.verbose > 3)
+	    clog << "probe_type == utrace_type" << endl;
+	  // process("executable").syscall
+	  location->components[i]->functor = "syscall";
+	  location->components[i]->arg = NULL;
+	  break;
 
-    default:
-      if (sess.verbose > 3)
-        clog << "probe_type == use_uprobe_no_dwarf, use label name: "
-          << "_stapprobe1_" << mark_name << endl;
-      // process("executable").function("*").label("_stapprobe1_MARK_NAME")
-      location->components[1]->functor = TOK_FUNCTION;
-      location->components[1]->arg = new literal_string("*");
-      location->components.push_back(new probe_point::component(TOK_LABEL));
-      location->components[2]->arg = new literal_string("_stapprobe1_" + mark_name);
-      break;
-    }
+	default:
+	  if (sess.verbose > 3)
+	    clog << "probe_type == use_uprobe_no_dwarf, use label name: "
+		 << "_stapprobe1_" << mark_name << endl;
+	  // process("executable").function("*").label("_stapprobe1_MARK_NAME")
+	  location->components[1]->functor = TOK_FUNCTION;
+	  location->components[1]->arg = new literal_string("*");
+	  location->components.push_back(new probe_point::component(TOK_LABEL));
+	  location->components[2]->arg = new literal_string("_stapprobe1_" + mark_name);
+	  break;
+	}
+    else if (location->components[i]->functor == TOK_PROCESS
+	     && probe_type == kprobe_type)
+      {
+	location->components[i]->functor = TOK_KERNEL;
+	location->components[i]->arg = NULL;
+      }
 
   base->locations.clear();
   base->locations.push_back(location);
@@ -4053,7 +4083,11 @@ dwarf_builder::build(systemtap_session & sess,
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
-      module_name = find_executable (module_name); // canonicalize it
+      string library_name;
+      if (get_param (parameters, TOK_LIBRARY, library_name))
+	module_name = find_executable (library_name, "LD_LIBRARY_PATH");
+      else
+	module_name = find_executable (module_name); // canonicalize it
 
       if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
         throw semantic_error ("process probes not available without kernel CONFIG_UTRACE");
@@ -4557,7 +4591,6 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // too big to embed in the initialized .data stap_uprobe_spec array.
   s.op->newline() << "static struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
-  s.op->newline() << "unsigned long sdt_sem_address;"; // relocated to this process
   s.op->newline() << "int spec_index;"; // index into stap_uprobe_specs; <0 == free && unregistered
   s.op->newline(-1) << "} stap_uprobes [MAXUPROBES];"; // XXX: consider a slab cache or somesuch
   s.op->newline() << "DEFINE_MUTEX(stap_uprobes_lock);"; // protects against concurrent registration/unregistration
@@ -4600,6 +4633,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
             }
           if (p->section != ".absolute") // ET_DYN 
             {
+	      if (p->has_library && p->sdt_semaphore_addr != 0)
+		s.op->line() << " .procname=\"" << p->path << "\", ";
               s.op->line() << " .mmap_callback=&stap_uprobe_mmap_found, ";
               s.op->line() << " .munmap_callback=&stap_uprobe_munmap_found, ";
             }
@@ -4615,13 +4650,17 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->assert_0_indent();
 
+  s.op->newline() << "unsigned long sdt_sem_address [] = {";
+  for (unsigned i =0; i<probes.size(); i++)
+    s.op->line() << "0,";
+  s.op->line() << "0};";
   s.op->newline() << "static const struct stap_uprobe_spec {"; // NB: read-only structure
   s.op->newline(1) << "unsigned tfi;"; // index into stap_uprobe_finders[]
   s.op->newline() << "unsigned return_p:1;";
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
-  s.op->newline() << "unsigned long sdt_sem_address;";
+  s.op->newline() << "unsigned long sdt_sem_offset;";
   s.op->newline(-1) << "} stap_uprobe_specs [] = {"; // NB: read-only structure
   s.op->indent(1);
   for (unsigned i =0; i<probes.size(); i++)
@@ -4637,7 +4676,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .ph=&" << p->name << ",";
 
       if (p->sdt_semaphore_addr != 0)
-        s.op->line() << " .sdt_sem_address=(unsigned long)0x"
+        s.op->line() << " .sdt_sem_offset=(unsigned long)0x"
                      << hex << p->sdt_semaphore_addr << dec << "ULL,";
 
       if (p->has_return)
@@ -4706,7 +4745,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // unregistration.
 
   s.op->newline();
-  s.op->newline() << "static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long relocation, unsigned long length, const struct stap_uprobe_tf *stf) {";
+  s.op->newline() << "static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long relocation, unsigned long length, const struct stap_uprobe_tf *stf, unsigned long offset, unsigned long vm_flags) {";
   s.op->newline(1) << "int tfi = (stf - stap_uprobe_finders);";
   s.op->newline() << "int spec_index;";
 
@@ -4757,6 +4796,20 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // was full (registration; MAXUPROBES) or that no matching entry was
   // found (unregistration; should not happen).
 
+  s.op->newline() << "if (sups->sdt_sem_offset && sdt_sem_address[spec_index] == 0) {";
+  s.op->indent(1);
+  // If the probe is in the executable itself, the offset *is* the address.
+  s.op->newline() << "if (vm_flags & VM_EXECUTABLE) {";
+  s.op->indent(1);
+  s.op->newline() << "sdt_sem_address[spec_index] = relocation + sups->sdt_sem_offset;";
+  s.op->newline(-1) << "}";
+  // If the probe is in a .so, we have to calculate the address.
+  s.op->newline() << "else {";
+  s.op->indent(1);
+  s.op->newline() << "sdt_sem_address[spec_index] = (relocation - offset) + sups->sdt_sem_offset;";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";	// sdt_sem_offset
+
   s.op->newline() << "if (slotted_p) {";
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
   s.op->newline() << "if (sups->return_p) {";
@@ -4770,23 +4823,23 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
   s.op->newline() << "rc = register_uprobe (& sup->up);";
 
-  // PR10655: also handle ENABLED semaphore manipulations here
-  s.op->newline() << "if (!rc && sups->sdt_sem_address) {";
-  s.op->newline(1) << "unsigned short sdt_semaphore;"; // NB: fixed size
-  s.op->newline() << "sup->sdt_sem_address = relocation + sups->sdt_sem_address;";
-  s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
-  s.op->newline() << "sdt_semaphore ++;";
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx\\n\", sdt_semaphore, sup->sdt_sem_address);";
-  s.op->newline() << "#endif";
-
-  s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline() << "if (sdt_sem_address[spec_index]) {";
+  s.op->newline(1) << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
+  s.op->newline() << "if ( __access_process_vm (tsk, sdt_sem_address[spec_index], &sdt_semaphore, sizeof (sdt_semaphore), 0)) {";
+  // We have an executable or a writeable segment of a .so
+  s.op->newline(1) << "if (vm_flags == 0 || vm_flags & VM_WRITE) {";
+  s.op->newline(1) << "sdt_semaphore ++;";
+  s.op->newline() << "__access_process_vm (tsk, sdt_sem_address[spec_index], &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";	// sdt_sem_address
   // XXX: error handling in __access_process_vm!
   // XXX: need to analyze possibility of race condition
+
   s.op->newline(-1) << "}";
 
   s.op->newline(-1) << "}";
-  s.op->newline() << "if (rc) {"; // failed to register
+
+  s.op->newline() << "if (rc && !(vm_flags & VM_WRITE)) {"; // failed to register
   s.op->newline(1) << "_stp_warn (\"u*probe failed %s[%d] '%s' addr %p rc %d\\n\", tsk->comm, tsk->tgid, sups->pp, (void*)(relocation + sups->address), rc);";
   // NB: we need to release this slot, so we need to borrow the mutex temporarily.
   s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
@@ -4919,7 +4972,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // ET_EXEC events are modeled as if shlib events, but with 0 relocation bases
   s.op->newline() << "if (register_p)";
-  s.op->newline(1) << "return stap_uprobe_change_plus (tsk, 0, TASK_SIZE, stf);";
+  s.op->newline(1) << "return stap_uprobe_change_plus (tsk, 0, TASK_SIZE, stf, 0, 0);";
   s.op->newline(-1) << "else";
   s.op->newline(1) << "return stap_uprobe_change_minus (tsk, 0, TASK_SIZE, stf);";
   s.op->indent(-1);
@@ -4932,18 +4985,19 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {";
   s.op->newline(1) << "const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);";
   // 1 - shared libraries' executable segments load from offset 0 - ld.so convention
-  s.op->newline() << "if (offset != 0) return 0;";
+  // offset != 0 is now allowed so stap_uprobe_change_plus can set a semaphore,
+  // i.e. a static extern, in a shared object
   // 2 - the shared library we're interested in
   s.op->newline() << "if (path == NULL || strcmp (path, stf->pathname)) return 0;";
-  // 3 - mapping should be executable
-  s.op->newline() << "if (!(vm_flags & VM_EXEC)) return 0;";
+  // 3 - mapping should be executable or writeable (for semaphore in .so)
+  s.op->newline() << "if (!((vm_flags & VM_EXEC) || (vm_flags & VM_WRITE))) return 0;";
 
   s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
   s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+mmap pid %d path %s addr %p length %u offset %p stf %p %p path %s\\n\", "
                   << "tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset, tgt, stf, stf->pathname);";
   s.op->newline() << "#endif";
 
-  s.op->newline() << "return stap_uprobe_change_plus (tsk, addr, length, stf);";
+  s.op->newline() << "return stap_uprobe_change_plus (tsk, addr, length, stf, offset, vm_flags);";
   s.op->newline(-1) << "}";
 
   s.op->assert_0_indent();
@@ -5021,7 +5075,7 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // free slot
 
   // PR10655: decrement that ENABLED semaphore
-  s.op->newline() << "if (sups->sdt_sem_address != 0) {";
+  s.op->newline() << "if (sdt_sem_address[sup->spec_index]) {";
   s.op->newline(1) << "unsigned short sdt_semaphore;"; // NB: fixed size
   s.op->newline() << "pid_t pid = (sups->return_p ? sup->urp.u.pid : sup->up.pid);";
   s.op->newline() << "struct task_struct *tsk;";
@@ -5041,12 +5095,13 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "#endif /* 2.6.31 */";
 
   s.op->newline() << "if (tsk) {"; // just in case the thing exited while we weren't watching
-  s.op->newline(1) << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0);";
-  s.op->newline() << "sdt_semaphore --;";
+  s.op->newline(1) << "if (__access_process_vm (tsk, sdt_sem_address[sup->spec_index], &sdt_semaphore, sizeof (sdt_semaphore), 0)) {";
+  s.op->newline(1) << "sdt_semaphore --;";
   s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-semaphore %#x @ %#lx\\n\", sdt_semaphore, sup->sdt_sem_address);";
+  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-semaphore %#x @ %#lx\\n\", sdt_semaphore, sdt_sem_address[sup->spec_index]);";
   s.op->newline() << "#endif";
-  s.op->newline() << "(void) __access_process_vm (tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline() << "(void) __access_process_vm (tsk, sdt_sem_address[sup->spec_index], &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";	// access_process_vm
   // XXX: error handling in __access_process_vm!
   // XXX: need to analyze possibility of race condition
   s.op->newline(-1) << "}";

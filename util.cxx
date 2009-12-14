@@ -244,7 +244,7 @@ tokenize(const string& str, vector<string>& tokens,
 // same policy as execvp().  A program name not containing a slash
 // will be searched along the $PATH.
 
-string find_executable(const string& name)
+string find_executable(const string& name, const string& env_path)
 {
   string retpath;
 
@@ -259,7 +259,7 @@ string find_executable(const string& name)
     }
   else // Nope, search $PATH.
     {
-      char *path = getenv("PATH");
+      char *path = getenv(env_path.c_str());
       if (path)
         {
           // Split PATH up.

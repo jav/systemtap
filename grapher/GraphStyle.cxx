@@ -1,3 +1,11 @@
+// systemtap grapher
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 #include "GraphStyle.hxx"
 
 #include "GraphData.hxx"
@@ -50,7 +58,7 @@ namespace systemtap
   {
     shared_ptr<GraphData<double> > realData
       = dynamic_pointer_cast<GraphData<double> >(graphData);
-    if (!realData)
+    if (!realData || graphData->times.empty())
       return -1;
     int64_t left, right;
     double top, bottom;
@@ -58,6 +66,8 @@ namespace systemtap
     double t = graph->getTimeAtPoint(x);
     TimeListPair range
       = equal_range(graphData->times.begin(), graphData->times.end(), t);
+    if (range.first == graphData->times.end())
+        return -1;
     size_t dataIndex = distance(graphData->times.begin(), range.first);
     double val = realData->data[dataIndex];
     double ycoord = val * graph->_graphHeight / graphData->scale;
@@ -132,20 +142,11 @@ namespace systemtap
          ditr != de;
          ++ditr)
       {
-        size_t dataIndex = ditr - graphData->times.begin();
+        // size_t dataIndex = ditr - graphData->times.begin();
         double eventHeight = graph->_graphHeight * (graphData->scale / 100.0);
         cr->save();
-        cr->select_font_face("Sans", Cairo::FONT_SLANT_NORMAL,
-                             Cairo::FONT_WEIGHT_NORMAL);
-        cr->set_font_size(12.0);
         cr->set_source_rgba(graphData->color[0], graphData->color[1],
                             graphData->color[2], 1.0);
-        cr->save();
-        cr->scale(1.0, -1.0);
-        cr->move_to((*ditr - left) * horizScale,
-                    -eventHeight - 3.0 * graph->_lineWidth - 2.0);
-        cr->show_text(stringData->data[dataIndex]);
-        cr->restore();
         cr->rectangle((*ditr - left) * horizScale - 1.5 * graph->_lineWidth,
                       eventHeight - 1.5 * graph->_lineWidth,
                       3.0 * graph->_lineWidth, 3.0 * graph->_lineWidth);
@@ -153,5 +154,38 @@ namespace systemtap
         cr->restore();
       }
   }
-  
+
+  ssize_t GraphStyleEvent::dataIndexAtPoint(double x, double y,
+                                            shared_ptr<GraphDataBase> graphData,
+                                            shared_ptr<Graph> graph)
+  {
+    shared_ptr<GraphData<string> > stringData
+      = dynamic_pointer_cast<GraphData<string> >(graphData);
+    if (!stringData || graphData->times.empty())
+      return -1;
+    int64_t left, right;
+    double top, bottom;
+    graph->getExtents(left, right, top, bottom);
+    double horizScale = (graph->_zoomFactor * graph->_graphWidth
+                         / static_cast<double>(right - left));
+    double eventHeight = graph->_graphHeight * (graphData->scale / 100.0);
+    GraphDataBase::TimeList::iterator lower
+      = lower_bound(graphData->times.begin(), graphData->times.end(), left);
+    GraphDataBase::TimeList::iterator upper
+      = upper_bound(graphData->times.begin(), graphData->times.end(), right);
+    // easier to transform x,y into graph coordinates
+    double xgraph, ygraph;
+    graph->window2GraphCoords(x, y, xgraph, ygraph);
+    double yrect = eventHeight - 1.5 * graph->_lineWidth;
+    for (GraphDataBase::TimeList::iterator ditr = lower, de = upper;
+         ditr != de;
+         ++ditr)
+      {
+        double xrect = (*ditr - left) * horizScale - 1.5 * graph->_lineWidth;
+        if (xrect <= xgraph && xgraph < xrect + 3.0 * graph->_lineWidth
+            && yrect <= ygraph && ygraph < yrect + 3.0 * graph->_lineWidth)
+          return static_cast<ssize_t>(distance(lower, ditr));
+      }
+    return -1;
+  }
 }

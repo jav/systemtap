@@ -1,9 +1,23 @@
+// systemtap grapher
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 #include "CairoWidget.hxx"
 
 #include <math.h>
+#include <vector>
+
+#include <boost/algorithm/string.hpp>
 
 namespace systemtap
 {
+  using namespace std;
+  using namespace boost;
+  
   void CairoPlayButton::draw(Cairo::RefPtr<Cairo::Context> cr)
   {
     if (!_visible)
@@ -45,9 +59,28 @@ namespace systemtap
     if (!_visible)
       return;
     cr->save();
-    Cairo::TextExtents extents;
-    cr->get_text_extents(contents, extents);
-    double width = extents.width, height = extents.height;
+    cr->select_font_face("Sans", Cairo::FONT_SLANT_NORMAL,
+                         Cairo::FONT_WEIGHT_BOLD);
+    cr->set_font_size(10.0);
+    Cairo::FontExtents fontExtent;
+    cr->get_font_extents(fontExtent);
+    // Some naughty fonts have a height less than ascent + descent
+    double fontHeight = max(fontExtent.ascent + fontExtent.descent + 1.0,
+                            fontExtent.height);
+    vector<string> lines;
+    split(lines, contents, is_any_of("\n"));
+    vector<Cairo::TextExtents> extents;
+    double width = 0.0, height = 0.0;
+    for (vector<string>::iterator itr = lines.begin(), end = lines.end();
+         itr != end;
+         ++itr)
+      {
+        Cairo::TextExtents extent;
+        cr->get_text_extents(*itr, extent);
+        extents.push_back(extent);
+        width = max(width, extent.width);
+        height += fontHeight;
+      }
     cr->move_to(_x0 - 2, _y0 - 2);
     cr->line_to(_x0 + width + 2, _y0 - 2);
     cr->line_to(_x0 + width + 2, _y0 + height + 2);
@@ -56,8 +89,15 @@ namespace systemtap
     cr->set_source_rgba(1.0, 1.0, 1.0, .8);
     cr->fill();
     cr->set_source_rgba(0.0, 0.0, 0.0, 1.0);
-    cr->move_to(_x0, _y0 + height);
-    cr->show_text(contents);
+    double texty = _y0;
+    for (vector<string>::iterator itr = lines.begin(), end = lines.end();
+         itr != end;
+         ++itr)
+      {
+        cr->move_to(_x0, texty + fontExtent.ascent);
+        cr->show_text(*itr);
+        texty += fontHeight;
+      }
     cr->restore();
   }
 }

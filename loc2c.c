@@ -76,6 +76,15 @@ struct location
   };
 };
 
+/* Select the C type to use in the emitted code to represent slots in the
+   DWARF expression stack.  For really proper semantics this should be the
+   target address size.  */
+static const char *
+stack_slot_type (struct location *context __attribute__ ((unused)), bool sign)
+{
+  return sign ? STACK_TYPE : UTYPE;
+}
+
 static struct location *
 alloc_location (struct obstack *pool, struct location *origin)
 {
@@ -491,7 +500,8 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    POP (b);
 	    POP (a);
 	    push ("(%s) " STACKFMT " >> (%s)" STACKFMT,
-		  UTYPE, a, UTYPE, b);
+		  stack_slot_type (loc, true), a,
+		  stack_slot_type (loc, true), b);
 	    break;
 	  }
 
@@ -2187,7 +2197,8 @@ emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
   else
     {
       emit ("%*s{\n", indent * 2, "");
-      emit ("%*s%s " STACKFMT, (indent + 1) * 2, "", STACK_TYPE, 0);
+      emit ("%*s%s " STACKFMT, (indent + 1) * 2, "",
+	    stack_slot_type (loc, false), 0);
       unsigned i;
       for (i = 1; i < loc->address.stack_depth; ++i)
 	emit (", " STACKFMT, i);
@@ -2207,7 +2218,7 @@ emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
 		bool *used_deref, unsigned int *max_stack)
 {
   if (declare)
-    emit ("%*s%s %s;\n", indent * 2, "", STACK_TYPE, target);
+    emit ("%*s%s %s;\n", indent * 2, "", stack_slot_type (loc, false), target);
 
   emit_header (out, loc, indent++);
 
@@ -2260,7 +2271,7 @@ c_emit_location (FILE *out, struct location *loc, int indent,
 	  {
 	    if (l->byte_size == 0 || l->byte_size == (Dwarf_Word) -1)
 	      emit ("%*s%s %s;\n", (indent + 1) * 2, "",
-		    STACK_TYPE, l->address.declare);
+		    stack_slot_type (l, false), l->address.declare);
 	    else
 	      emit ("%*suint%" PRIu64 "_t %s;\n", (indent + 1) * 2, "",
 		    l->byte_size * 8, l->address.declare);

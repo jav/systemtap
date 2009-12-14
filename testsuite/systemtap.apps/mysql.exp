@@ -4,14 +4,16 @@ set test "mysql"
 
 global env
 
-if {! [info exists env(SYSTEMTAP_TEST_SDT)]} {
-    unsupported "mysql (\"SYSTEMTAP_TEST_SDT\" not in env)"
+if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
+    ! [string match "tcl" $env(SYSTEMTAP_TESTAPPS)] &&
+    ! [string match "all" $env(SYSTEMTAP_TESTAPPS)])} {
+    untested "$test sdt app"
     return
 }
 
 ########## Create /tmp/stap-mysql.stp ########## 
 set msdata "[pwd]/stap-mysql"
-set mysqlrelease "mysql-5.4.1-beta"
+set mysqlrelease "mysql-5.4.3-beta"
 set mysqldir "[pwd]/mysql/install/"
 set testsuite "[pwd]"
 
@@ -291,6 +293,11 @@ kill \$STAPPID
 if \[ ! -r $mysqlrelease.tar.gz \] ; then
 wget  http://dev.mysql.com/get/Downloads/MySQL-5.4/$mysqlrelease.tar.gz/from/ftp://mirror.services.wisc.edu/mirrors/mysql/
 fi
+if \[ ! -r $mysqlrelease.tar.gz \] ; then
+   echo FAIL: wget $mysqlrelease.tar.gz
+   exit
+fi
+
 
 if \[ ! -d mysql/src \] ; then
 tar -x -z -f $mysqlrelease.tar.gz

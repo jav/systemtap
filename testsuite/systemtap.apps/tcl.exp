@@ -29,7 +29,8 @@ if {$rc != 0} {
 }
 
 set test "stap-tcl.stp compilation"
-set rc [catch {exec stap -DMAXSKIPPED=8024 -t -p4 $srcdir/$subdir/stap-tcl.stp tcl/install/lib/libtcl${tclreleasemajor}.so} out]
+verbose -log "spawn stap -DMAXSKIPPED=8024 -t -p4 $srcdir/$subdir/stap-tcl.stp tcl/install/bin/tclsh${tclreleasemajor} tcl/install/lib/libtcl${tclreleasemajor}.so"
+set rc [catch {exec stap -DMAXSKIPPED=8024 -t -p4 $srcdir/$subdir/stap-tcl.stp tcl/install/bin/tclsh${tclreleasemajor} tcl/install/lib/libtcl${tclreleasemajor}.so} out]
 clone_output $out
 if {$rc != 0} {
     fail $test
@@ -47,7 +48,8 @@ if {![installtest_p]} {
 set ok 0
 set ko 0
 set lines 0
-spawn stap -DMAXSKIPPED=8024 -t -c "tcl/install/bin/tclsh${tclreleasemajor} tcl/src/tests/all.tcl > tcl-test.out" $srcdir/$subdir/stap-tcl.stp tcl/install/lib/libtcl${tclreleasemajor}.so
+verbose -log "spawn stap -DMAXSKIPPED=8024 -t -c \"tcl/install/bin/tclsh${tclreleasemajor} tcl/src/tests/all.tcl > tcl-test.out\" $srcdir/$subdir/stap-tcl.stp tcl/install/bin/tclsh${tclreleasemajor} tcl/install/lib/libtcl${tclreleasemajor}.so"
+spawn stap -DMAXSKIPPED=8024 -t -c "tcl/install/bin/tclsh${tclreleasemajor} tcl/src/tests/all.tcl > tcl-test.out" $srcdir/$subdir/stap-tcl.stp tcl/install/bin/tclsh${tclreleasemajor} tcl/install/lib/libtcl${tclreleasemajor}.so
 expect {
     -timeout 1000
     -re {^OK [^\r\n]*[\r\n]} { incr ok; exp_continue }

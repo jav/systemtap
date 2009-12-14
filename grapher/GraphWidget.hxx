@@ -1,3 +1,11 @@
+// systemtap grapher
+// Copyright (C) 2009 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 #ifndef SYSTEMTAP_GRAPHWIDGET_H
 #define SYSTEMTAP_GRAPHWIDGET_H
 
@@ -18,10 +26,14 @@ namespace systemtap
   public:
     DataModelColumns()
     {
+      add(_dataEnabled);
       add(_dataName);
+      add(_dataTitle);
       add(_graphData);
     }
+    Gtk::TreeModelColumn<bool> _dataEnabled;
     Gtk::TreeModelColumn<Glib::ustring> _dataName;
+    Gtk::TreeModelColumn<Glib::ustring> _dataTitle;
     Gtk::TreeModelColumn<std::tr1::shared_ptr<GraphDataBase> > _graphData;
   };
   
@@ -30,14 +42,11 @@ namespace systemtap
   public:
     GraphWidget();
     virtual ~GraphWidget();
-    void addGraphData(std::tr1::shared_ptr<GraphDataBase> data);
     void addGraph();
 
   protected:
     typedef std::vector<std::tr1::shared_ptr<Graph> > GraphList;
     GraphList _graphs;
-    typedef std::vector<std::tr1::shared_ptr<GraphDataBase> > GraphDataList;
-    GraphDataList _graphData;
     // For click and drag
     std::tr1::shared_ptr<Graph> _activeGraph;
     // Dragging all graphs simultaneously, or perhaps seperately
@@ -62,9 +71,8 @@ namespace systemtap
     Gtk::Dialog* _dataDialog;
     Gtk::TreeView* _dataTreeView;
     void onDataDialogCancel();
-    void onDataAdd();
-    void onDataRemove();
     void onDataDialogOpen();
+    void onDataDialogClose();
     bool onHoverTimeout();
     DataModelColumns _dataColumns;
     Glib::RefPtr<Gtk::ListStore> _listStore;
@@ -72,8 +80,23 @@ namespace systemtap
     std::tr1::shared_ptr<CairoTextBox> _hoverText;
     double _mouseX;
     double _mouseY;
+    int64_t _globalTimeBase;
+    bool _timeBaseInitialized;
     std::tr1::shared_ptr<Graph> getGraphUnderPoint(double x, double y);
     void establishHoverTimeout();
+    Gtk::CheckButton* _relativeTimesButton;
+    bool _displayRelativeTimes;
+    void onRelativeTimesButtonClicked();
+    void onRowChanged(const Gtk::TreeModel::Path&,
+                      const Gtk::TreeModel::iterator&);
+    sigc::connection _listConnection;
+    bool no_select_fun(const Glib::RefPtr<Gtk::TreeModel>& model,
+                       const Gtk::TreeModel::Path& path,
+                       bool)
+    {
+      return false;
+    }
+    void onGraphDataChanged();
   };
 }
 #endif // SYSTEMTAP_GRAPHWIDGET_H

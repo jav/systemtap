@@ -217,14 +217,8 @@ static void _stp_print_char (const char c)
 static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 {
 	printk(KERN_DEBUG
-               "%s: systemtap: %s, base: %p, memory: %lu+%lu+%u+%u"
-#ifdef DEBUG_MEM
-               "+%u"
-#endif
-               " data+text+ctx+net"
-#ifdef DEBUG_MEM
-               "+alloc"
-#endif
+               "%s: systemtap: %s, base: %p"
+               ", memory: %ludata/%lutext/%uctx/%unet/%ualloc kb"
                ", probes: %d"
 #ifndef STP_PRIVILEGED
                ", unpriv-uid: %d"
@@ -234,19 +228,18 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 	       vstr, 
 #ifndef STAPCONF_GRSECURITY
 	       THIS_MODULE->module_core,
-	       (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size),
-               (unsigned long) THIS_MODULE->core_text_size,
+	       (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size)/1024,
+               (unsigned long) (THIS_MODULE->core_text_size)/1024,
 #else
-	       THIS_MODULE->module_core_rx,
-	       (unsigned long) (THIS_MODULE->core_size_rw - THIS_MODULE->core_size_rx),
-               (unsigned long) THIS_MODULE->core_size_rx,
+               THIS_MODULE->module_core_rx,
+	       (unsigned long) (THIS_MODULE->core_size_rw - THIS_MODULE->core_size_rx)/1024,
+               (unsigned long) (THIS_MODULE->core_size_rx)/1024,
 #endif
-	       ctx,
-	       _stp_allocated_net_memory,
-#ifdef DEBUG_MEM
-	       _stp_allocated_memory - _stp_allocated_net_memory,
-#endif
-		num_probes
+	       ctx/1024,
+	       _stp_allocated_net_memory/1024,
+	       (_stp_allocated_memory - _stp_allocated_net_memory - ctx)/1024,
+               /* (un-double-counting net/ctx because they're also stp_alloc'd) */
+               num_probes
 #ifndef STP_PRIVILEGED
                , _stp_uid
 #endif

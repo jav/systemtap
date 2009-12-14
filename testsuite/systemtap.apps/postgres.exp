@@ -4,8 +4,10 @@ set test "postgres"
 
 global env
 
-if {! [info exists env(SYSTEMTAP_TEST_SDT)]} {
-    unsupported "postgres (\"SYSTEMTAP_TEST_SDT\" not in env)"
+if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
+    ! [string match "tcl" $env(SYSTEMTAP_TESTAPPS)] &&
+    ! [string match "all" $env(SYSTEMTAP_TESTAPPS)])} {
+    untested "$test sdt app"
     return
 }
 

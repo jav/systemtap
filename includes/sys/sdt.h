@@ -12,9 +12,11 @@
 
 
 #ifdef __LP64__
-#define STAP_PROBE_ADDR "\t.quad "
+#define STAP_PROBE_ADDR(arg) "\t.quad " arg
+#elif defined (__BIG_ENDIAN__)
+#define STAP_PROBE_ADDR(arg) "\t.long 0\n\t.long " arg
 #else
-#define STAP_PROBE_ADDR "\t.long "
+#define STAP_PROBE_ADDR(arg) "\t.long " arg
 #endif
 
 /* Allocated section needs to be writable when creating pic shared objects
@@ -26,21 +28,21 @@
 /* An allocated section .probes that holds the probe names and addrs. */
 #define STAP_PROBE_DATA_(probe,guard,arg)		\
   __asm__ volatile (".section .probes," ALLOCSEC "\n"	\
-		    "\t.align 8\n"			\
+		    "\t.balign 8\n"			\
 		    "1:\n\t.asciz " #probe "\n"		\
-		    "\t.align 4\n"			\
+		    "\t.balign 4\n"			\
 		    "\t.int " #guard "\n"		\
-		    "\t.align 8\n"			\
-		    STAP_PROBE_ADDR "1b\n"		\
-		    "\t.align 8\n"			\
-		    STAP_PROBE_ADDR #arg "\n"		\
+		    "\t.balign 8\n"			\
+		    STAP_PROBE_ADDR("1b\n")		\
+		    "\t.balign 8\n"			\
+		    STAP_PROBE_ADDR(#arg "\n")		\
 		    "\t.int 0\n"			\
 		    "\t.previous\n")
 
 #define STAP_PROBE_DATA(probe, guard, arg)	\
   STAP_PROBE_DATA_(#probe,guard,arg)
 
-#if defined STAP_HAS_SEMAPHORES && defined EXPERIMENTAL_UTRACE_SDT
+#if defined STAP_HAS_SEMAPHORES && ! defined EXPERIMENTAL_KPROBE_SDT
 #define STAP_SEMAPHORE(probe)	\
   if (__builtin_expect ( probe ## _semaphore , 0))
 #else
