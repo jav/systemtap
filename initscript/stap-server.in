@@ -23,13 +23,11 @@ STAP_START_SERVER=$BINDIR/stap-start-server
 STAP_STOP_SERVER=$BINDIR/stap-stop-server
 UNAME=/bin/uname
 
-# Path setup
+# Default Global Configuration
 CONFIG_FILE=/etc/sysconfig/stap-server
 CONFIG_PATH=/etc/stap-server/conf.d
 STAT_PATH=/var/run/stap-server
 LOG_FILE=/var/log/stap-server.log
-
-# Default Settings
 STAP_USER=stap-server
 
 # Default option settings
@@ -39,26 +37,61 @@ OPT_CONFIG_FILE=
 echo_usage () {
   echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|force-reload|status} [options]"
   echo $"Options:"
-  echo $"	-c configfile	: specify additional config file"
-  echo $"	-a arch		: change the target architecture"
-  echo $"	-r release	: specify a kernel release"
-  echo $"	-i		: specify all installed kernel releases"
+  echo $"	-c configfile	: specify additional global configuration file."
+  echo $"	-a arch		: specify the target architecture."
+  echo $"	-r release	: specify the kernel release."
+  echo $"	-I path		: augment the search path for tapsets."
+  echo $"	-R path		: specify the location of the systemtap runtime."
+  echo $"	-B options	: specify 'make' options for building systemtap modules."
+  echo $"	-u username	: specify the user who will run the server(s)."
+  echo $"	-i		: specify a server for each installed kernel release."
+  echo $"	-n nickname	: specify a server configuration by nickname."
+  echo $"	-p pid		: specify a server or server configuration by process id."
   echo $""
-  echo $"All options, except -c, may be specified more than once."
+  echo $"All options, may be specified more than once."
   echo $""
-  echo $"Each -a option changes the target architecture for subsequent -r"
-  echo $"options. The default is the architecture of the host platform."
+  echo $"If -a is not specified, the default architecture is that of the host"
+  echo $"platform."
   echo $""
-  echo $"Each -r option specifies a server for the given kernel release and the"
-  echo $"current architecture (either the default or set by the previous -a"
-  echo $"option)."
+  echo $"If -r is not specified, the default kernel release is that currently"
+  echo $"running on the host platform."
+  echo $""
+  echo $"If -u is not specified, the default user is 'stap-server'"
+  echo $""
+  echo $"Each -I and -B option specifies an additional path or option"
+  echo $"respectively. For other options, each new instance overrides the"
+  echo $"previous setting."
   echo $""
   echo $"The -i option is a shortcut which specifies one server for each kernel"
-  echo $"release installed in /lib/modules/. The default architecture is used"
-  echo $"for these servers."
+  echo $"release installed in /lib/modules/. Previous -I, -R, -B and -u"
+  echo $"options will be applied to each server, however previous -a options"
+  echo $"are ignored and the default architecture is used." 
   echo $""
-  echo $"The specified action is performed on each server specified on the command line."
-  echo $"If no servers are specified on the command line, the behavior is as follows:"
+  echo $"The -n option allows the specification of a server configuration by"
+  echo $"nickname. When -n is specified, a currently running server with the"
+  echo $"given nickname will be searched for. If no currently running server"
+  echo $"with the given nickname is found, a server configuration with the"
+  echo $"given nickname will be searched for in /etc/stap-server/conf.d/*.conf."
+  echo $"If a server configuration for the given nickname is found, the -a, -r,"
+  echo $"-I, -R, -B and -u options for that server will be used as if they were"
+  echo $"specified on the command line. If no configuration with the given"
+  echo $"nickname is found, and the action is 'start' (or an action behaving"
+  echo $"like 'start' (see below), the server will be started with the given"
+  echo $"nickname. If no configuration with the given nickname is found, and"
+  echo $"the action is not 'start' (or an action behaving" "like 'start',"
+  echo $"it is an error. If a nickname is not specified for a server, its"
+  echo $"nickname will be its process id."
+  echo $""
+  echo $"The -p option allows the specification of a server configuration by"
+  echo $"process id. When -p is specified, a currently running server with the"
+  echo $"given process id will be searched for. If no such server is found,"
+  echo $"it is an error. If a server with the given pid is found, the -a, -r,"
+  echo $"-I, -R, -B and -u options for that server will be used as if they were"
+  echo $"specified on the command line."
+  echo $""
+  echo $"The specified action is performed for the server(s) specified on the"
+  echo $"command line. If no servers are specified on the command line, the"
+  echo $"behavior is as follows:"
   echo $""
   echo $"  start:        Start the servers configured in /etc/stap-server/conf.d/*.conf."
   echo $"                If none are configured, start a server for the kernel release"
@@ -120,6 +153,10 @@ parse_args () { # arguments
 	OPT_SERVER_CMDS="$OPT_SERVER_CMDS ARCH='$2'"
         shift 1
 	;;
+      -B)
+	OPT_SERVER_CMDS="$OPT_SERVER_CMDS BUILD='$2'"
+        shift 1
+	;;
       -c)
         OPT_CONFIG_FILE=$2
         shift 1
@@ -127,9 +164,30 @@ parse_args () { # arguments
       -i)
 	process_i
 	;;
+      -I)
+	OPT_SERVER_CMDS="$OPT_SERVER_CMDS INCLUDE='$2'"
+        shift 1
+	;;
+      -n)
+	process_n $2
+        shift 1
+	;;
+      -p)
+	process_p $2
+	test $? = 0 || rc=1
+        shift 1
+	;;
       -r)
 	process_r $2
 	test $? = 0 || rc=1
+        shift 1
+	;;
+      -R)
+	OPT_SERVER_CMDS="$OPT_SERVER_CMDS RUNTIME='$2'"
+        shift 1
+	;;
+      -u)
+	OPT_SERVER_CMDS="$OPT_SERVER_CMDS USER='$2'"
         shift 1
 	;;
       --)
@@ -141,6 +199,9 @@ parse_args () { # arguments
     shift 1
   done
 
+  # Add an EXEC command to the end if any server options were specified
+  test -n "$OPT_SERVER_CMDS" && OPT_SERVER_CMDS="$OPT_SERVER_CMDS EXEC"
+
   test $rc != 0 && echo_usage
   return $rc
 }
@@ -150,8 +211,52 @@ process_i () {
   cd /lib/modules
   local release
   for release in `ls`; do
-    process_r $release
+      test -n "$OPT_SERVER_CMDS" && OPT_SERVER_CMDS="$OPT_SERVER_CMDS EXEC"
+      process_r $release
   done
+
+  return 0
+}
+
+# Process the -n flag.
+process_n () {
+  local target_NICKNAME="$1"
+
+  # Is there a running server with this nickname?
+  local pid=`get_server_pid_by_nickname "$target_NICKNAME"`
+  if [ -n "$pid" ]; then
+      # Read the configuration and add it to the configuration commands.
+      . $STAT_PATH/$pid
+      OPT_SERVER_CMDS="$OPT_SERVER_CMDS `echo_server_commands`"
+      return
+  fi
+
+  # Is there a server configuration with this nickname?
+  for f in "$CONFIG_PATH"/*.conf; do
+    if [ -f "$f" ]; then
+      . "$f"
+      test "X$NICKNAME" = "X$target_NICKNAME" || continue
+      OPT_SERVER_CMDS="$OPT_SERVER_CMDS `echo_server_commands`"
+      return
+    fi
+  done
+
+  # No server configuration could be found for this nickname. Add a
+  # NICKNAME_NOT_FOUND=... command to the configuration commands.
+  OPT_SERVER_CMDS="$OPT_SERVER_CMDS NICKNAME_NOT_FOUND='$target_NICKNAME'"
+}
+
+# Process the -p flag.
+process_p () {
+  local pid="$1"
+
+  # Are we managing a server with the given pid?
+  test ! -f $STAT_PATH/$pid && echo "No stap-server running as pid $pid" && \
+      exit 1
+
+  # Add the configuration of the server running as $pid to OPT_SERVER_CMDS
+  . $STAT_PATH/$pid
+  OPT_SERVER_CMDS="$CONFIG_SERVER_CMDS `echo_server_commands`"
 
   return 0
 }
@@ -199,19 +304,57 @@ get_arch () {
     stap_get_arch
 }
 
+echo_server_commands () {
+    # Echo the configuration command string.
+    echo -n "ARCH='$ARCH'"
+    echo -n " RELEASE='$RELEASE'"
+    echo -n " RUNTIME='$RUNTIME'"
+    for i in $INCLUDE; do
+	echo -n " INCLUDE='$i'"
+    done
+    for b in $BUILD; do
+	echo -n " BUILD='$b'"
+    done
+    echo -n " USER='$USER'"
+    # The NICKNAME= command must be last. See start ().
+    echo -n " NICKNAME='$NICKNAME'"
+    echo
+}
+
+echo_server_options () {
+    # Echo the configuration options.
+    echo -n "-a '$ARCH'"
+    echo -n " -r '$RELEASE'"
+    test -n "$RUNTIME" && echo -n " -R '$RUNTIME'"
+    for i in $INCLUDE; do
+	echo -n " -I '$i'"
+    done
+    for b in $BUILD; do
+	echo -n " -B '$b'"
+    done
+    test -n "$USER" && echo -n " -u '$USER'"
+    echo -n " -n '$NICKNAME'"
+    echo
+}
+
 load_server_config () {
   CONFIG_SERVER_CMDS=
   for f in "$CONFIG_PATH"/*.conf; do
     if [ -f "$f" ]; then
-      # Obtain an architecture and release from each config file.
-      # Ensure that we get the default architecture and release if they
-      # are not specified.
+      # Obtain a configuration from each config file.
+      # Ensure that we get the correct defaults for items not specified.
       local ARCH=
+      local BUILD=
+      local INCLUDE=
+      local RUNTIME=
+      local USER=
       local RELEASE=
       . "$f"
-      [ -z "$ARCH" ] && ARCH=`get_arch`
-      [ -z "$RELEASE" ] && RELEASE=`get_release`
-      CONFIG_SERVER_CMDS="$CONFIG_SERVER_CMDS ARCH='$ARCH' RELEASE='$RELEASE'"
+      # Other options default to empty. These ones don't.
+      [ -z "$ARCH" ]     && ARCH=`get_arch`
+      [ -z "$RELEASE" ]  && RELEASE=`get_release`
+      [ -z "$USER" ]     && USER=$STAP_USER
+      CONFIG_SERVER_CMDS="$CONFIG_SERVER_CMDS `echo_server_commands` EXEC"
     fi
   done
 }
@@ -229,11 +372,18 @@ stat_file () { # server-spec
 }
 
 default_server_cmds () {
-  echo "RELEASE='`get_release`'"
+  echo "EXEC"
 }
 
 init_server_opts () {
   ARCH=`get_arch`
+  RELEASE=`get_release`
+  BUILD=
+  INCLUDE=
+  NICKNAME=
+  NICKNAME_NOT_FOUND=
+  RUNTIME=
+  USER=$STAP_USER
 }
 
 server_still_running () { # PID
@@ -243,23 +393,56 @@ server_still_running () { # PID
     return 1 # Not running
 }
 
-get_server_pid () {
-    local target_release="$RELEASE"
-    local target_arch="$ARCH"
+get_server_pid_by_config () {
+    # Need to save the config, since the process of checking the running
+    # servers alters it.
+    local target_ARCH="$ARCH"
+    local target_RELEASE="$RELEASE"
+    local target_INCLUDE="$INCLUDE"
+    local target_RUNTIME="$RUNTIME"
+    local target_BUILD="$BUILD"
+    local target_USER="$USER"
+    local target_NICKNAME="$NICKNAME"
 
     # Check the status file for each running server to see if it matches
-    # the one currently configured.
+    # the one currently configured. We're checking for a given configuration,
+    # so don't compare the nickname.
     for f in $STAT_PATH/*; do
 	test ! -e $f && continue
 	. $f
-	test "$RELEASE" = "$target_release" || continue
-	test "$ARCH"    = "$target_arch"    || continue
+	test "X$ARCH"     = "X$target_ARCH"     || continue
+	test "X$RELEASE"  = "X$target_RELEASE"  || continue
+	test "X$INCLUDE"  = "X$target_INCLUDE"  || continue
+	test "X$RUNTIME"  = "X$target_RUNTIME"  || continue
+	test "X$BUILD"    = "X$target_BUILD"    || continue
+	test "X$USER"     = "X$target_USER"     || continue
 	echo `basename $f` # Server has a pid
 	return
     done
 
-    RELEASE="$target_release"
-    ARCH="$target_arch"
+    ARCH="$target_ARCH"
+    RELEASE="$target_RELEASE"
+    INCLUDE="$target_INCLUDE"
+    RUNTIME="$target_RUNTIME"
+    BUILD="$target_BUILD"
+    USER="$target_USER"
+    NICKNAME="$target_NICKNAME"
+}
+
+get_server_pid_by_nickname () {
+    # No need to save the current configuration. This function is not called
+    # in a context requiring it.
+    local target_NICKNAME="$1"
+
+    # Check the status file for each running server to see if the nickname
+    # matches the one we want.
+    for f in $STAT_PATH/*; do
+	test ! -e $f && continue
+	. $f
+	test "X$NICKNAME" = "X$target_NICKNAME" || continue
+	echo `basename $f` # Server with nickname was found
+	return
+    done
 }
 
 managed_servers () {
@@ -275,6 +458,75 @@ managed_servers () {
   fi
 
   echo "$list"
+}
+
+eval_server_command () {
+    local cmd="$1"
+
+    # Accumulate the results of BUILD and INCLUDE commands.
+    if echo $cmd | grep -q ^BUILD; then
+	local prevBUILD="$BUILD"
+	eval $cmd
+	BUILD="$prevBUILD $BUILD"
+	BUILD=`echo $BUILD | sed 's/^ //'`
+    elif echo $cmd | grep -q ^INCLUDE; then
+	local prevINCLUDE="$INCLUDE"
+	eval $cmd
+	INCLUDE="$prevINCLUDE $INCLUDE"
+	INCLUDE=`echo $INCLUDE | sed 's/^ //'`
+    else
+	eval $cmd
+    fi
+}
+
+start_server () {
+    clog $"Starting $prog for $RELEASE $ARCH: " -n
+
+    # Is there already a server running for the requested kernel release
+    # and arch?
+    local server_pid=`get_server_pid_by_config`
+    if test -n "$server_pid"; then
+	if server_still_running $server_pid; then
+	    do_success $"$prog start `echo_server_options`"
+	    return 0 # Success
+	fi
+    fi
+
+    # Construct the server start command.
+    local server_cmd="$STAP_START_SERVER -r '$RELEASE' -a '$ARCH'"
+    for b in $BUILD; do
+	server_cmd="$server_cmd -B '$b'"
+    done
+    for i in $INCLUDE; do
+	server_cmd="$server_cmd -I '$i'"
+    done
+    test -n "$RUNTIME" && server_cmd="$server_cmd -R '$RUNTIME'"
+    server_cmd="$server_cmd --log=$LOG_FILE"
+
+    # Start the server here.
+    local pid=`runuser -s /bin/bash - $USER -c "$server_cmd"`
+    if [ $? != 0 -o -z "$pid" ]; then
+	if [ -n "$pid" ]; then
+	    rm -f $STAT_PATH/$pid
+	fi
+	do_failure $"$prog start `echo_server_options`"
+	return 1 # Failure
+    fi
+
+    # Nickname defaults to the pid.
+    test -z "$NICKNAME" && NICKNAME="$pid"
+
+    # Write the configuration to the status file.
+    local server_status_file=$STAT_PATH/$pid
+    echo "ARCH='$ARCH'" > $server_status_file
+    echo "USER='$USER'" >> $server_status_file
+    echo "BUILD='$BUILD'" >> $server_status_file
+    echo "INCLUDE='$INCLUDE'" >> $server_status_file
+    echo "NICKNAME='$NICKNAME'" >> $server_status_file
+    echo "RUNTIME='$RUNTIME'" >> $server_status_file
+    echo "RELEASE='$RELEASE'" >> $server_status_file
+
+    do_success $"$prog start `echo_server_options`"
 }
 
 start () { # server-cmds
@@ -299,38 +551,33 @@ start () { # server-cmds
   local rc=0
   local first=1
   init_server_opts
+  local cmd
+  local prevCmd
   for cmd in $server_cmds; do
-      # Evaluate commands until the RELEASE= command is found.
-      eval $cmd
-      echo $cmd | grep -q ^RELEASE || continue
-
-      test $first = 0 && echo
-      first=0
-      clog $"Starting $prog for $RELEASE $ARCH: " -n
-
-      # Is there already a server running for the requested kernel release
-      # and arch?
-      local server_pid=`get_server_pid`
-      if test -n "$server_pid"; then
-	  if server_still_running $server_pid; then
-	      do_success $"$prog start for $RELEASE $ARCH"
-	      continue
-	  fi
-      fi
-
-      # Start the server here.
-      local server_status_file=$STAT_PATH/`runuser -s /bin/bash - $STAP_USER \
-         -c "$STAP_START_SERVER -r $RELEASE -a $ARCH --log=$LOG_FILE"`
-      if [ $? != 0 ]; then
-	  rm -f $server_status_file
-	  do_failure $"$prog start: unable to start stap-server for $RELEASE $ARCH"
-	  rc=1
+      prevCmd=$cmd
+      # Evaluate commands until the EXEC command is found.
+      if test "$cmd" != "EXEC"; then
+	  eval_server_command $cmd
+	  # A specified nickname only sticks if it is the final command.
+	  # Otherwise, we have a configuration based on a nicknamed
+	  # configuration.
+	  echo "$cmd" | grep -q "^NICKNAME=" || NICKNAME=""
 	  continue
       fi
-      echo "ARCH=$ARCH" > $server_status_file
-      echo "RELEASE=$RELEASE" >> $server_status_file
+      # If a nickname was specified, but the corresponding config was not found,
+      # then it is the nickname for this new configuration.
+      if test -n "$NICKNAME_NOT_FOUND"; then
+	  NICKNAME="$NICKNAME_NOT_FOUND"
+	  NICKNAME_NOT_FOUND=
+      fi
 
-      do_success $"$prog start for $RELEASE $ARCH"
+      # Start the configured server
+      test $first = 0 && echo
+      first=0
+      start_server || rc=1
+
+      # Don't use the same nickname for the next server.
+      NICKNAME=
   done
 
   return $rc
@@ -343,13 +590,32 @@ stop () { # server-cmds
   if [ -n "$server_cmds" ]; then
       # Get the pids of all the requested servers.
       init_server_opts
+      local cmd
+      local prevCmd
       for cmd in $server_cmds; do
-          # Evaluate commands until the RELEASE= command is found.
-	  eval $cmd
-	  echo $cmd | grep -q ^RELEASE || continue
+	  prevCmd=$cmd
+          # Evaluate commands until the EXEC command is found.
+	  if test "$cmd" != "EXEC"; then
+	      eval_server_command $cmd
+	      # A specified nickname only sticks if it is the final command.
+	      # Otherwise, we have a configuration based on a nicknamed
+	      # configuration.
+	      echo "$cmd" | grep -q "^NICKNAME=" || NICKNAME=""
+	      continue
+	  fi
+          # If a nickname was specified, but the corresponding config was not
+	  # found, it is an error.
+	  if test -n "$NICKNAME_NOT_FOUND"; then
+	      clog "No configuration found for the nickname '$NICKNAME_NOT_FOUND'" -n
+	      NICKNAME="$NICKNAME_NOT_FOUND"
+	      do_failure $"$prog stop `echo_server_options`"
+	      NICKNAME_NOT_FOUND=
+	      rc=1
+	      continue
+	  fi
 
           # Get the pid for this server, if it's running
-	  local server_pid=`get_server_pid`
+	  local server_pid=`get_server_pid_by_config`
 	  if test -n "$server_pid"; then
 	      server_list="$server_list $server_pid"
 	      continue
@@ -359,13 +625,9 @@ stop () { # server-cmds
 	  test $first = 0 && echo
 	  first=0
 	  clog $"Stopping $prog for $RELEASE $ARCH: " -n
-	  do_success $"$prog stop for $release_arch"
+	  do_success $"$prog stop `echo_server_options`"
       done
-  fi
-  if [ -z "$server_list" ]; then
-      # If there was a non-existent server specified, then we're done
-      test $first = 0 && return 0
-
+  else
       server_list=`managed_servers`
       if [ -z "$server_list" ]; then
 	  clog $"Stopping $prog: " -n
@@ -386,16 +648,16 @@ stop () { # server-cmds
 
       local this_rc=0
       if server_still_running $pid; then
-	  runuser -s /bin/bash - $STAP_USER -c "$STAP_STOP_SERVER $pid"
+	  runuser -s /bin/bash - $USER -c "$STAP_STOP_SERVER $pid"
 	  if [ $? != 0 ]; then
-	      do_failure $"$prog stop: unable to stop stap-server for $RELEASE $ARCH"
+	      do_failure $"$prog stop `echo_server_options`"
 	      this_rc=1
 	      rc=1
 	  fi
       fi
       if [ $this_rc = 0 ]; then
 	  rm -f $STAT_PATH/$pid
-	  do_success $"$prog stop for $RELEASE $ARCH"
+	  do_success $"$prog stop `echo_server_options`"
       fi
   done
 
@@ -412,23 +674,39 @@ status () { # server-list
   if [ -n "$server_cmds" ]; then
       # Get the pids of all the requested servers.
       init_server_opts
+      local cmd
+      local prevCmd
       for cmd in $server_cmds; do
-          # Evaluate commands until the RELEASE= command is found.
-	  eval $cmd
-	  echo $cmd | grep -q ^RELEASE || continue
+	  prevCmd=$cmd
+          # Evaluate commands until the EXEC command is found.
+	  if test "$cmd" != "EXEC"; then
+	      eval_server_command $cmd
+	      # A specified nickname only sticks if it is the final command.
+	      # Otherwise, we have a configuration based on a nicknamed
+	      # configuration.
+	      echo "$cmd" | grep -q "^NICKNAME=" || NICKNAME=""
+	      continue
+	  fi
+          # If a nickname was specified, but the corresponding config was not
+	  # found, say so.
+	  if test -n "$NICKNAME_NOT_FOUND"; then
+	      echo "No configuration found for the nickname '$NICKNAME_NOT_FOUND'"
+	      NICKNAME_NOT_FOUND=
+	      rc=3
+	      continue
+	  fi
 
           # Get the pid for this server, if it's running
-	  local server_pid=`get_server_pid`
+	  local server_pid=`get_server_pid_by_config`
 	  if test -n "$server_pid"; then
 	      server_list="$server_list $server_pid"
 	      continue
 	  fi
 	  # This server is not running
-	  echo "stap-server for $RELEASE $ARCH is not running"
+	  echo "stap-server `echo_server_options`"
 	  rc=3
       done
-  fi
-  if [ -z "$server_list" ]; then
+  else
       server_list=`managed_servers`
       if [ -z "$server_list" ]; then
 	  echo "No managed stap-server is running"
@@ -441,11 +719,11 @@ status () { # server-list
   for pid in $server_list; do
       . $STAT_PATH/$pid
       if ! server_still_running $pid; then
-	  echo "stap-server for $RELEASE $ARCH started as PID $pid is no longer running"
+	  echo "stap-server `echo_server_options` started as PID $pid is no longer running"
 	  rc=1
 	  continue
       fi
-      echo "stap-server for $RELEASE $ARCH running as PID $pid"
+      echo "stap-server `echo_server_options` running as PID $pid"
   done
 
   return $rc
@@ -460,7 +738,7 @@ function restart () { # server-cmds
       local pid
       for pid in $server_list; do
 	  . $STAT_PATH/$pid
-	  server_cmds="$server_cmds ARCH='$ARCH' RELEASE='$RELEASE'"
+	  server_cmds="$server_cmds `echo_server_commands` EXEC"
       done
   fi
 
@@ -488,7 +766,7 @@ function condrestart () { # server-list
       local pid
       for pid in $server_list; do
 	  . $STAT_PATH/$pid
-	  server_cmds="$server_cmds ARCH='$ARCH' RELEASE='$RELEASE'"
+	  server_cmds="$server_cmds `echo_server_commands` EXEC"
       done
       # No server specified or running?
       if [ -z "$server_cmds" ]; then
@@ -504,10 +782,12 @@ function condrestart () { # server-list
   local server_cmd=
   local cmd
   for cmd in $server_cmds; do
-      # Collect commands until the RELEASE= command is found.
+      # Execute and collect commands until the EXEC command is found.
       server_cmd="$server_cmd $cmd"
-      eval $cmd
-      echo $cmd | grep -q ^RELEASE || continue
+      if test "$cmd" != "EXEC"; then
+	  eval_server_command $cmd
+	  continue
+      fi
 
       test $first = 0 && echo
       first=0
@@ -515,7 +795,7 @@ function condrestart () { # server-list
       # Now see if this server is running
       if ! status "$server_cmd" >/dev/null 2>&1; then
 	clog $"$prog for $RELEASE $ARCH is not running" -n
-	do_success "$prog for $RELEASE $ARCH is not running"
+	do_success "$prog `echo_server_options` is not running"
 	server_cmd=
 	continue
       fi
@@ -545,7 +825,7 @@ function condrestart () { # server-list
 #------------------------------------------------------------------
 CMD=$1
 shift 1
-OPTS=`getopt -s bash -u -o 'a:c:ir:' -- $@`
+OPTS=`getopt -s bash -u -o 'a:B:c:iI:n:p:r:R:u:' -- $@`
 if [ $? -ne 0 ]; then
   slog "Error: Argument parse error: $@"
   failure $"parse error"

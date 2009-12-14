@@ -31,6 +31,9 @@ function initialization {
     uname_r="`uname -r`"
     arch="`stap_get_arch`"
     logfile=/dev/null
+    B_options=
+    I_options=
+    R_option=
 
     # Parse the arguments
     parse_options "$@"
@@ -147,6 +150,7 @@ function parse_options {
 		    ;;
 		B)
 		    get_arg $first_token $2
+		    B_options="$B_options $stap_arg"
 		    stap_options="$stap_options -$first_char $stap_arg"
 		    ;;
 		c)
@@ -167,6 +171,7 @@ function parse_options {
 		    ;;
 		I)
 		    get_arg $first_token $2
+		    I_options="$I_options $stap_arg"
 		    stap_options="$stap_options -$first_char $stap_arg"
 		    ;;	
 		l)
@@ -195,6 +200,7 @@ function parse_options {
 		    ;;	
 		R)
 		    get_arg $first_token $2
+		    R_option="$stap_arg"
 		    stap_options="$stap_options -$first_char $stap_arg"
 		    ;;	
 		s)
@@ -306,13 +312,25 @@ function process_r {
 #
 # Advertise the availability of the server on the network.
 function advertise_presence {
-    # Build up a string representing our server's properties.
-    local service_name="Systemtap Compile Server for $uname_r $arch"
-    local txt="sysinfo=$uname_r $arch"
+    # Build up a strings representing our server's properties.
+    # The service name must differ for each server, so put the port number
+    # in it.
+    local service_name="Systemtap Compile Server on port $port"
+
+    local sysinfo="sysinfo=$uname_r $arch"
+    local optinfo="optinfo="
+    test -n "$R_option" && optinfo="${optinfo}-R '$R_option'"
+    for opt in $B_options; do
+	optinfo="$optinfo -B '$opt'"
+    done
+    for opt in $I_options; do
+	optinfo="$optinfo -I '$opt'"
+    done
+    optinfo=`echo $optinfo | sed 's/optinfo= /optinfo=/'`
 
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "$service_name" \
-	$stap_avahi_service_tag $port "$txt" >> $logfile 2>&1 &
+	$stap_avahi_service_tag $port "$sysinfo" "$optinfo" >> $logfile 2>&1 &
 
     echo "$service_name listening on port $port" >> $logfile
 }
