@@ -330,6 +330,7 @@ int verify_module (const char *signatureName, const char* module_name,
       fprintf (stderr, "Unable to initialize nss library using the database in %s.\n",
 	       dbdir);
       nssError ();
+      nssCleanup ();
       return MODULE_CHECK_ERROR;
     }
 
@@ -339,6 +340,7 @@ int verify_module (const char *signatureName, const char* module_name,
       fprintf (stderr, "Unable to find certificates in the certificate database in %s.\n",
 	       dbdir);
       nssError ();
+      nssCleanup ();
       return MODULE_UNTRUSTED;
     }
 
@@ -355,6 +357,7 @@ int verify_module (const char *signatureName, const char* module_name,
 	  fprintf (stderr, "Unable to extract public key from the certificate with nickname %s from the certificate database in %s.\n",
 		   cert->nickname, dbdir);
 	  nssError ();
+	  nssCleanup ();
 	  return MODULE_CHECK_ERROR;
 	}
 
