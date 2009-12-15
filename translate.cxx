@@ -4909,7 +4909,14 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"
             << "sizeof(struct _stp_section),\n";
 
-  if (build_id_len > 0) {
+  /* Don't save build-id if it is located before _stext.
+   * This probably means that build-id will not be loaded at all and
+   * happens for example with ARM kernel.
+   *
+   * See also:
+   *    http://sources.redhat.com/ml/systemtap/2009-q4/msg00574.html
+   */
+  if (build_id_len > 0 && (build_id_vaddr > base + extra_offset)) {
     c->output << ".build_id_bits = \"" ;
     for (int j=0; j<build_id_len;j++)
       c->output << "\\x" << hex
