@@ -176,16 +176,19 @@ static void _stp_mem_debug_free(void *addr, enum _stp_memtype type)
 
 static void *_stp_kmalloc(size_t size)
 {
-        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
 	if (likely(ret)) {
+	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
-	return ret;
 #else
-	return kmalloc(size, STP_ALLOC_FLAGS);
+	void *ret = kmalloc(size, STP_ALLOC_FLAGS);
+	if (likely(ret)) {
+	        _stp_allocated_memory += size;
+	}
 #endif
+	return ret;
 }
 
 static void *_stp_kzalloc(size_t size)
@@ -194,14 +197,16 @@ static void *_stp_kzalloc(size_t size)
 #ifdef DEBUG_MEM
 	void *ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
 	if (likely(ret)) {
+	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 		memset (ret, 0, size);
 	}
 #else
 	void *ret = kmalloc(size, STP_ALLOC_FLAGS);
-        _stp_allocated_memory += size;
-	if (likely(ret))
+	if (likely(ret)) {
+	        _stp_allocated_memory += size;
 		memset (ret, 0, size);
+	}
 #endif /* DEBUG_MEM */
 	return ret;
 }
@@ -209,30 +214,35 @@ static void *_stp_kzalloc(size_t size)
 {
 #ifdef DEBUG_MEM
 	void *ret = kzalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
-        _stp_allocated_memory += size;
 	if (likely(ret)) {
+	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
-	return ret;
 #else
-	return kzalloc(size, STP_ALLOC_FLAGS);
+	void *ret = kzalloc(size, STP_ALLOC_FLAGS);
+	if (likely(ret)) {
+	        _stp_allocated_memory += size;
+	}
 #endif
+	return ret;
 }
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15) */
 
 static void *_stp_vmalloc(unsigned long size)
 {
-        _stp_allocated_memory += size;
 #ifdef DEBUG_MEM
 	void *ret = __vmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS, PAGE_KERNEL);
 	if (likely(ret)) {
+	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_VMALLOC);
 	}
-	return ret;
 #else
-	return __vmalloc(size, STP_ALLOC_FLAGS, PAGE_KERNEL);
+	void *ret = __vmalloc(size, STP_ALLOC_FLAGS, PAGE_KERNEL);
+	if (likely(ret)) {
+	        _stp_allocated_memory += size;
+	}
 #endif
-
+	return ret;
 }
 
 #ifdef PCPU_MIN_UNIT_SIZE
@@ -248,8 +258,6 @@ static void *_stp_alloc_percpu(size_t size)
 	if (size > _STP_MAX_PERCPU_SIZE)
 		return NULL;
 
-        _stp_allocated_memory += size * num_online_cpus();
-
 #ifdef STAPCONF_ALLOC_PERCPU_ALIGN
 	ret = __alloc_percpu(size, 8);
 #else
@@ -262,7 +270,12 @@ static void *_stp_alloc_percpu(size_t size)
 			free_percpu(ret);
 			return NULL;
 		}
+	        _stp_allocated_memory += size * num_online_cpus();
 		_stp_mem_debug_percpu(m, ret, size);
+	}
+#else
+	if (likely(ret)) {
+	        _stp_allocated_memory += size * num_online_cpus();
 	}
 #endif
 	return ret;
@@ -273,16 +286,20 @@ static void *_stp_alloc_percpu(size_t size)
 #else
 static void *_stp_kmalloc_node(size_t size, int node)
 {
-        _stp_allocated_memory += size;
+	void *ret;
 #ifdef DEBUG_MEM
-	void *ret = kmalloc_node(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS, node);
+	ret = kmalloc_node(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS, node);
 	if (likely(ret)) {
+	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
-	return ret;
 #else
-	return kmalloc_node(size, STP_ALLOC_FLAGS, node);
+	ret = kmalloc_node(size, STP_ALLOC_FLAGS, node);
+	if (likely(ret)) {
+	        _stp_allocated_memory += size;
+	}
 #endif
+	return ret;
 }
 #endif /* LINUX_VERSION_CODE */
 
