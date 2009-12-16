@@ -134,7 +134,7 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 	else 
 		_stp_printf("%p ", (int64_t) REG_IP(regs));
 
-	__stp_stack_print(regs, verbose, levels, tsk);
+	__stp_stack_print(regs, verbose, levels, tsk, ri);
 }
 
 /** Writes stack backtrace to a string

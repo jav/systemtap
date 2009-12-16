@@ -67,7 +67,8 @@ __stp_show_stack (unsigned long sp, unsigned long low,
  
 static void __stp_stack_print (struct pt_regs *regs,
 			       int verbose, int levels,
-	                       struct task_struct *tsk)
+			       struct task_struct *tsk,
+			       struct uretprobe_instance *ri)
 {
 		unsigned long *_sp = (unsigned long *)&REG_SP(regs);
 		unsigned long sp = (unsigned long)_sp;
