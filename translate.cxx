@@ -905,6 +905,7 @@ c_unparser::emit_common_header ()
   o->newline() << "cycles_t cycles_base;";
   o->newline() << "cycles_t cycles_sum;";
   o->newline() << "#endif";
+  o->newline() << "struct uretprobe_instance *ri;";
 
 
   // PR10516: probe locals

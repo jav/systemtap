@@ -142,6 +142,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "c->statp = 0;";
   o->newline() << "#endif";
+  o->newline() << "c->ri = 0;";
   // NB: The following would actually be incorrect.
   // That's because cycles_sum/cycles_base values are supposed to survive
   // between consecutive probes.  Periodically (STP_OVERLOAD_INTERVAL
@@ -3373,8 +3374,15 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "if (entry) {";
+  s.op->indent(1);
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
-  s.op->newline() << "(entry ? sdp->entry_ph : sdp->ph) (c);";
+  s.op->newline() << "(sdp->entry_ph) (c);";
+  s.op->newline(-1) << "} else {";
+  s.op->indent(1);
+  s.op->newline() << "SET_REG_IP(regs, (unsigned long)inst->ret_addr);";
+  s.op->newline() << "(sdp->ph) (c);";
+  s.op->newline(-1) << "}";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -4569,16 +4577,6 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (probes.empty()) return;
   s.op->newline() << "/* ---- user probes ---- */";
 
-  // If uprobes isn't in the kernel, pull it in from the runtime.
-  s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
-  s.op->newline() << "#include <linux/uprobes.h>";
-  s.op->newline() << "#else";
-  s.op->newline() << "#include \"uprobes/uprobes.h\"";
-  s.op->newline() << "#endif";
-  s.op->newline() << "#ifndef UPROBES_API_VERSION";
-  s.op->newline() << "#define UPROBES_API_VERSION 1";
-  s.op->newline() << "#endif";
-
   // We'll probably need at least this many:
   unsigned minuprobes = probes.size();
   // .. but we don't want so many that .bss is inflated (PR10507):
@@ -4723,6 +4721,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst->rp, struct stap_uprobe, urp);";
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->pp");
+  s.op->newline() << "c->ri = inst;";
   s.op->newline() << "if (sup->spec_index < 0 ||"
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
   // XXX: kretprobes saves "c->pi = inst;" too
@@ -4734,7 +4733,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "{";
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "SET_REG_IP(regs, inst->rp->u.vaddr);";
+  s.op->newline() << "SET_REG_IP(regs, inst->ret_addr);";
   s.op->newline() << "(*sups->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
