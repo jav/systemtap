@@ -3711,6 +3711,22 @@ sdt_query::handle_query_module()
 	  && !probes_handled.insert(probe_name).second)
         continue;
 
+      if (sess.verbose > 3)
+	{
+	  clog << "matched probe_name " << probe_name << " probe_type ";
+	  switch (probe_type)
+	    {
+	    case uprobe_type:
+	      clog << "uprobe at 0x" << hex << probe_arg << dec << endl;
+	      break;
+	    case kprobe_type:
+	      clog << "kprobe" << endl;
+	      break;
+	    case utrace_type:
+	      clog << "utrace" << endl;
+	      break;
+	    }
+	}
       probe *new_base = new probe(*base_probe);
       probe_point *new_location = new probe_point(*base_loc);
       convert_location(new_base, new_location);
@@ -3873,12 +3889,7 @@ sdt_query::get_next_probe()
       if ((mark_name == probe_name)
 	  || (dw.name_has_wildcard (mark_name)
 	      && dw.function_name_matches_pattern (probe_name, mark_name)))
-	{
-	  if (sess.verbose > 3)
-	    clog << "found probe_name" << probe_name << " at 0x"
-		 << hex << probe_arg << dec << endl;
-	  return true;
-	}
+	return true;
       else
 	continue;
     }
@@ -4016,8 +4027,7 @@ sdt_query::convert_location (probe *base, probe_point *location)
 	    clog << "probe_type == uprobe_type, use statement addr: 0x"
 		 << hex << probe_arg << dec << endl;
 	  // process("executable").statement(probe_arg)
-	  location->components[i]->functor = TOK_STATEMENT;
-	  location->components[i]->arg = new literal_number(probe_arg);
+	  location->components[i] = new probe_point::component(TOK_STATEMENT, new literal_number(probe_arg));
 	  break;
 
 	case kprobe_type:
