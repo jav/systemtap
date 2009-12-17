@@ -374,19 +374,31 @@ static int _stp_func_print(unsigned long address, int verbose, int exact,
 	else
 		exstr = " (inexact)";
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, task);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL,
+				task);
 
 	if (name) {
-		if (verbose) {
+		switch (verbose) {
+		case SYM_VERBOSE_FULL:
 			if (modname && *modname)
 				_stp_printf(" %p : %s+%#lx/%#lx [%s]%s\n",
-					    (int64_t) address, name, offset, size, modname, exstr);
+					(int64_t) address, name, offset,
+					size, modname, exstr);
 			else
-				_stp_printf(" %p : %s+%#lx/%#lx%s\n", (int64_t) address, name, offset, size, exstr);
-		} else
+				_stp_printf(" %p : %s+%#lx/%#lx%s\n",
+					(int64_t) address, name, offset, size,
+					exstr);
+			break;
+		case SYM_VERBOSE_BRIEF:
+			_stp_printf("%s+%#lx\n", name, offset);
+			break;
+		case SYM_VERBOSE_NO:
+		default:
 			_stp_printf("%p ", (int64_t) address);
+		}
 		return 1;
-	}
+	} else if (verbose == SYM_VERBOSE_BRIEF)
+		_stp_printf("%p\n", (int64_t) address);
 	return 0;
 }
 

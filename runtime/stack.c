@@ -112,15 +112,20 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 	if (verbose) {
 		/* print the current address */
 		if (pi) {
-			_stp_print("Returning from: ");
-			_stp_symbol_print((unsigned long)_stp_probe_addr_r(pi));
-			_stp_print("\nReturning to  : ");
+			if (verbose == SYM_VERBOSE_FULL) {
+				_stp_print("Returning from: ");
+				_stp_symbol_print((unsigned long)_stp_probe_addr_r(pi));
+				_stp_print("\nReturning to  : ");
+			}
 			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
                 } else if (ri) {
-                        _stp_print("Returning from: ");
-                        _stp_usymbol_print(ri->rp->u.vaddr, tsk);
-			_stp_print("\nReturning to  : ");
-                        _stp_usymbol_print(ri->ret_addr, tsk);
+			if (verbose == SYM_VERBOSE_FULL) {
+				_stp_print("Returning from: ");
+				_stp_usymbol_print(ri->rp->u.vaddr, tsk);
+				_stp_print("\nReturning to  : ");
+				_stp_usymbol_print(ri->ret_addr, tsk);
+			} else
+				_stp_func_print(ri->ret_addr, verbose, 0, tsk);
 		} else {
 			_stp_print_char(' ');
 			if (tsk)
@@ -128,7 +133,8 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 			else
 			  _stp_symbol_print(REG_IP(regs));
 		}
-		_stp_print_char('\n');
+		if (verbose != SYM_VERBOSE_BRIEF)
+			_stp_print_char('\n');
 	} else if (pi)
 		_stp_printf("%p %p ", (int64_t)(long)_stp_ret_addr_r(pi), (int64_t) REG_IP(regs));
 	else 
