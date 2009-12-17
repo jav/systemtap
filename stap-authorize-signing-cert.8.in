@@ -85,7 +85,7 @@ access permissions before making use of any certificate database.
 
 .SH FILES
 .TP
-@sysconfdir@/staprun/
+@sysconfdir@/systemtap/staprun/
 \fIstaprun\fR\[aq]s trusted signer certificate database.
 
 .TP
