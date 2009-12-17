@@ -1,336 +1,351 @@
 .\" -*- nroff -*-
 .TH STAP-SERVER 8 @DATE@ "Red Hat"
 .SH NAME
-stap-server \- systemtap server and related utilities
+stap\-server \- systemtap server service
 
 .SH SYNOPSIS
 
 .br
-.B stap\-start\-server
-.br
-.B stap\-find\-servers
-[
-.B \-\-all
-]
-.br
-.B stap\-find\-or\-start\-server
-.br
-.B stap\-stop\-server
-.I PID
-.br
-.B stap\-authorize\-server\-cert \fICERTFILE\fR [ \fIDIRNAME\fR ]
-.br
-.B stap\-client
-[
-.B \-\-server=\fIHOSTNAME\fR|\fIIP_ADDRESS\fR[\fB:\fIPORT\fR]
-]
-[
-.B \-\-ssl=\fIDIRNAME
-]
-[
-.I ARGUMENTS
+.B service stap\-server
+{
+.B start
+|
+.B stop
+|
+.B restart
+|
+.B condrestart
+|
+.B try\-restart
+|
+.B force\-reload
+|
+.B status
+} [
+.I options
 ]
 
 .SH DESCRIPTION
 
-The systemtap server listens for connections from
-.I stap\-client
+A systemtap compile server listens for connections from clients
+(\fIstap\-client\fR)
 on a secure SSL network port and accepts requests to run the
 .I stap
-front end.
+front end. Each server advertises its presence and configuration on the local
+network using mDNS (\fIavahi\fR) allowing for automatic detection by clients.
 
 .PP
-The
-.I stap\-start\-server
-program attempts to start a systemtap server (\fIstap-serverd\fP)
-on the local host. Upon
-successful startup, the server listens for connections on a random port and
-advertises its presence on the local network using the
-.I avahi
-daemon. If the server is successfully started, its process id is
-echoed to stdout and the exit code is 0. Otherwise, nothing is echoed and the
-exit code is 1.
-
-.PP
-The
-.I stap\-find\-servers
-program attempts to find systemtap servers running on the local network.
-The details of any servers found are echoed to stdout.
-If servers are found, then the exit code is 0, otherwise it is 1.
-
-.PP
-The
-.I stap\-find\-or\-start\-server
-program attempts to find a compatible systemtap server running on the local network
-using
-.IR stap\-find\-servers .
-If a compatible server is found,
-.I stap\-find\-or\-start\-server
-echoes \[aq]0\[aq] to stdout. Otherwise
-.I stap\-find\-or\-start\-server
-attempts to start a server on the local network using
-.IR stap\-start\-server .
-If successful, the process id of the new server is echoed to stdout.
-If no server can be found or started, \[aq]-1\[aq] is echoed
-to stdout. The exit code is 0 in all cases.
-
-.PP
-The
-.I stap\-stop\-server
-program verifies that the given process id is that of a running systemtap server
-on the local host and, if so, attempts to shut down the server by sending it the
-SIGTERM signal. If a process id is provided and it is that of a running systemtap
-server, the exit code is 0. Otherwise the exit code is 1.
-.I stap\-stop\-server
-does not verify that the server actually shuts down.
-
-.PP
-The
-.I stap\-authorize\-server\-cert
-program adds the given server certificate to the given client\-side
-certificate database, making that server a trusted server for clients using that database.
-
-.PP
-The
-.I stap\-client
-program is analogous to the
-.I stap
-front end except that it attempts to find a compatible systemtap server on the
-local network and then attempts to use that server for actions related to
-passes 1 through 4. Pass 5 actions, if requested, are performed on the local
-host using
-.IR staprun .
-Upon successful completion, the exit code is 0. Otherwise the exit code
-is 1.
-
-.SH OPTIONS
-The
-.I stap\-find\-servers
-program supports the following option.  Any other option
-is ignored.
-.TP
-.B \-\-all
-Instructs
-.I stap\-find\-servers
-to report all systemtap servers on the local network regardless of compatibility.
-The default behavior is to report only servers which are compatible with
-systemtap on the local host.
-
-.PP
-In addition to the options accepted by the
-.I stap
-front end,
-.I stap\-client
-accepts the following:
-
-.TP
-.B \-\-server=\fIHOSTNAME\fR|\fIIP_ADDRESS\fR[\fB:\fIPORT\fR]
-This option instructs
-.I stap\-client
-to use the named server instead of looking for one automatically. The server may
-be specified using a valid host name or ip address. If no port is specified, then
-.I stap\-client
-searches for the server among the servers advertising their presence on the
-local network and uses the port which is being advertised. This is useful for
-connecting to a specific server on the local network. If a port is specified,
-then
-.I stap\-client
-will attempt to connect to the named host on the specified port. This is useful
-for connecting to non\-local servers. If
-.B \-\-server
-is specified,
-.I stap\-client
-will make no attempt to contact other servers. If more than one
-.B \-\-server
-option is specified,
-.I stap\-client
-will attempt to use the servers in the order specified.
-
-.TP
-.B \-\-ssl=\fIDIRNAME
-.I stap\-client
-uses certificate databases in default locations (see
-.I SERVER MANAGEMENT
-below) in order to authenticate each server which is contacted. The
-.B \-\-ssl
-option is used to specify additional databases to search. Databases specified
-using
-.B \-\-ssl
-are searched before the default databases. If more than one
-.B \-\-ssl
-option is specified, then the databases are searched in the order specified on
-the command line followed by the default locations.
+The stap\-server service aims to provide:
+.IP \(bu 4
+management of systemtap compile servers as a service.
+.IP \(bu 4
+convenient control over configured servers and individual (ad\-hoc) servers.
 
 .SH ARGUMENTS
-The
-.I stap\-stop\-server
-program requires a process id argument which identifies the server to be stopped.
-
-.PP
-The
-.I stap\-authorize\-server\-cert
-program accepts two arguments:
+One of the actions below must be specified:
+.TP
+.B start
+Start servers. The specified servers are started.
+If no server is specified, the configured servers are started. If no servers
+are configured, a server for the kernel release and architecture of the host
+is started.
+If a specified server is
+already started, this action will
+be ignored for that server. If a server fails to start, this action fails.
 
 .TP
-.B CERTFILE
-This is the name of the file containing the certificate of the new trusted
-server. This is the file named \fIstap.cert\fR which can be found in the
-server\[aq]s certificate database.
+.B stop
+Stop server(s). The specified servers are stopped.
+If no server is specified, all currently running servers are stopped.
+If a specified server is
+not running, this action
+will be successful for that server. If a server fails to stop, this action
+fails.
 
 .TP
-.B DIRNAME
-This optional argument is the name of the directory containing the client\-side
-certificate database to which the certificate is to be added. If not specified, the
-default, for non\-root users, is
-.I $HOME/.systemtap/ssl/server\fP.
-For root users (EUID=0), the default is
-.I $sysconfdir/systemtap/ssl/server\fP.
+.B restart
+Stop and restart servers. The specified servers are stopped and restarted.
+If no server is specified, all currently running servers are stopped and
+restarted. If no servers are running, this action behaves like \fIstart\fR.
 
-.PP
-The
-.I stap\-client
-program accepts the same arguments as
-.I stap\fP.
-See \fIstap\fP(1) for details.
+.TP
+.B condrestart
+Stop and restart servers. The specified servers are stopped and restarted.
+If a specified server is not running, it is not started. If no server is
+specified, all currently running servers are stopped and restarted.  If no
+servers are running, none will be started.
 
-.SH SERVER MANAGEMENT
-The security of the SSL network connection between the client and server and
-of the signing and verification of the server\[aq]s response depend on the proper
-management of server certificates and the public and private key pairs with which
-they are signed and verified.
+.TP
+.B try\-restart
+This action is identical to \fIcondrestart\fR.
+
+.TP
+.B force\-reload
+Stop all running servers, reload config files and restart the service as if
+.I start
+was specified.
+
+.TP
+.B status
+Print information about running servers. Information about the specified
+server(s) will be printed. If no server is specified, information about all
+running servers will be printed.
+
+.SH OPTIONS
+The following options are used to provide additional configuration and
+to specify servers to be managed:
+
+.TP
+\fB\-c\fR \fIconfigfile\fR
+This option specifies a global configuration file in addition to the default
+global configuration file described
+below. This file will be processed after the default global
+configuration file. If the \fB\-c\fR option is specified more than once, the
+last
+configuration file specified will be used.
+
+.TP
+\fB\-a\fR \fIarchitecture\fR
+This option specifies the target architecture of the server and is
+analogous to the \fB\-a\fR option of \fIstap\fR. See the
+.IR stap (1)
+manual page for more details.
+The default architecture is the architecture of the host.
+
+.TP
+\fB\-r\fR \fIkernel\-release\fR
+This option specifies the target kernel release of the server and is
+analogous to the \fB\-r\fR option of \fIstap\fR. See the
+.IR stap (1)
+manual page for more details.
+The default release is that of the currently running kernel.
+
+.TP
+\fB\-I\fR \fIpath\fR
+This option specifies an additional path to be searched by the server(s) for
+tapsets and is analogous to the \fB\-I\fR option of \fIstap\fR.
+See the
+.IR stap (1)
+manual page for more details.
+
+.TP
+\fB\-R\fR \fIpath\fR
+This option specifies the location of the systemtap runtime to be used by the
+server(s) and is analogous to the \fB\-R\fR option of \fIstap\fR.
+See the
+.IR stap (1)
+manual page for more details.
+
+.TP
+\fB\-B\fR \fIoptions\fR
+This option specifies options to be passed to \fImake\fR when building systemtap
+modules and is analogous to the \fB\-B\fR option of \fIstap\fR.
+See the
+.IR stap (1)
+manual page for more details.
+
+.TP
+\fB\-i\fR
+This option is a shortcut which specifies one server for each kernel
+release installed in \fI/lib/modules/\fR. Previous
+\fB\-I\fR, \fB\-R\fR, \fB\-B\fR and \fB\-u\fR options will be
+applied to each server, however previous \fB\-a\fR options will be ignored and
+the default architecture will be used.
+
+.TP
+\fB\-n\fR \fInickname\fR
+This option allows the specification of a server configuration by nickname.
+When \fB\-n\fR is specified, a currently running server with the given nickname
+will be searched for. If no currently running server with the given nickname is
+found, a server configuration with the given nickname will be searched for in
+\fI/etc/stap\-server/conf.d/*.conf\fR, or the path configured in
+\fI/etc/sysconfig/stap\-server\fR or the config file specified by the
+\fB\-c\fR option. If a server configuration for the given
+nickname is found, the
+\fB\-a\fR, \fB\-r\fR, \fB\-I\fR, \fB\-R\fR, \fB\-B\fR and \fB\-u\fR options for
+that server will be used as if they were specified on the command line. If no
+configuration with the given nickname is found, and the action is
+.I start
+(or an action behaving like \fIstart\fR
+(see \fBARGUMENTS\fR), the server will be started with the given nickname.
+If no configuration with the given nickname is found, and the action is not
+.I start
+(or an action behaving like \fIstart\fR), it is an error. If a nickname is
+not specified for a server which is being started, its nickname will be its
+process id.
+
+.TP
+\fB\-p\fR \fIpid\fR
+This option allows the specification of a server configuration by process id.
+When \fB\-p\fR is specified, a currently running server with the given process
+id will be searched for. If no such server is found, it is an error. If a server
+with the given procss id is found, the
+\fB\-a\fR, \fB\-r\fR, \fB\-I\fR, \fB\-R\fR, \fB\-B\fR and \fB\-u\fR options for
+that server will be used as if they were specified on the command line.
+
+.TP
+\fB\-u\fR \fIuser\-name\fR
+Each systemtap compile server is normally run by the user name
+\fistap\-server\fR,
+unless otherwise configured (see \fBFILES\fR). This option
+specifies the user name used to run the server(s). The user name specified
+must be a member of the group \fIstap\-server\fR.
+
+.SH CONFIGURATION
+
+Configuration files allow us to:
+.IP \(bu 4
+specify global configuration of logging, server configuration files, status
+files and other global parameters.
+.IP \(bu 4
+specify which servers are to be started by default.
+
+.SH Global Configuration
+
+The Global Configuration file (\fI/etc/sysconfig/stap\-server\fR)
+is a shell script fragment which may contain
+settings for the following variables:
+
+.TP
+.B CONFIG_PATH
+Specifies the absolute path of the directory containing the default server
+configurations
+(default: \fI/etc/stap\-server/conf.d\fR).
+
+.TP
+.B STAT_PATH
+Specifies the absolute path of the running server status directory
+(default: \fI/var/run/stap\-server\fR).
+
+.TP
+.B LOG_FILE
+Specifies the absolute path of the log file
+(default: \fI/var/log/stap\-server.log\fR).
+
+.TP
+.B STAP_USER
+Specifies the userid which will be used to run the server(s)
+(default: \fIstap\-server\fR).
+
+.SH Individual Server Configuration
+
+Each server configuration file configures a server to be started when no
+server is specified for the \fIstart\fR action, or an action behaving like the
+\fIstart\fR action (see \fIARGUMENTS\fR).
+Each configuration file is a
+shell script fragment with a filename suffix of \fI.conf\fR. The default
+location of these files is \fI/etc/stap\-server/conf.d/\fR, but this can be
+overridden using the \fB\-c\fR option (see \fIOPTIONS\fR).
+
+The following variables may be set:
+.TP
+.B ARCH
+Specifies the target architecture for this server and corresponds to the
+\fB\-a\fR option (see \fIOPTIONS\fR). If \fBARCH\fR is not set, the
+architecture of the host will be used.
+
+.TP
+.B RELEASE
+Specifies the kernel release for this server
+and corresponds to the
+\fB\-r\fR option (see \fIOPTIONS\fR). If \fBRELEASE\fR is not set, the
+release
+of the kernel running on the host will be used.
+ 
+.TP
+.B BUILD
+Specifies options to be passed to the \fImake\fR process used by
+\fIsystemtap\fR to build kernel modules
+and corresponds to one or more
+\fB\-B\fR options (see \fIOPTIONS\fR).
+ 
+.TP
+.B INCLUDE
+Specifies a list of directories to be searched by the server for tapsets
+and corresponds to one or more
+\fB\-I\fR options (see \fIOPTIONS\fR).
+
+.TP
+.B RUNTIME
+Specifies the directory which contains the systemtap runtime code to be used
+by this server
+and corresponds to the
+\fB\-R\fR option (see \fIOPTIONS\fR).
+
+.TP
+.B USER
+Specifies the user name to be used to run this server
+and corresponds to the
+\fB\-u\fR option (see \fIOPTIONS\fR).
+
+.TP
+.B NICKNAME
+Specifies the nickname to be used to refer to this server
+and corresponds to the
+\fB\-n\fR option (see \fIOPTIONS\fR).
+
+.SH SERVER AUTHENTICAION
+The security of the SSL network connection between the client and server
+depends on the proper
+management of server certificates.
 
 .PP
 The trustworthiness of a given systemtap server can not be determined
 automatically without a trusted certificate authority issuing systemtap server
 certificates. This is
 not practical in everyday use and so, clients must authenticate servers
-against their own databases of trusted server certificates. In this context,
+against their own database of trusted server certificates. In this context,
 establishing a given server as trusted by a given client means adding
 that server\[aq]s certificate to the
 client\[aq]s database of trusted servers.
 
 .PP
-The implementation of the client and server have automated many of the tasks
-required. In particular:
-
-.IP \(bu 4
-When a user starts a server for the first time, the server will generate its
-own certificate and add it to a database local to that user. For non\-root users,
-this database will be created in
-.I $HOME/.systemtap/ssl/server\fP.
-For root users (EUID=0), it will be created in
-.I $sysconfdir/systemtap/ssl/server\fP.
-
-.IP \(bu 4
-At this time, the
-server will also create a local client\-side certificate database and add the
-server\[aq]s certificate to it. For non\-root users,
-this database will be created in
-.I $HOME/.systemtap/ssl/client\fP.
-For root users (EUID=0), it will be created in
-.I $sysconfdir/systemtap/ssl/client\fP.
-
-In this way, a server started by a given user is automatically trusted by
-clients run by that user.
-
-.IP \(bu 4
-The client\-side certificate database created for root users is also
-the global client\-side database for all clients on the host. In this way,
-a server started by root is automatically trusted by clients run by any
-user on that host.
-
-.PP
-The trustworthiness of other servers may be asserted in one of two ways:
-
-.IP \(bu 4
-Other existing client\-side certificate databases may be searched by using the
-.B \-\-ssl
-option one or more times when running the client (see
-.I OPTIONS
-above). Servers whose certificates are contained in the additional databases
-will be considered to be trusted for that invocation of the client.
-
-.IP \(bu 4
-A user may add the certificate of a new trusted server to his own local
-client\-side certificate database using
-\[aq]\fBstap\-authorize\-server\-cert \fICERTFILE\fR\[aq]
-(see above), where \fICERTFILE\fP is the server\[aq]s certificate file
-(\fIstap.cert\fP) from the server\[aq]s certificate database directory and
-\fIDIRNAME\fP is the
-directory containing the user\[aq]s client\-side certificate database.
-
-The server will trusted by clients run by that user from then on.
-
-.PP
-When a root (EUID=0) user adds a server\[aq]s certificate to their client\-side
-certificate database, which is also the global database for all users on that
-host, they assert the trustworthiness of that server for all users on that
+For the \fIstap\-server\fR service, on the local host, this is handled
+automatically.
+When the \fIsystemtap\-server\fR package is installed, the server\[aq]s
+certificate for the default user (\fIstap\-server\fR) is automatically
+generated and installed. This means that servers started by the
+\fIstap\-server\fR service,
+with the default user, are automatically trusted by clients on the local
 host.
+
+.PP
+In order to use a server running on another host, that server\[aq]s certificate
+must be installed on the client\[aq]s host.
+See the
+.IR stap\-authorize\-server\-cert (8)
+manual page for more details.
 
 .SH EXAMPLES
 See the 
 .IR stapex (3stap)
-manual page for a collection of sample scripts.
+manual page for a collection of sample \fIsystemtap\fR scripts.
 .PP
-Here is a very basic example of how to use
-.IR stap\-client .
+To start the configured servers, or the default server, if none are configured:
 .PP
-To find out if a compatible systemtap server is running on your local network
+.B \& $ service stap\-server start
 .PP
-.B \& $ stap\-find\-servers
+To start a server for each kernel installed in /lib/modules:
 .PP
-If no servers are reported, you can start one using
+.B \& $ service stap\-server start \-i
 .PP
-.B \& $ stap\-start\-server
+To obtain information about the running server(s):
 .PP
-You could also have accomplished both of the previous two steps using
+.B \& $ service stap\-server status
 .PP
-.B \& $ stap\-find\-or\-start\-server
+To start a server like another one, except targeting a different architecture,
+by referencing the first server\[aq]s nickname:
 .PP
-To compile and execute a simple example using an automatically discovered
-server on the local network
+.B \& $ service stap\-server start \-n \fINICKNAME\fR \-a \fIARCH\fR
 .PP
-.B \& $ stap\-client \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
-.br
-\& Hello World!
+To stop one of the servers by referencing its process id (obtained by running
+\fBstap\-server status\fR):
 .PP
-To compile and execute a simple example using a server on a specific host
-on the local network
+.B \& $ service stap\-server stop \-p \fIPID\fR
 .PP
-.B \& $ stap\-client \-\-server=\fIHOSTNAME\fP \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
-.br
-\& Hello World!
+To stop all running servers:
 .PP
-To compile and execute a simple example using a specific server
-.PP
-.B \& $ stap\-client \-\-server=\fIHOSTNAME\fP:\fIPORT\fP \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
-.br
-\& Hello World!
-.PP
-To search additional certificate databases in order to compile and execute a
-simple example
-.PP
-.B \& $ stap\-client \-\-ssl=\fIDIRNAME\fP \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
-.br
-\& Hello World!
-.PP
-To permanently trust a given server for your own use
-.PP
-.B \& $ stap\-authorize\-server\-cert \fICERTFILE\fP
-.PP
-As root, to permanently trust a given server for all users on your host
-.PP
-.B \& $ stap\-authorize\-server\-cert \fICERTFILE\fP
-.PP
-If a process id was echoed by
-.I stap\-start\-server
-or
-.I stap\-find\-or\-start\-server
-then you can stop the server using
-.PP
-.B \& $ stap\-stop\-server \fIPID\fP
-.PP
-where \fIPID\fR is the process id that was echoed.
+.B \& $ service stap\-server stop
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
@@ -347,12 +362,35 @@ is used for the generation of certificates. The related
 certificate databases must be protected in order to maintain the security of
 the system.
 Use of the utilities provided will help to ensure that the proper protection
-is maintained. The systemtap client and server will both check for proper
+is maintained. The systemtap client will check for proper
 access permissions before making use of any certificate database.
+
+.SH FILES
+.TP
+/etc/sysconfig/stap\-server/
+Global configuration file.
+
+.TP
+/etc/stap\-server/conf.d/*.conf
+Configuration files for default servers.
+
+.TP
+/var/run/stap\-server/
+Default location of status files for running servers.
+
+.TP
+/var/log/stap\-server.log
+Default log file.
+
+.TP
+/lib/modules/
+Location of installed kernels.
 
 .SH SEE ALSO
 .IR stap (1),
 .IR staprun (8),
+.IR stap\-client (8),
+.IR stap\-authorize\-server\-cert (8),
 .IR stapprobes (3stap),
 .IR stapfuncs (3stap),
 .IR stapex (3stap),
