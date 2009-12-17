@@ -1,5 +1,16 @@
-# Path setup
+# stap-server global configuration
+#
+# This is a shell script fragment which may set the following variables.
+# The suggested settings below are the default settings.
+
+# Where to find individual server configurations
 # CONFIG_PATH=/etc/stap-server/conf.d
+
+# Where to keep information about running servers
 # STAT_PATH=/var/run/stap-server
+
+# Where to log messages
 # LOG_FILE=/var/log/stap-server.log
+
+# The user who will run the server(s)
 # STAP_USER=stap-server
