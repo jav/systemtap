@@ -1,0 +1,31 @@
+probe process("uprobe_uaddr").function("main").call {
+    print_ubacktrace()
+    printf("\n")
+}
+
+probe process("uprobe_uaddr").function("main").return {
+    print_ubacktrace()
+    printf("\n")
+}
+
+probe process("uprobe_uaddr").function("func").call {
+    print_ubacktrace()
+    printf("\n")
+}
+
+probe process("uprobe_uaddr").function("func").return {
+    print_ubacktrace()
+    printf("\n")
+}
+
+
+probe process("uprobe_uaddr").function("func2").call {
+    print_ubacktrace()
+    printf("\n")
+}
+
+
+probe process("uprobe_uaddr").function("func2").return {
+    print_ubacktrace()
+    printf("\n")
+}

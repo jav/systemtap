@@ -32,7 +32,7 @@ static int __init find_str_pc_offset(void)
 
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
-                               struct task_struct *tsk)
+                               struct task_struct *tsk, struct uretprobe_instance *ri)
 {
 #ifdef STP_USE_FRAME_POINTER
 	int		pc_offset = find_str_pc_offset();

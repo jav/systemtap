@@ -28,7 +28,25 @@ function print_ubacktrace () %{ /* unprivileged */
         assert_is_myproc();
 	if (CONTEXT->regs) {
 		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE,
-				 current);
+				 current, CONTEXT->ri);
+	} else {
+		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
+	}
+%}
+
+/**
+ * sfunction print_ubacktrace_brief- Print stack back trace for current task. EXPERIMENTAL!
+ *
+ *  Equivalent to print_ubacktrace(), but output for each symbol is
+ *  shorter (just name and offset), and the function address is
+ *  printed if it can't be mapped to a name.
+ */
+
+function print_ubacktrace_brief () %{ /* unprivileged */
+        assert_is_myproc();
+	if (CONTEXT->regs) {
+		_stp_stack_print(CONTEXT->regs, SYM_VERBOSE_BRIEF, CONTEXT->pi,
+				 MAXTRACE, current, CONTEXT->ri);
 	} else {
 		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
 	}
@@ -47,7 +65,7 @@ function ubacktrace:string () %{ /* pure */ /* unprivileged */
 	if (CONTEXT->regs)
 		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN,
 				    CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE,
-				    current);
+				    current, CONTEXT->ri);
 	else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}

@@ -1,0 +1,17 @@
+global depth = 0
+global max_depth = 0
+
+probe process("fib").function("fib").call {
+    depth++
+    if (depth > max_depth) {
+            max_depth = depth
+    }
+}
+
+probe process("fib").function("fib").return {
+    if (depth == max_depth) {
+            print_ubacktrace_brief()
+            printf("\n")
+    }
+    depth--
+}

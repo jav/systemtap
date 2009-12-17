@@ -107,15 +107,25 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
  * @param regs A pointer to the struct pt_regs.
  */
 
-static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk)
+static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk, struct uretprobe_instance *ri)
 {
 	if (verbose) {
 		/* print the current address */
 		if (pi) {
-			_stp_print("Returning from: ");
-			_stp_symbol_print((unsigned long)_stp_probe_addr_r(pi));
-			_stp_print("\nReturning to  : ");
+			if (verbose == SYM_VERBOSE_FULL) {
+				_stp_print("Returning from: ");
+				_stp_symbol_print((unsigned long)_stp_probe_addr_r(pi));
+				_stp_print("\nReturning to  : ");
+			}
 			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
+                } else if (ri) {
+			if (verbose == SYM_VERBOSE_FULL) {
+				_stp_print("Returning from: ");
+				_stp_usymbol_print(ri->rp->u.vaddr, tsk);
+				_stp_print("\nReturning to  : ");
+				_stp_usymbol_print(ri->ret_addr, tsk);
+			} else
+				_stp_func_print(ri->ret_addr, verbose, 0, tsk);
 		} else {
 			_stp_print_char(' ');
 			if (tsk)
@@ -123,13 +133,14 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 			else
 			  _stp_symbol_print(REG_IP(regs));
 		}
-		_stp_print_char('\n');
+		if (verbose != SYM_VERBOSE_BRIEF)
+			_stp_print_char('\n');
 	} else if (pi)
 		_stp_printf("%p %p ", (int64_t)(long)_stp_ret_addr_r(pi), (int64_t) REG_IP(regs));
 	else 
 		_stp_printf("%p ", (int64_t) REG_IP(regs));
 
-	__stp_stack_print(regs, verbose, levels, tsk);
+	__stp_stack_print(regs, verbose, levels, tsk, ri);
 }
 
 /** Writes stack backtrace to a string
@@ -138,14 +149,14 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk)
+static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk, struct uretprobe_instance *ri)
 {
 	/* To get a string, we use a simple trick. First flush the print buffer, */
 	/* then call _stp_stack_print, then copy the result into the output string  */
 	/* and clear the print buffer. */
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
-	_stp_stack_print(regs, verbose, pi, levels, tsk);
+	_stp_stack_print(regs, verbose, pi, levels, tsk, ri);
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
 }

@@ -31,6 +31,17 @@
 #include <linux/sched.h>
 #include <linux/mm.h>
 
+/* If uprobes isn't in the kernel, pull it in from the runtime. */
+#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)
+#include <linux/uprobes.h>
+#else
+#include "uprobes/uprobes.h"
+#endif
+#ifndef UPROBES_API_VERSION
+#define UPROBES_API_VERSION 1
+#endif
+
+
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,15)
 #if !defined (CONFIG_DEBUG_FS)  && !defined (CONFIG_DEBUG_FS_MODULE)
 #error "DebugFS is required and was not found in the kernel."
@@ -113,6 +124,16 @@ static struct
 #ifndef STP_USE_DWARF_UNWINDER
 #define STP_USE_FRAME_POINTER
 #endif
+#endif
+
+#ifndef SYM_VERBOSE_NO
+#define SYM_VERBOSE_NO 0
+#endif
+#ifndef SYM_VERBOSE_FULL
+#define SYM_VERBOSE_FULL 1
+#endif
+#ifndef SYM_VERBOSE_BRIEF
+#define SYM_VERBOSE_BRIEF 2
 #endif
 
 #include "alloc.c"

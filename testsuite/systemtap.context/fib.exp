@@ -1,0 +1,37 @@
+# Tests backtrace in the classic Fibonacci program
+
+
+set test "fib"
+
+# Only run on make installcheck and utrace present.
+if {! [installtest_p]} { untested "$test"; return }
+if {! [utrace_p]} { untested "$test"; return }
+
+set testpath  "$srcdir/$subdir"
+set testsrc   "$testpath/fib.c"
+set testexe   "[pwd]/$test"
+
+# We want debug info and no optimization (is that totally necessary?)
+set testflags "additional_flags=-g additional_flags=-O0"
+set teststp   "$testpath/$test.stp"
+
+set res [target_compile $testsrc $testexe executable $testflags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $testsrc"
+    return
+}
+
+spawn stap -c "$testexe 10" $teststp
+set fibcalls 0
+set maincalls 0
+expect {
+    -timeout 120
+    -re {^fib[^\r\n]*[\r\n]} { incr fibcalls; exp_continue }
+    -re {^main[^\r\n]*[\r\n]} { incr maincalls; exp_continue }
+    -re {^[^\r\n]*[\r\n]} {exp_continue}
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$fibcalls == 18 && $maincalls == 2} { pass "$test ($fibcalls $maincalls)" } { fail "$test ($fibcalls $maincalls)" }

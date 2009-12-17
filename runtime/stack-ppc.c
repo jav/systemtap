@@ -8,7 +8,7 @@
  */
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
-                               struct task_struct *tsk)
+                               struct task_struct *tsk, struct uretprobe_instance *ri)
 {
 	unsigned long ip, newsp, lr = 0;
 	int count = 0;

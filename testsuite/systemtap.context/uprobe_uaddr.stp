@@ -1,0 +1,24 @@
+probe process("uprobe_uaddr").function("main").call {
+    println(usymdata(uaddr()))
+}
+
+probe process("uprobe_uaddr").function("main").return {
+    println(usymdata(uaddr()))
+}
+
+probe process("uprobe_uaddr").function("func").call {
+    println(usymdata(uaddr()))
+}
+
+probe process("uprobe_uaddr").function("func").return {
+    println(usymdata(uaddr()))
+}
+
+probe process("uprobe_uaddr").function("func2").call {
+    println(usymdata(uaddr()))
+}
+
+probe process("uprobe_uaddr").function("func2").return {
+    println(usymdata(uaddr()))
+}
+

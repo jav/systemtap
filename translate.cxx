@@ -905,6 +905,7 @@ c_unparser::emit_common_header ()
   o->newline() << "cycles_t cycles_base;";
   o->newline() << "cycles_t cycles_sum;";
   o->newline() << "#endif";
+  o->newline() << "struct uretprobe_instance *ri;";
 
 
   // PR10516: probe locals
@@ -1500,7 +1501,7 @@ c_unparser::emit_function (functiondecl* v)
   // or 0...N (if we're called from another function).  Incoming parameters are already
   // stored in c->locals[c->nesting+1].  See also ::emit_common_header() for more.
 
-  o->newline() << "if (unlikely (c->nesting+1 > MAXNESTING)) {";
+  o->newline() << "if (unlikely (c->nesting+1 >= MAXNESTING)) {";
   o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
   o->newline() << "return;";
   o->newline(-1) << "} else {";
