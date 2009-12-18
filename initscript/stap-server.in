@@ -16,8 +16,8 @@
 prog=stap-server
 
 # Commands
-STAP_START_SERVER=@pkglibexecdir@/stap-start-server
-STAP_STOP_SERVER=@pkglibexecdir@/stap-stop-server
+STAP_START_SERVER=@bindir@/stap-start-server
+STAP_STOP_SERVER=@bindir@/stap-stop-server
 UNAME=/bin/uname
 
 # Default Global Configuration
