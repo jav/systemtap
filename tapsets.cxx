@@ -2400,9 +2400,14 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   try
     {
+      // PR10601: adapt to kernel-vs-userspace loc2c-runtime
+      ec->code += "\n#define fetch_register " + string(q.has_process?"u":"k") + "_fetch_register\n";
+      ec->code += "#define store_register " + string(q.has_process?"u":"k") + "_store_register\n";
+      ec->code += "#define deref " + string(q.has_process?"u":"k") + "_deref\n";
+      
       if (q.has_return && (e->base_name == "$return"))
         {
-	  ec->code = q.dw.literal_stmt_for_return (scope_die,
+	  ec->code += q.dw.literal_stmt_for_return (scope_die,
 						   addr,
 						   e,
 						   lvalue,
@@ -2410,7 +2415,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	}
       else
         {
-	  ec->code = q.dw.literal_stmt_for_local (getscopes(e),
+	  ec->code += q.dw.literal_stmt_for_local (getscopes(e),
 						  addr,
 						  e->base_name.substr(1),
 						  e,
@@ -2422,6 +2427,11 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         ec->code += "/* pure */";
 
       ec->code += "/* unprivileged */";
+
+      // PR10601
+      ec->code += "\n#undef fetch_register\n";
+      ec->code += "\n#undef store_register\n";
+      ec->code += "\n#undef deref\n";
     }
   catch (const semantic_error& er)
     {
@@ -2687,6 +2697,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   // split the module string by ':' for alternatives
   vector<string> modules;
   tokenize(e->module, modules, ":");
+  bool userspace_p=false; // PR10601
   for (unsigned i = 0; code.empty() && i < modules.size(); ++i)
     {
       string& module = modules[i];
@@ -2697,7 +2708,8 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       dwflpp* dw;
       try
 	{
-	  if (! is_user_module (module))
+          userspace_p=is_user_module (module);
+	  if (! userspace_p)
 	    {
 	      // kernel or kernel module target
 	      dw = db.get_kern_dw(s, module);
@@ -2739,8 +2751,14 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
-  ec->code = code;
   fdecl->body = ec;
+
+  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
+  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
+  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
+  ec->code += "#define deref " + string(userspace_p?"u":"k") + "_deref\n";
+  
+  ec->code += code;
 
   // Give the fdecl an argument for the pointer we're trying to cast
   vardecl *v1 = new vardecl;
@@ -2780,6 +2798,11 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
     ec->code += "/* pure */";
 
   ec->code += "/* unprivileged */";
+
+  // PR10601
+  ec->code += "\n#undef fetch_register\n";
+  ec->code += "\n#undef store_register\n";
+  ec->code += "\n#undef deref\n";
 
   s.functions[fdecl->name] = fdecl;
 
@@ -5764,9 +5787,14 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       fdecl->name = fname;
       fdecl->body = ec;
 
+      // PR10601: adapt to kernel-vs-userspace loc2c-runtime
+      ec->code += "\n#define fetch_register k_fetch_register\n";
+      ec->code += "#define store_register k_store_register\n";
+      ec->code += "#define deref k_deref\n";
+     
       try
         {
-          ec->code = dw.literal_stmt_for_pointer (&arg->type_die, e,
+          ec->code += dw.literal_stmt_for_pointer (&arg->type_die, e,
                                                   lvalue, fdecl->type);
         }
       catch (const semantic_error& er)
@@ -5824,6 +5852,11 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
       ec->code += "/* unprivileged */";
 
+      // PR10601
+      ec->code += "\n#undef fetch_register\n";
+      ec->code += "\n#undef store_register\n";
+      ec->code += "\n#undef deref\n";
+  
       dw.sess.functions[fdecl->name] = fdecl;
 
       // Synthesize a functioncall.
