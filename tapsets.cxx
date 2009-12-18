@@ -4576,6 +4576,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
   if (probes.empty()) return;
   s.op->newline() << "/* ---- user probes ---- */";
+  // If uprobes isn't in the kernel, pull it in from the runtime.
+
+  s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
+  s.op->newline() << "#include <linux/uprobes.h>";
+  s.op->newline() << "#else";
+  s.op->newline() << "#include \"uprobes/uprobes.h\"";
+  s.op->newline() << "#endif";
+  s.op->newline() << "#ifndef UPROBES_API_VERSION";
+  s.op->newline() << "#define UPROBES_API_VERSION 1";
+  s.op->newline() << "#endif";
 
   // We'll probably need at least this many:
   unsigned minuprobes = probes.size();

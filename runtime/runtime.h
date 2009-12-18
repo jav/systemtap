@@ -31,16 +31,6 @@
 #include <linux/sched.h>
 #include <linux/mm.h>
 
-/* If uprobes isn't in the kernel, pull it in from the runtime. */
-#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)
-#include <linux/uprobes.h>
-#else
-#include "uprobes/uprobes.h"
-#endif
-#ifndef UPROBES_API_VERSION
-#define UPROBES_API_VERSION 1
-#endif
-
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,15)
 #if !defined (CONFIG_DEBUG_FS)  && !defined (CONFIG_DEBUG_FS_MODULE)
