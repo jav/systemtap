@@ -11,7 +11,7 @@
 . /etc/rc.d/init.d/functions
 
 # Systemtap function library
-. @pkglibexecdir@/stap-env
+. @libexecdir@/systemtap/stap-env
 
 prog=stap-server
 
