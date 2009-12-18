@@ -17,6 +17,7 @@
 # INSTALL-HOOK time.
 stap_exec_prefix=
 stap_sysconfdir=`pwd`/net
+stap_pkglibexecdir=
 
 # General configuration
 stap_tmpdir_prefix_client=stap.client

@@ -8,26 +8,23 @@
 # config: /etc/sysconfig/stap-server
 # config: /etc/stap-server/conf.d
 
-BINDIR=@bindir@
-
-# Source function library.
 . /etc/rc.d/init.d/functions
 
 # Systemtap function library
-. $BINDIR/stap-env
+. @pkglibexecdir@/stap-env
 
 prog=stap-server
 
 # Commands
-STAP_START_SERVER=$BINDIR/stap-start-server
-STAP_STOP_SERVER=$BINDIR/stap-stop-server
+STAP_START_SERVER=@pkglibexecdir@/stap-start-server
+STAP_STOP_SERVER=@pkglibexecdir@/stap-stop-server
 UNAME=/bin/uname
 
 # Default Global Configuration
-CONFIG_FILE=/etc/sysconfig/stap-server
-CONFIG_PATH=/etc/stap-server/conf.d
-STAT_PATH=/var/run/stap-server
-LOG_FILE=/var/log/stap-server.log
+CONFIG_FILE=@sysconfdir@/sysconfig/stap-server
+CONFIG_PATH=@sysconfdir@/stap-server/conf.d
+STAT_PATH=@localstatedir@/run/stap-server
+LOG_FILE=@localstatedir@/log/stap-server.log
 STAP_USER=stap-server
 
 # Default option settings
@@ -71,7 +68,7 @@ echo_usage () {
   echo $"nickname. When -n is specified, a currently running server with the"
   echo $"given nickname will be searched for. If no currently running server"
   echo $"with the given nickname is found, a server configuration with the"
-  echo $"given nickname will be searched for in /etc/stap-server/conf.d/*.conf."
+  echo $"given nickname will be searched for in @sysconfdir@/stap-server/conf.d/*.conf."
   echo $"If a server configuration for the given nickname is found, the -a, -r,"
   echo $"-I, -R, -B and -u options for that server will be used as if they were"
   echo $"specified on the command line. If no configuration with the given"
@@ -93,7 +90,7 @@ echo_usage () {
   echo $"command line. If no servers are specified on the command line, the"
   echo $"behavior is as follows:"
   echo $""
-  echo $"  start:        Start the servers configured in /etc/stap-server/conf.d/*.conf."
+  echo $"  start:        Start the servers configured in @sysconfdir@/stap-server/conf.d/*.conf."
   echo $"                If none are configured, start a server for the kernel release"
   echo $"                and architecture of the host platform."
   echo $""

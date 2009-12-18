@@ -41,7 +41,7 @@ bin_PROGRAMS = staprun$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
 @BUILD_TRANSLATOR_TRUE@am__append_3 = dtrace
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_4 = stap-authorize-signing-cert.8
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_5 = stap-sign-module
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_6 = stap-env stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_6 = stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_7 = stap-client.8 stap-server.8 stap-authorize-server-cert.8
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_8 = stap-client-connect stap-server-connect
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_9 = stap-client stap-serverd stap-server stap-find-servers \
@@ -116,9 +116,9 @@ CONFIG_CLEAN_FILES = stap.1 stapprobes.3stap stapfuncs.3stap \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__EXEEXT_3 = stap-client-connect$(EXEEXT) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap-server-connect$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
-	"$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" \
-	"$(DESTDIR)$(man3dir)" "$(DESTDIR)$(man8dir)" \
-	"$(DESTDIR)$(oldincludedir)"
+	"$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
+	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man3dir)" \
+	"$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 pkglibexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
@@ -194,7 +194,8 @@ staprun_DEPENDENCIES = $(am__DEPENDENCIES_1)
 staprun_LINK = $(CCLD) $(staprun_CFLAGS) $(CFLAGS) $(staprun_LDFLAGS) \
 	$(LDFLAGS) -o $@
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
-SCRIPTS = $(bin_SCRIPTS)
+pkglibexecSCRIPT_INSTALL = $(INSTALL_SCRIPT)
+SCRIPTS = $(bin_SCRIPTS) $(pkglibexec_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -371,6 +372,7 @@ man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap \
 	$(am__append_7)
 bin_SCRIPTS = stap-report $(am__append_3) $(am__append_6) \
 	$(am__append_9)
+pkglibexec_SCRIPTS = stap-env
 oldinclude_HEADERS = includes/sys/sdt.h
 @BUILD_TRANSLATOR_TRUE@stap_SOURCES = main.cxx \
 @BUILD_TRANSLATOR_TRUE@	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
@@ -393,7 +395,8 @@ oldinclude_HEADERS = includes/sys/sdt.h
 # instead of foo_SOURCES prevents shipping git_version.h in dist tarballs,
 # which may cause false GIT_FOO readings.
 BUILT_SOURCES = git_version.stamp $(am__append_13)
-CLEANFILES = git_version.h $(am__append_14) $(pkglibexec_PROGRAMS)
+CLEANFILES = git_version.h $(am__append_14) $(pkglibexec_PROGRAMS) \
+	$(pkglibexec_SCRIPTS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
 PHONIES = $(am__append_10) $(am__append_16) dist-gzip
 @BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -D_FILE_OFFSET_BITS=64
@@ -652,6 +655,25 @@ uninstall-binSCRIPTS:
 	  f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
 	  echo " rm -f '$(DESTDIR)$(bindir)/$$f'"; \
 	  rm -f "$(DESTDIR)$(bindir)/$$f"; \
+	done
+install-pkglibexecSCRIPTS: $(pkglibexec_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	test -z "$(pkglibexecdir)" || $(MKDIR_P) "$(DESTDIR)$(pkglibexecdir)"
+	@list='$(pkglibexec_SCRIPTS)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f $$d$$p; then \
+	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
+	    echo " $(pkglibexecSCRIPT_INSTALL) '$$d$$p' '$(DESTDIR)$(pkglibexecdir)/$$f'"; \
+	    $(pkglibexecSCRIPT_INSTALL) "$$d$$p" "$(DESTDIR)$(pkglibexecdir)/$$f"; \
+	  else :; fi; \
+	done
+
+uninstall-pkglibexecSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(pkglibexec_SCRIPTS)'; for p in $$list; do \
+	  f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
+	  echo " rm -f '$(DESTDIR)$(pkglibexecdir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(pkglibexecdir)/$$f"; \
 	done
 
 mostlyclean-compile:
@@ -1654,7 +1676,7 @@ all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) $(HEADERS) config.h \
 		all-local
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man3dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man3dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1713,7 +1735,8 @@ install-data-am: install-data-local install-man \
 install-dvi: install-dvi-recursive
 
 install-exec-am: install-binPROGRAMS install-binSCRIPTS \
-	install-exec-local install-pkglibexecPROGRAMS
+	install-exec-local install-pkglibexecPROGRAMS \
+	install-pkglibexecSCRIPTS
 	@$(NORMAL_INSTALL)
 	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
 
@@ -1750,7 +1773,7 @@ ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
 	uninstall-local uninstall-man uninstall-oldincludeHEADERS \
-	uninstall-pkglibexecPROGRAMS
+	uninstall-pkglibexecPROGRAMS uninstall-pkglibexecSCRIPTS
 
 uninstall-man: uninstall-man1 uninstall-man3 uninstall-man8
 
@@ -1770,14 +1793,16 @@ uninstall-man: uninstall-man1 uninstall-man3 uninstall-man8
 	install-html install-html-am install-info install-info-am \
 	install-man install-man1 install-man3 install-man8 \
 	install-oldincludeHEADERS install-pdf install-pdf-am \
-	install-pkglibexecPROGRAMS install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags tags-recursive uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-local \
-	uninstall-man uninstall-man1 uninstall-man3 uninstall-man8 \
-	uninstall-oldincludeHEADERS uninstall-pkglibexecPROGRAMS
+	install-pkglibexecPROGRAMS install-pkglibexecSCRIPTS \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags tags-recursive \
+	uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-binSCRIPTS uninstall-local uninstall-man \
+	uninstall-man1 uninstall-man3 uninstall-man8 \
+	uninstall-oldincludeHEADERS uninstall-pkglibexecPROGRAMS \
+	uninstall-pkglibexecSCRIPTS
 
 git_version.stamp:
 	@if test -f "$(srcdir)/git_version.h"; then \
@@ -1806,9 +1831,12 @@ cscope:
 
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@install-exec-local: install-scripts
 # scripts must be installed before this rule is run
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@install-scripts: install-binSCRIPTS
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	for f in $(bin_SCRIPTS); do \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	for f in $(pkglibexec_SCRIPTS); do \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)," $(DESTDIR)$(pkglibexecdir)/$$f; \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@stamp-elfutils: config.status
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all bin_PROGRAMS=

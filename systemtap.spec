@@ -406,10 +406,10 @@ exit 0
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_bindir}/stap-report
-%{_bindir}/stap-env
 %{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-signing-cert
 %{_libexecdir}/%{name}
+%{_libexecdir}/%{name}/stap-env
 %{_mandir}/man8/staprun.8*
 %{_mandir}/man8/stap-authorize-signing-cert.8*
 

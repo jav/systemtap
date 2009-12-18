@@ -22,7 +22,7 @@ trap 'interrupt' SIGINT
 trap 'ignore_signal' SIGHUP SIGPIPE
 
 # Initialize the environment
-. `dirname $0`/stap-env
+. ${PKGLIBEXECDIR}stap-env
 
 #-----------------------------------------------------------------------------
 # Helper functions.

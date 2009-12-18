@@ -13,7 +13,8 @@
 # process id, if successful.
 
 # Initialize the environment
-. `dirname $0`/stap-env
+. ${PKGLIBEXECDIR}stap-env
+
 startup_timeout=20
 
 # start the server

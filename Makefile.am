@@ -24,6 +24,7 @@ man/stapprobes.tcp.3stap man/stapprobes.udp.3stap
 
 bin_PROGRAMS = staprun
 bin_SCRIPTS = stap-report
+pkglibexec_SCRIPTS = stap-env
 oldinclude_HEADERS = includes/sys/sdt.h
 
 if BUILD_TRANSLATOR
@@ -34,7 +35,7 @@ bin_SCRIPTS += dtrace
 if HAVE_NSS
 man_MANS += stap-authorize-signing-cert.8
 bin_PROGRAMS += stap-sign-module
-bin_SCRIPTS += stap-env stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
+bin_SCRIPTS += stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
 
 if BUILD_SERVER
 man_MANS += stap-client.8 stap-server.8 stap-authorize-server-cert.8
@@ -113,9 +114,12 @@ install-exec-local: install-scripts
 
 PHONIES += install-scripts
 # scripts must be installed before this rule is run
-install-scripts: install-binSCRIPTS
+install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
 	for f in $(bin_SCRIPTS); do \
-	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir)," $(DESTDIR)$(bindir)/$$f; \
+	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
+	done
+	for f in $(pkglibexec_SCRIPTS); do \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)," $(DESTDIR)$(pkglibexecdir)/$$f; \
 	done
 endif
 endif
@@ -179,7 +183,7 @@ install-exec-hook:
 
 
 pkglibexec_PROGRAMS = stapio
-CLEANFILES +=  $(pkglibexec_PROGRAMS)
+CLEANFILES +=  $(pkglibexec_PROGRAMS) $(pkglibexec_SCRIPTS)
 
 if BUILD_TRANSLATOR
 if HAVE_NSS
