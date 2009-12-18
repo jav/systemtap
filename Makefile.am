@@ -32,11 +32,12 @@ man_MANS += stap.1
 bin_SCRIPTS += dtrace
 
 if HAVE_NSS
+man_MANS += stap-authorize-signing-cert.8
 bin_PROGRAMS += stap-sign-module
 bin_SCRIPTS += stap-env stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
 
 if BUILD_SERVER
-man_MANS += stap-server.8 
+man_MANS += stap-client.8 stap-server.8 stap-authorize-server-cert.8
 bin_PROGRAMS += stap-client-connect stap-server-connect
 bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server \

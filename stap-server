@@ -285,7 +285,11 @@ function parse_options {
 		    ;;
 		m)
 		    get_arg $first_token $2
-		    stap_options="$stap_options -$first_char $stap_arg"
+		    if test $unprivileged = 1; then
+			fatal "You can't specify -$first_char and --unprivileged together."
+		    else
+			stap_options="$stap_options -$first_char $stap_arg"
+		    fi
 		    ;;
 		o)
 		    get_arg $first_token $2

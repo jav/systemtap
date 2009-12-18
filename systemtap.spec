@@ -385,11 +385,6 @@ exit 0
 
 %{_bindir}/stap
 %{_bindir}/stap-report
-%{_bindir}/stap-env
-%{_bindir}/stap-gen-cert
-%{_bindir}/stap-authorize-cert
-%{_bindir}/stap-authorize-signing-cert
-%{_bindir}/stap-sign-module
 %{_mandir}/man1/*
 %{_mandir}/man3/*
 
@@ -411,8 +406,12 @@ exit 0
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_bindir}/stap-report
+%{_bindir}/stap-env
+%{_bindir}/stap-authorize-cert
+%{_bindir}/stap-authorize-signing-cert
 %{_libexecdir}/%{name}
 %{_mandir}/man8/staprun.8*
+%{_mandir}/man8/stap-authorize-signing-cert.8*
 
 %doc README AUTHORS NEWS COPYING
 
@@ -423,18 +422,16 @@ exit 0
 %files client
 %defattr(-,root,root)
 %{_bindir}/stap-client
-%{_bindir}/stap-env
 %{_bindir}/stap-find-servers
-%{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-server-cert
 %{_bindir}/stap-client-connect
-%{_mandir}/man8/stap-server.8*
+%{_mandir}/man8/stap-client.8*
+%{_mandir}/man8/stap-authorize-server-cert.8*
 
 %files server
 %defattr(-,root,root)
 %{_bindir}/stap-server
 %{_bindir}/stap-serverd
-%{_bindir}/stap-env
 %{_bindir}/stap-start-server
 %{_bindir}/stap-find-servers
 %{_bindir}/stap-find-or-start-server
@@ -442,9 +439,12 @@ exit 0
 %{_bindir}/stap-gen-cert
 %{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-server-cert
+%{_bindir}/stap-authorize-signing-cert
 %{_bindir}/stap-server-connect
 %{_bindir}/stap-sign-module
 %{_mandir}/man8/stap-server.8*
+%{_mandir}/man8/stap-authorize-server-cert.8*
+%{_mandir}/man8/stap-authorize-signing-cert.8*
 %{_sysconfdir}/rc.d/init.d/stap-server
 %dir %{_sysconfdir}/stap-server
 %dir %{_sysconfdir}/stap-server/conf.d

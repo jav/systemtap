@@ -57,7 +57,6 @@ function initialization {
     p_phase=5
     v_level=0
     keep_temps=0
-    b_specified=0
     m_name=
     module_name=stap_$$
     uname_r="`uname -r`"
@@ -155,9 +154,6 @@ function parse_options {
 		    get_arg $first_token $2
 		    process_a $stap_arg
 		    ;;	
-		b)
-		    b_specified=1
-		    ;;
 		B)
 		    get_arg $first_token $2
 		    cmdline2="${cmdline2} -$first_char '$stap_arg'"

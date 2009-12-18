@@ -167,7 +167,7 @@ output is optional, because this service may start before syslog).
 
 4. Configuration Format
 =======================
-Configuration files allows us to
+Configuration files allow us to
   - specify global configuration of logging, server configuration files, status
     files and other global parameters.
   - specify which servers are to be started by default.

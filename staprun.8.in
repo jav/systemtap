@@ -186,22 +186,33 @@ Members of the
 .I stapusr
 group can use
 .I staprun
-to insert or remove systemtap modules (or attach to existing systemtap modules) that
-are located in the /lib/modules/VERSION/systemtap directory.
+to insert or remove systemtap modules (or attach to existing systemtap modules)
+under the following conditions:
+.IP \(bu 4
+The module is located in
+the /lib/modules/VERSION/systemtap directory.  This directory
+must be owned by root and not be world writable.
+.IP \(bu 4
+The module has been signed by a trusted signer. Trusted signers are normally
+systemtap compile servers which sign modules when the --unprivileged option is
+specified by the client. See the
+.IR stap-server (8)
+manual page for a for more information.
 .SH FILES
 .TP
 /lib/modules/VERSION/systemtap
 If MODULE is a module name, the module will be looked for in this directory.
 Users who are only in the
 .I 'stapusr'
-group can only install modules
-located in this directory.  This directory should be owned by the root
+group can install modules
+located in this directory.  This directory must be owned by the root
 user and not be world writable.
 .SH SEE ALSO
 .IR stap (1),
 .IR stapprobes (3stap),
 .IR stapfuncs (3stap),
-.IR stapex (3stap),
+.IR stap-server (8),
+.IR stapex (3stap)
 
 .SH BUGS
 Use the Bugzilla link off of the project web page or our mailing list.

@@ -1,0 +1,28 @@
+$CUSTOM_TITLES = 1;
+$CUSTOM_TITLES_LENGTH = 6;
+
+# modified version of make_long_title
+# does not include the section number in the title (name) of the file
+sub custom_title_hook {
+    local($_)= @_;
+    local($num_words) = $CUSTOM_TITLES_LENGTH;
+    #RRM:  scan twice for short words, due to the $4 overlap
+    #      Cannot use \b , else words break at accented letters
+    $_ =~ s/(^|\s)\s*($GENERIC_WORDS)(\'|(\s))/$4/ig;
+    $_ =~ s/(^|\s)\s*($GENERIC_WORDS)(\'|(\s))/$4/ig;
+    #remove leading numbering, unless that's all there is.
+    local($sec_num);
+    if (!(/^\d+(\.\d*)*\s*$/)&&(s/^\s*(\d+(\.\d*)*)\s*/$sec_num=$1;''/e))
+	{ $num_words-- };
+    &remove_markers; s/<[^>]*>//g; #remove tags
+    #revert entities, etc. to TeX-form...
+    s/([\200-\377])/"\&#".ord($1).";"/eg;
+    $_ = &revert_to_raw_tex($_);
+
+    # get $LONG_TITLES number of words from what remains
+    $_ = &get_first_words($_, $num_words) if ($num_words);
+    # ...and cleanup accents, spaces and punctuation
+    $_ = join('', (0 ? $sec_num : ''), $_);
+    s/\\\W\{?|\}//g; s/\s/_/g; s/\W/_/g; s/__+/_/g; s/_+$//;
+    $_;
+}
