@@ -2,10 +2,10 @@
 
 - The loading of signed modules by staprun is no longer allowed for
   ordinary, unprivileged users.  This means that only root, members of
-  the group 'stapdev' and members of the group 'staprun' can load
+  the group 'stapdev' and members of the group 'stapusr' can load
   systemtap modules using staprun, stap or stap-client.  The minimum
   privilege required to run arbitrary --unprivileged scripts is now
-  'staprun' membership.
+  'stapusr' membership.
 
 - The stap-server initscript is available. This initscript allows you
   to start systemtap compile servers as a system service and to manage
@@ -75,7 +75,7 @@
     considered when searching for a suitable server.
 
 - When using the systemtap client and server udp port 5353 must be open
-  in your firewall in order for the clent to find servers using
+  in your firewall in order for the client to find servers using
   avahi-browse.  Also the systemtap server will choose a random port in
   the range 1024-63999 for accepting ssl connections.
 
@@ -174,9 +174,9 @@
 
 - User space PROBE marks are not always found with or without separate
   debuginfo. The .probes section itself is now always put in the main
-  elf file and marked as allocated. When when building pic code the
-  section is marked writable.  fixes the selinux memory check problems
-  seen with programs using STAP_PROBES.
+  elf file and marked as allocated. When building pic code the section
+  is marked writable. The selinux memory check problems seen with
+  programs using STAP_PROBES is fixed.
 
 - statement() probes can now override "address not at start of statement"
   errors in guru mode. They also provide alternative addresses to use
