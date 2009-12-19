@@ -4672,6 +4672,10 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   for (unsigned i =0; i<probes.size(); i++)
     s.op->line() << "0,";
   s.op->line() << "0};";
+  s.op->newline() << "unsigned long sdt_sem_tid [] = {";
+  for (unsigned i =0; i<probes.size(); i++)
+    s.op->line() << "0,";
+  s.op->line() << "0};";
   s.op->newline() << "static const struct stap_uprobe_spec {"; // NB: read-only structure
   s.op->newline(1) << "unsigned tfi;"; // index into stap_uprobe_finders[]
   s.op->newline() << "unsigned return_p:1;";
@@ -4815,17 +4819,19 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // was full (registration; MAXUPROBES) or that no matching entry was
   // found (unregistration; should not happen).
 
-  s.op->newline() << "if (sups->sdt_sem_offset && sdt_sem_address[spec_index] == 0) {";
+  s.op->newline() << "if (sups->sdt_sem_offset && (sdt_sem_tid[spec_index] != tsk->tgid || sdt_sem_address[spec_index] == 0)) {";
   s.op->indent(1);
   // If the probe is in the executable itself, the offset *is* the address.
   s.op->newline() << "if (vm_flags & VM_EXECUTABLE) {";
   s.op->indent(1);
   s.op->newline() << "sdt_sem_address[spec_index] = relocation + sups->sdt_sem_offset;";
+  s.op->newline() << "sdt_sem_tid[spec_index] = tsk->tgid;";
   s.op->newline(-1) << "}";
   // If the probe is in a .so, we have to calculate the address.
   s.op->newline() << "else {";
   s.op->indent(1);
   s.op->newline() << "sdt_sem_address[spec_index] = (relocation - offset) + sups->sdt_sem_offset;";
+  s.op->newline() << "sdt_sem_tid[spec_index] = tsk->tgid;";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";	// sdt_sem_offset
 
