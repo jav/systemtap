@@ -67,4 +67,4 @@ if { $n != $m } {
 } else {
   pass $test
 }
-# exec rm -f $testexe $testso
+catch {exec rm -f $testexe $testso}
