@@ -123,6 +123,9 @@ compile_pass (systemtap_session& s)
 
   // "autoconf" options go here
 
+  // RHBZ 543529: early rhel6 kernels' module-signing kbuild logic breaks out-of-tree modules
+  o << "CONFIG_MODULE_SIG := n" << endl;
+
   string module_cflags = "EXTRA_CFLAGS";
   o << module_cflags << " :=" << endl;
 
