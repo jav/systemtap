@@ -82,9 +82,20 @@
     })
 #endif
 
-
-/* PR 10601: user-space (user_regset) register access.  Needs porting to each architecture. */
+/* PR 10601: user-space (user_regset) register access.  */
+#if defined(STAPCONF_REGSET)
 #include <linux/regset.h>
+#endif
+
+#if defined(STAPCONF_UTRACE_REGSET)
+#include <linux/tracehook.h>
+/* adapt new names to old decls */
+#define user_regset_view utrace_regset_view
+#define user_regset utrace_regset
+#define task_user_regset_view utrace_native_view
+#endif
+
+#if defined(STAPCONF_REGSET) || defined(STAPCONF_UTRACE_REGSET)
 
 struct usr_regset_lut {
   char *name;
@@ -122,7 +133,7 @@ static const struct usr_regset_lut url_x86_64[] = {
   { "r14", NT_PRSTATUS, 1*8 }, 
   { "r15", NT_PRSTATUS, 0*8 }, 
 };
-
+/* XXX: insert other architectures here. */
 
 
 static u32 ursl_fetch32 (const struct usr_regset_lut* lut, unsigned lutsize, int e_machine, unsigned regno)
@@ -279,14 +290,18 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
 
 #else
 
-#error "no can do"
-
 /* Some other architecture; downgrade to kernel register access. */
 #define u_fetch_register(regno) k_fetch_register(regno)
 #define u_store_register(regno,value) k_store_register(regno,value)
 
 #endif
 
+
+#else /* ! STAPCONF_REGSET */
+/* Downgrade to kernel register access. */
+#define u_fetch_register(regno) k_fetch_register(regno)
+#define u_store_register(regno,value) k_store_register(regno,value)
+#endif
 
 
 #if defined (STAPCONF_X86_UNIREGS) && defined (__i386__)

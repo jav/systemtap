@@ -162,6 +162,8 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-x86-gs.c", "STAPCONF_X86_GS", NULL);
   output_autoconf(s, o, "autoconf-grsecurity.c", "STAPCONF_GRSECURITY", NULL);
   output_autoconf(s, o, "autoconf-trace-printk.c", "STAPCONF_TRACE_PRINTK", NULL);
+  output_autoconf(s, o, "autoconf-regset.c", "STAPCONF_REGSET", NULL);
+  output_autoconf(s, o, "autoconf-utrace-regset.c", "STAPCONF_UTRACE_REGSET", NULL);
 
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
