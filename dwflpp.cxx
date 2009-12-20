@@ -1282,6 +1282,16 @@ dwflpp::resolve_prologue_endings (func_info_map_t & funcs)
           continue;
         }
 
+      if (entrypc == 0)
+        { 
+          if (sess.verbose > 2)
+            clog << "null entrypc dwarf line record for function '"
+                 << it->name << "'\n";
+          // This is probably an inlined function.  We'll skip this instance;
+          // it is messed up. 
+          continue;
+        }
+
       if (sess.verbose>2)
         clog << "prologue searching function '" << it->name << "'"
              << " 0x" << hex << entrypc << "-0x" << highpc << dec
