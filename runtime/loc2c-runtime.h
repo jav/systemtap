@@ -428,7 +428,7 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
           STORE_DEREF_FAULT(ptr); \
     })
 
-#define k_deref(size, addr) ({ \
+#define deref(size, addr) ({ \
     intptr_t _i = 0; \
     switch (size) { \
       case 1: _i = kread((u8 *)(addr)); break; \
@@ -440,7 +440,7 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
     _i; \
   })
 
-#define k_store_deref(size, addr, value) ({ \
+#define store_deref(size, addr, value) ({ \
     switch (size) { \
       case 1: kwrite((u8 *)(addr), (value)); break; \
       case 2: kwrite((u16 *)(addr), (value)); break; \
@@ -458,7 +458,7 @@ extern void __store_deref_bad(void);
 
 #if defined __i386__
 
-#define k_deref(size, addr)						      \
+#define deref(size, addr)						      \
   ({									      \
     int _bad = 0;							      \
     u8 _b; u16 _w; u32 _l;	                                              \
@@ -478,7 +478,7 @@ extern void __store_deref_bad(void);
     _v;									      \
   })
 
-#define k_store_deref(size, addr, value)					      \
+#define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
     if (lookup_bad_addr((unsigned long)addr, size))			      \
@@ -498,7 +498,7 @@ extern void __store_deref_bad(void);
 
 #elif defined __x86_64__
 
-#define k_deref(size, addr)						      \
+#define deref(size, addr)						      \
   ({									      \
     int _bad = 0;							      \
     u8 _b; u16 _w; u32 _l; u64 _q;					      \
@@ -519,7 +519,7 @@ extern void __store_deref_bad(void);
     _v;									      \
   })
 
-#define k_store_deref(size, addr, value)					      \
+#define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
     if (lookup_bad_addr((unsigned long)addr, size))			      \
@@ -538,7 +538,7 @@ extern void __store_deref_bad(void);
   })
 
 #elif defined __ia64__
-#define k_deref(size, addr)						\
+#define deref(size, addr)						\
   ({									\
      int _bad = 0;							\
      intptr_t _v=0;							\
@@ -557,7 +557,7 @@ extern void __store_deref_bad(void);
      _v;								\
    })
 
-#define k_store_deref(size, addr, value)					\
+#define store_deref(size, addr, value)					\
   ({									\
     int _bad=0;								\
     if (lookup_bad_addr((unsigned long)addr, size))			\
@@ -616,7 +616,7 @@ extern void __store_deref_bad(void);
 		  "i"(sizeof(unsigned long)))
 
 
-#define k_deref(size, addr)						      \
+#define deref(size, addr)						      \
   ({									      \
     int _bad = 0;							      \
     intptr_t _v = 0;							      \
@@ -636,7 +636,7 @@ extern void __store_deref_bad(void);
     _v;									      \
   })
 
-#define k_store_deref(size, addr, value)					      \
+#define store_deref(size, addr, value)					      \
   ({									      \
     int _bad = 0;							      \
     if (lookup_bad_addr((unsigned long)addr, size))			      \
@@ -790,7 +790,7 @@ extern void __store_deref_bad(void);
 	: "r" (x), "i" (-EFAULT)				\
 	: "cc")
 
-#define k_deref(size, addr)						\
+#define deref(size, addr)						\
   ({									\
      int _bad = 0;							\
      intptr_t _v=0;							\
@@ -808,7 +808,7 @@ extern void __store_deref_bad(void);
      _v;								\
    })
 
-#define k_store_deref(size, addr, value)					\
+#define store_deref(size, addr, value)					\
   ({									\
     int _bad=0;								\
     if (lookup_bad_addr((unsigned long)addr, size))			\
@@ -878,7 +878,7 @@ extern void __store_deref_bad(void);
 		: "cc");					\
 })
 
-#define k_deref(size, addr)					\
+#define deref(size, addr)					\
 ({								\
 	u8 _b; u16 _w; u32 _l; u64 _q;				\
 	int _bad = 0;						\
@@ -915,7 +915,7 @@ extern void __store_deref_bad(void);
 	_v;							\
 })
 
-#define k_store_deref(size, addr, value)                          \
+#define store_deref(size, addr, value)                          \
 ({                                                              \
         int _bad = 0;                                           \
 	int i;							\
@@ -961,19 +961,13 @@ extern void __store_deref_bad(void);
 #else
 
 #define kread(ptr) \
-  ( (typeof(*(ptr))) k_deref(sizeof(*(ptr)), (ptr)) )
+  ( (typeof(*(ptr))) deref(sizeof(*(ptr)), (ptr)) )
 #define kwrite(ptr, value) \
-  ( k_store_deref(sizeof(*(ptr)), (ptr), (long)(typeof(*(ptr)))(value)) )
+  ( store_deref(sizeof(*(ptr)), (ptr), (long)(typeof(*(ptr)))(value)) )
 
 #endif
 
 #endif /* STAPCONF_PROBE_KERNEL */
-
-/* XXX: PR10601 */
-/* Perhaps this should use something like set_fs(USER_DS); k_deref() ; set_fs(KERNEL_DS) 
- * But then again, the addr_map protections do that already. */
-#define u_deref(a,b) k_deref(a,b)
-#define u_store_deref(a,b,c) k_store_deref(a,b,c)
 
 
 #define deref_string(dst, addr, maxbytes)				      \

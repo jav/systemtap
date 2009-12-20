@@ -2403,7 +2403,6 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       // PR10601: adapt to kernel-vs-userspace loc2c-runtime
       ec->code += "\n#define fetch_register " + string(q.has_process?"u":"k") + "_fetch_register\n";
       ec->code += "#define store_register " + string(q.has_process?"u":"k") + "_store_register\n";
-      ec->code += "#define deref " + string(q.has_process?"u":"k") + "_deref\n";
       
       if (q.has_return && (e->base_name == "$return"))
         {
@@ -2431,7 +2430,6 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       // PR10601
       ec->code += "\n#undef fetch_register\n";
       ec->code += "\n#undef store_register\n";
-      ec->code += "\n#undef deref\n";
     }
   catch (const semantic_error& er)
     {
@@ -2756,7 +2754,6 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   // PR10601: adapt to kernel-vs-userspace loc2c-runtime
   ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
   ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
-  ec->code += "#define deref " + string(userspace_p?"u":"k") + "_deref\n";
   
   ec->code += code;
 
@@ -2802,7 +2799,6 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   // PR10601
   ec->code += "\n#undef fetch_register\n";
   ec->code += "\n#undef store_register\n";
-  ec->code += "\n#undef deref\n";
 
   s.functions[fdecl->name] = fdecl;
 
@@ -5790,7 +5786,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       // PR10601: adapt to kernel-vs-userspace loc2c-runtime
       ec->code += "\n#define fetch_register k_fetch_register\n";
       ec->code += "#define store_register k_store_register\n";
-      ec->code += "#define deref k_deref\n";
      
       try
         {
@@ -5855,7 +5850,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       // PR10601
       ec->code += "\n#undef fetch_register\n";
       ec->code += "\n#undef store_register\n";
-      ec->code += "\n#undef deref\n";
   
       dw.sess.functions[fdecl->name] = fdecl;
 
