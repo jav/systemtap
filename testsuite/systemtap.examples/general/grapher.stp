@@ -35,17 +35,18 @@ probe kernel.function("kbd_event") {
 }
 
 probe kernel.function("pty_write") {
-    if ($count > 0) {
-            printf("pty %d ", gettimeofday_ms())
-            str = kernel_string($buf)
-            for (i = 0; i < $count; ++i) {
-                if (i > 1)
-                   printf("\n")
-                # yes it's gross
-                c = substr(str, i, 1)
-                printf("%s", text_str(c))
-            }
-            printf("%c", 0)
+    count = %(kernel_v>="2.6.31" %? $c %: $count %)
+    if (count > 0) {
+        printf("pty %d ", gettimeofday_ms())
+        str = kernel_string($buf)
+        for (i = 0; i < count; ++i) {
+            if (i > 1)
+                printf("\n")
+            # yes it's gross
+            c = substr(str, i, 1)
+            printf("%s", text_str(c))
+        }
+        printf("%c", 0)
     }
 }
 
