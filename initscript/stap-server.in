@@ -16,8 +16,8 @@
 prog=stap-server
 
 # Commands
-STAP_START_SERVER=@bindir@/stap-start-server
-STAP_STOP_SERVER=@bindir@/stap-stop-server
+STAP_START_SERVER=@libexecdir@/systemtap/stap-start-server
+STAP_STOP_SERVER=@libexecdir@/systemtap/stap-stop-server
 UNAME=/bin/uname
 
 # Default Global Configuration
