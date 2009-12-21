@@ -432,7 +432,7 @@ function create_response {
 	if test $unprivileged = 1 -a $p_phase -ge 4 -a $stap_rc = 0; then
 	    modname=$tmpdir_stap/`grep -m1 '^.*\.ko$' stdout`
 	    if test "X$modname" != "X"; then
-		${stap_exec_prefix}stap-sign-module $modname $ssl_db
+		${stap_pkglibexecdir}stap-sign-module $modname $ssl_db
 	    fi
 	fi
     fi

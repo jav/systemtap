@@ -468,7 +468,7 @@ handle_connection(PRFileDesc *tcpSocket)
 #endif
 
   /* Call the stap-server script.  */
-  stap_server_prefix = getenv("SYSTEMTAP_SERVER_SCRIPTS") ?: BINDIR;
+  stap_server_prefix = getenv("SYSTEMTAP_SERVER_SCRIPTS") ?: PKGLIBDIR;
   cmdline = PORT_Alloc(strlen (stap_server_prefix) + sizeof ("/stap-server") + 1 +
 		       sizeof (requestFileName) + 1 +
 		       sizeof (responseDirName) + 1 +

@@ -634,22 +634,22 @@ function find_and_connect_to_server {
 		fi
 	    fi
 
-	    if test `${stap_exec_prefix}stap-find-servers $find_all | grep $address | wc -l` = "0"; then
+	    if test `${stap_pkglibexecdir}stap-find-servers $find_all | grep $address | wc -l` = "0"; then
 		warning "No server is available on $server" 2>> $tmpdir_client/connect
 		continue
 	    fi
 
-            ssl_db=`${stap_exec_prefix}stap-find-servers $find_all | grep $address | choose_server`
+            ssl_db=`${stap_pkglibexecdir}stap-find-servers $find_all | grep $address | choose_server`
 	    test "X$ssl_db" != "X" && return
 	done
     else
         # No servers specified. Find available servers and choose one of them.
 	# Remember which ssl certificate database was used to authenticate the chosen
         # server.
-	ssl_db=`${stap_exec_prefix}stap-find-servers $find_all | choose_server`
+	ssl_db=`${stap_pkglibexecdir}stap-find-servers $find_all | choose_server`
 	test "X$ssl_db" != "X" && return
 
-	num_servers=`${stap_exec_prefix}stap-find-servers $find_all | wc -l`
+	num_servers=`${stap_pkglibexecdir}stap-find-servers $find_all | wc -l`
     fi
 
     if test $num_servers = 0; then
@@ -723,8 +723,8 @@ function send_receive {
     do
         # Send the request and receive the response using stap-client-connect
 	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
-	${stap_exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	wait '%${stap_exec_prefix}stap-client-connect'
+	${stap_pkglibexecdir}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%${stap_pkglibexecdir}stap-client-connect'
 	test $? = 0 && echo $db && return
 	sleep 1
     done
@@ -734,8 +734,8 @@ function send_receive {
     do
         # Send the request and receive the response using stap-client-connect
 	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
-	${stap_exec_prefix}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	wait '%${stap_exec_prefix}stap-client-connect'
+	${stap_pkglibexecdir}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
+	wait '%${stap_pkglibexecdir}stap-client-connect'
 	test $? = 0 && echo $db && return
 	sleep 1
     done
@@ -1066,7 +1066,7 @@ function terminate {
     kill -s SIGTERM '%?staprun' 2>/dev/null
 
     # Kill any stap-client-connect job
-    kill -s SIGTERM '%${stap_exec_prefix}stap-client-connect' 2>/dev/null
+    kill -s SIGTERM '%${stap_pkglibexecdir}stap-client-connect' 2>/dev/null
 
     exit 1
 }
@@ -1077,7 +1077,7 @@ function terminate {
 function interrupt {
     # Kill any stap-client-connect job
     # SIGINT won't do it.
-    kill -s SIGTERM '%${stap_exec_prefix}stap-client-connect' 2>/dev/null
+    kill -s SIGTERM '%${stap_pkglibexecdir}stap-client-connect' 2>/dev/null
 
     # If staprun was not running, then exit.
     cleanup

@@ -24,6 +24,7 @@ man/stapprobes.tcp.3stap man/stapprobes.udp.3stap
 
 bin_PROGRAMS = staprun
 bin_SCRIPTS = stap-report
+pkglibexec_PROGRAMS = stapio
 pkglibexec_SCRIPTS = stap-env
 oldinclude_HEADERS = includes/sys/sdt.h
 
@@ -34,15 +35,16 @@ bin_SCRIPTS += dtrace
 
 if HAVE_NSS
 man_MANS += stap-authorize-signing-cert.8
-bin_PROGRAMS += stap-sign-module
-bin_SCRIPTS += stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
+bin_SCRIPTS += stap-authorize-signing-cert
+pkglibexec_PROGRAMS += stap-sign-module
+pkglibexec_SCRIPTS += stap-gen-cert stap-authorize-cert 
 
 if BUILD_SERVER
 man_MANS += stap-client.8 stap-server.8 stap-authorize-server-cert.8
-bin_PROGRAMS += stap-client-connect stap-server-connect
-bin_SCRIPTS += stap-client stap-serverd stap-server stap-find-servers \
-	       stap-start-server stap-find-or-start-server stap-stop-server \
-	       stap-authorize-server-cert
+pkglibexec_PROGRAMS += stap-client-connect stap-server-connect
+bin_SCRIPTS += stap-client stap-authorize-server-cert
+pkglibexec_SCRIPTS += stap-serverd stap-server stap-find-servers \
+	       stap-start-server stap-find-or-start-server stap-stop-server
 endif
 endif
 
@@ -119,7 +121,7 @@ install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
 	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
 	done
 	for f in $(pkglibexec_SCRIPTS); do \
-	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)," $(DESTDIR)$(pkglibexecdir)/$$f; \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
 	done
 endif
 endif
@@ -182,7 +184,6 @@ install-exec-hook:
 # make install, and have "sudo stap ...." or "sudo staprun ...." work later.
 
 
-pkglibexec_PROGRAMS = stapio
 CLEANFILES +=  $(pkglibexec_PROGRAMS) $(pkglibexec_SCRIPTS)
 
 if BUILD_TRANSLATOR
@@ -308,7 +309,7 @@ DIST_SUBDIRS = testsuite $(SUBDIRS)
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
         PWD=`pwd`; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)";
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)";
 
 installcheck:
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \
@@ -319,7 +320,7 @@ installcheck:
 	  echo "$(DESTDIR)$(bindir)/stap is not recent, run make install"; \
 	  exit -1; \
 	fi;
-	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)"
 
 
 # Any extra flags, such as:

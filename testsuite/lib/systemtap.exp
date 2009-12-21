@@ -134,10 +134,13 @@ proc setup_server {} {
 
     # Server management scripts and data are installed if this is an
     # install test, otherwise there is some setup to do.
+    # Make sure the server management scripts and tools are on the $PATH.
     if {! [installtest_p]} then {
-	# Make sure the server management scripts and tools are on the $PATH.
 	set env(PATH) "$srcdir/..:[exec pwd]/..:$env(PATH)"
 	set env(SYSTEMTAP_SERVER_SCRIPTS) "$srcdir/.."
+    } else {
+	set env(PATH) "$env(PKGLIBDIR):$env(PATH)"
+	set env(SYSTEMTAP_SERVER_SCRIPTS) env(PKGLIBDIR)
     }
 
     # Try to find or start the server.

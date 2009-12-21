@@ -34,34 +34,34 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = staprun$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
-	$(am__EXEEXT_3)
+bin_PROGRAMS = staprun$(EXEEXT) $(am__EXEEXT_1)
+pkglibexec_PROGRAMS = stapio$(EXEEXT) $(am__EXEEXT_2) $(am__EXEEXT_3)
 @BUILD_TRANSLATOR_TRUE@am__append_1 = stap
 @BUILD_TRANSLATOR_TRUE@am__append_2 = stap.1
 @BUILD_TRANSLATOR_TRUE@am__append_3 = dtrace
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_4 = stap-authorize-signing-cert.8
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_5 = stap-sign-module
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_6 = stap-gen-cert stap-authorize-cert stap-authorize-signing-cert
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_7 = stap-client.8 stap-server.8 stap-authorize-server-cert.8
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_8 = stap-client-connect stap-server-connect
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_9 = stap-client stap-serverd stap-server stap-find-servers \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	       stap-start-server stap-find-or-start-server stap-stop-server \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	       stap-authorize-server-cert
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_5 = stap-authorize-signing-cert
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_6 = stap-sign-module
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_7 = stap-gen-cert stap-authorize-cert 
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_8 = stap-client.8 stap-server.8 stap-authorize-server-cert.8
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_9 = stap-client-connect stap-server-connect
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_10 = stap-client stap-authorize-server-cert
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_11 = stap-serverd stap-server stap-find-servers \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	       stap-start-server stap-find-or-start-server stap-stop-server
 
 @BUILD_TRANSLATOR_FALSE@stap_DEPENDENCIES =
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_10 = install-scripts
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_11 = -Iinclude-elfutils
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_12 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_12 = install-scripts
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_13 = -Iinclude-elfutils
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_14 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
 
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_13 = stamp-elfutils
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_14 = stamp-elfutils
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_15 = lib-elfutils/libdw.so
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_16 = install-elfutils
-@HAVE_NSS_TRUE@am__append_17 = runtime/staprun/modverify.c nsscommon.c
-@HAVE_NSS_TRUE@am__append_18 = $(nss_CFLAGS) $(nspr_CFLAGS)
-@HAVE_NSS_TRUE@am__append_19 = -lnss3 -lnspr4
-pkglibexec_PROGRAMS = stapio$(EXEEXT)
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_15 = stamp-elfutils
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_16 = stamp-elfutils
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_17 = lib-elfutils/libdw.so
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_18 = install-elfutils
+@HAVE_NSS_TRUE@am__append_19 = runtime/staprun/modverify.c nsscommon.c
+@HAVE_NSS_TRUE@am__append_20 = $(nss_CFLAGS) $(nspr_CFLAGS)
+@HAVE_NSS_TRUE@am__append_21 = -lnss3 -lnspr4
 @BUILD_TRANSLATOR_TRUE@noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
@@ -112,14 +112,14 @@ CONFIG_CLEAN_FILES = stap.1 stapprobes.3stap stapfuncs.3stap \
 	man/stapprobes.snmp.3stap initscript/systemtap \
 	initscript/stap-server run-stap run-staprun dtrace
 @BUILD_TRANSLATOR_TRUE@am__EXEEXT_1 = stap$(EXEEXT)
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__EXEEXT_2 = stap-sign-module$(EXEEXT)
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__EXEEXT_3 = stap-client-connect$(EXEEXT) \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap-server-connect$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
 	"$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
 	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man3dir)" \
 	"$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__EXEEXT_2 = stap-sign-module$(EXEEXT)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__EXEEXT_3 = stap-client-connect$(EXEEXT) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap-server-connect$(EXEEXT)
 pkglibexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
 @BUILD_TRANSLATOR_TRUE@am_loc2c_test_OBJECTS =  \
@@ -369,10 +369,10 @@ man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap \
 	man/stapprobes.scsi.3stap man/stapprobes.signal.3stap \
 	man/stapprobes.socket.3stap man/stapprobes.tcp.3stap \
 	man/stapprobes.udp.3stap $(am__append_2) $(am__append_4) \
-	$(am__append_7)
-bin_SCRIPTS = stap-report $(am__append_3) $(am__append_6) \
-	$(am__append_9)
-pkglibexec_SCRIPTS = stap-env
+	$(am__append_8)
+bin_SCRIPTS = stap-report $(am__append_3) $(am__append_5) \
+	$(am__append_10)
+pkglibexec_SCRIPTS = stap-env $(am__append_7) $(am__append_11)
 oldinclude_HEADERS = includes/sys/sdt.h
 @BUILD_TRANSLATOR_TRUE@stap_SOURCES = main.cxx \
 @BUILD_TRANSLATOR_TRUE@	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
@@ -384,7 +384,7 @@ oldinclude_HEADERS = includes/sys/sdt.h
 @BUILD_TRANSLATOR_TRUE@	setupdwfl.cxx
 
 @BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @rpm_LIBS@
-@BUILD_TRANSLATOR_TRUE@stap_DEPENDENCIES = $(am__append_15)
+@BUILD_TRANSLATOR_TRUE@stap_DEPENDENCIES = $(am__append_17)
 
 # Arrange for git_version.h to be regenerated at every "make".
 # Code fragment is based upon RadeonHD.am.
@@ -394,28 +394,31 @@ oldinclude_HEADERS = includes/sys/sdt.h
 # of foo-bar.c if it is newer than the foo-bar.o file. Using noinst_foo_SOURCES
 # instead of foo_SOURCES prevents shipping git_version.h in dist tarballs,
 # which may cause false GIT_FOO readings.
-BUILT_SOURCES = git_version.stamp $(am__append_13)
-CLEANFILES = git_version.h $(am__append_14) $(pkglibexec_PROGRAMS) \
+BUILT_SOURCES = git_version.stamp $(am__append_15)
+
+# Why the "id -u" condition?  This way, an unprivileged user can run
+# make install, and have "sudo stap ...." or "sudo staprun ...." work later.
+CLEANFILES = git_version.h $(am__append_16) $(pkglibexec_PROGRAMS) \
 	$(pkglibexec_SCRIPTS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
-PHONIES = $(am__append_10) $(am__append_16) dist-gzip
+PHONIES = $(am__append_12) $(am__append_18) dist-gzip
 @BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -D_FILE_OFFSET_BITS=64
 @BUILD_TRANSLATOR_TRUE@stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
-@BUILD_TRANSLATOR_TRUE@stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_11)
+@BUILD_TRANSLATOR_TRUE@stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_13)
 @BUILD_TRANSLATOR_TRUE@stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ \
-@BUILD_TRANSLATOR_TRUE@	$(am__append_12)
+@BUILD_TRANSLATOR_TRUE@	$(am__append_14)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
 staprun_SOURCES = runtime/staprun/staprun.c \
 	runtime/staprun/staprun_funcs.c runtime/staprun/ctl.c \
-	runtime/staprun/common.c $(am__append_17)
+	runtime/staprun/common.c $(am__append_19)
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
 staprun_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED \
 	-fno-strict-aliasing -fno-builtin-strftime \
-	-D_FILE_OFFSET_BITS=64 $(am__append_18)
+	-D_FILE_OFFSET_BITS=64 $(am__append_20)
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-staprun_LDADD = $(am__append_19)
+staprun_LDADD = $(am__append_21)
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
@@ -1836,7 +1839,7 @@ cscope:
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	for f in $(pkglibexec_SCRIPTS); do \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)," $(DESTDIR)$(pkglibexecdir)/$$f; \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@stamp-elfutils: config.status
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all bin_PROGRAMS=
