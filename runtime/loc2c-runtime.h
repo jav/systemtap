@@ -1,5 +1,5 @@
 /* target operations
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005-2009 Red Hat Inc.
  * Copyright (C) 2005, 2006, 2007 Intel Corporation.
  * Copyright (C) 2007 Quentin Barnes.
  *
@@ -44,10 +44,10 @@
    can be pasted into an identifier name.  These definitions turn it into a
    per-register macro, defined below for machines with individually-named
    registers.  */
-#define fetch_register(regno) \
-  ((intptr_t) dwarf_register_##regno (c->regs))
-#define store_register(regno, value) \
-  (dwarf_register_##regno (c->regs) = (value))
+#define k_fetch_register(regno) \
+  ((intptr_t) k_dwarf_register_##regno (c->regs))
+#define k_store_register(regno, value) \
+  (k_dwarf_register_##regno (c->regs) = (value))
 
 
 /* The deref and store_deref macros are called to safely access addresses
@@ -82,35 +82,266 @@
     })
 #endif
 
+/* PR 10601: user-space (user_regset) register access.  */
+#if defined(STAPCONF_REGSET)
+#include <linux/regset.h>
+#endif
+
+#if defined(STAPCONF_UTRACE_REGSET)
+#include <linux/tracehook.h>
+/* adapt new names to old decls */
+#define user_regset_view utrace_regset_view
+#define user_regset utrace_regset
+#define task_user_regset_view utrace_native_view
+#endif
+
+#if defined(STAPCONF_REGSET) || defined(STAPCONF_UTRACE_REGSET)
+
+struct usr_regset_lut {
+  char *name;
+  unsigned rsn;
+  unsigned pos;
+};
+
+
+/* DWARF register number -to- user_regset bank/offset mapping table.
+   The register numbers come from the processor-specific ELF documents.
+   The user-regset bank/offset values come from kernel $ARCH/include/asm/user*.h
+   or $ARCH/kernel/ptrace.c. */
+static const struct usr_regset_lut url_i386[] = {
+  { "ax", NT_PRSTATUS, 6*4 },
+  { "cx", NT_PRSTATUS, 1*4 },
+  { "dx", NT_PRSTATUS, 2*4 },
+  { "bx", NT_PRSTATUS, 0*4 },
+  { "sp", NT_PRSTATUS, 15*4 },
+  { "bp", NT_PRSTATUS, 5*4 },
+  { "si", NT_PRSTATUS, 3*4 },
+  { "di", NT_PRSTATUS, 4*4 },
+  { "ip", NT_PRSTATUS, 12*4 },
+};
+
+static const struct usr_regset_lut url_x86_64[] = {
+  { "rax", NT_PRSTATUS, 10*8 },
+  { "rdx", NT_PRSTATUS, 12*8 },
+  { "rcx", NT_PRSTATUS, 11*8 },
+  { "rbx", NT_PRSTATUS, 5*8 },
+  { "rsi", NT_PRSTATUS, 13*8 },
+  { "rdi", NT_PRSTATUS, 14*8 },
+  { "rbp", NT_PRSTATUS, 4*8 },
+  { "rsp", NT_PRSTATUS, 19*8 },
+  { "r8", NT_PRSTATUS, 9*8 },
+  { "r9", NT_PRSTATUS, 8*8 }, 
+  { "r10", NT_PRSTATUS, 7*8 },  
+  { "r11", NT_PRSTATUS, 6*8 }, 
+  { "r12", NT_PRSTATUS, 3*8 }, 
+  { "r13", NT_PRSTATUS, 2*8 }, 
+  { "r14", NT_PRSTATUS, 1*8 }, 
+  { "r15", NT_PRSTATUS, 0*8 }, 
+  { "rip", NT_PRSTATUS, 16*8 }, 
+  /* XXX: SSE registers %xmm0-%xmm7 */ 
+  /* XXX: SSE2 registers %xmm8-%xmm15 */
+  /* XXX: FP registers %st0-%st7 */
+  /* XXX: MMX registers %mm0-%mm7 */
+};
+/* XXX: insert other architectures here. */
+
+
+static u32 ursl_fetch32 (const struct usr_regset_lut* lut, unsigned lutsize, int e_machine, unsigned regno)
+{
+  u32 value = ~0;
+  const struct user_regset_view *rsv = task_user_regset_view(current); 
+  unsigned rsi;
+  int rc;
+  unsigned rsn;
+  unsigned pos;
+  unsigned count;
+
+  WARN_ON (!rsv);
+  if (!rsv) goto out;
+  WARN_ON (regno >= lutsize);
+  if (regno >= lutsize) goto out;
+  if (rsv->e_machine != e_machine) goto out;
+
+  rsn = lut[regno].rsn;
+  pos = lut[regno].pos;
+  count = sizeof(value);
+
+  for (rsi=0; rsi<rsv->n; rsi++)
+    if (rsv->regsets[rsi].core_note_type == rsn)
+      {
+        const struct user_regset *rs = & rsv->regsets[rsi];
+        rc = (rs->get)(current, rs, pos, count, & value, NULL);
+        WARN_ON (rc);
+        /* success */
+        goto out;
+      }
+  WARN_ON (1); /* did not find appropriate regset! */
+  
+ out:
+  return value;
+}
+
+
+static void ursl_store32 (const struct usr_regset_lut* lut,unsigned lutsize,  int e_machine, unsigned regno, u32 value)
+{
+  const struct user_regset_view *rsv = task_user_regset_view(current); 
+  unsigned rsi;
+  int rc;
+  unsigned rsn;
+  unsigned pos;
+  unsigned count;
+
+  WARN_ON (!rsv);
+  if (!rsv) goto out;
+  WARN_ON (regno >= lutsize);
+  if (regno >= lutsize) goto out;
+  if (rsv->e_machine != e_machine) goto out;
+
+  rsn = lut[regno].rsn;
+  pos = lut[regno].pos;
+  count = sizeof(value);
+
+  for (rsi=0; rsi<rsv->n; rsi++)
+    if (rsv->regsets[rsi].core_note_type == rsn)
+      {
+        const struct user_regset *rs = & rsv->regsets[rsi];
+        rc = (rs->set)(current, rs, pos, count, & value, NULL);
+        WARN_ON (rc);
+        /* success */
+        goto out;
+      }
+  WARN_ON (1); /* did not find appropriate regset! */
+  
+ out:
+  return;
+}
+
+
+static u64 ursl_fetch64 (const struct usr_regset_lut* lut, unsigned lutsize, int e_machine, unsigned regno)
+{
+  u64 value = ~0;
+  const struct user_regset_view *rsv = task_user_regset_view(current); 
+  unsigned rsi;
+  int rc;
+  unsigned rsn;
+  unsigned pos;
+  unsigned count;
+
+  if (!rsv) goto out;
+  if (regno >= lutsize) goto out;
+  if (rsv->e_machine != e_machine) goto out;
+
+  rsn = lut[regno].rsn;
+  pos = lut[regno].pos;
+  count = sizeof(value);
+
+  for (rsi=0; rsi<rsv->n; rsi++)
+    if (rsv->regsets[rsi].core_note_type == rsn)
+      {
+        const struct user_regset *rs = & rsv->regsets[rsi];
+        rc = (rs->get)(current, rs, pos, count, & value, NULL);
+        if (rc)
+          goto out;
+        /* success */
+        return value;
+      }
+ out:
+  printk (KERN_WARNING "process %d mach %d regno %d not available for fetch.\n", current->tgid, e_machine, regno);
+  return value;
+}
+
+
+static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  int e_machine, unsigned regno, u64 value)
+{
+  const struct user_regset_view *rsv = task_user_regset_view(current); 
+  unsigned rsi;
+  int rc;
+  unsigned rsn;
+  unsigned pos;
+  unsigned count;
+
+  WARN_ON (!rsv);
+  if (!rsv) goto out;
+  WARN_ON (regno >= lutsize);
+  if (regno >= lutsize) goto out;
+  if (rsv->e_machine != e_machine) goto out;
+
+  rsn = lut[regno].rsn;
+  pos = lut[regno].pos;
+  count = sizeof(value);
+
+  for (rsi=0; rsi<rsv->n; rsi++)
+    if (rsv->regsets[rsi].core_note_type == rsn)
+      {
+        const struct user_regset *rs = & rsv->regsets[rsi];
+        rc = (rs->set)(current, rs, pos, count, & value, NULL);
+        if (rc)
+          goto out;
+        /* success */
+        return;
+      }
+  
+ out:
+  printk (KERN_WARNING "process %d mach %d regno %d not available for store.\n", current->tgid, e_machine, regno);
+  return;
+}
+
+
+#if defined (__i386__)
+
+#define u_fetch_register(regno) ursl_fetch32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno)
+#define u_store_register(regno,value) ursl_store32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno, value)
+
+#elif defined (__x86_64__)
+
+#define u_fetch_register(regno) (_stp_probing_32bit_app(c->regs) ? ursl_fetch32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno) : ursl_fetch64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno))
+#define u_store_register(regno,value)  (_stp_probing_32bit_app(c->regs) ? ursl_store2(url_i386, ARRAY_SIZE(url_i386), EM_386, regno, value) : ursl_store64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno, value))
+
+#else
+
+/* Some other architecture; downgrade to kernel register access. */
+#define u_fetch_register(regno) k_fetch_register(regno)
+#define u_store_register(regno,value) k_store_register(regno,value)
+
+#endif
+
+
+#else /* ! STAPCONF_REGSET */
+/* Downgrade to kernel register access. */
+#define u_fetch_register(regno) k_fetch_register(regno)
+#define u_store_register(regno,value) k_store_register(regno,value)
+#endif
+
+
 #if defined (STAPCONF_X86_UNIREGS) && defined (__i386__)
 
-#define dwarf_register_0(regs)  regs->ax
-#define dwarf_register_1(regs)  regs->cx
-#define dwarf_register_2(regs)  regs->dx
-#define dwarf_register_3(regs)  regs->bx
-#define dwarf_register_4(regs)  ((long) &regs->sp)
-#define dwarf_register_5(regs)  regs->bp
-#define dwarf_register_6(regs)  regs->si
-#define dwarf_register_7(regs)  regs->di
+#define k_dwarf_register_0(regs)  regs->ax
+#define k_dwarf_register_1(regs)  regs->cx
+#define k_dwarf_register_2(regs)  regs->dx
+#define k_dwarf_register_3(regs)  regs->bx
+#define k_dwarf_register_4(regs)  ((long) &regs->sp)
+#define k_dwarf_register_5(regs)  regs->bp
+#define k_dwarf_register_6(regs)  regs->si
+#define k_dwarf_register_7(regs)  regs->di
 
 #elif defined (STAPCONF_X86_UNIREGS) && defined (__x86_64__)
 
-#define dwarf_register_0(regs)  regs->ax
-#define dwarf_register_1(regs)  regs->dx
-#define dwarf_register_2(regs)  regs->cx
-#define dwarf_register_3(regs)  regs->bx
-#define dwarf_register_4(regs)  regs->si
-#define dwarf_register_5(regs)  regs->di
-#define dwarf_register_6(regs)  regs->bp
-#define dwarf_register_7(regs)  regs->sp
-#define dwarf_register_8(regs)  regs->r8
-#define dwarf_register_9(regs)  regs->r9
-#define dwarf_register_10(regs) regs->r10
-#define dwarf_register_11(regs) regs->r11
-#define dwarf_register_12(regs) regs->r12
-#define dwarf_register_13(regs) regs->r13
-#define dwarf_register_14(regs) regs->r14
-#define dwarf_register_15(regs) regs->r15
+#define k_dwarf_register_0(regs)  regs->ax
+#define k_dwarf_register_1(regs)  regs->dx
+#define k_dwarf_register_2(regs)  regs->cx
+#define k_dwarf_register_3(regs)  regs->bx
+#define k_dwarf_register_4(regs)  regs->si
+#define k_dwarf_register_5(regs)  regs->di
+#define k_dwarf_register_6(regs)  regs->bp
+#define k_dwarf_register_7(regs)  regs->sp
+#define k_dwarf_register_8(regs)  regs->r8
+#define k_dwarf_register_9(regs)  regs->r9
+#define k_dwarf_register_10(regs) regs->r10
+#define k_dwarf_register_11(regs) regs->r11
+#define k_dwarf_register_12(regs) regs->r12
+#define k_dwarf_register_13(regs) regs->r13
+#define k_dwarf_register_14(regs) regs->r14
+#define k_dwarf_register_15(regs) regs->r15
 
 #elif defined __i386__
 
@@ -120,60 +351,60 @@
    For a kernel mode trap, the interrupted state's esp is actually an
    address inside where the `struct pt_regs' on the kernel trap stack points. */
 
-#define dwarf_register_0(regs)	regs->eax
-#define dwarf_register_1(regs)	regs->ecx
-#define dwarf_register_2(regs)	regs->edx
-#define dwarf_register_3(regs)	regs->ebx
-#define dwarf_register_4(regs)	(user_mode(regs) ? regs->esp : (long)&regs->esp)
-#define dwarf_register_5(regs)	regs->ebp
-#define dwarf_register_6(regs)	regs->esi
-#define dwarf_register_7(regs)	regs->edi
+#define k_dwarf_register_0(regs)	regs->eax
+#define k_dwarf_register_1(regs)	regs->ecx
+#define k_dwarf_register_2(regs)	regs->edx
+#define k_dwarf_register_3(regs)	regs->ebx
+#define k_dwarf_register_4(regs)	(user_mode(regs) ? regs->esp : (long)&regs->esp)
+#define k_dwarf_register_5(regs)	regs->ebp
+#define k_dwarf_register_6(regs)	regs->esi
+#define k_dwarf_register_7(regs)	regs->edi
 
 #elif defined __ia64__
-#undef fetch_register
-#undef store_register
+#undef k_fetch_register
+#undef k_store_register
 
-#define fetch_register(regno)		ia64_fetch_register(regno, c->regs, &c->unwaddr)
-#define store_register(regno,value)	ia64_store_register(regno, c->regs, value)
+#define k_fetch_register(regno)		ia64_fetch_register(regno, c->regs, &c->unwaddr)
+#define k_store_register(regno,value)	ia64_store_register(regno, c->regs, value)
 
 #elif defined __x86_64__
 
-#define dwarf_register_0(regs)	regs->rax
-#define dwarf_register_1(regs)	regs->rdx
-#define dwarf_register_2(regs)	regs->rcx
-#define dwarf_register_3(regs)	regs->rbx
-#define dwarf_register_4(regs)	regs->rsi
-#define dwarf_register_5(regs)	regs->rdi
-#define dwarf_register_6(regs)	regs->rbp
-#define dwarf_register_7(regs)	regs->rsp
-#define dwarf_register_8(regs)	regs->r8
-#define dwarf_register_9(regs)	regs->r9
-#define dwarf_register_10(regs)	regs->r10
-#define dwarf_register_11(regs)	regs->r11
-#define dwarf_register_12(regs)	regs->r12
-#define dwarf_register_13(regs)	regs->r13
-#define dwarf_register_14(regs)	regs->r14
-#define dwarf_register_15(regs)	regs->r15
+#define k_dwarf_register_0(regs)	regs->rax
+#define k_dwarf_register_1(regs)	regs->rdx
+#define k_dwarf_register_2(regs)	regs->rcx
+#define k_dwarf_register_3(regs)	regs->rbx
+#define k_dwarf_register_4(regs)	regs->rsi
+#define k_dwarf_register_5(regs)	regs->rdi
+#define k_dwarf_register_6(regs)	regs->rbp
+#define k_dwarf_register_7(regs)	regs->rsp
+#define k_dwarf_register_8(regs)	regs->r8
+#define k_dwarf_register_9(regs)	regs->r9
+#define k_dwarf_register_10(regs)	regs->r10
+#define k_dwarf_register_11(regs)	regs->r11
+#define k_dwarf_register_12(regs)	regs->r12
+#define k_dwarf_register_13(regs)	regs->r13
+#define k_dwarf_register_14(regs)	regs->r14
+#define k_dwarf_register_15(regs)	regs->r15
 
 #elif defined __powerpc__
 
-#undef fetch_register
-#undef store_register
-#define fetch_register(regno) ((intptr_t) c->regs->gpr[regno])
-#define store_register(regno,value) (c->regs->gpr[regno] = (value))
+#undef k_fetch_register
+#undef k_store_register
+#define k_fetch_register(regno) ((intptr_t) c->regs->gpr[regno])
+#define k_store_register(regno,value) (c->regs->gpr[regno] = (value))
 
 #elif defined (__arm__)
 
-#undef fetch_register
-#undef store_register
-#define fetch_register(regno) ((long) c->regs->uregs[regno])
-#define store_register(regno,value) (c->regs->uregs[regno] = (value))
+#undef k_fetch_register
+#undef k_store_register
+#define k_fetch_register(regno) ((long) c->regs->uregs[regno])
+#define k_store_register(regno,value) (c->regs->uregs[regno] = (value))
 
 #elif defined (__s390__) || defined (__s390x__)
-#undef fetch_register
-#undef store_register
-#define fetch_register(regno) ((intptr_t) c->regs->gprs[regno])
-#define store_register(regno,value) (c->regs->gprs[regno] = (value))
+#undef k_fetch_register
+#undef k_store_register
+#define k_fetch_register(regno) ((intptr_t) c->regs->gprs[regno])
+#define k_store_register(regno,value) (c->regs->gprs[regno] = (value))
 
 #endif
 
@@ -227,6 +458,7 @@
       default: __store_deref_bad(); \
     } \
   })
+
 
 extern void __deref_bad(void);
 extern void __store_deref_bad(void);
@@ -745,6 +977,7 @@ extern void __store_deref_bad(void);
 #endif
 
 #endif /* STAPCONF_PROBE_KERNEL */
+
 
 #define deref_string(dst, addr, maxbytes)				      \
   ({									      \

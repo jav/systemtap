@@ -30,6 +30,13 @@
 
 #define N_(x) x
 
+/* NB: PR10601 may make one suspect that intptr_t and uintptr_t aren't
+   right, for example on a 64-bit kernel targeting a 32-bit userspace
+   process.  At least these types are always at least as wide as
+   userspace (since 64-bit userspace doesn't run on a 32-bit kernel).
+   So as long as deref() and {fetch,store}_register() widen/narrow
+   their underlying values to these, there should be no problem. */
+
 #define STACK_TYPE	"intptr_t"  /* Must be the signed type.  */
 #define UTYPE		"uintptr_t" /* Must be the unsigned type.  */
 #define SFORMAT		"%" PRId64 "L"

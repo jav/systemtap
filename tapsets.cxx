@@ -2400,9 +2400,13 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   try
     {
+      // PR10601: adapt to kernel-vs-userspace loc2c-runtime
+      ec->code += "\n#define fetch_register " + string(q.has_process?"u":"k") + "_fetch_register\n";
+      ec->code += "#define store_register " + string(q.has_process?"u":"k") + "_store_register\n";
+      
       if (q.has_return && (e->base_name == "$return"))
         {
-	  ec->code = q.dw.literal_stmt_for_return (scope_die,
+	  ec->code += q.dw.literal_stmt_for_return (scope_die,
 						   addr,
 						   e,
 						   lvalue,
@@ -2410,7 +2414,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	}
       else
         {
-	  ec->code = q.dw.literal_stmt_for_local (getscopes(e),
+	  ec->code += q.dw.literal_stmt_for_local (getscopes(e),
 						  addr,
 						  e->base_name.substr(1),
 						  e,
@@ -2422,6 +2426,10 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         ec->code += "/* pure */";
 
       ec->code += "/* unprivileged */";
+
+      // PR10601
+      ec->code += "\n#undef fetch_register\n";
+      ec->code += "\n#undef store_register\n";
     }
   catch (const semantic_error& er)
     {
@@ -2687,6 +2695,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   // split the module string by ':' for alternatives
   vector<string> modules;
   tokenize(e->module, modules, ":");
+  bool userspace_p=false; // PR10601
   for (unsigned i = 0; code.empty() && i < modules.size(); ++i)
     {
       string& module = modules[i];
@@ -2697,7 +2706,8 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       dwflpp* dw;
       try
 	{
-	  if (! is_user_module (module))
+          userspace_p=is_user_module (module);
+	  if (! userspace_p)
 	    {
 	      // kernel or kernel module target
 	      dw = db.get_kern_dw(s, module);
@@ -2739,8 +2749,13 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
-  ec->code = code;
   fdecl->body = ec;
+
+  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
+  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
+  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
+  
+  ec->code += code;
 
   // Give the fdecl an argument for the pointer we're trying to cast
   vardecl *v1 = new vardecl;
@@ -2780,6 +2795,10 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
     ec->code += "/* pure */";
 
   ec->code += "/* unprivileged */";
+
+  // PR10601
+  ec->code += "\n#undef fetch_register\n";
+  ec->code += "\n#undef store_register\n";
 
   s.functions[fdecl->name] = fdecl;
 
@@ -3410,7 +3429,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
   s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
-  s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address);";
+  s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address, NULL);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
   s.op->newline() << "probe_point = sdp->pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
@@ -4672,6 +4691,10 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   for (unsigned i =0; i<probes.size(); i++)
     s.op->line() << "0,";
   s.op->line() << "0};";
+  s.op->newline() << "unsigned long sdt_sem_tid [] = {";
+  for (unsigned i =0; i<probes.size(); i++)
+    s.op->line() << "0,";
+  s.op->line() << "0};";
   s.op->newline() << "static const struct stap_uprobe_spec {"; // NB: read-only structure
   s.op->newline(1) << "unsigned tfi;"; // index into stap_uprobe_finders[]
   s.op->newline() << "unsigned return_p:1;";
@@ -4815,17 +4838,19 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // was full (registration; MAXUPROBES) or that no matching entry was
   // found (unregistration; should not happen).
 
-  s.op->newline() << "if (sups->sdt_sem_offset && sdt_sem_address[spec_index] == 0) {";
+  s.op->newline() << "if (sups->sdt_sem_offset && (sdt_sem_tid[spec_index] != tsk->tgid || sdt_sem_address[spec_index] == 0)) {";
   s.op->indent(1);
   // If the probe is in the executable itself, the offset *is* the address.
   s.op->newline() << "if (vm_flags & VM_EXECUTABLE) {";
   s.op->indent(1);
   s.op->newline() << "sdt_sem_address[spec_index] = relocation + sups->sdt_sem_offset;";
+  s.op->newline() << "sdt_sem_tid[spec_index] = tsk->tgid;";
   s.op->newline(-1) << "}";
   // If the probe is in a .so, we have to calculate the address.
   s.op->newline() << "else {";
   s.op->indent(1);
   s.op->newline() << "sdt_sem_address[spec_index] = (relocation - offset) + sups->sdt_sem_offset;";
+  s.op->newline() << "sdt_sem_tid[spec_index] = tsk->tgid;";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";	// sdt_sem_offset
 
@@ -5758,9 +5783,13 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       fdecl->name = fname;
       fdecl->body = ec;
 
+      // PR10601: adapt to kernel-vs-userspace loc2c-runtime
+      ec->code += "\n#define fetch_register k_fetch_register\n";
+      ec->code += "#define store_register k_store_register\n";
+     
       try
         {
-          ec->code = dw.literal_stmt_for_pointer (&arg->type_die, e,
+          ec->code += dw.literal_stmt_for_pointer (&arg->type_die, e,
                                                   lvalue, fdecl->type);
         }
       catch (const semantic_error& er)
@@ -5818,6 +5847,10 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
       ec->code += "/* unprivileged */";
 
+      // PR10601
+      ec->code += "\n#undef fetch_register\n";
+      ec->code += "\n#undef store_register\n";
+  
       dw.sess.functions[fdecl->name] = fdecl;
 
       // Synthesize a functioncall.

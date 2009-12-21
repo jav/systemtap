@@ -95,6 +95,14 @@ extern void unregister_uretprobe(struct uretprobe *rp);
 /* For PRs 9940, 6852... */
 extern void unmap_uprobe(struct uprobe *u);
 extern void unmap_uretprobe(struct uretprobe *rp);
+/*
+ * Given a program counter, translate it back to the original address
+ * if it is the address of the trampoline. sp is the stack pointer for
+ * the frame that corresponds to the address.
+ */
+extern unsigned long uprobe_get_pc(struct uretprobe_instance *ri,
+                                   unsigned long pc,
+                                   unsigned long sp);
 
 #ifdef UPROBES_IMPLEMENTATION
 

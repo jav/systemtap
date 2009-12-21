@@ -660,37 +660,6 @@ and a string of name=value pairs for all parameters of the tracepoint
 is available in
 .BR $$vars " or " $$parms .
 
-.SS PERFORMANCE MONITORING HARDWARE
-
-The perfmon family of probe points is used to access the performance
-monitoring hardware available in modern processors. This family of
-probes points needs the perfmon2 support in the kernel to access the
-performance monitoring hardware.
-.PP
-Performance monitor hardware points begin with a 
-.BR perfmon ". "
-The next part of the names the event being counted
-.BR counter("event") .
-The event names are processor implementation specific with the
-exception of the generic
-.BR cycles " and " instructions
-events, which are available on all processors. This sets up a counter
-on the processor to count the number of events occurring on the
-processor. For more details on the performance monitoring events
-available on a specific processor use the command perfmon2 command:
-
-.SAMPLE
-pfmon \-l
-.ESAMPLE
-.TP
-$counter
-is a handle used in the body of the probe for operations
-involving the counter associated with the probe.
-.TP
-read_counter
-is a function that is passed the handle for the perfmon probe and returns
-the current count for the event.
-
 .SH EXAMPLES
 .PP
 Here are some example probe points, defining the associated events.

@@ -133,13 +133,15 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 			}
 			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
                 } else if (ri) {
+#ifdef CONFIG_UTRACE /* as a proxy for presence of uprobes */
 			if (verbose == SYM_VERBOSE_FULL) {
 				_stp_print("Returning from: ");
-				_stp_usymbol_print(ri->rp->u.vaddr, tsk);
+				_stp_usymbol_print(ri->rp->u.vaddr, tsk);  /* otherwise this dereference fails */
 				_stp_print("\nReturning to  : ");
 				_stp_usymbol_print(ri->ret_addr, tsk);
 			} else
 				_stp_func_print(ri->ret_addr, verbose, 0, tsk);
+#endif
 		} else {
 			_stp_print_char(' ');
 			if (tsk)
