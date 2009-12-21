@@ -113,8 +113,8 @@ proc setup_server {} {
 
     # Make sure that the necessary resources are available to run the client/server.
     if {[installtest_p]} then {
-	if {[catch {exec /usr/bin/which stap-client-connect} dummy]} then {
-	    print "Unable to start a server: stap-client-connect is not found in PATH"
+	if {! [file exists $env(PKGLIBDIR)/stap-client-connect]} then {
+	    print "Unable to start a server: stap-client-connect is not installed"
 	    return 0
 	}
     } elseif {! [file exists [exec pwd]/../stap-client-connect]} then {
@@ -140,11 +140,11 @@ proc setup_server {} {
 	set env(SYSTEMTAP_SERVER_SCRIPTS) "$srcdir/.."
     } else {
 	set env(PATH) "$env(PKGLIBDIR):$env(PATH)"
-	set env(SYSTEMTAP_SERVER_SCRIPTS) env(PKGLIBDIR)
+	set env(SYSTEMTAP_SERVER_SCRIPTS) $env(PKGLIBDIR)
     }
 
     # Try to find or start the server.
-    set server_pid [exec stap-start-server]
+    set server_pid [exec stap-start-server --log=[exec pwd]/server.log]
     if { "$server_pid" == "" } then {
 	print "Cannot start a systemtap server"
 	set server_pid 0
