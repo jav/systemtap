@@ -48,7 +48,7 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
                         else
                                 UNW_PC(&info) = maybe_pc;
                 }
-#undef
+#endif
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
 		if (ret == 0) {
 			_stp_func_print(UNW_PC(&info), verbose, 1, tsk);
