@@ -121,7 +121,7 @@ install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
 	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
 	done
 	for f in $(pkglibexec_SCRIPTS); do \
-	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
 	done
 endif
 endif

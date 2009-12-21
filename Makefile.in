@@ -1839,7 +1839,7 @@ cscope:
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	for f in $(pkglibexec_SCRIPTS); do \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@stamp-elfutils: config.status
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all bin_PROGRAMS=
@@ -1939,7 +1939,7 @@ uninstall-local:
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
         PWD=`pwd`; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)";
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)";
 
 installcheck:
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \
@@ -1950,7 +1950,7 @@ installcheck:
 	  echo "$(DESTDIR)$(bindir)/stap is not recent, run make install"; \
 	  exit -1; \
 	fi;
-	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)"
 
 .PHONY: $(PHONIES)
 
