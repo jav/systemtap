@@ -270,6 +270,7 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 
 
 // Remove the vma entry from the vma hash table.
+// Returns -ESRCH if the entry isn't present.
 static int
 stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 			     unsigned long vm_end, unsigned long vm_pgoff)
@@ -277,6 +278,7 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 	struct hlist_head *head;
 	struct hlist_node *node;
 	struct __stp_tf_vma_entry *entry;
+	int rc = -ESRCH;
 
 	// Take a write lock since we are most likely going to delete
 	// after reading.
@@ -286,13 +288,15 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 	if (entry != NULL) {
 		hlist_del(&entry->hlist);
 		__stp_tf_vma_put_free_entry(entry);
+                rc = 0;
 	}
 	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-	return 0;
+	return rc;
 }
 
-// Finds vma info if the vma is present in the vma map hash table.
-// Returns ESRCH if not present.  The __stp_tf_vma_lock must *not* be
+// Finds vma info if the vma is present in the vma map hash table for
+// a given task and address (between vm_start and vm_end).
+// Returns -ESRCH if not present.  The __stp_tf_vma_lock must *not* be
 // locked before calling this function.
 static int
 stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
@@ -303,7 +307,7 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 	struct hlist_node *node;
 	struct __stp_tf_vma_entry *entry;
 	struct __stp_tf_vma_entry *found_entry = NULL;
-	int rc = ESRCH;
+	int rc = -ESRCH;
 
 	unsigned long flags;
 	read_lock_irqsave(&__stp_tf_vma_lock, flags);
@@ -329,4 +333,63 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 	}
 	read_unlock_irqrestore(&__stp_tf_vma_lock, flags);
 	return rc;
+}
+
+// Finds vma info if the vma is present in the vma map hash table for
+// a given task with the given user handle.
+// Returns -ESRCH if not present.  The __stp_tf_vma_lock must *not* be
+// locked before calling this function.
+static int
+stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
+			    unsigned long *vm_start, unsigned long *vm_end,
+			    unsigned long *vm_pgoff)
+{
+	struct hlist_head *head;
+	struct hlist_node *node;
+	struct __stp_tf_vma_entry *entry;
+	struct __stp_tf_vma_entry *found_entry = NULL;
+	int rc = -ESRCH;
+
+	unsigned long flags;
+	read_lock_irqsave(&__stp_tf_vma_lock, flags);
+	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
+	hlist_for_each_entry(entry, node, head, hlist) {
+		if (tsk->pid == entry->pid
+		    && user == entry->user) {
+			found_entry = entry;
+			break;
+		}
+	}
+	if (found_entry != NULL) {
+		if (vm_start != NULL)
+			*vm_start = found_entry->vm_start;
+		if (vm_end != NULL)
+			*vm_end = found_entry->vm_end;
+		if (vm_pgoff != NULL)
+			*vm_pgoff = found_entry->vm_pgoff;
+		rc = 0;
+	}
+	read_unlock_irqrestore(&__stp_tf_vma_lock, flags);
+	return rc;
+}
+
+static int
+stap_drop_vma_maps(struct task_struct *tsk)
+{
+	struct hlist_head *head;
+	struct hlist_node *node;
+	struct hlist_node *n;
+	struct __stp_tf_vma_entry *entry;
+
+	unsigned long flags;
+	write_lock_irqsave(&__stp_tf_vma_lock, flags);
+	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
+        hlist_for_each_entry_safe(entry, node, n, head, hlist) {
+            if (tsk->pid == entry->pid) {
+		    hlist_del(&entry->hlist);
+		    __stp_tf_vma_put_free_entry(entry);
+            }
+        }
+	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
+	return 0;
 }

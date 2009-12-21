@@ -496,7 +496,7 @@ static char *_stp_eh_enc_name(signed type)
 // and the elfutils base relocation done during loading of the .dwarf_frame
 // in translate.cxx.
 static unsigned long
-adjustStartLoc (unsigned long startLoc,
+adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
 		struct _stp_module *m,
 		struct _stp_section *s,
 		unsigned ptrType, int is_ehframe)
@@ -521,10 +521,14 @@ adjustStartLoc (unsigned long startLoc,
       return startLoc;
   }
 
-  if (strcmp (s->name, ".dynamic") == 0)
-    return startLoc + s->addr;
+  if (strcmp (s->name, ".dynamic") == 0) {
+    unsigned long vm_addr;
+    if (stap_find_vma_map_info_user(tsk->group_leader, m,
+				    &vm_addr, NULL, NULL) == 0)
+      return startLoc + vm_addr;
+  }
 
-  startLoc = _stp_module_relocate (m->name, s->name, startLoc);
+  startLoc = _stp_module_relocate (m->name, s->name, startLoc, tsk);
   startLoc -= m->dwarf_module_base;
   return startLoc;
 }
@@ -532,7 +536,7 @@ adjustStartLoc (unsigned long startLoc,
 /* If we previously created an unwind header, then use it now to binary search */
 /* for the FDE corresponding to pc. XXX FIXME not currently supported. */
 
-static u32 *_stp_search_unwind_hdr(unsigned long pc,
+static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 				   struct _stp_module *m,
 				   struct _stp_section *s)
 {
@@ -581,7 +585,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 	do {
 		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
 		startLoc = read_pointer(&cur, cur + tableSize, hdr[3]);
-		startLoc = adjustStartLoc(startLoc, m, s, hdr[3], 1);
+		startLoc = adjustStartLoc(startLoc, tsk, m, s, hdr[3], 1);
 		if (pc < startLoc)
 			num /= 2;
 		else {
@@ -590,7 +594,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
 		}
 	} while (startLoc && num > 1);
 
-	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), m, s, hdr[3], 1)) != 0 && pc >= startLoc)
+	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), tsk, m, s, hdr[3], 1)) != 0 && pc >= startLoc)
 		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
 
 	dbug_unwind(1, "returning fde=%lx startLoc=%lx", (unsigned long) fde, startLoc);
@@ -601,6 +605,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc,
  * number in case of an error.  A positive return means unwinding is finished; 
  * don't try to fallback to dumping addresses on the stack. */
 static int unwind_frame(struct unwind_frame_info *frame,
+			struct task_struct *tsk,
 			struct _stp_module *m, struct _stp_section *s,
 			void *table, uint32_t table_len, int is_ehframe)
 {
@@ -619,7 +624,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 		goto err;
 	}
 
-	fde = _stp_search_unwind_hdr(pc, m, s);
+	fde = _stp_search_unwind_hdr(pc, tsk, m, s);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
 
 	/* found the fde, now set startLoc and endLoc */
@@ -629,7 +634,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie, table, table_len);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe);
+			startLoc = adjustStartLoc(startLoc, tsk, m, s, ptrType, is_ehframe);
 
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!(ptrType & DW_EH_PE_indirect))
@@ -660,7 +665,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe);
+			startLoc = adjustStartLoc(startLoc, tsk, m, s, ptrType, is_ehframe);
 			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;
@@ -902,18 +907,18 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 	if (UNW_PC(frame) == 0)
 		return -EINVAL;
 
-	m = _stp_mod_sec_lookup (pc, tsk, &s);
+	m = _stp_mod_sec_lookup (pc, tsk, &s, NULL);
 	if (unlikely(m == NULL)) {
 		dbug_unwind(1, "No module found for pc=%lx", pc);
 		return -EINVAL;
 	}
 
 	dbug_unwind(1, "trying debug_frame\n");
-	res = unwind_frame (frame, m, s, m->debug_frame,
+	res = unwind_frame (frame, tsk, m, s, m->debug_frame,
 			    m->debug_frame_len, 0);
 	if (res != 0) {
 	  dbug_unwind(1, "debug_frame failed: %d, trying eh_frame\n", res);
-	  res = unwind_frame (frame, m, s, m->eh_frame,
+	  res = unwind_frame (frame, tsk, m, s, m->eh_frame,
 			      m->eh_frame_len, 1);
 	}
 
