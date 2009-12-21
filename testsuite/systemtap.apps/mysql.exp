@@ -269,11 +269,11 @@ RELEASE=\$(grep 'handler__unlock__done' $testsuite/stap-mysql-markers.log | wc -
 COMMAND=\$(grep 'command__start' $testsuite/stap-mysql-markers.log | wc -l)
 QUERY=\$(grep 'query__start' $testsuite/stap-mysql-markers.log | wc -l)
 RDLOCK=\$(grep 'handler__rdlock__start' $testsuite/stap-mysql-markers.log | wc -l)
-SELECT=\$(grep 'select_start' $testsuite/stap-mysql-markers.log | wc -l)
+SELECT=\$(grep 'select__start' $testsuite/stap-mysql-markers.log | wc -l)
 OKAY=\$(grep 'All.*tests were successful' $testsuite/stap-mysql.log | wc -l)
 
 echo  ACQUIRE=\$ACQUIRE  RELEASE=\$RELEASE COMMAND=\$COMMAND  QUERY=\$QUERY RDLOCK=\$RDLOCK  SELECT=\$SELECT OKAY=\$OKAY
-if \[ \$ACQUIRE -gt 10000 -a \$RELEASE -gt 1000 -a \$COMMAND -gt 12000 -a \$QUERY -gt 13000 -a \$RDLOCK -gt 3000 \] ; then
+if \[ \$ACQUIRE -gt 10000 -a \$RELEASE -gt 1000 -a \$COMMAND -gt 12000 -a \$QUERY -gt 13000 -a \$RDLOCK -gt 3000 -a \$SELECT -gt 2000 \] ; then
    echo PASS: mysql markers \$1
 else
    echo FAIL: mysql markers \$1
@@ -285,8 +285,13 @@ else
    echo FAIL: mysql tests \$1
 fi
 
-$mysqldir/bin/mysqladmin shutdown -u root --socket=stap-mysql/mysql.sock
-kill \$STAPPID
+mv $testsuite/stap-mysql.log $testsuite/stap-mysql-\$1.log
+cat $testsuite/stap-mysql-markers.log >> $testsuite/stap-mysql-\$1.log
+rm $testsuite/stap-mysql-markers.log
+
+$mysqldir/bin/mysqladmin shutdown -u root --socket=$testsuite/stap-mysql/mysql.sock
+kill -9 \$STAPPID
+kill -9 $testsuite/stap-mysql/mysql.pid
 \}
 ##### end run_tests #####
 
@@ -305,24 +310,34 @@ mkdir mysql
 mv $mysqlrelease mysql/src
 fi
 
-if \[ ! -f mysql/install/bin/mysql \] ; then
-cd mysql
-mkdir bld
-cd bld
+if \[ ! -d mysql/bld \] ; then
+mkdir -p mysql/bld
+cd mysql/bld
 # Force the use of dtrace
 sed -i -e 's/HAVE_DTRACE_DASH_G=\"no\"/HAVE_DTRACE_DASH_G=\"yes\"/' ../src/configure
 ../src/configure --enable-dtrace --prefix=$mysqldir
 for i in \$(find . -name Makefile) ; do 
     sed -i -e 's/^CXXFLAGS =/& -g/' \$i
 done
-
-make -j2
-cp ./abi_check.out ../../src/include/mysql.h.pp
-make -j2
-make install
 fi
 
+cd mysql/bld
+
+J=\$(getconf _NPROCESSORS_CONF)
+make -j\$J
+cp ./abi_check.out ../../src/include/mysql.h.pp
+make -j\$J
+make install
 run_tests uprobe
+
+# for i in \$(find . -name Makefile) ; do
+#     sed -i -e 's/^CFLAGS = .*$/& -DEXPERIMENTAL_UTRACE_SDT /' \$i
+#     sed -i -e 's/^CXXFLAGS = .*$/& -DEXPERIMENTAL_UTRACE_SDT /' \$i
+# done
+# for i in sql storage mysys ; do (cd \$i ; make clean) ; done
+# make -i -j2
+# make install
+# run_tests utrace
 "
 ########## End /tmp/stap-mysql.sh ########## 
 close $fp

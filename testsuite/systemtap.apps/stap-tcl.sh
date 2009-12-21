@@ -15,6 +15,8 @@ fi
 if [ ! -d tcl/src ] ; then
     tar -x -z -f tcl$tclrelease-src.tar.gz
     mv tcl$tclrelease tcl/src
+    sed -i '/runAllTests/i\
+singleProcess true' tcl/src/tests/all.tcl
 fi
 
 cd tcl/src/unix
