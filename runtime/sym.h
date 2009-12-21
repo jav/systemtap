@@ -17,7 +17,7 @@ struct _stp_symbol {
 
 struct _stp_section {
         const char *name;
-        unsigned long addr; /* XXX: belongs in per-address-space tables */
+        unsigned long static_addr; /* XXX non-null if everywhere the same. */
 	unsigned long size; /* length of the address space module covers. */
 	struct _stp_symbol *symbols;  /* ordered by address */
   	unsigned num_symbols;
@@ -70,7 +70,10 @@ static unsigned long _stp_kretprobe_trampoline;
    _stp_sym_init () should track vma maps. */
 static char _stp_need_vma_tracker;
 
-static unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset);
+static unsigned long _stp_module_relocate (const char *module,
+					   const char *section,
+					   unsigned long offset,
+					   struct task_struct *tsk);
 static struct _stp_module *_stp_get_unwind_info (unsigned long addr);
 
 #endif /* _STP_SYM_H_ */
