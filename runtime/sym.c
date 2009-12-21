@@ -19,6 +19,22 @@
 /* Callback that needs to be registered (in
    session.unwindsyms_modules) for every user task path for which we
    might need symbols or unwind info. */
+static int _stp_tf_exec_cb(struct stap_task_finder_target *tgt,
+			   struct task_struct *tsk,
+			   int register_p,
+			   int process_p)
+{
+#ifdef DEBUG_TASK_FINDER_VMA
+  _stp_dbug(__FUNCTION__, __LINE__,
+	    "tsk %d:%d , register_p: %d, process_p: %d\n",
+	    tsk->pid, tsk->tgid, register_p, process_p);
+#endif
+  if (process_p && ! register_p)
+    stap_drop_vma_maps(tsk);
+
+  return 0;
+}
+
 static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			   struct task_struct *tsk,
 			   char *path,
@@ -42,40 +58,22 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			if (strcmp(path, _stp_modules[i]->path) == 0)
 			{
 #ifdef DEBUG_TASK_FINDER_VMA
-				_stp_dbug(__FUNCTION__, __LINE__,
-					  "vm_cb: matched path %s to module\n",
-					  path);
+			  _stp_dbug(__FUNCTION__, __LINE__,
+				    "vm_cb: matched path %s to module (for sec: %s)\n",
+				    path, _stp_modules[i]->sections[0].name);
 #endif
-				module = _stp_modules[i];
-				// cheat...
-				// We are abusing the "first" section address
-				// here to indicate where the module (actually
-				// first segment) is loaded (which is why we
-				// are ignoring the offset). It would be good
-				// to redesign the stp_module/stp_section
-				// data structures to better align with the
-				// actual memory mappings we are interested
-				// in (especially the "section" naming is
-				// slightly confusing since what we really
-				// seem to mean are elf segments (which can
-				// contain multiple elf sections). PR11015.
-				if (strcmp(".dynamic",
-					   module->sections[0].name) == 0)
-				  {
-				    if (module->sections[0].addr == 0)
-				      module->sections[0].addr = addr;
-				    else if (module->sections[0].addr != addr)
-				      _stp_error ("Reloaded module '%s'"
-						  " at 0x%lx, was 0x%lx\n",
-						  path, addr,
-						  module->sections[0].addr);
-				  }
-				break;
+			  module = _stp_modules[i];
+			  /* XXX We really only need to register .dynamic
+			     sections, but .absolute exes are also necessary
+			     atm. */
+			  return stap_add_vma_map_info(tsk->group_leader,
+						       addr,
+						       addr + length,
+						       offset,
+						       module);
 			}
 		}
 	}
-	stap_add_vma_map_info(tsk->group_leader, addr, addr + length, offset,
-			      module);
 	return 0;
 }
 
@@ -84,15 +82,25 @@ static int _stp_tf_munmap_cb(struct stap_task_finder_target *tgt,
 			     unsigned long addr,
 			     unsigned long length)
 {
+        /* Unconditionally remove vm map info, ignore if not present. */
 	stap_remove_vma_map_info(tsk->group_leader, addr, addr + length, 0);
 	return 0;
 }
 
-/* XXX: this needs to be address-space-specific. */
-static unsigned long _stp_module_relocate(const char *module, const char *section, unsigned long offset)
+/* Returns absolute address of offset into module/section for given task.
+   If tsk == NULL module/section is assumed to be absolute/static already
+   (e.g. kernel, kernel-modules and static executables). Returns zero when
+   module and section couldn't be found (aren't in memory yet). */
+static unsigned long _stp_module_relocate(const char *module,
+					  const char *section,
+					  unsigned long offset,
+					  struct task_struct *tsk)
 {
+        /* XXX This doesn't look thread safe XXX */
 	static struct _stp_module *last = NULL;
 	static struct _stp_section *last_sec;
+        static struct task_struct *last_tsk;
+        static unsigned long last_offset;
 	unsigned i, j;
 
 	/* if module is -1, we invalidate last. _stp_del_module calls this when modules are deleted. */
@@ -110,8 +118,10 @@ static unsigned long _stp_module_relocate(const char *module, const char *sectio
 
 	/* Most likely our relocation is in the same section of the same module as the last. */
 	if (last) {
-		if (!strcmp(module, last->name) && !strcmp(section, last_sec->name)) {
-			offset += last_sec->addr;
+		if (!strcmp(module, last->name)
+                    && !strcmp(section, last_sec->name)
+                    && tsk == last_tsk) {
+			offset += last_offset;
 			dbug_sym(1, "cached address=%lx\n", offset);
 			return offset;
 		}
@@ -124,11 +134,33 @@ static unsigned long _stp_module_relocate(const char *module, const char *sectio
           for (j = 0; j < last->num_sections; j++) {
             last_sec = &last->sections[j];
             if (!strcmp(section, last_sec->name)) {
-            
-              if (last_sec->addr == 0) /* module/section not in memory */
-                continue;
-
-              offset += last_sec->addr;
+              /* mod and sec name match. tsk should match dynamic/static. */
+              if (last_sec->static_addr != 0) {
+                last_offset = last_sec->static_addr;
+	      } else {
+                if (!tsk) { /* static section, not in memory yet? */
+		  if (strcmp(".dynamic", section) == 0)
+		    _stp_error("internal error, _stp_module_relocate '%s' "
+			       "section '%s', should not be tsk dynamic\n",
+			       module, section);
+		  last = NULL;
+		  return 0;
+		} else { /* dynamic section, look up through tsk vma. */
+		  if (strcmp(".dynamic", last_sec->name) != 0) {
+		    _stp_error("internal error, _stp_module_relocate '%s' "
+			       "section '%s', should not be tsk dynamic\n",
+			       module, section);
+		    return 0;
+		  }
+		  if (stap_find_vma_map_info_user(tsk->group_leader, last,
+						  &last_offset, NULL,
+						  NULL) != 0) {
+		    last = NULL;
+		    return 0;
+		  }
+		}
+	      }
+              offset += last_offset;
               dbug_sym(1, "address=%lx\n", offset);
               return offset;
             }
@@ -140,11 +172,12 @@ static unsigned long _stp_module_relocate(const char *module, const char *sectio
 }
 
 /* Return module owner and, if sec != NULL, fills in closest section
-   of the address if found, return NULL otherwise.
-   XXX: needs to be address-space-specific. */
+   of the address if found, return NULL otherwise. Fills in rel_addr
+   (addr relative to closest section) when given. */
 static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 					       struct task_struct *task,
-					       struct _stp_section **sec)
+					       struct _stp_section **sec,
+					       unsigned long *rel_addr)
 {
   void *user = NULL;
   unsigned midx = 0;
@@ -160,11 +193,21 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 	  {
 	    struct _stp_module *m = (struct _stp_module *)user;
 	    if (sec)
-	      *sec = &m->sections[0]; // XXX check actual section and relocate
+	      *sec = &m->sections[0]; // dynamic user modules have one section.
+	    if (rel_addr)
+	      {
+		/* XXX .absolute sections really shouldn't be here... */
+		if (strcmp(".dynamic", m->sections[0].name) == 0)
+		  *rel_addr = addr - vm_start;
+		else
+		  *rel_addr = addr;
+	      }
 	    dbug_sym(1, "found section %s in module %s at 0x%lx\n",
 		     m->sections[0].name, m->name, vm_start);
 	    return m;
 	  }
+      /* XXX should really not fallthrough, but sometimes current is passed
+             when it shouldn't - see probefunc() for example. */
     }
 
   for (midx = 0; midx < _stp_num_modules; midx++)
@@ -174,12 +217,14 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 	{
 	  unsigned long sec_addr;
 	  unsigned long sec_size;
-	  sec_addr = _stp_modules[midx]->sections[secidx].addr;
+	  sec_addr = _stp_modules[midx]->sections[secidx].static_addr;
 	  sec_size = _stp_modules[midx]->sections[secidx].size;
 	  if (addr >= sec_addr && addr < sec_addr + sec_size)
             {
 	      if (sec)
 		*sec = & _stp_modules[midx]->sections[secidx];
+	      if (rel_addr)
+		*rel_addr = addr - sec_addr;
 	      return _stp_modules[midx];
 	    }
 	}
@@ -188,7 +233,6 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 }
 
 
-/* XXX: needs to be address-space-specific. */
 static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbolsize,
                                         unsigned long *offset, 
                                         const char **modname, 
@@ -200,13 +244,14 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	struct _stp_section *sec = NULL;
 	struct _stp_symbol *s = NULL;
 	unsigned end, begin = 0;
+	unsigned long rel_addr = 0;
 
-	m = _stp_mod_sec_lookup(addr, task, &sec);
+	m = _stp_mod_sec_lookup(addr, task, &sec, &rel_addr);
         if (unlikely (m == NULL || sec == NULL))
           return NULL;
         
         /* NB: relativize the address to the section. */
-        addr -= sec->addr;
+        addr = rel_addr;
 	end = sec->num_symbols;
 
 	/* binary search for symbols within the module */
@@ -268,9 +313,9 @@ static int _stp_module_check(void)
 		    /* notes end address */
 		    if (!strcmp(m->name, "kernel")) {
 			  notes_addr = _stp_module_relocate("kernel",
-					 "_stext", m->build_id_offset);
+					 "_stext", m->build_id_offset, NULL);
 			  base_addr = _stp_module_relocate("kernel",
-							   "_stext", 0);
+							   "_stext", 0, NULL);
                     } else {
 			  notes_addr = m->notes_sect + m->build_id_offset;
 			  base_addr = m->notes_sect;
@@ -446,14 +491,20 @@ static void _stp_sym_init(void)
         static struct stap_task_finder_target vmcb = {
                 // NB: no .pid, no .procname filters here.
                 // This means that we get a system-wide mmap monitoring
-                // widget while the script is running.  (The system-wideness may
-                // be restricted by stap -c or -x.)  But this seems to
-                // be necessary if we want to to stack tracebacks through arbitrary
-                // shared libraries.  XXX: There may be an optimization opportunity
-                // for executables (for which the main task-finder callback should be
-                // sufficient).
+                // widget while the script is running. (The
+                // system-wideness may be restricted by stap -c or
+                // -x.)  But this seems to be necessary if we want to
+                // to stack tracebacks through arbitrary shared libraries.
+                //
+                // XXX: There may be an optimization opportunity
+                // for executables (for which the main task-finder
+                // callback should be sufficient).
+                .pid = 0,
+                .procname = NULL,
+                .callback = &_stp_tf_exec_cb,
                 .mmap_callback = &_stp_tf_mmap_cb,
                 .munmap_callback = &_stp_tf_munmap_cb,
+                .mprotect_callback = NULL
         };
 	if (! initialized) {
                 int rc;
@@ -462,8 +513,10 @@ static void _stp_sym_init(void)
 #ifdef DEBUG_TASK_FINDER_VMA
                 _stp_dbug(__FUNCTION__, __LINE__, "registered vmcb");
 #endif
-                (void) rc; // XXX
-		initialized = 1;
+                if (rc != 0)
+                  _stp_error("Couldn't register task finder target: %d\n", rc);
+                else
+                  initialized = 1;
 	}
 #endif
 }

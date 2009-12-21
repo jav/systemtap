@@ -1523,7 +1523,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
           // This gives us the module name, and section name within the
           // module, for a kernel module (or other ET_REL module object).
           obstack_printf (pool, "({ unsigned long addr = 0; ");
-          obstack_printf (pool, "addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+          obstack_printf (pool, "addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 ", NULL); ",
                           modname, secname, reloc_address);
           obstack_printf (pool, "addr; })");
         }
@@ -1537,7 +1537,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
           // kernel will never move after being loaded (unlike modules and
           // user-space dynamic share libraries).
           obstack_printf (pool, "({ static unsigned long addr = 0; ");
-          obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+          obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 ", NULL); ",
                           modname, secname, address); // PR10000 NB: not reloc_address
           obstack_printf (pool, "addr; })");
         }
@@ -1545,7 +1545,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
         {
           enable_task_finder (sess);
           obstack_printf (pool, "({ unsigned long addr = 0; ");
-          obstack_printf (pool, "addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+          obstack_printf (pool, "addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 ", current); ",
                           modname, ".dynamic", reloc_address);
           obstack_printf (pool, "addr; })");
         }

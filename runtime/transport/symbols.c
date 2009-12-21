@@ -61,7 +61,7 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
             continue;
           else
             {
-              _stp_modules[mi]->sections[si].addr = msg.address;
+              _stp_modules[mi]->sections[si].static_addr = msg.address;
               break;
             }
         } /* loop over sections */
