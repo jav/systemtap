@@ -407,6 +407,7 @@ exit 0
 %attr(4111,root,root) %{_bindir}/staprun
 %{_bindir}/stap-report
 %{_bindir}/stap-authorize-signing-cert
+%{_libexecdir}/%{name}/stapio
 %{_libexecdir}/%{name}/stap-env
 %{_libexecdir}/%{name}/stap-authorize-cert
 %{_mandir}/man8/staprun.8*
