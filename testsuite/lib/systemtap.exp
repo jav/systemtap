@@ -143,8 +143,17 @@ proc setup_server {} {
 	set env(SYSTEMTAP_SERVER_SCRIPTS) $env(PKGLIBDIR)
     }
 
+    # Erase the old server log file.
+    set logfile "[exec pwd]/server.log"
+    if {[file exists $logfile]} then {
+	exec rm -f $logfile;
+    }
+    # Create a new one and make sure it's world writable.
+    exec touch $logfile
+    exec chmod 666 $logfile
+
     # Try to find or start the server.
-    set server_pid [exec stap-start-server --log=[exec pwd]/server.log]
+    set server_pid [exec stap-start-server --log=$logfile]
     if { "$server_pid" == "" } then {
 	print "Cannot start a systemtap server"
 	set server_pid 0
