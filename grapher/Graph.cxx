@@ -47,8 +47,7 @@ void Graph::draw(Cairo::RefPtr<Cairo::Context> cr)
       _left = _right - 5000;
     }
   cr->save();
-  double horizScale
-    = _zoomFactor * _graphWidth / static_cast<double>(_right - _left);
+  double horizScale = getHorizontalScale();
   cr->translate(_xOffset, _yOffset);
   cr->set_line_width(_lineWidth);
 
@@ -103,10 +102,11 @@ void Graph::draw(Cairo::RefPtr<Cairo::Context> cr)
   cr->select_font_face("Sans", Cairo::FONT_SLANT_NORMAL,
                        Cairo::FONT_WEIGHT_NORMAL);
   cr->set_font_size(10.0);
-  cr->move_to(_xOffset, _yOffset);
-  cr->line_to(_xOffset, _height);
-  cr->move_to(_xOffset, _graphHeight);
-  cr->line_to(_graphWidth, _graphHeight);
+  cr->translate(_xOffset, 0.0);
+  cr->move_to(0.0, _yOffset);
+  cr->line_to(0.0, _height);
+  cr->move_to(0.0, _graphHeight);
+  cr->line_to(_graphWidth - _xOffset, _graphHeight);
   cr->stroke();
   std::valarray<double> dash(1);
   dash[0] = _graphHeight / 10;
@@ -114,7 +114,7 @@ void Graph::draw(Cairo::RefPtr<Cairo::Context> cr)
   double prevTextAdvance = 0;
   for (int64_t tickVal = startTime; tickVal <= _right; tickVal += majorUnit)
     {
-      double x = (tickVal - _left) * horizScale + _xOffset;
+      double x = (tickVal - _right) * horizScale + _graphWidth;
       cr->move_to(x, _yOffset);
       cr->line_to(x, _graphHeight);
       std::ostringstream stream;
@@ -170,8 +170,7 @@ bool Graph::containsPoint(double x, double y)
 
 int64_t Graph::getTimeAtPoint(double x)
 {
-  return (_left
-          + (_right - _left) * ((x - _xOffset)/(_zoomFactor * _graphWidth)));
+  return (x - _graphWidth) / getHorizontalScale() + _right;
 }
 
 void Graph::window2GraphCoords(double x, double y,

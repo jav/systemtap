@@ -51,6 +51,14 @@ public:
   int64_t getTimeAtPoint(double x);
   void window2GraphCoords(double x, double y, double& xgraph, double& ygraph);
   static void setCurrentTime(int64_t time) { _currentTime = time; }
+
+  /*
+   * universal horizontal factor
+   */
+  double getHorizontalScale()
+  {
+    return _zoomFactor * _graphWidth / static_cast<double>(_right - _left);
+  }
 protected:
   GraphDataList _datasets;
   int64_t _left;
