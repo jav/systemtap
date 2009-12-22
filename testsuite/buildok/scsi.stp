@@ -15,29 +15,41 @@ fi
 stap -p4 - << EOF
 probe scsi.ioentry
 {
-	printf("ppname: %s, %d, %d, %d\n", probefunc(),
-		disk_major, disk_minor, device_state)
+	printf("%20s, disk_major=%d, disk_minor=%d, device_state=%s\n",
+		probefunc(), disk_major, disk_minor, device_state_str)
 }
 
 probe scsi.iodispatching
 {
-	printf("ppname: %s, %d, %d, %d, %d, %d, %d, %p, %d\n", probefunc(), 
-		host_no, channel, lun, dev_id, device_state, data_direction, 
-		request_buffer, request_bufflen)
+	printf("%20s, host_no=%d, channel=%d, lun=%d, dev_id=%d, device_state=%s, data_direction=%s, request_buffer=%p, request_bufflen=%d\n",
+		probefunc(), host_no, channel, lun, dev_id, device_state_str,
+		data_direction_str, request_buffer, request_bufflen)
 }
-
 
 probe scsi.iodone
 {
-	printf("ppname: %s, %d, %d, %d, %d, %d, %d, %d\n", probefunc(), 
-		host_no, channel, lun, dev_id, device_state, data_direction, 
-		scsi_timer_pending)
+	printf("%20s, host_no=%d, channel=%d, lun=%d, dev_id=%d, device_state=%s, data_direction=%s, scsi_timer_pending=%d\n",
+		probefunc(), host_no, channel, lun, dev_id, device_state_str,
+		data_direction_str, scsi_timer_pending)
 }
 
 probe scsi.iocompleted
 {
-	printf("ppname: %s, %d, %d, %d, %d, %d, %d, %d\n", probefunc(), 
-		host_no, channel, lun, dev_id, device_state, data_direction, 
-		goodbytes)
+	printf("%20s, host_no=%d, channel=%d, lun=%d, dev_id=%d, device_state=%s, data_direction=%s, goodbytes=%d\n\n",
+		probefunc(), host_no, channel, lun, dev_id, device_state_str,
+		data_direction_str, goodbytes)
+}
+
+probe scsi.set_state
+{
+	printf("%20s, host_no=%d, channel=%d, lun=%d, dev_id=%d, old_state=%s, state=%s\n",
+		probefunc(), host_no, channel, lun, dev_id, old_state_str, state_str)
+}
+
+probe scsi.ioexecute
+{
+	printf("%20s, host_no=%d, channel=%d, lun=%d, dev_id=%d, device_state=%s, data_direction=%s, request_buffer=%p, request_bufflen=%d retries=%d, timeout=%d\n",
+		probefunc(),host_no, channel, lun, dev_id, device_state_str,
+		data_direction_str, request_buffer, request_bufflen, retries, timeout)
 }
 EOF
