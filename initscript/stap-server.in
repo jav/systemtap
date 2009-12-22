@@ -9,4 +9,4 @@
 # config: /etc/stap-server/conf.d
 
 # Call the installed stap-server script.
-STAP_USER=stap-server @bindir/stap-server "$@"
+STAP_USER=stap-server @bindir@/stap-server "$@"
