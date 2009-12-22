@@ -184,7 +184,7 @@ ssize_t GraphStyleEvent::dataIndexAtPoint(double x, double y,
       double xrect = (*ditr - left) * horizScale - 1.5 * graph->_lineWidth;
       if (xrect <= xgraph && xgraph < xrect + 3.0 * graph->_lineWidth
           && yrect <= ygraph && ygraph < yrect + 3.0 * graph->_lineWidth)
-        return static_cast<ssize_t>(distance(lower, ditr));
+        return static_cast<ssize_t>(distance(graphData->times.begin(), ditr));
     }
   return -1;
 }
