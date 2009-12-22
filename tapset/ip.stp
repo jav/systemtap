@@ -26,13 +26,21 @@ function ip_ntop:string (addr:long)
 /* return the source IP address for a given sock */
 function __ip_sock_saddr:long (sock:long)
 {
+%(kernel_v < "2.6.33" %?
 	return @cast(sock, "inet_sock")->saddr
+%:
+	return @cast(sock, "inet_sock")->inet_saddr
+%)
 }
 
 /* return the destination IP address for a given sock */
 function __ip_sock_daddr:long (sock:long)
 {
+%(kernel_v < "2.6.33" %?
 	return @cast(sock, "inet_sock")->daddr
+%:
+	return @cast(sock, "inet_sock")->inet_daddr
+%)
 }
 
 /* Get the IP header for recent (> 2.6.21) kernels */

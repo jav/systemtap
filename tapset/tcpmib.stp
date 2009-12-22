@@ -53,7 +53,11 @@ function tcpmib_get_state:long (sk:long)
 function tcpmib_local_addr:long(sk:long)
 %{ /* pure */
         struct inet_sock *inet = (struct inet_sock *) (long) THIS->sk;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
+        THIS->__retvalue = ntohl(kread(&(inet->inet_saddr)));
+#else
         THIS->__retvalue = ntohl(kread(&(inet->saddr)));
+#endif
         CATCH_DEREF_FAULT();
 %}
 
@@ -67,7 +71,11 @@ function tcpmib_local_addr:long(sk:long)
 function tcpmib_remote_addr:long(sk:long)
 %{ /* pure */
         struct inet_sock *inet = (struct inet_sock *) (long) THIS->sk;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
+        THIS->__retvalue = ntohl(kread(&(inet->inet_daddr)));
+#else
         THIS->__retvalue = ntohl(kread(&(inet->daddr)));
+#endif
         CATCH_DEREF_FAULT();
 %}
 
@@ -81,7 +89,11 @@ function tcpmib_remote_addr:long(sk:long)
 function tcpmib_local_port:long(sk:long)
 %{ /* pure */
         struct inet_sock *inet = (struct inet_sock *) (long) THIS->sk;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
+        THIS->__retvalue = ntohs(kread(&(inet->inet_sport)));
+#else
         THIS->__retvalue = ntohs(kread(&(inet->sport)));
+#endif
         CATCH_DEREF_FAULT();
 %}
 
@@ -95,7 +107,11 @@ function tcpmib_local_port:long(sk:long)
 function tcpmib_remote_port:long(sk:long)
 %{ /* pure */
         struct inet_sock *inet = (struct inet_sock *) (long) THIS->sk;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
+        THIS->__retvalue = ntohs(kread(&(inet->inet_dport)));
+#else
         THIS->__retvalue = ntohs(kread(&(inet->dport)));
+#endif
         CATCH_DEREF_FAULT();
 %}
 
