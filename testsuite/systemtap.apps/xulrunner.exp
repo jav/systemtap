@@ -4,13 +4,15 @@ set test "xulrunner"
 
 global env
 
-if {! [info exists env(SYSTEMTAP_TEST_SDT)]} {
-    unsupported "xulrunner (\"SYSTEMTAP_TEST_SDT\" not in env)"
+if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
+    ! [string match "tcl" $env(SYSTEMTAP_TESTAPPS)] &&
+    ! [string match "all" $env(SYSTEMTAP_TESTAPPS)])} {
+    untested "$test sdt app"
     return
 }
 
 ########## Create /tmp/stap-xul.stp ########## 
-set xulrelease "1.9.1.3"
+set xulrelease "1.9.1.4"
 set xuldir "[pwd]/xul/"
 set testsuite "[pwd]"
 
@@ -76,13 +78,13 @@ fi
 \}
 ##### end run_tests #####
 
-if \[ ! -r xulrunner-$xulrelease-source.tar \] ; then
-wget ftp://ftp.mozilla.org/pub/mozilla.org/xul/releases/$xulrelease/source/xulrunner-$xulrelease-source.tar.bz2
-bunzip2 xulrunner-$xulrelease-source.tar.bz2
+if \[ ! -r xulrunner-$xulrelease.source.tar.bz2 \] ; then
+wget ftp://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/$xulrelease/source/xulrunner-$xulrelease.source.tar.bz2
 fi
 
 if \[ ! -d xul/src \] ; then
-tar -x -f xulrunner-$xulrelease-source.tar
+bunzip2 xulrunner-$xulrelease.source.tar.bz2
+tar -x -f xulrunner-$xulrelease.source.tar
 mkdir xul
 xulrelease=$xulrelease
 mv mozilla-\${xulrelease%.\[0-9\]} xul/src
@@ -101,6 +103,8 @@ CXXFLAGS='-g -I$env(SYSTEMTAP_INCLUDES)' \
 CFLAGS='-g -I$env(SYSTEMTAP_INCLUDES)' \
 PATH=$env(SYSTEMTAP_PATH)/:\$PATH \
 ../src/configure --prefix=$xuldir --enable-dtrace --enable-application=xulrunner
+sed -i '/include.*rules.mk/a\
+PROGOBJS+=./mozjs-dtrace.o' xul/bld/js/src/Makefile
 J=\$(getconf _NPROCESSORS_CONF)
 make -j \$J
 fi
