@@ -195,3 +195,269 @@ probe vm.brk = kernel.function("do_brk") {
 probe vm.oom_kill = kernel.function("__oom_kill_task") {
     task = $p
 }
+
+function __gfp_flag_str:string(gfp_flag:long) %{
+	long gfp_flag = THIS->gfp_flag;
+	THIS->__retvalue[0] = '\0';
+
+
+/* Macro for GFP Bitmasks. */
+/* The resulted GFP_FLAGS may be either single or concatenation of the multiple bitmasks. */
+
+
+#define __GFP_BITMASKS(FLAG)  if(gfp_flag & FLAG) { if(THIS->__retvalue[0] != '\0') \
+                strlcat(THIS->__retvalue, " | "#FLAG, MAXSTRINGLEN); \
+                else strlcat(THIS->__retvalue, #FLAG, MAXSTRINGLEN); }
+
+
+/* Macro for Composite Flags. */
+/* Each Composite GFP_FLAG is the combination of multiple bitmasks. */
+
+
+#define __GFP_COMPOSITE_FLAG(FLAG)  if(gfp_flag == FLAG) { \
+                strlcat(THIS->__retvalue, #FLAG, MAXSTRINGLEN); return; }
+
+
+/* Composite GFP FLAGS of the BitMasks. */
+
+	__GFP_COMPOSITE_FLAG(GFP_ZONEMASK)
+	__GFP_COMPOSITE_FLAG(GFP_ATOMIC)
+	__GFP_COMPOSITE_FLAG(GFP_NOIO)
+	__GFP_COMPOSITE_FLAG(GFP_NOFS)
+	__GFP_COMPOSITE_FLAG(GFP_KERNEL)
+	__GFP_COMPOSITE_FLAG(GFP_TEMPORARY)
+	__GFP_COMPOSITE_FLAG(GFP_USER)
+	__GFP_COMPOSITE_FLAG(GFP_HIGHUSER)
+	__GFP_COMPOSITE_FLAG(GFP_HIGHUSER_MOVABLE)
+	__GFP_COMPOSITE_FLAG(GFP_THISNODE)
+	__GFP_COMPOSITE_FLAG(GFP_DMA)
+	__GFP_COMPOSITE_FLAG(GFP_DMA32)
+
+/* GFP BitMasks */
+
+	__GFP_BITMASKS(__GFP_DMA)
+	__GFP_BITMASKS(__GFP_HIGHMEM)
+	__GFP_BITMASKS(__GFP_MOVABLE)
+	__GFP_BITMASKS(__GFP_WAIT)
+	__GFP_BITMASKS(__GFP_HIGH)
+	__GFP_BITMASKS(__GFP_IO)
+	__GFP_BITMASKS(__GFP_FS)
+	__GFP_BITMASKS(__GFP_COLD)
+	__GFP_BITMASKS(__GFP_NOWARN)
+	__GFP_BITMASKS(__GFP_REPEAT)
+	__GFP_BITMASKS(__GFP_NOFAIL)
+	__GFP_BITMASKS(__GFP_COMP)
+	__GFP_BITMASKS(__GFP_ZERO)
+	__GFP_BITMASKS(__GFP_NOMEMALLOC)
+	__GFP_BITMASKS(__GFP_HARDWALL)
+	__GFP_BITMASKS(__GFP_THISNODE)
+	__GFP_BITMASKS(__GFP_RECLAIMABLE)
+	__GFP_BITMASKS(__GFP_NOTRACK)
+
+
+#undef __GFP_BITMASKS
+#undef __GFP_COMPOSITE_FLAG
+%}
+
+/* The Formal Parameters will be displayed if available, otherwise \
+		 "0" or "unknown" will be displayed */
+
+probe __vm.kmalloc.tp = kernel.trace("kmalloc") {
+	name = "kmalloc"
+	call_site = $call_site
+	caller_function = symname(call_site)
+	bytes_req = $bytes_req
+	bytes_alloc = $bytes_alloc
+	gfp_flags = $gfp_flags
+	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	ptr = $ptr
+}
+
+/* It is unsafe to invoke __builtin_return_address() \
+presently(to get call_site for kprobe based probes) \
+and that it can be improved later when fix for bugs bz#6961 and bz#6580 is available. */
+
+probe __vm.kmalloc.kp = kernel.function("kmalloc").return {
+	name = "kmalloc"
+	call_site = 0
+	caller_function = "unknown"
+	bytes_req = $size
+	bytes_alloc = "unknown"
+	gfp_flags = $gfp_flags
+	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	ptr = $return
+}
+
+/**
+ * probe vm.kmalloc - Fires when kmalloc is requested.
+ * @call_site: Address of the kmemory function.
+ * @caller_function: Name of the caller function.
+ * @bytes_req: Requested Bytes
+ * @bytes_alloc: Allocated Bytes
+ * @gfp_flags: type of kmemory to allocate
+ * @gfp_flag_name: type of kmemory to allocate (in String format)
+ * @ptr: Pointer to the kmemory allocated
+ */
+probe vm.kmalloc = __vm.kmalloc.tp !,
+			__vm.kmalloc.kp
+{}
+
+
+probe __vm.kmem_cache_alloc.tp = kernel.trace("kmem_cache_alloc") {
+	name = "kmem_cache_alloc"
+	call_site = $call_site
+	caller_function = symname(call_site)
+	bytes_req = $bytes_req
+	bytes_alloc = $bytes_alloc
+	gfp_flags = $gfp_flags
+	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	ptr = $ptr
+}
+
+probe __vm.kmem_cache_alloc.kp = kernel.function("kmem_cache_alloc").return {
+	name = "kmem_cache_alloc"
+	call_site = 0
+	caller_function = "unknown"
+	bytes_req = $size
+	bytes_alloc = "unknown"
+	gfp_flags = $gfp_flags
+	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	ptr = $return
+}
+
+/**
+ * probe vm.kmem_cache_alloc - Fires when \
+ *              kmem_cache_alloc is requested.
+ * @call_site: Address of the function calling this kmemory function.
+ * @caller_function: Name of the caller function.
+ * @bytes_req: Requested Bytes
+ * @bytes_alloc: Allocated Bytes
+ * @gfp_flags: type of kmemory to allocate
+ * @gfp_flag_name: Type of kmemory to allocate(in string format)
+ * @ptr: Pointer to the kmemory allocated
+ */
+
+probe vm.kmem_cache_alloc = __vm.kmem_cache_alloc.tp !,
+				__vm.kmem_cache_alloc.kp
+{}
+
+probe __vm.kmalloc_node.tp = kernel.trace("kmalloc_node")? {
+	name = "kmalloc_node"
+	call_site = $call_site
+	caller_function = symname(call_site)
+	bytes_req = $bytes_req
+	bytes_alloc = $bytes_alloc
+	gfp_flags = $gfp_flags
+	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	ptr = $ptr
+}
+
+probe __vm.kmalloc_node.kp = kernel.function("kmalloc_node").return? {
+	name = "kmalloc_node"
+	call_site = 0
+	caller_function = "unknown"
+	bytes_req = $size
+	bytes_alloc = "unknown"
+	gfp_flags = $gfp_flags
+	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	ptr = $return
+}
+
+/**
+ * probe vm.kmalloc_node - Fires when kmalloc_node is requested.
+ * @call_site: Address of the function caling this  kmemory function.
+ * @caller_function: Name of the caller function.
+ * @bytes_req: Requested Bytes
+ * @bytes_alloc: Allocated Bytes
+ * @gfp_flags: type of kmemory to allocate
+ * @gfp_flag_name: Type of kmemory to allocate(in string format)
+ * @ptr: Pointer to the kmemory allocated
+ */
+probe vm.kmalloc_node = __vm.kmalloc_node.tp !,
+			__vm.kmalloc_node.kp
+{}
+
+probe __vm.kmem_cache_alloc_node.tp = kernel.trace("kmem_cache_alloc_node")? {
+	name = "kmem_cache_alloc_node"
+	call_site = $call_site
+	caller_function = symname(call_site)
+	bytes_req = $bytes_req
+	bytes_alloc = $bytes_alloc
+	gfp_flags = $gfp_flags
+	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	ptr = $ptr
+}
+
+probe __vm.kmem_cache_alloc_node.kp = kernel.function("kmem_cache_alloc_node").return? {
+	name = "kmem_cache_alloc_node"
+	call_site = 0
+	caller_function = "unknown"
+	bytes_req = $size
+	bytes_alloc = "unknown"
+	gfp_flags = $gfp_flags
+	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	ptr = $return
+}
+
+/**
+ * probe vm.kmem_cache_alloc_node - Fires when \
+ *              kmem_cache_alloc_node is requested.
+ * @call_site: Address of the function calling this kmemory function.
+ * @caller_function: Name of the caller function.
+ * @bytes_req: Requested Bytes
+ * @bytes_alloc: Allocated Bytes
+ * @gfp_flags: type of kmemory to allocate
+ * @gfp_flag_name: Type of kmemory to allocate(in string format)
+ * @ptr: Pointer to the kmemory allocated
+ */
+probe vm.kmem_cache_alloc_node = __vm.kmem_cache_alloc_node.tp !,
+				__vm.kmem_cache_alloc_node.kp
+{}
+
+
+probe __vm.kfree.tp = kernel.trace("kfree") {
+	name = "kfree"
+	call_site = $call_site
+	caller_function = symname(call_site)
+	ptr = $ptr
+}
+
+probe __vm.kfree.kp = kernel.function("kfree").return {
+	name = "kfree"
+	call_site = 0
+	caller_function = "unknown"
+	ptr = $return
+}
+
+/**
+ * probe vm.kfree - Fires when kfree is requested.
+ * @call_site: Address of the function calling this kmemory function.
+ * @caller_function: Name of the caller function.
+ * @ptr: Pointer to the kmemory allocated which is returned by kmalloc
+ */
+probe vm.kfree = __vm.kfree.tp !,
+		__vm.kfree.kp
+{}
+
+probe __vm.kmem_cache_free.tp = kernel.trace("kmem_cache_free") {
+	name = "kmem_cache_free"
+	call_site = $call_site
+	caller_function = symname(call_site)
+	ptr = $ptr
+}
+probe __vm.kmem_cache_free.kp = kernel.function("kmem_cache_free").return {
+	name = "kmem_cache_free"
+	call_site = 0
+	caller_function = "unknown"
+	ptr = $return
+}
+/**
+ * probe vm.kmem_cache_free - Fires when \
+ *              kmem_cache_free is requested.
+ * @call_site: Address of the function calling this kmemory function.
+ * @caller_function: Name of the caller function.
+ * @ptr: Pointer to the kmemory allocated which is returned by kmem_cache
+ */
+probe vm.kmem_cache_free = __vm.kmem_cache_free.tp !,
+				__vm.kmem_cache_free.kp
+{}
