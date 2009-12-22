@@ -4264,20 +4264,33 @@ c_unparser::visit_print_format (print_format* e)
 	if (components[i].prectype == print_format::prec_dynamic)
 	  prec_ix = arg_ix++;
 
-	/* Generate a noop call to deref_buffer for %m.  */
+        /* %m and %M need special care for digging into memory. */
 	if (components[i].type == print_format::conv_memory
-	    || components[i].type == print_format::conv_memory_hex) {
-	  this->probe_or_function_needs_deref_fault_handler = true;
-	  o->newline() << "deref_buffer (0, " << tmp[arg_ix].value() << ", ";
-	  if (prec_ix == -1)
-	    if (width_ix != -1)
-	      prec_ix = width_ix;
-	  if (prec_ix != -1)
-	    o->line() << tmp[prec_ix].value();
-	  else
-	    o->line() << "1";
-	  o->line() << ");";
-	}
+	    || components[i].type == print_format::conv_memory_hex)
+	  {
+	    string mem_size;
+	    if (prec_ix != -1)
+	      mem_size = tmp[prec_ix].value();
+	    else if (components[i].prectype == print_format::prec_static &&
+		     components[i].precision > 0)
+	      mem_size = lex_cast(components[i].precision) + "LL";
+	    else
+	      mem_size = "1LL";
+
+	    /* Limit how much can be printed at a time. (see also PR10490) */
+	    o->newline() << "if (" << mem_size << " > 1024) {";
+	    o->newline(1) << "snprintf(c->error_buffer, sizeof(c->error_buffer), "
+			  << "\"%lld is too many bytes for a memory dump\", "
+			  << mem_size << ");";
+	    o->newline() << "c->last_error = c->error_buffer;";
+	    o->newline() << "goto out;";
+	    o->newline(-1) << "}";
+
+	    /* Generate a noop call to deref_buffer.  */
+	    this->probe_or_function_needs_deref_fault_handler = true;
+	    o->newline() << "deref_buffer (0, " << tmp[arg_ix].value() << ", "
+			 << mem_size << " ?: 1LL);";
+	  }
 
 	++arg_ix;
       }
