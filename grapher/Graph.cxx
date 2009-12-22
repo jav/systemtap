@@ -44,7 +44,7 @@ void Graph::draw(Cairo::RefPtr<Cairo::Context> cr)
       // Find latest time.
       _right =  _currentTime / 1000;
       // Assume 1 pixel = 5 milliseconds
-      _left = _right - 5000;
+      _left = _right - static_cast<int64_t>(5000 / _zoomFactor);
     }
   cr->save();
   double horizScale = getHorizontalScale();

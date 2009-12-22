@@ -241,8 +241,10 @@ bool GraphWidget::on_motion_notify_event(GdkEventMotion* event)
       const int width = allocation.get_width();
       double motion = (_mouseX - _dragOriginX) / (double) width;
       double increment = motion * (_dragOrigLeft - _dragOrigRight);
-      _activeGraph->_left = _dragOrigLeft + increment;
-      _activeGraph->_right = _dragOrigRight + increment;
+      _activeGraph->_left
+        = _dragOrigLeft + increment / _activeGraph->_zoomFactor;
+      _activeGraph->_right
+        = _dragOrigRight + increment / _activeGraph->_zoomFactor;
       queue_draw();
     }
   if (_hoverText && _hoverText->isVisible())
@@ -263,10 +265,16 @@ bool GraphWidget::on_scroll_event(GdkEventScroll* event)
     {
       if ((*gitr)->containsPoint(event->x, event->y))
         {
+          double oldZoom = (*gitr)->_zoomFactor;
           if (event->direction == GDK_SCROLL_UP)
-            (*gitr)->_zoomFactor += .1;
+            (*gitr)->_zoomFactor *= 1.1;
           else if (event->direction == GDK_SCROLL_DOWN)
-            (*gitr)->_zoomFactor -= .1;
+            (*gitr)->_zoomFactor /= 1.1;
+          int64_t left, right;
+          double top, bottom;
+          (*gitr)->getExtents(left, right, top, bottom);
+          right = left - (left - right) * (oldZoom / (*gitr)->_zoomFactor);
+          (*gitr)->setExtents(left, right, top, bottom);
           queue_draw();
           break;
         }

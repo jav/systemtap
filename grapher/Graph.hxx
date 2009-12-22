@@ -57,7 +57,7 @@ public:
    */
   double getHorizontalScale()
   {
-    return _zoomFactor * _graphWidth / static_cast<double>(_right - _left);
+    return _graphWidth / static_cast<double>(_right - _left);
   }
 protected:
   GraphDataList _datasets;
