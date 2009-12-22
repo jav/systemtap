@@ -130,6 +130,7 @@ __stp_utrace_task_finder_target_quiesce(u32 action,
 					struct utrace_attached_engine *engine,
 					unsigned long event);
 #else
+static u32
 __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 					struct utrace_attached_engine *engine,
 					struct task_struct *tsk,
