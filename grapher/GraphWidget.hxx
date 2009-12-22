@@ -81,7 +81,6 @@ protected:
   double _mouseX;
   double _mouseY;
   int64_t _globalTimeBase;
-  bool _timeBaseInitialized;
   std::tr1::shared_ptr<Graph> getGraphUnderPoint(double x, double y);
   void establishHoverTimeout();
   Gtk::CheckButton* _relativeTimesButton;

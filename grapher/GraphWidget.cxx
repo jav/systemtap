@@ -23,6 +23,7 @@
 
 #include "GraphWidget.hxx"
 #include "CairoWidget.hxx"
+#include "Time.hxx"
 
 namespace systemtap
 {
@@ -33,7 +34,7 @@ using namespace std::tr1;
     
 GraphWidget::GraphWidget()
   : _trackingDrag(false), _width(600), _height(200), _mouseX(0.0),
-    _mouseY(0.0), _globalTimeBase(0), _timeBaseInitialized(false)
+    _mouseY(0.0), _globalTimeBase(Time::getAbs() / 1000)
 {
   add_events(Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK
              | Gdk::BUTTON_RELEASE_MASK | Gdk::SCROLL_MASK);
@@ -157,27 +158,11 @@ bool GraphWidget::on_expose_event(GdkEventExpose* event)
   cr->save();
   cr->set_source_rgba(0.0, 0.0, 0.0, 1.0);
   cr->paint();
-  if (!_timeBaseInitialized && !getGraphData().empty())
-    {
-      GraphDataList& graphData = getGraphData();
-      int64_t earliest = INT64_MAX;
-      for (GraphDataList::iterator gd = graphData.begin(),
-             end = graphData.end();
-           gd != end;
-           ++gd)
-        {
-          if (!(*gd)->times.empty() && (*gd)->times[0] < earliest)
-            earliest = (*gd)->times[0];
-        }
-      if (earliest != INT64_MAX)
-        {
-          _globalTimeBase = earliest;
-          _timeBaseInitialized = true;
-        }
-    }
+  int64_t currentTime = Time::getAbs();
+  Graph::setCurrentTime(currentTime);
   for (GraphList::iterator g = _graphs.begin(); g != _graphs.end(); ++g)
     {
-      if (_displayRelativeTimes && _timeBaseInitialized)
+      if (_displayRelativeTimes)
         (*g)->_timeBase = _globalTimeBase;
       else
         (*g)->_timeBase = 0.0;

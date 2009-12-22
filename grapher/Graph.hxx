@@ -50,12 +50,14 @@ public:
   GraphDataList& getDatasets() { return _datasets; }
   int64_t getTimeAtPoint(double x);
   void window2GraphCoords(double x, double y, double& xgraph, double& ygraph);
+  static void setCurrentTime(int64_t time) { _currentTime = time; }
 protected:
   GraphDataList _datasets;
   int64_t _left;
   int64_t _right;
   double _top;
   double _bottom;
+  static int64_t _currentTime;
 };
 }
 #endif

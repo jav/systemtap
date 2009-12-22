@@ -19,7 +19,9 @@ using namespace std::tr1;
 
 GraphDataList GraphDataBase::graphData;
 sigc::signal<void> GraphDataBase::graphDataChanged;
-  
+
+int64_t Graph::_currentTime = 0;
+
 Graph::Graph(double x, double y)
   : _width(600), _height(200), _graphX(0), _graphY(0),
     _graphWidth(580), _graphHeight(180),
@@ -39,55 +41,10 @@ void Graph::draw(Cairo::RefPtr<Cairo::Context> cr)
     
   if (_autoScaling)
     {
-      // line separation
-      int linesPossible = (int)(_graphWidth / (_lineWidth + 2.0));
       // Find latest time.
-      int64_t latestTime = 0;
-      for (GraphDataList::iterator ditr = _datasets.begin(),
-             de = _datasets.end();
-           ditr != de;
-           ++ditr)
-        {
-          if (!(*ditr)->times.empty())
-            {
-              int64_t lastDataTime = (*ditr)->times.back();
-              if (lastDataTime > latestTime)
-                latestTime = lastDataTime;
-            }
-        }
-      int64_t minDiff = 0;
-      int64_t maxTotal = 0;
-      for (GraphDataList::iterator ditr = _datasets.begin(),
-             de = _datasets.end();
-           ditr != de;
-           ++ditr)
-        {
-          GraphDataBase::TimeList& gtimes = (*ditr)->times;
-          if (gtimes.size() <= 1)
-            continue;
-          double totalDiff = 0.0;
-          for (GraphDataBase::TimeList::reverse_iterator ritr = gtimes.rbegin(),
-                 re = gtimes.rend();
-               ritr + 1 != gtimes.rend();
-               ritr++)
-            {
-              int64_t timeDiff = *ritr - *(ritr + 1);
-              if (timeDiff < minDiff || (timeDiff != 0 && minDiff == 0))
-                minDiff = timeDiff;
-              if (minDiff != 0
-                  && ((totalDiff + timeDiff) / minDiff + 1) > linesPossible)
-                break;
-              totalDiff += timeDiff;
-            }
-          if (totalDiff > maxTotal)
-            maxTotal = totalDiff;
-        }
-      // Now we have a global scale.
-      _right = latestTime;
-      if (maxTotal != 0)
-        _left = latestTime - maxTotal;
-      else
-        _left = _right - 1;
+      _right =  _currentTime / 1000;
+      // Assume 1 pixel = 5 milliseconds
+      _left = _right - 5000;
     }
   cr->save();
   double horizScale
