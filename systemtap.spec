@@ -431,7 +431,7 @@ exit 0
 %files server
 %defattr(-,root,root)
 %{_bindir}/stap-authorize-server-cert
-%{_libexecdir}/%{name}/stap-server
+%{_bindir}/stap-server
 %{_libexecdir}/%{name}/stap-serverd
 %{_libexecdir}/%{name}/stap-start-server
 %{_libexecdir}/%{name}/stap-find-servers
@@ -439,6 +439,7 @@ exit 0
 %{_libexecdir}/%{name}/stap-stop-server
 %{_libexecdir}/%{name}/stap-gen-cert
 %{_libexecdir}/%{name}/stap-server-connect
+%{_libexecdir}/%{name}/stap-server-request
 %{_libexecdir}/%{name}/stap-sign-module
 %{_mandir}/man8/stap-server.8*
 %{_mandir}/man8/stap-authorize-server-cert.8*

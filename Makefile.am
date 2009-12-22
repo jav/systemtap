@@ -42,8 +42,8 @@ pkglibexec_SCRIPTS += stap-gen-cert stap-authorize-cert
 if BUILD_SERVER
 man_MANS += stap-client.8 stap-server.8 stap-authorize-server-cert.8
 pkglibexec_PROGRAMS += stap-client-connect stap-server-connect
-bin_SCRIPTS += stap-client stap-authorize-server-cert
-pkglibexec_SCRIPTS += stap-serverd stap-server stap-find-servers \
+bin_SCRIPTS += stap-client stap-server stap-authorize-server-cert
+pkglibexec_SCRIPTS += stap-serverd stap-server-request stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server
 endif
 endif
@@ -121,7 +121,7 @@ install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
 	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
 	done
 	for f in $(pkglibexec_SCRIPTS); do \
-	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
+	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,localstatedir=.*,localstatedir=$(localstatedir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
 	done
 endif
 endif
@@ -259,6 +259,10 @@ install-data-local:
 			i_cmd="$(INSTALL_DATA)"; fi; \
 			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
 	test -e $(DESTDIR)$(sysconfdir)/systemtap || mkdir -p $(DESTDIR)$(sysconfdir)/systemtap
+if BUILD_SERVER
+	test -e $(DESTDIR)$(localstatedir)/run/stap-server || mkdir -p $(DESTDIR)$(localstatedir)/run/stap-server
+	test -e $(DESTDIR)$(localstatedir)/log || mkdir -p $(DESTDIR)$(localstatedir)/log
+endif
 
 TEST_COV_DIR = coverage
 
@@ -302,6 +306,10 @@ uninstall-local:
 	done
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 	rm -rf $(DESTDIR)$(docdir)/examples
+if BUILD_SERVER
+	rm -rf $(DESTDIR)$(localstatedir)/run/stap-server
+	rm -f $(DESTDIR)$(localstatedir)/log/stap-server.log
+endif
 
 SUBDIRS = doc grapher
 DIST_SUBDIRS = testsuite $(SUBDIRS)

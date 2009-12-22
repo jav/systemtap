@@ -18,6 +18,7 @@
 stap_exec_prefix=
 stap_sysconfdir=`pwd`/net
 stap_pkglibexecdir=
+stap_localstatedir=`pwd`/net/var
 
 # General configuration
 stap_tmpdir_prefix_client=stap.client

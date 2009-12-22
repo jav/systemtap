@@ -1,12 +1,15 @@
 .\" -*- nroff -*-
 .TH STAP-SERVER 8 @DATE@ "Red Hat"
 .SH NAME
-stap\-server \- systemtap server service
+stap\-server \- systemtap server management
 
 .SH SYNOPSIS
 
 .br
-.B service stap\-server
+[
+.B service
+]
+.B stap\-server
 {
 .B start
 |
@@ -35,7 +38,7 @@ front end. Each server advertises its presence and configuration on the local
 network using mDNS (\fIavahi\fR) allowing for automatic detection by clients.
 
 .PP
-The stap\-server service aims to provide:
+The stap\-server script aims to provide:
 .IP \(bu 4
 management of systemtap compile servers as a service.
 .IP \(bu 4
@@ -186,7 +189,8 @@ that server will be used as if they were specified on the command line.
 .TP
 \fB\-u\fR \fIuser\-name\fR
 Each systemtap compile server is normally run by the user name
-\fistap\-server\fR,
+\fistap\-server\fR (for the initscript) or as the user invoking
+\fIstap-server\fR,
 unless otherwise configured (see \fBFILES\fR). This option
 specifies the user name used to run the server(s). The user name specified
 must be a member of the group \fIstap\-server\fR.
@@ -225,7 +229,8 @@ Specifies the absolute path of the log file
 .TP
 .B STAP_USER
 Specifies the userid which will be used to run the server(s)
-(default: \fIstap\-server\fR).
+(default: for the initscript \fIstap\-server\fR, otherwise the user running
+\fIstap-server\fR).
 
 .SH Individual Server Configuration
 
@@ -300,12 +305,12 @@ that server\[aq]s certificate to the
 client\[aq]s database of trusted servers.
 
 .PP
-For the \fIstap\-server\fR service, on the local host, this is handled
+For the \fIstap\-server\fR initscript, on the local host, this is handled
 automatically.
 When the \fIsystemtap\-server\fR package is installed, the server\[aq]s
 certificate for the default user (\fIstap\-server\fR) is automatically
 generated and installed. This means that servers started by the
-\fIstap\-server\fR service,
+\fIstap\-server\fR initscript,
 with the default user, are automatically trusted by clients on the local
 host.
 
@@ -323,29 +328,29 @@ manual page for a collection of sample \fIsystemtap\fR scripts.
 .PP
 To start the configured servers, or the default server, if none are configured:
 .PP
-.B \& $ service stap\-server start
+.B \& $ [ service ] stap\-server start
 .PP
 To start a server for each kernel installed in /lib/modules:
 .PP
-.B \& $ service stap\-server start \-i
+.B \& $ [ service ] stap\-server start \-i
 .PP
 To obtain information about the running server(s):
 .PP
-.B \& $ service stap\-server status
+.B \& $ [ service ] stap\-server status
 .PP
 To start a server like another one, except targeting a different architecture,
 by referencing the first server\[aq]s nickname:
 .PP
-.B \& $ service stap\-server start \-n \fINICKNAME\fR \-a \fIARCH\fR
+.B \& $ [ service ] stap\-server start \-n \fINICKNAME\fR \-a \fIARCH\fR
 .PP
 To stop one of the servers by referencing its process id (obtained by running
 \fBstap\-server status\fR):
 .PP
-.B \& $ service stap\-server stop \-p \fIPID\fR
+.B \& $ [ service ] stap\-server stop \-p \fIPID\fR
 .PP
 To stop all running servers:
 .PP
-.B \& $ service stap\-server stop
+.B \& $ [ service ] stap\-server stop
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
