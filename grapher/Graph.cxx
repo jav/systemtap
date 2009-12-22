@@ -95,7 +95,7 @@ void Graph::draw(Cairo::RefPtr<Cairo::Context> cr)
   double diff = static_cast<double>(_right - _left);
   int64_t majorUnit
     = static_cast<int64_t>(pow(10.0, floor(log(diff) / log(10.0))));
-  int64_t startTime = (_left / majorUnit) * majorUnit;
+  int64_t startTime = ((_left - _timeBase) / majorUnit) * majorUnit + _timeBase;
   cr->save();
   cr->set_source_rgba(1.0, 1.0, 1.0, .9);
   cr->set_line_cap(Cairo::LINE_CAP_BUTT);
