@@ -842,7 +842,11 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "#ifdef UTRACE_ORIG_VERSION";
       s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
       s.op->newline() << "#else";
+      s.op->newline() << "#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)";
+      s.op->newline() << "static u32 stap_utrace_probe_syscall(u32 action, struct utrace_attached_engine *engine, struct pt_regs *regs) {";
+      s.op->newline() << "#else";
       s.op->newline() << "static u32 stap_utrace_probe_syscall(enum utrace_resume_action action, struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
+      s.op->newline() << "#endif";
       s.op->newline() << "#endif";
 
       s.op->indent(1);
@@ -945,14 +949,14 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
 
   // Before writing to the semaphore, we need to check for VM_WRITE access.
-  s.op->newline() << "if (p->sdt_sem_address != 0) {";
+  s.op->newline() << "if (p->sdt_sem_address) {";
   s.op->newline(1) << "size_t sdt_semaphore;";
   // XXX p could get registered to more than one task!
   s.op->newline() << "p->tsk = tsk;";
 
-  s.op->newline() << "if (__access_process_vm (tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0) == sizeof (sdt_semaphore)) {";
+  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
   s.op->newline(1) << "sdt_semaphore ++;";
-  s.op->newline() << "__access_process_vm (tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
@@ -1039,18 +1043,14 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "if (p->sdt_sem_address) {";
+  s.op->newline() << "if (p->sdt_sem_address && (vm_flags & VM_WRITE)) {";
   s.op->newline(1) << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
-  s.op->newline() << "if (__access_process_vm (tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0) == sizeof (sdt_semaphore)) {";
-
-  s.op->newline(1) << "if (vm_flags & VM_WRITE) {";
-  s.op->indent(1);
-  s.op->newline() << "sdt_semaphore ++;";
+  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
+  s.op->newline(1) << "sdt_semaphore ++;";
   s.op->newline() << "#ifdef DEBUG_UTRACE";
   s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx\\n\", sdt_semaphore, p->sdt_sem_address);";
   s.op->newline() << "#endif";
-  s.op->newline() << "__access_process_vm (tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
-  s.op->newline(-1) << "}";
+  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
   s.op->newline() << "return 0;";
@@ -1130,9 +1130,9 @@ utrace_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "if (p->sdt_sem_address) {";
   s.op->newline(1) << "size_t sdt_semaphore;";
   // XXX p could get registered to more than one task!
-  s.op->newline() << "if (__access_process_vm (p->tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0) == sizeof (sdt_semaphore)) {";
+  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
   s.op->newline(1) << "sdt_semaphore --;";
-  s.op->newline() << "__access_process_vm (p->tsk, p->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";

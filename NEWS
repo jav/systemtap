@@ -1,4 +1,6 @@
-* What's new
+* What's new in version 1.1
+
+- New tracepoint based tapset for memory subsystem.
 
 - The loading of signed modules by staprun is no longer allowed for
   ordinary, unprivileged users.  This means that only root, members of
@@ -18,8 +20,23 @@
 
   See initscript/README.stap-server for details.
 
-- Any output line that starts with "ERROR", as in error("foo"), will
-  promote a "Pass 5: run failed", and the return code is 1.
+- Some of the of the compile server client, server and certificate
+  management tools have been moved from $bindir to $libexecdir/systemtap.
+  You should use the new stap-server script or the stap-server initscript
+  for server management where possible. The stap-server script provides the same
+  functionality as the stap-server initscript except that the servers are
+  run by the invoking user by default as opposed to servers started by the
+  stap-server initscript which are run by the user stap-server
+  by default. See stap-server(8) for more information.
+
+  You may continue to use these tools by adding $libexecdir/systemtap to
+  your path. You would need to do this, for example, if you are not root,
+  you want to start a compile server and you are not running systemtap from a
+  private installation. In this case you still need to use stap-start-server.
+
+- Any diagnostic output line that starts with "ERROR", as in
+  error("foo"), will promote a "Pass 5: run failed", and the return
+  code is 1.
 
 - Systemtap now warns about global variables being referenced from other
   script files.  This aims to protect against unintended local-vs-global 

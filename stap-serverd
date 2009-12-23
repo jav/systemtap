@@ -17,7 +17,7 @@
 trap 'terminate' SIGTERM SIGINT
 
 # Initialize the environment
-. `dirname $0`/stap-env
+. ${PKGLIBEXECDIR}stap-env
 
 #-----------------------------------------------------------------------------
 # Helper functions.
@@ -61,7 +61,7 @@ function initialization {
 	# If no certificate/key database has been specified, then find/create
 	# a local one.
 	if ! test -f $ssl_db/$stap_certfile; then
-	    ${stap_exec_prefix}stap-gen-cert $ssl_db >> $logfile 2>&1 || exit 1
+	    ${stap_pkglibexecdir}stap-gen-cert $ssl_db >> $logfile 2>&1 || exit 1
             # Now add the server's certificate to the client's database,
 	    # making it a trusted peer. Do this only if the client has been installed.
 	    if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
@@ -341,11 +341,11 @@ function advertise_presence {
 function listen {
     # The stap-server-connect program will listen forever
     # accepting requests.
-    ${stap_exec_prefix}stap-server-connect \
+    ${stap_pkglibexecdir}stap-server-connect \
 	-p $port -n $nss_cert -d $ssl_db -w $nss_pw \
 	-s "$stap_options" \
 	>> $logfile 2>&1 &
-    wait '%${stap_exec_prefix}stap-server-connect' >> $logfile 2>&1
+    wait '%${stap_pkglibexecdir}stap-server-connect' >> $logfile 2>&1
 }
 
 # function: warning [ MESSAGE ]
@@ -377,8 +377,8 @@ function terminate {
     wait '%avahi-publish-service' >> $logfile 2>&1
 
     # Kill any running 'stap-server-connect' job.
-    kill -s SIGTERM '%${stap_exec_prefix}stap-server-connect' >> $logfile 2>&1
-    wait '%${stap_exec_prefix}stap-server-connect' >> $logfile 2>&1
+    kill -s SIGTERM '%${stap_pkglibexecdir}stap-server-connect' >> $logfile 2>&1
+    wait '%${stap_pkglibexecdir}stap-server-connect' >> $logfile 2>&1
 
     exit
 }

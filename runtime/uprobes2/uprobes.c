@@ -1881,7 +1881,9 @@ static void uprobe_inject_delayed_signals(struct list_head *delayed_signals)
  */
 static u32 uprobe_report_signal(u32 action,
 				struct utrace_attached_engine *engine,
+#if !(defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216))
 				struct task_struct *tsk,
+#endif
 				struct pt_regs *regs,
 				siginfo_t *info,
 				const struct k_sigaction *orig_ka,
@@ -2129,9 +2131,15 @@ static int utask_quiesce_pending_sigtrap(struct uprobe_task *utask)
  * insertions or removals pending.  If we're the last thread in this
  * process to quiesce, do the insertion(s) and/or removal(s).
  */
-static u32 uprobe_report_quiesce(enum utrace_resume_action action,
+static u32 uprobe_report_quiesce(
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+				u32 action,
+				struct utrace_attached_engine *engine,
+#else
+				enum utrace_resume_action action,
 				struct utrace_attached_engine *engine,
 				struct task_struct *tsk,
+#endif
 				unsigned long event)
 {
 	struct uprobe_task *utask;
@@ -2140,7 +2148,9 @@ static u32 uprobe_report_quiesce(enum utrace_resume_action action,
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
+#if !(defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216))
 	BUG_ON(tsk != current);	// guaranteed by utrace 2008
+#endif
 
 	if (utask->state == UPTASK_SSTEP)
 		/*
@@ -2243,8 +2253,14 @@ static void uprobe_cleanup_process(struct uprobe_process *uproc)
  */
 static u32 uprobe_report_exit(enum utrace_resume_action action,
 			struct utrace_attached_engine *engine,
-			struct task_struct *tsk, long orig_code, long *code)
+#if !(defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216))
+			struct task_struct *tsk,
+#endif
+			long orig_code, long *code)
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *tsk = current;
+#endif
 	struct uprobe_task *utask;
 	struct uprobe_process *uproc;
 	struct uprobe_probept *ppt;
@@ -2449,10 +2465,15 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
  */
 static u32 uprobe_report_clone(enum utrace_resume_action action,
 				struct utrace_attached_engine *engine,
+#if !(defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216))
 				struct task_struct *parent,
+#endif
 				unsigned long clone_flags,
 				struct task_struct *child)
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *parent = current;
+#endif
 	int len;
 	struct uprobe_process *uproc;
 	struct uprobe_task *ptask, *ctask;
@@ -2554,9 +2575,15 @@ done:
  *		- We have to free up uprobe resources associated with
  *		  this process.
  */
-static u32 uprobe_report_exec(enum utrace_resume_action action,
+static u32 uprobe_report_exec(
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+				u32 action,
 				struct utrace_attached_engine *engine,
-				struct task_struct *tsk,
+#else
+				enum utrace_resume_action action,
+				struct utrace_attached_engine *engine,
+				struct task_struct *parent,
+#endif
 				const struct linux_binfmt *fmt,
 				const struct linux_binprm *bprm,
 				struct pt_regs *regs)

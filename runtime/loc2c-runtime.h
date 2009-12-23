@@ -103,7 +103,11 @@ struct usr_regset_lut {
   unsigned pos;
 };
 
-/* DWARF register number -to- user_regset offset/bank mapping table. */
+
+/* DWARF register number -to- user_regset bank/offset mapping table.
+   The register numbers come from the processor-specific ELF documents.
+   The user-regset bank/offset values come from kernel $ARCH/include/asm/user*.h
+   or $ARCH/kernel/ptrace.c. */
 static const struct usr_regset_lut url_i386[] = {
   { "ax", NT_PRSTATUS, 6*4 },
   { "cx", NT_PRSTATUS, 1*4 },
@@ -111,8 +115,9 @@ static const struct usr_regset_lut url_i386[] = {
   { "bx", NT_PRSTATUS, 0*4 },
   { "sp", NT_PRSTATUS, 15*4 },
   { "bp", NT_PRSTATUS, 5*4 },
-  { "di", NT_PRSTATUS, 4*4 },
   { "si", NT_PRSTATUS, 3*4 },
+  { "di", NT_PRSTATUS, 4*4 },
+  { "ip", NT_PRSTATUS, 12*4 },
 };
 
 static const struct usr_regset_lut url_x86_64[] = {
@@ -132,6 +137,11 @@ static const struct usr_regset_lut url_x86_64[] = {
   { "r13", NT_PRSTATUS, 2*8 }, 
   { "r14", NT_PRSTATUS, 1*8 }, 
   { "r15", NT_PRSTATUS, 0*8 }, 
+  { "rip", NT_PRSTATUS, 16*8 }, 
+  /* XXX: SSE registers %xmm0-%xmm7 */ 
+  /* XXX: SSE2 registers %xmm8-%xmm15 */
+  /* XXX: FP registers %st0-%st7 */
+  /* XXX: MMX registers %mm0-%mm7 */
 };
 /* XXX: insert other architectures here. */
 
@@ -277,16 +287,15 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
 }
 
 
-#define S(array) sizeof(array)/sizeof(array[0])
 #if defined (__i386__)
 
-#define u_fetch_register(regno) ursl_fetch32(url_i386, S(url_i386), EM_386, regno)
-#define u_store_register(regno,value) ursl_store32(url_i386, S(url_i386), EM_386, regno, value)
+#define u_fetch_register(regno) ursl_fetch32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno)
+#define u_store_register(regno,value) ursl_store32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno, value)
 
 #elif defined (__x86_64__)
 
-#define u_fetch_register(regno) (_stp_probing_32bit_app(c->regs) ? ursl_fetch32(url_i386, S(url_i386), EM_386, regno) : ursl_fetch64(url_x86_64, S(url_x86_64), EM_X86_64, regno))
-#define u_store_register(regno,value)  (_stp_probing_32bit_app(c->regs) ? ursl_store2(url_i386, S(url_i386), EM_386, regno, value) : ursl_store64(url_x86_64, S(url_x86_64), EM_X86_64, regno, value))
+#define u_fetch_register(regno) (_stp_probing_32bit_app(c->regs) ? ursl_fetch32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno) : ursl_fetch64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno))
+#define u_store_register(regno,value)  (_stp_probing_32bit_app(c->regs) ? ursl_store2(url_i386, ARRAY_SIZE(url_i386), EM_386, regno, value) : ursl_store64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno, value))
 
 #else
 

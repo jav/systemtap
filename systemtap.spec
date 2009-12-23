@@ -9,7 +9,7 @@
 %{!?with_boost: %define with_boost 0}
 
 Name: systemtap
-Version: 1.0
+Version: 1.1
 Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
@@ -316,7 +316,7 @@ test -e /usr/share/systemtap/runtime/uprobes || mkdir -p /usr/share/systemtap/ru
 chgrp stap-server /usr/share/systemtap/runtime/uprobes
 chmod 775 /usr/share/systemtap/runtime/uprobes
 # As stap-server, generate the certificate used for signing and for ssl.
-runuser -s /bin/sh - stap-server -c %{_bindir}/stap-gen-cert >/dev/null
+runuser -s /bin/sh - stap-server -c %{_libexecdir}/%{name}/stap-gen-cert >/dev/null
 # Authorize the certificate as a trusted ssl peer and as a trusted signer
 # local host.
 %{_bindir}/stap-authorize-server-cert %{_localstatedir}/lib/stap-server/.systemtap/ssl/server/stap.cert
@@ -406,10 +406,10 @@ exit 0
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_bindir}/stap-report
-%{_bindir}/stap-env
-%{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-signing-cert
-%{_libexecdir}/%{name}
+%{_libexecdir}/%{name}/stapio
+%{_libexecdir}/%{name}/stap-env
+%{_libexecdir}/%{name}/stap-authorize-cert
 %{_mandir}/man8/staprun.8*
 %{_mandir}/man8/stap-authorize-signing-cert.8*
 
@@ -422,29 +422,27 @@ exit 0
 %files client
 %defattr(-,root,root)
 %{_bindir}/stap-client
-%{_bindir}/stap-find-servers
 %{_bindir}/stap-authorize-server-cert
-%{_bindir}/stap-client-connect
+%{_libexecdir}/%{name}/stap-find-servers
+%{_libexecdir}/%{name}/stap-client-connect
 %{_mandir}/man8/stap-client.8*
 %{_mandir}/man8/stap-authorize-server-cert.8*
 
 %files server
 %defattr(-,root,root)
-%{_bindir}/stap-server
-%{_bindir}/stap-serverd
-%{_bindir}/stap-start-server
-%{_bindir}/stap-find-servers
-%{_bindir}/stap-find-or-start-server
-%{_bindir}/stap-stop-server
-%{_bindir}/stap-gen-cert
-%{_bindir}/stap-authorize-cert
 %{_bindir}/stap-authorize-server-cert
-%{_bindir}/stap-authorize-signing-cert
-%{_bindir}/stap-server-connect
-%{_bindir}/stap-sign-module
+%{_bindir}/stap-server
+%{_libexecdir}/%{name}/stap-serverd
+%{_libexecdir}/%{name}/stap-start-server
+%{_libexecdir}/%{name}/stap-find-servers
+%{_libexecdir}/%{name}/stap-find-or-start-server
+%{_libexecdir}/%{name}/stap-stop-server
+%{_libexecdir}/%{name}/stap-gen-cert
+%{_libexecdir}/%{name}/stap-server-connect
+%{_libexecdir}/%{name}/stap-server-request
+%{_libexecdir}/%{name}/stap-sign-module
 %{_mandir}/man8/stap-server.8*
 %{_mandir}/man8/stap-authorize-server-cert.8*
-%{_mandir}/man8/stap-authorize-signing-cert.8*
 %{_sysconfdir}/rc.d/init.d/stap-server
 %dir %{_sysconfdir}/stap-server
 %dir %{_sysconfdir}/stap-server/conf.d
@@ -477,6 +475,9 @@ exit 0
 
 
 %changelog
+* Mon Dec 21 2009 David Smith <dsmith@redhat.com> - 1.1-1
+- Upstream release.
+
 * Tue Sep 22 2009 Josh Stone <jistone@redhat.com> - 1.0-1
 - Upstream release.
 

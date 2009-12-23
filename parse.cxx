@@ -1207,6 +1207,7 @@ parser::parse_stmt_block ()
 statement*
 parser::parse_statement ()
 {
+  statement *ret;
   const token* t = peek ();
   if (t && t->type == tok_operator && t->content == ";")
     {
@@ -1215,34 +1216,42 @@ parser::parse_statement ()
       return n;
     }
   else if (t && t->type == tok_operator && t->content == "{")
-    return parse_stmt_block ();
+    return parse_stmt_block (); // Don't squash semicolons.
   else if (t && t->type == tok_keyword && t->content == "if")
-    return parse_if_statement ();
+    return parse_if_statement (); // Don't squash semicolons.
   else if (t && t->type == tok_keyword && t->content == "for")
-    return parse_for_loop ();
+    return parse_for_loop (); // Don't squash semicolons.
   else if (t && t->type == tok_keyword && t->content == "foreach")
-    return parse_foreach_loop ();
-  else if (t && t->type == tok_keyword && t->content == "return")
-    return parse_return_statement ();
-  else if (t && t->type == tok_keyword && t->content == "delete")
-    return parse_delete_statement ();
+    return parse_foreach_loop (); // Don't squash semicolons.
   else if (t && t->type == tok_keyword && t->content == "while")
-    return parse_while_loop ();
+    return parse_while_loop (); // Don't squash semicolons.
+  else if (t && t->type == tok_keyword && t->content == "return")
+    ret = parse_return_statement ();
+  else if (t && t->type == tok_keyword && t->content == "delete")
+    ret = parse_delete_statement ();
   else if (t && t->type == tok_keyword && t->content == "break")
-    return parse_break_statement ();
+    ret = parse_break_statement ();
   else if (t && t->type == tok_keyword && t->content == "continue")
-    return parse_continue_statement ();
+    ret = parse_continue_statement ();
   else if (t && t->type == tok_keyword && t->content == "next")
-    return parse_next_statement ();
-  // XXX: "do/while" statement?
+    ret = parse_next_statement ();
   else if (t && (t->type == tok_operator || // expressions are flexible
                  t->type == tok_identifier ||
                  t->type == tok_number ||
                  t->type == tok_string))
-    return parse_expr_statement ();
+    ret = parse_expr_statement ();
   // XXX: consider generally accepting tok_embedded here too
   else
     throw parse_error ("expected statement");
+
+  // Squash "empty" trailing colons after any "non-block-like" statement.
+  t = peek ();
+  if (t && t->type == tok_operator && t->content == ";")
+    {
+      next (); // Silently eat trailing ; after statement
+    }
+
+  return ret;
 }
 
 

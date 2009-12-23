@@ -1,0 +1,18 @@
+#! stap -p4
+
+# Test that semicolons are really optional (in non-block-like context).
+# PR11038.
+
+global x = 0;
+probe begin
+{
+  if (x) log("true") else log("false")
+  if (x) { log("true") } else { log("false") }
+  if (x) log("true"); else log("false")
+  if (x) log("true") else log("false");
+}
+
+probe end
+{
+  x = 1;
+}

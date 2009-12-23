@@ -16,7 +16,11 @@ function inet_get_local_port:long(sock:long)
 %(kernel_v < "2.6.11" %?
   port = @cast(sock, "inet_sock", "kernel")->inet->num;
 %:
+%(kernel_v < "2.6.33" %?
   port = @cast(sock, "inet_sock", "kernel")->num;
+%:
+  port = @cast(sock, "inet_sock", "kernel")->inet_num;
+%)
 %)
   return port;
 }
@@ -27,7 +31,11 @@ function inet_get_ip_source:string(sock:long)
 %(kernel_v < "2.6.11" %?
   daddr = @cast(sock, "inet_sock", "kernel")->inet->daddr;
 %:
+%(kernel_v < "2.6.33" %?
   daddr = @cast(sock, "inet_sock", "kernel")->daddr;
+%:
+  daddr = @cast(sock, "inet_sock", "kernel")->inet_daddr;
+%)
 %)
   return daddr_to_string(daddr);
 }

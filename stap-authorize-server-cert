@@ -11,7 +11,7 @@
 # later version.
 
 # Initialize the environment
-. `dirname $0`/stap-env
+. ${PKGLIBEXECDIR}stap-env
 
 certfile=$1
 certdb=$2
@@ -27,4 +27,4 @@ if  test "X$certdb" = "X"; then
     certdb=$stap_ssl_db/client
 fi
 
-${stap_exec_prefix}stap-authorize-cert $certfile $certdb
+${stap_pkglibexecdir}stap-authorize-cert $certfile $certdb

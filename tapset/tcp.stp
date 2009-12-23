@@ -76,7 +76,11 @@ function tcp_ts_get_info_state:long(sock:long)
 
 /* return the TCP destination port for a given sock */
 function __tcp_sock_dport:long (sock:long){
+%(kernel_v < "2.6.33" %?
 	return @cast(sock, "inet_sock")->dport
+%:
+	return @cast(sock, "inet_sock")->inet_dport
+%)
 }
 
 /* returns the TCP header for recent (<2.6.21) kernel */
@@ -145,7 +149,11 @@ function __tcp_skb_dport:long (tcphdr){
 
 /* return the TCP source port for a given sock */
 function __tcp_sock_sport:long (sock:long){
+%(kernel_v < "2.6.33" %?
 	return @cast(sock, "inet_sock")->sport
+%:
+	return @cast(sock, "inet_sock")->inet_sport
+%)
 }
 
 global sockstate[13], sockstate_init_p

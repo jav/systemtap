@@ -84,10 +84,16 @@ static struct itrace_info *create_itrace_info(
 static u32 usr_itrace_report_quiesce(struct utrace_attached_engine *engine,
 					struct task_struct *tsk)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32 usr_itrace_report_quiesce(u32 action,
+				struct utrace_attached_engine *engine,
+				unsigned long event)
+#else
 static u32 usr_itrace_report_quiesce(enum utrace_resume_action action,
 				struct utrace_attached_engine *engine,
 				struct task_struct *tsk,
 				unsigned long event)
+#endif
 #endif
 {
 	int status;
@@ -113,6 +119,14 @@ static u32 usr_itrace_report_signal(
 			     const struct k_sigaction *orig_ka,
 			     struct k_sigaction *return_ka)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32 usr_itrace_report_signal(u32 action,
+			     struct utrace_attached_engine *engine,
+			     struct pt_regs *regs,
+			     siginfo_t *info,
+			     const struct k_sigaction *orig_ka,
+			     struct k_sigaction *return_ka)
+#else
 static u32 usr_itrace_report_signal(u32 action,
 			     struct utrace_attached_engine *engine,
 			     struct task_struct *tsk,
@@ -121,7 +135,11 @@ static u32 usr_itrace_report_signal(u32 action,
 			     const struct k_sigaction *orig_ka,
 			     struct k_sigaction *return_ka)
 #endif
+#endif
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *tsk = current;
+#endif
 	struct itrace_info *ui;
 	u32 return_flags;
 	unsigned long data = 0;
@@ -177,10 +195,17 @@ static u32 usr_itrace_report_clone(
                 unsigned long clone_flags,
 		struct task_struct *child)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32 usr_itrace_report_clone(u32 action,
+		struct utrace_attached_engine *engine,
+		unsigned long clone_flags,
+		struct task_struct *child)
+#else
 static u32 usr_itrace_report_clone(enum utrace_resume_action action,
 		struct utrace_attached_engine *engine,
 		struct task_struct *parent, unsigned long clone_flags,
 		struct task_struct *child)
+#endif
 #endif
 {
 	return UTRACE_RESUME;
@@ -190,8 +215,13 @@ static u32 usr_itrace_report_clone(enum utrace_resume_action action,
 static u32 usr_itrace_report_death(struct utrace_attached_engine *e,
                                    struct task_struct *tsk)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32 usr_itrace_report_death(struct utrace_attached_engine *e,
+	bool group_dead, int signal)
+#else
 static u32 usr_itrace_report_death(struct utrace_attached_engine *e,
 	struct task_struct *tsk, bool group_dead, int signal)
+#endif
 #endif
 {
 	struct itrace_info *ui = rcu_dereference(e->data);

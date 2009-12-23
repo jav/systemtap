@@ -107,10 +107,16 @@ static u32
 __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 				      struct task_struct *tsk);
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
+				      bool group_dead, int signal);
+#else
 static u32
 __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 				      struct task_struct *tsk,
 				      bool group_dead, int signal);
+#endif
 #endif
 
 #ifdef UTRACE_ORIG_VERSION
@@ -118,11 +124,18 @@ static u32
 __stp_utrace_task_finder_target_quiesce(struct utrace_attached_engine *engine,
 					struct task_struct *tsk);
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_target_quiesce(u32 action,
+					struct utrace_attached_engine *engine,
+					unsigned long event);
+#else
 static u32
 __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 					struct utrace_attached_engine *engine,
 					struct task_struct *tsk,
 					unsigned long event);
+#endif
 #endif
 
 #ifdef UTRACE_ORIG_VERSION
@@ -131,11 +144,18 @@ __stp_utrace_task_finder_target_syscall_entry(struct utrace_attached_engine *eng
 					      struct task_struct *tsk,
 					      struct pt_regs *regs);
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_target_syscall_entry(u32 action,
+					      struct utrace_attached_engine *engine,
+					      struct pt_regs *regs);
+#else
 static u32
 __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 					      struct utrace_attached_engine *engine,
 					      struct task_struct *tsk,
 					      struct pt_regs *regs);
+#endif
 #endif
 
 #ifdef UTRACE_ORIG_VERSION
@@ -144,11 +164,18 @@ __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engi
 					     struct task_struct *tsk,
 					     struct pt_regs *regs);
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_target_syscall_exit(u32 action,
+					     struct utrace_attached_engine *engine,
+					     struct pt_regs *regs);
+#else
 static u32
 __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 					     struct utrace_attached_engine *engine,
 					     struct task_struct *tsk,
 					     struct pt_regs *regs);
+#endif
 #endif
 
 static int
@@ -857,6 +884,13 @@ __stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
 				      unsigned long clone_flags,
 				      struct task_struct *child)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_report_clone(u32 action,
+				      struct utrace_attached_engine *engine,
+				      unsigned long clone_flags,
+				      struct task_struct *child)
+#else
 static u32
 __stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
 				      struct utrace_attached_engine *engine,
@@ -864,7 +898,11 @@ __stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
 				      unsigned long clone_flags,
 				      struct task_struct *child)
 #endif
+#endif
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *parent = current;
+#endif
 	int rc;
 	struct mm_struct *mm;
 	char *mmpath_buf;
@@ -898,6 +936,14 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 				     const struct linux_binprm *bprm,
 				     struct pt_regs *regs)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_report_exec(u32 action,
+				     struct utrace_attached_engine *engine,
+				     const struct linux_binfmt *fmt,
+				     const struct linux_binprm *bprm,
+				     struct pt_regs *regs)
+#else
 static u32
 __stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
 				     struct utrace_attached_engine *engine,
@@ -906,7 +952,11 @@ __stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
 				     const struct linux_binprm *bprm,
 				     struct pt_regs *regs)
 #endif
+#endif
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *tsk = current;
+#endif
 	size_t filelen;
 	struct list_head *tgt_node;
 	struct stap_task_finder_target *tgt;
@@ -949,10 +999,16 @@ static u32
 stap_utrace_task_finder_report_death(struct utrace_attached_engine *engine,
 				     struct task_struct *tsk)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+stap_utrace_task_finder_report_death(struct utrace_attached_engine *engine,
+				     bool group_dead, int signal)
+#else
 static u32
 stap_utrace_task_finder_report_death(struct utrace_attached_engine *engine,
 				     struct task_struct *tsk,
 				     bool group_dead, int signal)
+#endif
 #endif
 {
 	debug_task_finder_detach();
@@ -964,12 +1020,21 @@ static u32
 __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 				      struct task_struct *tsk)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
+				      bool group_dead, int signal)
+#else
 static u32
 __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 				      struct task_struct *tsk,
 				      bool group_dead, int signal)
 #endif
+#endif
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *tsk = current;
+#endif
 	struct stap_task_finder_target *tgt = engine->data;
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
@@ -1132,13 +1197,23 @@ static u32
 __stp_utrace_task_finder_target_quiesce(struct utrace_attached_engine *engine,
 					struct task_struct *tsk)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_target_quiesce(u32 action,
+					struct utrace_attached_engine *engine,
+					unsigned long event)
+#else
 static u32
 __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 					struct utrace_attached_engine *engine,
 					struct task_struct *tsk,
 					unsigned long event)
 #endif
+#endif
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *tsk = current;
+#endif
 	struct stap_task_finder_target *tgt = engine->data;
 	int rc;
 
@@ -1201,13 +1276,23 @@ __stp_utrace_task_finder_target_syscall_entry(struct utrace_attached_engine *eng
 					      struct task_struct *tsk,
 					      struct pt_regs *regs)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_target_syscall_entry(u32 action,
+					      struct utrace_attached_engine *engine,
+					      struct pt_regs *regs)
+#else
 static u32
 __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 					      struct utrace_attached_engine *engine,
 					      struct task_struct *tsk,
 					      struct pt_regs *regs)
 #endif
+#endif
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *tsk = current;
+#endif
 	struct stap_task_finder_target *tgt = engine->data;
 	long syscall_no;
 	unsigned long args[3] = { 0L };
@@ -1271,13 +1356,23 @@ __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engi
 					     struct task_struct *tsk,
 					     struct pt_regs *regs)
 #else
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+static u32
+__stp_utrace_task_finder_target_syscall_exit(u32 action,
+					     struct utrace_attached_engine *engine,
+					     struct pt_regs *regs)
+#else
 static u32
 __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 					     struct utrace_attached_engine *engine,
 					     struct task_struct *tsk,
 					     struct pt_regs *regs)
 #endif
+#endif
 {
+#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
+	struct task_struct *tsk = current;
+#endif
 	struct stap_task_finder_target *tgt = engine->data;
 	unsigned long rv;
 	struct __stp_tf_map_entry *entry;

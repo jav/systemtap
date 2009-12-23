@@ -113,8 +113,8 @@ proc setup_server {} {
 
     # Make sure that the necessary resources are available to run the client/server.
     if {[installtest_p]} then {
-	if {[catch {exec /usr/bin/which stap-client-connect} dummy]} then {
-	    print "Unable to start a server: stap-client-connect is not found in PATH"
+	if {! [file exists $env(PKGLIBDIR)/stap-client-connect]} then {
+	    print "Unable to start a server: stap-client-connect is not installed"
 	    return 0
 	}
     } elseif {! [file exists [exec pwd]/../stap-client-connect]} then {
@@ -134,14 +134,26 @@ proc setup_server {} {
 
     # Server management scripts and data are installed if this is an
     # install test, otherwise there is some setup to do.
+    # Make sure the server management scripts and tools are on the $PATH.
     if {! [installtest_p]} then {
-	# Make sure the server management scripts and tools are on the $PATH.
 	set env(PATH) "$srcdir/..:[exec pwd]/..:$env(PATH)"
 	set env(SYSTEMTAP_SERVER_SCRIPTS) "$srcdir/.."
+    } else {
+	set env(PATH) "$env(PKGLIBDIR):$env(PATH)"
+	set env(SYSTEMTAP_SERVER_SCRIPTS) $env(PKGLIBDIR)
     }
 
+    # Erase the old server log file.
+    set logfile "[exec pwd]/server.log"
+    if {[file exists $logfile]} then {
+	exec rm -f $logfile;
+    }
+    # Create a new one and make sure it's world writable.
+    exec touch $logfile
+    exec chmod 666 $logfile
+
     # Try to find or start the server.
-    set server_pid [exec stap-start-server]
+    set server_pid [exec stap-start-server --log=$logfile]
     if { "$server_pid" == "" } then {
 	print "Cannot start a systemtap server"
 	set server_pid 0
@@ -155,7 +167,6 @@ proc setup_server {} {
     # The server does not call this instance of 'stap'
     if {[installtest_p]} then {
 	exec /bin/cp -p [exec which stap-client] $net_path/stap
-	exec /bin/cp -p [exec which stap-env] $net_path/stap-env
     } else {
 	exec /bin/cp -p $srcdir/../stap-client $net_path/stap
 	exec /bin/cp -p $srcdir/../stap-env $net_path/stap-env

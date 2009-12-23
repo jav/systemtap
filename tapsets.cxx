@@ -4869,11 +4869,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "if (sdt_sem_address[spec_index]) {";
   s.op->newline(1) << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
-  s.op->newline() << "if ( __access_process_vm (tsk, sdt_sem_address[spec_index], &sdt_semaphore, sizeof (sdt_semaphore), 0)) {";
+  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user*) sdt_sem_address[spec_index]) == 0) {";
   // We have an executable or a writeable segment of a .so
   s.op->newline(1) << "if (vm_flags == 0 || vm_flags & VM_WRITE) {";
   s.op->newline(1) << "sdt_semaphore ++;";
-  s.op->newline() << "__access_process_vm (tsk, sdt_sem_address[spec_index], &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user*) sdt_sem_address[spec_index]);";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";	// sdt_sem_address
   // XXX: error handling in __access_process_vm!
@@ -5139,13 +5139,13 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "#endif /* 2.6.31 */";
 
   s.op->newline() << "if (tsk) {"; // just in case the thing exited while we weren't watching
-  s.op->newline(1) << "if (__access_process_vm (tsk, sdt_sem_address[sup->spec_index], &sdt_semaphore, sizeof (sdt_semaphore), 0)) {";
+  s.op->newline(1) << "if (get_user (sdt_semaphore, (unsigned short __user*) sdt_sem_address[sup->spec_index]) == 0) {";
   s.op->newline(1) << "sdt_semaphore --;";
   s.op->newline() << "#ifdef DEBUG_UPROBES";
   s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-semaphore %#x @ %#lx\\n\", sdt_semaphore, sdt_sem_address[sup->spec_index]);";
   s.op->newline() << "#endif";
-  s.op->newline() << "(void) __access_process_vm (tsk, sdt_sem_address[sup->spec_index], &sdt_semaphore, sizeof (sdt_semaphore), 1);";
-  s.op->newline(-1) << "}";	// access_process_vm
+  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user*) sdt_sem_address[sup->spec_index]);";
+  s.op->newline(-1) << "}";
   // XXX: error handling in __access_process_vm!
   // XXX: need to analyze possibility of race condition
   s.op->newline(-1) << "}";
