@@ -200,6 +200,22 @@ function __gfp_flag_str:string(gfp_flag:long) %{
 	long gfp_flag = THIS->gfp_flag;
 	THIS->__retvalue[0] = '\0';
 
+/* Older kernels < 2.6.32 didn't have some of these GFP defines yet. */
+#ifndef __GFP_MOVABLE
+#define __GFP_MOVABLE  ((__force gfp_t)0x08u)  /* Page is movable */
+#endif
+
+#ifndef GFP_ZONEMASK
+#define GFP_ZONEMASK   (__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)
+#endif
+
+#ifndef __GFP_NOTRACK
+#ifdef CONFIG_KMEMCHECK
+#define __GFP_NOTRACK  ((__force gfp_t)0x200000u)  /* Don't track with kmemcheck */
+#else
+#define __GFP_NOTRACK  ((__force gfp_t)0)
+#endif
+#endif
 
 /* Macro for GFP Bitmasks. */
 /* The resulted GFP_FLAGS may be either single or concatenation of the multiple bitmasks. */
