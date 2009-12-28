@@ -16,4 +16,5 @@ set passscript {
     probe\ module(\"scsi_mod\").function(\"scsi_request_fn\")\ \{print(\$q)\}
 }
 
+setup_xfail 10732 "*-*-*"
 stap_compile $TEST_NAME 1 [concat $passscript $failscript ]
