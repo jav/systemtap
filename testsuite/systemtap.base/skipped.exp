@@ -10,7 +10,7 @@ set warns 0
 set oks 0
 spawn stap -e "probe timer.s(5) {exit()} probe timer.profile,syscall.* {f++} global f" -DMAXTRYLOCK=0 -tu
 expect {
-    -timeout 30
+    -timeout 60
     -re {^ERROR: Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\r\n} { incr errs; exp_continue }
     -re {^WARNING: Number of errors: 0, skipped probes: [0-9]+\r\n} { incr warns; exp_continue }
     -re {^WARNING: Skipped due to global .f. lock timeout: [0-9]+\r\n} { incr warns; exp_continue }
