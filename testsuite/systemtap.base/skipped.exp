@@ -5,17 +5,20 @@ if {! [installtest_p]} { untested $test; return }
 set nr_cpus [exec sh -c "grep ^processor /proc/cpuinfo | wc -l"]
 if {$nr_cpus < 2} { unsupported $test; return }
 
-set ok 0
+set errs 0
+set warns 0
+set oks 0
 spawn stap -e "probe timer.s(5) {exit()} probe timer.profile,syscall.* {f++} global f" -DMAXTRYLOCK=0 -tu
 expect {
     -timeout 30
-    -re {^WARNING: Number of errors: 0, skipped probes: [0-9]+\r\n} { incr ok; exp_continue }
-    -re {^WARNING: Skipped due to global .f. lock timeout: [0-9]+\r\n} { incr ok; exp_continue }
-    -re {^probe timer.profile[^\r\n]+, hits: [0-9]+[^\r\n]+\r\n} { incr ok; exp_continue }
+    -re {^ERROR: Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\r\n} { incr errs; exp_continue }
+    -re {^WARNING: Number of errors: 0, skipped probes: [0-9]+\r\n} { incr warns; exp_continue }
+    -re {^WARNING: Skipped due to global .f. lock timeout: [0-9]+\r\n} { incr warns; exp_continue }
+    -re {^probe timer.profile[^\r\n]+, hits: [0-9]+[^\r\n]+\r\n} { incr oks; exp_continue }
     eof { }
     timeout { fail "$test (timeout)" }
 }
 catch {close}
 catch {wait}
 
-if {$ok >= 3} { pass "$test ($nr_cpus $ok)" } else { fail "$test ($nr_cpus $ok)" }
+if {$oks >= 1 && $warns == 2 && $errs == 1} { pass "$test ($nr_cpus $oks $warns $errs)" } else { fail "$test ($nr_cpus $oks $warns $errs)" }
