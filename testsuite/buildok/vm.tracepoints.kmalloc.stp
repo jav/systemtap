@@ -1,0 +1,9 @@
+#! stap -up4
+
+/* All other tracepoint memory probes are in another test vm.tracepoints.stp */
+
+probe vm.kmalloc {
+        println(name)
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s \n", execname(), call_site, caller_function, ptr, bytes_req, bytes_alloc, gfp_flags, gfp_flag_name)
+}
+

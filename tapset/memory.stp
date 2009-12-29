@@ -217,6 +217,33 @@ function __gfp_flag_str:string(gfp_flag:long) %{
 #endif
 #endif
 
+#ifndef __GFP_THISNODE
+#define __GFP_THISNODE  ((__force gfp_t)0x40000u)
+#endif
+
+#ifndef __GFP_RECLAIMABLE
+#define __GFP_RECLAIMABLE ((__force gfp_t)0x80000u)
+#endif
+
+#ifndef GFP_TEMPORARY
+#define GFP_TEMPORARY  (__GFP_WAIT | __GFP_IO | __GFP_FS | \
+                        __GFP_RECLAIMABLE)
+#endif
+
+#ifndef GFP_HIGHUSER_MOVABLE
+#define GFP_HIGHUSER_MOVABLE   (__GFP_WAIT | __GFP_IO | __GFP_FS | \
+                                __GFP_HARDWALL | __GFP_HIGHMEM | \
+                                __GFP_MOVABLE)
+#endif
+
+#ifndef GFP_THISNODE
+#ifdef CONFIG_NUMA
+#define GFP_THISNODE    (__GFP_THISNODE | __GFP_NOWARN | __GFP_NORETRY)
+#else
+#define GFP_THISNODE    ((__force gfp_t)0)
+#endif
+#endif
+
 /* Macro for GFP Bitmasks. */
 /* The resulted GFP_FLAGS may be either single or concatenation of the multiple bitmasks. */
 
@@ -298,9 +325,9 @@ probe __vm.kmalloc.kp = kernel.function("kmalloc").return {
 	call_site = 0
 	caller_function = "unknown"
 	bytes_req = $size
-	bytes_alloc = "unknown"
-	gfp_flags = $gfp_flags
-	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	bytes_alloc = bytes_req // pretend they are always the same
+	gfp_flags = $flags
+	gfp_flag_name = __gfp_flag_str(gfp_flags)
 	ptr = $return
 }
 
@@ -334,10 +361,10 @@ probe __vm.kmem_cache_alloc.kp = kernel.function("kmem_cache_alloc").return {
 	name = "kmem_cache_alloc"
 	call_site = 0
 	caller_function = "unknown"
-	bytes_req = $size
-	bytes_alloc = "unknown"
-	gfp_flags = $gfp_flags
-	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	bytes_req = $cachep->buffer_size
+	bytes_alloc = bytes_req // pretend they are always the same
+	gfp_flags = $flags
+	gfp_flag_name = __gfp_flag_str(gfp_flags)
 	ptr = $return
 }
 
@@ -373,9 +400,9 @@ probe __vm.kmalloc_node.kp = kernel.function("kmalloc_node").return? {
 	call_site = 0
 	caller_function = "unknown"
 	bytes_req = $size
-	bytes_alloc = "unknown"
-	gfp_flags = $gfp_flags
-	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	bytes_alloc = bytes_req // pretend they are always the same
+	gfp_flags = $flags
+	gfp_flag_name = __gfp_flag_str(gfp_flags)
 	ptr = $return
 }
 
@@ -408,10 +435,10 @@ probe __vm.kmem_cache_alloc_node.kp = kernel.function("kmem_cache_alloc_node").r
 	name = "kmem_cache_alloc_node"
 	call_site = 0
 	caller_function = "unknown"
-	bytes_req = $size
-	bytes_alloc = "unknown"
-	gfp_flags = $gfp_flags
-	gfp_flag_name = __gfp_flag_str($gfp_flags)
+	bytes_req = $cachep->buffer_size
+	bytes_alloc = bytes_req // pretend they are always the same
+	gfp_flags = $flags
+	gfp_flag_name = __gfp_flag_str(gfp_flags)
 	ptr = $return
 }
 
@@ -442,7 +469,7 @@ probe __vm.kfree.kp = kernel.function("kfree").return {
 	name = "kfree"
 	call_site = 0
 	caller_function = "unknown"
-	ptr = $return
+	ptr = $objp
 }
 
 /**
@@ -465,7 +492,7 @@ probe __vm.kmem_cache_free.kp = kernel.function("kmem_cache_free").return {
 	name = "kmem_cache_free"
 	call_site = 0
 	caller_function = "unknown"
-	ptr = $return
+	ptr = $objp
 }
 /**
  * probe vm.kmem_cache_free - Fires when \
