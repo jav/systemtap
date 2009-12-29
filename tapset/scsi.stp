@@ -37,8 +37,12 @@ function describe_device_state:string(state:long)
 		case SDEV_DEL:           strlcpy(THIS->__retvalue, "DEL",           MAXSTRINGLEN); break;
 		case SDEV_QUIESCE:       strlcpy(THIS->__retvalue, "QUIESCE",       MAXSTRINGLEN); break;
 		case SDEV_OFFLINE:       strlcpy(THIS->__retvalue, "OFFLINE",       MAXSTRINGLEN); break;
+#ifdef SDEV_BLOCK
 		case SDEV_BLOCK:         strlcpy(THIS->__retvalue, "BLOCK",         MAXSTRINGLEN); break;
+#endif
+#ifdef SDEV_CREATED_BLOCK
 		case SDEV_CREATED_BLOCK: strlcpy(THIS->__retvalue, "CREATED_BLOCK", MAXSTRINGLEN); break;
+#endif
 		default:                 strlcpy(THIS->__retvalue, "[INVALID]",     MAXSTRINGLEN);
 	}
 %}
