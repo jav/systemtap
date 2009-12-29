@@ -127,6 +127,7 @@ static unsigned long _stp_module_relocate(const char *module,
 		}
 	}
 
+        last_tsk = tsk;
         for (i = 0; i < _stp_num_modules; i++) {
           last = _stp_modules[i];
           if (strcmp(module, last->name))
