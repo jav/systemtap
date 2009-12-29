@@ -96,18 +96,8 @@ static unsigned long _stp_module_relocate(const char *module,
 					  unsigned long offset,
 					  struct task_struct *tsk)
 {
-        /* XXX This doesn't look thread safe XXX */
-	static struct _stp_module *last = NULL;
-	static struct _stp_section *last_sec;
-        static struct task_struct *last_tsk;
-        static unsigned long last_offset;
+	unsigned long addr_offset;
 	unsigned i, j;
-
-	/* if module is -1, we invalidate last. _stp_del_module calls this when modules are deleted. */
-	if ((long)module == -1) {
-		last = NULL;
-		return 0;
-	}
 
 	dbug_sym(1, "%s, %s, %lx\n", module, section, offset);
 
@@ -116,59 +106,44 @@ static unsigned long _stp_module_relocate(const char *module,
 		return offset;
 	}
 
-	/* Most likely our relocation is in the same section of the same module as the last. */
-	if (last) {
-		if (!strcmp(module, last->name)
-                    && !strcmp(section, last_sec->name)
-                    && tsk == last_tsk) {
-			offset += last_offset;
-			dbug_sym(1, "cached address=%lx\n", offset);
-			return offset;
-		}
-	}
-
-        last_tsk = tsk;
+        addr_offset = 0;
         for (i = 0; i < _stp_num_modules; i++) {
-          last = _stp_modules[i];
-          if (strcmp(module, last->name))
+          struct _stp_module *m = _stp_modules[i];
+          if (strcmp(module, m->name))
             continue;
-          for (j = 0; j < last->num_sections; j++) {
-            last_sec = &last->sections[j];
-            if (!strcmp(section, last_sec->name)) {
+          for (j = 0; j < m->num_sections; j++) {
+            struct _stp_section *s = &m->sections[j];
+            if (!strcmp(section, s->name)) {
               /* mod and sec name match. tsk should match dynamic/static. */
-              if (last_sec->static_addr != 0) {
-                last_offset = last_sec->static_addr;
+              if (s->static_addr != 0) {
+                addr_offset = s->static_addr;
 	      } else {
                 if (!tsk) { /* static section, not in memory yet? */
 		  if (strcmp(".dynamic", section) == 0)
 		    _stp_error("internal error, _stp_module_relocate '%s' "
 			       "section '%s', should not be tsk dynamic\n",
 			       module, section);
-		  last = NULL;
 		  return 0;
 		} else { /* dynamic section, look up through tsk vma. */
-		  if (strcmp(".dynamic", last_sec->name) != 0) {
+		  if (strcmp(".dynamic", s->name) != 0) {
 		    _stp_error("internal error, _stp_module_relocate '%s' "
 			       "section '%s', should not be tsk dynamic\n",
 			       module, section);
 		    return 0;
 		  }
-		  if (stap_find_vma_map_info_user(tsk->group_leader, last,
-						  &last_offset, NULL,
+		  if (stap_find_vma_map_info_user(tsk->group_leader, m,
+						  &addr_offset, NULL,
 						  NULL) != 0) {
-		    last = NULL;
 		    return 0;
 		  }
 		}
 	      }
-              offset += last_offset;
+              offset += addr_offset;
               dbug_sym(1, "address=%lx\n", offset);
               return offset;
             }
           }
 	}
-
-	last = NULL;
 	return 0;
 }
 
