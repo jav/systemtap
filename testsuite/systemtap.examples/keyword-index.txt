@@ -1,6 +1,18 @@
 SYSTEMTAP EXAMPLES INDEX BY KEYWORD
 (see also index.txt)
 
+= ALLOCATOR =
+
+memory/vm.tracepoints.stp - Collect slab allocation statistics
+keywords: memory slab allocator
+
+  The script will probe all memory slab/slub allocations and collects
+  information about the size of the object (bytes requested) and
+  user-space process in execution. When run over a period of time, it
+  helps to correlate kernel-space memory consumption owing to
+  user-space processes.
+
+
 = AUTOFS =
 
 network/autofs4.stp - Watch autofs4 operations
@@ -436,6 +448,16 @@ keywords: memory
   determine where the page faults are occurring.
 
 
+memory/vm.tracepoints.stp - Collect slab allocation statistics
+keywords: memory slab allocator
+
+  The script will probe all memory slab/slub allocations and collects
+  information about the size of the object (bytes requested) and
+  user-space process in execution. When run over a period of time, it
+  helps to correlate kernel-space memory consumption owing to
+  user-space processes.
+
+
 network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
 keywords: network tcp buffer memory
 
@@ -831,6 +853,18 @@ keywords: simple
 
   A basic "Hello World" program implemented in SystemTap script. It
   prints out "hello world" message and then immediately exits.
+
+
+= SLAB =
+
+memory/vm.tracepoints.stp - Collect slab allocation statistics
+keywords: memory slab allocator
+
+  The script will probe all memory slab/slub allocations and collects
+  information about the size of the object (bytes requested) and
+  user-space process in execution. When run over a period of time, it
+  helps to correlate kernel-space memory consumption owing to
+  user-space processes.
 
 
 = SLEEP =

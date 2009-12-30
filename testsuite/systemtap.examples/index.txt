@@ -271,6 +271,16 @@ keywords: memory
   determine where the page faults are occurring.
 
 
+memory/vm.tracepoints.stp - Collect slab allocation statistics
+keywords: memory slab allocator
+
+  The script will probe all memory slab/slub allocations and collects
+  information about the size of the object (bytes requested) and
+  user-space process in execution. When run over a period of time, it
+  helps to correlate kernel-space memory consumption owing to
+  user-space processes.
+
+
 network/autofs4.stp - Watch autofs4 operations
 keywords: network autofs nfs
 
