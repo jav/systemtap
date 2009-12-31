@@ -68,7 +68,7 @@ void CairoTextBox::draw(Cairo::RefPtr<Cairo::Context> cr)
   double fontHeight = max(fontExtent.ascent + fontExtent.descent + 1.0,
                           fontExtent.height);
   vector<string> lines;
-  split(lines, contents, is_any_of("\n"));
+  split(lines, contents, is_from_range('\n', '\n'));
   vector<Cairo::TextExtents> extents;
   double width = 0.0, height = 0.0;
   for (vector<string>::iterator itr = lines.begin(), end = lines.end();
