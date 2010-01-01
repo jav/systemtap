@@ -187,6 +187,35 @@ if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesye
 fi
 AM_CONDITIONAL([BUILD_DOCS], [test "$building_docs" == "yes"])
 
+dnl Handle the options to build the publican options
+building_publican="no"
+AC_ARG_ENABLE([publican],
+  AS_HELP_STRING([--enable-publican],
+    [enable building publican documentation guides (default on if publican found and other documentation built).]),
+  [enable_publican=$enableval],
+  [enable_publican="check"])
+if test "$building_docs" == "no" -a "$enable_publican" == "yes" ; then
+   AC_MSG_ERROR([must use --enable-docs with --enable-publican])
+fi
+AC_CHECK_PROG(have_publican, publican, yes, no)
+if test "$enable_publican" == "yes"; then
+   if test "x${have_publican}" != "xyes"; then
+      AC_MSG_ERROR([cannot find publican for building publican guides])
+   fi
+fi
+if test "x${have_publican}" == "xyes" -a "$enable_publican" != "no" -a "${building_docs}" == "yes"; then
+   building_publican="yes"
+fi
+AM_CONDITIONAL([BUILD_PUBLICAN], [test "$building_publican" == "yes"])
+publican_brand="fedora"
+AC_ARG_WITH([publican-brand],
+  AS_HELP_STRING([--with-publican-brand=BRAND],
+    [building publican documentation guides using given brand (defaults to "fedora").]),
+  [publican_brand=$withval],
+  [publican_brand="fedora"])
+PUBLICAN_BRAND=$publican_brand
+AC_SUBST(PUBLICAN_BRAND)
+
 dnl Handle the option to build the reference documentation
 building_refdocs="no"
 AC_ARG_ENABLE([refdocs],
@@ -646,13 +675,22 @@ dnl Don't use this directly (when not given it is set to NONE).
 AC_DEFINE_UNQUOTED(STAP_PREFIX, "$prefix", [configure prefix location])
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile doc/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-client.8 stap-server.8 stap-authorize-server-cert.8 stap-authorize-signing-cert.8 man/stapprobes.iosched.3stap man/stapprobes.irq.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap man/stapprobes.snmp.3stap initscript/systemtap initscript/stap-server)
+AC_CONFIG_FILES(Makefile doc/Makefile doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-client.8 stap-server.8 stap-authorize-server-cert.8 stap-authorize-signing-cert.8 man/stapprobes.iosched.3stap man/stapprobes.irq.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap man/stapprobes.snmp.3stap initscript/systemtap initscript/stap-server)
 AC_CONFIG_SUBDIRS(testsuite)
 if test $enable_translator == "yes"; then
 	AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
 fi
 AC_CONFIG_FILES([run-staprun], [chmod +x run-staprun])
 AC_CONFIG_FILES([dtrace], [chmod +x dtrace])
+
+# Setup "shadow" directory doc/beginners that has everything setup for
+# publican in one directory (through directory links if necessary).
+# It would be nice to use AC_CONFIG_LINKS, but automake complains when
+# the src is a directory and not a file.
+AC_CONFIG_FILES([doc/beginners/publican.cfg:doc/SystemTap_Beginners_Guide/publican.cfg.in])
+AC_CONFIG_COMMANDS([doc/beginners],
+                   [rm -f $ac_abs_top_builddir/doc/beginners/en-US $ac_abs_top_builddir/doc/beginners/build/en-US/testsuite && mkdir -p $ac_abs_top_builddir/doc/beginners/build/en-US && ln -s $ac_abs_top_srcdir/doc/SystemTap_Beginners_Guide/en-US $ac_abs_top_builddir/doc/beginners/en-US && ln -s $ac_abs_top_srcdir/testsuite $ac_abs_top_builddir/doc/beginners/build/en-US/testsuite])
+
 AC_OUTPUT
 
 if test "${prefix}" = "/usr/local"; then

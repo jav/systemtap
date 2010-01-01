@@ -7,6 +7,8 @@
 %{!?pie_supported: %define pie_supported 1}
 %{!?with_grapher: %define with_grapher 1}
 %{!?with_boost: %define with_boost 0}
+%{!?with_publican: %define with_publican 1}
+%{!?publican_brand: %define publican_brand fedora}
 
 Name: systemtap
 Version: 1.1
@@ -60,6 +62,10 @@ BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
 # called 'xmlto-tex'.  To avoid a specific F10 BuildReq, we'll do a
 # file-based buildreq on '/usr/share/xmlto/format/fo/pdf'.
 BuildRequires: xmlto /usr/share/xmlto/format/fo/pdf
+%if %{with_publican}
+BuildRequires: publican
+BuildRequires: publican-%{publican_brand}
+%endif
 %endif
 
 %if %{with_grapher}
@@ -240,8 +246,14 @@ cd ..
 %define grapher_config --disable-grapher
 %endif
 
+%if %{with_publican}
+%define publican_config --enable-publican --with-publican-brand=%{publican_brand}
+%else
+%define publican_config --disable-publican
+%endif
 
-%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{grapher_config} %{rpm_config} --disable-silent-rules
+
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{grapher_config} %{publican_config} %{rpm_config} --disable-silent-rules
 make %{?_smp_mflags}
 
 %install
@@ -274,6 +286,9 @@ cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
 mkdir docs.installed
 mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/*.pdf docs.installed/
 mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/tapsets docs.installed/
+%if %{with_publican}
+mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/SystemTap_Beginners_Guide docs.installed/
+%endif
 %endif
 
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/rc.d/init.d/
@@ -381,6 +396,9 @@ exit 0
 %if %{with_docs}
 %doc docs.installed/*.pdf
 %doc docs.installed/tapsets
+%if %{with_publican}
+%doc docs.installed/SystemTap_Beginners_Guide
+%endif
 %endif
 
 %{_bindir}/stap

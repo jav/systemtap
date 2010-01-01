@@ -1,0 +1,5 @@
+debug: 0
+xml_lang: en-US
+brand: @PUBLICAN_BRAND@
+condition: @PUBLICAN_BRAND@
+tmp_dir: build

@@ -49,7 +49,7 @@ discard packets every five-second interval.
 		<title>dropwatch.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/testsuite/systemtap.examples/network/dropwatch.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="../testsuite/systemtap.examples/network/dropwatch.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>	

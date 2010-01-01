@@ -143,6 +143,7 @@ PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
 PKG_CONFIG = @PKG_CONFIG@
+PUBLICAN_BRAND = @PUBLICAN_BRAND@
 RANLIB = @RANLIB@
 RPM_CFLAGS = @RPM_CFLAGS@
 RPM_LIBS = @RPM_LIBS@
@@ -178,6 +179,7 @@ have_dvips = @have_dvips@
 have_latex = @have_latex@
 have_latex2html = @have_latex2html@
 have_ps2pdf = @have_ps2pdf@
+have_publican = @have_publican@
 have_xmlto = @have_xmlto@
 host_alias = @host_alias@
 htmldir = @htmldir@
@@ -214,7 +216,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 PDF_FILES = tutorial.pdf langref.pdf
 DOC_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap
-SUBDIRS = SystemTap_Tapset_Reference
+SUBDIRS = SystemTap_Tapset_Reference beginners
 SUFFIXES = ps pdf dvi ps tex
 all: all-recursive
 

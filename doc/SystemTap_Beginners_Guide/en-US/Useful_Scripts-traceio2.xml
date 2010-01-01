@@ -53,7 +53,7 @@
 	<title>traceio2.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/testsuite/systemtap.examples/io/traceio2.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio2.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>

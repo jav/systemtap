@@ -65,10 +65,9 @@ pkglibexec_PROGRAMS = stapio$(EXEEXT) $(am__EXEEXT_2) $(am__EXEEXT_3)
 @HAVE_NSS_TRUE@am__append_21 = -lnss3 -lnspr4
 @BUILD_TRANSLATOR_TRUE@noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
-DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
-	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/configure $(am__configure_deps) \
-	$(srcdir)/config.in $(srcdir)/stap.1.in \
+DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
+	$(srcdir)/Makefile.am $(top_srcdir)/configure \
+	$(am__configure_deps) $(srcdir)/config.in $(srcdir)/stap.1.in \
 	$(srcdir)/stapprobes.3stap.in $(srcdir)/stapfuncs.3stap.in \
 	$(srcdir)/stapvars.3stap.in $(srcdir)/stapex.3stap.in \
 	$(srcdir)/staprun.8.in $(srcdir)/stap-client.8.in \
@@ -325,6 +324,7 @@ PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
 PKG_CONFIG = @PKG_CONFIG@
+PUBLICAN_BRAND = @PUBLICAN_BRAND@
 RANLIB = @RANLIB@
 RPM_CFLAGS = @RPM_CFLAGS@
 RPM_LIBS = @RPM_LIBS@
@@ -360,6 +360,7 @@ have_dvips = @have_dvips@
 have_latex = @have_latex@
 have_latex2html = @have_latex2html@
 have_ps2pdf = @have_ps2pdf@
+have_publican = @have_publican@
 have_xmlto = @have_xmlto@
 host_alias = @host_alias@
 htmldir = @htmldir@

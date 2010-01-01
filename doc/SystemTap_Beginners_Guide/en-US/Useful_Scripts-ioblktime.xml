@@ -39,7 +39,7 @@
 	<title>ioblktime.stp</title>
 <para>
 <programlisting>
-<xi:include parse="text" href="extras/testsuite/systemtap.examples/io/ioblktime.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<xi:include parse="text" href="../testsuite/systemtap.examples/io/ioblktime.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </programlisting>
 </para>
 </formalpara>
