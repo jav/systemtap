@@ -122,14 +122,7 @@ cd postgresql-8.3.6/
 mkdir bld;cd bld
 ../configure --enable-dtrace --prefix=$postgresdir
 # sed -i -e 's/ifeq (\$(PORTNAME), solaris)/ifeq (\$(enable_dtrace), yes)/' src/backend/Makefile
-sed -i -e 's/^CFLAGS = -O2.*\$/& -g -DEXPERIMENTAL_UTRACE_SDT/' src/Makefile.global
-make
-make install
-run_tests utrace
-
-sed -i -e 's/UTRACE/KPROBE/' src/Makefile.global
-(cd src/backend/utils/
- make clean)
+sed -i -e 's/^CFLAGS = -O2.*\$/& -g -DEXPERIMENTAL_KPROBE_SDT/' src/Makefile.global
 make
 make install
 run_tests kprobe

@@ -1,5 +1,5 @@
 // tapset resolution
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -3579,9 +3579,9 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 struct sdt_var_expanding_visitor: public var_expanding_visitor
 {
   sdt_var_expanding_visitor(string & process_name, string & probe_name,
-			    int arg_count, bool have_reg_args, bool utrace_probe):
+			    int arg_count, bool have_reg_args):
     process_name (process_name), probe_name (probe_name),
-    have_reg_args (have_reg_args), utrace_probe (utrace_probe),
+    have_reg_args (have_reg_args),
     arg_count (arg_count)
   {
     assert(!have_reg_args || (arg_count >= 0 && arg_count <= 10));
@@ -3589,7 +3589,6 @@ struct sdt_var_expanding_visitor: public var_expanding_visitor
   string & process_name;
   string & probe_name;
   bool have_reg_args;
-  bool utrace_probe;
   int arg_count;
 
   void visit_target_symbol (target_symbol* e);
@@ -3624,10 +3623,10 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   // First two args are hidden: 1. pointer to probe name 2. task id
   if (arg_count < 2)
     {
-      fc->function = utrace_probe ? "_utrace_syscall_arg" : "ulong_arg";
+      fc->function = "ulong_arg";
       fc->type = pe_long;
       fc->tok = e->tok;
-      literal_number* num = new literal_number(argno + (utrace_probe ? 1 : 2));
+      literal_number* num = new literal_number(argno + 2);
       num->tok = e->tok;
       fc->args.push_back(num);
     }
@@ -3638,9 +3637,9 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       binary_expression *be = new binary_expression;
       be->tok = e->tok;
       functioncall *get_arg1 = new functioncall;
-      get_arg1->function = utrace_probe ? "_utrace_syscall_arg" : "pointer_arg";
+      get_arg1->function = "pointer_arg";
       get_arg1->tok = e->tok;
-      literal_number* num = new literal_number((utrace_probe ? 2 : 3));
+      literal_number* num = new literal_number(3);
       num->tok = e->tok;
       get_arg1->args.push_back(num);
 
@@ -3687,7 +3686,6 @@ private:
     {
       uprobe_type = 0x31425250, // "PRB1"
       kprobe_type = 0x32425250, // "PRB2"
-      utrace_type = 0x33425250, // "PRB3"
     } probe_type;
 
   probe * base_probe;
@@ -3749,9 +3747,6 @@ sdt_query::handle_query_module()
 	    case kprobe_type:
 	      clog << "kprobe" << endl;
 	      break;
-	    case utrace_type:
-	      clog << "utrace" << endl;
-	      break;
 	    }
 	}
       probe *new_base = new probe(*base_probe);
@@ -3760,7 +3755,7 @@ sdt_query::handle_query_module()
       new_base->body = deep_copy_visitor::deep_copy(base_probe->body);
 
       bool have_reg_args = false;
-      if (probe_type == kprobe_type || probe_type == utrace_type)
+      if (probe_type == kprobe_type)
         {
           convert_probe(new_base);
           have_reg_args = true;
@@ -3768,13 +3763,12 @@ sdt_query::handle_query_module()
 
       // Expand the local variables in the probe body
       sdt_var_expanding_visitor svv (module_val, probe_name,
-                                     probe_arg, have_reg_args,
-                                     probe_type == utrace_type);
+                                     probe_arg, have_reg_args);
       svv.replace (new_base->body);
 
       unsigned i = results.size();
 
-      if (probe_type == kprobe_type || probe_type == utrace_type)
+      if (probe_type == kprobe_type)
         derive_probes(sess, new_base, results);
 
       else
@@ -3889,8 +3883,7 @@ sdt_query::get_next_probe()
       }  *pbe;
       __uint32_t *type = (__uint32_t*) ((char*)pdata->d_buf + probe_scn_offset);
       probe_type = (enum probe_types)*type;
-      if (probe_type != uprobe_type && probe_type != kprobe_type
-	  && probe_type != utrace_type)
+      if (probe_type != uprobe_type && probe_type != kprobe_type)
 	{
 	  // Unless this is a mangled .probes section, this happens
 	  // because the name of the probe comes first, followed by
@@ -3963,28 +3956,7 @@ sdt_query::convert_probe (probe *base)
     }
 #endif
 
-  if (probe_type == utrace_type)
-    {
-      // Generate: if ($syscall != 0xbead) next;
-      if_statement *issc = new if_statement;
-      issc->thenblock = new next_statement;
-      issc->elseblock = NULL;
-      issc->tok = b->tok;
-      comparison *besc = new comparison;
-      besc->op = "!=";
-      besc->tok = b->tok;
-      functioncall* n = new functioncall;
-      n->tok = b->tok;
-      n->function = "_utrace_syscall_nr";
-      n->referent = 0;
-      besc->left = n;
-      literal_number* fake_syscall = new literal_number(0xbead);
-      fake_syscall->tok = b->tok;
-      besc->right = fake_syscall;
-      issc->condition = besc;
-      b->statements.push_back(issc);
-    }
-  else if (probe_type == kprobe_type)
+  if (probe_type == kprobe_type)
     {
       // Generate: if (arg2 != kprobe_type) next;
       if_statement *istid = new if_statement;
@@ -4012,9 +3984,9 @@ sdt_query::convert_probe (probe *base)
 
   // Generate: if (arg1 != mark("label")) next;
   functioncall *fc = new functioncall;
-  fc->function = (probe_type == utrace_type) ? "_utrace_syscall_arg" : "ulong_arg";
+  fc->function = "ulong_arg";
   fc->tok = b->tok;
-  literal_number* num = new literal_number((probe_type == utrace_type) ? 0 : 1);
+  literal_number* num = new literal_number(1);
   num->tok = b->tok;
   fc->args.push_back(num);
 
@@ -4063,14 +4035,6 @@ sdt_query::convert_location (probe *base, probe_point *location)
 	  // kernel.function("*getegid*")
 	  location->components[i]->functor = TOK_FUNCTION;
 	  location->components[i]->arg = new literal_string("*getegid*");
-	  break;
-
-	case utrace_type:
-	  if (sess.verbose > 3)
-	    clog << "probe_type == utrace_type" << endl;
-	  // process("executable").syscall
-	  location->components[i]->functor = "syscall";
-	  location->components[i]->arg = NULL;
 	  break;
 
 	default:
@@ -4802,7 +4766,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "if (likely(sups->tfi != tfi)) continue;";
   // skip probes with an address beyond this map event; should not
   // happen unless a shlib/exec got mmapped in weirdly piecemeal
-  s.op->newline() << "if (likely(sups->address >= length)) continue;"; 
+  s.op->newline() << "if (likely(sups->address >= length)) continue;";
 
   // Found a uprobe_spec for this stap_uprobe_tf.  Need to lock the
   // stap_uprobes[] array to allocate a free spot, but then we can
@@ -4846,7 +4810,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "sdt_sem_address[spec_index] = relocation + sups->sdt_sem_offset;";
   s.op->newline() << "sdt_sem_tid[spec_index] = tsk->tgid;";
   s.op->newline(-1) << "}";
-  // If the probe is in a .so, we have to calculate the address.
+  // If the probe is in a .so, we have to calculate the address
+  // when the initial mmap maps the entire solib, e.g.
+  // 7f089885a000-7f089885b000  rw-p-  libtcl.so
+  // A subsequent mmap maps in the writeable segment where the 
+  // semaphore control variable lives, which is when the variable is set.
+  // 7f089850d000-7f0898647000  r-xp-  libtcl.so
+  // 7f0898647000-7f0898846000  ---p   libtcl.so
+  // 7f0898846000-7f089885b000  rw-p-  libtcl.so
+  // If the task changes, then recalculate the address.
+
   s.op->newline() << "else {";
   s.op->indent(1);
   s.op->newline() << "sdt_sem_address[spec_index] = (relocation - offset) + sups->sdt_sem_offset;";

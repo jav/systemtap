@@ -136,8 +136,8 @@ if {[installtest_p]} {
     set sdtdir $srcdir/../includes
 }
 
-set pbtype_flags {{""} {additional_flags=-O additional_flags=-DEXPERIMENTAL_UTRACE_SDT} {additional_flags=-O additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
-set pbtype_mssgs {{uprobe} {utrace} {kprobe}}
+set pbtype_flags {{""} {additional_flags=-O additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
+set pbtype_mssgs {{uprobe} {kprobe}}
 
 # Iterate pbtype_flags
 for {set i 0} {$i < [llength $pbtype_flags]} {incr i} {

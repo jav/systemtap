@@ -12,8 +12,8 @@ set ::result_string {1
 
 set extra_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic} {additional_flags=-ansi additional_flags=-pedantic} {additional_flags=-O2} {additional_flags="-O3"}}
 
-set pbtype_flags {{""} {additional_flags=-DEXPERIMENTAL_UTRACE_SDT} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
-set pbtype_mssgs {{uprobe} {utrace} {kprobe}}
+set pbtype_flags {{""} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
+set pbtype_mssgs {{uprobe} {kprobe}}
 
 # Iterate pbtype_flags
 for {set p 0} {$p < [llength $pbtype_flags]} {incr p} {
