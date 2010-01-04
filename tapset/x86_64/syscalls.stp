@@ -114,15 +114,15 @@ probe syscall.mmap32.return = kernel.function("sys32_mmap").return
 # sys32_mmap2(unsigned long addr, unsigned long len,
 #	unsigned long prot, unsigned long flags,
 #	unsigned long fd, unsigned long pgoff)
-#
-probe syscall.mmap2 = kernel.function("sys32_mmap2")
+# The function is removed since 2.6.33
+probe syscall.mmap2 = kernel.function("sys32_mmap2") ?
 {
 	name = "mmap2"
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
 		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $pgoff)
 }
 
-probe syscall.mmap2.return = kernel.function("sys32_mmap2").return
+probe syscall.mmap2.return = kernel.function("sys32_mmap2").return ?
 {
 	name = "mmap2"
 	retstr = returnstr(2)
