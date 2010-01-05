@@ -35,3 +35,17 @@ expect {
 }
 wait
 if {$fibcalls == 18 && $maincalls == 2} { pass "$test ($fibcalls $maincalls)" } { fail "$test ($fibcalls $maincalls)" }
+
+spawn stap -c "$testexe 10" -- $teststp --entry
+set fibcalls 0
+set maincalls 0
+expect {
+    -timeout 120
+    -re {^fib[^\r\n]*[\r\n]} { incr fibcalls; exp_continue }
+    -re {^main[^\r\n]*[\r\n]} { incr maincalls; exp_continue }
+    -re {^[^\r\n]*[\r\n]} {exp_continue}
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$fibcalls == 55 && $maincalls == 10} { pass "$test ($fibcalls $maincalls)" } { fail "$test ($fibcalls $maincalls)" }

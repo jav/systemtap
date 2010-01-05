@@ -132,25 +132,29 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 				_stp_print("\nReturning to  : ");
 			}
 			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
-                } else if (ri) {
-#ifdef CONFIG_UTRACE /* as a proxy for presence of uprobes */
+			_stp_print_char('\n');
+#ifdef CONFIG_UTRACE /* as a proxy for presence of uprobes... */
+                } else if (ri && ri != GET_PC_URETPROBE_NONE) {
 			if (verbose == SYM_VERBOSE_FULL) {
 				_stp_print("Returning from: ");
-				_stp_usymbol_print(ri->rp->u.vaddr, tsk);  /* otherwise this dereference fails */
+				/* ... otherwise this dereference fails */
+				_stp_usymbol_print(ri->rp->u.vaddr, tsk);
 				_stp_print("\nReturning to  : ");
 				_stp_usymbol_print(ri->ret_addr, tsk);
+				_stp_print_char('\n');				
 			} else
 				_stp_func_print(ri->ret_addr, verbose, 0, tsk);
 #endif
+		} else if (verbose == SYM_VERBOSE_BRIEF) {
+			_stp_func_print(REG_IP(regs), verbose, 0, tsk);
 		} else {
 			_stp_print_char(' ');
 			if (tsk)
-			  _stp_usymbol_print(REG_IP(regs), tsk);
+				_stp_usymbol_print(REG_IP(regs), tsk);
 			else
-			  _stp_symbol_print(REG_IP(regs));
-		}
-		if (verbose != SYM_VERBOSE_BRIEF)
+				_stp_symbol_print(REG_IP(regs));
 			_stp_print_char('\n');
+		}
 	} else if (pi)
 		_stp_printf("%p %p ", (int64_t)(long)_stp_ret_addr_r(pi), (int64_t) REG_IP(regs));
 	else 

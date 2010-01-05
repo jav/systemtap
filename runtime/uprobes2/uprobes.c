@@ -2840,37 +2840,46 @@ static void uretprobe_set_trampoline(struct uprobe_process *uproc,
 unsigned long uprobe_get_pc(struct uretprobe_instance *ri, unsigned long pc,
 			unsigned long sp)
 {
-        struct uretprobe *rp;
-        struct uprobe_kimg *uk;
-        struct uprobe_process *uproc;
-        unsigned long trampoline_addr;
-        struct hlist_node *r;
-        struct uretprobe_instance *ret_inst;
+	struct uretprobe *rp;
+	struct uprobe_kimg *uk;
+	struct uprobe_task *utask;
+	struct uprobe_process *uproc;
+	unsigned long trampoline_addr;
+	struct hlist_node *r;
+	struct uretprobe_instance *ret_inst;
 
-        if (!ri)
-                return 0;
-        rp = ri->rp;
-        uk = (struct uprobe_kimg *)rp->u.kdata;
-        if (!uk)
-                return 0;
-        uproc = uk->ppt->uproc;
-        if (IS_ERR(uproc->uretprobe_trampoline_addr))
-          return pc;
-        trampoline_addr = (unsigned long)uproc->uretprobe_trampoline_addr;
-        if (pc != trampoline_addr)
-                return pc;
-        r = &ri->hlist;
-        hlist_for_each_entry_from(ret_inst, r, hlist) {
-                if (ret_inst->ret_addr == trampoline_addr)
-                        continue;
-                /* First handler with a stack pointer lower than the
-                   address (or equal) must be the one. */
-                if (ret_inst->sp == sp || compare_stack_ptrs(ret_inst->sp, sp))
-                        return ret_inst->ret_addr;
-        }
-        printk(KERN_ERR "Original return address for trampoline not found at "
-               "0x%lx pid/tgid=%d/%d\n", sp, current->pid, current->tgid);
-        return 0;
+	if (!ri)
+		return 0;
+	if (ri == GET_PC_URETPROBE_NONE) {
+		utask = uprobe_find_utask(current);
+		if (!utask)
+			return 0;
+		uproc = utask->uproc;
+		r = utask->uretprobe_instances.first;
+	} else {
+		rp = ri->rp;
+		uk = (struct uprobe_kimg *)rp->u.kdata;
+		if (!uk)
+			return 0;
+		uproc = uk->ppt->uproc;
+		r = &ri->hlist;		
+	}
+	if (IS_ERR(uproc->uretprobe_trampoline_addr))
+	  return pc;
+	trampoline_addr = (unsigned long)uproc->uretprobe_trampoline_addr;
+	if (pc != trampoline_addr)
+		return pc;
+	hlist_for_each_entry_from(ret_inst, r, hlist) {
+		if (ret_inst->ret_addr == trampoline_addr)
+			continue;
+		/* First handler with a stack pointer lower than the
+		   address (or equal) must be the one. */
+		if (ret_inst->sp == sp || compare_stack_ptrs(ret_inst->sp, sp))
+			return ret_inst->ret_addr;
+	}
+	printk(KERN_ERR "Original return address for trampoline not found at "
+	       "0x%lx pid/tgid=%d/%d\n", sp, current->pid, current->tgid);
+	return 0;
 }
 
 EXPORT_SYMBOL_GPL(uprobe_get_pc);
