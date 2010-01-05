@@ -13,12 +13,13 @@ BEGIN_INSTALL_DIR = $(DOC_INSTALL_DIR)/$(SBG)
 if BUILD_PUBLICAN
 all: $(SBG).pdf $(SBG)/index.html
 
+# publican isn't make -j safe. So cheat a little, always create pdf and html
+# at the same time, then make html depend on pdf build for copying.
 $(SBG).pdf:
-	publican build --formats=pdf --langs=en-US && \
+	publican build --formats=pdf,html --langs=en-US && \
 	mv build/en-US/pdf/*$(SBG)*.pdf $(SBG).pdf
 
-$(SBG)/index.html:
-	publican build --formats=html --langs=en-US  && \
+$(SBG)/index.html: $(SBG).pdf
 	mv build/en-US/html $(SBG)
 
 clean-local:

@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-2009 Red Hat Inc.
+/* Copyright (C) 2005-2010 Red Hat Inc.
 
    This file is part of systemtap, and is free software in the public domain.
 */
@@ -49,7 +49,7 @@
 #define STAP_SEMAPHORE(probe)
 #endif
 
-#if ! (defined EXPERIMENTAL_UTRACE_SDT || defined EXPERIMENTAL_KPROBE_SDT)
+#if ! defined EXPERIMENTAL_KPROBE_SDT
 
 /* These baroque macros are used to create a unique label. */
 #define STAP_CONCAT(a,b) a ## b
@@ -222,7 +222,7 @@ do STAP_SEMAPHORE(probe) {						\
 		    STAP_NOP "/* %0 %1 %2 %3 %4 %5 %6 %7 %8 %9 */" :: "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9), "g"(arg10)); \
 } while (0)
 
-#else /* ! (defined EXPERIMENTAL_UTRACE_SDT || defined EXPERIMENTAL_KPROBE_SDT) */
+#else /* ! defined EXPERIMENTAL_KPROBE_SDT */
 #include <unistd.h>
 #include <sys/syscall.h>
 # if defined (__USE_ANSI)
@@ -231,9 +231,6 @@ extern long int syscall (long int __sysno, ...) __THROW;
 # if defined EXPERIMENTAL_KPROBE_SDT
 # define STAP_SYSCALL __NR_getegid
 # define STAP_GUARD 0x32425250
-# elif defined EXPERIMENTAL_UTRACE_SDT
-# define STAP_SYSCALL 0xbead
-# define STAP_GUARD 0x33425250
 # endif
 
 #include <sys/syscall.h>

@@ -1,5 +1,5 @@
 // utrace tapset
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -29,7 +29,6 @@ static const string TOK_END("end");
 static const string TOK_THREAD("thread");
 static const string TOK_SYSCALL("syscall");
 static const string TOK_RETURN("return");
-static const string TOK_LIBRARY("library");
 
 
 // ------------------------------------------------------------------------
@@ -60,8 +59,8 @@ struct utrace_derived_probe: public derived_probe
   bool target_symbol_seen;
 
   utrace_derived_probe (systemtap_session &s, probe* p, probe_point* l,
-                        bool hp, string &pn, bool hl, string &ln, 
-			int64_t pd, enum utrace_derived_probe_flags f);
+			bool hp, string &pn, int64_t pd,
+			enum utrace_derived_probe_flags f);
   void join_group (systemtap_session& s);
 
   void emit_unprivileged_assertion (translator_output*);
@@ -118,10 +117,10 @@ struct utrace_var_expanding_visitor: public var_expanding_visitor
 
 utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
                                             probe* p, probe_point* l,
-                                            bool hp, string &pn, bool hl, string &ln,
-					    int64_t pd, enum utrace_derived_probe_flags f):
+					    bool hp, string &pn, int64_t pd,
+					    enum utrace_derived_probe_flags f):
   derived_probe (p, new probe_point (*l) /* .components soon rewritten */ ),
-  has_path(hp), path(pn), has_library(hl), library(ln), pid(pd), flags(f),
+  has_path(hp), path(pn), pid(pd), flags(f),
   target_symbol_seen(false)
 {
   if (s.kernel_config["CONFIG_UTRACE"] != string("y"))
@@ -602,11 +601,9 @@ struct utrace_builder: public derived_probe_builder
 		     vector<derived_probe *> & finished_results)
   {
     string path;
-    string lib;
     int64_t pid;
 
     bool has_path = get_param (parameters, TOK_PROCESS, path);
-    bool has_lib = get_param (parameters, TOK_LIBRARY, lib);
     bool has_pid = get_param (parameters, TOK_PROCESS, pid);
     enum utrace_derived_probe_flags flags = UDPF_NONE;
 
@@ -652,11 +649,9 @@ struct utrace_builder: public derived_probe_builder
 
         // XXX: could we use /proc/$pid/exe in unwindsym_modules and elsewhere?
       }
-    if (has_lib)
-      lib = find_executable (lib, "LD_LIBRARY_PATH");
 
     finished_results.push_back(new utrace_derived_probe(sess, base, location,
-                                                        has_path, path, has_lib, lib, pid,
+							has_path, path, pid,
 							flags));
   }
 
@@ -755,27 +750,7 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
       break;
     }
   s.op->line() << " .engine_attached=0,";
-
-  if (p->sdt_semaphore_addr != 0)
-    s.op->line() << " .sdt_sem_offset=(unsigned long)0x"
-                 << hex << p->sdt_semaphore_addr << dec << "ULL,";
-  s.op->line() << " .sdt_sem_address=0,";
-  s.op->line() << " .tsk=0,";
   s.op->line() << " },";
-
-  if (p->has_library && p->sdt_semaphore_addr != 0)
-    {
-      s.op->newline() << "{";
-      s.op->line() << " .tgt={";
-      s.op->line() << " .procname=\"" << p->path << "\",";
-      s.op->line() << " .mmap_callback=&stap_utrace_mmap_found,";
-      s.op->line() << " },";
-      s.op->line() << " .pathname=\"" << p->library << "\",";
-      s.op->line() << " .sdt_sem_offset=(unsigned long)0x"
-		   << hex << p->sdt_semaphore_addr << dec << "ULL,";
-      s.op->line() << " .sdt_sem_address=0,";
-      s.op->line() << " },";
-    }
 }
 
 
@@ -809,12 +784,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "enum utrace_derived_probe_flags flags;";
   s.op->newline() << "struct utrace_engine_ops ops;";
   s.op->newline() << "unsigned long events;";
-  s.op->newline() << "struct task_struct *tsk;";
-  s.op->newline() << "unsigned long sdt_sem_offset;";
-  // FIXME: if this probe is attached to more than 1 task, having 1
-  // address here won't work
-  s.op->newline() << "unsigned long sdt_sem_address;";
-  s.op->newline(0) << "const char *pathname;";
   s.op->newline(-1) << "};";
 
 
@@ -941,24 +910,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "break;";
   s.op->indent(-1);
   s.op->newline(-1) << "}";
-
-  s.op->newline() << "if (p->sdt_sem_offset && p->sdt_sem_address == 0) {";
-  s.op->indent(1);
-  // If the probe is in the executable itself, the offset *is* the address.
-  s.op->newline() << "p->sdt_sem_address = p->sdt_sem_offset;";
-  s.op->newline(-1) << "}";
-
-  // Before writing to the semaphore, we need to check for VM_WRITE access.
-  s.op->newline() << "if (p->sdt_sem_address) {";
-  s.op->newline(1) << "size_t sdt_semaphore;";
-  // XXX p could get registered to more than one task!
-  s.op->newline() << "p->tsk = tsk;";
-
-  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
-  s.op->newline(1) << "sdt_semaphore ++;";
-  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 
   // Since this engine could be attached to multiple threads, don't
@@ -1020,40 +971,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
   s.op->newline() << "return rc;";
-  s.op->newline(-1) << "}";
-
-  // The task_finder_mmap_callback
-  s.op->newline() << "static int stap_utrace_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {";
-  s.op->newline(1) << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";
-  s.op->newline() << "int rc = 0;";
-  // the shared library we're interested in
-  s.op->newline() << "if (path == NULL || strcmp (path, p->pathname)) return 0;";
-  s.op->newline() << "if (p->sdt_sem_address == 0) {";
-  s.op->indent(1);
-  // If the probe is in the executable itself, the offset *is* the
-  // address.
-  s.op->newline() << "if (vm_flags & VM_EXECUTABLE) {";
-  s.op->indent(1);
-  s.op->newline() << "p->sdt_sem_address = addr + p->sdt_sem_offset;";
-  s.op->newline(-1) << "}";
-  // If the probe is in a .so, we have to calculate the address.
-  s.op->newline() << "else {";
-  s.op->indent(1);
-  s.op->newline() << "p->sdt_sem_address = (addr - offset) + p->sdt_sem_offset;";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-
-  s.op->newline() << "if (p->sdt_sem_address && (vm_flags & VM_WRITE)) {";
-  s.op->newline(1) << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
-  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
-  s.op->newline(1) << "sdt_semaphore ++;";
-  s.op->newline() << "#ifdef DEBUG_UTRACE";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx\\n\", sdt_semaphore, p->sdt_sem_address);";
-  s.op->newline() << "#endif";
-  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
 
   s.op->newline() << "static struct stap_utrace_probe stap_utrace_probes[] = {";
@@ -1126,17 +1043,7 @@ utrace_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "if (p->engine_attached) {";
   s.op->newline(1) << "stap_utrace_detach_ops(&p->ops);";
 
-  // Before writing to the semaphore, we need to check for VM_WRITE access.
-  s.op->newline() << "if (p->sdt_sem_address) {";
-  s.op->newline(1) << "size_t sdt_semaphore;";
-  // XXX p could get registered to more than one task!
-  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
-  s.op->newline(1) << "sdt_semaphore --;";
-  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
   s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-
   s.op->newline(-1) << "}";
 }
 
@@ -1165,8 +1072,6 @@ register_tapset_utrace(systemtap_session& s)
       roots[i]->bind(TOK_SYSCALL)
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-	->bind(builder);
-      roots[i]->bind_str(TOK_LIBRARY)->bind(TOK_SYSCALL)
 	->bind(builder);
     }
 }

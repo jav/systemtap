@@ -686,6 +686,7 @@ kernel.function("no_such_function") ?
 \subsection{Built-in probe point types (DWARF probes)}
 \index{built-in probes}
 \index{dwarf probes}
+\label{dwarfprobes}
 This family of probe points uses symbolic debugging information for the target
 kernel or module, as may be found in executables that have not
 been stripped, or in the separate \textbf{debuginfo} packages. They allow
@@ -914,51 +915,31 @@ to not register. Also, run statement probes in guru mode only.
 \index{userspace probing}
 \index{process}
 Support for userspace probing is supported on kernels that are
-configured to include the utrace extensions.  At the time this
-document is written, Red Hat and CentOS distributions provide kernels
-with utrace support enabled.  For more information about utrace, see
+configured to include the utrace extensions.  Red Hat and CentOS
+distributions provide kernels with utrace support enabled.  For more
+information about utrace, see
 \url{http://people.redhat.com/roland/utrace/}.
 
-Userspace probing has several forms.  A non-symbolic probe point such
-as \newline\texttt{process(PID).statement(ADDRESS).absolute} is
-analogous to \texttt{kernel.statement(ADDRESS).absolute} in that both
-use raw, unverified virtual addresses and provide no
-\texttt{\$variables}.  The target \texttt{PID} parameter must identify
-a running process and \texttt{ADDRESS} must identify a valid
-instruction address.  All threads of the listed process will be
-probed.  This is a guru-level probe.
-
-You can probe non-symbolic user-kernel interface events handled by
-utrace. The following constructs are available:
+\subsubsection{Begin/end variants}
+\label{sec:beginendvariants}
+Constructs:
 \begin{vindent}
 \begin{verbatim}
-process(PID).begin
-process("PATH").begin
 process.begin
-process(PID).thread.begin
-process("PATH").thread.begin
+process("PATH").begin
+process(PID).begin
+
 process.thread.begin
-process(PID).end
-process("PATH").end
+process("PATH").thread.begin
+process(PID).thread.begin
+
 process.end
-process(PID).thread.end
-process("PATH").thread.end
+process("PATH").end
+process(PID).end
+
 process.thread.end
-process(PID).syscall
-process("PATH").syscall
-process.syscall
-process(PID).syscall.return
-process("PATH").syscall.return
-process.syscall.return
-process(PID).insn
-process("PATH").insn.block
-process(PID).insn.block
-process("PATH").insn
-process("PATH").mark("LABEL")
-process("PATH").function("NAME")
-process("PATH").statement("*@FILE.c:123")
-process("PATH").function("*").return
-process("PATH").function("myfun").label("foo")
+process("PATH").thread.end
+process(PID).thread.end
 \end{verbatim}
 \end{vindent}
 
@@ -977,6 +958,21 @@ The \texttt{.end} variant is called when a process described by
 The \texttt{.thread.end} variant is called when a thread described by
 \texttt{PID} or \texttt{PATH} dies.
 
+\subsubsection{Syscall variants}
+\label{sec:syscallvariants}
+Constructs:
+\begin{vindent}
+\begin{verbatim}
+process.syscall
+process("PATH").syscall
+process(PID).syscall
+
+process.syscall.return
+process("PATH").syscall.return
+process(PID).syscall.return
+\end{verbatim}
+\end{vindent}
+
 The \texttt{.syscall} variant is called when a thread described by
 \texttt{PID} or \texttt{PATH} makes a system call.  The system call
 number is available in the \texttt{\$syscall} context variable.  The
@@ -990,14 +986,10 @@ system call number is available in the \texttt{\$syscall} context
 variable.  The return value of the system call is available in the
 \texttt{\$return} context variable.
 
-The \texttt{.mark} variant is called from a static probe which is
-defined in the application. For more information, see
-\S\S\ref{staticuserspace}.
 
-In addition, full symbolic source-level probes in userspace programs
-and shared libraries are supported.  These are exactly analogous to
-the symbolic DWARF-based kernel or module probes described previously
-and expose similar contextual \texttt{\$-variables}.
+\subsubsection{Function/statement variants}
+\label{sec:function-statement}
+Constructs:
 \begin{vindent}
 \begin{verbatim}
 process("PATH").function("NAME")
@@ -1007,11 +999,18 @@ process("PATH").function("myfun").label("foo")
 \end{verbatim}
 \end{vindent}
 
+Full symbolic source-level probes in userspace programs and shared
+libraries are supported.  These are exactly analogous to the symbolic
+DWARF-based kernel or module probes described previously and expose
+similar contextual \texttt{\$-variables}. See
+Section~\ref{dwarfprobes} for more information
+
+\subsubsection{Process probe paths}
+\label{sec:paths}
 For all process probes, \texttt{PATH} names refer to executables that
-are searched the same way that shells do: either the explicit path
-specified, or relative to the working directory if they begin with a
-dot-slash (./) character sequence. Otherwise, \texttt{\$PATH} is
-searched.  For example, the following probe syntax:
+are searched the same way that shells do: the explicit path specified
+if the path name begins with a slash (/) character sequence; otherwise
+\texttt{\$PATH} is searched.  For example, the following probe syntax:
 \begin{vindent}
 \begin{verbatim}
 probe process("ls").syscall {}
@@ -1031,8 +1030,12 @@ If a process probe is specified without a \texttt{PID} or
 \texttt{PATH} parameter, all user threads are probed. However, if
 systemtap is invoked in target process mode, process probes are
 restricted to the process hierarchy associated with the target
-process.
+process. If stap is running in \texttt{--unprivileged} mode, only
+processes owned by the current user are selected.
 
+
+\subsubsection{Target process mode}
+\label{sec:targetprocessmode}
 Target process mode (invoked with \texttt{stap -c CMD} or \texttt{-x
   PID}) implicitly restricts all \texttt{process.*} probes to the
 given child process.  It does not affect \texttt{kernel.*} or other
@@ -1073,6 +1076,18 @@ the target command and descendants only.  You can use
 \texttt{\$\$vars} and others. You can provide the location of debug
 information to the stap command with the \texttt{-d DIRECTORY} option.
 
+\subsubsection{Instruction probes}
+\label{sec:insnprobes}
+Constructs:
+\begin{vindent}
+\begin{verbatim}
+process("PATH").insn
+process(PID).insn
+
+process("PATH").insn.block
+process(PID).insn.block
+\end{verbatim}
+\end{vindent}
 The \texttt{process().insn} and \texttt{process().insn.block} probes
 inspect the process after each instruction or block of instructions is
 executed. These probes are not implemented on all architectures. If
@@ -1095,11 +1110,10 @@ $ stap -e 'global steps; probe process("/bin/ls").insn {steps++}
 \end{verbatim}
 \end{vindent}
 
-Using this feature can slow process execution.
-
+Using this feature will significantly slow process execution.
 
 \subsubsection{Static userspace probing}
-\label{staticuserspace}
+\label{sec:staticuserspace}
 You can probe symbolic static instrumentation compiled into programs
 and shared libraries with the following syntax:
 \begin{vindent}
@@ -1147,11 +1161,21 @@ To run, this script requires debugging information for the named
 program and utrace support in the kernel. If you see a "pass 4a-time"
 build failure, check that your kernel supports utrace.
 
+\subsubsection{Absolute variant}
+\label{sec:absolutevariant}
+A non-symbolic probe point such as
+\texttt{process(PID).statement(ADDRESS).absolute} is analogous to
+\newline\texttt{kernel.statement(ADDRESS).absolute} in that both use
+raw, unverified virtual addresses and provide no \texttt{\$variables}.
+The target \texttt{PID} parameter must identify a running process and
+\texttt{ADDRESS} must identify a valid instruction address.  All
+threads of the listed process will be probed.  This is a guru-level
+probe.
+
 
 
 \subsection{PROCFS probes}
 \index{PROCFS probes}
-
 These probe points allow procfs pseudo-files in
 \texttt{/proc/systemtap/\textit{MODNAME}} to be created, read and
 written.  Specify the name of the systemtap module as
