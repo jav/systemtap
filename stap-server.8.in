@@ -403,7 +403,7 @@ Location of installed kernels.
 .IR certutil
 
 .SH BUGS
-Use the Bugzilla link off of the project web page or our mailing list.
+Use the Bugzilla link of the project web page or our mailing list.
 .nh
 .BR http://sources.redhat.com/systemtap/ ", " <systemtap@sources.redhat.com> .
 .hy

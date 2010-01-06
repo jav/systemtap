@@ -1729,9 +1729,9 @@ dwflpp::translate_location(struct obstack *pool,
                             e->tok);
     }
 
-  // get_cfa_ops works on the dw address space, pc is relative to current
-  // module, so add do need to add module_bias.
-  Dwarf_Op *cfa_ops = get_cfa_ops (pc + module_bias);
+  // pc is relative to current module, which is what get_cfa_ops
+  // and c_translate_location expects.
+  Dwarf_Op *cfa_ops = get_cfa_ops (pc);
   return c_translate_location (pool, &loc2c_error, this,
                                &loc2c_emit_address,
                                1, 0 /* PR9768 */,
