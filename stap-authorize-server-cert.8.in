@@ -52,7 +52,7 @@ server\[aq]s certificate database.
 On the server host,
 for servers started by the \fIstap\-server\fR service, this database can be
 found in \fI/var/lib/stap\-server/.systemtap/ssl/server/\fR.
-Ror servers run by other non\-root users,
+For servers run by other non\-root users,
 this database can be found in
 .I $HOME/.systemtap/ssl/server/\fP.
 For root users (EUID=0), it can be found in
@@ -112,7 +112,7 @@ Server certificate for servers started by the \fIstap\-server\fR service.
 .IR certutil
 
 .SH BUGS
-Use the Bugzilla link off of the project web page or our mailing list.
+Use the Bugzilla link of the project web page or our mailing list.
 .nh
 .BR http://sources.redhat.com/systemtap/ ", " <systemtap@sources.redhat.com> .
 .hy
