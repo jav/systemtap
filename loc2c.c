@@ -1530,12 +1530,16 @@ discontiguify (struct obstack *pool, int indent, struct location *loc,
         uint32_t p4;
       } pieces __attribute__ ((packed));
       uint64_t whole;
-    } u;
+    } u_pieces<depth>;
 */
 static void
 declare_noncontig_union (struct obstack *pool, int indent,
-			 struct location **input, struct location *loc)
+			 struct location **input, struct location *loc,
+			 int depth)
 {
+  if (depth > 9)
+    FAIL (loc, N_("declaring noncontig union for depth > 9, too many pieces"));
+
   obstack_printf (pool, "%*sunion {\n", indent++ * 2, "");
 
   obstack_printf (pool, "%*schar bytes[%" PRIu64 "];\n",
@@ -1561,17 +1565,7 @@ declare_noncontig_union (struct obstack *pool, int indent,
   obstack_printf (pool, "%*suint%" PRIu64 "_t whole;\n",
 		  indent * 2, "", loc->byte_size * 8);
 
-  // Different loc types could be in the same syntactical scope, so
-  // should be named differently.
-  const char *uname;
-  if (loc->type == loc_noncontiguous)
-    uname = "u_pieces";
-  else if (loc->type == loc_constant)
-    uname = "u_const";
-  else
-    abort();
-
-  obstack_printf (pool, "%*s} %s;\n", --indent * 2, "", uname);
+  obstack_printf (pool, "%*s} u_pieces%d;\n", --indent * 2, "", depth);
 
   loc = new_synthetic_loc (pool, *input, false);
   loc->type = loc_decl;
@@ -1642,7 +1636,8 @@ get_bitfield (struct location *loc,
 static void
 translate_base_fetch (struct obstack *pool, int indent,
 		      Dwarf_Word byte_size, bool signed_p,
-		      struct location **input, const char *target)
+		      struct location **input, const char *target,
+		      int depth)
 {
   bool deref = false;
 
@@ -1650,10 +1645,12 @@ translate_base_fetch (struct obstack *pool, int indent,
     {
       struct location *p = (*input)->pieces;
 
-      declare_noncontig_union (pool, indent, input, *input);
+      declare_noncontig_union (pool, indent, input, *input, depth);
 
       Dwarf_Word offset = 0;
-      char piece[sizeof "u_pieces.pieces.p" + 20] = "u_pieces.pieces.p";
+      char piece[sizeof "u_pieces?.pieces.p" + 20] = "u_pieces?.pieces.p";
+      piece[8] = (char) ('0' + depth);
+      int pdepth = depth + 1;
       while (p != NULL)
 	{
 	  struct location *newp = obstack_alloc (pool, sizeof *newp);
@@ -1662,18 +1659,19 @@ translate_base_fetch (struct obstack *pool, int indent,
 	  (*input)->next = newp;
 	  *input = newp;
 
-	  snprintf (&piece[sizeof "u_pieces.pieces.p" - 1], 20,
+	  snprintf (&piece[sizeof "u_pieces?.pieces.p" - 1], 20,
 		    "%" PRIu64, offset);
 	  translate_base_fetch (pool, indent, p->byte_size, signed_p /* ? */,
-                                input, piece);
+                                input, piece, pdepth);
 	  (*input)->type = loc_fragment;
 
 	  offset += p->byte_size;
 	  p = p->next;
+	  pdepth++;
 	}
 
-      obstack_printf (pool, "%*s%s = u_pieces.whole;\n", indent * 2,
-		      "", target);
+      obstack_printf (pool, "%*s%s = u_pieces%d.whole;\n", indent * 2,
+		      "", target, depth);
     }
   else if ((*input)->type == loc_constant)
     {
@@ -1681,14 +1679,14 @@ translate_base_fetch (struct obstack *pool, int indent,
       const size_t byte_size = (*input)->byte_size;
       size_t i;
 
-      declare_noncontig_union (pool, indent, input, *input);
+      declare_noncontig_union (pool, indent, input, *input, depth);
 
       for (i = 0; i < byte_size; ++i)
-	obstack_printf (pool, "%*su_const.bytes[%zu] = %#x;\n", indent * 2,
-			"", i, constant_block[i]);
+	obstack_printf (pool, "%*su_pieces%d.bytes[%zu] = %#x;\n", indent * 2,
+			"", depth, i, constant_block[i]);
 
-      obstack_printf (pool, "%*s%s = u_const.whole;\n", indent * 2,
-		      "", target);
+      obstack_printf (pool, "%*s%s = u_pieces%d.whole;\n", indent * 2,
+		      "", target, depth);
     }
   else
     switch (byte_size)
@@ -1761,7 +1759,7 @@ c_translate_fetch (struct obstack *pool, int indent,
       /* This is a bit field.  Fetch the containing base type into a
 	 temporary variable.  */
 
-      translate_base_fetch (pool, indent, byte_size, signed_p, input, "tmp");
+      translate_base_fetch (pool, indent, byte_size, signed_p, input, "tmp", 0);
       (*input)->type = loc_fragment;
       (*input)->address.declare = "tmp";
 
@@ -1778,7 +1776,7 @@ c_translate_fetch (struct obstack *pool, int indent,
       *input = loc;
     }
   else
-    translate_base_fetch (pool, indent, byte_size, signed_p, input, target);
+    translate_base_fetch (pool, indent, byte_size, signed_p, input, target, 0);
 }
 
 /* Translate a fragment to store RVALUE into the base-type value of
@@ -1786,24 +1784,26 @@ c_translate_fetch (struct obstack *pool, int indent,
 static void
 translate_base_store (struct obstack *pool, int indent, Dwarf_Word byte_size,
 		      struct location **input, struct location *store_loc,
-		      const char *rvalue)
+		      const char *rvalue, int depth)
 {
   bool deref = false;
 
   if (store_loc->type == loc_noncontiguous)
     {
-      declare_noncontig_union (pool, indent, input, store_loc);
+      declare_noncontig_union (pool, indent, input, store_loc, depth);
 
-      obstack_printf (pool, "%*su_pieces.whole = %s;\n", indent * 2,
-		      "", rvalue);
+      obstack_printf (pool, "%*su_pieces%d.whole = %s;\n", indent * 2,
+		      "", depth, rvalue);
       struct location *loc = new_synthetic_loc (pool, *input, deref);
       loc->type = loc_fragment;
       (*input)->next = loc;
       *input = loc;
 
       Dwarf_Word offset = 0;
-      char piece[sizeof "u_pieces.pieces.p" + 20] = "u_pieces.pieces.p";
+      char piece[sizeof "u_pieces?.pieces.p" + 20] = "u_pieces?.pieces.p";
+      piece[8] = (char) ('0' + depth);
       struct location *p;
+      int pdepth = depth + 1;
       for (p = store_loc->pieces; p != NULL; p = p->next)
         {
 	  struct location *newp = obstack_alloc (pool, sizeof *newp);
@@ -1812,10 +1812,10 @@ translate_base_store (struct obstack *pool, int indent, Dwarf_Word byte_size,
 	  (*input)->next = newp;
 	  *input = newp;
 
-	  snprintf (&piece[sizeof "u_pieces.pieces.p" - 1], 20, "%" PRIu64,
+	  snprintf (&piece[sizeof "u_pieces?.pieces.p" - 1], 20, "%" PRIu64,
 		    offset);
 	  translate_base_store (pool, indent,
-				p->byte_size, input, *input, piece);
+				p->byte_size, input, *input, piece, pdepth++);
 	  (*input)->type = loc_fragment;
 
 	  offset += p->byte_size;
@@ -1884,7 +1884,7 @@ c_translate_store (struct obstack *pool, int indent,
       /* This is a bit field.  Fetch the containing base type into a
 	 temporary variable.  */
 
-      translate_base_fetch (pool, indent, byte_size, signed_p, input, "tmp");
+      translate_base_fetch (pool, indent, byte_size, signed_p, input, "tmp", 0);
       (*input)->type = loc_fragment;
       (*input)->address.declare = "tmp";
 
@@ -1905,7 +1905,7 @@ c_translate_store (struct obstack *pool, int indent,
       rvalue = "tmp";
     }
 
-  translate_base_store (pool, indent, byte_size, input, store_loc, rvalue);
+  translate_base_store (pool, indent, byte_size, input, store_loc, rvalue, 0);
 }
 
 /* Translate a fragment to dereference the given pointer type,
@@ -1935,7 +1935,7 @@ c_translate_pointer (struct obstack *pool, int indent,
 
   bool signed_p = false; /* XXX: Does not matter? */
 
-  translate_base_fetch (pool, indent + 1, byte_size, signed_p, input, "addr");
+  translate_base_fetch (pool, indent + 1, byte_size, signed_p, input, "addr", 0);
   (*input)->type = loc_address;
 }
 
@@ -2003,7 +2003,7 @@ c_translate_pointer_store (struct obstack *pool, int indent,
 	  dwarf_errmsg (-1));
 
   translate_base_store (pool, indent + 1, byte_size,
-                        input, *input, rvalue);
+                        input, *input, rvalue, 0);
 
   // XXX: what about multiple-location lvalues?
 }
