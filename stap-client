@@ -449,7 +449,7 @@ function include_file_or_directory {
 # client's temporary directory.
 function generate_client_temp_name {
     # Transform the name into a fully qualified path name
-    local full_name=`echo "$1" | sed "s,^\\\([^/]\\\),$wd/\\\\1,"`
+    local full_name=`echo "X$1" | sed "s,^X\\\([^/]\\\),$wd/\\\\1," | sed 's,^X,,'`
 
     # The same name without the initial / or trailing /
     local local_name=`echo "$full_name" | sed 's,^/\(.*\),\1,'`
