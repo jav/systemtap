@@ -2,7 +2,7 @@
 
 # Compile server client for systemtap
 #
-# Copyright (C) 2008, 2009 Red Hat Inc.
+# Copyright (C) 2008, 2009, 2010 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -289,11 +289,8 @@ function get_arg {
 	first=$1
     fi
 
-    test "X$first" != "X" || \
-	fatal "Missing argument to -$opt"
-
     stap_arg="$first"
-    advance_p=$(($advance_p + 1))
+    test "X$first" != "X" && advance_p=$(($advance_p + 1))
 }
 
 # function: process_ssl ARGUMENT
@@ -327,6 +324,8 @@ function process_server {
 # Process the -c flag.
 function process_c {
     c_cmd="$1"
+    cmdline2="${cmdline2} -c"
+    test "X$c_cmd" != "X" && cmdline2="${cmdline2} '$c_cmd'"
 }
 
 # function: process_e ARGUMENT
@@ -431,14 +430,17 @@ function process_R {
 # Include the given file or directory in the client's temporary
 # tree to be sent to the server.
 function include_file_or_directory {
-    # Add a symbolic link of the named file or directory to our temporary directory
+    # Add a symbolic link of the named file or directory to our temporary
+    # directory, but only if the file or directory exists.
     local local_name=`generate_client_temp_name "$2"`
+    echo "$local_name"
+    test -e /$local_name || return
+
     local local_dirname=`dirname "$local_name"`
     mkdir -p "$tmpdir_client/$1/$local_dirname" || \
 	fatal "Could not create $tmpdir_client/$1/$local_dirname"
     ln -s "/$local_name" "$tmpdir_client/$1/$local_name" || \
 	fatal "Could not link $tmpdir_client/$1/$local_name to /$local_name"
-    echo "$local_name"
 }
 
 # function: generate_client_temp_name NAME
