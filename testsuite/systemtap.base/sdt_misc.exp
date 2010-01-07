@@ -175,7 +175,7 @@ if {![utrace_p]} {
 
 set ok 0
 
-verbose -log "spawn stap -c $sup_exepath $sup_stppath"
+verbose -log "spawn stap -c $sup_exepath $sup_stppath $sup_exepath"
 spawn stap -c $sup_exepath $sup_stppath $sup_exepath
 expect {
     -timeout 180
@@ -269,10 +269,11 @@ if { $res0 != "" || $res != "" } {
 }
 
 set ok 0
-verbose -log "spawn stap -c $sup_exepath $sup_stppath $sup_exepath $sup_sopath"
 if { $pbtype_mssg != "kprobe" } {
+    verbose -log "spawn stap -c $sup_exepath $sup_stppath $sup_exepath $sup_sopath"
     spawn stap -c $sup_exepath $sup_stppath $sup_exepath $sup_sopath
 } else {
+    verbose -log "spawn stap -c $sup_exepath $sup_stppath $sup_sopath"
     spawn stap -c $sup_exepath $sup_stppath $sup_sopath
 }
 expect {
