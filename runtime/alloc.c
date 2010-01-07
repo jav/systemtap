@@ -216,13 +216,14 @@ static void _stp_mem_debug_validate(void *addr)
 }
 #endif
 
-/* #define MAXMEMORY 8192 */
+/* #define STP_MAXMEMORY 8192 */
 /*
- * If MAXMEMORY is defined to a value (stap -DMAXMEMORY=8192 ...) then
- * every memory allocation is checked to make sure the systemtap
- * module doesn't use more than MAXMEMORY of memory.  MAXMEMORY is
- * specified in kilobytes, so, for example, '8192' means that the
- * systemtap module won't use more than 8 megabytes of memory.
+ * If STP_MAXMEMORY is defined to a value (stap -DSTP_MAXMEMORY=8192
+ * ...) then every memory allocation is checked to make sure the
+ * systemtap module doesn't use more than STP_MAXMEMORY of memory.
+ * STP_MAXMEMORY is specified in kilobytes, so, for example, '8192'
+ * means that the systemtap module won't use more than 8 megabytes of
+ * memory.
  *
  * Note 1: This size does include the size of the module itself, plus
  * any additional allocations.
@@ -232,7 +233,7 @@ static void _stp_mem_debug_validate(void *addr)
  * directly report an error back to a user (so instead it uses
  * 'printk').  If the modules transport has been set up, the code that
  * calls the memory allocation functions
- * (_stp_kmalloc/_stp_kzalloc/etc.) should report an error directly wto
+ * (_stp_kmalloc/_stp_kzalloc/etc.) should report an error directly to
  * the user.
  *
  * Note 3: This only tracks direct allocations by the systemtap
@@ -240,7 +241,7 @@ static void _stp_mem_debug_validate(void *addr)
  * kprobes/uprobes/etc. internals).
  */
 
-#ifdef MAXMEMORY
+#ifdef STP_MAXMEMORY
 #ifndef STAPCONF_GRSECURITY
 #define _STP_MODULE_CORE_SIZE (THIS_MODULE->core_size)
 #else
@@ -251,9 +252,9 @@ static void _stp_mem_debug_validate(void *addr)
 static void *_stp_kmalloc(size_t size)
 {
 	void *ret;
-#ifdef MAXMEMORY
+#ifdef STP_MAXMEMORY
 	if ((_STP_MODULE_CORE_SIZE + _stp_allocated_memory + size)
-	    > (MAXMEMORY * 1024)) {
+	    > (STP_MAXMEMORY * 1024)) {
 		return NULL;
 	}
 #endif
@@ -276,9 +277,9 @@ static void *_stp_kzalloc(size_t size)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 {
 	void *ret;
-#ifdef MAXMEMORY
+#ifdef STP_MAXMEMORY
 	if ((_STP_MODULE_CORE_SIZE + _stp_allocated_memory + size)
-	    > (MAXMEMORY * 1024)) {
+	    > (STP_MAXMEMORY * 1024)) {
 		return NULL;
 	}
 #endif
@@ -301,9 +302,9 @@ static void *_stp_kzalloc(size_t size)
 #else /* LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15) */
 {
 	void *ret;
-#ifdef MAXMEMORY
+#ifdef STP_MAXMEMORY
 	if ((_STP_MODULE_CORE_SIZE + _stp_allocated_memory + size)
-	    > (MAXMEMORY * 1024)) {
+	    > (STP_MAXMEMORY * 1024)) {
 		return NULL;
 	}
 #endif
@@ -326,9 +327,9 @@ static void *_stp_kzalloc(size_t size)
 static void *_stp_vmalloc(unsigned long size)
 {
 	void *ret;
-#ifdef MAXMEMORY
+#ifdef STP_MAXMEMORY
 	if ((_STP_MODULE_CORE_SIZE + _stp_allocated_memory + size)
-	    > (MAXMEMORY * 1024)) {
+	    > (STP_MAXMEMORY * 1024)) {
 		return NULL;
 	}
 #endif
@@ -360,10 +361,10 @@ static void *_stp_alloc_percpu(size_t size)
 	if (size > _STP_MAX_PERCPU_SIZE)
 		return NULL;
 
-#ifdef MAXMEMORY
+#ifdef STP_MAXMEMORY
 	if ((_STP_MODULE_CORE_SIZE + _stp_allocated_memory
 	     + (size * num_online_cpus()))
-	    > (MAXMEMORY * 1024)) {
+	    > (STP_MAXMEMORY * 1024)) {
 		return NULL;
 	}
 #endif
@@ -397,9 +398,9 @@ static void *_stp_alloc_percpu(size_t size)
 static void *_stp_kmalloc_node(size_t size, int node)
 {
 	void *ret;
-#ifdef MAXMEMORY
+#ifdef STP_MAXMEMORY
 	if ((_STP_MODULE_CORE_SIZE + _stp_allocated_memory + size)
-	    > (MAXMEMORY * 1024)) {
+	    > (STP_MAXMEMORY * 1024)) {
 		return NULL;
 	}
 #endif

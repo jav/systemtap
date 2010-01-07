@@ -1,0 +1,86 @@
+if {![installtest_p]} {untested "MAXMEMORY"; return}
+
+set script {
+    global k
+
+    probe begin {
+	print("systemtap starting probe\n")
+	k["foo"] = 0
+    }
+
+    probe kernel.function("vfs_read"), kernel.function("vfs_write") {
+	k["foo"]++
+    }
+    probe end {
+	print("systemtap ending probe\n")
+    }
+}
+
+# stap_run_maxmemory TEST_NAME EXPECT_ERROR
+# TEST_NAME is the name of the current test
+# EXPECT_ERROR lets us know to expect an error or not
+#
+# Additional arguments are passed to stap as-is.
+proc stap_run_maxmemory { TEST_NAME EXPECT_ERROR args } {
+
+    set cmd [concat {stap -v} $args]
+    eval spawn $cmd
+    expect {
+	-timeout 150
+	-re {^Pass\ [1234]: [^\r]+real\ ms\.\r\n} {exp_continue}
+	-re {^Pass\ ([34]): using cached [^\r]+\r\n} {exp_continue}
+	-re {^Pass 5: starting run.\r\n} {exp_continue}
+	-re {^Error inserting module[^\r]+\r\n} {
+	    if {$EXPECT_ERROR} {
+		pass "$TEST_NAME received expected insert module error"
+	    } else {
+		fail "$TEST_NAME unexpected insert module error"
+	    }
+	}
+	-re {ERROR: [^\r]+ allocation failed\r\n} {
+	    if {$EXPECT_ERROR} {
+		pass "$TEST_NAME received expected allocation error"
+	    } else {
+		fail "$TEST_NAME unexpected allocation error"
+	    }
+	}
+	-re "^systemtap starting probe\r\n" {
+  	    exec kill -INT -[exp_pid]
+
+	    expect {
+		-timeout 10
+		-re {^systemtap ending probe\r\n} {
+		    if {$EXPECT_ERROR} {
+			fail "$TEST_NAME didn't receive expected allocation error"
+		    } else {
+			pass "$TEST_NAME didn't receive allocation error"
+		    }
+		}
+		-re {ERROR: .+ allocation failed\r\n} {
+		    if {$EXPECT_ERROR} {
+			pass "$TEST_NAME received expected allocation error"
+		    } else {
+			fail "$TEST_NAME received an unexpected allocation error"
+		    }
+		}
+	    }
+	}
+	-re "semantic error:" { fail "$TEST_NAME compilation" }
+	timeout { fail "$TEST_NAME startup (timeout)"; 
+   	          exec kill -INT -[exp_pid] }
+	eof { fail "$TEST_NAME startup (eof)" }
+    }
+    catch close
+    wait
+}
+
+# MAXMEMORY1 tests to make sure normal operation doesn't receive a
+# max memory error
+set test "MAXMEMORY1"
+stap_run_maxmemory $test 0 -u -e $script
+
+# MAXMEMORY2 is the same script, but we're adjusting STP_MAXMEMORY to
+# a low value so that we *will* get an allocation error or an insert
+# module error.
+set test "MAXMEMORY2"
+stap_run_maxmemory $test 1 -u -DSTP_MAXMEMORY=200 -e $script
