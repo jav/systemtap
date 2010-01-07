@@ -5,13 +5,16 @@ probe process("fib").function("fib").call {
     depth++
     if (depth > max_depth) {
             max_depth = depth
+            %( $# > 0 %? print_ubacktrace_brief(); printf("\n") %)
     }
 }
 
 probe process("fib").function("fib").return {
+    %( $# == 0 %?
     if (depth == max_depth) {
             print_ubacktrace_brief()
             printf("\n")
     }
+    %)
     depth--
 }

@@ -1,14 +1,14 @@
-%{!?with_sqlite: %define with_sqlite 1}
-%{!?with_docs: %define with_docs 1}
-%{!?with_crash: %define with_crash 0}
-%{!?with_rpm: %define with_rpm 1}
-%{!?with_bundled_elfutils: %define with_bundled_elfutils 0}
-%{!?elfutils_version: %define elfutils_version 0.127}
-%{!?pie_supported: %define pie_supported 1}
-%{!?with_grapher: %define with_grapher 1}
-%{!?with_boost: %define with_boost 0}
-%{!?with_publican: %define with_publican 1}
-%{!?publican_brand: %define publican_brand fedora}
+%{!?with_sqlite: %global with_sqlite 1}
+%{!?with_docs: %global with_docs 1}
+%{!?with_crash: %global with_crash 0}
+%{!?with_rpm: %global with_rpm 1}
+%{!?with_bundled_elfutils: %global with_bundled_elfutils 0}
+%{!?elfutils_version: %global elfutils_version 0.127}
+%{!?pie_supported: %global pie_supported 1}
+%{!?with_grapher: %global with_grapher 1}
+%{!?with_boost: %global with_boost 0}
+%{!?with_publican: %global with_publican 1}
+%{!?publican_brand: %global publican_brand fedora}
 
 Name: systemtap
 Version: 1.1
@@ -48,7 +48,7 @@ BuildRequires: nss-devel nss-tools pkgconfig
 Source1: elfutils-%{elfutils_version}.tar.gz
 Patch1: elfutils-portability.patch
 BuildRequires: m4
-%define setup_elfutils -a1
+%global setup_elfutils -a1
 %else
 BuildRequires: elfutils-devel >= %{elfutils_version}
 %endif
@@ -193,63 +193,63 @@ cd ..
 
 %if %{with_bundled_elfutils}
 # Build our own copy of elfutils.
-%define elfutils_config --with-elfutils=elfutils-%{elfutils_version}
+%global elfutils_config --with-elfutils=elfutils-%{elfutils_version}
 
 # We have to prevent the standard dependency generation from identifying
 # our private elfutils libraries in our provides and requires.
-%define _use_internal_dependency_generator	0
-%define filter_eulibs() /bin/sh -c "%{1} | sed '/libelf/d;/libdw/d;/libebl/d'"
-%define __find_provides %{filter_eulibs /usr/lib/rpm/find-provides}
-%define __find_requires %{filter_eulibs /usr/lib/rpm/find-requires}
+%global _use_internal_dependency_generator	0
+%global filter_eulibs() /bin/sh -c "%{1} | sed '/libelf/d;/libdw/d;/libebl/d'"
+%global __find_provides %{filter_eulibs /usr/lib/rpm/find-provides}
+%global __find_requires %{filter_eulibs /usr/lib/rpm/find-requires}
 
 # This will be needed for running stap when not installed, for the test suite.
-%define elfutils_mflags LD_LIBRARY_PATH=`pwd`/lib-elfutils
+%global elfutils_mflags LD_LIBRARY_PATH=`pwd`/lib-elfutils
 %endif
 
 # Enable/disable the sqlite coverage testing support
 %if %{with_sqlite}
-%define sqlite_config --enable-sqlite
+%global sqlite_config --enable-sqlite
 %else
-%define sqlite_config --disable-sqlite
+%global sqlite_config --disable-sqlite
 %endif
 
 # Enable/disable the crash extension
 %if %{with_crash}
-%define crash_config --enable-crash
+%global crash_config --enable-crash
 %else
-%define crash_config --disable-crash
+%global crash_config --disable-crash
 %endif
 
 # Enable/disable the code to find and suggest needed rpms
 %if %{with_rpm}
-%define rpm_config --with-rpm
+%global rpm_config --with-rpm
 %else
-%define rpm_config --without-rpm
+%global rpm_config --without-rpm
 %endif
 
 %if %{with_docs}
-%define docs_config --enable-docs
+%global docs_config --enable-docs
 %else
-%define docs_config --disable-docs
+%global docs_config --disable-docs
 %endif
 
 # Enable pie as configure defaults to disabling it
 %if %{pie_supported}
-%define pie_config --enable-pie
+%global pie_config --enable-pie
 %else
-%define pie_config --disable-pie
+%global pie_config --disable-pie
 %endif
 
 %if %{with_grapher}
-%define grapher_config --enable-grapher
+%global grapher_config --enable-grapher
 %else
-%define grapher_config --disable-grapher
+%global grapher_config --disable-grapher
 %endif
 
 %if %{with_publican}
-%define publican_config --enable-publican --with-publican-brand=%{publican_brand}
+%global publican_config --enable-publican --with-publican-brand=%{publican_brand}
 %else
-%define publican_config --disable-publican
+%global publican_config --disable-publican
 %endif
 
 

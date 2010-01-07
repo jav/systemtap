@@ -129,7 +129,8 @@ manual page for more details.
 .PP
 The trustworthiness of other servers may also be asserted
 for the duration of one invocation of \fIstap\-client\fR
-by using the.B \-\-ssl
+by using the
+.B \-\-ssl
 option one or more times (see
 .I OPTIONS
 above). Servers whose certificates are contained in the additional databases
@@ -226,7 +227,7 @@ Server certificate for servers started by the \fIstap\-server\fR service.
 .IR certutil
 
 .SH BUGS
-Use the Bugzilla link off of the project web page or our mailing list.
+Use the Bugzilla link of the project web page or our mailing list.
 .nh
 .BR http://sources.redhat.com/systemtap/ ", " <systemtap@sources.redhat.com> .
 .hy
