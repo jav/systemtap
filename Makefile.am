@@ -328,7 +328,7 @@ installcheck:
 	  echo "$(DESTDIR)$(bindir)/stap is not recent, run make install"; \
 	  exit -1; \
 	fi;
-	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)"
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
 
 # Any extra flags, such as:
