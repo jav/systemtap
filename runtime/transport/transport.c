@@ -322,6 +322,7 @@ static struct dentry *_stp_lockfile = NULL;
 static int _stp_lock_transport_dir(void)
 {
 	int numtries = 0;
+
 #if STP_TRANSPORT_VERSION == 1
 	while ((_stp_lockfile = relayfs_create_dir("systemtap_lock", NULL)) == NULL) {
 #else
@@ -349,7 +350,10 @@ static void _stp_unlock_transport_dir(void)
 static struct dentry *__stp_root_dir = NULL;
 
 /* _stp_get_root_dir() - creates root directory or returns
- * a pointer to it if it already exists. */
+ * a pointer to it if it already exists.
+ *
+ * The caller *must* lock the transport directory.
+ */
 
 static struct dentry *_stp_get_root_dir(void)
 {
@@ -375,10 +379,6 @@ static struct dentry *_stp_get_root_dir(void)
 	}
 #endif
 
-	if (!_stp_lock_transport_dir()) {
-		errk("Couldn't lock transport directory.\n");
-		return NULL;
-	}
 #if STP_TRANSPORT_VERSION == 1
 	__stp_root_dir = relayfs_create_dir(name, NULL);
 #else
@@ -406,17 +406,17 @@ static struct dentry *_stp_get_root_dir(void)
 		 -PTR_ERR(__stp_root_dir));
 	}
 
-	_stp_unlock_transport_dir();
 	return __stp_root_dir;
 }
+
+/* _stp_remove_root_dir() - removes root directory (if empty)
+ *
+ * The caller *must* lock the transport directory.
+ */
 
 static void _stp_remove_root_dir(void)
 {
 	if (__stp_root_dir) {
-		if (!_stp_lock_transport_dir()) {
-			errk("Unable to lock transport directory.\n");
-			return;
-		}
 		if (simple_empty(__stp_root_dir)) {
 #if STP_TRANSPORT_VERSION == 1
 			relayfs_remove_dir(__stp_root_dir);
@@ -424,7 +424,6 @@ static void _stp_remove_root_dir(void)
 			debugfs_remove(__stp_root_dir);
 #endif
 		}
-		_stp_unlock_transport_dir();
 		__stp_root_dir = NULL;
 	}
 }
@@ -444,9 +443,16 @@ static int _stp_transport_fs_init(const char *module_name)
 	if (module_name == NULL)
 		return -1;
 
-	root_dir = _stp_get_root_dir();
-	if (root_dir == NULL)
+	if (!_stp_lock_transport_dir()) {
+		errk("Couldn't lock transport directory.\n");
 		return -1;
+	}
+
+	root_dir = _stp_get_root_dir();
+	if (root_dir == NULL) {
+		_stp_unlock_transport_dir();
+		return -1;
+	}
 
 #if STP_TRANSPORT_VERSION == 1
         __stp_module_dir = relayfs_create_dir(module_name, root_dir);
@@ -457,19 +463,23 @@ static int _stp_transport_fs_init(const char *module_name)
 		errk("Could not create module directory \"%s\"\n",
 		     module_name);
 		_stp_remove_root_dir();
+		_stp_unlock_transport_dir();
 		return -1;
 	}
 	else if (IS_ERR(__stp_module_dir)) {
 		errk("Could not create module directory \"%s\", error %ld\n",
 		     module_name, -PTR_ERR(__stp_module_dir));
 		_stp_remove_root_dir();
+		_stp_unlock_transport_dir();
 		return -1;
 	}
 
 	if (_stp_transport_data_fs_init() != 0) {
 		_stp_remove_root_dir();
+		_stp_unlock_transport_dir();
 		return -1;
 	}
+	_stp_unlock_transport_dir();
 	dbug_trans(1, "returning 0\n");
 	return 0;
 }
@@ -481,15 +491,21 @@ static void _stp_transport_fs_close(void)
 	_stp_transport_data_fs_close();
 
 	if (__stp_module_dir) {
+		if (!_stp_lock_transport_dir()) {
+			errk("Couldn't lock transport directory.\n");
+			return;
+		}
+
 #if STP_TRANSPORT_VERSION == 1
 		relayfs_remove_dir(__stp_module_dir);
 #else
 		debugfs_remove(__stp_module_dir);
 #endif
 		__stp_module_dir = NULL;
-	}
 
-	_stp_remove_root_dir();
+		_stp_remove_root_dir();
+		_stp_unlock_transport_dir();
+	}
 }
 
 
