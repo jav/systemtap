@@ -1,0 +1,169 @@
+set test "Server Argument Test"
+
+# Each test will take 3 seconds or more due to the use of avahi to browse for
+# servers, so limit iterations to some small but reasonable number.
+set iterations 10
+
+# Allow seeding the random number generator using an environment variable in
+# order to facilitate reproducing a given series of tests. Otherwise seed it
+# using the current time.
+if [info exists env(STAP_RANDOM_SEED)] {
+    set random_seed $env(STAP_RANDOM_SEED)
+} else {
+    set random_seed [clock seconds]
+}
+verbose -log "Random seed is $random_seed"
+expr srand($random_seed)
+
+proc stap_direct_and_with_client {stap stap_client options} {
+    # tcl's 'eval' creates a string containing the arguments and
+    # recursively passes it to the tcl interpreter. Special
+    # characters need to be quoted.
+    regsub -all "\[\"\\\\;\]" $options {\\\0} options
+
+    verbose -log "eval exec $stap $options"
+    catch {eval exec $stap $options} res_stap
+    verbose -log $res_stap
+
+    # Now run it against stap-client
+    verbose -log "eval exec $stap_client $options"
+    catch {eval exec $stap_client $options} res_stap_client
+    verbose -log $res_stap_client
+
+    # Now check the output
+    set n 0
+    set expected [split $res_stap "\n"]
+    set received [split $res_stap_client "\n"]
+    foreach line $received {
+	set expected_line [lindex $expected $n]
+	# Some messages contain the names of files or directories
+	# and will be prefixed for the client.
+	if {[regexp "^              (.*)" $expected_line match data]} {
+	    if {[regexp "^              tapsets/.*/$data" $line]} {
+		incr n
+		continue
+	    }
+	    if {[regexp "^              runtime/.*/$data" $line]} {
+		incr n
+		continue
+	    }
+	    # Some messages contain the name of the module based on the
+	    # process id.
+	    if {[regexp "^              stap_\[0-9\]*" $expected_line] &&
+		[regexp "^              stap_\[0-9\]*" $line]} {
+		incr n
+		continue
+	    }
+	} else {
+	    if {[regexp "^Input file '(.*)' is empty or missing." $expected_line match data]} {
+		if {[regexp "^Input file 'script/.*/$data' is empty or missing." $line]} {
+		    incr n
+		    continue
+		}
+	    }
+	}
+
+	# Otherwise the output must be identical.
+	if {! [string equal $line $expected_line]} {
+	    break
+	}
+	incr n
+    }
+    if {$n == [llength $expected] && [llength $expected] == [llength $received]} {
+	# Test passes
+	return 1
+    }
+    # Test fails
+    send_log "line [expr $n + 1]:\n"
+    send_log "Expected: \"[lindex $expected $n]\"\n"
+    send_log "Got     : \"$line\"\n"
+    return 0
+}
+
+# ************ Start of mainline *************
+
+# Don't attempt these tests if the client/server are not available
+# Start a systemtap server, if one is not already started.
+if {! [use_server_p]} then {
+    if {! [setup_server]} then {
+	untested "$test"
+	return
+    }
+}
+
+# Make sure we call the correct instances of stap and stap-client.
+# There is a copy of 'stap-client' on the PATH as 'stap'.
+if {[installtest_p]} then {
+    # For 'make installcheck', use both from the location of the actual
+    # stap-client on the PATH.
+    set stap_client [exec which stap-client]
+    set stap [exec dirname $stap_client]/stap
+} else {
+    # For 'make check' use stap-client from the source tree and use stap from
+    # the build tree.
+    set stap_client $srcdir/../stap-client
+    set stap [exec pwd]/../stap
+}
+
+# Test some argument strings which have failed in the past. This is useful
+# for debugging a currently failing case and helps to ensure that previously
+# fixed cases do not regress.
+set previously_fixed [list \
+  "-p1 -c; test.stp" \
+  "-p1 -I4hgy96 -R -e5oo39p -Bile\\vp -Ddx8v -c4;" \
+  "-p1 -I -Repwd9 -esq3wors -Btmk;\\t -Dz -c*eibz8h2e" \
+  "-p1 -I -Ry a -em339db5 -B;ae41428d -Du2;c0ps -ch9o\\" \
+  "-p1 -Ipfjps4 -Rx479 -ebug4dc -Bih;fe2 -Du8vd fvkl -c" \
+  "-p1 -I0\"nspzjyf -R -e5r3up8h -Bgqnyjq6w -Dmi;ojp9m -cx;a2fat" \
+  "-p1 -Iu -R9 -ek7;r -Big -Dcu\"; -c\"hc" \
+  "-p1 -Icd4fidq  -Rkj m40mv -edn -B7ria -D;8ha\\cjr -c1*vnq" \
+  "-p1 -I;3 -R3lq;vp -er8e -Bgdqjqdy -D -cb6k29z" \
+  "-p1 -Ircj -R -e -B -D -c\\vmww" \
+  "-p1 -Illc5 -Rug*\\o -e65wof9 -B qr*=x7x5 -D -cgx;" \
+  "-p1 -Iyaj420=3 -R -e\" -Bx68j -D -cd'5mi" \
+  "-p1 -Ir -Rwd8;;sjl -e -Bxh; -D29\\ -cj2szt;4" \
+  "-p1 -Ibno3=b4sk -R*5 -e' -Byl63flos -Dg2-j;e -c2ijx'" \
+  "-p1 -I285v7pl -R9a -eo5\\0 -Bfs* -D86s -c-c*v" \
+]
+
+set i 0
+foreach options $previously_fixed {
+    if {[stap_direct_and_with_client $stap $stap_client $options]} {
+	pass "$test $i"
+    } else {
+	fail "$test $i"
+    }
+    incr i
+}
+
+# Generate semi-random arguments containing with potential problem characters.
+# Check that running systemtap with the client/server generates output
+# comparable to running stap directly.
+set dangerous_options [list "-I" "-R" "-e" "-B" "-D" "-c"]
+set argchars "0123456789;*'=-\\\" abcdefghijklmnopqrstuvwxyz"
+
+for {set i 0} {$i < $iterations} {incr i} {
+    verbose -log "Iteration $i"
+
+    # First generate an argument string
+    set options "-p1"
+    foreach option $dangerous_options {
+	set options "$options $option"
+	set limit [expr int(rand() * 10)]
+	for {set c 0} {$c < $limit} {incr c} {
+	    set options "$options[string index $argchars [expr int(rand() * [string length $argchars])]]"
+	}
+    }
+
+    # Now test it against stap and stap-client
+    if {[stap_direct_and_with_client $stap $stap_client $options]} {
+	pass "Fuzzing $test $i"
+    } else {
+	fail "Fuzzing $test $i"
+    }
+}
+
+# Shudown the server, if we started it.
+if {! [use_server_p]} then {
+    shutdown_server
+}
