@@ -6105,6 +6105,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
       // emit a separate entry function for each probe, since tracepoints
       // don't provide any sort of context pointer.
+      s.op->newline() << "#undef TRACE_INCLUDE_FILE";
       s.op->newline() << "#include <" << p->header << ">";
       s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
       if (p->args.size() == 0)
@@ -6431,6 +6432,8 @@ tracepoint_builder::init_dw(systemtap_session& s)
     // Otherwise try to do them one at a time (PR10424)
     for (size_t i = 0; i < system_headers.size(); ++i)
       {
+        if (pending_interrupts) return false;
+
         vector<string> one_header(1, system_headers[i]);
         tracequery_path = get_tracequery_module(s, one_header);
         if (get_file_size(tracequery_path))
