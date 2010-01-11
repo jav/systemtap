@@ -215,36 +215,36 @@ If the size of output file will exceed
 output files exceed
 .B N
 , systemtap removes the oldest output file. You can omit the second argument.
-\" PR6864: disable temporarily 
-\".TP
-\".B \-\-kelf
-\"For names and addresses of functions to probe,
-\"consult the symbol tables in the kernel and modules.
-\"This can be useful if your kernel and/or modules were compiled
-\"without debugging information, or the function you want to probe
-\"is in an assembly-language file built without debugging information.
-\"See the
-\".B "MAKING DO WITH SYMBOL TABLES"
-\"section for more information.
-\".TP
-\".BI \-\-kmap [=FILE] 
-\"For names and addresses of kernel functions to probe,
-\"consult the symbol table in the indicated text file.
-\"The default is /boot/System.map-VERSION.
-\"The contents of this file should be in the form of the default output from
-\".IR nm (1).
-\"Only symbols of type T or t are used.
-\"If you specify /proc/kallsyms or some other file in that format,
-\"where lines for module symbols contain a fourth column,
-\"reading of the symbol table stops with the first module symbol
-\"(which should be right after the last kernel symbol).
-\"As with
-\".BR \-\-kelf ,
-\"the symbol table in each module's .ko file will also be consulted.
-\"See the
-\".B "MAKING DO WITH SYMBOL TABLES"
-\"section for more information.
-\" --ignore-{vmlinux,dwarf} shouldn't be visible 
+.\" PR6864: disable temporarily 
+.\".TP
+.\".B \-\-kelf
+.\"For names and addresses of functions to probe,
+.\"consult the symbol tables in the kernel and modules.
+.\"This can be useful if your kernel and/or modules were compiled
+.\"without debugging information, or the function you want to probe
+.\"is in an assembly-language file built without debugging information.
+.\"See the
+.\".B "MAKING DO WITH SYMBOL TABLES"
+.\"section for more information.
+.\".TP
+.\".BI \-\-kmap [=FILE] 
+.\"For names and addresses of kernel functions to probe,
+.\"consult the symbol table in the indicated text file.
+.\"The default is /boot/System.map-VERSION.
+.\"The contents of this file should be in the form of the default output from
+.\".IR nm (1).
+.\"Only symbols of type T or t are used.
+.\"If you specify /proc/kallsyms or some other file in that format,
+.\"where lines for module symbols contain a fourth column,
+.\"reading of the symbol table stops with the first module symbol
+.\"(which should be right after the last kernel symbol).
+.\"As with
+.\".BR \-\-kelf ,
+.\"the symbol table in each module's .ko file will also be consulted.
+.\"See the
+.\".B "MAKING DO WITH SYMBOL TABLES"
+.\"section for more information.
+.\" --ignore-{vmlinux,dwarf} shouldn't be visible 
 .TP
 .B \-\-skip\-badvars
 Ignore out of context variables and substitute with literal 0.
