@@ -1117,6 +1117,13 @@ Maximum number of concurrently armed user-space probes (uprobes), default
 somewhat larger than the number of user-space probe points named in the script.
 This pool needs to be potentialy large because individual uprobe objects (about
 64 bytes each) are allocated for each process for each matching script-level probe.
+.TP
+STP_MAXMEMORY
+Maximum amount of memory (in kilobytes) that the systemtap module
+should use, default unlimited.  The memory size includes the size of
+the module itself, plus any additional allocations.  This only tracks
+direct allocations by the systemtap runtime.  This does not track
+indirect allocations (as done by kprobes/uprobes/etc. internals). 
 
 .PP
 With scripts that contain probes on any interrupt path, it is possible that
