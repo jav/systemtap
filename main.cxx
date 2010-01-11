@@ -429,6 +429,44 @@ checkOptions (systemtap_session &s)
 	  cerr << "You can't specify -g and --unprivileged together." << endl;
 	  optionsConflict = true;
 	}
+      if (s.stap_client)
+	{
+	  if (s.stap_client_a)
+	    {
+	      cerr << "You can't specify -a and --unprivileged together." << endl;
+	      optionsConflict = true;
+	    }
+	  if (s.stap_client_B)
+	    {
+	      cerr << "You can't specify -B and --unprivileged together." << endl;
+	      optionsConflict = true;
+	    }
+	  if (s.stap_client_D)
+	    {
+	      cerr << "You can't specify -D and --unprivileged together." << endl;
+	      optionsConflict = true;
+	    }
+	  if (s.stap_client_I)
+	    {
+	      cerr << "You can't specify -I and --unprivileged together." << endl;
+	      optionsConflict = true;
+	    }
+	  if (s.stap_client_m)
+	    {
+	      cerr << "You can't specify -m and --unprivileged together." << endl;
+	      optionsConflict = true;
+	    }
+	  if (s.stap_client_r)
+	    {
+	      cerr << "You can't specify -r and --unprivileged together." << endl;
+	      optionsConflict = true;
+	    }
+	  if (s.stap_client_R)
+	    {
+	      cerr << "You can't specify -R and --unprivileged together." << endl;
+	      optionsConflict = true;
+	    }
+	}
     }
 
   if (!s.kernel_symtab_path.empty())
@@ -540,6 +578,14 @@ main (int argc, char * const argv [])
   s.load_only = false;
   s.skip_badvars = false;
   s.unprivileged = false;
+  s.stap_client = false;
+  s.stap_client_a = false;
+  s.stap_client_B = false;
+  s.stap_client_D = false;
+  s.stap_client_I = false;
+  s.stap_client_m = false;
+  s.stap_client_r = false;
+  s.stap_client_R = false;
 
   // Location of our signing certificate.
   // If we're root, use the database in SYSCONFDIR, otherwise
@@ -611,7 +657,6 @@ main (int argc, char * const argv [])
     setup_kernel_release(s, s_kr);
   }
 
-
   while (true)
     {
       int long_opt;
@@ -623,6 +668,7 @@ main (int argc, char * const argv [])
 #define LONG_OPT_VERBOSE_PASS 5
 #define LONG_OPT_SKIP_BADVARS 6
 #define LONG_OPT_UNPRIVILEGED 7
+#define LONG_OPT_STAP_CLIENT  8
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -632,6 +678,7 @@ main (int argc, char * const argv [])
 	{ "skip-badvars", 0, &long_opt, LONG_OPT_SKIP_BADVARS },
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
         { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
+        { "stap-client", 0, &long_opt, LONG_OPT_STAP_CLIENT },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:",
@@ -672,6 +719,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'I':
+	  s.stap_client_I = s.stap_client;
           s.include_path.push_back (string (optarg));
           break;
 
@@ -706,10 +754,12 @@ main (int argc, char * const argv [])
           break;
 
         case 'R':
+	  s.stap_client_R = s.stap_client;
           s.runtime_path = string (optarg);
           break;
 
         case 'm':
+	  s.stap_client_m = s.stap_client;
           s.module_name = string (optarg);
 	  save_module = true;
 	  {
@@ -756,10 +806,12 @@ main (int argc, char * const argv [])
           break;
 
         case 'r':
+	  s.stap_client_r = s.stap_client;
           setup_kernel_release(s, optarg);
           break;
 
         case 'a':
+	  s.stap_client_a = s.stap_client;
           s.architecture = string(optarg);
           break;
 
@@ -807,6 +859,7 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'D':
+	  s.stap_client_D = s.stap_client;
 	  s.macros.push_back (string (optarg));
 	  break;
 
@@ -845,6 +898,7 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'B':
+	  s.stap_client_B = s.stap_client;
           s.kbuildflags.push_back (string (optarg));
 	  break;
 
@@ -897,6 +951,9 @@ main (int argc, char * const argv [])
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      s.unprivileged = true;
+	      break;
+	    case LONG_OPT_STAP_CLIENT:
+	      s.stap_client = true;
 	      break;
             default:
               cerr << "Internal error parsing command arguments." << endl;

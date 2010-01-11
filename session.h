@@ -117,6 +117,14 @@ struct systemtap_session
   bool need_uprobes;
   bool load_only; // flight recorder mode
   bool unprivileged;
+  bool stap_client;
+  bool stap_client_a;
+  bool stap_client_B;
+  bool stap_client_D;
+  bool stap_client_I;
+  bool stap_client_m;
+  bool stap_client_r;
+  bool stap_client_R;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (elaborate.cxx)
