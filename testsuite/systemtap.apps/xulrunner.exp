@@ -81,6 +81,10 @@ fi
 if \[ ! -r xulrunner-$xulrelease.source.tar.bz2 \] ; then
 wget ftp://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/$xulrelease/source/xulrunner-$xulrelease.source.tar.bz2
 fi
+if \[ ! -r xulrunner-$xulrelease.source.tar.bz2 \] ; then
+   echo FAIL: wget xulrunner-$xulrelease.source.tar.bz2
+   exit
+fi
 
 if \[ ! -d xul/src \] ; then
 bunzip2 xulrunner-$xulrelease.source.tar.bz2
@@ -104,9 +108,9 @@ CFLAGS='-g -I$env(SYSTEMTAP_INCLUDES)' \
 PATH=$env(SYSTEMTAP_PATH)/:\$PATH \
 ../src/configure --prefix=$xuldir --enable-dtrace --enable-application=xulrunner
 sed -i '/include.*rules.mk/a\
-PROGOBJS+=./mozjs-dtrace.o' xul/bld/js/src/Makefile
+PROGOBJS+=mozjs-dtrace.o' js/src/Makefile
 J=\$(getconf _NPROCESSORS_CONF)
-make -j \$J
+make
 fi
 
 run_tests uprobe

@@ -12,8 +12,9 @@ if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
 }
 
 ########## Create /tmp/stap-postgres.stp ########## 
-set postgresbuild "[pwd]/postgresql-8.3.6/bld"
-set postgresdir "[pwd]/postgresql-8.3.6/install/"
+set postgresrelease "8.3.9"
+set postgresbuild "[pwd]/postgresql-$postgresrelease/bld"
+set postgresdir "[pwd]/postgresql-$postgresrelease/install/"
 set pgdata "/tmp/stap-postgres"
 
 
@@ -110,26 +111,29 @@ fi
 kill \$STAPPID
 \}
 
-if \[ ! -r postgresql-8.3.6.tar.bz2 \] ; then
-wget http://wwwmaster.postgresql.org/redir/198/h/source/v8.3.6/postgresql-8.3.6.tar.bz2
+if \[ ! -r postgresql-$postgresrelease.tar.bz2 \] ; then
+wget http://wwwmaster.postgresql.org/redir/198/h/source/v${postgresrelease}/postgresql-$postgresrelease.tar.bz2
+fi
+if \[ ! -r postgresql-$postgresrelease.tar.bz2 \] ; then
+   echo FAIL: wget $postgresrelease.tar.gz
+   exit
 fi
 
 if \[ ! -d $postgresbuild/src/backend \] ; then
-tar -x -f postgresql-8.3.6.tar.bz2
+tar -x -f postgresql-${postgresrelease}.tar.bz2
 fi
 
-cd postgresql-8.3.6/
+cd postgresql-${postgresrelease}/
 mkdir bld;cd bld
 ../configure --enable-dtrace --prefix=$postgresdir
-# sed -i -e 's/ifeq (\$(PORTNAME), solaris)/ifeq (\$(enable_dtrace), yes)/' src/backend/Makefile
 sed -i -e 's/^CFLAGS = -O2.*\$/& -g -DEXPERIMENTAL_KPROBE_SDT/' src/Makefile.global
-make
-make install
-run_tests kprobe
+# make
+# make install
+# run_tests kprobe
 
 sed -i -e 's/-DEXPERIMENTAL_KPROBE_SDT//' src/Makefile.global
-(cd src/backend/utils/
- make clean)
+# (cd src/backend/utils/
+#  make clean)
 make
 make install
 run_tests uprobe
@@ -156,6 +160,6 @@ expect {
 if { $verbose == 0 } {
 catch {exec rm -rf $pgdata}
 catch {exec rm -rf $pgdata.stp $pgdata.log \
-	   $pgdata-markers.log $pgdata.sh postgresql-8.3.6.tar.bz2}
-catch {exec rm -rf postgresql-8.3.6}
+	   $pgdata-markers.log $pgdata.sh postgresql-${postgresrelease}.tar.bz2}
+catch {exec rm -rf postgresql-${postgresrelease}}
 }

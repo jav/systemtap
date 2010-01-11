@@ -54,6 +54,7 @@ expect {
     -timeout 1000
     -re {^OK [^\r\n]*[\r\n]} { incr ok; exp_continue }
     -re {^KO [^\r\n]*[\r\n]} { incr ko; exp_continue }
+    -re {^ERROR: Skipped[^\r\n]*[\r\n]} { incr xok; exp_continue }
     -re {^ERROR[^\r\n]*[\r\n]} { incr ko; exp_continue }
     -re {^[^\r\n]*[\r\n]} { incr lines; exp_continue }
     timeout { fail "$test (timeout)" }
@@ -66,4 +67,6 @@ if {$ok == 14 && $ko == 0} {
 } else {
     fail "$test ($ok $ko $lines)"
 }
-
+if {$xok == 1} {
+    xfail "$test (skipped probes)"
+}
