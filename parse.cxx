@@ -380,6 +380,7 @@ parser::scan_pp (bool wildcard)
       vector<const token*> my_enqueued_pp;
 
       int nesting = 0;
+      int then = 0;
       while (true) // consume THEN tokens
         {
           try
@@ -394,11 +395,18 @@ parser::scan_pp (bool wildcard)
 
           if (m && m->type == tok_operator && m->content == "%(") // nested %(
             nesting ++;
+          if (m && m->type == tok_operator && m->content == "%?") {
+            then ++;
+            if (nesting != then)
+              throw parse_error ("incomplete conditional - missing '%('", m);
+          }
           if (nesting == 0 && m && (m->type == tok_operator && (m->content == "%:" || // ELSE
                                                                 m->content == "%)"))) // END
             break;
-          if (nesting && m && m->type == tok_operator && m->content == "%)") // nested %)
+          if (nesting && m && m->type == tok_operator && m->content == "%)") { // nested %)
             nesting --;
+            then --;
+          }
 
           if (!m)
             throw parse_error ("incomplete conditional - missing '%:' or '%)'", t);
@@ -414,6 +422,7 @@ parser::scan_pp (bool wildcard)
         {
           delete m; // "%:"
           int nesting = 0;
+          int then = 0;
           while (true)
             {
               try
@@ -428,10 +437,17 @@ parser::scan_pp (bool wildcard)
 
               if (m && m->type == tok_operator && m->content == "%(") // nested %(
                 nesting ++;
+              if (m && m->type == tok_operator && m->content == "%?") {
+                then ++;
+                if (nesting != then)
+                  throw parse_error ("incomplete conditional - missing '%('", m);
+              }
               if (nesting == 0 && m && m->type == tok_operator && m->content == "%)") // END
                 break;
-              if (nesting && m && m->type == tok_operator && m->content == "%)") // nested %)
+              if (nesting && m && m->type == tok_operator && m->content == "%)") { // nested %)
                 nesting --;
+                then --;
+              }
 
               if (!m)
                 throw parse_error ("incomplete conditional - missing %)", t);
