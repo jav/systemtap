@@ -1,0 +1,102 @@
+set test "Server Client Arguments"
+
+# stap_run_exact only works for 'make installcheck'
+if {[info procs installtest_p] != "" && ![installtest_p]} { untested $test; return }
+
+# Test that stap on the server side will correctly accept/reject certain
+# arguments in unprivileged mode.
+set test_file $srcdir/systemtap.server/test.stp
+
+set no_error_result "# parse tree dump
+# file $test_file
+probe begin{
+exit()
+}
+
+"
+
+# First test valid combinations
+set valid_options [list \
+  "-a i386" \
+  "-B X=Y" \
+  "-D X=Y" \
+  "-I /tmp" \
+  "-m test" \
+  "-R /tmp" \
+  "-r [exec uname -r]" \
+  "-a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r]" \
+  "--unprivileged" \
+  "--unprivileged -a i386" \
+  "--unprivileged -B X=Y" \
+  "--unprivileged -D X=Y" \
+  "--unprivileged -I /tmp" \
+  "--unprivileged -m test" \
+  "--unprivileged -R /tmp" \
+  "--unprivileged -r [exec uname -r]" \
+  "--unprivileged -a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r]" \
+  "--client-options" \
+  "--client-options -a i386" \
+  "--client-options -B X=Y" \
+  "--client-options -D X=Y" \
+  "--client-options -I /tmp" \
+  "--client-options -m test" \
+  "--client-options -R /tmp" \
+  "--client-options -r [exec uname -r]" \
+  "--client-options -a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r]" \
+  "--unprivileged --client-options" \
+  "--unprivileged -a i386 --client-options" \
+  "--unprivileged -B X=Y --client-options" \
+  "--unprivileged -D X=Y --client-options" \
+  "--unprivileged -I /tmp --client-options" \
+  "--unprivileged -m test --client-options" \
+  "--unprivileged -R /tmp --client-options" \
+  "--unprivileged -r [exec uname -r] --client-options" \
+  "--unprivileged -a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r] --client-options" \
+]
+
+set ::result_string "$no_error_result"
+foreach options $valid_options {
+    eval stap_run_exact {"$test: $options"} $test_file -p1 $options
+}
+
+# Now test invalid combinations.
+set error_regexp ".*You can't specify (-\[aBDImRr\], )*-\[aBDImRr\] when --unprivileged is specified.*"
+
+set invalid_options [list \
+  "--unprivileged --client-options -a i386" \
+  "--unprivileged --client-options -B X=Y" \
+  "--unprivileged --client-options -D X=Y" \
+  "--unprivileged --client-options -I /tmp" \
+  "--unprivileged --client-options -m test" \
+  "--unprivileged --client-options -R /tmp" \
+  "--unprivileged --client-options -r [exec uname -r]" \
+  "--unprivileged --client-options -a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r]" \
+  "--client-options --unprivileged -a i386" \
+  "--client-options --unprivileged -B X=Y" \
+  "--client-options --unprivileged -D X=Y" \
+  "--client-options --unprivileged -I /tmp" \
+  "--client-options --unprivileged -m test" \
+  "--client-options --unprivileged -R /tmp" \
+  "--client-options --unprivileged -r [exec uname -r]" \
+  "--client-options --unprivileged -a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r]" \
+  "--client-options -a i386 --unprivileged" \
+  "--client-options -B X=Y --unprivileged" \
+  "--client-options -D X=Y --unprivileged" \
+  "--client-options -I /tmp --unprivileged" \
+  "--client-options -m test --unprivileged" \
+  "--client-options -R /tmp --unprivileged" \
+  "--client-options -r [exec uname -r] --unprivileged" \
+  "--client-options -a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r] --unprivileged" \
+]
+
+foreach options $invalid_options {
+    verbose -log "eval exec stap $options"
+    catch {eval exec stap -p1 $options} res_stap
+    verbose -log $res_stap
+
+    if {[regexp $error_regexp $res_stap]} {
+	pass "$test: $options"
+    } else {
+	fail "$test: $options"
+    }
+}
