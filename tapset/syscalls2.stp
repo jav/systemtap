@@ -746,13 +746,8 @@ probe syscall.readv = kernel.function("compat_sys_readv").call ?,
 	name = "readv"
 	vector_uaddr = $vec
 	count = $vlen
-/* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
-%( arch != "powerpc" %?
 	fd = $fd
 	argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
-%:
-	argstr = sprintf("unknown fd, %p, %d", $vec, $vlen)
-%)
 }
 probe syscall.readv.return = kernel.function("compat_sys_readv").return ?,
                              kernel.function("SyS_readv").return !,
@@ -3712,13 +3707,8 @@ probe syscall.writev = kernel.function("compat_sys_writev").call ?,
 	name = "writev"
 	vector_uaddr = $vec
 	count = $vlen
-/* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
-%( arch != "powerpc" %?
 	fd = $fd
 	argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
-%:
-	argstr = sprintf("unknown fd, %p, %d", $vec, $vlen)
-%)
 }
 probe syscall.writev.return = kernel.function("compat_sys_writev").return ?,
                               kernel.function("SyS_writev").return !,

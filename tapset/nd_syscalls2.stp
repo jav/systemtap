@@ -869,13 +869,8 @@ probe nd_syscall.readv = kprobe.function("compat_sys_readv") ?,
 	name = "readv"
 	// vector_uaddr = $vec
 	// count = $vlen
-/* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
-// %( arch != "powerpc" %?
 	// fd = $fd
 	// argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
-// %:
-	// argstr = sprintf("unknown fd, %p, %d", $vec, $vlen)
-// %)
 	asmlinkage()
 	vector_uaddr = pointer_arg(2)
 	count = ulong_arg(3)
@@ -4477,13 +4472,8 @@ probe nd_syscall.writev = kprobe.function("compat_sys_writev") ?,
 	name = "writev"
 	// vector_uaddr = $vec
 	// count = $vlen
-/* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
-// %( arch != "powerpc" %?
-    // fd = $fd
+	// fd = $fd
 	// argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
-// %:
-	// argstr = sprintf("unknown fd, %p, %d", $vec, $vlen)
-// %)
 	asmlinkage()
 	vector_uaddr = pointer_arg(2)
 	count = ulong_arg(3)
