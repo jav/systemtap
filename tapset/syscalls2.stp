@@ -572,7 +572,6 @@ probe syscall.pwrite32 = kernel.function("sys32_pwrite64").call ?
 {
 	name = "pwrite"
 	fd = $fd
-	buf_uaddr = $buf
 	count = $count
 	offset = ($poshi << 32) + $poslo
 %( arch == "s390" %?
