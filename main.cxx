@@ -410,43 +410,6 @@ void parse_kernel_config (systemtap_session &s)
   kcf.close();
 }
 
-
-static void
-checkOptions (systemtap_session &s)
-{
-  bool optionsConflict = false;
-
-  if((s.cmd != "") && (s.target_pid))
-    {
-      cerr << "You can't specify -c and -x options together." <<endl;
-      optionsConflict = true;
-    }
-
-  if (s.unprivileged)
-    {
-      if (s.guru_mode)
-	{
-	  cerr << "You can't specify -g and --unprivileged together." << endl;
-	  optionsConflict = true;
-	}
-    }
-
-  if (!s.kernel_symtab_path.empty())
-    {
-      if (s.consult_symtab)
-      {
-        cerr << "You can't specify --kelf and --kmap together." << endl;
-	optionsConflict = true;
-      }
-      s.consult_symtab = true;
-      if (s.kernel_symtab_path == PATH_TBD)
-        s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
-    }
-
-  if (optionsConflict)
-    usage (s, 1);
-}
-
 /*
  * Returns a string describing memory resource usage.
  * Since it seems getrusage() doesn't maintain the mem related fields,
@@ -931,12 +894,33 @@ main (int argc, char * const argv [])
     }
 
   // Check for options conflicts.
+
   if (client_options && s.unprivileged && ! client_options_disallowed.empty ())
     {
       cerr << "You can't specify " << client_options_disallowed << " when --unprivileged is specified." << endl;
       usage (s, 1);
     }
-  checkOptions (s);
+  if ((s.cmd != "") && (s.target_pid))
+    {
+      cerr << "You can't specify -c and -x options together." << endl;
+      usage (s, 1);
+    }
+  if (s.unprivileged && s.guru_mode)
+    {
+      cerr << "You can't specify -g and --unprivileged together." << endl;
+      usage (s, 1);
+    }
+  if (!s.kernel_symtab_path.empty())
+    {
+      if (s.consult_symtab)
+      {
+        cerr << "You can't specify --kelf and --kmap together." << endl;
+        usage (s, 1);
+      }
+      s.consult_symtab = true;
+      if (s.kernel_symtab_path == PATH_TBD)
+        s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
+    }
 
   // Warn in case the target kernel release doesn't match the running one.
   if (s.last_pass > 4 &&
