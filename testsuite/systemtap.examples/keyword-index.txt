@@ -436,6 +436,14 @@ keywords: memory numa
   limited to a single node) on a NUMA computer.
 
 
+memory/overcommit.stp - Log failed process memory allocation due to overcommit limits
+keywords: memory process
+
+  The overcommit.stp script prints a line each time the kernel refuses
+  a memory allocation request from a process because of
+  /proc/sys/vm/overcommit* limits.
+
+
 memory/pfaults.stp - Generate Log of Major and Minor Page Faults
 keywords: memory
 
@@ -615,6 +623,14 @@ keywords: network traffic per-process
 
 
 = PROCESS =
+
+memory/overcommit.stp - Log failed process memory allocation due to overcommit limits
+keywords: memory process
+
+  The overcommit.stp script prints a line each time the kernel refuses
+  a memory allocation request from a process because of
+  /proc/sys/vm/overcommit* limits.
+
 
 process/errsnoop.stp - tabulate system call errors
 keywords: process syscall
