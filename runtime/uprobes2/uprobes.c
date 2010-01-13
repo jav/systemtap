@@ -2837,6 +2837,33 @@ static void uretprobe_set_trampoline(struct uprobe_process *uproc,
 	}
 }
 
+static inline unsigned long lookup_uretprobe(struct hlist_node *r,
+					     struct uprobe_process *uproc,
+					     unsigned long pc,
+					     unsigned long sp)
+{
+	struct uretprobe_instance *ret_inst;
+	unsigned long trampoline_addr;
+	
+	if (IS_ERR(uproc->uretprobe_trampoline_addr))
+	  return pc;
+	trampoline_addr = (unsigned long)uproc->uretprobe_trampoline_addr;
+	if (pc != trampoline_addr)
+		return pc;
+	hlist_for_each_entry_from(ret_inst, r, hlist) {
+		if (ret_inst->ret_addr == trampoline_addr)
+			continue;
+		/* First handler with a stack pointer lower than the
+		   address (or equal) must be the one. */
+		if (ret_inst->sp == sp || compare_stack_ptrs(ret_inst->sp, sp))
+			return ret_inst->ret_addr;
+	}
+	printk(KERN_ERR "Original return address for trampoline not found at "
+	       "0x%lx pid/tgid=%d/%d\n", sp, current->pid, current->tgid);
+	return 0;
+
+}
+
 unsigned long uprobe_get_pc(struct uretprobe_instance *ri, unsigned long pc,
 			unsigned long sp)
 {
@@ -2844,9 +2871,7 @@ unsigned long uprobe_get_pc(struct uretprobe_instance *ri, unsigned long pc,
 	struct uprobe_kimg *uk;
 	struct uprobe_task *utask;
 	struct uprobe_process *uproc;
-	unsigned long trampoline_addr;
 	struct hlist_node *r;
-	struct uretprobe_instance *ret_inst;
 
 	if (!ri)
 		return 0;
@@ -2864,26 +2889,34 @@ unsigned long uprobe_get_pc(struct uretprobe_instance *ri, unsigned long pc,
 		uproc = uk->ppt->uproc;
 		r = &ri->hlist;		
 	}
-	if (IS_ERR(uproc->uretprobe_trampoline_addr))
-	  return pc;
-	trampoline_addr = (unsigned long)uproc->uretprobe_trampoline_addr;
-	if (pc != trampoline_addr)
-		return pc;
-	hlist_for_each_entry_from(ret_inst, r, hlist) {
-		if (ret_inst->ret_addr == trampoline_addr)
-			continue;
-		/* First handler with a stack pointer lower than the
-		   address (or equal) must be the one. */
-		if (ret_inst->sp == sp || compare_stack_ptrs(ret_inst->sp, sp))
-			return ret_inst->ret_addr;
-	}
-	printk(KERN_ERR "Original return address for trampoline not found at "
-	       "0x%lx pid/tgid=%d/%d\n", sp, current->pid, current->tgid);
-	return 0;
+	return lookup_uretprobe(r, uproc, pc, sp);
 }
 
 EXPORT_SYMBOL_GPL(uprobe_get_pc);
 
+unsigned long uprobe_get_pc_task(struct task_struct *task, unsigned long pc,
+				 unsigned long sp)
+{
+	struct uprobe_task *utask;
+	struct uprobe_process *uproc;
+	unsigned long result;
+		
+	utask = uprobe_find_utask(task);
+	if (!utask) {
+		return pc;
+	} else if (current == task && utask->active_probe) {
+		/* everything's locked. */
+		return uprobe_get_pc(GET_PC_URETPROBE_NONE, pc, sp);
+	}
+	uproc = utask->uproc;
+	down_read(&uproc->rwsem);
+	result = lookup_uretprobe(utask->uretprobe_instances.first, uproc, pc,
+				  sp);
+	up_read(&uproc->rwsem);
+	return result;
+}
+
+EXPORT_SYMBOL_GPL(uprobe_get_pc_task);
 #else	/* ! CONFIG_URETPROBES */
 
 static void uretprobe_handle_entry(struct uprobe *u, struct pt_regs *regs,
