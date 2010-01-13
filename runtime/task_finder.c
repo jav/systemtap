@@ -504,7 +504,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 			 * ref.
 			 */
 			rc = utrace_barrier(tsk, engine);
-			if (rc != -ESRCH && rc != -EALREADY)
+			if (rc != 0 && rc != -ESRCH && rc != -EALREADY)
 				_stp_error("utrace_barrier returned error %d on pid %d",
 					   rc, (int)tsk->pid);
 		}
