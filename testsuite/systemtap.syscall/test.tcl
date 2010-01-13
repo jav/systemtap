@@ -46,10 +46,19 @@ proc run_one_test {filename flags bits} {
     set sys_prog "[file dirname [file normalize $filename]]/sys.stp"
     set cmd "stap --skip-badvars -c $dir/${testname} ${sys_prog}"
     
+    # Extract additional C flags needed to compile
+    set add_flags ""
+    foreach i $flags {
+	if [regexp "^additional_flags=" $i] {
+	    regsub "^additional_flags=" $i "" tmp
+	    append add_flags " $tmp"
+	}
+    }
+
     # Extract the expected results
     # Use the preprocessor so we can ifdef tests in and out
     
-    set ccmd "gcc -E -C -P $filename"
+    set ccmd "gcc -E -C -P $add_flags $filename"
     # XXX: but note, this will expand all system headers too!
     catch {eval exec $ccmd} output
     
