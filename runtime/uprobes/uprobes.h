@@ -107,6 +107,12 @@ extern void unmap_uretprobe(struct uretprobe *rp);
 extern unsigned long uprobe_get_pc(struct uretprobe_instance *ri,
                                    unsigned long pc,
                                    unsigned long sp);
+/*
+ * This version will do the mapping for an arbitrary task.
+ */
+extern unsigned long uprobe_get_pc_task(struct task_struct *task,
+					unsigned long pc,
+					unsigned long sp);
 
 #ifdef UPROBES_IMPLEMENTATION
 
