@@ -2463,7 +2463,7 @@ probe syscall.sigaction32 = kernel.function("sys32_sigaction").call ?
 	sig = $sig
 	act_uaddr = $act
 	oact_uaddr = $oact
-	argstr = sprintf("%s, %p, %p", _signal_name($sig), $act, $oact)
+	argstr = sprintf("%s, {%s}, %p", _signal_name($sig), _struct_old_sigaction32_u($act), $oact)
 }
 probe syscall.sigaction32.return = kernel.function("sys32_sigaction").return ?
 {
