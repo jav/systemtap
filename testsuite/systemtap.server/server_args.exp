@@ -20,6 +20,7 @@ proc stap_direct_and_with_client {stap stap_client options} {
     # recursively passes it to the tcl interpreter. Special
     # characters need to be quoted.
     regsub -all "\[\"\\\\;\]" $options {\\\0} options
+    regsub -all "\[\n\]" $options {\\n} options
 
     verbose -log "eval exec $stap $options"
     catch {eval exec $stap $options} res_stap
@@ -140,7 +141,7 @@ foreach options $previously_fixed {
 # Check that running systemtap with the client/server generates output
 # comparable to running stap directly.
 set dangerous_options [list "-I" "-R" "-e" "-B" "-D" "-c"]
-set argchars "0123456789;*'=-\\\" abcdefghijklmnopqrstuvwxyz"
+set argchars "0123456789;*'=-\\\"\n abcdefghijklmnopqrstuvwxyz"
 
 for {set i 0} {$i < $iterations} {incr i} {
     verbose -log "Iteration $i"
