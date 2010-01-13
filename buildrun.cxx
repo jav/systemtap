@@ -90,6 +90,43 @@ output_autoconf(systemtap_session& s, ofstream& o, const char *autoconf_c,
   o << "; fi >> $@" << endl;
 }
 
+void output_cpu_khz (systemtap_session& s, ofstream& o)
+{
+  // PR10493: search cpu_khz in Module.symvers
+  string kernel_export_file = s.kernel_build_tree + "/Module.symvers";
+  char *line = NULL, *name = NULL, *module = NULL, *type = NULL;
+  size_t len = 0;
+  unsigned long address;
+  int ret;
+  FILE *sym = fopen(kernel_export_file.c_str(),"r");
+  
+  if (sym == NULL)
+    return;
+  while (!feof(sym))
+    {
+      if (getline(&line, &len, sym) < 0)
+         break;
+      ret = sscanf(line, "%lx %as %as %as", &address, &name, &module, &type);
+      if (name == NULL || module == NULL || type == NULL) 
+         continue;
+      if (ret == 4) {
+         // cpu_khz is kernel EXPORT_SYMBOL'd
+         if (!strcmp(name, "cpu_khz") && !strcmp(module, "vmlinux")
+             && strstr(type, "EXPORT_SYMBOL")) // match all to avoid corrupt file
+          {
+            o << "\t";
+            if (s.verbose < 4)
+               o << "@";
+            o << "echo \"#define STAPCONF_CPU_KHZ 1\"";
+            o << ">> $@" << endl;
+            break;
+          }
+      }
+    }
+  if (sym)
+    fclose(sym);
+}
+
 int
 compile_pass (systemtap_session& s)
 {
@@ -167,6 +204,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-trace-printk.c", "STAPCONF_TRACE_PRINTK", NULL);
   output_autoconf(s, o, "autoconf-regset.c", "STAPCONF_REGSET", NULL);
   output_autoconf(s, o, "autoconf-utrace-regset.c", "STAPCONF_UTRACE_REGSET", NULL);
+  output_cpu_khz(s, o);
 
 #if 0
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our

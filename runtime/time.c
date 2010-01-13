@@ -71,18 +71,16 @@ static unsigned int
 __stp_get_freq(void)
 {
     // If we can get the actual frequency of HW counter, we use it.
-#if defined (__i386__) || defined (__x86_64__)
-#ifdef STAPCONF_TSC_KHZ
-    return tsc_khz;
-#else /*STAPCONF_TSC_KHZ*/
-    return cpu_khz;
-#endif /*STAPCONF_TSC_KHZ*/
-#elif defined (__ia64__)
+#if defined (__ia64__)
     return local_cpu_data->itc_freq / 1000;
 #elif defined (__s390__) || defined (__s390x__) || defined (__arm__)
     // We don't need to find the cpu freq on s390 as the 
     // TOD clock is always a fix freq. (see: POO pg 4-36.)
     return 0;
+#elif (defined (__i386__) || defined (__x86_64__)) && defined(STAPCONF_TSC_KHZ)
+    return tsc_khz;
+#elif (defined (__i386__) || defined (__x86_64__)) && defined(STAPCONF_CPU_KHZ)
+    return cpu_khz;
 #else /* __i386__ || __x86_64__ || __ia64__ || __s390__ || __s390x__ || __arm__*/
     // If we don't know the actual frequency, we estimate it.
     cycles_t beg, mid, end;
