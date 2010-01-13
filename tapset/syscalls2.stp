@@ -2457,7 +2457,8 @@ probe syscall.sigaction.return = kernel.function("sys_sigaction").return ?
 	name = "sigaction"
 	retstr = returnstr(1)
 }
-probe syscall.sigaction32 = kernel.function("sys32_sigaction").call ?
+probe syscall.sigaction32 = kernel.function("sys32_sigaction").call ?,
+			    kernel.function("compat_sys_sigaction").call ?
 {
 	name = "sigaction"
 	sig = $sig
@@ -2465,7 +2466,8 @@ probe syscall.sigaction32 = kernel.function("sys32_sigaction").call ?
 	oact_uaddr = $oact
 	argstr = sprintf("%s, {%s}, %p", _signal_name($sig), _struct_old_sigaction32_u($act), $oact)
 }
-probe syscall.sigaction32.return = kernel.function("sys32_sigaction").return ?
+probe syscall.sigaction32.return = kernel.function("sys32_sigaction").return ?,
+				   kernel.function("compat_sys_sigaction").return ?
 {
 	name = "sigaction"
 	retstr = returnstr(1)
