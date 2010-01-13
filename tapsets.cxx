@@ -4588,31 +4588,24 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#define MAXUPROBES " << default_maxuprobes;
   s.op->newline() << "#endif";
 
+  // Forward decls
+  s.op->newline() << "#include \"uprobes-common.h\"";
+
   // In .bss, the shared pool of uprobe/uretprobe structs.  These are
   // too big to embed in the initialized .data stap_uprobe_spec array.
-  s.op->newline() << "static struct stap_uprobe {";
-  s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
-  s.op->newline() << "int spec_index;"; // index into stap_uprobe_specs; <0 == free && unregistered
-  s.op->newline() << "unsigned long sdt_sem_address;";
-  s.op->newline(-1) << "} stap_uprobes [MAXUPROBES];"; // XXX: consider a slab cache or somesuch
+  // XXX: consider a slab cache or somesuch for stap_uprobes
+  s.op->newline() << "static struct stap_uprobe stap_uprobes [MAXUPROBES];";
   s.op->newline() << "DEFINE_MUTEX(stap_uprobes_lock);"; // protects against concurrent registration/unregistration
 
   s.op->assert_0_indent();
-
-  // Forward decls
-  s.op->newline() << "static int stap_uprobe_process_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p);";
-  s.op->newline() << "static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags);";
-  s.op->newline() << "static int stap_uprobe_munmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, unsigned long addr, unsigned long length);";
 
   // Assign task-finder numbers as we build up the stap_uprobe_tf table.
   // This means we process probes[] in two passes.
   map <string,unsigned> module_index;
   unsigned module_index_ctr = 0;
 
-  s.op->newline() << "static struct stap_uprobe_tf {"; // not const since embedded task_finder_target struct changes
-  s.op->newline(1) << "struct stap_task_finder_target finder;";
-  s.op->newline(0) << "const char *pathname;";
-  s.op->newline(-1) << "} stap_uprobe_finders[] = {";
+  // not const since embedded task_finder_target struct changes
+  s.op->newline() << "static struct stap_uprobe_tf stap_uprobe_finders[] = {";
   s.op->indent(1);
   for (unsigned i=0; i<probes.size(); i++)
     {
@@ -4652,14 +4645,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->assert_0_indent();
 
-  s.op->newline() << "static const struct stap_uprobe_spec {"; // NB: read-only structure
-  s.op->newline(1) << "unsigned tfi;"; // index into stap_uprobe_finders[]
-  s.op->newline() << "unsigned return_p:1;";
-  s.op->newline() << "unsigned long address;";
-  s.op->newline() << "const char *pp;";
-  s.op->newline() << "void (*ph) (struct context*);";
-  s.op->newline() << "unsigned long sdt_sem_offset;";
-  s.op->newline(-1) << "} stap_uprobe_specs [] = {"; // NB: read-only structure
+   // NB: read-only structure
+  s.op->newline() << "static const struct stap_uprobe_spec stap_uprobe_specs [] = {";
   s.op->indent(1);
   for (unsigned i =0; i<probes.size(); i++)
     {
@@ -4732,342 +4719,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 
-
-
-  // NB: Because these utrace callbacks only occur before / after
-  // userspace instructions run, there is no concurrency control issue
-  // between active uprobe callbacks and these registration /
-  // unregistration pieces.
-
-  // We protect the stap_uprobe->spec_index (which also serves as a
-  // free/busy flag) value with the outer protective stap_probes_lock
-  // spinlock, to protect it against concurrent registration /
-  // unregistration.
-
   s.op->newline();
-  s.op->newline() << "static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long relocation, unsigned long length, const struct stap_uprobe_tf *stf, unsigned long offset, unsigned long vm_flags) {";
-  s.op->newline(1) << "int tfi = (stf - stap_uprobe_finders);";
-  s.op->newline() << "int spec_index;";
-
-  // iterate over stap_uprobe_spec[] that use this same stap_uprobe_tf
-  s.op->newline() << "for (spec_index=0; spec_index<sizeof(stap_uprobe_specs)/sizeof(stap_uprobe_specs[0]); spec_index++) {";
-  s.op->newline(1) << "int handled_p = 0;";
-  s.op->newline() << "int slotted_p = 0;";
-  s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [spec_index];";
-  s.op->newline() << "struct stap_uprobe *sup;";
-  s.op->newline() << "pid_t sdt_sem_pid;";
-  s.op->newline() << "int rc = 0;";
-  s.op->newline() << "int i;";
-
-  s.op->newline() << "if (likely(sups->tfi != tfi)) continue;";
-  // skip probes with an address beyond this map event; should not
-  // happen unless a shlib/exec got mmapped in weirdly piecemeal
-  s.op->newline() << "if (likely((vm_flags & VM_EXEC) && ((sups->address >= length) || (sups->sdt_sem_offset >= length)))) continue;";
-
-  // Found a uprobe_spec for this stap_uprobe_tf.  Need to lock the
-  // stap_uprobes[] array to allocate a free spot, but then we can
-  // unlock and do the register_*probe subsequently.
-
-  s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
-  s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {"; // XXX: slow linear search
-  s.op->newline(1) << "sup = & stap_uprobes[i];";
-
-  // register new uprobe
-  // We make two passes for semaphores; see _stap_uprobe_change_semaphore_plus
-  s.op->newline() << "if (sup->spec_index < 0 || (sups->sdt_sem_offset && vm_flags & VM_WRITE && sup->spec_index == spec_index)) {";
-  s.op->newline(1) << "#if (UPROBES_API_VERSION < 2)";
-  // See PR6829 comment.
-  s.op->newline() << "if (sup->spec_index == -1 && sup->up.kdata != NULL) continue;";
-  s.op->newline() << "else if (sup->spec_index == -2 && sup->urp.u.kdata != NULL) continue;";
-  s.op->newline() << "#endif";
-  s.op->newline() << "sup->spec_index = spec_index;";
-  s.op->newline() << "slotted_p = 1;";
-  s.op->newline() << "break;";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
-
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "_stp_dbug(__FUNCTION__,__LINE__, \"+uprobe spec %d idx %d process %s[%d] addr %p pp %s\\n\", ";
-  s.op->line() << "spec_index, (slotted_p ? i : -1), tsk->comm, tsk->tgid, "
-               << "(void*)(relocation+sups->address), sups->pp);";
-  s.op->newline() << "#endif";
-
-  // Here, slotted_p implies that `i' points to the single
-  // stap_uprobes[] element that has been slotted in for registration
-  // or unregistration processing.  !slotted_p implies that the table
-  // was full (registration; MAXUPROBES) or that no matching entry was
-  // found (unregistration; should not happen).
-
-  s.op->newline() << "sdt_sem_pid = (sups->return_p ? sup->urp.u.pid : sup->up.pid);";
-  s.op->newline() << "if (sups->sdt_sem_offset && (sdt_sem_pid != tsk->tgid || sup->sdt_sem_address == 0)) {";
-  s.op->indent(1);
-  // If the probe is in the executable itself, the offset *is* the address.
-  s.op->newline() << "if (vm_flags & VM_EXECUTABLE) {";
-  s.op->indent(1);
-  s.op->newline() << "sup->sdt_sem_address = relocation + sups->sdt_sem_offset;";
-  s.op->newline(-1) << "}";
-
-  s.op->newline() << "else {";
-  s.op->indent(1);
-  s.op->newline() << "sup->sdt_sem_address = (relocation - offset) + sups->sdt_sem_offset;";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";	// sdt_sem_offset
-
-  s.op->newline() << "if (slotted_p) {";
-  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
-  s.op->newline() << "if (sups->return_p) {";
-  s.op->newline(1) << "sup->urp.u.pid = tsk->tgid;";
-  s.op->newline() << "sup->urp.u.vaddr = relocation + sups->address;";
-  s.op->newline() << "sup->urp.handler = &enter_uretprobe_probe;";
-  s.op->newline() << "rc = register_uretprobe (& sup->urp);";
-  s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "sup->up.pid = tsk->tgid;";
-  s.op->newline() << "sup->up.vaddr = relocation + sups->address;";
-  s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
-  s.op->newline() << "rc = register_uprobe (& sup->up);";
-
-  s.op->newline(-1) << "}";
-
-  s.op->newline() << "if (rc) {"; // failed to register
-  s.op->newline(1) << "_stp_warn (\"u*probe failed %s[%d] '%s' addr %p rc %d\\n\", tsk->comm, tsk->tgid, sups->pp, (void*)(relocation + sups->address), rc);";
-  // NB: we need to release this slot, so we need to borrow the mutex temporarily.
-  s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
-  s.op->newline() << "sup->spec_index = -1;";
-  s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
-  s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "handled_p = 1;"; // success
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-
-  // NB: handled_p implies slotted_p
-
-  s.op->newline() << "if (unlikely (! handled_p)) {";
-  s.op->newline(1) << "#ifdef STP_TIMING";
-  s.op->newline() << "atomic_inc (& skipped_count_uprobe_reg);";
-  s.op->newline() << "#endif";
-  // NB: duplicates common_entryfn_epilogue, but then this is not a probe entry fn epilogue.
-  s.op->newline() << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
-  s.op->newline(1) << "if (unlikely (pseudo_atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
-  s.op->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-
-  // close iteration over stap_uprobe_spec[]
-  s.op->newline(-1) << "}";
-
-  s.op->newline() << "return 0;"; // XXX: or rc?
-  s.op->newline(-1) << "}";
-
-  s.op->assert_0_indent();
-
-
-  s.op->newline();
-  s.op->newline() << "static int stap_uprobe_change_semaphore_plus (struct task_struct *tsk, unsigned long relocation, unsigned long length, const struct stap_uprobe_tf *stf) {";
-  s.op->newline(1) << "int tfi = (stf - stap_uprobe_finders);";
-  s.op->newline() << "int spec_index;";
-  s.op->newline() << "int rc = 0;";
-  s.op->newline() << "struct stap_uprobe *sup;";
-  s.op->newline() << "int i;";
-
-  // We make two passes for semaphores.
-  // The first pass, stap_uprobe_change_plus, calculates the address of the   
-  // semaphore.  If the probe is in a .so, we calculate the 
-  // address when the initial mmap maps the entire solib, e.g.
-  // 7f089885a000-7f089885b000  rw-p-  libtcl.so
-  // A subsequent mmap maps in the writeable segment where the 
-  // semaphore control variable lives, e.g.
-  // 7f089850d000-7f0898647000  r-xp-  libtcl.so
-  // 7f0898647000-7f0898846000  ---p   libtcl.so
-  // 7f0898846000-7f089885b000  rw-p-  libtcl.so
-  // The second pass, stap_uprobe_change_semaphore_plus, sets the semaphore.
-  // If the probe is in a .so this will be when the writeable segment of the .so
-  // is mapped in.  If the task changes, then recalculate the address.
-
-  s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {"; // XXX: slow linear search
-  s.op->newline(1) << "sup = & stap_uprobes[i];";
-  s.op->newline() << "if (sup->spec_index == -1) continue;";
-  s.op->newline() << "if (sup->sdt_sem_address != 0 && !(sup->up.pid == tsk->tgid "
-		  << "&& sup->sdt_sem_address >= relocation && sup->sdt_sem_address < relocation+length)) continue;";
-
-  s.op->newline() << "if (sup->sdt_sem_address) {";
-  s.op->newline(1) << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
-  s.op->newline() << "if ((rc = get_user (sdt_semaphore, (unsigned short __user*) sup->sdt_sem_address)) == 0) {";
-  s.op->newline(1) << "sdt_semaphore ++;";
-
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "{";
-  s.op->newline(1) << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
-  s.op->newline() << "_stp_dbug(__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx spec %d idx %d task %d\\n\", "
-		  << "sdt_semaphore, sup->sdt_sem_address, sup->spec_index, i, tsk->tgid);";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "#endif";
-
-  s.op->newline() << "rc = put_user (sdt_semaphore, (unsigned short __user*) sup->sdt_sem_address);";
-  s.op->newline(-1) << "}";
-  // XXX: need to analyze possibility of race condition
-
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "return rc;";
-  s.op->newline(-1) << "}";
-
-  s.op->assert_0_indent();
-
-
-  // Removing/unmapping a uprobe is simpler than adding one (in the _plus function above).
-  // We need not care about stap_uprobe_finders or anything, we just scan through stap_uprobes[]
-  // for a live probe within the given address range, and kill it.
-  s.op->newline();
-  s.op->newline() << "static int stap_uprobe_change_minus (struct task_struct *tsk, unsigned long relocation, unsigned long length, const struct stap_uprobe_tf *stf) {";
-  s.op->newline(1) << "int i;";
-
-  // NB: it's not an error for us not to find a live uprobe within the
-  // given range.  We might have received a callback for a part of a
-  // shlib that was unmapped and unprobed.
-
-  s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {"; // XXX: slow linear search
-  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
-  s.op->newline() << "struct stap_uprobe_spec *sups;";
-  s.op->newline() << "if (sup->spec_index < 0) continue;"; // skip free uprobes slot
-  s.op->newline() << "sups = (struct stap_uprobe_spec*) & stap_uprobe_specs[sup->spec_index];";
-
-  s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
-
-  // PR6829, PR9940:
-  // Here we're unregistering for one of two reasons:
-  // 1. the process image is going away (or gone) due to exit or exec; or
-  // 2. the vma containing the probepoint has been unmapped.
-  // In case 1, it's sort of a nop, because uprobes will notice the event
-  // and dispose of the probes eventually, if it hasn't already.  But by
-  // calling unmap_u[ret]probe() ourselves, we free up sup right away.
-  //
-  // In both cases, we must use unmap_u[ret]probe instead of
-  // unregister_u[ret]probe, so uprobes knows not to try to restore the
-  // original opcode.
-
-  // URETPROBE
-  s.op->newline() << "if (sups->return_p && sup->urp.u.pid == tsk->tgid && " // my uretprobe
-                  << "sup->urp.u.vaddr >= relocation && sup->urp.u.vaddr < relocation+length) {"; // in range
-  s.op->newline(1) << "";
-
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-uretprobe spec %d idx %d process %s[%d] addr %p pp %s\\n\", ";
-  s.op->line() << "sup->spec_index, i, tsk->comm, tsk->tgid, (void*) sup->urp.u.vaddr, sups->pp);";
-  s.op->newline() << "#endif";
-
-  s.op->newline() << "#if (UPROBES_API_VERSION >= 2)";
-  s.op->newline() << "unmap_uretprobe (& sup->urp);";
-  s.op->newline() << "sup->spec_index = -1;";
-  s.op->newline() << "#else";
-  // Uprobes lacks unmap_uretprobe.  Before reusing sup, we must wait
-  // until uprobes turns loose of the uretprobe on its own, as indicated
-  // by uretprobe.kdata = NULL.
-  s.op->newline() << "sup->spec_index = -2;";
-  s.op->newline() << "#endif";
-
-  // UPROBE
-  s.op->newline(-1) << "} else if (!sups->return_p && sup->up.pid == tsk->tgid && " // my uprobe
-                    << "sup->up.vaddr >= relocation && sup->up.vaddr < relocation+length) {"; //in range
-  s.op->newline(1) << "";
-
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-uprobe spec %d idx %d process %s[%d] reloc %p pp %s\\n\", ";
-  s.op->line() << "sup->spec_index, i, tsk->comm, tsk->tgid, (void*) sup->up.vaddr, sups->pp);";
-  s.op->newline() << "#endif";
-
-  s.op->newline() << "#if (UPROBES_API_VERSION >= 2)";
-  s.op->newline() << "unmap_uprobe (& sup->up);";
-  s.op->newline() << "sup->spec_index = -1;";
-  s.op->newline() << "#else";
-  // Uprobes lacks unmap_uprobe.  Before reusing sup, we must wait
-  // until uprobes turns loose of the uprobe on its own, as indicated
-  // by uprobe.kdata = NULL.
-  s.op->newline() << "sup->spec_index = -1;";
-  s.op->newline() << "#endif";
-
-  // PR10655: we don't need to fidget with the ENABLED semaphore either,
-  // as the process is gone, buh-bye, toodaloo, au revoir, see ya later!
-
-  s.op->newline(-1) << "}";
-
-  s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
-
-  // close iteration over stap_uprobes[]
-  s.op->newline(-1) << "}";
-
-  s.op->newline() << "return 0;"; // XXX: or !handled_p
-  s.op->newline(-1) << "}";
-
-  s.op->assert_0_indent();
-
-  // The task_finder_callback we use for ET_EXEC targets.  We used to perform uprobe
-  // insertion/removal here, but not any more.  (PR10524)
-  s.op->newline();
-  s.op->newline() << "static int stap_uprobe_process_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {";
-
-  s.op->newline(1) << "const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);";
-  s.op->newline() << "if (! process_p) return 0;"; // ignore threads
-
-  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"%cproc pid %d stf %p %p path %s\\n\", register_p?'+':'-', tsk->tgid, tgt, stf, stf->pathname);";
-  s.op->newline() << "#endif";
-
-  // ET_EXEC events are modeled as if shlib events, but with 0 relocation bases
-  s.op->newline() << "if (register_p) {";
-  // s.op->newline(1) << "return stap_uprobe_change_plus (tsk, 0, TASK_SIZE, stf, 0, 0);";
-  s.op->newline(1) << "int rc = stap_uprobe_change_plus (tsk, 0, TASK_SIZE, stf, 0, 0);";
-  s.op->newline() << "stap_uprobe_change_semaphore_plus (tsk, 0, TASK_SIZE, stf);";
-  s.op->newline() << "return rc;";
-  s.op->newline(-1) << "} else";
-  s.op->newline(1) << "return stap_uprobe_change_minus (tsk, 0, TASK_SIZE, stf);";
-  s.op->indent(-1);
-  s.op->newline(-1) << "}";
-
-  s.op->assert_0_indent();
-
-  // The task_finder_mmap_callback
-  s.op->newline();
-  s.op->newline() << "static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {";
-  s.op->newline(1) << "const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);";
-  // 1 - shared libraries' executable segments load from offset 0 - ld.so convention
-  // offset != 0 is now allowed so stap_uprobe_change_plus can set a semaphore,
-  // i.e. a static extern, in a shared object
-  // 2 - the shared library we're interested in
-  s.op->newline() << "if (path == NULL || strcmp (path, stf->pathname)) return 0;";
-  // 3 - mapping should be executable or writeable (for semaphore in .so)
-  s.op->newline() << "if (vm_flags & VM_EXEC) {";
-  s.op->newline(1) << "#ifdef DEBUG_TASK_FINDER_VMA";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+mmap R-X pid %d path %s addr %p length %u offset %p stf %p %p path %s\\n\", "
-                  << "tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset, tgt, stf, stf->pathname);";
-  s.op->newline() << "#endif";
-  s.op->newline() << "return stap_uprobe_change_plus (tsk, addr, length, stf, offset, vm_flags);";
-  s.op->newline(-1) << "} else if (vm_flags & VM_WRITE) {";
-  s.op->newline(1) << "#ifdef DEBUG_TASK_FINDER_VMA";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+mmap RW- pid %d path %s addr %p length %u offset %p stf %p %p path %s\\n\", "
-                  << "tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset, tgt, stf, stf->pathname);";
-  s.op->newline() << "#endif";
-  s.op->newline() << "return stap_uprobe_change_semaphore_plus (tsk, addr, length, stf);";
-  s.op->newline(-1) << "} else return 0;";
-  s.op->newline(-1) << "}";
-
-  s.op->assert_0_indent();
-
-  // The task_finder_munmap_callback
-  s.op->newline();
-  s.op->newline() << "static int stap_uprobe_munmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, unsigned long addr, unsigned long length) {";
-  s.op->newline(1) << "const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);";
-
-  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-mmap pid %d addr %p length %lu stf %p %p path %s\\n\", "
-                  << "tsk->tgid, (void *) addr, length, tgt, stf, stf->pathname);";
-  s.op->newline() << "#endif";
-
-  s.op->newline() << "return stap_uprobe_change_minus (tsk, addr, length, stf);";
-  s.op->newline(-1) << "}";
-
-  s.op->assert_0_indent();
-
+  s.op->newline() << "#include \"uprobes-common.c\"";
   s.op->newline();
 }
 
