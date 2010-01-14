@@ -1027,15 +1027,12 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
 
       ret = dwarf_getsrc_file (module_dwarf, srcfile, l, 0,
 					 &srcsp, &nsrcs);
-      if (line_type != WILDCARD && line_type != RANGE)
-         dwarf_assert ("dwarf_getsrc_file", ret);
+      if (ret != 0) /* tolerate invalid line number */
+        break;
 
       if (line_type == WILDCARD || line_type == RANGE)
         {
           Dwarf_Addr line_addr;
-
-          if (ret != 0) /* tolerate invalid line number */
-   	     break;
 
           dwarf_lineno (srcsp [0], &lineno);
 	  /* Maybe lineno will exceed the input end */
