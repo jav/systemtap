@@ -35,13 +35,13 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <limits.h>
-#include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <stdlib.h>
 
 /* exitstatus is used to keep track of any failing calls to kernel-doc,
  * but execution continues. */

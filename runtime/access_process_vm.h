@@ -5,7 +5,17 @@
  */
 #include <linux/pagemap.h>
 #include <asm/cacheflush.h>
-static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write)
+
+static int
+__access_process_vm_(struct task_struct *tsk, unsigned long addr, void *buf,
+		     int len, int write,
+		     void (*writer)(struct vm_area_struct *vma,
+				    struct page *page, unsigned long vaddr,
+				    void *dst, void *src, int len),
+		     void (*reader)(struct vm_area_struct *vma,
+				    struct page *page, unsigned long vaddr,
+				    void *dst, void *src, int len)
+)
 {
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
@@ -34,11 +44,11 @@ static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void
 
 		maddr = kmap(page);
 		if (write) {
-			copy_to_user_page(vma, page, addr,
+			writer(vma, page, addr,
 					  maddr + offset, buf, bytes);
 			set_page_dirty_lock(page);
 		} else {
-			copy_from_user_page(vma, page, addr,
+			reader(vma, page, addr,
 					    buf, maddr + offset, bytes);
 		}
 		kunmap(page);
@@ -52,3 +62,44 @@ static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void
 
 	return buf - old_buf;
 }
+
+static void
+copy_to_user_page_ (struct vm_area_struct *vma, struct page *page, unsigned long vaddr,
+		   void *dst, void *src, int len)
+{
+  copy_to_user_page (vma, page, vaddr, dst, src, len);
+}
+
+static void
+copy_from_user_page_ (struct vm_area_struct *vma, struct page *page, unsigned long vaddr,
+		      void *dst, void *src, int len)
+{
+  copy_from_user_page (vma, page, vaddr, dst, src, len);
+}
+
+static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write)
+{
+  return __access_process_vm_(tsk, addr, buf, len, write, copy_to_user_page_, copy_from_user_page_);
+}
+
+/*  This simpler version does not flush the caches.  */
+
+static void
+copy_to_user_page_noflush (struct vm_area_struct *vma, struct page *page, unsigned long vaddr,
+		   void *dst, void *src, int len)
+{
+  memcpy (dst, src, len);
+}
+
+static void
+copy_from_user_page_noflush (struct vm_area_struct *vma, struct page *page, unsigned long vaddr,
+		   void *dst, void *src, int len)
+{
+  memcpy (dst, src, len);
+}
+
+static int __access_process_vm_noflush(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write)
+{
+  return __access_process_vm_(tsk, addr, buf, len, write, copy_to_user_page_noflush, copy_from_user_page_noflush);
+}
+
