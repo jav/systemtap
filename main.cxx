@@ -418,7 +418,7 @@ void parse_kernel_config (systemtap_session &s)
 static string
 getmemusage ()
 {
-  static int sz = getpagesize();
+  static long sz = sysconf(_SC_PAGESIZE);
 
   long pages, kb;
   ostringstream oss;
