@@ -5146,12 +5146,12 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "#endif /* 2.6.31 */";
 
   s.op->newline() << "if (tsk) {"; // just in case the thing exited while we weren't watching
-  s.op->newline(1) << "if (get_user (sdt_semaphore, (unsigned short __user*) sup->sdt_sem_address) == 0) {";
+  s.op->newline(1) << "if (__access_process_vm_noflush(tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof(sdt_semaphore), 0)) {";
   s.op->newline(1) << "sdt_semaphore --;";
   s.op->newline() << "#ifdef DEBUG_UPROBES";
   s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"-semaphore %#x @ %#lx\\n\", sdt_semaphore, sup->sdt_sem_address);";
   s.op->newline() << "#endif";
-  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user*) sup->sdt_sem_address);";
+  s.op->newline() << "__access_process_vm_noflush(tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof(sdt_semaphore), 1);";
   s.op->newline(-1) << "}";
   // XXX: need to analyze possibility of race condition
   s.op->newline(-1) << "}";
