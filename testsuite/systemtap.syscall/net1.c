@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <strings.h>
+#include <string.h>
 
 int main()
 {
@@ -20,7 +20,7 @@ int main()
   fcntl(listenfd, F_SETFL, flags | O_NONBLOCK);
   //staptest// fcntl[64]* (NNNN, F_SETFL, XXXX) = 0
 
-  bzero(&sa, sizeof(sa));
+  memset(&sa, 0, sizeof(sa));
   sa.sin_family=AF_INET;
   sa.sin_addr.s_addr = htonl(INADDR_ANY);
   sa.sin_port = htons(8765);
