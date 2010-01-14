@@ -141,7 +141,7 @@ foreach options $previously_fixed {
 # Check that running systemtap with the client/server generates output
 # comparable to running stap directly.
 set dangerous_options [list "-I" "-R" "-e" "-B" "-D" "-c"]
-set argchars "0123456789;*'=-\\\"\n abcdefghijklmnopqrstuvwxyz"
+set argchars "0123456789/;*'=-\\\"\n abcdefghijklmnopqrstuvwxyz"
 
 for {set i 0} {$i < $iterations} {incr i} {
     verbose -log "Iteration $i"
