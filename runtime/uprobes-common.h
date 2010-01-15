@@ -33,5 +33,6 @@ struct stap_uprobe_spec {
 static int stap_uprobe_process_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p);
 static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags);
 static int stap_uprobe_munmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, unsigned long addr, unsigned long length);
+static int stap_uprobe_process_munmap (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p);
 
 #endif /* _UPROBE_COMMON_H_ */

@@ -286,4 +286,19 @@ static int stap_uprobe_munmap_found (struct stap_task_finder_target *tgt, struct
   return stap_uprobe_change_minus (tsk, addr, length, stf);
 }
 
+/* The task_finder_callback we use for ET_DYN targets.
+   This just forces an unmap of everything as the process exits.
+   (PR11151) */
+static int stap_uprobe_process_munmap (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {
+  const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);
+  if (! process_p) return 0; /* ignore threads */
+  #ifdef DEBUG_TASK_FINDER_VMA
+  _stp_dbug (__FUNCTION__,__LINE__, "%cproc pid %d stf %p %p path %s\n", register_p?'+':'-', tsk->tgid, tgt, stf, stf->pathname);
+  #endif
+  /* Covering 0->TASK_SIZE means "unmap everything" */
+  if (!register_p)
+    return stap_uprobe_change_minus (tsk, 0, TASK_SIZE, stf);
+  return 0;
+}
+
 #endif /* _UPROBE_COMMON_C_ */
