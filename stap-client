@@ -544,6 +544,11 @@ function unpack_response {
       # Remove the output line due to the synthetic server-side -k
       sed -i "/^Keeping temporary directory.*/ d" $tmpdir_server/stderr
     fi
+
+    if test $p_phase = 5; then
+      # Remove the output line due to the synthetic server-side -p4
+      sed -i "/^.*\.ko$/ d" $tmpdir_server/stdout
+    fi
 }
 
 # function: find_and_connect_to_server

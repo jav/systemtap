@@ -1,5 +1,5 @@
 // systemtap translator/driver
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
 //
@@ -877,6 +877,8 @@ main (int argc, char * const argv [])
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      s.unprivileged = true;
+              /* NB: for server security, it is essential that once this flag is
+                 set, no future flag be able to unset it. */
 	      break;
 	    case LONG_OPT_CLIENT_OPTIONS:
 	      client_options = true;
@@ -895,6 +897,10 @@ main (int argc, char * const argv [])
 
   // Check for options conflicts.
 
+  if (client_options && s.last_pass > 4)
+    {
+      s.last_pass = 4; /* Quietly downgrade.  Server passed through -p5 naively. */
+    }
   if (client_options && s.unprivileged && ! client_options_disallowed.empty ())
     {
       cerr << "You can't specify " << client_options_disallowed << " when --unprivileged is specified." << endl;
@@ -921,7 +927,6 @@ main (int argc, char * const argv [])
       if (s.kernel_symtab_path == PATH_TBD)
         s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
     }
-
   // Warn in case the target kernel release doesn't match the running one.
   if (s.last_pass > 4 &&
       (string(buf.release) != s.kernel_release ||
@@ -1369,6 +1374,8 @@ pass_5:
   else
     {
       if (s.keep_tmpdir)
+        // NB: the format of this message needs to match the expectations
+        // of stap-server-connect.c.
         clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
       else
         {

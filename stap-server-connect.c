@@ -1,9 +1,9 @@
 /*
   SSL server program listens on a port, accepts client connection, reads
-  the data into a temporary file, calls the systemtap server script and
-  then transmits the resulting fileback to the client.
+  the data into a temporary file, calls the systemtap translator and
+  then transmits the resulting file back to the client.
 
-  Copyright (C) 2008, 2009 Red Hat Inc.
+  Copyright (C) 2008-2010 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -23,7 +23,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
+#include <spawn.h>
+#include <fcntl.h>
+#include <glob.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <wordexp.h>
+#include <sys/param.h>
 
 #include <ssl.h>
 #include <nspr.h>
@@ -31,19 +40,21 @@
 #include <nss.h>
 #include <pk11func.h>
 
+#include "config.h"
 #include "nsscommon.h"
 
-#define READ_BUFFER_SIZE (60 * 1024)
 
 /* Global variables */
 static char             *password = NULL;
 static CERTCertificate  *cert = NULL;
 static SECKEYPrivateKey *privKey = NULL;
 static char             *dbdir   = NULL;
-static char requestFileName[] = "/tmp/stap.server.client.zip.XXXXXX";
-static char responseDirName[] = "/tmp/stap.server.XXXXXX";
-static char responseZipName[] = "/tmp/stap.server.XXXXXX.zip.XXXXXX";
-static const char *stapOptions = "";
+static const char       *stapOptions = "";
+
+
+static PRStatus spawn_and_wait (char **argv,
+                                const char* fd0, const char* fd1, const char* fd2, const char *pwd);
+
 
 static void
 Usage(const char *progName)
@@ -72,24 +83,27 @@ exitErr(char *function)
   exit(1);
 }
 
+
+
+
 /* Function:  readDataFromSocket()
  *
  * Purpose:  Read data from the socket into a temporary file.
  *
  */
-static SECStatus
-readDataFromSocket(PRFileDesc *sslSocket)
+static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
 {
   PRFileDesc *local_file_fd;
   PRFileInfo  info;
   PRInt32     numBytesRead;
   PRInt32     numBytesWritten;
   PRInt32     totalBytes;
+#define READ_BUFFER_SIZE 4096
   char        buffer[READ_BUFFER_SIZE];
 
   /* Open the output file.  */
   local_file_fd = PR_Open(requestFileName, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
-			  PR_IRUSR | PR_IWUSR | PR_IRGRP | PR_IWGRP | PR_IROTH);
+			  PR_IRUSR | PR_IWUSR);
   if (local_file_fd == NULL)
     {
       fprintf (stderr, "could not open output file %s\n", requestFileName);
@@ -97,6 +111,7 @@ readDataFromSocket(PRFileDesc *sslSocket)
     }
 
   /* Read the number of bytes to be received.  */
+  /* XXX: impose a limit to prevent disk space consumption DoS */
   numBytesRead = PR_Read(sslSocket, & info.size, sizeof (info.size));
   if (numBytesRead == 0) /* EOF */
     {
@@ -123,10 +138,11 @@ readDataFromSocket(PRFileDesc *sslSocket)
 
       /* Write to stdout */
       numBytesWritten = PR_Write(local_file_fd, buffer, numBytesRead);
-      if (numBytesWritten < 0)
-	fprintf (stderr, "could not write to output file %s\n", requestFileName);
-      if (numBytesWritten != numBytesRead)
-	fprintf (stderr, "could not write to output file %s\n", requestFileName);
+      if (numBytesWritten < 0 || (numBytesWritten != numBytesRead))
+        {
+          fprintf (stderr, "could not write to output file %s\n", requestFileName);
+          break;
+        }
 #if DEBUG
       fprintf(stderr, "***** Connection read %d bytes.\n", numBytesRead);
 #if 0
@@ -317,27 +333,15 @@ authenticateSocket(PRFileDesc *sslSocket, PRBool requireCert)
  *
  */
 static SECStatus
-writeDataToSocket(PRFileDesc *sslSocket)
+writeDataToSocket(PRFileDesc *sslSocket, const char *responseFileName)
 {
   int         numBytes;
   PRFileDesc *local_file_fd;
-  PRFileInfo  info;
-  PRStatus    prStatus;
 
-  /* Try to open the local file named.	
-   * If successful, then write it to the client.
-   */
-  prStatus = PR_GetFileInfo(responseZipName, &info);
-  if (prStatus != PR_SUCCESS || info.type != PR_FILE_FILE || info.size < 0)
-    {
-      fprintf (stderr, "Input file %s not found\n", responseZipName);
-      return SECFailure;
-    }
-
-  local_file_fd = PR_Open(responseZipName, PR_RDONLY, 0);
+  local_file_fd = PR_Open(responseFileName, PR_RDONLY, 0);
   if (local_file_fd == NULL)
     {
-      fprintf (stderr, "Could not open input file %s\n", responseZipName);
+      fprintf (stderr, "Could not open input file %s\n", responseFileName);
       return SECFailure;
     }
 
@@ -357,7 +361,7 @@ writeDataToSocket(PRFileDesc *sslSocket)
 #if DEBUG
   /* Transmitted bytes successfully. */
   fprintf(stderr, "PR_TransmitFile wrote %d bytes from %s\n",
-	  numBytes, responseZipName);
+	  numBytes, responseFileName);
 #endif
 
   PR_Close(local_file_fd);
@@ -365,10 +369,303 @@ writeDataToSocket(PRFileDesc *sslSocket)
   return SECSuccess;
 }
 
+
+/* Run the translator on the data in the request directory, and produce output
+   in the given output directory. */
+static void handleRequest (const char* requestDirName, const char* responseDirName)
+{
+  char stapstdout[PATH_MAX];
+  char stapstderr[PATH_MAX];
+  char staprc[PATH_MAX];
+#define MAXSTAPARGC 1000 /* sorry, too lazy to dynamically allocate */
+  char* stapargv[MAXSTAPARGC];
+  int stapargc=0;
+  int rc;
+  wordexp_t words;
+  int i;
+  FILE* f;
+  int unprivileged = 0;
+  int stapargv_freestart = 0;
+
+  stapargv[stapargc++]= STAP_PREFIX "/bin/stap";
+
+  /* Transcribe stapOptions.  We use plain wordexp(3), since these
+     options are coming from the local trusted user, so malicious
+     content is not a concern. */
+
+  rc = wordexp (stapOptions, & words, WRDE_NOCMD|WRDE_UNDEF);
+  if (rc) 
+    { 
+      errWarn("cannot parse -s stap options");
+      return;
+    }
+  if (words.we_wordc+10 >= MAXSTAPARGC)  /* 10: padding for literal entries */
+    {
+      errWarn("too many -s options; MAXSTAPARGC");
+      return;
+    }
+
+  for (i=0; i<words.we_wordc; i++)
+    stapargv[stapargc++] = words.we_wordv[i];
+
+  stapargv[stapargc++] = "-k"; /* Need to keep temp files in order to package them up again. */
+
+  /* Process the saved command line arguments.  Avoid quoting/unquoting errors by
+     transcribing literally. */
+  stapargv[stapargc++] = "--client-options";
+  stapargv_freestart = stapargc;
+
+  for (i=1 ; ; i++)
+    {
+      char stapargfile[PATH_MAX];
+      FILE* argfile;
+      struct stat st;
+      char *arg;
+
+      if (stapargc >= MAXSTAPARGC) 
+        {
+          errWarn("too many stap options; MAXSTAPARGC");
+          return;
+        }
+
+      snprintf (stapargfile, PATH_MAX, "%s/argv%d", requestDirName, i);
+
+      rc = stat(stapargfile, & st);
+      if (rc) break;
+
+      arg = malloc (st.st_size+1);
+      if (!arg)
+        {
+          errWarn("stap arg malloc");
+          return;
+        }
+
+      argfile = fopen(stapargfile, "r");
+      if (! argfile)
+        {
+          errWarn("stap arg fopen");
+          return;
+        }
+
+      rc = fread(arg, 1, st.st_size, argfile);
+      if (rc != st.st_size)
+        {
+          errWarn("stap arg fread");
+          return;
+        }
+
+      arg[st.st_size] = '\0';
+      stapargv[stapargc++] = arg; /* freed later */
+      fclose (argfile);
+    }
+
+  snprintf (stapstdout, PATH_MAX, "%s/stdout", responseDirName);
+  snprintf (stapstderr, PATH_MAX, "%s/stderr", responseDirName);
+
+  stapargv[stapargc] = NULL; /* spawn_and_wait expects NULL termination */
+
+  /* Check for the unprivileged flag; we need this so that we can decide to sign the module. */
+  for (i=0; i<stapargc; i++)
+    if (strcmp (stapargv[i], "--unprivileged") == 0)
+      unprivileged=1;
+  /* NB: but it's not that easy!  What if an attacker passes
+     --unprivileged as some sort of argument-parameter, so that the
+     translator does not interpret it as an --unprivileged mode flag,
+     but something else?  Then it could generate unrestrained modules,
+     but silly we might still sign it, and let the attacker get away
+     with murder.  And yet we don't want to fully getopt-parse the
+     args here for duplication of effort.
+
+     So let's do a hack: forcefully add --unprivileged to stapargv[]
+     near the front in this case, something which a later option
+     cannot undo. */
+  if (unprivileged)
+    {
+      if (stapargc+1 >= MAXSTAPARGC) 
+        {
+          errWarn("too many stap options; MAXSTAPARGC");
+          return;
+        }
+
+      /* Shift all stapargv[] entries up one, including the NULL. */
+      for (i=stapargc; i>=1; i--)
+        stapargv[i+1]=stapargv[i];
+      stapargv_freestart ++; /* adjust for shift */
+
+      stapargv[1]="--unprivileged"; /* better not be resettable by later option */
+    }
+
+  /* All ready, let's run the translator! */
+  rc = spawn_and_wait (stapargv, "/dev/null", stapstdout, stapstderr, requestDirName);
+
+  /* Save the RC */
+  snprintf (staprc, PATH_MAX, "%s/rc", responseDirName);
+  f = fopen(staprc, "w");
+  if (f) 
+    {
+      /* best effort basis */
+      fprintf(f, "%d", rc);
+      fclose(f);
+    }
+
+  /* Parse output to extract the -k-saved temprary directory.
+     XXX: bletch. */
+  f = fopen(stapstderr, "r");
+  if (!f)
+    {
+      errWarn("stap stderr open");
+      return;
+    }
+
+  while (1)
+    {
+      char line[PATH_MAX];
+      char *l = fgets(line, PATH_MAX, f); /* NB: normally includes \n at end */
+      if (!l) break;
+      char key[]="Keeping temporary directory \"";
+
+      /* Look for line from main.cxx: s.keep_tmpdir */
+      if (strncmp(l, key, strlen(key)) == 0 &&
+          l[strlen(l)-2] == '"')  /* "\n */
+        { 
+          /* Move this directory under responseDirName.  We don't have to
+             preserve the exact stapXXXXXX suffix part, since stap-client
+             will accept anything ("stap......" regexp), and rewrite it
+             to a client-local string.
+             
+             We don't just symlink because then we'd have to
+             remember to delete it later anyhow. */
+          char *mvargv[10];
+          char *orig_staptmpdir = & l[strlen(key)];
+          char new_staptmpdir[PATH_MAX];
+
+          orig_staptmpdir[strlen(orig_staptmpdir)-2] = '\0'; /* Kill the closing "\n */
+          snprintf(new_staptmpdir, PATH_MAX, "%s/stap000000", responseDirName);
+          mvargv[0]="mv";
+          mvargv[1]=orig_staptmpdir;
+          mvargv[2]=new_staptmpdir;
+          mvargv[3]=NULL;
+          rc = spawn_and_wait (mvargv, NULL, NULL, NULL, NULL);
+          if (rc != PR_SUCCESS)
+            errWarn("stap tmpdir move");
+
+          /* In unprivileged mode, if we have a module built, we need to
+             sign the sucker. */
+          if (unprivileged) 
+            {
+              glob_t globber;
+              char pattern[PATH_MAX];
+              snprintf (pattern,PATH_MAX,"%s/*.ko", new_staptmpdir);
+              rc = glob (pattern, GLOB_ERR, NULL, &globber);
+              if (rc)
+                errWarn("stap tmpdir .ko glob");
+              else if (globber.gl_pathc != 1)
+                errWarn("stap tmpdir too many .ko globs");
+              else
+                {
+                  char *signargv [10];
+                  signargv[0] = STAP_PREFIX "/libexec/systemtap/stap-sign-module";
+                  signargv[1] = globber.gl_pathv[0];
+                  signargv[2] = dbdir;
+                  signargv[3] = NULL;
+                  rc = spawn_and_wait (signargv, NULL, NULL, NULL, NULL);
+                  if (rc != PR_SUCCESS)
+                    errWarn("stap-sign-module");
+                }
+            }
+        }
+
+      /* XXX: What about uprobes.ko? */
+    }
+
+  /* Free up all the arg string copies.  Note that the first few were alloc'd
+     by wordexp(), which wordfree() frees; others were hand-set to literal strings. */
+  for (i= stapargv_freestart; i<stapargc; i++)
+    free (stapargv[i]);
+  wordfree (& words);
+
+  /* Sorry about the inconvenience.  C string/file processing is such a pleasure. */
+}
+
+
+/* A frontend for posix_spawnp that waits for the child process and
+   returns overall success or failure. */
+static PRStatus spawn_and_wait (char ** argv,
+                                const char* fd0, const char* fd1, const char* fd2, const char *pwd)
+{ 
+  pid_t pid;
+  int rc;
+  int status;
+  extern char** environ;
+  posix_spawn_file_actions_t actions;
+  int dotfd = -1;
+
+#define CHECKRC(msg) do { if (rc) { errWarn(msg); return PR_FAILURE; } } while (0)
+
+  rc = posix_spawn_file_actions_init (& actions);
+  CHECKRC ("spawn file actions ctor");
+  if (fd0) {
+    rc = posix_spawn_file_actions_addopen(& actions, 0, fd0, O_RDONLY, 0600);
+    CHECKRC ("spawn file actions fd0");
+  }
+  if (fd1) {
+    rc = posix_spawn_file_actions_addopen(& actions, 1, fd1, O_WRONLY|O_CREAT, 0600);
+    CHECKRC ("spawn file actions fd1");
+  }
+  if (fd2) { 
+    rc = posix_spawn_file_actions_addopen(& actions, 2, fd2, O_WRONLY|O_CREAT, 0600);
+    CHECKRC ("spawn file actions fd2");
+  }
+
+  /* change temporarily to a directory if requested */
+  if (pwd)
+    {
+      dotfd = open (".", O_RDONLY);
+      if (dotfd < 0)
+        { 
+          errWarn ("spawn getcwd");
+          return PR_FAILURE;
+        }
+      
+      rc = chdir (pwd);
+      CHECKRC ("spawn chdir");
+    } 
+ 
+  rc = posix_spawnp (& pid, argv[0], & actions, NULL, argv, environ);
+  /* NB: don't react to rc!=0 right away; need to chdir back first. */
+
+  if (pwd && dotfd >= 0)
+    {
+      int subrc;
+      subrc = fchdir (dotfd);
+      subrc |= close (dotfd);
+      if (subrc) 
+        errWarn("spawn unchdir");
+    }
+
+  CHECKRC ("spawn");
+
+  rc = waitpid (pid, &status, 0);
+  if ((rc!=pid) || !WIFEXITED(status))
+    {
+      errWarn ("waitpid");
+      return PR_FAILURE;
+    }
+
+  rc = posix_spawn_file_actions_destroy (&actions);
+  CHECKRC ("spawn file actions dtor");
+
+  return WEXITSTATUS(status) ? PR_FAILURE : PR_SUCCESS;
+#undef CHECKRC
+}
+
+
+
 /* Function:  int handle_connection()
  *
- * Purpose:  Handle a connection to a socket.
- *
+ * Purpose: Handle a connection to a socket.  Copy in request zip
+ * file, process it, copy out response.  Temporary directories are
+ * created & destroyed here.
  */
 static SECStatus
 handle_connection(PRFileDesc *tcpSocket)
@@ -377,11 +674,16 @@ handle_connection(PRFileDesc *tcpSocket)
   SECStatus          secStatus = SECFailure;
   PRStatus           prStatus;
   PRSocketOptionData socketOption;
-  PRFileInfo         info;
-  char              *cmdline;
-  char              *stap_server_prefix;
   int                rc;
   char              *rc1;
+  char               tmpdir[PATH_MAX]; 
+  char               requestFileName[PATH_MAX];
+  char               requestDirName[PATH_MAX];
+  char               responseDirName[PATH_MAX];
+  char               responseFileName[PATH_MAX];
+  char              *argv[10]; /* we use fewer than these in all the posix_spawn's below. */
+
+  tmpdir[0]='\0'; /* prevent cleanup-time /bin/rm of uninitialized directory */
 
   /* Make sure the socket is blocking. */
   socketOption.option             = PR_SockOpt_Nonblocking;
@@ -410,20 +712,33 @@ handle_connection(PRFileDesc *tcpSocket)
       goto cleanup;
     }
 
-  /* Create a temporary files and directories.  */
-  memcpy (requestFileName + sizeof (requestFileName) - 1 - 6, "XXXXXX", 6);
-  rc = mkstemp(requestFileName);
-  if (rc == -1)
+  snprintf(tmpdir, PATH_MAX, "%s/stap-server.XXXXXX", getenv("TMPDIR") ?: "/tmp");
+  rc1 = mkdtemp(tmpdir);
+  if (! rc1)
     {
-      fprintf (stderr, "Could not create temporary file %s\n", requestFileName);
+      fprintf (stderr, "Could not create temporary directory %s\n", tmpdir);
+      perror ("");
+      secStatus = SECFailure;
+      tmpdir[0]=0; /* prevent /bin/rm */
+      goto cleanup;
+    }
+
+  /* Create a temporary files names and directories.  */
+  snprintf (requestFileName, PATH_MAX, "%s/request.zip", tmpdir);
+
+  snprintf (requestDirName, PATH_MAX, "%s/request", tmpdir);
+  rc = mkdir(requestDirName, 0700);
+  if (rc)
+    {
+      fprintf (stderr, "Could not create temporary directory %s\n", requestDirName);
       perror ("");
       secStatus = SECFailure;
       goto cleanup;
     }
 
-  memcpy (responseDirName + sizeof (responseDirName) - 1 - 6, "XXXXXX", 6);
-  rc1 = mkdtemp(responseDirName);
-  if (! rc1)
+  snprintf (responseDirName, PATH_MAX, "%s/response", tmpdir);
+  rc = mkdir(responseDirName, 0700);
+  if (rc)
     {
       fprintf (stderr, "Could not create temporary directory %s\n", responseDirName);
       perror ("");
@@ -431,21 +746,7 @@ handle_connection(PRFileDesc *tcpSocket)
       goto cleanup;
     }
 
-  memcpy (responseZipName, responseDirName, sizeof (responseDirName) - 1);
-  memcpy (responseZipName + sizeof (responseZipName) - 1 - 6, "XXXXXX", 6);
-  rc = mkstemp(responseZipName);
-  if (rc == -1)
-    {
-      fprintf (stderr, "Could not create temporary file %s\n", responseZipName);
-      perror ("");
-      secStatus = SECFailure;
-
-      /* Remove this so that the other temp files will get removed in cleanup.  */
-      prStatus = PR_RmDir (responseDirName);
-      if (prStatus != PR_SUCCESS)
-	errWarn ("PR_RmDir");
-      goto cleanup;
-    }
+  snprintf (responseFileName, PATH_MAX, "%s/response.zip", tmpdir);
 
   /* Read data from the socket.
    * If the user is requesting/requiring authentication, authenticate
@@ -453,7 +754,7 @@ handle_connection(PRFileDesc *tcpSocket)
 #if DEBUG
   fprintf(stdout, "\nReading data from socket...\n\n");
 #endif
-  secStatus = readDataFromSocket(sslSocket);
+  secStatus = readDataFromSocket(sslSocket, requestFileName);
   if (secStatus != SECSuccess)
     goto cleanup;
 
@@ -467,32 +768,42 @@ handle_connection(PRFileDesc *tcpSocket)
     }
 #endif
 
-  /* Call the stap-server-request script.  */
-  stap_server_prefix = getenv("SYSTEMTAP_SERVER_SCRIPTS") ?: PKGLIBDIR;
-  cmdline = PORT_Alloc(strlen (stap_server_prefix) + sizeof ("/stap-server-request") + 1 +
-		       sizeof (requestFileName) + 1 +
-		       sizeof (responseDirName) + 1 +
-		       sizeof (responseZipName) + 1 +
-		       strlen (dbdir) + 1 +
-		       1 + strlen (stapOptions) + 1 +
-		       1);
-  if (! cmdline) {
-    errWarn ("PORT_Alloc");
-    secStatus = SECFailure;
-    goto cleanup;
-  }
+  /* Unzip the request. */
+  argv[0]="unzip";
+  argv[1]="-d";
+  argv[2]=requestDirName;
+  argv[3]=requestFileName;
+  rc = spawn_and_wait(argv, NULL, NULL, NULL, NULL);
+  if (rc != PR_SUCCESS)
+    {
+      errWarn ("request unzip");
+      secStatus = SECFailure;
+      goto cleanup;
+    }
 
-  sprintf (cmdline, "%s/stap-server-request %s %s %s %s '%s'", stap_server_prefix,
-	   requestFileName, responseDirName, responseZipName, dbdir,
-	   stapOptions);
-  rc = system (cmdline);
+  /* Handle the request zip file.  An error therein should still result
+     in a response zip file (containing stderr etc.) so we don't have to
+     have a result code here.  */
+  handleRequest(requestDirName, responseDirName);
 
-  PR_Free (cmdline);
-
+  /* Zip the response. */
+  argv[0]="zip";
+  argv[1]="-r";
+  argv[2]=responseFileName;
+  argv[3]=".";
+  argv[4]=NULL;
+  rc = spawn_and_wait(argv, NULL, NULL, NULL, responseDirName);
+  if (rc != PR_SUCCESS)
+    {
+      errWarn ("response zip");
+      secStatus = SECFailure;
+      goto cleanup;
+    }
+  
 #if DEBUG
   fprintf(stdout, "\nWriting data to socket...\n\n");
 #endif
-  secStatus = writeDataToSocket(sslSocket);
+  secStatus = writeDataToSocket(sslSocket, responseFileName);
 
 cleanup:
   /* Close down the socket. */
@@ -500,17 +811,16 @@ cleanup:
   if (prStatus != PR_SUCCESS)
     errWarn("PR_Close");
 
-  /* Attempt to remove temporary files, unless the temporary directory was
-     not deleted by the server script.  */
-  prStatus = PR_GetFileInfo(responseDirName, &info);
-  if (prStatus != PR_SUCCESS)
+  if (tmpdir[0]) 
     {
-      prStatus = PR_Delete (requestFileName);
-      if (prStatus != PR_SUCCESS)
-	errWarn ("PR_Delete");
-      prStatus = PR_Delete (responseZipName);
-      if (prStatus != PR_SUCCESS)
-	errWarn ("PR_Delete");
+      /* Remove the whole tmpdir and all that lies beneath. */
+      argv[0]="rm";
+      argv[1]="-r";
+      argv[2]=tmpdir;
+      argv[3]=NULL;
+      rc = spawn_and_wait(argv, NULL, NULL, NULL, NULL);
+      if (rc != PR_SUCCESS)
+        errWarn ("tmpdir cleanup");
     }
 
   return secStatus;
@@ -554,6 +864,9 @@ accept_connection(PRFileDesc *listenSocket)
 	      addr.inet.port);
       fflush (stdout);
 
+      /* XXX: alarm() or somesuch to set a timeout. */
+      /* XXX: fork() or somesuch to handle concurrent requests. */
+
       /* Accepted the connection, now handle it. */
       /*result =*/ handle_connection (tcpSocket);
 
@@ -564,16 +877,6 @@ accept_connection(PRFileDesc *listenSocket)
 	      (addr.inet.ip >> 24) & 0xff,
 	      addr.inet.port);
       fflush (stdout);
-
-#if 0 /* Not necessary */
-      if (result != SECSuccess)
-	{
-	  prStatus = PR_Close(tcpSocket);
-	  if (prStatus != PR_SUCCESS)
-	    exitErr("PR_Close");
-	  break;
-	}
-#endif
     }
 
 #if DEBUG
