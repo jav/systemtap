@@ -37,7 +37,7 @@ static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long reloc
     if (likely(sups->tfi != tfi)) continue;
     /* skip probes with an address beyond this map event; should not 
        happen unless a shlib/exec got mmapped in weirdly piecemeal */
-    if (likely((vm_flags & VM_EXEC) && ((sups->address >= length) || (sups->sdt_sem_offset >= length)))) continue;
+    if (likely((vm_flags & VM_EXEC) && sups->address >= length)) continue;
 
     /* Found a uprobe_spec for this stap_uprobe_tf.  Need to lock the
        stap_uprobes[] array to allocate a free spot, but then we can
@@ -159,7 +159,7 @@ static int stap_uprobe_change_semaphore_plus (struct task_struct *tsk, unsigned 
           _stp_dbug(__FUNCTION__,__LINE__, "+semaphore %#x @ %#lx spec %d idx %d task %d\n", sdt_semaphore, sup->sdt_sem_address, sup->spec_index, i, tsk->tgid);
         }
         #endif
-        rc = put_user (sdt_semaphore, (unsigned short __user*) sup->sdt_sem_address);
+	rc = put_user (sdt_semaphore, (unsigned short __user*) sup->sdt_sem_address);
 	/* XXX: need to analyze possibility of race condition */
       }
     }
