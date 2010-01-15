@@ -81,18 +81,19 @@ function initialization {
 # output.
 #
 function parse_options {
-    cmdline=
-    cmdline1=
-    cmdline2=
+    # Each command line argument will be written to its own file within the
+    # request package.
+    argc=1
+    arg_subst=
 
     while test $# != 0
     do
-	advance_p=0
+	advance=0
 	dash_seen=0
 
         # Start of a new token.
-	first_token=$1
-	until test $advance_p != 0
+	first_token="$1"
+	until test $advance != 0
 	do
             # Identify the next option
 	    first_char=`expr "$first_token" : '\(.\).*'`
@@ -108,18 +109,16 @@ function parse_options {
 			    test "X$long_option" != "X" || long_option=`expr "$first_token" : '--\(.*\)'`
 			    case $long_option in
 				ssl)
-				    process_ssl $first_token
+				    process_ssl "$first_token"
 				    ;;
 				server)
-				    process_server $first_token
+				    process_server "$first_token"
 				    ;;
 				*)
-		                    # An unknown or unimportant option.
-				    # Ignore it, but pass it on to the server.
-				    cmdline2="$cmdline2 $first_token"
+		                    # An unknown or unimportant option. Ignore it.
 				    ;;
 			    esac
-			    advance_p=$(($advance_p + 1))
+			    advance=$(($advance + 1))
 			    break
 			fi
 	                # It's not a lone dash, or a long option, so it's a short option string.
@@ -136,14 +135,9 @@ function parse_options {
 	            # then it could be the name of the script file.
 		    if test "X$e_script" = "X" -a "X$script_file" = "X"; then
 			script_file="$first_token"
-			cmdline1="$cmdline2"
-			cmdline2=
-		    elif test "$first_char" != "'"; then
-			cmdline2="$cmdline2 '$first_token'"
-		    else
-			cmdline2="$cmdline2 $first_token"
+			script_file_argc=$argc
 		    fi
-		    advance_p=$(($advance_p + 1))
+		    advance=$(($advance + 1))
 		    break
 		fi
 	    fi
@@ -151,112 +145,122 @@ function parse_options {
             # We are at the start of an option. Look at the first character.
 	    case $first_char in
 		a)
-		    get_arg $first_token $2
-		    process_a $stap_arg
+		    get_arg $first_token "$2"
+		    process_a "$stap_arg"
 		    ;;	
 		B)
-		    get_arg $first_token $2
-		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
+		    get_arg $first_token "$2"
 		    ;;	
 		c)
 		    get_arg $first_token "$2"
 		    process_c "$stap_arg"
 		    ;;
 		D)
-		    get_arg $first_token $2
-		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
+		    get_arg $first_token "$2"
 		    ;;
 		e)
 		    get_arg $first_token "$2"
 		    process_e "$stap_arg"
 		    ;;
 		I)
-		    get_arg $first_token $2
-		    process_I $stap_arg
+		    get_arg $first_token "$2"
+		    process_I "$stap_arg"
 		    ;;	
 		k)
 		    keep_temps=1
 		    ;;
 		l)
-		    get_arg $first_token $2
-		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
+		    get_arg $first_token "$2"
 		    p_phase=2
 		    ;;
 		L)
-		    get_arg $first_token $2
-		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
+		    get_arg $first_token "$2"
 		    p_phase=2
 		    ;;
 		m)
-		    get_arg $first_token $2
-		    process_m $stap_arg
+		    get_arg $first_token "$2"
+		    process_m "$stap_arg"
 		    ;;
 		o)
-		    get_arg $first_token $2
-		    process_o $stap_arg
+		    get_arg $first_token "$2"
+		    process_o "$stap_arg"
 		    ;;
 		p)
-		    get_arg $first_token $2
-		    process_p $stap_arg
+		    get_arg $first_token "$2"
+		    process_p "$stap_arg"
 		    ;;
 		r)
-		    get_arg $first_token $2
-		    process_r $stap_arg
+		    get_arg $first_token "$2"
+		    process_r "$stap_arg"
 		    ;;	
 		R)
-		    get_arg $first_token $2
-		    process_R $stap_arg
+		    get_arg $first_token "$2"
+		    process_R "$stap_arg"
 		    ;;	
 		s)
-		    get_arg $first_token $2
-		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
+		    get_arg $first_token "$2"
 		    ;;	
 		S)
-		    get_arg $first_token $2
-		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
+		    get_arg $first_token "$2"
 		    ;;	
 		v)
 		    v_level=$(($v_level + 1))
 		    ;;
 		x)
-		    get_arg $first_token $2
-		    cmdline2="${cmdline2} -$first_char '$stap_arg'"
+		    get_arg $first_token "$2"
 		    ;;
 		*)
-		    # An unknown or unimportant flag. Ignore it, but pass it on to the server.
+		    # An unknown or unimportant flag.
 		    ;;
 	    esac
 
-	    if test $advance_p = 0; then
+	    if test $advance = 0; then
 	        # Just another flag character. Consume it.
-		cmdline2="$cmdline2 -$first_char"
 		first_token=`expr "$first_token" : '.\(.*\)'`
 		if test "X$first_token" = "X"; then
-		    advance_p=$(($advance_p + 1))
+		    advance=$(($advance + 1))
 		fi
 	    fi
 	done
 
         # Consume the arguments we just processed.
-	while test $advance_p != 0
+	while test $advance != 0
 	do
+	    # Place the argument is a numbered file within our temp
+	    # directory.
+	    # o We don't write a newline at the end, since newline could be
+	    #   part of the argument.
+	    # o We add an X to the beginning of the file
+	    #   in order to avoid having 'echo' interpret the output as
+	    #   its own option. We then remove the X.
+	    #   There must be a better way.
+	    echo -n "X$1" > "$tmpdir_client/argv$argc"
+	    sed -i "s|^X||" "$tmpdir_client/argv$argc"
+
+	    # Does the final argument file contain client-side data
+	    # which must be changed to server-side data?
+	    if test "X$arg_subst" != "X" -a $advance = 1; then
+		sed -i "s|$stap_arg|$arg_subst|" "$tmpdir_client/argv$argc"
+		arg_subst=
+	    fi
+
+	    # Get the next argument.
 	    shift
-	    advance_p=$(($advance_p - 1))
+	    argc=$(($argc + 1))
+	    advance=$(($advance - 1))
 	done
     done
 
     # If the script file was given and it's not '-', then replace it with its
-    # client-temp-name in the command string.
+    # client-temp-name in its argument file.
     if test "X$script_file" != "X"; then
 	local local_name
 	if test "$script_file" != "-"; then
 	    local_name=`generate_client_temp_name "$script_file"`
 	else
-	    local_name="$script_file"
+	    local_name="-"
 	fi
-	cmdline="$cmdline1 'script/$local_name' $cmdline2"
-    else
-	cmdline="$cmdline2"
+	echo "script/$local_name" > "$tmpdir_client/argv$script_file_argc"
     fi
 
     # Processing based on final options settings
@@ -266,12 +270,6 @@ function parse_options {
     # We must have at least one usable certificate database.
     test "X$local_ssl_dbs" != "X " -o "X$public_ssl_dbs" != "X" || \
 	fatal "No usable certificate databases found"
-
-    # We can use any server if the phase is less than 4
-    # But don't for now....
-    #if test $p_phase -lt 4; then
-    #	find_all="--all"
-    #fi
 }
 
 # function: get_arg FIRSTWORD SECONDWORD
@@ -284,13 +282,12 @@ function get_arg {
 
     # Advance to the next token, if the first one is exhausted.
     if test "X$first" = "X"; then
-	shift
-	advance_p=$(($advance_p + 1))
-	first=$1
+	advance=$(($advance + 1))
+	first="$2"
     fi
 
     stap_arg="$first"
-    test "X$first" != "X" && advance_p=$(($advance_p + 1))
+    test "X$first" != "X" && advance=$(($advance + 1))
 }
 
 # function: process_ssl ARGUMENT
@@ -302,7 +299,7 @@ function process_ssl {
     test "X$db" != "X" || \
 	fatal "Missing argument to --ssl"
 
-    check_db $db || return
+    check_db "$db" || return
 
     additional_local_ssl_dbs="$additional_local_ssl_dbs $db"
 }
@@ -324,8 +321,6 @@ function process_server {
 # Process the -c flag.
 function process_c {
     c_cmd="$1"
-    cmdline2="${cmdline2} -c"
-    test "X$c_cmd" != "X" && cmdline2="${cmdline2} '$c_cmd'"
 }
 
 # function: process_e ARGUMENT
@@ -336,22 +331,16 @@ function process_e {
     # which may have already been identified.
     if test "X$e_script" = "X"; then
 	e_script="$1"
-	if test "X$script_file" != "X"; then
-	    cmdline2="$cmdline1 '$script_file' $cmdline2"
-	    cmdline1=
-	    script_file=
-	fi
+	script_file=
     fi
-    cmdline2="${cmdline2} -e '$1'"
 }
 
 # function: process_I ARGUMENT
 #
 # Process the -I flag.
 function process_I {
-    local local_name=`include_file_or_directory tapsets $1`
-    test "X$local_name" != "X" || return
-    cmdline2="${cmdline2} -I 'tapsets/$local_name'"
+    test "X$1" = "X" && return
+    arg_subst=tapsets/`include_file_or_directory tapsets "$1"`
 }
 
 # function: process_m ARGUMENT
@@ -360,7 +349,6 @@ function process_I {
 function process_m {
     module_name="$1"
     m_name="$1"
-    cmdline2="${cmdline2} -m '$1'"
 }
 
 # function: process_o ARGUMENT
@@ -368,15 +356,13 @@ function process_m {
 # Process the -o flag.
 function process_o {
     stdout_redirection="$1"
-    cmdline2="${cmdline2} -o '$1'"
 }
 
 # function: process_p ARGUMENT
 #
 # Process the -p flag.
 function process_p {
-    p_phase=$1
-    cmdline2="${cmdline2} -p '$1'"
+    p_phase="$1"
 }
 
 # function: process_r ARGUMENT
@@ -386,22 +372,22 @@ function process_r {
     local first_char=`expr "$1" : '\(.\).*'`
 
     if test "$first_char" = "/"; then # fully specified path
-        kernel_build_tree=$1
+        kernel_build_tree="$1"
         version_file_name="$kernel_build_tree/include/config/kernel.release"
         # The file include/config/kernel.release within the
         # build tree is used to pull out the version information
-	release=`cat $version_file_name 2>/dev/null`
+	release=`cat "$version_file_name" 2>/dev/null`
 	if test "X$release" = "X"; then
 	    fatal "Missing $version_file_name"
 	    return
 	fi
     else
 	# kernel release specified directly
-	release=$1
+	release="$1"
     fi
 
     if test "X$release" != "X$uname_r"; then
-	uname_r=$release
+	uname_r="$release"
 	find_all="--all"
     fi
 }
@@ -411,7 +397,7 @@ function process_r {
 # Process the -a flag.
 function process_a {
     if test "X$1" != "X$arch"; then
-	arch=$1
+	arch="$1"
 	find_all="--all"
     fi
 }
@@ -420,9 +406,8 @@ function process_a {
 #
 # Process the -R flag.
 function process_R {
-    local local_name=`include_file_or_directory runtime $1`
-    test "X$local_name" != "X" || return
-    cmdline2="${cmdline2} -R 'runtime/$local_name'"
+    test "X$1" = "X" && return
+    arg_subst=runtime/`include_file_or_directory runtime "$1"`
 }
 
 # function: include_file_or_directory PREFIX NAME
@@ -434,7 +419,7 @@ function include_file_or_directory {
     # directory, but only if the file or directory exists.
     local local_name=`generate_client_temp_name "$2"`
     echo "$local_name"
-    test -e /$local_name || return
+    test -e "/$local_name" || return
 
     local local_dirname=`dirname "$local_name"`
     mkdir -p "$tmpdir_client/$1/$local_dirname" || \
@@ -476,7 +461,6 @@ function create_request {
     fi
 
     # Add the necessary info to special files in our temporary directory.
-    echo "cmdline: $cmdline" > cmdline
     echo "sysinfo: `client_sysinfo`" > sysinfo
 }
 
@@ -499,7 +483,8 @@ function package_request {
     zip_client=$tmpdir_env/`mktemp $tmpdir_client_base.zip.XXXXXX` || \
 	fatal "Cannot create temporary file " $zip_client
 
-    (rm $zip_client && zip -r $zip_client $tmpdir_client_base > /dev/null) || \
+    cd $tmpdir_client
+    (rm -f $zip_client && zip -r $zip_client * > /dev/null) || \
 	fatal "zip of request tree, $tmpdir_client, failed"
 }
 
@@ -649,16 +634,21 @@ function find_and_connect_to_server {
 	# Remember which ssl certificate database was used to authenticate the chosen
         # server.
 	ssl_db=`${stap_pkglibexecdir}stap-find-servers $find_all | choose_server`
-	test "X$ssl_db" != "X" && return
+	if test "X$ssl_db" != "X"; then
+	    rm -f $tmpdir_client/connect
+	    return
+	fi
 
 	num_servers=`${stap_pkglibexecdir}stap-find-servers $find_all | wc -l`
     fi
 
     if test $num_servers = 0; then
+	rm -f $tmpdir_client/connect
 	fatal "Unable to find a server"
     fi
 
     cat $tmpdir_client/connect >&2
+    rm -f $tmpdir_client/connect
     fatal "Unable to connect to a server"
 }
 
@@ -700,8 +690,8 @@ function choose_server {
 # echo the name of the ssl certificate database used to successfully authenticate
 # the server.
 function send_receive {
-    local server=$1
-    local port=$2
+    local server="$1"
+    local port="$2"
 
     # The server must match the dns name on the certificate
     # and must be 'localhost' if the server is on the local host.
@@ -880,9 +870,9 @@ function staprun_PATH {
 #
 # Check the security of the given database directory.
 function check_db {
-    local dir=$1
-    local euid=$2
-    local user=$3
+    local dir="$1"
+    local euid="$2"
+    local user="$3"
     local rc=0
 
     # Check that we have been given a directory
@@ -957,7 +947,7 @@ function check_db {
 #
 # Check the security of the given database file.
 function check_db_file {
-    local file=$1
+    local file="$1"
     local rc=0
 
     # Check that we have been given a file
