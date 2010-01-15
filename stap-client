@@ -260,7 +260,7 @@ function parse_options {
 	else
 	    local_name="-"
 	fi
-	echo "script/$local_name" > "$tmpdir_client/argv$script_file_argc"
+	echo -n "script/$local_name" > "$tmpdir_client/argv$script_file_argc"
     fi
 
     # Processing based on final options settings
