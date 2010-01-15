@@ -457,7 +457,6 @@ exit 0
 %{_libexecdir}/%{name}/stap-stop-server
 %{_libexecdir}/%{name}/stap-gen-cert
 %{_libexecdir}/%{name}/stap-server-connect
-%{_libexecdir}/%{name}/stap-server-request
 %{_libexecdir}/%{name}/stap-sign-module
 %{_mandir}/man8/stap-server.8*
 %{_mandir}/man8/stap-authorize-server-cert.8*
