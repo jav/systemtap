@@ -4632,6 +4632,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 		s.op->line() << " .procname=\"" << p->path << "\", ";
               s.op->line() << " .mmap_callback=&stap_uprobe_mmap_found, ";
               s.op->line() << " .munmap_callback=&stap_uprobe_munmap_found, ";
+              s.op->line() << " .callback=&stap_uprobe_process_munmap,";
             }
 
           s.op->line() << " },";

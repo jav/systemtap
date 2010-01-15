@@ -272,12 +272,18 @@ int verify_module (const char *signatureName, const char* module_name,
 
   /* Verify the permissions of the certificate database and its files.  */
   if (! check_cert_db_permissions (dbdir))
-    return MODULE_UNTRUSTED;
+    {
+      if (verbose>1) fprintf (stderr, "Certificate db %s permissions too loose\n", dbdir);
+      return MODULE_UNTRUSTED;
+    }
 
   /* Get the size of the signature file.  */
   prStatus = PR_GetFileInfo (signatureName, &info);
   if (prStatus != PR_SUCCESS || info.type != PR_FILE_FILE || info.size < 0)
-    return MODULE_UNTRUSTED; /* Not signed */
+    {
+      if (verbose>1) fprintf (stderr, "Signature file %s not found\n", signatureName);
+      return MODULE_UNTRUSTED; /* Not signed */
+    }
 
   /* Open the signature file.  */
   local_file_fd = PR_Open (signatureName, PR_RDONLY, 0);

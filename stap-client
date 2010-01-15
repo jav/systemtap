@@ -260,7 +260,7 @@ function parse_options {
 	else
 	    local_name="-"
 	fi
-	echo "script/$local_name" > "$tmpdir_client/argv$script_file_argc"
+	echo -n "script/$local_name" > "$tmpdir_client/argv$script_file_argc"
     fi
 
     # Processing based on final options settings
@@ -500,17 +500,6 @@ function unpack_response {
     unzip -d $tmpdir_server $zip_server > /dev/null || \
 	fatal "Cannot unpack server response, $zip_server"
 
-    # Check the contents of the expanded directory. It should contain a
-    # single directory whose name matches $stap_tmpdir_prefix_server.??????
-    local num_files=`ls $tmpdir_server | wc -l`
-    test $num_files = 1 || \
-	fatal "Wrong number of files in server's temp directory"
-    test -d $tmpdir_server/$stap_tmpdir_prefix_server.?????? || \
-	fatal "`ls $tmpdir_server` does not match the expected name or is not a directory"
-    # Move the contents of the directory down one level.
-    mv $tmpdir_server/$stap_tmpdir_prefix_server.??????/* $tmpdir_server
-    rm -fr $tmpdir_server/$stap_tmpdir_prefix_server.??????
-
     # Check the contents of the directory. It should contain:
     # 1) a file called stdout
     # 2) a file called stderr
@@ -526,7 +515,8 @@ function unpack_response {
     test -f $tmpdir_server/rc || \
 	fatal "`pwd`/$tmpdir_server/rc does not exist or is not a regular file"
 
-    # See if there is a systemtap temp directory
+    # See if there is a systemtap temp directory.  There should be at least an empty one.
+    # ls -l $tmpdir_server
     tmpdir_stap=`cd $tmpdir_server && ls | grep stap......\$ 2>/dev/null`
     if test "X$tmpdir_stap" != "X"; then
 	test -d $tmpdir_server/$tmpdir_stap || \
@@ -548,6 +538,16 @@ function unpack_response {
             # Make sure we own the systemtap temp directory if we are root.
 	    test $EUID = 0 && chown $EUID:$EUID $tmpdir_stap
 	fi
+    fi
+
+    if test $keep_temps = 0; then
+      # Remove the output line due to the synthetic server-side -k
+      sed -i "/^Keeping temporary directory.*/ d" $tmpdir_server/stderr
+    fi
+
+    if test $p_phase = 5; then
+      # Remove the output line due to the synthetic server-side -p4
+      sed -i "/^.*\.ko$/ d" $tmpdir_server/stdout
     fi
 }
 

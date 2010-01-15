@@ -212,7 +212,8 @@ void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
         for (i = 0; i < maxLevels; ++i) {
                 if (backtrace[i] == 0 || backtrace[i] == ULONG_MAX)
                         break;
-                _stp_printf("%lx ", backtrace[i]);
+		_stp_symbol_print(backtrace[i]);
+		_stp_print_char('\n');
         }
 #endif
 }

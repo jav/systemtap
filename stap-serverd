@@ -38,6 +38,8 @@ function initialization {
     # Parse the arguments
     parse_options "$@"
 
+    echo ===== compile server pid $$ started >> $logfile
+
     # What port will we listen on?
     test "X$port" = "X" && port=$((1024+$RANDOM%64000))
     while netstat -atn | awk '{print $4}' | cut -f2 -d: | egrep -q "^$port\$";

@@ -47,7 +47,7 @@ pkglibexec_PROGRAMS = stapio$(EXEEXT) $(am__EXEEXT_2) $(am__EXEEXT_3)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_8 = stap-client.8 stap-server.8 stap-authorize-server-cert.8
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_9 = stap-client-connect stap-server-connect
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_10 = stap-client stap-server stap-authorize-server-cert
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_11 = stap-serverd stap-server-request stap-find-servers \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_11 = stap-serverd stap-find-servers \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	       stap-start-server stap-find-or-start-server stap-stop-server
 
 @BUILD_TRANSLATOR_FALSE@stap_DEPENDENCIES =

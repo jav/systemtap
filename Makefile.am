@@ -43,7 +43,7 @@ if BUILD_SERVER
 man_MANS += stap-client.8 stap-server.8 stap-authorize-server-cert.8
 pkglibexec_PROGRAMS += stap-client-connect stap-server-connect
 bin_SCRIPTS += stap-client stap-server stap-authorize-server-cert
-pkglibexec_SCRIPTS += stap-serverd stap-server-request stap-find-servers \
+pkglibexec_SCRIPTS += stap-serverd stap-find-servers \
 	       stap-start-server stap-find-or-start-server stap-stop-server
 endif
 endif
