@@ -9688,9 +9688,11 @@ done
 
 fi
 
+stap_prefix=$prefix
+test "$stap_prefix" = NONE && stap_prefix=$ac_default_prefix
 
 cat >>confdefs.h <<_ACEOF
-#define STAP_PREFIX "$prefix"
+#define STAP_PREFIX "$stap_prefix"
 _ACEOF
 
 

@@ -671,8 +671,11 @@ fi
 dnl This is here mainly to make sure that configure --prefix=... changes
 dnl the config.h files so files depending on it are recompiled
 dnl prefix is passed through indirectly in the Makefile.am AM_CPPFLAGS.
-dnl Don't use this directly (when not given it is set to NONE).
-AC_DEFINE_UNQUOTED(STAP_PREFIX, "$prefix", [configure prefix location])
+dnl Formerly: Don't use this directly (when not given it is set to NONE).
+dnl Currently: inline autoconf's later defaulting
+stap_prefix=$prefix
+test "$stap_prefix" = NONE && stap_prefix=$ac_default_prefix
+AC_DEFINE_UNQUOTED(STAP_PREFIX, "$stap_prefix", [configure prefix location])
 
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile doc/Makefile doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-client.8 stap-server.8 stap-authorize-server-cert.8 stap-authorize-signing-cert.8 man/stapprobes.iosched.3stap man/stapprobes.irq.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap man/stapprobes.snmp.3stap initscript/systemtap initscript/stap-server)
