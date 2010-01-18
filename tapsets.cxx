@@ -3798,7 +3798,7 @@ sdt_query::handle_query_module()
         {
           // restore the locations to print a nicer probe name
           probe_point loc(*base_loc);
-          loc.components[1] =
+          loc.components.back() =
             new probe_point::component(TOK_MARK, new literal_string (probe_name));
           for (; i < results.size(); ++i)
             for (unsigned j = 0; j < results[i]->locations.size(); ++j)
