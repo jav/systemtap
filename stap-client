@@ -96,22 +96,20 @@ function parse_options {
 	until test $advance != 0
 	do
             # Identify the next option
-	    first_char=`expr "$first_token" : '\(.\).*'`
+	    first_char="${first_token:0:1}"
 	    second_char=
 	    if test $dash_seen = 0; then
 		if test "$first_char" = "-"; then
 		    if test "$first_token" != "-"; then
 	                # It's not a lone dash, so it's an option.
 			# Is it a long option (i.e. --option)?
-			second_char=`expr "$first_token" : '.\(.\).*'`
+			second_char="${first_token:1:1}"
 			if test "X$second_char" = "X-"; then
-			    long_option=`expr "$first_token" : '--\(.*\)=.*'`
-			    test "X$long_option" != "X" || long_option=`expr "$first_token" : '--\(.*\)'`
-			    case $long_option in
-				ssl)
+			    case "$first_token" in
+				--ssl=*)
 				    process_ssl "$first_token"
 				    ;;
-				server)
+				--server=*)
 				    process_server "$first_token"
 				    ;;
 				*)
@@ -123,9 +121,9 @@ function parse_options {
 			fi
 	                # It's not a lone dash, or a long option, so it's a short option string.
 			# Remove the dash.
-			first_token=`expr "$first_token" : '-\(.*\)'`
+			first_token="${first_token:1}"
 			dash_seen=1
-			first_char=`expr "$first_token" : '\(.\).*'`
+			first_char="${first_token:0:1}"
 		    fi
 		fi
 		if test $dash_seen = 0; then
@@ -145,69 +143,73 @@ function parse_options {
             # We are at the start of an option. Look at the first character.
 	    case $first_char in
 		a)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    process_a "$stap_arg"
 		    ;;	
 		B)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    ;;	
 		c)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    process_c "$stap_arg"
 		    ;;
 		D)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    ;;
 		e)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    process_e "$stap_arg"
 		    ;;
 		I)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
+                    # Truncate the file name at the first newline
+		    stap_arg=`echo "X$stap_arg" | head -1 | head -c -1 | sed s/^X//`
 		    process_I "$stap_arg"
 		    ;;	
 		k)
 		    keep_temps=1
 		    ;;
 		l)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    p_phase=2
 		    ;;
 		L)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    p_phase=2
 		    ;;
 		m)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    process_m "$stap_arg"
 		    ;;
 		o)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    process_o "$stap_arg"
 		    ;;
 		p)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    process_p "$stap_arg"
 		    ;;
 		r)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    process_r "$stap_arg"
 		    ;;	
 		R)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
+                    # Truncate the file name at the first newline
+		    stap_arg=`echo "X$stap_arg" | head -1 | head -c -1 | sed s/^X//`
 		    process_R "$stap_arg"
 		    ;;	
 		s)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    ;;	
 		S)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    ;;	
 		v)
 		    v_level=$(($v_level + 1))
 		    ;;
 		x)
-		    get_arg $first_token "$2"
+		    get_arg "$first_token" "$2"
 		    ;;
 		*)
 		    # An unknown or unimportant flag.
@@ -216,7 +218,7 @@ function parse_options {
 
 	    if test $advance = 0; then
 	        # Just another flag character. Consume it.
-		first_token=`expr "$first_token" : '.\(.*\)'`
+		first_token="${first_token:1}"
 		if test "X$first_token" = "X"; then
 		    advance=$(($advance + 1))
 		fi
@@ -224,8 +226,32 @@ function parse_options {
 	done
 
         # Consume the arguments we just processed.
-	while test $advance != 0
-	do
+	while test $advance != 0; do
+	    local arg="$1"
+
+	    # Does the final argument file contain a client-side file
+	    # name which must be changed to a server-side name?
+	    if test "X$arg_subst" != "X" -a $advance = 1; then
+		# Truncate the argument (which contains the file name)
+		# at the first newline. echo an X at the beginning
+		# To prevent echo from interpreting any contents as
+		# its own options. We will remove the X below.
+		arg=`echo "X$arg" | head -1 | head -c -1`
+
+		# Make sure that any embedded chars which are significant to
+		# sed are quoted in the argument and the substitution.
+#echo "stap_arg='$stap_arg'" >&2
+#echo "arg_subst='$arg_subst'" >&2
+		stap_arg=`echo "X$stap_arg" | sed -e "s|\\\\\\\\|\\\\\\\\\\\\\\\\|g" -e "s|^X||"`
+		arg_subst=`echo "X$arg_subst" | sed -e "s|\\\\\\\\|\\\\\\\\\\\\\\\\|g" -e "s|^X||"`
+
+		# Now substitute the server-side file name
+#echo "stap_arg='$stap_arg'" >&2
+#echo "arg_subst='$arg_subst'" >&2
+		arg=`echo "$arg" | sed -e "s|$stap_arg|$arg_subst|" -e "s|^X||"`
+		arg_subst=
+	    fi
+
 	    # Place the argument is a numbered file within our temp
 	    # directory.
 	    # o We don't write a newline at the end, since newline could be
@@ -234,15 +260,8 @@ function parse_options {
 	    #   in order to avoid having 'echo' interpret the output as
 	    #   its own option. We then remove the X.
 	    #   There must be a better way.
-	    echo -n "X$1" > "$tmpdir_client/argv$argc"
+	    echo -n "X$arg" > "$tmpdir_client/argv$argc"
 	    sed -i "s|^X||" "$tmpdir_client/argv$argc"
-
-	    # Does the final argument file contain client-side data
-	    # which must be changed to server-side data?
-	    if test "X$arg_subst" != "X" -a $advance = 1; then
-		sed -i "s|$stap_arg|$arg_subst|" "$tmpdir_client/argv$argc"
-		arg_subst=
-	    fi
 
 	    # Get the next argument.
 	    shift
@@ -256,6 +275,8 @@ function parse_options {
     if test "X$script_file" != "X"; then
 	local local_name
 	if test "$script_file" != "-"; then
+            # Truncate the file name at the first newline
+	    script_file=`echo "X$script_file" | head -1 | head -c -1 | sed s/^X//`
 	    local_name=`generate_client_temp_name "$script_file"`
 	else
 	    local_name="-"
@@ -277,8 +298,8 @@ function parse_options {
 # Collect an argument to the given option
 function get_arg {
     # Remove first character.
-    local opt=`expr "$1" : '\(.\).*'`
-    local first=`expr "$1" : '.\(.*\)'`
+    local opt="${1:0:1}"
+    local first="${1:1}"
 
     # Advance to the next token, if the first one is exhausted.
     if test "X$first" = "X"; then
@@ -294,7 +315,7 @@ function get_arg {
 #
 # Process the --ssl option.
 function process_ssl {
-    local db=`expr "$1" : '--ssl=\(.*\)'`
+    local db="${1:6}"
 
     test "X$db" != "X" || \
 	fatal "Missing argument to --ssl"
@@ -308,7 +329,7 @@ function process_ssl {
 #
 # Process the --server option.
 function process_server {
-    local spec=`expr "$1" : '--server=\(.*\)'`
+    local spec="${1:8}"
 
     test "X$spec" != "X" || \
 	fatal "Missing argument to --server"
@@ -369,7 +390,7 @@ function process_p {
 #
 # Process the -r flag.
 function process_r {
-    local first_char=`expr "$1" : '\(.\).*'`
+    local first_char="${1:0:1}"
 
     if test "$first_char" = "/"; then # fully specified path
         kernel_build_tree="$1"
@@ -434,11 +455,11 @@ function include_file_or_directory {
 # client's temporary directory.
 function generate_client_temp_name {
     # Transform the name into a fully qualified path name
-    local full_name=`echo "X$1" | sed "s,^X\\\([^/]\\\),$wd/\\\\1," | sed 's,^X,,'`
+    full_name=`echo "X$1" | sed "s,^X\\\([^/]\\\),$wd/\\\\1,"`
 
     # The same name without the initial / or trailing /
     local local_name=`echo "$full_name" | sed 's,^/\(.*\),\1,'`
-    local_name=`echo "$local_name" | sed 's,\(.*\)/$,\1,'`
+    local_name=`echo "$local_name" | sed 's,\(.*\)/$,\1,' | sed 's,^X,,'`
     echo "$local_name"
 }
 
