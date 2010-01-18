@@ -284,8 +284,6 @@ struct dwflpp
 
   Dwarf_Addr relocate_address(Dwarf_Addr addr, std::string& reloc_section);
 
-  Dwarf_Addr literal_addr_to_sym_addr(Dwarf_Addr lit_addr);
-
 
 private:
   DwflPtr dwfl_ptr;

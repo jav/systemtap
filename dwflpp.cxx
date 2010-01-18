@@ -2771,45 +2771,6 @@ dwflpp::relocate_address(Dwarf_Addr dw_addr, string& reloc_section)
   return reloc_addr;
 }
 
-/* Converts a "global" literal address to the module symbol address
- * space.  If necessary (not for kernel and executables using absolute
- * addresses), this adjust the address for the current module symbol
- * bias.  Literal addresses are provided by the user (or contained on
- * the .probes section) based on the "on disk" layout of the module.
- */
-Dwarf_Addr
-dwflpp::literal_addr_to_sym_addr(Dwarf_Addr lit_addr)
-{
-  if (sess.verbose > 2)
-    clog << "literal_addr_to_sym_addr 0x" << hex << lit_addr << dec << endl;
-
-  // Assume the address came from the symbol list.
-  // If we cannot get the symbol bias fall back on the dw bias.
-  // The kernel (and other absolute executable modules) is special though.
-  if (module_name != TOK_KERNEL
-      && dwfl_module_relocations (module) > 0)
-    {
-      Dwarf_Addr symbias = ~0;
-      if (dwfl_module_getsymtab (module) != -1)
-	dwfl_module_info (module, NULL, NULL, NULL, NULL,
-			  &symbias, NULL, NULL);
-
-      if (sess.verbose > 3)
-        clog << "symbias 0x" << hex << symbias << dec
-	     << ", dwbias 0x" << hex << module_bias << dec << endl;
-
-      if (symbias == (Dwarf_Addr) ~0)
-	symbias = module_bias;
-
-      lit_addr += symbias;
-    }
-
-  if (sess.verbose > 2)
-    clog << "literal_addr_to_sym_addr ret 0x" << hex << lit_addr << dec << endl;
-
-  return lit_addr;
-}
-
 /* Returns the call frame address operations for the given program counter
  * in the libdw address space.
  */
