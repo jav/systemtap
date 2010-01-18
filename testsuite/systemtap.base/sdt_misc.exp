@@ -74,13 +74,13 @@ int
 main ()
 {
 #ifdef LOOP
+  #include <signal.h>
+  signal (SIGINT, &int_handler);
+  signal (SIGALRM, &alrm_handler);
   alarm (30);
   while (!loop_check()) 
     {
     }
-  #include <signal.h>
-  signal (SIGINT, &int_handler);
-  signal (SIGALRM, &alrm_handler);
 #endif
   bar(2);
   baz(3,(char*)\"abc\");
@@ -379,6 +379,11 @@ if {$ok == 5} {
 # 5. Test attaching to a running process with markers in a shared object
 
 if { $pbtype_mssg != "kprobe" } {
+set loop_flags "additional_flags=-I$srcdir/../includes/sys"
+set loop_flags "$loop_flags additional_flags=-I$sdtdir"
+set loop_flags "$loop_flags additional_flags=-g"
+set loop_flags "$loop_flags additional_flags=-I. $pbtype_flag"
+set loop_flags "$loop_flags additional_flags=-DLOOP"
 set loop_flags "$loop_flags additional_flags=-DONLY_MAIN"
 set loop_flags "$loop_flags additional_flags=-Wl,-rpath,[pwd]"
 set loop_flags "$loop_flags additional_flags=-L[pwd] additional_flags=-lsdt-$pbtype_mssg"

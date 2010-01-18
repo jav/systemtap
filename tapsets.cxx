@@ -761,6 +761,13 @@ dwarf_query::query_module_dwarf()
       // number plus the module's bias.
       Dwarf_Addr addr = has_function_num ?
         function_num_val : statement_num_val;
+
+      // These are raw addresses, we need to know what the elf_bias
+      // is to feed it to libdwfl based functions.
+      Dwarf_Addr elf_bias;
+      Elf *elf = dwfl_module_getelf (dw.module, &elf_bias);
+      assert(elf);
+      addr += elf_bias;
       query_addr(addr, this);
     }
   else
@@ -1168,8 +1175,8 @@ query_addr(Dwarf_Addr addr, dwarf_query *q)
 {
   dwflpp &dw = q->dw;
 
-  // Translate to and actual sumbol address.
-  addr = dw.literal_addr_to_sym_addr(addr);
+  if (q->sess.verbose > 2)
+    clog << "query_addr 0x" << hex << addr << dec << endl;
 
   // First pick which CU contains this address
   Dwarf_Die* cudie = dw.query_cu_containing_address(addr);
