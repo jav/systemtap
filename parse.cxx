@@ -632,7 +632,8 @@ parser::peek_kw (std::string const & kw)
 
 lexer::lexer (istream& input, const string& in, systemtap_session& s):
   input_name (in), input_pointer (0), input_end (0),
-  cursor_suspend_count(0), cursor_line (1), cursor_column (1),
+  cursor_suspend_count(0), cursor_suspend_line (1), cursor_suspend_column (1),
+  cursor_line (1), cursor_column (1),
   session(s), current_file (0)
 {
   getline(input, input_contents, '\0');
@@ -693,9 +694,15 @@ lexer::input_get ()
   ++input_pointer;
 
   if (cursor_suspend_count)
-    // Track effect of input_put: preserve previous cursor/line_column
-    // until all of its characters are consumed.
-    cursor_suspend_count --;
+    {
+      // Track effect of input_put: preserve previous cursor/line_column
+      // until all of its characters are consumed.
+      if (--cursor_suspend_count == 0)
+        {
+          cursor_line = cursor_suspend_line;
+          cursor_column = cursor_suspend_column;
+        }
+    }
   else
     {
       // update source cursor
@@ -714,12 +721,16 @@ lexer::input_get ()
 
 
 void
-lexer::input_put (const string& chars)
+lexer::input_put (const string& chars, const token* t)
 {
   size_t pos = input_pointer - input_contents.data();
   // clog << "[put:" << chars << " @" << pos << "]";
   input_contents.insert (pos, chars);
   cursor_suspend_count += chars.size();
+  cursor_suspend_line = cursor_line;
+  cursor_suspend_column = cursor_column;
+  cursor_line = t->location.line;
+  cursor_column = t->location.column;
   input_pointer = input_contents.data() + pos;
   input_end = input_contents.data() + input_contents.size();
 }
@@ -731,18 +742,10 @@ lexer::scan (bool wildcard)
   token* n = new token;
   n->location.file = current_file;
 
-  unsigned semiskipped_p = 0;
-
- skip:
+skip:
+  bool suspended = (cursor_suspend_count > 0);
   n->location.line = cursor_line;
   n->location.column = cursor_column;
-
- semiskip:
-  if (semiskipped_p > 1)
-    {
-      input_get ();
-      throw parse_error ("invalid nested substitution of command line arguments");
-    }
 
   int c = input_get();
   // clog << "{" << (char)c << (char)c2 << "}";
@@ -762,38 +765,41 @@ lexer::scan (bool wildcard)
   // characters; @1..@999 are quoted/escaped as strings.
   // $# and @# expand to the number of arguments, similarly
   // raw or quoted.
-  if ((c == '$' || c == '@') &&
-      (c2 == '#'))
+  if ((c == '$' || c == '@') && (c2 == '#'))
     {
+      n->content.push_back (c);
+      n->content.push_back (c2);
       input_get(); // swallow '#'
-      stringstream converter;
-      converter << session.args.size ();
-      if (c == '$') input_put (converter.str());
-      else input_put (lex_cast_qstring (converter.str()));
-      semiskipped_p ++;
-      goto semiskip;
+      if (suspended)
+        throw parse_error ("invalid nested substitution of command line arguments", n);
+      size_t num_args = session.args.size ();
+      input_put ((c == '$') ? lex_cast (num_args) : lex_cast_qstring (num_args), n);
+      n->content.clear();
+      goto skip;
     }
-  else if ((c == '$' || c == '@') &&
-           (isdigit (c2)))
+  else if ((c == '$' || c == '@') && (isdigit (c2)))
     {
+      n->content.push_back (c);
       unsigned idx = 0;
       do
         {
           input_get ();
           idx = (idx * 10) + (c2 - '0');
+          n->content.push_back (c2);
           c2 = input_peek ();
         } while (c2 > 0 &&
                  isdigit (c2) &&
                  idx <= session.args.size()); // prevent overflow
+      if (suspended)
+        throw parse_error ("invalid nested substitution of command line arguments", n);
       if (idx == 0 ||
           idx-1 >= session.args.size())
         throw parse_error ("command line argument index " + lex_cast(idx)
                            + " out of range [1-" + lex_cast(session.args.size()) + "]", n);
-      string arg = session.args[idx-1];
-      if (c == '$') input_put (arg);
-      else input_put (lex_cast_qstring (arg));
-      semiskipped_p ++;
-      goto semiskip;
+      const string& arg = session.args[idx-1];
+      input_put ((c == '$') ? arg : lex_cast_qstring (arg), n);
+      n->content.clear();
+      goto skip;
     }
 
   else if (isalpha (c) || c == '$' || c == '@' || c == '_' ||

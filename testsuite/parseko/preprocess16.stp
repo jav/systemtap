@@ -1,0 +1,4 @@
+#! /bin/sh
+
+# recursive after the first token (PR11195)
+stap -p1 -e 'probe begin {$1}' 'x $1'
