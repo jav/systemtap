@@ -479,7 +479,6 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 
 	  UNOP (abs, op_abs);
 	  BINOP (and, &);
-	  BINOP (div, /);
 	  BINOP (minus, -);
 	  BINOP (mod, %);
 	  BINOP (mul, *);
@@ -507,6 +506,16 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    POP (b);
 	    POP (a);
 	    push ("(%s) " STACKFMT " >> (%s)" STACKFMT,
+		  stack_slot_type (loc, true), a,
+		  stack_slot_type (loc, true), b);
+	    break;
+	  }
+
+	case DW_OP_div:
+	  {
+	    POP (b);
+	    POP (a);
+	    push ("(%s) " STACKFMT " / (%s)" STACKFMT,
 		  stack_slot_type (loc, true), a,
 		  stack_slot_type (loc, true), b);
 	    break;
