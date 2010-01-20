@@ -133,8 +133,11 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 	return cie;
 }
 
-/* read an encoded pointer */
-static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrType)
+/* read an encoded pointer and increment *pLoc past the end of the
+ * data read. */
+static unsigned long read_ptr_sect(const u8 **pLoc, const void *end,
+				   signed ptrType, unsigned long textAddr,
+				   unsigned long dataAddr)
 {
 	unsigned long value = 0;
 	union {
@@ -194,6 +197,12 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 	case DW_EH_PE_pcrel:
 		value += (unsigned long)*pLoc;
 		break;
+	case DW_EH_PE_textrel:
+		value += textAddr;
+		break;
+	case DW_EH_PE_datarel:
+		value += dataAddr;
+		break;
 	default:
 		return 0;
 	}
@@ -203,6 +212,11 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 	*pLoc = ptr.p8;
 
 	return value;
+}
+
+static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrType)
+{
+	return read_ptr_sect(pLoc, end, ptrType, 0, 0);
 }
 
 static signed fde_pointer_type(const u32 *cie, void *unwind_data,
@@ -535,7 +549,6 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
 
 /* If we previously created an unwind header, then use it now to binary search */
 /* for the FDE corresponding to pc. XXX FIXME not currently supported. */
-
 static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 				   struct _stp_module *m,
 				   struct _stp_section *s)
@@ -544,6 +557,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 	unsigned long startLoc;
 	u32 *fde = NULL;
 	unsigned num, tableSize, t2;
+	unsigned long eh_hdr_addr = m->unwind_hdr_addr;
 
 	if (hdr == NULL || hdr[0] != 1)
 		return NULL;
@@ -570,21 +584,29 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 	}
 	ptr = hdr + 4;
 	end = hdr + m->unwind_hdr_len;
-
-	if (read_pointer(&ptr, end, hdr[1]) != (unsigned long)m->debug_frame) {
-		dbug_unwind(1, "eh_frame_ptr not valid");
+	{
+		// XXX Can the header validity be checked just once?
+		unsigned long eh = read_ptr_sect(&ptr, end, hdr[1], 0,
+						 eh_hdr_addr);
+		if ((hdr[1] & DW_EH_PE_ADJUST) == DW_EH_PE_pcrel)
+			eh = eh - (unsigned long)hdr + eh_hdr_addr;
+		if ((eh != (unsigned long)m->eh_frame_addr)) {
+			dbug_unwind(1, "eh_frame_ptr in eh_frame_hdr 0x%lx not valid; eh_frame_addr = 0x%lx", eh, (unsigned long)m->eh_frame_addr);
 		return NULL;
+		}
 	}
-
-	num = read_pointer(&ptr, end, hdr[2]);
-	if (num == 0 || num != (end - ptr) / (2 * tableSize) || (end - ptr) % (2 * tableSize)) {
-		dbug_unwind(1, "Bad num=%d end-ptr=%ld 2*tableSize=%d", num, (long)(end - ptr), 2 * tableSize);
+	num = read_ptr_sect(&ptr, end, hdr[2], 0, eh_hdr_addr);
+	if (num == 0 || num != (end - ptr) / (2 * tableSize)
+	    || (end - ptr) % (2 * tableSize)) {
+		dbug_unwind(1, "Bad num=%d end-ptr=%ld 2*tableSize=%d",
+			    num, (long)(end - ptr), 2 * tableSize);
 		return NULL;
 	}
 
 	do {
 		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
-		startLoc = read_pointer(&cur, cur + tableSize, hdr[3]);
+		startLoc = read_ptr_sect(&cur, cur + tableSize, hdr[3], 0,
+					 eh_hdr_addr);
 		startLoc = adjustStartLoc(startLoc, tsk, m, s, hdr[3], 1);
 		if (pc < startLoc)
 			num /= 2;
@@ -594,8 +616,12 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 		}
 	} while (startLoc && num > 1);
 
-	if (num == 1 && (startLoc = adjustStartLoc(read_pointer(&ptr, ptr + tableSize, hdr[3]), tsk, m, s, hdr[3], 1)) != 0 && pc >= startLoc)
-		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
+	if (num == 1
+	    && (startLoc = adjustStartLoc(read_ptr_sect(&ptr, ptr + tableSize, hdr[3], 0, eh_hdr_addr), tsk, m, s, hdr[3], 1)) != 0 && pc >= startLoc)
+		fde = (u32*)(read_ptr_sect(&ptr, ptr + tableSize, hdr[3],
+					   0, eh_hdr_addr)
+			     - m->eh_frame_addr
+			     +(u8*)m->eh_frame);
 
 	dbug_unwind(1, "returning fde=%lx startLoc=%lx", (unsigned long) fde, startLoc);
 	return fde;
@@ -610,7 +636,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 			void *table, uint32_t table_len, int is_ehframe)
 {
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
-	const u32 *fde, *cie = NULL;
+	const u32 *fde = NULL, *cie = NULL;
 	const u8 *ptr = NULL, *end = NULL;
 	unsigned long pc = UNW_PC(frame) - frame->call_frame;
 	unsigned long tableSize, startLoc = 0, endLoc = 0, cfa;
@@ -623,8 +649,8 @@ static int unwind_frame(struct unwind_frame_info *frame,
 		dbug_unwind(1, "Module %s: frame_len=%d", m->name, table_len);
 		goto err;
 	}
-
-	fde = _stp_search_unwind_hdr(pc, tsk, m, s);
+	if (is_ehframe)
+		fde = _stp_search_unwind_hdr(pc, tsk, m, s);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
 
 	/* found the fde, now set startLoc and endLoc */

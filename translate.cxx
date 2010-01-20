@@ -4498,7 +4498,9 @@ struct unwindsym_dump_context
 static void get_unwind_data (Dwfl_Module *m,
 			     void **debug_frame, void **eh_frame,
 			     size_t *debug_len, size_t *eh_len,
-			     Dwarf_Addr *eh_addr)
+			     Dwarf_Addr *eh_addr,
+                             void **eh_frame_hdr, size_t *eh_frame_hdr_len,
+                             Dwarf_Addr *eh_frame_hdr_addr)
 {
   Dwarf_Addr start, bias = 0;
   GElf_Ehdr *ehdr, ehdr_mem;
@@ -4514,9 +4516,11 @@ static void get_unwind_data (Dwfl_Module *m,
   scn = NULL;
   while ((scn = elf_nextscn(elf, scn)))
     {
+      bool eh_frame_seen = false;
+      bool eh_frame_hdr_seen = false;
       shdr = gelf_getshdr(scn, &shdr_mem);
-      if (strcmp(elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name),
-		 ".eh_frame") == 0)
+      const char* scn_name = elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name);
+      if (!eh_frame_seen && strcmp(scn_name, ".eh_frame") == 0)
 	{
 	  data = elf_rawdata(scn, NULL);
 	  *eh_frame = data->d_buf;
@@ -4526,8 +4530,21 @@ static void get_unwind_data (Dwfl_Module *m,
 	    *eh_addr = shdr->sh_addr - start + bias;
 	  else
 	    *eh_addr = shdr->sh_addr;
-	  break;
+	  eh_frame_seen = true;
 	}
+      else if (!eh_frame_hdr_seen && strcmp(scn_name, ".eh_frame_hdr") == 0)
+        {
+          data = elf_rawdata(scn, NULL);
+          *eh_frame_hdr = data->d_buf;
+          *eh_frame_hdr_len = data->d_size;
+          if (dwfl_module_relocations (m) > 0)
+	    *eh_frame_hdr_addr = shdr->sh_addr - start + bias;
+	  else
+	    *eh_frame_hdr_addr = shdr->sh_addr;
+          eh_frame_hdr_seen = true;
+        }
+      if (eh_frame_seen && eh_frame_hdr_seen)
+        break;
     }
 
   // fetch .debug_frame info preferably from dwarf debuginfo file.
@@ -4785,9 +4802,13 @@ dump_unwindsyms (Dwfl_Module *m,
   void *debug_frame = NULL;
   size_t debug_len = 0;
   void *eh_frame = NULL;
+  void *eh_frame_hdr = NULL;
   size_t eh_len = 0;
+  size_t eh_frame_hdr_len = 0;
   Dwarf_Addr eh_addr = 0;
-  get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr);
+  Dwarf_Addr eh_frame_hdr_addr = 0;
+  get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
+                   &eh_frame_hdr, &eh_frame_hdr_len, &eh_frame_hdr_addr);
   if (debug_frame != NULL && debug_len > 0)
     {
       if (debug_len > MAX_UNWIND_TABLE_SIZE)
@@ -4820,6 +4841,26 @@ dump_unwindsyms (Dwfl_Module *m,
       for (size_t i = 0; i < eh_len; i++)
 	{
 	  int h = ((uint8_t *)eh_frame)[i];
+	  c->output << "0x" << hex << h << dec << ",";
+	  if ((i + 1) % 16 == 0)
+	    c->output << "\n" << "   ";
+	}
+      c->output << "};\n";
+      c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
+    }
+
+  if (eh_frame_hdr != NULL && eh_frame_hdr_len > 0)
+    {
+      if (eh_frame_hdr_len > MAX_UNWIND_TABLE_SIZE)
+	throw semantic_error ("module eh header size too big");
+
+      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
+      c->output << "static uint8_t _stp_module_" << stpmod_idx
+		<< "_eh_frame_hdr[] = \n";
+      c->output << "  {";
+      for (size_t i = 0; i < eh_frame_hdr_len; i++)
+	{
+	  int h = ((uint8_t *)eh_frame_hdr)[i];
 	  c->output << "0x" << hex << h << dec << ",";
 	  if ((i + 1) % 16 == 0)
 	    c->output << "\n" << "   ";
@@ -4883,8 +4924,9 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
   c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
-  c->output << ".dwarf_module_base = 0x" << hex << base << dec << ", \n";
-  c->output << ".eh_frame_addr = 0x" << hex << eh_addr << dec << ", \n";
+  c->output << ".dwarf_module_base = 0x" << hex << base << ", \n";
+  c->output << ".eh_frame_addr = 0x" << eh_addr << ", \n";
+  c->output << ".unwind_hdr_addr = 0x" << eh_frame_hdr_addr << dec << ", \n";
 
   if (debug_frame != NULL)
     {
@@ -4907,18 +4949,26 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << ".eh_frame = "
 		<< "_stp_module_" << stpmod_idx << "_eh_frame, \n";
       c->output << ".eh_frame_len = " << eh_len << ", \n";
+      if (eh_frame_hdr)
+        {
+          c->output << ".unwind_hdr = "
+                    << "_stp_module_" << stpmod_idx << "_eh_frame_hdr, \n";
+          c->output << ".unwind_hdr_len = " << eh_frame_hdr_len << ", \n";
+        }
+      else
+        {
+          c->output << ".unwind_hdr = NULL,\n";
+          c->output << ".unwind_hdr_len = 0,\n";
+        }
       c->output << "#else\n";
     }
 
   c->output << ".eh_frame = NULL,\n";
   c->output << ".eh_frame_len = 0,\n";
-
-  if (eh_frame != NULL)
-    c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/\n";
-
   c->output << ".unwind_hdr = NULL,\n";
   c->output << ".unwind_hdr_len = 0,\n";
-
+  if (eh_frame != NULL)
+    c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA*/\n";
   c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ",\n";
   c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"
             << "sizeof(struct _stp_section),\n";
