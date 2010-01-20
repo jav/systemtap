@@ -13,6 +13,7 @@ AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
 man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
+dtrace.1 \
 staprun.8 \
 man/stapprobes.iosched.3stap man/stapprobes.netdev.3stap \
 man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap \

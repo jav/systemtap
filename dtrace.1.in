@@ -1,0 +1,92 @@
+.\" -*- nroff -*-
+.TH DTRACE 1 @DATE@ "Red Hat"
+.SH NAME
+dtrace \- Dtrace compatibile user application static probe generation tool.
+
+.SH SYNOPSIS
+
+.br
+.B dtrace \-s \fIfile\fR [\fBOPTIONS\fR]
+
+.SH DESCRIPTION
+
+The dtrace command converts probe descriptions defined in \fIfile.d\fR
+into a probe header
+file via the \fB-h\fR option
+or a probe description file via the \fB-G\fR option.
+
+.SH OPTIONS
+.PP
+.TP
+.B \-h
+generate a systemtap header file.
+
+.TP
+.B \-G
+generate a systemtap probe definition object file.
+
+.TP
+.B \-o \fIfile\fR
+is the name of the output file.  If the \fB\-G\fR option is given then
+the output file will be called \fIfile.o\fR; if the \fB-h\fR option is
+given then the output file will be called \fIfile.h\fR.
+
+.TP
+.B \-C
+run the cpp preprocessor on the input file when the \fB\-h\fR option
+is given.
+
+.TP
+.B \-I \fIfile\fR
+give this include path to cpp when the \fB\-C\fR option is given.
+
+.TP
+.B \-k
+keep temporary files, for example the C language source for the
+\fB\-G\fR option.
+
+.TP
+.B \-\-types
+generate probe argument typedef information when the \fB\-h\fR
+option is given.
+
+.SH EXAMPLES
+
+Systemtap is source compatible with dtrace user application static
+probe support.
+Given a file \fItest.d\fR containing:
+.RS
+.in +2
+.nf
+provider sdt_probes 
+{
+  probe test_0 (int type);
+  probe test_1 (struct astruct node);
+};
+struct astruct {int a; int b;};
+.fi
+.in
+.RE
+Then the command \fI"dtrace\ -s\ test.d\ -G"\fR
+will create the probe definition file \fItest.o\fR
+and the command \fI"dtrace\ -s\ test.d\ -h"\fR
+will create the probe header file \fItest.h\fR
+Subsequently the application can define probes using
+.in +2
+.nf
+#include "test.h"
+ \.\.\.
+struct astruct s;
+ \.\.\.
+SDT_PROBES_TEST_0(value);
+ \.\.\.
+SDT_PROBES_TEST_1(s);
+.fi
+.in
+
+The application is linked with \fI"test.o"\fR when it is built.
+
+.SH SEE ALSO
+
+\fBstap(1)\fR
+
