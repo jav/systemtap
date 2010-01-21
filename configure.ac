@@ -249,14 +249,14 @@ EOF
 
 if test "x${have_xmlto}" == "xyes"; then
 AC_MSG_CHECKING([for xmlto --stringparam support])
-   xmlto --stringparam man.authors.section.enabled=0 txt conftest.xml >/dev/null 2>&1
+   xmlto --stringparam man.authors.section.enabled=0 html-nochunks conftest.xml >/dev/null 2>&1
    if test $? == 0; then
       have_xmlto_stringparam="yes"
       AC_MSG_RESULT([yes])
    else
       AC_MSG_RESULT([no])
    fi
-   rm -f conftest.txt
+   rm -f conftest.html
 fi
 AM_CONDITIONAL([XMLTO_STRINGPARAM], [test "$have_xmlto_stringparam" == "yes"])
 
@@ -678,7 +678,7 @@ test "$stap_prefix" = NONE && stap_prefix=$ac_default_prefix
 AC_DEFINE_UNQUOTED(STAP_PREFIX, "$stap_prefix", [configure prefix location])
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile doc/Makefile doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-client.8 stap-server.8 stap-authorize-server-cert.8 stap-authorize-signing-cert.8 man/stapprobes.iosched.3stap man/stapprobes.irq.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap man/stapprobes.snmp.3stap initscript/systemtap initscript/stap-server)
+AC_CONFIG_FILES(Makefile doc/Makefile doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap staprun.8 stap-client.8 stap-server.8 stap-authorize-server-cert.8 stap-authorize-signing-cert.8 man/stapprobes.iosched.3stap man/stapprobes.irq.3stap man/stapprobes.netdev.3stap man/stapprobes.nfs.3stap man/stapprobes.nfsd.3stap man/stapprobes.pagefault.3stap man/stapprobes.kprocess.3stap man/stapprobes.rpc.3stap man/stapprobes.scsi.3stap man/stapprobes.signal.3stap man/stapprobes.socket.3stap man/stapprobes.tcp.3stap man/stapprobes.udp.3stap man/stapprobes.snmp.3stap initscript/systemtap initscript/stap-server dtrace.1)
 AC_CONFIG_SUBDIRS(testsuite)
 if test $enable_translator == "yes"; then
 	AC_CONFIG_FILES([run-stap], [chmod +x run-stap])

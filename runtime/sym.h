@@ -49,6 +49,7 @@ struct _stp_module {
 	uint32_t eh_frame_len;
 	uint32_t unwind_hdr_len;
 	unsigned long eh_frame_addr; /* Orig load address (offset) .eh_frame */
+	unsigned long unwind_hdr_addr; /* same for .eh_frame_hdr */
 	/* build-id information */
 	unsigned char *build_id_bits;
 	unsigned long  build_id_offset;

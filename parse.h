@@ -79,12 +79,14 @@ public:
 private:
   inline int input_get ();
   inline int input_peek (unsigned n=0);
-  void input_put (const std::string&);
+  void input_put (const std::string&, const token*);
   std::string input_name;
   std::string input_contents;
   const char *input_pointer; // index into input_contents
   const char *input_end;
   unsigned cursor_suspend_count;
+  unsigned cursor_suspend_line;
+  unsigned cursor_suspend_column;
   unsigned cursor_line;
   unsigned cursor_column;
   systemtap_session& session;

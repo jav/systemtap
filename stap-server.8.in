@@ -359,6 +359,28 @@ structures and potentially private user information.  See the
 manual page for additional information on safety and security.
 
 .PP
+As a network server, stap-server should be activated with care in
+order to limit the potential effects of bugs or mischevious users.
+Consider the following prophylactic measures.
+.TP
+1
+Run stap-server as an unprivileged user, never as root.
+.TP
+2
+Run stap-server with resource limits that impose maximum 
+cpu time, file size, memory consumption, in order to bound
+the effects of processing excessively large or bogus inputs.
+.TP
+3
+Run stap-server with a $TMPDIR environment variable that
+points to a separate and/or quota-enforced directory, in
+order to prevent filling up of important filesystems.
+.TP
+4
+Activate network firewalls to limit stap-client connections
+to relatively trustworthy networks.
+
+.PP
 The systemtap server and its related utilities use the Secure Socket Layer
 (SSL) as implemented by Network Security Services (NSS)
 for network security. The NSS tool
@@ -399,6 +421,7 @@ Location of installed kernels.
 .IR stapprobes (3stap),
 .IR stapfuncs (3stap),
 .IR stapex (3stap),
+.IR ulimit (1),
 .IR NSS ,
 .IR certutil
 

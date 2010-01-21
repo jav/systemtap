@@ -1,4 +1,4 @@
-# generated automatically by aclocal 1.11 -*- Autoconf -*-
+# generated automatically by aclocal 1.11.1 -*- Autoconf -*-
 
 # Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
 # 2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
@@ -13,8 +13,8 @@
 
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
-m4_if(m4_defn([AC_AUTOCONF_VERSION]), [2.63],,
-[m4_warning([this file was generated for autoconf 2.63.
+m4_if(m4_defn([AC_AUTOCONF_VERSION]), [2.65],,
+[m4_warning([this file was generated for autoconf 2.65.
 You have another version of autoconf.  It may work, but is not guaranteed to.
 If you have problems, you may need to regenerate the build system entirely.
 To do so, use the procedure documented by the package, typically `autoreconf'.])])
@@ -87,14 +87,16 @@ fi])
 # _PKG_CONFIG([VARIABLE], [COMMAND], [MODULES])
 # ---------------------------------------------
 m4_define([_PKG_CONFIG],
-[if test -n "$$1"; then
-    pkg_cv_[]$1="$$1"
- elif test -n "$PKG_CONFIG"; then
-    PKG_CHECK_EXISTS([$3],
-                     [pkg_cv_[]$1=`$PKG_CONFIG --[]$2 "$3" 2>/dev/null`],
-		     [pkg_failed=yes])
- else
-    pkg_failed=untried
+[if test -n "$PKG_CONFIG"; then
+    if test -n "$$1"; then
+        pkg_cv_[]$1="$$1"
+    else
+        PKG_CHECK_EXISTS([$3],
+                         [pkg_cv_[]$1=`$PKG_CONFIG --[]$2 "$3" 2>/dev/null`],
+			 [pkg_failed=yes])
+    fi
+else
+	pkg_failed=untried
 fi[]dnl
 ])# _PKG_CONFIG
 
@@ -138,9 +140,9 @@ See the pkg-config man page for more details.])
 if test $pkg_failed = yes; then
         _PKG_SHORT_ERRORS_SUPPORTED
         if test $_pkg_short_errors_supported = yes; then
-	        $1[]_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "$2" 2>&1`
+	        $1[]_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "$2"`
         else 
-	        $1[]_PKG_ERRORS=`$PKG_CONFIG --print-errors "$2" 2>&1`
+	        $1[]_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "$2"`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$$1[]_PKG_ERRORS" >&AS_MESSAGE_LOG_FD
@@ -190,7 +192,7 @@ AC_DEFUN([AM_AUTOMAKE_VERSION],
 [am__api_version='1.11'
 dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
 dnl require some minimum version.  Point them to the right macro.
-m4_if([$1], [1.11], [],
+m4_if([$1], [1.11.1], [],
       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
 ])
 
@@ -206,7 +208,7 @@ m4_define([_AM_AUTOCONF_VERSION], [])
 # Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
 # This function is AC_REQUIREd by AM_INIT_AUTOMAKE.
 AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
-[AM_AUTOMAKE_VERSION([1.11])dnl
+[AM_AUTOMAKE_VERSION([1.11.1])dnl
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
 _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
