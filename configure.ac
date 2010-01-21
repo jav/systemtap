@@ -249,14 +249,14 @@ EOF
 
 if test "x${have_xmlto}" == "xyes"; then
 AC_MSG_CHECKING([for xmlto --stringparam support])
-   xmlto --stringparam man.authors.section.enabled=0 txt conftest.xml >/dev/null 2>&1
+   xmlto --stringparam man.authors.section.enabled=0 html-nochunks conftest.xml >/dev/null 2>&1
    if test $? == 0; then
       have_xmlto_stringparam="yes"
       AC_MSG_RESULT([yes])
    else
       AC_MSG_RESULT([no])
    fi
-   rm -f conftest.txt
+   rm -f conftest.html
 fi
 AM_CONDITIONAL([XMLTO_STRINGPARAM], [test "$have_xmlto_stringparam" == "yes"])
 
