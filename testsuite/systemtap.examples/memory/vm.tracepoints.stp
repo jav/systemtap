@@ -1,3 +1,5 @@
+#! /usr/bin/env stap
+
 global slabs
 
 probe vm.kmem_cache_alloc {
