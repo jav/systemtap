@@ -184,7 +184,7 @@ install-exec-hook:
 # make install, and have "sudo stap ...." or "sudo staprun ...." work later.
 
 
-CLEANFILES +=  $(pkglibexec_PROGRAMS) $(pkglibexec_SCRIPTS)
+CLEANFILES +=  $(pkglibexec_PROGRAMS)
 
 if BUILD_TRANSLATOR
 if HAVE_NSS

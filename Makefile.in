@@ -438,8 +438,7 @@ BUILT_SOURCES = git_version.stamp $(am__append_15)
 
 # Why the "id -u" condition?  This way, an unprivileged user can run
 # make install, and have "sudo stap ...." or "sudo staprun ...." work later.
-CLEANFILES = git_version.h $(am__append_16) $(pkglibexec_PROGRAMS) \
-	$(pkglibexec_SCRIPTS)
+CLEANFILES = git_version.h $(am__append_16) $(pkglibexec_PROGRAMS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
 PHONIES = $(am__append_12) $(am__append_18) dist-gzip
 @BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -D_FILE_OFFSET_BITS=64
