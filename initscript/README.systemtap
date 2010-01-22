@@ -199,7 +199,7 @@ Configuration file allows us
 
 4.1.9 AUTOCOMPILE
  If this is set 'yes', systemtap initscript automatically tries to compile
- specified script if there is no valid cache. Otherwides, it just fails to
+ specified script if there is no valid cache. Otherwise, it just fails to
  run script(s).
  (default: yes)
 
@@ -396,10 +396,10 @@ script2_REQ=script1
   resulting module on the client host.
 
 6.1.2 Unprivileged Users (Module Signing)
-  If the user on the client host is a an ordinary unprivileged user or a member
+  If the user on the client host is an ordinary unprivileged user or a member
   of the group stapusr, he will get an error when running the example above,
   since he does not have authority to load the unsigned module returned by the
-  server. Howeverm if he is a member of the group stapusr and if he can get the
+  server. However if he is a member of the group stapusr and if he can get the
   module signed by a trusted signer, he will be able to load it.
 
   The server will sign the module if the --unprivileged option is specified by
@@ -428,7 +428,7 @@ script2_REQ=script1
   The example above should now work as expected.   
 
 6.1.3 Ordinary Users
-  Ordinary users are users who are not root and not a member of either of the
+  Ordinary users are users who are not root or a member of either of the
   groups stapdev or stapusr.
 
   These users can still use the stap-server service to compile their scripts

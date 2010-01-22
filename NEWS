@@ -20,8 +20,8 @@
 
   See initscript/README.stap-server for details.
 
-- Some of the of the compile server client, server and certificate
-  management tools have been moved from $bindir to $libexecdir/systemtap.
+- Some of the compile server client, server and certificate management
+  tools have been moved from $bindir to $libexecdir/systemtap.
   You should use the new stap-server script or the stap-server initscript
   for server management where possible. The stap-server script provides the same
   functionality as the stap-server initscript except that the servers are
