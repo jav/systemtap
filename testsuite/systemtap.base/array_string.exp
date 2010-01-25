@@ -1,0 +1,45 @@
+# PR 11220.  Make sure we can store large strings in arrays.
+
+if {![installtest_p]} { untested $test; return }
+
+set test "ARRAY_STRING"
+
+set test_script {
+    global str
+    global str_array[1]
+
+    probe begin {
+	str = "  0:123456789+123456789+123456789+123456789+123456789+123456789  1:123456789+123456789+123456789+123456789+123456789+123456789  2:123456789+123456789+123456789+123456789+123456789+123456789  3:123456789+123456789+123456789+123456789+123456789+123456789  4:123456789+123456789+123456789+123456789+123456789+123456789  5:123456789+123456789+123456789+123456789+123456789+123456789  6:123456789+123456789+123456789+123456789+123456789+123456789  7:123456789+123456789+123456789+123456789+123456789+123456789"	
+	str_array[0] = str
+        printf("systemtap starting probe\n")
+    }
+
+    probe end {
+        printf("systemtap ending probe\n")
+	if (strlen(str) < 500) {
+	    printf("string str is too short: %d\n", strlen(str))
+	    printf("%s\n", str)
+	}
+	if (strlen(str) == strlen(str_array[0])) {
+	    printf("string lengths match\n")
+	}
+	else {
+	    printf("string lengths *don't* match\n")
+	    printf("str: %d\n", strlen(str))
+	    printf("str_array[0]: %d\n", strlen(str_array[0]))
+	}
+	if (str_array[0] == str) {
+	    printf("strings match\n")
+	}
+	else {
+	    printf("strings *don't* match!\n")
+	    printf("str: %s\n", str)
+	    printf("str_array[0]: %s\n", str_array[0])
+	}
+    }
+}
+
+set output "string lengths match\r\nstrings match\r\n"
+
+# Set MAXSTRINGLEN to 512 to be sure we're testing what we intend.
+stap_run $test no_load $output -DMAXSTRINGLEN=512 -e $test_script
