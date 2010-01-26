@@ -556,7 +556,7 @@ main (int argc, char **argv)
 	      if (cfi != NULL)
 		{
 		  Dwarf_Frame *frame = NULL;
-		  if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+		  if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
 		    dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 		}
 	      if (cfa_ops == NULL)
@@ -565,7 +565,7 @@ main (int argc, char **argv)
 		  if (cfi != NULL)
 		    {
 		      Dwarf_Frame *frame = NULL;
-		      if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+		      if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
 			dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 		    }
 		}
