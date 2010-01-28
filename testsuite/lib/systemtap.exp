@@ -153,7 +153,7 @@ proc setup_server {} {
     exec chmod 666 $logfile
 
     # Try to find or start the server.
-    set server_pid [exec stap-start-server --log=$logfile]
+    set server_pid [exec env STAP_PR11197_OVERRIDE=1 stap-start-server --log=$logfile]
     if { "$server_pid" == "" } then {
 	print "Cannot start a systemtap server"
 	set server_pid 0
