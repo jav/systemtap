@@ -1,3 +1,8 @@
+* What's new
+
+- In order to limit potential impact from future security problems, 
+  the stap-server process does not permit its being launched as root.
+
 * What's new in version 1.1
 
 - New tracepoint based tapset for memory subsystem.
