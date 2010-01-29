@@ -1,0 +1,4 @@
+#! stap -wp4
+
+probe kernel.data("pid_max").write {}
+probe kernel.data("pid_max").rw {}
