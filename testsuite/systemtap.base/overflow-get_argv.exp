@@ -1,0 +1,5 @@
+# PR11234: __get_argv can overflow its return buffer
+
+set test "overflow-get_argv"
+
+stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string -g -c "/bin/true /usr/bin/*"
