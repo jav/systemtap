@@ -1,7 +1,9 @@
 * What's new
-
 - In order to limit potential impact from future security problems, 
   the stap-server process does not permit its being launched as root.
+
+- New : systemtap now supports probes for Hardware Breakpoints on x86
+  and x86_64. For syntax details, see man page for stapprobes.
 
 * What's new in version 1.1
 

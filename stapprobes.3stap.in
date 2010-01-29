@@ -660,6 +660,55 @@ and a string of name=value pairs for all parameters of the tracepoint
 is available in
 .BR $$vars " or " $$parms .
 
+.SS HARDWARE BREAKPOINTS
+This family of probes is used to set hardware watchpoints for a given
+ (global) kernel symbol. The probes take three components as inputs :
+
+1. The
+.BR virtual address / name
+of the kernel symbol to be traced is supplied as argument to this class
+of probes. ( Probes for only data segment variables are supported. Probing
+local variables of a function cannot be done.)
+
+2. Nature of access to be probed :
+a.
+.I .write
+probe gets triggered when a write happens at the specified address/symbol
+name.
+b.
+.I rw
+probe is triggered when either a read or write happens.
+
+3.
+.BR .length
+(optional)
+Users have the option of specifying the address interval to be probed
+using "length" constructs. The user-specified length gets approximated
+to the closest possible address length that the architecture can
+support. If the specified length exceeds the limits imposed by
+architecture, an error message is flagged and probe registration fails.
+Wherever 'length' is not specified, the translator requests a hardware
+breakpoint probe of length 1. It should be noted that the "length"
+construct is not valid with symbol names.
+
+Following constructs are supported :
+.SAMPLE
+probe kernel.data(ADDRESS).write
+probe kernel.data(ADDRESS).rw
+probe kernel.data(ADDRESS).length(LEN).write
+probe kernel.data(ADDRESS).length(LEN).rw
+probe kernel.data("SYMBOL_NAME").write
+probe kernel.data("SYMBOL_NAME").rw
+.ESAMPLE
+
+This set of probes make use of the debug registers of the processor,
+which is a scarce resource. (4 on x86 , 1 on powerpc ) The script
+translation flags a warning if a user requests more hardware breakpoint probes
+than the limits set by architecture. For example,a pass-2 warning is flashed
+when an input script requests 5 hardware breakpoint probes on an x86
+system while x86 architecture supports a maximum of 4 breakpoints.
+Users are cautioned to set probes judiciously.
+
 .SH EXAMPLES
 .PP
 Here are some example probe points, defining the associated events.
@@ -695,6 +744,9 @@ refers to the statement of line 2917 within "kernel/sched.c".
 .TP
 kernel.statement("bio_init@fs/bio.c+3")
 refers to the statement at line bio_init+3 within "fs/bio.c".
+.TP
+kernel.data("pid_max").write
+refers to a hardware preakpoint of type "write" set on pid_max
 .TP
 syscall.*.return
 refers to the group of probe aliases with any name in the third position
