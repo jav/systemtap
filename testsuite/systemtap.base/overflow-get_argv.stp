@@ -23,7 +23,7 @@ function clear:string(x:long, y:long, z:string) %{
 %}
 
 function check:string(x:long, y:long, z:string) %{
-  int i, bad;
+  int i, bad = 0;
   for (i=1; i<MAXSTRINGLEN; ++i)
     if (THIS->__retvalue[i])
       ++bad;
