@@ -40,6 +40,8 @@ proc stap_direct_and_with_client {stap stap_client options} {
 	# Some messages contain the names of files or directories
 	# and will be prefixed for the client.
 	if {[regexp "^              (.*)" $expected_line match data]} {
+	    # Special characters in the regexp need to be quoted.
+	    regsub -all "\[\"\\\\;\]" $data {\\\0} data
 	    if {[regexp "^              tapsets.*/$data" $line]} {
 		incr n
 		continue
@@ -57,6 +59,8 @@ proc stap_direct_and_with_client {stap stap_client options} {
 	    }
 	} else {
 	    if {[regexp "^Input file '(.*)' is empty or missing." $expected_line match data]} {
+		# Special characters in the regexp need to be quoted.
+		regsub -all "\[\"\\\\;\]" $data {\\\0} data
 		if {[regexp "^Input file 'script.*/$data' is empty or missing." $line]} {
 		    incr n
 		    continue
@@ -110,6 +114,8 @@ if {[installtest_p]} then {
 # for debugging a currently failing case and helps to ensure that previously
 # fixed cases do not regress.
 set previously_fixed [list \
+  "-p1 -I8o\\2ie -Rtu\\\n -e'1\\ -B*3x8k\; -D\n\" -c" \
+  "-p1 -Ira\\3;c g -Rlr\"6/3ho -e0fle'qq -B -Dr/316k\\o8 -cjyoc\n3" \
   "-p1 -I6p3 -Rk3g-t\n89 -elc -Bd -Dqgsgv' -c" \
   "-p1 -I\"vyv;z -Rzvchje2\\ -ej\"/3 -Be -D/ 01qck\n -c3u55zut" \
   "-p1 -I1 -R\n -eo9e\nx047q -B\"*dd;tn\\ -D9xyefk0a -cvl98/x1'i" \

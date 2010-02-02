@@ -84,6 +84,7 @@ function parse_options {
     # Each command line argument will be written to its own file within the
     # request package.
     argc=1
+    packed_options='-'
     arg_subst=
 
     while test $# != 0
@@ -162,8 +163,6 @@ function parse_options {
 		    ;;
 		I)
 		    get_arg "$first_token" "$2"
-                    # Truncate the file name at the first newline
-		    stap_arg=`echo "X$stap_arg" | head -1 | head -c -1 | sed s/^X//`
 		    process_I "$stap_arg"
 		    ;;	
 		k)
@@ -195,8 +194,6 @@ function parse_options {
 		    ;;	
 		R)
 		    get_arg "$first_token" "$2"
-                    # Truncate the file name at the first newline
-		    stap_arg=`echo "X$stap_arg" | head -1 | head -c -1 | sed s/^X//`
 		    process_R "$stap_arg"
 		    ;;	
 		s)
@@ -227,32 +224,17 @@ function parse_options {
 
         # Consume the arguments we just processed.
 	while test $advance != 0; do
-	    local arg="$1"
-
 	    # Does the final argument file contain a client-side file
 	    # name which must be changed to a server-side name?
+	    local arg
 	    if test "X$arg_subst" != "X" -a $advance = 1; then
-		# Truncate the argument (which contains the file name)
-		# at the first newline. echo an X at the beginning
-		# To prevent echo from interpreting any contents as
-		# its own options. We will remove the X below.
-		arg=`echo "X$arg" | head -1 | head -c -1`
-
-		# Make sure that any embedded chars which are significant to
-		# sed are quoted in the argument and the substitution.
-#echo "stap_arg='$stap_arg'" >&2
-#echo "arg_subst='$arg_subst'" >&2
-		stap_arg=`echo "X$stap_arg" | sed -e "s|\\\\\\\\|\\\\\\\\\\\\\\\\|g" -e "s|^X||"`
-		arg_subst=`echo "X$arg_subst" | sed -e "s|\\\\\\\\|\\\\\\\\\\\\\\\\|g" -e "s|^X||"`
-
-		# Now substitute the server-side file name
-#echo "stap_arg='$stap_arg'" >&2
-#echo "arg_subst='$arg_subst'" >&2
-		arg=`echo "$arg" | sed -e "s|$stap_arg|$arg_subst|" -e "s|^X||"`
+		arg="$arg_subst"
 		arg_subst=
+	    else
+		arg="$1"
 	    fi
 
-	    # Place the argument is a numbered file within our temp
+	    # Place the argument in a numbered file within our temp
 	    # directory.
 	    # o We don't write a newline at the end, since newline could be
 	    #   part of the argument.
@@ -267,6 +249,7 @@ function parse_options {
 	    shift
 	    argc=$(($argc + 1))
 	    advance=$(($advance - 1))
+	    packed_options='-'
 	done
     done
 
@@ -275,9 +258,8 @@ function parse_options {
     if test "X$script_file" != "X"; then
 	local local_name
 	if test "$script_file" != "-"; then
-            # Truncate the file name at the first newline
-	    script_file=`echo "X$script_file" | head -1 | head -c -1 | sed s/^X//`
-	    local_name=`generate_client_temp_name "$script_file"`
+	    generate_client_temp_name "$script_file"
+	    local_name="$client_temp_name"
 	else
 	    local_name="-"
 	fi
@@ -300,6 +282,7 @@ function get_arg {
     # Remove first character.
     local opt="${1:0:1}"
     local first="${1:1}"
+    packed_options="${packed_options}$opt"
 
     # Advance to the next token, if the first one is exhausted.
     if test "X$first" = "X"; then
@@ -356,12 +339,19 @@ function process_e {
     fi
 }
 
-# function: process_I ARGUMENT
+# function: process_I ARGUMENT ORIGINAL_ARGUMENT
 #
 # Process the -I flag.
 function process_I {
     test "X$1" = "X" && return
-    arg_subst=tapsets/`include_file_or_directory tapsets "$1"`
+    test "${1:0:1}" = "
+" && return
+    include_file_or_directory tapsets "$1"
+    if test $advance = 1; then
+	arg_subst="${packed_options}tapsets/$included_name"
+    else
+	arg_subst="tapsets/$included_name"
+    fi
 }
 
 # function: process_m ARGUMENT
@@ -423,23 +413,34 @@ function process_a {
     fi
 }
 
-# function: process_R ARGUMENT
+# function: process_R ARGUMENT ORIGINAL_ARGUMENT
 #
 # Process the -R flag.
 function process_R {
     test "X$1" = "X" && return
-    arg_subst=runtime/`include_file_or_directory runtime "$1"`
+    test "${1:0:1}" = "
+" && return
+    include_file_or_directory runtime "$1"
+    if test $advance = 1; then
+	arg_subst="${packed_options}runtime/$included_name"
+    else
+	arg_subst="runtime/$included_name"
+    fi
 }
 
 # function: include_file_or_directory PREFIX NAME
 #
 # Include the given file or directory in the client's temporary
-# tree to be sent to the server.
+# tree to be sent to the server and save it's name in the variable
+# included_name. We use a global variable instread of echoing the
+# result since the use of `include_file_or_directory` loses a trailing
+# newline.
 function include_file_or_directory {
     # Add a symbolic link of the named file or directory to our temporary
     # directory, but only if the file or directory exists.
-    local local_name=`generate_client_temp_name "$2"`
-    echo "$local_name"
+    generate_client_temp_name "$2"
+    local local_name="$client_temp_name"
+    included_name="$local_name"
     test -e "/$local_name" || return
 
     local local_dirname=`dirname "$local_name"`
@@ -452,15 +453,20 @@ function include_file_or_directory {
 # function: generate_client_temp_name NAME
 #
 # Generate the name to be used for the given file/directory relative to the
-# client's temporary directory.
+# client's temporary directory and stores it in the variable
+# client_temp_name. We use a global variable instread of echoing the
+# result since the use of `generate_client_temp_name` loses a trailing
+# newline.
 function generate_client_temp_name {
     # Transform the name into a fully qualified path name
-    full_name=`echo "X$1" | sed "s,^X\\\([^/]\\\),$wd/\\\\1,"`
+    local full_name="$1"
+    test "${full_name:0:1}" != "/" && full_name="$wd/$full_name"
 
     # The same name without the initial / or trailing /
-    local local_name=`echo "$full_name" | sed 's,^/\(.*\),\1,'`
-    local_name=`echo "$local_name" | sed 's,\(.*\)/$,\1,' | sed 's,^X,,'`
-    echo "$local_name"
+    local local_name="${full_name:1}"
+    test "${local_name: -1:1}" = "/" && local_name="${local_name:0:$((${#local_name}-1))}"
+
+    client_temp_name="$local_name"
 }
 
 # function: create_request
@@ -477,7 +483,7 @@ function create_request {
 		fatal "Cannot create temporary directory " $tmpdir_client/script
 	    cat > "$tmpdir_client/script/$script_file"
 	else
-	    include_file_or_directory script "$script_file" > /dev/null
+	    include_file_or_directory script "$script_file"
 	fi
     fi
 
@@ -526,7 +532,7 @@ function unpack_response {
     # 2) a file called stderr
     # 3) a file called rc
     # 4) optionally a directory named to match stap??????
-    num_files=`ls $tmpdir_server | wc -l`
+    local num_files=`ls $tmpdir_server | wc -l`
     test $num_files = 4 -o $num_files = 3 || \
 	fatal "Wrong number of files in server's temp directory"
     test -f $tmpdir_server/stdout || \
