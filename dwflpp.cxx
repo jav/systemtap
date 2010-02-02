@@ -1726,9 +1726,10 @@ dwflpp::translate_location(struct obstack *pool,
                             e->tok);
     }
 
-  // pc is relative to current module, which is what get_cfa_ops
-  // and c_translate_location expects.
-  Dwarf_Op *cfa_ops = get_cfa_ops (pc);
+  // pc is in the dw address space of the current module, which is what
+  // c_translate_location expects. get_cfa_ops wants the global dwfl address.
+  Dwarf_Addr addr = pc + module_bias;
+  Dwarf_Op *cfa_ops = get_cfa_ops (addr);
   return c_translate_location (pool, &loc2c_error, this,
                                &loc2c_emit_address,
                                1, 0 /* PR9768 */,
@@ -2783,17 +2784,17 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
     clog << "get_cfa_ops @0x" << hex << pc << dec
 	 << ", module_start @0x" << hex << module_start << dec << endl;
 
-#if _ELFUTILS_PREREQ(0,142)
   // Try debug_frame first, then fall back on eh_frame.
-  size_t cfa_nops;
-  Dwarf_Addr bias;
+  size_t cfa_nops = 0;
+  Dwarf_Addr bias = 0;
+  Dwarf_Frame *frame = NULL;
+#if _ELFUTILS_PREREQ(0,142)
   Dwarf_CFI *cfi = dwfl_module_dwarf_cfi (module, &bias);
   if (cfi != NULL)
     {
       if (sess.verbose > 3)
 	clog << "got dwarf cfi bias: 0x" << hex << bias << dec << endl;
-      Dwarf_Frame *frame = NULL;
-      if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+      if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
 	dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
       else if (sess.verbose > 3)
 	clog << "dwarf_cfi_addrframe failed: " << dwarf_errmsg(-1) << endl;
@@ -2809,7 +2810,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	  if (sess.verbose > 3)
 	    clog << "got eh cfi bias: 0x" << hex << bias << dec << endl;
 	  Dwarf_Frame *frame = NULL;
-	  if (dwarf_cfi_addrframe (cfi, pc, &frame) == 0)
+	  if (dwarf_cfi_addrframe (cfi, pc - bias, &frame) == 0)
 	    dwarf_frame_cfa (frame, &cfa_ops, &cfa_nops);
 	  else if (sess.verbose > 3)
 	    clog << "dwarf_cfi_addrframe failed: " << dwarf_errmsg(-1) << endl;
@@ -2821,7 +2822,20 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 #endif
 
   if (sess.verbose > 2)
-    clog << (cfa_ops == NULL ? "not " : " ") << "found cfa" << endl;
+    {
+      if (cfa_ops == NULL)
+	clog << "not found cfa" << endl;
+      else
+	{
+	  Dwarf_Addr frame_start, frame_end;
+	  bool frame_signalp;
+	  int info = dwarf_frame_info (frame, &frame_start, &frame_end,
+				       &frame_signalp);
+	  clog << "found cfa, info:" << info << " [start: 0x" << hex
+	       << frame_start << dec << ", end: 0x" << hex << frame_end
+	       << dec << "), nops: " << cfa_nops << endl;
+	}
+    }
 
   return cfa_ops;
 }

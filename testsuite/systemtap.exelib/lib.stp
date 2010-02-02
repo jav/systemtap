@@ -6,7 +6,7 @@ probe process(@1).function("main") {
 }
 
 probe process(@1).function("main_func") {
-  printf("main_func\n");
+  printf("main_func %d\n", $foo);
 }
 
 probe process(@2).function("lib_main") {
@@ -14,5 +14,5 @@ probe process(@2).function("lib_main") {
 }
 
 probe process(@2).function("lib_func") {
-  printf("lib_func\n");
+  printf("lib_func %d\n", $bar);
 }
