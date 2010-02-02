@@ -19,6 +19,7 @@ expect {
     -re {epsilon."one",1. @count=0x4 @min=0x1 @max=0x4 @sum=0xa @avg=0x2} { incr ok; exp_continue }
     -re {epsilon."two",2. @count=0x4 @min=0xa @max=0x28 @sum=0x64 @avg=0x19} { incr ok; exp_continue }
     -re {phi @count=0x4 @min=0x1 @max=0x4 @sum=0xa @avg=0x2} { incr ok; exp_continue }
+    -re {var=0x1} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
@@ -32,4 +33,4 @@ expect {
     -re {Avg time = [1-9]} { incr ok; exp_continue }
 }
 
-if {$ok == 12} { pass "$test ($ok)" } { fail "$test ($ok)" }
+if {$ok == 13} { pass "$test ($ok)" } { fail "$test ($ok)" }

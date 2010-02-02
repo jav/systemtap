@@ -1,0 +1,14 @@
+#! stap -wp4
+
+probe
+%(CONFIG_PERF_EVENTS=="y" && CONFIG_HAVE_HW_BREAKPOINT=="y" %?
+  kernel.data("pid_max").write
+%:
+  never
+%) {}
+probe
+%(CONFIG_PERF_EVENTS=="y" && CONFIG_HAVE_HW_BREAKPOINT=="y" %?
+  kernel.data("pid_max").rw 
+%:
+  never
+%) {}

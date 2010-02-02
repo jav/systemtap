@@ -383,9 +383,10 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
   string locvalue = "CONTEXT->data";
 
   if (! lvalue)
-    ec->code = string("_stp_copy_from_user(THIS->__retvalue, ((struct _stp_procfs_data *)(")
-      + locvalue + string("))->buffer, ((struct _stp_procfs_data *)(") + locvalue
-      + string("))->count); /* pure */");
+    ec->code = string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string("); /* pure */\n")
+	
+      + string("    _stp_copy_from_user(THIS->__retvalue, data->buffer, data->count);\n")
+      + string("    THIS->__retvalue[data->count] = '\\0';\n");
   else
       ec->code = string("int bytes = 0;\n")
 	+ string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string(");\n")

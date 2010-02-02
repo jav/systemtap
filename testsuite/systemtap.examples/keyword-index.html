@@ -333,6 +333,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PRO
 <li><a href="process/pf2.stp">process/pf2.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.</p></li>
+<li><a href="profiling/fntimes.stp">profiling/fntimes.stp</a> - Show functions taking longer than usual<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The fntimes.stp script monitors the execution time history of a given function family (assumed non-recursive).  Each time (beyond a warmup interval) is then compared to the historical maximum.  If it exceeds a certain threshold (250%), a message is printed.</p></li>
 <li><a href="profiling/functioncallcount.stp">profiling/functioncallcount.stp</a> - Count Times Functions Called<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#FUNCTIONS">FUNCTIONS</a> <br>
 <p>The functioncallcount.stp script takes one argument, a list of functions to probe. The script will run and count the number of times that each of the functions on the list is called. On exit the script will print a sorted list from most frequently to least frequently called function.</p></li>

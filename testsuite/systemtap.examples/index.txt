@@ -526,6 +526,15 @@ keywords: syscall wait4
   waiting for. If the waited for PID is not specified , it is "-1".
 
 
+profiling/fntimes.stp - Show functions taking longer than usual
+keywords: profiling
+
+  The fntimes.stp script monitors the execution time history of a given
+  function family (assumed non-recursive).  Each time (beyond a warmup
+  interval) is then compared to the historical maximum.  If it exceeds
+  a certain threshold (250%), a message is printed.
+
+
 profiling/functioncallcount.stp - Count Times Functions Called
 keywords: profiling functions
 

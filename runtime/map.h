@@ -49,10 +49,12 @@ amount of memory. Do not increase above 5. */
 #define MAX_KEY_ARITY 5
 #endif
 
-/** Maximum length of strings in maps. This sets the amount of space reserved
-    for each string. */
+/** Maximum length of strings in maps. This sets the amount of space
+    reserved for each string.  This should match MAXSTRINGLEN.  If
+    MAP_STRING_LENGTH is less than MAXSTRINGLEN, a user could get
+    strings truncated that are stored in arrays. */
 #ifndef MAP_STRING_LENGTH
-#define MAP_STRING_LENGTH 256
+#define MAP_STRING_LENGTH MAXSTRINGLEN
 #endif
 
 /** @cond DONT_INCLUDE */

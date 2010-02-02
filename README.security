@@ -71,7 +71,7 @@ the permissions should be 755, like this:
 drwxr-xr-x 2 root root 4096 2007-08-07 13:54 systemtap/
 
 2) More permissive usage.  If all systemtap developers should be able
-to add "approved" systemtap modules to /lib/modules/VERSION/system,
+to add "approved" systemtap modules to /lib/modules/VERSION/systemtap,
 its permissions should be 775 (and be owned by root, group stapdev),
 like this:
 
@@ -108,6 +108,6 @@ permitted to have.  In addition, the effective set of capabilities, the
 capabilities from the permitted set that are currently enabled, is
 cleared.  When needed, a particular capability is enabled, the
 operation is performed, then the capability is disabled.  The staprun
-program was designed this way to prevent several classes of security
+program was designed in this way to prevent several classes of security
 attacks. Security is also heightened by the fact that the only
 external program that staprun executes is stapio.

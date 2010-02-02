@@ -1897,19 +1897,21 @@ varuse_collecting_visitor::visit_arrayindex (arrayindex *e)
 void
 varuse_collecting_visitor::visit_pre_crement (pre_crement *e)
 {
-  expression* last_lrvalue = current_lrvalue;
-  current_lrvalue = e->operand; // leave a mark for ::visit_symbol
+  // PR6954: regard as pure writes
+  expression* last_lvalue = current_lvalue;
+  current_lvalue = e->operand; // leave a mark for ::visit_symbol
   functioncall_traversing_visitor::visit_pre_crement (e);
-  current_lrvalue = last_lrvalue;
+  current_lvalue = last_lvalue;
 }
 
 void
 varuse_collecting_visitor::visit_post_crement (post_crement *e)
 {
-  expression* last_lrvalue = current_lrvalue;
-  current_lrvalue = e->operand; // leave a mark for ::visit_symbol
+  // PR6954: regard as pure writes
+  expression* last_lvalue = current_lvalue;
+  current_lvalue = e->operand; // leave a mark for ::visit_symbol
   functioncall_traversing_visitor::visit_post_crement (e);
-  current_lrvalue = last_lrvalue;
+  current_lvalue = last_lvalue;
 }
 
 void

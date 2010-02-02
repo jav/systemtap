@@ -47,9 +47,9 @@ expect {
 
 # lib
     -re {^main\r\n} {incr lib; exp_continue}
-    -re {^main_func\r\n} {incr lib; exp_continue}
+    -re {^main_func: [1-3]\r\n} {incr lib; exp_continue}
     -re {^lib_main\r\n} {incr lib; exp_continue}
-    -re {^lib_func\r\n} {incr lib; exp_continue}
+    -re {^lib_func: [1-3]\r\n} {incr lib; exp_continue}
 
 # mark
     -re {^main_count: [1-3]\r\n} {incr mark; exp_continue}

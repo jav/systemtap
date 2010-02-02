@@ -211,6 +211,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <li><a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#WAIT4">WAIT4</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the "wait4:" key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is "-1".</p></li>
+<li><a href="profiling/fntimes.stp">profiling/fntimes.stp</a> - Show functions taking longer than usual<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The fntimes.stp script monitors the execution time history of a given function family (assumed non-recursive).  Each time (beyond a warmup interval) is then compared to the historical maximum.  If it exceeds a certain threshold (250%), a message is printed.</p></li>
 <li><a href="profiling/functioncallcount.stp">profiling/functioncallcount.stp</a> - Count Times Functions Called<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#FUNCTIONS">FUNCTIONS</a> <br>
 <p>The functioncallcount.stp script takes one argument, a list of functions to probe. The script will run and count the number of times that each of the functions on the list is called. On exit the script will print a sorted list from most frequently to least frequently called function.</p></li>
