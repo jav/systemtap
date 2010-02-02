@@ -3040,7 +3040,6 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
   if (null_die(scope_die))
     return;
 
-  stringstream argstream;
   string type_name;
   Dwarf_Die type_die;
 
