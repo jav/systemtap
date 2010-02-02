@@ -81,12 +81,18 @@ function initialization {
 		    -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
 		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
 	    fi
-	elif ! test -f $stap_ssl_db/client/cert8.db; then
-	    # If the client's database does not exist, then initialize it with our certificate.
-	    # Do this only if the client has been installed.
-	    if test -f `which ${stap_exec_prefix}stap-client` -a \
-                    -x `which ${stap_exec_prefix}stap-client`; then
-		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
+	else
+	    echo "Certificate found in database $ssl_db" >> $logfile
+	    certutil -L -d "$ssl_db" -n stap-server | \
+		awk '/Validity|Not After|Not Before/ { print $0 }' | \
+		sed 's/^ */  /' >> $logfile
+	    if ! test -f $stap_ssl_db/client/cert8.db; then
+		# If the client's database does not exist, then initialize it with our certificate.
+		# Do this only if the client has been installed.
+		if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
+                    -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
+		    ${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
+		fi
 	    fi
 	fi
     fi
