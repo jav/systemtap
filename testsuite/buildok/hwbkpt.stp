@@ -1,4 +1,4 @@
-#! /usr/bin/env stap -wp4
+#! stap -wp4
 
 probe
 %(CONFIG_PERF_EVENTS=="y" && CONFIG_HAVE_HW_BREAKPOINT=="y" %?
