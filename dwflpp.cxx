@@ -2784,11 +2784,11 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
     clog << "get_cfa_ops @0x" << hex << pc << dec
 	 << ", module_start @0x" << hex << module_start << dec << endl;
 
+#if _ELFUTILS_PREREQ(0,142)
   // Try debug_frame first, then fall back on eh_frame.
   size_t cfa_nops = 0;
   Dwarf_Addr bias = 0;
   Dwarf_Frame *frame = NULL;
-#if _ELFUTILS_PREREQ(0,142)
   Dwarf_CFI *cfi = dwfl_module_dwarf_cfi (module, &bias);
   if (cfi != NULL)
     {
@@ -2825,6 +2825,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
     {
       if (cfa_ops == NULL)
 	clog << "not found cfa" << endl;
+#if _ELFUTILS_PREREQ(0,142)
       else
 	{
 	  Dwarf_Addr frame_start, frame_end;
@@ -2835,6 +2836,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	       << frame_start << dec << ", end: 0x" << hex << frame_end
 	       << dec << "), nops: " << cfa_nops << endl;
 	}
+#endif
     }
 
   return cfa_ops;
