@@ -364,7 +364,7 @@ struct dwarf_derived_probe: public derived_probe
   void printsig (std::ostream &o) const;
   virtual void join_group (systemtap_session& s);
   void emit_probe_local_init(translator_output * o);
-  void getargs(std::set<std::string> &arg_set) const;
+  void getargs(std::list<std::string> &arg_set) const;
 
   void emit_unprivileged_assertion (translator_output*);
   void print_dupe_stamp(ostream& o);
@@ -389,7 +389,7 @@ protected:
   {}
 
 private:
-  set<string> args;
+  list<string> args;
   void saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v);
 };
 
@@ -3046,7 +3046,7 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
   if (has_return &&
       dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
       dwarf_type_name(&type_die, type_name))
-    args.insert("$return:"+type_name);
+    args.push_back("$return:"+type_name);
 
   /* Pretend that we aren't in a .return for a moment, just so we can
    * check whether variables are accessible.  We don't want any of the
@@ -3092,7 +3092,7 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
         tsym->saved_conversion_error = 0;
         v.require (tsym);
         if (!tsym->saved_conversion_error)
-           args.insert("$"+string(arg_name)+":"+type_name);
+           args.push_back("$"+string(arg_name)+":"+type_name);
       }
     while (dwarf_siblingof (&arg, &arg) == 0);
 
@@ -3102,9 +3102,9 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
 
 
 void
-dwarf_derived_probe::getargs(std::set<std::string> &arg_set) const
+dwarf_derived_probe::getargs(std::list<std::string> &arg_set) const
 {
-  arg_set.insert(args.begin(), args.end());
+  arg_set.insert(arg_set.end(), args.begin(), args.end());
 }
 
 
@@ -5678,7 +5678,7 @@ struct tracepoint_derived_probe: public derived_probe
   vector <struct tracepoint_arg> args;
 
   void build_args(dwflpp& dw, Dwarf_Die& func_die);
-  void getargs (std::set<std::string> &arg_set) const;
+  void getargs (std::list<std::string> &arg_set) const;
   void join_group (systemtap_session& s);
   void print_dupe_stamp(ostream& o);
   void emit_probe_context_vars (translator_output* o);
@@ -6066,11 +6066,11 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
 }
 
 void
-tracepoint_derived_probe::getargs(std::set<std::string> &arg_set) const
+tracepoint_derived_probe::getargs(std::list<std::string> &arg_set) const
 {
   for (unsigned i = 0; i < args.size(); ++i)
     if (args[i].usable)
-      arg_set.insert("$"+args[i].name+":"+args[i].c_type);
+      arg_set.push_back("$"+args[i].name+":"+args[i].c_type);
 }
 
 void
