@@ -282,6 +282,22 @@ clean_cache(systemtap_session& s)
 
       globfree(&cache_glob);
 
+      // grab info for each staphash log file (.log)
+      glob_str = s.cache_path + "/*/*.log";
+      glob(glob_str.c_str(), 0, NULL, &cache_glob);
+      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
+        {
+          string cache_ent_path = cache_glob.gl_pathv[i];
+          struct cache_ent_info cur_info(cache_ent_path, false);
+          if (cur_info.size != 0 && cur_info.weight != 0)
+            {
+              cache_size_b += cur_info.size;
+              cache_contents.insert(cur_info);
+            }
+        }
+
+      globfree(&cache_glob);
+
       set<struct cache_ent_info>::iterator i;
       unsigned long r_cache_size = cache_size_b;
       string removed_dirs = "";
@@ -344,9 +360,11 @@ cache_ent_info::cache_ent_info(const string& path, bool is_module):
       string mod_path    = path + ".ko";
       string modsgn_path = path + ".ko.sgn";
       string source_path = path + ".c";
+      string hash_path = path + ".log";
       size = get_file_size(mod_path)
         + get_file_size(modsgn_path);
         + get_file_size(source_path);
+        + get_file_size(hash_path);
       weight = get_file_weight(mod_path);
     }
   else
@@ -365,9 +383,11 @@ cache_ent_info::unlink() const
       string mod_path    = path + ".ko";
       string modsgn_path = path + ".ko.sgn";
       string source_path = path + ".c";
+      string hash_path = path + ".log";
       ::unlink(mod_path.c_str());
       ::unlink(modsgn_path.c_str());
       ::unlink(source_path.c_str());
+      ::unlink(hash_path.c_str());
     }
   else
     ::unlink(path.c_str());
