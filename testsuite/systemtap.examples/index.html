@@ -91,9 +91,6 @@ keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <li><a href="io/mbrwatch.stp">io/mbrwatch.stp</a> - Monitor read/write of MBR (boot sector) area of block devices<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p> The mbrwatch.stp script reports any attempted reads/writes of the first few sectors of a raw block device.</p></li>
-<li><a href="io/nfs_func_log.stp">io/nfs_func_log.stp</a> - Print Log of NFS Functions Used<br>
-keywords: <a href="keyword-index.html#IO">IO</a> <br>
-<p>The nfs_func_log.stp script logs the uses of NFS functions in the kernel.  The output is a trace. Each line contains the time stamp, the process name, and the process number followed by the function name.</p></li>
 <li><a href="io/nfs_func_users.stp">io/nfs_func_users.stp</a> - Tally the Number of NFS Functions Used by Each Process<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The nfs_func_users.stp script counts the uses of NFS functions in the kernel on a per process bases.  The output is sorted from the process with the greatest number of NFS functions called to the least. The output contains the executable name, the process number, and the total number of NFS functions called by the process.</p></li>
@@ -187,6 +184,9 @@ keywords: <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
 <li><a href="process/pf2.stp">process/pf2.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.</p></li>
+<li><a href="process/pfiles.stp">process/pfiles.stp</a> - print process file descriptors<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#FILES">FILES</a> <br>
+<p>Run pfiles.stp to produce a human-readable summary of all open file descriptors of a given process.  Specify the process-id as -x PID for fastest performance.</p></li>
 <li><a href="process/plimit.stp">process/plimit.stp</a> - print resource limits<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
 <p>The script prints a variety of resource limits for a given pid, like /proc/$$/limits on recent kernels.</p></li>

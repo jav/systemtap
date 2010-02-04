@@ -1,0 +1,6 @@
+title: print process file descriptors
+name: pfiles.stp
+keywords: process files
+description: Run pfiles.stp to produce a human-readable summary of all open file descriptors of a given process.  Specify the process-id as -x PID for fastest performance.
+test_check: stap -gp4 pfiles.stp -x $$
+test_installcheck: stap -g pfiles.stp -x $$

@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITOR">MONITOR</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITOR">MONITOR</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="ALLOCATOR">ALLOCATOR</a></h3>
 <ul>
 <li><a href="memory/vm.tracepoints.stp">memory/vm.tracepoints.stp</a> - Collect slab allocation statistics<br>
@@ -99,6 +99,12 @@ keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html
 <li><a href="io/disktop.stp">io/disktop.stp</a> - Summarize Disk Read/Write Traffic<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.</p></li>
+</ul>
+<h3><a name="FILES">FILES</a></h3>
+<ul>
+<li><a href="process/pfiles.stp">process/pfiles.stp</a> - print process file descriptors<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#FILES">FILES</a> <br>
+<p>Run pfiles.stp to produce a human-readable summary of all open file descriptors of a given process.  Specify the process-id as -x PID for fastest performance.</p></li>
 </ul>
 <h3><a name="FILESYSTEM">FILESYSTEM</a></h3>
 <ul>
@@ -183,9 +189,6 @@ keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <li><a href="io/mbrwatch.stp">io/mbrwatch.stp</a> - Monitor read/write of MBR (boot sector) area of block devices<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p> The mbrwatch.stp script reports any attempted reads/writes of the first few sectors of a raw block device.</p></li>
-<li><a href="io/nfs_func_log.stp">io/nfs_func_log.stp</a> - Print Log of NFS Functions Used<br>
-keywords: <a href="keyword-index.html#IO">IO</a> <br>
-<p>The nfs_func_log.stp script logs the uses of NFS functions in the kernel.  The output is a trace. Each line contains the time stamp, the process name, and the process number followed by the function name.</p></li>
 <li><a href="io/nfs_func_users.stp">io/nfs_func_users.stp</a> - Tally the Number of NFS Functions Used by Each Process<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The nfs_func_users.stp script counts the uses of NFS functions in the kernel on a per process bases.  The output is sorted from the process with the greatest number of NFS functions called to the least. The output contains the executable name, the process number, and the total number of NFS functions called by the process.</p></li>
@@ -324,6 +327,9 @@ keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-inde
 <li><a href="process/forktracker.stp">process/forktracker.stp</a> - Trace Creation of Processes<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
 <p>The forktracker.stp script prints out a time-stamped entry showing each fork and exec operation on the machine. This can be useful to determine what process is creating a flurry of short-lived processes.</p></li>
+<li><a href="process/pfiles.stp">process/pfiles.stp</a> - print process file descriptors<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#FILES">FILES</a> <br>
+<p>Run pfiles.stp to produce a human-readable summary of all open file descriptors of a given process.  Specify the process-id as -x PID for fastest performance.</p></li>
 <li><a href="process/plimit.stp">process/plimit.stp</a> - print resource limits<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
 <p>The script prints a variety of resource limits for a given pid, like /proc/$$/limits on recent kernels.</p></li>
