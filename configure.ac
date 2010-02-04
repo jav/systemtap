@@ -287,38 +287,40 @@ AC_ARG_ENABLE([server],
     [enable building of stap-server/client (default on if nss etc. found).]),
   [enable_server=$enableval],
   [enable_server="check"])
+if test "$enable_server" != "no"; then
 dnl Find the location of nss and nspr headers and certutil
-AC_CHECK_PROG(have_certutil, certutil, [yes], [no])
-AC_CHECK_FILE([/usr/include/nss3], nssdir=nss3, [
-	AC_CHECK_FILE([/usr/include/nss], nssdir=nss)
-])
-AC_CHECK_FILE([/usr/include/nspr4], nsprdir=nspr4, [
-	AC_CHECK_FILE([/usr/include/nspr], nsprdir=nspr)
-])
-if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
-nss_CFLAGS="-I/usr/include/$nssdir"
-nspr_CFLAGS="-I/usr/include/$nsprdir"
-AC_SUBST(nss_CFLAGS)
-AC_SUBST(nspr_CFLAGS)
-save_CPPFLAGS="$CPPFLAGS"
-CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
-have_nss_includes=yes
-AC_CHECK_HEADERS(["$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"], [], have_nss_includes=no)
-CPPFLAGS="$save_CPPFLAGS"
-have_nss_libs=no
-AC_CHECK_LIB(nspr4, PR_Connect, [
-	AC_CHECK_LIB(ssl3, SSL_ReHandshake, have_nss_libs=yes)
-])
-fi
-if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" != "xyesyesyes"; then
-  if test "$enable_server" == "yes"; then
-    AC_MSG_ERROR([cannot find all libraries or tools for stap-server])
+  AC_CHECK_PROG(have_certutil, certutil, [yes], [no])
+  AC_CHECK_FILE([/usr/include/nss3], nssdir=nss3, [
+    AC_CHECK_FILE([/usr/include/nss], nssdir=nss)
+  ])
+  AC_CHECK_FILE([/usr/include/nspr4], nsprdir=nspr4, [
+    AC_CHECK_FILE([/usr/include/nspr], nsprdir=nspr)
+  ])
+  if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
+  nss_CFLAGS="-I/usr/include/$nssdir"
+  nspr_CFLAGS="-I/usr/include/$nsprdir"
+  AC_SUBST(nss_CFLAGS)
+  AC_SUBST(nspr_CFLAGS)
+  save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
+  have_nss_includes=yes
+  AC_CHECK_HEADERS(["$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"], [], have_nss_includes=no)
+  CPPFLAGS="$save_CPPFLAGS"
+  have_nss_libs=no
+  AC_CHECK_LIB(nspr4, PR_Connect, [
+    AC_CHECK_LIB(ssl3, SSL_ReHandshake, have_nss_libs=yes)
+  ])
   fi
-  if test "$enable_server" == "check"; then
-    AC_MSG_WARN([will not build stap-server, cannot find all libraries or tools])
+  if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" != "xyesyesyes"; then
+    if test "$enable_server" == "yes"; then
+      AC_MSG_ERROR([cannot find all libraries or tools for stap-server])
+    fi
+    if test "$enable_server" == "check"; then
+      AC_MSG_WARN([will not build stap-server, cannot find all libraries or tools])
+    fi
+  else
+      AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
   fi
-else
-    AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
 fi
 AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes" -a "$enable_server" != "no"])
 AM_CONDITIONAL([HAVE_NSS],     [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes"])
