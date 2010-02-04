@@ -156,6 +156,26 @@ usage (systemtap_session& s, int exitcode)
 }
 
 
+static void uniq_list(list<string>& l)
+{
+	list<string> r;
+	set<string> s;
+
+	for (list<string>::iterator i = l.begin(); i != l.end(); ++i) {
+		s.insert(*i);
+	}
+
+	for (list<string>::iterator i = l.begin(); i != l.end(); ++i) {
+		if (s.find(*i) != s.end()) {
+			s.erase(*i);
+			r.push_back(*i);
+		}
+	}
+
+	l.clear();
+	l.assign(r.begin(), r.end());
+}
+
 static void
 printscript(systemtap_session& s, ostream& o)
 {
@@ -211,8 +231,10 @@ printscript(systemtap_session& s, ostream& o)
           // Print the locals and arguments for -L mode only
           if (s.listing_mode_vars)
             {
-              map<string,unsigned> var_list; // format <"name:type",count>
-              map<string,unsigned> arg_list;
+              map<string,unsigned> var_count; // format <"name:type",count>
+              map<string,unsigned> arg_count;
+              list<string> var_list;
+              list<string> arg_list;
               // traverse set<derived_probe *> to collect all locals and arguments
               for (set<derived_probe *>::iterator ix=it->second.begin(); ix!=it->second.end(); ++ix)
                 {
@@ -223,21 +245,28 @@ printscript(systemtap_session& s, ostream& o)
                       stringstream tmps;
                       vardecl* v = p->locals[j];
                       v->printsig (tmps);
-                      var_list[tmps.str()]++;
+                      var_count[tmps.str()]++;
+		      var_list.push_back(tmps.str());
                     }
                   // collect arguments of the probe if there
-                  set<string> arg_set;
+                  list<string> arg_set;
                   p->getargs(arg_set);
-                  for (set<string>::iterator ia=arg_set.begin(); ia!=arg_set.end(); ++ia)
-                    arg_list[*ia]++;
+                  for (list<string>::iterator ia=arg_set.begin(); ia!=arg_set.end(); ++ia) {
+                    arg_count[*ia]++;
+                    arg_list.push_back(*ia);
+		  }
                 }
+
+	      uniq_list(arg_list);
+	      uniq_list(var_list);
+
               // print the set-intersection only
-              for (map<string,unsigned>::iterator ir=var_list.begin(); ir!=var_list.end(); ++ir)
-                if (ir->second == it->second.size()) // print locals
-                  o << " " << ir->first;
-              for (map<string,unsigned>::iterator ir=arg_list.begin(); ir!=arg_list.end(); ++ir)
-                if (ir->second == it->second.size()) // print arguments
-                  o << " " << ir->first;
+              for (list<string>::iterator ir=var_list.begin(); ir!=var_list.end(); ++ir)
+                if (var_count.find(*ir)->second == it->second.size()) // print locals
+                  o << " " << *ir;
+              for (list<string>::iterator ir=arg_list.begin(); ir!=arg_list.end(); ++ir)
+                if (arg_count.find(*ir)->second == it->second.size()) // print arguments
+                  o << " " << *ir;
             }
           o << endl;
         }

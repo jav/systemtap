@@ -43,6 +43,7 @@ hash::start()
 void
 hash::add(const unsigned char *buffer, size_t size)
 {
+  parm_stream << "," << buffer;
   mdfour_update(&md4, buffer, size);
 }
 
@@ -60,6 +61,16 @@ hash::add_file(const std::string& filename)
   add(st.st_mtime);
 }
 
+string
+hash::get_parms()
+{
+ string parms_str = parm_stream.str();
+
+ parm_stream.clear();
+ if (!parms_str.empty())
+   parms_str.erase(parms_str.begin()); // skip leading ","
+ return parms_str;
+}
 
 void
 hash::result(string& r)
@@ -78,6 +89,20 @@ hash::result(string& r)
   r = rstream.str();
 }
 
+void create_hash_log(const string &type_str, const string &parms, const string &result, const string &hash_log_path)
+{
+  ofstream log_file;
+  time_t rawtime;
+  time ( &rawtime );
+  string time_str(ctime (&rawtime));
+
+  log_file.open(hash_log_path.c_str());
+  log_file << "[" << time_str.substr(0,time_str.length()-1); // erase terminated '\n'
+  log_file << "]" << type_str;
+  log_file << ": " << parms << endl;
+  log_file << "result:" << result << endl;
+  log_file.close();
+}
 
 static void
 get_base_hash (systemtap_session& s, hash& h)
@@ -229,6 +254,8 @@ find_script_hash (systemtap_session& s, const string& script, const hash &base)
 
   // Update C source name with new module_name.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
+  create_hash_log(string("script_hash"), h.get_parms(), result,
+                  hashdir + "/" + s.module_name + "_hash.log");
 }
 
 
@@ -249,6 +276,8 @@ find_stapconf_hash (systemtap_session& s, const hash& base)
 
   s.stapconf_name = "stapconf_" + result + ".h";
   s.stapconf_path = hashdir + "/" + s.stapconf_name;
+  create_hash_log(string("stapconf_hash"), h.get_parms(), result,
+                  hashdir + "/stapconf_" + result + "_hash.log");
 }
 
 
@@ -282,6 +311,8 @@ find_tracequery_hash (systemtap_session& s, const vector<string>& headers)
   if (!create_hashdir(s, result, hashdir))
     return "";
 
+  create_hash_log(string("tracequery_hash"), h.get_parms(), result,
+                  hashdir + "/tracequery_" + result + "_hash.log");
   return hashdir + "/tracequery_" + result + ".ko";
 }
 
@@ -306,6 +337,8 @@ find_typequery_hash (systemtap_session& s, const string& name)
   if (!create_hashdir(s, result, hashdir))
     return "";
 
+  create_hash_log(string("typequery_hash"), h.get_parms(), result,
+                  hashdir + "/typequery_" + result + "_hash.log");
   return hashdir + "/typequery_" + result
     + (name[0] == 'k' ? ".ko" : ".so");
 }

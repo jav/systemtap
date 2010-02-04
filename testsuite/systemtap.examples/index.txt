@@ -95,6 +95,18 @@ keywords: io
   line.
 
 
+io/iodevstats.stp - List Executables Reading and Writing the Most Data by Device
+keywords: io profiling
+
+   The iodevstats.stp script measures the amount of data successfully
+  read and written by all the executables for each io device on the
+  system.  The output is sorted from greatest sum of bytes read and
+  written to a device by an executable to the least. The output
+  contains device major/minor number, the count of operations (reads
+  and writes), the totals and averages for the number of bytes read and
+  written.
+
+
 io/iostat-scsi.stp - iostat for SCSI Devices
 keywords: io profiling scsi
 
@@ -142,6 +154,25 @@ keywords: io monitoring
 
    The mbrwatch.stp script reports any attempted reads/writes of the
   first few sectors of a raw block device.
+
+
+io/nfs_func_log.stp - Print Log of NFS Functions Used
+keywords: io
+
+  The nfs_func_log.stp script logs the uses of NFS functions in the
+  kernel.  The output is a trace. Each line contains the time stamp,
+  the process name, and the process number followed by the function
+  name.
+
+
+io/nfs_func_users.stp - Tally the Number of NFS Functions Used by Each Process
+keywords: io profiling
+
+  The nfs_func_users.stp script counts the uses of NFS functions in the
+  kernel on a per process bases.  The output is sorted from the process
+  with the greatest number of NFS functions called to the least. The
+  output contains the executable name, the process number, and the
+  total number of NFS functions called by the process.
 
 
 io/traceio.stp - Track Cumulative I/O Activity by Process Name

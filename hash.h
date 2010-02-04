@@ -1,5 +1,7 @@
 #include <string>
 #include <vector>
+#include <sstream>
+#include <fstream>
 
 extern "C" {
 #include <string.h>
@@ -13,9 +15,11 @@ class hash
 {
 private:
   struct mdfour md4;
+  std::ostringstream parm_stream;
 
 public:
   hash() { start(); }
+  hash(const hash &base) { start(); parm_stream << base.parm_stream.str();}
 
   void start();
 
@@ -34,6 +38,7 @@ public:
   void add_file(const std::string& filename);
 
   void result(std::string& r);
+  std::string get_parms();
 };
 
 void find_hash (systemtap_session& s, const std::string& script);

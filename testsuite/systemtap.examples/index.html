@@ -73,6 +73,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BAC
 <li><a href="io/ioblktime.stp">io/ioblktime.stp</a> - Average Time Block IO Requests Spend in Queue <br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>The ioblktime.stp script tracks the amount of time that each block IO requests spend waiting for completion. The script computes the average waiting time for block IO per device and prints list every 10 seconds. In some cases there can be too many outstanding block IO operations and the script may exceed the default number of MAXMAPENTRIES allowed. In this case the allowed number can be increased with "-DMAXMAPENTRIES=10000" option on the stap command line.</p></li>
+<li><a href="io/iodevstats.stp">io/iodevstats.stp</a> - List Executables Reading and Writing the Most Data by Device<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p> The iodevstats.stp script measures the amount of data successfully read and written by all the executables for each io device on the system.  The output is sorted from greatest sum of bytes read and written to a device by an executable to the least. The output contains device major/minor number, the count of operations (reads and writes), the totals and averages for the number of bytes read and written.</p></li>
 <li><a href="io/iostat-scsi.stp">io/iostat-scsi.stp</a> - iostat for SCSI Devices<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#SCSI">SCSI</a> <br>
 <p>The iostat-scsi.stp script provides a breakdown of the number of blks read and written on the machine's various SCSI devices. The script takes one argument which is the number of seconds between reports.</p></li>
@@ -88,6 +91,12 @@ keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <li><a href="io/mbrwatch.stp">io/mbrwatch.stp</a> - Monitor read/write of MBR (boot sector) area of block devices<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p> The mbrwatch.stp script reports any attempted reads/writes of the first few sectors of a raw block device.</p></li>
+<li><a href="io/nfs_func_log.stp">io/nfs_func_log.stp</a> - Print Log of NFS Functions Used<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <br>
+<p>The nfs_func_log.stp script logs the uses of NFS functions in the kernel.  The output is a trace. Each line contains the time stamp, the process name, and the process number followed by the function name.</p></li>
+<li><a href="io/nfs_func_users.stp">io/nfs_func_users.stp</a> - Tally the Number of NFS Functions Used by Each Process<br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The nfs_func_users.stp script counts the uses of NFS functions in the kernel on a per process bases.  The output is sorted from the process with the greatest number of NFS functions called to the least. The output contains the executable name, the process number, and the total number of NFS functions called by the process.</p></li>
 <li><a href="io/traceio.stp">io/traceio.stp</a> - Track Cumulative I/O Activity by Process Name<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Every second print out the top ten executables sorted in descending order based on cumulative I/O traffic observed.</p></li>

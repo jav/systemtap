@@ -17,7 +17,10 @@
 #ifndef _STP_PROCFS_C_
 #define _STP_PROCFS_C_
 
+#ifndef STP_MAX_PROCFS_FILES
 #define STP_MAX_PROCFS_FILES 16
+#endif
+
 static int _stp_num_pde = 0;
 static struct proc_dir_entry *_stp_pde[STP_MAX_PROCFS_FILES];
 static struct proc_dir_entry *_stp_procfs_files[STP_MAX_PROCFS_FILES];
@@ -131,7 +134,8 @@ static struct proc_dir_entry *_stp_procfs_lookup(const char *dir, struct proc_di
 	return NULL;
 }
 
-static int _stp_create_procfs(const char *path, int num)
+static int _stp_create_procfs(const char *path, int num,
+			      const struct file_operations *fops)
 {  
 	const char *p;
 	char *next;
@@ -182,15 +186,18 @@ static int _stp_create_procfs(const char *path, int num)
 	if (_stp_num_pde == STP_MAX_PROCFS_FILES)
 		goto too_many;
 	
-	de = create_proc_entry (p, 0600, last_dir);
+	de = proc_create(p, 0600, last_dir, fops);
 	if (de == NULL) {
 		_stp_error("Could not create file \"%s\" in path \"%s\"\n", p, path);
 		goto err;
 	}
-	_stp_pde[_stp_num_pde++] = de;
-	_stp_procfs_files[num] = de;
+#ifdef AUTOCONF_PROCFS_OWNER
+	de->owner = THIS_MODULE;
+#endif
 	de->uid = _stp_uid;
 	de->gid = _stp_gid;
+	_stp_pde[_stp_num_pde++] = de;
+	_stp_procfs_files[num] = de;
 	return 0;
 	
 too_many:

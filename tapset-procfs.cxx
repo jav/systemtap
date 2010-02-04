@@ -110,8 +110,7 @@ procfs_derived_probe::join_group (systemtap_session& s)
       embeddedcode *ec = new embeddedcode;
       ec->tok = NULL;
       ec->code = string("struct _stp_procfs_data {\n")
-	  + string("  const char *buffer;\n")
-	  + string("  off_t off;\n")
+	  + string("  char *buffer;\n")
 	  + string("  unsigned long count;\n")
 	  + string("};\n");
       s.embeds.push_back(ec);
@@ -164,15 +163,10 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- procfs probes ---- */";
   s.op->newline() << "#include \"procfs.c\"";
+  s.op->newline() << "#include \"procfs-probes.c\"";
 
   // Emit the procfs probe data list
-  s.op->newline() << "static struct stap_procfs_probe {";
-  s.op->newline(1)<< "const char *path;";
-  s.op->newline() << "const char *read_pp;";
-  s.op->newline() << "void (*read_ph) (struct context*);";
-  s.op->newline() << "const char *write_pp;";
-  s.op->newline() << "void (*write_ph) (struct context*);";
-  s.op->newline(-1) << "} stap_procfs_probes[] = {";
+  s.op->newline() << "static struct stap_procfs_probe stap_procfs_probes[] = {";
   s.op->indent(1);
 
   for (p_b_p_iterator it = probes_by_path.begin(); it != probes_by_path.end();
@@ -212,21 +206,20 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
   }
   s.op->newline(-1) << "};";
 
+  // Output routine to fill in the buffer with our data.  Note that we
+  // need to do this even in the case where we have no read probes,
+  // but we can skip most of it then.
+  s.op->newline();
+
+  s.op->newline() << "static int _stp_proc_fill_read_buffer(struct stap_procfs_probe *spp) {";
+  s.op->indent(1);
   if (has_read_probes)
     {
-      // Output routine to fill in 'page' with our data.
-      s.op->newline();
-
-      s.op->newline() << "static int _stp_procfs_read(char *page, char **start, off_t off, int count, int *eof, void *data) {";
-
-      s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
       s.op->newline() << "struct _stp_procfs_data pdata;";
 
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->read_pp");
 
-      s.op->newline() << "pdata.buffer = page;";
-      s.op->newline() << "pdata.off = off;";
-      s.op->newline() << "pdata.count = count;";
+      s.op->newline() << "pdata.buffer = spp->buffer;";
       s.op->newline() << "if (c->data == NULL)";
       s.op->newline(1) << "c->data = &pdata;";
       s.op->newline(-1) << "else {";
@@ -242,29 +235,37 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       // call probe function
       s.op->newline() << "(*spp->read_ph) (c);";
 
-      // Note that _procfs_value_set copied string data into 'page'
+      // Note that _procfs_value_set copied string data into spp->buffer
       s.op->newline() << "c->data = NULL;";
-      common_probe_entryfn_epilogue (s.op);
-      s.op->newline() << "if (pdata.count == 0)";
-      s.op->newline(1) << "*eof = 1;";
-      s.op->indent(-1);
-      s.op->newline() << "return pdata.count;";
+      s.op->newline() << "spp->needs_fill = 0;";
+      s.op->newline() << "spp->count = strlen(spp->buffer);";
 
+      common_probe_entryfn_epilogue (s.op);
+
+      s.op->newline() << "if (spp->needs_fill) {";
+      s.op->newline(1) << "spp->needs_fill = 0;";
+      s.op->newline() << "return -EIO;";
       s.op->newline(-1) << "}";
     }
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
+
+  // Output routine to read data.  Note that we need to do this even
+  // in the case where we have no write probes, but we can skip most
+  // of it then.
+  s.op->newline() << "static int _stp_process_write_buffer(struct stap_procfs_probe *spp, const char __user *buf, size_t count) {";
+  s.op->indent(1);
+  s.op->newline() << "int retval = 0;";
   if (has_write_probes)
     {
-      s.op->newline() << "static int _stp_procfs_write(struct file *file, const char *buffer, unsigned long count, void *data) {";
-
-      s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
       s.op->newline() << "struct _stp_procfs_data pdata;";
 
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->write_pp");
 
-      s.op->newline() << "if (count > (MAXSTRINGLEN - 1))";
+      s.op->newline() << "if (count >= MAXSTRINGLEN)";
       s.op->newline(1) << "count = MAXSTRINGLEN - 1;";
       s.op->indent(-1);
-      s.op->newline() << "pdata.buffer = buffer;";
+      s.op->newline() << "pdata.buffer = (char *)buf;";
       s.op->newline() << "pdata.count = count;";
 
       s.op->newline() << "if (c->data == NULL)";
@@ -283,11 +284,14 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "(*spp->write_ph) (c);";
 
       s.op->newline() << "c->data = NULL;";
-      common_probe_entryfn_epilogue (s.op);
-
-      s.op->newline() << "return count;";
+      s.op->newline() << "if (c->last_error == 0) {";
+      s.op->newline(1) << "retval = count;";
       s.op->newline(-1) << "}";
+
+      common_probe_entryfn_epilogue (s.op);
     }
+  s.op->newline() << "return retval;";
+  s.op->newline(-1) << "}";
 }
 
 
@@ -304,35 +308,20 @@ procfs_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "probe_point = spp->read_pp;";
   s.op->newline(-1) << "else";
   s.op->newline(1) << "probe_point = spp->write_pp;";
+  s.op->indent(-1);
 
-  s.op->newline(-1) << "rc = _stp_create_procfs(spp->path, i);";
+  s.op->newline() << "_spp_lock_init(spp);";
+  s.op->newline() << "rc = _stp_create_procfs(spp->path, i, &_stp_proc_fops);";
 
   s.op->newline() << "if (rc) {";
   s.op->newline(1) << "_stp_close_procfs();";
+
+  s.op->newline() << "for (i = 0; i < " << probes_by_path.size() << "; i++) {";
+  s.op->newline(1) << "spp = &stap_procfs_probes[i];";
+  s.op->newline() << "_spp_lock_shutdown(spp);";
+  s.op->newline(-1) << "}";
   s.op->newline() << "break;";
   s.op->newline(-1) << "}";
-
-  if (has_read_probes)
-    {
-      s.op->newline() << "if (spp->read_pp)";
-      s.op->newline(1) << "_stp_procfs_files[i]->read_proc = &_stp_procfs_read;";
-      s.op->newline(-1) << "else";
-      s.op->newline(1) << "_stp_procfs_files[i]->read_proc = NULL;";
-      s.op->indent(-1);
-    }
-  else
-    s.op->newline() << "_stp_procfs_files[i]->read_proc = NULL;";
-
-  if (has_write_probes)
-    {
-      s.op->newline() << "if (spp->write_pp)";
-      s.op->newline(1) << "_stp_procfs_files[i]->write_proc = &_stp_procfs_write;";
-      s.op->newline(-1) << "else";
-      s.op->newline(1) << "_stp_procfs_files[i]->write_proc = NULL;";
-      s.op->indent(-1);
-    }
-  else
-    s.op->newline() << "_stp_procfs_files[i]->write_proc = NULL;";
 
   s.op->newline() << "_stp_procfs_files[i]->data = spp;";
   s.op->newline(-1) << "}"; // for loop
@@ -346,6 +335,10 @@ procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
     return;
 
   s.op->newline() << "_stp_close_procfs();";
+  s.op->newline() << "for (i = 0; i < " << probes_by_path.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_procfs_probe *spp = &stap_procfs_probes[i];";
+  s.op->newline() << "_spp_lock_shutdown(spp);";
+  s.op->newline(-1) << "}";
 }
 
 
@@ -378,8 +371,7 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
 
-  string fname = (string(lvalue ? "_procfs_value_set" : "_procfs_value_get")
-                  + "_" + lex_cast(tick++));
+  string fname = (string(lvalue ? "_procfs_value_set" : "_procfs_value_get"));
   string locvalue = "CONTEXT->data";
 
   if (! lvalue)
@@ -391,14 +383,8 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
       ec->code = string("int bytes = 0;\n")
 	+ string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string(");\n")
 	+ string("    bytes = strnlen(THIS->value, MAXSTRINGLEN - 1);\n")
-	+ string("    if (data->off >= bytes)\n")
-	+ string("      bytes = 0;\n")
-	+ string("    else {\n")
-	+ string("      bytes -= data->off;\n")
-	+ string("      if (bytes > data->count)\n")
-	+ string("        bytes = data->count;\n")
-	+ string("      memcpy((void *)data->buffer, THIS->value + data->off, bytes);\n")
-	+ string("    }\n")
+	+ string("    memcpy((void *)data->buffer, THIS->value, bytes);\n")
+	+ string("    data->buffer[bytes] = '\\0';\n")
 	+ string("    data->count = bytes;\n");
 
   fdecl->name = fname;

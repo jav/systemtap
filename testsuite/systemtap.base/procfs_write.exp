@@ -96,8 +96,8 @@ set test_string \
 # Now we need the version of the above string that expect will look
 # for.  So, we need to convert all '\n' to '\r\n' and add a trailing
 # '\r\n'.
-regsub -all {\n} $test_string {\r\n} test_string2
-set test_string2 "$test_string2\\r\\n"
+regsub -all {\n} $test_string "\r\n" test_string2
+set test_string2 "$test_string2\r\n"
 
 proc proc_write_test {} {
     global test test_string
