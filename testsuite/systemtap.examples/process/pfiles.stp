@@ -77,6 +77,7 @@
 #include <linux/file.h>
 #include <net/sock.h>
 #include <linux/un.h>
+#include <linux/tcp.h>
 %}
 
 function task_valid_file_handle:long (task:long, fd:long) %{ /* pure */
@@ -339,30 +340,32 @@ function socket_optname:string (sock:long) %{ /* pure */
     char str[30];
     struct linger ling;
     struct optname_item {
+        int optfam;
         int optnum;
         const char *optname;
         int show_val;
     } *p;
     struct optname_item optname_entries[] = {
-        { SO_DEBUG,     "SO_DEBUG",     0 },
-        { SO_REUSEADDR, "SO_REUSEADDR", 0 },
-        { SO_DONTROUTE, "SO_DONTROUTE", 0 },
-        { SO_BROADCAST, "SO_BROADCAST", 0 },
-        { SO_KEEPALIVE, "SO_KEEPALIVE", 0 },
-        { SO_OOBINLINE, "SO_OOBINLINE", 0 },
-        { SO_PASSCRED,  "SO_PASSCRED",  0 },
-/*      { SO_SNDLOWAT,  "SO_SNDLOWAT",  0 },*/
-        { SO_TYPE,      "SO_TYPE",      1 },
-        { SO_ERROR,     "SO_ERROR",     1 },
-        { SO_SNDBUF,    "SO_SNDBUF",    1 },
-        { SO_RCVBUF,    "SO_RCVBUF",    1 },
-        { SO_NO_CHECK,  "SO_NO_CHECK",  1 },
-        { 0, NULL, 0 },
+        { SOL_SOCKET, SO_DEBUG,     "SO_DEBUG",     0 },
+        { SOL_SOCKET, SO_REUSEADDR, "SO_REUSEADDR", 0 },
+        { SOL_SOCKET, SO_DONTROUTE, "SO_DONTROUTE", 0 },
+        { SOL_SOCKET, SO_BROADCAST, "SO_BROADCAST", 0 },
+        { SOL_SOCKET, SO_KEEPALIVE, "SO_KEEPALIVE", 0 },
+        { SOL_SOCKET, SO_OOBINLINE, "SO_OOBINLINE", 0 },
+        { SOL_SOCKET, SO_PASSCRED,  "SO_PASSCRED",  0 },
+/*      { SOL_SOCKET, SO_SNDLOWAT,  "SO_SNDLOWAT",  0 },*/
+        { SOL_SOCKET, SO_TYPE,      "SO_TYPE",      1 },
+        { SOL_SOCKET, SO_ERROR,     "SO_ERROR",     1 },
+        { SOL_SOCKET, SO_SNDBUF,    "SO_SNDBUF",    1 },
+        { SOL_SOCKET, SO_RCVBUF,    "SO_RCVBUF",    1 },
+        { SOL_SOCKET, SO_NO_CHECK,  "SO_NO_CHECK",  1 },
+        { SOL_TCP,    TCP_NODELAY,  "TCP_NODELAY",  0 },
+        { 0, 0, NULL, 0 },
     };
 
     for (p = optname_entries; p->optname; ++p) {
        optlen = sizeof(optval);
-       ret = kernel_getsockopt(sock, SOL_SOCKET, p->optnum, (char *)&optval, &optlen);
+       ret = kernel_getsockopt(sock, p->optfam, p->optnum, (char *)&optval, &optlen);
        if (ret == 0 && optval != 0) {
            if (!p->show_val)
                snprintf(str, MAXSTRINGLEN, "%s,", p->optname);
