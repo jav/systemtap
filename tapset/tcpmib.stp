@@ -19,9 +19,15 @@
 %}
 
 global ActiveOpens
+%( kernel_v > "2.6.21" %?
 global AttemptFails
+%)
+%( kernel_v > "2.6.24" %?
 global CurrEstab
+%)
+%( kernel_v > "2.6.24" %?
 global EstabResets
+%)
 // global InErrs, this mib is not yet supported
 global InSegs
 global OutRsts
@@ -144,6 +150,7 @@ tcpmib.ActiveOpens=kernel.function("tcp_connect").return
  * MIB: TCP_MIB_ATTEMPTFAILS
  *
  */
+%( kernel_v > "2.6.21" %?
 probe
 tcpmib.AttemptFails=kernel.function("tcp_done")
 {
@@ -158,6 +165,7 @@ tcpmib.AttemptFails=kernel.function("tcp_done")
 		if ( key ) AttemptFails[key] += op;
 	}
 }
+%)
 
 /**
  * probe tcpmib.CurrEstab - Update the count of open sockets.
@@ -168,6 +176,7 @@ tcpmib.AttemptFails=kernel.function("tcp_done")
  * MIB: TCP_MIB_CURRESTAB
  *
  */
+%( kernel_v > "2.6.24" %?
 probe
 tcpmib.CurrEstab=kernel.function("tcp_set_state")
 {
@@ -188,6 +197,7 @@ tcpmib.CurrEstab=kernel.function("tcp_set_state")
 		}
 	}
 }
+%)
 
 /**
  * probe tcpmib.EstabResets - Count the reset of a socket.
@@ -198,6 +208,7 @@ tcpmib.CurrEstab=kernel.function("tcp_set_state")
  * MIB: TCP_MIB_ESTABRESETS
  *
  */
+%( kernel_v > "2.6.24" %?
 probe
 tcpmib.EstabResets=kernel.function("tcp_set_state")
 {
@@ -215,6 +226,7 @@ tcpmib.EstabResets=kernel.function("tcp_set_state")
 		if ( key ) EstabResets[key] += op;
 	}
 }
+%)
 
 /**
  * probe tcpmib.InSegs - Count an incomming tcp segment.
@@ -225,6 +237,7 @@ tcpmib.EstabResets=kernel.function("tcp_set_state")
  * MIB: TCP_MIB_INSEGS
  *
  */
+%( kernel_v > "2.6.24" %?
 probe
 tcpmib.InSegs=kernel.function("__inet_lookup_established").return ?
 {
@@ -233,6 +246,16 @@ tcpmib.InSegs=kernel.function("__inet_lookup_established").return ?
 	key = tcpmib_filter_key(sk,op);
 	if ( key ) InSegs[key] += op;
 }
+%:
+probe
+tcpmib.InSegs=kernel.function("tcp_v4_rcv")
+{
+	skb=$skb
+	op=1;
+	key = ipmib_filter_key(skb,op,0);
+	if ( key ) InSegs[key] += op;
+}
+%)
 
 /**
  * probe tcpmib.OutRsts - Count the sending of a reset packet.
@@ -257,41 +280,36 @@ function _is_reset:long (skb:long)
         struct tcphdr *th;
         struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
 
+	#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,21)
+		th = (struct tcphdr *)kread(&(skb->h.th));
+	#else
+
 	#ifdef NET_SKBUFF_DATA_USES_OFFSET
 		th = (struct tcphdr *)(kread(&(skb->network_header)) + kread(&(skb->head)));
 	#else
 		th = (struct tcphdr *)kread(&(skb->network_header));
+	#endif
 	#endif
         THIS->__retvalue = th->rst;
         CATCH_DEREF_FAULT();
 %}
 
 function _tcpmib_input_route_type:long (skb:long)
-{
-%( kernel_v < "2.6.31" %?
-	return __tcpmib_input_route_type_old(skb)
-%:
-	return __tcpmib_input_route_type_new(skb)
-%)
-}
-
-function __tcpmib_input_route_type_old:long (skb:long)
 %{ /* pure */
 	struct rtable *rt;
 	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
-	rt = (struct rtable *)kread(&(skb->rtable));
-	if ( rt )
-		THIS->__retvalue = kread(&(rt->rt_type));
-	else
-		THIS->__retvalue = RTN_UNSPEC;
-	CATCH_DEREF_FAULT();
-%}
 
-function __tcpmib_input_route_type_new:long (skb:long)
-%{ /* pure */
-	struct rtable *rt;
-	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
-	rt = (struct rtable *)kread(&(skb->_skb_dst));
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)
+		rt = (struct rtable *)kread(&(skb->_skb_dst));
+	#else
+
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,26)
+		rt = (struct rtable *)kread(&(skb->dst));
+	#else
+		rt = (struct rtable *)kread(&(skb->rtable));
+	#endif
+	#endif
+
 	if ( rt )
 		THIS->__retvalue = kread(&(rt->rt_type));
 	else
@@ -319,7 +337,11 @@ tcpmib.OutRsts.A=kernel.function("tcp_v4_send_reset")
         if ( _is_reset(skb) ) next
         if (_tcpmib_input_route_type($skb) != _rtn_local() )
                 next;
+%( kernel_v > "2.6.20" %?
         key = tcpmib_filter_key(sk,op);
+%:
+	key = ipmib_filter_key(skb,op,1);
+%)
         if ( key ) OutRsts[key] += op;
 }
 

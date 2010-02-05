@@ -283,6 +283,7 @@ probe kernel.function("tcp_write_timer")
 	find_timer[key] = @cast(sk, "inet_connection_sock")->icsk_pending
 }
 
+%( kernel_v > "2.6.24" %?
 probe kernel.function("tcp_set_state")
 {
 	sk = $sk
@@ -295,6 +296,7 @@ probe kernel.function("tcp_set_state")
 		clean_up(key);
 	}
 }
+%)
 
 function print_header()
 {
@@ -343,6 +345,7 @@ function print_packet_info:long ( key:long, SourceIsLocal:long)
 	printf("\n");
 }
 
+%( kernel_v > "2.6.24" %?
 function print_close:long (key:long, new_state:long)
 {
 	foreach ( [laddr, raddr, lport, rport] in key_list ){
@@ -357,6 +360,7 @@ function print_close:long (key:long, new_state:long)
 	printf("%-12s",state_num2str(new_state))
 	printf("\n");
 }
+%)
 
 /*
  * Update the values in the data collection arrays, returns 1 if one or more
@@ -508,8 +512,12 @@ function process_cmdline:long ()
 					snd_wnd_flg = 1;  continue };
 				if ( byte == "srtt" ) {
 					srtt_flg = 1;  continue };
+%( kernel_v > "2.6.24" %?
 				if ( byte == "state" ) {
 					state_flg = 1;  continue };
+%:
+				state_flg = 0;
+%)
 				if ( byte == "txq" ) {
 					txq_flg = 1;  continue };
 				if ( byte == "rxq" ) {
@@ -528,9 +536,12 @@ function process_cmdline:long ()
 					length_flg = 1; continue };
 				if ( byte == "all" ) {
 					snd_cwnd_flg = snd_wnd_flg = srtt_flg =
-					state_flg = txq_flg = rxq_flg =
+					txq_flg = rxq_flg =
 					rexmit_flg = pmtu_flg = ssthresh_flg =
 					timer_flg = rcvwnd_flg = length_flg = 1;
+%( kernel_v > "2.6.24" %?
+					state_flg = 1;
+%)
 					continue
 				};
 				usage("Unknown filter value given!")
@@ -591,10 +602,12 @@ function process_cmdline:long ()
 	/* default filter is all */
 	if ( !filter_given )
 		snd_cwnd_flg = snd_wnd_flg = srtt_flg =
-		state_flg = txq_flg = rxq_flg =
+		txq_flg = rxq_flg =
 		rexmit_flg = pmtu_flg = ssthresh_flg =
 		timer_flg = rcvwnd_flg = length_flg = 1;
-
+%( kernel_v > "2.6.24" %?
+		state_flg = 1;
+%)
 	return filter_number;
 }
 
@@ -697,6 +710,7 @@ function filter_key:long (sk:long)
 }
 
 /* Free up a slot in the data arrays */
+%( kernel_v > "2.6.24" %?
 function clean_up (key:long)
 {
 	foreach ( [laddr, raddr, lport, rport] in key_list ){
@@ -723,6 +737,7 @@ function clean_up (key:long)
 	if (rcvwnd_flg) delete rcvwnd[key];
 	delete length[key];
 }
+%)
 
 /* Terminates the run in timeout seconds, using global timeout value */
 probe timer.s(1) {
@@ -737,7 +752,11 @@ function usage (msg:string)
 	printf("\t\t\t[update=change|all] Rule\n\n");
 	printf("\tRule format:");
 	printf("<local address>:<local-port>-<remote address>:<remote-port>\n");
+%( kernel_v > "2.6.24" %?
 	printf("\tFilter values: all|state|txq|rxq|srtt|snd_cwnd|snd_wnd|\n");
+%:
+	printf("\tFilter values: all|txq|rxq|srtt|snd_cwnd|snd_wnd|\n");
+%)
 	printf("\t\t\trexmit|pmtu|ssthresh|timer|rcvwnd\n\n");
 	printf("%s\n\n",msg);
 	error(msg);
