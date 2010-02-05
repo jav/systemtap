@@ -1,0 +1,609 @@
+#! /usr/bin/stap -g
+# pfiles
+# Copyright (C) 2007-2010 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# pfiles report information for all open files by the process id.
+#
+# pfiles is not a port of Solaris' pfiles tool. It was written based on the
+# example outputs in:
+# - https://bugzilla.redhat.com/show_bug.cgi?id=223489
+# - http://blogs.sun.com/peteh/entry/pfiles_1_locked_files_and
+# - http://lists.samba.org/archive/samba-technical/2001-May/014293.html
+# - http://mail.gnome.org/archives/gconf-list/2004-December/msg00005.html
+#
+# systemtap SNAPSHOT c9116e9980ad6e417697737f8d54a4a625811245
+# on kernel 2.6.18-128.1.13.el5
+# and on kernel 2.6.27.21-170.2.56.fc10.i686.PAE
+#
+# Last updated: Thu May 28 20:37:57 SGT 2009
+#
+# pfiles is able to:
+# - report locked open files
+# - report pathname information
+# - report socket information (thanks Luis Henriques)
+# - report sk_userlocks (thanks Arnaldo Carvalho de Melo)
+# - report socket options
+#
+# Example:
+# $ ./pfiles.stp `pgrep udevd`
+#    787: udevd
+#   Current rlimit: 32 file descriptors
+#    0: S_IFCHR mode:0666 dev:0,15 ino:396 uid:0 gid:0 rdev:1,3
+#       O_RDWR|O_LARGEFILE 
+#       /dev/null
+#    1: S_IFCHR mode:0666 dev:0,15 ino:396 uid:0 gid:0 rdev:1,3
+#       O_RDWR|O_LARGEFILE 
+#       /dev/null
+#    2: S_IFCHR mode:0666 dev:0,15 ino:396 uid:0 gid:0 rdev:1,3
+#       O_RDWR|O_LARGEFILE 
+#       /dev/null
+#    3: S_IFDIR mode:0600 dev:0,9 ino:1 uid:0 gid:0 rdev:0,0
+#       O_RDONLY 
+#       inotify
+#    4: S_IFSOCK mode:0777 dev:0,4 ino:2353 uid:0 gid:0 rdev:0,0
+#       O_RDWR 
+#       socket:[2353]
+#       SO_PASSCRED,SO_TYPE(2),SO_SNDBUF(111616),SO_RCVBUF(111616)
+#         sockname: AF_UNIX
+#    5: S_IFSOCK mode:0777 dev:0,4 ino:2354 uid:0 gid:0 rdev:0,0
+#       O_RDWR 
+#       socket:[2354]
+#       SO_TYPE(2),SO_SNDBUF(111616),SO_RCVBUF(33554432)
+#         ulocks: rcv
+#    6: S_IFIFO mode:0600 dev:0,6 ino:2355 uid:0 gid:0 rdev:0,0
+#       O_RDONLY|O_NONBLOCK 
+#       pipe:[2355]
+#    7: S_IFIFO mode:0600 dev:0,6 ino:2355 uid:0 gid:0 rdev:0,0
+#       O_WRONLY|O_NONBLOCK 
+#       pipe:[2355]
+#
+# I used Andrew Tridgell's locktst.c to test the advisory lock code.
+# You can download it at http://samba.org/ftp/unpacked/junkcode/locktst.c
+#
+# $ ./locktst file &
+# fcntl_lock 3 6 1 1 1
+# $ pfiles 10126 | grep advisory -A1 -B2
+#   3: S_IFREG mode:0644 dev:253,0 ino:15237159 uid:500 gid:500 rdev:0,0
+#      O_RDWR 
+#      advisory write lock set by process 10126
+#      /home/eteo/pfiles/file
+#
+
+%{
+#include <linux/file.h>
+#include <net/sock.h>
+#include <linux/un.h>
+#include <linux/tcp.h>
+%}
+
+function task_valid_file_handle:long (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file *filp;
+
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	if (!filp) {
+		THIS->__retvalue = 0;
+		rcu_read_unlock();
+		return;
+	}
+	THIS->__retvalue = (long)filp;
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function i_mode2str:string (i_mode:long) %{ /* pure */
+	snprintf(THIS->__retvalue, MAXSTRINGLEN, "%d", (int)THIS->i_mode);
+	THIS->i_mode = simple_strtol(THIS->__retvalue, NULL, 10);
+
+	if (S_ISLNK(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFLNK", MAXSTRINGLEN);
+	else if (S_ISREG(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFREG", MAXSTRINGLEN);
+	else if (S_ISDIR(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFDIR", MAXSTRINGLEN);
+	else if (S_ISCHR(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFCHR", MAXSTRINGLEN);
+	else if (S_ISBLK(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFBLK", MAXSTRINGLEN);
+	else if (S_ISFIFO(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFIFO", MAXSTRINGLEN);
+	else if (S_ISSOCK(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFSOCK", MAXSTRINGLEN);
+%}
+
+function task_file_handle_i_mode:long (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file *filp;
+
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	THIS->__retvalue = kread(&filp->f_dentry->d_inode->i_mode);
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_majmin_dev:string (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file *filp;
+	int dev_nr;
+
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	dev_nr = kread(&filp->f_dentry->d_inode->i_sb->s_dev);
+	snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		"%d,%d", MAJOR(dev_nr), MINOR(dev_nr));
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_majmin_rdev:string (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file *filp;
+	int rdev_nr;
+
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	rdev_nr = kread(&filp->f_dentry->d_inode->i_rdev);
+	snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		"%d,%d", MAJOR(rdev_nr), MINOR(rdev_nr));
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();	
+%}
+
+function task_file_handle_i_node:long (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file *filp;
+	
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	THIS->__retvalue = kread(&filp->f_dentry->d_inode->i_ino);
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_uid:long (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file *filp;
+	
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)
+	/* git commit d76b0d9b */
+	THIS->__retvalue = kread(&filp->f_cred->fsuid);
+#else
+	THIS->__retvalue = kread(&filp->f_uid);
+#endif
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_gid:long (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file *filp;
+	
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)
+	/* git commit d76b0d9b */
+	THIS->__retvalue = kread(&filp->f_cred->fsgid);
+#else
+	THIS->__retvalue = kread(&filp->f_gid);
+#endif
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_f_flags:long (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file *filp;
+	
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	THIS->__retvalue = kread(&filp->f_flags);
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_fd_flags:string (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct fdtable *fdt;
+	int gcoe;
+	
+	rcu_read_lock();
+	fdt = files_fdtable(files);
+	gcoe = FD_ISSET(THIS->fd, kread(&fdt->close_on_exec));
+	snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		"%s", gcoe ? "FD_CLOEXEC" : "");
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_flock:string (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct file_lock *flock;
+	int fl_type, fl_pid;
+	struct file *filp;
+
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	flock = kread(&filp->f_dentry->d_inode->i_flock);
+	fl_type = fl_pid = -1;
+	if (flock) {
+		fl_type = kread(&flock->fl_type);
+		fl_pid = kread(&flock->fl_pid);
+	}
+
+	if (fl_type != -1) /* !flock */
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			"      advisory %s lock set by process %d",
+			fl_type ? "write" : "read", fl_pid);
+	else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NULL");
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_d_path:string (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	char *page = (char *)__get_free_page(GFP_KERNEL);
+	struct file *filp;
+	struct dentry *dentry;
+	struct vfsmount *vfsmnt;
+
+	/* TODO: handle !page */
+	if (!page)
+		return;
+
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	dentry = kread(&filp->f_dentry);
+	vfsmnt = kread(&filp->f_vfsmnt);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+	/* git commit 9d1bc601 */
+    snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s",
+        d_path(&filp->f_path, page, PAGE_SIZE));
+#else
+	snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s",
+		d_path(dentry, vfsmnt, page, PAGE_SIZE));
+#endif	
+	free_page((unsigned long)page);
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function task_file_handle_socket:long (task:long, fd:long) %{ /* pure */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct files_struct *files = kread(&p->files);
+	struct inode *inode;
+	struct file *filp;
+
+	rcu_read_lock();
+	filp = fcheck_files(files, THIS->fd);
+	if (!filp) {
+		THIS->__retvalue = 0;
+	    rcu_read_unlock();
+		return;
+	}
+	inode = kread(&filp->f_dentry->d_inode);
+	if (S_ISSOCK(kread(&inode->i_mode)))
+		THIS->__retvalue = (long)SOCKET_I(inode);
+	rcu_read_unlock();
+
+	CATCH_DEREF_FAULT();
+%}
+
+function socket_userlocks:string (sock:long) %{ /* pure */
+	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct sock *sk = (struct sock *)kread(&sock->sk);
+	unsigned char locks = sk->sk_userlocks;
+	int printed = 0;
+
+	THIS->__retvalue[0] = '\0';
+
+	if (locks & SOCK_RCVBUF_LOCK)
+		printed = snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			"ulocks: rcv");
+	
+	if (locks & SOCK_SNDBUF_LOCK)
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			"ulocks: %ssnd",
+			printed ? "rcv, " : "");
+
+	CATCH_DEREF_FAULT();
+%}
+
+function socket_optname:string (sock:long) %{ /* pure */
+    struct socket *sock = (struct socket *)((long)THIS->sock);
+    int optval;
+    int optlen;
+    int ret, a;
+    char str[30];
+    struct linger ling;
+    struct optname_item {
+        int optfam;
+        int optnum;
+        const char *optname;
+        int show_val;
+    } *p;
+    struct optname_item optname_entries[] = {
+        { SOL_SOCKET, SO_DEBUG,     "SO_DEBUG",     0 },
+        { SOL_SOCKET, SO_REUSEADDR, "SO_REUSEADDR", 0 },
+        { SOL_SOCKET, SO_DONTROUTE, "SO_DONTROUTE", 0 },
+        { SOL_SOCKET, SO_BROADCAST, "SO_BROADCAST", 0 },
+        { SOL_SOCKET, SO_KEEPALIVE, "SO_KEEPALIVE", 0 },
+        { SOL_SOCKET, SO_OOBINLINE, "SO_OOBINLINE", 0 },
+        { SOL_SOCKET, SO_PASSCRED,  "SO_PASSCRED",  0 },
+/*      { SOL_SOCKET, SO_SNDLOWAT,  "SO_SNDLOWAT",  0 },*/
+        { SOL_SOCKET, SO_TYPE,      "SO_TYPE",      1 },
+        { SOL_SOCKET, SO_ERROR,     "SO_ERROR",     1 },
+        { SOL_SOCKET, SO_SNDBUF,    "SO_SNDBUF",    1 },
+        { SOL_SOCKET, SO_RCVBUF,    "SO_RCVBUF",    1 },
+        { SOL_SOCKET, SO_NO_CHECK,  "SO_NO_CHECK",  1 },
+        { SOL_TCP,    TCP_NODELAY,  "TCP_NODELAY",  0 },
+        { 0, 0, NULL, 0 },
+    };
+
+    for (p = optname_entries; p->optname; ++p) {
+       optlen = sizeof(optval);
+       ret = kernel_getsockopt(sock, p->optfam, p->optnum, (char *)&optval, &optlen);
+       if (ret == 0 && optval != 0) {
+           if (!p->show_val)
+               snprintf(str, MAXSTRINGLEN, "%s,", p->optname);
+           else
+               snprintf(str, MAXSTRINGLEN, "%s(%d),", p->optname, optval);
+           strcat(THIS->__retvalue, str);
+       }
+    }
+
+    optlen = sizeof(ling);
+    ret = kernel_getsockopt(sock, SOL_SOCKET, SO_LINGER, (void *)&ling, &optlen);
+    if (ret == 0 && ling.l_onoff != 0) {
+        snprintf(str, MAXSTRINGLEN, "SO_LINGER(%d),", ling.l_linger);
+        strcat(THIS->__retvalue, str);
+    }
+
+    THIS->__retvalue[strlen(THIS->__retvalue) - 1] = '\0';
+	CATCH_DEREF_FAULT();
+%}
+
+function socket_family:long (sock:long) %{ /* pure */
+	struct socket *sock = (struct socket *)((long)THIS->sock);
+	THIS->__retvalue = (long)kread(&sock->ops->family);
+	CATCH_DEREF_FAULT();
+%}
+
+function socket_unix_sockname:string (sock:long) %{ /* pure */
+	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct sockaddr_un un_addr;
+	int err, len;
+
+	err = sock->ops->getname(sock, (struct sockaddr *)(&un_addr), &len, 0);
+//	err = kernel_getsockname(kread(&sock), (struct sockaddr *)(&un_addr), &len);
+	if (!err) {
+		if (kread(&un_addr.sun_path[0]) != 0)
+			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+				"        sockname: AF_UNIX %s", un_addr.sun_path);
+		else
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "        sockname: AF_UNIX");
+	}
+	CATCH_DEREF_FAULT();
+%}
+
+function socket_unix_peername:string (sock:long) %{ /* pure */
+	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct sockaddr_un un_addr;
+	int err, len;
+
+	err = sock->ops->getname(sock, (struct sockaddr *)(&un_addr), &len, 1);
+//	err = kernel_getpeername(kread(&sock), (struct sockaddr *)(&un_addr), &len);
+	if (!err) {
+		if (kread(&un_addr.sun_path[0]) != 0)
+			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+				"        peername: AF_UNIX %s", un_addr.sun_path);
+		else
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "        peername: AF_UNIX");
+	}
+	CATCH_DEREF_FAULT();
+%}
+
+function socket_ipv4_sockname:string (sock:long) %{ /* pure */
+	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct sockaddr_in in_addr;
+	__be32 addr, port;
+	int err, len;
+
+	err = sock->ops->getname (sock, (struct sockaddr*)(&in_addr), &len, 0);
+	if (!err) {
+		addr = kread(&in_addr.sin_addr.s_addr);
+		port = htons(kread(&in_addr.sin_port));
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			"        sockname: AF_INET " NIPQUAD_FMT "  port: %d",
+			NIPQUAD(addr), port);
+	}
+	CATCH_DEREF_FAULT();
+%}
+
+function socket_ipv4_peername:string (sock:long) %{ /* pure */
+	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct sockaddr_in in_addr;
+	__be32 addr, port;
+	int err, len;
+
+	err = sock->ops->getname (sock, (struct sockaddr*)(&in_addr), &len, 1);
+	if (!err) {
+		addr = kread(&in_addr.sin_addr.s_addr);
+		port = htons(kread(&in_addr.sin_port));
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			"        peername: AF_INET " NIPQUAD_FMT "  port: %d",
+			NIPQUAD(addr), port);
+	}
+	CATCH_DEREF_FAULT();
+%}
+
+%{
+#ifndef NIP6_FMT
+#define NIP6_FMT "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x"
+#endif
+#ifndef NIP6
+#define NIP6(addr) \
+    ntohs((addr).s6_addr16[0]), \
+    ntohs((addr).s6_addr16[1]), \
+    ntohs((addr).s6_addr16[2]), \
+    ntohs((addr).s6_addr16[3]), \
+    ntohs((addr).s6_addr16[4]), \
+    ntohs((addr).s6_addr16[5]), \
+    ntohs((addr).s6_addr16[6]), \
+    ntohs((addr).s6_addr16[7])
+#endif
+
+%}
+
+function socket_ipv6_sockname:string (sock:long) %{ /* pure */
+	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct sockaddr_in6 in_addr;
+	__be32 port;
+	int err, len;
+
+	err = sock->ops->getname (sock, (struct sockaddr*)(&in_addr), &len, 0);
+	if (!err) {
+		port = htons(kread(&in_addr.sin6_port));
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			"        sockname: AF_INET6 " NIP6_FMT "  port: %d",
+			NIP6(in_addr.sin6_addr), port);
+	}
+	CATCH_DEREF_FAULT();
+%}
+
+function socket_ipv6_peername:string (sock:long) %{ /* pure */
+	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct sockaddr_in6 in_addr;
+	__be32 port;
+	int err, len;
+
+	err = sock->ops->getname (sock, (struct sockaddr*)(&in_addr), &len, 1);
+	if (!err) {
+		port = htons(kread(&in_addr.sin6_port));
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			"        peername: AF_INET6 " NIP6_FMT "  port: %d",
+			NIP6(in_addr.sin6_addr), port);
+	}
+	CATCH_DEREF_FAULT();
+%}
+
+function print_file_handle_general(task, fd) {
+	printf("%4d: %s mode:%04o dev:%s ino:%d uid:%d gid:%d rdev:%s\n",
+		fd, i_mode2str(task_file_handle_i_mode(task, fd)),
+		task_file_handle_i_mode(task, fd) & 0777,
+		task_file_handle_majmin_dev(task, fd),
+		task_file_handle_i_node(task, fd),
+		task_file_handle_uid(task, fd),
+		task_file_handle_gid(task, fd),
+		task_file_handle_majmin_rdev(task, fd));
+}
+
+function print_file_handle_flags(task, fd) {
+	printf("      %s %s\n",
+		_sys_open_flag_str(task_file_handle_f_flags(task, fd)),
+		task_file_handle_fd_flags(task, fd));
+}
+
+function print_file_handle_flock(task, fd) {
+	flock = task_file_handle_flock(task, fd)
+	if (!isinstr(flock, "NULL"))
+		printf("%s\n", flock)
+}
+
+function print_file_handle_d_path(task, fd) {
+	printf("      %s\n", task_file_handle_d_path(task, fd))
+}
+
+function print_socket_userlocks(sock) {
+	slocks = socket_userlocks(sock)
+	if (strlen(slocks) > 0)
+		printf("        %s\n", slocks)
+}
+
+function print_unix_socket(sock) {
+	sockname = socket_unix_sockname(sock)
+	peername = socket_unix_peername(sock)
+	printf("%s%s", strlen(sockname) > 0 ? sockname . "\n" : "",
+		strlen(peername) > 0 ? peername . "\n" : "")
+}
+
+function print_ipv4_socket(sock) {
+	sockname = socket_ipv4_sockname(sock)
+	peername = socket_ipv4_peername(sock)
+	printf("%s%s", strlen(sockname) > 0 ? sockname . "\n" : "",
+		strlen(peername) > 0 ? peername . "\n" : "")
+}
+
+function print_ipv6_socket(sock) {
+	sockname = socket_ipv6_sockname(sock)
+	peername = socket_ipv6_peername(sock)
+	printf("%s%s", strlen(sockname) > 0 ? sockname . "\n" : "",
+		strlen(peername) > 0 ? peername . "\n" : "")
+}
+
+function print_socket_optname(sock) {
+    str = socket_optname(sock)
+    printf("      %s", strlen(str) > 0 ? str . "\n" : "")
+}
+
+probe begin {
+%( $# < 1
+        %? pid = target()
+        %: pid = $1
+%)
+        # if (pid == 0) error ("Please provide valid target process-id as $1 or -x PID");
+	task = pid2task(pid)
+        if (task == 0) error (sprintf("Process-id %d is invalid, please provide valid PID as $1 or -x PID", pid))
+
+	max_fds = task_max_file_handles(task)
+
+	printf("%6d: %s\n", pid, pid2execname(pid))
+	printf("  Current rlimit: %d file descriptors\n", max_fds)
+
+	for (fd = 0; fd < max_fds; fd++) {
+		if (task_valid_file_handle(task, fd)) {
+			print_file_handle_general(task, fd)
+			print_file_handle_flags(task, fd)
+			print_file_handle_flock(task, fd)
+			print_file_handle_d_path(task, fd)
+			sock = task_file_handle_socket(task, fd)
+			if (sock) {
+                print_socket_optname(sock)
+				fam = socket_family(sock)
+				if (fam == 1) { /* AF_UNIX */
+					print_unix_socket(sock)
+				} else if (fam == 2) { /* AF_INET */
+					print_ipv4_socket(sock)
+				} else if (fam == 10) { /* AF_INET6 */
+					print_ipv6_socket(sock)
+				}
+				print_socket_userlocks(sock)
+			}
+		}
+	}
+
+	exit()
+}

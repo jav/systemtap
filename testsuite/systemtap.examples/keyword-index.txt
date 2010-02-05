@@ -118,6 +118,16 @@ keywords: disk
   ten entries during that period.
 
 
+= FILES =
+
+process/pfiles.stp - print process file descriptors
+keywords: process files
+
+  Run pfiles.stp to produce a human-readable summary of all open file
+  descriptors of a given process.  Specify the process-id as -x PID for
+  fastest performance.
+
+
 = FILESYSTEM =
 
 general/badname.stp - Bad Filename Filter
@@ -309,15 +319,6 @@ keywords: io monitoring
 
    The mbrwatch.stp script reports any attempted reads/writes of the
   first few sectors of a raw block device.
-
-
-io/nfs_func_log.stp - Print Log of NFS Functions Used
-keywords: io
-
-  The nfs_func_log.stp script logs the uses of NFS functions in the
-  kernel.  The output is a trace. Each line contains the time stamp,
-  the process name, and the process number followed by the function
-  name.
 
 
 io/nfs_func_users.stp - Tally the Number of NFS Functions Used by Each Process
@@ -679,6 +680,14 @@ keywords: process scheduler
   The forktracker.stp script prints out a time-stamped entry showing
   each fork and exec operation on the machine. This can be useful to
   determine what process is creating a flurry of short-lived processes.
+
+
+process/pfiles.stp - print process file descriptors
+keywords: process files
+
+  Run pfiles.stp to produce a human-readable summary of all open file
+  descriptors of a given process.  Specify the process-id as -x PID for
+  fastest performance.
 
 
 process/plimit.stp - print resource limits
