@@ -714,6 +714,8 @@ mark_builder::build(systemtap_session & sess,
 void
 register_tapset_mark(systemtap_session& s)
 {
+  if (s.unprivileged) return;
+
   match_node* root = s.pattern_root;
   derived_probe_builder *builder = new mark_builder();
 

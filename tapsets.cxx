@@ -366,9 +366,6 @@ struct dwarf_derived_probe: public derived_probe
   void emit_probe_local_init(translator_output * o);
   void getargs(std::list<std::string> &arg_set) const;
 
-  void emit_unprivileged_assertion (translator_output*);
-  void print_dupe_stamp(ostream& o);
-
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw);
@@ -3108,23 +3105,6 @@ dwarf_derived_probe::getargs(std::list<std::string> &arg_set) const
 }
 
 
-void
-dwarf_derived_probe::emit_unprivileged_assertion (translator_output* o)
-{
-  // These probes are allowed for unprivileged users, but only in the
-  // context of processes which they own.
-  emit_process_owner_assertion (o);
-}
-
-
-void
-dwarf_derived_probe::print_dupe_stamp(ostream& o)
-{
-  // These probes are allowed for unprivileged users, but only in the
-  // context of processes which they own.
-  print_dupe_stamp_unprivileged_process_owner (o);
-}
-
 
 void
 dwarf_derived_probe::register_statement_variants(match_node * root,
@@ -3170,12 +3150,15 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   update_visitor *filter = new dwarf_cast_expanding_visitor(s, *dw);
   s.code_filters.push_back(filter);
 
-  register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
-  register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
-  root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
-    ->bind(dw);
-  root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind(dw);
+  if (! s.unprivileged)
+    {
+      register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
+      register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
+      root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
+        ->bind(dw);
+      root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
+        ->bind(dw);
+    }
 
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
@@ -6515,6 +6498,8 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
     ->bind(new uprobe_builder ());
+
+  if (s.unprivileged) return;
 
   // kernel tracepoint probes
   s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_TRACE)
