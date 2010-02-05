@@ -401,20 +401,20 @@ function __sem_flags:string(semflg:long)
 /* This function copies an argv from userspace. */
 function __get_argv:string(a:long, first:long)
 %{ /* pure */
-	char __user *__user *argv = (char __user *__user *)(long)THIS->a;
+  	char __user *__user *argv = (char __user *__user *)(long)THIS->a;
 	char __user *vstr;
 	int space, rc, len = MAXSTRINGLEN;
 	char *str = THIS->__retvalue;
 	char buf[80];
 	char *ptr = buf;
 
-
+	
 	if (THIS->first && argv)
 		argv++;
 
-	while (argv != NULL && len) {
+	while (argv != NULL) {
 		if (__stp_get_user (vstr, argv))
-			break;
+      			break;
 
 		if (vstr == NULL)
 			break;
@@ -443,8 +443,8 @@ function __get_argv:string(a:long, first:long)
 			*str++='\"';
 			len--;
 		}
-
-		rc = min(len, (int) strlcpy (str, buf, len));
+	
+		rc = strlcpy (str, buf, len); 
 		str += rc;
 		len -= rc;
 
@@ -455,15 +455,13 @@ function __get_argv:string(a:long, first:long)
 
 		argv++;
 	}
-	if (!len)
-		--str;
 	*str = 0;
 %}
 /* This function copies an argv from userspace. */
 function __get_compat_argv:string(a:long, first:long)
 %{ /* pure */
 #ifdef CONFIG_COMPAT
-	compat_uptr_t __user *__user *argv = (compat_uptr_t __user *__user *)(long)THIS->a;
+  	compat_uptr_t __user *__user *argv = (compat_uptr_t __user *__user *)(long)THIS->a;
 	compat_uptr_t __user *vstr;
 	int space, rc, len = MAXSTRINGLEN;
 	char *str = THIS->__retvalue;
@@ -473,9 +471,9 @@ function __get_compat_argv:string(a:long, first:long)
 	if (THIS->first && argv)
 		argv++;
 
-	while (argv != NULL && len) {
+	while (argv != NULL) {
 		if (__stp_get_user (vstr, argv))
-			break;
+      			break;
 
 		if (vstr == NULL)
 			break;
@@ -504,8 +502,8 @@ function __get_compat_argv:string(a:long, first:long)
 			*str++='\"';
 			len--;
 		}
-
-		rc = min(len, (int) strlcpy (str, buf, len));
+	
+		rc = strlcpy (str, buf, len); 
 		str += rc;
 		len -= rc;
 
@@ -516,8 +514,6 @@ function __get_compat_argv:string(a:long, first:long)
 
 		argv++;
 	}
-	if (!len)
-		--str;
 	*str = 0;
 #endif
 %}
