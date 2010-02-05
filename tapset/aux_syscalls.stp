@@ -399,124 +399,53 @@ function __sem_flags:string(semflg:long)
 
 
 /* This function copies an argv from userspace. */
-function __get_argv:string(a:long, first:long)
-%{ /* pure */
-  	char __user *__user *argv = (char __user *__user *)(long)THIS->a;
-	char __user *vstr;
-	int space, rc, len = MAXSTRINGLEN;
-	char *str = THIS->__retvalue;
-	char buf[80];
-	char *ptr = buf;
+function __get_argv:string(argv:long, first:long)
+{
+%( CONFIG_64BIT == "y" %?
+	if (first && argv)
+		argv += 8
+	while (argv) {
+		vstr = user_long(argv)
+		if (!vstr)
+			break
+		if (len)
+			str .= " "
+		str .= user_string_quoted(vstr)
 
-	
-	if (THIS->first && argv)
-		argv++;
-
-	while (argv != NULL) {
-		if (__stp_get_user (vstr, argv))
-      			break;
-
-		if (vstr == NULL)
-			break;
-
-		rc = _stp_strncpy_from_user(buf, vstr, 79);
-		if (rc <= 0)
-			break;
-
-		/* check for whitespace in string */
-		buf[rc] = 0;
-		ptr = buf;
-		space = 0;
-		while (*ptr && rc--) {
-			if (isspace(*ptr++)) {
-				space = 1;
-				break;
-			}
-		}
-
-		if (len != MAXSTRINGLEN && len) {
-			*str++=' ';
-			len--;
-		}
-
-		if (space && len) {
-			*str++='\"';
-			len--;
-		}
-	
-		rc = strlcpy (str, buf, len); 
-		str += rc;
-		len -= rc;
-
-		if (space && len) {
-			*str++='\"';
-			len--;
-		}
-
-		argv++;
+		newlen = strlen(str)
+		if (newlen == len)
+			break
+		len = newlen
+		argv += 8
 	}
-	*str = 0;
-%}
+
+	return str
+%:
+	return __get_compat_argv(argv, first)
+%)
+}
 /* This function copies an argv from userspace. */
-function __get_compat_argv:string(a:long, first:long)
-%{ /* pure */
-#ifdef CONFIG_COMPAT
-  	compat_uptr_t __user *__user *argv = (compat_uptr_t __user *__user *)(long)THIS->a;
-	compat_uptr_t __user *vstr;
-	int space, rc, len = MAXSTRINGLEN;
-	char *str = THIS->__retvalue;
-	char buf[80];
-	char *ptr = buf;
+function __get_compat_argv:string(argv:long, first:long)
+{
+	if (first && argv)
+		argv += 4
+	while (argv) {
+		vstr = user_int(argv) & 0xffffffff
+		if (!vstr)
+			break
+		if (len)
+			str .= " "
+		str .= user_string_quoted(vstr)
 
-	if (THIS->first && argv)
-		argv++;
-
-	while (argv != NULL) {
-		if (__stp_get_user (vstr, argv))
-      			break;
-
-		if (vstr == NULL)
-			break;
-
-		rc = _stp_strncpy_from_user(buf, (char *)vstr, 79);
-		if (rc <= 0)
-			break;
-
-		/* check for whitespace in string */
-		buf[rc] = 0;
-		ptr = buf;
-		space = 0;
-		while (*ptr && rc--) {
-			if (isspace(*ptr++)) {
-				space = 1;
-				break;
-			}
-		}
-
-		if (len != MAXSTRINGLEN && len) {
-			*str++=' ';
-			len--;
-		}
-
-		if (space && len) {
-			*str++='\"';
-			len--;
-		}
-	
-		rc = strlcpy (str, buf, len); 
-		str += rc;
-		len -= rc;
-
-		if (space && len) {
-			*str++='\"';
-			len--;
-		}
-
-		argv++;
+		newlen = strlen(str)
+		if (newlen == len)
+			break
+		len = newlen
+		argv += 4
 	}
-	*str = 0;
-#endif
-%}
+
+	return str
+}
 
 /*
  * Return the  symbolic string  representation
