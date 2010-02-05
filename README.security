@@ -88,26 +88,10 @@ program is a setuid program that does some system setup, loads the
 kernel module, then runs stapio (and waits for it to finish).  The
 stapio program runs as the invoking user and is responsible for all
 communication with the kernel module.  After the script runs to
-completion, stapio exits and staprun unloads the kernel module.
+completion, stapio fork/execs staprun -d to unload the kernel module.
 
-staprun is a setuid program that uses POSIX capabilities.  Using POSIX
-capabilities allows the program to only have the privileges to do
-certain things.  When staprun starts up, it only keeps the following
-POSIX capabilities and then switches its user-id/group-id to the
-invoking user:
+staprun is a setuid program.  It holds on to the root priviliges only
+for the least amount of time (as required to verify/load compiled
+kernel module files).  It invokes only stapio, and only as the
+original (unprivileged) user.
 
- * CAP_SYS_MODULE - insert and remove kernel modules
- * CAP_SYS_ADMIN - misc, including mounting and unmounting
- * CAP_SYS_NICE - setpriority()
- * CAP_SETUID - allows setuid
- * CAP_SETGID - allows setgid
-
-The above capabilities are the permitted set of capabilities for
-staprun, which is the list of all the capabilities staprun is ever
-permitted to have.  In addition, the effective set of capabilities, the
-capabilities from the permitted set that are currently enabled, is
-cleared.  When needed, a particular capability is enabled, the
-operation is performed, then the capability is disabled.  The staprun
-program was designed in this way to prevent several classes of security
-attacks. Security is also heightened by the fact that the only
-external program that staprun executes is stapio.
