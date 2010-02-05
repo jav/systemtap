@@ -319,7 +319,7 @@ exit 0
 %pre server
 getent group stap-server >/dev/null || groupadd -r stap-server
 getent passwd stap-server >/dev/null || useradd -c "Systemtap Compile Server" -g stap-server -d %{_localstatedir}/lib/stap-server -m -r -s /sbin/nologin stap-server
-chmod 755 %{_localstatedir}/lib/stap-server
+test -e ~stap-server && chmod 755 ~stap-server
 exit 0
 
 %post server
@@ -333,9 +333,9 @@ chmod 775 /usr/share/systemtap/runtime/uprobes
 # As stap-server, generate the certificate used for signing and for ssl.
 runuser -s /bin/sh - stap-server -c %{_libexecdir}/%{name}/stap-gen-cert >/dev/null
 # Authorize the certificate as a trusted ssl peer and as a trusted signer
-# local host.
-%{_bindir}/stap-authorize-server-cert %{_localstatedir}/lib/stap-server/.systemtap/ssl/server/stap.cert
-%{_bindir}/stap-authorize-signing-cert %{_localstatedir}/lib/stap-server/.systemtap/ssl/server/stap.cert
+# on the local host.
+%{_bindir}/stap-authorize-server-cert ~stap-server/.systemtap/ssl/server/stap.cert
+%{_bindir}/stap-authorize-signing-cert ~stap-server/.systemtap/ssl/server/stap.cert
 
 # Activate the service
 /sbin/chkconfig --add stap-server
