@@ -126,7 +126,7 @@ fi
 cd postgresql-${postgresrelease}/
 mkdir bld;cd bld
 ../configure --enable-dtrace --prefix=$postgresdir
-sed -i -e 's/^CFLAGS = -O2.*\$/& -g -DEXPERIMENTAL_KPROBE_SDT/' src/Makefile.global
+sed -i -e 's|^CFLAGS = -O2.*\$|& -g -DEXPERIMENTAL_KPROBE_SDT -I $env(SYSTEMTAP_INCLUDES)|' src/Makefile.global
 # make
 # make install
 # run_tests kprobe

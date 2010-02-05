@@ -317,7 +317,7 @@ cd mysql/bld
 sed -i -e 's/HAVE_DTRACE_DASH_G=\"no\"/HAVE_DTRACE_DASH_G=\"yes\"/' ../src/configure
 ../src/configure --enable-dtrace --prefix=$mysqldir
 for i in \$(find . -name Makefile) ; do 
-    sed -i -e 's/^CXXFLAGS =/& -g/' \$i
+    sed -i -e 's|^CXXFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
 done
 fi
 
