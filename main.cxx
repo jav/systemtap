@@ -532,6 +532,7 @@ main (int argc, char * const argv [])
   s.load_only = false;
   s.skip_badvars = false;
   s.unprivileged = false;
+  s.omit_werror = false;
   bool client_options = false;
   string client_options_disallowed;
 
@@ -616,7 +617,8 @@ main (int argc, char * const argv [])
 #define LONG_OPT_VERBOSE_PASS 5
 #define LONG_OPT_SKIP_BADVARS 6
 #define LONG_OPT_UNPRIVILEGED 7
-#define LONG_OPT_CLIENT_OPTIONS 8
+#define LONG_OPT_OMIT_WERROR 8
+#define LONG_OPT_CLIENT_OPTIONS 9
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -626,6 +628,13 @@ main (int argc, char * const argv [])
 	{ "skip-badvars", 0, &long_opt, LONG_OPT_SKIP_BADVARS },
         { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
         { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
+#define OWE5 "tter"
+#define OWE1 "uild-"
+#define OWE6 "fu-kb"
+#define OWE2 "i-kno"
+#define OWE4 "st"
+#define OWE3 "w-be"
+        { OWE4 OWE6 OWE1 OWE2 OWE3 OWE5, 0, &long_opt, LONG_OPT_OMIT_WERROR },
         { "client-options", 0, &long_opt, LONG_OPT_CLIENT_OPTIONS },
         { NULL, 0, NULL, 0 }
       };
@@ -908,6 +917,9 @@ main (int argc, char * const argv [])
 	      s.unprivileged = true;
               /* NB: for server security, it is essential that once this flag is
                  set, no future flag be able to unset it. */
+	      break;
+	    case LONG_OPT_OMIT_WERROR:
+	      s.omit_werror = true;
 	      break;
 	    case LONG_OPT_CLIENT_OPTIONS:
 	      client_options = true;
