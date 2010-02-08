@@ -19,10 +19,5 @@ probe begin{
               tcpmib_remote_port(0) +
               _rtn_local() +
               _is_reset(0) +
-%( kernel_v < "2.6.31" %?
-              __tcpmib_input_route_type_old(0)
-%:
-              __tcpmib_input_route_type_new(0)
-%)
-              )
+              _tcpmib_input_route_type(0))
 }
