@@ -11,6 +11,14 @@ function tcpmib_filter_key:long (sk:long, op:long) {
        return op
 }
 
+// same as above one
+// but it's better to move function definition from example
+// to tapset
+function ipmib_filter_key:long (skb:long, op:long, SourceIsLocal:long) {
+       if ( !skb ) return 0
+       return op
+}
+
 probe begin{
         print(tcpmib_get_state(0) +
               tcpmib_local_addr(0) +
