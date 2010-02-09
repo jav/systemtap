@@ -47,6 +47,7 @@ if {![installtest_p]} {
 
 set ok 0
 set ko 0
+set xok 0
 set lines 0
 verbose -log "spawn stap -DMAXSKIPPED=8024 -t -c \"tcl/install/bin/tclsh${tclreleasemajor} tcl/src/tests/all.tcl > tcl-test.out\" $srcdir/$subdir/stap-tcl.stp tcl/install/bin/tclsh${tclreleasemajor} tcl/install/lib/libtcl${tclreleasemajor}.so"
 spawn stap -DMAXSKIPPED=8024 -t -c "tcl/install/bin/tclsh${tclreleasemajor} tcl/src/tests/all.tcl > tcl-test.out" $srcdir/$subdir/stap-tcl.stp tcl/install/bin/tclsh${tclreleasemajor} tcl/install/lib/libtcl${tclreleasemajor}.so
