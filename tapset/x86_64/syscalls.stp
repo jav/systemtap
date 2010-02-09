@@ -145,16 +145,14 @@ probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return
 # pipe _______________________________________________________
 #
 # long sys32_pipe(int __user *fd)
-#
-%(kernel_v < "2.6.32" %?
-probe syscall.pipe32 = kernel.function("sys32_pipe")
+# Not available in newer kernels.
+probe syscall.pipe32 = kernel.function("sys32_pipe")?
 {
 	name = "pipe"
 	argstr = sprintf("%p", $fd)
 }
-probe syscall.pipe32.return = kernel.function("sys32_pipe").return
+probe syscall.pipe32.return = kernel.function("sys32_pipe").return?
 {
 	name = "pipe"
 	retstr = returnstr(1)
 }
-%)
