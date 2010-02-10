@@ -27,7 +27,7 @@ proc bgerror {error} {
 trap {cleanup_and_exit} SIGINT
 
 proc run_one_test {filename flags bits} {
-    global dir current_dir
+    global dir current_dir test_script
 
     set testname [file tail [string range $filename 0 end-2]]
 
@@ -43,7 +43,7 @@ proc run_one_test {filename flags bits} {
       return
     }
 
-    set sys_prog "[file dirname [file normalize $filename]]/sys.stp"
+    set sys_prog "[file dirname [file normalize $filename]]/${test_script}"
     set cmd "stap --skip-badvars -c $dir/${testname} ${sys_prog}"
     
     # Extract additional C flags needed to compile

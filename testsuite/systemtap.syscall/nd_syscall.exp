@@ -1,4 +1,4 @@
-set test_script "sys.stp"
+set test_script "nd_sys.stp"
 source $srcdir/$subdir/test.tcl
 
 proc test_procedure {} {
