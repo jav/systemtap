@@ -1,0 +1,8 @@
+# test histogram printed to string
+
+set test "hist_in_string"
+set ::result_string {value |-------------------------------------------------- count
+    0 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@         128
+}
+
+stap_run2 $srcdir/$subdir/$test.stp

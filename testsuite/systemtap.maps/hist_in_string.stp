@@ -1,0 +1,10 @@
+global l
+
+probe begin
+{
+	for (i = 0; i < 128; i++)
+		l <<< 0
+
+	print(sprint(@hist_linear(l, 0, 0, 1)))
+	exit()
+}
