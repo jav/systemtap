@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006, 2009 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006-2010 Red Hat Inc. (systemtap changes)
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as
@@ -19,6 +19,8 @@
 #include "sys/sdt.h"
 #include <stdexcept>
 #include <cerrno>
+#include <map>
+#include <string>
 
 extern "C" {
 #include <fcntl.h>
@@ -31,6 +33,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <regex.h>
 }
 
 using namespace std;
@@ -412,5 +415,36 @@ kill_stap_spawn(int sig)
 {
   return spawned_pid ? kill(spawned_pid, sig) : 0;
 }
+
+
+void assert_regexp_match (const string& name, const string& value, const string& re)
+{
+  typedef map<string,regex_t*> cache;
+  static cache compiled;
+  cache::iterator it = compiled.find (re);
+  regex_t* r = 0;
+  if (it == compiled.end())
+    {
+      r = new regex_t;
+      int rc = regcomp (r, re.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED);
+      if (rc) {
+        cerr << "regcomp " << re << " (" << name << ") error rc=" << rc << endl;
+        exit(1);
+      }
+      compiled[re] = r;
+    }
+  else
+    r = it->second;
+
+  // run regexec
+  int rc = regexec (r, value.c_str(), 0, 0, 0);
+  if (rc)
+    {
+      cerr << "ERROR: Safety pattern mismatch for " << name
+           << " ('" << value << "' vs. '" << re << "') rc=" << rc << endl;
+      exit(1);
+    }
+}
+
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

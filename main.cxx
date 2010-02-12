@@ -57,7 +57,7 @@ version ()
     << "SystemTap translator/driver "
     << "(version " << VERSION << "/" << dwfl_version (NULL)
     << " " << GIT_MESSAGE << ")" << endl
-    << "Copyright (C) 2005-2009 Red Hat, Inc. and others" << endl
+    << "Copyright (C) 2005-2010 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;
 }
 
@@ -708,12 +708,12 @@ main (int argc, char * const argv [])
           break;
 
         case 'o':
+          // NB: client_options not a problem, since pass 1-4 does not use output_file.
           s.output_file = string (optarg);
           break;
 
         case 'R':
-	  if (client_options)
-	    client_options_disallowed += client_options_disallowed.empty () ? "-R" : ", -R";
+          if (client_options) { cerr << "ERROR: -R invalid with --client-options" << endl; usage(s,1); }
           s.runtime_path = string (optarg);
           break;
 
@@ -722,6 +722,7 @@ main (int argc, char * const argv [])
 	    client_options_disallowed += client_options_disallowed.empty () ? "-m" : ", -m";
           s.module_name = string (optarg);
 	  save_module = true;
+          // XXX: convert to assert_regexp_match()
 	  {
 	    string::size_type len = s.module_name.length();
 
@@ -766,15 +767,14 @@ main (int argc, char * const argv [])
           break;
 
         case 'r':
-	  if (client_options)
-	    client_options_disallowed += client_options_disallowed.empty () ? "-r" : ", -r";
+          if (client_options) // NB: no paths!
+            assert_regexp_match("-r parameter from client", optarg, "^[a-z0-9_\\.-]+$");
           setup_kernel_release(s, optarg);
           break;
 
         case 'a':
-	  if (client_options)
-	  client_options_disallowed += client_options_disallowed.empty () ? "-a" : ", -a";
-	    s.architecture = string(optarg);
+          assert_regexp_match("-a parameter", optarg, "^[a-z0-9_-]+$");
+          s.architecture = string(optarg);
           break;
 
         case 'k':
@@ -821,16 +821,19 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'D':
+          assert_regexp_match ("-D parameter", optarg, "^[a-z_][a-z_0-9]*(=[a-z_0-9]+)?$");
 	  if (client_options)
 	    client_options_disallowed += client_options_disallowed.empty () ? "-D" : ", -D";
 	  s.macros.push_back (string (optarg));
 	  break;
 
 	case 'S':
+          assert_regexp_match ("-S parameter", optarg, "^[0-9]+(,[0-9]+)?$");
 	  s.size_option = string (optarg);
 	  break;
 
 	case 'q':
+          if (client_options) { cerr << "ERROR: -q invalid with --client-options" << endl; usage(s,1); } 
 	  s.tapset_compile_coverage = true;
 	  break;
 
@@ -861,9 +864,8 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'B':
-	  if (client_options)
-	  client_options_disallowed += client_options_disallowed.empty () ? "-B" : ", -B";
-	    s.kbuildflags.push_back (string (optarg));
+          if (client_options) { cerr << "ERROR: -B invalid with --client-options" << endl; usage(s,1); } 
+          s.kbuildflags.push_back (string (optarg));
 	  break;
 
         case 0:

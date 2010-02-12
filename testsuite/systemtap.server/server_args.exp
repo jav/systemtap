@@ -114,27 +114,27 @@ if {[installtest_p]} then {
 # for debugging a currently failing case and helps to ensure that previously
 # fixed cases do not regress.
 set previously_fixed [list \
-  "-p1 -I=\\w94\nbh -R'-1vo*w- -e -B9  -Dhfuo0iu7 -c" \
-  "-p1 -I8o\\2ie -Rtu\\\n -e'1\\ -B*3x8k\; -D\n\" -c" \
-  "-p1 -Ira\\3;c g -Rlr\"6/3ho -e0fle'qq -B -Dr/316k\\o8 -cjyoc\n3" \
-  "-p1 -I6p3 -Rk3g-t\n89 -elc -Bd -Dqgsgv' -c" \
-  "-p1 -I\"vyv;z -Rzvchje2\\ -ej\"/3 -Be -D/ 01qck\n -c3u55zut" \
-  "-p1 -I1 -R\n -eo9e\nx047q -B\"*dd;tn\\ -D9xyefk0a -cvl98/x1'i" \
+  "-p1 -I=\\w94\nbh -e -Dhfuo0iu7 -c" \
+  "-p1 -I8o\\2ie -e'1\\ -D\n\" -c" \
+  "-p1 -Ira\\3;c g -e0fle'qq -Dr/316k\\o8 -cjyoc\n3" \
+  "-p1 -I6p3 -elc -Dqgsgv' -c" \
+  "-p1 -I\"vyv;z -ej\"/3 -D/ 01qck\n -c3u55zut" \
+  "-p1 -I1 -eo9e\nx047q -D9xyefk0a -cvl98/x1'i" \
   "-p1 -c; test.stp" \
-  "-p1 -I4hgy96 -R -e5oo39p -Bile\\vp -Ddx8v -c4;" \
-  "-p1 -I -Repwd9 -esq3wors -Btmk;\\t -Dz -c*eibz8h2e" \
-  "-p1 -I -Ry a -em339db5 -B;ae41428d -Du2;c0ps -ch9o\\" \
-  "-p1 -Ipfjps4 -Rx479 -ebug4dc -Bih;fe2 -Du8vd fvkl -c" \
-  "-p1 -I0\"nspzjyf -R -e5r3up8h -Bgqnyjq6w -Dmi;ojp9m -cx;a2fat" \
-  "-p1 -Iu -R9 -ek7;r -Big -Dcu\"; -c\"hc" \
-  "-p1 -Icd4fidq  -Rkj m40mv -edn -B7ria -D;8ha\\cjr -c1*vnq" \
-  "-p1 -I;3 -R3lq;vp -er8e -Bgdqjqdy -D -cb6k29z" \
-  "-p1 -Ircj -R -e -B -D -c\\vmww" \
-  "-p1 -Illc5 -Rug*\\o -e65wof9 -B qr*=x7x5 -D -cgx;" \
-  "-p1 -Iyaj420=3 -R -e\" -Bx68j -D -cd'5mi" \
-  "-p1 -Ir -Rwd8;;sjl -e -Bxh; -D29\\ -cj2szt;4" \
-  "-p1 -Ibno3=b4sk -R*5 -e' -Byl63flos -Dg2-j;e -c2ijx'" \
-  "-p1 -I285v7pl -R9a -eo5\\0 -Bfs* -D86s -c-c*v" \
+  "-p1 -I4hgy96 -e5oo39p -Ddx8v -c4;" \
+  "-p1 -I -esq3wors -Dz -c*eibz8h2e" \
+  "-p1 -I a -em339db5 -Du2;c0ps -ch9o\\" \
+  "-p1 -Ipfjps4 -ebug4dc -Du8vd fvkl -c" \
+  "-p1 -I0\"nspzjyf -e5r3up8h -Dmi;ojp9m -cx;a2fat" \
+  "-p1 -Iu -ek7;r -Dcu\"; -c\"hc" \
+  "-p1 -Icd4fidq  m40mv -edn -D;8ha\\cjr -c1*vnq" \
+  "-p1 -I;3 -er8e -D -cb6k29z" \
+  "-p1 -Ircj -e -D -c\\vmww" \
+  "-p1 -Illc5 -e65wof9 qr*=x7x5 -D -cgx;" \
+  "-p1 -Iyaj420=3 -e\" -D -cd'5mi" \
+  "-p1 -Ir -e -D29\\ -cj2szt;4" \
+  "-p1 -Ibno3=b4sk -e' -Dg2-j;e -c2ijx'" \
+  "-p1 -I285v7pl -eo5\\0 -D86s -c-c*v" \
 ]
 
 set i 0
@@ -150,7 +150,10 @@ foreach options $previously_fixed {
 # Generate semi-random arguments containing with potential problem characters.
 # Check that running systemtap with the client/server generates output
 # comparable to running stap directly.
-set dangerous_options [list "-I" "-R" "-e" "-B" "-D" "-c"]
+set dangerous_options [list "-I" "-e" "-D" "-c" "-S"]
+# NB: Other options could be candidates here, like -r and -B, but                                   
+# there stap-server imposes more restrictions than local stap, so                                   
+# this simple error-matching test cannot use them.                                                  
 set argchars "0123456789/;*'=-\\\"\n abcdefghijklmnopqrstuvwxyz"
 
 for {set i 0} {$i < $iterations} {incr i} {

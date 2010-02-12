@@ -21,7 +21,7 @@ const std::string cmdstr_quoted(const std::string& cmd);
 std::string git_revision(const std::string& path);
 int stap_system(int verbose, const std::string& command);
 int kill_stap_spawn(int sig);
-
+void assert_regexp_match (const std::string& name, const std::string& value, const std::string& re);
 
 // stringification generics
 

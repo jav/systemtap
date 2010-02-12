@@ -360,11 +360,19 @@ function advertise_presence {
 function listen {
     # The stap-server-connect program will listen forever
     # accepting requests.
-    ${stap_pkglibexecdir}stap-server-connect \
-	-p $port -n $nss_cert -d $ssl_db -w $nss_pw \
-	-s "$stap_options" \
-	>> $logfile 2>&1 &
-    wait '%${stap_pkglibexecdir}stap-server-connect' >> $logfile 2>&1
+    # CVE-2009-4273 ... or at least, until resource limits fire
+    while true; do # NB: loop to avoid DoS by deliberate rlimit-induced halt
+        # NB: impose resource limits in case of mischevious data inducing
+        # too much / long computation
+        (ulimit -f 50000 -s 1000 -t 60 -u 20 -v 500000;
+         exec ${stap_pkglibexecdir}stap-server-connect \
+	   -p $port -n $nss_cert -d $ssl_db -w $nss_pw \
+	   -s "$stap_options") &
+        stap_server_connect_pid=$!
+        wait
+        # NB: avoid superfast spinning in case of a ulimit or other failure
+        sleep 1
+    done >> $logfile 2>&1
 }
 
 # function: warning [ MESSAGE ]
@@ -396,8 +404,8 @@ function terminate {
     wait '%avahi-publish-service' >> $logfile 2>&1
 
     # Kill any running 'stap-server-connect' job.
-    kill -s SIGTERM '%${stap_pkglibexecdir}stap-server-connect' >> $logfile 2>&1
-    wait '%${stap_pkglibexecdir}stap-server-connect' >> $logfile 2>&1
+    kill -s SIGTERM $stap_server_connect_pid >> $logfile 2>&1
+    wait $stap_server_connect_pid >> $logfile 2>&1
 
     exit
 }
