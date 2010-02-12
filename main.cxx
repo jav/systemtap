@@ -768,7 +768,7 @@ main (int argc, char * const argv [])
 
         case 'r':
           if (client_options) // NB: no paths!
-            assert_regexp_match("-r parameter from client", optarg, "^[a-z0-9_\\.-]+$");
+            assert_regexp_match("-r parameter from client", optarg, "^[a-z0-9_.-]+$");
           setup_kernel_release(s, optarg);
           break;
 
