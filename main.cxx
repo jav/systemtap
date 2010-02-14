@@ -821,7 +821,7 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'D':
-          assert_regexp_match ("-D parameter", optarg, "^[a-z_][a-z_0-9]*(=[a-z_0-9]+)?$");
+          assert_regexp_match ("-D parameter", optarg, "^[a-z_][a-z_0-9]*(=-?[a-z_0-9]+)?$");
 	  if (client_options)
 	    client_options_disallowed += client_options_disallowed.empty () ? "-D" : ", -D";
 	  s.macros.push_back (string (optarg));
