@@ -14,7 +14,7 @@ int main ()
 	int write_fd;
 	struct stat stat_buf;
 	off_t offset = 0;
-	char buff[512];
+	char buff[22]; // Note below 22 == EINVAL
 	int ret;
 
 	memset(buff, 5, sizeof(buff));
@@ -32,11 +32,11 @@ int main ()
 	write_fd = creat("foobar2",S_IREAD|S_IWRITE|S_IRWXO);
 
 	/* 
-	 * For kernel2.6 the write_fd has to be a socket otherwise
-	 * sendfile will fail. So we test for failure here.
+	 * For 2.6 the write_fd had to be a socket otherwise
+	 * sendfile would fail. So we also test for failure here.
 	 */
 	ret = sendfile (write_fd, read_fd, &offset, stat_buf.st_size);
-	//staptest// sendfile (NNNN, NNNN, XXXX, 512) = -22 (EINVAL)
+	//staptest// sendfile (NNNN, NNNN, XXXX, 22) = -?22
 
 	close (read_fd);
 	close (write_fd);

@@ -60,13 +60,13 @@ if { $res != "" } {
 set ok 0
 spawn stap -l "process(\"$label_exepath\").function(\"foo@${label_srcpath}:10\").label(\"*\")"
 
-wait
 expect {
     -timeout 180
     -re {no match while resolving probe point} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
+wait
 
 if {$ok == 1} { pass "$test :N .label" } { fail "$test :N .label $ok" }
 
@@ -75,13 +75,13 @@ if {$ok == 1} { pass "$test :N .label" } { fail "$test :N .label $ok" }
 set ok 0
 spawn stap -l "process(\"$label_exepath\").function(\"foo@${label_srcpath}:4\").label(\"*\")"
 
-wait
 expect {
     -timeout 180
     -re {process.*function.*labels.c:5...label..init_an_int} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
+wait
 
 if {$ok == 1} { pass "$test :N .label" } { fail "$test :N .label $ok" }
 
@@ -89,7 +89,6 @@ if {$ok == 1} { pass "$test :N .label" } { fail "$test :N .label $ok" }
 
 spawn stap -l "process(\"$label_exepath\").function(\"*\").label(\"*\")"
 
-wait
 set ok 0
 expect {
     -timeout 180
@@ -104,24 +103,27 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+wait
 
 if {$ok == 4} { pass "$test -l .label" } { fail "$test -l .label $ok" }
 
-# label in an executable
+# label in an executable (only if we have uprobes)
+if {[uprobes_p]} {
+    set ok 0
+    verbose -log "spawn stap -c $label_exepath $label_stppath"
+    spawn stap -c $label_exepath $label_stppath
 
-set ok 0
-verbose -log "spawn stap -c $label_exepath $label_stppath"
-spawn stap -c $label_exepath $label_stppath
-
-wait
-expect {
-    -timeout 180
-    -re {VARS a=0x0 b=0x0.*init_an_int.*VARS a=0x2 b=0x0.*VARS a=0x2 b=0x3 c=0x[a-f01-9]} { incr ok; exp_continue }
-    timeout { fail "$test (timeout)" }
-    eof { }
+    expect {
+	-timeout 180
+	-re {VARS a=0x0 b=0x0.*init_an_int.*VARS a=0x2 b=0x0.*VARS a=0x2 b=0x3 c=0x[a-f01-9]} { incr ok; exp_continue }
+	timeout { fail "$test (timeout)" }
+	eof { }
+    }
+    wait
+    if {$ok == 1} { pass "$test exe .label" } { fail "$test exe .label $ok" }
+} else {
+    untested "$test exe .label"
 }
-
-if {$ok == 1} { pass "$test exe .label" } { fail "$test exe .label $ok" }
 
 # address of label in an executable
 
@@ -138,6 +140,8 @@ spawn sh $label_shpath
 expect {
     -re {0x[0-9a-f]*} 
 }
+wait
+
 set nomatch 0
 spawn stap -p2 -l "process\(\"$label_exepath\"\).statement($expect_out(0,string))"
 expect {
@@ -146,6 +150,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+wait
 
 if {$nomatch == 0} { pass "$test exe .statement" } { fail "$test exe .statement" }
 
@@ -171,6 +176,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+wait
 
 if {$ok == 1} { pass "$test so .label" } { fail "$test so .label $ok" }
 
@@ -189,6 +195,8 @@ spawn sh $label_shpath
 expect {
     -re {0x[0-9a-f]*} 
 }
+wait
+
 set nomatch 0
 spawn stap -p2 -l "process\(\"$label_sopath\"\).statement($expect_out(0,string))"
 expect {
@@ -197,6 +205,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+wait
 
 if {$nomatch == 0} { pass "$test so .statement" } { fail "$test so .statement" }
 
