@@ -1,5 +1,6 @@
 // task information tapset
 // Copyright (C) 2006 Intel Corporation.
+// Copyright (C) 2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -17,13 +18,21 @@
 #endif
 %}
 
-// Return the task_struct representing the current process
+/**
+ * sfunction task_current - The current task_struct of the current task.
+ *
+ * Description: Return the task_struct representing the current process.
+ */
 function task_current:long () %{ /* pure */
     THIS->__retvalue = (long)current;
 %}
 
-
-// Return the parent task_struct of the given task
+/**
+ * sfunction task_parent - The task_struct of the parent task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the parent task_struct of the given task.
+ */
 function task_parent:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
 #if defined(STAPCONF_REAL_PARENT)
@@ -34,36 +43,47 @@ function task_parent:long (task:long) %{ /* pure */
     CATCH_DEREF_FAULT();
 %}
 
-
-// Return the state of the given task, one of:
-//   TASK_RUNNING           0
-//   TASK_INTERRUPTIBLE     1
-//   TASK_UNINTERRUPTIBLE   2
-//   TASK_STOPPED           4
-//   TASK_TRACED            8
-//   EXIT_ZOMBIE           16
-//   EXIT_DEAD             32
+/**
+ * sfunction task_state - The state of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the state of the given task, one of:
+ * TASK_RUNNING (0), TASK_INTERRUPTIBLE (1), TASK_UNINTERRUPTIBLE (2),
+ * TASK_STOPPED (4), TASK_TRACED (8), EXIT_ZOMBIE (16), EXIT_DEAD (32).
+ */
 function task_state:long (task:long)
 {
     return @cast(task, "task_struct", "kernel<linux/sched.h>")->state
 }
 
-
-// Return the name of the given task
+/**
+ * sfunction task_execname - The name of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the name of the given task.
+ */
 function task_execname:string (task:long)
 {
     return kernel_string(@cast(task, "task_struct", "kernel<linux/sched.h>")->comm)
 }
 
-
-// Return the process id of the given task
+/**
+ * sfunction task_pid - The process identifier of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the process id of the given task.
+ */
 function task_pid:long (task:long)
 {
     return @cast(task, "task_struct", "kernel<linux/sched.h>")->tgid
 }
 
-
-// Return the task of the given process id
+/**
+ * sfunction pid2task - The task_struct of the given process identifier.
+ * @pid: Process identifier.
+ *
+ * Description: Return the task struct of the given process id.
+ */
 function pid2task:long (pid:long) %{ /* pure */
     struct task_struct *t = NULL;
     pid_t t_pid  = (pid_t)(long)THIS->pid;
@@ -83,7 +103,12 @@ function pid2task:long (pid:long) %{ /* pure */
     THIS->__retvalue = (long)t;
 %}
 
-// Return the name of the given process id
+/**
+ * sfunction pid2execname - The name of the given process identifier.
+ * @pid: Process identifier.
+ *
+ * Description: Return the name of the given process id.
+ */
 function pid2execname:string (pid:long) { 
     tsk = pid2task(pid)
     if (tsk)
@@ -91,15 +116,24 @@ function pid2execname:string (pid:long) {
     return ""
 }
 
-
-// Return the thread id of the given task
+/**
+ * sfunction task_tid - The thread identifier of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the thread id of the given task.
+ */
 function task_tid:long (task:long)
 {
     return @cast(task, "task_struct", "kernel<linux/sched.h>")->pid
 }
 
 
-// Return the group id of the given task
+/**
+ * sfunction task_gid - The group identifier of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the group id of the given task.
+ */
 function task_gid:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
 #ifdef STAPCONF_TASK_UID
@@ -117,7 +151,12 @@ function task_gid:long (task:long) %{ /* pure */
 %}
 
 
-// Return the effective group id of the given task
+/**
+ * sfunction task_egid - The effective group identifier of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the effective group id of the given task.
+ */
 function task_egid:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
 #ifdef STAPCONF_TASK_UID
@@ -134,8 +173,12 @@ function task_egid:long (task:long) %{ /* pure */
 #endif
 %}
 
-
-// Return the user id of the given task
+/**
+ * sfunction task_uid - The user identifier of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the user id of the given task.
+ */
 function task_uid:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
 #ifdef STAPCONF_TASK_UID
@@ -147,8 +190,12 @@ function task_uid:long (task:long) %{ /* pure */
 #endif
 %}
 
-
-// Return the effective user id of the given task
+/**
+ * sfunction task_euid - The effective user identifier of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the effective user id of the given task.
+ */
 function task_euid:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
 #ifdef STAPCONF_TASK_UID
@@ -161,7 +208,12 @@ function task_euid:long (task:long) %{ /* pure */
 %}
 
 
-// Return the priority value of the given task
+/**
+ * sfunction task_prio - The priority value of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the priority value of the given task.
+ */
 function task_prio:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
     THIS->__retvalue =  kread(&(t->prio)) - MAX_RT_PRIO;
@@ -169,15 +221,24 @@ function task_prio:long (task:long) %{ /* pure */
 %}
 
 
-// Return the nice value of the given task
+/**
+ * sfunction task_nice - The nice value of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the nice value of the given task.
+ */
 function task_nice:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
     THIS->__retvalue = kread(&(t->static_prio)) - MAX_RT_PRIO - 20;
     CATCH_DEREF_FAULT();
 %}
 
-
-// Return the scheduled cpu for the given task
+/**
+ * sfunction task_cpu - The scheduled cpu of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the scheduled cpu for the given task.
+ */
 function task_cpu:long (task:long)
 {
 %( kernel_v >= "2.6.22" %? 
@@ -188,7 +249,12 @@ function task_cpu:long (task:long)
     return @cast(ti, "thread_info", "kernel<linux/sched.h>")->cpu
 }
 
-// Return the number of open file handlers for the given task
+/**
+ * sfunction task_open_file_handles - The number of open files of the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the number of open file handlers for the given task.
+ */
 function task_open_file_handles:long (task:long)
 %( kernel_v >= "2.6.15" %?
 %{ /* pure */
@@ -234,8 +300,12 @@ function task_open_file_handles:long (task:long)
 %}
 %)
 
-
-// Return the maximum number of file handlers for the given task
+/**
+ * sfunction task_max_file_handles - The max number of open files for the task.
+ * @task: task_struct pointer.
+ *
+ * Description: Return the maximum number of file handlers for the given task.
+ */
 function task_max_file_handles:long (task:long)
 %( kernel_v >= "2.6.15" %?
 %{ /* pure */
