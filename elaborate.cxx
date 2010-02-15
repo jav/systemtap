@@ -374,7 +374,8 @@ match_node::find_and_build (systemtap_session& s,
 
       if (s.unprivileged && ! unprivileged_ok)
 	{
-	  throw semantic_error (string("probe point is not allowed for unprivileged users"));
+	  throw semantic_error (string("probe point is not allowed for unprivileged users"),
+				loc->components.back()->tok);
 	}
 
       map<string, literal *> param_map;
