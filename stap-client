@@ -2,7 +2,7 @@
 
 # Compile server client for systemtap
 #
-# Copyright (C) 2008, 2009, 2010 Red Hat Inc.
+# Copyright (C) 2008-2010 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -91,6 +91,7 @@ function parse_options {
     do
 	advance=0
 	dash_seen=0
+	client_arg=0
 
         # Start of a new token.
 	first_token="$1"
@@ -234,7 +235,8 @@ function parse_options {
 		arg="$1"
 	    fi
 
-	    # Place the argument in a numbered file within our temp
+	    # If it's not client-only argument,
+	    # place the argument in a numbered file within our temp
 	    # directory.
 	    # o We don't write a newline at the end, since newline could be
 	    #   part of the argument.
@@ -242,12 +244,14 @@ function parse_options {
 	    #   in order to avoid having 'echo' interpret the output as
 	    #   its own option. We then remove the X.
 	    #   There must be a better way.
-	    echo -n "X$arg" > "$tmpdir_client/argv$argc"
-	    sed -i "s|^X||" "$tmpdir_client/argv$argc"
+	    if test $client_arg = 0; then
+		echo -n "X$arg" > "$tmpdir_client/argv$argc"
+		sed -i "s|^X||" "$tmpdir_client/argv$argc"
+		argc=$(($argc + 1))
+	    fi
 
 	    # Get the next argument.
 	    shift
-	    argc=$(($argc + 1))
 	    advance=$(($advance - 1))
 	    packed_options='-'
 	done
@@ -298,6 +302,7 @@ function get_arg {
 #
 # Process the --ssl option.
 function process_ssl {
+    client_arg=1
     local db="${1:6}"
 
     test "X$db" != "X" || \
@@ -312,7 +317,8 @@ function process_ssl {
 #
 # Process the --server option.
 function process_server {
-    local spec="${1:8}"
+    client_arg=1
+    local spec="${1:9}"
 
     test "X$spec" != "X" || \
 	fatal "Missing argument to --server"
