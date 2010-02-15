@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -218,8 +218,6 @@ struct derived_probe_builder
 		     probe_point* location,
 		     literal_map_t const & parameters,
 		     std::vector<derived_probe*> & finished_results) = 0;
-  virtual void check_unprivileged (const systemtap_session & sess,
-				   const literal_map_t & parameters);
   virtual ~derived_probe_builder() {}
   virtual void build_no_more (systemtap_session &) {}
 
@@ -270,7 +268,11 @@ match_node
   match_node* bind(std::string const & k);
   match_node* bind_str(std::string const & k);
   match_node* bind_num(std::string const & k);
+  match_node* bind_unprivileged(bool b = true);
   void bind(derived_probe_builder* e);
+
+private:
+  bool unprivileged_ok;
 };
 
 // ------------------------------------------------------------------------

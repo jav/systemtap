@@ -1,5 +1,5 @@
 // tapset for begin/end/error/never
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -92,10 +92,6 @@ struct be_builder: public derived_probe_builder
     finished_results.push_back
       (new be_derived_probe(base, location, type, priority));
   }
-
-  // No action required. These probes are allowed for unprivileged users.
-  virtual void check_unprivileged (const systemtap_session & sess,
-				   const literal_map_t & parameters) {}
 };
 
 
@@ -214,10 +210,6 @@ struct never_builder: public derived_probe_builder
   {
     finished_results.push_back(new never_derived_probe(base, location));
   }
-
-  // No action required. This probe is allowed for unprivileged users.
-  virtual void check_unprivileged (const systemtap_session & sess,
-				   const literal_map_t & parameters) {}
 };
 
 
@@ -232,21 +224,28 @@ register_tapset_been(systemtap_session& s)
   match_node* root = s.pattern_root;
 
   root->bind(TOK_BEGIN)
+    ->bind_unprivileged()
     ->bind(new be_builder(BEGIN));
   root->bind_num(TOK_BEGIN)
+    ->bind_unprivileged()
     ->bind(new be_builder(BEGIN));
 
   root->bind(TOK_END)
+    ->bind_unprivileged()
     ->bind(new be_builder(END));
   root->bind_num(TOK_END)
+    ->bind_unprivileged()
     ->bind(new be_builder(END));
 
   root->bind(TOK_ERROR)
+    ->bind_unprivileged()
     ->bind(new be_builder(ERROR));
   root->bind_num(TOK_ERROR)
+    ->bind_unprivileged()
     ->bind(new be_builder(ERROR));
 
   root->bind(TOK_NEVER)
+    ->bind_unprivileged()
     ->bind(new never_builder());
 }
 

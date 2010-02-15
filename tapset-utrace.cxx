@@ -654,10 +654,6 @@ struct utrace_builder: public derived_probe_builder
 							has_path, path, pid,
 							flags));
   }
-
-  // No action required. These probes are allowed for unprivileged users.
-  virtual void check_unprivileged (const systemtap_session & sess,
-				   const literal_map_t & parameters) {}
 };
 
 
@@ -1062,16 +1058,22 @@ register_tapset_utrace(systemtap_session& s)
   for (unsigned i = 0; i < roots.size(); ++i)
     {
       roots[i]->bind(TOK_BEGIN)
+	->bind_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_END)
+	->bind_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_BEGIN)
+	->bind_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_END)
+	->bind_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)
+	->bind_unprivileged()
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)->bind(TOK_RETURN)
+	->bind_unprivileged()
 	->bind(builder);
     }
 }

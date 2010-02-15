@@ -1,5 +1,5 @@
 // tapset for kernel static markers
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -714,8 +714,6 @@ mark_builder::build(systemtap_session & sess,
 void
 register_tapset_mark(systemtap_session& s)
 {
-  if (s.unprivileged) return;
-
   match_node* root = s.pattern_root;
   derived_probe_builder *builder = new mark_builder();
 

@@ -1,5 +1,5 @@
 // tapset for timers
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -515,9 +515,6 @@ struct timer_builder: public derived_probe_builder
                        vector<derived_probe *> & finished_results);
 
     static void register_patterns(systemtap_session& s);
-
-    virtual void check_unprivileged (const systemtap_session & sess,
-				     const literal_map_t & parameters);
 };
 
 void
@@ -599,16 +596,6 @@ timer_builder::build(systemtap_session & sess,
 }
 
 void
-timer_builder::check_unprivileged (const systemtap_session & sess,
-				   const literal_map_t & parameters)
-{
-  // All timer probes are allowed except for timer.profile
-  if (has_null_param(parameters, "profile"))
-    derived_probe_builder::check_unprivileged (sess, parameters);
-}
-
-
-void
 register_tapset_timers(systemtap_session& s)
 {
   match_node* root = s.pattern_root;
@@ -617,49 +604,69 @@ register_tapset_timers(systemtap_session& s)
   root = root->bind(TOK_TIMER);
 
   root->bind_num("s")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("s")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("sec")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("sec")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
 
   root->bind_num("ms")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("ms")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("msec")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("msec")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
 
   root->bind_num("us")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("us")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("usec")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("usec")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
 
   root->bind_num("ns")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("ns")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("nsec")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("nsec")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
 
   root->bind_num("jiffies")
+    ->bind_unprivileged()
     ->bind(builder);
   root->bind_num("jiffies")->bind_num("randomize")
+    ->bind_unprivileged()
     ->bind(builder);
 
   root->bind_num("hz")
+    ->bind_unprivileged()
     ->bind(builder);
 
+  // Not ok for unprivileged users.
   root->bind("profile")
     ->bind(builder);
 }

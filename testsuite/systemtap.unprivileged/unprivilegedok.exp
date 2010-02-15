@@ -1,0 +1,15 @@
+set self unprivilegedok
+
+# Need to build a user application
+catch {exec gcc -g -o foo $srcdir/systemtap.unprivileged/foo.c} err
+if {$err == "" && [file exists foo]} then { pass "$self compile" } else { fail "$self compile: $err" }
+
+# Now run the tests
+foreach file [lsort [glob -nocomplain $srcdir/systemtap.unprivileged/$self/*.stp]] {
+    set test $self/[file tail $file]
+    verbose -log "Running $file"
+    set rc [stap_run_batch $file]
+    if {$rc == 0} { pass $test } else { fail $test }
+}
+
+catch {exec rm -f foo}

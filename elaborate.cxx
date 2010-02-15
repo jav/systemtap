@@ -1,5 +1,5 @@
 // elaboration functions
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2008 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
@@ -179,17 +179,6 @@ derived_probe::print_dupe_stamp_unprivileged_process_owner(ostream& o)
 // ------------------------------------------------------------------------
 // Members of derived_probe_builder
 
-void
-derived_probe_builder::check_unprivileged (const systemtap_session & sess,
-					   const literal_map_t & parameters)
-{
-      // By default, probes are not allowed for unprivileged users.
-      if (sess.unprivileged)
-	{
-	  throw semantic_error (string("probe point is not allowed for unprivileged users"));
-	}
-}
-
 bool
 derived_probe_builder::get_param (std::map<std::string, literal*> const & params,
                                   const std::string& key,
@@ -314,7 +303,8 @@ match_key::globmatch(match_key const & other) const
 // Members of match_node
 // ------------------------------------------------------------------------
 
-match_node::match_node()
+match_node::match_node() :
+  unprivileged_ok(false)
 {
 }
 
@@ -356,6 +346,13 @@ match_node::bind_num(string const & k)
   return bind(match_key(k).with_number());
 }
 
+match_node *
+match_node::bind_unprivileged(bool b)
+{
+  unprivileged_ok = b;
+  return this;
+}
+
 void
 match_node::find_and_build (systemtap_session& s,
                             probe* p, probe_point *loc, unsigned pos,
@@ -375,6 +372,11 @@ match_node::find_and_build (systemtap_session& s,
                                 " (follow:" + alternatives + ")", loc->components.back()->tok);
         }
 
+      if (s.unprivileged && ! unprivileged_ok)
+	{
+	  throw semantic_error (string("probe point is not allowed for unprivileged users"));
+	}
+
       map<string, literal *> param_map;
       for (unsigned i=0; i<pos; i++)
         param_map[loc->components[i]->functor] = loc->components[i]->arg;
@@ -384,7 +386,6 @@ match_node::find_and_build (systemtap_session& s,
       for (unsigned k=0; k<ends.size(); k++) 
         {
           derived_probe_builder *b = ends[k];
-	  b->check_unprivileged (s, param_map);
           b->build (s, p, loc, param_map, results);
         }
     }
@@ -465,8 +466,7 @@ match_node::find_and_build (systemtap_session& s,
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
             alternatives += string(" ") + i->first.str();
 
-
-          throw semantic_error (string("probe point mismatch at position ") +
+	  throw semantic_error(string("probe point mismatch at position ") +
                                 lex_cast (pos) +
                                 " (alternatives:" + alternatives + ")",
                                 loc->components[pos]->tok);
@@ -607,11 +607,6 @@ alias_expansion_builder
     }
     return false;
   }
-
-  // No action required. The actual probes will be checked when they are
-  // built.
-  virtual void check_unprivileged (const systemtap_session & sess,
-				   const literal_map_t & parameters) {}
 };
 
 

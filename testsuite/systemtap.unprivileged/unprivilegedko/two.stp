@@ -1,0 +1,4 @@
+#! /bin/sh
+
+# This probe should not be acceptable to pass-2
+stap --unprivileged -p2 -e 'probe kernel.trace("*") {}'

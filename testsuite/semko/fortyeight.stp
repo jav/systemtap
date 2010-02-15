@@ -1,4 +1,0 @@
-#! /bin/sh
-
-# None of these probe types should even be acceptable to pass-2
-stap --unprivileged -p2 -t -e 'probe kernel.function("sys_open")!, kernel.trace("*")!, kernel.mark("*")!, module("*scsi*").function("*") { }'
