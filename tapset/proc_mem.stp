@@ -1,5 +1,5 @@
 // Process memory query and utility functions.
-// Copyright (C) 2009 Red Hat Inc.
+// Copyright (C) 2009, 2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -32,6 +32,24 @@
   }
 %}
 
+function _stp_get_mm_counter_file_rss:long(mm:long)
+{
+%( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
+  return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->_file_rss->counter;
+%:
+  return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->_file_rss;
+%)
+}
+
+function _stp_get_mm_counter_anon_rss(mm:long)
+{
+%( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
+  return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->_anon_rss->counter;
+%:
+  return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->_anon_rss;
+%)
+}
+
 /**
  * sfunction proc_mem_size - Total program virtual memory size in pages.
  *
@@ -47,6 +65,18 @@ function proc_mem_size:long ()
    else
      THIS->__retvalue = 0;
 %}
+
+function proc_mem_size_pid:long (pid:long)
+{
+  task = pid2task(pid);
+  if (task != 0)
+    {
+      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
+      if (mm != 0)
+        return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->total_vm;
+    }
+  return 0;
+}
 
 /**
  * sfunction proc_mem_rss - Program resident set size in pages.
@@ -65,6 +95,19 @@ function proc_mem_rss:long ()
      THIS->__retvalue = 0;
 %}
 
+function proc_mem_rss_pid:long (pid:long)
+{
+  task = pid2task(pid);
+  if (task)
+    {
+      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
+      if (mm != 0)
+        return (_stp_get_mm_counter_file_rss (mm)
+                + _stp_get_mm_counter_anon_rss (mm));
+    }
+  return 0;
+}
+
 /**
  * sfunction proc_mem_shr - Program shared pages (from shared mappings).
  *
@@ -80,6 +123,18 @@ function proc_mem_shr:long ()
    else
      THIS->__retvalue = 0;
 %}
+
+function proc_mem_shr_pid:long (pid:long)
+{
+  task = pid2task(pid);
+  if (task)
+    {
+      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
+      if (mm !=	0)
+        return _stp_get_mm_counter_file_rss (mm);
+    }
+  return 0;
+}
 
 /**
  * sfunction proc_mem_txt - Program text (code) size in pages.
@@ -98,6 +153,30 @@ function proc_mem_txt:long ()
      THIS->__retvalue = 0;
 %}
 
+function _stp_mem_txt_adjust:long (start_code:long, end_code:long)
+%{ /* pure */
+  unsigned long start_code = (unsigned long) THIS->start_code;
+  unsigned long end_code = (unsigned long) THIS->end_code;
+  THIS->__retvalue = (PAGE_ALIGN(end_code)
+                      - (start_code & PAGE_MASK)) >> PAGE_SHIFT;
+%}
+
+function proc_mem_txt_pid:long (pid:long)
+{
+  task = pid2task(pid);
+  if (task != 0)
+    {
+      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
+      if (mm != 0)
+        {
+          s = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->start_code;
+          e = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->end_code;
+          return _stp_mem_txt_adjust (s, e);
+        }
+    }
+  return 0;
+}
+
 /**
  * sfunction proc_mem_data - Program data size (data + stack) in pages.
  *
@@ -113,6 +192,22 @@ function proc_mem_data:long ()
    else
      THIS->__retvalue = 0;
 %}
+
+function proc_mem_data_pid:long (pid:long)
+{
+  task = pid2task(pid);
+  if (task != 0)
+    {
+      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
+      if (mm != 0)
+        {
+          t = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->total_vm;
+          s = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->shared_vm;
+          return t - s;
+        }
+    }
+  return 0;
+}
 
 /**
  * sfunction mem_page_size - Number of bytes in a page for this architecture.
@@ -193,4 +288,14 @@ function proc_mem_string:string ()
                   pages_to_string(proc_mem_shr()),
                   pages_to_string(proc_mem_txt()),
                   pages_to_string(proc_mem_data()));
+}
+
+function proc_mem_string_pid:string (pid:long)
+{
+  return sprintf ("size: %s, rss: %s, shr: %s, txt: %s, data: %s",
+                  pages_to_string(proc_mem_size_pid(pid)),
+                  pages_to_string(proc_mem_rss_pid(pid)),
+                  pages_to_string(proc_mem_shr_pid(pid)),
+                  pages_to_string(proc_mem_txt_pid(pid)),
+                  pages_to_string(proc_mem_data_pid(pid)));
 }
