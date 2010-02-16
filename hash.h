@@ -19,7 +19,7 @@ private:
 
 public:
   hash() { start(); }
-  hash(const hash &base) { start(); parm_stream << base.parm_stream.str();}
+  hash(const hash &base) { md4 = base.md4; parm_stream << base.parm_stream.str(); }
 
   void start();
 
