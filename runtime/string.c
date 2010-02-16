@@ -102,12 +102,7 @@ static void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 				num = 2;
 				break;
 			default:
-				if (c > 077)
-					num = 4;
-				else if (c > 07)
-					num = 3;
-				else
-					num = 2;
+				num = 4;
 				break;
 			}
 			
@@ -144,10 +139,8 @@ static void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 				*out++ = '\\';
 				break;
 			default:                  /* output octal representation */
-				if (c > 077)
-					*out++ = to_oct_digit(c >> 6);
-				if (c > 07)
-					*out++ = to_oct_digit((c & 070) >> 3);
+				*out++ = to_oct_digit((c >> 6) & 03);
+				*out++ = to_oct_digit((c >> 3) & 07);
 				*out++ = to_oct_digit(c & 07);
 				break;
 			}

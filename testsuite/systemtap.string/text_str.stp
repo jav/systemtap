@@ -37,7 +37,7 @@ probe begin {
 	printf("c=%s\n", text_strn(c,12,1))
 
 	a = "\n\nXYZZY\031"
-	b = "\077\031\a\n\n\r\n"
+	b = "\077\231\a\n\n\r\n"
 	c = a.b
 
 	printf("----- Using text_str -----\n");
@@ -70,10 +70,10 @@ probe begin {
 	printf("b=%s\n", text_strn(b,10,1))
 	printf("c=%s\n", text_strn(c,10,1))
 
-	printf("----- Using text_strn len=14, quoted -----\n");
-	printf("a=%s\n", text_strn(a,14,1))
-	printf("b=%s\n", text_strn(b,14,1))
-	printf("c=%s\n", text_strn(c,14,1))
+	printf("----- Using text_strn len=15, quoted -----\n");
+	printf("a=%s\n", text_strn(a,15,1))
+	printf("b=%s\n", text_strn(b,15,1))
+	printf("c=%s\n", text_strn(c,15,1))
 
 	exit()
 }
