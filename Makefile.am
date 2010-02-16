@@ -138,7 +138,7 @@ CLEANFILES += stamp-elfutils
 stamp-elfutils: config.status
 	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all bin_PROGRAMS=
 	for dir in libelf libebl libdw libdwfl backends; do \
-	  $(MAKE) $(AM_MAKEFLAGS) -C build-elfutils/$$dir bin_PROGRAMS= install; \
+	  $(MAKE) $(AM_MAKEFLAGS) -j1 -C build-elfutils/$$dir bin_PROGRAMS= install; \
 	done
 	touch $@
 stap_DEPENDENCIES += lib-elfutils/libdw.so
