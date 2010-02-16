@@ -50,6 +50,14 @@
 #define stp_for_each_cpu(cpu)  for_each_cpu_mask((cpu), cpu_possible_map)
 #endif
 
+#ifndef clamp
+#define clamp(val, low, high)     min(max(low, val), high)
+#endif
+
+#ifndef clamp_t
+#define clamp_t(type, val, low, high)   min_t(type, max_t(type, low, val), high)
+#endif
+
 static void _stp_dbug (const char *func, int line, const char *fmt, ...) __attribute__ ((format (printf, 3, 4)));
 static void _stp_error (const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 static void _stp_warn (const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));

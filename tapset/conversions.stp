@@ -35,8 +35,7 @@ deref_fault: /* branched to from deref_string() */
  */
 function kernel_string_n:string (addr:long, n:long) %{ /* pure */
   char *destination = THIS->__retvalue;
-  long len = THIS->n + 1;
-  len = (len > MAXSTRINGLEN) ? MAXSTRINGLEN : len;
+  int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
   deref_string (destination, THIS->addr, len);
   if (0) {
 deref_fault: /* branched to from deref_string() */
@@ -210,9 +209,8 @@ function user_string_n:string (addr:long, n:long) {
  * the rare cases when userspace data is not accessible at the given address.
  */
 function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */ /* unprivileged */
-	long len = THIS->n + 1;
+	int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
         assert_is_myproc();
-	len = (len > MAXSTRINGLEN) ? MAXSTRINGLEN : len;
 	if (_stp_strncpy_from_user(THIS->__retvalue,
 				(char __user *) (uintptr_t) THIS->addr,
 				len) < 0)
@@ -232,11 +230,10 @@ function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */
  * about the failure.
  */
 function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* unprivileged */
-	long len = THIS->n + 1;
+	int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
 	long rc;
 
         assert_is_myproc();
-	len = (len > MAXSTRINGLEN) ? MAXSTRINGLEN : len;
 	rc = _stp_strncpy_from_user(THIS->__retvalue,
 			(char __user *) (uintptr_t) THIS->addr, len);
 	if (rc < 0) {
@@ -264,9 +261,8 @@ function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* unprivil
  * address.
  */
 function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */ /* unprivileged */
-        long len;
+        int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
         assert_is_myproc();
-	len = THIS->n + 1;
 	if (THIS->addr == 0)
 		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else

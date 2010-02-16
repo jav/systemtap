@@ -269,7 +269,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                     /* get field width */
                     field_width = -1;
                     if (isdigit(*fmt_copy))
-                            field_width = skip_atoi(&fmt_copy);
+                            field_width = clamp(skip_atoi(&fmt_copy), 0, STP_BUFFER_SIZE);
                     else if (*fmt_copy == '*') {
                             ++fmt_copy;
                             /* it's the next argument */
@@ -278,6 +278,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                                     field_width = -field_width;
                                     flags |= STP_LEFT;
                             }
+                            field_width = clamp(field_width, 0, STP_BUFFER_SIZE);
                     }
 
                     /* get the precision */
@@ -291,8 +292,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                                     /* it's the next argument */
                                     precision = va_arg(args_copy, int);
                             }
-                            if (precision < 0)
-                                    precision = 0;
+                            precision = clamp(precision, 0, STP_BUFFER_SIZE);
                     }
 
                     /* get the conversion qualifier */
@@ -511,7 +511,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		/* get field width */
 		field_width = -1;
 		if (isdigit(*fmt))
-			field_width = skip_atoi(&fmt);
+			field_width = clamp(skip_atoi(&fmt), 0, (int)size);
 		else if (*fmt == '*') {
 			++fmt;
 			/* it's the next argument */
@@ -520,6 +520,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				field_width = -field_width;
 				flags |= STP_LEFT;
 			}
+			field_width = clamp(field_width, 0, (int)size);
 		}
 
 		/* get the precision */
@@ -533,8 +534,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				/* it's the next argument */
 				precision = va_arg(args, int);
 			}
-			if (precision < 0)
-				precision = 0;
+			precision = clamp(precision, 0, (int)size);
 		}
 
 		/* get the conversion qualifier */

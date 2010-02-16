@@ -68,10 +68,10 @@ static void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 {
 	char c, *out = outstr;
 
-	if (len == 0 || len > MAXSTRINGLEN-1)
+	if (len <= 0 || len > MAXSTRINGLEN-1)
 		len = MAXSTRINGLEN-1;
 	if (quoted) {
-		len -= 2;
+		len = max(len, 5) - 2;
 		*out++ = '"';
 	}
 

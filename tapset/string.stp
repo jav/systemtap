@@ -27,8 +27,8 @@ function strlen:long(s:string) %{ /* pure */ /* unprivileged */
  * starting at the given start position.
  */
 function substr:string(str:string,start:long, length:long) %{ /* pure */ /* unprivileged */
-	int length = THIS->length >= MAXSTRINGLEN ? MAXSTRINGLEN : THIS->length + 1;
-	if (THIS->start >= 0 && length > 0 && THIS->start < strlen(THIS->str))
+	int64_t length = clamp_t(int64_t, THIS->length + 1, 0, MAXSTRINGLEN);
+	if (THIS->start >= 0 && THIS->start < strlen(THIS->str))
 		strlcpy(THIS->__retvalue, THIS->str + THIS->start, length);
 %}
 
@@ -87,7 +87,8 @@ function text_str:string(input:string)
  */
 function text_strn:string(input:string, len:long, quoted:long)
 %{ /* pure */ /* unprivileged */
-	_stp_text_str(THIS->__retvalue, THIS->input, THIS->len, THIS->quoted, 0);
+	int64_t len = clamp_t(int64_t, THIS->len, 0, MAXSTRINGLEN);
+	_stp_text_str(THIS->__retvalue, THIS->input, len, THIS->quoted, 0);
 %}
 
 /**
