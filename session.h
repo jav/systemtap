@@ -42,7 +42,6 @@ struct profile_derived_probe_group;
 struct mark_derived_probe_group;
 struct tracepoint_derived_probe_group;
 struct hrtimer_derived_probe_group;
-struct perfmon_derived_probe_group;
 struct procfs_derived_probe_group;
 struct embeddedcode;
 struct translator_output;
@@ -113,7 +112,6 @@ struct systemtap_session
   bool suppress_warnings;
   bool panic_warnings;
   int buffer_size;
-  unsigned perfmon;
   bool symtab; /* true: emit symbol table at translation time; false: let staprun do it. */
   bool prologue_searching;
   bool tapset_compile_coverage;
@@ -192,7 +190,6 @@ struct systemtap_session
   mark_derived_probe_group* mark_derived_probes;
   tracepoint_derived_probe_group* tracepoint_derived_probes;
   hrtimer_derived_probe_group* hrtimer_derived_probes;
-  perfmon_derived_probe_group* perfmon_derived_probes;
   procfs_derived_probe_group* procfs_derived_probes;
 
   // NB: It is very important for all of the above (and below) fields

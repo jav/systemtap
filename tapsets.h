@@ -22,7 +22,6 @@ void common_probe_entryfn_epilogue (translator_output* o, bool overload_processi
 void register_tapset_been(systemtap_session& sess);
 void register_tapset_itrace(systemtap_session& sess);
 void register_tapset_mark(systemtap_session& sess);
-void register_tapset_perfmon(systemtap_session& sess);
 void register_tapset_procfs(systemtap_session& sess);
 void register_tapset_timers(systemtap_session& sess);
 void register_tapset_utrace(systemtap_session& sess);

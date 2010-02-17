@@ -6668,7 +6668,6 @@ register_standard_tapsets(systemtap_session & s)
   register_tapset_been(s);
   register_tapset_itrace(s);
   register_tapset_mark(s);
-  register_tapset_perfmon(s);
   register_tapset_procfs(s);
   register_tapset_timers(s);
   register_tapset_utrace(s);
@@ -6751,7 +6750,6 @@ all_session_groups(systemtap_session& s)
   DOONE(kprobe);
   DOONE(hwbkpt);
   DOONE(hrtimer);
-  DOONE(perfmon);
   DOONE(procfs);
 
   // Another "order is important" item.  We want to make sure we

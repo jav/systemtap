@@ -554,7 +554,6 @@ main (int argc, char * const argv [])
   s.keep_tmpdir = false;
   s.cmd = "";
   s.target_pid = 0;
-  s.perfmon=0;
   s.symtab = false;
   s.use_cache = true;
   s.use_script_cache = true;
