@@ -1,6 +1,7 @@
 /* -*- linux-c -*- 
  * Perf Header File
  * Copyright (C) 2006 Red Hat Inc.
+ * Copyright (C) 2010 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -15,13 +16,17 @@
  * @brief Header file for performance monitoring hardware support
  */
 
-static int _stp_perfmon_setup(void **desc,
-		       struct pfarg_ctx *context,
-		       struct pfarg_pmc pmc[], int pmc_count,
-		       struct pfarg_pmd pmd[], int pmd_count);
+struct _Perf {
+	/* per-cpu data. allocated with _stp_alloc_percpu() */
+	struct perf_event **pd;
+        perf_overflow_handler_t callback;
+};
 
-static int _stp_perfmon_shutdown(void *desc);
+typedef struct _Perf *Perf;
 
-static int64_t _stp_perfmon_read(void *desc, int counter);
+static Perf _stp_perf_init (struct perf_event_attr *attr,
+			    perf_overflow_handler_t callback);
+
+static void _stp_perf_del (Perf pe);
 
 #endif /* _PERF_H_ */
