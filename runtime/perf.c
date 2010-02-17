@@ -25,27 +25,29 @@
  *
  * @param attr description of event to sample
  * @param callback function to call when perf event overflows
+ * @param pp associated probe point
+ * @param ph probe handler
  */
-static Perf _stp_perf_init (struct perf_event_attr *attr,
-			    perf_overflow_handler_t callback)
+static Perf *_stp_perf_init (struct perf_event_attr *attr,
+			     perf_overflow_handler_t callback,
+			     const char *pp, void (*ph) (struct context *) )
 {
 	int cpu;
-	Perf pe;
+	Perf *pe;
 
-	pe = (Perf) _stp_kmalloc (sizeof(struct _Perf));
+	pe = (Perf *) _stp_kmalloc (sizeof(Perf));
 	if (pe == NULL)
 		return NULL;
-	pe->callback = callback;
 
 	/* allocate space for the event descriptor for each cpu */
-	pe->pd = (struct perf_event **)
-		_stp_alloc_percpu (sizeof(struct perf_event *));
+	pe->pd = (perfcpu *) _stp_alloc_percpu (sizeof(perfcpu));
 	if (pe->pd == NULL)
 		goto exit1;
 
 	/* initialize event on each processor */
 	stp_for_each_cpu(cpu) {
-		struct perf_event **event = per_cpu_ptr (pe->pd, cpu);
+		perfcpu *pd = per_cpu_ptr (pe->pd, cpu);
+		struct perf_event **event = &(pd->event);
 		*event = perf_event_create_kernel_counter(attr, cpu, -1,
 							  callback);
 
@@ -53,12 +55,15 @@ static Perf _stp_perf_init (struct perf_event_attr *attr,
 			*event = NULL;
 			goto exit2;
 		}
+		pd->pp = pp;
+		pd->ph = ph;
 	}
 	return pe;
 
 exit2:
 	stp_for_each_cpu(cpu) {
-		struct perf_event **event = per_cpu_ptr (pe->pd, cpu);
+		perfcpu *pd = per_cpu_ptr (pe->pd, cpu);
+		struct perf_event **event = &(pd->event);
 		if (*event) perf_event_release_kernel(*event);
 	}
 	_stp_free_percpu(pe->pd);
@@ -72,13 +77,14 @@ exit1:
  *
  * @param pe
  */
-static void _stp_perf_del (Perf pe)
+static void _stp_perf_del (Perf *pe)
 {
 	if (pe) {
 		int cpu;
 		/* shut down performance event sampling */
 		stp_for_each_cpu(cpu) {
-			struct perf_event **event = per_cpu_ptr (pe->pd, cpu);
+			perfcpu *pd = per_cpu_ptr (pe->pd, cpu);
+			struct perf_event **event = &(pd->event);
 			if (*event) {
 				perf_event_release_kernel(*event);
 			}
