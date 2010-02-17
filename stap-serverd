@@ -20,13 +20,15 @@ trap 'terminate' SIGTERM SIGINT
 . ${PKGLIBEXECDIR}stap-env
 
 # PR11197: security prophylactics
+set_ulimits=0
 if [ -z "$STAP_PR11197_OVERRIDE" ]; then
     # 1) reject use as root, except via a special environment variable
     if [ `id -u` -eq 0 ]; then
         echo "For security reasons, invocation of stap-server as root is not supported." 1>&2
         exit 1
     fi 
-    # 2) ... etc ...
+    # 2) resource limits should be set if the user is the 'stap-server' daemon
+    test `id -un` = "stap-server" && set_ulimits=1
 fi
 
 
@@ -63,38 +65,6 @@ function initialization {
     # Where is the ssl certificate/key database?
     if test "X$ssl_db" = "X"; then
 	ssl_db=$stap_ssl_db/server
-	# Update the certificate file if it is old.
-	if test -f $ssl_db/$stap_old_certfile; then
-	    if ! test -e $ssl_db/$stap_certfile; then
-		mv $ssl_db/$stap_old_certfile $ssl_db/$stap_certfile
-	    else
-		rm -fr $ssl_db/$stap_old_certfile
-	    fi
-	fi
-	# If no certificate/key database has been specified, then find/create
-	# a local one.
-	if ! test -f $ssl_db/$stap_certfile; then
-	    ${stap_pkglibexecdir}stap-gen-cert $ssl_db >> $logfile 2>&1 || exit 1
-            # Now add the server's certificate to the client's database,
-	    # making it a trusted peer. Do this only if the client has been installed.
-	    if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
-		    -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
-		${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
-	    fi
-	else
-	    echo "Certificate found in database $ssl_db" >> $logfile
-	    certutil -L -d "$ssl_db" -n stap-server | \
-		awk '/Validity|Not After|Not Before/ { print $0 }' | \
-		sed 's/^ */  /' >> $logfile
-	    if ! test -f $stap_ssl_db/client/cert8.db; then
-		# If the client's database does not exist, then initialize it with our certificate.
-		# Do this only if the client has been installed.
-		if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
-                    -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
-		    ${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
-		fi
-	    fi
-	fi
     fi
 
     nss_pw=$ssl_db/pw
@@ -327,6 +297,46 @@ function process_r {
     fi
 }
 
+# function: check_cert
+#
+# Ensure that our certificate exists and is valid.
+# Generate a new one if not.
+function check_cert {
+    # If our certificate exists, log some information about it.
+    if test -f $ssl_db/cert8.db; then
+	echo "Certificate found in database $ssl_db" >> $logfile
+	certutil -L -d "$ssl_db" -n $nss_cert | \
+	    awk '/Validity|Not After|Not Before/ { print $0 }' | \
+	    sed 's/^ */  /' >> $logfile
+    fi
+
+    # If the certificate does not exist or the certificate
+    # is not valid, then generate a new one.
+    if test ! -d $ssl_db -o ! -f $ssl_db/$stap_certfile -o ! -f $ssl_db/cert8.db || \
+       ! certutil -V -n $nss_cert -u V -d $ssl_db -e -f $nss_pw \
+                     -b `date +%g%m%d%H%M%S`+0005 >> $logfile 2>&1; then
+	# Our certificate does not exist or is not valid.
+	# Generate a new certificate database.
+	${stap_pkglibexecdir}stap-gen-cert $ssl_db >> $logfile 2>&1 || exit 1
+
+        # Now add the new certificate to the client's database,
+        # making it a trusted peer for this user.
+	# Do this only if the client has been installed.
+	if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
+	        -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
+	    ${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
+	fi
+    elif ! test -f $stap_ssl_db/client/cert8.db; then
+	# Our certificate exists and is valid.
+	# If the client's database does not exist, then initialize it with our certificate.
+	# Do this only if the client has been installed.
+	if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
+	    -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
+	    ${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
+	fi
+    fi
+}
+
 # function: advertise_presence
 #
 # Advertise the availability of the server on the network.
@@ -334,7 +344,7 @@ function advertise_presence {
     # Build up a strings representing our server's properties.
     # The service name must differ for each server, so put the port number
     # in it.
-    local service_name="Systemtap Compile Server on port $port"
+    service_name="Systemtap Compile Server on port $port"
 
     local sysinfo="sysinfo=$uname_r $arch"
     local optinfo="optinfo="
@@ -350,8 +360,6 @@ function advertise_presence {
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "$service_name" \
 	$stap_avahi_service_tag $port "$sysinfo" "$optinfo" >> $logfile 2>&1 &
-
-    echo "$service_name listening on port $port" >> $logfile
 }
 
 # function: listen
@@ -362,14 +370,20 @@ function listen {
     # accepting requests.
     # CVE-2009-4273 ... or at least, until resource limits fire
     while true; do # NB: loop to avoid DoS by deliberate rlimit-induced halt
+	# Ensure that our certificate is valid. Generate a new one if
+	# not.
+	check_cert
+
         # NB: impose resource limits in case of mischevious data inducing
         # too much / long computation
-        (ulimit -f 50000 -s 1000 -t 60 -u 20 -v 500000;
+        (test $set_ulimits = 1 && ulimit -f 50000 -s 1000 -t 60 -u 20 -v 500000;
          exec ${stap_pkglibexecdir}stap-server-connect \
 	   -p $port -n $nss_cert -d $ssl_db -w $nss_pw \
 	   -s "$stap_options") &
         stap_server_connect_pid=$!
-        wait
+	echo "$service_name ready"
+        wait $stap_server_connect_pid
+
         # NB: avoid superfast spinning in case of a ulimit or other failure
         sleep 1
     done >> $logfile 2>&1

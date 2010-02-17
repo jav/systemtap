@@ -41,7 +41,6 @@ fi
 
 stap_signing_db=$stap_sysconfdir/systemtap/staprun
 stap_certfile=stap.cert
-stap_old_certfile=stap-server.cert
 
 function stap_get_arch {
   # PR4186: Copy logic from coreutils uname (uname -i) to squash

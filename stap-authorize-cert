@@ -46,4 +46,6 @@ if ! chmod +r $certdb/*.db; then
     echo "Warning: unable to make the client certificate database $certdb readable by others" >&2
 fi
 
+echo "Certificate $certfile added to database $certdb"
+
 exit 0
