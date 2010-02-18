@@ -1,0 +1,20 @@
+#! stap -p2
+
+# check that number comparisons work in CONFIG checks
+probe
+  %( CONFIG_NR_CPUS == 13 %?
+    noprobe
+  %:
+    %( CONFIG_NR_CPUS < 1 %?
+      nonoprobe
+    %:
+      %( CONFIG_NR_CPUS >= 0 %?
+        begin
+      %:
+        nononoprobe
+      %)
+    %)
+  %)
+{
+  exit()
+}

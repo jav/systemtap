@@ -184,6 +184,7 @@ bool eval_comparison (const OPERAND& lhs, const token* op, const OPERAND& rhs)
 // where CONDITION is: kernel_v[r] COMPARISON-OP "version-string"
 //                 or: arch COMPARISON-OP "arch-string"
 //                 or: CONFIG_foo COMPARISON-OP "config-string"
+//                 or: CONFIG_foo COMPARISON-OP number
 //                 or: "string1" COMPARISON-OP "string2"
 //                 or: number1 COMPARISON-OP number2
 // The %: ELSE-TOKENS part is optional.
@@ -272,22 +273,40 @@ bool eval_pp_conditional (systemtap_session& s,
 
       return result;
     }
-  else if (l->type == tok_identifier && l->content.substr(0,7) == "CONFIG_" && r->type == tok_string)
+  else if (l->type == tok_identifier && l->content.substr(0,7) == "CONFIG_")
     {
-      string lhs = s.kernel_config[l->content]; // may be empty
-      string rhs = r->content;
+      if (r->type == tok_string)
+	{
+	  string lhs = s.kernel_config[l->content]; // may be empty
+	  string rhs = r->content;
 
-      int nomatch = fnmatch (rhs.c_str(), lhs.c_str(), FNM_NOESCAPE); // still spooky
+	  int nomatch = fnmatch (rhs.c_str(), lhs.c_str(), FNM_NOESCAPE); // still spooky
 
-      bool result;
-      if (op->type == tok_operator && op->content == "==")
-        result = !nomatch;
-      else if (op->type == tok_operator && op->content == "!=")
-        result = nomatch;
+	  bool result;
+	  if (op->type == tok_operator && op->content == "==")
+	    result = !nomatch;
+	  else if (op->type == tok_operator && op->content == "!=")
+	    result = nomatch;
+	  else
+	    throw parse_error ("expected '==' or '!='", op);
+
+	  return result;
+	}
+      else if (r->type == tok_number)
+	{
+          const char* startp = s.kernel_config[l->content].c_str ();
+          char* endp = (char*) startp;
+          errno = 0;
+          int64_t lhs = (int64_t) strtoll (startp, & endp, 0);
+          if (errno == ERANGE || errno == EINVAL || *endp != '\0')
+	    throw parse_error ("Config option value not a number", l);
+
+	  int64_t rhs = lex_cast<int64_t>(r->content);
+	  return eval_comparison (lhs, op, rhs);
+	}
       else
-        throw parse_error ("expected '==' or '!='", op);
-
-      return result;
+	throw parse_error ("expected string or number literal as right value",
+			   r);
     }
   else if (l->type == tok_string && r->type == tok_string)
     {
