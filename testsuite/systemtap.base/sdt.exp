@@ -27,7 +27,7 @@ set testprog "sdt.c.exe.$i"
 
 # C
 set test_flags "additional_flags=-g"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
 set test_flags "$test_flags additional_flags=-Wall"
 set test_flags "$test_flags additional_flags=-Wextra"
 set test_flags "$test_flags additional_flags=-Werror $pbtype_flag"
@@ -55,7 +55,7 @@ catch {exec rm -f $testprog}
 set testprog "sdt.cxx.exe.$i"
 
 set test_flags "additional_flags=-g"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
 set test_flags "$test_flags additional_flags=-Wall"
 set test_flags "$test_flags additional_flags=-Werror"
 set test_flags "$test_flags additional_flags=-x additional_flags=c++ $pbtype_flag"

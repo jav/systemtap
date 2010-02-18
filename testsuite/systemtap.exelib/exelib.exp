@@ -80,7 +80,7 @@ foreach arch $arches {
 		    
 		    # General compiler flags
 		    # We want the sdt.h from the source dir.
-		    set testflags "additional_flags=-I$srcdir/../includes/sys"
+		    set testflags "additional_flags=-I$srcdir/../includes"
 		    # For now we always require debuginfo
 		    set testflags "$testflags additional_flags=-g"
 		    if {$arch != "default"} {

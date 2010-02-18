@@ -5,7 +5,7 @@ i: 0xdeadbeef87654321}
 
 set test_flags "additional_flags=-g"
 set test_flags "$test_flags additional_flags=-O2"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
 
 set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
 if { $res != "" } {

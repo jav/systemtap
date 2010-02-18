@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "sdt.h"
+#include "sys/sdt.h"
 
 void
 t1 (int i)

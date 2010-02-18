@@ -7,7 +7,7 @@
  * later version.
  */
 
-#include "sdt.h" /* Really <sys/sdt.h>, but pick current source version. */
+#include "sys/sdt.h"
 
 // volatile static variable to prevent folding of lib_func
 static volatile int foo;

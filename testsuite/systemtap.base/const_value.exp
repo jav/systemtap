@@ -6,7 +6,7 @@ j: 21}
 set test_flags "additional_flags=-g"
 # We need -O2 to get const_value encodings in dwarf.
 set test_flags "$test_flags additional_flags=-O2"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
 
 set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
 if { $res != "" } {
@@ -41,7 +41,7 @@ set ::result_string {f: bar}
 set test_flags "additional_flags=-g"
 # We need -O2 to get const_value encodings in dwarf.
 set test_flags "$test_flags additional_flags=-O2"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes/sys"
+set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
 
 set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
 if { $res != "" } {

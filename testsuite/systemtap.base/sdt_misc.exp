@@ -188,7 +188,7 @@ set pbtype_flag [lindex $pbtype_flags $i]
 set pbtype_mssg [lindex $pbtype_mssgs $i]
 set sup_exepath "[pwd]/sdt_misc-$pbtype_mssg.x"
 
-set sup_flags "additional_flags=-I$srcdir/../includes/sys"
+set sup_flags "additional_flags=-I$srcdir/../includes"
 set sup_flags "$sup_flags additional_flags=-I$sdtdir"
 set sup_flags "$sup_flags additional_flags=-g"
 set sup_flags "$sup_flags additional_flags=$sup_opath"
@@ -379,7 +379,7 @@ if {$ok == 5} {
 # 5. Test attaching to a running process with markers in a shared object
 
 if { $pbtype_mssg != "kprobe" } {
-set loop_flags "additional_flags=-I$srcdir/../includes/sys"
+set loop_flags "additional_flags=-I$srcdir/../includes"
 set loop_flags "$loop_flags additional_flags=-I$sdtdir"
 set loop_flags "$loop_flags additional_flags=-g"
 set loop_flags "$loop_flags additional_flags=-I. $pbtype_flag"
