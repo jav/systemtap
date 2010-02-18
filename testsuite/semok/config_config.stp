@@ -1,0 +1,17 @@
+#! stap -p2
+
+# check that CONFIGs can match other CONFIGS.
+probe
+  %( CONFIG_HZ == CONFIG_NR_CPUS
+     || CONFIG_NR_CPUS > CONFIG_HZ
+     || CONFIG_NR_CPUS < CONFIG_HZ %?
+    %( CONFIG_NFSD == CONFIG_NFS_COMMON
+       || CONFIG_NFS_COMMON != CONFIG_NFSD
+    %? begin
+    %: noprobe
+    %)
+  %: nonoprobe
+  %)
+{
+  exit()
+}

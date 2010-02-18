@@ -185,6 +185,7 @@ bool eval_comparison (const OPERAND& lhs, const token* op, const OPERAND& rhs)
 //                 or: arch COMPARISON-OP "arch-string"
 //                 or: CONFIG_foo COMPARISON-OP "config-string"
 //                 or: CONFIG_foo COMPARISON-OP number
+//                 or: CONFIG_foo COMPARISON-OP CONFIG_bar
 //                 or: "string1" COMPARISON-OP "string2"
 //                 or: number1 COMPARISON-OP number2
 // The %: ELSE-TOKENS part is optional.
@@ -304,9 +305,32 @@ bool eval_pp_conditional (systemtap_session& s,
 	  int64_t rhs = lex_cast<int64_t>(r->content);
 	  return eval_comparison (lhs, op, rhs);
 	}
+      else if (r->type == tok_identifier
+	       && r->content.substr(0,7) == "CONFIG_")
+	{
+	  // First try to convert both to numbers,
+	  // otherwise threat both as strings.
+          const char* startp = s.kernel_config[l->content].c_str ();
+          char* endp = (char*) startp;
+          errno = 0;
+          int64_t val = (int64_t) strtoll (startp, & endp, 0);
+          if (errno != ERANGE && errno != EINVAL && *endp == '\0')
+	    {
+	      int64_t lhs = val;
+	      startp = s.kernel_config[r->content].c_str ();
+	      endp = (char*) startp;
+	      errno = 0;
+	      int64_t rhs = (int64_t) strtoll (startp, & endp, 0);
+	      if (errno != ERANGE && errno != EINVAL && *endp == '\0')
+		return eval_comparison (lhs, op, rhs);
+	    }
+
+	  string lhs = s.kernel_config[l->content];
+	  string rhs = s.kernel_config[r->content];
+	  return eval_comparison (lhs, op, rhs);
+	}
       else
-	throw parse_error ("expected string or number literal as right value",
-			   r);
+	throw parse_error ("expected string, number literal or other CONFIG_... as right value", r);
     }
   else if (l->type == tok_string && r->type == tok_string)
     {
