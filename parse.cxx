@@ -885,6 +885,7 @@ skip:
   else if (c == '\"')
     {
       n->type = tok_string;
+    another_string:
       while (1)
 	{
 	  c = input_get ();
@@ -924,6 +925,19 @@ skip:
 	  else
 	    n->content.push_back(c);
 	}
+      // PR11208: check if the next token is also a string literal; auto-concatenate it
+      // This is complicated to the extent that we need to skip intermediate whitespace.
+      // XXX: but not comments
+      unsigned nspace = 0;
+      do {
+        c = input_peek(nspace++);
+        if (c == '\"') // new string literal?
+          {
+            // consume all whitespace plus the opening quote
+            while (nspace-- > 0) input_get();
+            goto another_string; // and append the rest to this token
+          }
+      } while (isspace(c));
       return n;
     }
 

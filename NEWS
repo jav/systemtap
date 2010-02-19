@@ -1,9 +1,18 @@
 * What's new
+
+- Adjacent string literals are glued together, making this
+  construct valid:
+     probe process("/usr" @1 "/bin").function("*") { ... }
+
 - In order to limit potential impact from future security problems, 
   the stap-server process does not permit its being launched as root.
 
-- New : systemtap now supports probes for Hardware Breakpoints on x86
-  and x86_64. For syntax details, see man page for stapprobes.
+- On recent kernels, for some architectures/configurations, hardware
+  breakpoint probes are supported.  The probe point syntax is:
+
+     probe kernel.data(ADDRESS).write
+     probe kernel.data(ADDRESS).length(LEN).write
+     probe kernel.data("SYMBOL_NAME").write
 
 * What's new in version 1.1
 

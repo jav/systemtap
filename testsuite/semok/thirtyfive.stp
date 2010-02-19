@@ -1,0 +1,8 @@
+#! stap -p2
+
+// PR11208
+probe kernel.function("sys""_""open") {}
+probe kernel.function("sys" "_" "close") {}
+probe kernel.function("p"
+		"a" "n" "i"
+	       	"c") {}

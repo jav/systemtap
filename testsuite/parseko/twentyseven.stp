@@ -1,0 +1,4 @@
+#! stap -p1
+
+# PR 11208
+probe kernel.function ("sys_" /* this comment prevents string gluing */ "open") {}
