@@ -80,7 +80,7 @@ usage (systemtap_session& s, int exitcode)
     << endl
     << "Options:" << endl
     << "   --         end of translator options, script options follow" << endl
-    << "   -h         show help" << endl
+    << "   -h --help  show help" << endl
     << "   -V         show version" << endl
     << "   -p NUM     stop after pass NUM 1-5, instead of " << s.last_pass << endl
     << "              (parse, elaborate, translate, compile, run)" << endl
@@ -148,7 +148,7 @@ usage (systemtap_session& s, int exitcode)
   // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
   // only, and don't belong in the eyesight of a plain user.
     << "   --skip-badvars" << endl
-    << "              overlook context of bad $ variables" << endl
+    << "              substitute zero for bad context $variables" << endl
     << endl
     ;
 
@@ -619,6 +619,7 @@ main (int argc, char * const argv [])
 #define LONG_OPT_UNPRIVILEGED 7
 #define LONG_OPT_OMIT_WERROR 8
 #define LONG_OPT_CLIENT_OPTIONS 9
+#define LONG_OPT_HELP 10
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -636,6 +637,7 @@ main (int argc, char * const argv [])
 #define OWE3 "w-be"
         { OWE4 OWE6 OWE1 OWE2 OWE3 OWE5, 0, &long_opt, LONG_OPT_OMIT_WERROR },
         { "client-options", 0, &long_opt, LONG_OPT_CLIENT_OPTIONS },
+        { "help", 0, &long_opt, LONG_OPT_HELP },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:",
@@ -666,12 +668,12 @@ main (int argc, char * const argv [])
           if (*num_endptr != '\0' || s.last_pass < 1 || s.last_pass > 5)
             {
               cerr << "Invalid pass number (should be 1-5)." << endl;
-              usage (s, 1);
+              exit (1);
             }
           if (s.listing_mode && s.last_pass != 2)
             {
               cerr << "Listing (-l) mode implies pass 2." << endl;
-              usage (s, 1);
+              exit (1);
             }
           break;
 
@@ -701,7 +703,7 @@ main (int argc, char * const argv [])
 	    {
 	      cerr << "Only one script can be given on the command line."
 		   << endl;
-	      usage (s, 1);
+              exit (1);
 	    }
           cmdline_script = string (optarg);
           have_script = true;
@@ -713,7 +715,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'R':
-          if (client_options) { cerr << "ERROR: -R invalid with --client-options" << endl; usage(s,1); }
+          if (client_options) { cerr << "ERROR: -R invalid with --client-options" << endl; exit(1); }
           s.runtime_path = string (optarg);
           break;
 
@@ -740,7 +742,7 @@ main (int argc, char * const argv [])
 	    if (len == 0)
 	    {
 		cerr << "Module name cannot be empty." << endl;
-		usage (s, 1);
+		exit(1);
 	    }
 
 	    // Make sure the module name is only composed of the
@@ -751,7 +753,7 @@ main (int argc, char * const argv [])
 	      {
 		cerr << "Invalid module name (must only be composed of"
 		    " characters [_a-zA-Z0-9])." << endl;
-		usage (s, 1);
+		exit(1);
 	      }
 
 	    // Make sure module name isn't too long.
@@ -803,7 +805,7 @@ main (int argc, char * const argv [])
           if (*num_endptr != '\0' || s.buffer_size < 1 || s.buffer_size > 4095)
             {
               cerr << "Invalid buffer size (should be 1-4095)." << endl;
-	      usage (s, 1);
+	      exit(1);
             }
           break;
 
@@ -816,7 +818,7 @@ main (int argc, char * const argv [])
 	  if (*num_endptr != '\0')
 	    {
 	      cerr << "Invalid target process ID number." << endl;
-	      usage (s, 1);
+	      exit (1);
 	    }
 	  break;
 
@@ -833,7 +835,7 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'q':
-          if (client_options) { cerr << "ERROR: -q invalid with --client-options" << endl; usage(s,1); } 
+          if (client_options) { cerr << "ERROR: -q invalid with --client-options" << endl; exit(1); } 
 	  s.tapset_compile_coverage = true;
 	  break;
 
@@ -853,7 +855,7 @@ main (int argc, char * const argv [])
             {
 	      cerr << "Only one script can be given on the command line."
 		   << endl;
-	      usage (s, 1);
+	      exit (1);
             }
           cmdline_script = string("probe ") + string(optarg) + " {}";
           have_script = true;
@@ -864,7 +866,7 @@ main (int argc, char * const argv [])
 	  break;
 
 	case 'B':
-          if (client_options) { cerr << "ERROR: -B invalid with --client-options" << endl; usage(s,1); } 
+          if (client_options) { cerr << "ERROR: -B invalid with --client-options" << endl; exit(1); } 
           s.kbuildflags.push_back (string (optarg));
 	  break;
 
@@ -879,7 +881,7 @@ main (int argc, char * const argv [])
               if (!s.kernel_symtab_path.empty())
 		{
 		  cerr << "You can't specify multiple --kmap options." << endl;
-		  usage(s, 1);
+		  exit(1);
 		}
               if (optarg)
                 s.kernel_symtab_path = optarg;
@@ -907,7 +909,7 @@ main (int argc, char * const argv [])
                 if (! ok)
                   {
                     cerr << "Invalid --vp argument: it takes 1 to 5 digits." << endl;
-                    usage (s, 1);
+                    exit (1);
                   }
                 // NB: we don't do this: s.last_pass = strlen(optarg);
                 break;
@@ -926,14 +928,16 @@ main (int argc, char * const argv [])
 	    case LONG_OPT_CLIENT_OPTIONS:
 	      client_options = true;
 	      break;
+	    case LONG_OPT_HELP:
+	      usage (s, 0);
+	      break;
             default:
-              cerr << "Internal error parsing command arguments." << endl;
-              usage(s, 1);
+              exit(1);
             }
           break;
 
         default:
-          usage (s, 1);
+          exit(1);
           break;
         }
     }
@@ -992,6 +996,7 @@ main (int argc, char * const argv [])
     }
 
   // need a user file
+  // NB: this is also triggered if stap is invoked with no arguments at all
   if (! have_script)
     {
       cerr << "A script must be specified." << endl;
