@@ -5663,6 +5663,13 @@ hwbkpt_builder::build(systemtap_session & sess,
   int64_t hwbkpt_address, len;
   bool has_addr, has_symbol_str, has_write, has_rw, has_len;
 
+  if (! (sess.kernel_config["CONFIG_PERF_EVENTS"] == string("y")))
+      throw semantic_error ("CONFIG_PERF_EVENTS not available on this kernel",
+                            location->components[0]->tok);
+  if (! (sess.kernel_config["CONFIG_HAVE_HW_BREAKPOINT"] == string("y")))
+      throw semantic_error ("CONFIG_HAVE_HW_BREAKPOINT not available on this kernel",
+                            location->components[0]->tok);
+
   has_addr = get_param (parameters, TOK_HWBKPT, hwbkpt_address);
   has_symbol_str = get_param (parameters, TOK_HWBKPT, symbol_str_val);
   has_len = get_param (parameters, TOK_LENGTH, len);
@@ -6574,23 +6581,21 @@ register_standard_tapsets(systemtap_session & s)
       ->bind(TOK_ABSOLUTE)->bind(new kprobe_builder());
 
   //Hwbkpt based probe
-  if (s.kernel_config["CONFIG_PERF_EVENTS"] == string("y") &&
-	s.kernel_config["CONFIG_HAVE_HW_BREAKPOINT"] == string("y")) {
-	  s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
-		->bind(TOK_HWBKPT_WRITE)->bind(new hwbkpt_builder());
-	  s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_HWBKPT)
-		->bind(TOK_HWBKPT_WRITE)->bind(new hwbkpt_builder());
-	  s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
-		->bind(TOK_HWBKPT_RW)->bind(new hwbkpt_builder());
-	  s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_HWBKPT)
-		->bind(TOK_HWBKPT_RW)->bind(new hwbkpt_builder());
-	  s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
-		->bind_num(TOK_LENGTH)->bind(TOK_HWBKPT_WRITE)->bind(new hwbkpt_builder());
-	  s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
-		->bind_num(TOK_LENGTH)->bind(TOK_HWBKPT_RW)->bind(new hwbkpt_builder());
-	  // length supported with address only, not symbol names
-	}
-
+  // NB: we formerly registered the probe point types only if the kernel configuration
+  // allowed it.  However, we get better error messages if we allow probes to resolve.
+  s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
+    ->bind(TOK_HWBKPT_WRITE)->bind(new hwbkpt_builder());
+  s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_HWBKPT)
+    ->bind(TOK_HWBKPT_WRITE)->bind(new hwbkpt_builder());
+  s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
+    ->bind(TOK_HWBKPT_RW)->bind(new hwbkpt_builder());
+  s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_HWBKPT)
+    ->bind(TOK_HWBKPT_RW)->bind(new hwbkpt_builder());
+  s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
+    ->bind_num(TOK_LENGTH)->bind(TOK_HWBKPT_WRITE)->bind(new hwbkpt_builder());
+  s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
+    ->bind_num(TOK_LENGTH)->bind(TOK_HWBKPT_RW)->bind(new hwbkpt_builder());
+  // length supported with address only, not symbol names
 }
 
 
