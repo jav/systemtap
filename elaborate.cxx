@@ -2449,8 +2449,7 @@ dead_stmtexpr_remover::visit_for_loop (for_loop *s)
       else
         {
           // Can't elide this whole statement; put a null in there.
-          s->block = new null_statement();
-          s->block->tok = s->tok;
+          s->block = new null_statement(s->tok);
         }
     }
   provide (s);
@@ -2526,8 +2525,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
               && ! s.timing) // PR10070
             s.print_warning ("side-effect-free probe '" + p->name + "'", p->tok);
 
-          p->body = new null_statement();
-          p->body->tok = p->tok;
+          p->body = new null_statement(p->tok);
 
           // XXX: possible duplicate warnings; see below
         }
@@ -2551,8 +2549,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
           if (! s.suppress_warnings)
             s.print_warning ("side-effect-free function '" + fn->name + "'", fn->tok);
 
-          fn->body = new null_statement();
-          fn->body->tok = fn->tok;
+          fn->body = new null_statement(fn->tok);
 
           // XXX: the next iteration of the outer optimization loop may
           // take this new null_statement away again, and thus give us a

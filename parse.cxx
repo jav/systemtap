@@ -1289,11 +1289,7 @@ parser::parse_statement ()
   statement *ret;
   const token* t = peek ();
   if (t && t->type == tok_operator && t->content == ";")
-    {
-      null_statement* n = new null_statement ();
-      n->tok = next ();
-      return n;
-    }
+    return new null_statement (next ());
   else if (t && t->type == tok_operator && t->content == "{")
     return parse_stmt_block (); // Don't squash semicolons.
   else if (t && t->type == tok_keyword && t->content == "if")

@@ -492,6 +492,7 @@ struct statement
   virtual void visit (visitor* u) = 0;
   const token* tok;
   statement ();
+  statement (const token* tok);
   virtual ~statement ();
 };
 
@@ -547,6 +548,7 @@ struct null_statement: public statement
 {
   void print (std::ostream& o) const;
   void visit (visitor* u);
+  null_statement (const token* tok);
 };
 
 

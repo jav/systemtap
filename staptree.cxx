@@ -42,6 +42,18 @@ statement::statement ():
 }
 
 
+statement::statement (const token* tok):
+  tok (tok)
+{
+}
+
+
+null_statement::null_statement (const token* tok):
+  statement(tok)
+{
+}
+
+
 statement::~statement ()
 {
 }
