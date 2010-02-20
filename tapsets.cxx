@@ -5460,8 +5460,12 @@ void hwbkpt_derived_probe::join_group (systemtap_session& s)
 			s.hwbkpt_derived_probes->max_hwbkpt_probes_by_arch = 4;
 	else {
 			//TODO: Add code for other archs too
+			if (s.architecture == "s390" )
+				s.hwbkpt_derived_probes->max_hwbkpt_probes_by_arch = 1;
+			else {
 			s.hwbkpt_derived_probes->max_hwbkpt_probes_by_arch = 0;
 			throw semantic_error ("Hardware Breakpoints not supported on arch " + s.architecture);
+			}
 		}
 	}
   s.hwbkpt_derived_probes->enroll (this, s);
@@ -5517,7 +5521,7 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "const unsigned long address;";
   s.op->newline() << "uint8_t atype;";
-  s.op->newline() << "uint8_t len;";
+  s.op->newline() << "unsigned int len;";
   s.op->newline() << "void (* const ph) (struct context*);";
   s.op->newline() << "} stap_hwbkpt_probes[] = {";
   s.op->indent(1);
@@ -5534,10 +5538,13 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
       switch(p->hwbkpt_access){
       case HWBKPT_READ:
 		s.op->line() << " .atype=HW_BREAKPOINT_R ,";
+		break;
       case HWBKPT_WRITE:
 		s.op->line() << " .atype=HW_BREAKPOINT_W ,";
+		break;
       case HWBKPT_RW:
 		s.op->line() << " .atype=HW_BREAKPOINT_R|HW_BREAKPOINT_W ,";
+		break;
 	};
       s.op->line() << " .len=" << p->hwbkpt_len << ",";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
@@ -5589,6 +5596,7 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "	sdp->registered_p = 0;";
   s.op->newline() << "		} ";
   s.op->newline() << "	} ";
+  s.op->newline() << "  hp->bp_type = sdp->atype;";
   if (s.architecture == "i386" || s.architecture == "x86_64" ) {
 	  s.op->newline() << "  switch(sdp->len) {";
 	  s.op->newline() << "	case 1:";
@@ -5611,12 +5619,18 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
 	  s.op->newline() << " 	_stp_warn(\"Probe %s registration skipped : unsupported length. Supported lengths for x86 are 1,2,4 {8 for x86_84 only} \",sdp->pp);";
 	  s.op->newline() << "	sdp->registered_p = 0;";
 	  s.op->newline() << "	}";
-	  s.op->newline() << "  hp->bp_type = sdp->atype;";
 	  s.op->newline() << "  if (sdp->atype == HW_BREAKPOINT_R) {";
 	  s.op->newline() << "  	_stp_warn(\"Probe %s registration skipped : READ-ONLY hardware breakpoints not supported on x86\",sdp->pp);";
 	  s.op->newline() << "		sdp->registered_p = 0;";
 	  s.op->newline() << "  }";
   } // end of x86 / x86_64 specific checks
+  if (s.architecture == "s390" ) {
+  s.op->newline() << "  hp->bp_len = sdp->len;";
+  s.op->newline() << "  if (sdp->atype != HW_BREAKPOINT_W) {";
+  s.op->newline() << "  	_stp_warn(\"Probe %s registration skipped : READ / RW hardware breakpoints not supported on s390\",sdp->pp);";
+  s.op->newline() << "		sdp->registered_p = 0;";
+  s.op->newline() << "  }";
+  } // end of s390 specific checks
   s.op->newline() << "probe_point = sdp->pp;"; // for error messages
   s.op->newline() << "if ( sdp->registered_p ) {";
   s.op->newline() << " stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint( hp, (void *)&enter_hwbkpt_probe );";
