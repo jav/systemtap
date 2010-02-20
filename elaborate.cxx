@@ -2420,6 +2420,7 @@ dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
 
   if (s->block == 0)
     {
+      // XXX what if s->limit has side effects?
       if (session.verbose>2)
         clog << "Eliding side-effect-free foreach statement " << *s->tok << endl;
       s = 0; // yeah, baby
@@ -2961,6 +2962,231 @@ void semantic_pass_opt5 (systemtap_session& s, bool& relaxed_p)
 }
 
 
+struct const_folder: public update_visitor
+{
+  systemtap_session& session;
+  bool& relaxed_p;
+
+  const_folder(systemtap_session& s, bool& r):
+    session(s), relaxed_p(r), last_number(0), last_string(0) {}
+
+  literal_number* last_number;
+  literal_number* get_number(expression*& e);
+  void visit_literal_number (literal_number* e);
+
+  literal_string* last_string;
+  literal_string* get_string(expression*& e);
+  void visit_literal_string (literal_string* e);
+
+  void visit_if_statement (if_statement* s);
+  void visit_for_loop (for_loop* s);
+  void visit_foreach_loop (foreach_loop* s);
+  void visit_binary_expression (binary_expression* e);
+  void visit_unary_expression (unary_expression* e);
+  void visit_logical_or_expr (logical_or_expr* e);
+  void visit_logical_and_expr (logical_and_expr* e);
+  void visit_comparison (comparison* e);
+  void visit_concatenation (concatenation* e);
+  void visit_ternary_expression (ternary_expression* e);
+};
+
+literal_number*
+const_folder::get_number(expression*& e)
+{
+  replace (e);
+  return (e == last_number) ? last_number : NULL;
+}
+
+void
+const_folder::visit_literal_number (literal_number* e)
+{
+  last_number = e;
+  provide (e);
+}
+
+literal_string*
+const_folder::get_string(expression*& e)
+{
+  replace (e);
+  return (e == last_string) ? last_string : NULL;
+}
+
+void
+const_folder::visit_literal_string (literal_string* e)
+{
+  last_string = e;
+  provide (e);
+}
+
+void
+const_folder::visit_if_statement (if_statement* s)
+{
+  literal_number* cond = get_number (s->condition);
+  if (!cond)
+    {
+      replace (s->thenblock);
+      replace (s->elseblock);
+      provide (s);
+    }
+  else
+    {
+      if (session.verbose>2)
+        clog << "Collapsing constant if-statement " << *s->tok << endl;
+      relaxed_p = false;
+
+      statement* n = cond->value ? s->thenblock : s->elseblock;
+      if (n)
+        n->visit (this);
+      else
+        provide (new null_statement (s->tok));
+    }
+}
+
+void
+const_folder::visit_for_loop (for_loop* s)
+{
+  literal_number* cond = get_number (s->cond);
+  if (!cond || cond->value)
+    {
+      replace (s->init);
+      replace (s->incr);
+      replace (s->block);
+      provide (s);
+    }
+  else
+    {
+      if (session.verbose>2)
+        clog << "Collapsing constantly-false for-loop " << *s->tok << endl;
+      relaxed_p = false;
+
+      if (s->init)
+        s->init->visit (this);
+      else
+        provide (new null_statement (s->tok));
+    }
+}
+
+void
+const_folder::visit_foreach_loop (foreach_loop* s)
+{
+  literal_number* limit = get_number (s->limit);
+  if (!limit || limit->value > 0)
+    {
+      for (unsigned i = 0; i < s->indexes.size(); ++i)
+        replace (s->indexes[i]);
+      replace (s->base);
+      replace (s->block);
+      provide (s);
+    }
+  else
+    {
+      if (session.verbose>2)
+        clog << "Collapsing constantly-limited foreach-loop " << *s->tok << endl;
+      relaxed_p = false;
+
+      provide (new null_statement (s->tok));
+    }
+}
+
+void
+const_folder::visit_binary_expression (binary_expression* e)
+{
+  // TODO
+  update_visitor::visit_binary_expression (e);
+}
+
+void
+const_folder::visit_unary_expression (unary_expression* e)
+{
+  literal_number* operand = get_number (e->operand);
+  if (!operand)
+    provide (e);
+  else
+    {
+      if (session.verbose>2)
+        clog << "Collapsing constant unary " << *e->tok << endl;
+      relaxed_p = false;
+
+      literal_number* n = new literal_number (*operand);
+      n->tok = e->tok;
+      if (e->op == "+")
+        ; // nothing to do
+      else if (e->op == "-")
+        n->value = -n->value;
+      else if (e->op == "!")
+        n->value = !n->value;
+      else if (e->op == "~")
+        n->value = ~n->value;
+      else
+        throw semantic_error ("unsupported unary operator " + e->op);
+      n->visit (this);
+    }
+}
+
+void
+const_folder::visit_logical_or_expr (logical_or_expr* e)
+{
+  // TODO
+  update_visitor::visit_logical_or_expr (e);
+}
+
+void
+const_folder::visit_logical_and_expr (logical_and_expr* e)
+{
+  // TODO
+  update_visitor::visit_logical_and_expr (e);
+}
+
+void
+const_folder::visit_comparison (comparison* e)
+{
+  // TODO
+  update_visitor::visit_comparison (e);
+}
+
+void
+const_folder::visit_concatenation (concatenation* e)
+{
+  // TODO
+  update_visitor::visit_concatenation (e);
+}
+
+void
+const_folder::visit_ternary_expression (ternary_expression* e)
+{
+  literal_number* cond = get_number (e->cond);
+  if (!cond)
+    {
+      replace (e->truevalue);
+      replace (e->falsevalue);
+      provide (e);
+    }
+  else
+    {
+      if (session.verbose>2)
+        clog << "Collapsing constant ternary " << *e->tok << endl;
+      relaxed_p = false;
+
+      expression* n = cond->value ? e->truevalue : e->falsevalue;
+      n->visit (this);
+    }
+}
+
+static void semantic_pass_const_fold (systemtap_session& s, bool& relaxed_p)
+{
+  // Let's simplify statements with constant values.
+
+  const_folder cf (s, relaxed_p);
+  // This instance may be reused for multiple probe/function body trims.
+
+  for (unsigned i=0; i<s.probes.size(); i++)
+    cf.replace (s.probes[i]->body);
+  for (map<string,functiondecl*>::iterator it = s.functions.begin();
+       it != s.functions.end(); it++)
+    cf.replace (it->second->body);
+}
+
+
 struct duplicate_function_remover: public functioncall_traversing_visitor
 {
   systemtap_session& s;
@@ -3085,6 +3311,7 @@ semantic_pass_optimize1 (systemtap_session& s)
       semantic_pass_opt3 (s, relaxed_p);
       semantic_pass_opt4 (s, relaxed_p);
       semantic_pass_opt5 (s, relaxed_p);
+      semantic_pass_const_fold (s, relaxed_p);
 
       iterations ++;
     }
