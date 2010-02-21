@@ -11,6 +11,7 @@ set pass 0
 
 spawn stap -DMAXERRORS=1 $srcdir/$subdir/$test.stp
 expect {
+    -timeout 60
     $error_msg1 {incr pass; exp_continue}
     $error_msg2 {incr pass; exp_continue}
     $exit_warning {incr pass; exp_continue}
