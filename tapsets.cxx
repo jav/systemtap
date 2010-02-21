@@ -5385,11 +5385,8 @@ struct hwbkpt_derived_probe: public derived_probe
 
 struct hwbkpt_derived_probe_group: public derived_probe_group
 {
-  unsigned int max_hwbkpt_probes_by_arch;
-
 private:
-  vector<hwbkpt_derived_probe*> hwbkpt_probes_vector;
-  typedef vector<hwbkpt_derived_probe*>::iterator h_p_v_iterator;
+  vector<hwbkpt_derived_probe*> hwbkpt_probes;
 
 public:
   void enroll (hwbkpt_derived_probe* probe, systemtap_session& s);
@@ -5454,38 +5451,32 @@ void hwbkpt_derived_probe::printsig (ostream& o) const
 
 void hwbkpt_derived_probe::join_group (systemtap_session& s)
 {
-  if (! s.hwbkpt_derived_probes) {
-        s.hwbkpt_derived_probes = new hwbkpt_derived_probe_group ();
-	if (s.architecture == "i386" || s.architecture == "x86_64" )
-			s.hwbkpt_derived_probes->max_hwbkpt_probes_by_arch = 4;
-	else {
-			//TODO: Add code for other archs too
-			if (s.architecture == "s390" )
-				s.hwbkpt_derived_probes->max_hwbkpt_probes_by_arch = 1;
-			else {
-			s.hwbkpt_derived_probes->max_hwbkpt_probes_by_arch = 0;
-			throw semantic_error ("Hardware Breakpoints not supported on arch " + s.architecture);
-			}
-		}
-	}
+  if (! s.hwbkpt_derived_probes)
+    s.hwbkpt_derived_probes = new hwbkpt_derived_probe_group ();
   s.hwbkpt_derived_probes->enroll (this, s);
 }
 
 void hwbkpt_derived_probe_group::enroll (hwbkpt_derived_probe* p, systemtap_session& s)
 {
-  if (hwbkpt_probes_vector.size() >= max_hwbkpt_probes_by_arch ) {
-	  clog  << "Warning:No of Hardware breakpoint probes in script exceeds "
-		<< "the number of hardware breakpoints that the architecture "
-		<< "can support : max " << max_hwbkpt_probes_by_arch
-		<< " on " << s.architecture ;
-	}
-  hwbkpt_probes_vector.push_back (p);
+  hwbkpt_probes.push_back (p);
+
+  unsigned max_hwbkpt_probes_by_arch = 0;
+  if (s.architecture == "i386" || s.architecture == "x86_64")
+    max_hwbkpt_probes_by_arch = 4;
+  else if (s.architecture == "s390")
+    max_hwbkpt_probes_by_arch = 1;
+
+  if (hwbkpt_probes.size() >= max_hwbkpt_probes_by_arch) 
+    if (! s.suppress_warnings)
+      s.print_warning ("Too many hardware breakpoint probes requested for " + s.architecture
+                       + "(" + lex_cast(hwbkpt_probes.size()) +
+                       " vs. " + lex_cast(max_hwbkpt_probes_by_arch) + ")");
 }
 
 void
 hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
-  if (hwbkpt_probes_vector.empty()) return;
+  if (hwbkpt_probes.empty()) return;
 
   s.op->newline() << "/* ---- hwbkpt-based probes ---- */";
 
@@ -5502,10 +5493,10 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Emit the actual probe list.
 
   s.op->newline() << "static struct perf_event_attr ";
-  s.op->newline() << "stap_hwbkpt_probe_array[" << hwbkpt_probes_vector.size() << "];";
+  s.op->newline() << "stap_hwbkpt_probe_array[" << hwbkpt_probes.size() << "];";
 
   s.op->newline() << "static struct perf_event **";
-  s.op->newline() << "stap_hwbkpt_ret_array[" << hwbkpt_probes_vector.size() << "];";
+  s.op->newline() << "stap_hwbkpt_ret_array[" << hwbkpt_probes.size() << "];";
   s.op->newline() << "static struct stap_hwbkpt_probe {";
   s.op->newline() << "int registered_p:1;";
 // registered_p =  0 signifies a probe that failed registration
@@ -5513,11 +5504,8 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Probe point & Symbol Names are mostly small and uniform enough
   // to justify putting const char*.
-#define CALCIT(var)                                                     \
-  s.op->newline() << "const char * const " << #var << ";";
-  CALCIT(pp);
-  CALCIT(symbol);
-#undef CALCIT
+  s.op->newline() << "const char * const pp;";
+  s.op->newline() << "const char * const symbol;";
 
   s.op->newline() << "const unsigned long address;";
   s.op->newline() << "uint8_t atype;";
@@ -5526,9 +5514,9 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "} stap_hwbkpt_probes[] = {";
   s.op->indent(1);
 
-  for (unsigned int it = 0; it < hwbkpt_probes_vector.size(); it++)
+  for (unsigned int it = 0; it < hwbkpt_probes.size(); it++)
     {
-      hwbkpt_derived_probe* p = hwbkpt_probes_vector.at(it);
+      hwbkpt_derived_probe* p = hwbkpt_probes.at(it);
       s.op->newline() << "{";
       s.op->line() << " .registered_p=1,";
       if (p->symbol_name.size())
@@ -5552,7 +5540,7 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .ph=&" << p->name << "";
       s.op->line() << " },";
     }
-  s.op->newline() << "};";
+  s.op->newline(-1) << "};";
 
   // Emit the hwbkpt callback function
   s.op->newline() ;
@@ -5560,87 +5548,76 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << " int nmi,";
   s.op->line() << " struct perf_sample_data *data,";
   s.op->line() << " struct pt_regs *regs) {";
-  s.op->newline() << "unsigned int i;";
-  s.op->newline() << "if (bp->attr.type != PERF_TYPE_BREAKPOINT )";
-  s.op->newline() << "return -1;";
-  s.op->newline() << "for ( i=0; i<" << hwbkpt_probes_vector.size() << "; i++) {";
-  s.op->newline() << "struct perf_event_attr *hp = & stap_hwbkpt_probe_array[i];";
-  s.op->newline() << "if (bp->attr.bp_addr==hp->bp_addr && bp->attr.bp_type==hp->bp_type && bp->attr.bp_len==hp->bp_len ) {";
-  s.op->newline() << "struct stap_hwbkpt_probe *sdp = &stap_hwbkpt_probes[i];";
+  s.op->newline(1) << "unsigned int i;";
+  s.op->newline() << "if (bp->attr.type != PERF_TYPE_BREAKPOINT) return -1;";
+  s.op->newline() << "for (i=0; i<" << hwbkpt_probes.size() << "; i++) {";
+  s.op->newline(1) << "struct perf_event_attr *hp = & stap_hwbkpt_probe_array[i];";
+  // XXX: why not match stap_hwbkpt_ret_array[i] against bp instead?
+  s.op->newline() << "if (bp->attr.bp_addr==hp->bp_addr && bp->attr.bp_type==hp->bp_type && bp->attr.bp_len==hp->bp_len) {";
+  s.op->newline(1) << "struct stap_hwbkpt_probe *sdp = &stap_hwbkpt_probes[i];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "(*sdp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
-  s.op->newline() << "return 0;";
-  s.op->newline() << "}";
+  s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
   s.op->newline() << "return 0;";
-  s.op->newline() << "}";
+  s.op->newline(-1) << "}";
 }
 
 void
 hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  s.op->newline() << "for (i=0; i<" << hwbkpt_probes_vector.size() << "; i++) {";
+  s.op->newline() << "for (i=0; i<" << hwbkpt_probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_hwbkpt_probe *sdp = & stap_hwbkpt_probes[i];";
   s.op->newline() << "struct perf_event_attr *hp = & stap_hwbkpt_probe_array[i];";
   s.op->newline() << "void *addr = (void *) sdp->address;";
   s.op->newline() << "const char *hwbkpt_symbol_name = addr ? NULL : sdp->symbol;";
-  s.op->newline() << "	hw_breakpoint_init(hp);";
-  s.op->newline() << "	if (addr) ";
-  s.op->newline() << "	    hp->bp_addr = (unsigned long) addr;";
-  s.op->newline() << "	else { ";
-  s.op->newline() << "	   hp->bp_addr = kallsyms_lookup_name(hwbkpt_symbol_name);";
-  s.op->newline() << "	if (!hp->bp_addr) { ";
-  s.op->newline() << " 	_stp_warn(\"Probe %s registration skipped : invalid symbol %s \",sdp->pp,hwbkpt_symbol_name);";
-  s.op->newline() << "	sdp->registered_p = 0;";
-  s.op->newline() << "		} ";
-  s.op->newline() << "	} ";
-  s.op->newline() << "  hp->bp_type = sdp->atype;";
-  if (s.architecture == "i386" || s.architecture == "x86_64" ) {
-	  s.op->newline() << "  switch(sdp->len) {";
-	  s.op->newline() << "	case 1:";
-	  s.op->newline() << "    hp->bp_len = HW_BREAKPOINT_LEN_1;";
-	  s.op->newline() << "    break;";
-	  s.op->newline() << "	case 2:";
-	  s.op->newline() << "    hp->bp_len = HW_BREAKPOINT_LEN_2;";
-	  s.op->newline() << "    break;";
-	  s.op->newline() << "	case 3:";
-	  s.op->newline() << "	case 4:";
-	  s.op->newline() << "    hp->bp_len = HW_BREAKPOINT_LEN_4;";
-	  s.op->newline() << "    break;";
-	  s.op->newline() << "	case 5:";
-	  s.op->newline() << "	case 6:";
-	  s.op->newline() << "	case 7:";
-	  s.op->newline() << "	case 8:";
-	  s.op->newline() << "    hp->bp_len = HW_BREAKPOINT_LEN_8;";
-	  s.op->newline() << "    break;";
-	  s.op->newline() << "	default:";
-	  s.op->newline() << " 	_stp_warn(\"Probe %s registration skipped : unsupported length. Supported lengths for x86 are 1,2,4 {8 for x86_84 only} \",sdp->pp);";
-	  s.op->newline() << "	sdp->registered_p = 0;";
-	  s.op->newline() << "	}";
-	  s.op->newline() << "  if (sdp->atype == HW_BREAKPOINT_R) {";
-	  s.op->newline() << "  	_stp_warn(\"Probe %s registration skipped : READ-ONLY hardware breakpoints not supported on x86\",sdp->pp);";
-	  s.op->newline() << "		sdp->registered_p = 0;";
-	  s.op->newline() << "  }";
-  } // end of x86 / x86_64 specific checks
-  if (s.architecture == "s390" ) {
-  s.op->newline() << "  hp->bp_len = sdp->len;";
-  s.op->newline() << "  if (sdp->atype != HW_BREAKPOINT_W) {";
-  s.op->newline() << "  	_stp_warn(\"Probe %s registration skipped : READ / RW hardware breakpoints not supported on s390\",sdp->pp);";
-  s.op->newline() << "		sdp->registered_p = 0;";
-  s.op->newline() << "  }";
-  } // end of s390 specific checks
+  s.op->newline() << "hw_breakpoint_init(hp);";
+  s.op->newline() << "if (addr)";
+  s.op->newline(1) << "hp->bp_addr = (unsigned long) addr;";
+  s.op->newline(-1) << "else { ";
+  s.op->newline(1) << "hp->bp_addr = kallsyms_lookup_name(hwbkpt_symbol_name);";
+  s.op->newline() << "if (!hp->bp_addr) { ";
+  s.op->newline(1) << "_stp_warn(\"Probe %s registration skipped: invalid symbol %s \",sdp->pp,hwbkpt_symbol_name);";
+  s.op->newline() << "continue;";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "hp->bp_type = sdp->atype;";
+
+  // On x86 & x86-64, hp->bp_len is not just a number but a macro/enum (!?!).
+  if (s.architecture == "i386" || s.architecture == "x86_64" ) 
+    {
+      s.op->newline() << "switch(sdp->len) {";
+      s.op->newline() << "case 1:";
+      s.op->newline(1) << "hp->bp_len = HW_BREAKPOINT_LEN_1;";
+      s.op->newline() << "break;";
+      s.op->newline(-1) << "case 2:";
+      s.op->newline(1) << "hp->bp_len = HW_BREAKPOINT_LEN_2;";
+      s.op->newline() << "break;";
+      s.op->newline(-1) << "case 3:";
+      s.op->newline() << "case 4:";
+      s.op->newline(1) << "hp->bp_len = HW_BREAKPOINT_LEN_4;";
+      s.op->newline() << "break;";
+      s.op->newline(-1) << "case 5:";
+      s.op->newline() << "case 6:";
+      s.op->newline() << "case 7:";
+      s.op->newline() << "case 8:";
+      s.op->newline() << "default:"; // XXX: could instead reject
+      s.op->newline(1) << "hp->bp_len = HW_BREAKPOINT_LEN_8;";
+      s.op->newline() << "break;";
+      s.op->newline(-1) << "}";
+    }
+  else // other architectures presumed straightforward
+    s.op->newline() << "hp->bp_len = sdp->len;";
+
   s.op->newline() << "probe_point = sdp->pp;"; // for error messages
-  s.op->newline() << "if ( sdp->registered_p ) {";
-  s.op->newline() << " stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint( hp, (void *)&enter_hwbkpt_probe );";
-  s.op->newline() << " if (IS_ERR(stap_hwbkpt_ret_array[i])) {";
-  s.op->newline() << "      int err_code = PTR_ERR(stap_hwbkpt_ret_array[i]);";
-  s.op->newline() << "      sdp->registered_p = 0;";
-  s.op->newline(1) << "	    _stp_warn(\" Hwbkpt Probe %s : Registration error = %d, Addr = %p, name = %s\", probe_point, err_code, addr, hwbkpt_symbol_name);";
-  s.op->newline(-1) << "  }";
+  s.op->newline() << "stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint(hp, (void *)&enter_hwbkpt_probe);";
+  s.op->newline() << "if (IS_ERR(stap_hwbkpt_ret_array[i])) {";
+  s.op->newline(1) << "int err_code = PTR_ERR(stap_hwbkpt_ret_array[i]);";
+  s.op->newline(0) << "_stp_warn(\"Hwbkpt probe %s: registration error %d, addr %p, name %s\", probe_point, err_code, addr, hwbkpt_symbol_name);";
+  s.op->newline(-1) << "}";
   s.op->newline() << " else sdp->registered_p = 1;";
-  s.op->newline() << "}";
   s.op->newline(-1) << "}"; // for loop
 }
 
@@ -5648,10 +5625,10 @@ void
 hwbkpt_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   //Unregister hwbkpt probes.
-  s.op->newline() << "for (i=0; i<" << hwbkpt_probes_vector.size() << "; i++) {";
+  s.op->newline() << "for (i=0; i<" << hwbkpt_probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_hwbkpt_probe *sdp = & stap_hwbkpt_probes[i];";
-  s.op->newline() << " if ( sdp->registered_p == 0 ) continue;";
-  s.op->newline() << " unregister_wide_hw_breakpoint(stap_hwbkpt_ret_array[i]);";
+  s.op->newline() << "if (sdp->registered_p == 0) continue;";
+  s.op->newline() << "unregister_wide_hw_breakpoint(stap_hwbkpt_ret_array[i]);";
   s.op->newline() << "sdp->registered_p = 0;";
   s.op->newline(-1) << "}";
 }

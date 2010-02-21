@@ -1120,7 +1120,10 @@ c_unparser::emit_module_init ()
 {
   vector<derived_probe_group*> g = all_session_groups (*session);
   for (unsigned i=0; i<g.size(); i++)
-    g[i]->emit_module_decls (*session);
+    {
+      g[i]->emit_module_decls (*session);
+      o->assert_0_indent(); 
+    }
 
   o->newline();
   o->newline() << "static int systemtap_module_init (void) {";
