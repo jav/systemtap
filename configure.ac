@@ -585,20 +585,22 @@ AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
 AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
 				     [cd $with_elfutils && pwd])`)
 
-if test $build_elfutils = no; then
-  # Need libdwfl-capable recent elfutils http://elfutils.fedorahosted.org/
-  save_LIBS="$LIBS"
-  AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
-    AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
-    [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
-  AC_CHECK_LIB(dw, dwarf_getelf,[],[
-    AC_MSG_ERROR([elfutils, libdw too old, need 0.126+])],
-    [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
-  stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
-  LIBS="$save_LIBS"
-else
-  # We built our own and stap_LDFLAGS points at the install.
-  stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+if test $enable_translator = yes; then
+  if test $build_elfutils = no; then
+    # Need libdwfl-capable recent elfutils http://elfutils.fedorahosted.org/
+    save_LIBS="$LIBS"
+    AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
+      AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
+      [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
+    AC_CHECK_LIB(dw, dwarf_getelf,[],[
+      AC_MSG_ERROR([elfutils, libdw too old, need 0.126+])],
+      [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
+    stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+    LIBS="$save_LIBS"
+  else
+    # We built our own and stap_LDFLAGS points at the install.
+    stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+  fi
 fi
 
 AC_SUBST(stap_LIBS)
@@ -621,7 +623,7 @@ AC_CHECK_HEADERS([boost/shared_ptr.hpp])
 AC_LANG_POP(C++)
 
 
-if test $build_elfutils = yes; then
+if test $build_elfutils = yes -a $enable_translator = yes; then
   case "$with_elfutils" in
   /*) elfutils_srcdir="$with_elfutils" ;;
   *) elfutils_srcdir="../$with_elfutils" ;;
