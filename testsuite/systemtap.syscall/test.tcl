@@ -1,42 +1,42 @@
-set dir ""
+set syscall_dir ""
 set current_dir ""
 
-proc cleanup {} {
-    global dir current_dir
+proc syscall_cleanup {} {
+    global syscall_dir current_dir
     if {$current_dir != ""}  {
 	cd $current_dir
 	set current_dir ""
     }
-    if {$dir != ""} {
-#	puts "rm -rf $dir"
-	exec rm -rf $dir
-	set dir ""
+    if {$syscall_dir != ""} {
+#	puts "rm -rf $syscall_dir"
+	exec rm -rf $syscall_dir
+	set syscall_dir ""
     }
 }
 
-proc cleanup_and_exit {} {
-#    puts "cleanup_and_exit"
-    cleanup
+proc syscall_cleanup_and_exit {} {
+#    puts "syscall_cleanup_and_exit"
+    syscall_cleanup
     exit 0
 }
 
 proc bgerror {error} {
     puts "ERROR: $error"
-    cleanup
+    syscall_cleanup
 }
-trap {cleanup_and_exit} SIGINT
+trap {syscall_cleanup_and_exit} SIGINT
 
 proc run_one_test {filename flags bits} {
-    global dir current_dir test_script
+    global syscall_dir current_dir test_script
 
     set testname [file tail [string range $filename 0 end-2]]
 
-    if {[catch {exec mktemp -d [pwd]/staptestXXXXXX} dir]} {
-	puts stderr "Failed to create temporary directory: $dir"
-	cleanup
+    if {[catch {exec mktemp -d [pwd]/staptestXXXXXX} syscall_dir]} {
+	puts stderr "Failed to create temporary directory: $syscall_dir"
+	syscall_cleanup
     }
 
-    set res [target_compile $filename $dir/$testname executable $flags]
+    set res [target_compile $filename $syscall_dir/$testname executable $flags]
     if { $res != "" } {
       send_log "$bits-bit $testname : no corresponding devel environment found\n"
       untested "$bits-bit $testname"
@@ -44,7 +44,7 @@ proc run_one_test {filename flags bits} {
     }
 
     set sys_prog "[file dirname [file normalize $filename]]/${test_script}"
-    set cmd "stap --skip-badvars -c $dir/${testname} ${sys_prog}"
+    set cmd "stap --skip-badvars -c $syscall_dir/${testname} ${sys_prog}"
     
     # Extract additional C flags needed to compile
     set add_flags ""
@@ -92,13 +92,13 @@ proc run_one_test {filename flags bits} {
 
     if {$ind == 0} {
 	# unsupported
-	cleanup
+	syscall_cleanup
 	unsupported "$bits-bit $testname not supported on this arch"
 	return
     }
 
     set current_dir [pwd]
-    cd $dir 
+    cd $syscall_dir
     
     catch {eval exec $cmd} output
     
@@ -139,6 +139,6 @@ proc run_one_test {filename flags bits} {
 	}
 	fail "$bits-bit $testname"
     }
-    cleanup
+    syscall_cleanup
     return
 }

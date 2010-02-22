@@ -1,14 +1,14 @@
 #!/usr/bin/env wish
 package require Expect
 
-set dir ""
+set syscall_dir ""
 set current_dir ""
 
-proc cleanup {} {
-    global dir current_dir
+proc syscall_cleanup {} {
+    global syscall_dir current_dir
     if {$current_dir != ""} {
         cd $current_dir
-	if {$dir != ""} {exec rm -rf $dir}
+	if {$syscall_dir != ""} {exec rm -rf $syscall_dir}
 	set current_dir ""
     }
     exit 0
@@ -16,14 +16,14 @@ proc cleanup {} {
 
 proc usage {progname} {
     puts "Usage: $progname testname"
-    cleanup
+    syscall_cleanup
 }
 
 proc bgerror {error} {
     puts "ERROR: $error"
-    cleanup
+    syscall_cleanup
 }
-trap {cleanup} SIGINT
+trap {syscall_cleanup} SIGINT
 set testname [lindex $argv 0]
 if {$testname == ""} {
     usage $argv0
@@ -75,17 +75,17 @@ foreach line [split $output "\n"] {
 
 if {$ind == 0} {
     puts "UNSUPP"
-    cleanup
+    syscall_cleanup
     exit
 }
 
-if {[catch {exec mktemp -d staptestXXXXXX} dir]} {
-    puts stderr "Failed to create temporary directory: $dir"
-    cleanup
+if {[catch {exec mktemp -d staptestXXXXXX} syscall_dir]} {
+    puts stderr "Failed to create temporary directory: $syscall_dir"
+    syscall_cleanup
 }
 
 set current_dir [pwd]
-cd $dir
+cd $syscall_dir
 catch {eval exec $cmd} output
 
 set i 0
@@ -151,5 +151,5 @@ for {} {$i < $ind} {incr i} {
     .t2 insert end "\n"
 }
 
-bind . <Destroy> {cleanup}
+bind . <Destroy> {syscall_cleanup}
 
