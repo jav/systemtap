@@ -10,6 +10,9 @@
 
 
 %{
+#include <linux/nfs3.h>
+#include <linux/nfs4.h>
+
 #include <linux/sunrpc/svc.h>
 %}
 
@@ -52,6 +55,65 @@ function p_long:long(cnt:long) %{ /* pure */
 	unsigned long * count = (unsigned long *)((long)THIS->cnt);
 	
 	THIS->__retvalue = kread(count);
+	CATCH_DEREF_FAULT();
+%}
+
+function nfs3_cmode:string(cmode:long) %{ /* pure */
+	
+	switch (THIS->cmode) {
+	case NFS3_CREATE_UNCHECKED:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "UNCHECKED");
+		break;
+	case NFS3_CREATE_GUARDED:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "GUARDED");
+		break;
+	case NFS3_CREATE_EXCLUSIVE:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "EXCLUSIVE");
+		break;
+	default: 
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "Bad Value(%lld)", 
+			THIS->cmode);
+	}
+	CATCH_DEREF_FAULT();
+%}
+
+function nfs4_ctype:string(cmode:long) %{ /* pure */
+	
+	switch (THIS->cmode) {
+	case NF4BAD:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4BAD");
+		break;
+	case NF4REG:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4REG");
+		break;
+	case NF4DIR:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4DIR");
+		break;
+	case NF4BLK:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4BLK");
+		break;
+	case NF4CHR:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4CHR");
+		break;
+	case NF4LNK:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4LNK");
+		break;
+	case NF4SOCK:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4SOCK");
+		break;
+	case NF4FIFO:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4FIFO");
+		break;
+	case NF4ATTRDIR:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4ATTRDIR");
+		break;
+	case NF4NAMEDATTR:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4ATTRDIR");
+		break;
+	default: 
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"Bad Value(%lld)", THIS->cmode);
+	}
 	CATCH_DEREF_FAULT();
 %}
 /*
@@ -531,10 +593,12 @@ probe nfsd.proc4.write.commit = kernel.function("nfsd4_commit").return!,
 *  filelen : length of file name
 */
 probe nfsd.proc.create = nfsd.proc2.create,
-                         nfsd.proc3.create
+                         nfsd.proc3.create,
+                         nfsd.proc4.create
 {}
 probe nfsd.proc.create.return = nfsd.proc2.create.return,
-                                nfsd.proc3.create.return
+                                nfsd.proc3.create.return,
+                                nfsd.proc4.create.return
 {}
 
 probe nfsd.proc2.create = kernel.function("nfsd_proc_create")!,
@@ -543,7 +607,7 @@ probe nfsd.proc2.create = kernel.function("nfsd_proc_create")!,
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
-	fh = __get_fh($argp,8)
+	fh = & @cast($argp, "struct nfsd_createargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
 	filename  = kernel_string_n($argp->name, filelen)
@@ -557,7 +621,7 @@ probe nfsd.proc2.create.return =  kernel.function("nfsd_proc_create").return!,
 {
 	name = "nfsd.proc2.create.return"
 	version = 2
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")!,
@@ -565,14 +629,15 @@ probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")!,
 {
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
-        version = 3
-	fh = __get_fh($argp,9)
+	version = 3
+	fh = & @cast($argp, "struct nfsd_createargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
 	filename  = kernel_string_n($argp->name, filelen)
+	createmode = $argp->createmode
 	
 	name = "nfsd.proc3.create"
-	argstr = sprintf("%s",filename)
+	argstr = sprintf("%s (mode=%s)",filename, nfs3_cmode(createmode))
 }
 
 probe nfsd.proc3.create.return =  kernel.function("nfsd3_proc_create").return!,
@@ -580,7 +645,31 @@ probe nfsd.proc3.create.return =  kernel.function("nfsd3_proc_create").return!,
 {
 	name = "nfsd.proc3.create.return"
 	version = 3
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
+}
+
+probe nfsd.proc4.create = kernel.function("nfsd4_create") !,
+                          module("nfsd").function("nfsd4_create") ?
+{
+	client_ip = addr_from_rqst($rqstp)
+	proto = $rqstp->rq_prot
+	version = 4
+	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->current_fh
+	filelen = $create->cr_namelen
+	filename  = kernel_string_n($create->cr_name, filelen)
+	createmode = $create->cr_type
+
+	name = "nfsd.proc4.create"
+	argstr = sprintf("%s (type=%s)",filename, nfs4_ctype(createmode))
+
+} 
+
+probe nfsd.proc4.write.create = kernel.function("nfsd4_create").return!,
+                        module("nfsd").function("nfsd4_create").return?
+{
+	name = "nfsd.proc4.create.return"
+	version = 4
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*
