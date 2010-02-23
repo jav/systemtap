@@ -224,9 +224,7 @@ probe nfsd.proc.read = nfsd.proc2.read,
 probe nfsd.proc.read.return = nfsd.proc2.read.return,
                        nfsd.proc3.read.return,
                        nfsd.proc4.read.return
-{
-
-}
+{}
 
 probe nfsd.proc2.read = kernel.function("nfsd_proc_read")!,
                         module("nfsd").function("nfsd_proc_read")?
@@ -339,14 +337,14 @@ probe nfsd.proc4.read.return = kernel.function("nfsd4_read").return!,
 *  stable : argp->stable(only in nfs.proc3.write)
 */
 probe nfsd.proc.write = nfsd.proc2.write,
-                       nfsd.proc3.write
+                        nfsd.proc3.write,
+                        nfsd.proc4.write
 {}
 
 probe nfsd.proc.write.return = nfsd.proc2.write.return,
-                       nfsd.proc3.write.return
-{
-
-}
+                       nfsd.proc3.write.return,
+                       nfsd.proc4.write.return
+{}
 
 probe nfsd.proc2.write = kernel.function("nfsd_proc_write")!,
                         module("nfsd").function("nfsd_proc_write")?
@@ -354,7 +352,7 @@ probe nfsd.proc2.write = kernel.function("nfsd_proc_write")!,
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
-	fh = __get_fh($argp,5)
+	fh = & @cast($argp, "nfsd_writeargs", "kernel:nfsd")->fh
 
 	count = $argp->len
 	offset = $argp->offset 
@@ -368,8 +366,8 @@ probe nfsd.proc2.write = kernel.function("nfsd_proc_write")!,
 	name = "nfsd.proc2.write"
 	argstr = sprintf("%d,%d",count,offset)
 
-        size = count
-        units = "bytes"
+	size = count
+	units = "bytes"
 }
 
  
@@ -378,7 +376,7 @@ probe nfsd.proc2.write.return = kernel.function("nfsd_proc_write").return!,
 {
 	name = "nfsd.proc2.write.return"
 	version = 2
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")!,
@@ -387,7 +385,7 @@ probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")!,
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
-	fh = __get_fh($argp,6)
+	fh = & @cast($argp, "nfsd3_writeargs", "kernel:nfsd")->fh
 
 	count = $argp->count 
 	offset = $argp->offset 
@@ -402,8 +400,8 @@ probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")!,
 	name = "nfsd.proc3.write"
 	argstr = sprintf("%d,%d",count,offset)
 
-        size = count
-        units = "bytes"
+	size = count
+	units = "bytes"
 }
 
  
@@ -412,9 +410,40 @@ probe nfsd.proc3.write.return = kernel.function("nfsd3_proc_write").return!,
 {
 	name = "nfsd.proc3.write.return"
 	version = 3
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
+	count = $resp->count
+	stable = $resp->committed
 }
 
+probe nfsd.proc4.write = kernel.function("nfsd4_write") !,
+                          module("nfsd").function("nfsd4_write") ?
+{
+	client_ip = addr_from_rqst($rqstp)
+	proto = $rqstp->rq_prot
+	version = 4
+	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->current_fh
+	count = $write->wr_buflen
+	offset = $write->wr_offset
+	vlen = $write->wr_vlen
+	stable = $write->wr_stable_how
+
+	name = "nfsd.proc4.write"
+	argstr = sprintf("%d,%d",count,offset)
+
+	size = count
+	units = "bytes"
+} 
+
+probe nfsd.proc4.write.return = kernel.function("nfsd4_write").return!,
+                        module("nfsd").function("nfsd4_write").return?
+{
+	name = "nfsd.proc4.write.return"
+	version = 4
+	count = $write->wr_bytes_written
+	stable = $write->wr_how_written
+
+	retstr = sprintf("%s", nfsderror($return))
+}
 /*
 *probe nfsd.proc.commit
 *  Fires when client does a commit operation,which is
@@ -444,7 +473,7 @@ probe nfsd.proc3.commit = kernel.function("nfsd3_proc_commit")!,
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
-	fh = __get_fh($argp,7) 
+	fh = & @cast($argp, "struct nfsd3_commitargs", "kernel:nfsd")->fh
 
 	count = $argp->count 
 	offset = $argp->offset 
@@ -452,8 +481,8 @@ probe nfsd.proc3.commit = kernel.function("nfsd3_proc_commit")!,
 	name = "nfsd.proc3.commit"
 	argstr = sprintf("%d,%d",count,offset)
 
-        size = count
-        units = "bytes"
+	size = count
+	units = "bytes"
 }
 
 probe nfsd.proc3.commit.return = kernel.function("nfsd3_proc_commit").return!,
@@ -461,7 +490,32 @@ probe nfsd.proc3.commit.return = kernel.function("nfsd3_proc_commit").return!,
 {
 	name = "nfsd.proc3.commit.return"
 	version = 3
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
+}
+
+probe nfsd.proc4.commit = kernel.function("nfsd4_commit") !,
+                          module("nfsd").function("nfsd4_commit") ?
+{
+	client_ip = addr_from_rqst($rqstp)
+	proto = $rqstp->rq_prot
+	version = 4
+	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->current_fh
+	count = $commit->co_offset 
+	offset = $commit->co_offset 
+
+	name = "nfsd.proc4.commit"
+	argstr = sprintf("%d,%d",count,offset)
+
+	size = count
+	units = "bytes"
+} 
+
+probe nfsd.proc4.write.commit = kernel.function("nfsd4_commit").return!,
+                        module("nfsd").function("nfsd4_commit").return?
+{
+	name = "nfsd.proc4.commit.return"
+	version = 4
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*
