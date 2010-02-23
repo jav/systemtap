@@ -386,19 +386,11 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 
   if (! lvalue)
     {
-      if (*op == "=")
-        {
-	  fname = "_procfs_value_get";
-	  ec->code = string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string("); /* pure */\n")
+      fname = "_procfs_value_get";
+      ec->code = string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string("); /* pure */\n")
 	
-	      + string("    _stp_copy_from_user(THIS->__retvalue, data->buffer, data->count);\n")
-	      + string("    THIS->__retvalue[data->count] = '\\0';\n");
-	}
-      else
-        {
-	  throw semantic_error ("Operator-assign expressions on procfs write"
-				" target variables not implemented", e->tok);
-	}
+	  + string("    _stp_copy_from_user(THIS->__retvalue, data->buffer, data->count);\n")
+	  + string("    THIS->__retvalue[data->count] = '\\0';\n");
     }
   else					// lvalue
     {
