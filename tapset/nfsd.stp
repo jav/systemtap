@@ -860,44 +860,6 @@ probe nfsd.proc4.rename.return = kernel.function("nfsd4_rename").return!,
 	version = 4
 	retstr = sprintf("%s", nfsderror($return))
 }
-/*
-*probe nfsd.proc.compound
-*   Fires when the server received a NFSV4 operation from client
-*
-*Arguments:
-*  client_ip : the ip address of client
-*  proto : transfer protocol
-*  version : nfs version
-*  num : number of file operation in this RPC operation 
-*  op : head of operation list in this compound execution
-*/
-probe nfsd.proc.compound = nfsd.proc4.compound
-{}
-
-probe nfsd.proc.compound.return = nfsd.proc4.compound.return
-{}
-
-probe nfsd.proc4.compound = kernel.function("nfsd4_proc_compound")!,
-                            module("nfsd").function("nfsd4_proc_compound")?
-{
-	client_ip =  addr_from_rqst($rqstp)
-	proto = $rqstp->rq_prot
-        version = 4
-
-	num = $args->opcnt
-	op = $args->ops
-	
-	name = "nfsd.proc4.compound"
-	argstr = sprintf("%d",num)
-}
-
-probe nfsd.proc4.compound.return = kernel.function("nfsd4_proc_compound").return!,
-                            module("nfsd").function("nfsd4_proc_compound").return?
-{
-	name = "nfsd.proc4.compound.return"
-	version = 4
-	retstr = sprintf("%d",$return)
-}
 
 probe nfsd.entries = nfsd.open,
 	             nfsd.read,
