@@ -774,11 +774,13 @@ probe nfsd.proc4.remove.return = kernel.function("nfsd4_remove").return!,
 *   tlen : length of new file name
 */
 probe nfsd.proc.rename = nfsd.proc2.rename,
-                         nfsd.proc3.rename
+                         nfsd.proc3.rename,
+                         nfsd.proc4.rename
 {}
 
 probe nfsd.proc.rename.return = nfsd.proc2.rename.return,
-                         nfsd.proc3.rename.return
+                         nfsd.proc3.rename.return,
+                         nfsd.proc4.rename.return
 {}
 
 probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")!,
@@ -786,9 +788,9 @@ probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")!,
 {
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
-        version = 2
-	fh = __get_fh($argp,12)
-	tfh = __get_fh($argp,13)
+	version = 2
+	fh = & @cast($argp, "struct nfsd_renameargs", "kernel:nfsd")->ffh
+	tfh = & @cast($argp, "struct nfsd_renameargs", "kernel:nfsd")->tfh
 
 	filelen = $argp->flen
 	filename  = kernel_string_n($argp->fname, filelen)	
@@ -796,7 +798,7 @@ probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")!,
 	tname = kernel_string_n($argp->tname, tlen)
 
 	name = "nfsd.proc2.rename"
-	argstr = sprintf("%s,%s",filename,tname)
+	argstr = sprintf("%s to %s",filename,tname)
 }
 
 probe nfsd.proc2.rename.return =  kernel.function("nfsd_proc_rename").return!,
@@ -804,7 +806,7 @@ probe nfsd.proc2.rename.return =  kernel.function("nfsd_proc_rename").return!,
 {
 	name = "nfsd.proc2.rename.return"
 	version = 2
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")!,
@@ -812,9 +814,9 @@ probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")!,
 {
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
-        version = 3
-	fh = __get_fh($argp,14)
-	tfh = __get_fh($argp,15)
+	version = 3
+	fh = & @cast($argp, "struct nfsd3_renameargs", "kernel:nfsd")->ffh
+	tfh = & @cast($argp, "struct nfsd3_renameargs", "kernel:nfsd")->tfh
 
 	filelen = $argp->flen
 	filename  = kernel_string_n($argp->fname, filelen)	
@@ -822,7 +824,7 @@ probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")!,
 	tname = kernel_string_n($argp->tname, tlen)
 
 	name = "nfsd.proc3.rename"
-	argstr = sprintf("%s,%s",filename,tname)
+	argstr = sprintf("%s to %s",filename,tname)
 }
 
 probe nfsd.proc3.rename.return =  kernel.function("nfsd3_proc_rename").return!,
@@ -831,6 +833,32 @@ probe nfsd.proc3.rename.return =  kernel.function("nfsd3_proc_rename").return!,
 	name = "nfsd.proc3.rename.return"
 	version = 3
 	retstr = sprintf("%d",$return)
+}
+
+probe nfsd.proc4.rename = kernel.function("nfsd4_rename") !,
+                          module("nfsd").function("nfsd4_rename") ?
+{
+	client_ip = addr_from_rqst($rqstp)
+	proto = $rqstp->rq_prot
+	version = 4
+	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->save_fh
+	tfh = & @cast($argp, "struct nfsd3_renameargs", "kernel:nfsd")->current_fh
+
+	filelen = $rename->rn_snamelen
+	filename  = kernel_string_n($rename->rn_sname, filelen)	
+	tlen = $rename->rn_tnamelen
+	tname = kernel_string_n($rename->rn_tname, tlen)
+
+	name = "nfsd.proc4.rename"
+	argstr = sprintf("%s to %s",filename,tname)
+} 
+
+probe nfsd.proc4.rename.return = kernel.function("nfsd4_rename").return!,
+                        module("nfsd").function("nfsd4_rename").return?
+{
+	name = "nfsd.proc4.rename.return"
+	version = 4
+	retstr = sprintf("%s", nfsderror($return))
 }
 /*
 *probe nfsd.proc.compound
