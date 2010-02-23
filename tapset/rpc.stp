@@ -988,3 +988,27 @@ function addr_from_rqst:long(rqstp:long)
 	CATCH_DEREF_FAULT();
 %}
 
+function addr_from_rqst_str:string(_rqstp:long)
+%{ /* pure */
+	struct svc_rqst *rqstp = 
+		(struct svc_rqst *)(long) kread(&(THIS->_rqstp));
+	struct sockaddr_in *addr;
+	unsigned char *bytes;
+
+	if (rqstp) {
+		if (rqstp->rq_addr.ss_family == AF_INET) {
+			addr = (struct sockaddr_in *) &rqstp->rq_addr;
+			bytes = (unsigned char *)&addr->sin_addr.s_addr;
+
+			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+				"%d.%d.%d.%d:%d", bytes[0], bytes[1], bytes[2], bytes[3],
+				addr->sin_port);
+		} else
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+				"Unsupported Address Family");
+	} else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "Null");
+
+	CATCH_DEREF_FAULT();
+%}
+
