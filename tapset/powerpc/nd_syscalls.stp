@@ -637,19 +637,23 @@ probe nd_syscall.mmap = kprobe.function("sys_mmap") ?
 	// len = $len
 	// prot = $prot
 	// flags = $flags
-	// fd = $fd
+	// fd = __int32($fd)
 	// offset = $offset
 	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
-	// 		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $offset)
+	// 		_mprotect_prot_str($prot), _mmap_flags($flags),
+	//		__int32($fd), $offset)
 	asmlinkage()
 	start = ulong_arg(1)
 	len = ulong_arg(2)
 	prot = ulong_arg(3)
 	flags = ulong_arg(4)
-	fd = ulong_arg(5)
+	# Although the kernel gets an unsigned long fd, on the
+	# user-side it is a signed int.  Fix this.
+	fd = int_arg(5)
 	offset = ulong_arg(6)
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, len,
-			_mprotect_prot_str(prot), _mmap_flags(flags), fd, offset)
+			_mprotect_prot_str(prot), _mmap_flags(flags),
+			fd, offset)
 }
 probe nd_syscall.mmap.return = kprobe.function("sys_mmap").return ?
 {
@@ -673,7 +677,7 @@ probe nd_syscall.mmap2 = kprobe.function("sys_mmap2") ?,
 	// length = $len
 	// prot = $prot
 	// flags = $flags
-	// fd = $fd
+	// fd = __int32($fd)
 	// pgoffset = $pgoff
 	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr,
 	// 		$len, _mprotect_prot_str($prot), _mmap_flags($flags),
@@ -683,7 +687,9 @@ probe nd_syscall.mmap2 = kprobe.function("sys_mmap2") ?,
 	length = ulong_arg(2)
 	prot = ulong_arg(3)
 	flags = ulong_arg(4)
-	fd = ulong_arg(5)
+	# Although the kernel gets an unsigned long fd, on the
+	# user-side it is a signed int.  Fix this.
+	fd = int_arg(5)
 	pgoffset = ulong_arg(6)
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", start,
 			length, _mprotect_prot_str(prot), _mmap_flags(flags),

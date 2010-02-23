@@ -10,10 +10,13 @@ probe syscall.mmap = kernel.function("sys_mmap") ?
         len = $len
         prot = $prot
         flags = $flags
-        fd = $fd
+	# Although the kernel gets an unsigned long fd, on the
+	# user-side it is a signed int.  Fix this.
+	fd = __int32($fd)
         offset = $off
         argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
-                _mprotect_prot_str($prot), _mmap_flags($flags), $fd, $off)
+                _mprotect_prot_str($prot), _mmap_flags($flags),
+		__int32($fd), $off)
 }
 
 probe syscall.mmap.return = kernel.function("sys_mmap").return ?

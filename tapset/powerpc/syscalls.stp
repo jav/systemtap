@@ -511,10 +511,13 @@ probe syscall.mmap = kernel.function("sys_mmap") ?
         len = $len
         prot = $prot
         flags = $flags
-        fd = $fd
+	# Although the kernel gets an unsigned long fd, on the
+	# user-side it is a signed int.  Fix this.
+        fd = __int32($fd)
         offset = $offset
         argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
-                _mprotect_prot_str($prot), _mmap_flags($flags), $fd, $offset)
+                _mprotect_prot_str($prot), _mmap_flags($flags),
+		__int32($fd), $offset)
 }
 
 probe syscall.mmap.return = kernel.function("sys_mmap").return ?
@@ -539,11 +542,13 @@ probe syscall.mmap2 = kernel.function("sys_mmap2") ?,
 	length = $len
 	prot = $prot
 	flags = $flags
-	fd = $fd
+	# Although the kernel gets an unsigned long fd, on the
+	# user-side it is a signed int.  Fix this.
+	fd = __int32($fd)
 	pgoffset = $pgoff
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr,
 		$len, _mprotect_prot_str($prot), _mmap_flags($flags),
-		$fd, $pgoff)
+		__int32($fd), $pgoff)
 }
 probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?,
                              kernel.function("compat_sys_mmap2").return ?
