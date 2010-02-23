@@ -49,8 +49,10 @@ struct var_expanding_visitor: public update_visitor
 {
   static unsigned tick;
   std::stack<functioncall**> target_symbol_setter_functioncalls;
+  std::set<std::string> valid_ops;
+  std::string *op;
 
-  var_expanding_visitor() {}
+  var_expanding_visitor ();
   void visit_assignment (assignment* e);
 };
 

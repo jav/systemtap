@@ -1859,6 +1859,19 @@ private:
 
 unsigned var_expanding_visitor::tick = 0;
 
+
+var_expanding_visitor::var_expanding_visitor ()
+{
+  // FIXME: for the time being, by default we only support plain '$foo
+  // = bar', not '+=' or any other op= variant. This is fixable, but a
+  // bit ugly.
+  //
+  // If derived classes desire to add additional operator support, add
+  // new operators to this list in the derived class constructor.
+  valid_ops.insert ("=");
+}
+
+
 void
 var_expanding_visitor::visit_assignment (assignment* e)
 {
@@ -1877,6 +1890,9 @@ var_expanding_visitor::visit_assignment (assignment* e)
   functioncall *fcall = NULL;
   expression *new_left, *new_right;
 
+  // Let visit_target_symbol know what operator it should handle.
+  op = &e->op;
+
   target_symbol_setter_functioncalls.push (&fcall);
   new_left = require (e->left);
   target_symbol_setter_functioncalls.pop ();
@@ -1890,12 +1906,20 @@ var_expanding_visitor::visit_assignment (assignment* e)
       // right child spliced in as sole argument -- in place of
       // ourselves, in the var expansion we're in the middle of making.
 
-      // FIXME: for the time being, we only support plan $foo = bar,
-      // not += or any other op= variant. This is fixable, but a bit
-      // ugly.
-      if (e->op != "=")
-	throw semantic_error ("Operator-assign expressions on target "
-			     "variables not implemented", e->tok);
+      if (valid_ops.find (e->op) == valid_ops.end ())
+        {
+	  // Build up a list of supported operators.
+	  string ops;
+	  std::set<string>::iterator i;
+	  for (i = valid_ops.begin(); i != valid_ops.end(); i++)
+	    ops += " " + *i + ",";
+	  ops.resize(ops.size() - 1);	// chop off the last ','
+
+	  // Throw the error.
+	  throw semantic_error ("Only the following assign operators are"
+				" implemented on target variables:" + ops,
+				e->tok);
+	}
 
       assert (new_left == fcall);
       fcall->args.push_back (new_right);
