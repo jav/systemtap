@@ -1,0 +1,238 @@
+// nfsd errnos tapset
+// Copyright (C) 2010 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <linux/nfs.h>
+#include <linux/nfs4.h>
+
+#define	nfs_ok			cpu_to_be32(NFS_OK)
+#define	nfserr_perm		cpu_to_be32(NFSERR_PERM)
+#define	nfserr_noent		cpu_to_be32(NFSERR_NOENT)
+#define	nfserr_io		cpu_to_be32(NFSERR_IO)
+#define	nfserr_nxio		cpu_to_be32(NFSERR_NXIO)
+#define	nfserr_eagain		cpu_to_be32(NFSERR_EAGAIN)
+#define	nfserr_acces		cpu_to_be32(NFSERR_ACCES)
+#define	nfserr_exist		cpu_to_be32(NFSERR_EXIST)
+#define	nfserr_xdev		cpu_to_be32(NFSERR_XDEV)
+#define	nfserr_nodev		cpu_to_be32(NFSERR_NODEV)
+#define	nfserr_notdir		cpu_to_be32(NFSERR_NOTDIR)
+#define	nfserr_isdir		cpu_to_be32(NFSERR_ISDIR)
+#define	nfserr_inval		cpu_to_be32(NFSERR_INVAL)
+#define	nfserr_fbig		cpu_to_be32(NFSERR_FBIG)
+#define	nfserr_nospc		cpu_to_be32(NFSERR_NOSPC)
+#define	nfserr_rofs		cpu_to_be32(NFSERR_ROFS)
+#define	nfserr_mlink		cpu_to_be32(NFSERR_MLINK)
+#define	nfserr_opnotsupp	cpu_to_be32(NFSERR_OPNOTSUPP)
+#define	nfserr_nametoolong	cpu_to_be32(NFSERR_NAMETOOLONG)
+#define	nfserr_notempty		cpu_to_be32(NFSERR_NOTEMPTY)
+#define	nfserr_dquot		cpu_to_be32(NFSERR_DQUOT)
+#define	nfserr_stale		cpu_to_be32(NFSERR_STALE)
+#define	nfserr_remote		cpu_to_be32(NFSERR_REMOTE)
+#define	nfserr_wflush		cpu_to_be32(NFSERR_WFLUSH)
+#define	nfserr_badhandle	cpu_to_be32(NFSERR_BADHANDLE)
+#define	nfserr_notsync		cpu_to_be32(NFSERR_NOT_SYNC)
+#define	nfserr_badcookie	cpu_to_be32(NFSERR_BAD_COOKIE)
+#define	nfserr_notsupp		cpu_to_be32(NFSERR_NOTSUPP)
+#define	nfserr_toosmall		cpu_to_be32(NFSERR_TOOSMALL)
+#define	nfserr_serverfault	cpu_to_be32(NFSERR_SERVERFAULT)
+#define	nfserr_badtype		cpu_to_be32(NFSERR_BADTYPE)
+#define	nfserr_jukebox		cpu_to_be32(NFSERR_JUKEBOX)
+#define	nfserr_denied		cpu_to_be32(NFSERR_DENIED)
+#define	nfserr_deadlock		cpu_to_be32(NFSERR_DEADLOCK)
+#define nfserr_expired          cpu_to_be32(NFSERR_EXPIRED)
+#define	nfserr_bad_cookie	cpu_to_be32(NFSERR_BAD_COOKIE)
+#define	nfserr_same		cpu_to_be32(NFSERR_SAME)
+#define	nfserr_clid_inuse	cpu_to_be32(NFSERR_CLID_INUSE)
+#define	nfserr_stale_clientid	cpu_to_be32(NFSERR_STALE_CLIENTID)
+#define	nfserr_resource		cpu_to_be32(NFSERR_RESOURCE)
+#define	nfserr_moved		cpu_to_be32(NFSERR_MOVED)
+#define	nfserr_nofilehandle	cpu_to_be32(NFSERR_NOFILEHANDLE)
+#define	nfserr_minor_vers_mismatch	cpu_to_be32(NFSERR_MINOR_VERS_MISMATCH)
+#define nfserr_share_denied	cpu_to_be32(NFSERR_SHARE_DENIED)
+#define nfserr_stale_stateid	cpu_to_be32(NFSERR_STALE_STATEID)
+#define nfserr_old_stateid	cpu_to_be32(NFSERR_OLD_STATEID)
+#define nfserr_bad_stateid	cpu_to_be32(NFSERR_BAD_STATEID)
+#define nfserr_bad_seqid	cpu_to_be32(NFSERR_BAD_SEQID)
+#define	nfserr_symlink		cpu_to_be32(NFSERR_SYMLINK)
+#define	nfserr_not_same		cpu_to_be32(NFSERR_NOT_SAME)
+#define	nfserr_restorefh	cpu_to_be32(NFSERR_RESTOREFH)
+#define	nfserr_attrnotsupp	cpu_to_be32(NFSERR_ATTRNOTSUPP)
+#define	nfserr_bad_xdr		cpu_to_be32(NFSERR_BAD_XDR)
+#define	nfserr_openmode		cpu_to_be32(NFSERR_OPENMODE)
+#define	nfserr_locks_held	cpu_to_be32(NFSERR_LOCKS_HELD)
+#define	nfserr_op_illegal	cpu_to_be32(NFSERR_OP_ILLEGAL)
+#define	nfserr_grace		cpu_to_be32(NFSERR_GRACE)
+#define	nfserr_no_grace		cpu_to_be32(NFSERR_NO_GRACE)
+#define	nfserr_reclaim_bad	cpu_to_be32(NFSERR_RECLAIM_BAD)
+#define	nfserr_badname		cpu_to_be32(NFSERR_BADNAME)
+#define	nfserr_cb_path_down	cpu_to_be32(NFSERR_CB_PATH_DOWN)
+#define	nfserr_locked		cpu_to_be32(NFSERR_LOCKED)
+#define	nfserr_wrongsec		cpu_to_be32(NFSERR_WRONGSEC)
+#define nfserr_badiomode		cpu_to_be32(NFS4ERR_BADIOMODE)
+#define nfserr_badlayout		cpu_to_be32(NFS4ERR_BADLAYOUT)
+#define nfserr_bad_session_digest	cpu_to_be32(NFS4ERR_BAD_SESSION_DIGEST)
+#define nfserr_badsession		cpu_to_be32(NFS4ERR_BADSESSION)
+#define nfserr_badslot			cpu_to_be32(NFS4ERR_BADSLOT)
+#define nfserr_complete_already		cpu_to_be32(NFS4ERR_COMPLETE_ALREADY)
+#define nfserr_conn_not_bound_to_session cpu_to_be32(NFS4ERR_CONN_NOT_BOUND_TO_SESSION)
+#define nfserr_deleg_already_wanted	cpu_to_be32(NFS4ERR_DELEG_ALREADY_WANTED)
+#define nfserr_back_chan_busy		cpu_to_be32(NFS4ERR_BACK_CHAN_BUSY)
+#define nfserr_layouttrylater		cpu_to_be32(NFS4ERR_LAYOUTTRYLATER)
+#define nfserr_layoutunavailable	cpu_to_be32(NFS4ERR_LAYOUTUNAVAILABLE)
+#define nfserr_nomatching_layout	cpu_to_be32(NFS4ERR_NOMATCHING_LAYOUT)
+#define nfserr_recallconflict		cpu_to_be32(NFS4ERR_RECALLCONFLICT)
+#define nfserr_unknown_layouttype	cpu_to_be32(NFS4ERR_UNKNOWN_LAYOUTTYPE)
+#define nfserr_seq_misordered		cpu_to_be32(NFS4ERR_SEQ_MISORDERED)
+#define nfserr_sequence_pos		cpu_to_be32(NFS4ERR_SEQUENCE_POS)
+#define nfserr_req_too_big		cpu_to_be32(NFS4ERR_REQ_TOO_BIG)
+#define nfserr_rep_too_big		cpu_to_be32(NFS4ERR_REP_TOO_BIG)
+#define nfserr_rep_too_big_to_cache	cpu_to_be32(NFS4ERR_REP_TOO_BIG_TO_CACHE)
+#define nfserr_retry_uncached_rep	cpu_to_be32(NFS4ERR_RETRY_UNCACHED_REP)
+#define nfserr_unsafe_compound		cpu_to_be32(NFS4ERR_UNSAFE_COMPOUND)
+#define nfserr_too_many_ops		cpu_to_be32(NFS4ERR_TOO_MANY_OPS)
+#define nfserr_op_not_in_session	cpu_to_be32(NFS4ERR_OP_NOT_IN_SESSION)
+#define nfserr_hash_alg_unsupp		cpu_to_be32(NFS4ERR_HASH_ALG_UNSUPP)
+#define nfserr_clientid_busy		cpu_to_be32(NFS4ERR_CLIENTID_BUSY)
+#define nfserr_pnfs_io_hole		cpu_to_be32(NFS4ERR_PNFS_IO_HOLE)
+#define nfserr_seq_false_retry		cpu_to_be32(NFS4ERR_SEQ_FALSE_RETRY)
+#define nfserr_bad_high_slot		cpu_to_be32(NFS4ERR_BAD_HIGH_SLOT)
+#define nfserr_deadsession		cpu_to_be32(NFS4ERR_DEADSESSION)
+#define nfserr_encr_alg_unsupp		cpu_to_be32(NFS4ERR_ENCR_ALG_UNSUPP)
+#define nfserr_pnfs_no_layout		cpu_to_be32(NFS4ERR_PNFS_NO_LAYOUT)
+#define nfserr_not_only_op		cpu_to_be32(NFS4ERR_NOT_ONLY_OP)
+#define nfserr_wrong_cred		cpu_to_be32(NFS4ERR_WRONG_CRED)
+#define nfserr_wrong_type		cpu_to_be32(NFS4ERR_WRONG_TYPE)
+#define nfserr_dirdeleg_unavail		cpu_to_be32(NFS4ERR_DIRDELEG_UNAVAIL)
+#define nfserr_reject_deleg		cpu_to_be32(NFS4ERR_REJECT_DELEG)
+#define nfserr_returnconflict		cpu_to_be32(NFS4ERR_RETURNCONFLICT)
+#define nfserr_deleg_revoked		cpu_to_be32(NFS4ERR_DELEG_REVOKED)
+%}
+
+function nfsderror:string(err:long) 
+%{
+	static struct {
+		int	nfserr;
+		char *string;
+	} nfs_errtbl[] = {
+		{nfs_ok, "NFS_OK"},
+		{nfserr_perm, "NFSERR_PERM"},
+		{nfserr_noent, "NFSERR_NOENT"},
+		{nfserr_io, "NFSERR_IO"},
+		{nfserr_nxio, "NFSERR_NXIO"},
+		{nfserr_eagain, "NFSERR_EAGAIN"},
+		{nfserr_acces, "NFSERR_ACCES"},
+		{nfserr_exist, "NFSERR_EXIST"},
+		{nfserr_xdev, "NFSERR_XDEV"},
+		{nfserr_nodev, "NFSERR_NODEV"},
+		{nfserr_notdir, "NFSERR_NOTDIR"},
+		{nfserr_isdir, "NFSERR_ISDIR"},
+		{nfserr_inval, "NFSERR_INVAL"},
+		{nfserr_fbig, "NFSERR_FBIG"},
+		{nfserr_nospc, "NFSERR_NOSPC"},
+		{nfserr_rofs, "NFSERR_ROFS"},
+		{nfserr_mlink, "NFSERR_MLINK"},
+		{nfserr_opnotsupp, "NFSERR_OPNOTSUPP"},
+		{nfserr_nametoolong, "NFSERR_NAMETOOLONG"},
+		{nfserr_notempty, "NFSERR_NOTEMPTY"},
+		{nfserr_dquot, "NFSERR_DQUOT"},
+		{nfserr_stale, "NFSERR_STALE"},
+		{nfserr_remote, "NFSERR_REMOTE"},
+		{nfserr_wflush, "NFSERR_WFLUSH"},
+		{nfserr_badhandle, "NFSERR_BADHANDLE"},
+		{nfserr_notsync, "NFSERR_NOT_SYNC"},
+		{nfserr_badcookie, "NFSERR_BAD_COOKIE"},
+		{nfserr_notsupp, "NFSERR_NOTSUPP"},
+		{nfserr_toosmall, "NFSERR_TOOSMALL"},
+		{nfserr_serverfault, "NFSERR_SERVERFAULT"},
+		{nfserr_badtype, "NFSERR_BADTYPE"},
+		{nfserr_jukebox, "NFSERR_JUKEBOX"},
+		{nfserr_denied, "NFSERR_DENIED"},
+		{nfserr_deadlock, "NFSERR_DEADLOCK"},
+		{nfserr_expired, "NFSERR_EXPIRED"},
+		{nfserr_bad_cookie, "NFSERR_BAD_COOKIE"},
+		{nfserr_same, "NFSERR_SAME"},
+		{nfserr_clid_inuse, "NFSERR_CLID_INUSE"},
+		{nfserr_stale_clientid, "NFSERR_STALE_CLIENTID"},
+		{nfserr_resource, "NFSERR_RESOURCE"},
+		{nfserr_moved, "NFSERR_MOVED"},
+		{nfserr_nofilehandle, "NFSERR_NOFILEHANDLE"},
+		{nfserr_minor_vers_mismatch, "NFSERR_MINOR_VERS_MISMATCH"},
+		{nfserr_share_denied, "NFSERR_SHARE_DENIED"},
+		{nfserr_stale_stateid, "NFSERR_STALE_STATEID"},
+		{nfserr_old_stateid, "NFSERR_OLD_STATEID"},
+		{nfserr_bad_stateid, "NFSERR_BAD_STATEID"},
+		{nfserr_bad_seqid, "NFSERR_BAD_SEQID"},
+		{nfserr_symlink , "NFSERR_SYMLINK"},
+		{nfserr_not_same , "NFSERR_NOT_SAME"},
+		{nfserr_restorefh , "NFSERR_RESTOREFH"},
+		{nfserr_attrnotsupp, "NFSERR_ATTRNOTSUPP"},
+		{nfserr_bad_xdr, "NFSERR_BAD_XDR"},
+		{nfserr_openmode, "NFSERR_OPENMODE"},
+		{nfserr_locks_held, "NFSERR_LOCKS_HELD"},
+		{nfserr_op_illegal, "NFSERR_OP_ILLEGAL"},
+		{nfserr_grace, "NFSERR_GRACE"},
+		{nfserr_no_grace, "NFSERR_NO_GRACE"},
+		{nfserr_reclaim_bad, "NFSERR_RECLAIM_BAD"},
+		{nfserr_badname, "NFSERR_BADNAME"},
+		{nfserr_cb_path_down, "NFSERR_CB_PATH_DOWN"},
+		{nfserr_locked, "NFSERR_LOCKED"},
+		{nfserr_wrongsec, "NFSERR_WRONGSEC"},
+		{nfserr_badiomode, "NFS4ERR_BADIOMODE"},
+		{nfserr_badlayout, "NFS4ERR_BADLAYOUT"},
+		{nfserr_bad_session_digest, "NFS4ERR_BAD_SESSION_DIGEST"},
+		{nfserr_badsession, "NFS4ERR_BADSESSION"},
+		{nfserr_badslot, "NFS4ERR_BADSLOT"},
+		{nfserr_complete_already, "NFS4ERR_COMPLETE_ALREADY"},
+		{nfserr_conn_not_bound_to_session, "NFS4ERR_CONN_NOT_BOUND_TO_SESSION"},
+		{nfserr_deleg_already_wanted, "NFS4ERR_DELEG_ALREADY_WANTED"},
+		{nfserr_back_chan_busy, "NFS4ERR_BACK_CHAN_BUSY"},
+		{nfserr_layouttrylater, "NFS4ERR_LAYOUTTRYLATER"},
+		{nfserr_layoutunavailable, "NFS4ERR_LAYOUTUNAVAILABLE"},
+		{nfserr_nomatching_layout, "NFS4ERR_NOMATCHING_LAYOUT"},
+		{nfserr_recallconflict, "NFS4ERR_RECALLCONFLICT"},
+		{nfserr_unknown_layouttype, "NFS4ERR_UNKNOWN_LAYOUTTYPE"},
+		{nfserr_seq_misordered, "NFS4ERR_SEQ_MISORDERED"},
+		{nfserr_sequence_pos, "NFS4ERR_SEQUENCE_POS"},
+		{nfserr_req_too_big, "NFS4ERR_REQ_TOO_BIG"},
+		{nfserr_rep_too_big, "NFS4ERR_REP_TOO_BIG"},
+		{nfserr_rep_too_big_to_cache, "NFS4ERR_REP_TOO_BIG_TO_CACHE"},
+		{nfserr_retry_uncached_rep, "NFS4ERR_RETRY_UNCACHED_REP"},
+		{nfserr_unsafe_compound, "NFS4ERR_UNSAFE_COMPOUND"},
+		{nfserr_too_many_ops, "NFS4ERR_TOO_MANY_OPS"},
+		{nfserr_op_not_in_session, "NFS4ERR_OP_NOT_IN_SESSION"},
+		{nfserr_hash_alg_unsupp, "NFS4ERR_HASH_ALG_UNSUPP"},
+		{nfserr_clientid_busy, "NFS4ERR_CLIENTID_BUSY"},
+		{nfserr_pnfs_io_hole, "NFS4ERR_PNFS_IO_HOLE"},
+		{nfserr_seq_false_retry, "NFS4ERR_SEQ_FALSE_RETRY"},
+		{nfserr_bad_high_slot, "NFS4ERR_BAD_HIGH_SLOT"},
+		{nfserr_deadsession, "NFS4ERR_DEADSESSION"},
+		{nfserr_encr_alg_unsupp, "NFS4ERR_ENCR_ALG_UNSUPP"},
+		{nfserr_pnfs_no_layout, "NFS4ERR_PNFS_NO_LAYOUT"},
+		{nfserr_not_only_op, "NFS4ERR_NOT_ONLY_OP"},
+		{nfserr_wrong_cred, "NFS4ERR_WRONG_CRED"},
+		{nfserr_wrong_type, "NFS4ERR_WRONG_TYPE"},
+		{nfserr_dirdeleg_unavail, "NFS4ERR_DIRDELEG_UNAVAIL"},
+		{nfserr_reject_deleg, "NFS4ERR_REJECT_DELEG"},
+		{nfserr_returnconflict, "NFS4ERR_RETURNCONFLICT"},
+		{nfserr_deleg_revoked, "NFS4ERR_DELEG_REVOKED"},
+	};
+	int	i;
+	int tabsz = (sizeof(nfs_errtbl)/sizeof(nfs_errtbl[0]));
+
+	for (i = 0; i < tabsz; i++) {
+		if (nfs_errtbl[i].nfserr == THIS->err) {
+			break;
+		}
+	}
+	if (i == tabsz)
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "nfsderr %d", ntohl(THIS->err));
+	else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"nfsderr %d(%s)", ntohl(nfs_errtbl[i].nfserr), nfs_errtbl[i].string);
+
+%}
