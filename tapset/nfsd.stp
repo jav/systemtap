@@ -10,10 +10,14 @@
 
 
 %{
+#include <linux/stat.h>
+
+#include <linux/nfsd/nfsfh.h>
 #include <linux/nfs3.h>
 #include <linux/nfs4.h>
 
 #include <linux/sunrpc/svc.h>
+
 %}
 
 /*
@@ -116,6 +120,34 @@ function nfs4_ctype:string(cmode:long) %{ /* pure */
 	}
 	CATCH_DEREF_FAULT();
 %}
+function ftype:string(type:long) %{ /* pure */
+
+	if (S_ISLNK(THIS->type)) {
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"0%llo (ISLNK)", THIS->type);
+	} else if (S_ISREG(THIS->type)) {
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"0%llo (ISREG)", THIS->type);
+	} else if (S_ISDIR(THIS->type)) {
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"0%llo (ISDIR)", THIS->type);
+	} else if (S_ISCHR(THIS->type)) {
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"0%llo (ISCHR)", THIS->type);
+	} else if (S_ISBLK(THIS->type)) {
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"0%llo (ISBLK)", THIS->type);
+	} else if (S_ISFIFO(THIS->type)) {
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"0%llo (ISFIFO)", THIS->type);
+	} else if (S_ISSOCK(THIS->type)) {
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"0%llo (ISSOCK)", THIS->type);
+	} else  {
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+			"0%llo (Uknown)", THIS->type);
+	}
+%}
 /*
 *probe nfsd.dispatch
 *  Fires when server receives a NFS operation from client 
@@ -157,7 +189,7 @@ probe nfsd.proc.entries = nfsd.proc.lookup,
                           nfsd.proc.compound,
                           nfsd.proc.remove,
                           nfsd.proc.rename,
-			  nfsd.proc.create
+			              nfsd.proc.create
 {} 
 
 probe nfsd.proc.return = nfsd.proc.lookup.return,
@@ -832,7 +864,7 @@ probe nfsd.proc3.rename.return =  kernel.function("nfsd3_proc_rename").return!,
 {
 	name = "nfsd.proc3.rename.return"
 	version = 3
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 probe nfsd.proc4.rename = kernel.function("nfsd4_rename") !,
@@ -862,7 +894,7 @@ probe nfsd.proc4.rename.return = kernel.function("nfsd4_rename").return!,
 }
 
 probe nfsd.entries = nfsd.open,
-	             nfsd.read,
+	                 nfsd.read,
                      nfsd.write,
                      nfsd.lookup,
                      nfsd.commit,
@@ -874,7 +906,7 @@ probe nfsd.entries = nfsd.open,
 {}
 
 probe nfsd.return = nfsd.open.return,
-	             nfsd.read.return,
+	                 nfsd.read.return,
                      nfsd.write.return,
                      nfsd.lookup.return,
                      nfsd.commit.return,
@@ -900,14 +932,16 @@ probe nfsd.open = kernel.function("nfsd_open") !,
 	type = $type
 
 	name = "nfsd.open"
-	argstr = sprintf("%d",access)
+	argstr = sprintf("access: %d type: %s", access, ftype(type))
 }
 
 probe nfsd.open.return = kernel.function("nfsd_open").return !,
                   module("nfsd").function("nfsd_open").return?
 {
+	fh = __svc_fh($fhp)
+
 	name = "nfsd.open.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*probe nfsd.close
@@ -955,7 +989,7 @@ probe nfsd.read = kernel.function("nfsd_read") !,
 	vlen = $vlen
 
 	name = "nfsd.read"
-	argstr = sprintf("%d,%d",count,offset)
+	argstr = sprintf("count: %d offset: %d",count,offset)
 
 	size = count
 	units = "bytes"
@@ -964,8 +998,10 @@ probe nfsd.read = kernel.function("nfsd_read") !,
 probe nfsd.read.return = kernel.function("nfsd_read").return !,
                   module("nfsd").function("nfsd_read").return?
 {
+	fh = __svc_fh($fhp)
+
 	name = "nfsd.read.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*probe nfsd.write
@@ -989,13 +1025,13 @@ probe nfsd.write = kernel.function("nfsd_write")!,
 %( kernel_v >= "2.6.12" %?
 	file = $file
 %)
-	count = $cnt
+	count = p_long($cnt)
 	offset = $offset
 	vec = $vec
 	vlen = $vlen
 
 	name = "nfsd.write"
-	argstr = sprintf("%d,%d",count,offset)
+	argstr = sprintf("count: %d  offset: %d",count,offset)
 
 	size = count
 	units = "bytes"
@@ -1004,8 +1040,10 @@ probe nfsd.write = kernel.function("nfsd_write")!,
 probe nfsd.write.return = kernel.function("nfsd_write").return!,
                    module("nfsd").function("nfsd_write").return?
 {
+	fh = __svc_fh($fhp)
+
 	name = "nfsd.write.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*probe nfsd.commit
@@ -1028,7 +1066,7 @@ probe nfsd.commit = kernel.function("nfsd_commit")!,
 	flag = $fhp->fh_export->ex_flags
 
 	name = "nfsd.commit"
-	argstr = sprintf("%d,%d",count,offset)
+	argstr = sprintf("count: %d offset: %d",count,offset)
 
 	size = count 
 	units = "bytes"
@@ -1037,8 +1075,10 @@ probe nfsd.commit = kernel.function("nfsd_commit")!,
 probe nfsd.commit.return = kernel.function("nfsd_commit").return!,
                     module("nfsd").function("nfsd_commit").return ?
 {
+	fh = __svc_fh($fhp)
+
 	name = "nfsd.commit.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*
@@ -1060,14 +1100,16 @@ probe nfsd.lookup = kernel.function("nfsd_lookup")!,
 	filename = kernel_string_n($name, filelen)
 
 	name = "nfsd.lookup"
-	argstr = sprintf("%s",filename)
+	argstr = sprintf("name: %s",filename)
 }
 
 probe nfsd.lookup.return = kernel.function("nfsd_lookup").return!,
                             module("nfsd").function("nfsd_lookup").return?
 {
+	fh = __svc_fh($fhp)
+
 	name = "nfsd.lookup.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 /*
 * probe nfsd.create
@@ -1095,14 +1137,16 @@ probe nfsd.create = kernel.function("nfsd_create")!,
 	iap_mode = $iap->ia_mode
 
 	name = "nfsd.create"
-	argstr = sprintf("%s,%d",filename,type)
+	argstr = sprintf("name: %s type: %s",filename, ftype(type))
 }
 
 probe nfsd.create.return = kernel.function("nfsd_create").return!,         
                     module("nfsd").function("nfsd_create").return?
 {
+	fh = __svc_fh($fhp)
+
 	name = "nfsd.create.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*
@@ -1137,14 +1181,14 @@ probe nfsd.createv3 = kernel.function("nfsd_create_v3")!,
 	createmode = $createmode
 
 	name = "nfsd.createv3"
-	argstr = sprintf("%s,%d",filename,createmode)
+	argstr = sprintf("name: %s mode: %s",filename, nfs3_cmode(createmode))
 }
 
 probe nfsd.createv3.return = kernel.function("nfsd_create_v3").return!,         
                     module("nfsd").function("nfsd_create_v3").return?
 {
 	name = "nfsd.createv3.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*
@@ -1168,14 +1212,14 @@ probe nfsd.unlink = kernel.function("nfsd_unlink")!,
 	type = $type
 
 	name = "nfsd.unlink"
-	argstr = sprintf("%s,%d",filename,type)
+	argstr = sprintf("name: %s",filename);
 }
 
 probe nfsd.unlink.return = kernel.function("nfsd_unlink").return!,         
                     module("nfsd").function("nfsd_unlink").return?
 {
 	name = "nfsd.unlink.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 /*
@@ -1203,12 +1247,12 @@ probe nfsd.rename =  kernel.function("nfsd_rename")!,
 	tname = kernel_string_n($tname, tlen)
 
 	name = "nfsd.rename"
-	argstr = sprintf("%s,%s",filename,tname)
+	argstr = sprintf("%s to %s",filename,tname)
 }
 
 probe nfsd.rename.return =  kernel.function("nfsd_rename").return!,
                            module("nfsd").function("nfsd_rename").return?
 {
 	name = "nfsd.rename.return"
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
