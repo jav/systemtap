@@ -685,10 +685,12 @@ probe nfsd.proc4.write.create = kernel.function("nfsd4_create").return!,
 *  filelen : length of file name
 */
 probe nfsd.proc.remove = nfsd.proc2.remove,
-                         nfsd.proc3.remove
+                         nfsd.proc3.remove,
+                         nfsd.proc4.remove
 {}
 probe nfsd.proc.remove.return = nfsd.proc2.remove.return,
-                                nfsd.proc3.remove.return
+                                nfsd.proc3.remove.return,
+                                nfsd.proc4.remove.return
 {}
 
 probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")!,
@@ -697,7 +699,7 @@ probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")!,
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
-	fh = __get_fh($argp,10)
+	fh = & @cast($argp, "struct nfsd_diropargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
 	filename  = kernel_string_n($argp->name, filelen)
@@ -711,7 +713,7 @@ probe nfsd.proc2.remove.return =  kernel.function("nfsd_proc_remove").return!,
 {
 	name = "nfsd.proc2.remove.return"
 	version = 2
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
 probe nfsd.proc3.remove = kernel.function("nfsd3_proc_remove")!,
@@ -719,8 +721,8 @@ probe nfsd.proc3.remove = kernel.function("nfsd3_proc_remove")!,
 {
 	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
-        version = 3
-	fh = __get_fh($argp,11)
+	version = 3
+	fh = & @cast($argp, "struct nfsd3_diropargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
 	filename  = kernel_string_n($argp->name, filelen)
@@ -734,9 +736,31 @@ probe nfsd.proc3.remove.return =  kernel.function("nfsd3_proc_remove").return!,
 {
 	name = "nfsd.proc3.remove.return"
 	version = 3
-	retstr = sprintf("%d",$return)
+	retstr = sprintf("%s", nfsderror($return))
 }
 
+probe nfsd.proc4.remove = kernel.function("nfsd4_remove") !,
+                          module("nfsd").function("nfsd4_remove") ?
+{
+	client_ip = addr_from_rqst($rqstp)
+	proto = $rqstp->rq_prot
+	version = 4
+	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->current_fh
+	filelen = $remove->rm_namelen
+	filename  = kernel_string_n($remove->rm_name, filelen)
+
+	name = "nfsd.proc4.remove"
+	argstr = sprintf("%s", filename);
+
+} 
+
+probe nfsd.proc4.remove.return = kernel.function("nfsd4_remove").return!,
+                        module("nfsd").function("nfsd4_remove").return?
+{
+	name = "nfsd.proc4.remove.return"
+	version = 4
+	retstr = sprintf("%s", nfsderror($return))
+}
 /*
 * probe nfsd.proc.rename
 *  Fires when clients rename a file on server side
