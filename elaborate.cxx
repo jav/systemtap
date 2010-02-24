@@ -28,6 +28,7 @@ extern "C" {
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <climits>
 
 
 using namespace std;
@@ -2997,6 +2998,8 @@ struct const_folder: public update_visitor
   literal_string* get_string(expression*& e);
   void visit_literal_string (literal_string* e);
 
+  void get_literal(expression*& e, literal_number*& n, literal_string*& s);
+
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
@@ -3008,6 +3011,16 @@ struct const_folder: public update_visitor
   void visit_concatenation (concatenation* e);
   void visit_ternary_expression (ternary_expression* e);
 };
+
+void
+const_folder::get_literal(expression*& e,
+                          literal_number*& n,
+                          literal_string*& s)
+{
+  replace (e);
+  n = (e == last_number) ? last_number : NULL;
+  s = (e == last_string) ? last_string : NULL;
+}
 
 literal_number*
 const_folder::get_number(expression*& e)
@@ -3159,8 +3172,78 @@ const_folder::visit_logical_and_expr (logical_and_expr* e)
 void
 const_folder::visit_comparison (comparison* e)
 {
-  // TODO
-  update_visitor::visit_comparison (e);
+  int comp;
+
+  literal_number *left_num, *right_num;
+  literal_string *left_str, *right_str;
+  get_literal(e->left, left_num, left_str);
+  get_literal(e->right, right_num, right_str);
+
+  if (left_str && right_str)
+    comp = left_str->value.compare(right_str->value);
+
+  else if (left_num && right_num)
+    comp = left_num->value < right_num->value ? -1 :
+           left_num->value > right_num->value ? 1 : 0;
+
+  else if ((left_num && ((left_num->value == LLONG_MIN &&
+                          (e->op == "<=" || e->op == ">")) ||
+                         (left_num->value == LLONG_MAX &&
+                          (e->op == ">=" || e->op == "<"))))
+           ||
+           (right_num && ((right_num->value == LLONG_MIN &&
+                            (e->op == ">=" || e->op == "<")) ||
+                           (right_num->value == LLONG_MAX &&
+                            (e->op == "<=" || e->op == ">")))))
+    {
+      expression* other = left_num ? e->right : e->left;
+      varuse_collecting_visitor vu(session);
+      other->visit(&vu);
+      if (!vu.side_effect_free())
+        provide (e);
+      else
+        {
+          if (session.verbose>2)
+            clog << "Collapsing constant-boundary comparison " << *e->tok << endl;
+          relaxed_p = false;
+
+          // ops <= and >= are true, < and > are false
+          literal_number* n = new literal_number( e->op.length() == 2 );
+          n->tok = e->tok;
+          n->visit (this);
+        }
+      return;
+    }
+
+  else
+    {
+      provide (e);
+      return;
+    }
+
+  if (session.verbose>2)
+    clog << "Collapsing constant comparison " << *e->tok << endl;
+  relaxed_p = false;
+
+  int64_t value;
+  if (e->op == "==")
+    value = comp == 0;
+  else if (e->op == "!=")
+    value = comp != 0;
+  else if (e->op == "<")
+    value = comp < 0;
+  else if (e->op == ">")
+    value = comp > 0;
+  else if (e->op == "<=")
+    value = comp <= 0;
+  else if (e->op == ">=")
+    value = comp >= 0;
+  else
+    throw semantic_error ("unsupported comparison operator " + e->op);
+
+  literal_number* n = new literal_number(value);
+  n->tok = e->tok;
+  n->visit (this);
 }
 
 void
