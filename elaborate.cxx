@@ -3166,8 +3166,30 @@ const_folder::visit_comparison (comparison* e)
 void
 const_folder::visit_concatenation (concatenation* e)
 {
-  // TODO
-  update_visitor::visit_concatenation (e);
+  literal_string* left = get_string (e->left);
+  literal_string* right = get_string (e->right);
+
+  if (left && right)
+    {
+      if (session.verbose>2)
+        clog << "Collapsing constant concatenation " << *e->tok << endl;
+      relaxed_p = false;
+
+      literal_string* n = new literal_string (*left);
+      n->tok = e->tok;
+      n->value.append(right->value);
+      n->visit (this);
+    }
+  else if ((left && left->value.empty()) ||
+           (right && right->value.empty()))
+    {
+      if (session.verbose>2)
+        clog << "Collapsing identity concatenation " << *e->tok << endl;
+      relaxed_p = false;
+      provide(left ? e->right : e->left);
+    }
+  else
+    provide (e);
 }
 
 void
