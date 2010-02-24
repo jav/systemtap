@@ -1,6 +1,7 @@
-/* COVERAGE: mmap2 munmap msync mlock mlockall munlock munlockall fstat open close */
+/* COVERAGE: mmap2 munmap msync mlock mlockall munlock munlockall mprotect mremap fstat open close */
 #include <sys/types.h>
 #include <sys/stat.h>
+#define __USE_GNU
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -48,6 +49,24 @@ int main()
 
 	munmap(r, fs.st_size);
 	//staptest// munmap (XXXX, 1030) = 0
+
+	r = mmap(NULL, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+	//staptest// mmap[2]* (XXXX, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = XXXX
+
+	mprotect(r, 4096, PROT_READ);
+	//staptest// mprotect (XXXX, 4096, PROT_READ) = 0
+
+	munmap(r, 12288);
+	//staptest// munmap (XXXX, 12288) = 0
+
+	r = mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+	//staptest// mmap[2]* (XXXX, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = XXXX
+
+	r = mremap(r, 8192, 4096, 0);
+	//// mremap (XXXX, 8192, 4096, 0) = XXXX
+
+	munmap(r, 4096);
+	//// munmap (XXXX, 4096) = 0
 
 	return 0;
 }

@@ -74,9 +74,7 @@ public:
 struct procfs_var_expanding_visitor: public var_expanding_visitor
 {
   procfs_var_expanding_visitor(systemtap_session& s, const string& pn,
-                               string path, bool write_probe):
-    sess (s), probe_name (pn), path (path), write_probe (write_probe),
-    target_symbol_seen (false) {}
+                               string path, bool write_probe);
 
   systemtap_session& sess;
   string probe_name;
@@ -342,6 +340,18 @@ procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
 }
 
 
+procfs_var_expanding_visitor::procfs_var_expanding_visitor (systemtap_session& s,
+							    const string& pn,
+							    string path,
+							    bool write_probe):
+  sess (s), probe_name (pn), path (path), write_probe (write_probe),
+  target_symbol_seen (false)
+{
+  // procfs probes can also handle '.='.
+  valid_ops.insert (".=");
+}
+
+
 void
 procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
@@ -371,21 +381,40 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
 
-  string fname = (string(lvalue ? "_procfs_value_set" : "_procfs_value_get"));
+  string fname;
   string locvalue = "CONTEXT->data";
 
   if (! lvalue)
-    ec->code = string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string("); /* pure */\n")
+    {
+      fname = "_procfs_value_get";
+      ec->code = string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string("); /* pure */\n")
 	
-      + string("    _stp_copy_from_user(THIS->__retvalue, data->buffer, data->count);\n")
-      + string("    THIS->__retvalue[data->count] = '\\0';\n");
-  else
-      ec->code = string("int bytes = 0;\n")
-	+ string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string(");\n")
-	+ string("    bytes = strnlen(THIS->value, MAXSTRINGLEN - 1);\n")
-	+ string("    memcpy((void *)data->buffer, THIS->value, bytes);\n")
-	+ string("    data->buffer[bytes] = '\\0';\n")
-	+ string("    data->count = bytes;\n");
+	  + string("    _stp_copy_from_user(THIS->__retvalue, data->buffer, data->count);\n")
+	  + string("    THIS->__retvalue[data->count] = '\\0';\n");
+    }
+  else					// lvalue
+    {
+      if (*op == "=")
+        {
+	  fname = "_procfs_value_set";
+	  ec->code = string("struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string(");\n")
+	      + string("    strlcpy(data->buffer, THIS->value, MAXSTRINGLEN);\n")
+	      + string("    data->count = strlen(data->buffer);\n");
+	}
+      else if (*op == ".=")
+        {
+	  fname = "_procfs_value_append";
+	  ec->code = string("struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string(");\n")
+	      + string("    strlcat(data->buffer, THIS->value, MAXSTRINGLEN);\n")
+	      + string("    data->count = strlen(data->buffer);\n");
+	}
+      else
+        {
+	  throw semantic_error ("Only the following assign operators are"
+				" implemented on procfs read target variables:"
+				" '=', '.='", e->tok);
+	}
+    }
 
   fdecl->name = fname;
   fdecl->body = ec;
