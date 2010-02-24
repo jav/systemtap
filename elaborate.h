@@ -103,6 +103,7 @@ struct typeresolution_info: public visitor
   void visit_stat_op (stat_op* e);
   void visit_hist_op (hist_op* e);
   void visit_cast_op (cast_op* e);
+  void visit_defined_op (defined_op* e);
 };
 
 

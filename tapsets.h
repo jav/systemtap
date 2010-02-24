@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005, 2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -49,9 +49,11 @@ struct var_expanding_visitor: public update_visitor
 {
   static unsigned tick;
   std::stack<functioncall**> target_symbol_setter_functioncalls;
+  std::stack<defined_op*> defined_ops;
 
   var_expanding_visitor() {}
   void visit_assignment (assignment* e);
+  void visit_defined_op (defined_op* e);
 };
 
 #endif // TAPSETS_H

@@ -1,0 +1,19 @@
+#! stap -p4
+
+probe kernel.function("sys_open") { println(@defined($foobar))  } # invalid
+probe kernel.function("sys_open") { println(@defined($mode))  }  # valid
+probe kernel.function("sys_open").return { println(@defined($foobar))  } # invalid
+probe kernel.function("sys_open").return { println(@defined($mode))  } # valid
+probe kernel.trace("*")? { println(@defined($rw)) } # valid and invalid in places
+probe kernel.mark("*")? { println(@defined($foo)) } # invalid
+probe kernel.mark("*")? { println(@defined($name)) } # valid
+probe process("stap").mark("*")? { println(@defined($arg1)) } # valid
+probe process("stap").mark("*")? { println(@defined($nosuchvar)) } # invalid
+probe procfs("file").read { println(@defined($nosuchvar)) } # invalid
+probe procfs("file").write { println(@defined($value)) } # valid
+%( CONFIG_UTRACE == "y" %?
+probe process("stap").syscall { println(@defined($arg1)) } # valid
+probe process("stap").syscall { println(@defined($argZZ)) } # invalid
+probe process("stap").syscall.return { println(@defined($nosuchvar)) } # invalid
+probe process("stap").syscall.return { println(@defined($syscall)) } # valid
+%)

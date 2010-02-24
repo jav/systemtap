@@ -1911,6 +1911,58 @@ var_expanding_visitor::visit_assignment (assignment* e)
 
 
 void
+var_expanding_visitor::visit_defined_op (defined_op* e)
+{
+  bool resolved = true;
+
+  defined_ops.push (e);
+  try {
+    // NB: provide<>/require<> are NOT typesafe.  So even though a defined_op is
+    // defined with a target_symbol* operand, a subsidiary call may attempt to
+    // rewrite it to a general expression* instead, and require<> happily
+    // casts to/from void*, causing possible memory corruption.  We use
+    // expression* here, being the general case of rewritten $variable.
+    expression *foo1 = e->operand;
+    foo1 = require (foo1);
+
+    // NB: we have some curious cases to consider here, depending on what
+    // various visit_target_symbol() implementations do for successful or
+    // erroneous resolutions.
+    //
+    // dwarf stuff: success: rewrites to a function; failure: retains target_symbol, sets saved_conversion_error
+    //
+    // sdt-kprobes sdt.h: success: string or functioncall; failure: semantic_error
+    //
+    // sdt-uprobes: success: string or no op; failure: no op; expect derived/synthetic
+    //              dwarf probe to take care of it.
+    //              But this is rather unhelpful.  So we rig the sdt_var_expanding_visitor
+    //              to pass through @defined() to the synthetic dwarf probe.
+    // 
+    // utrace: success: rewrites to function; failure: semantic_error
+    //
+    // procfs: success: sets probe_context_var; failure: semantic_error
+
+    target_symbol* foo2 = dynamic_cast<target_symbol*> (foo1);
+    if (foo2 && foo2->saved_conversion_error) // failing dwarf
+      resolved = false;
+    else if (foo2 && foo2->probe_context_var != "") // successful procfs etc.
+      resolved = true;
+    else if (foo2) // unresolved but otherwise unremarked, for catching at translate time
+      resolved = false;
+    else // resolved, rewritten to some other expression type
+      resolved = true;
+  } catch (const semantic_error& e) { 
+    resolved = false;
+  }
+  defined_ops.pop ();
+
+  literal_number* ln = new literal_number (resolved ? 1 : 0);
+  ln->tok = e->tok;
+  provide (ln);
+}
+
+
+void
 dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
 {
   // Get the full name of the target symbol.
@@ -2361,14 +2413,19 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
   visited = true;
+  
+  bool defined_being_checked = (defined_ops.size() > 0 && (defined_ops.top()->operand == e));
+  // In this mode, we avoid hiding errors or generating extra code such as for .return saved $vars
 
   bool lvalue = is_active_lvalue(e);
   if (lvalue && !q.sess.guru_mode)
     throw semantic_error("write to target variable not permitted", e->tok);
+  // XXX: process $context vars should be writeable
 
   // See if we need to generate a new probe to save/access function
   // parameters from a return probe.  PR 1382.
   if (q.has_return
+      && !defined_being_checked
       && e->base_name != "$return" // not the special return-value variable handled below
       && e->base_name != "$$return") // nor the other special variable handled below
     {
@@ -2439,7 +2496,9 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error& er)
     {
-      if (!q.sess.skip_badvars)
+      // NB: with --skip-badvars, @defined() still wins in that it may expand to 0
+      // for nonexistent $variables.
+      if (!q.sess.skip_badvars || defined_being_checked)
 	{
 	  // We suppress this error message, and pass the unresolved
 	  // target_symbol to the next pass.  We hope that this value ends
@@ -3636,6 +3695,7 @@ struct sdt_var_expanding_visitor: public var_expanding_visitor
   int arg_count;
 
   void visit_target_symbol (target_symbol* e);
+  void visit_defined_op (defined_op* e);
 };
 
 void
@@ -3651,13 +3711,24 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       provide(myname);
       return;
     }
-  else if (e->base_name.find("$arg") == string::npos || ! have_reg_args)
+
+  if (e->base_name.find("$arg") == string::npos || ! have_reg_args)
     {
+      // NB: uprobes-based sdt.h; $argFOO gets resolved later.
+      // XXX: We don't even know the arg_count in this case.
       provide(e);
       return;
     }
 
-  int argno = lex_cast<int>(e->base_name.substr(4));
+  int argno = 0;
+  try
+    {
+      argno = lex_cast<int>(e->base_name.substr(4));
+    }
+  catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
+    {
+      throw semantic_error ("invalid argument number", e->tok);
+    }
   if (argno < 1 || argno > arg_count)
     throw semantic_error ("invalid argument number", e->tok);
 
@@ -3714,6 +3785,18 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   cast->module = process_name;
 
   cast->visit(this);
+}
+
+
+// See var_expanding_visitor::visit_defined_op for a background on
+// this callback, 
+void
+sdt_var_expanding_visitor::visit_defined_op (defined_op *e)
+{
+  if (! have_reg_args) // for uprobes, pass @defined through to dwarf synthetic probe's own var-expansion
+    provide (e);
+  else
+    var_expanding_visitor::visit_defined_op (e);
 }
 
 
@@ -3793,6 +3876,12 @@ sdt_query::handle_query_module()
 	      break;
 	    }
 	}
+
+      // XXX: This loses any connection to the original base_probe.
+      // Consider creating a fake derived_probe_point class, kind of
+      // like the alias_* ones in elaborate.cxx, so that probe-base
+      // relationships can be maintained.  Or extend struct-probe
+      // with a base pointer.  PR10831.
       probe *new_base = new probe(*base_probe);
       probe_point *new_location = new probe_point(*base_loc);
       convert_location(new_base, new_location);
@@ -3807,7 +3896,8 @@ sdt_query::handle_query_module()
 
       // Expand the local variables in the probe body
       sdt_var_expanding_visitor svv (module_val, probe_name,
-                                     probe_arg, have_reg_args);
+                                     probe_arg, // XXX: whoa, isn't this 'arg_count'?
+                                     have_reg_args);
       svv.replace (new_base->body);
 
       unsigned i = results.size();

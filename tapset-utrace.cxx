@@ -483,7 +483,15 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
    else // $argN
      {
         string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
-        int argnum = lex_cast<int>(argnum_s);
+        int argnum = 0;
+        try
+          {
+            argnum = lex_cast<int>(argnum_s);
+          }
+        catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
+          {
+           throw semantic_error ("invalid syscall argument number (1-6)", e->tok);
+          }
 
         e->assert_no_components("utrace");
 

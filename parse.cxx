@@ -2360,12 +2360,8 @@ parser::parse_value ()
   else if (t->type == tok_operator && t->content == "&")
     {
       next ();
-      t = peek ();
-      if (t->type != tok_identifier ||
-          (t->content != "@cast" && t->content[0] != '$'))
-        throw parse_error ("expected @cast or $var");
-
-      target_symbol *ts = static_cast<target_symbol*>(parse_symbol());
+      t = next ();
+      target_symbol *ts = parse_target_symbol (t);
       ts->addressof = true;
       return ts;
     }
@@ -2426,8 +2422,7 @@ parser::parse_indexable ()
 
 
 // var, indexable[index], func(parms), printf("...", ...), $var, $var->member, @stat_op(stat)
-expression*
-parser::parse_symbol ()
+expression* parser::parse_symbol ()
 {
   hist_op *hop = NULL;
   symbol *sym = NULL;
@@ -2440,40 +2435,12 @@ parser::parse_symbol ()
       // now scrutinize this identifier for the various magic forms of identifier
       // (printf, @stat_op, and $var...)
 
-      if (name == "@cast")
-	{
-	  // type-punning time
-	  cast_op *cop = new cast_op;
-	  cop->tok = t;
-	  cop->base_name = name;
-	  expect_op("(");
-	  cop->operand = parse_expression ();
-          expect_op(",");
-          expect_unknown(tok_string, cop->type);
-          // types never start with "struct<space>" or "union<space>",
-          // so gobble it up.
-          if (cop->type.compare(0, 7, "struct ") == 0)
-            cop->type = cop->type.substr(7);
-          if (cop->type.compare(0, 6, "union ") == 0)
-            cop->type = cop->type.substr(6);
-          if (peek_op (","))
-            {
-              next();
-              expect_unknown(tok_string, cop->module);
-            }
-	  expect_op(")");
-          parse_target_symbol_components(cop);
+      if (name == "@cast" || (name.size()>0 && name[0] == '$'))
+        return parse_target_symbol (t);
 
-          // if there aren't any dereferences, then the cast is pointless
-          if (cop->components.empty())
-            {
-              expression *op = cop->operand;
-              delete cop;
-              return op;
-            }
-	  return cop;
-        }
-
+      if (name == "@defined")
+        return parse_defined_op (t);
+     
       else if (name.size() > 0 && name[0] == '@')
 	{
 	  stat_op *sop = new stat_op;
@@ -2577,16 +2544,6 @@ parser::parse_symbol ()
 	  return fmt;
 	}
 
-      else if (name.size() > 0 && name[0] == '$')
-	{
-	  // target_symbol time
-	  target_symbol *tsym = new target_symbol;
-	  tsym->tok = t;
-	  tsym->base_name = name;
-          parse_target_symbol_components(tsym);
-	  return tsym;
-	}
-
       else if (peek_op ("(")) // function call
 	{
 	  next ();
@@ -2672,6 +2629,64 @@ parser::parse_symbol ()
 
   return sym;
 }
+
+
+// Parse a @cast or $var.  Given head token has already been consumed.
+target_symbol* parser::parse_target_symbol (const token* t)
+{
+  if (t->type == tok_identifier && t->content == "@cast")
+    {
+      cast_op *cop = new cast_op;
+      cop->tok = t;
+      cop->base_name = t->content;
+      expect_op("(");
+      cop->operand = parse_expression ();
+      expect_op(",");
+      expect_unknown(tok_string, cop->type);
+      // types never start with "struct<space>" or "union<space>",
+      // so gobble it up.
+      if (cop->type.compare(0, 7, "struct ") == 0)
+        cop->type = cop->type.substr(7);
+      if (cop->type.compare(0, 6, "union ") == 0)
+        cop->type = cop->type.substr(6);
+      if (peek_op (","))
+        {
+          next();
+          expect_unknown(tok_string, cop->module);
+        }
+      expect_op(")");
+      parse_target_symbol_components(cop);
+      return cop;
+    }
+
+  if (t->type == tok_identifier && t->content[0]=='$')
+    {
+      // target_symbol time
+      target_symbol *tsym = new target_symbol;
+      tsym->tok = t;
+      tsym->base_name = t->content;
+      parse_target_symbol_components(tsym);
+      return tsym;
+    }
+
+  throw parse_error ("expected @cast or $var");
+}
+
+
+// Parse a @defined().  Given head token has already been consumed.
+expression* parser::parse_defined_op (const token* t)
+{
+  defined_op* dop = new defined_op;
+  dop->tok = t;
+  expect_op("(");
+  string nm;
+  // no need for parse_hist_op... etc., as @defined takes only target_symbols as its operand.
+  const token* tt = expect_ident (nm);
+  dop->operand = parse_target_symbol (tt);
+  expect_op(")");
+  return dop;
+}
+
 
 
 void

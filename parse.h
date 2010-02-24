@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2007 Bull S.A.S
 //
 // This file is part of systemtap, and is free software.  You can
@@ -188,6 +188,8 @@ private: // nonterminals
   continue_statement* parse_continue_statement ();
   indexable* parse_indexable ();
   const token *parse_hist_op_or_bare_name (hist_op *&hop, std::string &name);
+  target_symbol *parse_target_symbol (const token* t);
+  expression* parse_defined_op (const token* t);
   expression* parse_expression ();
   expression* parse_assignment ();
   expression* parse_ternary ();

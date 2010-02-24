@@ -1,5 +1,9 @@
 * What's new
 
+- A new predicate @defined is available for testing whether a
+  particular $variable/expression is resolvable at translate time:
+  probe foo { if (@defined($bar)) log ("$bar is available here") }
+
 - Adjacent string literals are glued together, making this
   construct valid:
      probe process("/usr" @1 "/bin").function("*") { ... }

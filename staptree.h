@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -254,7 +254,7 @@ struct target_symbol: public symbol
   bool addressof;
   std::string base_name;
   std::vector<component> components;
-  std::string probe_context_var;
+  std::string probe_context_var; // NB: this being set implies that target_symbol is *resolved*
   semantic_error* saved_conversion_error;
   target_symbol(): addressof(false), saved_conversion_error (0) {}
   void print (std::ostream& o) const;
@@ -271,6 +271,14 @@ struct cast_op: public target_symbol
 {
   expression *operand;
   std::string type, module;
+  void print (std::ostream& o) const;
+  void visit (visitor* u);
+};
+
+
+struct defined_op: public expression
+{
+  target_symbol *operand;
   void print (std::ostream& o) const;
   void visit (visitor* u);
 };
@@ -718,6 +726,7 @@ struct visitor
   virtual void visit_stat_op (stat_op* e) = 0;
   virtual void visit_hist_op (hist_op* e) = 0;
   virtual void visit_cast_op (cast_op* e) = 0;
+  virtual void visit_defined_op (defined_op* e) = 0;
 };
 
 
@@ -759,6 +768,7 @@ struct traversing_visitor: public visitor
   void visit_stat_op (stat_op* e);
   void visit_hist_op (hist_op* e);
   void visit_cast_op (cast_op* e);
+  void visit_defined_op (defined_op* e);
 };
 
 
@@ -801,6 +811,7 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
   void visit_post_crement (post_crement *e);
   void visit_foreach_loop (foreach_loop *s);
   void visit_cast_op (cast_op* e);
+  void visit_defined_op (defined_op* e);
 
   bool side_effect_free ();
   bool side_effect_free_wrt (const std::set<vardecl*>& vars);
@@ -851,6 +862,7 @@ struct throwing_visitor: public visitor
   void visit_stat_op (stat_op* e);
   void visit_hist_op (hist_op* e);
   void visit_cast_op (cast_op* e);
+  void visit_defined_op (defined_op* e);
 };
 
 // A visitor similar to a traversing_visitor, but with the ability to rewrite
@@ -865,7 +877,7 @@ struct update_visitor: public visitor
       {
         src->visit(this);
         assert(!targets.empty());
-        dst = static_cast<T*>(targets.top());
+        dst = static_cast<T*>(targets.top()); // XXX: danger will robinson: not typesafe!
         targets.pop();
         assert(clearok || dst);
       }
@@ -874,7 +886,7 @@ struct update_visitor: public visitor
 
   template <typename T> void provide (T* src)
   {
-    targets.push(static_cast<void*>(src));
+    targets.push(static_cast<void*>(src)); // XXX: not typesafe!
   }
 
   template <typename T> void replace (T*& src, bool clearok=false)
@@ -917,6 +929,7 @@ struct update_visitor: public visitor
   virtual void visit_stat_op (stat_op* e);
   virtual void visit_hist_op (hist_op* e);
   virtual void visit_cast_op (cast_op* e);
+  virtual void visit_defined_op (defined_op* e);
 
 private:
   std::stack<void *> targets;
@@ -972,6 +985,7 @@ struct deep_copy_visitor: public update_visitor
   virtual void visit_stat_op (stat_op* e);
   virtual void visit_hist_op (hist_op* e);
   virtual void visit_cast_op (cast_op* e);
+  virtual void visit_defined_op (defined_op* e);
 };
 
 #endif // STAPTREE_H

@@ -1243,6 +1243,7 @@ semantic_pass_symbols (systemtap_session& s)
 }
 
 
+
 // Keep unread global variables for probe end value display.
 void add_global_var_display (systemtap_session& s)
 {
@@ -2609,6 +2610,7 @@ struct void_statement_reducer: public update_visitor
   void visit_print_format (print_format* e);
   void visit_target_symbol (target_symbol* e);
   void visit_cast_op (cast_op* e);
+  void visit_defined_op (defined_op* e);
 
   // these are a bit hairy to grok due to the intricacies of indexables and
   // stats, so I'm chickening out and skipping them...
@@ -2945,6 +2947,23 @@ void_statement_reducer::visit_cast_op (cast_op* e)
   e = 0;
   provide (e);
 }
+
+
+void
+void_statement_reducer::visit_defined_op (defined_op* e)
+{
+  // When the result of a @defined operation isn't needed, just elide
+  // it entirely.  Its operand $expression must already be
+  // side-effect-free.
+
+  if (session.verbose>2)
+    clog << "Eliding unused check " << *e->tok << endl;
+
+  relaxed_p = false;
+  e = 0;
+  provide (e);
+}
+
 
 
 void semantic_pass_opt5 (systemtap_session& s, bool& relaxed_p)
@@ -3572,6 +3591,13 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
     throw (* (e->saved_conversion_error));
   else
     throw semantic_error("unresolved target-symbol expression", e->tok);
+}
+
+
+void
+typeresolution_info::visit_defined_op (defined_op* e)
+{
+  throw semantic_error("unexpected @defined", e->tok);
 }
 
 

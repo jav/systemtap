@@ -1,5 +1,5 @@
 // translation pass
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2008 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -156,6 +156,7 @@ struct c_unparser: public unparser, public visitor
   void visit_stat_op (stat_op* e);
   void visit_hist_op (hist_op* e);
   void visit_cast_op (cast_op* e);
+  void visit_defined_op (defined_op* e);
 };
 
 // A shadow visitor, meant to generate temporary variable declarations
@@ -3545,7 +3546,14 @@ c_unparser::visit_target_symbol (target_symbol* e)
 void
 c_unparser::visit_cast_op (cast_op* e)
 {
-  throw semantic_error("cannot translate general cast expression", e->tok);
+  throw semantic_error("cannot translate general @cast expression", e->tok);
+}
+
+
+void
+c_unparser::visit_defined_op (defined_op* e)
+{
+  throw semantic_error("cannot translate general @defined expression", e->tok);
 }
 
 
