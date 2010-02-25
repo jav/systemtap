@@ -1,0 +1,11 @@
+
+global initializedname="bar"
+global initializednumber=0
+global name
+global number
+
+probe begin
+{
+  printf ("initializedname=%s initializednumber=%d name=%s number=%d", initializedname, initializednumber, name, number);
+  exit();
+}
