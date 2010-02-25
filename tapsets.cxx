@@ -1846,8 +1846,8 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
     q(q), scope_die(sd), addr(a), add_block(NULL), add_call_probe(NULL),
     saved_longs(0), saved_strings(0), visited(false) {}
-  expression* gen_mapped_saved_return(target_symbol* e);
-  expression* gen_kretprobe_saved_return(target_symbol* e);
+  expression* gen_mapped_saved_return(expression* e, const string& base_name);
+  expression* gen_kretprobe_saved_return(expression* e, const string& base_name);
   void visit_target_symbol_saved_return (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
@@ -2014,12 +2014,27 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
       return;
     }
 
+  // Attempt the expansion directly first, so if there's a problem with the
+  // variable we won't have a bogus entry probe lying around.  Like in
+  // saveargs(), we pretend for a moment that we're not in a .return.
+  bool saved_has_return = q.has_return;
+  q.has_return = false;
+  expression *repl = e;
+  replace (repl);
+  q.has_return = saved_has_return;
+  target_symbol* n = dynamic_cast<target_symbol*>(repl);
+  if (n && n->saved_conversion_error)
+    {
+      provide (repl);
+      return;
+    }
+
   expression *exp;
   if (!q.has_process &&
       strverscmp(q.sess.kernel_base_release.c_str(), "2.6.25") >= 0)
-    exp = gen_kretprobe_saved_return(e);
+    exp = gen_kretprobe_saved_return(repl, e->base_name);
   else
-    exp = gen_mapped_saved_return(e);
+    exp = gen_mapped_saved_return(repl, e->base_name);
 
   // Provide the variable to our parent so it can be used as a
   // substitute for the target symbol.
@@ -2032,7 +2047,8 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
 }
 
 expression*
-dwarf_var_expanding_visitor::gen_mapped_saved_return(target_symbol* e)
+dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
+                                                     const string& base_name)
 {
   // We've got to do several things here to handle target
   // variables in return probes.
@@ -2046,7 +2062,7 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(target_symbol* e)
   //   _dwarf_tvar_{name}_{num}_ctr
 
   string aname = (string("_dwarf_tvar_")
-                  + e->base_name.substr(1)
+                  + base_name.substr(1)
                   + "_" + lex_cast(tick++));
   vardecl* vd = new vardecl;
   vd->name = aname;
@@ -2267,7 +2283,8 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(target_symbol* e)
 
 
 expression*
-dwarf_var_expanding_visitor::gen_kretprobe_saved_return(target_symbol* e)
+dwarf_var_expanding_visitor::gen_kretprobe_saved_return(expression* e,
+                                                        const string& base_name)
 {
   // The code for this is simple.
   //
@@ -2286,7 +2303,7 @@ dwarf_var_expanding_visitor::gen_kretprobe_saved_return(target_symbol* e)
   // character is a '$', then we're looking at a $$vars, $$parms, or $$locals.
   // XXX We need real type resolution here, especially if we are ever to
   //     support an @entry construct.
-  if (e->base_name[1] == '$')
+  if (base_name[1] == '$')
     {
       index = saved_strings++;
       setfn = "_set_kretprobe_string";
@@ -2450,14 +2467,14 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
   bool defined_being_checked = (defined_ops.size() > 0 && (defined_ops.top()->operand == e));
   // In this mode, we avoid hiding errors or generating extra code such as for .return saved $vars
 
-  try 
+  try
     {
       bool lvalue = is_active_lvalue(e);
       if (lvalue && !q.sess.guru_mode)
         throw semantic_error("write to target variable not permitted", e->tok);
 
       // XXX: process $context vars should be writeable
-      
+
       // See if we need to generate a new probe to save/access function
       // parameters from a return probe.  PR 1382.
       if (q.has_return
@@ -2478,28 +2495,28 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         {
           if (lvalue)
             throw semantic_error("cannot write to context variable", e->tok);
-          
+
           if (e->addressof)
             throw semantic_error("cannot take address of context variable", e->tok);
-          
+
           visit_target_symbol_context(e);
           return;
         }
-      
+
       // Synthesize a function.
       functiondecl *fdecl = new functiondecl;
       fdecl->tok = e->tok;
       embeddedcode *ec = new embeddedcode;
       ec->tok = e->tok;
-      
+
       string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
                       + "_" + e->base_name.substr(1)
                       + "_" + lex_cast(tick++));
-      
+
       // PR10601: adapt to kernel-vs-userspace loc2c-runtime
       ec->code += "\n#define fetch_register " + string(q.has_process?"u":"k") + "_fetch_register\n";
       ec->code += "#define store_register " + string(q.has_process?"u":"k") + "_store_register\n";
-      
+
       if (q.has_return && (e->base_name == "$return"))
         {
 	  ec->code += q.dw.literal_stmt_for_return (scope_die,
@@ -2529,7 +2546,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
       fdecl->name = fname;
       fdecl->body = ec;
-      
+
       // Any non-literal indexes need to be passed in too.
       for (unsigned i = 0; i < e->components.size(); ++i)
         if (e->components[i].type == target_symbol::comp_expression_array_index)
@@ -2540,17 +2557,17 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
             v->tok = e->tok;
             fdecl->formal_args.push_back(v);
           }
-      
+
       if (lvalue)
         {
           // Modify the fdecl so it carries a single pe_long formal
           // argument called "value".
-          
+
           // FIXME: For the time being we only support setting target
           // variables which have base types; these are 'pe_long' in
           // stap's type vocabulary.  Strings and pointers might be
           // reasonable, some day, but not today.
-          
+
           vardecl *v = new vardecl;
           v->type = pe_long;
           v->name = "value";
@@ -2558,18 +2575,18 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           fdecl->formal_args.push_back(v);
         }
       q.sess.functions[fdecl->name]=fdecl;
-      
+
       // Synthesize a functioncall.
       functioncall* n = new functioncall;
       n->tok = e->tok;
       n->function = fname;
       n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
-      
+
       // Any non-literal indexes need to be passed in too.
       for (unsigned i = 0; i < e->components.size(); ++i)
         if (e->components[i].type == target_symbol::comp_expression_array_index)
           n->args.push_back(require(e->components[i].expr_index));
-      
+
       if (lvalue)
         {
           // Provide the functioncall to our parent, so that it can be
@@ -2578,7 +2595,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           assert(!target_symbol_setter_functioncalls.empty());
           *(target_symbol_setter_functioncalls.top()) = n;
         }
-      
+
       provide (n);
     }
   catch (const semantic_error& er)
@@ -2599,9 +2616,9 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  //     function ("*") { $var }
           e->chain (saveme);
 	}
-      else 
+      else
 	{
-	  // Upon user request for ignoring context, the symbol is replaced 
+	  // Upon user request for ignoring context, the symbol is replaced
 	  // with a literal 0 and a warning message displayed
 	  literal_number* ln_zero = new literal_number (0);
 	  ln_zero->tok = e->tok;

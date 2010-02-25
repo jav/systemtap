@@ -2,17 +2,7 @@
 
 probe kernel.function("sys_open") { println(@defined($foobar)?$foobar:0)  } # invalid
 probe kernel.function("sys_open") { println(@defined($mode)?$mode:0)  }  # valid
-
-/*
-There is a problem with saved $target vars for retprobes.  The synthetic entry probe
-to collect $foobar is generated before pass-2's constant-folding can eliminate the
-$foobar in the middle operand of ? : 
-*/
-/*
 probe kernel.function("sys_open").return { println(@defined($foobar)?$foobar:0)  } # invalid
-*/
-probe kernel.function("sys_open").return { println(@defined($foobar)?1:0)  } # invalid
-
 probe kernel.function("sys_open").return { println(@defined($mode)?$mode:0)  } # valid
 probe kernel.trace("*")? { println(@defined($rw)?$rw:0) } # valid and invalid in places
 probe kernel.mark("*")? { println(@defined($foo)?$foo:0) } # invalid
