@@ -53,5 +53,11 @@ probe two
   - a
 
   # grammar glitch
-  a % b ; -- a ; ++ a ; a ++ ; a --
+  a % b ; -- a ; ++ a ; a ++ ; a -- ;
+
+  # chained unary operators
+  + + a ; + - a ; + ! a ; + ~ a ;
+  - + a ; - - a ; - ! a ; - ~ a ;
+  ! + a ; ! - a ; ! ! a ; ! ~ a ;
+  ~ + a ; ~ - a ; ~ ! a ; ~ ~ a ;
 }

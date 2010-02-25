@@ -2289,7 +2289,7 @@ parser::parse_unary ()
       e->op = t->content;
       e->tok = t;
       next ();
-      e->operand = parse_crement ();
+      e->operand = parse_unary ();
       return e;
     }
   else
