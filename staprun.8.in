@@ -87,6 +87,11 @@ If the size of output file will exceed
 output files exceed
 .B N
 , systemtap removes the oldest output file. You can omit the second argument.
+.TP
+.B var1=val
+Sets the value of global variable var1 to val. Global variables contained 
+within a module are treated as module options and can be set from the 
+staprun command line.
 
 .SH ARGUMENTS
 .B MODULE
@@ -98,7 +103,22 @@ the module will be looked for in the following directory
 .PP
 .\" TODO - we probably need a better description here.
 Any additional arguments on the command line are passed to the
-module.
+module.  One use of these additional module arguments is to set the value 
+of global variables declared within the module.
+.PP
+
+\& $ stap \-p4 \-m mod1 \-e\ \[aq]global var1="foo"; probe begin{printf("%s\\n", var1); exit()}\[aq]
+.br
+.PP
+Running this with an additional module argument:
+.PP
+
+\& $ staprun mod1.ko var1="HelloWorld"
+.br
+\& HelloWorld
+.PP
+Spaces and exclamation marks currently cannot be passed into global variables 
+this way.
 
 .SH EXAMPLES
 See the 
