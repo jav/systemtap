@@ -1,0 +1,4 @@
+#! stap -p2
+
+# no maxsize value
+probe procfs.read.maxsize { $value = "foo" }

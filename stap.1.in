@@ -1132,7 +1132,14 @@ should use, default unlimited.  The memory size includes the size of
 the module itself, plus any additional allocations.  This only tracks
 direct allocations by the systemtap runtime.  This does not track
 indirect allocations (as done by kprobes/uprobes/etc. internals). 
-
+.TP
+STP_PROCFS_BUFSIZE
+Size of procfs probe read buffers (in bytes).  Defaults to
+.IR MAXSTRINGLEN .
+This value can be overridden on a per-procfs file basis using the
+procfs read probe
+.I .maxsize(MAXSIZE)
+parameter.
 .PP
 With scripts that contain probes on any interrupt path, it is possible that
 those interrupts may occur in the middle of another probe handler.  The probe

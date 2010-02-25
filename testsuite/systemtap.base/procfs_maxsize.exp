@@ -1,0 +1,288 @@
+# Handle varying sizes of procfs buffers.
+
+set test "PROCFS_BUFFER"
+if {![installtest_p]} { untested $test; return }
+
+proc proc_read_value { test path} {
+    set value "<unknown>"
+    if [catch {open $path RDONLY} channel] {
+	fail "$test $channel"
+    } else {
+	set value [read -nonewline $channel]
+	close $channel
+	pass "$test read $value"
+    }
+    return $value
+}
+
+proc proc_write_value { test path value } {
+    if [catch {open $path WRONLY} channel] {
+	fail "$test $channel"
+    } else {
+	puts -nonewline $channel $value
+	close $channel
+	pass "$test wrote $value"
+    }
+}
+
+proc proc_read_write_counted { test maxsize } {
+    set path "/proc/systemtap/$test/command"
+    set fullstring "abcdefghijklmnoABCDEFGHIJKLMNOpqrstuvwxyz123456789"
+
+    # Read the file
+    set value [proc_read_value $test $path]
+
+    set value2 [string range $fullstring 0 [expr $maxsize - 2]]
+    if { $value == $value2 } {
+	pass "$test received correct initial value"
+    } else {
+	fail "$test received incorrect initial value: $value ($value2)"
+    }
+
+    # Write a new value.
+    proc_write_value $test $path $fullstring
+
+    return 0;
+}
+
+# Expect 32 byte return from reading procfs file.
+proc proc_read_write_32 {} {
+    global test
+    proc_read_write_counted $test 32
+}
+
+# Expect 16 byte return from reading procfs file.
+proc proc_read_write_16 {} {
+    global test
+    proc_read_write_counted $test 16
+}
+
+set script1 {
+    global values[10]
+    global idx = 0
+
+    probe procfs.read {
+	$value = "abcdefghijklmno"
+	$value .= "ABCDEFGHIJKLMNO"
+	$value .= "pqrstuvwxyz1234"
+    }
+    probe procfs.write {
+	values[idx] = $value
+	idx++
+    }
+
+    probe begin {
+        printf("systemtap starting probe\n")
+    }
+    probe end {
+        printf("systemtap ending probe\n")
+	for (i = 0; i < idx; i++) {
+	    printf("value%d=%s\n", i, values[i])
+	}
+    }
+}
+
+# Output strings in 16 and 32 byte chunks.
+set output_string_16 "value0=abcdefghijklmno\r\nvalue1=ABCDEFGHIJKLMNO\r\nvalue2=pqrstuvwxyz1234\r\nvalue3=56789\r\n"
+set output_string_32 "value0=abcdefghijklmnoABCDEFGHIJKLMNOp\r\nvalue1=qrstuvwxyz123456789\r\n"
+
+# By default, setting MAXSTRINGLEN should set the size of
+# procfs read and write buffers.
+set test "PROCFS_BUFFER1"
+stap_run $test proc_read_write_32 $output_string_32 -DMAXSTRINGLEN=32 -e $script1 -m $test
+exec /bin/rm -f ${test}.ko
+
+# Try with MAXSTRINGLEN=32 and STP_PROCFS_BUFSIZE=16
+set test "PROCFS_BUFFER2"
+stap_run $test proc_read_write_16 $output_string_16 -DMAXSTRINGLEN=32 -DSTP_PROCFS_BUFSIZE=16 -e $script1 -m $test
+exec /bin/rm -f ${test}.ko
+
+# Try with MAXSTRINGLEN=16 and STP_PROCFS_BUFSIZE=32.  Note that in
+# this case, even though the procfs buffer is 32 bytes in size, since
+# strings can only hold 16 bytes, the expected output is the same as
+# in the previous test.
+set test "PROCFS_BUFFER3"
+stap_run $test proc_read_write_32 $output_string_16 -DMAXSTRINGLEN=16 -DSTP_PROCFS_BUFSIZE=32 -e $script1 -m $test
+exec /bin/rm -f ${test}.ko
+
+# script2 has a '.maxsize(32). override
+set script2 {
+    global values[10]
+    global idx = 0
+
+    probe procfs.read.maxsize(32) {
+	$value = "abcdefghijklmno"
+	$value .= "ABCDEFGHIJKLMNO"
+	$value .= "pqrstuvwxyz1234"
+    }
+    probe procfs.write {
+	values[idx] = $value
+	idx++
+    }
+
+    probe begin {
+        printf("systemtap starting probe\n")
+    }
+    probe end {
+        printf("systemtap ending probe\n")
+	for (i = 0; i < idx; i++) {
+	    printf("value%d=%s\n", i, values[i])
+	}
+    }
+}
+
+# By default, setting MAXSTRINGLEN should set the size of
+# procfs read and write buffers.  But script2 has a '.maxsize(32)'
+# override.
+set test "PROCFS_BUFFER4"
+stap_run $test proc_read_write_32 $output_string_16 -DMAXSTRINGLEN=16 -e $script2 -m $test
+exec /bin/rm -f ${test}.ko
+
+# The script2 '.maxsize(32)' override should override even setting
+# STP_PROCFS_BUFSIZE.
+set test "PROCFS_BUFFER5"
+stap_run $test proc_read_write_32 $output_string_16 -DMAXSTRINGLEN=16 -DSTP_PROCFS_BUFSIZE=64 -e $script2 -m $test
+exec /bin/rm -f ${test}.ko
+
+# script3 has a maxsize override and a default size file
+set script3 {
+    global values[10]
+    global idx = 0
+
+    probe procfs("default").read {
+	$value = "abcdefghijklmno"
+	$value .= "ABCDEFGHIJKLMNO"
+	$value .= "pqrstuvwxyz1234"
+    }
+    probe procfs.read.maxsize(32) {
+	$value = "abcdefghijklmno"
+	$value .= "ABCDEFGHIJKLMNO"
+	$value .= "pqrstuvwxyz1234"
+    }
+    probe procfs.write {
+	values[idx] = $value
+	idx++
+    }
+
+    probe begin {
+        printf("systemtap starting probe\n")
+    }
+    probe end {
+        printf("systemtap ending probe\n")
+	for (i = 0; i < idx; i++) {
+	    printf("value%d=%s\n", i, values[i])
+	}
+    }
+}
+
+proc proc_read_write_default_32 {} {
+    global test
+
+    set path "/proc/systemtap/$test/default"
+    set value2 "abcdefghijklmno"
+
+    # Read the file
+    set value [proc_read_value $test $path]
+    if { $value == $value2 } {
+	pass "$test received correct initial value"
+    } else {
+	fail "$test received incorrect initial value: $value ($value2)"
+    }
+
+    proc_read_write_counted $test 32
+}
+
+set test "PROCFS_BUFFER6"
+stap_run $test proc_read_write_default_32 $output_string_16 -DMAXSTRINGLEN=16 -e $script3 -m $test
+exec /bin/rm -f ${test}.ko
+
+set script4 {
+    global large_strings[10]
+
+    # Put more data than we can really handle into $value
+    probe procfs.read.maxsize(2048) {
+	$value = large_strings[0]
+	for (i = 1; i < 10; i+=1) {
+	    $value .= large_strings[i]
+	}
+    }
+
+    probe begin {
+	# build up several maximum length strings
+	max = 512
+	for (i = 0; i < max/64; i+=1) {
+	    for (j = 0; j < 10; j++) {
+		if (i < (max/64 - 1)) {
+		    large_strings[j] .= sprintf("%3d:12345678901234567890123456789012345678901234567890123456789\n",
+						i + (j * (max/64)))
+		}
+		else {
+		    large_strings[j] .= sprintf("%3d:1234567890123456789012345678901234567890123456789012345678\n",
+						i + (j * (max/64)))
+		}
+	    }
+	}
+        printf("systemtap starting probe\n")
+    }
+    probe end {
+        printf("systemtap ending probe\n")
+    }
+}
+
+proc proc_read_big {} {
+    global test
+    global test_string
+
+    set path "/proc/systemtap/$test/command"
+
+    # Read the file
+    set value [proc_read_value $test $path]
+
+    # set value2 [string range $fullstring 0 [expr $maxsize - 2]]
+    if { $value == $test_string } {
+	pass "$test received correct initial value"
+    } else {
+	fail "$test received incorrect initial value: $value ($test_string)"
+    }
+    return 0;
+}
+
+set test_string \
+"  0:12345678901234567890123456789012345678901234567890123456789
+  1:12345678901234567890123456789012345678901234567890123456789
+  2:12345678901234567890123456789012345678901234567890123456789
+  3:12345678901234567890123456789012345678901234567890123456789
+  4:12345678901234567890123456789012345678901234567890123456789
+  5:12345678901234567890123456789012345678901234567890123456789
+  6:12345678901234567890123456789012345678901234567890123456789
+  7:1234567890123456789012345678901234567890123456789012345678
+  8:12345678901234567890123456789012345678901234567890123456789
+  9:12345678901234567890123456789012345678901234567890123456789
+ 10:12345678901234567890123456789012345678901234567890123456789
+ 11:12345678901234567890123456789012345678901234567890123456789
+ 12:12345678901234567890123456789012345678901234567890123456789
+ 13:12345678901234567890123456789012345678901234567890123456789
+ 14:12345678901234567890123456789012345678901234567890123456789
+ 15:1234567890123456789012345678901234567890123456789012345678
+ 16:12345678901234567890123456789012345678901234567890123456789
+ 17:12345678901234567890123456789012345678901234567890123456789
+ 18:12345678901234567890123456789012345678901234567890123456789
+ 19:12345678901234567890123456789012345678901234567890123456789
+ 20:12345678901234567890123456789012345678901234567890123456789
+ 21:12345678901234567890123456789012345678901234567890123456789
+ 22:12345678901234567890123456789012345678901234567890123456789
+ 23:1234567890123456789012345678901234567890123456789012345678
+ 24:12345678901234567890123456789012345678901234567890123456789
+ 25:12345678901234567890123456789012345678901234567890123456789
+ 26:12345678901234567890123456789012345678901234567890123456789
+ 27:12345678901234567890123456789012345678901234567890123456789
+ 28:12345678901234567890123456789012345678901234567890123456789
+ 29:12345678901234567890123456789012345678901234567890123456789
+ 30:12345678901234567890123456789012345678901234567890123456789
+ 31:1234567890123456789012345678901234567890123456789012345678
+ 32"
+
+# Test outputting 2K worth of data in one shot.
+set test "PROCFS_BUFFER7"
+stap_run $test proc_read_big "" -DMAXSTRINGLEN=512 -e $script4 -m $test
+exec /bin/rm -f ${test}.ko

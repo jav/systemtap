@@ -549,13 +549,15 @@ These probe points allow procfs "files" in
 is the name of the systemtap module). The
 .I proc
 filesystem is a pseudo-filesystem which is used an an interface to
-kernel data structures.  There are four probe point variants supported
+kernel data structures.  There are several probe point variants supported
 by the translator:
 
 .SAMPLE
 procfs("PATH").read
+procfs("PATH").read.maxsize(MAXSIZE)
 procfs("PATH").write
 procfs.read
+procfs.read.maxsize(MAXSIZE)
 procfs.write
 .ESAMPLE
 
@@ -589,6 +591,32 @@ like this:
 
 .SAMPLE
 procfs("PATH").write { printf("user wrote: %s", $value) }
+.ESAMPLE
+.PP
+.I MAXSIZE
+is the size of the procfs read buffer.  Specifying
+.I MAXSIZE
+allows larger procfs output.  If no
+.I MAXSIZE
+is specified, the procfs read buffer defaults to
+.I STP_PROCFS_BUFSIZE
+(which defaults to
+.IR MAXSTRINGLEN ,
+the maximum length of a string).
+If setting the procfs read buffers for more than one file is needed,
+it may be easiest to override the
+.I STP_PROCFS_BUFSIZE
+definition.
+Here's an example of using
+.IR MAXSIZE :
+
+.SAMPLE
+procfs.read.maxsize(1024) {
+    $value = "long string..."
+    $value .= "another long string..."
+    $value .= "another long string..."
+    $value .= "another long string..."
+}
 .ESAMPLE
 
 .SS MARKERS

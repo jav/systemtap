@@ -27,7 +27,7 @@ proc proc_write_value { test path value} {
 }
 
 proc proc_read_write {} {
-    set test "PROCFS"
+    global test
     set path "/proc/systemtap/$test/command"
 
     # read the initial value, which should be '100'

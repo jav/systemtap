@@ -1,0 +1,4 @@
+#! stap -p2
+
+# use -1 as a maxsize value
+probe procfs("foo").read.maxsize(-1) { $value = "foo" }

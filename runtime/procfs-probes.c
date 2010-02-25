@@ -9,7 +9,8 @@
 // translation process.  It really should go here.
 struct _stp_procfs_data {
 	char *buffer;
-	unsigned long count;
+	size_t bufsize;
+	size_t count;
 };
 #endif
 
@@ -20,10 +21,8 @@ struct stap_procfs_probe {
 	const char *write_pp;
 	void (*write_ph) (struct context*);
 
-	// FIXME: Eventually, this could get bigger than MAXSTRINGLEN
-	// when we support 'probe procfs("file").read.maxbuf(8192)'
-	// (bug 10690).
-	string_t buffer;
+	char *buffer;
+	const size_t bufsize;
 	size_t count;
 
 	int needs_fill;
