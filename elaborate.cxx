@@ -3158,15 +3158,95 @@ const_folder::visit_unary_expression (unary_expression* e)
 void
 const_folder::visit_logical_or_expr (logical_or_expr* e)
 {
-  // TODO
-  update_visitor::visit_logical_or_expr (e);
+  int64_t value;
+  literal_number* left = get_number (e->left);
+  literal_number* right = get_number (e->right);
+
+  if (left && right)
+    value = left->value || right->value;
+
+  else if ((left && left->value) || (right && right->value))
+    {
+      // If the const is on the left, we get to short-circuit the right
+      // immediately.  Otherwise, we can only eliminate the LHS if it's pure.
+      if (right)
+        {
+          varuse_collecting_visitor vu(session);
+          e->left->visit(&vu);
+          if (!vu.side_effect_free())
+            {
+              provide (e);
+              return;
+            }
+        }
+
+      value = 1;
+    }
+
+  // We might also get rid of useless "0||x" and "x||0", except it does
+  // normalize x to 0 or 1.  We could change it to "!!x", but it's not clear
+  // that this would gain us much.
+
+  else
+    {
+      provide (e);
+      return;
+    }
+
+  if (session.verbose>2)
+    clog << "Collapsing constant logical-OR " << *e->tok << endl;
+  relaxed_p = false;
+
+  literal_number* n = new literal_number(value);
+  n->tok = e->tok;
+  n->visit (this);
 }
 
 void
 const_folder::visit_logical_and_expr (logical_and_expr* e)
 {
-  // TODO
-  update_visitor::visit_logical_and_expr (e);
+  int64_t value;
+  literal_number* left = get_number (e->left);
+  literal_number* right = get_number (e->right);
+
+  if (left && right)
+    value = left->value && right->value;
+
+  else if ((left && !left->value) || (right && !right->value))
+    {
+      // If the const is on the left, we get to short-circuit the right
+      // immediately.  Otherwise, we can only eliminate the LHS if it's pure.
+      if (right)
+        {
+          varuse_collecting_visitor vu(session);
+          e->left->visit(&vu);
+          if (!vu.side_effect_free())
+            {
+              provide (e);
+              return;
+            }
+        }
+
+      value = 0;
+    }
+
+  // We might also get rid of useless "1&&x" and "x&&1", except it does
+  // normalize x to 0 or 1.  We could change it to "!!x", but it's not clear
+  // that this would gain us much.
+
+  else
+    {
+      provide (e);
+      return;
+    }
+
+  if (session.verbose>2)
+    clog << "Collapsing constant logical-AND " << *e->tok << endl;
+  relaxed_p = false;
+
+  literal_number* n = new literal_number(value);
+  n->tok = e->tok;
+  n->visit (this);
 }
 
 void
