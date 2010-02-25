@@ -3123,8 +3123,103 @@ const_folder::visit_foreach_loop (foreach_loop* s)
 void
 const_folder::visit_binary_expression (binary_expression* e)
 {
-  // TODO
-  update_visitor::visit_binary_expression (e);
+  int64_t value;
+  literal_number* left = get_number (e->left);
+  literal_number* right = get_number (e->right);
+
+  if (right && !right->value && (e->op == "/" || e->op == "%"))
+    {
+      // Give divide-by-zero a chance to be optimized out elsewhere,
+      // and if not it will be a runtime error anyway...
+      provide (e);
+      return;
+    }
+
+  if (left && right)
+    {
+      if (e->op == "+")
+        value = left->value + right->value;
+      else if (e->op == "-")
+        value = left->value - right->value;
+      else if (e->op == "*")
+        value = left->value * right->value;
+      else if (e->op == "&")
+        value = left->value & right->value;
+      else if (e->op == "|")
+        value = left->value | right->value;
+      else if (e->op == "^")
+        value = left->value ^ right->value;
+      else if (e->op == ">>")
+        value = left->value >> max(min(right->value, (int64_t)64), (int64_t)0);
+      else if (e->op == "<<")
+        value = left->value << max(min(right->value, (int64_t)64), (int64_t)0);
+      else if (e->op == "/")
+        value = (left->value == LLONG_MIN && right->value == -1) ? LLONG_MIN :
+                left->value / right->value;
+      else if (e->op == "%")
+        value = (left->value == LLONG_MIN && right->value == -1) ? 0 :
+                left->value % right->value;
+      else
+        throw semantic_error ("unsupported binary operator " + e->op);
+    }
+
+  else if ((left && ((left->value == 0 && (e->op == "*" || e->op == "&" ||
+                                           e->op == ">>" || e->op == "<<" )) ||
+                     (left->value ==-1 && (e->op == "|" || e->op == ">>"))))
+           ||
+           (right && ((right->value == 0 && (e->op == "*" || e->op == "&")) ||
+                      (right->value == 1 && (e->op == "%")) ||
+                      (right->value ==-1 && (e->op == "%" || e->op == "|")))))
+    {
+      expression* other = left ? e->right : e->left;
+      varuse_collecting_visitor vu(session);
+      other->visit(&vu);
+      if (!vu.side_effect_free())
+        {
+          provide (e);
+          return;
+        }
+
+      if (left)
+        value = left->value;
+      else if (e->op == "%")
+        value = 0;
+      else
+        value = right->value;
+    }
+
+  else if ((left && ((left->value == 0 && (e->op == "+" || e->op == "|" ||
+                                           e->op == "^")) ||
+                     (left->value == 1 && (e->op == "*")) ||
+                     (left->value ==-1 && (e->op == "&"))))
+           ||
+           (right && ((right->value == 0 && (e->op == "+" || e->op == "-" ||
+                                             e->op == "|" || e->op == "^")) ||
+                      (right->value == 1 && (e->op == "*" || e->op == "/")) ||
+                      (right->value ==-1 && (e->op == "&")) ||
+                      (right->value <= 0 && (e->op == ">>" || e->op == "<<")))))
+    {
+      if (session.verbose>2)
+        clog << "Collapsing constant-identity binary operator " << *e->tok << endl;
+      relaxed_p = false;
+
+      provide (left ? e->right : e->left);
+      return;
+    }
+
+  else
+    {
+      provide (e);
+      return;
+    }
+
+  if (session.verbose>2)
+    clog << "Collapsing constant binary operator " << *e->tok << endl;
+  relaxed_p = false;
+
+  literal_number* n = new literal_number(value);
+  n->tok = e->tok;
+  n->visit (this);
 }
 
 void
