@@ -88,6 +88,8 @@ do
                 if [ "x$outfile" = "x-" ]; then
                     : # keep default ifndef_symbol
                 else
+                    newdir=$(mktemp -t -d git_version_XXXXXX)
+                    outfilenew="$newdir/$1.new"
                     ifndef_symbol=`basename "$outfile" | $SED 's|\.|_|g; s|[^A-Za-z0-9_]||g' | tr a-z A-Z`
                 fi
             else
@@ -133,7 +135,7 @@ if [ "x$outfile" = "x-" ]
 then
     : # keep using stdout
 else
-    exec 1> "${outfile}.new"
+    exec 1> "${outfilenew}"
 fi
 
 # Done with creating output files, so we can change to source dir
@@ -353,18 +355,19 @@ then
     if [ -f "$outfile" ]; then
         if [ "x$keep_if_no_repo" = "xyes" ] && [ "x$git_repo" = "xno" ]; then
             "$quiet" || echo "$self: Not a git repo, keeping existing $outfile" >&2
-            rm -f "$outfile.new"
-        elif cmp "$outfile" "$outfile.new" > /dev/null; then
+            rm -f "$outfilenew"
+        elif cmp "$outfile" "$outfilenew" > /dev/null; then
             "$quiet" || echo "$self: Output is unchanged, keeping $outfile" >&2
-            rm -f "$outfile.new"
+            rm -f "$outfilenew"
         else
             echo "$self: Output has changed, updating $outfile" >&2
-            mv -f "$outfile.new" "$outfile"
+            mv -f "$outfilenew" "$outfile"
         fi
     else
         echo "$self: Output is new file, creating $outfile" >&2
-        mv -f "$outfile.new" "$outfile"
+        mv -f "$outfilenew" "$outfile"
     fi
+    rmdir "$newdir"
 fi
 
 # THE END.
