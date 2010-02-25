@@ -3,9 +3,6 @@
 /* Configuration/build date */
 #undef DATE
 
-/* librpm version specific library name to dlopen. */
-#undef DLOPEN_LIBRPM
-
 /* make -P prologue-searching default */
 #undef ENABLE_PROLOGUES
 
@@ -33,7 +30,7 @@
 /* Define to 1 if you have the `pfm' library (-lpfm). */
 #undef HAVE_LIBPFM
 
-/* Define if librpm library is being used. */
+/* Define to 1 if you have the `rpm' library (-lrpm). */
 #undef HAVE_LIBRPM
 
 /* Define to 1 if you have the `sqlite3' library (-lsqlite3). */

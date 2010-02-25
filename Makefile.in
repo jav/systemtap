@@ -91,7 +91,7 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(top_srcdir)/initscript/systemtap.in \
 	$(top_srcdir)/initscript/stap-server.in $(srcdir)/dtrace.1.in \
 	$(srcdir)/run-stap.in $(srcdir)/run-staprun.in \
-	$(srcdir)/dtrace.in depcomp depcomp $(oldinclude_HEADERS)
+	$(srcdir)/dtrace.in depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -326,8 +326,6 @@ PIELDFLAGS = @PIELDFLAGS@
 PKG_CONFIG = @PKG_CONFIG@
 PUBLICAN_BRAND = @PUBLICAN_BRAND@
 RANLIB = @RANLIB@
-RPM_CFLAGS = @RPM_CFLAGS@
-RPM_LIBS = @RPM_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -382,7 +380,6 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-rpm_LIBS = @rpm_LIBS@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sqlite3_LIBS = @sqlite3_LIBS@
@@ -423,7 +420,7 @@ oldinclude_HEADERS = includes/sys/sdt.h
 @BUILD_TRANSLATOR_TRUE@	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
 @BUILD_TRANSLATOR_TRUE@	setupdwfl.cxx
 
-@BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @rpm_LIBS@
+@BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 @BUILD_TRANSLATOR_TRUE@stap_DEPENDENCIES = $(am__append_17)
 
 # Arrange for git_version.h to be regenerated at every "make".
