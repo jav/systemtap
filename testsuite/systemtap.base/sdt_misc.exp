@@ -170,7 +170,7 @@ close $fp
 if {[installtest_p]} { 
     set dtrace $env(SYSTEMTAP_PATH)/dtrace 
 } else {
-    set dtrace $srcdir/../dtrace
+    set dtrace ../dtrace
 }
 if {[catch {exec $dtrace --types -h -s $sup_dpath} res]} {
     verbose -log "unable to run $dtrace: $res"

@@ -582,20 +582,29 @@ utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
-  if (flags != UDPF_SYSCALL && flags != UDPF_SYSCALL_RETURN)
-    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
-			  e->tok);
-
-  if (e->addressof)
-    throw semantic_error("cannot take address of utrace variable", e->tok);
-
-  if (e->base_name.substr(0,4) == "$arg" || e->base_name == "$$parms")
-    visit_target_symbol_arg(e);
-  else if (e->base_name == "$syscall" || e->base_name == "$return")
-    visit_target_symbol_context(e);
-  else
-    throw semantic_error ("invalid target symbol for utrace probe, $syscall, $return, $argN or $$parms expected",
-			  e->tok);
+  try 
+    {
+      if (flags != UDPF_SYSCALL && flags != UDPF_SYSCALL_RETURN)
+        throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
+                              e->tok);
+      
+      if (e->addressof)
+        throw semantic_error("cannot take address of utrace variable", e->tok);
+      
+      if (e->base_name.substr(0,4) == "$arg" || e->base_name == "$$parms")
+        visit_target_symbol_arg(e);
+      else if (e->base_name == "$syscall" || e->base_name == "$return")
+        visit_target_symbol_context(e);
+      else
+        throw semantic_error ("invalid target symbol for utrace probe, $syscall, $return, $argN or $$parms expected",
+                              e->tok);
+    }
+  catch (const semantic_error &er) 
+    {
+      e->chain (new semantic_error(er));
+      provide(e);
+      return;
+    }
 }
 
 

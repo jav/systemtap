@@ -223,6 +223,14 @@ target_symbol::assert_no_components(const std::string& tapset)
 }
 
 
+void target_symbol::chain (semantic_error *e)
+{
+  assert (e->chain == 0);
+  e->chain = this->saved_conversion_error;
+  this->saved_conversion_error = e;
+}
+
+
 // ------------------------------------------------------------------------
 // parse tree printing
 

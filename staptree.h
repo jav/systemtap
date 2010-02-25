@@ -255,8 +255,9 @@ struct target_symbol: public symbol
   std::string base_name;
   std::vector<component> components;
   std::string probe_context_var; // NB: this being set implies that target_symbol is *resolved*
-  semantic_error* saved_conversion_error;
+  semantic_error* saved_conversion_error; // hand-made linked list
   target_symbol(): addressof(false), saved_conversion_error (0) {}
+  void chain (semantic_error* e);
   void print (std::ostream& o) const;
   void visit (visitor* u);
   void visit_components (visitor* u);

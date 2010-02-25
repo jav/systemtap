@@ -182,19 +182,26 @@ mark_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
-  if (e->addressof)
-    throw semantic_error("cannot take address of marker variable", e->tok);
-
-  if (e->base_name.substr(0,4) == "$arg")
-    visit_target_symbol_arg (e);
-  else if (e->base_name == "$format" || e->base_name == "$name" 
-           || e->base_name == "$$parms" || e->base_name == "$$vars")
-    visit_target_symbol_context (e);
-  else
-    throw semantic_error ("invalid target symbol for marker, $argN, $name, $format, $$parms or $$vars expected",
-			  e->tok);
+  try
+    {
+      if (e->addressof)
+        throw semantic_error("cannot take address of marker variable", e->tok);
+      
+      if (e->base_name.substr(0,4) == "$arg")
+        visit_target_symbol_arg (e);
+      else if (e->base_name == "$format" || e->base_name == "$name" 
+               || e->base_name == "$$parms" || e->base_name == "$$vars")
+        visit_target_symbol_context (e);
+      else
+        throw semantic_error ("invalid target symbol for marker, $argN, $name, $format, $$parms or $$vars expected",
+                              e->tok);
+    }
+  catch (const semantic_error &er)
+    {
+      e->chain (new semantic_error(er));
+      provide (e);
+    }
 }
-
 
 
 mark_derived_probe::mark_derived_probe (systemtap_session &s,

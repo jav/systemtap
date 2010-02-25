@@ -1949,10 +1949,20 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
     expression *foo1 = e->operand;
     foo1 = require (foo1);
 
-    // NB: we have some curious cases to consider here, depending on what
+    // NB: Formerly, we had some curious cases to consider here, depending on what
     // various visit_target_symbol() implementations do for successful or
-    // erroneous resolutions.
+    // erroneous resolutions.  Some would signal a visit_target_symbol failure
+    // with an exception, with a set flag within the target_symbol, or nothing
+    // at all.
     //
+    // Now, failures always have to be signalled with a
+    // saved_conversion_error being chained to the target_symbol.
+    // Successes have to result in an attempted rewrite of the
+    // target_symbol (via provide()), or setting the probe_context_var
+    // (ugh).
+    // 
+    // Edna Mode: "no capes".  fche: "no exceptions".
+
     // dwarf stuff: success: rewrites to a function; failure: retains target_symbol, sets saved_conversion_error
     //
     // sdt-kprobes sdt.h: success: string or functioncall; failure: semantic_error
@@ -1967,16 +1977,16 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
     // procfs: success: sets probe_context_var; failure: semantic_error
 
     target_symbol* foo2 = dynamic_cast<target_symbol*> (foo1);
-    if (foo2 && foo2->saved_conversion_error) // failing dwarf
+    if (foo2 && foo2->saved_conversion_error) // failing
       resolved = false;
-    else if (foo2 && foo2->probe_context_var != "") // successful procfs etc.
+    else if (foo2 && foo2->probe_context_var != "") // successful
       resolved = true;
-    else if (foo2) // unresolved but otherwise unremarked, for catching at translate time
-      resolved = false;
+    else if (foo2) // unresolved but not marked either way
+      assert (0); // should not happen
     else // resolved, rewritten to some other expression type
       resolved = true;
   } catch (const semantic_error& e) { 
-    resolved = false;
+    assert (0); // should not happen
   }
   defined_ops.pop ();
 
@@ -2437,56 +2447,55 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
   visited = true;
-  
   bool defined_being_checked = (defined_ops.size() > 0 && (defined_ops.top()->operand == e));
   // In this mode, we avoid hiding errors or generating extra code such as for .return saved $vars
 
-  bool lvalue = is_active_lvalue(e);
-  if (lvalue && !q.sess.guru_mode)
-    throw semantic_error("write to target variable not permitted", e->tok);
-  // XXX: process $context vars should be writeable
-
-  // See if we need to generate a new probe to save/access function
-  // parameters from a return probe.  PR 1382.
-  if (q.has_return
-      && !defined_being_checked
-      && e->base_name != "$return" // not the special return-value variable handled below
-      && e->base_name != "$$return") // nor the other special variable handled below
+  try 
     {
-      if (lvalue)
-	throw semantic_error("write to target variable not permitted in .return probes", e->tok);
+      bool lvalue = is_active_lvalue(e);
+      if (lvalue && !q.sess.guru_mode)
+        throw semantic_error("write to target variable not permitted", e->tok);
 
-      visit_target_symbol_saved_return(e);
-      return;
-    }
+      // XXX: process $context vars should be writeable
+      
+      // See if we need to generate a new probe to save/access function
+      // parameters from a return probe.  PR 1382.
+      if (q.has_return
+          && !defined_being_checked
+          && e->base_name != "$return" // not the special return-value variable handled below
+          && e->base_name != "$$return") // nor the other special variable handled below
+        {
+          if (lvalue)
+            throw semantic_error("write to target variable not permitted in .return probes", e->tok);
+          visit_target_symbol_saved_return(e);
+          return;
+        }
 
-  if (e->base_name == "$$vars"
-      || e->base_name == "$$parms"
-      || e->base_name == "$$locals"
-      || (q.has_return && (e->base_name == "$$return")))
-    {
-      if (lvalue)
-	throw semantic_error("cannot write to context variable", e->tok);
-
-      if (e->addressof)
-        throw semantic_error("cannot take address of context variable", e->tok);
-
-      visit_target_symbol_context(e);
-      return;
-    }
-
-  // Synthesize a function.
-  functiondecl *fdecl = new functiondecl;
-  fdecl->tok = e->tok;
-  embeddedcode *ec = new embeddedcode;
-  ec->tok = e->tok;
-
-  string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
-		  + "_" + e->base_name.substr(1)
-		  + "_" + lex_cast(tick++));
-
-  try
-    {
+      if (e->base_name == "$$vars"
+          || e->base_name == "$$parms"
+          || e->base_name == "$$locals"
+          || (q.has_return && (e->base_name == "$$return")))
+        {
+          if (lvalue)
+            throw semantic_error("cannot write to context variable", e->tok);
+          
+          if (e->addressof)
+            throw semantic_error("cannot take address of context variable", e->tok);
+          
+          visit_target_symbol_context(e);
+          return;
+        }
+      
+      // Synthesize a function.
+      functiondecl *fdecl = new functiondecl;
+      fdecl->tok = e->tok;
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = e->tok;
+      
+      string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
+                      + "_" + e->base_name.substr(1)
+                      + "_" + lex_cast(tick++));
+      
       // PR10601: adapt to kernel-vs-userspace loc2c-runtime
       ec->code += "\n#define fetch_register " + string(q.has_process?"u":"k") + "_fetch_register\n";
       ec->code += "#define store_register " + string(q.has_process?"u":"k") + "_store_register\n";
@@ -2517,12 +2526,66 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       // PR10601
       ec->code += "\n#undef fetch_register\n";
       ec->code += "\n#undef store_register\n";
+
+      fdecl->name = fname;
+      fdecl->body = ec;
+      
+      // Any non-literal indexes need to be passed in too.
+      for (unsigned i = 0; i < e->components.size(); ++i)
+        if (e->components[i].type == target_symbol::comp_expression_array_index)
+          {
+            vardecl *v = new vardecl;
+            v->type = pe_long;
+            v->name = "index" + lex_cast(i);
+            v->tok = e->tok;
+            fdecl->formal_args.push_back(v);
+          }
+      
+      if (lvalue)
+        {
+          // Modify the fdecl so it carries a single pe_long formal
+          // argument called "value".
+          
+          // FIXME: For the time being we only support setting target
+          // variables which have base types; these are 'pe_long' in
+          // stap's type vocabulary.  Strings and pointers might be
+          // reasonable, some day, but not today.
+          
+          vardecl *v = new vardecl;
+          v->type = pe_long;
+          v->name = "value";
+          v->tok = e->tok;
+          fdecl->formal_args.push_back(v);
+        }
+      q.sess.functions[fdecl->name]=fdecl;
+      
+      // Synthesize a functioncall.
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = fname;
+      n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
+      
+      // Any non-literal indexes need to be passed in too.
+      for (unsigned i = 0; i < e->components.size(); ++i)
+        if (e->components[i].type == target_symbol::comp_expression_array_index)
+          n->args.push_back(require(e->components[i].expr_index));
+      
+      if (lvalue)
+        {
+          // Provide the functioncall to our parent, so that it can be
+          // used to substitute for the assignment node immediately above
+          // us.
+          assert(!target_symbol_setter_functioncalls.empty());
+          *(target_symbol_setter_functioncalls.top()) = n;
+        }
+      
+      provide (n);
     }
   catch (const semantic_error& er)
     {
       // NB: with --skip-badvars, @defined() still wins in that it may expand to 0
       // for nonexistent $variables.
-      if (!q.sess.skip_badvars || defined_being_checked)
+      if (!q.sess.skip_badvars)
 	{
 	  // We suppress this error message, and pass the unresolved
 	  // target_symbol to the next pass.  We hope that this value ends
@@ -2534,8 +2597,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // NB: we can have multiple errors, since a $target variable
 	  // may be expanded in several different contexts:
 	  //     function ("*") { $var }
-	  saveme->chain = e->saved_conversion_error;
-	  e->saved_conversion_error = saveme;
+          e->chain (saveme);
 	}
       else 
 	{
@@ -2548,64 +2610,8 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
             q.sess.print_warning ("Bad $context variable being substituted with literal 0",
                                   e->tok);
 	}
-      delete fdecl;
-      delete ec;
       return;
     }
-
-  fdecl->name = fname;
-  fdecl->body = ec;
-
-  // Any non-literal indexes need to be passed in too.
-  for (unsigned i = 0; i < e->components.size(); ++i)
-    if (e->components[i].type == target_symbol::comp_expression_array_index)
-      {
-        vardecl *v = new vardecl;
-        v->type = pe_long;
-        v->name = "index" + lex_cast(i);
-        v->tok = e->tok;
-        fdecl->formal_args.push_back(v);
-      }
-
-  if (lvalue)
-    {
-      // Modify the fdecl so it carries a single pe_long formal
-      // argument called "value".
-
-      // FIXME: For the time being we only support setting target
-      // variables which have base types; these are 'pe_long' in
-      // stap's type vocabulary.  Strings and pointers might be
-      // reasonable, some day, but not today.
-
-      vardecl *v = new vardecl;
-      v->type = pe_long;
-      v->name = "value";
-      v->tok = e->tok;
-      fdecl->formal_args.push_back(v);
-    }
-  q.sess.functions[fdecl->name]=fdecl;
-
-  // Synthesize a functioncall.
-  functioncall* n = new functioncall;
-  n->tok = e->tok;
-  n->function = fname;
-  n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
-
-  // Any non-literal indexes need to be passed in too.
-  for (unsigned i = 0; i < e->components.size(); ++i)
-    if (e->components[i].type == target_symbol::comp_expression_array_index)
-      n->args.push_back(require(e->components[i].expr_index));
-
-  if (lvalue)
-    {
-      // Provide the functioncall to our parent, so that it can be
-      // used to substitute for the assignment node immediately above
-      // us.
-      assert(!target_symbol_setter_functioncalls.empty());
-      *(target_symbol_setter_functioncalls.top()) = n;
-    }
-
-  provide (n);
 }
 
 
@@ -2701,9 +2707,7 @@ dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
 	  // NB: we can have multiple errors, since a @cast
 	  // may be expanded in several different contexts:
 	  //     function ("*") { @cast(...) }
-	  semantic_error* new_er = new semantic_error(er);
-	  new_er->chain = e.saved_conversion_error;
-	  e.saved_conversion_error = new_er;
+          e.chain (new semantic_error(er));
         }
       return DWARF_CB_ABORT;
     }
@@ -3725,90 +3729,98 @@ struct sdt_var_expanding_visitor: public var_expanding_visitor
 void
 sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
-  if (e->base_name == "$$name")
+  try 
     {
-      if (e->addressof)
-        throw semantic_error("cannot take address of sdt variable", e->tok);
+      if (e->base_name == "$$name")
+        {
+          if (e->addressof)
+            throw semantic_error("cannot take address of sdt context variable", e->tok);
+          
+          literal_string *myname = new literal_string (probe_name);
+          myname->tok = e->tok;
+          provide(myname);
+          return;
+        }
 
-      literal_string *myname = new literal_string (probe_name);
-      myname->tok = e->tok;
-      provide(myname);
-      return;
+      if (e->base_name.find("$arg") == string::npos || ! have_reg_args)
+        {
+          // NB: uprobes-based sdt.h; $argFOO gets resolved later.
+          // XXX: We don't even know the arg_count in this case.
+          provide(e);
+          return;
+        }
+      
+      int argno = 0;
+      try
+        {
+          argno = lex_cast<int>(e->base_name.substr(4));
+        }
+      catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
+        {
+          throw semantic_error("invalid argument number", e->tok);
+        }
+      if (argno < 1 || argno > arg_count)
+        throw semantic_error("invalid argument number", e->tok);
+      
+      bool lvalue = is_active_lvalue(e);
+      functioncall *fc = new functioncall;
+      
+      // First two args are hidden: 1. pointer to probe name 2. task id
+      if (arg_count < 2)
+        {
+          fc->function = "ulong_arg";
+          fc->type = pe_long;
+          fc->tok = e->tok;
+          literal_number* num = new literal_number(argno + 2);
+          num->tok = e->tok;
+          fc->args.push_back(num);
+        }
+      else				// args passed as a struct
+        {
+          fc->function = "user_long";
+          fc->tok = e->tok;
+          binary_expression *be = new binary_expression;
+          be->tok = e->tok;
+          functioncall *get_arg1 = new functioncall;
+          get_arg1->function = "pointer_arg";
+          get_arg1->tok = e->tok;
+          literal_number* num = new literal_number(3);
+          num->tok = e->tok;
+          get_arg1->args.push_back(num);
+          
+          be->left = get_arg1;
+          be->op = "+";
+          literal_number* inc = new literal_number((argno - 1) * 8);
+          be->right = inc;
+          fc->args.push_back(be);
+        }
+      
+      if (lvalue)
+        *(target_symbol_setter_functioncalls.top()) = fc;
+      
+      if (e->components.empty())
+        {
+          if (e->addressof)
+            throw semantic_error("cannot take address of sdt variable", e->tok);
+          
+          provide(fc);
+          return;
+        }
+      cast_op *cast = new cast_op;
+      cast->base_name = "@cast";
+      cast->tok = e->tok;
+      cast->operand = fc;
+      cast->components = e->components;
+      cast->type = probe_name + "_arg" + lex_cast(argno);
+      cast->module = process_name;
+      
+      cast->visit(this);
     }
-
-  if (e->base_name.find("$arg") == string::npos || ! have_reg_args)
+  catch (const semantic_error &er)
     {
-      // NB: uprobes-based sdt.h; $argFOO gets resolved later.
-      // XXX: We don't even know the arg_count in this case.
-      provide(e);
-      return;
+      e->chain (new semantic_error(er));
+      provide (e);
     }
-
-  int argno = 0;
-  try
-    {
-      argno = lex_cast<int>(e->base_name.substr(4));
-    }
-  catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
-    {
-      throw semantic_error ("invalid argument number", e->tok);
-    }
-  if (argno < 1 || argno > arg_count)
-    throw semantic_error ("invalid argument number", e->tok);
-
-  bool lvalue = is_active_lvalue(e);
-  functioncall *fc = new functioncall;
-
-  // First two args are hidden: 1. pointer to probe name 2. task id
-  if (arg_count < 2)
-    {
-      fc->function = "ulong_arg";
-      fc->type = pe_long;
-      fc->tok = e->tok;
-      literal_number* num = new literal_number(argno + 2);
-      num->tok = e->tok;
-      fc->args.push_back(num);
-    }
-  else				// args passed as a struct
-    {
-      fc->function = "user_long";
-      fc->tok = e->tok;
-      binary_expression *be = new binary_expression;
-      be->tok = e->tok;
-      functioncall *get_arg1 = new functioncall;
-      get_arg1->function = "pointer_arg";
-      get_arg1->tok = e->tok;
-      literal_number* num = new literal_number(3);
-      num->tok = e->tok;
-      get_arg1->args.push_back(num);
-
-      be->left = get_arg1;
-      be->op = "+";
-      literal_number* inc = new literal_number((argno - 1) * 8);
-      be->right = inc;
-      fc->args.push_back(be);
-    }
-  
-  if (lvalue)
-    *(target_symbol_setter_functioncalls.top()) = fc;
-
-  if (e->components.empty())
-    {
-      if (e->addressof)
-        throw semantic_error("cannot take address of sdt variable", e->tok);
-
-      provide(fc);
-      return;
-    }
-  cast_op *cast = new cast_op;
-  cast->base_name = "@cast";
-  cast->tok = e->tok;
-  cast->operand = fc;
-  cast->components = e->components;
-  cast->type = probe_name + "_arg" + lex_cast(argno);
-  cast->module = process_name;
-
-  cast->visit(this);
 }
 
 
@@ -5878,16 +5890,11 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
       // We hope that this value ends up not being referenced after all, so it
       // can be optimized out quietly.
-      semantic_error* saveme =
-        new semantic_error("unable to find tracepoint variable '" + e->base_name
+      throw semantic_error("unable to find tracepoint variable '" + e->base_name
                            + "' (alternatives:" + alternatives.str () + ")", e->tok);
       // NB: we can have multiple errors, since a target variable
       // may be expanded in several different contexts:
       //     trace ("*") { $foo->bar }
-      saveme->chain = e->saved_conversion_error;
-      e->saved_conversion_error = saveme;
-      provide (e);
-      return;
     }
 
   // make sure we're not dereferencing base types
@@ -5899,6 +5906,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   if (lvalue && (!dw.sess.guru_mode || e->components.empty()))
     throw semantic_error("write to tracepoint variable '" + e->base_name
                          + "' not permitted", e->tok);
+
   // XXX: if a struct/union arg is passed by value, then writing to its fields
   // is also meaningless until you dereference past a pointer member.  It's
   // harder to detect and prevent that though...
@@ -5907,7 +5915,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
     {
       if (e->addressof)
         throw semantic_error("cannot take address of tracepoint variable", e->tok);
-
+      
       // Just grab the value from the probe locals
       e->probe_context_var = "__tracepoint_arg_" + arg->name;
       e->type = pe_long;
@@ -5932,27 +5940,9 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       // PR10601: adapt to kernel-vs-userspace loc2c-runtime
       ec->code += "\n#define fetch_register k_fetch_register\n";
       ec->code += "#define store_register k_store_register\n";
-     
-      try
-        {
-          ec->code += dw.literal_stmt_for_pointer (&arg->type_die, e,
+
+      ec->code += dw.literal_stmt_for_pointer (&arg->type_die, e,
                                                   lvalue, fdecl->type);
-        }
-      catch (const semantic_error& er)
-        {
-          // We suppress this error message, and pass the unresolved
-          // variable to the next pass.  We hope that this value ends
-          // up not being referenced after all, so it can be optimized out
-          // quietly.
-          semantic_error* saveme = new semantic_error (er); // copy it
-          // NB: we can have multiple errors, since a target variable
-          // may be expanded in several different contexts:
-          //     trace ("*") { $foo->bar }
-          saveme->chain = e->saved_conversion_error;
-          e->saved_conversion_error = saveme;
-          provide (e);
-          return;
-        }
 
       // Give the fdecl an argument for the raw tracepoint value
       vardecl *v1 = new vardecl;
@@ -6091,14 +6081,22 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 void
 tracepoint_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
-  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
-
-  if (e->base_name == "$$name" ||
-      e->base_name == "$$parms" ||
-      e->base_name == "$$vars")
-    visit_target_symbol_context (e);
-  else
-    visit_target_symbol_arg (e);
+  try 
+    {
+      assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+      
+      if (e->base_name == "$$name" ||
+          e->base_name == "$$parms" ||
+          e->base_name == "$$vars")
+        visit_target_symbol_context (e);
+      else
+        visit_target_symbol_arg (e);
+    }
+  catch (const semantic_error &er)
+    {
+      e->chain (new semantic_error(er));
+      provide (e);
+    }
 }
 
 

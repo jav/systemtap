@@ -1,19 +1,31 @@
 #! stap -p4
 
-probe kernel.function("sys_open") { println(@defined($foobar))  } # invalid
-probe kernel.function("sys_open") { println(@defined($mode))  }  # valid
-probe kernel.function("sys_open").return { println(@defined($foobar))  } # invalid
-probe kernel.function("sys_open").return { println(@defined($mode))  } # valid
-probe kernel.trace("*")? { println(@defined($rw)) } # valid and invalid in places
-probe kernel.mark("*")? { println(@defined($foo)) } # invalid
-probe kernel.mark("*")? { println(@defined($name)) } # valid
-probe process("stap").mark("*")? { println(@defined($arg1)) } # valid
-probe process("stap").mark("*")? { println(@defined($nosuchvar)) } # invalid
-probe procfs("file").read { println(@defined($nosuchvar)) } # invalid
-probe procfs("file").write { println(@defined($value)) } # valid
+probe kernel.function("sys_open") { println(@defined($foobar)?$foobar:0)  } # invalid
+probe kernel.function("sys_open") { println(@defined($mode)?$mode:0)  }  # valid
+
+/*
+There is a problem with saved $target vars for retprobes.  The synthetic entry probe
+to collect $foobar is generated before pass-2's constant-folding can eliminate the
+$foobar in the middle operand of ? : 
+*/
+/*
+probe kernel.function("sys_open").return { println(@defined($foobar)?$foobar:0)  } # invalid
+*/
+probe kernel.function("sys_open").return { println(@defined($foobar)?1:0)  } # invalid
+
+probe kernel.function("sys_open").return { println(@defined($mode)?$mode:0)  } # valid
+probe kernel.trace("*")? { println(@defined($rw)?$rw:0) } # valid and invalid in places
+probe kernel.mark("*")? { println(@defined($foo)?$foo:0) } # invalid
+probe kernel.mark("*")? { println(@defined($name)?$name:0) } # valid
+probe kernel.mark("*")? { println(@defined($argJJJ)?$argJJJ:0) }
+probe process("stap").mark("*")? { println(@defined($arg1)?$arg1:0) } # valid
+probe process("stap").mark("*")? { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
+probe procfs("file").read { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
+probe procfs("file").write { println(@defined($value)?$value:0) } # valid
 %( CONFIG_UTRACE == "y" %?
-probe process("stap").syscall { println(@defined($arg1)) } # valid
-probe process("stap").syscall { println(@defined($argZZ)) } # invalid
-probe process("stap").syscall.return { println(@defined($nosuchvar)) } # invalid
-probe process("stap").syscall.return { println(@defined($syscall)) } # valid
+probe process("stap").syscall { println(@defined($arg1)?$arg1:0) } # valid
+probe process("stap").begin { println(@defined($arg7)?$arg7:0) } # invalid
+probe process("stap").syscall { println(@defined($argZZ)?$argZZ:0) } # invalid
+probe process("stap").syscall.return { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
+probe process("stap").syscall.return { println(@defined($syscall)?$syscall:0) } # valid
 %)
