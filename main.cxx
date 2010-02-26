@@ -93,6 +93,7 @@ usage (systemtap_session& s, int exitcode)
     << "   -k         keep temporary directory" << endl
     << "   -u         unoptimized translation" << (s.unoptimized ? " [set]" : "") << endl
     << "   -w         suppress warnings" << (s.suppress_warnings ? " [set]" : "") << endl
+    << "   -W         turn warnings into errors" << (s.panic_warnings ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
     << "   -P         prologue-searching for function probes"
     << (s.prologue_searching ? " [set]" : "") << endl
@@ -504,6 +505,7 @@ main (int argc, char * const argv [])
   s.bulk_mode = false;
   s.unoptimized = false;
   s.suppress_warnings = false;
+  s.panic_warnings = false;
   s.listing_mode = false;
   s.listing_mode_vars = false;
 
@@ -640,7 +642,7 @@ main (int argc, char * const argv [])
         { "help", 0, &long_opt, LONG_OPT_HELP },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:",
+      int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
                              long_options, NULL);
       if (grc < 0)
         break;
@@ -661,6 +663,10 @@ main (int argc, char * const argv [])
 
         case 'w':
 	  s.suppress_warnings = true;
+	  break;
+
+        case 'W':
+	  s.panic_warnings = true;
 	  break;
 
         case 'p':

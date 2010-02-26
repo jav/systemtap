@@ -110,6 +110,7 @@ struct systemtap_session
   bool bulk_mode;
   bool unoptimized;
   bool suppress_warnings;
+  bool panic_warnings;
   int buffer_size;
   unsigned perfmon;
   bool symtab; /* true: emit symbol table at translation time; false: let staprun do it. */
@@ -214,7 +215,7 @@ struct systemtap_session
 
   std::set<std::string> seen_errors;
   std::set<std::string> seen_warnings;
-  unsigned num_errors () { return seen_errors.size(); }
+  unsigned num_errors () { return seen_errors.size() + (panic_warnings ? seen_warnings.size() : 0); }
 
   std::set<std::string> rpms_to_install;
 

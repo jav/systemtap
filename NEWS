@@ -1,5 +1,9 @@
 * What's new
 
+- A new command line flag '-W' forces systemtap to abort translation of
+  a script if any warnings are produced.  It is similar to gcc's -Werror.
+  (If '-w' is also supplied to suppress warnings, it wins.)
+
 - A new predicate @defined is available for testing whether a
   particular $variable/expression is resolvable at translate time:
   probe foo { if (@defined($bar)) log ("$bar is available here") }

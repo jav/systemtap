@@ -1,0 +1,6 @@
+#! stap -wWp2
+
+# PR 11075
+
+global foo  # evokes warning
+probe begin { exit() }
