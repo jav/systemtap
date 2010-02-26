@@ -19,3 +19,16 @@ probe process("stap").syscall { println(@defined($argZZ)?$argZZ:0) } # invalid
 probe process("stap").syscall.return { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
 probe process("stap").syscall.return { println(@defined($syscall)?$syscall:0) } # valid
 %)
+
+probe begin,end,error,never { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
+probe timer.s(1),timer.jiffies(1) { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
+probe timer.profile { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
+
+probe begin { println(@defined(@cast(0, "task_struct")->foo)?$nosuchvar:0) } # invalid
+probe begin { println(@defined(@cast(0, "task_struct")->pid)?1:0) } # valid
+probe kernel.function("sys_open") { println(@defined(@cast(0, "task_struct")->foo)?$nosuchvar:0) } # invalid
+probe kernel.function("sys_open") { println(@defined(@cast(0, "task_struct")->pid)?1:0) } # valid
+
+function foo1() { println(@defined(@cast(0, "task_struct")->foo)?$nosuchvar:0) } # invalid
+function foo2() { println(@defined(@cast(0, "task_struct")->pid)?1:0) } # valid
+probe begin { foo1(); foo2(); }

@@ -1982,7 +1982,12 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
     else if (foo2 && foo2->probe_context_var != "") // successful
       resolved = true;
     else if (foo2) // unresolved but not marked either way
-      assert (0); // should not happen
+      {
+        // it might be resolved by some other pass
+        e->operand = foo2;
+        provide (e);
+        return;
+      }
     else // resolved, rewritten to some other expression type
       resolved = true;
   } catch (const semantic_error& e) { 

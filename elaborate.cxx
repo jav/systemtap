@@ -3010,6 +3010,7 @@ struct const_folder: public update_visitor
   void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
   void visit_ternary_expression (ternary_expression* e);
+  void visit_defined_op (defined_op* e);
 };
 
 void
@@ -3469,6 +3470,20 @@ const_folder::visit_ternary_expression (ternary_expression* e)
       expression* n = cond->value ? e->truevalue : e->falsevalue;
       n->visit (this);
     }
+}
+
+void
+const_folder::visit_defined_op (defined_op* e)
+{
+  // If a @defined makes it this far, then it is, de facto, undefined.
+
+  if (session.verbose>2)
+    clog << "Collapsing untouched @defined check " << *e->tok << endl;
+  relaxed_p = false;
+
+  literal_number* n = new literal_number (0);
+  n->tok = e->tok;
+  n->visit (this);
 }
 
 static void semantic_pass_const_fold (systemtap_session& s, bool& relaxed_p)
