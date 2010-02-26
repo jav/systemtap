@@ -377,9 +377,7 @@ AC_ARG_WITH([rpm],
   [AS_HELP_STRING([--with-rpm],
                   [query rpm database for missing debuginfos])], [], [with_rpm="auto"])
 if test "$with_rpm" != "no"; then
-  PKG_CHECK_MODULES([librpm], [rpm],
-    have_librpm="yes", have_librpm="no")
-  AC_CHECK_LIB(rpm, rpmtsInitIterator)
+  AC_CHECK_LIB(rpm, rpmtsInitIterator, have_librpm="yes", have_librpm="no")
   if test "x$have_librpm" != "xyes" -a "$with_rpm" == "yes"; then
      AC_MSG_ERROR([cannot find librpm])
   fi

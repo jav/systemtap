@@ -647,8 +647,6 @@ stap_LIBS
 elfutils_abs_srcdir
 BUILD_ELFUTILS_FALSE
 BUILD_ELFUTILS_TRUE
-librpm_LIBS
-librpm_CFLAGS
 BUILD_GRAPHER_FALSE
 BUILD_GRAPHER_TRUE
 CXXCPP
@@ -823,9 +821,7 @@ gtkmm_CFLAGS
 gtkmm_LIBS
 libglade_CFLAGS
 libglade_LIBS
-CXXCPP
-librpm_CFLAGS
-librpm_LIBS'
+CXXCPP'
 ac_subdirs_all='testsuite'
 
 # Initialize some variables set by options.
@@ -1515,9 +1511,6 @@ Some influential environment variables:
   libglade_LIBS
               linker flags for libglade, overriding pkg-config
   CXXCPP      C++ preprocessor
-  librpm_CFLAGS
-              C compiler flags for librpm, overriding pkg-config
-  librpm_LIBS linker flags for librpm, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -8172,75 +8165,7 @@ else
 fi
 
 if test "$with_rpm" != "no"; then
-
-pkg_failed=no
-{ $as_echo "$as_me:$LINENO: checking for librpm" >&5
-$as_echo_n "checking for librpm... " >&6; }
-
-if test -n "$librpm_CFLAGS"; then
-    pkg_cv_librpm_CFLAGS="$librpm_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"rpm\"") >&5
-  ($PKG_CONFIG --exists --print-errors "rpm") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; then
-  pkg_cv_librpm_CFLAGS=`$PKG_CONFIG --cflags "rpm" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$librpm_LIBS"; then
-    pkg_cv_librpm_LIBS="$librpm_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"rpm\"") >&5
-  ($PKG_CONFIG --exists --print-errors "rpm") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; then
-  pkg_cv_librpm_LIBS=`$PKG_CONFIG --libs "rpm" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        librpm_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "rpm" 2>&1`
-        else
-	        librpm_PKG_ERRORS=`$PKG_CONFIG --print-errors "rpm" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$librpm_PKG_ERRORS" >&5
-
-	{ $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-                have_librpm="no"
-elif test $pkg_failed = untried; then
-	have_librpm="no"
-else
-	librpm_CFLAGS=$pkg_cv_librpm_CFLAGS
-	librpm_LIBS=$pkg_cv_librpm_LIBS
-        { $as_echo "$as_me:$LINENO: result: yes" >&5
-$as_echo "yes" >&6; }
-	have_librpm="yes"
-fi
-
-{ $as_echo "$as_me:$LINENO: checking for rpmtsInitIterator in -lrpm" >&5
+  { $as_echo "$as_me:$LINENO: checking for rpmtsInitIterator in -lrpm" >&5
 $as_echo_n "checking for rpmtsInitIterator in -lrpm... " >&6; }
 if test "${ac_cv_lib_rpm_rpmtsInitIterator+set}" = set; then
   $as_echo_n "(cached) " >&6
@@ -8306,12 +8231,9 @@ fi
 { $as_echo "$as_me:$LINENO: result: $ac_cv_lib_rpm_rpmtsInitIterator" >&5
 $as_echo "$ac_cv_lib_rpm_rpmtsInitIterator" >&6; }
 if test "x$ac_cv_lib_rpm_rpmtsInitIterator" = x""yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBRPM 1
-_ACEOF
-
-  LIBS="-lrpm $LIBS"
-
+  have_librpm="yes"
+else
+  have_librpm="no"
 fi
 
   if test "x$have_librpm" != "xyes" -a "$with_rpm" == "yes"; then
