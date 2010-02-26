@@ -1,23 +1,23 @@
 #! stap -p4
 
 probe kernel.function("sys_open") { println(@defined($foobar)?$foobar:0)  } # invalid
-probe kernel.function("sys_open") { println(@defined($mode)?$mode:0)  }  # valid
+probe kernel.function("sys_open") { println(@defined($mode)?$mode:$nosuchvar)  }  # valid
 probe kernel.function("sys_open").return { println(@defined($foobar)?$foobar:0)  } # invalid
-probe kernel.function("sys_open").return { println(@defined($mode)?$mode:0)  } # valid
+probe kernel.function("sys_open").return { println(@defined($mode)?$mode:$nosuchvar)  } # valid
 probe kernel.trace("*")? { println(@defined($rw)?$rw:0) } # valid and invalid in places
 probe kernel.mark("*")? { println(@defined($foo)?$foo:0) } # invalid
-probe kernel.mark("*")? { println(@defined($name)?$name:0) } # valid
+probe kernel.mark("*")? { println(@defined($name)?$name:$nosuchvar) } # valid
 probe kernel.mark("*")? { println(@defined($argJJJ)?$argJJJ:0) }
-probe process("stap").mark("*")? { println(@defined($arg1)?$arg1:0) } # valid
+probe process("stap").mark("*")? { println(@defined($arg1)?$arg1:$nosuchvar) } # valid
 probe process("stap").mark("*")? { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
 probe procfs("file").read { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
-probe procfs("file").write { println(@defined($value)?$value:0) } # valid
+probe procfs("file").write { println(@defined($value)?$value:$nosuchvar) } # valid
 %( CONFIG_UTRACE == "y" %?
-probe process("stap").syscall { println(@defined($arg1)?$arg1:0) } # valid
+probe process("stap").syscall { println(@defined($arg1)?$arg1:$nosuchvar) } # valid
 probe process("stap").begin { println(@defined($arg7)?$arg7:0) } # invalid
 probe process("stap").syscall { println(@defined($argZZ)?$argZZ:0) } # invalid
 probe process("stap").syscall.return { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
-probe process("stap").syscall.return { println(@defined($syscall)?$syscall:0) } # valid
+probe process("stap").syscall.return { println(@defined($syscall)?$syscall:$nosuchvar) } # valid
 %)
 
 probe begin,end,error,never { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
@@ -25,10 +25,10 @@ probe timer.s(1),timer.jiffies(1) { println(@defined($nosuchvar)?$nosuchvar:0) }
 probe timer.profile { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
 
 probe begin { println(@defined(@cast(0, "task_struct")->foo)?$nosuchvar:0) } # invalid
-probe begin { println(@defined(@cast(0, "task_struct")->pid)?1:0) } # valid
+probe begin { println(@defined(@cast(0, "task_struct")->pid)?1:$nosuchvar) } # valid
 probe kernel.function("sys_open") { println(@defined(@cast(0, "task_struct")->foo)?$nosuchvar:0) } # invalid
-probe kernel.function("sys_open") { println(@defined(@cast(0, "task_struct")->pid)?1:0) } # valid
+probe kernel.function("sys_open") { println(@defined(@cast(0, "task_struct")->pid)?1:$nosuchvar) } # valid
 
 function foo1() { println(@defined(@cast(0, "task_struct")->foo)?$nosuchvar:0) } # invalid
-function foo2() { println(@defined(@cast(0, "task_struct")->pid)?1:0) } # valid
+function foo2() { println(@defined(@cast(0, "task_struct")->pid)?1:$nosuchvar) } # valid
 probe begin { foo1(); foo2(); }
