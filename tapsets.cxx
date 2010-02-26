@@ -1960,7 +1960,7 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
     // Successes have to result in an attempted rewrite of the
     // target_symbol (via provide()), or setting the probe_context_var
     // (ugh).
-    // 
+    //
     // Edna Mode: "no capes".  fche: "no exceptions".
 
     // dwarf stuff: success: rewrites to a function; failure: retains target_symbol, sets saved_conversion_error
@@ -1971,7 +1971,7 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
     //              dwarf probe to take care of it.
     //              But this is rather unhelpful.  So we rig the sdt_var_expanding_visitor
     //              to pass through @defined() to the synthetic dwarf probe.
-    // 
+    //
     // utrace: success: rewrites to function; failure: semantic_error
     //
     // procfs: success: sets probe_context_var; failure: semantic_error
@@ -1983,14 +1983,16 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
       resolved = true;
     else if (foo2) // unresolved but not marked either way
       {
-        // it might be resolved by some other pass
+        // There are some visitors that won't touch certain target_symbols,
+        // e.g. dwarf_var_expanding_visitor won't resolve @cast.  We should
+        // leave it for now so some other visitor can have a chance.
         e->operand = foo2;
         provide (e);
         return;
       }
     else // resolved, rewritten to some other expression type
       resolved = true;
-  } catch (const semantic_error& e) { 
+  } catch (const semantic_error& e) {
     assert (0); // should not happen
   }
   defined_ops.pop ();
