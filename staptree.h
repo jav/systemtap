@@ -486,6 +486,7 @@ struct functiondecl: public symboldecl
   std::vector<vardecl*> locals;
   std::vector<vardecl*> unused_locals;
   statement* body;
+  bool synthetic;
   functiondecl ();
   void print (std::ostream& o) const;
   void printsig (std::ostream& o) const;

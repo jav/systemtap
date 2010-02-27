@@ -2013,7 +2013,7 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
       if (ftv.traversed.find(fd) == ftv.traversed.end())
         {
           if (fd->tok->location.file->name == s.user_file->name && // !tapset
-              ! s.suppress_warnings)
+              ! s.suppress_warnings && ! fd->synthetic)
 	    s.print_warning ("eliding unused function '" + fd->name + "'", fd->tok);
           else if (s.verbose>2)
             clog << "Eliding unused function " << fd->name

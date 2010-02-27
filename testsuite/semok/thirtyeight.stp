@@ -1,0 +1,10 @@
+#! stap -Wp2
+
+# Each of the @defined should be a valid symbol, and sometimes their expansion
+# leads to a new function declaration.  We don't want to get warnings when such
+# functions turn out to be unused and are elided.
+
+probe kernel.function("sys_open") { println(@defined($mode) ? 1 : $nosuchvar) }
+probe kernel.trace("sched_switch")? { println(@defined($next->pid) ? 1 : $nosuchvar) }
+probe procfs.write { println(@defined($value) ? 1 : $nosuchvar) }
+probe begin { println(@defined(@cast(0, "task_struct")->pid) ? 1 : $nosuchvar) }

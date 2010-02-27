@@ -49,6 +49,7 @@ perfmon_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
   // Synthesize a function.
   functiondecl *fdecl = new functiondecl;
+  fdecl->synthetic = true;
   fdecl->tok = e->tok;
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;

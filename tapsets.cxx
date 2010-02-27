@@ -2512,6 +2512,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
       // Synthesize a function.
       functiondecl *fdecl = new functiondecl;
+      fdecl->synthetic = true;
       fdecl->tok = e->tok;
       embeddedcode *ec = new embeddedcode;
       ec->tok = e->tok;
@@ -2860,6 +2861,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 
   // Synthesize a function.
   functiondecl *fdecl = new functiondecl;
+  fdecl->synthetic = true;
   fdecl->tok = e->tok;
   fdecl->type = type;
   fdecl->name = fname;
@@ -5950,6 +5952,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       // Synthesize a function to dereference the dwarf fields,
       // with a pointer parameter that is the base tracepoint variable
       functiondecl *fdecl = new functiondecl;
+      fdecl->synthetic = true;
       fdecl->tok = e->tok;
       embeddedcode *ec = new embeddedcode;
       ec->tok = e->tok;

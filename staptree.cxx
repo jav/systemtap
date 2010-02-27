@@ -164,7 +164,7 @@ vardecl::compatible_arity (int a)
 
 
 functiondecl::functiondecl ():
-  body (0)
+  body (0), synthetic (false)
 {
 }
 
