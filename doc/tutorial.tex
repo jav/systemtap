@@ -103,7 +103,8 @@ This paper assumes that you have installed systemtap and its
 prerequisite kernel development tools and debugging data, so that you
 can run the scripts such as the simple one in
 Figure~\ref{fig:hello-world}.  Log on as \verb+root+, or even better,
-as a user authorized to \verb+sudo+, before running systemtap.
+login as a user that is a member of \verb+stapdev+ group or as a
+user authorized to \verb+sudo+, before running systemtap.
 
 \begin{figure}[ht]
 \begin{boxedminipage}{4.5in}
@@ -154,8 +155,8 @@ scripts that comes with systemtap, each called a ``tapset'', may
 define additional ones defined in terms of the built-in family.  See
 the \verb+stapprobes+ man page for details.  \nomenclature{tapset}{A
 reusable script forming part of the automatically searched tapset
-library.}  All these events are named using a unified syntax that
-looks like dot-separated parameterized identifiers:
+library.}  All these events are named using a unified syntax with
+dot-separated parameterized identifiers:
 
 \begin{tabular}{rl}
 \verb+begin+ & The startup of the systemtap session. \\
@@ -245,7 +246,7 @@ A particularly handy function in the tapset library is
 internally an indentation counter for each thread (\verb+tid()+), and
 returns a string with some generic trace data plus an appropriate
 number of indentation spaces.  That generic data includes a timestamp
-(number of microseconds since the most recent initial indentation), a
+(number of microseconds since the initial indentation for the thread), a
 process name and the thread id itself.  It therefore gives an idea not
 only about what functions were called, but who called them, and how
 long they took.  Figure~\ref{fig:socket-trace} shows the finished
