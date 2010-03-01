@@ -419,10 +419,19 @@ void setup_kernel_release (systemtap_session &s, const char* kstr)
 }
 
 
-void parse_kernel_config (systemtap_session &s) 
+int parse_kernel_config (systemtap_session &s)
 {
   // PR10702: pull config options
   string kernel_config_file = s.kernel_build_tree + "/.config";
+  struct stat st;
+  int rc = stat(kernel_config_file.c_str(), &st);
+  if (rc != 0)
+    {
+	clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl
+	     << "Ensure kernel development headers & makefiles are installed." << endl;
+	return rc;
+    }
+
   ifstream kcf (kernel_config_file.c_str());
   string line;
   while (getline (kcf, line))
@@ -438,6 +447,7 @@ void parse_kernel_config (systemtap_session &s)
     clog << "Parsed kernel \"" << kernel_config_file << "\", number of tuples: " << s.kernel_config.size() << endl;
   
   kcf.close();
+  return 0;
 }
 
 /*
@@ -1069,7 +1079,11 @@ main (int argc, char * const argv [])
   }
 
   // Now that no further changes to s.kernel_build_tree can occur, let's use it.
-  parse_kernel_config (s);
+  if (parse_kernel_config (s) != 0)
+    {
+	  exit (1);
+    }
+
 
   // Create the name of the C source file within the temporary
   // directory.
@@ -1450,3 +1464,4 @@ pass_5:
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
+
