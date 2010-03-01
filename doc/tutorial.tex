@@ -427,13 +427,18 @@ Let's say that you are trying to trace filesystem reads/writes to a
 particular device/inode.  From your knowledge of the kernel, you know
 that two functions of interest could be \verb+vfs_read+ and
 \verb+vfs_write+.  Each takes a \verb+struct file *+ argument, inside
-which there is a \verb+struct dentry *+, a \verb+struct inode *+, and
-so on.  Systemtap allows limited dereferencing of such pointer chains.
+there is either a \verb+struct dentry *+ or \verb+struct path *+ which
+has a \verb+struct dentry *+.
+The \verb+struct dentry *+ contains a \verb+struct inode *+, and
+so on.
+Systemtap allows limited dereferencing of such pointer chains.
 Two functions, \verb+user_string+ and \verb+kernel_string+, can copy
 \verb+char *+ target variables into systemtap strings.
 Figure~\ref{fig:inode-watch} demonstrates one way to monitor a
-particular file (identifed by device number and inode number).  This
-example also demonstrates pasting numeric command-line arguments
+particular file (identifed by device number and inode number).
+The script selects the appropriate variants of \verb+dev_nr+
+and\verb+inode_nr+ based on the kernel version.
+This example also demonstrates pasting numeric command-line arguments
 (\verb+$1+ etc.) into scripts.
 %$
 
@@ -444,8 +449,13 @@ example also demonstrates pasting numeric command-line arguments
 probe kernel.function ("vfs_write"),
       kernel.function ("vfs_read")
 {
+%( kernel_v >= "2.6.20" %?
+  dev_nr = $file->f_path->dentry->d_inode->i_sb->s_dev
+  inode_nr = $file->f_path->dentry->d_inode->i_ino
+%:
   dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
   inode_nr = $file->f_dentry->d_inode->i_ino
+%)
 
   if (dev_nr == ($1 << 20 | $2) # major/minor device
       && inode_nr == $3)
@@ -453,11 +463,10 @@ probe kernel.function ("vfs_write"),
       execname(), pid(), probefunc(), dev_nr, inode_nr)
 }
 # stat -c '%D %i' /etc/crontab
-803 988136
+fd03 133099
 # stap inode-watch.stp 8 3 988136
-crond(2419) vfs_read 0x800003/988136
-crond(2419) vfs_read 0x800003/988136
-crond(2419) vfs_read 0x800003/988136
+more(30789) vfs_read 0xfd00003/133099
+more(30789) vfs_read 0xfd00003/133099
 \end{verbatim}
 % $
 \end{boxedminipage}
