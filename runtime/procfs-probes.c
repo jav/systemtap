@@ -3,6 +3,7 @@
 
 #include <linux/mutex.h>
 #include <linux/fs.h>
+#include <linux/sched.h>
 
 #if 0
 // Currently we have to output _stp_procfs_data early in the
@@ -24,64 +25,22 @@ struct stap_procfs_probe {
 	char *buffer;
 	const size_t bufsize;
 	size_t count;
-
 	int needs_fill;
+
 	struct mutex lock;
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,16)
-	atomic_t lockcount;
-#endif
+	int opencount;
+	wait_queue_head_t waitq;
 };
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,16)
-/*
- * Kernels 2.6.16 or less don't really have mutexes.  The 'mutex_*'
- * functions are defined as their similar semaphore equivalents.
- * However, there is no semaphore equivalent of 'mutex_is_locked'.
- * So, we'll fake it with an atomic counter.
- */
-static inline void _spp_lock_init(struct stap_procfs_probe *spp)
+static inline void _spp_init(struct stap_procfs_probe *spp)
 {
-	atomic_set(&spp->lockcount, 0);
+	init_waitqueue_head(&spp->waitq);
+	spp->opencount = 0;
 	mutex_init(&spp->lock);
 }
-static inline int _spp_trylock(struct stap_procfs_probe *spp)
-{
-	int ret = mutex_trylock(&spp->lock);
-	if (ret) {
-		atomic_inc(&spp->lockcount);
-	}
-	return(ret);
-}
-static inline void _spp_lock(struct stap_procfs_probe *spp)
-{
-	mutex_lock(&spp->lock);
-	atomic_inc(&spp->lockcount);
-}
-static inline void _spp_unlock(struct stap_procfs_probe *spp)
-{
-	atomic_dec(&spp->lockcount);
-	mutex_unlock(&spp->lock);
-}
-static inline void _spp_lock_shutdown(struct stap_procfs_probe *spp)
-{
-	if (atomic_read(&spp->lockcount) != 0) {
-		_spp_unlock(spp);
-	}
-	mutex_destroy(&spp->lock);
-}
-#else /* LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16) */
-#define _spp_lock_init(spp)	mutex_init(&(spp)->lock)
-#define _spp_trylock(spp)	mutex_trylock(&(spp)->lock)
 #define _spp_lock(spp)		mutex_lock(&(spp)->lock)
 #define _spp_unlock(spp)	mutex_unlock(&(spp)->lock)
-static inline void _spp_lock_shutdown(struct stap_procfs_probe *spp)
-{
-	if (mutex_is_locked(&spp->lock)) {
-		mutex_unlock(&spp->lock);
-	}
-	mutex_destroy(&spp->lock);
-}
-#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2,6,16) */
+#define _spp_shutdown(spp)	mutex_destroy(&(spp)->lock)
 
 static int _stp_proc_fill_read_buffer(struct stap_procfs_probe *spp);
 
@@ -92,39 +51,57 @@ static int
 _stp_proc_open_file(struct inode *inode, struct file *filp)
 {
 	struct stap_procfs_probe *spp;
-	int err;
+	int res;
 
 	spp = (struct stap_procfs_probe *)PDE(inode)->data;
 	if (spp == NULL) {
 		return -EINVAL;
 	}
 
-	err = generic_file_open(inode, filp);
-	if (err)
-		return err;
+	res = generic_file_open(inode, filp);
+	if (res)
+		return res;
 
 	/* To avoid concurrency problems, we only allow 1 open at a
-	 * time.  (Grabbing a mutex here doesn't really work.  The
-	 * debug kernel can OOPS with "BUG: lock held when returning
-	 * to user space!".)
-	 *
-	 * If open() was called with
-	 * O_NONBLOCK, don't block, just return EAGAIN. */
-	if (filp->f_flags & O_NONBLOCK) {
-		if (_spp_trylock(spp) == 0) {
-			return -EAGAIN;
+	 * time. */
+
+	_spp_lock(spp);
+
+	/* If the file isn't open yet, ... */
+	if (spp->opencount == 0) {
+		res = 0;
+	}
+	/* If open() was called with O_NONBLOCK, don't block, just
+	 * return EAGAIN. */
+	else if (filp->f_flags & O_NONBLOCK) {
+		res = -EAGAIN;
+	}
+	/* The file is already open, so wait. */
+	else {
+		for (res = 0;;) {
+			if (spp->opencount == 0) {
+				res = 0;
+				break;
+			}
+			_spp_unlock(spp);
+			res = wait_event_interruptible(spp->waitq,
+						       spp->opencount == 0);
+			_spp_lock(spp);
+			if (res < 0)
+				break;
 		}
 	}
-	else {
-		_spp_lock(spp);
+	if (likely(res == 0)) {
+		spp->opencount++;
+		filp->private_data = spp;
+		if ((filp->f_flags & O_ACCMODE) == O_RDONLY) {
+			spp->buffer[0] = '\0';
+			spp->count = 0;
+			spp->needs_fill = 1;
+		}
 	}
 
-	filp->private_data = spp;
-	if ((filp->f_flags & O_ACCMODE) == O_RDONLY) {
-		spp->buffer[0] = '\0';
-		spp->count = 0;
-		spp->needs_fill = 1;
-	}
+	_spp_unlock(spp);
 	return 0;
 }
 
@@ -135,7 +112,13 @@ _stp_proc_release_file(struct inode *inode, struct file *filp)
 
 	spp = (struct stap_procfs_probe *)filp->private_data;
 	if (spp != NULL) {
+		/* Decrement the open count. */
+		_spp_lock(spp);
+		spp->opencount--;
 		_spp_unlock(spp);
+
+		/* Wake up any tasks waiting to open the file. */
+		wake_up(&spp->waitq);
 	}
 	return 0;
 }

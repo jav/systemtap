@@ -373,7 +373,7 @@ procfs_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "probe_point = spp->write_pp;";
   s.op->indent(-1);
 
-  s.op->newline() << "_spp_lock_init(spp);";
+  s.op->newline() << "_spp_init(spp);";
   s.op->newline() << "rc = _stp_create_procfs(spp->path, i, &_stp_proc_fops);";
 
   s.op->newline() << "if (rc) {";
@@ -381,7 +381,7 @@ procfs_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "for (i = 0; i < " << probes_by_path.size() << "; i++) {";
   s.op->newline(1) << "spp = &stap_procfs_probes[i];";
-  s.op->newline() << "_spp_lock_shutdown(spp);";
+  s.op->newline() << "_spp_shutdown(spp);";
   s.op->newline(-1) << "}";
   s.op->newline() << "break;";
   s.op->newline(-1) << "}";
@@ -400,7 +400,7 @@ procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "_stp_close_procfs();";
   s.op->newline() << "for (i = 0; i < " << probes_by_path.size() << "; i++) {";
   s.op->newline(1) << "struct stap_procfs_probe *spp = &stap_procfs_probes[i];";
-  s.op->newline() << "_spp_lock_shutdown(spp);";
+  s.op->newline() << "_spp_shutdown(spp);";
   s.op->newline(-1) << "}";
 }
 
