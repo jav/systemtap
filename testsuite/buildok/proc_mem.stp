@@ -11,3 +11,12 @@ probe begin {
   printf("%s\n", pages_to_string(0));
   printf("%s\n", proc_mem_string());
 }
+
+probe end {
+  printf("%d\n", proc_mem_size_pid(0));
+  printf("%d\n", proc_mem_rss_pid(0));
+  printf("%d\n", proc_mem_shr_pid(0));
+  printf("%d\n", proc_mem_txt_pid(0));
+  printf("%d\n", proc_mem_data_pid(0));
+  printf("%s\n", proc_mem_string_pid(0));
+}
