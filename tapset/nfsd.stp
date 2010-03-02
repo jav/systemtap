@@ -112,7 +112,7 @@ function nfs4_ctype:string(cmode:long) %{ /* pure */
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4ATTRDIR");
 		break;
 	case NF4NAMEDATTR:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4ATTRDIR");
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4NAMEDATTR");
 		break;
 	default: 
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
@@ -233,10 +233,10 @@ probe nfsd.proc2.lookup = kernel.function("nfsd_proc_lookup") !,
 	fh = & @cast($argp, "nfsd_diropargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
-	filename = kernel_string_n($argp->name, filelen)
+	filename = kernel_string_n($argp->name, $argp->len)
 
 	name = "nfsd.proc2.lookup"
-	argstr = sprintf("%s",filename)
+	argstr = sprintf("%s", kernel_string_n($argp->name, $argp->len))
 }
 
  
@@ -259,10 +259,10 @@ probe nfsd.proc3.lookup = kernel.function("nfsd3_proc_lookup") !,
 	fh = & @cast($argp, "nfsd_diropargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
-	filename  = kernel_string_n($argp->name, filelen)
+	filename  = kernel_string_n($argp->name, $argp->len)
 
 	name = "nfsd.proc3.lookup"
-	argstr = sprintf("%s",filename)
+	argstr = sprintf("%s", kernel_string_n($argp->name, $argp->len))
 } 
 
 probe nfsd.proc3.lookup.return = kernel.function("nfsd3_proc_lookup").return !,
@@ -284,10 +284,10 @@ probe nfsd.proc4.lookup = kernel.function("nfsd4_lookup") !,
 	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->current_fh
 
 	filelen = $lookup->lo_len
-	filename  = kernel_string_n($lookup->lo_name, filelen)
+	filename  = kernel_string_n($lookup->lo_name, $lookup->lo_len)
 
 	name = "nfsd.proc4.lookup"
-	argstr = sprintf("%s",filename)
+	argstr = sprintf("%s", kernel_string_n($lookup->lo_name, $lookup->lo_len))
 } 
 
 probe nfsd.proc4.lookup.return = kernel.function("nfsd4_lookup").return !,
@@ -614,7 +614,7 @@ probe nfsd.proc4.commit = kernel.function("nfsd4_commit") !,
 	proto = $rqstp->rq_prot
 	version = 4
 	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->current_fh
-	count = $commit->co_offset 
+	count = $commit->co_count 
 	offset = $commit->co_offset 
 
 	name = "nfsd.proc4.commit"
@@ -664,10 +664,10 @@ probe nfsd.proc2.create = kernel.function("nfsd_proc_create")!,
 	fh = & @cast($argp, "struct nfsd_createargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
-	filename  = kernel_string_n($argp->name, filelen)
+	filename  = kernel_string_n($argp->name, $argp->len)
 
 	name = "nfsd.proc2.create"
-	argstr = sprintf("%s",filename)
+	argstr = sprintf("%s", kernel_string_n($argp->name, $argp->len))
 }
 
 probe nfsd.proc2.create.return =  kernel.function("nfsd_proc_create").return!,
@@ -689,11 +689,12 @@ probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")!,
 	fh = & @cast($argp, "struct nfsd_createargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
-	filename  = kernel_string_n($argp->name, filelen)
+	filename  = kernel_string_n($argp->name, $argp->len)
 	createmode = $argp->createmode
 	
 	name = "nfsd.proc3.create"
-	argstr = sprintf("%s (mode=%s)",filename, nfs3_cmode(createmode))
+	argstr = sprintf("%s (mode=%s)", kernel_string_n($argp->name, $argp->len), 
+		nfs3_cmode(createmode))
 }
 
 probe nfsd.proc3.create.return =  kernel.function("nfsd3_proc_create").return!,
@@ -714,11 +715,13 @@ probe nfsd.proc4.create = kernel.function("nfsd4_create") !,
 	version = 4
 	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->current_fh
 	filelen = $create->cr_namelen
-	filename  = kernel_string_n($create->cr_name, filelen)
+	filename  = kernel_string_n($create->cr_name, $create->cr_namelen)
 	createmode = $create->cr_type
 
 	name = "nfsd.proc4.create"
-	argstr = sprintf("%s (type=%s)",filename, nfs4_ctype(createmode))
+	argstr = sprintf("%s (type=%s)", 
+		kernel_string_n($create->cr_name, $create->cr_namelen), 
+		nfs4_ctype(createmode))
 
 } 
 
@@ -762,10 +765,10 @@ probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")!,
 	fh = & @cast($argp, "struct nfsd_diropargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
-	filename  = kernel_string_n($argp->name, filelen)
+	filename  = kernel_string_n($argp->name, $argp->len)
 
 	name = "nfsd.proc2.remove"
-	argstr = sprintf("%s",filename)
+	argstr = sprintf("%s", kernel_string_n($argp->name, $argp->len))
 }
 
 probe nfsd.proc2.remove.return =  kernel.function("nfsd_proc_remove").return!,
@@ -787,10 +790,10 @@ probe nfsd.proc3.remove = kernel.function("nfsd3_proc_remove")!,
 	fh = & @cast($argp, "struct nfsd3_diropargs", "kernel:nfsd")->fh
 
 	filelen = $argp->len
-	filename  = kernel_string_n($argp->name, filelen)
+	filename  = kernel_string_n($argp->name, $argp->len)
 	
 	name = "nfsd.proc3.remove"
-	argstr = sprintf("%s",filename)
+	argstr = sprintf("%s", kernel_string_n($argp->name, $argp->len))
 }
 
 probe nfsd.proc3.remove.return =  kernel.function("nfsd3_proc_remove").return!,
@@ -811,10 +814,11 @@ probe nfsd.proc4.remove = kernel.function("nfsd4_remove") !,
 	version = 4
 	fh = & @cast($cstate, "nfsd4_compound_state", "kernel:nfsd")->current_fh
 	filelen = $remove->rm_namelen
-	filename  = kernel_string_n($remove->rm_name, filelen)
+	filename  = kernel_string_n($remove->rm_name, $remove->rm_namelen)
 
 	name = "nfsd.proc4.remove"
-	argstr = sprintf("%s", filename);
+	argstr = sprintf("%s", 
+		kernel_string_n($remove->rm_name, $remove->rm_namelen))
 
 } 
 
@@ -860,12 +864,14 @@ probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")!,
 	tfh = & @cast($argp, "struct nfsd_renameargs", "kernel:nfsd")->tfh
 
 	filelen = $argp->flen
-	filename  = kernel_string_n($argp->fname, filelen)	
+	filename  = kernel_string_n($argp->fname, $argp->flen)	
 	tlen = $argp->tlen
-	tname = kernel_string_n($argp->tname, tlen)
+	tname = kernel_string_n($argp->tname, $argp->tlen)
 
 	name = "nfsd.proc2.rename"
-	argstr = sprintf("%s to %s",filename,tname)
+	argstr = sprintf("%s to %s", 
+		kernel_string_n($argp->fname, $argp->flen),
+		kernel_string_n($argp->tname, $argp->tlen))
 }
 
 probe nfsd.proc2.rename.return =  kernel.function("nfsd_proc_rename").return!,
@@ -888,12 +894,14 @@ probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")!,
 	tfh = & @cast($argp, "struct nfsd3_renameargs", "kernel:nfsd")->tfh
 
 	filelen = $argp->flen
-	filename  = kernel_string_n($argp->fname, filelen)	
+	filename  = kernel_string_n($argp->fname, $argp->flen)	
 	tlen = $argp->tlen
-	tname = kernel_string_n($argp->tname, tlen)
+	tname = kernel_string_n($argp->tname, $argp->tlen)
 
 	name = "nfsd.proc3.rename"
-	argstr = sprintf("%s to %s",filename,tname)
+	argstr = sprintf("%s to %s", 
+		kernel_string_n($argp->fname, $argp->flen), 
+		kernel_string_n($argp->tname, $argp->tlen))
 }
 
 probe nfsd.proc3.rename.return =  kernel.function("nfsd3_proc_rename").return!,
@@ -916,12 +924,14 @@ probe nfsd.proc4.rename = kernel.function("nfsd4_rename") !,
 	tfh = & @cast($argp, "struct nfsd3_renameargs", "kernel:nfsd")->current_fh
 
 	filelen = $rename->rn_snamelen
-	filename  = kernel_string_n($rename->rn_sname, filelen)	
+	filename  = kernel_string_n($rename->rn_sname, $rename->rn_snamelen)	
 	tlen = $rename->rn_tnamelen
-	tname = kernel_string_n($rename->rn_tname, tlen)
+	tname = kernel_string_n($rename->rn_tname, $rename->rn_tnamelen)
 
 	name = "nfsd.proc4.rename"
-	argstr = sprintf("%s to %s",filename,tname)
+	argstr = sprintf("%s to %s", 
+		kernel_string_n($rename->rn_sname, $rename->rn_snamelen),
+		kernel_string_n($rename->rn_tname, $rename->rn_tnamelen))
 } 
 
 probe nfsd.proc4.rename.return = kernel.function("nfsd4_rename").return!,
@@ -1152,10 +1162,10 @@ probe nfsd.lookup = kernel.function("nfsd_lookup")!,
 	fh = __svc_fh($fhp)
 
 	filelen = $len
-	filename = kernel_string_n($name, filelen)
+	filename = kernel_string_n($name, $len)
 
 	name = "nfsd.lookup"
-	argstr = sprintf("name: %s",filename)
+	argstr = sprintf("name: %s", kernel_string_n($name, $len))
 }
 
 probe nfsd.lookup.return = kernel.function("nfsd_lookup").return!,
@@ -1189,13 +1199,14 @@ probe nfsd.create = kernel.function("nfsd_create")!,
 	fh = __svc_fh($fhp)
 
 	filelen = $flen
-	filename = kernel_string_n($fname, filelen)
+	filename = kernel_string_n($fname, $flen)
 	type = $type
 	iap_valid = $iap->ia_valid
 	iap_mode = $iap->ia_mode
 
 	name = "nfsd.create"
-	argstr = sprintf("name: %s type: %s",filename, ftype(type))
+	argstr = sprintf("name: %s type: %s", kernel_string_n($fname, $flen), 
+		ftype(type))
 }
 
 probe nfsd.create.return = kernel.function("nfsd_create").return!,         
@@ -1234,7 +1245,7 @@ probe nfsd.createv3 = kernel.function("nfsd_create_v3")!,
 	fh = __svc_fh($fhp)
 
 	filelen = $flen
-	filename = kernel_string_n($fname, filelen)
+	filename = kernel_string_n($fname, $flen)
 	iap_valid = $iap->ia_valid
 	iap_mode = $iap->ia_mode
 	truncp = $truncp
@@ -1242,7 +1253,8 @@ probe nfsd.createv3 = kernel.function("nfsd_create_v3")!,
 	createmode = $createmode
 
 	name = "nfsd.createv3"
-	argstr = sprintf("name: %s mode: %s",filename, nfs3_cmode(createmode))
+	argstr = sprintf("name: %s mode: %s",  kernel_string_n($fname, $flen), 
+		nfs3_cmode(createmode))
 }
 
 probe nfsd.createv3.return = kernel.function("nfsd_create_v3").return!,         
@@ -1274,11 +1286,11 @@ probe nfsd.unlink = kernel.function("nfsd_unlink")!,
 	fh = __svc_fh($fhp)
 
 	filelen = $flen
-	filename = kernel_string_n($fname, filelen)
+	filename = kernel_string_n($fname, $flen)
 	type = $type
 
 	name = "nfsd.unlink"
-	argstr = sprintf("name: %s",filename);
+	argstr = sprintf("name: %s", kernel_string_n($fname, $flen))
 }
 
 probe nfsd.unlink.return = kernel.function("nfsd_unlink").return!,         
@@ -1314,12 +1326,13 @@ probe nfsd.rename =  kernel.function("nfsd_rename")!,
 	tfh = __svc_fh($tfhp)
 
 	filelen = $flen
-	filename  = kernel_string_n($fname, filelen)
+	filename  = kernel_string_n($fname, $flen)
 	tlen = $tlen
-	tname = kernel_string_n($tname, tlen)
+	tname = kernel_string_n($tname, $tlen)
 
 	name = "nfsd.rename"
-	argstr = sprintf("%s to %s",filename,tname)
+	argstr = sprintf("%s to %s", kernel_string_n($fname, $flen),
+		kernel_string_n($tname, $tlen))
 }
 
 probe nfsd.rename.return =  kernel.function("nfsd_rename").return!,
