@@ -42,8 +42,6 @@ struct cache_ent_info {
   void unlink() const;
 };
 
-static void clean_cache(systemtap_session& s);
-
 
 void
 add_stapconf_to_cache(systemtap_session& s)
@@ -101,6 +99,9 @@ add_script_to_cache(systemtap_session& s)
 bool
 get_stapconf_from_cache(systemtap_session& s)
 {
+  if (s.poison_cache)
+    return false;
+
   string stapconf_dest_path = s.tmpdir + "/" + s.stapconf_name;
   int fd_stapconf;
 
@@ -132,6 +133,9 @@ get_stapconf_from_cache(systemtap_session& s)
 bool
 get_script_from_cache(systemtap_session& s)
 {
+  if (s.poison_cache)
+    return false;
+
   string module_dest_path = s.tmpdir + "/" + s.module_name + ".ko";
   string c_src_path = s.hash_path;
   int fd_module, fd_c;
@@ -215,7 +219,7 @@ get_script_from_cache(systemtap_session& s)
 }
 
 
-static void
+void
 clean_cache(systemtap_session& s)
 {
   if (s.cache_path != "")

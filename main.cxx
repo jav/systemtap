@@ -537,6 +537,7 @@ main (int argc, char * const argv [])
   s.symtab = false;
   s.use_cache = true;
   s.use_script_cache = true;
+  s.poison_cache = false;
   s.tapset_compile_coverage = false;
   s.need_uprobes = false;
   s.consult_symtab = false;
@@ -633,6 +634,9 @@ main (int argc, char * const argv [])
 #define LONG_OPT_OMIT_WERROR 8
 #define LONG_OPT_CLIENT_OPTIONS 9
 #define LONG_OPT_HELP 10
+#define LONG_OPT_DISABLE_CACHE 11
+#define LONG_OPT_POISON_CACHE 12
+#define LONG_OPT_CLEAN_CACHE 13
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -651,6 +655,9 @@ main (int argc, char * const argv [])
         { OWE4 OWE6 OWE1 OWE2 OWE3 OWE5, 0, &long_opt, LONG_OPT_OMIT_WERROR },
         { "client-options", 0, &long_opt, LONG_OPT_CLIENT_OPTIONS },
         { "help", 0, &long_opt, LONG_OPT_HELP },
+        { "disable-cache", 0, &long_opt, LONG_OPT_DISABLE_CACHE },
+        { "poison-cache", 0, &long_opt, LONG_OPT_POISON_CACHE },
+        { "clean-cache", 0, &long_opt, LONG_OPT_CLEAN_CACHE },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
@@ -948,6 +955,30 @@ main (int argc, char * const argv [])
 	    case LONG_OPT_HELP:
 	      usage (s, 0);
 	      break;
+
+            // The caching options should not be available to server clients
+            case LONG_OPT_DISABLE_CACHE:
+              if (client_options) {
+                  cerr << "ERROR: --disable-cache is invalid with --client-options" << endl;
+                  exit(1);
+              }
+              s.use_cache = s.use_script_cache = false;
+              break;
+            case LONG_OPT_POISON_CACHE:
+              if (client_options) {
+                  cerr << "ERROR: --poison-cache is invalid with --client-options" << endl;
+                  exit(1);
+              }
+              s.poison_cache = true;
+              break;
+            case LONG_OPT_CLEAN_CACHE:
+              if (client_options) {
+                  cerr << "ERROR: --clean-cache is invalid with --client-options" << endl;
+                  exit(1);
+              }
+              clean_cache(s);
+              exit(0);
+
             default:
               exit(1);
             }

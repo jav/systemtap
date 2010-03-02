@@ -2773,7 +2773,7 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
         {
           // see if the cached module exists
           cached_module = find_typequery_hash(s, module);
-          if (!cached_module.empty())
+          if (!cached_module.empty() && !s.poison_cache)
             {
               int fd = open(cached_module.c_str(), O_RDONLY);
               if (fd != -1)
@@ -6539,7 +6539,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
     {
       // see if the cached module exists
       tracequery_path = find_tracequery_hash(s, headers);
-      if (!tracequery_path.empty())
+      if (!tracequery_path.empty() && !s.poison_cache)
         {
           int fd = open(tracequery_path.c_str(), O_RDONLY);
           if (fd != -1)

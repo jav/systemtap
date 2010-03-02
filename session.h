@@ -127,12 +127,13 @@ struct systemtap_session
   // and/or main.cxx(main).
 
   // Cache data
-  bool use_cache;
-  bool use_script_cache;
-  std::string cache_path;
-  std::string hash_path;
-  std::string stapconf_path;
-  hash *base_hash;
+  bool use_cache;               // control all caching
+  bool use_script_cache;        // control caching of pass-3/4 output
+  bool poison_cache;            // consider the cache to be write-only
+  std::string cache_path;       // usually ~/.systemtap/cache
+  std::string hash_path;        // path to the cached script module
+  std::string stapconf_path;    // path to the cached stapconf
+  hash *base_hash;              // hash common to all caching
 
   // dwarfless operation
   bool consult_symtab;
