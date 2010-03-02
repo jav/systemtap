@@ -1275,9 +1275,17 @@ main (int argc, char * const argv [])
     cerr << "Pass 2: analysis failed.  "
          << "Try again with another '--vp 01' option."
          << endl;
+
+  /* Print out list of missing files.  XXX should be "if (rc)" ? */
+  missing_rpm_list_print(s);
+
+  STAP_PROBE1(stap, pass2__end, &s);
+
+  if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) goto cleanup;
+
   // Generate hash.  There isn't any point in generating the hash
   // if last_pass is 2, since we'll quit before using it.
-  else if (s.last_pass != 2 && s.use_script_cache)
+  if (s.use_script_cache)
     {
       ostringstream o;
       unsigned saved_verbose;
@@ -1305,13 +1313,6 @@ main (int argc, char * const argv [])
 	  goto pass_5;
 	}
     }
-
-  /* Print out list of missing files */
-  missing_rpm_list_print(s);
-
-  STAP_PROBE1(stap, pass2__end, &s);
-
-  if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) goto cleanup;
 
   // PASS 3: TRANSLATION
   s.verbose = s.perpass_verbose[2];
