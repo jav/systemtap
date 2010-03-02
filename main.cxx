@@ -536,6 +536,7 @@ main (int argc, char * const argv [])
   s.perfmon=0;
   s.symtab = false;
   s.use_cache = true;
+  s.use_script_cache = true;
   s.tapset_compile_coverage = false;
   s.need_uprobes = false;
   s.consult_symtab = false;
@@ -584,7 +585,7 @@ main (int argc, char * const argv [])
         cerr << "Warning: failed to create systemtap data directory (\""
              << s.data_path << "\"): " << e
              << ", disabling cache support." << endl;
-      s.use_cache = false;
+      s.use_cache = s.use_script_cache = false;
     }
 
   if (s.use_cache)
@@ -597,7 +598,7 @@ main (int argc, char * const argv [])
             cerr << "Warning: failed to create cache directory (\""
                  << s.cache_path << "\"): " << e
                  << ", disabling cache support." << endl;
-	  s.use_cache = false;
+	  s.use_cache = s.use_script_cache = false;
 	}
     }
 
@@ -781,7 +782,7 @@ main (int argc, char * const argv [])
 	      }
 	  }
 
-	  s.use_cache = false;
+	  s.use_script_cache = false;
           break;
 
         case 'r':
@@ -797,7 +798,7 @@ main (int argc, char * const argv [])
 
         case 'k':
           s.keep_tmpdir = true;
-          s.use_cache = false; /* User wants to keep a usable build tree. */
+          s.use_script_cache = false; /* User wants to keep a usable build tree. */
           break;
 
         case 'g':
@@ -1276,7 +1277,7 @@ main (int argc, char * const argv [])
          << endl;
   // Generate hash.  There isn't any point in generating the hash
   // if last_pass is 2, since we'll quit before using it.
-  else if (s.last_pass != 2 && s.use_cache)
+  else if (s.last_pass != 2 && s.use_script_cache)
     {
       ostringstream o;
       unsigned saved_verbose;
@@ -1374,12 +1375,12 @@ main (int argc, char * const argv [])
   else
     {
       // Update cache. Cache cleaning is kicked off at the beginning of this function.
-      if (s.use_cache)
+      if (s.use_script_cache)
         add_to_cache(s);
 
       // We may need to save the module in $CWD if the cache was
       // inaccessible for some reason.
-      if (! s.use_cache && s.last_pass == 4)
+      if (! s.use_script_cache && s.last_pass == 4)
         save_module = true;
 
       // Copy module to the current directory.

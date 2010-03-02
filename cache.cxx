@@ -57,15 +57,18 @@ add_to_cache(systemtap_session& s)
   string stapconf_src_path = s.tmpdir + "/" + s.stapconf_name;
   if (!copy_file(stapconf_src_path, s.stapconf_path, verbose))
     {
-      s.use_cache = false;
-      return;
+      // NB: this is not so severe as to prevent reuse of the .ko
+      // already copied.
+      //
+      // s.use_script_cache = false;
+      // return;
     }
 
   string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
   STAP_PROBE2(stap, cache__add__module, module_src_path.c_str(), s.hash_path.c_str());
   if (!copy_file(module_src_path, s.hash_path, verbose))
     {
-      s.use_cache = false;
+      s.use_script_cache = false;
       return;
     }
   // Copy the signature file, if any. It is not an error if this fails.
@@ -83,7 +86,7 @@ add_to_cache(systemtap_session& s)
       // NB: this is not so severe as to prevent reuse of the .ko
       // already copied.
       //
-      // s.use_cache = false;
+      // s.use_script_cache = false;
     }
 }
 

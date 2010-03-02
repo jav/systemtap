@@ -127,6 +127,7 @@ struct systemtap_session
 
   // Cache data
   bool use_cache;
+  bool use_script_cache;
   std::string cache_path;
   std::string hash_path;
   std::string stapconf_path;

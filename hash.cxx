@@ -170,7 +170,7 @@ create_hashdir (systemtap_session& s, const string& result, string& hashdir)
             cerr << "Warning: failed to create cache directory (\""
                  << hashdir + "\"): " << strerror(errno)
                  << ", disabling cache support." << endl;
-	  s.use_cache = false;
+	  s.use_cache = s.use_script_cache = false;
 	  return false;
 	}
     }
