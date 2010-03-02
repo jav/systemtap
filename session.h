@@ -22,6 +22,7 @@ extern "C" {
 
 
 // forward decls for all referenced systemtap types
+struct hash;
 struct match_node;
 struct stapfile;
 struct vardecl;
@@ -131,6 +132,7 @@ struct systemtap_session
   std::string cache_path;
   std::string hash_path;
   std::string stapconf_path;
+  hash *base_hash;
 
   // dwarfless operation
   bool consult_symtab;

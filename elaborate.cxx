@@ -1516,6 +1516,7 @@ semantic_pass (systemtap_session& s)
 
 systemtap_session::systemtap_session ():
   // NB: pointer members must be manually initialized!
+  base_hash(0),
   pattern_root(new match_node),
   user_file (0),
   be_derived_probes(0),

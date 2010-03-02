@@ -46,13 +46,9 @@ static void clean_cache(systemtap_session& s);
 
 
 void
-add_to_cache(systemtap_session& s)
+add_stapconf_to_cache(systemtap_session& s)
 {
   bool verbose = s.verbose > 1;
-
-  // PR10543: clean the cache *before* we try putting something new into it.
-  // We don't want to risk having the brand new contents being erased again.
-  clean_cache(s);
 
   string stapconf_src_path = s.tmpdir + "/" + s.stapconf_name;
   if (!copy_file(stapconf_src_path, s.stapconf_path, verbose))
@@ -63,6 +59,17 @@ add_to_cache(systemtap_session& s)
       // s.use_script_cache = false;
       // return;
     }
+}
+
+
+void
+add_script_to_cache(systemtap_session& s)
+{
+  bool verbose = s.verbose > 1;
+
+  // PR10543: clean the cache *before* we try putting something new into it.
+  // We don't want to risk having the brand new contents being erased again.
+  clean_cache(s);
 
   string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
   STAP_PROBE2(stap, cache__add__module, module_src_path.c_str(), s.hash_path.c_str());
@@ -92,16 +99,10 @@ add_to_cache(systemtap_session& s)
 
 
 bool
-get_from_cache(systemtap_session& s)
+get_stapconf_from_cache(systemtap_session& s)
 {
   string stapconf_dest_path = s.tmpdir + "/" + s.stapconf_name;
-  string module_dest_path = s.tmpdir + "/" + s.module_name + ".ko";
-  string c_src_path = s.hash_path;
-  int fd_stapconf, fd_module, fd_c;
-
-  if (c_src_path.rfind(".ko") == (c_src_path.size() - 3))
-    c_src_path.resize(c_src_path.size() - 3);
-  c_src_path += ".c";
+  int fd_stapconf;
 
   // See if stapconf exists
   fd_stapconf = open(s.stapconf_path.c_str(), O_RDONLY);
@@ -122,7 +123,22 @@ get_from_cache(systemtap_session& s)
   close(fd_stapconf);
 
   if (s.verbose > 1)
-    clog << "Pass 3: using cached " << s.stapconf_path << endl;
+    clog << "Pass 4: using cached " << s.stapconf_path << endl;
+
+  return true;
+}
+
+
+bool
+get_script_from_cache(systemtap_session& s)
+{
+  string module_dest_path = s.tmpdir + "/" + s.module_name + ".ko";
+  string c_src_path = s.hash_path;
+  int fd_module, fd_c;
+
+  if (c_src_path.rfind(".ko") == (c_src_path.size() - 3))
+    c_src_path.resize(c_src_path.size() - 3);
+  c_src_path += ".c";
 
   // See if module exists
   fd_module = open(s.hash_path.c_str(), O_RDONLY);

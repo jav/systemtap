@@ -1300,10 +1300,10 @@ main (int argc, char * const argv [])
       }
 
       // Generate hash
-      find_hash (s, o.str());
+      find_script_hash (s, o.str());
 
       // See if we can use cached source/module.
-      if (get_from_cache(s))
+      if (get_script_from_cache(s))
         {
 	  // If our last pass isn't 5, we're done (since passes 3 and
 	  // 4 just generate what we just pulled out of the cache).
@@ -1352,6 +1352,12 @@ main (int argc, char * const argv [])
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
   STAP_PROBE1(stap, pass4__start, &s);
+
+  if (s.use_cache)
+    {
+      find_stapconf_hash(s);
+      get_stapconf_from_cache(s);
+    }
   rc = compile_pass (s);
 
   if (rc == 0 && s.last_pass == 4)
@@ -1377,7 +1383,9 @@ main (int argc, char * const argv [])
     {
       // Update cache. Cache cleaning is kicked off at the beginning of this function.
       if (s.use_script_cache)
-        add_to_cache(s);
+        add_script_to_cache(s);
+      if (s.use_cache)
+        add_stapconf_to_cache(s);
 
       // We may need to save the module in $CWD if the cache was
       // inaccessible for some reason.

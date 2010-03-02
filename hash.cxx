@@ -104,9 +104,15 @@ void create_hash_log(const string &type_str, const string &parms, const string &
   log_file.close();
 }
 
-static void
-get_base_hash (systemtap_session& s, hash& h)
+static const hash&
+get_base_hash (systemtap_session& s)
 {
+  if (s.base_hash)
+    return *s.base_hash;
+
+  s.base_hash = new hash();
+  hash& h = *s.base_hash;
+
   // Hash kernel release and arch.
   h.add(s.kernel_release);
   h.add(s.kernel_build_tree);
@@ -141,6 +147,8 @@ get_base_hash (systemtap_session& s, hash& h)
   // know exactly where we're getting run from, we'll use
   // /proc/self/exe.
   h.add_file("/proc/self/exe");
+
+  return h;
 }
 
 
@@ -178,10 +186,10 @@ create_hashdir (systemtap_session& s, const string& result, string& hashdir)
 }
 
 
-static void
-find_script_hash (systemtap_session& s, const string& script, const hash &base)
+void
+find_script_hash (systemtap_session& s, const string& script)
 {
-  hash h(base);
+  hash h(get_base_hash(s));
   struct stat st;
 
   // Hash getuid.  This really shouldn't be necessary (since who you
@@ -260,10 +268,10 @@ find_script_hash (systemtap_session& s, const string& script, const hash &base)
 }
 
 
-static void
-find_stapconf_hash (systemtap_session& s, const hash& base)
+void
+find_stapconf_hash (systemtap_session& s)
 {
-  hash h(base);
+  hash h(get_base_hash(s));
 
   // Add any custom kbuild flags
   for (unsigned i = 0; i < s.kbuildflags.size(); i++)
@@ -282,21 +290,10 @@ find_stapconf_hash (systemtap_session& s, const hash& base)
 }
 
 
-void
-find_hash (systemtap_session& s, const string& script)
-{
-  hash base;
-  get_base_hash(s, base);
-  find_stapconf_hash(s, base);
-  find_script_hash(s, script, base);
-}
-
-
 string
 find_tracequery_hash (systemtap_session& s, const vector<string>& headers)
 {
-  hash h;
-  get_base_hash(s, h);
+  hash h(get_base_hash(s));
 
   // Add the tracepoint headers to the computed hash
   for (size_t i = 0; i < headers.size(); ++i)
@@ -321,8 +318,7 @@ find_tracequery_hash (systemtap_session& s, const vector<string>& headers)
 string
 find_typequery_hash (systemtap_session& s, const string& name)
 {
-  hash h;
-  get_base_hash(s, h);
+  hash h(get_base_hash(s));
 
   // Add the typequery name to distinguish the hash
   h.add(name);
