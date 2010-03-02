@@ -1,25 +1,20 @@
 %{
-#include <linux/utsname.h>
+#include <linux/sched.h>
+#include <linux/list.h>
 %}
 
-function utsname:string (field:long)
-%{
-  if (down_read_trylock (& uts_sem))
-    {
-      const char *f =
-         (THIS->field == 0 ? system_utsname.sysname :
-          THIS->field == 1 ? system_utsname.nodename :
-          THIS->field == 2 ? system_utsname.release :
-          THIS->field == 3 ? system_utsname.version :
-          THIS->field == 4 ? system_utsname.machine :
-          THIS->field == 5 ? system_utsname.domainname : "");
-      strlcpy (THIS->__retvalue, f, MAXSTRINGLEN);
-      up_read (& uts_sem);
-    }
+function task_execname_by_pid:string (pid:long) %{
+  struct task_struct *p;
+  struct list_head *_p, *_n;
+  list_for_each_safe(_p, _n, &current->tasks) {
+    p = list_entry(_p, struct task_struct, tasks);
+    if (p->pid == (int)THIS->pid) 
+      snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s", p->comm);
+  }
 %}
 
 probe begin
 {
-  printf ("%s %s\n", utsname(0), utsname(2))
-  exit ()
+  printf("%s(%d)\n", task_execname_by_pid(target()), target())
+  exit()
 }
