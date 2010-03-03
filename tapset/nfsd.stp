@@ -12,12 +12,11 @@
 %{
 #include <linux/stat.h>
 
-#include <linux/sunrpc/svc.h>
-
 #include <linux/nfsd/nfsfh.h>
 #include <linux/nfs3.h>
 #include <linux/nfs4.h>
 
+#include <linux/sunrpc/svc.h>
 
 %}
 
@@ -187,6 +186,7 @@ probe nfsd.proc.entries = nfsd.proc.lookup,
                           nfsd.proc.read,
                           nfsd.proc.write,
                           nfsd.proc.commit,
+                          nfsd.proc.compound,
                           nfsd.proc.remove,
                           nfsd.proc.rename,
 			              nfsd.proc.create
@@ -195,6 +195,8 @@ probe nfsd.proc.entries = nfsd.proc.lookup,
 probe nfsd.proc.return = nfsd.proc.lookup.return,
                           nfsd.proc.read.return,
                           nfsd.proc.write.return,
+                          nfsd.proc.commit.return,
+                          nfsd.proc.compound.return,
                           nfsd.proc.remove.return,
                           nfsd.proc.rename.return,
                           nfsd.proc.create.return
@@ -218,10 +220,8 @@ probe nfsd.proc.lookup = nfsd.proc2.lookup,
 {}
 
 probe nfsd.proc.lookup.return = nfsd.proc2.lookup.return,
-                         nfsd.proc3.lookup.return
-%( kernel_v >= "2.6.25" %?
-                         ,nfsd.proc4.lookup.return
-%)
+                         nfsd.proc3.lookup.return,
+                         nfsd.proc4.lookup.return
 {}
 
 probe nfsd.proc2.lookup = kernel.function("nfsd_proc_lookup") !,
@@ -290,7 +290,6 @@ probe nfsd.proc4.lookup = kernel.function("nfsd4_lookup") !,
 	argstr = sprintf("%s", kernel_string_n($lookup->lo_name, $lookup->lo_len))
 } 
 
-%( kernel_v >= "2.6.25" %?
 probe nfsd.proc4.lookup.return = kernel.function("nfsd4_lookup").return !,
                           module("nfsd").function("nfsd4_lookup").return ?
 {
@@ -300,7 +299,6 @@ probe nfsd.proc4.lookup.return = kernel.function("nfsd4_lookup").return !,
 	version = 4
 	retstr = sprintf("%s", nfsderror($return))
 }
-%)
 
 /*
 *probe nfsd.proc.read
@@ -324,10 +322,8 @@ probe nfsd.proc.read = nfsd.proc2.read,
 {}
 
 probe nfsd.proc.read.return = nfsd.proc2.read.return,
-                       nfsd.proc3.read.return
-%( kernel_v >= "2.6.25" %?
-                       ,nfsd.proc4.read.return
-%)
+                       nfsd.proc3.read.return,
+                       nfsd.proc4.read.return
 {}
 
 probe nfsd.proc2.read = kernel.function("nfsd_proc_read")!,
@@ -419,7 +415,6 @@ probe nfsd.proc4.read = kernel.function("nfsd4_read") !,
 	units = "bytes"
 }
 
-%( kernel_v >= "2.6.25" %?
 probe nfsd.proc4.read.return = kernel.function("nfsd4_read").return!,
                         module("nfsd").function("nfsd4_read").return?
 {
@@ -429,7 +424,6 @@ probe nfsd.proc4.read.return = kernel.function("nfsd4_read").return!,
 	version = 4
 	retstr = sprintf("%s", nfsderror($return))
 }
-%)
 
 /*
 *probe nfsd.proc.write
@@ -454,10 +448,8 @@ probe nfsd.proc.write = nfsd.proc2.write,
 {}
 
 probe nfsd.proc.write.return = nfsd.proc2.write.return,
-                       nfsd.proc3.write.return
-%( kernel_v >= "2.6.25" %?
-                       ,nfsd.proc4.write.return
-%)
+                       nfsd.proc3.write.return,
+                       nfsd.proc4.write.return
 {}
 
 probe nfsd.proc2.write = kernel.function("nfsd_proc_write")!,
@@ -552,7 +544,6 @@ probe nfsd.proc4.write = kernel.function("nfsd4_write") !,
 	units = "bytes"
 } 
 
-%( kernel_v >= "2.6.25" %?
 probe nfsd.proc4.write.return = kernel.function("nfsd4_write").return!,
                         module("nfsd").function("nfsd4_write").return?
 {
@@ -565,7 +556,6 @@ probe nfsd.proc4.write.return = kernel.function("nfsd4_write").return!,
 
 	retstr = sprintf("%s", nfsderror($return))
 }
-%)
 /*
 *probe nfsd.proc.commit
 *  Fires when client does a commit operation,which is
@@ -661,10 +651,8 @@ probe nfsd.proc.create = nfsd.proc2.create,
                          nfsd.proc4.create
 {}
 probe nfsd.proc.create.return = nfsd.proc2.create.return,
-                                nfsd.proc3.create.return
-%( kernel_v >= "2.6.25" %?
-                                ,nfsd.proc4.create.return
-%)
+                                nfsd.proc3.create.return,
+                                nfsd.proc4.create.return
 {}
 
 probe nfsd.proc2.create = kernel.function("nfsd_proc_create")!,
@@ -737,7 +725,6 @@ probe nfsd.proc4.create = kernel.function("nfsd4_create") !,
 
 } 
 
-%( kernel_v >= "2.6.25" %?
 probe nfsd.proc4.write.create = kernel.function("nfsd4_create").return!,
                         module("nfsd").function("nfsd4_create").return?
 {
@@ -747,7 +734,6 @@ probe nfsd.proc4.write.create = kernel.function("nfsd4_create").return!,
 	version = 4
 	retstr = sprintf("%s", nfsderror($return))
 }
-%)
 
 /*
 *probe nfsd.proc.remove
@@ -766,10 +752,8 @@ probe nfsd.proc.remove = nfsd.proc2.remove,
                          nfsd.proc4.remove
 {}
 probe nfsd.proc.remove.return = nfsd.proc2.remove.return,
-                                nfsd.proc3.remove.return
-%( kernel_v >= "2.6.25" %?
-                                ,nfsd.proc4.remove.return
-%)
+                                nfsd.proc3.remove.return,
+                                nfsd.proc4.remove.return
 {}
 
 probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")!,
@@ -838,7 +822,6 @@ probe nfsd.proc4.remove = kernel.function("nfsd4_remove") !,
 
 } 
 
-%( kernel_v >= "2.6.25" %?
 probe nfsd.proc4.remove.return = kernel.function("nfsd4_remove").return!,
                         module("nfsd").function("nfsd4_remove").return?
 {
@@ -848,7 +831,6 @@ probe nfsd.proc4.remove.return = kernel.function("nfsd4_remove").return!,
 	version = 4
 	retstr = sprintf("%s", nfsderror($return))
 }
-%)
 /*
 * probe nfsd.proc.rename
 *  Fires when clients rename a file on server side
@@ -868,10 +850,8 @@ probe nfsd.proc.rename = nfsd.proc2.rename,
 {}
 
 probe nfsd.proc.rename.return = nfsd.proc2.rename.return,
-                         nfsd.proc3.rename.return
-%( kernel_v >= "2.6.25" %?
-                         ,nfsd.proc4.rename.return
-%)
+                         nfsd.proc3.rename.return,
+                         nfsd.proc4.rename.return
 {}
 
 probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")!,
@@ -933,6 +913,7 @@ probe nfsd.proc3.rename.return =  kernel.function("nfsd3_proc_rename").return!,
 	version = 3
 	retstr = sprintf("%s", nfsderror($return))
 }
+
 probe nfsd.proc4.rename = kernel.function("nfsd4_rename") !,
                           module("nfsd").function("nfsd4_rename") ?
 {
@@ -953,7 +934,6 @@ probe nfsd.proc4.rename = kernel.function("nfsd4_rename") !,
 		kernel_string_n($rename->rn_tname, $rename->rn_tnamelen))
 } 
 
-%( kernel_v >= "2.6.25" %?
 probe nfsd.proc4.rename.return = kernel.function("nfsd4_rename").return!,
                         module("nfsd").function("nfsd4_rename").return?
 {
@@ -963,7 +943,6 @@ probe nfsd.proc4.rename.return = kernel.function("nfsd4_rename").return!,
 	version = 4
 	retstr = sprintf("%s", nfsderror($return))
 }
-%)
 
 probe nfsd.entries = nfsd.open,
 	                 nfsd.read,
@@ -1028,7 +1007,6 @@ probe nfsd.open.return = kernel.function("nfsd_open").return !,
 probe nfsd.close = kernel.function("nfsd_close")!,
                    module("nfsd").function("nfsd_close")?
 {
-	client_ip ="N/A"
 	filename = __file_filename($filp)
 
 	name = "nfsd.close"
@@ -1106,11 +1084,7 @@ probe nfsd.write = kernel.function("nfsd_write")!,
 %( kernel_v >= "2.6.12" %?
 	file = $file
 %)
-%( kernel_v >= "2.6.30" %?
 	count = p_long($cnt)
-%:
-	count = $cnt
-%)
 	offset = $offset
 	vec = $vec
 	vlen = $vlen
