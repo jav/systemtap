@@ -119,12 +119,7 @@ badCertHandler(void *arg, PRFileDesc *sslSocket)
     {
       /* The server's certificate is not trusted. Should we trust it? */
       if (trustNewServer_p == NULL)
-	{
-	  /* Don't trust the cert, but print information about it.  */
-	  SEC_PrintCertificateAndTrust(serverCert, "Certificate",
-				       serverCert->trust);
-	  return SECFailure; /* Do not trust this server */
-	}
+	return SECFailure; /* Do not trust this server */
 
       /* Trust it for this session only?  */
       if (strcmp (trustNewServer_p, "session") == 0)
