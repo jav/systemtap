@@ -2246,7 +2246,6 @@ probe end {
 \end{vindent}
 This generates the following output.
 
-\pagebreak
 \begin{vindent}
 \begin{verbatim}
 value |-------------------------------------------------- count
@@ -2321,7 +2320,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-error:unknown (msg:string)
+error (msg:string)
 \end{verbatim}
 \end{vindent}
 This function logs the given string to the error stream. It appends an implicit
@@ -2335,7 +2334,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-log:unknown (msg:string)
+log (msg:string)
 log (const char *fmt, )
 \end{verbatim}
 \end{vindent}
@@ -2352,7 +2351,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-print:unknown ()
+print ()
 \end{verbatim}
 \end{vindent}
 This function prints a single value of any type.
@@ -2364,7 +2363,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-printf:unknown (fmt:string, )
+printf (fmt:string, ...)
 \end{verbatim}
 \end{vindent}
 The printf function takes a formatting string as an argument, and a number
@@ -2580,7 +2579,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-printd:unknown (delimiter:string, )
+printd (delimiter:string, ...)
 \end{verbatim}
 \end{vindent}
 This function takes a string delimiter and two or more values of any type, then
@@ -2606,7 +2605,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-printdln:unknown ()
+printdln (delimiter:string, ...)
 \end{verbatim}
 \end{vindent}
 This function operates like \texttt{printd}, but also appends a newline.
@@ -2617,7 +2616,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-println:unknown ()
+println ()
 \end{verbatim}
 \end{vindent}
 This function operates like \texttt{print}, but also appends a newline.
@@ -2628,7 +2627,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-sprint:unknown ()
+sprint:string ()
 \end{verbatim}
 \end{vindent}
 This function operates like \texttt{print}, but returns the string rather
@@ -2640,24 +2639,11 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-sprintf:unknown (fmt:string, )
+sprintf:string (fmt:string, ...)
 \end{verbatim}
 \end{vindent}
 This function operates like \texttt{printf}, but returns the formatted string
 rather than printing it.
-
-
-\subsubsection{system}
-\index{system}
-General syntax:
-
-\begin{vindent}
-\begin{verbatim}
-system (cmd:string)
-\end{verbatim}
-\end{vindent}
-The system function runs a command on the system. The specified command runs
-in the background once the current probe completes.
 
 
 \subsubsection{warn}
@@ -2666,7 +2652,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-warn:unknown (msg:string)
+warn (msg:string)
 \end{verbatim}
 \end{vindent}
 This function sends a warning message immediately to staprun. It is also
@@ -2857,7 +2843,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-print_backtrace:unknown ()
+print_backtrace ()
 \end{verbatim}
 \end{vindent}
 This function is equivalent to \texttt{print\_stack(backtrace())}, except
@@ -2870,7 +2856,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-print_regs:unknown ()
+print_regs ()
 \end{verbatim}
 \end{vindent}
 This function prints a register dump.
@@ -2882,7 +2868,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-print_stack:unknown (stk:string)
+print_stack (stk:string)
 \end{verbatim}
 \end{vindent}
 This function performs a symbolic lookup of the addresses in the given string,
@@ -3251,7 +3237,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-qs_wait:unknown (qname:string)
+qs_wait (qname:string)
 \end{verbatim}
 \end{vindent}
 This function records that a new request was enqueued for the given queue
@@ -3264,7 +3250,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-qs_run:unknown (qname:string)
+qs_run (qname:string)
 \end{verbatim}
 \end{vindent}
 This function records that a previously enqueued request was removed from
@@ -3277,7 +3263,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-qs_done:unknown (qname:string)
+qs_done (qname:string)
 \end{verbatim}
 \end{vindent}
 This function records that a request originally from the given queue has
@@ -3311,7 +3297,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-qsq_print:unknown (qname:string)
+qsq_print (qname:string)
 \end{verbatim}
 \end{vindent}
 This function prints a line containing the following statistics for the given
@@ -3346,7 +3332,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-qsq_start:unknown (qname:string)
+qsq_start (qname:string)
 \end{verbatim}
 \end{vindent}
 This function resets the statistics counters for the given queue, and restarts
@@ -3816,7 +3802,7 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-exit:unknown ()
+exit ()
 \end{verbatim}
 \end{vindent}
 This function enqueues a request to shut down the SystemTap session. It does
@@ -3830,11 +3816,11 @@ General syntax:
 
 \begin{vindent}
 \begin{verbatim}
-system (cmd:string)
+system (command:string)
 \end{verbatim}
 \end{vindent}
-This function runs a command on the system. The command will run in the background
-when the current probe completes.
+This function runs a command on the system. The command is started
+in the background when the current probe completes.
 
 
 \section{For Further Reference\label{sec:For-Further-Reference}}
