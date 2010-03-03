@@ -787,7 +787,7 @@ function attempt_connection {
 	if test $session_only_prompt_done = 0; then
 	    session_only_prompt_done=1
 	    prompt="${prompt}Trust this server for for this session only? [y/N] "
-	    read -p "$prompt" response
+	    read -t 30 -p "$prompt" response || echo n
 	    if test "$response" = "y" -o "$response" = "Y"; then
 		${stap_pkglibexecdir}stap-client-connect "$@" -t session >> "$tmpdir_client/connect" 2>&1 &
 		wait '%${stap_pkglibexecdir}stap-client-connect'
@@ -801,7 +801,7 @@ function attempt_connection {
 "
 	fi
 	prompt="${prompt}Add this server's certificate to '$ssl_db'? [y/N] "
-	read -p "$prompt" response
+	read -t 30 -p "$prompt" response || echo n
 	if test "$response" = "y" -o "$response" = "Y"; then
 	    ${stap_pkglibexecdir}stap-client-connect "$@" -t permanent >> "$tmpdir_client/connect" 2>&1 &
 	    wait '%${stap_pkglibexecdir}stap-client-connect'
