@@ -1,7 +1,7 @@
 /*
   Common functions used by the NSS-aware code in systemtap.
 
-  Copyright (C) 2009 Red Hat Inc.
+  Copyright (C) 2009, 2010 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -30,27 +30,17 @@ void
 nssError (void)
 {
   PRErrorCode errorNumber;
-  PRInt32 errorTextLength;
-  PRInt32 rc;
   char *errorText;
   
-  /* See if PR_GetErrorText can tell us what the error is.  */
+  /* See if PR_GetError can tell us what the error is.  */
   errorNumber = PR_GetError ();
 
   fprintf(stderr, "(%d) ", errorNumber);
 
   if (errorNumber >= PR_NSPR_ERROR_BASE && errorNumber <= PR_MAX_ERROR)
     {
-      errorTextLength = PR_GetErrorTextLength ();
-      if (errorTextLength != 0) {
-	errorText = PORT_Alloc (errorTextLength);
-	rc = PR_GetErrorText (errorText);
-	if (rc != 0)
-	  fprintf (stderr, "%s\n", errorText);
-	PR_Free (errorText);
-	if (rc != 0)
-	  return;
-      }
+      fprintf (stderr, "%s\n", PR_ErrorToString(errorNumber, PR_LANGUAGE_EN));
+      return;
     }
 
   switch (errorNumber) {
