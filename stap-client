@@ -71,6 +71,8 @@ function initialization {
     tmpdir_client=`mktemp -dt $stap_tmpdir_prefix_client.XXXXXX` || \
 	fatal "Cannot create temporary directory " $tmpdir_client
     tmpdir_env=`dirname $tmpdir_client`
+
+    session_only_prompt_done=0
 }
 
 # function: parse_options [ STAP-OPTIONS ]
@@ -594,9 +596,6 @@ function find_and_connect_to_server {
     zip_server=`mktemp -t $stap_tmpdir_prefix_client.server.zip.XXXXXX` || \
 	fatal "Cannot create temporary file " $zip_server
 
-    # Make a place to record connection errors
-    touch $tmpdir_client/connect
-
     # If servers were specified on the command line, then try them
     # in sequence. Don't try any other servers.
     if test "X$specified_servers" != "X"; then
@@ -624,14 +623,13 @@ function find_and_connect_to_server {
 		    name=`nslookup $address | awk '/in-addr\.arpa/ {print $4}'`
 		    name=`expr "$name" : '\(.*\)\.'`
                     if test "X$name" = "X"; then
-			echo "Cannot resolve ip address $address" >> $tmpdir_client/connect
+			echo "Cannot resolve ip address $address" >> "$tmpdir_client/connect"
 			continue
 		    fi
 		fi
 
 		# Now try to contact the given server.
-		ssl_db=`send_receive $name $port`
-		test "X$ssl_db" != "X" && return
+		send_receive $name $port && return
 		continue
 	    fi
 
@@ -649,52 +647,45 @@ function find_and_connect_to_server {
 		fi
 		address=`nslookup $server | awk '/^Address\:[ \t][0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ {print $2}'`
                 if test "X$address" = "X"; then
-		    echo "Cannot resolve server $server" >> $tmpdir_client/connect
+		    echo "Cannot resolve server $server" >> "$tmpdir_client/connect"
 		    continue
 		fi
 	    fi
 
-	    if test `${stap_pkglibexecdir}stap-find-servers $find_all | grep $address | wc -l` = "0"; then
-		warning "No server is available on $server" 2>> $tmpdir_client/connect
+	    ${stap_pkglibexecdir}stap-find-servers $find_all | grep $address > "$tmpdir_client/servers"
+
+	    if test `wc -l "$tmpdir_client/servers" | awk '{print $1}'` = "0"; then
+		warning "No server is available on $server" 2>> "$tmpdir_client/connect"
 		continue
 	    fi
 
-            ssl_db=`${stap_pkglibexecdir}stap-find-servers $find_all | grep $address | choose_server`
-	    test "X$ssl_db" != "X" && return
+            choose_server && return
 	done
     else
         # No servers specified. Find available servers and choose one of them.
 	# Remember which ssl certificate database was used to authenticate the chosen
         # server.
-	ssl_db=`${stap_pkglibexecdir}stap-find-servers $find_all | choose_server`
-	if test "X$ssl_db" != "X"; then
-	    rm -f $tmpdir_client/connect
-	    return
-	fi
-
-	num_servers=`${stap_pkglibexecdir}stap-find-servers $find_all | wc -l`
+	${stap_pkglibexecdir}stap-find-servers $find_all > "$tmpdir_client/servers"
+        choose_server && return
+	num_servers=`wc -l "$tmpdir_client/servers" | awk '{print $1}'`
     fi
 
     if test $num_servers = 0; then
-	rm -f $tmpdir_client/connect
 	fatal "Unable to find a server"
     fi
 
-    cat $tmpdir_client/connect >&2
-    rm -f $tmpdir_client/connect
+    test -f "$tmpdir_client/connect" && cat "$tmpdir_client/connect" >&2
     fatal "Unable to connect to a server"
 }
 
 # function: choose_server
 #
-# Examine each line from stdin and attempt to connect to each server
-# specified until successful.
-# echo the name of the ssl certificate database used to successfully authenticate
-# the server.
+# Examine each line from "$tmpdir_client/servers" and attempt to connect to
+# each server specified until successful.
 function choose_server {
     local name ip port remain
 
-    while read name ip port remain
+    while read -u3 name ip port remain
     do
 	if test "X$name" = "X"; then
 	    fatal "Server name not provided by avahi"
@@ -712,16 +703,16 @@ function choose_server {
 	sysinfo=`expr "$remain" : "'sysinfo=\\\(.*\\\)'"`
 	test "X$sysinfo" != "X$uname_r $arch" && continue
 
-	ssl_db=`send_receive $name $port`
-	test "X$ssl_db" != "X" && echo $ssl_db && return
-    done
+	send_receive $name $port && return
+    done 3< "$tmpdir_client/servers"
+
+    # Could not connect to a server
+    return 1
 }
 
 # function: send_receive SERVER PORT
 #
-# Connect to the server, send the request and receive the response
-# echo the name of the ssl certificate database used to successfully authenticate
-# the server.
+# Connect to the server, send the request and receive the response.
 function send_receive {
     local server="$1"
     local port="$2"
@@ -744,28 +735,82 @@ function send_receive {
 
     # Try to connect using each of the given local certificate databases in turn
     # for verification.
-    for db in $local_ssl_dbs
+    local rc
+    for ssl_db in $local_ssl_dbs
     do
         # Send the request and receive the response using stap-client-connect
-	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
-	${stap_pkglibexecdir}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	wait '%${stap_pkglibexecdir}stap-client-connect'
-	test $? = 0 && echo $db && return
+	attempt_connection -i $zip_client -o $zip_server -d $ssl_db -p $port -h $server && return
+
+	# Try the next database, but give the server a chance to reset.
 	sleep 1
     done
 
     # Next, try the public certificate databases.
-    for db in $public_ssl_dbs
+    for ssl_db in $public_ssl_dbs
     do
         # Send the request and receive the response using stap-client-connect
-	echo "Attempting connection with $server:$port using certificate database in '$db'" >> $tmpdir_client/connect
-	${stap_pkglibexecdir}stap-client-connect -i $zip_client -o $zip_server -d $db -p $port -h $server >> $tmpdir_client/connect 2>&1 &
-	wait '%${stap_pkglibexecdir}stap-client-connect'
-	test $? = 0 && echo $db && return
+	attempt_connection -i $zip_client -o $zip_server -d $ssl_db -p $port -h $server && return
+
+	# Try the next database, but give the server a chance to reset.
 	sleep 1
     done
 
     # Could not connect using any of the certificate databases
+    return 1
+}
+
+# function: attempt_connection ARGS
+#
+# Attempt connection with the given server. Give the user a chance to
+# trust the server if it is not already trusted
+function attempt_connection {
+    echo "Attempting connection with $server:$port using certificate database in '$ssl_db'" >> "$tmpdir_client/connect"
+
+    # Send the request and receive the response using stap-client-connect
+    ${stap_pkglibexecdir}stap-client-connect "$@" >> "$tmpdir_client/connect" 2>&1 &
+    wait '%${stap_pkglibexecdir}stap-client-connect'
+    local rc=$?
+    test $rc = 0 && return
+
+    # The connection failed. If it was because the server is not trusted, give
+    # the user a chance to decide whether to trust the server anyway.
+    # The prompt will not be printed and the read will quickly timeout if
+    # stdin is not from a terminal.
+    if test $rc = 2; then
+	# Output any connection messages generated thus far
+	cat "$tmpdir_client/connect" >&2
+	rm  "$tmpdir_client/connect"
+
+	local response
+	local prompt="The server at $server:$port is not trusted based on the certificate database in '$ssl_db'
+"
+	if test $session_only_prompt_done = 0; then
+	    session_only_prompt_done=1
+	    prompt="${prompt}Trust this server for for this session only? [y/N] "
+	    read -p "$prompt" response
+	    if test "$response" = "y" -o "$response" = "Y"; then
+		${stap_pkglibexecdir}stap-client-connect "$@" -t session >> "$tmpdir_client/connect" 2>&1 &
+		wait '%${stap_pkglibexecdir}stap-client-connect'
+		test $? = 0 && return
+		return 1 # Connection failed
+	    fi
+	    prompt=
+	fi
+	if test "$ssl_db" = "$stap_root_ssl_db/client"; then
+	    prompt="${prompt}Adding this server's certificate to this database will make this server trusted by all users on the local host.
+"
+	fi
+	prompt="${prompt}Add this server's certificate to '$ssl_db'? [y/N] "
+	read -p "$prompt" response
+	if test "$response" = "y" -o "$response" = "Y"; then
+	    ${stap_pkglibexecdir}stap-client-connect "$@" -t permanent >> "$tmpdir_client/connect" 2>&1 &
+	    wait '%${stap_pkglibexecdir}stap-client-connect'
+	    test $? = 0 && return
+	fi
+    fi
+
+    # Connection failed
+    return 1
 }
 
 # function: process_response
