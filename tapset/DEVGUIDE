@@ -242,7 +242,8 @@ built into SystemTap.  Be especially careful when dereferencing
 pointers.  Use the kread() macro to dereference any pointers that could
 potentially be invalid.  If you're not sure, err on the side of caution.
 The cost of using kread() is small compared to the cost of your tapset
-inadvertently crashing a system!
+inadvertently crashing a system!  It is necessary to rigorously test
+embedded-C functions in the testsuite.
 
 Add the string 
     /* pure */
