@@ -51,7 +51,7 @@ function _stp_get_mm_counter_anon_rss(mm:long)
 }
 
 /**
- * sfunction proc_mem_size - Total program virtual memory size in pages.
+ * sfunction proc_mem_size - Total program virtual memory size in pages
  *
  * Description: Returns the total virtual memory size in pages of the
  * current process, or zero when there is no current process or the
@@ -67,7 +67,9 @@ function proc_mem_size:long ()
 %}
 
 /**
- * sfunction proc_mem_size_pid - Total program virtual memory size in pages.
+ * sfunction proc_mem_size_pid - Total program virtual memory size in pages
+ *
+ * @pid: The pid of process to examine
  *
  * Description: Returns the total virtual memory size in pages of the
  * given process, or zero when that process doesn't exist or the
@@ -86,7 +88,7 @@ function proc_mem_size_pid:long (pid:long)
 }
 
 /**
- * sfunction proc_mem_rss - Program resident set size in pages.
+ * sfunction proc_mem_rss - Program resident set size in pages
  *
  * Description: Returns the resident set size in pages of the current
  * process, or zero when there is no current process or the number of
@@ -103,7 +105,9 @@ function proc_mem_rss:long ()
 %}
 
 /**
- * sfunction proc_mem_rss_pid - Program resident set size in pages.
+ * sfunction proc_mem_rss_pid - Program resident set size in pages
+ *
+ * @pid: The pid of process to examine
  *
  * Description: Returns the resident set size in pages of the given
  * process, or zero when the process doesn't exist or the number of
@@ -123,7 +127,7 @@ function proc_mem_rss_pid:long (pid:long)
 }
 
 /**
- * sfunction proc_mem_shr - Program shared pages (from shared mappings).
+ * sfunction proc_mem_shr - Program shared pages (from shared mappings)
  *
  * Description: Returns the shared pages (from shared mappings) of the
  * current process, or zero when there is no current process or the
@@ -139,7 +143,9 @@ function proc_mem_shr:long ()
 %}
 
 /**
- * sfunction proc_mem_shr_pid - Program shared pages (from shared mappings).
+ * sfunction proc_mem_shr_pid - Program shared pages (from shared mappings)
+ *
+ * @pid: The pid of process to examine
  *
  * Description: Returns the shared pages (from shared mappings) of the
  * given process, or zero when the process doesn't exist or the
@@ -158,7 +164,7 @@ function proc_mem_shr_pid:long (pid:long)
 }
 
 /**
- * sfunction proc_mem_txt - Program text (code) size in pages.
+ * sfunction proc_mem_txt - Program text (code) size in pages
  *
  * Description: Returns the current process text (code) size in pages,
  * or zero when there is no current process or the number of pages
@@ -183,7 +189,9 @@ function _stp_mem_txt_adjust:long (start_code:long, end_code:long)
 %}
 
 /**
- * sfunction proc_mem_txt_pid - Program text (code) size in pages.
+ * sfunction proc_mem_txt_pid - Program text (code) size in pages
+ *
+ * @pid: The pid of process to examine
  *
  * Description: Returns the given process text (code) size in pages,
  * or zero when the process doesn't exist or the number of pages
@@ -206,7 +214,7 @@ function proc_mem_txt_pid:long (pid:long)
 }
 
 /**
- * sfunction proc_mem_data - Program data size (data + stack) in pages.
+ * sfunction proc_mem_data - Program data size (data + stack) in pages
  *
  * Description: Returns the current process data size (data + stack)
  * in pages, or zero when there is no current process or the number of
@@ -222,7 +230,9 @@ function proc_mem_data:long ()
 %}
 
 /**
- * sfunction proc_mem_data_pid - Program data size (data + stack) in pages.
+ * sfunction proc_mem_data_pid - Program data size (data + stack) in pages
+ *
+ * @pid: The pid of process to examine
  *
  * Description: Returns the given process data size (data + stack)
  * in pages, or zero when the process doesn't exist or the number of
@@ -245,7 +255,7 @@ function proc_mem_data_pid:long (pid:long)
 }
 
 /**
- * sfunction mem_page_size - Number of bytes in a page for this architecture.
+ * sfunction mem_page_size - Number of bytes in a page for this architecture
  */
 function mem_page_size:long ()
 %{ /* pure */ /* unprivileged */
@@ -263,7 +273,8 @@ function _stp_number_to_string_postfix:string (x:long, y:long, p:string)
 }
 
 /**
- * sfunction bytes_to_string - Human readable string for given bytes.
+ * sfunction bytes_to_string - Human readable string for given bytes
+ *
  * @bytes: Number of bytes to translate.
  *
  * Description: Returns a string representing the number of bytes (up
@@ -296,7 +307,8 @@ function bytes_to_string:string (bytes:long)
 }
 
 /**
- * sfunction pages_to_string - Turns pages into a human readable string.
+ * sfunction pages_to_string - Turns pages into a human readable string
+ *
  * @pages: Number of pages to translate.
  *
  * Description: Multiplies pages by page_size() to get the number of
@@ -309,7 +321,7 @@ function pages_to_string:string (pages:long)
 }
 
 /**
- * sfunction proc_mem_string - Human readable string of current proc memory usage.
+ * sfunction proc_mem_string - Human readable string of current proc memory usage
  *
  * Description: Returns a human readable string showing the size, rss,
  * shr, txt and data of the memory used by the current process.
@@ -326,7 +338,9 @@ function proc_mem_string:string ()
 }
 
 /**
- * sfunction proc_mem_string_pid - Human readable string of process memory usage.
+ * sfunction proc_mem_string_pid - Human readable string of process memory usage
+ *
+ * @pid: The pid of process to examine
  *
  * Description: Returns a human readable string showing the size, rss,
  * shr, txt and data of the memory used by the given process.
