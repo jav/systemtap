@@ -52,7 +52,7 @@
 \newpage{}
 This document was derived from other documents contributed to the SystemTap project by employees of Red Hat, IBM and Intel.\newline
 
-Copyright \copyright\space  2007-2009 Red Hat Inc.\newline
+Copyright \copyright\space  2007-2010 Red Hat Inc.\newline
 Copyright \copyright\space  2007-2009 IBM Corp.\newline
 Copyright \copyright\space  2007 Intel Corporation.\newline
 
@@ -1867,6 +1867,28 @@ is limited to MAXACTION, which defaults to 1000. See Section~\ref{sub:SystemTap-
 Use \texttt{break} or \texttt{continue} to exit or iterate the innermost
 nesting loop statement, such as within a \texttt{while, for,} or \texttt{foreach}
 statement. The syntax and semantics are the same as those used in C.
+
+
+\subsection{try/catch}
+\index{try}
+\index{catch}
+Use \texttt{try}/\texttt{catch} to handle most kinds of run-time errors within the script
+instead of aborting the probe handler in progress.  The semantics are similar
+to C++ in that try/catch blocks may be nested.  The error string may be captured
+by optionally naming a variable which is to receive it.
+
+\begin{vindent}
+\begin{verbatim}
+try { 
+   /* do something */
+   /* trigger error like kread(0), or divide by zero, or error("foo") */
+} catch (msg) { /* omit (msg) entirely if not interested */
+   /* println("caught error ", msg) */
+   /* handle error */
+}
+/* execution continues */
+\end{verbatim}
+\end{vindent}
 
 
 \subsection{delete}

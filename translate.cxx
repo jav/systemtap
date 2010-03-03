@@ -124,6 +124,7 @@ struct c_unparser: public unparser, public visitor
   void record_actions (unsigned actions, bool update=false);
 
   void visit_block (block* s);
+  void visit_try_block (try_block* s);
   void visit_embeddedcode (embeddedcode* s);
   void visit_null_statement (null_statement* s);
   void visit_expr_statement (expr_statement* s);
@@ -1486,16 +1487,15 @@ c_unparser::emit_function (functiondecl* v)
   this->tmpvar_counter = 0;
   this->action_counter = 0;
 
+  o->newline() << "__label__ out;";
   o->newline()
     << "struct function_" << c_varname (v->name) << "_locals * "
-    << " __restrict__ l =";
-  o->newline(1)
+    << " __restrict__ l = "
     << "& c->locals[c->nesting+1].function_" << c_varname (v->name) // NB: nesting+1
     << ";";
-  o->newline(-1) << "(void) l;"; // make sure "l" is marked used
+  o->newline() << "(void) l;"; // make sure "l" is marked used
   o->newline() << "#define CONTEXT c";
   o->newline() << "#define THIS l";
-  o->newline() << "if (0) goto out;"; // make sure out: is marked used
 
   // set this, in case embedded-c code sets last_error but doesn't otherwise identify itself
   o->newline() << "c->last_stmt = " << lex_cast_qstring(*v->tok) << ";";
@@ -1546,7 +1546,7 @@ c_unparser::emit_function (functiondecl* v)
   }
 
   o->newline(-1) << "out:";
-  o->newline(1) << ";";
+  o->newline(1) << "if (0) goto out;"; // make sure out: is marked used
 
   // Function prologue: this is why we redirect the "return" above.
   // Decrement nesting level.
@@ -1651,6 +1651,8 @@ c_unparser::emit_probe (derived_probe* v)
 
       probe_contents[oss.str()] = v->name;
 
+      o->newline() << "__label__ out;";
+
       // emit static read/write lock decls for global variables
       varuse_collecting_visitor vut(*session);
       if (v->needs_global_locks ())
@@ -1660,9 +1662,9 @@ c_unparser::emit_probe (derived_probe* v)
 	}
 
       // initialize frame pointer
-      o->newline() << "struct " << v->name << "_locals * __restrict__ l =";
-      o->newline(1) << "& c->probe_locals." << v->name << ";";
-      o->newline(-1) << "(void) l;"; // make sure "l" is marked used
+      o->newline() << "struct " << v->name << "_locals * __restrict__ l = "
+                   << "& c->probe_locals." << v->name << ";";
+      o->newline() << "(void) l;"; // make sure "l" is marked used
 
       // Emit runtime safety net for unprivileged mode.
       v->emit_unprivileged_assertion (o);
@@ -2351,6 +2353,46 @@ c_unparser::visit_block (block *s)
           session->print_error (e);
         }
     }
+  o->newline(-1) << "}";
+}
+
+
+void c_unparser::visit_try_block (try_block *s)
+{
+  o->newline() << "{";
+  o->newline(1) << "__label__ normal_out;";
+  o->newline(1) << "{";
+  o->newline() << "__label__ out;";
+
+  assert (!session->unoptimized || s->try_block); // dead_stmtexpr_remover would zap it
+  if (s->try_block)
+    s->try_block->visit (this);
+
+  o->newline() << "if (likely(c->last_error == NULL)) goto normal_out;";
+  
+  o->newline() << "if (0) goto out;"; // to prevent 'unused label' warnings
+  o->newline() << "out:";
+  if (s->catch_error_var)
+    {
+      var cev(getvar(s->catch_error_var->referent, s->catch_error_var->tok));
+      c_strcpy (cev.value(), "c->last_error");
+    }
+  o->newline() << "c->last_error = NULL;";
+
+  // Close the scope of the above nested 'out' label, to make sure
+  // that the catch block, should it encounter errors, does not resolve
+  // a 'goto out;' to the above label, causing infinite looping.
+  o->newline(-1) << "}"; 
+
+  // Prevent the catch{} handler from even starting if MAXACTIONS have
+  // already been used up.
+  record_actions(0, true); 
+ 
+  if (s->catch_block)
+    s->catch_block->visit (this);
+  
+  o->newline() << "normal_out:";
+  o->newline() << ";"; // to have _some_ statement
   o->newline(-1) << "}";
 }
 

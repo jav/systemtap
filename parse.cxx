@@ -1,5 +1,5 @@
 // recursive descent parser for systemtap scripts
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 // Copyright (C) 2007 Bull S.A.S
 //
@@ -606,7 +606,7 @@ parser::expect_op (std::string const & expected)
 const token*
 parser::expect_kw (std::string const & expected)
 {
-  return expect_known (tok_identifier, expected);
+  return expect_known (tok_keyword, expected);
 }
 
 const token*
@@ -703,6 +703,8 @@ lexer::lexer (istream& input, const string& in, systemtap_session& s):
       keywords.insert("next");
       keywords.insert("string");
       keywords.insert("long");
+      keywords.insert("try");
+      keywords.insert("catch");
     }
 }
 
@@ -1283,6 +1285,40 @@ parser::parse_stmt_block ()
 }
 
 
+try_block*
+parser::parse_try_block ()
+{
+  try_block* pb = new try_block;
+
+  pb->tok = expect_kw ("try");
+  pb->try_block = parse_stmt_block();
+  expect_kw ("catch");
+
+  const token* t = peek ();
+  if (t->type == tok_operator && t->content == "(")
+    {
+      next (); // swallow the '('
+
+      t = next();
+      if (! (t->type == tok_identifier))
+        throw parse_error ("expected identifier");
+      symbol* sym = new symbol;
+      sym->tok = t;
+      sym->name = t->content;
+      pb->catch_error_var = sym;
+
+      expect_op (")");
+    }
+  else
+    pb->catch_error_var = 0;
+
+  pb->catch_block = parse_stmt_block();
+
+  return pb;
+}
+
+
+
 statement*
 parser::parse_statement ()
 {
@@ -1292,6 +1328,8 @@ parser::parse_statement ()
     return new null_statement (next ());
   else if (t && t->type == tok_operator && t->content == "{")
     return parse_stmt_block (); // Don't squash semicolons.
+  else if (t && t->type == tok_keyword && t->content == "try")
+    return parse_try_block (); // Don't squash semicolons.
   else if (t && t->type == tok_keyword && t->content == "if")
     return parse_if_statement (); // Don't squash semicolons.
   else if (t && t->type == tok_keyword && t->content == "for")

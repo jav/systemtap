@@ -493,7 +493,16 @@ not taken anywhere, then a return statement is not needed, and the
 function will have a special "unknown" type with no return value.
 .TP
 .BR next
-Return now from enclosing probe handler.
+Return now from enclosing probe handler.  This is especially useful in
+probe aliases that apply event filtering predicates.
+.TP
+.BR try " { STMT1 } " catch " { STMT2 }"
+Run the statements in the first block.  Upon any run-time errors, abort
+STMT1 and start executing STMT2.  Any errors in STMT2 will propagate to
+outer try/catch blocks, if any.
+.TP
+.BR try " { STMT1 } " catch "(VAR) { STMT2 }"
+Same as above, plus assign the error message to the string scalar variable VAR.
 .TP
 .BR delete " ARRAY[INDEX1, INDEX2, ...]"
 Remove from ARRAY the element specified by the index tuple.  The value will no

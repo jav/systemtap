@@ -527,6 +527,16 @@ struct block: public statement
 };
 
 
+struct try_block: public statement
+{
+  block* try_block; // may be 0
+  block* catch_block; // may be 0
+  symbol* catch_error_var; // may be 0
+  void print (std::ostream& o) const;
+  void visit (visitor* u);
+};
+
+
 struct expr_statement;
 struct for_loop: public statement
 {
@@ -698,6 +708,7 @@ struct visitor
 
   virtual ~visitor () {}
   virtual void visit_block (block *s) = 0;
+  virtual void visit_try_block (try_block *s) = 0;
   virtual void visit_embeddedcode (embeddedcode *s) = 0;
   virtual void visit_null_statement (null_statement *s) = 0;
   virtual void visit_expr_statement (expr_statement *s) = 0;
@@ -740,6 +751,7 @@ struct visitor
 struct traversing_visitor: public visitor
 {
   void visit_block (block *s);
+  void visit_try_block (try_block *s);
   void visit_embeddedcode (embeddedcode *s);
   void visit_null_statement (null_statement *s);
   void visit_expr_statement (expr_statement *s);
@@ -805,6 +817,7 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
     current_lvalue(0),
     current_lrvalue(0) {}
   void visit_embeddedcode (embeddedcode *s);
+  void visit_try_block (try_block *s);
   void visit_delete_statement (delete_statement *s);
   void visit_print_format (print_format *e);
   void visit_assignment (assignment *e);
@@ -834,6 +847,7 @@ struct throwing_visitor: public visitor
   virtual void throwone (const token* t);
 
   void visit_block (block *s);
+  void visit_try_block (try_block *s);
   void visit_embeddedcode (embeddedcode *s);
   void visit_null_statement (null_statement *s);
   void visit_expr_statement (expr_statement *s);
@@ -901,6 +915,7 @@ struct update_visitor: public visitor
   virtual ~update_visitor() { assert(targets.empty()); }
 
   virtual void visit_block (block *s);
+  virtual void visit_try_block (try_block *s);
   virtual void visit_embeddedcode (embeddedcode *s);
   virtual void visit_null_statement (null_statement *s);
   virtual void visit_expr_statement (expr_statement *s);
@@ -957,6 +972,7 @@ struct deep_copy_visitor: public update_visitor
   }
 
   virtual void visit_block (block *s);
+  virtual void visit_try_block (try_block *s);
   virtual void visit_embeddedcode (embeddedcode *s);
   virtual void visit_null_statement (null_statement *s);
   virtual void visit_expr_statement (expr_statement *s);

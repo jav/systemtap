@@ -1,0 +1,3 @@
+#! stap -up2
+
+probe begin { try {} catch (er) {println(er+2)} }

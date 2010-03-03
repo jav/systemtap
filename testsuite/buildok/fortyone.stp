@@ -1,0 +1,37 @@
+#! stap -p4
+
+# NB: also used for systemtap.base/trycatch.exp
+
+function foo () {
+  try { error("foo") println("KO 1") } catch { println("OK 1") error ("bar") }
+}
+
+function koo () {
+  try { println(1/(0*foo())) println("KO 2") } catch (er) { println("OK 2 ",er) error("baz") }
+}
+
+probe begin {
+  try { koo () println("KO 3") } catch { println("OK 3") }
+  try { /* empty */ } catch { log("KO 4") }
+  try { log("OK 4") } catch { /* empty */ }
+  try { /* empty */ } catch { /* empty */ }
+  println("OK 5")
+
+  // check for proper loop / try/catch nesting
+  for (i=0;i<5;i++) try { error("me") } catch { break }
+  println ((i==0) ? "OK 7" : "KO 7")
+
+  for (j=0;j<5;j++) { for (i=0;i<5;i++) try { break } catch { continue } }
+  println ((i==0 && j==5) ? "OK 7a" : "KO 7a")
+
+  for (i=0;i<5;i++) try { error("me") } catch { continue }
+  println ((i==5) ? "OK 8" : "KO 8")
+
+  for (j=0;j<5;j++) { for (i=0;i<5;i++) try { continue } catch { break } }
+  println ((i==5 && j==5) ? "OK 8a" : "KO 8a")
+
+  // check that MAXACTIONS cannot be bypassed, e.g. with nested catch {}'s
+  try { for (i=0; i<100000; i++) ; println("KO 6") } catch { println("KO 5") }
+  println("KO 6")
+  // will result in MAXACTION error
+}

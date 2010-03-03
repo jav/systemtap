@@ -102,6 +102,7 @@ struct embeddedcode;
 struct probe_point;
 struct literal;
 struct block;
+struct try_block;
 struct for_loop;
 struct statement;
 struct if_statement;
@@ -175,6 +176,7 @@ private: // nonterminals
   probe_point* parse_probe_point ();
   literal* parse_literal ();
   block* parse_stmt_block ();
+  try_block* parse_try_block ();
   statement* parse_statement ();
   if_statement* parse_if_statement ();
   for_loop* parse_for_loop ();

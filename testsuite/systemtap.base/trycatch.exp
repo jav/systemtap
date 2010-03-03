@@ -1,0 +1,41 @@
+set test "trycatch"
+
+if {! [installtest_p]} { untested $test; return }
+
+set ok 0
+set ko 0
+spawn stap $srcdir/buildok/fortyone.stp
+expect {
+    -timeout 30
+    -re {^ERROR: MAXACTION[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^WARNING: Number of errors[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^Pass 5: run failed[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^OK[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^KO[^\r\n]*\r\n} { incr ko; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait; catch { close } 
+if {$ok == 12 && $ko == 0} then {pass $test} else {fail "$test ($ok $ko)"}
+
+
+set test "trycatch -u"
+
+set ok 0
+set ko 0
+spawn stap -u $srcdir/buildok/fortyone.stp
+expect {
+    -timeout 30
+    -re {^ERROR: MAXACTION[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^WARNING: Number of errors[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^Pass 5: run failed[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^OK[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^KO[^\r\n]*\r\n} { incr ko; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait; catch { close } 
+if {$ok == 12 && $ko == 0} then {pass $test} else {fail "$test ($ok $ko)"}
+
+
+

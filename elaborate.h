@@ -71,6 +71,7 @@ struct typeresolution_info: public visitor
   exp_type t; // implicit parameter for nested visit call; may clobber
 
   void visit_block (block* s);
+  void visit_try_block (try_block* s);
   void visit_embeddedcode (embeddedcode* s);
   void visit_null_statement (null_statement* s);
   void visit_expr_statement (expr_statement* s);

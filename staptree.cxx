@@ -1,5 +1,5 @@
 // parse tree functions
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -903,6 +903,18 @@ block::block (statement* car, statement* cdr)
 
 
 
+void try_block::print (ostream& o) const
+{
+  o << "try {" << endl;
+  if (try_block) o << *try_block << endl;
+  o << "} catch ";
+  if (catch_error_var) o << "(" << *catch_error_var << ") ";
+  o << "{" << endl;
+  if (catch_block) o << *catch_block << endl;
+  o << "}" << endl;
+}
+
+
 void for_loop::print (ostream& o) const
 {
   o << "for (";
@@ -1136,6 +1148,13 @@ void
 block::visit (visitor* u)
 {
   u->visit_block (this);
+}
+
+
+void
+try_block::visit (visitor* u)
+{
+  u->visit_try_block (this);
 }
 
 
@@ -1525,6 +1544,17 @@ traversing_visitor::visit_block (block* s)
 }
 
 void
+traversing_visitor::visit_try_block (try_block* s)
+{
+  if (s->try_block)
+    s->try_block->visit (this);
+  if (s->catch_error_var)
+    s->catch_error_var->visit (this);
+  if (s->catch_block)
+    s->catch_block->visit (this);
+}
+
+void
 traversing_visitor::visit_embeddedcode (embeddedcode*)
 {
 }
@@ -1774,6 +1804,21 @@ functioncall_traversing_visitor::visit_functioncall (functioncall* e)
       e->referent->body->visit (this);
       current_function = last_current_function;
     }
+}
+
+
+void
+varuse_collecting_visitor::visit_try_block (try_block *s)
+{
+  if (s->try_block)
+    s->try_block->visit (this);
+  if (s->catch_error_var)
+    written.insert (s->catch_error_var->referent);
+  if (s->catch_block)
+    s->catch_block->visit (this);
+
+  // NB: don't functioncall_traversing_visitor::visit_try_block (s);
+  // since that would count s->catch_error_var as a read also.
 }
 
 
@@ -2067,6 +2112,13 @@ throwing_visitor::visit_block (block* s)
 }
 
 void
+throwing_visitor::visit_try_block (try_block* s)
+{
+  throwone (s->tok);
+}
+
+
+void
 throwing_visitor::visit_embeddedcode (embeddedcode* s)
 {
   throwone (s->tok);
@@ -2275,6 +2327,15 @@ update_visitor::visit_block (block* s)
 {
   for (unsigned i = 0; i < s->statements.size(); ++i)
     replace (s->statements[i]);
+  provide (s);
+}
+
+void
+update_visitor::visit_try_block (try_block* s)
+{
+  replace (s->try_block);
+  replace (s->catch_error_var);
+  replace (s->catch_block);
   provide (s);
 }
 
@@ -2553,6 +2614,12 @@ void
 deep_copy_visitor::visit_block (block* s)
 {
   update_visitor::visit_block(new block(*s));
+}
+
+void
+deep_copy_visitor::visit_try_block (try_block* s)
+{
+  update_visitor::visit_try_block(new try_block(*s));
 }
 
 void

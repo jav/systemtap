@@ -2206,6 +2206,7 @@ struct dead_assignment_remover: public update_visitor
     session(s), relaxed_p(r), vut(v) {}
 
   void visit_assignment (assignment* e);
+  void visit_try_block (try_block *s);
 };
 
 
@@ -2262,6 +2263,27 @@ dead_assignment_remover::visit_assignment (assignment* e)
   provide (e);
 }
 
+
+void
+dead_assignment_remover::visit_try_block (try_block *s)
+{
+  replace (s->try_block);
+  if (s->catch_error_var)
+    {
+      vardecl* errvar = s->catch_error_var->referent;
+      if (vut.read.find(errvar) == vut.read.end()) // never read?
+        {
+          if (session.verbose>2)
+            clog << "Eliding unused error string catcher " << errvar->name
+                 << " at " << *s->tok << endl;
+          s->catch_error_var = 0;
+        }
+    }
+  replace (s->catch_block);
+  provide (s);
+}
+
+
 // Let's remove assignments to variables that are never read.  We
 // rewrite "(foo = expr)" as "(expr)".  This makes foo a candidate to
 // be optimized away as an unused variable, and expr a candidate to be
@@ -2301,6 +2323,7 @@ struct dead_stmtexpr_remover: public update_visitor
     session(s), relaxed_p(r) {}
 
   void visit_block (block *s);
+  void visit_try_block (try_block *s);
   void visit_null_statement (null_statement *s);
   void visit_if_statement (if_statement* s);
   void visit_foreach_loop (foreach_loop *s);
@@ -2362,6 +2385,22 @@ dead_stmtexpr_remover::visit_block (block *s)
     s->statements = new_stmts;
   provide (s);
 }
+
+
+void
+dead_stmtexpr_remover::visit_try_block (try_block *s)
+{
+  replace (s->try_block, true);
+  replace (s->catch_block, true); // null catch{} is ok and useful
+  if (s->try_block == 0)
+    {
+      if (session.verbose>2)
+        clog << "Eliding empty try {} block " << *s->tok << endl;
+      s = 0;
+    }
+  provide (s);
+}
+
 
 void
 dead_stmtexpr_remover::visit_if_statement (if_statement *s)
@@ -4258,6 +4297,21 @@ typeresolution_info::visit_block (block* e)
 	  session.print_error (e);
         }
     }
+}
+
+
+void
+typeresolution_info::visit_try_block (try_block* e)
+{
+  if (e->try_block)
+    e->try_block->visit (this);
+  if (e->catch_error_var)
+    {
+      t = pe_string;
+      e->catch_error_var->visit (this);
+    }
+  if (e->catch_block)
+    e->catch_block->visit (this);
 }
 
 
