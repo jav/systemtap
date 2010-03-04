@@ -34,15 +34,17 @@ nssError (void)
   
   /* See if PR_GetError can tell us what the error is.  */
   errorNumber = PR_GetError ();
-
   fprintf(stderr, "(%d) ", errorNumber);
 
+  /* PR_ErrorToString always returns a valid string for errors in this range.  */
   if (errorNumber >= PR_NSPR_ERROR_BASE && errorNumber <= PR_MAX_ERROR)
     {
       fprintf (stderr, "%s\n", PR_ErrorToString(errorNumber, PR_LANGUAGE_EN));
       return;
     }
 
+  /* PR_ErrorToString does not handle errors outside the range above, so
+     we handle them ourselves.  */
   switch (errorNumber) {
   default: errorText = "(unknown)"; break;
 #define NSSYERROR(code,msg) case code: errorText = msg; break
