@@ -57,14 +57,19 @@ proc stap_direct_and_with_client {stap stap_client options} {
 		incr n
 		continue
 	    }
-	} else {
-	    if {[regexp "^Input file '(.*)' is empty or missing." $expected_line match data]} {
-		# Special characters in the regexp need to be quoted.
-		regsub -all "\[\"\\\\;\*\]" $data {\\\0} data
-		if {[regexp "^Input file 'script.*/$data' is empty or missing." $line]} {
-		    incr n
-		    continue
-		}
+	} elseif {[regexp "^Input file '(.*)' is empty or missing." $expected_line match data]} {
+	    # Special characters in the regexp need to be quoted.
+	    regsub -all "\[\"\\\\;\*\]" $data {\\\0} data
+	    if {[regexp "^Input file 'script.*/$data' is empty or missing." $line]} {
+		incr n
+		continue
+	    }
+	} elseif {[regexp "^(.*/stap): (.*)" $line match data1 data2]} {
+	    # Special characters in the regexp need to be quoted.
+	    regsub -all "\[\"\\\\;\*\]" $data2 {\\\0} data2
+	    if {[regexp "^$stap: $data2" $expected_line]} {
+		incr n
+		continue
 	    }
 	}
 
