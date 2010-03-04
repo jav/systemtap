@@ -300,3 +300,77 @@ function uaddr:long () %{ /* pure */ /* unprivileged */
   THIS->__retvalue = addr;
 %}
 
+/**
+ * sfunction cmdline_args - Fetch command line arguments from current process
+ *
+ * @n: First argument to get (zero is the command itself)
+ * @m: Last argument to get (or minus one for all arguments after n)
+ * @delim: String to use to delimit arguments when more than one.
+ *
+ * Description: Returns arguments from the current process starting
+ * with argument number n, up to argument m. If there are less than n
+ * arguments, or the arguments cannot be retrieved from the current
+ * process, the empty string is returned. If m is smaller than n then
+ * all arguments starting from argument n are returned. Argument zero
+ * is traditionally the command itself.
+ */
+function cmdline_args:string(n:long, m:long, delim:string)
+{
+  args = "";
+  mm = @cast(task_current(), "task_struct", "kernel<linux/sched.h>")->mm;
+  if (mm)
+    {
+      arg_start = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->arg_start;
+      arg_end = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->arg_end;
+      if (arg_start != 0 && arg_end != 0)
+        {
+          nr = 0;
+          len = arg_end - arg_start;
+          arg = user_string2(arg_start, "");
+          while (arg != "" && len > 0)
+            {
+              if (nr == n)
+                args = arg;
+              else if (nr > n)
+                args .= delim . arg;
+
+              arg_len = strlen(arg);
+              arg_start += arg_len + 1;
+              len -= arg_len + 1;
+              if (len > 0 && nr != m)
+                arg = user_string2(arg_start, "");
+              else
+                arg = "";
+              nr++;
+            }
+        }
+    }
+  return args;
+}
+
+/**
+ * sfunction cmdline_arg - Fetch a command line argument.
+ *
+ * @n: Argument to get (zero is the command itself)
+ *
+ * Description: Returns argument the requested argument from the
+ * current process or the empty string when there are not that many
+ * arguments or there is a problem retrieving the argument. Argument
+ * zero is traditionally the command itself.
+ */
+function cmdline_arg:string(n:long)
+{
+  return cmdline_args(n, n, "");
+}
+
+/**
+ * sfunction cmdline_str - Fetch all command line arguments from current process
+ *
+ * Description: Returns all arguments from the current process
+ * delimited by spaces. Returns the empty string when the arguments
+ * cannot be retrieved.
+ */
+function cmdline_str:string()
+{
+  return cmdline_args(0, -1, " ");
+}

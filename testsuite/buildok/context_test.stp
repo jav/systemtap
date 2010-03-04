@@ -30,4 +30,8 @@ probe begin {
 	log(modname(0))
 	log(probefunc())
 	log(probemod())
+
+	log(cmdline_args(1, 1, "bar"))
+	log(cmdline_arg(0))
+	log(cmdline_str())
 }
