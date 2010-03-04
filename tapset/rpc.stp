@@ -996,7 +996,12 @@ function addr_from_rqst_str:string(_rqstp:long)
 	unsigned char *bytes;
 
 	if (rqstp) {
-		if (rqstp->rq_addr.ss_family == AF_INET) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+		if (rqstp->rq_addr.ss_family == AF_INET)
+#else
+		if (rqstp->rq_addr.sin_family == AF_INET)
+#endif
+		{
 			addr = (struct sockaddr_in *) &rqstp->rq_addr;
 			bytes = (unsigned char *)&addr->sin_addr.s_addr;
 

@@ -73,6 +73,7 @@
 #define	nfserr_cb_path_down	cpu_to_be32(NFSERR_CB_PATH_DOWN)
 #define	nfserr_locked		cpu_to_be32(NFSERR_LOCKED)
 #define	nfserr_wrongsec		cpu_to_be32(NFSERR_WRONGSEC)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
 #define nfserr_badiomode		cpu_to_be32(NFS4ERR_BADIOMODE)
 #define nfserr_badlayout		cpu_to_be32(NFS4ERR_BADLAYOUT)
 #define nfserr_bad_session_digest	cpu_to_be32(NFS4ERR_BAD_SESSION_DIGEST)
@@ -111,6 +112,7 @@
 #define nfserr_reject_deleg		cpu_to_be32(NFS4ERR_REJECT_DELEG)
 #define nfserr_returnconflict		cpu_to_be32(NFS4ERR_RETURNCONFLICT)
 #define nfserr_deleg_revoked		cpu_to_be32(NFS4ERR_DELEG_REVOKED)
+#endif
 %}
 
 function nfsderror:string(err:long) 
@@ -182,6 +184,7 @@ function nfsderror:string(err:long)
 		{nfserr_cb_path_down, "NFSERR_CB_PATH_DOWN"},
 		{nfserr_locked, "NFSERR_LOCKED"},
 		{nfserr_wrongsec, "NFSERR_WRONGSEC"},
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
 		{nfserr_badiomode, "NFS4ERR_BADIOMODE"},
 		{nfserr_badlayout, "NFS4ERR_BADLAYOUT"},
 		{nfserr_bad_session_digest, "NFS4ERR_BAD_SESSION_DIGEST"},
@@ -220,6 +223,7 @@ function nfsderror:string(err:long)
 		{nfserr_reject_deleg, "NFS4ERR_REJECT_DELEG"},
 		{nfserr_returnconflict, "NFS4ERR_RETURNCONFLICT"},
 		{nfserr_deleg_revoked, "NFS4ERR_DELEG_REVOKED"},
+#endif
 	};
 	int	i;
 	int tabsz = (sizeof(nfs_errtbl)/sizeof(nfs_errtbl[0]));
