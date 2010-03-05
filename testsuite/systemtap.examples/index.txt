@@ -156,6 +156,15 @@ keywords: io monitoring
   first few sectors of a raw block device.
 
 
+io/nfs_func_log.stp - Print Log of NFS Functions Used
+keywords: io
+
+  The nfs_func_log.stp script logs the uses of NFS functions in the
+  kernel.  The output is a trace. Each line contains the time stamp,
+  the process name, and the process number followed by the function
+  name.
+
+
 io/nfs_func_users.stp - Tally the Number of NFS Functions Used by Each Process
 keywords: io profiling
 
