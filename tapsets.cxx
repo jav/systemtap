@@ -2608,9 +2608,9 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error& er)
     {
-      // NB: with --skip-badvars, @defined() still wins in that it may expand to 0
-      // for nonexistent $variables.
-      if (!q.sess.skip_badvars)
+      // NB: @defined() should maintain the same behavior whether or not
+      // --skip-badvars is enabled, so don't zero its errors.  PR11346
+      if (!q.sess.skip_badvars || defined_being_checked)
 	{
 	  // We suppress this error message, and pass the unresolved
 	  // target_symbol to the next pass.  We hope that this value ends
