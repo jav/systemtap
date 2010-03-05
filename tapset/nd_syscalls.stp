@@ -1,6 +1,6 @@
 // syscalls tapset part 1 [A-M]
 // Copyright (C) 2005 IBM Corp.
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005, 2006, 2007, 2010 Red Hat Inc.
 // Copyright (C) 2007 Quentin Barnes.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -2362,20 +2362,12 @@ probe nd_syscall.getxattr = kprobe.function("SyS_getxattr") ?,
                             kprobe.function("sys_getxattr") ?
 {
 	name = "getxattr"
-	// %( kernel_v >= "2.6.27" %?
-	// 	path = user_string($pathname)
-	// %:
-	// 	path = user_string($path)
-	// %)
+	//	path = user_string(@defined($pathname) ? $pathname : $path)
 	// 	name2 = user_string($name)
 	// 	value_uaddr = $value
 	// 	size = $size
 	// 	argstr = sprintf("%s, %s, %p, %d",
-	// %( kernel_v >= "2.6.27" %?
-	// 		user_string_quoted($pathname),
-	// %:
-	// 		user_string_quoted($path),
-	// %)
+	//		user_string_quoted(@defined($pathname) ? $pathname : $path),
 	// 		user_string_quoted($name),
 	// 		value_uaddr, size)
 	asmlinkage()
@@ -2432,15 +2424,11 @@ probe nd_syscall.inotify_add_watch = kprobe.function("SyS_inotify_add_watch") ?,
 	name = "inotify_add_watch"
 	// 	fd = $fd
 	// 	mask = $mask
-	// %( kernel_v >= "2.6.27" %?
-	// 	path_uaddr = $pathname
-	// 	path = user_string($pathname)
-	// 	argstr = sprintf("%d, %s, %d", $fd, user_string_quoted($pathname), $mask)
-	// %:
-	// 	path_uaddr = $path
-	// 	path = user_string($path)
-	// 	argstr = sprintf("%d, %s, %d", $fd, user_string_quoted($path), $mask)
-	// %)
+	//	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	//	path = user_string(@defined($pathname) ? $pathname : $path)
+	//	argstr = sprintf("%d, %s, %d", $fd,
+	//		user_string_quoted(@defined($pathname) ? $pathname : $path),
+	//		$mask)
 	asmlinkage()
 	fd = int_arg(1)
 	path_uaddr = pointer_arg(2)
@@ -2897,21 +2885,13 @@ probe nd_syscall.lgetxattr = kprobe.function("SyS_lgetxattr") ?,
                              kprobe.function("sys_lgetxattr") ?
 {
 	name = "lgetxattr"
-	// %( kernel_v >= "2.6.27" %?
-	// 	path = user_string($pathname)
-	// %:
-	// 	path = user_string($path)
-	// %)
+	//	path = user_string(@defined($pathname) ? $pathname : $path)
 	// 	# FIXME
 	// 	name2 = user_string($name)
 	// 	value_uaddr = $value
 	// 	size = $size
 	// 	argstr = sprintf("%s, %s, %p, %d",
-	// %( kernel_v >= "2.6.27" %?
-	// 		user_string_quoted($pathname),
-	// %:
-	// 		user_string_quoted($path),
-	// %)
+	//		user_string_quoted(@defined($pathname) ? $pathname : $path),
 	// 		user_string_quoted($name),
 	// 		value_uaddr, size)
 	asmlinkage()
@@ -3028,15 +3008,11 @@ probe nd_syscall.listxattr = kprobe.function("SyS_listxattr") ?,
 	name = "listxattr"
 	// 	list_uaddr = $list
 	// 	size = $size
-	// %( kernel_v >= "2.6.27" %?
-	// 	path_uaddr = $pathname
-	// 	path = user_string($pathname)
-	// 	argstr = sprintf("%s, %p, %d", user_string_quoted($pathname), $list, $size)
-	// %:
-	// 	path_uaddr = $path
-	// 	path = user_string($path)
-	// 	argstr = sprintf("%s, %p, %d", user_string_quoted($path), $list, $size)
-	// %)
+	//	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	//	path = user_string(@defined($pathname) ? $pathname : $path)
+	//	argstr = sprintf("%s, %p, %d",
+	//		user_string_quoted(@defined($pathname) ? $pathname : $path),
+	//		$list, $size)
 	asmlinkage()
 	path_uaddr = pointer_arg(1)
 	path = user_string(path_uaddr)
@@ -3060,15 +3036,11 @@ probe nd_syscall.llistxattr = kprobe.function("SyS_llistxattr") ?,
 	name = "llistxattr"
 	// 	list_uaddr = $list
 	// 	size = $size
-	// %( kernel_v >= "2.6.27" %?
-	// 	path_uaddr = $pathname
-	// 	path = user_string($pathname)
-	// 	argstr = sprintf("%s, %p, %d", user_string_quoted($pathname), $list, $size)
-	// %:
-	// 	path_uaddr = $path
-	// 	path = user_string($path)
-	// 	argstr = sprintf("%s, %p, %d", user_string_quoted($path), $list, $size)
-	// %)
+	//	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	//	path = user_string(@defined($pathname) ? $pathname : $path)
+	//	argstr = sprintf("%s, %p, %d",
+	//		user_string_quoted(@defined($pathname) ? $pathname : $path),
+	//		$list, $size)
 	asmlinkage()
 	path_uaddr = pointer_arg(1)
 	path = user_string(path_uaddr)
@@ -3151,15 +3123,11 @@ probe nd_syscall.lremovexattr = kprobe.function("SyS_lremovexattr") ?,
 	name = "lremovexattr"
 	// 	name_uaddr = $name
 	// 	name2 = user_string($name)
-	// %( kernel_v >= "2.6.27" %?
-	// 	path_uaddr = $pathname
-	// 	path = user_string($pathname)
-	// 	argstr = sprintf("%s, %s", user_string_quoted($pathname), user_string_quoted($name))
-	// %:
-	// 	path_uaddr = $path
-	// 	path = user_string($path)
-	// 	argstr = sprintf("%s, %s", user_string_quoted($path), user_string_quoted($name))
-	// %)
+	//	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	//	path = user_string(@defined($pathname) ? $pathname : $path)
+	//	argstr = sprintf("%s, %s",
+	//		user_string_quoted(@defined($pathname) ? $pathname : $path),
+	//		user_string_quoted($name))
 	asmlinkage()
 	path_uaddr = pointer_arg(1)
 	path = user_string(path_uaddr)
@@ -3211,26 +3179,17 @@ probe nd_syscall.lsetxattr = kprobe.function("SyS_lsetxattr") ?,
                              kprobe.function("sys_lsetxattr") ?
 {
 	name = "lsetxattr"
-	// %( kernel_v >= "2.6.27" %?
-	// 	path_uaddr = $pathname
-	// 	path = user_string($pathname)
-	// %:
-	// 	path_uaddr = $path
-	// 	path = user_string($path)
-	// %)
+	//	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	//	path = user_string(@defined($pathname) ? $pathname : $path)
 	// 	name_uaddr = $name
 	// 	name_str = user_string($name)
 	// 	value_uaddr = $value
 	// 	size = $size
 	// 	flags = $flags
-	// 	argstr = sprintf("%s, %s, %p, %d, %d",
-	// %( kernel_v >= "2.6.27" %?
-	// 			user_string_quoted($pathname),
-	// %:
-	// 			user_string_quoted($path),
-	// %)
-	// 			user_string_quoted($name),
-	// 			value_uaddr, $size, $flags)
+	//	argstr = sprintf("%s, %s, %p, %d, %d",
+	//			user_string_quoted(@defined($pathname) ? $pathname : $path),
+	//			user_string_quoted($name),
+	//			value_uaddr, $size, $flags)
 	asmlinkage()
 	path_uaddr = pointer_arg(1)
 	path = user_string(path_uaddr)

@@ -30,11 +30,7 @@ probe nd_syscall.arch_prctl.return = kprobe.function("sys_arch_prctl").return
 probe nd_syscall.iopl = kprobe.function("sys_iopl")
 {
 	name = "iopl"
-// %( kernel_vr == "*xen" %?
-// 	level = $new_iopl
-// %:
-// 	level = $level
-// %)
+//	level = (@defined($level) ? $level : $new_iopl)
 	asmlinkage()
 	level = int_arg(1)
 	argstr = sprint(level)
@@ -177,17 +173,15 @@ probe nd_syscall.vm86_warning.return = kprobe.function("sys32_vm86_warning").ret
 #
 # long sys32_pipe(int __user *fd)
 #
-%(kernel_v < "2.6.32" %?
-probe nd_syscall.pipe32 = kprobe.function("sys32_pipe")
+probe nd_syscall.pipe32 = kprobe.function("sys32_pipe")?
 {
 	name = "pipe"
 	// argstr = sprintf("%p", $fd)
 	asmlinkage()
 	argstr = sprintf("%p", pointer_arg(1))
 }
-probe nd_syscall.pipe32.return = kprobe.function("sys32_pipe").return
+probe nd_syscall.pipe32.return = kprobe.function("sys32_pipe").return?
 {
 	name = "pipe"
 	retstr = returnstr(1)
 }
-%)

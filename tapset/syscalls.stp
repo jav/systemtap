@@ -1,6 +1,6 @@
 // syscalls tapset part 1 [A-M]
 // Copyright (C) 2005 IBM Corp.
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005, 2006, 2007, 2010 Red Hat Inc.
 // Copyright (C) 2007 Quentin Barnes.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -1963,23 +1963,15 @@ probe syscall.getxattr = kernel.function("SyS_getxattr").call !,
                          kernel.function("sys_getxattr").call
 {
 	name = "getxattr"
-%( kernel_v >= "2.6.27" %?
-	path = user_string($pathname)
-%:
-	path = user_string($path)
-%)
+	path = user_string(@defined($pathname) ? $pathname : $path)
 	# FIXME
 	name2 = user_string($name)
 	value_uaddr = $value
 	size = $size
 	argstr = sprintf("%s, %s, %p, %d",
-%( kernel_v >= "2.6.27" %?
-		user_string_quoted($pathname),
-%:
-		user_string_quoted($path),
-%)
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
 		user_string_quoted($name),
-		value_uaddr, size)
+		$value, $size)
 }
 probe syscall.getxattr.return = kernel.function("SyS_getxattr").return !,
                                 kernel.function("sys_getxattr").return
@@ -2019,15 +2011,11 @@ probe syscall.inotify_add_watch = kernel.function("SyS_inotify_add_watch").call 
 	name = "inotify_add_watch"
 	fd = $fd
 	mask = $mask
-%( kernel_v >= "2.6.27" %?
-	path_uaddr = $pathname
-	path = user_string($pathname)
-	argstr = sprintf("%d, %s, %d", $fd, user_string_quoted($pathname), $mask)
-%:
-	path_uaddr = $path
-	path = user_string($path)
-	argstr = sprintf("%d, %s, %d", $fd, user_string_quoted($path), $mask)
-%)
+	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	path = user_string(@defined($pathname) ? $pathname : $path)
+	argstr = sprintf("%d, %s, %d", $fd,
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
+		$mask)
 }
 
 probe syscall.inotify_add_watch.return = kernel.function("SyS_inotify_add_watch").return !,
@@ -2402,21 +2390,13 @@ probe syscall.lgetxattr = kernel.function("SyS_lgetxattr").call !,
                           kernel.function("sys_lgetxattr").call
 {
 	name = "lgetxattr"
-%( kernel_v >= "2.6.27" %?
-	path = user_string($pathname)
-%:
-	path = user_string($path)
-%)
+	path = user_string(@defined($pathname) ? $pathname : $path)
 	# FIXME
 	name2 = user_string($name)
 	value_uaddr = $value
 	size = $size
 	argstr = sprintf("%s, %s, %p, %d",
-%( kernel_v >= "2.6.27" %?
-		user_string_quoted($pathname),
-%:
-		user_string_quoted($path),
-%)
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
 		user_string_quoted($name),
 		value_uaddr, size)
 }
@@ -2501,15 +2481,11 @@ probe syscall.listxattr = kernel.function("SyS_listxattr").call !,
 	name = "listxattr"
 	list_uaddr = $list
 	size = $size
-%( kernel_v >= "2.6.27" %?
-	path_uaddr = $pathname
-	path = user_string($pathname)
-	argstr = sprintf("%s, %p, %d", user_string_quoted($pathname), $list, $size)
-%:
-	path_uaddr = $path
-	path = user_string($path)
-	argstr = sprintf("%s, %p, %d", user_string_quoted($path), $list, $size)
-%)
+	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	path = user_string(@defined($pathname) ? $pathname : $path)
+	argstr = sprintf("%s, %p, %d",
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
+		$list, $size)
 }
 probe syscall.listxattr.return = kernel.function("SyS_listxattr").return !,
                                  kernel.function("sys_listxattr").return
@@ -2527,15 +2503,11 @@ probe syscall.llistxattr = kernel.function("SyS_llistxattr").call !,
 	name = "llistxattr"
 	list_uaddr = $list
 	size = $size
-%( kernel_v >= "2.6.27" %?
-	path_uaddr = $pathname
-	path = user_string($pathname)
-	argstr = sprintf("%s, %p, %d", user_string_quoted($pathname), $list, $size)
-%:
-	path_uaddr = $path
-	path = user_string($path)
-	argstr = sprintf("%s, %p, %d", user_string_quoted($path), $list, $size)
-%)
+	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	path = user_string(@defined($pathname) ? $pathname : $path)
+	argstr = sprintf("%s, %p, %d",
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
+		$list, $size)
 }
 probe syscall.llistxattr.return = kernel.function("SyS_llistxattr").return !,
                                   kernel.function("sys_llistxattr").return
@@ -2598,15 +2570,11 @@ probe syscall.lremovexattr = kernel.function("SyS_lremovexattr").call !,
 	name = "lremovexattr"
 	name_uaddr = $name
 	name2 = user_string($name)
-%( kernel_v >= "2.6.27" %?
-	path_uaddr = $pathname
-	path = user_string($pathname)
-	argstr = sprintf("%s, %s", user_string_quoted($pathname), user_string_quoted($name))
-%:
-	path_uaddr = $path
-	path = user_string($path)
-	argstr = sprintf("%s, %s", user_string_quoted($path), user_string_quoted($name))
-%)
+	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	path = user_string(@defined($pathname) ? $pathname : $path)
+	argstr = sprintf("%s, %s",
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
+		user_string_quoted($name))
 }
 probe syscall.lremovexattr.return = kernel.function("SyS_lremovexattr").return !,
                                     kernel.function("sys_lremovexattr").return
@@ -2646,24 +2614,15 @@ probe syscall.lsetxattr = kernel.function("SyS_lsetxattr").call !,
                           kernel.function("sys_lsetxattr").call
 {
 	name = "lsetxattr"
-%( kernel_v >= "2.6.27" %?
-	path_uaddr = $pathname
-	path = user_string($pathname)
-%:
-	path_uaddr = $path
-	path = user_string($path)
-%)
+	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	path = user_string(@defined($pathname) ? $pathname : $path)
 	name_uaddr = $name
 	name_str = user_string($name)
 	value_uaddr = $value
 	size = $size
 	flags = $flags
 	argstr = sprintf("%s, %s, %p, %d, %d",
-%( kernel_v >= "2.6.27" %?
-			user_string_quoted($pathname),
-%:
-			user_string_quoted($path),
-%)
+			user_string_quoted(@defined($pathname) ? $pathname : $path),
 			user_string_quoted($name),
 			value_uaddr, $size, $flags)
 }

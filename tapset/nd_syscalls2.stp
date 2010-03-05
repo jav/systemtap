@@ -1,6 +1,6 @@
 // syscalls tapset part 2 [N-Z]
 // Copyright (C) 2005 IBM Corp.
-// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+// Copyright (C) 2005, 2006, 2007, 2010 Red Hat Inc.
 // Copyright (C) 2007 Quentin Barnes.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -1058,11 +1058,7 @@ probe nd_syscall.remap_file_pages = kprobe.function("SyS_remap_file_pages") ?,
 	name = "remap_file_pages"
 	// start = $start
 	// size = $size
-// %( kernel_vr >= "2.6.24" %?
-	// prot = $prot
-// %:
-	// prot = $__prot
-// %)
+	// prot = (@defined($prot) ? $prot : $__prot)
 	// pgoff = $pgoff
 	// flags = $flags
 	asmlinkage()
@@ -4336,14 +4332,14 @@ probe nd_syscall.wait4 = kprobe.function("SyS_wait4") ?,
                          kprobe.function("sys_wait4") ?
 {
 	name = "wait4"
-	// pid = %( kernel_vr >= "2.6.25" %? $upid %: $pid%)
+	// pid = (@defined($upid) ? $upid : $pid)
 	// status_uaddr = $stat_addr
 	// options = $options
 	// options_str = _wait4_opt_str($options)
 	// rusage_uaddr = $ru
 	// argstr = sprintf("%d, %p, %s, %p",
-	// 		 %( kernel_vr >= "2.6.25" %? $upid %: $pid%),
-	// 		 $stat_addr, _wait4_opt_str($options), $ru)
+	// 		(@defined($upid) ? $upid : $pid),
+	// 		$stat_addr, _wait4_opt_str($options), $ru)
 	asmlinkage()
 	pid = int_arg(1)
 	status_uaddr = pointer_arg(2)
@@ -4372,7 +4368,7 @@ probe nd_syscall.waitid = kprobe.function("SyS_waitid") ?,
                           kprobe.function("sys_waitid") ?
 {
 	name = "waitid"
-	// pid = %( kernel_vr >= "2.6.25" %? $upid %: $pid%)
+	// pid = (@defined($upid) ? $upid : $pid)
 	// which = $which
 	// which_str = _waitid_which_str($which)
 	// infop_uaddr = $infop
@@ -4380,7 +4376,7 @@ probe nd_syscall.waitid = kprobe.function("SyS_waitid") ?,
 	// options_str = _waitid_opt_str($options)
 	// rusage_uaddr = $ru
 	// argstr = sprintf("%d, %d, %p, %s, %p", $which,
-	// 	   %( kernel_vr >= "2.6.25" %? $upid %: $pid%), $infop,
+	// 	   (@defined($upid) ? $upid : $pid), $infop,
 	// 	    _waitid_opt_str($options), $ru)
 	asmlinkage()
 	pid =  int_arg(1)

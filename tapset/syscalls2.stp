@@ -1,6 +1,6 @@
 // syscalls tapset part 2 [N-Z]
 // Copyright (C) 2005 IBM Corp.
-// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+// Copyright (C) 2005, 2006, 2007, 2010 Red Hat Inc.
 // Copyright (C) 2007 Quentin Barnes.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -350,12 +350,9 @@ probe syscall.poll = kernel.function("SyS_poll").call !,
 	name = "poll"
 	ufds_uaddr = $ufds
 	nfds = $nfds
-%( kernel_vr > "2.6.15-1.1831" %?
-	timeout = $timeout_msecs
-%:
-	timeout = $timeout
-%)
-	argstr = sprintf("%p, %d, %d", $ufds, $nfds, timeout)
+	timeout = (@defined($timeout_msecs) ? $timeout_msecs : $timeout)
+	argstr = sprintf("%p, %d, %d", $ufds, $nfds,
+		(@defined($timeout_msecs) ? $timeout_msecs : $timeout))
 }
 probe syscall.poll.return = kernel.function("SyS_poll").return !,
                             kernel.function("sys_poll").return
@@ -714,13 +711,10 @@ probe syscall.readlinkat = kernel.function("SyS_readlinkat").call !,
 	dfd = $dfd
 	buf_uaddr = $buf
 	bufsiz = $bufsiz
-%( kernel_v >= "2.6.27" %?
-	path = user_string($pathname)
-	argstr = sprintf("%s, %s, %p, %d", _dfd_str($dfd), user_string_quoted($pathname), $buf, $bufsiz)
-%:
-	path = user_string($path)
-	argstr = sprintf("%s, %s, %p, %d", _dfd_str($dfd), user_string_quoted($path), $buf, $bufsiz)
-%)
+	path = user_string(@defined($pathname) ? $pathname : $path)
+	argstr = sprintf("%s, %s, %p, %d", _dfd_str($dfd),
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
+		$buf, $bufsiz)
 }
 
 probe syscall.readlinkat.return = kernel.function("SyS_readlinkat").return !,
@@ -891,11 +885,7 @@ probe syscall.remap_file_pages = kernel.function("SyS_remap_file_pages").call !,
 	name = "remap_file_pages"
 	start = $start
 	size = $size
-%( kernel_vr >= "2.6.24" %?
-	prot = $prot
-%:
-	prot = $__prot
-%)
+	prot = (@defined($prot) ? $prot : $__prot)
 	pgoff = $pgoff
 	flags = $flags
 	argstr = sprintf("%p, %p, %p, %p, %p", start, size, prot,
@@ -919,16 +909,11 @@ probe syscall.removexattr = kernel.function("SyS_removexattr").call !,
 {
 	name = "removexattr"
 	name_str = user_string($name)
-%( kernel_v >= "2.6.27" %?
-	path = user_string($pathname)
-	argstr = sprintf("%s, %s", user_string_quoted($pathname),
-		user_string_quoted($name))
-%:
-	path = user_string($path)
-	argstr = sprintf("%s, %s", user_string_quoted($path),
-		user_string_quoted($name))
-%)
 
+	path = user_string(@defined($pathname) ? $pathname : $path)
+	argstr = sprintf("%s, %s",
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
+		user_string_quoted($name))
 }
 probe syscall.removexattr.return = kernel.function("SyS_removexattr").return !,
                                    kernel.function("sys_removexattr").return
@@ -2260,24 +2245,15 @@ probe syscall.setxattr = kernel.function("SyS_setxattr").call !,
                          kernel.function("sys_setxattr").call
 {
 	name = "setxattr"
-%( kernel_v >= "2.6.27" %?
-	path_uaddr = $pathname
-	path = user_string($pathname)
-%:
-	path_uaddr = $path
-	path = user_string($path)
-%)
+	path_uaddr = (@defined($pathname) ? $pathname : $path)
+	path = user_string(@defined($pathname) ? $pathname : $path)
 	name_uaddr = $name
 	name_str = user_string($name)
 	value_uaddr = $value
 	size = $size
 	flags = $flags
 	argstr = sprintf("%s, %s, %p, %d, %d",
-%( kernel_v >= "2.6.27" %?
-			user_string_quoted($pathname),
-%:
-			user_string_quoted($path),
-%)
+			user_string_quoted(@defined($pathname) ? $pathname : $path),
 			user_string_quoted($name),
 			value_uaddr, $size, $flags)
 }
@@ -2734,13 +2710,10 @@ probe syscall.statfs = kernel.function("compat_sys_statfs").call ?,
 {
 	name = "statfs"
 	buf_uaddr = $buf
-%( kernel_v >= "2.6.27" %?
-	path = user_string($pathname)
-	argstr = sprintf("%s, %p", user_string_quoted($pathname), $buf)
-%:
-	path = user_string($path)
-	argstr = sprintf("%s, %p", user_string_quoted($path), $buf)
-%)
+	path = user_string(@defined($pathname) ? $pathname : $path)
+	argstr = sprintf("%s, %p",
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
+		$buf)
 }
 
 probe syscall.statfs.return = kernel.function("compat_sys_statfs").return ?,
@@ -2763,13 +2736,11 @@ probe syscall.statfs64 = kernel.function("compat_sys_statfs64").call ?,
 	name = "statfs"
 	sz = $sz
 	buf_uaddr = $buf
-%( kernel_v >= "2.6.27" %?
-	path = user_string($pathname)
-	argstr = sprintf("%s, %d, %p", user_string_quoted($pathname), $sz, $buf)
-%:
-	path = user_string($path)
-	argstr = sprintf("%s, %d, %p", user_string_quoted($path), $sz, $buf)
-%)
+
+	path = user_string(@defined($pathname) ? $pathname : $path)
+	argstr = sprintf("%s, %d, %p",
+		user_string_quoted(@defined($pathname) ? $pathname : $path),
+		$sz, $buf)
 }
 
 probe syscall.statfs64.return = kernel.function("compat_sys_statfs64").return ?,
@@ -3599,13 +3570,13 @@ probe syscall.wait4 = kernel.function("SyS_wait4").call !,
                       kernel.function("sys_wait4").call
 {
 	name = "wait4"
-	pid = %( kernel_vr >= "2.6.25" %? $upid %: $pid%)
+	pid = (@defined($upid) ? $upid : $pid)
 	status_uaddr = $stat_addr
 	options = $options
 	options_str = _wait4_opt_str($options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, %p, %s, %p",
-		%( kernel_vr >= "2.6.25" %? $upid %: $pid%),
+		(@defined($upid) ? $upid : $pid),
 		$stat_addr, _wait4_opt_str($options), $ru)
 }
 probe syscall.wait4.return = kernel.function("SyS_wait4").return !,
@@ -3626,7 +3597,7 @@ probe syscall.waitid = kernel.function("SyS_waitid").call !,
                        kernel.function("sys_waitid").call
 {
 	name = "waitid"
-	pid = %( kernel_vr >= "2.6.25" %? $upid %: $pid%)
+	pid = (@defined($upid) ? $upid : $pid)
 	which = $which
 	which_str = _waitid_which_str($which)
 	infop_uaddr = $infop
@@ -3634,7 +3605,7 @@ probe syscall.waitid = kernel.function("SyS_waitid").call !,
 	options_str = _waitid_opt_str($options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, %d, %p, %s, %p", $which,
-		%( kernel_vr >= "2.6.25" %? $upid %: $pid%), $infop,
+		(@defined($upid) ? $upid : $pid), $infop,
 		_waitid_opt_str($options), $ru)
 }
 probe syscall.waitid.return = kernel.function("SyS_waitid").return !,
