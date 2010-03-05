@@ -320,8 +320,8 @@ function cmdline_args:string(n:long, m:long, delim:string)
   mm = @cast(task_current(), "task_struct", "kernel<linux/sched.h>")->mm;
   if (mm)
     {
-      arg_start = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->arg_start;
-      arg_end = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->arg_end;
+      arg_start = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->arg_start;
+      arg_end = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->arg_end;
       if (arg_start != 0 && arg_end != 0)
         {
           nr = 0;

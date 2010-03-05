@@ -35,18 +35,18 @@
 function _stp_get_mm_counter_file_rss:long(mm:long)
 {
 %( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
-  return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->_file_rss->counter;
+  return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss->counter;
 %:
-  return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->_file_rss;
+  return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss;
 %)
 }
 
 function _stp_get_mm_counter_anon_rss(mm:long)
 {
 %( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
-  return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->_anon_rss->counter;
+  return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss->counter;
 %:
-  return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->_anon_rss;
+  return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss;
 %)
 }
 
@@ -82,7 +82,7 @@ function proc_mem_size_pid:long (pid:long)
     {
       mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
       if (mm != 0)
-        return @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->total_vm;
+        return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->total_vm;
     }
   return 0;
 }
@@ -205,8 +205,8 @@ function proc_mem_txt_pid:long (pid:long)
       mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
       if (mm != 0)
         {
-          s = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->start_code;
-          e = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->end_code;
+          s = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->start_code;
+          e = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->end_code;
           return _stp_mem_txt_adjust (s, e);
         }
     }
@@ -246,8 +246,8 @@ function proc_mem_data_pid:long (pid:long)
       mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
       if (mm != 0)
         {
-          t = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->total_vm;
-          s = @cast(mm, "mm_struct", "kernel<linux/mm_types.h>")->shared_vm;
+          t = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->total_vm;
+          s = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->shared_vm;
           return t - s;
         }
     }
