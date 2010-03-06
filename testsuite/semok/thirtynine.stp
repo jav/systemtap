@@ -1,7 +1,6 @@
 #! stap -p2
 
-# PR 1155: should start working when we can resolve the parameters of
-# the inlines.
+# PR 1155 discusses the trouble with inlines, but ideally this should work.
 
 probe kernel.function("context_switch") {
   printf("switch from=0x%x to=0x%x\n", $prev, $next)
