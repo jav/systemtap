@@ -2329,7 +2329,12 @@ c_unparser::record_actions (unsigned actions, const token* tok, bool update)
       o->newline() << "c->actionremaining -= " << action_counter << ";";
       o->newline() << "if (unlikely (c->actionremaining <= 0)) {";
       o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*tok) << ";";
+
+      // XXX it really ought to be illegal for anything to be missing a token,
+      // but until we're sure of that, we need to defend against NULL.
+      if (tok)
+        o->newline() << "c->last_stmt = " << lex_cast_qstring(*tok) << ";";
+
       o->newline() << "goto out;";
       o->newline(-1) << "}";
       action_counter = 0;

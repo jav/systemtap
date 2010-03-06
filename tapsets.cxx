@@ -3755,13 +3755,13 @@ struct sdt_var_expanding_visitor: public var_expanding_visitor
 void
 sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
-  try 
+  try
     {
       if (e->base_name == "$$name")
         {
           if (e->addressof)
             throw semantic_error("cannot take address of sdt context variable", e->tok);
-          
+
           literal_string *myname = new literal_string (probe_name);
           myname->tok = e->tok;
           provide(myname);
@@ -3775,7 +3775,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           provide(e);
           return;
         }
-      
+
       int argno = 0;
       try
         {
@@ -3787,10 +3787,10 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         }
       if (argno < 1 || argno > arg_count)
         throw semantic_error("invalid argument number", e->tok);
-      
+
       bool lvalue = is_active_lvalue(e);
       functioncall *fc = new functioncall;
-      
+
       // First two args are hidden: 1. pointer to probe name 2. task id
       if (arg_count < 2)
         {
@@ -3813,22 +3813,23 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           literal_number* num = new literal_number(3);
           num->tok = e->tok;
           get_arg1->args.push_back(num);
-          
+
           be->left = get_arg1;
           be->op = "+";
           literal_number* inc = new literal_number((argno - 1) * 8);
+          inc->tok = e->tok;
           be->right = inc;
           fc->args.push_back(be);
         }
-      
+
       if (lvalue)
         *(target_symbol_setter_functioncalls.top()) = fc;
-      
+
       if (e->components.empty())
         {
           if (e->addressof)
             throw semantic_error("cannot take address of sdt variable", e->tok);
-          
+
           provide(fc);
           return;
         }
@@ -3839,7 +3840,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       cast->components = e->components;
       cast->type = probe_name + "_arg" + lex_cast(argno);
       cast->module = process_name;
-      
+
       cast->visit(this);
     }
   catch (const semantic_error &er)
@@ -4139,7 +4140,6 @@ sdt_query::convert_probe (probe *base)
   if (probe_type == kprobe_type)
     {
       functioncall *rp = new functioncall;
-      rp->tok = b->tok;
       rp->function = "regparm";
       rp->tok = b->tok;
       literal_number* littid = new literal_number(0);
@@ -4159,6 +4159,7 @@ sdt_query::convert_probe (probe *base)
       istid->thenblock = new next_statement;
       istid->elseblock = NULL;
       istid->tok = b->tok;
+      istid->thenblock->tok = b->tok;
       comparison *betid = new comparison;
       betid->op = "!=";
       betid->tok = b->tok;
@@ -4196,11 +4197,13 @@ sdt_query::convert_probe (probe *base)
   is->thenblock = new next_statement;
   is->elseblock = NULL;
   is->tok = b->tok;
+  is->thenblock->tok = b->tok;
   comparison *be = new comparison;
   be->op = "!=";
   be->tok = b->tok;
   be->left = fcus;
   be->right = new literal_string(probe_name);
+  be->right->tok = b->tok;
   is->condition = be;
   b->statements.push_back(is);
 
