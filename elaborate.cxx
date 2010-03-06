@@ -1290,6 +1290,7 @@ void add_global_var_display (systemtap_session& s)
 
       vector<derived_probe*> dps;
       block *b = new block;
+      b->tok = l->tok;
 
       probe* p = new probe;
       p->tok = l->tok;
@@ -1302,7 +1303,7 @@ void add_global_var_display (systemtap_session& s)
       g_sym->type = l->type;
       g_sym->referent = l;
 
-      token* print_tok = new token;
+      token* print_tok = new token(*l->tok);
       print_tok->type = tok_identifier;
       print_tok->content = "printf";
 
@@ -1382,6 +1383,7 @@ void add_global_var_display (systemtap_session& s)
 	  fe->sort_direction = -1; // imply decreasing sort on value
 	  fe->sort_column = 0;     // as in   foreach ([a,b,c] in array-) { }
 	  fe->limit = NULL;
+	  fe->tok = l->tok;
 
 	  // Create indices for the foreach loop
 	  for (int i=0; i < idx_count; i++)
@@ -1401,17 +1403,17 @@ void add_global_var_display (systemtap_session& s)
 	    }
 
 	  // Create a printf for the foreach loop
-          pf->raw_components += "[";
+	  pf->raw_components += "[";
 	  for (int i=0; i < idx_count; i++)
-            {
-              if (i > 0)
-                pf->raw_components += ",";
-              if (l->index_types[i] == pe_string)
-                pf->raw_components += "\"%#s\"";
-              else
-                pf->raw_components += "%#d";
-            }
-          pf->raw_components += "]";
+	    {
+	      if (i > 0)
+		pf->raw_components += ",";
+	      if (l->index_types[i] == pe_string)
+		pf->raw_components += "\"%#s\"";
+	      else
+		pf->raw_components += "%#d";
+	    }
+	  pf->raw_components += "]";
 	  if (l->type == pe_stats)
 	    pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
 	  else if (l->type == pe_string)
@@ -1453,6 +1455,7 @@ void add_global_var_display (systemtap_session& s)
 	  pf->components = print_format::string_to_components(pf->raw_components);
 	  expr_statement* feb = new expr_statement;
 	  feb->value = pf;
+	  feb->tok = l->tok;
 	  fe->base = g_sym;
 	  fe->block = (statement*)feb;
 	  b->statements.push_back(fe);
