@@ -121,7 +121,7 @@ struct c_unparser: public unparser, public visitor
   void collect_map_index_types(vector<vardecl* > const & vars,
 			       set< pair<vector<exp_type>, exp_type> > & types);
 
-  void record_actions (unsigned actions, bool update=false);
+  void record_actions (unsigned actions, const token* tok, bool update=false);
 
   void visit_block (block* s);
   void visit_try_block (try_block* s);
@@ -1537,7 +1537,7 @@ c_unparser::emit_function (functiondecl* v)
 
   this->current_function = 0;
 
-  record_actions(0, true);
+  record_actions(0, v->body->tok, true);
 
   if (this->probe_or_function_needs_deref_fault_handler) {
     // Emit this handler only if the body included a
@@ -1701,7 +1701,7 @@ c_unparser::emit_probe (derived_probe* v)
 
       v->body->visit (this);
 
-      record_actions(0, true);
+      record_actions(0, v->body->tok, true);
 
       if (this->probe_or_function_needs_deref_fault_handler) {
 	// Emit this handler only if the body included a
@@ -2154,6 +2154,7 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 		{
 		  o->newline() << "if (unlikely(!" << rval << ")) {";
 		  o->newline(1) << "c->last_error = \"division by 0\";";
+		  o->newline() << "c->last_stmt = " << lex_cast_qstring(*rvalue->tok) << ";";
 		  o->newline() << "goto out;";
 		  o->newline(-1) << "}";
 		  o->newline() << lval << " = "
@@ -2317,7 +2318,7 @@ c_unparser::getiter(symbol *s)
 // the end of basic blocks to actually update actionremaining and check it
 // against MAXACTION.
 void
-c_unparser::record_actions (unsigned actions, bool update)
+c_unparser::record_actions (unsigned actions, const token* tok, bool update)
 {
   action_counter += actions;
 
@@ -2328,6 +2329,7 @@ c_unparser::record_actions (unsigned actions, bool update)
       o->newline() << "c->actionremaining -= " << action_counter << ";";
       o->newline() << "if (unlikely (c->actionremaining <= 0)) {";
       o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*tok) << ";";
       o->newline() << "goto out;";
       o->newline(-1) << "}";
       action_counter = 0;
@@ -2366,10 +2368,13 @@ void c_unparser::visit_try_block (try_block *s)
 
   assert (!session->unoptimized || s->try_block); // dead_stmtexpr_remover would zap it
   if (s->try_block)
-    s->try_block->visit (this);
+    {
+      s->try_block->visit (this);
+      record_actions(0, s->try_block->tok, true); // flush accumulated actions
+    }
 
   o->newline() << "if (likely(c->last_error == NULL)) goto normal_out;";
-  
+
   o->newline() << "if (0) goto out;"; // to prevent 'unused label' warnings
   o->newline() << "out:";
   if (s->catch_error_var)
@@ -2382,15 +2387,18 @@ void c_unparser::visit_try_block (try_block *s)
   // Close the scope of the above nested 'out' label, to make sure
   // that the catch block, should it encounter errors, does not resolve
   // a 'goto out;' to the above label, causing infinite looping.
-  o->newline(-1) << "}"; 
+  o->newline(-1) << "}";
 
   // Prevent the catch{} handler from even starting if MAXACTIONS have
-  // already been used up.
-  record_actions(0, true); 
- 
+  // already been used up.  Add one for the act of catching too.
+  record_actions(1, s->tok, true);
+
   if (s->catch_block)
-    s->catch_block->visit (this);
-  
+    {
+      s->catch_block->visit (this);
+      record_actions(0, s->catch_block->tok, true); // flush accumulated actions
+    }
+
   o->newline() << "normal_out:";
   o->newline() << ";"; // to have _some_ statement
   o->newline(-1) << "}";
@@ -2419,14 +2427,14 @@ c_unparser::visit_expr_statement (expr_statement *s)
   o->newline() << "(void) ";
   s->value->visit (this);
   o->line() << ";";
-  record_actions(1);
+  record_actions(1, s->tok);
 }
 
 
 void
 c_unparser::visit_if_statement (if_statement *s)
 {
-  record_actions(1, true);
+  record_actions(1, s->tok, true);
   o->newline() << "if (";
   o->indent (1);
   s->condition->visit (this);
@@ -2434,14 +2442,14 @@ c_unparser::visit_if_statement (if_statement *s)
   o->line() << ") {";
   o->indent (1);
   s->thenblock->visit (this);
-  record_actions(0, true);
+  record_actions(0, s->thenblock->tok, true);
   o->newline(-1) << "}";
   if (s->elseblock)
     {
       o->newline() << "else {";
       o->indent (1);
       s->elseblock->visit (this);
-      record_actions(0, true);
+      record_actions(0, s->elseblock->tok, true);
       o->newline(-1) << "}";
     }
 }
@@ -2498,7 +2506,7 @@ c_unparser::visit_for_loop (for_loop *s)
 
   // initialization
   if (s->init) s->init->visit (this);
-  record_actions(1, true);
+  record_actions(1, s->tok, true);
 
   // condition
   o->newline(-1) << toplabel << ":";
@@ -2507,7 +2515,7 @@ c_unparser::visit_for_loop (for_loop *s)
   // Equivalently, it can stand for the evaluation of the condition
   // expression.
   o->indent(1);
-  record_actions(1);
+  record_actions(1, s->tok);
 
   o->newline() << "if (! (";
   if (s->cond->type != pe_long)
@@ -2519,7 +2527,7 @@ c_unparser::visit_for_loop (for_loop *s)
   loop_break_labels.push_back (breaklabel);
   loop_continue_labels.push_back (contlabel);
   s->block->visit (this);
-  record_actions(0, true);
+  record_actions(0, s->block->tok, true);
   loop_break_labels.pop_back ();
   loop_continue_labels.pop_back ();
 
@@ -2666,6 +2674,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	{
 	  o->newline() << "if (unlikely(NULL == " << mv.calculate_aggregate() << ")) {";
 	  o->newline(1) << "c->last_error = \"aggregation overflow in " << mv << "\";";
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
 	  o->newline() << "goto out;";
 	  o->newline(-1) << "}";
 
@@ -2734,7 +2743,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  o->newline() << *limitv << " = 0LL;";
       }
 
-      record_actions(1, true);
+      record_actions(1, s->tok, true);
 
       // condition
       o->newline(-1) << toplabel << ":";
@@ -2743,7 +2752,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // Equivalently, it can stand for the evaluation of the
       // condition expression.
       o->indent(1);
-      record_actions(1);
+      record_actions(1, s->tok);
 
       o->newline() << "if (! (" << iv << ")) goto " << breaklabel << ";";
 
@@ -2771,7 +2780,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  c_assign (v, iv.get_key (v.type(), i), s->tok);
 	}
       s->block->visit (this);
-      record_actions(0, true);
+      record_actions(0, s->block->tok, true);
       o->newline(-1) << "}";
       loop_break_labels.pop_back ();
       loop_continue_labels.pop_back ();
@@ -2816,7 +2825,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	}
 
       // XXX: break / continue don't work here yet
-      record_actions(1, true);
+      record_actions(1, s->tok, true);
       o->newline() << "for (" << bucketvar << " = 0; "
 		   << bucketvar << " < " << v.buckets() << "; "
 		   << bucketvar << "++) { ";
@@ -2834,7 +2843,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       }
 
       s->block->visit (this);
-      record_actions(1, true);
+      record_actions(1, s->block->tok, true);
       o->newline(-1) << "}";
     }
 }
@@ -2851,7 +2860,7 @@ c_unparser::visit_return_statement (return_statement* s)
                          "vs", s->tok);
 
   c_assign ("l->__retvalue", s->value, "return value");
-  record_actions(1, true);
+  record_actions(1, s->tok, true);
   o->newline() << "goto out;";
 }
 
@@ -2862,7 +2871,7 @@ c_unparser::visit_next_statement (next_statement* s)
   if (current_probe == 0)
     throw semantic_error ("cannot 'next' from function", s->tok);
 
-  record_actions(1, true);
+  record_actions(1, s->tok, true);
   o->newline() << "goto out;";
 }
 
@@ -2992,7 +3001,7 @@ c_unparser::visit_delete_statement (delete_statement* s)
 {
   delete_statement_operand_visitor dv (this);
   s->value->visit (&dv);
-  record_actions(1);
+  record_actions(1, s->tok);
 }
 
 
@@ -3002,7 +3011,7 @@ c_unparser::visit_break_statement (break_statement* s)
   if (loop_break_labels.size() == 0)
     throw semantic_error ("cannot 'break' outside loop", s->tok);
 
-  record_actions(1, true);
+  record_actions(1, s->tok, true);
   string label = loop_break_labels[loop_break_labels.size()-1];
   o->newline() << "goto " << label << ";";
 }
@@ -3014,7 +3023,7 @@ c_unparser::visit_continue_statement (continue_statement* s)
   if (loop_continue_labels.size() == 0)
     throw semantic_error ("cannot 'continue' outside loop", s->tok);
 
-  record_actions(1, true);
+  record_actions(1, s->tok, true);
   string label = loop_continue_labels[loop_continue_labels.size()-1];
   o->newline() << "goto " << label << ";";
 }
@@ -4322,8 +4331,12 @@ c_unparser::visit_print_format (print_format* e)
 	    || components[i].type == print_format::conv_memory_hex)
 	  {
 	    string mem_size;
+	    const token* prec_tok = e->tok;
 	    if (prec_ix != -1)
-	      mem_size = tmp[prec_ix].value();
+	      {
+		mem_size = tmp[prec_ix].value();
+		prec_tok = e->args[prec_ix]->tok;
+	      }
 	    else if (components[i].prectype == print_format::prec_static &&
 		     components[i].precision > 0)
 	      mem_size = lex_cast(components[i].precision) + "LL";
@@ -4336,11 +4349,13 @@ c_unparser::visit_print_format (print_format* e)
 			  << "\"%lld is too many bytes for a memory dump\", "
 			  << mem_size << ");";
 	    o->newline() << "c->last_error = c->error_buffer;";
+	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*prec_tok) << ";";
 	    o->newline() << "goto out;";
 	    o->newline(-1) << "}";
 
 	    /* Generate a noop call to deref_buffer.  */
 	    this->probe_or_function_needs_deref_fault_handler = true;
+	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->args[arg_ix]->tok) << ";";
 	    o->newline() << "deref_buffer (0, " << tmp[arg_ix].value() << ", "
 			 << mem_size << " ?: 1LL);";
 	  }
