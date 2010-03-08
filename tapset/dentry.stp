@@ -30,20 +30,6 @@ function __dentry_prepend:string(dentry:long,name:string)
 
 
 
-%{
-#include <linux/sched.h>
-#include <linux/fs_struct.h>
-%}
-
-
-function __dentry_get_current_root:long()
-%{
-        THIS->__retvalue = (long)&current->fs->root;
-%}
-
-
-
-
 /**
  *   sfunction d_name - get the dirent name
  *
@@ -85,7 +71,7 @@ function reverse_path_walk:string(dentry:long)
  */
 function d_path:string(nd:long)
 {
-        root = __dentry_get_current_root()
+        root = @cast(curr, "task_struct", "kernel<linux/sched.h>")->fs->root;
 	dentry = (@defined(@cast(nd,"nameidata")->path->dentry)
 	    ? @cast(nd,"nameidata")->path->dentry
 	    : @cast(nd,"nameidata")->dentry)
