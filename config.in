@@ -30,6 +30,9 @@
 /* Define to 1 if you have the `pfm' library (-lpfm). */
 #undef HAVE_LIBPFM
 
+/* have librpm */
+#undef HAVE_LIBRPM
+
 /* Define to 1 if you have the `sqlite3' library (-lsqlite3). */
 #undef HAVE_LIBSQLITE3
 

@@ -377,7 +377,10 @@ AC_ARG_WITH([rpm],
   [AS_HELP_STRING([--with-rpm],
                   [query rpm database for missing debuginfos])], [], [with_rpm="auto"])
 if test "$with_rpm" != "no"; then
-  AC_CHECK_LIB(rpm, rpmtsInitIterator, have_librpm="yes", have_librpm="no")
+  AC_CHECK_LIB(rpm, rpmtsInitIterator, [
+                    AC_DEFINE([HAVE_LIBRPM],[1],[have librpm])
+                    stap_LIBS="$stap_LIBS -lrpm"
+                    have_librpm="yes"], [have_librpm="no"])
   if test "x$have_librpm" != "xyes" -a "$with_rpm" == "yes"; then
      AC_MSG_ERROR([cannot find librpm])
   fi
@@ -410,11 +413,11 @@ if test $enable_translator = yes; then
     AC_CHECK_LIB(dw, dwarf_getelf,[],[
       AC_MSG_ERROR([elfutils, libdw too old, need 0.126+])],
       [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
-    stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+    stap_LIBS="$stap_LIBS -Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
     LIBS="$save_LIBS"
   else
     # We built our own and stap_LDFLAGS points at the install.
-    stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+    stap_LIBS="$stap_LIBS -Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
   fi
 fi
 

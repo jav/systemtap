@@ -8231,7 +8231,14 @@ fi
 { $as_echo "$as_me:$LINENO: result: $ac_cv_lib_rpm_rpmtsInitIterator" >&5
 $as_echo "$ac_cv_lib_rpm_rpmtsInitIterator" >&6; }
 if test "x$ac_cv_lib_rpm_rpmtsInitIterator" = x""yes; then
-  have_librpm="yes"
+
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LIBRPM 1
+_ACEOF
+
+                    stap_LIBS="$stap_LIBS -lrpm"
+                    have_librpm="yes"
 else
   have_librpm="no"
 fi
@@ -8436,11 +8443,11 @@ $as_echo "$as_me: error: elfutils, libdw too old, need 0.126+" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-    stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+    stap_LIBS="$stap_LIBS -Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
     LIBS="$save_LIBS"
   else
     # We built our own and stap_LDFLAGS points at the install.
-    stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+    stap_LIBS="$stap_LIBS -Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
   fi
 fi
 
