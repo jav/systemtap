@@ -582,6 +582,10 @@ variables whose names are prefixed with "$".  They may be accessed
 only if the kernel's compiler preserved them despite optimization.
 This is the same constraint that a debugger user faces when working
 with optimized code.  Some other events have very little context.
+See the 
+.IR stapprobes (3stap)
+man pages to see the kinds of context variables available at each kind
+of probe point.
 .PP
 New probe points may be defined using "aliases".  Probe point aliases
 look similar to probe definitions, but instead of activating a probe
@@ -819,7 +823,15 @@ as a pointer to a struct/union named
 .I type_name
 and dereference the
 .I member
-value.  The optional
+value.  Further
+.IR \->subfield
+expressions may be appended to dereference more levels.
+.BR
+NOTE:
+the same dereferencing operator 
+.IR \-> 
+is used to refer to both direct containment or pointer indirection.
+Systemtap automatically determines which.  The optional
 .I module
 tells the translator where to look for information about that type.
 Multiple modules may be specified as a list with

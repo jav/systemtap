@@ -341,9 +341,15 @@ pointers (char *) may be copied to systemtap string values using the
 .IR kernel_string " or " user_string
 functions.
 .TP
-$var\->field
-traversal to a structure's field.  The indirection operator
-may be repeated to follow more levels of pointers.
+$var\->field traversal via a structure's or a pointer's field.  This
+generalized indirection operator may be repeated to follow more
+levels.  Note that the
+.IR .
+operator is not used for plain structure
+members, only 
+.IR \->
+for both purposes.  (This is because "." is reserved for string
+concatenation.)
 .TP
 $return
 is available in return probes only for functions that are declared
