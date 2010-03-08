@@ -309,7 +309,7 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(docdir)/examples
 if BUILD_SERVER
 	rm -rf $(DESTDIR)$(localstatedir)/run/stap-server
-	rm -f $(DESTDIR)$(localstatedir)/log/stap-server.log
+	rm -f $(DESTDIR)$(localstatedir)/log/stap-server/log
 endif
 
 SUBDIRS = doc grapher

@@ -28,7 +28,7 @@ UNAME=/bin/uname
 CONFIG_FILE=$stap_sysconfdir/sysconfig/stap-server
 CONFIG_PATH=$stap_sysconfdir/stap-server/conf.d
 STAT_PATH=$stap_localstatedir/run/stap-server
-LOG_FILE=$stap_localstatedir/log/stap-server.log
+LOG_FILE=$stap_localstatedir/log/stap-server/log
 
 # Default option settings
 # Optional global config file

@@ -10,7 +10,7 @@
 # STAT_PATH=/var/run/stap-server
 
 # Where to log messages
-# LOG_FILE=/var/log/stap-server.log
+# LOG_FILE=/var/log/stap-server/log
 
 # The user who will run the server(s)
 # STAP_USER=stap-server

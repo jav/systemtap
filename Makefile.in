@@ -2128,7 +2128,7 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(sysconfdir)/systemtap
 	rm -rf $(DESTDIR)$(docdir)/examples
 @BUILD_SERVER_TRUE@	rm -rf $(DESTDIR)$(localstatedir)/run/stap-server
-@BUILD_SERVER_TRUE@	rm -f $(DESTDIR)$(localstatedir)/log/stap-server.log
+@BUILD_SERVER_TRUE@	rm -f $(DESTDIR)$(localstatedir)/log/stap-server/log
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
