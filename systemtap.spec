@@ -424,7 +424,7 @@ exit 0
 %endif
 
 # Make sure that the uprobes module can be built by root and by the server
-%attr(07754,root,stap-server) %{_datadir}/%{name}/runtime/uprobes
+%attr(0775,root,stap-server) %{_datadir}/%{name}/runtime/uprobes
 
 %files runtime
 %defattr(-,root,root)
