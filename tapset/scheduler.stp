@@ -1,6 +1,7 @@
 // scheduler tapset
 // Copyright (C) 2006 Intel Corporation.
 // Copyright (C) 2005, 2006 IBM Corp.
+// Copyright (C) 2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -285,11 +286,7 @@ probe __scheduler.migrate.kp1 = kernel.function("pull_task")
 }
 probe __scheduler.migrate.kp = kernel.function("set_task_cpu")
 {
-%( kernel_v >= "2.6.23" %?
-	cpu_to = $new_cpu
-%:
-	cpu_to = $cpu
-%)
+	cpu_to = (@defined($new_cpu) ? $new_cpu : $cpu)
 }
 probe __scheduler.migrate.tp = kernel.trace("sched_migrate_task")
 {

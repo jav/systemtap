@@ -1,5 +1,6 @@
 // tty tapset
 // Copyright (C) 2009 IBM Corp.
+// Copyright (C) 2010 Red Hat Inc.
 //
 // Author: Breno Leitao <leitao@linux.vnet.ibm.com>
 //
@@ -22,11 +23,8 @@ probe tty.open = kernel.function("tty_open") {
 	inode_state = $inode->i_state
 	inode_flags = $inode->i_flags
 
-%( kernel_v >= "2.6.20" %?
-	file_name = d_name($filp->f_path->dentry)
-%:
-	file_name = d_name($filp->f_dentry)
-%)
+	file_name = d_name(@defined($filp->f_path->dentry)
+		? $filp->f_path->dentry : $filp->f_dentry)
 	file_mode = $filp->f_mode
 	file_flags = $filp->f_flags
 }
@@ -45,11 +43,8 @@ probe tty.release = kernel.function("tty_release") {
 	inode_state = $inode->i_state
 	inode_flags = $inode->i_flags
 
-%( kernel_v >= "2.6.20" %?
-	file_name = d_name($filp->f_path->dentry)
-%:
-	file_name = d_name($filp->f_dentry)
-%)
+	file_name = d_name(@defined($filp->f_path->dentry)
+		? $filp->f_path->dentry : $filp->f_dentry)
 	file_mode = $filp->f_mode
 	file_flags = $filp->f_flags
 }
@@ -86,12 +81,8 @@ probe tty.resize = kernel.function("tty_do_resize") ? {
  * @arg: the ioctl argument
  */
 probe tty.ioctl = kernel.function("tty_ioctl"){
-%( kernel_v >= "2.6.20" %?
-	name = kernel_string($file->f_path->dentry->d_iname)
-%:
-	name = kernel_string($file->f_dentry->d_iname)
-%)
-
+	name = kernel_string(@defined($file->f_path->dentry->d_iname)
+		? $file->f_path->dentry->d_iname : $file->f_dentry->d_iname)
 	cmd = $cmd
 	arg = $arg
 }
@@ -142,18 +133,10 @@ probe tty.unregister = kernel.function("tty_unregister_device"){
  * @wait_key: the wait queue key
  */
 probe tty.poll = kernel.function("tty_poll"){
-%( kernel_v >= "2.6.20" %?
-	file_name = d_name($filp->f_path->dentry)
-%:
-	file_name = d_name($filp->f_dentry)
-%)
+	file_name = d_name(@defined($filp->f_path->dentry)
+		? $filp->f_path->dentry : $filp->f_dentry)
 
-%( kernel_v >= "2.6.31" %?
-	if ($wait)
-		wait_key = $wait->key
-	else
-%)
-		wait_key = 0
+	wait_key = (@defined($wait->key) ? ($wait ? $wait->key : 0) : 0)
 }
 
 /**
@@ -188,11 +171,8 @@ probe tty.write = kernel.function("n_tty_write") ? {
 	buffer = kernel_string($buf)
 	nr = $nr
 
-%( kernel_v >= "2.6.20" %?
-	file_name = d_name($file->f_path->dentry)
-%:
-	file_name = d_name($file->f_dentry)
-%)
+	file_name = d_name(@defined($file->f_path->dentry)
+		? $file->f_path->dentry : $file->f_dentry)
 	driver_name = kernel_string($tty->driver->driver_name)
 }
 
@@ -206,10 +186,7 @@ probe tty.write = kernel.function("n_tty_write") ? {
 probe tty.read = kernel.function("n_tty_read") ? {
 	buffer = kernel_string($buf)
 	nr = $nr
-%( kernel_v >= "2.6.20" %?
-	file_name = d_name($file->f_path->dentry)
-%:
-	file_name = d_name($file->f_dentry)
-%)
+	file_name = d_name(@defined($file->f_path->dentry)
+		? $file->f_path->dentry : $file->f_dentry)
 	driver_name = kernel_string($tty->driver->driver_name)
 }
