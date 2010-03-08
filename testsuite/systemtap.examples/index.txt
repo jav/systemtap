@@ -50,6 +50,15 @@ keywords: trace callgraph
   the trigger.
 
 
+general/varwatch.stp - Watch a variable changing value in a thread.
+keywords: monitoring
+
+  This script places a set of probes (specified by $1), each of which
+  monitors the state of some context $variable expression (specified by
+  $2).	Whenever the value changes, with respect to the active thread,
+  the event is traced.
+
+
 interrupt/interrupts-by-dev.stp - Record interrupts on a per-device basis.
 keywords: interrupt
 
@@ -156,15 +165,6 @@ keywords: io monitoring
   first few sectors of a raw block device.
 
 
-io/nfs_func_log.stp - Print Log of NFS Functions Used
-keywords: io
-
-  The nfs_func_log.stp script logs the uses of NFS functions in the
-  kernel.  The output is a trace. Each line contains the time stamp,
-  the process name, and the process number followed by the function
-  name.
-
-
 io/nfs_func_users.stp - Tally the Number of NFS Functions Used by Each Process
 keywords: io profiling
 
@@ -190,7 +190,7 @@ keywords: io
 
 
 io/ttyspy.stp - Monitor tty typing.
-keywords: io tty per-process monitor
+keywords: io tty per-process monitoring
 
   The ttyspy.stp script uses tty_audit hooks to monitor recent typing
   activity on the system, printing a scrolling record of recent
