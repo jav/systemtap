@@ -1494,10 +1494,10 @@ semantic_pass (systemtap_session& s)
 
       if (rc == 0) rc = semantic_pass_symbols (s);
       if (rc == 0) rc = semantic_pass_conditions (s);
-      if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize1 (s);
+      if (rc == 0) rc = semantic_pass_optimize1 (s);
       if (rc == 0) rc = semantic_pass_types (s);
       if (rc == 0) add_global_var_display (s);
-      if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize2 (s);
+      if (rc == 0) rc = semantic_pass_optimize2 (s);
       if (rc == 0) rc = semantic_pass_vars (s);
       if (rc == 0) rc = semantic_pass_stats (s);
 
@@ -3663,12 +3663,19 @@ semantic_pass_optimize1 (systemtap_session& s)
 
       relaxed_p = true; // until proven otherwise
 
-      semantic_pass_opt1 (s, relaxed_p);
-      semantic_pass_opt2 (s, relaxed_p, iterations); // produce some warnings only on iteration=0
-      semantic_pass_opt3 (s, relaxed_p);
-      semantic_pass_opt4 (s, relaxed_p);
-      semantic_pass_opt5 (s, relaxed_p);
-      semantic_pass_const_fold (s, relaxed_p);
+      if (!s.unoptimized)
+        {
+          semantic_pass_opt1 (s, relaxed_p);
+          semantic_pass_opt2 (s, relaxed_p, iterations); // produce some warnings only on iteration=0
+          semantic_pass_opt3 (s, relaxed_p);
+          semantic_pass_opt4 (s, relaxed_p);
+          semantic_pass_opt5 (s, relaxed_p);
+        }
+
+      // For listing mode, we need const-folding regardless of optimization so
+      // that @defined expressions can be properly resolved.  PR11360
+      if (!s.unoptimized || s.listing_mode_vars)
+        semantic_pass_const_fold (s, relaxed_p);
 
       iterations ++;
     }
@@ -3692,7 +3699,8 @@ semantic_pass_optimize2 (systemtap_session& s)
       if (pending_interrupts) break;
       relaxed_p = true; // until proven otherwise
 
-      semantic_pass_opt6 (s, relaxed_p);
+      if (!s.unoptimized)
+        semantic_pass_opt6 (s, relaxed_p);
     }
 
   return rc;

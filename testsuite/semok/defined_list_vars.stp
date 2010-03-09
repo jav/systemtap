@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# PR11360 - Make sure that @defined and -L play well together.
+#
+# The test shouldn't be dependent on the implementation of syscall.poll, in
+# case that evolves, so I'm recreating the problematic condition here.
+#
+# NB: This is abusing the fact that -l/-L work by wrapping the input string
+# with "probe " and "{}"
+
+stap -L '
+my_syscall.poll = kernel.function("SyS_poll").call !,
+                  kernel.function("sys_poll").call
+{
+  timeout = (@defined($timeout_msecs) ? $timeout_msecs : $timeout)
+}
+probe my_syscall.poll
+' | grep " timeout:long"
