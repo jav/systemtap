@@ -424,7 +424,7 @@ exit 0
 %endif
 
 # Make sure that the uprobes module can be built by root and by the server
-%attr(0775,root,stap-server) %{_datadir}/%{name}/runtime/uprobes
+%dir %attr(0775,root,stap-server) %{_datadir}/%{name}/runtime/uprobes
 
 %files runtime
 %defattr(-,root,root)
@@ -470,7 +470,8 @@ exit 0
 %dir %{_sysconfdir}/stap-server
 %dir %{_sysconfdir}/stap-server/conf.d
 %config(noreplace) %{_sysconfdir}/sysconfig/stap-server
-%{_localstatedir}/log/stap-server/log
+%dir %attr(0755,stap-server,stap-server) %{_localstatedir}/log/stap-server
+%attr(0644,stap-server,stap-server) %{_localstatedir}/log/stap-server/log
 %doc initscript/README.stap-server
 
 %files sdt-devel
