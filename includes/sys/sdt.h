@@ -80,6 +80,12 @@
 
 #define STAP_UPROBE_GUARD 0x31425250
 
+#if __GNUC__ >= 4 && __GNUC_MINOR__ >= 4 && __GNUC_PATCHLEVEL__ >= 3
+#define VOLATILE_ARG
+#else
+#define VOLATILE_ARG volatile
+#endif
+
 #define STAP_PROBE_(probe)			\
 do {						\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);	\
@@ -89,7 +95,7 @@ do {						\
 
 #define STAP_PROBE1_(probe,label,parm1)			\
 do STAP_SEMAPHORE(probe) {				\
-  volatile __typeof__((parm1)) arg1 = parm1;		\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;	\
   STAP_UNINLINE;					\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);		\
   __asm__ volatile ("2:\n"				\
@@ -98,8 +104,8 @@ do STAP_SEMAPHORE(probe) {				\
 
 #define STAP_PROBE2_(probe,label,parm1,parm2)				\
 do STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
@@ -108,9 +114,9 @@ do STAP_SEMAPHORE(probe) {						\
 
 #define STAP_PROBE3_(probe,label,parm1,parm2,parm3)			\
 do STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
-  volatile __typeof__((parm3)) arg3 = parm3;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
+  VOLATILE_ARG __typeof__((parm3)) arg3 = parm3;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
@@ -119,10 +125,10 @@ do STAP_SEMAPHORE(probe) {						\
 
 #define STAP_PROBE4_(probe,label,parm1,parm2,parm3,parm4)		\
 do STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
-  volatile __typeof__((parm3)) arg3 = parm3;				\
-  volatile __typeof__((parm4)) arg4 = parm4;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
+  VOLATILE_ARG __typeof__((parm3)) arg3 = parm3;			\
+  VOLATILE_ARG __typeof__((parm4)) arg4 = parm4;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
@@ -131,11 +137,11 @@ do STAP_SEMAPHORE(probe) {						\
 
 #define STAP_PROBE5_(probe,label,parm1,parm2,parm3,parm4,parm5)		\
 do  STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
-  volatile __typeof__((parm3)) arg3 = parm3;				\
-  volatile __typeof__((parm4)) arg4 = parm4;				\
-  volatile __typeof__((parm5)) arg5 = parm5;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
+  VOLATILE_ARG __typeof__((parm3)) arg3 = parm3;			\
+  VOLATILE_ARG __typeof__((parm4)) arg4 = parm4;			\
+  VOLATILE_ARG __typeof__((parm5)) arg5 = parm5;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
@@ -144,12 +150,12 @@ do  STAP_SEMAPHORE(probe) {						\
 
 #define STAP_PROBE6_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6)	\
 do STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
-  volatile __typeof__((parm3)) arg3 = parm3;				\
-  volatile __typeof__((parm4)) arg4 = parm4;				\
-  volatile __typeof__((parm5)) arg5 = parm5;				\
-  volatile __typeof__((parm6)) arg6 = parm6;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
+  VOLATILE_ARG __typeof__((parm3)) arg3 = parm3;			\
+  VOLATILE_ARG __typeof__((parm4)) arg4 = parm4;			\
+  VOLATILE_ARG __typeof__((parm5)) arg5 = parm5;			\
+  VOLATILE_ARG __typeof__((parm6)) arg6 = parm6;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
@@ -158,13 +164,13 @@ do STAP_SEMAPHORE(probe) {						\
 
 #define STAP_PROBE7_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7) \
 do  STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
-  volatile __typeof__((parm3)) arg3 = parm3;				\
-  volatile __typeof__((parm4)) arg4 = parm4;				\
-  volatile __typeof__((parm5)) arg5 = parm5;				\
-  volatile __typeof__((parm6)) arg6 = parm6;				\
-  volatile __typeof__((parm7)) arg7 = parm7;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
+  VOLATILE_ARG __typeof__((parm3)) arg3 = parm3;			\
+  VOLATILE_ARG __typeof__((parm4)) arg4 = parm4;			\
+  VOLATILE_ARG __typeof__((parm5)) arg5 = parm5;			\
+  VOLATILE_ARG __typeof__((parm6)) arg6 = parm6;			\
+  VOLATILE_ARG __typeof__((parm7)) arg7 = parm7;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
@@ -173,14 +179,14 @@ do  STAP_SEMAPHORE(probe) {						\
 
 #define STAP_PROBE8_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
 do STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
-  volatile __typeof__((parm3)) arg3 = parm3;				\
-  volatile __typeof__((parm4)) arg4 = parm4;				\
-  volatile __typeof__((parm5)) arg5 = parm5;				\
-  volatile __typeof__((parm6)) arg6 = parm6;				\
-  volatile __typeof__((parm7)) arg7 = parm7;				\
-  volatile __typeof__((parm8)) arg8 = parm8;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
+  VOLATILE_ARG __typeof__((parm3)) arg3 = parm3;			\
+  VOLATILE_ARG __typeof__((parm4)) arg4 = parm4;			\
+  VOLATILE_ARG __typeof__((parm5)) arg5 = parm5;			\
+  VOLATILE_ARG __typeof__((parm6)) arg6 = parm6;			\
+  VOLATILE_ARG __typeof__((parm7)) arg7 = parm7;			\
+  VOLATILE_ARG __typeof__((parm8)) arg8 = parm8;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
@@ -189,15 +195,15 @@ do STAP_SEMAPHORE(probe) {						\
 
 #define STAP_PROBE9_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
 do STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
-  volatile __typeof__((parm3)) arg3 = parm3;				\
-  volatile __typeof__((parm4)) arg4 = parm4;				\
-  volatile __typeof__((parm5)) arg5 = parm5;				\
-  volatile __typeof__((parm6)) arg6 = parm6;				\
-  volatile __typeof__((parm7)) arg7 = parm7;				\
-  volatile __typeof__((parm8)) arg8 = parm8;				\
-  volatile __typeof__((parm9)) arg9 = parm9;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
+  VOLATILE_ARG __typeof__((parm3)) arg3 = parm3;			\
+  VOLATILE_ARG __typeof__((parm4)) arg4 = parm4;			\
+  VOLATILE_ARG __typeof__((parm5)) arg5 = parm5;			\
+  VOLATILE_ARG __typeof__((parm6)) arg6 = parm6;			\
+  VOLATILE_ARG __typeof__((parm7)) arg7 = parm7;			\
+  VOLATILE_ARG __typeof__((parm8)) arg8 = parm8;			\
+  VOLATILE_ARG __typeof__((parm9)) arg9 = parm9;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
@@ -206,16 +212,16 @@ do STAP_SEMAPHORE(probe) {						\
 
 #define STAP_PROBE10_(probe,label,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
 do STAP_SEMAPHORE(probe) {						\
-  volatile __typeof__((parm1)) arg1 = parm1;				\
-  volatile __typeof__((parm2)) arg2 = parm2;				\
-  volatile __typeof__((parm3)) arg3 = parm3;				\
-  volatile __typeof__((parm4)) arg4 = parm4;				\
-  volatile __typeof__((parm5)) arg5 = parm5;				\
-  volatile __typeof__((parm6)) arg6 = parm6;				\
-  volatile __typeof__((parm7)) arg7 = parm7;				\
-  volatile __typeof__((parm8)) arg8 = parm8;				\
-  volatile __typeof__((parm9)) arg9 = parm9;				\
-  volatile __typeof__((parm10)) arg10 = parm10;				\
+  VOLATILE_ARG __typeof__((parm1)) arg1 = parm1;			\
+  VOLATILE_ARG __typeof__((parm2)) arg2 = parm2;			\
+  VOLATILE_ARG __typeof__((parm3)) arg3 = parm3;			\
+  VOLATILE_ARG __typeof__((parm4)) arg4 = parm4;			\
+  VOLATILE_ARG __typeof__((parm5)) arg5 = parm5;			\
+  VOLATILE_ARG __typeof__((parm6)) arg6 = parm6;			\
+  VOLATILE_ARG __typeof__((parm7)) arg7 = parm7;			\
+  VOLATILE_ARG __typeof__((parm8)) arg8 = parm8;			\
+  VOLATILE_ARG __typeof__((parm9)) arg9 = parm9;			\
+  VOLATILE_ARG __typeof__((parm10)) arg10 = parm10;			\
   STAP_UNINLINE;							\
   STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);				\
   __asm__ volatile ("2:\n"						\
