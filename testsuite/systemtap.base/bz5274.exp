@@ -2,25 +2,26 @@ set test "./bz5274"
 set tpath "$srcdir/$subdir/$test"
 set arch [exec uname -i]
 
-if {$arch == "ppc64"} {
-	catch {exec gcc -o $test -g -m64 $srcdir/$subdir/$test.c} err
-} else {
-	catch {exec gcc -o $test -g $srcdir/$subdir/$test.c} err
-}
-
-if {$err == "" && [file exists $test]} then { pass "$test compile"
-} else {fail "$test compile"}
-
 if {! [installtest_p]} {
-    catch {exec rm -f $test}
     untested "$test -p5"
     return
 }
 
-if {![utrace_p]} {
-    catch {exec rm -f $test}
+if {![uprobes_p]} {
     untested "$test -p5"
     return
+}
+
+if {$arch == "ppc64"} {
+    catch {exec gcc -o $test -g -m64 $srcdir/$subdir/$test.c} err
+} else {
+    catch {exec gcc -o $test -g $srcdir/$subdir/$test.c} err
+}
+
+if {$err == "" && [file exists $test]} then {
+    pass "$test compile"
+} else {
+    fail "$test compile"
 }
 
 if {[catch {exec stap $tpath.stp -c "$srcdir/$subdir/$test.sh"} res]} {
