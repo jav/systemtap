@@ -86,14 +86,12 @@ function reverse_path_walk:string(dentry:long)
 function d_path:string(nd:long)
 {
         root = __dentry_get_current_root()
-        dentry = %( kernel_vr < "2.6.25"
-                 %? @cast(nd,"nameidata")->dentry
-                 %: @cast(nd,"nameidata")->path->dentry 
-                 %)
-        vfsmnt = %( kernel_vr < "2.6.25"
-                 %? @cast(nd,"nameidata")->mnt
-                 %: @cast(nd,"nameidata")->path->mnt 
-                 %)
+	dentry = (@defined(@cast(nd,"nameidata")->path->dentry)
+	    ? @cast(nd,"nameidata")->path->dentry
+	    : @cast(nd,"nameidata")->dentry)
+	vfsmnt = (@defined(@cast(nd,"nameidata")->path->mnt)
+	    ? @cast(nd,"nameidata")->path->mnt
+	    : @cast(nd,"nameidata")->mnt)
         while (1) {
                 if (dentry == @cast(root, "path")->dentry &&
                     vfsmnt == @cast(root, "path")->mnt)

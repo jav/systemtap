@@ -96,13 +96,10 @@ probe scsi.iodispatching
 	device_state_str = describe_device_state(device_state)
 	data_direction = $cmd->sc_data_direction
 	data_direction_str = describe_data_direction(data_direction)
-%( kernel_v >= "2.6.25" %?
-	request_buffer = $cmd->sdb->table->sgl
-	request_bufflen = $cmd->sdb->length
-%:
-	request_buffer = $cmd->request_buffer
-	request_bufflen = $cmd->request_bufflen
-%)
+	request_buffer = (@defined($cmd->sdb->table->sgl)
+	    ? $cmd->sdb->table->sgl : $cmd->request_buffer)
+	request_bufflen = (@defined($cmd->sdb->length)
+	    ? $cmd->sdb->length : $cmd->request_bufflen)
 	req_addr = $cmd->request
 }
 

@@ -241,11 +241,9 @@ function task_nice:long (task:long) %{ /* pure */
  */
 function task_cpu:long (task:long)
 {
-%( kernel_v >= "2.6.22" %? 
-    ti = @cast(task, "task_struct", "kernel<linux/sched.h>")->stack
-%:
-    ti = @cast(task, "task_struct", "kernel<linux/sched.h>")->thread_info
-%)
+    ti = (@defined(@cast(task, "task_struct", "kernel<linux/sched.h>")->stack)
+	? @defined(@cast(task, "task_struct", "kernel<linux/sched.h>")->stack)
+	: @cast(task, "task_struct", "kernel<linux/sched.h>")->thread_info)
     return @cast(ti, "thread_info", "kernel<linux/sched.h>")->cpu
 }
 
