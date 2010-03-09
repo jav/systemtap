@@ -1,5 +1,8 @@
 * What's new
 
+- User space marker arguments no longer use volatile if richer DWARF debuginfo
+  is available.
+
 - A new construct for error handling is available.  It is similar to c++
   exception catching, using try and catch as new keywords.  Within a handler
   or function, the following is valid and may be nested:
