@@ -1,7 +1,7 @@
 * What's new
 
-- User space marker arguments no longer use volatile if richer DWARF debuginfo
-  is available.
+- User space marker arguments no longer use volatile if the version of gcc,
+  which must be at least 4.4.4, supports richer DWARF debuginfo.
 
 - A new construct for error handling is available.  It is similar to c++
   exception catching, using try and catch as new keywords.  Within a handler

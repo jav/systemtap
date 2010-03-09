@@ -80,8 +80,11 @@
 
 #define STAP_UPROBE_GUARD 0x31425250
 
-#define GNUC_VERSION (__GNUC__ * 10000  + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
-#if GNUC_VERSION >= 40403
+#ifndef __GNUC_RH_RELEASE__
+#define __GNUC_RH_RELEASE__ 0
+#endif
+#define GNUC_VERSION (__GNUC__ * 1000000  + __GNUC_MINOR__ * 10000 + __GNUC_PATCHLEVEL__ * 100 + __GNUC_RH_RELEASE__)
+#if GNUC_VERSION >= 4040400 && ! defined VOLATILE
 #define VOLATILE_ARG
 #else
 #define VOLATILE_ARG volatile
