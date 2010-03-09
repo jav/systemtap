@@ -1,0 +1,7 @@
+/var/log/stap-server/log {
+    rotate 2
+    missingok
+    notifempty
+    size 30k
+    create 0664 stap-server stap-server
+}

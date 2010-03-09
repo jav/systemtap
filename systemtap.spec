@@ -307,6 +307,8 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig
 install -m 644 initscript/config.stap-server $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/stap-server
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server
 touch $RPM_BUILD_ROOT%{_localstatedir}/log/stap-server/log
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d
+install -m 644 initscript/logrotate.stap-server $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/stap-server
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
@@ -327,9 +329,11 @@ test -e ~stap-server && chmod 755 ~stap-server
 exit 0
 
 %post server
-chmod 664 %{_localstatedir}/log/stap-server/log
-chown stap-server %{_localstatedir}/log/stap-server/log
-chgrp stap-server %{_localstatedir}/log/stap-server/log
+test -e %{_localstatedir}/log/stap-server/log || {
+     touch %{_localstatedir}/log/stap-server/log
+     chmod 664 %{_localstatedir}/log/stap-server/log
+     chown stap-server:stap-server %{_localstatedir}/log/stap-server/log
+}
 # If it does not already exit, as stap-server, generate the certificate
 # used for signing and for ssl.
 if test ! -e ~stap-server/.systemtap/ssl/server/stap.cert; then
@@ -467,11 +471,12 @@ exit 0
 %{_mandir}/man8/stap-server.8*
 %{_mandir}/man8/stap-authorize-server-cert.8*
 %{_sysconfdir}/rc.d/init.d/stap-server
+%config(noreplace) %{_sysconfdir}/logrotate.d/stap-server
 %dir %{_sysconfdir}/stap-server
 %dir %{_sysconfdir}/stap-server/conf.d
 %config(noreplace) %{_sysconfdir}/sysconfig/stap-server
 %dir %attr(0755,stap-server,stap-server) %{_localstatedir}/log/stap-server
-%attr(0644,stap-server,stap-server) %{_localstatedir}/log/stap-server/log
+%ghost %config %attr(0644,stap-server,stap-server) %{_localstatedir}/log/stap-server/log
 %doc initscript/README.stap-server
 
 %files sdt-devel
