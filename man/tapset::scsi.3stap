@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.SCSI 3stap @DATE@ "IBM"
+.TH TAPSET::SCSI 3stap "" "IBM"
 .SH NAME
-stapprobes.scsi \- systemtap scsi probe points
+tapset::scsi \- systemtap scsi probe points
 
 .\" macros
 .de SAMPLE

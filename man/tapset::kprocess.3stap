@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.KPROCESS 3stap @DATE@ "Intel, IBM"
+.TH TAPSET::KPROCESS 3stap "" "Intel, IBM"
 .SH NAME
-stapprobes.kprocess \- systemtap kernel process probe points
+tapset::kprocess \- systemtap kernel process probe points
 
 .\" macros
 .de SAMPLE

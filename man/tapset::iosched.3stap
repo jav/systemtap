@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.IOSCHED 3stap @DATE@ "IBM"
+.TH TAPSET::IOSCHED 3stap "" "IBM"
 .SH NAME
-stapprobes.iosched \- systemtap IO scheduler probe points
+tapset::iosched \- systemtap IO scheduler probe points
 
 .\" macros
 .de SAMPLE

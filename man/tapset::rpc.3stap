@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.RPC 3stap @DATE@ "IBM"
+.TH TAPSET::RPC 3stap "" "IBM"
 .SH NAME
-stapprobes.rpc \- systemtap SunRPC probe points
+tapset::rpc \- systemtap SunRPC probe points
 
 .\" macros
 .de SAMPLE

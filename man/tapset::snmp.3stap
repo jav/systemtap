@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.SNMP 3stap @DATE@ "IBM"
+.TH TAPSET::SNMP 3stap "" "IBM"
 .SH NAME
-stapprobes.snmp \- Systemtap simple network management protocol probe points.
+tapset::snmp \- Systemtap simple network management protocol probe points.
 
 .\" macros
 .de SAMPLE

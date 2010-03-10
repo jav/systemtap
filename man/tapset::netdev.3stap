@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.NETDEV 3stap @DATE@ "IBM"
+.TH TAPSET::NETDEV 3stap "" "IBM"
 .SH NAME
-stapprobes.netdev \- systemtap network device probe points
+tapset::netdev \- systemtap network device probe points
 
 .\" macros
 .de SAMPLE

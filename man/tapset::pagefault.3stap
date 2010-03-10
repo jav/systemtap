@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.PAGEFAULT 3stap @DATE@ "IBM"
+.TH TAPSET::PAGEFAULT 3stap "" "IBM"
 .SH NAME
-stapprobes.pagefault \- systemtap pagefault probe points
+tapset::pagefault \- systemtap pagefault probe points
 
 .\" macros
 .de SAMPLE

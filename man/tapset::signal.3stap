@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.SIGNAL 3stap @DATE@ "IBM"
+.TH TAPSET::SIGNAL 3stap "" "IBM"
 .SH NAME
-stapprobes.signal \- systemtap signal probe points
+tapset::signal \- systemtap signal probe points
 
 .\" macros
 .de SAMPLE

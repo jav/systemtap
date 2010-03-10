@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.IRQ 3stap @DATE@ "IBM"
+.TH TAPSET::IRQ 3stap "" "IBM"
 .SH NAME
-stapprobes.irq \- Systemtap probes for IRQ, workqueue,etc
+tapset::irq \- Systemtap probes for IRQ, workqueue,etc
 
 .\" macros
 .de SAMPLE

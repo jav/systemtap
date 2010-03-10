@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.NFSD 3stap @DATE@ "IBM"
+.TH STAPPROBES.NFSD 3stap "" "IBM"
 .SH NAME
 stapprobes.nfsd \- systemtap NFS server side probe points
 
