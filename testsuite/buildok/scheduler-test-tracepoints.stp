@@ -1,4 +1,4 @@
-#! stap -up4
+#! stap -p4
 
 //Tests if all probes in the scheduler tapset are resolvable.
 
