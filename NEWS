@@ -1,5 +1,9 @@
 * What's new
 
+- Tapset-related man pages have been renamed.  'man -k 3stap' should show
+  the installed list, which due to prefixing should no longer collide over
+  ordinary system functions.
+
 - User space marker arguments no longer use volatile if the version of gcc,
   which must be at least 4.4.4, supports richer DWARF debuginfo.
 
