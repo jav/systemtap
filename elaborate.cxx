@@ -3674,8 +3674,9 @@ semantic_pass_optimize1 (systemtap_session& s)
 
       // For listing mode, we need const-folding regardless of optimization so
       // that @defined expressions can be properly resolved.  PR11360
-      if (!s.unoptimized || s.listing_mode_vars)
-        semantic_pass_const_fold (s, relaxed_p);
+      // We also want it in case variables are used in if/case expressions,
+      // so enable always.  PR11366
+      semantic_pass_const_fold (s, relaxed_p);
 
       iterations ++;
     }
