@@ -14,14 +14,7 @@ AM_CXXFLAGS = -Wall -Werror
 
 man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
 dtrace.1 \
-staprun.8 \
-$(srcdir)/man/tapset\:\:iosched.3stap $(srcdir)/man/tapset\:\:netdev.3stap \
-$(srcdir)/man/tapset\:\:nfs.3stap $(srcdir)/man/tapset\:\:nfsd.3stap \
-$(srcdir)/man/tapset\:\:pagefault.3stap $(srcdir)/man/tapset\:\:kprocess.3stap \
-$(srcdir)/man/tapset\:\:rpc.3stap $(srcdir)/man/tapset\:\:scsi.3stap \
-$(srcdir)/man/tapset\:\:signal.3stap $(srcdir)/man/tapset\:\:socket.3stap \
-$(srcdir)/man/tapset\:\:tcp.3stap $(srcdir)/man/tapset\:\:udp.3stap
-# see also configure.ac
+staprun.8
 
 bin_PROGRAMS = staprun
 bin_SCRIPTS = stap-report
@@ -264,6 +257,8 @@ if BUILD_SERVER
 	test -e $(DESTDIR)$(localstatedir)/run/stap-server || mkdir -p $(DESTDIR)$(localstatedir)/run/stap-server
 	test -e $(DESTDIR)$(localstatedir)/log || mkdir -p $(DESTDIR)$(localstatedir)/log
 endif
+	(cd $(srcdir)/man; for f in *.3*; do $(INSTALL_DATA) -D $$f "$(DESTDIR)$(man3dir)/$$f" || exit $$?; done)
+
 
 TEST_COV_DIR = coverage
 
@@ -311,9 +306,10 @@ if BUILD_SERVER
 	rm -rf $(DESTDIR)$(localstatedir)/run/stap-server
 	rm -f $(DESTDIR)$(localstatedir)/log/stap-server/log
 endif
+	(cd $(srcdir)/man; for f in *.3*; do rm -rf "$(DESTDIR)$(man3dir)/$$f"; done)
 
 SUBDIRS = doc grapher
-DIST_SUBDIRS = testsuite $(SUBDIRS)
+DIST_SUBDIRS = testsuite man $(SUBDIRS)
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
