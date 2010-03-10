@@ -5,7 +5,7 @@
   ordinary system functions.
 
 - User space marker arguments no longer use volatile if the version of gcc,
-  which must be at least 4.4.4, supports richer DWARF debuginfo.  Use cflags
+  which must be at least 4.5.0, supports richer DWARF debuginfo.  Use cflags
   -DSTAP_SDT_VOLATILE=volatile or -DSTAP_SDT_VOLATILE= when building
   the sys/sdt.h application to override this one way or another.
 

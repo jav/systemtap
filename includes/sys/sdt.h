@@ -86,7 +86,7 @@
 
 #ifndef STAP_SDT_VOLATILE /* allow users to override */
 #define GNUC_VERSION (__GNUC__ * 1000000  + __GNUC_MINOR__ * 10000 + __GNUC_PATCHLEVEL__ * 100 + __GNUC_RH_RELEASE__)
-#if GNUC_VERSION >= 4040400
+#if GNUC_VERSION >= 4050000
 #define STAP_SDT_VOLATILE
 #else
 #define STAP_SDT_VOLATILE volatile
