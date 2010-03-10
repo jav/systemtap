@@ -5,7 +5,9 @@
   ordinary system functions.
 
 - User space marker arguments no longer use volatile if the version of gcc,
-  which must be at least 4.4.4, supports richer DWARF debuginfo.
+  which must be at least 4.4.4, supports richer DWARF debuginfo.  Use cflags
+  -DSTAP_SDT_VOLATILE=volatile or -DSTAP_SDT_VOLATILE= when building
+  the sys/sdt.h application to override this one way or another.
 
 - A new construct for error handling is available.  It is similar to c++
   exception catching, using try and catch as new keywords.  Within a handler
