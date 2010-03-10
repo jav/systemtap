@@ -94,24 +94,13 @@ static void print_stack_address(void *data, unsigned long addr, int reliable)
                 _stp_func_print(addr, sdata->verbose, 0, NULL);
 }
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
-static unsigned long
-walk_context_stack(struct thread_info *tinfo,
-                   unsigned long *stack, unsigned long bp,
-                   const struct stacktrace_ops *ops, void *data,
-                   unsigned long *end, int *graph)
-{
-	return 0 ;
-}
-#endif
-
 static const struct stacktrace_ops print_stack_ops = {
 	.warning = print_stack_warning,
 	.warning_symbol = print_stack_warning_symbol,
 	.stack = print_stack_stack,
 	.address = print_stack_address,
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
-	.walk_stack = walk_context_stack,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
+	.walk_stack = print_context_stack,
 #endif
 };
 
