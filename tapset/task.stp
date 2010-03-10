@@ -242,8 +242,8 @@ function task_nice:long (task:long) %{ /* pure */
 function task_cpu:long (task:long)
 {
     ti = (@defined(@cast(task, "task_struct", "kernel<linux/sched.h>")->stack)
-	? @defined(@cast(task, "task_struct", "kernel<linux/sched.h>")->stack)
-	: @cast(task, "task_struct", "kernel<linux/sched.h>")->thread_info)
+	  ? @cast(task, "task_struct", "kernel<linux/sched.h>")->stack
+	  : @cast(task, "task_struct", "kernel<linux/sched.h>")->thread_info);
     return @cast(ti, "thread_info", "kernel<linux/sched.h>")->cpu
 }
 
