@@ -71,14 +71,14 @@ function stp_print_binary(n:long, arg1:long, arg2:long, arg3:long, arg4:long) %{
 
 
 /**
- * sfunction ftrace - Send a message to the ftrace ring-buffer (or else printk).
+ * sfunction ftrace - Send a message to the ftrace ring-buffer.
  * @msg: The formatted message string.
  *
  * Description: If the ftrace ring-buffer is configured & available,
  * see /debugfs/tracing/trace for the message.  Otherwise, the
  * message may be quietly dropped.  An implicit end-of-line is added.
  */
-function ftrace (msg:string) %{ /* unprivileged */
+function ftrace (msg:string) %{
 #ifdef STAPCONF_TRACE_PRINTK
        static char *fmt = "%s\n";
        trace_printk (fmt, THIS->msg);
@@ -87,7 +87,5 @@ function ftrace (msg:string) %{ /* unprivileged */
        to defeat trace_printk -> __trace_bprintk optimization.  That's
        because bprintk doesn't save the incoming strings, only their
        addresses. */
-#else
-       /* printk(KERN_DEBUG "%s\n", THIS->msg); */
 #endif
 %}
