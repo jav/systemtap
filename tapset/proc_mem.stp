@@ -30,9 +30,25 @@
       return NULL;
     return current->mm;
   }
+#include <linux/mm_types.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
+static inline unsigned long k_get_mm_counter(struct mm_struct *mm, int member)
+{
+#if USE_SPLIT_PTLOCKS
+       return (unsigned long)atomic_long_read(&mm->rss_stat.count[member]);
+#else
+       return mm->rss_stat.count[member];
+#endif
+}
+#endif
 %}
 
 function _stp_get_mm_counter_file_rss:long(mm:long)
+%(kernel_v >= "2.6.34" %?
+%{ /* pure */  /* unprivileged */
+  THIS->__retvalue =  k_get_mm_counter((struct mm_struct*)(unsigned long)THIS->mm, MM_FILEPAGES);
+%}
+%:
 {
 %( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
   return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss->counter;
@@ -40,8 +56,14 @@ function _stp_get_mm_counter_file_rss:long(mm:long)
   return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss;
 %)
 }
+%)
 
 function _stp_get_mm_counter_anon_rss(mm:long)
+%(kernel_v >= "2.6.34" %?
+%{ /* pure */  /* unprivileged */
+  THIS->__retvalue =  k_get_mm_counter((struct mm_struct*)(unsigned long)THIS->mm, MM_ANONPAGES);
+%}
+%:
 {
 %( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
   return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss->counter;
@@ -49,6 +71,7 @@ function _stp_get_mm_counter_anon_rss(mm:long)
   return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss;
 %)
 }
+%)
 
 /**
  * sfunction proc_mem_size - Total program virtual memory size in pages
@@ -98,8 +121,13 @@ function proc_mem_rss:long ()
 %{ /* pure */ /* unprivileged */
    struct mm_struct *mm = _stp_proc_mm ();
    if (mm)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
+     THIS->__retvalue = k_get_mm_counter(mm, MM_FILEPAGES)
+                         + k_get_mm_counter(mm, MM_ANONPAGES);
+#else
      THIS->__retvalue = (get_mm_counter(mm, file_rss)
                          + get_mm_counter(mm, anon_rss));
+#endif
    else
      THIS->__retvalue = 0;
 %}
@@ -137,7 +165,11 @@ function proc_mem_shr:long ()
 %{ /* pure */ /* unprivileged */
    struct mm_struct *mm = _stp_proc_mm ();
    if (mm)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
+     THIS->__retvalue = k_get_mm_counter(mm, MM_FILEPAGES);
+#else
      THIS->__retvalue = get_mm_counter(mm, file_rss);
+#endif
    else
      THIS->__retvalue = 0;
 %}
