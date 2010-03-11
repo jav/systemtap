@@ -1,5 +1,9 @@
 * What's new
 
+- Type-casting can now use multiple headers to resolve codependencies.
+     @cast(task, "task_struct",
+           "kernel<linux/sched.h><linux/fs_struct.h>")->fs->umask
+
 - Tapset-related man pages have been renamed.  'man -k 3stap' should show
   the installed list, which due to prefixing should no longer collide over
   ordinary system functions.

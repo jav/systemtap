@@ -541,7 +541,7 @@ make_tracequery(systemtap_session& s, string& name,
 
 // Build a tiny kernel module to query type information
 static int
-make_typequery_kmod(systemtap_session& s, const string& header, string& name)
+make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string& name)
 {
   static unsigned tick = 0;
   string basename("typequery_kmod_" + lex_cast(++tick));
@@ -569,7 +569,10 @@ make_typequery_kmod(systemtap_session& s, const string& header, string& name)
   // full kernel build tree, it's possible to get at types that aren't in the
   // normal include path, e.g.:
   //    @cast(foo, "bsd_acct_struct", "kernel<kernel/acct.c>")->...
-  omf << "CFLAGS_" << basename << ".o := -include " << header << endl;
+  omf << "CFLAGS_" << basename << ".o :=";
+  for (size_t i = 0; i < headers.size(); ++i)
+    omf << " -include " << lex_cast_qstring(headers[i]);
+  omf << endl;
 
   omf << "obj-m := " + basename + ".o" << endl;
   omf.close();
@@ -598,7 +601,7 @@ make_typequery_kmod(systemtap_session& s, const string& header, string& name)
 
 // Build a tiny user module to query type information
 static int
-make_typequery_umod(systemtap_session& s, const string& header, string& name)
+make_typequery_umod(systemtap_session& s, const vector<string>& headers, string& name)
 {
   static unsigned tick = 0;
 
@@ -610,11 +613,13 @@ make_typequery_umod(systemtap_session& s, const string& header, string& name)
   // cwd in this case will be the cwd of stap itself though, which may be
   // trickier to deal with.  It might be better to "cd `dirname $script`"
   // first...
-  string cmd = "gcc -shared -g -fno-eliminate-unused-debug-types -o "
-     + name + " -xc /dev/null -include " + header;
+  ostringstream cmd;
+  cmd << "gcc -shared -g -fno-eliminate-unused-debug-types -xc /dev/null -o " << name;
+  for (size_t i = 0; i < headers.size(); ++i)
+    cmd << " -include " << lex_cast_qstring(headers[i]);
   if (s.verbose < 4)
-    cmd += " >/dev/null 2>&1";
-  return stap_system (s.verbose, cmd);
+    cmd << " >/dev/null 2>&1";
+  return stap_system (s.verbose, cmd.str());
 }
 
 
@@ -623,22 +628,27 @@ make_typequery(systemtap_session& s, string& module)
 {
   int rc;
   string new_module;
+  vector<string> headers;
+  bool kernel = (module.compare(0, 6, "kernel") == 0);
 
-  if (module[module.size() - 1] != '>')
+  for (size_t end, i = kernel ? 6 : 0; i < module.size(); i = end + 1)
+    {
+      if (module[i] != '<')
+        return -1;
+      end = module.find('>', ++i);
+      if (end == string::npos)
+        return -1;
+      string header = module.substr(i, end - i);
+      assert_regexp_match("@cast header", header, "^[a-z0-9/_.+-]+$");
+      headers.push_back(header);
+    }
+  if (headers.empty())
     return -1;
 
-  if (module[0] == '<')
-    {
-      string header = module.substr(1, module.size() - 2);
-      rc = make_typequery_umod(s, header, new_module);
-    }
-  else if (module.compare(0, 7, "kernel<") == 0)
-    {
-      string header = module.substr(7, module.size() - 8);
-      rc = make_typequery_kmod(s, header, new_module);
-    }
+  if (kernel)
+      rc = make_typequery_kmod(s, headers, new_module);
   else
-    return -1;
+      rc = make_typequery_umod(s, headers, new_module);
 
   if (!rc)
     module = new_module;

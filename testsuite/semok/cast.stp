@@ -15,6 +15,9 @@ probe begin {
     println(@cast(0, "task_struct", "kernel<linux/sched.h>")->tgid)
     println(@cast(0, "timeval", "<sys/time.h>")->tv_sec)
 
+    // sometimes multiple headers are needed in tandem
+    println(@cast(0, "task_struct", "kernel<linux/sched.h><linux/fs_struct.h>")->fs->umask)
+
     // make sure that bogus @casts can get optimized away
     @cast(0, "task_struct")->no_such_field
     @cast(0, "task_struct")->parent->no_such_field

@@ -844,9 +844,12 @@ The translator can create its own module with type information from a header
 surrounded by angle brackets, in case normal debuginfo is not available.  For
 kernel headers, prefix it with "kernel" to use the appropriate build system.
 All other headers are build with default GCC parameters into a user module.
+Multiple headers may be specified in sequence to resolve a codependency.
 .SAMPLE
 @cast(tv, "timeval", "<sys/time.h>")->tv_sec
 @cast(task, "task_struct", "kernel<linux/sched.h>")->tgid
+@cast(task, "task_struct",
+      "kernel<linux/sched.h><linux/fs_struct.h>")->fs->umask
 .ESAMPLE
 .PP
 When in guru mode, the translator will also allow scripts to assign new
