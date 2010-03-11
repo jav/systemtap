@@ -30,8 +30,8 @@
       return NULL;
     return current->mm;
   }
-#include <linux/mm_types.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
+#include <linux/mm_types.h>
 static inline unsigned long k_get_mm_counter(struct mm_struct *mm, int member)
 {
 #if USE_SPLIT_PTLOCKS
