@@ -331,6 +331,10 @@ all-local:
 clean-local:
 	-rm -f ./stap site.exp systemtap.sum systemtap.log
 	-rm -rf .systemtap* .cache_test* 2>/dev/null
+	-rm -f ./stap_*.ko
+	-rm -f flightrec*
+	-rm -f *.so
+	-rm -f uprobe_*
 
 # automake's dejagnu library already runs check-DEJAGNU before check-local
 # That's why we need to add "execrc" to $(RUNTEST) - to ensure that this

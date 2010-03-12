@@ -10,6 +10,10 @@ all-local:
 clean-local:
 	-rm -f ./stap site.exp systemtap.sum systemtap.log
 	-rm -rf .systemtap* .cache_test* 2>/dev/null
+	-rm -f ./stap_*.ko
+	-rm -f flightrec*
+	-rm -f *.so
+	-rm -f uprobe_*
 
 DEJAZILLA=@dejazilla@
 TESTAPPS=@enable_testapps@
