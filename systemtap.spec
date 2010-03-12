@@ -275,9 +275,6 @@ find examples testsuite -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1
 # permissions back to 04111 in the %files section below.
 chmod 755 $RPM_BUILD_ROOT%{_bindir}/staprun
 
-#install the useful stap-prep script
-install -c -m 755 stap-prep $RPM_BUILD_ROOT/usr/bin/stap-prep
-
 # Copy over the testsuite
 cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
 
@@ -413,7 +410,6 @@ exit 0
 
 %{_bindir}/stap
 %{_bindir}/stap-report
-%{_bindir}/stap-prep
 %{_mandir}/man1/*
 %{_mandir}/man3/*
 
