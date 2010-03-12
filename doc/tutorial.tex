@@ -450,13 +450,13 @@ This example also demonstrates pasting numeric command-line arguments
 probe kernel.function ("vfs_write"),
       kernel.function ("vfs_read")
 {
-%( kernel_v >= "2.6.20" %?
-  dev_nr = $file->f_path->dentry->d_inode->i_sb->s_dev
-  inode_nr = $file->f_path->dentry->d_inode->i_ino
-%:
-  dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
-  inode_nr = $file->f_dentry->d_inode->i_ino
-%)
+  if (@defined($file->f_path->dentry)) {
+    dev_nr = $file->f_path->dentry->d_inode->i_sb->s_dev
+    inode_nr = $file->f_path->dentry->d_inode->i_ino
+  } else {
+    dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
+    inode_nr = $file->f_dentry->d_inode->i_ino
+  }
 
   if (dev_nr == ($1 << 20 | $2) # major/minor device
       && inode_nr == $3)
