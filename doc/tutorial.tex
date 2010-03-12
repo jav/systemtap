@@ -463,9 +463,9 @@ probe kernel.function ("vfs_write"),
     printf ("%s(%d) %s 0x%x/%u\n",
       execname(), pid(), probefunc(), dev_nr, inode_nr)
 }
-# stat -c '%D %i' /etc/crontab
+# stat -c "%D %i" /etc/crontab
 fd03 133099
-# stap inode-watch.stp 8 3 988136
+# stap inode-watch.stp 0xfd 3 133099
 more(30789) vfs_read 0xfd00003/133099
 more(30789) vfs_read 0xfd00003/133099
 \end{verbatim}
