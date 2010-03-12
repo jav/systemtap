@@ -42,26 +42,30 @@ stp_unlock_probe(const struct stp_probe_lock *locks, unsigned num_locks)
 static unsigned
 stp_lock_probe(const struct stp_probe_lock *locks, unsigned num_locks)
 {
-	unsigned i, numtrylock = 0;
+	unsigned i, retries = 0;
 	for (i = 0; i < num_locks; ++i) {
 		if (locks[i].write_p)
-			while (!write_trylock(locks[i].lock) &&
-					(++numtrylock < MAXTRYLOCK))
+			while (!write_trylock(locks[i].lock)) {
+				if (++retries > MAXTRYLOCK)
+					goto skip;
 				ndelay (TRYLOCKDELAY);
+			}
 		else
-			while (!read_trylock(locks[i].lock) &&
-					(++numtrylock < MAXTRYLOCK))
+			while (!read_trylock(locks[i].lock)) {
+				if (++retries > MAXTRYLOCK)
+					goto skip;
 				ndelay (TRYLOCKDELAY);
-		if (unlikely(numtrylock >= MAXTRYLOCK)) {
-			atomic_inc(&skipped_count);
-			#ifdef STP_TIMING
-			atomic_inc(locks[i].skipped);
-			#endif
-			stp_unlock_probe(locks, i);
-			return 0;
-		}
+			}
 	}
 	return 1;
+
+skip:
+	atomic_inc(&skipped_count);
+#ifdef STP_TIMING
+	atomic_inc(locks[i].skipped);
+#endif
+	stp_unlock_probe(locks, i);
+	return 0;
 }
 
 

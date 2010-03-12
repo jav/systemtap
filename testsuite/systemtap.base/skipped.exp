@@ -5,10 +5,16 @@ if {! [installtest_p]} { untested $test; return }
 set nr_cpus [exec sh -c "grep ^processor /proc/cpuinfo | wc -l"]
 if {$nr_cpus < 2} { unsupported $test; return }
 
+set script {
+global f
+probe timer.profile { f++; snooze() }
+function snooze() %{ udelay(10000); %}
+}
+
 set errs 0
 set warns 0
 set oks 0
-spawn stap -e "probe timer.s(5) {exit()} probe timer.profile,syscall.* {f++} global f" -DMAXTRYLOCK=0 -tu
+spawn stap -e $script -DMAXTRYLOCK=0 -DSTP_NO_OVERLOAD -tug
 expect {
     -timeout 60
     -re {^ERROR: Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\r\n} { incr errs; exp_continue }
