@@ -81,7 +81,7 @@ add_script_to_cache(systemtap_session& s)
     copy_file(module_src_path + ".sgn", s.hash_path + ".sgn", verbose);
 
   string c_dest_path = s.hash_path;
-  if (c_dest_path.rfind(".ko") == (c_dest_path.size() - 3))
+  if (endswith(c_dest_path, ".ko"))
     c_dest_path.resize(c_dest_path.size() - 3);
   c_dest_path += ".c";
 
@@ -140,7 +140,7 @@ get_script_from_cache(systemtap_session& s)
   string c_src_path = s.hash_path;
   int fd_module, fd_c;
 
-  if (c_src_path.rfind(".ko") == (c_src_path.size() - 3))
+  if (endswith(c_src_path, ".ko"))
     c_src_path.resize(c_src_path.size() - 3);
   c_src_path += ".c";
 

@@ -436,7 +436,7 @@ int parse_kernel_config (systemtap_session &s)
   string line;
   while (getline (kcf, line))
     {
-      if (line.substr(0, 7) != "CONFIG_") continue;
+      if (!startswith(line, "CONFIG_")) continue;
       size_t off = line.find('=');
       if (off == string::npos) continue;
       string key = line.substr(0, off);
@@ -750,20 +750,17 @@ main (int argc, char * const argv [])
 	  save_module = true;
           // XXX: convert to assert_regexp_match()
 	  {
-	    string::size_type len = s.module_name.length();
-
 	    // If the module name ends with '.ko', chop it off since
 	    // modutils doesn't like modules named 'foo.ko.ko'.
-	    if (len > 3 && s.module_name.substr(len - 3, 3) == ".ko")
+	    if (endswith(s.module_name, ".ko"))
 	      {
-		s.module_name.erase(len - 3);
-		len -= 3;
+		s.module_name.erase(s.module_name.size() - 3);
 		cerr << "Truncating module name to '" << s.module_name
 		     << "'" << endl;
 	      }
 
 	    // Make sure an empty module name wasn't specified (-m "")
-	    if (len == 0)
+	    if (s.module_name.empty())
 	    {
 		cerr << "Module name cannot be empty." << endl;
 		exit(1);

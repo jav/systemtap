@@ -591,7 +591,7 @@ utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
       if (e->addressof)
         throw semantic_error("cannot take address of utrace variable", e->tok);
       
-      if (e->base_name.substr(0,4) == "$arg" || e->base_name == "$$parms")
+      if (startswith(e->base_name, "$arg") || e->base_name == "$$parms")
         visit_target_symbol_arg(e);
       else if (e->base_name == "$syscall" || e->base_name == "$return")
         visit_target_symbol_context(e);

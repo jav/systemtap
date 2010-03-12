@@ -1,3 +1,4 @@
+#include <cstring>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -109,6 +110,25 @@ void delete_map(T& t)
   for (typename T::iterator i = t.begin(); i != t.end(); ++i)
     delete i->second;
   t.clear();
+}
+
+
+// Returns whether a string starts with the given prefix
+inline bool
+startswith(const std::string & s, const char * prefix)
+{
+  return (s.compare(0, std::strlen(prefix), prefix) == 0);
+}
+
+
+// Returns whether a string ends with the given suffix
+inline bool
+endswith(const std::string & s, const char * suffix)
+{
+  size_t s_len = s.size(), suffix_len = std::strlen(suffix);
+  if (suffix_len > s_len)
+    return false;
+  return (s.compare(s_len - suffix_len, suffix_len, suffix) == 0);
 }
 
 

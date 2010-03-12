@@ -629,7 +629,7 @@ make_typequery(systemtap_session& s, string& module)
   int rc;
   string new_module;
   vector<string> headers;
-  bool kernel = (module.compare(0, 6, "kernel") == 0);
+  bool kernel = startswith(module, "kernel");
 
   for (size_t end, i = kernel ? 6 : 0; i < module.size(); i = end + 1)
     {

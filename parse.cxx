@@ -274,7 +274,7 @@ bool eval_pp_conditional (systemtap_session& s,
 
       return result;
     }
-  else if (l->type == tok_identifier && l->content.substr(0,7) == "CONFIG_")
+  else if (l->type == tok_identifier && startswith(l->content, "CONFIG_"))
     {
       if (r->type == tok_string)
 	{
@@ -306,7 +306,7 @@ bool eval_pp_conditional (systemtap_session& s,
 	  return eval_comparison (lhs, op, rhs);
 	}
       else if (r->type == tok_identifier
-	       && r->content.substr(0,7) == "CONFIG_")
+	       && startswith(r->content, "CONFIG_"))
 	{
 	  // First try to convert both to numbers,
 	  // otherwise threat both as strings.
@@ -2679,9 +2679,9 @@ target_symbol* parser::parse_target_symbol (const token* t)
       expect_unknown(tok_string, cop->type);
       // types never start with "struct<space>" or "union<space>",
       // so gobble it up.
-      if (cop->type.compare(0, 7, "struct ") == 0)
+      if (startswith(cop->type, "struct "))
         cop->type = cop->type.substr(7);
-      if (cop->type.compare(0, 6, "union ") == 0)
+      if (startswith(cop->type, "union "))
         cop->type = cop->type.substr(6);
       if (peek_op (","))
         {

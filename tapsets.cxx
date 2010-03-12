@@ -2766,7 +2766,7 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
   // look for "<path/to/header>" or "kernel<path/to/header>"
   // for those cases, build a module including that header
   if (module[module.size() - 1] == '>' &&
-      (module[0] == '<' || module.compare(0, 7, "kernel<") == 0))
+      (module[0] == '<' || startswith(module, "kernel<")))
     {
       string cached_module;
       if (s.use_cache)
@@ -3768,7 +3768,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           return;
         }
 
-      if (e->base_name.find("$arg") == string::npos || ! have_reg_args)
+      if (!startswith(e->base_name, "$arg") || ! have_reg_args)
         {
           // NB: uprobes-based sdt.h; $argFOO gets resolved later.
           // XXX: We don't even know the arg_count in this case.
@@ -6463,7 +6463,7 @@ tracepoint_query::handle_query_func(Dwarf_Die * func)
 {
   dw.focus_on_function (func);
 
-  assert(dw.function_name.compare(0, 10, "stapprobe_") == 0);
+  assert(startswith(dw.function_name, "stapprobe_"));
   string tracepoint_instance = dw.function_name.substr(10);
 
   // check for duplicates -- sometimes tracepoint headers may be indirectly
@@ -6609,13 +6609,10 @@ tracepoint_builder::init_dw(systemtap_session& s)
           string header(trace_glob.gl_pathv[i]);
 
           // filter out a few known "internal-only" headers
-          if (header.find("/define_trace.h") != string::npos)
-            continue;
-          if (header.find("/ftrace.h") != string::npos)
-            continue;
-          if (header.find("/trace_events.h") != string::npos)
-            continue;
-          if (header.find("_event_types.h") != string::npos)
+          if (endswith(header, "/define_trace.h") ||
+              endswith(header, "/ftrace.h")       ||
+              endswith(header, "/trace_events.h") ||
+              endswith(header, "_event_types.h"))
             continue;
 
           system_headers.push_back(header);

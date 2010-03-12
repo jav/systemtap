@@ -187,7 +187,7 @@ mark_var_expanding_visitor::visit_target_symbol (target_symbol* e)
       if (e->addressof)
         throw semantic_error("cannot take address of marker variable", e->tok);
       
-      if (e->base_name.substr(0,4) == "$arg")
+      if (startswith(e->base_name, "$arg"))
         visit_target_symbol_arg (e);
       else if (e->base_name == "$format" || e->base_name == "$name" 
                || e->base_name == "$$parms" || e->base_name == "$$vars")
