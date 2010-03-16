@@ -20,6 +20,8 @@ using namespace __gnu_cxx;
 
 
 static const string TOK_PERF("perf");
+static const string TOK_EVENT("event");
+static const string TOK_SAMPLE("sample");
 
 
 // ------------------------------------------------------------------------
@@ -30,16 +32,18 @@ static const string TOK_PERF("perf");
 
 struct perf_derived_probe: public derived_probe
 {
+  string event_name;
+  string event_type;
+  string event_config;
   int64_t interval;
-  perf_derived_probe (probe* p, probe_point* l, int64_t i);
+  perf_derived_probe (probe* p, probe_point* l, const string& name,
+                      const string& type, const string& config, int64_t i);
   virtual void join_group (systemtap_session& s);
 };
 
 
 struct perf_derived_probe_group: public generic_dpg<perf_derived_probe>
 {
-  void emit_interval (translator_output* o);
-public:
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -47,9 +51,18 @@ public:
 
 
 perf_derived_probe::perf_derived_probe (probe* p, probe_point* l,
-                                          int64_t i):
-  derived_probe (p, l), interval (i)
+                                        const string& name,
+                                        const string& type,
+                                        const string& config,
+                                        int64_t i):
+  derived_probe (p, new probe_point(*l) /* .components soon rewritten */),
+  event_name (name), event_type (type), event_config (config), interval (i)
 {
+  vector<probe_point::component*>& comps = this->sole_location()->components;
+  comps.clear();
+  comps.push_back (new probe_point::component (TOK_PERF));
+  comps.push_back (new probe_point::component (TOK_EVENT, new literal_string (event_name)));
+  comps.push_back (new probe_point::component (TOK_SAMPLE, new literal_number (interval)));
 }
 
 
@@ -63,11 +76,6 @@ perf_derived_probe::join_group (systemtap_session& s)
 
 
 void
-perf_derived_probe_group::emit_interval (translator_output* o)
-{
-}
-
-void
 perf_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
   if (probes.empty()) return;
@@ -77,6 +85,7 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   /* declarations */
   for (unsigned i=0; i < probes.size(); i++)
     {
+      // TODO create Perf data structures
     }
   s.op->newline();
 
@@ -149,15 +158,21 @@ perf_builder::build(systemtap_session & sess,
     literal_map_t const & parameters,
     vector<derived_probe *> & finished_results)
 {
+  string name, type, config;
+  bool has_name = get_param(parameters, TOK_EVENT, name);
+  assert(has_name);
+
+  // TODO translate event name to a type and config
+  type = "PERF_TYPE_HARDWARE";
+  config = "PERF_COUNT_HW_CPU_CYCLES";
+
   int64_t period;
-  /* FIXME */
-  if (get_param(parameters, "cycles", period))
-    {
-    }
-  else
-    throw semantic_error ("unrecognized perf variant");
+  bool has_period = get_param(parameters, TOK_SAMPLE, period);
+  if (!has_period)
+    period = 1000000;
+
   finished_results.push_back
-    (new perf_derived_probe(base, location, period));
+    (new perf_derived_probe(base, location, name, type, config, period));
 }
 
 
@@ -169,13 +184,12 @@ register_tapset_perf(systemtap_session& s)
   if (s.kernel_config["CONFIG_PERF_EVENTS"] != "y")
     return;
 
-  match_node* root = s.pattern_root;
   derived_probe_builder *builder = new perf_builder();
+  match_node* perf = s.pattern_root->bind(TOK_PERF);
 
-  root = root->bind(TOK_PERF);
-
-  root->bind_num("cycles")
-    ->bind(builder);
+  match_node* event = perf->bind_str(TOK_EVENT);
+  event->bind(builder);
+  event->bind_num(TOK_SAMPLE)->bind(builder);
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
