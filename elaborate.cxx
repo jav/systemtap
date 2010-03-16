@@ -517,6 +517,19 @@ private:
   const probe_alias *alias; // Used to check for recursion
 };
 
+probe*
+probe::create_alias(probe_point* l, probe_point* a)
+{
+  vector<probe_point*> aliases(1, a);
+  probe_alias* p = new probe_alias(aliases);
+  p->tok = tok;
+  p->locations.push_back(l);
+  p->body = body;
+  p->privileged = privileged;
+  p->epilogue_style = false;
+  return new alias_derived_probe(this, l, p);
+}
+
 
 struct
 alias_expansion_builder

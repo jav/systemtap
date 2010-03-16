@@ -1295,11 +1295,16 @@ query_label (string const & func,
 
   query_statement(func, file, line, scope_die, stmt_addr, q);
 
-  // this is a kludge to let the listing mode show labels to the user
-  if (q->sess.listing_mode)
-    for (; i < q->results.size(); ++i)
-      q->results[i]->locations[0]->components.push_back
-        (new probe_point::component(TOK_LABEL, new literal_string (label)));
+  // after the fact, insert the label back into the derivation chain
+  probe_point::component* ppc =
+    new probe_point::component(TOK_LABEL, new literal_string (label));
+  for (; i < q->results.size(); ++i)
+    {
+      derived_probe* p = q->results[i];
+      probe_point* pp = new probe_point(*p->locations[0]);
+      pp->components.push_back (ppc);
+      p->base = p->base->create_alias(p->locations[0], pp);
+    }
 }
 
 static void
@@ -3897,7 +3902,7 @@ private:
 
   void convert_probe(probe *base);
   void record_semaphore(vector<derived_probe *> & results, unsigned start);
-  void convert_location(probe *base, probe_point *location);
+  probe* convert_location();
 };
 
 
@@ -3940,15 +3945,9 @@ sdt_query::handle_query_module()
 	    }
 	}
 
-      // XXX: This loses any connection to the original base_probe.
-      // Consider creating a fake derived_probe_point class, kind of
-      // like the alias_* ones in elaborate.cxx, so that probe-base
-      // relationships can be maintained.  Or extend struct-probe
-      // with a base pointer.  PR10831.
-      probe *new_base = new probe(*base_probe);
-      probe_point *new_location = new probe_point(*base_loc);
-      convert_location(new_base, new_location);
-      new_base->body = deep_copy_visitor::deep_copy(base_probe->body);
+      // Extend the derivation chain
+      probe *new_base = convert_location();
+      probe_point *new_location = new_base->locations[0];
 
       bool have_reg_args = false;
       if (probe_type == kprobe_type)
@@ -3983,17 +3982,6 @@ sdt_query::handle_query_module()
         }
 
       record_semaphore(results, i);
-
-      if (sess.listing_mode)
-        {
-          // restore the locations to print a nicer probe name
-          probe_point loc(*base_loc);
-          loc.components.back() =
-            new probe_point::component(TOK_MARK, new literal_string (probe_name));
-          for (; i < results.size(); ++i)
-            for (unsigned j = 0; j < results[i]->locations.size(); ++j)
-              *results[i]->locations[j] = loc;
-        }
     }
 }
 
@@ -4213,49 +4201,58 @@ sdt_query::convert_probe (probe *base)
 }
 
 
-void
-sdt_query::convert_location (probe *base, probe_point *location)
+probe*
+sdt_query::convert_location ()
 {
-  for (unsigned i = 0; i < location->components.size(); ++i)
-    if (location->components[i]->functor == TOK_MARK)
-      switch (probe_type)
-	{
-	case uprobe_type:
-	  if (sess.verbose > 3)
-	    clog << "probe_type == uprobe_type, use statement addr: 0x"
-		 << hex << probe_arg << dec << endl;
-	  // process("executable").statement(probe_arg)
-	  location->components[i] = new probe_point::component(TOK_STATEMENT, new literal_number(probe_arg));
-	  break;
+  probe_point* specific_loc = new probe_point(*base_loc);
+  probe_point* derived_loc = new probe_point(*base_loc);
 
-	case kprobe_type:
-	  if (sess.verbose > 3)
-	    clog << "probe_type == kprobe_type" << endl;
-	  // kernel.function("*getegid*")
-	  location->components[i]->functor = TOK_FUNCTION;
-	  location->components[i]->arg = new literal_string("*getegid*");
-	  break;
-
-	default:
-	  if (sess.verbose > 3)
-	    clog << "probe_type == use_uprobe_no_dwarf, use label name: "
-		 << "_stapprobe1_" << mark_name << endl;
-	  // process("executable").function("*").label("_stapprobe1_MARK_NAME")
-	  location->components[1]->functor = TOK_FUNCTION;
-	  location->components[1]->arg = new literal_string("*");
-	  location->components.push_back(new probe_point::component(TOK_LABEL));
-	  location->components[2]->arg = new literal_string("_stapprobe1_" + mark_name);
-	  break;
-	}
-    else if (location->components[i]->functor == TOK_PROCESS
-	     && probe_type == kprobe_type)
+  for (unsigned i = 0; i < derived_loc->components.size(); ++i)
+    if (derived_loc->components[i]->functor == TOK_MARK)
       {
-	location->components[i]->functor = TOK_KERNEL;
-	location->components[i]->arg = NULL;
+        // replace the possibly wildcarded arg with the specific marker name
+        specific_loc->components[i] =
+          new probe_point::component(TOK_MARK, new literal_string(probe_name));
+
+        switch (probe_type)
+          {
+          case uprobe_type:
+            if (sess.verbose > 3)
+              clog << "probe_type == uprobe_type, use statement addr: 0x"
+                << hex << probe_arg << dec << endl;
+            // process("executable").statement(probe_arg)
+            derived_loc->components[i] =
+              new probe_point::component(TOK_STATEMENT, new literal_number(probe_arg));
+            break;
+
+          case kprobe_type:
+            if (sess.verbose > 3)
+              clog << "probe_type == kprobe_type" << endl;
+            // kernel.function("*getegid*")
+            derived_loc->components[i] =
+              new probe_point::component(TOK_FUNCTION, new literal_string("*getegid*"));
+            break;
+
+          default:
+            if (sess.verbose > 3)
+              clog << "probe_type == use_uprobe_no_dwarf, use label name: "
+                << "_stapprobe1_" << mark_name << endl;
+            // process("executable").function("*").label("_stapprobe1_MARK_NAME")
+            derived_loc->components[i] =
+              new probe_point::component(TOK_FUNCTION, new literal_string("*"));
+            derived_loc->components.push_back
+              (new probe_point::component(TOK_LABEL,
+                                          new literal_string("_stapprobe1_" + mark_name)));
+            break;
+          }
+      }
+    else if (derived_loc->components[i]->functor == TOK_PROCESS
+             && probe_type == kprobe_type)
+      {
+        derived_loc->components[i] = new probe_point::component(TOK_KERNEL);
       }
 
-  base->locations.clear();
-  base->locations.push_back(location);
+  return base_probe->create_alias(derived_loc, specific_loc);
 }
 
 

@@ -198,10 +198,31 @@ printscript(systemtap_session& s, ostream& o)
           p->collect_derivation_chain (chain);
           probe* second = (chain.size()>1) ? chain[chain.size()-2] : chain[0];
 
-          #if 0
-          cerr << "\tchain[" << chain.size() << "]:" << endl;
-          for (unsigned i=0; i<chain.size(); i++)
-            { cerr << "\t"; chain[i]->printsig(cerr); cerr << endl; }
+          #if 0  // dump everything about the derivation chain
+          p->printsig(cerr); cerr << endl;
+          cerr << "chain[" << chain.size() << "]:" << endl;
+          for (unsigned j=0; j<chain.size(); j++)
+            {
+              cerr << "  [" << j << "]: " << endl;
+              cerr << "\tlocations[" << chain[j]->locations.size() << "]:" << endl;
+              for (unsigned k=0; k<chain[j]->locations.size(); k++)
+                {
+                  cerr << "\t  [" << k << "]: ";
+                  chain[j]->locations[k]->print(cerr);
+                  cerr << endl;
+                }
+              const probe_alias *a = chain[j]->get_alias();
+              if (a)
+                {
+                  cerr << "\taliases[" << a->alias_names.size() << "]:" << endl;
+                  for (unsigned k=0; k<a->alias_names.size(); k++)
+                    {
+                      cerr << "\t  [" << k << "]: ";
+                      a->alias_names[k]->print(cerr);
+                      cerr << endl;
+                    }
+                }
+            }
           #endif
 
           stringstream tmps;
