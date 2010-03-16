@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Symbolic Lookup Functions
- * Copyright (C) 2005-2009 Red Hat Inc.
+ * Copyright (C) 2005-2010 Red Hat Inc.
  * Copyright (C) 2006 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -15,6 +15,8 @@
 #include "sym.h"
 #include "string.c"
 #include "task_finder_vma.c"
+#include <asm/segment.h>
+#include <asm/uaccess.h>
 
 /* Callback that needs to be registered (in
    session.unwindsyms_modules) for every user task path for which we
@@ -304,26 +306,42 @@ static int _stp_module_check(void)
 
 		    if (notes_addr <= base_addr)  /* shouldn't happen */
 			 continue;
-		    if (memcmp(m->build_id_bits, (unsigned char*) notes_addr, m->build_id_len)) {
-	                 const char *basename;
-			 basename = strrchr(m->path, '/');
-			 if (basename)
-			     basename++;
-			 else
-			     basename = m->path;
+                    for (j=0; j<m->build_id_len; j++) {
+                            /* Use set_fs / get_user to access
+                             conceivably invalid addresses.  If
+                             loc2c-runtime.h were more easily usable,
+                             a deref() loop could do it too. */
+                            mm_segment_t oldfs = get_fs();
+                            int rc;
+                            unsigned char theory, practice;
 
+                            set_fs(KERNEL_DS);
+                            rc = get_user(theory,((unsigned char*) &m->build_id_bits[j]));
+                            rc = get_user(practice,((unsigned char*) (void*) (notes_addr+j)));
+                            set_fs(oldfs);
+
+                            if (rc || theory != practice) {
+                                    const char *basename;
+                                    basename = strrchr(m->path, '/');
+                                    if (basename)
+                                            basename++;
+                                    else
+                                            basename = m->path;
+                                    
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
-                         _stp_error ("Build-id mismatch: \"%s\" vs. \"%s\"\n",
-				     m->name, basename);
-                         return 1;
+                                    _stp_error ("Build-id mismatch: \"%s\" vs. \"%s\" byte %d (0x%02x vs 0x%02x)\n",
+                                                m->name, basename, j, theory, practice);
+                                    return 1;
 #else
-                         /* This branch is a surrogate for kernels
-			  * affected by Fedora bug #465873. */
-                         _stp_warn (KERN_WARNING
-                                    "Build-id mismatch: \"%s\" vs. \"%s\"\n",
-                                    m->name, basename);
+                                    /* This branch is a surrogate for kernels
+                                     * affected by Fedora bug #465873. */
+                                    _stp_warn (KERN_WARNING
+                                               "Build-id mismatch: \"%s\" vs. \"%s\" byte %d (0x%02x vs 0x%02x)\n",
+                                               m->name, basename, j, theory, practice);
 #endif
-		    }
+                                    break;
+                            } /* end mismatch */
+		    } /* end per-byte check loop */
 		} /* end checking */
 	} /* end loop */
 	return 0;
