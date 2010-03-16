@@ -1,0 +1,115 @@
+set test "atomic"
+
+if {![installtest_p]} {untested $test; return}
+
+set script_template {
+    probe begin {
+	print("systemtap starting probe\n")
+	exit()
+    }
+
+    probe end {
+	print("systemtap ending probe\n")
+	printf("%%d\n", atomic_long_read(%s))
+    }
+}
+
+# First try reading from address 0, which should fail.
+set test "atomic1"
+set error {kernel read fault at 0x[^\r]+}
+set script [format $script_template "0"]
+stap_run_error $test 1 $error "" -e $script
+
+# Try reading from address -1 (top of memory), which should fail.
+set test "atomic2"
+set script [format $script_template "-1"]
+stap_run_error $test 1 $error "" -e $script
+
+# Try reading from address 3, which should fail (if nothing else
+# because it isn't aligned properly).
+set test "atomic3"
+set script [format $script_template "3"]
+stap_run_error $test 1 $error "" -e $script
+
+
+set build_dir ""
+
+proc cleanup_module {} {
+    global build_dir
+    as_root [list /sbin/rmmod atomic_module]
+    catch { exec rm -rf $build_dir }
+}
+
+proc build_and_install_module {} {
+    global build_dir
+    global srcdir subdir
+
+    # Create the build directory and populate it
+    if {[catch {exec mktemp -d staptestXXXXXX} build_dir]} {
+	verbose -log "Failed to create temporary directory: $build_dir"
+	return 0
+    }
+    exec cp $srcdir/$subdir/atomic_module.c $build_dir/
+    exec cp -p $srcdir/$subdir/atomic_module.makefile $build_dir/Makefile
+
+    # Build the module
+    if {[catch {exec make -C $build_dir clean} res]} {
+	verbose -log "$res"
+	return 0
+    }
+    catch {exec make -C $build_dir} res
+    if {![file exists $build_dir/atomic_module.ko]} {
+	verbose -log "$res"
+	return 0
+    }
+
+    # Install the module
+    set res [as_root [list /sbin/insmod $build_dir/atomic_module.ko]]
+    if {$res != 0} {
+	return 0
+    }
+
+    return 1
+}
+
+set test "atomic_module_build"
+if {[build_and_install_module] == 0} {
+    verbose -log "BUILD FAILED"
+    fail "$test - could not build/install module"
+    cleanup_module
+    return
+} else {
+    pass $test
+}
+
+set script_module_template {
+    function get_atomic_addr:long()
+    %%{
+	extern atomic_long_t *stp_get_atomic_long_addr(void);
+	atomic_long_t *a = stp_get_atomic_long_addr();
+	THIS->__retvalue = (long)a;
+    %%}
+
+    probe begin {
+	print("systemtap starting probe\n")
+	exit()
+    }
+
+    probe end {
+	print("systemtap ending probe\n")
+	printf("%%d\n", atomic_long_read(get_atomic_addr() + %s))
+    }
+}
+
+set test "atomic4"
+set script [format $script_module_template "0"]
+stap_run_error $test 0 $error "5\r\n" -ge $script
+
+# We should be able to check for trying to read the atomic_long_t with
+# bad alignment here, but it succeeds on {x86, x86_64} and fails on
+# ia64.  Since it doesn't fail consistently, we'll comment this out.
+#set test "atomic5"
+#set script [format $script_module_template "3"]
+#stap_run_error $test 1 $error "" -ge $script
+
+cleanup_module

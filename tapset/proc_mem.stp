@@ -22,56 +22,72 @@
 #else
 #define _STP_PF_KTHREAD PF_KTHREAD
 #endif
-  /* Returns the mm for the current proc. Slightly paranoid. Only returns
-     if the task isn't starting, exiting or (coopted by) a kernel thread. */
-  static struct mm_struct *_stp_proc_mm(void)
-  {
-    if (current->flags & (_STP_PF_KTHREAD | PF_EXITING | PF_STARTING))
-      return NULL;
-    return current->mm;
-  }
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 #include <linux/mm_types.h>
-static inline unsigned long k_get_mm_counter(struct mm_struct *mm, int member)
-{
-#if USE_SPLIT_PTLOCKS
-       return (unsigned long)atomic_long_read(&mm->rss_stat.count[member]);
 #else
-       return mm->rss_stat.count[member];
-#endif
-}
+/* Define our own mm types */
+enum {
+	MM_FILEPAGES,
+	MM_ANONPAGES
+};
 #endif
 %}
 
-function _stp_get_mm_counter_file_rss:long(mm:long)
-%(kernel_v >= "2.6.34" %?
-%{ /* pure */  /* unprivileged */
-  THIS->__retvalue =  k_get_mm_counter((struct mm_struct*)(unsigned long)THIS->mm, MM_FILEPAGES);
-%}
-%:
-{
-%( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
-  return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss->counter;
-%:
-  return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss;
-%)
-}
-%)
+/* Try to be slightly paranoid. Only returns 1 if the task isn't
+   starting, exiting or (coopted by) a kernel thread. */
+function _stp_valid_task:long(tsk:long)
+%{
+  struct task_struct *tsk = (struct task_struct *)(long)THIS->tsk;
 
-function _stp_get_mm_counter_anon_rss(mm:long)
-%(kernel_v >= "2.6.34" %?
-%{ /* pure */  /* unprivileged */
-  THIS->__retvalue =  k_get_mm_counter((struct mm_struct*)(unsigned long)THIS->mm, MM_ANONPAGES);
+  THIS->__retvalue = 0;
+  if (tsk) {
+    unsigned int flags = kread(&(tsk->flags));
+
+    if (flags & ~(_STP_PF_KTHREAD | PF_EXITING | PF_STARTING))
+      THIS->__retvalue = 1;
+  }
+  CATCH_DEREF_FAULT();
 %}
-%:
+
+function _MM_FILEPAGES:long()
+%{ /* pure */ /* unprivileged */
+  THIS->__retvalue = MM_FILEPAGES;
+%}
+
+function _MM_ANONPAGES:long()
+%{ /* pure */ /* unprivileged */
+  THIS->__retvalue = MM_ANONPAGES;
+%}
+
+function _stp_get_mm_counter:long(mm:long, member:long)
 {
+%(kernel_v >= "2.6.34" %?
 %( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
-  return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss->counter;
+  val = atomic_long_read(&@cast(mm, "mm_struct", "kernel<linux/sched.h>")->rss_stat->count[member])
 %:
-  return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss;
+  val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->rss_stat->count[member]
 %)
+  if (val < 0)
+    return 0
+%:	/* kernel < 2.6.34 */
+  if (member == _MM_FILEPAGES()) {
+%( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
+    val = atomic_long_read(&@cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss)
+%:
+    val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss
+%)
+  }
+  else if (member == _MM_ANONPAGES()) {
+%( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
+    val = atomic_long_read(&@cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss)
+%:
+    val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss
+%)
+  }
+%)
+  return val
 }
-%)
 
 /**
  * sfunction proc_mem_size - Total program virtual memory size in pages
@@ -81,13 +97,15 @@ function _stp_get_mm_counter_anon_rss(mm:long)
  * number of pages couldn't be retrieved.
  */
 function proc_mem_size:long ()
-%{ /* pure */ /* unprivileged */
-   struct mm_struct *mm = _stp_proc_mm ();
-   if (mm)
-     THIS->__retvalue = mm->total_vm;
-   else
-     THIS->__retvalue = 0;
-%}
+{
+   task = task_current()
+   if (_stp_valid_task(task)) {
+     mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+     if (mm != 0)
+       return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->total_vm
+   }
+   return 0
+}
 
 /**
  * sfunction proc_mem_size_pid - Total program virtual memory size in pages
@@ -100,14 +118,13 @@ function proc_mem_size:long ()
  */
 function proc_mem_size_pid:long (pid:long)
 {
-  task = pid2task(pid);
-  if (task != 0)
-    {
-      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
-      if (mm != 0)
-        return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->total_vm;
-    }
-  return 0;
+  task = pid2task(pid)
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0)
+      return @cast(mm, "mm_struct", "kernel<linux/sched.h>")->total_vm
+  }
+  return 0
 }
 
 /**
@@ -118,19 +135,16 @@ function proc_mem_size_pid:long (pid:long)
  * pages couldn't be retrieved.
  */
 function proc_mem_rss:long ()
-%{ /* pure */ /* unprivileged */
-   struct mm_struct *mm = _stp_proc_mm ();
-   if (mm)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
-     THIS->__retvalue = k_get_mm_counter(mm, MM_FILEPAGES)
-                         + k_get_mm_counter(mm, MM_ANONPAGES);
-#else
-     THIS->__retvalue = (get_mm_counter(mm, file_rss)
-                         + get_mm_counter(mm, anon_rss));
-#endif
-   else
-     THIS->__retvalue = 0;
-%}
+{
+  task = task_current()
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0)
+      return (_stp_get_mm_counter(mm, _MM_FILEPAGES())
+	      + _stp_get_mm_counter(mm, _MM_ANONPAGES()))
+  }
+  return 0
+}
 
 /**
  * sfunction proc_mem_rss_pid - Program resident set size in pages
@@ -143,15 +157,14 @@ function proc_mem_rss:long ()
  */
 function proc_mem_rss_pid:long (pid:long)
 {
-  task = pid2task(pid);
-  if (task)
-    {
-      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
-      if (mm != 0)
-        return (_stp_get_mm_counter_file_rss (mm)
-                + _stp_get_mm_counter_anon_rss (mm));
-    }
-  return 0;
+  task = pid2task(pid)
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0)
+        return (_stp_get_mm_counter(mm, _MM_FILEPAGES())
+                + _stp_get_mm_counter(mm, _MM_ANONPAGES()))
+  }
+  return 0
 }
 
 /**
@@ -162,17 +175,15 @@ function proc_mem_rss_pid:long (pid:long)
  * number of pages couldn't be retrieved.
  */
 function proc_mem_shr:long ()
-%{ /* pure */ /* unprivileged */
-   struct mm_struct *mm = _stp_proc_mm ();
-   if (mm)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
-     THIS->__retvalue = k_get_mm_counter(mm, MM_FILEPAGES);
-#else
-     THIS->__retvalue = get_mm_counter(mm, file_rss);
-#endif
-   else
-     THIS->__retvalue = 0;
-%}
+{
+  task = task_current()
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0)
+      return _stp_get_mm_counter(mm, _MM_FILEPAGES())
+  }
+  return 0
+}
 
 /**
  * sfunction proc_mem_shr_pid - Program shared pages (from shared mappings)
@@ -185,15 +196,22 @@ function proc_mem_shr:long ()
  */
 function proc_mem_shr_pid:long (pid:long)
 {
-  task = pid2task(pid);
-  if (task)
-    {
-      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
-      if (mm !=	0)
-        return _stp_get_mm_counter_file_rss (mm);
-    }
-  return 0;
+  task = pid2task(pid)
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0)
+      return _stp_get_mm_counter(mm, _MM_FILEPAGES())
+  }
+  return 0
 }
+
+function _stp_mem_txt_adjust:long (start_code:long, end_code:long)
+%{ /* pure */
+  unsigned long start_code = (unsigned long) THIS->start_code;
+  unsigned long end_code = (unsigned long) THIS->end_code;
+  THIS->__retvalue = (PAGE_ALIGN(end_code)
+                      - (start_code & PAGE_MASK)) >> PAGE_SHIFT;
+%}
 
 /**
  * sfunction proc_mem_txt - Program text (code) size in pages
@@ -203,22 +221,18 @@ function proc_mem_shr_pid:long (pid:long)
  * couldn't be retrieved.
  */
 function proc_mem_txt:long ()
-%{ /* pure */ /* unprivileged */
-   struct mm_struct *mm = _stp_proc_mm ();
-   if (mm)
-     THIS->__retvalue = (PAGE_ALIGN(mm->end_code)
-                         - (mm->start_code & PAGE_MASK)) >> PAGE_SHIFT;
-   else
-     THIS->__retvalue = 0;
-%}
-
-function _stp_mem_txt_adjust:long (start_code:long, end_code:long)
-%{ /* pure */
-  unsigned long start_code = (unsigned long) THIS->start_code;
-  unsigned long end_code = (unsigned long) THIS->end_code;
-  THIS->__retvalue = (PAGE_ALIGN(end_code)
-                      - (start_code & PAGE_MASK)) >> PAGE_SHIFT;
-%}
+{
+  task = task_current()
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0) {
+      s = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->start_code
+      e = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->end_code
+      return _stp_mem_txt_adjust(s, e)
+    }
+  }
+  return 0
+}
 
 /**
  * sfunction proc_mem_txt_pid - Program text (code) size in pages
@@ -231,18 +245,16 @@ function _stp_mem_txt_adjust:long (start_code:long, end_code:long)
  */
 function proc_mem_txt_pid:long (pid:long)
 {
-  task = pid2task(pid);
-  if (task != 0)
-    {
-      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
-      if (mm != 0)
-        {
-          s = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->start_code;
-          e = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->end_code;
-          return _stp_mem_txt_adjust (s, e);
-        }
+  task = pid2task(pid)
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0) {
+      s = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->start_code
+      e = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->end_code
+      return _stp_mem_txt_adjust (s, e)
     }
-  return 0;
+  }
+  return 0
 }
 
 /**
@@ -253,13 +265,18 @@ function proc_mem_txt_pid:long (pid:long)
  * pages couldn't be retrieved.
  */
 function proc_mem_data:long ()
-%{ /* pure */ /* unprivileged */
-   struct mm_struct *mm = _stp_proc_mm ();
-   if (mm)
-     THIS->__retvalue = mm->total_vm - mm->shared_vm;
-   else
-     THIS->__retvalue = 0;
-%}
+{
+  task = task_current()
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0) {
+      t = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->total_vm
+      s = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->shared_vm
+      return (t - s)
+    }
+  }
+  return 0
+}
 
 /**
  * sfunction proc_mem_data_pid - Program data size (data + stack) in pages
@@ -272,18 +289,16 @@ function proc_mem_data:long ()
  */
 function proc_mem_data_pid:long (pid:long)
 {
-  task = pid2task(pid);
-  if (task != 0)
-    {
-      mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm;
-      if (mm != 0)
-        {
-          t = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->total_vm;
-          s = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->shared_vm;
-          return t - s;
-        }
+  task = pid2task(pid)
+  if (_stp_valid_task(task)) {
+    mm = @cast(task, "task_struct", "kernel<linux/sched.h>")->mm
+    if (mm != 0) {
+      t = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->total_vm
+      s = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->shared_vm
+      return t - s
     }
-  return 0;
+  }
+  return 0
 }
 
 /**

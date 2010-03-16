@@ -1,0 +1,19 @@
+// Atomic functions.
+// Copyright (C) 2010 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+function atomic_long_read:long(addr:long)
+%{ /* pure */
+	atomic_long_t *a = (atomic_long_t *)(long)THIS->addr;
+
+	/* We call deref() here to ensure the memory is valid to read.
+	 * Note the result is thrown away, then we use the "real"
+	 * atomic read function now that we know the address is safe. */
+	(void)deref(sizeof(*a), a);
+	THIS->__retvalue = atomic_long_read(a);
+	CATCH_DEREF_FAULT();
+%}
