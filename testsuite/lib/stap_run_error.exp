@@ -1,0 +1,62 @@
+# stap_run TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING
+# TEST_NAME is name of the current test
+# EXPECT_ERROR lets us know to expect an error or not
+# ERROR_STRING lets us know which error to expect
+# OUTPUT_CHECK_STRING examines the output of experiment
+# Additional arguments are passed to stap as-is.
+proc stap_run_error { TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING args } {
+    set full_error "ERROR: $ERROR_STRING\r\n"
+    set cmd [concat {stap -v} $args]
+    eval spawn $cmd
+    expect {
+	-timeout 150
+	-re {^WARNING: [^r]+\r\n} {exp_continue}
+	-re {^Pass\ [1234]: [^\r]+real\ ms\.\r\n} {exp_continue}
+	-re {^Pass\ ([34]): using cached [^\r]+\r\n} {exp_continue}
+	-re {^Pass 5: starting run.\r\n} {exp_continue}
+	-re {^Error inserting module[^\r]+\r\n} {
+	    if {$EXPECT_ERROR} {
+		pass "$TEST_NAME received expected insert module error"
+	    } else {
+		fail "$TEST_NAME unexpected insert module error"
+	    }
+	}
+	-re $full_error {
+	    if {$EXPECT_ERROR} {
+		pass "$TEST_NAME received expected error"
+	    } else {
+		fail "$TEST_NAME unexpected error"
+	    }
+	}
+	-re "^systemtap starting probe\r\n" {
+  	    exec kill -INT -[exp_pid]
+
+	    # check the output to see if it is sane
+	    set output "^systemtap ending probe\r\n$OUTPUT_CHECK_STRING"
+
+	    expect {
+		-timeout 10
+		-re $output {
+		    if {$EXPECT_ERROR} {
+			fail "$TEST_NAME didn't receive expected error"
+		    } else {
+			pass "$TEST_NAME didn't error"
+		    }
+		}
+		-re $full_error {
+		    if {$EXPECT_ERROR} {
+			pass "$TEST_NAME received expected error"
+		    } else {
+			fail "$TEST_NAME unexpected error"
+		    }
+		}
+	    }
+	}
+	-re "semantic error:" { fail "$TEST_NAME compilation" }
+	timeout { fail "$TEST_NAME startup (timeout)"; 
+   	          exec kill -INT -[exp_pid] }
+	eof { fail "$TEST_NAME startup (eof)" }
+    }
+    catch close
+    wait
+}
