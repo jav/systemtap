@@ -121,14 +121,27 @@ probe _sunrpc.clnt.create_client.return.part1 =
 {
 	name = "sunrpc.clnt.create_client.return"
 }
-%)
-
 probe _sunrpc.clnt.create_client.return.part2 =
 	kernel.function("rpc_new_client").return !,
 	module("sunrpc").function("rpc_new_client").return
 {
 	name = "sunrpc.clnt.new_client.return"
 }
+%:
+probe _sunrpc.clnt.create_client.return.part1 = 
+	kernel.function("rpc_create").return !,
+	module("sunrpc").function("rpc_create").return
+{
+	name = "sunrpc.clnt.create_client.return"
+}
+probe _sunrpc.clnt.create_client.return.part2 = 
+	kernel.function("rpc_create").return !,
+	module("sunrpc").function("rpc_create").return
+{
+	name = "sunrpc.clnt.create_client.return"
+}
+%)
+
 
 /*
  * Fires when the RPC client structure is to be cloned
@@ -722,14 +735,18 @@ probe sunrpc.svc.drop.return = kernel.function("svc_drop").return !,
  ******************************************************************/
 probe sunrpc.sched.entry =
 	sunrpc.sched.new_task,
+%( kernel_v <= "2.6.18" %?
 	sunrpc.sched.release_task,
+%)
 	sunrpc.sched.execute,
 	sunrpc.sched.delay
 {}
 
 probe sunrpc.sched.return =
 	sunrpc.sched.new_task.return,
+%( kernel_v <= "2.6.18" %?
 	sunrpc.sched.release_task.return,
+%)
 	sunrpc.sched.execute.return,
 	sunrpc.sched.delay.return
 {}
@@ -777,6 +794,7 @@ probe sunrpc.sched.new_task.return = kernel.function("rpc_new_task").return !,
  * @prot:        the IP protocol in the RPC call
  * @tk_flags:    the flags of the task
  */
+%( kernel_v <= "2.6.18" %?
 probe sunrpc.sched.release_task = kernel.function("rpc_release_task") !,
       	module("sunrpc").function("rpc_release_task")
 {
@@ -796,6 +814,7 @@ probe sunrpc.sched.release_task.return =
 {
 	name = "sunrpc.sched.release_task.return"
 }
+%)
 
 /*
  * Fires when the RPC `scheduler'(or rather, the finite state machine) 
