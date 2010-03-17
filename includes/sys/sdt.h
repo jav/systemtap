@@ -80,13 +80,11 @@
 
 #define STAP_UPROBE_GUARD 0x31425250
 
-#ifndef __GNUC_RH_RELEASE__
-#define __GNUC_RH_RELEASE__ 0
-#endif
-
 #ifndef STAP_SDT_VOLATILE /* allow users to override */
-#define GNUC_VERSION (__GNUC__ * 1000000  + __GNUC_MINOR__ * 10000 + __GNUC_PATCHLEVEL__ * 100 + __GNUC_RH_RELEASE__)
-#if GNUC_VERSION >= 4050000
+#if (__GNUC__ >= 4 && __GNUC_MINOR__ >= 5 \
+     || (defined __GNUC_RH_RELEASE__ \
+         && __GNUC__ == 4 && __GNUC_MINOR__ == 4 && __GNUC_PATCHLEVEL__ >= 3 \
+         && (__GNUC_PATCHLEVEL__ > 3 || __GNUC_RH_RELEASE__ >= 10)))
 #define STAP_SDT_VOLATILE
 #else
 #define STAP_SDT_VOLATILE volatile
