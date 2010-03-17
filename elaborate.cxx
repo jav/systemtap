@@ -1539,6 +1539,7 @@ systemtap_session::systemtap_session ():
   dwarf_derived_probes(0),
   kprobe_derived_probes(0),
   hwbkpt_derived_probes(0),
+  perf_derived_probes(0),
   uprobe_derived_probes(0),
   utrace_derived_probes(0),
   itrace_derived_probes(0),

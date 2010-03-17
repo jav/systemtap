@@ -6722,6 +6722,11 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind(TOK_KERNEL)->bind_num(TOK_HWBKPT)
     ->bind_num(TOK_LENGTH)->bind(TOK_HWBKPT_RW)->bind(new hwbkpt_builder());
   // length supported with address only, not symbol names
+
+  //perf event based probe
+  if (s.kernel_config["CONFIG_PERF_EVENTS"] == string("y") ) {
+	  register_tapset_perf(s);
+  }
 }
 
 
@@ -6749,6 +6754,7 @@ all_session_groups(systemtap_session& s)
   DOONE(tracepoint);
   DOONE(kprobe);
   DOONE(hwbkpt);
+  DOONE(perf);
   DOONE(hrtimer);
   DOONE(procfs);
 
