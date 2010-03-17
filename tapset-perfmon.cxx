@@ -164,6 +164,11 @@ perf_builder::build(systemtap_session & sess,
 void
 register_tapset_perf(systemtap_session& s)
 {
+  // make sure we have support before registering anything
+  // XXX need additional version checks too?
+  if (s.kernel_config["CONFIG_PERF_EVENTS"] != "y")
+    return;
+
   match_node* root = s.pattern_root;
   derived_probe_builder *builder = new perf_builder();
 

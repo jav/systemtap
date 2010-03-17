@@ -6724,9 +6724,7 @@ register_standard_tapsets(systemtap_session & s)
   // length supported with address only, not symbol names
 
   //perf event based probe
-  if (s.kernel_config["CONFIG_PERF_EVENTS"] == string("y") ) {
-	  register_tapset_perf(s);
-  }
+  register_tapset_perf(s);
 }
 
 
