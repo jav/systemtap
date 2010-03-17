@@ -148,6 +148,10 @@ struct perf_builder: public derived_probe_builder
                        vector<derived_probe *> & finished_results);
 
     static void register_patterns(systemtap_session& s);
+private:
+    typedef map<string, pair<string, string> > event_map_t;
+    event_map_t events;
+    void translate_event(const string& name, string& type, string& config);
 };
 
 
@@ -161,18 +165,72 @@ perf_builder::build(systemtap_session & sess,
   string name, type, config;
   bool has_name = get_param(parameters, TOK_EVENT, name);
   assert(has_name);
-
-  // TODO translate event name to a type and config
-  type = "PERF_TYPE_HARDWARE";
-  config = "PERF_COUNT_HW_CPU_CYCLES";
+  translate_event(name, type, config);
+  if (type.empty() || config.empty())
+    throw semantic_error("invalid perf event " + lex_cast_qstring(name),
+                         parameters.find(TOK_EVENT)->second->tok);
+  // TODO support wildcards, e.g. stap -l 'perf.event("*")'
 
   int64_t period;
   bool has_period = get_param(parameters, TOK_SAMPLE, period);
   if (!has_period)
     period = 1000000;
+  else if (period < 1)
+    throw semantic_error("invalid perf sample period " + lex_cast(period),
+                         parameters.find(TOK_SAMPLE)->second->tok);
+
+  if (sess.verbose > 1)
+    clog << "perf probe event=" << lex_cast_qstring(name) << " type=" << type
+         << " config=" << config << " period=" << period << endl;
 
   finished_results.push_back
     (new perf_derived_probe(base, location, name, type, config, period));
+}
+
+
+void
+perf_builder::translate_event(const string& name, string& type, string& config)
+{
+  if (events.empty())
+    {
+      // XXX These are hard-coded in the perf tool, and we have to do the same.
+      // --- (see linux-2.6/tools/perf/util/parse-events.c)
+      // --- It would be much nicer to somehow generate this dynamically...
+
+#define CHW(event) event_map_t::mapped_type("PERF_TYPE_HARDWARE", "PERF_COUNT_HW_" #event)
+      events["cpu-cycles"]              = CHW(CPU_CYCLES);
+      events["cycles"]                  = CHW(CPU_CYCLES);
+      events["instructions"]            = CHW(INSTRUCTIONS);
+      events["cache-references"]        = CHW(CACHE_REFERENCES);
+      events["cache-misses"]            = CHW(CACHE_MISSES);
+      events["branch-instructions"]     = CHW(BRANCH_INSTRUCTIONS);
+      events["branches"]                = CHW(BRANCH_INSTRUCTIONS);
+      events["branch-misses"]           = CHW(BRANCH_MISSES);
+      events["bus-cycles"]              = CHW(BUS_CYCLES);
+#undef CHW
+
+#define CSW(event) event_map_t::mapped_type("PERF_TYPE_SOFTWARE", "PERF_COUNT_SW_" #event)
+      events["cpu-clock"]               = CSW(CPU_CLOCK);
+      events["task-clock"]              = CSW(TASK_CLOCK);
+      events["page-faults"]             = CSW(PAGE_FAULTS);
+      events["faults"]                  = CSW(PAGE_FAULTS);
+      events["minor-faults"]            = CSW(PAGE_FAULTS_MIN);
+      events["major-faults"]            = CSW(PAGE_FAULTS_MAJ);
+      events["context-switches"]        = CSW(CONTEXT_SWITCHES);
+      events["cs"]                      = CSW(CONTEXT_SWITCHES);
+      events["cpu-migrations"]          = CSW(CPU_MIGRATIONS);
+      events["migrations"]              = CSW(CPU_MIGRATIONS);
+      events["alignment-faults"]        = CSW(ALIGNMENT_FAULTS);
+      events["emulation-faults"]        = CSW(EMULATION_FAULTS);
+#undef CSW
+    }
+
+  event_map_t::iterator it = events.find(name);
+  if (it != events.end())
+    {
+      type = it->second.first;
+      config = it->second.second;
+    }
 }
 
 
@@ -181,6 +239,7 @@ register_tapset_perf(systemtap_session& s)
 {
   // make sure we have support before registering anything
   // XXX need additional version checks too?
+  // --- perhaps look for export of perf_event_create_kernel_counter
   if (s.kernel_config["CONFIG_PERF_EVENTS"] != "y")
     return;
 
