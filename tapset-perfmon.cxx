@@ -20,7 +20,8 @@ using namespace __gnu_cxx;
 
 
 static const string TOK_PERF("perf");
-static const string TOK_EVENT("event");
+static const string TOK_TYPE("type");
+static const string TOK_CONFIG("config");
 static const string TOK_SAMPLE("sample");
 
 
@@ -32,12 +33,10 @@ static const string TOK_SAMPLE("sample");
 
 struct perf_derived_probe: public derived_probe
 {
-  string event_name;
-  string event_type;
-  string event_config;
+  int64_t event_type;
+  int64_t event_config;
   int64_t interval;
-  perf_derived_probe (probe* p, probe_point* l, const string& name,
-                      const string& type, const string& config, int64_t i);
+  perf_derived_probe (probe* p, probe_point* l, int64_t type, int64_t config, int64_t i);
   virtual void join_group (systemtap_session& s);
 };
 
@@ -51,17 +50,17 @@ struct perf_derived_probe_group: public generic_dpg<perf_derived_probe>
 
 
 perf_derived_probe::perf_derived_probe (probe* p, probe_point* l,
-                                        const string& name,
-                                        const string& type,
-                                        const string& config,
+                                        int64_t type,
+                                        int64_t config,
                                         int64_t i):
   derived_probe (p, new probe_point(*l) /* .components soon rewritten */),
-  event_name (name), event_type (type), event_config (config), interval (i)
+  event_type (type), event_config (config), interval (i)
 {
   vector<probe_point::component*>& comps = this->sole_location()->components;
   comps.clear();
   comps.push_back (new probe_point::component (TOK_PERF));
-  comps.push_back (new probe_point::component (TOK_EVENT, new literal_string (event_name)));
+  comps.push_back (new probe_point::component (TOK_TYPE, new literal_number(type)));
+  comps.push_back (new probe_point::component (TOK_CONFIG, new literal_number (config)));
   comps.push_back (new probe_point::component (TOK_SAMPLE, new literal_number (interval)));
 }
 
@@ -107,8 +106,8 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       s.op->newline() << "{";
       s.op->newline(1) << ".attr={ "
-                       << ".type=" << probes[i]->event_type << ", "
-                       << ".config=" << probes[i]->event_config << ", "
+                       << ".type=" << probes[i]->event_type << "ULL, "
+                       << ".config=" << probes[i]->event_config << "ULL, "
                        << "{ .sample_period=" << probes[i]->interval << "ULL }},";
       s.op->newline() << ".cb=enter_perf_probe_" << i << ", ";
       s.op->newline() << ".pp=" << lex_cast_qstring (*probes[i]->sole_location()) << ",";
@@ -187,10 +186,6 @@ struct perf_builder: public derived_probe_builder
                        vector<derived_probe *> & finished_results);
 
     static void register_patterns(systemtap_session& s);
-private:
-    typedef map<string, pair<string, string> > event_map_t;
-    event_map_t events;
-    void translate_event(const string& name, string& type, string& config);
 };
 
 
@@ -201,75 +196,27 @@ perf_builder::build(systemtap_session & sess,
     literal_map_t const & parameters,
     vector<derived_probe *> & finished_results)
 {
-  string name, type, config;
-  bool has_name = get_param(parameters, TOK_EVENT, name);
-  assert(has_name);
-  translate_event(name, type, config);
-  if (type.empty() || config.empty())
-    throw semantic_error("invalid perf event " + lex_cast_qstring(name),
-                         parameters.find(TOK_EVENT)->second->tok);
-  // TODO support wildcards, e.g. stap -l 'perf.event("*")'
+  int64_t type;
+  bool has_type = get_param(parameters, TOK_TYPE, type);
+  assert(has_type);
+
+  int64_t config;
+  bool has_config = get_param(parameters, TOK_CONFIG, config);
+  assert(has_config);
 
   int64_t period;
   bool has_period = get_param(parameters, TOK_SAMPLE, period);
   if (!has_period)
-    period = 1000000;
+    period = 1000000; // XXX: better parametrize this default
   else if (period < 1)
     throw semantic_error("invalid perf sample period " + lex_cast(period),
                          parameters.find(TOK_SAMPLE)->second->tok);
 
   if (sess.verbose > 1)
-    clog << "perf probe event=" << lex_cast_qstring(name) << " type=" << type
-         << " config=" << config << " period=" << period << endl;
+    clog << "perf probe type=" << type << " config=" << config << " period=" << period << endl;
 
   finished_results.push_back
-    (new perf_derived_probe(base, location, name, type, config, period));
-}
-
-
-void
-perf_builder::translate_event(const string& name, string& type, string& config)
-{
-  if (events.empty())
-    {
-      // XXX These are hard-coded in the perf tool, and we have to do the same.
-      // --- (see linux-2.6/tools/perf/util/parse-events.c)
-      // --- It would be much nicer to somehow generate this dynamically...
-
-#define CHW(event) event_map_t::mapped_type("PERF_TYPE_HARDWARE", "PERF_COUNT_HW_" #event)
-      events["cpu-cycles"]              = CHW(CPU_CYCLES);
-      events["cycles"]                  = CHW(CPU_CYCLES);
-      events["instructions"]            = CHW(INSTRUCTIONS);
-      events["cache-references"]        = CHW(CACHE_REFERENCES);
-      events["cache-misses"]            = CHW(CACHE_MISSES);
-      events["branch-instructions"]     = CHW(BRANCH_INSTRUCTIONS);
-      events["branches"]                = CHW(BRANCH_INSTRUCTIONS);
-      events["branch-misses"]           = CHW(BRANCH_MISSES);
-      events["bus-cycles"]              = CHW(BUS_CYCLES);
-#undef CHW
-
-#define CSW(event) event_map_t::mapped_type("PERF_TYPE_SOFTWARE", "PERF_COUNT_SW_" #event)
-      events["cpu-clock"]               = CSW(CPU_CLOCK);
-      events["task-clock"]              = CSW(TASK_CLOCK);
-      events["page-faults"]             = CSW(PAGE_FAULTS);
-      events["faults"]                  = CSW(PAGE_FAULTS);
-      events["minor-faults"]            = CSW(PAGE_FAULTS_MIN);
-      events["major-faults"]            = CSW(PAGE_FAULTS_MAJ);
-      events["context-switches"]        = CSW(CONTEXT_SWITCHES);
-      events["cs"]                      = CSW(CONTEXT_SWITCHES);
-      events["cpu-migrations"]          = CSW(CPU_MIGRATIONS);
-      events["migrations"]              = CSW(CPU_MIGRATIONS);
-      events["alignment-faults"]        = CSW(ALIGNMENT_FAULTS);
-      events["emulation-faults"]        = CSW(EMULATION_FAULTS);
-#undef CSW
-    }
-
-  event_map_t::iterator it = events.find(name);
-  if (it != events.end())
-    {
-      type = it->second.first;
-      config = it->second.second;
-    }
+    (new perf_derived_probe(base, location, type, config, period));
 }
 
 
@@ -282,10 +229,12 @@ register_tapset_perf(systemtap_session& s)
   if (s.kernel_config["CONFIG_PERF_EVENTS"] != "y")
     return;
 
+  // NB: at this point, the binding is *not* unprivileged.
+
   derived_probe_builder *builder = new perf_builder();
   match_node* perf = s.pattern_root->bind(TOK_PERF);
 
-  match_node* event = perf->bind_str(TOK_EVENT);
+  match_node* event = perf->bind_num(TOK_TYPE)->bind_num(TOK_CONFIG);
   event->bind(builder);
   event->bind_num(TOK_SAMPLE)->bind(builder);
 }
