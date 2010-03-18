@@ -2613,34 +2613,17 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error& er)
     {
-      // NB: @defined() should maintain the same behavior whether or not
-      // --skip-badvars is enabled, so don't zero its errors.  PR11346
-      if (!q.sess.skip_badvars || defined_being_checked)
-	{
-	  // We suppress this error message, and pass the unresolved
-	  // target_symbol to the next pass.  We hope that this value ends
-	  // up not being referenced after all, so it can be optimized out
-	  // quietly.
-	  provide (e);
-	  semantic_error* saveme = new semantic_error (er); // copy it
-          if (! saveme->tok1) { saveme->tok1 = e->tok; } // fill in token if needed
-	  // NB: we can have multiple errors, since a $target variable
-	  // may be expanded in several different contexts:
-	  //     function ("*") { $var }
-          e->chain (saveme);
-	}
-      else
-	{
-	  // Upon user request for ignoring context, the symbol is replaced
-	  // with a literal 0 and a warning message displayed
-	  literal_number* ln_zero = new literal_number (0);
-	  ln_zero->tok = e->tok;
-	  provide (ln_zero);
-          if (!q.sess.suppress_warnings)
-            q.sess.print_warning ("Bad $context variable being substituted with literal 0",
-                                  e->tok);
-	}
-      return;
+      // We suppress this error message, and pass the unresolved
+      // target_symbol to the next pass.  We hope that this value ends
+      // up not being referenced after all, so it can be optimized out
+      // quietly.
+      semantic_error* saveme = new semantic_error (er); // copy it
+      if (! saveme->tok1) { saveme->tok1 = e->tok; } // fill in token if needed
+      // NB: we can have multiple errors, since a $target variable
+      // may be expanded in several different contexts:
+      //     function ("*") { $var }
+      e->chain (saveme);
+      provide (e);
     }
 }
 

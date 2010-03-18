@@ -3067,6 +3067,7 @@ struct const_folder: public update_visitor
   void visit_concatenation (concatenation* e);
   void visit_ternary_expression (ternary_expression* e);
   void visit_defined_op (defined_op* e);
+  void visit_target_symbol (target_symbol* e);
 };
 
 void
@@ -3540,6 +3541,29 @@ const_folder::visit_defined_op (defined_op* e)
   literal_number* n = new literal_number (0);
   n->tok = e->tok;
   n->visit (this);
+}
+
+void
+const_folder::visit_target_symbol (target_symbol* e)
+{
+  if (e->probe_context_var.empty() && session.skip_badvars)
+    {
+      // Upon user request for ignoring context, the symbol is replaced
+      // with a literal 0 and a warning message displayed
+      // XXX this ignores possible side-effects, e.g. in array indexes
+      literal_number* ln_zero = new literal_number (0);
+      ln_zero->tok = e->tok;
+      provide (ln_zero);
+      if (!session.suppress_warnings)
+        session.print_warning ("Bad $context variable being substituted with literal 0",
+                               e->tok);
+      else if (session.verbose > 2)
+        clog << "Bad $context variable being substituted with literal 0, "
+             << *e->tok << endl;
+      relaxed_p = false;
+    }
+  else
+    update_visitor::visit_target_symbol (e);
 }
 
 static void semantic_pass_const_fold (systemtap_session& s, bool& relaxed_p)
