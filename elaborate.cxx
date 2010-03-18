@@ -3120,7 +3120,7 @@ const_folder::visit_if_statement (if_statement* s)
   else
     {
       if (session.verbose>2)
-        clog << "Collapsing constant if-statement " << *s->tok << endl;
+        clog << "Collapsing constant-" << cond->value << " if-statement " << *s->tok << endl;
       relaxed_p = false;
 
       statement* n = cond->value ? s->thenblock : s->elseblock;
@@ -3271,7 +3271,7 @@ const_folder::visit_binary_expression (binary_expression* e)
     }
 
   if (session.verbose>2)
-    clog << "Collapsing constant binary operator " << *e->tok << endl;
+    clog << "Collapsing constant-" << value << " binary operator " << *e->tok << endl;
   relaxed_p = false;
 
   literal_number* n = new literal_number(value);
@@ -3520,7 +3520,7 @@ const_folder::visit_ternary_expression (ternary_expression* e)
   else
     {
       if (session.verbose>2)
-        clog << "Collapsing constant ternary " << *e->tok << endl;
+        clog << "Collapsing constant-" << cond->value << " ternary " << *e->tok << endl;
       relaxed_p = false;
 
       expression* n = cond->value ? e->truevalue : e->falsevalue;
