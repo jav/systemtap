@@ -13,12 +13,15 @@ if { [catch { set module [eval $compile] } msg ] } {
     pass "$test compilation"
 }
 
+set test "modargs execution"
+if {! [installtest_p]} { untested $test; return }
+
 set ::result_string {initializedname=foo initializednumber=999 name=charley number=-1}
 set res [ exec staprun $module $::result_string ]
 
 if {[string compare $res $::result_string] == 0} {
-    pass "$test execution"
+    pass "$test"
 } else {
-    fail "$test execution, result: $res"
+    fail "$test, result: $res"
 }
 
