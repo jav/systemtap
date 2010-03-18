@@ -154,6 +154,7 @@ perf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "stp->perf = _stp_perf_init(&stp->attr, stp->cb, stp->pp, stp->ph);";
   s.op->newline() << "if (stp->perf == NULL) {";
   s.op->newline(1) << "rc = -EINVAL;";
+  s.op->newline() << "probe_point = stp->pp;";
   s.op->newline() << "for (j=0; j<i; j++) {";
   s.op->newline(1) << "stp = & stap_perf_probes [j];";
   s.op->newline() << "_stp_perf_del(stp->perf);";
