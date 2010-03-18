@@ -32,17 +32,20 @@ static Perf *_stp_perf_init (struct perf_event_attr *attr,
 			     perf_overflow_handler_t callback,
 			     const char *pp, void (*ph) (struct context *) )
 {
+	long rc = -EINVAL;
 	int cpu;
 	Perf *pe;
 
 	pe = (Perf *) _stp_kmalloc (sizeof(Perf));
 	if (pe == NULL)
-		return NULL;
+		return ERR_PTR(-ENOMEM);
 
 	/* allocate space for the event descriptor for each cpu */
 	pe->pd = (perfcpu *) _stp_alloc_percpu (sizeof(perfcpu));
-	if (pe->pd == NULL)
+	if (pe->pd == NULL) {
+		rc = -ENOMEM;
 		goto exit1;
+	}
 
 	/* initialize event on each processor */
 	stp_for_each_cpu(cpu) {
@@ -52,6 +55,7 @@ static Perf *_stp_perf_init (struct perf_event_attr *attr,
 							  callback);
 
 		if (IS_ERR(*event)) {
+			rc = PTR_ERR(*event);
 			*event = NULL;
 			goto exit2;
 		}
@@ -69,7 +73,7 @@ exit2:
 	_stp_free_percpu(pe->pd);
 exit1:
 	_stp_kfree(pe);
-	return NULL;
+	return ERR_PTR(rc);
 }
 
 /** Delete performance event.
