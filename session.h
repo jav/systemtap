@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -90,6 +90,7 @@ struct systemtap_session
   std::string kernel_base_release;
   std::string kernel_build_tree;
   std::map<std::string,std::string> kernel_config;
+  std::set<std::string> kernel_exports;
   std::string architecture;
   std::string runtime_path;
   std::string data_path;

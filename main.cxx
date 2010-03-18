@@ -471,6 +471,38 @@ int parse_kernel_config (systemtap_session &s)
   return 0;
 }
 
+
+int parse_kernel_exports (systemtap_session &s)
+{
+  string kernel_exports_file = s.kernel_build_tree + "/Module.symvers";
+  struct stat st;
+  int rc = stat(kernel_exports_file.c_str(), &st);
+  if (rc != 0)
+    {
+	clog << "Checking \"" << kernel_exports_file << "\" failed: " << strerror(errno) << endl
+	     << "Ensure kernel development headers & makefiles are installed." << endl;
+	return rc;
+    }
+
+  ifstream kef (kernel_exports_file.c_str());
+  string line;
+  while (getline (kef, line))
+    {
+      vector<string> tokens;
+      tokenize (line, tokens, "\t");
+      if (tokens.size() == 4 &&
+          tokens[2] == "vmlinux" &&
+          tokens[3].substr(0,13) == string("EXPORT_SYMBOL"))
+        s.kernel_exports.insert (tokens[1]);
+    }
+  if (s.verbose > 2)
+    clog << "Parsed kernel \"" << kernel_exports_file << "\", number of vmlinux exports: " << s.kernel_exports.size() << endl;
+  
+  kef.close();
+  return 0;
+}
+
+
 /*
  * Returns a string describing memory resource usage.
  * Since it seems getrusage() doesn't maintain the mem related fields,
@@ -1129,9 +1161,10 @@ main (int argc, char * const argv [])
 
   // Now that no further changes to s.kernel_build_tree can occur, let's use it.
   if (parse_kernel_config (s) != 0)
-    {
-	  exit (1);
-    }
+    exit (1);
+
+  if (parse_kernel_exports (s) != 0)
+    exit (1);
 
 
   // Create the name of the C source file within the temporary

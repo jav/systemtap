@@ -198,6 +198,8 @@ perf_builder::build(systemtap_session & sess,
 {
   // XXX need additional version checks too?
   // --- perhaps look for export of perf_event_create_kernel_counter
+  if (sess.kernel_exports.find("perf_event_create_kernel_counter") == sess.kernel_exports.end())
+    throw semantic_error ("perf probes not available without exported perf_event_create_kernel_counter");
   if (sess.kernel_config["CONFIG_PERF_EVENTS"] != "y")
     throw semantic_error ("perf probes not available without CONFIG_PERF_EVENTS");
 
