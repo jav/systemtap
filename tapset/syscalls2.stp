@@ -301,12 +301,16 @@ probe syscall.pipe = kernel.function("SyS_pipe").call !,
 }
 %:
 probe syscall.pipe = kernel.function("SyS_pipe").call !,
+%( arch == "ia64" %?
+                     kernel.function("sys_ia64_pipe").call ?,
+%)
                      kernel.function("sys_pipe").call
 {
 	name = "pipe"
 %( arch == "ia64" %?
-# ia64 just returns value directly, no fildes argument
-	argstr = ""
+# ia64 just returns value directly, so fake the arguments
+	fildes_uaddr = 0
+	argstr = "[0, 0]"
 %:
 	fildes_uaddr = $fildes
 	argstr = _fildes_u($fildes)
@@ -314,6 +318,9 @@ probe syscall.pipe = kernel.function("SyS_pipe").call !,
 }
 %)
 probe syscall.pipe.return = kernel.function("SyS_pipe").return !,
+%( arch == "ia64" %?
+                            kernel.function("sys_ia64_pipe").return ?,
+%)
                             kernel.function("sys_pipe").return
 {
 	name = "pipe"
