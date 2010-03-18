@@ -785,6 +785,33 @@ refers to a hardware preakpoint of type "write" set on pid_max
 syscall.*.return
 refers to the group of probe aliases with any name in the third position
 
+.SS PERF
+
+This 
+.IR prototype
+family of probe points interfaces to the kernel "perf event"
+infrasture for controlling hardware performance counters.
+The events being attached to are described by the "type",
+"config" fields of the 
+.IR perf_event_attr
+structure, and are sampled at an interval governed by the
+"sample_period" field.
+
+These fields are made available to systemtap scripts using
+the following syntax:
+.SAMPLE
+probe perf.type(NN).config(MM).samples(XX)
+probe perf.type(NN).config(MM)
+.ESAMPLE
+The range of valid type/config is described by the 
+.IR perf_event_open (2)
+system call, and/or the 
+.IR linux/perf_event.h
+file.  Invalid combinations or unavailable resources result
+in errors during systemtap script startup.  Systemtap does
+not sanity-check the values: it merely passes them through to
+the kernel for error- and safety-checking.
+
 .SH SEE ALSO
 .IR stap (1),
 .IR tapset::iosched (3stap),

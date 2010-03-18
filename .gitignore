@@ -10,7 +10,6 @@ config.h
 config.log
 config.status
 *.[18]
-*.3stap
 .deps
 loc2c-test
 run-stap

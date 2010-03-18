@@ -1,5 +1,11 @@
 * What's new
 
+- Prototype support for "perf events", where the kernel supports the
+  2.6.33 in-kernel API.  Probe points may refer to low-level 
+  perf_event_attr type/config numbers, or to a number of aliases
+  defined in the new perf.stp tapset:
+     probe perf.sw.cpu_clock, perf.type(0).config(4) { }
+
 - Type-casting can now use multiple headers to resolve codependencies.
      @cast(task, "task_struct",
            "kernel<linux/sched.h><linux/fs_struct.h>")->fs->umask

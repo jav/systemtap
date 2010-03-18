@@ -1,0 +1,58 @@
+.\" -*- nroff -*-
+.TH TAPSET::PERF 3stap "" "IBM"
+.SH NAME
+tapset::perf \- systemtap perf probe points
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+
+This family of probe points is used to probe "perf events"
+on suitably configured kernels (2.6.33+).  It contains a
+number of aliases for the ABI-specified event type/config
+tuples.
+
+.TP
+.B perf.hw.*
+A variety of hardware events, as generalized by the kernel.  These
+generally require running on bare hardware with selected processors.
+.SAMPLE
+probe perf.hw.cpu_cycles
+probe perf.hw.instructions
+probe perf.hw.cache_references
+probe perf.hw.cache_misses
+probe perf.hw.branch_instructions
+probe perf.hw.branch_misses
+probe perf.hw.bus_cycles
+.ESAMPLE
+
+.TP
+.B perf.sw.*
+Special "software" events provided by the kernel.  These sometimes work
+in virtualized environments and with more processor architectures.
+.SAMPLE
+probe perf.sw.cpu_clock
+probe perf.sw.task_clock
+probe perf.sw.page_faults
+probe perf.sw.context_switches
+probe perf.sw.cpu_migrations
+probe perf.sw.page_faults_min
+probe perf.sw.page_faults_maj
+probe perf.sw.alignment_faults
+probe perf.sw.emulation_faults
+.ESAMPLE
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes (3stap)
