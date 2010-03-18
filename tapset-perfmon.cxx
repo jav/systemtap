@@ -196,6 +196,11 @@ perf_builder::build(systemtap_session & sess,
     literal_map_t const & parameters,
     vector<derived_probe *> & finished_results)
 {
+  // XXX need additional version checks too?
+  // --- perhaps look for export of perf_event_create_kernel_counter
+  if (sess.kernel_config["CONFIG_PERF_EVENTS"] != "y")
+    throw semantic_error ("perf probes not available without CONFIG_PERF_EVENTS");
+
   int64_t type;
   bool has_type = get_param(parameters, TOK_TYPE, type);
   assert(has_type);
@@ -223,12 +228,6 @@ perf_builder::build(systemtap_session & sess,
 void
 register_tapset_perf(systemtap_session& s)
 {
-  // make sure we have support before registering anything
-  // XXX need additional version checks too?
-  // --- perhaps look for export of perf_event_create_kernel_counter
-  if (s.kernel_config["CONFIG_PERF_EVENTS"] != "y")
-    return;
-
   // NB: at this point, the binding is *not* unprivileged.
 
   derived_probe_builder *builder = new perf_builder();
