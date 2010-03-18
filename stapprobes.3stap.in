@@ -807,8 +807,8 @@ The range of valid type/config is described by the
 .IR perf_event_open (2)
 system call, and/or the 
 .IR linux/perf_event.h
-file.  Invalid combinations or unavailable resources result
-in errors during systemtap script startup.  Systemtap does
+file.  Invalid combinations or exhausted hardware counter resources
+result in errors during systemtap script startup.  Systemtap does
 not sanity-check the values: it merely passes them through to
 the kernel for error- and safety-checking.
 
