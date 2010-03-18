@@ -22,6 +22,7 @@
 
 /** Initialize performance sampling
  * Call this during probe initialization to set up performance event sampling
+ * for all online cpus.  Returns ERR_PTR on error.
  *
  * @param attr description of event to sample
  * @param callback function to call when perf event overflows
@@ -51,6 +52,10 @@ static Perf *_stp_perf_init (struct perf_event_attr *attr,
 	stp_for_each_cpu(cpu) {
 		perfcpu *pd = per_cpu_ptr (pe->pd, cpu);
 		struct perf_event **event = &(pd->event);
+		if (cpu_is_offline(cpu)) {
+		 	*event = NULL;
+			continue;
+		}
 		*event = perf_event_create_kernel_counter(attr, cpu, -1,
 							  callback);
 
