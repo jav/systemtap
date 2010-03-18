@@ -15,7 +15,6 @@
 #include "sym.h"
 #include "string.c"
 #include "task_finder_vma.c"
-#include <asm/segment.h>
 #include <asm/uaccess.h>
 
 /* Callback that needs to be registered (in
