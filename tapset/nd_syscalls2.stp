@@ -328,12 +328,16 @@ probe nd_syscall.personality.return = kprobe.function("SyS_personality").return 
 # sys_pipe(unsigned long __user * fildes)
 #
 probe nd_syscall.pipe = kprobe.function("SyS_pipe") ?,
+%( arch == "ia64" %?
+                        kprobe.function("sys_ia64_pipe").call ?,
+%)
                         kprobe.function("sys_pipe") ?
 {
 	name = "pipe"
 %( arch == "ia64" %?
-# ia64 just returns value directly, no fildes argument
-	argstr = ""
+# ia64 just returns value directly, so fake the arguments
+	fildes_uaddr = 0
+	argstr = "[0, 0]"
 %:
 	// fildes_uaddr = $fildes
 	// argstr = _fildes_u($fildes)
@@ -344,6 +348,9 @@ probe nd_syscall.pipe = kprobe.function("SyS_pipe") ?,
 }
 
 probe nd_syscall.pipe.return = kprobe.function("SyS_pipe").return ?,
+%( arch == "ia64" %?
+                               kprobe.function("sys_ia64_pipe").return ?,
+%)
                                kprobe.function("sys_pipe").return ?
 {
 	name = "pipe"
