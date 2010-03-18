@@ -1,5 +1,5 @@
 // tapset for HW performance monitoring
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -82,38 +82,64 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- perf probes ---- */";
   s.op->newline() << "#include \"perf.c\"";
+  s.op->newline();
+
   /* declarations */
+  s.op->newline() << "static void handle_perf_probe (const char *pp, "
+                  << "void (*ph) (struct context*), struct pt_regs *regs);";
+  for (unsigned i=0; i < probes.size(); i++)
+    s.op->newline() << "static void enter_perf_probe_" << i
+                    << " (struct perf_event *e, int nmi, "
+                    << "struct perf_sample_data *data, "
+                    << "struct pt_regs *regs);";
+  s.op->newline();
+
+  /* data structures */
+  s.op->newline() << "static struct stap_perf_probe {";
+  s.op->newline(1) << "struct perf_event_attr attr;";
+  s.op->newline() << "perf_overflow_handler_t cb;";
+  s.op->newline() << "const char *pp;";
+  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "Perf *perf;";
+  s.op->newline(-1) << "} stap_perf_probes [" << probes.size() << "] = {";
+  s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
-      // TODO create Perf data structures
+      s.op->newline() << "{";
+      s.op->newline(1) << ".attr={ "
+                       << ".type=" << probes[i]->event_type << ", "
+                       << ".config=" << probes[i]->event_config << ", "
+                       << "{ .sample_period=" << probes[i]->interval << "ULL }},";
+      s.op->newline() << ".cb=enter_perf_probe_" << i << ", ";
+      s.op->newline() << ".pp=" << lex_cast_qstring (*probes[i]->sole_location()) << ",";
+      s.op->newline() << ".ph=" << probes[i]->name << ",";
+      s.op->newline(-1) << "},";
     }
+  s.op->newline(-1) << "};";
   s.op->newline();
 
   /* wrapper functions */
-  for (unsigned i=0; i < probes.size(); i++) {
-    s.op->newline() << "void enter_perf_probe_" << i <<" (struct perf_event *e, int nmi,";
-    s.op->newline(1) << "struct perf_sample_data *data,";
-    s.op->newline() << "struct pt_regs *regs)";
-    s.op->newline(-1) << "{";
-    s.op->newline(1) <<	"/* handle_perf_probe(pp, &probe_NNN, regs); */";
-    s.op->newline(-1) << "}";
-  }
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      s.op->newline() << "static void enter_perf_probe_" << i
+                      << " (struct perf_event *e, int nmi, "
+                      << "struct perf_sample_data *data, "
+                      << "struct pt_regs *regs)";
+      s.op->newline() << "{";
+      s.op->newline(1) << "handle_perf_probe(" << lex_cast_qstring (*probes[i]->sole_location())
+                       << ", " << probes[i]->name << ", regs);";
+      s.op->newline(-1) << "}";
+    }
+  s.op->newline();
 
-  s.op->newline() << "static void handle_perf_probe (const char *pp,";
-  s.op->newline(1) << "void (*ph) (struct context*),";
-  s.op->newline() << "struct pt_regs *regs)";
-  s.op->newline(-1) << "{";
-
-  s.op->newline(1) << "if ((atomic_read (&session_state) == STAP_SESSION_STARTING) ||";
-  s.op->newline(1) << "    (atomic_read (&session_state) == STAP_SESSION_RUNNING)) {";
-  s.op->newline(-1) << "}";
+  s.op->newline() << "static void handle_perf_probe (const char *pp, "
+                  << "void (*ph) (struct context*), struct pt_regs *regs)";
   s.op->newline() << "{";
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "pp");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "(*ph) (c);";
   common_probe_entryfn_epilogue (s.op);
-  s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 }
 
@@ -124,7 +150,16 @@ perf_derived_probe_group::emit_module_init (systemtap_session& s)
   if (probes.empty()) return;
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
-  s.op->newline(1) << "/* struct stap_perf_probe* stp = & stap_perf_probes [i]; */";
+  s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
+  s.op->newline() << "stp->perf = _stp_perf_init(&stp->attr, stp->cb, stp->pp, stp->ph);";
+  s.op->newline() << "if (stp->perf == NULL) {";
+  s.op->newline(1) << "rc = -EINVAL;";
+  s.op->newline() << "for (j=0; j<i; j++) {";
+  s.op->newline(1) << "stp = & stap_perf_probes [j];";
+  s.op->newline() << "_stp_perf_del(stp->perf);";
+  s.op->newline() << "stp->perf = NULL;";
+  s.op->newline(-1) << "}"; // for unwind loop
+  s.op->newline(-1) << "}"; // if-error
   s.op->newline(-1) << "}"; // for loop
 }
 
@@ -134,9 +169,11 @@ perf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   if (probes.empty()) return;
 
-  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++)";
-  s.op->newline(1) << "/* FIXME */;";
-  s.op->indent(-1);
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
+  s.op->newline() << "_stp_perf_del(stp->perf);";
+  s.op->newline() << "stp->perf = NULL;";
+  s.op->newline(-1) << "}"; // for loop
 }
 
 
