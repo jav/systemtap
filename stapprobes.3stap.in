@@ -800,7 +800,7 @@ structure, and are sampled at an interval governed by the
 These fields are made available to systemtap scripts using
 the following syntax:
 .SAMPLE
-probe perf.type(NN).config(MM).samples(XX)
+probe perf.type(NN).config(MM).sample(XX)
 probe perf.type(NN).config(MM)
 .ESAMPLE
 The range of valid type/config is described by the 
