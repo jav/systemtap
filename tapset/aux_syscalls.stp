@@ -554,6 +554,25 @@ function _flock_cmd_str(c) {
    return substr(bs,0,strlen(bs)-1)
 }
 
+/* `man 2 pipe2` for more information */
+function _sys_pipe2_flag_str:string (f:long)
+%{ /* pure */ /* unprivileged */
+  long flags = THIS->f;
+  char *str = THIS->__retvalue;
+  int len;
+
+#if defined(O_NONBLOCK) && defined(O_CLOEXEC)
+  if (flags & O_NONBLOCK)
+    strlcat(str, "O_NONBLOCK|", MAXSTRINGLEN);
+  if (flags & O_CLOEXEC)
+    strlcat(str, "O_CLOEXEC|", MAXSTRINGLEN);
+#endif
+
+  len = strlen(str);
+  if (len)
+    str[strlen(str)-1] = 0;
+%}
+
 /* `man 2 open` for more information */
 function _sys_open_flag_str:string (f:long)
 %{ /* pure */

@@ -350,6 +350,46 @@ probe syscall.pipe.return = kernel.function("SyS_pipe").return !,
 	retstr = returnstr(1)
 }
 
+# pipe2 ______________________________________________________
+#
+# SYSCALL_DEFINE2(pipe2, int __user *, fildes, int, flags)
+# pipe2() was added to Linux in version 2.6.27.
+probe syscall.pipe2 = kernel.function("sys_pipe2").call?
+{
+  name = "pipe2"
+  flags = $flags
+  flag_str = _sys_pipe2_flag_str(flags);
+  fildes_uaddr = $fildes
+  if (fildes_uaddr == 0)
+    {
+      pipe0 = 0;
+      pipe1 = 0;
+      argstr = "NULL"
+    }
+  else
+    {
+      pipe0 = user_int(&$fildes[0]);
+      pipe1 = user_int(&$fildes[1]);
+      argstr = sprintf("[%d, %d] %s", pipe0, pipe1, flag_str)
+    }
+}
+probe syscall.pipe2.return = kernel.function("sys_pipe2").return?
+{
+  name = "pipe"
+  fildes_uaddr = $fildes
+  if (fildes_uaddr == 0)
+    {
+      pipe0 = 0;
+      pipe1 = 0;
+    }
+  else
+    {
+      pipe0 = user_int(&$fildes[0]);
+      pipe1 = user_int(&$fildes[1]);
+    }
+  retstr = returnstr(1)
+}
+
 # pivot_root _________________________________________________
 #
 # long sys_pivot_root(const char __user *new_root, const char __user *put_old)
