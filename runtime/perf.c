@@ -22,84 +22,59 @@
 
 /** Initialize performance sampling
  * Call this during probe initialization to set up performance event sampling
- * for all online cpus.  Returns ERR_PTR on error.
+ * for all online cpus.  Returns non-zero on error.
  *
- * @param attr description of event to sample
- * @param callback function to call when perf event overflows
- * @param pp associated probe point
- * @param ph probe handler
+ * @param stp Handle for the event to be registered.
  */
-static Perf *_stp_perf_init (struct perf_event_attr *attr,
-			     perf_overflow_handler_t callback,
-			     const char *pp, void (*ph) (struct context *) )
+static long _stp_perf_init (struct stap_perf_probe *stp)
 {
-	long rc = -EINVAL;
 	int cpu;
-	Perf *pe;
-
-	pe = (Perf *) _stp_kmalloc (sizeof(Perf));
-	if (pe == NULL)
-		return ERR_PTR(-ENOMEM);
 
 	/* allocate space for the event descriptor for each cpu */
-	pe->pd = (perfcpu *) _stp_alloc_percpu (sizeof(perfcpu));
-	if (pe->pd == NULL) {
-		rc = -ENOMEM;
-		goto exit1;
+	stp->events = _stp_alloc_percpu (sizeof(struct perf_event*));
+	if (stp->events == NULL) {
+		return -ENOMEM;
 	}
 
 	/* initialize event on each processor */
 	stp_for_each_cpu(cpu) {
-		perfcpu *pd = per_cpu_ptr (pe->pd, cpu);
-		struct perf_event **event = &(pd->event);
+		struct perf_event **event = per_cpu_ptr (stp->events, cpu);
 		if (cpu_is_offline(cpu)) {
-		 	*event = NULL;
+			*event = NULL;
 			continue;
 		}
-		*event = perf_event_create_kernel_counter(attr, cpu, -1,
-							  callback);
+		*event = perf_event_create_kernel_counter(&stp->attr,
+							  cpu, -1,
+							  stp->callback);
 
 		if (IS_ERR(*event)) {
-			rc = PTR_ERR(*event);
+			long rc = PTR_ERR(*event);
 			*event = NULL;
-			goto exit2;
+			_stp_perf_del(stp);
+			return rc;
 		}
-		pd->pp = pp;
-		pd->ph = ph;
 	}
-	return pe;
-
-exit2:
-	stp_for_each_cpu(cpu) {
-		perfcpu *pd = per_cpu_ptr (pe->pd, cpu);
-		struct perf_event **event = &(pd->event);
-		if (*event) perf_event_release_kernel(*event);
-	}
-	_stp_free_percpu(pe->pd);
-exit1:
-	_stp_kfree(pe);
-	return ERR_PTR(rc);
+	return 0;
 }
 
 /** Delete performance event.
  * Call this to shutdown performance event sampling
  *
- * @param pe
+ * @param stp Handle for the event to be unregistered.
  */
-static void _stp_perf_del (Perf *pe)
+static void _stp_perf_del (struct stap_perf_probe *stp)
 {
-	if (pe) {
+	if (stp && stp->events) {
 		int cpu;
 		/* shut down performance event sampling */
 		stp_for_each_cpu(cpu) {
-			perfcpu *pd = per_cpu_ptr (pe->pd, cpu);
-			struct perf_event **event = &(pd->event);
+			struct perf_event **event = per_cpu_ptr (stp->events, cpu);
 			if (*event) {
 				perf_event_release_kernel(*event);
 			}
 		}
-		_stp_free_percpu (pe->pd);
-		_stp_kfree (pe);
+		_stp_free_percpu (stp->events);
+		stp->events = NULL;
 	}
 }
 

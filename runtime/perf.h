@@ -16,22 +16,18 @@
  * @brief Header file for performance monitoring hardware support
  */
 
-typedef struct {
-	struct perf_event *event;
+struct stap_perf_probe {
+	struct perf_event_attr attr;
+	perf_overflow_handler_t callback;
 	const char *pp;
-	void (*ph) (struct context *);
-} perfcpu;
+	void (*ph) (struct context*);
 
-typedef struct {
 	/* per-cpu data. allocated with _stp_alloc_percpu() */
-	perfcpu *pd;
-} Perf;
+	struct perf_event **events;
+};
 
-static Perf *_stp_perf_init (struct perf_event_attr *attr,
-			     perf_overflow_handler_t callback,
-			     const char *pp,
-			     void (*ph) (struct context *) );
+static long _stp_perf_init (struct stap_perf_probe *stp);
 
-static void _stp_perf_del (Perf *pe);
+static void _stp_perf_del (struct stap_perf_probe *stp);
 
 #endif /* _PERF_H_ */

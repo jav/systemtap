@@ -94,13 +94,8 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   /* data structures */
-  s.op->newline() << "static struct stap_perf_probe {";
-  s.op->newline(1) << "struct perf_event_attr attr;";
-  s.op->newline() << "perf_overflow_handler_t cb;";
-  s.op->newline() << "const char *pp;";
-  s.op->newline() << "void (*ph) (struct context*);";
-  s.op->newline() << "Perf *perf;";
-  s.op->newline(-1) << "} stap_perf_probes [" << probes.size() << "] = {";
+  s.op->newline() << "static struct stap_perf_probe stap_perf_probes ["
+                  << probes.size() << "] = {";
   s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
@@ -109,7 +104,7 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
                        << ".type=" << probes[i]->event_type << "ULL, "
                        << ".config=" << probes[i]->event_config << "ULL, "
                        << "{ .sample_period=" << probes[i]->interval << "ULL }},";
-      s.op->newline() << ".cb=enter_perf_probe_" << i << ", ";
+      s.op->newline() << ".callback=enter_perf_probe_" << i << ", ";
       s.op->newline() << ".pp=" << lex_cast_qstring (*probes[i]->sole_location()) << ",";
       s.op->newline() << ".ph=" << probes[i]->name << ",";
       s.op->newline(-1) << "},";
@@ -150,17 +145,14 @@ perf_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
-  s.op->newline() << "stp->perf = _stp_perf_init(&stp->attr, stp->cb, stp->pp, stp->ph);";
-  s.op->newline() << "if (IS_ERR(stp->perf)) {";
-  s.op->newline(1) << "rc = PTR_ERR(stp->perf);";
-  s.op->newline() << "stp->perf = NULL;";
-  s.op->newline() << "probe_point = stp->pp;";
+  s.op->newline() << "rc = _stp_perf_init(stp);";
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "probe_point = stp->pp;";
   s.op->newline() << "for (j=0; j<i; j++) {";
-  s.op->newline(1) << "stp = & stap_perf_probes [j];";
-  s.op->newline() << "_stp_perf_del(stp->perf);";
-  s.op->newline() << "stp->perf = NULL;";
+  s.op->newline(1) << "_stp_perf_del(& stap_perf_probes [j]);";
   s.op->newline(-1) << "}"; // for unwind loop
   s.op->newline(-1) << "}"; // if-error
+  s.op->newline() << "break;";
   s.op->newline(-1) << "}"; // for loop
 }
 
@@ -171,9 +163,7 @@ perf_derived_probe_group::emit_module_exit (systemtap_session& s)
   if (probes.empty()) return;
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
-  s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
-  s.op->newline() << "_stp_perf_del(stp->perf);";
-  s.op->newline() << "stp->perf = NULL;";
+  s.op->newline(1) << "_stp_perf_del(& stap_perf_probes [i]);";
   s.op->newline(-1) << "}"; // for loop
 }
 
