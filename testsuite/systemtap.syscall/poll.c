@@ -16,8 +16,13 @@ int main()
   sigemptyset(&sigs);
   sigaddset(&sigs,SIGUSR2);
 
+#ifdef EPOLL_CLOEXEC
+  fd = epoll_create1(EPOLL_CLOEXEC);
+  //staptest// epoll_create1 (EPOLL_CLOEXEC)
+#else
   fd = epoll_create(32);
   //staptest// epoll_create (32)
+#endif
 
   epoll_ctl(fd, EPOLL_CTL_ADD, 13, &ev);
   //staptest// epoll_ctl (NNNN, EPOLL_CTL_ADD, 13, XXXX)

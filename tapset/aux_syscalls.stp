@@ -1632,6 +1632,16 @@ function _at_flag_str:string(f:long)
 	_stp_lookup_str(_stp_atflag_list, THIS->f, THIS->__retvalue, MAXSTRINGLEN);
 %}
 
+%{
+#include <linux/eventpoll.h>
+%}
+function _epoll_create1_flag_str:string(f:long)
+%{ /* pure */
+#ifdef EPOLL_CLOEXEC
+	if (THIS->f == EPOLL_CLOEXEC)
+		strlcpy (THIS->__retvalue, "EPOLL_CLOEXEC", MAXSTRINGLEN);
+#endif
+%}
 
 %{
 #include <linux/shm.h>

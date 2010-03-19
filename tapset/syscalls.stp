@@ -582,17 +582,29 @@ probe syscall.dup2.return = kernel.function("SyS_dup2").return !,
 
 # epoll_create _______________________________________________
 # long sys_epoll_create(int size)
-probe syscall.epoll_create = kernel.function("SyS_epoll_create").call !,
+# SYSCALL_DEFINE1(epoll_create1, int, flags)
+probe syscall.epoll_create = kernel.function("SyS_epoll_create1").call !,
+                             kernel.function("sys_epoll_create1").call !,
+                             kernel.function("SyS_epoll_create").call !,
                              kernel.function("sys_epoll_create").call ?
 {
-	name = "epoll_create"
-	size = $size
-	argstr = sprint($size)
+	size = @defined($size) ? $size : 0;
+	flags = @defined($flags) ? $flags : 0;
+	if (flags == 0) {
+		name = "epoll_create";
+		argstr = sprint(size);
+	} else {
+		name = "epoll_create1";
+		argstr = _epoll_create1_flag_str(flags);
+	}
 }
-probe syscall.epoll_create.return = kernel.function("SyS_epoll_create").return !,
+probe syscall.epoll_create.return = kernel.function("SyS_epoll_create1").return !,
+                                    kernel.function("sys_epoll_create1").return !,
+                                    kernel.function("SyS_epoll_create").return !,
                                     kernel.function("sys_epoll_create").return ?
 {
-	name = "epoll_create"
+	flags = @defined($flags) ? $flags : 0;
+	name = (flags == 0) ? "epoll_create" : "epoll_create1";
 	retstr = returnstr(1)
 }
 
