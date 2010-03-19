@@ -626,6 +626,10 @@ function _sys_open_flag_str:string (f:long)
 	if (flags & O_TRUNC)
 		strlcat (THIS->__retvalue, "|O_TRUNC", MAXSTRINGLEN);
 #endif
+#ifdef O_CLOEXEC
+	if (flags & O_CLOEXEC)
+		strlcat (THIS->__retvalue, "|O_CLOEXEC", MAXSTRINGLEN);
+#endif
 %}
 
 
