@@ -1430,7 +1430,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 	return UTRACE_RESUME;
 }
 
-struct utrace_engine_ops __stp_utrace_task_finder_ops = {
+static struct utrace_engine_ops __stp_utrace_task_finder_ops = {
 	.report_clone = __stp_utrace_task_finder_report_clone,
 	.report_exec = __stp_utrace_task_finder_report_exec,
 	.report_death = stap_utrace_task_finder_report_death,

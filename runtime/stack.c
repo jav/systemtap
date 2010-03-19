@@ -186,7 +186,7 @@ static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int ve
 
 #endif /* CONFIG_KPROBES */
 
-void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
+static void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
 {
 #if defined(STAPCONF_KERNEL_STACKTRACE)
         int i;
@@ -213,7 +213,7 @@ void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
  * @param tsk A pointer to the task_struct
  * @returns void
  */
-void _stp_stack_snprint_tsk(char *str, int size, struct task_struct *tsk, int verbose, int levels)
+static void _stp_stack_snprint_tsk(char *str, int size, struct task_struct *tsk, int verbose, int levels)
 {
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
