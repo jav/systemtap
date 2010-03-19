@@ -93,9 +93,13 @@ probe vm.pagefault.return = kernel.function("__handle_mm_fault@mm/memory.c").ret
  *
  */
 function addr_to_node:long(addr:long) %{ /* pure */ 
-	int nid;
 	int pfn = __pa(THIS->addr) >> PAGE_SHIFT;
+	int nid;
+#ifdef for_each_online_node
 	for_each_online_node(nid)
+#else
+	for (nid=0; nid<MAX_NUMNODES; nid++)  /* if (node_online(nid)) */
+#endif
 		if ( NODE_DATA(nid)->node_start_pfn <= pfn &&
 			pfn < (NODE_DATA(nid)->node_start_pfn +
 			NODE_DATA(nid)->node_spanned_pages) )
