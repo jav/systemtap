@@ -9,11 +9,11 @@
 int main()
 {
   int pipefd[2];
-  pipefd[0] = 42;
-  pipefd[1] = 13;
+  pipefd[0] = 0;
+  pipefd[1] = 0;
 
   pipe (pipefd);
-  //staptest// pipe (\[42, 13\]) = 0
+  //staptest// pipe (\[0, 0\]) = 0
 
 #ifdef O_CLOEXEC
   pipe2 (pipefd, O_CLOEXEC);

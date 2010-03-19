@@ -286,6 +286,16 @@ probe syscall.personality.return = kernel.function("SyS_personality").return !,
 	name = "personality"
 	retstr = returnstr(1)
 }
+
+# ia64 returns the results from the pipe call through (user) registers.
+%( arch == "ia64" %?
+function _ia64_pipe0:long() %{
+	THIS->__retvalue = CONTEXT->regs ? CONTEXT->regs->r8 : 0;
+%}
+function _ia64_pipe1:long() %{
+	THIS->__retvalue = task_pt_regs(current)->r9;
+%}
+%)
 # pipe _______________________________________________________
 #
 # asmlinkage int
@@ -324,7 +334,7 @@ probe syscall.pipe = kernel.function("SyS_pipe2").call !,
 		fildes_uaddr = 0;
 		pipe0 = 0;
 		pipe1 = 0;
-		argstr = "";
+		argstr = "[0, 0]";
 	}
 }
 probe syscall.pipe.return = kernel.function("SyS_pipe2").return !,
@@ -352,7 +362,13 @@ probe syscall.pipe.return = kernel.function("SyS_pipe2").return !,
 		pipe0 = 0;
 		pipe1 = 0;
 	}
+%( arch == "ia64" %?
+	pipe0 = _ia64_pipe0();
+	pipe1 = _ia64_pipe1();
+	retstr = (pipe0 < 0) ? returnstr(1) : "0";
+%:
 	retstr = returnstr(1)
+%)
 }
 
 # pivot_root _________________________________________________
