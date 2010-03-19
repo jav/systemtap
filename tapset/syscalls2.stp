@@ -291,11 +291,19 @@ probe syscall.personality.return = kernel.function("SyS_personality").return !,
 # asmlinkage int
 # sys_pipe(unsigned long __user * fildes)
 #
-probe syscall.pipe = kernel.function("SyS_pipe").call !,
+# SYSCALL_DEFINE2(pipe2, int __user *, fildes, int, flags)
+# pipe2() was added to Linux in version 2.6.27.
+probe syscall.pipe = kernel.function("SyS_pipe2").call !,
+                     kernel.function("sys_pipe2").call !,
+                     kernel.function("SyS_pipe").call !,
                      kernel.function("sys_ia64_pipe").call ?,
                      kernel.function("sys_pipe").call
 {
-	name = "pipe"
+	if (@defined($flags)) {
+		flags = $flags
+		flag_str = _sys_pipe2_flag_str(flags);
+	}
+	name = flags == 0 ? "pipe" : "pipe2";
 	if (@defined($fildes)) {
 		fildes_uaddr = $fildes
 		if (fildes_uaddr == 0) {
@@ -305,7 +313,12 @@ probe syscall.pipe = kernel.function("SyS_pipe").call !,
 		} else {
 			pipe0 = user_int(&$fildes[0]);
 			pipe1 = user_int(&$fildes[1]);
-			argstr = sprintf("[%d, %d]", pipe0, pipe1)
+			if (flags == 0)
+				argstr = sprintf("[%d, %d]", pipe0, pipe1);
+			else
+				argstr = sprintf("[%d, %d], %s",
+						 pipe0, pipe1, flag_str);
+
 		}
 	} else {
 		fildes_uaddr = 0;
@@ -314,13 +327,17 @@ probe syscall.pipe = kernel.function("SyS_pipe").call !,
 		argstr = "";
 	}
 }
-probe syscall.pipe.return = kernel.function("SyS_pipe").return !,
-%( arch == "ia64" %?
+probe syscall.pipe.return = kernel.function("SyS_pipe2").return !,
+                            kernel.function("sys_pipe2").return !,
+                            kernel.function("SyS_pipe").return !,
                             kernel.function("sys_ia64_pipe").return ?,
-%)
                             kernel.function("sys_pipe").return
 {
-	name = "pipe"
+	if (@defined($flags)) {
+		flags = $flags
+		flag_str = _sys_pipe2_flag_str(flags);
+	}
+	name = flags == 0 ? "pipe" : "pipe2";
 	if (@defined($fildes)) {
 		fildes_uaddr = $fildes
 		if (fildes_uaddr == 0) {
@@ -334,40 +351,6 @@ probe syscall.pipe.return = kernel.function("SyS_pipe").return !,
 		fildes_uaddr = 0;
 		pipe0 = 0;
 		pipe1 = 0;
-	}
-	retstr = returnstr(1)
-}
-
-# pipe2 ______________________________________________________
-#
-# SYSCALL_DEFINE2(pipe2, int __user *, fildes, int, flags)
-# pipe2() was added to Linux in version 2.6.27.
-probe syscall.pipe2 = kernel.function("sys_pipe2").call?
-{
-	name = "pipe2"
-	flags = $flags
-	flag_str = _sys_pipe2_flag_str(flags);
-	fildes_uaddr = $fildes
-	if (fildes_uaddr == 0) {
-		pipe0 = 0;
-		pipe1 = 0;
-		argstr = "NULL"
-	} else {
-		pipe0 = user_int(&$fildes[0]);
-		pipe1 = user_int(&$fildes[1]);
-		argstr = sprintf("[%d, %d] %s", pipe0, pipe1, flag_str)
-	}
-}
-probe syscall.pipe2.return = kernel.function("sys_pipe2").return?
-{
-	name = "pipe"
-	fildes_uaddr = $fildes
-	if (fildes_uaddr == 0) {
-		pipe0 = 0;
-		pipe1 = 0;
-	} else {
-		pipe0 = user_int(&$fildes[0]);
-		pipe1 = user_int(&$fildes[1]);
 	}
 	retstr = returnstr(1)
 }
