@@ -529,8 +529,8 @@ struct block: public statement
 
 struct try_block: public statement
 {
-  block* try_block; // may be 0
-  block* catch_block; // may be 0
+  statement* try_block; // may be 0
+  statement* catch_block; // may be 0
   symbol* catch_error_var; // may be 0
   void print (std::ostream& o) const;
   void visit (visitor* u);
