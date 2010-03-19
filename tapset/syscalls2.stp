@@ -299,11 +299,24 @@ probe syscall.pipe = kernel.function("SyS_pipe").call !,
         if (@defined($fildes))
 	  {
 	    fildes_uaddr = $fildes
-	    argstr = _fildes_u(fildes_uaddr)
+            if (fildes_uaddr == 0)
+              {
+                pipe0 = 0;
+                pipe1 = 0;
+                argstr = "NULL"
+              }
+            else
+              {
+                pipe0 = user_int(&$fildes[0]);
+                pipe1 = user_int(&$fildes[1]);
+                argstr = sprintf("[%d, %d]", pipe0, pipe1)
+              }
 	  }
 	else
 	  {
 	    fildes_uaddr = 0;
+            pipe0 = 0;
+            pipe1 = 0;
 	    argstr = ""
 	  }
 }
@@ -314,6 +327,26 @@ probe syscall.pipe.return = kernel.function("SyS_pipe").return !,
                             kernel.function("sys_pipe").return
 {
 	name = "pipe"
+        if (@defined($fildes))
+	  {
+	    fildes_uaddr = $fildes
+            if (fildes_uaddr == 0)
+              {
+                pipe0 = 0;
+                pipe1 = 0;
+              }
+            else
+              {
+                pipe0 = user_int(&$fildes[0]);
+                pipe1 = user_int(&$fildes[1]);
+              }
+	  }
+	else
+	  {
+	    fildes_uaddr = 0;
+            pipe0 = 0;
+            pipe1 = 0;
+	  }
 	retstr = returnstr(1)
 }
 
