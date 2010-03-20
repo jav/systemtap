@@ -149,10 +149,43 @@ probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return
 probe syscall.pipe32 = kernel.function("sys32_pipe")?
 {
 	name = "pipe"
-	argstr = sprintf("%p", $fd)
+	flags = 0;
+	if (@defined($fd)) {
+		fildes_uaddr = $fd
+		if (fildes_uaddr == 0) {
+			pipe0 = 0;
+			pipe1 = 0;
+			argstr = "NULL"
+		} else {
+			pipe0 = user_int(&$fd[0]);
+			pipe1 = user_int(&$fd[1]);
+			argstr = sprintf("[%d, %d]", pipe0, pipe1);
+		}
+	} else {
+		fildes_uaddr = 0;
+		pipe0 = 0;
+		pipe1 = 0;
+		argstr = "[0, 0]";
+	}
+	argstr = sprintf("[%d, %d]", pipe0, pipe1)
 }
 probe syscall.pipe32.return = kernel.function("sys32_pipe").return?
 {
 	name = "pipe"
+	flags = 0;
+	if (@defined($fd)) {
+		fildes_uaddr = $fd
+		if (fildes_uaddr == 0) {
+			pipe0 = 0;
+			pipe1 = 0;
+		} else {
+			pipe0 = user_int(&$fd[0]);
+			pipe1 = user_int(&$fd[1]);
+		}
+	} else {
+		fildes_uaddr = 0;
+		pipe0 = 0;
+		pipe1 = 0;
+	}
 	retstr = returnstr(1)
 }
