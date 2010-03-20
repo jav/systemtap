@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <linux/utime.h>
+#include <linux/version.h>
 
 #ifndef UTIME_NOW
 #define UTIME_NOW       ((1l << 30) - 1l)
@@ -47,7 +48,7 @@ int main()
   //staptest// futimesat (AT_FDCWD, "foobar", \[1000000000.001234\]\[2000000000.005678\])
 #endif /* __NR_futimesat */
 
-#ifdef __NR_utimensat
+#if defined(__NR_utimensat) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22)
   ts[0].tv_sec = 1000000000;
   ts[0].tv_nsec = 123456789;
   ts[1].tv_sec = 2000000000;
