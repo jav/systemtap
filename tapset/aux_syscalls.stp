@@ -746,6 +746,7 @@ function _recvflags_str(f) {
    if(f & 64) bs="MSG_DONTWAIT|".bs
    if(f & 256) bs="MSG_WAITALL|".bs
    if(f & 8192) bs="MSG_ERRQUEUE|".bs
+   if(f & 0x40000000) bs="MSG_CMSG_CLOEXEC|".bs
    return substr(bs,0,strlen(bs)-1)
 }
 
