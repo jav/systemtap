@@ -1645,6 +1645,16 @@ function _epoll_create1_flag_str:string(f:long)
 #endif
 %}
 
+function _dup3_flag_str:string(f:long)
+%{ /* pure */
+#ifdef O_CLOEXEC
+	if (THIS->f == O_CLOEXEC)
+		strlcpy (THIS->__retvalue, "O_CLOEXEC", MAXSTRINGLEN);
+	else
+#endif
+		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+%}
+
 %{
 #include <linux/shm.h>
 static const _stp_val_array const _stp_shmat_list[] = {

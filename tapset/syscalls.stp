@@ -565,9 +565,12 @@ probe syscall.dup.return = kernel.function("SyS_dup").return !,
 
 # dup2 _______________________________________________________
 # long sys_dup2(unsigned int oldfd, unsigned int newfd)
+# Only handles corner case, others handled by dup3.
 probe syscall.dup2 = kernel.function("SyS_dup2").call !,
                      kernel.function("sys_dup2").call
 {
+	if ($oldfd != $newfd) next;
+
 	name = "dup2"
 	oldfd = $oldfd
 	newfd = $newfd
@@ -576,7 +579,47 @@ probe syscall.dup2 = kernel.function("SyS_dup2").call !,
 probe syscall.dup2.return = kernel.function("SyS_dup2").return !,
                             kernel.function("sys_dup2").return
 {
+	if ($oldfd != $newfd) next;
+
 	name = "dup2"
+	retstr = returnstr(1)
+}
+
+# dup3 (handles both dup2 and dup3 except for corner case)___________
+# long sys_dup2(unsigned int oldfd, unsigned int newfd)
+# SYSCALL_DEFINE3(dup3, unsigned int, oldfd, unsigned int, newfd, int, flags)
+probe syscall.dup2 = kernel.function("SyS_dup3").call !,
+                     kernel.function("sys_dup3").call !,
+                     kernel.function("SyS_dup2").call !,
+                     kernel.function("sys_dup2").call
+{
+	oldfd = $oldfd
+	newfd = $newfd
+	flags = @defined($flags) ? $flags : 0;
+
+	# Corner case handled by dup2
+	if ($oldfd == $newfd && flags == 0) next
+
+	if (flags == 0) {
+		name = "dup2";
+		argstr = sprintf("%d, %d", $oldfd, $newfd);
+	} else {
+		name = "dup3";
+		argstr = sprintf("%d, %d, %s", $oldfd, $newfd,
+				 _dup3_flag_str(flags));
+	}
+}
+probe syscall.dup2.return = kernel.function("SyS_dup3").return !,
+                            kernel.function("sys_dup3").return !,
+                            kernel.function("SyS_dup2").return !,
+                            kernel.function("sys_dup2").return
+{
+	flags = @defined($flags) ? $flags : 0;
+
+	# Corner case handled by dup2
+	if ($oldfd == $newfd && flags == 0) next
+
+	name = flags == 0 ? "dup2" : "dup3";
 	retstr = returnstr(1)
 }
 
