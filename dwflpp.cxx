@@ -2677,6 +2677,9 @@ dwflpp::build_blacklist()
   if (sess.architecture == "i686")
     blfn_ret += "|__switch_to";
 
+  // RHEL6 pre-beta 2.6.32-19.el6
+  blfn += "|special_mapping_.*";
+
   blfn += ")$";
   blfn_ret += ")$";
   blfile += ")$";
