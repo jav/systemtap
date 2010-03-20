@@ -733,17 +733,28 @@ probe syscall.epoll_wait.return = kernel.function("compat_sys_epoll_wait").retur
 
 # eventfd _____________________________________________________
 # long sys_eventfd(unsigned int count)
-#
-probe syscall.eventfd = kernel.function("SyS_eventfd").call !,
+# SYSCALL_DEFINE2(eventfd2, unsigned int, count, int, flags)
+probe syscall.eventfd = kernel.function("SyS_eventfd2").call !,
+                        kernel.function("sys_eventfd2").call !,
+                        kernel.function("SyS_eventfd").call !,
                         kernel.function("sys_eventfd").call ?
 {
-	name = "eventfd"
-	argstr = sprint($count)
+	flags = @defined($flags) ? $flags : 0
+	if (flags == 0) {
+		name = "eventfd"
+		argstr = sprint($count)
+	} else {
+		name = "eventfd2"
+		argstr = sprintf("%d, %s", $count, _eventfd2_flag_str(flags))
+	}
 }
-probe syscall.eventfd.return = kernel.function("SyS_eventfd").return !,
+probe syscall.eventfd.return = kernel.function("SyS_eventfd2").return !,
+                               kernel.function("sys_eventfd2").return !,
+                               kernel.function("SyS_eventfd").return !,
                                kernel.function("sys_eventfd").return ?
 {
-	name = "eventfd"
+	flags = @defined($flags) ? $flags : 0
+	name = flags == 0 ? "eventfd" : "eventfd2"
 	retstr = returnstr(1)
 }
 

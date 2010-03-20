@@ -1645,6 +1645,29 @@ function _epoll_create1_flag_str:string(f:long)
 #endif
 %}
 
+%{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22)
+#include <linux/eventfd.h>
+#endif
+%}
+function _eventfd2_flag_str:string(f:long)
+%{ /* pure */
+  long flags = THIS->f;
+  char *str = THIS->__retvalue;
+  int len;
+
+#if defined(EFD_CLOEXEC) && defined(EFD_NONBLOCK)
+  if (flags & EFD_NONBLOCK)
+    strlcat(str, "EFD_NONBLOCK|", MAXSTRINGLEN);
+  if (flags & EFD_CLOEXEC)
+    strlcat(str, "EFD_CLOEXEC|", MAXSTRINGLEN);
+#endif
+
+  len = strlen(str);
+  if (len)
+    str[strlen(str)-1] = 0;
+%}
+
 function _dup3_flag_str:string(f:long)
 %{ /* pure */
 #ifdef O_CLOEXEC
