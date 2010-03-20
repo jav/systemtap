@@ -234,7 +234,7 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-
 <p>The sched_switch.stp script takes two arguments, first argument can be "pid" or "name" to indicate what is being passed as second argument. The script will trace the process based on pid/name and print the scheduler switches happening with the process. If no arguments are passed, it displays all the scheduler switches. This can be used to understand which tasks schedule out the current process being traced, and when it gets scheduled in again.</p></li>
 <li><a href="profiling/thread-times.stp">profiling/thread-times.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
-<p>The thread-times.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top twenty processes with samples broken down into percentage total time spent in user-space and kernel-space.</p></li>
+<p>The thread-times.stp script sets up time-based sampling.  Every five seconds it prints out a sorted list with the top twenty threads occupying the CPUs, broken down as a percentage of user and kernel time.</p></li>
 <li><a href="profiling/timeout.stp">profiling/timeout.stp</a> - Show Processes Doing Polling Operations<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The timeout.stp script is based on a blog entry (http://udrepper.livejournal.com/19041.html) mentioning a need for a tool to help developers find applications that are polling. The timeout.stp script monitors systemcall used for polling and records the systemcalls that timed out rather than returned because some action occurred. The script updates the screen once a second with the top twenty processes.</p></li>

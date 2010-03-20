@@ -599,10 +599,10 @@ keywords: profiling functions
 profiling/thread-times.stp - Profile kernel functions
 keywords: profiling
 
-  The thread-times.stp script sets up time-based sampling. Every five
-  seconds it prints out a sorted list with the top twenty processes
-  with samples broken down into percentage total time spent in
-  user-space and kernel-space.
+  The thread-times.stp script sets up time-based sampling.  Every five
+  seconds it prints out a sorted list with the top twenty threads
+  occupying the CPUs, broken down as a percentage of user and kernel
+  time.
 
 
 profiling/timeout.stp - Show Processes Doing Polling Operations
