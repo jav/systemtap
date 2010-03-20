@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# PR11405: without -W, bad tapsets will be warned but shouldn't be an error
+
+TAPSET=`dirname $0`/../parseko/bad_tapset/
+stap -p1 -e 'probe begin {}' -I $TAPSET

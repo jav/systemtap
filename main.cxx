@@ -1261,7 +1261,8 @@ main (int argc, char * const argv [])
               // XXX: privilege only for /usr/share/systemtap?
               stapfile* f = parser::parse (s, globbuf.gl_pathv[j], true);
               if (f == 0)
-                rc ++;
+                s.print_warning("tapset '" + string(globbuf.gl_pathv[j])
+                                + "' has errors, and will be skipped.");
               else
                 s.library_files.push_back (f);
 
@@ -1281,6 +1282,8 @@ main (int argc, char * const argv [])
           globfree (& globbuf);
         }
     }
+  if (s.num_errors())
+    rc ++;
 
   if (rc == 0 && s.last_pass == 1)
     {

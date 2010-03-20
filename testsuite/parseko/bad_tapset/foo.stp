@@ -1,0 +1,2 @@
+# this is an intentional syntax error for testing PR11405
+probe foo = .bar {}

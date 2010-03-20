@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# PR11405: all the default tapsets should succeed even with -W
+
+stap -p1 -e 'probe begin {}' -W
