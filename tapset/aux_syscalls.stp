@@ -1025,6 +1025,7 @@ function _fcntl_cmd_str(cmd) {
    if(cmd==12) return "F_GETLK64"
    if(cmd==13) return "F_SETLK64"
    if(cmd==14) return "F_SETLKW64"
+   if(cmd==1030) return "F_DUPFD_CLOEXEC"
    return sprintf("UNKNOWN VALUE: %d", cmd)
 }
 
