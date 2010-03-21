@@ -1685,6 +1685,29 @@ function _eventfd2_flag_str:string(f:long)
 %}
 
 %{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22)
+#include <linux/signalfd.h>
+#endif
+%}
+function _signalfd4_flags_str:string(f:long)
+%{ /* pure */
+  long flags = THIS->f;
+  char *str = THIS->__retvalue;
+  int len;
+
+#if defined(SFD_CLOEXEC) && defined(SFD_NONBLOCK)
+  if (flags & SFD_NONBLOCK)
+    strlcat(str, "SFD_NONBLOCK|", MAXSTRINGLEN);
+  if (flags & SFD_CLOEXEC)
+    strlcat(str, "SFD_CLOEXEC|", MAXSTRINGLEN);
+#endif
+
+  len = strlen(str);
+  if (len)
+    str[strlen(str)-1] = 0;
+%}
+
+%{
 #include <linux/inotify.h>
 %}
 function _inotify_init1_flag_str:string(f:long)
