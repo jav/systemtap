@@ -2079,9 +2079,9 @@ probe syscall.inotify_add_watch = kernel.function("SyS_inotify_add_watch").call 
 	mask = $mask
 	path_uaddr = (@defined($pathname) ? $pathname : $path)
 	path = user_string(@defined($pathname) ? $pathname : $path)
-	argstr = sprintf("%d, %s, %d", $fd,
+	argstr = sprintf("%d, %s, %s", $fd,
 		user_string_quoted(@defined($pathname) ? $pathname : $path),
-		$mask)
+		_inotify_watch_mask_str($mask))
 }
 
 probe syscall.inotify_add_watch.return = kernel.function("SyS_inotify_add_watch").return !,
@@ -2095,14 +2095,27 @@ probe syscall.inotify_add_watch.return = kernel.function("SyS_inotify_add_watch"
 #
 # long sys_inotify_init(void)
 #
-probe syscall.inotify_init = kernel.function("sys_inotify_init").call ?
+probe syscall.inotify_init = kernel.function("SyS_inotify_init1").call !,
+                             kernel.function("sys_inotify_init1").call !,
+                             kernel.function("SyS_inotify_init").call !,
+                             kernel.function("sys_inotify_init").call ?
 {
-	name = "inotify_init"
-	argstr = ""
+	flags = @defined($flags) ? $flags : 0;
+	if (flags == 0) {
+		name = "inotify_init"
+		argstr = ""
+	} else {
+		name = "inotify_init1"
+		argstr = _inotify_init1_flag_str(flags)
+	}
 }
-probe syscall.inotify_init.return = kernel.function("sys_inotify_init").return ?
+probe syscall.inotify_init.return = kernel.function("SyS_inotify_init1").return !,
+                                    kernel.function("sys_inotify_init1").return !,
+                                    kernel.function("SyS_inotify_init").return !,
+                                    kernel.function("sys_inotify_init").return ?
 {
-	name = "inotify_init"
+	flags = @defined($flags) ? $flags : 0;
+	name = (flags == 0) ? "inotify_init" : "inotify_init1"
 	retstr = returnstr(1)
 }
 

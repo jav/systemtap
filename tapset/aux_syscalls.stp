@@ -466,6 +466,22 @@ function _adjtx_mode_str(f) {
    return substr(bs,0,strlen(bs)-1)
 }
 
+function _inotify_watch_mask_str(f) {
+	if (f & 0x00000001) bs="IN_ACCESS|"
+	if (f & 0x00000002) bs=bs."IN_MODIFY|"
+	if (f & 0x00000004) bs=bs."IN_ATTRIB|"
+	if (f & 0x00000008) bs=bs."IN_CLOSE_WRITE|"
+	if (f & 0x00000010) bs=bs."IN_CLOSE_NOWRITE|"
+	if (f & 0x00000020) bs=bs."IN_OPEN|"
+	if (f & 0x00000040) bs=bs."IN_MOVED_FROM|"
+	if (f & 0x00000080) bs=bs."IN_MOVED_TO|"
+	if (f & 0x00000100) bs=bs."IN_CREATE|"
+	if (f & 0x00000200) bs=bs."IN_DELETE|"
+	if (f & 0x00000400) bs=bs."IN_DELETE_SELF|"
+	if (f & 0x00000800) bs=bs."IN_MOVE_SELF|"
+	return substr(bs,0,strlen(bs)-1)
+}
+
 /*
  * Return the symbolic string representation
  * of the how argument given in *sigprocmask
@@ -1661,6 +1677,27 @@ function _eventfd2_flag_str:string(f:long)
     strlcat(str, "EFD_NONBLOCK|", MAXSTRINGLEN);
   if (flags & EFD_CLOEXEC)
     strlcat(str, "EFD_CLOEXEC|", MAXSTRINGLEN);
+#endif
+
+  len = strlen(str);
+  if (len)
+    str[strlen(str)-1] = 0;
+%}
+
+%{
+#include <linux/inotify.h>
+%}
+function _inotify_init1_flag_str:string(f:long)
+%{ /* pure */
+  long flags = THIS->f;
+  char *str = THIS->__retvalue;
+  int len;
+
+#if defined(IN_CLOEXEC) && defined(IN_NONBLOCK)
+  if (flags & IN_NONBLOCK)
+    strlcat(str, "IN_NONBLOCK|", MAXSTRINGLEN);
+  if (flags & IN_CLOEXEC)
+    strlcat(str, "IN_CLOEXEC|", MAXSTRINGLEN);
 #endif
 
   len = strlen(str);
