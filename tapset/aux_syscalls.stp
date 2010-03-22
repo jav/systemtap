@@ -577,9 +577,11 @@ function _sys_pipe2_flag_str:string (f:long)
   char *str = THIS->__retvalue;
   int len;
 
-#if defined(O_NONBLOCK) && defined(O_CLOEXEC)
+#if defined(O_NONBLOCK)
   if (flags & O_NONBLOCK)
     strlcat(str, "O_NONBLOCK|", MAXSTRINGLEN);
+#endif
+#if defined(O_CLOEXEC)
   if (flags & O_CLOEXEC)
     strlcat(str, "O_CLOEXEC|", MAXSTRINGLEN);
 #endif
@@ -609,6 +611,10 @@ function _sys_open_flag_str:string (f:long)
 #ifdef O_APPEND
 	if (flags & O_APPEND)
 		strlcat (THIS->__retvalue, "|O_APPEND", MAXSTRINGLEN);
+#endif
+#ifdef O_CLOEXEC
+	if (flags & O_CLOEXEC)
+		strlcat (THIS->__retvalue, "|O_CLOEXEC", MAXSTRINGLEN);
 #endif
 #ifdef O_CREAT
 	if (flags & O_CREAT)
