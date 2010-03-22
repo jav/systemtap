@@ -329,7 +329,7 @@ probe nd_syscall.personality.return = kprobe.function("SyS_personality").return 
 #
 probe nd_syscall.pipe = kprobe.function("SyS_pipe") ?,
 %( arch == "ia64" %?
-                        kprobe.function("sys_ia64_pipe").call ?,
+                        kprobe.function("sys_ia64_pipe") ?,
 %)
                         kprobe.function("sys_pipe") ?
 {
