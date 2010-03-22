@@ -1,4 +1,4 @@
-* What's new
+* What's new in version 1.2
 
 - Prototype support for "perf events", where the kernel supports the
   2.6.33 in-kernel API.  Probe points may refer to low-level 

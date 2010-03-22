@@ -11,7 +11,7 @@
 %{!?publican_brand: %global publican_brand fedora}
 
 Name: systemtap
-Version: 1.1
+Version: 1.2
 Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
@@ -508,6 +508,9 @@ exit 0
 
 
 %changelog
+* Mon Mar 22 2010 Frank Ch. Eigler <fche@redhat.com> - 1.2-1
+- Upstream release.
+
 * Mon Dec 21 2009 David Smith <dsmith@redhat.com> - 1.1-1
 - Upstream release.
 
