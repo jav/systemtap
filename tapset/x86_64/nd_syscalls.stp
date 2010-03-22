@@ -139,7 +139,7 @@ probe nd_syscall.mmap32.return = kprobe.function("sys32_mmap").return
 #	unsigned long prot, unsigned long flags,
 #	unsigned long fd, unsigned long pgoff)
 #
-probe nd_syscall.mmap2 = kprobe.function("sys32_mmap2")
+probe nd_syscall.mmap2 = kprobe.function("sys32_mmap2") ?
 {
 	name = "mmap2"
 	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
@@ -150,7 +150,7 @@ probe nd_syscall.mmap2 = kprobe.function("sys32_mmap2")
 		_mprotect_prot_str(ulong_arg(3)), _mmap_flags(ulong_arg(4)),
 		int_arg(5), ulong_arg(6))
 }
-probe nd_syscall.mmap2.return = kprobe.function("sys32_mmap2").return
+probe nd_syscall.mmap2.return = kprobe.function("sys32_mmap2").return ?
 {
 	name = "mmap2"
 	retstr = returnstr(2)
