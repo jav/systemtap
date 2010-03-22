@@ -74,7 +74,8 @@ probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ?
 # long sys_mmap(unsigned long addr, unsigned long len,
 #          unsigned long prot, unsigned long flags,
 #          unsigned long fd, unsigned long off)
-probe syscall.mmap = kernel.function("sys_mmap") ?
+probe syscall.mmap = kernel.function("sys_mmap") ?,
+	kernel.function("sys_mmap_pgoff") ?
 {
 	name = "mmap"
 	start = $addr
@@ -84,13 +85,14 @@ probe syscall.mmap = kernel.function("sys_mmap") ?
 	# Although the kernel gets an unsigned long fd, on the
 	# user-side it is a signed int.  Fix this.
 	fd = __int32($fd)
-	offset = $off
+	offset = (@defined($pgoff) ? $pgoff : $off)
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
 		_mprotect_prot_str($prot), _mmap_flags($flags),
-		__int32($fd), $off)
+		__int32($fd), (@defined($pgoff) ? $pgoff : $off))
 }
 
-probe syscall.mmap.return = kernel.function("sys_mmap").return ?
+probe syscall.mmap.return = kernel.function("sys_mmap").return ?,
+      kernel.function("sys_mmap_pgoff").return ?
 {
 	name = "mmap"
 	retstr = returnstr(2)
