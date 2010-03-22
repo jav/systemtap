@@ -1714,7 +1714,9 @@ function _signalfd4_flags_str:string(f:long)
 %}
 
 %{
+#ifdef CONFIG_INOTIFY
 #include <linux/inotify.h>
+#endif
 %}
 function _inotify_init1_flag_str:string(f:long)
 %{ /* pure */
