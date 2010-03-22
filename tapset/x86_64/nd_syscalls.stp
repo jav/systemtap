@@ -87,7 +87,8 @@ probe nd_syscall.sysctl32.return = kprobe.function("sys32_sysctl").return ?
 # long sys_mmap(unsigned long addr, unsigned long len,
 #          unsigned long prot, unsigned long flags,
 #          unsigned long fd, unsigned long off)
-probe nd_syscall.mmap = kprobe.function("sys_mmap") ?
+probe nd_syscall.mmap = kprobe.function("sys_mmap") ?,
+                        kprobe.function("sys_mmap_pgoff") ?
 {
 	name = "mmap"
 	// start = $addr
@@ -111,7 +112,8 @@ probe nd_syscall.mmap = kprobe.function("sys_mmap") ?
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, len,
 		_mprotect_prot_str(prot), _mmap_flags(flags), fd, offset)
 }
-probe nd_syscall.mmap.return = kprobe.function("sys_mmap").return ?
+probe nd_syscall.mmap.return = kprobe.function("sys_mmap").return ?,
+                               kprobe.function("sys_mmap_pgoff").return ?
 {
 	name = "mmap"
 	retstr = returnstr(2)

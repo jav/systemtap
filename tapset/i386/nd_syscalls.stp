@@ -72,7 +72,8 @@ probe nd_syscall.ipc.return = kprobe.function("sys_ipc").return ?
 #	  unsigned long prot, unsigned long flags,
 #	  unsigned long fd, unsigned long pgoff)
 #
-probe nd_syscall.mmap2 = kprobe.function("sys_mmap2") ?
+probe nd_syscall.mmap2 = kprobe.function("sys_mmap_pgoff") ?,
+                         kprobe.function("sys_mmap2") ?
 {
 	name = "mmap2"
 	// start = $addr
@@ -97,7 +98,8 @@ probe nd_syscall.mmap2 = kprobe.function("sys_mmap2") ?
 			length, _mprotect_prot_str(prot), _mmap_flags(flags),
 			fd, pgoffset)
 }
-probe nd_syscall.mmap2.return = kprobe.function("sys_mmap2").return ?
+probe nd_syscall.mmap2.return = kprobe.function("sys_mmap_pgoff").return ?,
+                                kprobe.function("sys_mmap2").return ?
 {
 	name = "mmap2"
 	retstr = returnstr(2)
