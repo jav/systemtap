@@ -894,8 +894,7 @@ skip:
 
 	  if (c < 0 || c == '\n')
 	    {
-	      n->type = tok_junk;
-	      break;
+		  throw parse_error("Could not find matching closing quote", n);
 	    }
 	  if (c == '\"') // closing double-quotes
 	    break;
@@ -994,8 +993,8 @@ skip:
               c = c2;
               c2 = input_get ();
             }
-          n->type = tok_junk;
-          return n;
+
+	      throw parse_error ("Could not find matching '%}' to close embedded function block", n);
         }
 
       // We're committed to recognizing at least the first character
