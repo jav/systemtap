@@ -1297,13 +1297,15 @@ probe nd_syscall.rt_sigaction32 = kprobe.function("sys32_rt_sigaction") ?,
 	// act_uaddr = $act
 	// oact_uaddr = $oact
 	// sigsetsize = $sigsetsize
-	// argstr = sprintf("%s, %p, %p, %d", _signal_name($sig), $act, $oact, $sigsetsize)
+	// argstr = sprintf("%s, {%s}, %p, %d", _signal_name($sig),
+	//	_struct_sigaction32_u($act), $oact, $sigsetsize)
 	asmlinkage()
 	sig = int_arg(1)
 	act_uaddr = pointer_arg(2)
 	oact_uaddr = pointer_arg(3)
 	sigsetsize = uint_arg(4)
-	argstr = sprintf("%s, %p, %p, %d", _signal_name(sig), act_uaddr, oact_uaddr, sigsetsize)
+	argstr = sprintf("%s, {%s}, %p, %d", _signal_name(sig),
+	        _struct_sigaction32_u(act_uaddr), oact_uaddr, sigsetsize)
 }
 probe nd_syscall.rt_sigaction32.return = kprobe.function("sys32_rt_sigaction").return ?,
                                          kprobe.function("compat_sys_rt_sigaction").return ?
@@ -1770,8 +1772,9 @@ probe nd_syscall.compat_select = kprobe.function("compat_sys_select") ?
 	writefds_uaddr = pointer_arg(3)
 	exceptfds_uaddr = pointer_arg(4)
 	timeout_uaddr = pointer_arg(5)
-	argstr = sprintf("%d, %p, %p, %p, %s", n, readfds_uaddr, writefds_uaddr,
-				exceptfds_uaddr, _struct_timeval_u(timeout_uaddr, 1))
+	argstr = sprintf("%d, %p, %p, %p, %s", n, readfds_uaddr,
+		writefds_uaddr, exceptfds_uaddr,
+		_struct_compat_timeval_u(timeout_uaddr, 1))
 }
 probe nd_syscall.compat_select.return = kprobe.function("compat_sys_select").return ?
 {
@@ -2983,20 +2986,22 @@ probe nd_syscall.sigaction.return = kprobe.function("sys_sigaction").return ?
 	name = "sigaction"
 	retstr = returnstr(1)
 }
-probe nd_syscall.sigaction32 = kprobe.function("sys32_sigaction") ?
+probe nd_syscall.sigaction32 = kprobe.function("sys32_sigaction") ?,
+                               kprobe.function("compat_sys_sigaction") ?
 {
 	name = "sigaction"
 	// sig = $sig
 	// sact_uaddr = $act
 	// soact_uaddr = $oact
-	// sargstr = sprintf("%s, %p, %p", _signal_name($sig), $act, $oact)
+	// argstr = sprintf("%s, {%s}, %p", _signal_name($sig), _struct_old_sigaction32_u($act), $oact)
 	asmlinkage()
 	sig = int_arg(1)
 	act_uaddr = pointer_arg(2)
 	oact_uaddr = pointer_arg(3)
-	argstr = sprintf("%s, %p, %p", _signal_name(sig), act_uaddr, oact_uaddr)
+	argstr = sprintf("%s, {%s}, %p", _signal_name(sig), _struct_old_sigaction32_u(act_uaddr), oact_uaddr)
 }
-probe nd_syscall.sigaction32.return = kprobe.function("sys32_sigaction").return ?
+probe nd_syscall.sigaction32.return = kprobe.function("sys32_sigaction").return ?,
+                                      kprobe.function("compat_sys_sigaction") ?
 {
 	name = "sigaction"
 	retstr = returnstr(1)
