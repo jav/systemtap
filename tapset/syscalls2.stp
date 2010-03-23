@@ -343,11 +343,7 @@ probe syscall.pipe.return = kernel.function("SyS_pipe2").return !,
                             kernel.function("sys_ia64_pipe").return ?,
                             kernel.function("sys_pipe").return
 {
-	if (@defined($flags)) {
-		flags = $flags
-		flag_str = _sys_pipe2_flag_str(flags);
-	}
-	name = flags == 0 ? "pipe" : "pipe2";
+	name = @defined($flags) ? "pipe" : "pipe2";
 	if (@defined($fildes)) {
 		fildes_uaddr = $fildes
 		if (fildes_uaddr == 0) {
