@@ -56,7 +56,7 @@ function probefunc:string () %{ /* pure */
 	if (start) {
 		int len = MAXSTRINGLEN;
 		char *dst = THIS->__retvalue;
-		while (*ptr != '@' && --len > 0 && *ptr)
+		while (*ptr != '@' && *ptr != '"' && --len > 0 && *ptr)
 			*dst++ = *ptr++;
 		*dst = 0;
 
