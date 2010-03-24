@@ -72,7 +72,7 @@
 #define STAP_UNINLINE
 #endif
 
-#if defined __x86_64__ || defined __i386__  || defined __powerpc__ || defined __arm__
+#if defined __x86_64__ || defined __i386__  || defined __powerpc__ || defined __arm__ || defined __sparc__
 #define STAP_NOP "\tnop "
 #else
 #define STAP_NOP "\tnop 0 "
