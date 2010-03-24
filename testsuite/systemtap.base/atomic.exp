@@ -31,63 +31,31 @@ set test "atomic3"
 set script [format $script_template "3"]
 stap_run_error $test 1 $error "" -e $script
 
-
-set build_dir ""
-
-proc cleanup_module {} {
-    global build_dir
-    as_root [list /sbin/rmmod atomic_module]
-    catch { exec rm -rf $build_dir }
-}
-
-proc build_and_install_module {} {
-    global build_dir
-    global srcdir subdir
-
-    # Create the build directory and populate it
-    if {[catch {exec mktemp -d staptestXXXXXX} build_dir]} {
-	verbose -log "Failed to create temporary directory: $build_dir"
-	return 0
-    }
-    exec cp $srcdir/$subdir/atomic_module.c $build_dir/
-    exec cp -p $srcdir/$subdir/atomic_module.makefile $build_dir/Makefile
-
-    # Build the module
-    if {[catch {exec make -C $build_dir clean} res]} {
-	verbose -log "$res"
-	return 0
-    }
-    catch {exec make -C $build_dir} res
-    if {![file exists $build_dir/atomic_module.ko]} {
-	verbose -log "$res"
-	return 0
-    }
-
-    # Install the module
-    set res [as_root [list /sbin/insmod $build_dir/atomic_module.ko]]
-    if {$res != 0} {
-	return 0
-    }
-
-    return 1
-}
-
-set test "atomic_module_build"
-if {[build_and_install_module] == 0} {
-    verbose -log "BUILD FAILED"
-    fail "$test - could not build/install module"
-    cleanup_module
-    return
-} else {
-    pass $test
-}
+# Since we want to fail semi-gracefully (no compile errors), if we
+# don't have atomic_long_t support on this kernel (no
+# ATOMIC_LONG_INIT) the testcase will compile, but fail.
 
 set script_module_template {
+    %%{
+    #include <asm/atomic.h>
+    #ifdef ATOMIC_LONG_INIT
+    struct {
+        ulong barrier1;
+        atomic_long_t a;
+        ulong barrier2;
+    } stp_atomic_struct = { ULONG_MAX, ATOMIC_LONG_INIT(5), ULONG_MAX };
+    #else
+    struct {
+        ulong barrier1;
+        long a;
+        ulong barrier2;
+    } stp_atomic_struct = { ULONG_MAX, 5, ULONG_MAX };
+    #endif
+    %%}
+
     function get_atomic_addr:long()
     %%{
-	extern atomic_long_t *stp_get_atomic_long_addr(void);
-	atomic_long_t *a = stp_get_atomic_long_addr();
-	THIS->__retvalue = (long)a;
+	THIS->__retvalue = (long)&stp_atomic_struct.a;
     %%}
 
     probe begin {
@@ -111,5 +79,3 @@ stap_run_error $test 0 $error "5\r\n" -ge $script
 #set test "atomic5"
 #set script [format $script_module_template "3"]
 #stap_run_error $test 1 $error "" -ge $script
-
-cleanup_module

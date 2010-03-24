@@ -50,6 +50,11 @@ proc stap_run_error { TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING ar
 			fail "$TEST_NAME unexpected error"
 		    }
 		}
+		timeout { 
+                    fail "$TEST_NAME shutdown (timeout)"
+                    exec kill -INT -[exp_pid] 
+                }
+		eof { fail "$TEST_NAME shutdown (eof)" }
 	    }
 	}
 	-re "semantic error:" { fail "$TEST_NAME compilation" }
