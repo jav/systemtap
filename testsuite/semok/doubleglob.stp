@@ -1,0 +1,6 @@
+#! stap -p2
+
+probe *sys**pen {} // [nd_]syscall.[mq_]open
+probe t**ile {} // timer.profile
+probe t**es(1) {} // timer.jiffies(1)
+probe ke**on("vfs_read") {} // kernel.function("vfs_open")

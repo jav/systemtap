@@ -289,6 +289,12 @@ isglob(string const & str)
   return(str.find('*') != str.npos);
 }
 
+static bool
+isdoubleglob(string const & str)
+{
+  return(str.find("**") != str.npos);
+}
+
 bool
 match_key::globmatch(match_key const & other) const
 {
@@ -389,6 +395,74 @@ match_node::find_and_build (systemtap_session& s,
         {
           derived_probe_builder *b = ends[k];
           b->build (s, p, loc, param_map, results);
+        }
+    }
+  else if (isdoubleglob(loc->components[pos]->functor)) // ** wildcard?
+    {
+      unsigned int num_results = results.size();
+
+      // When faced with "foo**bar", we try "foo*bar" and "foo*.**bar"
+
+      const probe_point::component *comp = loc->components[pos];
+      const string &functor = comp->functor;
+      size_t glob_start = functor.find("**");
+      size_t glob_end = functor.find_first_not_of('*', glob_start);
+      const string prefix = functor.substr(0, glob_start);
+      const string suffix = ((glob_end != string::npos) ?
+                             functor.substr(glob_end) : "");
+
+      // Synthesize "foo*bar"
+      probe_point *simple_pp = new probe_point(*loc);
+      probe_point::component *simple_comp = new probe_point::component(*comp);
+      simple_comp->functor = prefix + "*" + suffix;
+      simple_pp->components[pos] = simple_comp;
+      try
+        {
+          find_and_build (s, p, simple_pp, pos, results);
+        }
+      catch (const semantic_error& e)
+        {
+          // Ignore semantic_errors, but cleanup
+          delete simple_pp;
+          delete simple_comp;
+        }
+
+      // Synthesize "foo*.**bar"
+      // NB: any component arg should attach to the latter part only
+      probe_point *expanded_pp = new probe_point(*loc);
+      probe_point::component *expanded_comp_pre = new probe_point::component(*comp);
+      expanded_comp_pre->functor = prefix + "*";
+      expanded_comp_pre->arg = NULL;
+      probe_point::component *expanded_comp_post = new probe_point::component(*comp);
+      expanded_comp_post->functor = "**" + suffix;
+      expanded_pp->components[pos] = expanded_comp_pre;
+      expanded_pp->components.insert(expanded_pp->components.begin() + pos + 1,
+                                     expanded_comp_post);
+      try
+        {
+          find_and_build (s, p, expanded_pp, pos, results);
+        }
+      catch (const semantic_error& e)
+        {
+          // Ignore semantic_errors, but cleanup
+          delete expanded_pp;
+          delete expanded_comp_pre;
+          delete expanded_comp_post;
+        }
+
+      if (! loc->optional && num_results == results.size())
+        {
+          // We didn't find any wildcard matches (since the size of
+          // the result vector didn't change).  Throw an error.
+          string alternatives;
+          for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
+            alternatives += string(" ") + i->first.str();
+
+          throw semantic_error(string("probe point mismatch at position ") +
+                               lex_cast (pos) +
+                               " (alternatives:" + alternatives + ")" +
+                               " didn't find any wildcard matches",
+                               comp->tok);
         }
     }
   else if (isglob(loc->components[pos]->functor)) // wildcard?
