@@ -1,3 +1,10 @@
+* What's new
+
+- Probe wildcards can now use '**' to cross the '.' separator.
+     $ stap -l 'sys**open'
+     syscall.mq_open
+     syscall.open
+
 * What's new in version 1.2
 
 - Prototype support for "perf events", where the kernel supports the

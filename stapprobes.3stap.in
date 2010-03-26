@@ -26,7 +26,8 @@ allows a breakdown of the event namespace into parts, somewhat like
 the Domain Name System does on the Internet.  Each component
 identifier may be parametrized by a string or number literal, with a
 syntax like a function call.  A component may include a "*" character,
-to expand to a set of matching probe points.  Probe aliases likewise
+to expand to a set of matching probe points.  It may also include "**"
+to match multiple sequential components at once.  Probe aliases likewise
 expand to other probe points.  Each and every resulting probe point is
 normally resolved to some low-level system instrumentation facility
 (e.g., a kprobe address, marker, or a timer configuration), otherwise
@@ -61,6 +62,7 @@ kernel.function("foo").return
 process("/bin/vi").statement(0x2222)
 end
 syscall.*
+sys**open
 kernel.function("no_such_function") ?
 module("awol").function("no_such_function") !
 signal.*? if (switch)
