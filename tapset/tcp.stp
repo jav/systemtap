@@ -1,7 +1,7 @@
 // TCP tapset
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
-// Copyright (C) 2007 Red Hat, Inc.
+// Copyright (C) 2007,2010 Red Hat, Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -75,12 +75,13 @@ function tcp_ts_get_info_state:long(sock:long)
 %}
 
 /* return the TCP destination port for a given sock */
-function __tcp_sock_dport:long (sock:long){
-%(kernel_v < "2.6.33" %?
-	return @cast(sock, "inet_sock")->dport
-%:
-	return @cast(sock, "inet_sock")->inet_dport
-%)
+function __tcp_sock_dport:long (sock:long)
+{
+    return (@defined(@cast(sock, "inet_sock")->inet_dport)
+	    ? @cast(sock, "inet_sock")->inet_dport # kernel >= 2.6.33
+	    : (@defined(@cast(sock, "inet_sock")->dport)
+	       ? @cast(sock, "inet_sock", "kernel")->dport # kernel >= 2.6.11
+	       : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->dport))
 }
 
 /* returns the TCP header for recent (<2.6.21) kernel */
@@ -98,7 +99,8 @@ function __get_skb_tcphdr_new:long(skb:long)
 %}
 
 /* returns the TCP header for a given sk_buff structure */
-function __get_skb_tcphdr:long(skb:long){
+function __get_skb_tcphdr:long(skb:long)
+{
 %( kernel_v < "2.6.21" %?
 	tcphdr = @cast(skb, "sk_buff")->h->raw
 	return tcphdr
@@ -108,52 +110,60 @@ function __get_skb_tcphdr:long(skb:long){
 }
 
 /* returns TCP URG flag for a given sk_buff structure */
-function __tcp_skb_urg:long (tcphdr){
+function __tcp_skb_urg:long (tcphdr:long)
+{
 	return @cast(tcphdr, "tcphdr")->urg
 }
 
 /* returns TCP ACK flag for a given sk_buff structure */
-function __tcp_skb_ack:long (tcphdr){
+function __tcp_skb_ack:long (tcphdr:long)
+{
 	return @cast(tcphdr, "tcphdr")->ack
 }
 
 /* returns TCP PSH flag for a given sk_buff structure */
-function __tcp_skb_psh:long (tcphdr){
+function __tcp_skb_psh:long (tcphdr:long)
+{
 	return @cast(tcphdr, "tcphdr")->psh
 }
 
 /* returns TCP RST flag for a given sk_buff structure */
-function __tcp_skb_rst:long (tcphdr){
+function __tcp_skb_rst:long (tcphdr:long)
+{
 	return @cast(tcphdr, "tcphdr")->rst
 }
 
 /* returns TCP SYN flag for a given sk_buff structure */
-function __tcp_skb_syn:long (tcphdr){
+function __tcp_skb_syn:long (tcphdr:long)
+{
 	return @cast(tcphdr, "tcphdr")->syn
 }
 
 /* returns TCP FIN flag for a given sk_buff structure */
-function __tcp_skb_fin:long (tcphdr){
+function __tcp_skb_fin:long (tcphdr:long)
+{
 	return @cast(tcphdr, "tcphdr")->fin
 }
 
 /* returns TCP source port for a given sk_buff structure */
-function __tcp_skb_sport:long (tcphdr){
+function __tcp_skb_sport:long (tcphdr:long)
+{
 	return ntohs(@cast(tcphdr, "tcphdr")->source)
 }
 
 /* returns TCP destination port for a given sk_buff structure */
-function __tcp_skb_dport:long (tcphdr){
+function __tcp_skb_dport:long (tcphdr:long){
 	return @cast(tcphdr, "tcphdr")->dest
 }
 
 /* return the TCP source port for a given sock */
-function __tcp_sock_sport:long (sock:long){
-%(kernel_v < "2.6.33" %?
-	return @cast(sock, "inet_sock")->sport
-%:
-	return @cast(sock, "inet_sock")->inet_sport
-%)
+function __tcp_sock_sport:long (sock:long)
+{
+    return (@defined(@cast(sock, "inet_sock")->inet_sport)
+	    ? @cast(sock, "inet_sock")->inet_sport # kernel >= 2.6.33
+	    : (@defined(@cast(sock, "inet_sock")->sport)
+	       ? @cast(sock, "inet_sock", "kernel")->sport # kernel >= 2.6.11
+	       : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->sport))
 }
 
 global sockstate[13], sockstate_init_p
