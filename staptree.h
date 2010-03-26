@@ -92,7 +92,8 @@ struct literal_string: public literal
 struct literal_number: public literal
 {
   int64_t value;
-  literal_number (int64_t v);
+  bool print_hex;
+  literal_number (int64_t v, bool hex=false);
   void print (std::ostream& o) const;
   void visit (visitor* u);
 };

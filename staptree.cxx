@@ -169,9 +169,10 @@ functiondecl::functiondecl ():
 }
 
 
-literal_number::literal_number (int64_t v)
+literal_number::literal_number (int64_t v, bool hex)
 {
   value = v;
+  print_hex = hex;
   type = pe_long;
 }
 
@@ -255,7 +256,11 @@ void literal_string::print (ostream& o) const
 
 void literal_number::print (ostream& o) const
 {
+  if (print_hex)
+    o << hex << showbase;
   o << value;
+  if (print_hex)
+    o << dec << noshowbase;
 }
 
 

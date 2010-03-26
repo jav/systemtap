@@ -3114,7 +3114,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
         retro_addr = q.statement_num_val;
       comps.push_back (new probe_point::component
                        (fn_or_stmt,
-                        new literal_number(retro_addr))); // XXX: should be hex if possible
+                        new literal_number(retro_addr, true)));
 
       if (q.has_absolute)
         comps.push_back (new probe_point::component (TOK_ABSOLUTE));
@@ -4205,7 +4205,8 @@ sdt_query::convert_location ()
                 << hex << probe_arg << dec << endl;
             // process("executable").statement(probe_arg)
             derived_loc->components[i] =
-              new probe_point::component(TOK_STATEMENT, new literal_number(probe_arg));
+              new probe_point::component(TOK_STATEMENT,
+                                         new literal_number(probe_arg, true));
             break;
 
           case kprobe_type:
@@ -5080,7 +5081,8 @@ kprobe_derived_probe::kprobe_derived_probe (probe *base,
 
   if (has_statement)
     {
-      comps.push_back (new probe_point::component(TOK_STATEMENT, new literal_number(addr)));
+      comps.push_back (new probe_point::component(TOK_STATEMENT,
+                                                  new literal_number(addr, true)));
       comps.push_back (new probe_point::component(TOK_ABSOLUTE));
     }
   else
@@ -5531,14 +5533,14 @@ public:
 };
 
 hwbkpt_derived_probe::hwbkpt_derived_probe (probe *base,
-					    probe_point *location,
-					    uint64_t addr,
-					    string symname,
-					    unsigned int len,
-					    bool has_only_read_access,
-					    bool has_only_write_access,
-					    bool has_rw_access
-					    ):
+                                            probe_point *location,
+                                            uint64_t addr,
+                                            string symname,
+                                            unsigned int len,
+                                            bool has_only_read_access,
+                                            bool has_only_write_access,
+                                            bool has_rw_access
+                                            ):
   derived_probe (base, location),
   hwbkpt_addr (addr),
   symbol_name (symname),
@@ -5550,30 +5552,30 @@ hwbkpt_derived_probe::hwbkpt_derived_probe (probe *base,
   comps.push_back (new probe_point::component(TOK_KERNEL));
 
   if (hwbkpt_addr)
-	  comps.push_back (new probe_point::component (TOK_HWBKPT, new literal_number(hwbkpt_addr)));
-  else
-	if (symbol_name.size())
-	  comps.push_back (new probe_point::component (TOK_HWBKPT, new literal_string(symbol_name)));
+    comps.push_back (new probe_point::component (TOK_HWBKPT,
+                                                 new literal_number(hwbkpt_addr, true)));
+  else if (symbol_name.size())
+    comps.push_back (new probe_point::component (TOK_HWBKPT, new literal_string(symbol_name)));
 
   comps.push_back (new probe_point::component (TOK_LENGTH, new literal_number(hwbkpt_len)));
 
   if (has_only_read_access)
-	this->hwbkpt_access = HWBKPT_READ ;
+    this->hwbkpt_access = HWBKPT_READ ;
 //TODO add code for comps.push_back for read, since this flag is not for x86
 
   else
-	{
-	  if (has_only_write_access)
-		{
-		  this->hwbkpt_access = HWBKPT_WRITE ;
-	  	  comps.push_back (new probe_point::component(TOK_HWBKPT_WRITE));
-		}
-	  else
-		{
-		  this->hwbkpt_access = HWBKPT_RW ;
-	  	  comps.push_back (new probe_point::component(TOK_HWBKPT_RW));
-		}
-	}
+    {
+      if (has_only_write_access)
+        {
+          this->hwbkpt_access = HWBKPT_WRITE ;
+          comps.push_back (new probe_point::component(TOK_HWBKPT_WRITE));
+        }
+      else
+        {
+          this->hwbkpt_access = HWBKPT_RW ;
+          comps.push_back (new probe_point::component(TOK_HWBKPT_RW));
+        }
+    }
 
   this->sole_location()->components = comps;
 }
