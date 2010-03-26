@@ -1091,20 +1091,7 @@ void probe_point::print (ostream& o) const
 string probe_point::str ()
 {
   ostringstream o;
-  for (unsigned i=0; i<components.size(); i++)
-    {
-      if (i>0) o << ".";
-      probe_point::component* c = components[i];
-      o << c->functor;
-      if (c->arg)
-        o << "(" << *c->arg << ")";
-    }
-  if (sufficient)
-    o << "!";
-  else if (optional) // sufficient implies optional
-    o << "?";
-  if (condition)
-    o<< " if (" << *condition << ")";
+  print(o);
   return o.str();
 }
 
