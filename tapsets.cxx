@@ -357,6 +357,8 @@ struct dwarf_derived_probe: public derived_probe
   bool has_maxactive;
   bool has_library;
   long maxactive_val;
+  string user_path;
+  string user_lib;
   bool access_vars;
 
   unsigned saved_longs, saved_strings;
@@ -564,11 +566,15 @@ struct dwarf_query : public base_query
 	      probe_point * base_loc,
 	      dwflpp & dw,
 	      literal_map_t const & params,
-	      vector<derived_probe *> & results);
+	      vector<derived_probe *> & results,
+	      const string user_path,
+	      const string user_lib);
 
   vector<derived_probe *> & results;
   probe * base_probe;
   probe_point * base_loc;
+  string user_path;
+  string user_lib;
 
   virtual void handle_query_module();
   void query_module_dwarf();
@@ -642,6 +648,8 @@ struct dwarf_builder: public derived_probe_builder
 {
   map <string,dwflpp*> kern_dw; /* NB: key string could be a wildcard */
   map <string,dwflpp*> user_dw;
+  string user_path;
+  string user_lib;
   dwarf_builder() {}
 
   dwflpp *get_kern_dw(systemtap_session& sess, const string& module)
@@ -704,9 +712,12 @@ dwarf_query::dwarf_query(probe * base_probe,
 			 probe_point * base_loc,
 			 dwflpp & dw,
 			 literal_map_t const & params,
-			 vector<derived_probe *> & results)
+			 vector<derived_probe *> & results,
+			 const string user_path,
+			 const string user_lib)
   : base_query(dw, params), results(results),
-    base_probe(base_probe), base_loc(base_loc)
+    base_probe(base_probe), base_loc(base_loc),
+    user_path(user_path), user_lib(user_lib)
 {
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
@@ -2958,6 +2969,8 @@ dwarf_derived_probe::join_group (systemtap_session& s)
   if (! s.dwarf_derived_probes)
     s.dwarf_derived_probes = new dwarf_derived_probe_group ();
   s.dwarf_derived_probes->enroll (this);
+
+  enable_task_finder(s);
 }
 
 
@@ -2985,10 +2998,15 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     has_maxactive (q.has_maxactive),
     has_library (q.has_library), 
     maxactive_val (q.maxactive_val),
+    user_path (q.user_path),
+    user_lib (q.user_lib),
     access_vars(false),
     saved_longs(0), saved_strings(0), 
     entry_handler(0)
 {
+  if (user_lib.size() != 0)
+    has_library = true;
+
   if (q.has_process)
     {
       // We may receive probes on two types of ELF objects: ET_EXEC or ET_DYN.
@@ -3390,6 +3408,9 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "} stap_dwarf_kprobes[" << probes_by_module.size() << "];";
   // NB: bss!
 
+  s.op->newline() << "static int stap_kprobe_mmap_found (struct stap_task_finder_target *finder, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags);";
+  s.op->newline() << "static int stap_kprobe_process_found (struct stap_task_finder_target *finder, struct task_struct *tsk, int register_p, int process_p);";
+
   s.op->newline() << "static struct stap_dwarf_probe {";
   s.op->newline(1) << "const unsigned return_p:1;";
   s.op->newline() << "const unsigned maxactive_p:1;";
@@ -3444,6 +3465,11 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "const unsigned long address;";
   s.op->newline() << "void (* const ph) (struct context*);";
   s.op->newline() << "void (* const entry_ph) (struct context*);";
+  s.op->newline() << "const unsigned long sdt_sem_offset;";
+  s.op->newline() << "unsigned long sdt_sem_address;";
+  s.op->newline() << "struct task_struct *tsk;";
+  s.op->newline() << "const char *pathname;";
+  s.op->newline() << "struct stap_task_finder_target finder;";
   s.op->newline(-1) << "} stap_dwarf_probes[] = {";
   s.op->indent(1);
 
@@ -3474,7 +3500,34 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .module=\"" << p->module << "\",";
       s.op->line() << " .section=\"" << p->section << "\",";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
+      if (p->sdt_semaphore_addr != 0)
+	{
+	  s.op->line() << " .sdt_sem_offset=(unsigned long)0x" << hex << p->sdt_semaphore_addr << dec << "ULL,";
+	  s.op->line() << " .sdt_sem_address=0,";
+	  if (p->has_library)
+	    {
+	      s.op->line() << " .finder={";
+	      s.op->line() << " .pid=0,";
+	      s.op->line() << " .procname=\"" << p->user_path << "\",";
+	      s.op->line() << " .mmap_callback=&stap_kprobe_mmap_found,";
+	      s.op->line() << " },";
+	      s.op->line() << " .pathname=\"" << p->user_lib << "\",";
+	    }
+	  else
+	    {
+	      s.op->line() << " .finder={";
+	      s.op->line() << " .pid=0,";
+	      s.op->line() << " .procname=\"" << p->user_path << "\",";
+	      s.op->line() << " .callback=&stap_kprobe_process_found,";
+	      s.op->line() << " },";
+	      s.op->line() << " .pathname=\"" << p->user_path << "\",";
+	    }
+
+	}
+      else
+	s.op->line() << " .sdt_sem_offset=0,";
       s.op->line() << " .ph=&" << p->name;
+
       s.op->line() << " },";
     }
 
@@ -3565,12 +3618,85 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << " struct pt_regs *regs) {";
   s.op->newline(1) << "return enter_kretprobe_common(inst, regs, 1);";
   s.op->newline(-1) << "}";
+
+  s.op->newline() << "static int stap_kprobe_process_found (struct stap_task_finder_target *finder, struct task_struct *tsk, int register_p, int process_p) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *p = container_of(finder, struct stap_dwarf_probe, finder);";
+  s.op->newline() << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
+  s.op->newline() << "if (! process_p) return 0; /* ignore threads */";
+  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
+  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"%cproc pid %d stf %p %p path %s\\n\", register_p?'+':'-', tsk->tgid, finder, p, p->pathname);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "p->tsk = tsk;";
+  s.op->newline() << "p->sdt_sem_address = p->sdt_sem_offset;";
+  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
+  s.op->newline(1) << "sdt_semaphore ++;";
+  s.op->newline() << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx\\n\", sdt_semaphore, p->sdt_sem_address);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
+
+  // The task_finder_mmap_callback
+  s.op->newline() << "static int stap_kprobe_mmap_found (struct stap_task_finder_target *finder, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *p = container_of(finder, struct stap_dwarf_probe, finder);";
+  s.op->newline() << "int rc = 0;";
+  // the shared library we're interested in
+  s.op->newline() << "if (path == NULL || strcmp (path, p->pathname)) return 0;";
+  s.op->newline() << "if (p->sdt_sem_offset && p->sdt_sem_address == 0) {";
+  s.op->indent(1);
+  s.op->newline() << "p->tsk = tsk;";
+  // If the probe is in the executable itself, the offset *is* the
+  // address.
+  s.op->newline() << "if (vm_flags & VM_EXECUTABLE) {";
+  s.op->indent(1);
+  s.op->newline() << "p->sdt_sem_address = addr + p->sdt_sem_offset;";
+  s.op->newline(-1) << "}";
+  // If the probe is in a .so, we have to calculate the address.
+  s.op->newline() << "else {";
+  s.op->indent(1);
+  s.op->newline() << "p->sdt_sem_address = (addr - offset) + p->sdt_sem_offset;";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "if (p->sdt_sem_address && (vm_flags & VM_WRITE)) {";
+  s.op->newline(1) << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
+  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
+  s.op->newline(1) << "sdt_semaphore ++;";
+  s.op->newline() << "#ifdef DEBUG_UPROBES";
+  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx\\n\", sdt_semaphore, p->sdt_sem_address);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
 }
 
 
 void
 dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 {
+  p_b_m_iterator it;
+  for (it = probes_by_module.begin(); it != probes_by_module.end(); it++)
+    {
+      dwarf_derived_probe* p = it->second;
+      if (p->sdt_semaphore_addr != 0)
+	break;
+    }
+  if (it != probes_by_module.end()) // Ignore if there are no semaphores
+    {
+      s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_dwarf_probes); i++) {";
+      s.op->newline(1) << "int rc;";
+      s.op->newline() << "struct stap_dwarf_probe *p = &stap_dwarf_probes[i];";
+      s.op->newline() << "probe_point = p->pp;"; // for error messages
+      s.op->newline() << "if (p->sdt_sem_offset) {";
+      s.op->newline(1) << "rc = stap_register_task_finder_target(&p->finder);";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "if (rc) break;";
+      s.op->newline(-1) << "}";
+    }
+
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
   s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
@@ -3654,6 +3780,15 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 void
 dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline() << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
+  s.op->newline() << "if (sdp->sdt_sem_address && __access_process_vm_noflush (sdp->tsk, sdp->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0)) {";
+  s.op->newline(1) << "sdt_semaphore --;";
+  s.op->newline() << "__access_process_vm_noflush (sdp->tsk, sdp->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+
   //Unregister kprobes by batch interfaces.
   s.op->newline() << "#if defined(STAPCONF_UNREGISTER_KPROBES)";
   s.op->newline() << "j = 0;";
@@ -3959,7 +4094,7 @@ sdt_query::handle_query_module()
               params[c->functor] = c->arg;
             }
 
-          dwarf_query q(new_base, new_location, dw, params, results);
+          dwarf_query q(new_base, new_location, dw, params, results, "", "");
           q.has_mark = true; // enables mid-statement probing
           dw.iterate_over_modules(&query_module, &q);
         }
@@ -4209,13 +4344,15 @@ sdt_query::convert_location ()
                                          new literal_number(probe_arg, true));
             break;
 
-          case kprobe_type:
-            if (sess.verbose > 3)
-              clog << "probe_type == kprobe_type" << endl;
-            // kernel.function("*getegid*")
-            derived_loc->components[i] =
-              new probe_point::component(TOK_FUNCTION, new literal_string("*getegid*"));
-            break;
+	  case kprobe_type:
+	    if (sess.verbose > 3)
+	      clog << "probe_type == kprobe_type" << endl;
+	    // kernel.function("*getegid*")
+	    derived_loc->components[i] =
+	      new probe_point::component(TOK_FUNCTION, new literal_string("*getegid*"));
+	    if (derived_loc->components[i - 1]->functor == TOK_LIBRARY)
+	      derived_loc->components.erase (derived_loc->components.begin() + i - 1);
+	    break;
 
           default:
             if (sess.verbose > 3)
@@ -4265,10 +4402,14 @@ dwarf_builder::build(systemtap_session & sess,
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
       string library_name;
+      user_path = find_executable (module_name); // canonicalize it
       if (get_param (parameters, TOK_LIBRARY, library_name))
-	module_name = find_executable (library_name, "LD_LIBRARY_PATH");
+	{
+	  module_name = find_executable (library_name, "LD_LIBRARY_PATH");
+	  user_lib = module_name;
+	}
       else
-	module_name = find_executable (module_name); // canonicalize it
+	module_name = user_path; // canonicalize it
 
       if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
         throw semantic_error ("process probes not available without kernel CONFIG_UTRACE");
@@ -4289,7 +4430,7 @@ dwarf_builder::build(systemtap_session & sess,
       return;
     }
 
-  dwarf_query q(base, location, *dw, parameters, finished_results);
+  dwarf_query q(base, location, *dw, parameters, finished_results, user_path, user_lib);
 
   // XXX: kernel.statement.absolute is a special case that requires no
   // dwfl processing.  This code should be in a separate builder.
@@ -5026,14 +5167,22 @@ struct kprobe_derived_probe: public derived_probe
 			bool has_return,
 			bool has_statement,
 			bool has_maxactive,
-			long maxactive_val
+			bool has_path,
+			bool has_library,
+			long maxactive_val,
+			const string& path,
+			const string& library
 			);
   string symbol_name;
   Dwarf_Addr addr;
   bool has_return;
   bool has_statement;
   bool has_maxactive;
+  bool has_path;
+  bool has_library;
   long maxactive_val;
+  string path;
+  string library;
   bool access_var;
   void printsig (std::ostream &o) const;
   void join_group (systemtap_session& s);
@@ -5059,12 +5208,19 @@ kprobe_derived_probe::kprobe_derived_probe (probe *base,
 					    bool has_return,
 					    bool has_statement,
 					    bool has_maxactive,
-					    long maxactive_val
+					    bool has_path,
+					    bool has_library,
+					    long maxactive_val,
+					    const string& path,
+					    const string& library
 					    ):
   derived_probe (base, location),
   symbol_name (name), addr (stmt_addr),
   has_return (has_return), has_statement (has_statement),
-  has_maxactive (has_maxactive), maxactive_val (maxactive_val)
+  has_maxactive (has_maxactive), has_path (has_path),
+  has_library (has_library),
+  maxactive_val (maxactive_val),
+  path (path), library (library)
 {
   this->tok = base->tok;
   this->access_var = false;
@@ -5450,9 +5606,11 @@ kprobe_builder::build(systemtap_session & sess,
 		      vector<derived_probe *> & finished_results)
 {
   string function_string_val, module_string_val;
+  string path, library;
   int64_t statement_num_val = 0, maxactive_val = 0;
   bool has_function_str, has_module_str, has_statement_num;
   bool has_absolute, has_return, has_maxactive;
+  bool has_path, has_library;
 
   has_function_str = get_param(parameters, TOK_FUNCTION, function_string_val);
   has_module_str = get_param(parameters, TOK_MODULE, module_string_val);
@@ -5460,7 +5618,14 @@ kprobe_builder::build(systemtap_session & sess,
   has_maxactive = get_param(parameters, TOK_MAXACTIVE, maxactive_val);
   has_statement_num = get_param(parameters, TOK_STATEMENT, statement_num_val);
   has_absolute = has_null_param (parameters, TOK_ABSOLUTE);
+  has_path = get_param (parameters, TOK_PROCESS, path);
+  has_library = get_param (parameters, TOK_LIBRARY, library);
 
+  if (has_path)
+    path = find_executable (path);
+  if (has_library)
+    library = find_executable (library, "LD_LIBRARY_PATH");
+ 
   if (has_function_str)
     {
       if (has_module_str)
@@ -5471,7 +5636,11 @@ kprobe_builder::build(systemtap_session & sess,
 							    0, has_return,
 							    has_statement_num,
 							    has_maxactive,
-							    maxactive_val));
+							    has_path,
+							    has_library,
+							    maxactive_val,
+							    path,
+							    library));
     }
   else
     {
@@ -5485,7 +5654,11 @@ kprobe_builder::build(systemtap_session & sess,
 							    has_return,
 							    has_statement_num,
 							    has_maxactive,
-							    maxactive_val));
+							    has_path,
+							    has_library,
+							    maxactive_val,
+							    path,
+							    library));
     }
 }
 

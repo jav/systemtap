@@ -29,12 +29,12 @@
 #define STAP_PROBE_DATA_(probe,guard,arg)		\
   __asm__ volatile (".section .probes," ALLOCSEC "\n"	\
 		    "\t.balign 8\n"			\
-		    "1:\n\t.asciz " #probe "\n"		\
-		    "\t.balign 4\n"			\
+		    "1:\n\t.asciz " #probe "\n"         \
+		    "\t.balign 4\n"                     \
 		    "\t.int " #guard "\n"		\
 		    "\t.balign 8\n"			\
-		    STAP_PROBE_ADDR("1b\n")		\
-		    "\t.balign 8\n"			\
+		    STAP_PROBE_ADDR("1b\n")             \
+		    "\t.balign 8\n"                     \
 		    STAP_PROBE_ADDR(#arg "\n")		\
 		    "\t.int 0\n"			\
 		    "\t.previous\n")
@@ -42,7 +42,7 @@
 #define STAP_PROBE_DATA(probe, guard, arg)	\
   STAP_PROBE_DATA_(#probe,guard,arg)
 
-#if defined STAP_HAS_SEMAPHORES && ! defined EXPERIMENTAL_KPROBE_SDT
+#if defined STAP_HAS_SEMAPHORES
 #define STAP_SEMAPHORE(probe)	\
   if (__builtin_expect ( probe ## _semaphore , 0))
 #else
