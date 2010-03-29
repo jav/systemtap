@@ -1,5 +1,6 @@
 // IO scheduler tapset
 // Copyright (C) 2005, 2006 IBM Corp.
+// Copyright (C) 2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -17,18 +18,12 @@
  * probe ioscheduler.elv_next_request - Fires when a request is retrieved from the request queue
  * @elevator_name: The type of I/O elevator currently enabled
  */
-probe ioscheduler.elv_next_request
-	=  %( kernel_v >= "2.6.31" %? 
-		kernel.function("blk_peek_request") 
-	   %:
-		kernel.function("elv_next_request")
-	   %)
+probe ioscheduler.elv_next_request = kernel.function("blk_peek_request") !,
+				     kernel.function("elv_next_request")
 {
-%( kernel_v >= "2.6.10" %?
-	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
-%:
-	elevator_name = kernel_string($q->elevator->elevator_name)
-%)
+	elevator_name = kernel_string(@defined($q->elevator->elevator_type)
+		? $q->elevator->elevator_type->elevator_name
+		: $q->elevator->elevator_name)
 }
 
 /**
@@ -38,12 +33,8 @@ probe ioscheduler.elv_next_request
  * @disk_major: Disk major number of the request
  * @disk_minor: Disk minor number of the request
  */
-probe ioscheduler.elv_next_request.return
-        =  %( kernel_v >= "2.6.31" %?
-                kernel.function("blk_peek_request").return
-           %:   
-                kernel.function("elv_next_request").return
-           %)
+probe ioscheduler.elv_next_request.return = kernel.function("blk_peek_request").return !,
+					    kernel.function("elv_next_request").return
 {
 	if($return == 0)  {
 		req = 0
@@ -52,11 +43,8 @@ probe ioscheduler.elv_next_request.return
 		disk_minor = -1
 	} else {
 		req = $return
-%( kernel_v >= "2.6.19" %?
-		req_flags = $return->cmd_flags
-%:
-		req_flags = $return->flags
-%)
+		req_flags = (@defined($return->cmd_flags) ? $return->cmd_flags
+			: $return->flags)
 		if($return->rq_disk == 0)  {
 			disk_major = -1
 			disk_minor = -1
@@ -80,11 +68,9 @@ probe ioscheduler.elv_next_request.return
 probe ioscheduler.elv_add_request.kp
 	= kernel.function("elv_insert")
 {
-%( kernel_v >= "2.6.10" %?
-	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
-%:
-	elevator_name = kernel_string($q->elevator->elevator_name)
-%)
+	elevator_name = kernel_string(@defined($q->elevator->elevator_type)
+		? $q->elevator->elevator_type->elevator_name
+		: $q->elevator->elevator_name)
 	q = $q
 	if($rq == 0)  {
 		disk_major = -1
@@ -100,11 +86,8 @@ probe ioscheduler.elv_add_request.kp
 	}
 
 	req = $rq
-%( kernel_v >= "2.6.19" %?
-	req_flags = $rq==0? 0:$rq->cmd_flags
-%:
-	req_flags = $rq==0? 0:$rq->flags
-%)
+	req_flags = $rq==0 ? 0
+		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
 }
 
 /**
@@ -118,11 +101,9 @@ probe ioscheduler.elv_add_request.kp
 probe ioscheduler.elv_completed_request
 	= kernel.function("elv_completed_request")
 {
-%( kernel_v >= "2.6.10" %?
-	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
-%:
-	elevator_name = kernel_string($q->elevator->elevator_name)
-%)
+	elevator_name = kernel_string(@defined($q->elevator->elevator_type)
+		? $q->elevator->elevator_type->elevator_name
+		: $q->elevator->elevator_name)
 	if($rq == 0)  {
 		disk_major = -1
 		disk_minor = -1
@@ -137,11 +118,8 @@ probe ioscheduler.elv_completed_request
 	}
 
 	req = $rq
-%( kernel_v >= "2.6.19" %?
-	req_flags = $rq==0? 0:$rq->cmd_flags
-%:
-	req_flags = $rq==0? 0:$rq->flags
-%)
+	req_flags = $rq==0 ? 0
+		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
 }
 
 /**
@@ -330,12 +308,19 @@ probe ioscheduler_trace.unplug_timer = kernel.trace("block_unplug_timer") ?
 function disk_major_from_request:long(var_q:long)
 %{ /* pure */
 	struct request_queue *q = (struct request_queue *)((long)THIS->var_q);
-	struct list_head *queue_head = &(q->queue_head);
 
-	if (list_empty(&(q->queue_head))) /* FIXME: deref hazard! */
+	/* We need to make sure there isn't a deref hazard here when
+	 * reading 'q->queue_head'.  However, kread() wants a pointer to
+	 * a pointer, and we can't provide that for 'q->queue_head'
+	 * since the list_head structure is directly embedded in the
+	 * 'struct request_queue'.  So, we validate all the members of
+	 * the list_head structure instead. */
+	(void) kread(&(q->queue_head.next));
+	(void) kread(&(q->queue_head.prev));
+	if (list_empty(&(q->queue_head)))
 		THIS->__retvalue = -1;
 	else  {
-		struct request *rq = list_entry_rq(q->queue_head.next); /* FIXME: deref hazard! */
+		struct request *rq = list_entry_rq(q->queue_head.next);
 		struct gendisk *rq_disk = kread(&(rq->rq_disk));
 		THIS->__retvalue = kread(&(rq_disk->major));
 	}
@@ -345,12 +330,19 @@ function disk_major_from_request:long(var_q:long)
 function disk_minor_from_request:long(var_q:long)
 %{ /* pure */
 	struct request_queue *q = (struct request_queue *)((long)THIS->var_q);
-	struct list_head *queue_head = &(q->queue_head);
 
-	if (list_empty(&(q->queue_head))) /* FIXME: deref hazard! */
+	/* We need to make sure there isn't a deref hazard here when
+	 * reading 'q->queue_head'.  However, kread() wants a pointer to
+	 * a pointer, and we can't provide that for 'q->queue_head'
+	 * since the list_head structure is directly embedded in the
+	 * 'struct request_queue'.  So, we validate all the members of
+	 * the list_head structure instead. */
+	(void) kread(&(q->queue_head.next));
+	(void) kread(&(q->queue_head.prev));
+	if (list_empty(&(q->queue_head)))
 		THIS->__retvalue = -1;
 	else  {
-		struct request *rq = list_entry_rq(q->queue_head.next); /* FIXME: deref hazard! */
+		struct request *rq = list_entry_rq(q->queue_head.next);
 		struct gendisk *rq_disk = kread(&(rq->rq_disk));
 		THIS->__retvalue = kread(&(rq_disk->first_minor));
 	}
