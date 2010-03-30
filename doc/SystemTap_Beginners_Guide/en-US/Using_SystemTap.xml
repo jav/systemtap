@@ -167,6 +167,17 @@
 </varlistentry>	
 
 <varlistentry>
+	<term>-S <replaceable>size</replaceable>,<replaceable>count</replaceable></term>
+	<listitem>
+	  <para>Limit files to <replaceable>size</replaceable> megabytes and
+	    limit the the number of files kept around to
+	    <replaceable>count</replaceable>. The file names will have a
+	    sequence number suffix. This option implements logrotate operations
+	    for SystemTap.</para>
+	</listitem>
+</varlistentry>
+
+<varlistentry>
 	<term>-x <replaceable>process ID</replaceable></term>
 	<listitem>
 		<para>Sets the SystemTap handler function <command>target()</command> to the specified process ID. For more information about <command>target()</command>, refer to <xref linkend="systemtapscript-functions"/>.</para>
@@ -192,6 +203,15 @@
 	<listitem>
 	  <para>Use <command><replaceable>script</replaceable></command>
 	    string rather than a file as input for systemtap translator.</para>
+	</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>-F</term>
+	<listitem>
+	  <para>Use SystemTap's Flight recorder mode and make the script a
+	  background process. For more information about flight
+	  recorder mode, refer to <xref linkend="flight-recorder"/>.</para>
 	</listitem>
 </varlistentry>
 </variablelist>
@@ -231,6 +251,122 @@ echo "probe timer.s(1) {exit()}" | stap -
 	<para>The <command>stap</command> options <command>-v</command> and <command>-o</command> also work for <command>staprun</command>. For more information about <command>staprun</command>, refer to <command>man staprun</command>.</para>
 </note>	
 
+<section id="flight-recorder">
+<title>SystemTap Flight Recorder Mode</title>
+<indexterm>
+<primary>flight recorder mode</primary>
+</indexterm>
+
+<para>
+SystemTap's flight recorder mode allows you to run a SystemTap script
+run for long periods and just focus on recent output. The flight
+recorder mode (the <command>-F</command> option) limits the amount of output
+generated. There are two variations of the flight recorder mode:
+in-memory and file mode. In both cases the SystemTap script runs as a
+background process.
+</para>
+
+<section id="memory-flight-recorder">
+<title>In-memory Flight Recorder</title>
+<indexterm>
+<primary>flight recorder mode</primary>
+<secondary>in-memory mode</secondary>
+</indexterm>
+
+<para>
+When flight recorder mode (the <command>-F</command> option) is used without a
+file name SystemTap uses a buffer in kernel memory to store the output of the
+script. The SystemTap instrumentation module will load and the probes start
+running, the instrumentation will then detach and be put in the background. When
+the interesting event occurs, you can reattach to the instrumentation and see
+the recent output in the memory buffer and any continuing output. The following
+command starts a script using the flight recorder in-memory mode:
+</para>
+
+<screen>
+stap -F iotime.stp 
+</screen>
+
+<para>
+Once the script starts, you will see a message like the following that
+provides the command to reconnect to the running script:
+</para>
+
+<screen>
+Disconnecting from systemtap module.
+To reconnect, type "staprun -A stap_5dd0073edcb1f13f7565d8c343063e68_19556"
+</screen>
+
+<para>
+When the interesting event occurs, you reattach to the currently running script
+and output the recent data in the memory buffer and get continuing output with
+the following command:
+</para>
+
+<screen>
+staprun -A stap_5dd0073edcb1f13f7565d8c343063e68_19556
+</screen>
+
+<para>
+By default the kernel buffer is 1MB in size and it can be increased with the
+<command>-s</command> option specifying the size in megabytes (rounded up to the
+next power over 2) for the buffer. For example <command>-s2</command> on the
+SystemTap command line would specify 2MB for the buffer.
+</para>
+</section>
+
+<section id="file-flight-recorder">
+<title>File Flight Recorder</title>
+<indexterm>
+<primary>flight recorder mode</primary>
+<secondary>file mode</secondary>
+</indexterm>
+
+<para>
+The flight recorder mode can also store data to files. The number and size of
+the files kept is controlled by the <command>-S</command> option followed by two
+numerical arguments separated by a comma. The first argument is the maximum size
+in megabytes for the each output file. The second argument is the number of
+recent files to keep. The file name is specified by the <command>-o</command>
+option followed by the name. SystemTap will add a number suffix to the file name
+to indicate the order of the files. The following will start SystemTap in file
+flight recorder mode with the output going to files named
+<command>/tmp/iotime.log.</command><replaceable>[0-9]+</replaceable> and each
+file 1MB or smaller and keeping latest two files:
+</para>
+
+<screen>
+stap -F -o /tmp/pfaults.log -S 1,2  pfaults.stp 
+</screen>
+
+<para>
+The number printed by the command is the process ID. Sending a SIGTERM to
+the process will shutdown the SystemTap script and stop the data collection. For
+example if the previous command listed the 7590 as the process ID, the following
+command whould shutdown the systemtap script:
+</para>
+
+<screen>
+kill -s SIGTERM 7590
+</screen>
+
+<para>
+Only the most recent two file generated by the script are kept and the older
+files are been removed.  Thus, <command>ls -sh /tmp/pfaults.log.*</command>
+shows the only two files:
+</para>
+
+<screen>
+1020K /tmp/pfaults.log.5    44K /tmp/pfaults.log.6
+</screen>
+
+<para>
+One can look at the highest number file for the latest data, in this case
+/tmp/pfaults.log.6.
+</para>
+
+</section>
+</section>
 	</section>
 
 </chapter>
