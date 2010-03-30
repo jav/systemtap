@@ -99,6 +99,7 @@ dwflpp::~dwflpp()
 {
   delete_map(module_cu_cache);
   delete_map(cu_function_cache);
+  delete_map(mod_function_cache);
   delete_map(cu_inl_function_cache);
   delete_map(global_alias_cache);
   delete_map(cu_die_parent_cache);
@@ -796,6 +797,14 @@ dwflpp::cu_function_caching_callback (Dwarf_Die* func, void *arg)
 
 
 int
+dwflpp::mod_function_caching_callback (Dwarf_Die* cu, void *arg)
+{
+  dwarf_getfuncs (cu, cu_function_caching_callback, arg, 0);
+  return DWARF_CB_OK;
+}
+
+
+int
 dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
                                 base_query * q, const string& function)
 {
@@ -851,6 +860,57 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
     {
       // do nothing
     }
+  return rc;
+}
+
+
+int
+dwflpp::iterate_single_function (int (* callback)(Dwarf_Die * func, base_query * q),
+                                 base_query * q, const string& function)
+{
+  int rc = DWARF_CB_OK;
+  assert (module);
+
+  get_module_dwarf(false);
+  if (!module_dwarf)
+    return rc;
+
+  cu_function_cache_t *v = mod_function_cache[module_dwarf];
+  if (v == 0)
+    {
+      v = new cu_function_cache_t;
+      mod_function_cache[module_dwarf] = v;
+      iterate_over_cus (mod_function_caching_callback, v);
+      if (sess.verbose > 4)
+        clog << "module function cache " << module_name
+             << " size " << v->size() << endl;
+    }
+
+  cu_function_cache_t::iterator it;
+  cu_function_cache_range_t range = v->equal_range(function);
+  if (range.first != range.second)
+    {
+      for (it = range.first; it != range.second; ++it)
+        {
+          Dwarf_Die cu_mem;
+          Dwarf_Die& die = it->second;
+          if (sess.verbose > 4)
+            clog << "module function cache " << module_name
+              << " hit " << function << endl;
+
+          // since we're iterating out of cu-context, we need each focus
+          focus_on_cu(dwarf_diecu(&die, &cu_mem, NULL, NULL));
+
+          rc = (*callback)(& die, q);
+          if (rc != DWARF_CB_OK) break;
+        }
+    }
+
+  // undo the focus_on_cu
+  this->cu = NULL;
+  this->function_name.clear();
+  this->function = NULL;
+
   return rc;
 }
 

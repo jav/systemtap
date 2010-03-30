@@ -641,6 +641,8 @@ struct dwarf_query : public base_query
   func_info_map_t filtered_functions;
   bool choose_next_line;
   Dwarf_Addr entrypc_for_next_line;
+
+  void query_module_functions ();
 };
 
 
@@ -786,7 +788,13 @@ dwarf_query::query_module_dwarf()
       // specifier, we have to scan over all the CUs looking for
       // the function(s) in question
       assert(has_function_str || has_statement_str);
-      dw.iterate_over_cus(&query_cu, this);
+
+      // For simple cases, no wildcard and no source:line, we can do a very
+      // quick function lookup in a module-wide cache.
+      if (spec_type == function_alone && !dw.name_has_wildcard(function))
+        query_module_functions();
+      else
+        dw.iterate_over_cus(&query_cu, this);
     }
 }
 
@@ -1648,6 +1656,54 @@ query_cu (Dwarf_Die * cudie, void * arg)
     {
       q->sess.print_error (e);
       return DWARF_CB_ABORT;
+    }
+}
+
+
+void
+dwarf_query::query_module_functions ()
+{
+  try
+    {
+      filtered_srcfiles.clear();
+      filtered_functions.clear();
+      filtered_inlines.clear();
+
+      // Collect all module functions so we know which CUs are interesting
+      int rc = dw.iterate_single_function(query_dwarf_func, this, function);
+      if (rc != DWARF_CB_OK)
+        {
+          query_done = true;
+          return;
+        }
+
+      set<void*> used_cus; // by cu->addr
+      vector<Dwarf_Die> cus;
+      Dwarf_Die cu_mem;
+
+      for (func_info_map_t::iterator i = filtered_functions.begin();
+           i != filtered_functions.end(); ++i)
+        if (dwarf_diecu(&i->die, &cu_mem, NULL, NULL) &&
+            used_cus.insert(cu_mem.addr).second)
+          cus.push_back(cu_mem);
+
+      for (inline_instance_map_t::iterator i = filtered_inlines.begin();
+           i != filtered_inlines.end(); ++i)
+        if (dwarf_diecu(&i->die, &cu_mem, NULL, NULL) &&
+            used_cus.insert(cu_mem.addr).second)
+          cus.push_back(cu_mem);
+
+      // Reset the dupes since we didn't actually collect them the first time
+      alias_dupes.clear();
+      inline_dupes.clear();
+
+      // Run the query again on the individual CUs
+      for (vector<Dwarf_Die>::iterator i = cus.begin(); i != cus.end(); ++i)
+        query_cu(&*i, this);
+    }
+  catch (const semantic_error& e)
+    {
+      sess.print_error (e);
     }
 }
 

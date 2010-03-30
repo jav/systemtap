@@ -63,6 +63,9 @@ typedef std::pair<cu_function_cache_t::iterator,
 // cu die -> (function -> die)
 typedef unordered_map<void*, cu_function_cache_t*> mod_cu_function_cache_t;
 
+// module -> (function -> die)
+typedef unordered_map<Dwarf*, cu_function_cache_t*> mod_function_cache_t;
+
 // inline function die -> instance die[]
 typedef unordered_map<void*, std::vector<Dwarf_Die>*> cu_inl_function_cache_t;
 
@@ -215,10 +218,11 @@ struct dwflpp
   Dwarf_Die *declaration_resolve(const char *name);
   Dwarf_Die *declaration_resolve_other_cus(const char *name);
 
-  mod_cu_function_cache_t cu_function_cache;
-
   int iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
                               base_query * q, const std::string& function);
+
+  int iterate_single_function (int (* callback)(Dwarf_Die * func, base_query * q),
+                               base_query * q, const std::string& function);
 
   void iterate_over_srcfile_lines (char const * srcfile,
                                    int lines[2],
@@ -296,6 +300,8 @@ private:
   void setup_user(const std::vector<std::string>& modules, bool debuginfo_needed = true);
 
   module_cu_cache_t module_cu_cache;
+  mod_cu_function_cache_t cu_function_cache;
+  mod_function_cache_t mod_function_cache;
 
   std::set<void*> cu_inl_function_cache_done; // CUs that are already cached
   cu_inl_function_cache_t cu_inl_function_cache;
@@ -322,6 +328,7 @@ private:
                                    int (* callback)(Dwarf_Die *, void *),
                                    void * data);
 
+  static int mod_function_caching_callback (Dwarf_Die* func, void *arg);
   static int cu_function_caching_callback (Dwarf_Die* func, void *arg);
 
   bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
