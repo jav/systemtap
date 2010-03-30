@@ -1,4 +1,4 @@
-#! /usr/bin/stap
+#! /usr/bin/env stap
 
 # usage:   fntimes.stp FUNCTIONPROBE
 # e.g.     fntimes.stp 'module("ext4").function("*")'

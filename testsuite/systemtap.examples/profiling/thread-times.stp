@@ -1,4 +1,4 @@
-#! /usr/bin/stap
+#! /usr/bin/env stap
 
 probe perf.sw.cpu_clock!, timer.profile {
   // NB: To avoid contention on SMP machines, no global scalars/arrays used,
