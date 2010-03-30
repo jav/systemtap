@@ -62,18 +62,9 @@ function __bio_start_sect:long(bio:long)
 
 /* returns the block device name */
 function __bio_devname:string(bio:long)
-%{ /* pure */
-    char b[BDEVNAME_SIZE];
-    struct bio *bio = (struct bio *)(long)THIS->bio;
-    struct block_device *bdev = kread(&(bio->bi_bdev));
-	if (bdev == NULL) {
-		strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
-	} else {
-		const char *name = bdevname(bdev, b); /* FIXME: deref hazard! */
-		deref_string(THIS->__retvalue, name, MAXSTRINGLEN);
-	}
-	CATCH_DEREF_FAULT();
-%}
+{
+    return bdevname(@cast(bio, "bio")->bi_bdev)
+}
 
 global BIO_READ = 0, BIO_WRITE = 1
 

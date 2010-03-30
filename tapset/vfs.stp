@@ -16,20 +16,6 @@
 
 /* generic vfs probes */
 
-/* helper functions */
-function __bdevname:string (bdev:long) %{ /* pure */
-	char b[BDEVNAME_SIZE];
-	struct block_device *bdev = (struct block_device *)(long)THIS->bdev;
-	if (bdev == NULL) {
-		strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
-	} else {
-		const char *name = bdevname(bdev, b); /* FIXME: deref hazard! */
-		deref_string(THIS->__retvalue, name, MAXSTRINGLEN);
-	}
-
-	CATCH_DEREF_FAULT();
-%}
-
 /*
   We don't want to have to do a bdevname() call every time
   we want a devname, so we'll hash them here.
@@ -42,7 +28,7 @@ function __find_bdevname:string(dev:long, bdev:long)
 	if (dev in __devnames)
 		return __devnames[dev]
 	else
-		return __devnames[dev] = __bdevname(bdev)
+		return __devnames[dev] = bdevname(bdev)
 }
 
 function ppos_pos:long (ppos:long) %{ /* pure */

@@ -164,3 +164,17 @@ function strtol:long(str:string, base:long)
 %{ /* pure */ /* unprivileged */
 	THIS->__retvalue = simple_strtol(THIS->str, NULL, THIS->base);
 %}
+
+/**
+ * sfunction isdigit - Checks for a digit.
+ * @str: String to check.
+ *
+ * Description: Checks for a digit (0 through 9) as the first
+ * character of a string.  Returns non-zero if true, and a zero if
+ * false.
+ */
+function isdigit:long(str:string)
+%{ /* pure */ /* unprivileged */
+	THIS->__retvalue = isdigit(THIS->str[0]);
+%}
+

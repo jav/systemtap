@@ -1,5 +1,5 @@
-// Device numbering tapset
-// Copyright (C) 2008 Red Hat Corp.
+// Device tapset
+// Copyright (C) 2008, 2010 Red Hat Corp.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -31,3 +31,25 @@ function usrdev2kerndev:long(dev:long)
 %{ /* pure */
     THIS->__retvalue = new_decode_dev(THIS->dev);
 %}
+
+function bdevname:string(bdev:long)
+{
+	if (bdev == 0)
+		return "N/A"
+
+	hd = @cast(bdev, "block_device")->bd_disk
+
+	if (@cast(bdev, "block_device")->bd_part)
+		partno = @cast(bdev, "block_device")->bd_part->partno
+	else
+		partno = MINOR(@cast(bdev, "block_device")->bd_dev)
+			- @cast(bdev, "block_device")->bd_disk->first_minor;
+
+	if (!partno)
+		return kernel_string(@cast(hd, "gendisk")->disk_name)
+	disk_name = kernel_string(@cast(hd, "gendisk")->disk_name)
+	if (isdigit(substr(disk_name, strlen(disk_name) - 1, 1)))
+		return sprintf("%sp%d", disk_name, partno)
+	else
+		return sprintf("%s%d", disk_name, partno)
+}
