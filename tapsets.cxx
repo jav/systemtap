@@ -1597,8 +1597,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
       // Pick up [entrypc, name, DIE] tuples for all the functions
       // matching the query, and fill in the prologue endings of them
       // all in a single pass.
-      int rc = q->dw.iterate_over_functions (query_dwarf_func, q,
-                                             q->function, false);
+      int rc = q->dw.iterate_over_functions (query_dwarf_func, q, q->function);
       if (rc != DWARF_CB_OK)
         q->query_done = true;
 

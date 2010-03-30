@@ -218,8 +218,7 @@ struct dwflpp
   mod_cu_function_cache_t cu_function_cache;
 
   int iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
-                              base_query * q, const std::string& function,
-                              bool has_statement_num=false);
+                              base_query * q, const std::string& function);
 
   void iterate_over_srcfile_lines (char const * srcfile,
                                    int lines[2],

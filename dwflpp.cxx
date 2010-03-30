@@ -797,8 +797,7 @@ dwflpp::cu_function_caching_callback (Dwarf_Die* func, void *arg)
 
 int
 dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
-                                base_query * q, const string& function,
-                                bool has_statement_num)
+                                base_query * q, const string& function)
 {
   int rc = DWARF_CB_OK;
   assert (module);
@@ -846,14 +845,6 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
               rc = (*callback)(& die, q);
               if (rc != DWARF_CB_OK) break;
             }
-        }
-    }
-  else if (has_statement_num) // searching all for kernel.statement
-    {
-      for (it = v->begin(); it != v->end(); ++it)
-        {
-          rc = (*callback)(&it->second, q);
-          if (rc != DWARF_CB_OK) break;
         }
     }
   else // not a wildcard and no match in this CU
