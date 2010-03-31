@@ -162,6 +162,13 @@ proc setup_server {} {
 	print "Started a systemtap server as PID==$server_pid"
     }
 
+    # Make sure we can actually talk to the server
+    if {[catch {exec stap-find-servers} dummy]} then {
+	print "Unable to find a systemtap server -- check firewall settings"
+	shutdown_server
+	return 0
+    }
+
     # Make a copy of 'stap-client' as 'stap' and make sure it's at the
     # beginning of the $PATH. Do this after starting the server so that
     # The server does not call this instance of 'stap'
