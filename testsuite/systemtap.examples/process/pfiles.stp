@@ -1,6 +1,7 @@
 #! /bin/sh
 
-exec stap -g - ${1+"$@"} << 'END'
+//bin/true && exec stap -g $0 ${1+"$@"}
+
 # pfiles
 # Copyright (C) 2007-2010 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
 #
@@ -609,7 +610,3 @@ probe begin {
 
 	exit()
 }
-
-
-END
-
