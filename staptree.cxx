@@ -1825,6 +1825,11 @@ varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
     throw semantic_error ("function may not be used when --unprivileged is specified",
 			  current_function->tok);
 
+  // Don't allow /* guru */ functions unless -g is active.
+  if (!session.guru_mode && s->code.find ("/* guru */") != string::npos)
+    throw semantic_error ("function may not be used unless -g is specified",
+			  current_function->tok);
+
   // We want to elide embedded-C functions when possible.  For
   // example, each $target variable access is expanded to an
   // embedded-C function call.  Yet, for safety reasons, we should
