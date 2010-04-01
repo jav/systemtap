@@ -1011,6 +1011,17 @@ extern void __store_deref_bad(void);
     (dst);								      \
   })
 
+#define store_deref_string(src, addr, maxbytes)				      \
+  ({									      \
+    uintptr_t _addr;							      \
+    size_t _len;							      \
+    char *_s = (src);							      \
+    for (_len = (maxbytes), _addr = (uintptr_t)(addr);			      \
+	 _len > 1 && _s && *_s != '\0'; --_len, ++_addr)		      \
+      store_deref(1, _addr, *_s++);					      \
+    store_deref(1, _addr, '\0');					      \
+  })
+
 #define CATCH_DEREF_FAULT()				\
   if (0) {						\
 deref_fault: ;						\
