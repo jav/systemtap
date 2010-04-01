@@ -1,0 +1,4 @@
+#! stap -gup2
+
+# set_kernel_long should only be allowed with -g
+probe begin { set_kernel_long(0, 0) }
