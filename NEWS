@@ -1,5 +1,8 @@
 * What's new
 
+- A new family of set_kernel_* functions make it easier for gurus to write
+  new values at arbitrary memory addresses.
+
 - Probe wildcards can now use '**' to cross the '.' separator.
      $ stap -l 'sys**open'
      syscall.mq_open
