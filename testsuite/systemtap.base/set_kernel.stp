@@ -29,6 +29,12 @@ function assert_number(test, expected, value)
     return 0
 }
 
+function assert_not_reached(test)
+{
+    printf("systemtap test failure - %s: missing exception\n", test)
+    errors++
+}
+
 probe end(1)
 {
     test = "set_kernel_string"
@@ -37,6 +43,10 @@ probe end(1)
         set_kernel_string(addr, "foobar")
         assert_string(test, "foobar", kernel_string(addr))
     }
+    try {
+        set_kernel_string(-1, "foobar")
+        assert_not_reached(test)
+    } catch {}
 
     test = "set_kernel_string_n"
     addr = get_buffer()
@@ -47,6 +57,10 @@ probe end(1)
             assert_string(test, "foo", kernel_string(addr))
         }
     }
+    try {
+        set_kernel_string_n(-1, 10, "foobar")
+        assert_not_reached(test)
+    } catch {}
 
     test = "set_kernel_long"
     addr = get_buffer()
@@ -55,6 +69,10 @@ probe end(1)
         set_kernel_long(addr, long_val)
         assert_number(test, long_val, kernel_long(addr))
     }
+    try {
+        set_kernel_long(-1, 42)
+        assert_not_reached(test)
+    } catch {}
 
     test = "set_kernel_int"
     addr = get_buffer()
@@ -62,6 +80,10 @@ probe end(1)
         set_kernel_int(addr, 0x12345678)
         assert_number(test, 0x12345678, kernel_int(addr))
     }
+    try {
+        set_kernel_int(-1, 42)
+        assert_not_reached(test)
+    } catch {}
 
     test = "set_kernel_short"
     addr = get_buffer()
@@ -69,6 +91,10 @@ probe end(1)
         set_kernel_short(addr, 0x1234)
         assert_number(test, 0x1234, kernel_short(addr))
     }
+    try {
+        set_kernel_short(-1, 42)
+        assert_not_reached(test)
+    } catch {}
 
     test = "set_kernel_char"
     addr = get_buffer()
@@ -76,6 +102,10 @@ probe end(1)
         set_kernel_char(addr, 0x12)
         assert_number(test, 0x12, kernel_char(addr))
     }
+    try {
+        set_kernel_char(-1, 42)
+        assert_not_reached(test)
+    } catch {}
 
     if (!errors)
         println("systemtap test success")
