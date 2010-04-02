@@ -1,0 +1,88 @@
+/*
+ * set_kernel.stp
+ *
+ * Check that the set_kernel_* functions work correctly.
+ */
+
+probe begin {  println("systemtap starting probe")  }
+probe end   {  println("systemtap ending probe")    }
+
+global errors = 0
+
+function assert_string(test, expected, value)
+{
+    if (value == expected)
+        return 1
+    printf("systemtap test failure - %s: expected \"%s\", got \"%s\"\n",
+           test, expected, value)
+    errors++
+    return 0
+}
+
+function assert_number(test, expected, value)
+{
+    if (value == expected)
+        return 1
+    printf("systemtap test failure - %s: expected %#x, got %#x\n",
+           test, expected, value)
+    errors++
+    return 0
+}
+
+probe end(1)
+{
+    test = "set_kernel_string"
+    addr = get_buffer()
+    if (assert_string(test, "", kernel_string(addr))) {
+        set_kernel_string(addr, "foobar")
+        assert_string(test, "foobar", kernel_string(addr))
+    }
+
+    test = "set_kernel_string_n"
+    addr = get_buffer()
+    if (assert_string(test, "", kernel_string(addr))) {
+        set_kernel_string_n(addr, 10, "foobar")
+        if (assert_string(test, "foobar", kernel_string(addr))) {
+            set_kernel_string_n(addr, 3, "foobar")
+            assert_string(test, "foo", kernel_string(addr))
+        }
+    }
+
+    test = "set_kernel_long"
+    addr = get_buffer()
+    long_val = %( CONFIG_64BIT == "y" %? 0x123456789ABCDEF0 %: 0x12345678 %)
+    if (assert_number(test, 0, kernel_long(addr))) {
+        set_kernel_long(addr, long_val)
+        assert_number(test, long_val, kernel_long(addr))
+    }
+
+    test = "set_kernel_int"
+    addr = get_buffer()
+    if (assert_number(test, 0, kernel_int(addr))) {
+        set_kernel_int(addr, 0x12345678)
+        assert_number(test, 0x12345678, kernel_int(addr))
+    }
+
+    test = "set_kernel_short"
+    addr = get_buffer()
+    if (assert_number(test, 0, kernel_short(addr))) {
+        set_kernel_short(addr, 0x1234)
+        assert_number(test, 0x1234, kernel_short(addr))
+    }
+
+    test = "set_kernel_char"
+    addr = get_buffer()
+    if (assert_number(test, 0, kernel_char(addr))) {
+        set_kernel_char(addr, 0x12)
+        assert_number(test, 0x12, kernel_char(addr))
+    }
+
+    if (!errors)
+        println("systemtap test success")
+}
+
+function get_buffer:long () %{
+    static char buffer[MAXSTRINGLEN];
+    memset(buffer, 0, sizeof(buffer));
+    THIS->__retvalue = (long)buffer;
+%}

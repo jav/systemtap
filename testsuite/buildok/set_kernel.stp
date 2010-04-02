@@ -1,0 +1,14 @@
+#! stap -gup4
+
+probe begin
+{
+    addr = 0x12345678
+    set_kernel_string(addr, "foobar")
+    set_kernel_string_n(addr, 42, "foobar")
+    set_kernel_long(addr, 42)
+    set_kernel_int(addr, 42)
+    set_kernel_short(addr, 42)
+    set_kernel_char(addr, 42)
+}
+
+
