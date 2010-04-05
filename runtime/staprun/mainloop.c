@@ -497,8 +497,10 @@ int stp_main_loop(void)
     nb = read(control_channel, recvbuf, sizeof(recvbuf));
     dbug(2, "nb=%d\n", (int)nb);
     if (nb <= 0) {
-      if (errno != EINTR)
+      if (errno != EINTR && errno != EAGAIN) {
         _perr("Unexpected EOF in read (nb=%ld)", (long)nb);
+        cleanup_and_exit(0, 1);
+      }
       continue;
     }
 
