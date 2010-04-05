@@ -79,34 +79,33 @@ function get_prot_from_client:long(clnt:long) %{ /* pure */
 	THIS->__retvalue = _get_prot_from_client(clnt, CONTEXT);
 %}
 
+function AF_INET:long()
+%{ /* pure */ /* unprivileged */
+	THIS->__retvalue = AF_INET;
+%}
+
 /*
   0:get ip address
   1:get proto
 */
-function __i2n_ip_proto :long(dir:long,index:long) %{ /* pure */
-        int index;
-        struct inode * dir;
-        struct rpc_clnt * clnt;
-        struct rpc_xprt * cl_xprt;
-        struct sockaddr_in *addr;
+function __i2n_ip_proto:long(dir:long, index:long)
+{
+	clnt = stap_NFS_CLIENT(dir)
+        cl_xprt = @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt
+	addr = &@cast(cl_xprt, "rpc_xprt", "kernel:sunrpc")->addr;
 
-        index = (int) (THIS->index);
-        dir = (struct inode *)(uintptr_t)(THIS->dir);
-        clnt = NFS_CLIENT(dir); /* FIXME: deref hazard! */
-        cl_xprt = kread(&(clnt->cl_xprt));
-  	/* sockaddr_storage is used since 2.6.19. Need cast*/
-	addr = (struct sockaddr_in *)&(cl_xprt->addr);
-
-        if(index == 0) {
-                if (kread(&(addr->sin_family)) == AF_INET) {
+        if (index == 0) {
+	  	/* In reality, 'cl_xprt->addr' is of
+		 * 'sockaddr_storage' type (since 2.6.19). But when
+		 * used, you cast it to what is inside that buffer. */
+		if (@cast(addr, "sockaddr_in")->sin_family == AF_INET()) {
                         /* Now consider ipv4 only */
-                        THIS->__retvalue = kread(&(addr->sin_addr.s_addr));
-                } else
-                        THIS->__retvalue = 0;
-        } else
-                THIS->__retvalue = kread(&(cl_xprt->prot));
-        CATCH_DEREF_FAULT();
-%}
+			return @cast(addr, "sockaddr_in")->sin_addr->s_addr
+                }
+		return 0
+        }
+	return @cast(cl_xprt, "rpc_xprt", "kernel:sunrpc")->prot
+}
 
 /*
   0: get ip address
