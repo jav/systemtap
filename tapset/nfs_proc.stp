@@ -1,88 +1,59 @@
 %{
-	#include <linux/nfs_fs.h>
-	#include <linux/nfs_xdr.h>
-%}
+/* For AF_INET */
+#include <linux/socket.h>
 
-%{
-/*Get rpc_clnt from inode, same as kernel function NFS_CLIENT*/
-	static struct rpc_clnt *_stap_NFS_CLIENT(struct inode *inode, struct context * __restrict__ c);
-/*Get ip address from a rpc_clnt*/
-	static __u32 _get_ip_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c);
-/*Get protocol types from a rpc_clnt*/
-	static int _get_prot_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c);
-/*Get ip address from a rpc_task*/
-	static __u32 get_ip(struct rpc_task *, struct context * __restrict__);
-/*Get protocol types from a rpc_task*/
-	static int get_prot(struct rpc_task *, struct context * __restrict__);
-%}
-%{
-    static struct rpc_clnt *_stap_NFS_CLIENT(struct inode *inode, struct context * __restrict__ c) {
-	struct super_block *i_sb;
-	struct nfs_server *server;
-	i_sb = kread(&(inode->i_sb));
-	server = kread(&(i_sb->s_fs_info));
-	return kread(&(server->client));
-	CATCH_DEREF_FAULT();
-	return NULL;
-    }
-
-    static __u32 _get_ip_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c) {
-	struct rpc_xprt * cl_xprt;
-	struct sockaddr_in *addr;
-	cl_xprt= kread(&(clnt->cl_xprt));
-	addr = (struct sockaddr_in *)&(cl_xprt->addr);
-	if (kread(&(addr->sin_family)) != AF_INET)
-		/* Now consider ipv4 only */
-		return 0;
-	return kread(&(addr->sin_addr.s_addr));
-	CATCH_DEREF_FAULT();
-	return -1;
-    }
-
-    static int _get_prot_from_client(struct rpc_clnt *clnt, struct context * __restrict__ c) {
-	struct rpc_xprt * cl_xprt;
-	cl_xprt= kread(&(clnt->cl_xprt));
-	return kread(&(cl_xprt->prot));
-	CATCH_DEREF_FAULT();
-	return -1;
-    }
-
-    static __u32 get_ip(struct rpc_task * task, struct context * __restrict__ c) {
-	struct rpc_clnt * clnt;
-	clnt = kread(&(task->tk_client));
-	return _get_ip_from_client(clnt, c);
-	CATCH_DEREF_FAULT();
-	return -1;
-    }
-
-    static int get_prot(struct rpc_task * task, struct context * __restrict__ c) {
-	struct rpc_clnt * clnt;
-	clnt = kread(&(task->tk_client));
-	return _get_prot_from_client(clnt, c);
-	CATCH_DEREF_FAULT();
-	return -1;
-    }
-%}
-
-function stap_NFS_CLIENT:long(inode:long) %{ /* pure */
-	struct inode *inode = (struct inode *)(long)THIS->inode;
-	THIS->__retvalue = (long)_stap_NFS_CLIENT(inode, CONTEXT);
-%}
-
-function get_ip_from_client:long(clnt:long) %{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	THIS->__retvalue = _get_ip_from_client(clnt, CONTEXT);
-%}
-
-function get_prot_from_client:long(clnt:long) %{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	THIS->__retvalue = _get_prot_from_client(clnt, CONTEXT);
+#include <linux/nfs_fs.h>
+#include <linux/nfs_xdr.h>
 %}
 
 function AF_INET:long()
 %{ /* pure */ /* unprivileged */
 	THIS->__retvalue = AF_INET;
 %}
+
+function stap_NFS_CLIENT:long(inode:long)
+{
+	i_sb = @cast(inode, "inode")->i_sb
+	server = @cast(i_sb, "super_block")->s_fs_info
+	return @cast(server, "nfs_server", "kernel<linux/nfs_fs.h>")->client
+}
+
+/* Get ip address from a rpc_clnt */
+function get_ip_from_client:long(clnt:long)
+{
+	cl_xprt = @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt
+	addr = &@cast(cl_xprt, "rpc_xprt", "kernel:sunrpc")->addr
+
+	/* In reality, 'cl_xprt->addr' is of 'sockaddr_storage' type
+	 * (since 2.6.19). But when used, you cast it to what is
+	 * inside that buffer. */
+	if (@cast(addr, "sockaddr_in")->sin_family != AF_INET()) {
+		/* Now consider ipv4 only */
+		return 0
+	}
+	return @cast(addr, "sockaddr_in")->sin_addr->s_addr
+}
+
+/* Get protocol types from a rpc_clnt */
+function get_prot_from_client:long(clnt:long)
+{
+	cl_xprt = @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt
+	return @cast(cl_xprt, "rpc_xprt", "kernel:sunrpc")->prot
+}
+
+/* Get ip address from a rpc_task */
+function get_ip:long(task:long)
+{
+	clnt = @cast(task, "rpc_task", "kernel:sunrpc")->tk_client
+	return get_ip_from_client(clnt)
+}
+
+/* Get protocol types from a rpc_task */
+function get_prot:long(task:long)
+{
+	clnt = @cast(task, "rpc_task", "kernel:sunrpc")->tk_client
+	return get_prot_from_client(clnt)
+}
 
 /*
   0:get ip address
@@ -91,20 +62,12 @@ function AF_INET:long()
 function __i2n_ip_proto:long(dir:long, index:long)
 {
 	clnt = stap_NFS_CLIENT(dir)
-        cl_xprt = @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt
-	addr = &@cast(cl_xprt, "rpc_xprt", "kernel:sunrpc")->addr;
 
-        if (index == 0) {
-	  	/* In reality, 'cl_xprt->addr' is of
-		 * 'sockaddr_storage' type (since 2.6.19). But when
-		 * used, you cast it to what is inside that buffer. */
-		if (@cast(addr, "sockaddr_in")->sin_family == AF_INET()) {
-                        /* Now consider ipv4 only */
-			return @cast(addr, "sockaddr_in")->sin_addr->s_addr
-                }
-		return 0
-        }
-	return @cast(cl_xprt, "rpc_xprt", "kernel:sunrpc")->prot
+        if (index == 0)
+		return get_ip_from_client(clnt)
+	if (index == 1)
+		return get_prot_from_client(clnt)
+	return 0
 }
 
 /*
@@ -114,38 +77,25 @@ function __i2n_ip_proto:long(dir:long, index:long)
   3: get res->fattr->valid
   4: get timestamp
 */
-function __nfs_read_data_info:long (rdata :long,index :long) %{ /* pure */
-        struct nfs_read_data * rdata = (struct nfs_read_data *)(long)THIS->rdata;
-	struct rpc_task *task = &(rdata->task);
-        struct nfs_readres *rres = &(rdata->res);
-        int index = THIS->index;
+function __nfs_read_data_info:long (rdata :long,index :long)
+{
+	task = &@cast(rdata, "nfs_read_data", "kernel:nfs")->task
+	rres = &@cast(rdata, "nfs_read_data", "kernel:nfs")->res
 
-	switch(index) {
-		case 0:
-			THIS->__retvalue = get_ip(task, CONTEXT); 
-			break;
-		case 1: 
-			THIS->__retvalue = get_prot(task, CONTEXT);
-			break;
-		case 2:
-			THIS->__retvalue = kread(&(rres->count));
-			break;
-		case 3: {
-			struct nfs_fattr *fattr = kread(&(rres->fattr));
-			THIS->__retvalue = kread(&(fattr->valid));
-			break;
-			}
-#ifdef CONFIG_NFS_V4
-		case 4:
-			THIS->__retvalue = kread(&(rdata->timestamp));
-			break;
-#endif
-		default:
-			THIS->__retvalue = 0;
-			break;
-	}
-	CATCH_DEREF_FAULT();
-%}
+	if (index == 0)
+		return get_ip(task)
+	if (index == 1)
+		return get_prot(task)
+	if (index == 2)
+		return @cast(rres, "nfs_readres", "kernel:nfs")->count
+	if (index == 3)
+		return @cast(rres, "nfs_readres", "kernel:nfs")->fattr->valid
+%( CONFIG_NFS_V4 == "[ym]" %?
+	if (index == 4)
+		return @cast(rdata, "nfs_read_data", "kernel:nfs")->timestamp
+%)
+	return 0
+}
 
 /*
   0: get ip address
@@ -154,39 +104,25 @@ function __nfs_read_data_info:long (rdata :long,index :long) %{ /* pure */
   3: get res->fattr->valid
   4: get timestamp
 */
-function __nfs_write_data_info:long (wdata :long,index :long) %{ /* pure */
-        struct nfs_write_data * wdata = (struct nfs_write_data *)(long)THIS->wdata;
-	struct rpc_task *task = &(wdata->task);
-	struct nfs_writeres *wres = &(wdata->res);
-        int index = THIS->index;
+function __nfs_write_data_info:long (wdata :long,index :long)
+{
+	task = &@cast(wdata, "nfs_write_data", "kernel:nfs")->task
+	wres = &@cast(wdata, "nfs_write_data", "kernel:nfs")->res
 
-	switch(index) {
-		case 0:
-			THIS->__retvalue = get_ip(task, CONTEXT); 
-			break;
-		case 1: 
-			THIS->__retvalue = get_prot(task, CONTEXT);
-			break;
-
-		case 2:
-			THIS->__retvalue = kread(&(wres->count));
-			break;
-		case 3: {
-			struct nfs_fattr *fattr = kread(&(wres->fattr));
-			THIS->__retvalue = kread(&(fattr->valid));
-			break;
-		}
-#ifdef CONFIG_NFS_V4
-		case 4:
-			THIS->__retvalue = kread(&(wdata->timestamp));
-			break;
-#endif
-		default:
-			THIS->__retvalue = 0;
-			break;
-	}
-	CATCH_DEREF_FAULT();
-%}
+	if (index == 0)
+		return get_ip(task)
+	if (index == 1)
+		return get_prot(task)
+	if (index == 2)
+		return @cast(wres, "nfs_writeres", "kernel:nfs")->count
+	if (index == 3)
+		return @cast(wres, "nfs_writeres", "kernel:nfs")->fattr->valid
+%( CONFIG_NFS_V4 == "[ym]" %?
+	if (index == 4)
+		return @cast(wdata, "nfs_write_data", "kernel:nfs")->timestamp
+%)
+	return 0
+}
 
 function __nfsv4_bitmask :long(dir:long,i:long) %{ /* pure */
         int i = (int) (THIS->i);
