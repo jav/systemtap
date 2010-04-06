@@ -7,6 +7,7 @@
 proc stap_run_error { TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING args } {
     set full_error "ERROR: $ERROR_STRING\r\n"
     set cmd [concat {stap -v} $args]
+    send_log "executing: $cmd\n"
     eval spawn $cmd
     expect {
 	-timeout 150
@@ -35,7 +36,7 @@ proc stap_run_error { TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING ar
 	    set output "^systemtap ending probe\r\n$OUTPUT_CHECK_STRING"
 
 	    expect {
-		-timeout 10
+		-timeout 20
 		-re $output {
 		    if {$EXPECT_ERROR} {
 			fail "$TEST_NAME didn't receive expected error"
@@ -62,6 +63,8 @@ proc stap_run_error { TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING ar
    	          exec kill -INT -[exp_pid] }
 	eof { fail "$TEST_NAME startup (eof)" }
     }
+    # again for good measure
+    exec kill -INT -[exp_pid]
     catch close
     wait
 }

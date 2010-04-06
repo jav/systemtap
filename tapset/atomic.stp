@@ -6,6 +6,18 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+function atomic_read:long(addr:long)
+%{ /* pure */
+	atomic_t *a = (atomic_t *)(long)THIS->addr;
+
+	/* We call deref() here to ensure the memory is valid to read.
+	 * Note the result is thrown away, then we use the "real"
+	 * atomic read function now that we know the address is safe. */
+	(void)deref(sizeof(*a), a);
+	THIS->__retvalue = atomic_read(a);
+	CATCH_DEREF_FAULT();
+%}
+
 function atomic_long_read:long(addr:long)
 %{ /* pure */
 #ifdef ATOMIC_LONG_INIT

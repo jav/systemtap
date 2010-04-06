@@ -1,6 +1,7 @@
 #! stap -p4
 
 probe begin {
+  printf("%d\n", atomic_read(0))
   printf("%d\n", atomic_long_read(0))
   exit()
 }

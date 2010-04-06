@@ -2,6 +2,10 @@ set test "atomic"
 
 if {![installtest_p]} {untested $test; return}
 
+#
+# First test atomic_long_read()
+#
+
 set script_template {
     probe begin {
 	print("systemtap starting probe\n")
@@ -10,32 +14,32 @@ set script_template {
 
     probe end {
 	print("systemtap ending probe\n")
-	printf("%%d\n", atomic_long_read(%s))
+	printf("%%d\n", %s_read(%s))
     }
 }
 
 # First try reading from address 0, which should fail.
 set test "atomic1"
 set error {kernel read fault at 0x[^\r]+}
-set script [format $script_template "0"]
-stap_run_error $test 1 $error "" -e $script
+set script [format $script_template "atomic_long" "0"]
+stap_run_error $test 1 $error "0\r\n" -e $script
 
 # Try reading from address -1 (top of memory), which should fail.
 set test "atomic2"
-set script [format $script_template "-1"]
-stap_run_error $test 1 $error "" -e $script
+set script [format $script_template "atomic_long" "-1"]
+stap_run_error $test 1 $error "0\r\n" -e $script
 
 # Try reading from address 3, which should fail (if nothing else
 # because it isn't aligned properly).
 set test "atomic3"
-set script [format $script_template "3"]
-stap_run_error $test 1 $error "" -e $script
+set script [format $script_template "atomic_long" "3"]
+stap_run_error $test 1 $error "0\r\n" -e $script
 
 # Since we want to fail semi-gracefully (no compile errors), if we
 # don't have atomic_long_t support on this kernel (no
 # ATOMIC_LONG_INIT) the testcase will compile, but fail.
 
-set script_module_template {
+set atomic_long_script_module_template {
     %%{
     #include <asm/atomic.h>
     #ifdef ATOMIC_LONG_INIT
@@ -53,6 +57,64 @@ set script_module_template {
     #endif
     %%}
 
+    function get_atomic_long_addr:long()
+    %%{
+	THIS->__retvalue = (long)&stp_atomic_struct.a;
+    %%}
+
+    probe begin {
+	print("systemtap starting probe\n")
+	exit()
+    }
+
+    probe end {
+	print("systemtap ending probe\n")
+	printf("%%d\n", atomic_long_read(get_atomic_long_addr() + %s))
+    }
+}
+
+set test "atomic4"
+set script [format $atomic_long_script_module_template "0"]
+stap_run_error $test 0 $error "5\r\n" -ge $script
+
+# We should be able to check for trying to read the atomic_long_t with
+# bad alignment here, but it succeeds on {x86, x86_64} and fails on
+# ia64.  Since it doesn't fail consistently, we'll comment this out.
+#set test "atomic5"
+#set script [format $atomic_long_script_module_template "3"]
+#stap_run_error $test 1 $error "" -ge $script
+
+#
+# Now test atomic_read()
+#
+
+# First try reading from address 0, which should fail.
+set test "atomic5"
+set error {kernel read fault at 0x[^\r]+}
+set script [format $script_template "atomic" "0"]
+stap_run_error $test 1 $error "0\r\n" -e $script
+
+# Try reading from address -1 (top of memory), which should fail.
+set test "atomic6"
+set script [format $script_template "atomic" "-1"]
+stap_run_error $test 1 $error "0\r\n" -e $script
+
+# Try reading from address 3, which should fail (if nothing else
+# because it isn't aligned properly).
+set test "atomic7"
+set script [format $script_template "atomic" "3"]
+stap_run_error $test 1 $error "0\r\n" -e $script
+
+set atomic_script_module_template {
+    %%{
+    #include <asm/atomic.h>
+    struct {
+        ulong barrier1;
+        atomic_t a;
+        ulong barrier2;
+    } stp_atomic_struct = { ULONG_MAX, ATOMIC_INIT(5), ULONG_MAX };
+    %%}
+
     function get_atomic_addr:long()
     %%{
 	THIS->__retvalue = (long)&stp_atomic_struct.a;
@@ -65,17 +127,17 @@ set script_module_template {
 
     probe end {
 	print("systemtap ending probe\n")
-	printf("%%d\n", atomic_long_read(get_atomic_addr() + %s))
+	printf("%%d\n", atomic_read(get_atomic_addr() + %s))
     }
 }
 
-set test "atomic4"
-set script [format $script_module_template "0"]
+set test "atomic8"
+set script [format $atomic_script_module_template "0"]
 stap_run_error $test 0 $error "5\r\n" -ge $script
 
-# We should be able to check for trying to read the atomic_long_t with
+# We should be able to check for trying to read the atomic_t with
 # bad alignment here, but it succeeds on {x86, x86_64} and fails on
 # ia64.  Since it doesn't fail consistently, we'll comment this out.
-#set test "atomic5"
-#set script [format $script_module_template "3"]
+#set test "atomic9"
+#set script [format $atomic_script_module_template "3"]
 #stap_run_error $test 1 $error "" -ge $script
