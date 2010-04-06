@@ -1,9 +1,6 @@
 %{
 /* For AF_INET */
 #include <linux/socket.h>
-
-#include <linux/nfs_fs.h>
-#include <linux/nfs_xdr.h>
 %}
 
 function AF_INET:long()
@@ -11,12 +8,48 @@ function AF_INET:long()
 	THIS->__retvalue = AF_INET;
 %}
 
+function NFS_I:long(inode:long)
+{
+	/*
+	 * Notice we're casting 0 here on purpose.  We need the offset
+	 * of the 'vfs_inode' member of 'struct nfs_inode'.  This is
+	 * the script language equivalent of:
+	 *    offset = offsetof(struct nfs_inode, vfs_inode);
+	 */
+	offset = &@cast(0, "nfs_inode", "kernel:nfs")->vfs_inode
+
+	return (inode - offset)
+}
+
+function NFS_FH:long(inode:long)
+{
+	return &@cast(NFS_I(inode), "nfs_inode", "kernel:nfs")->fh
+}
+
+function NFS_SERVER:long(inode:long)
+{
+	return @cast(inode, "inode")->i_sb->s_fs_info
+}
+
+function NFS_CLIENT:long(inode:long)
+{
+	return @cast(NFS_SERVER(inode), "nfs_server", "kernel:nfs")->client
+}
+
+/* deprecated */
 function stap_NFS_CLIENT:long(inode:long)
 {
-	i_sb = @cast(inode, "inode")->i_sb
-	server = @cast(i_sb, "super_block")->s_fs_info
-	return @cast(server, "nfs_server", "kernel<linux/nfs_fs.h>")->client
+	return NFS_CLIENT(inode)
 }
+
+function NFS_PROTO:long(inode:long)
+{
+    nfsserver = NFS_SERVER(inode)
+    return (@defined(@cast(nfsserver, "nfs_server", "kernel:nfs")->nfs_client)
+	    ? @cast(nfsserver, "nfs_server", "kernel:nfs")->nfs_client->rpc_ops
+	    : @cast(nfsserver, "nfs_server", "kernel:nfs")->rpc_ops)
+}
+
 
 /* Get ip address from a rpc_clnt */
 function get_ip_from_client:long(clnt:long)
@@ -61,7 +94,7 @@ function get_prot:long(task:long)
 */
 function __i2n_ip_proto:long(dir:long, index:long)
 {
-	clnt = stap_NFS_CLIENT(dir)
+	clnt = NFS_CLIENT(dir)
 
         if (index == 0)
 		return get_ip_from_client(clnt)
@@ -124,23 +157,20 @@ function __nfs_write_data_info:long (wdata :long,index :long)
 	return 0
 }
 
-function __nfsv4_bitmask :long(dir:long,i:long) %{ /* pure */
-        int i = (int) (THIS->i);
-	struct inode * dir = (struct inode *)(long)(THIS->dir);
-        struct nfs_server * server = NFS_SERVER(dir); /* FIXME: deref hazard! */
+function __nfsv4_bitmask:long(dir:long, i:long)
+{
+%( CONFIG_NFS_V4 == "[ym]" %?
+	return @cast(NFS_SERVER(dir), "nfs_server", "kernel:nfs")->attr_bitmask[i]
+%)
+	return 0
+}
 
-#ifdef CONFIG_NFS_V4
-        THIS->__retvalue = kread(&(server->attr_bitmask[i]));
-#endif
-        CATCH_DEREF_FAULT();
-%}
+/* deprecated */
+function __getfh_inode:long(dir:long)
+{
+	return NFS_FH(dir)
+}
 
-function __getfh_inode :long(dir:long) %{ /* pure */
-	struct inode * dir = (struct inode *)(long)(THIS->dir);
-	struct nfs_fh * fh = NFS_FH(dir); /* FIXME: deref hazard! */
-
-	THIS->__retvalue =(long) fh;
-%}
 probe nfs.proc.entries = nfs.proc.lookup,
 			nfs.proc.read ?,
 			nfs.proc.write ?,
@@ -647,7 +677,7 @@ probe nfs.proc.read_setup.return = nfs.proc2.read_setup.return ,
 probe nfs.proc2.read_setup = kernel.function("nfs_proc_read_setup") !,
                        module("nfs").function("nfs_proc_read_setup")?
 {
-	client = stap_NFS_CLIENT($data->inode)
+	client = NFS_CLIENT($data->inode)
 	server_ip = get_ip_from_client(client)
 	prot = get_prot_from_client(client)
         version =2
@@ -672,7 +702,7 @@ probe nfs.proc2.read_setup.return = kernel.function("nfs_proc_read_setup").retur
 probe nfs.proc3.read_setup = kernel.function("nfs3_proc_read_setup") !,
                        module("nfs").function("nfs3_proc_read_setup")?
 {
-	client = stap_NFS_CLIENT($data->inode)
+	client = NFS_CLIENT($data->inode)
 	server_ip = get_ip_from_client(client)
 	prot = get_prot_from_client(client)
         version =3
@@ -698,7 +728,7 @@ probe nfs.proc3.read_setup.return = kernel.function("nfs3_proc_read_setup").retu
 probe nfs.proc4.read_setup = kernel.function("nfs4_proc_read_setup") !,
                        module("nfs").function("nfs4_proc_read_setup")?
 {
-	client = stap_NFS_CLIENT($data->inode)
+	client = NFS_CLIENT($data->inode)
 	server_ip = get_ip_from_client(client)
 	prot = get_prot_from_client(client)
         version =4
@@ -871,7 +901,7 @@ probe nfs.proc.write_setup.return = nfs.proc2.write_setup.return,
 probe nfs.proc2.write_setup = kernel.function("nfs_proc_write_setup") !,
                               module("nfs").function("nfs_proc_write_setup") ?
 {
-	client = stap_NFS_CLIENT($data->inode)
+	client = NFS_CLIENT($data->inode)
 	server_ip = get_ip_from_client(client)
 	prot = get_prot_from_client(client)
         version =2
@@ -896,7 +926,7 @@ probe nfs.proc2.write_setup.return = kernel.function("nfs_proc_write_setup").ret
 probe nfs.proc3.write_setup = kernel.function("nfs3_proc_write_setup") !,
                               module("nfs").function("nfs3_proc_write_setup") ?
 {
-	client = stap_NFS_CLIENT($data->inode)
+	client = NFS_CLIENT($data->inode)
 	server_ip = get_ip_from_client(client)
 	prot = get_prot_from_client(client)
         version =3
@@ -921,7 +951,7 @@ probe nfs.proc3.write_setup.return = kernel.function("nfs3_proc_write_setup").re
 probe nfs.proc4.write_setup = kernel.function("nfs4_proc_write_setup") !,
                               module("nfs").function("nfs4_proc_write_setup") ?
 {
-	client = stap_NFS_CLIENT($data->inode)
+	client = NFS_CLIENT($data->inode)
 	server_ip = get_ip_from_client(client)
 	prot = get_prot_from_client(client)
         version =4
@@ -1097,7 +1127,7 @@ probe nfs.proc.commit_setup.return =nfs.proc3.commit_setup.return,
 probe nfs.proc3.commit_setup = kernel.function("nfs3_proc_commit_setup") !,
                               module("nfs").function("nfs3_proc_commit_setup") ?
 {
-	client = stap_NFS_CLIENT($data->inode)
+	client = NFS_CLIENT($data->inode)
 	server_ip = get_ip_from_client(client)
 	prot = get_prot_from_client(client)
         version =3
@@ -1121,7 +1151,7 @@ probe nfs.proc3.commit_setup.return = kernel.function("nfs3_proc_commit_setup") 
 probe nfs.proc4.commit_setup = kernel.function("nfs4_proc_commit_setup") !,
                               module("nfs").function("nfs4_proc_commit_setup") ?
 {
-	client = stap_NFS_CLIENT($data->inode)
+	client = NFS_CLIENT($data->inode)
 	server_ip = get_ip_from_client(client)
 	prot = get_prot_from_client(client)
         version =4
@@ -1358,7 +1388,7 @@ probe nfs.proc2.create = kernel.function("nfs_proc_create")!,
 	prot = __i2n_ip_proto($dir,1)  	
 	version =2
 
-	fh = __getfh_inode($dir)
+	fh = NFS_FH($dir)
 	filelen = $dentry->d_name->len
 	filename = kernel_string_n($dentry->d_name->name, filelen)
 	mode = $sattr->ia_mode
@@ -1382,7 +1412,7 @@ probe nfs.proc3.create = kernel.function("nfs3_proc_create")!,
 	prot = __i2n_ip_proto($dir,1)  	
 	version =3
 
-	fh = __getfh_inode($dir)
+	fh = NFS_FH($dir)
 	filelen = $dentry->d_name->len
 	filename = kernel_string_n($dentry->d_name->name, filelen)
 	flag = $flags
@@ -1407,7 +1437,7 @@ probe nfs.proc4.create = kernel.function("nfs4_proc_create")!,
 	prot = __i2n_ip_proto($dir,1)  	
 	version =4
 
-	fh = __getfh_inode($dir)
+	fh = NFS_FH($dir)
 	filelen = $dentry->d_name->len
 	filename = kernel_string_n($dentry->d_name->name, filelen)
 	flag = $flags
@@ -1454,7 +1484,7 @@ probe nfs.proc2.remove = kernel.function("nfs_proc_remove")!,
 	prot = __i2n_ip_proto($dir,1)  	
 	version =2
 
-	fh = __getfh_inode($dir)
+	fh = NFS_FH($dir)
 	filelen = $name->len
 	filename = kernel_string_n($name->name, filelen)
 
@@ -1477,7 +1507,7 @@ probe nfs.proc3.remove = kernel.function("nfs3_proc_remove")!,
 	prot = __i2n_ip_proto($dir,1)  	
 	version =3
 
-	fh = __getfh_inode($dir)
+	fh = NFS_FH($dir)
 	filelen = $name->len
 	filename = kernel_string_n($name->name, filelen)
 
@@ -1500,7 +1530,7 @@ probe nfs.proc4.remove = kernel.function("nfs4_proc_remove")!,
 	prot = __i2n_ip_proto($dir,1)  	
 	version =4
 
-	fh = __getfh_inode($dir)
+	fh = NFS_FH($dir)
 	filelen = $name->len
 	filename = kernel_string_n($name->name, filelen)
 
@@ -1548,10 +1578,10 @@ probe nfs.proc2.rename = kernel.function("nfs_proc_rename")!,
 	prot = __i2n_ip_proto($old_dir,1)  	
 	version =2
 
-	old_fh = __getfh_inode($old_dir)
+	old_fh = NFS_FH($old_dir)
 	old_filelen = $old_name->len
 	old_name = kernel_string_n($old_name->name, old_filelen)
-	new_fh = __getfh_inode($new_dir)
+	new_fh = NFS_FH($new_dir)
 	new_filelen = $new_name->len
 	new_name = kernel_string_n($new_name->name, new_filelen)
 
@@ -1574,10 +1604,10 @@ probe nfs.proc3.rename = kernel.function("nfs3_proc_rename")!,
 	prot = __i2n_ip_proto($old_dir,1)  	
 	version =3
 
-	old_fh = __getfh_inode($old_dir)
+	old_fh = NFS_FH($old_dir)
 	old_filelen = $old_name->len
 	old_name = kernel_string_n($old_name->name, old_filelen)
-	new_fh = __getfh_inode($new_dir)
+	new_fh = NFS_FH($new_dir)
 	new_filelen = $new_name->len
 	new_name = kernel_string_n($new_name->name, new_filelen)
 
@@ -1600,10 +1630,10 @@ probe nfs.proc4.rename = kernel.function("nfs4_proc_rename")!,
 	prot = __i2n_ip_proto($old_dir,1)  	
 	version =4
 
-	old_fh = __getfh_inode($old_dir)
+	old_fh = NFS_FH($old_dir)
 	old_filelen = $old_name->len
 	old_name = kernel_string_n($old_name->name, old_filelen)
-	new_fh = __getfh_inode($new_dir)
+	new_fh = NFS_FH($new_dir)
 	new_filelen = $new_name->len
 	new_name = kernel_string_n($new_name->name, new_filelen)
 

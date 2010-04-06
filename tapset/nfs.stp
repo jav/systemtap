@@ -2,7 +2,7 @@
 // Copyright (C) 2006-2007 IBM Corp.
 // Copyright (C) 2007 Intel Corporation.
 // Copyright (C) 2007 Bull S.A.S
-// Copyright (c) 2009 Red Hat Inc.
+// Copyright (c) 2009-2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -15,125 +15,78 @@
 %}
 
 /* Get cache_validity flag from struct inode */
-function __nfsi_cache_valid:long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        struct nfs_inode *nfsi = NFS_I(inode);
-        THIS->__retvalue = kread(&(nfsi->cache_validity));
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfsi_cache_valid:long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return @cast(NFS_I(inode), "nfs_inode", "kernel:nfs")->cache_validity 
+}
 
 /* Get read_cache_jiffies from struct inode */
-function __nfsi_rcache_time:long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        struct nfs_inode *nfsi = NFS_I(inode);
-        THIS->__retvalue = kread(&(nfsi->read_cache_jiffies));
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfsi_rcache_time:long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return @cast(NFS_I(inode), "nfs_inode", "kernel:nfs")->read_cache_jiffies
+}
 
 /* Get attrtimeo from struct inode */
-function __nfsi_attr_time :long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        struct nfs_inode *nfsi = NFS_I(inode);
-        THIS->__retvalue = kread(&(nfsi->attrtimeo));
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfsi_attr_time :long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return @cast(NFS_I(inode), "nfs_inode", "kernel:nfs")->attrtimeo
+}
 
 /* Get ndirty from struct inode */
-function __nfsi_ndirty:long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        struct nfs_inode *nfsi = NFS_I(inode);
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
-        THIS->__retvalue = kread(&(nfsi->ndirty));
-#else
-        THIS->__retvalue = -1;
-#endif
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfsi_ndirty:long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return (@defined(@cast(NFS_I(inode), "nfs_inode", "kernel:nfs")->ndirty)
+	    ? @cast(NFS_I(inode), "nfs_inode", "kernel:nfs")->ndirty
+	    : -1)
+}
 
 /* Get rsize from struct inode */
-function __nfs_server_rsize:long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        struct nfs_server *nfs_srv = NFS_SERVER(inode); /* FIXME: deref hazard! */
-        THIS->__retvalue = kread(&(nfs_srv->rsize));
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfs_server_rsize:long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return @cast(NFS_SERVER(inode), "nfs_server", "kernel:nfs")->rsize
+}
 
 /* Get version from struct inode */
-function __nfs_version:long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        const struct nfs_rpc_ops *rpc_ops = NFS_PROTO(inode); /* FIXME: deref hazard! */
-        THIS->__retvalue = kread(&(rpc_ops->version));
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfs_version:long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return @cast(NFS_PROTO(inode), "nfs_rpc_ops", "kernel:nfs")->version
+}
 
 /* Get wsize from struct inode */
-function __nfs_server_wsize:long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        struct nfs_server *nfs_srv = NFS_SERVER(inode); /* FIXME: deref hazard! */
-        THIS->__retvalue = kread(&(nfs_srv->wsize));
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfs_server_wsize:long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return @cast(NFS_SERVER(inode), "nfs_server", "kernel:nfs")->wsize
+}
 
 /* Get rpages from struct inode */
-function __nfs_rpages:long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        struct nfs_server *nfs_srv = NFS_SERVER(inode); /* FIXME: deref hazard! */
-        THIS->__retvalue = kread(&(nfs_srv->rpages));
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfs_rpages:long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return @cast(NFS_SERVER(inode), "nfs_server", "kernel:nfs")->rpages
+}
 
 /* Get wpages from struct inode */
-function __nfs_wpages:long (inode:long) %{ /* pure */
-    struct inode *inode = (struct inode *)(long)(THIS->inode);
-
-    if (inode == NULL) 
-        THIS->__retvalue = -1;
-    else {
-        struct nfs_server *nfs_srv = NFS_SERVER(inode); /* FIXME: deref hazard! */
-        THIS->__retvalue = kread(&(nfs_srv->wpages));
-    }
-    CATCH_DEREF_FAULT();
-%}
+function __nfs_wpages:long (inode:long)
+{
+    if (inode == 0)	
+        return -1
+    return @cast(NFS_SERVER(inode), "nfs_server", "kernel:nfs")->wpages
+}
 
 /* Get struct inode from struct page */
 function __p2i :long (page:long)
