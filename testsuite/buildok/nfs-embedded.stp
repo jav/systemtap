@@ -15,7 +15,6 @@ probe begin {
 		__p2i_state (0) +
 		__p2i_size (0) +
 		__p2sb_flag (0) +
-		__d_loff_t (0) +
 		__file_inode (0) +
 		__file_id (0) +
 		__file_mode (0) +

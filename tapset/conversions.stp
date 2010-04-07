@@ -1,5 +1,5 @@
 // conversions tapset
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2007 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -113,6 +113,24 @@ deref_fault: /* branched to from kread() */
   }
 %}
 
+/**
+ * sfunction kernel_pointer - Retrieves a pointer value stored in
+ * kernel memory.
+ * @addr: The kernel address to retrieve the pointer from.
+ *
+ * Description: Returns the pointer value from a given kernel memory
+ * address. Reports an error when reading from the given address
+ * fails.
+ */
+function kernel_pointer:long (addr:long) %{ /* pure */
+  THIS->__retvalue = (int64_t) kread((void **) (intptr_t) THIS->addr);
+  if (0) {
+deref_fault: /* branched to from kread() */
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "kernel pointer copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = CONTEXT->error_buffer;
+  }
+%}
 
 /**
  * sfunction user_string - Retrieves string from user space.

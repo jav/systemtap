@@ -9,6 +9,7 @@ probe begin
     set_kernel_int(addr, 42)
     set_kernel_short(addr, 42)
     set_kernel_char(addr, 42)
+    set_kernel_pointer(addr, 42)
 }
 
 

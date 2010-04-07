@@ -115,3 +115,21 @@ deref_fault: /* branched to from kwrite() */
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
+
+/**
+ * sfunction set_kernel_pointer - Writes a pointer value to kernel memory.
+ * @addr: The kernel address to write the pointer to.
+ * @val: The pointer which is to be written.
+ *
+ * Description: Writes the pointer value to a given kernel memory address.
+ * Reports an error when writing to the given address fails.
+ */
+function set_kernel_pointer (addr:long, val:long) %{ /* guru */
+  kwrite((void **) (intptr_t) THIS->addr, THIS->val);
+  if (0) {
+deref_fault: /* branched to from kwrite() */
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "kernel pointer copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = CONTEXT->error_buffer;
+  }
+%}

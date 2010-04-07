@@ -134,16 +134,6 @@ function __p2sb_flag:long (page:long)
     return @cast(i_sb, "super_block", "kernel:nfs")->s_flags
 }
 
-function __d_loff_t :long (ppos :long) %{ /* pure */
-    loff_t *ppos = (loff_t *)((long)THIS->ppos);
-
-    if (ppos == NULL)
-        THIS->__retvalue = -1;
-    else
-        THIS->__retvalue = kread(ppos);
-    CATCH_DEREF_FAULT();
-%}
-
 function __file_inode:long (file:long)
 {
 %( kernel_v >= "2.6.20" %?
@@ -718,7 +708,7 @@ probe nfs.fop.sendfile = kernel.function("nfs_file_sendfile") !,
 	devname = kernel_string(s_id)
 
         count = $count
-        ppos  = __d_loff_t($ppos)
+        ppos  = $ppos ? kernel_pointer($ppos) : -1
 
         cache_valid = __nfsi_cache_valid(__file_inode($filp))
         cache_time  = __nfsi_rcache_time(__file_inode($filp))
