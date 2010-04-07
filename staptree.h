@@ -33,9 +33,7 @@ struct semantic_error: public std::runtime_error
   semantic_error *chain;
 
   ~semantic_error () throw () {}
-  semantic_error (const std::string& msg):
-    runtime_error (msg), tok1 (0), tok2 (0), chain (0) {}
-  semantic_error (const std::string& msg, const token* t1):
+  semantic_error (const std::string& msg, const token* t1=0):
     runtime_error (msg), tok1 (t1), tok2 (0), chain (0) {}
   semantic_error (const std::string& msg, const token* t1,
                   const std::string& m2, const token* t2):
@@ -258,7 +256,7 @@ struct target_symbol: public symbol
   std::string probe_context_var; // NB: this being set implies that target_symbol is *resolved*
   semantic_error* saved_conversion_error; // hand-made linked list
   target_symbol(): addressof(false), saved_conversion_error (0) {}
-  void chain (semantic_error* e);
+  void chain (const semantic_error& er);
   void print (std::ostream& o) const;
   void visit (visitor* u);
   void visit_components (visitor* u);

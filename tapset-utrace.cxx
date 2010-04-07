@@ -601,7 +601,7 @@ utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
     }
   catch (const semantic_error &er) 
     {
-      e->chain (new semantic_error(er));
+      e->chain (er);
       provide(e);
       return;
     }

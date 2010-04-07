@@ -224,8 +224,11 @@ target_symbol::assert_no_components(const std::string& tapset)
 }
 
 
-void target_symbol::chain (semantic_error *e)
+void target_symbol::chain (const semantic_error &er)
 {
+  semantic_error* e = new semantic_error(er);
+  if (!e->tok1)
+    e->tok1 = this->tok;
   assert (e->chain == 0);
   e->chain = this->saved_conversion_error;
   this->saved_conversion_error = e;

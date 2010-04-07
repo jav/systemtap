@@ -2683,12 +2683,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       // target_symbol to the next pass.  We hope that this value ends
       // up not being referenced after all, so it can be optimized out
       // quietly.
-      semantic_error* saveme = new semantic_error (er); // copy it
-      if (! saveme->tok1) { saveme->tok1 = e->tok; } // fill in token if needed
-      // NB: we can have multiple errors, since a $target variable
-      // may be expanded in several different contexts:
-      //     function ("*") { $var }
-      e->chain (saveme);
+      e->chain (er);
       provide (e);
     }
 }
@@ -2771,9 +2766,9 @@ dwarf_cast_query::handle_query_module()
   catch (const semantic_error& er)
     {
       // NB: we can have multiple errors, since a @cast
-      // may be expanded in several different contexts:
-      //     function ("*") { @cast(...) }
-      e.chain (new semantic_error(er));
+      // may be attempted using several different modules:
+      //     @cast(ptr, "type", "module1:module2:...")
+      e.chain (er);
     }
 }
 
@@ -3998,7 +3993,7 @@ sdt_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error &er)
     {
-      e->chain (new semantic_error(er));
+      e->chain (er);
       provide (e);
     }
 }
@@ -6309,7 +6304,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol (target_symbol* e)
     }
   catch (const semantic_error &er)
     {
-      e->chain (new semantic_error(er));
+      e->chain (er);
       provide (e);
     }
 }
