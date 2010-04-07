@@ -2748,9 +2748,6 @@ struct dwarf_cast_query : public base_query
     pe_type(pe_type), code(code) {}
 
   void handle_query_module();
-  int handle_query_cu(Dwarf_Die * cudie);
-
-  static int cast_query_cu (Dwarf_Die * cudie, void * arg);
 };
 
 
@@ -2760,46 +2757,24 @@ dwarf_cast_query::handle_query_module()
   if (!code.empty())
     return;
 
-  // look for the type in each CU
-  dw.iterate_over_cus(cast_query_cu, this);
-}
+  // look for the type in any CU
+  Dwarf_Die* type_die = dw.declaration_resolve_other_cus(e.type.c_str());
+  if (!type_die)
+    return;
 
-
-int
-dwarf_cast_query::handle_query_cu(Dwarf_Die * cudie)
-{
-  if (!code.empty())
-    return DWARF_CB_ABORT;
-
-  dw.focus_on_cu (cudie);
-  Dwarf_Die* type_die = dw.declaration_resolve(e.type.c_str());
-  if (type_die)
+  try
     {
-      try
-        {
-          code = dw.literal_stmt_for_pointer (type_die, &e,
-                                              lvalue, pe_type);
-        }
-      catch (const semantic_error& er)
-        {
-          // XXX might be better to try again in another CU
-	  // NB: we can have multiple errors, since a @cast
-	  // may be expanded in several different contexts:
-	  //     function ("*") { @cast(...) }
-          e.chain (new semantic_error(er));
-        }
-      return DWARF_CB_ABORT;
+      Dwarf_Die cu_mem;
+      dw.focus_on_cu(dwarf_diecu(type_die, &cu_mem, NULL, NULL));
+      code = dw.literal_stmt_for_pointer (type_die, &e, lvalue, pe_type);
     }
-  return DWARF_CB_OK;
-}
-
-
-int
-dwarf_cast_query::cast_query_cu (Dwarf_Die * cudie, void * arg)
-{
-  dwarf_cast_query * q = static_cast<dwarf_cast_query *>(arg);
-  if (pending_interrupts) return DWARF_CB_ABORT;
-  return q->handle_query_cu(cudie);
+  catch (const semantic_error& er)
+    {
+      // NB: we can have multiple errors, since a @cast
+      // may be expanded in several different contexts:
+      //     function ("*") { @cast(...) }
+      e.chain (new semantic_error(er));
+    }
 }
 
 
