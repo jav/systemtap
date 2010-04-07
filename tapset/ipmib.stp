@@ -1,5 +1,7 @@
 /*
  *      Copyright (C) 2009 IBM Corp.
+ *      Copyright (C) 2010 Red Hat Inc.
+ *
  *      This file is part of systemtap, and is free software.  You can
  *      redistribute it and/or modify it under the terms of the GNU General
  *      Public License (GPL); either version 2, or (at your option) any
@@ -88,8 +90,8 @@ function ipmib_tcp_remote_port:long (skb:long, SourceIsLocal:long)
 {
 	th = _plunge_into_tcphdr(skb);
 	if ( SourceIsLocal )
-		return _tcphdr_get_dport(th);
-	return _tcphdr_get_sport(th);
+		return __tcp_skb_dport(th);
+	return __tcp_skb_sport(th);
 }
 
 /**
@@ -103,8 +105,8 @@ function ipmib_tcp_local_port:long (skb:long, SourceIsLocal:long)
 {
 	th = _plunge_into_tcphdr(skb);
 	if ( SourceIsLocal )
-		return _tcphdr_get_sport(th);
-	return _tcphdr_get_dport(th);
+		return __tcp_skb_sport(th);
+	return __tcp_skb_dport(th);
 }
 
 /**
@@ -147,62 +149,48 @@ function _plunge_into_tcphdr:long (skb:long)
 	CATCH_DEREF_FAULT();
 %}
 
-function _tcphdr_get_sport:long (th:long)
-%{ /* pure */
-	struct tcphdr *th = (struct tcphdr *) (long) THIS->th;
-	THIS->__retvalue = ntohs(kread(&(th->source)));
-	CATCH_DEREF_FAULT();
-%}
-
-function _tcphdr_get_dport:long (th:long)
-%{ /* pure */
-	struct tcphdr *th = (struct tcphdr *) (long) THIS->th;
-	THIS->__retvalue = ntohs(kread(&(th->dest)));
-	CATCH_DEREF_FAULT();
-%}
-
 function _ehostunreach:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = EHOSTUNREACH;
 %}
 
 function _enetunreach:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = ENETUNREACH;
 %}
 
 function _icmp_dest_unreach:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = ICMP_DEST_UNREACH;
 %}
 
 function _icmp_prot_unreach:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = ICMP_PROT_UNREACH;
 %}
 
 function _net_rx_drop:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = NET_RX_DROP;
 %}
 
 function _icmp_time_exceeded:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = ICMP_TIME_EXCEEDED;
 %}
 
 function _icmp_exc_fragtime:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = ICMP_EXC_FRAGTIME;
 %}
 
 function _rtn_multicast:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = RTN_MULTICAST;
 %}
 
 function _rtn_broadcast:long ()
-%{
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = RTN_BROADCAST;
 %}
 
@@ -340,7 +328,7 @@ probe ipmib.ForwDatagrams=kernel.function("ip_forward_finish")
 probe ipmib.OutRequests=kernel.function("ip_output"),
 			kernel.function("ip_mc_output")
 {
-	skb = $skb;
+	skb = @defined($skb) ? $skb : kernel_pointer($pskb);
 	op = 1;
 	SourceIsLocal = 1;
 	key = ipmib_filter_key(skb,op,SourceIsLocal);
@@ -423,70 +411,27 @@ probe ipmib.FragFails=kernel.function("ip_fragment").return
 	if ( key ) FragFails [key] += op;
 }
 
+function _rtn_unspec:long ()
+%{ /* pure */ /* unprivileged */
+	THIS->__retvalue = RTN_UNSPEC;
+%}
+
 function _input_route_type:long (skb:long)
 {
-%( kernel_v < "2.6.31" %?
-	return __input_route_type_old(skb)
-%:
-	return __input_route_type_new(skb)
-%)
+	rt = (@defined(@cast(skb, "sk_buff")->_skb_dst)
+	      ? @cast(skb, "sk_buff")->_skb_dst
+	      : (@defined(@cast(skb, "sk_buff")->rtable)
+	         ? @cast(skb, "sk_buff")->rtable
+		 : 0))
+	return rt ? @cast(rt, "rtable")->rt_type : _rtn_unspec()
 }
-
-function __input_route_type_old:long (skb:long)
-%{ /* pure */
-	struct rtable *rt;
-	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
-	rt = (struct rtable *)kread(&(skb->rtable));
-	if  ( rt )
-		THIS->__retvalue = kread(&(rt->rt_type));
-	else
-		THIS->__retvalue = RTN_UNSPEC;
-	CATCH_DEREF_FAULT();
-%}
-
-function __input_route_type_new:long (skb:long)
-%{ /* pure */
-	struct rtable *rt;
-	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
-	rt = (struct rtable *)kread(&(skb->_skb_dst));
-	if  ( rt )
-		THIS->__retvalue = kread(&(rt->rt_type));
-	else
-		THIS->__retvalue = RTN_UNSPEC;
-	CATCH_DEREF_FAULT();
-%}
 
 function _output_route_type:long (skb:long)
 {
-%( kernel_v < "2.6.31" %?
-	return __output_route_type_old(skb)
-%:
-	return __output_route_type_new(skb)
-%)
+	rt = (@defined(@cast(skb, "sk_buff")->_skb_dst)
+	      ? @cast(skb, "sk_buff")->_skb_dst
+	      : (@defined(@cast(skb, "sk_buff")->dst)
+	         ? @cast(skb, "sk_buff")->dst
+		 : 0))
+	return rt ? @cast(rt, "rtable")->rt_type : _rtn_unspec()
 }
-
-function __output_route_type_old:long (skb:long)
-%{ /* pure */
-	struct rtable *rt;
-	struct dst_entry *dst;
-	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
-	dst = (struct dst_entry *)kread(&(skb->dst));
-	rt = (struct rtable *)dst;
-	if ( rt )
-		THIS->__retvalue = kread(&(rt->rt_type));
-	else
-		THIS->__retvalue = RTN_UNSPEC;
-	CATCH_DEREF_FAULT();
-%}
-
-function __output_route_type_new:long (skb:long)
-%{ /* pure */
-	struct rtable *rt;
-	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
-	rt = (struct rtable *)kread(&(skb->_skb_dst));
-	if ( rt )
-		THIS->__retvalue = kread(&(rt->rt_type));
-	else
-		THIS->__retvalue = RTN_UNSPEC;
-	CATCH_DEREF_FAULT();
-%}
