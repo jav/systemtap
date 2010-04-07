@@ -1,18 +1,12 @@
 // rpc tapset
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2007 Bull S.A.S
-// Copyright (C) 2008 Red Hat
+// Copyright (C) 2008, 2010 Red Hat
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
-
-%{
-#include <linux/kernel.h>
-#include <linux/sunrpc/clnt.h>
-#include <linux/sunrpc/svc.h>
-%}
 
 probe sunrpc.entry =
 	sunrpc.clnt.entry,
@@ -932,48 +926,41 @@ function prot_from_clnt:long(clnt:long)
 }
 
 function port_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	struct rpc_xprt *cl_xprt = clnt? kread(&(clnt->cl_xprt)) : NULL;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-	if (cl_xprt && kread(&(cl_xprt->addr.ss_family)) == AF_INET) {
-		/* Now consider ipv4 only */
-		struct sockaddr_in *sap = (struct sockaddr_in *) &cl_xprt->addr;
+{
+	if (clnt == 0)
+		return 0
 
-		THIS->__retvalue = ntohs(kread(&(sap->sin_port)));
+	cl_xprt = @cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_xprt
+	if (cl_xprt == 0)
+		return 0
+
+	addr = &@cast(cl_xprt, "rpc_xprt", "kernel:sunrpc")->addr
+	if (addr == 0)
+		return 0
+
+	/* In reality, 'cl_xprt->addr' is of 'sockaddr_storage' type
+	 * (since 2.6.19). But when used, you cast it to what is
+	 * inside that buffer. */
+	if (@cast(addr, "sockaddr_in")->sin_family == AF_INET()) {
+		/* Now consider ipv4 only */ 
+		return ntohs(@cast(addr, "sockaddr_in")->sin_port)
 	}
-#else
-	if (cl_xprt && kread(&(cl_xprt->addr.sin_family)) == AF_INET) {
-		/* Now consider ipv4 only */
-		THIS->__retvalue = ntohs(kread(&(cl_xprt->addr.sin_port)));
-	}
-#endif
-	else
-		THIS->__retvalue = 0;
-	CATCH_DEREF_FAULT();
-%}
+	return 0
+}
 
 function clones_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-        THIS->__retvalue = -1;
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
-	deref(sizeof(clnt->cl_count), &(clnt->cl_count));
-	THIS->__retvalue = atomic_read(&(clnt->cl_count));
-	CATCH_DEREF_FAULT();
-#endif
-%}
+{
+    return (@defined(@cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_count)
+	    ? atomic_read(&@cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_count)
+	    : -1)
+}
 
 function tasks_from_clnt:long(clnt:long)
-%{ /* pure */
-	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-        THIS->__retvalue = -1;
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
-	deref(sizeof(clnt->cl_users), &(clnt->cl_users));
-	THIS->__retvalue = atomic_read(&(clnt->cl_users));
-	CATCH_DEREF_FAULT();
-#endif
-%}
+{
+    return (@defined(@cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_users)
+	    ? atomic_read(&@cast(clnt, "rpc_clnt", "kernel:sunrpc")->cl_users)
+	    : -1)
+}
 
 function proc_from_msg:long(msg:long)
 {
@@ -983,56 +970,44 @@ function proc_from_msg:long(msg:long)
 }
 
 function vers_from_prog:long(program:long, vers:long)
-%{ /* pure */
-	struct rpc_program *program = (struct rpc_program *)(long)THIS->program;
-	if (program && THIS->vers < kread(&(program->nrvers))) {
-		struct rpc_version **version_array = kread(&(program->version));
-		struct rpc_version *version = kread(&(version_array[THIS->vers]));
-		THIS->__retvalue = kread(&(version->number));
-	} else
-		THIS->__retvalue = 0;
-	CATCH_DEREF_FAULT();
-%}
+{
+    if (program
+	&& vers < @cast(program, "rpc_program", "kernel:sunrpc")->nrvers)
+	return @cast(program, "rpc_program", "kernel:sunrpc")->version[vers]->number
+    return 0
+}
 
 function addr_from_rqst:long(rqstp:long)
-%{ /* pure */
-	struct svc_rqst *rqstp = (struct svc_rqst *)(long)THIS->rqstp;
+{
+    if (rqstp) {
+	addr = &@cast(rqstp, "svc_rqst", "kernel:nfs")->rq_addr
+	if (addr == 0)
+		return 0
 
-	if (rqstp) {
-		struct sockaddr_in *sin = (struct sockaddr_in *) &rqstp->rq_addr;
+	/* In reality, 'rq_addr' is of 'sockaddr_storage' type
+	 * (since 2.6.19). But when used, you cast it to what is
+	 * inside that buffer. */
+	if (@cast(addr, "sockaddr_in")->sin_family == AF_INET()) {
+		/* Now consider ipv4 only */ 
+		return @cast(addr, "sockaddr_in")->sin_addr->s_addr
+	}
+    }
+    return 0
+}
 
-		THIS->__retvalue = kread(&sin->sin_addr.s_addr);
-	} else
-		THIS->__retvalue = 0;
-	CATCH_DEREF_FAULT();
-%}
+function addr_from_rqst_str:string(rqstp:long)
+{
+	if (rqstp == 0)
+		return "Null"
 
-function addr_from_rqst_str:string(_rqstp:long)
-%{ /* pure */
-	struct svc_rqst *rqstp = 
-		(struct svc_rqst *)(long) kread(&(THIS->_rqstp));
-	struct sockaddr_in *addr;
-	unsigned char *bytes;
+	addr = &@cast(rqstp, "svc_rqst", "kernel:nfs")->rq_addr
+	if (addr == 0)
+		return "Null"
 
-	if (rqstp) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
-		if (rqstp->rq_addr.ss_family == AF_INET)
-#else
-		if (rqstp->rq_addr.sin_family == AF_INET)
-#endif
-		{
-			addr = (struct sockaddr_in *) &rqstp->rq_addr;
-			bytes = (unsigned char *)&addr->sin_addr.s_addr;
-
-			snprintf(THIS->__retvalue, MAXSTRINGLEN,
-				"%d.%d.%d.%d:%d", bytes[0], bytes[1], bytes[2], bytes[3],
-				addr->sin_port);
-		} else
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, 
-				"Unsupported Address Family");
-	} else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "Null");
-
-	CATCH_DEREF_FAULT();
-%}
+	s_addr = addr_from_rqst(rqstp)
+	if (s_addr == 0)
+		return "Unsupported Address Family"
+	return sprintf("%s:%d", daddr_to_string(s_addr),
+		       @cast(addr, "sockaddr_in")->sin_port)
+}
 
