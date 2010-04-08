@@ -114,8 +114,7 @@ deref_fault: /* branched to from kread() */
 %}
 
 /**
- * sfunction kernel_pointer - Retrieves a pointer value stored in
- * kernel memory.
+ * sfunction kernel_pointer - Retrieves a pointer value stored in kernel memory.
  * @addr: The kernel address to retrieve the pointer from.
  *
  * Description: Returns the pointer value from a given kernel memory
