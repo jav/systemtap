@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
-.TH STAPPROBES.NFSD 3stap "" "IBM"
+.TH TAPSET::NFSD 3stap "" "IBM"
 .SH NAME
-stapprobes.nfsd \- systemtap NFS server side probe points
+tapset::nfsd \- systemtap NFS server side probe points
 
 .\" macros
 .de SAMPLE
