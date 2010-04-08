@@ -249,6 +249,12 @@ output files exceed
 .B \-\-skip\-badvars
 Ignore out of context variables and substitute with literal 0.
 
+.TP
+.BI \-\-compatible VERSION
+Suppress recent script language or tapset changes which are incompatible
+with given older version of systemtap.  This may be useful if a much older
+systemtap script fails to run.
+
 .SH ARGUMENTS
 
 Any additional arguments on the command line are passed to the script

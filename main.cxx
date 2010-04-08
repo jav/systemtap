@@ -152,6 +152,9 @@ usage (systemtap_session& s, int exitcode)
 #endif
   // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
   // only, and don't belong in the eyesight of a plain user.
+    << "   --compatible=VERSION" << endl
+    << "              suppress incompatible language/tapset changes beyond VERSION," << endl
+    << "              instead of " << s.compatible << endl
     << "   --skip-badvars" << endl
     << "              substitute zero for bad context $variables" << endl
     << endl
@@ -609,6 +612,7 @@ main (int argc, char * const argv [])
   s.skip_badvars = false;
   s.unprivileged = false;
   s.omit_werror = false;
+  s.compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   bool client_options = false;
   string client_options_disallowed;
 
@@ -699,6 +703,7 @@ main (int argc, char * const argv [])
 #define LONG_OPT_DISABLE_CACHE 11
 #define LONG_OPT_POISON_CACHE 12
 #define LONG_OPT_CLEAN_CACHE 13
+#define LONG_OPT_COMPATIBLE 14
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -720,6 +725,7 @@ main (int argc, char * const argv [])
         { "disable-cache", 0, &long_opt, LONG_OPT_DISABLE_CACHE },
         { "poison-cache", 0, &long_opt, LONG_OPT_POISON_CACHE },
         { "clean-cache", 0, &long_opt, LONG_OPT_CLEAN_CACHE },
+        { "compatible", 1, &long_opt, LONG_OPT_COMPATIBLE },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
@@ -1038,12 +1044,20 @@ main (int argc, char * const argv [])
               clean_cache(s);
               exit(0);
 
+            case LONG_OPT_COMPATIBLE:
+              s.compatible = optarg;
+              break;
+
             default:
+              // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
+              cerr << "Unhandled long argument id " << long_opt << endl;
               exit(1);
             }
           break;
 
         default:
+          // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
+          cerr << "Unhandled argument code " << (char)grc << endl;
           exit(1);
           break;
         }

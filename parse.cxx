@@ -183,6 +183,7 @@ bool eval_comparison (const OPERAND& lhs, const token* op, const OPERAND& rhs)
 // The basic form is %( CONDITION %? THEN-TOKENS %: ELSE-TOKENS %)
 // where CONDITION is: kernel_v[r] COMPARISON-OP "version-string"
 //                 or: arch COMPARISON-OP "arch-string"
+//                 or: systemtap_v COMPARISON-OP "version-string"
 //                 or: CONFIG_foo COMPARISON-OP "config-string"
 //                 or: CONFIG_foo COMPARISON-OP number
 //                 or: CONFIG_foo COMPARISON-OP CONFIG_bar
@@ -202,17 +203,21 @@ bool eval_pp_conditional (systemtap_session& s,
                           const token* l, const token* op, const token* r)
 {
   if (l->type == tok_identifier && (l->content == "kernel_v" ||
-                                    l->content == "kernel_vr"))
+                                    l->content == "kernel_vr" || 
+                                    l->content == "systemtap_v"))
     {
-      string target_kernel_vr = s.kernel_release;
-      string target_kernel_v = s.kernel_base_release;
-
       if (! (r->type == tok_string))
         throw parse_error ("expected string literal", r);
 
-      string target = (l->content == "kernel_vr" ?
-                       target_kernel_vr.c_str() :
-                       target_kernel_v.c_str());
+      string target_kernel_vr = s.kernel_release;
+      string target_kernel_v = s.kernel_base_release;
+      string target;
+
+      if (l->content == "kernel_v") target = target_kernel_v;
+      else if (l->content == "kernel_vr") target = target_kernel_vr;
+      else if (l->content == "systemtap_v") target = s.compatible;
+      else assert (0);
+
       string query = r->content;
       bool rhs_wildcard = (strpbrk (query.c_str(), "*?[") != 0);
 
@@ -2471,6 +2476,8 @@ expression* parser::parse_symbol ()
       if (name == "@cast" || (name.size()>0 && name[0] == '$'))
         return parse_target_symbol (t);
 
+      // NB: PR11343: @defined() is not incompatible with earlier versions
+      // of stap, so no need to check session.compatible for 1.2
       if (name == "@defined")
         return parse_defined_op (t);
      

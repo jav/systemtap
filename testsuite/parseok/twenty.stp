@@ -10,3 +10,6 @@ global
 %( $# != 2 && @# < "1" && @# == "0" && $# >= 3 %?
    %( $2 >= "12" %? $3 FAIL2 %: $2 FAIL3 %) #This line must not be evaluated
 %: PASS2 %)
+
+global
+%( systemtap_v >= "1.2" %? PASS3 %: "FAIL" %)

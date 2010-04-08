@@ -1,0 +1,3 @@
+#! /bin/sh
+
+stap --compatible=1.0 -p1 -e 'global %( systemtap_v >= "1.2" %? PASS %: "FAIL" %)'
