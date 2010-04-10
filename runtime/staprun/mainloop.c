@@ -22,6 +22,8 @@
 /* globals */
 int ncpus;
 static int use_old_transport = 0;
+static int pending_interrupts = 0;
+
 //enum _stp_sig_type { sig_none, sig_done, sig_detach };
 //static enum _stp_sig_type got_signal = sig_none;
 
@@ -29,7 +31,7 @@ static int use_old_transport = 0;
 static void *signal_thread(void *arg)
 {
   sigset_t *s = (sigset_t *) arg;
-  int signum, rc, btype = STP_EXIT;
+  int signum;
 
   while (1) {
     if (sigwait(s, &signum) < 0) {
@@ -37,11 +39,11 @@ static void *signal_thread(void *arg)
       continue;
     }
     dbug(2, "sigproc %d (%s)\n", signum, strsignal(signum));
-    if (signum == SIGQUIT)
-      cleanup_and_exit(1, 0);
-    else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM) {
-      // send STP_EXIT
-      rc = write(control_channel, &btype, sizeof(btype));
+    if (signum == SIGQUIT) {
+      pending_interrupts += 2;
+      break;
+    } else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM) {
+      pending_interrupts ++;
       break;
     }
   }
@@ -485,6 +487,7 @@ int stp_main_loop(void)
   FILE *ofp = stdout;
   char recvbuf[8196];
   int error_detected = 0;
+  int flags;
 
   setvbuf(ofp, (char *)NULL, _IONBF, 0);
   setup_main_signals();
@@ -492,15 +495,38 @@ int stp_main_loop(void)
 
   send_request(STP_READY, NULL, 0);
 
+  flags = fcntl(control_channel, F_GETFL);
+
   /* handle messages from control channel */
-  while (1) {
+  while (1) { 
+    if (pending_interrupts) { 
+         int btype = STP_EXIT;
+         int rc = write(control_channel, &btype, sizeof(btype));
+         dbug(2, "signal-triggered %d exit rc %d\n", pending_interrupts, rc);
+         if (pending_interrupts >= 2) {
+            cleanup_and_exit (1, 0);
+         }
+    }
+
+    /* XXX: The runtime does not implement select() on the command
+       filehandle, so we poll periodically.  The polling interval can
+       be relatively large, since we don't receive EAGAIN during the
+       time-sensitive startup period (packets go back-to-back). */
+
+    flags |= O_NONBLOCK;
+    fcntl(control_channel, F_SETFL, flags);
     nb = read(control_channel, recvbuf, sizeof(recvbuf));
-    dbug(2, "nb=%d\n", (int)nb);
+    flags &= ~O_NONBLOCK;
+    fcntl(control_channel, F_SETFL, flags);
+
+    dbug(3, "nb=%d\n", (int)nb);
     if (nb <= 0) {
       if (errno != EINTR && errno != EAGAIN) {
         _perr("Unexpected EOF in read (nb=%ld)", (long)nb);
         cleanup_and_exit(0, 1);
       }
+      dbug(4, "sleeping\n");
+      usleep (250*1000); /* sleep 250ms between polls */
       continue;
     }
 
