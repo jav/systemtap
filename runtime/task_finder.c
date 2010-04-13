@@ -628,10 +628,9 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	struct vm_area_struct *vma;
 	char *mmpath_buf = NULL;
 	char *mmpath = NULL;
-	long err;
-	unsigned long length;
-	unsigned long offset;
-	unsigned long vm_flags;
+	unsigned long length = 0;
+	unsigned long offset = 0;
+	unsigned long vm_flags = 0;
 
 	mm = get_task_mm(tsk);
 	if (! mm)
