@@ -31,8 +31,9 @@ extern "C" {
 
 // Max unwind table size (debug or eh) per module. Somewhat arbitrary
 // limit (a bit more than twice the .debug_frame size of my local
-// vmlinux for 2.6.31.4-83.fc12.x86_64)
-#define MAX_UNWIND_TABLE_SIZE (3 * 1024 * 1024)
+// vmlinux for 2.6.31.4-83.fc12.x86_64).
+// A larger value was recently found in a libxul.so build.
+#define MAX_UNWIND_TABLE_SIZE (6 * 1024 * 1024)
 
 using namespace std;
 
@@ -4884,64 +4885,76 @@ dump_unwindsyms (Dwfl_Module *m,
                    &eh_frame_hdr, &eh_frame_hdr_len, &eh_frame_hdr_addr);
   if (debug_frame != NULL && debug_len > 0)
     {
-      if (debug_len > MAX_UNWIND_TABLE_SIZE)
-	throw semantic_error ("module debug unwind table size too big");
-
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << "static uint8_t _stp_module_" << stpmod_idx
 		<< "_debug_frame[] = \n";
       c->output << "  {";
-      for (size_t i = 0; i < debug_len; i++)
-	{
-	  int h = ((uint8_t *)debug_frame)[i];
-	  c->output << "0x" << hex << h << dec << ",";
-	  if ((i + 1) % 16 == 0)
-	    c->output << "\n" << "   ";
-	}
+      if (debug_len > MAX_UNWIND_TABLE_SIZE)
+        {
+          if (! c->session.suppress_warnings)
+            c->session.print_warning ("skipping module " + modname + " debug_frame unwind table (too big: " +
+                                      lex_cast(debug_len) + " > " + lex_cast(MAX_UNWIND_TABLE_SIZE) + ")");
+        }
+      else
+        for (size_t i = 0; i < debug_len; i++)
+          {
+            int h = ((uint8_t *)debug_frame)[i];
+            c->output << "0x" << hex << h << dec << ",";
+            if ((i + 1) % 16 == 0)
+              c->output << "\n" << "   ";
+          }
       c->output << "};\n";
       c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
 
   if (eh_frame != NULL && eh_len > 0)
     {
-      if (eh_len > MAX_UNWIND_TABLE_SIZE)
-	throw semantic_error ("module eh unwind table size too big");
-
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << "static uint8_t _stp_module_" << stpmod_idx
 		<< "_eh_frame[] = \n";
       c->output << "  {";
-      for (size_t i = 0; i < eh_len; i++)
-	{
-	  int h = ((uint8_t *)eh_frame)[i];
-	  c->output << "0x" << hex << h << dec << ",";
-	  if ((i + 1) % 16 == 0)
-	    c->output << "\n" << "   ";
-	}
+      if (eh_len > MAX_UNWIND_TABLE_SIZE)
+        {
+          if (! c->session.suppress_warnings)
+            c->session.print_warning ("skipping module " + modname + " eh_frame table (too big: " +
+                                      lex_cast(eh_len) + " > " + lex_cast(MAX_UNWIND_TABLE_SIZE) + ")");
+        }
+      else
+        for (size_t i = 0; i < eh_len; i++)
+          {
+            int h = ((uint8_t *)eh_frame)[i];
+            c->output << "0x" << hex << h << dec << ",";
+            if ((i + 1) % 16 == 0)
+              c->output << "\n" << "   ";
+          }
       c->output << "};\n";
       c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
 
   if (eh_frame_hdr != NULL && eh_frame_hdr_len > 0)
     {
-      if (eh_frame_hdr_len > MAX_UNWIND_TABLE_SIZE)
-	throw semantic_error ("module eh header size too big");
-
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
       c->output << "static uint8_t _stp_module_" << stpmod_idx
 		<< "_eh_frame_hdr[] = \n";
       c->output << "  {";
-      for (size_t i = 0; i < eh_frame_hdr_len; i++)
-	{
-	  int h = ((uint8_t *)eh_frame_hdr)[i];
-	  c->output << "0x" << hex << h << dec << ",";
-	  if ((i + 1) % 16 == 0)
-	    c->output << "\n" << "   ";
-	}
+      if (eh_frame_hdr_len > MAX_UNWIND_TABLE_SIZE)
+        {
+          if (! c->session.suppress_warnings)
+            c->session.print_warning ("skipping module " + modname + " eh_frame_hdr table (too big: " +
+                                      lex_cast(eh_frame_hdr_len) + " > " + lex_cast(MAX_UNWIND_TABLE_SIZE) + ")");
+        }
+      else
+        for (size_t i = 0; i < eh_frame_hdr_len; i++)
+          {
+            int h = ((uint8_t *)eh_frame_hdr)[i];
+            c->output << "0x" << hex << h << dec << ",";
+            if ((i + 1) % 16 == 0)
+              c->output << "\n" << "   ";
+          }
       c->output << "};\n";
       c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
-
+  
   if (debug_frame == NULL && eh_frame == NULL)
     {
       // There would be only a small benefit to warning.  A user
