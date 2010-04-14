@@ -125,7 +125,7 @@ deref_fault: /* branched to from kwrite() */
  * Reports an error when writing to the given address fails.
  */
 function set_kernel_pointer (addr:long, val:long) %{ /* guru */
-  kwrite((void **) (intptr_t) THIS->addr, THIS->val);
+  kwrite((void **) (uintptr_t) THIS->addr, (uintptr_t)THIS->val);
   if (0) {
 deref_fault: /* branched to from kwrite() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),

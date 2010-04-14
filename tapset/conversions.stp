@@ -122,7 +122,7 @@ deref_fault: /* branched to from kread() */
  * fails.
  */
 function kernel_pointer:long (addr:long) %{ /* pure */
-  THIS->__retvalue = (int64_t) kread((void **) (intptr_t) THIS->addr);
+  THIS->__retvalue = (uintptr_t) kread((void **) (uintptr_t) THIS->addr);
   if (0) {
 deref_fault: /* branched to from kread() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
