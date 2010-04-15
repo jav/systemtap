@@ -146,6 +146,7 @@ spawn cat XXX.h
 expect {
     "short arg1, int arg2, int arg3, int arg4" {incr ok}
 }
+catch {close}; catch {wait}
 if { $ok != 0} {
     pass "dtrace -C -h -o XXX.h"
 } else {
@@ -160,6 +161,7 @@ spawn cat XXX.h
 expect {
     "short arg1, int arg2, int arg3, int arg4" {incr ok}
 }
+catch {close}; catch {wait}
 if { $ok != 0} {
     pass "dtrace -C -Iincpath -h -o XXX.h"
 } else {

@@ -32,5 +32,6 @@ expect {
     -timeout 180
     -re {Avg time = [1-9]} { incr ok; exp_continue }
 }
+catch {close}; catch {wait}
 
 if {$ok == 13} { pass "$test ($ok)" } { fail "$test ($ok)" }

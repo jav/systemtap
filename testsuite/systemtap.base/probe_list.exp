@@ -9,11 +9,16 @@
 # get ignored.
 spawn stap -l "begin { if (a) next }#"
 
+set ok 0
 expect {
     # the output should not include anything else, like the 'a' local.
     -re "^begin\r\n$" {
-        pass "probe list is correct"
-        return
+	incr ok
     }
 }
-fail "probe list is incorrect"
+catch {close}; catch {wait}
+if {$ok == 1} {
+    pass "probe list is correct"
+} else {
+    fail "probe list is incorrect"
+}

@@ -8,6 +8,7 @@ expect {
     timeout { fail "$test C (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 
 set line2 ""
 spawn stap -l "kernel.statement(\"bio_init@fs/bio.c+3\")"
@@ -17,6 +18,7 @@ expect {
     timeout { fail "$test C (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 
 if { $line1 < $line2 } {
     pass "$test line numbers"
@@ -32,6 +34,7 @@ expect {
     timeout { fail "$test C (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 
 # bio_init drifts a bit in different kernels. 
 # maybe 3, 4 or 15 lines in it.

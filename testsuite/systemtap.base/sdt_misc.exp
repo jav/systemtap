@@ -284,6 +284,7 @@ expect {
     -re {In test_probe_4 dtrace probe 0x4 0x5} { incr ok; exp_continue }
     eof { }
 }
+catch {close}; catch {wait}
 if {$ok == 5} { 
     pass "$test $pbtype_mssg attach"
 } else {
@@ -303,6 +304,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 if {$ok == 4 && $ko == 0} { 
     pass "$test $pbtype_mssg epilogue"
 } else {
@@ -439,6 +441,7 @@ expect {
     -re {In test_probe_4 dtrace probe 0x4 0x5} { incr ok; exp_continue }
     eof { }
 }
+catch {close}; catch {wait}
 if {$ok == 5} { 
     pass "$test $pbtype_mssg shared attach"
 } else {
@@ -458,6 +461,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 
 if {$ok == 4 && $ko == 0} { 
     pass "$test $pbtype_mssg shared shared epilogue"
@@ -479,6 +483,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 
 if { $ok == 45 } {
     pass "$test wildcard $pbtype_mssg"

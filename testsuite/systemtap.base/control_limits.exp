@@ -9,6 +9,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
 
 set test "control_limits MAXACTION"
@@ -20,6 +21,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
 
 set test "control_limits MAXSTRINGLEN small"
@@ -31,6 +33,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
 
 set test "control_limits MAXSTRINGLEN large"
@@ -42,5 +45,6 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
 

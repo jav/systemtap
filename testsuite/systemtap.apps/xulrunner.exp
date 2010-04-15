@@ -133,6 +133,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 
 if { $verbose == 0 } {
 catch {exec rm -rf $testsuite/stap-xul.stp xulrunner-$xulrelease-source.tar \

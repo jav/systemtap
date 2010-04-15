@@ -10,3 +10,4 @@ expect {
     eof { fail $test }
     timeout { fail "$test unexpected timeout" }
 }
+catch {close}; catch {wait}

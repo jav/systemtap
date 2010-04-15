@@ -156,6 +156,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 
 if { $verbose == 0 } {
 catch {exec rm -rf $pgdata}
