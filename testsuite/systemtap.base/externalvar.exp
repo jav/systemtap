@@ -13,6 +13,7 @@ set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-l
 # Only run on make installcheck and utrace present.
 if {! [installtest_p]} { untested "$test"; return }
 if {! [utrace_p]} { untested "$test"; return }
+if {! [uprobes_p]} { untested "$test"; return }
 
 # Compile our test program and library.
 set res [target_compile $testsrclib $testso executable $testlibflags]

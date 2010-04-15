@@ -221,6 +221,7 @@ if { $res != "" } {
 }
 
 if {![installtest_p]} {untested $test; return}
+if {![uprobes_p]} {untested $test; return}
 if {![utrace_p]} {
     untested "$test"
     if { $verbose == 0 } {

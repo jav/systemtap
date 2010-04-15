@@ -6,6 +6,7 @@ set test "fib"
 # Only run on make installcheck and utrace present.
 if {! [installtest_p]} { untested "$test"; return }
 if {! [utrace_p]} { untested "$test"; return }
+if {! [uprobes_p]} { untested "$test"; return }
 
 set testpath  "$srcdir/$subdir"
 set testsrc   "$testpath/fib.c"
