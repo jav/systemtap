@@ -212,6 +212,7 @@ struct systemtap_session
 
   // List of libdwfl module names to extract symbol/unwind data for.
   std::set<std::string> unwindsym_modules;
+  bool unwindsym_ldd;
   struct module_cache* module_cache;
 
   // NB: It is very important for all of the above (and below) fields

@@ -182,6 +182,12 @@ Add symbol/unwind information for the given module into the kernel object
 module.  This may enable symbolic tracebacks from those modules/programs,
 even if they do not have an explicit probe placed into them.
 .TP
+.BI \-\-ldd
+Add symbol/unwind information for all shared libraries suspected by
+ldd to be necessary for user-space binaries being probe or listed with
+the \-d option.  Caution: this can make the probe modules considerably
+larger.
+.TP
 .BI \-o " FILE"
 Send standard output to named file. In bulk mode, percpu files will
 start with FILE_ (FILE_cpu with -F) followed by the cpu number.

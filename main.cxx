@@ -139,6 +139,7 @@ usage (systemtap_session& s, int exitcode)
       clog << "              " << syms[i] << endl;
   }
   clog
+    << "   --ldd      add unwind/symbol data for all referenced OBJECT files." << endl
     << "   -t         collect probe timing information" << endl
 #ifdef HAVE_LIBSQLITE3
     << "   -q         generate information on tapset coverage" << endl
@@ -613,6 +614,7 @@ main (int argc, char * const argv [])
   s.unprivileged = false;
   s.omit_werror = false;
   s.compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
+  s.unwindsym_ldd = false;
   bool client_options = false;
   string client_options_disallowed;
 
@@ -704,6 +706,7 @@ main (int argc, char * const argv [])
 #define LONG_OPT_POISON_CACHE 12
 #define LONG_OPT_CLEAN_CACHE 13
 #define LONG_OPT_COMPATIBLE 14
+#define LONG_OPT_LDD 15
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -726,6 +729,7 @@ main (int argc, char * const argv [])
         { "poison-cache", 0, &long_opt, LONG_OPT_POISON_CACHE },
         { "clean-cache", 0, &long_opt, LONG_OPT_CLEAN_CACHE },
         { "compatible", 1, &long_opt, LONG_OPT_COMPATIBLE },
+        { "ldd", 0, &long_opt, LONG_OPT_LDD },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
@@ -1046,6 +1050,10 @@ main (int argc, char * const argv [])
 
             case LONG_OPT_COMPATIBLE:
               s.compatible = optarg;
+              break;
+
+            case LONG_OPT_LDD:
+              s.unwindsym_ldd = true;
               break;
 
             default:

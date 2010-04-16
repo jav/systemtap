@@ -1,0 +1,5 @@
+#! /bin/sh
+
+stap --ldd -vvv -p4 -e 'probe begin {}' -t -d /bin/ls
+
+

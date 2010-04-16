@@ -24,6 +24,7 @@
 #include <string>
 #include <cassert>
 #include <cstring>
+#include <cerrno>
 
 extern "C" {
 #include <elfutils/libdwfl.h>
@@ -5105,6 +5106,69 @@ dump_unwindsyms (Dwfl_Module *m,
 // them with the runtime.
 void emit_symbol_data_done (unwindsym_dump_context*, systemtap_session&);
 
+
+void
+add_unwindsym_ldd (systemtap_session &s)
+{
+  std::set<std::string> added;
+
+  // NB: This is not entirely safe.  It may be possible to create a
+  // handcrafted executable that sends ldd off to neverland, or even
+  // to execute the thing.
+  if (geteuid() == 0 && !s.suppress_warnings)
+    s.print_warning("/usr/bin/ldd may not be safe to run on untrustworthy executables");
+
+  for (std::set<std::string>::iterator it = s.unwindsym_modules.begin();
+       it != s.unwindsym_modules.end();
+       it++)
+    {
+      string modname = *it;
+      assert (modname.length() != 0);
+      if (! is_user_module (modname)) continue;
+
+      string ldd_command = "/usr/bin/ldd " + modname;
+      if (s.verbose > 2)
+        clog << "Running '" << ldd_command << "'" << endl;
+
+      FILE *fp = popen (ldd_command.c_str(), "r");
+      if (fp == 0)
+        clog << ldd_command << " failed: " << strerror(errno) << endl;
+      else
+        {
+          while (1)
+            {
+              char linebuf[256];
+              char *soname = 0;
+              char *shlib = 0;
+              char *addr = 0;
+
+              char *line = fgets (linebuf, 256, fp);
+              if (line == 0) break; // EOF or error
+
+              int nf = sscanf (line, "%as => %as %as", &soname, & shlib, &addr);
+              if (nf != 3) continue; // fewer than expected fields
+
+              if (added.find (shlib) == added.end())
+                {
+                  (void) addr; // don't bother print this one
+                  if (s.verbose > 2)
+                    clog << "Added -d '" << shlib << "' due to '" << soname << "'" << endl;
+                  added.insert (shlib);
+                }
+
+              free (soname);
+              free (shlib);
+              free (addr);
+            }
+          pclose (fp);
+        }
+    }
+  
+  s.unwindsym_modules.insert (added.begin(), added.end());
+}
+
+
+
 void
 emit_symbol_data (systemtap_session& s)
 {
@@ -5113,6 +5177,11 @@ emit_symbol_data (systemtap_session& s)
   s.op->newline() << "#include " << lex_cast_qstring (symfile);
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
+
+  // step 0: run ldd on any user modules if requested
+  if (s.unwindsym_ldd)
+    add_unwindsym_ldd (s);
+  // NB: do this before the ctx.unwindsym_modules copy is taken
 
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, ~0, s.unwindsym_modules };
 
