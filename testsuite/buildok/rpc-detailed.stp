@@ -1,0 +1,104 @@
+#! stap -p4
+
+#
+# Meta sunrpc tests
+#
+
+probe sunrpc.entry {
+      printf("%s(%s)\n", name, argstr)
+}
+
+probe sunrpc.return {
+      printf("%s %s\n", name, retstr)
+}
+
+#
+# sunrpc.clnt.* tests
+#
+
+probe sunrpc.clnt.*.return {
+      printf("%s %s\n", name, retstr)
+}
+
+probe sunrpc.clnt.create_client, sunrpc.clnt.clone_client {
+      printf("%s(%s)\n", name, argstr)
+}
+
+probe sunrpc.clnt.shutdown_client {
+      printf("%s(%s)\n", name, argstr)
+      printf("%d %d %d %d %d %d %d %d %d\n", netreconn, rpccnt,
+	     om_ops, om_ntrans, om_bytes_sent, om_bytes_recv,
+	     om_queue, om_rtt, om_execute)
+}
+
+probe sunrpc.clnt.bind_new_program {
+      printf("%s(%s)\n", name, argstr)
+      printf("%d\n", prog)
+}
+
+probe sunrpc.clnt.call_sync, sunrpc.clnt.call_async {
+      printf("%s(%s)\n", name, argstr)
+      printf("%d %d %d %d %d\n", prog, prot, port, dead, proc)
+}
+
+probe sunrpc.clnt.restart_call {
+      printf("%s(%s)\n", name, argstr)
+}
+
+#
+# sunrpc.svc.* tests
+#
+
+probe sunrpc.svc.*.return {
+      printf("%s %s\n", name, retstr)
+}
+
+probe sunrpc.svc.register
+{
+      printf("%s(%s)\n", name, argstr)
+      printf("%d\n", prog)
+}
+
+probe sunrpc.svc.create
+{
+      printf("%s(%s)\n", name, argstr)
+}
+
+probe sunrpc.svc.destroy
+{
+      printf("%s(%s)\n", name, argstr)
+      printf("%s %d %d %d %d %d\n", sv_progname, netcnt, netcpconn,
+             rpccnt, rpcbadfmt, rpcbadauth)
+}
+
+probe sunrpc.svc.process {
+      printf("%s(%s)\n", name, argstr)
+      printf("%d %d\n", sv_nrthreads, rq_prot)
+}
+
+probe sunrpc.svc.authorise {
+      printf("%s(%s)\n", name, argstr)
+      printf("%s\n", sv_name)
+}
+
+probe sunrpc.svc.recv {
+      printf("%s(%s)\n", name, argstr)
+      printf("%d %d\n", sv_prog, sv_nrthreads)
+}
+
+probe sunrpc.svc.send, sunrpc.svc.drop {
+      printf("%s(%s)\n", name, argstr)
+}
+
+#
+# sunrpc.sched.* tests
+#
+
+probe sunrpc.sched.*.return {
+      printf("%s %s\n", name, retstr)
+}
+
+probe sunrpc.sched.new_task, sunrpc.sched.release_task,
+      sunrpc.sched.execute, sunrpc.sched.delay {
+      printf("%s(%s)\n", name, argstr)
+}

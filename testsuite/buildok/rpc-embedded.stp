@@ -10,6 +10,7 @@ probe begin {
 	  tasks_from_clnt (0) +
 	  proc_from_msg (0) +
 	  vers_from_clnt (0) +
-	  addr_from_rqst (0))
+	  addr_from_rqst (0) +
+	  __rpc_prot_from_protocol (0))
 }
 
