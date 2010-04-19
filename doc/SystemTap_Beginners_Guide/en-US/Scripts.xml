@@ -436,7 +436,7 @@ probe module("ext3").function("*").return { }
 	        </para>
 		
 		<para>
-			A system's kernel modules are typically located in <filename>/lib/modules/<replaceable>kernel_version</replaceable></filename>, where <replaceable>kernel_version</replaceable> refers to the currently loaded kernel version. Modules use the filename extension <filename>.ko</filename>. 
+			A system's kernel modules are typically located in <filename>/lib/modules/<replaceable>kernel_version</replaceable></filename>, where <replaceable>kernel_version</replaceable> refers to the currently loaded kernel version. Modules use the file name extension <filename>.ko</filename>. 
 		</para>	
 		
 	</listitem>

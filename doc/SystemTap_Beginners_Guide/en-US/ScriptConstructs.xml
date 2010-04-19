@@ -62,7 +62,7 @@
 	<tertiary>handlers</tertiary>
 </indexterm>
 	<para>Variables can be used freely throughout a handler; simply choose a
-name, assign a value from a function or expression to it, and use it in an expression. SystemTap automatically identifies whether a variable should be typed as a string or integer, based on the type of the values assigned to it. For instance, if you use set the variable <command>foo</command> to <command>gettimeofday_s()</command> (as in <command>foo = gettimeofday_s()</command>), then <command>foo</command> is typed as an number and can be printed in a <command>printf()</command> with the integer format specifier (<command>%d</command>).</para>
+name, assign a value from a function or expression to it, and use it in an expression. SystemTap automatically identifies whether a variable should be typed as a string or integer, based on the type of the values assigned to it. For instance, if you use set the variable <command>foo</command> to <command>gettimeofday_s()</command> (as in <command>foo = gettimeofday_s()</command>), then <command>foo</command> is typed as a number and can be printed in a <command>printf()</command> with the integer format specifier (<command>%d</command>).</para>
 
 <!-- next 2 indexterms for <command>global</command> -->
 
@@ -178,7 +178,7 @@ The <command><replaceable>statement1</replaceable></command> is executed if the
 non-zero. The <command><replaceable>statement2</replaceable></command> is
 executed if the <command><replaceable>condition</replaceable></command>
 expression is zero. The <command>else</command> clause 
-(<command>else</command> <replaceable>statement2</replaceable>)is optional. Both
+(<command>else</command> <replaceable>statement2</replaceable>) is optional. Both
 <command><replaceable>statement1</replaceable></command> and
 <command><replaceable>statement2</replaceable></command> can be statement
 blocks.

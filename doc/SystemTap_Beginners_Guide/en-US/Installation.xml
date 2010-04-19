@@ -314,7 +314,7 @@ Pass 5: run completed in 10usr/40sys/73real ms.
 </screen>
 
     <para> The last three lines of the output (i.e. beginning with
-    <computeroutput>Pass 5</computeroutput> indicate that SystemTap was able to
+    <computeroutput>Pass 5</computeroutput>) indicate that SystemTap was able to
     successfully create the instrumentation to probe the kernel, run the
     instrumentation, detect the event being probed (in this case, a virtual file
     system read), and execute a valid handler (print text then close it with no errors).

@@ -105,17 +105,17 @@
 </para>	
 
 <itemizedlist>
-	<listitem><para>A timestamp, in microseconds</para></listitem>
-	<listitem><para>Process ID and process name</para></listitem>
+	<listitem><para>A timestamp, in microseconds.</para></listitem>
+	<listitem><para>Process ID and process name.</para></listitem>
 	<listitem><para>An <computeroutput>access</computeroutput> or  
-		<computeroutput>iotime</computeroutput> flag</para></listitem>   
-	<listitem><para>The file accessed</para></listitem>
+		<computeroutput>iotime</computeroutput> flag.</para></listitem>   
+	<listitem><para>The file accessed.</para></listitem>
 </itemizedlist>
 
 <para>
 	If a process was able to read or write any data, a pair of 
 	<computeroutput>access</computeroutput> and <computeroutput>iotime</computeroutput> lines 
-	should appear together. The <computeroutput>access</computeroutput> line's timestamp refer to 
+	should appear together. The <computeroutput>access</computeroutput> line's timestamp refers to 
 	the time that a given process started accessing a file; at the end of the line, it will show 
 	the amount of data read/written (in bytes). The <computeroutput>iotime</computeroutput> line 
 	will show the amount of time (in microseconds) that the process took in order to perform the 

@@ -38,7 +38,7 @@ uses systemtap/testsuite/systemtap.examples/profiling/timeout.stp
 				
 		
 	<para>
-		This section how to identify and monitor which applications are polling. Doing so allows you to track
+		This section describes how to identify and monitor which applications are polling. Doing so allows you to track
 		unnecessary or excessive polling, which can help you pinpoint areas for improvement in terms of CPU usage 
 		and power savings.
 	</para>	 

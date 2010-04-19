@@ -193,7 +193,7 @@
 		</para>	
 		-->
     <para>
-      Like SystemTap scripts, tapsets use the filename extension
+      Like SystemTap scripts, tapsets use the file name extension
       <filename>.stp</filename>. The standard library of tapsets is located in
       <filename>/usr/share/systemtap/tapset/</filename> by default. However,
       unlike SystemTap scripts, tapsets are not meant for direct execution;

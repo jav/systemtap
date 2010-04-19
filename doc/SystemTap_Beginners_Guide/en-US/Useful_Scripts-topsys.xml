@@ -54,7 +54,7 @@ uses systemtap/testsuite/systemtap.examples/profiling/topsys.stp
 		
 	<para>
 		However, in some systems, a different system call might be responsible for excessive polling. If you suspect 
-		that a polling application might is using a different system call to poll, you need to identify first the top
+		that a polling application is using a different system call to poll, you need to identify first the top
 		system calls used by the system. To do this, use <xref linkend="topsys"/>.
 	</para>	
 

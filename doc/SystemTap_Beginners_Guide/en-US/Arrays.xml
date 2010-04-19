@@ -100,7 +100,7 @@
 <tertiary>arrays</tertiary>
 </indexterm>
 
-<para>Since associative arrays are normally processed in multiple probes (as we will demonstrate later), they are declared as <command>global</command> variables in the SystemTap script. The syntax for accessing an element in an associative array is similar to that of <command>awk</command>, and is as follows:</para>
+<para>Since associative arrays are normally processed in multiple probes (as we will demonstrate later), they should be declared as <command>global</command> variables in the SystemTap script. The syntax for accessing an element in an associative array is similar to that of <command>awk</command>, and is as follows:</para>
 <!-- next 3 indexterms for syntax 
 <indexterm>
 <primary>arrays</primary>

@@ -167,7 +167,7 @@ parse error: expected one of '. , ( ? ! { = +='
 	The script contains unsafe embedded C code (blocks of code
 	surrounded by <command>%{</command> <command>%}</command>. SystemTap
 	allows you to embed C code in a script, which is useful if there are no
-	tapsets to suit your purposes. However, embedded C constructs are not be
+	tapsets to suit your purposes. However, embedded C constructs are not
 	safe; as such, SystemTap warns you with this error if such constructs
 	appear in the script.
 </para>
@@ -407,7 +407,7 @@ probe syscall.open
 </indexterm>
 	<para>The script used an array operation without declaring the array as
 	a global variable (global variables can be declared after their use in
-	Systemtap scripts). Similar messages appear if an array is used, but with inconsistent arities.</para>
+	SystemTap scripts). Similar messages appear if an array is used, but with inconsistent arities.</para>
 </formalpara>
 
 <formalpara>
@@ -515,7 +515,7 @@ probe syscall.open
 <secondary>parse/semantics error</secondary>
 <tertiary>understanding SystemTap errors</tertiary>
 </indexterm>
-	<para>The events / handler function <computeroutput><replaceable>foo</replaceable></computeroutput> could not be resolved altogether, for a variety of reasons. This error occurs when the script contains the event <command>kernel.function("<replaceable>blah</replaceable>")</command>, and <command><replaceable>blah</replaceable></command> does not exist. In some cases, the error could also mean the script contains an invalid kernel file name or source line number.</para>
+	<para>The events/handler function <computeroutput><replaceable>foo</replaceable></computeroutput> could not be resolved altogether, for a variety of reasons. This error occurs when the script contains the event <command>kernel.function("<replaceable>blah</replaceable>")</command>, and <command><replaceable>blah</replaceable></command> does not exist. In some cases, the error could also mean the script contains an invalid kernel file name or source line number.</para>
 </formalpara>
 
 <formalpara>
@@ -589,7 +589,7 @@ probe syscall.open
 	<para>There was a problem processing the debugging information. In most
 	cases, this error results from the installation of a
 	<filename>kernel-debuginfo</filename> RPM whose version does not match
-	the probed kernel exactly. The installed <filename>kernel-debuginfo</filename> RPM itself may have some consistency / correctness problems.</para>
+	the probed kernel exactly. The installed <filename>kernel-debuginfo</filename> RPM itself may have some consistency/correctness problems.</para>
 </formalpara>
 
 <formalpara>
@@ -729,7 +729,7 @@ probe syscall.open
 <tertiary>understainding SystemTap errors</tertiary>
 </indexterm>
 <para>
-	An statistics extractor function other than <command>@count</command>
+	A statistics extractor function other than <command>@count</command>
 	was invoked on an aggregate that has not had any values accumulated yet.
 	This is similar to a division by zero.
 </para>
@@ -846,7 +846,7 @@ An array containing aggregate values contains too many distinct key pairs at thi
 </indexterm>
 <para>
 	The probe handler attempted to execute too many statements in the
-	probe handler. The default number of actions allow in a probe handler
+	probe handler. The default number of actions allowed in a probe handler
 	is 1000.
 </para>
 </formalpara>
@@ -880,7 +880,7 @@ An array containing aggregate values contains too many distinct key pairs at thi
 </indexterm>
 <para>
 	The probe handler attempted to copy a string from kernel or
-	user space at an invalid address (<replaceable>ADDR</replaceable>).
+	user-space at an invalid address (<replaceable>ADDR</replaceable>).
 </para>
 </formalpara>
 

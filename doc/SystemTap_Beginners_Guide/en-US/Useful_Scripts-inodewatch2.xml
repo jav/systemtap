@@ -54,7 +54,7 @@ no script in examples
 
 <para>Like <xref linkend="inodewatch"/> from <xref linkend="inodewatchsect"/>, <xref linkend="inodewatch2"/> takes the targeted file's device number (in integer format) and <command>inode</command> number as arguments. For more information on how to retrieve this information, refer to <xref linkend="inodewatchsect"/>.</para>   
 
-<para>The output for <xref linkend="inodewatch2"/> is similar to that of <xref linkend="inodewatch"/>, except that <xref linkend="inodewatch2"/> also contains the attribute changes to the monitored file, as well as the ID of the user responsible (<command>uid()</command>). <xref linkend="inodewatch2output"/> contains shows the output of <xref linkend="inodewatch2"/> while monitoring <filename>/home/joe/bigfile</filename> when user <computeroutput>joe</computeroutput> executes <command>chmod 777 /home/joe/bigfile</command> and <command>chmod 666 /home/joe/bigfile</command>.</para>    
+<para>The output for <xref linkend="inodewatch2"/> is similar to that of <xref linkend="inodewatch"/>, except that <xref linkend="inodewatch2"/> also contains the attribute changes to the monitored file, as well as the ID of the user responsible (<command>uid()</command>). <xref linkend="inodewatch2output"/> shows the output of <xref linkend="inodewatch2"/> while monitoring <filename>/home/joe/bigfile</filename> when user <computeroutput>joe</computeroutput> executes <command>chmod 777 /home/joe/bigfile</command> and <command>chmod 666 /home/joe/bigfile</command>.</para>    
 
 
 
