@@ -26,7 +26,7 @@ proc bgerror {error} {
 }
 trap {syscall_cleanup_and_exit} SIGINT
 
-proc run_one_test {filename flags bits} {
+proc run_one_test {filename flags bits suite} {
     global syscall_dir current_dir test_script
 
     set testname [file tail [string range $filename 0 end-2]]
@@ -38,8 +38,8 @@ proc run_one_test {filename flags bits} {
 
     set res [target_compile $filename $syscall_dir/$testname executable $flags]
     if { $res != "" } {
-      send_log "$bits-bit $testname : no corresponding devel environment found\n"
-      untested "$bits-bit $testname"
+      send_log "$bits-bit $testname $suite : no corresponding devel environment found\n"
+      untested "$bits-bit $testname $suite"
       return
     }
 
@@ -93,7 +93,7 @@ proc run_one_test {filename flags bits} {
     if {$ind == 0} {
 	# unsupported
 	syscall_cleanup
-	unsupported "$bits-bit $testname not supported on this arch"
+	unsupported "$bits-bit $testname $suite not supported on this arch"
 	return
     }
 
@@ -112,7 +112,7 @@ proc run_one_test {filename flags bits} {
     }
     if {$i >= $ind} {
 	# puts "PASS $testname"
-	pass "$bits-bit $testname"
+	pass "$bits-bit $testname $suite"
     } else {
 	send_log "$testname FAILED. output of \"$cmd\" was:"
 	send_log "\n------------------------------------------\n"
@@ -137,7 +137,7 @@ proc run_one_test {filename flags bits} {
 	for {} {$i < $ind} {incr i} {
 	    send_log "$results($i)\n"
 	}
-	fail "$bits-bit $testname"
+	fail "$bits-bit $testname $suite"
     }
     syscall_cleanup
     return

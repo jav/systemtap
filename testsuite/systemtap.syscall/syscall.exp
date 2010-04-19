@@ -34,8 +34,8 @@ proc test_procedure {} {
 	foreach filename [lsort [glob $pattern]] {
 	    set testname [file tail [string range $filename 0 end-2]]
 	    if {![installtest_p]} { untested "64-bit $testname"; continue }
-	    send_log "Testing 64-bit ${testname}\n"
-	    run_one_test $filename $flags 64
+	    send_log "Testing 64-bit ${testname} syscall\n"
+	    run_one_test $filename $flags 64 "syscall"
 	}
     }
 
@@ -50,8 +50,8 @@ proc test_procedure {} {
 	foreach filename [lsort [glob $pattern]] {
 	    set testname [file tail [string range $filename 0 end-2]]
 	    if {![installtest_p]} { untested "32-bit $testname"; continue }
-	    send_log "Testing 32-bit ${testname}\n"
-	    run_one_test $filename $flags 32
+	    send_log "Testing 32-bit ${testname} syscall\n"
+	    run_one_test $filename $flags 32 "syscall"
 	}
     }
 }
