@@ -46,18 +46,10 @@ set testscript {
 set output {handler: main_handler
 handler: lib_handler}
 
-# Got to run stap with both the exe and the libraries used as -d args.
-# XXX Note how we need the fully resolved (absolute) path...
+# Used to need to run stap with both the exe and the libraries used as -d args.
+# Now use --ldd to pick up both exe and the library we just linked in.
 set script [format $testscript usymbols $testexe]
-catch {eval exec [concat ldd $testexe | grep $testlibname]} libpath
-set libpath [lindex [split $libpath " "] 2]
-send_log "libpath: $libpath\n"
-if {[string equal "link" [file type $libpath]]} {
-    set libpath [file join [file dirname $libpath] [file readlink $libpath]]
-}
-send_log "libpath: $libpath\n"
-
-set cmd [concat stap -d $libpath -d $testexe -c $testexe -e {$script}]
+set cmd [concat stap -w --ldd -c $testexe -e {$script}]
 send_log "cmd: $cmd\n"
 catch {eval exec $cmd} res
 send_log "cmd output: $res\n"
