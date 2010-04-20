@@ -83,6 +83,12 @@ struct c_unparser: public unparser, public visitor
   // for use by stats (pmap) foreach
   set<string> aggregations_active;
 
+  // values immediately available in foreach_loop iterations
+  map<string, string> foreach_loop_values;
+  void visit_foreach_loop_value (visitor* vis, foreach_loop* s,
+                                 const string& value="");
+  bool get_foreach_loop_value (arrayindex* ai, string& value);
+
   // for use by looping constructs
   vector<string> loop_break_labels;
   vector<string> loop_continue_labels;
@@ -512,6 +518,11 @@ struct aggvar
     assert (type() == pe_stats);
     c.o->newline() << "struct stat_data *" << name << ";";
   }
+
+  string get_hist (var& index) const
+  {
+    return "(" + value() + "->histogram[" + index.value() + "])";
+  }
 };
 
 struct mapvar
@@ -789,12 +800,28 @@ public:
 	return "_stp_key_get_int64 ("+ value() + ", " + lex_cast(i+1) + ")";
       case pe_string:
         // impedance matching: NULL -> empty strings
-	return "({ char *v = "
-          "_stp_key_get_str ("+ value() + ", " + lex_cast(i+1) + "); "
-          "if (! v) v = \"\"; "
-          "v; })";
+	return "(_stp_key_get_str ("+ value() + ", " + lex_cast(i+1) + ") ?: \"\")";
       default:
 	throw semantic_error("illegal key type");
+      }
+  }
+
+  string get_value (exp_type ty) const
+  {
+    if (ty != referent_ty)
+      throw semantic_error("inconsistent iterator value in itervar::get_value()");
+
+    switch (ty)
+      {
+      case pe_long:
+	return "_stp_get_int64 ("+ value() + ")";
+      case pe_string:
+        // impedance matching: NULL -> empty strings
+	return "(_stp_get_str ("+ value() + ") ?: \"\")";
+      case pe_stats:
+	return "_stp_get_stat ("+ value() + ")";
+      default:
+	throw semantic_error("illegal value type");
       }
   }
 };
@@ -2582,6 +2609,73 @@ expression_is_arrayindex (expression *e,
 }
 
 
+// Look for opportunities to used a saved value at the beginning of the loop
+void
+c_unparser::visit_foreach_loop_value (visitor* vis, foreach_loop* s,
+                                      const string& value)
+{
+  bool stable_value = false;
+
+  // There are three possible cases that we might easily retrieve the value:
+  //   1. foreach ([keys] in any_array_type)
+  //   2. foreach (idx in @hist_*(stat))
+  //   3. foreach (idx in @hist_*(stat[keys]))
+  //
+  // For 1 and 2, we just need to check that the keys/idx are const throughout
+  // the loop.  For 3, we'd have to check also that the arbitrary keys
+  // expressions indexing the stat are const -- much harder, so I'm punting
+  // that case for now.
+
+  symbol *array;
+  hist_op *hist;
+  classify_indexable (s->base, array, hist);
+
+  if (!(hist && get_symbol_within_expression(hist->stat)->referent->arity > 0))
+    {
+      set<vardecl*> indexes;
+      for (unsigned i=0; i < s->indexes.size(); ++i)
+        indexes.insert(s->indexes[i]->referent);
+
+      varuse_collecting_visitor v(*session);
+      s->block->visit (&v);
+      v.embedded_seen = false; // reset because we only care about the indexes
+      if (v.side_effect_free_wrt(indexes))
+        stable_value = true;
+    }
+
+  if (stable_value)
+    {
+      // Rather than trying to compare arrayindexes to this foreach_loop
+      // manually, we just create a fake arrayindex that would match the
+      // foreach_loop, render it as a string, and later render encountered
+      // arrayindexes as strings and compare.
+      arrayindex ai;
+      ai.base = s->base;
+      for (unsigned i=0; i < s->indexes.size(); ++i)
+        ai.indexes.push_back(s->indexes[i]);
+      string loopai = lex_cast(ai);
+      foreach_loop_values[loopai] = value;
+      s->block->visit (vis);
+      foreach_loop_values.erase(loopai);
+    }
+  else
+    s->block->visit (vis);
+}
+
+
+bool
+c_unparser::get_foreach_loop_value (arrayindex* ai, string& value)
+{
+  if (!ai)
+    return false;
+  map<string,string>::iterator it = foreach_loop_values.find(lex_cast(*ai));
+  if (it == foreach_loop_values.end())
+    return false;
+  value = it->second;
+  return true;
+}
+
+
 void
 c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 {
@@ -2643,7 +2737,7 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
       limitv.declare(*parent);
     }
 
-  s->block->visit (this);
+  parent->visit_foreach_loop_value(this, s);
 }
 
 void
@@ -2786,7 +2880,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  var v = getvar (s->indexes[i]->referent);
 	  c_assign (v, iv.get_key (v.type(), i), s->tok);
 	}
-      s->block->visit (this);
+      visit_foreach_loop_value(this, s, iv.get_value(array->type));
       record_actions(0, s->block->tok, true);
       o->newline(-1) << "}";
       loop_break_labels.pop_back ();
@@ -2849,7 +2943,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  delete res_limit;
       }
 
-      s->block->visit (this);
+      visit_foreach_loop_value(this, s, agg.get_hist(bucketvar));
       record_actions(1, s->block->tok, true);
       o->newline(-1) << "}";
     }
@@ -3719,11 +3813,18 @@ c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
       if (!expression_is_arrayindex (e, arr))
 	throw semantic_error("unexpected aggregate of non-arrayindex", e->tok);
 
-      vector<tmpvar> idx;
-      load_map_indices (arr, idx);
-      mapvar mvar = getmap (sym->referent, sym->tok);
-      // o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
-      o->newline() << agg << " = " << mvar.get(idx, pre_agg) << ";";
+      // If we have a foreach_loop value, we don't need to index the map
+      string agg_value;
+      if (get_foreach_loop_value(arr, agg_value))
+        o->newline() << agg << " = " << agg_value << ";";
+      else
+        {
+          vector<tmpvar> idx;
+          load_map_indices (arr, idx);
+          mapvar mvar = getmap (sym->referent, sym->tok);
+          // o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
+          o->newline() << agg << " = " << mvar.get(idx, pre_agg) << ";";
+        }
     }
 }
 
@@ -3739,6 +3840,11 @@ c_unparser::histogram_index_check(var & base, tmpvar & idx) const
 void
 c_tmpcounter::visit_arrayindex (arrayindex *e)
 {
+  // If we have a foreach_loop value, no other tmps are needed
+  string ai_value;
+  if (parent->get_foreach_loop_value(e, ai_value))
+    return;
+
   symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
@@ -3800,10 +3906,16 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
 
       symbol *sym = get_symbol_within_expression (hist->stat);
       var v = parent->getvar(sym->referent, sym->tok);
-      if (sym->referent->arity != 0)
+
+      string agg_value;
+      arrayindex *arr = NULL;
+      expression_is_arrayindex (hist->stat, arr);
+
+      // If we have a foreach_loop value, we don't need tmps for indexes
+      if (sym->referent->arity != 0 &&
+	  !parent->get_foreach_loop_value(arr, agg_value))
 	{
-	  arrayindex *arr = NULL;
-	  if (!expression_is_arrayindex (hist->stat, arr))
+	  if (!arr)
 	    throw semantic_error("expected arrayindex expression in indexed hist_op", e->tok);
 
 	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
@@ -3820,6 +3932,14 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
 void
 c_unparser::visit_arrayindex (arrayindex* e)
 {
+  // If we have a foreach_loop value, use it and call it a day!
+  string ai_value;
+  if (get_foreach_loop_value(e, ai_value))
+    {
+      o->line() << ai_value;
+      return;
+    }
+
   symbol *array;
   hist_op *hist;
   classify_indexable (e->base, array, hist);
@@ -4125,15 +4245,20 @@ c_tmpcounter::visit_print_format (print_format* e)
 
       agg.declare(*(this->parent));
 
-      if (sym->referent->arity != 0)
+      string agg_value;
+      arrayindex* arr = NULL;
+      expression_is_arrayindex (e->hist->stat, arr);
+
+      // If we have a foreach_loop value, we don't need tmps for indexes
+      if (sym->referent->arity != 0 &&
+          !parent->get_foreach_loop_value(arr, agg_value))
 	{
+	  if (!arr)
+	    throw semantic_error("expected arrayindex expression in printed hist_op", e->tok);
+
 	  // One temporary per index dimension.
 	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
 	    {
-	      arrayindex *arr = NULL;
-	      if (!expression_is_arrayindex (e->hist->stat, arr))
-		throw semantic_error("expected arrayindex expression in printed hist_op", e->tok);
-
 	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
 	      ix.declare (*parent);
 	      arr->indexes[i]->visit(this);
@@ -4442,17 +4567,20 @@ c_tmpcounter::visit_stat_op (stat_op* e)
   agg.declare(*(this->parent));
   res.declare(*(this->parent));
 
-  if (sym->referent->arity != 0)
+  string agg_value;
+  arrayindex* arr = NULL;
+  expression_is_arrayindex (e->stat, arr);
+
+  // If we have a foreach_loop value, we don't need tmps for indexes
+  if (sym->referent->arity != 0 &&
+      !parent->get_foreach_loop_value(arr, agg_value))
     {
+      if (!arr)
+	throw semantic_error("expected arrayindex expression in stat_op of array", e->tok);
+
       // One temporary per index dimension.
       for (unsigned i=0; i<sym->referent->index_types.size(); i++)
 	{
-	  // Sorry about this, but with no dynamic_cast<> and no
-	  // constructor patterns, this is how things work.
-	  arrayindex *arr = NULL;
-	  if (!expression_is_arrayindex (e->stat, arr))
-	    throw semantic_error("expected arrayindex expression in stat_op of array", e->tok);
-
 	  tmpvar ix = parent->gensym (sym->referent->index_types[i]);
 	  ix.declare (*parent);
 	  arr->indexes[i]->visit(this);
