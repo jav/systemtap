@@ -2880,6 +2880,13 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  var v = getvar (s->indexes[i]->referent);
 	  c_assign (v, iv.get_key (v.type(), i), s->tok);
 	}
+
+      if (s->value)
+        {
+	  var v = getvar (s->value->referent);
+	  c_assign (v, iv.get_value (v.type()), s->tok);
+        }
+
       visit_foreach_loop_value(this, s, iv.get_value(array->type));
       record_actions(0, s->block->tok, true);
       o->newline(-1) << "}";
@@ -2942,6 +2949,12 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  delete limitv;
 	  delete res_limit;
       }
+
+      if (s->value)
+        {
+          var v = getvar (s->value->referent);
+          c_assign (v, agg.get_hist (bucketvar), s->tok);
+        }
 
       visit_foreach_loop_value(this, s, agg.get_hist(bucketvar));
       record_actions(1, s->block->tok, true);

@@ -555,6 +555,7 @@ struct foreach_loop: public statement
   indexable *base;
   int sort_direction; // -1: decreasing, 0: none, 1: increasing
   unsigned sort_column; // 0: value, 1..N: index
+  symbol* value; // optional iteration value
   expression* limit; // optional iteration limit
 
   statement* block;

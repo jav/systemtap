@@ -1469,6 +1469,7 @@ void add_global_var_display (systemtap_session& s)
 	  foreach_loop* fe = new foreach_loop;
 	  fe->sort_direction = -1; // imply decreasing sort on value
 	  fe->sort_column = 0;     // as in   foreach ([a,b,c] in array-) { }
+	  fe->value = NULL;
 	  fe->limit = NULL;
 	  fe->tok = l->tok;
 
@@ -1537,7 +1538,13 @@ void add_global_var_display (systemtap_session& s)
 		}
 	    }
 	  else
-	    pf->args.push_back(ai);
+	    {
+	      // Create value for the foreach loop
+	      fe->value = new symbol;
+	      fe->value->name = "val";
+	      fe->value->tok = l->tok;
+	      pf->args.push_back(fe->value);
+	    }
 
 	  pf->components = print_format::string_to_components(pf->raw_components);
 	  expr_statement* feb = new expr_statement;
@@ -1821,6 +1828,9 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
       assert (hist);
       hist->visit (this);
     }
+
+  if (e->value)
+    e->value->visit (this);
 
   if (e->limit)
     e->limit->visit (this);
@@ -2553,6 +2563,7 @@ dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
   if (s->block == 0)
     {
       // XXX what if s->limit has side effects?
+      // XXX what about s->indexes or s->value used outside the loop?
       if (session.verbose>2)
         clog << "Eliding side-effect-free foreach statement " << *s->tok << endl;
       s = 0; // yeah, baby
@@ -2788,7 +2799,7 @@ void_statement_reducer::visit_for_loop (for_loop* s)
 void
 void_statement_reducer::visit_foreach_loop (foreach_loop* s)
 {
-  // s->indexes/base/limit are never void
+  // s->indexes/base/value/limit are never void
   replace (s->block);
   provide (s);
 }
@@ -3239,6 +3250,7 @@ const_folder::visit_foreach_loop (foreach_loop* s)
       for (unsigned i = 0; i < s->indexes.size(); ++i)
         replace (s->indexes[i]);
       replace (s->base);
+      replace (s->value);
       replace (s->block);
       provide (s);
     }
@@ -4486,6 +4498,7 @@ typeresolution_info::visit_foreach_loop (foreach_loop* e)
   //   // redesignate referent as array
   //   e->referent->set_arity (e->indexes.size ());
 
+  exp_type wanted_value = pe_unknown;
   symbol *array = NULL;
   hist_op *hist = NULL;
   classify_indexable(e->base, array, hist);
@@ -4499,6 +4512,7 @@ typeresolution_info::visit_foreach_loop (foreach_loop* e)
       if (e->indexes[0]->type != pe_long)
 	unresolved (e->tok);
       hist->visit (this);
+      wanted_value = pe_long;
     }
   else
     {
@@ -4529,6 +4543,22 @@ typeresolution_info::visit_foreach_loop (foreach_loop* e)
 	  if (at == pe_unknown)
 	    unresolved (ee->tok);
 	}
+      t = pe_unknown;
+      array->visit (this);
+      wanted_value = array->type;
+    }
+
+  if (e->value)
+    {
+      if (wanted_value == pe_stats)
+        invalid(e->value->tok, wanted_value);
+      else if (wanted_value != pe_unknown)
+        check_arg_type(wanted_value, e->value);
+      else
+        {
+          t = pe_unknown;
+          e->value->visit (this);
+        }
     }
 
   if (e->limit)

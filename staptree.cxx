@@ -938,7 +938,13 @@ void for_loop::print (ostream& o) const
 
 void foreach_loop::print (ostream& o) const
 {
-  o << "foreach ([";
+  o << "foreach (";
+  if (value)
+    {
+      value->print (o);
+      o << " = ";
+    }
+  o << "[";
   for (unsigned i=0; i<indexes.size(); i++)
     {
       if (i > 0) o << ", ";
@@ -1597,6 +1603,9 @@ traversing_visitor::visit_foreach_loop (foreach_loop* s)
   for (unsigned i=0; i<s->indexes.size(); i++)
     s->indexes[i]->visit (this);
 
+  if (s->value)
+    s->value->visit (this);
+
   if (s->limit)
     s->limit->visit (this);
 
@@ -2042,6 +2051,15 @@ varuse_collecting_visitor::visit_foreach_loop (foreach_loop* s)
       current_lvalue = last_lvalue;
     }
 
+  // The value is an lvalue too
+  if (s->value)
+    {
+      expression* last_lvalue = current_lvalue;
+      current_lvalue = s->value; // leave a mark for ::visit_symbol
+      s->value->visit (this);
+      current_lvalue = last_lvalue;
+    }
+
   if (s->limit)
     s->limit->visit (this);
 
@@ -2383,6 +2401,7 @@ update_visitor::visit_foreach_loop (foreach_loop* s)
   for (unsigned i = 0; i < s->indexes.size(); ++i)
     replace (s->indexes[i]);
   replace (s->base);
+  replace (s->value);
   replace (s->limit);
   replace (s->block);
   provide (s);

@@ -1864,23 +1864,67 @@ parser::parse_foreach_loop ()
   foreach_loop* s = new foreach_loop;
   s->tok = t;
   s->sort_direction = 0;
+  s->value = NULL;
   s->limit = NULL;
 
   t = next ();
   if (! (t->type == tok_operator && t->content == "("))
     throw parse_error ("expected '('");
 
+  symbol* lookahead_sym = NULL;
+  int lookahead_sort = 0;
+
+  t = peek ();
+  if (t && t->type == tok_identifier)
+    {
+      next ();
+      lookahead_sym = new symbol;
+      lookahead_sym->tok = t;
+      lookahead_sym->name = t->content;
+
+      t = peek ();
+      if (t && t->type == tok_operator &&
+	  (t->content == "+" || t->content == "-"))
+	{
+	  next ();
+	  lookahead_sort = (t->content == "+") ? 1 : -1;
+	}
+
+      t = peek ();
+      if (t && t->type == tok_operator && t->content == "=")
+	{
+	  next ();
+	  s->value = lookahead_sym;
+	  if (lookahead_sort)
+	    {
+	      s->sort_direction = lookahead_sort;
+	      s->sort_column = 0;
+	    }
+	  lookahead_sym = NULL;
+	}
+    }
+
   // see also parse_array_in
 
   bool parenthesized = false;
   t = peek ();
-  if (t && t->type == tok_operator && t->content == "[")
+  if (!lookahead_sym && t && t->type == tok_operator && t->content == "[")
     {
       next ();
       parenthesized = true;
     }
 
-  while (1)
+  if (lookahead_sym)
+    {
+      s->indexes.push_back (lookahead_sym);
+      if (lookahead_sort)
+	{
+	  s->sort_direction = lookahead_sort;
+	  s->sort_column = 1;
+	}
+      lookahead_sym = NULL;
+    }
+  else while (1)
     {
       t = next ();
       if (! (t->type == tok_identifier))
