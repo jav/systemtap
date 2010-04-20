@@ -494,6 +494,11 @@ evaluated once at the beginning of the loop.
 Same as above, used when the array is indexed with a tuple of keys.
 A sorting suffix may be used on at most one VAR or ARRAY identifier.
 .TP
+.BR foreach " (VALUE = VAR " in " ARRAY [ "limit " EXP ]) STMT"
+This variant of foreach saves current value into VALUE on each
+iteration, so it is the same as ARRAY[VAR].  This also works with a
+tuple of keys.  Sorting suffixes on VALUE have the same effect as on ARRAY.
+.TP
 .BR break ", " continue
 Exit or iterate the innermost nesting loop
 .RB ( while " or " for " or " foreach )

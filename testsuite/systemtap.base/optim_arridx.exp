@@ -57,8 +57,9 @@ exit()
 end /* <- end */
   # locals
   idx0:long
+  val:long
 {
-foreach ([idx0] in arr3-) printf("arr3[%#d]=%#x\\n", idx0, arr3[idx0])
+foreach (val = [idx0] in arr3-) printf("arr3[%#d]=%#x\\n", idx0, val)
 }
 end /* <- end */
 {

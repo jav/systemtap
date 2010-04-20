@@ -1,0 +1,12 @@
+#! stap -p2
+
+# no value which is a statistic (b/c we don't have stat locals)
+
+global array
+
+probe begin
+{
+    array[0] <<< 1
+    foreach (val = key in array)
+        printf("key %d, value %d\n", key, @sum(val))
+}

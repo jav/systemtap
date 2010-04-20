@@ -1,5 +1,9 @@
 * What's new
 
+- Iterating with "foreach" can now explicitly save the value for the loop.
+     foreach(v = [i,j] in array)
+       printf("array[%d,%s] = %d\n", i, j, v /* array[i,j] */)
+
 - The new "--ldd" option automatically adds any additional shared
   libraries needed by probed or -d-listed userspace binaries to the -d
   list, to enable symbolic backtracing through them.

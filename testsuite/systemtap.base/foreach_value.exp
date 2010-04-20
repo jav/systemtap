@@ -1,0 +1,22 @@
+# test values assigned in foreach iteration
+
+set test "foreach_value"
+set ::result_string {longs[9] = 324
+longs[8] = 192
+longs[7] = 98
+longs[6] = 36
+longs[5] = 0
+longs[1] = -4
+longs[2] = -12
+longs[4] = -16
+longs[3] = -18
+strings[5] = five
+strings[4] = four
+strings[1] = one
+strings[3] = three
+strings[2] = two
+2 strings in bucket 66
+3 strings in bucket 67
+}
+
+stap_run_exact $test $srcdir/$subdir/$test.stp

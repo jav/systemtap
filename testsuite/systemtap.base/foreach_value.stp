@@ -1,0 +1,26 @@
+global longs
+global strings
+global stat
+
+probe begin
+{
+  for (i=1; i<10; ++i)
+    longs[i] = i*i*(i-5)
+  foreach (n- = i in longs)
+    printf("longs[%d] = %d\n", i, n)
+
+  strings[1] = "one"
+  strings[2] = "two"
+  strings[3] = "three"
+  strings[4] = "four"
+  strings[5] = "five"
+  foreach (s+ = i in strings)
+    printf("strings[%d] = %s\n", i, s)
+
+  foreach (s = i in strings)
+    stat <<< strlen(s)
+  foreach (n = i in @hist_log(stat))
+    if (n) printf("%d strings in bucket %d\n", n, i)
+
+  exit()
+}
