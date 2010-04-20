@@ -1553,6 +1553,9 @@ pass_5:
     cerr << "Pass 5: run failed.  "
          << "Try again with another '--vp 00001' option."
          << endl;
+  else
+    // Interrupting pass-5 to quit is normal, so we want an EXIT_SUCCESS below.
+    pending_interrupts = 0;
 
   // if (rc) goto cleanup;
 
