@@ -1,0 +1,148 @@
+#! stap -p4
+
+probe nfs.proc.lookup {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d\n", server_ip, prot, version, name_len)
+	printf("%d %d\n", bitmask0, bitmask1)
+}
+probe nfs.proc.lookup.return {
+	printf("%d: %s(%s)\n", version, name, retstr)
+}
+
+probe nfs.proc.read ? {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d %s\n", server_ip, prot, version, flags,
+		size, units)
+}
+probe nfs.proc.read.return ? {
+	printf("%d: %s(%s)\n", version, name, retstr)
+}
+
+probe nfs.proc.write ? {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d %s\n", server_ip, prot, version, flags,
+		size, units)
+	printf("%d %d\n", bitmask0, bitmask1)
+}
+probe nfs.proc.write.return ? {
+	printf("%d: %s(%s)\n", version, name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe nfs.proc.commit ? {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %s\n", server_ip, prot, version, size, units)
+	printf("%d %d\n", bitmask0, bitmask1)
+}
+probe nfs.proc.commit.return ? {
+	printf("%d: %s(%s)\n", version, name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+
+probe nfs.proc.read_setup {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d %s\n", client, server_ip, prot,
+		version, size, units)
+}
+probe nfs.proc.read_setup.return {
+	printf("%d: %s(%d)\n", version, name, retvalue)
+}
+
+probe nfs.proc.read_done {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d\n", server_ip, prot, count, version)
+	printf("%d\n", timestamp)
+}
+probe nfs.proc.read_done.return {
+	printf("%d: %s(%s)\n", version, name, retstr)
+}
+
+probe nfs.proc.write_setup {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d %s\n", client, server_ip, prot,
+		version, size, units)
+	printf("%d %d %d\n", how, bitmask0, bitmask1)
+}
+probe nfs.proc.write_setup.return {
+	printf("%d: %s(%d)\n", version, name, retvalue)
+}
+
+probe nfs.proc.write_done {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d\n", server_ip, prot, count, valid, version)
+	printf("%d\n", timestamp)
+}
+probe nfs.proc.write_done.return {
+	printf("%d: %s(%s)\n", version, name, retstr)
+}
+
+probe nfs.proc.commit_setup {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d %s\n", client, server_ip, prot,
+		version, size, units)
+	printf("%d %d\n", bitmask0, bitmask1)
+}
+probe nfs.proc.commit_setup.return {
+	printf("%d: %s(%d)\n", version, name, retvalue)
+}
+
+probe nfs.proc.commit_done {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d\n", server_ip, prot, count, valid, version)
+	printf("%d\n", timestamp)
+}
+probe nfs.proc.commit_done.return {
+	printf("%d: %s(%s)\n", version, name, retstr)
+}
+
+probe nfs.proc.open {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d\n", server_ip, prot, version)
+}
+probe nfs.proc.open.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.proc.release {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d\n", server_ip, prot, version)
+}
+probe nfs.proc.release.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.proc.handle_exception {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d\n", version)
+}
+probe nfs.proc.handle_exception.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.proc.create {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d %d\n", server_ip, prot, version, fh,
+		filelen, mode)
+}
+probe nfs.proc.create.return {
+	printf("%d: %s(%s)\n", version, name, retstr)
+}
+
+probe nfs.proc.remove {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d\n", server_ip, prot, version, fh,
+		filelen)
+}
+probe nfs.proc.remove.return {
+	printf("%d: %s(%s)\n", version, name, retstr)
+}
+
+probe nfs.proc.rename {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %d %d %d %d\n", server_ip, prot, version, old_fh,
+		old_filelen, new_fh, new_filelen)
+}
+probe nfs.proc.rename.return {
+	printf("%d: %s(%s)\n", version, name, retstr)
+}
