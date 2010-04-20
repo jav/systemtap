@@ -5379,7 +5379,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   CALCIT(symbol_string);
 #undef CALCIT
 
-  s.op->newline() << "const unsigned long address;";
+  s.op->newline() << "unsigned long address;";
   s.op->newline() << "void (* const ph) (struct context*);";
   s.op->newline(-1) << "} stap_dwarfless_probes[] = {";
   s.op->indent(1);
@@ -5476,21 +5476,39 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_epilogue (s.op);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
+
+  s.op->newline() << "static int kprobe_resolve(void *data, const char *name,";
+  s.op->newline() << "                          struct module *owner,";
+  s.op->newline() << "                          unsigned long val) {";
+  s.op->newline(1) << "int i;";
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarfless_probe *sdp = & stap_dwarfless_probes[i];";
+  s.op->newline() << "if (! sdp->address)";
+  s.op->newline(1) << "if (strcmp(sdp->symbol_string, name) == 0)";
+  s.op->newline(1) << "sdp->address = val;";
+  s.op->newline(-3) << "}";
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
 }
 
 
 void
 kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
 {
+  s.op->newline() << "kallsyms_on_each_symbol(kprobe_resolve, NULL);";
+
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarfless_probe *sdp = & stap_dwarfless_probes[i];";
   s.op->newline() << "struct stap_dwarfless_kprobe *kp = & stap_dwarfless_kprobes[i];";
   s.op->newline() << "void *addr = (void *) sdp->address;";
-  s.op->newline() << "const char *symbol_name = addr ? NULL : sdp->symbol_string;";
+  s.op->newline() << "if (! addr) {";
+  s.op->newline(1) << "sdp->registered_p = 0;";
+  s.op->newline() << "continue;";
+  s.op->newline(-1) << "}";
   s.op->newline() << "probe_point = sdp->pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "kp->u.krp.kp.addr = addr;";
-  s.op->newline() << "kp->u.krp.kp.symbol_name = (char *) symbol_name;";
+  s.op->newline() << "kp->u.krp.kp.symbol_name = NULL;";
   s.op->newline() << "if (sdp->maxactive_p) {";
   s.op->newline(1) << "kp->u.krp.maxactive = sdp->maxactive_val;";
   s.op->newline(-1) << "} else {";
@@ -5514,7 +5532,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "} else {";
   // to ensure safeness of bspcache, always use aggr_kprobe on ia64
   s.op->newline(1) << "kp->u.kp.addr = addr;";
-  s.op->newline() << "kp->u.kp.symbol_name = (char *) symbol_name;";
+  s.op->newline() << "kp->u.kp.symbol_name = NULL;";
   s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe2_probe;";
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "kp->dummy.pre_handler = NULL;";
