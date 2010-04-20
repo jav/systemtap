@@ -46,7 +46,9 @@ probe nd_syscall.accept = kprobe.function("SyS_accept") ?,
 	sockfd = int_arg(1)
 	addr_uaddr = pointer_arg(2)
 	addrlen_uaddr = pointer_arg(3)
-	argstr = sprintf("%d, %p, %p", sockfd, addr_uaddr, addrlen_uaddr)
+	flag_str = "0"
+	argstr = sprintf("%d, %p, %p, %s", sockfd, addr_uaddr, addrlen_uaddr,
+			 flag_str)
 }
 probe nd_syscall.accept.return = kprobe.function("SyS_accept").return ?,
                                  kprobe.function("sys_accept").return ?
