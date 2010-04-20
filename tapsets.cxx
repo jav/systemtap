@@ -5503,7 +5503,9 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "void *addr = (void *) sdp->address;";
   s.op->newline() << "if (! addr) {";
   s.op->newline(1) << "sdp->registered_p = 0;";
-  s.op->newline() << "continue;";
+  s.op->newline() << "if (!sdp->optional_p)";
+  s.op->newline(1) << "_stp_warn (\"probe %s registration error (symbol not found)\", probe_point);";
+  s.op->newline(-1) << "continue;";
   s.op->newline(-1) << "}";
   s.op->newline() << "probe_point = sdp->pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
