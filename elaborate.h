@@ -63,6 +63,7 @@ struct typeresolution_info: public visitor
   std::vector <const token*> printed_toks;  // matches (BZ 9719)
 
   void check_arg_type (exp_type wanted, expression* arg);
+  void check_local (vardecl* v);
   void mismatch (const token* tok, exp_type t1, exp_type t2);
   void unresolved (const token* tok);
   void resolved (const token* tok, exp_type t);

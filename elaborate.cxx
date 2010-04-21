@@ -1894,6 +1894,7 @@ symresolution_info::visit_symbol (symbol* e)
       vardecl* v = new vardecl;
       v->name = e->name;
       v->tok = e->tok;
+      v->set_arity(0);
       if (current_function)
         current_function->locals.push_back (v);
       else if (current_probe)
@@ -3870,6 +3871,8 @@ semantic_pass_types (systemtap_session& s)
 	  //
           // if (fd->type == pe_unknown)
           //   ti.unresolved (fd->tok);
+          for (unsigned i=0; i < fd->locals.size(); ++i)
+            ti.check_local (fd->locals[i]);
         }
 
       for (unsigned j=0; j<s.probes.size(); j++)
@@ -3881,6 +3884,8 @@ semantic_pass_types (systemtap_session& s)
           ti.current_probe = pn;
           ti.t = pe_unknown;
           pn->body->visit (& ti);
+          for (unsigned i=0; i < pn->locals.size(); ++i)
+            ti.check_local (pn->locals[i]);
 
           probe_point* pp = pn->sole_location();
           if (pp->condition)
@@ -4849,6 +4854,31 @@ typeresolution_info::check_arg_type (exp_type wanted, expression* arg)
     {
       mismatch (arg->tok, arg->type, wanted);
     }
+}
+
+
+void
+typeresolution_info::check_local (vardecl* v)
+{
+  if (v->arity != 0)
+    {
+      num_still_unresolved ++;
+      if (assert_resolvability)
+        session.print_error
+          (semantic_error ("array locals not supported, missing global declaration? ", v->tok));
+    }
+
+  if (v->type == pe_unknown)
+    unresolved (v->tok);
+  else if (v->type == pe_stats)
+    {
+      num_still_unresolved ++;
+      if (assert_resolvability)
+        session.print_error
+          (semantic_error ("stat locals not supported, missing global declaration? ", v->tok));
+    }
+  else if (!(v->type == pe_long || v->type == pe_string))
+    invalid (v->tok, v->type);
 }
 
 

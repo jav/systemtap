@@ -1,4 +1,4 @@
-#! stap -p3
+#! stap -p2
 
 # arrays can't be inferred as anything else
 global a[10]

@@ -1,0 +1,8 @@
+#! stap -p2
+
+# missing global declaration
+probe begin
+{
+    a[1] = 1
+    println(a[1])
+}
