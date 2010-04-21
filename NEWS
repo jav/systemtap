@@ -1,5 +1,9 @@
 * What's new
 
+- By default the systemtap-runtime RPM builds now include a shared
+  libary, staplog.so, that allows crash to extract systemtap data from
+  a vmcore image.
+
 - Iterating with "foreach" can now explicitly save the value for the loop.
      foreach(v = [i,j] in array)
        printf("array[%d,%s] = %d\n", i, j, v /* array[i,j] */)

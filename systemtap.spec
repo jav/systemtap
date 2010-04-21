@@ -1,6 +1,6 @@
 %{!?with_sqlite: %global with_sqlite 1}
 %{!?with_docs: %global with_docs 1}
-%{!?with_crash: %global with_crash 0}
+%{!?with_crash: %global with_crash 1}
 %{!?with_rpm: %global with_rpm 1}
 %{!?with_bundled_elfutils: %global with_bundled_elfutils 0}
 %{!?elfutils_version: %global elfutils_version 0.127}
@@ -51,9 +51,6 @@ BuildRequires: m4
 %global setup_elfutils -a1
 %else
 BuildRequires: elfutils-devel >= %{elfutils_version}
-%endif
-%if %{with_crash}
-Requires: crash
 %endif
 
 %if %{with_docs}
@@ -421,14 +418,8 @@ exit 0
 %{_datadir}/%{name}/runtime
 %{_datadir}/%{name}/tapset
 
-%if %{with_bundled_elfutils} || %{with_crash}
-%dir %{_libdir}/%{name}
-%endif
 %if %{with_bundled_elfutils}
 %{_libdir}/%{name}/lib*.so*
-%endif
-%if %{with_crash}
-%{_libdir}/%{name}/staplog.so*
 %endif
 
 # Make sure that the uprobes module can be built by root and by the server
@@ -442,6 +433,9 @@ exit 0
 %{_libexecdir}/%{name}/stapio
 %{_libexecdir}/%{name}/stap-env
 %{_libexecdir}/%{name}/stap-authorize-cert
+%if %{with_crash}
+%{_libdir}/%{name}/staplog.so*
+%endif
 %{_mandir}/man8/staprun.8*
 %{_mandir}/man8/stap-authorize-signing-cert.8*
 
