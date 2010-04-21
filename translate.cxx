@@ -2747,16 +2747,16 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
   hist_op *hist;
   classify_indexable (s->base, array, hist);
 
+  string ctr = lex_cast (label_counter++);
+  string toplabel = "top_" + ctr;
+  string contlabel = "continue_" + ctr;
+  string breaklabel = "break_" + ctr;
+
   if (array)
     {
       mapvar mv = getmap (array->referent, s->tok);
       itervar iv = getiter (array);
       vector<var> keys;
-
-      string ctr = lex_cast (label_counter++);
-      string toplabel = "top_" + ctr;
-      string contlabel = "continue_" + ctr;
-      string breaklabel = "break_" + ctr;
 
       // NB: structure parallels for_loop
 
@@ -2932,12 +2932,13 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  o->newline() << *limitv << " = 0LL;";
 	}
 
-      // XXX: break / continue don't work here yet
       record_actions(1, s->tok, true);
       o->newline() << "for (" << bucketvar << " = 0; "
 		   << bucketvar << " < " << v.buckets() << "; "
 		   << bucketvar << "++) { ";
       o->newline(1);
+      loop_break_labels.push_back (breaklabel);
+      loop_continue_labels.push_back (contlabel);
 
       if (s->limit)
       {
@@ -2958,7 +2959,14 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 
       visit_foreach_loop_value(this, s, agg.get_hist(bucketvar));
       record_actions(1, s->block->tok, true);
+
+      o->newline(-1) << contlabel << ":";
+      o->newline(1) << "continue;";
+      o->newline(-1) << breaklabel << ":";
+      o->newline(1) << "break;";
       o->newline(-1) << "}";
+      loop_break_labels.pop_back ();
+      loop_continue_labels.pop_back ();
     }
 }
 
