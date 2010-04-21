@@ -3122,24 +3122,22 @@ c_unparser::visit_delete_statement (delete_statement* s)
 void
 c_unparser::visit_break_statement (break_statement* s)
 {
-  if (loop_break_labels.size() == 0)
+  if (loop_break_labels.empty())
     throw semantic_error ("cannot 'break' outside loop", s->tok);
 
   record_actions(1, s->tok, true);
-  string label = loop_break_labels[loop_break_labels.size()-1];
-  o->newline() << "goto " << label << ";";
+  o->newline() << "goto " << loop_break_labels.back() << ";";
 }
 
 
 void
 c_unparser::visit_continue_statement (continue_statement* s)
 {
-  if (loop_continue_labels.size() == 0)
+  if (loop_continue_labels.empty())
     throw semantic_error ("cannot 'continue' outside loop", s->tok);
 
   record_actions(1, s->tok, true);
-  string label = loop_continue_labels[loop_continue_labels.size()-1];
-  o->newline() << "goto " << label << ";";
+  o->newline() << "goto " << loop_continue_labels.back() << ";";
 }
 
 
