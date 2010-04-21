@@ -417,6 +417,19 @@ keywords: scheduler
   processor.
 
 
+process/cycle_thief.stp - Track IRQs and Other Processes Stealing Cycles from a Task
+keywords: process scheduler time tracepoint interrupt
+
+  The cycle_thief.stp script instruments the scheduler and IRQ handler
+  to determine which processes and interrupts are competing with the
+  specified task for the cpu cycles. This script uses the '-c' or '-x'
+  options to focus on a specific task. The script output the number of
+  times the task migrates between processors, histograms showing the
+  length of time on and off processor, lists of processes running while
+  the task is off the processor, and the interrupts that occurred while
+  the task was running.
+
+
 process/errsnoop.stp - tabulate system call errors
 keywords: process syscall
 

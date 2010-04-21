@@ -237,6 +237,19 @@ keywords: interrupt backtrace
   the tallies in descending frequency.
 
 
+process/cycle_thief.stp - Track IRQs and Other Processes Stealing Cycles from a Task
+keywords: process scheduler time tracepoint interrupt
+
+  The cycle_thief.stp script instruments the scheduler and IRQ handler
+  to determine which processes and interrupts are competing with the
+  specified task for the cpu cycles. This script uses the '-c' or '-x'
+  options to focus on a specific task. The script output the number of
+  times the task migrates between processors, histograms showing the
+  length of time on and off processor, lists of processes running while
+  the task is off the processor, and the interrupts that occurred while
+  the task was running.
+
+
 = IO =
 
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
@@ -671,6 +684,19 @@ keywords: memory process
   /proc/sys/vm/overcommit* limits.
 
 
+process/cycle_thief.stp - Track IRQs and Other Processes Stealing Cycles from a Task
+keywords: process scheduler time tracepoint interrupt
+
+  The cycle_thief.stp script instruments the scheduler and IRQ handler
+  to determine which processes and interrupts are competing with the
+  specified task for the cpu cycles. This script uses the '-c' or '-x'
+  options to focus on a specific task. The script output the number of
+  times the task migrates between processors, histograms showing the
+  length of time on and off processor, lists of processes running while
+  the task is off the processor, and the interrupts that occurred while
+  the task was running.
+
+
 process/errsnoop.stp - tabulate system call errors
 keywords: process syscall
 
@@ -856,6 +882,19 @@ keywords: scheduler
   now running the task, the thread state, and a backtrace showing the
   kernel functions that triggered the running of the task on the
   processor.
+
+
+process/cycle_thief.stp - Track IRQs and Other Processes Stealing Cycles from a Task
+keywords: process scheduler time tracepoint interrupt
+
+  The cycle_thief.stp script instruments the scheduler and IRQ handler
+  to determine which processes and interrupts are competing with the
+  specified task for the cpu cycles. This script uses the '-c' or '-x'
+  options to focus on a specific task. The script output the number of
+  times the task migrates between processors, histograms showing the
+  length of time on and off processor, lists of processes running while
+  the task is off the processor, and the interrupts that occurred while
+  the task was running.
 
 
 process/forktracker.stp - Trace Creation of Processes
@@ -1119,6 +1158,19 @@ keywords: syscall read write time io
   syscalls.
 
 
+process/cycle_thief.stp - Track IRQs and Other Processes Stealing Cycles from a Task
+keywords: process scheduler time tracepoint interrupt
+
+  The cycle_thief.stp script instruments the scheduler and IRQ handler
+  to determine which processes and interrupts are competing with the
+  specified task for the cpu cycles. This script uses the '-c' or '-x'
+  options to focus on a specific task. The script output the number of
+  times the task migrates between processors, histograms showing the
+  length of time on and off processor, lists of processes running while
+  the task is off the processor, and the interrupts that occurred while
+  the task was running.
+
+
 process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
 keywords: process scheduler time tracepoint
 
@@ -1158,6 +1210,19 @@ keywords: network tracepoint buffer free
 
   Every five seconds the dropwatch.stp script lists the number of
   socket buffers freed at locations in the kernel.
+
+
+process/cycle_thief.stp - Track IRQs and Other Processes Stealing Cycles from a Task
+keywords: process scheduler time tracepoint interrupt
+
+  The cycle_thief.stp script instruments the scheduler and IRQ handler
+  to determine which processes and interrupts are competing with the
+  specified task for the cpu cycles. This script uses the '-c' or '-x'
+  options to focus on a specific task. The script output the number of
+  times the task migrates between processors, histograms showing the
+  length of time on and off processor, lists of processes running while
+  the task is off the processor, and the interrupts that occurred while
+  the task was running.
 
 
 process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
