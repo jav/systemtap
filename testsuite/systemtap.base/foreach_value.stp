@@ -1,6 +1,7 @@
 global longs
 global strings
 global stat
+global stats
 
 probe begin
 {
@@ -21,6 +22,12 @@ probe begin
     stat <<< strlen(s)
   foreach (n = i in @hist_log(stat))
     if (n) printf("%d strings in bucket %d\n", n, i)
+
+  foreach (s = i in strings)
+    stats[stringat(s,0)] <<< strlen(s)
+  foreach (c in stats)
+    foreach (n = i in @hist_log(stats[c]))
+      if (n) printf("%d strings in [%c] bucket %d\n", n, c, i)
 
   exit()
 }

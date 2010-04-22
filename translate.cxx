@@ -2709,10 +2709,17 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 
       symbol *sym = get_symbol_within_expression (hist->stat);
       var v = parent->getvar(sym->referent, sym->tok);
-      if (sym->referent->arity != 0)
+
+      string agg_value;
+      arrayindex *arr = NULL;
+      expression_is_arrayindex (hist->stat, arr);
+
+      // If we have a foreach_loop value, we don't need tmps for indexes
+      if (sym->referent->arity != 0 &&
+	  !parent->get_foreach_loop_value(arr, agg_value))
 	{
 	  arrayindex *arr = NULL;
-	  if (!expression_is_arrayindex (hist->stat, arr))
+	  if (!arr)
 	    throw semantic_error("expected arrayindex expression in iterated hist_op", s->tok);
 
 	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
@@ -2913,11 +2920,21 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       var bucketvar = getvar (s->indexes[0]->referent);
 
       aggvar agg = gensym_aggregate ();
-      load_aggregate(hist->stat, agg);
 
       symbol *sym = get_symbol_within_expression (hist->stat);
-      var v = getvar(sym->referent, sym->tok);
-      v.assert_hist_compatible(*hist);
+
+      var *v;
+      if (sym->referent->arity < 1)
+	v = new var(getvar(sym->referent, sym->tok));
+      else
+	v = new mapvar(getmap(sym->referent, sym->tok));
+
+      v->assert_hist_compatible(*hist);
+
+      if (aggregations_active.count(v->value()))
+	load_aggregate(hist->stat, agg, true);
+      else
+        load_aggregate(hist->stat, agg, false);
 
       tmpvar *res_limit = NULL;
       tmpvar *limitv = NULL;
@@ -2934,7 +2951,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 
       record_actions(1, s->tok, true);
       o->newline() << "for (" << bucketvar << " = 0; "
-		   << bucketvar << " < " << v.buckets() << "; "
+		   << bucketvar << " < " << v->buckets() << "; "
 		   << bucketvar << "++) { ";
       o->newline(1);
       loop_break_labels.push_back (breaklabel);
@@ -2967,6 +2984,8 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       o->newline(-1) << "}";
       loop_break_labels.pop_back ();
       loop_continue_labels.pop_back ();
+
+      delete v;
     }
 }
 

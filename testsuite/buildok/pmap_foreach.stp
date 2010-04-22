@@ -34,4 +34,13 @@ probe end {
 				i, @hist_log(foo[i])[0])
 		print(@hist_log(foo[i]))
 	}
+
+	foreach (i in foo) {
+		printf("count of foo[%d] = %d\n", i, @count(foo[i]))
+		foreach (j in @hist_log(foo[i]))
+			if (@hist_log(foo[i])[j])
+				printf("bucket %d of hist_log of foo[%d] = %d\n",
+						j, i, @hist_log(foo[i])[j])
+		print(@hist_log(foo[i]))
+	}
 }

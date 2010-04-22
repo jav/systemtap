@@ -17,6 +17,10 @@ strings[3] = three
 strings[2] = two
 2 strings in bucket 66
 3 strings in bucket 67
+2 strings in [f] bucket 67
+1 strings in [o] bucket 66
+1 strings in [t] bucket 66
+1 strings in [t] bucket 67
 }
 
 stap_run_exact $test $srcdir/$subdir/$test.stp
