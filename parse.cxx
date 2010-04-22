@@ -2568,6 +2568,10 @@ expression* parser::parse_symbol ()
 	      // hist_op, we *mis-guessed* and the user wishes to
 	      // print(@hist_op(foo)[bucket]), a scalar. In that case
 	      // we must parse the arrayindex and print an expression.
+	      //
+	      // XXX: This still fails if the arrayindex is part of a
+	      // larger expression.  To really handle everything, we'd
+	      // need to push back all the hist tokens start over.
 
 	      if (!peek_op ("["))
 		fmt->hist = hop;
@@ -2583,6 +2587,14 @@ expression* parser::parse_symbol ()
 		  ai->indexes.push_back (parse_expression ());
 		  expect_op("]");
 		  fmt->args.push_back(ai);
+
+		  // Consume any subsequent arguments.
+		  while (!peek_op (")"))
+		    {
+		      expect_op(",");
+		      expression *e = parse_expression ();
+		      fmt->args.push_back(e);
+		    }
 		}
 	    }
 	  else
