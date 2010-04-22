@@ -38,6 +38,11 @@ Build steps:
   it to /usr/local.
   See http://fedorahosted.org/elfutils/
 
+- On modern Fedora, install general optional build-requisites:
+  # yum-builddep systemtap
+  On modern Debian/Ubuntu, similarly:
+  # apt-get build-dep systemtap
+
 - Download systemtap sources:
   http://sources.redhat.com/systemtap/ftp/releases/
   http://sources.redhat.com/systemtap/ftp/snapshots/
