@@ -309,7 +309,8 @@ endif
 	(cd $(srcdir)/man; for f in *.3*; do rm -rf "$(DESTDIR)$(man3dir)/$$f"; done)
 
 SUBDIRS = doc grapher
-DIST_SUBDIRS = testsuite man $(SUBDIRS)
+DIST_SUBDIRS = testsuite $(SUBDIRS)
+EXTRA_DIST = man/tapset*.3stap
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
