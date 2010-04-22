@@ -7,11 +7,12 @@ function trace(entry_p) {
 
 global trace
 probe kernel.function(@1).call {
-   if (execname() == "staprun") next # skip our own helper process
+   if (pid() == stp_pid()) next # skip our own helper process
    trace[tid()] = 1
    trace(1)
 }
 probe kernel.function(@1).return {
+   if (pid() == stp_pid()) next # skip our own helper process
    trace(-1)
    delete trace[tid()]
 }
