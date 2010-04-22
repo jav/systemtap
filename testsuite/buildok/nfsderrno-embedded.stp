@@ -1,0 +1,5 @@
+#! stap -p4
+
+probe begin {
+	print (nfsderror (0))
+}
