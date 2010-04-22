@@ -123,7 +123,7 @@ struct c_unparser: public unparser, public visitor
   void load_map_indices(arrayindex* e,
 			vector<tmpvar> & idx);
 
-  void load_aggregate (expression *e, aggvar & agg, bool pre_agg=false);
+  var* load_aggregate (expression *e, aggvar & agg);
   string histogram_index_check(var & vase, tmpvar & idx) const;
 
   void collect_map_index_types(vector<vardecl* > const & vars,
@@ -183,6 +183,7 @@ struct c_tmpcounter:
   }
 
   void load_map_indices(arrayindex* e);
+  void load_aggregate (expression *e);
 
   void visit_block (block *s);
   void visit_for_loop (for_loop* s);
@@ -2706,29 +2707,7 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 
       aggvar agg = parent->gensym_aggregate ();
       agg.declare(*(this->parent));
-
-      symbol *sym = get_symbol_within_expression (hist->stat);
-      var v = parent->getvar(sym->referent, sym->tok);
-
-      string agg_value;
-      arrayindex *arr = NULL;
-      expression_is_arrayindex (hist->stat, arr);
-
-      // If we have a foreach_loop value, we don't need tmps for indexes
-      if (sym->referent->arity != 0 &&
-	  !parent->get_foreach_loop_value(arr, agg_value))
-	{
-	  arrayindex *arr = NULL;
-	  if (!arr)
-	    throw semantic_error("expected arrayindex expression in iterated hist_op", s->tok);
-
-	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
-	    {
-	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
-	      ix.declare (*parent);
-	      arr->indexes[i]->visit(this);
-	    }
-	}
+      load_aggregate (hist->stat);
     }
 
   // Create a temporary for the loop limit counter and the limit
@@ -2921,20 +2900,8 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 
       aggvar agg = gensym_aggregate ();
 
-      symbol *sym = get_symbol_within_expression (hist->stat);
-
-      var *v;
-      if (sym->referent->arity < 1)
-	v = new var(getvar(sym->referent, sym->tok));
-      else
-	v = new mapvar(getmap(sym->referent, sym->tok));
-
+      var *v = load_aggregate(hist->stat, agg);
       v->assert_hist_compatible(*hist);
-
-      if (aggregations_active.count(v->value()))
-	load_aggregate(hist->stat, agg, true);
-      else
-        load_aggregate(hist->stat, agg, false);
 
       tmpvar *res_limit = NULL;
       tmpvar *limitv = NULL;
@@ -3831,22 +3798,44 @@ c_unparser::load_map_indices(arrayindex *e,
 
 
 void
-c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
+c_tmpcounter::load_aggregate (expression *e)
+{
+  symbol *sym = get_symbol_within_expression (e);
+  string agg_value;
+  arrayindex* arr = NULL;
+  expression_is_arrayindex (e, arr);
+
+  // If we have a foreach_loop value, we don't need tmps for indexes
+  if (sym->referent->arity != 0 &&
+      !parent->get_foreach_loop_value(arr, agg_value))
+    {
+      if (!arr)
+	throw semantic_error("expected arrayindex expression", e->tok);
+      load_map_indices (arr);
+    }
+}
+
+
+var*
+c_unparser::load_aggregate (expression *e, aggvar & agg)
 {
   symbol *sym = get_symbol_within_expression (e);
 
   if (sym->referent->type != pe_stats)
     throw semantic_error ("unexpected aggregate of non-statistic", sym->tok);
 
-  var v = getvar(sym->referent, e->tok);
-
+  var *v;
   if (sym->referent->arity == 0)
     {
+      v = new var(getvar(sym->referent, sym->tok));
       // o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
-      o->newline() << agg << " = _stp_stat_get (" << v << ", 0);";
+      o->newline() << agg << " = _stp_stat_get (" << *v << ", 0);";
     }
   else
     {
+      mapvar *mv = new mapvar(getmap(sym->referent, sym->tok));
+      v = mv;
+
       arrayindex *arr = NULL;
       if (!expression_is_arrayindex (e, arr))
 	throw semantic_error("unexpected aggregate of non-arrayindex", e->tok);
@@ -3859,11 +3848,13 @@ c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
         {
           vector<tmpvar> idx;
           load_map_indices (arr, idx);
-          mapvar mvar = getmap (sym->referent, sym->tok);
           // o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
-          o->newline() << agg << " = " << mvar.get(idx, pre_agg) << ";";
+	  bool pre_agg = (aggregations_active.count(mv->value()) > 0);
+          o->newline() << agg << " = " << mv->get(idx, pre_agg) << ";";
         }
     }
+
+  return v;
 }
 
 
@@ -3941,28 +3932,7 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
 
       aggvar agg = parent->gensym_aggregate ();
       agg.declare(*(this->parent));
-
-      symbol *sym = get_symbol_within_expression (hist->stat);
-      var v = parent->getvar(sym->referent, sym->tok);
-
-      string agg_value;
-      arrayindex *arr = NULL;
-      expression_is_arrayindex (hist->stat, arr);
-
-      // If we have a foreach_loop value, we don't need tmps for indexes
-      if (sym->referent->arity != 0 &&
-	  !parent->get_foreach_loop_value(arr, agg_value))
-	{
-	  if (!arr)
-	    throw semantic_error("expected arrayindex expression in indexed hist_op", e->tok);
-
-	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
-	    {
-	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
-	      ix.declare (*parent);
-	      arr->indexes[i]->visit(this);
-	    }
-	}
+      load_aggregate (hist->stat);
     }
 }
 
@@ -4025,20 +3995,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
       assert(idx.size() == 1);
       assert(idx[0].type() == pe_long);
 
-      symbol *sym = get_symbol_within_expression (hist->stat);
-
-      var *v;
-      if (sym->referent->arity < 1)
-	v = new var(getvar(sym->referent, e->tok));
-      else
-	v = new mapvar(getmap(sym->referent, e->tok));
-
+      var *v = load_aggregate(hist->stat, agg);
       v->assert_hist_compatible(*hist);
-
-      if (aggregations_active.count(v->value()))
-	load_aggregate(hist->stat, agg, true);
-      else
-        load_aggregate(hist->stat, agg, false);
 
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
@@ -4277,31 +4235,9 @@ c_tmpcounter::visit_print_format (print_format* e)
 {
   if (e->hist)
     {
-      symbol *sym = get_symbol_within_expression (e->hist->stat);
-      var v = parent->getvar(sym->referent, sym->tok);
       aggvar agg = parent->gensym_aggregate ();
-
       agg.declare(*(this->parent));
-
-      string agg_value;
-      arrayindex* arr = NULL;
-      expression_is_arrayindex (e->hist->stat, arr);
-
-      // If we have a foreach_loop value, we don't need tmps for indexes
-      if (sym->referent->arity != 0 &&
-          !parent->get_foreach_loop_value(arr, agg_value))
-	{
-	  if (!arr)
-	    throw semantic_error("expected arrayindex expression in printed hist_op", e->tok);
-
-	  // One temporary per index dimension.
-	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
-	    {
-	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
-	      ix.declare (*parent);
-	      arr->indexes[i]->visit(this);
-	    }
-	}
+      load_aggregate (e->hist->stat);
 
       // And the result for sprint[ln](@hist_*)
       if (!e->print_to_stream)
@@ -4348,23 +4284,12 @@ c_unparser::visit_print_format (print_format* e)
   if (e->hist)
     {
       stmt_expr block(*this);
-      symbol *sym = get_symbol_within_expression (e->hist->stat);
       aggvar agg = gensym_aggregate ();
 
-      var *v;
-      if (sym->referent->arity < 1)
-        v = new var(getvar(sym->referent, e->tok));
-      else
-        v = new mapvar(getmap(sym->referent, e->tok));
-
+      var *v = load_aggregate(e->hist->stat, agg);
       v->assert_hist_compatible(*e->hist);
 
       {
-	if (aggregations_active.count(v->value()))
-	  load_aggregate(e->hist->stat, agg, true);
-	else
-          load_aggregate(e->hist->stat, agg, false);
-
         // PR 2142+2610: empty aggregates
         o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
                      << " || " <<  agg.value() << "->count == 0) {";
@@ -4597,33 +4522,13 @@ c_unparser::visit_print_format (print_format* e)
 void
 c_tmpcounter::visit_stat_op (stat_op* e)
 {
-  symbol *sym = get_symbol_within_expression (e->stat);
-  var v = parent->getvar(sym->referent, e->tok);
   aggvar agg = parent->gensym_aggregate ();
   tmpvar res = parent->gensym (pe_long);
 
   agg.declare(*(this->parent));
   res.declare(*(this->parent));
 
-  string agg_value;
-  arrayindex* arr = NULL;
-  expression_is_arrayindex (e->stat, arr);
-
-  // If we have a foreach_loop value, we don't need tmps for indexes
-  if (sym->referent->arity != 0 &&
-      !parent->get_foreach_loop_value(arr, agg_value))
-    {
-      if (!arr)
-	throw semantic_error("expected arrayindex expression in stat_op of array", e->tok);
-
-      // One temporary per index dimension.
-      for (unsigned i=0; i<sym->referent->index_types.size(); i++)
-	{
-	  tmpvar ix = parent->gensym (sym->referent->index_types[i]);
-	  ix.declare (*parent);
-	  arr->indexes[i]->visit(this);
-	}
-    }
+  load_aggregate (e->stat);
 }
 
 void
@@ -4645,16 +4550,10 @@ c_unparser::visit_stat_op (stat_op* e)
 
   {
     stmt_expr block(*this);
-    symbol *sym = get_symbol_within_expression (e->stat);
     aggvar agg = gensym_aggregate ();
     tmpvar res = gensym (pe_long);
-    var v = getvar(sym->referent, e->tok);
+    var *v = load_aggregate(e->stat, agg);
     {
-      if (aggregations_active.count(v.value()))
-	load_aggregate(e->stat, agg, true);
-      else
-        load_aggregate(e->stat, agg, false);
-
       // PR 2142+2610: empty aggregates
       if (e->ctype == sc_count)
         {
@@ -4697,6 +4596,7 @@ c_unparser::visit_stat_op (stat_op* e)
       o->indent(-1);
     }
     o->newline() << res << ";";
+    delete v;
   }
 }
 
