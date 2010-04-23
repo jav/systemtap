@@ -1,4 +1,6 @@
-#! stap -p3
+#! stap -p2
+
+# no local arrays allowed
 
 probe end {
   array[1,2] = 5
