@@ -318,6 +318,7 @@ sed -i -e 's/HAVE_DTRACE_DASH_G=\"no\"/HAVE_DTRACE_DASH_G=\"yes\"/' ../src/confi
 ../src/configure --enable-dtrace --prefix=$mysqldir
 for i in \$(find . -name Makefile) ; do 
     sed -i -e 's|^CXXFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
+    sed -i -e 's|^CFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
 done
 fi
 
