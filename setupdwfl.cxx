@@ -25,13 +25,15 @@ extern "C" {
 #include <stdlib.h>
 }
 
-static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:build";
+// XXX: also consider adding $HOME/.debug/ for perf build-id-cache
+static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:/var/cache/abrt-di/usr/lib/debug:build";
 static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
 static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
 
 // NB: kernel_build_tree doesn't enter into this, as it's for
 // kernel-side modules only.
-static const char *debuginfo_usr_path_arr = "+:.debug:/usr/lib/debug";
+// XXX: also consider adding $HOME/.debug/ for perf build-id-cache
+static const char *debuginfo_usr_path_arr = "+:.debug:/usr/lib/debug:/var/cache/abrt-di/usr/lib/debug";
 static const char *debuginfo_usr_path = (debuginfo_env_arr
 					 ?: debuginfo_usr_path_arr);
 
