@@ -2,4 +2,7 @@
 
 probe begin {
 	print (__svc_fh (0))
+	print (nfs3_cmode(0))
+	print (nfs4_ctype(0))
+	print (ftype(0))
 }

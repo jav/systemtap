@@ -1,0 +1,380 @@
+#! stap -p4
+
+#
+# nfsd.dispatch tests
+#
+
+probe nfsd.dispatch
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %d %d %d\n", client_ip, xid, prog, proc)
+}
+probe nfsd.dispatch.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.proc*.lookup tests
+#
+
+probe nfsd.proc2.lookup, nfsd.proc3.lookup, nfsd.proc4.lookup ?
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %d %d %d\n", client_ip, proto, version, fh)
+	printf("%d %s\n", filelen, filename)
+}
+probe nfsd.proc2.lookup.return, nfsd.proc3.lookup.return,
+      nfsd.proc4.lookup.return ?
+{
+	printf("%s(%s) %d\n", name, retstr, version)
+}
+
+probe nfsd.proc.lookup
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.proc.lookup.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.proc*.read tests
+#
+
+probe nfsd.proc2.read, nfsd.proc3.read, nfsd.proc4.read ?
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %d %d %d\n", client_ip, proto, version, fh)
+	printf("%d %d\n", vec, vlen)
+	printf("%d %s\n", size, units)
+}
+probe nfsd.proc2.read.return, nfsd.proc3.read.return,
+      nfsd.proc4.read.return ?
+{
+	printf("%s(%s) %d\n", name, retstr, version)
+}
+
+probe nfsd.proc.read
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.proc.read.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.proc*.write tests
+#
+
+probe nfsd.proc2.write, nfsd.proc3.write, nfsd.proc4.write ?
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %d %d %d\n", client_ip, proto, version, fh)
+	printf("%d %d %d\n", vec, vlen, stable)
+	printf("%d %s\n", size, units)
+}
+probe nfsd.proc2.write.return, nfsd.proc3.write.return,
+      nfsd.proc4.write.return ?
+{
+	printf("%s(%s) %d\n", name, retstr, version)
+	printf("%d\n", count)
+}
+
+probe nfsd.proc.write
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.proc.write.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.proc*.commit tests
+#
+
+probe nfsd.proc3.commit, nfsd.proc4.commit ?
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %d %d %d\n", client_ip, proto, version, fh)
+	printf("%d %s\n", size, units)
+}
+probe nfsd.proc3.commit.return, nfsd.proc4.commit.return ?
+{
+	printf("%s(%s) %d\n", name, retstr, version)
+}
+
+probe nfsd.proc.commit
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.proc.commit.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.proc*.create tests
+#
+
+probe nfsd.proc2.create, nfsd.proc3.create, nfsd.proc4.create ?
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %d %d %d\n", client_ip, proto, version, fh)
+	printf("%d\n", createmode)
+}
+probe nfsd.proc3.create.return, nfsd.proc3.create.return,
+      nfsd.proc4.create.return ?
+{
+	printf("%s(%s) %d\n", name, retstr, version)
+}
+
+probe nfsd.proc.create
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.proc.create.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.proc*.remove tests
+#
+
+probe nfsd.proc2.remove, nfsd.proc3.remove, nfsd.proc4.remove ?
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %d %d %d\n", client_ip, proto, version, fh)
+}
+probe nfsd.proc3.remove.return, nfsd.proc3.remove.return,
+      nfsd.proc4.remove.return ?
+{
+	printf("%s(%s) %d\n", name, retstr, version)
+}
+
+probe nfsd.proc.remove
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.proc.remove.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.proc*.rename tests
+#
+
+probe nfsd.proc2.rename, nfsd.proc3.rename, nfsd.proc4.rename ?
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %d %d %d %d\n", client_ip, proto, version, fh, tfh)
+	printf("%d %s\n", filelen, filename)
+	printf("%d %s\n", tlen, tname)
+}
+probe nfsd.proc3.rename.return, nfsd.proc3.rename.return,
+      nfsd.proc4.rename.return ?
+{
+	printf("%s(%s) %d\n", name, retstr, version)
+}
+
+probe nfsd.proc.rename
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.proc.rename.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.proc meta tests
+#
+
+probe nfsd.proc.entries
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.proc.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.open tests
+#
+
+probe nfsd.open
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s\n", client_ip, fh)
+}
+probe nfsd.open.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.close tests
+#
+
+probe nfsd.close
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s\n", client_ip)
+}
+probe nfsd.close.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfsd.read tests
+#
+
+probe nfsd.read
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s\n", client_ip, fh)
+	printf("%d %d %d\n", file, vec, vlen)
+	printf("%d %s\n", size, units)
+}
+probe nfsd.read.return
+{
+	printf("%s(%s)\n", name, retstr)
+	printf("%s %s\n", client_ip, fh)
+}
+
+#
+# nfsd.write tests
+#
+
+probe nfsd.write
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s\n", client_ip, fh)
+	printf("%d %d %d\n", file, vec, vlen)
+	printf("%d %s\n", size, units)
+}
+probe nfsd.write.return
+{
+	printf("%s(%s)\n", name, retstr)
+	printf("%s %s\n", client_ip, fh)
+}
+
+#
+# nfsd.commit tests
+#
+
+probe nfsd.commit
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s\n", client_ip, fh)
+	printf("%d\n", flag)
+	printf("%d %s\n", size, units)
+}
+probe nfsd.commit.return
+{
+	printf("%s(%s)\n", name, retstr)
+	printf("%s %s\n", client_ip, fh)
+}
+
+#
+# nfsd.lookup tests
+#
+
+probe nfsd.lookup
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s\n", client_ip, fh)
+	printf("%d %s\n", filelen, filename)
+}
+probe nfsd.lookup.return
+{
+	printf("%s(%s)\n", name, retstr)
+	printf("%s %s\n", client_ip, fh)
+}
+
+#
+# nfsd.create tests
+#
+
+probe nfsd.create
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s\n", client_ip, fh)
+	printf("%d %s %d %d %d\n", filelen, filename, type, iap_valid,
+		iap_mode)
+}
+probe nfsd.create.return
+{
+	printf("%s(%s)\n", name, retstr)
+	printf("%s %s\n", client_ip, fh)
+}
+
+#
+# nfsd.createv3 tests
+#
+
+probe nfsd.createv3
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s\n", client_ip, fh)
+	printf("%d %s %d %d\n", filelen, filename, iap_valid, iap_mode)
+	printf("%d %d %d\n", truncp, verifier, createmode)
+}
+probe nfsd.createv3.return
+{
+	printf("%s(%s)\n", name, retstr)
+	printf("%s %s\n", client_ip, fh)
+}
+
+#
+# nfsd.unlink tests
+#
+
+probe nfsd.unlink
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s\n", client_ip, fh)
+	printf("%d %s %d\n", filelen, filename, type)
+}
+probe nfsd.unlink.return
+{
+	printf("%s(%s)\n", name, retstr)
+	printf("%s %s\n", client_ip, fh)
+}
+
+#
+# nfsd.rename tests
+#
+
+probe nfsd.rename
+{
+	printf("%s(%s)\n", name, argstr)
+	printf("%s %s %s\n", client_ip, fh, tfh)
+	printf("%d %s\n", filelen, filename)
+	printf("%d %s\n", tlen, tname)
+}
+probe nfsd.rename.return
+{
+	printf("%s(%s)\n", name, retstr)
+	printf("%s %s\n", client_ip, fh)
+}
+
+#
+# nfsd meta tests
+#
+
+probe nfsd.entries
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfsd.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
