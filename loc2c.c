@@ -254,10 +254,10 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
   size_t i;
   inline const char *finish (struct location *piece)
     {
-      if (stack_depth > 1)
-	DIE ("multiple values left on stack");
-      if (stack_depth == 1)
+      if (stack_depth >= 1)
 	{
+	  /* The top of stack has our value.
+	     Other stack slots left don't matter.  */
 	  obstack_1grow (pool, '\0');
 	  char *program = obstack_finish (pool);
 	  if (implicit_value.data == NULL)
