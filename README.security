@@ -90,7 +90,7 @@ stapio program runs as the invoking user and is responsible for all
 communication with the kernel module.  After the script runs to
 completion, stapio fork/execs staprun -d to unload the kernel module.
 
-staprun is a setuid program.  It holds on to the root priviliges only
+staprun is a setuid program.  It holds on to the root privileges only
 for the least amount of time (as required to verify/load compiled
 kernel module files).  It invokes only stapio, and only as the
 original (unprivileged) user.
