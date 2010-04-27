@@ -430,6 +430,14 @@ keywords: process scheduler time tracepoint interrupt
   the task was running.
 
 
+process/dumpstack.stp - Print the kernel stack of a hung task
+keywords: process backtrace
+
+  The script prints the kernel stack of any non-running pid in the
+  system.  This is useful for diagnosing the reason that a task is
+  hung.
+
+
 process/errsnoop.stp - tabulate system call errors
 keywords: process syscall
 

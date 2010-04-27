@@ -42,6 +42,14 @@ keywords: io backtrace
   list from most common to least common backtrace.
 
 
+process/dumpstack.stp - Print the kernel stack of a hung task
+keywords: process backtrace
+
+  The script prints the kernel stack of any non-running pid in the
+  system.  This is useful for diagnosing the reason that a task is
+  hung.
+
+
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
 
@@ -695,6 +703,14 @@ keywords: process scheduler time tracepoint interrupt
   length of time on and off processor, lists of processes running while
   the task is off the processor, and the interrupts that occurred while
   the task was running.
+
+
+process/dumpstack.stp - Print the kernel stack of a hung task
+keywords: process backtrace
+
+  The script prints the kernel stack of any non-running pid in the
+  system.  This is useful for diagnosing the reason that a task is
+  hung.
 
 
 process/errsnoop.stp - tabulate system call errors
