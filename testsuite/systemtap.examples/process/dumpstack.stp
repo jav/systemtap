@@ -1,7 +1,8 @@
 #!/bin/env stap
 
-probe kernel.function("sys_read") { //for loading kernel symbols
-}
+// Add a dummy probe for loading kernel symbols.
+probe kernel.function("printk") { next }
+// Use "-d MODULE" to add symbols from other kernel modules.
 
 probe begin {
         process_pid = target()
@@ -9,6 +10,8 @@ probe begin {
         if (process_task) {
            if (task_state(process_task) != 0) // Not TASK_RUNNING
               println(task_backtrace(process_task))
+           else
+              println("Process is actively running")
         } else
               println("No such process")
         exit()

@@ -1,0 +1,13 @@
+title: Print the kernel stack of a hung task
+name: dumpstack.stp
+version: 1.0
+author: Wenji Huang
+keywords: process backtrace
+subsystem: kernel
+status: production
+exit: fixed
+output: text
+scope: pid
+description: The script prints the kernel stack of any non-running pid in the system.  This is useful for diagnosing the reason that a task is hung.
+test_check: stap -p4 dumpstack.stp
+test_installcheck: stap dumpstack.stp -x $$
