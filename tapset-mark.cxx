@@ -57,7 +57,6 @@ struct mark_derived_probe: public derived_probe
 
   void join_group (systemtap_session& s);
   void print_dupe_stamp (ostream& o);
-  void emit_probe_context_vars (translator_output* o);
   void initialize_probe_context_vars (translator_output* o);
   void getargs (std::list<std::string> &arg_set) const;
 
@@ -108,9 +107,10 @@ mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
-  e->probe_context_var = "__mark_arg" + lex_cast(argnum);
-  e->type = mark_args[argnum-1]->stp_type;
-  provide (e);
+  symbol* sym = new symbol;
+  sym->tok = e->tok;
+  sym->name = "__mark_arg" + lex_cast(argnum);
+  provide (sym);
 }
 
 
@@ -226,6 +226,17 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
   mark_var_expanding_visitor v (sess, name, mark_args);
   v.replace (this->body);
   target_symbol_seen = v.target_symbol_seen;
+  if (target_symbol_seen)
+    for (unsigned i = 0; i < mark_args.size(); ++i)
+      {
+	vardecl* v = new vardecl;
+	v->name = "__mark_arg" + lex_cast(i+1);
+	v->tok = this->tok;
+	v->set_arity(0);
+	v->type = mark_args[i]->stp_type;
+	v->skip_init = true;
+	this->locals.push_back (v);
+      }
 
   if (sess.verbose > 2)
     clog << "marker-based " << name << " mark=" << probe_name
@@ -403,32 +414,6 @@ mark_derived_probe::print_dupe_stamp (ostream& o)
   if (target_symbol_seen)
     for (unsigned i = 0; i < mark_args.size(); i++)
       o << mark_args[i]->c_type << " __mark_arg" << (i+1) << endl;
-}
-
-
-void
-mark_derived_probe::emit_probe_context_vars (translator_output* o)
-{
-  // If we haven't seen a target symbol for this probe, quit.
-  if (! target_symbol_seen)
-    return;
-
-  for (unsigned i = 0; i < mark_args.size(); i++)
-    {
-      string localname = "__mark_arg" + lex_cast(i+1);
-      switch (mark_args[i]->stp_type)
-        {
-	case pe_long:
-	  o->newline() << "int64_t " << localname << ";";
-	  break;
-	case pe_string:
-	  o->newline() << "string_t " << localname << ";";
-	  break;
-	default:
-	  throw semantic_error ("cannot expand unknown type");
-	  break;
-	}
-    }
 }
 
 

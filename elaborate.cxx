@@ -2167,6 +2167,9 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
       {
         vardecl* l = s.probes[i]->locals[j];
 
+        // skip over "special" locals
+        if (l->skip_init) { j++; continue; }
+
         if (vut.read.find (l) == vut.read.end() &&
             vut.written.find (l) == vut.written.end())
           {
@@ -3633,7 +3636,7 @@ const_folder::visit_defined_op (defined_op* e)
 void
 const_folder::visit_target_symbol (target_symbol* e)
 {
-  if (e->probe_context_var.empty() && session.skip_badvars)
+  if (session.skip_badvars)
     {
       // Upon user request for ignoring context, the symbol is replaced
       // with a literal 0 and a warning message displayed
@@ -4258,9 +4261,6 @@ typeresolution_info::visit_symbol (symbol* e)
 void
 typeresolution_info::visit_target_symbol (target_symbol* e)
 {
-  if (!e->probe_context_var.empty())
-    return;
-
   // This occurs only if a target symbol was not resolved over in
   // tapset.cxx land, that error was properly suppressed, and the
   // later unused-expression-elimination pass didn't get rid of it

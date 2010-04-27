@@ -2050,9 +2050,7 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
     target_symbol* foo2 = dynamic_cast<target_symbol*> (foo1);
     if (foo2 && foo2->saved_conversion_error) // failing
       resolved = false;
-    else if (foo2 && foo2->probe_context_var != "") // successful
-      resolved = true;
-    else if (foo2) // unresolved but not marked either way
+    else if (foo2) // unresolved but not marked failing
       {
         // There are some visitors that won't touch certain target_symbols,
         // e.g. dwarf_var_expanding_visitor won't resolve @cast.  We should
@@ -6165,11 +6163,12 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
     {
       if (e->addressof)
         throw semantic_error("cannot take address of tracepoint variable", e->tok);
-      
+
       // Just grab the value from the probe locals
-      e->probe_context_var = "__tracepoint_arg_" + arg->name;
-      e->type = pe_long;
-      provide (e);
+      symbol* sym = new symbol;
+      sym->tok = e->tok;
+      sym->name = "__tracepoint_arg_" + arg->name;
+      provide (sym);
     }
   else
     {
@@ -6388,6 +6387,17 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
   // Now expand the local variables in the probe body
   tracepoint_var_expanding_visitor v (dw, name, args);
   v.replace (this->body);
+  for (unsigned i = 0; i < args.size(); i++)
+    if (args[i].used)
+      {
+	vardecl* v = new vardecl;
+	v->name = "__tracepoint_arg_" + args[i].name;
+	v->tok = this->tok;
+	v->set_arity(0);
+	v->type = pe_long;
+	v->skip_init = true;
+	this->locals.push_back (v);
+      }
 
   if (sess.verbose > 2)
     clog << "tracepoint-based " << name << " tracepoint='" << tracepoint_name
@@ -6483,15 +6493,6 @@ tracepoint_derived_probe::print_dupe_stamp(ostream& o)
   for (unsigned i = 0; i < args.size(); i++)
     if (args[i].used)
       o << "__tracepoint_arg_" << args[i].name << endl;
-}
-
-
-void
-tracepoint_derived_probe::emit_probe_context_vars (translator_output* o)
-{
-  for (unsigned i = 0; i < args.size(); i++)
-    if (args[i].used)
-      o->newline() << "int64_t __tracepoint_arg_" << args[i].name << ";";
 }
 
 

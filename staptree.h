@@ -253,7 +253,6 @@ struct target_symbol: public symbol
   bool addressof;
   std::string base_name;
   std::vector<component> components;
-  std::string probe_context_var; // NB: this being set implies that target_symbol is *resolved*
   semantic_error* saved_conversion_error; // hand-made linked list
   target_symbol(): addressof(false), saved_conversion_error (0) {}
   void chain (const semantic_error& er);
@@ -470,6 +469,7 @@ struct vardecl: public symboldecl
   int maxsize; // upperbound on size for arrays
   std::vector<exp_type> index_types; // for arrays only
   literal *init; // for global scalars only
+  bool skip_init; // for probe locals only, don't init on entry
 };
 
 

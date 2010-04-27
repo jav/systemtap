@@ -990,7 +990,6 @@ c_unparser::emit_common_header ()
           // NB: This part is finicky.  The logic here must
           // match up with
           c_tmpcounter ct (this);
-          dp->emit_probe_context_vars (o);
           dp->body->visit (& ct);
 
           o->newline(-1) << "} " << dp->name << ";";
@@ -1713,6 +1712,8 @@ c_unparser::emit_probe (derived_probe* v)
       // initialize locals
       for (unsigned j=0; j<v->locals.size(); j++)
         {
+	  if (v->locals[j]->skip_init)
+            continue;
 	  if (v->locals[j]->index_types.size() > 0) // array?
             throw semantic_error ("array locals not supported, missing global declaration?",
                                   v->locals[j]->tok);
@@ -3693,10 +3694,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
 void
 c_unparser::visit_target_symbol (target_symbol* e)
 {
-  if (!e->probe_context_var.empty())
-    o->line() << "l->" << e->probe_context_var;
-  else
-    throw semantic_error("cannot translate general target expression", e->tok);
+  throw semantic_error("cannot translate general target-symbol expression", e->tok);
 }
 
 
