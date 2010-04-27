@@ -1,0 +1,229 @@
+#! stap -p4
+
+#
+# nfs.fop.* probes
+#
+
+probe nfs.fop.llseek {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s %d\n", dev, ino, s_id, devname, maxbyte)
+}
+probe nfs.fop.llseek.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.fop.read, nfs.fop.write {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %s\n", s_id, devname)
+}
+probe nfs.fop.read.return, nfs.fop.write.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.fop.aio_read {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%s %s %d %d %d\n", parent_name, file_name, cache_valid,
+		cache_time, attr_time)
+	printf("%d %s\n", size, units)
+}
+probe nfs.fop.aio_read.return {
+	printf("%s(%s)\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe nfs.fop.aio_write {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%s %s\n", parent_name, file_name)
+	printf("%d %s\n", size, units)
+}
+probe nfs.fop.aio_write.return {
+	printf("%s(%s)\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe nfs.fop.mmap {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%s %s %d %d %d\n", parent_name, file_name, cache_valid,
+		cache_time, attr_time)
+}
+probe nfs.fop.mmap.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.fop.open {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%d\n", i_size)
+}
+probe nfs.fop.open.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.fop.flush {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%d %d\n", mode, ndirty)
+}
+probe nfs.fop.flush.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.fop.release {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%d\n", mode)
+}
+probe nfs.fop.release.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.fop.fsync {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%d\n", ndirty)
+}
+probe nfs.fop.fsync.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.fop.lock {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%d %d %d %d\n", fl_type, fl_flag, fl_start, fl_end)
+}
+probe nfs.fop.lock.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.fop.sendfile ? {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%d %d %d\n", cache_valid, cache_time, attr_time)
+}
+probe nfs.fop.sendfile.return ? {
+	printf("%s(%s)\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe nfs.fop.check_flags {
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfs.fop.check_flags.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfs.fop meta tests
+#
+
+probe nfs.fop.entries
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfs.fop.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfs.aop.* probes
+#
+
+probe nfs.aop.readpage {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d\n", __page, dev, ino)
+	printf("%d %d\n", i_flag, i_size)
+	printf("%d %d %d\n", sb_flag, file, __inode)
+	printf("%d %s\n", size, units)
+}
+probe nfs.aop.readpage.return {
+	printf("%s(%s)\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe nfs.aop.readpages {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d\n", dev, ino)
+	printf("%d %d %d\n", file, rpages, rsize)
+	printf("%d %s\n", size, units)
+}
+probe nfs.aop.readpages.return {
+	printf("%s(%s)\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe nfs.aop.set_page_dirty {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d\n", __page)
+}
+probe nfs.aop.set_page_dirty.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.aop.writepage {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d\n", __page, dev, ino)
+	printf("%d %d\n", for_reclaim, for_kupdate)
+	printf("%d %d %d\n", i_flag, i_state, i_size)
+	printf("%d %d %d\n", sb_flag, __inode, wsize)
+	printf("%d %s\n", size, units)
+}
+probe nfs.aop.writepage.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.aop.writepages {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d\n", dev, ino)
+	printf("%d %d %d %d\n", for_reclaim, for_kupdate, wpages, wsize)
+	printf("%d %s\n", size, units)
+}
+probe nfs.aop.writepages.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.aop.write_begin {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%d %d %s\n", pos, count, units)
+	printf("%d %d %d %d %d\n", __page, offset, to, page_index, size)
+}
+probe nfs.aop.write_begin.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.aop.write_end {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d %s\n", dev, ino, s_id, devname)
+	printf("%d %d %s\n", pos, count, units)
+	printf("%d %d %d %d %d\n", __page, offset, to, page_index, size)
+	printf("%d %d %d\n", i_flag, i_size, sb_flag)
+}
+probe nfs.aop.write_end.return {
+	printf("%s(%s)\n", name, retstr)
+}
+
+probe nfs.aop.release_page ? {
+	printf("%s(%s)\n", name, argstr)
+	printf("%d %d %d\n", __page, dev, ino)
+	printf("%d %s\n", size, units)
+}
+probe nfs.aop.release_page.return ? {
+	printf("%s(%s)\n", name, retstr)
+}
+
+#
+# nfs.aop meta tests
+#
+
+probe nfs.aop.entries
+{
+	printf("%s(%s)\n", name, argstr)
+}
+probe nfs.aop.return
+{
+	printf("%s(%s)\n", name, retstr)
+}
