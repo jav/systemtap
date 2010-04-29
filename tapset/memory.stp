@@ -1,6 +1,7 @@
 // memory/vm related tapset
 // Copyright (C) 2005, 2006 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
+// Copyright (C) 2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -205,6 +206,13 @@ function __gfp_flag_str:string(gfp_flag:long) %{
 	THIS->__retvalue[0] = '\0';
 
 /* Older kernels < 2.6.32 didn't have some of these GFP defines yet. */
+#ifndef __GFP_DMA32
+#define __GFP_DMA32	((__force gfp_t)0x04u)
+#endif
+#ifndef GFP_DMA32
+#define GFP_DMA32	__GFP_DMA32
+#endif
+
 #ifndef __GFP_MOVABLE
 #define __GFP_MOVABLE  ((__force gfp_t)0x08u)  /* Page is movable */
 #endif
@@ -227,6 +235,18 @@ function __gfp_flag_str:string(gfp_flag:long) %{
 
 #ifndef __GFP_RECLAIMABLE
 #define __GFP_RECLAIMABLE ((__force gfp_t)0x80000u)
+#endif
+
+#ifndef __GFP_ZERO
+#define __GFP_ZERO	((__force gfp_t)0x8000u)
+#endif
+
+#ifndef __GFP_NOMEMALLOC
+#define __GFP_NOMEMALLOC ((__force gfp_t)0x10000u)
+#endif
+
+#ifndef __GFP_HARDWALL
+#define __GFP_HARDWALL   ((__force gfp_t)0x20000u)
 #endif
 
 #ifndef GFP_TEMPORARY
