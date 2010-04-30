@@ -42,7 +42,7 @@ pkglibexec_SCRIPTS += stap-serverd stap-find-servers \
 endif
 endif
 
-stap_SOURCES = main.cxx \
+stap_SOURCES = main.cxx session.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
 	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \

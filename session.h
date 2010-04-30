@@ -78,19 +78,33 @@ struct systemtap_session
 {
   systemtap_session ();
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (elaborate.cxx)
-  // and/or main.cxx(main).
+  // to be cleared in the systemtap_session ctor (session.cxx)
+  // and/or in the initialize method (session.cxx).
+  void initialize ();
+  void setup_kernel_release (const char* kstr);
+
+  // command line parsing
+  int  parse_cmdline (int argc, char * const argv []);
+  void version ();
+  void usage (int exitcode);
+  void check_options (int argc, char * const argv []);
+  static const char* morehelp;
 
   // command line args
+  std::string script_file; // FILE
+  std::string cmdline_script; // -e PROGRAM
+  bool have_script;
   std::vector<std::string> include_path;
   std::vector<std::string> macros;
   std::vector<std::string> args;
   std::vector<std::string> kbuildflags;
+  std::string release;
   std::string kernel_release;
   std::string kernel_base_release;
   std::string kernel_build_tree;
   std::map<std::string,std::string> kernel_config;
   std::set<std::string> kernel_exports;
+  std::string machine;
   std::string architecture;
   std::string runtime_path;
   std::string data_path;
@@ -106,6 +120,7 @@ struct systemtap_session
   unsigned perpass_verbose[5];
   unsigned verbose;
   bool timing;
+  bool save_module;
   bool keep_tmpdir;
   bool guru_mode;
   bool listing_mode;
@@ -120,6 +135,8 @@ struct systemtap_session
   bool tapset_compile_coverage;
   bool need_uprobes;
   bool load_only; // flight recorder mode
+  bool client_options;
+  std::string client_options_disallowed;
   bool unprivileged;
   bool omit_werror;
 

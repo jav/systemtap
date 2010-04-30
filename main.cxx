@@ -19,7 +19,6 @@
 #include "cache.h"
 #include "util.h"
 #include "coveragedb.h"
-#include "git_version.h"
 #include "rpm_finder.h"
 #include "task_finder.h"
 
@@ -41,135 +40,10 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <elfutils/libdwfl.h>
-#include <getopt.h>
 #include <unistd.h>
 }
 
 using namespace std;
-
-#define PATH_TBD string("__TBD__")
-extern const char* morehelp;
-
-void
-version ()
-{
-  clog
-    << "SystemTap translator/driver "
-    << "(version " << VERSION << "/" << dwfl_version (NULL)
-    << " " << GIT_MESSAGE << ")" << endl
-    << "Copyright (C) 2005-2010 Red Hat, Inc. and others" << endl
-    << "This is free software; see the source for copying conditions." << endl;
-}
-
-
-
-
-void
-usage (systemtap_session& s, int exitcode)
-{
-  version ();
-  clog
-    << endl
-    << "Usage: stap [options] FILE         Run script in file."
-    << endl
-    << "   or: stap [options] -            Run script on stdin."
-    << endl
-    << "   or: stap [options] -e SCRIPT    Run given script."
-    << endl
-    << "   or: stap [options] -l PROBE     List matching probes."
-    << endl
-    << "   or: stap [options] -L PROBE     List matching probes and local variables."
-    << endl
-    << endl
-    << "Options:" << endl
-    << "   --         end of translator options, script options follow" << endl
-    << "   -h --help  show help" << endl
-    << "   -V         show version" << endl
-    << "   -p NUM     stop after pass NUM 1-5, instead of " << s.last_pass << endl
-    << "              (parse, elaborate, translate, compile, run)" << endl
-    << "   -v         add verbosity to all passes" << endl
-    << "   --vp {N}+  add per-pass verbosity [";
-  for (unsigned i=0; i<5; i++)
-    clog << (s.perpass_verbose[i] <= 9 ? s.perpass_verbose[i] : 9);
-  clog 
-    << "]" << endl
-    << "   -k         keep temporary directory" << endl
-    << "   -u         unoptimized translation" << (s.unoptimized ? " [set]" : "") << endl
-    << "   -w         suppress warnings" << (s.suppress_warnings ? " [set]" : "") << endl
-    << "   -W         turn warnings into errors" << (s.panic_warnings ? " [set]" : "") << endl
-    << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
-    << "   -P         prologue-searching for function probes"
-    << (s.prologue_searching ? " [set]" : "") << endl
-    << "   -b         bulk (percpu file) mode" << (s.bulk_mode ? " [set]" : "") << endl
-    << "   -s NUM     buffer size in megabytes, instead of " << s.buffer_size << endl
-    << "   -I DIR     look in DIR for additional .stp script files";
-  if (s.include_path.size() == 0)
-    clog << endl;
-  else
-    clog << ", in addition to" << endl;
-  for (unsigned i=0; i<s.include_path.size(); i++)
-    clog << "              " << s.include_path[i] << endl;
-  clog
-    << "   -D NM=VAL  emit macro definition into generated C code" << endl
-    << "   -B NM=VAL  pass option to kbuild make" << endl
-    << "   -R DIR     look in DIR for runtime, instead of" << endl
-    << "              " << s.runtime_path << endl
-    << "   -r DIR     cross-compile to kernel with given build tree; or else" << endl
-    << "   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of" << endl
-    << "              " << s.kernel_build_tree << endl
-    << "   -a ARCH    cross-compile to given architecture, instead of " << s.architecture << endl
-    << "   -m MODULE  set probe module name, instead of " << endl
-    << "              " << s.module_name << endl
-    << "   -o FILE    send script output to file, instead of stdout. This supports" << endl
-    << "              strftime(3) formats for FILE" << endl
-    << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
-    << "   -x PID     sets target() to PID" << endl
-    << "   -F         run as on-file flight recorder with -o." << endl
-    << "              run as on-memory flight recorder without -o." << endl
-    << "   -S size[,n] set maximum of the size and the number of files." << endl
-    << "   -d OBJECT  add unwind/symbol data for OBJECT file";
-  if (s.unwindsym_modules.size() == 0)
-    clog << endl;
-  else
-    clog << ", in addition to" << endl;
-  {
-    vector<string> syms (s.unwindsym_modules.begin(), s.unwindsym_modules.end());
-    for (unsigned i=0; i<syms.size(); i++)
-      clog << "              " << syms[i] << endl;
-  }
-  clog
-    << "   --ldd      add unwind/symbol data for all referenced OBJECT files." << endl
-    << "   -t         collect probe timing information" << endl
-#ifdef HAVE_LIBSQLITE3
-    << "   -q         generate information on tapset coverage" << endl
-#endif /* HAVE_LIBSQLITE3 */
-    << "   --unprivileged" << endl
-    << "              restrict usage to features available to unprivileged users" << endl
-#if 0 /* PR6864: disable temporarily; should merge with -d somehow */
-    << "   --kelf     make do with symbol table from vmlinux" << endl
-    << "   --kmap[=FILE]" << endl
-    << "              make do with symbol table from nm listing" << endl
-#endif
-  // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
-  // only, and don't belong in the eyesight of a plain user.
-    << "   --compatible=VERSION" << endl
-    << "              suppress incompatible language/tapset changes beyond VERSION," << endl
-    << "              instead of " << s.compatible << endl
-    << "   --skip-badvars" << endl
-    << "              substitute zero for bad context $variables" << endl
-    << endl
-    ;
-
-  time_t now;
-  time (& now);
-  struct tm* t = localtime (& now);
-  if (t && t->tm_mon*3 + t->tm_mday*173 == 0xb6)
-    clog << morehelp << endl;
-
-  exit (exitcode);
-}
-
 
 static void uniq_list(list<string>& l)
 {
@@ -424,36 +298,6 @@ setup_signals (sighandler_t handler)
   sigaction (SIGTERM, &sa, NULL);
 }
 
-void setup_kernel_release (systemtap_session &s, const char* kstr) 
-{
-    if (kstr[0] == '/') // fully specified path
-      {
-        s.kernel_build_tree = kstr;
-        string version_file_name = s.kernel_build_tree + "/include/config/kernel.release";
-        // The file include/config/kernel.release within the
-        // build tree is used to pull out the version information
-        ifstream version_file (version_file_name.c_str());
-        if (version_file.fail ())
-          {
-            cerr << "Missing " << version_file_name << endl;
-            exit(1);
-          }
-        else
-          {
-            char c;
-            s.kernel_release = "";
-            while (version_file.get(c) && c != '\n')
-              s.kernel_release.push_back(c);
-          }
-      }
-    else
-      {
-        s.kernel_release = string (kstr);
-        s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
-      }
-}
-
-
 int parse_kernel_config (systemtap_session &s)
 {
   // PR10702: pull config options
@@ -542,616 +386,9 @@ getmemusage ()
   return oss.str();
 }
 
-int
-main (int argc, char * const argv [])
+static int
+passes_0_4 (systemtap_session &s)
 {
-  string cmdline_script; // -e PROGRAM
-  string script_file; // FILE
-  bool have_script = false;
-  bool save_module = false;
-
-  // Initialize defaults
-  systemtap_session s;
-  struct utsname buf;
-  (void) uname (& buf);
-  s.kernel_release = string (buf.release);
-  s.kernel_build_tree = "/lib/modules/" + s.kernel_release + "/build";
-
-  // PR4186: Copy logic from coreutils uname (uname -i) to squash
-  // i?86->i386.  Actually, copy logic from linux top-level Makefile
-  // to squash uname -m -> $(SUBARCH).
-
-  string machine = buf.machine;
-  if (machine == "i486") machine = "i386";
-  else if (machine == "i586") machine = "i386";
-  else if (machine == "i686") machine = "i386";
-  else if (machine == "sun4u") machine = "sparc64";
-  else if (machine.substr(0,3) == "arm") machine = "arm";
-  else if (machine == "sa110") machine = "arm";
-  else if (machine == "s390x") machine = "s390";
-  else if (machine.substr(0,3) == "ppc") machine = "powerpc";
-  else if (machine.substr(0,4) == "mips") machine = "mips";
-  else if (machine.substr(0,3) == "sh2") machine = "sh";
-  else if (machine.substr(0,3) == "sh3") machine = "sh";
-  else if (machine.substr(0,3) == "sh4") machine = "sh";
-
-  s.architecture = machine;
-  for (unsigned i=0; i<5; i++) s.perpass_verbose[i]=0;
-  s.timing = false;
-  s.guru_mode = false;
-  s.bulk_mode = false;
-  s.unoptimized = false;
-  s.suppress_warnings = false;
-  s.panic_warnings = false;
-  s.listing_mode = false;
-  s.listing_mode_vars = false;
-
-#ifdef ENABLE_PROLOGUES
-  s.prologue_searching = true;
-#else
-  s.prologue_searching = false;
-#endif
-
-  s.buffer_size = 0;
-  s.last_pass = 5;
-  s.module_name = "stap_" + lex_cast(getpid());
-  s.stapconf_name = "stapconf_" + lex_cast(getpid()) + ".h";
-  s.output_file = ""; // -o FILE
-  s.keep_tmpdir = false;
-  s.cmd = "";
-  s.target_pid = 0;
-  s.symtab = false;
-  s.use_cache = true;
-  s.use_script_cache = true;
-  s.poison_cache = false;
-  s.tapset_compile_coverage = false;
-  s.need_uprobes = false;
-  s.consult_symtab = false;
-  s.ignore_vmlinux = false;
-  s.ignore_dwarf = false;
-  s.load_only = false;
-  s.skip_badvars = false;
-  s.unprivileged = false;
-  s.omit_werror = false;
-  s.compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
-  s.unwindsym_ldd = false;
-  bool client_options = false;
-  string client_options_disallowed;
-
-  // Location of our signing certificate.
-  // If we're root, use the database in SYSCONFDIR, otherwise
-  // use the one in our $HOME directory.  */
-  if (getuid() == 0)
-    s.cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
-  else
-    s.cert_db_path = getenv("HOME") + string ("/.systemtap/ssl/server");
-
-  const char* s_p = getenv ("SYSTEMTAP_TAPSET");
-  if (s_p != NULL)
-  {
-    s.include_path.push_back (s_p);
-  }
-  else
-  {
-    s.include_path.push_back (string(PKGDATADIR) + "/tapset");
-  }
-
-  const char* s_r = getenv ("SYSTEMTAP_RUNTIME");
-  if (s_r != NULL)
-    s.runtime_path = s_r;
-  else
-    s.runtime_path = string(PKGDATADIR) + "/runtime";
-
-  const char* s_d = getenv ("SYSTEMTAP_DIR");
-  if (s_d != NULL)
-    s.data_path = s_d;
-  else
-    s.data_path = get_home_directory() + string("/.systemtap");
-  if (create_dir(s.data_path.c_str()) == 1)
-    {
-      const char* e = strerror (errno);
-      if (! s.suppress_warnings)
-        cerr << "Warning: failed to create systemtap data directory (\""
-             << s.data_path << "\"): " << e
-             << ", disabling cache support." << endl;
-      s.use_cache = s.use_script_cache = false;
-    }
-
-  if (s.use_cache)
-    {
-      s.cache_path = s.data_path + "/cache";
-      if (create_dir(s.cache_path.c_str()) == 1)
-        {
-	  const char* e = strerror (errno);
-          if (! s.suppress_warnings)
-            cerr << "Warning: failed to create cache directory (\""
-                 << s.cache_path << "\"): " << e
-                 << ", disabling cache support." << endl;
-	  s.use_cache = s.use_script_cache = false;
-	}
-    }
-
-  // Location of our signing certificate.
-  // If we're root, use the database in SYSCONFDIR, otherwise
-  // use the one in s.data_path.  */
-  if (geteuid() == 0)
-    s.cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
-  else
-    s.cert_db_path = s.data_path + "/ssl/server";
-
-  const char* s_tc = getenv ("SYSTEMTAP_COVERAGE");
-  if (s_tc != NULL)
-    s.tapset_compile_coverage = true;
-
-  const char* s_kr = getenv ("SYSTEMTAP_RELEASE");
-  if (s_kr != NULL) {
-    setup_kernel_release(s, s_kr);
-  }
-
-  while (true)
-    {
-      int long_opt;
-      char * num_endptr;
-
-      // NB: when adding new options, consider very carefully whether they
-      // should be restricted from stap-clients (after --client-options)!
-#define LONG_OPT_KELF 1
-#define LONG_OPT_KMAP 2
-#define LONG_OPT_IGNORE_VMLINUX 3
-#define LONG_OPT_IGNORE_DWARF 4
-#define LONG_OPT_VERBOSE_PASS 5
-#define LONG_OPT_SKIP_BADVARS 6
-#define LONG_OPT_UNPRIVILEGED 7
-#define LONG_OPT_OMIT_WERROR 8
-#define LONG_OPT_CLIENT_OPTIONS 9
-#define LONG_OPT_HELP 10
-#define LONG_OPT_DISABLE_CACHE 11
-#define LONG_OPT_POISON_CACHE 12
-#define LONG_OPT_CLEAN_CACHE 13
-#define LONG_OPT_COMPATIBLE 14
-#define LONG_OPT_LDD 15
-      // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
-      static struct option long_options[] = {
-        { "kelf", 0, &long_opt, LONG_OPT_KELF },
-        { "kmap", 2, &long_opt, LONG_OPT_KMAP },
-        { "ignore-vmlinux", 0, &long_opt, LONG_OPT_IGNORE_VMLINUX },
-        { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
-	{ "skip-badvars", 0, &long_opt, LONG_OPT_SKIP_BADVARS },
-        { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
-        { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
-#define OWE5 "tter"
-#define OWE1 "uild-"
-#define OWE6 "fu-kb"
-#define OWE2 "i-kno"
-#define OWE4 "st"
-#define OWE3 "w-be"
-        { OWE4 OWE6 OWE1 OWE2 OWE3 OWE5, 0, &long_opt, LONG_OPT_OMIT_WERROR },
-        { "client-options", 0, &long_opt, LONG_OPT_CLIENT_OPTIONS },
-        { "help", 0, &long_opt, LONG_OPT_HELP },
-        { "disable-cache", 0, &long_opt, LONG_OPT_DISABLE_CACHE },
-        { "poison-cache", 0, &long_opt, LONG_OPT_POISON_CACHE },
-        { "clean-cache", 0, &long_opt, LONG_OPT_CLEAN_CACHE },
-        { "compatible", 1, &long_opt, LONG_OPT_COMPATIBLE },
-        { "ldd", 0, &long_opt, LONG_OPT_LDD },
-        { NULL, 0, NULL, 0 }
-      };
-      int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
-                             long_options, NULL);
-      // NB: when adding new options, consider very carefully whether they
-      // should be restricted from stap-clients (after --client-options)!
-
-      if (grc < 0)
-        break;
-      switch (grc)
-        {
-        case 'V':
-          version ();
-          exit (0);
-
-        case 'v':
-          for (unsigned i=0; i<5; i++)
-            s.perpass_verbose[i] ++;
-	  break;
-
-        case 't':
-	  s.timing = true;
-	  break;
-
-        case 'w':
-	  s.suppress_warnings = true;
-	  break;
-
-        case 'W':
-	  s.panic_warnings = true;
-	  break;
-
-        case 'p':
-          s.last_pass = (int)strtoul(optarg, &num_endptr, 10);
-          if (*num_endptr != '\0' || s.last_pass < 1 || s.last_pass > 5)
-            {
-              cerr << "Invalid pass number (should be 1-5)." << endl;
-              exit (1);
-            }
-          if (s.listing_mode && s.last_pass != 2)
-            {
-              cerr << "Listing (-l) mode implies pass 2." << endl;
-              exit (1);
-            }
-          break;
-
-        case 'I':
-	  if (client_options)
-	    client_options_disallowed += client_options_disallowed.empty () ? "-I" : ", -I";
-          s.include_path.push_back (string (optarg));
-          break;
-
-        case 'd':
-          {
-            // At runtime user module names are resolved through their
-            // canonical (absolute) path.
-            const char *mpath = canonicalize_file_name (optarg);
-            if (mpath == NULL) // Must be a kernel module name
-              mpath = optarg;
-            s.unwindsym_modules.insert (string (mpath));
-            // PR10228: trigger task-finder logic early if -d /USER-MODULE/
-            // given.
-            if (mpath[0] == '/')
-              enable_task_finder (s);
-            break;
-          }
-
-        case 'e':
-	  if (have_script)
-	    {
-	      cerr << "Only one script can be given on the command line."
-		   << endl;
-              exit (1);
-	    }
-          cmdline_script = string (optarg);
-          have_script = true;
-          break;
-
-        case 'o':
-          // NB: client_options not a problem, since pass 1-4 does not use output_file.
-          s.output_file = string (optarg);
-          break;
-
-        case 'R':
-          if (client_options) { cerr << "ERROR: -R invalid with --client-options" << endl; exit(1); }
-          s.runtime_path = string (optarg);
-          break;
-
-        case 'm':
-	  if (client_options)
-	    client_options_disallowed += client_options_disallowed.empty () ? "-m" : ", -m";
-          s.module_name = string (optarg);
-	  save_module = true;
-          // XXX: convert to assert_regexp_match()
-	  {
-	    // If the module name ends with '.ko', chop it off since
-	    // modutils doesn't like modules named 'foo.ko.ko'.
-	    if (endswith(s.module_name, ".ko"))
-	      {
-		s.module_name.erase(s.module_name.size() - 3);
-		cerr << "Truncating module name to '" << s.module_name
-		     << "'" << endl;
-	      }
-
-	    // Make sure an empty module name wasn't specified (-m "")
-	    if (s.module_name.empty())
-	    {
-		cerr << "Module name cannot be empty." << endl;
-		exit(1);
-	    }
-
-	    // Make sure the module name is only composed of the
-	    // following chars: [_a-zA-Z0-9]
-	    const string identchars("_" "abcdefghijklmnopqrstuvwxyz"
-				    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789");
-	    if (s.module_name.find_first_not_of(identchars) != string::npos)
-	      {
-		cerr << "Invalid module name (must only be composed of"
-		    " characters [_a-zA-Z0-9])." << endl;
-		exit(1);
-	      }
-
-	    // Make sure module name isn't too long.
-	    if (s.module_name.size() >= (MODULE_NAME_LEN - 1))
-	      {
-		s.module_name.resize(MODULE_NAME_LEN - 1);
-		cerr << "Truncating module name to '" << s.module_name
-		     << "'" << endl;
-	      }
-	  }
-
-	  s.use_script_cache = false;
-          break;
-
-        case 'r':
-          if (client_options) // NB: no paths!
-            assert_regexp_match("-r parameter from client", optarg, "^[a-z0-9_.-]+$");
-          setup_kernel_release(s, optarg);
-          break;
-
-        case 'a':
-          assert_regexp_match("-a parameter", optarg, "^[a-z0-9_-]+$");
-          s.architecture = string(optarg);
-          break;
-
-        case 'k':
-          s.keep_tmpdir = true;
-          s.use_script_cache = false; /* User wants to keep a usable build tree. */
-          break;
-
-        case 'g':
-          s.guru_mode = true;
-          break;
-
-        case 'P':
-          s.prologue_searching = true;
-          break;
-
-        case 'b':
-          s.bulk_mode = true;
-          break;
-
-	case 'u':
-	  s.unoptimized = true;
-	  break;
-
-        case 's':
-          s.buffer_size = (int) strtoul (optarg, &num_endptr, 10);
-          if (*num_endptr != '\0' || s.buffer_size < 1 || s.buffer_size > 4095)
-            {
-              cerr << "Invalid buffer size (should be 1-4095)." << endl;
-	      exit(1);
-            }
-          break;
-
-	case 'c':
-	  s.cmd = string (optarg);
-	  break;
-
-	case 'x':
-	  s.target_pid = (int) strtoul(optarg, &num_endptr, 10);
-	  if (*num_endptr != '\0')
-	    {
-	      cerr << "Invalid target process ID number." << endl;
-	      exit (1);
-	    }
-	  break;
-
-	case 'D':
-          assert_regexp_match ("-D parameter", optarg, "^[a-z_][a-z_0-9]*(=-?[a-z_0-9]+)?$");
-	  if (client_options)
-	    client_options_disallowed += client_options_disallowed.empty () ? "-D" : ", -D";
-	  s.macros.push_back (string (optarg));
-	  break;
-
-	case 'S':
-          assert_regexp_match ("-S parameter", optarg, "^[0-9]+(,[0-9]+)?$");
-	  s.size_option = string (optarg);
-	  break;
-
-	case 'q':
-          if (client_options) { cerr << "ERROR: -q invalid with --client-options" << endl; exit(1); } 
-	  s.tapset_compile_coverage = true;
-	  break;
-
-        case 'h':
-          usage (s, 0);
-          break;
-
-        case 'L':
-          s.listing_mode_vars = true;
-          s.unoptimized = true; // This causes retention of variables for listing_mode
-
-        case 'l':
-	  s.suppress_warnings = true;
-          s.listing_mode = true;
-          s.last_pass = 2;
-          if (have_script)
-            {
-	      cerr << "Only one script can be given on the command line."
-		   << endl;
-	      exit (1);
-            }
-          cmdline_script = string("probe ") + string(optarg) + " {}";
-          have_script = true;
-          break;
-
-        case 'F':
-          s.load_only = true;
-	  break;
-
-	case 'B':
-          if (client_options) { cerr << "ERROR: -B invalid with --client-options" << endl; exit(1); } 
-          s.kbuildflags.push_back (string (optarg));
-	  break;
-
-        case 0:
-          switch (long_opt)
-            {
-            case LONG_OPT_KELF:
-	      s.consult_symtab = true;
-	      break;
-            case LONG_OPT_KMAP:
-	      // Leave s.consult_symtab unset for now, to ease error checking.
-              if (!s.kernel_symtab_path.empty())
-		{
-		  cerr << "You can't specify multiple --kmap options." << endl;
-		  exit(1);
-		}
-              if (optarg)
-                s.kernel_symtab_path = optarg;
-              else
-                s.kernel_symtab_path = PATH_TBD;
-	      break;
-	    case LONG_OPT_IGNORE_VMLINUX:
-	      s.ignore_vmlinux = true;
-	      break;
-	    case LONG_OPT_IGNORE_DWARF:
-	      s.ignore_dwarf = true;
-	      break;
-	    case LONG_OPT_VERBOSE_PASS:
-              {
-                bool ok = true;
-                if (strlen(optarg) < 1 || strlen(optarg) > 5)
-                  ok = false;
-                if (ok)
-                  for (unsigned i=0; i<strlen(optarg); i++)
-                    if (isdigit (optarg[i]))
-                      s.perpass_verbose[i] += optarg[i]-'0';
-                    else
-                      ok = false;
-                
-                if (! ok)
-                  {
-                    cerr << "Invalid --vp argument: it takes 1 to 5 digits." << endl;
-                    exit (1);
-                  }
-                // NB: we don't do this: s.last_pass = strlen(optarg);
-                break;
-              }
-	    case LONG_OPT_SKIP_BADVARS:
-	      s.skip_badvars = true;
-	      break;
-	    case LONG_OPT_UNPRIVILEGED:
-	      s.unprivileged = true;
-              /* NB: for server security, it is essential that once this flag is
-                 set, no future flag be able to unset it. */
-	      break;
-	    case LONG_OPT_OMIT_WERROR:
-	      s.omit_werror = true;
-	      break;
-	    case LONG_OPT_CLIENT_OPTIONS:
-	      client_options = true;
-	      break;
-	    case LONG_OPT_HELP:
-	      usage (s, 0);
-	      break;
-
-            // The caching options should not be available to server clients
-            case LONG_OPT_DISABLE_CACHE:
-              if (client_options) {
-                  cerr << "ERROR: --disable-cache is invalid with --client-options" << endl;
-                  exit(1);
-              }
-              s.use_cache = s.use_script_cache = false;
-              break;
-            case LONG_OPT_POISON_CACHE:
-              if (client_options) {
-                  cerr << "ERROR: --poison-cache is invalid with --client-options" << endl;
-                  exit(1);
-              }
-              s.poison_cache = true;
-              break;
-            case LONG_OPT_CLEAN_CACHE:
-              if (client_options) {
-                  cerr << "ERROR: --clean-cache is invalid with --client-options" << endl;
-                  exit(1);
-              }
-              clean_cache(s);
-              exit(0);
-
-            case LONG_OPT_COMPATIBLE:
-              s.compatible = optarg;
-              break;
-
-            case LONG_OPT_LDD:
-              if (client_options) {
-                  cerr << "ERROR: --ldd is invalid with --client-options" << endl;
-                  exit(1);
-              }
-              s.unwindsym_ldd = true;
-              break;
-
-            default:
-              // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
-              cerr << "Unhandled long argument id " << long_opt << endl;
-              exit(1);
-            }
-          break;
-
-        default:
-          // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
-          cerr << "Unhandled argument code " << (char)grc << endl;
-          exit(1);
-          break;
-        }
-    }
-
-  // Check for options conflicts.
-
-  if (client_options && s.last_pass > 4)
-    {
-      s.last_pass = 4; /* Quietly downgrade.  Server passed through -p5 naively. */
-    }
-  if (client_options && s.unprivileged && ! client_options_disallowed.empty ())
-    {
-      cerr << "You can't specify " << client_options_disallowed << " when --unprivileged is specified." << endl;
-      usage (s, 1);
-    }
-  if ((s.cmd != "") && (s.target_pid))
-    {
-      cerr << "You can't specify -c and -x options together." << endl;
-      usage (s, 1);
-    }
-  if (s.unprivileged && s.guru_mode)
-    {
-      cerr << "You can't specify -g and --unprivileged together." << endl;
-      usage (s, 1);
-    }
-  if (!s.kernel_symtab_path.empty())
-    {
-      if (s.consult_symtab)
-      {
-        cerr << "You can't specify --kelf and --kmap together." << endl;
-        usage (s, 1);
-      }
-      s.consult_symtab = true;
-      if (s.kernel_symtab_path == PATH_TBD)
-        s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
-    }
-  // Warn in case the target kernel release doesn't match the running one.
-  if (s.last_pass > 4 &&
-      (string(buf.release) != s.kernel_release ||
-       machine != s.architecture)) // NB: squashed ARCH by PR4186 logic
-   {
-     if(! s.suppress_warnings)
-       cerr << "WARNING: kernel release/architecture mismatch with host forces last-pass 4." << endl;
-     s.last_pass = 4;
-   }
-
-  for (int i = optind; i < argc; i++)
-    {
-      if (! have_script)
-        {
-          script_file = string (argv[i]);
-          have_script = true;
-        }
-      else
-        s.args.push_back (string (argv[i]));
-    }
-
-  // need a user file
-  // NB: this is also triggered if stap is invoked with no arguments at all
-  if (! have_script)
-    {
-      cerr << "A script must be specified." << endl;
-      usage(s, 1);
-    }
-
-  // translate path of runtime to absolute path
-  if (s.runtime_path[0] != '/')
-    {
-      char cwd[PATH_MAX];
-      if (getcwd(cwd, sizeof(cwd)))
-        {
-          s.runtime_path = string(cwd) + "/" + s.runtime_path;
-        }
-    }
-
   int rc = 0;
   
   // PASS 0: setting up
@@ -1170,7 +407,7 @@ main (int argc, char * const argv [])
   // arguments parsed; get down to business
   if (s.verbose > 1)
     {
-      version ();
+      s.version ();
       clog << "Session arch: " << s.architecture
            << " release: " << s.kernel_release
            << endl;
@@ -1230,19 +467,19 @@ main (int argc, char * const argv [])
   struct stat user_file_stat;
   int user_file_stat_rc = -1;
 
-  if (script_file == "-")
+  if (s.script_file == "-")
     {
       s.user_file = parser::parse (s, cin, s.guru_mode);
       user_file_stat_rc = fstat (STDIN_FILENO, & user_file_stat);
     }
-  else if (script_file != "")
+  else if (s.script_file != "")
     {
-      s.user_file = parser::parse (s, script_file, s.guru_mode);
-      user_file_stat_rc = stat (script_file.c_str(), & user_file_stat);
+      s.user_file = parser::parse (s, s.script_file, s.guru_mode);
+      user_file_stat_rc = stat (s.script_file.c_str(), & user_file_stat);
     }
   else
     {
-      istringstream ii (cmdline_script);
+      istringstream ii (s.cmdline_script);
       s.user_file = parser::parse (s, ii, s.guru_mode);
     }
   if (s.user_file == 0)
@@ -1372,7 +609,7 @@ main (int argc, char * const argv [])
 
   STAP_PROBE1(stap, pass1__end, &s);
 
-  if (rc || s.last_pass == 1 || pending_interrupts) goto cleanup;
+  if (rc || s.last_pass == 1 || pending_interrupts) return rc;
 
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
@@ -1407,7 +644,7 @@ main (int argc, char * const argv [])
 
   STAP_PROBE1(stap, pass2__end, &s);
 
-  if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) goto cleanup;
+  if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) return rc;
 
   // Generate hash.  There isn't any point in generating the hash
   // if last_pass is 2, since we'll quit before using it.
@@ -1433,10 +670,10 @@ main (int argc, char * const argv [])
         {
 	  // If our last pass isn't 5, we're done (since passes 3 and
 	  // 4 just generate what we just pulled out of the cache).
-	  if (s.last_pass < 5 || pending_interrupts) goto cleanup;
+	  if (s.last_pass < 5 || pending_interrupts) return rc;
 
 	  // Short-circuit to pass 5.
-	  goto pass_5;
+	  return 0;
 	}
     }
 
@@ -1471,7 +708,7 @@ main (int argc, char * const argv [])
 
   STAP_PROBE1(stap, pass3__end, &s);
 
-  if (rc || s.last_pass == 3 || pending_interrupts) goto cleanup;
+  if (rc || s.last_pass == 3 || pending_interrupts) return rc;
 
   // PASS 4: COMPILATION
   s.verbose = s.perpass_verbose[3];
@@ -1516,10 +753,10 @@ main (int argc, char * const argv [])
       // We may need to save the module in $CWD if the cache was
       // inaccessible for some reason.
       if (! s.use_script_cache && s.last_pass == 4)
-        save_module = true;
+        s.save_module = true;
 
       // Copy module to the current directory.
-      if (save_module && !pending_interrupts)
+      if (s.save_module && !pending_interrupts)
         {
 	  string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
 	  string module_dest_path = s.module_name + ".ko";
@@ -1529,21 +766,28 @@ main (int argc, char * const argv [])
 
   STAP_PROBE1(stap, pass4__end, &s);
 
-  if (rc || s.last_pass == 4 || pending_interrupts) goto cleanup;
+  return rc;
+}
 
-
+static int
+pass_5 (systemtap_session &s)
+{
   // PASS 5: RUN
-pass_5:
   s.verbose = s.perpass_verbose[4];
+  struct tms tms_before;
   times (& tms_before);
+  struct timeval tv_before;
   gettimeofday (&tv_before, NULL);
   // NB: this message is a judgement call.  The other passes don't emit
   // a "hello, I'm starting" message, but then the others aren't interactive
   // and don't take an indefinite amount of time.
   STAP_PROBE1(stap, pass5__start, &s);
   if (s.verbose) clog << "Pass 5: starting run." << endl;
-  rc = run_pass (s);
+  int rc = run_pass (s);
+  struct tms tms_after;
   times (& tms_after);
+  unsigned _sc_clk_tck = sysconf (_SC_CLK_TCK);
+  struct timeval tv_after;
   gettimeofday (&tv_after, NULL);
   if (s.verbose) clog << "Pass 5: run completed "
                       << TIMESPRINT
@@ -1557,13 +801,15 @@ pass_5:
     // Interrupting pass-5 to quit is normal, so we want an EXIT_SUCCESS below.
     pending_interrupts = 0;
 
-  // if (rc) goto cleanup;
-
   STAP_PROBE1(stap, pass5__end, &s);
 
-  // PASS 6: cleaning up
- cleanup:
+  return rc;
+}
 
+static void
+cleanup (systemtap_session &s, int rc)
+{
+  // PASS 6: cleaning up
   STAP_PROBE1(stap, pass6__start, &s);
 
   // update the database information
@@ -1598,210 +844,35 @@ pass_5:
     }
 
   STAP_PROBE1(stap, pass6__end, &s);
+}
+
+int
+main (int argc, char * const argv [])
+{
+  // Initialize defaults.
+  systemtap_session s;
+  s.initialize ();
+
+  // Process the command line.
+  int rc = s.parse_cmdline (argc, argv);
+  if (rc != 0)
+    exit (rc);
+
+  // Check for options conflicts.
+  s.check_options (argc, argv);
+
+  // Run passes 0-4
+  rc = passes_0_4 (s);
+
+  // Run pass 5, if requested
+  if (rc == 0 && s.last_pass >= 5 && ! pending_interrupts)
+    rc = pass_5 (s);
+
+  // Pass 6. Cleanup
+  cleanup (s, rc);
 
   return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
-
-
-/*
-Perngrq sebz fzvyrlgnc.fit, rkcbegrq gb n 1484k1110 fzvyrlgnc.cat,
-gurapr  catgbcnz | cazfpnyr -jvqgu 160 | 
-cczqvgure -qvz 4 -erq 2 -terra 2 -oyhr 2  | cczgbnafv -2k4 | bq -i -j19 -g k1 | 
-phg -s2- -q' ' | frq -r 'f,^,\\k,' -r 'f, ,\\k,t' -r 'f,^,",'  -r 'f,$,",'
-*/
-const char* morehelp =
-"\x1b\x5b\x30\x6d\x1b\x5b\x33\x37\x6d\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x60\x20\x20\x2e\x60\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x1b\x5b"
-"\x33\x33\x6d\x20\x1b\x5b\x33\x37\x6d\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x1b\x5b\x33\x33\x6d\x20\x60"
-"\x2e\x60\x1b\x5b\x33\x37\x6d\x20\x3a\x2c\x3a\x2e\x60\x20\x60\x20\x60\x20\x60"
-"\x2c\x3b\x2c\x3a\x20\x1b\x5b\x33\x33\x6d\x60\x2e\x60\x20\x1b\x5b\x33\x37\x6d"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x1b\x5b\x33"
-"\x33\x6d\x20\x60\x20\x60\x20\x3a\x27\x60\x1b\x5b\x33\x37\x6d\x20\x60\x60\x60"
-"\x20\x20\x20\x60\x20\x60\x60\x60\x20\x1b\x5b\x33\x33\x6d\x60\x3a\x60\x20\x60"
-"\x20\x60\x20\x1b\x5b\x33\x37\x6d\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x2e\x1b\x5b\x33\x33\x6d\x60\x2e\x60\x20\x60\x20\x60\x20\x20\x1b\x5b\x33"
-"\x37\x6d\x20\x3a\x20\x20\x20\x60\x20\x20\x20\x60\x20\x20\x2e\x1b\x5b\x33\x33"
-"\x6d\x60\x20\x60\x2e\x60\x20\x60\x2e\x60\x20\x1b\x5b\x33\x37\x6d\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x2e\x3a\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x2e\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x2e\x76\x53\x1b\x5b\x33\x34\x6d\x53\x1b\x5b\x33\x37\x6d\x53\x1b\x5b"
-"\x33\x31\x6d\x2b\x1b\x5b\x33\x33\x6d\x60\x20\x60\x20\x60\x20\x20\x20\x20\x1b"
-"\x5b\x33\x31\x6d\x3f\x1b\x5b\x33\x30\x6d\x53\x1b\x5b\x33\x33\x6d\x2b\x1b\x5b"
-"\x33\x37\x6d\x20\x20\x20\x20\x20\x20\x20\x2e\x1b\x5b\x33\x30\x6d\x24\x1b\x5b"
-"\x33\x37\x6d\x3b\x1b\x5b\x33\x31\x6d\x7c\x1b\x5b\x33\x33\x6d\x20\x60\x20\x60"
-"\x20\x60\x20\x60\x1b\x5b\x33\x31\x6d\x2c\x1b\x5b\x33\x32\x6d\x53\x1b\x5b\x33"
-"\x37\x6d\x53\x53\x3e\x2c\x2e\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x2e"
-"\x3b\x27\x20\x20\x20\x20\x20\x20\x20\x20\x20\x60\x3c\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x2e\x2e\x3a\x1b\x5b\x33\x30\x6d\x26\x46\x46\x46\x48\x46\x1b\x5b"
-"\x33\x33\x6d\x60\x2e\x60\x20\x60\x20\x60\x20\x60\x1b\x5b\x33\x30\x6d\x4d\x4d"
-"\x46\x1b\x5b\x33\x33\x6d\x20\x20\x1b\x5b\x33\x37\x6d\x20\x20\x20\x20\x1b\x5b"
-"\x33\x33\x6d\x20\x3a\x1b\x5b\x33\x30\x6d\x4d\x4d\x46\x1b\x5b\x33\x33\x6d\x20"
-"\x20\x20\x60\x20\x60\x2e\x60\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33\x30\x6d\x46"
-"\x46\x46\x24\x53\x46\x1b\x5b\x33\x37\x6d\x20\x20\x20\x20\x20\x0a\x20\x20\x20"
-"\x20\x2e\x3c\x3a\x60\x20\x20\x20\x20\x2e\x3a\x2e\x3a\x2e\x2e\x3b\x27\x20\x20"
-"\x20\x20\x20\x20\x2e\x60\x2e\x3a\x60\x60\x3c\x27\x1b\x5b\x33\x31\x6d\x3c\x27"
-"\x1b\x5b\x33\x33\x6d\x20\x60\x20\x60\x20\x60\x20\x20\x20\x60\x3c\x1b\x5b\x33"
-"\x30\x6d\x26\x1b\x5b\x33\x31\x6d\x3f\x1b\x5b\x33\x33\x6d\x20\x1b\x5b\x33\x37"
-"\x6d\x20\x1b\x5b\x33\x33\x6d\x20\x20\x20\x20\x20\x1b\x5b\x33\x37\x6d\x60\x1b"
-"\x5b\x33\x30\x6d\x2a\x46\x1b\x5b\x33\x37\x6d\x27\x1b\x5b\x33\x33\x6d\x20\x60"
-"\x20\x60\x20\x60\x20\x60\x20\x1b\x5b\x33\x31\x6d\x60\x3a\x1b\x5b\x33\x37\x6d"
-"\x27\x3c\x1b\x5b\x33\x30\x6d\x23\x1b\x5b\x33\x37\x6d\x3c\x60\x3a\x20\x20\x20"
-"\x0a\x20\x20\x20\x20\x3a\x60\x3a\x60\x20\x20\x20\x60\x3a\x2e\x2e\x2e\x2e\x3c"
-"\x3c\x20\x20\x20\x20\x20\x20\x3a\x2e\x60\x3a\x60\x20\x20\x20\x60\x1b\x5b\x33"
-"\x33\x6d\x3a\x1b\x5b\x33\x31\x6d\x60\x1b\x5b\x33\x33\x6d\x20\x60\x2e\x60\x20"
-"\x60\x20\x60\x20\x60\x20\x60\x1b\x5b\x33\x37\x6d\x20\x20\x1b\x5b\x33\x33\x6d"
-"\x20\x60\x20\x20\x20\x60\x1b\x5b\x33\x37\x6d\x20\x60\x20\x60\x1b\x5b\x33\x33"
-"\x6d\x20\x60\x2e\x60\x20\x60\x2e\x60\x20\x60\x3a\x1b\x5b\x33\x37\x6d\x20\x20"
-"\x20\x60\x3a\x2e\x60\x2e\x20\x0a\x20\x20\x20\x60\x3a\x60\x3a\x60\x20\x20\x20"
-"\x20\x20\x60\x60\x60\x60\x20\x3a\x2d\x20\x20\x20\x20\x20\x60\x20\x60\x20\x20"
-"\x20\x20\x20\x60\x1b\x5b\x33\x33\x6d\x3a\x60\x2e\x60\x20\x60\x20\x60\x20\x60"
-"\x20\x60\x20\x20\x2e\x3b\x1b\x5b\x33\x31\x6d\x76\x1b\x5b\x33\x30\x6d\x24\x24"
-"\x24\x1b\x5b\x33\x31\x6d\x2b\x53\x1b\x5b\x33\x33\x6d\x2c\x60\x20\x60\x20\x60"
-"\x20\x60\x20\x60\x20\x60\x2e\x1b\x5b\x33\x31\x6d\x60\x1b\x5b\x33\x33\x6d\x3a"
-"\x1b\x5b\x33\x37\x6d\x20\x20\x20\x20\x60\x2e\x60\x20\x20\x0a\x20\x20\x20\x60"
-"\x3a\x3a\x3a\x3a\x20\x20\x20\x20\x3a\x60\x60\x60\x60\x3a\x53\x20\x20\x20\x20"
-"\x20\x20\x3a\x2e\x60\x2e\x20\x20\x20\x20\x20\x1b\x5b\x33\x33\x6d\x3a\x1b\x5b"
-"\x33\x31\x6d\x3a\x1b\x5b\x33\x33\x6d\x2e\x60\x2e\x60\x20\x60\x2e\x60\x20\x60"
-"\x20\x3a\x1b\x5b\x33\x30\x6d\x24\x46\x46\x48\x46\x46\x46\x46\x46\x1b\x5b\x33"
-"\x31\x6d\x53\x1b\x5b\x33\x33\x6d\x2e\x60\x20\x60\x2e\x60\x20\x60\x2e\x60\x2e"
-"\x1b\x5b\x33\x31\x6d\x3a\x1b\x5b\x33\x33\x6d\x3a\x1b\x5b\x33\x37\x6d\x20\x20"
-"\x20\x2e\x60\x2e\x3a\x20\x20\x0a\x20\x20\x20\x60\x3a\x3a\x3a\x60\x20\x20\x20"
-"\x60\x3a\x20\x2e\x20\x3b\x27\x3a\x20\x20\x20\x20\x20\x20\x3a\x2e\x60\x3a\x20"
-"\x20\x20\x20\x20\x3a\x1b\x5b\x33\x33\x6d\x3c\x3a\x1b\x5b\x33\x31\x6d\x60\x1b"
-"\x5b\x33\x33\x6d\x2e\x60\x20\x60\x20\x60\x20\x60\x2e\x1b\x5b\x33\x30\x6d\x53"
-"\x46\x46\x46\x53\x46\x46\x46\x53\x46\x46\x1b\x5b\x33\x33\x6d\x20\x60\x20\x60"
-"\x20\x60\x2e\x60\x2e\x60\x3a\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33\x37\x6d\x20"
-"\x20\x20\x20\x3a\x60\x3a\x60\x20\x20\x0a\x20\x20\x20\x20\x60\x3c\x3b\x3c\x20"
-"\x20\x20\x20\x20\x60\x60\x60\x20\x3a\x3a\x20\x20\x20\x20\x20\x20\x20\x3a\x3a"
-"\x2e\x60\x20\x20\x20\x20\x20\x3a\x1b\x5b\x33\x33\x6d\x3b\x1b\x5b\x33\x31\x6d"
-"\x3c\x3a\x60\x1b\x5b\x33\x33\x6d\x2e\x60\x2e\x60\x20\x60\x3a\x1b\x5b\x33\x30"
-"\x6d\x53\x46\x53\x46\x46\x46\x53\x46\x46\x46\x53\x1b\x5b\x33\x33\x6d\x2e\x60"
-"\x20\x60\x2e\x60\x2e\x60\x3a\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33\x33\x6d\x3b"
-"\x1b\x5b\x33\x37\x6d\x27\x20\x20\x20\x60\x3a\x3a\x60\x20\x20\x20\x0a\x20\x20"
-"\x20\x20\x20\x60\x3b\x3c\x20\x20\x20\x20\x20\x20\x20\x3a\x3b\x60\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x60\x3a\x60\x2e\x20\x20\x20\x20\x20\x3a\x1b\x5b\x33"
-"\x33\x6d\x3c\x3b\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33\x33\x6d\x3a\x1b\x5b\x33"
-"\x31\x6d\x3a\x1b\x5b\x33\x33\x6d\x2e\x60\x2e\x60\x20\x1b\x5b\x33\x31\x6d\x3a"
-"\x1b\x5b\x33\x30\x6d\x46\x53\x46\x53\x46\x53\x46\x53\x46\x1b\x5b\x33\x31\x6d"
-"\x3f\x1b\x5b\x33\x33\x6d\x20\x60\x2e\x60\x2e\x3a\x3a\x1b\x5b\x33\x31\x6d\x3c"
-"\x1b\x5b\x33\x33\x6d\x3b\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33\x37\x6d\x60\x20"
-"\x20\x20\x3a\x3a\x3a\x60\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x53\x3c"
-"\x20\x20\x20\x20\x20\x20\x3a\x53\x3a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x60\x3a\x3a\x60\x2e\x20\x20\x20\x20\x60\x3a\x1b\x5b\x33\x31\x6d\x3c\x1b"
-"\x5b\x33\x33\x6d\x3b\x1b\x5b\x33\x31\x6d\x3c\x3b\x3c\x1b\x5b\x33\x33\x6d\x3a"
-"\x60\x2e\x60\x3c\x1b\x5b\x33\x30\x6d\x53\x46\x53\x24\x53\x46\x53\x24\x1b\x5b"
-"\x33\x33\x6d\x60\x3a\x1b\x5b\x33\x31\x6d\x3a\x1b\x5b\x33\x33\x6d\x3a\x1b\x5b"
-"\x33\x31\x6d\x3a\x3b\x3c\x1b\x5b\x33\x33\x6d\x3b\x1b\x5b\x33\x31\x6d\x3c\x1b"
-"\x5b\x33\x33\x6d\x3a\x1b\x5b\x33\x37\x6d\x60\x20\x20\x2e\x60\x3a\x3a\x60\x20"
-"\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x3b\x3c\x2e\x2e\x2c\x2e\x2e\x20"
-"\x3a\x3c\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x60\x3a\x3a\x3a"
-"\x60\x20\x20\x20\x20\x20\x60\x3a\x1b\x5b\x33\x33\x6d\x3c\x3b\x1b\x5b\x33\x31"
-"\x6d\x3c\x3b\x3c\x1b\x5b\x33\x33\x6d\x3b\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33"
-"\x33\x6d\x3b\x1b\x5b\x33\x31\x6d\x3c\x3c\x1b\x5b\x33\x30\x6d\x53\x24\x53\x1b"
-"\x5b\x33\x31\x6d\x53\x1b\x5b\x33\x37\x6d\x27\x1b\x5b\x33\x33\x6d\x2e\x3a\x3b"
-"\x1b\x5b\x33\x31\x6d\x3c\x3b\x3c\x1b\x5b\x33\x33\x6d\x3a\x1b\x5b\x33\x31\x6d"
-"\x3c\x1b\x5b\x33\x33\x6d\x3a\x1b\x5b\x33\x37\x6d\x60\x20\x20\x20\x60\x2e\x3a"
-"\x3a\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x2e\x3a\x3a\x3c\x53\x3c\x3a\x60"
-"\x3a\x3a\x3a\x3a\x53\x1b\x5b\x33\x32\x6d\x53\x1b\x5b\x33\x37\x6d\x3b\x27\x3a"
-"\x3c\x2c\x2e\x20\x20\x20\x20\x20\x20\x20\x20\x20\x60\x3a\x3a\x3a\x3a\x2e\x60"
-"\x2e\x60\x2e\x60\x3a\x1b\x5b\x33\x33\x6d\x3c\x3a\x1b\x5b\x33\x31\x6d\x3c\x1b"
-"\x5b\x33\x33\x6d\x53\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33\x33\x6d\x3b\x1b\x5b"
-"\x33\x31\x6d\x3c\x2c\x1b\x5b\x33\x33\x6d\x3c\x3b\x3a\x1b\x5b\x33\x31\x6d\x2c"
-"\x1b\x5b\x33\x33\x6d\x3c\x3b\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33\x33\x6d\x53"
-"\x1b\x5b\x33\x31\x6d\x3c\x1b\x5b\x33\x33\x6d\x3b\x3c\x1b\x5b\x33\x37\x6d\x3a"
-"\x60\x2e\x60\x2e\x3b\x1b\x5b\x33\x34\x6d\x53\x1b\x5b\x33\x37\x6d\x53\x3f\x27"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x2e\x60\x3a\x60\x3a\x3c\x53\x53\x3b\x3c"
-"\x3a\x60\x3a\x3a\x53\x53\x53\x3c\x3a\x60\x3a\x1b\x5b\x33\x30\x6d\x53\x1b\x5b"
-"\x33\x37\x6d\x2b\x20\x20\x20\x20\x20\x20\x60\x20\x20\x20\x3a\x1b\x5b\x33\x34"
-"\x6d\x53\x1b\x5b\x33\x30\x6d\x53\x46\x24\x1b\x5b\x33\x37\x6d\x2c\x60\x3a\x3a"
-"\x3a\x3c\x3a\x3c\x1b\x5b\x33\x33\x6d\x53\x1b\x5b\x33\x37\x6d\x3c\x1b\x5b\x33"
-"\x33\x6d\x53\x1b\x5b\x33\x31\x6d\x53\x1b\x5b\x33\x33\x6d\x3b\x1b\x5b\x33\x31"
-"\x6d\x53\x3b\x53\x1b\x5b\x33\x33\x6d\x3b\x1b\x5b\x33\x31\x6d\x53\x1b\x5b\x33"
-"\x33\x6d\x53\x1b\x5b\x33\x37\x6d\x3c\x1b\x5b\x33\x33\x6d\x53\x1b\x5b\x33\x37"
-"\x6d\x3c\x53\x3c\x3a\x3a\x3a\x3a\x3f\x1b\x5b\x33\x30\x6d\x53\x24\x48\x1b\x5b"
-"\x33\x37\x6d\x27\x60\x20\x60\x20\x20\x20\x20\x20\x20\x0a\x2e\x60\x3a\x60\x2e"
-"\x60\x3a\x60\x2e\x60\x3a\x60\x2e\x60\x3a\x60\x2e\x60\x3a\x60\x2e\x1b\x5b\x33"
-"\x30\x6d\x53\x46\x1b\x5b\x33\x37\x6d\x20\x20\x20\x20\x60\x20\x20\x20\x60\x20"
-"\x60\x3a\x1b\x5b\x33\x30\x6d\x3c\x46\x46\x46\x1b\x5b\x33\x37\x6d\x3f\x2e\x60"
-"\x3a\x60\x3a\x60\x3a\x60\x3a\x60\x3a\x3c\x3a\x60\x3a\x27\x3a\x60\x3a\x60\x3a"
-"\x60\x3a\x60\x3b\x1b\x5b\x33\x30\x6d\x53\x46\x48\x46\x1b\x5b\x33\x37\x6d\x27"
-"\x20\x60\x20\x60\x20\x60\x20\x20\x20\x20\x0a\x20\x3c\x3b\x3a\x2e\x60\x20\x60"
-"\x2e\x60\x20\x60\x2e\x60\x20\x60\x2e\x60\x2c\x53\x1b\x5b\x33\x32\x6d\x53\x1b"
-"\x5b\x33\x30\x6d\x53\x1b\x5b\x33\x37\x6d\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x60\x20\x60\x3c\x1b\x5b\x33\x30\x6d\x46\x46\x46\x1b\x5b\x33\x34\x6d"
-"\x2b\x1b\x5b\x33\x37\x6d\x3a\x20\x60\x20\x60\x20\x60\x2e\x60\x20\x60\x2e\x60"
-"\x20\x60\x2e\x60\x20\x60\x20\x60\x2c\x1b\x5b\x33\x30\x6d\x24\x46\x48\x46\x1b"
-"\x5b\x33\x37\x6d\x27\x20\x60\x20\x20\x20\x60\x20\x20\x20\x20\x20\x20\x0a\x20"
-"\x60\x3a\x1b\x5b\x33\x30\x6d\x53\x24\x1b\x5b\x33\x37\x6d\x53\x53\x53\x3b\x3c"
-"\x2c\x60\x2c\x3b\x3b\x53\x3f\x53\x1b\x5b\x33\x30\x6d\x24\x46\x3c\x1b\x5b\x33"
-"\x37\x6d\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x60\x20\x60"
-"\x3c\x1b\x5b\x33\x30\x6d\x48\x46\x46\x46\x1b\x5b\x33\x37\x6d\x3f\x2e\x60\x20"
-"\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x3b\x76\x1b\x5b\x33\x30\x6d"
-"\x48\x46\x48\x46\x1b\x5b\x33\x37\x6d\x27\x20\x60\x20\x20\x20\x60\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x60\x3c\x1b\x5b\x33\x30\x6d\x46\x24\x1b"
-"\x5b\x33\x37\x6d\x53\x53\x53\x53\x53\x53\x1b\x5b\x33\x30\x6d\x53\x24\x53\x46"
-"\x46\x46\x1b\x5b\x33\x37\x6d\x27\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x60\x3c\x1b\x5b\x33\x30\x6d\x23\x46\x46\x46"
-"\x24\x1b\x5b\x33\x37\x6d\x76\x2c\x2c\x20\x2e\x20\x2e\x20\x2c\x2c\x76\x1b\x5b"
-"\x33\x30\x6d\x26\x24\x46\x46\x48\x3c\x1b\x5b\x33\x37\x6d\x27\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x60"
-"\x3c\x1b\x5b\x33\x30\x6d\x53\x46\x46\x24\x46\x24\x46\x46\x48\x46\x53\x1b\x5b"
-"\x33\x37\x6d\x20\x20\x20\x20\x20\x20\x20\x20\x2e\x60\x20\x60\x2e\x60\x2e\x60"
-"\x2e\x60\x2e\x60\x3a\x3a\x3a\x3a\x3a\x1b\x5b\x33\x30\x6d\x2a\x46\x46\x46\x48"
-"\x46\x48\x46\x48\x46\x46\x46\x48\x46\x48\x46\x48\x1b\x5b\x33\x37\x6d\x3c\x22"
-"\x2e\x60\x2e\x60\x2e\x60\x2e\x60\x2e\x60\x20\x20\x20\x20\x20\x20\x20\x20\x0a"
-"\x20\x20\x20\x20\x20\x20\x20\x60\x3a\x1b\x5b\x33\x30\x6d\x48\x46\x46\x46\x48"
-"\x46\x46\x46\x1b\x5b\x33\x37\x6d\x27\x20\x20\x20\x60\x20\x60\x2e\x60\x20\x60"
-"\x2e\x60\x2e\x60\x3a\x60\x3a\x60\x3a\x60\x3a\x60\x3a\x3a\x3a\x60\x3a\x3c\x3c"
-"\x1b\x5b\x33\x30\x6d\x3c\x46\x48\x46\x46\x46\x48\x46\x46\x46\x1b\x5b\x33\x37"
-"\x6d\x27\x3a\x60\x3a\x60\x3a\x60\x3a\x60\x2e\x60\x2e\x60\x20\x60\x2e\x60\x20"
-"\x60\x20\x60\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x60\x22\x1b\x5b"
-"\x33\x30\x6d\x2a\x46\x48\x46\x1b\x5b\x33\x37\x6d\x3f\x20\x20\x20\x60\x20\x60"
-"\x2e\x60\x20\x60\x2e\x60\x2e\x60\x3a\x60\x2e\x60\x3a\x60\x3a\x60\x3a\x60\x3a"
-"\x60\x3a\x60\x3a\x60\x3a\x60\x3a\x1b\x5b\x33\x30\x6d\x46\x46\x48\x46\x48\x46"
-"\x1b\x5b\x33\x37\x6d\x27\x3a\x60\x3a\x60\x3a\x60\x3a\x60\x2e\x60\x3a\x60\x2e"
-"\x60\x2e\x60\x20\x60\x2e\x60\x20\x60\x20\x60\x0a\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x60\x3c\x1b\x5b\x33\x30\x6d\x48\x46\x46\x1b\x5b\x33\x37\x6d"
-"\x2b\x60\x20\x20\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x2e\x60\x20"
-"\x60\x2e\x60\x20\x60\x2e\x60\x20\x60\x3a\x60\x2e\x60\x3b\x1b\x5b\x33\x30\x6d"
-"\x48\x46\x46\x46\x1b\x5b\x33\x37\x6d\x27\x2e\x60\x2e\x60\x20\x60\x2e\x60\x20"
-"\x60\x2e\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x20\x20\x60\x20\x20\x0a\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x22\x1b\x5b\x33\x30\x6d\x3c"
-"\x48\x46\x53\x1b\x5b\x33\x37\x6d\x2b\x3a\x20\x20\x20\x60\x20\x60\x20\x60\x20"
-"\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x2c\x1b"
-"\x5b\x33\x30\x6d\x24\x46\x48\x46\x1b\x5b\x33\x37\x6d\x3f\x20\x60\x20\x60\x20"
-"\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x60\x20\x20\x20\x60"
-"\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x60\x22\x3c\x1b\x5b\x33\x30\x6d\x48\x24\x46\x46\x1b\x5b\x33\x37\x6d\x3e\x2c"
-"\x2e\x2e\x20\x20\x20\x20\x20\x20\x20\x20\x60\x20\x20\x20\x60\x20\x20\x20\x3b"
-"\x2c\x2c\x1b\x5b\x33\x30\x6d\x24\x53\x46\x46\x46\x1b\x5b\x33\x37\x6d\x27\x22"
-"\x20\x20\x60\x20\x20\x20\x60\x20\x20\x20\x60\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x60\x22\x1b\x5b\x33\x30\x6d\x2a\x3c\x48"
-"\x46\x46\x24\x53\x24\x1b\x5b\x33\x37\x6d\x53\x53\x53\x3e\x3e\x3e\x3e\x3e\x53"
-"\x3e\x53\x1b\x5b\x33\x30\x6d\x24\x53\x24\x46\x24\x48\x46\x23\x1b\x5b\x33\x37"
-"\x6d\x27\x22\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x60\x60\x22\x3c\x1b\x5b\x33\x30\x6d\x2a\x3c\x3c\x3c\x48\x46\x46\x46\x48\x46"
-"\x46\x46\x23\x3c\x1b\x5b\x33\x36\x6d\x3c\x1b\x5b\x33\x37\x6d\x3c\x27\x22\x22"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
-"\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x1b"
-                                                                "\x5b\x30\x6d";
-
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
 

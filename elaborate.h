@@ -276,6 +276,27 @@ private:
 
 // ------------------------------------------------------------------------
 
+struct
+alias_expansion_builder
+  : public derived_probe_builder
+{
+  probe_alias * alias;
+
+  alias_expansion_builder(probe_alias * a)
+    : alias(a)
+  {}
+
+  virtual void build(systemtap_session & sess,
+		     probe * use,
+		     probe_point * location,
+		     std::map<std::string, literal *> const &,
+		     std::vector<derived_probe *> & finished_results);
+
+  bool checkForRecursiveExpansion (probe *use);
+};
+
+// ------------------------------------------------------------------------
+
 /* struct systemtap_session moved to session.h */
 
 int semantic_pass (systemtap_session& s);

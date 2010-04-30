@@ -111,6 +111,7 @@ am__DEPENDENCIES_1 =
 loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 	$(loc2c_test_LDFLAGS) $(LDFLAGS) -o $@
 @BUILD_TRANSLATOR_TRUE@am_stap_OBJECTS = stap-main.$(OBJEXT) \
+@BUILD_TRANSLATOR_TRUE@	stap-session.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-parse.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-staptree.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-elaborate.$(OBJEXT) \
@@ -384,7 +385,7 @@ bin_SCRIPTS = stap-report $(am__append_3) $(am__append_5) \
 	$(am__append_10)
 pkglibexec_SCRIPTS = stap-env $(am__append_7) $(am__append_11)
 oldinclude_HEADERS = includes/sys/sdt.h
-@BUILD_TRANSLATOR_TRUE@stap_SOURCES = main.cxx \
+@BUILD_TRANSLATOR_TRUE@stap_SOURCES = main.cxx session.cxx \
 @BUILD_TRANSLATOR_TRUE@	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 @BUILD_TRANSLATOR_TRUE@	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
 @BUILD_TRANSLATOR_TRUE@	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
@@ -742,6 +743,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-mdfour.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-parse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-rpm_finder.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-session.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-setupdwfl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-staptree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-been.Po@am__quote@
@@ -1157,6 +1159,22 @@ stap-main.obj: main.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='main.cxx' object='stap-main.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-main.obj `if test -f 'main.cxx'; then $(CYGPATH_W) 'main.cxx'; else $(CYGPATH_W) '$(srcdir)/main.cxx'; fi`
+
+stap-session.o: session.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-session.o -MD -MP -MF $(DEPDIR)/stap-session.Tpo -c -o stap-session.o `test -f 'session.cxx' || echo '$(srcdir)/'`session.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-session.Tpo $(DEPDIR)/stap-session.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='session.cxx' object='stap-session.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-session.o `test -f 'session.cxx' || echo '$(srcdir)/'`session.cxx
+
+stap-session.obj: session.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-session.obj -MD -MP -MF $(DEPDIR)/stap-session.Tpo -c -o stap-session.obj `if test -f 'session.cxx'; then $(CYGPATH_W) 'session.cxx'; else $(CYGPATH_W) '$(srcdir)/session.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-session.Tpo $(DEPDIR)/stap-session.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='session.cxx' object='stap-session.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-session.obj `if test -f 'session.cxx'; then $(CYGPATH_W) 'session.cxx'; else $(CYGPATH_W) '$(srcdir)/session.cxx'; fi`
 
 stap-parse.o: parse.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-parse.o -MD -MP -MF $(DEPDIR)/stap-parse.Tpo -c -o stap-parse.o `test -f 'parse.cxx' || echo '$(srcdir)/'`parse.cxx

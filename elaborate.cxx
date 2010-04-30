@@ -605,154 +605,94 @@ probe::create_alias(probe_point* l, probe_point* a)
 }
 
 
-struct
-alias_expansion_builder
-  : public derived_probe_builder
+void
+alias_expansion_builder::build(systemtap_session & sess,
+			       probe * use,
+			       probe_point * location,
+			       std::map<std::string, literal *> const &,
+			       vector<derived_probe *> & finished_results)
 {
-  probe_alias * alias;
-
-  alias_expansion_builder(probe_alias * a)
-    : alias(a)
-  {}
-
-  virtual void build(systemtap_session & sess,
-		     probe * use,
-		     probe_point * location,
-		     std::map<std::string, literal *> const &,
-		     vector<derived_probe *> & finished_results)
-  {
-    // Don't build the alias expansion if infinite recursion is detected.
-    if (checkForRecursiveExpansion (use)) {
-      stringstream msg;
-      msg << "Recursive loop in alias expansion of " << *location  << " at " << location->components.front()->tok->location;
-      // semantic_errors thrown here are ignored.
-      sess.print_error (semantic_error (msg.str()));
-      return;
-    }
-
-    // We're going to build a new probe and wrap it up in an
-    // alias_expansion_probe so that the expansion loop recognizes it as
-    // such and re-expands its expansion.
-
-    alias_derived_probe * n = new alias_derived_probe (use, location /* soon overwritten */, this->alias);
-    n->body = new block();
-
-    // The new probe gets a deep copy of the location list of
-    // the alias (with incoming condition joined)
-    n->locations.clear();
-    for (unsigned i=0; i<alias->locations.size(); i++)
-      {
-        probe_point *pp = new probe_point(*alias->locations[i]);
-        pp->condition = add_condition (pp->condition, location->condition);
-        n->locations.push_back(pp);
-      }
-
-    // the token location of the alias,
-    n->tok = location->components.front()->tok;
-
-    // and statements representing the concatenation of the alias'
-    // body with the use's.
-    //
-    // NB: locals are *not* copied forward, from either alias or
-    // use. The expansion should have its locals re-inferred since
-    // there's concatenated code here and we only want one vardecl per
-    // resulting variable.
-
-    if (alias->epilogue_style)
-      n->body = new block (use->body, alias->body);
-    else
-      n->body = new block (alias->body, use->body);
-
-    unsigned old_num_results = finished_results.size();
-    derive_probes (sess, n, finished_results, location->optional);
-
-    // Check whether we resolved something. If so, put the
-    // whole library into the queue if not already there.
-    if (finished_results.size() > old_num_results)
-      {
-        stapfile *f = alias->tok->location.file;
-        if (find (sess.files.begin(), sess.files.end(), f)
-            == sess.files.end())
-          sess.files.push_back (f);
-      }
+  // Don't build the alias expansion if infinite recursion is detected.
+  if (checkForRecursiveExpansion (use)) {
+    stringstream msg;
+    msg << "Recursive loop in alias expansion of " << *location  << " at " << location->components.front()->tok->location;
+    // semantic_errors thrown here are ignored.
+    sess.print_error (semantic_error (msg.str()));
+    return;
   }
 
-  bool checkForRecursiveExpansion (probe *use)
-  {
-    // Collect the derivation chain of this probe.
-    vector<probe*>derivations;
-    use->collect_derivation_chain (derivations);
+  // We're going to build a new probe and wrap it up in an
+  // alias_expansion_probe so that the expansion loop recognizes it as
+  // such and re-expands its expansion.
 
-    // Check all probe points in the alias expansion against the currently-being-expanded probe point
-    // of each of the probes in the derivation chain, looking for a match. This
-    // indicates infinite recursion.
-    // The first element of the derivation chain will be the derived_probe representing 'use', so
-    // start the search with the second element.
-    assert (derivations.size() > 0);
-    assert (derivations[0] == use);
-    for (unsigned d = 1; d < derivations.size(); ++d) {
-      if (use->get_alias() == derivations[d]->get_alias())
-	return true; // recursion detected
+  alias_derived_probe * n = new alias_derived_probe (use, location /* soon overwritten */, this->alias);
+  n->body = new block();
+
+  // The new probe gets a deep copy of the location list of
+  // the alias (with incoming condition joined)
+  n->locations.clear();
+  for (unsigned i=0; i<alias->locations.size(); i++)
+    {
+      probe_point *pp = new probe_point(*alias->locations[i]);
+      pp->condition = add_condition (pp->condition, location->condition);
+      n->locations.push_back(pp);
     }
-    return false;
+
+  // the token location of the alias,
+  n->tok = location->components.front()->tok;
+
+  // and statements representing the concatenation of the alias'
+  // body with the use's.
+  //
+  // NB: locals are *not* copied forward, from either alias or
+  // use. The expansion should have its locals re-inferred since
+  // there's concatenated code here and we only want one vardecl per
+  // resulting variable.
+
+  if (alias->epilogue_style)
+    n->body = new block (use->body, alias->body);
+  else
+    n->body = new block (alias->body, use->body);
+
+  unsigned old_num_results = finished_results.size();
+  derive_probes (sess, n, finished_results, location->optional);
+
+  // Check whether we resolved something. If so, put the
+  // whole library into the queue if not already there.
+  if (finished_results.size() > old_num_results)
+    {
+      stapfile *f = alias->tok->location.file;
+      if (find (sess.files.begin(), sess.files.end(), f)
+	  == sess.files.end())
+	sess.files.push_back (f);
+    }
+}
+
+bool
+alias_expansion_builder::checkForRecursiveExpansion (probe *use)
+{
+  // Collect the derivation chain of this probe.
+  vector<probe*>derivations;
+  use->collect_derivation_chain (derivations);
+
+  // Check all probe points in the alias expansion against the currently-being-expanded probe point
+  // of each of the probes in the derivation chain, looking for a match. This
+  // indicates infinite recursion.
+  // The first element of the derivation chain will be the derived_probe representing 'use', so
+  // start the search with the second element.
+  assert (derivations.size() > 0);
+  assert (derivations[0] == use);
+  for (unsigned d = 1; d < derivations.size(); ++d) {
+    if (use->get_alias() == derivations[d]->get_alias())
+      return true; // recursion detected
   }
-};
+  return false;
+}
 
 
 // ------------------------------------------------------------------------
 // Pattern matching
 // ------------------------------------------------------------------------
-
-
-// Register all the aliases we've seen in library files, and the user
-// file, as patterns.
-
-void
-systemtap_session::register_library_aliases()
-{
-  vector<stapfile*> files(library_files);
-  files.push_back(user_file);
-
-  for (unsigned f = 0; f < files.size(); ++f)
-    {
-      stapfile * file = files[f];
-      for (unsigned a = 0; a < file->aliases.size(); ++a)
-	{
-	  probe_alias * alias = file->aliases[a];
-          try
-            {
-              for (unsigned n = 0; n < alias->alias_names.size(); ++n)
-                {
-                  probe_point * name = alias->alias_names[n];
-                  match_node * n = pattern_root;
-                  for (unsigned c = 0; c < name->components.size(); ++c)
-                    {
-                      probe_point::component * comp = name->components[c];
-                      // XXX: alias parameters
-                      if (comp->arg)
-                        throw semantic_error("alias component "
-                                             + comp->functor
-                                             + " contains illegal parameter");
-                      n = n->bind(comp->functor);
-                    }
-                  n->bind(new alias_expansion_builder(alias));
-                }
-            }
-          catch (const semantic_error& e)
-            {
-              semantic_error* er = new semantic_error (e); // copy it
-              stringstream msg;
-              msg << e.msg2;
-              msg << " while registering probe alias ";
-              alias->printsig(msg);
-              er->msg2 = msg.str();
-              print_error (* er);
-              delete er;
-            }
-	}
-    }
-}
-
 
 static unsigned max_recursion = 100;
 
@@ -1605,168 +1545,6 @@ semantic_pass (systemtap_session& s)
     }
 
   return rc;
-}
-
-
-// ------------------------------------------------------------------------
-
-
-systemtap_session::systemtap_session ():
-  // NB: pointer members must be manually initialized!
-  base_hash(0),
-  pattern_root(new match_node),
-  user_file (0),
-  be_derived_probes(0),
-  dwarf_derived_probes(0),
-  kprobe_derived_probes(0),
-  hwbkpt_derived_probes(0),
-  perf_derived_probes(0),
-  uprobe_derived_probes(0),
-  utrace_derived_probes(0),
-  itrace_derived_probes(0),
-  task_finder_derived_probes(0),
-  timer_derived_probes(0),
-  profile_derived_probes(0),
-  mark_derived_probes(0),
-  tracepoint_derived_probes(0),
-  hrtimer_derived_probes(0),
-  procfs_derived_probes(0),
-  op (0), up (0),
-  sym_kprobes_text_start (0),
-  sym_kprobes_text_end (0),
-  sym_stext (0),
-  module_cache (0),
-  last_token (0)
-{
-}
-
-
-// Print this given token, but abbreviate it if the last one had the
-// same file name.
-void
-systemtap_session::print_token (ostream& o, const token* tok)
-{
-  assert (tok);
-
-  if (last_token && last_token->location.file == tok->location.file)
-    {
-      stringstream tmpo;
-      tmpo << *tok;
-      string ts = tmpo.str();
-      // search & replace the file name with nothing
-      size_t idx = ts.find (tok->location.file->name);
-      if (idx != string::npos)
-          ts.replace (idx, tok->location.file->name.size(), "");
-
-      o << ts;
-    }
-  else
-    o << *tok;
-
-  last_token = tok;
-}
-
-
-
-void
-systemtap_session::print_error (const semantic_error& e)
-{
-  string message_str[2];
-  string align_semantic_error ("        ");
-
-  // We generate two messages.  The second one ([1]) is printed
-  // without token compression, for purposes of duplicate elimination.
-  // This way, the same message that may be generated once with a
-  // compressed and once with an uncompressed token still only gets
-  // printed once.
-  for (int i=0; i<2; i++)
-    {
-      stringstream message;
-
-      message << "semantic error: " << e.what ();
-      if (e.tok1 || e.tok2)
-        message << ": ";
-      if (e.tok1)
-        {
-          if (i == 0) print_token (message, e.tok1);
-          else message << *e.tok1;
-        }
-      message << e.msg2;
-      if (e.tok2)
-        {
-          if (i == 0) print_token (message, e.tok2);
-          else message << *e.tok2;
-        }
-      message << endl;
-      message_str[i] = message.str();
-    }
-
-  // Duplicate elimination
-  if (seen_errors.find (message_str[1]) == seen_errors.end())
-    {
-      seen_errors.insert (message_str[1]);
-      cerr << message_str[0];
-
-      if (e.tok1)
-        print_error_source (cerr, align_semantic_error, e.tok1);
-
-      if (e.tok2)
-        print_error_source (cerr, align_semantic_error, e.tok2);
-    }
-
-  if (e.chain)
-    print_error (* e.chain);
-}
-
-void
-systemtap_session::print_error_source (std::ostream& message,
-                                       std::string& align, const token* tok)
-{
-  unsigned i = 0;
-
-  assert (tok);
-  if (!tok->location.file)
-    //No source to print, silently exit
-    return;
-
-  unsigned line = tok->location.line;
-  unsigned col = tok->location.column;
-  const string &file_contents = tok->location.file->file_contents;
-
-  size_t start_pos = 0, end_pos = 0;
-  //Navigate to the appropriate line
-  while (i != line && end_pos != std::string::npos)
-    {
-      start_pos = end_pos;
-      end_pos = file_contents.find ('\n', start_pos) + 1;
-      i++;
-    }
-  message << align << "source: " << file_contents.substr (start_pos, end_pos-start_pos-1) << endl;
-  message << align << "        ";
-  //Navigate to the appropriate column
-  for (i=start_pos; i<start_pos+col-1; i++)
-    {
-      if(isspace(file_contents[i]))
-	message << file_contents[i];
-      else
-	message << ' ';
-    }
-  message << "^" << endl;
-}
-
-void
-systemtap_session::print_warning (const string& message_str, const token* tok)
-{
-  // Duplicate elimination
-  string align_warning (" ");
-  if (seen_warnings.find (message_str) == seen_warnings.end())
-    {
-      seen_warnings.insert (message_str);
-      clog << "WARNING: " << message_str;
-      if (tok) { clog << ": "; print_token (clog, tok); }
-      clog << endl;
-      if (tok) { print_error_source (clog, align_warning, tok); }
-    }
 }
 
 
