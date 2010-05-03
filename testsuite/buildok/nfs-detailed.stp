@@ -108,9 +108,7 @@ probe nfs.fop.sendfile.return ? {
 	printf("%d %s\n", size, units)
 }
 
-probe nfs.fop.check_flags {
-	printf("%s(%s)\n", name, argstr)
-}
+# nfs.fop.check_flags test moved to nfs-fop.check_flags.stp
 probe nfs.fop.check_flags.return {
 	printf("%s(%s)\n", name, retstr)
 }
