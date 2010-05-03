@@ -1,0 +1,111 @@
+#! stap -p4
+
+probe vm.pagefault
+{
+	printf("%s: %p %d\n", name, address, write_access)
+}
+probe vm.pagefault.return
+{
+	printf("%s: %d\n", name, fault_type)
+}
+
+probe vm.write_shared
+{
+	printf("%s: %p\n", name, address)
+}
+
+# vm.write_shared_copy test moved to memory-write_shared_copy.stp
+
+# vm.mmap test moved to memory-mmap.stp
+
+probe vm.munmap, vm.brk
+{
+	printf("%s: %p %d\n", name, address, length)
+}
+
+probe vm.oom_kill
+{
+	printf("%s: %p\n", name, task)
+}
+
+probe vm.kmalloc
+{
+        printf("%s\n", name)
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s\n",
+	       execname(), call_site, caller_function, ptr, bytes_req,
+	       bytes_alloc, gfp_flags, gfp_flag_name)
+}
+
+# Normally we don't test "internal" probes, but let's make sure the
+# kprobes-based fallback probes actually work.
+
+probe __vm.kmalloc.kp
+{
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s\n",
+	       execname(), call_site, caller_function, ptr, bytes_req,
+	       bytes_alloc, gfp_flags, gfp_flag_name)
+}
+
+probe vm.kmem_cache_alloc
+{
+        println(name)
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s \n",
+               execname(), call_site, caller_function, ptr, bytes_req,
+               bytes_alloc, gfp_flags, gfp_flag_name)
+}
+probe __vm.kmem_cache_alloc.kp
+{
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s \n",
+               execname(), call_site, caller_function, ptr, bytes_req,
+               bytes_alloc, gfp_flags, gfp_flag_name)
+}
+
+probe vm.kmalloc_node ?
+{
+        println(name)
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s \n",
+               execname(), call_site, caller_function, ptr, bytes_req,
+               bytes_alloc, gfp_flags, gfp_flag_name)
+}
+probe __vm.kmalloc_node.kp ?
+{
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s \n",
+               execname(), call_site, caller_function, ptr, bytes_req,
+               bytes_alloc, gfp_flags, gfp_flag_name)
+}
+
+probe vm.kmem_cache_alloc_node ?
+{
+        println(name)
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s \n",
+	       execname(), call_site, caller_function, ptr, bytes_req,
+	       bytes_alloc, gfp_flags, gfp_flag_name)
+}
+probe __vm.kmem_cache_alloc_node.kp ?
+{
+        printf("%-15s %-15p %-15s %-15p %-15d %-15d %-15d %-15s \n",
+	       execname(), call_site, caller_function, ptr, bytes_req,
+	       bytes_alloc, gfp_flags, gfp_flag_name)
+}
+
+probe vm.kfree
+{
+        println(name)
+        printf("%-15s %-15p %-15s %-15p \n", execname(), call_site,
+	       caller_function, ptr)
+}
+probe __vm.kfree.kp
+{
+        printf("%-15s %-15p %-15s %-15p \n", execname(), call_site,
+	       caller_function, ptr)
+}
+
+probe vm.kmem_cache_free {
+        println(name)
+        printf("%-15s %-15p %-15s %-15p \n", execname(), call_site,
+               caller_function, ptr)
+}
+probe __vm.kmem_cache_free.kp {
+        printf("%-15s %-15p %-15s %-15p \n", execname(), call_site,
+               caller_function, ptr)
+}

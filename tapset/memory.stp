@@ -26,37 +26,36 @@ global FAULT_FLAG_WRITE=1
 function vm_fault_contains:long (value:long, test:long)
 %{
 	int res;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,23)
-	switch (THIS->test){
-	case 0: res = THIS->value == VM_FAULT_OOM; break;
-	case 1: res = THIS->value == VM_FAULT_SIGBUS; break;
-	case 2: res = THIS->value == VM_FAULT_MINOR; break;
-	case 3: res = THIS->value == VM_FAULT_MAJOR; break;
-	default:
-		res = 0; break;
-	}
-#else
 	switch (THIS->test){
 	case 0: res = THIS->value & VM_FAULT_OOM; break;
 	case 1: res = THIS->value & VM_FAULT_SIGBUS; break;
+#if defined(VM_FAULT_MINOR) && VM_FAULT_MINOR != 0
 	case 2: /* VM_FAULT_MINOR infered by that flags off */
 		res = !((VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_MAJOR) & 
 				 THIS->value);
-		 break;
-	case 3: res = THIS->value & VM_FAULT_MAJOR; break;
-	case 4: res = THIS->value & VM_FAULT_NOPAGE; break;
-	case 5: res = THIS->value & VM_FAULT_LOCKED; break;
-	case 6: res = THIS->value & VM_FAULT_ERROR; break;
-	default:
-		res = 0;
-	}
+		break;
+#else
+	case 2: res = THIS->value == VM_FAULT_MINOR; break;
 #endif
+	case 3: res = THIS->value & VM_FAULT_MAJOR; break;
+#ifdef VM_FAULT_NOPAGE
+	case 4: res = THIS->value & VM_FAULT_NOPAGE; break;
+#endif
+#ifdef VM_FAULT_LOCKED
+	case 5: res = THIS->value & VM_FAULT_LOCKED; break;
+#endif
+#ifdef VM_FAULT_ERROR
+	case 6: res = THIS->value & VM_FAULT_ERROR; break;
+#endif
+	default: res = 0; break;
+	}
 	THIS->__retvalue = (res != 0);
 	return;
 %}
 
 /**
  * probe vm.pagefault - Records that a page fault occurred.
+ * @name: Name of the probe point
  * @address: The address of the faulting memory access; i.e. the address that caused the page fault.
  * @write_access: Indicates whether this was a write or read access; 1 indicates a write, 
  * while 0 indicates a read.
@@ -66,25 +65,26 @@ function vm_fault_contains:long (value:long, test:long)
 probe vm.pagefault = kernel.function("__handle_mm_fault@mm/memory.c") ?,
                      kernel.function("handle_mm_fault@mm/memory.c") ?
 {
-%( kernel_v >= "2.6.31" %?
-	write_access = $flags & FAULT_FLAG_WRITE
-%:
-	write_access = $write_access
-%)
+	name = "pagefault"
+	write_access = (@defined($flags)
+			? $flags & FAULT_FLAG_WRITE : $write_access)
 	address =  $address
 }
 
 /**
  * probe vm.pagefault.return - Indicates what type of fault occurred.
+ * @name: Name of the probe point
  * @fault_type: Returns either 
  * 0 (VM_FAULT_OOM) for out of memory faults, 
  * 2 (VM_FAULT_MINOR) for minor faults, 3 (VM_FAULT_MAJOR) for 
  * major faults, or 1 (VM_FAULT_SIGBUS) if the fault was neither OOM, minor fault, 
  * nor major fault.
  */
-probe vm.pagefault.return = kernel.function("__handle_mm_fault@mm/memory.c").return ?,
-                            kernel.function("handle_mm_fault@mm/memory.c").return ?
+probe vm.pagefault.return =
+		kernel.function("__handle_mm_fault@mm/memory.c").return ?,
+		kernel.function("handle_mm_fault@mm/memory.c").return ?
 {
+	name = "pagefault"
 	fault_type = $return
 }
 
@@ -118,6 +118,7 @@ function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
 
 /**
  * probe vm.write_shared - Attempts at writing to a shared page.
+ * @name: Name of the probe point
  * @address: The address of the shared write.
  *
  * Context:
@@ -128,11 +129,13 @@ function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
  *  vm.write_shared_copy.
  */
 probe vm.write_shared = kernel.function("do_wp_page") {
+    name = "write_shared"
     address = $address
 }
 
 /**
  * probe vm.write_shared_copy - Page copy for shared page write.
+ * @name: Name of the probe point
  * @address: The address of the shared write.
  * @zero: Boolean indicating whether it is a zero page
  *         (can do a clear instead of a copy).
@@ -143,21 +146,26 @@ probe vm.write_shared = kernel.function("do_wp_page") {
  *  Fires when a write to a shared page requires a page copy.  This is
  *  always preceded by a vm.shared_write.
  */
-probe vm.write_shared_copy = kernel.function("copy_cow_page")? {
+probe vm.write_shared_copy = kernel.function("copy_cow_page") ?
+{
+    name = "write_shared_copy"
     address = $address
-    zero = _IS_ZERO_PAGE($from, address);
+    zero = _IS_ZERO_PAGE($from, $address);
 }
 
 
 /**
  * probe vm.mmap - Fires when an mmap is requested.
+ * @name: Name of the probe point
  * @address: The requested address
  * @length: The length of the memory segment 
  *
  * Context:
  *  The process calling mmap.
  */
-probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2")? {
+probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2") ?
+{
+    name = "mmap"
     address = $addr
     length = $len
 }
@@ -165,6 +173,7 @@ probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2")? {
 
 /**
  * probe vm.munmap - Fires when an munmap is requested.
+ * @name: Name of the probe point
  * @address: The requested address
  * @length: The length of the memory segment 
  *
@@ -172,12 +181,14 @@ probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2")? {
  *  The process calling munmap.
  */
 probe vm.munmap = kernel.function("do_munmap") {
+    name = "munmap"
     address = $start
     length = $len
 }
 
 /**
  * probe vm.brk - Fires when a brk is requested (i.e. the heap will be resized).
+ * @name: Name of the probe point
  * @address: The requested address
  * @length: The length of the memory segment 
  *
@@ -185,23 +196,33 @@ probe vm.munmap = kernel.function("do_munmap") {
  *  The process calling brk.
  */
 probe vm.brk = kernel.function("do_brk") {
+    name = "brk"
     address = $addr
     length = $len
 }
 
 /**
  * probe vm.oom_kill - Fires when a thread is selected for termination by the OOM killer.
+ * @name: Name of the probe point
  * @task: The task being killed
  *
  * Context:
  *  The process that tried to consume excessive memory, and thus
  *  triggered the OOM.
  */
-probe vm.oom_kill = kernel.function("__oom_kill_task") {
+probe vm.oom_kill = kernel.function("__oom_kill_task")
+{
+    name = "oom_kill"
     task = $p
 }
 
-function __gfp_flag_str:string(gfp_flag:long) %{
+function GFP_KERNEL:long()
+%{ /* pure */ /* unprivileged */
+	THIS->__retvalue = GFP_KERNEL;
+%}
+
+function __gfp_flag_str:string(gfp_flag:long)
+%{
 	long gfp_flag = THIS->gfp_flag;
 	THIS->__retvalue[0] = '\0';
 
@@ -329,8 +350,8 @@ function __gfp_flag_str:string(gfp_flag:long) %{
 /* The Formal Parameters will be displayed if available, otherwise \
 		 "0" or "unknown" will be displayed */
 
-probe __vm.kmalloc.tp = kernel.trace("kmalloc") {
-	name = "kmalloc"
+probe __vm.kmalloc.tp = kernel.trace("kmalloc")
+{
 	call_site = $call_site
 	caller_function = symname(call_site)
 	bytes_req = $bytes_req
@@ -340,23 +361,46 @@ probe __vm.kmalloc.tp = kernel.trace("kmalloc") {
 	ptr = $ptr
 }
 
-/* It is unsafe to invoke __builtin_return_address() \
-presently(to get call_site for kprobe based probes) \
-and that it can be improved later when fix for bugs bz#6961 and bz#6580 is available. */
+/*
+ * It is unsafe to invoke __builtin_return_address() presently (to get
+ * call_site for kprobe based probes) and that it can be improved
+ * later when fix for bugs bz#6961 and bz#6580 is available.
+ */ 
 
-probe __vm.kmalloc.kp = kernel.function("kmalloc").return {
-	name = "kmalloc"
+probe __vm.kmalloc.kp = kernel.function("kmem_cache_alloc_notrace").return !,
+			kernel.function("kmem_cache_alloc").return
+{
 	call_site = 0
 	caller_function = "unknown"
-	bytes_req = $size
-	bytes_alloc = bytes_req // pretend they are always the same
-	gfp_flags = $flags
-	gfp_flag_name = __gfp_flag_str(gfp_flags)
+	// Note that 'bytes_req' could be wrong.  By the time
+	// kmem_cache_alloc* gets called the requested size could have
+	// rounded up to the nearest cache alloc size.
+	if (@defined($s)) {
+		bytes_req = $s->size
+		bytes_alloc = $s->size
+	}
+	else if (@defined($cachep->buffer_size)) {
+		bytes_req = $cachep->buffer_size
+		bytes_alloc = $cachep->buffer_size
+	}
+	else {
+		bytes_req = $cachep->objsize
+		bytes_alloc = $cachep->objsize
+	}
+	if (@defined($gfpflags)) {
+		gfp_flags = $gfpflags
+		gfp_flag_name = __gfp_flag_str($gfpflags)
+	}
+	else {
+		gfp_flags = $flags
+		gfp_flag_name = __gfp_flag_str($flags)
+	}
 	ptr = $return
 }
 
 /**
  * probe vm.kmalloc - Fires when kmalloc is requested.
+ * @name: Name of the probe point
  * @call_site: Address of the kmemory function.
  * @caller_function: Name of the caller function.
  * @bytes_req: Requested Bytes
@@ -365,13 +409,14 @@ probe __vm.kmalloc.kp = kernel.function("kmalloc").return {
  * @gfp_flag_name: type of kmemory to allocate (in String format)
  * @ptr: Pointer to the kmemory allocated
  */
-probe vm.kmalloc = __vm.kmalloc.tp !,
-			__vm.kmalloc.kp
-{}
+probe vm.kmalloc = __vm.kmalloc.tp !, __vm.kmalloc.kp
+{
+	name = "kmalloc"
+}
 
 
-probe __vm.kmem_cache_alloc.tp = kernel.trace("kmem_cache_alloc") {
-	name = "kmem_cache_alloc"
+probe __vm.kmem_cache_alloc.tp = kernel.trace("kmem_cache_alloc")
+{
 	call_site = $call_site
 	caller_function = symname(call_site)
 	bytes_req = $bytes_req
@@ -381,20 +426,40 @@ probe __vm.kmem_cache_alloc.tp = kernel.trace("kmem_cache_alloc") {
 	ptr = $ptr
 }
 
-probe __vm.kmem_cache_alloc.kp = kernel.function("kmem_cache_alloc").return {
-	name = "kmem_cache_alloc"
+probe __vm.kmem_cache_alloc.kp = kernel.function("kmem_cache_alloc").return
+{
 	call_site = 0
 	caller_function = "unknown"
-	bytes_req = $cachep->buffer_size
-	bytes_alloc = bytes_req // pretend they are always the same
-	gfp_flags = $flags
-	gfp_flag_name = __gfp_flag_str(gfp_flags)
+	// Note that 'bytes_req' could be wrong.  By the time
+	// kmem_cache_alloc* gets called the requested size could have
+	// rounded up to the nearest cache alloc size.
+	if (@defined($s)) {
+		bytes_req = $s->size
+		bytes_alloc = $s->size
+	}
+	else if (@defined($cachep->buffer_size)) {
+		bytes_req = $cachep->buffer_size
+		bytes_alloc = $cachep->buffer_size
+	}
+	else {
+		bytes_req = $cachep->objsize
+		bytes_alloc = $cachep->objsize
+	}
+	if (@defined($gfpflags)) {
+		gfp_flags = $gfpflags
+		gfp_flag_name = __gfp_flag_str($gfpflags)
+	}
+	else {
+		gfp_flags = $flags
+		gfp_flag_name = __gfp_flag_str($flags)
+	}
 	ptr = $return
 }
 
 /**
  * probe vm.kmem_cache_alloc - Fires when \
  *              kmem_cache_alloc is requested.
+ * @name: Name of the probe point
  * @call_site: Address of the function calling this kmemory function.
  * @caller_function: Name of the caller function.
  * @bytes_req: Requested Bytes
@@ -405,11 +470,13 @@ probe __vm.kmem_cache_alloc.kp = kernel.function("kmem_cache_alloc").return {
  */
 
 probe vm.kmem_cache_alloc = __vm.kmem_cache_alloc.tp !,
-				__vm.kmem_cache_alloc.kp
-{}
+			    __vm.kmem_cache_alloc.kp
+{
+	name = "kmem_cache_alloc"
+}
 
-probe __vm.kmalloc_node.tp = kernel.trace("kmalloc_node")? {
-	name = "kmalloc_node"
+probe __vm.kmalloc_node.tp = kernel.trace("kmalloc_node") ?
+{
 	call_site = $call_site
 	caller_function = symname(call_site)
 	bytes_req = $bytes_req
@@ -419,8 +486,8 @@ probe __vm.kmalloc_node.tp = kernel.trace("kmalloc_node")? {
 	ptr = $ptr
 }
 
-probe __vm.kmalloc_node.kp = kernel.function("kmalloc_node").return? {
-	name = "kmalloc_node"
+probe __vm.kmalloc_node.kp = kernel.function("kmalloc_node").return ?
+{
 	call_site = 0
 	caller_function = "unknown"
 	bytes_req = $size
@@ -432,6 +499,7 @@ probe __vm.kmalloc_node.kp = kernel.function("kmalloc_node").return? {
 
 /**
  * probe vm.kmalloc_node - Fires when kmalloc_node is requested.
+ * @name: Name of the probe point
  * @call_site: Address of the function caling this  kmemory function.
  * @caller_function: Name of the caller function.
  * @bytes_req: Requested Bytes
@@ -440,12 +508,13 @@ probe __vm.kmalloc_node.kp = kernel.function("kmalloc_node").return? {
  * @gfp_flag_name: Type of kmemory to allocate(in string format)
  * @ptr: Pointer to the kmemory allocated
  */
-probe vm.kmalloc_node = __vm.kmalloc_node.tp !,
-			__vm.kmalloc_node.kp
-{}
+probe vm.kmalloc_node = __vm.kmalloc_node.tp !, __vm.kmalloc_node.kp ?
+{
+	name = "kmalloc_node"
+}
 
-probe __vm.kmem_cache_alloc_node.tp = kernel.trace("kmem_cache_alloc_node")? {
-	name = "kmem_cache_alloc_node"
+probe __vm.kmem_cache_alloc_node.tp = kernel.trace("kmem_cache_alloc_node") ?
+{
 	call_site = $call_site
 	caller_function = symname(call_site)
 	bytes_req = $bytes_req
@@ -455,13 +524,30 @@ probe __vm.kmem_cache_alloc_node.tp = kernel.trace("kmem_cache_alloc_node")? {
 	ptr = $ptr
 }
 
-probe __vm.kmem_cache_alloc_node.kp = kernel.function("kmem_cache_alloc_node").return? {
-	name = "kmem_cache_alloc_node"
+probe __vm.kmem_cache_alloc_node.kp =
+		kernel.function("kmem_cache_alloc_node").return ?
+{
 	call_site = 0
 	caller_function = "unknown"
-	bytes_req = $cachep->buffer_size
-	bytes_alloc = bytes_req // pretend they are always the same
-	gfp_flags = $flags
+	// Note that 'bytes_req' could be wrong.  By the time
+	// kmem_cache_alloc* gets called the requested size could have
+	// rounded up to the nearest cache alloc size.
+	if (@defined($s)) {
+		bytes_req = $s->size
+		bytes_alloc = $s->size
+	}
+	else if (@defined($cachep->buffer_size)) {
+		bytes_req = $cachep->buffer_size
+		bytes_alloc = $cachep->buffer_size
+	}
+	else {
+		bytes_req = $cachep->objsize
+		bytes_alloc = $cachep->objsize
+	}
+
+	// kmem_cache_alloc_node() doesn't get a flags argument.  But,
+	// internally it uses GFP_KERNEL().
+	gfp_flags = GFP_KERNEL()
 	gfp_flag_name = __gfp_flag_str(gfp_flags)
 	ptr = $return
 }
@@ -469,6 +555,7 @@ probe __vm.kmem_cache_alloc_node.kp = kernel.function("kmem_cache_alloc_node").r
 /**
  * probe vm.kmem_cache_alloc_node - Fires when \
  *              kmem_cache_alloc_node is requested.
+ * @name: Name of the probe point
  * @call_site: Address of the function calling this kmemory function.
  * @caller_function: Name of the caller function.
  * @bytes_req: Requested Bytes
@@ -478,53 +565,59 @@ probe __vm.kmem_cache_alloc_node.kp = kernel.function("kmem_cache_alloc_node").r
  * @ptr: Pointer to the kmemory allocated
  */
 probe vm.kmem_cache_alloc_node = __vm.kmem_cache_alloc_node.tp !,
-				__vm.kmem_cache_alloc_node.kp
-{}
+				 __vm.kmem_cache_alloc_node.kp
+{
+	name = "kmem_cache_alloc_node"
+}
 
-
-probe __vm.kfree.tp = kernel.trace("kfree") {
-	name = "kfree"
+probe __vm.kfree.tp = kernel.trace("kfree")
+{
 	call_site = $call_site
 	caller_function = symname(call_site)
 	ptr = $ptr
 }
 
-probe __vm.kfree.kp = kernel.function("kfree").return {
-	name = "kfree"
+probe __vm.kfree.kp = kernel.function("kfree").return
+{
 	call_site = 0
 	caller_function = "unknown"
-	ptr = $objp
+	ptr = (@defined($x) ? $x : $objp)
 }
 
 /**
  * probe vm.kfree - Fires when kfree is requested.
+ * @name: Name of the probe point
  * @call_site: Address of the function calling this kmemory function.
  * @caller_function: Name of the caller function.
  * @ptr: Pointer to the kmemory allocated which is returned by kmalloc
  */
-probe vm.kfree = __vm.kfree.tp !,
-		__vm.kfree.kp
-{}
+probe vm.kfree = __vm.kfree.tp !, __vm.kfree.kp
+{
+	name = "kfree"
+}
 
-probe __vm.kmem_cache_free.tp = kernel.trace("kmem_cache_free") {
-	name = "kmem_cache_free"
+probe __vm.kmem_cache_free.tp = kernel.trace("kmem_cache_free")
+{
 	call_site = $call_site
 	caller_function = symname(call_site)
 	ptr = $ptr
 }
-probe __vm.kmem_cache_free.kp = kernel.function("kmem_cache_free").return {
-	name = "kmem_cache_free"
+probe __vm.kmem_cache_free.kp = kernel.function("kmem_cache_free").return
+{
 	call_site = 0
 	caller_function = "unknown"
-	ptr = $objp
+	ptr = (@defined($x) ? $x : $objp)
 }
+
 /**
  * probe vm.kmem_cache_free - Fires when \
  *              kmem_cache_free is requested.
+ * @name: Name of the probe point
  * @call_site: Address of the function calling this kmemory function.
  * @caller_function: Name of the caller function.
  * @ptr: Pointer to the kmemory allocated which is returned by kmem_cache
  */
-probe vm.kmem_cache_free = __vm.kmem_cache_free.tp !,
-				__vm.kmem_cache_free.kp
-{}
+probe vm.kmem_cache_free = __vm.kmem_cache_free.tp !, __vm.kmem_cache_free.kp
+{
+	name = "kmem_cache_free"
+}

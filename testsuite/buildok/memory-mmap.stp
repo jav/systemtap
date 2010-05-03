@@ -1,0 +1,8 @@
+#! stap -p4
+
+# This fails on some kernels because we can't find the arguments to
+# this inline function (PR 1155).
+probe vm.mmap
+{
+	printf("%s: %p %d\n", name, address, length)
+}
