@@ -116,7 +116,12 @@ foreach arch $arches {
 			set prelink_cmd [concat $prelink_bin -vfNR $addr $testso]
 			send_log "Executing: $prelink_cmd\n"
 			catch {eval exec $prelink_cmd} result
-			verbose -log "result is $result"
+			if { $result != "" } {
+			    verbose -log "prelink failed: $result"
+			    fail "$libname prelink $testso"
+			} else {
+			    pass "$libname prelink $testso"
+			}
 		    }
 		    
 		    # seperate debuginfo after prelinking
