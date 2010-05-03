@@ -136,8 +136,8 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 			}
 			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
 			_stp_print_char('\n');
-#ifdef CONFIG_UTRACE /* as a proxy for presence of uprobes... */
-                } else if (ri && ri != GET_PC_URETPROBE_NONE) {
+#ifdef CONFIG_UPROBE_GET_PC
+                } else if (ri) {
 			if (verbose == SYM_VERBOSE_FULL) {
 				_stp_print("Returning from: ");
 				/* ... otherwise this dereference fails */

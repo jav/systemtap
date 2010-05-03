@@ -93,10 +93,8 @@ extern void unmap_uretprobe(struct uretprobe *rp);
  * if it is the address of the trampoline. sp is the stack pointer for
  * the frame that corresponds to the address.
  *
- * When not called from a uretprobe hander, pass GET_PC_URETPROBE_NONE
- * instead of a uretprobe_instance.
+ * When not called from a uretprobe hander, pass 0.
  */
-#define GET_PC_URETPROBE_NONE ((struct uretprobe_instance *)-1L)
 extern unsigned long uprobe_get_pc(struct uretprobe_instance *ri,
                                    unsigned long pc,
                                    unsigned long sp);
