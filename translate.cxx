@@ -1765,7 +1765,7 @@ c_unparser::emit_lock_decls(const varuse_collecting_visitor& vut)
   unsigned numvars = 0;
 
   if (session->verbose > 1)
-    clog << current_probe->name << " locks ";
+    clog << "probe " << *current_probe->sole_location() << " locks ";
 
   o->newline() << "static const struct stp_probe_lock locks[] = {";
   o->indent(1);

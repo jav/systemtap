@@ -4278,7 +4278,7 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
         }
       else if (current_probe)
         {
-          clog << "probe " << current_probe->name << endl;
+          clog << "probe " << *current_probe->sole_location() << endl;
           current_probe->body->print (clog);
           clog << endl;
         }
@@ -4890,10 +4890,7 @@ typeresolution_info::unresolved (const token* tok)
   if (assert_resolvability)
     {
       stringstream msg;
-      string nm = (current_function ? current_function->name :
-                   current_probe ? current_probe->name :
-                   "probe condition");
-      msg << nm + " with unresolved type";
+      msg << "unresolved type ";
       session.print_error (semantic_error (msg.str(), tok));
     }
 }
@@ -4907,13 +4904,10 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
   if (assert_resolvability)
     {
       stringstream msg;
-      string nm = (current_function ? current_function->name :
-                   current_probe ? current_probe->name :
-                   "probe condition");
       if (tok && tok->type == tok_operator)
-        msg << nm + " uses invalid operator";
+        msg << "invalid operator";
       else
-        msg << nm + " with invalid type " << pe;
+        msg << "invalid type " << pe;
       session.print_error (semantic_error (msg.str(), tok));
     }
 }
@@ -4946,10 +4940,7 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 	}
       if (!tok_resolved)
 	{
-	  string nm = (current_function ? current_function->name :
-		       current_probe ? current_probe->name :
-		       "probe condition");
-	  msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
+	  msg << "type mismatch (" << t1 << " vs. " << t2 << ")";
 	}
       else
 	{
@@ -4962,16 +4953,13 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 		  break;
 		}
 	    }
-	  string nm = (current_function ? current_function->name :
-		       current_probe ? current_probe->name :
-		       "probe condition");
-	  msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
+	  msg << "type mismatch (" << t1 << " vs. " << t2 << ")";
 	  if (!tok_printed)
 	    {
 	      //error for possible mismatch in the earlier resolved token
 	      printed_toks.push_back (resolved_toks[i]);
 	      stringstream type_msg;
-	      type_msg << nm + " type first inferred here (" << t2 << ")";
+	      type_msg << "type was first inferred here (" << t2 << ")";
 	      err1 = new semantic_error (type_msg.str(), resolved_toks[i]);
 	    }
 	}
