@@ -34,4 +34,9 @@ probe begin {
 	log(cmdline_args(1, 1, "bar"))
 	log(cmdline_arg(0))
 	log(cmdline_str())
+	printf("%d\n", is_myproc() + cpuid() + cpu()
+	       + registers_valid() + user_mode() + is_return()
+	       + target() + stp_pid() + stack_size() + stack_used()
+	       + stack_unused())
+	printf("%s\n", module_name())
 }
