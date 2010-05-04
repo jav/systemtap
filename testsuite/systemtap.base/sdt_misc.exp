@@ -329,8 +329,8 @@ if { $res != "" } {
 
 set ok 0
 set fail "types"
-verbose -log "spawn $stap_path -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x"
-spawn $stap_path -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x
+verbose -log "spawn $stap_path -g -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x"
+spawn $stap_path -g -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x
 
 expect {
     -timeout 180
