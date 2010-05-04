@@ -86,6 +86,7 @@ struct typeresolution_info: public visitor
   void visit_continue_statement (continue_statement* s);
   void visit_literal_string (literal_string* e);
   void visit_literal_number (literal_number* e);
+  void visit_embedded_expr (embedded_expr* e);
   void visit_binary_expression (binary_expression* e);
   void visit_unary_expression (unary_expression* e);
   void visit_pre_crement (pre_crement* e);

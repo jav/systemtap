@@ -267,6 +267,12 @@ void literal_number::print (ostream& o) const
 }
 
 
+void embedded_expr::print (ostream& o) const
+{
+  o << "%{ " << code << " %}";
+}
+
+
 void binary_expression::print (ostream& o) const
 {
   o << "(" << *left << ") "
@@ -1247,6 +1253,12 @@ binary_expression::visit (visitor* u)
 }
 
 void
+embedded_expr::visit (visitor* u)
+{
+  u->visit_embedded_expr (this);
+}
+
+void
 unary_expression::visit (visitor* u)
 {
   u->visit_unary_expression (this);
@@ -1650,6 +1662,11 @@ traversing_visitor::visit_literal_number (literal_number*)
 }
 
 void
+traversing_visitor::visit_embedded_expr (embedded_expr*)
+{
+}
+
+void
 traversing_visitor::visit_binary_expression (binary_expression* e)
 {
   e->left->visit (this);
@@ -1857,6 +1874,39 @@ varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
 
   embedded_seen = true;
 }
+
+
+// About the same case as above.
+void
+varuse_collecting_visitor::visit_embedded_expr (embedded_expr *e)
+{
+  // Don't allow embedded C functions in unprivileged mode unless
+  // they are tagged with /* unprivileged */
+  if (session.unprivileged && e->code.find ("/* unprivileged */") == string::npos)
+    throw semantic_error ("embedded expression may not be used when --unprivileged is specified",
+			  e->tok);
+
+  // Don't allow /* guru */ functions unless -g is active.
+  if (!session.guru_mode && e->code.find ("/* guru */") != string::npos)
+    throw semantic_error ("embedded expression may not be used unless -g is specified",
+			  e->tok);
+
+  // We want to elide embedded-C functions when possible.  For
+  // example, each $target variable access is expanded to an
+  // embedded-C function call.  Yet, for safety reasons, we should
+  // presume that embedded-C functions have intentional side-effects.
+  //
+  // To tell these two types of functions apart, we apply a
+  // Kludge(tm): we look for a magic string within the function body.
+  // $target variables as rvalues will have this; lvalues won't.
+  // Also, explicit side-effect-free tapset functions will have this.
+
+  if (e->code.find ("/* pure */") != string::npos)
+    return;
+
+  embedded_seen = true;
+}
+
 
 void
 varuse_collecting_visitor::visit_target_symbol (target_symbol *e)
@@ -2215,6 +2265,12 @@ throwing_visitor::visit_literal_number (literal_number* e)
 }
 
 void
+throwing_visitor::visit_embedded_expr (embedded_expr* e)
+{
+  throwone (e->tok);
+}
+
+void
 throwing_visitor::visit_binary_expression (binary_expression* e)
 {
   throwone (e->tok);
@@ -2447,6 +2503,12 @@ update_visitor::visit_literal_string (literal_string* e)
 
 void
 update_visitor::visit_literal_number (literal_number* e)
+{
+  provide (e);
+}
+
+void
+update_visitor::visit_embedded_expr (embedded_expr* e)
 {
   provide (e);
 }
@@ -2717,6 +2779,12 @@ void
 deep_copy_visitor::visit_literal_number (literal_number* e)
 {
   update_visitor::visit_literal_number(new literal_number(*e));
+}
+
+void
+deep_copy_visitor::visit_embedded_expr (embedded_expr* e)
+{
+  update_visitor::visit_embedded_expr(new embedded_expr(*e));
 }
 
 void

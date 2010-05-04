@@ -146,6 +146,7 @@ struct c_unparser: public unparser, public visitor
   void visit_continue_statement (continue_statement* s);
   void visit_literal_string (literal_string* e);
   void visit_literal_number (literal_number* e);
+  void visit_embedded_expr (embedded_expr* e);
   void visit_binary_expression (binary_expression* e);
   void visit_unary_expression (unary_expression* e);
   void visit_pre_crement (pre_crement* e);
@@ -190,6 +191,7 @@ struct c_tmpcounter:
   void visit_foreach_loop (foreach_loop* s);
   // void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
+  // void visit_embedded_expr (embedded_expr* e);
   void visit_binary_expression (binary_expression* e);
   // void visit_unary_expression (unary_expression* e);
   void visit_pre_crement (pre_crement* e);
@@ -3185,6 +3187,18 @@ c_tmpcounter::visit_binary_expression (binary_expression* e)
 
   e->left->visit (this);
   e->right->visit (this);
+}
+
+
+void
+c_unparser::visit_embedded_expr (embedded_expr* e)
+{
+  if (e->type == pe_long)
+    o->line() << "((int64_t) (" << e->code << "))";
+  else if (e->type == pe_string)
+    o->line() << "((const char *) (" << e->code << "))";
+  else
+    throw semantic_error ("expected numeric or string type", e->tok);
 }
 
 

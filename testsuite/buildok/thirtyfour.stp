@@ -1,0 +1,15 @@
+#! stap -gp4
+
+probe begin {
+  println("hello")
+
+  %{ /* not pure */ 0 %}      /* but should still compile */
+  %{ /* string */ "hello" %}  /* likewise */
+
+  println(0 * %{ /* pure */ SYNTAX-ERROR-ME %})
+  /* count on constant-propagation */
+
+  log(%{ /* string */ "yellow" %})  
+  println("world")
+}
+

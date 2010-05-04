@@ -1,5 +1,12 @@
 * What's new
 
+- Embedded-C may be used within expressions as values, when in guru mode:
+     num = %{ LINUX_VERSION_CODE %}               // int64_t
+     name = %{ /* string */ THIS_MODULE->name %}  // const char*
+     printf ("%s %x\n", name, num)
+  The usual /* pure */, /* unprivileged */, and /* guru */ markers may be used 
+  as with embedded-C functions.
+
 - By default the systemtap-runtime RPM builds now include a shared
   library, staplog.so, that allows crash to extract systemtap data from
   a vmcore image.

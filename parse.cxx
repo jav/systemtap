@@ -1355,7 +1355,8 @@ parser::parse_statement ()
   else if (t && (t->type == tok_operator || // expressions are flexible
                  t->type == tok_identifier ||
                  t->type == tok_number ||
-                 t->type == tok_string))
+                 t->type == tok_string ||
+                 t->type == tok_embedded ))
     ret = parse_expr_statement ();
   // XXX: consider generally accepting tok_embedded here too
   else
@@ -2429,6 +2430,18 @@ parser::parse_value ()
   const token* t = peek ();
   if (! t)
     throw parse_error ("expected value");
+
+  if (t->type == tok_embedded)
+    {
+      next ();
+      if (! privileged)
+        throw parse_error ("embedded expression code in unprivileged script", false);
+
+      embedded_expr *e = new embedded_expr;
+      e->tok = t;
+      e->code = t->content;
+      return e;
+    }
 
   if (t->type == tok_operator && t->content == "(")
     {

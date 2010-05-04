@@ -899,7 +899,7 @@ be useful to add
 instructions, and any auxiliary definitions for use by other embedded
 code.
 .PP
-The other place where embedded code is permitted is as a function body.
+Another place where embedded code is permitted is as a function body.
 In this case, the script language body is replaced entirely by a piece
 of C code enclosed again between
 .IR %{ " and " %}
@@ -926,6 +926,44 @@ The function argument and return value types have to be inferred by
 the translator from the call sites in order for this to work.  The
 user should examine C code generated for ordinary script-language
 functions in order to write compatible embedded-C ones.
+.PP
+The last place where embedded code is permitted is as an expression rvalue.
+In this case, the C code enclosed between
+.IR %{ " and " %}
+markers is interpreted as an ordinary expression value.  It is assumed
+to be a normal 64-bit signed number, unless the marker
+.I /* string */
+is included, in which case it's treated as a string.
+.SAMPLE
+function add_one (val) {
+  return val + %{ 1 %}
+}
+function add_string_two (val) {
+  return val . %{ /* string */ "two" %}
+}
+.ESAMPLE
+.PP
+The embedded-C code may contain markers to assert optimization
+and safety properties.
+.TP
+.I /* pure */
+means that the C code has no side effects and may be elided entirely if its
+value is not used by script code.
+.TP
+.I /* unprivileged */
+means that the C code is so safe that even unprivileged users are permitted
+to use it.
+.TP
+.I /* guru */
+means that the C code is so unsafe that a systemtap user must specify
+.IR -g
+(guru mode) to use this.
+.TP
+.I /* string */
+in embedded-C expressions only, means that the expression has
+.I const char *
+type and should be treated as a string value, instead of
+the default long numeric.
 
 .SS BUILT-INS
 A set of builtin functions and probe point aliases are provided

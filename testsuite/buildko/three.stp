@@ -1,0 +1,6 @@
+#! stap -gp4
+
+probe begin {
+  %{ /* not pure */ SYNTAX ERROR %}
+}
+

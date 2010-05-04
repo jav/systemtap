@@ -3890,6 +3890,21 @@ typeresolution_info::visit_assignment (assignment *e)
 
 
 void
+typeresolution_info::visit_embedded_expr (embedded_expr *e)
+{
+  if (e->type == pe_unknown)
+    {
+      if (e->code.find ("/* string */") != string::npos)
+        e->type = pe_string;
+      else // if (e->code.find ("/* long */") != string::npos)
+        e->type = pe_long;
+
+      resolved (e->tok, e->type);
+    }
+}
+
+
+void
 typeresolution_info::visit_binary_expression (binary_expression* e)
 {
   if (t == pe_stats || t == pe_string)

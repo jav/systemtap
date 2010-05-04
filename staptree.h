@@ -97,6 +97,14 @@ struct literal_number: public literal
 };
 
 
+struct embedded_expr: public expression
+{
+  std::string code;
+  void print (std::ostream& o) const;
+  void visit (visitor* u);
+};
+
+
 struct binary_expression: public expression
 {
   expression* left;
@@ -723,6 +731,7 @@ struct visitor
   virtual void visit_continue_statement (continue_statement* s) = 0;
   virtual void visit_literal_string (literal_string* e) = 0;
   virtual void visit_literal_number (literal_number* e) = 0;
+  virtual void visit_embedded_expr (embedded_expr* e) = 0;
   virtual void visit_binary_expression (binary_expression* e) = 0;
   virtual void visit_unary_expression (unary_expression* e) = 0;
   virtual void visit_pre_crement (pre_crement* e) = 0;
@@ -766,6 +775,7 @@ struct traversing_visitor: public visitor
   void visit_continue_statement (continue_statement* s);
   void visit_literal_string (literal_string* e);
   void visit_literal_number (literal_number* e);
+  void visit_embedded_expr (embedded_expr* e);
   void visit_binary_expression (binary_expression* e);
   void visit_unary_expression (unary_expression* e);
   void visit_pre_crement (pre_crement* e);
@@ -818,6 +828,7 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
     current_lvalue(0),
     current_lrvalue(0) {}
   void visit_embeddedcode (embeddedcode *s);
+  void visit_embedded_expr (embedded_expr *e);
   void visit_try_block (try_block *s);
   void visit_delete_statement (delete_statement *s);
   void visit_print_format (print_format *e);
@@ -862,6 +873,7 @@ struct throwing_visitor: public visitor
   void visit_continue_statement (continue_statement* s);
   void visit_literal_string (literal_string* e);
   void visit_literal_number (literal_number* e);
+  void visit_embedded_expr (embedded_expr* e);
   void visit_binary_expression (binary_expression* e);
   void visit_unary_expression (unary_expression* e);
   void visit_pre_crement (pre_crement* e);
@@ -930,6 +942,7 @@ struct update_visitor: public visitor
   virtual void visit_continue_statement (continue_statement* s);
   virtual void visit_literal_string (literal_string* e);
   virtual void visit_literal_number (literal_number* e);
+  virtual void visit_embedded_expr (embedded_expr* e);
   virtual void visit_binary_expression (binary_expression* e);
   virtual void visit_unary_expression (unary_expression* e);
   virtual void visit_pre_crement (pre_crement* e);
@@ -987,6 +1000,7 @@ struct deep_copy_visitor: public update_visitor
   virtual void visit_continue_statement (continue_statement* s);
   virtual void visit_literal_string (literal_string* e);
   virtual void visit_literal_number (literal_number* e);
+  virtual void visit_embedded_expr (embedded_expr* e);
   virtual void visit_binary_expression (binary_expression* e);
   virtual void visit_unary_expression (unary_expression* e);
   virtual void visit_pre_crement (pre_crement* e);
