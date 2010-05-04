@@ -63,7 +63,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 
 	while (levels && (tsk || !arch_unw_user_mode(&info))) {
 		int ret = unwind(&info, tsk);
-#if STAPCONF_UPROBE_GET_PC
+#ifdef STAPCONF_UPROBE_GET_PC
                 unsigned long maybe_pc = 0;                
                 if (ri) {
                         maybe_pc = uprobe_get_pc(ri, UNW_PC(&info),
