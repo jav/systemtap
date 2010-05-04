@@ -1,0 +1,8 @@
+#! stap -p4
+
+# This test fails on some kernels because we can't find the arguments to
+# this inline function (PR 1155).
+probe signal.check_ignored
+{
+	printf("%s(%d(%s), %d(%s))\n", name, sig, sig_name, sig_pid, pid_name)
+}

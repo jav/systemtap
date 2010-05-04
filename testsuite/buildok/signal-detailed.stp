@@ -1,0 +1,125 @@
+#! stap -p4
+
+probe signal.send
+{
+	printf("%s(%d(%s), %d(%s))\n", name, sig, sig_name, sig_pid, pid_name)
+	printf("%s %p %p %d %d\n", si_code, task, sinfo, shared, send2queue)
+}
+probe signal.send.return
+{
+	printf("%s() = %s\n", name, retstr)
+	printf("%d %d\n", shared, send2queue)
+}
+
+probe signal.checkperm
+{
+	printf("%s(%d(%s), %d(%s))\n", name, sig, sig_name, sig_pid, pid_name)
+	printf("%s %p %p\n", si_code, task, sinfo)
+}
+probe signal.checkperm.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.wakeup
+{
+	printf("%s(%d(%s))\n", name, sig_pid, pid_name)
+	printf("%d %s\n", resume, state_mask)
+}
+
+# signal.check_ignored test moved to signal-check_ignored.stp
+
+probe signal.check_ignored.return ?
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.force_segv
+{
+	printf("%s(%d(%s), %d(%s))\n", name, sig, sig_name, sig_pid, pid_name)
+}
+probe signal.force_segv.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.syskill
+{
+	printf("%s(%d(%s), %d(%s))\n", name, sig, sig_name, sig_pid, pid_name)
+}
+probe signal.syskill.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.systkill
+{
+	printf("%s(%d(%s), %d(%s))\n", name, sig, sig_name, sig_pid, pid_name)
+}
+probe signal.systkill.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.systgkill
+{
+	printf("%s(%d(%s), %d(%s))\n", name, sig, sig_name, sig_pid, pid_name)
+	printf("%d\n", tgid)
+}
+probe signal.systgkill.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.send_sig_queue
+{
+	printf("%s(%d(%s), %d(%s))\n", name, sig, sig_name, sig_pid, pid_name)
+	printf("%d\n", sigqueue_addr)
+}
+probe signal.send_sig_queue.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.pending
+{
+	printf("%s(%p %d\n", name, sigset_add, sigset_size)
+}
+probe signal.pending.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+# signal.handle test moved to signal-handle.stp
+
+probe signal.handle.return ?
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.do_action
+{
+	printf("%s(%d(%s)\n", name, sig, sig_name)
+	printf("%p %p\n", sigact_addr, oldsigact_addr)
+	printf("%p %d\n", sa_handler, sa_mask)
+}
+probe signal.do_action.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.procmask
+{
+	printf("%s %d\n", name, how)
+	printf("%p %p %d\n", sigset_addr, oldsigset_addr, sigset)
+}
+probe signal.procmask.return
+{
+	printf("%s() = %s\n", name, retstr)
+}
+
+probe signal.flush
+{
+	printf("%s(%d(%s))\n", name, sig_pid, pid_name)
+	printf("%p\n", task)
+}

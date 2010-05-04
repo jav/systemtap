@@ -3,7 +3,5 @@
 // Tests if all probes in the signal tapset are resolvable.
 
 probe signal.*,
-      signal.*.*,
-      _signal.*.*,
-      _signal.*.*.* 
+      signal.*.*
 {}
