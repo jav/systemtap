@@ -363,23 +363,22 @@ private:
                           Dwarf_Die *memberdie,
                           std::vector<Dwarf_Attribute>& locs);
 
-  Dwarf_Die *translate_components(struct obstack *pool,
-                                  struct location **tail,
-                                  Dwarf_Addr pc,
-                                  const target_symbol *e,
-                                  Dwarf_Die *vardie,
-                                  Dwarf_Die *die_mem,
-                                  Dwarf_Attribute *attr_mem);
+  void translate_components(struct obstack *pool,
+                            struct location **tail,
+                            Dwarf_Addr pc,
+                            const target_symbol *e,
+                            Dwarf_Die *vardie,
+                            Dwarf_Die *typedie);
 
-  Dwarf_Die *resolve_unqualified_inner_typedie (Dwarf_Die *typedie_mem,
-                                                Dwarf_Attribute *attr_mem,
-                                                const target_symbol *e);
+  void resolve_unqualified_inner_typedie (Dwarf_Die *typedie,
+                                          Dwarf_Die *innerdie,
+                                          const target_symbol *e);
 
   void translate_final_fetch_or_store (struct obstack *pool,
                                        struct location **tail,
                                        Dwarf_Addr module_bias,
-                                       Dwarf_Die *die,
-                                       Dwarf_Attribute *attr_mem,
+                                       Dwarf_Die *vardie,
+                                       Dwarf_Die *typedie,
                                        bool lvalue,
                                        const target_symbol *e,
                                        std::string &,
