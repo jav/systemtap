@@ -1,0 +1,49 @@
+#! stap -p4
+
+probe tcp.sendmsg
+{
+	printf("%s %p %d\n", name, sock, size)
+}
+probe tcp.sendmsg.return
+{
+	printf("%s %d\n", name, size)
+}
+
+probe tcp.recvmsg
+{
+	printf("%s %p %d\n", name, sock, size)
+	printf("%s %s %d %d\n", saddr, daddr, sport, dport)
+}
+probe tcp.recvmsg.return
+{
+	printf("%s %d\n", name, size)
+	printf("%s %s %d %d\n", saddr, daddr, sport, dport)
+}
+
+probe tcp.disconnect
+{
+	printf("%s %p %d\n", name, sock, flags)
+	printf("%s %s %d %d\n", saddr, daddr, sport, dport)
+}
+probe tcp.disconnect.return
+{
+	printf("%s %d\n", name, ret)
+}
+
+probe tcp.setsockopt
+{
+	printf("%s %p %d %d(%s) %d\n", name, sock, level, optname,
+	       optstr, optlen)
+}
+probe tcp.setsockopt.return
+{
+	printf("%s %d\n", name, ret)
+}
+
+probe tcp.receive
+{
+	printf("%s %p\n", name, iphdr)
+	printf("%s %s %d %d\n", saddr, daddr, sport, dport)
+	printf("%d %p %d %d %d %d %d %d\n", protocol, tcphdr, urg,
+	       ack, psh, rst, syn, fin)
+}

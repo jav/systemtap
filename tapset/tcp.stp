@@ -249,11 +249,7 @@ function tcp_sockopt_str:string (optname:long) {
   */
 probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 	name = "tcp.sendmsg"
-%( kernel_v < "2.6.23" %?
-	sock    = $sk
-%:
-	sock = $sock
-%)
+	sock = (@defined($sock) ? $sock : $sk)
 	size    = $size
 }
 
@@ -385,6 +381,9 @@ probe tcp.setsockopt.return = kernel.function("tcp_setsockopt").return {
 
 /**
  * probe tcp.receive - Called when a TCP packet is received
+ * @name: Name of the probe point
+ * @iphdr: IP header address
+ * @protocol: Packet protocol from driver
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
  * @sport: TCP source port
@@ -397,6 +396,7 @@ probe tcp.setsockopt.return = kernel.function("tcp_setsockopt").return {
  * @fin: TCP FIN flag
  */
 probe tcp.receive = kernel.function("tcp_v4_rcv") {
+	name = "tcp.receive"
 	iphdr = __get_skb_iphdr($skb)
 	saddr = ip_ntop(__ip_skb_saddr(iphdr))
 	daddr = ip_ntop(__ip_skb_daddr(iphdr))

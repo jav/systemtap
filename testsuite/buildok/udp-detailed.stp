@@ -1,0 +1,19 @@
+#! stap -p4
+
+probe udp.sendmsg, udp.recvmsg
+{
+	printf("%s %p %d\n", name, sock, size)
+}
+probe udp.sendmsg.return, udp.recvmsg.return
+{
+	printf("%s %d\n", name, size)
+}
+
+probe udp.disconnect
+{
+	printf("%s %p %d\n", name, sock, flags)
+}
+probe udp.disconnect.return
+{
+	printf("%s %d\n", name, ret)
+}
