@@ -71,6 +71,12 @@ void c_translate_array (struct obstack *pool, int indent,
 			struct location **input,
 			const char *idx, Dwarf_Word const_idx);
 
+/* Translate a pointer as if it were an array, for cases where we have an
+   address and pointee type DIE, but perhaps don't have a pointer DIE. */
+void c_translate_array_pointer (struct obstack *pool, int indent,
+				Dwarf_Die *typedie, struct location **input,
+				const char *idx, Dwarf_Word const_idx);
+
 /* Translate a fragment to compute the address of the input location
    and assign it to the variable TARGET.  This doesn't really do anything
    (it always emits "TARGET = addr;"), but it will barf if the location

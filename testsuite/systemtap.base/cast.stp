@@ -17,6 +17,13 @@ probe begin
     else
         printf("PID2 %d != %d\n", pid, cast_pid)
 
+    // Compare PIDs with an array access (PR11556)
+    cast_pid = @cast(curr, "task_struct")[0]->tgid
+    if (pid == cast_pid)
+        println("PID3 OK")
+    else
+        printf("PID3 %d != %d\n", pid, cast_pid)
+
     // Compare execnames
     name = execname()
     cast_name = kernel_string(@cast(curr, "task_struct")->comm)

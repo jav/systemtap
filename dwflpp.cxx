@@ -1935,9 +1935,10 @@ dwflpp::translate_components(struct obstack *pool,
                              Dwarf_Addr pc,
                              const target_symbol *e,
                              Dwarf_Die *vardie,
-                             Dwarf_Die *typedie)
+                             Dwarf_Die *typedie,
+                             unsigned first)
 {
-  unsigned i = 0;
+  unsigned i = first;
   while (i < e->components.size())
     {
       const target_symbol::component& c = e->components[i];
@@ -2478,8 +2479,33 @@ dwflpp::literal_stmt_for_pointer (Dwarf_Die *start_typedie,
 
   /* Translate the ->bar->baz[NN] parts. */
 
+  unsigned first = 0;
   Dwarf_Die typedie = *start_typedie, vardie = typedie;
-  translate_components (&pool, &tail, 0, e, &vardie, &typedie);
+
+  /* As a special case when typedie is not an array or pointer, we can allow
+   * array indexing on THIS->pointer instead (since we do know the pointee type
+   * and can determine its size).  PR11556. */
+  const target_symbol::component* c =
+    e->components.empty() ? NULL : &e->components[0];
+  if (c && (c->type == target_symbol::comp_literal_array_index ||
+            c->type == target_symbol::comp_expression_array_index))
+    {
+      resolve_unqualified_inner_typedie (&typedie, &typedie, e);
+      int typetag = dwarf_tag (&typedie);
+      if (typetag != DW_TAG_pointer_type &&
+          typetag != DW_TAG_array_type)
+        {
+          if (c->type == target_symbol::comp_literal_array_index)
+            c_translate_array_pointer (&pool, 1, &typedie, &tail, NULL, c->num_index);
+          else
+            c_translate_array_pointer (&pool, 1, &typedie, &tail, "THIS->index0", 0);
+          ++first;
+        }
+    }
+
+  /* Now translate the rest normally. */
+
+  translate_components (&pool, &tail, 0, e, &vardie, &typedie, first);
 
   /* Translate the assignment part, either
      x = (THIS->pointer)->bar->baz[NN]

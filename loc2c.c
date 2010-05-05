@@ -2017,6 +2017,40 @@ c_translate_pointer_store (struct obstack *pool, int indent,
   // XXX: what about multiple-location lvalues?
 }
 
+/* Determine the element stride of a pointer to a type.  */
+static Dwarf_Word
+pointer_stride (Dwarf_Die *typedie, struct location *origin)
+{
+  Dwarf_Attribute attr_mem;
+  Dwarf_Die die_mem = *typedie;
+  int typetag = dwarf_tag(&die_mem);
+  while (typetag == DW_TAG_typedef ||
+	 typetag == DW_TAG_const_type ||
+	 typetag == DW_TAG_volatile_type)
+    {
+      if (dwarf_attr_integrate (&die_mem, DW_AT_type, &attr_mem) == NULL
+	  || dwarf_formref_die (&attr_mem, &die_mem) == NULL)
+	FAIL (origin, N_("cannot get inner type of type %s: %s"),
+	      dwarf_diename (&die_mem) ?: "<anonymous>",
+	      dwarf_errmsg (-1));
+      typetag = dwarf_tag(&die_mem);
+    }
+
+  if (dwarf_attr_integrate (&die_mem, DW_AT_byte_size, &attr_mem) != NULL)
+    {
+      Dwarf_Word stride;
+      if (dwarf_formudata (&attr_mem, &stride) == 0)
+	return stride;
+      FAIL (origin,
+	    N_("cannot get byte_size attribute for array element type %s: %s"),
+	    dwarf_diename (&die_mem) ?: "<anonymous>",
+	    dwarf_errmsg (-1));
+    }
+
+  FAIL (origin, N_("confused about array element size"));
+  return 0;
+}
+
 /* Determine the element stride of an array type.  */
 static Dwarf_Word
 array_stride (Dwarf_Die *typedie, struct location *origin)
@@ -2039,32 +2073,7 @@ array_stride (Dwarf_Die *typedie, struct location *origin)
 	  dwarf_diename (typedie) ?: "<anonymous>",
 	  dwarf_errmsg (-1));
 
-  int typetag = dwarf_tag(&die_mem);
-  while (typetag == DW_TAG_typedef ||
-         typetag == DW_TAG_const_type ||
-         typetag == DW_TAG_volatile_type)
-    {
-      if (dwarf_attr_integrate (&die_mem, DW_AT_type, &attr_mem) == NULL
-          || dwarf_formref_die (&attr_mem, &die_mem) == NULL)
-        FAIL (origin, N_("cannot get inner type of type %s: %s"),
-              dwarf_diename (&die_mem) ?: "<anonymous>",
-              dwarf_errmsg (-1));
-      typetag = dwarf_tag(&die_mem);
-    }
-
-  if (dwarf_attr_integrate (&die_mem, DW_AT_byte_size, &attr_mem) != NULL)
-    {
-      Dwarf_Word stride;
-      if (dwarf_formudata (&attr_mem, &stride) == 0)
-	return stride;
-      FAIL (origin,
-	    N_("cannot get byte_size attribute for array element type %s: %s"),
-	    dwarf_diename (&die_mem) ?: "<anonymous>",
-	    dwarf_errmsg (-1));
-    }
-
-  FAIL (origin, N_("confused about array element size"));
-  return 0;
+  return pointer_stride (&die_mem, origin);
 }
 
 void
@@ -2149,6 +2158,30 @@ c_translate_array (struct obstack *pool, int indent,
       abort();
       break;
     }
+
+  (*input)->next = loc;
+  *input = (*input)->next;
+}
+
+void
+c_translate_array_pointer (struct obstack *pool, int indent,
+			   Dwarf_Die *typedie, struct location **input,
+			   const char *idx, Dwarf_Word const_idx)
+{
+  struct location *loc = *input;
+  if (loc->type != loc_address)
+    FAIL (*input, N_("cannot index noncontiguous array"));
+
+  Dwarf_Word stride = pointer_stride (typedie, *input);
+
+  indent += 2;
+  if (idx != NULL)
+    obstack_printf (pool, "%*saddr += %s * " UFORMAT ";\n",
+		    indent * 2, "", idx, stride);
+  else
+    obstack_printf (pool, "%*saddr += " UFORMAT " * " UFORMAT ";\n",
+		    indent * 2, "", const_idx, stride);
+  loc = new_synthetic_loc (pool, loc, false);
 
   (*input)->next = loc;
   *input = (*input)->next;

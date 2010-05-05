@@ -1,6 +1,7 @@
 set test "cast"
 set ::result_string {PID OK
 PID2 OK
+PID3 OK
 execname OK
 sa_data OK
 usage OK}

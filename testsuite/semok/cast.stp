@@ -23,4 +23,7 @@ probe begin {
     @cast(0, "task_struct")->parent->no_such_field
     @cast(0, "no_such_type")->tgid
     @cast(0, "task_struct", "no_such_module")->tgid
+
+    // PR11556: we should be able to treat the initial pointer like an array too
+    println(@cast(0, "task_struct")[42]->tgid)
 }

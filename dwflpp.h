@@ -368,7 +368,8 @@ private:
                             Dwarf_Addr pc,
                             const target_symbol *e,
                             Dwarf_Die *vardie,
-                            Dwarf_Die *typedie);
+                            Dwarf_Die *typedie,
+                            unsigned first=0);
 
   void resolve_unqualified_inner_typedie (Dwarf_Die *typedie,
                                           Dwarf_Die *innerdie,
