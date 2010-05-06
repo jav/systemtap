@@ -269,6 +269,14 @@ _stp_init_time(void)
     return ret;
 }
 
+
+#ifndef STP_TIMELOCKDELAY
+#define STP_TIMELOCKDELAY 100 /* ns */
+#endif
+#ifndef STP_TIMELOCKTRIES
+#define STP_TIMELOCKTRIES 10 /* total 1 us */
+#endif
+
 static int64_t
 _stp_gettimeofday_ns(void)
 {
@@ -283,17 +291,20 @@ _stp_gettimeofday_ns(void)
     if (!stp_time)
         return -1;
 
-    preempt_disable();
+    preempt_disable(); /* XXX: why?  Isn't this is only run from probe handlers? */
     time = per_cpu_ptr(stp_time, smp_processor_id());
 
     seq = read_seqbegin(&time->lock);
     base = time->base_ns;
     last = time->base_cycles;
     freq = time->freq;
-    while (unlikely(read_seqretry(&time->lock, seq))) {
-        if (unlikely(++i >= MAXTRYLOCK))
-            return 0;
-        ndelay(TRYLOCKDELAY);
+    while (unlikely(read_seqretry(&time->lock, seq))) { 
+            if (/* very */ unlikely(++i >= STP_TIMELOCKTRIES)) {
+                    preempt_enable_no_resched();
+                    _stp_warn ("_stp_gettimofday_ns seqlock timeout; see STP_TIMELOCK*");
+                    return 0;
+            }
+        ndelay(STP_TIMELOCKDELAY);
         seq = read_seqbegin(&time->lock);
         base = time->base_ns;
         last = time->base_cycles;

@@ -1,5 +1,5 @@
 /* probe locking header file
- * Copyright (C) 2009 Red Hat Inc.
+ * Copyright (C) 2009-2010 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -48,13 +48,13 @@ stp_lock_probe(const struct stp_probe_lock *locks, unsigned num_locks)
 			while (!write_trylock(locks[i].lock)) {
 				if (++retries > MAXTRYLOCK)
 					goto skip;
-				ndelay (TRYLOCKDELAY);
+				udelay (TRYLOCKDELAY);
 			}
 		else
 			while (!read_trylock(locks[i].lock)) {
 				if (++retries > MAXTRYLOCK)
 					goto skip;
-				ndelay (TRYLOCKDELAY);
+				udelay (TRYLOCKDELAY);
 			}
 	}
 	return 1;

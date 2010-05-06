@@ -5459,11 +5459,11 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#ifndef MAXACTION_INTERRUPTIBLE";
       s.op->newline() << "#define MAXACTION_INTERRUPTIBLE (MAXACTION * 10)";
       s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXTRYLOCK";
-      s.op->newline() << "#define MAXTRYLOCK MAXACTION";
-      s.op->newline() << "#endif";
       s.op->newline() << "#ifndef TRYLOCKDELAY";
-      s.op->newline() << "#define TRYLOCKDELAY 100";
+      s.op->newline() << "#define TRYLOCKDELAY 10 /* microseconds */";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXTRYLOCK";
+      s.op->newline() << "#define MAXTRYLOCK 100 /* 1 millisecond total */";
       s.op->newline() << "#endif";
       s.op->newline() << "#ifndef MAXMAPENTRIES";
       s.op->newline() << "#define MAXMAPENTRIES 2048";
