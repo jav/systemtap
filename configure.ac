@@ -207,12 +207,12 @@ if test "x${have_publican}" == "xyes" -a "$enable_publican" != "no" -a "${buildi
    building_publican="yes"
 fi
 AM_CONDITIONAL([BUILD_PUBLICAN], [test "$building_publican" == "yes"])
-publican_brand="fedora"
+publican_brand="common"
 AC_ARG_WITH([publican-brand],
   AS_HELP_STRING([--with-publican-brand=BRAND],
-    [building publican documentation guides using given brand (defaults to "fedora").]),
+    [building publican documentation guides using given brand (defaults to "common").]),
   [publican_brand=$withval],
-  [publican_brand="fedora"])
+  [publican_brand="common"])
 PUBLICAN_BRAND=$publican_brand
 AC_SUBST(PUBLICAN_BRAND)
 

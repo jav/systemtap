@@ -1486,7 +1486,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-publican-brand=BRAND
                           building publican documentation guides using given
-                          brand (defaults to "fedora").
+                          brand (defaults to "common").
   --with-rpm              query rpm database for missing debuginfos
   --with-elfutils=DIRECTORY
                           find elfutils source code in DIRECTORY
@@ -6831,13 +6831,13 @@ else
   BUILD_PUBLICAN_FALSE=
 fi
 
-publican_brand="fedora"
+publican_brand="common"
 
 # Check whether --with-publican-brand was given.
 if test "${with_publican_brand+set}" = set; then
   withval=$with_publican_brand; publican_brand=$withval
 else
-  publican_brand="fedora"
+  publican_brand="common"
 fi
 
 PUBLICAN_BRAND=$publican_brand
