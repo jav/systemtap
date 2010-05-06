@@ -73,7 +73,7 @@
 #define	nfserr_cb_path_down	__constant_htonl(NFSERR_CB_PATH_DOWN)
 #define	nfserr_locked		__constant_htonl(NFSERR_LOCKED)
 #define	nfserr_wrongsec		__constant_htonl(NFSERR_WRONGSEC)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
 #define nfserr_badiomode		__constant_htonl(NFS4ERR_BADIOMODE)
 #define nfserr_badlayout		__constant_htonl(NFS4ERR_BADLAYOUT)
 #define nfserr_bad_session_digest	__constant_htonl(NFS4ERR_BAD_SESSION_DIGEST)
@@ -184,7 +184,7 @@ function nfsderror:string(err:long)
 		{nfserr_cb_path_down, "NFSERR_CB_PATH_DOWN"},
 		{nfserr_locked, "NFSERR_LOCKED"},
 		{nfserr_wrongsec, "NFSERR_WRONGSEC"},
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
 		{nfserr_badiomode, "NFS4ERR_BADIOMODE"},
 		{nfserr_badlayout, "NFS4ERR_BADLAYOUT"},
 		{nfserr_bad_session_digest, "NFS4ERR_BAD_SESSION_DIGEST"},
