@@ -5491,7 +5491,7 @@ translate_pass (systemtap_session& s)
       // We allow the user to completely turn overload processing off
       // (as opposed to tuning it by overriding the values above) by
       // running:  stap -DSTP_NO_OVERLOAD {other options}
-      s.op->newline() << "#ifndef STP_NO_OVERLOAD";
+      s.op->newline() << "#if !defined(STP_NO_OVERLOAD) && !defined(STAP_NO_OVERLOAD)";
       s.op->newline() << "#define STP_OVERLOAD";
       s.op->newline() << "#endif";
 

@@ -1262,7 +1262,8 @@ the last STP_OVERLOAD_INTERVAL cycles (default 1000000000), the probes
 have overloaded the system and an exit is triggered.
 .PP
 By default, overload processing is turned on for all modules.  If you
-would like to disable overload processing, define STP_NO_OVERLOAD.
+would like to disable overload processing, define STP_NO_OVERLOAD (or
+its alias STAP_NO_OVERLOAD).
 
 .\" PR6864: disable temporarily 
 .\".SH MAKING DO WITH SYMBOL TABLES
