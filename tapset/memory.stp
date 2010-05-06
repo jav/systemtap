@@ -565,7 +565,7 @@ probe __vm.kmem_cache_alloc_node.kp =
  * @ptr: Pointer to the kmemory allocated
  */
 probe vm.kmem_cache_alloc_node = __vm.kmem_cache_alloc_node.tp !,
-				 __vm.kmem_cache_alloc_node.kp
+				 __vm.kmem_cache_alloc_node.kp ?
 {
 	name = "kmem_cache_alloc_node"
 }
