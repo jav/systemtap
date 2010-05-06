@@ -772,15 +772,17 @@ derive_probes (systemtap_session& s,
         }
       catch (const semantic_error& e)
         {
-          // XXX: prefer not to print_error at every nest/unroll level
-
-          semantic_error* er = new semantic_error (e); // copy it
-          stringstream msg;
-          msg << e.msg2;
-          msg << " while resolving probe point " << *loc;
-          er->msg2 = msg.str();
-          s.print_error (* er);
-          delete er;
+          if (! s.listing_mode) // suppress error messages in listing mode
+            {
+              // XXX: prefer not to print_error at every nest/unroll level
+              semantic_error* er = new semantic_error (e); // copy it
+              stringstream msg;
+              msg << e.msg2;
+              msg << " while resolving probe point " << *loc;
+              er->msg2 = msg.str();
+              s.print_error (* er);
+              delete er;
+            }
         }
 
     }

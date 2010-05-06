@@ -585,7 +585,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         case 'L':
           listing_mode_vars = true;
           unoptimized = true; // This causes retention of variables for listing_mode
-
+          // fallthrough
         case 'l':
 	  suppress_warnings = true;
           listing_mode = true;
