@@ -42,6 +42,7 @@ function print_stack(stk:string) %{
 
 /**
  * sfunction probefunc - Return the probe point's function name, if known.
+ * Deprecated.  Use symname() and/or usymname().
  */
 function probefunc:string () %{ /* pure */
 	char *ptr, *start;

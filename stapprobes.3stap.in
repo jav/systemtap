@@ -18,8 +18,12 @@ stapprobes \- systemtap probe points
 
 .SH DESCRIPTION
 The following sections enumerate the variety of probe points supported
-by the systemtap translator, and additional aliases defined by
-standard tapset scripts.
+by the systemtap translator, and some of the additional aliases defined by
+standard tapset scripts.  Many are individually documented in the
+.IR 3stap
+manual section, with the
+.IR probe::
+prefix.
 .PP
 The general probe point syntax is a dotted-symbol sequence.  This
 allows a breakdown of the event namespace into parts, somewhat like
@@ -816,16 +820,5 @@ the kernel for error- and safety-checking.
 
 .SH SEE ALSO
 .IR stap (1),
-.IR tapset::iosched (3stap),
-.IR tapset::netdev (3stap),
-.IR tapset::nfs (3stap),
-.IR tapset::nfsd (3stap),
-.IR tapset::pagefault (3stap),
-.IR tapset::process (3stap),
-.IR tapset::rpc (3stap),
-.IR tapset::scsi (3stap),
-.IR tapset::signal (3stap),
-.IR tapset::socket (3stap),
-.IR tapset::tcp (3stap),
-.IR tapset::udp (3stap),
-.IR proc (3stap)
+.IR probe::* (3stap),
+.IR tapset::* (3stap)
