@@ -4251,8 +4251,21 @@ typeresolution_info::visit_try_block (try_block* e)
 
 
 void
-typeresolution_info::visit_embeddedcode (embeddedcode*)
+typeresolution_info::visit_embeddedcode (embeddedcode* s)
 {
+  // PR11573.  If we have survived thus far with a piece of embedded
+  // code that requires uprobes, we need to track this.
+  //
+  // This is an odd place for this check, as opposed
+  // to a separate 'optimization' pass, or c_unparser::visit_embeddedcode
+  // over yonder in pass 3.  However, we want to do it during pass 2 so
+  // that cached sessions also get the uprobes treatment.
+  if (!session.need_uprobes && s->code.find("/* pragma:uprobes */") != string::npos)
+    {
+      if (session.verbose > 2)
+        clog << "Activating uprobes support because /* pragma:uprobes */ seen." << endl;
+      session.need_uprobes = true;
+    }
 }
 
 
