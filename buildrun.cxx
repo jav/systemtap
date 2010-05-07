@@ -394,6 +394,12 @@ uprobes_pass (systemtap_session& s)
 {
   if (!s.need_uprobes || kernel_built_uprobes(s))
     return 0;
+
+  if (s.kernel_config["CONFIG_UTRACE"] != string("y")) {
+    clog << "user-space facilities not available without kernel CONFIG_UTRACE" << endl;
+    return 1;
+  }
+
   /*
    * We need to use the version of uprobes that comes with SystemTap, so
    * we may need to rebuild uprobes.ko there.  Unfortunately, this is
