@@ -1943,8 +1943,9 @@ var_expanding_visitor::var_expanding_visitor ()
 }
 
 
-void
-var_expanding_visitor::visit_assignment (assignment* e)
+bool
+var_expanding_visitor::rewrite_lvalue(const token* tok, const std::string& eop,
+                                      expression*& lvalue, expression*& rvalue)
 {
   // Our job would normally be to require() the left and right sides
   // into a new assignment. What we're doing is slightly trickier:
@@ -1959,15 +1960,17 @@ var_expanding_visitor::visit_assignment (assignment* e)
   // visitors.
 
   functioncall *fcall = NULL;
-  expression *new_left, *new_right;
 
   // Let visit_target_symbol know what operator it should handle.
-  op = &e->op;
+  const string* old_op = op;
+  op = &eop;
 
   target_symbol_setter_functioncalls.push (&fcall);
-  new_left = require (e->left);
+  replace (lvalue);
   target_symbol_setter_functioncalls.pop ();
-  new_right = require (e->right);
+  replace (rvalue);
+
+  op = old_op;
 
   if (fcall != NULL)
     {
@@ -1977,7 +1980,7 @@ var_expanding_visitor::visit_assignment (assignment* e)
       // right child spliced in as sole argument -- in place of
       // ourselves, in the var expansion we're in the middle of making.
 
-      if (valid_ops.find (e->op) == valid_ops.end ())
+      if (valid_ops.find (eop) == valid_ops.end ())
         {
 	  // Build up a list of supported operators.
 	  string ops;
@@ -1989,19 +1992,53 @@ var_expanding_visitor::visit_assignment (assignment* e)
 	  // Throw the error.
 	  throw semantic_error ("Only the following assign operators are"
 				" implemented on target variables:" + ops,
-				e->tok);
+				tok);
 	}
 
-      assert (new_left == fcall);
-      fcall->args.push_back (new_right);
+      assert (lvalue == fcall);
+      if (rvalue)
+        fcall->args.push_back (rvalue);
       provide (fcall);
+      return true;
     }
   else
-    {
-      e->left = new_left;
-      e->right = new_right;
-      provide (e);
-    }
+    return false;
+}
+
+
+void
+var_expanding_visitor::visit_assignment (assignment* e)
+{
+  if (!rewrite_lvalue (e->tok, e->op, e->left, e->right))
+    provide (e);
+}
+
+
+void
+var_expanding_visitor::visit_pre_crement (pre_crement* e)
+{
+  expression *dummy = NULL;
+  if (!rewrite_lvalue (e->tok, e->op, e->operand, dummy))
+    provide (e);
+}
+
+
+void
+var_expanding_visitor::visit_post_crement (post_crement* e)
+{
+  expression *dummy = NULL;
+  if (!rewrite_lvalue (e->tok, e->op, e->operand, dummy))
+    provide (e);
+}
+
+
+void
+var_expanding_visitor::visit_delete_statement (delete_statement* s)
+{
+  string fakeop = "delete";
+  expression *dummy = NULL;
+  if (!rewrite_lvalue (s->tok, fakeop, s->value, dummy))
+    provide (s);
 }
 
 

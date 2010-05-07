@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Make sure that each of these fail with status 1
+# - status 0 means that they succeeded, which they shouldn't
+# - a high status code means it crashed (PR11266)
+#
+# Since this is a semko, we exit 1 if they all fail correctly,
+# else we exit 0 for success or crash.
+
+stap -e 'probe syscall.read { ++$fd }' -p2 -g
+[ $? -eq 1 ] || exit 0
+
+stap -e 'probe syscall.read { $fd++ }' -p2 -g
+[ $? -eq 1 ] || exit 0
+
+stap -e 'probe syscall.read { delete $fd }' -p2 -g
+[ $? -eq 1 ] || exit 0
+
+stap -e 'probe syscall.read { ++$fd = 42 }' -p2 -g
+[ $? -eq 1 ] || exit 0
+
+exit 1

@@ -51,11 +51,18 @@ struct var_expanding_visitor: public update_visitor
   std::stack<functioncall**> target_symbol_setter_functioncalls;
   std::stack<defined_op*> defined_ops;
   std::set<std::string> valid_ops;
-  std::string *op;
+  const std::string *op;
 
   var_expanding_visitor ();
   void visit_assignment (assignment* e);
+  void visit_pre_crement (pre_crement* e);
+  void visit_post_crement (post_crement* e);
+  void visit_delete_statement (delete_statement* s);
   void visit_defined_op (defined_op* e);
+
+private:
+  bool rewrite_lvalue(const token *tok, const std::string& eop,
+                      expression*& lvalue, expression*& rvalue);
 };
 
 #endif // TAPSETS_H
