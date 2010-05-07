@@ -2029,8 +2029,7 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
     // Now, failures always have to be signalled with a
     // saved_conversion_error being chained to the target_symbol.
     // Successes have to result in an attempted rewrite of the
-    // target_symbol (via provide()), or setting the probe_context_var
-    // (ugh).
+    // target_symbol (via provide()).
     //
     // Edna Mode: "no capes".  fche: "no exceptions".
 
@@ -2045,7 +2044,7 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
     //
     // utrace: success: rewrites to function; failure: semantic_error
     //
-    // procfs: success: sets probe_context_var; failure: semantic_error
+    // procfs: success: rewrites to function; failure: semantic_error
 
     target_symbol* foo2 = dynamic_cast<target_symbol*> (foo1);
     if (foo2 && foo2->saved_conversion_error) // failing
@@ -6087,7 +6086,6 @@ struct tracepoint_derived_probe: public derived_probe
   void getargs (std::list<std::string> &arg_set) const;
   void join_group (systemtap_session& s);
   void print_dupe_stamp(ostream& o);
-  void emit_probe_context_vars (translator_output* o);
 };
 
 
