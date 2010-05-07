@@ -206,12 +206,12 @@ get_script_from_cache(systemtap_session& s)
   // since if copying the cached C file works, but copying the cached
   // module fails, we remove the cached C file and let the C file get
   // regenerated.
-  if (s.verbose)
-    {
-      clog << "Pass 3: using cached " << c_src_path << endl;
-      if (s.last_pass != 3)
-	clog << "Pass 4: using cached " << s.hash_path << endl;
-    }
+  // NB: don't use s.verbose here, since we're still in pass-2,
+  // i.e., s.verbose = s.perpass_verbose[1].
+  if (s.perpass_verbose[2])
+    clog << "Pass 3: using cached " << c_src_path << endl;
+  if (s.perpass_verbose[3] && s.last_pass != 3)
+    clog << "Pass 4: using cached " << s.hash_path << endl;
 
   STAP_PROBE2(stap, cache__get, c_src_path.c_str(), s.hash_path.c_str());
 
