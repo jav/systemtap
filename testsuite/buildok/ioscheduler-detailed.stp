@@ -1,0 +1,42 @@
+#! stap -p4
+
+probe ioscheduler.elv_next_request
+{
+	printf("%s: %s\n", name, elevator_name)
+}
+probe ioscheduler.elv_next_request.return
+{
+	printf("name: %s, %d, %d, %p, %d", name, disk_major,
+	       disk_minor, rq, rq_flags)
+}
+
+probe ioscheduler.elv_completed_request
+{
+	printf("name: %s, elv_name: %s, %d, %d, %p, %d", name, elevator_name,
+	       disk_major, disk_minor, rq, rq_flags)
+}
+
+probe ioscheduler.elv_add_request,
+      ioscheduler.elv_add_request.kp,
+      ioscheduler.elv_add_request.tp ?
+{
+	printf("name: %s, elv_name: %s, %d, %d, %p, %d", name, elevator_name,
+	       disk_major, disk_minor, rq, rq_flags)
+	printf("%p\n", q)
+}
+
+probe ioscheduler_trace.elv_completed_request ?,
+      ioscheduler_trace.elv_issue_request ?,
+      ioscheduler_trace.elv_requeue_request ?,
+      ioscheduler_trace.elv_abort_request ?
+{
+	printf("name: %s, request %p, elv_name: %s, %d, %d, %d\n",
+	       name, rq, elevator_name, disk_major, disk_minor, rq_flags)
+}
+
+probe ioscheduler_trace.plug ?,
+      ioscheduler_trace.unplug_io ?,
+      ioscheduler_trace.unplug_timer ?
+{
+        printf("name: %s, request %p", name, rq_queue)
+}

@@ -16,11 +16,13 @@
 
 /**
  * probe ioscheduler.elv_next_request - Fires when a request is retrieved from the request queue
+ * @name: Name of the probe point
  * @elevator_name: The type of I/O elevator currently enabled
  */
 probe ioscheduler.elv_next_request = kernel.function("blk_peek_request") !,
 				     kernel.function("elv_next_request")
 {
+	name = "elv_next_request"
 	elevator_name = kernel_string(@defined($q->elevator->elevator_type)
 		? $q->elevator->elevator_type->elevator_name
 		: $q->elevator->elevator_name)
@@ -28,24 +30,27 @@ probe ioscheduler.elv_next_request = kernel.function("blk_peek_request") !,
 
 /**
  * probe ioscheduler.elv_next_request.return - Fires when a request retrieval issues a return signal
- * @req: Address of the request
- * @req_flags: Request flags
+ * @name: Name of the probe point
+ * @rq: Address of the request
+ * @rq_flags: Request flags
  * @disk_major: Disk major number of the request
  * @disk_minor: Disk minor number of the request
  */
-probe ioscheduler.elv_next_request.return = kernel.function("blk_peek_request").return !,
-					    kernel.function("elv_next_request").return
+probe ioscheduler.elv_next_request.return =
+		kernel.function("blk_peek_request").return !,
+		kernel.function("elv_next_request").return
 {
-	if($return == 0)  {
-		req = 0
-		req_flags = 0
+	name = "elv_next_request"
+	if ($return == 0)  {
+		rq = 0
+		rq_flags = 0
 		disk_major = -1
 		disk_minor = -1
 	} else {
-		req = $return
-		req_flags = (@defined($return->cmd_flags) ? $return->cmd_flags
+		rq = $return
+		rq_flags = (@defined($return->cmd_flags) ? $return->cmd_flags
 			: $return->flags)
-		if($return->rq_disk == 0)  {
+		if ($return->rq_disk == 0)  {
 			disk_major = -1
 			disk_minor = -1
 		} else {
@@ -56,18 +61,55 @@ probe ioscheduler.elv_next_request.return = kernel.function("blk_peek_request").
 }
 
 /**
+ * probe ioscheduler.elv_completed_request - Fires when a request is completed
+ * @name: Name of the probe point
+ * @elevator_name: The type of I/O elevator currently enabled
+ * @rq: Address of the request
+ * @rq_flags: Request flags
+ * @disk_major: Disk major number of the request
+ * @disk_minor: Disk minor number of the request
+ */
+probe ioscheduler.elv_completed_request
+	= kernel.function("elv_completed_request")
+{
+	name = "elv_completed_request"
+	elevator_name = kernel_string(@defined($q->elevator->elevator_type)
+		? $q->elevator->elevator_type->elevator_name
+		: $q->elevator->elevator_name)
+	if($rq == 0)  {
+		disk_major = -1
+		disk_minor = -1
+	} else {
+		if($rq->rq_disk == 0)  {
+			disk_major = -1
+			disk_minor = -1
+		} else {
+			disk_major = $rq->rq_disk->major
+			disk_minor = $rq->rq_disk->first_minor
+		}
+	}
+
+	rq = $rq
+	rq_flags = ($rq == 0) ? 0
+		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
+}
+
+/**
  * probe ioscheduler.elv_add_request.kp - kprobe based probe to indicate that a request was added to the request queue
+ * @name: Name of the probe point
  * @elevator_name: The type of I/O elevator currently enabled
  * @q: pointer to request queue
- * @req: Address of the request
- * @req_flags: Request flags
+ * @rq: Address of the request
+ * @rq_flags: Request flags
  * @disk_major: Disk major number of the request
  * @disk_minor: Disk minor number of the request
  */
 // when a request is added to the request queue
-probe ioscheduler.elv_add_request.kp
-	= kernel.function("elv_insert")
+probe ioscheduler.elv_add_request.kp =
+		kernel.function("elv_insert") !,
+		kernel.function("__elv_add_request")
 {
+	name = "elv_add_request"
 	elevator_name = kernel_string(@defined($q->elevator->elevator_type)
 		? $q->elevator->elevator_type->elevator_name
 		: $q->elevator->elevator_name)
@@ -85,45 +127,14 @@ probe ioscheduler.elv_add_request.kp
 		}
 	}
 
-	req = $rq
-	req_flags = $rq==0 ? 0
-		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
-}
-
-/**
- * probe ioscheduler.elv_completed_request - Fires when a request is completed
- * @elevator_name: The type of I/O elevator currently enabled
- * @req: Address of the request
- * @req_flags: Request flags
- * @disk_major: Disk major number of the request
- * @disk_minor: Disk minor number of the request
- */
-probe ioscheduler.elv_completed_request
-	= kernel.function("elv_completed_request")
-{
-	elevator_name = kernel_string(@defined($q->elevator->elevator_type)
-		? $q->elevator->elevator_type->elevator_name
-		: $q->elevator->elevator_name)
-	if($rq == 0)  {
-		disk_major = -1
-		disk_minor = -1
-	} else {
-		if($rq->rq_disk == 0)  {
-			disk_major = -1
-			disk_minor = -1
-		} else {
-			disk_major = $rq->rq_disk->major
-			disk_minor = $rq->rq_disk->first_minor
-		}
-	}
-
-	req = $rq
-	req_flags = $rq==0 ? 0
+	rq = $rq
+	rq_flags = ($rq == 0) ? 0
 		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
 }
 
 /**
  * probe ioscheduler.elv_add_request.tp - tracepoint based probe to indicate a request is added to the request queue.
+ * @name		: Name of the probe point
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @q			: Pointer to request queue.
  * @rq			: Address of request.
@@ -132,22 +143,24 @@ probe ioscheduler.elv_completed_request
  * @disk_minor		: Disk minor number of request.
  *
  */
-probe ioscheduler.elv_add_request.tp
-			= kernel.trace("block_rq_insert") ?
+probe ioscheduler.elv_add_request.tp = kernel.trace("block_rq_insert") ?
 {
-q =  $q
-elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
-rq = $rq
+	name = "elv_add_request"
+	q =  $q
+	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+	rq = $rq
 
-if ($rq == 0 || $rq->rq_disk ==0) {
-	disk_major = -1
-	disk_minor = -1
-} else {
+	if ($rq == 0 || $rq->rq_disk ==0) {
+		disk_major = -1
+		disk_minor = -1
+	}
+	else {
 		disk_major = $rq->rq_disk->major
 		disk_minor = $rq->rq_disk->first_minor
-}
+	}
 
-rq_flags = $rq==0? 0:$rq->cmd_flags
+	rq_flags = ($rq == 0) ? 0
+		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
 }
 
 /**
@@ -167,6 +180,7 @@ probe ioscheduler.elv_add_request =
 /**
  * probe ioscheduler_trace.elv_completed_request - Fires when a request is
  *							completed.
+ * @name		: Name of the probe point
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @rq			: Address of request.
  * @rq_flags		: Request flags.
@@ -177,23 +191,27 @@ probe ioscheduler.elv_add_request =
 probe ioscheduler_trace.elv_completed_request
 			= kernel.trace("block_rq_complete") ?
 {
-elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
-rq = $rq
+	name = "elv_completed_request"
+	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+	rq = $rq
 
-if ($rq == 0 || $rq->rq_disk ==0) {
-	disk_major = -1
-	disk_minor = -1
-} else {
+	if ($rq == 0 || $rq->rq_disk ==0) {
+		disk_major = -1
+		disk_minor = -1
+	}
+	else {
 		disk_major = $rq->rq_disk->major
 		disk_minor = $rq->rq_disk->first_minor
-}
+	}
 
-rq_flags = $rq==0? 0:$rq->cmd_flags
+	rq_flags = ($rq == 0) ? 0
+		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
 }
 
 /**
  * probe ioscheduler_trace.elv_issue_request - Fires when a request is
  *							scheduled.
+ * @name		: Name of the probe point
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @rq			: Address of request.
  * @rq_flags		: Request flags.
@@ -204,23 +222,27 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
 probe ioscheduler_trace.elv_issue_request
 			= kernel.trace("block_rq_issue") ?
 {
-elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
-rq = $rq
+	name = "elv_issue_request"
+	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+	rq = $rq
 
-if ($rq == 0 || $rq->rq_disk ==0) {
-	disk_major = -1
-	disk_minor = -1
-} else {
+	if ($rq == 0 || $rq->rq_disk ==0) {
+		disk_major = -1
+		disk_minor = -1
+	}
+	else {
 		disk_major = $rq->rq_disk->major
 		disk_minor = $rq->rq_disk->first_minor
-}
+	}
 
-rq_flags = $rq==0? 0:$rq->cmd_flags
+	rq_flags = ($rq == 0) ? 0
+		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
 }
 
 /**
  * probe ioscheduler_trace.elv_requeue_request - Fires when a request is
  *	put back on the queue, when the hadware cannot accept more requests.
+ * @name		: Name of the probe point
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @rq			: Address of request.
  * @rq_flags		: Request flags.
@@ -231,22 +253,26 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
 probe ioscheduler_trace.elv_requeue_request
 			= kernel.trace("block_rq_requeue") ?
 {
-elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
-rq = $rq
+	name = "elv_requeue_request"
+	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+	rq = $rq
 
-if ($rq == 0 || $rq->rq_disk ==0) {
-	disk_major = -1
-	disk_minor = -1
-} else {
+	if ($rq == 0 || $rq->rq_disk ==0) {
+		disk_major = -1
+		disk_minor = -1
+	}
+	else {
 		disk_major = $rq->rq_disk->major
 		disk_minor = $rq->rq_disk->first_minor
-}
+	}
 
-rq_flags = $rq==0? 0:$rq->cmd_flags
+	rq_flags = ($rq == 0) ? 0
+		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
 }
 
 /**
  * probe ioscheduler_trace.elv_abort_request - Fires when a request is aborted.
+ * @name		: Name of the probe point
  * @elevator_name	: The type of I/O elevator currently enabled.
  * @rq			: Address of request.
  * @rq_flags		: Request flags.
@@ -257,52 +283,61 @@ rq_flags = $rq==0? 0:$rq->cmd_flags
 probe ioscheduler_trace.elv_abort_request
 			= kernel.trace("block_rq_abort") ?
 {
-elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
-rq = $rq
+	name = "elv_abort_request"
+	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
+	rq = $rq
 
-if ($rq == 0 || $rq->rq_disk ==0) {
-	disk_major = -1
-	disk_minor = -1
-} else {
+	if ($rq == 0 || $rq->rq_disk ==0) {
+		disk_major = -1
+		disk_minor = -1
+	}
+	else {
 		disk_major = $rq->rq_disk->major
 		disk_minor = $rq->rq_disk->first_minor
-}
+	}
 
-rq_flags = $rq==0? 0:$rq->cmd_flags
+	rq_flags = ($rq == 0) ? 0
+		: (@defined($rq->cmd_flags) ? $rq->cmd_flags : $rq->flags)
 }
 
 /**
  * probe ioscheduler_trace.plug - Fires when a request queue is plugged;
  *		ie, requests in the queue cannot be serviced by block driver.
+ * @name	: Name of the probe point
  * @rq_queue	: request queue
  *
  */
 probe ioscheduler_trace.plug = kernel.trace("block_plug") ?
 {
-  rq_queue = $q
+	name = "plug"
+	rq_queue = $q
 }
 
 /**
  * probe ioscheduler_trace.unplug_io - Fires when a request queue is unplugged;
  *	Either, when number of pending requests in the queue exceeds threshold
  *	or, upon expiration of timer that was activated when queue was plugged.
+ * @name	: Name of the probe point
  * @rq_queue	: request queue
  *
  */
 probe ioscheduler_trace.unplug_io = kernel.trace("block_unplug_io") ?
 {
-  rq_queue = $q
+	name = "unplug_io"
+	rq_queue = $q
 }
 
 /**
  * probe ioscheduler_trace.unplug_timer - Fires when unplug timer associated
  *					with a request queue expires.
+ * @name	: Name of the probe point
  * @rq_queue	: request queue
  *
  */
 probe ioscheduler_trace.unplug_timer = kernel.trace("block_unplug_timer") ?
 {
-  rq_queue = $q
+	name = "unplug_timer"
+	rq_queue = $q
 }
 
 function disk_major_from_request:long(var_q:long)
