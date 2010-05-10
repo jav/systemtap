@@ -492,8 +492,15 @@ probe __vm.kmalloc_node.kp = kernel.function("kmalloc_node").return ?
 	caller_function = "unknown"
 	bytes_req = $size
 	bytes_alloc = bytes_req // pretend they are always the same
-	gfp_flags = $flags
-	gfp_flag_name = __gfp_flag_str(gfp_flags)
+
+	# Unfortunately, on i686 f11 (2.6.29.4-167.fc11.i686.PAE), we
+	# can't see the '$flags' argument (even though we can see the
+	# '$size' argument above).  Note that we can see the '$flags'
+	# argument on x86_64 f11 (2.6.29.4-167.fc11.x86_64).  So, the
+	# best we can do here is just use 0 when $flags isn't defined.
+	gfp_flags = (@defined($flags) ? $flags : 0)
+	gfp_flag_name = __gfp_flag_str(@defined($flags) ? $flags : 0)
+
 	ptr = $return
 }
 
