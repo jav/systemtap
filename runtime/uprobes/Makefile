@@ -9,16 +9,18 @@ CLEAN_FILES := $(shell echo *.mod.c *.ko *.o .*.cmd *~ *.sgn)
 CLEAN_FILES += Module.markers modules.order Module.symvers
 CLEAN_DIRS  := .tmp_versions
 
+LIBEXECDIR=../../../../libexec/systemtap
+
 # Build the module and sign it.
 # Ensure that the generated files are writeable by the group which
 # owns this build directory. This is so that the stap-server service
 # can rebuild the module, if necessary.
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
-	if test -f ../../../../bin/stap-sign-module; then \
+	if test -f $(LIBEXECDIR)/stap-sign-module; then \
 		for f in *.ko; do \
 			if test ! -e $$f.sgn -o $$f.sgn -ot $$f; then \
-				../../../../bin/stap-sign-module $$f; \
+				$(LIBEXECDIR)/stap-sign-module $$f; \
 			fi \
 		done \
 	fi
