@@ -30,18 +30,33 @@ probe begin { printf("stap ready\n"); }
 
 probe end { printf("stap exiting\n"); }
 
-probe kernel.function("lock_kernel") {
+%(kernel_v>="2.6.33" %?
+probe kernel.function("_lock_kernel")
+%:
+probe kernel.function("lock_kernel")
+%)
+{
   ++waiting;
 }
 
-probe kernel.function("lock_kernel").return {
+%(kernel_v>="2.6.33" %?
+probe kernel.function("_lock_kernel").return
+%:
+probe kernel.function("lock_kernel").return
+%)
+{
   # under biglock
   holder_time = gettimeofday_us();
   holder = task_current();
   --waiting;
 }
 
-probe kernel.function("unlock_kernel") {
+%(kernel_v>="2.6.33" %?
+probe kernel.function("_unlock_kernel")
+%:
+probe kernel.function("unlock_kernel")
+%)
+{
   # under biglock
   if (waiting >= $1) {
     printf("%-25s: waiting(%d), holder: %s(%d) %dus\n",

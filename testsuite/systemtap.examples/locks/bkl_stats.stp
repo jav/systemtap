@@ -51,12 +51,22 @@ function print_stats() {
   }
 }
 
-probe kernel.function("lock_kernel") {
+%(kernel_v>="2.6.33" %?
+ probe kernel.function("_lock_kernel")
+%:
+ probe kernel.function("lock_kernel")
+%)
+{
   t = gettimeofday_us()
   wait_time[tid()] = t
 }
 
-probe kernel.function("lock_kernel").return {
+%(kernel_v>="2.6.33" %?
+ probe kernel.function("_lock_kernel").return
+%:
+ probe kernel.function("lock_kernel").return
+%)
+{
   t = gettimeofday_us()
   s = wait_time[tid()]
   holder_time[tid()] = t
@@ -67,7 +77,12 @@ probe kernel.function("lock_kernel").return {
   }
 }
 
-probe kernel.function("unlock_kernel") {
+%(kernel_v>="2.6.33" %?
+ probe kernel.function("_unlock_kernel")
+%:
+ probe kernel.function("unlock_kernel")
+%)
+{
   t = gettimeofday_us()
   s = holder_time[tid()]
   holder_time[tid()] = t
