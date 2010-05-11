@@ -13,7 +13,7 @@
 #
 # stap linetimes.stp kernel do_unlinkat
 
-global calls, times, region, cfg, last_pp
+global calls, times, last_pp, region, cfg
 
 probe $1.function(@2).call { calls <<< 1 }
 probe $1.function(@2).return {
@@ -22,8 +22,8 @@ probe $1.function(@2).return {
   s = times[p]
   if (s) {
     e = t - s
-    region[last_pp] <<< e
-    cfg[last_pp, pp()] <<< 1
+    region[last_pp[p]] <<< e
+    cfg[last_pp[p], pp()] <<< 1
   }
   delete times[tid()]
 }
@@ -34,11 +34,11 @@ probe $1.statement(@2 "@*:*") {
   s = times[p]
   if (s) {
     e = t - s
-    region[last_pp] <<< e
-    cfg[last_pp, pp()] <<< 1
+    region[last_pp[p]] <<< e
+    cfg[last_pp[p], pp()] <<< 1
   }
   times[p] = t
-  last_pp = pp()
+  last_pp[p] = pp()
 }
 
 probe end {
@@ -48,7 +48,8 @@ probe end {
     printf("%-58s %10d %10d\n", p, @avg(region[p]), @max(region[p]));
   }
 
-  printf("\ncontrol flow graph information\n=======================\n")
+  printf("\ncontrol flow graph information\n")
+  printf("from\n\tto\n=======================\n")
   foreach ([src+, dest] in cfg) {
     /* print elements */
     if (old_src != src) {
@@ -56,7 +57,12 @@ probe end {
       printf ("%-s", src)
       count = 1
     } else {
-      if (count == 1) printf ("\n\t%-s %d\n", old_dest, old_count);
+      if (count == 1) {
+        if (old_dest == src)
+          printf ("\n\t%-s %d\n", old_dest, old_count);
+        else
+        printf ("\n\t%-s %d\n", old_dest, old_count);
+      }
       ++count;
       printf ("\t%-s %d\n", dest, @count(cfg[src,dest]));
     }
