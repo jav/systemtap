@@ -127,7 +127,7 @@ probe netdev.close
  * @truesize: The size of the data to be transmitted.
  */
 probe netdev.hard_transmit
-	= kernel.function("dev_hard_start_xmit")
+	= kernel.function("dev_hard_start_xmit") ?
 {
 	dev_name = get_netdev_name($dev)
 	protocol = $skb->protocol
@@ -230,7 +230,7 @@ probe netdev.get_stats
  * @new_mac: The new MAC address
  */
 probe netdev.change_mac
-	= kernel.function("dev_set_mac_address")
+	= kernel.function("dev_set_mac_address") ?
 {
 	dev_name = get_netdev_name($dev)
 	mac_len = $dev->addr_len

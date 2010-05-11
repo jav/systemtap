@@ -1,0 +1,16 @@
+#! stap -p4
+
+# This test fails on some kernels because we can't find the arguments to
+# this inline function (PR 1155).
+
+probe netdev.change_rx_flag ?
+{
+	printf("%s, %d\n", dev_name, flags)
+}
+
+# Make sure this file compiles on kernels where netdev.change_rx_flag
+# doesn't exist.
+probe begin
+{
+	printf("begin\n")
+}

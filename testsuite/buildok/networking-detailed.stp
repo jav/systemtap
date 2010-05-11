@@ -1,0 +1,48 @@
+#! stap -p4
+
+probe netdev.receive, netdev.transmit
+{
+	printf("%s, %d, %d, %d\n", dev_name, length, protocol, truesize)
+}
+
+probe netdev.change_mtu
+{
+	printf("%s, %d, %d\n", dev_name, old_mtu, new_mtu)
+}
+
+probe netdev.open, netdev.close
+{
+	printf("%s\n", dev_name)
+}
+
+probe netdev.hard_transmit ?
+{
+	printf("%s, %d, %d, %d\n", dev_name, length, protocol, truesize)
+}
+
+probe netdev.rx
+{
+	printf("%s, %d, %p\n", dev_name, protocol, netdev)
+}
+
+# netdev.change_rx_flag test moved to networking-change_rx_flag.stp
+
+probe netdev.set_promiscuity
+{
+	printf("%s, %d/%d, %d\n", dev_name, enable, disable, inc)
+}
+
+probe netdev.ioctl
+{
+	printf("%d, %s\n", cmd, arg)
+}
+
+probe netdev.register, netdev.unregister, netdev.get_stats ?
+{
+	printf("%s\n", dev_name)
+}
+
+probe netdev.change_mac ?
+{
+	printf("%s, %d, %s, %s\n", dev_name, mac_len, old_mac, new_mac)
+}
