@@ -235,6 +235,9 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <li><a href="profiling/functioncallcount.stp">profiling/functioncallcount.stp</a> - Count Times Functions Called<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#FUNCTIONS">FUNCTIONS</a> <br>
 <p>The functioncallcount.stp script takes one argument, a list of functions to probe. The script will run and count the number of times that each of the functions on the list is called. On exit the script will print a sorted list from most frequently to least frequently called function.</p></li>
+<li><a href="profiling/linetimes.stp">profiling/linetimes.stp</a> - Show Time Spent on Each Line if a Function<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The linetimes.stp script takes two arguments: where to find the function and the function name. linetimes.stp will instrument each line in the function. It will print out the number of times that the function is called, a table with the average and maximum time each line takes, and control flow information when the script exits.</p></li>
 <li><a href="profiling/sched_switch.stp">profiling/sched_switch.stp</a> - Display the task switches happening in the scheduler<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#FUNCTIONS">FUNCTIONS</a> <br>
 <p>The sched_switch.stp script takes two arguments, first argument can be "pid" or "name" to indicate what is being passed as second argument. The script will trace the process based on pid/name and print the scheduler switches happening with the process. If no arguments are passed, it displays all the scheduler switches. This can be used to understand which tasks schedule out the current process being traced, and when it gets scheduled in again.</p></li>
