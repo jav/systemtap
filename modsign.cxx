@@ -52,7 +52,7 @@ init_cert_db_path (const string &cert_db_path) {
   int rc;
 
   // Generate the certificate and database.
-  string cmd = BINDIR "/stap-gen-cert " + cert_db_path;
+  string cmd = PKGLIBDIR "/stap-gen-cert " + cert_db_path;
   rc = system (cmd.c_str ()) == 0;
 
   return rc;
