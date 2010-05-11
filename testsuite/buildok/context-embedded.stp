@@ -20,8 +20,10 @@ probe begin {
 	printf("pp is %s\n", pp())
 	printf("pgrp is %d\n", pgrp())
 	printf("sid is %d\n", sid())
+%(CONFIG_UTRACE=="y" %?
 	print_ustack(ubacktrace());
 	print_ubacktrace();
+%)
 	log(usymdata(0))
 	log(usymname(0))
 	log(symdata(0))
