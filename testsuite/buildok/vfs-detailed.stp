@@ -1,0 +1,385 @@
+#! stap -p4
+
+probe generic.fop.llseek
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %d %d\n", offset, origin, maxbyte)
+}
+probe generic.fop.llseek.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+}
+
+probe generic.fop.aio_read
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %p %d\n", pos, buf, count)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.aio_read.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d %d\n", nr_segs, bytes_read)
+	printf("%d %s\n", size, units)
+}
+
+probe generic.fop.aio_write
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %p %d\n", pos, buf, count)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.aio_write.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe generic.fop.readv ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %d\n", pos, nr_segs)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.readv.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%p %d\n", file, bytes_read)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d %s\n", size, units)
+}
+
+probe generic.fop.writev ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %d\n", pos, nr_segs)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.writev.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%p %d\n", file, bytes_written)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d %s\n", size, units)
+}
+
+probe generic.fop.mmap
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%x %x %x\n", vm_start, vm_end, vm_flags)
+}
+probe generic.fop.mmap.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%p\n", file)
+	printf("%d(%s)\n", error, error_str)
+}
+
+probe generic.fop.open
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%s %x %d\n", filename, flag, size)
+}
+probe generic.fop.open.return
+{
+	printf("%s %s\n", name, retstr)
+}
+
+probe generic.fop.sendfile ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%p %d\n", ppos, count)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.sendfile.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe generic.fop.splice_read ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %d\n", dev_major, dev_minor)
+	printf("%d %d\n", len, flags)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.splice_read.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d %s\n", size, units)
+	printf("%p %d %p\n", dev, ino, file)
+	printf("%d %d\n", dev_major, dev_minor)
+}
+
+probe generic.fop.splice_write ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %d\n", len, flags)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.splice_write.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d %s\n", size, units)
+	printf("%p\n", file)
+}
+
+probe generic.fop.read ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d\n", count)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.read.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe generic.fop.write ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d\n", count)
+	printf("%d %s\n", size, units)
+}
+probe generic.fop.write.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe generic.aop.writepages
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d\n", dev, devname, ino)
+	printf("%d\n", nr_to_write)
+	printf("%d %s\n", size, units)
+}
+probe generic.aop.writepages.return
+{
+	printf("%s %s\n", name, retstr)
+}
+
+probe vfs.do_sync_read
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %d %p %d\n", len, pos, buf, bytes_to_read)
+	printf("%d %s\n", size, units)
+}
+probe vfs.do_sync_read.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d %s\n", size, units)
+	printf("%d %d\n", bytes_to_read, bytes_read)
+}
+
+probe vfs.do_sync_write
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %d %p %d\n", len, pos, buf, bytes_to_write)
+	printf("%d %s\n", size, units)
+}
+probe vfs.do_sync_write.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d %s\n", size, units)
+	printf("%d %d\n", bytes_to_write, bytes_written)
+	printf("%d\n", pos)
+}
+
+probe vfs.block_sync_page
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %d\n", dev, devname, ino, index)
+	printf("%d %s\n", size, units)
+}
+probe vfs.block_sync_page.return
+{
+	printf("%s %s\n", name, retstr)
+}
+
+probe vfs.buffer_migrate_page ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %d\n", dev, devname, ino, index)
+	printf("%d %s\n", size, units)
+}
+probe vfs.buffer_migrate_page.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe vfs.__set_page_dirty_buffers
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %d\n", dev, devname, ino, index)
+	printf("%d %s\n", size, units)
+}
+probe vfs.__set_page_dirty_buffers.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe vfs.do_mpage_readpage
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %d\n", dev, devname, ino, index)
+	printf("%d %s\n", size, units)
+}
+probe vfs.do_mpage_readpage.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe vfs.add_to_page_cache
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %d\n", dev, devname, ino, index)
+	printf("%d %s\n", size, units)
+}
+probe vfs.add_to_page_cache.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d %s\n", size, units)
+}
+
+probe vfs.remove_from_page_cache
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %d\n", dev, devname, ino, index)
+}
+probe vfs.remove_from_page_cache.return
+{
+	printf("%s %s\n", name, retstr)
+}
+
+probe vfs.read
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %p %d\n", pos, buf, bytes_to_read)
+}
+probe vfs.read.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d\n", bytes_read)
+}
+
+probe vfs.readv
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %p %d %d\n", pos, vec, vlen, bytes_to_read)
+}
+probe vfs.readv.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d\n", bytes_read)
+}
+
+probe vfs.write
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %p %d\n", pos, buf, bytes_to_write)
+}
+probe vfs.write.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d\n", bytes_written)
+}
+
+probe vfs.writev
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %s %d %p\n", dev, devname, ino, file)
+	printf("%d %p %d %d\n", pos, vec, vlen, bytes_to_write)
+}
+probe vfs.writev.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+	printf("%d\n", bytes_written)
+}
+
+probe _vfs.generic_file_readonly_mmap
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %p\n", file, vma)
+}
+probe _vfs.generic_file_readonly_mmap.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+}
+
+probe _vfs.generic_block_bmap
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p %p %p\n", mapping, block, get_block)
+}
+
+probe _vfs.generic_commit_write ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p, %p, %d, %d\n", file, page, from, to)
+}
+
+probe _vfs.block_prepare_write
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p, %d, %d\n", page, from, to)
+}
+probe _vfs.block_prepare_write.return
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+}
+
+probe _vfs.block_write_begin ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p, %d, %d, %x\n", file, pos, len, flags)
+}
+probe _vfs.block_write_begin.return ?
+{
+	printf("%s %s\n", name, retstr)
+	printf("%d(%s)\n", error, error_str)
+}
+
+probe _vfs.block_write_end ?
+{
+	printf("%s %s\n", name, argstr)
+	printf("%p, %d, %d, %p\n", file, pos, len, page)
+}
+probe _vfs.block_write_end.return ?
+{
+	printf("%s %s\n", name, retstr)
+}
