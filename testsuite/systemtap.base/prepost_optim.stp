@@ -1,0 +1,13 @@
+// PR11590 optimized pre/postfix operators on variable throw away
+// initial variable assignment
+probe begin {
+
+        a = 5
+
+        // printf("%d ", a)
+        printf("%d ", (a++))
+        printf("%d ", (++a))
+        printf("%d ", (a--))
+        printf("%d\n", (--a))
+        exit()
+}

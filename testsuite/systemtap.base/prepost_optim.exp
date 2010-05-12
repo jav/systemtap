@@ -1,0 +1,18 @@
+# PR11590 optimized pre/postfix operators on variable throw away
+# initial variable assignment
+
+set test "prepost_optim"
+
+if {![installtest_p]} {untested $test; return}
+
+spawn stap $srcdir/$subdir/$test.stp
+set ok 0
+expect {
+    -timeout 180
+    -re {5 7 7 5} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+
+if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
