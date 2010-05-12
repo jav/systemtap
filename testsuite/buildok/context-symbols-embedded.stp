@@ -1,0 +1,10 @@
+#! stap -p4
+
+probe begin {
+	print_stack(backtrace())
+	log(probefunc())
+	log(probemod())
+	log(modname(0))
+	log(symname(0))
+	log(symdata(0))
+}

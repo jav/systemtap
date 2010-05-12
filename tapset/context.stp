@@ -1,5 +1,5 @@
 // context tapset
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -28,7 +28,8 @@
 /**
  * sfunction print_regs - Print a register dump.
  */
-function print_regs () %{
+function print_regs ()
+%{
 	if (CONTEXT->regs) {
 		_stp_print_regs (CONTEXT->regs);
 	}
@@ -37,39 +38,41 @@ function print_regs () %{
 /**
  * sfunction execname - Returns the execname of a target process (or group of processes).
  */
-function execname:string () %{ /* pure */ /* unprivileged */
-	strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
-%}
+function execname:string ()
+{
+	return kernel_string(@cast(task_current(), "task_struct",
+			     "kernel<linux/sched.h>")->comm)
+}
 
 /**
  * sfunction pid - Returns the ID of a target process.
  */
-function pid:long () %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = current->tgid;
-%}
+function pid:long ()
+{
+	return task_pid(task_current())
+}
 
 /**
  * sfunction tid - Returns the thread ID of a target process.
  */
-function tid:long () %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = current->pid;
-%}
+function tid:long ()
+{
+	return task_tid(task_current())
+}
 
 /**
  * sfunction ppid - Returns the process ID of a target process's parent process.
  */
-function ppid:long () %{ /* pure */ /* unprivileged */
-#if defined(STAPCONF_REAL_PARENT)
-	THIS->__retvalue = current->real_parent->tgid;
-#else
-	THIS->__retvalue = current->parent->tgid;
-#endif
-%}
+function ppid:long()
+{
+	return task_pid(task_parent(task_current()))
+}
 
 /**
  * sfunction pgrp - Returns the process group ID of the current process.
  */
-function pgrp:long () %{ /* pure */ /* unprivileged */
+function pgrp:long ()
+%{ /* pure */ /* unprivileged */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	struct signal_struct *ss = kread( &(current->signal) );
 	THIS->__retvalue = kread ( &(ss->pgrp) );
@@ -85,7 +88,8 @@ function pgrp:long () %{ /* pure */ /* unprivileged */
  * The session ID of a process is the process group ID of the session
  * leader. Session ID is stored in the signal_struct since Kernel 2.6.0.
  */
-function sid:long () %{ /* pure */ /* unprivileged */
+function sid:long ()
+%{ /* pure */ /* unprivileged */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	struct signal_struct *ss = kread( &(current->signal) );
 	THIS->__retvalue = kread ( &(ss->session) );
@@ -98,18 +102,16 @@ function sid:long () %{ /* pure */ /* unprivileged */
 /**
  * sfunction pexecname - Returns the execname of a target process's parent process.
  */
-function pexecname:string () %{ /* pure */ /* unprivileged */
-#if defined(STAPCONF_REAL_PARENT)
-	strlcpy (THIS->__retvalue, current->real_parent->comm, MAXSTRINGLEN);
-#else
-	strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
-#endif
-%}
+function pexecname:string ()
+{
+	return task_execname(task_parent(task_current()))
+}
 
 /**
  * sfunction gid - Returns the group ID of a target process.
  */
-function gid:long () %{ /* pure */ /* unprivileged */
+function gid:long ()
+%{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->gid;
 #else
@@ -120,7 +122,8 @@ function gid:long () %{ /* pure */ /* unprivileged */
 /**
  * sfunction egid - Returns the effective gid of a target process.
  */
-function egid:long () %{ /* pure */ /* unprivileged */
+function egid:long ()
+%{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->egid;
 #else
@@ -131,7 +134,8 @@ function egid:long () %{ /* pure */ /* unprivileged */
 /**
  * sfunction uid - Returns the user ID of a target process.
  */
-function uid:long () %{ /* pure */ /* unprivileged */
+function uid:long ()
+%{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->uid;
 #else
@@ -142,7 +146,8 @@ function uid:long () %{ /* pure */ /* unprivileged */
 /**
  * sfunction euid - Return the effective uid of a target process.
  */
-function euid:long () %{ /* pure */ /* unprivileged */
+function euid:long ()
+%{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
 	THIS->__retvalue = current->euid;
 #else
@@ -156,21 +161,24 @@ function euid:long () %{ /* pure */ /* unprivileged */
  *
  *  Return 1 if the current probe point has occurred in the user's own process.
  */
-function is_myproc:long () %{ /* pure */ /* unprivileged */
+function is_myproc:long ()
+%{ /* pure */ /* unprivileged */
         THIS->__retvalue = is_myproc();
 %}
 
 
 
 // cpuid() is not documented
-function cpuid:long () %{ /* pure */
+function cpuid:long ()
+%{ /* pure */
 	THIS->__retvalue = smp_processor_id();
 %}
 
 /**
  * sfunction cpu - Returns the current cpu number.
  */
-function cpu:long () %{ /* pure */ /* unprivileged */
+function cpu:long ()
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = smp_processor_id();
 %}
 
@@ -180,7 +188,8 @@ function cpu:long () %{ /* pure */ /* unprivileged */
  * Context:
  * The current probe point.
  */
-function pp:string () %{ /* pure */ /* unprivileged */
+function pp:string ()
+%{ /* pure */ /* unprivileged */
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
 %}
 
@@ -192,7 +201,8 @@ function pp:string () %{ /* pure */ /* unprivileged */
  *  For example, registers_valid() returns 0
  *  when called from a begin or end probe.
  */
-function registers_valid:long () %{ /* pure */ /* unprivileged */
+function registers_valid:long ()
+%{ /* pure */ /* unprivileged */
 	THIS->__retvalue = (CONTEXT->regs != NULL);
 %}
 
@@ -201,7 +211,8 @@ function registers_valid:long () %{ /* pure */ /* unprivileged */
  *
  * Return 1 if the probe point occurred in user-mode.
  */
-function user_mode:long () %{ /* pure */ /* unprivileged */
+function user_mode:long ()
+%{ /* pure */ /* unprivileged */
   if (CONTEXT->regs) {
 #if (defined(__i386__) || defined(__x86_64__)) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 13))
     THIS->__retvalue = (uint64_t) user_mode_vm (CONTEXT->regs);
@@ -219,7 +230,8 @@ function user_mode:long () %{ /* pure */ /* unprivileged */
  * Description: Returns 1 if the current probe context is a return probe,
  * returns 0 otherwise.
  */
-function is_return:long () %{ /* pure */
+function is_return:long ()
+%{ /* pure */
 	if (CONTEXT->pi)
 		THIS->__retvalue = 1;
 	else
@@ -229,7 +241,8 @@ function is_return:long () %{ /* pure */
 /**
  * sfunction target - Return the process ID of the target process.
  */
-function target:long () %{ /* pure */ /* unprivileged */
+function target:long ()
+%{ /* pure */ /* unprivileged */
         THIS->__retvalue = _stp_target;
 %}
 
@@ -239,7 +252,8 @@ function target:long () %{ /* pure */ /* unprivileged */
  * Returns the name of the stap module. Either generated randomly
  * (stap_[0-9a-f]+_[0-9a-f]+) or set by stap -m <module_name>.
  */
-function module_name:string () %{ /* pure */ /* unprivileged */
+function module_name:string ()
+%{ /* pure */ /* unprivileged */
 	strlcpy(THIS->__retvalue, THIS_MODULE->name, MAXSTRINGLEN);
 %}
 
@@ -249,14 +263,16 @@ function module_name:string () %{ /* pure */ /* unprivileged */
  * Returns the process id of the stapio process that launched
  * this script.
  */
-function stp_pid:long () %{ /* pure */
+function stp_pid:long ()
+%{ /* pure */
         THIS->__retvalue = _stp_pid;
 %}
 
 /**
  * sfunction stack_size - Return the size of the kernel stack.
  */
-function stack_size:long () %{ /* pure */
+function stack_size:long ()
+%{ /* pure */
         THIS->__retvalue = THREAD_SIZE;
 %}
 
@@ -265,7 +281,8 @@ function stack_size:long () %{ /* pure */
  *
  * Determines how many bytes are currently used in the kernel stack.
  */
-function stack_used:long () %{ /* pure */
+function stack_used:long ()
+%{ /* pure */
 	char a;
         THIS->__retvalue = THREAD_SIZE - ((long)&a & (THREAD_SIZE-1));
 %}
@@ -275,7 +292,8 @@ function stack_used:long () %{ /* pure */
  *
  * Determines how many bytes are currently available in the kernel stack.
  */
-function stack_unused:long () %{ /* pure */
+function stack_unused:long ()
+%{ /* pure */
 	char a;
         THIS->__retvalue = (long)&a & (THREAD_SIZE-1);
 %}
@@ -290,7 +308,8 @@ function stack_unused:long () %{ /* pure */
  * with usymname() or symdata(). Often the task will be in the VDSO
  * where it entered the kernel. FIXME - need VDSO tracking support #10080.
  */
-function uaddr:long () %{ /* pure */ /* unprivileged */
+function uaddr:long ()
+%{ /* pure */ /* unprivileged */
   int64_t addr = 0;
   assert_is_myproc();
   if (current->mm)
