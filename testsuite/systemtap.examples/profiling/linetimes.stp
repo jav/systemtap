@@ -25,7 +25,8 @@ probe $1.function(@2).return {
     region[last_pp[p]] <<< e
     cfg[last_pp[p], pp()] <<< 1
   }
-  delete times[tid()]
+  delete times[p]
+  delete last_pp[p]
 }
 
 probe $1.statement(@2 "@*:*") {
