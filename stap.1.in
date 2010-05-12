@@ -203,7 +203,8 @@ a specific process.
 .BI \-l " PROBE"
 Instead of running a probe script, just list all available probe
 points matching the given pattern.  The pattern may include wildcards
-and aliases.
+and aliases.  The process result code will indicate failure if there
+are no matches.
 .TP
 .BI \-L " PROBE"
 Similar to "-l", but list probe points and script-level local variables.
@@ -1309,10 +1310,30 @@ its alias STAP_NO_OVERLOAD).
 .\"Placing return probes on symbols that aren't entry points
 .\"will most likely lead to kernel stack corruption.
 
+.SH EXIT STATUS
+
+The systemtap translator generally returns with a success code of 0 if
+the requested script was processed and executed successfully through
+the requested pass.  Otherwise, errors may be printed to stderr and
+a failure code is returned.  Use 
+.I \-v
+or
+.I \-vp N
+to increase (global or per-pass) verbosity to identify the source of the
+trouble.
+
+In listings mode
+.RI ( \-l " and " \-L ),
+error messages are normally suppressed.  A success code of 0 is returned
+if at least one matching probe was found.
+
+A script executing in pass 5 that is interrupted with ^C / SIGINT is
+considered to be successful.
+
 .SH FILES
 .\" consider autoconf-substituting these directories
 .TP
-~/.systemtap
+$HOME/.systemtap
 Systemtap data directory for cached systemtap files, unless overridden
 by the
 .I SYSTEMTAP_DIR

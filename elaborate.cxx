@@ -1546,6 +1546,10 @@ semantic_pass (systemtap_session& s)
       rc ++;
     }
 
+  // PR11443
+  if (s.listing_mode && s.probes.size() == 0)
+    rc ++;
+
   return rc;
 }
 
