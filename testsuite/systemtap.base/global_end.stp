@@ -1,4 +1,4 @@
-global alpha, beta, gamma, iota, epsilon, phi, var
+global alpha, beta, gamma, iota, epsilon, phi
 
 probe begin {
  gamma = "abcdefghijklmnopqrstuvwxyz"
@@ -29,8 +29,6 @@ probe begin {
  epsilon["two",2] <<< 20
  epsilon["two",2] <<< 30
  epsilon["two",2] <<< 40
-
- var++
 }
 
 probe timer.ms(100) {
