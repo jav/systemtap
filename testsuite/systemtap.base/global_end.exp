@@ -19,11 +19,11 @@ expect {
     -re {epsilon."one",1. @count=0x4 @min=0x1 @max=0x4 @sum=0xa @avg=0x2} { incr ok; exp_continue }
     -re {epsilon."two",2. @count=0x4 @min=0xa @max=0x28 @sum=0x64 @avg=0x19} { incr ok; exp_continue }
     -re {phi @count=0x4 @min=0x1 @max=0x4 @sum=0xa @avg=0x2} { incr ok; exp_continue }
+
     timeout { fail "$test (timeout)" }
     eof { }
 }
 wait
-
 spawn stap $srcdir/$subdir/global_end2.stp
 # above should not do any tapset global variable display so
 # ok should only change by 1
@@ -34,3 +34,18 @@ expect {
 catch {close}; catch {wait}
 
 if {$ok == 12} { pass "$test ($ok)" } { fail "$test ($ok)" }
+
+set test "global_end_var"
+spawn stap $srcdir/$subdir/global_end_var.stp
+set ok 0
+expect {
+    -timeout 180
+    -re {var=0x1} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+
+# PR6954
+setup_xfail 6954 "*-*-*"
+if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
