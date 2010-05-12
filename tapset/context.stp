@@ -39,34 +39,37 @@ function print_regs ()
  * sfunction execname - Returns the execname of a target process (or group of processes).
  */
 function execname:string ()
-{
-	return kernel_string(@cast(task_current(), "task_struct",
-			     "kernel<linux/sched.h>")->comm)
-}
+%{ /* pure */ /* unprivileged */
+	strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
+%}
 
 /**
  * sfunction pid - Returns the ID of a target process.
  */
 function pid:long ()
-{
-	return task_pid(task_current())
-}
+%{ /* pure */ /* unprivileged */
+	THIS->__retvalue = current->tgid;
+%}
 
 /**
  * sfunction tid - Returns the thread ID of a target process.
  */
 function tid:long ()
-{
-	return task_tid(task_current())
-}
+%{ /* pure */ /* unprivileged */
+	THIS->__retvalue = current->pid;
+%}
 
 /**
  * sfunction ppid - Returns the process ID of a target process's parent process.
  */
 function ppid:long()
-{
-	return task_pid(task_parent(task_current()))
-}
+%{ /* pure */ /* unprivileged */
+#if defined(STAPCONF_REAL_PARENT)
+	THIS->__retvalue = current->real_parent->tgid;
+#else
+	THIS->__retvalue = current->parent->tgid;
+#endif
+%}
 
 /**
  * sfunction pgrp - Returns the process group ID of the current process.
@@ -103,9 +106,13 @@ function sid:long ()
  * sfunction pexecname - Returns the execname of a target process's parent process.
  */
 function pexecname:string ()
-{
-	return task_execname(task_parent(task_current()))
-}
+%{ /* pure */ /* unprivileged */
+#if defined(STAPCONF_REAL_PARENT)
+	strlcpy (THIS->__retvalue, current->real_parent->comm, MAXSTRINGLEN);
+#else
+	strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
+#endif
+%}
 
 /**
  * sfunction gid - Returns the group ID of a target process.
