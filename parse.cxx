@@ -2455,10 +2455,7 @@ parser::parse_value ()
   else if (t->type == tok_operator && t->content == "&")
     {
       next ();
-      t = next ();
-      target_symbol *ts = parse_target_symbol (t);
-      ts->addressof = true;
-      return ts;
+      return parse_target_symbol (t);
     }
   else if (t->type == tok_identifier)
     return parse_symbol ();
@@ -2743,6 +2740,13 @@ expression* parser::parse_symbol ()
 // Parse a @cast or $var.  Given head token has already been consumed.
 target_symbol* parser::parse_target_symbol (const token* t)
 {
+  bool addressof = false;
+  if (t->type == tok_operator && t->content == "&")
+    {
+      addressof = true;
+      t = next ();
+    }
+
   if (t->type == tok_identifier && t->content == "@cast")
     {
       cast_op *cop = new cast_op;
@@ -2765,6 +2769,7 @@ target_symbol* parser::parse_target_symbol (const token* t)
         }
       expect_op(")");
       parse_target_symbol_components(cop);
+      cop->addressof = addressof;
       return cop;
     }
 
@@ -2775,6 +2780,7 @@ target_symbol* parser::parse_target_symbol (const token* t)
       tsym->tok = t;
       tsym->base_name = t->content;
       parse_target_symbol_components(tsym);
+      tsym->addressof = addressof;
       return tsym;
     }
 
@@ -2790,7 +2796,7 @@ expression* parser::parse_defined_op (const token* t)
   expect_op("(");
   string nm;
   // no need for parse_hist_op... etc., as @defined takes only target_symbols as its operand.
-  const token* tt = expect_ident (nm);
+  const token* tt = next ();
   dop->operand = parse_target_symbol (tt);
   expect_op(")");
   return dop;

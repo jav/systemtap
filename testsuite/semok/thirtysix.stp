@@ -32,3 +32,9 @@ probe kernel.function("sys_open") { println(@defined(@cast(0, "task_struct")->pi
 function foo1() { println(@defined(@cast(0, "task_struct")->foo)?$nosuchvar:0) } # invalid
 function foo2() { println(@defined(@cast(0, "task_struct")->pid)?1:$nosuchvar) } # valid
 probe begin { foo1(); foo2(); }
+
+# PR11598: support @defined(&...)
+probe begin { println(@defined(@cast(0, "task_struct")->rcu)?$nosuchvar:0) } # invalid
+probe begin { println(@defined(&@cast(0, "task_struct")->rcu)?1:$nosuchvar) } # valid
+probe kernel.function("release_task") { println(@defined($p->rcu)?$nosuchvar:0) } # invalid
+probe kernel.function("release_task") { println(@defined(&$p->rcu)?1:$nosuchvar) } # valid
