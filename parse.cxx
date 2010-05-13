@@ -2794,7 +2794,6 @@ expression* parser::parse_defined_op (const token* t)
   defined_op* dop = new defined_op;
   dop->tok = t;
   expect_op("(");
-  string nm;
   // no need for parse_hist_op... etc., as @defined takes only target_symbols as its operand.
   const token* tt = next ();
   dop->operand = parse_target_symbol (tt);
