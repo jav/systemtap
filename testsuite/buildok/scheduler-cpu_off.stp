@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe scheduler.cpu_off
+{
+	printf("%s: %p %p %d\n", name, task_prev, task_next, idle)
+}

@@ -1,0 +1,111 @@
+#! stap -p4
+
+# Normally we don't test "internal" probes (ones starting with '__'),
+# but let's make sure the kprobes-based fallback probes for
+# tracepoint-based probes actually work.  So, we'll test the *.kp
+# probes.
+
+# scheduler.cpu_off test moved to scheduler-cpu_off.stp
+
+probe scheduler.cpu_on ?
+{
+	printf("%s: %p %d\n", name, task_prev, idle)
+}
+
+probe scheduler.tick
+{
+	printf("%s: %d\n", name, idle)
+}
+
+probe scheduler.balance ?
+{
+	printf("%s\n", name)
+}
+
+# scheduler.ctxswitch/__scheduler.ctxswitch.kp tests moved to
+# scheduler-ctxswitch.stp
+
+probe scheduler.kthread_stop
+{
+	printf("%s\n", name)
+	printf("pid = %d, priority = %d\n", thread_pid, thread_priority)
+}
+probe __scheduler.kthread_stop.kp
+{
+	printf("pid = %d, priority = %d\n", thread_pid, thread_priority)
+}
+
+probe scheduler.kthread_stop.return
+{
+	printf("%s\n", name)
+        printf("return value = %d\n", return_value)
+}
+probe __scheduler.kthread_stop.return.kp
+{
+        printf("return value = %d\n", return_value)
+}
+
+probe scheduler.wait_task ?
+{
+	printf("%s\n", name)
+	printf("pid = %d, priority = %d\n", task_pid, task_priority)
+}
+
+probe scheduler.wakeup
+{
+	printf("%s\n", name)
+        printf("pid = %d, priority = %d\n, state = %d, cpu = %d, tid = %d\n",
+	       task_pid, task_priority, task_state, task_cpu, task_tid)
+	printf("task = %p\n", task)
+}
+
+probe scheduler.wakeup_new
+{
+	printf("%s\n", name)
+        printf("pid = %d, priority = %d, state = %d, cpu = %d, tid = %d\n",
+	       task_pid, task_priority, task_state, task_cpu, task_tid)
+	printf("task = %p\n", task)
+}
+
+# scheduler.migrate/__scheduler.migrate.kp tests moved to
+# scheduler-migrate.stp
+
+probe scheduler.process_free, scheduler.process_exit
+{
+	printf("%s\n", name)
+        printf("pid = %d, priority = %d\n", pid, priority)
+}
+probe __scheduler.process_free.kp, __scheduler.process_exit.kp
+{
+        printf("pid = %d, priority = %d\n", pid, priority)
+}
+
+probe scheduler.process_wait
+{
+	printf("%s\n", name)
+        printf("pid = %d\n", pid)
+}
+probe __scheduler.process_wait.kp
+{
+        printf("pid = %d\n", pid)
+}
+
+probe scheduler.process_fork
+{
+	printf("%s\n", name)
+        printf("parent_pid = %d, child_pid = %d\n", parent_pid, child_pid)
+}
+probe __scheduler.process_fork.kp
+{
+        printf("parent_pid = %d, child_pid = %d\n", parent_pid, child_pid)
+}
+
+probe scheduler.signal_send
+{
+	printf("%s\n", name)
+        printf("pid = %d, signal_number = %d\n", pid, signal_number)
+}
+probe __scheduler.signal_send.kp
+{
+        printf("pid = %d\n", pid)
+}

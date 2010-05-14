@@ -40,7 +40,7 @@ function bio_rw_num:long(rw:long)
 %}
 
 /* returns R for read, W for write */
-function bio_rw_str(rw)
+function bio_rw_str(rw:long)
 {
     return bio_rw_num(rw) == BIO_READ ? "R" : "W"
 }
@@ -65,6 +65,7 @@ global BIO_READ = 0, BIO_WRITE = 1
 /**
  *  probe ioblock.request - Fires whenever making a generic block I/O request.
  *
+ *  @name      - name of the probe point
  *  @devname   - block device name
  *  @ino       - i-node number of the mapped file
  *  @sector    - beginning sector for the entire bio
@@ -93,6 +94,7 @@ global BIO_READ = 0, BIO_WRITE = 1
  */
 probe ioblock.request = kernel.function ("generic_make_request")
 {
+	name = "ioblock.request"
         devname = __bio_devname($bio)
         ino = __bio_ino($bio)
 
@@ -102,9 +104,8 @@ probe ioblock.request = kernel.function ("generic_make_request")
         vcnt = $bio->bi_vcnt
         idx = $bio->bi_idx
         phys_segments = $bio->bi_phys_segments
-%(kernel_v < "2.6.28" %?
-        hw_segments = $bio->bi_hw_segments
-%)
+	hw_segments = (@defined($bio->bi_hw_segments)
+		       ? $bio->bi_hw_segments : 0)
         size = $bio->bi_size
 
         bdev = $bio->bi_bdev
@@ -115,6 +116,7 @@ probe ioblock.request = kernel.function ("generic_make_request")
 /**
  * probe ioblock.end - Fires whenever a block I/O transfer is complete.
  *
+ *  @name      - name of the probe point
  *  @devname   - block device name
  *  @ino       - i-node number of the mapped file
  *  @bytes_done - number of bytes transferred
@@ -141,10 +143,11 @@ probe ioblock.request = kernel.function ("generic_make_request")
  */
 probe ioblock.end = kernel.function("bio_endio")
 {
+	name = "ioblock.end"
         devname = __bio_devname($bio)
         ino = __bio_ino($bio)
 
-        bytes_done = %( kernel_vr < "2.6.24" %? $bytes_done %: $bio->bi_size %)
+        bytes_done = (@defined($bytes_done) ? $bytes_done : $bio->bi_size)
         error = $error
 
         sector = $bio->bi_sector
@@ -153,16 +156,17 @@ probe ioblock.end = kernel.function("bio_endio")
         vcnt = $bio->bi_vcnt
         idx = $bio->bi_idx
         phys_segments = $bio->bi_phys_segments
-%(kernel_v < "2.6.28" %?
-        hw_segments = $bio->bi_hw_segments
-%)
+	hw_segments = (@defined($bio->bi_hw_segments)
+		       ? $bio->bi_hw_segments : 0)
         size = $bio->bi_size
 }
 
 /**
  * probe ioblock_trace.bounce - Fires whenever a buffer bounce is needed for at least one page of a block IO request.
  *
- *  @devname    device for which a buffer bounce was needed.
+ *  @name      - name of the probe point
+ *  @q         - request queue on which this bio was queued.
+ *  @devname   - device for which a buffer bounce was needed.
  *  @ino       - i-node number of the mapped file
  *  @bytes_done - number of bytes transferred
  *  @sector    - beginning sector for the entire bio
@@ -180,12 +184,17 @@ probe ioblock.end = kernel.function("bio_endio")
  *  @idx       - offset into the bio vector array
  *  @phys_segments - number of segments in this bio after physical address coalescing is performed.
  *  @size      - total size in bytes
+ *  @bdev      - target block device
+ *  @bdev_contains - points to the device object which contains the partition (when bio structure represents a partition)
+ *  @p_start_sect -  points to the start sector of the partition structure of the device
  *
  * Context :
  *	The process creating a block IO request.
  */
 probe ioblock_trace.bounce = kernel.trace("block_bio_bounce")
 {
+	name = "ioblock_trace.bounce"
+	q = $q
         devname = __bio_devname($bio)
         ino = __bio_ino($bio)
 
@@ -197,11 +206,16 @@ probe ioblock_trace.bounce = kernel.trace("block_bio_bounce")
         idx = $bio->bi_idx
         phys_segments = $bio->bi_phys_segments
         size = $bio->bi_size
+        bdev_contains = $bio->bi_bdev->bd_contains
+        bdev = $bio->bi_bdev
+        p_start_sect = __bio_start_sect($bio)
 }
 
 /**
  * probe ioblock_trace.request - Fires just as a generic block I/O request is created for a bio.
  *
+ *  @name      - name of the probe point
+ *  @q         - request queue on which this bio was queued.
  *  @devname   - block device name
  *  @ino       - i-node number of the mapped file
  *  @bytes_done - number of bytes transferred
@@ -231,6 +245,8 @@ probe ioblock_trace.bounce = kernel.trace("block_bio_bounce")
 
 probe ioblock_trace.request = kernel.trace("block_bio_queue")
 {
+	name = "ioblock_trace.request"
+	q = $q
         devname = __bio_devname($bio)
         ino = __bio_ino($bio)
 
@@ -250,7 +266,8 @@ probe ioblock_trace.request = kernel.trace("block_bio_queue")
 /**
  * probe ioblock_trace.end - Fires whenever a block I/O transfer is complete.
  *
- *  @q	      - request queue on which this bio was queued.
+ *  @name      - name of the probe point
+ *  @q         - request queue on which this bio was queued.
  *  @devname   - block device name
  *  @ino       - i-node number of the mapped file
  *  @bytes_done - number of bytes transferred
@@ -270,12 +287,16 @@ probe ioblock_trace.request = kernel.trace("block_bio_queue")
  *  @idx       - offset into the bio vector array
  *  @phys_segments - number of segments in this bio after physical address coalescing is performed.
  *  @size      - total size in bytes
+ *  @bdev      - target block device
+ *  @bdev_contains - points to the device object which contains the partition (when bio structure represents a partition)
+ *  @p_start_sect -  points to the start sector of the partition structure of the device
  *
  * Context:
  *  The process signals the transfer is done.
  */
 probe ioblock_trace.end = kernel.trace("block_bio_complete")
 {
+	name = "ioblock_trace.end"
 	q = $q
         devname = __bio_devname($bio)
         ino = __bio_ino($bio)
@@ -289,4 +310,7 @@ probe ioblock_trace.end = kernel.trace("block_bio_complete")
         idx = $bio->bi_idx
         phys_segments = $bio->bi_phys_segments
         size = $bio->bi_size
+        bdev_contains = $bio->bi_bdev->bd_contains
+        bdev = $bio->bi_bdev
+        p_start_sect = __bio_start_sect($bio)
 }

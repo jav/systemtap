@@ -1,0 +1,20 @@
+#! stap -p4
+
+probe scheduler.migrate ?
+{
+	printf("%s\n", name)
+	printf("pid = %d, priority = %d\n", pid, priority)
+	printf("%p %d/%d\n", task, cpu_from, cpu_to)	
+}
+probe __scheduler.migrate.kp ?
+{
+	printf("pid = %d, priority = %d\n", pid, priority)
+	printf("%p %d/%d\n", task, cpu_from, cpu_to)	
+}
+
+# Make sure this file compiles on kernels where scheduler.migrate
+# doesn't exist.
+probe begin
+{
+	printf("begin\n")
+}

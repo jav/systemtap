@@ -1,0 +1,7 @@
+#! stap -p4
+
+probe begin
+{
+	printf("%d\n", __is_idle() + container_of_task_rcu(0))
+}
+

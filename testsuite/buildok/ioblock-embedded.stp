@@ -6,4 +6,5 @@ probe begin {
 		__bio_start_sect (0))
 		
 	print (__bio_devname (0))
+	print (bio_rw_str(0))
 }

@@ -1,0 +1,6 @@
+#! stap -wp4
+
+// Tests if all probes in ioblock.stp are resolvable.
+
+probe ioblock.*,
+      ioblock_trace.* ? {}

@@ -1,0 +1,28 @@
+#! stap -p4
+
+probe ioblock.request {
+  printf("%s\n", name)
+  add_part = 0
+  if (bdev != bdev_contains)
+  	add_part = p_start_sect
+  printf("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+	 devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx,
+	 phys_segments, hw_segments, size, add_part, ino)
+  printf("%p %p\n", bdev, bdev_contains)
+}
+
+probe ioblock.end {
+  printf("%s\n", name)
+  printf("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+	 devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx,
+	 phys_segments, hw_segments, size, bytes_done, error, ino)
+}
+
+probe ioblock_trace.* ?
+{
+  printf("%s\n", name)
+  printf("%s\t%d\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%p\t%p\t%d\n",
+	 devname, q, sector, flags, rw, bio_rw_str(rw), vcnt, idx,
+	 phys_segments, size, bytes_done, ino, p_start_sect,
+	 bdev_contains, bdev)
+}
