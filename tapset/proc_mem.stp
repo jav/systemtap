@@ -19,8 +19,11 @@
 /* PF_BORROWED_MM got renamed to PF_KTHREAD with same semantics somewhere. */
 #ifdef PF_BORROWED_MM
 #define _STP_PF_KTHREAD PF_BORROWED_MM
-#else
+#elif defined(PF_KTHREAD)
 #define _STP_PF_KTHREAD PF_KTHREAD
+#else
+/* 2.6.9 doesn't have either PF_BORROWED_MM or PF_KTHREAD */
+#define _STP_PF_KTHREAD 0
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
@@ -62,31 +65,46 @@ function _MM_ANONPAGES:long()
 
 function _stp_get_mm_counter:long(mm:long, member:long)
 {
-%(kernel_v >= "2.6.34" %?
+    /* kernels >= 2.6.34 */
+    if (@defined(&@cast(mm, "mm_struct", "kernel<linux/sched.h>")->rss_stat)) {
 %( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
-  val = atomic_long_read(&@cast(mm, "mm_struct", "kernel<linux/sched.h>")->rss_stat->count[member])
+	val = atomic_long_read(&@cast(mm, "mm_struct",
+			"kernel<linux/sched.h>")->rss_stat->count[member])
 %:
-  val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->rss_stat->count[member]
+	val = @cast(mm, "mm_struct",
+		    "kernel<linux/sched.h>")->rss_stat->count[member]
 %)
-  if (val < 0)
-    return 0
-%:	/* kernel < 2.6.34 */
-  if (member == _MM_FILEPAGES()) {
+	if (val < 0)
+	    return 0
+    }
+    /* kernels < 2.6.34 && kernels >= 2.6.12 */
+    else if (@defined(&@cast(mm, "mm_struct",
+			     "kernel<linux/sched.h>")->_file_rss)) {
+	if (member == _MM_FILEPAGES()) {
 %( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
-    val = atomic_long_read(&@cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss)
+	    val = atomic_long_read(&@cast(mm, "mm_struct",
+				   "kernel<linux/sched.h>")->_file_rss)
 %:
-    val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss
+	    val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_file_rss
 %)
-  }
-  else if (member == _MM_ANONPAGES()) {
+	}
+	else if (member == _MM_ANONPAGES()) {
 %( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
-    val = atomic_long_read(&@cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss)
+	    val = atomic_long_read(&@cast(mm, "mm_struct",
+				   "kernel<linux/sched.h>")->_anon_rss)
 %:
-    val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss
+	    val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->_anon_rss
 %)
-  }
-%)
-  return val
+	}
+    }
+    /* kernels < 2.6.12 */
+    else {
+	if (member == _MM_FILEPAGES())
+	    val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->rss
+	else if (member == _MM_ANONPAGES())
+	    val = @cast(mm, "mm_struct", "kernel<linux/sched.h>")->anon_rss
+    }
+    return val
 }
 
 /**

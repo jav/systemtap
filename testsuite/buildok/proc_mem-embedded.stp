@@ -1,6 +1,10 @@
 #! stap -p4
 
 probe begin {
+  printf("%d\n", _stp_valid_task(0) + _MM_FILEPAGES()
+	 + _MM_ANONPAGES() + _stp_get_mm_counter(0, 0)
+	 + _stp_mem_txt_adjust(0, 0))
+  printf("%s\n", _stp_number_to_string_postfix(1, 0, ""))
   printf("%d\n", proc_mem_size());
   printf("%d\n", proc_mem_rss());
   printf("%d\n", proc_mem_shr());
