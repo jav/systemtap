@@ -1,0 +1,13 @@
+#! stap -p4
+
+probe begin
+{
+	print(task_utime()
+	      + task_utime_tid(0)
+	      + task_stime()
+	      + task_stime_tid(0)
+	      + cputime_to_msecs(0))
+	print(msecs_to_string(0))
+	print(cputime_to_string(0))
+	print(task_time_string_tid(0))
+}

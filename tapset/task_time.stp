@@ -19,8 +19,13 @@
 // </tapsetdescription>
 
 %{
-#include <asm/cputime.h>
+#include <linux/sched.h>		/* includes asm/cputime.h */
 #include <linux/time.h>
+
+/* RHEL4 (2.6.9) kernels don't have cputime_to_msecs */
+#ifndef cputime_to_msecs
+#define cputime_to_msecs(__ct)		jiffies_to_msecs(__ct)
+#endif
 %}
 
 /**
