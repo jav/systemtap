@@ -20,15 +20,9 @@
 %}
 
 global ActiveOpens
-%( kernel_v > "2.6.21" %?
 global AttemptFails
-%)
-%( kernel_v > "2.6.24" %?
 global CurrEstab
-%)
-%( kernel_v > "2.6.24" %?
 global EstabResets
-%)
 // global InErrs, this mib is not yet supported
 global InSegs
 global OutRsts
@@ -106,13 +100,13 @@ function tcpmib_remote_port:long(sk:long)
  *
  */
 probe
-tcpmib.ActiveOpens=kernel.function("tcp_connect").return
+tcpmib.ActiveOpens = kernel.function("tcp_connect").return
 {
 	sk = $sk;
 	op = 1;
 	if ( $return ) next;
         // definition in tcpipstat.stp
-	key = tcpmib_filter_key(sk,op);
+	key = tcpmib_filter_key($sk,op);
 	if ( key ) ActiveOpens[key] += op;
 }
 
@@ -125,22 +119,20 @@ tcpmib.ActiveOpens=kernel.function("tcp_connect").return
  * MIB: TCP_MIB_ATTEMPTFAILS
  *
  */
-%( kernel_v > "2.6.21" %?
 probe
-tcpmib.AttemptFails=kernel.function("tcp_done")
+tcpmib.AttemptFails = kernel.function("tcp_done").call ?
 {
 	sk = $sk;
-	state = tcpmib_get_state(sk);
+	state = tcpmib_get_state($sk);
 	op = 1;
 
 	TCP_SYN_SENT = 2;
 	TCP_SYN_RECV = 3;
 	if( state == TCP_SYN_SENT || state == TCP_SYN_RECV){
-		key = tcpmib_filter_key(sk,op);
+		key = tcpmib_filter_key($sk,op);
 		if ( key ) AttemptFails[key] += op;
 	}
 }
-%)
 
 /**
  * probe tcpmib.CurrEstab - Update the count of open sockets.
@@ -151,28 +143,26 @@ tcpmib.AttemptFails=kernel.function("tcp_done")
  * MIB: TCP_MIB_CURRESTAB
  *
  */
-%( kernel_v > "2.6.24" %?
 probe
-tcpmib.CurrEstab=kernel.function("tcp_set_state")
+tcpmib.CurrEstab = kernel.function("tcp_set_state").call ?
 {
 	sk = $sk;
 	state = $state;
-	oldstate = tcpmib_get_state(sk);
+	oldstate = tcpmib_get_state($sk);
 
 	TCP_ESTABLISHED = 1;
 	if ( oldstate == TCP_ESTABLISHED ) {
 		op = -1;
-		key = tcpmib_filter_key(sk,op);
+		key = tcpmib_filter_key($sk,op);
 		if ( key ) CurrEstab[key] += op;
 	} else {
 		if ( state == TCP_ESTABLISHED ) {
 			op = 1;
-			key = tcpmib_filter_key(sk,op);
+			key = tcpmib_filter_key($sk,op);
 			if ( key ) CurrEstab[key] += op;
 		}
 	}
 }
-%)
 
 /**
  * probe tcpmib.EstabResets - Count the reset of a socket.
@@ -183,13 +173,12 @@ tcpmib.CurrEstab=kernel.function("tcp_set_state")
  * MIB: TCP_MIB_ESTABRESETS
  *
  */
-%( kernel_v > "2.6.24" %?
 probe
-tcpmib.EstabResets=kernel.function("tcp_set_state")
+tcpmib.EstabResets = kernel.function("tcp_set_state").call ?
 {
 	sk = $sk;
         state = $state;
-        oldstate = tcpmib_get_state(sk);
+        oldstate = tcpmib_get_state($sk);
 	op = 1;
 
 	TCP_CLOSE = 7;
@@ -197,11 +186,10 @@ tcpmib.EstabResets=kernel.function("tcp_set_state")
 	TCP_ESTABLISHED = 1;
 	if ( ( state == TCP_CLOSE ) && 
 	   (oldstate == TCP_CLOSE_WAIT || oldstate == TCP_ESTABLISHED) ){
-        	key = tcpmib_filter_key(sk,op);
+        	key = tcpmib_filter_key($sk,op);
 		if ( key ) EstabResets[key] += op;
 	}
 }
-%)
 
 /**
  * probe tcpmib.InSegs - Count an incomming tcp segment.
@@ -212,25 +200,23 @@ tcpmib.EstabResets=kernel.function("tcp_set_state")
  * MIB: TCP_MIB_INSEGS
  *
  */
-%( kernel_v > "2.6.24" %?
 probe
-tcpmib.InSegs=kernel.function("__inet_lookup_established").return ?
+tcpmib.InSegs =
+	kernel.function("__inet_lookup_established").return !,
+	kernel.function("tcp_v4_rcv")
 {
-        sk=$return
+	if (@defined($return)) {
+	        sk=$return
+		key = tcpmib_filter_key($return,op)
+	}
+	else {
+		# We don't know the sk in tcp_v4_rcv()
+		sk=0
+		key = ipmib_filter_key($skb,op,0);
+	}
 	op=1
-	key = tcpmib_filter_key(sk,op);
 	if ( key ) InSegs[key] += op;
 }
-%:
-probe
-tcpmib.InSegs=kernel.function("tcp_v4_rcv")
-{
-	skb=$skb
-	op=1;
-	key = ipmib_filter_key(skb,op,0);
-	if ( key ) InSegs[key] += op;
-}
-%)
 
 /**
  * probe tcpmib.OutRsts - Count the sending of a reset packet.
@@ -242,8 +228,9 @@ tcpmib.InSegs=kernel.function("tcp_v4_rcv")
  *
  */
 probe
-tcpmib.OutRsts = 	tcpmib.OutRsts.A,
-			tcpmib.OutRsts.B { }
+tcpmib.OutRsts = __tcpmib.OutRsts.*
+{
+}
 
 function _rtn_local:long ()
 %{
@@ -300,28 +287,28 @@ function _tcpmib_input_route_type:long (skb:long)
  * Without a socket we can't count the reset.
  */
 probe
-tcpmib.OutRsts.A=kernel.function("tcp_v4_send_reset")
+__tcpmib.OutRsts.tcp_v4_send_reset = kernel.function("tcp_v4_send_reset")
 {
         sk = (@defined($sk) ? $sk : 0)
-        skb = $skb
         op = 1;
-        if ( _is_reset(skb) ) next
+        if ( _is_reset($skb) ) next
         if (_tcpmib_input_route_type($skb) != _rtn_local() )
                 next;
         key = (@defined($sk) ? tcpmib_filter_key(sk,op)
-			     : ipmib_filter_key(skb,op,1))
+			     : ipmib_filter_key($skb,op,1))
         if ( key ) OutRsts[key] += op;
 }
 
 probe
-tcpmib.OutRsts.B= kernel.function("tcp_send_active_reset")
+__tcpmib.OutRsts.tcp_send_active_reset =
+	kernel.function("tcp_send_active_reset")
 {
 	/* Almost correct,
 	 * If alloc_skb() fails it incorrectly bumps TCP_MIB_OUTRSTS,
 	 */
 	sk = $sk;
 	op = 1;
-	key = tcpmib_filter_key(sk,op);
+	key = tcpmib_filter_key($sk,op);
         if ( key ) OutRsts[key] += op;
 }
 
@@ -382,6 +369,6 @@ tcpmib.RetransSegs=kernel.function("tcp_retransmit_skb").return
 	sk = $sk;
 	op = 1;
 	if ( $return ) next;
-	key = tcpmib_filter_key(sk,op);
+	key = tcpmib_filter_key($sk,op);
 	if ( key ) RetransSegs[key] += op;
 }
