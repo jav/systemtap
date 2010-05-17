@@ -1,5 +1,6 @@
 // Socket tapset
 // Copyright (C) 2006 IBM Corp.
+// Copyright (C) 2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -34,9 +35,7 @@
  *  The message sender
  */
 probe socket.send = socket.sendmsg.return,
-%( kernel_v < "2.6.19" %?
-                    socket.writev.return,
-%)
+                    socket.writev.return ?,
                     socket.aio_write.return
 {
 	name = "socket.send"
@@ -57,9 +56,7 @@ probe socket.send = socket.sendmsg.return,
  *  The message receiver
  */
 probe socket.receive = socket.recvmsg.return,
-%( kernel_v < "2.6.19" %?
-                       socket.readv.return,
-%)
+                       socket.readv.return ?,
                        socket.aio_read.return
 {
 	name = "socket.receive"
@@ -210,15 +207,8 @@ probe socket.aio_write = kernel.function ("sock_aio_write")
 {
 	name = "socket.aio_write"
 	_sock = _get_sock_addr ($iocb->ki_filp)
-%( kernel_v < "2.6.16" %?
-	size = $size
-%:
-	%( kernel_v < "2.6.19" %?
-		size = $count
-	%:
-		size = _get_sock_size ($iov, $nr_segs)
-	%)
-%)
+	size = (@defined($iov) ? _get_sock_size ($iov, $nr_segs)
+		: @defined($count) ?$count : $size)
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
 	state = _sock_state_num (_sock)
@@ -284,15 +274,8 @@ probe socket.aio_read = kernel.function ("sock_aio_read")
 {
 	name = "socket.aio_read"
 	_sock = _get_sock_addr ($iocb->ki_filp)
-%( kernel_v < "2.6.16" %?
-	size = $size
-%:
-	%( kernel_v < "2.6.19" %?
-		size = $count
-	%:
-		size = _get_sock_size ($iov, $nr_segs)
-	%)
-%)
+	size = (@defined($iov) ? _get_sock_size ($iov, $nr_segs)
+		: @defined($count) ?$count : $size)
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
 	state = _sock_state_num (_sock)
@@ -330,8 +313,6 @@ probe socket.aio_read.return = kernel.function ("sock_aio_read").return
 	success = _success_check($return)
 }
 
-// readv and writev were removed in 2.6.19
-%( kernel_v < "2.6.19" %?
 /**
  * probe socket.writev - Message sent via socket_writev()
  * @name:     Name of this probe
@@ -348,11 +329,12 @@ probe socket.aio_read.return = kernel.function ("sock_aio_read").return
  * Fires at the beginning of sending a message on a socket
  * via the sock_writev() function
  */
-probe socket.writev = kernel.function ("sock_writev")
+probe socket.writev = kernel.function ("sock_writev") ?
 {
 	name = "socket.writev"
 	_sock = _get_sock_addr ($file)
-	size = _get_sock_size ($iov, $nr_segs)
+	size = (@defined($iov) ? _get_sock_size ($iov, $nr_segs)
+		: _get_sock_size ($vector, $count))
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
 	state = _sock_state_num (_sock)
@@ -377,7 +359,7 @@ probe socket.writev = kernel.function ("sock_writev")
  * Fires at the conclusion of sending a message on a socket
  * via the sock_writev() function
  */
-probe socket.writev.return = kernel.function ("sock_writev").return
+probe socket.writev.return = kernel.function ("sock_writev").return ?
 {
 	name = "socket.writev.return"
 	size = $return
@@ -406,11 +388,12 @@ probe socket.writev.return = kernel.function ("sock_writev").return
  * Fires at the beginning of receiving a message on a socket
  * via the sock_readv() function
  */
-probe socket.readv = kernel.function ("sock_readv")
+probe socket.readv = kernel.function ("sock_readv") ?
 {
 	name = "socket.readv"
 	_sock = _get_sock_addr ($file)
-	size = _get_sock_size ($iov, $nr_segs)
+	size = (@defined($iov) ? _get_sock_size ($iov, $nr_segs)
+		: _get_sock_size ($vector, $count))
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
 	state = _sock_state_num (_sock)
@@ -435,7 +418,7 @@ probe socket.readv = kernel.function ("sock_readv")
  * Fires at the conclusion of receiving a message on a socket
  * via the sock_readv() function
  */
-probe socket.readv.return = kernel.function ("sock_readv").return
+probe socket.readv.return = kernel.function ("sock_readv").return ?
 {
 	name = "socket.readv.return"
 	size = $return
@@ -447,7 +430,6 @@ probe socket.readv.return = kernel.function ("sock_readv").return
 	type = _sock_type_num (_sock)
 	success = _success_check($return)
 }
-%)
 
 /**
  * probe socket.create - Creation of a socket
@@ -886,7 +868,7 @@ probe begin(-1001)
 # INTERNAL FUNCTIONS #
 ######################
 
-function _success_check(ret:long)
+function _success_check:long (ret:long)
 {
 	return (ret >= 0 ? 1 : 0)
 }

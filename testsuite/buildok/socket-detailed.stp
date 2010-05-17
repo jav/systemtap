@@ -3,12 +3,10 @@
 probe socket.send, socket.receive,
       socket.sendmsg, socket.sendmsg.return,
       socket.recvmsg, socket.recvmsg.return,
-%( kernel_v < "2.6.19" %?
-      socket.writev, socket.writev.return,
-      socket.readv, socket.readv.return,
-%)
       socket.aio_write, socket.aio_write.return,
-      socket.aio_read, socket.aio_read.return
+      socket.aio_read, socket.aio_read.return,
+      socket.writev ?, socket.writev.return ?,
+      socket.readv ?, socket.readv.return ?
 {
 	log(pp())
 	log(name)

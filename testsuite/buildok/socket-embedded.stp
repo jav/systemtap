@@ -1,15 +1,24 @@
 #! stap -p4
 #
 probe begin {
-	print (sock_flags_num2str (0) .
+	print (sock_prot_num2str (0) .
+		sock_fam_num2str (0) .
+		sock_state_num2str (0) .
+		sock_type_num2str (0) .
+		sock_flags_num2str (0) .
 		msg_flags_num2str (0))
 
-	print (_get_sock_addr (0) +
+	print (sock_prot_str2num ("") +
+		sock_fam_str2num ("") +
+		sock_state_str2num ("") +
+		sock_type_str2num ("") +
+		_success_check (0) +
+		_get_sock_addr (0) +
 		_get_sock_size (0, 0) +
 		_sock_prot_num (0) +
 		_sock_fam_num (0) +
 		_sock_state_num (0) +
 		_sock_type_num (0) +
 		_sock_flags_num (0))
-	}
+}
 
