@@ -29,7 +29,7 @@ probe signal.wakeup
 
 # signal.check_ignored test moved to signal-check_ignored.stp
 
-probe signal.check_ignored.return ?
+probe signal.check_ignored.return
 {
 	printf("%s() = %s\n", name, retstr)
 }

@@ -411,3 +411,16 @@ no_ret:
 		strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
 	}
 %}
+
+function return_str:string(format:long, ret:long)
+{
+	if (ret < 0 && errno_p(ret))
+		return sprintf("%d (%s)", ret, errno_str(ret))
+
+	if (format == 2)
+		return sprintf("0x%x", ret)
+	else if (format == 3)
+		return sprintf("%#o", ret)
+	else	
+		return sprintf("%d", ret)
+}

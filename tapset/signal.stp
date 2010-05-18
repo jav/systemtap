@@ -332,10 +332,27 @@ probe signal.check_ignored = kernel.function("sig_ignored")
  * @name: Name of the probe point
  * @retstr: Return value as a string
  */
-probe signal.check_ignored.return = kernel.function("sig_ignored").return ?
+
+/* On newer kernels, sig_ignored() is inline, so we can't do a return
+ * probe.  So, instead we'll probe prepare_signal(), which is the only
+ * caller of sig_ignored(). */
+probe __signal.check_ignored.sig_ignored.return =
+	kernel.function("sig_ignored").return
+{
+    retstr = returnstr(1)
+}
+probe __signal.check_ignored.prepare_signal.return =
+	kernel.function("prepare_signal").return
+{
+    /* The prepare_signal() function inverts the return value of
+     * sig_ignored(). */
+    retstr = return_str(1, !$return)
+}
+probe signal.check_ignored.return =
+	__signal.check_ignored.sig_ignored.return !, 
+	__signal.check_ignored.prepare_signal.return
 {
     name = "check_ignored"
-    retstr = returnstr(1)
 }
 
 
