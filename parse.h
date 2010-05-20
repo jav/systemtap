@@ -131,6 +131,14 @@ public:
   static stapfile* parse (systemtap_session& s, const std::string& n, bool privileged);
 
 private:
+  typedef enum {
+      PP_NONE,
+      PP_KEEP_THEN,
+      PP_SKIP_THEN,
+      PP_KEEP_ELSE,
+      PP_SKIP_ELSE,
+  } pp_state_t;
+
   systemtap_session& session;
   std::string input_name;
   std::istream* free_input;
@@ -139,8 +147,9 @@ private:
   parse_context context;
 
   // preprocessing subordinate
-  std::vector<const token*> enqueued_pp;
+  std::vector<std::pair<const token*, pp_state_t> > pp_state;
   const token* scan_pp (bool wildcard=false);
+  const token* skip_pp ();
 
   // scanning state
   const token* last ();

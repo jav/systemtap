@@ -370,16 +370,55 @@ parser::scan_pp (bool wildcard)
 {
   while (true)
     {
-      if (enqueued_pp.size() > 0)
+      pp_state_t pp = PP_NONE;
+      if (!pp_state.empty())
+        pp = pp_state.back().second;
+
+      const token* t = 0;
+      if (pp == PP_SKIP_THEN || pp == PP_SKIP_ELSE)
+        t = skip_pp ();
+      else
+        t = input.scan (wildcard);
+
+      if (t == 0) // EOF
         {
-          const token* t = enqueued_pp[0];
-          enqueued_pp.erase (enqueued_pp.begin());
+          if (pp != PP_NONE)
+            {
+              t = pp_state.back().first;
+              pp_state.pop_back(); // so skip_some doesn't keep trying to close this
+              throw parse_error ("incomplete conditional at end of file", t);
+            }
           return t;
         }
 
-      const token* t = input.scan (wildcard); // NB: not recursive!
-      if (t == 0) // EOF
-        return t;
+      // misplaced preprocessor "then"
+      if (t->type == tok_operator && t->content == "%?")
+        throw parse_error ("incomplete conditional - missing '%('", t);
+
+      // preprocessor "else"
+      if (t->type == tok_operator && t->content == "%:")
+        {
+          if (pp == PP_NONE)
+            throw parse_error ("incomplete conditional - missing '%('", t);
+          if (pp == PP_KEEP_ELSE || pp == PP_SKIP_ELSE)
+            throw parse_error ("invalid conditional - duplicate '%:'", t);
+
+          pp_state.back().second = (pp == PP_KEEP_THEN) ?
+                                   PP_SKIP_ELSE : PP_KEEP_ELSE;
+          delete t;
+          continue;
+        }
+
+      // preprocessor close
+      if (t->type == tok_operator && t->content == "%)")
+        {
+          if (pp == PP_NONE)
+            throw parse_error ("incomplete conditional - missing '%('", t);
+          delete pp_state.back().first;
+          delete t;
+          pp_state.pop_back();
+          continue;
+        }
 
       if (! (t->type == tok_operator && t->content == "%(")) // ordinary token
         return t;
@@ -391,7 +430,7 @@ parser::scan_pp (bool wildcard)
       const token *n = NULL;
       do {
         const token *l, *op, *r;
-        l = input.scan (false); // NB: not recursive, though perhaps could be
+        l = input.scan (false);
         op = input.scan (false);
         r = input.scan (false);
         if (l == 0 || op == 0 || r == 0)
@@ -420,118 +459,49 @@ parser::scan_pp (bool wildcard)
       clog << "PP eval (" << *t << ") == " << result << endl;
       */
 
-      const token *m = n; // NB: not recursive
+      const token *m = n;
       if (! (m && m->type == tok_operator && m->content == "%?"))
         throw parse_error ("expected '%?' marker for conditional", t);
       delete m; // "%?"
 
-      vector<const token*> my_enqueued_pp;
+      pp = result ? PP_KEEP_THEN : PP_SKIP_THEN;
+      pp_state.push_back (make_pair (t, pp));
 
-      int nesting = 0;
-      int then = 0;
-      while (true) // consume THEN tokens
+      // Now loop around to look for a real token.
+    }
+}
+
+
+// Skip over tokens and any errors, heeding
+// only nested preprocessor starts and ends.
+const token*
+parser::skip_pp ()
+{
+  const token* t = 0;
+  unsigned nesting = 0;
+  do
+    {
+      try
         {
-          try
-            {
-              m = result ? scan_pp (wildcard) : input.scan (wildcard);
-            }
-          catch (const parse_error &e)
-            {
-              if (result) throw e; // propagate errors if THEN branch taken
-              continue;
-            }
-
-          if (m && m->type == tok_operator && m->content == "%(") // nested %(
-            nesting ++;
-          if (m && m->type == tok_operator && m->content == "%?") {
-            then ++;
-            if (nesting != then)
-              throw parse_error ("incomplete conditional - missing '%('", m);
-          }
-          if (nesting == 0 && m && (m->type == tok_operator && (m->content == "%:" || // ELSE
-                                                                m->content == "%)"))) // END
-            break;
-          if (nesting && m && m->type == tok_operator && m->content == "%)") { // nested %)
-            nesting --;
-            then --;
-          }
-
-          if (!m)
-            throw parse_error ("incomplete conditional - missing '%:' or '%)'", t);
-          if (result)
-            my_enqueued_pp.push_back (m);
-          if (!result)
-            delete m; // do nothing, just dispose of unkept THEN token
-
+          t = input.scan ();
+        }
+      catch (const parse_error &e)
+        {
           continue;
         }
-
-      if (m && m->type == tok_operator && m->content == "%:") // ELSE
-        {
-          delete m; // "%:"
-          int nesting = 0;
-          int then = 0;
-          while (true)
-            {
-              try
-                {
-                  m = result ? input.scan (wildcard) : scan_pp (wildcard);
-                }
-              catch (const parse_error& e)
-                {
-                  if (!result) throw e; // propagate errors if ELSE branch taken
-                  continue;
-                }
-
-              if (m && m->type == tok_operator && m->content == "%(") // nested %(
-                nesting ++;
-              if (m && m->type == tok_operator && m->content == "%?") {
-                then ++;
-                if (nesting != then)
-                  throw parse_error ("incomplete conditional - missing '%('", m);
-              }
-              if (nesting == 0 && m && m->type == tok_operator && m->content == "%)") // END
-                break;
-              if (nesting && m && m->type == tok_operator && m->content == "%)") { // nested %)
-                nesting --;
-                then --;
-              }
-
-              if (!m)
-                throw parse_error ("incomplete conditional - missing %)", t);
-              if (!result)
-                my_enqueued_pp.push_back (m);
-              if (result)
-                delete m; // do nothing, just dispose of unkept ELSE token
-
-              continue;
-            }
-        }
-
-      /*
-      clog << "PP eval (" << *t << ") == " << result << " tokens: " << endl;
-      for (unsigned k=0; k<my_enqueued_pp.size(); k++)
-        clog << * my_enqueued_pp[k] << endl;
-      clog << endl;
-      */
-
-      delete t; // "%("
-      delete m; // "%)"
-
-
-      // NB: we transcribe the retained tokens here, and not inside
-      // the THEN/ELSE while loops.  If it were done there, each loop
-      // would become infinite (each iteration consuming an ordinary
-      // token the previous one just pushed there).  Guess how I
-      // figured that out.
-      enqueued_pp.insert (enqueued_pp.end(),
-                          my_enqueued_pp.begin(),
-                          my_enqueued_pp.end());
-
-      // Go back to outermost while(true) loop.  We hope that at least
-      // some THEN or ELSE tokens were enqueued.  If not, around we go
-      // again, until EOF.
+      if (!t)
+        break;
+      if (t->type == tok_operator && t->content == "%(")
+        ++nesting;
+      else if (nesting && t->type == tok_operator && t->content == "%)")
+        --nesting;
+      else if (!nesting && t->type == tok_operator &&
+               (t->content == "%:" || t->content == "%?" || t->content == "%)"))
+        break;
+      delete t;
     }
+  while (true);
+  return t;
 }
 
 
