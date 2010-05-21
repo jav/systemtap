@@ -324,7 +324,7 @@ may_build_uprobes (const systemtap_session& s)
 static bool
 verify_uprobes_uptodate (systemtap_session& s)
 {
-  if (s.verbose)
+  if (s.verbose > 1)
     clog << "Pass 4, preamble: "
 	 << "verifying that SystemTap's version of uprobes is up to date."
 	 << endl;
@@ -361,7 +361,7 @@ verify_uprobes_uptodate (systemtap_session& s)
 static int
 make_uprobes (systemtap_session& s)
 {
-  if (s.verbose)
+  if (s.verbose > 1)
     clog << "Pass 4, preamble: "
 	 << "(re)building SystemTap's version of uprobes."
 	 << endl;
