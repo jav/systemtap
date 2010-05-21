@@ -33,8 +33,154 @@ extern "C" {
 
 using namespace std;
 
+
+class lexer
+{
+public:
+  token* scan (bool wildcard=false);
+  lexer (istream&, const string&, systemtap_session&);
+  void set_current_file (stapfile* f);
+
+private:
+  inline int input_get ();
+  inline int input_peek (unsigned n=0);
+  void input_put (const string&, const token*);
+  string input_name;
+  string input_contents;
+  const char *input_pointer; // index into input_contents
+  const char *input_end;
+  unsigned cursor_suspend_count;
+  unsigned cursor_suspend_line;
+  unsigned cursor_suspend_column;
+  unsigned cursor_line;
+  unsigned cursor_column;
+  systemtap_session& session;
+  stapfile* current_file;
+  static set<string> keywords;
+};
+
+
+class parser
+{
+public:
+  parser (systemtap_session& s, istream& i, bool p);
+  parser (systemtap_session& s, const string& n, bool p);
+  ~parser ();
+
+  stapfile* parse ();
+
+private:
+  typedef enum {
+      PP_NONE,
+      PP_KEEP_THEN,
+      PP_SKIP_THEN,
+      PP_KEEP_ELSE,
+      PP_SKIP_ELSE,
+  } pp_state_t;
+
+  systemtap_session& session;
+  string input_name;
+  istream* free_input;
+  lexer input;
+  bool privileged;
+  parse_context context;
+
+  // preprocessing subordinate
+  vector<pair<const token*, pp_state_t> > pp_state;
+  const token* scan_pp (bool wildcard=false);
+  const token* skip_pp ();
+
+  // scanning state
+  const token* last ();
+  const token* next (bool wildcard=false);
+  const token* peek (bool wildcard=false);
+
+  const token* last_t; // the last value returned by peek() or next()
+  const token* next_t; // lookahead token
+
+  // expectations
+  const token* expect_known (token_type tt, string const & expected);
+  const token* expect_unknown (token_type tt, string & target);
+  const token* expect_unknown2 (token_type tt1, token_type tt2,
+				string & target);
+
+  // convenience forms
+  const token* expect_op (string const & expected);
+  const token* expect_kw (string const & expected);
+  const token* expect_number (int64_t & expected);
+  const token* expect_ident (string & target);
+  const token* expect_ident_or_keyword (string & target);
+  bool peek_op (string const & op);
+  bool peek_kw (string const & kw);
+
+  void print_error (const parse_error& pe);
+  unsigned num_errors;
+
+private: // nonterminals
+  void parse_probe (vector<probe*>&, vector<probe_alias*>&);
+  void parse_global (vector<vardecl*>&, vector<probe*>&);
+  void parse_functiondecl (vector<functiondecl*>&);
+  embeddedcode* parse_embeddedcode ();
+  probe_point* parse_probe_point ();
+  literal* parse_literal ();
+  block* parse_stmt_block ();
+  try_block* parse_try_block ();
+  statement* parse_statement ();
+  if_statement* parse_if_statement ();
+  for_loop* parse_for_loop ();
+  for_loop* parse_while_loop ();
+  foreach_loop* parse_foreach_loop ();
+  expr_statement* parse_expr_statement ();
+  return_statement* parse_return_statement ();
+  delete_statement* parse_delete_statement ();
+  next_statement* parse_next_statement ();
+  break_statement* parse_break_statement ();
+  continue_statement* parse_continue_statement ();
+  indexable* parse_indexable ();
+  const token *parse_hist_op_or_bare_name (hist_op *&hop, string &name);
+  target_symbol *parse_target_symbol (const token* t);
+  expression* parse_defined_op (const token* t);
+  expression* parse_expression ();
+  expression* parse_assignment ();
+  expression* parse_ternary ();
+  expression* parse_logical_or ();
+  expression* parse_logical_and ();
+  expression* parse_boolean_or ();
+  expression* parse_boolean_xor ();
+  expression* parse_boolean_and ();
+  expression* parse_array_in ();
+  expression* parse_comparison ();
+  expression* parse_shift ();
+  expression* parse_concatenation ();
+  expression* parse_additive ();
+  expression* parse_multiplicative ();
+  expression* parse_unary ();
+  expression* parse_crement ();
+  expression* parse_value ();
+  expression* parse_symbol ();
+
+  void parse_target_symbol_components (target_symbol* e);
+};
+
+
 // ------------------------------------------------------------------------
 
+stapfile*
+parse (systemtap_session& s, istream& i, bool pr)
+{
+  parser p (s, i, pr);
+  return p.parse ();
+}
+
+
+stapfile*
+parse (systemtap_session& s, const string& n, bool pr)
+{
+  parser p (s, n, pr);
+  return p.parse ();
+}
+
+// ------------------------------------------------------------------------
 
 
 parser::parser (systemtap_session& s, istream& i, bool p):
@@ -54,22 +200,6 @@ parser::parser (systemtap_session& s, const string& fn, bool p):
 parser::~parser()
 {
   if (free_input) delete free_input;
-}
-
-
-stapfile*
-parser::parse (systemtap_session& s, std::istream& i, bool pr)
-{
-  parser p (s, i, pr);
-  return p.parse ();
-}
-
-
-stapfile*
-parser::parse (systemtap_session& s, const std::string& n, bool pr)
-{
-  parser p (s, n, pr);
-  return p.parse ();
 }
 
 static string

@@ -469,18 +469,18 @@ passes_0_4 (systemtap_session &s)
 
   if (s.script_file == "-")
     {
-      s.user_file = parser::parse (s, cin, s.guru_mode);
+      s.user_file = parse (s, cin, s.guru_mode);
       user_file_stat_rc = fstat (STDIN_FILENO, & user_file_stat);
     }
   else if (s.script_file != "")
     {
-      s.user_file = parser::parse (s, s.script_file, s.guru_mode);
+      s.user_file = parse (s, s.script_file, s.guru_mode);
       user_file_stat_rc = stat (s.script_file.c_str(), & user_file_stat);
     }
   else
     {
       istringstream ii (s.cmdline_script);
-      s.user_file = parser::parse (s, ii, s.guru_mode);
+      s.user_file = parse (s, ii, s.guru_mode);
     }
   if (s.user_file == 0)
     // syntax errors already printed
@@ -538,7 +538,7 @@ passes_0_4 (systemtap_session &s)
                 break;
 
               // XXX: privilege only for /usr/share/systemtap?
-              stapfile* f = parser::parse (s, globbuf.gl_pathv[j], true);
+              stapfile* f = parse (s, globbuf.gl_pathv[j], true);
               if (f == 0)
                 s.print_warning("tapset '" + string(globbuf.gl_pathv[j])
                                 + "' has errors, and will be skipped.");
