@@ -8,6 +8,16 @@
 #ifndef CSCLIENT_H
 #define CSCLIENT_H
 
-int find_online_servers (void);
+struct systemtap_session;
+
+class compile_server_client
+{
+public:
+  compile_server_client (systemtap_session &s) : s(s) {}
+  int passes_0_4 ();
+
+private:
+  systemtap_session &s;
+};
 
 #endif // CSCLIENT_H

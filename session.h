@@ -9,6 +9,7 @@
 #ifndef SESSION_H
 #define SESSION_H
 
+#include <list>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -85,12 +86,18 @@ struct compile_server_info
 struct systemtap_session
 {
   systemtap_session ();
+
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx)
   // and/or in the initialize method (session.cxx).
   void initialize ();
+  int passes_0_4 ();
+  int pass_5 ();
+  void cleanup (int rc);
+
   void setup_kernel_release (const char* kstr);
-  void insert_loaded_modules ();
+  int parse_kernel_config ();
+  int parse_kernel_exports ();
 
   // command line parsing
   int  parse_cmdline (int argc, char * const argv []);
@@ -102,6 +109,10 @@ struct systemtap_session
   void setup_signals (sighandler_t handler);
   void create_temp_dir ();
   void remove_temp_dir ();
+
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (session.cxx)
+  // and/or in the initialize method (session.cxx).
 
   // command line args
   std::string script_file; // FILE
@@ -283,15 +294,17 @@ struct systemtap_session
   void print_error (const semantic_error& e);
   void print_error_source (std::ostream&, std::string&, const token* tok);
   void print_warning (const std::string& w, const token* tok = 0);
+  void printscript(std::ostream& o);
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx)
   // and/or in the initialize method (session.cxx).
-};
-
+  static std::string getmemusage ();
+  static void uniq_list(std::list<std::string>& l);
 
 // global counter of SIGINT/SIGTERM's received
-extern int pending_interrupts;
+  static int pending_interrupts;
+};
 
 #endif // SESSION_H
 

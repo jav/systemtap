@@ -9,16 +9,14 @@
 */
 #include "config.h"
 #include "session.h"
+#include "csclient.h"
+#include "sys/sdt.h"
 
+#include <sys/times.h>
 #include <vector>
 
 #if HAVE_AVAHI
 extern "C" {
-#include <stdio.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <time.h>
-
 #include <avahi-client/client.h>
 #include <avahi-client/lookup.h>
 
@@ -29,9 +27,7 @@ extern "C" {
 }
 #endif
 
-using std::vector;
-using std::cerr;
-using std::endl;
+using namespace std;
 
 #if HAVE_AVAHI
 struct browsing_context {
@@ -177,7 +173,7 @@ systemtap_session::get_online_server_info (
 
     /* Allocate main loop object */
     if (!(simple_poll = avahi_simple_poll_new())) {
-        fprintf(stderr, "Failed to create simple poll object.\n");
+        cerr << "Failed to create simple poll object" << endl;
         goto fail;
     }
     context.simple_poll = simple_poll;
@@ -225,3 +221,51 @@ fail:
         avahi_simple_poll_free(simple_poll);
 #endif // HAVE_AVAHI
 }
+
+int
+compile_server_client::passes_0_4 ()
+{
+  int rc = 0;
+  
+  // arguments parsed; get down to business
+  if (s.verbose > 1)
+    clog << "Using a compile server" << endl;
+
+  STAP_PROBE1(stap, client__start, &s);
+
+  struct tms tms_before;
+  times (& tms_before);
+  struct timeval tv_before;
+  gettimeofday (&tv_before, NULL);
+
+  // Do it here!
+  clog << "compile using a server here!" << endl;
+
+  struct tms tms_after;
+  times (& tms_after);
+  unsigned _sc_clk_tck = sysconf (_SC_CLK_TCK);
+  struct timeval tv_after;
+  gettimeofday (&tv_after, NULL);
+
+#define TIMESPRINT "in " << \
+           (tms_after.tms_cutime + tms_after.tms_utime \
+            - tms_before.tms_cutime - tms_before.tms_utime) * 1000 / (_sc_clk_tck) << "usr/" \
+        << (tms_after.tms_cstime + tms_after.tms_stime \
+            - tms_before.tms_cstime - tms_before.tms_stime) * 1000 / (_sc_clk_tck) << "sys/" \
+        << ((tv_after.tv_sec - tv_before.tv_sec) * 1000 + \
+            ((long)tv_after.tv_usec - (long)tv_before.tv_usec) / 1000) << "real ms."
+
+  // syntax errors, if any, are already printed
+  if (s.verbose)
+    {
+      clog << "Compilation using a server completed "
+           << s.getmemusage()
+           << TIMESPRINT
+           << endl;
+    }
+
+  STAP_PROBE1(stap, client__end, &s);
+
+  return rc;
+}
+

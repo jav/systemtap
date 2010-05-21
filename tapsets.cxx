@@ -1589,7 +1589,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
   dwarf_query * q = static_cast<dwarf_query *>(arg);
   assert (q->has_statement_str || q->has_function_str);
 
-  if (pending_interrupts) return DWARF_CB_ABORT;
+  if (systemtap_session::pending_interrupts) return DWARF_CB_ABORT;
 
   try
     {
@@ -1874,13 +1874,13 @@ query_module (Dwfl_Module *mod,
       // If we have enough information in the pattern to skip a module and
       // the module does not match that information, return early.
       if (!q->dw.module_name_matches(q->module_val))
-        return pending_interrupts ? DWARF_CB_ABORT : DWARF_CB_OK;
+        return systemtap_session::pending_interrupts ? DWARF_CB_ABORT : DWARF_CB_OK;
 
       // Don't allow module("*kernel*") type expressions to match the
       // elfutils module "kernel", which we refer to in the probe
       // point syntax exclusively as "kernel.*".
       if (q->dw.module_name == TOK_KERNEL && ! q->has_kernel)
-        return pending_interrupts ? DWARF_CB_ABORT : DWARF_CB_OK;
+        return systemtap_session::pending_interrupts ? DWARF_CB_ABORT : DWARF_CB_OK;
 
       if (mod)
         validate_module_elf(mod, name, q);
@@ -1908,7 +1908,7 @@ query_module (Dwfl_Module *mod,
 
 
       // If we know that there will be no more matches, abort early.
-      if (q->dw.module_name_final_match(q->module_val) || pending_interrupts)
+      if (q->dw.module_name_final_match(q->module_val) || systemtap_session::pending_interrupts)
         return DWARF_CB_ABORT;
       else
         return DWARF_CB_OK;
@@ -7676,7 +7676,7 @@ int
 tracepoint_query::tracepoint_query_cu (Dwarf_Die * cudie, void * arg)
 {
   tracepoint_query * q = static_cast<tracepoint_query *>(arg);
-  if (pending_interrupts) return DWARF_CB_ABORT;
+  if (systemtap_session::pending_interrupts) return DWARF_CB_ABORT;
   return q->handle_query_cu(cudie);
 }
 
@@ -7685,7 +7685,7 @@ int
 tracepoint_query::tracepoint_query_func (Dwarf_Die * func, base_query * query)
 {
   tracepoint_query * q = static_cast<tracepoint_query *>(query);
-  if (pending_interrupts) return DWARF_CB_ABORT;
+  if (systemtap_session::pending_interrupts) return DWARF_CB_ABORT;
   return q->handle_query_func(func);
 }
 
@@ -7822,7 +7822,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
     // Otherwise try to do them one at a time (PR10424)
     for (size_t i = 0; i < system_headers.size(); ++i)
       {
-        if (pending_interrupts) return false;
+        if (systemtap_session::pending_interrupts) return false;
 
         vector<string> one_header(1, system_headers[i]);
         tracequery_path = get_tracequery_module(s, one_header);

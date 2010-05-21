@@ -9,25 +9,8 @@
 // later version.
 
 #include "config.h"
-#include "staptree.h"
-#include "parse.h"
-#include "elaborate.h"
-#include "translate.h"
-#include "buildrun.h"
 #include "session.h"
-#include "hash.h"
-#include "cache.h"
-#include "util.h"
-#include "coveragedb.h"
-#include "rpm_finder.h"
-#include "task_finder.h"
 
-#include "sys/sdt.h"
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <cerrno>
 #include <cstdlib>
 #include <limits.h>
 
@@ -786,18 +769,18 @@ main (int argc, char * const argv [])
   // a script has already been checked in systemtap_session::check_options.
   if (s.have_script)
     {
-      // Run passes 0-4
-      rc = passes_0_4 (s);
+      // Run passes 0-4, either locally or using a compile server.
+      rc = s.passes_0_4 ();
 
       // Run pass 5, if requested
-      if (rc == 0 && s.last_pass >= 5 && ! pending_interrupts)
-	rc = pass_5 (s);
+      if (rc == 0 && s.last_pass >= 5 && ! systemtap_session::pending_interrupts)
+	rc = s.pass_5 ();
     }
 
   // Pass 6. Cleanup
-  cleanup (s, rc);
+  s.cleanup (rc);
 
-  return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
+  return (rc||systemtap_session::pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

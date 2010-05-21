@@ -403,7 +403,7 @@ dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
       Dwarf_Off noff;
       while (dwarf_nextcu (dw, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
         {
-          if (pending_interrupts) return;
+          if (systemtap_session::pending_interrupts) return;
           Dwarf_Die die_mem;
           Dwarf_Die *die;
           die = dwarf_offdie (dw, off + cuhl, &die_mem);
@@ -415,7 +415,7 @@ dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
   for (vector<Dwarf_Die>::iterator i = v->begin(); i != v->end(); ++i)
     {
       int rc = (*callback)(&*i, data);
-      if (rc != DWARF_CB_OK || pending_interrupts)
+      if (rc != DWARF_CB_OK || systemtap_session::pending_interrupts)
         break;
     }
 }
@@ -495,7 +495,7 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
   for (vector<Dwarf_Die>::iterator i = v->begin(); i != v->end(); ++i)
     {
       int rc = (*callback)(&*i, data);
-      if (rc != DWARF_CB_OK || pending_interrupts)
+      if (rc != DWARF_CB_OK || systemtap_session::pending_interrupts)
         break;
     }
 }
@@ -842,7 +842,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
     {
       for (it = v->begin(); it != v->end(); ++it)
         {
-          if (pending_interrupts) return DWARF_CB_ABORT;
+          if (systemtap_session::pending_interrupts) return DWARF_CB_ABORT;
           const string& func_name = it->first;
           Dwarf_Die& die = it->second;
           if (function_name_matches_pattern (func_name, function))
@@ -1152,7 +1152,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
 
       for (size_t i = 0; i < nsrcs; ++i)
         {
-          if (pending_interrupts) return;
+          if (systemtap_session::pending_interrupts) return;
           if (srcsp [i]) // skip over mismatched lines
             callback (dwarf_line_t(srcsp[i]), data);
         }

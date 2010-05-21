@@ -10,13 +10,20 @@
 #include "session.h"
 #include "cache.h"
 #include "elaborate.h"
+#include "translate.h"
+#include "buildrun.h"
+#include "coveragedb.h"
 #include "hash.h"
 #include "task_finder.h"
+#include "csclient.h"
+#include "rpm_finder.h"
 #include "util.h"
 #include "git_version.h"
 
+#include "sys/sdt.h"
+
 extern "C" {
-#include "csclient.h"
+#include <glob.h>
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
@@ -24,6 +31,8 @@ extern "C" {
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
+#include <sys/time.h>
+#include <sys/times.h>
 #include <elfutils/libdwfl.h>
 }
 
@@ -345,6 +354,23 @@ systemtap_session::usage (int exitcode)
 
   exit (exitcode);
 }
+
+int systemtap_session::pending_interrupts;
+
+extern "C"
+void handle_interrupt (int sig)
+{
+  kill_stap_spawn(sig);
+  systemtap_session::pending_interrupts ++;
+  if (systemtap_session::pending_interrupts > 1) // XXX: should be configurable? time-based?
+    {
+      char msg[] = "Too many interrupts received, exiting.\n";
+      int rc = write (2, msg, sizeof(msg)-1);
+      if (rc) {/* Do nothing; we don't care if our last gasp went out. */ ;}
+      _exit (1);
+    }
+}
+
 
 void
 systemtap_session::setup_signals (sighandler_t handler)
@@ -1175,6 +1201,31 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
       clog << endl;
       if (tok) { print_error_source (clog, align_warning, tok); }
     }
+}
+
+/*
+ * Returns a string describing memory resource usage.
+ * Since it seems getrusage() doesn't maintain the mem related fields,
+ * this routine parses /proc/self/statm to get the statistics.
+ */
+string
+systemtap_session::getmemusage ()
+{
+  static long sz = sysconf(_SC_PAGESIZE);
+
+  long pages, kb;
+  ostringstream oss;
+  ifstream statm("/proc/self/statm");
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << "using " << kb << "virt/";
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << kb << "res/";
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << kb << "shr kb, ";
+  return oss.str();
 }
 
 // --------------------------------------------------------------------------
