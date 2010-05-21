@@ -6,6 +6,9 @@
 /* make -P prologue-searching default */
 #undef ENABLE_PROLOGUES
 
+/* Define to 1 if you have the avahi libraries. */
+#undef HAVE_AVAHI
+
 /* Define to 1 if you have the <boost/algorithm/string.hpp> header file. */
 #undef HAVE_BOOST_ALGORITHM_STRING_HPP
 

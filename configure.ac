@@ -301,33 +301,53 @@ dnl Find the location of nss and nspr headers and certutil
     AC_CHECK_FILE([/usr/include/nspr], nsprdir=nspr)
   ])
   if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
-  nss_CFLAGS="-I/usr/include/$nssdir"
-  nspr_CFLAGS="-I/usr/include/$nsprdir"
-  AC_SUBST(nss_CFLAGS)
-  AC_SUBST(nspr_CFLAGS)
-  save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
-  have_nss_includes=yes
-  AC_CHECK_HEADERS(["$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"], [], have_nss_includes=no)
-  CPPFLAGS="$save_CPPFLAGS"
-  have_nss_libs=no
-  AC_CHECK_LIB(nspr4, PR_Connect, [
-    AC_CHECK_LIB(ssl3, SSL_ReHandshake, have_nss_libs=yes)
-  ])
+    nss_CFLAGS="-I/usr/include/$nssdir"
+    nspr_CFLAGS="-I/usr/include/$nsprdir"
+    AC_SUBST(nss_CFLAGS)
+    AC_SUBST(nspr_CFLAGS)
+    save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
+    have_nss_includes=yes
+    AC_CHECK_HEADERS(["$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"], [], have_nss_includes=no)
+    CPPFLAGS="$save_CPPFLAGS"
+    have_nss_libs=no
+    AC_CHECK_LIB(nspr4, PR_Connect, [
+      AC_CHECK_LIB(ssl3, SSL_ReHandshake, have_nss_libs=yes)
+    ])
   fi
   if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" != "xyesyesyes"; then
     if test "$enable_server" == "yes"; then
-      AC_MSG_ERROR([cannot find all libraries or tools for stap-server])
+      AC_MSG_ERROR([cannot find all libraries or tools for systemtap compile client or server])
     fi
     if test "$enable_server" == "check"; then
-      AC_MSG_WARN([will not build stap-server, cannot find all libraries or tools])
+      AC_MSG_WARN([will not build systemtap client or server, cannot find all libraries or tools])
     fi
   else
       AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
   fi
+dnl Find the location of avahi-client headers and library
+  AC_CHECK_FILE([/usr/include/avahi-client], avahi_clientdir=avahi-client)
+  AC_CHECK_FILE([/usr/include/avahi-common], avahi_commondir=avahi-common)
+  if test "x$avahi_clientdir" != "x" -a "x$avahi_commondir" != "x"; then
+    have_avahi_includes=yes
+    AC_CHECK_HEADERS(["$avahi_clientdir/client.h" "$avahi_clientdir/lookup.h" "$avahi_commondir/simple-watch.h" "$avahi_commondir/malloc.h" "$avahi_commondir/error.h"], [], have_avahi_includes=no)
+    have_avahi_libs=no
+    AC_CHECK_LIB(avahi-client, avahi_client_new, have_avahi_libs=yes)
+  fi
+  if test "x${have_avahi_includes}${have_avahi_libs}" != "xyesyes"; then
+    if test "$enable_server" == "yes"; then
+      AC_MSG_ERROR([cannot find all libraries or tools for systemtap compile client or server])
+    fi
+    if test "$enable_server" == "check"; then
+      AC_MSG_WARN([will not build systemtap internal client or server, cannot find all libraries or tools])
+    fi
+  else
+      AC_DEFINE([HAVE_AVAHI], [1], [Define to 1 if you have the avahi libraries.])
+  fi
 fi
 AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes" -a "$enable_server" != "no"])
 AM_CONDITIONAL([HAVE_NSS],     [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes"])
+AM_CONDITIONAL([HAVE_AVAHI],   [test "x${have_avahi_includes}${have_avahi_libs}" == "xyesyes"])
 
 dnl Handle the optional grapher
 AC_ARG_ENABLE([grapher],

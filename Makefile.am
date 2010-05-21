@@ -50,7 +50,7 @@ stap_SOURCES = main.cxx session.cxx \
 	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
 	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
 	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
-	setupdwfl.cxx
+	setupdwfl.cxx csclient.cxx
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 stap_DEPENDENCIES =
 endif
@@ -100,6 +100,12 @@ stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -D_FILE_OFFSET_BITS=64
 stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@
 stap_CPPFLAGS = $(AM_CPPFLAGS) -DSTAP_SDT_V2
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
+
+if HAVE_AVAHI
+stap_CXXFLAGS += $(avahi_CFLAGS)
+stap_CPPFLAGS += $(avahi_CFLAGS)
+stap_LDADD += -lavahi-client
+endif
 
 if HAVE_NSS
 stap_client_connect_LDFLAGS = $(AM_LDFLAGS)

@@ -16,11 +16,13 @@
 #include "git_version.h"
 
 extern "C" {
+#include "csclient.h"
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/utsname.h>
 #include <elfutils/libdwfl.h>
 }
@@ -93,6 +95,7 @@ systemtap_session::initialize()
   architecture = machine;
 
   for (unsigned i=0; i<5; i++) perpass_verbose[i]=0;
+  verbose = 0;
 
   have_script = false;
   timing = false;
@@ -136,19 +139,12 @@ systemtap_session::initialize()
   unwindsym_ldd = false;
   client_options = false;
 
-  // Location of our signing certificate.
-  // If we're root, use the database in SYSCONFDIR, otherwise
-  // use the one in our $HOME directory.  */
-  if (getuid() == 0)
-    cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
-  else
-    cert_db_path = getenv("HOME") + string ("/.systemtap/ssl/server");
   /*  adding in the XDG_DATA_DIRS variable path,
- *  this searches in conjunction with SYSTEMTAP_TAPSET
- *  to locate stap scripts, either can be disabled if 
- *  needed using env $PATH=/dev/null where $PATH is the 
- *  path you want disabled
- */  
+   *  this searches in conjunction with SYSTEMTAP_TAPSET
+   *  to locate stap scripts, either can be disabled if 
+   *  needed using env $PATH=/dev/null where $PATH is the 
+   *  path you want disabled
+   */  
   const char* s_p1 = getenv ("XDG_DATA_DIRS");
   if ( s_p1 != NULL )
   {
@@ -330,6 +326,14 @@ systemtap_session::usage (int exitcode)
     << "              instead of " << compatible << endl
     << "   --skip-badvars" << endl
     << "              substitute zero for bad context $variables" << endl
+#if HAVE_NSS
+    << "   --server[=SERVER-SPEC]" << endl
+    << "              compile using a systemtap compile server" << endl
+#endif
+#if HAVE_NSS || HAVE_AVAHI
+    << "   --server-status[=PROPERTIES]" << endl
+    << "              report on the status of the specified compile servers" << endl
+#endif
     << endl
     ;
 
@@ -340,6 +344,78 @@ systemtap_session::usage (int exitcode)
     clog << morehelp << endl;
 
   exit (exitcode);
+}
+
+void
+systemtap_session::setup_signals (sighandler_t handler)
+{
+  struct sigaction sa;
+
+  sa.sa_handler = handler;
+  sigemptyset (&sa.sa_mask);
+  if (handler != SIG_IGN)
+    {
+      sigaddset (&sa.sa_mask, SIGHUP);
+      sigaddset (&sa.sa_mask, SIGPIPE);
+      sigaddset (&sa.sa_mask, SIGINT);
+      sigaddset (&sa.sa_mask, SIGTERM);
+    }
+  sa.sa_flags = SA_RESTART;
+
+  sigaction (SIGHUP, &sa, NULL);
+  sigaction (SIGPIPE, &sa, NULL);
+  sigaction (SIGINT, &sa, NULL);
+  sigaction (SIGTERM, &sa, NULL);
+}
+
+void
+systemtap_session::create_temp_dir ()
+{
+  // Create a temporary directory to build within.
+  // Be careful with this, as "tmpdir" is "rm -rf"'d at the end.
+  const char* tmpdir_env = getenv("TMPDIR");
+  if (! tmpdir_env)
+    tmpdir_env = "/tmp";
+
+  string stapdir = "/stapXXXXXX";
+  string tmpdirt = tmpdir_env + stapdir;
+  mode_t mask = umask(0);
+  const char *tmpdir_name = mkdtemp((char *)tmpdirt.c_str());
+  umask(mask);
+  if (! tmpdir_name)
+    {
+      const char* e = strerror (errno);
+      cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
+      exit (1); // die
+    }
+  else
+    tmpdir = tmpdir_name;
+
+  if (verbose>1)
+    clog << "Created temporary directory \"" << tmpdir << "\"" << endl;
+}
+
+void
+systemtap_session::remove_temp_dir ()
+{
+  if (tmpdir != "")
+    {
+      if (keep_tmpdir)
+        // NB: the format of this message needs to match the expectations
+        // of stap-server-connect.c.
+        clog << "Keeping temporary directory \"" << tmpdir << "\"" << endl;
+      else
+        {
+	  // Ignore signals while we're deleting the temporary directory.
+	  setup_signals (SIG_IGN);
+
+	  // Remove the temporary directory.
+          string cleanupcmd = "rm -rf ";
+          cleanupcmd += tmpdir;
+
+	  (void) stap_system (verbose, cleanupcmd);
+        }
+    }
 }
 
 int
@@ -369,6 +445,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_COMPATIBLE 14
 #define LONG_OPT_LDD 15
 #define LONG_OPT_ALL_MODULES 16
+#define LONG_OPT_SERVER 17
+#define LONG_OPT_SERVER_STATUS 18
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -393,6 +471,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "compatible", 1, &long_opt, LONG_OPT_COMPATIBLE },
         { "ldd", 0, &long_opt, LONG_OPT_LDD },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
+        { "server", 2, &long_opt, LONG_OPT_SERVER },
+        { "server-status", 2, &long_opt, LONG_OPT_SERVER_STATUS },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
@@ -411,6 +491,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         case 'v':
           for (unsigned i=0; i<5; i++)
             perpass_verbose[i] ++;
+	  verbose ++;
 	  break;
 
         case 't':
@@ -691,6 +772,22 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_CLIENT_OPTIONS:
 	      client_options = true;
 	      break;
+	    case LONG_OPT_SERVER:
+	      if (client_options)
+		client_options_disallowed += client_options_disallowed.empty () ? "--server" : ", --server";
+	      if (optarg )
+		specified_servers.push_back (optarg);
+	      else
+		specified_servers.push_back ("");
+	      break;
+	    case LONG_OPT_SERVER_STATUS:
+	      if (client_options)
+		client_options_disallowed += client_options_disallowed.empty () ? "--server-status" : ", --server-status";
+	      if (optarg )
+		server_status_strings.push_back (optarg);
+	      else
+		server_status_strings.push_back ("");
+	      break;
 	    case LONG_OPT_HELP:
 	      usage (0);
 	      break;
@@ -766,6 +863,24 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 void
 systemtap_session::check_options (int argc, char * const argv [])
 {
+#if ! HAVE_NSS
+  if (client_options)
+    cerr << "WARNING: --client-options is not supported by this version of systemtap" << endl;
+  if (! specified_servers.empty ())
+    {
+      cerr << "WARNING: --server is not supported by this version of systemtap" << endl;
+      specified_servers.clear ();
+    }
+#endif
+
+#if ! HAVE_NSS && ! HAVE_AVAHI
+  if (! server_status_strings.empty ())
+    {
+      cerr << "WARNING: --server-status is not supported by this version of systemtap" << endl;
+      server_status_strings.clear ();
+    }
+#endif
+
   if (client_options && last_pass > 4)
     {
       last_pass = 4; /* Quietly downgrade.  Server passed through -p5 naively. */
@@ -821,8 +936,12 @@ systemtap_session::check_options (int argc, char * const argv [])
   // NB: this is also triggered if stap is invoked with no arguments at all
   if (! have_script)
     {
-      cerr << "A script must be specified." << endl;
-      usage(1);
+      // We don't need a script if --server-status was specified
+      if (server_status_strings.empty ())
+	{
+	  cerr << "A script must be specified." << endl;
+	  usage(1);
+	}
     }
 
   // translate path of runtime to absolute path
@@ -1057,6 +1176,212 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
       if (tok) { print_error_source (clog, align_warning, tok); }
     }
 }
+
+// --------------------------------------------------------------------------
+// Client server
+
+std::ostream &operator<< (std::ostream &s, const compile_server_info &i)
+{
+  return s << i.host_name << ' '
+	   << i.ip_address << ' '
+	   << i.port << ' '
+	   << i.sysinfo;
+}
+
+void
+systemtap_session::query_server_status ()
+{
+  unsigned limit = server_status_strings.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    query_server_status (server_status_strings[i]);
+}
+
+void
+systemtap_session::query_server_status (const string &status_string)
+{
+#if HAVE_NSS || HAVE_AVAHI
+  // If this string is empty, then set the default.
+  // If the --server option has been used
+  //   the default is 'specified'
+  // otherwise if the --unprivileged has been used
+  //   the default is online,trusted,compatible,signer
+  // otherwise
+  //   the default is online,trusted,compatible
+  //
+  // Having said that,
+  //   'online' is only applicable if we have avahi
+  //   'trusted' and 'signer' are only applicable if we have NSS
+  string working_string;
+  if (status_string.empty ())
+    {
+      if (specified_servers.empty ())
+	{
+#if HAVE_AVAHI
+	  working_string = "online,";
+#endif
+#if HAVE_NSS
+	  working_string += "trusted,";
+	  if (unprivileged)
+	    working_string += "signer,";
+#endif
+	  working_string += "compatible";
+	}
+      else
+	working_string = "specified";
+    }
+  else
+    working_string = status_string;
+
+  clog << "Systemtap Compile Server Status for '" << working_string << '\''
+       << endl;
+
+  // Construct a mask of the server properties that have been requested.
+  // The available properties are:
+  //     trusted    - trusted servers only.
+  //	 online     - online servers only.
+  //     compatible - servers which compile for the current kernel release
+  //	 	      and architecture.
+  //     signer     - servers which are trusted module signers.
+  //	 specified  - servers which have been specified using --server=XXX.
+  //	 	      If no servers have been specified, then this is
+  //		      equivalent to --server-status=trusted,online,compatible.
+  //     all        - all trusted servers, servers currently online and
+  //	              specified servers.
+  vector<string> properties;
+  tokenize (working_string, properties, ",");
+  int pmask = 0;
+  unsigned limit = properties.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    {
+      const string &property = properties[i];
+      if (property == "all")
+	{
+	  pmask |= compile_server_specified;
+#if HAVE_NSS
+	  pmask |= compile_server_trusted;
+#endif
+#if HAVE_AVAHI
+	  pmask |= compile_server_online;
+#endif
+	}
+      else if (property == "specified")
+	{
+	  pmask |= compile_server_specified;
+	}
+#if HAVE_NSS
+      else if (property == "trusted")
+	{
+	  pmask |= compile_server_trusted;
+	}
+#endif
+#if HAVE_AVAHI
+      else if (property == "online")
+	{
+	  pmask |= compile_server_online;
+	}
+#endif
+      else if (property == "compatible")
+	{
+	  pmask |= compile_server_compatible;
+	}
+#if HAVE_NSS
+      else if (property == "signer")
+	{
+	  pmask |= compile_server_signer;
+	}
+#endif
+      else
+	{
+	  cerr << "Warning: unsupported compile server property: " << property
+	       << endl;
+	}
+    }
+
+  // Now obtain a list of the servers which match the criteria.
+  vector<compile_server_info> servers;
+  get_server_info (pmask, servers);
+
+  // Print the server information
+  limit = servers.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    {
+      clog << servers[i] << endl;
+    }
+#endif // HAVE_NSS || HAVE_AVAHI
+}
+
+void
+systemtap_session::get_server_info (
+  int pmask,
+  vector<compile_server_info> &servers
+)
+{
+  // Get information on compile servers matching the requested criteria.
+  // XXXX: TODO: Only compile_server_online and compile_server_compatible
+  //             are currently implemented.
+  if ((pmask & compile_server_online))
+    {
+      get_online_server_info (servers);
+    }
+  if ((pmask & compile_server_compatible))
+    {
+      keep_compatible_server_info (servers);
+    }
+}
+
+void
+systemtap_session::keep_compatible_server_info (
+  vector<compile_server_info> &servers
+)
+{
+  // Remove entries for servers incompatible with the host environment
+  // from the given list of servers.
+  // A compatible server compiles for the kernel release and architecture
+  // of the host environment.
+  for (unsigned i = 0; i < servers.size (); /**/)
+    {
+      // Extract the sysinfo field from the Avahi TXT.
+      string sysinfo = servers[i].sysinfo;
+      size_t ix = sysinfo.find("\"sysinfo=");
+      if (ix == string::npos)
+	{
+	  // No sysinfo field. Treat as incompatible.
+	  servers.erase (servers.begin () + i);
+	  continue;
+	}
+      sysinfo = sysinfo.substr (ix + sizeof ("\"sysinfo=") - 1);
+      ix = sysinfo.find('"');
+      if (ix == string::npos)
+	{
+	  // No end of sysinfo field. Treat as incompatible.
+	  servers.erase (servers.begin () + i);
+	  continue;
+	}
+      sysinfo = sysinfo.substr (0, ix);
+
+      // Break the sysinfo into kernel release and arch.
+      vector<string> release_arch;
+      tokenize (sysinfo, release_arch, " ");
+      if (release_arch.size () != 2)
+	{
+	  // Bad sysinfo data. Treat as incompatible.
+	  servers.erase (servers.begin () + i);
+	  continue;
+	}
+      if (release_arch[0] != kernel_release ||
+	  release_arch[1] != architecture)
+	{
+	  // Platform mismatch.
+	  servers.erase (servers.begin () + i);
+	  continue;
+	}
+  
+      // The server is compatible. Leave it in the list.
+      ++i;
+    }
+}
+
+// --------------------------------------------------------------------------
 
 /*
 Perngrq sebz fzvyrlgnc.fit, rkcbegrq gb n 1484k1110 fzvyrlgnc.cat,

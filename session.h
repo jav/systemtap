@@ -17,6 +17,7 @@
 #include <set>
 
 extern "C" {
+#include <signal.h>
 #include <elfutils/libdw.h>
 }
 
@@ -73,6 +74,13 @@ struct statistic_decl
   }
 };
 
+struct compile_server_info
+{
+  std::string host_name;
+  std::string ip_address;
+  long port;
+  std::string sysinfo;
+};
 
 struct systemtap_session
 {
@@ -90,6 +98,10 @@ struct systemtap_session
   void usage (int exitcode);
   void check_options (int argc, char * const argv []);
   static const char* morehelp;
+
+  void setup_signals (sighandler_t handler);
+  void create_temp_dir ();
+  void remove_temp_dir ();
 
   // command line args
   std::string script_file; // FILE
@@ -136,14 +148,36 @@ struct systemtap_session
   bool tapset_compile_coverage;
   bool need_uprobes;
   bool load_only; // flight recorder mode
-  bool client_options;
-  std::string client_options_disallowed;
-  bool unprivileged;
   bool omit_werror;
+  bool unprivileged;
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (elaborate.cxx)
-  // and/or main.cxx(main).
+  // to be cleared in the systemtap_session ctor (session.cxx)
+  // and/or in the initialize method (session.cxx).
+
+  // Client/server
+  enum compile_server_properties {
+    compile_server_trusted    = 0x1,
+    compile_server_online     = 0x2,
+    compile_server_compatible = 0x4,
+    compile_server_signer     = 0x8,
+    compile_server_specified  = 0x10
+  };
+
+  bool client_options;
+  std::string client_options_disallowed;
+  std::vector<std::string> server_status_strings;
+  std::vector<std::string> specified_servers;
+
+  void query_server_status ();
+  void query_server_status (const std::string &status_string);
+  void get_server_info (int pmask, std::vector<compile_server_info> &servers);
+  void get_online_server_info (std::vector<compile_server_info> &servers);
+  void keep_compatible_server_info (std::vector<compile_server_info> &servers);
+
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (session.cxx)
+  // and/or in the initialize method (session.cxx).
 
   // Cache data
   bool use_cache;               // control all caching
@@ -164,8 +198,8 @@ struct systemtap_session
   bool skip_badvars;
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (elaborate.cxx)
-  // and/or main.cxx(main).
+  // to be cleared in the systemtap_session ctor (session.cxx)
+  // and/or in the initialize method (session.cxx).
 
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
@@ -215,8 +249,8 @@ struct systemtap_session
   procfs_derived_probe_group* procfs_derived_probes;
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (elaborate.cxx)
-  // and/or main.cxx(main).
+  // to be cleared in the systemtap_session ctor (session.cxx)
+  // and/or in the initialize method (session.cxx).
 
   // unparser data
   translator_output* op;
@@ -234,8 +268,8 @@ struct systemtap_session
   struct module_cache* module_cache;
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (elaborate.cxx)
-  // and/or main.cxx(main).
+  // to be cleared in the systemtap_session ctor (session.cxx)
+  // and/or in the initialize method (session.cxx).
 
   std::set<std::string> seen_errors;
   std::set<std::string> seen_warnings;
@@ -251,8 +285,8 @@ struct systemtap_session
   void print_warning (const std::string& w, const token* tok = 0);
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (elaborate.cxx)
-  // and/or main.cxx(main).
+  // to be cleared in the systemtap_session ctor (session.cxx)
+  // and/or in the initialize method (session.cxx).
 };
 
 

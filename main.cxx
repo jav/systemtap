@@ -33,14 +33,11 @@
 
 extern "C" {
 #include <glob.h>
-#include <unistd.h>
-#include <signal.h>
 #include <sys/utsname.h>
 #include <sys/times.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
 }
 
 using namespace std;
@@ -259,29 +256,6 @@ void handle_interrupt (int sig)
     }
 }
 
-
-void
-setup_signals (sighandler_t handler)
-{
-  struct sigaction sa;
-
-  sa.sa_handler = handler;
-  sigemptyset (&sa.sa_mask);
-  if (handler != SIG_IGN)
-    {
-      sigaddset (&sa.sa_mask, SIGHUP);
-      sigaddset (&sa.sa_mask, SIGPIPE);
-      sigaddset (&sa.sa_mask, SIGINT);
-      sigaddset (&sa.sa_mask, SIGTERM);
-    }
-  sa.sa_flags = SA_RESTART;
-
-  sigaction (SIGHUP, &sa, NULL);
-  sigaction (SIGPIPE, &sa, NULL);
-  sigaction (SIGINT, &sa, NULL);
-  sigaction (SIGTERM, &sa, NULL);
-}
-
 int parse_kernel_config (systemtap_session &s)
 {
   // PR10702: pull config options
@@ -397,31 +371,6 @@ passes_0_4 (systemtap_session &s)
            << endl;
     }
 
-  // Create a temporary directory to build within.
-  // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
-  {
-    const char* tmpdir_env = getenv("TMPDIR");
-    if (! tmpdir_env)
-      tmpdir_env = "/tmp";
-
-    string stapdir = "/stapXXXXXX";
-    string tmpdirt = tmpdir_env + stapdir;
-    mode_t mask = umask(0);
-    const char* tmpdir = mkdtemp((char *)tmpdirt.c_str());
-    umask(mask);
-    if (! tmpdir)
-      {
-        const char* e = strerror (errno);
-        cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
-        exit (1); // die
-      }
-    else
-      s.tmpdir = tmpdir;
-
-    if (s.verbose>1)
-      clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
-  }
-
   // Now that no further changes to s.kernel_build_tree can occur, let's use it.
   if (parse_kernel_config (s) != 0)
     exit (1);
@@ -436,7 +385,7 @@ passes_0_4 (systemtap_session &s)
 
   // Set up our handler to catch routine signals, to allow clean
   // and reasonably timely exit.
-  setup_signals(&handle_interrupt);
+  s.setup_signals(&handle_interrupt);
 
   STAP_PROBE1(stap, pass0__end, &s);
 
@@ -806,26 +755,7 @@ cleanup (systemtap_session &s, int rc)
   }
 
   // Clean up temporary directory.  Obviously, be careful with this.
-  if (s.tmpdir == "")
-    ; // do nothing
-  else
-    {
-      if (s.keep_tmpdir)
-        // NB: the format of this message needs to match the expectations
-        // of stap-server-connect.c.
-        clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
-      else
-        {
-	  // Ignore signals while we're deleting the temporary directory.
-	  setup_signals (SIG_IGN);
-
-	  // Remove the temporary directory.
-          string cleanupcmd = "rm -rf ";
-          cleanupcmd += s.tmpdir;
-
-	  (void) stap_system (s.verbose, cleanupcmd);
-        }
-    }
+  s.remove_temp_dir ();
 
   STAP_PROBE1(stap, pass6__end, &s);
 }
@@ -842,15 +772,27 @@ main (int argc, char * const argv [])
   if (rc != 0)
     exit (rc);
 
-  // Check for options conflicts.
+  // Check for options conflicts. Exits if errors are detected.
   s.check_options (argc, argv);
 
-  // Run passes 0-4
-  rc = passes_0_4 (s);
+  // We need a temp directory to work in
+  // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
+  s.create_temp_dir ();
 
-  // Run pass 5, if requested
-  if (rc == 0 && s.last_pass >= 5 && ! pending_interrupts)
-    rc = pass_5 (s);
+  // If requested, query server status. This is independent of other tasks.
+  s.query_server_status ();
+
+  // Run the passes only if a script has been specified. The requirement for
+  // a script has already been checked in systemtap_session::check_options.
+  if (s.have_script)
+    {
+      // Run passes 0-4
+      rc = passes_0_4 (s);
+
+      // Run pass 5, if requested
+      if (rc == 0 && s.last_pass >= 5 && ! pending_interrupts)
+	rc = pass_5 (s);
+    }
 
   // Pass 6. Cleanup
   cleanup (s, rc);

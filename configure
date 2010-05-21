@@ -655,6 +655,8 @@ libglade_CFLAGS
 gtkmm_LIBS
 gtkmm_CFLAGS
 PKG_CONFIG
+HAVE_AVAHI_FALSE
+HAVE_AVAHI_TRUE
 HAVE_NSS_FALSE
 HAVE_NSS_TRUE
 BUILD_SERVER_FALSE
@@ -7115,13 +7117,13 @@ fi
 fi
 
   if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
-  nss_CFLAGS="-I/usr/include/$nssdir"
-  nspr_CFLAGS="-I/usr/include/$nsprdir"
+    nss_CFLAGS="-I/usr/include/$nssdir"
+    nspr_CFLAGS="-I/usr/include/$nsprdir"
 
 
-  save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
-  have_nss_includes=yes
+    save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
+    have_nss_includes=yes
 
 
 
@@ -7281,9 +7283,9 @@ fi
 
 done
 
-  CPPFLAGS="$save_CPPFLAGS"
-  have_nss_libs=no
-  { $as_echo "$as_me:$LINENO: checking for PR_Connect in -lnspr4" >&5
+    CPPFLAGS="$save_CPPFLAGS"
+    have_nss_libs=no
+    { $as_echo "$as_me:$LINENO: checking for PR_Connect in -lnspr4" >&5
 $as_echo_n "checking for PR_Connect in -lnspr4... " >&6; }
 if test "${ac_cv_lib_nspr4_PR_Connect+set}" = set; then
   $as_echo_n "(cached) " >&6
@@ -7350,7 +7352,7 @@ fi
 $as_echo "$ac_cv_lib_nspr4_PR_Connect" >&6; }
 if test "x$ac_cv_lib_nspr4_PR_Connect" = x""yes; then
 
-    { $as_echo "$as_me:$LINENO: checking for SSL_ReHandshake in -lssl3" >&5
+      { $as_echo "$as_me:$LINENO: checking for SSL_ReHandshake in -lssl3" >&5
 $as_echo_n "checking for SSL_ReHandshake in -lssl3... " >&6; }
 if test "${ac_cv_lib_ssl3_SSL_ReHandshake+set}" = set; then
   $as_echo_n "(cached) " >&6
@@ -7425,18 +7427,307 @@ fi
   fi
   if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" != "xyesyesyes"; then
     if test "$enable_server" == "yes"; then
-      { { $as_echo "$as_me:$LINENO: error: cannot find all libraries or tools for stap-server" >&5
-$as_echo "$as_me: error: cannot find all libraries or tools for stap-server" >&2;}
+      { { $as_echo "$as_me:$LINENO: error: cannot find all libraries or tools for systemtap compile client or server" >&5
+$as_echo "$as_me: error: cannot find all libraries or tools for systemtap compile client or server" >&2;}
    { (exit 1); exit 1; }; }
     fi
     if test "$enable_server" == "check"; then
-      { $as_echo "$as_me:$LINENO: WARNING: will not build stap-server, cannot find all libraries or tools" >&5
-$as_echo "$as_me: WARNING: will not build stap-server, cannot find all libraries or tools" >&2;}
+      { $as_echo "$as_me:$LINENO: WARNING: will not build systemtap client or server, cannot find all libraries or tools" >&5
+$as_echo "$as_me: WARNING: will not build systemtap client or server, cannot find all libraries or tools" >&2;}
     fi
   else
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_NSS 1
+_ACEOF
+
+  fi
+  { $as_echo "$as_me:$LINENO: checking for /usr/include/avahi-client" >&5
+$as_echo_n "checking for /usr/include/avahi-client... " >&6; }
+if test "${ac_cv_file__usr_include_avahi_client+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/usr/include/avahi-client"; then
+  ac_cv_file__usr_include_avahi_client=yes
+else
+  ac_cv_file__usr_include_avahi_client=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__usr_include_avahi_client" >&5
+$as_echo "$ac_cv_file__usr_include_avahi_client" >&6; }
+if test "x$ac_cv_file__usr_include_avahi_client" = x""yes; then
+  avahi_clientdir=avahi-client
+fi
+
+  { $as_echo "$as_me:$LINENO: checking for /usr/include/avahi-common" >&5
+$as_echo_n "checking for /usr/include/avahi-common... " >&6; }
+if test "${ac_cv_file__usr_include_avahi_common+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/usr/include/avahi-common"; then
+  ac_cv_file__usr_include_avahi_common=yes
+else
+  ac_cv_file__usr_include_avahi_common=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__usr_include_avahi_common" >&5
+$as_echo "$ac_cv_file__usr_include_avahi_common" >&6; }
+if test "x$ac_cv_file__usr_include_avahi_common" = x""yes; then
+  avahi_commondir=avahi-common
+fi
+
+  if test "x$avahi_clientdir" != "x" -a "x$avahi_commondir" != "x"; then
+    have_avahi_includes=yes
+
+
+
+
+
+for ac_header in "$avahi_clientdir/client.h" "$avahi_clientdir/lookup.h" "$avahi_commondir/simple-watch.h" "$avahi_commondir/malloc.h" "$avahi_commondir/error.h"
+do
+as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  { $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
+$as_echo_n "checking for $ac_header... " >&6; }
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  $as_echo_n "(cached) " >&6
+fi
+ac_res=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:$LINENO: checking $ac_header usability" >&5
+$as_echo_n "checking $ac_header usability... " >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <$ac_header>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_header_compiler=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_header_compiler=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:$LINENO: checking $ac_header presence" >&5
+$as_echo_n "checking $ac_header presence... " >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <$ac_header>
+_ACEOF
+if { (ac_try="$ac_cpp conftest.$ac_ext"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null && {
+	 test -z "$ac_c_preproc_warn_flag$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       }; then
+  ac_header_preproc=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+
+rm -f conftest.err conftest.$ac_ext
+{ $as_echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+  yes:no: )
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $ac_header: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: $ac_header:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: $ac_header: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
+$as_echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: in the future, the compiler will take precedence" >&5
+$as_echo "$as_me: WARNING: $ac_header: in the future, the compiler will take precedence" >&2;}
+    ( cat <<\_ASBOX
+## ------------------------------------------- ##
+## Report this to systemtap@sources.redhat.com ##
+## ------------------------------------------- ##
+_ASBOX
+     ) | sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+{ $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
+$as_echo_n "checking for $ac_header... " >&6; }
+if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
+  $as_echo_n "(cached) " >&6
+else
+  eval "$as_ac_Header=\$ac_header_preproc"
+fi
+ac_res=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+
+fi
+as_val=`eval 'as_val=${'$as_ac_Header'}
+		 $as_echo "$as_val"'`
+   if test "x$as_val" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+else
+  have_avahi_includes=no
+fi
+
+done
+
+    have_avahi_libs=no
+    { $as_echo "$as_me:$LINENO: checking for avahi_client_new in -lavahi-client" >&5
+$as_echo_n "checking for avahi_client_new in -lavahi-client... " >&6; }
+if test "${ac_cv_lib_avahi_client_avahi_client_new+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavahi-client  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char avahi_client_new ();
+int
+main ()
+{
+return avahi_client_new ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_lib_avahi_client_avahi_client_new=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_avahi_client_avahi_client_new=no
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_avahi_client_avahi_client_new" >&5
+$as_echo "$ac_cv_lib_avahi_client_avahi_client_new" >&6; }
+if test "x$ac_cv_lib_avahi_client_avahi_client_new" = x""yes; then
+  have_avahi_libs=yes
+fi
+
+  fi
+  if test "x${have_avahi_includes}${have_avahi_libs}" != "xyesyes"; then
+    if test "$enable_server" == "yes"; then
+      { { $as_echo "$as_me:$LINENO: error: cannot find all libraries or tools for systemtap compile client or server" >&5
+$as_echo "$as_me: error: cannot find all libraries or tools for systemtap compile client or server" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+    if test "$enable_server" == "check"; then
+      { $as_echo "$as_me:$LINENO: WARNING: will not build systemtap internal client or server, cannot find all libraries or tools" >&5
+$as_echo "$as_me: WARNING: will not build systemtap internal client or server, cannot find all libraries or tools" >&2;}
+    fi
+  else
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_AVAHI 1
 _ACEOF
 
   fi
@@ -7455,6 +7746,14 @@ fi
 else
   HAVE_NSS_TRUE='#'
   HAVE_NSS_FALSE=
+fi
+
+ if test "x${have_avahi_includes}${have_avahi_libs}" == "xyesyes"; then
+  HAVE_AVAHI_TRUE=
+  HAVE_AVAHI_FALSE='#'
+else
+  HAVE_AVAHI_TRUE='#'
+  HAVE_AVAHI_FALSE=
 fi
 
 
@@ -9555,6 +9854,13 @@ if test -z "${HAVE_NSS_TRUE}" && test -z "${HAVE_NSS_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"HAVE_NSS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"HAVE_NSS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${HAVE_AVAHI_TRUE}" && test -z "${HAVE_AVAHI_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"HAVE_AVAHI\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"HAVE_AVAHI\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
