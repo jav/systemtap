@@ -225,6 +225,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 </ul>
 <h3><a name="MEMORY">MEMORY</a></h3>
 <ul>
+<li><a href="general/sizeof.stp">general/sizeof.stp</a> - Print the size of a C type.<br>
+keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
+<p>This script prints the size of a type, based on dwarf debuginfo for any kernel or userspace module, or trial-compilation of a given header file name.</p></li>
 <li><a href="memory/kmalloc-top">memory/kmalloc-top</a> - Show Paths to Kernel Malloc (kmalloc) Invocations<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The kmalloc-top perl program runs a small systemtap script to collect stack traces for each call to the kmalloc function and counts the time that each stack trace is observed. When kmalloc-top exits it prints out sorted list. The output can be filtered to print only the first N stack traces (-t), stack traces with a minimum counts (-m), or exclude certain stack traces (-e).</p></li>
@@ -441,6 +444,9 @@ keywords: <a href="keyword-index.html#SIGNALS">SIGNALS</a> <br>
 <li><a href="general/helloworld.stp">general/helloworld.stp</a> - SystemTap "Hello World" Program<br>
 keywords: <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
 <p>A basic "Hello World" program implemented in SystemTap script. It prints out "hello world" message and then immediately exits.</p></li>
+<li><a href="general/sizeof.stp">general/sizeof.stp</a> - Print the size of a C type.<br>
+keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
+<p>This script prints the size of a type, based on dwarf debuginfo for any kernel or userspace module, or trial-compilation of a given header file name.</p></li>
 </ul>
 <h3><a name="SLAB">SLAB</a></h3>
 <ul>
@@ -465,6 +471,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 </ul>
 <h3><a name="STATISTICS">STATISTICS</a></h3>
 <ul>
+<li><a href="general/sizeof.stp">general/sizeof.stp</a> - Print the size of a C type.<br>
+keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
+<p>This script prints the size of a type, based on dwarf debuginfo for any kernel or userspace module, or trial-compilation of a given header file name.</p></li>
 <li><a href="network/tcpipstat.stp">network/tcpipstat.stp</a> - Display network statistics for individual TCP sockets.<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
 <p>tcpipstat collects and displays network statistics related to individual TCP sockets or groups of sockets.  The statistics that are collected are simular to that of the command netstat -s, only sorted and grouped by individual sockets.</p></li>

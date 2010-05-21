@@ -58,6 +58,9 @@ keywords: <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
 <li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Callgraph tracing with arguments<br>
 keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
 <p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.</p></li>
+<li><a href="general/sizeof.stp">general/sizeof.stp</a> - Print the size of a C type.<br>
+keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
+<p>This script prints the size of a type, based on dwarf debuginfo for any kernel or userspace module, or trial-compilation of a given header file name.</p></li>
 <li><a href="general/varwatch.stp">general/varwatch.stp</a> - Watch a variable changing value in a thread.<br>
 keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p>This script places a set of probes (specified by $1), each of which monitors the state of some context $variable expression (specified by $2).  Whenever the value changes, with respect to the active thread, the event is traced.</p></li>

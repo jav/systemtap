@@ -423,6 +423,14 @@ keywords: syscall locking futex
 
 = MEMORY =
 
+general/sizeof.stp - Print the size of a C type.
+keywords: statistics memory simple
+
+  This script prints the size of a type, based on dwarf debuginfo for
+  any kernel or userspace module, or trial-compilation of a given
+  header file name.
+
+
 memory/kmalloc-top - Show Paths to Kernel Malloc (kmalloc) Invocations
 keywords: memory
 
@@ -1014,6 +1022,14 @@ keywords: simple
   prints out "hello world" message and then immediately exits.
 
 
+general/sizeof.stp - Print the size of a C type.
+keywords: statistics memory simple
+
+  This script prints the size of a type, based on dwarf debuginfo for
+  any kernel or userspace module, or trial-compilation of a given
+  header file name.
+
+
 = SLAB =
 
 memory/vm.tracepoints.stp - Collect slab allocation statistics
@@ -1062,6 +1078,14 @@ keywords: network tcp socket
 
 
 = STATISTICS =
+
+general/sizeof.stp - Print the size of a C type.
+keywords: statistics memory simple
+
+  This script prints the size of a type, based on dwarf debuginfo for
+  any kernel or userspace module, or trial-compilation of a given
+  header file name.
+
 
 network/tcpipstat.stp - Display network statistics for individual TCP sockets.
 keywords: network statistics
