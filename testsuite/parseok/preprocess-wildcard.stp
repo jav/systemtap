@@ -1,0 +1,57 @@
+#! stap -p1
+
+# PR10025: make sure that probepoint wildcards work in
+# various levels of proprocessor expansion
+
+# ANATOMY:
+# probe ==> first token is read in non-wildcard context
+# ab, *b, a*b, a*, * ==> check valid wildcard placement
+# f(x* x*y *y) ==> must be operator '*', not wildcards
+
+# TRUE
+%( 1==1
+%? probe ab, *b, a*b, a*, * { f(x* x*y *y) }
+%: --ERROR--
+%)
+
+# TRUE, TRUE
+%( 1==1
+%? %( 2==2
+   %? probe ab, *b, a*b, a*, * { f(x* x*y *y) }
+   %: --ERROR--
+   %)
+%: --ERROR--
+%)
+
+# TRUE, FALSE
+%( 1==1
+%? %( 2!=2
+   %? --ERROR--
+   %: probe ab, *b, a*b, a*, * { f(x* x*y *y) }
+   %)
+%: --ERROR--
+%)
+
+# FALSE
+%( 1!=1
+%? --ERROR--
+%: probe ab, *b, a*b, a*, * { f(x* x*y *y) }
+%)
+
+# FALSE, TRUE
+%( 1!=1
+%? --ERROR--
+%: %( 2==2
+   %? probe ab, *b, a*b, a*, * { f(x* x*y *y) }
+   %: --ERROR--
+   %)
+%)
+
+# FALSE, FALSE
+%( 1!=1
+%? --ERROR--
+%: %( 2!=2
+   %? --ERROR--
+   %: probe ab, *b, a*b, a*, * { f(x* x*y *y) }
+   %)
+%)
