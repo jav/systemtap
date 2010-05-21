@@ -1,5 +1,6 @@
 // scsi tapset
 // Copyright (C) 2005, 2006, 2009 IBM Corp.
+// Copyright (C) 2010 Red Hat
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -52,21 +53,27 @@ function describe_device_state:string(state:long)
   * @disk_minor: The minor number of the disk (-1 if no information)
   * @device_state: The current state of the device
   * @device_state_str: The current state of the device, as a string
+  * @req_addr: The current struct request pointer, as a number
   */
-probe scsi.ioentry
-	= module("scsi_mod").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")!,
-	  kernel.function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?
+probe scsi.ioentry.scsilib =
+      module("scsi_mod").function("scsi_prep_fn")!, kernel.function("scsi_prep_fn") { }
+probe scsi.ioentry.sd =
+      module("sd_mod").function("sd_prep_fn")!, kernel.function("sd_prep_fn") { }
+probe scsi.ioentry.sr =
+      module("sr_mod").function("sr_prep_fn")!, kernel.function("sr_prep_fn") { }
+
+probe scsi.ioentry = scsi.ioentry.* ?
 {
-	if($req->rq_disk == 0)  {
+        req_addr = @defined($req) ? $req : $rq;
+	if(@cast(req_addr,"request")->rq_disk == 0)  {
 		disk_major = -1
 		disk_minor = -1
 	} else {
-		disk_major = $req->rq_disk->major
-		disk_minor = $req->rq_disk->first_minor
+		disk_major = @cast(req_addr,"request")->rq_disk->major
+		disk_minor = @cast(req_addr,"request")->rq_disk->first_minor
 	}
 	device_state = get_devstate_from_req($q)
 	device_state_str = describe_device_state(device_state)
-	req_addr = $req
 }
 
 /**
