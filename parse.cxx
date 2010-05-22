@@ -37,6 +37,7 @@ using namespace std;
 class lexer
 {
 public:
+  bool ate_comment; // the most recent token followed a comment
   token* scan (bool wildcard=false);
   lexer (istream&, const string&, systemtap_session&);
   void set_current_file (stapfile* f);
@@ -779,7 +780,7 @@ parser::peek_kw (std::string const & kw)
 
 
 lexer::lexer (istream& input, const string& in, systemtap_session& s):
-  input_name (in), input_pointer (0), input_end (0),
+  ate_comment(false), input_name (in), input_pointer (0), input_end (0),
   cursor_suspend_count(0), cursor_suspend_line (1), cursor_suspend_column (1),
   cursor_line (1), cursor_column (1),
   session(s), current_file (0)
@@ -889,6 +890,7 @@ lexer::input_put (const string& chars, const token* t)
 token*
 lexer::scan (bool wildcard)
 {
+  ate_comment = false; // reset for each new token
   token* n = new token;
   n->location.file = current_file;
 
@@ -992,7 +994,6 @@ skip:
   else if (c == '\"')
     {
       n->type = tok_string;
-    another_string:
       while (1)
 	{
 	  c = input_get ();
@@ -1031,19 +1032,6 @@ skip:
 	  else
 	    n->content.push_back(c);
 	}
-      // PR11208: check if the next token is also a string literal; auto-concatenate it
-      // This is complicated to the extent that we need to skip intermediate whitespace.
-      // XXX: but not comments
-      unsigned nspace = 0;
-      do {
-        c = input_peek(nspace++);
-        if (c == '\"') // new string literal?
-          {
-            // consume all whitespace plus the opening quote
-            while (nspace-- > 0) input_get();
-            goto another_string; // and append the rest to this token
-          }
-      } while (isspace(c));
       return n;
     }
 
@@ -1061,6 +1049,7 @@ skip:
           unsigned this_line = cursor_line;
           do { c = input_get (); }
           while (c >= 0 && cursor_line == this_line);
+          ate_comment = true;
           goto skip;
         }
       else if ((c == '/' && c2 == '/')) // C++ comment
@@ -1068,6 +1057,7 @@ skip:
           unsigned this_line = cursor_line;
           do { c = input_get (); }
           while (c >= 0 && cursor_line == this_line);
+          ate_comment = true;
           goto skip;
         }
       else if (c == '/' && c2 == '*') // C comment
@@ -1082,6 +1072,7 @@ skip:
               c = c2;
               c2 = input_get ();
             }
+          ate_comment = true;
           goto skip;
 	}
       else if (c == '%' && c2 == '{') // embedded code
@@ -1707,7 +1698,17 @@ parser::parse_literal ()
   const token* t = next ();
   literal* l;
   if (t->type == tok_string)
-    l = new literal_string (t->content);
+    {
+      literal_string *ls = new literal_string (t->content);
+
+      // PR11208: check if the next token is also a string literal; auto-concatenate it
+      // This is complicated to the extent that we need to skip intermediate whitespace.
+      // XXX: but not comments
+      while (peek()->type == tok_string && !input.ate_comment)
+        ls->value.append(next()->content); // consume and append the token
+
+      l = ls;
+    }
   else
     {
       bool neg = false;
