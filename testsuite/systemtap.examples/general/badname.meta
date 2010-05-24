@@ -10,4 +10,4 @@ output: none
 scope: system-wide
 description: The badname.stp script shows how one could prevent the creation of files with undesirable names using guru mode.
 test_check: stap -g -p4 badname.stp
-test_installcheck: stap -g badname.stp -c "sleep 0.2"
+test_installcheck: stap -g badname.stp -c "touch /tmp/myXXXfile" 2>&1 | grep denied
