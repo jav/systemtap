@@ -17,7 +17,9 @@
 
 - The new "--ldd" option automatically adds any additional shared
   libraries needed by probed or -d-listed userspace binaries to the -d
-  list, to enable symbolic backtracing through them.
+  list, to enable symbolic backtracing through them.  Similarly, the
+  new "--all-modules" option automatically adds any currently loaded
+  kernel modules (listed in /proc/modules) to the -d list.
 
 - A new family of set_kernel_* functions make it easier for gurus to write
   new values at arbitrary memory addresses.

@@ -294,6 +294,8 @@ systemtap_session::usage (int exitcode)
   }
   clog
     << "   --ldd      add unwind/symbol data for all referenced OBJECT files." << endl
+    << "   --all-modules" << endl
+    << "              add unwind/symbol data for all loaded kernel objects." << endl
     << "   -t         collect probe timing information" << endl
 #ifdef HAVE_LIBSQLITE3
     << "   -q         generate information on tapset coverage" << endl
@@ -709,6 +711,10 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               break;
 
             case LONG_OPT_ALL_MODULES:
+              if (client_options) {
+                  cerr << "ERROR: --all-modules is invalid with --client-options" << endl;
+                  return 1;
+              }
               insert_loaded_modules();
               break;
 
