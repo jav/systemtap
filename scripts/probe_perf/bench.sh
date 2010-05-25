@@ -7,10 +7,13 @@
 function setup_test() {
 $STAP/bin/dtrace -G -s bench_.d
 $STAP/bin/dtrace --types -h -s bench_.d
+if [ "$3"x = "no-semx" ] ; then
+   sed -i -e '/STAP_HAS_SEMAPHORES/d' bench_.h
+fi
 # Run bench without stap
-$GCC/bin/gcc -D$1 -DLOOP=5 bench_.o bench.c -o bench-$2.x -I. -g
-./bench-$2.x > /dev/null
-taskset 1 /usr/bin/time ./bench-$2.x >| /tmp/$$-2 2>&1
+$GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I. -g
+./bench-$2$3.x > /dev/null
+taskset 1 /usr/bin/time ./bench-$2$3.x >| /tmp/$$-2 2>&1
 # Parse /usr/bin/time output to get elapsed time
 cat /tmp/$$-2 | awk --non-decimal-data '
 function seconds(s) {
@@ -26,8 +29,8 @@ printf "without stap elapsed time is %s\n" $(cat /tmp/$$-1)
 }
 
 function stap_test() {
-$STAP/bin/stap -DSTP_NO_OVERLOAD=1 -t -g -p4 -m stapbenchmod -c ./bench-$2.x bench.stp ./bench-$2.x $1 >/dev/null 2>&1
-taskset 1 /usr/bin/time $STAP/bin/staprun stapbenchmod.ko -c ./bench-$2.x >| /tmp/$$-2 2>&1
+$STAP/bin/stap -DSTP_NO_OVERLOAD=1 -t -g -p4 -m stapbenchmod -c ./bench-$2$3.x bench.stp ./bench-$2$3.x $1 >/dev/null 2>&1
+taskset 1 /usr/bin/time $STAP/bin/staprun stapbenchmod.ko -c ./bench-$2$3.x >| /tmp/$$-2 2>&1
 # Parse /usr/bin/time, bench.x, bench.stp output to get statistics
 cat /tmp/$$-2 | awk --non-decimal-data -v nostapet=$(cat /tmp/$$-1) '
 function seconds(s) {
@@ -107,9 +110,25 @@ echo -e "\n##### KPROBE #####\n"
 setup_test  EXPERIMENTAL_KPROBE_SDT kprobe
 stap_test EXPERIMENTAL_KPROBE_SDT kprobe
 
+echo -e "\n##### KPROBE NO SEM #####\n"
+setup_test  EXPERIMENTAL_KPROBE_SDT kprobe no-sem
+stap_test EXPERIMENTAL_KPROBE_SDT kprobe no-sem
+
 echo -e "\n##### UPROBE #####\n"
 setup_test UPROBE_SDT uprobe
 stap_test UPROBE_SDT uprobe
+
+echo -e "\n##### UPROBE NO SEM #####\n"
+setup_test UPROBE_SDT uprobe no-sem
+stap_test UPROBE_SDT uprobe no-sem
+
+echo -e "\n##### UPROBE V2 #####\n"
+setup_test STAP_SDT_V2 uprobe
+stap_test STAP_SDT_V2 uprobe
+
+echo -e "\n##### UPROBE V2 NO SEM #####\n"
+setup_test STAP_SDT_V2 uprobe no-sem
+stap_test STAP_SDT_V2 uprobe no-sem
 
 if [ -z "$KEEP" ] ; then
    rm /tmp/$$-1 /tmp/$$-2
