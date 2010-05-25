@@ -350,6 +350,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_CLEAN_CACHE 13
 #define LONG_OPT_COMPATIBLE 14
 #define LONG_OPT_LDD 15
+#define LONG_OPT_ALL_MODULES 16
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -373,6 +374,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "clean-cache", 0, &long_opt, LONG_OPT_CLEAN_CACHE },
         { "compatible", 1, &long_opt, LONG_OPT_COMPATIBLE },
         { "ldd", 0, &long_opt, LONG_OPT_LDD },
+        { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
@@ -706,6 +708,10 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               unwindsym_ldd = true;
               break;
 
+            case LONG_OPT_ALL_MODULES:
+              insert_loaded_modules();
+              break;
+
             default:
               // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
               cerr << "Unhandled long argument id " << long_opt << endl;
@@ -795,6 +801,20 @@ systemtap_session::check_options (int argc, char * const argv [])
           runtime_path = string(cwd) + "/" + runtime_path;
         }
     }
+}
+
+void systemtap_session::insert_loaded_modules()
+{
+  char line[1024];
+  ifstream procmods ("/proc/modules");
+  while (procmods.good()) {
+    procmods.getline (line, sizeof(line));
+    strtok(line, " \t");
+    if (line[0] == '\0')
+      break;  // maybe print a warning?
+    unwindsym_modules.insert (string (line));
+  }
+  procmods.close();
 }
 
 void

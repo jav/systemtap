@@ -188,6 +188,11 @@ ldd to be necessary for user-space binaries being probe or listed with
 the \-d option.  Caution: this can make the probe modules considerably
 larger.
 .TP
+.BI \-\-all-modules
+Equivalent to specifying "-d" for each kernel modules that are
+currently loaded.  Caution: this can make the probe modules considerably
+larger.
+.TP
 .BI \-o " FILE"
 Send standard output to named file. In bulk mode, percpu files will
 start with FILE_ (FILE_cpu with -F) followed by the cpu number.

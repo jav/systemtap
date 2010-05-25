@@ -82,6 +82,7 @@ struct systemtap_session
   // and/or in the initialize method (session.cxx).
   void initialize ();
   void setup_kernel_release (const char* kstr);
+  void insert_loaded_modules ();
 
   // command line parsing
   int  parse_cmdline (int argc, char * const argv []);
