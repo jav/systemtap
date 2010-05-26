@@ -500,7 +500,8 @@ make_tracequery(systemtap_session& s, string& name,
 
   // add the specified headers
   for (unsigned z=0; z<headers.size(); z++)
-    osrc << "#include <" << headers[z] << ">\n";
+    osrc << "#undef TRACE_INCLUDE_FILE\n"
+         << "#include <" << headers[z] << ">\n";
 
   // finish up the module source
   osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;
