@@ -18,8 +18,7 @@ KERN_ARCH=`uname -m`
 KERN_REV=`echo $UNAME | sed s/.$KERN_ARCH//` # strip arch from uname
 CANDIDATES="$KERNEL-$KERN_REV.$KERN_ARCH \
   $KERNEL-devel-$KERN_REV.$KERN_ARCH \
-  $KERNEL-debuginfo-$KERN_REV.$KERN_ARCH \
-  kernel-debuginfo-common-$KERN_REV.$KERN_ARCH"
+  $KERNEL-debuginfo-$KERN_REV.$KERN_ARCH"
 NEEDED=`rpm --qf "%{name}-%{version}-%{release}.%{arch}\n" \
     -q $CANDIDATES | grep "is not installed" | awk '{print $2}'`
 if [ "$NEEDED" != "" ]; then
@@ -30,7 +29,8 @@ if [ "$NEEDED" != "" ]; then
             echo "Need to first install yum-utils for yumdownloader"
             yum install -y yum-utils
         fi
-        yumdownloader --enablerepo="*debuginfo*" $NEEDED --destdir=$DIR
+        yumdownloader --enablerepo="*debuginfo*" $NEEDED --destdir=$DIR \
+                      --resolve
         check_error $? "problem downloading rpm(s) $NEEDED"
         rpm --force -ivh $DIR/*.rpm
         check_error $? "problem installing rpm(s) $NEEDED"
