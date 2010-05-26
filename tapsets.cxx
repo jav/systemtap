@@ -3919,44 +3919,55 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 
 struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
 {
-  sdt_uprobe_var_expanding_visitor(const string & process_name,
+  sdt_uprobe_var_expanding_visitor(systemtap_session& s,
+                                   int elf_machine,
+                                   const string & process_name,
 				   const string & probe_name,
 				   const string & arg_string,
 				   int arg_count):
-    process_name (process_name), probe_name (probe_name),
-    arg_count (arg_count)
+    session (s), process_name (process_name),
+    probe_name (probe_name), arg_count (arg_count)
   {
-#if defined __x86_64__ 
-    dwarf_regs["rax"] = dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
-    dwarf_regs["rdx"] = dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 1;
-    dwarf_regs["rcx"] = dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 2;
-    dwarf_regs["rbx"] = dwarf_regs["ebx"] = dwarf_regs["bx"] = dwarf_regs["bl"] = 3;
-    dwarf_regs["rsi"] = dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 4;
-    dwarf_regs["rdi"] = dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 5;
-    dwarf_regs["rbp"] = dwarf_regs["ebp"] = dwarf_regs["bp"] = 6;
-    dwarf_regs["rsp"] = dwarf_regs["esp"] = dwarf_regs["sp"] = 7;
-    dwarf_regs["r8"]  = dwarf_regs["r8d"]  = dwarf_regs["r8w"]	= dwarf_regs["r8b"]  = 8;
-    dwarf_regs["r9"]  = dwarf_regs["r9d"]  = dwarf_regs["r9w"]	= dwarf_regs["r9b"]  = 9;
-    dwarf_regs["r10"] = dwarf_regs["r10d"] = dwarf_regs["r10w"] = dwarf_regs["r10b"] = 10;
-    dwarf_regs["r11"] = dwarf_regs["r11d"] = dwarf_regs["r11w"] = dwarf_regs["r11b"] = 11;
-    dwarf_regs["r12"] = dwarf_regs["r12d"] = dwarf_regs["r12w"] = dwarf_regs["r12b"] = 12;
-    dwarf_regs["r13"] = dwarf_regs["r13d"] = dwarf_regs["r13w"] = dwarf_regs["r13b"] = 13;
-    dwarf_regs["r14"] = dwarf_regs["r14d"] = dwarf_regs["r14w"] = dwarf_regs["r14b"] = 14;
-    dwarf_regs["r15"] = dwarf_regs["r15d"] = dwarf_regs["r15w"] = dwarf_regs["r15b"] = 15;
-#elif defined __i386__
-    dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
-    dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 1;
-    dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 2;
-    dwarf_regs["ebx"] = dwarf_regs["bx"] = dwarf_regs["bl"] = 3;
-    dwarf_regs["esp"] = dwarf_regs["sp"] = 4;
-    dwarf_regs["ebp"] = dwarf_regs["bp"] = 5;
-    dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 6;
-    dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 7;
-#endif
+    /* Register name mapping table depends on the elf machine of this particular
+       probe target process/file, not upon the host.  So we can't just
+       #ifdef _i686_ etc. */
+    if (elf_machine == EM_X86_64) {
+      dwarf_regs["rax"] = dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
+      dwarf_regs["rdx"] = dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 1;
+      dwarf_regs["rcx"] = dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 2;
+      dwarf_regs["rbx"] = dwarf_regs["ebx"] = dwarf_regs["bx"] = dwarf_regs["bl"] = 3;
+      dwarf_regs["rsi"] = dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 4;
+      dwarf_regs["rdi"] = dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 5;
+      dwarf_regs["rbp"] = dwarf_regs["ebp"] = dwarf_regs["bp"] = 6;
+      dwarf_regs["rsp"] = dwarf_regs["esp"] = dwarf_regs["sp"] = 7;
+      dwarf_regs["r8"]  = dwarf_regs["r8d"]  = dwarf_regs["r8w"]	= dwarf_regs["r8b"]  = 8;
+      dwarf_regs["r9"]  = dwarf_regs["r9d"]  = dwarf_regs["r9w"]	= dwarf_regs["r9b"]  = 9;
+      dwarf_regs["r10"] = dwarf_regs["r10d"] = dwarf_regs["r10w"] = dwarf_regs["r10b"] = 10;
+      dwarf_regs["r11"] = dwarf_regs["r11d"] = dwarf_regs["r11w"] = dwarf_regs["r11b"] = 11;
+      dwarf_regs["r12"] = dwarf_regs["r12d"] = dwarf_regs["r12w"] = dwarf_regs["r12b"] = 12;
+      dwarf_regs["r13"] = dwarf_regs["r13d"] = dwarf_regs["r13w"] = dwarf_regs["r13b"] = 13;
+      dwarf_regs["r14"] = dwarf_regs["r14d"] = dwarf_regs["r14w"] = dwarf_regs["r14b"] = 14;
+      dwarf_regs["r15"] = dwarf_regs["r15d"] = dwarf_regs["r15w"] = dwarf_regs["r15b"] = 15;
+    } else if (elf_machine == EM_386) {
+      dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
+      dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 1;
+      dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 2;
+      dwarf_regs["ebx"] = dwarf_regs["bx"] = dwarf_regs["bl"] = 3;
+      dwarf_regs["esp"] = dwarf_regs["sp"] = 4;
+      dwarf_regs["ebp"] = dwarf_regs["bp"] = 5;
+      dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 6;
+      dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 7;
+    } else {
+      throw semantic_error (string("Unsupported architecture ")
+                            + "(" + process_name + " ELF code " + lex_cast(elf_machine) + ")"
+                            + "for dwarfless sdt probes.");
+    }
+
 
     tokenize(arg_string, arg_tokens, " ");
     assert(arg_count >= 0 && arg_count <= 10);
   }
+  systemtap_session& session;
   const string & process_name;
   const string & probe_name;
   int arg_count;
@@ -4081,6 +4092,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	   ? string("u_fetch_register(")
 	   : string("k_fetch_register("))
 	+ lex_cast(dwarf_regs[reg]) + string(")");
+      // XXX: may we ever need to cast that to a narrower type?
 
       be->left = get_arg1;
       be->op = "+";
@@ -4336,7 +4348,17 @@ sdt_query::handle_query_module()
         }
       else
 	{
-	  sdt_uprobe_var_expanding_visitor svv (module_val,
+          /* Figure out the architecture of this particular ELF file.
+             The dwarfless register-name mappings depend on it. */
+          Dwarf_Addr bias;
+          Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.mod_info->mod, &bias))
+                      ?: dwfl_module_getelf (dw.mod_info->mod, &bias));
+          GElf_Ehdr ehdr_mem;
+          GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
+          if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
+          int elf_machine = em->e_machine;
+	  sdt_uprobe_var_expanding_visitor svv (sess, elf_machine,
+                                                module_val,
 						probe_name,
 						arg_string,
 						arg_count);

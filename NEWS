@@ -1,5 +1,10 @@
 * What's new
 
+- Prototype support for debuginfo-less <sys/sdt.h> user-space markers
+  is included for some architectures (i686 and x86-64 initially).
+  Compile your sdt.h-instrumented program with -DSTAP_SDT_V2 to
+  activate this mode.
+
 - Embedded-C may be used within expressions as values, when in guru mode:
      num = %{ LINUX_VERSION_CODE %}               // int64_t
      name = %{ /* string */ THIS_MODULE->name %}  // const char*
