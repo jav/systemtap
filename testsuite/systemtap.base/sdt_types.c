@@ -163,6 +163,7 @@ main (int argc, char **argv)
     blue = 2
   } primary_colors_var = green;
   STAP_PROBE1(provider,primary_colors_var,primary_colors_var);
+  STAP_PROBE(provider,something__dash__dash__something);
   return 0;
 }
 

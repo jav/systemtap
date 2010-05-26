@@ -457,8 +457,16 @@ expect {
     eof { }
 }
 catch {close}; catch {wait}
-
-if { $ok == 45 } {
+# PR10245: match the __ one here
+spawn $stap_path -l "process(\"./sdt_types.x\").mark(\"*-*-*\")"
+expect {
+    -timeout 180
+    -re {mark\(\"[a-z_]+\"\)} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+if { $ok == 47 } {
     pass "$test wildcard $pbtype_mssg"
 } else {
     fail "$test wildcard ($ok) $pbtype_mssg"

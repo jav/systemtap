@@ -4292,6 +4292,16 @@ sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
   base_loc(base_loc), params(params), results(results)
 {
   assert(get_string_param(params, TOK_MARK, mark_name));
+  // PR10245: permit usage of dtrace-y "-" separator in marker name;
+  // map it to double-underscores.
+  size_t pos = 0;
+  while (1) // there may be more than one
+    {
+      size_t i = mark_name.find("-", pos);
+      if (i == string::npos) break;
+      mark_name.replace (i, 1, "__");
+      pos = i+1; // resume searching after the inserted __
+    }
 }
 
 
@@ -4763,7 +4773,7 @@ dwarf_builder::build(systemtap_session & sess,
   if (sess.verbose > 3)
     clog << "dwarf_builder::build for " << module_name << endl;
 
-  string mark_name;
+  string mark_name; // NB: PR10245: dummy value, need not substitute - => __
   if (get_param(parameters, TOK_MARK, mark_name))
     {
       sdt_query sdtq(base, location, *dw, parameters, finished_results);
