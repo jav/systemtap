@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -p2
 
 probe kernel.function("sys_open") { println(@defined($foobar)?$foobar:0)  } # invalid
 probe kernel.function("sys_open") { println(@defined($mode)?$mode:$nosuchvar)  }  # valid
