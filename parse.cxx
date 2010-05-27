@@ -2907,14 +2907,41 @@ expression* parser::parse_defined_op (const token* t)
 void
 parser::parse_target_symbol_components (target_symbol* e)
 {
-  while (true)
+  bool pprint = false;
+
+  // check for pretty-print in the form $foo$
+  string &base = e->base_name;
+  size_t pprint_pos = base.find_last_not_of('$');
+  if (0 < pprint_pos && pprint_pos < base.length() - 1)
+    {
+      string pprint_val = base.substr(pprint_pos + 1);
+      base.erase(pprint_pos + 1);
+      e->components.push_back (target_symbol::component(e->tok, pprint_val, true));
+      pprint = true;
+    }
+
+  while (!pprint)
     {
       if (peek_op ("->"))
         {
           const token* t = next();
           string member;
           expect_ident_or_keyword (member);
-          e->components.push_back (target_symbol::component(t, member));
+
+          // check for pretty-print in the form $foo->$ or $foo->bar$
+          pprint_pos = member.find_last_not_of('$');
+          string pprint_val;
+          if (pprint_pos == string::npos || pprint_pos < member.length() - 1)
+            {
+              pprint_val = member.substr(pprint_pos + 1);
+              member.erase(pprint_pos + 1);
+              pprint = true;
+            }
+
+          if (!member.empty())
+            e->components.push_back (target_symbol::component(t, member));
+          if (pprint)
+            e->components.push_back (target_symbol::component(t, pprint_val, true));
         }
       else if (peek_op ("["))
         {
@@ -2930,6 +2957,23 @@ parser::parse_target_symbol_components (target_symbol* e)
       else
         break;
     }
+
+  if (!pprint)
+    {
+      // check for pretty-print in the form $foo $
+      // i.e. as a separate token, esp. for $foo[i]$ and @cast(...)$
+      const token* t = peek();
+      if (t->type == tok_identifier &&
+          t->content.find_first_not_of('$') == string::npos)
+        {
+          t = next();
+          e->components.push_back (target_symbol::component(t, t->content, true));
+          pprint = true;
+        }
+    }
+
+  if (pprint && (peek_op ("->") || peek_op("[")))
+    throw parse_error("can't dereference after pretty-printing");
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

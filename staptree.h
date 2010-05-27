@@ -239,18 +239,22 @@ struct target_symbol: public symbol
       comp_struct_member,
       comp_literal_array_index,
       comp_expression_array_index,
+      comp_pretty_print, // must be final
     };
 
   struct component
     {
       const token* tok;
       component_type type;
-      std::string member; // comp_struct_member
+      std::string member; // comp_struct_member, comp_pretty_print
       int64_t num_index; // comp_literal_array_index
       expression* expr_index; // comp_expression_array_index
 
-      component(const token* t, const std::string& m):
-        tok(t), type(comp_struct_member), member(m) {}
+      component(const token* t, const std::string& m, bool pprint=false):
+        tok(t),
+        type(pprint ? comp_pretty_print : comp_struct_member),
+        member(m)
+      {}
       component(const token* t, int64_t n):
         tok(t), type(comp_literal_array_index), num_index(n) {}
       component(const token* t, expression* e):
@@ -268,7 +272,7 @@ struct target_symbol: public symbol
   void visit (visitor* u);
   void visit_components (visitor* u);
   void visit_components (update_visitor* u);
-  void assert_no_components(const std::string& tapset);
+  void assert_no_components(const std::string& tapset, bool pretty_ok=false);
 };
 
 std::ostream& operator << (std::ostream& o, const target_symbol::component& c);

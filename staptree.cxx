@@ -200,22 +200,28 @@ operator << (ostream& o, const exp_type& e)
 
 
 void
-target_symbol::assert_no_components(const std::string& tapset)
+target_symbol::assert_no_components(const std::string& tapset, bool pretty_ok)
 {
   if (components.empty())
     return;
 
   switch (components[0].type)
     {
-    case target_symbol::comp_literal_array_index:
-    case target_symbol::comp_expression_array_index:
+    case comp_literal_array_index:
+    case comp_expression_array_index:
       throw semantic_error(tapset + " variable '" + base_name +
                            "' may not be used as array",
                            components[0].tok);
-    case target_symbol::comp_struct_member:
+    case comp_struct_member:
       throw semantic_error(tapset + " variable '" + base_name +
                            "' may not be used as a structure",
                            components[0].tok);
+    case comp_pretty_print:
+      if (!pretty_ok)
+        throw semantic_error(tapset + " variable '" + base_name +
+                             "' may not be pretty-printed",
+                             components[0].tok);
+      return;
     default:
       throw semantic_error ("invalid use of " + tapset +
                             " variable '" + base_name + "'",
@@ -322,6 +328,7 @@ void target_symbol::component::print (ostream& o) const
 {
   switch (type)
     {
+    case comp_pretty_print:
     case comp_struct_member:
       o << "->" << member;
       break;

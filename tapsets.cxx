@@ -2110,6 +2110,449 @@ var_expanding_visitor::visit_defined_op (defined_op* e)
 }
 
 
+struct dwarf_pretty_print
+{
+  dwarf_pretty_print (dwflpp& dw, vector<Dwarf_Die>& scopes, Dwarf_Addr pc,
+                      const string& local, bool userspace_p,
+                      const target_symbol& e):
+    dw(dw), local(local), scopes(scopes), pc(pc),
+    pointer(NULL), userspace_p(userspace_p)
+  {
+    init_ts (e);
+    dw.type_die_for_local (scopes, pc, local, ts, &base_type);
+  }
+
+  dwarf_pretty_print (dwflpp& dw, Dwarf_Die *scope_die, Dwarf_Addr pc,
+                      bool userspace_p, const target_symbol& e):
+    dw(dw), scopes(1, *scope_die), pc(pc),
+    pointer(NULL), userspace_p(userspace_p)
+  {
+    init_ts (e);
+    dw.type_die_for_return (&scopes[0], pc, ts, &base_type);
+  }
+
+  dwarf_pretty_print (dwflpp& dw, Dwarf_Die *type_die, expression* pointer,
+                      bool userspace_p, const target_symbol& e):
+    dw(dw), pc(0), pointer(pointer), pointer_type(*type_die),
+    userspace_p(userspace_p)
+  {
+    init_ts (e);
+    dw.type_die_for_pointer (type_die, ts, &base_type);
+  }
+
+  functioncall* expand ();
+
+private:
+  dwflpp& dw;
+  target_symbol* ts;
+  int print_depth;
+  Dwarf_Die base_type;
+
+  string local;
+  vector<Dwarf_Die> scopes;
+  Dwarf_Addr pc;
+
+  expression* pointer;
+  Dwarf_Die pointer_type;
+
+  const bool userspace_p;
+
+  void recurse (Dwarf_Die* type, target_symbol* e,
+                print_format* pf, int depth);
+  void recurse_base (Dwarf_Die* type, target_symbol* e,
+                     print_format* pf, int depth);
+  void recurse_array (Dwarf_Die* type, target_symbol* e,
+                      print_format* pf, int depth);
+  void recurse_pointer (Dwarf_Die* type, target_symbol* e,
+                        print_format* pf, int depth);
+  void recurse_struct (Dwarf_Die* type, target_symbol* e,
+                       print_format* pf, int depth);
+  void recurse_struct_members (Dwarf_Die* type, target_symbol* e,
+                               print_format* pf, int depth, int& count);
+
+  void init_ts (const target_symbol& e);
+  expression* deref (target_symbol* e);
+};
+
+
+void
+dwarf_pretty_print::init_ts (const target_symbol& e)
+{
+  // Work with a new target_symbol so we can modify arguments
+  ts = new target_symbol (e);
+
+  if (ts->addressof)
+    throw semantic_error("cannot take address of pretty-printed variable", ts->tok);
+
+  if (ts->components.empty() ||
+      ts->components.back().type != target_symbol::comp_pretty_print)
+    throw semantic_error("invalid target_symbol for pretty-print", ts->tok);
+  print_depth = ts->components.back().member.length();
+  ts->components.pop_back();
+}
+
+
+functioncall*
+dwarf_pretty_print::expand ()
+{
+  static unsigned tick = 0;
+
+  // function pretty_print_X([pointer], [arg1, arg2, ...]) {
+  //    return sprintf("{.foo=...}", (ts)->foo, ...)
+  // }
+
+  // Create the function decl and call.
+
+  functiondecl *fdecl = new functiondecl;
+  fdecl->tok = ts->tok;
+  fdecl->synthetic = true;
+  fdecl->name = "_dwarf_pretty_print_" + lex_cast(tick++);
+  fdecl->type = pe_string;
+
+  functioncall* fcall = new functioncall;
+  fcall->tok = ts->tok;
+  fcall->function = fdecl->name;
+  fcall->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+  fcall->referent = fdecl; // XXX
+
+  // If there's a <pointer>, replace it with a new var and make that
+  // the first function argument.
+  if (pointer)
+    {
+      vardecl *v = new vardecl;
+      v->type = pe_long;
+      v->name = "pointer";
+      v->tok = ts->tok;
+      fdecl->formal_args.push_back (v);
+      fcall->args.push_back (pointer);
+
+      symbol* sym = new symbol;
+      sym->tok = ts->tok;
+      sym->name = v->name;
+      sym->referent = v; // XXX
+      pointer = sym;
+    }
+
+  // For each expression argument, replace it with a function argument.
+  for (unsigned i = 0; i < ts->components.size(); ++i)
+    if (ts->components[i].type == target_symbol::comp_expression_array_index)
+      {
+        vardecl *v = new vardecl;
+        v->type = pe_long;
+        v->name = "index" + lex_cast(i);
+        v->tok = ts->tok;
+        fdecl->formal_args.push_back (v);
+        fcall->args.push_back (ts->components[i].expr_index);
+
+        symbol* sym = new symbol;
+        sym->tok = ts->tok;
+        sym->name = v->name;
+        sym->referent = v; // XXX
+        ts->components[i].expr_index = sym;
+      }
+
+  // Create the return sprintf.
+  token* pf_tok = new token(*ts->tok);
+  pf_tok->content = "sprintf";
+  print_format* pf = print_format::create(pf_tok);
+  return_statement* rs = new return_statement;
+  rs->tok = ts->tok;
+  rs->value = pf;
+  fdecl->body = rs;
+
+  // Strip off leading pointers first, they're free...
+  Dwarf_Die type;
+  dw.resolve_unqualified_inner_typedie (&base_type, &type, ts);
+  int typetag = dwarf_tag (&type);
+  while (typetag == DW_TAG_pointer_type ||
+         typetag == DW_TAG_reference_type ||
+         typetag == DW_TAG_rvalue_reference_type)
+    {
+      Dwarf_Die pointee;
+      if (!dwarf_attr_die (&type, DW_AT_type, &pointee))
+        break;
+      dw.resolve_unqualified_inner_typedie (&pointee, &type, ts);
+      typetag = dwarf_tag (&type);
+    }
+
+  // Recurse into the actual values.
+  recurse (&type, ts, pf, print_depth);
+  pf->components = print_format::string_to_components(pf->raw_components);
+
+  dw.sess.functions[fdecl->name] = fdecl;
+  return fcall;
+}
+
+
+void
+dwarf_pretty_print::recurse (Dwarf_Die* start_type, target_symbol* e,
+                             print_format* pf, int depth)
+{
+  Dwarf_Die type;
+  dw.resolve_unqualified_inner_typedie (start_type, &type, e);
+
+  switch (dwarf_tag(&type))
+    {
+    default:
+      // XXX need a warning?
+      // throw semantic_error ("unsupported type (tag " + lex_cast(dwarf_tag(&type))
+      //                       + ") for " + dwarf_type_name(&type), e->tok);
+      pf->raw_components.append("?");
+      break;
+
+    case DW_TAG_enumeration_type:
+    case DW_TAG_base_type:
+      recurse_base (&type, e, pf, depth);
+      break;
+
+    case DW_TAG_array_type:
+      recurse_array (&type, e, pf, depth);
+      break;
+
+    case DW_TAG_pointer_type:
+    case DW_TAG_reference_type:
+    case DW_TAG_rvalue_reference_type:
+      recurse_pointer (&type, e, pf, depth);
+      break;
+
+    case DW_TAG_subroutine_type:
+      pf->raw_components.append("<function>:%p");
+      pf->args.push_back(deref(e));
+      break;
+
+    case DW_TAG_union_type:
+      // Force the depth to zero so we don't even bother to dereference
+      // union pointers that could be completely invalid.
+      depth = 0;
+      // Then fallthrough to proceed as for struct/class...
+
+    case DW_TAG_structure_type:
+    case DW_TAG_class_type:
+      recurse_struct (&type, e, pf, depth);
+      break;
+    }
+}
+
+
+void
+dwarf_pretty_print::recurse_base (Dwarf_Die* type, target_symbol* e,
+                                  print_format* pf, int depth)
+{
+  Dwarf_Attribute attr;
+  Dwarf_Word encoding = (Dwarf_Word) -1;
+  dwarf_formudata (dwarf_attr_integrate (type, DW_AT_encoding, &attr),
+                   &encoding);
+  bool push = true;
+  switch (encoding)
+    {
+    case DW_ATE_float:
+    case DW_ATE_complex_float:
+      // XXX need a warning?
+      // throw semantic_error ("unsupported type (encoding " + lex_cast(encoding)
+      //                       + ") for " + dwarf_type_name(type), e->tok);
+      pf->raw_components.append("?");
+      push = false;
+      break;
+
+    case DW_ATE_signed_char:
+    case DW_ATE_unsigned_char:
+      pf->raw_components.append("'%c'");
+      break;
+
+    case DW_ATE_unsigned:
+      pf->raw_components.append("%u");
+      break;
+
+    default:
+      pf->raw_components.append("%i");
+      break;
+    }
+  if (push)
+    pf->args.push_back(deref(e));
+}
+
+
+void
+dwarf_pretty_print::recurse_array (Dwarf_Die* type, target_symbol* e,
+                                   print_format* pf, int depth)
+{
+  Dwarf_Die childtype;
+  dwarf_attr_die (type, DW_AT_type, &childtype);
+  pf->raw_components.append("[");
+
+  // We print the array up to the first 5 elements.
+  // XXX how can we determine the array size?
+  // ... for now, just print the first element
+  unsigned i, size = 1;
+  for (i=0; i < size && i < 5; ++i)
+    {
+      if (i > 0)
+        pf->raw_components.append(", ");
+      target_symbol* e2 = new target_symbol(*e);
+      e2->components.push_back (target_symbol::component(e->tok, i));
+      recurse (&childtype, e2, pf, depth);
+    }
+  if (i < size || 1/*XXX until real size is known */)
+    pf->raw_components.append(", ...");
+  pf->raw_components.append("]");
+}
+
+
+void
+dwarf_pretty_print::recurse_pointer (Dwarf_Die* type, target_symbol* e,
+                                     print_format* pf, int depth)
+{
+  Dwarf_Die pointee_type;
+  if (depth <= 1 || !dwarf_attr_die(type, DW_AT_type, &pointee_type))
+    {
+      pf->raw_components.append("%p");
+      pf->args.push_back(deref(e));
+    }
+  else
+    {
+      // XXX better representation?
+      pf->raw_components.append("&(");
+      recurse (&pointee_type, e, pf, depth - 1);
+      pf->raw_components.append(")");
+    }
+}
+
+
+void
+dwarf_pretty_print::recurse_struct (Dwarf_Die* type, target_symbol* e,
+                                    print_format* pf, int depth)
+{
+  int count = 0;
+  pf->raw_components.append("{");
+  recurse_struct_members (type, e, pf, depth, count);
+  pf->raw_components.append("}");
+}
+
+
+void
+dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
+                                            print_format* pf, int depth, int& count)
+{
+  Dwarf_Die child, childtype;
+  if (dwarf_child (type, &child) == 0)
+    do
+      {
+        target_symbol* e2 = e;
+
+        // skip static members
+        if (dwarf_hasattr(&child, DW_AT_declaration))
+          continue;
+
+        int tag = dwarf_tag (&child);
+
+        if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
+          continue;
+
+        dwarf_attr_die (&child, DW_AT_type, &childtype);
+
+        if (tag == DW_TAG_inheritance)
+          {
+            recurse_struct_members (&childtype, e, pf, depth, count);
+            continue;
+          }
+
+        int childtag = dwarf_tag (&childtype);
+        const char *member = dwarf_diename (&child);
+        if (++count > 1)
+          pf->raw_components.append(", ");
+        if (member)
+          {
+            // XXX should we filter out "_vptr.foo" members?
+
+            pf->raw_components.append(".");
+            pf->raw_components.append(member);
+
+            e2 = new target_symbol(*e);
+            e2->components.push_back (target_symbol::component(e->tok, member));
+          }
+        else if (childtag == DW_TAG_union_type)
+          pf->raw_components.append("<union>");
+        else if (childtag == DW_TAG_structure_type)
+          pf->raw_components.append("<class>");
+        else if (childtag == DW_TAG_class_type)
+          pf->raw_components.append("<struct>");
+        pf->raw_components.append("=");
+        recurse (&childtype, e2, pf, depth);
+      }
+    while (dwarf_siblingof (&child, &child) == 0);
+}
+
+
+expression*
+dwarf_pretty_print::deref (target_symbol* e)
+{
+  static unsigned tick = 0;
+
+  // Synthesize a function to dereference the dwarf fields,
+  // with a pointer parameter that is the base tracepoint variable
+  functiondecl *fdecl = new functiondecl;
+  fdecl->synthetic = true;
+  fdecl->tok = e->tok;
+  embeddedcode *ec = new embeddedcode;
+  ec->tok = e->tok;
+
+  fdecl->name = "_dwarf_pretty_print_deref_" + lex_cast(tick++);
+  fdecl->body = ec;
+
+  // Synthesize a functioncall.
+  functioncall* fcall = new functioncall;
+  fcall->tok = e->tok;
+  fcall->function = fdecl->name;
+  fcall->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+  fcall->referent = fdecl; // XXX
+
+  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
+  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
+  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
+
+  if (pointer)
+    {
+      ec->code += dw.literal_stmt_for_pointer (&pointer_type, e,
+                                               false, fdecl->type);
+
+      vardecl *v = new vardecl;
+      v->type = pe_long;
+      v->name = "pointer";
+      v->tok = e->tok;
+      fdecl->formal_args.push_back(v);
+      fcall->args.push_back(pointer);
+    }
+  else if (!local.empty())
+    ec->code += dw.literal_stmt_for_local (scopes, pc, local, e,
+                                           false, fdecl->type);
+  else
+    ec->code += dw.literal_stmt_for_return (&scopes[0], pc, e,
+                                            false, fdecl->type);
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e->components.size(); ++i)
+    if (e->components[i].type == target_symbol::comp_expression_array_index)
+      {
+        vardecl *v = new vardecl;
+        v->type = pe_long;
+        v->name = "index" + lex_cast(i);
+        v->tok = e->tok;
+        fdecl->formal_args.push_back(v);
+        fcall->args.push_back(e->components[i].expr_index);
+      }
+
+  ec->code += "/* pure */";
+  ec->code += "/* unprivileged */";
+
+  // PR10601
+  ec->code += "\n#undef fetch_register\n";
+  ec->code += "\n#undef store_register\n";
+
+  dw.sess.functions[fdecl->name] = fdecl;
+  return fcall;
+}
+
+
 void
 dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
 {
@@ -2471,7 +2914,12 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   if (null_die(scope_die))
     return;
 
-  target_symbol *tsym = new target_symbol;
+  target_symbol *tsym = new target_symbol(*e);
+
+  string format = "=%#x";
+  if (!e->components.empty() &&
+      e->components[0].type == target_symbol::comp_pretty_print)
+    format = "=%s";
 
   // Convert $$parms to sprintf of a list of parms and active local vars
   // which we recursively evaluate
@@ -2479,8 +2927,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   // NB: we synthesize a new token here rather than reusing
   // e->tok, because print_format::print likes to use
   // its tok->content.
-  token* pf_tok = new token;
-  pf_tok->location = e->tok->location;
+  token* pf_tok = new token(*e->tok);
   pf_tok->type = tok_identifier;
   pf_tok->content = "sprintf";
 
@@ -2488,7 +2935,6 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
   if (q.has_return && (e->base_name == "$$return"))
     {
-      tsym->tok = e->tok;
       tsym->base_name = "$return";
 
       // Ignore any variable that isn't accessible.
@@ -2502,7 +2948,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       else
         {
           pf->raw_components += "return";
-          pf->raw_components += "=%#x";
+          pf->raw_components += format;
           pf->args.push_back(texp);
         }
     }
@@ -2537,7 +2983,6 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
               pf->raw_components += " ";
             pf->raw_components += diename;
 
-            tsym->tok = e->tok;
             tsym->base_name = "$";
             tsym->base_name += diename;
 
@@ -2560,7 +3005,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
               }
             else
               {
-                pf->raw_components += "=%#x";
+                pf->raw_components += format;
                 pf->args.push_back(texp);
               }
             first = false;
@@ -2613,7 +3058,31 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           if (e->addressof)
             throw semantic_error("cannot take address of context variable", e->tok);
 
+          e->assert_no_components("dwarf", true);
+
           visit_target_symbol_context(e);
+          return;
+        }
+
+      if (!e->components.empty() &&
+          e->components.back().type == target_symbol::comp_pretty_print)
+        {
+          if (lvalue)
+            throw semantic_error("cannot write to pretty-printed variable", e->tok);
+
+          if (q.has_return && (e->base_name == "$return"))
+            {
+              dwarf_pretty_print dpp (q.dw, scope_die, addr,
+                                      q.has_process, *e);
+              dpp.expand()->visit(this);
+            }
+          else
+            {
+              dwarf_pretty_print dpp (q.dw, getscopes(e), addr,
+                                      e->base_name.substr(1),
+                                      q.has_process, *e);
+              dpp.expand()->visit(this);
+            }
           return;
         }
 
@@ -2765,50 +3234,6 @@ dwarf_var_expanding_visitor::getscopes(target_symbol *e)
 }
 
 
-struct dwarf_cast_query : public base_query
-{
-  cast_op& e;
-  const bool lvalue;
-
-  exp_type& pe_type;
-  string& code;
-
-  dwarf_cast_query(dwflpp& dw, const string& module, cast_op& e,
-                   bool lvalue, exp_type& pe_type, string& code):
-    base_query(dw, module), e(e), lvalue(lvalue),
-    pe_type(pe_type), code(code) {}
-
-  void handle_query_module();
-};
-
-
-void
-dwarf_cast_query::handle_query_module()
-{
-  if (!code.empty())
-    return;
-
-  // look for the type in any CU
-  Dwarf_Die* type_die = dw.declaration_resolve_other_cus(e.type.c_str());
-  if (!type_die)
-    return;
-
-  try
-    {
-      Dwarf_Die cu_mem;
-      dw.focus_on_cu(dwarf_diecu(type_die, &cu_mem, NULL, NULL));
-      code = dw.literal_stmt_for_pointer (type_die, &e, lvalue, pe_type);
-    }
-  catch (const semantic_error& er)
-    {
-      // NB: we can have multiple errors, since a @cast
-      // may be attempted using several different modules:
-      //     @cast(ptr, "type", "module1:module2:...")
-      e.chain (er);
-    }
-}
-
-
 struct dwarf_cast_expanding_visitor: public var_expanding_visitor
 {
   systemtap_session& s;
@@ -2819,6 +3244,149 @@ struct dwarf_cast_expanding_visitor: public var_expanding_visitor
   void visit_cast_op (cast_op* e);
   void filter_special_modules(string& module);
 };
+
+
+struct dwarf_cast_query : public base_query
+{
+  cast_op& e;
+  const bool lvalue;
+  const bool userspace_p;
+  functioncall*& result;
+
+  dwarf_cast_query(dwflpp& dw, const string& module, cast_op& e, bool lvalue,
+                   const bool userspace_p, functioncall*& result):
+    base_query(dw, module), e(e), lvalue(lvalue),
+    userspace_p(userspace_p), result(result) {}
+
+  void handle_query_module();
+};
+
+
+void
+dwarf_cast_query::handle_query_module()
+{
+  static unsigned tick = 0;
+
+  if (result)
+    return;
+
+  // look for the type in any CU
+  Dwarf_Die* type_die = dw.declaration_resolve_other_cus(e.type.c_str());
+  if (!type_die)
+    return;
+
+  string code;
+  exp_type type = pe_long;
+
+  try
+    {
+      Dwarf_Die cu_mem;
+      dw.focus_on_cu(dwarf_diecu(type_die, &cu_mem, NULL, NULL));
+
+      if (!e.components.empty() &&
+          e.components.back().type == target_symbol::comp_pretty_print)
+        {
+          if (lvalue)
+            throw semantic_error("cannot write to pretty-printed variable", e.tok);
+
+          dwarf_pretty_print dpp(dw, type_die, e.operand, userspace_p, e);
+          result = dpp.expand();
+          return;
+        }
+
+      code = dw.literal_stmt_for_pointer (type_die, &e, lvalue, type);
+    }
+  catch (const semantic_error& er)
+    {
+      // NB: we can have multiple errors, since a @cast
+      // may be attempted using several different modules:
+      //     @cast(ptr, "type", "module1:module2:...")
+      e.chain (er);
+    }
+
+  if (code.empty())
+    return;
+
+  string fname = (string(lvalue ? "_dwarf_cast_set" : "_dwarf_cast_get")
+		  + "_" + e.base_name.substr(1)
+		  + "_" + lex_cast(tick++));
+
+  // Synthesize a function.
+  functiondecl *fdecl = new functiondecl;
+  fdecl->synthetic = true;
+  fdecl->tok = e.tok;
+  fdecl->type = type;
+  fdecl->name = fname;
+
+  embeddedcode *ec = new embeddedcode;
+  ec->tok = e.tok;
+  fdecl->body = ec;
+
+  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
+  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
+  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
+
+  ec->code += code;
+
+  // Give the fdecl an argument for the pointer we're trying to cast
+  vardecl *v1 = new vardecl;
+  v1->type = pe_long;
+  v1->name = "pointer";
+  v1->tok = e.tok;
+  fdecl->formal_args.push_back(v1);
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e.components.size(); ++i)
+    if (e.components[i].type == target_symbol::comp_expression_array_index)
+      {
+        vardecl *v = new vardecl;
+        v->type = pe_long;
+        v->name = "index" + lex_cast(i);
+        v->tok = e.tok;
+        fdecl->formal_args.push_back(v);
+      }
+
+  if (lvalue)
+    {
+      // Modify the fdecl so it carries a second pe_long formal
+      // argument called "value".
+
+      // FIXME: For the time being we only support setting target
+      // variables which have base types; these are 'pe_long' in
+      // stap's type vocabulary.  Strings and pointers might be
+      // reasonable, some day, but not today.
+
+      vardecl *v2 = new vardecl;
+      v2->type = pe_long;
+      v2->name = "value";
+      v2->tok = e.tok;
+      fdecl->formal_args.push_back(v2);
+    }
+  else
+    ec->code += "/* pure */";
+
+  ec->code += "/* unprivileged */";
+
+  // PR10601
+  ec->code += "\n#undef fetch_register\n";
+  ec->code += "\n#undef store_register\n";
+
+  dw.sess.functions[fdecl->name] = fdecl;
+
+  // Synthesize a functioncall.
+  functioncall* n = new functioncall;
+  n->tok = e.tok;
+  n->function = fname;
+  n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
+  n->args.push_back(e.operand);
+
+  // Any non-literal indexes need to be passed in too.
+  for (unsigned i = 0; i < e.components.size(); ++i)
+    if (e.components[i].type == target_symbol::comp_expression_array_index)
+      n->args.push_back(e.components[i].expr_index);
+
+  result = n;
+}
 
 
 void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
@@ -2867,14 +3435,13 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
   if (e->module.empty())
     e->module = "kernel"; // "*" may also be reasonable to search all kernel modules
 
-  string code;
-  exp_type type = pe_long;
+  functioncall* result = NULL;
 
   // split the module string by ':' for alternatives
   vector<string> modules;
   tokenize(e->module, modules, ":");
   bool userspace_p=false; // PR10601
-  for (unsigned i = 0; code.empty() && i < modules.size(); ++i)
+  for (unsigned i = 0; !result && i < modules.size(); ++i)
     {
       string& module = modules[i];
       filter_special_modules(module);
@@ -2902,11 +3469,11 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 	  continue;
 	}
 
-      dwarf_cast_query q (*dw, module, *e, lvalue, type, code);
+      dwarf_cast_query q (*dw, module, *e, lvalue, userspace_p, result);
       dw->iterate_over_modules(&query_module, &q);
     }
 
-  if (code.empty())
+  if (!result)
     {
       // We pass the unresolved cast_op to the next pass, and hope
       // that this value ends up not being referenced after all, so
@@ -2915,94 +3482,16 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
       return;
     }
 
-  string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
-		  + "_" + e->base_name.substr(1)
-		  + "_" + lex_cast(tick++));
-
-  // Synthesize a function.
-  functiondecl *fdecl = new functiondecl;
-  fdecl->synthetic = true;
-  fdecl->tok = e->tok;
-  fdecl->type = type;
-  fdecl->name = fname;
-
-  embeddedcode *ec = new embeddedcode;
-  ec->tok = e->tok;
-  fdecl->body = ec;
-
-  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
-  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
-  
-  ec->code += code;
-
-  // Give the fdecl an argument for the pointer we're trying to cast
-  vardecl *v1 = new vardecl;
-  v1->type = pe_long;
-  v1->name = "pointer";
-  v1->tok = e->tok;
-  fdecl->formal_args.push_back(v1);
-
-  // Any non-literal indexes need to be passed in too.
-  for (unsigned i = 0; i < e->components.size(); ++i)
-    if (e->components[i].type == target_symbol::comp_expression_array_index)
-      {
-        vardecl *v = new vardecl;
-        v->type = pe_long;
-        v->name = "index" + lex_cast(i);
-        v->tok = e->tok;
-        fdecl->formal_args.push_back(v);
-      }
-
-  if (lvalue)
-    {
-      // Modify the fdecl so it carries a second pe_long formal
-      // argument called "value".
-
-      // FIXME: For the time being we only support setting target
-      // variables which have base types; these are 'pe_long' in
-      // stap's type vocabulary.  Strings and pointers might be
-      // reasonable, some day, but not today.
-
-      vardecl *v2 = new vardecl;
-      v2->type = pe_long;
-      v2->name = "value";
-      v2->tok = e->tok;
-      fdecl->formal_args.push_back(v2);
-    }
-  else
-    ec->code += "/* pure */";
-
-  ec->code += "/* unprivileged */";
-
-  // PR10601
-  ec->code += "\n#undef fetch_register\n";
-  ec->code += "\n#undef store_register\n";
-
-  s.functions[fdecl->name] = fdecl;
-
-  // Synthesize a functioncall.
-  functioncall* n = new functioncall;
-  n->tok = e->tok;
-  n->function = fname;
-  n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
-  n->args.push_back(e->operand);
-
-  // Any non-literal indexes need to be passed in too.
-  for (unsigned i = 0; i < e->components.size(); ++i)
-    if (e->components[i].type == target_symbol::comp_expression_array_index)
-      n->args.push_back(require(e->components[i].expr_index));
-
   if (lvalue)
     {
       // Provide the functioncall to our parent, so that it can be
       // used to substitute for the assignment node immediately above
       // us.
       assert(!target_symbol_setter_functioncalls.empty());
-      *(target_symbol_setter_functioncalls.top()) = n;
+      *(target_symbol_setter_functioncalls.top()) = result;
     }
 
-  provide (n);
+  result->visit (this);
 }
 
 
@@ -6499,6 +6988,21 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
     }
   else
     {
+      // make a copy of the original as a bare target symbol for the tracepoint
+      // value, which will be passed into the dwarf dereferencing code
+      target_symbol* e2 = deep_copy_visitor::deep_copy(e);
+      e2->components.clear();
+
+      if (e->components.back().type == target_symbol::comp_pretty_print)
+        {
+          if (lvalue)
+            throw semantic_error("cannot write to pretty-printed variable", e->tok);
+
+          dwarf_pretty_print dpp(dw, &arg->type_die, e2, false, *e);
+          dpp.expand()->visit (this);
+          return;
+        }
+
       // Synthesize a function to dereference the dwarf fields,
       // with a pointer parameter that is the base tracepoint variable
       functiondecl *fdecl = new functiondecl;
@@ -6571,11 +7075,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       n->tok = e->tok;
       n->function = fname;
       n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-
-      // make a copy of the original as a bare target symbol for the tracepoint
-      // value, which will be passed into the dwarf dereferencing code
-      target_symbol* e2 = deep_copy_visitor::deep_copy(e);
-      e2->components.clear();
       n->args.push_back(require(e2));
 
       // Any non-literal indexes need to be passed in too.
@@ -6606,10 +7105,10 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   if (is_active_lvalue (e))
     throw semantic_error("write to tracepoint '" + e->base_name + "' not permitted", e->tok);
 
-  e->assert_no_components("tracepoint");
-
   if (e->base_name == "$$name")
     {
+      e->assert_no_components("tracepoint");
+
       // Synthesize a functioncall.
       functioncall* n = new functioncall;
       n->tok = e->tok;
@@ -6619,6 +7118,8 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     }
   else if (e->base_name == "$$vars" || e->base_name == "$$parms")
     {
+      e->assert_no_components("tracepoint", true);
+
       // Convert $$vars to sprintf of a list of vars which we recursively evaluate
       // NB: we synthesize a new token here rather than reusing
       // e->tok, because print_format::print likes to use
@@ -6638,13 +7139,18 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
           target_symbol *tsym = new target_symbol;
           tsym->tok = e->tok;
           tsym->base_name = "$" + args[i].name;
+          tsym->components = e->components;
 
           // every variable should always be accessible!
           tsym->saved_conversion_error = 0;
           expression *texp = require (tsym); // NB: throws nothing ...
           assert (!tsym->saved_conversion_error); // ... but this is how we know it happened.
 
-          pf->raw_components += args[i].isptr ? "=%p" : "=%#x";
+          if (!e->components.empty() &&
+              e->components[0].type == target_symbol::comp_pretty_print)
+            pf->raw_components += "=%s";
+          else
+            pf->raw_components += args[i].isptr ? "=%p" : "=%#x";
           pf->args.push_back(texp);
         }
 

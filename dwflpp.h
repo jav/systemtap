@@ -265,18 +265,29 @@ struct dwflpp
                                       const target_symbol *e,
                                       bool lvalue,
                                       exp_type & ty);
-
+  Dwarf_Die* type_die_for_local (std::vector<Dwarf_Die>& scopes,
+                                 Dwarf_Addr pc,
+                                 std::string const & local,
+                                 const target_symbol *e,
+                                 Dwarf_Die *die_mem);
 
   std::string literal_stmt_for_return (Dwarf_Die *scope_die,
                                        Dwarf_Addr pc,
                                        const target_symbol *e,
                                        bool lvalue,
                                        exp_type & ty);
+  Dwarf_Die* type_die_for_return (Dwarf_Die *scope_die,
+                                  Dwarf_Addr pc,
+                                  const target_symbol *e,
+                                  Dwarf_Die *die_mem);
 
   std::string literal_stmt_for_pointer (Dwarf_Die *type_die,
                                         const target_symbol *e,
                                         bool lvalue,
                                         exp_type & ty);
+  Dwarf_Die* type_die_for_pointer (Dwarf_Die *type_die,
+                                   const target_symbol *e,
+                                   Dwarf_Die *die_mem);
 
   bool blacklisted_p(const std::string& funcname,
                      const std::string& filename,
@@ -286,6 +297,10 @@ struct dwflpp
                      bool has_return);
 
   Dwarf_Addr relocate_address(Dwarf_Addr addr, std::string& reloc_section);
+
+  void resolve_unqualified_inner_typedie (Dwarf_Die *typedie,
+                                          Dwarf_Die *innerdie,
+                                          const target_symbol *e);
 
 
 private:
@@ -370,10 +385,6 @@ private:
                             Dwarf_Die *vardie,
                             Dwarf_Die *typedie,
                             unsigned first=0);
-
-  void resolve_unqualified_inner_typedie (Dwarf_Die *typedie,
-                                          Dwarf_Die *innerdie,
-                                          const target_symbol *e);
 
   void translate_final_fetch_or_store (struct obstack *pool,
                                        struct location **tail,
