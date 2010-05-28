@@ -225,7 +225,7 @@ static signed fde_pointer_type(const u32 *cie, void *unwind_data,
 	const u8 *ptr = (const u8 *)(cie + 2);
 	unsigned version = *ptr;
 
-	if (version != 1)
+	if (version != 1 && version != 3 && version != 4)
 		return -1;	/* unsupported */
 	if (*++ptr) {
 		const char *aug;
@@ -548,12 +548,13 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
 }
 
 /* If we previously created an unwind header, then use it now to binary search */
-/* for the FDE corresponding to pc. XXX FIXME not currently supported. */
+/* for the FDE corresponding to pc. */
 static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 				   struct _stp_module *m,
-				   struct _stp_section *s)
+				   struct _stp_section *s,
+				   int is_ehframe)
 {
-	const u8 *ptr, *end, *hdr = m->unwind_hdr;
+	const u8 *ptr, *end, *hdr = is_ehframe ? m->unwind_hdr: m->debug_hdr;
 	unsigned long startLoc;
 	u32 *fde = NULL;
 	unsigned num, tableSize, t2;
@@ -583,16 +584,16 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 		return NULL;
 	}
 	ptr = hdr + 4;
-	end = hdr + m->unwind_hdr_len;
+	end = hdr + (is_ehframe ? m->unwind_hdr_len : m->debug_hdr_len);
 	{
 		// XXX Can the header validity be checked just once?
 		unsigned long eh = read_ptr_sect(&ptr, end, hdr[1], 0,
 						 eh_hdr_addr);
 		if ((hdr[1] & DW_EH_PE_ADJUST) == DW_EH_PE_pcrel)
 			eh = eh - (unsigned long)hdr + eh_hdr_addr;
-		if ((eh != (unsigned long)m->eh_frame_addr)) {
+		if ((is_ehframe && eh != (unsigned long)m->eh_frame_addr)) {
 			dbug_unwind(1, "eh_frame_ptr in eh_frame_hdr 0x%lx not valid; eh_frame_addr = 0x%lx", eh, (unsigned long)m->eh_frame_addr);
-		return NULL;
+			return NULL;
 		}
 	}
 	num = read_ptr_sect(&ptr, end, hdr[2], 0, eh_hdr_addr);
@@ -607,7 +608,8 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
 		startLoc = read_ptr_sect(&cur, cur + tableSize, hdr[3], 0,
 					 eh_hdr_addr);
-		startLoc = adjustStartLoc(startLoc, tsk, m, s, hdr[3], 1);
+		startLoc = adjustStartLoc(startLoc, tsk, m, s, hdr[3],
+					  is_ehframe);
 		if (pc < startLoc)
 			num /= 2;
 		else {
@@ -617,11 +619,19 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 	} while (startLoc && num > 1);
 
 	if (num == 1
-	    && (startLoc = adjustStartLoc(read_ptr_sect(&ptr, ptr + tableSize, hdr[3], 0, eh_hdr_addr), tsk, m, s, hdr[3], 1)) != 0 && pc >= startLoc)
-		fde = (u32*)(read_ptr_sect(&ptr, ptr + tableSize, hdr[3],
-					   0, eh_hdr_addr)
-			     - m->eh_frame_addr
-			     +(u8*)m->eh_frame);
+	    && (startLoc = adjustStartLoc(read_ptr_sect(&ptr, ptr + tableSize, hdr[3], 0, eh_hdr_addr), tsk, m, s, hdr[3], is_ehframe)) != 0 && pc >= startLoc) {
+		unsigned long off;
+		off = read_ptr_sect(&ptr, ptr + tableSize, hdr[3],
+				    0, eh_hdr_addr);
+		dbug_unwind(1, "fde off=%lx\n", off);
+		/* For real eh_frame_hdr the actual fde address is at the
+		   new eh_frame load address. For our own debug_hdr created
+		   table the fde is an offset into the debug_frame table. */
+		if (is_ehframe)
+			fde = off - m->eh_frame_addr + m->eh_frame;
+		else
+			fde = m->debug_frame + off;
+	}
 
 	dbug_unwind(1, "returning fde=%lx startLoc=%lx", (unsigned long) fde, startLoc);
 	return fde;
@@ -649,13 +659,14 @@ static int unwind_frame(struct unwind_frame_info *frame,
 		dbug_unwind(1, "Module %s: frame_len=%d", m->name, table_len);
 		goto err;
 	}
-	if (is_ehframe)
-		fde = _stp_search_unwind_hdr(pc, tsk, m, s);
+
+	fde = _stp_search_unwind_hdr(pc, tsk, m, s, is_ehframe);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
 
 	/* found the fde, now set startLoc and endLoc */
 	if (fde != NULL) {
 		cie = cie_for_fde(fde, table, table_len, is_ehframe);
+		dbug_unwind(1, "%s: cie=%lx\n", m->name, (unsigned long) cie);
 		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie, table, table_len);
@@ -722,8 +733,9 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	  goto err;
 
 	frame->call_frame = 1;
-	if ((state.version = *ptr) != 1) {
-		dbug_unwind(1, "CIE version number is %d.  1 is supported.\n", state.version);
+	state.version = *ptr;
+	if (state.version != 1 && state.version != 3 && state.version != 4) {
+		dbug_unwind(1, "CIE version number is %d.  1, 3 or 4 is supported.\n", state.version);
 		goto err;	/* unsupported version */
 	}
 	if (*++ptr) {
