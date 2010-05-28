@@ -2422,6 +2422,19 @@ void
 dwarf_pretty_print::recurse_struct (Dwarf_Die* type, target_symbol* e,
                                     print_format* pf, int depth)
 {
+  if (dwarf_hasattr(type, DW_AT_declaration))
+    {
+      Dwarf_Die *resolved = dw.declaration_resolve(dwarf_diename(type));
+      if (!resolved)
+        {
+          // could be an error, but for now just stub it
+          // throw semantic_error ("unresolved " + dwarf_type_name(type), e->tok);
+          pf->raw_components.append("{...}");
+          return;
+        }
+      type = resolved;
+    }
+
   int count = 0;
   pf->raw_components.append("{");
   recurse_struct_members (type, e, pf, depth, count);
