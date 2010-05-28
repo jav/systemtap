@@ -14,10 +14,6 @@ HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
 #                        +--> DIR=file  (htmldocs) [by xmlto]
 #                        +--> man/      (mandocs)  [by xmlto]
 
-noinst_PROGRAMS = docproc
-SRCTREE=$(abs_top_srcdir)/
-DOCPROC=$(abs_builddir)/docproc
-
 if BUILD_PDFREFDOCS
 PDFDOCS = tapsets.pdf
 endif
@@ -27,6 +23,10 @@ XMLTOMANPARAMS=--stringparam man.authors.section.enabled=0 --stringparam man.cop
 endif
 
 if BUILD_REFDOCS
+noinst_PROGRAMS = docproc
+SRCTREE=$(abs_top_srcdir)/
+DOCPROC=$(abs_builddir)/docproc
+
 all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
 tapsets.xml: docproc $(shell find $(SRCTREE)/tapset -name '*.stp')
 	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new

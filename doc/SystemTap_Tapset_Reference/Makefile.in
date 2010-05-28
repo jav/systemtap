@@ -34,7 +34,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-noinst_PROGRAMS = docproc$(EXEEXT)
+@BUILD_REFDOCS_TRUE@noinst_PROGRAMS = docproc$(EXEEXT)
 subdir = doc/SystemTap_Tapset_Reference
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -196,10 +196,18 @@ top_srcdir = @top_srcdir@
 DOC_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap
 MAN_INSTALL_DIR = $(DESTDIR)$(mandir)/man3
 HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
-SRCTREE = $(abs_top_srcdir)/
-DOCPROC = $(abs_builddir)/docproc
+
+###
+# The build process is as follows (targets):
+#              (xmldocs) [by docproc]
+# file.tmpl --> file.xml +--> file.ps   (psdocs)   [by xmlto]
+#                        +--> file.pdf  (pdfdocs)  [by xmlto]
+#                        +--> DIR=file  (htmldocs) [by xmlto]
+#                        +--> man/      (mandocs)  [by xmlto]
 @BUILD_PDFREFDOCS_TRUE@PDFDOCS = tapsets.pdf
 @XMLTO_STRINGPARAM_TRUE@XMLTOMANPARAMS = --stringparam man.authors.section.enabled=0 --stringparam man.copyright.section.enabled=0
+@BUILD_REFDOCS_TRUE@SRCTREE = $(abs_top_srcdir)/
+@BUILD_REFDOCS_TRUE@DOCPROC = $(abs_builddir)/docproc
 CLEANFILES = tapsets.xml stamp-* $(PDFDOCS)
 all: all-am
 
