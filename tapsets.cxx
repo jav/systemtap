@@ -3934,6 +3934,9 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#define KRETACTIVE (max(15,6*(int)num_possible_cpus()))";
   s.op->newline() << "#endif";
 
+  // Forward decls
+  s.op->newline() << "#include \"kprobes-common.h\"";
+
   // Forward declare the master entry functions
   s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
   s.op->line() << " struct pt_regs *regs);";
@@ -3950,16 +3953,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // NB: we used to plop a union { struct kprobe; struct kretprobe } into
   // struct stap_dwarf_probe, but it being initialized data makes it add
   // hundreds of bytes of padding per stap_dwarf_probe.  (PR5673)
-  s.op->newline() << "static struct stap_dwarf_kprobe {";
-  s.op->newline(1) << "union { struct kprobe kp; struct kretprobe krp; } u;";
-  s.op->newline() << "#ifdef __ia64__";
-  s.op->newline() << "struct kprobe dummy;";
-  s.op->newline() << "#endif";
-  s.op->newline(-1) << "} stap_dwarf_kprobes[" << probes_by_module.size() << "];";
+  s.op->newline() << "static struct stap_dwarf_kprobe stap_dwarf_kprobes[" << probes_by_module.size() << "];";
   // NB: bss!
-
-  s.op->newline() << "static int stap_kprobe_mmap_found (struct stap_task_finder_target *finder, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags);";
-  s.op->newline() << "static int stap_kprobe_process_found (struct stap_task_finder_target *finder, struct task_struct *tsk, int register_p, int process_p);";
 
   s.op->newline() << "static struct stap_dwarf_probe {";
   s.op->newline(1) << "const unsigned return_p:1;";
@@ -4169,58 +4164,9 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "return enter_kretprobe_common(inst, regs, 1);";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "static int stap_kprobe_process_found (struct stap_task_finder_target *finder, struct task_struct *tsk, int register_p, int process_p) {";
-  s.op->newline(1) << "struct stap_dwarf_probe *p = container_of(finder, struct stap_dwarf_probe, finder);";
-  s.op->newline() << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
-  s.op->newline() << "if (! process_p) return 0; /* ignore threads */";
-  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"%cproc pid %d stf %p %p path %s\\n\", register_p?'+':'-', tsk->tgid, finder, p, p->pathname);";
-  s.op->newline() << "#endif";
-  s.op->newline() << "p->tsk = tsk;";
-  s.op->newline() << "p->sdt_sem_address = p->sdt_sem_offset;";
-  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
-  s.op->newline(1) << "sdt_semaphore ++;";
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx\\n\", sdt_semaphore, p->sdt_sem_address);";
-  s.op->newline() << "#endif";
-  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "return 0;";
-  s.op->newline(-1) << "}";
-
-  // The task_finder_mmap_callback
-  s.op->newline() << "static int stap_kprobe_mmap_found (struct stap_task_finder_target *finder, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {";
-  s.op->newline(1) << "struct stap_dwarf_probe *p = container_of(finder, struct stap_dwarf_probe, finder);";
-  s.op->newline() << "int rc = 0;";
-  // the shared library we're interested in
-  s.op->newline() << "if (path == NULL || strcmp (path, p->pathname)) return 0;";
-  s.op->newline() << "if (p->sdt_sem_offset && p->sdt_sem_address == 0) {";
-  s.op->indent(1);
-  s.op->newline() << "p->tsk = tsk;";
-  // If the probe is in the executable itself, the offset *is* the
-  // address.
-  s.op->newline() << "if (vm_flags & VM_EXECUTABLE) {";
-  s.op->indent(1);
-  s.op->newline() << "p->sdt_sem_address = addr + p->sdt_sem_offset;";
-  s.op->newline(-1) << "}";
-  // If the probe is in a .so, we have to calculate the address.
-  s.op->newline() << "else {";
-  s.op->indent(1);
-  s.op->newline() << "p->sdt_sem_address = (addr - offset) + p->sdt_sem_offset;";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "if (p->sdt_sem_address && (vm_flags & VM_WRITE)) {";
-  s.op->newline(1) << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
-  s.op->newline() << "if (get_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address) == 0) {";
-  s.op->newline(1) << "sdt_semaphore ++;";
-  s.op->newline() << "#ifdef DEBUG_UPROBES";
-  s.op->newline() << "_stp_dbug (__FUNCTION__,__LINE__, \"+semaphore %#x @ %#lx\\n\", sdt_semaphore, p->sdt_sem_address);";
-  s.op->newline() << "#endif";
-  s.op->newline() << "put_user (sdt_semaphore, (unsigned short __user *) p->sdt_sem_address);";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "return 0;";
-  s.op->newline(-1) << "}";
+  s.op->newline();
+  s.op->newline() << "#include \"kprobes-common.c\"";
+  s.op->newline();
 }
 
 
