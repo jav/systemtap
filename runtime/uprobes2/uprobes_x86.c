@@ -720,3 +720,18 @@ unsigned long arch_hijack_uret_addr(unsigned long trampoline_address,
 	}
 	return orig_ret_addr;
 }
+
+/* Check if instruction is nop and return true. */
+static int uprobe_emulate_insn(struct pt_regs *regs,
+						struct uprobe_probept *ppt)
+{
+	uprobe_opcode_t *insn = ppt->insn;
+
+	if (insn[0] == 0x90)
+		/* regs->ip already points to the insn after the nop/int3. */
+		return 1;
+
+	/* TODO: add multibyte nop instructions */
+	/* For multibyte nop instructions, we need to set ip accordingly. */
+	return 0;
+}

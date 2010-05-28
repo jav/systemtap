@@ -1815,6 +1815,9 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 			}
 		}
 
+		if (uprobe_emulate_insn(regs, ppt))
+			goto bkpt_done;
+
 		utask->state = UPTASK_PRE_SSTEP;
 #ifdef CONFIG_UPROBES_SSOL
 		if (uproc->sstep_out_of_line)

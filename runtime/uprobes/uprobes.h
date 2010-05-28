@@ -431,6 +431,8 @@ static void uprobe_pre_ssout(struct uprobe_task*, struct uprobe_probept*,
 static void uprobe_post_ssout(struct uprobe_task*, struct uprobe_probept*,
 			struct pt_regs*);
 #endif
+static int uprobe_emulate_insn(struct pt_regs *regs,
+						struct uprobe_probept *ppt);
 
 #endif	/* UPROBES_IMPLEMENTATION */
 

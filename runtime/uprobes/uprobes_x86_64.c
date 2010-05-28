@@ -710,3 +710,18 @@ unsigned long arch_predict_sp_at_ret(struct pt_regs *regs,
 	else
 		return (unsigned long) regs->rsp + 8;
 }
+
+/* Check if instruction is nop and return true. */
+static int uprobe_emulate_insn(struct pt_regs *regs,
+						struct uprobe_probept *ppt)
+{
+	uprobe_opcode_t *insn = ppt->insn;
+
+	if (insn[0] == 0x90)
+		/* regs->ip already points to the insn after the nop/int3. */
+		return 1;
+
+	/* TODO: add multibyte nop instructions */
+	/* For multibyte nop instructions, we need to set ip accordingly. */
+	return 0;
+}

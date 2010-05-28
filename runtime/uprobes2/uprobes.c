@@ -2010,6 +2010,9 @@ static u32 uprobe_report_signal(u32 action,
 			}
 		}
 
+		if (uprobe_emulate_insn(regs, ppt))
+			goto bkpt_done;
+
 		utask->state = UPTASK_PRE_SSTEP;
 #ifdef CONFIG_UPROBES_SSOL
 		if (uproc->sstep_out_of_line)

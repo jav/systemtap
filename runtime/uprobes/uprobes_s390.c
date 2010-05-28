@@ -207,3 +207,16 @@ unsigned long arch_hijack_uret_addr(unsigned long trampoline_address,
 	regs->gprs[14] = trampoline_address;
 	return orig_ret_addr;
 }
+
+
+/* Check if instruction is nop and return true. */
+static int uprobe_emulate_insn(struct pt_regs *regs,
+						struct uprobe_probept *ppt)
+{
+	unsigned int insn = *ppt->insn;
+	if (insn == 0x47000000)
+		/* ip already points to the insn after the nop/bkpt insn. */
+		return 1;
+
+	return 0;
+}
