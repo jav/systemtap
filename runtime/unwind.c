@@ -225,7 +225,7 @@ static signed fde_pointer_type(const u32 *cie, void *unwind_data,
 	const u8 *ptr = (const u8 *)(cie + 2);
 	unsigned version = *ptr;
 
-	if (version != 1)
+	if (version != 1 && version != 3 && version != 4)
 		return -1;	/* unsupported */
 	if (*++ptr) {
 		const char *aug;
@@ -722,8 +722,9 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	  goto err;
 
 	frame->call_frame = 1;
-	if ((state.version = *ptr) != 1) {
-		dbug_unwind(1, "CIE version number is %d.  1 is supported.\n", state.version);
+	state.version = *ptr;
+	if (state.version != 1 && state.version != 3 && state.version != 4) {
+		dbug_unwind(1, "CIE version number is %d.  1, 3 or 4 is supported.\n", state.version);
 		goto err;	/* unsupported version */
 	}
 	if (*++ptr) {
