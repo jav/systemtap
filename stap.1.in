@@ -626,7 +626,7 @@ any probe that refers to the alias.  For example:
 .SAMPLE
 probe syscall.read = kernel.function("sys_read") {
   fildes = $fd
-  if (execname == "init") next  # skip rest of probe
+  if (execname() == "init") next  # skip rest of probe
 }
 .ESAMPLE
 defines a new probe point
