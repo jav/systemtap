@@ -1,5 +1,11 @@
 * What's new
 
+- The <sys/sdt.h> user-space markers no longer default to implicit
+  MARKER_NAME_ENABLED() for each marker.  To check for enabled markers use:
+  if (MARKER_NAME_ENABLED()) MARKER_NAME() 
+  To enable the implicit behavior compile your sdt.h-instrumented
+  program with -DSTAP_SDT_IMPLICIT_ENABLED
+
 - Hyphenated <sys/sdt.h> marker names such as process(...).mark("foo-bar")
   are now accepted in scripts.  They are mapped to the double-underscore
   form ("foo__bar").
