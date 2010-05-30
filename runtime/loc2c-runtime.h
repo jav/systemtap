@@ -295,7 +295,7 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
 #elif defined (__x86_64__)
 
 #define u_fetch_register(regno) (_stp_probing_32bit_app(c->regs) ? ursl_fetch32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno) : ursl_fetch64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno))
-#define u_store_register(regno,value)  (_stp_probing_32bit_app(c->regs) ? ursl_store2(url_i386, ARRAY_SIZE(url_i386), EM_386, regno, value) : ursl_store64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno, value))
+#define u_store_register(regno,value)  (_stp_probing_32bit_app(c->regs) ? ursl_store32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno, value) : ursl_store64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno, value))
 
 #else
 
