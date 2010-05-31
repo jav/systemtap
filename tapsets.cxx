@@ -7288,12 +7288,18 @@ tracepoint_derived_probe::print_dupe_stamp(ostream& o)
 }
 
 
-static vector<string> tracepoint_extra_headers ()
+static vector<string> tracepoint_extra_headers (systemtap_session& s)
 {
   vector<string> they_live;
   // PR 9993
   // XXX: may need this to be configurable
   they_live.push_back ("linux/skbuff.h");
+
+  // PR11649: conditional extra header
+  // for kvm tracepoints in 2.6.33ish
+  if (s.kernel_config["CONFIG_KVM"] != string("")) {
+    they_live.push_back ("linux/kvm_host.h");
+  }
   return they_live;
 }
 
@@ -7309,7 +7315,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
-  const vector<string>& extra_headers = tracepoint_extra_headers ();
+  const vector<string>& extra_headers = tracepoint_extra_headers (s);
   for (unsigned z=0; z<extra_headers.size(); z++)
     s.op->newline() << "#include <" << extra_headers[z] << ">\n";
 
@@ -7573,7 +7579,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
-  vector<string> short_headers = tracepoint_extra_headers();
+  vector<string> short_headers = tracepoint_extra_headers(s);
 
   // add each requested tracepoint header
   for (size_t i = 0; i < headers.size(); ++i)
