@@ -4657,6 +4657,7 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
   *debug_frame_hdr = NULL;
   *debug_frame_hdr_len = 0;
 
+#if _ELFUTILS_PREREQ(0,142)
   int cies = 0;
   set< pair<Dwarf_Addr, Dwarf_Off> > fdes;
   set< pair<Dwarf_Addr, Dwarf_Off> >::iterator it;
@@ -4732,6 +4733,7 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
 	  *table++ = (*it).second;
 	}
     }
+#endif
 }
 
 // Get the .debug_frame end .eh_frame sections for the given module.
