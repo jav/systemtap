@@ -7327,16 +7327,34 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // don't provide any sort of context pointer.
       s.op->newline() << "#undef TRACE_INCLUDE_FILE";
       s.op->newline() << "#include <" << p->header << ">";
+
+      // Starting in 2.6.35, at the same time NOARGS was added, the callback
+      // always has a void* as the first parameter. PR11599
+      s.op->newline() << "#ifdef DECLARE_TRACE_NOARGS";
+      s.op->newline() << "#define STAP_TP_DATA   , NULL";
+      s.op->newline() << "#define STAP_TP_PROTO  void *cb_data"
+                      << " __attribute__ ((unused))";
+      if (!p->args.empty())
+        s.op->line() << ",";
+      s.op->newline() << "#else";
+      s.op->newline() << "#define STAP_TP_DATA";
+      s.op->newline() << "#define STAP_TP_PROTO";
+      if (p->args.empty())
+        s.op->line() << " void";
+      s.op->newline() << "#endif";
+
       s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
-      if (p->args.size() == 0)
-        s.op->line() << "void";
+      s.op->newline(2) << "STAP_TP_PROTO";
+
       for (unsigned j = 0; j < p->args.size(); ++j)
         {
           if (j > 0)
-            s.op->line() << ", ";
-          s.op->line() << p->args[j].c_type << " __tracepoint_arg_" << p->args[j].name;
+            s.op->line() << ",";
+          s.op->newline() << p->args[j].c_type << " __tracepoint_arg_" << p->args[j].name;
         }
-      s.op->line() << ") {";
+      s.op->newline() << ")";
+      s.op->newline(-2) << "{";
+
       s.op->indent(1);
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING",
                                      lex_cast_qstring (*p->sole_location()));
@@ -7358,7 +7376,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // emit normalized registration functions
       s.op->newline() << "static int register_tracepoint_probe_" << i << "(void) {";
       s.op->newline(1) << "return register_trace_" << p->tracepoint_name
-                       << "(enter_tracepoint_probe_" << i << ");";
+                       << "(enter_tracepoint_probe_" << i << " STAP_TP_DATA);";
       s.op->newline(-1) << "}";
 
       // NB: we're not prepared to deal with unreg failures.  However, failures
@@ -7367,8 +7385,12 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // registration call, and the latter is safe to ignore.
       s.op->newline() << "static void unregister_tracepoint_probe_" << i << "(void) {";
       s.op->newline(1) << "(void) unregister_trace_" << p->tracepoint_name
-                       << "(enter_tracepoint_probe_" << i << ");";
+                       << "(enter_tracepoint_probe_" << i << " STAP_TP_DATA);";
       s.op->newline(-1) << "}";
+      s.op->newline();
+
+      s.op->newline() << "#undef STAP_TP_DATA";
+      s.op->newline() << "#undef STAP_TP_PROTO";
       s.op->newline();
     }
 

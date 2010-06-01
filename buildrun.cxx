@@ -493,6 +493,11 @@ make_tracequery(systemtap_session& s, string& name,
   osrc << "#define DECLARE_TRACE(name, proto, args) \\" << endl;
   osrc << "  void stapprobe_##name(proto) {}" << endl;
 
+  // 2.6.35 added the NOARGS variant, but it's the same for us
+  osrc << "#undef DECLARE_TRACE_NOARGS" << endl;
+  osrc << "#define DECLARE_TRACE_NOARGS(name) \\" << endl;
+  osrc << "  DECLARE_TRACE(name, void, )" << endl;
+
   // older tracepoints used DEFINE_TRACE, so redirect that too
   osrc << "#undef DEFINE_TRACE" << endl;
   osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
