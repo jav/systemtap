@@ -7,11 +7,13 @@
 function setup_test() {
 $STAP/bin/dtrace -G -s bench_.d
 $STAP/bin/dtrace --types -h -s bench_.d
-if [ "$3"x = "no-semx" ] ; then
-   sed -i -e '/STAP_HAS_SEMAPHORES/d' bench_.h
+if [ "$3"x = "semx" ] ; then
+   IMPLICIT_ENABLED="-DSTAP_SDT_IMPLICIT_ENABLED"
+else
+   IMPLICIT_ENABLED=""
 fi
 # Run bench without stap
-$GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I. -g
+$GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I. -g $IMPLICIT_ENABLED
 ./bench-$2$3.x > /dev/null
 taskset 1 /usr/bin/time ./bench-$2$3.x >| /tmp/$$-2 2>&1
 # Parse /usr/bin/time output to get elapsed time
@@ -84,7 +86,7 @@ done
 
 if [ ! -z "$GCC" ] ; then
  if [ ! -x "$GCC/bin/gcc" ] ; then
-    echo $GCC/bin/stap does not exist
+    echo $GCC/bin/gcc does not exist
     exit
  fi
 else
@@ -106,29 +108,29 @@ echo -e "\n##### NO SDT #####\n"
 setup_test  NO_STAP_SDT nosdt
 stap_test NO_STAP_SDT nosdt
 
-echo -e "\n##### KPROBE #####\n"
+echo -e "\n##### KPROBE SEM #####\n"
+setup_test  EXPERIMENTAL_KPROBE_SDT kprobe sem
+stap_test EXPERIMENTAL_KPROBE_SDT kprobe sem
+
+echo -e "\n##### KPROBE NO SEM #####\n"
 setup_test  EXPERIMENTAL_KPROBE_SDT kprobe
 stap_test EXPERIMENTAL_KPROBE_SDT kprobe
 
-echo -e "\n##### KPROBE NO SEM #####\n"
-setup_test  EXPERIMENTAL_KPROBE_SDT kprobe no-sem
-stap_test EXPERIMENTAL_KPROBE_SDT kprobe no-sem
+echo -e "\n##### UPROBE SEM #####\n"
+setup_test UPROBE_SDT uprobe sem
+stap_test UPROBE_SDT uprobe sem
 
-echo -e "\n##### UPROBE #####\n"
+echo -e "\n##### UPROBE NO SEM #####\n"
 setup_test UPROBE_SDT uprobe
 stap_test UPROBE_SDT uprobe
 
-echo -e "\n##### UPROBE NO SEM #####\n"
-setup_test UPROBE_SDT uprobe no-sem
-stap_test UPROBE_SDT uprobe no-sem
-
-echo -e "\n##### UPROBE V2 #####\n"
-setup_test STAP_SDT_V2 uprobe
-stap_test STAP_SDT_V2 uprobe
+echo -e "\n##### UPROBE V2 SEM #####\n"
+setup_test STAP_SDT_V2 uprobe sem
+stap_test STAP_SDT_V2 uprobe sem
 
 echo -e "\n##### UPROBE V2 NO SEM #####\n"
-setup_test STAP_SDT_V2 uprobe no-sem
-stap_test STAP_SDT_V2 uprobe no-sem
+setup_test STAP_SDT_V2 uprobe
+stap_test STAP_SDT_V2 uprobe
 
 if [ -z "$KEEP" ] ; then
    rm /tmp/$$-1 /tmp/$$-2
