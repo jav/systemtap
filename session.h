@@ -79,8 +79,18 @@ struct compile_server_info
 {
   std::string host_name;
   std::string ip_address;
-  long port;
+  unsigned short port;
   std::string sysinfo;
+};
+
+std::ostream &operator<< (std::ostream &s, const compile_server_info &i);
+
+enum compile_server_properties {
+  compile_server_trusted    = 0x1,
+  compile_server_online     = 0x2,
+  compile_server_compatible = 0x4,
+  compile_server_signer     = 0x8,
+  compile_server_specified  = 0x10
 };
 
 struct systemtap_session
@@ -119,6 +129,7 @@ struct systemtap_session
   std::string cmdline_script; // -e PROGRAM
   bool have_script;
   std::vector<std::string> include_path;
+  int include_arg_start;
   std::vector<std::string> macros;
   std::vector<std::string> args;
   std::vector<std::string> kbuildflags;
@@ -131,8 +142,8 @@ struct systemtap_session
   std::string machine;
   std::string architecture;
   std::string runtime_path;
+  bool runtime_specified;
   std::string data_path;
-  std::string cert_db_path;
   std::string module_name;
   std::string stapconf_name;
   std::string output_file;
@@ -167,24 +178,24 @@ struct systemtap_session
   // and/or in the initialize method (session.cxx).
 
   // Client/server
-  enum compile_server_properties {
-    compile_server_trusted    = 0x1,
-    compile_server_online     = 0x2,
-    compile_server_compatible = 0x4,
-    compile_server_signer     = 0x8,
-    compile_server_specified  = 0x10
-  };
-
   bool client_options;
   std::string client_options_disallowed;
   std::vector<std::string> server_status_strings;
   std::vector<std::string> specified_servers;
+  std::vector<std::string> server_args;
 
   void query_server_status ();
   void query_server_status (const std::string &status_string);
   void get_server_info (int pmask, std::vector<compile_server_info> &servers);
   void get_online_server_info (std::vector<compile_server_info> &servers);
   void keep_compatible_server_info (std::vector<compile_server_info> &servers);
+
+  std::string host_name;
+  std::string domain_name;
+
+  std::string &get_host_name ();
+  std::string &get_domain_name ();
+  void get_host_and_domain_name ();
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx)

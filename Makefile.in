@@ -53,18 +53,23 @@ pkglibexec_PROGRAMS = stapio$(EXEEXT) $(am__EXEEXT_2) $(am__EXEEXT_3)
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_12 = $(avahi_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_13 = $(avahi_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_14 = -lavahi-client
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_15 = install-scripts
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_16 = -Iinclude-elfutils
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_17 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_15 = stap-client-connect.c nsscommon.c
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_16 = $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_17 = $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_18 = $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_19 = -lssl3 -lnss3 -lnspr4 -lplc4
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_20 = install-scripts
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_21 = -Iinclude-elfutils
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_22 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
 
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_18 = stamp-elfutils
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_19 = stamp-elfutils
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_20 = lib-elfutils/libdw.so
-@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_21 = install-elfutils
-@HAVE_NSS_TRUE@am__append_22 = runtime/staprun/modverify.c nsscommon.c
-@HAVE_NSS_TRUE@am__append_23 = $(nss_CFLAGS) $(nspr_CFLAGS)
-@HAVE_NSS_TRUE@am__append_24 = -lnss3 -lnspr4
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_23 = stamp-elfutils
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_24 = stamp-elfutils
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_25 = lib-elfutils/libdw.so
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_26 = install-elfutils
+@HAVE_NSS_TRUE@am__append_27 = runtime/staprun/modverify.c nsscommon.c
+@HAVE_NSS_TRUE@am__append_28 = $(nss_CFLAGS) $(nspr_CFLAGS)
+@HAVE_NSS_TRUE@am__append_29 = -lnss3 -lnspr4
 @BUILD_TRANSLATOR_TRUE@noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
@@ -100,11 +105,14 @@ PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
 @BUILD_TRANSLATOR_TRUE@	loc2c_test-loc2c.$(OBJEXT)
 loc2c_test_OBJECTS = $(am_loc2c_test_OBJECTS)
 am__DEPENDENCIES_1 =
-@BUILD_TRANSLATOR_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
+@BUILD_TRANSLATOR_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) \
+@BUILD_TRANSLATOR_TRUE@	$(am__DEPENDENCIES_1)
 @BUILD_TRANSLATOR_TRUE@loc2c_test_DEPENDENCIES =  \
 @BUILD_TRANSLATOR_TRUE@	$(am__DEPENDENCIES_2)
 loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 	$(loc2c_test_LDFLAGS) $(LDFLAGS) -o $@
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__objects_1 = stap-stap-client-connect.$(OBJEXT) \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap-nsscommon.$(OBJEXT)
 @BUILD_TRANSLATOR_TRUE@am_stap_OBJECTS = stap-main.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-session.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-parse.$(OBJEXT) \
@@ -131,7 +139,8 @@ loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 @BUILD_TRANSLATOR_TRUE@	stap-dwflpp.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-rpm_finder.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-setupdwfl.$(OBJEXT) \
-@BUILD_TRANSLATOR_TRUE@	stap-csclient.$(OBJEXT)
+@BUILD_TRANSLATOR_TRUE@	stap-csclient.$(OBJEXT) \
+@BUILD_TRANSLATOR_TRUE@	$(am__objects_1)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -160,11 +169,11 @@ stapio_OBJECTS = $(am_stapio_OBJECTS)
 stapio_DEPENDENCIES =
 stapio_LINK = $(CCLD) $(stapio_CFLAGS) $(CFLAGS) $(stapio_LDFLAGS) \
 	$(LDFLAGS) -o $@
-@HAVE_NSS_TRUE@am__objects_1 = staprun-modverify.$(OBJEXT) \
+@HAVE_NSS_TRUE@am__objects_2 = staprun-modverify.$(OBJEXT) \
 @HAVE_NSS_TRUE@	staprun-nsscommon.$(OBJEXT)
 am_staprun_OBJECTS = staprun-staprun.$(OBJEXT) \
 	staprun-staprun_funcs.$(OBJEXT) staprun-ctl.$(OBJEXT) \
-	staprun-common.$(OBJEXT) $(am__objects_1)
+	staprun-common.$(OBJEXT) $(am__objects_2)
 staprun_OBJECTS = $(am_staprun_OBJECTS)
 staprun_DEPENDENCIES = $(am__DEPENDENCIES_1)
 staprun_LINK = $(CCLD) $(staprun_CFLAGS) $(CFLAGS) $(staprun_LDFLAGS) \
@@ -382,18 +391,21 @@ bin_SCRIPTS = stap-report $(am__append_3) $(am__append_5) \
 	$(am__append_10)
 pkglibexec_SCRIPTS = stap-env $(am__append_7) $(am__append_11)
 oldinclude_HEADERS = includes/sys/sdt.h
-@BUILD_TRANSLATOR_TRUE@stap_SOURCES = main.cxx session.cxx \
-@BUILD_TRANSLATOR_TRUE@	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-@BUILD_TRANSLATOR_TRUE@	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
-@BUILD_TRANSLATOR_TRUE@	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx \
-@BUILD_TRANSLATOR_TRUE@	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
-@BUILD_TRANSLATOR_TRUE@	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
-@BUILD_TRANSLATOR_TRUE@	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
-@BUILD_TRANSLATOR_TRUE@	setupdwfl.cxx csclient.cxx
-
+@BUILD_TRANSLATOR_TRUE@stap_SOURCES = main.cxx session.cxx parse.cxx \
+@BUILD_TRANSLATOR_TRUE@	staptree.cxx elaborate.cxx \
+@BUILD_TRANSLATOR_TRUE@	translate.cxx tapsets.cxx buildrun.cxx \
+@BUILD_TRANSLATOR_TRUE@	loc2c.c hash.cxx mdfour.c cache.cxx \
+@BUILD_TRANSLATOR_TRUE@	util.cxx coveragedb.cxx \
+@BUILD_TRANSLATOR_TRUE@	dwarf_wrappers.cxx tapset-been.cxx \
+@BUILD_TRANSLATOR_TRUE@	tapset-procfs.cxx tapset-timers.cxx \
+@BUILD_TRANSLATOR_TRUE@	tapset-perfmon.cxx tapset-mark.cxx \
+@BUILD_TRANSLATOR_TRUE@	tapset-itrace.cxx tapset-utrace.cxx \
+@BUILD_TRANSLATOR_TRUE@	task_finder.cxx dwflpp.cxx \
+@BUILD_TRANSLATOR_TRUE@	rpm_finder.cxx setupdwfl.cxx \
+@BUILD_TRANSLATOR_TRUE@	csclient.cxx $(am__append_15)
 @BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ \
-@BUILD_TRANSLATOR_TRUE@	$(am__append_14)
-@BUILD_TRANSLATOR_TRUE@stap_DEPENDENCIES = $(am__append_20)
+@BUILD_TRANSLATOR_TRUE@	$(am__append_14) $(am__append_19)
+@BUILD_TRANSLATOR_TRUE@stap_DEPENDENCIES = $(am__append_25)
 
 # Arrange for git_version.h to be regenerated at every "make".
 # Code fragment is based upon RadeonHD.am.
@@ -403,32 +415,34 @@ oldinclude_HEADERS = includes/sys/sdt.h
 # of foo-bar.c if it is newer than the foo-bar.o file. Using noinst_foo_SOURCES
 # instead of foo_SOURCES prevents shipping git_version.h in dist tarballs,
 # which may cause false GIT_FOO readings.
-BUILT_SOURCES = git_version.stamp $(am__append_18)
+BUILT_SOURCES = git_version.stamp $(am__append_23)
 
 # Why the "id -u" condition?  This way, an unprivileged user can run
 # make install, and have "sudo stap ...." or "sudo staprun ...." work later.
-CLEANFILES = git_version.h $(am__append_19) $(pkglibexec_PROGRAMS)
+CLEANFILES = git_version.h $(am__append_24) $(pkglibexec_PROGRAMS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
-PHONIES = $(am__append_15) $(am__append_21) dist-gzip
-@BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -D_FILE_OFFSET_BITS=64
+PHONIES = $(am__append_20) $(am__append_26) dist-gzip
+@BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ \
+@BUILD_TRANSLATOR_TRUE@	-D_FILE_OFFSET_BITS=64 $(am__append_16)
 @BUILD_TRANSLATOR_TRUE@stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ \
-@BUILD_TRANSLATOR_TRUE@	$(am__append_12)
+@BUILD_TRANSLATOR_TRUE@	$(am__append_12) $(am__append_17)
 @BUILD_TRANSLATOR_TRUE@stap_CPPFLAGS = $(AM_CPPFLAGS) -DSTAP_SDT_V2 \
-@BUILD_TRANSLATOR_TRUE@	$(am__append_13) $(am__append_16)
+@BUILD_TRANSLATOR_TRUE@	$(am__append_13) $(am__append_18) \
+@BUILD_TRANSLATOR_TRUE@	$(am__append_21)
 @BUILD_TRANSLATOR_TRUE@stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ \
-@BUILD_TRANSLATOR_TRUE@	$(am__append_17)
+@BUILD_TRANSLATOR_TRUE@	$(am__append_22)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
 staprun_SOURCES = runtime/staprun/staprun.c \
 	runtime/staprun/staprun_funcs.c runtime/staprun/ctl.c \
-	runtime/staprun/common.c $(am__append_22)
+	runtime/staprun/common.c $(am__append_27)
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
 staprun_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED \
 	-fno-strict-aliasing -fno-builtin-strftime \
-	-D_FILE_OFFSET_BITS=64 $(am__append_23)
+	-D_FILE_OFFSET_BITS=64 $(am__append_28)
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-staprun_LDADD = $(am__append_24)
+staprun_LDADD = $(am__append_29)
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c \
@@ -722,10 +736,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-loc2c.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-mdfour.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-parse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-rpm_finder.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-session.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-setupdwfl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-stap-client-connect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-staptree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-been.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-itrace.Po@am__quote@
@@ -836,6 +852,38 @@ stap-mdfour.obj: mdfour.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdfour.c' object='stap-mdfour.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -c -o stap-mdfour.obj `if test -f 'mdfour.c'; then $(CYGPATH_W) 'mdfour.c'; else $(CYGPATH_W) '$(srcdir)/mdfour.c'; fi`
+
+stap-stap-client-connect.o: stap-client-connect.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -MT stap-stap-client-connect.o -MD -MP -MF $(DEPDIR)/stap-stap-client-connect.Tpo -c -o stap-stap-client-connect.o `test -f 'stap-client-connect.c' || echo '$(srcdir)/'`stap-client-connect.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-stap-client-connect.Tpo $(DEPDIR)/stap-stap-client-connect.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stap-client-connect.c' object='stap-stap-client-connect.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -c -o stap-stap-client-connect.o `test -f 'stap-client-connect.c' || echo '$(srcdir)/'`stap-client-connect.c
+
+stap-stap-client-connect.obj: stap-client-connect.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -MT stap-stap-client-connect.obj -MD -MP -MF $(DEPDIR)/stap-stap-client-connect.Tpo -c -o stap-stap-client-connect.obj `if test -f 'stap-client-connect.c'; then $(CYGPATH_W) 'stap-client-connect.c'; else $(CYGPATH_W) '$(srcdir)/stap-client-connect.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-stap-client-connect.Tpo $(DEPDIR)/stap-stap-client-connect.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stap-client-connect.c' object='stap-stap-client-connect.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -c -o stap-stap-client-connect.obj `if test -f 'stap-client-connect.c'; then $(CYGPATH_W) 'stap-client-connect.c'; else $(CYGPATH_W) '$(srcdir)/stap-client-connect.c'; fi`
+
+stap-nsscommon.o: nsscommon.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -MT stap-nsscommon.o -MD -MP -MF $(DEPDIR)/stap-nsscommon.Tpo -c -o stap-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-nsscommon.Tpo $(DEPDIR)/stap-nsscommon.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap-nsscommon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -c -o stap-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
+
+stap-nsscommon.obj: nsscommon.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -MT stap-nsscommon.obj -MD -MP -MF $(DEPDIR)/stap-nsscommon.Tpo -c -o stap-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-nsscommon.Tpo $(DEPDIR)/stap-nsscommon.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -c -o stap-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
 
 stap_client_connect-stap-client-connect.o: stap-client-connect.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_client_connect_CFLAGS) $(CFLAGS) -MT stap_client_connect-stap-client-connect.o -MD -MP -MF $(DEPDIR)/stap_client_connect-stap-client-connect.Tpo -c -o stap_client_connect-stap-client-connect.o `test -f 'stap-client-connect.c' || echo '$(srcdir)/'`stap-client-connect.c

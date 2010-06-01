@@ -29,6 +29,7 @@ extern "C" {
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <sys/time.h>
@@ -107,6 +108,8 @@ systemtap_session::initialize()
   verbose = 0;
 
   have_script = false;
+  runtime_specified = false;
+  include_arg_start = -1;
   timing = false;
   guru_mode = false;
   bulk_mode = false;
@@ -209,14 +212,6 @@ systemtap_session::initialize()
 	  use_cache = use_script_cache = false;
 	}
     }
-
-  // Location of our signing certificate.
-  // If we're root, use the database in SYSCONFDIR, otherwise
-  // use the one in data_path.  */
-  if (geteuid() == 0)
-    cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
-  else
-    cert_db_path = data_path + "/ssl/server";
 
   const char* s_tc = getenv ("SYSTEMTAP_COVERAGE");
   if (s_tc != NULL)
@@ -501,8 +496,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "server-status", 2, &long_opt, LONG_OPT_SERVER_STATUS },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
-                             long_options, NULL);
+      char grc = (char)getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
+				    long_options, NULL);
       // NB: when adding new options, consider very carefully whether they
       // should be restricted from stap-clients (after --client-options)!
 
@@ -511,28 +506,34 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
       switch (grc)
         {
         case 'V':
+	  server_args.push_back (string ("-") + grc);
           version ();
           exit (0);
 
         case 'v':
+	  server_args.push_back (string ("-") + grc);
           for (unsigned i=0; i<5; i++)
             perpass_verbose[i] ++;
 	  verbose ++;
 	  break;
 
         case 't':
+	  server_args.push_back (string ("-") + grc);
 	  timing = true;
 	  break;
 
         case 'w':
+	  server_args.push_back (string ("-") + grc);
 	  suppress_warnings = true;
 	  break;
 
         case 'W':
+	  server_args.push_back (string ("-") + grc);
 	  panic_warnings = true;
 	  break;
 
         case 'p':
+	  server_args.push_back (string ("-") + grc + optarg);
           last_pass = (int)strtoul(optarg, &num_endptr, 10);
           if (*num_endptr != '\0' || last_pass < 1 || last_pass > 5)
             {
@@ -549,10 +550,13 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         case 'I':
 	  if (client_options)
 	    client_options_disallowed += client_options_disallowed.empty () ? "-I" : ", -I";
+	  if (include_arg_start == -1)
+	    include_arg_start = include_path.size ();
           include_path.push_back (string (optarg));
           break;
 
         case 'd':
+	  server_args.push_back (string ("-") + grc + optarg);
           {
             // At runtime user module names are resolved through their
             // canonical (absolute) path.
@@ -578,17 +582,20 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 		   << endl;
               return 1;
 	    }
+	  server_args.push_back (string ("-") + grc + optarg);
           cmdline_script = string (optarg);
           have_script = true;
           break;
 
         case 'o':
           // NB: client_options not a problem, since pass 1-4 does not use output_file.
+	  server_args.push_back (string ("-") + grc + optarg);
           output_file = string (optarg);
           break;
 
         case 'R':
           if (client_options) { cerr << "ERROR: -R invalid with --client-options" << endl; return 1; }
+	  runtime_specified = true;
           runtime_path = string (optarg);
           break;
 
@@ -635,38 +642,46 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      }
 	  }
 
+	  server_args.push_back (string ("-") + grc + module_name);
 	  use_script_cache = false;
           break;
 
         case 'r':
           if (client_options) // NB: no paths!
             assert_regexp_match("-r parameter from client", optarg, "^[a-z0-9_.-]+$");
+	  server_args.push_back (string ("-") + grc + optarg);
           setup_kernel_release(optarg);
           break;
 
         case 'a':
           assert_regexp_match("-a parameter", optarg, "^[a-z0-9_-]+$");
+	  server_args.push_back (string ("-") + grc + optarg);
           architecture = string(optarg);
           break;
 
         case 'k':
+	  server_args.push_back (string ("-") + grc);
           keep_tmpdir = true;
           use_script_cache = false; /* User wants to keep a usable build tree. */
           break;
 
         case 'g':
+	  server_args.push_back (string ("-") + grc);
           guru_mode = true;
           break;
 
         case 'P':
+	  server_args.push_back (string ("-") + grc);
           prologue_searching = true;
           break;
 
         case 'b':
+	  server_args.push_back (string ("-") + grc);
           bulk_mode = true;
           break;
 
 	case 'u':
+	  server_args.push_back (string ("-") + grc);
 	  unoptimized = true;
 	  break;
 
@@ -677,9 +692,11 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               cerr << "Invalid buffer size (should be 1-4095)." << endl;
 	      return 1;
             }
+	  server_args.push_back (string ("-") + grc + lex_cast (buffer_size));
           break;
 
 	case 'c':
+	  server_args.push_back (string ("-") + grc + optarg);
 	  cmd = string (optarg);
 	  break;
 
@@ -690,22 +707,26 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      cerr << "Invalid target process ID number." << endl;
 	      return 1;
 	    }
+	  server_args.push_back (string ("-") + grc + lex_cast (target_pid));
 	  break;
 
 	case 'D':
           assert_regexp_match ("-D parameter", optarg, "^[a-z_][a-z_0-9]*(=-?[a-z_0-9]+)?$");
 	  if (client_options)
 	    client_options_disallowed += client_options_disallowed.empty () ? "-D" : ", -D";
+	  server_args.push_back (string ("-") + grc + optarg);
 	  macros.push_back (string (optarg));
 	  break;
 
 	case 'S':
           assert_regexp_match ("-S parameter", optarg, "^[0-9]+(,[0-9]+)?$");
+	  server_args.push_back (string ("-") + grc + optarg);
 	  size_option = string (optarg);
 	  break;
 
 	case 'q':
           if (client_options) { cerr << "ERROR: -q invalid with --client-options" << endl; return 1; } 
+	  server_args.push_back (string ("-") + grc + optarg);
 	  tapset_compile_coverage = true;
 	  break;
 
@@ -727,16 +748,19 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 		   << endl;
 	      return 1;
             }
+	  server_args.push_back (string ("-") + grc + optarg);
           cmdline_script = string("probe ") + string(optarg) + " {}";
           have_script = true;
           break;
 
         case 'F':
+	  server_args.push_back (string ("-") + grc);
           load_only = true;
 	  break;
 
 	case 'B':
           if (client_options) { cerr << "ERROR: -B invalid with --client-options" << endl; return 1; } 
+	  server_args.push_back (string ("-") + grc + optarg);
           kbuildflags.push_back (string (optarg));
 	  break;
 
@@ -744,6 +768,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
           switch (long_opt)
             {
             case LONG_OPT_KELF:
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name);
 	      consult_symtab = true;
 	      break;
             case LONG_OPT_KMAP:
@@ -753,15 +779,22 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 		  cerr << "You can't specify multiple --kmap options." << endl;
 		  return 1;
 		}
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name +
+				     '=' + optarg);
               if (optarg)
                 kernel_symtab_path = optarg;
               else
                 kernel_symtab_path = PATH_TBD;
 	      break;
 	    case LONG_OPT_IGNORE_VMLINUX:
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name);
 	      ignore_vmlinux = true;
 	      break;
 	    case LONG_OPT_IGNORE_DWARF:
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name);
 	      ignore_dwarf = true;
 	      break;
 	    case LONG_OPT_VERBOSE_PASS:
@@ -782,17 +815,26 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
                     return 1;
                   }
                 // NB: we don't do this: last_pass = strlen(optarg);
+		server_args.push_back (string ("--") +
+				       long_options[long_opt - 1].name +
+				       '=' + optarg);
                 break;
               }
 	    case LONG_OPT_SKIP_BADVARS:
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name);
 	      skip_badvars = true;
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name);
 	      unprivileged = true;
               /* NB: for server security, it is essential that once this flag is
                  set, no future flag be able to unset it. */
 	      break;
 	    case LONG_OPT_OMIT_WERROR:
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name);
 	      omit_werror = true;
 	      break;
 	    case LONG_OPT_CLIENT_OPTIONS:
@@ -801,7 +843,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_SERVER:
 	      if (client_options)
 		client_options_disallowed += client_options_disallowed.empty () ? "--server" : ", --server";
-	      if (optarg )
+	      if (optarg)
 		specified_servers.push_back (optarg);
 	      else
 		specified_servers.push_back ("");
@@ -842,6 +884,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               exit(0);
 
             case LONG_OPT_COMPATIBLE:
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name);
               compatible = optarg;
               break;
 
@@ -850,6 +894,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
                   cerr << "ERROR: --ldd is invalid with --client-options" << endl;
                   return 1;
               }
+	      server_args.push_back (string ("--") +
+				     long_options[long_opt - 1].name);
               unwindsym_ldd = true;
               break;
 
@@ -906,6 +952,12 @@ systemtap_session::check_options (int argc, char * const argv [])
       server_status_strings.clear ();
     }
 #endif
+
+  if (runtime_specified && ! specified_servers.empty ())
+    {
+      cerr << "Warning: Ignoring --server due to the use of -R" << endl;
+      specified_servers.clear ();
+    }
 
   if (client_options && last_pass > 4)
     {
@@ -1430,6 +1482,53 @@ systemtap_session::keep_compatible_server_info (
       // The server is compatible. Leave it in the list.
       ++i;
     }
+}
+
+string &
+systemtap_session::get_host_name ()
+{
+  if (host_name.empty ())
+    get_host_and_domain_name ();
+  return host_name;
+}
+
+string &
+systemtap_session::get_domain_name ()
+{
+  if (domain_name.empty ())
+    get_host_and_domain_name ();
+  return domain_name;
+}
+
+void
+systemtap_session::get_host_and_domain_name ()
+{
+  // We can't rely on the existence of MAXHOSTNAMELEN, so loop until we get
+  // a buffer big enough.
+  size_t bufSize = 0;
+  char *buf;
+  for (;;)
+    {
+      bufSize += 100;
+      buf = new char[bufSize];
+      int rc = gethostname (buf, bufSize);
+      if (rc == 0)
+	break;
+      assert (errno == ENAMETOOLONG);
+      delete[] buf;
+    }
+  host_name = buf;
+  delete[] buf;
+
+  // Break the returned name up into host and domain.
+  string::size_type dot_index = host_name.find ('.');
+  if (dot_index != string::npos)
+    {
+      domain_name = host_name.substr (dot_index + 1);
+      host_name = host_name.substr (0, dot_index);
+    }
+  else
+    domain_name = "unknown";
 }
 
 // --------------------------------------------------------------------------

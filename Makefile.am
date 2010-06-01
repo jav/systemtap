@@ -108,6 +108,11 @@ stap_LDADD += -lavahi-client
 endif
 
 if HAVE_NSS
+stap_SOURCES += stap-client-connect.c nsscommon.c
+stap_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
+stap_CXXFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_LDADD += -lssl3 -lnss3 -lnspr4 -lplc4
 stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_sign_module_LDFLAGS = $(AM_LDFLAGS)

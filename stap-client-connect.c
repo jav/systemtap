@@ -34,17 +34,13 @@
 #include "nsscommon.h"
 
 #define READ_BUFFER_SIZE (60 * 1024)
-static char *hostName = NULL;
-static unsigned short port = 0;
-static const char *infileName = NULL;
-static const char *outfileName = NULL;
-static char *certDir = NULL;
 static const char *trustNewServer_p = NULL;
 
 /* Exit error codes */
 #define GENERAL_ERROR         1
 #define CA_CERT_INVALID_ERROR 2
 
+#if ! STAP /* temporary */
 static void
 Usage(const char *progName)
 {
@@ -52,6 +48,7 @@ Usage(const char *progName)
 	  progName);
   exit(1);
 }
+#endif
 
 static void
 exitErr(const char* errorStr, int rc)
@@ -105,7 +102,7 @@ done:
    the chance to trust the server anyway and add the certificate to the
    local database.  */
 static SECStatus
-badCertHandler(void *arg, PRFileDesc *sslSocket)
+badCertHandler(void *arg __attribute__ ((unused)), PRFileDesc *sslSocket)
 {
   SECStatus secStatus;
   PRErrorCode errorNumber;
@@ -210,7 +207,9 @@ setupSSLSocket(void)
 
 
 static SECStatus
-handle_connection(PRFileDesc *sslSocket)
+handle_connection(
+  PRFileDesc *sslSocket, const char *infileName, const char *outfileName
+)
 {
 #if DEBUG
   int	      countRead = 0;
@@ -319,7 +318,13 @@ handle_connection(PRFileDesc *sslSocket)
 /* make the connection.
 */
 static SECStatus
-do_connect(PRNetAddr *addr)
+do_connect(
+  PRNetAddr *addr,
+  const char *hostName,
+  unsigned short port __attribute__ ((unused)),
+  const char *infileName,
+  const char *outfileName
+)
 {
   PRFileDesc *sslSocket;
   PRStatus    prStatus;
@@ -381,7 +386,7 @@ do_connect(PRNetAddr *addr)
   if (secStatus != SECSuccess)
     goto done;
 
-  secStatus = handle_connection(sslSocket);
+  secStatus = handle_connection(sslSocket, infileName, outfileName);
   if (secStatus != SECSuccess)
     goto done;
 
@@ -390,8 +395,9 @@ do_connect(PRNetAddr *addr)
   return secStatus;
 }
 
-static void
-client_main(unsigned short port)
+int
+client_main (const char *hostName, unsigned short port,
+	     const char* infileName, const char* outfileName)
 {
   SECStatus   secStatus;
   PRStatus    prStatus;
@@ -416,9 +422,9 @@ client_main(unsigned short port)
      should succeed. However, don't try forever.  */
   for (attempt = 0; attempt < 5; ++attempt)
     {
-      secStatus = do_connect (&addr);
+      secStatus = do_connect (&addr, hostName, port, infileName, outfileName);
       if (secStatus == SECSuccess)
-	return;
+	return 0;
 
       errorNumber = PR_GetError ();
       switch (errorNumber)
@@ -447,6 +453,7 @@ client_main(unsigned short port)
  failed:
   /* Unrecoverable error */
   exitErr("Unable to connect to server", errCode);
+  return 1;
 }
 
 #if 0 /* No client authorization */
@@ -462,10 +469,16 @@ myPasswd(PK11SlotInfo *info, PRBool retry, void *arg)
 }
 #endif
 
+#if ! STAP /* temporary */
 int
 main(int argc, char **argv)
 {
-  char *       progName = NULL;
+  const char *progName = NULL;
+  const char *certDir = NULL;
+  const char *hostName = NULL;
+  unsigned short port = 0;
+  const char *infileName = NULL;
+  const char *outfileName = NULL;
   SECStatus    secStatus;
   PLOptState  *optstate;
   PLOptStatus  status;
@@ -513,12 +526,13 @@ main(int argc, char **argv)
   /* All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy. */
   NSS_SetDomesticPolicy();
 
-  client_main(port);
+  client_main (hostName, port, infileName, outfileName);
 
   NSS_Shutdown();
   PR_Cleanup();
 
   return 0;
 }
+#endif /* ! STAP -- temporary */
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
