@@ -4755,7 +4755,7 @@ static void get_unwind_data (Dwfl_Module *m,
   GElf_Ehdr *ehdr, ehdr_mem;
   GElf_Shdr *shdr, shdr_mem;
   Elf_Scn *scn;
-  Elf_Data *data;
+  Elf_Data *data = NULL;
   Elf *elf;
 
   // fetch .eh_frame info preferably from main elf file.
