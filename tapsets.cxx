@@ -2145,7 +2145,7 @@ struct dwarf_pretty_print
 private:
   dwflpp& dw;
   target_symbol* ts;
-  int print_depth;
+  bool print_full;
   Dwarf_Die base_type;
 
   string local;
@@ -2158,17 +2158,17 @@ private:
   const bool userspace_p;
 
   void recurse (Dwarf_Die* type, target_symbol* e,
-                print_format* pf, int depth);
+                print_format* pf, bool top=false);
   void recurse_base (Dwarf_Die* type, target_symbol* e,
-                     print_format* pf, int depth);
+                     print_format* pf);
   void recurse_array (Dwarf_Die* type, target_symbol* e,
-                      print_format* pf, int depth);
+                      print_format* pf, bool top);
   void recurse_pointer (Dwarf_Die* type, target_symbol* e,
-                        print_format* pf, int depth);
+                        print_format* pf, bool top);
   void recurse_struct (Dwarf_Die* type, target_symbol* e,
-                       print_format* pf, int depth);
+                       print_format* pf, bool top);
   void recurse_struct_members (Dwarf_Die* type, target_symbol* e,
-                               print_format* pf, int depth, int& count);
+                               print_format* pf, int& count);
 
   void init_ts (const target_symbol& e);
   expression* deref (target_symbol* e);
@@ -2187,7 +2187,7 @@ dwarf_pretty_print::init_ts (const target_symbol& e)
   if (ts->components.empty() ||
       ts->components.back().type != target_symbol::comp_pretty_print)
     throw semantic_error("invalid target_symbol for pretty-print", ts->tok);
-  print_depth = ts->components.back().member.length();
+  print_full = ts->components.back().member.length() > 1;
   ts->components.pop_back();
 }
 
@@ -2198,7 +2198,11 @@ dwarf_pretty_print::expand ()
   static unsigned tick = 0;
 
   // function pretty_print_X([pointer], [arg1, arg2, ...]) {
-  //    return sprintf("{.foo=...}", (ts)->foo, ...)
+  //   try {
+  //     return sprintf("{.foo=...}", (ts)->foo, ...)
+  //   } catch {
+  //     return "ERROR"
+  //   }
   // }
 
   // Create the function decl and call.
@@ -2258,26 +2262,22 @@ dwarf_pretty_print::expand ()
   return_statement* rs = new return_statement;
   rs->tok = ts->tok;
   rs->value = pf;
-  fdecl->body = rs;
-
-  // Strip off leading pointers first, they're free...
-  Dwarf_Die type;
-  dw.resolve_unqualified_inner_typedie (&base_type, &type, ts);
-  int typetag = dwarf_tag (&type);
-  while (typetag == DW_TAG_pointer_type ||
-         typetag == DW_TAG_reference_type ||
-         typetag == DW_TAG_rvalue_reference_type)
-    {
-      Dwarf_Die pointee;
-      if (!dwarf_attr_die (&type, DW_AT_type, &pointee))
-        break;
-      dw.resolve_unqualified_inner_typedie (&pointee, &type, ts);
-      typetag = dwarf_tag (&type);
-    }
 
   // Recurse into the actual values.
-  recurse (&type, ts, pf, print_depth);
+  recurse (&base_type, ts, pf, true);
   pf->components = print_format::string_to_components(pf->raw_components);
+
+  // Create the try-catch net
+  try_block* tb = new try_block;
+  tb->tok = ts->tok;
+  tb->try_block = rs;
+  tb->catch_error_var = 0;
+  return_statement* rs2 = new return_statement;
+  rs2->tok = ts->tok;
+  rs2->value = new literal_string ("ERROR");
+  rs2->value->tok = ts->tok;
+  tb->catch_block = rs2;
+  fdecl->body = tb;
 
   dw.sess.functions[fdecl->name] = fdecl;
   return fcall;
@@ -2286,7 +2286,7 @@ dwarf_pretty_print::expand ()
 
 void
 dwarf_pretty_print::recurse (Dwarf_Die* start_type, target_symbol* e,
-                             print_format* pf, int depth)
+                             print_format* pf, bool top)
 {
   Dwarf_Die type;
   dw.resolve_unqualified_inner_typedie (start_type, &type, e);
@@ -2302,17 +2302,17 @@ dwarf_pretty_print::recurse (Dwarf_Die* start_type, target_symbol* e,
 
     case DW_TAG_enumeration_type:
     case DW_TAG_base_type:
-      recurse_base (&type, e, pf, depth);
+      recurse_base (&type, e, pf);
       break;
 
     case DW_TAG_array_type:
-      recurse_array (&type, e, pf, depth);
+      recurse_array (&type, e, pf, top);
       break;
 
     case DW_TAG_pointer_type:
     case DW_TAG_reference_type:
     case DW_TAG_rvalue_reference_type:
-      recurse_pointer (&type, e, pf, depth);
+      recurse_pointer (&type, e, pf, top);
       break;
 
     case DW_TAG_subroutine_type:
@@ -2321,14 +2321,9 @@ dwarf_pretty_print::recurse (Dwarf_Die* start_type, target_symbol* e,
       break;
 
     case DW_TAG_union_type:
-      // Force the depth to zero so we don't even bother to dereference
-      // union pointers that could be completely invalid.
-      depth = 0;
-      // Then fallthrough to proceed as for struct/class...
-
     case DW_TAG_structure_type:
     case DW_TAG_class_type:
-      recurse_struct (&type, e, pf, depth);
+      recurse_struct (&type, e, pf, top);
       break;
     }
 }
@@ -2336,7 +2331,7 @@ dwarf_pretty_print::recurse (Dwarf_Die* start_type, target_symbol* e,
 
 void
 dwarf_pretty_print::recurse_base (Dwarf_Die* type, target_symbol* e,
-                                  print_format* pf, int depth)
+                                  print_format* pf)
 {
   Dwarf_Attribute attr;
   Dwarf_Word encoding = (Dwarf_Word) -1;
@@ -2374,8 +2369,14 @@ dwarf_pretty_print::recurse_base (Dwarf_Die* type, target_symbol* e,
 
 void
 dwarf_pretty_print::recurse_array (Dwarf_Die* type, target_symbol* e,
-                                   print_format* pf, int depth)
+                                   print_format* pf, bool top)
 {
+  if (!top && !print_full)
+    {
+      pf->raw_components.append("[...]");
+      return;
+    }
+
   Dwarf_Die childtype;
   dwarf_attr_die (type, DW_AT_type, &childtype);
   pf->raw_components.append("[");
@@ -2390,7 +2391,7 @@ dwarf_pretty_print::recurse_array (Dwarf_Die* type, target_symbol* e,
         pf->raw_components.append(", ");
       target_symbol* e2 = new target_symbol(*e);
       e2->components.push_back (target_symbol::component(e->tok, i));
-      recurse (&childtype, e2, pf, depth);
+      recurse (&childtype, e2, pf);
     }
   if (i < size || 1/*XXX until real size is known */)
     pf->raw_components.append(", ...");
@@ -2400,27 +2401,30 @@ dwarf_pretty_print::recurse_array (Dwarf_Die* type, target_symbol* e,
 
 void
 dwarf_pretty_print::recurse_pointer (Dwarf_Die* type, target_symbol* e,
-                                     print_format* pf, int depth)
+                                     print_format* pf, bool top)
 {
-  Dwarf_Die pointee_type;
-  if (depth <= 1 || !dwarf_attr_die(type, DW_AT_type, &pointee_type))
+  // We chase to top-level pointers, but leave the rest alone
+  Dwarf_Die pointee;
+  int typetag = dwarf_tag (type);
+  if (top
+      && (typetag == DW_TAG_pointer_type ||
+          typetag == DW_TAG_reference_type ||
+          typetag == DW_TAG_rvalue_reference_type)
+      &&  dwarf_attr_die (type, DW_AT_type, &pointee))
     {
-      pf->raw_components.append("%p");
-      pf->args.push_back(deref(e));
+      recurse (&pointee, e, pf, top);
     }
   else
     {
-      // XXX better representation?
-      pf->raw_components.append("&(");
-      recurse (&pointee_type, e, pf, depth - 1);
-      pf->raw_components.append(")");
+      pf->raw_components.append("%p");
+      pf->args.push_back(deref(e));
     }
 }
 
 
 void
 dwarf_pretty_print::recurse_struct (Dwarf_Die* type, target_symbol* e,
-                                    print_format* pf, int depth)
+                                    print_format* pf, bool top)
 {
   if (dwarf_hasattr(type, DW_AT_declaration))
     {
@@ -2437,14 +2441,17 @@ dwarf_pretty_print::recurse_struct (Dwarf_Die* type, target_symbol* e,
 
   int count = 0;
   pf->raw_components.append("{");
-  recurse_struct_members (type, e, pf, depth, count);
+  if (top || print_full)
+    recurse_struct_members (type, e, pf, count);
+  else
+    pf->raw_components.append("...");
   pf->raw_components.append("}");
 }
 
 
 void
 dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
-                                            print_format* pf, int depth, int& count)
+                                            print_format* pf, int& count)
 {
   Dwarf_Die child, childtype;
   if (dwarf_child (type, &child) == 0)
@@ -2465,7 +2472,7 @@ dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
 
         if (tag == DW_TAG_inheritance)
           {
-            recurse_struct_members (&childtype, e, pf, depth, count);
+            recurse_struct_members (&childtype, e, pf, count);
             continue;
           }
 
@@ -2490,7 +2497,7 @@ dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
         else if (childtag == DW_TAG_class_type)
           pf->raw_components.append("<struct>");
         pf->raw_components.append("=");
-        recurse (&childtype, e2, pf, depth);
+        recurse (&childtype, e2, pf);
       }
     while (dwarf_siblingof (&child, &child) == 0);
 }
