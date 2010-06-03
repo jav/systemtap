@@ -2401,8 +2401,10 @@ c_unparser::visit_block (block *s)
 
 void c_unparser::visit_try_block (try_block *s)
 {
+  record_actions(0, s->tok, true); // flush prior actions
+
   o->newline() << "{";
-  o->newline(1) << "__label__ normal_out;";
+  o->newline(1) << "__label__ normal_fallthrough;";
   o->newline(1) << "{";
   o->newline() << "__label__ out;";
 
@@ -2412,22 +2414,25 @@ void c_unparser::visit_try_block (try_block *s)
       s->try_block->visit (this);
       record_actions(0, s->try_block->tok, true); // flush accumulated actions
     }
-
-  o->newline() << "if (likely(c->last_error == NULL)) goto normal_out;";
+  o->newline() << "goto normal_fallthrough;";
 
   o->newline() << "if (0) goto out;"; // to prevent 'unused label' warnings
   o->newline() << "out:";
+  o->newline() << ";"; // to have _some_ statement
+
+  // Close the scope of the above nested 'out' label, to make sure
+  // that the catch block, should it encounter errors, does not resolve
+  // a 'goto out;' to the above label, causing infinite looping.
+  o->newline(-1) << "}";
+
+  o->newline() << "if (likely(c->last_error == NULL)) goto out;";
+
   if (s->catch_error_var)
     {
       var cev(getvar(s->catch_error_var->referent, s->catch_error_var->tok));
       c_strcpy (cev.value(), "c->last_error");
     }
   o->newline() << "c->last_error = NULL;";
-
-  // Close the scope of the above nested 'out' label, to make sure
-  // that the catch block, should it encounter errors, does not resolve
-  // a 'goto out;' to the above label, causing infinite looping.
-  o->newline(-1) << "}";
 
   // Prevent the catch{} handler from even starting if MAXACTIONS have
   // already been used up.  Add one for the act of catching too.
@@ -2439,7 +2444,7 @@ void c_unparser::visit_try_block (try_block *s)
       record_actions(0, s->catch_block->tok, true); // flush accumulated actions
     }
 
-  o->newline() << "normal_out:";
+  o->newline() << "normal_fallthrough:";
   o->newline() << ";"; // to have _some_ statement
   o->newline(-1) << "}";
 }

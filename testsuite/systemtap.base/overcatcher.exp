@@ -1,0 +1,9 @@
+# make sure that we don't overcatch -- return and next should be able to break
+# out of a try/catch block.  PR11664
+
+set test "overcatcher"
+set ::result_string {return
+next
+}
+
+stap_run_exact $test $srcdir/$subdir/$test.stp

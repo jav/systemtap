@@ -1,0 +1,23 @@
+# make sure that we don't overcatch -- return and next should be able to break
+# out of a try/catch block.  PR11664
+
+probe begin {
+    f()
+    try {
+        println("next")
+        next
+    } catch {
+        println("next-catch")
+    }
+    println("next-fallthrough")
+}
+function f() {
+    try {
+        println("return")
+        return 0
+    } catch {
+        println("return-catch")
+    }
+    println("return-fallthrough")
+}
+probe begin(1) { exit() }
