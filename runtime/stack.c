@@ -99,7 +99,7 @@ static const struct stacktrace_ops print_stack_ops = {
 	.warning_symbol = print_stack_warning_symbol,
 	.stack = print_stack_stack,
 	.address = print_stack_address,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
+#if defined(STAPCONF_WALK_STACK)
 	.walk_stack = print_context_stack,
 #endif
 };

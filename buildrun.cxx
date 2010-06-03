@@ -195,6 +195,7 @@ compile_pass (systemtap_session& s)
 		  "STAPCONF_ASM_SYSCALL_H", NULL);
   output_autoconf(s, o, "autoconf-ring_buffer-flags.c", "STAPCONF_RING_BUFFER_FLAGS", NULL);
   output_autoconf(s, o, "autoconf-kallsyms-on-each-symbol.c", "STAPCONF_KALLSYMS_ON_EACH_SYMBOL", NULL);
+  output_autoconf(s, o, "autoconf-walk-stack.c", "STAPCONF_WALK_STACK", NULL);
 
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 
