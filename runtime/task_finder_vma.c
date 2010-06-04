@@ -43,10 +43,11 @@ static struct hlist_head __stp_tf_vma_free_list[1];
 
 static struct hlist_head __stp_tf_vma_map[__STP_TF_TABLE_SIZE];
 
-// __stp_tf_vma_initialize():  Initialize the free list.  Grabs the
-// spinlock.
+// tap_initialize_vma_map):  Initialize the free list.  Grabs the
+// spinlock.  Should be called before any of the other stap_*_vma_map
+// functions.
 static void
-__stp_tf_vma_initialize(void)
+stap_initialize_vma_map(void)
 {
 	int i;
 	struct hlist_head *head = &__stp_tf_vma_free_list[0];

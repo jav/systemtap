@@ -501,7 +501,7 @@ static void _stp_sym_init(void)
         };
 	if (! initialized) {
                 int rc;
-		__stp_tf_vma_initialize();
+		stap_initialize_vma_map ();
                 rc = stap_register_task_finder_target (& vmcb);
 #ifdef DEBUG_TASK_FINDER_VMA
                 _stp_dbug(__FUNCTION__, __LINE__, "registered vmcb");
