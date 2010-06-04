@@ -41,8 +41,6 @@ __stp_tf_vma_free_list_items[TASK_FINDER_VMA_ENTRY_ITEMS];
 
 static struct hlist_head __stp_tf_vma_free_list[1];
 
-static struct hlist_head __stp_tf_vma_table[__STP_TF_TABLE_SIZE];
-
 static struct hlist_head __stp_tf_vma_map[__STP_TF_TABLE_SIZE];
 
 // __stp_tf_vma_initialize():  Initialize the free list.  Grabs the
@@ -92,106 +90,6 @@ __stp_tf_vma_put_free_entry(struct __stp_tf_vma_entry *entry)
 	struct hlist_head *head = &__stp_tf_vma_free_list[0];
 	hlist_add_head(&entry->hlist, head);
 }
-
-
-// __stp_tf_vma_hash(): Compute the vma hash.
-static inline u32
-__stp_tf_vma_hash(struct task_struct *tsk, unsigned long addr)
-{
-#ifdef CONFIG_64BIT
-    return (jhash_3words(tsk->pid, (u32)addr, (u32)(addr >> 32), 0)
-	    & (__STP_TF_TABLE_SIZE - 1));
-#else
-    return (jhash_2words(tsk->pid, addr, 0) & (__STP_TF_TABLE_SIZE - 1));
-#endif
-}
-
-
-// Get vma_entry if the vma is present in the vma hash table.
-// Returns NULL if not present. Takes a read lock on __stp_tf_vma_lock.
-static struct __stp_tf_vma_entry *
-__stp_tf_get_vma_entry(struct task_struct *tsk, unsigned long addr)
-{
-	struct hlist_head *head;
-	struct hlist_node *node;
-	struct __stp_tf_vma_entry *entry;
-
-	unsigned long flags;
-	read_lock_irqsave(&__stp_tf_vma_lock, flags);
-	head = &__stp_tf_vma_table[__stp_tf_vma_hash(tsk, addr)];
-	hlist_for_each_entry(entry, node, head, hlist) {
-		if (tsk->pid == entry->pid
-		    && addr == entry->addr) {
-			read_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-			return entry;
-		}
-	}
-	read_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-	return NULL;
-}
-
-// Add the vma info to the vma hash table.
-// Takes a write lock on __stp_tf_vma_lock.
-static int
-__stp_tf_add_vma(struct task_struct *tsk, unsigned long addr,
-		 struct vm_area_struct *vma)
-{
-	struct hlist_head *head;
-	struct hlist_node *node;
-	struct __stp_tf_vma_entry *entry;
-
-	unsigned long flags;
-	write_lock_irqsave(&__stp_tf_vma_lock, flags);
-	head = &__stp_tf_vma_table[__stp_tf_vma_hash(tsk, addr)];
-	hlist_for_each_entry(entry, node, head, hlist) {
-		if (tsk->pid == entry->pid
-		    && addr == entry->addr) {
-#ifdef DEBUG_TASK_FINDER_VMA
-                  printk(KERN_NOTICE
-                         "vma (pid: %d, vm_start: 0x%lx) present?\n",
-                         tsk->pid, vma->vm_start);
-#endif
-                  write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-                  return -EBUSY;	/* Already there */
-		}
-	}
-
-	// Get an element from the free list.
-	entry = __stp_tf_vma_get_free_entry();
-	if (!entry) {
-		write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-		return -ENOMEM;
-	}
-	entry->pid = tsk->pid;
-	entry->addr = addr;
-	entry->vm_start = vma->vm_start;
-	entry->vm_end = vma->vm_end;
-	entry->vm_pgoff = vma->vm_pgoff;
-	hlist_add_head(&entry->hlist, head);
-	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-	return 0;
-}
-
-// Remove the vma entry from the vma hash table.
-// Takes a write lock on __stp_tf_vma_lock.
-static int
-__stp_tf_remove_vma_entry(struct __stp_tf_vma_entry *entry)
-{
-	struct hlist_head *head;
-	struct hlist_node *node;
-	int found = 0;
-
-	if (entry != NULL) {
-		unsigned long flags;
-		write_lock_irqsave(&__stp_tf_vma_lock, flags);
-		hlist_del(&entry->hlist);
-		__stp_tf_vma_put_free_entry(entry);
-		write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
-	}
-	return 0;
-}
-
-
 
 // __stp_tf_vma_map_hash(): Compute the vma map hash.
 static inline u32
