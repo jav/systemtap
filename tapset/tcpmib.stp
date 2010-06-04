@@ -261,6 +261,10 @@ function _tcpmib_input_route_type:long (skb:long)
 	struct rtable *rt;
 	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
 
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35)
+		rt = (struct rtable *)kread(&(skb->_skb_refdst));
+	#else
+
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)
 		rt = (struct rtable *)kread(&(skb->_skb_dst));
 	#else
@@ -269,6 +273,7 @@ function _tcpmib_input_route_type:long (skb:long)
 		rt = (struct rtable *)kread(&(skb->dst));
 	#else
 		rt = (struct rtable *)kread(&(skb->rtable));
+	#endif
 	#endif
 	#endif
 

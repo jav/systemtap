@@ -340,9 +340,17 @@ probe sunrpc.clnt.shutdown_client = kernel.function("rpc_shutdown_client") !,
 		om_ntrans = $clnt->cl_metrics->om_ntrans
 		om_bytes_sent = $clnt->cl_metrics->om_bytes_sent
 		om_bytes_recv = $clnt->cl_metrics->om_bytes_recv
-		om_queue = $clnt->cl_metrics->om_queue
-		om_rtt = $clnt->cl_metrics->om_rtt
-		om_execute = $clnt->cl_metrics->om_execute
+		if (@defined($clnt->cl_metrics->om_queue->tv64)) {
+  		      om_queue = $clnt->cl_metrics->om_queue->tv64
+		      om_rtt = $clnt->cl_metrics->om_rtt->tv64
+		      om_execute = $clnt->cl_metrics->om_execute->tv64
+		}
+		else
+		{
+  		      om_queue = $clnt->cl_metrics->om_queue
+		      om_rtt = $clnt->cl_metrics->om_rtt
+		      om_execute = $clnt->cl_metrics->om_execute
+		}
 	}
 	else {
 		om_ops = -1
