@@ -38,7 +38,7 @@ static int _stp_tf_exec_cb(struct stap_task_finder_target *tgt,
 
 static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			   struct task_struct *tsk,
-			   char *path,
+			   char *path, struct dentry *dentry,
 			   unsigned long addr,
 			   unsigned long length,
 			   unsigned long offset,
@@ -53,7 +53,8 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 		  tsk->pid, tsk->tgid, path, addr, length, offset, vm_flags);
 #endif
 	// We are only interested in the first load of the whole module that
-	// is executable. But see below for the comment about PR11015.
+	// is executable. We register whether or not we know the module,
+	// so we can later lookup the name given an address for this task.
 	if (path != NULL && offset == 0 && (vm_flags & VM_EXEC)) {
 		for (i = 0; i < _stp_num_modules; i++) {
 			if (strcmp(path, _stp_modules[i]->path) == 0)
@@ -70,7 +71,7 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			  return stap_add_vma_map_info(tsk->group_leader,
 						       addr,
 						       addr + length,
-						       offset,
+						       offset, dentry,
 						       module);
 			}
 		}
@@ -134,7 +135,7 @@ static unsigned long _stp_module_relocate(const char *module,
 		  }
 		  if (stap_find_vma_map_info_user(tsk->group_leader, m,
 						  &addr_offset, NULL,
-						  NULL) != 0) {
+						  NULL, NULL) != 0) {
 		    return 0;
 		  }
 		}
@@ -165,7 +166,7 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
       unsigned long vm_start = 0;
       if (stap_find_vma_map_info(task->group_leader, addr,
 				 &vm_start, NULL,
-				 NULL, &user) == 0)
+				 NULL, NULL, &user) == 0)
 	if (user != NULL)
 	  {
 	    struct _stp_module *m = (struct _stp_module *)user;

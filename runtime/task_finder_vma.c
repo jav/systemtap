@@ -2,6 +2,9 @@
 #include <linux/jhash.h>
 #include <linux/spinlock.h>
 
+#include <linux/fs.h>
+#include <linux/dcache.h>
+
 // When handling memcpy() syscall tracing to notice memory map
 // changes, we need to cache memcpy() entry parameter values for
 // processing at memcpy() exit.
@@ -30,7 +33,7 @@ struct __stp_tf_vma_entry {
 	unsigned long vm_start;
 	unsigned long vm_end;
 	unsigned long vm_pgoff;
-	// Is that enough?  Should we store a dcookie for vm_file?
+	struct dentry *dentry;
 
 	// User data (possibly stp_module)
 	void *user;
@@ -122,10 +125,11 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 
 
 // Add the vma info to the vma map hash table.
+// If dentry not NULL, calls dget(dentry).
 static int
 stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 		      unsigned long vm_end, unsigned long vm_pgoff,
-		      void *user)
+		      struct dentry *dentry, void *user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -159,7 +163,11 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 	entry->vm_start = vm_start;
 	entry->vm_end = vm_end;
 	entry->vm_pgoff = vm_pgoff;
+	entry->dentry = dentry;
 	entry->user = user;
+
+	if (dentry)
+		dget(dentry);
 
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
 	hlist_add_head(&entry->hlist, head);
@@ -169,6 +177,7 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 
 
 // Remove the vma entry from the vma hash table.
+// If the entry contained a non-NULL dentry, will call dput(dentry).
 // Returns -ESRCH if the entry isn't present.
 static int
 stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
@@ -185,6 +194,8 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 	write_lock_irqsave(&__stp_tf_vma_lock, flags);
 	entry = __stp_tf_get_vma_map_entry_internal(tsk, vm_start);
 	if (entry != NULL) {
+		if (entry->dentry)
+			dput(entry->dentry);
 		hlist_del(&entry->hlist);
 		__stp_tf_vma_put_free_entry(entry);
                 rc = 0;
@@ -200,7 +211,8 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 static int
 stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 		       unsigned long *vm_start, unsigned long *vm_end,
-		       unsigned long *vm_pgoff, void **user)
+		       unsigned long *vm_pgoff, struct dentry **dentry,
+		       void **user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -226,6 +238,8 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 			*vm_end = found_entry->vm_end;
 		if (vm_pgoff != NULL)
 			*vm_pgoff = found_entry->vm_pgoff;
+		if (dentry != NULL)
+			*dentry = found_entry->dentry;
 		if (user != NULL)
 			*user = found_entry->user;
 		rc = 0;
@@ -241,7 +255,7 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 static int
 stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 			    unsigned long *vm_start, unsigned long *vm_end,
-			    unsigned long *vm_pgoff)
+			    unsigned long *vm_pgoff, struct dentry **dentry)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -266,6 +280,8 @@ stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 			*vm_end = found_entry->vm_end;
 		if (vm_pgoff != NULL)
 			*vm_pgoff = found_entry->vm_pgoff;
+		if (dentry != NULL)
+			*dentry = found_entry->dentry;
 		rc = 0;
 	}
 	read_unlock_irqrestore(&__stp_tf_vma_lock, flags);
@@ -285,6 +301,8 @@ stap_drop_vma_maps(struct task_struct *tsk)
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
         hlist_for_each_entry_safe(entry, node, n, head, hlist) {
             if (tsk->pid == entry->pid) {
+		    if (entry->dentry)
+			dput(entry->dentry);
 		    hlist_del(&entry->hlist);
 		    __stp_tf_vma_put_free_entry(entry);
             }

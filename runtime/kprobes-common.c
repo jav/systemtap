@@ -32,7 +32,7 @@ static int stap_kprobe_process_found (struct stap_task_finder_target *finder, st
 }
 
 /* The task_finder_mmap_callback */
-static int stap_kprobe_mmap_found (struct stap_task_finder_target *finder, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {
+static int stap_kprobe_mmap_found (struct stap_task_finder_target *finder, struct task_struct *tsk, char *path, struct dentry *dentry, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {
   struct stap_dwarf_probe *p = container_of(finder, struct stap_dwarf_probe, finder);
   int rc = 0;
   if (path == NULL || strcmp (path, p->pathname)) return 0;

@@ -64,6 +64,7 @@ typedef int
 (*stap_task_finder_mmap_callback)(struct stap_task_finder_target *tgt,
 				  struct task_struct *tsk,
 				  char *path,
+				  struct dentry *dentry,
 				  unsigned long addr,
 				  unsigned long length,
 				  unsigned long offset,
@@ -568,6 +569,7 @@ __stp_call_callbacks(struct stap_task_finder_target *tgt,
 static void
 __stp_call_mmap_callbacks(struct stap_task_finder_target *tgt,
 			  struct task_struct *tsk, char *path,
+			  struct dentry *dentry,
 			  unsigned long addr, unsigned long length,
 			  unsigned long offset, unsigned long vm_flags)
 {
@@ -595,8 +597,8 @@ __stp_call_mmap_callbacks(struct stap_task_finder_target *tgt,
 		if (cb_tgt == NULL || cb_tgt->mmap_callback == NULL)
 			continue;
 
-		rc = cb_tgt->mmap_callback(cb_tgt, tsk, path, addr, length,
-					  offset, vm_flags);
+		rc = cb_tgt->mmap_callback(cb_tgt, tsk, path, dentry,
+					  addr, length, offset, vm_flags);
 		if (rc != 0) {
 			_stp_error("mmap callback for %d failed: %d",
 				   (int)tsk->pid, rc);
@@ -628,6 +630,7 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	struct vm_area_struct *vma;
 	char *mmpath_buf = NULL;
 	char *mmpath = NULL;
+	struct dentry *dentry;
 	unsigned long length = 0;
 	unsigned long offset = 0;
 	unsigned long vm_flags = 0;
@@ -644,6 +647,8 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 		length = vma->vm_end - vma->vm_start;
 		offset = (vma->vm_pgoff << PAGE_SHIFT);
 		vm_flags = vma->vm_flags;
+		dentry = vma->vm_file->f_dentry;
+		dget(dentry);
 
 		// Allocate space for a path
 		mmpath_buf = _stp_kmalloc(PATH_MAX);
@@ -676,13 +681,14 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	up_read(&mm->mmap_sem);
 		
 	if (mmpath)
-		__stp_call_mmap_callbacks(tgt, tsk, mmpath, addr,
+		__stp_call_mmap_callbacks(tgt, tsk, mmpath, dentry, addr,
 					  length, offset, vm_flags);
 
 	// Cleanup.
 	if (mmpath_buf)
 		_stp_kfree(mmpath_buf);
 	mmput(mm);
+	dput(dentry);
 	return;
 }
 
@@ -1075,9 +1081,9 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 #ifdef STAPCONF_DPATH_PATH
 		struct path *f_path;
 #else
-		struct dentry *f_dentry;
 		struct vfsmount *f_vfsmnt;
 #endif
+		struct dentry *dentry;
 		unsigned long addr;
 		unsigned long length;
 		unsigned long offset;
@@ -1128,14 +1134,14 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 			    path_get(vma_cache_p->f_path);
 #else
 			    // Notice we're increasing the reference
-			    // count for 'f_dentry' and 'f_vfsmnt'.
+			    // count for 'dentry' and 'f_vfsmnt'.
 			    // This way they won't get deleted from
 			    // out under us.
-			    vma_cache_p->f_dentry = vma->vm_file->f_dentry;
-			    dget(vma_cache_p->f_dentry);
 			    vma_cache_p->f_vfsmnt = vma->vm_file->f_vfsmnt;
 			    mntget(vma_cache_p->f_vfsmnt);
 #endif
+			    vma_cache_p->dentry = vma->vm_file->f_dentry;
+			    dget(vma_cache_p->dentry);
 			    vma_cache_p->addr = vma->vm_start;
 			    vma_cache_p->length = vma->vm_end - vma->vm_start;
 			    vma_cache_p->offset = (vma->vm_pgoff << PAGE_SHIFT);
@@ -1163,10 +1169,9 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 					PATH_MAX);
 			path_put(vma_cache_p->f_path);
 #else
-			mmpath = d_path(vma_cache_p->f_dentry,
+			mmpath = d_path(vma_cache_p->dentry,
 					vma_cache_p->f_vfsmnt, mmpath_buf,
 					PATH_MAX);
-			dput(vma_cache_p->f_dentry);
 			mntput(vma_cache_p->f_vfsmnt);
 #endif
 			if (mmpath == NULL || IS_ERR(mmpath)) {
@@ -1177,11 +1182,13 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 			}
 			else {
 				__stp_call_mmap_callbacks(tgt, tsk, mmpath,
+							  vma_cache_p->dentry,
 							  vma_cache_p->addr,
 							  vma_cache_p->length,
 							  vma_cache_p->offset,
 							  vma_cache_p->vm_flags);
 			}
+			dput(vma_cache_p->dentry);
 			vma_cache_p++;
 		}
 		_stp_kfree(vma_cache);

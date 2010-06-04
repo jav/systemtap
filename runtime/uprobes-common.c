@@ -255,7 +255,7 @@ static int stap_uprobe_process_found (struct stap_task_finder_target *tgt, struc
 }
 
 /* The task_finder_mmap_callback */
-static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {
+static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, struct dentry *dentry, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {
   const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);
   /* 1 - shared libraries' executable segments load from offset 0
        - ld.so convention offset != 0 is now allowed
