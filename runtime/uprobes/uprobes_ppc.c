@@ -22,6 +22,14 @@
  * is #included at the end of uprobes.c.
  */
 
+/* copied from arch/powerpc/lib/sstep.c */
+#ifdef CONFIG_PPC64
+/* Bits in SRR1 that are copied from MSR */
+#define MSR_MASK	0xffffffff87c0ffffUL
+#else
+#define MSR_MASK	0x87c0ffff
+#endif
+
 /*
  * Replace the return address with the trampoline address.  Returns
  * the original return address.
@@ -235,6 +243,7 @@ static int emulate_step(struct pt_regs *regs, unsigned int instr)
 		case 0x24:	/* rfid, scary */
 			return -1;
 		}
+		break;
 	case 31:
 		rd = (instr >> 21) & 0x1f;
 		switch (instr & 0x7fe) {
@@ -325,5 +334,5 @@ static int uprobe_emulate_insn(struct pt_regs *regs,
 {
 	unsigned int insn = *ppt->insn;
 
-	return emulate_step(regs, insn);
+	return emulate_step(regs, insn) > 0;
 }
