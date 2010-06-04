@@ -29,7 +29,6 @@ struct __stp_tf_vma_entry {
 	struct hlist_node hlist;
 
 	pid_t pid;
-	unsigned long addr;
 	unsigned long vm_start;
 	unsigned long vm_end;
 	unsigned long vm_pgoff;
@@ -116,7 +115,7 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
 	hlist_for_each_entry(entry, node, head, hlist) {
 		if (tsk->pid == entry->pid
-		    && vm_start == entry->addr) {
+		    && vm_start == entry->vm_start) {
 			return entry;
 		}
 	}
@@ -159,7 +158,6 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 
 	// Fill in the info
 	entry->pid = tsk->pid;
-	//entry->addr = addr; ???
 	entry->vm_start = vm_start;
 	entry->vm_end = vm_end;
 	entry->vm_pgoff = vm_pgoff;
@@ -209,7 +207,7 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 // Returns -ESRCH if not present.  The __stp_tf_vma_lock must *not* be
 // locked before calling this function.
 static int
-stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
+stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 		       unsigned long *vm_start, unsigned long *vm_end,
 		       unsigned long *vm_pgoff, struct dentry **dentry,
 		       void **user)
@@ -225,8 +223,8 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long vm_addr,
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
 	hlist_for_each_entry(entry, node, head, hlist) {
 		if (tsk->pid == entry->pid
-		    && vm_addr >= entry->vm_start
-		    && vm_addr < entry->vm_end) {
+		    && addr >= entry->vm_start
+		    && addr < entry->vm_end) {
 			found_entry = entry;
 			break;
 		}
