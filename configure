@@ -6919,7 +6919,11 @@ cat > conftest.xml << 'EOF'
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" >
    <book lang="en">
    <bookinfo><title>foo</title></bookinfo>
-   <chapter><title>bar</title><para>baz</para></chapter>
+   <chapter id="logging.stp"><title>Logging Tapset</title>
+   <refentry id="API-log"><refnamediv><refname>log</refname>
+   <refpurpose>logging</refpurpose></refnamediv>
+   <refsect1><title>Description</title>
+   <para>baz</para></refsect1></refentry></chapter>
    </book>
 EOF
 
@@ -6962,7 +6966,7 @@ $as_echo "$as_me: WARNING: Not building reference documentation in PDF format" >
    fi
    rm -f conftest.pdf
 fi
- if test "maybe later" == "yes"; then
+ if test "$have_xmlto_pdf" == "yes"; then
   BUILD_PDFREFDOCS_TRUE=
   BUILD_PDFREFDOCS_FALSE='#'
 else
