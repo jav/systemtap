@@ -85,7 +85,7 @@ static int _stp_tf_munmap_cb(struct stap_task_finder_target *tgt,
 			     unsigned long length)
 {
         /* Unconditionally remove vm map info, ignore if not present. */
-	stap_remove_vma_map_info(tsk->group_leader, addr, addr + length, 0);
+	stap_remove_vma_map_info(tsk->group_leader, addr);
 	return 0;
 }
 

@@ -178,8 +178,7 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 // If the entry contained a non-NULL dentry, will call dput(dentry).
 // Returns -ESRCH if the entry isn't present.
 static int
-stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
-			     unsigned long vm_end, unsigned long vm_pgoff)
+stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
