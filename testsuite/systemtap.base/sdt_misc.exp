@@ -31,16 +31,16 @@ puts $fp "
 
 sem_display ()
 {
- printf(\"%s epilogue %s=%d\\n\", (test_probe_0_semaphore ? \"FAIL\" : \"PASS\"), \"test_probe_0_semaphore\", test_probe_0_semaphore);
- printf(\"%s epilogue %s=%d\\n\", (test_probe_2_semaphore ? \"FAIL\" : \"PASS\"), \"test_probe_2_semaphore\", test_probe_2_semaphore);
- printf(\"%s epilogue %s=%d\\n\", (test_probe_3_semaphore ? \"FAIL\" : \"PASS\"), \"test_probe_3_semaphore\", test_probe_3_semaphore);
- printf(\"%s epilogue %s=%d\\n\", (test_probe_4_semaphore ? \"FAIL\" : \"PASS\"), \"test_probe_4_semaphore\", test_probe_4_semaphore);
+    printf(\"%s epilogue %s=%d\\n\", (SDT_MISC_TEST_PROBE_0_ENABLED() ? \"FAIL\" : \"PASS\"), \"test_probe_0_semaphore\", SDT_MISC_TEST_PROBE_0_ENABLED());
+    printf(\"%s epilogue %s=%d\\n\", (SDT_MISC_TEST_PROBE_2_ENABLED() ? \"FAIL\" : \"PASS\"), \"test_probe_2_semaphore\", SDT_MISC_TEST_PROBE_2_ENABLED());
+    printf(\"%s epilogue %s=%d\\n\", (SDT_MISC_TEST_PROBE_3_ENABLED() ? \"FAIL\" : \"PASS\"), \"test_probe_3_semaphore\", SDT_MISC_TEST_PROBE_3_ENABLED());
+ printf(\"%s epilogue %s=%d\\n\", (SDT_MISC_TEST_PROBE_4_ENABLED() ? \"FAIL\" : \"PASS\"), \"test_probe_4_semaphore\", SDT_MISC_TEST_PROBE_4_ENABLED());
 }
 
 #ifdef LOOP
 loop_check()
 {
-  return test_probe_0_semaphore;
+    return SDT_MISC_TEST_PROBE_0_ENABLED();
 }
 #endif
 
@@ -56,13 +56,13 @@ bar (int i)
   SDT_MISC_TEST_PROBE_2(i);
   if (i == 0)
     i = 1000;
-  STAP_PROBE1(static_uprobes,test_probe_2,i);
+  STAP_PROBE1(sdt_misc,test_probe_2,i);
 }
 
 void
 baz (int i, char* s)
 {
-  STAP_PROBE1(static_uprobes,test_probe_0,i);
+  STAP_PROBE1(sdt_misc,test_probe_0,i);
   if (i == 0)
     i = 1000;
   SDT_MISC_TEST_PROBE_3(i,s);

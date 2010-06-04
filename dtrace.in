@@ -38,7 +38,11 @@ class provider:
         return typedefs
     def semaphore_def_append(self, this_probe):
         # NB: unsigned short is fixed in ABI
-        self.semaphores_def += "__extension__ unsigned short %s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (this_probe)
+        self.semaphores_def += '#ifdef STAP_SDT_V2\n'
+        self.semaphores_def += '#else\n'
+        self.semaphores_def += '#define %s_%s_semaphore %s_semaphore\n' % (self.provider,this_probe,this_probe)
+        self.semaphores_def += '#endif\n'
+        self.semaphores_def += "__extension__ unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (self.provider,this_probe)
     def semaphore_def_write(self, file):
         file.write(self.semaphores_def)
     def generate(self, provider, header, add_typedefs):
@@ -92,11 +96,11 @@ class provider:
                     args_string = ('%s %s' % (args_string, arg.strip()))
                 if (len(args_string) == 0):
                     c = 0
-                    stap_str = "STAP_PROBE(provider,%s" % (this_probe)
+                    stap_str = "STAP_PROBE(%s,%s" % (self.provider,this_probe)
                 else:
                     c += 1
                     typedefs = self.typedef_append (typedefs,this_probe,arg,c)
-                    stap_str = "STAP_PROBE%d(provider,%s" % (c,this_probe)
+                    stap_str = "STAP_PROBE%d(%s,%s" % (c,self.provider,this_probe)
                 define_str = "#define %s(" % (this_probe_canon)
                 i = 1
                 while (i <= c):
@@ -107,9 +111,14 @@ class provider:
                     i += 1
                 self.h.write ('/* %s (%s) */\n' % (this_probe_canon,args_string))
                 # XXX Enable this when .so semaphores work properly
+                self.h.write ('#ifdef STAP_SDT_V2\n')
+                self.h.write ('#define %s_ENABLED() %s_%s_semaphore\n' % (this_probe_canon,self.provider,this_probe))
+                self.h.write ('#else\n')
                 self.h.write ('#define %s_ENABLED() %s_semaphore\n' % (this_probe_canon,this_probe))
+                self.h.write ('#define %s_%s_semaphore %s_semaphore\n' % (self.provider,this_probe,this_probe))
+                self.h.write ('#endif\n')
                 # NB: unsigned short is fixed in ABI
-                self.h.write ("__extension__ extern unsigned short %s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (this_probe))
+                self.h.write ("__extension__ extern unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (self.provider,this_probe))
                 self.h.write (define_str + ") \\\n")
                 self.h.write (stap_str + ")\n\n")
             elif (line.find("}") != -1 and have_provider):

@@ -25,6 +25,7 @@ typedef struct
 {
   __uint64_t type;
   __uint64_t name;
+  __uint64_t provider;
   __uint64_t arg_count;
   __uint64_t pc;
   __uint64_t arg_string;
@@ -44,12 +45,15 @@ typedef struct
    on having a writable .probes section to put the enabled variables in. */
 #define ALLOCSEC "\"aw\""
 
-#define STAP_SEMAPHORE(probe)
+#define STAP_SEMAPHORE(provider,probe)
 #ifdef STAP_SDT_IMPLICIT_ENABLED /* allow users to override */
  #if defined STAP_HAS_SEMAPHORES
  #undef STAP_SEMAPHORE
- #define STAP_SEMAPHORE(probe)	\
-  if (__builtin_expect ( probe ## _semaphore , 0))
+  #if defined STAP_SDT_V1 || ! defined STAP_SDT_V2
+  #define STAP_SEMAPHORE(provider,probe) if (__builtin_expect ( probe##_semaphore , 0))
+  #else /* V2 semaphores are named  with provider prefix */
+  #define STAP_SEMAPHORE(provider,probe) if (__builtin_expect ( provider##_##probe##_semaphore , 0))
+  #endif
  #endif
 #endif
 
@@ -60,7 +64,7 @@ typedef struct
 #define STAP_UPROBE_GUARD 0x31425250
 #define STAP_TYPE(t) __typeof__((t))
 #define STAP_CAST(t) t
-#define STAP_PROBE_DATA_(probe,guard,arg)		\
+#define STAP_PROBE_DATA_(provider,probe,guard,arg)      \
   __asm__ volatile (".section .probes," ALLOCSEC "\n"	\
 		    "\t.balign 8\n"			\
 		    "1:\n\t.asciz " #probe "\n"         \
@@ -73,16 +77,20 @@ typedef struct
 		    "\t.int 0\n"			\
 		    "\t.previous\n")
 #elif defined STAP_SDT_V2
-#define STAP_UPROBE_GUARD 0x31425055
+#define STAP_UPROBE_GUARD 0x32425055
 #define STAP_TYPE(t) size_t
 #define STAP_CAST(t) (size_t)t
-#define STAP_PROBE_DATA_(probe,guard,argc)		\
+#define STAP_PROBE_DATA_(provider,probe,guard,argc)     \
   __asm__ volatile ("\t.balign 8\n"			\
 		    "1:\n\t.asciz " #probe "\n"		\
+  		    "\t.balign 8\n"			\
+		    "4:\n\t.asciz " #provider "\n"	\
   		    "\t.balign 8\n"			\
 		    "\t.int " #guard "\n"		\
 		    "\t.balign 8\n"			\
   		    STAP_PROBE_ADDR ("1b\n")		\
+		    "\t.balign 8\n"			\
+  		    STAP_PROBE_ADDR ("4b\n")		\
 		    "\t.balign 8\n"			\
 		    STAP_PROBE_ADDR (#argc "\n")	\
                     "\t.balign 8\n"                     \
@@ -92,8 +100,8 @@ typedef struct
 		    "\t.int 0\n"			\
 		    "\t.previous\n")
 #endif
-#define STAP_PROBE_DATA(probe, guard, argc)	\
-  STAP_PROBE_DATA_(#probe,guard,argc)
+#define STAP_PROBE_DATA(provider,probe, guard, argc)	\
+  STAP_PROBE_DATA_(#provider,#probe,guard,argc)
 
 /* Taking the address of a local label and/or referencing alloca prevents the
    containing function from being inlined, which keeps the parameters visible. */
@@ -142,85 +150,85 @@ typedef struct
 #define __stap_arg10 "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9), "g"(arg10)
 
 #if defined STAP_SDT_V1 || ! defined STAP_SDT_V2
-#define STAP_PROBE_POINT(probe,argc,arg_format,args)	\
-  STAP_UNINLINE;					\
-  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);		\
+#define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)	\
+  STAP_UNINLINE;                                        \
+  STAP_PROBE_DATA(provider,probe,STAP_UPROBE_GUARD,2f);                 \
   __asm__ volatile ("2:\n" STAP_NOP "/* " arg_format " */" :: args);
-#define STAP_PROBE(provider,probe)		\
+#define STAP_PROBE(provider,probe)             \
 do {						\
-  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,2f);	\
+  STAP_PROBE_DATA(provider,probe,STAP_UPROBE_GUARD,2f);	\
   __asm__ volatile ("2:\n" STAP_NOP);		\
 } while (0)
 #elif defined STAP_SDT_V2
-#define STAP_PROBE_POINT(probe,argc,arg_format,args)		\
-  STAP_UNINLINE;						\
+#define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)   \
+  STAP_UNINLINE;                                                \
   __asm__ volatile (".section .probes," ALLOCSEC "\n"		\
 		    "\t.balign 8\n"				\
 		    "3:\n\t.asciz " #arg_format :: args);	\
-  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,argc);		\
+  STAP_PROBE_DATA(provider,probe,STAP_UPROBE_GUARD,argc);       \
   __asm__ volatile ("2:\n" STAP_NOP);	
-#define STAP_PROBE(provider,probe)			\
+#define STAP_PROBE(provider,probe)                      \
 do {							\
   __asm__ volatile (".section .probes," ALLOCSEC "\n"	\
 		    "\t.balign 8\n3:\n");		\
-  STAP_PROBE_DATA(probe,STAP_UPROBE_GUARD,0);		\
+  STAP_PROBE_DATA(provider,probe,STAP_UPROBE_GUARD,0);  \
   __asm__ volatile ("2:\n" STAP_NOP);			\
 } while (0)
 #endif
 
-#define STAP_PROBE1(provider,probe,parm1)			\
-do STAP_SEMAPHORE(probe) {					\
+#define STAP_PROBE1(provider,probe,parm1)				\
+  do { STAP_SEMAPHORE(provider,probe) {					\
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);	\
-  STAP_PROBE_POINT(probe, 1, "%0", __stap_arg1)			\
- } while (0)
+  STAP_PROBE_POINT(provider,probe, 1, "%0", __stap_arg1)			\
+    } } while (0)
 
 #define STAP_PROBE2(provider,probe,parm1,parm2)			\
-do STAP_SEMAPHORE(probe) {					\
+  do { STAP_SEMAPHORE(provider,probe) {                          \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = STAP_CAST(parm2);	\
-  STAP_PROBE_POINT(probe, 2, "%0 %1", __stap_arg2);		\
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 2, "%0 %1", __stap_arg2);		\
+       } } while (0)
 
 #define STAP_PROBE3(provider,probe,parm1,parm2,parm3)		\
-do STAP_SEMAPHORE(probe) {					\
+  do { STAP_SEMAPHORE(provider,probe) {                          \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = STAP_CAST(parm2);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm3) arg3 = STAP_CAST(parm3);	\
-  STAP_PROBE_POINT(probe, 3, "%0 %1 %2", __stap_arg3);		\
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 3, "%0 %1 %2", __stap_arg3);		\
+       } } while (0)
 
 #define STAP_PROBE4(provider,probe,parm1,parm2,parm3,parm4)	\
-do STAP_SEMAPHORE(probe) {					\
+  do { STAP_SEMAPHORE(provider,probe) {                          \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = STAP_CAST(parm2);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm3) arg3 = STAP_CAST(parm3);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm4) arg4 = STAP_CAST(parm4);	\
-  STAP_PROBE_POINT(probe, 4, "%0 %1 %2 %3", __stap_arg4);	\
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 4, "%0 %1 %2 %3", __stap_arg4);	\
+       } } while (0)
 
 #define STAP_PROBE5(provider,probe,parm1,parm2,parm3,parm4,parm5)	\
-do  STAP_SEMAPHORE(probe) {					\
+  do { STAP_SEMAPHORE(provider,probe) {                                 \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = STAP_CAST(parm2);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm3) arg3 = STAP_CAST(parm3);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm4) arg4 = STAP_CAST(parm4);	\
   STAP_SDT_VOLATILE STAP_TYPE(parm5) arg5 = STAP_CAST(parm5);	\
-  STAP_PROBE_POINT(probe, 5, "%0 %1 %2 %3 %4", __stap_arg5);	\
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 5, "%0 %1 %2 %3 %4", __stap_arg5);	\
+       } } while (0)
 
 #define STAP_PROBE6(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6)	\
-do STAP_SEMAPHORE(probe) {						\
+  do { STAP_SEMAPHORE(provider,probe) {                                  \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = STAP_CAST(parm2);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm3) arg3 = STAP_CAST(parm3);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm4) arg4 = STAP_CAST(parm4);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm5) arg5 = STAP_CAST(parm5);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm6) arg6 = STAP_CAST(parm6);		\
-  STAP_PROBE_POINT(probe, 6, "%0 %1 %2 %3 %4 %5", __stap_arg6);		\
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 6, "%0 %1 %2 %3 %4 %5", __stap_arg6);		\
+       } } while (0)
 
 #define STAP_PROBE7(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7) \
-do  STAP_SEMAPHORE(probe) {						\
+  do { STAP_SEMAPHORE(provider,probe) {                                 \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = STAP_CAST(parm2);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm3) arg3 = STAP_CAST(parm3);		\
@@ -228,11 +236,11 @@ do  STAP_SEMAPHORE(probe) {						\
   STAP_SDT_VOLATILE STAP_TYPE(parm5) arg5 = STAP_CAST(parm5);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm6) arg6 = STAP_CAST(parm6);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm7) arg7 = STAP_CAST(parm7);		\
-  STAP_PROBE_POINT(probe, 7, "%0 %1 %2 %3 %4 %5 %6", __stap_arg7);	\
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 7, "%0 %1 %2 %3 %4 %5 %6", __stap_arg7);	\
+       } } while (0)
 
 #define STAP_PROBE8(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
-do STAP_SEMAPHORE(probe) {						\
+  do { STAP_SEMAPHORE(provider,probe) {                                  \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = STAP_CAST(parm2);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm3) arg3 = STAP_CAST(parm3);		\
@@ -241,11 +249,11 @@ do STAP_SEMAPHORE(probe) {						\
   STAP_SDT_VOLATILE STAP_TYPE(parm6) arg6 = STAP_CAST(parm6);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm7) arg7 = STAP_CAST(parm7);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm8) arg8 = STAP_CAST(parm8);		\
-  STAP_PROBE_POINT(probe, 8, "%0 %1 %2 %3 %4 %5 %6 %7", __stap_arg8);	\
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 8, "%0 %1 %2 %3 %4 %5 %6 %7", __stap_arg8);	\
+       } } while (0)
 
 #define STAP_PROBE9(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
-do STAP_SEMAPHORE(probe) {						\
+  do { STAP_SEMAPHORE(provider,probe) {                                  \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = STAP_CAST(parm1);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = STAP_CAST(parm2);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm3) arg3 = STAP_CAST(parm3);		\
@@ -255,11 +263,11 @@ do STAP_SEMAPHORE(probe) {						\
   STAP_SDT_VOLATILE STAP_TYPE(parm7) arg7 = STAP_CAST(parm7);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm8) arg8 = STAP_CAST(parm8);		\
   STAP_SDT_VOLATILE STAP_TYPE(parm9) arg9 = STAP_CAST(parm9);		\
-  STAP_PROBE_POINT(probe, 9, "%0 %1 %2 %3 %4 %5 %6 %7 %8", __stap_arg9); \
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 9, "%0 %1 %2 %3 %4 %5 %6 %7 %8", __stap_arg9); \
+       } } while (0)
 
 #define STAP_PROBE10(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
-do STAP_SEMAPHORE(probe) {						\
+  do { STAP_SEMAPHORE(provider,probe) {                                  \
   STAP_SDT_VOLATILE STAP_TYPE(parm1) arg1 = parm1;			\
   STAP_SDT_VOLATILE STAP_TYPE(parm2) arg2 = parm2;			\
   STAP_SDT_VOLATILE STAP_TYPE(parm3) arg3 = parm3;			\
@@ -270,8 +278,8 @@ do STAP_SEMAPHORE(probe) {						\
   STAP_SDT_VOLATILE STAP_TYPE(parm8) arg8 = parm8;			\
   STAP_SDT_VOLATILE STAP_TYPE(parm9) arg9 = parm9;			\
   STAP_SDT_VOLATILE STAP_TYPE(parm10) arg10 = parm10;			\
-  STAP_PROBE_POINT(probe, 10, "%0 %1 %2 %3 %4 %5 %6 %7 %8 %9", __stap_arg10); \
-} while (0)
+  STAP_PROBE_POINT(provider,probe, 10, "%0 %1 %2 %3 %4 %5 %6 %7 %8 %9", __stap_arg10); \
+       } } while (0)
 
 #else /* ! defined EXPERIMENTAL_KPROBE_SDT */
 #include <unistd.h>
@@ -286,7 +294,7 @@ extern long int syscall (long int __sysno, ...) __THROW;
 # define STAP_SYSCALL __NR_getegid
 #if defined STAP_SDT_V1
 # define STAP_GUARD 0x32425250
-#define STAP_PROBE_DATA_(probe,guard,arg)		\
+#define STAP_PROBE_DATA_(provider,probe,guard,arg)		\
   __asm__ volatile (".section .probes," ALLOCSEC "\n"	\
 		    "\t.balign 8\n"			\
 		    "1:\n\t.asciz " #probe "\n"         \
@@ -299,15 +307,19 @@ extern long int syscall (long int __sysno, ...) __THROW;
 		    "\t.int 0\n"			\
 		    "\t.previous\n")
 #elif defined STAP_SDT_V2 || ! defined STAP_SDT_V1
-# define STAP_GUARD 0x3142504b
-#define STAP_PROBE_DATA_(probe,guard,argc)	\
+# define STAP_GUARD 0x3242504b
+#define STAP_PROBE_DATA_(provider,probe,guard,argc)	\
   __asm__ volatile (".section .probes," ALLOCSEC "\n"	\
 		    "\t.balign 8\n"			\
 		    "1:\n\t.asciz " #probe "\n"		\
 		    "\t.balign 8\n"			\
+		    "4:\t.asciz " #provider "\n"		\
+		    "\t.balign 8\n"			\
 		    "\t.int " #guard "\n"		\
 		    "\t.balign 8\n"			\
 		    STAP_PROBE_ADDR ("1b\n")		\
+		    "\t.balign 8\n"			\
+		    STAP_PROBE_ADDR ("4b\n")		\
 		    "\t.balign 8\n"			\
 		    STAP_PROBE_ADDR (#argc "\n")	\
 		    "\t.balign 8\n"			\
@@ -318,53 +330,53 @@ extern long int syscall (long int __sysno, ...) __THROW;
 		    "\t.previous\n")
 #endif
 
-#define STAP_PROBE_DATA(probe, guard, argc)	\
-  STAP_PROBE_DATA_(#probe,guard,argc)
+#define STAP_PROBE_DATA(provider,probe, guard, argc)	\
+  STAP_PROBE_DATA_(#provider,#probe,guard,argc)
 
-#define STAP_PROBE(provider,probe)		\
-do STAP_SEMAPHORE(probe) {			\
-  STAP_PROBE_DATA(probe,STAP_GUARD,0);		\
+#define STAP_PROBE(provider,probe)			\
+  do { STAP_SEMAPHORE(provider,probe) {			\
+      STAP_PROBE_DATA(provider,probe,STAP_GUARD,0);     \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD);	\
- } while (0)
+       } } while (0)
 
-#define STAP_PROBE1(provider,probe,parm1)			\
-do STAP_SEMAPHORE(probe) {					\
-  STAP_PROBE_DATA(probe,STAP_GUARD,1);				\
+#define STAP_PROBE1(provider,probe,parm1)				\
+  do { STAP_SEMAPHORE(provider,probe) {					\
+      STAP_PROBE_DATA(provider,probe,STAP_GUARD,1);                     \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, (size_t)parm1);	\
- } while (0)
+       } } while (0)
 
 #define STAP_PROBE2(provider,probe,parm1,parm2)				\
-do STAP_SEMAPHORE(probe) {						\
+  do { STAP_SEMAPHORE(provider,probe) {                                  \
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));}			\
   stap_probe2_args = {(size_t)parm1, (size_t)parm2};			\
-  STAP_PROBE_DATA(probe,STAP_GUARD,2);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,2);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe2_args);	\
- } while (0)
+ } } while (0)
 
 #define STAP_PROBE3(provider,probe,parm1,parm2,parm3)			\
-do STAP_SEMAPHORE(probe) {						\
+do { STAP_SEMAPHORE(provider,probe) {						\
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));}			\
   stap_probe3_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3};	\
-  STAP_PROBE_DATA(probe,STAP_GUARD,3);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,3);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe3_args);	\
- } while (0)
+ } } while (0)
 
 #define STAP_PROBE4(provider,probe,parm1,parm2,parm3,parm4)		\
-do STAP_SEMAPHORE(probe) {						\
+do { STAP_SEMAPHORE(provider,probe) {						\
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));			\
 	  size_t arg4 __attribute__((aligned(8)));}			\
   stap_probe4_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4}; \
-  STAP_PROBE_DATA(probe,STAP_GUARD,4);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,4);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD,&stap_probe4_args);	\
- } while (0)
+ } } while (0)
 
-#define STAP_PROBE5(provider,probe,parm1,parm2,parm3,parm4,parm5)	\
-do STAP_SEMAPHORE(probe) {						\
+#define STAP_PROBE5(provider,probe,parm1,parm2,parm3,parm4,parm5)		\
+do { STAP_SEMAPHORE(provider,probe) {						\
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));			\
@@ -372,12 +384,12 @@ do STAP_SEMAPHORE(probe) {						\
 	  size_t arg5 __attribute__((aligned(8)));}			\
   stap_probe5_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5};							\
-  STAP_PROBE_DATA(probe,STAP_GUARD,5);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,5);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe5_args);	\
- } while (0)
+ } } while (0)
 
 #define STAP_PROBE6(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6)	\
-do STAP_SEMAPHORE(probe) {						\
+do { STAP_SEMAPHORE(provider,probe) {						\
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));			\
@@ -386,12 +398,12 @@ do STAP_SEMAPHORE(probe) {						\
 	  size_t arg6 __attribute__((aligned(8)));}			\
   stap_probe6_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6};					\
-  STAP_PROBE_DATA(probe,STAP_GUARD,6);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,6);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe6_args);	\
- } while (0)
+ } } while (0)
 
 #define STAP_PROBE7(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7) \
-do STAP_SEMAPHORE(probe) {						\
+do { STAP_SEMAPHORE(provider,probe) {						\
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));			\
@@ -401,12 +413,12 @@ do STAP_SEMAPHORE(probe) {						\
 	  size_t arg7 __attribute__((aligned(8)));}			\
   stap_probe7_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6, (size_t)parm7};			\
-  STAP_PROBE_DATA(probe,STAP_GUARD,7);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,7);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe7_args);	\
- } while (0)
+ } } while (0)
 
 #define STAP_PROBE8(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8) \
-do STAP_SEMAPHORE(probe) {						\
+do { STAP_SEMAPHORE(provider,probe) {						\
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));			\
@@ -417,12 +429,12 @@ do STAP_SEMAPHORE(probe) {						\
 	  size_t arg8 __attribute__((aligned(8)));}			\
   stap_probe8_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8};	\
-  STAP_PROBE_DATA(probe,STAP_GUARD,8);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,8);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe8_args);	\
- } while (0)
+ } } while (0)
 
 #define STAP_PROBE9(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9) \
-do STAP_SEMAPHORE(probe) {						\
+do { STAP_SEMAPHORE(provider,probe) {						\
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));			\
@@ -434,12 +446,12 @@ do STAP_SEMAPHORE(probe) {						\
 	  size_t arg9 __attribute__((aligned(8)));}			\
   stap_probe9_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8, (size_t)parm9}; \
-  STAP_PROBE_DATA(probe,STAP_GUARD,9);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,9);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe9_args);	\
- } while (0)
+ } } while (0)
 
 #define STAP_PROBE10(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
-do STAP_SEMAPHORE(probe) {						\
+do { STAP_SEMAPHORE(provider,probe) {						\
   __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));			\
@@ -452,9 +464,9 @@ do STAP_SEMAPHORE(probe) {						\
 	  size_t arg10 __attribute__((aligned(8)));}			\
   stap_probe10_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
 	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8, (size_t)parm9, (size_t)parm10}; \
-  STAP_PROBE_DATA(probe,STAP_GUARD,10);					\
+  STAP_PROBE_DATA(provider,probe,STAP_GUARD,10);                        \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe10_args);	\
- } while (0)
+ } } while (0)
 
 #endif
 

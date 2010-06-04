@@ -260,6 +260,7 @@ static const string TOK_MAXACTIVE("maxactive");
 static const string TOK_STATEMENT("statement");
 static const string TOK_ABSOLUTE("absolute");
 static const string TOK_PROCESS("process");
+static const string TOK_PROVIDER("provider");
 static const string TOK_MARK("mark");
 static const string TOK_TRACE("trace");
 static const string TOK_LABEL("label");
@@ -3907,9 +3908,16 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
     ->bind_unprivileged()
     ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
+    ->bind_unprivileged()
+    ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
     ->bind_unprivileged()
     ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
+    ->bind_unprivileged()
+    ->bind(dw);
+  // XXX what uses this?
   root->bind_str(TOK_PROCESS)->bind_num(TOK_MARK)
     ->bind_unprivileged()
     ->bind(dw);
@@ -4377,11 +4385,12 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   sdt_uprobe_var_expanding_visitor(systemtap_session& s,
                                    int elf_machine,
                                    const string & process_name,
+				   const string & provider_name,
 				   const string & probe_name,
 				   const string & arg_string,
 				   int arg_count):
     session (s), process_name (process_name),
-    probe_name (probe_name), arg_count (arg_count)
+    provider_name (provider_name), probe_name (probe_name), arg_count (arg_count)
   {
     /* Register name mapping table depends on the elf machine of this particular
        probe target process/file, not upon the host.  So we can't just
@@ -4424,6 +4433,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   }
   systemtap_session& session;
   const string & process_name;
+  const string & provider_name;
   const string & probe_name;
   int arg_count;
   vector<string> arg_tokens;
@@ -4436,16 +4446,18 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
 struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
 {
   sdt_kprobe_var_expanding_visitor(const string & process_name,
+				   const string & provider_name,
 				   const string & probe_name,
 				   const string & arg_string,
 				   int arg_count):
-    process_name (process_name), probe_name (probe_name),
+    process_name (process_name), provider_name (provider_name), probe_name (probe_name),
     arg_count (arg_count)
   {
     tokenize(arg_string, arg_tokens, " ");
     assert(arg_count >= 0 && arg_count <= 10);
   }
   const string & process_name;
+  const string & provider_name;
   const string & probe_name;
   int arg_count;
   vector<string> arg_tokens;
@@ -4469,6 +4481,16 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  provide(myname);
 	  return;
 	}
+      if (e->base_name == "$$provider")
+	{
+	  if (e->addressof)
+	    throw semantic_error("cannot take address of sdt context variable", e->tok);
+
+	  literal_string *myname = new literal_string (provider_name);
+	  myname->tok = e->tok;
+	  provide(myname);
+	  return;
+	}
       if (arg_count == 0)
 	{
 	  if (startswith(e->base_name, "$"))
@@ -4485,6 +4507,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	}
 
       int argno = 0;
+      // XXX: check for $arg prefix!
       try
 	{
 	  argno = lex_cast<int>(e->base_name.substr(4));
@@ -4603,6 +4626,16 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  provide(myname);
 	  return;
 	}
+      if (e->base_name == "$$provider")
+	{
+	  if (e->addressof)
+	    throw semantic_error("cannot take address of sdt context variable", e->tok);
+
+	  literal_string *myname = new literal_string (provider_name);
+	  myname->tok = e->tok;
+	  provide(myname);
+	  return;
+	}
 
       int argno = 0;
       try
@@ -4707,17 +4740,18 @@ struct sdt_query : public base_query
 private:
   enum probe_types
     {
-      uprobe1_type = 0x31425250, // "PRB1"
-      uprobe2_type = 0x31425055, // "UPB1"
+      uprobe1_type = 0x31425250, // "PRB1" (little-endian)
       kprobe1_type = 0x32425250, // "PRB2"
-      kprobe2_type = 0x3142504b  // "KPB1"
+      uprobe2_type = 0x32425056, // "UPB2"
+      kprobe2_type = 0x3242504b  // "KPB2"
     } probe_type;
 
   probe * base_probe;
   probe_point * base_loc;
   literal_map_t const & params;
   vector<derived_probe *> & results;
-  string mark_name;
+  string pp_mark;
+  string pp_provider;
 
   set<string> probes_handled;
 
@@ -4728,6 +4762,7 @@ private:
   uint64_t pc;
   string arg_string;
   string probe_name;
+  string provider_name;
 
   bool init_probe_scn();
   bool get_next_probe();
@@ -4746,17 +4781,21 @@ sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
   base_query(dw, params), base_probe(base_probe),
   base_loc(base_loc), params(params), results(results)
 {
-  assert(get_string_param(params, TOK_MARK, mark_name));
+  assert(get_string_param(params, TOK_MARK, pp_mark));
+  get_string_param(params, TOK_PROVIDER, pp_provider); // pp_provider == "" -> unspecified
+
   // PR10245: permit usage of dtrace-y "-" separator in marker name;
   // map it to double-underscores.
   size_t pos = 0;
   while (1) // there may be more than one
     {
-      size_t i = mark_name.find("-", pos);
+      size_t i = pp_mark.find("-", pos);
       if (i == string::npos) break;
-      mark_name.replace (i, 1, "__");
+      pp_mark.replace (i, 1, "__");
       pos = i+1; // resume searching after the inserted __
     }
+
+  // XXX: same for pp_provider?
 }
 
 
@@ -4767,7 +4806,7 @@ sdt_query::handle_query_module()
     return;
 
   if (sess.verbose > 3)
-    clog << "TOK_MARK: " << mark_name << endl;
+    clog << "TOK_MARK: " << pp_mark << " TOK_PROVIDER: " << pp_provider << endl;
 
   while (get_next_probe())
     {
@@ -4806,6 +4845,7 @@ sdt_query::handle_query_module()
           kprobe_found = true;
 	  // Expand the local variables in the probe body
 	  sdt_kprobe_var_expanding_visitor svv (module_val,
+						provider_name,
 						probe_name,
 						arg_string,
 						arg_count);
@@ -4824,6 +4864,7 @@ sdt_query::handle_query_module()
           int elf_machine = em->e_machine;
 	  sdt_uprobe_var_expanding_visitor svv (sess, elf_machine,
                                                 module_val,
+						provider_name,
 						probe_name,
 						arg_string,
 						arg_count);
@@ -4837,6 +4878,7 @@ sdt_query::handle_query_module()
 
       else
         {
+          // XXX: why not derive_probes() in the uprobes case case too?
           literal_map_t params;
           for (unsigned i = 0; i < new_location->components.size(); ++i)
             {
@@ -4976,6 +5018,7 @@ sdt_query::get_next_probe()
       if (probe_type == uprobe1_type || probe_type == kprobe1_type)
 	{
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v1->name - (char*)probe_scn_addr);
+          provider_name = ""; // unknown
 	  if (probe_type == uprobe1_type)
 	    {
 	      pc = pbe_v1->arg;
@@ -4988,6 +5031,7 @@ sdt_query::get_next_probe()
       else if (probe_type == uprobe2_type || probe_type == kprobe2_type)
 	{
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v2->name - (char*)probe_scn_addr);
+	  provider_name = (char*)((char*)pdata->d_buf + pbe_v2->provider - (char*)probe_scn_addr);
 	  arg_count = pbe_v2->arg_count;
 	  pc = pbe_v2->pc;
 	  if (pbe_v2->arg_string)
@@ -4995,12 +5039,11 @@ sdt_query::get_next_probe()
 	  probe_scn_offset += sizeof (stap_sdt_probe_entry_v2);
 	}
       if (sess.verbose > 4)
-	clog << "saw .probes " << probe_name
+	clog << "saw .probes " << probe_name << (provider_name != "" ? " (provider "+provider_name+") " : "")
 	     << "@0x" << hex << pc << dec << endl;
 
-      if ((mark_name == probe_name)
-	  || (dw.name_has_wildcard (mark_name)
-	      && dw.function_name_matches_pattern (probe_name, mark_name)))
+      if (dw.function_name_matches_pattern (probe_name, pp_mark)
+          && ((pp_provider == "") || dw.function_name_matches_pattern (provider_name, pp_provider)))
 	return true;
       else
 	continue;
@@ -5012,15 +5055,29 @@ sdt_query::get_next_probe()
 void
 sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
 {
-  string semaphore = probe_name + "_semaphore";
-  Dwarf_Addr addr = lookup_symbol_address(dw.module, semaphore.c_str());
-  if (addr)
-    {
-      if (dwfl_module_relocations (dw.module) > 0)
-	dwfl_module_relocate_address (dw.module, &addr);
-      for (unsigned i = start; i < results.size(); ++i)
-	results[i]->sdt_semaphore_addr = addr;
-    }
+  for (unsigned i=0; i<2; i++) {
+    // prefer with-provider symbol; look without provider prefix for backward compatibility only
+    string semaphore = (i==0 ? (provider_name+"_") : "") + probe_name + "_semaphore";
+    // XXX: multiple addresses?
+    if (sess.verbose > 2)
+      clog << "looking for semaphore symbol " << semaphore;
+
+    Dwarf_Addr addr = lookup_symbol_address(dw.module, semaphore.c_str());
+    if (addr)
+      {
+        if (dwfl_module_relocations (dw.module) > 0)
+          dwfl_module_relocate_address (dw.module, &addr);
+        // XXX: relocation basis?
+        for (unsigned i = start; i < results.size(); ++i)
+          results[i]->sdt_semaphore_addr = addr;
+        if (sess.verbose > 2)
+          clog << ", found at 0x" << hex << addr << dec << endl;
+        return;
+      }
+    else
+      if (sess.verbose > 2)
+        clog << ", not found" << endl;
+  }
 }
 
 
@@ -5031,7 +5088,7 @@ sdt_query::convert_probe (probe *base)
   b->tok = base->body->tok;
 
   // XXX: Does this also need to happen for i386 under x86_64 stap?
-#ifdef __i386__
+#ifdef __i386__ /* XXX: probably s.architecture[] instead */
   if (have_kprobe())
     {
       functioncall *rp = new functioncall;
@@ -5121,6 +5178,9 @@ sdt_query::convert_location ()
         specific_loc->components[i] =
           new probe_point::component(TOK_MARK, new literal_string(probe_name));
 
+        // XXX: similarly, fill in a TOK_PROVIDER() on the base_loc if
+        // one was missing/unspecified/wildcarded.
+
 	if (sess.verbose > 3)
 	  switch (probe_type)
 	    {
@@ -5141,7 +5201,7 @@ sdt_query::convert_location ()
 	    break;
 	    default:
               clog << "probe_type == use_uprobe_no_dwarf, use label name: "
-		   << "_stapprobe1_" << mark_name << endl;
+		   << "_stapprobe1_" << pp_mark << endl;
           }
 
         switch (probe_type)
@@ -5163,13 +5223,13 @@ sdt_query::convert_location ()
 	      derived_loc->components.erase (derived_loc->components.begin() + i - 1);
 	    break;
 
-          default:
+          default: // deprecated
             // process("executable").function("*").label("_stapprobe1_MARK_NAME")
             derived_loc->components[i] =
               new probe_point::component(TOK_FUNCTION, new literal_string("*"));
             derived_loc->components.push_back
               (new probe_point::component(TOK_LABEL,
-                                          new literal_string("_stapprobe1_" + mark_name)));
+                                          new literal_string("_stapprobe1_" + pp_mark)));
             break;
           }
       }
@@ -5228,8 +5288,8 @@ dwarf_builder::build(systemtap_session & sess,
   if (sess.verbose > 3)
     clog << "dwarf_builder::build for " << module_name << endl;
 
-  string mark_name; // NB: PR10245: dummy value, need not substitute - => __
-  if (get_param(parameters, TOK_MARK, mark_name))
+  string dummy_mark_name; // NB: PR10245: dummy value, need not substitute - => __
+  if (get_param(parameters, TOK_MARK, dummy_mark_name))
     {
       sdt_query sdtq(base, location, *dw, parameters, finished_results);
       dw->iterate_over_modules(&query_module, &sdtq);

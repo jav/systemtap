@@ -1,10 +1,9 @@
 * What's new
 
-- The <sys/sdt.h> user-space markers no longer default to implicit
-  MARKER_NAME_ENABLED() for each marker.  To check for enabled markers use:
-  if (MARKER_NAME_ENABLED()) MARKER_NAME() 
-  To enable the implicit behavior compile your sdt.h-instrumented
-  program with -DSTAP_SDT_IMPLICIT_ENABLED
+- The <sys/sdt.h> user-space markers no longer default to an implicit
+  MARKER_NAME_ENABLED() semaphore check for each marker.  To check for
+  enabled markers use a .d declaration file, then:
+     if (MARKER_NAME_ENABLED()) MARKER_NAME()
 
 - Hyphenated <sys/sdt.h> marker names such as process(...).mark("foo-bar")
   are now accepted in scripts.  They are mapped to the double-underscore
@@ -13,7 +12,10 @@
 - Prototype support for debuginfo-less <sys/sdt.h> user-space markers
   is included for some architectures (i686 and x86-64 initially).
   Compile your sdt.h-instrumented program with -DSTAP_SDT_V2 to
-  activate this mode.
+  activate this mode.  This implementation also supports preserving
+  the "provider" name associated with a marker:
+    probe process("foo").provider("bar").mark("baz") to match
+    STAP_PROBE<n>(bar, baz <...>)
 
 - Embedded-C may be used within expressions as values, when in guru mode:
      num = %{ LINUX_VERSION_CODE %}               // int64_t

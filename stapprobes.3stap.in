@@ -513,19 +513,21 @@ shared libraries may be
 probed:
 .SAMPLE
 process("PATH").mark("LABEL")
+process("PATH").provider("PROVIDER").mark("LABEL")
 .ESAMPLE
 .PP
 A
 .B .mark
 probe gets called via a static probe which is defined in the
-application by
-STAP_PROBE1(handle,LABEL,arg1), which is defined in sdt.h.  The handle is an application handle,
-LABEL corresponds to the .mark argument, and arg1 is the argument.
-STAP_PROBE1 is used for probes with 1 argument, STAP_PROBE2 is used
-for probes with 2 arguments, and so on.
-The arguments of the probe are available in the context variables
-$arg1, $arg2, ...  An alternative to using the STAP_PROBE macros is to
-use the dtrace script to create custom macros.
+application by STAP_PROBE1(PROVIDER,LABEL,arg1), which is defined in
+sdt.h.  The handle is an application handle, LABEL corresponds to
+the .mark argument, and arg1 is the argument.  STAP_PROBE1 is used for
+probes with 1 argument, STAP_PROBE2 is used for probes with 2
+arguments, and so on.  The arguments of the probe are available in the
+context variables $arg1, $arg2, ...  An alternative to using the
+STAP_PROBE macros is to use the dtrace script to create custom macros.
+Additionally, the variables $$name and $$provider are available as
+parts of the probe point name.
 
 .PP
 Finally, full symbolic source-level probes in user-space programs
