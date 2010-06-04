@@ -69,10 +69,8 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			     sections, but .absolute exes are also necessary
 			     atm. */
 			  return stap_add_vma_map_info(tsk->group_leader,
-						       addr,
-						       addr + length,
-						       offset, dentry,
-						       module);
+						       addr, addr + length,
+						       dentry, module);
 			}
 		}
 	}
@@ -135,7 +133,7 @@ static unsigned long _stp_module_relocate(const char *module,
 		  }
 		  if (stap_find_vma_map_info_user(tsk->group_leader, m,
 						  &addr_offset, NULL,
-						  NULL, NULL) != 0) {
+						  NULL) != 0) {
 		    return 0;
 		  }
 		}
@@ -165,8 +163,7 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
     {
       unsigned long vm_start = 0;
       if (stap_find_vma_map_info(task->group_leader, addr,
-				 &vm_start, NULL,
-				 NULL, NULL, &user) == 0)
+				 &vm_start, NULL, NULL, &user) == 0)
 	if (user != NULL)
 	  {
 	    struct _stp_module *m = (struct _stp_module *)user;

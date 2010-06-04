@@ -31,7 +31,6 @@ struct __stp_tf_vma_entry {
 	pid_t pid;
 	unsigned long vm_start;
 	unsigned long vm_end;
-	unsigned long vm_pgoff;
 	struct dentry *dentry;
 
 	// User data (possibly stp_module)
@@ -126,8 +125,8 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 // Add the vma info to the vma map hash table.
 // Caller is responsible for dentry lifetime.
 static int
-stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
-		      unsigned long vm_end, unsigned long vm_pgoff,
+stap_add_vma_map_info(struct task_struct *tsk,
+		      unsigned long vm_start, unsigned long vm_end,
 		      struct dentry *dentry, void *user)
 {
 	struct hlist_head *head;
@@ -160,7 +159,6 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 	entry->pid = tsk->pid;
 	entry->vm_start = vm_start;
 	entry->vm_end = vm_end;
-	entry->vm_pgoff = vm_pgoff;
 	entry->dentry = dentry;
 	entry->user = user;
 
@@ -203,8 +201,7 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start)
 static int
 stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 		       unsigned long *vm_start, unsigned long *vm_end,
-		       unsigned long *vm_pgoff, struct dentry **dentry,
-		       void **user)
+		       struct dentry **dentry, void **user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -228,8 +225,6 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 			*vm_start = found_entry->vm_start;
 		if (vm_end != NULL)
 			*vm_end = found_entry->vm_end;
-		if (vm_pgoff != NULL)
-			*vm_pgoff = found_entry->vm_pgoff;
 		if (dentry != NULL)
 			*dentry = found_entry->dentry;
 		if (user != NULL)
@@ -247,7 +242,7 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 static int
 stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 			    unsigned long *vm_start, unsigned long *vm_end,
-			    unsigned long *vm_pgoff, struct dentry **dentry)
+			    struct dentry **dentry)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -270,8 +265,6 @@ stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 			*vm_start = found_entry->vm_start;
 		if (vm_end != NULL)
 			*vm_end = found_entry->vm_end;
-		if (vm_pgoff != NULL)
-			*vm_pgoff = found_entry->vm_pgoff;
 		if (dentry != NULL)
 			*dentry = found_entry->dentry;
 		rc = 0;
