@@ -124,7 +124,7 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 
 
 // Add the vma info to the vma map hash table.
-// If dentry not NULL, calls dget(dentry).
+// Caller is responsible for dentry lifetime.
 static int
 stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 		      unsigned long vm_end, unsigned long vm_pgoff,
@@ -164,9 +164,6 @@ stap_add_vma_map_info(struct task_struct *tsk, unsigned long vm_start,
 	entry->dentry = dentry;
 	entry->user = user;
 
-	if (dentry)
-		dget(dentry);
-
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
 	hlist_add_head(&entry->hlist, head);
 	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
@@ -191,8 +188,6 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start)
 	write_lock_irqsave(&__stp_tf_vma_lock, flags);
 	entry = __stp_tf_get_vma_map_entry_internal(tsk, vm_start);
 	if (entry != NULL) {
-		if (entry->dentry)
-			dput(entry->dentry);
 		hlist_del(&entry->hlist);
 		__stp_tf_vma_put_free_entry(entry);
                 rc = 0;
@@ -298,8 +293,6 @@ stap_drop_vma_maps(struct task_struct *tsk)
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
         hlist_for_each_entry_safe(entry, node, n, head, hlist) {
             if (tsk->pid == entry->pid) {
-		    if (entry->dentry)
-			dput(entry->dentry);
 		    hlist_del(&entry->hlist);
 		    __stp_tf_vma_put_free_entry(entry);
             }

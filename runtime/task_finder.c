@@ -648,7 +648,6 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 		offset = (vma->vm_pgoff << PAGE_SHIFT);
 		vm_flags = vma->vm_flags;
 		dentry = vma->vm_file->f_dentry;
-		dget(dentry);
 
 		// Allocate space for a path
 		mmpath_buf = _stp_kmalloc(PATH_MAX);
@@ -688,7 +687,6 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	if (mmpath_buf)
 		_stp_kfree(mmpath_buf);
 	mmput(mm);
-	dput(dentry);
 	return;
 }
 
@@ -1138,10 +1136,10 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 			    // This way they won't get deleted from
 			    // out under us.
 			    vma_cache_p->f_vfsmnt = vma->vm_file->f_vfsmnt;
+			    dget(vma_cache_p->dentry);
 			    mntget(vma_cache_p->f_vfsmnt);
 #endif
 			    vma_cache_p->dentry = vma->vm_file->f_dentry;
-			    dget(vma_cache_p->dentry);
 			    vma_cache_p->addr = vma->vm_start;
 			    vma_cache_p->length = vma->vm_end - vma->vm_start;
 			    vma_cache_p->offset = (vma->vm_pgoff << PAGE_SHIFT);
@@ -1172,6 +1170,7 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 			mmpath = d_path(vma_cache_p->dentry,
 					vma_cache_p->f_vfsmnt, mmpath_buf,
 					PATH_MAX);
+			dput(vma_cache_p->f_dentry);
 			mntput(vma_cache_p->f_vfsmnt);
 #endif
 			if (mmpath == NULL || IS_ERR(mmpath)) {
@@ -1188,7 +1187,6 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 							  vma_cache_p->offset,
 							  vma_cache_p->vm_flags);
 			}
-			dput(vma_cache_p->dentry);
 			vma_cache_p++;
 		}
 		_stp_kfree(vma_cache);
