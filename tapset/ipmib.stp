@@ -221,11 +221,8 @@ probe ipmib.InReceives=kernel.function("ip_rcv")
  * MIB: IPSTATS_MIB_INNOROUTES
  *
  */
-%( kernel_v >= "2.6.35" %?
-probe ipmib.InNoRoutes=kernel.function("ip_route_input_common").return
-%:
-probe ipmib.InNoRoutes=kernel.function("ip_route_input").return
-%)
+probe ipmib.InNoRoutes=kernel.function("ip_route_input_common").return!,
+                       kernel.function("ip_route_input").return
 {
 	skb = $skb;
 	op = 1;
@@ -244,11 +241,8 @@ probe ipmib.InNoRoutes=kernel.function("ip_route_input").return
  * MIB: IPSTATS_MIB_INADDRERRORS
  *
  */
-%( kernel_v >= "2.6.35" %?
-probe ipmib.InNoRoutes=kernel.function("ip_route_input_common").return
-%:
-probe ipmib.InAddrErrors=kernel.function("ip_route_input").return
-%)
+probe ipmib.InAddrErrors=kernel.function("ip_route_input_common").return!,
+                         kernel.function("ip_route_input").return
 {
 	skb = $skb;
 	op = 1;
