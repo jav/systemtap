@@ -5,10 +5,6 @@
 #include <linux/fs.h>
 #include <linux/dcache.h>
 
-// When handling memcpy() syscall tracing to notice memory map
-// changes, we need to cache memcpy() entry parameter values for
-// processing at memcpy() exit.
-
 // __stp_tf_vma_lock protects the hash table.
 // Documentation/spinlocks.txt suggest we can be a bit more clever
 // if we guarantee that in interrupt context we only read, not write
@@ -21,8 +17,11 @@ static DEFINE_RWLOCK(__stp_tf_vma_lock);
 #define __STP_TF_HASH_BITS 4
 #define __STP_TF_TABLE_SIZE (1 << __STP_TF_HASH_BITS)
 
+// Somewhat arbitrary default, this is often way too much for tracking
+// single process, but often too little when tracking whole system.
+// FIXME Would be nice to make this dynamic. PR11671
 #ifndef TASK_FINDER_VMA_ENTRY_ITEMS
-#define TASK_FINDER_VMA_ENTRY_ITEMS 100
+#define TASK_FINDER_VMA_ENTRY_ITEMS 1536
 #endif
 
 struct __stp_tf_vma_entry {
@@ -44,7 +43,7 @@ static struct hlist_head __stp_tf_vma_free_list[1];
 
 static struct hlist_head __stp_tf_vma_map[__STP_TF_TABLE_SIZE];
 
-// tap_initialize_vma_map):  Initialize the free list.  Grabs the
+// stap_initialize_vma_map():  Initialize the free list.  Grabs the
 // spinlock.  Should be called before any of the other stap_*_vma_map
 // functions.
 static void
