@@ -129,22 +129,33 @@ probe_point::component::component (std::string const & f, literal * a):
 
 
 vardecl::vardecl ():
-  arity (-1), maxsize(0), init(NULL), skip_init(false)
+  arity_tok(0), arity (-1), maxsize(0), init(NULL), skip_init(false)
 {
 }
 
 
 void
-vardecl::set_arity (int a)
+vardecl::set_arity (int a, const token* t)
 {
   if (a < 0)
     return;
 
-  if ((arity != a && arity >= 0) || (a == 0 && maxsize > 0))
+  if (a == 0 && maxsize > 0)
     throw semantic_error ("inconsistent arity", tok);
+
+  if (arity != a && arity >= 0)
+    {
+      semantic_error err ("inconsistent arity (" + lex_cast(arity) +
+			  " vs. " + lex_cast(a) + ")", t?:tok);
+      if (arity_tok)
+	err.chain = new semantic_error ("arity " + lex_cast(arity) +
+					" first inferred here", arity_tok);
+      throw err;
+    }
 
   if (arity != a)
     {
+      arity_tok = t;
       arity = a;
       index_types.resize (arity);
       for (int i=0; i<arity; i++)

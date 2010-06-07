@@ -232,7 +232,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 	vardecl* v = new vardecl;
 	v->name = "__mark_arg" + lex_cast(i+1);
 	v->tok = this->tok;
-	v->set_arity(0);
+	v->set_arity(0, this->tok);
 	v->type = mark_args[i]->stp_type;
 	v->skip_init = true;
 	this->locals.push_back (v);

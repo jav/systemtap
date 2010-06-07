@@ -1725,7 +1725,7 @@ symresolution_info::visit_symbol (symbol* e)
       vardecl* v = new vardecl;
       v->name = e->name;
       v->tok = e->tok;
-      v->set_arity(0);
+      v->set_arity(0, e->tok);
       if (current_function)
         current_function->locals.push_back (v);
       else if (current_probe)
@@ -1817,7 +1817,7 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
       for (unsigned i=0; i<locals.size(); i++)
         if (locals[i]->name == name)
           {
-            locals[i]->set_arity (arity);
+            locals[i]->set_arity (arity, tok);
             return locals[i];
           }
     }
@@ -1828,7 +1828,7 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
       if (current_function->formal_args[i]->name == name)
 	{
 	  // NB: no need to check arity here: formal args always scalar
-	  current_function->formal_args[i]->set_arity (0);
+	  current_function->formal_args[i]->set_arity (0, tok);
 	  return current_function->formal_args[i];
 	}
 
@@ -1836,7 +1836,7 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
   for (unsigned i=0; i<session.globals.size(); i++)
     if (session.globals[i]->name == name)
       {
-	session.globals[i]->set_arity (arity);
+	session.globals[i]->set_arity (arity, tok);
         if (! session.suppress_warnings)
           {
             vardecl* v = session.globals[i];
@@ -1859,7 +1859,7 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
           vardecl* g = f->globals[j];
           if (g->name == name)
             {
-	      g->set_arity (arity);
+	      g->set_arity (arity, tok);
 
               // put library into the queue if not already there
               if (find (session.files.begin(), session.files.end(), f)

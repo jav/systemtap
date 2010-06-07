@@ -408,7 +408,7 @@ utrace_var_expanding_visitor::visit_target_symbol_cached (target_symbol* e)
 	   vd->tok = e->tok;
 	   vd->name = tidsym->name;
 	   vd->type = pe_long;
-	   vd->set_arity(0);
+	   vd->set_arity(0, e->tok);
 	   add_probe->locals.push_back(vd);
 	}
 

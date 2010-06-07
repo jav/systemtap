@@ -7252,7 +7252,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 	vardecl* v = new vardecl;
 	v->name = "__tracepoint_arg_" + args[i].name;
 	v->tok = this->tok;
-	v->set_arity(0);
+	v->set_arity(0, this->tok);
 	v->type = pe_long;
 	v->skip_init = true;
 	this->locals.push_back (v);

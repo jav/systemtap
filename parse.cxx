@@ -1504,7 +1504,7 @@ parser::parse_global (vector <vardecl*>& globals, vector<probe*>&)
 	{
 	  if (!d->compatible_arity(0))
 	    throw parse_error("only scalar globals can be initialized");
-	  d->set_arity(0);
+	  d->set_arity(0, t);
 	  next ();
 	  d->init = parse_literal ();
 	  d->type = d->init->type;

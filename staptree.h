@@ -475,8 +475,9 @@ struct vardecl: public symboldecl
   void print (std::ostream& o) const;
   void printsig (std::ostream& o) const;
   vardecl ();
-  void set_arity (int arity);
+  void set_arity (int arity, const token* t);
   bool compatible_arity (int a);
+  const token* arity_tok; // site where arity was first resolved
   int arity; // -1: unknown; 0: scalar; >0: array
   int maxsize; // upperbound on size for arrays
   std::vector<exp_type> index_types; // for arrays only
