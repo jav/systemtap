@@ -5,6 +5,6 @@ function bar ()
   return 0
 }
 
-probe foo {
+probe begin {
   bar (1, 2)  # arg count mismatch
 }

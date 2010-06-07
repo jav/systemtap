@@ -2,7 +2,7 @@
 
 global a
 
-probe foo {
+probe begin {
   a[4] = 1;
   a = 2;
 }
