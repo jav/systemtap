@@ -1,8 +1,5 @@
-#! stap -p2
-
-function zoo (p) { p <<< 5; return 0 }  # passing stats as function arg
+#! stap -up2
 
 probe begin {
   bar = 2 + "string";  # mixing integer+string arithmetic
-  zoo (car)
 }
