@@ -1580,11 +1580,10 @@ semantic_pass (systemtap_session& s)
       if (rc == 0) rc = semantic_pass_optimize2 (s);
       if (rc == 0) rc = semantic_pass_vars (s);
       if (rc == 0) rc = semantic_pass_stats (s);
+      if (rc == 0) embeddedcode_info_pass (s);
 
       if (s.num_errors() == 0 && s.probes.size() == 0 && !s.listing_mode)
         throw semantic_error ("no probes found");
-
-      embeddedcode_info_pass (s);
     }
   catch (const semantic_error& e)
     {

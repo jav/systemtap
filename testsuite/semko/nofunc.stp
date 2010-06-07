@@ -1,0 +1,5 @@
+#! stap -p2
+
+probe begin {
+  foo ()  # function is MIA
+}
