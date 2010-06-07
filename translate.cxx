@@ -1210,11 +1210,13 @@ c_unparser::emit_module_init ()
   o->newline() << "#endif";
 
   // PR10228: set up symbol table-related task finders.
-  o->newline() << "#if defined(STP_NEED_VMA_TRACKER)";
-  o->newline() << "_stp_sym_init();";
-  o->newline() << "#else";
-  o->newline() << "if (_stp_need_vma_tracker == 1) _stp_sym_init();";
-  o->newline() << "#endif";
+  if (session->need_vma_tracker)
+    {
+      o->newline() << "stap_start_task_finder();";
+      o->newline() << "_stp_sym_init();";
+    }
+  else
+    o->newline() << "if (_stp_need_vma_tracker == 1) _stp_sym_init();";
   // NB: we don't need per-_stp_module task_finders, since a single common one
   // set up in runtime/sym.c's _stp_sym_init() will scan through all _stp_modules.
   o->newline() << "(void) probe_point;";
@@ -1474,6 +1476,10 @@ c_unparser::emit_module_exit ()
   o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
   o->newline() << " _stp_kill_time();";  // Go to a beach.  Drink a beer.
   o->newline() << "#endif";
+
+  // teardown task_finder (if needed by vma tracker)
+  if (session->need_vma_tracker)
+    o->newline() << "stap_stop_task_finder();";
 
   // print final error/skipped counts if non-zero
   o->newline() << "if (atomic_read (& skipped_count) || "

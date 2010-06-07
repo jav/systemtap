@@ -140,6 +140,7 @@ struct systemtap_session
   std::string client_options_disallowed;
   bool unprivileged;
   bool omit_werror;
+  bool need_vma_tracker;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (elaborate.cxx)

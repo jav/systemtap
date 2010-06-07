@@ -1157,6 +1157,50 @@ semantic_pass_conditions (systemtap_session & sess)
   return sess.num_errors();
 }
 
+// ------------------------------------------------------------------------
+
+
+// Simple visitor that just goes through all embedded code blocks that
+// are available at the end  all the optimizations to register any
+// relevant pragmas or other indicators found, so that session flags can
+// be set that can be inspected at translation time to trigger any
+// necessary initialization of code needed by the embedded code functions.
+
+// This is only for pragmas that don't have any other side-effect than
+// needing some initialization at module init time. Currently only handles
+// /* pragma:vma */.
+
+// /* pragma:uprobes */ is handled during the typeresolution_info pass.
+// /* pure */, /* unprivileged */ and /* guru */ are handled by the
+// varuse_collecting_visitor.
+
+struct embeddedcode_info: public functioncall_traversing_visitor
+{
+protected:
+  systemtap_session& session;
+
+public:
+  embeddedcode_info (systemtap_session& s): session(s) { }
+
+  void visit_embeddedcode (embeddedcode* c)
+  {
+    if (! session.need_vma_tracker
+	&& c->code.find("/* pragma:vma */") != string::npos)
+      {
+	session.need_vma_tracker = true;
+	if (session.verbose > 2)
+	  clog << "Turning on task_finder vma_tracker, pragma:vma found in "
+	       << current_function->name << endl;
+      }
+  }
+};
+
+void embeddedcode_info_pass (systemtap_session& s)
+{
+  embeddedcode_info eci (s);
+  for (unsigned i=0; i<s.probes.size(); i++)
+    s.probes[i]->body->visit (& eci);
+}
 
 // ------------------------------------------------------------------------
 
@@ -1539,6 +1583,8 @@ semantic_pass (systemtap_session& s)
 
       if (s.num_errors() == 0 && s.probes.size() == 0 && !s.listing_mode)
         throw semantic_error ("no probes found");
+
+      embeddedcode_info_pass (s);
     }
   catch (const semantic_error& e)
     {

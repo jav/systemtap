@@ -132,6 +132,7 @@ systemtap_session::initialize()
   skip_badvars = false;
   unprivileged = false;
   omit_werror = false;
+  need_vma_tracker = false;
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;

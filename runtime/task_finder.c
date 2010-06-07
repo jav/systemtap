@@ -1440,6 +1440,8 @@ static struct utrace_engine_ops __stp_utrace_task_finder_ops = {
 	.report_death = stap_utrace_task_finder_report_death,
 };
 
+static int __stp_task_finder_started = 0;
+
 static int
 stap_start_task_finder(void)
 {
@@ -1447,6 +1449,11 @@ stap_start_task_finder(void)
 	struct task_struct *grp, *tsk;
 	char *mmpath_buf;
 	uid_t tsk_euid;
+
+	if (__stp_task_finder_started)
+		return 0;
+
+	__stp_task_finder_started = 1;
 
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
@@ -1563,6 +1570,11 @@ stap_stop_task_finder(void)
 #ifdef DEBUG_TASK_FINDER
 	int i = 0;
 #endif
+
+	if (! __stp_task_finder_started)
+		return;
+
+	__stp_task_finder_started = 0;
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPING);
 	debug_task_finder_report();

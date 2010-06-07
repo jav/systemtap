@@ -13,9 +13,6 @@
 #ifndef STP_NEED_SYMBOL_DATA
 #define STP_NEED_SYMBOL_DATA 1
 #endif
-#ifndef STP_NEED_VMA_TRACKER
-#define STP_NEED_VMA_TRACKER 1
-#endif
 %}
 
 /**
@@ -24,7 +21,8 @@
  *  Equivalent to print_ustack(ubacktrace()), 
  *  except that deeper stack nesting may be supported.  Return nothing.
  */
-function print_ubacktrace () %{ /* unprivileged */ /* pragma:uprobes */
+function print_ubacktrace () %{
+/* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
         assert_is_myproc();
 	if (CONTEXT->regs) {
 		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE,
@@ -41,7 +39,8 @@ function print_ubacktrace () %{ /* unprivileged */ /* pragma:uprobes */
  *  shorter (just name and offset), and the function address is
  *  printed if it can't be mapped to a name.
  */
-function print_ubacktrace_brief () %{ /* unprivileged */ /* pragma:uprobes */
+function print_ubacktrace_brief () %{
+/* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
         assert_is_myproc();
 	if (CONTEXT->regs) {
 		_stp_stack_print(CONTEXT->regs, SYM_VERBOSE_BRIEF, CONTEXT->pi,
@@ -59,7 +58,8 @@ function print_ubacktrace_brief () %{ /* unprivileged */ /* pragma:uprobes */
  *  string length. Returns empty string when current probe point cannot
  *  determine user backtrace.
  */
-function ubacktrace:string () %{ /* pure */ /* unprivileged */ /* pragma:uprobes */
+function ubacktrace:string () %{
+/* pure */ /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
         assert_is_myproc();
 	if (CONTEXT->regs)
 		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN,
