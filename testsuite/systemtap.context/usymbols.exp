@@ -36,15 +36,15 @@ set testscript {
     probe syscall.rt_sigaction {
       if (pid() == target() && execname() == "%s") {
 	  handler = $act->sa_handler;
-	  printf("handler: %%s\n", usymname(handler));
+	  printf("handler: %%s (%%s)\n", usymname(handler), umodname(handler));
       }
     }
     /* track through uprobes, so as to make sure we have the symbols */
     probe process("%s").function("*") { printf(""); }
 }
 
-set output {handler: main_handler
-handler: lib_handler}
+set output {handler: main_handler (usymbols)
+handler: lib_handler (libusymbols.so)}
 
 # Used to need to run stap with both the exe and the libraries used as -d args.
 # Now use --ldd to pick up both exe and the library we just linked in.

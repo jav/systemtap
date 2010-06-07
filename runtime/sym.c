@@ -44,7 +44,7 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			   unsigned long offset,
 			   unsigned long vm_flags)
 {
-	int i;
+	int i, res;
 	struct _stp_module *module = NULL;
 
 #ifdef DEBUG_TASK_FINDER_VMA
@@ -68,11 +68,34 @@ static int _stp_tf_mmap_cb(struct stap_task_finder_target *tgt,
 			  /* XXX We really only need to register .dynamic
 			     sections, but .absolute exes are also necessary
 			     atm. */
-			  return stap_add_vma_map_info(tsk->group_leader,
-						       addr, addr + length,
-						       dentry, module);
+			  res = stap_add_vma_map_info(tsk->group_leader,
+						      addr, addr + length,
+						      dentry, module);
+			  /* Warn, but don't error out. */
+			  if (res != 0)
+				_stp_warn ("Couldn't register module '%s' for pid %d\n", dentry->d_name.name, tsk->group_leader->pid);
+			  return 0;
 			}
 		}
+
+		/* None of the tracked modules matched, register without,
+		 * to make sure we can lookup the name later. Ignore errors,
+		 * we will just report unknown when asked and tables were
+		 * full. Restrict to target process when given to preserve
+		 * vma_map entry slots. */
+		if (_stp_target == 0
+		    || _stp_target == tsk->group_leader->pid)
+		  {
+		    res = stap_add_vma_map_info(tsk->group_leader, addr,
+						addr + length, dentry, NULL);
+#ifdef DEBUG_TASK_FINDER_VMA
+		    _stp_dbug(__FUNCTION__, __LINE__,
+			      "registered '%s' for %d (res:%d)\n",
+			      dentry->d_name.name, tsk->group_leader->pid,
+			      res);
+#endif
+		  }
+
 	}
 	return 0;
 }
@@ -85,6 +108,17 @@ static int _stp_tf_munmap_cb(struct stap_task_finder_target *tgt,
         /* Unconditionally remove vm map info, ignore if not present. */
 	stap_remove_vma_map_info(tsk->group_leader, addr);
 	return 0;
+}
+
+static const char *_stp_module_name(struct task_struct *tsk, unsigned long addr)
+{
+	struct dentry *dentry = NULL;
+	if (stap_find_vma_map_info(tsk->group_leader, addr,
+				   NULL, NULL, &dentry, NULL) == 0)
+		if (dentry != NULL)
+			return dentry->d_name.name;
+
+	return NULL;
 }
 
 /* Returns absolute address of offset into module/section for given task.

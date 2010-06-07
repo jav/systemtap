@@ -1,0 +1,30 @@
+// User context tapset
+// Copyright (C) 2010 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#ifndef STP_NEED_VMA_TRACKER
+#define STP_NEED_VMA_TRACKER 1
+#endif
+%}
+
+/**
+ * sfunction umodname - Returns the (short) name of the user module. EXPERIMENTAL!
+ *
+ * Returns the short name of the user space module for the current taks that
+ * that the given address is part of. Returns "<unknown>" when the address
+ * isn't in a (mapped in) module, or the module cannot be found for some reason.
+ */
+function umodname:string (addr:long) %{
+/* pure */ /* unprivileged */ /* pragma:vma */
+  const char *name = NULL;
+  assert_is_myproc();
+  name =_stp_module_name(current, THIS->addr);
+  if (!name)
+    name = "<unknown>";
+  strlcpy (THIS->__retvalue, name, MAXSTRINGLEN);
+%}
