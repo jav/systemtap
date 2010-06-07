@@ -1645,12 +1645,13 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
 	  if (d)
 	    array->referent = d;
 	  else
-            {
-              stringstream msg;
-              msg << "unresolved arity-" << e->indexes.size()
-                  << " global array " << array->name;
-              throw semantic_error (msg.str(), e->tok);
-            }
+	    {
+	      stringstream msg;
+	      msg << "unresolved arity-" << e->indexes.size()
+		  << " global array " << array->name
+		  << ", missing global declaration? ";
+	      throw semantic_error (msg.str(), e->tok);
+	    }
 	}
     }
   else
@@ -1757,19 +1758,11 @@ symresolution_info::visit_arrayindex (arrayindex* e)
 	array->referent = d;
       else
 	{
-	  // new local
-	  vardecl* v = new vardecl;
-	  v->set_arity(e->indexes.size());
-	  v->name = array->name;
-	  v->tok = array->tok;
-	  if (current_function)
-	    current_function->locals.push_back (v);
-	  else if (current_probe)
-	    current_probe->locals.push_back (v);
-	  else
-	    // must not happen
-	    throw semantic_error ("no current probe/function", e->tok);
-	  array->referent = v;
+	  stringstream msg;
+	  msg << "unresolved arity-" << e->indexes.size()
+	      << " global array " << array->name
+	      << ", missing global declaration? ";
+	  throw semantic_error (msg.str(), e->tok);
 	}
     }
   else
@@ -1822,8 +1815,7 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
 
 
       for (unsigned i=0; i<locals.size(); i++)
-        if (locals[i]->name == name
-            && locals[i]->compatible_arity(arity))
+        if (locals[i]->name == name)
           {
             locals[i]->set_arity (arity);
             return locals[i];
@@ -1842,8 +1834,7 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
 
   // search processed globals
   for (unsigned i=0; i<session.globals.size(); i++)
-    if (session.globals[i]->name == name
-	&& session.globals[i]->compatible_arity(arity))
+    if (session.globals[i]->name == name)
       {
 	session.globals[i]->set_arity (arity);
         if (! session.suppress_warnings)
@@ -1866,7 +1857,7 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
       for (unsigned j=0; j<f->globals.size(); j++)
         {
           vardecl* g = f->globals[j];
-          if (g->name == name && g->compatible_arity (arity))
+          if (g->name == name)
             {
 	      g->set_arity (arity);
 
