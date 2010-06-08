@@ -118,6 +118,8 @@ if {[installtest_p]} then {
 # Test some argument strings which have failed in the past. This is useful
 # for debugging a currently failing case and helps to ensure that previously
 # fixed cases do not regress.
+
+# TODO: Debug this one: "-p1 -I -e\\;/ -Dhn6 -cejijqmi0 -S3-k -"
 set previously_fixed [list \
   "-p1 -I=\\w94\nbh -e -Dhfuo0iu7 -c" \
   "-p1 -I8o\\2ie -e'1\\ -D\n\" -c" \

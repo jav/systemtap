@@ -41,10 +41,12 @@ extern "C" {
 #include "nsscommon.h"
 #endif
 
-#include <stdlib.h>
 #include <glob.h>
 }
 #endif
+
+#include <cstdlib>
+#include <cstdio>
 
 using namespace std;
 
@@ -75,7 +77,7 @@ void resolve_callback(
     const browsing_context *context = (browsing_context *)userdata;
     vector<compile_server_info> *servers = context->servers;
 
-    /* Called whenever a service has been resolved successfully or timed out */
+    // Called whenever a service has been resolved successfully or timed out.
 
     switch (event) {
         case AVAHI_RESOLVER_FAILURE:
@@ -93,7 +95,7 @@ void resolve_callback(
 
 	    // Save the information of interest.
 	    compile_server_info info;
-	    info.ip_address = a;
+	    info.ip_address = strdup (a);
 	    info.port = port;
 	    info.sysinfo = t;
 	    info.host_name = host_name;
@@ -125,7 +127,7 @@ void browse_callback(
     AvahiSimplePoll *simple_poll = context->simple_poll;
     assert(b);
 
-    /* Called whenever a new services becomes available on the LAN or is removed from the LAN */
+    // Called whenever a new services becomes available on the LAN or is removed from the LAN.
 
     switch (event) {
         case AVAHI_BROWSER_FAILURE:
@@ -136,10 +138,10 @@ void browse_callback(
 	    break;
 
         case AVAHI_BROWSER_NEW:
-            /* We ignore the returned resolver object. In the callback
-               function we free it. If the server is terminated before
-               the callback function is called the server will free
-               the resolver for us. */
+	    // We ignore the returned resolver object. In the callback
+	    // function we free it. If the server is terminated before
+	    // the callback function is called the server will free
+	    // the resolver for us.
             if (!(avahi_service_resolver_new(c, interface, protocol, name, type, domain,
 					     AVAHI_PROTO_UNSPEC, (AvahiLookupFlags)0, resolve_callback, context))) {
 	      cerr << "Failed to resolve service '" << name
@@ -161,7 +163,7 @@ void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED vo
     browsing_context *context = (browsing_context *)userdata;
     AvahiSimplePoll *simple_poll = context->simple_poll;
 
-    /* Called whenever the client or server state changes */
+    // Called whenever the client or server state changes.
 
     if (state == AVAHI_CLIENT_FAILURE) {
         cerr << "Avahi Server connection failure: "
@@ -185,26 +187,27 @@ systemtap_session::get_online_server_info (
 )
 {
 #if HAVE_AVAHI
+    // Initialize.
     AvahiClient *client = NULL;
     AvahiServiceBrowser *sb = NULL;
-    struct timeval tv;
-    int error;
-    browsing_context context;
+ 
+    // Allocate main loop object.
     AvahiSimplePoll *simple_poll;
-
-    context.servers = & servers;
-
-    /* Allocate main loop object */
     if (!(simple_poll = avahi_simple_poll_new())) {
-        cerr << "Failed to create simple poll object" << endl;
+        cerr << "Failed to create Avahi simple poll object" << endl;
         goto fail;
     }
+    browsing_context context;
     context.simple_poll = simple_poll;
+    context.servers = & servers;
 
-    /* Allocate a new client */
-    client = avahi_client_new(avahi_simple_poll_get(simple_poll), (AvahiClientFlags)0, client_callback, & context, & error);
+    // Allocate a new Avahi client
+    int error;
+    client = avahi_client_new (avahi_simple_poll_get (simple_poll),
+			       (AvahiClientFlags)0,
+			       client_callback, & context, & error);
 
-    /* Check whether creating the client object succeeded */
+    // Check whether creating the client object succeeded.
     if (!client) {
         cerr << "Failed to create Avahi client: "
 	     << avahi_strerror(error)
@@ -213,27 +216,30 @@ systemtap_session::get_online_server_info (
     }
     context.client = client;
     
-    /* Create the service browser */
-    if (!(sb = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, "_stap._tcp", NULL, (AvahiLookupFlags)0, browse_callback, & context))) {
+    // Create the service browser.
+    if (!(sb = avahi_service_browser_new (client, AVAHI_IF_UNSPEC,
+					  AVAHI_PROTO_UNSPEC, "_stap._tcp",
+					  NULL, (AvahiLookupFlags)0,
+					  browse_callback, & context))) {
         cerr << "Failed to create Avahi service browser: "
 	     << avahi_strerror(avahi_client_errno(client))
 	     << endl;
         goto fail;
     }
 
-    /* Timeout after 2 seconds.  */
+    // Timeout after 2 seconds.
+    struct timeval tv;
     avahi_simple_poll_get(simple_poll)->timeout_new(
         avahi_simple_poll_get(simple_poll),
         avahi_elapse_time(&tv, 1000*2, 0),
         timeout_callback,
         & context);
 
-    /* Run the main loop */
+    // Run the main loop.
     avahi_simple_poll_loop(simple_poll);
     
 fail:
-    
-    /* Cleanup things */
+    // Cleanup.
     if (sb)
         avahi_service_browser_free(sb);
     
@@ -281,6 +287,12 @@ compile_server_client::passes_0_4 ()
   if (rc != 0 || systemtap_session::pending_interrupts) goto done;
   rc = process_response ();
 
+  if (rc == 0 && s.last_pass == 4)
+    {
+      cout << s.module_name + ".ko";
+      cout << endl;
+    }
+
  done:
   cleanup ();
 
@@ -307,6 +319,18 @@ compile_server_client::passes_0_4 ()
            << endl;
     }
 #endif // HAVE_NSS
+
+  // Save the module, if necessary.
+  if (s.last_pass == 4)
+    s.save_module = true;
+
+  // Copy module to the current directory.
+  if (s.save_module && ! s.pending_interrupts)
+    {
+      string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
+      string module_dest_path = s.module_name + ".ko";
+      copy_file (module_src_path, module_dest_path, s.verbose > 1);
+    }
 
   STAP_PROBE1(stap, client__end, &s);
 
@@ -369,15 +393,21 @@ compile_server_client::create_request ()
 	      return rc;
 	    }
 	  rc = ! copy_file("/dev/stdin", packaged_script_dir + "/-");
+	  if (rc != 0)
+	    return rc;
 
 	  // Name the script in the packaged arguments.
-	  add_package_arg ("script/-");
+	  rc = add_package_arg ("script/-");
+	  if (rc != 0)
+	    return rc;
 	}
       else
 	{
 	  // Add the script to our package. This will also name the script
 	  // in the packaged arguments.
 	  rc = include_file_or_directory ("script", s.script_file);
+	  if (rc != 0)
+	    return rc;
 	}
     }
 
@@ -387,33 +417,49 @@ compile_server_client::create_request ()
       unsigned limit = s.include_path.size ();
       for (unsigned i = s.include_arg_start; i < limit; ++i)
 	{
-	  add_package_arg ("-I");
-	  rc |= include_file_or_directory ("tapset", s.include_path[i]);
+	  rc = add_package_arg ("-I");
+	  if (rc != 0)
+	    return rc;
+	  rc = include_file_or_directory ("tapset", s.include_path[i]);
+	  if (rc != 0)
+	    return rc;
 	}
     }
 
   // Add other options.
-  add_package_args ();
+  rc = add_package_args ();
+  if (rc != 0)
+    return rc;
 
   // Add the sysinfo file
   string sysinfo = "sysinfo: " + s.kernel_release + " " + s.architecture;
-  write_to_file (client_tmpdir + "/sysinfo", sysinfo);
+  rc = write_to_file (client_tmpdir + "/sysinfo", sysinfo);
 
   return rc;
 }
 
 // Add the arguments specified on the command line to the server request
 // package, as appropriate.
-void
+int
 compile_server_client::add_package_args ()
 {
+  int rc = 0;
   unsigned limit = s.server_args.size();
   for (unsigned i = 0; i < limit; ++i)
-    add_package_arg (s.server_args[i]);
+    {
+      rc = add_package_arg (s.server_args[i]);
+      if (rc != 0)
+	return rc;
+    }
 
   limit = s.args.size();
   for (unsigned i = 0; i < limit; ++i)
-    add_package_arg (s.args[i]);
+    {
+      rc = add_package_arg (s.args[i]);
+      if (rc != 0)
+	return rc;
+    }
+  return rc;
 }  
 
 // Symbolically link the given file or directory into the client's temp
@@ -456,12 +502,17 @@ compile_server_client::include_file_or_directory (
   assert (i == components.size () - 1);
   name += "/" + components[i];
   rc = symlink (cpath, name.c_str ());
+  if (rc) goto done;
 
   // Name this file or directory in the packaged arguments along with any
   // associated option.
   if (option)
-    add_package_arg (option);
-  add_package_arg (subdir + "/" + rpath);
+    {
+      rc = add_package_arg (option);
+      if (rc) goto done;
+    }
+
+  rc = add_package_arg (subdir + "/" + rpath);
 
  done:
   if (cpath)
@@ -478,19 +529,14 @@ compile_server_client::include_file_or_directory (
   return rc;
 }
 
-void
+int
 compile_server_client::add_package_arg (const string &arg)
 {
+  int rc = 0;
   ostringstream fname;
   fname << client_tmpdir << "/argv" << ++argc;
   write_to_file (fname.str (), arg); // NB: No terminating newline
-}
-
-void
-compile_server_client::write_to_file (const string &fname, const string &data)
-{
-  ofstream f (fname.c_str ());
-  f << data; // NB: No terminating newline
+  return rc;
 }
 
 // Package the client's temp directory into a form suitable for sending to the
@@ -502,7 +548,6 @@ compile_server_client::package_request ()
   client_zipfile = client_tmpdir + ".zip";
   string cmd = "cd " + client_tmpdir + " && zip -qr " + client_zipfile + " *";
   int rc = stap_system (s.verbose, cmd);
-
   return rc;
 }
 
@@ -550,7 +595,7 @@ compile_server_client::find_and_connect_to_server ()
   return 1; // Failure
 }
 
-// Temporary
+// Temporary until the stap-client-connect program goes away.
 extern "C"
 int
 client_main (const char *hostName, unsigned short port,
@@ -559,7 +604,7 @@ client_main (const char *hostName, unsigned short port,
 int 
 compile_server_client::compile_using_server (const compile_server_info &server)
 {
-  // This code will never be called, if we don't have NSS, but it must still
+  // This code will never be called if we don't have NSS, but it must still
   // compile.
 #if HAVE_NSS
   // Try resolve the host name if it is '.local'.
@@ -592,19 +637,19 @@ compile_server_client::compile_using_server (const compile_server_info &server)
 	     << " (" << host_name << ")" << endl
 	     << "  using certificates from the database in " << cert_dir
 	     << endl;
-      /* Call the NSPR initialization routines */
+      // Call the NSPR initialization routines.
       PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
-#if 0 /* no client authentication for now. */
-      /* Set our password function callback. */
+#if 0 // no client authentication for now.
+      // Set our password function callback.
       PK11_SetPasswordFunc (myPasswd);
 #endif
 
-      /* Initialize the NSS libraries. */
+      // Initialize the NSS libraries.
       SECStatus secStatus = NSS_InitReadWrite (cert_dir);
       if (secStatus != SECSuccess)
 	{
-	  /* Try it again, readonly.  */
+	  // Try it again, readonly.
 	  secStatus = NSS_Init(cert_dir);
 	  if (secStatus != SECSuccess)
 	    {
@@ -613,7 +658,7 @@ compile_server_client::compile_using_server (const compile_server_info &server)
 	    }
 	}
 
-      /* All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy. */
+      // All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy.
       NSS_SetDomesticPolicy ();
 
       server_zipfile = s.tmpdir + "/server.zip";
@@ -641,9 +686,15 @@ compile_server_client::compile_using_server (const compile_server_info &server)
 int
 compile_server_client::unpack_response ()
 {
+  // Unzip the response package.
   server_tmpdir = s.tmpdir + "/server";
   string cmd = "unzip -qd " + server_tmpdir + " " + server_zipfile;
   int rc = stap_system (s.verbose, cmd);
+  if (rc != 0)
+    {
+      cerr << "Unable to unzip the server reponse '" << server_zipfile << '\''
+	   << endl;
+    }
 
   // If the server's response contains a systemtap temp directory, move
   // its contents to our temp directory.
@@ -657,7 +708,7 @@ compile_server_client::unpack_response ()
       if (globbuf.gl_pathc > 1)
 	{
 	  cerr << "Incorrect number of files in server response" << endl;
-	  goto error;
+	  rc = 1; goto done;
 	}
 
       assert (globbuf.gl_pathc == 1);
@@ -671,7 +722,6 @@ compile_server_client::unpack_response ()
       int r = glob(filespec.c_str (), GLOB_PERIOD, NULL, & globbuf);
       if (r != GLOB_NOSPACE && r != GLOB_ABORTED && r != GLOB_NOMATCH)
 	{
-	  errno = 0;
 	  unsigned prefix_len = dirname.size () + 1;
 	  for (unsigned i = 0; i < globbuf.gl_pathc; ++i)
 	    {
@@ -683,32 +733,27 @@ compile_server_client::unpack_response ()
 	      if (s.verbose > 1)
 		clog << "  found " << oldname
 		     << " -- linking from " << newname << endl;
-	      symlink (oldname.c_str (), newname.c_str ());
-	      if (errno != 0)
-		goto error;
+	      rc = symlink (oldname.c_str (), newname.c_str ());
+	      if (rc != 0)
+		{
+		  cerr << "Unable to link '" << oldname
+		       << "' to '" << newname << "': "
+		       << strerror (errno) << endl;
+		  goto done;
+		}
 	    }
 	}
     }
 
-  if (s.keep_tmpdir)
-    {
-      // Remove the output line due to the synthetic server-side -k
-      cmd = "sed -i '/^Keeping temporary directory.*/ d' " +
-	server_tmpdir + "/stderr";
-      stap_system (s.verbose, cmd);
-    }
+  // Remove the output line due to the synthetic server-side -k
+  cmd = "sed -i '/^Keeping temporary directory.*/ d' " +
+    server_tmpdir + "/stderr";
+  stap_system (s.verbose, cmd);
 
-  if (s.last_pass == 5)
-    {
-      // Remove the output line due to the synthetic server-side -p4
-      cmd = "sed -i '/^.*\\.ko$/ d' " + server_tmpdir + "/stdout";
-      stap_system (s.verbose, cmd);
-    }
+  // Remove the output line due to the synthetic server-side -p4
+  cmd = "sed -i '/^.*\\.ko$/ d' " + server_tmpdir + "/stdout";
+  stap_system (s.verbose, cmd);
 
-  goto done;
-
- error:
-    rc = 1;
  done:
   globfree (& globbuf);
   return rc;
@@ -718,68 +763,146 @@ int
 compile_server_client::process_response ()
 {
   // Pick up the results of running stap on the server.
-  int rc;
-  ifstream fp_in;
   string filename = server_tmpdir + "/rc";
-  fp_in.open(filename.c_str (), ios::in);
-  fp_in >> rc;
-  fp_in.close();
+  int stap_rc;
+  int rc = read_from_file (filename, stap_rc);
+  if (rc != 0)
+    return rc;
 
-  glob_t globbuf;
-  string cmd;
   if (s.last_pass >= 4)
     {
       // The server should have returned a module.
       string filespec = s.tmpdir + "/*.ko";
       if (s.verbose > 1)
 	clog << "Searching \"" << filespec << "\"" << endl;
+
+      glob_t globbuf;
       int r = glob(filespec.c_str (), 0, NULL, & globbuf);
       if (r != GLOB_NOSPACE && r != GLOB_ABORTED && r != GLOB_NOMATCH)
 	{
 	  if (globbuf.gl_pathc > 1)
+	    cerr << "Incorrect number of modules in server response" << endl;
+	  else
 	    {
-	      cerr << "Incorrect number of modules in server response" << endl;
-	      goto done;
-	    }
-	  assert (globbuf.gl_pathc == 1);
-	  string modname = globbuf.gl_pathv[0];
-	  if (s.verbose > 1)
-	    clog << "  found " << modname << endl;
+	      assert (globbuf.gl_pathc == 1);
+	      string modname = globbuf.gl_pathv[0];
+	      if (s.verbose > 1)
+		clog << "  found " << modname << endl;
 
-	  // If a module name was not specified by the user, then set it to
-	  // be the one generated by the server.
-	  if (! s.save_module)
-	    {
-	      vector<string> components;
-	      tokenize (modname, components, "/");
-	      s.module_name = components.back ();
-	      s.module_name.erase(s.module_name.size() - 3);
+	      // If a module name was not specified by the user, then set it to
+	      // be the one generated by the server.
+	      if (! s.save_module)
+		{
+		  vector<string> components;
+		  tokenize (modname, components, "/");
+		  s.module_name = components.back ();
+		  s.module_name.erase(s.module_name.size() - 3);
+		}
 	    }
 	}
       else if (s.have_script)
 	{
-	  if (rc == 0)
+	  if (stap_rc == 0)
 	    {
 	      cerr << "No module was returned by the server" << endl;
-	      goto done;
+	      rc = stap_rc;
 	    }
 	}
+      globfree (& globbuf);
     }
 
-done:
-  if (s.last_pass >= 4)
-    globfree (& globbuf);
-
-  // Output stdout and stderr as directed
+  // Output stdout and stderr.
   filename = server_tmpdir + "/stderr";
-  fp_in.open(filename.c_str (), ios::in);
-  cerr << fp_in.rdbuf ();
-  fp_in.close();
+  flush_to_stream (filename, cerr);
 
   filename = server_tmpdir + "/stdout";
-  fp_in.open(filename.c_str (), ios::in);
-  cout << fp_in.rdbuf ();
-  fp_in.close();
+  flush_to_stream (filename, cout);
 
+  return rc;
+}
+
+int
+compile_server_client::read_from_file (const string &fname, int &data)
+{
+  // We don't use C++ streams here because they provide no useful information
+  // in the event of a failure.
+  FILE *f = fopen (fname.c_str (), "r");
+  if (! f)
+    {
+      cerr << "Unable to open file '" << fname << "': "
+	   << strerror (errno)
+	   << endl;
+      return 1;
+    }
+
+  int rc = 0;
+  if (! fscanf (f, "%d", & data))
+    {
+      cerr << "Unable to read from file '" << fname << "': "
+	   << strerror (errno)
+	   << endl;
+      rc = 1;
+    }
+
+  fclose (f);
+  return rc;
+}
+
+int
+compile_server_client::write_to_file (const string &fname, const string &data)
+{
+  // We don't use C++ streams here because they provide no useful information
+  // in the event of a failure.
+  FILE *f = fopen (fname.c_str (), "w");
+  if (! f)
+    {
+      cerr << "Unable to open file '" << fname << "': "
+	   << strerror (errno)
+	   << endl;
+      return 1;
+    }
+
+  int rc = 0;
+  if (! fwrite (data.c_str (), 1, data.size(), f))
+    {
+      cerr << "Unable to write to file '" << fname << "': "
+	   << strerror (errno)
+	   << endl;
+      rc = 1;
+    }
+
+  fclose (f);
+  return rc;
+}
+
+int
+compile_server_client::flush_to_stream (const string &fname, ostream &o)
+{
+  // We don't use C++ streams here because they provide no useful information
+  // in the event of a failure.
+  FILE *f = fopen (fname.c_str (), "r");
+  if (! f)
+    {
+      cerr << "Unable to open file '" << fname << "': "
+	   << strerror (errno)
+	   << endl;
+      return 1;
+    }
+
+  // Copy the data.
+  char buf[256];
+  while (fgets (buf, sizeof (buf), f))
+    o << buf;
+
+  int rc = 0;
+  if (! feof (f))
+    {
+      cerr << "Error reading file '" << fname << "': "
+	   << strerror (errno)
+	   << endl;
+      rc = 1;
+    }
+
+  fclose (f);
   return rc;
 }

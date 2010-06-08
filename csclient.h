@@ -32,10 +32,13 @@ private:
     const std::string &path,
     const char *option = 0
   );
-  void add_package_args ();
-  void add_package_arg (const std::string &arg);
-  void write_to_file (const std::string &fname, const std::string &data);
-  int  compile_using_server (const compile_server_info &server);
+  int add_package_args ();
+  int add_package_arg (const std::string &arg);
+  int compile_using_server (const compile_server_info &server);
+
+  int read_from_file (const std::string &fname, int &data);
+  int write_to_file (const std::string &fname, const std::string &data);
+  int flush_to_stream (const std::string &fname, std::ostream &o);
 
   systemtap_session &s;
   std::vector<std::string> private_ssl_dbs;
