@@ -55,7 +55,7 @@ probe kernel.trace("sched_switch") {
       run_time[previous_pid] += (t - previous_timestamp[previous_pid]);
       previous_timestamp[previous_pid] = t;
       if ($prev->state > 0) {
-        if ((get_iowait($rq) - io_wait_count[previous_pid]) > 0)
+        if (@defined($rq) && (get_iowait($rq) - io_wait_count[previous_pid]) > 0)
           io_wait_incremented[previous_pid] = 1;  
         pid_state[previous_pid] = SLEEPING;
       } else if ($prev->state == 0) {
@@ -73,7 +73,8 @@ probe kernel.trace("sched_switch") {
     }
   }
   if (next_pid) {
-    io_wait_count[next_pid] = get_iowait($rq);
+    if (@defined($rq))
+      io_wait_count[next_pid] = get_iowait($rq);
     if (!([next_pid] in pid_state)) {
       //use this state as entry into state machine
       previous_timestamp[next_pid] =  gettimeofday_us();
