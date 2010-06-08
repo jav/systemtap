@@ -144,6 +144,22 @@ systemtap_session::initialize()
     cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
   else
     cert_db_path = getenv("HOME") + string ("/.systemtap/ssl/server");
+  /*  adding in the XDG_DATA_DIRS variable path,
+ *  this searches in conjunction with SYSTEMTAP_TAPSET
+ *  to locate stap scripts, either can be disabled if 
+ *  needed using env $PATH=/dev/null where $PATH is the 
+ *  path you want disabled
+ */  
+  const char* s_p1 = getenv ("XDG_DATA_DIRS");
+  if ( s_p1 != NULL )
+  {
+    vector<string> dirs;
+    tokenize(s_p1, dirs, ":");
+    for(vector<string>::iterator i = dirs.begin(); i != dirs.end(); ++i)
+    {
+      include_path.push_back(*i + "/systemtap/tapset");
+    }
+  }
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)

@@ -1352,7 +1352,9 @@ and kernel object.
 The automatic tapset search directory, unless overridden by
 the
 .I SYSTEMTAP_TAPSET
-environment variable.
+environment variable or the 
+.I XDG_DATA_DIRS
+environment vairable.
 .TP
 @prefix@/share/systemtap/runtime
 The runtime sources, unless overridden by the
