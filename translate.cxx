@@ -5369,25 +5369,38 @@ add_unwindsym_ldd (systemtap_session &s)
               char linebuf[256];
               char *soname = 0;
               char *shlib = 0;
-              char *addr = 0;
+              unsigned long int addr = 0;
 
               char *line = fgets (linebuf, 256, fp);
               if (line == 0) break; // EOF or error
 
-              int nf = sscanf (line, "%as => %as %as", &soname, & shlib, &addr);
-              if (nf != 3) continue; // fewer than expected fields
+              // Try soname => shlib (0xaddr)
+              int nf = sscanf (line, "%as => %as (0x%lx)",
+                               &soname, &shlib, &addr);
+              if (nf != 3 || shlib[0] != '/')
+                {
+                  // Try shlib (0xaddr)
+                  nf = sscanf (line, " %as (0x%lx)", &shlib, &addr);
+                  if (nf != 2 || shlib[0] != '/')
+                    continue; // fewer than expected fields, or bad shlib.
+                }
 
               if (added.find (shlib) == added.end())
                 {
-                  (void) addr; // don't bother print this one
                   if (s.verbose > 2)
-                    clog << "Added -d '" << shlib << "' due to '" << soname << "'" << endl;
+                    {
+                      clog << "Added -d '" << shlib;
+                      if (nf == 3)
+                        clog << "' due to '" << soname << "'";
+                      else
+                        clog << "'";
+                      clog << endl;
+                    }
                   added.insert (shlib);
                 }
 
               free (soname);
               free (shlib);
-              free (addr);
             }
           pclose (fp);
         }
