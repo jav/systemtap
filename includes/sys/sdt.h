@@ -10,6 +10,15 @@
 #include <sys/types.h>
 #include <errno.h>
 
+
+/* The asm operand string stap_sdt_probe_entry_v2.arg_string
+   is currently only supported for x86 */
+#if ! defined __x86_64__ && ! defined __i386__
+#define STAP_SDT_V1 1
+#undef STAP_SDT_V2
+#endif
+
+
 typedef struct 
 {
   __extension__ struct
@@ -113,12 +122,6 @@ typedef struct
 #define STAP_UNINLINE
 #endif
 
-
-/* The asm operand string stap_sdt_probe_entry_v2.arg_string
-   is currently only supported for x86 */
-#if ! defined __x86_64__ && ! defined __i386__
-#define STAP_SDT_V1 1
-#endif
 
 #if defined __x86_64__ || defined __i386__  || defined __powerpc__ || defined __arm__ || defined __sparc__
 #define STAP_NOP "\tnop "
