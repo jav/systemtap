@@ -310,7 +310,12 @@ stap_utrace_detach(struct task_struct *tsk,
 			do {
 				rc = utrace_barrier(tsk, engine);
 			} while (rc == -ERESTARTSYS);
-			debug_task_finder_detach();
+			if (rc == 0) {
+				debug_task_finder_detach();
+			} else {
+				rc = -rc;
+				_stp_error("utrace_barrier returned error %d on pid %d", rc, tsk->pid);
+			}
 			break;
 		default:
 			rc = -rc;
@@ -329,6 +334,7 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 	struct task_struct *grp, *tsk;
 	struct utrace_attached_engine *engine;
 	pid_t pid = 0;
+	int rc = 0;
 
 	// Notice we're not calling get_task_mm() in this loop. In
 	// every other instance when calling do_each_thread, we avoid
@@ -358,7 +364,10 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 		 * this task, we need to keep detaching from other
 		 * tasks.  But warn, we might be unloading and dangling
 		 * engines are bad news. */
-		WARN_ON (stap_utrace_detach(tsk, ops) != 0);
+		rc = stap_utrace_detach(tsk, ops);
+		if (rc != 0)
+			_stp_error("stap_utrace_detach returned error %d on pid %d", rc, tsk->pid);
+		WARN_ON(rc != 0);
 	} while_each_thread(grp, tsk);
 	rcu_read_unlock();
 	debug_task_finder_report();
