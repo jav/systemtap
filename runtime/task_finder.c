@@ -1177,7 +1177,7 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 			mmpath = d_path(vma_cache_p->dentry,
 					vma_cache_p->f_vfsmnt, mmpath_buf,
 					PATH_MAX);
-			dput(vma_cache_p->f_dentry);
+			dput(vma_cache_p->dentry);
 			mntput(vma_cache_p->f_vfsmnt);
 #endif
 			if (mmpath == NULL || IS_ERR(mmpath)) {
