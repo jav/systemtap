@@ -1354,7 +1354,7 @@ the
 .I SYSTEMTAP_TAPSET
 environment variable or the 
 .I XDG_DATA_DIRS
-environment vairable.
+environment variable.
 .TP
 @prefix@/share/systemtap/runtime
 The runtime sources, unless overridden by the
