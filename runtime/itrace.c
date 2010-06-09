@@ -356,6 +356,11 @@ void static remove_usr_itrace_info(struct itrace_info *ui)
 
 	if (ui->tsk && ui->engine) {
 		status = utrace_control(ui->tsk, ui->engine, UTRACE_DETACH);
+		if (status == -EINPROGRESS) {
+			do {
+				status = utrace_barrier(ui->tsk, ui->engine);
+			} while (status == -ERESTARTSYS);
+		}
 		if (status < 0 && status != -ESRCH && status != -EALREADY)
 			printk(KERN_ERR
 			       "utrace_control(UTRACE_DETACH) returns %d\n",

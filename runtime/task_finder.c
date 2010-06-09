@@ -307,8 +307,10 @@ stap_utrace_detach(struct task_struct *tsk,
 			rc = 0;	    /* ignore these errors */
 			break;
 		case -EINPROGRESS:
+			do {
+				rc = utrace_barrier(tsk, engine);
+			} while (rc == -ERESTARTSYS);
 			debug_task_finder_detach();
-			rc = 0;
 			break;
 		default:
 			rc = -rc;
@@ -354,8 +356,9 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 		/* Notice we're purposefully ignoring errors from
 		 * stap_utrace_detach().  Even if we got an error on
 		 * this task, we need to keep detaching from other
-		 * tasks. */
-		(void) stap_utrace_detach(tsk, ops);
+		 * tasks.  But warn, we might be unloading and dangling
+		 * engines are bad news. */
+		WARN_ON (stap_utrace_detach(tsk, ops) != 0);
 	} while_each_thread(grp, tsk);
 	rcu_read_unlock();
 	debug_task_finder_report();
@@ -504,7 +507,9 @@ __stp_utrace_attach(struct task_struct *tsk,
 			 * stale task pointer, if we have an engine
 			 * ref.
 			 */
-			rc = utrace_barrier(tsk, engine);
+			do {
+				rc = utrace_barrier(tsk, engine);
+			} while (rc == -ERESTARTSYS);
 			if (rc != 0 && rc != -ESRCH && rc != -EALREADY)
 				_stp_error("utrace_barrier returned error %d on pid %d",
 					   rc, (int)tsk->pid);
@@ -514,13 +519,15 @@ __stp_utrace_attach(struct task_struct *tsk,
 
 			if (action != UTRACE_RESUME) {
 				rc = utrace_control(tsk, engine, UTRACE_STOP);
-				/* EINPROGRESS means we must wait for
-				 * a callback, which is what we want. */
-				if (rc != 0 && rc != -EINPROGRESS)
+				if (rc == -EINPROGRESS)
+					/* EINPROGRESS means we must wait for
+					 * a callback, which is what we want. */
+					do {
+						rc = utrace_barrier(tsk, engine);
+					} while (rc == -ERESTARTSYS);
+				if (rc != 0)
 					_stp_error("utrace_control returned error %d on pid %d",
 						   rc, (int)tsk->pid);
-				else
-					rc = 0;
 			}
 
 		}
@@ -1245,7 +1252,9 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 		 * safe to call utrace_barrier() even with
 		 * a stale task pointer, if we have an engine ref.
 		 */
-		rc = utrace_barrier(tsk, engine);
+		do {
+			rc = utrace_barrier(tsk, engine);
+		} while (rc == -ERESTARTSYS);
 		if (rc == 0)
 			rc = utrace_set_events(tsk, engine,
 					       __STP_ATTACHED_TASK_BASE_EVENTS(tgt));
