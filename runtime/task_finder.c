@@ -1151,8 +1151,9 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 			    // count for 'dentry' and 'f_vfsmnt'.
 			    // This way they won't get deleted from
 			    // out under us.
-			    vma_cache_p->f_vfsmnt = vma->vm_file->f_vfsmnt;
+			    vma_cache_p->dentry = vma->vm_file->f_dentry;
 			    dget(vma_cache_p->dentry);
+			    vma_cache_p->f_vfsmnt = vma->vm_file->f_vfsmnt;
 			    mntget(vma_cache_p->f_vfsmnt);
 #endif
 			    vma_cache_p->dentry = vma->vm_file->f_dentry;
