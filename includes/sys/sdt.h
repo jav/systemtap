@@ -54,6 +54,12 @@ typedef struct
    on having a writable .probes section to put the enabled variables in. */
 #define ALLOCSEC "\"aw\""
 
+/* The asm operand string stap_sdt_probe_entry_v2.arg_string
+   is currently only supported for x86 */
+#if ! defined __x86_64__ && ! defined __i386__
+#define STAP_SDT_V1 1
+#endif
+
 #define STAP_SEMAPHORE(provider,probe)
 #ifdef STAP_SDT_IMPLICIT_ENABLED /* allow users to override */
  #if defined STAP_HAS_SEMAPHORES
@@ -141,16 +147,17 @@ typedef struct
 #endif
 
 /* variadic macro args not allowed by -ansi -pedantic so... */
-#define __stap_arg1 "g"(arg1)
-#define __stap_arg2 "g"(arg1), "g"(arg2)
-#define __stap_arg3 "g"(arg1), "g"(arg2), "g"(arg3)
-#define __stap_arg4 "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4)
-#define __stap_arg5 "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5)
-#define __stap_arg6 "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6)
-#define __stap_arg7 "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7)
-#define __stap_arg8 "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8)
-#define __stap_arg9 "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9)
-#define __stap_arg10 "g"(arg1), "g"(arg2), "g"(arg3), "g"(arg4), "g"(arg5), "g"(arg6), "g"(arg7), "g"(arg8), "g"(arg9), "g"(arg10)
+/* Use "ro" constraint as "g" constraint sometimes gives an auto increment operand */
+#define __stap_arg1 "ro"(arg1)
+#define __stap_arg2 "ro"(arg1), "ro"(arg2)
+#define __stap_arg3 "ro"(arg1), "ro"(arg2), "ro"(arg3)
+#define __stap_arg4 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4)
+#define __stap_arg5 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5)
+#define __stap_arg6 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6)
+#define __stap_arg7 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6), "ro"(arg7)
+#define __stap_arg8 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6), "ro"(arg7), "ro"(arg8)
+#define __stap_arg9 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6), "ro"(arg7), "ro"(arg8), "ro"(arg9)
+#define __stap_arg10 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6), "ro"(arg7), "ro"(arg8), "ro"(arg9), "ro"(arg10)
 
 #if defined STAP_SDT_V1 || ! defined STAP_SDT_V2
 #define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)	\
