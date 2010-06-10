@@ -11,7 +11,7 @@ set test "sdt_misc"
 
 proc cleanup_handler { verbose } {
     if { $verbose == 0 } {
-	foreach x {{uprobe} {kprobe}} {
+	foreach x {{uprobe} {kprobe} {V2}} {
 	    catch {exec rm -f libsdt_${x}.so libsdt_${x}_shared.so sdt_misc_${x}.x sdt_misc_${x}_loop.x sdt_misc_${x}_shared.x sdt_misc_${x}_loop_shared.x sdt_misc_${x}.x sdt_misc_${x}_compatibility.x sdt_misc_${x}_types.x libsdt_${x}_loop.so }
 	}
 	catch {exec rm -f sdt_misc_.c sdt_misc.c sdt_misc_.d sdt_misc_.h sdt_misc_.o sdt_misc.stp sdt_types.x ,semclean ,semout}
@@ -175,27 +175,6 @@ struct astruct {int a; int b;};
 "
 close $fp
 
-# Test dtrace
-
-if {[installtest_p]} { 
-    set dtrace $env(SYSTEMTAP_PATH)/dtrace 
-} else {
-    set dtrace ../dtrace
-}
-if {[catch {exec $dtrace --types -h -s $sup_dpath} res]} {
-    verbose -log "unable to run $dtrace: $res"
-}
-if {[catch {exec $dtrace --types -G -s $sup_dpath} res]} {
-    verbose -log "unable to run $dtrace: $res"
-}
-if {[file exists $sup_hpath] && [file exists $sup_opath]} then {
-    pass "$test dtrace"
-} else {
-    fail "$test dtrace"
-    cleanup_handler $verbose
-    return
-}
-
 if {[installtest_p]} { 
     set sdtdir $env(SYSTEMTAP_INCLUDES)
 } else {
@@ -210,6 +189,32 @@ for {set i 0} {$i < [llength $pbtype_flags]} {incr i} {
 set pbtype_flag [lindex $pbtype_flags $i]
 set pbtype_mssg [lindex $pbtype_mssgs $i]
 set sup_exepath "[pwd]/sdt_misc_$pbtype_mssg.x"
+
+# Run dtrace
+
+if {[installtest_p]} { 
+    set dtrace $env(SYSTEMTAP_PATH)/dtrace 
+} else {
+    set dtrace ../dtrace
+}
+if {$pbtype_mssg == "V2"} {
+    set dtrace_args -DSTAP_SDT_V2
+} else {
+    set dtrace_args ""
+}
+if {[catch {exec $dtrace $dtrace_args --types -h -s $sup_dpath} res]} {
+    verbose -log "unable to run $dtrace: $res"
+}
+if {[catch {exec $dtrace $dtrace_args --types -G -s $sup_dpath} res]} {
+    verbose -log "unable to run $dtrace: $res"
+}
+if {[file exists $sup_hpath] && [file exists $sup_opath]} then {
+    pass "$test dtrace $dtrace_args"
+} else {
+    fail "$test dtrace $dtrace_args"
+    cleanup_handler $verbose
+    return
+}
 
 set sup_flags "additional_flags=-I$sdtdir"
 set sup_flags "$sup_flags additional_flags=$sup_opath"
