@@ -54,12 +54,6 @@ typedef struct
    on having a writable .probes section to put the enabled variables in. */
 #define ALLOCSEC "\"aw\""
 
-/* The asm operand string stap_sdt_probe_entry_v2.arg_string
-   is currently only supported for x86 */
-#if ! defined __x86_64__ && ! defined __i386__
-#define STAP_SDT_V1 1
-#endif
-
 #define STAP_SEMAPHORE(provider,probe)
 #ifdef STAP_SDT_IMPLICIT_ENABLED /* allow users to override */
  #if defined STAP_HAS_SEMAPHORES
