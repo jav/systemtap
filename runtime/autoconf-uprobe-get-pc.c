@@ -1,3 +1,4 @@
+#if defined(CONFIG_UTRACE)
 #if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)
 #include <linux/uprobes.h>
 #else
@@ -8,3 +9,6 @@ unsigned long foo (struct uretprobe_instance *ri, unsigned long pc, unsigned lon
 {
   return uprobe_get_pc (ri, pc, sp);
 }
+#else
+#error "need CONFIG_UTRACE" /* XXX: at least, uretprobe-capable uprobes */
+#endif
