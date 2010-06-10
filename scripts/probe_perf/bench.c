@@ -139,8 +139,12 @@ float zr, zi;
 long rdtsc(void) __attribute__ ((__noinline__));
 long rdtsc(void) 
 {
+  // XXX this only works on x86_64
+  // -- not i386 because the long result is only 32-bit
+  // -- not other archs because they need other asm
+#if defined __x86_64__
   int res[2];
-   
+
   __asm__ __volatile__  ("xorl %%eax,%%eax \n push %%rbx \n cpuid \n"
 			 ::: "%rax", "%rcx", "%rdx");
   // read TSC, store edx:eax in res
@@ -148,8 +152,11 @@ long rdtsc(void)
 			 : "=a" (res[0]), "=d" (res[1]) );
   __asm__ __volatile__  ("xorl %%eax,%%eax \n cpuid \n pop %%rbx \n"
 			 ::: "%rax", "%rcx", "%rdx");
-   
+
   return *(long*)res;
+#else
+  return 0;
+#endif
 }
 
 Initrand ()

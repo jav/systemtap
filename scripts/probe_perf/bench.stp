@@ -1,86 +1,80 @@
-function rdtsc () %{
-   int res[2];
-   __asm__ __volatile__  ("rdtsc\n" : "=a" (res[0]), "=d" (res[1]) );
-   THIS->__retvalue = *(long*)res;
-%}
-
 global process_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_PERMUTE")
-{   process_hits <<< (rdtsc() - $cycles_start) }
+{   process_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("permute")
-{   process_hits <<< (rdtsc() - $arg1) }
+{   process_hits <<< (get_cycles() - $arg1) }
 %)
 
 global tower_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_TOWER")
-{   tower_hits <<< (rdtsc() - $cycles_start) }
+{   tower_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("tower")
-{   tower_hits <<< (rdtsc() - $arg1) }
+{   tower_hits <<< (get_cycles() - $arg1) }
 %)
 
 global try_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_TRY")
-{   try_hits <<< (rdtsc() - $cycles_start) }
+{   try_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("try")
-{   try_hits <<< (rdtsc() - $arg1) }
+{   try_hits <<< (get_cycles() - $arg1) }
 %)
 
 global innerproduct_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_INNERPRODUCT")
-{   innerproduct_hits <<< (rdtsc() - $cycles_start) }
+{   innerproduct_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("innerproduct")
-{   innerproduct_hits <<< (rdtsc() - $arg1) }
+{   innerproduct_hits <<< (get_cycles() - $arg1) }
 %)
 
 global trial_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_TRIAL")
-{   trial_hits <<< (rdtsc() - $cycles_start) }
+{   trial_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("trial")
-{   trial_hits <<< (rdtsc() - $arg1) }
+{   trial_hits <<< (get_cycles() - $arg1) }
 %)
 
 global quicksort_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_QUICKSORT")
-{   quicksort_hits <<< (rdtsc() - $cycles_start) }
+{   quicksort_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("quicksort")
-{   quicksort_hits <<< (rdtsc() - $arg1) }
+{   quicksort_hits <<< (get_cycles() - $arg1) }
 %)
 
 global bubble_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_BUBBLE")
-{   bubble_hits <<< (rdtsc() - $cycles_start) }
+{   bubble_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("bubble")
-{   bubble_hits <<< (rdtsc() - $arg1) }
+{   bubble_hits <<< (get_cycles() - $arg1) }
 %)
 
 global insert_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_INSERT")
-{   insert_hits <<< (rdtsc() - $cycles_start) }
+{   insert_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("insert")
-{   insert_hits <<< (rdtsc() - $arg1) }
+{   insert_hits <<< (get_cycles() - $arg1) }
 %)
 
 global fft_hits
 %( @2 == "NO_STAP_SDT" %?
 probe process(@1).function("*").label("BENCH_FFT")
-{   fft_hits <<< (rdtsc() - $cycles_start) }
+{   fft_hits <<< (get_cycles() - $cycles_start) }
 %:
 probe process(@1).mark("fft")
-{   fft_hits <<< (rdtsc() - $arg1) }
+{   fft_hits <<< (get_cycles() - $arg1) }
 %)
