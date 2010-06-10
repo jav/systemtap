@@ -4,7 +4,9 @@
 # example use:
 # ./bench.sh -stapdir /foo/stap/install/ -gccdir /foo/gcc-4.4.3-10/install/
 
-function setup_test() {
+function stap_test() {
+
+# Compile bench
 $STAP/bin/dtrace -G -s bench_.d
 $STAP/bin/dtrace --types -h -s bench_.d
 if [ "$3"x = "semx" ] ; then
@@ -12,31 +14,19 @@ if [ "$3"x = "semx" ] ; then
 else
    IMPLICIT_ENABLED=""
 fi
-# Run bench without stap
 $GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I. -I$STAP/include -g $IMPLICIT_ENABLED
 if [ $? -ne 0 ]; then echo "error compiling bench-$2$3"; return; fi
 ./bench-$2$3.x > /dev/null
-taskset 1 /usr/bin/time ./bench-$2$3.x >| /tmp/$$-2 2>&1
-# Parse /usr/bin/time output to get elapsed time
-cat /tmp/$$-2 | awk --non-decimal-data '
-function seconds(s) {
-    if (index(s,":"))
-	m=substr(s,0,index(s,":"))*60
-    else m=0
-    return m + substr(s,index(s,":")+1) 
-}
-/elapsed/ {
-  print seconds($3)
-}' >/tmp/$$-1
-printf "without stap elapsed time is %s\n" $(cat /tmp/$$-1)
-}
 
-function stap_test() {
-$STAP/bin/stap -DSTP_NO_OVERLOAD=1 -t -g -p4 -m stapbenchmod -c ./bench-$2$3.x bench.stp ./bench-$2$3.x $1 >/dev/null 2>&1
-if [ $? -ne 0 ]; then echo "error compiling stapbenchmod-$2$3"; return; fi
-taskset 1 /usr/bin/time $STAP/bin/staprun stapbenchmod.ko -c ./bench-$2$3.x >| /tmp/$$-2 2>&1
+# Compile stapbenchmod
+$STAP/bin/stap -DSTP_NO_OVERLOAD=1 -g -p4 -m stapbench_$2$3 bench.stp ./bench-$2$3.x $1 >/dev/null
+if [ $? -ne 0 ]; then echo "error compiling stapbench_$2$3"; return; fi
+
 # Parse /usr/bin/time, bench.x, bench.stp output to get statistics
-cat /tmp/$$-2 | awk --non-decimal-data -v nostapet=$(cat /tmp/$$-1) '
+(
+taskset 1 /usr/bin/time ./bench-$2$3.x 2>&1 >/dev/null # mute stdout, get times from stderr
+$STAP/bin/staprun stapbench_$2$3.ko -c "taskset 1 /usr/bin/time ./bench-$2$3.x" 2>&1
+) | awk --non-decimal-data '
 function seconds(s) {
     if (index(s,":"))
 	m=substr(s,0,index(s,":"))*60
@@ -54,7 +44,12 @@ function seconds(s) {
 # elapsed time from /usr/bin/time
 /elapsed/ {
   elapsed=(seconds($3))
-  print "with stap elapsed time is " elapsed
+  if (nostapet == 0) {
+    nostapet=elapsed
+    print "without stap elapsed time is " elapsed
+  }
+  else
+    print "with stap elapsed time is " elapsed
 }
 
 # average probe cycles from bench.x
@@ -64,9 +59,14 @@ function seconds(s) {
 }
 
 END {
-  printf "count of probe hits is %s\naverage setup per probe measured via the rdtsc instruction is %d\n",count,(avg / n)
-  printf "average cycles/probe %s\n",(cycles / cycles_n)
-  printf "seconds/probe (%s/%s) is %f\n",elapsed-nostapet,count,(elapsed-nostapet)/count
+  print "count of probe hits is " count
+  if (cycles && n) {
+    printf "average cycles/probe is %d\n", (cycles / cycles_n)
+    printf "average setup cycles/probe is %d\n", (avg / n)
+  }
+  if (count)
+    printf "seconds/probe (%s/%s) is %.9f\n",
+      elapsed-nostapet, count, (elapsed-nostapet)/count
 }'
 
 }
@@ -107,36 +107,23 @@ else
 fi
 
 echo -e "\n##### NO SDT #####\n"
-setup_test  NO_STAP_SDT nosdt
 stap_test NO_STAP_SDT nosdt
 
 echo -e "\n##### KPROBE SEM #####\n"
-setup_test  EXPERIMENTAL_KPROBE_SDT kprobe sem
 stap_test EXPERIMENTAL_KPROBE_SDT kprobe sem
 
 echo -e "\n##### KPROBE NO SEM #####\n"
-setup_test  EXPERIMENTAL_KPROBE_SDT kprobe
 stap_test EXPERIMENTAL_KPROBE_SDT kprobe
 
 echo -e "\n##### UPROBE SEM #####\n"
-setup_test UPROBE_SDT uprobe sem
 stap_test UPROBE_SDT uprobe sem
 
 echo -e "\n##### UPROBE NO SEM #####\n"
-setup_test UPROBE_SDT uprobe
 stap_test UPROBE_SDT uprobe
 
 echo -e "\n##### UPROBE V2 SEM #####\n"
-setup_test STAP_SDT_V2 uprobe sem
-stap_test STAP_SDT_V2 uprobe sem
+stap_test STAP_SDT_V2 uprobe2 sem
 
 echo -e "\n##### UPROBE V2 NO SEM #####\n"
-setup_test STAP_SDT_V2 uprobe
-stap_test STAP_SDT_V2 uprobe
-
-if [ -z "$KEEP" ] ; then
-   rm /tmp/$$-1 /tmp/$$-2
-else
-   echo -e "\nsaved temp files " /tmp/$$-1 /tmp/$$-2
-fi
+stap_test STAP_SDT_V2 uprobe2
 
