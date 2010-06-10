@@ -14,6 +14,7 @@ else
 fi
 # Run bench without stap
 $GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I. -I$STAP/include -g $IMPLICIT_ENABLED
+if [ $? -ne 0 ]; then echo "error compiling bench-$2$3"; return; fi
 ./bench-$2$3.x > /dev/null
 taskset 1 /usr/bin/time ./bench-$2$3.x >| /tmp/$$-2 2>&1
 # Parse /usr/bin/time output to get elapsed time
@@ -32,6 +33,7 @@ printf "without stap elapsed time is %s\n" $(cat /tmp/$$-1)
 
 function stap_test() {
 $STAP/bin/stap -DSTP_NO_OVERLOAD=1 -t -g -p4 -m stapbenchmod -c ./bench-$2$3.x bench.stp ./bench-$2$3.x $1 >/dev/null 2>&1
+if [ $? -ne 0 ]; then echo "error compiling stapbenchmod-$2$3"; return; fi
 taskset 1 /usr/bin/time $STAP/bin/staprun stapbenchmod.ko -c ./bench-$2$3.x >| /tmp/$$-2 2>&1
 # Parse /usr/bin/time, bench.x, bench.stp output to get statistics
 cat /tmp/$$-2 | awk --non-decimal-data -v nostapet=$(cat /tmp/$$-1) '
