@@ -4421,7 +4421,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
       dwarf_regs["ebp"] = dwarf_regs["bp"] = 5;
       dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 6;
       dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 7;
-    } else {
+    } else if (arg_count) {
       throw semantic_error (string("Unsupported architecture ")
                             + "(" + process_name + " ELF code " + lex_cast(elf_machine) + ")"
                             + "for dwarfless sdt probes.");
