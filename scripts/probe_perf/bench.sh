@@ -13,7 +13,7 @@ else
    IMPLICIT_ENABLED=""
 fi
 # Run bench without stap
-$GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I. -g $IMPLICIT_ENABLED
+$GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I. -I$STAP/include -g $IMPLICIT_ENABLED
 ./bench-$2$3.x > /dev/null
 taskset 1 /usr/bin/time ./bench-$2$3.x >| /tmp/$$-2 2>&1
 # Parse /usr/bin/time output to get elapsed time
