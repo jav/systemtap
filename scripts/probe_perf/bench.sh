@@ -7,8 +7,8 @@
 function stap_test() {
 
 # Compile bench
-$STAP/bin/dtrace -G -s bench_.d
-$STAP/bin/dtrace --types -h -s bench_.d
+$STAP/bin/dtrace -G -s bench_.d -D$1
+$STAP/bin/dtrace --types -h -s bench_.d -D$1
 if [ "$3"x = "semx" ] ; then
    IMPLICIT_ENABLED="-DSTAP_SDT_IMPLICIT_ENABLED"
 else
