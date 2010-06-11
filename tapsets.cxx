@@ -4738,14 +4738,7 @@ struct sdt_query : public base_query
   void handle_query_module();
 
 private:
-  enum probe_types
-    {
-      uprobe1_type = 0x31425250, // "PRB1" (little-endian)
-      kprobe1_type = 0x32425250, // "PRB2"
-      uprobe2_type = 0x32425055, // "UPB2"
-      kprobe2_type = 0x3242504b  // "KPB2"
-    } probe_type;
-
+  stap_sdt_probe_type probe_type;
   probe * base_probe;
   probe_point * base_loc;
   literal_map_t const & params;
@@ -4996,7 +4989,7 @@ sdt_query::get_next_probe()
     {
       stap_sdt_probe_entry_v1 *pbe_v1 = (stap_sdt_probe_entry_v1 *) ((char*)pdata->d_buf + probe_scn_offset);
       stap_sdt_probe_entry_v2 *pbe_v2 = (stap_sdt_probe_entry_v2 *) ((char*)pdata->d_buf + probe_scn_offset);
-      probe_type = (enum probe_types)(pbe_v1->type_a);
+      probe_type = (stap_sdt_probe_type)(pbe_v1->type_a);
       if (! have_uprobe() && ! have_kprobe())
 	{
 	  // Unless this is a mangled .probes section, this happens
