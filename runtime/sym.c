@@ -17,6 +17,10 @@
 #include "task_finder_vma.c"
 #include <asm/uaccess.h>
 
+#ifdef STAPCONF_PROBE_KERNEL
+#include <linux/uaccess.h>
+#endif
+
 /* Callback that needs to be registered (in
    session.unwindsyms_modules) for every user task path for which we
    might need symbols or unwind info. */
@@ -346,10 +350,15 @@ static int _stp_module_check(void)
                             int rc1, rc2;
                             unsigned char theory, practice;
 
+#ifdef STAPCONF_PROBE_KERNEL
+			    rc1=probe_kernel_read(&theory, (void*)&m->build_id_bits[j], 1);
+			    rc2=probe_kernel_read(&practice, (void*)(notes_addr+j), 1);
+#else
                             set_fs(KERNEL_DS);
                             rc1 = get_user(theory,((unsigned char*) &m->build_id_bits[j]));
                             rc2 = get_user(practice,((unsigned char*) (void*) (notes_addr+j)));
                             set_fs(oldfs);
+#endif
 
                             if (rc1 || rc2 || (theory != practice)) {
                                     const char *basename;

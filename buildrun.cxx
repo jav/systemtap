@@ -183,7 +183,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-uprobe-get-pc.c", "STAPCONF_UPROBE_GET_PC", NULL);
   output_exportconf(s, o, "cpu_khz", "STAPCONF_CPU_KHZ");
 
-#if 0
+#if 1
   /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
    * homegrown safe-access functions) is deemed undesireable, so we'll skip
    * this autoconf. */
