@@ -742,6 +742,13 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
             }
           break;
 
+	case '?':
+	  // Invalid/unrecognized option given or argument required, but
+	  // not given. In both cases getopt_long() will have printed the
+	  // appropriate error message to stderr already.
+	  return 1;
+	  break;
+
         default:
           // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
           cerr << "Unhandled argument code " << (char)grc << endl;
