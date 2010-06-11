@@ -20,10 +20,10 @@
 
 typedef enum
   {
-    uprobe1_type = 0x31425250, // "PRB1" (little-endian)
-    kprobe1_type = 0x32425250, // "PRB2"
-    uprobe2_type = 0x32425055, // "UPB2"
-    kprobe2_type = 0x3242504b  // "KPB2"
+    uprobe1_type = 0x31425250, /* "PRB1" (little-endian) */
+    kprobe1_type = 0x32425250, /* "PRB2" */
+    uprobe2_type = 0x32425055, /* "UPB2" */
+    kprobe2_type = 0x3242504b  /* "KPB2" */
   } stap_sdt_probe_type;
 
 typedef struct 
