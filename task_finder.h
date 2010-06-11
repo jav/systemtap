@@ -12,6 +12,12 @@
 // Declare that task_finder is needed in this session
 void enable_task_finder(systemtap_session& s);
 
+// Declare that vma tracker is needed in this session,
+// implies that the task_finder is needed.
+void enable_vma_tracker(systemtap_session& s);
+
+// Whether the vma tracker is needed in this session.
+bool vma_tracker_enabled(systemtap_session& s);
 
 #endif // TASK_FINDER_H
 

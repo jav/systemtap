@@ -132,7 +132,6 @@ systemtap_session::initialize()
   skip_badvars = false;
   unprivileged = false;
   omit_werror = false;
-  need_vma_tracker = false;
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;
@@ -454,10 +453,14 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
             if (mpath == NULL) // Must be a kernel module name
               mpath = optarg;
             unwindsym_modules.insert (string (mpath));
-            // PR10228: trigger task-finder logic early if -d /USER-MODULE/
-            // given.
+            // PR10228: trigger vma tracker logic early if -d /USER-MODULE/
+            // given. XXX This is actually too early. Having a user module
+            // is a good indicator that something will need vma tracking.
+            // But it is not 100%, this really should only trigger through
+            // a user mode tapset /* pragma:vma */ or a probe doing a
+            // variable lookup through a dynamic module.
             if (mpath[0] == '/')
-              enable_task_finder (*this);
+              enable_vma_tracker (*this);
             break;
           }
 

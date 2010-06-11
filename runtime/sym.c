@@ -506,13 +506,13 @@ static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
  * Symbolic Lookup Functions
  * @{
  */
-static void _stp_sym_init(void)
+static int _stp_sym_init(void)
 {
         // NB: it's too "early" to make this conditional on STP_NEED_VMA_TRACKER,
         // since we're #included at the top of the generated module, before any
         // tapset-induced #define's.
+        int rc = 0;
 #if defined(CONFIG_UTRACE)
-	static int initialized = 0;
         static struct stap_task_finder_target vmcb = {
                 // NB: no .pid, no .procname filters here.
                 // This means that we get a system-wide mmap monitoring
@@ -531,19 +531,15 @@ static void _stp_sym_init(void)
                 .munmap_callback = &_stp_tf_munmap_cb,
                 .mprotect_callback = NULL
         };
-	if (! initialized) {
-                int rc;
-		stap_initialize_vma_map ();
-                rc = stap_register_task_finder_target (& vmcb);
+	stap_initialize_vma_map ();
 #ifdef DEBUG_TASK_FINDER_VMA
-                _stp_dbug(__FUNCTION__, __LINE__, "registered vmcb");
+	_stp_dbug(__FUNCTION__, __LINE__, "registering vmcb (_stap_target: %d)\n", _stp_target);
 #endif
-                if (rc != 0)
-                  _stp_error("Couldn't register task finder target: %d\n", rc);
-                else
-                  initialized = 1;
-	}
+	rc = stap_register_task_finder_target (& vmcb);
+	if (rc != 0)
+		_stp_error("Couldn't register task finder target: %d\n", rc);
 #endif
+	return rc;
 }
 
 

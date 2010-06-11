@@ -14,6 +14,7 @@
 #include "tapsets.h"
 #include "session.h"
 #include "util.h"
+#include "task_finder.h"
 
 extern "C" {
 #include <sys/utsname.h>
@@ -1184,10 +1185,10 @@ public:
 
   void visit_embeddedcode (embeddedcode* c)
   {
-    if (! session.need_vma_tracker
+    if (! vma_tracker_enabled(session)
 	&& c->code.find("/* pragma:vma */") != string::npos)
       {
-	session.need_vma_tracker = true;
+	enable_vma_tracker(session);
 	if (session.verbose > 2)
 	  clog << "Turning on task_finder vma_tracker, pragma:vma found in "
 	       << current_function->name << endl;

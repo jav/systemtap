@@ -1209,16 +1209,8 @@ c_unparser::emit_module_init ()
   o->newline(-1) << "}";
   o->newline() << "#endif";
 
-  // PR10228: set up symbol table-related task finders.
-  if (session->need_vma_tracker)
-    {
-      o->newline() << "stap_start_task_finder();";
-      o->newline() << "_stp_sym_init();";
-    }
-  else
-    o->newline() << "if (_stp_need_vma_tracker == 1) _stp_sym_init();";
   // NB: we don't need per-_stp_module task_finders, since a single common one
-  // set up in runtime/sym.c's _stp_sym_init() will scan through all _stp_modules.
+  // set up in runtime/sym.c's _stp_sym_init() will scan through all _stp_modules. XXX - check this!
   o->newline() << "(void) probe_point;";
   o->newline() << "(void) i;";
   o->newline() << "(void) j;";
@@ -1476,10 +1468,6 @@ c_unparser::emit_module_exit ()
   o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
   o->newline() << " _stp_kill_time();";  // Go to a beach.  Drink a beer.
   o->newline() << "#endif";
-
-  // teardown task_finder (if needed by vma tracker)
-  if (session->need_vma_tracker)
-    o->newline() << "stap_stop_task_finder();";
 
   // print final error/skipped counts if non-zero
   o->newline() << "if (atomic_read (& skipped_count) || "
@@ -5512,11 +5500,6 @@ emit_symbol_data_done (unwindsym_dump_context *ctx, systemtap_session& s)
   else
     ctx->output << "0x" << hex << ctx->stp_kretprobe_trampoline_addr << dec
 		<< ";\n";
-
-  // Note when someone requested the task_finder.
-  ctx->output << "static char _stp_need_vma_tracker = "
-              << (s.task_finder_derived_probes ? "1" : "0")
-              << ";\n";
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
   if (! s.suppress_warnings)

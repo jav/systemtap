@@ -43,6 +43,9 @@ public:
   void emit_module_decls (systemtap_session& ) { }
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
+
+  // Whether or not to initialize the vma tracker
+  bool need_vma_tracker;
 };
 
 
@@ -50,11 +53,20 @@ void
 task_finder_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   s.op->newline();
+  if (need_vma_tracker)
+    {
+      s.op->newline() << "/* ---- vma tracker ---- */";
+      s.op->newline() << "rc = _stp_sym_init();";
+      s.op->newline();
+    }
+
   s.op->newline() << "/* ---- task finder ---- */";
-  s.op->newline() << "rc = stap_start_task_finder();";
+  s.op->newline() << "if (rc == 0) {";
+  s.op->newline(1) << "rc = stap_start_task_finder();";
 
   s.op->newline() << "if (rc) {";
   s.op->newline(1) << "stap_stop_task_finder();";
+  s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 }
 
@@ -73,7 +85,27 @@ void
 enable_task_finder(systemtap_session& s)
 {
   if (! s.task_finder_derived_probes)
-    s.task_finder_derived_probes = new task_finder_derived_probe_group();
+    {
+      s.task_finder_derived_probes = new task_finder_derived_probe_group();
+      s.task_finder_derived_probes->need_vma_tracker = false;
+    }
+}
+
+// Declare that vma tracker is needed in this session,
+// implies that the task_finder is needed.
+void
+enable_vma_tracker(systemtap_session& s)
+{
+  enable_task_finder(s);
+  s.task_finder_derived_probes->need_vma_tracker = true;
+}
+
+// Whether the vma tracker is needed in this session.
+bool
+vma_tracker_enabled(systemtap_session& s)
+{
+  return (s.task_finder_derived_probes
+	  && s.task_finder_derived_probes->need_vma_tracker);
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

@@ -179,6 +179,8 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 #endif
 #endif
 
+static int __stp_task_finder_started = 0;
+
 static int
 stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 {
@@ -188,6 +190,11 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	struct list_head *node;
 	struct stap_task_finder_target *tgt = NULL;
 	int found_node = 0;
+
+	if (__stp_task_finder_started) {
+		_stp_error("task_finder already started, no new targets allowed");
+		return EBUSY;
+	}
 
 	if (new_tgt == NULL)
 		return EFAULT;
@@ -213,6 +220,10 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	// Search the list for an existing entry for procname/pid.
 	list_for_each(node, &__stp_task_finder_list) {
 		tgt = list_entry(node, struct stap_task_finder_target, list);
+		if (tgt == new_tgt) {
+			_stp_error("target already registered");
+			return EINVAL;
+		}
 		if (tgt != NULL
 		    /* procname-based target */
 		    && ((new_tgt->pathlen > 0
@@ -1459,8 +1470,6 @@ static struct utrace_engine_ops __stp_utrace_task_finder_ops = {
 	.report_death = stap_utrace_task_finder_report_death,
 };
 
-static int __stp_task_finder_started = 0;
-
 static int
 stap_start_task_finder(void)
 {
@@ -1469,8 +1478,10 @@ stap_start_task_finder(void)
 	char *mmpath_buf;
 	uid_t tsk_euid;
 
-	if (__stp_task_finder_started)
-		return 0;
+	if (__stp_task_finder_started) {
+		_stp_error("task_finder already started");
+		return EBUSY;
+	}
 
 	__stp_task_finder_started = 1;
 

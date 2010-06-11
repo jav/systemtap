@@ -69,10 +69,6 @@ static unsigned _stp_num_modules;
 /* load address, fixup by transport symbols _stp_do_relocation */
 static unsigned long _stp_kretprobe_trampoline;
 
-/* Indicates some modules requested the task finder to notify sym.c
-   _stp_sym_init () should track vma maps. */
-static char _stp_need_vma_tracker;
-
 static unsigned long _stp_module_relocate (const char *module,
 					   const char *section,
 					   unsigned long offset,
