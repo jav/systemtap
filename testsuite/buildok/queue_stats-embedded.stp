@@ -1,0 +1,18 @@
+#! stap -p4
+
+probe begin {
+  qsq_start("test")
+  qs_wait("test")
+  qs_run("test")
+  qs_done("test")
+
+  print("Time = %d", qs_time())
+  print("Utilization % = %d", qsq_utilization("test", 100))
+  print("Wait % = %d", qsq_blocked("test", 100))
+  print("Avg queue length = %d", qsq_wait_queue_length("test", 1))
+  print("Avg service time = %d", qsq_service_time("test", 1))
+  print("Avg wait time = %d", qsq_wait_time("test", 1))
+  print("Avg requests served = %d", qsq_throughput("test", 1))
+
+  qsq_print("test")
+}
