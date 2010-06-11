@@ -1,0 +1,12 @@
+#! stap -p4
+
+# This test fails on some kernels because we can't find the arguments to
+# this inline function (PR 1155).
+
+probe tty.resize
+{
+	printf("Resizing %s from %dx%d (%d/%d) to %dx%d (%d/%d)\n",
+	       name, old_row, old_col, old_xpixel, old_ypixel,
+	       new_row, new_col, new_xpixel, new_ypixel)
+}
+

@@ -9,6 +9,11 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+%{
+// For 'struct winsize'
+#include <linux/termios.h>
+%}
+
 /**
  * probe tty.open - Called when a tty is opened
  * @inode_number: the inode number
@@ -18,8 +23,9 @@
  * @file_mode: the file mode
  * @file_flags: the file flags
  */
-probe tty.open = kernel.function("tty_open") {
-	inode_number= $inode->i_ino
+probe tty.open = kernel.function("tty_open")
+{
+	inode_number = $inode->i_ino
 	inode_state = $inode->i_state
 	inode_flags = $inode->i_flags
 
@@ -38,16 +44,57 @@ probe tty.open = kernel.function("tty_open") {
  * @file_mode: the file mode
  * @file_flags: the file flags
  */
-probe tty.release = kernel.function("tty_release") {
-	inode_number= $inode->i_ino
-	inode_state = $inode->i_state
-	inode_flags = $inode->i_flags
+probe tty.release = kernel.function("tty_release")
+{
+	// RHEL4 (2.6.9) kernel's debuginfo doesn't seem to have
+	// $inode, even though the function isn't inline.  So, make
+	// sure $inode is defined.
+	if (@defined($inode)) {
+		inode_number = $inode->i_ino
+		inode_state = $inode->i_state
+		inode_flags = $inode->i_flags
+	}
+	else {
+		inode_number = -1
+		inode_state = -1
+		inode_flags = -1
+	}
 
 	file_name = d_name(@defined($filp->f_path->dentry)
 		? $filp->f_path->dentry : $filp->f_dentry)
 	file_mode = $filp->f_mode
 	file_flags = $filp->f_flags
 }
+
+function _struct_winsize_u:long(uaddr:long, n:long)
+%{
+	struct winsize tmp_ws;
+	char *uaddr = (char *)(unsigned long)THIS->uaddr;
+
+	if (uaddr == NULL || THIS->n > 3)
+		THIS->__retvalue = -1;
+	else {
+		if (_stp_copy_from_user((char *)&tmp_ws, uaddr,
+					sizeof(tmp_ws))) {
+			switch (THIS->n) {
+			case 0:
+				THIS->__retvalue = tmp_ws.ws_row;
+				break;
+			case 1:
+				THIS->__retvalue = tmp_ws.ws_col;
+				break;
+			case 2:
+				THIS->__retvalue = tmp_ws.ws_ypixel;
+				break;
+			case 3:
+				THIS->__retvalue = tmp_ws.ws_xpixel;
+				break;
+			}
+		}
+		else
+			THIS->__retvalue = -1;
+	}
+%}
 
 /**
  * probe tty.resize - Called when a terminal resize happens
@@ -61,17 +108,26 @@ probe tty.release = kernel.function("tty_release") {
  * @new_ypixel: the new ypixel value
  * @new_xpixel: the new xpixel value
 */
-probe tty.resize = kernel.function("tty_do_resize") ? {
+probe tty.resize = kernel.function("tiocswinsz")
+{
 	name = kernel_string($tty->name)
 	old_row = $tty->winsize->ws_row
 	old_col = $tty->winsize->ws_col
 	old_ypixel = $tty->winsize->ws_ypixel
 	old_xpixel = $tty->winsize->ws_xpixel
 
-	new_row = $ws->ws_row
-	new_col = $ws->ws_col
-	new_ypixel = $ws->ws_ypixel
-	new_xpixel = $ws->ws_xpixel
+	if (@defined($arg)) {
+		new_row = _struct_winsize_u($arg, 0)
+		new_col = _struct_winsize_u($arg, 1)
+		new_ypixel = _struct_winsize_u($arg, 2)
+		new_xpixel = _struct_winsize_u($arg, 3)
+	}
+	else {
+		new_row = -1
+		new_col = -1
+		new_ypixel = -1
+		new_xpixel = -1
+	}
 }
 
 /**
@@ -80,7 +136,8 @@ probe tty.resize = kernel.function("tty_do_resize") ? {
  * @cmd: the ioctl command
  * @arg: the ioctl argument
  */
-probe tty.ioctl = kernel.function("tty_ioctl"){
+probe tty.ioctl = kernel.function("tty_ioctl")
+{
 	name = kernel_string(@defined($file->f_path->dentry->d_iname)
 		? $file->f_path->dentry->d_iname : $file->f_dentry->d_iname)
 	cmd = $cmd
@@ -93,7 +150,9 @@ probe tty.ioctl = kernel.function("tty_ioctl"){
  * @name: the driver  .dev_name name
  * @module: the module name
  */
-probe tty.init = kernel.function("tty_init_dev") ? {
+probe tty.init = kernel.function("tty_init_dev") !,
+		 kernel.function("init_dev")
+{
 	driver_name = kernel_string($driver->driver_name)
 	name = kernel_string($driver->name)
 	module = kernel_string($driver->owner->name)
@@ -106,7 +165,8 @@ probe tty.init = kernel.function("tty_init_dev") ? {
  * @module: the module name
  * @index: the tty index requested
  */
-probe tty.register = kernel.function("tty_register_device"){
+probe tty.register = kernel.function("tty_register_device")
+{
 	driver_name = kernel_string($driver->driver_name)
 	name = kernel_string($driver->name)
 	module = kernel_string($driver->owner->name)
@@ -120,7 +180,8 @@ probe tty.register = kernel.function("tty_register_device"){
  * @module: the module name
  * @index: the tty index requested
  */
-probe tty.unregister = kernel.function("tty_unregister_device"){
+probe tty.unregister = kernel.function("tty_unregister_device")
+{
 	driver_name = kernel_string($driver->driver_name)
 	name = kernel_string($driver->name)
 	module = kernel_string($driver->owner->name)
@@ -132,7 +193,8 @@ probe tty.unregister = kernel.function("tty_unregister_device"){
  * @file_name: the tty file name
  * @wait_key: the wait queue key
  */
-probe tty.poll = kernel.function("tty_poll"){
+probe tty.poll = kernel.function("tty_poll")
+{
 	file_name = d_name(@defined($filp->f_path->dentry)
 		? $filp->f_path->dentry : $filp->f_dentry)
 
@@ -149,7 +211,8 @@ probe tty.poll = kernel.function("tty_poll"){
  * @index: The tty Index
  * @id: the tty id
  */
-probe tty.receive = kernel.function("n_tty_receive_buf"){
+probe tty.receive = kernel.function("n_tty_receive_buf")
+{
 	cp = kernel_string($cp)
 	fp = kernel_string($fp)
 	count = $count
@@ -167,7 +230,9 @@ probe tty.receive = kernel.function("n_tty_receive_buf"){
  * @driver_name: the driver name
  * @file_name: the file name lreated to the tty
  */
-probe tty.write = kernel.function("n_tty_write") ? {
+probe tty.write = kernel.function("n_tty_write") !,
+		  kernel.function("write_chan")
+{
 	buffer = kernel_string($buf)
 	nr = $nr
 
@@ -183,7 +248,9 @@ probe tty.write = kernel.function("n_tty_write") ? {
  * @driver_name: the driver name
  * @file_name: the file name lreated to the tty
  */
-probe tty.read = kernel.function("n_tty_read") ? {
+probe tty.read = kernel.function("n_tty_read") !,
+		 kernel.function("read_chan")
+{
 	buffer = kernel_string($buf)
 	nr = $nr
 	file_name = d_name(@defined($file->f_path->dentry)

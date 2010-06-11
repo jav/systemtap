@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe begin
+{
+	printf("%d\n", _struct_winsize_u(0, 0))
+}

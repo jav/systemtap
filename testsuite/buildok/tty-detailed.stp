@@ -1,0 +1,65 @@
+#! stap -p4
+
+probe tty.open
+{
+	printf("Opening tty file %s\n", file_name)
+	printf("INODE: number %d\nState: %d\nFlag: %d\n",
+	       inode_number, inode_state, inode_flags)
+	printf("File: %s mode %x flags %x\n", file_name, file_mode, file_flags)
+}
+
+probe tty.release
+{
+	printf("Closing file %s\n", file_name)
+	printf("INODE: number %d\nState: %d\nFlag: %d\n",
+	       inode_number, inode_state, inode_flags)
+	printf("File: %s mode %x flags %x\n", file_name, file_mode, file_flags)
+}
+
+# tty.resize test moved to tty-resize.stp
+
+probe tty.ioctl
+{
+	printf("Ioctling file %s with %d %d\n", name, cmd, arg)
+}
+
+probe tty.init
+{
+	printf("new tty with name %s from driver %s and module %s\n",
+	       driver_name, name, module)
+}
+
+probe tty.register
+{
+	printf("Device registered using index %d using driver %s(%s/%s)\n",
+	       index, driver_name, name, module)
+}
+
+probe tty.unregister
+{
+	printf("Device unregistered using index %d using driver %s(%s/%s)\n",
+	       index, driver_name, name, module)
+}
+
+probe tty.poll
+{
+	printf("Pooling tty %s for wait queue key %d\n", file_name, wait_key);
+}
+
+probe tty.receive
+{
+	printf("Driver %s/%s (%d/%d) received %s (%s) with len %d\n",
+	       name, driver_name, index, id, cp, fp, count)
+}
+
+probe tty.write
+{
+	printf("Buffer %s (len %d) wrote on file %s (driver %s)\n",
+	       buffer, nr, file_name, driver_name)
+}
+
+probe tty.read
+{
+	printf("Reading tty file %s (driver %s) to a buffer with size %d containing %s\n",
+	       file_name, driver_name, nr, buffer)
+}
