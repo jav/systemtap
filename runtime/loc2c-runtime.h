@@ -1,5 +1,5 @@
 /* target operations
- * Copyright (C) 2005-2009 Red Hat Inc.
+ * Copyright (C) 2005-2010 Red Hat Inc.
  * Copyright (C) 2005, 2006, 2007 Intel Corporation.
  * Copyright (C) 2007 Quentin Barnes.
  *
@@ -410,7 +410,7 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
 
 
 /* NB: this autoconf is always disabled, pending further performance eval. */
-#if defined STAPCONF_PROBE_KERNEL
+#if 0 && defined STAPCONF_PROBE_KERNEL
 
 /* Kernel 2.6.26 adds probe_kernel_{read,write}, which lets us write
  * architecture-neutral implementations of kread, kwrite, deref, and

@@ -1,5 +1,5 @@
 // build/run probes
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -183,12 +183,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-uprobe-get-pc.c", "STAPCONF_UPROBE_GET_PC", NULL);
   output_exportconf(s, o, "cpu_khz", "STAPCONF_CPU_KHZ");
 
-#if 1
-  /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
-   * homegrown safe-access functions) is deemed undesireable, so we'll skip
-   * this autoconf. */
   output_autoconf(s, o, "autoconf-probe-kernel.c", "STAPCONF_PROBE_KERNEL", NULL);
-#endif
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
                   "STAPCONF_KERNEL_STACKTRACE", NULL);
   output_autoconf(s, o, "autoconf-asm-syscall.c",
