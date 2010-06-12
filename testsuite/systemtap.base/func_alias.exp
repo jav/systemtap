@@ -1,0 +1,60 @@
+set test "func_alias"
+
+proc run {subtest pp} {
+  global test
+  verbose -log "subtest $subtest"
+  verbose -log "Running stap -l $pp"
+  set match 0
+  spawn stap -l $pp
+  expect {
+    timeout { fail "$subtest (timeout)" }
+    -re "main@.*$test\\.c" {
+      if {$match == 0} { pass $subtest; incr match }
+      exp_continue
+    }
+    eof { if {$match == 0} { fail $subtest } }
+  }
+  wait
+}
+
+proc run_one_test {flags bits} {
+    global test srcdir subdir
+
+    verbose -log "testing $bits-bit $test"
+    set source "$srcdir/$subdir/$test.c"
+    set target "[pwd]/$test.x$bits"
+    set flags "additional_flags=-g $flags"
+    set res [target_compile $source $target executable $flags]
+    if { $res != "" } {
+      verbose -log "$target failed: $res"
+      untested "$bits-bit $test"
+      return
+    }
+    run "$bits-bit $test direct" "process(\"$target\").function(\"$test\")"
+    run "$bits-bit $test wildcard" "process(\"$target\").function(\"$test*\")"
+    exec rm -f $target
+}
+
+set do_32_bit_pass 1
+set do_64_bit_pass 0
+set flags32 ""
+set flags64 ""
+switch -regexp $::tcl_platform(machine) {
+    ^ia64$ {
+        set do_32_bit_pass 0
+        set do_64_bit_pass 1
+    }
+    ^(x86_64|ppc64)$ {
+        set do_64_bit_pass 1
+        set flags32 "additional_flags=-m32"
+        set flags64 "additional_flags=-m64"
+    }
+    ^s390x$ {
+        set do_64_bit_pass 1
+        set flags32 "additional_flags=-m31"
+        set flags64 "additional_flags=-m64"
+    }
+}
+
+if {$do_64_bit_pass} { run_one_test $flags64 64 }
+if {$do_32_bit_pass} { run_one_test $flags32 32 }

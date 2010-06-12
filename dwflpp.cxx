@@ -884,6 +884,7 @@ dwflpp::iterate_single_function (int (* callback)(Dwarf_Die * func, base_query *
       if (sess.verbose > 4)
         clog << "module function cache " << module_name
              << " size " << v->size() << endl;
+      mod_info->update_symtab(v);
     }
 
   cu_function_cache_t::iterator it;
