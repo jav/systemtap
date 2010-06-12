@@ -127,7 +127,7 @@ module_cache
 struct func_info
 {
   func_info()
-    : decl_file(NULL), decl_line(-1), addr(0), prologue_end(0), weak(false)
+    : decl_file(NULL), decl_line(-1), addr(0), prologue_end(0), weak(false), descriptor(false)
   {
     std::memset(&die, 0, sizeof(die));
   }
@@ -138,7 +138,7 @@ struct func_info
   Dwarf_Addr addr;
   Dwarf_Addr entrypc;
   Dwarf_Addr prologue_end;
-  bool weak;
+  bool weak, descriptor;
 };
 
 
