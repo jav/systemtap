@@ -2635,7 +2635,7 @@ unsigned long uprobe_get_pc(struct uretprobe_instance *ri, unsigned long pc,
 	struct uprobe_process *uproc;
 	struct hlist_node *r;
 
-	if (!ri) {
+	if (ri == GET_PC_URETPROBE_NONE) {
 		utask = uprobe_find_utask(current);
 		if (!utask)
 			return 0;
@@ -2666,7 +2666,7 @@ unsigned long uprobe_get_pc_task(struct task_struct *task, unsigned long pc,
 		return pc;
 	} else if (current == task && utask->active_probe) {
 		/* everything's locked. */
-		return uprobe_get_pc(0, pc, sp);
+		return uprobe_get_pc(GET_PC_URETPROBE_NONE, pc, sp);
 	}
 	uproc = utask->uproc;
 	down_read(&uproc->rwsem);
