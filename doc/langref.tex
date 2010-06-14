@@ -1093,7 +1093,6 @@ restricted to the process hierarchy associated with the target
 process. If stap is running in \texttt{--unprivileged} mode, only
 processes owned by the current user are selected.
 
-\comment098
 \subsubsection{Target process mode}
 \label{sec:targetprocessmode}
 Target process mode (invoked with \texttt{stap -c CMD} or \texttt{-x
@@ -1610,34 +1609,28 @@ semantics, and precedence as in C and awk. Arithmetic is performed per C
 rules for signed integers. If the parser detects division by zero or an overflow,
 it generates an error. The following subsections list these operators.
 
-\comment098
 \subsubsection{Binary numeric operators}
 \index{binary}
 \texttt{{*} / \% + - >\,{}> <\,{}< \& \textasciicircum{}
 | \&\& ||}
 
-\comment098
 \subsubsection{Binary string operators}
 \index{binary}
 \texttt{\textbf{.}} (string concatenation)
 
-\comment098
 \subsubsection{Numeric assignment operators}
 \index{numeric}
 \texttt{= {*}= /= \%= += -= >\,{}>= <\,{}<=
 \&= \textasciicircum{}= |=}
 
-\comment089
 \subsubsection{String assignment operators}
 
 \texttt{= .=}
 
-\comment098
 \subsubsection{Unary numeric operators}
 \index{unary}
 \texttt{+ - ! \textasciitilde{} ++ -{}-}
 
-\comment098
 \subsubsection{Binary numeric or string comparison operators}
 \index{comparison}
 \texttt{< > <= >= == !=}
@@ -1741,7 +1734,6 @@ specified index.
 
 The number of index values must match the number of indexes previously specified.
 
-\comment098
 \subsection{Literals passed in from the stap command line\label{sub:Literals-passed-in}}
 \index{literals}
 \emph{Literals} are either strings enclosed in double quotes ('' '') or
@@ -1761,7 +1753,6 @@ Use \texttt{\$1 \ldots{} \$<NN>} for casting as a numeric literal.
 \subsubsection{@1 \ldots{} @\textless NN\textgreater\ for strings}
 
 Use \texttt{@1 \ldots{} @<NN>} for casting as a string literal.
-\comment098
 
 \subsubsection{Examples}
 
