@@ -21,10 +21,13 @@
 %}
 
 /**
- * sfunction print_backtrace - Print stack back trace
+ *  sfunction print_backtrace - Print stack back trace
  *
- *  Equivalent to print_stack(backtrace()), 
- *  except that deeper stack nesting may be supported.  Return nothing.
+ *  General Syntax: print_backtrace()
+ * 
+ *  Description: This function isEquivalent to print_stack(backtrace()), 
+ *  except that deeper stack nesting may be supported.
+ *  The function does not return a value.
  */
 function print_backtrace () %{
 	if (CONTEXT->regs) {
@@ -37,8 +40,11 @@ function print_backtrace () %{
 /**
  * sfunction backtrace - Hex backtrace of current stack
  *
- *  Return a string of hex addresses that are a backtrace of the 
- *  stack.  Output may be truncated as per maximum string length.
+ * General Syntax: backtrace:string()
+ * 
+ * Description: This function returns a string of hex addresses 
+ * that are a backtrace of the stack. Output may be truncated as 
+ * as per maximum string length (MAXSTRINGLEN).
  */
 function backtrace:string () %{ /* pure */
 	if (CONTEXT->regs)
@@ -48,12 +54,15 @@ function backtrace:string () %{ /* pure */
 %}
 
 /**
- * sfunction task_backtrace - Hex backtrace of an arbitrary task
- * @task: pointer to task_struct
+ *  sfunction task_backtrace - Hex backtrace of an arbitrary task
  *
- *  Return a string of hex addresses that are a backtrace of the 
- *  stack of a particular task.  Output may be truncated as per
- *  maximum string length.
+ *  General Syntax: task_backtrace:string(task:long)
+ *
+ *  @task: pointer to task_struct
+ *
+ *  Description: This function returns a string of hex addresses
+ *  that are a backtrace of the stack of a particular task
+ *  Output may be truncated as per maximum string length.
  */
 function task_backtrace:string (task:long) %{ /* pure */
 	 _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
@@ -61,10 +70,12 @@ function task_backtrace:string (task:long) %{ /* pure */
 %}
 
 /**
- * sfunction caller - Return name and address of calling function
+ *  sfunction caller - Return name and address of calling function
  *
- *  Return the address and name of the calling function. 
- *  This is equivalent to calling:
+ *  General Syntax: caller:string()
+ *
+ *  Description: This function returns the address and name of the 
+ *  calling function. This is equivalent to calling:
  *  sprintf("%s 0x%x", symname(caller_addr(), caller_addr()))
  *  Works only for return probes at this time.
  */
@@ -73,9 +84,11 @@ function caller:string() {
 }
 
 /**
- * sfunction caller_addr -  Return caller address
+ *  sfunction caller_addr -  Return caller address
  *
- *  Return the address of the calling function. 
+ *  General Syntax: caller_addr:long()
+ *
+ *  Description: This function returns the address of the calling function. 
  *  Works only for return probes at this time.
  */
 function caller_addr:long () %{ /* pure */

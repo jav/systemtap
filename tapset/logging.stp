@@ -9,10 +9,17 @@
 
 /**
  * sfunction log - Send a line to the common trace buffer.
+ *
+ * General Syntax: log(msg:string)
+ *
  * @msg: The formatted message string.
  *
- * Description: An implicit end-of-line is added.
- * Same as println() with a single string argument.
+ * Description: This function logs data. log sends the
+ * message immediately to staprun and to the bulk transport
+ * (relayfs) if it is being used. If the last character given
+ * is not a newline, then one is added. This function is not 
+ * as effecient as printf and should be used only for urgent
+ * messages. 
  */
 function log (msg:string) %{ /* unprivileged */
 	_stp_printf ("%s\n", THIS->msg);
@@ -21,10 +28,14 @@ function log (msg:string) %{ /* unprivileged */
 
 /**
  * sfunction warn - Send a line to the warning stream.
+ *
+ * General Syntax: warn (msg:string)
+ *
  * @msg: The formatted message string.
  *
- * Description: An implicit end-of-line is added.  staprun
- * prepends the string "WARNING:".
+ * Description: This function sends a warning message immediately to 
+ * staprun. It is also sent over the bulk transport (relayfs) if it is
+ * being used. If the last characater is not a newline, the one is added.
  */
 function warn (msg:string) %{ /* unprivileged */
     _stp_warn ("%s", THIS->msg);
@@ -33,6 +44,8 @@ function warn (msg:string) %{ /* unprivileged */
 
 /**
  * sfunction exit - Start shutting down probing script.
+ *
+ * General Syntax: exit()
  *
  * Description: This only enqueues a request to start
  * shutting down the script.  New probes will not fire

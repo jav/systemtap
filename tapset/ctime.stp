@@ -10,7 +10,11 @@
 
 /**
  * sfunction ctime - Convert seconds since epoch into human readable date/time string.
+ *
+ * General Syntax: ctime:string(epochsecs:long)
+ *
  * @epochsecs: Number of seconds since epoch (as returned by gettimeofday_s()).
+ *
  *
  * Description: Takes an argument of seconds since the epoch as returned by
  * gettimeofday_s(). Returns a string of the form

@@ -18,10 +18,14 @@
 %}
 
 /**
- * sfunction print_stack - Print out stack from string.
- * @stk: String with list of hexadecimal addresses.
+ *  sfunction print_stack - Print out stack from string.
+ * 
+ *  General Syntax: print_stack(stk:string)
  *
- *  Perform a symbolic lookup of the addresses in the given  string,
+ *  @stk: String with list of hexadecimal addresses.
+ *
+ *  Description: This function performs a symbolic lookup of the addresses
+ *  in the given  string,
  *  which is assumed to be the result of a prior call to 
  *  backtrace().
  * 
@@ -42,7 +46,12 @@ function print_stack(stk:string) %{
 
 /**
  * sfunction probefunc - Return the probe point's function name, if known.
- * Deprecated.  Use symname() and/or usymname().
+ * 
+ * General Syntax: probefunc:string()
+ *
+ * Description: This function returns the name of the function being probed.
+ * Please note: this function is depreciated, please use symname() and/or
+ * usymname().
  */
 function probefunc:string () %{ /* pure */
 	char *ptr, *start;
@@ -76,7 +85,12 @@ function probefunc:string () %{ /* pure */
 %}
 
 /**
- * sfunction probemod - Return the probe point's module name, if known.
+ * sfunction probemod - Return the probe point's module name.
+ * 
+ * General Syntax: probemod:string()
+ * 
+ * Description: This funciton returns the name of the module containing the 
+ * probe point, if known.
  */
 function probemod:string () %{ /* pure */
 	char *ptr, *start;
@@ -121,6 +135,9 @@ function modname:string (addr: long) %{ /* pure */
 
 /**
  * sfunction symname - Return the symbol associated with the given address.
+ *
+ * General Syntax: symname:string(addr:long)
+ * 
  * @addr: The address to translate.
  *
  * Description: Returns the (function) symbol name associated with the
@@ -134,6 +151,9 @@ function symname:string (addr: long) %{ /* pure */
 
 /**
  * sfunction symdata - Return the symbol and module offset for the address.
+ *
+ * General Syntax: symdata:string(addr:long)
+ *
  * @addr: The address to translate.
  *
  * Description: Returns the (function) symbol name associated with the

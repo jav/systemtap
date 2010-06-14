@@ -89,9 +89,15 @@ probe vm.pagefault.return =
 }
 
 /**
- * sfunction addr_to_node - Returns which node a given address belongs to within a NUMA system.
+ * sfunction addr_to_node - Returns which node a given address
+ * belongs to within a NUMA system.
+ *
+ * General Syntax: addr_to_node:long(addr:long)
+ *
  * @addr: The address of the faulting memory access.
  *
+ * Description: This function accepts an address, and returns the 
+ * node that the given address belongs to in a NUMA system.
  */
 function addr_to_node:long(addr:long) %{ /* pure */ 
 	int pfn = __pa(THIS->addr) >> PAGE_SHIFT;

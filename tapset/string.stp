@@ -8,10 +8,13 @@
 
 /**
  * sfunction strlen - Returns the length of a string.
+ *
+ * General Syntax: strlen: long (str:string)
+ *
  * @s: the string
  *
- * Description: Returns the lenght of the string, which can be zero up
- * to MAXSTRINGLEN.
+ * Description: This function returns the length of the string, which
+ * can be zero up to MAXSTRINGLEN.
  */
 function strlen:long(s:string) %{ /* pure */ /* unprivileged */
         THIS->__retvalue = strlen(THIS->s);
@@ -19,12 +22,15 @@ function strlen:long(s:string) %{ /* pure */ /* unprivileged */
 
 /**
  * sfunction substr - Returns a substring.
+ *
+ * General Syntax: substr:string (str:string, start:long, stop:long)
+ *
  * @str: The string to take a substring from
  * @start: Starting position.  0 = start of the string.
  * @length: Length of string to return.
  *
  * Description: Returns the substring of the up to the given length
- * starting at the given start position.
+ * starting at the given start position and ending at given stop position.
  */
 function substr:string(str:string,start:long, length:long) %{ /* pure */ /* unprivileged */
 	int64_t length = clamp_t(int64_t, THIS->length + 1, 0, MAXSTRINGLEN);
@@ -34,11 +40,14 @@ function substr:string(str:string,start:long, length:long) %{ /* pure */ /* unpr
 
 /**
  * sfunction stringat - Returns the char at a given position in the string.
+ *
+ * General Syntax: stringat:long(srt:string, pos:long)
+ *
  * @str: The string to fetch the character from.
  * @pos: The position to get the character from.  0 = start of the string.
  *
- * Returns the character at a given position in the string or zero if the
- * string doesn't have as many characters.
+ * Description: This function returns the character at a given position in
+ * the string or zero if thestring doesn't have as many characters.
  */
 function stringat:long(str:string, pos:long) %{ /* pure */ /* unprivileged */
 	if (THIS->pos >= 0 && THIS->pos < strlen(THIS->str))
@@ -48,11 +57,16 @@ function stringat:long(str:string, pos:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction isinstr - Returns whether a string is a substring of another string.
+ * sfunction isinstr - Returns whether a string is a substring of
+ * another string.
+ *
+ * General syntax: isinstr:long (s1:string, s2:string)
+ *
  * @s1: String to search in.
  * @s2: Substring to find.
  *
- * Description: Returns 1 if s2 is in s1, otherwise 0.
+ * Description: This function returns 1 if string s1 contains s2,
+ * otherwise zero. 
  */
 function isinstr:long(s1:string,s2:string) %{ /* pure */ /* unprivileged */
 	if (strstr(THIS->s1,THIS->s2) != NULL)
@@ -63,9 +77,12 @@ function isinstr:long(s1:string,s2:string) %{ /* pure */ /* unprivileged */
 
 /**
  * sfunction text_str - Escape any non-printable chars in a string.
+ *
+ * General Syntax: text_str:string (input:string)
  * @input: The string to escape.
  *
- * Description Takes a string, and any ASCII characters that are not
+ * Description: This function accepts a string argument, 
+ * and any ASCII characters that are not
  * printable are replaced by the corresponding escape sequence in the
  * returned string.
  */
@@ -76,12 +93,16 @@ function text_str:string(input:string)
 
 /**
  * sfunction text_strn - Escape any non-printable chars in a string.
+ *
+ * General Syntax: text_strn:string (input:string, len:long, quoted:long)
+ *
  * @input: The string to escape.
  * @len: Maximum length of string to return. 0 means MAXSTRINGLEN.
  * @quoted: Put double quotes around the string. If input string is
  * truncated it will have "..." after the second quote.
  *
- * Description Takes a string, and any ASCII characters that are not
+ * Description: This function accepts a string of designated length,
+ * and any ASCII characters that are not
  * printable are replaced by the corresponding escape sequence in the
  * returned string.
  */
@@ -93,13 +114,20 @@ function text_strn:string(input:string, len:long, quoted:long)
 
 /**
  * sfunction tokenize - Return the next non-empty token in a string.
+ * 
+ * General Syntax: tokenize:string (input:string, delim:string)
+ *
  * @input: String to tokenize. If NULL, returns the next non-empty token
  * in the string passed in the previous call to tokenize().
  * @delim: Token delimiter. Set of characters that delimit the tokens.
  * 
- * Description: Given a string and a token delimiter, return the next
- * non-empty token in the string or blank when no more non-empty tokens
- * are left.
+ * Description: This function returns the next non-empty token in the 
+ * given input string, where the tokens are delimited by characters in
+ * the delim string.  If the input string is non-NULL, it returns the 
+ * first token.  If the input string is NULL, it returns the next
+ * token in the string passed in the previous call to tokenize.
+ * If no delimiter is found, the entire remaining input string is 
+ * returned. It returns NULL when no more tokens are available.
  */
 function tokenize:string(input:string, delim:string)
 %{ /* unprivileged */
@@ -124,12 +152,17 @@ function tokenize:string(input:string, delim:string)
 %}
 
 /**
- * sfunction - str_replace Replaces all instances of a substring with another.
+ * sfunction - str_replace Replaces all instances of a substring 
+ * with another.
+ *
+ * General Syntax: str_replace:string(prnt_str:string, srch_str:string, rplc_str:string)
+ *
  * @prnt_str: The string to search and replace in.
  * @srch_str: The substring which is used to search in prnt_str string.
  * @rplc_str: The substring which is used to replace srch_str.
  *
- * Description: Returns the given string with substrings replaced.
+ * Description: This function returns the given string with
+ * substrings replaced.
  */
 function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
 %{ /* pure */ /* unprivileged */
@@ -157,8 +190,14 @@ function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
 
 /**
  * sfunction - strtol - Convert a string to a long.
+ * 
+ * General Syntax: strtol:long (str:string, base:long)
+ * 
  * @str: String to convert.
  * @base: The base to use
+ * 
+ * Description: This function converts the string representation of a number to an integer. 
+ * The base parameter indicates the number base to assume for the string (eg. 16 for hex, 8 for octal, 2 for binary).
  */
 function strtol:long(str:string, base:long)
 %{ /* pure */ /* unprivileged */
@@ -167,6 +206,9 @@ function strtol:long(str:string, base:long)
 
 /**
  * sfunction isdigit - Checks for a digit.
+ *
+ * General Syntax: isdigit:long(str:string)
+ *
  * @str: String to check.
  *
  * Description: Checks for a digit (0 through 9) as the first

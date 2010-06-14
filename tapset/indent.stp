@@ -13,8 +13,19 @@ function _generic_indent (idx, desc, delta)
 }
 
 /**
- * sfunction thread_indent - returns an amount of space with the current task information
+ * sfunction thread_indent - returns an amount of space with
+ * the current task information
+ * 
+ * General Syntax: thread_indent:string (delta:long)
+ *
  * @delta: the amount of space added/removed for each call
+ *
+ * Description: This function returns a string with appropriate
+ * indentation for a thread. Call it with a small positive or
+ * matching negative delta. If this is the real outermost,
+ * initial level of indentation, then the function resets the 
+ * relative timestamp base to zero. An example is shown at the 
+ * end of this file.
  */
 function thread_indent (delta) 
 {
@@ -28,3 +39,60 @@ function thread_indent (delta)
 function indent(delta){
   return _generic_indent(-1, "",  delta)
 }
+
+/* The following example uses thread_indent() to trace the functions
+ * called in the drivers/usb/core kernel source. It prints a relative
+ * timestamp and the name and ID of the current process, followed by 
+ * the appropriate indent and the function name. Note that 
+ * 'char' swapper(0) indicates the kernel is running in interrupt
+ * context and there is no valid current process.
+ *
+ * probe kernel.function("*@drivers/usb/core/*") {
+ * 	printf("%s -> %s\n, thread_indent(1), probefunc())
+ * }
+ * probe kernel.function("*@drivers/usb/core/*").return {
+ * 	printf("%s <- %s\n", thread_indent(-1), probefunc())
+ * }
+ *
+ * //This prints:
+ *  0 swapper(0): -> usb_hcd_irq
+ *  8 swapper(0): <- usb_hcd_irq
+ *  0 swapper(0): -> usb_hcd_irq
+ * 10 swapper(0):  -> usb_hcd_giveback_urb
+ * 16 swapper(0):   -> urb_unlink
+ * 22 swapper(0):   <- usb_unlink
+ * 29 swapper(0):   -> usb_free_urb
+ * 35 swapper(0):   <- usb_hcd_urb
+ * 39 swapper(0):  <- usb_hcd_giveback_urb
+ * 45 swapper(0): <- usb_hcd_irq
+ *  0 usb-storage(1338): -> usb_submit_urb
+ *  6 usb-storage(1338):  -> usb_hcd_submit_urb
+ * 12 usb-storage(1338):   -> usb_get_urb
+ * 18 usb-storage(1338):   <- usb_get_urb
+ * 25 usb-storage(1338):  <- usb_hcd_submit_urb
+ * 29 usb-storage(1338): -> usb_submit_urb
+ *  0 swapper(0): -> usb_hcd_irq
+ *  7 swapper(0): <- usb_hcd_irq
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

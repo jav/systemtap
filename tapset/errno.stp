@@ -342,7 +342,17 @@ static const char * const errlist[] = {
 #undef N
 static const int Maxerrno = sizeof(errlist)/sizeof(char *);
 %}
-
+/*
+ * sfunction: errno_str - Symbolic string associated with error code.
+ *
+ * General Syntax: errno_str:string(err:long)
+ *
+ * @err: The error number recieved
+ *
+ * Description: This function returns the symbolic string associated
+ * with the giver error code, such as ENOENT for the number 2, or
+ * E#3333 for an out-of-range value such as 3333.
+ */
 function errno_str:string (err:long) %{ /* pure */
 	long e = THIS->err;
 	e = (e > 0 ? e : -e);
@@ -394,7 +404,17 @@ function returnval:long () %{ /* pure */
 	THIS->__retvalue = _stp_returnval(CONTEXT->regs);
 %}
 
-/* for syscall tapset. set returnp = 1 for decimal, 2 for hex */
+/* 
+ * sfunction returnstr - Sets the return type
+ *
+ * General Syntax: returnstr:string(returnp:long)
+ *
+ * @returnp: Variable to determine return type base value
+ * 
+ * Description: This function is used by the syscall tapset, and 
+ * returns a string. Set returnp equal to 1 for a decimal, or
+ * 2 for hex.
+ */
 function returnstr:string (returnp:long) %{ /* pure */
 	if (CONTEXT->regs) {
 		long ret = _stp_returnval(CONTEXT->regs);

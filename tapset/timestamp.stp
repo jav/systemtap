@@ -13,8 +13,14 @@
 // </tapsetdescription>
 /**
  * sfunction get_cycles - Processor cycle count.
+ * 
+ * General Syntax: get_cycles:long()
  *
- *  Return the processor cycle counter value, or 0 if unavailable.
+ * Description: This function returns the processor cycle counter value
+ * if available, else it returns zero. The cycle counter is free running
+ * and unsynchronized on each processor. Thus, the order of events cannot
+ * determined by comparing the results of the get_cycles function on 
+ * different processors.
  */
 function get_cycles:long () %{ /* pure */ /* unprivileged */
   cycles_t c = get_cycles();
