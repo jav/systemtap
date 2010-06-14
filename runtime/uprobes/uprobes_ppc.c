@@ -247,6 +247,7 @@ static int emulate_step(struct pt_regs *regs, unsigned int instr)
 	case 31:
 		rd = (instr >> 21) & 0x1f;
 		switch (instr & 0x7fe) {
+#if 0 // MSR opcodes are privileged, and must not be emulated for uprobes
 		case 0xa6:	/* mfmsr */
 			regs->gpr[rd] = regs->msr & MSR_MASK;
 			regs->nip += 4;
@@ -277,6 +278,7 @@ static int emulate_step(struct pt_regs *regs, unsigned int instr)
 			if ((imm & MSR_SF) == 0)
 				regs->nip &= 0xffffffffUL;
 			return 1;
+#endif
 #endif
 		case 0x26:	/* mfcr */
 			regs->gpr[rd] = regs->ccr;

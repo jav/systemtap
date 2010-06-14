@@ -296,8 +296,8 @@ symbol_table
 #ifdef __powerpc__
   GElf_Word opd_section;
 #endif
-  void add_symbol(const char *name, bool weak, Dwarf_Addr addr,
-                                               Dwarf_Addr *high_addr);
+  void add_symbol(const char *name, bool weak, bool descriptor,
+                  Dwarf_Addr addr, Dwarf_Addr *high_addr);
   enum info_status read_symbols(FILE *f, const string& path);
   enum info_status read_from_elf_file(const string& path,
 				      const systemtap_session &sess);
@@ -857,7 +857,7 @@ dwarf_query::query_module_symtab()
       else
         {
           fi = sym_table->lookup_symbol(function_str_val);
-          if (fi && null_die(&fi->die))
+          if (fi && !fi->descriptor && null_die(&fi->die))
             query_func_info(fi->addr, *fi, this);
         }
     }
@@ -5323,8 +5323,8 @@ symbol_table::~symbol_table()
 }
 
 void
-symbol_table::add_symbol(const char *name, bool weak, Dwarf_Addr addr,
-                                                      Dwarf_Addr *high_addr)
+symbol_table::add_symbol(const char *name, bool weak, bool descriptor,
+                         Dwarf_Addr addr, Dwarf_Addr *high_addr)
 {
 #ifdef __powerpc__
   // Map ".sys_foo" to "sys_foo".
@@ -5335,6 +5335,7 @@ symbol_table::add_symbol(const char *name, bool weak, Dwarf_Addr addr,
   fi->addr = addr;
   fi->name = name;
   fi->weak = weak;
+  fi->descriptor = descriptor;
   map_by_name[fi->name] = fi;
   // TODO: Use a multimap in case there are multiple static
   // functions with the same name?
@@ -5376,7 +5377,7 @@ symbol_table::read_symbols(FILE *f, const string& path)
           break;
         }
       if (type == 'T' || type == 't' || type == 'W')
-        add_symbol(name, (type == 'W'), (Dwarf_Addr) addr, &high_addr);
+        add_symbol(name, (type == 'W'), false, (Dwarf_Addr) addr, &high_addr);
     }
 
   if (map_by_addr.size() < 1)
@@ -5494,10 +5495,9 @@ symbol_table::get_from_elf()
       GElf_Sym sym;
       GElf_Word section;
       const char *name = dwfl_module_getsym(mod, i, &sym, &section);
-      if (name && GELF_ST_TYPE(sym.st_info) == STT_FUNC &&
-                                                   !reject_section(section))
+      if (name && GELF_ST_TYPE(sym.st_info) == STT_FUNC)
         add_symbol(name, (GELF_ST_BIND(sym.st_info) == STB_WEAK),
-                                              sym.st_value, &high_addr);
+                   reject_section(section), sym.st_value, &high_addr);
     }
   return info_present;
 }
