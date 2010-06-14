@@ -74,8 +74,7 @@ probe syscall.mmap.return = kernel.function("old_mmap").return ?,
 # long sys32_mmap2(struct mmap_arg_struct_emu31 __user *arg)
 #
 probe syscall.mmap2 = kernel.function("sys_mmap2") ?,
-                      kernel.function("sys32_mmap2") ?,
-                      kernel.function("SyS_mmap2") ?
+                      kernel.function("sys32_mmap2") ?
 {
         name = "mmap2"
 
@@ -86,8 +85,7 @@ probe syscall.mmap2 = kernel.function("sys_mmap2") ?,
 }
 
 probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?,
-                             kernel.function("sys32_mmap2").return ?,
-                             kernel.function("SyS_mmap2").return ?
+                             kernel.function("sys32_mmap2").return ?
 {
         name = "mmap2"
         retstr = returnstr(2)

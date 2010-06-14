@@ -85,8 +85,7 @@ probe nd_syscall.mmap.return = kprobe.function("old_mmap").return ?,
 # long sys32_mmap2(struct mmap_arg_struct_emu31 __user *arg)
 #
 probe nd_syscall.mmap2 = kprobe.function("sys_mmap2") ?,
-                         kprobe.function("sys32_mmap2") ?,
-                         kprobe.function("SyS_mmap2") ?
+                         kprobe.function("sys32_mmap2") ?
 {
 	name = "mmap2"
 
@@ -103,8 +102,7 @@ probe nd_syscall.mmap2 = kprobe.function("sys_mmap2") ?,
 }
 
 probe nd_syscall.mmap2.return = kprobe.function("sys_mmap2").return ?,
-                                kprobe.function("sys32_mmap2").return ?,
-                                kprobe.function("SyS_mmap2").return ?
+                                kprobe.function("sys32_mmap2").return ?
 {
 	name = "mmap2"
 	retstr = returnstr(2)

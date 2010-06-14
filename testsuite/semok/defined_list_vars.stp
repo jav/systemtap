@@ -9,8 +9,7 @@
 # with "probe " and "{}"
 
 stap -L '
-my_syscall.poll = kernel.function("SyS_poll").call !,
-                  kernel.function("sys_poll").call
+my_syscall.poll = kernel.function("sys_poll").call
 {
   timeout = (@defined($timeout_msecs) ? $timeout_msecs : $timeout)
 }
