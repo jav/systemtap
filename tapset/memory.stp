@@ -89,8 +89,7 @@ probe vm.pagefault.return =
 }
 
 /**
- * sfunction addr_to_node - Returns which node a given address
- * belongs to within a NUMA system.
+ * sfunction addr_to_node - Returns which node a given address belongs to within a NUMA system.
  *
  * General Syntax: addr_to_node:long(addr:long)
  *

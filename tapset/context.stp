@@ -76,8 +76,7 @@ function tid:long ()
 %}
 
 /**
- * sfunction ppid - Returns the process ID of a target process's
- * parent process.
+ * sfunction ppid - Returns the process ID of a target process's parent process.
  *
  * General Syntax: ppid:long()
  *
@@ -132,8 +131,7 @@ function sid:long ()
 %}
 
 /**
- * sfunction pexecname - Returns the execname of a target process's
- * parent process.
+ * sfunction pexecname - Returns the execname of a target process's parent process.
  * 
  * General Syntax: pexecname:string()
  * 
@@ -215,8 +213,7 @@ function euid:long ()
 
 
 /**
- * sfunction is_myproc - Determines if the current probe point
- * has occurred in the user's own process.
+ * sfunction is_myproc - Determines if the current probe point has occurred in the user's own process.
  *
  * General Syntax: is_myproc:long()
  * 
@@ -268,8 +265,7 @@ function pp:string ()
 %}
 
 /**
- * sfunction registers_valid - Determines validity of register()
- * and u_register() in current context.
+ * sfunction registers_valid - Determines validity of register() and u_register() in current context.
  *
  * General Syntax: registers_valid:long()
  *
@@ -304,8 +300,7 @@ function user_mode:long ()
 %}
 
 /**
- * sfunction is_return - Whether the current probe context
- * is a return probe.
+ * sfunction is_return - Whether the current probe context is a return probe.
  * 
  * General Syntax: is_return:long()
  *
@@ -396,8 +391,7 @@ function stack_used:long ()
 %}
 
 /**
- * sfunction stack_unused - Returns the amount of kernel
- * stack currently available.
+ * sfunction stack_unused - Returns the amount of kernel stack currently available.
  *
  * General Syntax: stack_unused:long()
  *
@@ -437,8 +431,7 @@ function uaddr:long ()
 %}
 
 /**
- * sfunction cmdline_args - Fetch command line arguments
- * from current process
+ * sfunction cmdline_args - Fetch command line arguments from current process
  *
  * General Syntax: cmdline_args:string(n:long, m:long, delim:string)
  *
@@ -505,8 +498,7 @@ function cmdline_arg:string(n:long)
 }
 
 /**
- * sfunction cmdline_str - Fetch all command line arguments
- * from current process
+ * sfunction cmdline_str - Fetch all command line arguments from current process
  *
  * General Syntax: cmdline_str:string()
  *

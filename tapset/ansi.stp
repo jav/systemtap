@@ -137,8 +137,7 @@ function ansi_cursor_save() {
 }
 
 /**
- * sfunction ansi_cursor_saves - Restores a previously saved
- * cursor position.
+ * sfunction ansi_cursor_saves - Restores a previously saved cursor position.
  *
  * General Syntax: ansi_cursor_restore()
  *

@@ -57,8 +57,7 @@ function stringat:long(str:string, pos:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction isinstr - Returns whether a string is a substring of
- * another string.
+ * sfunction isinstr - Returns whether a string is a substring of another string.
  *
  * General syntax: isinstr:long (s1:string, s2:string)
  *
@@ -152,8 +151,7 @@ function tokenize:string(input:string, delim:string)
 %}
 
 /**
- * sfunction - str_replace Replaces all instances of a substring 
- * with another.
+ * sfunction - str_replace Replaces all instances of a substring with another.
  *
  * General Syntax: str_replace:string(prnt_str:string, srch_str:string, rplc_str:string)
  *
