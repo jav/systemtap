@@ -21,6 +21,7 @@
 #include <cerrno>
 #include <map>
 #include <string>
+#include <fstream>
 
 extern "C" {
 #include <fcntl.h>
@@ -220,6 +221,31 @@ in_group_id (gid_t target_gid)
 
   // The user is not a member of the target group
   return false;
+}
+
+/*
+ * Returns a string describing memory resource usage.
+ * Since it seems getrusage() doesn't maintain the mem related fields,
+ * this routine parses /proc/self/statm to get the statistics.
+ */
+string
+getmemusage ()
+{
+  static long sz = sysconf(_SC_PAGESIZE);
+
+  long pages, kb;
+  ostringstream oss;
+  ifstream statm("/proc/self/statm");
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << "using " << kb << "virt/";
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << kb << "res/";
+  statm >> pages;
+  kb = pages * sz / 1024;
+  oss << kb << "shr kb, ";
+  return oss.str();
 }
 
 void

@@ -53,7 +53,6 @@ struct semantic_error;
 struct module_cache;
 struct update_visitor;
 
-
 // XXX: a generalized form of this descriptor could be associated with
 // a vardecl instead of out here at the systemtap_session level.
 struct statistic_decl
@@ -75,36 +74,12 @@ struct statistic_decl
   }
 };
 
-struct compile_server_info
-{
-  std::string host_name;
-  std::string ip_address;
-  unsigned short port;
-  std::string sysinfo;
-};
-
-std::ostream &operator<< (std::ostream &s, const compile_server_info &i);
-
-enum compile_server_properties {
-  compile_server_trusted    = 0x1,
-  compile_server_online     = 0x2,
-  compile_server_compatible = 0x4,
-  compile_server_signer     = 0x8,
-  compile_server_specified  = 0x10
-};
-
 struct systemtap_session
 {
   systemtap_session ();
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (session.cxx)
-  // and/or in the initialize method (session.cxx).
-  void initialize ();
-  int passes_0_4 ();
-  int pass_5 ();
-  void cleanup (int rc);
-
+  // to be cleared in the systemtap_session ctor (session.cxx).
   void setup_kernel_release (const char* kstr);
   int parse_kernel_config ();
   int parse_kernel_exports ();
@@ -116,13 +91,8 @@ struct systemtap_session
   void check_options (int argc, char * const argv []);
   static const char* morehelp;
 
-  void setup_signals (sighandler_t handler);
-  void create_temp_dir ();
-  void remove_temp_dir ();
-
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (session.cxx)
-  // and/or in the initialize method (session.cxx).
+  // to be cleared in the systemtap_session ctor (session.cxx).
 
   // command line args
   std::string script_file; // FILE
@@ -174,8 +144,7 @@ struct systemtap_session
   bool unprivileged;
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (session.cxx)
-  // and/or in the initialize method (session.cxx).
+  // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Client/server
   bool client_options;
@@ -183,12 +152,6 @@ struct systemtap_session
   std::vector<std::string> server_status_strings;
   std::vector<std::string> specified_servers;
   std::vector<std::string> server_args;
-
-  void query_server_status ();
-  void query_server_status (const std::string &status_string);
-  void get_server_info (int pmask, std::vector<compile_server_info> &servers);
-  void get_online_server_info (std::vector<compile_server_info> &servers);
-  void keep_compatible_server_info (std::vector<compile_server_info> &servers);
 
   std::string host_name;
   std::string domain_name;
@@ -198,8 +161,7 @@ struct systemtap_session
   void get_host_and_domain_name ();
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (session.cxx)
-  // and/or in the initialize method (session.cxx).
+  // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Cache data
   bool use_cache;               // control all caching
@@ -220,8 +182,7 @@ struct systemtap_session
   bool skip_badvars;
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (session.cxx)
-  // and/or in the initialize method (session.cxx).
+  // to be cleared in the systemtap_session ctor (session.cxx).
 
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
@@ -271,8 +232,7 @@ struct systemtap_session
   procfs_derived_probe_group* procfs_derived_probes;
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (session.cxx)
-  // and/or in the initialize method (session.cxx).
+  // to be cleared in the systemtap_session ctor (session.cxx).
 
   // unparser data
   translator_output* op;
@@ -290,8 +250,7 @@ struct systemtap_session
   struct module_cache* module_cache;
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (session.cxx)
-  // and/or in the initialize method (session.cxx).
+  // to be cleared in the systemtap_session ctor (session.cxx).
 
   std::set<std::string> seen_errors;
   std::set<std::string> seen_warnings;
@@ -308,14 +267,14 @@ struct systemtap_session
   void printscript(std::ostream& o);
 
   // NB: It is very important for all of the above (and below) fields
-  // to be cleared in the systemtap_session ctor (session.cxx)
-  // and/or in the initialize method (session.cxx).
-  static std::string getmemusage ();
-  static void uniq_list(std::list<std::string>& l);
+  // to be cleared in the systemtap_session ctor (session.cxx).
+};
+
 
 // global counter of SIGINT/SIGTERM's received
-  static int pending_interrupts;
-};
+extern int pending_interrupts;
+
+int passes_0_4 ();
 
 #endif // SESSION_H
 

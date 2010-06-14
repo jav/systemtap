@@ -8,8 +8,22 @@
 #ifndef CSCLIENT_H
 #define CSCLIENT_H
 
-struct systemtap_session;
-struct compile_server_info;
+// Information about compile servers.
+struct compile_server_info
+{
+  std::string host_name;
+  std::string ip_address;
+  unsigned short port;
+  std::string sysinfo;
+};
+
+enum compile_server_properties {
+  compile_server_trusted    = 0x1,
+  compile_server_online     = 0x2,
+  compile_server_compatible = 0x4,
+  compile_server_signer     = 0x8,
+  compile_server_specified  = 0x10
+};
 
 class compile_server_client
 {
@@ -49,5 +63,14 @@ private:
   std::string server_zipfile;
   unsigned argc;
 };
+
+// Utility functions
+void query_server_status (const systemtap_session &s);
+void query_server_status (const systemtap_session &s, const std::string &status_string);
+void get_server_info (const systemtap_session &s, int pmask, std::vector<compile_server_info> &servers);
+void get_online_server_info (std::vector<compile_server_info> &servers);
+void keep_compatible_server_info (const systemtap_session &s, std::vector<compile_server_info> &servers);
+
+std::ostream &operator<< (std::ostream &s, const compile_server_info &i);
 
 #endif // CSCLIENT_H

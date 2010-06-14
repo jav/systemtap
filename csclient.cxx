@@ -50,207 +50,6 @@ extern "C" {
 
 using namespace std;
 
-#if HAVE_AVAHI
-struct browsing_context {
-  AvahiSimplePoll *simple_poll;
-  AvahiClient *client;
-  vector<compile_server_info> *servers;
-};
-
-extern "C"
-void resolve_callback(
-    AvahiServiceResolver *r,
-    AVAHI_GCC_UNUSED AvahiIfIndex interface,
-    AVAHI_GCC_UNUSED AvahiProtocol protocol,
-    AvahiResolverEvent event,
-    const char *name,
-    const char *type,
-    const char *domain,
-    const char *host_name,
-    const AvahiAddress *address,
-    uint16_t port,
-    AvahiStringList *txt,
-    AvahiLookupResultFlags flags,
-    AVAHI_GCC_UNUSED void* userdata) {
-
-    assert(r);
-    const browsing_context *context = (browsing_context *)userdata;
-    vector<compile_server_info> *servers = context->servers;
-
-    // Called whenever a service has been resolved successfully or timed out.
-
-    switch (event) {
-        case AVAHI_RESOLVER_FAILURE:
-	  cerr << "Failed to resolve service '" << name
-	       << "' of type '" << type
-	       << "' in domain '" << domain
-	       << "': " << avahi_strerror(avahi_client_errno(avahi_service_resolver_get_client(r)))
-	       << endl;
-            break;
-
-        case AVAHI_RESOLVER_FOUND: {
-            char a[AVAHI_ADDRESS_STR_MAX], *t;
-            avahi_address_snprint(a, sizeof(a), address);
-            t = avahi_string_list_to_string(txt);
-
-	    // Save the information of interest.
-	    compile_server_info info;
-	    info.ip_address = strdup (a);
-	    info.port = port;
-	    info.sysinfo = t;
-	    info.host_name = host_name;
-
-	    // Add this server to the list of discovered servers.
-	    servers->push_back (info);
-
-            avahi_free(t);
-        }
-    }
-
-    avahi_service_resolver_free(r);
-}
-
-extern "C"
-void browse_callback(
-    AvahiServiceBrowser *b,
-    AvahiIfIndex interface,
-    AvahiProtocol protocol,
-    AvahiBrowserEvent event,
-    const char *name,
-    const char *type,
-    const char *domain,
-    AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
-    void* userdata) {
-    
-    browsing_context *context = (browsing_context *)userdata;
-    AvahiClient *c = context->client;
-    AvahiSimplePoll *simple_poll = context->simple_poll;
-    assert(b);
-
-    // Called whenever a new services becomes available on the LAN or is removed from the LAN.
-
-    switch (event) {
-        case AVAHI_BROWSER_FAILURE:
-	    cerr << "Avahi browse failed: "
-		 << avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b)))
-		 << endl;
-	    avahi_simple_poll_quit(simple_poll);
-	    break;
-
-        case AVAHI_BROWSER_NEW:
-	    // We ignore the returned resolver object. In the callback
-	    // function we free it. If the server is terminated before
-	    // the callback function is called the server will free
-	    // the resolver for us.
-            if (!(avahi_service_resolver_new(c, interface, protocol, name, type, domain,
-					     AVAHI_PROTO_UNSPEC, (AvahiLookupFlags)0, resolve_callback, context))) {
-	      cerr << "Failed to resolve service '" << name
-		   << "': " << avahi_strerror(avahi_client_errno(c))
-		   << endl;
-	    }
-            break;
-
-        case AVAHI_BROWSER_REMOVE:
-        case AVAHI_BROWSER_ALL_FOR_NOW:
-        case AVAHI_BROWSER_CACHE_EXHAUSTED:
-            break;
-    }
-}
-
-extern "C"
-void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED void * userdata) {
-    assert(c);
-    browsing_context *context = (browsing_context *)userdata;
-    AvahiSimplePoll *simple_poll = context->simple_poll;
-
-    // Called whenever the client or server state changes.
-
-    if (state == AVAHI_CLIENT_FAILURE) {
-        cerr << "Avahi Server connection failure: "
-	     << avahi_strerror(avahi_client_errno(c))
-	     << endl;
-        avahi_simple_poll_quit(simple_poll);
-    }
-}
-
-extern "C"
-void timeout_callback(AVAHI_GCC_UNUSED AvahiTimeout *e, AVAHI_GCC_UNUSED void *userdata) {
-  browsing_context *context = (browsing_context *)userdata;
-  AvahiSimplePoll *simple_poll = context->simple_poll;
-  avahi_simple_poll_quit(simple_poll);
-}
-#endif // HAVE_AVAHI
-
-void
-systemtap_session::get_online_server_info (
-  vector<compile_server_info> &servers
-)
-{
-#if HAVE_AVAHI
-    // Initialize.
-    AvahiClient *client = NULL;
-    AvahiServiceBrowser *sb = NULL;
- 
-    // Allocate main loop object.
-    AvahiSimplePoll *simple_poll;
-    if (!(simple_poll = avahi_simple_poll_new())) {
-        cerr << "Failed to create Avahi simple poll object" << endl;
-        goto fail;
-    }
-    browsing_context context;
-    context.simple_poll = simple_poll;
-    context.servers = & servers;
-
-    // Allocate a new Avahi client
-    int error;
-    client = avahi_client_new (avahi_simple_poll_get (simple_poll),
-			       (AvahiClientFlags)0,
-			       client_callback, & context, & error);
-
-    // Check whether creating the client object succeeded.
-    if (!client) {
-        cerr << "Failed to create Avahi client: "
-	     << avahi_strerror(error)
-	     << endl;
-        goto fail;
-    }
-    context.client = client;
-    
-    // Create the service browser.
-    if (!(sb = avahi_service_browser_new (client, AVAHI_IF_UNSPEC,
-					  AVAHI_PROTO_UNSPEC, "_stap._tcp",
-					  NULL, (AvahiLookupFlags)0,
-					  browse_callback, & context))) {
-        cerr << "Failed to create Avahi service browser: "
-	     << avahi_strerror(avahi_client_errno(client))
-	     << endl;
-        goto fail;
-    }
-
-    // Timeout after 2 seconds.
-    struct timeval tv;
-    avahi_simple_poll_get(simple_poll)->timeout_new(
-        avahi_simple_poll_get(simple_poll),
-        avahi_elapse_time(&tv, 1000*2, 0),
-        timeout_callback,
-        & context);
-
-    // Run the main loop.
-    avahi_simple_poll_loop(simple_poll);
-    
-fail:
-    // Cleanup.
-    if (sb)
-        avahi_service_browser_free(sb);
-    
-    if (client)
-        avahi_client_free(client);
-
-    if (simple_poll)
-        avahi_simple_poll_free(simple_poll);
-#endif // HAVE_AVAHI
-}
-
 int
 compile_server_client::passes_0_4 ()
 {
@@ -272,19 +71,19 @@ compile_server_client::passes_0_4 ()
 
   // Create the request package.
   int rc = initialize ();
-  if (rc != 0 || systemtap_session::pending_interrupts) goto done;
+  if (rc != 0 || pending_interrupts) goto done;
   rc = create_request ();
-  if (rc != 0 || systemtap_session::pending_interrupts) goto done;
+  if (rc != 0 || pending_interrupts) goto done;
   rc = package_request ();
-  if (rc != 0 || systemtap_session::pending_interrupts) goto done;
+  if (rc != 0 || pending_interrupts) goto done;
 
   // Submit it to the server.
   rc = find_and_connect_to_server ();
-  if (rc != 0 || systemtap_session::pending_interrupts) goto done;
+  if (rc != 0 || pending_interrupts) goto done;
 
   // Unpack and process the response.
   rc = unpack_response ();
-  if (rc != 0 || systemtap_session::pending_interrupts) goto done;
+  if (rc != 0 || pending_interrupts) goto done;
   rc = process_response ();
 
   if (rc == 0 && s.last_pass == 4)
@@ -314,22 +113,25 @@ compile_server_client::passes_0_4 ()
   if (s.verbose)
     {
       clog << "Compilation using a server completed "
-           << s.getmemusage()
+           << getmemusage()
            << TIMESPRINT
            << endl;
     }
 #endif // HAVE_NSS
 
-  // Save the module, if necessary.
-  if (s.last_pass == 4)
-    s.save_module = true;
-
-  // Copy module to the current directory.
-  if (s.save_module && ! s.pending_interrupts)
+  if (rc == 0)
     {
-      string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
-      string module_dest_path = s.module_name + ".ko";
-      copy_file (module_src_path, module_dest_path, s.verbose > 1);
+      // Save the module, if necessary.
+      if (s.last_pass == 4)
+	s.save_module = true;
+
+      // Copy module to the current directory.
+      if (s.save_module && ! pending_interrupts)
+	{
+	  string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
+	  string module_dest_path = s.module_name + ".ko";
+	  copy_file (module_src_path, module_dest_path, s.verbose > 1);
+	}
     }
 
   STAP_PROBE1(stap, client__end, &s);
@@ -569,7 +371,7 @@ compile_server_client::find_and_connect_to_server ()
 	  vector<compile_server_info> default_servers;
 	  int pmask = compile_server_online | compile_server_trusted |
 	    compile_server_compatible;
-	  s.get_server_info (pmask, default_servers);
+	  get_server_info (s, pmask, default_servers);
 
 	  // Try each server in succession until successful.
 	  unsigned limit = default_servers.size ();
@@ -768,6 +570,7 @@ compile_server_client::process_response ()
   int rc = read_from_file (filename, stap_rc);
   if (rc != 0)
     return rc;
+  rc = stap_rc;
 
   if (s.last_pass >= 4)
     {
@@ -802,10 +605,10 @@ compile_server_client::process_response ()
 	}
       else if (s.have_script)
 	{
-	  if (stap_rc == 0)
+	  if (rc == 0)
 	    {
 	      cerr << "No module was returned by the server" << endl;
-	      rc = stap_rc;
+	      rc = 1;
 	    }
 	}
       globfree (& globbuf);
@@ -905,4 +708,406 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
 
   fclose (f);
   return rc;
+}
+// Utility Functions.
+std::ostream &operator<< (std::ostream &s, const compile_server_info &i)
+{
+  return s << i.host_name << ' '
+	   << i.ip_address << ' '
+	   << i.port << ' '
+	   << i.sysinfo;
+}
+
+void
+query_server_status (const systemtap_session &s)
+{
+  unsigned limit = s.server_status_strings.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    query_server_status (s, s.server_status_strings[i]);
+}
+
+void
+query_server_status (const systemtap_session &s, const string &status_string)
+{
+#if HAVE_NSS || HAVE_AVAHI
+  // If this string is empty, then set the default.
+  // If the --server option has been used
+  //   the default is 'specified'
+  // otherwise if the --unprivileged has been used
+  //   the default is online,trusted,compatible,signer
+  // otherwise
+  //   the default is online,trusted,compatible
+  //
+  // Having said that,
+  //   'online' is only applicable if we have avahi
+  //   'trusted' and 'signer' are only applicable if we have NSS
+  string working_string;
+  if (status_string.empty ())
+    {
+      if (s.specified_servers.empty ())
+	{
+#if HAVE_AVAHI
+	  working_string = "online,";
+#endif
+#if HAVE_NSS
+	  working_string += "trusted,";
+	  if (s.unprivileged)
+	    working_string += "signer,";
+#endif
+	  working_string += "compatible";
+	}
+      else
+	working_string = "specified";
+    }
+  else
+    working_string = status_string;
+
+  clog << "Systemtap Compile Server Status for '" << working_string << '\''
+       << endl;
+
+  // Construct a mask of the server properties that have been requested.
+  // The available properties are:
+  //     trusted    - trusted servers only.
+  //	 online     - online servers only.
+  //     compatible - servers which compile for the current kernel release
+  //	 	      and architecture.
+  //     signer     - servers which are trusted module signers.
+  //	 specified  - servers which have been specified using --server=XXX.
+  //	 	      If no servers have been specified, then this is
+  //		      equivalent to --server-status=trusted,online,compatible.
+  //     all        - all trusted servers, servers currently online and
+  //	              specified servers.
+  vector<string> properties;
+  tokenize (working_string, properties, ",");
+  int pmask = 0;
+  unsigned limit = properties.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    {
+      const string &property = properties[i];
+      if (property == "all")
+	{
+	  pmask |= compile_server_specified;
+#if HAVE_NSS
+	  pmask |= compile_server_trusted;
+#endif
+#if HAVE_AVAHI
+	  pmask |= compile_server_online;
+#endif
+	}
+      else if (property == "specified")
+	{
+	  pmask |= compile_server_specified;
+	}
+#if HAVE_NSS
+      else if (property == "trusted")
+	{
+	  pmask |= compile_server_trusted;
+	}
+#endif
+#if HAVE_AVAHI
+      else if (property == "online")
+	{
+	  pmask |= compile_server_online;
+	}
+#endif
+      else if (property == "compatible")
+	{
+	  pmask |= compile_server_compatible;
+	}
+#if HAVE_NSS
+      else if (property == "signer")
+	{
+	  pmask |= compile_server_signer;
+	}
+#endif
+      else
+	{
+	  cerr << "Warning: unsupported compile server property: " << property
+	       << endl;
+	}
+    }
+
+  // Now obtain a list of the servers which match the criteria.
+  vector<compile_server_info> servers;
+  get_server_info (s, pmask, servers);
+
+  // Print the server information
+  limit = servers.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    {
+      clog << servers[i] << endl;
+    }
+#endif // HAVE_NSS || HAVE_AVAHI
+}
+
+void
+get_server_info (
+  const systemtap_session &s,
+  int pmask,
+  vector<compile_server_info> &servers
+)
+{
+  // Get information on compile servers matching the requested criteria.
+  // XXXX: TODO: Only compile_server_online and compile_server_compatible
+  //             are currently implemented.
+  if ((pmask & compile_server_online))
+    {
+      get_online_server_info (servers);
+    }
+  if ((pmask & compile_server_compatible))
+    {
+      keep_compatible_server_info (s, servers);
+    }
+}
+
+void
+keep_compatible_server_info (
+  const systemtap_session &s,
+  vector<compile_server_info> &servers
+)
+{
+  // Remove entries for servers incompatible with the host environment
+  // from the given list of servers.
+  // A compatible server compiles for the kernel release and architecture
+  // of the host environment.
+  for (unsigned i = 0; i < servers.size (); /**/)
+    {
+      // Extract the sysinfo field from the Avahi TXT.
+      string sysinfo = servers[i].sysinfo;
+      size_t ix = sysinfo.find("\"sysinfo=");
+      if (ix == string::npos)
+	{
+	  // No sysinfo field. Treat as incompatible.
+	  servers.erase (servers.begin () + i);
+	  continue;
+	}
+      sysinfo = sysinfo.substr (ix + sizeof ("\"sysinfo=") - 1);
+      ix = sysinfo.find('"');
+      if (ix == string::npos)
+	{
+	  // No end of sysinfo field. Treat as incompatible.
+	  servers.erase (servers.begin () + i);
+	  continue;
+	}
+      sysinfo = sysinfo.substr (0, ix);
+
+      // Break the sysinfo into kernel release and arch.
+      vector<string> release_arch;
+      tokenize (sysinfo, release_arch, " ");
+      if (release_arch.size () != 2)
+	{
+	  // Bad sysinfo data. Treat as incompatible.
+	  servers.erase (servers.begin () + i);
+	  continue;
+	}
+      if (release_arch[0] != s.kernel_release ||
+	  release_arch[1] != s.architecture)
+	{
+	  // Platform mismatch.
+	  servers.erase (servers.begin () + i);
+	  continue;
+	}
+  
+      // The server is compatible. Leave it in the list.
+      ++i;
+    }
+}
+
+#if HAVE_AVAHI
+struct browsing_context {
+  AvahiSimplePoll *simple_poll;
+  AvahiClient *client;
+  vector<compile_server_info> *servers;
+};
+
+extern "C"
+void resolve_callback(
+    AvahiServiceResolver *r,
+    AVAHI_GCC_UNUSED AvahiIfIndex interface,
+    AVAHI_GCC_UNUSED AvahiProtocol protocol,
+    AvahiResolverEvent event,
+    const char *name,
+    const char *type,
+    const char *domain,
+    const char *host_name,
+    const AvahiAddress *address,
+    uint16_t port,
+    AvahiStringList *txt,
+    AvahiLookupResultFlags flags,
+    AVAHI_GCC_UNUSED void* userdata) {
+
+    assert(r);
+    const browsing_context *context = (browsing_context *)userdata;
+    vector<compile_server_info> *servers = context->servers;
+
+    // Called whenever a service has been resolved successfully or timed out.
+
+    switch (event) {
+        case AVAHI_RESOLVER_FAILURE:
+	  cerr << "Failed to resolve service '" << name
+	       << "' of type '" << type
+	       << "' in domain '" << domain
+	       << "': " << avahi_strerror(avahi_client_errno(avahi_service_resolver_get_client(r)))
+	       << endl;
+            break;
+
+        case AVAHI_RESOLVER_FOUND: {
+            char a[AVAHI_ADDRESS_STR_MAX], *t;
+            avahi_address_snprint(a, sizeof(a), address);
+            t = avahi_string_list_to_string(txt);
+
+	    // Save the information of interest.
+	    compile_server_info info;
+	    info.ip_address = strdup (a);
+	    info.port = port;
+	    info.sysinfo = t;
+	    info.host_name = host_name;
+
+	    // Add this server to the list of discovered servers.
+	    servers->push_back (info);
+
+            avahi_free(t);
+        }
+    }
+
+    avahi_service_resolver_free(r);
+}
+
+extern "C"
+void browse_callback(
+    AvahiServiceBrowser *b,
+    AvahiIfIndex interface,
+    AvahiProtocol protocol,
+    AvahiBrowserEvent event,
+    const char *name,
+    const char *type,
+    const char *domain,
+    AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
+    void* userdata) {
+    
+    browsing_context *context = (browsing_context *)userdata;
+    AvahiClient *c = context->client;
+    AvahiSimplePoll *simple_poll = context->simple_poll;
+    assert(b);
+
+    // Called whenever a new services becomes available on the LAN or is removed from the LAN.
+
+    switch (event) {
+        case AVAHI_BROWSER_FAILURE:
+	    cerr << "Avahi browse failed: "
+		 << avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b)))
+		 << endl;
+	    avahi_simple_poll_quit(simple_poll);
+	    break;
+
+        case AVAHI_BROWSER_NEW:
+	    // We ignore the returned resolver object. In the callback
+	    // function we free it. If the server is terminated before
+	    // the callback function is called the server will free
+	    // the resolver for us.
+            if (!(avahi_service_resolver_new(c, interface, protocol, name, type, domain,
+					     AVAHI_PROTO_UNSPEC, (AvahiLookupFlags)0, resolve_callback, context))) {
+	      cerr << "Failed to resolve service '" << name
+		   << "': " << avahi_strerror(avahi_client_errno(c))
+		   << endl;
+	    }
+            break;
+
+        case AVAHI_BROWSER_REMOVE:
+        case AVAHI_BROWSER_ALL_FOR_NOW:
+        case AVAHI_BROWSER_CACHE_EXHAUSTED:
+            break;
+    }
+}
+
+extern "C"
+void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED void * userdata) {
+    assert(c);
+    browsing_context *context = (browsing_context *)userdata;
+    AvahiSimplePoll *simple_poll = context->simple_poll;
+
+    // Called whenever the client or server state changes.
+
+    if (state == AVAHI_CLIENT_FAILURE) {
+        cerr << "Avahi Server connection failure: "
+	     << avahi_strerror(avahi_client_errno(c))
+	     << endl;
+        avahi_simple_poll_quit(simple_poll);
+    }
+}
+
+extern "C"
+void timeout_callback(AVAHI_GCC_UNUSED AvahiTimeout *e, AVAHI_GCC_UNUSED void *userdata) {
+  browsing_context *context = (browsing_context *)userdata;
+  AvahiSimplePoll *simple_poll = context->simple_poll;
+  avahi_simple_poll_quit(simple_poll);
+}
+#endif // HAVE_AVAHI
+
+void
+get_online_server_info (vector<compile_server_info> &servers)
+{
+#if HAVE_AVAHI
+    // Initialize.
+    AvahiClient *client = NULL;
+    AvahiServiceBrowser *sb = NULL;
+ 
+    // Allocate main loop object.
+    AvahiSimplePoll *simple_poll;
+    if (!(simple_poll = avahi_simple_poll_new())) {
+        cerr << "Failed to create Avahi simple poll object" << endl;
+        goto fail;
+    }
+    browsing_context context;
+    context.simple_poll = simple_poll;
+    context.servers = & servers;
+
+    // Allocate a new Avahi client
+    int error;
+    client = avahi_client_new (avahi_simple_poll_get (simple_poll),
+			       (AvahiClientFlags)0,
+			       client_callback, & context, & error);
+
+    // Check whether creating the client object succeeded.
+    if (!client) {
+        cerr << "Failed to create Avahi client: "
+	     << avahi_strerror(error)
+	     << endl;
+        goto fail;
+    }
+    context.client = client;
+    
+    // Create the service browser.
+    if (!(sb = avahi_service_browser_new (client, AVAHI_IF_UNSPEC,
+					  AVAHI_PROTO_UNSPEC, "_stap._tcp",
+					  NULL, (AvahiLookupFlags)0,
+					  browse_callback, & context))) {
+        cerr << "Failed to create Avahi service browser: "
+	     << avahi_strerror(avahi_client_errno(client))
+	     << endl;
+        goto fail;
+    }
+
+    // Timeout after 2 seconds.
+    struct timeval tv;
+    avahi_simple_poll_get(simple_poll)->timeout_new(
+        avahi_simple_poll_get(simple_poll),
+        avahi_elapse_time(&tv, 1000*2, 0),
+        timeout_callback,
+        & context);
+
+    // Run the main loop.
+    avahi_simple_poll_loop(simple_poll);
+    
+fail:
+    // Cleanup.
+    if (sb)
+        avahi_service_browser_free(sb);
+    
+    if (client)
+        avahi_client_free(client);
+
+    if (simple_poll)
+        avahi_simple_poll_free(simple_poll);
+#endif // HAVE_AVAHI
 }

@@ -191,7 +191,7 @@ setup_mod_deps()
 static int
 setup_dwfl_report_kernel_p(const char* modname, const char* filename)
 {
-  if (systemtap_session::pending_interrupts || setup_dwfl_done)
+  if (pending_interrupts || setup_dwfl_done)
     return -1;
 
   // elfutils sends us NULL filenames sometimes if it can't find dwarf
