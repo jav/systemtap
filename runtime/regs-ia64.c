@@ -114,6 +114,7 @@ static void ia64_store_register(int regno,
 		addr =&pt_regs->r8;
 		addr += regno - 8;
 		*(addr) = value;
+		return;
 	}
 	else if (regno < 32 || regno > 127)
 		return;
