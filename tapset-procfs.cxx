@@ -422,9 +422,9 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   try
     {
-      assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+      assert(e->name.size() > 0 && e->name[0] == '$');
 
-      if (e->base_name != "$value")
+      if (e->name != "$value")
         throw semantic_error ("invalid target symbol for procfs probe, $value expected",
                               e->tok);
 

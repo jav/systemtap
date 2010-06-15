@@ -231,22 +231,22 @@ target_symbol::assert_no_components(const std::string& tapset, bool pretty_ok)
     {
     case comp_literal_array_index:
     case comp_expression_array_index:
-      throw semantic_error(tapset + " variable '" + base_name +
+      throw semantic_error(tapset + " variable '" + name +
                            "' may not be used as array",
                            components[0].tok);
     case comp_struct_member:
-      throw semantic_error(tapset + " variable '" + base_name +
+      throw semantic_error(tapset + " variable '" + name +
                            "' may not be used as a structure",
                            components[0].tok);
     case comp_pretty_print:
       if (!pretty_ok)
-        throw semantic_error(tapset + " variable '" + base_name +
+        throw semantic_error(tapset + " variable '" + name +
                              "' may not be pretty-printed",
                              components[0].tok);
       return;
     default:
       throw semantic_error ("invalid use of " + tapset +
-                            " variable '" + base_name + "'",
+                            " variable '" + name + "'",
                             components[0].tok);
     }
 }
@@ -375,7 +375,7 @@ void target_symbol::print (ostream& o) const
 {
   if (addressof)
     o << "&";
-  o << base_name;
+  o << name;
   for (unsigned i = 0; i < components.size(); ++i)
     o << components[i];
 }
@@ -385,7 +385,7 @@ void cast_op::print (ostream& o) const
 {
   if (addressof)
     o << "&";
-  o << base_name << '(' << *operand;
+  o << name << '(' << *operand;
   o << ", " << lex_cast_qstring (type);
   if (module.length() > 0)
     o << ", " << lex_cast_qstring (module);

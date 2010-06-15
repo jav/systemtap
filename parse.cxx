@@ -2852,7 +2852,7 @@ target_symbol* parser::parse_target_symbol (const token* t)
     {
       cast_op *cop = new cast_op;
       cop->tok = t;
-      cop->base_name = t->content;
+      cop->name = t->content;
       expect_op("(");
       cop->operand = parse_expression ();
       expect_op(",");
@@ -2879,7 +2879,7 @@ target_symbol* parser::parse_target_symbol (const token* t)
       // target_symbol time
       target_symbol *tsym = new target_symbol;
       tsym->tok = t;
-      tsym->base_name = t->content;
+      tsym->name = t->content;
       parse_target_symbol_components(tsym);
       tsym->addressof = addressof;
       return tsym;
@@ -2910,7 +2910,7 @@ parser::parse_target_symbol_components (target_symbol* e)
   bool pprint = false;
 
   // check for pretty-print in the form $foo$
-  string &base = e->base_name;
+  string &base = e->name;
   size_t pprint_pos = base.find_last_not_of('$');
   if (0 < pprint_pos && pprint_pos < base.length() - 1)
     {

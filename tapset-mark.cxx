@@ -93,7 +93,7 @@ struct mark_var_expanding_visitor: public var_expanding_visitor
 void
 mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
-  string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
+  string argnum_s = e->name.substr(4,e->name.length()-4);
   int argnum = atoi (argnum_s.c_str());
 
   if (argnum < 1 || argnum > (int)mark_args.size())
@@ -117,16 +117,16 @@ mark_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 void
 mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
-  string sname = e->base_name;
+  string sname = e->name;
 
   if (is_active_lvalue (e))
     throw semantic_error("write to marker '" + sname + "' not permitted", e->tok);
 
   e->assert_no_components("marker");
 
-  if (e->base_name == "$format" || e->base_name == "$name") {
+  if (e->name == "$format" || e->name == "$name") {
      string fname;
-     if (e->base_name == "$format") {
+     if (e->name == "$format") {
         fname = string("_mark_format_get");
      } else {
         fname = string("_mark_name_get");
@@ -139,7 +139,7 @@ mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
      provide (n);
   }
- else if (e->base_name == "$$vars" || e->base_name == "$$parms") 
+ else if (e->name == "$$vars" || e->name == "$$parms")
   {
      //copy from tracepoint
      token* pf_tok = new token(*e->tok);
@@ -153,7 +153,7 @@ mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
           pf->raw_components += "$arg" + lex_cast(i+1);
           target_symbol *tsym = new target_symbol;
           tsym->tok = e->tok;
-          tsym->base_name = "$arg" + lex_cast(i+1);
+          tsym->name = "$arg" + lex_cast(i+1);
 
           tsym->saved_conversion_error = 0;
           expression *texp = require (tsym); //same treatment as tracepoint
@@ -180,17 +180,17 @@ mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 void
 mark_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
-  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+  assert(e->name.size() > 0 && e->name[0] == '$');
 
   try
     {
       if (e->addressof)
         throw semantic_error("cannot take address of marker variable", e->tok);
-      
-      if (startswith(e->base_name, "$arg"))
+
+      if (startswith(e->name, "$arg"))
         visit_target_symbol_arg (e);
-      else if (e->base_name == "$format" || e->base_name == "$name" 
-               || e->base_name == "$$parms" || e->base_name == "$$vars")
+      else if (e->name == "$format" || e->name == "$name"
+               || e->name == "$$parms" || e->name == "$$vars")
         visit_target_symbol_context (e);
       else
         throw semantic_error ("invalid target symbol for marker, $argN, $name, $format, $$parms or $$vars expected",

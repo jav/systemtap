@@ -1920,8 +1920,8 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
     q(q), scope_die(sd), addr(a), add_block(NULL), add_call_probe(NULL),
     saved_longs(0), saved_strings(0), visited(false) {}
-  expression* gen_mapped_saved_return(expression* e, const string& base_name);
-  expression* gen_kretprobe_saved_return(expression* e, const string& base_name);
+  expression* gen_mapped_saved_return(expression* e, const string& name);
+  expression* gen_kretprobe_saved_return(expression* e, const string& name);
   void visit_target_symbol_saved_return (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
@@ -2638,9 +2638,9 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
   expression *exp;
   if (!q.has_process &&
       strverscmp(q.sess.kernel_base_release.c_str(), "2.6.25") >= 0)
-    exp = gen_kretprobe_saved_return(repl, e->base_name);
+    exp = gen_kretprobe_saved_return(repl, e->name);
   else
-    exp = gen_mapped_saved_return(repl, e->base_name);
+    exp = gen_mapped_saved_return(repl, e->name);
 
   // Provide the variable to our parent so it can be used as a
   // substitute for the target symbol.
@@ -2654,7 +2654,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
 
 expression*
 dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
-                                                     const string& base_name)
+                                                     const string& name)
 {
   // We've got to do several things here to handle target
   // variables in return probes.
@@ -2668,7 +2668,7 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
   //   _dwarf_tvar_{name}_{num}_ctr
 
   string aname = (string("_dwarf_tvar_")
-                  + base_name.substr(1)
+                  + name.substr(1)
                   + "_" + lex_cast(tick++));
   vardecl* vd = new vardecl;
   vd->name = aname;
@@ -2890,7 +2890,7 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
 
 expression*
 dwarf_var_expanding_visitor::gen_kretprobe_saved_return(expression* e,
-                                                        const string& base_name)
+                                                        const string& name)
 {
   // The code for this is simple.
   //
@@ -2909,7 +2909,7 @@ dwarf_var_expanding_visitor::gen_kretprobe_saved_return(expression* e,
   // character is a '$', then we're looking at a $$vars, $$parms, or $$locals.
   // XXX We need real type resolution here, especially if we are ever to
   //     support an @entry construct.
-  if (base_name[1] == '$')
+  if (name[1] == '$')
     {
       index = saved_strings++;
       setfn = "_set_kretprobe_string";
@@ -2982,9 +2982,9 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
   print_format* pf = print_format::create(pf_tok);
 
-  if (q.has_return && (e->base_name == "$$return"))
+  if (q.has_return && (e->name == "$$return"))
     {
-      tsym->base_name = "$return";
+      tsym->name = "$return";
 
       // Ignore any variable that isn't accessible.
       tsym->saved_conversion_error = 0;
@@ -3013,11 +3013,11 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
             switch (dwarf_tag (&result))
               {
               case DW_TAG_variable:
-                if (e->base_name == "$$parms")
+                if (e->name == "$$parms")
                   continue;
                 break;
               case DW_TAG_formal_parameter:
-                if (e->base_name == "$$locals")
+                if (e->name == "$$locals")
                   continue;
                 break;
 
@@ -3032,8 +3032,8 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
               pf->raw_components += " ";
             pf->raw_components += diename;
 
-            tsym->base_name = "$";
-            tsym->base_name += diename;
+            tsym->name = "$";
+            tsym->name += diename;
 
             // Ignore any variable that isn't accessible.
             tsym->saved_conversion_error = 0;
@@ -3070,7 +3070,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 void
 dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
-  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+  assert(e->name.size() > 0 && e->name[0] == '$');
   visited = true;
   bool defined_being_checked = (defined_ops.size() > 0 && (defined_ops.top()->operand == e));
   // In this mode, we avoid hiding errors or generating extra code such as for .return saved $vars
@@ -3087,8 +3087,8 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       // parameters from a return probe.  PR 1382.
       if (q.has_return
           && !defined_being_checked
-          && e->base_name != "$return" // not the special return-value variable handled below
-          && e->base_name != "$$return") // nor the other special variable handled below
+          && e->name != "$return" // not the special return-value variable handled below
+          && e->name != "$$return") // nor the other special variable handled below
         {
           if (lvalue)
             throw semantic_error("write to target variable not permitted in .return probes", e->tok);
@@ -3096,10 +3096,8 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           return;
         }
 
-      if (e->base_name == "$$vars"
-          || e->base_name == "$$parms"
-          || e->base_name == "$$locals"
-          || (q.has_return && (e->base_name == "$$return")))
+      if (e->name == "$$vars" || e->name == "$$parms" || e->name == "$$locals"
+          || (q.has_return && (e->name == "$$return")))
         {
           if (lvalue)
             throw semantic_error("cannot write to context variable", e->tok);
@@ -3119,7 +3117,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           if (lvalue)
             throw semantic_error("cannot write to pretty-printed variable", e->tok);
 
-          if (q.has_return && (e->base_name == "$return"))
+          if (q.has_return && (e->name == "$return"))
             {
               dwarf_pretty_print dpp (q.dw, scope_die, addr,
                                       q.has_process, *e);
@@ -3128,7 +3126,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           else
             {
               dwarf_pretty_print dpp (q.dw, getscopes(e), addr,
-                                      e->base_name.substr(1),
+                                      e->name.substr(1),
                                       q.has_process, *e);
               dpp.expand()->visit(this);
             }
@@ -3143,14 +3141,14 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       ec->tok = e->tok;
 
       string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
-                      + "_" + e->base_name.substr(1)
+                      + "_" + e->name.substr(1)
                       + "_" + lex_cast(tick++));
 
       // PR10601: adapt to kernel-vs-userspace loc2c-runtime
       ec->code += "\n#define fetch_register " + string(q.has_process?"u":"k") + "_fetch_register\n";
       ec->code += "#define store_register " + string(q.has_process?"u":"k") + "_store_register\n";
 
-      if (q.has_return && (e->base_name == "$return"))
+      if (q.has_return && (e->name == "$return"))
         {
 	  ec->code += q.dw.literal_stmt_for_return (scope_die,
 						   addr,
@@ -3162,7 +3160,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         {
 	  ec->code += q.dw.literal_stmt_for_local (getscopes(e),
 						  addr,
-						  e->base_name.substr(1),
+						  e->name.substr(1),
 						  e,
 						  lvalue,
 						  fdecl->type);
@@ -3275,7 +3273,7 @@ dwarf_var_expanding_visitor::getscopes(target_symbol *e)
                                     + "(" + (dwarf_diename(q.dw.cu) ?: "<unknown>")
                                     + ")"))
                               + " while searching for local '"
-                              + e->base_name.substr(1) + "'",
+                              + e->name.substr(1) + "'",
                               e->tok);
     }
   return scopes;
@@ -3356,7 +3354,7 @@ dwarf_cast_query::handle_query_module()
     return;
 
   string fname = (string(lvalue ? "_dwarf_cast_set" : "_dwarf_cast_get")
-		  + "_" + e.base_name.substr(1)
+		  + "_" + e.name.substr(1)
 		  + "_" + lex_cast(tick++));
 
   // Synthesize a function.
@@ -3801,8 +3799,8 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
         /* trick from visit_target_symbol_context */
         target_symbol *tsym = new target_symbol;
         tsym->tok = q.base_loc->components.front()->tok;
-        tsym->base_name = "$";
-        tsym->base_name += arg_name;
+        tsym->name = "$";
+        tsym->name += arg_name;
 
         /* Ignore any variable that isn't accessible */
         tsym->saved_conversion_error = 0;
@@ -4497,7 +4495,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   try
     {
-      if (e->base_name == "$$name")
+      if (e->name == "$$name")
 	{
 	  if (e->addressof)
 	    throw semantic_error("cannot take address of sdt context variable", e->tok);
@@ -4507,7 +4505,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  provide(myname);
 	  return;
 	}
-      if (e->base_name == "$$provider")
+      if (e->name == "$$provider")
 	{
 	  if (e->addressof)
 	    throw semantic_error("cannot take address of sdt context variable", e->tok);
@@ -4519,9 +4517,9 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	}
       if (arg_count == 0)
 	{
-	  if (startswith(e->base_name, "$"))
+	  if (startswith(e->name, "$"))
 	    {
-	      // NB: Either 
+	      // NB: Either
 	      // 1) uprobe1_type $argN or $FOO (we don't know the arg_count)
 	      // 2) uprobe2_type $FOO (no probe args)
 	      // both of which get resolved later.
@@ -4536,7 +4534,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       // XXX: check for $arg prefix!
       try
 	{
-	  argno = lex_cast<int>(e->base_name.substr(4));
+	  argno = lex_cast<int>(e->name.substr(4));
 	}
       catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
 	{
@@ -4560,11 +4558,13 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       int	 rc;
       size_t	 nmatch = 5;
       regmatch_t pmatch[5];
- 
+
       if (0 != (rc = regcomp(&preg, pattern, 0)))
 	throw semantic_error("Failed to parse probe operand");
       if (0 != (rc = regexec(&preg, arg_tokens[argno-1].c_str(), nmatch, pmatch, 0)))
-	throw semantic_error("Unsupported assembler operand while accessing " + probe_name + " " + e->base_name + " " + arg_tokens[argno-1], e->tok);
+	throw semantic_error("Unsupported assembler operand while accessing "
+                             + probe_name + " " + e->name + " " + arg_tokens[argno-1],
+                             e->tok);
       // Is there a displacement?
       if (pmatch[2].rm_so > pmatch[1].rm_so)
 	{
@@ -4580,9 +4580,10 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  reg = (char*)&arg_tokens[argno-1][pmatch[3].rm_so+1];
 	  reg.erase(pmatch[3].rm_eo - pmatch[3].rm_so - 1);
 	}
-	  
+
       if (reg.length() == 0)
-	throw semantic_error("Unsupported assembler operand while accessing " + probe_name + " " + e->base_name, e->tok);
+	throw semantic_error("Unsupported assembler operand while accessing "
+                             + probe_name + " " + e->name, e->tok);
 
       // synthesize user_long(%{fetch_register(R)%} + D)
       fc->function = "user_long";
@@ -4617,7 +4618,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  return;
 	}
       cast_op *cast = new cast_op;
-      cast->base_name = "@cast";
+      cast->name = "@cast";
       cast->tok = e->tok;
       if (arg_in_memory)
 	cast->operand = fc;
@@ -4642,7 +4643,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   try
     {
-      if (e->base_name == "$$name")
+      if (e->name == "$$name")
 	{
 	  if (e->addressof)
 	    throw semantic_error("cannot take address of sdt context variable", e->tok);
@@ -4652,7 +4653,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  provide(myname);
 	  return;
 	}
-      if (e->base_name == "$$provider")
+      if (e->name == "$$provider")
 	{
 	  if (e->addressof)
 	    throw semantic_error("cannot take address of sdt context variable", e->tok);
@@ -4666,7 +4667,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       int argno = 0;
       try
 	{
-	  argno = lex_cast<int>(e->base_name.substr(4));
+	  argno = lex_cast<int>(e->name.substr(4));
 	}
       catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
 	{
@@ -4723,7 +4724,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  return;
 	}
       cast_op *cast = new cast_op;
-      cast->base_name = "@cast";
+      cast->name = "@cast";
       cast->tok = e->tok;
       cast->operand = fc;
       cast->components = e->components;
@@ -4739,7 +4740,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     }
 }
 
-  
+
 // See var_expanding_visitor::visit_defined_op for a background on
 // this callback,
 void
@@ -6978,7 +6979,7 @@ struct tracepoint_var_expanding_visitor: public var_expanding_visitor
 void
 tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
-  string argname = e->base_name.substr(1);
+  string argname = e->name.substr(1);
 
   // search for a tracepoint parameter matching this name
   tracepoint_arg *arg = NULL;
@@ -6999,7 +7000,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
       // We hope that this value ends up not being referenced after all, so it
       // can be optimized out quietly.
-      throw semantic_error("unable to find tracepoint variable '" + e->base_name
+      throw semantic_error("unable to find tracepoint variable '" + e->name
                            + "' (alternatives:" + alternatives.str () + ")", e->tok);
       // NB: we can have multiple errors, since a target variable
       // may be expanded in several different contexts:
@@ -7013,7 +7014,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // we can only write to dereferenced fields, and only if guru mode is on
   bool lvalue = is_active_lvalue(e);
   if (lvalue && (!dw.sess.guru_mode || e->components.empty()))
-    throw semantic_error("write to tracepoint variable '" + e->base_name
+    throw semantic_error("write to tracepoint variable '" + e->name
                          + "' not permitted", e->tok);
 
   // XXX: if a struct/union arg is passed by value, then writing to its fields
@@ -7057,7 +7058,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       ec->tok = e->tok;
 
       string fname = (string(lvalue ? "_tracepoint_tvar_set" : "_tracepoint_tvar_get")
-                      + "_" + e->base_name.substr(1)
+                      + "_" + e->name.substr(1)
                       + "_" + lex_cast(tick++));
 
       fdecl->name = fname;
@@ -7147,9 +7148,9 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     throw semantic_error("cannot take address of context variable", e->tok);
 
   if (is_active_lvalue (e))
-    throw semantic_error("write to tracepoint '" + e->base_name + "' not permitted", e->tok);
+    throw semantic_error("write to tracepoint '" + e->name + "' not permitted", e->tok);
 
-  if (e->base_name == "$$name")
+  if (e->name == "$$name")
     {
       e->assert_no_components("tracepoint");
 
@@ -7159,7 +7160,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       n->function = "_mark_name_get";
       provide (n);
     }
-  else if (e->base_name == "$$vars" || e->base_name == "$$parms")
+  else if (e->name == "$$vars" || e->name == "$$parms")
     {
       e->assert_no_components("tracepoint", true);
 
@@ -7181,7 +7182,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
           pf->raw_components += args[i].name;
           target_symbol *tsym = new target_symbol;
           tsym->tok = e->tok;
-          tsym->base_name = "$" + args[i].name;
+          tsym->name = "$" + args[i].name;
           tsym->components = e->components;
 
           // every variable should always be accessible!
@@ -7209,11 +7210,9 @@ tracepoint_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   try
     {
-      assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+      assert(e->name.size() > 0 && e->name[0] == '$');
 
-      if (e->base_name == "$$name" ||
-          e->base_name == "$$parms" ||
-          e->base_name == "$$vars")
+      if (e->name == "$$name" || e->name == "$$parms" || e->name == "$$vars")
         visit_target_symbol_context (e);
       else
         visit_target_symbol_arg (e);

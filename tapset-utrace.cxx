@@ -260,7 +260,7 @@ utrace_var_expanding_visitor::visit_target_symbol_cached (target_symbol* e)
       //
       //   _utrace_tvar_{name}_{num}
       string aname = (string("_utrace_tvar_")
-		      + e->base_name.substr(1)
+		      + e->name.substr(1)
 		      + "_" + lex_cast(tick++));
       vardecl* vd = new vardecl;
       vd->name = aname;
@@ -446,7 +446,7 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   if (flags != UDPF_SYSCALL)
     throw semantic_error ("only \"process(PATH_OR_PID).syscall\" support $argN or $$parms.", e->tok);
 
-  if (e->base_name == "$$parms") 
+  if (e->name == "$$parms")
     {
       // copy from tracepoint
       token* pf_tok = new token(*e->tok);
@@ -462,7 +462,7 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
           pf->raw_components += "$arg" + lex_cast(i+1);
           target_symbol *tsym = new target_symbol;
           tsym->tok = e->tok;
-          tsym->base_name = "$arg" + lex_cast(i+1);
+          tsym->name = "$arg" + lex_cast(i+1);
           tsym->saved_conversion_error = 0;
           pf->raw_components += "=%#x"; //FIXME: missing type info
 
@@ -479,10 +479,10 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       pf->components = print_format::string_to_components(pf->raw_components);
 
       provide (pf);
-     } 
+     }
    else // $argN
      {
-        string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
+        string argnum_s = e->name.substr(4,e->name.length()-4);
         int argnum = 0;
         try
           {
@@ -524,7 +524,7 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 void
 utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
-  string sname = e->base_name;
+  const string& sname = e->name;
 
   e->assert_no_components("utrace");
 
@@ -580,26 +580,26 @@ utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 void
 utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
-  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+  assert(e->name.size() > 0 && e->name[0] == '$');
 
-  try 
+  try
     {
       if (flags != UDPF_SYSCALL && flags != UDPF_SYSCALL_RETURN)
         throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
                               e->tok);
-      
+
       if (e->addressof)
         throw semantic_error("cannot take address of utrace variable", e->tok);
-      
-      if (startswith(e->base_name, "$arg") || e->base_name == "$$parms")
+
+      if (startswith(e->name, "$arg") || e->name == "$$parms")
         visit_target_symbol_arg(e);
-      else if (e->base_name == "$syscall" || e->base_name == "$return")
+      else if (e->name == "$syscall" || e->name == "$return")
         visit_target_symbol_context(e);
       else
         throw semantic_error ("invalid target symbol for utrace probe, $syscall, $return, $argN or $$parms expected",
                               e->tok);
     }
-  catch (const semantic_error &er) 
+  catch (const semantic_error &er)
     {
       e->chain (er);
       provide(e);
