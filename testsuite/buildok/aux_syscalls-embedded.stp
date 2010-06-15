@@ -21,31 +21,91 @@ probe begin {
 	print (__get_argv(0,0))
 	print (__get_compat_argv(0,0))
 
-#	print (__uget_tz_m(0,0))
-#	print (__uget_timex_m(0,0))
-#	print (__uget_tms_m(0,0))
-#	print (__uget_ts_m(0,0))
+	print (_adjtx_mode_str(0))
+	print (_inotify_watch_mask_str(0))
 
 	print (_sigprocmask_how_str(0))
+	print (_itimer_which_str(0))
+	print (_nfsctl_cmd_str(0))
+	print (_get_wc_str(0))
+	print (_flock_cmd_str(0))
+
+	print (_sys_pipe2_flag_str(0))
 	print (_sys_open_flag_str(0))
+	print (_access_mode_str(0))
+	print (_sys_open_mode_str(0))
+
+	print (_mknod_mode_str(0))
+	print (_msync_flag_str(0))
+
+	print (_wait4_opt_str(0))
+	print (_waitid_opt_str(0))
+
+	print (_sendflags_str(0))
+	print (_recvflags_str(0))
+
 	print (_mlockall_flags_str(0))
 	print (_module_flags_str(0))
+	print (_sched_policy_str(0))
+	print (_priority_which_str(0))
+
+	print (_shutdown_how_str(0))
 	print (_reboot_magic_str(0))
+	print (_reboot_flag_str(0))
+
+	print (_waitid_which_str(0))
+	print (_futex_op_str(0))
+
 	print (_mountflags_str(0))
 	print (_umountflags_str(0))
 
+	print (_statfs_f_type_str(0))
+	print (_mremap_flags(0))
+	print (_madvice_advice_str(0))
+	print (_fadvice_advice_str(0))
+	print (_fcntl_cmd_str(0))
+	print (_seek_whence_str(0))
+	print (_quotactl_cmd_str(0))
+
+	print (_sockopt_optname_str(0))
+	print (_sockopt_level_str(0))
+	print (_sock_family_str(0))
+	print (_sock_type_str(0))
+	print (_sock_flags_str(0))
+
+	print (_opoll_op_str(0))
+	print (_epoll_events_str(0))
+
+	print (_rlimit_resource_str(0))
+	print (_rusage_who_str(0))
+
 	print (__short(0))
 	print (__int32(0))
+
+	print (_dfd_str(0))
+	print (_adjtimex_return_str(0))
 
 	print (_signal_name(0))
 	print (_semctl_cmd(0))
 	print (_stp_sigset_u(0))
 	print (__fork_flags(0))
 	print (_at_flag_str(0))
+
+	print (_epoll_create1_flag_str(0))
+	print (_eventfd2_flag_str(0))
+	print (_signalfd4_flags_str(0))
+	print (_inotify_init1_flag_str(0))
+	print (_dup3_flag_str(0))
+
 	print (_shmat_flags_str(0))
 	print (_mprotect_prot_str(0))
 	print (_mmap_flags(0))
 	print (get_mmap_args(0))
-	print (_struct_sigaction_u(0))
-}
 
+	print (_sighandler_str(0))
+	print (_struct_sigaction_u(0))
+	print (_struct_sigaction32_u(0))
+	print (_struct_old_sigaction32_u(0))
+
+	print (irqflags_str(0))
+}
