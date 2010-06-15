@@ -2170,6 +2170,7 @@ private:
                        print_format* pf, bool top);
   void recurse_struct_members (Dwarf_Die* type, target_symbol* e,
                                print_format* pf, int& count);
+  bool print_chars (Dwarf_Die* type, target_symbol* e, print_format* pf);
 
   void init_ts (const target_symbol& e);
   expression* deref (target_symbol* e);
@@ -2376,6 +2377,10 @@ dwarf_pretty_print::recurse_array (Dwarf_Die* type, target_symbol* e,
 
   Dwarf_Die childtype;
   dwarf_attr_die (type, DW_AT_type, &childtype);
+
+  if (print_chars (&childtype, e, pf))
+    return;
+
   pf->raw_components.append("[");
 
   // We print the array up to the first 5 elements.
@@ -2402,20 +2407,20 @@ dwarf_pretty_print::recurse_pointer (Dwarf_Die* type, target_symbol* e,
 {
   // We chase to top-level pointers, but leave the rest alone
   Dwarf_Die pointee;
-  int typetag = dwarf_tag (type);
-  if (top
-      && (typetag == DW_TAG_pointer_type ||
-          typetag == DW_TAG_reference_type ||
-          typetag == DW_TAG_rvalue_reference_type)
-      &&  dwarf_attr_die (type, DW_AT_type, &pointee))
+  if (dwarf_attr_die (type, DW_AT_type, &pointee))
     {
-      recurse (&pointee, e, pf, top);
+      if (print_chars (&pointee, e, pf))
+        return;
+
+      if (top)
+        {
+          recurse (&pointee, e, pf, top);
+          return;
+        }
     }
-  else
-    {
-      pf->raw_components.append("%p");
-      pf->args.push_back(deref(e));
-    }
+
+  pf->raw_components.append("%p");
+  pf->args.push_back(deref(e));
 }
 
 
@@ -2501,6 +2506,31 @@ dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
         recurse (&childtype, e2, pf);
       }
     while (dwarf_siblingof (&child, &child) == 0);
+}
+
+
+bool
+dwarf_pretty_print::print_chars (Dwarf_Die* start_type, target_symbol* e,
+                                 print_format* pf)
+{
+  Dwarf_Die type;
+  dw.resolve_unqualified_inner_typedie (start_type, &type, e);
+  const char *name = dwarf_diename (&type);
+  if (name && (name == string("char") || name == string("unsigned char")))
+    {
+      functioncall* fcall = new functioncall;
+      fcall->tok = e->tok;
+      fcall->function = userspace_p ? "user_string2" : "kernel_string2";
+      fcall->args.push_back (deref (e));
+      expression *err_msg = new literal_string ("<unknown>");
+      err_msg->tok = e->tok;
+      fcall->args.push_back (err_msg);
+
+      pf->raw_components.append ("\"%s\"");
+      pf->args.push_back (fcall);
+      return true;
+    }
+  return false;
 }
 
 

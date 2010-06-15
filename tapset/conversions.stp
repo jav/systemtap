@@ -30,6 +30,22 @@ deref_fault: /* branched to from deref_string() */
 %}
 
 /**
+ * sfunction kernel_string2 - Retrieves string from kernel memory with alternative error string.
+ *
+ * General Syntax: kernel_string2:string(addr:long, err_msg:string)
+ *
+ * @addr: The kernel address to retrieve the string from.
+ * @err_msg: The error message to return when data isn't available.
+ *
+ * Description: This function returns the null terminated C string
+ * from a given kernel memory address. Reports the given error message
+ * on string copy fault.
+ */
+function kernel_string2:string (addr:long, err_msg:string) {
+  try { return kernel_string(addr) } catch { return err_msg }
+}
+
+/**
  * sfunction kernel_string_n - Retrieves string of given length from kernel memory.
  * 
  * General Syntax: kernel_string_n:string(addr:long, n:long)
@@ -164,7 +180,7 @@ deref_fault: /* branched to from kread() */
 function user_string:string (addr:long) { return user_string2 (addr, "<unknown>") }
 
 /**
- * sfunction user_string2 - Retrieves string from user space with alternative error string..
+ * sfunction user_string2 - Retrieves string from user space with alternative error string.
  *
  * General Syntax: user_string2:string(addr:long, err_msg:string)
  *
