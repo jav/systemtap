@@ -4,6 +4,7 @@
 
 probe begin {
   print (kernel_string(2342))
+  print (kernel_string_n(2342, 1))
   print (kernel_long(2342))
   print (kernel_int(2342))
   print (kernel_short(2342))

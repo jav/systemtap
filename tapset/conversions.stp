@@ -307,7 +307,7 @@ function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* unprivil
 %}
 
 /**
- * sfunction user_string_quoted - Retrieves and quotes string from user space.
+ * sfunction user_string_n_quoted - Retrieves and quotes string from user space.
  * 
  * General Syntax: user_string_n_quoted:string(addr:long, n:long)
  * 

@@ -2,6 +2,7 @@
 
 probe begin {
 	print (kernel_string (0))
+	print (kernel_string_n(0, 1))
 	print (kernel_long (0))
 	print (kernel_int (0))
 	print (kernel_short (0))
