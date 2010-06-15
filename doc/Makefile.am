@@ -9,7 +9,7 @@ if BUILD_DOCS
 all-local: $(PDF_FILES)
 
 clean-local:
-	rm -f *.pdf *.out *.log *.aux *.toc *.lot *.idx *.glo
+	rm -f *.pdf *.out *.log *.aux *.toc *.lot *.idx *.glo *.dvi
 
 install-data-hook:
 	$(MKDIR_P) $(DOC_INSTALL_DIR)

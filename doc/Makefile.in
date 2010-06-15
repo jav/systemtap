@@ -565,7 +565,7 @@ uninstall-am: uninstall-local
 @BUILD_DOCS_TRUE@all-local: $(PDF_FILES)
 
 @BUILD_DOCS_TRUE@clean-local:
-@BUILD_DOCS_TRUE@	rm -f *.pdf *.out *.log *.aux *.toc *.lot *.idx *.glo
+@BUILD_DOCS_TRUE@	rm -f *.pdf *.out *.log *.aux *.toc *.lot *.idx *.glo *.dvi
 
 @BUILD_DOCS_TRUE@install-data-hook:
 @BUILD_DOCS_TRUE@	$(MKDIR_P) $(DOC_INSTALL_DIR)
