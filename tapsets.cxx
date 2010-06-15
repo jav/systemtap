@@ -2475,12 +2475,16 @@ dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
 
         int childtag = dwarf_tag (&childtype);
         const char *member = dwarf_diename (&child);
+
+        // "_vptr.foo" members are C++ virtual function tables,
+        // which (generally?) aren't interesting for users.
+        if (member && startswith(member, "_vptr."))
+          continue;
+
         if (++count > 1)
           pf->raw_components.append(", ");
         if (member)
           {
-            // XXX should we filter out "_vptr.foo" members?
-
             pf->raw_components.append(".");
             pf->raw_components.append(member);
 
