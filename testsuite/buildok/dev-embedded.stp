@@ -1,0 +1,10 @@
+#! stap -p4
+
+probe begin {
+	print(MAJOR(0))
+	print(MINOR(0))
+	print(MKDEV(0, 0))
+	print(usrdev2kerndev(0))
+	print(bdevname(0))
+}
+

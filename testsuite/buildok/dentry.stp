@@ -1,8 +1,0 @@
-#! stap -p4
-
-probe begin
-{
-    println(d_name(0))
-    println(d_path(0))
-    println(reverse_path_walk(0))
-}

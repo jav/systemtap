@@ -1,0 +1,10 @@
+#! stap -p4
+
+probe begin
+{
+    print(__dentry_IS_ROOT(0))
+    print(__dentry_prepend(0, "abc"))
+    println(d_name(0))
+    println(reverse_path_walk(0))
+    println(d_path(0))
+}
