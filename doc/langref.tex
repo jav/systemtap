@@ -67,7 +67,7 @@ the Free Software Foundation, Inc., 51 Franklin Street,
 Fifth Floor, Boston, MA 02110-1301, USA.
 \newpage{}
 \tableofcontents{}
-\listoftables
+% \listoftables
 \newpage{}
 
 \section{SystemTap overview\label{sec:SystemTap-Overview}}
@@ -364,7 +364,7 @@ probe PROBEPOINT [, PROBEPOINT] { [STMT ...] }
 Events are specified in a special syntax called \emph{probe points}. There
 are several varieties of probe points defined by the translator, and tapset
 scripts may define others using aliases. The provided probe points are listed
-in the stapprobes(3) man pages.
+in the \tt{stapprobes(3)}, \tt{tapset::*(3stap)}, and \tt{probe::*(3stap)} man pages.
 
 The probe handler is interpreted relative to the context of each event. For
 events associated with kernel code, this context may include variables defined
@@ -1745,14 +1745,15 @@ can use these in all contexts where literals are accepted. A reference to
 a nonexistent argument number is an error.
 
 
-\subsubsection{\$1 \ldots{} \$\textless NN\textgreater\ for integers}
+\subsubsection{\$1 \ldots{} \$\textless NN\textgreater\ for literal pasting}
 \index{\$}
-Use \texttt{\$1 \ldots{} \$<NN>} for casting as a numeric literal.
-
+Use \texttt{\$1 \ldots{} \$<NN>} for pasting the entire argument string 
+into the input stream, which will be further lexically tokenized.
 
 \subsubsection{@1 \ldots{} @\textless NN\textgreater\ for strings}
 
-Use \texttt{@1 \ldots{} @<NN>} for casting as a string literal.
+Use \texttt{@1 \ldots{} @<NN>} for casting an entire argument
+as a string literal.
 
 \subsubsection{Examples}
 
@@ -1767,10 +1768,10 @@ is invoked as follows
 
 \begin{vindent}
 \begin{verbatim}
-# stap example.stp 10 mystring
+# stap example.stp '5+5' mystring
 \end{verbatim}
 \end{vindent}
-then 10 is substituted for \$1 and \char`\"{}mystring\char`\"{} for @2. The
+then 5+5 is substituted for \$1 and \char`\"{}mystring\char`\"{} for @2. The
 output will be
 
 \begin{vindent}
@@ -2338,21 +2339,10 @@ value |-------------------------------------------------- count
 \end{vindent}
 \end{samepage}
 
-\section{Predefined functions\label{sec:Predefined-Functions}}
 
-Unlike built-in functions, predefined functions are implemented in the tapsets.
+\section{Formatted output}
 
-
-\subsection{Output functions}
-
-The following sections describe the functions you can use to output data.
-
-Please see \$PREFIX/systemtap/tapset/logging.stp for more information
-\subsubsection{error}
-Please see \$PREFIX/systemtap/tapset/logging.stp for more information
-\subsubsection{log}
-Please see \$PREFIX/systemtap/tapset/logging.stp for more information
-\subsubsection{print}
+\subsection{print}
 \index{print}
 General syntax:
 
@@ -2364,7 +2354,7 @@ print ()
 This function prints a single value of any type.
 
 
-\subsubsection{printf}
+\subsection{printf}
 \index{printf}
 General syntax:
 
@@ -2581,7 +2571,7 @@ Hello World
 \end{verbatim}
 \end{vindent}
 
-\subsubsection{printd}
+\subsection{printd}
 \index{printd}
 General syntax:
 
@@ -2607,7 +2597,7 @@ one/two/three/4/5/6
 \end{verbatim}
 \end{vindent}
 
-\subsubsection{printdln}
+\subsection{printdln}
 \index{printdln}
 General syntax:
 
@@ -2618,7 +2608,7 @@ printdln (delimiter:string, ...)
 \end{vindent}
 This function operates like \texttt{printd}, but also appends a newline.
 
-\subsubsection{println}
+\subsection{println}
 \index{println}
 General syntax:
 
@@ -2630,7 +2620,7 @@ println ()
 This function prints a single value like \texttt{print},
 but also appends a newline.
 
-\subsubsection{sprint}
+\subsection{sprint}
 \index{sprint}
 General syntax:
 
@@ -2642,7 +2632,7 @@ sprint:string ()
 This function operates like \texttt{print}, but returns the string rather
 than printing it.
 
-\subsubsection{sprintf}
+\subsection{sprintf}
 \index{sprintf}
 General syntax:
 
@@ -2654,252 +2644,11 @@ sprintf:string (fmt:string, ...)
 This function operates like \texttt{printf}, but returns the formatted string
 rather than printing it.
 
+\section{Tapset-defined functions\label{sec:Predefined-Functions}}
 
-\subsubsection{warn}
-Please see \$PREFIX/systemtap/tapset/logging.stp for more information.
-\subsection{Context at the probe point}
-
-The following functions provide ways to access the current task context
-at a probe point. Note that these may not return correct values when
-a probe is hit in interrupt context.
-Please find more information in \$PREFIX/systemtap/tapset/context-unwind.stp
-\subsubsection{backtrace}
-Please find more information in \$PREFIX/systemtap/tapset/context-unwind.stp
-\subsubsection{caller}
-Please find more information in \$PREFIX/systemtap/tapset/context-unwind.stp
-\subsubsection{caller\_addr}
-Please find more information in \$PREFIX/systemtap/tapset/context-unwind.stp
-
-\subsubsection{cpu}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{egid}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{euid}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{execname}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{gid}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{is\_return}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{pexecname}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{pid}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{ppid}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{tid}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{uid}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{print\_regs}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{stack\_size}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{stack\_unused}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{stack\_used}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{stp\_pid}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-\subsubsection{target}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-
-
-\subsubsection{print\_stack}
-
-For more information, please reference: \$PREFIX/systemtap/tapset/context-symbols.stp
-\subsection{Task data}
-
-These functions return data about a task.  They all require a task handle as
-input, such as the  value return by task\_current() or the variables
-prev\_task and next\_task in the scheduler.ctxswitch probe alias.
-
-\subsubsection{task\_cpu}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_current}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_egid}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_execname}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_euid}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_gid}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_nice}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_parent}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_pid}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_prio}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_state}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_tid}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_uid}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_open\_file\_handles}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-\subsubsection{task\_max\_file\_handles}
-For more information, please reference: \$PREFIX/systemtap/tapset/task.stp
-
-
-\subsection{Accessing string data at a probe point}
-For more information, please reference: \$PREFIX/systemtap/tapset/conversions.stp
-
-The following functions provide methods to access string data at a probe
-point.
-
-
-\subsubsection{kernel\_string}
-For more information, please reference: \$PREFIX/systemtap/tapset/conversions.stp
-\subsubsection{user\_string\label{sub:user_string}}
-For more information, please reference: \$PREFIX/systemtap/tapset/conversions.stp
-\subsubsection{user\_string2}
-For more information, please reference: \$PREFIX/systemtap/tapset/conversions.stp
-\subsubsection{user\_string\_warn}
-For more information, please reference: \$PREFIX/systemtap/tapset/conversions.stp
-\subsubsection{user\_string\_quoted}
-For more information, please reference: \$PREFIX/systemtap/tapset/conversions.stp
-
-
-
-
-\subsection{Initializing queue statistics}
-
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-
-\index{queue statistics}
-The queue\_stats tapset provides functions that, when given notification
-of queuing events like wait, run, or done, track averages such as queue length,
-service and wait times, and utilization. Call the following three functions
-from appropriate probes, in sequence.
-
-
-\subsubsection{qs_wait}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qs\_run}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qs\_done}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-
-
-\subsection{Using queue statistics}
-
-Functions with the qsq\_prefix query the statistics averaged since the first
-queue operation or when qsq\_start was called. Since statistics are often
-fractional, a scale parameter multiplies the result to a more useful scale.
-For some fractions, a scale of 100 returns percentage numbers.
-
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-
-
-\subsubsection{qsq\_blocked}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qsq\_print}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qsq\_start}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qsq\_service\_time}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qsq\_throughput}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qsq\_utilization}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qsq\_wait\_queue\_length}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-\subsubsection{qsq\_wait\_time}
-For more information, please reference: \$PREFIX/systemtap/tapset/queue\_stats.stp
-
-
-\subsection{Probe point identification}
-
-The following functions help you identify probe points.
-
-\subsubsection{pp}
-For more information, please reference: \$PREFIX/systemtap/tapset/context.stp
-
-\subsubsection{probefunc}
-For more information, please reference: \$PREFIX/systemtap/tapset/context-symbols.stp
-\subsubsection{probemod}
-For more information, please reference: \$PREFIX/systemtap/tapset/context-symbols.stp
-
-\subsection{Formatting functions}
-\index{formatting}
-The following functions help you format output.
-
-\subsubsection{ctime}
-For more information, please reference: \$PREFIX/systemtap/tapset/ctime.stp
-
-\subsubsection{errno\_str}
-For more information, please reference: \$PREFIX/systemtap/tapset/errno.stp
-\subsubsection{returnstr}
-For more information, please reference: \$PREFIX/systemtap/tapset/errno.stp
-
-
-\subsubsection{thread\_indent}
-For more information, please reference: \$PREFIX/systemtap/tapset/indent.stp
-\subsubsection{thread\_timestamp}
-\index{thread\_timestamp}
-
-General syntax:
-
-\begin{vindent}
-\begin{verbatim}
-thread_timestamp:long ()
-\end{verbatim}
-\end{vindent}
-This function returns an absolute timestamp value for use by the indentation
-function. The default function uses \texttt{gettimeofday\_us.}
-
-\subsection{String functions}
-For more information, please reference: \$PREFIX/systemtap/tapset/string.stp 
-
-\subsubsection{strlen}
-For more information, please reference: \$PREFIX/systemtap/tapset/string.stp 
-\subsubsection{isinstr}
-For more information, please reference: \$PREFIX/systemtap/tapset/string.stp 
-\subsubsection{strtol}
-For more information, please reference: \$PREFIX/systemtap/tapset/string.stp 
-\subsubsection{substr}
-For more information, please reference: \$PREFIX/systemtap/tapset/string.stp 
-\subsubsection{text\_str}
-For more information, please reference: \$PREFIX/systemtap/tapset/string.stp 
-\subsubsection{text\_strn}
-For more information, please reference: \$PREFIX/systemtap/tapset/string.stp 
-\subsubsection{tokenize}
-For more information, please reference: \$PREFIX/systemtap/tapset/string.stp 
-
-
-\subsection{Timestamps}
-For more information, please reference: \$PREFIX/systemtap/tapset/timestamp.stp
-\index{timestamps}
-The following functions provide methods to extract time data.
-
-\subsubsection{gettimeofday\_ms}
-For more information, please reference: \$PREFIX/systemtap/tapset/timestamp\_gtod.stp
-\subsubsection{gettimeofday\_ns}
-For more information, please reference: \$PREFIX/systemtap/tapset/timestamp\_gtod.stp
-\subsubsection{gettimeofday\_s}
-For more information, please reference: \$PREFIX/systemtap/tapset/timestamp\_gtod.stp
-\subsubsection{gettimeofday\_us}
-For more information, please reference: \$PREFIX/systemtap/tapset/timestamp\_gtod.stp
-
-\subsection{Miscellaneous tapset functions}
-
-The following are miscellaneous functions.
-
-\subsubsection{addr\_to\_node}
-For more information, please reference: \$PREFIX/systemtap/tapset/memory.stp
-
-\subsubsection{exit}
-For more information, please reference: \$PREFIX/systemtap/tapset/logging.stp
-
-\subsubsection{system}
-For more information, please reference: \$PREFIX/systemtap/tapset/system.stp
+Unlike built-in functions, tapset-defined functions are implemented in tapset scripts.
+These are individually documented in the in the \tt{stapfuncs(3)}, \tt{function::*(3stap)},
+and \tt{probe::*(3stap)} man pages, and implemented under \tt{/usr/share/systemtap/tapset}.
 
 \section{For Further Reference\label{sec:For-Further-Reference}}
 
