@@ -1245,29 +1245,7 @@ semantic_pass_symbols (systemtap_session& s)
       for (unsigned i=0; i<dome->embeds.size(); i++)
         s.embeds.push_back (dome->embeds[i]);
 
-      // Pass 2: process functions
-
-      for (unsigned i=0; i<dome->functions.size(); i++)
-        {
-          if (pending_interrupts) break;
-          functiondecl* fd = dome->functions[i];
-
-          try
-            {
-              for (unsigned j=0; j<s.code_filters.size(); j++)
-                s.code_filters[j]->replace (fd->body);
-
-              sym.current_function = fd;
-              sym.current_probe = 0;
-              fd->body->visit (& sym);
-            }
-          catch (const semantic_error& e)
-            {
-              s.print_error (e);
-            }
-        }
-
-      // Pass 3: derive probes and resolve any further symbols in the
+      // Pass 2: derive probes and resolve any further symbols in the
       // derived results.
 
       for (unsigned i=0; i<dome->probes.size(); i++)
@@ -1306,6 +1284,28 @@ semantic_pass_symbols (systemtap_session& s)
                 {
                   s.print_error (e);
                 }
+            }
+        }
+
+      // Pass 3: process functions
+
+      for (unsigned i=0; i<dome->functions.size(); i++)
+        {
+          if (pending_interrupts) break;
+          functiondecl* fd = dome->functions[i];
+
+          try
+            {
+              for (unsigned j=0; j<s.code_filters.size(); j++)
+                s.code_filters[j]->replace (fd->body);
+
+              sym.current_function = fd;
+              sym.current_probe = 0;
+              fd->body->visit (& sym);
+            }
+          catch (const semantic_error& e)
+            {
+              s.print_error (e);
             }
         }
     }

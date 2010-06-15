@@ -179,6 +179,17 @@ functiondecl::functiondecl ():
 {
 }
 
+void
+functiondecl::join (systemtap_session& s)
+{
+  if (!synthetic)
+    throw semantic_error ("internal error, joining a non-synthetic function", tok);
+  if (!s.functions.insert (make_pair (name, this)).second)
+    throw semantic_error ("synthetic function '" + name +
+                          "' conflicts with an existing function", tok);
+  tok->location.file->functions.push_back (this);
+}
+
 
 literal_number::literal_number (int64_t v, bool hex)
 {

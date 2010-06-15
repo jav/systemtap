@@ -427,36 +427,36 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
       if (e->base_name != "$value")
         throw semantic_error ("invalid target symbol for procfs probe, $value expected",
                               e->tok);
-      
+
       e->assert_no_components("procfs");
-      
+
       bool lvalue = is_active_lvalue(e);
       if (write_probe && lvalue)
         throw semantic_error("procfs $value variable is read-only in a procfs write probe", e->tok);
   else if (! write_probe && ! lvalue)
     throw semantic_error("procfs $value variable cannot be read in a procfs read probe", e->tok);
-      
+
       if (e->addressof)
         throw semantic_error("cannot take address of procfs variable", e->tok);
-      
+
       // Remember that we've seen a target variable.
       target_symbol_seen = true;
-      
+
       // Synthesize a function.
       functiondecl *fdecl = new functiondecl;
       fdecl->synthetic = true;
       fdecl->tok = e->tok;
       embeddedcode *ec = new embeddedcode;
       ec->tok = e->tok;
-      
+
       string fname;
       string locvalue = "CONTEXT->data";
-      
+
       if (! lvalue)
         {
           fname = "_procfs_value_get";
           ec->code = string("    struct _stp_procfs_data *data = (struct _stp_procfs_data *)(") + locvalue + string("); /* pure */\n")
-            
+
             + string("    _stp_copy_from_user(THIS->__retvalue, data->buffer, data->count);\n")
             + string("    THIS->__retvalue[data->count] = '\\0';\n");
         }
@@ -483,30 +483,30 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
                                     " '=', '.='", e->tok);
             }
         }
-      
+      fname += lex_cast(++tick);
+
       fdecl->name = fname;
       fdecl->body = ec;
       fdecl->type = pe_string;
-      
+
       if (lvalue)
         {
           // Modify the fdecl so it carries a single pe_string formal
           // argument called "value".
-          
+
           vardecl *v = new vardecl;
           v->type = pe_string;
           v->name = "value";
           v->tok = e->tok;
           fdecl->formal_args.push_back(v);
         }
-      sess.functions[fdecl->name]=fdecl;
-      
+      fdecl->join (sess);
+
       // Synthesize a functioncall.
       functioncall* n = new functioncall;
       n->tok = e->tok;
       n->function = fname;
-      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-      
+
       if (lvalue)
         {
           // Provide the functioncall to our parent, so that it can be
@@ -515,7 +515,7 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
           assert(!target_symbol_setter_functioncalls.empty());
           *(target_symbol_setter_functioncalls.top()) = n;
         }
-      
+
       provide (n);
     }
   catch (const semantic_error &er)

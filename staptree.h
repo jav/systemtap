@@ -502,6 +502,7 @@ struct functiondecl: public symboldecl
   functiondecl ();
   void print (std::ostream& o) const;
   void printsig (std::ostream& o) const;
+  void join (systemtap_session& s); // for synthetic functions only
 };
 
 

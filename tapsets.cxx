@@ -2217,8 +2217,6 @@ dwarf_pretty_print::expand ()
   functioncall* fcall = new functioncall;
   fcall->tok = ts->tok;
   fcall->function = fdecl->name;
-  fcall->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  fcall->referent = fdecl; // XXX
 
   // If there's a <pointer>, replace it with a new var and make that
   // the first function argument.
@@ -2234,7 +2232,6 @@ dwarf_pretty_print::expand ()
       symbol* sym = new symbol;
       sym->tok = ts->tok;
       sym->name = v->name;
-      sym->referent = v; // XXX
       pointer = sym;
     }
 
@@ -2252,7 +2249,6 @@ dwarf_pretty_print::expand ()
         symbol* sym = new symbol;
         sym->tok = ts->tok;
         sym->name = v->name;
-        sym->referent = v; // XXX
         ts->components[i].expr_index = sym;
       }
 
@@ -2280,7 +2276,7 @@ dwarf_pretty_print::expand ()
   tb->catch_block = rs2;
   fdecl->body = tb;
 
-  dw.sess.functions[fdecl->name] = fdecl;
+  fdecl->join (dw.sess);
   return fcall;
 }
 
@@ -2524,8 +2520,6 @@ dwarf_pretty_print::deref (target_symbol* e)
   functioncall* fcall = new functioncall;
   fcall->tok = e->tok;
   fcall->function = fdecl->name;
-  fcall->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
-  fcall->referent = fdecl; // XXX
 
   // PR10601: adapt to kernel-vs-userspace loc2c-runtime
   ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
@@ -2569,7 +2563,7 @@ dwarf_pretty_print::deref (target_symbol* e)
   ec->code += "\n#undef fetch_register\n";
   ec->code += "\n#undef store_register\n";
 
-  dw.sess.functions[fdecl->name] = fdecl;
+  fdecl->join (dw.sess);
   return fcall;
 }
 
@@ -3179,13 +3173,12 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           v->tok = e->tok;
           fdecl->formal_args.push_back(v);
         }
-      q.sess.functions[fdecl->name]=fdecl;
+      fdecl->join (q.sess);
 
       // Synthesize a functioncall.
       functioncall* n = new functioncall;
       n->tok = e->tok;
       n->function = fname;
-      n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
 
       // Any non-literal indexes need to be passed in too.
       for (unsigned i = 0; i < e->components.size(); ++i)
@@ -3392,13 +3385,12 @@ dwarf_cast_query::handle_query_module()
   ec->code += "\n#undef fetch_register\n";
   ec->code += "\n#undef store_register\n";
 
-  dw.sess.functions[fdecl->name] = fdecl;
+  fdecl->join (dw.sess);
 
   // Synthesize a functioncall.
   functioncall* n = new functioncall;
   n->tok = e.tok;
   n->function = fname;
-  n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
   n->args.push_back(e.operand);
 
   // Any non-literal indexes need to be passed in too.
@@ -7087,13 +7079,12 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       ec->code += "\n#undef fetch_register\n";
       ec->code += "\n#undef store_register\n";
 
-      dw.sess.functions[fdecl->name] = fdecl;
+      fdecl->join (dw.sess);
 
       // Synthesize a functioncall.
       functioncall* n = new functioncall;
       n->tok = e->tok;
       n->function = fname;
-      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
       n->args.push_back(require(e2));
 
       // Any non-literal indexes need to be passed in too.
@@ -7132,7 +7123,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       functioncall* n = new functioncall;
       n->tok = e->tok;
       n->function = "_mark_name_get";
-      n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
       provide (n);
     }
   else if (e->base_name == "$$vars" || e->base_name == "$$parms")
