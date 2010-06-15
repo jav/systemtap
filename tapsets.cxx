@@ -3317,7 +3317,7 @@ dwarf_cast_query::handle_query_module()
     return;
 
   // look for the type in any CU
-  Dwarf_Die* type_die = dw.declaration_resolve_other_cus(e.type.c_str());
+  Dwarf_Die* type_die = dw.declaration_resolve_other_cus(e.type_name.c_str());
   if (!type_die)
     return;
 
@@ -4625,7 +4625,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       else
 	cast->operand = be;
       cast->components = e->components;
-      cast->type = probe_name + "_arg" + lex_cast(argno);
+      cast->type_name = probe_name + "_arg" + lex_cast(argno);
       cast->module = process_name;
 
       cast->visit(this);
@@ -4728,7 +4728,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       cast->tok = e->tok;
       cast->operand = fc;
       cast->components = e->components;
-      cast->type = probe_name + "_arg" + lex_cast(argno);
+      cast->type_name = probe_name + "_arg" + lex_cast(argno);
       cast->module = process_name;
 
       cast->visit(this);

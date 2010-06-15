@@ -280,7 +280,7 @@ std::ostream& operator << (std::ostream& o, const target_symbol::component& c);
 struct cast_op: public target_symbol
 {
   expression *operand;
-  std::string type, module;
+  std::string type_name, module;
   void print (std::ostream& o) const;
   void visit (visitor* u);
 };
