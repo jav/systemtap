@@ -1,0 +1,9 @@
+#! stap -p4
+
+probe begin {
+	print(errno_str(0))
+	print(errno_p(0))
+	print(returnval())
+	print(returnstr(0))
+	print(return_str(0, 0))
+}

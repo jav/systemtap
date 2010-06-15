@@ -1,0 +1,10 @@
+#! stap -p4
+
+probe begin {
+	print(big_endian2(0))
+	print(big_endian4(0))
+	print(big_endian8(0))
+	print(little_endian2(0))
+	print(little_endian4(0))
+	print(little_endian8(0))
+}
