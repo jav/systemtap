@@ -7,6 +7,10 @@ set kr {2?[0-9]*}
 set krx {?noSuchKernel*}
 
 set arch [exec uname -i]
+# normalize arch; PR4186
+if {$arch == "ppc64"} then {set arch powerpc}
+if {$arch == "s390x"} then {set arch s390}
+if {$arch == "i686"} then {set arch i386}
 set ar "?[string range $arch 1 end-1]?"
 set arx {?noSuchArch?}
 
