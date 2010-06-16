@@ -574,6 +574,7 @@ struct dwarf_query : public base_query
 	      const string user_lib);
 
   vector<derived_probe *> & results;
+  set<string> inlined_non_returnable; // function names
   probe * base_probe;
   probe_point * base_loc;
   string user_path;
@@ -1335,19 +1336,13 @@ query_inline_instance_info (inline_instance_info & ii,
 {
   try
     {
-      if (q->has_return)
-	{
-	  throw semantic_error ("cannot probe .return of inline function '" + ii.name + "'");
-	}
-      else
-	{
-	  if (q->sess.verbose>2)
-	    clog << "querying entrypc "
-		 << hex << ii.entrypc << dec
-		 << " of instance of inline '" << ii.name << "'\n";
-	  query_statement (ii.name, ii.decl_file, ii.decl_line,
-			   &ii.die, ii.entrypc, q);
-	}
+      assert (! q->has_return); // checked by caller already
+      if (q->sess.verbose>2)
+        clog << "querying entrypc "
+             << hex << ii.entrypc << dec
+             << " of instance of inline '" << ii.name << "'\n";
+      query_statement (ii.name, ii.decl_file, ii.decl_line,
+                       &ii.die, ii.entrypc, q);
     }
   catch (semantic_error &e)
     {
@@ -1538,6 +1533,10 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 	    clog << "checking instances of inline " << q->dw.function_name
                  << "\n";
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, q);
+	}
+      else if (q->dw.func_is_inline () && (q->has_return)) // PR 11553
+	{
+          q->inlined_non_returnable.insert (q->dw.function_name);
 	}
       else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
@@ -5316,6 +5315,7 @@ dwarf_builder::build(systemtap_session & sess,
       return;
     }
 
+  unsigned results_pre = finished_results.size();
   dwarf_query q(base, location, *dw, parameters, finished_results, user_path, user_lib);
 
   // XXX: kernel.statement.absolute is a special case that requires no
@@ -5342,6 +5342,43 @@ dwarf_builder::build(systemtap_session & sess,
     }
 
   dw->iterate_over_modules(&query_module, &q);
+
+
+  // PR11553 special processing: .return probes requested, but
+  // some inlined function instances matched.
+  unsigned i_n_r = q.inlined_non_returnable.size();
+  unsigned results_post = finished_results.size();
+  if (i_n_r > 0)
+    {
+      if ((results_pre == results_post) && (! sess.suppress_warnings)) // no matches; issue warning
+        {
+          string quicklist;
+          for (set<string>::iterator it = q.inlined_non_returnable.begin();
+               it != q.inlined_non_returnable.end();
+               it++)
+            {
+              quicklist += " " + (*it);
+              if (quicklist.size() > 80) // heuristic, don't make an overlong report line
+                {
+                  quicklist += " ...";
+                  break;
+                }
+            }
+          
+          sess.print_warning ("cannot probe .return of " + lex_cast(i_n_r) + " inlined function(s):" + quicklist);
+          // There will be also a "no matches" semantic error generated.
+        }
+      if (sess.verbose > 1)
+        clog << "skipped .return probe of " + lex_cast(i_n_r) + " inlined function(s)" << endl;
+      if ((sess.verbose > 3) || (sess.verbose > 2 && results_pre == results_post)) // issue details with high verbosity
+        {
+          for (set<string>::iterator it = q.inlined_non_returnable.begin();
+               it != q.inlined_non_returnable.end();
+               it++)
+            clog << (*it) << " ";
+          clog << endl;
+        }
+    } // i_n_r > 0
 }
 
 symbol_table::~symbol_table()
