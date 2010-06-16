@@ -361,10 +361,9 @@ $return
 is available in return probes only for functions that are declared
 with a return value.
 .TP
-.TP
 $var[N]
-indexes into an array.  The index is given with a
-literal number.
+indexes into an array.  The index given with a literal number or even
+an arbitrary numeric expression.
 .TP
 $$vars
 expands to a character string that is equivalent to
