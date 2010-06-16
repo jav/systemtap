@@ -145,7 +145,7 @@ function _stp_arg:long (argnum:long, sign_extend:long, truncate:long) {
 		val = u_register("r4")
 	else if (argnum == 4)
 		val = u_register("r5")
-	else (argnum == 5)
+	else if (argnum == 5)
 		val = u_register("r6")
 
 	if (truncate) {
