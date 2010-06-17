@@ -365,6 +365,15 @@ $var[N]
 indexes into an array.  The index given with a literal number or even
 an arbitrary numeric expression.
 .TP
+$var$
+expands to a string with all of $var's members, equivalent to
+sprintf("{.a=%i, .b=%u, .c={...}, .d=[...]}", $var\->a, $var\->b)
+.TP
+$var$$
+expands to a string with all of $var's members and submembers, equivalent to
+sprintf("{.a=%i, .b=%u, .c={.x=%p, .y=%c}, .d=[%i, ...]}", $var\->a, $var\->b,
+$var\->c\->x, $var\->c\->y, $var\->d[0])
+.TP
 $$vars
 expands to a character string that is equivalent to
 sprintf("parm1=%x ... parmN=%x var1=%x ... varN=%x", parm1, ..., parmN,

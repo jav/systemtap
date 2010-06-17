@@ -1,5 +1,13 @@
 * What's new
 
+- Probe $target variables and @cast() can now use a suffix to print complex
+  data types as strings.  Use a single '$' for a shallow view, or '$$' for a
+  deeper view that includes nested types.  For example, with fs_struct:
+   $fs$ : "{.users=%i, .lock={...}, .umask=%i,
+            .in_exec=%i, .root={...}, .pwd={...}}"
+   $fs$$ : "{.users=%i, .lock={.raw_lock={.lock=%u}}, .umask=%i, .in_exec=%i,
+             .root={.mnt=%p, .dentry=%p}, .pwd={.mnt=%p, .dentry=%p}}"
+
 - The <sys/sdt.h> user-space markers no longer default to an implicit
   MARKER_NAME_ENABLED() semaphore check for each marker.  To check for
   enabled markers use a .d declaration file, then:

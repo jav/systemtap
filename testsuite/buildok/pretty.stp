@@ -1,0 +1,44 @@
+#! stap -p4
+
+global i = 1
+
+
+# pretty-printing in dwarf context
+probe process("stap").function("parse_cmdline") {
+    log($this->base_hash$)
+    log($this->base_hash$$)
+    log($this->perpass_verbose$)
+    log($this->perpass_verbose$$)
+    log($this->perpass_verbose[0]$)
+    log($this->perpass_verbose[0]$$)
+    log($this->perpass_verbose[i]$)
+    log($this->perpass_verbose[i]$$)
+}
+
+# pretty-printing with @cast
+probe begin {
+    t = task_current()
+    log(@cast(t, "task_struct")->fs$)
+    log(@cast(t, "task_struct")->fs$$)
+    log(@cast(t, "task_struct")->comm$)
+    log(@cast(t, "task_struct")->comm$$)
+    log(@cast(t, "task_struct")->comm[0]$)
+    log(@cast(t, "task_struct")->comm[0]$$)
+    log(@cast(t, "task_struct")->comm[i]$)
+    log(@cast(t, "task_struct")->comm[i]$$)
+}
+
+%( CONFIG_TRACEPOINTS == "y" %?
+# pretty-printing in tracepoints
+probe kernel.trace("sched_switch") {
+    log($prev->fs$)
+    log($prev->fs$$)
+    log($prev->comm$)
+    log($prev->comm$$)
+    log($prev->comm[0]$)
+    log($prev->comm[0]$$)
+    log($prev->comm[i]$)
+    log($prev->comm[i]$$)
+}
+%)
+
