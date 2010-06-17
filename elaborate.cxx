@@ -528,7 +528,8 @@ match_node::find_and_build (systemtap_session& s,
 
 	  throw semantic_error(string("probe point mismatch at position ") +
 			       lex_cast (pos) +
-			       " (alternatives:" + alternatives + ")" +
+			       (alternatives == "" ? "" :
+			        (" (alternatives:" + alternatives + ")")) +
 			       " didn't find any wildcard matches",
                                loc->components[pos]->tok);
 	}
@@ -545,7 +546,8 @@ match_node::find_and_build (systemtap_session& s,
 
 	  throw semantic_error(string("probe point mismatch at position ") +
                                 lex_cast (pos) +
-                                " (alternatives:" + alternatives + ")",
+                                (alternatives == "" ? "" :
+                                 (" (alternatives:" + alternatives + ")")),
                                 loc->components[pos]->tok);
         }
 
