@@ -30,12 +30,6 @@ struct _stp_module {
 	struct _stp_section *sections;
   	unsigned num_sections;
 
-	/* A pointer to the struct module. Note that we cannot */
-	/* trust this because as of 2.6.19, there are not yet */
-	/* any notifier hooks that will tell us when a module */
-	/* is unloading. */
-  	unsigned long module; /* XXX: why not struct module * ? */
-
 	 /* This is to undo .debug_frame relocation performed by elfutils, */
 	 /* which is done during the translate phase when we encode the    */
 	 /* unwind data into the module. See adjustStartLoc() in unwind.c. */
