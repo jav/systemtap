@@ -15,17 +15,31 @@ if {! [installtest_p]} { untested "$test"; return }
 if {! [utrace_p]} { untested "$test"; return }
 if {! [uprobes_p]} { untested "$test"; return }
 
+# Test 32-on-64 when available
+set arches [list "default"]
+switch -regexp $::tcl_platform(machine) {
+    {^(x86_64|ppc64)$} { lappend arches "-m32" }
+    {^s390x$} { lappend arches "-m31" }
+}
+
+foreach arch $arches {
+
+if {$arch != "default"} {
+  set testflags "$testflags additional_flags=$arch"
+  set testflags "$testlibflags additional_flags=$arch"
+}
+
 # Compile our test program and library.
 set res [target_compile $testsrclib $testso executable $testlibflags]
 if { $res != "" } {
     verbose "target_compile for $testso failed: $res" 2
-    fail "unable to compile $testsrclib"
+    fail "unable to compile $testsrclib $arch"
     return
 }
 set res [target_compile $testsrc $testexe executable $maintestflags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "unable to compile $testsrc"
+    fail "unable to compile $testsrc $arch"
     return
 }
 
@@ -33,7 +47,7 @@ if { $res != "" } {
 # otherwise we get also the rt_sigactions of stapio. Get the handler
 # (comes from the executable or the library).
 set testscript {
-    probe syscall.rt_sigaction {
+    probe syscall.rt_sigaction, syscall.rt_sigaction32? {
       if (pid() == target() && execname() == "%s") {
 	  handler = user_long(&$act->sa_handler); // Note user address.
 	  printf("handler: %%s (%%s)\n", usymname(handler), umodname(handler));
@@ -57,7 +71,7 @@ set m [llength [split $output "\n"]]
 set expected [split $output "\n"]
 foreach line [split $res "\n"] {
     if {![string equal $line [lindex $expected $n]]} {
-      fail usymbols
+      fail "usymbols $arch"
       send_log "line [expr $n + 1]: expected \"[lindex $expected $n]\", "
       send_log "Got \"$line\"\n"
       return
@@ -65,9 +79,11 @@ foreach line [split $res "\n"] {
     incr n
 }
 if { $n != $m } {
-  fail usymbols
+  fail "usymbols $arch"
   send_log "Got \"$n\" lines, expected \"$m\" lines\n"
 } else {
-  pass usymbols
+  pass "usymbols $arch"
 }
 exec rm -f $testexe $testso
+
+}
