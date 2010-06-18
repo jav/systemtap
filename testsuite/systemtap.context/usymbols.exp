@@ -35,7 +35,7 @@ if { $res != "" } {
 set testscript {
     probe syscall.rt_sigaction {
       if (pid() == target() && execname() == "%s") {
-	  handler = $act->sa_handler;
+	  handler = user_long(&$act->sa_handler); // Note user address.
 	  printf("handler: %%s (%%s)\n", usymname(handler), umodname(handler));
       }
     }
