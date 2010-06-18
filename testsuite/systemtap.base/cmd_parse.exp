@@ -148,6 +148,11 @@ expect {
 wait;catch {close}
 
 set uname [exec uname -i]
+# normalize arch
+if {$arch == "ppc64"} then {set arch powerpc}
+if {$arch == "s390x"} then {set arch s390}
+if {$arch == "i686"} then {set arch i386}
+
 spawn sh -c "stap -m do_not_cache_me -a $uname -p4 -e 'probe begin {exit()}'"
 # the \r below is meant to match the "kernelrelease" output, as distinct from
 # any possible auxiliary make verbosity.
