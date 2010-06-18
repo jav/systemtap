@@ -56,7 +56,7 @@ task_finder_derived_probe_group::emit_module_init (systemtap_session& s)
   if (need_vma_tracker)
     {
       s.op->newline() << "/* ---- vma tracker ---- */";
-      s.op->newline() << "rc = _stp_sym_init();";
+      s.op->newline() << "rc = _stp_vma_init();";
       s.op->newline();
     }
 
