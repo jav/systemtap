@@ -193,6 +193,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 <li><a href="process/migrate.stp">process/migrate.stp</a> - Track the Migration of Specific Executables<br>
 keywords: <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
 <p>The migrate.stp script takes an argument which is the executable name of the task it should monitor. Each time a task with that executable name migrates between processors an entry is printed with the process id (pid), the executable name, the processor off loading the task, and the process taking the task. Note that the task may or may not be executing at the time of the migration.</p></li>
+<li><a href="process/noptrace.stp">process/noptrace.stp</a> - disable ptrace(2) from hierarchies of processes<br>
+keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <br>
+<p>noptrace.stp blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.</p></li>
 <li><a href="process/pf2.stp">process/pf2.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.</p></li>

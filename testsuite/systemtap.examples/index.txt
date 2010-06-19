@@ -484,6 +484,15 @@ keywords: scheduler
   executing at the time of the migration.
 
 
+process/noptrace.stp - disable ptrace(2) from hierarchies of processes
+keywords: process security
+
+  noptrace.stp blocks ptrace(2) attempts from processes identified by
+  stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/
+  control files.  Processes may be added or removed from the blocked
+  list.
+
+
 process/pf2.stp - Profile kernel functions
 keywords: profiling
 
