@@ -46,14 +46,14 @@ probe procfs("unblock").write {  # unblock given pid
 
 probe syscall.ptrace {
       if (pid() in noptrace) {
+         # report
+         printf ("%s[%d] ptrace(%d) blocked: ", execname(), tid(), $request)
+         # (or if desired, accumulate counts and report at probe end {})
+
          # disable the ptrace call in progress
          # if it weren't for PTRACE_TRACEME, we could set $pid=1 => -EPERM
          # changing it to an invalid request number works too
          $request=0xbeef # anything invalid should do
-
-         # report
-         printf ("%s[%d] ptrace(%d) blocked: ", execname(), tid(), $request)
-         # (or if desired, accumulate counts and report at probe end {})
       }
 }
 
