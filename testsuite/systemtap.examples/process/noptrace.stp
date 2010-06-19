@@ -1,5 +1,10 @@
 #! /bin/sh
 
+# Disable ptrace(2) on a dynamic list of processes, by rewriting the
+# incoming arguments on an attempted ptrace(2) syscall.  The list of
+# processes is enlarged upon fork(), shrunken by exit(), and may be
+# edited interactively with a set of /proc files.
+
 # note use of guru mode, to enable changing of syscall arguments
 //bin/true && exec stap -g $0 ${1+"$@"}
 
