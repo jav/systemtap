@@ -2,13 +2,9 @@ set test "./usymbols"
 set testpath "$srcdir/$subdir"
 set testsrc  "$testpath/usymbols.c"
 set testsrclib  "$testpath/usymbols_lib.c"
-set testexe  "[pwd]/usymbols"
-set testlibname  "usymbols"
 set testlibdir "[pwd]"
-set testso  "$testlibdir/lib${testlibname}.so"
 set testflags "additional_flags=-g additional_flags=-O"
 set testlibflags "testflags additional_flags=-fPIC additional_flags=-shared"
-set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$testlibname additional_flags=-Wl,-rpath,$testlibdir"
 
 # Only run on make installcheck and utrace present.
 if {! [installtest_p]} { untested "$test"; return }
@@ -26,18 +22,27 @@ foreach arch $arches {
 
 verbose "testing usymbols $arch"
 
+set testexename "usymbols"
+set testlibname "usymbols"
+set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-Wl,-rpath,$testlibdir"
 if {$arch != "default"} {
-  set maintestflags "$maintestflags additional_flags=$arch"
+  set testexename "${testexename}${arch}"
+  set testlibname "${testlibname}${arch}"
+  set maintestflags "$maintestflags additional_flags=-l$testlibname additional_flags=$arch"
   set testlibflags "$testlibflags additional_flags=$arch"
+} else {
+  set maintestflags "$maintestflags additional_flags=-l$testlibname"
 }
 
 # Compile our test program and library.
+set testso "$testlibdir/lib${testlibname}.so"
 set res [target_compile $testsrclib $testso executable $testlibflags]
 if { $res != "" } {
     verbose "target_compile for $testso failed: $res" 2
     fail "unable to compile $testsrclib $arch"
     return
 }
+set testexe  "[pwd]/${testexename}"
 set res [target_compile $testsrc $testexe executable $maintestflags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -57,12 +62,13 @@ set testscript {
     }
 }
 
-set output {handler: main_handler (usymbols)
-handler: lib_handler (libusymbols.so)}
+set output "handler: main_handler ($testexename)
+handler: lib_handler (lib${testlibname}.so)"
 
 # Used to need to run stap with both the exe and the libraries used as -d args.
 # Now use --ldd to pick up both exe and the library we just linked in.
-set script [format $testscript usymbols $testexe]
+set script [format $testscript $testexename]
+send_log "script: $script\n"
 set cmd [concat stap -w -d $testexe --ldd -c $testexe -e {$script}]
 send_log "cmd: $cmd\n"
 catch {eval exec $cmd} res
