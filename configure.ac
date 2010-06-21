@@ -507,10 +507,9 @@ AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES([Makefile doc/Makefile \
 doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile \
 grapher/Makefile \
-grapher/stapgraph.1 stap.1 stapprobes.3stap stapfuncs.3stap stapvars.3stap \
-stapex.3stap staprun.8 stap-client.8 stap-server.8 \
-stap-authorize-server-cert.8 stap-authorize-signing-cert.8 \
-initscript/systemtap initscript/stap-server dtrace.1])
+grapher/stapgraph.1 \
+stappaths.7 \
+initscript/systemtap initscript/stap-server ])
 AC_CONFIG_SUBDIRS(testsuite)
 if test $enable_translator == "yes"; then
 	AC_CONFIG_FILES([run-stap], [chmod +x run-stap])

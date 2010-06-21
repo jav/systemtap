@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAP-AUTHORIZE-SERVER-CERT 8 @DATE@ "Red Hat"
+.TH STAP-AUTHORIZE-SERVER-CERT 8 
 .SH NAME
 stap\-authorize\-server\-cert \- systemtap server authorization utility
 
@@ -55,9 +55,7 @@ found in \fI/var/lib/stap\-server/.systemtap/ssl/server/\fR.
 For servers run by other non\-root users,
 this database can be found in
 .I $HOME/.systemtap/ssl/server/\fP.
-For root users (EUID=0), it can be found in
-.I @sysconfdir@/systemtap/ssl/server\fP.
-
+For root users (EUID=0), it can be found in the stappaths (7) manual page.
 .TP
 .B DIRNAME
 This optional argument is the name of the directory containing the client\-side
@@ -65,10 +63,8 @@ certificate database to which the certificate is to be added. If not specified,
 the
 default, for non\-root users, is
 .I $HOME/.systemtap/ssl/client\fP.
-For root users (EUID=0), the default is
-.I @sysconfdir@/systemtap/ssl/client\fP, which is the global client\-side
-certificate database.
-That is, the default result
+For root users (EUID=0), the default is listed in the stappaths (7) manual page.
+The default result
 is that all users on the client host will trust this server
 when \fIstap\-authorize\-server\-cert\fR is run by root and that only the user
 running \fIstap\-authorize\-server\-cert\fR will trust the server otherwise.
@@ -93,10 +89,6 @@ access permissions before making use of any certificate database.
 
 .SH FILES
 .TP
-@sysconfdir@/systemtap/ssl/client/
-Public (root\[aq]s) client side certificate database.
-
-.TP
 ~/.systemtap/ssl/client/
 User\[aq]s private client side certificate database.
 
@@ -106,6 +98,7 @@ Server certificate for servers started by the \fIstap\-server\fR service.
 
 .SH SEE ALSO
 .IR stap (1),
+.IR stappaths (7),
 .IR stap\-server (8),
 .IR stap\-client (8),
 .IR NSS ,

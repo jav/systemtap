@@ -14,6 +14,7 @@ AM_CXXFLAGS = -Wall -Werror
 
 man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
 dtrace.1 \
+stappaths.7 \
 staprun.8
 
 bin_PROGRAMS = staprun

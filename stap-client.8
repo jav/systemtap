@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAP-CLIENT 8 @DATE@ "Red Hat"
+.TH STAP-CLIENT 8 
 .SH NAME
 stap\-client \- systemtap client
 
@@ -203,9 +203,6 @@ is maintained. The systemtap client will check for proper
 access permissions before making use of any certificate database.
 
 .SH FILES
-.TP
-@sysconfdir@/systemtap/ssl/client/
-Public (root\[aq]s) client side certificate database.
 
 .TP
 ~/.systemtap/ssl/client/
@@ -217,6 +214,7 @@ Server certificate for servers started by the \fIstap\-server\fR service.
 
 .SH SEE ALSO
 .IR stap (1),
+.IR stappaths (7),
 .IR staprun (8),
 .IR stap\-server (8),
 .IR stap\-authorize\-server\-cert (8),

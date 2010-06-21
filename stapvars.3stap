@@ -1,12 +1,13 @@
 .\" -*- nroff -*-
-.TH STAPVARS 3stap @DATE@ "Red Hat"
+.TH STAPVARS 3stap 
 .SH NAME
 stapvars \- systemtap variables
 
 .SH DESCRIPTION
 The following sections enumerate the public variables provided by
-standard tapsets installed under @prefix@/share/systemtap/tapset.  Each
-variable is described with a type, and its behavior/restrictions.
+standard tapsets installed, (the installation path is show in the
+stappaths (7) manual page).  Each variable is described with a
+type, and its behavior/restrictions.
 The syntax is the same as printed with the 
 .IR stap " option " \-p2 .
 Examples:
@@ -43,9 +44,9 @@ NULL:long
 Simply defined as the number 0.
 
 .SH FILES
-.nh
-.IR @prefix@/share/systemtap/tapset
-.hy
+.TP
+More files and their corresponding paths can be found in the stappaths (7) manual page.
 
 .SH SEE ALSO
 .IR stap (1)
+.IR stappaths (7)

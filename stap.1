@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAP 1 @DATE@ "Red Hat"
+.TH STAP 1 
 .SH NAME
 stap \- systemtap script translator/driver
 
@@ -87,8 +87,6 @@ with handlers, which are subroutines that are executed synchronously.  It is
 somewhat similar conceptually to "breakpoint command lists" in the
 .IR gdb
 debugger.
-.PP
-This manual corresponds to version @VERSION@.
 
 .SH OPTIONS
 The systemtap translator supports the following options.  Any other option
@@ -973,11 +971,8 @@ the default long numeric.
 
 .SS BUILT-INS
 A set of builtin functions and probe point aliases are provided
-by the scripts installed under the
-.nh
-.IR @prefix@/share/systemtap/tapset
-.hy
-directory.  These are described in the
+by the scripts installed in the directory specified in the stappaths (7)
+manual page.  The functions are described in the
 .IR stapfuncs "(3stap) and " stapprobes (3stap)
 manual pages.
 
@@ -1338,49 +1333,13 @@ considered to be successful.
 .SH FILES
 .\" consider autoconf-substituting these directories
 .TP
-$HOME/.systemtap
-Systemtap data directory for cached systemtap files, unless overridden
-by the
-.I SYSTEMTAP_DIR
-environment variable.
-.TP
-/tmp/stapXXXXXX
-Temporary directory for systemtap files, including translated C code
-and kernel object.
-.TP
-@prefix@/share/systemtap/tapset
-The automatic tapset search directory, unless overridden by
-the
-.I SYSTEMTAP_TAPSET
-environment variable or the 
-.I XDG_DATA_DIRS
-environment variable.
-.TP
-@prefix@/share/systemtap/runtime
-The runtime sources, unless overridden by the
-.I SYSTEMTAP_RUNTIME
-environment variable.
-.TP
-/lib/modules/VERSION/build
-The location of kernel module building infrastructure.
-.TP
-@prefix@/lib/debug/lib/modules/VERSION
-The location of kernel debugging information when packaged into the
-.IR kernel\-debuginfo
-RPM, unless overridden by the
-.I SYSTEMTAP_DEBUGINFO_PATH
-environment variable.  The default value for this variable is
-.IR \+:.debug:/usr/lib/debug:build .
-Elfutils searches vmlinux in this path and it interprets the path as a base
-directory of which various subdirectories will be searched for finding modules.
-.TP
-@prefix@/bin/staprun
-The auxiliary program supervising module loading, interaction, and
-unloading.
+Important files and their corresponding paths can be located in the 
+stappaths (7) manual page.
 
 .SH SEE ALSO
 .IR stapprobes (3stap),
 .IR stapfuncs (3stap),
+.IR stappaths (7),
 .IR staprun (8),
 .IR stapvars (3stap),
 .IR stapex (3stap),

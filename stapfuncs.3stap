@@ -1,11 +1,11 @@
 .\" -*- nroff -*-
-.TH STAPFUNCS 3stap @DATE@ "Red Hat"
+.TH STAPFUNCS 3stap
 .SH NAME
 stapfuncs \- systemtap functions
 
 .SH DESCRIPTION
 The following sections enumerate a few of public functions provided by
-standard tapsets installed under @prefix@/share/systemtap/tapset.   Most
+standard tapsets installed, show in the stappaths (7) manual page.   Most
 are individually documented in the 
 .IR 3stap
 manual section, with the
@@ -298,11 +298,11 @@ usrdev2kerndev:long(dev:long)
 Converts a user-space device number into the format used in the kernel.
 
 .SH FILES
-.nh
-.IR @prefix@/share/systemtap/tapset
-.hy
+.TP
+More files and their corresponding paths can be found in the stappaths (7) manual page.
 
 .SH SEE ALSO
 .IR stap (1),
 .IR function::* (3stap),
-.IR tapset::* (3stap)
+.IR tapset::* (3stap),
+.IR stappaths (7)

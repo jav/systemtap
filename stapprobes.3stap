@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPPROBES 3stap @DATE@ "Red Hat"
+.TH STAPPROBES 3stap 
 .SH NAME
 stapprobes \- systemtap probe points
 

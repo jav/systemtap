@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAPEX 3stap @DATE@ "Red Hat"
+.TH STAPEX 3stap 
 .SH NAME
 stapex \- systemtap examples
 
@@ -113,14 +113,10 @@ To list the probeable functions and local variables in the kernel, use another l
 
 .SH MORE EXAMPLES
 
-Larger examples, demos and samples can be found in
-@prefix@/doc/systemtap*/examples, each example comes with either a .txt
-or .meta file explaining what the example, sample or demo does and how
-it is ordinarily run.
+The directory to find more examples can be found in the stappaths (7) manual page.
 
 .SH SEE ALSO
-.BR @prefix@/doc/systemtap*/examples
 .IR stap (1)
 .IR stapprobes (3stap)
 .IR stapfuncs (3stap)
-
+.IR stappaths (7)

@@ -1,0 +1,102 @@
+.\" -*- nroff -*-
+.TH STAP-AUTHORIZE-SIGNING-CERT 8 
+.SH NAME
+stap\-authorize\-signing\-cert \- systemtap signing authorization utility
+
+.SH SYNOPSIS
+
+.br
+.B stap\-authorize\-signing\-cert \fICERTFILE\fR [ \fIDIRNAME\fR ]
+
+.SH DESCRIPTION
+
+The \fIstaprun\fR program will load modules for members of the group
+\fIstapusr\fR if they are signed by a trusted signer. A trusted signer is
+usually a \fIsystemtap\fR compile server which signs modules when the client
+(\fIstap\-client\fR) specifies the \fB\-\-unprivileged\fR option.
+
+.PP
+The trustworthiness of a given signer can not be determined
+automatically without a trusted certificate authority issuing systemtap signing
+certificates. This is
+not practical in everyday use and so, \fIstaprun\fR must authenticate servers
+against its own database of trusted signers. In this context,
+establishing a given signer as trusted means adding
+that signer\[aq]s certificate to
+\fIstaprun\fR\[aq]s
+database of trusted signers.
+
+.PP
+The
+.I stap\-authorize\-signing\-cert
+program adds the given signing certificate to the given
+certificate database, making that signer a trusted server for
+\fIstaprun\fR when using
+that database.
+
+.SH ARGUMENTS
+The
+.I stap\-authorize\-signing\-cert
+program accepts two arguments:
+
+.TP
+.B CERTFILE
+This is the name of the file containing the certificate of the new trusted
+signer. 
+For systemtap compile servers, this is the file named \fIstap.cert\fR which
+can be found in the
+server\[aq]s certificate database.
+On the server host,
+for servers started by the \fIstap\-server\fR service, this database can be
+found in \fI/var/lib/stap\-server/.systemtap/ssl/server/\fR.
+For servers run by other non\-root users,
+this database can be found in
+.I $HOME/.systemtap/ssl/server/\fP.
+For root users (EUID=0), it can be found in the stappaths (7) manual page.
+
+.TP
+.B DIRNAME
+This optional argument is the name of the directory containing the
+certificate database to which the certificate is to be added. If not specified,
+the
+default can be found in the stappaths (7) manual page. 
+That is, the default result
+is that all users on the local host will trust this signer. Note that this
+default directory is only writable by root.
+
+.SH SAFETY AND SECURITY
+Systemtap is an administrative tool.  It exposes kernel internal data
+structures and potentially private user information.  See the 
+.IR stap (1)
+manual page for additional information on safety and security.
+
+.PP
+\fISystemtap\fR uses Network Security Services (NSS)
+for module signing and verification. The NSS tool
+.I certutil
+is used for the generation of certificates. The related
+certificate databases must be protected in order to maintain the security of
+the system.
+Use of the utilities provided will help to ensure that the proper protection
+is maintained. \fIstaprun\fR will check for proper
+access permissions before making use of any certificate database.
+
+.SH FILES
+.TP
+/var/lib/stap\-server/.systemtap/ssl/server/stap.cert
+Signing certificate for servers started by the \fIstap\-server\fR service.
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stappathss (7),
+.IR staprun (8),
+.IR stap\-server (8),
+.IR stap\-client (8),
+.IR NSS ,
+.IR certutil
+
+.SH BUGS
+Use the Bugzilla link of the project web page or our mailing list.
+.nh
+.BR http://sources.redhat.com/systemtap/ ", " <systemtap@sources.redhat.com> .
+.hy
