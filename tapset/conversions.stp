@@ -7,6 +7,12 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+%{
+#ifdef CONFIG_COMPAT
+#include <linux/compat.h>
+#endif
+%}
+
 /**
  * sfunction kernel_string - Retrieves string from kernel memory.
  *
@@ -444,15 +450,37 @@ fault:
  * @addr: The user space address to retrieve the long from.
  *
  * Description: Returns the long value from a given user space address.
- * Returns zero when user space data is not accessible.
+ * Returns zero when user space data is not accessible. Note that the
+ * size of the long depends on the architecture of the current user space
+ * task (for those architectures that support both 64/32 bit compat tasks).
  */
 function user_long:long (addr:long) %{ /* pure */ /* unprivileged */
+	size_t l_size = sizeof(long);
+
         assert_is_myproc();
-	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, sizeof(long)))
+
+#ifdef CONFIG_COMPAT
+	if (is_compat_task())
+		l_size = sizeof(compat_long_t);
+#endif
+
+	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, l_size))
 		goto fault;
-	if (__stp_get_user(THIS->__retvalue, (long *) (intptr_t) THIS->addr)) {
+	if (l_size == sizeof(long)) {
+		if (__stp_get_user(THIS->__retvalue, (long *) (intptr_t) THIS->addr))
+		goto fault;
+#ifdef CONFIG_COMPAT
+	} else {
+		if (__stp_get_user(THIS->__retvalue, (compat_long_t *) (intptr_t) THIS->addr)) {
+
+			goto fault;
+		}
+#endif
+	}
+
+	if (0) {
 fault:
-		THIS->__retvalue = 0;
+			THIS->__retvalue = 0;
 	}
 %}
 
@@ -465,13 +493,36 @@ fault:
  *
  * Description: Returns the long value from a given user space address.
  * Returns zero when user space and warns (but does not abort) about the
- * failure.
+ * failure. Note that the size of the long depends on the architecture
+ * of the current user space task (for those architectures that support
+ * both 64/32 bit compat tasks).
  */
 function user_long_warn:long (addr:long) %{ /* pure */ /* unprivileged */
+	size_t l_size = sizeof(long);
+
         assert_is_myproc();
-	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, sizeof(long)))
+
+#ifdef CONFIG_COMPAT
+	if (is_compat_task())
+		l_size = sizeof(compat_long_t);
+#endif
+
+	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, l_size))
 		goto fault;
-	if (__stp_get_user(THIS->__retvalue, (long *) (intptr_t) THIS->addr)) {
+	if (l_size == sizeof(long)) {
+		if (__stp_get_user(THIS->__retvalue, (long *) (intptr_t) THIS->addr)) {
+			goto fault;
+		}
+#ifdef CONFIG_COMPAT
+	} else {
+		if (__stp_get_user(THIS->__retvalue, (compat_long_t *) (intptr_t) THIS->addr)) {
+
+			goto fault;
+		}
+#endif
+	}
+
+	if (0) {
 fault:
 		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 				"user long copy fault %p", (void *) (uintptr_t) THIS->addr);
