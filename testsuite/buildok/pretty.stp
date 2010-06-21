@@ -3,6 +3,7 @@
 global i = 1
 
 
+%( CONFIG_UTRACE == "y" %?
 # pretty-printing in dwarf context
 probe process("stap").function("parse_cmdline") {
     log($this->base_hash$)
@@ -14,6 +15,7 @@ probe process("stap").function("parse_cmdline") {
     log($this->perpass_verbose[i]$)
     log($this->perpass_verbose[i]$$)
 }
+%)
 
 # pretty-printing with @cast
 probe begin {
