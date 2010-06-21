@@ -24,9 +24,11 @@ switch -regexp $::tcl_platform(machine) {
 
 foreach arch $arches {
 
+verbose "testing usymbols $arch"
+
 if {$arch != "default"} {
-  set testflags "$testflags additional_flags=$arch"
-  set testflags "$testlibflags additional_flags=$arch"
+  set maintestflags "$maintestflags additional_flags=$arch"
+  set testlibflags "$testlibflags additional_flags=$arch"
 }
 
 # Compile our test program and library.
