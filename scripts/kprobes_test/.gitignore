@@ -1,2 +1,11 @@
 *~
 *.pyc
+.kprobe*
+*.log
+Module.symvers
+kprobe_module.ko*
+kprobe_module.mod.c
+modules.order
+.tmp_versions
+probes.*
+kprobe_defs.h

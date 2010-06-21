@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2008 Red Hat Inc.
+# Copyright (C) 2008, 2010 Red Hat Inc.
 # 
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -37,13 +37,18 @@ def run_module():
         # return values, since we don't really care if the commands
         # succeed or not.
         if config_opts.has_key('load_cmds'):
+            print >>sys.stderr, "Running commands..."
             num_waits = 0
 
             # Redirect the output to 'run_module.log' by modifying
-            # what stdout points to.
+            # what stdout/stderr points to.
+            sys.stdout.flush()
             old_stdout = os.dup(sys.stdout.fileno())
+            sys.stderr.flush()
+            old_stderr = os.dup(sys.stderr.fileno())
             fd = os.open('run_module.log', os.O_CREAT | os.O_WRONLY)
             os.dup2(fd, sys.stdout.fileno())
+            os.dup2(fd, sys.stderr.fileno())
 
             # Run the commands.
             for cmd in config_opts['load_cmds']:
@@ -53,9 +58,10 @@ def run_module():
                 (pid, status) = os.waitpid(-1, 0)
                 num_waits -= 1
 
-            # Restore old value of stdout.
+            # Restore old value of stdout/stderr.
             os.close(fd)
             os.dup2(old_stdout, sys.stdout.fileno())
+            os.dup2(old_stderr, sys.stderr.fileno())
 
         # Remove the module
         print >>sys.stderr, "Removing module..."
@@ -117,5 +123,9 @@ def run_module():
     f.close()
     return 0
 
-rc = run_module()
-sys.exit(rc)
+def main():
+    rc = run_module()
+    sys.exit(rc)
+
+if __name__ == "__main__":
+    main()
