@@ -195,7 +195,7 @@ function _rtn_broadcast:long ()
 %}
 
 /**
- * probe tcpmib.InReceives - Count an arriving packet.
+ * probe ipmib.InReceives - Count an arriving packet.
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -213,7 +213,7 @@ probe ipmib.InReceives=kernel.function("ip_rcv")
 }
 
 /**
- * probe tcpmib.InNoRoutes - Count an arriving packet with no matching socket.
+ * probe ipmib.InNoRoutes - Count an arriving packet with no matching socket.
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -233,7 +233,7 @@ probe ipmib.InNoRoutes=kernel.function("ip_route_input_common").return!,
 }
 
 /**
- * probe tcpmib.InAddrErrors - Count arriving packets with an incorrect address.
+ * probe ipmib.InAddrErrors - Count arriving packets with an incorrect address.
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -253,7 +253,7 @@ probe ipmib.InAddrErrors=kernel.function("ip_route_input_common").return!,
 }
 
 /**
- * probe tcpmib.InUnknownProtos - Count arriving packets with an unbound proto. 
+ * probe ipmib.InUnknownProtos - Count arriving packets with an unbound proto. 
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -275,7 +275,7 @@ probe ipmib.InUnknownProtos=kernel.function("icmp_send")
 }
 
 /**
- * probe tcpmib.InDiscards - Count discarded inbound packets.
+ * probe ipmib.InDiscards - Count discarded inbound packets.
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -299,7 +299,7 @@ probe ipmib.InDiscards=kernel.function("ip_rcv").return
 }
 
 /**
- * probe tcpmib.ForwDatagrams
+ * probe ipmib.ForwDatagrams
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -319,7 +319,7 @@ probe ipmib.ForwDatagrams=kernel.function("ip_forward_finish")
 %)
 
 /**
- * probe tcpmib.OutRequests - Count a request to send a packet.
+ * probe ipmib.OutRequests - Count a request to send a packet.
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -338,7 +338,7 @@ probe ipmib.OutRequests=kernel.function("ip_output"),
 }
 
 /**
- * probe tcpmib.ReasmTimeout
+ * probe ipmib.ReasmTimeout
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -358,7 +358,7 @@ probe ipmib.ReasmTimeout=kernel.function("icmp_send")
 }
 
 /**
- * probe tcpmib.ReasmReqds
+ * probe ipmib.ReasmReqds
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -376,7 +376,7 @@ probe ipmib.ReasmReqds=kernel.function("ip_defrag")
 }
 
 /**
- * probe tcpmib.FragOKs
+ * probe ipmib.FragOKs
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -395,7 +395,7 @@ probe ipmib.FragOKs=kernel.function("ip_fragment").return
 }
 
 /**
- * probe tcpmib.FragFails
+ * probe ipmib.FragFails
  * @skb: Pointer to the struct sk_buff being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
