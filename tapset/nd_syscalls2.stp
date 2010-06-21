@@ -339,7 +339,7 @@ probe nd_syscall.pipe =
 
 probe nd_syscall.pipe.return =
 %( arch == "ia64" %?
-                               kprobe.function("sys_ia64_pipe").return ?
+                               kprobe.function("sys_ia64_pipe").return ?,
 %)
                                kprobe.function("sys_pipe").return ?
 {
