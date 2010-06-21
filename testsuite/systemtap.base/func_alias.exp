@@ -8,6 +8,7 @@ proc run {subtest pp} {
   spawn stap -l $pp
   expect {
     timeout { fail "$subtest (timeout)" }
+    -re "never" { untested $subtest }
     -re "main@.*$test\\.c" {
       if {$match == 0} { pass $subtest; incr match }
       exp_continue
@@ -30,8 +31,8 @@ proc run_one_test {flags bits} {
       untested "$bits-bit $test"
       return
     }
-    run "$bits-bit $test direct" "process(\"$target\").function(\"$test\")"
-    run "$bits-bit $test wildcard" "process(\"$target\").function(\"$test*\")"
+    run "$bits-bit $test direct" "%( CONFIG_UTRACE == \"y\" %? process(\"$target\").function(\"$test\") %: never %)"
+    run "$bits-bit $test wildcard" "%( CONFIG_UTRACE == \"y\" %? process(\"$target\").function(\"$test*\") %: never %)"
     exec rm -f $target
 }
 
