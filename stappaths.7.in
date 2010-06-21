@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAP 7 @DATE@ "Red Hat"
+.TH STAP 7  "Systemtap Team"
 .SH NAME
 
 stappaths \- systemtap miscellaneous and paths
@@ -18,7 +18,7 @@ stappaths \- systemtap miscellaneous and paths
 ..
 
 .SH DESCRIPTION
-
+This manual page was generated on @DATE@ for systemtap @VERSION@.
 The following section will list the main paths in systemtap that are 
 important to know and may be required to reference.
 .TP
@@ -47,7 +47,7 @@ unloading.
 Systemtap Stapio Path: @prefix@/libexec/systemtap/stapio/
 The Systemtap module input and output handler.
 .TP
-sdt.h Path: @prefix@/include/sys/std.h
+sdt.h Path: @abs_top_builddir@/include/sys/std.h
 .TP
 $HOME/.systemtap
 Systemtap data directory for cached systemtap files, unless overridden
@@ -62,7 +62,7 @@ and kernel object.
 /lib/modules/VERSION/build
 The location of kernel module building infrastructure.
 .TP
-@prefix@/lib/debug/lib/modules/VERSION
+/usr/lib/debug/lib/modules/Kernel-Debuginfo-Version/
 The location of kernel debugging information when packaged into the
 .IR kernel\-debuginfo
 RPM, unless overridden by the
