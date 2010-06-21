@@ -47,7 +47,7 @@ unloading.
 Systemtap Stapio Path: @prefix@/libexec/systemtap/stapio/
 The Systemtap module input and output handler.
 .TP
-sdt.h Path: @abs_top_builddir@/include/sys/std.h
+sdt.h Path: @oldincludedir@/include/sys/std.h
 .TP
 $HOME/.systemtap
 Systemtap data directory for cached systemtap files, unless overridden
