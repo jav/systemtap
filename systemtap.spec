@@ -413,7 +413,7 @@ exit 0
 %{_bindir}/stap-report
 %{_mandir}/man1/*
 %{_mandir}/man3/*
-%{_mandir}/man7/*
+%{_mandir}/man7/stappaths.7*
 
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/runtime
@@ -437,6 +437,7 @@ exit 0
 %if %{with_crash}
 %{_libdir}/%{name}/staplog.so*
 %endif
+%{_mandir}/man7/stappaths.7*
 %{_mandir}/man8/staprun.8*
 %{_mandir}/man8/stap-authorize-signing-cert.8*
 
@@ -452,6 +453,7 @@ exit 0
 %{_bindir}/stap-authorize-server-cert
 %{_libexecdir}/%{name}/stap-find-servers
 %{_libexecdir}/%{name}/stap-client-connect
+%{_mandir}/man7/stappaths.7*
 %{_mandir}/man8/stap-client.8*
 %{_mandir}/man8/stap-authorize-server-cert.8*
 
@@ -467,6 +469,7 @@ exit 0
 %{_libexecdir}/%{name}/stap-gen-cert
 %{_libexecdir}/%{name}/stap-server-connect
 %{_libexecdir}/%{name}/stap-sign-module
+%{_mandir}/man7/stappaths.7*
 %{_mandir}/man8/stap-server.8*
 %{_mandir}/man8/stap-authorize-server-cert.8*
 %{_sysconfdir}/rc.d/init.d/stap-server
