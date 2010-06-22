@@ -80,14 +80,11 @@ printscript(systemtap_session& s, ostream& o)
           if (pending_interrupts) return;
 
           derived_probe* p = s.probes[i];
-          // NB: p->basest() is not so interesting;
-          // p->almost_basest() doesn't quite work, so ...
-          vector<probe*> chain;
-          p->collect_derivation_chain (chain);
-          probe* second = (chain.size()>1) ? chain[chain.size()-2] : chain[0];
 
           #if 0  // dump everything about the derivation chain
           p->printsig(cerr); cerr << endl;
+          vector<probe*> chain;
+          p->collect_derivation_chain (chain);
           cerr << "chain[" << chain.size() << "]:" << endl;
           for (unsigned j=0; j<chain.size(); j++)
             {
@@ -114,6 +111,7 @@ printscript(systemtap_session& s, ostream& o)
           #endif
 
           stringstream tmps;
+          probe* second = p->almost_basest();
           const probe_alias *a = second->get_alias();
           if (a)
             {
