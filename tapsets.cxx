@@ -4549,7 +4549,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       } arg_type;
       functioncall *fc = new functioncall;
       binary_expression *be = new binary_expression;
-      literal_number* ln;
+      literal_number* ln = NULL;
       string reg;
       string disp_str;
       int disp = 0;
