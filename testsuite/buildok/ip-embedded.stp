@@ -1,0 +1,12 @@
+#! stap -p4
+
+probe begin
+{
+	printf("%s\n", ip_ntop(0))
+	printf("%d\n", __ip_sock_saddr(0))
+	printf("%d\n", __ip_sock_daddr(0))
+	printf("%d\n", __get_skb_iphdr(0))
+	printf("%d\n", __ip_skb_proto(0))
+	printf("%d\n", __ip_skb_saddr(0))
+	printf("%d\n", __ip_skb_daddr(0))
+}

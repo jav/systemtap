@@ -46,8 +46,14 @@ function __ip_sock_daddr:long (sock:long)
 	       : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->daddr))
 }
 
-/* Get the IP header for recent (> 2.6.21) kernels */
-function __get_skb_iphdr_new:long(skb:long)
+/* Get the IP header from a sk_buff struct */
+function __get_skb_iphdr:long(skb:long)
+%( kernel_v < "2.6.21" %?
+{
+	iphdr = @cast(skb, "sk_buff")->nh->raw
+	return iphdr
+}
+%:
 %{ /* pure */
 	struct sk_buff *skb;
 	skb = (struct sk_buff *)(long)THIS->skb;
@@ -59,16 +65,7 @@ function __get_skb_iphdr_new:long(skb:long)
 	#endif
 	CATCH_DEREF_FAULT();
 %}
-
-/* Get the IP header from a sk_buff struct */
-function __get_skb_iphdr:long(skb:long){
-%( kernel_v < "2.6.21" %?
-	iphdr = @cast(skb, "sk_buff")->nh->raw
-	return iphdr
-%:
-	return __get_skb_iphdr_new(skb)
 %)
-}
 
 /* return the source next layer protocol for a given sk_buff structure */
 function __ip_skb_proto:long (iphdr)
