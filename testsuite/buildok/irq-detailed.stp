@@ -1,0 +1,46 @@
+#! stap -p4
+
+#
+# workqueue probes
+#
+
+probe workqueue.create ?
+{
+	printf("%p %d\n", wq_thread, cpu)
+}
+
+probe workqueue.insert ?, workqueue.execute ?
+{
+	printf("%p %p %p\n", wq_thread, work, work_func)
+}
+
+probe workqueue.destroy ?
+{
+	printf("%p\n", wq_thread)
+}
+
+#
+# irq_handler probes
+#
+
+probe irq_handler.entry ?, irq_handler.exit ?
+{
+	printf("%d %p %p %d(%s)\n", irq, action, handler, flags, flags_str)
+	printf("%d %d %p %p\n", dev_name, dev_id, next_irqaction, dir)
+	printf("%p %p %d\n", thread_fn, thread, thread_flags)
+}
+
+#
+# softirq probes
+#
+
+probe softirq.entry ?, softirq.exit ?
+{
+	printf("%p %p %p\n", h, vec, action)
+}
+
+# Make sure we've got at least one probe.
+probe never
+{
+	printf("never\n")
+}
