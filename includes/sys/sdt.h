@@ -148,17 +148,17 @@ typedef struct
 #endif
 
 /* variadic macro args not allowed by -ansi -pedantic so... */
-/* Use "ro" constraint as "g" constraint sometimes gives an auto increment operand */
-#define __stap_arg1 "ro"(arg1)
-#define __stap_arg2 "ro"(arg1), "ro"(arg2)
-#define __stap_arg3 "ro"(arg1), "ro"(arg2), "ro"(arg3)
-#define __stap_arg4 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4)
-#define __stap_arg5 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5)
-#define __stap_arg6 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6)
-#define __stap_arg7 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6), "ro"(arg7)
-#define __stap_arg8 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6), "ro"(arg7), "ro"(arg8)
-#define __stap_arg9 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6), "ro"(arg7), "ro"(arg8), "ro"(arg9)
-#define __stap_arg10 "ro"(arg1), "ro"(arg2), "ro"(arg3), "ro"(arg4), "ro"(arg5), "ro"(arg6), "ro"(arg7), "ro"(arg8), "ro"(arg9), "ro"(arg10)
+/* Use "ron" constraint as "g" constraint sometimes gives an auto increment operand */
+#define __stap_arg1 "ron"(arg1)
+#define __stap_arg2 "ron"(arg1), "ron"(arg2)
+#define __stap_arg3 "ron"(arg1), "ron"(arg2), "ron"(arg3)
+#define __stap_arg4 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4)
+#define __stap_arg5 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5)
+#define __stap_arg6 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6)
+#define __stap_arg7 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7)
+#define __stap_arg8 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7), "ron"(arg8)
+#define __stap_arg9 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7), "ron"(arg8), "ron"(arg9)
+#define __stap_arg10 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7), "ron"(arg8), "ron"(arg9), "ron"(arg10)
 
 #if defined STAP_SDT_V1 || ! defined STAP_SDT_V2
 #define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)	\

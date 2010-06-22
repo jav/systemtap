@@ -4541,9 +4541,15 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	}
       if (argno < 1 || argno > arg_count)
 	throw semantic_error("invalid argument number", e->tok);
-      bool arg_in_memory = false;
+      enum arg_type
+      {
+	literal_arg,
+	register_arg,
+	memory_arg
+      } arg_type;
       functioncall *fc = new functioncall;
       binary_expression *be = new binary_expression;
+      literal_number* ln;
       string reg;
       string disp_str;
       int disp = 0;
@@ -4561,68 +4567,85 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       if (0 != (rc = regcomp(&preg, pattern, 0)))
 	throw semantic_error("Failed to parse probe operand");
       if (0 != (rc = regexec(&preg, arg_tokens[argno-1].c_str(), nmatch, pmatch, 0)))
-	throw semantic_error("Unsupported assembler operand while accessing "
-                             + probe_name + " " + e->name + " " + arg_tokens[argno-1],
-                             e->tok);
-      // Is there a displacement?
-      if (pmatch[2].rm_so > pmatch[1].rm_so)
 	{
-	  string disp_str =	(char*)&arg_tokens[argno-1][pmatch[1].rm_so];
-	  disp = lex_cast<int>(disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
+	  // Do we have a numeric literal?
+	  // Check this separately instead of complicating the above pattern.
+	  if (0 != (rc = regcomp(&preg, "\\$[0-9][0-9]*", 0)))
+	    throw semantic_error("Failed to parse probe operand");
+	  if (0 != (rc = regexec(&preg, arg_tokens[argno-1].c_str(), nmatch, pmatch, 0)))
+	    throw semantic_error("Unsupported assembler operand while accessing "
+				 + probe_name + " " + e->name + " " + arg_tokens[argno-1],
+				 e->tok);
+	  arg_type = literal_arg;
+	  ln = new literal_number(lex_cast<int>(((char*)&arg_tokens[argno-1][pmatch[0].rm_so+1])));
+	  ln->tok = e->tok;
 	}
-      // Is there an indirect register?
-      if ((arg_tokens[argno-1][pmatch[2].rm_so]) == '(')
-	arg_in_memory = true;
-      // Is there a register?
-      if (pmatch[3].rm_eo >= pmatch[3].rm_so)
+      else
 	{
-	  reg = (char*)&arg_tokens[argno-1][pmatch[3].rm_so+1];
-	  reg.erase(pmatch[3].rm_eo - pmatch[3].rm_so - 1);
+	  // Is there a displacement?
+	  if (pmatch[2].rm_so > pmatch[1].rm_so)
+	    {
+	      string disp_str =	(char*)&arg_tokens[argno-1][pmatch[1].rm_so];
+	      disp = lex_cast<int>(disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
+	    }
+	  // Is there an indirect register?
+	  if ((arg_tokens[argno-1][pmatch[2].rm_so]) == '(')
+	    arg_type = memory_arg;
+	  else
+	    arg_type = register_arg;
+	  // Is there a register?
+	  if (pmatch[3].rm_eo >= pmatch[3].rm_so)
+	    {
+	      reg = (char*)&arg_tokens[argno-1][pmatch[3].rm_so+1];
+	      reg.erase(pmatch[3].rm_eo - pmatch[3].rm_so - 1);
+	    }
+	  if (reg.length() == 0)
+	    throw semantic_error("Unsupported assembler operand while accessing "
+				 + probe_name + " " + e->name, e->tok);
+	  // synthesize user_long(%{fetch_register(R)%} + D)
+	  fc->function = "user_long";
+	  fc->tok = e->tok;
+	  be->tok = e->tok;
+
+	  embedded_expr *get_arg1 = new embedded_expr;
+	  get_arg1->tok = e->tok;
+	  get_arg1->code = string("/* unprivileged */ /* pure */")
+	    + (is_user_module (process_name)
+	       ? string("u_fetch_register(")
+	       : string("k_fetch_register("))
+	    + lex_cast(dwarf_regs[reg]) + string(")");
+	  // XXX: may we ever need to cast that to a narrower type?
+
+	  be->left = get_arg1;
+	  be->op = "+";
+	  literal_number* inc = new literal_number(disp);
+	  inc->tok = e->tok;
+	  be->right = inc;
+	  fc->args.push_back(be);
 	}
-
-      if (reg.length() == 0)
-	throw semantic_error("Unsupported assembler operand while accessing "
-                             + probe_name + " " + e->name, e->tok);
-
-      // synthesize user_long(%{fetch_register(R)%} + D)
-      fc->function = "user_long";
-      fc->tok = e->tok;
-      be->tok = e->tok;
-
-      embedded_expr *get_arg1 = new embedded_expr;
-      get_arg1->tok = e->tok;
-      get_arg1->code = string("/* unprivileged */ /* pure */")
-	+ (is_user_module (process_name)
-	   ? string("u_fetch_register(")
-	   : string("k_fetch_register("))
-	+ lex_cast(dwarf_regs[reg]) + string(")");
-      // XXX: may we ever need to cast that to a narrower type?
-
-      be->left = get_arg1;
-      be->op = "+";
-      literal_number* inc = new literal_number(disp);
-      inc->tok = e->tok;
-      be->right = inc;
-      fc->args.push_back(be);
 
       if (e->components.empty()) // We have a scalar
 	{
 	  if (e->addressof)
 	    throw semantic_error("cannot take address of sdt variable", e->tok);
 
-	  if (arg_in_memory)
+	  if (arg_type == memory_arg)
 	    provide(fc);
-	  else
+	  else if (arg_type == register_arg)
 	    provide(be);
+	  else if (arg_type == literal_arg)
+	    provide(ln);
 	  return;
 	}
       cast_op *cast = new cast_op;
       cast->name = "@cast";
       cast->tok = e->tok;
-      if (arg_in_memory)
+      if (arg_type == memory_arg)
 	cast->operand = fc;
-      else
+      else if (arg_type == register_arg)
 	cast->operand = be;
+      else if (arg_type == literal_arg)
+	provide(ln);
       cast->components = e->components;
       cast->type_name = probe_name + "_arg" + lex_cast(argno);
       cast->module = process_name;
