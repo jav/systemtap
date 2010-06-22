@@ -413,6 +413,7 @@ exit 0
 %{_bindir}/stap-report
 %{_mandir}/man1/*
 %{_mandir}/man3/*
+%{_mandir}/man7/*
 
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/runtime
