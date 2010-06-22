@@ -155,6 +155,12 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	unsigned end, begin = 0;
 	unsigned long rel_addr = 0;
 
+#ifdef CONFIG_COMPAT
+	/* Handle 32bit signed values in 64bit longs, chop off top bits. */
+	if (task && test_tsk_thread_flag(task, TIF_32BIT))
+	  addr &= ((compat_ulong_t) ~0);
+#endif
+
 	m = _stp_mod_sec_lookup(addr, task, &sec, &rel_addr);
         if (unlikely (m == NULL || sec == NULL))
           return NULL;

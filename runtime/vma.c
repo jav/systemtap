@@ -117,6 +117,11 @@ static const char *_stp_vma_module_name(struct task_struct *tsk,
 					unsigned long addr)
 {
 	struct dentry *dentry = NULL;
+#ifdef CONFIG_COMPAT
+	/* Handle 32bit signed values in 64bit longs, chop off top bits. */
+	if (tsk && test_tsk_thread_flag(tsk, TIF_32BIT))
+	  addr &= ((compat_ulong_t) ~0);
+#endif
 	if (stap_find_vma_map_info(tsk->group_leader, addr,
 				   NULL, NULL, &dentry, NULL) == 0)
 		if (dentry != NULL)
