@@ -17,7 +17,6 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include <iostream>
 
 #if HAVE_AVAHI
 extern "C" {
@@ -264,6 +263,16 @@ compile_server_client::add_package_args ()
   return rc;
 }  
 
+int
+compile_server_client::add_package_arg (const string &arg)
+{
+  int rc = 0;
+  ostringstream fname;
+  fname << client_tmpdir << "/argv" << ++argc;
+  write_to_file (fname.str (), arg); // NB: No terminating newline
+  return rc;
+}
+
 // Symbolically link the given file or directory into the client's temp
 // directory under the given subdirectory.
 int
@@ -328,16 +337,6 @@ compile_server_client::include_file_or_directory (
 	   << endl;
     }
 
-  return rc;
-}
-
-int
-compile_server_client::add_package_arg (const string &arg)
-{
-  int rc = 0;
-  ostringstream fname;
-  fname << client_tmpdir << "/argv" << ++argc;
-  write_to_file (fname.str (), arg); // NB: No terminating newline
   return rc;
 }
 
@@ -627,89 +626,107 @@ compile_server_client::process_response ()
 int
 compile_server_client::read_from_file (const string &fname, int &data)
 {
-  // We don't use C++ streams here because they provide no useful information
-  // in the event of a failure.
-  FILE *f = fopen (fname.c_str (), "r");
-  if (! f)
+  // C++ streams may not set errno in the even of a failure. However if we
+  // set it to 0 before each operation and it gets set during the operation,
+  // then we can use its value in order to determine what happened.
+  errno = 0;
+  ifstream f (fname.c_str ());
+  if (! f.good ())
     {
-      cerr << "Unable to open file '" << fname << "': "
-	   << strerror (errno)
-	   << endl;
-      return 1;
+      cerr << "Unable to open file '" << fname << "' for reading: ";
+      goto error;
     }
 
-  int rc = 0;
-  if (! fscanf (f, "%d", & data))
+  // Read the data;
+  errno = 0;
+  f >> data;
+  if (f.fail ())
     {
-      cerr << "Unable to read from file '" << fname << "': "
-	   << strerror (errno)
-	   << endl;
-      rc = 1;
+      cerr << "Unable to read from file '" << fname << "': ";
+      goto error;
     }
 
-  fclose (f);
-  return rc;
+  f.close ();
+  return 0; // Success
+
+ error:
+  if (errno)
+    cerr << strerror (errno) << endl;
+  else
+    cerr << "unknown error" << endl;
+  return 1; // Failure
 }
 
 int
 compile_server_client::write_to_file (const string &fname, const string &data)
 {
-  // We don't use C++ streams here because they provide no useful information
-  // in the event of a failure.
-  FILE *f = fopen (fname.c_str (), "w");
-  if (! f)
+  // C++ streams may not set errno in the even of a failure. However if we
+  // set it to 0 before each operation and it gets set during the operation,
+  // then we can use its value in order to determine what happened.
+  errno = 0;
+  ofstream f (fname.c_str ());
+  if (! f.good ())
     {
-      cerr << "Unable to open file '" << fname << "': "
-	   << strerror (errno)
-	   << endl;
-      return 1;
+      cerr << "Unable to open file '" << fname << "' for writing: ";
+      goto error;
     }
 
-  int rc = 0;
-  if (! fwrite (data.c_str (), 1, data.size(), f))
+  // Write the data;
+  f << data;
+  errno = 0;
+  if (f.fail ())
     {
-      cerr << "Unable to write to file '" << fname << "': "
-	   << strerror (errno)
-	   << endl;
-      rc = 1;
+      cerr << "Unable to write to file '" << fname << "': ";
+      goto error;
     }
 
-  fclose (f);
-  return rc;
+  f.close ();
+  return 0; // Success
+
+ error:
+  if (errno)
+    cerr << strerror (errno) << endl;
+  else
+    cerr << "unknown error" << endl;
+  return 1; // Failure
 }
 
 int
 compile_server_client::flush_to_stream (const string &fname, ostream &o)
 {
-  // We don't use C++ streams here because they provide no useful information
-  // in the event of a failure.
-  FILE *f = fopen (fname.c_str (), "r");
-  if (! f)
+  // C++ streams may not set errno in the even of a failure. However if we
+  // set it to 0 before each operation and it gets set during the operation,
+  // then we can use its value in order to determine what happened.
+  errno = 0;
+  ifstream f (fname.c_str ());
+  if (! f.good ())
     {
-      cerr << "Unable to open file '" << fname << "': "
-	   << strerror (errno)
-	   << endl;
-      return 1;
+      cerr << "Unable to open file '" << fname << "' for reading: ";
+      goto error;
     }
 
-  // Copy the data.
-  char buf[256];
-  while (fgets (buf, sizeof (buf), f))
-    o << buf;
-
-  int rc = 0;
-  if (! feof (f))
+  // Stream the data
+  errno = 0;
+  o << f.rdbuf ();
+  if (f.fail ())
     {
-      cerr << "Error reading file '" << fname << "': "
-	   << strerror (errno)
-	   << endl;
-      rc = 1;
+      cerr << "Error reading file '" << fname << "': ";
+      goto error;
     }
 
-  fclose (f);
-  return rc;
+  f.close ();
+  return 0; // Success
+
+ error:
+  if (errno)
+    cerr << strerror (errno) << endl;
+  else
+    cerr << "unknown error" << endl;
+  return 1; // Failure
 }
+
 // Utility Functions.
+//-----------------------------------------------------------------------
 std::ostream &operator<< (std::ostream &s, const compile_server_info &i)
 {
   return s << i.host_name << ' '
@@ -914,6 +931,8 @@ keep_compatible_server_info (
 }
 
 #if HAVE_AVAHI
+// Avahi API Callbacks.
+//-----------------------------------------------------------------------
 struct browsing_context {
   AvahiSimplePoll *simple_poll;
   AvahiClient *client;
