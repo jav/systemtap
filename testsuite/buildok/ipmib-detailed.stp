@@ -1,0 +1,22 @@
+#! stap -p4
+
+function ipmib_filter_key:long (skb:long, op:long, SourceIsLocal:long) {
+	// Insure all these functions will build
+	if ( ipmib_remote_addr(skb, SourceIsLocal) ) return 0
+	if ( ipmib_local_addr(skb, SourceIsLocal) ) return 0
+	if ( ipmib_tcp_remote_port(skb, SourceIsLocal) ) return 0
+	if ( ipmib_tcp_local_port(skb, SourceIsLocal) ) return 0
+	if ( ipmib_get_proto(skb) ) return 0
+	return op
+}
+
+probe ipmib.InReceives, ipmib.InNoRoutes, ipmib.InAddrErrors,
+      ipmib.InUnknownProtos, ipmib.InDiscards,
+%( kernel_v >= "2.6.24" %?
+      ipmib.ForwDatagrams,
+%)
+      ipmib.OutRequests, ipmib.ReasmTimeout, ipmib.ReasmReqds,
+      ipmib.FragOKs, ipmib.FragFails
+{
+	printf("%p %d\n", skb, op)
+}

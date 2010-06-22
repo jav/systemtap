@@ -1,0 +1,23 @@
+#! stap -p4
+
+probe begin
+{
+	printf("%d\n", ipmib_remote_addr(0, 0))
+	printf("%d\n", ipmib_local_addr(0, 0))
+	printf("%d\n", ipmib_tcp_remote_port(0, 0))
+	printf("%d\n", ipmib_tcp_local_port(0, 0))
+	printf("%d\n", ipmib_get_proto(0))
+	printf("%d\n", _plunge_into_tcphdr(0))
+	printf("%d\n", _ehostunreach())
+	printf("%d\n", _enetunreach())
+	printf("%d\n", _icmp_dest_unreach())
+	printf("%d\n", _icmp_prot_unreach())
+	printf("%d\n", _net_rx_drop())
+	printf("%d\n", _icmp_time_exceeded())
+	printf("%d\n", _icmp_exc_fragtime())
+	printf("%d\n", _rtn_multicast())
+	printf("%d\n", _rtn_broadcast())
+	printf("%d\n", _rtn_unspec())
+	printf("%d\n", _input_route_type(0))
+	printf("%d\n", _output_route_type(0))
+}
