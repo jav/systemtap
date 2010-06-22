@@ -1632,7 +1632,7 @@ dwflpp::print_locals(vector<Dwarf_Die>& scopes, ostream &o)
             case DW_TAG_formal_parameter:
               name = dwarf_diename (&child);
               if (name)
-                o << " " << name;
+                o << " $" << name;
               break;
             default:
               break;
