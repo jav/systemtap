@@ -135,6 +135,21 @@ derived_probe::sole_location () const
 }
 
 
+probe_point*
+derived_probe::script_location () const
+{
+  const probe* p = almost_basest();
+  const probe_alias *a = p->get_alias();
+  const vector<probe_point*>& locs = a ? a->alias_names : p->locations;
+  if (locs.size() == 0)
+    throw semantic_error ("derived_probe with no locations", this->tok);
+  else if (locs.size() > 1)
+    throw semantic_error ("derived_probe with too many locations", this->tok);
+  else
+    return locs[0];
+}
+
+
 void
 derived_probe::emit_unprivileged_assertion (translator_output* o)
 {

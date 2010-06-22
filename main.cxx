@@ -110,25 +110,11 @@ printscript(systemtap_session& s, ostream& o)
             }
           #endif
 
-          stringstream tmps;
-          probe* second = p->almost_basest();
-          const probe_alias *a = second->get_alias();
-          if (a)
-            {
-              assert (a->alias_names.size() >= 1);
-              a->alias_names[0]->print(tmps); // XXX: [0] is arbitrary; perhaps print all
-            }
-          else
-            {
-              assert (second->locations.size() >= 1);
-              second->locations[0]->print(tmps); // XXX: [0] is less arbitrary here, but still ...
-            }
-          string pp = tmps.str();
-
           // Now duplicate-eliminate.  An alias may have expanded to
           // several actual derived probe points, but we only want to
           // print the alias head name once.
-          probe_list[pp].insert(p);
+          string name = lex_cast(*p->script_location());
+          probe_list[name].insert(p);
         }
 
       // print probe name and variables if there
