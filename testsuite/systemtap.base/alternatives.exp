@@ -27,7 +27,7 @@ proc stap_run_alternatives {args} {
     eval spawn $args
     expect { 
 	-timeout 60
-	-re {semantic error: .+ \(alternatives: [a-zA-Z_]} {incr alternatives_found; exp_continue}
+	-re {semantic error: .+ \(alternatives: \$?[a-zA-Z_]} {incr alternatives_found; exp_continue}
         -re {[^\r]*\r} { verbose -log $expect_out(0,string); exp_continue } 
         eof { verbose -log "EOF" }
         timeout { verbose -log "TIMEOUT" }
