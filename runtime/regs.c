@@ -14,6 +14,7 @@
 #define _REGS_C_
 
 #include "regs.h"
+#include "compatdefs.h"
 
 /** @file current.c
  * @brief Functions to get the current state.
