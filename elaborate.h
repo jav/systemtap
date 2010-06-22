@@ -126,8 +126,8 @@ struct derived_probe: public probe
   derived_probe (probe* b);
   derived_probe (probe* b, probe_point* l);
   probe* base; // the original parsed probe
-  virtual probe* basest () { return base->basest(); }
-  virtual probe* almost_basest () { return base->almost_basest() ?: this; }
+  virtual const probe* basest () const { return base->basest(); }
+  virtual const probe* almost_basest () const { return base->almost_basest() ?: this; }
   virtual ~derived_probe () {}
   virtual void join_group (systemtap_session& s) = 0;
   virtual probe_point* sole_location () const;

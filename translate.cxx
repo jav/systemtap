@@ -1432,13 +1432,13 @@ c_unparser::emit_module_exit ()
     set<string> basest_names;
     for (unsigned i=0; i<session->probes.size(); i++)
       {
-        probe* p = session->probes[i]->basest();
-        string nm = p->name;
+        const probe* p = session->probes[i]->basest();
+        const string &nm = p->name;
         if (basest_names.find(nm) == basest_names.end())
           {
             basest_names.insert (nm);
             // NB: check for null stat object
-            o->newline() << "if (likely (time_" << p->name << ")) {";
+            o->newline() << "if (likely (time_" << nm << ")) {";
             o->newline(1) << "const char *probe_point = "
                          << lex_cast_qstring (* p->locations[0])
                          << (p->locations.size() > 1 ? "\"+\"" : "")
@@ -1448,14 +1448,14 @@ c_unparser::emit_module_exit ()
                          << lex_cast_qstring (p->tok->location)
                          << ";";
             o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
-                         << p->name
+                         << nm
                          << ", 0);";
             o->newline() << "if (stats->count) {";
             o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
             o->newline() << "_stp_printf (\"probe %s (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax\\n\",";
             o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
             o->newline(-1) << "}";
-	    o->newline() << "_stp_stat_del (time_" << p->name << ");";
+            o->newline() << "_stp_stat_del (time_" << nm << ");";
             o->newline(-1) << "}";
           }
       }
