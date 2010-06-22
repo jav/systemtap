@@ -4577,7 +4577,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 				 + probe_name + " " + e->name + " " + arg_tokens[argno-1],
 				 e->tok);
 	  arg_type = literal_arg;
-	  ln = new literal_number(lex_cast<int>(((char*)&arg_tokens[argno-1][pmatch[0].rm_so+1])));
+	  ln = new literal_number(lex_cast<int>(arg_tokens[argno-1].substr(pmatch[0].rm_so+1)));
 	  ln->tok = e->tok;
 	}
       else
@@ -4585,7 +4585,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // Is there a displacement?
 	  if (pmatch[2].rm_so > pmatch[1].rm_so)
 	    {
-	      string disp_str =	(char*)&arg_tokens[argno-1][pmatch[1].rm_so];
+	      string disp_str =	arg_tokens[argno-1].substr(pmatch[1].rm_so);
 	      disp = lex_cast<int>(disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
 	    }
 	  // Is there an indirect register?
@@ -4596,7 +4596,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // Is there a register?
 	  if (pmatch[3].rm_eo >= pmatch[3].rm_so)
 	    {
-	      reg = (char*)&arg_tokens[argno-1][pmatch[3].rm_so+1];
+	      reg = arg_tokens[argno-1].substr(pmatch[3].rm_so+1);
 	      reg.erase(pmatch[3].rm_eo - pmatch[3].rm_so - 1);
 	    }
 	  if (reg.length() == 0)
