@@ -1,5 +1,11 @@
 #! stap -p4
 
+# Normally we'd just test the ioscheduler.* probes, not the
+# ioscheduler.*.kp/ioscheduler.*.tp underlying probe aliases.  On
+# systems where the tracepoint aliases are used (*.tp), we'd never
+# test the kprobes aliases (*.kp).  This could cause them to get out
+# of sync with the kprobed functions.  So, we test them explicitly.
+
 probe ioscheduler.elv_next_request
 {
 	printf("%s: %s\n", name, elevator_name)
