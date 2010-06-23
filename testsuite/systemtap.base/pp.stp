@@ -1,0 +1,24 @@
+/*
+ * pp.stp
+ *
+ * Test that pp() and pp1() output the right thing
+ */
+
+global hits
+
+probe begin { println("systemtap starting probe") }
+
+probe syscall.open { hits[$1()] <<< 1 }
+
+probe end
+{
+    println("systemtap ending probe")
+    foreach (s in hits) {
+        ++count
+        println(s)
+    }
+    if (count)
+        println("systemtap test success");
+    else
+        println("systemtap test failure");
+}

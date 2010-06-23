@@ -255,13 +255,31 @@ function cpu:long ()
  *
  * General Syntax: pp:string()
  *
- * Description: This function returns the probe point associated with
- * a currently running probe handler, including alias and wild-card
- * expansion effects. Context: The current probe point.
+ * Description: This function returns the fully-resolved probe point
+ * associated with a currently running probe handler, including alias
+ * and wild-card expansion effects. Context: The current probe point.
  */
 function pp:string ()
 %{ /* pure */ /* unprivileged */
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
+%}
+
+/**
+ * sfunction pp1
+ *
+ * General Syntax: pp1:string()
+ *
+ * Description: This function returns the script-level probe point
+ * associated with a currently running probe handler, including
+ * wild-card expansion effects. Context: The current probe point.
+ */
+function pp1:string ()
+%{ /* pure */ /* unprivileged */
+#ifndef STP_NEED_PROBE_POINT_LISTING
+#define STP_NEED_PROBE_POINT_LISTING 1
+#endif
+	const char* pp = CONTEXT->probe_point_listing ?: CONTEXT->probe_point;
+	strlcpy (THIS->__retvalue, pp, MAXSTRINGLEN);
 %}
 
 /**

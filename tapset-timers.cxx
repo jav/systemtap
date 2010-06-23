@@ -440,6 +440,10 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
           // XXX: not quite right: MAXERRORS not respected
           s.op->newline() << "c->actionremaining = MAXACTION;";
         }
+      s.op->newline() << "#ifdef STP_NEED_PROBE_POINT_LISTING";
+      s.op->newline() << "c->probe_point_listing = "
+                      << lex_cast_qstring (*probes[i]->script_location()) << ";";
+      s.op->newline() << "#endif";
       s.op->newline() << "if (c->last_error == NULL) " << probes[i]->name << " (c);";
     }
   common_probe_entryfn_epilogue (s.op);

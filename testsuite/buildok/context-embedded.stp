@@ -15,6 +15,7 @@ probe begin {
 	printf("euid is %d\n", euid())
 	printf("%d\n", is_myproc() + cpuid() + cpu())
 	printf("pp is %s\n", pp())
+	printf("pp1 is %s\n", pp1())
 	printf("%d\n", registers_valid() + user_mode() + is_return()
 	       + target())
 	printf("%s\n", module_name())

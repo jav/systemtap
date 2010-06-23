@@ -69,7 +69,8 @@ common_probe_init (derived_probe* p)
 {
   ostringstream o;
   o << "STAP_PROBE_INIT(&" << p->name << ", "
-    << lex_cast_qstring (*p->sole_location()) << ")";
+    << lex_cast_qstring (*p->sole_location()) << ", "
+    << lex_cast_qstring (*p->script_location()) << ")";
   return o.str();
 }
 
@@ -139,6 +140,11 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->regs = 0;";
   o->newline() << "c->unwaddr = 0;";
   o->newline() << "c->probe_point = " << probe << ".pp;";
+  o->newline() << "#ifdef STP_NEED_PROBE_POINT_LISTING";
+  o->newline() << "c->probe_point_listing = " << probe << ".pp1;";
+  o->newline() << "#else";
+  o->newline() << "c->probe_point_listing = 0;";
+  o->newline() << "#endif";
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
   o->newline() << "c->pi_longs = 0;";
@@ -223,6 +229,7 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline() << "#endif";
 
   o->newline() << "c->probe_point = 0;"; // vacated
+  o->newline() << "c->probe_point_listing = 0;";
   o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
   o->newline(1) << "if (c->last_stmt != NULL)";
   o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
