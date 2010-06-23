@@ -50,8 +50,11 @@ function print_stack(stk:string) %{
  * General Syntax: probefunc:string()
  *
  * Description: This function returns the name of the function being probed.
- * Please note: this function is depreciated, please use symname() and/or
- * usymname().
+ * It will do this based on the probe point string as returned by pp().
+ * Please note: this function is deprecated, please use symname() and/or
+ * usymname(). This function might return a function name based on the
+ * current address of the task if that is in kernel space, but not for
+ * any user space addresses. Please use usymname(uaddr()) for that.
  */
 function probefunc:string () %{ /* pure */
 	char *ptr, *start;
@@ -70,13 +73,8 @@ function probefunc:string () %{ /* pure */
 			*dst++ = *ptr++;
 		*dst = 0;
 
-	} else if (CONTEXT->regs &&
-#if defined (__ia64__)
-		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)KERNEL_START)) {
-#else
-		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)PAGE_OFFSET)) {
-#endif
-		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs), current, 0);
+	} else if (CONTEXT->regs && !user_mode(CONTEXT->regs)) {
+		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs), NULL, 0);
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
        	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
@@ -85,12 +83,12 @@ function probefunc:string () %{ /* pure */
 %}
 
 /**
- * sfunction probemod - Return the probe point's module name.
+ * sfunction probemod - Return the probe point's kernel module name.
  * 
  * General Syntax: probemod:string()
  * 
- * Description: This funciton returns the name of the module containing the 
- * probe point, if known.
+ * Description: This funciton returns the name of the kernel module
+ * containing the probe point, if known.
  */
 function probemod:string () %{ /* pure */
 	char *ptr, *start;
@@ -106,7 +104,7 @@ function probemod:string () %{ /* pure */
 		*dst = 0;
 	} else if (CONTEXT->regs) {
 		struct _stp_module *m;
-		m = _stp_mod_sec_lookup (REG_IP(CONTEXT->regs), current, NULL, NULL);
+		m = _stp_mod_sec_lookup (REG_IP(CONTEXT->regs), NULL, NULL, NULL);
 		if (m && m->name)
 			strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
 		else
@@ -126,7 +124,7 @@ function probemod:string () %{ /* pure */
  */
 function modname:string (addr: long) %{ /* pure */
 	struct _stp_module *m;
-	m = _stp_mod_sec_lookup (THIS->addr, current, NULL, NULL);
+	m = _stp_mod_sec_lookup (THIS->addr, NULL, NULL, NULL);
 	if (m && m->name)
           strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
 	else
@@ -134,7 +132,7 @@ function modname:string (addr: long) %{ /* pure */
 %}
 
 /**
- * sfunction symname - Return the symbol associated with the given address.
+ * sfunction symname - Return the kernel symbol associated with the given address.
  *
  * General Syntax: symname:string(addr:long)
  * 
@@ -150,7 +148,7 @@ function symname:string (addr: long) %{ /* pure */
 %}
 
 /**
- * sfunction symdata - Return the symbol and module offset for the address.
+ * sfunction symdata - Return the kernel symbol and module offset for the address.
  *
  * General Syntax: symdata:string(addr:long)
  *

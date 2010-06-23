@@ -115,8 +115,7 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
 		     m->sections[0].name, m->name, vm_start);
 	    return m;
 	  }
-      /* XXX should really not fallthrough, but sometimes current is passed
-             when it shouldn't - see probefunc() for example. */
+      return NULL;
     }
 
   for (midx = 0; midx < _stp_num_modules; midx++)
