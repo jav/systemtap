@@ -916,7 +916,7 @@ c_unparser::emit_common_header ()
   o->newline() << "struct context {";
   o->newline(1) << "atomic_t busy;";
   o->newline() << "const char *probe_point;";
-  o->newline() << "const char *probe_point_listing;"; // as per 'stap -l'
+  o->newline() << "const char *probe_name;"; // as per 'stap -l'
   o->newline() << "int actionremaining;";
   o->newline() << "int nesting;";
   o->newline() << "string_t error_buffer;";
@@ -5732,8 +5732,8 @@ translate_pass (systemtap_session& s)
       // Let's find some stats for the embedded pp strings.  Maybe they
       // are small and uniform enough to justify putting char[MAX]'s into
       // the array instead of relocated char*'s.
-      size_t pp_max = 0, pp1_max = 0;
-      size_t pp_tot = 0, pp1_tot = 0;
+      size_t pp_max = 0, pn_max = 0;
+      size_t pp_tot = 0, pn_tot = 0;
       for (unsigned i=0; i<s.probes.size(); i++)
         {
           derived_probe* p = s.probes[i];
@@ -5742,7 +5742,7 @@ translate_pass (systemtap_session& s)
         var##_max = max (var##_max, var##_size);        \
         var##_tot += var##_size; } while (0)
           DOIT(pp, lex_cast_qstring(*p->sole_location()).size());
-          DOIT(pp1, lex_cast_qstring(*p->script_location()).size());
+          DOIT(pn, lex_cast_qstring(*p->script_location()).size());
 #undef DOIT
         }
 
@@ -5767,11 +5767,11 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "struct stap_probe {";
       s.op->newline(1) << "void (* const ph) (struct context*);";
       CALCIT(pp);
-      s.op->newline() << "#ifdef STP_NEED_PROBE_POINT_LISTING";
-      CALCIT(pp1);
-      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PP1) { .ph=(PH), .pp=(PP), .pp1=(PP1) }";
+      s.op->newline() << "#ifdef STP_NEED_PROBE_NAME";
+      CALCIT(pn);
+      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN) { .ph=(PH), .pp=(PP), .pn=(PN) }";
       s.op->newline() << "#else";
-      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PP1) { .ph=(PH), .pp=(PP) }";
+      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN) { .ph=(PH), .pp=(PP) }";
       s.op->newline() << "#endif";
       s.op->newline(-1) << "};";
 #undef CALCIT

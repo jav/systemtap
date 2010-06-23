@@ -265,24 +265,6 @@ function pp:string ()
 %}
 
 /**
- * sfunction pp1
- *
- * General Syntax: pp1:string()
- *
- * Description: This function returns the script-level probe point
- * associated with a currently running probe handler, including
- * wild-card expansion effects. Context: The current probe point.
- */
-function pp1:string ()
-%{ /* pure */ /* unprivileged */
-#ifndef STP_NEED_PROBE_POINT_LISTING
-#define STP_NEED_PROBE_POINT_LISTING 1
-#endif
-	const char* pp = CONTEXT->probe_point_listing ?: CONTEXT->probe_point;
-	strlcpy (THIS->__retvalue, pp, MAXSTRINGLEN);
-%}
-
-/**
  * sfunction registers_valid - Determines validity of register() and u_register() in current context.
  *
  * General Syntax: registers_valid:long()

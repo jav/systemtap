@@ -1,7 +1,7 @@
 /*
  * pp.stp
  *
- * Test that pp() and pp1() output the right thing
+ * Test that pp() and pn() output the right thing
  */
 
 global hits

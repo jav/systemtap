@@ -1,0 +1,26 @@
+// probe-name tapset
+// Copyright (C) 2010 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+
+/**
+ * sfunction pn
+ *
+ * General Syntax: pn:string()
+ *
+ * Description: This function returns the script-level probe point
+ * associated with a currently running probe handler, including
+ * wild-card expansion effects. Context: The current probe point.
+ */
+function pn:string ()
+%{ /* pure */ /* unprivileged */
+#ifndef STP_NEED_PROBE_NAME
+#define STP_NEED_PROBE_NAME 1
+#endif
+	const char* name = CONTEXT->probe_name ?: CONTEXT->probe_point;
+	strlcpy (THIS->__retvalue, name, MAXSTRINGLEN);
+%}

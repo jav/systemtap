@@ -1,4 +1,4 @@
-# Simple function to test that pp() and pp1() work
+# Simple function to test that pp() and pn() work
 
 proc opener {} { # the test uses syscall.open -- make sure it happens
     exec cat /dev/null
@@ -10,6 +10,6 @@ set file $srcdir/$subdir/pp.stp
 set output_string "(kernel\\.function\[^\r\n]*\r\n)+systemtap test success\r\n"
 stap_run $test opener $output_string $file $test
 
-set test "pp1"
+set test "pn"
 set output_string "syscall\\.open\r\nsystemtap test success\r\n"
 stap_run $test opener $output_string $file $test
