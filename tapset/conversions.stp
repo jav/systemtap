@@ -454,7 +454,7 @@ function user_long:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 
 #ifdef CONFIG_COMPAT
-	if (is_compat_task())
+	if (_stp_is_compat_task())
 		l_size = sizeof(compat_long_t);
 #endif
 
@@ -497,7 +497,7 @@ function user_long_warn:long (addr:long) %{ /* pure */ /* unprivileged */
         assert_is_myproc();
 
 #ifdef CONFIG_COMPAT
-	if (is_compat_task())
+	if (_stp_is_compat_task())
 		l_size = sizeof(compat_long_t);
 #endif
 
