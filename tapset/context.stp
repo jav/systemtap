@@ -251,7 +251,7 @@ function cpu:long ()
 %}
 
 /**
- * sfunction pp
+ * sfunction pp - Returns the active probe point.
  *
  * General Syntax: pp:string()
  *

@@ -8,7 +8,7 @@
 
 
 /**
- * sfunction pn
+ * sfunction pn - Returns the active probe name.
  *
  * General Syntax: pn:string()
  *
