@@ -4,7 +4,7 @@ global i = 1
 
 
 %( CONFIG_UTRACE == "y" %?
-# pretty-printing in dwarf context
+# pretty-printing in dwarf user context
 probe process("stap").function("parse_cmdline") {
     log($this->base_hash$)
     log($this->base_hash$$)
@@ -30,9 +30,13 @@ probe begin {
     log(@cast(t, "task_struct")->comm[i]$$)
 }
 
-%( CONFIG_TRACEPOINTS == "y" %?
-# pretty-printing in tracepoints
-probe kernel.trace("sched_switch") {
+# pretty-printing in dwarf kernel context
+probe kernel.function("schedule_tail")
+    %( CONFIG_TRACEPOINTS == "y" %?
+    # pretty-printing in tracepoints
+    , kernel.trace("sched_switch")
+    %)
+{
     log($prev->fs$)
     log($prev->fs$$)
     log($prev->comm$)
@@ -42,5 +46,4 @@ probe kernel.trace("sched_switch") {
     log($prev->comm[i]$)
     log($prev->comm[i]$$)
 }
-%)
 
