@@ -713,8 +713,7 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
   s.op->line() << " .munmap_callback=NULL,";
   s.op->line() << " .mprotect_callback=NULL,";
   s.op->line() << " },";
-  s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
-  s.op->line() << " .ph=&" << p->name << ",";
+  s.op->line() << " .probe=" << common_probe_init (p) << ",";
 
   // Handle flags
   switch (p->flags)
@@ -791,8 +790,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "struct stap_utrace_probe {";
   s.op->indent(1);
   s.op->newline() << "struct stap_task_finder_target tgt;";
-  s.op->newline() << "const char *pp;";
-  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "struct stap_probe probe;";
   s.op->newline() << "int engine_attached;";
   s.op->newline() << "enum utrace_derived_probe_flags flags;";
   s.op->newline() << "struct utrace_engine_ops ops;";
@@ -808,10 +806,10 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static void stap_utrace_probe_handler(struct task_struct *tsk, struct stap_utrace_probe *p) {";
       s.op->indent(1);
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->pp");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe");
 
       // call probe function
-      s.op->newline() << "(*p->ph) (c);";
+      s.op->newline() << "(*p->probe.ph) (c);";
       common_probe_entryfn_epilogue (s.op);
 
       s.op->newline() << "return;";
@@ -834,11 +832,11 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->indent(1);
       s.op->newline() << "struct stap_utrace_probe *p = (struct stap_utrace_probe *)engine->data;";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->pp");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe");
       s.op->newline() << "c->regs = regs;";
 
       // call probe function
-      s.op->newline() << "(*p->ph) (c);";
+      s.op->newline() << "(*p->probe.ph) (c);";
       common_probe_entryfn_epilogue (s.op);
 
       s.op->newline() << "if ((atomic_read (&session_state) != STAP_SESSION_STARTING) && (atomic_read (&session_state) != STAP_SESSION_RUNNING)) {";
@@ -1029,7 +1027,7 @@ utrace_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "/* ---- utrace probes ---- */";
   s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_utrace_probes); i++) {";
   s.op->newline(1) << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
-  s.op->newline() << "probe_point = p->pp;"; // for error messages
+  s.op->newline() << "probe_point = p->probe.pp;"; // for error messages
   s.op->newline() << "rc = stap_register_task_finder_target(&p->tgt);";
 
   // NB: if (rc), there is no need (XXX: nor any way) to clean up any

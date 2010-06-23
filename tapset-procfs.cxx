@@ -214,30 +214,10 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .path=" << lex_cast_qstring (it->first) << ",";
 
       if (pset->read_probe != NULL)
-        {
-          s.op->line() << " .read_pp="
-                       << lex_cast_qstring (*pset->read_probe->sole_location())
-                       << ",";
-          s.op->line() << " .read_ph=&" << pset->read_probe->name << ",";
-        }
-      else
-        {
-          s.op->line() << " .read_pp=NULL,";
-          s.op->line() << " .read_ph=NULL,";
-        }
+        s.op->line() << " .read_probe=" << common_probe_init (pset->read_probe) << ",";
 
       if (pset->write_probe != NULL)
-        {
-          s.op->line() << " .write_pp="
-                       << lex_cast_qstring (*pset->write_probe->sole_location())
-                       << ",";
-          s.op->line() << " .write_ph=&" << pset->write_probe->name << ",";
-        }
-      else
-        {
-          s.op->line() << " .write_pp=NULL,";
-          s.op->line() << " .write_ph=NULL,";
-        }
+        s.op->line() << " .write_probe=" << common_probe_init (pset->write_probe) << ",";
 
       if (pset->read_probe != NULL)
         {
@@ -271,7 +251,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       s.op->newline() << "struct _stp_procfs_data pdata;";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->read_pp");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->read_probe");
 
       s.op->newline() << "pdata.buffer = spp->buffer;";
       s.op->newline() << "pdata.bufsize = spp->bufsize;";
@@ -288,7 +268,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(-1) << "}";
 
       // call probe function
-      s.op->newline() << "(*spp->read_ph) (c);";
+      s.op->newline() << "(*spp->read_probe.ph) (c);";
 
       // Note that _procfs_value_set copied string data into spp->buffer
       s.op->newline() << "c->data = NULL;";
@@ -315,7 +295,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       s.op->newline() << "struct _stp_procfs_data pdata;";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->write_pp");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "spp->write_probe");
 
       // We've got 2 problems here.  The data count could be greater
       // than MAXSTRINGLEN or greater than the bufsize (if the same
@@ -344,7 +324,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(-1) << "}";
 
       // call probe function
-      s.op->newline() << "(*spp->write_ph) (c);";
+      s.op->newline() << "(*spp->write_probe.ph) (c);";
 
       s.op->newline() << "c->data = NULL;";
       s.op->newline() << "if (c->last_error == 0) {";
@@ -367,10 +347,10 @@ procfs_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i = 0; i < " << probes_by_path.size() << "; i++) {";
   s.op->newline(1) << "struct stap_procfs_probe *spp = &stap_procfs_probes[i];";
 
-  s.op->newline() << "if (spp->read_pp)";
-  s.op->newline(1) << "probe_point = spp->read_pp;";
+  s.op->newline() << "if (spp->read_probe.pp)";
+  s.op->newline(1) << "probe_point = spp->read_probe.pp;";
   s.op->newline(-1) << "else";
-  s.op->newline(1) << "probe_point = spp->write_pp;";
+  s.op->newline(1) << "probe_point = spp->write_probe.pp;";
   s.op->indent(-1);
 
   s.op->newline() << "_spp_init(spp);";

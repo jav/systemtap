@@ -17,10 +17,8 @@ struct _stp_procfs_data {
 
 struct stap_procfs_probe {
 	const char *path;
-	const char *read_pp;
-	void (*read_ph) (struct context*);
-	const char *write_pp;
-	void (*write_ph) (struct context*);
+	struct stap_probe read_probe;
+	struct stap_probe write_probe;
 
 	char *buffer;
 	const size_t bufsize;
@@ -132,7 +130,7 @@ _stp_proc_read_file(struct file *file, char __user *buf, size_t count,
 
 	/* If we don't have a probe read function, just return 0 to
 	 * indicate there isn't any data here. */
-	if (spp == NULL || spp->read_ph == NULL) {
+	if (spp == NULL || spp->read_probe.ph == NULL) {
 		goto out;
 	}
 
@@ -159,7 +157,7 @@ _stp_proc_write_file(struct file *file, const char __user *buf, size_t count,
 	ssize_t len;
 
 	/* If we don't have a write probe, return EIO. */
-	if (spp->write_ph == NULL) {
+	if (spp->write_probe.ph == NULL) {
 		len = -EIO;
 		goto out;
 	}

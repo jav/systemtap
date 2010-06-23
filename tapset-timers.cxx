@@ -101,17 +101,14 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "static struct stap_timer_probe {";
   s.op->newline(1) << "struct timer_list timer_list;";
-  s.op->newline() << "const char *pp;";
-  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "struct stap_probe probe;";
   s.op->newline() << "unsigned intrv, ms, rnd;";
   s.op->newline(-1) << "} stap_timer_probes [" << probes.size() << "] = {";
   s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
       s.op->newline () << "{";
-      s.op->line() << " .pp="
-                   << lex_cast_qstring (*probes[i]->sole_location()) << ",";
-      s.op->line() << " .ph=&" << probes[i]->name << ",";
+      s.op->line() << " .probe=" << common_probe_init (probes[i]) << ",";
       s.op->line() << " .intrv=" << probes[i]->interval << ",";
       s.op->line() << " .ms=" << probes[i]->time_is_msecs << ",";
       s.op->line() << " .rnd=" << probes[i]->randomize;
@@ -129,8 +126,8 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << ");";
   s.op->newline(-1) << "{";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->pp");
-  s.op->newline() << "(*stp->ph) (c);";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe");
+  s.op->newline() << "(*stp->probe.ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
@@ -144,7 +141,7 @@ timer_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_timer_probe* stp = & stap_timer_probes [i];";
-  s.op->newline() << "probe_point = stp->pp;";
+  s.op->newline() << "probe_point = stp->probe.pp;";
   s.op->newline() << "init_timer (& stp->timer_list);";
   s.op->newline() << "stp->timer_list.function = & enter_timer_probe;";
   s.op->newline() << "stp->timer_list.data = i;"; // NB: important!
@@ -271,16 +268,14 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static unsigned long stap_hrtimer_resolution;"; // init later
   s.op->newline() << "static struct stap_hrtimer_probe {";
   s.op->newline(1) << "struct hrtimer hrtimer;";
-  s.op->newline() << "const char *pp;";
-  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "struct stap_probe probe;";
   s.op->newline() << "int64_t intrv, rnd;";
   s.op->newline(-1) << "} stap_hrtimer_probes [" << probes.size() << "] = {";
   s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
       s.op->newline () << "{";
-      s.op->line() << " .pp=" << lex_cast_qstring (*probes[i]->sole_location()) << ",";
-      s.op->line() << " .ph=&" << probes[i]->name << ",";
+      s.op->line() << " .probe=" << common_probe_init (probes[i]) << ",";
       s.op->line() << " .intrv=" << probes[i]->interval << "LL,";
       s.op->line() << " .rnd=" << probes[i]->randomize << "LL";
       s.op->line() << " },";
@@ -319,8 +314,8 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "{";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->pp");
-  s.op->newline() << "(*stp->ph) (c);";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe");
+  s.op->newline() << "(*stp->probe.ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
   s.op->newline() << "return rc;";
@@ -341,7 +336,7 @@ hrtimer_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_hrtimer_probe* stp = & stap_hrtimer_probes [i];";
-  s.op->newline() << "probe_point = stp->pp;";
+  s.op->newline() << "probe_point = stp->probe.pp;";
   s.op->newline() << "hrtimer_init (& stp->hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);";
   s.op->newline() << "stp->hrtimer.function = & enter_hrtimer_probe;";
   // There is no hrtimer field to identify *this* (i-th) probe handler
@@ -432,9 +427,9 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
   // open-code the same logic here.
 
   s.op->newline() << "static void enter_all_profile_probes (struct pt_regs *regs) {";
-  s.op->indent(1);
-  string pp = lex_cast_qstring("timer.profile"); // hard-coded for convenience
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", pp);
+  s.op->newline(1) << "static const struct stap_probe probe = "
+                   << common_probe_init (probes[0]) << ";";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe");
   s.op->newline() << "c->regs = regs;";
 
   for (unsigned i=0; i<probes.size(); i++)

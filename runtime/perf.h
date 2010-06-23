@@ -19,8 +19,7 @@
 struct stap_perf_probe {
 	struct perf_event_attr attr;
 	perf_overflow_handler_t callback;
-	const char *pp;
-	void (*ph) (struct context*);
+	struct stap_probe probe;
 
 	/* per-cpu data. allocated with _stp_alloc_percpu() */
 	struct perf_event **events;

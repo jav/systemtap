@@ -5728,6 +5728,47 @@ translate_pass (systemtap_session& s)
         }
       s.op->assert_0_indent();
 
+      // Let's find some stats for the embedded pp strings.  Maybe they
+      // are small and uniform enough to justify putting char[MAX]'s into
+      // the array instead of relocated char*'s.
+      size_t pp_max = 0;
+      size_t pp_tot = 0;
+      for (unsigned i=0; i<s.probes.size(); i++)
+        {
+          derived_probe* p = s.probes[i];
+#define DOIT(var,expr) do {                             \
+        size_t var##_size = (expr) + 1;                 \
+        var##_max = max (var##_max, var##_size);        \
+        var##_tot += var##_size; } while (0)
+          DOIT(pp, lex_cast_qstring(*p->sole_location()).size());
+#undef DOIT
+        }
+
+      // Decide whether it's worthwhile to use char[] or char* by comparing
+      // the amount of average waste (max - avg) to the relocation data size
+      // (3 native long words).
+#define CALCIT(var)                                                             \
+      if ((var##_max-(var##_tot/s.probes.size())) < (3 * sizeof(void*)))        \
+        {                                                                       \
+          s.op->newline() << "const char " << #var << "[" << var##_max << "];"; \
+          if (s.verbose > 2)                                                    \
+            clog << "stap_probe " << #var                                       \
+                 << "[" << var##_max << "]" << endl;                       \
+        }                                                                       \
+      else                                                                      \
+        {                                                                       \
+          s.op->newline() << "const char * const " << #var << ";";              \
+          if (s.verbose > 2)                                                    \
+            clog << "stap_probe *" << #var << endl;                             \
+        }
+
+      s.op->newline() << "struct stap_probe {";
+      s.op->newline(1) << "void (* const ph) (struct context*);";
+      CALCIT(pp);
+      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP) { .ph=(PH), .pp=(PP) }";
+      s.op->newline(-1) << "};";
+#undef CALCIT
+
       s.op->newline();
       s.up->emit_module_init ();
       s.op->assert_0_indent();

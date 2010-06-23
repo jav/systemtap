@@ -25,8 +25,7 @@ struct stap_uprobe_spec {
   unsigned tfi;
   unsigned return_p:1;
   unsigned long address;
-  const char *pp;
-  void (*ph) (struct context*);
+  struct stap_probe probe;
   unsigned long sdt_sem_offset;
  };
 

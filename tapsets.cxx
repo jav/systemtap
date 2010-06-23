@@ -63,10 +63,20 @@ using namespace __gnu_cxx;
 
 
 // ------------------------------------------------------------------------
+
+string
+common_probe_init (derived_probe* p)
+{
+  ostringstream o;
+  o << "STAP_PROBE_INIT(&" << p->name << ", "
+    << lex_cast_qstring (*p->sole_location()) << ")";
+  return o.str();
+}
+
+
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
-                               string new_pp,
-                               bool overload_processing)
+                               string probe, bool overload_processing)
 {
   o->newline() << "struct context* __restrict__ c;";
   o->newline() << "#if !INTERRUPTIBLE";
@@ -111,7 +121,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "atomic_inc (& skipped_count_reentrant);";
   o->newline() << "#ifdef DEBUG_REENTRANCY";
   o->newline() << "_stp_warn (\"Skipped %s due to %s residency on cpu %u\\n\", "
-               << new_pp << ", c->probe_point ?: \"?\", smp_processor_id());";
+               << probe << ".pp, c->probe_point ?: \"?\", smp_processor_id());";
   // NB: There is a conceivable race condition here with reading
   // c->probe_point, knowing that this other probe is sort of running.
   // However, in reality, it's interrupted.  Plus even if it were able
@@ -128,7 +138,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->nesting = -1;"; // NB: PR10516 packs locals[] tighter
   o->newline() << "c->regs = 0;";
   o->newline() << "c->unwaddr = 0;";
-  o->newline() << "c->probe_point = " << new_pp << ";";
+  o->newline() << "c->probe_point = " << probe << ".pp;";
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
   o->newline() << "c->pi_longs = 0;";
@@ -4018,11 +4028,11 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "const unsigned short saved_longs;";
   s.op->newline() << "const unsigned short saved_strings;";
 
-  // Let's find some stats for the three embedded strings.  Maybe they
+  // Let's find some stats for the embedded strings.  Maybe they
   // are small and uniform enough to justify putting char[MAX]'s into
   // the array instead of relocated char*'s.
-  size_t module_name_max = 0, section_name_max = 0, pp_name_max = 0;
-  size_t module_name_tot = 0, section_name_tot = 0, pp_name_tot = 0;
+  size_t module_name_max = 0, section_name_max = 0;
+  size_t module_name_tot = 0, section_name_tot = 0;
   size_t all_name_cnt = probes_by_module.size(); // for average
   for (p_b_m_iterator it = probes_by_module.begin(); it != probes_by_module.end(); it++)
     {
@@ -4033,7 +4043,6 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
         var##_tot += var##_size; } while (0)
       DOIT(module_name, p->module.size());
       DOIT(section_name, p->section.size());
-      DOIT(pp_name, lex_cast_qstring(*p->sole_location()).size());
 #undef DOIT
     }
 
@@ -4055,11 +4064,10 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   CALCIT(module);
   CALCIT(section);
-  CALCIT(pp);
 #undef CALCIT
 
   s.op->newline() << "const unsigned long address;";
-  s.op->newline() << "void (* const ph) (struct context*);";
+  s.op->newline() << "struct stap_probe probe;";
   s.op->newline() << "void (* const entry_ph) (struct context*);";
   s.op->newline() << "const unsigned long sdt_sem_offset;";
   s.op->newline() << "unsigned long sdt_sem_address;";
@@ -4095,7 +4103,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
       s.op->line() << " .module=\"" << p->module << "\",";
       s.op->line() << " .section=\"" << p->section << "\",";
-      s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
+      s.op->line() << " .probe=" << common_probe_init (p) << ",";
       if (p->sdt_semaphore_addr != 0)
 	{
 	  s.op->line() << " .sdt_sem_offset=(unsigned long)0x" << hex << p->sdt_semaphore_addr << dec << "ULL,";
@@ -4122,7 +4130,6 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 	}
       else
 	s.op->line() << " .sdt_sem_offset=0,";
-      s.op->line() << " .ph=&" << p->name;
 
       s.op->line() << " },";
     }
@@ -4141,7 +4148,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "kprobe_idx:0)"; // NB: at least we avoid memory corruption
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
   s.op->newline() << "c->regs = regs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
@@ -4151,7 +4158,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
-  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "(*sdp->probe.ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -4174,7 +4181,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
   s.op->newline() << "c->regs = regs;";
 
   // for assisting runtime's backtrace logic and accessing kretprobe data packets
@@ -4194,7 +4201,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "} else {";
   s.op->indent(1);
   s.op->newline() << "SET_REG_IP(regs, (unsigned long)inst->ret_addr);";
-  s.op->newline() << "(sdp->ph) (c);";
+  s.op->newline() << "(sdp->probe.ph) (c);";
   s.op->newline(-1) << "}";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
@@ -4236,7 +4243,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
       s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_dwarf_probes); i++) {";
       s.op->newline(1) << "int rc;";
       s.op->newline() << "struct stap_dwarf_probe *p = &stap_dwarf_probes[i];";
-      s.op->newline() << "probe_point = p->pp;"; // for error messages
+      s.op->newline() << "probe_point = p->probe.pp;"; // for error messages
       s.op->newline() << "if (p->sdt_sem_offset) {";
       s.op->newline(1) << "rc = stap_register_task_finder_target(&p->finder);";
       s.op->newline(-1) << "}";
@@ -4249,7 +4256,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
   s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address, NULL);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
-  s.op->newline() << "probe_point = sdp->pp;"; // for error messages
+  s.op->newline() << "probe_point = sdp->probe.pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "kp->u.krp.kp.addr = (void *) relocated_addr;";
   s.op->newline() << "if (sdp->maxactive_p) {";
@@ -4379,12 +4386,12 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->pp, kp->u.krp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->probe.pp, kp->u.krp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->pp, kp->u.krp.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->probe.pp, kp->u.krp.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "} else {";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
@@ -4393,7 +4400,7 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->pp, kp->u.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->probe.pp, kp->u.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "}";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES) && defined(__ia64__)";
@@ -5921,8 +5928,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       if (value != 0)
         s.op->line() << " .tfi=" << value << ",";
       s.op->line() << " .address=(unsigned long)0x" << hex << p->addr << dec << "ULL,";
-      s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
-      s.op->line() << " .ph=&" << p->name << ",";
+      s.op->line() << " .probe=" << common_probe_init (p) << ",";
 
       if (p->sdt_semaphore_addr != 0)
         s.op->line() << " .sdt_sem_offset=(unsigned long)0x"
@@ -5939,7 +5945,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_uprobe_probe (struct uprobe *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst, struct stap_uprobe, up);";
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe");
   s.op->newline() << "if (sup->spec_index < 0 ||"
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
   s.op->newline() << "c->regs = regs;";
@@ -5952,7 +5958,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, inst->vaddr);";
-  s.op->newline() << "(*sups->ph) (c);";
+  s.op->newline() << "(*sups->probe.ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -5962,7 +5968,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_uretprobe_probe (struct uretprobe_instance *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst->rp, struct stap_uprobe, urp);";
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe");
   s.op->newline() << "c->ri = inst;";
   s.op->newline() << "if (sup->spec_index < 0 ||"
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
@@ -5976,7 +5982,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, inst->ret_addr);";
-  s.op->newline() << "(*sups->ph) (c);";
+  s.op->newline() << "(*sups->probe.ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -6279,8 +6285,8 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Function Names are mostly small and uniform enough to justify putting
   // char[MAX]'s into  the array instead of relocated char*'s.
 
-  size_t pp_name_max = 0, symbol_string_name_max = 0;
-  size_t pp_name_tot = 0, symbol_string_name_tot = 0;
+  size_t symbol_string_name_max = 0;
+  size_t symbol_string_name_tot = 0;
   for (p_b_m_iterator it = probes_by_module.begin(); it != probes_by_module.end(); it++)
     {
       kprobe_derived_probe* p = it->second;
@@ -6288,7 +6294,6 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
         size_t var##_size = (expr) + 1;                 \
         var##_max = max (var##_max, var##_size);        \
         var##_tot += var##_size; } while (0)
-      DOIT(pp_name, lex_cast_qstring(*p->sole_location()).size());
       DOIT(symbol_string_name, p->symbol_name.size());
 #undef DOIT
     }
@@ -6296,12 +6301,11 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 #define CALCIT(var)                                                     \
 	s.op->newline() << "const char " << #var << "[" << var##_name_max << "] ;";
 
-  CALCIT(pp);
   CALCIT(symbol_string);
 #undef CALCIT
 
   s.op->newline() << "unsigned long address;";
-  s.op->newline() << "void (* const ph) (struct context*);";
+  s.op->newline() << "struct stap_probe probe;";
   s.op->newline(-1) << "} stap_dwarfless_probes[] = {";
   s.op->indent(1);
 
@@ -6327,8 +6331,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
       else
         s.op->line() << " .symbol_string=\"" << p->symbol_name << "\",";
 
-      s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
-      s.op->line() << " .ph=&" << p->name;
+      s.op->line() << " .probe=" << common_probe_init (p) << ",";
       s.op->line() << " },";
     }
 
@@ -6346,7 +6349,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "kprobe_idx:0)"; // NB: at least we avoid memory corruption
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
   s.op->newline() << "c->regs = regs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
@@ -6356,7 +6359,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
-  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "(*sdp->probe.ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -6379,7 +6382,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->pi = inst;"; // for assisting runtime's backtrace logic
 
@@ -6390,7 +6393,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
-  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "(*sdp->probe.ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -6449,7 +6452,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "#endif";
 
-  s.op->newline() << "probe_point = sdp->pp;"; // for error messages
+  s.op->newline() << "probe_point = sdp->probe.pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "kp->u.krp.kp.addr = addr;";
   s.op->newline() << "kp->u.krp.kp.symbol_name = (char *) symbol_name;";
@@ -6550,12 +6553,12 @@ kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->pp, kp->u.krp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->probe.pp, kp->u.krp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->pp, kp->u.krp.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->probe.pp, kp->u.krp.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "} else {";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
@@ -6564,7 +6567,7 @@ kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->pp, kp->u.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->probe.pp, kp->u.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "}";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES) && defined(__ia64__)";
@@ -6799,15 +6802,14 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
 // registered_p =  0 signifies a probe that failed registration
 // registered_p =  1 signifies a probe that got registered successfully
 
-  // Probe point & Symbol Names are mostly small and uniform enough
+  // Symbol Names are mostly small and uniform enough
   // to justify putting const char*.
-  s.op->newline() << "const char * const pp;";
   s.op->newline() << "const char * const symbol;";
 
   s.op->newline() << "const unsigned long address;";
   s.op->newline() << "uint8_t atype;";
   s.op->newline() << "unsigned int len;";
-  s.op->newline() << "void (* const ph) (struct context*);";
+  s.op->newline() << "struct stap_probe probe;";
   s.op->newline() << "} stap_hwbkpt_probes[] = {";
   s.op->indent(1);
 
@@ -6832,9 +6834,8 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
 		break;
 	};
       s.op->line() << " .len=" << p->hwbkpt_len << ",";
-      s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
+      s.op->line() << " .probe=" << common_probe_init (p) << ",";
       s.op->line() << " .symbol=\"" << p->symbol_name << "\",";
-      s.op->line() << " .ph=&" << p->name << "";
       s.op->line() << " },";
     }
   s.op->newline(-1) << "};";
@@ -6852,9 +6853,9 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   // XXX: why not match stap_hwbkpt_ret_array[i] against bp instead?
   s.op->newline() << "if (bp->attr.bp_addr==hp->bp_addr && bp->attr.bp_type==hp->bp_type && bp->attr.bp_len==hp->bp_len) {";
   s.op->newline(1) << "struct stap_hwbkpt_probe *sdp = &stap_hwbkpt_probes[i];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "(*sdp->ph) (c);";
+  s.op->newline() << "(*sdp->probe.ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
@@ -6876,7 +6877,7 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "else { ";
   s.op->newline(1) << "hp->bp_addr = kallsyms_lookup_name(hwbkpt_symbol_name);";
   s.op->newline() << "if (!hp->bp_addr) { ";
-  s.op->newline(1) << "_stp_warn(\"Probe %s registration skipped: invalid symbol %s \",sdp->pp,hwbkpt_symbol_name);";
+  s.op->newline(1) << "_stp_warn(\"Probe %s registration skipped: invalid symbol %s \",sdp->probe.pp,hwbkpt_symbol_name);";
   s.op->newline() << "continue;";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
@@ -6908,7 +6909,7 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
   else // other architectures presumed straightforward
     s.op->newline() << "hp->bp_len = sdp->len;";
 
-  s.op->newline() << "probe_point = sdp->pp;"; // for error messages
+  s.op->newline() << "probe_point = sdp->probe.pp;"; // for error messages
   s.op->newline() << "stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint(hp, (void *)&enter_hwbkpt_probe);";
   s.op->newline() << "if (IS_ERR(stap_hwbkpt_ret_array[i])) {";
   s.op->newline(1) << "int err_code = PTR_ERR(stap_hwbkpt_ret_array[i]);";
@@ -7498,9 +7499,9 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << ")";
       s.op->newline(-2) << "{";
 
-      s.op->indent(1);
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING",
-                                     lex_cast_qstring (*p->sole_location()));
+      s.op->newline(1) << "static const struct stap_probe probe = "
+                       << common_probe_init (p) << ";";
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe");
       s.op->newline() << "c->marker_name = "
                       << lex_cast_qstring (p->tracepoint_name)
                       << ";";
@@ -7512,7 +7513,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
             s.op->line() << p->args[j].typecast;
             s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
           }
-      s.op->newline() << p->name << " (c);";
+      s.op->newline() << "(*probe.ph) (c);";
       common_probe_entryfn_epilogue (s.op);
       s.op->newline(-1) << "}";
 

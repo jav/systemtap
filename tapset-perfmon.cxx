@@ -104,8 +104,7 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
                        << ".config=" << probes[i]->event_config << "ULL, "
                        << "{ .sample_period=" << probes[i]->interval << "ULL }},";
       s.op->newline() << ".callback=enter_perf_probe_" << i << ", ";
-      s.op->newline() << ".pp=" << lex_cast_qstring (*probes[i]->sole_location()) << ",";
-      s.op->newline() << ".ph=" << probes[i]->name << ",";
+      s.op->newline() << ".probe=" << common_probe_init (probes[i]) << ", ";
       s.op->newline(-1) << "},";
     }
   s.op->newline(-1) << "};";
@@ -127,9 +126,9 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void handle_perf_probe (unsigned i, struct pt_regs *regs)";
   s.op->newline() << "{";
   s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe");
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "(*stp->ph) (c);";
+  s.op->newline() << "(*stp->probe.ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 }
@@ -144,7 +143,7 @@ perf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
   s.op->newline() << "rc = _stp_perf_init(stp);";
   s.op->newline() << "if (rc) {";
-  s.op->newline(1) << "probe_point = stp->pp;";
+  s.op->newline(1) << "probe_point = stp->probe.pp;";
   s.op->newline() << "for (j=0; j<i; j++) {";
   s.op->newline(1) << "_stp_perf_del(& stap_perf_probes [j]);";
   s.op->newline(-1) << "}"; // for unwind loop

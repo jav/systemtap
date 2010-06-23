@@ -161,10 +161,8 @@ itrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
 
   s.op->line() << " .callback=&_stp_itrace_probe_cb,";
   s.op->line() << " },";
-  s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
+  s.op->line() << " .probe=" << common_probe_init (p) << ",";
   s.op->line() << " .single_step=" << p->single_step << ",";
-  s.op->line() << " .ph=&" << p->name << ",";
-
   s.op->line() << " },";
 }
 
@@ -181,8 +179,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "struct stap_itrace_probe {";
   s.op->indent(1);
   s.op->newline() << "struct stap_task_finder_target tgt;";
-  s.op->newline() << "const char *pp;";
-  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "struct stap_probe probe;";
   s.op->newline() << "int single_step;";
   s.op->newline(-1) << "};";
   s.op->newline() << "static void enter_itrace_probe(struct stap_itrace_probe *p, struct pt_regs *regs, void *data);";
@@ -192,12 +189,12 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_itrace_probe(struct stap_itrace_probe *p, struct pt_regs *regs, void *data) {";
   s.op->indent(1);
 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->pp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->data = data;";
 
   // call probe function
-  s.op->newline() << "(*p->ph) (c);";
+  s.op->newline() << "(*p->probe.ph) (c);";
   common_probe_entryfn_epilogue (s.op);
 
   s.op->newline() << "return;";
