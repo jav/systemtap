@@ -40,7 +40,7 @@ static const char *trustNewServer_p = NULL;
 #define GENERAL_ERROR         1
 #define CA_CERT_INVALID_ERROR 2
 
-#if ! STAP /* temporary */
+#if ! STAP /* temporary until stap-client-connect program goes away*/
 static void
 Usage(const char *progName)
 {
@@ -469,7 +469,7 @@ myPasswd(PK11SlotInfo *info, PRBool retry, void *arg)
 }
 #endif
 
-#if ! STAP /* temporary */
+#if ! STAP /* temporary until stap-client-connect program goes away*/
 int
 main(int argc, char **argv)
 {

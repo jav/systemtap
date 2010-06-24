@@ -92,8 +92,6 @@ compile_server_client::passes_0_4 ()
     }
 
  done:
-  cleanup ();
-
   struct tms tms_after;
   times (& tms_after);
   unsigned _sc_clk_tck = sysconf (_SC_CLK_TCK);

@@ -83,6 +83,7 @@ struct systemtap_session
   void setup_kernel_release (const char* kstr);
   int parse_kernel_config ();
   int parse_kernel_exports ();
+  void insert_loaded_modules ();
 
   // command line parsing
   int  parse_cmdline (int argc, char * const argv []);
@@ -142,6 +143,7 @@ struct systemtap_session
   bool load_only; // flight recorder mode
   bool omit_werror;
   bool unprivileged;
+  bool need_vma_tracker;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
