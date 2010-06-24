@@ -104,7 +104,7 @@ function probemod:string () %{ /* pure */
 		*dst = 0;
 	} else if (CONTEXT->regs) {
 		struct _stp_module *m;
-		m = _stp_mod_sec_lookup (REG_IP(CONTEXT->regs), NULL, NULL, NULL);
+		m = _stp_kmod_sec_lookup (REG_IP(CONTEXT->regs), NULL);
 		if (m && m->name)
 			strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
 		else
@@ -124,7 +124,7 @@ function probemod:string () %{ /* pure */
  */
 function modname:string (addr: long) %{ /* pure */
 	struct _stp_module *m;
-	m = _stp_mod_sec_lookup (THIS->addr, NULL, NULL, NULL);
+	m = _stp_kmod_sec_lookup (THIS->addr, NULL);
 	if (m && m->name)
           strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
 	else

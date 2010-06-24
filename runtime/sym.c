@@ -81,42 +81,12 @@ static unsigned long _stp_module_relocate(const char *module,
 	return 0;
 }
 
-/* Return module owner and, if sec != NULL, fills in closest section
-   of the address if found, return NULL otherwise. Fills in rel_addr
-   (addr relative to closest section) when given. */
-static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
-					       struct task_struct *task,
-					       struct _stp_section **sec,
-					       unsigned long *rel_addr)
+/* Return (kernel) module owner and, if sec != NULL, fills in closest
+   section of the address if found, return NULL otherwise. */
+static struct _stp_module *_stp_kmod_sec_lookup(unsigned long addr,
+						struct _stp_section **sec)
 {
-  void *user = NULL;
   unsigned midx = 0;
-
-  // Try vma matching first if task given.
-  if (task)
-    {
-      unsigned long vm_start = 0;
-      if (stap_find_vma_map_info(task->group_leader, addr,
-				 &vm_start, NULL, NULL, &user) == 0)
-	if (user != NULL)
-	  {
-	    struct _stp_module *m = (struct _stp_module *)user;
-	    if (sec)
-	      *sec = &m->sections[0]; // dynamic user modules have one section.
-	    if (rel_addr)
-	      {
-		/* XXX .absolute sections really shouldn't be here... */
-		if (strcmp(".dynamic", m->sections[0].name) == 0)
-		  *rel_addr = addr - vm_start;
-		else
-		  *rel_addr = addr;
-	      }
-	    dbug_sym(1, "found section %s in module %s at 0x%lx\n",
-		     m->sections[0].name, m->name, vm_start);
-	    return m;
-	  }
-      return NULL;
-    }
 
   for (midx = 0; midx < _stp_num_modules; midx++)
     {
@@ -131,8 +101,6 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
             {
 	      if (sec)
 		*sec = & _stp_modules[midx]->sections[secidx];
-	      if (rel_addr)
-		*rel_addr = addr - sec_addr;
 	      return _stp_modules[midx];
 	    }
 	}
@@ -140,6 +108,26 @@ static struct _stp_module *_stp_mod_sec_lookup(unsigned long addr,
   return NULL;
 }
 
+/* Return (user) module in which the the given addr falls.  Returns
+   NULL when no module can be found that contains the addr.  Fills in
+   vm_start (addr where module is mapped in) when given.  Note
+   that user modules always have exactly one section. */
+static struct _stp_module *_stp_umod_lookup(unsigned long addr,
+					    struct task_struct *task,
+					    unsigned long *vm_start)
+{
+  void *user = NULL;
+  if (stap_find_vma_map_info(task->group_leader, addr,
+			     vm_start, NULL, NULL, &user) == 0)
+    if (user != NULL)
+      {
+	struct _stp_module *m = (struct _stp_module *)user;
+	dbug_sym(1, "found section %s in module %s at 0x%lx\n",
+		 m->sections[0].name, m->name, vm_start);
+	return m;
+      }
+  return NULL;
+}
 
 static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbolsize,
                                         unsigned long *offset, 
@@ -154,13 +142,32 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 	unsigned end, begin = 0;
 	unsigned long rel_addr = 0;
 
+	if (task)
+	  {
+	    unsigned long vm_start = 0;
 #ifdef CONFIG_COMPAT
-	/* Handle 32bit signed values in 64bit longs, chop off top bits. */
-	if (task && test_tsk_thread_flag(task, TIF_32BIT))
-	  addr &= ((compat_ulong_t) ~0);
+	    /* Handle 32bit signed values in 64bit longs, chop off top bits. */
+	    if (test_tsk_thread_flag(task, TIF_32BIT))
+	      addr &= ((compat_ulong_t) ~0);
 #endif
+	    m = _stp_umod_lookup(addr, task, &vm_start);
+	    if (m)
+	      {
+		sec = &m->sections[0];
+		/* XXX .absolute sections really shouldn't be here... */
+		if (strcmp(".dynamic", m->sections[0].name) == 0)
+		  rel_addr = addr - vm_start;
+		else
+		  rel_addr = addr;
+	      }
+	  }
+	else
+	  {
+	    m = _stp_kmod_sec_lookup(addr, &sec);
+	    if (m)
+	      rel_addr = addr - sec->static_addr;
+	  }
 
-	m = _stp_mod_sec_lookup(addr, task, &sec, &rel_addr);
         if (unlikely (m == NULL || sec == NULL))
           return NULL;
         
