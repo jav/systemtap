@@ -61,7 +61,7 @@ BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
 BuildRequires: xmlto /usr/share/xmlto/format/fo/pdf
 %if %{with_publican}
 BuildRequires: publican
-BuildRequires: publican-%{publican_brand}
+BuildRequires: /usr/share/publican/Common_Content/%{publican_brand}/defaults.cfg
 %endif
 %endif
 
