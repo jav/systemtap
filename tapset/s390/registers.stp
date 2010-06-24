@@ -62,7 +62,8 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	}
 	if (THIS->offset < 0 || THIS->offset > sizeof(struct pt_regs) - sizeof(unsigned short)) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-				"Bad register offset: %lld", THIS->offset);
+				"Bad register offset: %lld",
+				(long long)THIS->offset);
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
