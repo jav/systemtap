@@ -1543,8 +1543,21 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
   // Turn this address into a section-relative offset if it should be one.
   // We emit a comment approximating the variable+offset expression that
   // relocatable module probing code will need to have.
-  Dwfl_Module *mod = dwfl_addrmodule (dwfl_ptr.get()->dwfl, address);
-  dwfl_assert ("dwfl_addrmodule", mod);
+  Dwfl *dwfl = dwfl_ptr.get()->dwfl;
+  if (! dwfl)
+    throw semantic_error ("emit_address internal error, no dwfl");
+
+  Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
+  if (! mod)
+    {
+      ostringstream msg;
+      msg << "emit_address internal error, dwfl_addrmodule failed, "
+	     "address 0x" << hex << address << dec;
+      const char *err = dwfl_errmsg(0);
+      if (err)
+	msg << " (" << err << ")";
+      throw semantic_error (msg.str());
+    }
   const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
                                               NULL, NULL, NULL, NULL);
   int n = dwfl_module_relocations (mod);
