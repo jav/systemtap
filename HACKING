@@ -91,7 +91,7 @@ the <systemtap@sources.redhat.com> mailing list.
   systemtap-wide uniqueness.  All "external interfaces" expected to be
   used by user scripts (or perhaps other tapsets) should be documented
   in stapfuncs.5, stapprobes.5.  Major or incompatible changes should
-  be mentioned in the NEWS file.
+  be mentioned in the NEWS file; see also the deprecation section below.
 
   Internal function, variable, probe identifiers should be prefixed
   with "_" for extra uniqueness, and not documented in the man pages.
@@ -115,15 +115,17 @@ the <systemtap@sources.redhat.com> mailing list.
 
   Try to remain compatible with existing valid scripts, with respect
   to changes in the script language or the tapset.  Where this is not
-  desirable, preserve the old functionality using the %( systemtap_v %)
+  practicable, preserve the old functionality using the %( systemtap_v %)
   preprocessor conditional in the tapset and systemtap_session.compatible
-  in the translator.  Warn of future depracation in the NEWS and stap.1
-  file.
+  in the translator.  If needed, after several major releases,
+  deprecated functionality may be dropped outright.  Note both pending
+  and final deprecation in NEWS and the permanent DEPRECATION section
+  in stap.1.  The intent is to protect old scripts for a year or longer.
 
   Tapset functions to be deprecated should be kept for at least one
   major release.  For example, if we're in development between versions
   1.2 and 1.3, wrap to-be-deprecated tapset functions in 
-  %( systemtap_v <= "1.3" %?    function foo() {}   %)
+       %( systemtap_v <= "1.3" %?    function foo() {}   %)
   so as to preserve the tapset function during the life of the 1.3 release.
 
   Script language changes that cause earlier valid scripts to become
