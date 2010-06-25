@@ -111,6 +111,27 @@ the <systemtap@sources.redhat.com> mailing list.
   individual operation if there exists a possibility that the function may
   be called with invalid pointers or pointer chains.
 
+- deprecation
+
+  Try to remain compatible with existing valid scripts, with respect
+  to changes in the script language or the tapset.  Where this is not
+  desirable, preserve the old functionality using the %( systemtap_v %)
+  preprocessor conditional in the tapset and systemtap_session.compatible
+  in the translator.  Warn of future depracation in the NEWS and stap.1
+  file.
+
+  Tapset functions to be deprecated should be kept for at least one
+  major release.  For example, if we're in development between versions
+  1.2 and 1.3, wrap to-be-deprecated tapset functions in 
+  %( systemtap_v <= "1.3" %?    function foo() {}   %)
+  so as to preserve the tapset function during the life of the 1.3 release.
+
+  Script language changes that cause earlier valid scripts to become
+  invalid should be opt-in (requiring --compatible=NEWVERSION) for at
+  least one major release before becoming default.  For example, test
+     strverscmp(s.compatible.c_str(), "1.4") >= 0
+  in the 1.3 release sources in order to activate the change.
+
 - runtime
 
   Changes to the runtime can cause problems on different architectures
