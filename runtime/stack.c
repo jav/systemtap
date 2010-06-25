@@ -122,44 +122,42 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
+ * @param verbose Either SYM_VERBOSE_FULL or SYM_VERBOSE_BRIEF
  */
 
 static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk, struct uretprobe_instance *ri)
 {
-	if (verbose) {
-		/* print the current address */
-		if (pi) {
-			if (verbose == SYM_VERBOSE_FULL) {
-				_stp_print("Returning from: ");
-				_stp_print_symbol((unsigned long)_stp_probe_addr_r(pi), tsk);
-				_stp_print("\nReturning to  : ");
-			}
-			_stp_print_symbol((unsigned long)_stp_ret_addr_r(pi), tsk);
-			_stp_print_char('\n');
-#ifdef STAPCONF_UPROBE_GET_PC
-                } else if (ri && ri != GET_PC_URETPROBE_NONE) {
-			if (verbose == SYM_VERBOSE_FULL) {
-				_stp_print("Returning from: ");
-				/* ... otherwise this dereference fails */
-				_stp_print_symbol(ri->rp->u.vaddr, tsk);
-				_stp_print("\nReturning to  : ");
-				_stp_print_symbol(ri->ret_addr, tsk);
-				_stp_print_char('\n');				
-			} else
-				_stp_func_print(ri->ret_addr, verbose, 0, tsk);
-#endif
-		} else if (verbose == SYM_VERBOSE_BRIEF) {
-			_stp_func_print(REG_IP(regs), verbose, 0, tsk);
-		} else {
-			_stp_print_char(' ');
-			_stp_print_symbol(REG_IP(regs), tsk);
-			_stp_print_char('\n');
+	/* print the current address */
+	if (pi) {
+		if (verbose == SYM_VERBOSE_FULL) {
+			_stp_print("Returning from: ");
+			_stp_print_symbol((unsigned long)_stp_probe_addr_r(pi), tsk);
+			_stp_print("\nReturning to  : ");
 		}
-	} else if (pi)
-		_stp_printf("%p %p ", (int64_t)(long)_stp_ret_addr_r(pi), (int64_t) REG_IP(regs));
-	else 
-		_stp_printf("%p ", (int64_t) REG_IP(regs));
+		_stp_print_symbol((unsigned long)_stp_ret_addr_r(pi), tsk);
+		_stp_print_char('\n');
+#ifdef STAPCONF_UPROBE_GET_PC
+	} else if (ri && ri != GET_PC_URETPROBE_NONE) {
+		if (verbose == SYM_VERBOSE_FULL) {
+			_stp_print("Returning from: ");
+			/* ... otherwise this dereference fails */
+			_stp_print_symbol(ri->rp->u.vaddr, tsk);
+			_stp_print("\nReturning to  : ");
+			_stp_print_symbol(ri->ret_addr, tsk);
+			_stp_print_char('\n');
+		} else
+			_stp_func_print(ri->ret_addr, SYM_VERBOSE_BRIEF,
+					0, tsk);
+#endif
+	} else if (verbose == SYM_VERBOSE_BRIEF) {
+		_stp_func_print(REG_IP(regs), SYM_VERBOSE_BRIEF, 0, tsk);
+	} else {
+		_stp_print_char(' ');
+		_stp_print_symbol(REG_IP(regs), tsk);
+		_stp_print_char('\n');
+	}
 
+	/* print rest of stack... */
 	__stp_stack_print(regs, verbose, levels, tsk, ri);
 }
 
@@ -169,14 +167,27 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-static void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk, struct uretprobe_instance *ri)
+static void _stp_stack_hexstring(char *str, int size,
+				 struct pt_regs *regs,
+				 struct kretprobe_instance *pi,
+				 int levels, struct task_struct *tsk,
+				 struct uretprobe_instance *ri)
 {
-	/* To get a string, we use a simple trick. First flush the print buffer, */
-	/* then call _stp_stack_print, then copy the result into the output string  */
-	/* and clear the print buffer. */
+	/* To get an hex string, we use a simple trick.
+	 * First flush the print buffer,
+	 * then call _stp_stack_print,
+	 * then copy the result into the output string
+	 * and clear the print buffer. */
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
-	_stp_stack_print(regs, verbose, pi, levels, tsk, ri);
+
+	if (pi)
+		_stp_printf("%p %p ", (int64_t)(long)_stp_ret_addr_r(pi),
+			    (int64_t) REG_IP(regs));
+	else
+		_stp_printf("%p ", (int64_t) REG_IP(regs));
+	__stp_stack_print(regs, SYM_VERBOSE_NO, levels, tsk, ri);
+
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
 }

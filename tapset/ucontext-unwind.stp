@@ -62,8 +62,8 @@ function ubacktrace:string () %{
 /* pure */ /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
         assert_is_myproc();
 	if (CONTEXT->regs)
-		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN,
-				    CONTEXT->regs, 0, CONTEXT->pi, MAXTRACE,
+		_stp_stack_hexstring (THIS->__retvalue, MAXSTRINGLEN,
+				    CONTEXT->regs, CONTEXT->pi, MAXTRACE,
 				    current, CONTEXT->ri);
 	else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
