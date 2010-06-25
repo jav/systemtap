@@ -297,37 +297,12 @@ static int _stp_module_check(void)
 
 /** Print an address symbolically.
  * @param address The address to lookup.
+ * @param task The address to lookup (if NULL lookup kernel/module address).
  * @note Symbolic lookups should not normally be done within
  * a probe because it is too time-consuming. Use at module exit time.
  */
-
-static void _stp_symbol_print(unsigned long address)
-{
-	const char *modname = 0;
-	const char *name = 0;
-	unsigned long offset = 0;
-        unsigned long size = 0;
-
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL, NULL);
-
-	_stp_printf("%p", (int64_t) address);
-
-	if (name) {
-		if (modname && *modname)
-			_stp_printf(" : %s+%#lx/%#lx [%s]", name, offset, size, modname);
-		else
-			_stp_printf(" : %s+%#lx/%#lx", name, offset, size);
-	}
-}
-
-/** Print an user space address from a specific task symbolically.
- * @param address The address to lookup.
- * @param task The address to lookup.
- * @note Symbolic lookups should not normally be done within
- * a probe because it is too time-consuming. Use at module exit time.
- */
-
-static void _stp_usymbol_print(unsigned long address, struct task_struct *task)
+static void _stp_print_symbol (unsigned long address,
+			       struct task_struct *task)
 {
 	const char *modname = 0;
 	const char *name = 0;
@@ -341,13 +316,14 @@ static void _stp_usymbol_print(unsigned long address, struct task_struct *task)
 
 	if (name) {
 		if (modname && *modname)
-			_stp_printf(" : %s+%#lx/%#lx [%s]", name, offset, size, modname);
+			_stp_printf(" : %s+%#lx/%#lx [%s]",
+				    name, offset, size, modname);
 		else
 			_stp_printf(" : %s+%#lx/%#lx", name, offset, size);
 	}
 }
 
-/* Like _stp_symbol_print, except only print if the address is a valid function address */
+/* Like _stp_print_symbol, except only print if the address is a valid function address */
 static int _stp_func_print(unsigned long address, int verbose, int exact,
                            struct task_struct *task)
 {

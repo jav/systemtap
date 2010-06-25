@@ -43,7 +43,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 		if (!firstframe || ip != lr) {
 			if (verbose) {
 				_stp_printf("[0x%016lx] [0x%016lx] ", sp, ip);
-				_stp_symbol_print(ip);
+				_stp_print_symbol(ip, tsk);
 				if (firstframe)
 					_stp_print(" (unreliable)");
 				_stp_print_char('\n');
@@ -61,11 +61,11 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 				(sp + STACK_FRAME_OVERHEAD);
 			if (verbose) {
 				_stp_printf("--- Exception: %lx at ",regs->trap);
-				_stp_symbol_print(regs->nip);
+				_stp_print_symbol(regs->nip, tsk);
 				_stp_print_char('\n');
 				lr = regs->link;
 				_stp_print("    LR =");
-				_stp_symbol_print(lr);
+				_stp_print_symbol(lr, tsk);
 				_stp_print_char('\n');
 				firstframe = 1;
 			}

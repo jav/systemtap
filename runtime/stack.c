@@ -131,19 +131,19 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 		if (pi) {
 			if (verbose == SYM_VERBOSE_FULL) {
 				_stp_print("Returning from: ");
-				_stp_symbol_print((unsigned long)_stp_probe_addr_r(pi));
+				_stp_print_symbol((unsigned long)_stp_probe_addr_r(pi), tsk);
 				_stp_print("\nReturning to  : ");
 			}
-			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
+			_stp_print_symbol((unsigned long)_stp_ret_addr_r(pi), tsk);
 			_stp_print_char('\n');
 #ifdef STAPCONF_UPROBE_GET_PC
                 } else if (ri && ri != GET_PC_URETPROBE_NONE) {
 			if (verbose == SYM_VERBOSE_FULL) {
 				_stp_print("Returning from: ");
 				/* ... otherwise this dereference fails */
-				_stp_usymbol_print(ri->rp->u.vaddr, tsk);
+				_stp_print_symbol(ri->rp->u.vaddr, tsk);
 				_stp_print("\nReturning to  : ");
-				_stp_usymbol_print(ri->ret_addr, tsk);
+				_stp_print_symbol(ri->ret_addr, tsk);
 				_stp_print_char('\n');				
 			} else
 				_stp_func_print(ri->ret_addr, verbose, 0, tsk);
@@ -152,10 +152,7 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 			_stp_func_print(REG_IP(regs), verbose, 0, tsk);
 		} else {
 			_stp_print_char(' ');
-			if (tsk)
-				_stp_usymbol_print(REG_IP(regs), tsk);
-			else
-				_stp_symbol_print(REG_IP(regs));
+			_stp_print_symbol(REG_IP(regs), tsk);
 			_stp_print_char('\n');
 		}
 	} else if (pi)
@@ -201,7 +198,7 @@ static void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int level
         for (i = 0; i < maxLevels; ++i) {
                 if (backtrace[i] == 0 || backtrace[i] == ULONG_MAX)
                         break;
-		_stp_symbol_print(backtrace[i]);
+		_stp_print_symbol(backtrace[i], tsk);
 		_stp_print_char('\n');
         }
 #endif

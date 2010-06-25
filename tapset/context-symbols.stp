@@ -18,7 +18,7 @@
 %}
 
 /**
- *  sfunction print_stack - Print out stack from string.
+ *  sfunction print_stack - Print out kernel stack from string.
  * 
  *  General Syntax: print_stack(stk:string)
  *
@@ -38,7 +38,7 @@ function print_stack(stk:string) %{
 	char *tok = strsep(&ptr, " ");
 	while (tok && *tok) {
 		_stp_print_char(' ');
-		_stp_symbol_print (simple_strtol(tok, NULL, 16));
+		_stp_print_symbol (simple_strtol(tok, NULL, 16), NULL);
 		_stp_print_char('\n');
 		tok = strsep(&ptr, " ");
 	}

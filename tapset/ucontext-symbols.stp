@@ -71,7 +71,7 @@ function print_ustack(stk:string) %{
         assert_is_myproc();
         while (tok && *tok) {
                 _stp_print_char(' ');
-                _stp_usymbol_print (simple_strtol(tok, NULL, 16), current);
+                _stp_print_symbol (simple_strtol(tok, NULL, 16), current);
                 _stp_print_char('\n');
                 tok = strsep(&ptr, " ");
         }
