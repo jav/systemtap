@@ -54,6 +54,11 @@
      syscall.mq_open
      syscall.open
 
+- Backward compatibility flags (--compatible=VERSION, and matching
+  script preprocessing predicate %( systemtap_v CMP "version" %)
+  and a deprecation policy are being introduced, in case future
+  tapset/language changes break valid scripts.
+
 * What's new in version 1.2
 
 - Prototype support for "perf events", where the kernel supports the
