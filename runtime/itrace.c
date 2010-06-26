@@ -72,7 +72,7 @@ struct itrace_info {
 static u32 debug = 0 /* 1 */;
 
 static LIST_HEAD(usr_itrace_info);
-#if CONFIG_PREEMPT_RT
+#ifdef CONFIG_PREEMPT_RT
 static raw_spinlock_t itrace_lock;
 #else
 static spinlock_t itrace_lock;
