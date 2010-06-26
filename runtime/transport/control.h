@@ -16,7 +16,11 @@
 #include <linux/list.h>
 
 static struct list_head _stp_ctl_ready_q;
+#ifdef CONFIG_PREEMPT_RT
+static raw_spinlock_t _stp_ctl_ready_lock;
+#else
 static spinlock_t _stp_ctl_ready_lock;
+#endif
 static wait_queue_head_t _stp_ctl_wq;
 
 struct _stp_buffer {
