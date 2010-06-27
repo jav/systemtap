@@ -190,7 +190,11 @@ struct uprobe_ssol_area {
 	struct uprobe_ssol_slot *slots;
 
 	/* lock held while finding a free slot */
+#ifdef CONFIG_PREMPT_RT
+	raw_spinlock_t lock;
+#else
 	spinlock_t lock;
+#endif
 
 	/*
 	 * We currently use access_process_vm() to populate instruction

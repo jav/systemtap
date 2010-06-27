@@ -1,0 +1,7 @@
+#! stap -wp4
+
+// Tests if all probes in the process tapset are resolvable.
+
+probe kprocess.*
+{
+}

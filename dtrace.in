@@ -239,10 +239,11 @@ elif (build_source):
     (d,fn) = mkstemp(suffix=".c")
     f = open(fn,mode='w')
     f.write("static __dtrace () {}\n")
+    f.write("\n#include <sys/sdt.h>\n\n")
     providers.semaphore_def_write(f)
     f.close()
     #print ["gcc", "-fPIC"] + defines + ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"]
-    call(["gcc", "-fPIC"] + defines + ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
+    call(["gcc", "-fPIC"] + defines + includes + ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
     if (not keep_temps):
         os.remove(fn)
     else:

@@ -592,15 +592,24 @@ probe signal.pending.return = kernel.function("do_sigpending").return
  * @regs: The address of the kernel-mode stack area
  * @sig_mode: Indicates whether the signal was a user-mode or kernel-mode signal
  */
-probe signal.handle = kernel.function("handle_signal")
+probe signal.handle = kernel.function("handle_rt_signal64") ?,
+		      kernel.function("handle_rt_signal32") ?,
+		      kernel.function("handle_signal32") !,
+		      kernel.function("handle_signal")
 {
     name = "handle"
-    sig = $sig
-    sig_name = _signal_name($sig)
+    if (@defined($sig)) {
+        sig = $sig
+        sig_name = _signal_name($sig)
+    }
+    else {
+        sig = $signr
+        sig_name = _signal_name($signr)
+    }
     sinfo = $info
     sig_code = $info->si_code
     ka_addr = $ka
-    oldset_addr =$oldset
+    oldset_addr = (@defined($oldset) ? $oldset : $set)
     regs = $regs
 
     // Check whether the signal is a User Mode or Kernel mode Signal.
@@ -616,7 +625,10 @@ probe signal.handle = kernel.function("handle_signal")
  * @name: Name of the probe point
  * @retstr: Return value as a string
  */
-probe signal.handle.return = kernel.function("handle_signal").return ?
+probe signal.handle.return = kernel.function("handle_rt_signal64").return ?,
+			     kernel.function("handle_rt_signal32").return ?,
+			     kernel.function("handle_signal32").return !,
+			     kernel.function("handle_signal").return ?
 {
     name = "handle"
     retstr = returnstr(1)

@@ -531,10 +531,12 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
       startLoc -= (unsigned long) m->eh_frame;
       startLoc += m->eh_frame_addr;
     }
+    /* User space exec */
     if (strcmp (s->name, ".absolute") == 0)
       return startLoc;
   }
 
+  /* User space dynamic library */
   if (strcmp (s->name, ".dynamic") == 0) {
     unsigned long vm_addr;
     if (stap_find_vma_map_info_user(tsk->group_leader, m,
@@ -542,7 +544,8 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
       return startLoc + vm_addr;
   }
 
-  startLoc = _stp_module_relocate (m->name, s->name, startLoc, tsk);
+  /* Kernel module */
+  startLoc += s->static_addr;
   startLoc -= m->dwarf_module_base;
   return startLoc;
 }

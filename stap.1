@@ -263,7 +263,8 @@ Ignore out of context variables and substitute with literal 0.
 .BI \-\-compatible VERSION
 Suppress recent script language or tapset changes which are incompatible
 with given older version of systemtap.  This may be useful if a much older
-systemtap script fails to run.
+systemtap script fails to run.  See the DEPRECATION section for more
+details.
 
 .SH ARGUMENTS
 
@@ -365,6 +366,16 @@ and the third part is a string literal for matching the value
 (commonly "y" or "m").  Nonexistent or unset kernel configuration
 options are represented by the empty string.  This comparison is also
 a wildcard (mis)match.
+.PP
+If the first part is the identifier
+.BR systemtap_v ,
+the test refers to the systemtap compatibility version, which may be
+overridden for old scripts with the
+.BI \-\-compatible
+flag.  The comparison operator is as is for 
+.BR kernel_v
+and the right operand is a version string.  See also the DEPRECATION
+section below.
 .PP
 Otherwise, the CONDITION is expected to be a comparison between two string
 literals or two numeric literals.  In this case, the arguments are the only
@@ -1329,6 +1340,30 @@ if at least one matching probe was found.
 
 A script executing in pass 5 that is interrupted with ^C / SIGINT is
 considered to be successful.
+
+.SH DEPRECATION
+
+Over time, some features of the script language and the tapset library
+may undergo incompatible changes, so that a script written against
+an old version of systemtap may no longer run.  In these cases, it may
+help to run systemtap with the
+.I \-\-compatible VERSION
+flag, specifying the last known working version of systemtap.  Below
+is a table of recently deprecated tapset functions and syntax elements
+that require the given \-\-compatible flag to use:
+.PP
+.TP 
+\-\-compatible=1.2
+(none yet) 
+.\" e.g. tapset_function()
+.\" e.g. post-incrementing a frobozz in a while loop
+
+.\" .... or for really deprecated stuff:
+.\" .TP
+.\" support removed in version X.Y
+.\" really_old_tapset_function()
+
+.PP
 
 .SH FILES
 .\" consider autoconf-substituting these directories

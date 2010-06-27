@@ -181,8 +181,15 @@ if {[installtest_p]} {
     set sdtdir $srcdir/../includes
 }
 
-set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-DSTAP_SDT_V2}}
 set pbtype_mssgs {{uprobe} {kprobe} {V2}}
+switch -regexp $::tcl_platform(machine) {
+    ^(x86_64|i.86)$ { 
+        set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-DSTAP_SDT_V2}}
+    }
+    default {
+        set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-DSTAP_SDT_V2 additional_flags=-g}}
+    }
+}
 
 # Iterate pbtype_flags
 for {set i 0} {$i < [llength $pbtype_flags]} {incr i} {
@@ -198,7 +205,7 @@ if {[installtest_p]} {
     set dtrace ../dtrace
 }
 if {$pbtype_mssg == "V2"} {
-    set dtrace_args -DSTAP_SDT_V2
+    set dtrace_args "-DSTAP_SDT_V2 -I$sdtdir"
 } else {
     set dtrace_args ""
 }

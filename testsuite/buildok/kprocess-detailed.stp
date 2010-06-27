@@ -1,0 +1,31 @@
+#! stap -p4
+
+probe kprocess.create
+{
+	printf("%p %d\n", task, new_pid)
+}
+
+probe kprocess.start
+{
+	printf("%s\n", pp())
+}
+
+probe kprocess.exec
+{
+	printf("%s\n", filename)
+}
+
+probe kprocess.exec_complete
+{
+	printf("%d %d\n", errno, success)
+}
+
+probe kprocess.exit
+{
+	printf("%d\n", code)
+}
+
+probe kprocess.release
+{
+	printf("%p %d\n", task, pid)
+}
