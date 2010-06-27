@@ -19,8 +19,8 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 			/* cannot access stack.  give up. */
 			return;
 		}
-		if (_stp_func_print(addr, verbose, 0, NULL))
-			levels--;
+		_stp_func_print(addr, verbose, 0, NULL);
+		levels--;
 		stack++;
 	}
 }

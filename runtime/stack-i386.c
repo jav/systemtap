@@ -23,8 +23,8 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 			/* cannot access stack.  give up. */
 			return;
 		}
-		if (_stp_func_print(addr, verbose, 0, NULL))
-			levels--;
+		_stp_func_print(addr, verbose, 0, NULL);
+		levels--;
 		stack++;
 	}
 }
@@ -44,7 +44,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 			/* cannot access stack.  give up. */
 			return;
 		}
-		_stp_func_print(addr, verbose, 1, NULL);
+		_stp_func_print(addr, verbose, 0, NULL);
 		if (unlikely(_stp_read_address(next_fp, (unsigned long *)fp, KERNEL_DS))) {
 			/* cannot access stack.  give up. */
 			return;

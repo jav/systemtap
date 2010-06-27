@@ -328,11 +328,11 @@ static void _stp_print_symbol (unsigned long address,
 }
 
 /* Like _stp_print_symbol, except only print if the address is a valid function address */
-static int _stp_func_print(unsigned long address, int verbose, int exact,
-                           struct task_struct *task)
+static void _stp_func_print(unsigned long address, int verbose, int exact,
+			    struct task_struct *task)
 {
 	const char *modname;
-	const char *name;
+	const char *name = NULL;
 	unsigned long offset, size;
 	char *exstr;
 
@@ -341,7 +341,8 @@ static int _stp_func_print(unsigned long address, int verbose, int exact,
 	else
 		exstr = " (inexact)";
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
+	if (verbose != SYM_VERBOSE_NO)
+	  name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
 
 	if (name) {
 		switch (verbose) {
@@ -362,10 +363,9 @@ static int _stp_func_print(unsigned long address, int verbose, int exact,
 		default:
 			_stp_printf("%p ", (int64_t) address);
 		}
-		return 1;
-	} else if (verbose == SYM_VERBOSE_BRIEF)
-		_stp_printf("%p\n", (int64_t) address);
-	return 0;
+	} else
+		_stp_printf("%p%s", (int64_t) address,
+			    (verbose == SYM_VERBOSE_BRIEF ? "\n" : " "));
 }
 
 /** Puts symbolic information of an address in a string.
