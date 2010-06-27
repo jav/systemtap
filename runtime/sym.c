@@ -21,64 +21,74 @@
 #include <linux/uaccess.h>
 #endif
 
-/* Returns absolute address of offset into module/section for given task.
-   If tsk == NULL module/section is assumed to be absolute/static already
-   (e.g. kernel, kernel-modules and static executables). Returns zero when
-   module and section couldn't be found (aren't in memory yet). */
-static unsigned long _stp_module_relocate(const char *module,
-					  const char *section,
-					  unsigned long offset,
-					  struct task_struct *tsk)
+/* Returns absolute address of offset into kernel module/section.
+   Returns zero when module and section couldn't be found
+   (aren't in memory yet). */
+static unsigned long _stp_kmodule_relocate(const char *module,
+					   const char *section,
+					   unsigned long offset)
 {
-	unsigned long addr_offset;
-	unsigned i, j;
+  unsigned i, j;
 
-	dbug_sym(1, "%s, %s, %lx\n", module, section, offset);
+  dbug_sym(1, "%s, %s, %lx\n", module, section, offset);
 
-	if (!module || !strcmp(section, "")	/* absolute, unrelocated address */
-	    ||_stp_num_modules == 0) {
-		return offset;
+  /* absolute, unrelocated address */
+  if (!module || !strcmp(section, "")
+      ||_stp_num_modules == 0) {
+    return offset;
+  }
+
+  for (i = 0; i < _stp_num_modules; i++) {
+    struct _stp_module *m = _stp_modules[i];
+    if (strcmp(module, m->name))
+      continue;
+
+    for (j = 0; j < m->num_sections; j++) {
+      struct _stp_section *s = &m->sections[j];
+      if (!strcmp(section, s->name)) {
+	/* mod and sec name match. tsk should match dynamic/static. */
+	if (s->static_addr != 0) {
+	  unsigned long addr = offset + s->static_addr;
+	  dbug_sym(1, "address=%lx\n", addr);
+	  return addr;
+	} else {
+	  /* static section, not in memory yet? */
+	  dbug_sym(1, "section %s, not in memory yet?", s->name);
+	  return 0;
 	}
+      }
+    }
+  }
 
-        addr_offset = 0;
-        for (i = 0; i < _stp_num_modules; i++) {
-          struct _stp_module *m = _stp_modules[i];
-          if (strcmp(module, m->name))
-            continue;
-          for (j = 0; j < m->num_sections; j++) {
-            struct _stp_section *s = &m->sections[j];
-            if (!strcmp(section, s->name)) {
-              /* mod and sec name match. tsk should match dynamic/static. */
-              if (s->static_addr != 0) {
-                addr_offset = s->static_addr;
-	      } else {
-                if (!tsk) { /* static section, not in memory yet? */
-		  if (strcmp(".dynamic", section) == 0)
-		    _stp_error("internal error, _stp_module_relocate '%s' "
-			       "section '%s', should not be tsk dynamic\n",
-			       module, section);
-		  return 0;
-		} else { /* dynamic section, look up through tsk vma. */
-		  if (strcmp(".dynamic", s->name) != 0) {
-		    _stp_error("internal error, _stp_module_relocate '%s' "
-			       "section '%s', should not be tsk dynamic\n",
-			       module, section);
-		    return 0;
-		  }
-		  if (stap_find_vma_map_info_user(tsk->group_leader, m,
-						  &addr_offset, NULL,
-						  NULL) != 0) {
-		    return 0;
-		  }
-		}
-	      }
-              offset += addr_offset;
-              dbug_sym(1, "address=%lx\n", offset);
-              return offset;
-            }
-          }
-	}
-	return 0;
+  return 0;
+}
+
+static unsigned long _stp_umodule_relocate(const char *module,
+					   unsigned long offset,
+					   struct task_struct *tsk)
+{
+  unsigned i;
+  unsigned long vm_start;
+
+  dbug_sym(1, "%s, %lx\n", module, offset);
+
+  for (i = 0; i < _stp_num_modules; i++) {
+    struct _stp_module *m = _stp_modules[i];
+
+    if (strcmp(module, m->name)
+	|| m->num_sections != 1
+	|| strcmp(m->sections[0].name, ".dynamic"))
+      continue;
+
+    if (stap_find_vma_map_info_user(tsk->group_leader, m,
+				    &vm_start, NULL, NULL) == 0) {
+      offset += vm_start;
+      dbug_sym(1, "address=%lx\n", offset);
+      return offset;
+    }
+  }
+
+  return 0;
 }
 
 /* Return (kernel) module owner and, if sec != NULL, fills in closest
@@ -233,10 +243,10 @@ static int _stp_module_check(void)
 
 		    /* notes end address */
 		    if (!strcmp(m->name, "kernel")) {
-			  notes_addr = _stp_module_relocate("kernel",
-					 "_stext", m->build_id_offset, NULL);
-			  base_addr = _stp_module_relocate("kernel",
-							   "_stext", 0, NULL);
+			  notes_addr = _stp_kmodule_relocate("kernel",
+					 "_stext", m->build_id_offset);
+			  base_addr = _stp_kmodule_relocate("kernel",
+							   "_stext", 0);
                     } else {
 			  notes_addr = m->notes_sect + m->build_id_offset;
 			  base_addr = m->notes_sect;
