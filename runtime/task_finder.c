@@ -321,7 +321,8 @@ stap_utrace_detach(struct task_struct *tsk,
 			do {
 				rc = utrace_barrier(tsk, engine);
 			} while (rc == -ERESTARTSYS);
-			if (rc == 0) {
+			if (rc == 0 || rc == -ESRCH || rc == -EALREADY) {
+				rc = 0;
 				debug_task_finder_detach();
 			} else {
 				rc = -rc;
