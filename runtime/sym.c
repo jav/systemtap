@@ -139,11 +139,11 @@ static struct _stp_module *_stp_umod_lookup(unsigned long addr,
   return NULL;
 }
 
-static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbolsize,
+static const char *_stp_kallsyms_lookup(unsigned long addr,
+                                        unsigned long *symbolsize,
                                         unsigned long *offset, 
                                         const char **modname, 
                                         /* char ** secname? */
-                                        char *namebuf,
 					struct task_struct *task)
 {
 	struct _stp_module *m = NULL;
@@ -210,12 +210,7 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 			// NB: This is only a heuristic.  Sometimes there are large
 			// gaps between text areas of modules.
 		}
-		if (namebuf) {
-			strlcpy(namebuf, s->symbol, KSYM_NAME_LEN + 1);
-			return namebuf;
-		} else {
-			return s->symbol;
-		}
+		return s->symbol;
 	}
 	return NULL;
 }
@@ -319,8 +314,7 @@ static void _stp_print_symbol (unsigned long address,
 	unsigned long offset = 0;
         unsigned long size = 0;
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL,
-                                    task);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
 
 	_stp_printf("%p", (int64_t) address);
 
@@ -347,8 +341,7 @@ static int _stp_func_print(unsigned long address, int verbose, int exact,
 	else
 		exstr = " (inexact)";
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL,
-				task);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
 
 	if (name) {
 		switch (verbose) {
@@ -389,8 +382,7 @@ static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 	const char *name;
 	unsigned long offset, size;
 
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL,
-				    task);
+	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
 	if (name) {
 		if (add_mod && modname && *modname)
 			_stp_snprintf(str, len, "%s %s+%#lx/%#lx",
