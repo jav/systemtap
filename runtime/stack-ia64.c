@@ -26,7 +26,7 @@ static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 			continue;
 		}
 		_stp_print_char(' ');
-		_stp_symbol_print(ip);
+		_stp_print_symbol(ip, NULL);
 		_stp_print_char('\n');
         } while (unw_unwind(info) >= 0);
 }

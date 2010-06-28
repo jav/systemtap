@@ -31,8 +31,9 @@ set main 0
 set main_func 0
 set lib_main 0
 set lib_func 0
-send_log "Running: stap $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe\n"
-spawn stap $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe
+set start_func 0
+send_log "Running: stap -w --ldd $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe\n"
+spawn stap -w --ldd $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe
 
 wait
 expect {
@@ -42,6 +43,7 @@ expect {
     -re {^ 0x[a-f0-9]+ : main_func\+0x[^\r\n]+\r\n} {incr main_func; exp_continue}
     -re {^ 0x[a-f0-9]+ : lib_main\+0x[^\r\n]+\r\n} {incr lib_main; exp_continue}
     -re {^ 0x[a-f0-9]+ : lib_func\+0x[^\r\n]+\r\n} {incr lib_func; exp_continue}
+    -re {^ 0x[a-f0-9]+ : _[^\r\n]+\r\n} {incr start_func; exp_continue}
     timeout { fail "ustack-$testname (timeout)" }
     eof { }
 }

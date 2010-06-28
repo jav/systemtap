@@ -63,10 +63,12 @@ static unsigned _stp_num_modules;
 /* load address, fixup by transport symbols _stp_do_relocation */
 static unsigned long _stp_kretprobe_trampoline;
 
-static unsigned long _stp_module_relocate (const char *module,
-					   const char *section,
-					   unsigned long offset,
-					   struct task_struct *tsk);
+static unsigned long _stp_kmodule_relocate (const char *module,
+					    const char *section,
+					    unsigned long offset);
+static unsigned long _stp_umodule_relocate (const char *module,
+					    unsigned long offset,
+					    struct task_struct *tsk);
 static struct _stp_module *_stp_get_unwind_info (unsigned long addr);
 
 #endif /* _STP_SYM_H_ */

@@ -4261,7 +4261,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
   s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
-  s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address, NULL);";
+  s.op->newline() << "unsigned long relocated_addr = _stp_kmodule_relocate (sdp->module, sdp->section, sdp->address);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
   s.op->newline() << "probe_point = sdp->probe.pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
