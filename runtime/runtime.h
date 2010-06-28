@@ -124,16 +124,6 @@ static struct
 #endif
 #endif
 
-#ifndef SYM_VERBOSE_NO
-#define SYM_VERBOSE_NO 0
-#endif
-#ifndef SYM_VERBOSE_FULL
-#define SYM_VERBOSE_FULL 1
-#endif
-#ifndef SYM_VERBOSE_BRIEF
-#define SYM_VERBOSE_BRIEF 2
-#endif
-
 #include "alloc.c"
 #include "print.c"
 #include "string.c"

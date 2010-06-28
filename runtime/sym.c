@@ -327,45 +327,96 @@ static void _stp_print_symbol (unsigned long address,
 	}
 }
 
-/* Like _stp_print_symbol, except only print if the address is a valid function address */
-static void _stp_func_print(unsigned long address, int verbose, int exact,
+/* Like _stp_print_symbol, but with _STP_SYM flags... */
+static void _stp_func_print(unsigned long address, int flags,
 			    struct task_struct *task)
 {
-	const char *modname;
-	const char *name = NULL;
-	unsigned long offset, size;
-	char *exstr;
+  const char *modname;
+  const char *name = NULL;
+  unsigned long offset, size;
+  char *exstr, *poststr, *prestr;
 
-	if (exact)
-		exstr = "";
+  prestr = (flags & _STP_SYM_PRE_SPACE) ? " " : "";
+  exstr = (((flags & _STP_SYM_INEXACT) && (flags & _STP_SYM_SYMBOL))
+	   ? " (inexact)" : "");
+  if (flags & _STP_SYM_POST_SPACE)
+    poststr = " ";
+  else if (flags & _STP_SYM_NEWLINE)
+    poststr = "\n";
+  else
+    poststr = "";
+
+  if (flags & _STP_SYM_SYMBOL)
+    name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
+
+  if (name) {
+    if ((flags & _STP_SYM_MODULE) && modname && *modname) {
+      if (flags & _STP_SYM_OFFSET) {
+	if (flags & _STP_SYM_SIZE) {
+	  /* symbol, module, offset and size. */
+	  if (flags & _STP_SYM_HEX_SYMBOL)
+	    _stp_printf("%s%p : %s+%#lx/%#lx [%s]%s%s",
+			prestr, (int64_t) address,
+			name, offset, size, modname,
+			exstr, poststr);
+	  else
+	    _stp_printf("%s%s+%#lx/%#lx [%s]%s%s",
+			prestr, name, offset, size,
+			modname, exstr, poststr);
+	} else {
+	  /* symbol, module, offset. */
+	  if (flags & _STP_SYM_HEX_SYMBOL)
+	    _stp_printf("%s%p : %s+%#lx/%#lx [%s]%s%s",
+			prestr, (int64_t) address,
+			name, offset, size, modname,
+			exstr, poststr);
+	  else
+	    _stp_printf("%s%s+%#lx/%#lx [%s]%s%s",
+			prestr, name, offset, size,
+			modname, exstr, poststr);
+	}
+      } else {
+	/* symbol plus module */
+	if (flags & _STP_SYM_HEX_SYMBOL)
+	  _stp_printf("%s%p : %s [%s]%s%s", prestr,
+		      (int64_t) address, name, modname,
+		      exstr, poststr);
 	else
-		exstr = " (inexact)";
-
-	if (verbose != SYM_VERBOSE_NO)
-	  name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
-
-	if (name) {
-		switch (verbose) {
-		case SYM_VERBOSE_FULL:
-			if (modname && *modname)
-				_stp_printf(" %p : %s+%#lx/%#lx [%s]%s\n",
-					(int64_t) address, name, offset,
-					size, modname, exstr);
-			else
-				_stp_printf(" %p : %s+%#lx/%#lx%s\n",
-					(int64_t) address, name, offset, size,
-					exstr);
-			break;
-		case SYM_VERBOSE_BRIEF:
-			_stp_printf("%s+%#lx\n", name, offset);
-			break;
-		case SYM_VERBOSE_NO:
-		default:
-			_stp_printf("%p ", (int64_t) address);
-		}
-	} else
-		_stp_printf("%p%s", (int64_t) address,
-			    (verbose == SYM_VERBOSE_BRIEF ? "\n" : " "));
+	  _stp_printf("%s%s [%s]%s%s", prestr, name,
+		      modname, exstr, poststr);
+      }
+    } else if (flags & _STP_SYM_OFFSET) {
+      if (flags & _STP_SYM_SIZE) {
+	/* symbol name, offset + size, no module name */
+	if (flags & _STP_SYM_HEX_SYMBOL)
+	  _stp_printf("%s%p : %s+%#lx/%#lx%s%s", prestr,
+		      (int64_t) address, name, offset,
+		      size, exstr, poststr);
+	else
+	  _stp_printf("%s%s+%#lx/%#lx%s%s", prestr, name,
+		      offset, size, exstr, poststr);
+      } else {
+	/* symbol name, offset, no module name */
+	if (flags & _STP_SYM_HEX_SYMBOL)
+	  _stp_printf("%s%p : %s+%#lx%s%s", prestr,
+		      (int64_t) address, name, offset,
+		      exstr, poststr);
+	else
+	  _stp_printf("%s%s+%#lx%s%s", prestr, name,
+		      offset, exstr, poststr);
+      }
+    } else {
+      /* symbol name only */
+      if (flags & _STP_SYM_HEX_SYMBOL)
+	_stp_printf("%s%p : %s%s%s", prestr, (int64_t) address,
+		    name, exstr, poststr);
+      else
+	_stp_printf("%s%s%s%s", prestr, name, exstr, poststr);
+    }
+  } else {
+    /* no symbol name, hex only */
+    _stp_printf("%s%p%s%s", prestr, (int64_t) address, exstr, poststr);
+  }
 }
 
 /** Puts symbolic information of an address in a string.

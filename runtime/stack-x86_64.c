@@ -19,7 +19,7 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 			/* cannot access stack.  give up. */
 			return;
 		}
-		_stp_func_print(addr, verbose, 0, NULL);
+		_stp_func_print(addr, verbose | _STP_SYM_INEXACT, NULL);
 		levels--;
 		stack++;
 	}
@@ -51,7 +51,7 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
 #endif
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
 		if (ret == 0) {
-			_stp_func_print(UNW_PC(&info), verbose, 1, tsk);
+			_stp_func_print(UNW_PC(&info), verbose, tsk);
 			levels--;
 			if (UNW_PC(&info) != _stp_kretprobe_trampoline)
 			  continue;

@@ -31,7 +31,7 @@
  */
 function print_backtrace () %{
 	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, SYM_VERBOSE_FULL, CONTEXT->pi, MAXTRACE, NULL, NULL);
+		_stp_stack_print(CONTEXT->regs, _STP_SYM_FULL, CONTEXT->pi, MAXTRACE, NULL, NULL);
 	} else {
 		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
 	}

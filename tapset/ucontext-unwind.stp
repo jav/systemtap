@@ -25,7 +25,7 @@ function print_ubacktrace () %{
 /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
         assert_is_myproc();
 	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi, MAXTRACE,
+		_stp_stack_print(CONTEXT->regs, _STP_SYM_FULL, CONTEXT->pi, MAXTRACE,
 				 current, CONTEXT->ri);
 	} else {
 		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
@@ -36,14 +36,13 @@ function print_ubacktrace () %{
  * sfunction print_ubacktrace_brief- Print stack back trace for current task. EXPERIMENTAL!
  *
  *  Equivalent to print_ubacktrace(), but output for each symbol is
- *  shorter (just name and offset), and the function address is
- *  printed if it can't be mapped to a name.
+ *  shorter (just name and offset, or just the hex address of no symbol could be found).
  */
 function print_ubacktrace_brief () %{
 /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
         assert_is_myproc();
 	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, SYM_VERBOSE_BRIEF, CONTEXT->pi,
+		_stp_stack_print(CONTEXT->regs, _STP_SYM_BRIEF, CONTEXT->pi,
 				 MAXTRACE, current, CONTEXT->ri);
 	} else {
 		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);

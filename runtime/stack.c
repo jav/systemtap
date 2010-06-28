@@ -91,7 +91,7 @@ static void print_stack_address(void *data, unsigned long addr, int reliable)
 {
 	struct print_stack_data *sdata = data;
         if (sdata->level++ < sdata->max_level)
-                _stp_func_print(addr, sdata->verbose, 0, NULL);
+                _stp_func_print(addr, sdata->verbose | _STP_SYM_INEXACT, NULL);
 }
 
 static const struct stacktrace_ops print_stack_ops = {
@@ -122,23 +122,22 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
- * @param verbose Either SYM_VERBOSE_FULL or SYM_VERBOSE_BRIEF
+ * @param verbose _STP_SYM_FULL or _STP_SYM_BRIEF
  */
 
 static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels, struct task_struct *tsk, struct uretprobe_instance *ri)
 {
 	/* print the current address */
 	if (pi) {
-		if (verbose == SYM_VERBOSE_FULL) {
+		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			_stp_print_symbol((unsigned long)_stp_probe_addr_r(pi), tsk);
 			_stp_print("\nReturning to  : ");
 		}
-		_stp_print_symbol((unsigned long)_stp_ret_addr_r(pi), tsk);
-		_stp_print_char('\n');
+		_stp_func_print((unsigned long)_stp_ret_addr_r(pi), verbose, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
 	} else if (ri && ri != GET_PC_URETPROBE_NONE) {
-		if (verbose == SYM_VERBOSE_FULL) {
+		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			/* ... otherwise this dereference fails */
 			_stp_print_symbol(ri->rp->u.vaddr, tsk);
@@ -146,15 +145,10 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 			_stp_print_symbol(ri->ret_addr, tsk);
 			_stp_print_char('\n');
 		} else
-			_stp_func_print(ri->ret_addr, SYM_VERBOSE_BRIEF,
-					0, tsk);
+			_stp_func_print(ri->ret_addr, verbose, tsk);
 #endif
-	} else if (verbose == SYM_VERBOSE_BRIEF) {
-		_stp_func_print(REG_IP(regs), SYM_VERBOSE_BRIEF, 0, tsk);
 	} else {
-		_stp_print_char(' ');
-		_stp_print_symbol(REG_IP(regs), tsk);
-		_stp_print_char('\n');
+		_stp_func_print(REG_IP(regs), verbose, tsk);
 	}
 
 	/* print rest of stack... */
@@ -186,7 +180,7 @@ static void _stp_stack_hexstring(char *str, int size,
 			    (int64_t) REG_IP(regs));
 	else
 		_stp_printf("%p ", (int64_t) REG_IP(regs));
-	__stp_stack_print(regs, SYM_VERBOSE_NO, levels, tsk, ri);
+	__stp_stack_print(regs, _STP_SYM_NONE, levels, tsk, ri);
 
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;

@@ -10,6 +10,40 @@
 #ifndef _STP_SYM_H_
 #define _STP_SYM_H_
 
+/* Constants for printing address symbols. */
+
+/* Prints address as hex, plus space, no newline. */
+#define _STP_SYM_HEXSTR       0
+/* Prints symbol when found for address otherwise hex. */
+#define _STP_SYM_SYMBOL       1
+/* Prints "hex : symbol" when used in combination with _STP_SYM_SYMBOL
+   if symbol found for address otherwise hex only. */
+#define _STP_SYM_HEX_SYMBOL   2
+/* Adds module " [name]" if found. */
+#define _STP_SYM_MODULE       4
+/* Adds offset to symbol and/or module when used. */
+#define _STP_SYM_OFFSET       8
+/* Adds size to offset of symbol or module, when _STP_SYM_OFFSET used. */
+#define _STP_SYM_SIZE        16
+/* Adds the string " (inexact)", if used in together with _STP_SYM_SYMBOL. */
+#define _STP_SYM_INEXACT     32
+/* Prefixes a space character. */
+#define _STP_SYM_PRE_SPACE   64
+/* Postfixes a space character, takes precedence over _STP_SYM_NEWLINE. */
+#define _STP_SYM_POST_SPACE 128
+/* Adds a newline character, doesn't combine with _STP_SYM_POST_SPACE. */
+#define _STP_SYM_NEWLINE    256
+
+/* Used for backtraces in hex string form. */
+#define _STP_SYM_NONE	(_STP_SYM_HEXSTR | _STP_SYM_POST_SPACE)
+/* Special "brief" case, used by print_ubacktrace_brief, no hex if possible. */
+#define _STP_SYM_BRIEF	(_STP_SYM_SYMBOL | _STP_SYM_OFFSET | _STP_SYM_NEWLINE)
+/* Full symbol format, as used in backtraces. */
+#define _STP_SYM_FULL	(_STP_SYM_SYMBOL | _STP_SYM_HEX_SYMBOL \
+			 | _STP_SYM_MODULE | _STP_SYM_OFFSET \
+			 | _STP_SYM_SIZE | _STP_SYM_PRE_SPACE \
+			 | _STP_SYM_NEWLINE)
+
 struct _stp_symbol {
 	unsigned long addr;
 	const char *symbol;
