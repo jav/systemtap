@@ -13,7 +13,11 @@
 // contents in interrupt context (which should only ever call 
 // stap_find_map_map_info for getting stored info). So we might
 // want to look into that if this seems a bottleneck.
+#ifdef CONFIG_PREEMPT_RT
+static DEFINE_RAW_RWLOCK(__stp_tf_map_lock);
+#else
 static DEFINE_RWLOCK(__stp_tf_map_lock);
+#endif
 
 #define __STP_TF_HASH_BITS 4
 #define __STP_TF_TABLE_SIZE (1 << __STP_TF_HASH_BITS)

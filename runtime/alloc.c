@@ -35,7 +35,11 @@ static int _stp_allocated_net_memory = 0;
 static int _stp_allocated_memory = 0;
 
 #ifdef DEBUG_MEM
+#ifdef CONFIG_PREEMPT_RT
+static DEFINE_RAW_SPINLOCK(_stp_mem_lock);
+#else
 static DEFINE_SPINLOCK(_stp_mem_lock);
+#endif
 
 #define MEM_MAGIC 0xc11cf77f
 #define MEM_FENCE_SIZE 32

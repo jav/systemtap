@@ -16,7 +16,11 @@
 
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
+#ifdef CONFIG_PREEMPT_RT
+static DEFINE_RAW_SPINLOCK(_stp_ctl_ready_lock);
+#else
 static DEFINE_SPINLOCK(_stp_ctl_ready_lock);
+#endif
 
 static void _stp_cleanup_and_exit(int send_exit);
 

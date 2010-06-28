@@ -16,7 +16,11 @@
  * @note Preemption must be disabled to use this.
  */
 
+#ifdef CONFIG_PREEMPT_RT
+static DEFINE_RAW_SPINLOCK(_stp_print_lock);
+#else
 static DEFINE_SPINLOCK(_stp_print_lock);
+#endif
 
 void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 {

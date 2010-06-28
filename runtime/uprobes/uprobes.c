@@ -87,7 +87,11 @@ static DEFINE_MUTEX(uproc_mutex);
 
 /* Table of uprobe_tasks, hashed by task_struct pointer. */
 static struct hlist_head utask_table[UPROBE_TABLE_SIZE];
+#ifdef CONFIG_PREEMPT_RT
+static DEFINE_RAW_SPINLOCK(utask_table_lock);
+#else
 static DEFINE_SPINLOCK(utask_table_lock);
+#endif
 
 #define lock_uproc_table() mutex_lock(&uproc_mutex)
 #define unlock_uproc_table() mutex_unlock(&uproc_mutex)
