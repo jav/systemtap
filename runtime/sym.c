@@ -63,19 +63,19 @@ static unsigned long _stp_kmodule_relocate(const char *module,
   return 0;
 }
 
-static unsigned long _stp_umodule_relocate(const char *module,
+static unsigned long _stp_umodule_relocate(const char *path,
 					   unsigned long offset,
 					   struct task_struct *tsk)
 {
   unsigned i;
   unsigned long vm_start;
 
-  dbug_sym(1, "%s, %lx\n", module, offset);
+  dbug_sym(1, "%s, %lx\n", path, offset);
 
   for (i = 0; i < _stp_num_modules; i++) {
     struct _stp_module *m = _stp_modules[i];
 
-    if (strcmp(module, m->name)
+    if (strcmp(path, m->path)
 	|| m->num_sections != 1
 	|| strcmp(m->sections[0].name, ".dynamic"))
       continue;

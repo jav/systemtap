@@ -5217,11 +5217,18 @@ dump_unwindsyms (Dwfl_Module *m,
     }
   c->output << "};\n";
 
-  mainfile = canonicalize_file_name(mainfile);
+  // For user space modules store canonical path and base name.
+  // For kernel modules just the name itself.
+  const char *mainpath = canonicalize_file_name(mainfile);
+  const char *mainname = strrchr(mainpath, '/');
+  if (modname[0] == '/')
+    mainname++;
+  else
+    mainname = modname.c_str();
 
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
-  c->output << ".name = " << lex_cast_qstring (modname) << ", \n";
-  c->output << ".path = " << lex_cast_qstring (mainfile) << ",\n";
+  c->output << ".name = " << lex_cast_qstring (mainname) << ", \n";
+  c->output << ".path = " << lex_cast_qstring (mainpath) << ",\n";
   c->output << ".dwarf_module_base = 0x" << hex << base << ", \n";
   c->output << ".eh_frame_addr = 0x" << eh_addr << ", \n";
   c->output << ".unwind_hdr_addr = 0x" << eh_frame_hdr_addr << dec << ", \n";
