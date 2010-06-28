@@ -1,6 +1,9 @@
 set test "flightrec4"
 if {![installtest_p]} { untested $test; return }
 
+# Make sure we start with a clean slate.
+catch {exec rm -f $test.out*}
+
 # run stapio in background mode with number limit
 spawn stap -F -S 1,2 -o $test.out -we {probe begin {}}
 # check whether stap outputs stapio pid
@@ -14,13 +17,14 @@ expect {
   timeout { fail "$test (timeout)" }
   eof { }
 }
-wait
+wait; catch {close}
 if {$pid == 0} {
   fail "$test (no pid)"
   return -1
 }
 
 # switch file to .1
+exec sleep 2
 exec kill -USR2 $pid
 
 # check output file
@@ -32,11 +36,14 @@ if {[catch {exec rm $test.out.0}]} {
 }
 
 # switch file to .2
+exec sleep 2
 exec kill -USR2 $pid
 # switch file to .3 (this time, .1 file should be deleted)
+exec sleep 2
 exec kill -USR2 $pid
 
 # check switched output file
+exec sleep 2
 if {[catch {exec rm $test.out.1}]} {
   pass "$test (old output file is removed)"
 } else {

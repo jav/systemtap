@@ -16,7 +16,7 @@ expect {
   timeout { fail "$test (timeout)"}
   eof { }
 }
-wait
+wait; catch {close}
 if {$pid == 0} {
   fail "$test (no pid)"
   return -1
@@ -40,7 +40,7 @@ expect {
       exp_continue}
   timeout { fail "$test (logfile timeout)"}
 }
-wait
+wait; catch {close}
 catch {exec kill -CONT $pid}
 exec sleep 3
 catch {exec kill -STOP $pid}
@@ -56,7 +56,7 @@ expect {
       exp_continue}
   timeout { fail "$test (logfile timeout)"}
 }
-wait
+wait; catch {close}
 catch {exec kill -CONT $pid}
 # check logfile number
 set cnt 0

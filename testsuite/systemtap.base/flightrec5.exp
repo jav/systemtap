@@ -1,6 +1,9 @@
 set test "flightrec5"
 if {![installtest_p]} { untested $test; return }
 
+# Make sure we start with a clean slate.
+catch {exec rm -f $test.out*}
+
 # run stapio in background mode with number limit and bulk mode
 spawn stap -F -S 1,2 -b -o $test.out -we {probe begin {}}
 # check whether stap outputs stapio pid
@@ -14,16 +17,18 @@ expect {
   timeout { fail "$test (timeout)" }
   eof { }
 }
-wait
+wait; catch {close}
 if {$pid == 0} {
   fail "$test (no pid)"
   return -1
 }
 
 # switch file to .1
+exec sleep 2
 exec kill -USR2 $pid
 
 # check output file
+exec sleep 2
 eval set outfile {[glob -nocomplain $test.out_cpu*.0]}
 if {$outfile == ""} {
   fail "$test (no output file) $outfile"
@@ -37,16 +42,19 @@ eval exec rm $outfile
 # switch file to .2
 exec kill -USR2 $pid
 # switch file to .3 (this time, .1 file should be deleted)
+exec sleep 2
 exec kill -USR2 $pid
 
+exec sleep 2
 exec kill -TERM $pid
 
 # check switched output file
+exec sleep 2
 eval set outfile {[glob -nocomplain $test.out_cpu*.1]}
 if {$outfile == ""} {
   pass "$test (old output file is removed)"
 } else {
-  fail "$test (failed to remove output file)"
+  fail "$test (failed to remove output file) $outfile"
   eval exec rm $outfile
   return -1
 }

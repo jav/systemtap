@@ -1,6 +1,9 @@
 set test "flightrec1"
 if {![installtest_p]} { untested $test; return }
 
+# Make sure we start with a clean slate.
+catch {exec rm -f $test.out*}
+
 # run stapio in background mode
 spawn stap -F -o $test.out -we {probe begin {}}
 # check whether stap outputs stapio pid
@@ -14,7 +17,7 @@ expect {
   timeout { fail "$test (timeout)" }
   eof { }
 }
-wait
+wait; catch {close}
 if {$pid == 0} {
   fail "$test (no pid)"
   return -1
@@ -28,12 +31,14 @@ expect {
   timeout { fail "$test (timeout)"}
   eof { fail "$test (stapio was not found)" }
 }
-wait
+wait; catch {close}
 
 # switch file
+exec sleep 2
 exec kill -USR2 $pid
 
 # check output file
+exec sleep 2
 if {[catch {exec rm $test.out}]} {
   fail "$test (no output file)"
   return -1

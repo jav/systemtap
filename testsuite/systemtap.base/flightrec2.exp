@@ -16,7 +16,7 @@ expect {
   timeout { fail "$test (timeout)"}
   eof { }
 }
-wait
+wait; catch {close}
 if {$pid == 0} {
   fail "$test (no pid)"
   return -1
@@ -35,7 +35,7 @@ expect {
       exp_continue}
   timeout { fail "$test (logfile timeout)"}
 }
-wait
+wait; catch {close}
 exec sleep 3
 set cnt2 0
 # wait for log files
@@ -48,7 +48,7 @@ expect {
       exp_continue}
   timeout { fail "$test (logfile timeout)"}
 }
-wait
+wait; catch {close}
 # check logfile number
 if {$cnt1 == 3 && $cnt2 == 3} {
     pass "$test (log file numbers limitation)"
