@@ -20,6 +20,7 @@
 #include <cassert>
 
 extern "C" {
+#include <sys/time.h>
 #include <glob.h>
 }
 
@@ -32,8 +33,11 @@ extern "C" {
 #include <avahi-common/malloc.h>
 #include <avahi-common/error.h>
 #include <avahi-common/timeval.h>
+}
+#endif
 
 #if HAVE_NSS
+extern "C" {
 #include <ssl.h>
 #include <nspr.h>
 #include <nss.h>
@@ -43,9 +47,6 @@ extern "C" {
 #include <sslerr.h>
 
 #include "nsscommon.h"
-#endif
-
-#include <glob.h>
 }
 #endif
 
