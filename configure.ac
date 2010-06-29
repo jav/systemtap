@@ -332,7 +332,8 @@ dnl Find the location of avahi-client headers and library
     have_avahi_includes=yes
     AC_CHECK_HEADERS(["$avahi_clientdir/client.h" "$avahi_clientdir/lookup.h" "$avahi_commondir/simple-watch.h" "$avahi_commondir/malloc.h" "$avahi_commondir/error.h"], [], have_avahi_includes=no)
     have_avahi_libs=no
-    AC_CHECK_LIB(avahi-client, avahi_client_new, have_avahi_libs=yes)
+    AC_CHECK_LIB(avahi-client, avahi_client_new,
+        AC_CHECK_LIB(avahi-common, avahi_strerror, have_avahi_libs=yes))
   fi
   if test "x${have_avahi_includes}${have_avahi_libs}" != "xyesyes"; then
     if test "$enable_server" == "yes"; then

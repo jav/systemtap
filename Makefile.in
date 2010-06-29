@@ -52,7 +52,7 @@ pkglibexec_PROGRAMS = stapio$(EXEEXT) $(am__EXEEXT_2) $(am__EXEEXT_3)
 
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_12 = $(avahi_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_13 = $(avahi_CFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_14 = -lavahi-client
+@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_14 = -lavahi-client -lavahi-common
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_15 = stap-client-connect.c nsscommon.c
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_16 = $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_17 = $(nss_CFLAGS) $(nspr_CFLAGS)

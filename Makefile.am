@@ -104,7 +104,7 @@ stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 if HAVE_AVAHI
 stap_CXXFLAGS += $(avahi_CFLAGS)
 stap_CPPFLAGS += $(avahi_CFLAGS)
-stap_LDADD += -lavahi-client
+stap_LDADD += -lavahi-client -lavahi-common
 endif
 
 if HAVE_NSS
