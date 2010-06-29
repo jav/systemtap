@@ -17,6 +17,11 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <cassert>
+
+extern "C" {
+#include <glob.h>
+}
 
 #if HAVE_AVAHI
 extern "C" {
