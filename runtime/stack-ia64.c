@@ -10,12 +10,14 @@
 
 struct dump_para{
 	unsigned long *sp;
+	int verbose;
 };
 
 static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 {
 	unsigned long ip, skip=1;
-	struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);
+	struct dump_para* para = (struct dump_para*)arg;
+	struct pt_regs *regs = container_of(para->sp, struct pt_regs, r12);
 
 	do {
 		unw_get_ip(info, &ip);
@@ -25,27 +27,8 @@ static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 				skip = 0;
 			continue;
 		}
-		_stp_print_char(' ');
-		_stp_print_symbol(ip, NULL);
-		_stp_print_char('\n');
+		_stp_print_addr(ip, para->verbose, NULL);
         } while (unw_unwind(info) >= 0);
-}
-
-static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
-{
-	unsigned long ip, skip=1;
-	struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);	
-
-	do {
-		unw_get_ip(info, &ip);
-		if (ip == 0) break;
-		if (skip){
-			if (ip == REG_IP(regs))
-				skip = 0;
-			continue;
-		}
-		_stp_printf ("0x%016lx ", ip);
-	} while (unw_unwind(info) >= 0);
 }
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
@@ -56,8 +39,6 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 	struct dump_para para;
 	
 	para.sp  = stack; 
-	if (verbose)
-		unw_init_running(__stp_show_stack_sym, &para);
-        else
-		unw_init_running(__stp_show_stack_addr, &para);
+	para.verbose = verbose;
+	unw_init_running(__stp_show_stack_sym, &para);
 }

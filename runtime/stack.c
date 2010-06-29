@@ -91,7 +91,7 @@ static void print_stack_address(void *data, unsigned long addr, int reliable)
 {
 	struct print_stack_data *sdata = data;
         if (sdata->level++ < sdata->max_level)
-                _stp_func_print(addr, sdata->verbose | _STP_SYM_INEXACT, NULL);
+                _stp_print_addr(addr, sdata->verbose | _STP_SYM_INEXACT, NULL);
 }
 
 static const struct stacktrace_ops print_stack_ops = {
@@ -131,24 +131,24 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
 	if (pi) {
 		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
-			_stp_print_symbol((unsigned long)_stp_probe_addr_r(pi), tsk);
-			_stp_print("\nReturning to  : ");
+			_stp_print_addr((unsigned long)_stp_probe_addr_r(pi),
+					verbose, tsk);
+			_stp_print("Returning to  : ");
 		}
-		_stp_func_print((unsigned long)_stp_ret_addr_r(pi), verbose, tsk);
+		_stp_print_addr((unsigned long)_stp_ret_addr_r(pi), verbose, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
 	} else if (ri && ri != GET_PC_URETPROBE_NONE) {
 		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			/* ... otherwise this dereference fails */
-			_stp_print_symbol(ri->rp->u.vaddr, tsk);
-			_stp_print("\nReturning to  : ");
-			_stp_print_symbol(ri->ret_addr, tsk);
-			_stp_print_char('\n');
+			_stp_print_addr(ri->rp->u.vaddr, verbose, tsk);
+			_stp_print("Returning to  : ");
+			_stp_print_addr(ri->ret_addr, verbose, tsk);
 		} else
-			_stp_func_print(ri->ret_addr, verbose, tsk);
+			_stp_print_addr(ri->ret_addr, verbose, tsk);
 #endif
 	} else {
-		_stp_func_print(REG_IP(regs), verbose, tsk);
+		_stp_print_addr(REG_IP(regs), verbose, tsk);
 	}
 
 	/* print rest of stack... */
@@ -203,8 +203,7 @@ static void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int level
         for (i = 0; i < maxLevels; ++i) {
                 if (backtrace[i] == 0 || backtrace[i] == ULONG_MAX)
                         break;
-		_stp_print_symbol(backtrace[i], tsk);
-		_stp_print_char('\n');
+		_stp_print_addr(backtrace[i], verbose, tsk);
         }
 #endif
 }

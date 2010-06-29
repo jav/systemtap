@@ -41,15 +41,12 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 #endif
 		ip = _sp[STACK_FRAME_LR_SAVE];
 		if (!firstframe || ip != lr) {
-			if (verbose) {
-				_stp_printf("[0x%016lx] [0x%016lx] ", sp, ip);
-				_stp_print_symbol(ip, tsk);
-				if (firstframe)
-					_stp_print(" (unreliable)");
-				_stp_print_char('\n');
-			}
-			else
-				_stp_printf("0x%016lx ", ip);
+			if (verbose)
+				_stp_printf("[0x%016lx] [0x%016lx]", sp, ip);
+			_stp_print_addr(ip,
+					(firstframe
+					 ? (verbose | _STP_SYM_INEXACT)
+					 : verbose), tsk);
 		}
 		firstframe = 0;
 		/*
@@ -61,12 +58,10 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 				(sp + STACK_FRAME_OVERHEAD);
 			if (verbose) {
 				_stp_printf("--- Exception: %lx at ",regs->trap);
-				_stp_print_symbol(regs->nip, tsk);
-				_stp_print_char('\n');
+				_stp_print_addr(regs->nip, verbose, tsk);
 				lr = regs->link;
 				_stp_print("    LR =");
-				_stp_print_symbol(lr, tsk);
-				_stp_print_char('\n');
+				_stp_print_addr(lr, verbose, tsk);
 				firstframe = 1;
 			}
 			else {

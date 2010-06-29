@@ -37,9 +37,8 @@ function print_stack(stk:string) %{
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
 	while (tok && *tok) {
-		_stp_print_char(' ');
-		_stp_print_symbol (simple_strtol(tok, NULL, 16), NULL);
-		_stp_print_char('\n');
+		_stp_print_addr (simple_strtol(tok, NULL, 16),
+				 _STP_SYM_FULL, NULL);
 		tok = strsep(&ptr, " ");
 	}
 %}

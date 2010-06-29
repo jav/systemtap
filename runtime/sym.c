@@ -313,35 +313,12 @@ static int _stp_module_check(void)
 	return 0;
 }
 
-/** Print an address symbolically.
+/** Prints an address based on the _STP_SYM flags.
  * @param address The address to lookup.
  * @param task The address to lookup (if NULL lookup kernel/module address).
  * @note Symbolic lookups should not normally be done within
- * a probe because it is too time-consuming. Use at module exit time.
- */
-static void _stp_print_symbol (unsigned long address,
-			       struct task_struct *task)
-{
-	const char *modname = 0;
-	const char *name = 0;
-	unsigned long offset = 0;
-        unsigned long size = 0;
-
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
-
-	_stp_printf("%p", (int64_t) address);
-
-	if (name) {
-		if (modname && *modname)
-			_stp_printf(" : %s+%#lx/%#lx [%s]",
-				    name, offset, size, modname);
-		else
-			_stp_printf(" : %s+%#lx/%#lx", name, offset, size);
-	}
-}
-
-/* Like _stp_print_symbol, but with _STP_SYM flags... */
-static void _stp_func_print(unsigned long address, int flags,
+ * a probe because it is too time-consuming. Use at module exit time. */
+static void _stp_print_addr(unsigned long address, int flags,
 			    struct task_struct *task)
 {
   const char *modname;

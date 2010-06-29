@@ -55,13 +55,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 				pc -= 1;
 		}
 
-		if (verbose) {
-			_stp_print_char(' ');
-			_stp_print_symbol((unsigned long)pc, tsk);
-			_stp_print_char('\n');
-		} else {
-			_stp_printf("%08lx ", (unsigned long)pc);
-		}
+		_stp_print_addr((unsigned long)pc, verbose, task);
 
 		/* Sanity check the next_fp. */
 		if (next_fp && next_fp <= fp)
