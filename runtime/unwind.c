@@ -950,7 +950,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 
 	if (tsk)
 	  {
-	    m = _stp_umod_lookup (pc, tsk, NULL, NULL);
+	    m = _stp_umod_lookup (pc, tsk, NULL, NULL, NULL);
 	    if (m)
 	      s = &m->sections[0];
 	  }

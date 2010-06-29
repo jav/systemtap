@@ -126,7 +126,8 @@ static struct _stp_module *_stp_kmod_sec_lookup(unsigned long addr,
 static struct _stp_module *_stp_umod_lookup(unsigned long addr,
 					    struct task_struct *task,
 					    const char **name,
-					    unsigned long *vm_start)
+					    unsigned long *vm_start,
+					    unsigned long *vm_end)
 {
   void *user = NULL;
   struct dentry *dentry = NULL;
@@ -136,7 +137,7 @@ static struct _stp_module *_stp_umod_lookup(unsigned long addr,
           addr &= ((compat_ulong_t) ~0);
 #endif
   if (stap_find_vma_map_info(task->group_leader, addr,
-			     vm_start, NULL, &dentry, &user) == 0)
+			     vm_start, vm_end, &dentry, &user) == 0)
 
     if (dentry != NULL && name != NULL)
       *name = dentry->d_name.name;
@@ -166,12 +167,8 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	if (task)
 	  {
 	    unsigned long vm_start = 0;
-#ifdef CONFIG_COMPAT
-	    /* Handle 32bit signed values in 64bit longs, chop off top bits. */
-	    if (test_tsk_thread_flag(task, TIF_32BIT))
-	      addr &= ((compat_ulong_t) ~0);
-#endif
-	    m = _stp_umod_lookup(addr, task, modname, &vm_start);
+	    unsigned long vm_end = 0;
+	    m = _stp_umod_lookup(addr, task, modname, &vm_start, &vm_end);
 	    if (m)
 	      {
 		sec = &m->sections[0];
@@ -180,6 +177,14 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 		  rel_addr = addr - vm_start;
 		else
 		  rel_addr = addr;
+	      }
+	    if (modname && *modname)
+	      {
+		/* In case no symbol is found, fill in based on module. */
+		if (offset)
+		  *offset = addr - vm_start;
+		if (symbolsize)
+		  *symbolsize = vm_end - vm_start;
 	      }
 	  }
 	else
@@ -321,9 +326,9 @@ static int _stp_module_check(void)
 static void _stp_print_addr(unsigned long address, int flags,
 			    struct task_struct *task)
 {
-  const char *modname;
+  const char *modname = NULL;
   const char *name = NULL;
-  unsigned long offset, size;
+  unsigned long offset = 0, size = 0;
   char *exstr, *poststr, *prestr;
 
   prestr = (flags & _STP_SYM_PRE_SPACE) ? " " : "";
@@ -336,10 +341,10 @@ static void _stp_print_addr(unsigned long address, int flags,
   else
     poststr = "";
 
-  if (flags & _STP_SYM_SYMBOL)
+  if (flags & (_STP_SYM_SYMBOL | _STP_SYM_MODULE))
     name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
 
-  if (name) {
+  if (name && (flags & _STP_SYM_SYMBOL)) {
     if ((flags & _STP_SYM_MODULE) && modname && *modname) {
       if (flags & _STP_SYM_OFFSET) {
 	if (flags & _STP_SYM_SIZE) {
@@ -404,8 +409,27 @@ static void _stp_print_addr(unsigned long address, int flags,
 	_stp_printf("%s%s%s%s", prestr, name, exstr, poststr);
     }
   } else {
-    /* no symbol name, hex only */
-    _stp_printf("%s%p%s%s", prestr, (int64_t) address, exstr, poststr);
+    if (modname && *modname && (flags & _STP_SYM_MODULE)) {
+      if (flags & _STP_SYM_OFFSET) {
+        if (flags & _STP_SYM_SIZE) {
+          /* hex address, module name, offset + size */
+          _stp_printf("%s%p [%s+%#lx/%#lx]%s%s", prestr,
+                      (int64_t) address, modname, offset,
+                      size, exstr, poststr);
+        } else {
+          /* hex address, module name, offset */
+            _stp_printf("%s%p [%s+%#lx]%s%s", prestr,
+                        (int64_t) address, modname, offset,
+                        exstr, poststr);
+        }
+      } else {
+	/* hex address, module name */
+        _stp_printf("%s%p [%s]%s%s", prestr, modname, exstr, poststr);
+      }
+    } else {
+      /* no names, hex only */
+      _stp_printf("%s%p%s%s", prestr, (int64_t) address, exstr, poststr);
+    }
   }
 }
 
@@ -421,7 +445,7 @@ static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 {
 	const char *modname = NULL;
 	const char *name;
-	unsigned long offset, size;
+	unsigned long offset = 0, size = 0;
 
 	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
 	if (name) {
@@ -430,8 +454,13 @@ static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 				      name, modname, offset, size);
 		else
 			strlcpy(str, name, len);
-	} else
-		_stp_snprintf(str, len, "%p", (int64_t) address);
+	} else {
+		if (add_mod && modname && *modname)
+			_stp_snprintf(str, len, "%p %s+%#lx/%#lx",
+				      (int64_t) address, modname, offset, size);
+		else
+			_stp_snprintf(str, len, "%p", (int64_t) address);
+	}
 }
 
 /** @} */
