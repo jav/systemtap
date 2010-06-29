@@ -5,7 +5,7 @@ AC_INIT([systemtap], 1.2, systemtap@sources.redhat.com, systemtap)
 dnl                  ^^^ see also NEWS, systemtap.spec, testsuite/configure.ac
 
 AC_PREREQ(2.59)
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([no-dist foreign])
 AM_MAINTAINER_MODE
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
