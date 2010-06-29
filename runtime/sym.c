@@ -68,7 +68,7 @@ static unsigned long _stp_umodule_relocate(const char *path,
 					   struct task_struct *tsk)
 {
   unsigned i;
-  unsigned long vm_start;
+  unsigned long vm_start = 0;
 
   dbug_sym(1, "%s, %lx\n", path, offset);
 
