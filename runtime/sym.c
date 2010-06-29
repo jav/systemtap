@@ -120,20 +120,31 @@ static struct _stp_module *_stp_kmod_sec_lookup(unsigned long addr,
 
 /* Return (user) module in which the the given addr falls.  Returns
    NULL when no module can be found that contains the addr.  Fills in
-   vm_start (addr where module is mapped in) when given.  Note
-   that user modules always have exactly one section. */
+   vm_start (addr where module is mapped in) and (base) name of module
+   when given.  Note that user modules always have exactly one section
+   (.dynamic or .absolute). */
 static struct _stp_module *_stp_umod_lookup(unsigned long addr,
 					    struct task_struct *task,
+					    const char **name,
 					    unsigned long *vm_start)
 {
   void *user = NULL;
+  struct dentry *dentry = NULL;
+#ifdef CONFIG_COMPAT
+        /* Handle 32bit signed values in 64bit longs, chop off top bits. */
+        if (test_tsk_thread_flag(task, TIF_32BIT))
+          addr &= ((compat_ulong_t) ~0);
+#endif
   if (stap_find_vma_map_info(task->group_leader, addr,
-			     vm_start, NULL, NULL, &user) == 0)
+			     vm_start, NULL, &dentry, &user) == 0)
+
+    if (dentry != NULL && name != NULL)
+      *name = dentry->d_name.name;
+
     if (user != NULL)
       {
 	struct _stp_module *m = (struct _stp_module *)user;
-	dbug_sym(1, "found section %s in module %s at 0x%lx\n",
-		 m->sections[0].name, m->name, vm_start);
+	dbug_sym(1, "found module %s at 0x%lx\n", dentry->dname.name, vm_start);
 	return m;
       }
   return NULL;
@@ -160,7 +171,7 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	    if (test_tsk_thread_flag(task, TIF_32BIT))
 	      addr &= ((compat_ulong_t) ~0);
 #endif
-	    m = _stp_umod_lookup(addr, task, &vm_start);
+	    m = _stp_umod_lookup(addr, task, modname, &vm_start);
 	    if (m)
 	      {
 		sec = &m->sections[0];
@@ -175,7 +186,11 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	  {
 	    m = _stp_kmod_sec_lookup(addr, &sec);
 	    if (m)
-	      rel_addr = addr - sec->static_addr;
+	      {
+	        rel_addr = addr - sec->static_addr;
+		if (modname)
+		  *modname = m->name;
+	      }
 	  }
 
         if (unlikely (m == NULL || sec == NULL))
@@ -199,8 +214,6 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	if (likely(addr >= s->addr)) {
 		if (offset)
 			*offset = addr - s->addr;
-		if (modname)
-			*modname = m->name;
                 /* We could also pass sec->name here. */
 		if (symbolsize) {
 			if ((begin + 1) < sec->num_symbols)
@@ -429,7 +442,7 @@ static void _stp_func_print(unsigned long address, int flags,
 static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
 			 struct task_struct *task, int add_mod)
 {
-	const char *modname;
+	const char *modname = NULL;
 	const char *name;
 	unsigned long offset, size;
 

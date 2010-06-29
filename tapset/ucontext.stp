@@ -23,7 +23,7 @@ function umodname:string (addr:long) %{
 /* pure */ /* unprivileged */ /* pragma:vma */
   const char *name = NULL;
   assert_is_myproc();
-  name =_stp_vma_module_name(current, THIS->addr);
+  _stp_umod_lookup(THIS->addr, current, &name, NULL);
   if (!name)
     name = "<unknown>";
   strlcpy (THIS->__retvalue, name, MAXSTRINGLEN);
