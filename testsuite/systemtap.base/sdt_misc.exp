@@ -9,9 +9,13 @@ set test "sdt_misc"
 # 6. Test .mark probe wildcard matching
 # 7. Test types defined in sdt_misc_.d.  This requires -g
 
+set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {}}
+set v_flags {{} {-DSTAP_SDT_V2} {-DSTAP_SDT_V2}}
+set pbtype_mssgs {{V1-uprobe} {V2-kprobe} {V2-uprobe}}
+
 proc cleanup_handler { verbose } {
     if { $verbose == 0 } {
-	foreach x {{uprobe} {kprobe} {V2}} {
+	foreach x pbtype_mssgs {
 	    catch {exec rm -f libsdt_${x}.so libsdt_${x}_shared.so sdt_misc_${x}.x sdt_misc_${x}_loop.x sdt_misc_${x}_shared.x sdt_misc_${x}_loop_shared.x sdt_misc_${x}.x sdt_misc_${x}_compatibility.x sdt_misc_${x}_types.x libsdt_${x}_loop.so }
 	}
 	catch {exec rm -f sdt_misc_.c sdt_misc.c sdt_misc_.d sdt_misc_.h sdt_misc_.o sdt_misc.stp sdt_types.x ,semclean ,semout}
@@ -52,20 +56,26 @@ bar (int i)
     {
     }
 #endif
+#ifndef NO_SLEEP
+  sleep (3);
+#endif
 
   SDT_MISC_TEST_PROBE_2(i);
   if (i == 0)
     i = 1000;
-  STAP_PROBE1(sdt_misc,test_probe_2,i);
+  if (SDT_MISC_TEST_PROBE_2_ENABLED())
+     STAP_PROBE1(sdt_misc,test_probe_2,i);
 }
 
 void
 baz (int i, char* s)
 {
-  STAP_PROBE1(sdt_misc,test_probe_0,i);
+  if (SDT_MISC_TEST_PROBE_0_ENABLED())
+     STAP_PROBE1(sdt_misc,test_probe_0,i);
   if (i == 0)
     i = 1000;
-  SDT_MISC_TEST_PROBE_3(i,s);
+  if (SDT_MISC_TEST_PROBE_3_ENABLED())
+     SDT_MISC_TEST_PROBE_3(i,s);
 }
 
 void
@@ -79,7 +89,8 @@ buz (int parm)
   struct astruct bstruct = {parm, parm + 1};
   if (parm == 0)
     parm = 1000;
-  DTRACE_PROBE1(sdt_misc,test_probe_4,&bstruct);
+  if (SDT_MISC_TEST_PROBE_4_ENABLED())
+     DTRACE_PROBE1(sdt_misc,test_probe_4,&bstruct);
 }
 #endif
 
@@ -104,8 +115,8 @@ main ()
 {
 #ifdef LOOP
   signal (SIGINT, &int_handler);
-  signal (SIGALRM, &alrm_handler);
-  alarm (30);
+  // signal (SIGALRM, &alrm_handler);
+  // alarm (300);
 #endif
   bar(2);
   baz(3,(char*)\"abc\");
@@ -153,7 +164,7 @@ probe process(@1).mark(\"test_probe_4\")
 { 
   printf(\"In %s dtrace probe %#x\\n\", \$\$name, \$arg1)
 }
-probe timer.ms(10000)
+probe timer.sec(30)
 {
   exit()
 }
@@ -193,7 +204,8 @@ switch -regexp $::tcl_platform(machine) {
 
 # Iterate pbtype_flags
 for {set i 0} {$i < [llength $pbtype_flags]} {incr i} {
-set pbtype_flag [lindex $pbtype_flags $i]
+set v_flag [lindex $v_flags $i]
+set pbtype_flag "[lindex $pbtype_flags $i] additional_flags=$v_flag"
 set pbtype_mssg [lindex $pbtype_mssgs $i]
 set sup_exepath "[pwd]/sdt_misc_$pbtype_mssg.x"
 
@@ -204,28 +216,22 @@ if {[installtest_p]} {
 } else {
     set dtrace ../dtrace
 }
-if {$pbtype_mssg == "V2"} {
-    set dtrace_args "-DSTAP_SDT_V2 -I$sdtdir"
-} else {
-    set dtrace_args ""
-}
-if {[catch {exec $dtrace $dtrace_args --types -h -s $sup_dpath} res]} {
+if {[catch {exec $dtrace $v_flag --types -h -s $sup_dpath} res]} {
     verbose -log "unable to run $dtrace: $res"
 }
-if {[catch {exec $dtrace $dtrace_args --types -G -s $sup_dpath} res]} {
+if {[catch {exec $dtrace $v_flag --types -G -s $sup_dpath} res]} {
     verbose -log "unable to run $dtrace: $res"
 }
 if {[file exists $sup_hpath] && [file exists $sup_opath]} then {
-    pass "$test dtrace $dtrace_args"
+    pass "$test dtrace $v_flag"
 } else {
-    fail "$test dtrace $dtrace_args"
+    fail "$test dtrace $v_flag"
     cleanup_handler $verbose
     return
 }
 
 set sup_flags "additional_flags=-I$sdtdir"
 set sup_flags "$sup_flags additional_flags=$sup_opath"
-set sup_flags "$sup_flags additional_flags=-DSTAP_SDT_IMPLICIT_ENABLED"
 set sup_flags "$sup_flags additional_flags=-I. $pbtype_flag"
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
 if { $res != "" } {
@@ -426,7 +432,7 @@ if { $res != "" } {
 
 # This is perhaps a wee bit clumsy
 verbose -log "$loop_exepath >| ,semclean 2>&1 & TEST=\$! ; \
-	$stap_path $sup_stppath $loop_exepath $sup_sopath >| ,semout ; \
+	$stap_path $sup_stppath $loop_exepath $supl_sopath >| ,semout ; \
 	/usr/bin/kill -SIGINT \$TEST"	
 system "$loop_exepath >,semclean 2>&1 & TEST=\$! ; \
 	$stap_path $sup_stppath $loop_exepath $supl_sopath >| ,semout ; \
@@ -505,7 +511,7 @@ if { $ok == 47 } {
 
 set ok 0
 
-set supbc_flags "$sup_flags additional_flags=-g"
+set supbc_flags "$sup_flags additional_flags=-g additional_flags=-DNO_SLEEP"
 set supbc_exepath "[pwd]/sdt_misc_${pbtype_mssg}_types.x"
 
 set res [target_compile $sup_srcpath $supbc_exepath executable $supbc_flags]
@@ -518,7 +524,7 @@ if { $res != "" } {
     pass "$test compiling -g $pbtype_mssg --types"
 }
 
-verbose -log "spawn $stap_path -c $supbc_exepath -e \"probe process(\"$supbc_exepath\").mark(\"test_probe_4\") {printf(\"In %s dtrace probe %#x %#x\\n\", \$\$name, \$arg1->a, \$arg1->b)}"
+verbose -log "spawn $stap_path -c $supbc_exepath -e \"probe process(\"$supbc_exepath\").mark(\"test_probe_4\") {printf(\"In %s dtrace probe %#x %#x\\n\", \$\$name, \$arg1->a, \$arg1->b)}\""
 spawn $stap_path -c $supbc_exepath -e "probe process(\"$supbc_exepath\").mark(\"test_probe_4\") {printf(\"In %s dtrace probe %#x %#x\\n\", \$\$name, \$arg1->a, \$arg1->b)}"
 expect {
     -timeout 180
