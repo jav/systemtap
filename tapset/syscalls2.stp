@@ -309,8 +309,21 @@ probe syscall.pipe = kernel.function("sys_pipe2").call !,
 			pipe1 = 0;
 			argstr = "NULL"
 		} else {
-			pipe0 = user_int(&$fildes[0]);
-			pipe1 = user_int(&$fildes[1]);
+			/* 
+			 * Why use @cast here?  Why not just:
+			 *
+			 *   pipe0 = user_int(&$fildes[0]);
+			 *   pipe1 = user_int(&$fildes[1]);
+			 *
+			 * The answer is syscall wrappers
+			 * (CONFIG_SYSCALL_WRAPPERS).  On ppc (for
+			 * example), SyS_foo has all "long" arguments,
+			 * and then the inline SYSC_foo has the real
+			 * argument types.  The @cast makes sure we're
+			 * dealing with the "final" type.
+			 */
+			pipe0 = user_int(&@cast($fildes, "int")[0])
+			pipe1 = user_int(&@cast($fildes, "int")[1])
 			if (flags == 0)
 				argstr = sprintf("[%d, %d]", pipe0, pipe1);
 			else
@@ -340,17 +353,24 @@ probe syscall.pipe.return = kernel.function("sys_pipe2").return !,
 			pipe0 = 0;
 			pipe1 = 0;
 		} else {
-			pipe0 = user_int(&$fildes[0]);
-			pipe1 = user_int(&$fildes[1]);
+			/* 
+			 * See comment in syscall.pipe about why @cast
+			 * is used here.
+			 */
+			pipe0 = user_int(&@cast($fildes, "int")[0])
+			pipe1 = user_int(&@cast($fildes, "int")[1])
 		}
 	} else {
 		fildes_uaddr = 0;
+%( arch == "ia64" %?
+		pipe0 = _ia64_pipe0();
+		pipe1 = _ia64_pipe1();
+%:
 		pipe0 = 0;
 		pipe1 = 0;
+%)
 	}
 %( arch == "ia64" %?
-	pipe0 = _ia64_pipe0();
-	pipe1 = _ia64_pipe1();
 	retstr = (pipe0 < 0) ? returnstr(1) : "0";
 %:
 	retstr = returnstr(1)
