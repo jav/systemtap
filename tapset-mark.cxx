@@ -459,6 +459,9 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
 void
 mark_derived_probe::getargs(std::list<std::string> &arg_set) const
 {
+  //PR11761: hard-coded the basic variables
+  arg_set.push_back("$name:string");
+  arg_set.push_back("$format:string");
   for (unsigned i = 0; i < mark_args.size(); i++)
     {
       string localname = "$arg" + lex_cast(i+1);
