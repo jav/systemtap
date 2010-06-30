@@ -4528,31 +4528,28 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	}
       if (arg_count == 0)
 	{
-	  if (startswith(e->name, "$"))
-	    {
-	      // NB: Either
-	      // 1) uprobe1_type $argN or $FOO (we don't know the arg_count)
-	      // 2) uprobe2_type $FOO (no probe args)
-	      // both of which get resolved later.
-	      provide(e);
-	      return;
-	    }
-	  else			// uprobe2_type with no args
-	    return;
+	  // NB: Either
+	  // 1) uprobe1_type $argN or $FOO (we don't know the arg_count)
+	  // 2) uprobe2_type $FOO (no probe args)
+	  // both of which get resolved later.
+	  provide(e);
+	  return;
 	}
 
-      int argno = 0;
-      // XXX: check for $arg prefix!
+      int argno = -1;
       try
 	{
-	  argno = lex_cast<int>(e->name.substr(4));
+	  if (startswith(e->name, "$arg"))
+	    argno = lex_cast<int>(e->name.substr(4));
 	}
       catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
 	{
-	  throw semantic_error("invalid argument number", e->tok);
 	}
+      if (argno < 0)
+	throw semantic_error("invalid variable, must be of the form $argN", e->tok);
       if (argno < 1 || argno > arg_count)
 	throw semantic_error("invalid argument number", e->tok);
+
       enum arg_type
       {
 	literal_arg,
@@ -4698,17 +4695,20 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  return;
 	}
 
-      int argno = 0;
+      int argno = -1;
       try
 	{
-	  argno = lex_cast<int>(e->name.substr(4));
+	  if (startswith(e->name, "$arg"))
+	    argno = lex_cast<int>(e->name.substr(4));
 	}
       catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
 	{
-	  throw semantic_error("invalid argument number", e->tok);
 	}
+      if (argno < 0)
+	throw semantic_error("invalid variable, must be of the form $argN", e->tok);
       if (argno < 1 || argno > arg_count)
 	throw semantic_error("invalid argument number", e->tok);
+
       bool lvalue = is_active_lvalue(e);
       functioncall *fc = new functioncall;
 
