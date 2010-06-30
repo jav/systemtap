@@ -27,25 +27,6 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
-dnl Handle the perfmon option.
-AC_ARG_ENABLE([perfmon],
-  AS_HELP_STRING([--enable-perfmon@<:@=DIRECTORY@:>@],
-    [enable perfmon support (default is disabled).  Optional DIRECTORY
-    is the path to the perfmon installation (needed if installed in a
-    non-standard location).]), [
-  if test "$enable_perfmon" != "no"; then
-    dnl Add perfmon define and library
-    CPPFLAGS="$CPPFLAGS -DPERFMON"
-    LIBS="$LIBS -lpfm"
-    dnl Handle custom install dir (if needed)
-    if test "$enable_perfmon" != "yes"; then
-      CPPFLAGS="$CPPFLAGS -I$enable_perfmon/include"
-      LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
-    fi
-    AC_CHECK_LIB([pfm], [pfm_start], [], [
-      AC_MSG_ERROR([systemtap cannot find required perfmon libs (libpfm-devel may need to be installed])])
-  fi])
-
 dnl Handle the prologues option.
 dnl
 dnl If the user didn't specify --enable-prologues/--disable-prologues

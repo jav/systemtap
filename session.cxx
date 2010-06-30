@@ -223,6 +223,29 @@ systemtap_session::version ()
     << " " << GIT_MESSAGE << ")" << endl
     << "Copyright (C) 2005-2010 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;
+  clog << "enabled features:"
+#ifdef HAVE_AVAHI
+       << " AVAHI"
+#endif
+#ifdef HAVE_LIBRPM
+       << " LIBRPM"
+#endif
+#ifdef HAVE_LIBSQLITE3
+       << " LIBSQLITE3"
+#endif
+#ifdef HAVE_NSS
+       << " NSS"
+#endif
+#ifdef HAVE_BOOST_SHARED_PTR_HPP
+       << " BOOST_SHARED_PTR"
+#endif
+#ifdef HAVE_TR1_UNORDERED_MAP
+       << " TR1_UNORDERED_MAP"
+#endif
+#ifdef ENABLE_PROLOGUES
+       << " PROLOGUES"
+#endif
+       << endl;
 }
 
 void
