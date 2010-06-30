@@ -5229,7 +5229,9 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (mainname) << ", \n";
   c->output << ".path = " << lex_cast_qstring (mainpath) << ",\n";
-  c->output << ".dwarf_module_base = 0x" << hex << base << ", \n";
+  Dwarf_Addr dwbias = 0;
+  dwfl_module_getdwarf (m, &dwbias);
+  c->output << ".dwarf_module_base = 0x" << hex << (base - dwbias) << ", \n";
   c->output << ".eh_frame_addr = 0x" << eh_addr << ", \n";
   c->output << ".unwind_hdr_addr = 0x" << eh_frame_hdr_addr << dec << ", \n";
 

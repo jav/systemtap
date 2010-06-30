@@ -64,9 +64,13 @@ struct _stp_module {
 	struct _stp_section *sections;
   	unsigned num_sections;
 
-	 /* This is to undo .debug_frame relocation performed by elfutils, */
-	 /* which is done during the translate phase when we encode the    */
-	 /* unwind data into the module. See adjustStartLoc() in unwind.c. */
+	/* This is the base address for the dwfl module (adjusted for
+	 * dwbias) as we read it in the translator. This is normally
+	 * zero for shared libraries, but not for prelinked libraries.
+	 * We adjust the addresses read from the .debug_frame unwind
+	 * data against the actual and (prelinked) load addresses.
+	 * into the module. See adjustStartLoc() in unwind.c.
+	 */
   	unsigned long dwarf_module_base;
 
 	/* the stack unwind data for this module */

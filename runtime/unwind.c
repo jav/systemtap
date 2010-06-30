@@ -515,6 +515,8 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
 		struct _stp_section *s,
 		unsigned ptrType, int is_ehframe)
 {
+  unsigned long vm_addr = 0;
+
   /* XXX - some, or all, of this should really be done by
      _stp_module_relocate and/or read_pointer. */
   dbug_unwind(2, "adjustStartLoc=%lx, ptrType=%s, m=%s, s=%s eh=%d\n",
@@ -536,18 +538,16 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
       return startLoc;
   }
 
-  /* User space dynamic library */
-  if (strcmp (s->name, ".dynamic") == 0) {
-    unsigned long vm_addr = 0;
-    if (stap_find_vma_map_info_user(tsk->group_leader, m,
-				    &vm_addr, NULL, NULL) == 0)
-      return startLoc + vm_addr;
-  }
+  /* User space or kernel dynamic module. */
+  if (strcmp (s->name, ".dynamic") == 0)
+    stap_find_vma_map_info_user(tsk->group_leader, m, &vm_addr, NULL, NULL);
+  else
+    vm_addr = s->static_addr;
 
-  /* Kernel module */
-  startLoc += s->static_addr;
-  startLoc -= m->dwarf_module_base;
-  return startLoc;
+  if (is_ehframe)
+    return startLoc + vm_addr;
+  else
+    return startLoc + vm_addr - m->dwarf_module_base;
 }
 
 /* If we previously created an unwind header, then use it now to binary search */
