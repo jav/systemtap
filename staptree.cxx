@@ -401,6 +401,12 @@ void defined_op::print (ostream& o) const
 }
 
 
+void entry_op::print (ostream& o) const
+{
+  o << "@entry(" << *operand << ")";
+}
+
+
 void vardecl::print (ostream& o) const
 {
   o << name;
@@ -1396,6 +1402,13 @@ defined_op::visit (visitor* u)
 
 
 void
+entry_op::visit (visitor* u)
+{
+  u->visit_entry_op(this);
+}
+
+
+void
 arrayindex::visit (visitor* u)
 {
   u->visit_arrayindex (this);
@@ -1794,6 +1807,12 @@ traversing_visitor::visit_defined_op (defined_op* e)
   e->operand->visit (this);
 }
 
+void
+traversing_visitor::visit_entry_op (entry_op* e)
+{
+  e->operand->visit (this);
+}
+
 
 void
 traversing_visitor::visit_arrayindex (arrayindex* e)
@@ -1967,6 +1986,13 @@ varuse_collecting_visitor::visit_defined_op (defined_op *e)
 {
   // XXX
   functioncall_traversing_visitor::visit_defined_op (e);
+}
+
+void
+varuse_collecting_visitor::visit_entry_op (entry_op *e)
+{
+  // XXX
+  functioncall_traversing_visitor::visit_entry_op (e);
 }
 
 
@@ -2388,6 +2414,12 @@ throwing_visitor::visit_defined_op (defined_op* e)
   throwone (e->tok);
 }
 
+void
+throwing_visitor::visit_entry_op (entry_op* e)
+{
+  throwone (e->tok);
+}
+
 
 void
 throwing_visitor::visit_arrayindex (arrayindex* e)
@@ -2655,6 +2687,13 @@ update_visitor::visit_defined_op (defined_op* e)
 }
 
 void
+update_visitor::visit_entry_op (entry_op* e)
+{
+  replace (e->operand);
+  provide (e);
+}
+
+void
 update_visitor::visit_arrayindex (arrayindex* e)
 {
   replace (e->base);
@@ -2907,6 +2946,12 @@ void
 deep_copy_visitor::visit_defined_op (defined_op* e)
 {
   update_visitor::visit_defined_op(new defined_op(*e));
+}
+
+void
+deep_copy_visitor::visit_entry_op (entry_op* e)
+{
+  update_visitor::visit_entry_op(new entry_op(*e));
 }
 
 void

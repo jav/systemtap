@@ -1,0 +1,8 @@
+#! stap -p2
+
+global stat
+
+# the type must agree between what was saved and how it's used
+probe kernel.function("do_filp_open").return {
+    stat <<< get_cycles() - @entry(execname())
+}

@@ -294,6 +294,14 @@ struct defined_op: public expression
 };
 
 
+struct entry_op: public expression
+{
+  expression *operand;
+  void print (std::ostream& o) const;
+  void visit (visitor* u);
+};
+
+
 struct arrayindex: public expression
 {
   std::vector<expression*> indexes;
@@ -758,6 +766,7 @@ struct visitor
   virtual void visit_hist_op (hist_op* e) = 0;
   virtual void visit_cast_op (cast_op* e) = 0;
   virtual void visit_defined_op (defined_op* e) = 0;
+  virtual void visit_entry_op (entry_op* e) = 0;
 };
 
 
@@ -802,6 +811,7 @@ struct traversing_visitor: public visitor
   void visit_hist_op (hist_op* e);
   void visit_cast_op (cast_op* e);
   void visit_defined_op (defined_op* e);
+  void visit_entry_op (entry_op* e);
 };
 
 
@@ -847,6 +857,7 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
   void visit_foreach_loop (foreach_loop *s);
   void visit_cast_op (cast_op* e);
   void visit_defined_op (defined_op* e);
+  void visit_entry_op (entry_op* e);
 
   bool side_effect_free ();
   bool side_effect_free_wrt (const std::set<vardecl*>& vars);
@@ -900,6 +911,7 @@ struct throwing_visitor: public visitor
   void visit_hist_op (hist_op* e);
   void visit_cast_op (cast_op* e);
   void visit_defined_op (defined_op* e);
+  void visit_entry_op (entry_op* e);
 };
 
 // A visitor similar to a traversing_visitor, but with the ability to rewrite
@@ -969,6 +981,7 @@ struct update_visitor: public visitor
   virtual void visit_hist_op (hist_op* e);
   virtual void visit_cast_op (cast_op* e);
   virtual void visit_defined_op (defined_op* e);
+  virtual void visit_entry_op (entry_op* e);
 
 private:
   std::stack<void *> targets;
@@ -1027,6 +1040,7 @@ struct deep_copy_visitor: public update_visitor
   virtual void visit_hist_op (hist_op* e);
   virtual void visit_cast_op (cast_op* e);
   virtual void visit_defined_op (defined_op* e);
+  virtual void visit_entry_op (entry_op* e);
 };
 
 #endif // STAPTREE_H

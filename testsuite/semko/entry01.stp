@@ -1,0 +1,8 @@
+#! stap -p2
+
+global stat
+
+# dwarf probes can only use @entry in .return
+probe kernel.function("do_filp_open").call {
+    stat <<< get_cycles() - @entry(get_cycles())
+}

@@ -1,5 +1,9 @@
 * What's new
 
+- A new operator @entry is available for automatically saving an expression
+  at entry time for use in a .return probe.
+   probe foo.return { println(get_cycles() - @entry(get_cycles())) }
+
 - Probe $target variables and @cast() can now use a suffix to print complex
   data types as strings.  Use a single '$' for a shallow view, or '$$' for a
   deeper view that includes nested types.  For example, with fs_struct:

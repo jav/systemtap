@@ -1,0 +1,20 @@
+#! stap -Wp2
+
+# This causes a mix of kretprobe-data-pouch and global-map
+# approaches for saving entry values.
+#
+# During development I found that kretprobe would add a call block without
+# setting up _dwarf_tvar_tid, and then global-map would neglect to create the
+# tid as it appended.
+#
+# We try it in both orders here to make sure they don't interfere either way.
+
+probe kernel.function("do_filp_open").return {
+    println(kernel_string($pathname))
+    println(get_cycles() - @entry(get_cycles()))
+}
+
+probe kernel.function("do_filp_open").return {
+    println(get_cycles() - @entry(get_cycles()))
+    println(kernel_string($pathname))
+}

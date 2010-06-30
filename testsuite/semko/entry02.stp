@@ -1,0 +1,8 @@
+#! stap -p2
+
+global stat
+
+# @entry is only valid in dwarf .return probes
+probe begin {
+    stat <<< get_cycles() - @entry(get_cycles())
+}

@@ -4154,6 +4154,13 @@ typeresolution_info::visit_defined_op (defined_op* e)
 
 
 void
+typeresolution_info::visit_entry_op (entry_op* e)
+{
+  throw semantic_error("@entry is only valid in .return probes", e->tok);
+}
+
+
+void
 typeresolution_info::visit_cast_op (cast_op* e)
 {
   // Like target_symbol, a cast_op shouldn't survive this far

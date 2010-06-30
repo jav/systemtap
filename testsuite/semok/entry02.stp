@@ -1,0 +1,10 @@
+#! stap -Wp2
+
+global stat
+
+# @entry can be optimized away from bad locations if the result is not used.
+probe begin {
+    stat <<< get_cycles();
+    - @entry(get_cycles())
+    exit()
+}

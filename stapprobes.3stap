@@ -397,6 +397,16 @@ The expressions evaluate to the
 values of those variables, since that is when a snapshot is taken.
 Other local variables are not generally accessible, since by the time
 a ".return" probe hits, the probed function will have already returned.
+.PP
+Arbitrary entry-time expressions can also be saved for ".return"
+probes using the
+.IR @entry(expr)
+operator.  For example, one can compute the elapsed time of a function:
+.SAMPLE
+probe kernel.function("do_filp_open").return {
+    println( get_timeofday_us() \- @entry(get_timeofday_us()) )
+}
+.ESAMPLE
 
 
 .SS DWARFLESS

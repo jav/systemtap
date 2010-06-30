@@ -140,6 +140,7 @@ private: // nonterminals
   indexable* parse_indexable ();
   const token *parse_hist_op_or_bare_name (hist_op *&hop, string &name);
   target_symbol *parse_target_symbol (const token* t);
+  expression* parse_entry_op (const token* t);
   expression* parse_defined_op (const token* t);
   expression* parse_expression ();
   expression* parse_assignment ();
@@ -2635,7 +2636,10 @@ expression* parser::parse_symbol ()
       // of stap, so no need to check session.compatible for 1.2
       if (name == "@defined")
         return parse_defined_op (t);
-     
+
+      if (name == "@entry")
+        return parse_entry_op (t);
+
       else if (name.size() > 0 && name[0] == '@')
 	{
 	  stat_op *sop = new stat_op;
@@ -2900,6 +2904,18 @@ expression* parser::parse_defined_op (const token* t)
   dop->operand = parse_target_symbol (tt);
   expect_op(")");
   return dop;
+}
+
+
+// Parse a @entry().  Given head token has already been consumed.
+expression* parser::parse_entry_op (const token* t)
+{
+  entry_op* eop = new entry_op;
+  eop->tok = t;
+  expect_op("(");
+  eop->operand = parse_expression ();
+  expect_op(")");
+  return eop;
 }
 
 

@@ -169,6 +169,7 @@ struct c_unparser: public unparser, public visitor
   void visit_hist_op (hist_op* e);
   void visit_cast_op (cast_op* e);
   void visit_defined_op (defined_op* e);
+  void visit_entry_op (entry_op* e);
 };
 
 // A shadow visitor, meant to generate temporary variable declarations
@@ -3729,6 +3730,13 @@ void
 c_unparser::visit_defined_op (defined_op* e)
 {
   throw semantic_error("cannot translate general @defined expression", e->tok);
+}
+
+
+void
+c_unparser::visit_entry_op (entry_op* e)
+{
+  throw semantic_error("cannot translate general @entry expression", e->tok);
 }
 
 

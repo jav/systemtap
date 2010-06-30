@@ -1928,6 +1928,7 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   Dwarf_Addr addr;
   block *add_block;
   block *add_call_probe; // synthesized from .return probes with saved $vars
+  bool add_block_tid, add_call_probe_tid;
   unsigned saved_longs, saved_strings; // data saved within kretprobes
   map<std::string, expression *> return_ts_map;
   vector<Dwarf_Die> scopes;
@@ -1935,6 +1936,7 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
 
   dwarf_var_expanding_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
     q(q), scope_die(sd), addr(a), add_block(NULL), add_call_probe(NULL),
+    add_block_tid(false), add_call_probe_tid(false),
     saved_longs(0), saved_strings(0), visited(false) {}
   expression* gen_mapped_saved_return(expression* e, const string& name);
   expression* gen_kretprobe_saved_return(expression* e, const string& name);
@@ -1942,6 +1944,7 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
   void visit_cast_op (cast_op* e);
+  void visit_entry_op (entry_op* e);
 private:
   vector<Dwarf_Die>& getscopes(target_symbol *e);
 };
@@ -2724,7 +2727,10 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
     {
       add_block = new block;
       add_block->tok = e->tok;
+    }
 
+  if (!add_block_tid)
+    {
       // Synthesize a functioncall to grab the thread id.
       functioncall* fc = new functioncall;
       fc->tok = e->tok;
@@ -2741,6 +2747,7 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
       es->tok = e->tok;
       es->value = a;
       add_block->statements.push_back (es);
+      add_block_tid = true;
     }
 
   // (2b) Synthesize an array reference and assign it to a
@@ -2853,7 +2860,10 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
     {
       add_call_probe = new block;
       add_call_probe->tok = e->tok;
+    }
 
+  if (!add_call_probe_tid)
+    {
       // Synthesize a functioncall to grab the thread id.
       functioncall* fc = new functioncall;
       fc->tok = e->tok;
@@ -2870,6 +2880,7 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
       es->tok = e->tok;
       es->value = a;
       add_call_probe = new block(add_call_probe, es);
+      add_call_probe_tid = true;
     }
 
   // Save the value, like this:
@@ -3264,6 +3275,26 @@ dwarf_var_expanding_visitor::visit_cast_op (cast_op *e)
     e->module = q.dw.module_name;
 
   var_expanding_visitor::visit_cast_op(e);
+}
+
+
+void
+dwarf_var_expanding_visitor::visit_entry_op (entry_op *e)
+{
+  expression *repl = e;
+  if (q.has_return)
+    {
+      // expand the operand as if it weren't a return probe
+      q.has_return = false;
+      replace (e->operand);
+      q.has_return = true;
+
+      // XXX it would be nice to use gen_kretprobe_saved_return when available,
+      // but it requires knowing the types already, which is problematic for
+      // arbitrary expressons.
+      repl = gen_mapped_saved_return (e->operand, "@entry");
+    }
+  provide (repl);
 }
 
 
