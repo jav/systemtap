@@ -4477,7 +4477,6 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   map<string,int> dwarf_regs;
 
   void visit_target_symbol (target_symbol* e);
-  void visit_defined_op (defined_op* e);
 };
 
 struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
@@ -4500,7 +4499,6 @@ struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
   vector<string> arg_tokens;
 
   void visit_target_symbol (target_symbol* e);
-  void visit_defined_op (defined_op* e);
 };
 
 void
@@ -4774,21 +4772,6 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       e->chain (er);
       provide (e);
     }
-}
-
-
-// See var_expanding_visitor::visit_defined_op for a background on
-// this callback,
-void
-sdt_uprobe_var_expanding_visitor::visit_defined_op (defined_op *e)
-{
-  provide (e);
-}
-
-void
-sdt_kprobe_var_expanding_visitor::visit_defined_op (defined_op *e)
-{
-  var_expanding_visitor::visit_defined_op (e);
 }
 
 
