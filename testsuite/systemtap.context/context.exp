@@ -9,7 +9,7 @@ if {![installtest_p]} {
 
 set build_dir ""
 
-proc cleanup {} {
+proc cleanup_modules {} {
     global build_dir
     catch { exec kill -INT -[exp_pid] }
     foreach n {1 2} {
@@ -87,5 +87,4 @@ foreach test $testlist {
     source $srcdir/$subdir/$test.tcl
 }
 
-cleanup
-
+cleanup_modules
