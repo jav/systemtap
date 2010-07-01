@@ -36,4 +36,20 @@ static inline int _stp_is_compat_task(void)
 
 #endif /* CONFIG_COMPAT */
 
+/* task_pt_regs is used in some core tapset functions, so try to make
+ * sure something sensible is defined. task_pt_regs is required for
+ * the tracehook interface api so is normally defined already.
+ */
+#include <asm/processor.h>
+#include <asm/ptrace.h>
+
+#if !defined(task_pt_regs)
+#if defined(__powerpc__)
+#define task_pt_regs(tsk)       ((struct pt_regs *)(tsk)->thread.regs)
+#endif
+#if defined(__x86_64__)
+#define task_pt_regs(tsk)	((struct pt_regs *)(tsk)->thread.rsp0 - 1)
+#endif
+#endif
+
 #endif /* _STP_COMPAT_H_ */
