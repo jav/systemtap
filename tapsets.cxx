@@ -4833,6 +4833,7 @@ private:
   string arg_string;
   string probe_name;
   string provider_name;
+  Dwarf_Addr semaphore;
 
   bool init_probe_scn();
   bool get_next_probe();
@@ -5054,14 +5055,6 @@ sdt_query::init_probe_scn()
 bool
 sdt_query::get_next_probe()
 {
-  // Extract probe info from the .probes section, e.g.
-  // 74657374 5f70726f 62655f32 00000000 test_probe_2....
-  // 50524233 00000000 980c2000 00000000 PRB3...... .....
-  // 01000000 00000000 00000000 00000000 ................
-  // test_probe_2 is probe_name, probe_type is 50524233,
-  // *probe_name (pbe->name) is 980c2000, probe_arg (pbe->arg) is 1
-  // probe_scn_offset is position currently being scanned in .probes
-
   while (probe_scn_offset < pdata->d_size)
     {
       stap_sdt_probe_entry_v1 *pbe_v1 = (stap_sdt_probe_entry_v1 *) ((char*)pdata->d_buf + probe_scn_offset);
@@ -5087,6 +5080,9 @@ sdt_query::get_next_probe()
 
       if (probe_type == uprobe1_type || probe_type == kprobe1_type)
 	{
+	  if (pbe_v1->name == 0) // No name possibly means we have a .so with a relocation
+	    return false;
+	  semaphore = 0;
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v1->name - (char*)probe_scn_addr);
           provider_name = ""; // unknown
 	  if (probe_type == uprobe1_type)
@@ -5100,13 +5096,18 @@ sdt_query::get_next_probe()
 	}
       else if (probe_type == uprobe2_type || probe_type == kprobe2_type)
 	{
+	  if (pbe_v2->name == 0) // No name possibly means we have a .so with a relocation
+	    return false;
+	  semaphore = pbe_v2->semaphore;
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v2->name - (char*)probe_scn_addr);
 	  provider_name = (char*)((char*)pdata->d_buf + pbe_v2->provider - (char*)probe_scn_addr);
 	  arg_count = pbe_v2->arg_count;
 	  pc = pbe_v2->pc;
 	  if (pbe_v2->arg_string)
 	    arg_string = (char*)((char*)pdata->d_buf + pbe_v2->arg_string - (char*)probe_scn_addr);
-	  probe_scn_offset += sizeof (stap_sdt_probe_entry_v2);
+	  // skip over pbe_v2, probe_name text and provider text
+	  probe_scn_offset = ((long)(pbe_v2->name) - (long)(probe_scn_addr)) + probe_name.length();
+	  probe_scn_offset += sizeof (__uint32_t) - probe_scn_offset % sizeof (__uint32_t);
 	}
       if (sess.verbose > 4)
 	clog << "saw .probes " << probe_name << (provider_name != "" ? " (provider "+provider_name+") " : "")
@@ -5132,7 +5133,11 @@ sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
     if (sess.verbose > 2)
       clog << "looking for semaphore symbol " << semaphore;
 
-    Dwarf_Addr addr = lookup_symbol_address(dw.module, semaphore.c_str());
+    Dwarf_Addr addr;
+    if (this->semaphore)
+      addr = this->semaphore;
+    else
+      addr  = lookup_symbol_address(dw.module, semaphore.c_str());
     if (addr)
       {
         if (dwfl_module_relocations (dw.module) > 0)
