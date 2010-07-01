@@ -1,5 +1,7 @@
 /*
  *      Copyright (C) 2009 IBM Corp.
+ *      Copyright (C) 2010 Red Hat Inc.
+ *
  *      This file is part of systemtap, and is free software.  You can
  *      redistribute it and/or modify it under the terms of the GNU General
  *      Public License (GPL); either version 2, or (at your option) any
@@ -14,7 +16,7 @@ global ListenDrops		/* LINUX_MIB_LISTENDROPS */
 global TCPMemoryPressures	/* LINUX_MIB_TCPMEMORYPRESSURES */
 
 /**
- * probe tcpmib.DelayedACKs - Count of delayed acks.
+ * probe linuxmib.DelayedACKs - Count of delayed acks.
  * @sk: Pointer to the struct sock being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -38,16 +40,18 @@ probe _linuxmib.DelayedACKs.B = kernel.function("tcp_delack_timer")
 {
 	sk=$data
 	indelack_timer[sk]=1
+	op=0
 }
 
 probe _linuxmib.DelayedACKs.C = kernel.function("tcp_delack_timer").return
 {
 	sk=$data
 	indelack_timer[sk]=0;
+	op=0
 }
 
 /**
- * probe tcpmib.ListenOverflows - Count of times a listen queue overflowed
+ * probe linuxmib.ListenOverflows - Count of times a listen queue overflowed
  * @sk: Pointer to the struct sock being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -66,7 +70,7 @@ probe linuxmib.ListenOverflows=kernel.function("tcp_v4_syn_recv_sock").return
 }
 
 /**
- * probe tcpmib.ListenDrops - Count of times conn request that were dropped.
+ * probe linuxmib.ListenDrops - Count of times conn request that were dropped.
  * @sk: Pointer to the struct sock being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -84,7 +88,7 @@ probe linuxmib.ListenDrops=kernel.function("tcp_v4_syn_recv_sock").return
 }
 
 /**
- * probe tcpmib.TCPMemoryPressures - Count of times memory pressure was used.
+ * probe linuxmib.TCPMemoryPressures - Count of times memory pressure was used.
  * @sk: Pointer to the struct sock being acted on.
  * @op: Value to be added to the counter (Operation). 
  *
@@ -94,11 +98,7 @@ probe linuxmib.ListenDrops=kernel.function("tcp_v4_syn_recv_sock").return
  */
 probe linuxmib.TCPMemoryPressures=kernel.function("tcp_enter_memory_pressure")
 {
-%( kernel_v >= "2.6.27" %?
-	sk = $sk
-%:
-	sk = 0;
-%)
+	sk = (@defined($sk) ? $sk : 0)
 	op = 1;
 	if ( $tcp_memory_pressure ) next
 	key = linuxmib_filter_key(sk,op);
