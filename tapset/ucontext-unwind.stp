@@ -23,13 +23,21 @@
  */
 function print_ubacktrace () %{
 /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-        assert_is_myproc();
-	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, _STP_SYM_FULL, CONTEXT->pi, MAXTRACE,
-				 current, CONTEXT->ri);
-	} else {
-		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
+  assert_is_myproc();
+
+  /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
+  if (current->mm)
+    {
+      struct pt_regs *uregs = task_pt_regs(current);
+      if (uregs)
+	{
+	  _stp_stack_print(uregs, _STP_SYM_FULL, CONTEXT->pi, MAXTRACE,
+			   current, CONTEXT->ri);
+	  return;
 	}
+    }
+
+    _stp_printf("<no ubacktrace: %s>\n", CONTEXT->probe_point);
 %}
 
 /**
@@ -40,13 +48,21 @@ function print_ubacktrace () %{
  */
 function print_ubacktrace_brief () %{
 /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-        assert_is_myproc();
-	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, _STP_SYM_BRIEF, CONTEXT->pi,
-				 MAXTRACE, current, CONTEXT->ri);
-	} else {
-		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
+  assert_is_myproc();
+
+  /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
+  if (current->mm)
+    {
+      struct pt_regs *uregs = task_pt_regs(current);
+      if (uregs)
+	{
+	  _stp_stack_print(uregs, _STP_SYM_BRIEF, CONTEXT->pi, MAXTRACE,
+			   current, CONTEXT->ri);
+	  return;
 	}
+    }
+
+    _stp_printf("<no ubacktrace: %s>\n", CONTEXT->probe_point);
 %}
 
 /**
@@ -59,11 +75,20 @@ function print_ubacktrace_brief () %{
  */
 function ubacktrace:string () %{
 /* pure */ /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-        assert_is_myproc();
-	if (CONTEXT->regs)
-		_stp_stack_hexstring (THIS->__retvalue, MAXSTRINGLEN,
-				    CONTEXT->regs, CONTEXT->pi, MAXTRACE,
-				    current, CONTEXT->ri);
-	else 
-		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+  assert_is_myproc();
+
+  /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
+  if (current->mm)
+    {
+      struct pt_regs *uregs = task_pt_regs(current);
+      if (uregs)
+	{
+	  _stp_stack_hexstring (THIS->__retvalue, MAXSTRINGLEN,
+				uregs, CONTEXT->pi, MAXTRACE,
+				current, CONTEXT->ri);
+	  return;
+	}
+    }
+
+    strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
