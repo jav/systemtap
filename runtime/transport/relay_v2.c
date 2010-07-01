@@ -51,6 +51,10 @@ struct _stp_relay_data_type {
 };
 struct _stp_relay_data_type _stp_relay_data;
 
+/* relay_file_operations is const, so .owner is obviously not set there.
+ * Below struct, filled in _stp_transport_data_fs_init(), fixes it. */
+static struct file_operations relay_file_operations_w_owner;
+
 /*
  *	__stp_relay_switch_subbuf - switch to a new sub-buffer
  *
@@ -204,7 +208,7 @@ __stp_relay_create_buf_file_callback(const char *filename,
 				     int *is_global)
 {
 	struct dentry *file = debugfs_create_file(filename, mode, parent, buf,
-						  &relay_file_operations);
+	                                          &relay_file_operations_w_owner);
 	/*
 	 * Here's what 'is_global' does (from linux/relay.h):
 	 *
@@ -317,6 +321,8 @@ static int _stp_transport_data_fs_init(void)
 		       "log buffer size exceeds free memory(%luMB)\n",
 		       MB(si.freeram));
 	}
+	relay_file_operations_w_owner = relay_file_operations;
+	relay_file_operations_w_owner.owner = THIS_MODULE;
 #if (RELAYFS_CHANNEL_VERSION >= 7)
 	_stp_relay_data.rchan = relay_open("trace", _stp_get_module_dir(),
 					   _stp_subbuf_size, _stp_nsubbufs,
