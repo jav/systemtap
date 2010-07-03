@@ -1,0 +1,11 @@
+#! stap -p2
+
+# A less specific test for tracepoints
+#
+# We have an error where base types wouldn't work, PR11785, but it
+# should still work in $$parms$ as just "=?"
+%( CONFIG_TRACEPOINTS == "y" %?
+probe kernel.trace("*") { log($$parms$$) }
+%:
+probe never { next } // :(
+%)

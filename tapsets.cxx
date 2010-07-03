@@ -7275,7 +7275,15 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
           // every variable should always be accessible!
           tsym->saved_conversion_error = 0;
           expression *texp = require (tsym); // NB: throws nothing ...
-          assert (!tsym->saved_conversion_error); // ... but this is how we know it happened.
+          if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+            {
+              if (dw.sess.verbose>2)
+                for (semantic_error *c = tsym->saved_conversion_error;
+                     c != 0; c = c->chain)
+                  clog << "variable location problem: " << c->what() << endl;
+              pf->raw_components += "=?";
+              continue;
+            }
 
           if (!e->components.empty() &&
               e->components[0].type == target_symbol::comp_pretty_print)
