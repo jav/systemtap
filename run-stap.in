@@ -30,4 +30,8 @@ if [ -d "$rundir/lib-elfutils" ]; then
   export LD_LIBRARY_PATH
 fi
 
-exec "${builddir}/stap" ${1+"$@"}
+if [ -z "$DEBUG_STAP" ]; then
+    exec "${builddir}/stap" ${1+"$@"}
+else
+    exec gdb --args "${builddir}/stap" ${1+"$@"}
+fi
