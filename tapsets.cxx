@@ -1939,7 +1939,7 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
     add_block_tid(false), add_call_probe_tid(false),
     saved_longs(0), saved_strings(0), visited(false) {}
   expression* gen_mapped_saved_return(expression* e, const string& name);
-  expression* gen_kretprobe_saved_return(expression* e, const string& name);
+  expression* gen_kretprobe_saved_return(expression* e);
   void visit_target_symbol_saved_return (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
   void visit_target_symbol (target_symbol* e);
@@ -2237,6 +2237,7 @@ dwarf_pretty_print::expand ()
   functioncall* fcall = new functioncall;
   fcall->tok = ts->tok;
   fcall->function = fdecl->name;
+  fcall->type = pe_string;
 
   // If there's a <pointer>, replace it with a new var and make that
   // the first function argument.
@@ -2657,7 +2658,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
   expression *exp;
   if (!q.has_process &&
       strverscmp(q.sess.kernel_base_release.c_str(), "2.6.25") >= 0)
-    exp = gen_kretprobe_saved_return(repl, e->name);
+    exp = gen_kretprobe_saved_return(repl);
   else
     exp = gen_mapped_saved_return(repl, e->name);
 
@@ -2916,8 +2917,7 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
 
 
 expression*
-dwarf_var_expanding_visitor::gen_kretprobe_saved_return(expression* e,
-                                                        const string& name)
+dwarf_var_expanding_visitor::gen_kretprobe_saved_return(expression* e)
 {
   // The code for this is simple.
   //
@@ -2932,21 +2932,21 @@ dwarf_var_expanding_visitor::gen_kretprobe_saved_return(expression* e,
   unsigned index;
   string setfn, getfn;
 
-  // Cheesy way to predetermine that this is a string -- if the second
-  // character is a '$', then we're looking at a $$vars, $$parms, or $$locals.
-  // XXX We need real type resolution here, especially if we are ever to
-  //     support an @entry construct.
-  if (name[1] == '$')
+  // We need the caller to predetermine the type of the expression!
+  switch (e->type)
     {
+    case pe_string:
       index = saved_strings++;
       setfn = "_set_kretprobe_string";
       getfn = "_get_kretprobe_string";
-    }
-  else
-    {
+      break;
+    case pe_long:
       index = saved_longs++;
       setfn = "_set_kretprobe_long";
       getfn = "_get_kretprobe_long";
+      break;
+    default:
+      throw semantic_error("unknown type to save in kretprobe", e->tok);
     }
 
   // Create the entry code
@@ -3090,6 +3090,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     }
 
   pf->components = print_format::string_to_components(pf->raw_components);
+  pf->type = pe_string;
   provide (pf);
 }
 
@@ -3238,6 +3239,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       functioncall* n = new functioncall;
       n->tok = e->tok;
       n->function = fname;
+      n->type = fdecl->type;
 
       // Any non-literal indexes need to be passed in too.
       for (unsigned i = 0; i < e->components.size(); ++i)
