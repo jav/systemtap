@@ -73,7 +73,8 @@ function probefunc:string () %{ /* pure */
 		*dst = 0;
 
 	} else if (CONTEXT->regs && !user_mode(CONTEXT->regs)) {
-		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs), NULL, 0);
+		_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN,
+				  _STP_SYM_SYMBOL, REG_IP(CONTEXT->regs), NULL);
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
        	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
@@ -142,8 +143,8 @@ function modname:string (addr: long) %{ /* pure */
  * representation of addr.
  */
 function symname:string (addr: long) %{ /* pure */
-	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
-			     NULL, 0);
+	 _stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+			   _STP_SYM_SYMBOL, NULL);
 %}
 
 /**
@@ -154,12 +155,14 @@ function symname:string (addr: long) %{ /* pure */
  * @addr: The address to translate.
  *
  * Description: Returns the (function) symbol name associated with the
- * given address if known, plus the module name (between brackets) and
- * the offset inside the module, plus the size of the symbol function.
- * If any element is not known it will be omitted and if the symbol name
- * is unknown it will return the hex string for the given address.
+ * given address if known, the offset from the start and size of the
+ * symbol, plus module name (between brackets). If symbol is unknown,
+ * but module is known, the offset inside the module, plus the size of
+ * the module is added.  If any element is not known it will be
+ * omitted and if the symbol name is unknown it will return the hex
+ * string for the given address.
  */
 function symdata:string (addr: long) %{ /* pure */
-	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
-			     NULL, 1);
+	_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+			  _STP_SYM_DATA, NULL);
 %}

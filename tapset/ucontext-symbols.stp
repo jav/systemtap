@@ -30,8 +30,8 @@
 function usymname:string (addr: long) %{
 /* pure */ /* unprivileged */ /* pragma:vma */
          assert_is_myproc();
-	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
-			     current, 0);
+	 _stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+			   _STP_SYM_SYMBOL, current);
 %}
 
 /**
@@ -39,17 +39,18 @@ function usymname:string (addr: long) %{
  * @addr: The address to translate.
  *
  * Description: Returns the (function) symbol name associated with the
- * given address in the current task if known, plus the module name
- * (between brackets) and the offset inside the module (shared library),
- * plus the size of the symbol function. If any element is not known it
- * will be omitted and if the symbol name is unknown it will return the
- * hex string for the given address.
+ * given address in the current task if known, the offset from the
+ * start and the size of the symbol, plus the module name (between
+ * brackets).  If symbol is unknown, but module is known, the offset
+ * inside the module, plus the size of the module is added.  If any
+ * element is not known it will be omitted and if the symbol name is
+ * unknown it will return the hex string for the given address.
  */
 function usymdata:string (addr: long) %{
 /* pure */ /* unprivileged */ /* pragma:vma */
          assert_is_myproc();
-	 _stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
-			     current, 1);
+	 _stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+			   _STP_SYM_DATA, current);
 %}
 
 /**

@@ -442,36 +442,6 @@ static void _stp_print_addr(unsigned long address, int flags,
   _stp_snprint_addr(NULL, 0, address, flags, task);
 }
 
-/** Puts symbolic information of an address in a string.
- * @param src The string to fill in.
- * @param len The length of the given src string.
- * @param address The address to lookup.
- * @param add_mod Whether to include module name information if found.
- */
-
-static void _stp_symbol_snprint(char *str, size_t len, unsigned long address,
-			 struct task_struct *task, int add_mod)
-{
-	const char *modname = NULL;
-	const char *name;
-	unsigned long offset = 0, size = 0;
-
-	name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
-	if (name) {
-		if (add_mod && modname && *modname)
-			_stp_snprintf(str, len, "%s %s+%#lx/%#lx",
-				      name, modname, offset, size);
-		else
-			strlcpy(str, name, len);
-	} else {
-		if (add_mod && modname && *modname)
-			_stp_snprintf(str, len, "%p %s+%#lx/%#lx",
-				      (int64_t) address, modname, offset, size);
-		else
-			_stp_snprintf(str, len, "%p", (int64_t) address);
-	}
-}
-
 /** @} */
 
 #endif /* _STP_SYM_C_ */

@@ -37,7 +37,7 @@ if { $lines == 6 } {
     fail "$test ($lines)"
 }
 
-set result_funcs [list "main *" "func *" "func2 *" "func *" "main *"]
+set result_funcs [list "main+*" "func+*" "func2+*" "func+*" "main+*"]
 
 foreach expected $result_funcs output $output_lines {
     if {$expected != ""} {

@@ -43,6 +43,9 @@
 			 | _STP_SYM_MODULE | _STP_SYM_OFFSET \
 			 | _STP_SYM_SIZE | _STP_SYM_PRE_SPACE \
 			 | _STP_SYM_NEWLINE)
+/* All symbol information (as used by [u]symdata). */
+#define _STP_SYM_DATA   (_STP_SYM_SYMBOL | _STP_SYM_MODULE \
+			 | _STP_SYM_OFFSET | _STP_SYM_SIZE)
 
 struct _stp_symbol {
 	unsigned long addr;
