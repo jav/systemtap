@@ -323,8 +323,8 @@ static int _stp_module_check(void)
  * @param task The address to lookup (if NULL lookup kernel/module address).
  * @note Symbolic lookups should not normally be done within
  * a probe because it is too time-consuming. Use at module exit time. */
-static void _stp_print_addr(unsigned long address, int flags,
-			    struct task_struct *task)
+static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
+			     int flags, struct task_struct *task)
 {
   const char *modname = NULL;
   const char *name = NULL;
@@ -350,87 +350,96 @@ static void _stp_print_addr(unsigned long address, int flags,
 	if (flags & _STP_SYM_SIZE) {
 	  /* symbol, module, offset and size. */
 	  if (flags & _STP_SYM_HEX_SYMBOL)
-	    _stp_printf("%s%p : %s+%#lx/%#lx [%s]%s%s",
-			prestr, (int64_t) address,
-			name, offset, size, modname,
-			exstr, poststr);
+	    return _stp_snprintf(str, len, "%s%p : %s+%#lx/%#lx [%s]%s%s",
+				 prestr, (int64_t) address,
+				 name, offset, size, modname,
+				 exstr, poststr);
 	  else
-	    _stp_printf("%s%s+%#lx/%#lx [%s]%s%s",
-			prestr, name, offset, size,
-			modname, exstr, poststr);
+	    return _stp_snprintf(str, len, "%s%s+%#lx/%#lx [%s]%s%s",
+				 prestr, name, offset, size,
+				 modname, exstr, poststr);
 	} else {
 	  /* symbol, module, offset. */
 	  if (flags & _STP_SYM_HEX_SYMBOL)
-	    _stp_printf("%s%p : %s+%#lx/%#lx [%s]%s%s",
-			prestr, (int64_t) address,
-			name, offset, size, modname,
-			exstr, poststr);
+	    return _stp_snprintf(str, len, "%s%p : %s+%#lx/%#lx [%s]%s%s",
+				 prestr, (int64_t) address,
+				 name, offset, size, modname,
+				 exstr, poststr);
 	  else
-	    _stp_printf("%s%s+%#lx/%#lx [%s]%s%s",
-			prestr, name, offset, size,
-			modname, exstr, poststr);
+	    return _stp_snprintf(str, len, "%s%s+%#lx/%#lx [%s]%s%s",
+				 prestr, name, offset, size,
+				 modname, exstr, poststr);
 	}
       } else {
 	/* symbol plus module */
 	if (flags & _STP_SYM_HEX_SYMBOL)
-	  _stp_printf("%s%p : %s [%s]%s%s", prestr,
-		      (int64_t) address, name, modname,
-		      exstr, poststr);
+	  return _stp_snprintf(str, len, "%s%p : %s [%s]%s%s", prestr,
+			       (int64_t) address, name, modname,
+			       exstr, poststr);
 	else
-	  _stp_printf("%s%s [%s]%s%s", prestr, name,
-		      modname, exstr, poststr);
+	  return _stp_snprintf(str, len, "%s%s [%s]%s%s", prestr, name,
+			       modname, exstr, poststr);
       }
     } else if (flags & _STP_SYM_OFFSET) {
       if (flags & _STP_SYM_SIZE) {
 	/* symbol name, offset + size, no module name */
 	if (flags & _STP_SYM_HEX_SYMBOL)
-	  _stp_printf("%s%p : %s+%#lx/%#lx%s%s", prestr,
-		      (int64_t) address, name, offset,
-		      size, exstr, poststr);
+	  return _stp_snprintf(str, len, "%s%p : %s+%#lx/%#lx%s%s", prestr,
+			       (int64_t) address, name, offset,
+			       size, exstr, poststr);
 	else
-	  _stp_printf("%s%s+%#lx/%#lx%s%s", prestr, name,
-		      offset, size, exstr, poststr);
+	  return _stp_snprintf(str, len, "%s%s+%#lx/%#lx%s%s", prestr, name,
+			       offset, size, exstr, poststr);
       } else {
 	/* symbol name, offset, no module name */
 	if (flags & _STP_SYM_HEX_SYMBOL)
-	  _stp_printf("%s%p : %s+%#lx%s%s", prestr,
-		      (int64_t) address, name, offset,
-		      exstr, poststr);
+	  return _stp_snprintf(str, len, "%s%p : %s+%#lx%s%s", prestr,
+			       (int64_t) address, name, offset,
+			       exstr, poststr);
 	else
-	  _stp_printf("%s%s+%#lx%s%s", prestr, name,
-		      offset, exstr, poststr);
+	  return _stp_snprintf(str, len, "%s%s+%#lx%s%s", prestr, name,
+			       offset, exstr, poststr);
       }
     } else {
       /* symbol name only */
       if (flags & _STP_SYM_HEX_SYMBOL)
-	_stp_printf("%s%p : %s%s%s", prestr, (int64_t) address,
-		    name, exstr, poststr);
+	return _stp_snprintf(str, len, "%s%p : %s%s%s", prestr,
+			     (int64_t) address, name, exstr, poststr);
       else
-	_stp_printf("%s%s%s%s", prestr, name, exstr, poststr);
+	return _stp_snprintf(str, len, "%s%s%s%s", prestr, name,
+			     exstr, poststr);
     }
   } else {
     if (modname && *modname && (flags & _STP_SYM_MODULE)) {
       if (flags & _STP_SYM_OFFSET) {
         if (flags & _STP_SYM_SIZE) {
           /* hex address, module name, offset + size */
-          _stp_printf("%s%p [%s+%#lx/%#lx]%s%s", prestr,
-                      (int64_t) address, modname, offset,
-                      size, exstr, poststr);
+          return _stp_snprintf(str, len, "%s%p [%s+%#lx/%#lx]%s%s", prestr,
+			       (int64_t) address, modname, offset,
+			       size, exstr, poststr);
         } else {
           /* hex address, module name, offset */
-            _stp_printf("%s%p [%s+%#lx]%s%s", prestr,
-                        (int64_t) address, modname, offset,
-                        exstr, poststr);
+	  return _stp_snprintf(str, len, "%s%p [%s+%#lx]%s%s", prestr,
+			       (int64_t) address, modname, offset,
+			       exstr, poststr);
         }
       } else {
 	/* hex address, module name */
-        _stp_printf("%s%p [%s]%s%s", prestr, modname, exstr, poststr);
+        return _stp_snprintf(str, len, "%s%p [%s]%s%s", prestr, modname,
+			     exstr, poststr);
       }
     } else {
       /* no names, hex only */
-      _stp_printf("%s%p%s%s", prestr, (int64_t) address, exstr, poststr);
+      return _stp_snprintf(str, len, "%s%p%s%s", prestr,
+			   (int64_t) address, exstr, poststr);
     }
   }
+}
+
+static void _stp_print_addr(unsigned long address, int flags,
+			    struct task_struct *task)
+{
+  _stp_snprint_addr(NULL, 0, address, flags, task);
 }
 
 /** Puts symbolic information of an address in a string.
