@@ -425,8 +425,8 @@ static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
         }
       } else {
 	/* hex address, module name */
-        return _stp_snprintf(str, len, "%s%p [%s]%s%s", prestr, modname,
-			     exstr, poststr);
+        return _stp_snprintf(str, len, "%s%p [%s]%s%s", prestr,
+			     (int64_t) address, modname, exstr, poststr);
       }
     } else {
       /* no names, hex only */
