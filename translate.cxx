@@ -5460,8 +5460,10 @@ emit_symbol_data (systemtap_session& s)
     }
   DwflPtr dwfl_ptr = setup_dwfl_kernel (offline_search_modules, &count, s);
   Dwfl *dwfl = dwfl_ptr.get()->dwfl;
-  dwfl_assert("all kernel modules found",
-	      count >= offline_search_modules.size());
+  /* NB: It's not an error to find a few fewer modules than requested.
+     There might be third-party modules loaded (e.g. uprobes). */
+  /* dwfl_assert("all kernel modules found",
+     count >= offline_search_modules.size()); */
 
   ptrdiff_t off = 0;
   do
