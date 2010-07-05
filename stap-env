@@ -48,21 +48,17 @@ function stap_get_arch {
   # to squash uname -m -> $(SUBARCH).
 
   local machine=`uname -m`
-  machine=`expr "$machine" : '\(...\).*'`
   case $machine in
-      i48) machine="i386" ;;
-      i58) machine="i386" ;;
-      i68) machine="i386" ;;
+      i?86) machine="i386" ;;
+      x86_64) machine="x86_64" ;;
       sun) machine="sparc64" ;;
-      arm) machine="arm" ;;
-      sa1) machine="arm" ;;
-      s39) machine="s390" ;;
-      ppc) machine="powerpc" ;;
-      mip) machine="mips" ;;
-      sh2) machine="sh" ;;
-      sh3) machine="sh" ;;
-      sh4) machine="sh" ;;
-      *)   machine="unknown" ;;
+      arm*) machine="arm" ;;
+      sa1*) machine="arm" ;;
+      s390*) machine="s390" ;;
+      ppc*) machine="powerpc" ;;
+      mip*) machine="mips" ;;
+      sh?) machine="sh" ;;
+      *)   echo "unknown machine $machine" 1>&1; exit 1 ;; 
   esac
 
   echo $machine
