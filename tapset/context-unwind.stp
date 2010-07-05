@@ -48,7 +48,9 @@ function print_backtrace () %{
  */
 function backtrace:string () %{ /* pure */
 	if (CONTEXT->regs)
-		_stp_stack_hexstring (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, CONTEXT->pi, MAXTRACE, NULL, NULL);
+		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
+				   _STP_SYM_NONE, CONTEXT->regs,
+				   CONTEXT->pi, MAXTRACE, NULL, NULL);
 	else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}

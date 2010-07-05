@@ -161,11 +161,11 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-static void _stp_stack_hexstring(char *str, int size,
-				 struct pt_regs *regs,
-				 struct kretprobe_instance *pi,
-				 int levels, struct task_struct *tsk,
-				 struct uretprobe_instance *ri)
+static void _stp_stack_sprint(char *str, int size, int flags,
+			      struct pt_regs *regs,
+			      struct kretprobe_instance *pi,
+			      int levels, struct task_struct *tsk,
+			      struct uretprobe_instance *ri)
 {
 	/* To get an hex string, we use a simple trick.
 	 * First flush the print buffer,
@@ -176,11 +176,11 @@ static void _stp_stack_hexstring(char *str, int size,
 	_stp_print_flush();
 
 	if (pi)
-		_stp_printf("%p %p ", (int64_t)(long)_stp_ret_addr_r(pi),
-			    (int64_t) REG_IP(regs));
-	else
-		_stp_printf("%p ", (int64_t) REG_IP(regs));
-	__stp_stack_print(regs, _STP_SYM_NONE, levels, tsk, ri);
+		_stp_print_addr((int64_t) (long) _stp_ret_addr_r(pi),
+				flags, tsk);
+
+	_stp_print_addr((int64_t) REG_IP(regs), flags, tsk);
+	__stp_stack_print(regs, flags, levels, tsk, ri);
 
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
