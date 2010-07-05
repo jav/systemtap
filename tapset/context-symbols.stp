@@ -44,6 +44,38 @@ function print_stack(stk:string) %{
 %}
 
 /**
+ * sfunction sprint_stack - Return stack for kernel addresses from string. EXPERIMENTAL!
+ * @stk: String with list of hexadecimal (kernel) addresses.
+ *
+ * Perform a symbolic lookup of the addresses in the given string,
+ * which is assumed to be the result of a prior call to backtrace().
+ *
+ * Prints a simple backtrace from the given hex string. One line per
+ * address. Includes the symbol name (or hex address if symbol
+ * couldn't be resolved) and module name (if found). Includes the
+ * offset from the start of the function if found, otherwise the
+ * offset will be added to the module (if found, between
+ * brackets). Returns the backtrace as string (each line terminated by
+ * a newline character).  Note that the returned stack will be
+ * truncated to MAXSTRINGLEN, to print fuller and richer stacks use
+ * print_stack.
+ */
+function sprint_stack:string(stk:string) %{
+	char *ptr = THIS->stk;
+	char *tok = strsep(&ptr, " ");
+	char *str = THIS->__retvalue;
+	size_t len = MAXSTRINGLEN - 1;
+	while (tok && *tok && len > 0) {
+		int s = _stp_snprint_addr(str, len,
+					  simple_strtol(tok, NULL, 16),
+					  _STP_SYM_SIMPLE, NULL);
+		len -= s;
+		str += s;
+		tok = strsep(&ptr, " ");
+	}
+%}
+
+/**
  * sfunction probefunc - Return the probe point's function name, if known.
  * 
  * General Syntax: probefunc:string()

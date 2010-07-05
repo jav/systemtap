@@ -2,6 +2,7 @@
 
 probe begin {
 	print_stack(backtrace())
+	log(sprint_stack(backtrace()))
 	log(probefunc())
 	log(probemod())
 	log(modname(0))

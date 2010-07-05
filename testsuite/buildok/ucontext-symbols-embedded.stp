@@ -14,5 +14,6 @@ probe begin {
 	# has utrace, but not uprobes).
 %(CONFIG_UTRACE=="y" %?
 	print_ustack("")
+	log(sprint_ustack(""))
 %)
 }
