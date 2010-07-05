@@ -50,7 +50,7 @@ function print_stack(stk:string) %{
  * Perform a symbolic lookup of the addresses in the given string,
  * which is assumed to be the result of a prior call to backtrace().
  *
- * Prints a simple backtrace from the given hex string. One line per
+ * Returns a simple backtrace from the given hex string. One line per
  * address. Includes the symbol name (or hex address if symbol
  * couldn't be resolved) and module name (if found). Includes the
  * offset from the start of the function if found, otherwise the
@@ -73,6 +73,12 @@ function sprint_stack:string(stk:string) %{
 		str += s;
 		tok = strsep(&ptr, " ");
 	}
+
+        str--;
+        if (len > 0)
+                str[0] = '\0';
+        else
+                THIS->__retvalue[MAXSTRINGLEN - 1] = '\0';
 %}
 
 /**

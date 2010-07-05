@@ -85,7 +85,7 @@ function print_ustack(stk:string) %{
  * which is assumed to be the result of a prior call to
  * ubacktrace() for the current task.
  *
- * Prints a simple backtrace from the given hex string. One line per
+ * Returns a simple backtrace from the given hex string. One line per
  * address. Includes the symbol name (or hex address if symbol
  * couldn't be resolved) and module name (if found). Includes the
  * offset from the start of the function if found, otherwise the
@@ -101,11 +101,17 @@ function sprint_ustack:string(stk:string) %{
 	char *str = THIS->__retvalue;
 	size_t len = MAXSTRINGLEN - 1;
 	while (tok && *tok && len > 0) {
-	int s = _stp_snprint_addr(str, len,
-		simple_strtol(tok, NULL, 16),
-			      _STP_SYM_SIMPLE, current);
+		int s = _stp_snprint_addr(str, len,
+					  simple_strtol(tok, NULL, 16),
+					  _STP_SYM_SIMPLE, current);
 		len -= s;
 		str += s;
 		tok = strsep(&ptr, " ");
 	}
+
+	str--;
+	if (len > 0)
+		str[0] = '\0';
+	else
+		THIS->__retvalue[MAXSTRINGLEN - 1] = '\0';
 %}
