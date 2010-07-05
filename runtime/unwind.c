@@ -547,7 +547,7 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
   if (is_ehframe)
     return startLoc + vm_addr;
   else
-    return startLoc + vm_addr - m->dwarf_module_base;
+    return startLoc + vm_addr - s->sec_load_offset;
 }
 
 /* If we previously created an unwind header, then use it now to binary search */
@@ -557,7 +557,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 				   struct _stp_section *s,
 				   int is_ehframe)
 {
-	const u8 *ptr, *end, *hdr = is_ehframe ? m->unwind_hdr: m->debug_hdr;
+	const u8 *ptr, *end, *hdr = is_ehframe ? m->unwind_hdr: s->debug_hdr;
 	unsigned long startLoc;
 	u32 *fde = NULL;
 	unsigned num, tableSize, t2;
@@ -587,7 +587,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 		return NULL;
 	}
 	ptr = hdr + 4;
-	end = hdr + (is_ehframe ? m->unwind_hdr_len : m->debug_hdr_len);
+	end = hdr + (is_ehframe ? m->unwind_hdr_len : s->debug_hdr_len);
 	{
 		// XXX Can the header validity be checked just once?
 		unsigned long eh = read_ptr_sect(&ptr, end, hdr[1], 0,

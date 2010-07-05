@@ -4663,8 +4663,9 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
 				    Elf_Data *debug_frame,
 				    void **debug_frame_hdr,
 				    size_t *debug_frame_hdr_len,
+				    Dwarf_Addr *debug_frame_off,
 				    systemtap_session& session,
-				    const string& modname)
+				    Dwfl_Module *mod)
 {
   *debug_frame_hdr = NULL;
   *debug_frame_hdr_len = 0;
@@ -4707,11 +4708,27 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
 	{
 	  // Warn, but continue, backtracing will be slow...
           if (session.verbose > 2 && ! session.suppress_warnings)
-  	    session.print_warning ("Problem creating debug frame hdr for "
-				   + modname + ", " + dwarf_errmsg (-1));
+	    {
+	      const char *modname = dwfl_module_info (mod, NULL,
+						      NULL, NULL, NULL,
+						      NULL, NULL, NULL);
+	      session.print_warning("Problem creating debug frame hdr for "
+				    + lex_cast_qstring(modname)
+				    + ", " + dwarf_errmsg (-1));
+	    }
 	  return;
 	}
       off = next_off;
+    }
+
+  if (fdes.size() > 0)
+    {
+      it = fdes.begin();
+      Dwarf_Addr first_addr = (*it).first;
+      int res = dwfl_module_relocate_address (mod, &first_addr);
+      dwfl_assert ("create_debug_frame_hdr, dwfl_module_relocate_address",
+		   res >= 0);
+      *debug_frame_off = (*it).first - first_addr;
     }
 
   size_t total_size = 4 + (2 * size) + (2 * size * fdes.size());
@@ -4759,9 +4776,10 @@ static void get_unwind_data (Dwfl_Module *m,
 			     void **eh_frame_hdr, size_t *eh_frame_hdr_len,
 			     void **debug_frame_hdr,
 			     size_t *debug_frame_hdr_len,
+			     Dwarf_Addr *debug_frame_off,
 			     Dwarf_Addr *eh_frame_hdr_addr,
 			     systemtap_session& session,
-			     const string& modname)
+			     Dwfl_Module *mod)
 {
   Dwarf_Addr start, bias = 0;
   GElf_Ehdr *ehdr, ehdr_mem;
@@ -4829,7 +4847,7 @@ static void get_unwind_data (Dwfl_Module *m,
   if (*debug_frame != NULL && *debug_len > 0)
     create_debug_frame_hdr (ehdr->e_ident, data,
 			    debug_frame_hdr, debug_frame_hdr_len,
-			    session, modname);
+			    debug_frame_off, session, mod);
 }
 
 static int
@@ -5069,6 +5087,7 @@ dump_unwindsyms (Dwfl_Module *m,
   size_t debug_len = 0;
   void *debug_frame_hdr = NULL;
   size_t debug_frame_hdr_len = 0;
+  Dwarf_Addr debug_frame_off = 0;
   void *eh_frame = NULL;
   void *eh_frame_hdr = NULL;
   size_t eh_len = 0;
@@ -5077,8 +5096,8 @@ dump_unwindsyms (Dwfl_Module *m,
   Dwarf_Addr eh_frame_hdr_addr = 0;
   get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
                    &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
-                   &debug_frame_hdr_len, &eh_frame_hdr_addr,
-		   c->session, modname);
+                   &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
+                   c->session, m);
   if (debug_frame != NULL && debug_len > 0)
     {
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
@@ -5095,30 +5114,6 @@ dump_unwindsyms (Dwfl_Module *m,
         for (size_t i = 0; i < debug_len; i++)
           {
             int h = ((uint8_t *)debug_frame)[i];
-            c->output << "0x" << hex << h << dec << ",";
-            if ((i + 1) % 16 == 0)
-              c->output << "\n" << "   ";
-          }
-      c->output << "};\n";
-      c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
-    }
-
-  if (debug_frame_hdr != NULL && debug_frame_hdr_len > 0)
-    {
-      c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
-      c->output << "static uint8_t _stp_module_" << stpmod_idx
-		<< "_debug_frame_hdr[] = \n";
-      c->output << "  {";
-      if (debug_frame_hdr_len > MAX_UNWIND_TABLE_SIZE)
-        {
-          if (! c->session.suppress_warnings)
-            c->session.print_warning ("skipping module " + modname + " debug_frame_hdr table (too big: " +
-                                      lex_cast(debug_frame_hdr_len) + " > " + lex_cast(MAX_UNWIND_TABLE_SIZE) + ")");
-        }
-      else
-        for (size_t i = 0; i < debug_frame_hdr_len; i++)
-          {
-            int h = ((uint8_t *)debug_frame_hdr)[i];
             c->output << "0x" << hex << h << dec << ",";
             if ((i + 1) % 16 == 0)
               c->output << "\n" << "   ";
@@ -5207,6 +5202,45 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "#endif /* STP_NEED_SYMBOL_DATA */\n";
 
       c->output << "};\n";
+
+      /* For now output debug_frame index only in "magic" sections. */
+      string secname = seclist[secidx].first;
+      if (secname == ".dynamic" || secname == ".absolute"
+	  || secname == ".text" || secname == "_stext")
+	{
+	  if (debug_frame_hdr != NULL && debug_frame_hdr_len > 0)
+	    {
+	      c->output << "#if defined(STP_USE_DWARF_UNWINDER)"
+			<< " && defined(STP_NEED_UNWIND_DATA)\n";
+	      c->output << "static uint8_t _stp_module_" << stpmod_idx
+			<< "_debug_frame_hdr_" << secidx << "[] = \n";
+	      c->output << "  {";
+	      if (debug_frame_hdr_len > MAX_UNWIND_TABLE_SIZE)
+		{
+		  if (! c->session.suppress_warnings)
+		    c->session.print_warning ("skipping module "
+					      + modname
+					      + ", section" + secname
+					      + " debug_frame_hdr table"
+					      + " (too big: "
+					      + lex_cast(debug_frame_hdr_len)
+					      + " > "
+					      + lex_cast(MAX_UNWIND_TABLE_SIZE)
+					      + ")");
+		}
+	      else
+		for (size_t i = 0; i < debug_frame_hdr_len; i++)
+		  {
+		    int h = ((uint8_t *)debug_frame_hdr)[i];
+		    c->output << "0x" << hex << h << dec << ",";
+		    if ((i + 1) % 16 == 0)
+		      c->output << "\n" << "   ";
+		  }
+	      c->output << "};\n";
+	      c->output << "#endif /* STP_USE_DWARF_UNWINDER"
+			<< " && STP_NEED_UNWIND_DATA */\n";
+	    }
+	}
     }
 
   c->output << "static struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {\n";
@@ -5220,8 +5254,42 @@ dump_unwindsyms (Dwfl_Module *m,
                 << ".name = " << lex_cast_qstring(seclist[secidx].first) << ",\n"
                 << ".size = 0x" << hex << seclist[secidx].second << dec << ",\n"
                 << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << ",\n"
-                << ".num_symbols = " << addrmap[secidx].size() << "\n"
-                << "},\n";
+                << ".num_symbols = " << addrmap[secidx].size() << ",\n";
+
+      /* For now output debug_frame index only in "magic" sections. */
+      string secname = seclist[secidx].first;
+      if (debug_frame_hdr && (secname == ".dynamic" || secname == ".absolute"
+			      || secname == ".text" || secname == "_stext"))
+	{
+	  c->output << "#if defined(STP_USE_DWARF_UNWINDER)"
+		    << " && defined(STP_NEED_UNWIND_DATA)\n";
+
+          c->output << ".debug_hdr = "
+		    << "_stp_module_" << stpmod_idx
+		    << "_debug_frame_hdr_" << secidx << ",\n";
+          c->output << ".debug_hdr_len = " << debug_frame_hdr_len << ", \n";
+
+	  Dwarf_Addr dwbias = 0;
+	  dwfl_module_getdwarf (m, &dwbias);
+	  c->output << ".sec_load_offset = 0x"
+		    << hex << debug_frame_off - dwbias << dec << "\n";
+
+	  c->output << "#else\n";
+	  c->output << ".debug_hdr = NULL,\n";
+	  c->output << ".debug_hdr_len = 0,\n";
+	  c->output << ".sec_load_offset = 0\n";
+	  c->output << "#endif /* STP_USE_DWARF_UNWINDER"
+		    << " && STP_NEED_UNWIND_DATA */\n";
+
+	}
+      else
+	{
+	  c->output << ".debug_hdr = NULL,\n";
+	  c->output << ".debug_hdr_len = 0,\n";
+	  c->output << ".sec_load_offset = 0\n";
+	}
+
+	c->output << "},\n";
     }
   c->output << "};\n";
 
@@ -5237,11 +5305,9 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (mainname) << ", \n";
   c->output << ".path = " << lex_cast_qstring (mainpath) << ",\n";
-  Dwarf_Addr dwbias = 0;
-  dwfl_module_getdwarf (m, &dwbias);
-  c->output << ".dwarf_module_base = 0x" << hex << (base - dwbias) << ", \n";
-  c->output << ".eh_frame_addr = 0x" << eh_addr << ", \n";
-  c->output << ".unwind_hdr_addr = 0x" << eh_frame_hdr_addr << dec << ", \n";
+  c->output << ".eh_frame_addr = 0x" << hex << eh_addr << dec << ", \n";
+  c->output << ".unwind_hdr_addr = 0x" << hex << eh_frame_hdr_addr
+	    << dec << ", \n";
 
   if (debug_frame != NULL)
     {
@@ -5249,17 +5315,6 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << ".debug_frame = "
 		<< "_stp_module_" << stpmod_idx << "_debug_frame, \n";
       c->output << ".debug_frame_len = " << debug_len << ", \n";
-      if (debug_frame_hdr)
-        {
-          c->output << ".debug_hdr = "
-                    << "_stp_module_" << stpmod_idx << "_debug_frame_hdr, \n";
-          c->output << ".debug_hdr_len = " << debug_frame_hdr_len << ", \n";
-        }
-      else
-        {
-          c->output << ".debug_hdr = NULL,\n";
-          c->output << ".debug_hdr_len = 0,\n";
-        }
       c->output << "#else\n";
     }
 

@@ -61,8 +61,13 @@ struct _stp_section {
 	unsigned long size; /* length of the address space module covers. */
 	struct _stp_symbol *symbols;  /* ordered by address */
   	unsigned num_symbols;
-};
 
+	/* Synthesized index for .debug_frame table, keep section
+	   offset to adjust addresses relative to load address. */
+	void *debug_hdr;
+	uint32_t debug_hdr_len;
+	unsigned long sec_load_offset;
+};
 
 struct _stp_module {
         const char* name;
@@ -70,26 +75,17 @@ struct _stp_module {
 	struct _stp_section *sections;
   	unsigned num_sections;
 
-	/* This is the base address for the dwfl module (adjusted for
-	 * dwbias) as we read it in the translator. This is normally
-	 * zero for shared libraries, but not for prelinked libraries.
-	 * We adjust the addresses read from the .debug_frame unwind
-	 * data against the actual and (prelinked) load addresses.
-	 * into the module. See adjustStartLoc() in unwind.c.
-	 */
-  	unsigned long dwarf_module_base;
-
-	/* the stack unwind data for this module */
+	/* The .eh_frame unwind data for this module.
+	   Note index for .debug_frame (hdr) is per section. */
 	void *debug_frame;
-	void *debug_hdr;
 	void *eh_frame;
 	void *unwind_hdr;	
 	uint32_t debug_frame_len;
-	uint32_t debug_hdr_len;
 	uint32_t eh_frame_len;
 	uint32_t unwind_hdr_len;
 	unsigned long eh_frame_addr; /* Orig load address (offset) .eh_frame */
 	unsigned long unwind_hdr_addr; /* same for .eh_frame_hdr */
+
 	/* build-id information */
 	unsigned char *build_id_bits;
 	unsigned long  build_id_offset;
