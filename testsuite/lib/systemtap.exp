@@ -151,6 +151,10 @@ proc setup_server {} {
 	print "Started a systemtap server as PID==$server_pid"
     }
 
+    # See what avahi finds
+    set looksee [exec avahi-browse -a -t -r | grep -A4 {^=.*Systemtap.Compile}]
+    verbose -log "avahi-browse found:\n$looksee"
+
     # Make sure that stap can find the server.
     set lines [exec stap --server-status=online,compatible 2>@ stdout | wc -l]
     if {$lines < 2} then {
