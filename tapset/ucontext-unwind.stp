@@ -1,5 +1,5 @@
 // User context unwind tapset
-// Copyright (C) 2009 Red Hat Inc.
+// Copyright (C) 2009, 2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -38,6 +38,41 @@ function print_ubacktrace () %{
     }
 
     _stp_printf("<no ubacktrace: %s>\n", CONTEXT->probe_point);
+%}
+
+/**
+ * sfunction sprint_ubacktrace - Return stack back trace for current task as string. EXPERIMENTAL!
+ *
+ * Returns a simple backtrace for the current task. One line per
+ * address. Includes the symbol name (or hex address if symbol
+ * couldn't be resolved) and module name (if found). Includes the
+ * offset from the start of the function if found, otherwise the
+ * offset will be added to the module (if found, between
+ * brackets). Returns the backtrace as string (each line terminated by
+ * a newline character).  Note that the returned stack will be
+ * truncated to MAXSTRINGLEN, to print fuller and richer stacks use
+ * print_ubacktrace(). Equivalent to sprint_ustack(ubacktrace()),
+ * but more efficient (no need to translate between hex strings and
+ * final backtrace string).
+ */
+function sprint_ubacktrace () %{
+/* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
+  assert_is_myproc();
+
+  /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
+  if (current->mm)
+    {
+      struct pt_regs *uregs = task_pt_regs(current);
+      if (uregs)
+	{
+	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_SIMPLE,
+			     uregs, CONTEXT->pi, MAXTRACE,
+			     current, CONTEXT->ri);
+	  return;
+	}
+    }
+
+    strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
 
 /**

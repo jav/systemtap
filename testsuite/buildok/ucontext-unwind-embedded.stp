@@ -9,6 +9,7 @@ probe begin {
 	print_ubacktrace()
 	print_ubacktrace_brief()
 	printf("%s\n", ubacktrace())
+	printf("%s\n", sprint_ubacktrace())
 %:
 	printf("\n")
 %)

@@ -1,5 +1,5 @@
 // context-unwind tapset
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -35,6 +35,30 @@ function print_backtrace () %{
 	} else {
 		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
 	}
+%}
+
+/**
+ * sfunction sprint_backtrace - Return stack back trace as string. EXPERIMENTAL!
+ *
+ * Returns a simple (kernel) backtrace. One line per address.
+ * Includes the symbol name (or hex address if symbol
+ * couldn't be resolved) and module name (if found). Includes the
+ * offset from the start of the function if found, otherwise the
+ * offset will be added to the module (if found, between
+ * brackets). Returns the backtrace as string (each line terminated by
+ * a newline character).  Note that the returned stack will be
+ * truncated to MAXSTRINGLEN, to print fuller and richer stacks use
+ * print_backtrace(). Equivalent to sprint_stack(backtrace()),
+ * but more efficient (no need to translate between hex strings and
+ * final backtrace string).
+ */
+function sprint_backtrace () %{
+	if (CONTEXT->regs)
+		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
+				   _STP_SYM_SIMPLE, CONTEXT->regs,
+				   CONTEXT->pi, MAXTRACE, NULL, NULL);
+	else
+		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
 
 /**
