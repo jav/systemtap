@@ -361,13 +361,13 @@ static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
 	} else {
 	  /* symbol, module, offset. */
 	  if (flags & _STP_SYM_HEX_SYMBOL)
-	    return _stp_snprintf(str, len, "%s%p : %s+%#lx/%#lx [%s]%s%s",
+	    return _stp_snprintf(str, len, "%s%p : %s+%#lx [%s]%s%s",
 				 prestr, (int64_t) address,
-				 name, offset, size, modname,
+				 name, offset, modname,
 				 exstr, poststr);
 	  else
-	    return _stp_snprintf(str, len, "%s%s+%#lx/%#lx [%s]%s%s",
-				 prestr, name, offset, size,
+	    return _stp_snprintf(str, len, "%s%s+%#lx [%s]%s%s",
+				 prestr, name, offset,
 				 modname, exstr, poststr);
 	}
       } else {
@@ -410,6 +410,7 @@ static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
 			     exstr, poststr);
     }
   } else {
+    /* no symbol name */
     if (modname && *modname && (flags & _STP_SYM_MODULE)) {
       if (flags & _STP_SYM_OFFSET) {
         if (flags & _STP_SYM_SIZE) {
