@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <wordexp.h>
 #include <sys/param.h>
 
@@ -772,9 +773,11 @@ handle_connection(PRFileDesc *tcpSocket)
 
   /* Unzip the request. */
   argv[0]="unzip";
-  argv[1]="-d";
-  argv[2]=requestDirName;
-  argv[3]=requestFileName;
+  argv[1]="-q";
+  argv[2]="-d";
+  argv[3]=requestDirName;
+  argv[4]=requestFileName;
+  argv[5]=NULL;
   rc = spawn_and_wait(argv, NULL, NULL, NULL, NULL);
   if (rc != PR_SUCCESS)
     {
@@ -790,10 +793,11 @@ handle_connection(PRFileDesc *tcpSocket)
 
   /* Zip the response. */
   argv[0]="zip";
-  argv[1]="-r";
-  argv[2]=responseFileName;
-  argv[3]=".";
-  argv[4]=NULL;
+  argv[1]="-q";
+  argv[2]="-r";
+  argv[3]=responseFileName;
+  argv[4]=".";
+  argv[5]=NULL;
   rc = spawn_and_wait(argv, NULL, NULL, NULL, responseDirName);
   if (rc != PR_SUCCESS)
     {
@@ -841,6 +845,7 @@ accept_connection(PRFileDesc *listenSocket)
   PRFileDesc *tcpSocket;
   SECStatus   secStatus;
   CERTCertDBHandle *dbHandle;
+  time_t      now;
 
   dbHandle = CERT_GetDefaultCertDB();
 
@@ -859,7 +864,9 @@ accept_connection(PRFileDesc *listenSocket)
 	}
 
       /* Log the accepted connection.  */
-      printf ("Accepted connection from %d.%d.%d.%d:%d\n",
+      time (& now);
+      printf ("%sAccepted connection from %d.%d.%d.%d:%d\n",
+              ctime (& now),
 	      (addr.inet.ip      ) & 0xff,
 	      (addr.inet.ip >>  8) & 0xff,
 	      (addr.inet.ip >> 16) & 0xff,
@@ -873,7 +880,9 @@ accept_connection(PRFileDesc *listenSocket)
       /* Accepted the connection, now handle it. */
       handle_connection (tcpSocket);
 
-      printf ("Request from %d.%d.%d.%d:%d complete\n",
+      time (& now);
+      printf ("%sRequest from %d.%d.%d.%d:%d complete\n",
+              ctime (& now),
 	      (addr.inet.ip      ) & 0xff,
 	      (addr.inet.ip >>  8) & 0xff,
 	      (addr.inet.ip >> 16) & 0xff,
