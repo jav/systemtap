@@ -112,7 +112,8 @@ function probefunc:string () %{ /* pure */
 
 	} else if (CONTEXT->regs && !user_mode(CONTEXT->regs)) {
 		_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN,
-				  _STP_SYM_SYMBOL, REG_IP(CONTEXT->regs), NULL);
+				  REG_IP(CONTEXT->regs),
+				  _STP_SYM_SYMBOL, NULL);
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
        	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
