@@ -390,7 +390,7 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
   int unprivileged = 0;
   int stapargv_freestart = 0;
 
-  stapargv[stapargc++]= STAP_PREFIX "/bin/stap";
+  stapargv[stapargc++] = getenv ("SYSTEMTAP_STAP") ?: STAP_PREFIX "/bin/stap";
 
   /* Transcribe stapOptions.  We use plain wordexp(3), since these
      options are coming from the local trusted user, so malicious

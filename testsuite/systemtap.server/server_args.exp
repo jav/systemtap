@@ -15,7 +15,9 @@ if [info exists env(STAP_RANDOM_SEED)] {
 verbose -log "Random seed is $random_seed"
 expr srand($random_seed)
 
-proc stap_direct_and_with_client {stap stap_client options} {
+proc stap_direct_and_with_client {stap options} {
+    global installed_stap
+
     # tcl's 'eval' creates a string containing the arguments and
     # recursively passes it to the tcl interpreter. Special
     # characters need to be quoted.
@@ -26,9 +28,9 @@ proc stap_direct_and_with_client {stap stap_client options} {
     catch {eval exec $stap $options} res_stap
     verbose -log $res_stap
 
-    # Now run it against stap-client
-    verbose -log "eval exec $stap_client $options"
-    catch {eval exec $stap_client $options} res_stap_client
+    # Now run it using the client
+    verbose -log "eval exec $stap --server $options"
+    catch {eval exec $stap --server $options} res_stap_client
     verbose -log $res_stap_client
 
     # Now check the output
@@ -101,17 +103,13 @@ if {! [use_server_p]} then {
     }
 }
 
-# Make sure we call the correct instances of stap and stap-client.
-# There is a copy of 'stap-client' on the PATH as 'stap'.
+# Make sure we call the correct instance of stap
+# There is a copy of stap on the PATH which always uses --server
 if {[installtest_p]} then {
-    # For 'make installcheck', use both from the location of the actual
-    # stap-client on the PATH.
-    set stap_client [exec which stap-client]
-    set stap [exec dirname $stap_client]/stap
+    # For 'make installcheck', use the installed stap
+    set stap $installed_stap
 } else {
-    # For 'make check' use stap-client from the source tree and use stap from
-    # the build tree.
-    set stap_client $srcdir/../stap-client
+    # For 'make check' use stap from the build tree
     set stap [exec pwd]/../stap
 }
 
@@ -146,7 +144,7 @@ set previously_fixed [list \
 
 set i 0
 foreach options $previously_fixed {
-    if {[stap_direct_and_with_client $stap $stap_client $options]} {
+    if {[stap_direct_and_with_client $stap $options]} {
 	pass "$test $i"
     } else {
 	fail "$test $i"
@@ -177,7 +175,7 @@ for {set i 0} {$i < $iterations} {incr i} {
     }
 
     # Now test it against stap and stap-client
-    if {[stap_direct_and_with_client $stap $stap_client $options]} {
+    if {[stap_direct_and_with_client $stap $options]} {
 	pass "Fuzzing $test $i"
     } else {
 	fail "Fuzzing $test $i"

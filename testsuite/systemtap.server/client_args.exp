@@ -48,10 +48,10 @@ foreach options $invalid_options {
 }
 
 # Test valid combinations
+set test "Valid Server Client Arguments"
+
 # stap_run_exact (used below) only works for 'make installcheck'
 if {[info procs installtest_p] != "" && ![installtest_p]} { untested $test; return }
-
-set test "Valid Server Client Arguments"
 
 set no_error_result "# parse tree dump
 # file $test_file

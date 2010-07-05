@@ -284,40 +284,60 @@ compile_server_client::include_file_or_directory (
   const string &subdir, const string &path, const char *option
 )
 {
-  char *cpath = 0;
-  string rpath;
+  // Must predeclare these because we do use 'goto done' to
+  // exit from error situations.
   vector<string> components;
+  string name;
+  int rc;
 
-  // First ensure that the requested subdirectory exists.
-  string name = client_tmpdir + "/" + subdir;
-  int rc = create_dir (name.c_str ());
-  if (rc) goto done;
-
-  // Now canonicalize the given path and remove the leading /.
-  cpath = canonicalize_file_name (path.c_str ());
+  // Canonicalize the given path and remove the leading /.
+  string rpath;
+  char *cpath = canonicalize_file_name (path.c_str ());
   if (! cpath)
     {
-      rc = 1;
-      goto done;
+      // It can not be canonicalized. Use the name relative to
+      // the current working directory and let the server deal with it.
+      char cwd[PATH_MAX];
+      if (getcwd (cwd, sizeof (cwd)) == NULL)
+	{
+	  rpath = path;
+	  rc = 1;
+	  goto done;
+	}
+	rpath = string (cwd) + "/" + path;
     }
-  rpath = cpath + 1;
-
-  // Now ensure that each component of the path exists.
-  tokenize (rpath, components, "/");
-  assert (components.size () >= 1);
-  unsigned i;
-  for (i = 0; i < components.size() - 1; ++i)
+  else
     {
-      name += "/" + components[i];
+      // It can be canonicalized. Use the canonicalized name and add this
+      // file or directory to the request package.
+      rpath = cpath;
+      free (cpath);
+
+      // First create the requested subdirectory.
+      name = client_tmpdir + "/" + subdir;
       rc = create_dir (name.c_str ());
       if (rc) goto done;
-    }
 
-  // Now make a symbolic link to the actual file or directory.
-  assert (i == components.size () - 1);
-  name += "/" + components[i];
-  rc = symlink (cpath, name.c_str ());
-  if (rc) goto done;
+      // Now create each component of the path within the sub directory.
+      assert (rpath[0] == '/');
+      tokenize (rpath.substr (1), components, "/");
+      assert (components.size () >= 1);
+      unsigned i;
+      for (i = 0; i < components.size() - 1; ++i)
+	{
+	  if (components[i].empty ())
+	    continue; // embedded '//'
+	  name += "/" + components[i];
+	  rc = create_dir (name.c_str ());
+	  if (rc) goto done;
+	}
+
+      // Now make a symbolic link to the actual file or directory.
+      assert (i == components.size () - 1);
+      name += "/" + components[i];
+      rc = symlink (rpath.c_str (), name.c_str ());
+      if (rc) goto done;
+    }
 
   // Name this file or directory in the packaged arguments along with any
   // associated option.
@@ -327,20 +347,18 @@ compile_server_client::include_file_or_directory (
       if (rc) goto done;
     }
 
-  rc = add_package_arg (subdir + "/" + rpath);
+  rc = add_package_arg (subdir + "/" + rpath.substr (1));
 
  done:
-  if (cpath)
-    free (cpath);
-
   if (rc != 0)
     {
       const char* e = strerror (errno);
-      cerr << "ERROR: unable to add " << cpath << " to temp directory as "
+      cerr << "ERROR: unable to add "
+	   << rpath
+	   << " to temp directory as "
 	   << name << ": " << e
 	   << endl;
     }
-
   return rc;
 }
 
