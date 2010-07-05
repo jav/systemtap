@@ -1248,6 +1248,7 @@ void systemtap_session::insert_loaded_modules()
     unwindsym_modules.insert (string (line));
   }
   procmods.close();
+  unwindsym_modules.insert ("kernel");
 }
 
 void
