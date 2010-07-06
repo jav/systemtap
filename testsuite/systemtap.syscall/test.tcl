@@ -32,15 +32,18 @@ proc run_one_test {filename flags bits suite} {
     set testname [file tail [string range $filename 0 end-2]]
 
     if {[catch {exec mktemp -d [pwd]/staptestXXXXXX} syscall_dir]} {
-	puts stderr "Failed to create temporary directory: $syscall_dir"
+	send_log "$bits-bit $testname $suite : Failed to create temporary directory: $syscall_dir"
+	untested "$bits-bit $testname $suite"
 	syscall_cleanup
+	return
     }
 
     set res [target_compile $filename $syscall_dir/$testname executable $flags]
     if { $res != "" } {
-      send_log "$bits-bit $testname $suite : no corresponding devel environment found\n"
-      untested "$bits-bit $testname $suite"
-      return
+	send_log "$bits-bit $testname $suite : no corresponding devel environment found\n"
+	untested "$bits-bit $testname $suite"
+	syscall_cleanup
+	return
     }
 
     set sys_prog "[file dirname [file normalize $filename]]/${test_script}"
