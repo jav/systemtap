@@ -3,6 +3,7 @@
 probe begin
 {
 	printf("%d\n", vm_fault_contains(0, 0)
-		+ addr_to_node(0) + _IS_ZERO_PAGE(0, 0))
+		+ addr_to_node(0) + _IS_ZERO_PAGE(0, 0)
+		+ GFP_KERNEL())
 	printf("%s\n", __gfp_flag_str(0))
 }

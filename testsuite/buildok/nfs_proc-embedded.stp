@@ -1,7 +1,17 @@
 #! stap -p4
 
 probe begin {
-	print (__i2n_ip_proto (0,0) +
+	print (AF_INET() +
+	       NFS_I(0) +
+	       NFS_FH(0) +
+	       NFS_SERVER(0) +
+	       NFS_CLIENT(0) +
+	       NFS_PROTO(0) +
+	       get_ip_from_client(0) +
+	       get_prot_from_client(0) +
+	       get_ip(0) +
+	       get_prot(0) +
+	       __i2n_ip_proto (0,0) +
 	       __nfs_read_data_info (0,0) +
 	       __nfs_write_data_info (0,0) +
 	       __nfsv4_bitmask (0,0) +
