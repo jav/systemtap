@@ -42,7 +42,7 @@ Requires: kernel-devel
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
-BuildRequires: nss-devel avahi-devel pkgconfig
+BuildRequires: nss-tools nss-devel avahi-devel pkgconfig
 
 %if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
