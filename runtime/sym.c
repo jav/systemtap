@@ -145,7 +145,7 @@ static struct _stp_module *_stp_umod_lookup(unsigned long addr,
     if (user != NULL)
       {
 	struct _stp_module *m = (struct _stp_module *)user;
-	dbug_sym(1, "found module %s at 0x%lx\n", dentry->dname.name, vm_start);
+	dbug_sym(1, "found module %s at 0x%lx\n", m->path, *vm_start);
 	return m;
       }
   return NULL;
