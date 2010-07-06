@@ -20,6 +20,7 @@
 #include <cassert>
 
 extern "C" {
+#include <linux/limits.h>
 #include <sys/time.h>
 #include <glob.h>
 }
