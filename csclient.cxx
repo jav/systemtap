@@ -116,7 +116,7 @@ compile_server_client::passes_0_4 ()
   // syntax errors, if any, are already printed
   if (s.verbose)
     {
-      clog << "Compilation using a server completed "
+      clog << "Passes: via server " << s.winning_server << " "
            << getmemusage()
            << TIMESPRINT
            << endl;
@@ -402,7 +402,14 @@ compile_server_client::find_and_connect_to_server ()
 	      ++servers;
 	      rc = compile_using_server (default_servers[i]);
 	      if (rc == 0)
-		return rc; // success!
+                {
+                  s.winning_server =
+                    default_servers[i].host_name + string(" [") +
+                    default_servers[i].ip_address + string(":") +
+                    lex_cast(default_servers[i].port) + string("]");
+                  return rc; // success!
+                }
+
 	    }
 	  continue;
 	}
@@ -669,7 +676,7 @@ compile_server_client::read_from_file (const string &fname, int &data)
       goto error;
     }
 
-  f.close ();
+  // NB: not necessary to f.close ();
   return 0; // Success
 
  error:
@@ -703,7 +710,7 @@ compile_server_client::write_to_file (const string &fname, const string &data)
       goto error;
     }
 
-  f.close ();
+  // NB: not necessary to f.close ();
   return 0; // Success
 
  error:
@@ -729,16 +736,20 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
     }
 
   // Stream the data
-  errno = 0;
-  o << f.rdbuf ();
-  if (f.fail ())
+
+  // NB: o << f.rdbuf() misbehaves for some reason, appearing to close o,
+  // which is unfortunate if o == cerr or cout.
+  while (1)
     {
-      cerr << "Error reading file '" << fname << "': ";
-      goto error;
+      errno = 0;
+      int c = f.get();
+      if (f.eof ()) return 0; // normal exit
+      if (! f.good()) break;
+      o.put(c);
+      if (! o.good()) break;
     }
 
-  f.close ();
-  return 0; // Success
+  // NB: not necessary to f.close ();
 
  error:
   if (errno)

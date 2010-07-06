@@ -154,10 +154,11 @@ struct systemtap_session
   std::vector<std::string> server_status_strings;
   std::vector<std::string> specified_servers;
   std::vector<std::string> server_args;
+  std::string winning_server;
 
+  // XXX: why?
   std::string host_name;
   std::string domain_name;
-
   std::string &get_host_name ();
   std::string &get_domain_name ();
   void get_host_and_domain_name ();
