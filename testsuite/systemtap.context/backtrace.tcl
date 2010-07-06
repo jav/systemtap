@@ -4,9 +4,11 @@ set m3 0
 set m4 0
 set m5 0
 set m6 0
+set module1 0
+set kernel 0
+set script_exit 0;
 
-#spawn stap -d kernel -d systemtap_test_module1 $srcdir/$subdir/backtrace.stp
-spawn stap $srcdir/$subdir/backtrace.stp
+spawn stap -d kernel -d systemtap_test_module1 $srcdir/$subdir/backtrace.stp
 #exp_internal 1
 expect {
     -timeout 120
@@ -21,12 +23,21 @@ expect {
 	incr m1
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m1 == 1} {incr m1}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m1 == 2} {incr m1}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : stm_write_cmd[^\[]+\[systemtap_test_module1\]\r\n} {
+		if {$m1 == 3} {incr module1}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : [a-z_]+[^\[]+\[kernel\]\r\n} {
+		if {$module1 == 1} {incr kernel}
+		# we expect at least one [kernel] frame, maybe more.
 	    }
 	}
 	exp_continue
@@ -35,12 +46,21 @@ expect {
 	incr m2
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m2 == 1} {incr m2}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m2 == 2} {incr m2}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : stm_write_cmd[^\[]+\[systemtap_test_module1\]\r\n} {
+		if {$m2 == 3} {incr module1}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : [a-z_]+[^\[]+\[kernel\]\r\n} {
+		if {$module1 == 2} {incr kernel}
+		# we expect at least one [kernel] frame, maybe more.
 	    }
 	}
 	exp_continue
@@ -51,16 +71,25 @@ expect {
 	incr m3
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m3 == 1} {incr m3}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m3 == 2} {incr m3}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m3 == 3} {incr m3}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : stm_write_cmd[^\[]+\[systemtap_test_module1\]\r\n} {
+		if {$m3 == 4} {incr module1}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : [a-z_]+[^\[]+\[kernel\]\r\n} {
+		if {$module1 == 3} {incr kernel}
+		# we expect at least one [kernel] frame, maybe more.
 	    }
 	}
 	exp_continue
@@ -69,16 +98,25 @@ expect {
 	incr m4
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m4 == 1} {incr m4}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m4 == 2} {incr m4}
 		exp_continue
 	    }
 	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m4 == 3} {incr m4}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : stm_write_cmd[^\[]+\[systemtap_test_module1\]\r\n} {
+		if {$m4 == 4} {incr module1}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : [a-z_]+[^\[]+\[kernel\]\r\n} {
+		if {$module1 == 4} {incr kernel}
+		# we expect at least one [kernel] frame, maybe more.
 	    }
 	}
 	exp_continue
@@ -89,20 +127,29 @@ expect {
 	incr m5
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m5 == 1} {incr m5}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m5 == 2} {incr m5}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m5 == 3} {incr m5}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m5 == 4} {incr m5}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : stm_write_cmd[^\[]+\[systemtap_test_module1\]\r\n} {
+		if {$m5 == 5} {incr module1}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : [a-z_]+[^\[]+\[kernel\]\r\n} {
+		if {$module1 == 5} {incr kernel}
+		# we expect at least one [kernel] frame, maybe more.
 	    }
 	}
 	exp_continue
@@ -111,25 +158,37 @@ expect {
 	incr m6
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m6 == 1} {incr m6}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m6 == 2} {incr m6}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m6 == 3} {incr m6}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m6 == 4} {incr m6}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : stm_write_cmd[^\[]+\[systemtap_test_module1\]\r\n} {
+		if {$m6 == 5} {incr module1}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : [a-z_]+[^\[]+\[kernel\]\r\n} {
+		if {$module1 == 6} {incr kernel}
+		# we expect at least one [kernel] frame, maybe more.
 	    }
 	}
 	exp_continue
     }
-    eof {fail "backtrace of yyy_func*: unexpected EOF" }
+    eof {
+	# good backtrace.stp called exit().
+	incr script_exit;
+    }
 }
 exec kill -INT -[exp_pid]
 if {$m1 == 3} {
@@ -161,6 +220,21 @@ if {$m6 == 5} {
     pass "print_stack of yyy_func4"
 } else {
     fail "print_stack of yyy_func4 ($m6)"
+}
+if {$module1 == 6} {
+    pass "print_stack found systemtap_test_module1"
+} else {
+    fail "print_stack didn't find systemtap_test_module1 ($module1)"
+}
+if {$kernel >= 6} {
+    pass "print_stack found \[kernel\]"
+} else {
+    fail "print_stack didn't find \[kernel\] ($kernel)"
+}
+if {$script_exit == 1} {
+    pass "backtrace.stp called exit"
+} else {
+    fail "backtrace.stp didn't call exit ($script_exit)"
 }
 
 catch { close }
