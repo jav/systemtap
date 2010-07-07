@@ -927,8 +927,10 @@ c_unparser::emit_common_header ()
   // When it's "something", probe code unwinds, _stp_error's, sets error state
   o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
+  o->newline() << "#if defined __ia64__";
   o->newline() << "unsigned long *unwaddr;";
   // unwaddr is caching unwound address in each probe handler on ia64.
+  o->newline() << "#endif";
   o->newline() << "struct kretprobe_instance *pi;";
   o->newline() << "int pi_longs;"; // int64_t count in pi->data, the rest is string_t
   o->newline() << "int regparm;";

@@ -138,7 +138,9 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = -1;"; // NB: PR10516 packs locals[] tighter
   o->newline() << "c->regs = 0;";
+  o->newline() << "#if defined __ia64__";
   o->newline() << "c->unwaddr = 0;";
+  o->newline() << "#endif";
   o->newline() << "c->probe_point = " << probe << ".pp;";
   o->newline() << "#ifdef STP_NEED_PROBE_NAME";
   o->newline() << "c->probe_name = " << probe << ".pn;";
@@ -4002,7 +4004,9 @@ dwarf_derived_probe::emit_probe_local_init(translator_output * o)
   if (access_vars)
     {
       // if accessing $variables, emit bsp cache setup for speeding up
+      o->newline() << "#if defined __ia64__";
       o->newline() << "bspcache(c->unwaddr, c->regs);";
+      o->newline() << "#endif";
     }
 }
 
