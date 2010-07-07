@@ -260,11 +260,32 @@ output files exceed
 Ignore out of context variables and substitute with literal 0.
 
 .TP
-.BI \-\-compatible VERSION
+.BI \-\-compatible " VERSION"
 Suppress recent script language or tapset changes which are incompatible
 with given older version of systemtap.  This may be useful if a much older
 systemtap script fails to run.  See the DEPRECATION section for more
 details.
+
+.TP
+.BI \-\-server
+Use a compatible compile server (automatically found) for phases 1 through 4.
+
+.TP
+.BI \-\-server\-status " SERVERS"
+Display the status of the requested SERVERS, where SERVERS is a comma\-separated
+list of server attributes. Currently supported attribues are:
+.RS
+.TP
+.BI online
+displays information about servers which are currently online.
+.TP
+.BI compatible
+displays information about servers which are compatible with the current
+kernel release and architecture.
+.RE
+
+The default, if no argument is specified is online,compatible, which displays
+information about compatible servers which are currently online.
 
 .SH ARGUMENTS
 
