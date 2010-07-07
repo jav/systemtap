@@ -90,8 +90,7 @@ function sprint_stack:string(stk:string) %{
  * It will do this based on the probe point string as returned by pp().
  * Please note: this function is deprecated, please use symname() and/or
  * usymname(). This function might return a function name based on the
- * current address of the task if that is in kernel space, but not for
- * any user space addresses. Please use usymname(uaddr()) for that.
+ * current address if the probe point context couldn't be parsed.
  */
 function probefunc:string () %{ /* pure */
 	char *ptr, *start;
@@ -110,10 +109,12 @@ function probefunc:string () %{ /* pure */
 			*dst++ = *ptr++;
 		*dst = 0;
 
-	} else if (CONTEXT->regs && !user_mode(CONTEXT->regs)) {
+	} else if (CONTEXT->regs) {
 		_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN,
 				  REG_IP(CONTEXT->regs),
-				  _STP_SYM_SYMBOL, NULL);
+				  _STP_SYM_SYMBOL,
+				  (CONTEXT->regflags & _STP_REGS_USER_FLAG
+				   ? current : NULL));
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
        	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
@@ -141,7 +142,8 @@ function probemod:string () %{ /* pure */
 		while (*ptr != '"' && --len && *ptr)
 			*dst++ = *ptr++;
 		*dst = 0;
-	} else if (CONTEXT->regs) {
+	} else if (CONTEXT->regs
+		   && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
 		struct _stp_module *m;
 		m = _stp_kmod_sec_lookup (REG_IP(CONTEXT->regs), NULL);
 		if (m && m->name)

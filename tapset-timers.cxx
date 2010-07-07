@@ -431,6 +431,9 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
                    << common_probe_init (probes[0]) << ";";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe");
   s.op->newline() << "c->regs = regs;";
+  // Timer interrupts save all registers, so if the interrupt happened
+  // in user space we can rely on it being the full user pt_regs.
+  s.op->newline() << "if (user_mode(regs)) c->regflags |= _STP_REGS_USER_FLAG;";
 
   for (unsigned i=0; i<probes.size(); i++)
     {

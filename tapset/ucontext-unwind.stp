@@ -28,7 +28,12 @@ function print_ubacktrace () %{
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
     {
-      struct pt_regs *uregs = task_pt_regs(current);
+      struct pt_regs *uregs;
+      if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
+	uregs = CONTEXT->regs;
+      else
+	uregs = task_pt_regs(current); // XXX - Might need sanitising.
+
       if (uregs)
 	{
 	  _stp_stack_print(uregs, _STP_SYM_FULL, CONTEXT->pi, MAXTRACE,
@@ -62,7 +67,12 @@ function sprint_ubacktrace () %{
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
     {
-      struct pt_regs *uregs = task_pt_regs(current);
+      struct pt_regs *uregs;
+      if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
+	uregs = CONTEXT->regs;
+      else
+	uregs = task_pt_regs(current); // XXX - Might need sanitising.
+
       if (uregs)
 	{
 	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_SIMPLE,
@@ -88,7 +98,12 @@ function print_ubacktrace_brief () %{
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
     {
-      struct pt_regs *uregs = task_pt_regs(current);
+      struct pt_regs *uregs;
+      if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
+	uregs = CONTEXT->regs;
+      else
+	uregs = task_pt_regs(current); // XXX - Might need sanitising.
+
       if (uregs)
 	{
 	  _stp_stack_print(uregs, _STP_SYM_BRIEF, CONTEXT->pi, MAXTRACE,
@@ -115,7 +130,12 @@ function ubacktrace:string () %{
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
     {
-      struct pt_regs *uregs = task_pt_regs(current);
+      struct pt_regs *uregs;
+      if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
+	uregs = CONTEXT->regs;
+      else
+	uregs = task_pt_regs(current); // XXX - Might need sanitising.
+
       if (uregs)
 	{
 	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_NONE,

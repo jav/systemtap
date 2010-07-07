@@ -834,6 +834,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe");
       s.op->newline() << "c->regs = regs;";
+      s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
 
       // call probe function
       s.op->newline() << "(*p->probe.ph) (c);";

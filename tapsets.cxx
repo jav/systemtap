@@ -150,6 +150,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
   o->newline() << "c->pi_longs = 0;";
+  o->newline() << "c->regflags = 0;";
   o->newline() << "c->regparm = 0;";
   o->newline() << "c->marker_name = NULL;";
   o->newline() << "c->marker_format = NULL;";
@@ -5982,6 +5983,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->ri = GET_PC_URETPROBE_NONE;";
+  s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
 
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
@@ -6006,6 +6008,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
                   << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
   // XXX: kretprobes saves "c->pi = inst;" too
   s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
 
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so

@@ -128,6 +128,8 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe");
   s.op->newline() << "c->regs = regs;";
+  // XXX determine state of c->regflags based on perf event.
+  // Are they all interrupt based? Then just take the def from timers.
   s.op->newline() << "(*stp->probe.ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";

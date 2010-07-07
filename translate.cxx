@@ -913,7 +913,13 @@ c_unparser::emit_common_header ()
   o->newline() << "static atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
   o->newline() << "static atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
+
+  // Defines for the regsflags field. Maybe merge with regparm field?
+  // _STP_REGS_USER regsflags bit to indicate regs fully from user.
   o->newline();
+  o->newline() << "#define _STP_REGS_USER_FLAG 1";
+  o->newline();
+
   o->newline() << "struct context {";
   o->newline(1) << "atomic_t busy;";
   o->newline() << "const char *probe_point;";
@@ -933,6 +939,7 @@ c_unparser::emit_common_header ()
   o->newline() << "#endif";
   o->newline() << "struct kretprobe_instance *pi;";
   o->newline() << "int pi_longs;"; // int64_t count in pi->data, the rest is string_t
+  o->newline() << "int regflags;"; // status of pt_regs regs field.
   o->newline() << "int regparm;";
   o->newline() << "va_list *mark_va_list;";
   o->newline() << "const char * marker_name;";
