@@ -140,7 +140,7 @@ scripts to kernel objects on their demand.
 %package sdt-devel
 Summary: Static probe support tools
 Group: Development/System
-License: GPLv2+
+License: GPLv2+, Public Domain
 URL: http://sourceware.org/systemtap/
 
 %description sdt-devel
@@ -485,6 +485,7 @@ exit 0
 %defattr(-,root,root)
 %{_bindir}/dtrace
 %{_includedir}/sys/sdt.h
+%doc README AUTHORS NEWS COPYING
 
 %files initscript
 %defattr(-,root,root)
