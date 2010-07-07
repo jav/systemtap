@@ -14,6 +14,9 @@
 ###           names, protocols, protocol families, users and socket type.
 ###
 
+ITER_COUNT=-1		# number of iterations (no iteration limit default)
+MOD_GEN="";		# Generate a instrumentation module option
+
 # Filter options
 F_PROTSTR=""; F_PROT=0  # Filter by protocol
 F_FAMSTR=""; F_FAM=0    # Filter by protocol family
@@ -42,6 +45,8 @@ function usage {
 	echo "    -n pname     # this process name only (default: all)"
 	echo "    -p pid       # this process ID only (default: all)"
 	echo "    -u username  # this user only (default: all)"
+	echo "    -c count     # number of iteration"
+	echo "    -m mod_name  # generate instrumentation (but do not run)"
 	echo "    -h           # print this help text"
 	echo ""
 	echo "Protocol Families:"
@@ -55,7 +60,7 @@ function usage {
 }
 
 # Process options
-while getopts df:i:n:N:P:p:t:u:h option; do
+while getopts df:i:n:N:P:p:t:u:c:m:h option; do
 	case $option in
 	d)      P_DEVICES=1 ;;
 	i)      P_INTERVAL=$OPTARG ;;
@@ -78,6 +83,10 @@ while getopts df:i:n:N:P:p:t:u:h option; do
 	            echo "ERROR: Unknown user:" $OPTARG
 	            let "ERROR++"
 	        fi ;;
+	c)      ITER_COUNT=$OPTARG ;;
+	m)      MOD_NAME=$OPTARG
+		MOD_GEN="-p4 -m $MOD_NAME"
+		;;
 	h|?|*)  usage
 	        exit 1 ;;
 	esac
@@ -104,14 +113,36 @@ TZ_ADJUST=$TZ_SIGN$((10#$TZ_HOURS*60*60+10#$TZ_MINS*60))
 #
 # Start the systemtap script
 #
-stap -e '
+stap $MOD_GEN -w -e '
+global iter
 global execname, user, if_tx, if_rx, if_dev
 global sk_tx, sk_rx, sk_pid
 global f_name_str, f_pid_str, f_prot_str, f_fam_str, f_type_str, f_uid_str
 global f_name, f_pid, f_prot, f_fam, f_type, f_uid
 
+probe never {
+        #workaround to avoid outputing filtering strings
+	print(f_name_str);
+	print(f_pid_str);
+	print(f_prot_str);
+	print(f_fam_str);
+	print(f_type_str);
+	print(f_uid_str);
+
+	#workaround to make sure that systemtap gets correct types for arrays
+	if_rx["junk"] <<< 0
+	if_tx["junk"] <<< 0
+	if_dev["junk"] ++
+	delete if_rx
+	delete if_tx
+	delete if_dev
+}
+
 probe begin
 {
+	# set number of iterations
+	iter = '$ITER_COUNT'
+
 	# If no filters specified, skip filter processing
 	if ('$FILTER' == 0) next
 
@@ -313,6 +344,8 @@ function print_activity()
 
 probe timer.s('$P_INTERVAL')
 {
-	print_activity()
+	print_activity();
+	--iter;
+	if (iter == 0) exit();
 }
 '

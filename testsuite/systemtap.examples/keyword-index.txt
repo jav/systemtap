@@ -621,6 +621,15 @@ keywords: network socket
   last element of the line is the function name.
 
 
+network/socktop - Periodically Summarize Socket Activity on the System
+keywords: network socket
+
+  The socktop script periodically prints out a list of the processes
+  with the highest socket activity.  Command line options for the
+  script allow filtering to focus on particular types of sockets. The
+  "-h" option lists socktop script's filtering options.
+
+
 network/tcp_connections.stp - Track Creation of Incoming TCP Connections
 keywords: network tcp socket
 
@@ -1099,6 +1108,15 @@ keywords: network socket
   entry. This is followed by the command name and the PID. The "->" and
   "<-" indicates function entry and function exit, respectively. The
   last element of the line is the function name.
+
+
+network/socktop - Periodically Summarize Socket Activity on the System
+keywords: network socket
+
+  The socktop script periodically prints out a list of the processes
+  with the highest socket activity.  Command line options for the
+  script allow filtering to focus on particular types of sockets. The
+  "-h" option lists socktop script's filtering options.
 
 
 network/tcp_connections.stp - Track Creation of Incoming TCP Connections
