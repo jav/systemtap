@@ -84,6 +84,13 @@ keywords: interrupt backtrace
   the tallies in descending frequency.
 
 
+io/deviceseeks.stp - Histograms of Seek Behavior for Each Device
+keywords: disk
+
+  The deviceseeks.stp script generates a histogram showing the
+  frequency of different sized seeks on each device.
+
+
 io/disktop.stp - Summarize Disk Read/Write Traffic
 keywords: disk
 
@@ -601,6 +608,13 @@ keywords: syscall wait4
   microseconds, the pid, the executable name in parentheses, the
   "wait4:" key, the duration of the wait and the PID that the wait4 was
   waiting for. If the waited for PID is not specified , it is "-1".
+
+
+profiling/errno.stp - Show Which Processes and System Calls Return Errors Most Frequently
+keywords: profiling
+
+  On exit the errno.stp script provides a sorted list showing which
+  combination of PID, system call, and error occur most frequently.
 
 
 profiling/fntimes.stp - Show functions taking longer than usual

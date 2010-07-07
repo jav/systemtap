@@ -70,6 +70,9 @@ keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <br>
 <li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
 keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The Linux kernel function smp_call_function causes expensive inter-processor interrupts (IPIs). The scf.stp script tallies the processes and backtraces causing the interprocessor interrupts to identify the cause of the expensive IPI. On exit the script prints the tallies in descending frequency.</p></li>
+<li><a href="io/deviceseeks.stp">io/deviceseeks.stp</a> - Histograms of Seek Behavior for Each Device<br>
+keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
+<p>The deviceseeks.stp script generates a histogram showing the frequency of different sized seeks on each device.</p></li>
 <li><a href="io/disktop.stp">io/disktop.stp</a> - Summarize Disk Read/Write Traffic<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.</p></li>
@@ -235,6 +238,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <li><a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#WAIT4">WAIT4</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the "wait4:" key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is "-1".</p></li>
+<li><a href="profiling/errno.stp">profiling/errno.stp</a> - Show Which Processes and System Calls Return Errors Most Frequently<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>On exit the errno.stp script provides a sorted list showing which combination of PID, system call, and error occur most frequently.</p></li>
 <li><a href="profiling/fntimes.stp">profiling/fntimes.stp</a> - Show functions taking longer than usual<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The fntimes.stp script monitors the execution time history of a given function family (assumed non-recursive).  Each time (beyond a warmup interval) is then compared to the historical maximum.  If it exceeds a certain threshold (250%), a message is printed.</p></li>
