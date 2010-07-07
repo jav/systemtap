@@ -9,9 +9,17 @@ set test "sdt_misc"
 # 6. Test .mark probe wildcard matching
 # 7. Test types defined in sdt_misc_.d.  This requires -g
 
-set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {}}
-set v_flags {{} {-DSTAP_SDT_V2} {-DSTAP_SDT_V2}}
-set pbtype_mssgs {{V1-uprobe} {V2-kprobe} {V2-uprobe}}
+set v_flags {{} {} {-DSTAP_SDT_V1}}
+set pbtype_mssgs {{uprobe} {kprobe} {V1_uprobe}}
+set pbtype_flags {{} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-g}}
+switch -regexp $::tcl_platform(machine) {
+    ^(x86_64|i.86|ppc64)$ { 
+        set pbtype_flags {{} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-g}}
+    }
+    default {
+        set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-g}}
+    }
+}
 
 proc cleanup_handler { verbose } {
     if { $verbose == 0 } {
@@ -190,16 +198,6 @@ if {[installtest_p]} {
     set sdtdir $env(SYSTEMTAP_INCLUDES)
 } else {
     set sdtdir $srcdir/../includes
-}
-
-set pbtype_mssgs {{uprobe} {kprobe} {V2}}
-switch -regexp $::tcl_platform(machine) {
-    ^(x86_64|i.86)$ { 
-        set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-DSTAP_SDT_V2}}
-    }
-    default {
-        set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-DSTAP_SDT_V2 additional_flags=-g}}
-    }
 }
 
 # Iterate pbtype_flags

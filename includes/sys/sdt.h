@@ -68,7 +68,7 @@ typedef struct
 #if ! defined EXPERIMENTAL_KPROBE_SDT
 
 /* An allocated section .probes that holds the probe names and addrs. */
-#if defined STAP_SDT_V1 || ! defined STAP_SDT_V2
+#if defined STAP_SDT_V1
  #define STAP_UPROBE_GUARD UPROBE1_TYPE
  #define STAP_TYPE(t) __typeof__((t))
  #define STAP_CAST(t) t
@@ -84,7 +84,7 @@ typedef struct
 		    STAP_PROBE_ADDR(#arg "\n")		\
 		    "\t.int 0\n"			\
 		    "\t.previous\n")
-#elif defined STAP_SDT_V2
+#elif defined STAP_SDT_V2 || ! defined STAP_SDT_V1
  #define STAP_UPROBE_GUARD UPROBE2_TYPE
  #define STAP_TYPE(t) size_t
  #define STAP_CAST(t) (size_t)t
@@ -113,10 +113,10 @@ typedef struct
 		    "\t.previous\n" :: __stap_ ## args)
 #endif
 #if defined STAP_HAS_SEMAPHORES
- #if defined STAP_SDT_V1 || ! defined STAP_SDT_V2
+ #if defined STAP_SDT_V1
   #define STAP_PROBE_DATA(provider,probe,guard,argc,arg_format,args) \
   STAP_PROBE_DATA_(#provider,#probe,guard,argc,#arg_format,args,#probe "_semaphore")
- #else
+#elif defined STAP_SDT_V2 || ! defined STAP_SDT_V1
   #define STAP_PROBE_DATA(provider,probe,guard,argc,arg_format,args) \
   STAP_PROBE_DATA_(#provider,#probe,guard,argc,#arg_format,args,#provider "_" #probe "_semaphore")
  #endif
@@ -167,26 +167,26 @@ typedef struct
 #define __stap_arg9 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7), "ron"(arg8), "ron"(arg9)
 #define __stap_arg10 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7), "ron"(arg8), "ron"(arg9), "ron"(arg10)
 
-#if defined STAP_SDT_V1 || ! defined STAP_SDT_V2
-#define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)	\
+#if defined STAP_SDT_V1
+ #define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)	\
   STAP_UNINLINE;						\
   STAP_PROBE_DATA(provider,probe,STAP_UPROBE_GUARD,2f,nil,nil);	\
   __asm__ volatile ("2:\n" STAP_NOP "/* " arg_format " */" :: __stap_ ## args);
-#define STAP_PROBE(provider,probe)             			\
-do {								\
+ #define STAP_PROBE(provider,probe)             			\
+ do {								\
   STAP_PROBE_DATA(provider,probe,STAP_UPROBE_GUARD,2f,nil,nil);	\
   __asm__ volatile ("2:\n" STAP_NOP);				\
-} while (0)
-#elif defined STAP_SDT_V2
-#define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)   \
+ } while (0)
+#elif defined STAP_SDT_V2 || ! defined STAP_SDT_V1
+ #define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)   \
   STAP_UNINLINE;                                                \
   STAP_PROBE_DATA(provider,probe,STAP_UPROBE_GUARD,argc,arg_format,args);	\
   __asm__ volatile ("4:\n" STAP_NOP);
-#define STAP_PROBE(provider,probe)                      \
-do {							\
+ #define STAP_PROBE(provider,probe)                      \
+ do {							\
   STAP_PROBE_DATA(provider,probe,STAP_UPROBE_GUARD,0,"",arg0);	\
   __asm__ volatile ("4:\n" STAP_NOP);			\
-} while (0)
+ } while (0)
 #endif
 
 #define STAP_PROBE1(provider,probe,parm1)			\
@@ -287,14 +287,14 @@ do {							\
 #else /* ! defined EXPERIMENTAL_KPROBE_SDT */
 #include <unistd.h>
 #include <sys/syscall.h>
-# if defined (__USE_ANSI)
+#if defined (__USE_ANSI)
 extern long int syscall (long int __sysno, ...) __THROW;
-# endif
+#endif
 
 #include <sys/syscall.h>
 
 /* An allocated section .probes that holds the probe names and addrs. */
-# define STAP_SYSCALL __NR_getegid
+#define STAP_SYSCALL __NR_getegid
 #if defined STAP_SDT_V1
  #define STAP_GUARD KPROBE1_TYPE
  #define STAP_PROBE_DATA_(provider,probe,guard,arg,semaphore)	\
@@ -336,10 +336,10 @@ extern long int syscall (long int __sysno, ...) __THROW;
 #endif
 
 #if defined STAP_HAS_SEMAPHORES
- #if defined STAP_SDT_V1 || ! defined STAP_SDT_V2
+ #if defined STAP_SDT_V1
   #define STAP_PROBE_DATA(provider,probe, guard, argc)	\
   STAP_PROBE_DATA_(#provider,#probe,guard,argc,"")
- #else
+ #elif defined STAP_SDT_V2 || ! defined STAP_SDT_V1
   #define STAP_PROBE_DATA(provider,probe, guard, argc)	\
   STAP_PROBE_DATA_(#provider,#probe,guard,argc,#provider "_" #probe "_semaphore")
  #endif

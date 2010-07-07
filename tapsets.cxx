@@ -3993,10 +3993,6 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
     ->bind_unprivileged()
     ->bind(dw);
-  // XXX what uses this?
-  root->bind_str(TOK_PROCESS)->bind_num(TOK_MARK)
-    ->bind_unprivileged()
-    ->bind(dw);
 }
 
 void
@@ -4519,6 +4515,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
     }
 
 
+    need_debug_info = false;
     tokenize(arg_string, arg_tokens, " ");
     assert(arg_count >= 0 && arg_count <= 10);
   }
@@ -4530,6 +4527,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   vector<string> arg_tokens;
   map<string,int> dwarf_regs;
   string reg_prefix;
+  bool need_debug_info;
 
   void visit_target_symbol (target_symbol* e);
 };
@@ -4587,6 +4585,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // 1) uprobe1_type $argN or $FOO (we don't know the arg_count)
 	  // 2) uprobe2_type $FOO (no probe args)
 	  // both of which get resolved later.
+	  need_debug_info = true;
 	  provide(e);
 	  return;
 	}
@@ -4938,6 +4937,7 @@ sdt_query::handle_query_module()
       probe_point *new_location = new_base->locations[0];
 
       bool kprobe_found = false;
+      bool need_debug_info = false;
       if (have_kprobe())
         {
           convert_probe(new_base);
@@ -4968,6 +4968,7 @@ sdt_query::handle_query_module()
 						arg_string,
 						arg_count);
 	  svv.replace (new_base->body);
+	  need_debug_info = svv.need_debug_info;
 	}
       
       unsigned i = results.size();
@@ -4977,7 +4978,7 @@ sdt_query::handle_query_module()
 
       else
         {
-          // XXX: why not derive_probes() in the uprobes case case too?
+          // XXX: why not derive_probes() in the uprobes case too?
           literal_map_t params;
           for (unsigned i = 0; i < new_location->components.size(); ++i)
             {
@@ -4988,8 +4989,10 @@ sdt_query::handle_query_module()
 	  dwarf_query q(new_base, new_location, dw, params, results, "", "");
 	  q.has_mark = true; // enables mid-statement probing
 
-	  if (probe_type == uprobe1_type)
-	      dw.iterate_over_modules(&query_module, &q);
+	  // V2 probes need dwarf info in case of a variable reference
+	  if (probe_type == uprobe1_type
+	      || (probe_type == uprobe2_type && need_debug_info))
+	    dw.iterate_over_modules(&query_module, &q);
 	  else if (probe_type == uprobe2_type)
 	    {
 	      Dwarf_Addr bias;
@@ -5191,8 +5194,7 @@ sdt_query::convert_probe (probe *base)
   b->tok = base->body->tok;
 
   // XXX: Does this also need to happen for i386 under x86_64 stap?
-#ifdef __i386__ /* XXX: probably s.architecture[] instead */
-  if (have_kprobe())
+  if (sess.architecture == "i386" && have_kprobe())
     {
       functioncall *rp = new functioncall;
       rp->function = "regparm";
@@ -5205,7 +5207,6 @@ sdt_query::convert_probe (probe *base)
       es->value = rp;
       b->statements.push_back(es);
     }
-#endif
 
   if (have_kprobe())
     {
