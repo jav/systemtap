@@ -1,5 +1,15 @@
 * What's new
 
+- A new integrated compile server client is now available as part of stap.
+
+  o 'stap --server ...' is equivalent to 'stap-client ...'
+  o 'stap --server-status' is equivalent to 'stap-find-servers'
+  o 'stap --server-status=online' is equivalent to 'stap-find-servers --all'
+  o stap-client and its related tools will soon be deprecated.
+  o the nss-devel and avahi-devel packages are required for building stap with
+    the integrated client (checked during configuration).
+  o nss and avahi are required to run the integrated client.
+
 - A new operator @entry is available for automatically saving an expression
   at entry time for use in a .return probe.
    probe foo.return { println(get_cycles() - @entry(get_cycles())) }

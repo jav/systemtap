@@ -787,7 +787,7 @@ query_server_status (const systemtap_session &s, const string &status_string)
   // otherwise if the --unprivileged has been used
   //   the default is online,trusted,compatible,signer
   // otherwise
-  //   the default is online,trusted,compatible
+  //   the default is online,compatible
   //
   // Having said that,
   //   'online' is only applicable if we have avahi
@@ -801,7 +801,7 @@ query_server_status (const systemtap_session &s, const string &status_string)
 	  working_string = "online,";
 #endif
 #if HAVE_NSS
-	  working_string += "trusted,";
+	  //	  working_string += "trusted,"; --- not yet
 	  if (s.unprivileged)
 	    working_string += "signer,";
 #endif
