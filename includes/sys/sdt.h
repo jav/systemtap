@@ -13,7 +13,7 @@
 
 /* The asm operand string stap_sdt_probe_entry_v2.arg_string
    is currently only supported for x86 */
-#if ! defined __x86_64__ && ! defined __i386__
+#if ! defined __x86_64__ && ! defined __i386__ && ! defined __powerpc__
  #define STAP_SDT_V1 1
  #undef STAP_SDT_V2
 #endif

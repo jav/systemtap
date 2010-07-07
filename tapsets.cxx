@@ -4471,6 +4471,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
        probe target process/file, not upon the host.  So we can't just
        #ifdef _i686_ etc. */
     if (elf_machine == EM_X86_64) {
+      reg_prefix = "";
       dwarf_regs["rax"] = dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
       dwarf_regs["rdx"] = dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 1;
       dwarf_regs["rcx"] = dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 2;
@@ -4488,6 +4489,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
       dwarf_regs["r14"] = dwarf_regs["r14d"] = dwarf_regs["r14w"] = dwarf_regs["r14b"] = 14;
       dwarf_regs["r15"] = dwarf_regs["r15d"] = dwarf_regs["r15w"] = dwarf_regs["r15b"] = 15;
     } else if (elf_machine == EM_386) {
+      reg_prefix = "";
       dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
       dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 1;
       dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 2;
@@ -4496,7 +4498,21 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
       dwarf_regs["ebp"] = dwarf_regs["bp"] = 5;
       dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 6;
       dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 7;
-    } else if (arg_count) {
+    } else if (elf_machine == EM_PPC || elf_machine == EM_PPC64) {
+      reg_prefix = "r";
+      dwarf_regs["r0"] = 0; dwarf_regs["r1"] = 1; dwarf_regs["r2"] = 2;
+      dwarf_regs["r3"] = 3; dwarf_regs["r4"] = 4; dwarf_regs["r5"] = 5;
+      dwarf_regs["r6"] = 6; dwarf_regs["r7"] = 7; dwarf_regs["r8"] = 8;
+      dwarf_regs["r9"] = 9; dwarf_regs["r10"] = 10; dwarf_regs["r11"] = 11;
+      dwarf_regs["r12"] = 12; dwarf_regs["r13"] = 13; dwarf_regs["r14"] = 14;
+      dwarf_regs["r15"] = 15; dwarf_regs["r16"] = 16; dwarf_regs["r17"] = 17;
+      dwarf_regs["r18"] = 18; dwarf_regs["r19"] = 19; dwarf_regs["r20"] = 20;
+      dwarf_regs["r21"] = 21; dwarf_regs["r22"] = 22; dwarf_regs["r23"] = 23;
+      dwarf_regs["r24"] = 24; dwarf_regs["r25"] = 25; dwarf_regs["r26"] = 26;
+      dwarf_regs["r27"] = 27; dwarf_regs["r28"] = 28; dwarf_regs["r29"] = 29;
+      dwarf_regs["r30"] = 30; dwarf_regs["r31"] = 31; 
+    }
+    else if (arg_count) {
       throw semantic_error (string("Unsupported architecture ")
                             + "(" + process_name + " ELF code " + lex_cast(elf_machine) + ")"
                             + "for dwarfless sdt probes.");
@@ -4513,6 +4529,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   int arg_count;
   vector<string> arg_tokens;
   map<string,int> dwarf_regs;
+  string reg_prefix;
 
   void visit_target_symbol (target_symbol* e);
 };
@@ -4606,7 +4623,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
       regex_t	 preg;
       // this pattern matches 0xD(%R) | (%R) | %R
-      const char *pattern = "\\([0x]*-*[0-9]*\\)\\([(]*\\)\\(%[0-9a-z][0-9a-z][0-9a-z]*\\)\\([)]*\\)";
+      const char *pattern = "\\([0x]*-*[0-9]*\\)\\([(]*\\)\\(%*[0-9a-z][0-9a-z]*\\)\\([)]*\\)";
       int	 rc;
       size_t	 nmatch = 5;
       regmatch_t pmatch[5];
@@ -4643,8 +4660,12 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // Is there a register?
 	  if (pmatch[3].rm_eo >= pmatch[3].rm_so)
 	    {
-	      reg = arg_tokens[argno-1].substr(pmatch[3].rm_so+1);
-	      reg.erase(pmatch[3].rm_eo - pmatch[3].rm_so - 1);
+	      reg = arg_tokens[argno-1].substr(pmatch[3].rm_so);
+	      reg.erase(pmatch[3].rm_eo - pmatch[3].rm_so);
+	      if (reg[0] == '%')
+		reg.erase(0,1);
+	      else
+		reg.insert(0, reg_prefix);
 	    }
 	  if (reg.length() == 0)
 	    throw semantic_error("Unsupported assembler operand while accessing "
