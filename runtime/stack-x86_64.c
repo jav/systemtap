@@ -28,13 +28,15 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 
 
 static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
-                              struct task_struct *tsk, struct uretprobe_instance *ri)
+                              struct task_struct *tsk,
+			      struct uretprobe_instance *ri, int uregs_valid)
 {
 #ifdef STP_USE_DWARF_UNWINDER
         int start_levels = levels;
 	// FIXME: large stack allocation
 	struct unwind_frame_info info;
-	arch_unw_init_frame_info(&info, regs);
+	int sanitize = tsk && ! uregs_valid;
+	arch_unw_init_frame_info(&info, regs, sanitize);
 
 	while (levels && (tsk || !arch_unw_user_mode(&info))) {
 		int ret = unwind(&info, tsk);

@@ -31,7 +31,8 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 #endif
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
-                               struct task_struct *tsk, struct uretprobe_instance *ri)
+                               struct task_struct *tsk,
+			       struct uretprobe_instance *ri, int uregs_valid)
 {
 	unsigned long context = (unsigned long)&REG_SP(regs) & ~(THREAD_SIZE - 1);
 
@@ -58,8 +59,9 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 	}
 #else
 #ifdef STP_USE_DWARF_UNWINDER
-	struct unwind_frame_info info;
-	arch_unw_init_frame_info(&info, regs);
+	struct unwind_frame_info info; // XXX large stack allocation
+	int sanitize = tsk && ! uregs_valid;
+	arch_unw_init_frame_info(&info, regs, sanitize);
 
 	while (levels && (tsk || !arch_unw_user_mode(&info))) {
 		int ret = unwind(&info, tsk);

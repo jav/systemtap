@@ -29,15 +29,22 @@ function print_ubacktrace () %{
   if (current->mm)
     {
       struct pt_regs *uregs;
+      int valid;
       if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-	uregs = CONTEXT->regs;
+	{
+	  uregs = CONTEXT->regs;
+	  valid = 1;
+	}
       else
-	uregs = task_pt_regs(current); // XXX - Might need sanitising.
+	{
+	  uregs = task_pt_regs(current);
+	  valid = _stp_task_pt_regs_valid(current, uregs);
+	}
 
       if (uregs)
 	{
 	  _stp_stack_print(uregs, _STP_SYM_FULL, CONTEXT->pi, MAXTRACE,
-			   current, CONTEXT->ri);
+			   current, CONTEXT->ri, valid);
 	  return;
 	}
     }
@@ -68,16 +75,23 @@ function sprint_ubacktrace () %{
   if (current->mm)
     {
       struct pt_regs *uregs;
+      int valid;
       if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-	uregs = CONTEXT->regs;
+	{
+	  uregs = CONTEXT->regs;
+	  valid = 1;
+	}
       else
-	uregs = task_pt_regs(current); // XXX - Might need sanitising.
+	{
+	  uregs = task_pt_regs(current);
+	  valid = _stp_task_pt_regs_valid(current, uregs);
+	}
 
       if (uregs)
 	{
 	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_SIMPLE,
 			     uregs, CONTEXT->pi, MAXTRACE,
-			     current, CONTEXT->ri);
+			     current, CONTEXT->ri, valid);
 	  return;
 	}
     }
@@ -99,15 +113,22 @@ function print_ubacktrace_brief () %{
   if (current->mm)
     {
       struct pt_regs *uregs;
+      int valid;
       if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-	uregs = CONTEXT->regs;
+	{
+	  uregs = CONTEXT->regs;
+	  valid = 1;
+	}
       else
-	uregs = task_pt_regs(current); // XXX - Might need sanitising.
+	{
+	  uregs = task_pt_regs(current);
+	  valid = _stp_task_pt_regs_valid(current, uregs);
+	}
 
       if (uregs)
 	{
 	  _stp_stack_print(uregs, _STP_SYM_BRIEF, CONTEXT->pi, MAXTRACE,
-			   current, CONTEXT->ri);
+			   current, CONTEXT->ri, valid);
 	  return;
 	}
     }
@@ -131,16 +152,23 @@ function ubacktrace:string () %{
   if (current->mm)
     {
       struct pt_regs *uregs;
+      int valid;
       if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-	uregs = CONTEXT->regs;
+	{
+	  uregs = CONTEXT->regs;
+	  valid = 1;
+	}
       else
-	uregs = task_pt_regs(current); // XXX - Might need sanitising.
+	{
+	  uregs = task_pt_regs(current);
+	  valid = _stp_task_pt_regs_valid(current, uregs);
+	}
 
       if (uregs)
 	{
 	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_NONE,
 			     uregs, CONTEXT->pi, MAXTRACE,
-			     current, CONTEXT->ri);
+			     current, CONTEXT->ri, valid);
 	  return;
 	}
     }

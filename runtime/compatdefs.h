@@ -52,4 +52,26 @@ static inline int _stp_is_compat_task(void)
 #endif
 #endif
 
+/* Whether all user registers are valid. If not the pt_regs needs,
+ * architecture specific, scrubbing before usage (in the unwinder).
+ * XXX Currently very simple heuristics, just check arch. Should
+ * user task and user pt_regs state.
+ *
+ * See arch specific "scrubbing" code in runtime/unwind/<arch>.h
+ */
+static inline int _stp_task_pt_regs_valid(struct task_struct *task,
+					  struct pt_regs *uregs)
+{
+/* It would be nice to just use syscall_get_nr(task, uregs) < 0
+ * but that might trigger false negatives or false positives
+ * (bad syscall numbers or syscall tracing being in effect).
+ */
+#if defined(__i386__)
+  return 1; /* i386 has so little registers, all are saved. */
+#elif defined(__x86_64__)
+  return 0;
+#endif
+  return 0;
+}
+
 #endif /* _STP_COMPAT_H_ */

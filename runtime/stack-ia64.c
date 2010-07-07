@@ -33,7 +33,7 @@ static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
                                struct task_struct *tsk,
-			       struct uretprobe_instance *ri)
+			       struct uretprobe_instance *ri, int uregs_valid)
 {
 	unsigned long *stack = (unsigned long *)&REG_SP(regs);
 	struct dump_para para;
