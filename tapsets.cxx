@@ -7271,11 +7271,12 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     {
       e->assert_no_components("tracepoint");
 
-      // Synthesize a functioncall.
-      functioncall* n = new functioncall;
-      n->tok = e->tok;
-      n->function = "_mark_name_get";
-      provide (n);
+      // Synthesize an embedded expression.
+      embedded_expr *expr = new embedded_expr;
+      expr->tok = e->tok;
+      expr->code = string("/* string */ /* pure */ ")
+	+ string("c->marker_name ? c->marker_name : \"\"");
+      provide (expr);
     }
   else if (e->name == "$$vars" || e->name == "$$parms")
     {
