@@ -392,27 +392,15 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                             break;
 
                     case 'p':
-                            /* Note that %p takes an int64_t argument. */
-                            len = 2*sizeof(void *) + 2;
-                            flags |= STP_ZEROPAD;
-
-                            if (field_width == -1)
-                              field_width = len;
-
-                            if (!(flags & STP_LEFT)) {
-                              while (len < field_width) {
-                                field_width--;
-                                num_bytes++;
-                              }
-                            }
-
-                            //account for "0x"
-                            num_bytes+=2;
-                            field_width-=2;
-
-                            num_bytes += number_size((unsigned long) va_arg(args_copy, int64_t),
-                                               16, field_width, field_width, flags);
-                            continue;
+                            /* Since stap 1.3, %p == %#x. */
+                            flags |= STP_SPECIAL;
+                            base = 16;
+                            /* Previously it was %#.8x or %#.16x. */
+                            #if STAP_COMPAT_VERSION < STAP_VERSION(1,3)
+                            if (precision < 0)
+                                    precision = 2*sizeof(void*);
+                            #endif
+                            break;
 
                     case '%':
                             num_bytes++;
@@ -687,34 +675,15 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			break;
 
 		case 'p':
-			/* Note that %p takes an int64_t argument. */
-			len = 2*sizeof(void *) + 2;
-			flags |= STP_ZEROPAD;
-
-			if (field_width == -1)
-				field_width = len;
-
-			if (!(flags & STP_LEFT)) {
-				while (len < field_width) {
-					field_width--;
-					if (str <= end)
-						*str = ' ';
-					++str;
-				}
-			}
-			if (str <= end) {
-				*str++ = '0';
-				field_width--;
-			}
-			if (str <= end) {
-				*str++ = 'x';
-				field_width--;
-			}
-
-			str = number(str, end,
-				     (unsigned long) va_arg(args, int64_t),
-				     16, field_width, field_width, flags);
-			continue;
+			/* Since stap 1.3, %p == %#x. */
+			flags |= STP_SPECIAL;
+			base = 16;
+			/* Previously it was %#.8x or %#.16x. */
+			#if STAP_COMPAT_VERSION < STAP_VERSION(1,3)
+			if (precision < 0)
+				precision = 2*sizeof(void*);
+			 #endif
+			break;
 
 		case '%':
 			if (str <= end)
