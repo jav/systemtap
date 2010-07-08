@@ -4648,7 +4648,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  // Is there a displacement?
 	  if (pmatch[2].rm_so > pmatch[1].rm_so)
 	    {
-	      string disp_str =	arg_tokens[argno-1].substr(pmatch[1].rm_so);
+	      disp_str = arg_tokens[argno-1].substr(pmatch[1].rm_so);
 	      disp = lex_cast<int>(disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
 	    }
 	  // Is there an indirect register?
@@ -4664,7 +4664,15 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	      if (reg[0] == '%')
 		reg.erase(0,1);
 	      else
-		reg.insert(0, reg_prefix);
+		{
+		  // Handle reg XY which is recognized as disp X reg Y
+		  if (arg_type == register_arg)
+		    {
+		      reg.insert (0, disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
+		      disp = 0;
+		    }
+		  reg.insert (0, reg_prefix);
+		}
 	    }
 	  if (reg.length() == 0)
 	    throw semantic_error("Unsupported assembler operand while accessing "
