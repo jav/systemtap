@@ -5653,6 +5653,30 @@ translate_pass (systemtap_session& s)
 
   try
     {
+      int64_t major=0, minor=0;
+      try
+	{
+	  vector<string> versions;
+	  tokenize (s.compatible, versions, ".");
+	  if (versions.size() >= 1)
+	    major = lex_cast<int64_t> (versions[0]);
+	  if (versions.size() >= 2)
+	    minor = lex_cast<int64_t> (versions[1]);
+	  if (versions.size() >= 3 && s.verbose > 1)
+	    clog << "ignoring extra parts of compat version: " << s.compatible << endl;
+	}
+      catch (const runtime_error)
+	{
+	  throw semantic_error("parse error in compatibility version: " + s.compatible);
+	}
+      if (major < 0 || major > 255 || minor < 0 || minor > 255)
+	throw semantic_error("compatibility version out of range: " + s.compatible);
+      s.op->newline() << "#define STAP_VERSION(a, b) ( ((a) << 8) + (b) )";
+      s.op->newline() << "#ifndef STAP_COMPAT_VERSION";
+      s.op->newline() << "#define STAP_COMPAT_VERSION STAP_VERSION("
+		      << major << ", " << minor << ")";
+      s.op->newline() << "#endif";
+
       recursion_info ri (s);
 
       // NB: we start our traversal from the s.functions[] rather than the probes.
