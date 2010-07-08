@@ -854,6 +854,56 @@ probe syscall.recvfrom.return = kernel.function("sys_recvfrom").return ?
 	retstr = returnstr(1)
 }
 
+# recvmmsg ___________________________________________________
+#
+# long sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
+#		    unsigned int vlen, unsigned int flags,
+#		    struct timespec __user *timeout)
+#
+probe syscall.recvmmsg = kernel.function("sys_recvmmsg").call ?
+{
+	name = "recvmmsg"
+	s = $fd
+	mmsg_uaddr = $mmsg
+	vlen = $vlen
+	flags = $flags
+	flags_str = _recvflags_str($flags)
+	timeout_uaddr = $timeout
+	argstr = sprintf("%d, %p, %d, %s, %s", $fd, $mmsg, $vlen,
+			 _recvflags_str($flags),
+			 _struct_timespec_u($timeout, 1))
+}
+probe syscall.recvmmsg.return = kernel.function("sys_recvmmsg").return ?
+{
+	name = "recvmmsg"
+	retstr = returnstr(1)
+}
+
+# compat_recvmmsg ___________________________________________________
+#
+# long compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
+#			   unsigned vlen, unsigned int flags,
+#			   struct compat_timespec __user *timeout)
+
+probe syscall.compat_recvmmsg = kernel.function("compat_sys_recvmmsg").call ?
+{
+	name = "compat_recvmmsg"
+	s = $fd
+	mmsg_uaddr = $mmsg
+	vlen = $vlen
+	flags = $flags
+	flags_str = _recvflags_str($flags)
+	timeout_uaddr = $timeout
+	argstr = sprintf("%d, %p, %d, %s, %s", $fd, $mmsg, $vlen,
+			 _recvflags_str($flags),
+			 _struct_compat_timespec_u($timeout, 1))
+}
+probe syscall.compat_recvmmsg.return = kernel.function("compat_sys_recvmmsg").return ?
+{
+	name = "compat_recvmmsg"
+	retstr = returnstr(1)
+}
+
 # recvmsg ____________________________________________________
 #
 # long sys_recvmsg(int fd,
