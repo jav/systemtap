@@ -29,8 +29,8 @@ proc stap_direct_and_with_client {stap options} {
     verbose -log $res_stap
 
     # Now run it using the client
-    verbose -log "eval exec $stap --server $options"
-    catch {eval exec $stap --server $options} res_stap_client
+    verbose -log "eval exec $stap --use-server $options"
+    catch {eval exec $stap --use-server $options} res_stap_client
     verbose -log $res_stap_client
 
     # Now check the output
@@ -104,7 +104,7 @@ if {! [use_server_p]} then {
 }
 
 # Make sure we call the correct instance of stap
-# There is a copy of stap on the PATH which always uses --server
+# There is a copy of stap on the PATH which always uses --use-server
 if {[installtest_p]} then {
     # For 'make installcheck', use the installed stap
     set stap $installed_stap

@@ -344,12 +344,12 @@ systemtap_session::usage (int exitcode)
     << "   --skip-badvars" << endl
     << "              substitute zero for bad context $variables" << endl
 #if HAVE_NSS
-    << "   --server[=SERVER-SPEC]" << endl
-    << "              compile using a systemtap compile server" << endl
+    << "   --use-server[=SERVER-SPEC]" << endl
+    << "              compile using a systemtap compile-server" << endl
 #endif
 #if HAVE_NSS || HAVE_AVAHI
-    << "   --server-status[=PROPERTIES]" << endl
-    << "              report on the status of the specified compile servers" << endl
+    << "   --list-servers[=PROPERTIES]" << endl
+    << "              report on the status of the specified compile-servers" << endl
 #endif
     << endl
     ;
@@ -389,8 +389,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_CLEAN_CACHE 13
 #define LONG_OPT_COMPATIBLE 14
 #define LONG_OPT_LDD 15
-#define LONG_OPT_SERVER 16
-#define LONG_OPT_SERVER_STATUS 17
+#define LONG_OPT_USE_SERVER 16
+#define LONG_OPT_LIST_SERVERS 17
 #define LONG_OPT_ALL_MODULES 18
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
@@ -415,8 +415,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "clean-cache", 0, &long_opt, LONG_OPT_CLEAN_CACHE },
         { "compatible", 1, &long_opt, LONG_OPT_COMPATIBLE },
         { "ldd", 0, &long_opt, LONG_OPT_LDD },
-        { "server", 2, &long_opt, LONG_OPT_SERVER },
-        { "server-status", 2, &long_opt, LONG_OPT_SERVER_STATUS },
+        { "use-server", 2, &long_opt, LONG_OPT_USE_SERVER },
+        { "list-servers", 2, &long_opt, LONG_OPT_LIST_SERVERS },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { NULL, 0, NULL, 0 }
       };
@@ -755,17 +755,17 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_CLIENT_OPTIONS:
 	      client_options = true;
 	      break;
-	    case LONG_OPT_SERVER:
+	    case LONG_OPT_USE_SERVER:
 	      if (client_options)
-		client_options_disallowed += client_options_disallowed.empty () ? "--server" : ", --server";
+		client_options_disallowed += client_options_disallowed.empty () ? "--use-server" : ", --use-server";
 	      if (optarg)
 		specified_servers.push_back (optarg);
 	      else
 		specified_servers.push_back ("");
 	      break;
-	    case LONG_OPT_SERVER_STATUS:
+	    case LONG_OPT_LIST_SERVERS:
 	      if (client_options)
-		client_options_disallowed += client_options_disallowed.empty () ? "--server-status" : ", --server-status";
+		client_options_disallowed += client_options_disallowed.empty () ? "--list-servers" : ", --list-servers";
 	      if (optarg )
 		server_status_strings.push_back (optarg);
 	      else
@@ -865,7 +865,7 @@ systemtap_session::check_options (int argc, char * const argv [])
     cerr << "WARNING: --client-options is not supported by this version of systemtap" << endl;
   if (! specified_servers.empty ())
     {
-      cerr << "WARNING: --server is not supported by this version of systemtap" << endl;
+      cerr << "WARNING: --use-server is not supported by this version of systemtap" << endl;
       specified_servers.clear ();
     }
 #endif
@@ -873,14 +873,14 @@ systemtap_session::check_options (int argc, char * const argv [])
 #if ! HAVE_NSS && ! HAVE_AVAHI
   if (! server_status_strings.empty ())
     {
-      cerr << "WARNING: --server-status is not supported by this version of systemtap" << endl;
+      cerr << "WARNING: --list-servers is not supported by this version of systemtap" << endl;
       server_status_strings.clear ();
     }
 #endif
 
   if (runtime_specified && ! specified_servers.empty ())
     {
-      cerr << "Warning: Ignoring --server due to the use of -R" << endl;
+      cerr << "Warning: Ignoring --use-server due to the use of -R" << endl;
       specified_servers.clear ();
     }
 
@@ -939,7 +939,7 @@ systemtap_session::check_options (int argc, char * const argv [])
   // NB: this is also triggered if stap is invoked with no arguments at all
   if (! have_script)
     {
-      // We don't need a script if --server-status was specified
+      // We don't need a script if --list-servers was specified
       if (server_status_strings.empty ())
 	{
 	  cerr << "A script must be specified." << endl;

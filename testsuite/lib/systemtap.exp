@@ -156,7 +156,7 @@ proc setup_server {} {
     verbose -log "avahi-browse found:\n$looksee"
 
     # Make sure that stap can find the server.
-    set lines [exec stap --server-status=online,compatible 2>@ stdout | wc -l]
+    set lines [exec stap --list-servers=online,compatible 2>@ stdout | wc -l]
     if {$lines < 2} then {
 	print "Unable to find a systemtap server -- check firewall settings"
 	shutdown_server
@@ -164,11 +164,11 @@ proc setup_server {} {
     }
 
     # Substitute a script on the PATH in place of stap which calls the real
-    # stap with the --server flag.
+    # stap with the --use-server flag.
     set path "$net_path/stap"
     set fp [open $path "w"]
     puts $fp "#!/bin/sh"
-    puts $fp "[exec which stap] --server \"\$@\""
+    puts $fp "[exec which stap] --use-server \"\$@\""
     close $fp
     exec chmod +x $path
 

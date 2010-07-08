@@ -782,7 +782,7 @@ query_server_status (const systemtap_session &s, const string &status_string)
 {
 #if HAVE_NSS || HAVE_AVAHI
   // If this string is empty, then set the default.
-  // If the --server option has been used
+  // If the --use-server option has been used
   //   the default is 'specified'
   // otherwise if the --unprivileged has been used
   //   the default is online,trusted,compatible,signer
@@ -823,9 +823,9 @@ query_server_status (const systemtap_session &s, const string &status_string)
   //     compatible - servers which compile for the current kernel release
   //	 	      and architecture.
   //     signer     - servers which are trusted module signers.
-  //	 specified  - servers which have been specified using --server=XXX.
+  //	 specified  - servers which have been specified using --use-server=XXX.
   //	 	      If no servers have been specified, then this is
-  //		      equivalent to --server-status=trusted,online,compatible.
+  //		      equivalent to --list-servers=trusted,online,compatible.
   //     all        - all trusted servers, servers currently online and
   //	              specified servers.
   vector<string> properties;

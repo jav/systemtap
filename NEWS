@@ -1,5 +1,6 @@
 * What's new
 
+<<<<<<< HEAD
 - It is now possible in some situations to use print_ubacktrace() to
   get a user space stack trace from a kernel probe point. e.g. for
   user backtraces when there is a pagefault:
@@ -32,11 +33,11 @@
 - Kernel backtraces are now much faster (replaced a linear search
   with a binary search).
 
-- A new integrated compile server client is now available as part of stap.
+- A new integrated compile-server client is now available as part of stap.
 
-  o 'stap --server ...' is equivalent to 'stap-client ...'
-  o 'stap --server-status' is equivalent to 'stap-find-servers'
-  o 'stap --server-status=online' is equivalent to 'stap-find-servers --all'
+  o 'stap --use-server ...' is equivalent to 'stap-client ...'
+  o 'stap --list-servers' is equivalent to 'stap-find-servers'
+  o 'stap --list-servers=online' is equivalent to 'stap-find-servers --all'
   o stap-client and its related tools will soon be deprecated.
   o the nss-devel and avahi-devel packages are required for building stap with
     the integrated client (checked during configuration).
