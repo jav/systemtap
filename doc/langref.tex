@@ -1495,33 +1495,6 @@ handler is never run. This probe point may be useful in conjunction with
 optional probes. See Section~\ref{sub:Optional-probe-points}.
 
 
-\begin{comment} % Comment out until perfmon code is reactivated
-\subsection{Probes to monitor performance}
-
-The perfmon family of probe points is used to access the performance monitoring
-hardware available in modern processors. These probe points require perfmon2
-support in the kernel to access the hardware.
-
-Performance monitor hardware points have a \texttt{perfmon} prefix. The suffix
-names the event being counted, for example \texttt{counter(event)}. The event
-names are specific to the processor implementation, except for generic cycle
-and instructions events, which are available on all processors. The probe
-\texttt{perfmon.counter(event)} starts a counter on the processor which counts
-the number of events that occur on that processor. For more details about
-the performance monitoring events available on a specific processor, see
-the help text returned by typing the perfmon2 command \texttt{pfmon -l.}
-
-\subsubsection{\$counter}
-
-\$counter is a handle used in the body of a probe for operations involving
-the counter associated with the probe.
-
-\subsubsection{read\_counter}
-
-read\_counter is a function passed to the handle for a perfmon probe. It
-returns the current count for the event.
-\end{comment}
-
 \section{Language elements\label{sec:Language-Elements}}
 \subsection{Identifiers}
 \index{identifiers}
