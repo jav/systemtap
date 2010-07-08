@@ -1,5 +1,37 @@
 * What's new
 
+- It is now possible in some situations to use print_ubacktrace() to
+  get a user space stack trace from a kernel probe point. e.g. for
+  user backtraces when there is a pagefault:
+  $ stap -d /bin/sort --ldd -e 'probe vm.pagefault {
+      if (pid() == target()) {
+         printf("pagefault @0x%x\n", address); print_ubacktrace();
+      } }' -c /bin/sort
+  [...]
+  pagefault @0x7fea0595fa70
+   0x000000384f07f958 : __GI_strcmp+0x12b8/0x1440 [libc-2.12.so]
+   0x000000384f02824e : __gconv_lookup_cache+0xee/0x5a0 [libc-2.12.so]
+   0x000000384f021092 : __gconv_find_transform+0x92/0x2cf [libc-2.12.so]
+   0x000000384f094896 : __wcsmbs_load_conv+0x106/0x2b0 [libc-2.12.so]
+   0x000000384f08bd90 : mbrtowc+0x1b0/0x1c0 [libc-2.12.so]
+   0x0000000000404199 : ismbblank+0x39/0x90 [sort]
+   0x0000000000404a4f : inittables_mb+0xef/0x290 [sort]
+   0x0000000000406934 : main+0x174/0x2510 [sort]
+   0x000000384f01ec5d : __libc_start_main+0xfd/0x1d0 [libc-2.12.so]
+   0x0000000000402509 : _start+0x29/0x2c [sort]
+  [...]
+
+- New tapset functions to get a string representation of a stack trace:
+  sprint_[u]backtrace() and sprint_[u]stack().
+
+- New tapset function to get the module (shared library) name for a
+  user space address umodname:string(long). The module name will now
+  also be in the output of usymdata() and in backtrace addresses even
+  when they were not given with -d at the command line.
+
+- Kernel backtraces are now much faster (replaced a linear search
+  with a binary search).
+
 - A new integrated compile server client is now available as part of stap.
 
   o 'stap --server ...' is equivalent to 'stap-client ...'
