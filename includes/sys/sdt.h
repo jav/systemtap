@@ -153,19 +153,42 @@ typedef struct
  #endif
 #endif
 
+
+/* https://bugzilla.redhat.com/show_bug.cgi?id=608768 /
+   http://gcc.gnu.org/PR44707 indicate that "g" is a good general
+   register constraint for these operands, except on AUTO_INC_DEC
+   targets.  Let's prefer "g" on fixed compilers and on other
+   architectures.  The #if monstrosity was coded by Jakub Jalinek. */
+#if defined (__i386__) || defined (__x86_64__) \
+  || defined (__sparc__) || defined (__s390__) \
+  || (__GNUC__ > 4)                            \
+  || (__GNUC__ == 4                            \
+  && (__GNUC_MINOR__ >= 6                       \
+      || (defined __GNUC_RH_RELEASE__           \
+          && (__GNUC_MINOR__ > 4                \
+              || (__GNUC_MINOR__ == 4                   \
+                  && (__GNUC_PATCHLEVEL__ > 4           \
+                      || (__GNUC_PATCHLEVEL__ == 4              \
+                          && __GNUC_RH_RELEASE__ >= 9)))))))
+#define STAP_G_CONSTRAINT "g"
+#else
+#define STAP_G_CONSTRAINT "nro"
+#endif
+ 
+
 /* variadic macro args not allowed by -ansi -pedantic so... */
 /* Use "ron" constraint as "g" constraint sometimes gives an auto increment operand */
 #define __stap_arg0
-#define __stap_arg1 "ron"(arg1)
-#define __stap_arg2 "ron"(arg1), "ron"(arg2)
-#define __stap_arg3 "ron"(arg1), "ron"(arg2), "ron"(arg3)
-#define __stap_arg4 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4)
-#define __stap_arg5 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5)
-#define __stap_arg6 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6)
-#define __stap_arg7 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7)
-#define __stap_arg8 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7), "ron"(arg8)
-#define __stap_arg9 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7), "ron"(arg8), "ron"(arg9)
-#define __stap_arg10 "ron"(arg1), "ron"(arg2), "ron"(arg3), "ron"(arg4), "ron"(arg5), "ron"(arg6), "ron"(arg7), "ron"(arg8), "ron"(arg9), "ron"(arg10)
+#define __stap_arg1 STAP_G_CONSTRAINT(arg1)
+#define __stap_arg2 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2)
+#define __stap_arg3 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2), STAP_G_CONSTRAINT(arg3)
+#define __stap_arg4 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2), STAP_G_CONSTRAINT(arg3), STAP_G_CONSTRAINT(arg4)
+#define __stap_arg5 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2), STAP_G_CONSTRAINT(arg3), STAP_G_CONSTRAINT(arg4), STAP_G_CONSTRAINT(arg5)
+#define __stap_arg6 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2), STAP_G_CONSTRAINT(arg3), STAP_G_CONSTRAINT(arg4), STAP_G_CONSTRAINT(arg5), STAP_G_CONSTRAINT(arg6)
+#define __stap_arg7 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2), STAP_G_CONSTRAINT(arg3), STAP_G_CONSTRAINT(arg4), STAP_G_CONSTRAINT(arg5), STAP_G_CONSTRAINT(arg6), STAP_G_CONSTRAINT(arg7)
+#define __stap_arg8 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2), STAP_G_CONSTRAINT(arg3), STAP_G_CONSTRAINT(arg4), STAP_G_CONSTRAINT(arg5), STAP_G_CONSTRAINT(arg6), STAP_G_CONSTRAINT(arg7), STAP_G_CONSTRAINT(arg8)
+#define __stap_arg9 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2), STAP_G_CONSTRAINT(arg3), STAP_G_CONSTRAINT(arg4), STAP_G_CONSTRAINT(arg5), STAP_G_CONSTRAINT(arg6), STAP_G_CONSTRAINT(arg7), STAP_G_CONSTRAINT(arg8), STAP_G_CONSTRAINT(arg9)
+#define __stap_arg10 STAP_G_CONSTRAINT(arg1), STAP_G_CONSTRAINT(arg2), STAP_G_CONSTRAINT(arg3), STAP_G_CONSTRAINT(arg4), STAP_G_CONSTRAINT(arg5), STAP_G_CONSTRAINT(arg6), STAP_G_CONSTRAINT(arg7), STAP_G_CONSTRAINT(arg8), STAP_G_CONSTRAINT(arg9), STAP_G_CONSTRAINT(arg10)
 
 #if defined STAP_SDT_V1
  #define STAP_PROBE_POINT(provider,probe,argc,arg_format,args)	\
