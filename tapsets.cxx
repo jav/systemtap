@@ -2409,8 +2409,9 @@ dwarf_pretty_print::recurse_array (Dwarf_Die* type, target_symbol* e,
   // We print the array up to the first 5 elements.
   // XXX how can we determine the array size?
   // ... for now, just print the first element
+  // NB: limit to 32 args; see PR10750 and c_unparser::visit_print_format.
   unsigned i, size = 1;
-  for (i=0; i < size && i < 5; ++i)
+  for (i=0; i < size && i < 5 && pf->args.size() < 32; ++i)
     {
       if (i > 0)
         pf->raw_components.append(", ");
@@ -2511,6 +2512,14 @@ dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
 
         if (++count > 1)
           pf->raw_components.append(", ");
+
+        // NB: limit to 32 args; see PR10750 and c_unparser::visit_print_format.
+        if (pf->args.size() >= 32)
+          {
+            pf->raw_components.append("...");
+            break;
+          }
+
         if (member)
           {
             pf->raw_components.append(".");
