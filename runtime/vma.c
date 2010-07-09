@@ -17,7 +17,68 @@
 #include "string.c"
 #include "task_finder_vma.c"
 
-/* exec callback, will drop all vma maps for a process that disappears. */
+#include <asm/uaccess.h>
+
+static void _stp_vma_match_vdso(struct task_struct *tsk)
+{
+/* vdso is arch specific */
+#ifdef STAPCONF_MM_CONTEXT_VDSO
+  int i, j;
+  if (tsk->mm)
+    {
+      struct _stp_module *found = NULL;
+      unsigned long vdso_addr = (unsigned long) tsk->mm->context.vdso;
+#ifdef DEBUG_TASK_FINDER_VMA
+      _dbug("tsk: %d vdso: 0x%lx\n", tsk->pid, vdso_addr);
+#endif
+      for (i = 0; i < _stp_num_modules && found == NULL; i++) {
+	struct _stp_module *m = _stp_modules[i];
+	if (m->path[0] == '/'
+	    && m->num_sections == 1
+	    && strncmp(m->name, "vdso", 4) == 0)
+	  {
+	    unsigned long notes_addr;
+	    int all_ok = 1;
+	    notes_addr = vdso_addr + m->build_id_offset - m->build_id_len;
+#ifdef DEBUG_TASK_FINDER_VMA
+	    _dbug("notes_addr %s: 0x%lx\n", m->name, notes_addr);
+#endif
+	    for (j = 0; j < m->build_id_len; j++)
+	      {
+		int rc;
+		unsigned char b;
+		/* We are called from the task_finder, so it should be
+		   save to just copy_from_user here. utrace callback. */
+		rc = copy_from_user(&b, (void*)(notes_addr + j), 1);
+		if (rc || b != m->build_id_bits[j])
+		  {
+#ifdef DEBUG_TASK_FINDER_VMA
+		    _dbug("darn, not equal (rc=%d) at %d (%d != %d)\n",
+			  rc, j, b, m->build_id_bits[j]);
+#endif
+		    all_ok = 0;
+		    break;
+		  }
+	      }
+	    if (all_ok)
+	      found = m;
+	  }
+      }
+      if (found != NULL)
+	{
+	  stap_add_vma_map_info(tsk, vdso_addr,
+				vdso_addr + found->sections[0].size,
+				NULL, found);
+#ifdef DEBUG_TASK_FINDER_VMA
+	  _dbug("found vdso: %s\n", found->path);
+#endif
+	}
+    }
+#endif /* STAPCONF_MM_CONTEXT_VDSO */
+}
+
+/* exec callback, will try to match vdso for new process,
+   will drop all vma maps for a process that disappears. */
 static int _stp_vma_exec_cb(struct stap_task_finder_target *tgt,
 			    struct task_struct *tsk,
 			    int register_p,
@@ -28,8 +89,13 @@ static int _stp_vma_exec_cb(struct stap_task_finder_target *tgt,
 	    "tsk %d:%d , register_p: %d, process_p: %d\n",
 	    tsk->pid, tsk->tgid, register_p, process_p);
 #endif
-  if (process_p && ! register_p)
-    stap_drop_vma_maps(tsk);
+  if (process_p)
+    {
+      if (register_p)
+	_stp_vma_match_vdso(tsk);
+      else
+	stap_drop_vma_maps(tsk);
+    }
 
   return 0;
 }

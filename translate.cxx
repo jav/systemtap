@@ -16,6 +16,7 @@
 #include "util.h"
 #include "dwarf_wrappers.h"
 #include "setupdwfl.h"
+#include "task_finder.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -30,6 +31,7 @@ extern "C" {
 #include <dwarf.h>
 #include <elfutils/libdwfl.h>
 #include <elfutils/libdw.h>
+#include <ftw.h>
 }
 
 // Max unwind table size (debug or eh) per module. Somewhat arbitrary
@@ -5483,7 +5485,55 @@ add_unwindsym_ldd (systemtap_session &s)
   s.unwindsym_modules.insert (added.begin(), added.end());
 }
 
+static set<string> vdso_paths;
 
+static int find_vdso(const char *path, const struct stat *status, int type)
+{
+  if (type == FTW_F)
+    {
+      const char *name = strrchr(path, '/');
+      if (name)
+	{
+	  name++;
+	  const char *ext = strrchr(name, '.');
+	  if (ext
+	      && strncmp("vdso", name, 4) == 0
+	      && strcmp(".so", ext) == 0)
+	    vdso_paths.insert(path);
+	}
+    }
+  return 0;
+}
+
+void
+add_unwindsym_vdso (systemtap_session &s)
+{
+  // This is to disambiguate between -r REVISION vs -r BUILDDIR.
+  // See also dwflsetup.c (setup_dwfl_kernel). In case of only
+  // having the BUILDDIR we need to do a deep search (the specific
+  // arch name dir in the kernel build tree is unknown).
+  string vdso_dir;
+  if (s.kernel_build_tree == string("/lib/modules/"
+				    + s.kernel_release
+				    + "/build"))
+    vdso_dir = "/lib/modules/" + s.kernel_release + "/vdso";
+  else
+    vdso_dir = s.kernel_build_tree + "/arch/";
+
+  if (s.verbose > 1)
+    clog << "Searching for vdso candidates: " << vdso_dir << endl;
+
+  ftw(vdso_dir.c_str(), find_vdso, 1);
+
+  for (set<string>::iterator it = vdso_paths.begin();
+       it != vdso_paths.end();
+       it++)
+    {
+      s.unwindsym_modules.insert(*it);
+      if (s.verbose > 1)
+	clog << "vdso candidate: " << *it << endl;
+    }
+}
 
 void
 emit_symbol_data (systemtap_session& s)
@@ -5497,6 +5547,9 @@ emit_symbol_data (systemtap_session& s)
   // step 0: run ldd on any user modules if requested
   if (s.unwindsym_ldd)
     add_unwindsym_ldd (s);
+  // step 0.5: add vdso(s) when vma tracker was requested
+  if (vma_tracker_enabled (s))
+    add_unwindsym_vdso (s);
   // NB: do this before the ctx.unwindsym_modules copy is taken
 
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, ~0, s.unwindsym_modules };
