@@ -34,7 +34,7 @@ struct __stp_tf_vma_entry {
 	pid_t pid;
 	unsigned long vm_start;
 	unsigned long vm_end;
-	struct dentry *dentry;
+	const char *name;
 
 	// User data (possibly stp_module)
 	void *user;
@@ -126,11 +126,11 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 
 
 // Add the vma info to the vma map hash table.
-// Caller is responsible for dentry lifetime.
+// Caller is responsible for name lifetime.
 static int
 stap_add_vma_map_info(struct task_struct *tsk,
 		      unsigned long vm_start, unsigned long vm_end,
-		      struct dentry *dentry, void *user)
+		      const char *name, void *user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -162,7 +162,7 @@ stap_add_vma_map_info(struct task_struct *tsk,
 	entry->pid = tsk->pid;
 	entry->vm_start = vm_start;
 	entry->vm_end = vm_end;
-	entry->dentry = dentry;
+	entry->name = name;
 	entry->user = user;
 
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
@@ -173,7 +173,6 @@ stap_add_vma_map_info(struct task_struct *tsk,
 
 
 // Remove the vma entry from the vma hash table.
-// If the entry contained a non-NULL dentry, will call dput(dentry).
 // Returns -ESRCH if the entry isn't present.
 static int
 stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start)
@@ -204,7 +203,7 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start)
 static int
 stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 		       unsigned long *vm_start, unsigned long *vm_end,
-		       struct dentry **dentry, void **user)
+		       const char **name, void **user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -228,8 +227,8 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 			*vm_start = found_entry->vm_start;
 		if (vm_end != NULL)
 			*vm_end = found_entry->vm_end;
-		if (dentry != NULL)
-			*dentry = found_entry->dentry;
+		if (name != NULL)
+			*name = found_entry->name;
 		if (user != NULL)
 			*user = found_entry->user;
 		rc = 0;
@@ -245,7 +244,7 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 static int
 stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 			    unsigned long *vm_start, unsigned long *vm_end,
-			    struct dentry **dentry)
+			    const char **name)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -268,8 +267,8 @@ stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 			*vm_start = found_entry->vm_start;
 		if (vm_end != NULL)
 			*vm_end = found_entry->vm_end;
-		if (dentry != NULL)
-			*dentry = found_entry->dentry;
+		if (name != NULL)
+			*name = found_entry->name;
 		rc = 0;
 	}
 	read_unlock_irqrestore(&__stp_tf_vma_lock, flags);

@@ -130,18 +130,13 @@ static struct _stp_module *_stp_umod_lookup(unsigned long addr,
 					    unsigned long *vm_end)
 {
   void *user = NULL;
-  struct dentry *dentry = NULL;
 #ifdef CONFIG_COMPAT
         /* Handle 32bit signed values in 64bit longs, chop off top bits. */
         if (test_tsk_thread_flag(task, TIF_32BIT))
           addr &= ((compat_ulong_t) ~0);
 #endif
   if (stap_find_vma_map_info(task->group_leader, addr,
-			     vm_start, vm_end, &dentry, &user) == 0)
-
-    if (dentry != NULL && name != NULL)
-      *name = dentry->d_name.name;
-
+			     vm_start, vm_end, name, &user) == 0)
     if (user != NULL)
       {
 	struct _stp_module *m = (struct _stp_module *)user;

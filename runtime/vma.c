@@ -68,7 +68,7 @@ static void _stp_vma_match_vdso(struct task_struct *tsk)
 	{
 	  stap_add_vma_map_info(tsk, vdso_addr,
 				vdso_addr + found->sections[0].size,
-				NULL, found);
+				"vdso", found);
 #ifdef DEBUG_TASK_FINDER_VMA
 	  _dbug("found vdso: %s\n", found->path);
 #endif
@@ -111,6 +111,7 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 {
 	int i, res;
 	struct _stp_module *module = NULL;
+	const char *name = (dentry != NULL) ? dentry->d_name.name : NULL;
 
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
@@ -135,10 +136,10 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 			     atm. */
 			  res = stap_add_vma_map_info(tsk->group_leader,
 						      addr, addr + length,
-						      dentry, module);
+						      name, module);
 			  /* Warn, but don't error out. */
 			  if (res != 0)
-				_stp_warn ("Couldn't register module '%s' for pid %d\n", dentry->d_name.name, tsk->group_leader->pid);
+				_stp_warn ("Couldn't register module '%s' for pid %d\n", _stp_modules[i]->path, tsk->group_leader->pid);
 			  return 0;
 			}
 		}
@@ -152,11 +153,11 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 		    || _stp_target == tsk->group_leader->pid)
 		  {
 		    res = stap_add_vma_map_info(tsk->group_leader, addr,
-						addr + length, dentry, NULL);
+						addr + length, name, NULL);
 #ifdef DEBUG_TASK_FINDER_VMA
 		    _stp_dbug(__FUNCTION__, __LINE__,
 			      "registered '%s' for %d (res:%d)\n",
-			      dentry->d_name.name, tsk->group_leader->pid,
+			      name, tsk->group_leader->pid,
 			      res);
 #endif
 		  }
