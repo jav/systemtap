@@ -392,6 +392,8 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                             break;
 
                     case 'p':
+                            /* Note that %p takes an int64_t argument. */
+                            qualifier = 'L';
                             /* Since stap 1.3, %p == %#x. */
                             flags |= STP_SPECIAL;
                             base = 16;
@@ -675,6 +677,8 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			break;
 
 		case 'p':
+			/* Note that %p takes an int64_t argument. */
+			qualifier = 'L';
 			/* Since stap 1.3, %p == %#x. */
 			flags |= STP_SPECIAL;
 			base = 16;
@@ -682,7 +686,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			#if STAP_COMPAT_VERSION < STAP_VERSION(1,3)
 			if (precision < 0)
 				precision = 2*sizeof(void*);
-			 #endif
+			#endif
 			break;
 
 		case '%':
