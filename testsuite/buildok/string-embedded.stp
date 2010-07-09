@@ -1,0 +1,15 @@
+#! stap -p4
+
+probe begin
+{
+    println(strlen("abc"))
+    println(substr("abc", 0, 1))
+    println(stringat("abc", 2))
+    println(isinstr("abc", "def"))
+    println(text_str("abc"))
+    println(text_strn("abc", 0, 1))
+    println(tokenize("abc", "a"))
+    println(str_replace("abc", "a", "A"))
+    println(strtol("123", 10))
+    println(isdigit("123"))
+}

@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe begin
+{
+	printf("%d\n", randint(10))
+}
