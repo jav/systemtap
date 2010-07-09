@@ -90,6 +90,7 @@ probe scsi.ioentry = scsi.ioentry.* ?
  * @data_direction_str: Data direction, as a string
  * @request_buffer: The request buffer address
  * @request_bufflen: The request buffer length
+ * @req_addr: The current struct request pointer, as a number
  */
 probe scsi.iodispatching
 	= module("scsi_mod").function("scsi_dispatch_cmd@drivers/scsi/scsi.c")!,
@@ -121,6 +122,8 @@ probe scsi.iodispatching
  * @data_direction: The data_direction specifies whether this command is
  * 		from/to the device.
  * @data_direction_str: Data direction, as a string
+ * @req_addr: The current struct request pointer, as a number
+ * @scsi_timer_pending: 1 if a timer is pending on this request
  */
 probe scsi.iodone
 	= module("scsi_mod").function("scsi_done@drivers/scsi/scsi.c")!,
@@ -151,6 +154,7 @@ probe scsi.iodone
  * 		the device
  * @data_direction_str: Data direction, as a string
  * @goodbytes: The bytes completed
+ * @req_addr: The current struct request pointer, as a number
  */
 // mid-layer processes the completed IO
 probe scsi.iocompleted

@@ -1,6 +1,10 @@
 #! stap -p4
 
 probe begin {
-  print (scsi_timer_pending (0) + get_devstate_from_req (0))
+  println(describe_data_direction(0))
+  println(describe_device_state(0))
+  println(timer_pending(0))
+  println(scsi_timer_pending(0))
+  println(get_devstate_from_req (0))
 }
 
