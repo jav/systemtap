@@ -163,6 +163,13 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	  {
 	    unsigned long vm_start = 0;
 	    unsigned long vm_end = 0;
+#ifdef CONFIG_COMPAT
+        /* Handle 32bit signed values in 64bit longs, chop off top bits.
+           _stp_umod_lookup does the same, but we need it here for the
+           binary search on addr below. */
+        if (test_tsk_thread_flag(task, TIF_32BIT))
+          addr &= ((compat_ulong_t) ~0);
+#endif
 	    m = _stp_umod_lookup(addr, task, modname, &vm_start, &vm_end);
 	    if (m)
 	      {
