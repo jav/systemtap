@@ -124,7 +124,6 @@ systemtap_session::systemtap_session ():
   keep_tmpdir = false;
   cmd = "";
   target_pid = 0;
-  symtab = false;
   use_cache = true;
   use_script_cache = true;
   poison_cache = false;

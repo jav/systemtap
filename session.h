@@ -136,7 +136,6 @@ struct systemtap_session
   bool suppress_warnings;
   bool panic_warnings;
   int buffer_size;
-  bool symtab; /* true: emit symbol table at translation time; false: let staprun do it. */
   bool prologue_searching;
   bool tapset_compile_coverage;
   bool need_uprobes;
