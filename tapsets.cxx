@@ -2138,8 +2138,8 @@ struct dwarf_pretty_print
   dwarf_pretty_print (dwflpp& dw, vector<Dwarf_Die>& scopes, Dwarf_Addr pc,
                       const string& local, bool userspace_p,
                       const target_symbol& e):
-    dw(dw), local(local), scopes(scopes), pc(pc),
-    pointer(NULL), userspace_p(userspace_p)
+    dw(dw), local(local), scopes(scopes), pc(pc), pointer(NULL),
+    userspace_p(userspace_p), deref_p(true)
   {
     init_ts (e);
     dw.type_die_for_local (scopes, pc, local, ts, &base_type);
@@ -2147,17 +2147,17 @@ struct dwarf_pretty_print
 
   dwarf_pretty_print (dwflpp& dw, Dwarf_Die *scope_die, Dwarf_Addr pc,
                       bool userspace_p, const target_symbol& e):
-    dw(dw), scopes(1, *scope_die), pc(pc),
-    pointer(NULL), userspace_p(userspace_p)
+    dw(dw), scopes(1, *scope_die), pc(pc), pointer(NULL),
+    userspace_p(userspace_p), deref_p(true)
   {
     init_ts (e);
     dw.type_die_for_return (&scopes[0], pc, ts, &base_type);
   }
 
   dwarf_pretty_print (dwflpp& dw, Dwarf_Die *type_die, expression* pointer,
-                      bool userspace_p, const target_symbol& e):
+                      bool deref_p, bool userspace_p, const target_symbol& e):
     dw(dw), pc(0), pointer(pointer), pointer_type(*type_die),
-    userspace_p(userspace_p)
+    userspace_p(userspace_p), deref_p(deref_p)
   {
     init_ts (e);
     dw.type_die_for_pointer (type_die, ts, &base_type);
@@ -2178,7 +2178,7 @@ private:
   expression* pointer;
   Dwarf_Die pointer_type;
 
-  const bool userspace_p;
+  const bool userspace_p, deref_p;
 
   void recurse (Dwarf_Die* type, target_symbol* e,
                 print_format* pf, bool top=false);
@@ -2430,8 +2430,19 @@ dwarf_pretty_print::recurse_pointer (Dwarf_Die* type, target_symbol* e,
                                      print_format* pf, bool top)
 {
   // We chase to top-level pointers, but leave the rest alone
+  bool void_p = true;
   Dwarf_Die pointee;
   if (dwarf_attr_die (type, DW_AT_type, &pointee))
+    {
+      try
+        {
+          dw.resolve_unqualified_inner_typedie (&pointee, &pointee, e);
+          void_p = false;
+        }
+      catch (const semantic_error&) {}
+    }
+
+  if (!void_p)
     {
       if (print_chars (&pointee, e, pf))
         return;
@@ -2570,6 +2581,12 @@ expression*
 dwarf_pretty_print::deref (target_symbol* e)
 {
   static unsigned tick = 0;
+
+  if (!deref_p)
+    {
+      assert (pointer && e->components.empty());
+      return pointer;
+    }
 
   // Synthesize a function to dereference the dwarf fields,
   // with a pointer parameter that is the base tracepoint variable
@@ -3396,7 +3413,7 @@ dwarf_cast_query::handle_query_module()
           if (lvalue)
             throw semantic_error("cannot write to pretty-printed variable", e.tok);
 
-          dwarf_pretty_print dpp(dw, type_die, e.operand, userspace_p, e);
+          dwarf_pretty_print dpp(dw, type_die, e.operand, true, userspace_p, e);
           result = dpp.expand();
           return;
         }
@@ -7144,7 +7161,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
   // make sure we're not dereferencing base types
   if (!arg->isptr)
-    e->assert_no_components("tracepoint");
+    e->assert_no_components("tracepoint", true);
 
   // we can only write to dereferenced fields, and only if guru mode is on
   bool lvalue = is_active_lvalue(e);
@@ -7179,7 +7196,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
           if (lvalue)
             throw semantic_error("cannot write to pretty-printed variable", e->tok);
 
-          dwarf_pretty_print dpp(dw, &arg->type_die, e2, false, *e);
+          dwarf_pretty_print dpp(dw, &arg->type_die, e2, arg->isptr, false, *e);
           dpp.expand()->visit (this);
           return;
         }
@@ -7427,6 +7444,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 static bool
 resolve_tracepoint_arg_type(tracepoint_arg& arg)
 {
+  Dwarf_Die type;
   switch (dwarf_tag(&arg.type_die))
     {
     case DW_TAG_typedef:
@@ -7442,8 +7460,22 @@ resolve_tracepoint_arg_type(tracepoint_arg& arg)
     case DW_TAG_pointer_type:
       // pointers can be treated as script longs,
       // and if we know their type, they can also be dereferenced
-      if (dwarf_attr_die(&arg.type_die, DW_AT_type, &arg.type_die))
-        arg.isptr = true;
+      type = arg.type_die;
+      while (dwarf_attr_die(&arg.type_die, DW_AT_type, &arg.type_die))
+        {
+          // It still might be a non-type, e.g. const void,
+          // so we need to strip away all qualifiers.
+          int tag = dwarf_tag(&arg.type_die);
+          if (tag != DW_TAG_typedef &&
+              tag != DW_TAG_const_type &&
+              tag != DW_TAG_volatile_type)
+            {
+              arg.isptr = true;
+              break;
+            }
+        }
+      if (!arg.isptr)
+        arg.type_die = type;
       arg.typecast = "(intptr_t)";
       return true;
     case DW_TAG_structure_type:
