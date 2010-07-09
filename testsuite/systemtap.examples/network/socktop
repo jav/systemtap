@@ -349,3 +349,6 @@ probe timer.s('$P_INTERVAL')
 	if (iter == 0) exit();
 }
 '
+
+# Cleanup
+test -n "$MOD_GEN" && rm -f ${MOD_NAME}.ko
