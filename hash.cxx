@@ -208,6 +208,7 @@ find_script_hash (systemtap_session& s, const string& script)
   h.add(s.consult_symtab);		// --kelf, --kmap
   h.add(s.skip_badvars);		// --skip-badvars
   h.add(s.unprivileged);		// --unprivileged
+  h.add(s.compatible);			// --compatible
   h.add(s.omit_werror);		        // undocumented, evil
   if (!s.kernel_symtab_path.empty())	// --kmap
     {
