@@ -152,7 +152,7 @@ proc setup_server {} {
     }
 
     # See what avahi finds
-    set looksee [exec avahi-browse _stap._tcp -t -r | grep -A4 {^=.*Systemtap.Compile}]
+    catch { exec avahi-browse _stap._tcp -t -r | grep -A4 {^=.*Systemtap.Compile} } looksee
     verbose -log "avahi-browse found:\n$looksee"
 
     # Make sure that stap can find the server.
