@@ -10,14 +10,17 @@ if {! [use_server_p]} then {
 # Run the buildok tests using the server
 set self buildok
 foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
-    set test "$self/[file tail $file] with server"
+    set test "$self/[file tail $file]"
     verbose -log "Running $file"
     set rc [stap_run_batch $file]
-    # some tests are known to fail.
+    # some tests are known to fail ...
+    buildok_known_failures $test $rc
+    # ... as well as this one
     switch $test {
-        "buildok/rpc-all-probes.stp with server" {setup_kfail 4413 *-*-*}
+	buildok/thirtythree.stp { # uses --ldd
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
     }
-    if {$rc == 0} { pass $test } else { fail $test }
+    if {$rc == 0} { pass $test } else { fail "$test with server" }
 }
 
 # If this is an installcheck, then run a basic execution test.

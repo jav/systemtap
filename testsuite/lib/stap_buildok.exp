@@ -1,0 +1,33 @@
+# stap_buildok.exp
+#
+# Simple script for checking the known failures of buildok.exp. Used by
+#   systemtap.passes0_4/buildok.exp and
+#   systemtap.server/server.exp
+proc buildok_known_failures {test rc} {
+    switch $test {
+	buildok/networking-change_rx_flag.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/nfs-fop.check_flags.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/memory-mmap.stp { if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/memory-write_shared_copy.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+        buildok/per-process-syscall.stp {
+		if {![utrace_p]} { setup_kfail 9999 *-*-*} }
+	buildok/signal-check_ignored.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/signal-handle.stp { if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/scheduler-cpu_off.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/scheduler-ctxswitch.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/scheduler-migrate.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/tty-resize.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/ucontext-symbols-embedded.stp {
+		if {$rc != 0 && ![uprobes_p]} { setup_kfail 9999 *-*-* } }
+	buildok/ucontext-unwind-embedded.stp {
+		if {$rc != 0 && ![uprobes_p]} { setup_kfail 9999 *-*-* } }
+    }
+}
