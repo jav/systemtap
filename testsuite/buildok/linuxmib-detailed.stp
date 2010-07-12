@@ -1,10 +1,5 @@
 #! stap -p4
 
-function linuxmib_filter_key:long (sk:long, op:long)
-{
-	return 1
-}
-
 probe linuxmib.DelayedACKs, linuxmib.ListenOverflows,
       linuxmib.ListenDrops, linuxmib.TCPMemoryPressures
 {

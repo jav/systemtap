@@ -3,7 +3,3 @@
 // Tests if all probes in the linuxmib tapset are resolvable.
 
 probe linuxmib.* {}
-
-function linuxmib_filter_key:long (sk:long, op:long) {
-	return 0
-}
