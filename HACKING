@@ -148,6 +148,9 @@ the <systemtap@sources.redhat.com> mailing list.
 - git basics
 
   git clone ssh://sources.redhat.com/git/systemtap.git
+  # OR: use git://sources.redhat.com/git/systemtap.git then add to .git/config:
+  #     [remote "origin"]
+  #     pushurl=ssh://sources.redhat.com/git/systemtap.git
   # build ; hack hack hack; test
   git commit # to your local repository, add nice commit message
   git pull # to make sure your copy is up to date & merged
