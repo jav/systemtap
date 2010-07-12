@@ -23,8 +23,8 @@ spawn stap $srcdir/$subdir/$test.stp -c ./$test
 set ok 0
 expect {
 	-timeout 60
-	-re {mkpoint[^\r\n]* returns\r\n} { incr ok; exp_continue }
-	-re {1,2\r\n} { incr ok; exp_continue }
+	-re {^mkpoint[^\r\n]* returns\r\n} { incr ok; exp_continue }
+	-re {^1,2\r\n} { incr ok; exp_continue }
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
