@@ -1,0 +1,90 @@
+probe begin 
+{
+	printf("%p\n",0)
+	printf("%p\n",1)
+	printf("%p\n",0x12345678)
+	printf("%p\n",0x12345678abcdef00)
+	printf("%p\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%20pX\n",0)
+	printf("%20pX\n",1)
+	printf("%20pX\n",0x12345678)
+	printf("%20pX\n",0x12345678abcdef00)
+	printf("%20pX\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%-20pX\n",0)
+	printf("%-20pX\n",1)
+	printf("%-20pX\n",0x12345678)
+	printf("%-20pX\n",0x12345678abcdef00)
+	printf("%-20pX\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%.20pX\n",0)
+	printf("%.20pX\n",1)
+	printf("%.20pX\n",0x12345678)
+	printf("%.20pX\n",0x12345678abcdef00)
+	printf("%.20pX\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%20.8pX\n",0)
+	printf("%20.8pX\n",1)
+	printf("%20.8pX\n",0x12345678)
+	printf("%20.8pX\n",0x12345678abcdef00)
+	printf("%20.8pX\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%-20.8pX\n",0)
+	printf("%-20.8pX\n",1)
+	printf("%-20.8pX\n",0x12345678)
+	printf("%-20.8pX\n",0x12345678abcdef00)
+	printf("%-20.8pX\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%8p\n",0)
+	printf("%8p\n",1)
+	printf("%8p\n",0x12345678)
+	printf("%8p\n",0x12345678abcdef00)
+	printf("%8p\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%-8pX\n",0)
+	printf("%-8pX\n",1)
+	printf("%-8pX\n",0x12345678)
+	printf("%-8pX\n",0x12345678abcdef00)
+	printf("%-8pX\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%.8p\n",0)
+	printf("%.8p\n",1)
+	printf("%.8p\n",0x12345678)
+	printf("%.8p\n",0x12345678abcdef00)
+	printf("%.8p\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%8.20p\n",0)
+	printf("%8.20p\n",1)
+	printf("%8.20p\n",0x12345678)
+	printf("%8.20p\n",0x12345678abcdef00)
+	printf("%8.20p\n",0x0000000012345678)
+
+	printf("\n")
+
+	printf("%-8.20pX\n",0)
+	printf("%-8.20pX\n",1)
+	printf("%-8.20pX\n",0x12345678)
+	printf("%-8.20pX\n",0x12345678abcdef00)
+	printf("%-8.20pX\n",0x0000000012345678)
+
+	exit()
+}

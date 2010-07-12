@@ -38,5 +38,13 @@ probe begin
 	printf("%-8pX\n",0x12345678abcdef00)
 	printf("%-8pX\n",0x0000000012345678)
 
+	printf("\n")
+
+	printf("%.1p\n",0)
+	printf("%.1p\n",1)
+	printf("%.1p\n",0x12345678)
+	printf("%.1p\n",0x12345678abcdef00)
+	printf("%.1p\n",0x0000000012345678)
+
 	exit()
 }

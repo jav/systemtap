@@ -1,4 +1,4 @@
-set test "ptr"
+set test "ptr-1.2"
 
 if {$::tcl_platform(wordSize) == 8} {
   set ::result_string "0x0000000000000000
@@ -29,7 +29,13 @@ if {$::tcl_platform(wordSize) == 8} {
 0x000001X
 0x12345678X
 0x12345678abcdef00X
-0x12345678X"
+0x12345678X
+
+0x0000000000000000
+0x0000000000000001
+0x0000000012345678
+0x12345678abcdef00
+0x0000000012345678"
 } else {
   set ::result_string "0x00000000
 0x00000001
@@ -59,6 +65,12 @@ if {$::tcl_platform(wordSize) == 8} {
 0x000001X
 0x12345678X
 0xabcdef00X
-0x12345678X"
+0x12345678X
+
+0x00000000
+0x00000001
+0x12345678
+0xabcdef00
+0x12345678"
 }
-stap_run2 $srcdir/$subdir/$test.stp
+stap_run2 $srcdir/$subdir/$test.stp --compatible=1.2

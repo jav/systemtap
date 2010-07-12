@@ -397,11 +397,17 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                             /* Since stap 1.3, %p == %#x. */
                             flags |= STP_SPECIAL;
                             base = 16;
-                            /* Previously it was %#.8x or %#.16x. */
-                            #if STAP_COMPAT_VERSION < STAP_VERSION(1,3)
-                            if (precision < 0)
-                                    precision = 2*sizeof(void*);
-                            #endif
+
+#if STAP_COMPAT_VERSION < STAP_VERSION(1,3)
+                            /* Before 1.3, %p was an odd child; see below. */
+                            qualifier = 'P';
+                            if (field_width == -1)
+                                    field_width = 2 + 2*sizeof(void*);
+                            precision = field_width - 2;
+                            if (!(flags & STP_LEFT))
+                                    precision = min_t(int, precision, 2*sizeof(void*));
+#endif
+
                             break;
 
                     case '%':
@@ -438,6 +444,8 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 
                     if (qualifier == 'L')
                             num = va_arg(args_copy, int64_t);
+                    else if (qualifier == 'P') // fake, just for compat %p
+                            num = (unsigned long) va_arg(args_copy, int64_t);
                     else if (qualifier == 'l') {
                             num = va_arg(args_copy, unsigned long);
                             if (flags & STP_SIGN)
@@ -682,11 +690,23 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			/* Since stap 1.3, %p == %#x. */
 			flags |= STP_SPECIAL;
 			base = 16;
-			/* Previously it was %#.8x or %#.16x. */
-			#if STAP_COMPAT_VERSION < STAP_VERSION(1,3)
-			if (precision < 0)
-				precision = 2*sizeof(void*);
-			#endif
+
+#if STAP_COMPAT_VERSION < STAP_VERSION(1,3)
+			/* Before 1.3, %p was an odd child:
+			 * - the value is truncated to unsigned long
+			 * - the specified precision is ignored
+			 * - the default field_width is 2+2*sizeof(void*)
+			 * - the effective precision is field_width - 2, except
+			 *   if !STP_LEFT, where it is at most 2*sizeof(void*)
+			 */
+			qualifier = 'P';
+			if (field_width == -1)
+				field_width = 2 + 2*sizeof(void*);
+			precision = field_width - 2;
+			if (!(flags & STP_LEFT))
+				precision = min_t(int, precision, 2*sizeof(void*));
+#endif
+
 			break;
 
 		case '%':
@@ -735,6 +755,8 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 
 		if (qualifier == 'L')
 			num = va_arg(args, int64_t);
+		else if (qualifier == 'P') // fake, just for compat %p
+			num = (unsigned long) va_arg(args, int64_t);
 		else if (qualifier == 'l') {
 			num = va_arg(args, unsigned long);
 			if (flags & STP_SIGN)
