@@ -1,18 +1,5 @@
 #! stap -wp4
 
-// These functions are just for testing, the real functions are
-// in tcpipstat.stp
-function tcpmib_filter_key:long (sk:long, op:long)
-{
-       if (!sk) return 0
-       return op
-}
-function ipmib_filter_key:long (skb:long, op:long, SourceIsLocal:long)
-{
-       if (!skb) return 0
-       return op
-}
-
 probe tcpmib.ActiveOpens, tcpmib.AttemptFails ?, tcpmib.CurrEstab ?,
       tcpmib.EstabResets ?, tcpmib.OutRsts, tcpmib.OutSegs,
       tcpmib.PassiveOpens, tcpmib.RetransSegs
