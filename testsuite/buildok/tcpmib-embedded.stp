@@ -1,0 +1,12 @@
+#! stap -p4
+
+probe begin{
+        print(tcpmib_get_state(0) +
+              tcpmib_local_addr(0) +
+              tcpmib_remote_addr(0) +
+              tcpmib_local_port(0) +
+              tcpmib_remote_port(0) +
+              _rtn_local() +
+              _is_reset(0) +
+              _tcpmib_input_route_type(0))
+}

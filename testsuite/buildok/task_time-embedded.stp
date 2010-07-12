@@ -9,5 +9,6 @@ probe begin
 	      + cputime_to_msecs(0))
 	print(msecs_to_string(0))
 	print(cputime_to_string(0))
+	print(task_time_string())
 	print(task_time_string_tid(0))
 }
