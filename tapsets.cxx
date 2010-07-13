@@ -2196,6 +2196,7 @@ private:
 
   void init_ts (const target_symbol& e);
   expression* deref (target_symbol* e);
+  bool push_deref (print_format* pf, const string& fmt, target_symbol* e);
 };
 
 
@@ -2337,8 +2338,7 @@ dwarf_pretty_print::recurse (Dwarf_Die* start_type, target_symbol* e,
       break;
 
     case DW_TAG_subroutine_type:
-      pf->raw_components.append("<function>:%p");
-      pf->args.push_back(deref(e));
+      push_deref (pf, "<function>:%p", e);
       break;
 
     case DW_TAG_union_type:
@@ -2358,7 +2358,6 @@ dwarf_pretty_print::recurse_base (Dwarf_Die* type, target_symbol* e,
   Dwarf_Word encoding = (Dwarf_Word) -1;
   dwarf_formudata (dwarf_attr_integrate (type, DW_AT_encoding, &attr),
                    &encoding);
-  bool push = true;
   switch (encoding)
     {
     case DW_ATE_float:
@@ -2367,24 +2366,21 @@ dwarf_pretty_print::recurse_base (Dwarf_Die* type, target_symbol* e,
       // throw semantic_error ("unsupported type (encoding " + lex_cast(encoding)
       //                       + ") for " + dwarf_type_name(type), e->tok);
       pf->raw_components.append("?");
-      push = false;
       break;
 
     case DW_ATE_signed_char:
     case DW_ATE_unsigned_char:
-      pf->raw_components.append("'%c'");
+      push_deref (pf, "'%c'", e);
       break;
 
     case DW_ATE_unsigned:
-      pf->raw_components.append("%u");
+      push_deref (pf, "%u", e);
       break;
 
     default:
-      pf->raw_components.append("%i");
+      push_deref (pf, "%i", e);
       break;
     }
-  if (push)
-    pf->args.push_back(deref(e));
 }
 
 
@@ -2454,8 +2450,7 @@ dwarf_pretty_print::recurse_pointer (Dwarf_Die* type, target_symbol* e,
         }
     }
 
-  pf->raw_components.append("%p");
-  pf->args.push_back(deref(e));
+  push_deref (pf, "%p", e);
 }
 
 
@@ -2561,16 +2556,19 @@ dwarf_pretty_print::print_chars (Dwarf_Die* start_type, target_symbol* e,
   const char *name = dwarf_diename (&type);
   if (name && (name == string("char") || name == string("unsigned char")))
     {
-      functioncall* fcall = new functioncall;
-      fcall->tok = e->tok;
-      fcall->function = userspace_p ? "user_string2" : "kernel_string2";
-      fcall->args.push_back (deref (e));
-      expression *err_msg = new literal_string ("<unknown>");
-      err_msg->tok = e->tok;
-      fcall->args.push_back (err_msg);
-
-      pf->raw_components.append ("\"%s\"");
-      pf->args.push_back (fcall);
+      if (push_deref (pf, "\"%s\"", e))
+        {
+          // steal the last arg for a string access
+          assert (!pf->args.empty());
+          functioncall* fcall = new functioncall;
+          fcall->tok = e->tok;
+          fcall->function = userspace_p ? "user_string2" : "kernel_string2";
+          fcall->args.push_back (pf->args.back());
+          expression *err_msg = new literal_string ("<unknown>");
+          err_msg->tok = e->tok;
+          fcall->args.push_back (err_msg);
+          pf->args.back() = fcall;
+        }
       return true;
     }
   return false;
@@ -2648,6 +2646,26 @@ dwarf_pretty_print::deref (target_symbol* e)
 
   fdecl->join (dw.sess);
   return fcall;
+}
+
+
+bool
+dwarf_pretty_print::push_deref (print_format* pf, const string& fmt,
+                                target_symbol* e)
+{
+  expression* e2 = NULL;
+  try
+    {
+      e2 = deref (e);
+    }
+  catch (const semantic_error&)
+    {
+      pf->raw_components.append ("?");
+      return false;
+    }
+  pf->raw_components.append (fmt);
+  pf->args.push_back (e2);
+  return true;
 }
 
 
