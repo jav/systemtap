@@ -192,6 +192,10 @@ proc shutdown_server {} {
     if [file exists $net_path] {
 	exec /bin/rm -fr $net_path
     }
+
+    foreach module [glob -nocomplain [exec pwd]/stap_*.ko] {
+	exec /bin/rm -f $module
+    }
 }
 
 proc get_system_info {} {
