@@ -152,7 +152,10 @@ the <systemtap@sources.redhat.com> mailing list.
   #     [remote "origin"]
   #     pushurl=ssh://sources.redhat.com/git/systemtap.git
   # build ; hack hack hack; test
+  git add FILE1 FILE2 # enumerate all modified or new files
+  git status # to confirm that needed local changes are "staged"
   git commit # to your local repository, add nice commit message
+  git show # to check that the last commit included all changes
   git pull # to make sure your copy is up to date & merged
   # last minute rebuild; retest
   git rebase origin/master # clean git commit of merge history
