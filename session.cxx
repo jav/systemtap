@@ -295,6 +295,7 @@ systemtap_session::usage (int exitcode)
   clog
     << "   -D NM=VAL  emit macro definition into generated C code" << endl
     << "   -B NM=VAL  pass option to kbuild make" << endl
+    << "   -G VAR=VAL set global variable to value" << endl
     << "   -R DIR     look in DIR for runtime, instead of" << endl
     << "              " << runtime_path << endl
     << "   -r DIR     cross-compile to kernel with given build tree; or else" << endl
@@ -419,7 +420,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:W",
+      int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
 			     long_options, NULL);
       // NB: when adding new options, consider very carefully whether they
       // should be restricted from stap-clients (after --client-options)!
@@ -440,6 +441,10 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
             perpass_verbose[i] ++;
 	  verbose ++;
 	  break;
+
+       case 'G':
+          globalopts.push_back (string (optarg));
+          break;
 
         case 't':
 	  push_server_opt = true;

@@ -448,6 +448,10 @@ run_pass (systemtap_session& s)
 
   staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
 
+  // add module arguments
+  for (unsigned i=0; i<s.globalopts.size(); i++)
+    staprun_cmd += " " + s.globalopts[i];
+
   return stap_system (s.verbose, staprun_cmd);
 }
 

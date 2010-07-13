@@ -1,5 +1,8 @@
 * What's new
 
+- New stap option -G allows setting global variables and invoke
+  staprun in one step.
+
 - It is now possible in some situations to use print_ubacktrace() to
   get a user space stack trace from a kernel probe point. e.g. for
   user backtraces when there is a pagefault:
