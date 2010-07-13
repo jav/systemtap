@@ -249,6 +249,7 @@ compile_server_client::create_request ()
 int
 compile_server_client::add_package_args ()
 {
+  // stap arguments to be passed to the server.
   int rc = 0;
   unsigned limit = s.server_args.size();
   for (unsigned i = 0; i < limit; ++i)
@@ -257,6 +258,20 @@ compile_server_client::add_package_args ()
       if (rc != 0)
 	return rc;
     }
+
+  // Script arguments.
+  limit = s.args.size();
+  if (limit > 0) {
+    rc = add_package_arg ("--");
+    if (rc != 0)
+      return rc;
+    for (unsigned i = 0; i < limit; ++i)
+      {
+	rc = add_package_arg (s.args[i]);
+	if (rc != 0)
+	  return rc;
+      }
+  }
   return rc;
 }  
 
