@@ -178,24 +178,22 @@ handle_fields (struct obstack *pool,
 		 dwarf_getlocation_addr would not handle the constant for
 		 us, but newer ones do.  For older ones, we work around
 		 it by faking an expression, which is what newer ones do.  */
+	      size_t locexpr_len;
+	      const Dwarf_Op *locexpr;
 #if !_ELFUTILS_PREREQ (0,142)
 	      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
 	      if (dwarf_formudata (&attr_mem, &offset_loc.number) == 0)
-		c_translate_location (pool, NULL, NULL, NULL,
-				      1, cubias, pc, &attr_mem,
-				      &offset_loc, 1,
-				      &tail, NULL, NULL);
+		{
+		  locexpr = &offset_loc;
+		  locexpr_len = 1;
+		}
 	      else
 #endif
-		{
-		  size_t locexpr_len;
-		  const Dwarf_Op *locexpr = get_location (cubias, pc, &attr_mem,
-							  &locexpr_len);
-		  c_translate_location (pool, NULL, NULL, NULL,
-					1, cubias, pc, &attr_mem,
-					locexpr, locexpr_len,
-					&tail, NULL, NULL);
-		}
+		locexpr = get_location (cubias, pc, &attr_mem, &locexpr_len);
+	      c_translate_location (pool, NULL, NULL, NULL,
+				    1, cubias, pc, &attr_mem,
+				    locexpr, locexpr_len,
+				    &tail, NULL, NULL);
 	    }
 	  ++fields;
 	  break;
