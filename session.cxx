@@ -443,7 +443,22 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	  break;
 
        case 'G':
-          globalopts.push_back (string (optarg));
+          {
+            std::string gopt = string (optarg);
+
+            // Make sure the global option is only composed of the
+            // following chars: [_=a-zA-Z0-9]
+            const string identchars("_" "=" "abcdefghijklmnopqrstuvwxyz"
+                                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789");
+            if (gopt.find_first_not_of(identchars) != string::npos)
+            {
+                cerr << "Invalid global option (must only be composed of"
+                        " characters [_=a-zA-Z0-9])." << endl;
+                return 1;
+            }
+
+            globalopts.push_back (gopt);
+          }
           break;
 
         case 't':
