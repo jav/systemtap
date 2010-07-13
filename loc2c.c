@@ -60,7 +60,7 @@ struct location
 
   enum
     {
-      loc_address, loc_register, loc_noncontiguous, loc_value,
+      loc_address, loc_register, loc_noncontiguous, loc_value, loc_unavailable,
       loc_constant, loc_decl, loc_fragment, loc_final
     } type;
   struct location *frame_base;
@@ -254,7 +254,14 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
   size_t i;
   inline const char *finish (struct location *piece)
     {
-      if (stack_depth >= 1)
+      if (piece->nops == 0)
+	{
+	  assert (stack_depth == 0);
+	  assert (tos_register == -1);
+	  assert (obstack_object_size (pool) == 0);
+	  piece->type = loc_unavailable;
+	}
+      else if (stack_depth >= 1)
 	{
 	  /* The top of stack has our value.
 	     Other stack slots left don't matter.  */
@@ -1088,6 +1095,10 @@ location_relative (struct obstack *pool,
 	      (*input)->byte_size -= value;
 	      return head ?: *input;
 
+	    case loc_unavailable:
+	      /* Let it be diagnosed later.  */
+	      return head ?: *input;
+
 	    case loc_value:
 	      /* The piece we want is part of a computed value!  */
 	      /* XXX implement me! */
@@ -1181,6 +1192,7 @@ c_translate_location (struct obstack *pool,
     case loc_register:
     case loc_value:
     case loc_constant:
+    case loc_unavailable:
       /* The starting point is not an address computation, but a
 	 register or implicit value.  We can only handle limited
 	 computations from here.  */
@@ -1369,6 +1381,10 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
       FAIL (loc, N_("noncontiguous location for base fetch"));
       break;
 
+    case loc_unavailable:
+      FAIL (loc, N_("location not available"));
+      break;
+
     default:
       abort ();
       break;
@@ -1410,6 +1426,10 @@ emit_base_store (struct obstack *pool, Dwarf_Word byte_size,
 
     case loc_constant:
       FAIL (loc, N_("location is constant value, cannot store"));
+      break;
+
+    case loc_unavailable:
+      FAIL (loc, N_("location is not available, cannot store"));
       break;
 
     default:
@@ -1983,6 +2003,9 @@ c_translate_addressof (struct obstack *pool, int indent,
     case loc_constant:
       FAIL (*input, N_("cannot take address of constant value"));
       break;
+    case loc_unavailable:
+      FAIL (*input, N_("cannot take address of unavailable value"));
+      break;
 
     default:
       abort();
@@ -2154,6 +2177,10 @@ c_translate_array (struct obstack *pool, int indent,
 
     case loc_value:
       FAIL (*input, N_("cannot index into computed value"));
+      break;
+
+    case loc_unavailable:
+      FAIL (*input, N_("cannot index into unavailable value"));
       break;
 
     default:
