@@ -1,0 +1,19 @@
+# Check stap global variable option (-G)
+
+if {![installtest_p]} {
+    untested global_stat
+    return
+}
+
+set script "global var1=9 ; probe begin { if (var1 == 29) println(\"systemtap test success\") else println(\"systemtap test failure\") ; exit() }"
+
+spawn stap -G var1=29 -e $script
+
+expect {
+    -timeout 60
+    "systemtap test success" { pass "global_opt" }
+    timeout {fail "global_opt: unexpected timeout"}
+    eof {fail "global_opt: unexpected EOF"}
+}
+wait; catch { close }
+
